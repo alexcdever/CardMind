@@ -1,0 +1,39 @@
+{
+  "name": "cardmind",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CardMind - A cross-platform note-taking application",
+  "scripts": {
+    "dev:desktop": "pnpm --filter @cardmind/desktop start",
+    "build:desktop": "pnpm --filter @cardmind/desktop build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format",
+    "prepare": "husky install",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "keywords": [
+    "note-taking",
+    "electron",
+    "react",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@commitlint/cli": "^18.4.3",
+    "@commitlint/config-conventional": "^18.4.3",
+    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/parser": "^6.12.0",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.0",
+    "turbo": "^1.10.16",
+    "typescript": "^5.3.2"
+  }
+}

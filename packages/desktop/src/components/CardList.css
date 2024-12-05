@@ -1,0 +1,70 @@
+.card-content-container {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px;
+}
+
+.wmde-markdown-var {
+  text-align: left !important;
+}
+
+.wmde-markdown-var > * {
+  text-align: left !important;
+}
+
+/* Lists styling */
+.wmde-markdown-var ul,
+.wmde-markdown-var ol {
+  padding-left: 24px !important;
+  margin: 4px 0 !important;
+}
+
+.wmde-markdown-var ul {
+  list-style-type: disc !important;
+}
+
+.wmde-markdown-var ol {
+  list-style-type: decimal !important;
+}
+
+.wmde-markdown-var li {
+  margin: 2px 0 !important;
+  display: list-item !important;
+}
+
+/* Task list styling */
+.wmde-markdown-var ul li.task-list-item,
+div[data-color-mode] .wmde-markdown-var ul li.task-list-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  list-style: none !important;
+  margin-left: -20px !important;
+  padding-left: 0 !important;
+}
+
+.wmde-markdown-var ul li.task-list-item input[type="checkbox"],
+div[data-color-mode] .wmde-markdown-var ul li.task-list-item input[type="checkbox"] {
+  margin: 4px 8px 0 0 !important;
+  flex-shrink: 0 !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+.wmde-markdown-var ul li.task-list-item > p,
+div[data-color-mode] .wmde-markdown-var ul li.task-list-item > p {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 22px !important;
+}
+
+/* Hide preview toolbar */
+.wmde-markdown-var > .wmde-markdown-color {
+  display: none !important;
+}
+
+/* Paragraphs */
+.wmde-markdown-var p {
+  margin: 4px 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}

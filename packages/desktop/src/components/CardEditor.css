@@ -1,0 +1,70 @@
+.card-editor-container {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* 修复 Markdown 编辑器工具栏的样式 */
+.w-md-editor {
+  box-shadow: none !important;
+  background-color: #fff !important;
+}
+
+.w-md-editor-toolbar {
+  border: 1px solid #d9d9d9 !important;
+  border-radius: 6px 6px 0 0 !important;
+  background-color: #fafafa !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.w-md-editor-content {
+  border: 1px solid #d9d9d9 !important;
+  border-top: none !important;
+  border-radius: 0 0 6px 6px !important;
+}
+
+.w-md-editor-input {
+  border-right: 1px solid #d9d9d9 !important;
+}
+
+/* 确保编辑器工具栏不会溢出 */
+.w-md-editor-toolbar ul {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  padding: 8px !important;
+}
+
+.w-md-editor-toolbar li {
+  margin: 0 !important;
+}
+
+/* 调整编辑器和预览区域的高度 */
+.w-md-editor-text-input {
+  min-height: 200px !important;
+}
+
+.w-md-editor-preview {
+  min-height: 200px !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* 修复暗色主题下的样式 */
+[data-color-mode="dark"] .w-md-editor {
+  background-color: #1e1e1e !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-toolbar {
+  background-color: #2d2d2d !important;
+  border-color: #434343 !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-content {
+  border-color: #434343 !important;
+}
+
+[data-color-mode="dark"] .w-md-editor-input {
+  border-right-color: #434343 !important;
+}
