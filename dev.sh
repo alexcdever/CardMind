@@ -38,8 +38,8 @@ else
 
     # 等待用户中断
     echo "Development servers are running..."
-    echo "Backend is available at http://localhost:3001"
-    echo "Frontend is available at http://localhost:3000"
+    echo "Backend is available at http://localhost:3000"
+    echo "Frontend is available at http://localhost:9999"
     echo "Press Ctrl+C to stop all servers"
 
     # 捕获中断信号

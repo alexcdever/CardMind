@@ -26,6 +26,6 @@ ping 127.0.0.1 -n 6 > nul
 start "CardMind Frontend" cmd /k "pnpm dev"
 
 echo Development servers are starting...
-echo Backend will be available at http://localhost:3001
-echo Frontend will be available at http://localhost:3000
+echo Backend will be available at http://localhost:3000
+echo Frontend will be available at http://localhost:9999
 pause
