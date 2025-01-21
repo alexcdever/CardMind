@@ -6,10 +6,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Sqlite, Row};
-use tower::ServiceBuilder;
-use tower_http::cors::CorsLayer;
-use std::net::SocketAddr;
-use tokio::net::TcpListener;
+use tower_http::cors::{CorsLayer, Any};
+use std::net::{SocketAddr, TcpListener};
 use tracing::{info, error};
 
 #[derive(Debug, Serialize)]
@@ -30,7 +28,7 @@ struct CreateCard {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 初始化日志
     tracing_subscriber::fmt()
-        .with_env_filter("debug,tower_http=debug")
+        .with_env_filter("debug")
         .init();
 
     info!("Starting server...");
@@ -54,24 +52,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .execute(&pool)
     .await?;
 
+    // 配置 CORS
     let cors = CorsLayer::new()
-        .allow_methods(tower_http::cors::Any);
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let app = Router::new()
         .route("/", get(health_check))
         .route("/api/cards", get(list_cards).post(create_card))
-        .with_state(pool)
-        .layer(
-            ServiceBuilder::new()
-                .layer(cors)
-                .into_inner()
-        );
+        .layer(cors)
+        .with_state(pool);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 9999));
     info!("Listening on {}", addr);
     
-    let listener = TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    let listener = TcpListener::bind(addr)?;
+    axum::Server::from_tcp(listener)?
+        .serve(app.into_make_service())
+        .await?;
 
     Ok(())
 }
