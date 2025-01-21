@@ -8,6 +8,7 @@ dist-electron
 build
 release
 out
+target
 
 # 开发工具
 .vscode/*
