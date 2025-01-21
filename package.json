@@ -4,8 +4,9 @@
   "version": "1.0.0",
   "description": "CardMind - A cross-platform note-taking application",
   "scripts": {
-    "dev:desktop": "pnpm --filter @cardmind/desktop start",
-    "build:desktop": "pnpm --filter @cardmind/desktop build",
+    "dev": "pnpm --filter @cardmind/web start",
+    "build": "pnpm --filter @cardmind/web build",
+    "build:desktop": "pnpm --filter @cardmind/web build:desktop",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean",
     "lint": "pnpm -r lint",
@@ -15,9 +16,9 @@
   },
   "keywords": [
     "note-taking",
-    "electron",
     "react",
-    "typescript"
+    "typescript",
+    "rust"
   ],
   "author": "",
   "license": "MIT",
