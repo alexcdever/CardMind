@@ -20,11 +20,6 @@ out
 *.sln
 *.sw?
 
-# 环境文件
-.env
-.env.*
-!.env.example
-
 # 日志
 logs
 *.log
@@ -117,3 +112,12 @@ yarn.lock
 .nuxt
 .output
 .vercel
+
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# SQLite
+*.db
+*.db-*
