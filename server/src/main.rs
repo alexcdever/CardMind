@@ -1,124 +1,18 @@
 use axum::{
-    routing::{get, post},
-    Router,
-    Json,
-    http::StatusCode,
     extract::State,
+    http::StatusCode,
+    routing::get,
+    Json, Router,
 };
-use tower_http::cors::{CorsLayer, Any};
 use serde::{Deserialize, Serialize};
-use sqlx::sqlite::SqlitePool;
-use std::env;
+use sqlx::{Pool, Sqlite, Row};
+use tower::ServiceBuilder;
+use tower_http::cors::CorsLayer;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
+use tracing::{info, error};
 
 #[derive(Debug, Serialize)]
-struct ApiResponse<T> {
-    success: bool,
-    data: Option<T>,
-    message: Option<String>,
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 加载环境变量
-    dotenv::dotenv().ok();
-    
-    // 初始化日志
-    tracing_subscriber::fmt::init();
-
-    // 初始化数据库连接
-    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite:data.db".to_string());
-    let pool = SqlitePool::connect(&database_url).await?;
-
-    // 运行数据库迁移
-    sqlx::migrate!("./migrations").run(&pool).await?;
-
-    // 创建路由
-    let app = Router::new()
-        .route("/", get(health_check))
-        .route("/api/cards", get(list_cards))
-        .route("/api/cards", post(create_card))
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
-        )
-        .with_state(pool);
-
-    // 获取服务器配置
-    let host = env::var("HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let port = env::var("PORT").unwrap_or_else(|_| "3001".to_string());
-    let addr = format!("{}:{}", host, port);
-
-    // 启动服务器
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    tracing::info!("Server running on http://{}", addr);
-    
-    axum::serve(listener, app).await?;
-    Ok(())
-}
-
-// 健康检查接口
-async fn health_check() -> Json<ApiResponse<&'static str>> {
-    Json(ApiResponse {
-        success: true,
-        data: Some("OK"),
-        message: None,
-    })
-}
-
-// 列出所有卡片
-async fn list_cards(
-    State(pool): State<SqlitePool>
-) -> Result<Json<ApiResponse<Vec<Card>>>, StatusCode> {
-    match sqlx::query_as!(
-        Card,
-        "SELECT * FROM cards ORDER BY created_at DESC"
-    )
-    .fetch_all(&pool)
-    .await {
-        Ok(cards) => Ok(Json(ApiResponse {
-            success: true,
-            data: Some(cards),
-            message: None,
-        })),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-// 创建新卡片
-async fn create_card(
-    State(pool): State<SqlitePool>,
-    Json(payload): Json<CreateCardRequest>,
-) -> Result<(StatusCode, Json<ApiResponse<Card>>), StatusCode> {
-    let now = chrono::Utc::now();
-    
-    match sqlx::query_as!(
-        Card,
-        r#"
-        INSERT INTO cards (title, content, created_at)
-        VALUES (?, ?, ?)
-        RETURNING *
-        "#,
-        payload.title,
-        payload.content,
-        now,
-    )
-    .fetch_one(&pool)
-    .await {
-        Ok(card) => Ok((
-            StatusCode::CREATED,
-            Json(ApiResponse {
-                success: true,
-                data: Some(card),
-                message: None,
-            }),
-        )),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-#[derive(Debug, Serialize, sqlx::FromRow)]
 struct Card {
     id: i64,
     title: String,
@@ -127,7 +21,129 @@ struct Card {
 }
 
 #[derive(Debug, Deserialize)]
-struct CreateCardRequest {
+struct CreateCard {
     title: String,
     content: String,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 初始化日志
+    tracing_subscriber::fmt()
+        .with_env_filter("debug,tower_http=debug")
+        .init();
+
+    info!("Starting server...");
+    
+    // 使用内存数据库
+    let database_url = "sqlite::memory:";
+    info!("Connecting to database: {}", database_url);
+    let pool = sqlx::SqlitePool::connect(database_url).await?;
+
+    info!("Creating cards table...");
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS cards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at DATETIME NOT NULL
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await?;
+
+    let cors = CorsLayer::new()
+        .allow_methods(tower_http::cors::Any);
+
+    let app = Router::new()
+        .route("/", get(health_check))
+        .route("/api/cards", get(list_cards).post(create_card))
+        .with_state(pool)
+        .layer(
+            ServiceBuilder::new()
+                .layer(cors)
+                .into_inner()
+        );
+
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    info!("Listening on {}", addr);
+    
+    let listener = TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
+
+async fn health_check() -> &'static str {
+    "OK"
+}
+
+async fn list_cards(
+    State(pool): State<Pool<Sqlite>>,
+) -> Result<Json<Vec<Card>>, StatusCode> {
+    info!("Listing cards...");
+    match sqlx::query(
+        "SELECT id, title, content, created_at FROM cards ORDER BY created_at DESC"
+    )
+    .try_map(|row: sqlx::sqlite::SqliteRow| {
+        Ok(Card {
+            id: row.get("id"),
+            title: row.get("title"),
+            content: row.get("content"),
+            created_at: row.get("created_at"),
+        })
+    })
+    .fetch_all(&pool)
+    .await
+    {
+        Ok(cards) => {
+            info!("Found {} cards", cards.len());
+            Ok(Json(cards))
+        },
+        Err(e) => {
+            error!("Failed to list cards: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+async fn create_card(
+    State(pool): State<Pool<Sqlite>>,
+    Json(payload): Json<CreateCard>,
+) -> Result<Json<Card>, StatusCode> {
+    let now = chrono::Utc::now();
+    info!("Creating new card: {}", payload.title);
+
+    match sqlx::query(
+        r#"
+        INSERT INTO cards (title, content, created_at)
+        VALUES (?, ?, ?)
+        RETURNING id, title, content, created_at
+        "#
+    )
+    .bind(&payload.title)
+    .bind(&payload.content)
+    .bind(now)
+    .map(|row: sqlx::sqlite::SqliteRow| {
+        Card {
+            id: row.get("id"),
+            title: row.get("title"),
+            content: row.get("content"),
+            created_at: row.get("created_at"),
+        }
+    })
+    .fetch_one(&pool)
+    .await
+    {
+        Ok(card) => {
+            info!("Created card with id: {}", card.id);
+            Ok(Json(card))
+        },
+        Err(e) => {
+            error!("Failed to create card: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
