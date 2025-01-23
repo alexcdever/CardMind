@@ -1,21 +1,24 @@
 use axum::{
     extract::State,
     http::StatusCode,
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Sqlite, Row};
+use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite, Row, migrate};
 use tower_http::cors::{CorsLayer, Any};
 use std::net::{SocketAddr, TcpListener};
-use tracing::{info, error};
+use std::{env, fs, str::FromStr};
+use tracing::{info, error, debug};
+use directories::ProjectDirs;
+use chrono::DateTime;
 
 #[derive(Debug, Serialize)]
 struct Card {
     id: i64,
     title: String,
     content: String,
-    created_at: chrono::DateTime<chrono::Utc>,
+    created_at: DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -28,29 +31,41 @@ struct CreateCard {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 初始化日志
     tracing_subscriber::fmt()
-        .with_env_filter("debug")
+        .with_max_level(tracing::Level::DEBUG)
         .init();
 
     info!("Starting server...");
     
-    // 使用内存数据库
-    let database_url = "sqlite::memory:";
-    info!("Connecting to database: {}", database_url);
-    let pool = sqlx::SqlitePool::connect(database_url).await?;
+    // 获取系统推荐的数据目录
+    let project_dirs = ProjectDirs::from("com", "cardmind", "CardMind")
+        .ok_or("Failed to get project directories")?;
+    
+    // 创建并设置数据目录
+    let data_dir = project_dirs.data_dir();
+    fs::create_dir_all(data_dir)?;
+    debug!("Data directory: {}", data_dir.display());
+    
+    // 设置数据库路径
+    let db_path = data_dir.join("cardmind.db");
+    debug!("Database path: {}", db_path.display());
+    
+    // 创建连接选项
+    let conn_opts = SqliteConnectOptions::from_str(&format!("sqlite:{}", db_path.display()))?
+        .create_if_missing(true)
+        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+        .foreign_keys(true);
+    
+    debug!("Connection options: {:?}", conn_opts);
+    
+    info!("Connecting to database...");
+    let pool = sqlx::SqlitePool::connect_with(conn_opts).await?;
+    info!("Database connection established");
 
-    info!("Creating cards table...");
-    sqlx::query(
-        r#"
-        CREATE TABLE IF NOT EXISTS cards (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            created_at DATETIME NOT NULL
-        )
-        "#,
-    )
-    .execute(&pool)
-    .await?;
+    info!("Running database migrations...");
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await?;
+    info!("Database migrations completed");
 
     // 配置 CORS
     let cors = CorsLayer::new()
