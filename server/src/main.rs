@@ -1,24 +1,25 @@
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::StatusCode,
-    routing::{get, post},
+    routing::{get, post, delete},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite, Row, migrate};
-use tower_http::cors::{CorsLayer, Any};
-use std::net::{SocketAddr, TcpListener};
-use std::{env, fs, str::FromStr};
+use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite};
+use tower_http::cors::CorsLayer;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
+use std::str::FromStr;
 use tracing::{info, error, debug};
 use directories::ProjectDirs;
-use chrono::DateTime;
+use std::time::Duration;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 struct Card {
     id: i64,
     title: String,
     content: String,
-    created_at: DateTime<chrono::Utc>,
+    created_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 创建并设置数据目录
     let data_dir = project_dirs.data_dir();
-    fs::create_dir_all(data_dir)?;
+    std::fs::create_dir_all(data_dir)?;
     debug!("Data directory: {}", data_dir.display());
     
     // 设置数据库路径
@@ -54,13 +55,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .create_if_missing(true)
         .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
         .foreign_keys(true);
-    
-    debug!("Connection options: {:?}", conn_opts);
-    
+
     info!("Connecting to database...");
     let pool = sqlx::SqlitePool::connect_with(conn_opts).await?;
     info!("Database connection established");
 
+    // 运行数据库迁移
     info!("Running database migrations...");
     sqlx::migrate!("./migrations")
         .run(&pool)
@@ -69,95 +69,84 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 配置 CORS
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_origin(["http://localhost:3001".parse().unwrap()])
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::DELETE,
+        ])
+        .allow_headers([
+            axum::http::header::CONTENT_TYPE,
+            axum::http::header::ACCEPT,
+        ])
+        .max_age(Duration::from_secs(3600));
 
+    // 创建路由
     let app = Router::new()
-        .route("/", get(health_check))
-        .route("/api/cards", get(list_cards).post(create_card))
+        .route("/api/cards", get(get_cards))
+        .route("/api/cards", post(create_card))
+        .route("/api/cards/:id", delete(delete_card))
         .layer(cors)
         .with_state(pool);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 9999));
+    // 创建监听器
+    let addr = SocketAddr::from(([0, 0, 0, 0], 9999));
+    let listener = TcpListener::bind(addr).await?;
     info!("Listening on {}", addr);
-    
-    let listener = TcpListener::bind(addr)?;
-    axum::Server::from_tcp(listener)?
-        .serve(app.into_make_service())
-        .await?;
+
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
 
-async fn health_check() -> &'static str {
-    "OK"
-}
-
-async fn list_cards(
+async fn get_cards(
     State(pool): State<Pool<Sqlite>>,
-) -> Result<Json<Vec<Card>>, StatusCode> {
-    info!("Listing cards...");
-    match sqlx::query(
+) -> Result<Json<Vec<Card>>, (StatusCode, String)> {
+    let cards = sqlx::query_as::<_, Card>(
         "SELECT id, title, content, created_at FROM cards ORDER BY created_at DESC"
     )
-    .try_map(|row: sqlx::sqlite::SqliteRow| {
-        Ok(Card {
-            id: row.get("id"),
-            title: row.get("title"),
-            content: row.get("content"),
-            created_at: row.get("created_at"),
-        })
-    })
     .fetch_all(&pool)
     .await
-    {
-        Ok(cards) => {
-            info!("Found {} cards", cards.len());
-            Ok(Json(cards))
-        },
-        Err(e) => {
-            error!("Failed to list cards: {}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
-    }
+    .map_err(|e| {
+        error!("Failed to fetch cards: {}", e);
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to fetch cards: {}", e))
+    })?;
+
+    Ok(Json(cards))
 }
 
 async fn create_card(
     State(pool): State<Pool<Sqlite>>,
     Json(payload): Json<CreateCard>,
-) -> Result<Json<Card>, StatusCode> {
-    let now = chrono::Utc::now();
-    info!("Creating new card: {}", payload.title);
-
-    match sqlx::query(
-        r#"
-        INSERT INTO cards (title, content, created_at)
-        VALUES (?, ?, ?)
-        RETURNING id, title, content, created_at
-        "#
+) -> Result<Json<Card>, (StatusCode, String)> {
+    let card = sqlx::query_as::<_, Card>(
+        "INSERT INTO cards (title, content, created_at) VALUES (?, ?, CURRENT_TIMESTAMP) RETURNING *"
     )
     .bind(&payload.title)
     .bind(&payload.content)
-    .bind(now)
-    .map(|row: sqlx::sqlite::SqliteRow| {
-        Card {
-            id: row.get("id"),
-            title: row.get("title"),
-            content: row.get("content"),
-            created_at: row.get("created_at"),
-        }
-    })
     .fetch_one(&pool)
     .await
-    {
-        Ok(card) => {
-            info!("Created card with id: {}", card.id);
-            Ok(Json(card))
-        },
-        Err(e) => {
-            error!("Failed to create card: {}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
-    }
+    .map_err(|e| {
+        error!("Failed to create card: {}", e);
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to create card: {}", e))
+    })?;
+
+    Ok(Json(card))
+}
+
+async fn delete_card(
+    State(pool): State<Pool<Sqlite>>,
+    Path(id): Path<i64>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    sqlx::query("DELETE FROM cards WHERE id = ?")
+        .bind(id)
+        .execute(&pool)
+        .await
+        .map_err(|e| {
+            error!("Failed to delete card: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to delete card: {}", e))
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
