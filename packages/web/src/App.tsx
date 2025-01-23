@@ -46,7 +46,12 @@ const App: React.FC = () => {
         <FloatButton
           icon={<PlusOutlined />}
           type="primary"
-          style={{ right: 24 }}
+          style={{ 
+            position: 'fixed',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            bottom: 24
+          }}
           onClick={handleAddCard}
         />
       )}

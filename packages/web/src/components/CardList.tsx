@@ -77,54 +77,54 @@ const CardList: React.FC<CardListProps> = ({ onEditCard, refreshTrigger }) => {
           placeholder="Search cards..."
           allowClear
           onChange={e => handleSearch(e.target.value)}
-          style={{ width: 200 }}
+          style={{ width: '100%', marginBottom: 24 }}
         />
       </div>
       
-      <Row gutter={[16, 16]}>
+      <div className="card-list-content">
         {filteredCards.map(card => (
-          <Col key={card.id} xs={24} sm={12} md={8} lg={6}>
-            <AntCard
-              hoverable
-              className="card-item"
-              actions={[
+          <AntCard
+            key={card.id}
+            hoverable
+            className="card-item"
+            style={{ marginBottom: 16, width: '100%', maxWidth: 800 }}
+            actions={[
+              <Button
+                key="edit"
+                type="text"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(card)}
+              >
+                Edit
+              </Button>,
+              <Popconfirm
+                key="delete"
+                title="Are you sure you want to delete this card?"
+                onConfirm={() => handleDelete(card.id)}
+                okText="Yes"
+                cancelText="No"
+              >
                 <Button
-                  key="edit"
                   type="text"
-                  icon={<EditOutlined />}
-                  onClick={() => handleEdit(card)}
+                  danger
+                  icon={<DeleteOutlined />}
                 >
-                  Edit
-                </Button>,
-                <Popconfirm
-                  key="delete"
-                  title="Are you sure you want to delete this card?"
-                  onConfirm={() => handleDelete(card.id)}
-                  okText="Yes"
-                  cancelText="No"
-                >
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                  >
-                    Delete
-                  </Button>
-                </Popconfirm>
-              ]}
-            >
-              <AntCard.Meta
-                title={card.title}
-                description={
-                  <div className="card-content">
-                    <MDEditor.Markdown source={card.content} />
-                  </div>
-                }
-              />
-            </AntCard>
-          </Col>
+                  Delete
+                </Button>
+              </Popconfirm>
+            ]}
+          >
+            <AntCard.Meta
+              title={card.title}
+              description={
+                <div data-color-mode="light">
+                  <MDEditor.Markdown source={card.content} />
+                </div>
+              }
+            />
+          </AntCard>
         ))}
-      </Row>
+      </div>
     </div>
   );
 };
