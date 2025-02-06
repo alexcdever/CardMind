@@ -17,15 +17,15 @@ jobs:
           - os: windows-latest
             build_command: pnpm build:desktop
             artifact_name: cardmind-windows
-            asset_name: CardMind-Setup.exe
+            artifact_path: packages/web/dist/CardMind*.exe
           - os: macos-latest
             build_command: pnpm build:desktop
             artifact_name: cardmind-macos
-            asset_name: CardMind.dmg
+            artifact_path: packages/web/dist/CardMind*.dmg
           - os: ubuntu-latest
             build_command: pnpm build:desktop
             artifact_name: cardmind-linux
-            asset_name: cardmind.AppImage
+            artifact_path: packages/web/dist/cardmind*.AppImage
 
     steps:
       - name: Checkout code
@@ -91,14 +91,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # List build artifacts for debugging
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "Listing build artifacts:"
+          ls -R packages/web/dist/
+
       # Upload artifacts
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: |
-            packages/web/dist-electron/*.exe
-            packages/web/dist-electron/*.dmg
-            packages/web/dist-electron/*.AppImage
+          path: ${{ matrix.artifact_path }}
           compression-level: 0  # 二进制文件不需要压缩
           retention-days: 5
