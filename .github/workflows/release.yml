@@ -10,6 +10,7 @@ jobs:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false  # 如果一个平台失败，其他平台继续构建
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
@@ -39,12 +40,25 @@ jobs:
         uses: pnpm/action-setup@v2
         with:
           version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
+          components: rustfmt, clippy
 
       # Windows-specific setup
       - name: Setup Windows build dependencies
@@ -53,21 +67,33 @@ jobs:
         run: |
           ./check-msvc.bat
 
+      # Linux-specific dependencies
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libayatana-appindicator3-dev librsvg2-dev
+
       # Install dependencies
       - name: Install dependencies
-        run: pnpm install
+        run: |
+          pnpm install
+          pnpm list
 
       # Build the application
       - name: Build
         run: ${{ matrix.build_command }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Upload artifacts
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: |
             packages/web/dist-electron/*.exe
             packages/web/dist-electron/*.dmg
             packages/web/dist-electron/*.AppImage
-          if-no-files-found: error
+          compression-level: 0  # 二进制文件不需要压缩
+          retention-days: 5
