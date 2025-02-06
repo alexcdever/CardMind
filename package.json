@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "pnpm --filter @cardmind/web start",
     "build": "pnpm --filter @cardmind/web build",
-    "build:desktop": "pnpm --filter @cardmind/web build && electron-builder",
+    "build:desktop": "pnpm --filter @cardmind/web build && electron-builder --publish never",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean",
     "lint": "pnpm -r lint",
