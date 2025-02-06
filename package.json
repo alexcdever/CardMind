@@ -1,7 +1,7 @@
 {
   "name": "cardmind",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CardMind - A cross-platform note-taking application",
   "main": "packages/web/electron/main.js",
   "scripts": {
@@ -27,13 +27,19 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Office"
     }
   },
