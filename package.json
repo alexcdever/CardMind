@@ -18,8 +18,10 @@
   "build": {
     "appId": "com.cardmind.app",
     "productName": "CardMind",
+    "asar": true,
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "packages/web/build"
     },
     "files": [
       "packages/web/dist/**/*",
@@ -27,20 +29,37 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": [
-        "dmg"
-      ]
+      "target": ["dmg"],
+      "artifactName": "CardMind.dmg"
     },
     "win": {
-      "target": [
-        "nsis"
-      ]
+      "target": ["nsis"],
+      "artifactName": "CardMind-Setup.exe"
     },
     "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Office"
+      "target": ["AppImage"],
+      "category": "Office",
+      "artifactName": "CardMind.AppImage"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   },
   "keywords": [

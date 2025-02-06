@@ -7,7 +7,6 @@ on:
     tags:
       - 'v*'  # 当推送版本标签时触发
 
-# 为整个工作流添加权限
 permissions:
   contents: write
   issues: write
@@ -41,6 +40,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的提交历史
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -101,7 +102,7 @@ jobs:
         run: ${{ matrix.build_command }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # electron-builder 需要这个环境变量
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # List build artifacts for debugging
       - name: List build artifacts
@@ -110,86 +111,13 @@ jobs:
           echo "Listing build artifacts:"
           ls -la dist/
 
-      # Upload artifacts
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_path }}
-          compression-level: 0  # 二进制文件不需要压缩
-          retention-days: 5
-
-      # 重命名构建产物（为了在 Release 中有一致的文件名）
-      - name: Prepare release asset
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          cd dist
-          if [ -f "*.exe" ]; then
-            mv *.exe ${{ matrix.asset_name }}
-          elif [ -f "*.dmg" ]; then
-            mv *.dmg ${{ matrix.asset_name }}
-          elif [ -f "*.AppImage" ]; then
-            mv *.AppImage ${{ matrix.asset_name }}
-          fi
-
-      # 上传到 Release
-      - name: Upload to Release
+      # Upload artifacts to release
+      - name: Upload Release Asset
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/${{ matrix.asset_name }}
-          draft: true  # 先创建为草稿
+          files: ${{ matrix.artifact_path }}
+          draft: false
           prerelease: false
-          body_path: ${{ github.workspace }}-CHANGELOG.md  # 使用自动生成的更新日志
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  release-notes:
-    name: Generate Release Notes
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # 获取完整的提交历史
-
-      # 获取上一个标签
-      - name: Get previous tag
-        id: previoustag
-        run: |
-          git fetch --tags
-          echo "tag=$(git describe --tags --abbrev=0 HEAD^)" >> $GITHUB_OUTPUT
-        continue-on-error: true  # 如果是第一个标签，允许失败
-
-      # 生成更新日志
-      - name: Generate changelog
-        uses: release-drafter/release-drafter@v5
-        with:
-          config-name: release-drafter.yml
-          publish: false  # 不自动发布
-          tag: ${{ github.ref_name }}
-          version: ${{ github.ref_name }}
-          previous-tag: ${{ steps.previoustag.outputs.tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # 将更新日志保存到文件
-      - name: Save changelog
-        run: |
-          gh api \
-            --method GET \
-            -H "Accept: application/vnd.github+json" \
-            /repos/${{ github.repository }}/releases/generate-notes \
-            -F tag_name="${{ github.ref_name }}" \
-            -F previous_tag_name="${{ steps.previoustag.outputs.tag }}" \
-            --jq .body > ${{ github.workspace }}-CHANGELOG.md
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # 上传更新日志作为构建产物
-      - name: Upload changelog
-        uses: actions/upload-artifact@v4
-        with:
-          name: changelog
-          path: ${{ github.workspace }}-CHANGELOG.md
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}
