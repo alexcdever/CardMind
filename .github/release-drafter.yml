@@ -1,10 +1,12 @@
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
+
 categories:
   - title: '🚀 Features'
     labels:
       - 'feature'
       - 'enhancement'
+      - 'feat'
   - title: '🐛 Bug Fixes'
     labels:
       - 'fix'
@@ -15,24 +17,41 @@ categories:
       - 'chore'
       - 'dependencies'
       - 'maintenance'
+  - title: '📚 Documentation'
+    labels:
+      - 'docs'
+      - 'documentation'
+  - title: '⚡ Performance'
+    labels:
+      - 'performance'
+      - 'perf'
+  - title: '🔨 Refactoring'
+    labels:
+      - 'refactor'
+      - 'refactoring'
+  - title: '🎨 Styling'
+    labels:
+      - 'style'
+      - 'styles'
+  - title: '✅ Tests'
+    labels:
+      - 'test'
+      - 'testing'
+
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
-change-title-escapes: '\<*_&' # You can add # and @ to disable mentions
-version-resolver:
-  major:
-    labels:
-      - 'major'
-  minor:
-    labels:
-      - 'minor'
-  patch:
-    labels:
-      - 'patch'
-  default: patch
+
 template: |
-  ## 更新内容
+  ## What's Changed
 
   $CHANGES
 
-  ## 👨‍💻 贡献者
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
 
-  $CONTRIBUTORS
+  ## Installation
+  Download the appropriate installer for your operating system:
+  - Windows: CardMind-Setup.exe
+  - macOS: CardMind.dmg
+  - Linux: CardMind.AppImage
+
+  ## Thank You
+  Thank you to all our contributors who helped make this release possible!

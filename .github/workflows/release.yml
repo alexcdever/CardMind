@@ -5,7 +5,7 @@ on:
     branches:
       - master
     tags:
-      - 'v*'  # 当推送版本标签时触发
+      - 'v*'
 
 permissions:
   contents: write
@@ -13,11 +13,28 @@ permissions:
   pull-requests: write
 
 jobs:
+  update_release_draft:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    outputs:
+      release_body: ${{ steps.release-drafter.outputs.body }}
+    steps:
+      - uses: release-drafter/release-drafter@v5
+        id: release-drafter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          config-name: release-drafter.yml
+          disable-autolabeler: false
+          tag: ${{ github.ref_name }}
+          version: ${{ github.ref_name }}
+
   build:
     name: Build (${{ matrix.os }})
+    needs: update_release_draft
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false  # 如果一个平台失败，其他平台继续构建
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
         include:
@@ -41,7 +58,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整的提交历史
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -119,5 +136,5 @@ jobs:
           files: ${{ matrix.artifact_path }}
           draft: false
           prerelease: false
-          generate_release_notes: true
+          body: ${{ needs.update_release_draft.outputs.release_body }}
           token: ${{ secrets.GITHUB_TOKEN }}
