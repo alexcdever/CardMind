@@ -17,15 +17,15 @@ jobs:
           - os: windows-latest
             build_command: pnpm build:desktop
             artifact_name: cardmind-windows
-            artifact_path: packages/web/dist/CardMind*.exe
+            artifact_path: dist/*.exe
           - os: macos-latest
             build_command: pnpm build:desktop
             artifact_name: cardmind-macos
-            artifact_path: packages/web/dist/CardMind*.dmg
+            artifact_path: dist/*.dmg
           - os: ubuntu-latest
             build_command: pnpm build:desktop
             artifact_name: cardmind-linux
-            artifact_path: packages/web/dist/cardmind*.AppImage
+            artifact_path: dist/*.AppImage
 
     steps:
       - name: Checkout code
@@ -90,13 +90,14 @@ jobs:
         run: ${{ matrix.build_command }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # electron-builder 需要这个环境变量
 
       # List build artifacts for debugging
       - name: List build artifacts
         shell: bash
         run: |
           echo "Listing build artifacts:"
-          ls -R packages/web/dist/
+          ls -la dist/
 
       # Upload artifacts
       - name: Upload artifact

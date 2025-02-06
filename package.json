@@ -3,16 +3,39 @@
   "private": true,
   "version": "1.0.0",
   "description": "CardMind - A cross-platform note-taking application",
+  "main": "packages/web/electron/main.js",
   "scripts": {
     "dev": "pnpm --filter @cardmind/web start",
     "build": "pnpm --filter @cardmind/web build",
-    "build:desktop": "pnpm --filter @cardmind/web build:desktop",
+    "build:desktop": "pnpm --filter @cardmind/web build && electron-builder",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format",
     "prepare": "husky install",
     "preinstall": "npx only-allow pnpm"
+  },
+  "build": {
+    "appId": "com.cardmind.app",
+    "productName": "CardMind",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "packages/web/dist/**/*",
+      "packages/web/electron/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": ["dmg"]
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Office"
+    }
   },
   "keywords": [
     "note-taking",
@@ -27,6 +50,8 @@
     "@commitlint/config-conventional": "^18.4.3",
     "@typescript-eslint/eslint-plugin": "^6.12.0",
     "@typescript-eslint/parser": "^6.12.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react": "^7.37.2",
