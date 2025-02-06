@@ -13,25 +13,56 @@ permissions:
   pull-requests: write
 
 jobs:
-  update_release_draft:
+  generate_changelog:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     outputs:
-      release_body: ${{ steps.release-drafter.outputs.body }}
+      release_body: ${{ steps.changelog.outputs.changelog }}
     steps:
-      - uses: release-drafter/release-drafter@v5
-        id: release-drafter
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
         with:
-          config-name: release-drafter.yml
-          disable-autolabeler: false
-          tag: ${{ github.ref_name }}
-          version: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: get_previous_tag
+        run: |
+          echo "previous_tag=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          if [ -n "${{ steps.get_previous_tag.outputs.previous_tag }}" ]; then
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            echo "## What's Changed" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            git log --pretty=format:"- %s (%h)" ${{ steps.get_previous_tag.outputs.previous_tag }}..HEAD >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.get_previous_tag.outputs.previous_tag }}...${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            echo "## What's Changed" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            git log --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "**First Release**" >> $GITHUB_OUTPUT
+          fi
+          echo "" >> $GITHUB_OUTPUT
+          echo "## Installation" >> $GITHUB_OUTPUT
+          echo "Download the appropriate installer for your operating system:" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "- Windows: CardMind-Setup.exe" >> $GITHUB_OUTPUT
+          echo "- macOS: CardMind.dmg" >> $GITHUB_OUTPUT
+          echo "- Linux: CardMind.AppImage" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "## Thank You" >> $GITHUB_OUTPUT
+          echo "Thank you to all our contributors who helped make this release possible!" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
   build:
     name: Build (${{ matrix.os }})
-    needs: update_release_draft
+    needs: generate_changelog
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -136,5 +167,5 @@ jobs:
           files: ${{ matrix.artifact_path }}
           draft: false
           prerelease: false
-          body: ${{ needs.update_release_draft.outputs.release_body }}
+          body: ${{ needs.generate_changelog.outputs.release_body }}
           token: ${{ secrets.GITHUB_TOKEN }}
