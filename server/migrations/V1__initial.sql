@@ -1,3 +1,5 @@
+-- 升级
+-- UP
 CREATE TABLE IF NOT EXISTS cards (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -8,5 +10,6 @@ CREATE TABLE IF NOT EXISTS cards (
     device_id TEXT NOT NULL DEFAULT ''
 );
 
-CREATE INDEX IF NOT EXISTS idx_cards_updated_at ON cards(updated_at);
-CREATE INDEX IF NOT EXISTS idx_cards_device_id ON cards(device_id);
+-- 降级
+-- DOWN
+DROP TABLE IF EXISTS cards;
