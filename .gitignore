@@ -122,3 +122,6 @@ Cargo.lock
 # SQLite
 *.db
 *.db-*
+
+# 配置文件
+.env
