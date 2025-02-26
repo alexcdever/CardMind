@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Card, CreateCardPayload, UpdateCardPayload } from '../types/card';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:9999';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:9000/api/v1';
 
 interface CardStore {
   cards: Card[];
@@ -21,7 +21,11 @@ export const useCardStore = create<CardStore>((set, get) => ({
   loadCards: async () => {
     try {
       set({ loading: true });
-      const response = await fetch(`${API_BASE_URL}/api/cards`);
+      const response = await fetch(`${API_BASE_URL}/cards`, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
       if (!response.ok) {
         throw new Error(`Failed to load cards: ${response.status} ${response.statusText}`);
       }
@@ -35,70 +39,78 @@ export const useCardStore = create<CardStore>((set, get) => ({
     }
   },
 
-  addCard: async (card) => {
+  addCard: async (card: CreateCardPayload) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cards`, {
+      set({ loading: true });
+      const response = await fetch(`${API_BASE_URL}/cards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify(card),
       });
-
       if (!response.ok) {
         throw new Error(`Failed to add card: ${response.status} ${response.statusText}`);
       }
-
       const newCard = await response.json();
-      set((state) => ({ cards: [newCard, ...state.cards] }));
+      set(state => ({ cards: [...state.cards, newCard] }));
       return newCard;
     } catch (error) {
       console.error('Failed to add card:', error);
       throw error;
+    } finally {
+      set({ loading: false });
     }
   },
 
-  updateCard: async (id, card) => {
+  updateCard: async (id: number, card: UpdateCardPayload) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cards/${id}`, {
+      set({ loading: true });
+      const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify(card),
       });
-
       if (!response.ok) {
         throw new Error(`Failed to update card: ${response.status} ${response.statusText}`);
       }
-
       const updatedCard = await response.json();
-      set((state) => ({
-        cards: state.cards.map((c) => (c.id === id ? updatedCard : c)),
+      set(state => ({
+        cards: state.cards.map(c => c.id === id ? updatedCard : c),
       }));
       return updatedCard;
     } catch (error) {
       console.error('Failed to update card:', error);
       throw error;
+    } finally {
+      set({ loading: false });
     }
   },
 
-  deleteCard: async (id) => {
+  deleteCard: async (id: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cards/${id}`, {
+      set({ loading: true });
+      const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+        },
       });
-
       if (!response.ok) {
         throw new Error(`Failed to delete card: ${response.status} ${response.statusText}`);
       }
-
-      set((state) => ({
-        cards: state.cards.filter((c) => c.id !== id),
+      set(state => ({
+        cards: state.cards.filter(card => card.id !== id),
       }));
     } catch (error) {
       console.error('Failed to delete card:', error);
       throw error;
+    } finally {
+      set({ loading: false });
     }
   },
 }));

@@ -5,14 +5,19 @@
 }
 
 .card-list {
-  padding: 24px;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 600px; /* 类似推特的固定宽度 */
+  margin: 0 auto; /* 居中显示 */
+  padding: 20px;
 }
 
 .card-list-header {
-  margin-bottom: 24px;
-  width: 100%;
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 12px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  z-index: 100;
 }
 
 .card-list-content {
@@ -24,14 +29,31 @@
 }
 
 .card-item {
-  width: 100%;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
   transition: all 0.3s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 .card-item:hover {
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.card-item .ant-card-meta {
+  padding: 16px;
+}
+
+.card-item .ant-card-meta-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.card-item .ant-card-actions {
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+  border-radius: 0 0 16px 16px;
 }
 
 .wmde-markdown-var {
@@ -97,4 +119,15 @@ div[data-color-mode] .wmde-markdown-var ul li.task-list-item > p {
   margin: 4px 0 !important;
   padding: 0 !important;
   text-align: left !important;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .card-list {
+    padding: 12px;
+  }
+  
+  .card-item {
+    border-radius: 12px;
+  }
 }
