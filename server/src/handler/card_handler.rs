@@ -9,6 +9,7 @@ use poem_openapi::{
 use sea_orm::DatabaseConnection;
 use chrono::Utc;
 use poem::error::InternalServerError;
+use log::info;
 
 // 使用entity模块中的卡片实体
 use entity::card::Model;
@@ -94,6 +95,7 @@ impl CardHandler {
     /// 获取所有卡片
     #[oai(path = "/cards", method = "get", tag = "ApiTags::Cards")]
     pub async fn get_cards(&self) -> Result<CardsResponse, poem::Error> {
+        info!("收到获取所有卡片的请求");
         let service = CardService::new(self.db.clone());
         let cards = service.find_all()
             .await
@@ -104,6 +106,7 @@ impl CardHandler {
             .map(Self::to_dto)
             .collect();
         
+        info!("成功获取所有卡片");
         Ok(CardsResponse::Ok(Json(dtos)))
     }
 
