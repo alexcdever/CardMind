@@ -47,12 +47,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Route::new()
         .nest("/api/v1", api_service.clone())
         .nest("/docs", api_service.spec_endpoint())
-        .with(Cors::new());
+        .with(Cors::new()
+            .allow_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allow_headers(vec!["Content-Type", "Accept"])
+            .allow_origin("*")); // 在开发环境中允许所有来源
 
     // 启动服务器
     let addr = format!("{}:{}", config.server_host(), config.server_port());
     info!("服务器运行在 http://{}", addr);
-      
+    
     Server::new(TcpListener::bind(addr))
         .run(app)
         .await?;
