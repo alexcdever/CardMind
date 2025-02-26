@@ -1,8 +1,9 @@
 use sea_orm::entity::prelude::*;
 use chrono::{DateTime, Utc};
+use serde::{Serialize, Deserialize};
 
 // 卡片实体
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "cards")]
 pub struct Model {
     // 卡片唯一标识符
@@ -30,12 +31,9 @@ pub enum Relation {}
 // 查询相关
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
-        panic!("没有定义关系")
+        panic!("No relations defined")
     }
 }
 
 // 活动模型相关
 impl ActiveModelBehavior for ActiveModel {}
-
-// 实体别名
-pub type Entity = sea_orm::EntityTrait;

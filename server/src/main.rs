@@ -6,15 +6,13 @@ use poem::{
     Server,
 };
 use poem_openapi::OpenApiService;
-use std::env;
 use tracing::{info, Level};
 
-mod api;
-mod database;
-mod entity;
-
-use api::CardApi;
-use database::DatabasePool;
+use cardmind_server::{
+    handler::CardHandler,
+    config::Config,
+    database::DatabasePool,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -28,43 +26,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compact()
         .init();
 
-    info!("Starting server...");
+    info!("正在启动服务器...");
 
-    // 获取部署模式
-    let deployment_mode = env::var("DEPLOYMENT_MODE").unwrap_or_else(|_| "desktop".to_string());
+    // 初始化配置
+    let config = Config::init()?;
     
-    // 获取数据目录（仅在 desktop 模式下需要）
-    let data_dir = if deployment_mode == "desktop" {
-        Some(env::current_dir()?.join("data"))
-    } else {
-        None
-    };
-
     // 初始化数据库连接池
-    let pool = DatabasePool::new(&deployment_mode, data_dir).await?;
+    let pool = DatabasePool::new().await?;
     
     // 执行数据库迁移
-    info!("Running database migrations...");
+    info!("正在执行数据库迁移...");
     pool.migrate().await?;
-    info!("Database migrations completed");
+    info!("数据库迁移完成");
     
     // 创建 API 服务
-    let api_service = OpenApiService::new(CardApi::new(pool.get_connection().clone()), "CardMind", "1.0.0")
-        .server("http://localhost:3002/api");
-    let docs_service = api_service.swagger_ui();
-    
+    let api_service = OpenApiService::new(CardHandler::new(pool.connection().clone()), "CardMind", "1.0.0")
+        .server(format!("http://{}:{}", config.server_host(), config.server_port()));
+
     // 创建路由
     let app = Route::new()
-        .nest("/api", api_service)
-        .nest("/docs", docs_service)
+        .nest("/api/v1", api_service.clone())
+        .nest("/docs", api_service.spec_endpoint())
         .with(Cors::new());
 
     // 启动服务器
-    let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
-    let port = env::var("PORT").unwrap_or_else(|_| "3002".to_string());
-    let addr = format!("{}:{}", host, port);
-    
-    info!("Server running at http://{}", addr);
+    let addr = format!("{}:{}", config.server_host(), config.server_port());
+    info!("服务器运行在 http://{}", addr);
       
     Server::new(TcpListener::bind(addr))
         .run(app)

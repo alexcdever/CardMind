@@ -1,3 +1,5 @@
+// 导出卡片实体
 pub mod card;
 
-pub use card::Entity as Card;
+// 重新导出所有实体
+pub use card::*;
