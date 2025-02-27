@@ -48,9 +48,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api/v1", api_service.clone())
         .nest("/docs", api_service.spec_endpoint())
         .with(Cors::new()
-            .allow_methods(vec!["GET", "POST", "PUT", "DELETE"])
-            .allow_headers(vec!["Content-Type", "Accept"])
-            .allow_origin("*")); // 在开发环境中允许所有来源
+            .allow_origin("http://localhost:4000")  // 明确允许前端开发服务器的域名
+            .allow_methods(["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"])
+            .allow_headers(["*"])
+            .allow_credentials(true)  // 允许携带认证信息
+            .expose_headers(["*"])
+            .max_age(3600)
+        );
 
     // 启动服务器
     let addr = format!("{}:{}", config.server_host(), config.server_port());
