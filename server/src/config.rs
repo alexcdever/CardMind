@@ -25,67 +25,72 @@ pub struct Config {
 impl Config {
     /// 初始化全局配置
     pub fn init() -> Result<&'static Self, ConfigError> {
+        // 如果已经初始化过，直接返回全局实例
         if GLOBAL_CONFIG.get().is_some() {
             return Ok(Self::global());
         }
 
-        // 加载.env文件（如果存在）
+        // 加载配置优先级：
+        // 1. 系统环境变量
+        // 2. .env 文件（如果系统环境变量不存在）
         dotenv::dotenv().ok();
 
-        // 获取服务器配置
-        let server_host = env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-        let server_port = env::var("SERVER_PORT")
-            .unwrap_or_else(|_| "8080".to_string())
-            .parse()
-            .map_err(|_| ConfigError::InvalidPort)?;
+        // 获取默认配置
+        let mut config = Self::default();
 
-        // 获取数据目录
-        let data_dir = env::var("DATA_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                if cfg!(debug_assertions) {
-                    env::current_dir()
-                        .map(|d| d.join("data"))
-                        .unwrap_or_else(|_| PathBuf::from("data"))
-                } else {
-                    dirs::data_dir()
-                        .unwrap_or_else(|| PathBuf::from("/var/lib"))
-                        .join("cardmind")
-                }
-            });
+        // 从环境变量覆盖配置
+        if let Ok(host) = env::var("SERVER_HOST") {
+            config.server_host = host;
+        }
+
+        if let Ok(port_str) = env::var("SERVER_PORT") {
+            config.server_port = port_str.parse()
+                .map_err(|_| ConfigError::InvalidPort)?;
+        }
+
+        if let Ok(data_dir) = env::var("DATA_DIR") {
+            config.data_dir = PathBuf::from(data_dir);
+        }
 
         // 创建数据目录
-        fs::create_dir_all(&data_dir)
+        fs::create_dir_all(&config.data_dir)
             .map_err(|e| ConfigError::IoError(format!("无法创建数据目录：{}", e)))?;
 
         // 获取部署模式
-        let is_center_server = env::var("DEPLOYMENT_MODE")
-            .map(|mode| mode == "center")
-            .unwrap_or(false);
+        if let Ok(mode) = env::var("DEPLOYMENT_MODE") {
+            config.is_center_server = mode == "center";
+        }
 
-        // 获取PostgreSQL连接URL（仅中心服务器模式）
-        let postgres_url = if is_center_server {
-            Some(env::var("POSTGRES_URL").map_err(|_| {
+        // 如果是中心服务器模式，获取PostgreSQL连接URL
+        if config.is_center_server {
+            config.postgres_url = Some(env::var("POSTGRES_URL").map_err(|_| {
                 ConfigError::MissingEnv("中心服务器模式需要设置POSTGRES_URL环境变量".to_string())
-            })?)
-        } else {
-            None
-        };
+            })?);
+        }
 
-        // 创建并设置全局配置
-        let config = Config {
-            server_host,
-            server_port,
-            data_dir,
-            is_center_server,
-            postgres_url,
-        };
-
+        // 设置全局配置
         GLOBAL_CONFIG
             .set(config)
             .map_err(|_| ConfigError::AlreadyInitialized)?;
 
         Ok(Self::global())
+    }
+
+    /// 返回一个使用默认值的配置实例
+    pub fn default() -> Self {
+        // 获取可执行文件所在目录，并在其下创建data目录
+        let data_dir = env::current_exe()
+            .map(|exe_path| exe_path.parent().unwrap_or(Path::new(".")).to_path_buf())
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("data");
+
+        Self {
+            server_host: "0.0.0.0".to_string(),
+            server_port: 9000,
+            data_dir,
+            is_center_server: false,
+            postgres_url: None,
+        }
     }
 
     /// 获取全局配置实例
