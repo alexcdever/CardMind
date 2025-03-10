@@ -4,11 +4,7 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
-    },
-    "build:desktop": {
-      "dependsOn": ["build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", ".next/**", "build/**"]
     },
     "lint": {
       "outputs": []
@@ -20,5 +16,6 @@
     "clean": {
       "cache": false
     }
-  }
+  },
+  "globalEnv": ["NODE_ENV", "FLUTTER_ENV"]
 }
