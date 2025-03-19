@@ -2,82 +2,104 @@
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'tables.dart';
+import 'card_dao.dart';
+import 'database_backup.dart';
 
 part 'database.g.dart';
 
-// 定义卡片表的数据结构
-@DataClassName('CardData')
-class Cards extends Table {
-  // 自增主键
-  IntColumn get id => integer().autoIncrement()();
-  // 卡片标题
-  TextColumn get title => text()();
-  // 卡片内容
-  TextColumn get content => text()();
-  // 创建时间
-  DateTimeColumn get createdAt => dateTime()();
-  // 更新时间
-  DateTimeColumn get updatedAt => dateTime()();
-}
+/// 数据库文件名
+const _kDatabaseName = 'CardMind.db';
 
-// 数据库类，使用 drift ORM 框架
-@DriftDatabase(tables: [Cards])
+/// 应用数据库类
+/// 使用 drift 包进行数据库操作
+@DriftDatabase(tables: [Cards], daos: [CardDao])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  /// 数据库文件路径
+  final String dbPath;
 
-  @override
-  int get schemaVersion => 1;
+  /// 构造函数
+  AppDatabase._create(this.dbPath) : super(_openConnection(dbPath));
 
-  // 获取所有卡片，按创建时间倒序排列
-  Future<List<CardData>> getAllCards() =>
-      (select(cards)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
-  
-  // 搜索卡片，支持标题和内容的模糊匹配
-  Future<List<CardData>> searchCards(String query) {
-    final queryLower = query.toLowerCase();
-    final searchPattern = '%$queryLower%';
-    return customSelect(
-      'SELECT * FROM cards WHERE LOWER(title) LIKE ? OR LOWER(content) LIKE ? ORDER BY created_at DESC',
-      variables: [Variable.withString(searchPattern), Variable.withString(searchPattern)],
-      readsFrom: {cards},
-    ).map((row) => CardData(
-      id: row.read<int>('id'),
-      title: row.read<String>('title'),
-      content: row.read<String>('content'),
-      createdAt: row.read<DateTime>('created_at'),
-      updatedAt: row.read<DateTime>('updated_at'),
-    )).get();
+  /// 工厂构造函数
+  static Future<AppDatabase> create() async {
+    final dbFolder = await getApplicationDocumentsDirectory();
+    final dbPath = p.join(dbFolder.path, _kDatabaseName);
+    return AppDatabase._create(dbPath);
   }
 
-  // 根据 ID 获取单个卡片
-  Future<CardData> getCard(int id) =>
-      (select(cards)..where((card) => card.id.equals(id)))
-          .getSingle();
+  /// 数据库版本号
+  @override
+  int get schemaVersion => 2;  // 升级到版本2，因为添加了syncId字段
 
-  // 插入新卡片
-  Future<int> insertCard(CardsCompanion card) =>
-      into(cards).insert(card);
+  /// 数据库迁移策略
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (Migrator m) async {
+        // 创建所有表
+        await m.createAll();
+        print('数据库首次创建完成');
+      },
+      onUpgrade: (m, from, to) async {
+        // 版本升级时的迁移逻辑
+        if (from == 1 && to == 2) {  // 明确指定从版本1升级到版本2
+          // 先备份数据库
+          print('开始备份数据库...');
+          await DatabaseBackup.backup(dbPath);
+          print('数据库备份完成');
+          
+          // 添加syncId字段
+          await m.addColumn(cards, cards.syncId);
+          print('已添加syncId字段');
 
-  // 更新现有卡片
-  Future<bool> updateCard(CardsCompanion card) =>
-      update(cards).replace(card);
+          // 初始化所有已有记录的syncId
+          await customStatement(
+            'UPDATE cards SET sync_id = null WHERE sync_id IS NOT null'
+          );
+          print('已初始化现有记录的syncId字段');
+        }
+      },
+      onDowngrade: (m, from, to) async {
+        // 版本降级时的迁移逻辑
+        if (from == 2 && to == 1) {
+          // 从版本2降级到版本1
+          // 先备份数据库
+          print('开始备份数据库...');
+          await DatabaseBackup.backup(dbPath);
+          print('数据库备份完成');
 
-  // 删除卡片
-  Future<int> deleteCard(int id) =>
-      (delete(cards)..where((card) => card.id.equals(id)))
-          .go();
+          // 删除syncId字段
+          await customStatement('ALTER TABLE cards DROP COLUMN sync_id');
+          print('已删除syncId字段');
+        }
+      },
+      beforeOpen: (details) async {
+        // 只记录数据库状态，不进行数据操作
+        if (details.wasCreated) {
+          print('数据库首次创建');
+        } else if (details.hadUpgrade) {
+          print('数据库已升级到版本 ${details.versionNow}，从版本 ${details.versionBefore}');
+        } else if (details.hadDowngrade) {
+          print('数据库已降级到版本 ${details.versionNow}，从版本 ${details.versionBefore}');
+        }
+      },
+    );
+  }
+
+  /// 关闭数据库连接
+  @override
+  Future<void> close() async {
+    await super.close();
+  }
 }
 
-// 创建数据库连接
-LazyDatabase _openConnection() {
+/// 打开数据库连接
+LazyDatabase _openConnection(String dbPath) {
   return LazyDatabase(() async {
-    // 获取应用文档目录
-    final dbFolder = await getApplicationDocumentsDirectory();
-    // 创建数据库文件
-    final file = File(p.join(dbFolder.path, 'cardmind.db'));
-    // 返回数据库连接
+    final file = File(dbPath);
     return NativeDatabase.createInBackground(file);
   });
 }
