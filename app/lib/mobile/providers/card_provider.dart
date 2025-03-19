@@ -1,53 +1,85 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../shared/data/database/database_service.dart';
+import '../../shared/services/card_service.dart';
 import '../../shared/domain/models/card.dart';
 
-/// 卡片列表状态管理
+/// 卡片列表状态管理器
 class CardListNotifier extends StateNotifier<List<Card>> {
-  final DatabaseService _databaseService;
+  /// 卡片服务实例
+  final _cardService = CardService();
 
-  CardListNotifier(this._databaseService) : super([]) {
+  CardListNotifier() : super([]) {
     // 初始化时加载所有卡片
     loadCards();
   }
 
   /// 加载所有卡片
   Future<void> loadCards() async {
-    state = await _databaseService.getAllCards();
+    try {
+      final cards = await _cardService.getAllCards();
+      state = cards;
+    } catch (e) {
+      print('加载卡片失败：$e');
+      state = [];
+    }
   }
 
-  /// 添加新卡片
-  Future<void> addCard(String title, String content) async {
-    final card = await _databaseService.insertCard(title, content);
-    state = [...state, card];
+  /// 创建新卡片
+  Future<void> createCard(String title, String content) async {
+    try {
+      final card = await _cardService.createCard(title, content);
+      state = [...state, card];
+    } catch (e) {
+      print('创建卡片失败：$e');
+      rethrow;
+    }
   }
 
   /// 更新卡片
   Future<void> updateCard(Card card) async {
-    await _databaseService.updateCard(card);
-    state = [
-      for (final c in state)
-        if (c.id == card.id) card else c
-    ];
+    try {
+      final success = await _cardService.updateCard(card);
+      if (success) {
+        state = [
+          for (final c in state)
+            if (c.id == card.id) card else c
+        ];
+      }
+    } catch (e) {
+      print('更新卡片失败：$e');
+      rethrow;
+    }
   }
 
   /// 删除卡片
   Future<void> deleteCard(int id) async {
-    await _databaseService.deleteCard(id);
-    state = state.where((card) => card.id != id).toList();
+    try {
+      final success = await _cardService.deleteCard(id);
+      if (success) {
+        state = state.where((card) => card.id != id).toList();
+      }
+    } catch (e) {
+      print('删除卡片失败：$e');
+      rethrow;
+    }
+  }
+
+  @override
+  void dispose() {
+    _cardService.dispose();
+    super.dispose();
   }
 }
 
-/// 搜索文本状态
+/// 搜索文本状态提供者
 final searchTextProvider = StateProvider<String>((ref) => '');
 
-/// 卡片列表状态
+/// 卡片列表状态提供者
 final cardListProvider = StateNotifierProvider<CardListNotifier, List<Card>>((ref) {
-  return CardListNotifier(DatabaseService());
+  return CardListNotifier();
 });
 
-/// 过滤后的卡片列表状态
-final filteredCardsProvider = Provider<List<Card>>((ref) {
+/// 过滤后的卡片列表提供者
+final filteredCardListProvider = Provider<List<Card>>((ref) {
   final searchText = ref.watch(searchTextProvider).toLowerCase();
   final cards = ref.watch(cardListProvider);
 
@@ -57,6 +89,6 @@ final filteredCardsProvider = Provider<List<Card>>((ref) {
 
   return cards.where((card) {
     return card.title.toLowerCase().contains(searchText) ||
-        card.content.toLowerCase().contains(searchText);
+           card.content.toLowerCase().contains(searchText);
   }).toList();
 });

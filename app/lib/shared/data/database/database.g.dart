@@ -3,7 +3,7 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
-class $CardsTable extends Cards with TableInfo<$CardsTable, CardData> {
+class $CardsTable extends Cards with TableInfo<$CardsTable, Card> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -40,16 +40,21 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, CardData> {
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
       'updated_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _syncIdMeta = const VerificationMeta('syncId');
+  @override
+  late final GeneratedColumn<String> syncId = GeneratedColumn<String>(
+      'sync_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, title, content, createdAt, updatedAt];
+      [id, title, content, createdAt, updatedAt, syncId];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'cards';
   @override
-  VerificationContext validateIntegrity(Insertable<CardData> instance,
+  VerificationContext validateIntegrity(Insertable<Card> instance,
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
@@ -80,15 +85,19 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, CardData> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('sync_id')) {
+      context.handle(_syncIdMeta,
+          syncId.isAcceptableOrUnknown(data['sync_id']!, _syncIdMeta));
+    }
     return context;
   }
 
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  CardData map(Map<String, dynamic> data, {String? tablePrefix}) {
+  Card map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CardData(
+    return Card(
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       title: attachedDatabase.typeMapping
@@ -99,6 +108,8 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, CardData> {
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      syncId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_id']),
     );
   }
 
@@ -108,18 +119,31 @@ class $CardsTable extends Cards with TableInfo<$CardsTable, CardData> {
   }
 }
 
-class CardData extends DataClass implements Insertable<CardData> {
+class Card extends DataClass implements Insertable<Card> {
+  /// 卡片ID，主键
   final int id;
+
+  /// 卡片标题
   final String title;
+
+  /// 卡片内容
   final String content;
+
+  /// 创建时间
   final DateTime createdAt;
+
+  /// 更新时间
   final DateTime updatedAt;
-  const CardData(
+
+  /// 同步ID，用于与服务器同步
+  final String? syncId;
+  const Card(
       {required this.id,
       required this.title,
       required this.content,
       required this.createdAt,
-      required this.updatedAt});
+      required this.updatedAt,
+      this.syncId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -128,6 +152,9 @@ class CardData extends DataClass implements Insertable<CardData> {
     map['content'] = Variable<String>(content);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || syncId != null) {
+      map['sync_id'] = Variable<String>(syncId);
+    }
     return map;
   }
 
@@ -138,18 +165,21 @@ class CardData extends DataClass implements Insertable<CardData> {
       content: Value(content),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      syncId:
+          syncId == null && nullToAbsent ? const Value.absent() : Value(syncId),
     );
   }
 
-  factory CardData.fromJson(Map<String, dynamic> json,
+  factory Card.fromJson(Map<String, dynamic> json,
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CardData(
+    return Card(
       id: serializer.fromJson<int>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String>(json['content']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncId: serializer.fromJson<String?>(json['syncId']),
     );
   }
   @override
@@ -161,69 +191,78 @@ class CardData extends DataClass implements Insertable<CardData> {
       'content': serializer.toJson<String>(content),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncId': serializer.toJson<String?>(syncId),
     };
   }
 
-  CardData copyWith(
+  Card copyWith(
           {int? id,
           String? title,
           String? content,
           DateTime? createdAt,
-          DateTime? updatedAt}) =>
-      CardData(
+          DateTime? updatedAt,
+          Value<String?> syncId = const Value.absent()}) =>
+      Card(
         id: id ?? this.id,
         title: title ?? this.title,
         content: content ?? this.content,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
+        syncId: syncId.present ? syncId.value : this.syncId,
       );
-  CardData copyWithCompanion(CardsCompanion data) {
-    return CardData(
+  Card copyWithCompanion(CardsCompanion data) {
+    return Card(
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
       content: data.content.present ? data.content.value : this.content,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncId: data.syncId.present ? data.syncId.value : this.syncId,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('CardData(')
+    return (StringBuffer('Card(')
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncId: $syncId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, title, content, createdAt, updatedAt);
+  int get hashCode =>
+      Object.hash(id, title, content, createdAt, updatedAt, syncId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CardData &&
+      (other is Card &&
           other.id == this.id &&
           other.title == this.title &&
           other.content == this.content &&
           other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.syncId == this.syncId);
 }
 
-class CardsCompanion extends UpdateCompanion<CardData> {
+class CardsCompanion extends UpdateCompanion<Card> {
   final Value<int> id;
   final Value<String> title;
   final Value<String> content;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
+  final Value<String?> syncId;
   const CardsCompanion({
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.content = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.syncId = const Value.absent(),
   });
   CardsCompanion.insert({
     this.id = const Value.absent(),
@@ -231,16 +270,18 @@ class CardsCompanion extends UpdateCompanion<CardData> {
     required String content,
     required DateTime createdAt,
     required DateTime updatedAt,
+    this.syncId = const Value.absent(),
   })  : title = Value(title),
         content = Value(content),
         createdAt = Value(createdAt),
         updatedAt = Value(updatedAt);
-  static Insertable<CardData> custom({
+  static Insertable<Card> custom({
     Expression<int>? id,
     Expression<String>? title,
     Expression<String>? content,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
+    Expression<String>? syncId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -248,6 +289,7 @@ class CardsCompanion extends UpdateCompanion<CardData> {
       if (content != null) 'content': content,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncId != null) 'sync_id': syncId,
     });
   }
 
@@ -256,13 +298,15 @@ class CardsCompanion extends UpdateCompanion<CardData> {
       Value<String>? title,
       Value<String>? content,
       Value<DateTime>? createdAt,
-      Value<DateTime>? updatedAt}) {
+      Value<DateTime>? updatedAt,
+      Value<String?>? syncId}) {
     return CardsCompanion(
       id: id ?? this.id,
       title: title ?? this.title,
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncId: syncId ?? this.syncId,
     );
   }
 
@@ -284,6 +328,9 @@ class CardsCompanion extends UpdateCompanion<CardData> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (syncId.present) {
+      map['sync_id'] = Variable<String>(syncId.value);
+    }
     return map;
   }
 
@@ -294,7 +341,8 @@ class CardsCompanion extends UpdateCompanion<CardData> {
           ..write('title: $title, ')
           ..write('content: $content, ')
           ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncId: $syncId')
           ..write(')'))
         .toString();
   }
@@ -304,6 +352,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CardsTable cards = $CardsTable(this);
+  late final CardDao cardDao = CardDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -317,6 +366,7 @@ typedef $$CardsTableCreateCompanionBuilder = CardsCompanion Function({
   required String content,
   required DateTime createdAt,
   required DateTime updatedAt,
+  Value<String?> syncId,
 });
 typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<int> id,
@@ -324,6 +374,7 @@ typedef $$CardsTableUpdateCompanionBuilder = CardsCompanion Function({
   Value<String> content,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
+  Value<String?> syncId,
 });
 
 class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
@@ -348,6 +399,9 @@ class $$CardsTableFilterComposer extends Composer<_$AppDatabase, $CardsTable> {
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncId => $composableBuilder(
+      column: $table.syncId, builder: (column) => ColumnFilters(column));
 }
 
 class $$CardsTableOrderingComposer
@@ -373,6 +427,9 @@ class $$CardsTableOrderingComposer
 
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
       column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get syncId => $composableBuilder(
+      column: $table.syncId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$CardsTableAnnotationComposer
@@ -398,19 +455,22 @@ class $$CardsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get syncId =>
+      $composableBuilder(column: $table.syncId, builder: (column) => column);
 }
 
 class $$CardsTableTableManager extends RootTableManager<
     _$AppDatabase,
     $CardsTable,
-    CardData,
+    Card,
     $$CardsTableFilterComposer,
     $$CardsTableOrderingComposer,
     $$CardsTableAnnotationComposer,
     $$CardsTableCreateCompanionBuilder,
     $$CardsTableUpdateCompanionBuilder,
-    (CardData, BaseReferences<_$AppDatabase, $CardsTable, CardData>),
-    CardData,
+    (Card, BaseReferences<_$AppDatabase, $CardsTable, Card>),
+    Card,
     PrefetchHooks Function()> {
   $$CardsTableTableManager(_$AppDatabase db, $CardsTable table)
       : super(TableManagerState(
@@ -428,6 +488,7 @@ class $$CardsTableTableManager extends RootTableManager<
             Value<String> content = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
+            Value<String?> syncId = const Value.absent(),
           }) =>
               CardsCompanion(
             id: id,
@@ -435,6 +496,7 @@ class $$CardsTableTableManager extends RootTableManager<
             content: content,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            syncId: syncId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -442,6 +504,7 @@ class $$CardsTableTableManager extends RootTableManager<
             required String content,
             required DateTime createdAt,
             required DateTime updatedAt,
+            Value<String?> syncId = const Value.absent(),
           }) =>
               CardsCompanion.insert(
             id: id,
@@ -449,6 +512,7 @@ class $$CardsTableTableManager extends RootTableManager<
             content: content,
             createdAt: createdAt,
             updatedAt: updatedAt,
+            syncId: syncId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -460,14 +524,14 @@ class $$CardsTableTableManager extends RootTableManager<
 typedef $$CardsTableProcessedTableManager = ProcessedTableManager<
     _$AppDatabase,
     $CardsTable,
-    CardData,
+    Card,
     $$CardsTableFilterComposer,
     $$CardsTableOrderingComposer,
     $$CardsTableAnnotationComposer,
     $$CardsTableCreateCompanionBuilder,
     $$CardsTableUpdateCompanionBuilder,
-    (CardData, BaseReferences<_$AppDatabase, $CardsTable, CardData>),
-    CardData,
+    (Card, BaseReferences<_$AppDatabase, $CardsTable, Card>),
+    Card,
     PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
