@@ -41,6 +41,16 @@ class CardListNotifier extends StateNotifier<List<Card>> {
     await _cardService.deleteCard(id);
     state = state.where((card) => card.id != id).toList();
   }
+
+  /// 根据ID获取卡片
+  /// [id] 卡片ID
+  /// 返回找到的卡片，如果未找到返回 null
+  Card? getCardById(int id) {
+    return state.firstWhere(
+      (card) => card.id == id,
+      orElse: () => null,
+    );
+  }
 }
 
 /// 搜索文本状态提供者
@@ -65,4 +75,11 @@ final filteredCardListProvider = Provider<List<Card>>((ref) {
     card.title.toLowerCase().contains(searchText) ||
     card.content.toLowerCase().contains(searchText)
   ).toList();
+});
+
+/// 根据ID获取卡片的提供者
+/// [id] 卡片ID
+final cardByIdProvider = Provider.family<Card?, int>((ref, id) {
+  final notifier = ref.watch(cardListProvider.notifier);
+  return notifier.getCardById(id);
 });
