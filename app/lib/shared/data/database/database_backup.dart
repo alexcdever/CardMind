@@ -27,7 +27,7 @@ class DatabaseBackup {
     final backupDir = await _getBackupDir();
     final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
     final backupPath = p.join(backupDir.path, 'backup_$timestamp.db');
-    
+
     // 复制数据库文件
     final dbFile = File(dbPath);
     if (await dbFile.exists()) {
@@ -45,7 +45,7 @@ class DatabaseBackup {
   static Future<void> restore(String backupPath, String dbPath) async {
     final backupFile = File(backupPath);
     final dbFile = File(dbPath);
-    
+
     if (await backupFile.exists()) {
       // 如果数据库文件存在，先删除
       if (await dbFile.exists()) {
@@ -66,10 +66,11 @@ class DatabaseBackup {
       return [];
     }
 
-    final files = await backupDir.list().where((entity) => 
-      entity is File && entity.path.endsWith('.db')
-    ).toList();
-    
+    final files = await backupDir
+        .list()
+        .where((entity) => entity is File && entity.path.endsWith('.db'))
+        .toList();
+
     return files.cast<File>();
   }
 

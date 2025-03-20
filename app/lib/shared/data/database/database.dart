@@ -6,8 +6,8 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'tables.dart';
-import 'card_dao.dart';
 import 'database_backup.dart';
+import 'card_dao.dart';
 
 part 'database.g.dart';
 
@@ -35,7 +35,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// 数据库版本号
   @override
-  int get schemaVersion => 2;  // 升级到版本2，因为添加了syncId字段
+  int get schemaVersion => 2;
 
   /// 数据库迁移策略
   /// 使用 drift 的迁移机制处理版本升级
@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
 }
 
 /// 打开数据库连接
-LazyDatabase _openConnection(String dbPath) {
+LazyDatabase _openConnection(String path) {
   return LazyDatabase(() async {
     // 确保数据库目录存在
     final file = File(path);

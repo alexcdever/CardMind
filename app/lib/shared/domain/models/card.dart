@@ -27,9 +27,11 @@ class Card {
     required this.content,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.syncId,
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
+  /// 将卡片转换为Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -37,6 +39,7 @@ class Card {
       'content': content,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'sync_id': syncId,
     };
   }
 
@@ -48,15 +51,24 @@ class Card {
       content: map['content'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
+      syncId: map['sync_id'] as String?,
     );
   }
 
+  /// 将卡片转换为JSON字符串
+  String toJson() => json.encode(toMap());
+
+  /// 从JSON字符串创建卡片
+  factory Card.fromJson(String source) => Card.fromMap(json.decode(source));
+
+  /// 创建卡片副本并更新指定字段
   Card copyWith({
     int? id,
     String? title,
     String? content,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? syncId,
   }) {
     return Card(
       id: id ?? this.id,
@@ -64,6 +76,7 @@ class Card {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      syncId: syncId ?? this.syncId,
     );
   }
 }

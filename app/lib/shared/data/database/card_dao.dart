@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import '../../../domain/models/card.dart' as domain;
+import '../../../shared/domain/models/card.dart' as domain;
 import 'database.dart';
 import 'tables.dart';
 
@@ -10,10 +10,10 @@ part 'card_dao.g.dart';
 @DriftAccessor(tables: [Cards])
 class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
   /// 构造函数
-  CardDao(AppDatabase db) : super(db);
+  CardDao(super.db);
 
   /// 获取所有卡片
-  Future<List<CardData>> getAllCards() {
+  Future<List<Card>> getAllCards() {
     return (select(cards)
           ..orderBy([
             (t) => OrderingTerm(
@@ -25,10 +25,10 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
   }
 
   /// 根据标题搜索卡片
-  Future<List<CardData>> searchCards(String query) {
+  Future<List<Card>> searchCards(String query) {
     final normalizedQuery = query.toLowerCase().trim();
     return (select(cards)
-          ..where((t) => 
+          ..where((t) =>
               t.title.lower().contains(normalizedQuery) |
               t.content.lower().contains(normalizedQuery))
           ..orderBy([
@@ -41,7 +41,7 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
   }
 
   /// 根据ID获取卡片
-  Future<CardData?> getCardById(int id) {
+  Future<Card?> getCardById(int id) {
     return (select(cards)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
@@ -64,14 +64,16 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
 
   /// 更新卡片
   Future<bool> updateCard(domain.Card card) {
-    return update(cards)
-      .replace(CardsCompanion(
-        id: Value(card.id),
-        title: Value(card.title),
-        content: Value(card.content),
-        updatedAt: Value(DateTime.now()),
-        syncId: Value(card.syncId),
-      ));
+    return update(cards).replace(
+      Card(
+        id: card.id,
+        title: card.title,
+        content: card.content,
+        createdAt: card.createdAt,
+        updatedAt: DateTime.now(),
+        syncId: card.syncId,
+      ),
+    );
   }
 
   /// 删除卡片
@@ -79,9 +81,27 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
     return (delete(cards)..where((t) => t.id.equals(id))).go();
   }
 
-  /// 根据同步ID获取卡片
-  Future<CardData?> getCardBySyncId(String syncId) {
-    return (select(cards)..where((t) => t.syncId.equals(syncId)))
-        .getSingleOrNull();
+  /// 将数据库模型转换为领域模型
+  domain.Card toDomainCard(Card data) {
+    return domain.Card(
+      id: data.id,
+      title: data.title,
+      content: data.content,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+      syncId: data.syncId,
+    );
+  }
+
+  /// 将领域模型转换为数据库模型
+  CardsCompanion fromDomainCard(domain.Card card) {
+    return CardsCompanion(
+      id: Value(card.id),
+      title: Value(card.title),
+      content: Value(card.content),
+      createdAt: Value(card.createdAt),
+      updatedAt: Value(card.updatedAt),
+      syncId: Value(card.syncId),
+    );
   }
 }
