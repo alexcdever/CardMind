@@ -1,5 +1,6 @@
 // ignore_for_file: depend_on_referenced_packages
 import 'dart:io';
+import 'package:cardmind/shared/utils/logger.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -17,6 +18,8 @@ const _kDatabaseName = 'CardMind.db';
 /// 使用 drift 包进行数据库操作
 @DriftDatabase(tables: [Cards], daos: [CardDao])
 class AppDatabase extends _$AppDatabase {
+  final _logger = AppLogger.getLogger('AppDatabase');
+
   /// 数据库文件路径
   final String dbPath;
 
@@ -41,49 +44,32 @@ class AppDatabase extends _$AppDatabase {
       onCreate: (Migrator m) async {
         // 创建所有表
         await m.createAll();
-        print('数据库首次创建完成');
+        _logger.info('数据库首次创建完成');
       },
       onUpgrade: (m, from, to) async {
-        // 版本升级时的迁移逻辑
-        if (from == 1 && to == 2) {  // 明确指定从版本1升级到版本2
+        // 版本1到版本2：添加 syncId 字段
+        if (from == 1 && to >= 2) {
           // 先备份数据库
-          print('开始备份数据库...');
+          _logger.info('开始备份数据库...');
           await DatabaseBackup.backup(dbPath);
-          print('数据库备份完成');
-          
+          _logger.info('数据库备份完成');
+
           // 添加syncId字段
           await m.addColumn(cards, cards.syncId);
-          print('已添加syncId字段');
+          _logger.info('已添加syncId字段');
 
           // 初始化所有已有记录的syncId
-          await customStatement(
-            'UPDATE cards SET sync_id = null WHERE sync_id IS NOT null'
-          );
-          print('已初始化现有记录的syncId字段');
-        }
-      },
-      onDowngrade: (m, from, to) async {
-        // 版本降级时的迁移逻辑
-        if (from == 2 && to == 1) {
-          // 从版本2降级到版本1
-          // 先备份数据库
-          print('开始备份数据库...');
-          await DatabaseBackup.backup(dbPath);
-          print('数据库备份完成');
-
-          // 删除syncId字段
-          await customStatement('ALTER TABLE cards DROP COLUMN sync_id');
-          print('已删除syncId字段');
+          await customStatement('UPDATE cards SET sync_id = null');
+          _logger.info('已初始化现有记录的syncId字段');
         }
       },
       beforeOpen: (details) async {
         // 只记录数据库状态，不进行数据操作
         if (details.wasCreated) {
-          print('数据库首次创建');
+          _logger.info('数据库首次创建');
         } else if (details.hadUpgrade) {
-          print('数据库已升级到版本 ${details.versionNow}，从版本 ${details.versionBefore}');
-        } else if (details.hadDowngrade) {
-          print('数据库已降级到版本 ${details.versionNow}，从版本 ${details.versionBefore}');
+          _logger.info(
+              '数据库已升级到版本 ${details.versionNow}，从版本 ${details.versionBefore}');
         }
       },
     );

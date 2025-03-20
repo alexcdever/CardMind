@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'shared/utils/platform_detector.dart';
-import 'desktop/screens/card_list_screen.dart' as desktop;
-import 'desktop/screens/card_edit_screen.dart' as desktop;
-import 'mobile/screens/card_list_screen.dart' as mobile;
-import 'mobile/screens/card_edit_screen.dart' as mobile;
-import 'desktop/providers/card_provider.dart';
-import 'desktop/screens/theme/app_theme.dart';
+import 'shared/providers/service_provider.dart';
+import 'shared/utils/logger.dart';
+import 'desktop/screens/routes/app_router.dart';
 
 /// 主程序入口
 void main() {
-  runApp(const ProviderScope(child: MyApp()));
+  // 初始化日志系统
+  AppLogger.init();
+  
+  // 确保Flutter绑定初始化
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(
+    const ProviderScope(
+      child: CardMindApp(),
+    ),
+  );
 }
 
 /// 应用主入口

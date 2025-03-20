@@ -1,9 +1,12 @@
+import 'package:cardmind/shared/utils/logger.dart' show AppLogger;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/services/card_service.dart';
 import '../../shared/domain/models/card.dart';
 
 /// 卡片列表状态管理器
-class CardListNotifier extends StateNotifier<List<Card>> {
+class CardListNotifier extends StateNotifier<List<domain.Card>> {
+  final _logger = AppLogger.getLogger('CardListNotifier');
+
   /// 卡片服务实例
   final _cardService = CardService();
 
@@ -17,8 +20,8 @@ class CardListNotifier extends StateNotifier<List<Card>> {
     try {
       final cards = await _cardService.getAllCards();
       state = cards;
-    } catch (e) {
-      print('加载卡片失败：$e');
+    } catch (e, stackTrace) {
+      _logger.severe('加载卡片失败', e, stackTrace);
       state = [];
     }
   }
@@ -28,8 +31,8 @@ class CardListNotifier extends StateNotifier<List<Card>> {
     try {
       final card = await _cardService.createCard(title, content);
       state = [...state, card];
-    } catch (e) {
-      print('创建卡片失败：$e');
+    } catch (e, stackTrace) {
+      _logger.severe('创建卡片失败', e, stackTrace);
       rethrow;
     }
   }
@@ -44,8 +47,8 @@ class CardListNotifier extends StateNotifier<List<Card>> {
             if (c.id == card.id) card else c
         ];
       }
-    } catch (e) {
-      print('更新卡片失败：$e');
+    } catch (e, stackTrace) {
+      _logger.severe('更新卡片失败', e, stackTrace);
       rethrow;
     }
   }
@@ -57,8 +60,8 @@ class CardListNotifier extends StateNotifier<List<Card>> {
       if (success) {
         state = state.where((card) => card.id != id).toList();
       }
-    } catch (e) {
-      print('删除卡片失败：$e');
+    } catch (e, stackTrace) {
+      _logger.severe('删除卡片失败', e, stackTrace);
       rethrow;
     }
   }

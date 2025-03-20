@@ -1,11 +1,14 @@
 // 数据库备份管理类
 import 'dart:io';
+import 'package:cardmind/shared/utils/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
 /// 数据库备份助手类
 /// 用于管理数据库的备份和恢复操作
 class DatabaseBackup {
+  static final _logger = AppLogger.getLogger('DatabaseBackup');
+
   /// 获取备份目录
   /// 返回用于存储数据库备份的目录
   static Future<Directory> _getBackupDir() async {
@@ -29,7 +32,7 @@ class DatabaseBackup {
     final dbFile = File(dbPath);
     if (await dbFile.exists()) {
       final backupFile = await dbFile.copy(backupPath);
-      print('数据库已备份到: $backupPath');
+      _logger.info('数据库已备份到: $backupPath');
       return backupFile;
     } else {
       throw FileSystemException('数据库文件不存在', dbPath);
@@ -50,7 +53,7 @@ class DatabaseBackup {
       }
       // 复制备份文件到数据库位置
       await backupFile.copy(dbPath);
-      print('数据库已从备份恢复: $backupPath');
+      _logger.info('数据库已从备份恢复: $backupPath');
     } else {
       throw FileSystemException('备份文件不存在', backupPath);
     }
@@ -75,7 +78,7 @@ class DatabaseBackup {
     final file = File(backupPath);
     if (await file.exists()) {
       await file.delete();
-      print('已删除备份: $backupPath');
+      _logger.info('已删除备份: $backupPath');
     }
   }
 
@@ -84,7 +87,7 @@ class DatabaseBackup {
     final backupDir = await _getBackupDir();
     if (await backupDir.exists()) {
       await backupDir.delete(recursive: true);
-      print('已清理所有备份');
+      _logger.info('已清理所有备份');
     }
   }
 }

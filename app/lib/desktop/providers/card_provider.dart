@@ -1,10 +1,13 @@
+import 'package:cardmind/shared/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../shared/services/card_service.dart';  
-import '../../shared/domain/models/card.dart';
+import '../../shared/services/card_service.dart';
+import '../../shared/domain/models/card.dart' as domain;
 
 /// 卡片列表状态管理器
-class CardListNotifier extends StateNotifier<List<Card>> {
-  // 卡片服务实例
+class CardListNotifier extends StateNotifier<List<domain.Card>> {
+  final _logger = AppLogger.getLogger('CardListNotifier');
+
+  /// 卡片服务实例
   final CardService _cardService;
 
   // 构造函数，初始化时加载所有卡片
@@ -14,32 +17,55 @@ class CardListNotifier extends StateNotifier<List<Card>> {
 
   /// 加载所有卡片
   Future<void> loadCards() async {
-    state = await _cardService.getAllCards();
+    try {
+      final cards = await _cardService.getAllCards();
+      state = List<domain.Card>.from(cards);
+      _logger.info('成功加载 ${cards.length} 张卡片');
+    } catch (e, stackTrace) {
+      _logger.severe('加载卡片失败', e, stackTrace);
+      state = [];
+    }
   }
 
   /// 添加新卡片
   /// [title] 卡片标题
   /// [content] 卡片内容
   Future<void> addCard(String title, String content) async {
-    final card = await _cardService.createCard(title, content);
-    state = [...state, card];
+    try {
+      final card = await _cardService.createCard(title, content);
+      state = [...state, card];
+      _logger.info('成功创建卡片: ${card.title}');
+    } catch (e, stackTrace) {
+      _logger.severe('创建卡片失败', e, stackTrace);
+      rethrow;
+    }
   }
 
   /// 更新卡片
-  /// [card] 要更新的卡片
-  Future<void> updateCard(Card card) async {
-    await _cardService.updateCard(card);
-    state = [
-      for (final item in state)
-        if (item.id == card.id) card else item
-    ];
+  Future<void> updateCard(domain.Card card) async {
+    try {
+      final updatedCard = await _cardService.updateCard(card);
+      state = List<domain.Card>.from(
+          state.map((c) => c.id == card.id ? updatedCard : c));
+      _logger.info('成功更新卡片: ${card.title}');
+    } catch (e, stackTrace) {
+      _logger.severe('更新卡片失败', e, stackTrace);
+      rethrow;
+    }
   }
 
   /// 删除卡片
-  /// [id] 要删除的卡片ID
   Future<void> deleteCard(int id) async {
-    await _cardService.deleteCard(id);
-    state = state.where((card) => card.id != id).toList();
+    try {
+      final success = await _cardService.deleteCard(id);
+      if (success) {
+        state = List<domain.Card>.from(state.where((c) => c.id != id));
+        _logger.info('成功删除卡片: ID=$id');
+      }
+    } catch (e, stackTrace) {
+      _logger.severe('删除卡片失败', e, stackTrace);
+      rethrow;
+    }
   }
 
   /// 根据ID获取卡片

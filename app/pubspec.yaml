@@ -50,6 +50,7 @@ dependencies:
   shared_preferences: ^2.2.2
   drift: ^2.14.1
   sqlite3_flutter_libs: ^0.5.18
+  logging: ^1.2.0
 
 dev_dependencies:
   flutter_test:
