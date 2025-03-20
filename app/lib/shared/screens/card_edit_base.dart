@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/models/card.dart' as domain;
-import '../providers/card_provider.dart';
+import '../../desktop/providers/card_provider.dart';
 
 /// 卡片编辑基础组件
 /// 提供卡片编辑的核心功能和状态管理
@@ -84,6 +84,7 @@ class _CardEditBaseState extends ConsumerState<CardEditBase> {
     final content = _contentController.text.trim();
 
     try {
+      final notifier = ref.read(cardListProvider.notifier);
       if (widget.card != null) {
         // 更新现有卡片
         final updatedCard = widget.card!.copyWith(
@@ -91,10 +92,10 @@ class _CardEditBaseState extends ConsumerState<CardEditBase> {
           content: content,
           updatedAt: DateTime.now(),
         );
-        await ref.read(cardListProvider.notifier).updateCard(updatedCard);
+        await notifier.updateCard(updatedCard);
       } else {
         // 创建新卡片
-        await ref.read(cardListProvider.notifier).addCard(title, content);
+        await notifier.addCard(title, content);
       }
 
       // 调用保存成功回调

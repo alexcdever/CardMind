@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../shared/domain/models/card.dart' as domain;
-import '../../shared/screens/card_edit_base.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../shared/providers/card_provider.dart';
 
 /// 桌面端卡片编辑界面
 class DesktopCardEditScreen extends ConsumerStatefulWidget {
@@ -52,34 +51,27 @@ class _DesktopCardEditScreenState extends ConsumerState<DesktopCardEditScreen> {
   }
 
   /// 构建编辑器界面
-  Widget _buildEditor(TextEditingController titleController, TextEditingController contentController) {
+  Widget _buildEditor() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 标题输入框
-        TextFormField(
-          controller: titleController,
+        TextField(
+          controller: _titleController,
           decoration: const InputDecoration(
             labelText: '标题',
-            hintText: '请输入卡片标题',
             border: OutlineInputBorder(),
           ),
-          textInputAction: TextInputAction.next,
         ),
         const SizedBox(height: 16),
-        // 内容输入框
         Expanded(
-          child: TextFormField(
-            controller: contentController,
+          child: TextField(
+            controller: _contentController,
             decoration: const InputDecoration(
-              labelText: '内容',
-              hintText: '请输入卡片内容（支持 Markdown 格式）',
+              labelText: '内容（支持 Markdown）',
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
             maxLines: null,
             expands: true,
-            textAlignVertical: TextAlignVertical.top,
           ),
         ),
       ],
@@ -87,21 +79,18 @@ class _DesktopCardEditScreenState extends ConsumerState<DesktopCardEditScreen> {
   }
 
   /// 构建预览界面
-  Widget _buildPreview(String title, String content) {
+  Widget _buildPreview() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 标题预览
         Text(
-          title,
+          _titleController.text.trim(),
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         const Divider(),
-        const SizedBox(height: 16),
-        // 内容预览（Markdown）
         Expanded(
           child: Markdown(
-            data: content,
+            data: _contentController.text.trim(),
             selectable: true,
           ),
         ),
@@ -111,55 +100,72 @@ class _DesktopCardEditScreenState extends ConsumerState<DesktopCardEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return CardEditBase(
-      card: widget.card,
-      onSaved: () => context.go('/'),
-      builder: (context, titleController, contentController, saveCard, isValid) {
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(widget.card == null ? '新建卡片' : '编辑卡片'),
-            centerTitle: false,
-            actions: [
-              // 预览/编辑切换按钮
-              IconButton(
-                icon: Icon(_isPreview ? Icons.edit : Icons.preview),
-                tooltip: _isPreview ? '切换到编辑' : '切换到预览',
-                onPressed: () => setState(() => _isPreview = !_isPreview),
-              ),
-              const SizedBox(width: 8),
-              // 取消按钮
-              TextButton(
-                onPressed: () => context.go('/'),
-                child: const Text('取消'),
-              ),
-              const SizedBox(width: 8),
-              // 保存按钮
-              FilledButton(
-                onPressed: isValid ? saveCard : null,
-                child: const Text('保存'),
-              ),
-              const SizedBox(width: 24),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.cardId == null ? '新建卡片' : '编辑卡片'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/cards'),
+        ),
+        actions: [
+          // 预览/编辑切换按钮
+          IconButton(
+            icon: Icon(_isPreview ? Icons.edit : Icons.preview),
+            tooltip: _isPreview ? '编辑' : '预览',
+            onPressed: () {
+              setState(() {
+                _isPreview = !_isPreview;
+              });
+            },
           ),
-          body: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Card(
-                margin: const EdgeInsets.all(24),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: _isPreview
-                      ? _buildPreview(
-                          titleController.text.trim(),
-                          contentController.text.trim(),
-                        )
-                      : _buildEditor(titleController, contentController),
-                ),
-              ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Expanded(
+              child: _isPreview ? _buildPreview() : _buildEditor(),
             ),
-          ),
-        );
-      },
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _saveCard,
+              child: const Text('保存'),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  /// 保存卡片
+  Future<void> _saveCard() async {
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+
+    if (title.isEmpty || content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('标题和内容不能为空')),
+      );
+      return;
+    }
+
+    try {
+      final notifier = ref.read(cardListProvider.notifier);
+      if (widget.cardId != null) {
+        await notifier.updateCard(widget.cardId!, title, content);
+      } else {
+        await notifier.addCard(title, content);
+      }
+      if (mounted) {
+        context.go('/cards');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败：$e')),
+        );
+      }
+    }
   }
 }

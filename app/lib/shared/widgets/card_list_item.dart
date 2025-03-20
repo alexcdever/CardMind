@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import '../domain/models/card.dart' as domain;
 
 /// 卡片列表项组件
 /// 用于在列表中显示卡片的预览
@@ -23,7 +22,8 @@ class CardListItem extends StatelessWidget {
   /// 构造函数
   const CardListItem({
     super.key,
-    required this.card,
+    required this.title,
+    required this.content,
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
@@ -32,7 +32,7 @@ class CardListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dismissible(
-      key: Key(card.id.toString()),
+      key: ValueKey(title),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -54,43 +54,32 @@ class CardListItem extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        card.title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined),
+                      icon: const Icon(Icons.edit),
                       onPressed: onEdit,
-                      tooltip: '编辑',
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 MarkdownBody(
-                  data: card.content,
+                  data: content,
                   shrinkWrap: true,
                   softLineBreak: true,
                   styleSheet: MarkdownStyleSheet(
                     p: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.color
+                          ?.withValues(),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      '创建于 ${_formatDate(card.createdAt)}',
-                      style: TextStyle(
-                        color: Theme.of(context).textTheme.bodySmall?.color,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -98,10 +87,5 @@ class CardListItem extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  /// 格式化日期
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

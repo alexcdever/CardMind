@@ -1,16 +1,16 @@
 import 'package:cardmind/shared/utils/logger.dart' show AppLogger;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../shared/services/card_service.dart';
-import '../../shared/domain/models/card.dart';
+import '../../shared/domain/models/card.dart' as domain;
 
 /// 卡片列表状态管理器
 class CardListNotifier extends StateNotifier<List<domain.Card>> {
   final _logger = AppLogger.getLogger('CardListNotifier');
 
   /// 卡片服务实例
-  final _cardService = CardService();
+  final CardService _cardService;
 
-  CardListNotifier() : super([]) {
+  CardListNotifier(this._cardService) : super([]) {
     // 初始化时加载所有卡片
     loadCards();
   }
@@ -38,7 +38,7 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   }
 
   /// 更新卡片
-  Future<void> updateCard(Card card) async {
+  Future<void> updateCard(domain.Card card) async {
     try {
       final success = await _cardService.updateCard(card);
       if (success) {
@@ -66,23 +66,33 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
     }
   }
 
-  @override
-  void dispose() {
-    _cardService.dispose();
-    super.dispose();
+  /// 根据ID获取卡片
+  domain.Card? getCardById(int id) {
+    try {
+      return state.firstWhere((card) => card.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
 /// 搜索文本状态提供者
 final searchTextProvider = StateProvider<String>((ref) => '');
 
+/// 卡片服务提供者
+final cardServiceProvider = Provider<CardService>((ref) {
+  return CardService.instance;
+});
+
 /// 卡片列表状态提供者
-final cardListProvider = StateNotifierProvider<CardListNotifier, List<Card>>((ref) {
-  return CardListNotifier();
+final cardListProvider =
+    StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
+  final cardService = ref.watch(cardServiceProvider);
+  return CardListNotifier(cardService);
 });
 
 /// 过滤后的卡片列表提供者
-final filteredCardListProvider = Provider<List<Card>>((ref) {
+final filteredCardListProvider = Provider<List<domain.Card>>((ref) {
   final searchText = ref.watch(searchTextProvider).toLowerCase();
   final cards = ref.watch(cardListProvider);
 
@@ -92,6 +102,6 @@ final filteredCardListProvider = Provider<List<Card>>((ref) {
 
   return cards.where((card) {
     return card.title.toLowerCase().contains(searchText) ||
-           card.content.toLowerCase().contains(searchText);
+        card.content.toLowerCase().contains(searchText);
   }).toList();
 });

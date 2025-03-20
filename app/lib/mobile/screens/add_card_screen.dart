@@ -108,7 +108,7 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
 
     if (widget.card == null) {
       // 创建新卡片
-      ref.read(cardListProvider.notifier).addCard(title, content);
+      ref.read(cardListProvider.notifier).createCard(title, content);
     } else {
       // 更新现有卡片
       final updatedCard = domain.Card(

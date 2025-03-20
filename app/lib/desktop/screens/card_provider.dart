@@ -6,12 +6,13 @@ import '../../shared/domain/models/card.dart' as domain;
 /// 卡片服务提供者
 final cardServiceProvider = Provider((ref) => CardService.instance);
 
+/// 搜索文本提供者
 final searchTextProvider = StateProvider<String>((ref) => '');
 
 /// 卡片列表提供者
 final cardListProvider = StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
-  final databaseService = ref.watch(databaseServiceProvider);
-  return CardListNotifier(databaseService);
+  final cardService = ref.watch(cardServiceProvider);
+  return CardListNotifier(cardService);
 });
 
 /// 过滤后的卡片列表提供者
@@ -30,11 +31,12 @@ final filteredCardsProvider = Provider<List<domain.Card>>((ref) {
   }).toList();
 });
 
+/// 卡片列表状态管理器
 class CardListNotifier extends StateNotifier<List<domain.Card>> {
   final CardService _cardService;
   final _logger = AppLogger.getLogger('CardListNotifier');
 
-  CardListNotifier(this._databaseService) : super([]) {
+  CardListNotifier(this._cardService) : super([]) {
     loadCards();
   }
 

@@ -72,25 +72,32 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   /// 根据ID获取卡片
   /// [id] 卡片ID
   /// 返回找到的卡片，如果未找到返回 null
-  Card? getCardById(int id) {
-    return state.firstWhere(
-      (card) => card.id == id,
-      orElse: () => null,
-    );
+  domain.Card? getCardById(int id) {
+    try {
+      return state.firstWhere((card) => card.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
 /// 搜索文本状态提供者
 final searchTextProvider = StateProvider<String>((ref) => '');
 
+/// 卡片服务提供者
+final cardServiceProvider = Provider<CardService>((ref) {
+  return CardService.instance;
+});
+
 /// 卡片列表状态提供者
-final cardListProvider = StateNotifierProvider<CardListNotifier, List<Card>>((ref) {
-  // 使用新的卡片服务
-  return CardListNotifier(CardService());
+final cardListProvider =
+    StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
+  final cardService = ref.watch(cardServiceProvider);
+  return CardListNotifier(cardService);
 });
 
 /// 过滤后的卡片列表提供者
-final filteredCardListProvider = Provider<List<Card>>((ref) {
+final filteredCardListProvider = Provider<List<domain.Card>>((ref) {
   final searchText = ref.watch(searchTextProvider).toLowerCase();
   final cards = ref.watch(cardListProvider);
 
@@ -98,15 +105,13 @@ final filteredCardListProvider = Provider<List<Card>>((ref) {
     return cards;
   }
 
-  return cards.where((card) =>
-    card.title.toLowerCase().contains(searchText) ||
-    card.content.toLowerCase().contains(searchText)
-  ).toList();
+  return List<domain.Card>.from(cards.where((card) =>
+      card.title.toLowerCase().contains(searchText) ||
+      card.content.toLowerCase().contains(searchText)));
 });
 
 /// 根据ID获取卡片的提供者
 /// [id] 卡片ID
-final cardByIdProvider = Provider.family<Card?, int>((ref, id) {
-  final notifier = ref.watch(cardListProvider.notifier);
-  return notifier.getCardById(id);
+final cardByIdProvider = Provider.family<domain.Card?, int>((ref, id) {
+  return ref.watch(cardListProvider.notifier).getCardById(id);
 });

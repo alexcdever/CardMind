@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../domain/models/card.dart' as domain;  // 使用 domain 前缀避免命名冲突
 import '../services/card_service.dart';
+import '../domain/models/card.dart' as domain;
 
 /// 卡片编辑界面
 /// 用于创建新卡片或编辑现有卡片
@@ -22,8 +22,7 @@ class CardEditScreen extends ConsumerStatefulWidget {
 /// 卡片编辑界面状态
 class _CardEditScreenState extends ConsumerState<CardEditScreen> {
   /// 标题控制器
-  late final TextEditingController _titleController;
-  
+  final _titleController = TextEditingController();
   /// 内容控制器
   final _contentController = TextEditingController();
   /// 是否正在加载
@@ -36,9 +35,63 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
   @override
   void initState() {
     super.initState();
-    // 初始化控制器
-    _titleController = TextEditingController(text: widget.card?.title ?? '');
-    _contentController = TextEditingController(text: widget.card?.content ?? '');
+    _loadCard();
+  }
+
+  /// 加载卡片数据
+  Future<void> _loadCard() async {
+    if (widget.cardId == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      _card = await CardService.instance.getCardById(widget.cardId!);
+      if (_card != null && mounted) {
+        setState(() {
+          _titleController.text = _card!.title;
+          _contentController.text = _card!.content;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// 保存卡片
+  Future<void> _saveCard() async {
+    if (_titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请输入标题')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final cardService = CardService.instance;
+      if (_card != null) {
+        // 更新现有卡片
+        final updatedCard = _card!.copyWith(
+          title: _titleController.text,
+          content: _contentController.text,
+        );
+        await cardService.updateCard(updatedCard);
+      } else {
+        // 创建新卡片
+        await cardService.createCard(
+          _titleController.text,
+          _contentController.text,
+        );
+      }
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
@@ -51,88 +104,62 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.card == null ? '新建卡片' : '编辑卡片'),
+        title: Text(widget.cardId == null ? '新建卡片' : '编辑卡片'),
         actions: [
-          // 保存按钮
-          TextButton(
-            onPressed: _saveCard,
-            child: const Text('保存'),
-          ),
+          if (_isSaving)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.save),
+              onPressed: _saveCard,
+            ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // 标题输入框
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: '标题',
                 border: OutlineInputBorder(),
               ),
-              maxLines: 1,
             ),
             const SizedBox(height: 16),
-            // 内容输入框
-            TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(
-                labelText: '内容',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
+            Expanded(
+              child: TextField(
+                controller: _contentController,
+                decoration: const InputDecoration(
+                  labelText: '内容',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
               ),
-              maxLines: null,
-              minLines: 10,
-              textAlignVertical: TextAlignVertical.top,
             ),
           ],
         ),
       ),
     );
-  }
-
-  /// 保存卡片
-  void _saveCard() async {
-    final title = _titleController.text.trim();
-    final content = _contentController.text.trim();
-
-    // 验证输入
-    if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入标题')),
-      );
-      return;
-    }
-
-    try {
-      if (widget.card == null) {
-        // 创建新卡片
-        await _cardService.createCard(title, content);
-      } else {
-        // 更新现有卡片
-        final updatedCard = domain.Card(
-          id: widget.card!.id,
-          title: title,
-          content: content,
-          createdAt: widget.card!.createdAt,
-          updatedAt: DateTime.now(),
-          syncId: widget.card!.syncId,
-        );
-        await _cardService.updateCard(updatedCard);
-      }
-
-      if (mounted) {
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败：$e')),
-        );
-      }
-    }
   }
 }
