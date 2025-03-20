@@ -47,8 +47,8 @@ class CardListScreen extends ConsumerWidget {
                 return CardListItem(
                   title: card.title,
                   content: card.content,
-                  onTap: () => context.go('/detail/${card.id}'),
-                  onEdit: () => context.go('/edit/${card.id}'),
+                  onTap: () => context.go('/cards/${card.id}'),
+                  onEdit: () => context.go('/cards/${card.id}/edit'),
                   onDelete: () async {
                     // 显示删除确认对话框
                     final confirm = await showDialog<bool>(
@@ -83,7 +83,7 @@ class CardListScreen extends ConsumerWidget {
               },
             ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/add'),
+        onPressed: () => context.go('/cards/new'),
         child: const Icon(Icons.add),
       ),
     );

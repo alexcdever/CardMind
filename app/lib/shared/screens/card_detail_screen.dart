@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../domain/models/card.dart' as domain;
 import '../services/card_service.dart';
 
@@ -81,10 +82,9 @@ class _CardDetailScreenState extends ConsumerState<CardDetailScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/edit/${_card!.id}',
-              ).then((_) => _loadCard());
+              // 使用 go_router 导航到编辑页面
+              context.go('/cards/${_card!.id}/edit');
+              // 注意：不需要 then 回调，因为返回时会自动重新构建页面
             },
           ),
         ],

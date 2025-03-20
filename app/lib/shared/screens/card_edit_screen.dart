@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../providers/card_provider.dart';
 import '../services/card_service.dart';
 import '../domain/models/card.dart' as domain;
 
@@ -44,6 +46,7 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
 
     setState(() => _isLoading = true);
     try {
+      // 使用 CardService 加载卡片数据
       _card = await CardService.instance.getCardById(widget.cardId!);
       if (_card != null && mounted) {
         setState(() {
@@ -69,23 +72,24 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
 
     setState(() => _isSaving = true);
     try {
-      final cardService = CardService.instance;
+      final notifier = ref.read(cardListProvider.notifier);
       if (_card != null) {
         // 更新现有卡片
-        final updatedCard = _card!.copyWith(
-          title: _titleController.text,
-          content: _contentController.text,
+        await notifier.updateCard(
+          _card!.id,
+          _titleController.text,
+          _contentController.text,
         );
-        await cardService.updateCard(updatedCard);
       } else {
         // 创建新卡片
-        await cardService.createCard(
+        await notifier.addCard(
           _titleController.text,
           _contentController.text,
         );
       }
       if (mounted) {
-        Navigator.pop(context);
+        // 返回卡片列表页面
+        context.go('/cards');
       }
     } finally {
       if (mounted) {
@@ -114,48 +118,36 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
       appBar: AppBar(
         title: Text(widget.cardId == null ? '新建卡片' : '编辑卡片'),
         actions: [
-          if (_isSaving)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.save),
-              onPressed: _saveCard,
-            ),
+          // 保存按钮
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _isSaving ? null : _saveCard,
+          ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // 标题输入框
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: '标题',
-                border: OutlineInputBorder(),
+                hintText: '请输入卡片标题',
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  labelText: '内容',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
+            // 内容输入框
+            TextField(
+              controller: _contentController,
+              decoration: const InputDecoration(
+                labelText: '内容',
+                hintText: '请输入卡片内容（支持 Markdown 格式）',
+                alignLabelWithHint: true,
               ),
+              maxLines: null,
+              minLines: 10,
             ),
           ],
         ),

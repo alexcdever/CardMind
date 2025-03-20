@@ -58,20 +58,23 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
 
   /// 更新卡片
   Future<void> updateCard(int id, String title, String content) async {
-    // 创建一个新的卡片对象
-    final card = domain.Card(
-      id: id,
+    // 先获取原始卡片以保留创建时间
+    final originalCard = state.firstWhere((c) => c.id == id);
+    
+    // 创建更新后的卡片对象
+    final updatedCard = originalCard.copyWith(
       title: title,
       content: content,
-      createdAt: DateTime.now(), // 这里使用当前时间，因为我们只关心更新
       updatedAt: DateTime.now(),
-      syncId: null, // 保持同步ID为空
     );
     
     // 更新卡片
-    final success = await _cardService.updateCard(card);
+    final success = await _cardService.updateCard(updatedCard);
     if (success) {
-      state = state.map((c) => c.id == id ? card : c).toList();
+      state = [
+        for (final card in state)
+          if (card.id == id) updatedCard else card
+      ];
     }
   }
 
