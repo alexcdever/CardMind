@@ -29,7 +29,10 @@ class CardService {
   }
 
   /// 创建新卡片
-  Future<Card> createCard(String title, String content) async {
+  /// [title] 卡片标题
+  /// [content] 卡片内容
+  /// 返回创建的卡片
+  Future<domain.Card> createCard(String title, String content) async {
     // 验证输入
     if (title.trim().isEmpty) {
       throw ArgumentError('标题不能为空');
@@ -48,7 +51,9 @@ class CardService {
   }
 
   /// 更新卡片
-  Future<bool> updateCard(Card card) async {
+  /// [card] 要更新的卡片
+  /// 返回是否更新成功
+  Future<bool> updateCard(domain.Card card) async {
     // 验证输入
     if (card.title.trim().isEmpty) {
       throw ArgumentError('标题不能为空');
@@ -58,6 +63,8 @@ class CardService {
   }
 
   /// 删除卡片
+  /// [id] 要删除的卡片ID
+  /// 返回是否删除成功
   Future<bool> deleteCard(int id) async {
     final result = await _db.cardDao.deleteCard(id);
     return result > 0;

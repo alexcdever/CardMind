@@ -38,6 +38,7 @@ class AppDatabase extends _$AppDatabase {
   int get schemaVersion => 2;  // 升级到版本2，因为添加了syncId字段
 
   /// 数据库迁移策略
+  /// 使用 drift 的迁移机制处理版本升级
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
@@ -85,7 +86,13 @@ class AppDatabase extends _$AppDatabase {
 /// 打开数据库连接
 LazyDatabase _openConnection(String dbPath) {
   return LazyDatabase(() async {
-    final file = File(dbPath);
+    // 确保数据库目录存在
+    final file = File(path);
+    if (!await file.exists()) {
+      // 如果目录不存在，创建它
+      await file.parent.create(recursive: true);
+    }
+    // 打开数据库连接
     return NativeDatabase.createInBackground(file);
   });
 }

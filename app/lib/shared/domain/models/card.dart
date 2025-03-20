@@ -1,12 +1,26 @@
 import 'dart:convert';
 
+/// 卡片领域模型
 class Card {
+  /// 卡片ID
   final int id;
+  
+  /// 卡片标题
   final String title;
+  
+  /// 卡片内容
   final String content;
+  
+  /// 创建时间
   final DateTime createdAt;
+  
+  /// 更新时间
   final DateTime updatedAt;
+  
+  /// 同步ID，用于与服务器同步
+  final String? syncId;
 
+  /// 构造函数
   Card({
     required this.id,
     required this.title,
@@ -26,6 +40,7 @@ class Card {
     };
   }
 
+  /// 从Map创建卡片
   factory Card.fromMap(Map<String, dynamic> map) {
     return Card(
       id: map['id'] as int,

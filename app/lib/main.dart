@@ -19,9 +19,17 @@ void main() {
   );
 }
 
-/// 应用主入口
-class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+/// 初始化包装器
+/// 用于确保服务在页面显示前完成初始化
+class InitializationWrapper extends ConsumerWidget {
+  /// 子组件
+  final Widget child;
+
+  /// 构造函数
+  const InitializationWrapper({
+    super.key,
+    required this.child,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

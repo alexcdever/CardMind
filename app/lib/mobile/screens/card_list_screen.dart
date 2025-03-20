@@ -11,14 +11,14 @@ class CardListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 监听过滤后的卡片列表
+    // 监听卡片列表
     final cards = ref.watch(filteredCardListProvider);
     
     return Scaffold(
       appBar: AppBar(
         title: const Text('我的卡片'),
         actions: [
-          // 搜索按钮
+          // 新建卡片按钮
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {

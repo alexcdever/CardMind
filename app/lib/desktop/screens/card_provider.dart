@@ -3,15 +3,18 @@ import '../../shared/services/card_service.dart';
 import '../../shared/utils/logger.dart';
 import '../../shared/domain/models/card.dart' as domain;
 
-final databaseServiceProvider = Provider((ref) => DatabaseService());
+/// 卡片服务提供者
+final cardServiceProvider = Provider((ref) => CardService.instance);
 
 final searchTextProvider = StateProvider<String>((ref) => '');
 
+/// 卡片列表提供者
 final cardListProvider = StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
   final databaseService = ref.watch(databaseServiceProvider);
   return CardListNotifier(databaseService);
 });
 
+/// 过滤后的卡片列表提供者
 final filteredCardsProvider = Provider<List<domain.Card>>((ref) {
   final cards = ref.watch(cardListProvider);
   final searchText = ref.watch(searchTextProvider);
@@ -35,6 +38,7 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
     loadCards();
   }
 
+  /// 加载所有卡片
   Future<void> loadCards() async {
     try {
       final cards = await _cardService.getAllCards();

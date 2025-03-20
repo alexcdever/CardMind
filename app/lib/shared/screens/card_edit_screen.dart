@@ -6,24 +6,32 @@ import '../services/card_service.dart';
 /// 卡片编辑界面
 /// 用于创建新卡片或编辑现有卡片
 class CardEditScreen extends ConsumerStatefulWidget {
-  /// 要编辑的卡片，如果为 null 则表示创建新卡片
-  final domain.Card? card;
+  /// 卡片ID，如果为空则表示新建卡片
+  final int? cardId;
 
-  const CardEditScreen({super.key, this.card});
+  /// 构造函数
+  const CardEditScreen({
+    super.key,
+    this.cardId,
+  });
 
   @override
   ConsumerState<CardEditScreen> createState() => _CardEditScreenState();
 }
 
+/// 卡片编辑界面状态
 class _CardEditScreenState extends ConsumerState<CardEditScreen> {
   /// 标题控制器
   late final TextEditingController _titleController;
   
   /// 内容控制器
-  late final TextEditingController _contentController;
-  
-  /// 卡片服务实例
-  final _cardService = CardService();
+  final _contentController = TextEditingController();
+  /// 是否正在加载
+  bool _isLoading = false;
+  /// 是否正在保存
+  bool _isSaving = false;
+  /// 当前编辑的卡片
+  domain.Card? _card;
 
   @override
   void initState() {

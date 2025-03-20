@@ -5,18 +5,22 @@ import '../domain/models/card.dart' as domain;
 /// 卡片列表项组件
 /// 用于在列表中显示卡片的预览
 class CardListItem extends StatelessWidget {
-  /// 卡片数据
-  final domain.Card card;
-  
+  /// 卡片标题
+  final String title;
+
+  /// 卡片内容
+  final String content;
+
   /// 点击卡片时的回调
   final VoidCallback onTap;
-  
+
   /// 点击编辑按钮时的回调
   final VoidCallback onEdit;
-  
+
   /// 点击删除按钮时的回调
   final VoidCallback onDelete;
 
+  /// 构造函数
   const CardListItem({
     super.key,
     required this.card,

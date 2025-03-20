@@ -10,8 +10,9 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   /// 卡片服务实例
   final CardService _cardService;
 
-  // 构造函数，初始化时加载所有卡片
+  /// 构造函数
   CardListNotifier(this._cardService) : super([]) {
+    // 初始化时加载卡片
     loadCards();
   }
 

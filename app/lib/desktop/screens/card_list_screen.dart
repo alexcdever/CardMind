@@ -7,11 +7,12 @@ import '../providers/card_provider.dart';
 
 /// 桌面端卡片列表页面
 class CardListScreen extends ConsumerWidget {
+  /// 构造函数
   const CardListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final searchText = ref.watch(searchTextProvider);
+    // 监听过滤后的卡片列表
     final cards = ref.watch(filteredCardsProvider);
 
     return Scaffold(
