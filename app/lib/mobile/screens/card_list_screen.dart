@@ -49,45 +49,8 @@ class CardListScreen extends ConsumerWidget {
                     itemCount: cards.length,
                     itemBuilder: (context, index) {
                       final card = cards[index];
-                      return Dismissible(
-                        key: Key('card-${card.id}'),
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 16.0),
-                          child: const Icon(
-                            Icons.delete,
-                            color: Colors.white,
-                          ),
-                        ),
-                        direction: DismissDirection.endToStart,
-                        confirmDismiss: (direction) async {
-                          return await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('删除卡片'),
-                              content: const Text('确定要删除这张卡片吗？'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
-                                  child: const Text('取消'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, true),
-                                  child: const Text('删除'),
-                                ),
-                              ],
-                            ),
-                          ) ?? false;
-                        },
-                        onDismissed: (direction) async {
-                          await ref.read(cardListProvider.notifier).deleteCard(card.id);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('卡片已删除')),
-                            );
-                          }
-                        },
+                      return Card(
+                        margin: const EdgeInsets.all(8.0),
                         child: ListTile(
                           title: Text(card.title),
                           subtitle: Text(
@@ -101,6 +64,59 @@ class CardListScreen extends ConsumerWidget {
                               '/edit/${card.id}',
                             );
                           },
+                          // 添加编辑按钮
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // 编辑按钮
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                tooltip: '编辑',
+                                onPressed: () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/edit/${card.id}',
+                                  );
+                                },
+                              ),
+                              // 删除按钮
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                tooltip: '删除',
+                                color: Colors.red,
+                                onPressed: () async {
+                                  // 显示确认对话框
+                                  final confirm = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('删除卡片'),
+                                      content: const Text('确定要删除这张卡片吗？'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, false),
+                                          child: const Text('取消'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context, true),
+                                          child: const Text('删除'),
+                                        ),
+                                      ],
+                                    ),
+                                  ) ?? false;
+                                  
+                                  // 如果用户确认删除
+                                  if (confirm && context.mounted) {
+                                    await ref.read(cardListProvider.notifier).deleteCard(card.id);
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('卡片已删除')),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

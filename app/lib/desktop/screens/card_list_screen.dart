@@ -69,15 +69,26 @@ class CardListScreen extends ConsumerWidget {
                       ),
                     );
 
+                    // 只有当用户明确确认删除（confirm 为 true）时才执行删除操作
                     if (confirm == true) {
-                      // 删除卡片
-                      await ref.read(cardListProvider.notifier).deleteCard(card.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('卡片已删除')),
-                        );
+                      try {
+                        // 删除卡片
+                        await ref.read(cardListProvider.notifier).deleteCard(card.id);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('卡片已删除')),
+                          );
+                        }
+                      } catch (e) {
+                        // 处理删除失败的情况
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('删除失败: $e')),
+                          );
+                        }
                       }
                     }
+                    // 不再需要在取消删除时刷新列表，因为列表状态不应该在确认前改变
                   },
                 );
               },
