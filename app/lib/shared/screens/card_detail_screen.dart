@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/service_provider.dart';
 import '../domain/models/card.dart' as domain;
-import '../services/card_service.dart';
 
 /// 卡片详情界面
 /// 用于查看卡片的完整内容
@@ -31,20 +31,38 @@ class _CardDetailScreenState extends ConsumerState<CardDetailScreen> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadCard();
   }
 
   /// 加载卡片数据
   Future<void> _loadCard() async {
+    if (_isLoading) return;
+    
     setState(() => _isLoading = true);
     try {
-      _card = await CardService.instance.getCardById(widget.cardId);
+      // 使用异步方式获取卡片服务
+      final cardService = await ref.read(cardServiceProvider.future);
+      // 根据 ID 获取卡片
+      final card = await cardService.getCardById(widget.cardId);
+      
       if (mounted) {
-        setState(() {});
+        setState(() {
+          _card = card;
+          _isLoading = false;
+        });
       }
-    } finally {
+    } catch (e) {
+      // 处理加载过程中的错误
       if (mounted) {
         setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载卡片失败: $e')),
+        );
       }
     }
   }
@@ -84,7 +102,6 @@ class _CardDetailScreenState extends ConsumerState<CardDetailScreen> {
             onPressed: () {
               // 使用 go_router 导航到编辑页面
               context.go('/cards/${_card!.id}/edit');
-              // 注意：不需要 then 回调，因为返回时会自动重新构建页面
             },
           ),
         ],

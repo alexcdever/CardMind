@@ -1,106 +1,154 @@
-import '../data/database/database.dart';
-import '../domain/models/card.dart' as domain;
+import 'package:cardmind/shared/utils/logger.dart';
+import '../data/dao/card_dao.dart';
+import '../data/database/database_manager.dart';
+import '../domain/models/card.dart';
 
 /// 卡片服务类
-/// 处理卡片相关的业务逻辑，包括数据转换和验证
+/// 处理卡片的业务逻辑，包括数据库操作和同步
 class CardService {
-  /// 数据库实例
-  late final AppDatabase _db;
-
+  final _logger = AppLogger.getLogger('CardService');
+  late final CardDao _cardDao;
+  
   /// 私有构造函数
   CardService._();
-
+  
   /// 单例实例
   static CardService? _instance;
-
-  /// 初始化卡片服务
-  static Future<void> initialize() async {
-    _instance = CardService._();
-    _instance!._db = await AppDatabase.create();
-  }
-
-  /// 获取单例实例
-  /// 注意：使用前必须先调用 initialize()
-  static CardService get instance {
+  
+  /// 获取卡片服务实例
+  static Future<CardService> getInstance() async {
     if (_instance == null) {
-      throw StateError('CardService 未初始化，请先调用 initialize()');
+      _instance = CardService._();
+      await _instance!._init();
     }
     return _instance!;
   }
+  
+  /// 初始化
+  Future<void> _init() async {
+    try {
+      final db = await DatabaseManager.getInstance();
+      _cardDao = CardDao(db.database);
+      _logger.info('卡片服务初始化成功');
+    } catch (e, stack) {
+      _logger.severe('卡片服务初始化失败', e, stack);
+      rethrow;
+    }
+  }
 
   /// 获取所有卡片
-  Future<List<domain.Card>> getAllCards() async {
-    final cards = await _db.cardDao.getAllCards();
-    return cards.map(_db.cardDao.toDomainCard).toList();
+  /// 从数据库中获取所有卡片，并返回卡片列表
+  Future<List<Card>> getAllCards() async {
+    try {
+      // 从 CRDT 数据库获取卡片
+      final cards = await _cardDao.getAllCards();
+      return cards;
+    } catch (e, stack) {
+      // 记录错误日志
+      _logger.severe('获取卡片列表失败', e, stack);
+      return [];
+    }
   }
 
-  /// 搜索卡片
-  Future<List<domain.Card>> searchCards(String query) async {
-    final cards = await _db.cardDao.searchCards(query);
-    return cards.map(_db.cardDao.toDomainCard).toList();
+
+  /// 根据 ID 获取卡片
+  /// 从数据库中获取指定 ID 的卡片，并返回卡片对象
+  Future<Card?> getCardById(int id) async {
+    try {
+      // 从 CRDT 数据库获取卡片
+      final card = await _cardDao.getCardById(id);
+      return card;
+    } catch (e, stack) {
+      // 记录错误日志
+      _logger.severe('获取卡片失败：id=$id', e, stack);
+      return null;
+    }
   }
 
-  /// 根据ID获取卡片
-  Future<domain.Card?> getCardById(int id) async {
-    final card = await _db.cardDao.getCardById(id);
-    return card != null ? _db.cardDao.toDomainCard(card) : null;
-  }
-
-  /// 创建新卡片
-  /// [title] 卡片标题
-  /// [content] 卡片内容
-  /// 返回创建的卡片
-  Future<domain.Card> createCard(String title, String content) async {
-    // 验证输入
-    if (title.trim().isEmpty) {
-      throw ArgumentError('标题不能为空');
+  /// 创建新的卡片
+  /// 将卡片信息插入到数据库中，并返回创建后的卡片对象
+  Future<Card?> createCard(String title, String content) async {
+    try {
+      // 将卡片信息插入到 CRDT 数据库中
+      final card = await _cardDao.createCard(title, content);
+      if (card == null) {
+        throw StateError('创建卡片失败');
+      }
+      
+      _logger.info('创建卡片成功：id=${card.id}, 标题=$title');
+      return card;
+    } catch (e, stack) {
+      // 记录错误日志
+      _logger.severe('创建卡片失败', e, stack);
+      return null;
     }
-    if (content.trim().isEmpty) {
-      throw ArgumentError('内容不能为空');
-    }
-
-    // 创建卡片
-    final id = await _db.cardDao.createCard(
-      title.trim(),
-      content.trim(),
-    );
-    
-    // 获取新创建的卡片
-    final card = await _db.cardDao.getCardById(id);
-    if (card == null) {
-      throw StateError('创建卡片失败');
-    }
-    
-    return _db.cardDao.toDomainCard(card);
   }
 
   /// 更新卡片
-  /// [card] 要更新的卡片
-  /// 返回是否更新成功
-  Future<bool> updateCard(domain.Card card) async {
-    // 验证输入
-    if (card.title.trim().isEmpty) {
-      throw ArgumentError('标题不能为空');
-    }
-    if (card.content.trim().isEmpty) {
-      throw ArgumentError('内容不能为空');
-    }
+  /// 更新数据库中的卡片信息，并返回更新后的卡片对象
+  Future<Card?> updateCard(int id, String title, String content) async {
+    try {
+      _logger.info('开始更新卡片: id=$id, title=$title');
+      
+      // 检查卡片是否存在
+      final existingCard = await _cardDao.getCardById(id);
+      if (existingCard == null) {
+        _logger.severe('更新卡片失败: 卡片不存在, id=$id');
+        throw StateError('更新卡片失败: 卡片不存在');
+      }
+      
+      // 更新 CRDT 数据库中的卡片
+      final success = await _cardDao.updateCard(id, title, content);
+      _logger.info('卡片更新操作结果: id=$id, success=$success');
+      
+      if (!success) {
+        throw StateError('更新卡片失败：数据库操作未成功');
+      }
 
-    // 检查卡片是否存在
-    final exists = await _db.cardDao.getCardById(card.id);
-    if (exists == null) {
-      throw ArgumentError('卡片不存在');
+      // 获取更新后的卡片
+      final updatedCard = await _cardDao.getCardById(id);
+      if (updatedCard == null) {
+        _logger.severe('更新卡片后无法获取卡片: id=$id');
+        throw StateError('更新卡片失败：无法获取更新后的卡片');
+      }
+      
+      _logger.info('卡片更新成功: id=${updatedCard.id}, title=${updatedCard.title}');
+      return updatedCard;
+    } catch (e, stack) {
+      // 记录错误日志
+      _logger.severe('更新卡片失败：id=$id, 错误=$e', e, stack);
+      rethrow;
     }
-
-    // 更新卡片
-    return _db.cardDao.updateCard(card);
   }
 
   /// 删除卡片
-  /// [id] 要删除的卡片ID
-  /// 返回是否删除成功
+  /// 从数据库中删除指定 ID 的卡片
   Future<bool> deleteCard(int id) async {
-    final result = await _db.cardDao.deleteCard(id);
-    return result > 0;
+    try {
+      // 从 CRDT 数据库中删除卡片
+      final success = await _cardDao.deleteCard(id);
+      if (!success) {
+        throw StateError('删除卡片失败：找不到指定的卡片');
+      }
+      _logger.info('删除卡片成功：id=$id');
+      return true;
+    } catch (e, stack) {
+      // 记录错误日志
+      _logger.severe('删除卡片失败：id=$id', e, stack);
+      return false;
+    }
+  }
+
+  /// 搜索卡片
+  /// 根据关键词搜索卡片
+  Future<List<Card>> searchCards(String query) async {
+    try {
+      final cards = await _cardDao.searchCards(query);
+      _logger.info('搜索卡片：关键词=$query, 结果=${cards.length}条');
+      return cards;
+    } catch (e, stack) {
+      _logger.severe('搜索卡片失败：关键词=$query', e, stack);
+      return [];
+    }
   }
 }

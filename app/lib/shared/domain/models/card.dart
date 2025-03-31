@@ -1,35 +1,31 @@
 import 'dart:convert';
 
 /// 卡片领域模型
+/// 表示一个卡片实体，包含卡片的所有属性
 class Card {
   /// 卡片ID
   final int id;
-  
+
   /// 卡片标题
   final String title;
-  
+
   /// 卡片内容
   final String content;
-  
+
   /// 创建时间
   final DateTime createdAt;
-  
+
   /// 更新时间
   final DateTime updatedAt;
-  
-  /// 同步ID，用于与服务器同步
-  final String? syncId;
 
   /// 构造函数
-  Card({
+  const Card({
     required this.id,
     required this.title,
     required this.content,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    this.syncId,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+    required this.createdAt,
+    required this.updatedAt,
+  });
 
   /// 将卡片转换为Map
   Map<String, dynamic> toMap() {
@@ -39,7 +35,6 @@ class Card {
       'content': content,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
-      'sync_id': syncId,
     };
   }
 
@@ -51,24 +46,22 @@ class Card {
       content: map['content'] as String,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
-      syncId: map['sync_id'] as String?,
     );
   }
 
   /// 将卡片转换为JSON字符串
-  String toJson() => json.encode(toMap());
+  String toJson() => jsonEncode(toMap());
 
   /// 从JSON字符串创建卡片
-  factory Card.fromJson(String source) => Card.fromMap(json.decode(source));
+  factory Card.fromJson(String source) => Card.fromMap(jsonDecode(source));
 
-  /// 创建卡片副本并更新指定字段
+  /// 复制卡片并修改指定字段
   Card copyWith({
     int? id,
     String? title,
     String? content,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? syncId,
   }) {
     return Card(
       id: id ?? this.id,
@@ -76,7 +69,34 @@ class Card {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      syncId: syncId ?? this.syncId,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'Card(id: $id, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is Card &&
+        other.id == id &&
+        other.title == title &&
+        other.content == content &&
+        other.createdAt == createdAt &&
+        other.updatedAt == updatedAt;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      id,
+      title,
+      content,
+      createdAt,
+      updatedAt,
     );
   }
 }

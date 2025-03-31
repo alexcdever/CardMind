@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/card_provider.dart';
-import '../services/card_service.dart';
+import '../providers/service_provider.dart'; 
 import '../domain/models/card.dart' as domain;
 
 /// 卡片编辑界面
@@ -37,26 +37,45 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
   @override
   void initState() {
     super.initState();
+    // 不在 initState 中使用 Provider
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _loadCard();
   }
 
   /// 加载卡片数据
   Future<void> _loadCard() async {
     if (widget.cardId == null) return;
+    if (_isLoading) return;
 
     setState(() => _isLoading = true);
     try {
-      // 使用 CardService 加载卡片数据
-      _card = await CardService.instance.getCardById(widget.cardId!);
-      if (_card != null && mounted) {
+      // 使用异步方式获取卡片服务，避免在 initState 中使用 Provider
+      final cardService = await ref.read(cardServiceProvider.future);
+      
+      // 根据 ID 获取卡片
+      final card = await cardService.getCardById(widget.cardId!);
+      
+      if (card != null && mounted) {
         setState(() {
-          _titleController.text = _card!.title;
-          _contentController.text = _card!.content;
+          _card = card;
+          _titleController.text = card.title;
+          _contentController.text = card.content;
+          _isLoading = false;
         });
+      } else if (mounted) {
+        setState(() => _isLoading = false);
       }
-    } finally {
+    } catch (e) {
+      // 处理加载过程中的错误
       if (mounted) {
         setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载卡片失败: $e')),
+        );
       }
     }
   }
@@ -78,18 +97,29 @@ class _CardEditScreenState extends ConsumerState<CardEditScreen> {
         await notifier.updateCard(
           _card!.id,
           _titleController.text,
-          _contentController.text,
+          _contentController.text
         );
       } else {
         // 创建新卡片
-        await notifier.addCard(
+        await notifier.createCard(
           _titleController.text,
-          _contentController.text,
+          _contentController.text
         );
       }
       if (mounted) {
+        // 显示成功消息
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('保存成功')),
+        );
         // 返回卡片列表页面
         context.go('/cards');
+      }
+    } catch (e) {
+      // 显示错误消息
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
       }
     } finally {
       if (mounted) {

@@ -1,18 +1,28 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/card_service.dart';
+import '../services/sync_service.dart';
 import '../domain/models/card.dart' as domain;
+import 'service_provider.dart';
 
-/// 卡片服务提供者
-final cardServiceProvider = Provider((ref) => CardService.instance);
+/// 卡片列表提供者
+final cardListProvider =
+    StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
+  final cardServiceAsync = ref.watch(cardServiceProvider);
+  final syncServiceAsync = ref.watch(syncServiceProvider);
+  
+  // 处理异步加载状态
+  if (cardServiceAsync.hasValue && syncServiceAsync.hasValue) {
+    final cardService = cardServiceAsync.value!;
+    final syncService = syncServiceAsync.value!;
+    return CardListNotifier(cardService, syncService);
+  } else {
+    // 返回空列表，等待服务加载完成
+    return CardListNotifier.empty();
+  }
+});
 
 /// 搜索文本提供者
 final searchTextProvider = StateProvider<String>((ref) => '');
-
-/// 卡片列表提供者
-final cardListProvider = StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
-  final cardService = ref.watch(cardServiceProvider);
-  return CardListNotifier(cardService);
-});
 
 /// 过滤后的卡片列表提供者
 final filteredCardsProvider = Provider<List<domain.Card>>((ref) {
@@ -24,65 +34,107 @@ final filteredCardsProvider = Provider<List<domain.Card>>((ref) {
   }
 
   final searchLower = searchText.toLowerCase();
-  return cards.where((card) {
-    return card.title.toLowerCase().contains(searchLower) ||
-        card.content.toLowerCase().contains(searchLower);
-  }).toList();
+  return cards
+      .where((card) =>
+          card.title.toLowerCase().contains(searchLower) ||
+          card.content.toLowerCase().contains(searchLower))
+      .toList();
 });
 
-/// 当前编辑的卡片提供者
-final currentCardProvider = FutureProvider.family<domain.Card?, int>((ref, id) async {
-  final cardService = ref.watch(cardServiceProvider);
-  return cardService.getCardById(id);
+/// 当前编辑的卡片提供者（通过 ID 获取）
+final currentCardProvider =
+    FutureProvider.family<domain.Card?, int>((ref, id) async {
+  final cardServiceAsync = ref.watch(cardServiceProvider);
+  
+  if (!cardServiceAsync.hasValue) {
+    throw StateError('卡片服务未初始化');
+  }
+  
+  final cardService = cardServiceAsync.value!;
+  return await cardService.getCardById(id);
 });
 
 /// 卡片列表状态管理器
 class CardListNotifier extends StateNotifier<List<domain.Card>> {
-  final CardService _cardService;
+  final CardService? _cardService;
+  final SyncService? _syncService;
+  bool _isInitialized = false;
 
-  CardListNotifier(this._cardService) : super([]) {
-    loadCards();
+  /// 标准构造函数
+  CardListNotifier(this._cardService, this._syncService) : super([]) {
+    if (_cardService != null && _syncService != null) {
+      _isInitialized = true;
+      loadCards();
+    }
   }
+  
+  /// 空构造函数，用于服务未加载完成时
+  CardListNotifier.empty() : _cardService = null, _syncService = null, super([]);
 
   /// 加载所有卡片
   Future<void> loadCards() async {
-    final cards = await _cardService.getAllCards();
-    state = cards;
+    if (!_isInitialized) return;
+    
+    try {
+      // 从本地数据库加载卡片
+      final cards = await _cardService!.getAllCards();
+      state = cards;
+      
+      // 注意：SyncService 同步逻辑需要根据新的 SyncService API 调整
+      // 这里暂时省略 SyncService 同步部分
+    } catch (e) {
+      // 错误处理
+      print('加载卡片失败: $e');
+    }
   }
 
-  /// 添加新卡片
-  Future<void> addCard(String title, String content) async {
-    final card = await _cardService.createCard(title, content);
-    state = [...state, card];
+  /// 创建新卡片
+  Future<void> createCard(String title, String content) async {
+    if (!_isInitialized) return;
+    
+    try {
+      final card = await _cardService!.createCard(title, content);
+      if (card != null) {
+        state = [...state, card];
+      }
+    } catch (e) {
+      print('创建卡片失败: $e');
+    }
   }
 
   /// 更新卡片
   Future<void> updateCard(int id, String title, String content) async {
-    // 先获取原始卡片以保留创建时间
-    final originalCard = state.firstWhere((c) => c.id == id);
+    if (!_isInitialized) return;
     
-    // 创建更新后的卡片对象
-    final updatedCard = originalCard.copyWith(
-      title: title,
-      content: content,
-      updatedAt: DateTime.now(),
-    );
-    
-    // 更新卡片
-    final success = await _cardService.updateCard(updatedCard);
-    if (success) {
-      state = [
-        for (final card in state)
-          if (card.id == id) updatedCard else card
-      ];
+    try {
+      final updatedCard = await _cardService!.updateCard(id, title, content);
+      if (updatedCard != null) {
+        state = [
+          for (final card in state)
+            if (card.id == id) updatedCard else card
+        ];
+      } else {
+        // 如果更新失败但没有抛出异常，手动抛出异常
+        throw Exception('更新卡片失败：无法获取更新后的卡片');
+      }
+    } catch (e) {
+      // 记录错误并重新抛出，让上层处理
+      print('更新卡片失败: $e');
+      rethrow;
     }
   }
 
   /// 删除卡片
   Future<void> deleteCard(int id) async {
-    final success = await _cardService.deleteCard(id);
-    if (success) {
-      state = state.where((card) => card.id != id).toList();
+    if (!_isInitialized) return;
+    
+    try {
+      final success = await _cardService!.deleteCard(id);
+      if (success) {
+        state = state.where((card) => card.id != id).toList();
+      }
+    } catch (e) {
+      print('删除卡片失败: $e');
     }
   }
 }
