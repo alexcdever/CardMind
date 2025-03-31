@@ -12,6 +12,7 @@ dependencies:
   # UI 组件
   cupertino_icons: ^1.0.2
   flutter_markdown: ^0.7.6+2
+  google_fonts: ^6.1.0
   # 状态管理
   flutter_riverpod: ^2.4.10
   # 路由管理
