@@ -30,7 +30,12 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   Future<void> createCard(String title, String content) async {
     try {
       final card = await _cardService.createCard(title, content);
-      state = [...state, card];
+      if (card != null) {
+        state = [...state, card];
+        _logger.info('创建卡片成功: ${card.title}');
+      } else {
+        _logger.warning('创建卡片失败: 返回的卡片为空');
+      }
     } catch (e, stackTrace) {
       _logger.severe('创建卡片失败', e, stackTrace);
       rethrow;
@@ -40,12 +45,20 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   /// 更新卡片
   Future<void> updateCard(domain.Card card) async {
     try {
-      final success = await _cardService.updateCard(card);
-      if (success) {
+      final updatedCard = await _cardService.updateCard(
+        card.id, 
+        card.title, 
+        card.content
+      );
+      
+      if (updatedCard != null) {
         state = [
           for (final c in state)
-            if (c.id == card.id) card else c
+            if (c.id == card.id) updatedCard else c
         ];
+        _logger.info('更新卡片成功: ${updatedCard.title}');
+      } else {
+        _logger.warning('更新卡片失败: 返回的卡片为空');
       }
     } catch (e, stackTrace) {
       _logger.severe('更新卡片失败', e, stackTrace);

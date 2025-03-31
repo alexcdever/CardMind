@@ -15,6 +15,14 @@ class CardService {
   /// 单例实例
   static CardService? _instance;
   
+  /// 获取卡片服务实例（同步方式，仅在确定实例已初始化后使用）
+  static CardService get instance {
+    if (_instance == null) {
+      throw StateError('CardService 尚未初始化，请先调用 getInstance()');
+    }
+    return _instance!;
+  }
+  
   /// 获取卡片服务实例
   static Future<CardService> getInstance() async {
     if (_instance == null) {

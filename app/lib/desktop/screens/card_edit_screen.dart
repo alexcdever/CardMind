@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import '../../shared/providers/card_provider.dart';
+import '../providers/card_provider.dart';
 
 /// 桌面端卡片编辑界面
 class DesktopCardEditScreen extends ConsumerStatefulWidget {
@@ -33,13 +33,17 @@ class _DesktopCardEditScreenState extends ConsumerState<DesktopCardEditScreen> {
   /// 加载卡片数据
   Future<void> _loadCard() async {
     if (widget.cardId != null) {
-      final card = await ref.read(cardServiceProvider).getCardById(widget.cardId!);
-      if (card != null) {
-        setState(() {
-          _titleController.text = card.title;
-          _contentController.text = card.content;
-        });
-      }
+      final cardServiceAsync = ref.read(cardServiceProvider);
+      
+      cardServiceAsync.whenData((cardService) async {
+        final card = await cardService.getCardById(widget.cardId!);
+        if (card != null && mounted) {
+          setState(() {
+            _titleController.text = card.title;
+            _contentController.text = card.content;
+          });
+        }
+      });
     }
   }
 
@@ -153,7 +157,18 @@ class _DesktopCardEditScreenState extends ConsumerState<DesktopCardEditScreen> {
     try {
       final notifier = ref.read(cardListProvider.notifier);
       if (widget.cardId != null) {
-        await notifier.updateCard(widget.cardId!, title, content);
+        final card = await ref.read(cardServiceProvider).whenData((cardService) async {
+          return await cardService.getCardById(widget.cardId!);
+        }).value;
+        
+        if (card != null) {
+          final updatedCard = card.copyWith(
+            title: title,
+            content: content,
+            updatedAt: DateTime.now(),
+          );
+          await notifier.updateCard(updatedCard);
+        }
       } else {
         await notifier.addCard(title, content);
       }

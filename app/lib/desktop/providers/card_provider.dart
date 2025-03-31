@@ -34,8 +34,12 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   Future<void> addCard(String title, String content) async {
     try {
       final card = await _cardService.createCard(title, content);
-      state = [...state, card];
-      _logger.info('成功创建卡片: ${card.title}');
+      if (card != null) {
+        state = [...state, card];
+        _logger.info('成功创建卡片: ${card.title}');
+      } else {
+        _logger.warning('创建卡片失败: 返回的卡片为空');
+      }
     } catch (e, stackTrace) {
       _logger.severe('创建卡片失败', e, stackTrace);
       rethrow;
@@ -45,10 +49,19 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   /// 更新卡片
   Future<void> updateCard(domain.Card card) async {
     try {
-      final updatedCard = await _cardService.updateCard(card);
-      state = List<domain.Card>.from(
-          state.map((c) => c.id == card.id ? updatedCard : c));
-      _logger.info('成功更新卡片: ${card.title}');
+      final updatedCard = await _cardService.updateCard(
+        card.id, 
+        card.title, 
+        card.content
+      );
+      
+      if (updatedCard != null) {
+        state = List<domain.Card>.from(
+            state.map((c) => c.id == card.id ? updatedCard : c));
+        _logger.info('成功更新卡片: ${card.title}');
+      } else {
+        _logger.warning('更新卡片失败: 返回的卡片为空');
+      }
     } catch (e, stackTrace) {
       _logger.severe('更新卡片失败', e, stackTrace);
       rethrow;
@@ -79,21 +92,52 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
       return null;
     }
   }
+
+  /// 空的 CardListNotifier
+  factory CardListNotifier.empty() => CardListNotifier(_EmptyCardService());
+}
+
+/// 空的卡片服务实现，用于在真正的服务初始化前提供占位
+class _EmptyCardService implements CardService {
+  @override
+  Future<List<domain.Card>> getAllCards() async => [];
+  
+  @override
+  Future<domain.Card?> getCardById(int id) async => null;
+  
+  @override
+  Future<domain.Card?> createCard(String title, String content) async => null;
+  
+  @override
+  Future<domain.Card?> updateCard(int id, String title, String content) async => null;
+  
+  @override
+  Future<bool> deleteCard(int id) async => false;
+  
+  @override
+  Future<List<domain.Card>> searchCards(String query) async => [];
 }
 
 /// 搜索文本状态提供者
 final searchTextProvider = StateProvider<String>((ref) => '');
 
-/// 卡片服务提供者
-final cardServiceProvider = Provider<CardService>((ref) {
-  return CardService.instance;
+/// 卡片服务提供者 - 异步初始化
+final cardServiceProvider = FutureProvider<CardService>((ref) async {
+  return await CardService.getInstance();
 });
 
 /// 卡片列表状态提供者
 final cardListProvider =
     StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
-  final cardService = ref.watch(cardServiceProvider);
-  return CardListNotifier(cardService);
+  // 使用 whenData 处理异步数据
+  final cardServiceAsync = ref.watch(cardServiceProvider);
+  
+  // 返回一个根据 cardService 状态创建的 CardListNotifier
+  return cardServiceAsync.when(
+    data: (cardService) => CardListNotifier(cardService),
+    loading: () => CardListNotifier.empty(), // 创建一个空的 CardListNotifier
+    error: (_, __) => CardListNotifier.empty(), // 错误时也创建一个空的 CardListNotifier
+  );
 });
 
 /// 过滤后的卡片列表提供者
