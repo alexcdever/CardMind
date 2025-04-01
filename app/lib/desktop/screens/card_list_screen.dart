@@ -34,6 +34,12 @@ class CardListScreen extends ConsumerWidget {
               ),
             ),
           ),
+          // 节点管理按钮
+          IconButton(
+            icon: const Icon(Icons.device_hub),
+            tooltip: '节点管理',
+            onPressed: () => context.go('/nodes'),
+          ),
         ],
       ),
       body: cards.isEmpty

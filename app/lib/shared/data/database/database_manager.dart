@@ -9,7 +9,7 @@ class DatabaseManager {
   static final _logger = AppLogger.getLogger('DatabaseManager');
   static DatabaseManager? _instance;
   late SqliteCrdt _db;
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   /// 获取数据库实例（单例模式）
   static Future<DatabaseManager> getInstance() async {
@@ -51,7 +51,7 @@ class DatabaseManager {
 
   /// 数据库创建回调
   Future<void> _onCreate(dynamic db, int version) async {
-    _logger.info('创建数据库: 版本=$version');
+    _logger.info('创建数据库，版本: $version');
 
     // 创建卡片表
     await db.execute('''
@@ -63,6 +63,18 @@ class DatabaseManager {
         updated_at TEXT NOT NULL
       )
     ''');
+    
+    // 创建节点表
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS nodes (
+        node_id TEXT PRIMARY KEY,
+        node_name TEXT NOT NULL,
+        pubkey_fingerprint TEXT NOT NULL,
+        is_trusted INTEGER NOT NULL,
+        last_sync TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
   }
 
   /// 数据库升级回调
@@ -71,8 +83,17 @@ class DatabaseManager {
 
     // 版本 1 到版本 2 的迁移
     if (oldVersion < 2 && newVersion >= 2) {
-      // 添加新字段或表的迁移逻辑
-      // 例如：await db.execute('ALTER TABLE cards ADD COLUMN tags TEXT');
+      // 添加节点表
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS nodes (
+          node_id TEXT PRIMARY KEY,
+          node_name TEXT NOT NULL,
+          pubkey_fingerprint TEXT NOT NULL,
+          is_trusted INTEGER NOT NULL,
+          last_sync TEXT,
+          created_at TEXT NOT NULL
+        )
+      ''');
     }
   }
 
