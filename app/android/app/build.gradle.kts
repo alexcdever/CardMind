@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "com.cardmind.cardmind_flutter"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // 设置 NDK 版本为插件所需的版本
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

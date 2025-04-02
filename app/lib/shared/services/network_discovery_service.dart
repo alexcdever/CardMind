@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nsd/nsd.dart' as nsd;
 import '../domain/models/network_discovered_node.dart';
@@ -164,7 +163,7 @@ class NetworkDiscoveryService {
         _discovery = discovery as nsd.Discovery?;
         
         // 监听服务发现
-        discovery?.addServiceListener((service, status) {
+        discovery.addServiceListener((service, status) {
           if (status == nsd.ServiceStatus.found) {
             _logger.info('发现服务: ${service.name}');
             

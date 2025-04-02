@@ -28,13 +28,13 @@ class CardDao {
         INSERT INTO cards (title, content, created_at, updated_at)
         VALUES (?1, ?2, ?3, ?4)
       ''', [title, content, now, now]);
-      
+
       // 获取最后插入的 ID
       final result = await _db.query('SELECT last_insert_rowid() as id');
       final id = result.first['id'] as int;
-      
+
       _logger.info('创建卡片成功: ID=$id, 标题=$title');
-      
+
       // 返回创建的卡片
       return Card(
         id: id,
@@ -60,25 +60,23 @@ class CardDao {
   Future<bool> updateCard(int id, String title, String content) async {
     try {
       _logger.info('尝试更新卡片: ID=$id, 标题=$title');
-      
+
       // 首先检查卡片是否存在
-      final checkResult = await _db.query(
-        'SELECT id FROM cards WHERE id = ?1', 
-        [id]
-      );
-      
+      final checkResult =
+          await _db.query('SELECT id FROM cards WHERE id = ?1', [id]);
+
       if (checkResult.isEmpty) {
         _logger.severe('更新卡片失败：卡片不存在: ID=$id');
         return false;
       }
-      
+
       // 使用 UPDATE 语句更新卡片
       final now = DateTime.now().toIso8601String();
       await _db.execute('''
         UPDATE cards SET title = ?1, content = ?2, updated_at = ?3
         WHERE id = ?4
       ''', [title, content, now, id]);
-      
+
       _logger.info('更新卡片成功：ID=$id, 标题=$title');
       return true;
     } catch (e, stack) {
@@ -94,8 +92,7 @@ class CardDao {
     try {
       // 使用 query 方法查询所有卡片
       final results = await _db.query(
-        'SELECT * FROM cards ORDER BY updated_at DESC'
-      );
+          'SELECT * FROM cards where is_deleted = 0 ORDER BY updated_at DESC');
       _logger.info('获取所有卡片：${results.length} 条记录');
       return results.map(_mapToCard).toList();
     } catch (e, stack) {
@@ -113,10 +110,8 @@ class CardDao {
   Future<Card?> getCardById(int id) async {
     try {
       // 使用 query 方法查询特定卡片
-      final results = await _db.query(
-        'SELECT * FROM cards WHERE id = ?1',
-        [id]
-      );
+      final results = await _db
+          .query('SELECT * FROM cards WHERE is_deleted = 0 and id = ?1', [id]);
 
       if (results.isEmpty) {
         _logger.warning('获取卡片失败：卡片不存在: ID=$id');
@@ -143,7 +138,7 @@ class CardDao {
       await _db.execute('''
         DELETE FROM cards WHERE id = ?1
       ''', [id]);
-      
+
       _logger.info('删除卡片成功：ID=$id');
       return true;
     } catch (e, stack) {
@@ -163,10 +158,10 @@ class CardDao {
       // 使用 query 方法搜索卡片
       final results = await _db.query('''
         SELECT * FROM cards 
-        WHERE title LIKE ?1 OR content LIKE ?2
+        WHERE is_deleted = 0 AND (title LIKE ?1 OR content LIKE ?2)
         ORDER BY updated_at DESC
       ''', ['%$query%', '%$query%']);
-      
+
       _logger.info('搜索卡片：关键词="$query", 找到 ${results.length} 条记录');
       return results.map(_mapToCard).toList();
     } catch (e, stack) {
@@ -174,7 +169,7 @@ class CardDao {
       return [];
     }
   }
-  
+
   /// 将数据库记录映射为卡片对象
   Card _mapToCard(Map<String, dynamic> record) {
     return Card(
