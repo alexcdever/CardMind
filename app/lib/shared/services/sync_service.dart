@@ -28,8 +28,14 @@ class SyncService {
   /// 获取同步服务实例
   static Future<SyncService> getInstance() async {
     if (_instance == null) {
-      final db = await DatabaseManager.getInstance();
-      _instance = SyncService._private(db.database);
+      try {
+        final db = await DatabaseManager.getInstance();
+        _instance = SyncService._private(db.database);
+      } catch (e, stack) {
+        final logger = AppLogger.getLogger('SyncService');
+        logger.severe('获取同步服务实例失败', e, stack);
+        rethrow; // 重新抛出异常，让调用者处理
+      }
     }
     return _instance!;
   }

@@ -1,42 +1,12 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:nsd/nsd.dart' as nsd;
+import '../domain/models/network_discovered_node.dart';
 import '../utils/logger.dart';
-
-/// 网络节点信息
-/// 表示在网络上发现的节点
-class DiscoveredNode {
-  /// 节点ID
-  final String nodeId;
-  
-  /// 节点名称
-  final String nodeName;
-  
-  /// 公钥指纹
-  final String pubkeyFingerprint;
-  
-  /// 主机地址
-  final String host;
-  
-  /// 端口
-  final int port;
-  
-  /// 构造函数
-  const DiscoveredNode({
-    required this.nodeId,
-    required this.nodeName,
-    required this.pubkeyFingerprint,
-    required this.host,
-    required this.port,
-  });
-  
-  @override
-  String toString() {
-    return 'DiscoveredNode(nodeId: $nodeId, nodeName: $nodeName, host: $host, port: $port)';
-  }
-}
 
 /// 网络发现服务
 /// 负责局域网内节点的发现和广播
@@ -60,7 +30,7 @@ class NetworkDiscoveryService {
   nsd.Registration? _registration;
   
   // 服务发现控制器
-  StreamController<DiscoveredNode>? _discoveryController;
+  StreamController<NetworkDiscoveredNode>? _discoveryController;
   
   // NSD 发现实例
   nsd.Discovery? _discovery;
@@ -144,8 +114,11 @@ class NetworkDiscoveryService {
         txt: _createTxtMap(attributes),
       );
       
-      // 注册服务
-      _registration = await nsd.register(service);
+      // 确保Flutter引擎已初始化
+      WidgetsFlutterBinding.ensureInitialized();
+      
+      // 在主平台线程上注册服务
+      _registration = await _runOnPlatformThread(() => nsd.register(service));
       
       _logger.info('服务广播启动成功：端口=$_port');
       return (true, _port);
@@ -160,7 +133,9 @@ class NetworkDiscoveryService {
     try {
       if (_registration != null) {
         _logger.info('停止服务广播');
-        await nsd.unregister(_registration!);
+        
+        // 在主平台线程上取消注册服务
+        await _runOnPlatformThread(() => nsd.unregister(_registration!));
         _registration = null;
       }
     } catch (e, stack) {
@@ -169,9 +144,7 @@ class NetworkDiscoveryService {
   }
   
   /// 开始发现节点
-  /// 
-  /// 返回：发现的节点流
-  Stream<DiscoveredNode> discoverNodes() {
+  Stream<NetworkDiscoveredNode> discoverNodes() {
     if (_nodeId == null) {
       _logger.warning('无法发现节点：服务未初始化');
       return Stream.empty();
@@ -181,14 +154,17 @@ class NetworkDiscoveryService {
       _logger.info('开始发现节点');
       
       // 创建流控制器
-      _discoveryController = StreamController<DiscoveredNode>.broadcast();
+      _discoveryController = StreamController<NetworkDiscoveredNode>.broadcast();
       
-      // 开始发现服务
-      nsd.startDiscovery(_serviceName).then((discovery) {
-        _discovery = discovery;
+      // 确保Flutter引擎已初始化
+      WidgetsFlutterBinding.ensureInitialized();
+      
+      // 在主平台线程上开始发现
+      _runOnPlatformThread(() => nsd.startDiscovery(_serviceName)).then((discovery) {
+        _discovery = discovery as nsd.Discovery?;
         
         // 监听服务发现
-        _discovery!.addServiceListener((service, status) {
+        discovery?.addServiceListener((service, status) {
           if (status == nsd.ServiceStatus.found) {
             _logger.info('发现服务: ${service.name}');
             
@@ -201,7 +177,7 @@ class NetworkDiscoveryService {
                   attributeMap.containsKey('fingerprint')) {
                 
                 // 创建发现的节点
-                final discoveredNode = DiscoveredNode(
+                final discoveredNode = NetworkDiscoveredNode(
                   nodeId: attributeMap['nodeId']!,
                   nodeName: attributeMap['nodeName']!,
                   pubkeyFingerprint: attributeMap['fingerprint']!,
@@ -230,13 +206,15 @@ class NetworkDiscoveryService {
   /// 停止发现节点
   Future<void> stopDiscovery() async {
     try {
+      _logger.info('停止发现节点');
+      
       if (_discoveryController != null) {
-        _logger.info('停止发现节点');
         await _discoveryController!.close();
         _discoveryController = null;
       }
       if (_discovery != null) {
-        await nsd.stopDiscovery(_discovery!);
+        // 在主平台线程上停止发现
+        await _runOnPlatformThread(() => nsd.stopDiscovery(_discovery!));
         _discovery = null;
       }
     } catch (e, stack) {
@@ -292,5 +270,29 @@ class NetworkDiscoveryService {
       }
     }
     return result;
+  }
+  
+  /// 在主平台线程上运行操作
+  Future<T> _runOnPlatformThread<T>(Future<T> Function() callback) async {
+    if (kIsWeb) {
+      // Web平台不需要特殊处理
+      return await callback();
+    }
+    
+    // 使用Completer来等待结果
+    final completer = Completer<T>();
+    
+    // 确保在主平台线程上执行
+    WidgetsBinding.instance.platformDispatcher.scheduleFrame();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final result = await callback();
+        completer.complete(result);
+      } catch (e, stack) {
+        completer.completeError(e, stack);
+      }
+    });
+    
+    return completer.future;
   }
 }

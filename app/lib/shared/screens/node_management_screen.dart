@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:go_router/go_router.dart';
+import '../domain/models/network_discovered_node.dart';
 import '../domain/models/node.dart';
 import '../providers/node_provider.dart';
-import '../services/network_discovery_service.dart';
 import '../utils/logger.dart';
 
 /// 节点管理页面
@@ -20,6 +21,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
   final _logger = AppLogger.getLogger('NodeManagementScreen');
   final _nodeNameController = TextEditingController();
   final _fingerprintController = TextEditingController();
+  final _publicKeyController = TextEditingController(); // 新增公钥输入字段
   
   late TabController _tabController;
   
@@ -33,6 +35,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
   void dispose() {
     _nodeNameController.dispose();
     _fingerprintController.dispose();
+    _publicKeyController.dispose(); // 新增公钥输入字段的dispose
     _tabController.dispose();
     super.dispose();
   }
@@ -44,6 +47,10 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
     return Scaffold(
       appBar: AppBar(
         title: const Text('节点管理'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/cards'), // 使用GoRouter导航到卡片列表页面
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -337,6 +344,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
   void _showAddTrustedNodeDialog() {
     _nodeNameController.clear();
     _fingerprintController.clear();
+    _publicKeyController.clear(); // 清空公钥输入字段
     
     showDialog(
       context: context,
@@ -361,6 +369,14 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
                   hintText: '节点的公钥指纹',
                 ),
               ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _publicKeyController,
+                decoration: const InputDecoration(
+                  labelText: '公钥',
+                  hintText: '节点的公钥',
+                ),
+              ),
             ],
           ),
           actions: [
@@ -373,10 +389,12 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
             TextButton(
               onPressed: () {
                 if (_nodeNameController.text.isNotEmpty && 
-                    _fingerprintController.text.isNotEmpty) {
+                    _fingerprintController.text.isNotEmpty && 
+                    _publicKeyController.text.isNotEmpty) {
                   ref.read(nodeProvider.notifier).addTrustedNode(
                     _nodeNameController.text,
                     _fingerprintController.text,
+                    _publicKeyController.text,
                   );
                   Navigator.of(context).pop();
                 }
@@ -440,10 +458,14 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
             children: [
               const Text('扫描此二维码添加本节点'),
               const SizedBox(height: 16),
-              QrImageView(
-                data: qrData,
-                version: QrVersions.auto,
-                size: 200.0,
+              Container(
+                width: 200.0,
+                height: 200.0,
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: 200.0,
+                ),
               ),
             ],
           ),
@@ -517,9 +539,10 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('节点名称: ${nodeInfo['nodeName']}'),
-              Text('节点ID: ${nodeInfo['nodeId']}'),
-              Text('公钥指纹: ${nodeInfo['fingerprint']}'),
+              Text('节点名称: ${nodeInfo.nodeName}'),
+              Text('节点ID: ${nodeInfo.nodeId}'),
+              Text('公钥指纹: ${nodeInfo.pubkeyFingerprint}'),
+              Text('公钥: ${nodeInfo.publicKey ?? "无"}'),
             ],
           ),
           actions: [
@@ -532,8 +555,9 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
             TextButton(
               onPressed: () {
                 ref.read(nodeProvider.notifier).addTrustedNode(
-                  nodeInfo['nodeName']!,
-                  nodeInfo['fingerprint']!,
+                  nodeInfo.nodeName,
+                  nodeInfo.pubkeyFingerprint,
+                  nodeInfo.publicKey ?? '',
                 );
                 Navigator.of(context).pop();
               },
@@ -546,10 +570,11 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
   }
   
   /// 添加发现的节点为受信任节点
-  void _addDiscoveredNodeAsTrusted(DiscoveredNode node) {
+  void _addDiscoveredNodeAsTrusted(NetworkDiscoveredNode node) {
     ref.read(nodeProvider.notifier).addTrustedNode(
       node.nodeName,
       node.pubkeyFingerprint,
+      '', // 暂时使用空字符串作为公钥，后续需要从发现的节点中获取公钥
     );
     
     ScaffoldMessenger.of(context).showSnackBar(
@@ -558,7 +583,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen> wit
   }
   
   /// 与节点同步
-  void _syncWithNode(DiscoveredNode node) async {
+  void _syncWithNode(NetworkDiscoveredNode node) async {
     final success = await ref.read(nodeProvider.notifier).connectAndSync(node);
     
     if (!mounted) return;

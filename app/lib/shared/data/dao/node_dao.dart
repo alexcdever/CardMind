@@ -17,7 +17,9 @@ class NodeDao {
   /// - nodeId：节点ID
   /// - nodeName：节点名称
   /// - pubkeyFingerprint：公钥指纹
-  /// - isTrusted：是否是受信任节点
+  /// - isTrusted：是否受信任
+  /// - publicKey：公钥（可选）
+  /// - isLocalNode：是否为本地节点（默认为false）
   ///
   /// 返回：创建的节点，如果创建失败则返回 null
   Future<Node?> createNode(
@@ -25,29 +27,43 @@ class NodeDao {
     String nodeName,
     String pubkeyFingerprint,
     bool isTrusted,
+    String? publicKey,
+    {bool isLocalNode = false}
   ) async {
     try {
       _logger.info('创建节点: ID=$nodeId, 名称=$nodeName');
+      
+      // 获取当前时间
       final now = DateTime.now().toIso8601String();
-
+      
       // 使用 execute 方法执行插入操作
       await _db.execute('''
-        INSERT INTO nodes (node_id, node_name, pubkey_fingerprint, is_trusted, created_at)
-        VALUES (?1, ?2, ?3, ?4, ?5)
-      ''', [nodeId, nodeName, pubkeyFingerprint, isTrusted ? 1 : 0, now]);
-      
+        INSERT INTO nodes (id, node_name, pubkey_fingerprint, public_key, is_trusted, is_local_node, created_at)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+      ''', [
+        nodeId,
+        nodeName,
+        pubkeyFingerprint,
+        publicKey,
+        isTrusted ? 1 : 0,
+        isLocalNode ? 1 : 0,
+        now
+      ]);
+
       _logger.info('创建节点成功: ID=$nodeId, 名称=$nodeName');
-      
+
       // 返回创建的节点
       return Node(
         nodeId: nodeId,
         nodeName: nodeName,
         pubkeyFingerprint: pubkeyFingerprint,
+        publicKey: publicKey,
         isTrusted: isTrusted,
+        isLocalNode: isLocalNode,
         createdAt: DateTime.parse(now),
       );
     } catch (e, stack) {
-      _logger.severe('创建节点失败: 错误=$e', e, stack);
+      _logger.severe('创建节点失败: ID=$nodeId, 错误=$e', e, stack);
       return null;
     }
   }
@@ -55,76 +71,37 @@ class NodeDao {
   /// 更新节点
   ///
   /// 参数：
-  /// - nodeId：节点ID
-  /// - nodeName：新节点名称
-  /// - isTrusted：是否是受信任节点
+  /// - node：要更新的节点
   ///
   /// 返回：更新是否成功
-  Future<bool> updateNode(
-    String nodeId,
-    String nodeName,
-    bool isTrusted,
-  ) async {
+  Future<bool> updateNode(Node node) async {
     try {
-      _logger.info('尝试更新节点: ID=$nodeId, 名称=$nodeName');
-      
-      // 首先检查节点是否存在
-      final checkResult = await _db.query(
-        'SELECT node_id FROM nodes WHERE node_id = ?1', 
-        [nodeId]
-      );
-      
-      if (checkResult.isEmpty) {
-        _logger.warning('更新节点失败：节点不存在: ID=$nodeId');
-        return false;
-      }
-      
-      // 使用 UPDATE 语句更新节点
-      await _db.execute('''
-        UPDATE nodes SET node_name = ?1, is_trusted = ?2
-        WHERE node_id = ?3
-      ''', [nodeName, isTrusted ? 1 : 0, nodeId]);
-      
-      _logger.info('更新节点成功：ID=$nodeId, 名称=$nodeName');
-      return true;
-    } catch (e, stack) {
-      _logger.severe('更新节点失败：ID=$nodeId, 错误=$e', e, stack);
-      return false;
-    }
-  }
+      _logger.info('更新节点: ID=${node.nodeId}, 名称=${node.nodeName}');
 
-  /// 更新节点同步时间
-  ///
-  /// 参数：
-  /// - nodeId：节点ID
-  /// - lastSync：最后同步时间
-  ///
-  /// 返回：更新是否成功
-  Future<bool> updateNodeSyncTime(String nodeId, DateTime lastSync) async {
-    try {
-      _logger.info('更新节点同步时间: ID=$nodeId, 时间=${lastSync.toIso8601String()}');
-      
-      // 首先检查节点是否存在
-      final checkResult = await _db.query(
-        'SELECT node_id FROM nodes WHERE node_id = ?1', 
-        [nodeId]
-      );
-      
-      if (checkResult.isEmpty) {
-        _logger.warning('更新节点同步时间失败：节点不存在: ID=$nodeId');
-        return false;
-      }
-      
-      // 使用 UPDATE 语句更新节点同步时间
+      // 使用 execute 方法执行更新操作
       await _db.execute('''
-        UPDATE nodes SET last_sync = ?1
-        WHERE node_id = ?2
-      ''', [lastSync.toIso8601String(), nodeId]);
-      
-      _logger.info('更新节点同步时间成功：ID=$nodeId');
+        UPDATE nodes
+        SET node_name = ?1,
+            pubkey_fingerprint = ?2,
+            public_key = ?3,
+            is_trusted = ?4,
+            is_local_node = ?5,
+            last_sync = ?6
+        WHERE id = ?7
+      ''', [
+        node.nodeName,
+        node.pubkeyFingerprint,
+        node.publicKey,
+        node.isTrusted ? 1 : 0,
+        node.isLocalNode ? 1 : 0,
+        node.lastSync?.toIso8601String(),
+        node.nodeId,
+      ]);
+
+      _logger.info('更新节点成功: ID=${node.nodeId}');
       return true;
     } catch (e, stack) {
-      _logger.severe('更新节点同步时间失败：ID=$nodeId, 错误=$e', e, stack);
+      _logger.severe('更新节点失败: ID=${node.nodeId}, 错误=$e', e, stack);
       return false;
     }
   }
@@ -135,9 +112,8 @@ class NodeDao {
   Future<List<Node>> getAllNodes() async {
     try {
       // 使用 query 方法查询所有节点
-      final results = await _db.query(
-        'SELECT * FROM nodes ORDER BY created_at DESC'
-      );
+      final results =
+          await _db.query('SELECT * FROM nodes ORDER BY created_at DESC');
       _logger.info('获取所有节点：${results.length} 条记录');
       return results.map(_mapToNode).toList();
     } catch (e, stack) {
@@ -153,8 +129,7 @@ class NodeDao {
     try {
       // 使用 query 方法查询所有受信任节点
       final results = await _db.query(
-        'SELECT * FROM nodes WHERE is_trusted = 1 ORDER BY created_at DESC'
-      );
+          'SELECT * FROM nodes WHERE is_trusted = 1 ORDER BY created_at DESC');
       _logger.info('获取所有受信任节点：${results.length} 条记录');
       return results.map(_mapToNode).toList();
     } catch (e, stack) {
@@ -172,10 +147,8 @@ class NodeDao {
   Future<Node?> getNodeById(String nodeId) async {
     try {
       // 使用 query 方法查询特定节点
-      final results = await _db.query(
-        'SELECT * FROM nodes WHERE node_id = ?1',
-        [nodeId]
-      );
+      final results =
+          await _db.query('SELECT * FROM nodes WHERE id = ?1', [nodeId]);
 
       if (results.isEmpty) {
         _logger.warning('获取节点失败：节点不存在: ID=$nodeId');
@@ -200,9 +173,7 @@ class NodeDao {
     try {
       // 使用 query 方法查询特定节点
       final results = await _db.query(
-        'SELECT * FROM nodes WHERE pubkey_fingerprint = ?1',
-        [fingerprint]
-      );
+          'SELECT * FROM nodes WHERE pubkey_fingerprint = ?1', [fingerprint]);
 
       if (results.isEmpty) {
         _logger.warning('获取节点失败：节点不存在: 指纹=$fingerprint');
@@ -227,9 +198,9 @@ class NodeDao {
     try {
       // 使用 DELETE 语句删除节点
       await _db.execute('''
-        DELETE FROM nodes WHERE node_id = ?1
+        DELETE FROM nodes WHERE id = ?1
       ''', [nodeId]);
-      
+
       _logger.info('删除节点成功：ID=$nodeId');
       return true;
     } catch (e, stack) {
@@ -237,16 +208,18 @@ class NodeDao {
       return false;
     }
   }
-  
+
   /// 将数据库记录映射为节点对象
   Node _mapToNode(Map<String, dynamic> record) {
     return Node(
-      nodeId: record['node_id'] as String,
+      nodeId: record['id'] as String,
       nodeName: record['node_name'] as String,
       pubkeyFingerprint: record['pubkey_fingerprint'] as String,
+      publicKey: record['public_key'] as String?,
       isTrusted: (record['is_trusted'] as int) == 1,
-      lastSync: record['last_sync'] != null 
-          ? DateTime.parse(record['last_sync'] as String) 
+      isLocalNode: (record['is_local_node'] as int?) == 1,
+      lastSync: record['last_sync'] != null
+          ? DateTime.parse(record['last_sync'] as String)
           : null,
       createdAt: DateTime.parse(record['created_at'] as String),
     );
