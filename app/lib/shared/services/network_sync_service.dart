@@ -93,8 +93,22 @@ class NetworkSyncService {
   HttpServer? _server;
   int? _port;
 
+  // 连接状态变化事件流
+  final StreamController<List<String>> _connectionStateController =
+      StreamController<List<String>>.broadcast();
+
+  /// 节点连接状态变化事件流
+  Stream<List<String>> get onConnectionStateChanged =>
+      _connectionStateController.stream;
+
   // 活动会话
   final Map<String, SyncSession> _activeSessions = {};
+
+  // 心跳检测定时器
+  final Map<String, Timer> _heartbeatTimers = {};
+
+  // 心跳检测间隔（毫秒）
+  static const int _heartbeatInterval = 10000;
 
   // 同步服务
   final SyncService _syncService;
@@ -131,6 +145,8 @@ class NetworkSyncService {
       [int? port]) async {
     try {
       _logger.info('初始化网络同步服务');
+      _logger
+          .info('本地节点信息 - ID: $nodeId, 名称: $nodeName, 指纹: $pubkeyFingerprint');
 
       // 存储本地节点信息
       _nodeId = nodeId;
@@ -138,10 +154,15 @@ class NetworkSyncService {
       _pubkeyFingerprint = pubkeyFingerprint;
       _port = port;
 
-      _logger.info('网络同步服务初始化成功');
+      // 本地节点信息仅在内存中维护，不再保存到数据库
+
+      // 初始化成功后，通知连接状态变化
+      _connectionStateController.add(_activeSessions.keys.toList());
+
+      _logger.info('网络同步服务初始化成功，本地节点状态：在线');
       return true;
     } catch (e, stack) {
-      _logger.severe('网络同步服务初始化失败', e, stack);
+      _logger.severe('网络同步服务初始化失败，本地节点状态：离线', e, stack);
       return false;
     }
   }
@@ -154,7 +175,7 @@ class NetworkSyncService {
   /// 返回：服务器是否成功启动，以及使用的端口
   Future<(bool, int?)> startServer([int? port]) async {
     if (_nodeId == null || _nodeName == null || _pubkeyFingerprint == null) {
-      _logger.warning('无法启动服务器：服务未初始化');
+      _logger.warning('无法启动服务器：服务未初始化，本地节点状态：离线');
       return (false, null);
     }
 
@@ -163,11 +184,11 @@ class NetworkSyncService {
       final serverPort = port ?? _port;
 
       if (serverPort == null) {
-        _logger.warning('无法启动服务器：未指定端口');
+        _logger.warning('无法启动服务器：未指定端口，本地节点状态：离线');
         return (false, null);
       }
 
-      _logger.info('启动同步服务器：端口=$serverPort');
+      _logger.info('启动同步服务器：端口=$serverPort，本地节点状态：正在启动');
 
       // 创建 HTTP 服务器
       _server = await HttpServer.bind(InternetAddress.anyIPv4, serverPort);
@@ -183,10 +204,12 @@ class NetworkSyncService {
         }
       });
 
-      _logger.info('同步服务器启动成功：端口=$_port');
+      // 本地节点状态仅在内存中维护，不再保存到数据库
+
+      _logger.info('同步服务器启动成功：端口=$_port，本地节点状态：在线');
       return (true, _port);
     } catch (e, stack) {
-      _logger.severe('启动同步服务器失败', e, stack);
+      _logger.severe('启动同步服务器失败，本地节点状态：离线', e, stack);
       return (false, null);
     }
   }
@@ -195,7 +218,7 @@ class NetworkSyncService {
   Future<void> stopServer() async {
     try {
       if (_server != null) {
-        _logger.info('停止同步服务器');
+        _logger.info('停止同步服务器，本地节点状态：正在关闭');
 
         // 关闭所有活动会话
         for (var session in _activeSessions.values) {
@@ -203,14 +226,16 @@ class NetworkSyncService {
         }
         _activeSessions.clear();
 
+        // 本地节点状态仅在内存中维护，不再保存到数据库
+
         // 关闭服务器
         await _server!.close(force: true);
         _server = null;
 
-        _logger.info('同步服务器已停止');
+        _logger.info('同步服务器已停止，本地节点状态：离线');
       }
     } catch (e, stack) {
-      _logger.severe('停止同步服务器失败', e, stack);
+      _logger.severe('停止同步服务器失败，本地节点状态：未知', e, stack);
     }
   }
 
@@ -245,6 +270,9 @@ class NetworkSyncService {
 
       // 存储会话
       _activeSessions[sessionId] = session;
+
+      // 启动心跳检测
+      _startHeartbeat(session);
 
       // 发送认证请求
       await _sendAuthRequest(session);
@@ -306,6 +334,34 @@ class NetworkSyncService {
     }
   }
 
+  /// 启动心跳检测
+  void _startHeartbeat(SyncSession session) {
+    // 取消已存在的心跳定时器
+    _heartbeatTimers[session.sessionId]?.cancel();
+
+    // 创建新的心跳定时器
+    _heartbeatTimers[session.sessionId] = Timer.periodic(
+      Duration(milliseconds: _heartbeatInterval),
+      (_) => _sendHeartbeat(session),
+    );
+  }
+
+  /// 发送心跳包
+  void _sendHeartbeat(SyncSession session) {
+    if (session.state == SyncSessionState.authenticated) {
+      try {
+        final heartbeat = {
+          'type': 'heartbeat',
+          'timestamp': DateTime.now().toIso8601String(),
+        };
+        session.channel.sink.add(jsonEncode(heartbeat));
+      } catch (e) {
+        _logger.warning('发送心跳包失败：${session.remoteNode.nodeName}');
+        closeSession(session.sessionId);
+      }
+    }
+  }
+
   /// 关闭同步会话
   ///
   /// 参数：
@@ -315,25 +371,26 @@ class NetworkSyncService {
       final session = _activeSessions[sessionId];
       if (session != null) {
         _logger.info('关闭同步会话：$sessionId');
+
+        // 取消心跳定时器
+        _heartbeatTimers[sessionId]?.cancel();
+        _heartbeatTimers.remove(sessionId);
+
+        // 关闭会话
         await session.close();
-        _activeSessions.remove(sessionId);
+
+        // 从活动会话中移除
+        _activeSessions.remove(session.sessionId);
+
+        // 通知连接状态变化
+        _connectionStateController.add(_activeSessions.keys.toList());
       }
+
+      /// 处理会话完成
+
+      /// 关闭服务
     } catch (e, stack) {
       _logger.severe('关闭同步会话失败：$sessionId', e, stack);
-    }
-  }
-
-  /// 关闭服务
-  Future<void> close() async {
-    try {
-      _logger.info('关闭网络同步服务');
-
-      // 停止服务器
-      await stopServer();
-
-      _logger.info('网络同步服务已关闭');
-    } catch (e, stack) {
-      _logger.severe('关闭网络同步服务失败', e, stack);
     }
   }
 
@@ -447,6 +504,10 @@ class NetworkSyncService {
         case 'sync_response':
           await _handleSyncResponse(session, data);
           break;
+        case 'heartbeat':
+          // 重置心跳定时器
+          _startHeartbeat(session);
+          break;
         default:
           _logger.warning('收到未知类型的消息：$type');
       }
@@ -473,6 +534,12 @@ class NetworkSyncService {
       final String remoteFingerprint = authData['fingerprint'];
       final String? remotePublicKey = authData['publicKey']; // 获取远程节点的公钥
 
+      // 如果收到了远程节点的公钥，先存储它，再验证签名
+      if (remotePublicKey != null) {
+        await _storeRemoteNodePublicKey(
+            remoteNodeId, remoteNodeName, remoteFingerprint, remotePublicKey);
+      }
+
       // 验证签名
       final bool isSignatureValid =
           await _verifyAuthSignature(authData, signature, remoteFingerprint);
@@ -480,8 +547,6 @@ class NetworkSyncService {
         _logger.warning('认证请求签名验证失败：${session.remoteNode.nodeName}');
         throw Exception('签名验证失败，可能存在安全风险');
       }
-
-      // TODO: 验证节点是否在白名单中
 
       // 更新会话中的远程节点信息
       final updatedNode = NetworkDiscoveredNode(
@@ -862,5 +927,28 @@ class NetworkSyncService {
     session.state = SyncSessionState.closed;
     session.endTime = DateTime.now();
     _activeSessions.remove(session.sessionId);
+  }
+
+  /// 关闭服务
+  Future<void> close() async {
+    try {
+      _logger.info('关闭网络同步服务');
+
+      // 停止服务器
+      await stopServer();
+
+      // 关闭所有活动会话
+      for (final session in _activeSessions.values.toList()) {
+        await session.close();
+      }
+      _activeSessions.clear();
+
+      // 关闭连接状态控制器
+      await _connectionStateController.close();
+
+      _logger.info('网络同步服务已关闭');
+    } catch (e, stack) {
+      _logger.severe('关闭网络同步服务失败', e, stack);
+    }
   }
 }

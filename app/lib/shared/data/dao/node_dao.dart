@@ -22,20 +22,15 @@ class NodeDao {
   /// - isLocalNode：是否为本地节点（默认为false）
   ///
   /// 返回：创建的节点，如果创建失败则返回 null
-  Future<Node?> createNode(
-    String nodeId,
-    String nodeName,
-    String pubkeyFingerprint,
-    bool isTrusted,
-    String? publicKey,
-    {bool isLocalNode = false}
-  ) async {
+  Future<Node?> createNode(String nodeId, String nodeName,
+      String pubkeyFingerprint, bool isTrusted, String? publicKey,
+      {bool isLocalNode = false}) async {
     try {
       _logger.info('创建节点: ID=$nodeId, 名称=$nodeName');
-      
+
       // 获取当前时间
       final now = DateTime.now().toIso8601String();
-      
+
       // 使用 execute 方法执行插入操作
       await _db.execute('''
         INSERT INTO nodes (id, node_name, pubkey_fingerprint, public_key, is_trusted, is_local_node, created_at)
@@ -112,8 +107,8 @@ class NodeDao {
   Future<List<Node>> getAllNodes() async {
     try {
       // 使用 query 方法查询所有节点
-      final results =
-          await _db.query('SELECT * FROM nodes ORDER BY created_at DESC');
+      final results = await _db.query(
+          'SELECT * FROM nodes where is_deleted = 0 ORDER BY created_at DESC');
       _logger.info('获取所有节点：${results.length} 条记录');
       return results.map(_mapToNode).toList();
     } catch (e, stack) {
@@ -129,7 +124,7 @@ class NodeDao {
     try {
       // 使用 query 方法查询所有受信任节点
       final results = await _db.query(
-          'SELECT * FROM nodes WHERE is_trusted = 1 ORDER BY created_at DESC');
+          'SELECT * FROM nodes WHERE is_deleted = 0 and is_trusted = 1 ORDER BY created_at DESC');
       _logger.info('获取所有受信任节点：${results.length} 条记录');
       return results.map(_mapToNode).toList();
     } catch (e, stack) {
@@ -147,8 +142,8 @@ class NodeDao {
   Future<Node?> getNodeById(String nodeId) async {
     try {
       // 使用 query 方法查询特定节点
-      final results =
-          await _db.query('SELECT * FROM nodes WHERE id = ?1', [nodeId]);
+      final results = await _db.query(
+          'SELECT * FROM nodes WHERE is_deleted = 0 and id = ?1', [nodeId]);
 
       if (results.isEmpty) {
         _logger.warning('获取节点失败：节点不存在: ID=$nodeId');
@@ -173,7 +168,8 @@ class NodeDao {
     try {
       // 使用 query 方法查询特定节点
       final results = await _db.query(
-          'SELECT * FROM nodes WHERE pubkey_fingerprint = ?1', [fingerprint]);
+          'SELECT * FROM nodes WHERE is_deleted = 0 and pubkey_fingerprint = ?1',
+          [fingerprint]);
 
       if (results.isEmpty) {
         _logger.warning('获取节点失败：节点不存在: 指纹=$fingerprint');

@@ -5,28 +5,34 @@ import 'dart:convert';
 class Node {
   /// 节点唯一标识符
   final String nodeId;
-  
+
   /// 用户定义的节点名称
   final String nodeName;
-  
+
   /// 公钥指纹
   final String pubkeyFingerprint;
-  
+
   /// 完整公钥（Base64编码）
   final String? publicKey;
-  
+
   /// 是否是受信任节点
   final bool isTrusted;
-  
+
   /// 是否为本地节点
   final bool isLocalNode;
-  
+
   /// 上次同步时间
   final DateTime? lastSync;
-  
+
   /// 节点创建时间
   final DateTime createdAt;
-  
+
+  /// 节点主机地址（运行时状态）
+  final String? host;
+
+  /// 节点端口号（运行时状态）
+  final int? port;
+
   /// 构造函数
   const Node({
     required this.nodeId,
@@ -37,8 +43,10 @@ class Node {
     required this.isLocalNode,
     this.lastSync,
     required this.createdAt,
+    this.host,
+    this.port,
   });
-  
+
   /// 将节点转换为Map
   Map<String, dynamic> toMap() {
     return {
@@ -52,7 +60,7 @@ class Node {
       'created_at': createdAt.toIso8601String(),
     };
   }
-  
+
   /// 从Map创建节点
   factory Node.fromMap(Map<String, dynamic> map) {
     return Node(
@@ -62,19 +70,19 @@ class Node {
       publicKey: map['public_key'],
       isTrusted: (map['is_trusted'] as int) == 1,
       isLocalNode: (map['is_local_node'] as int) == 1,
-      lastSync: map['last_sync'] != null 
-          ? DateTime.parse(map['last_sync'] as String) 
+      lastSync: map['last_sync'] != null
+          ? DateTime.parse(map['last_sync'] as String)
           : null,
       createdAt: DateTime.parse(map['created_at'] as String),
     );
   }
-  
+
   /// 将节点转换为JSON字符串
   String toJson() => jsonEncode(toMap());
-  
+
   /// 从JSON字符串创建节点
   factory Node.fromJson(String source) => Node.fromMap(jsonDecode(source));
-  
+
   /// 复制节点并修改指定字段
   Node copyWith({
     String? nodeId,
@@ -85,6 +93,8 @@ class Node {
     bool? isLocalNode,
     DateTime? lastSync,
     DateTime? createdAt,
+    String? host,
+    int? port,
   }) {
     return Node(
       nodeId: nodeId ?? this.nodeId,
@@ -95,18 +105,20 @@ class Node {
       isLocalNode: isLocalNode ?? this.isLocalNode,
       lastSync: lastSync ?? this.lastSync,
       createdAt: createdAt ?? this.createdAt,
+      host: host ?? this.host,
+      port: port ?? this.port,
     );
   }
-  
+
   @override
   String toString() {
     return 'Node(nodeId: $nodeId, nodeName: $nodeName, pubkeyFingerprint: $pubkeyFingerprint, publicKey: $publicKey, isTrusted: $isTrusted, isLocalNode: $isLocalNode, lastSync: $lastSync, createdAt: $createdAt)';
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    
+
     return other is Node &&
         other.nodeId == nodeId &&
         other.nodeName == nodeName &&
@@ -117,7 +129,7 @@ class Node {
         other.lastSync == lastSync &&
         other.createdAt == createdAt;
   }
-  
+
   @override
   int get hashCode {
     return Object.hash(
