@@ -83,6 +83,33 @@ class Node {
   /// 从JSON字符串创建节点
   factory Node.fromJson(String source) => Node.fromMap(jsonDecode(source));
 
+  /// 生成用于二维码的数据
+  String toQRPayload() {
+    final Map<String, dynamic> payload = {
+      'node_id': nodeId,
+      'node_name': nodeName,
+      'pubkey_fingerprint': pubkeyFingerprint,
+      'public_key': publicKey,
+      'host': host,
+      'port': port,
+    };
+    return jsonEncode(payload);
+  }
+
+  /// 生成用于导出的字符串
+  String toExportString() {
+    final Map<String, dynamic> exportData = {
+      'node_id': nodeId,
+      'node_name': nodeName,
+      'pubkey_fingerprint': pubkeyFingerprint,
+      'public_key': publicKey,
+      'host': host,
+      'port': port,
+      'created_at': createdAt.toIso8601String(),
+    };
+    return jsonEncode(exportData);
+  }
+
   /// 复制节点并修改指定字段
   Node copyWith({
     String? nodeId,

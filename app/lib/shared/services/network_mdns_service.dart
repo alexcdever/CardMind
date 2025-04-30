@@ -9,8 +9,8 @@ import '../utils/logger.dart';
 
 /// 网络发现服务
 /// 负责局域网内节点的发现和广播
-class NetworkDiscoveryService {
-  final _logger = AppLogger.getLogger('NetworkDiscoveryService');
+class NetworkMdnsService {
+  final _logger = AppLogger.getLogger('NetworkMdnsService');
 
   // 服务名称
   static const String _serviceName = '_notesync._tcp';
@@ -38,14 +38,14 @@ class NetworkDiscoveryService {
   Timer? _broadcastTimer;
 
   // 单例实例
-  static NetworkDiscoveryService? _instance;
+  static NetworkMdnsService? _instance;
 
   // 私有构造函数
-  NetworkDiscoveryService._();
+  NetworkMdnsService._();
 
   /// 获取 NetworkDiscoveryService 实例
-  static NetworkDiscoveryService getInstance() {
-    _instance ??= NetworkDiscoveryService._();
+  static NetworkMdnsService getInstance() {
+    _instance ??= NetworkMdnsService._();
     return _instance!;
   }
 
@@ -124,6 +124,9 @@ class NetworkDiscoveryService {
         'fingerprint': _pubkeyFingerprint!,
         'host': getCurrentHost(),
         'port': _port!.toString(),
+        'appName': 'CardMind',
+        'appDescription': '一个支持多设备同步的智能卡片管理应用',
+        'appVersion': '1.0.0',
       };
 
       // 创建服务
@@ -278,7 +281,7 @@ class NetworkDiscoveryService {
     if (_registration?.service.host != null) {
       return _registration!.service.host!;
     }
-    return 'localhost';
+    return Platform.localHostname;
   }
 
   /// 获取当前端口号

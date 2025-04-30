@@ -81,8 +81,8 @@ class SyncSession {
 
 /// 网络同步服务
 /// 负责节点之间的数据同步
-class NetworkSyncService {
-  final _logger = AppLogger.getLogger('NetworkSyncService');
+class NetworkHttpService {
+  final _logger = AppLogger.getLogger('NetworkHttpService');
 
   // 本地节点信息
   String? _nodeId;
@@ -117,16 +117,16 @@ class NetworkSyncService {
   final NodeKeyManager _keyManager = NodeKeyManager.getInstance();
 
   // 单例实例
-  static NetworkSyncService? _instance;
+  static NetworkHttpService? _instance;
 
   /// 私有构造函数
-  NetworkSyncService._(this._syncService);
+  NetworkHttpService._(this._syncService);
 
   /// 获取 NetworkSyncService 实例
-  static Future<NetworkSyncService> getInstance() async {
+  static Future<NetworkHttpService> getInstance() async {
     if (_instance == null) {
       final syncService = await SyncService.getInstance();
-      _instance = NetworkSyncService._(syncService);
+      _instance = NetworkHttpService._(syncService);
     }
     return _instance!;
   }
@@ -949,6 +949,63 @@ class NetworkSyncService {
       _logger.info('网络同步服务已关闭');
     } catch (e, stack) {
       _logger.severe('关闭网络同步服务失败', e, stack);
+    }
+  }
+
+  /// 执行网络同步服务自检
+  ///
+  /// 返回：自检结果，包含各个组件的状态和可能的错误信息
+  Future<Map<String, dynamic>> selfCheck() async {
+    final result = <String, dynamic>{
+      'initialized':
+          _nodeId != null && _nodeName != null && _pubkeyFingerprint != null,
+      'server': {
+        'status': 'unknown',
+        'error': null,
+        'port': _port,
+      },
+      'sessions': {
+        'status': 'unknown',
+        'error': null,
+        'active_count': _activeSessions.length,
+      },
+    };
+
+    try {
+      _logger.info('执行网络同步服务自检');
+
+      // 检查服务器状态
+      if (_server != null) {
+        result['server']['status'] = 'ok';
+      } else {
+        // 尝试启动服务器
+        final (success, port) = await startServer();
+        if (success) {
+          result['server']['status'] = 'ok';
+          result['server']['port'] = port;
+          await stopServer(); // 测试完成后停止服务器
+        } else {
+          result['server']['status'] = 'failed';
+          result['server']['error'] = '无法启动服务器';
+        }
+      }
+
+      // 检查会话状态
+      if (_activeSessions.isNotEmpty) {
+        result['sessions']['status'] = 'ok';
+      } else {
+        result['sessions']['status'] = 'no_active_sessions';
+      }
+
+      _logger.info('网络同步服务自检完成，结果: $result');
+      return result;
+    } catch (e, stack) {
+      _logger.severe('网络同步服务自检失败', e, stack);
+      return {
+        ...result,
+        'error': e.toString(),
+        'stack': stack.toString(),
+      };
     }
   }
 }

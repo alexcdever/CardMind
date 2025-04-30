@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_null_comparison
+
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/models/network_discovered_node.dart';
@@ -28,6 +30,12 @@ class NodeState {
   /// 错误信息
   final String? error;
 
+  /// 网络连接状态
+  final String networkStatus;
+
+  /// 完整的自检结果
+  final Map<String, dynamic>? selfCheckResult;
+
   /// 构造函数
   const NodeState({
     this.localNode,
@@ -37,6 +45,8 @@ class NodeState {
     this.isLoading = true,
     this.isDiscovering = false,
     this.error,
+    this.networkStatus = 'disconnected', // 默认值
+    this.selfCheckResult,
   });
 
   /// 复制方法
@@ -48,15 +58,20 @@ class NodeState {
     bool? isLoading,
     bool? isDiscovering,
     String? error,
+    String? networkStatus,
+    Map<String, dynamic>? selfCheckResult,
   }) {
+    selfCheckResult = selfCheckResult ?? this.selfCheckResult;
     return NodeState(
       localNode: localNode ?? this.localNode,
       trustedNodes: trustedNodes ?? this.trustedNodes,
       discoveredNodes: discoveredNodes ?? this.discoveredNodes,
+      networkStatus: networkStatus ?? this.networkStatus,
       connectedNodes: connectedNodes ?? this.connectedNodes,
       isLoading: isLoading ?? this.isLoading,
       isDiscovering: isDiscovering ?? this.isDiscovering,
       error: error,
+      selfCheckResult: selfCheckResult ?? this.selfCheckResult,
     );
   }
 }
@@ -81,6 +96,25 @@ class NodeNotifier extends StateNotifier<NodeState> {
       : _nodeService = null,
         super(const NodeState()) {
     state = state.copyWith(isLoading: false, isDiscovering: false);
+  }
+
+  /// 删除受信任节点
+  Future<void> removeTrustedNode(String nodeId) async {
+    if (_nodeService == null) return;
+    await _nodeService.removeTrustedNode(nodeId);
+    await _refreshTrustedNodes();
+  }
+
+  /// 与指定节点同步
+  Future<void> syncWithNode(String nodeId) async {
+    if (_nodeService == null) return;
+    try {
+      await _nodeService.syncWithNode(nodeId);
+      await _refreshTrustedNodes();
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      rethrow;
+    }
   }
 
   /// 初始化
@@ -335,8 +369,87 @@ class NodeNotifier extends StateNotifier<NodeState> {
   @override
   void dispose() {
     _discoverySubscription?.cancel();
+    _statusController.close();
     super.dispose();
   }
+
+  /// 刷新受信任节点列表
+  Future<void> _refreshTrustedNodes() async {
+    if (_nodeService == null) return;
+    final trustedNodes = await _nodeService.getTrustedNodes();
+    state = state.copyWith(trustedNodes: trustedNodes);
+  }
+
+  final StreamController<Map<String, dynamic>> _statusController =
+      StreamController.broadcast();
+
+  /// 执行网络自检
+  /// 检查网络状态
+  Future<void> checkNetworkStatus() async {
+    if (_nodeService == null) return;
+
+    try {
+      // 调用selfCheck获取详细状态
+      final statusMap = await _nodeService.selfCheck();
+
+      // 根据自检结果生成状态字符串
+      String status;
+      if (statusMap['mdns_service']?['status'] == 'error' ||
+          statusMap['http_service']?['status'] == 'error') {
+        status = 'error';
+      } else if (statusMap['discovery_running'] == true &&
+          statusMap['server_running'] == true) {
+        status = 'connected';
+      } else if (statusMap['discovery_running'] == true ||
+          statusMap['server_running'] == true) {
+        status = 'partially_connected';
+      } else {
+        status = 'disconnected';
+      }
+
+      state = state.copyWith(
+        selfCheckResult: statusMap != null
+            ? {
+                ...statusMap,
+                'mdns_status':
+                    statusMap['mdns_service']?['status']?.toString() ??
+                        'unknown',
+                'http_status':
+                    statusMap['http_service']?['status']?.toString() ??
+                        'unknown',
+              }
+            : null,
+        networkStatus: status,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        networkStatus: 'error',
+        selfCheckResult: {'error': e.toString()},
+      );
+    }
+  }
+
+  /// 执行深度网络自检
+  Future<void> performNetworkSelfCheck() async {
+    try {
+      state = state.copyWith(networkStatus: 'checking');
+
+      final checkResult = await _nodeService?.selfCheck() ?? {};
+
+      state = state.copyWith(
+          networkStatus: 'completed',
+          selfCheckResult: checkResult,
+          error: null);
+
+      _statusController.add(checkResult);
+    } catch (e, stack) {
+      state = state.copyWith(networkStatus: 'error', error: e.toString());
+      _statusController.addError(e, stack);
+    }
+  }
+
+  /// 自检状态流
+  Stream<Map<String, dynamic>> get selfCheckStream => _statusController.stream;
 }
 
 /// 节点服务提供者

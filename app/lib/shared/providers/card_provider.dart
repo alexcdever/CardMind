@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/card_service.dart';
 import '../services/sync_service.dart';
 import '../domain/models/card.dart' as domain;
+import '../utils/logger.dart';
 import 'service_provider.dart';
 
 /// 卡片列表提供者
@@ -9,7 +10,7 @@ final cardListProvider =
     StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
   final cardServiceAsync = ref.watch(cardServiceProvider);
   final syncServiceAsync = ref.watch(syncServiceProvider);
-  
+
   // 处理异步加载状态
   if (cardServiceAsync.hasValue && syncServiceAsync.hasValue) {
     final cardService = cardServiceAsync.value!;
@@ -45,17 +46,18 @@ final filteredCardsProvider = Provider<List<domain.Card>>((ref) {
 final currentCardProvider =
     FutureProvider.family<domain.Card?, int>((ref, id) async {
   final cardServiceAsync = ref.watch(cardServiceProvider);
-  
+
   if (!cardServiceAsync.hasValue) {
     throw StateError('卡片服务未初始化');
   }
-  
+
   final cardService = cardServiceAsync.value!;
   return await cardService.getCardById(id);
 });
 
 /// 卡片列表状态管理器
 class CardListNotifier extends StateNotifier<List<domain.Card>> {
+  final _logger = AppLogger.getLogger('CardListNotifier');
   final CardService? _cardService;
   final SyncService? _syncService;
   bool _isInitialized = false;
@@ -67,45 +69,48 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
       loadCards();
     }
   }
-  
+
   /// 空构造函数，用于服务未加载完成时
-  CardListNotifier.empty() : _cardService = null, _syncService = null, super([]);
+  CardListNotifier.empty()
+      : _cardService = null,
+        _syncService = null,
+        super([]);
 
   /// 加载所有卡片
   Future<void> loadCards() async {
     if (!_isInitialized) return;
-    
+
     try {
       // 从本地数据库加载卡片
       final cards = await _cardService!.getAllCards();
       state = cards;
-      
+
       // 注意：SyncService 同步逻辑需要根据新的 SyncService API 调整
       // 这里暂时省略 SyncService 同步部分
     } catch (e) {
       // 错误处理
-      print('加载卡片失败: $e');
+      _logger.severe('加载卡片失败', e);
     }
   }
 
   /// 创建新卡片
   Future<void> createCard(String title, String content) async {
     if (!_isInitialized) return;
-    
+
     try {
       final card = await _cardService!.createCard(title, content);
       if (card != null) {
         state = [...state, card];
       }
     } catch (e) {
-      print('创建卡片失败: $e');
+      _logger.warning('创建卡片失败: $e');
     }
   }
 
   /// 更新卡片
   Future<void> updateCard(int id, String title, String content) async {
     if (!_isInitialized) return;
-    
+
     try {
       final updatedCard = await _cardService!.updateCard(id, title, content);
       if (updatedCard != null) {
@@ -119,7 +124,7 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
       }
     } catch (e) {
       // 记录错误并重新抛出，让上层处理
-      print('更新卡片失败: $e');
+      _logger.severe('更新卡片失败', e);
       rethrow;
     }
   }
@@ -127,14 +132,14 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   /// 删除卡片
   Future<void> deleteCard(int id) async {
     if (!_isInitialized) return;
-    
+
     try {
       final success = await _cardService!.deleteCard(id);
       if (success) {
         state = state.where((card) => card.id != id).toList();
       }
     } catch (e) {
-      print('删除卡片失败: $e');
+      _logger.severe('删除卡片失败', e);
     }
   }
 }

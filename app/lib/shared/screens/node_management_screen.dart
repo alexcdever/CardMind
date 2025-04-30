@@ -1,3 +1,6 @@
+// ignore_for_file: unused_import, unused_element
+
+import 'package:cardmind/shared/services/node_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../domain/models/network_discovered_node.dart';
 import '../domain/models/node.dart';
 import '../providers/node_provider.dart';
-import '../services/network_discovery_service.dart';
+import '../services/network_mdns_service.dart';
 import '../utils/logger.dart';
 
 /// 节点管理页面
@@ -29,6 +32,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
   final _publicKeyController = TextEditingController();
   final _ipAddressController = TextEditingController();
   final _portController = TextEditingController();
+
   late TabController _tabController;
 
   @override
@@ -36,6 +40,8 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     super.initState();
     _tabController = TabController(length: 1, vsync: this);
   }
+
+  // 已在其他位置定义过_showDeleteNodeDialog方法，此处删除重复定义
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +91,65 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     );
   }
 
+  /// 构建节点列表标签页
+  Widget _buildNodesListTab(BuildContext context,
+      AsyncValue<List<NetworkDiscoveredNode>> nodesAsync) {
+    return nodesAsync.when(
+      data: (nodes) {
+        if (nodes.isEmpty) {
+          return const Center(
+            child: Text('没有受信任的节点，请添加节点'),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: nodes.length,
+          itemBuilder: (context, index) {
+            final node = nodes[index];
+            return ListTile(
+              title: Text(node.nodeName),
+              subtitle:
+                  Text('ID: ${node.nodeId}\n指纹: ${node.pubkeyFingerprint}'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.sync),
+                    onPressed: () => _syncWithTrustedNode(Node(
+                      nodeId: node.nodeId,
+                      nodeName: node.nodeName,
+                      pubkeyFingerprint: node.pubkeyFingerprint,
+                      host: node.host,
+                      port: node.port,
+                      isTrusted: true,
+                      isLocalNode: false,
+                      createdAt: DateTime.now(),
+                    )),
+                    tooltip: '同步',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () => _showDeleteNodeDialog(Node(
+                      nodeId: node.nodeId,
+                      nodeName: node.nodeName,
+                      pubkeyFingerprint: node.pubkeyFingerprint,
+                      isTrusted: true,
+                      isLocalNode: false,
+                      createdAt: DateTime.now(),
+                    )),
+                    tooltip: '删除',
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(child: Text('加载失败: $error')),
+    );
+  }
+
   /// 与受信任节点同步
   void _syncWithTrustedNode(Node node) async {
     final success = await ref
@@ -107,6 +172,8 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
       ),
     );
   }
+
+  // 已在其他位置定义过_showDeleteNodeDialog方法，此处删除重复定义
 
   @override
   void dispose() {
@@ -226,38 +293,13 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     );
   }
 
-  /// 显示删除节点对话框
-  void _showDeleteNodeDialog(Node node) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('删除节点'),
-          content: Text('确定要删除节点 "${node.nodeName}" 吗？'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () {
-                ref.read(nodeProvider.notifier).deleteNode(node.nodeId);
-                Navigator.of(context).pop();
-              },
-              child: const Text('删除'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // 已在上方定义过_showDeleteNodeDialog方法，此处删除重复定义
 
   /// 显示节点二维码对话框
   void _showQRCodeDialog() async {
     final qrData = await ref.read(nodeProvider.notifier).generateQRCodeData();
 
+    if (!mounted) return;
     if (qrData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('生成二维码失败')),
@@ -343,6 +385,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
         await ref.read(nodeProvider.notifier).parseQRCodeData(qrData);
 
     if (nodeInfo == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('无效的节点二维码')),
       );
@@ -396,6 +439,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     final qrData = await ref.read(nodeProvider.notifier).generateQRCodeData();
 
     if (qrData == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('生成节点信息失败')),
       );
@@ -404,7 +448,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
 
     // 复制到剪贴板
     await Clipboard.setData(ClipboardData(text: qrData));
-
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('节点信息已复制到剪贴板')),
     );
@@ -415,6 +459,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     final qrData = await ref.read(nodeProvider.notifier).generateQRCodeData();
 
     if (qrData == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('生成节点信息失败')),
       );
@@ -435,6 +480,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     if (clipboardData == null ||
         clipboardData.text == null ||
         clipboardData.text!.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('剪贴板中没有有效的节点信息')),
       );
@@ -446,6 +492,7 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
         .parseQRCodeData(clipboardData.text!);
 
     if (nodeInfo == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('剪贴板中的内容不是有效的节点信息')),
       );
@@ -464,156 +511,57 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     if (nodeInfo.port != null && nodeInfo.port! > 0) {
       _portController.text = nodeInfo.port!.toString();
     }
-
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已从剪贴板导入节点信息')),
     );
   }
 
-  /// 构建所有节点列表Tab页面
   /// 显示网络自检对话框
-  void _showNetworkCheckDialog() async {
+  void _showNetworkCheckDialog() {
+    // 创建对话框并立即开始自检
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) {
+        // 在对话框构建时立即执行网络自检
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // 使用Riverpod的ref来访问provider
+          ref.read(nodeProvider.notifier).performNetworkSelfCheck();
+        });
+
         return AlertDialog(
           title: const Text('网络自检'),
-          content: const SizedBox(
-            width: 300,
-            height: 100,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+          content: Consumer(
+            builder: (context, ref, _) {
+              final selfCheckStream =
+                  ref.read(nodeProvider.notifier).selfCheckStream;
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('正在进行网络自检...'),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-
-    // 执行网络自检
-    final result = await NetworkDiscoveryService.getInstance().selfCheck();
-
-    if (!mounted) return;
-
-    // 关闭进度对话框
-    Navigator.of(context).pop();
-
-    // 显示自检结果
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('网络自检结果'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 初始化状态
-                Row(
-                  children: [
-                    Icon(
-                      result['initialized'] ? Icons.check_circle : Icons.error,
-                      color: result['initialized'] ? Colors.green : Colors.red,
-                    ),
-                    const SizedBox(width: 8),
-                    Text('初始化状态: ${result['initialized'] ? '正常' : '未初始化'}'),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // 服务发现状态
-                Row(
-                  children: [
-                    Icon(
-                      result['discovery']['status'] == 'ok'
-                          ? Icons.check_circle
-                          : result['discovery']['status'] == 'timeout'
-                              ? Icons.timer_off
-                              : Icons.error,
-                      color: result['discovery']['status'] == 'ok'
-                          ? Colors.green
-                          : Colors.red,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  StreamBuilder<Map<String, dynamic>>(
+                    stream: selfCheckStream,
+                    builder: (context, snapshot) {
+                      final result = snapshot.data ?? {};
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                              '服务发现: ${_getDiscoveryStatusText(result['discovery']['status'])}'),
-                          if (result['discovery']['error'] != null)
-                            Text(
-                              result['discovery']['error']!,
-                              style: const TextStyle(color: Colors.red),
-                            ),
+                          _buildStatusRow(
+                              'mDNS服务发现',
+                              _getDiscoveryStatusText(
+                                  result['mdnsStatus'] ?? 'checking')),
+                          _buildStatusRow(
+                              'HTTP通信',
+                              _getDiscoveryStatusText(
+                                  result['httpStatus'] ?? 'checking')),
+                          const SizedBox(height: 16),
                         ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // 广播状态
-                if (result['broadcast']['status'] != 'skipped') ...[
-                  // 只在非跳过状态下显示
-                  Row(
-                    children: [
-                      Icon(
-                        result['broadcast']['status'] == 'ok'
-                            ? Icons.check_circle
-                            : Icons.error,
-                        color: result['broadcast']['status'] == 'ok'
-                            ? Colors.green
-                            : Colors.red,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                                '服务广播: ${_getBroadcastStatusText(result['broadcast']['status'])}'),
-                            if (result['broadcast']['error'] != null)
-                              Text(
-                                result['broadcast']['error']!,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            if (result['broadcast']['port'] != null)
-                              Text('使用端口: ${result['broadcast']['port']}'),
-                          ],
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ],
-
-                // 系统错误
-                if (result['error'] != null) ...[
-                  // 只在有错误时显示
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Icon(Icons.error, color: Colors.red),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          result['error']!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
+              );
+            },
           ),
           actions: [
             TextButton(
@@ -628,142 +576,86 @@ class _NodeManagementScreenState extends ConsumerState<NodeManagementScreen>
     );
   }
 
+  /// 构建状态行
+  Widget _buildStatusRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(value),
+        ],
+      ),
+    );
+  }
+
+  /// 显示删除节点对话框
+  void _showDeleteNodeDialog(Node node) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除节点'),
+        content: Text('确定要删除节点 ${node.nodeName} 吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(nodeProvider.notifier).removeTrustedNode(node.nodeId);
+              Navigator.pop(context);
+            },
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _getDiscoveryStatusText(String status) {
     switch (status) {
       case 'ok':
         return '正常';
       case 'timeout':
         return '超时';
-      case 'failed':
-        return '失败';
+      case 'checking':
+        return '检测中...';
       default:
-        return '未知';
+        return '错误';
     }
   }
 
-  String _getBroadcastStatusText(String status) {
-    switch (status) {
-      case 'ok':
-        return '正常';
-      case 'failed':
-        return '失败';
-      case 'skipped':
-        return '已跳过';
-      default:
-        return '未知';
-    }
-  }
+  /// 状态行构建方法（已在上方定义）
 
-  Widget _buildNodesListTab(
-      BuildContext context, AsyncValue<List<NetworkDiscoveredNode>> nodes) {
-    return nodes.when(
-      data: (nodes) {
-        if (nodes.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('暂无受信任节点'),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _showAddTrustedNodeDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text('添加节点'),
-                ),
-              ],
-            ),
-          );
-        }
+  // 已在上方定义过_buildNodesListTab方法，此处删除重复定义
 
-        return ListView.builder(
-          itemCount: nodes.length,
-          itemBuilder: (context, index) {
-            final networkNode = nodes[index];
-            final nodeState = ref.watch(nodeProvider);
-            final node = nodeState.trustedNodes.firstWhere(
-              (n) => n.nodeId == networkNode.nodeId,
-              orElse: () => Node(
-                nodeId: networkNode.nodeId,
-                nodeName: networkNode.nodeName,
-                pubkeyFingerprint: networkNode.pubkeyFingerprint,
-                isTrusted: true,
-                isLocalNode: false,
-                createdAt: DateTime.now(),
-                host: networkNode.host,
-                port: networkNode.port,
-              ),
-            );
-            final isConnected = node.isLocalNode ||
-                nodeState.connectedNodes.contains(node.nodeId);
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: isConnected ? Colors.green : Colors.grey,
-                radius: 8,
-              ),
-              title: Text(node.nodeName),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('指纹: ${node.pubkeyFingerprint}'),
-                  Text(
-                    node.isLocalNode ? '本地节点' : '外部节点',
-                    style: TextStyle(
-                      color: node.isLocalNode ? Colors.blue : Colors.orange,
-                    ),
-                  ),
-                  Text(
-                    isConnected ? '在线' : '离线',
-                    style: TextStyle(
-                      color: isConnected ? Colors.green : Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!node.isLocalNode) ...[
-                    // 只有非本地节点才显示同步按钮
-                    IconButton(
-                      icon: const Icon(Icons.sync),
-                      onPressed: () => _syncWithTrustedNode(node),
-                      tooltip: '同步',
-                    ),
-                  ],
-                  IconButton(
-                    icon: const Icon(Icons.qr_code),
-                    onPressed: _showQRCodeDialog,
-                    tooltip: '显示二维码',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.share),
-                    onPressed: () => _shareNodeQRCode(NetworkDiscoveredNode(
-                      nodeId: node.nodeId,
-                      nodeName: node.nodeName,
-                      pubkeyFingerprint: node.pubkeyFingerprint,
-                      host: node.host ?? '',
-                      port: node.port ?? 0,
-                    )),
-                    tooltip: '分享',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.copy),
-                    onPressed: () => _exportNodeAsString(node),
-                    tooltip: '复制到剪贴板',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () => _showDeleteNodeDialog(node),
-                    tooltip: '删除',
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(child: Text('加载失败: $error')),
+  /// 构建状态指示器
+  Widget _buildStatusIndicator(WidgetRef ref) {
+    final status =
+        ref.watch(nodeProvider.select((value) => value.networkStatus));
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: _getStatusColor(status),
+        shape: BoxShape.circle,
+      ),
     );
+  }
+
+  /// 获取状态颜色
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'checking':
+        return Colors.orange;
+      case 'completed':
+        return Colors.green;
+      case 'error':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

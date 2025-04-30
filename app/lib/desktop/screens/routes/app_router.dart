@@ -13,16 +13,19 @@ final goRouter = GoRouter(
   errorBuilder: (context, state) => InitializationWrapper(
     child: Scaffold(
       body: Center(
+        // 移除 const 关键字
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text('页面未找到'),
-            const SizedBox(height: 16),
+            Icon(Icons.error_outline, size: 64, color: Colors.red),
+            SizedBox(height: 16),
+            Text('页面未找到'),
+            SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => context.go('/cards'),
-              child: const Text('返回首页'),
+              onPressed: () {
+                context.go('/cards');
+              },
+              child: Text('返回首页'),
             ),
           ],
         ),
