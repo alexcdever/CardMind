@@ -1,21 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/card_service.dart';
-import '../services/sync_service.dart';
-import '../domain/models/card.dart' as domain;
-import '../utils/logger.dart';
+import '../service/card_service.dart';
+import '../data/model/card.dart' as domain;
+import '../util/logger.dart';
 import 'service_provider.dart';
 
 /// 卡片列表提供者
 final cardListProvider =
     StateNotifierProvider<CardListNotifier, List<domain.Card>>((ref) {
   final cardServiceAsync = ref.watch(cardServiceProvider);
-  final syncServiceAsync = ref.watch(syncServiceProvider);
 
   // 处理异步加载状态
-  if (cardServiceAsync.hasValue && syncServiceAsync.hasValue) {
+  if (cardServiceAsync.hasValue) {
     final cardService = cardServiceAsync.value!;
-    final syncService = syncServiceAsync.value!;
-    return CardListNotifier(cardService, syncService);
+    return CardListNotifier(cardService);
   } else {
     // 返回空列表，等待服务加载完成
     return CardListNotifier.empty();
@@ -59,12 +56,11 @@ final currentCardProvider =
 class CardListNotifier extends StateNotifier<List<domain.Card>> {
   final _logger = AppLogger.getLogger('CardListNotifier');
   final CardService? _cardService;
-  final SyncService? _syncService;
   bool _isInitialized = false;
 
   /// 标准构造函数
-  CardListNotifier(this._cardService, this._syncService) : super([]) {
-    if (_cardService != null && _syncService != null) {
+  CardListNotifier(this._cardService) : super([]) {
+    if (_cardService != null) {
       _isInitialized = true;
       loadCards();
     }
@@ -73,7 +69,6 @@ class CardListNotifier extends StateNotifier<List<domain.Card>> {
   /// 空构造函数，用于服务未加载完成时
   CardListNotifier.empty()
       : _cardService = null,
-        _syncService = null,
         super([]);
 
   /// 加载所有卡片

@@ -1,7 +1,7 @@
-import 'package:cardmind/shared/utils/logger.dart';
+import 'package:cardmind/shared/util/logger.dart';
 import '../data/dao/card_dao.dart';
 import '../data/database/database_manager.dart';
-import '../domain/models/card.dart';
+import '../data/model/card.dart';
 
 /// 卡片服务类
 /// 处理卡片的业务逻辑，包括数据库操作和同步

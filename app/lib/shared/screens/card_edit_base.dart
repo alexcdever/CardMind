@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../domain/models/card.dart' as domain;
+import '../data/model/card.dart' as domain;
 import '../../desktop/providers/card_provider.dart';
 
 /// 卡片编辑基础组件

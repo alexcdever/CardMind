@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  shelf: ^1.4.0
+  shelf_router: ^1.1.0
   # UI 组件
   cupertino_icons: ^1.0.2
   flutter_markdown: ^0.7.6+2
@@ -22,17 +24,15 @@ dependencies:
   sqflite: ^2.3.2
   sql_crdt: ^3.0.2
   sqlite_crdt: ^3.0.2
-  # 网络发现和通信
-  multicast_dns: ^0.3.2
-  nsd: ^4.0.3
   web_socket_channel: ^3.0.2
+  multicast_dns: ^0.3.2
   # 安全存储
   flutter_secure_storage: ^9.2.4
   # 加密
   cryptography: ^2.5.0
   # 二维码
   qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.7
+  mobile_scanner: ^7.0.0
   # 文件操作
   file_selector: ^1.0.1
   image_picker: ^1.0.7

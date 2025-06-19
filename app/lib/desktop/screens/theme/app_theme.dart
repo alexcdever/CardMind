@@ -13,10 +13,12 @@ class AppTheme {
       centerTitle: true,
       elevation: 0,
     ),
-    cardTheme: CardTheme(
-      elevation: 2,
+    cardTheme: CardThemeData(
+      // 卡片主题配置 (Material 3使用CardThemeData)
+      elevation: 2, // 卡片阴影高度
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        // 卡片形状
+        borderRadius: BorderRadius.circular(16), // 圆角半径16
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -37,10 +39,12 @@ class AppTheme {
       centerTitle: true,
       elevation: 0,
     ),
-    cardTheme: CardTheme(
-      elevation: 2,
+    cardTheme: CardThemeData(
+      // 卡片主题配置 (Material 3使用CardThemeData)
+      elevation: 2, // 卡片阴影高度
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        // 卡片形状
+        borderRadius: BorderRadius.circular(16), // 圆角半径16
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(

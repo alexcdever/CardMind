@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'shared/utils/logger.dart';
+import 'shared/util/logger.dart';
 import 'desktop/screens/routes/app_router.dart';
 
 /// 主程序入口

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../shared/domain/models/card.dart' as domain;
+import '../../shared/data/model/card.dart' as domain;
 import '../providers/card_provider.dart';
 
 /// 移动端添加/编辑卡片页面

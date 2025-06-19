@@ -3,7 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/service_provider.dart';
-import '../domain/models/card.dart' as domain;
+import '../data/model/card.dart' as domain;
 
 /// 卡片详情界面
 /// 用于查看卡片的完整内容

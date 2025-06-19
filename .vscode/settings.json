@@ -22,7 +22,7 @@
     "**/build": true
   },
   // Flutter 相关设置
-  "dart.flutterSdkPath": ".fvm/flutter_sdk",
+  "dart.flutterSdkPath": "C:/Users/alexc/scoop/apps/flutter/current",
   "[dart]": {
     "editor.formatOnSave": true,
     "editor.formatOnType": true,

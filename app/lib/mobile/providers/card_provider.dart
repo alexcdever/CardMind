@@ -1,7 +1,7 @@
-import 'package:cardmind/shared/utils/logger.dart' show AppLogger;
+import 'package:cardmind/shared/util/logger.dart' show AppLogger;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../shared/services/card_service.dart';
-import '../../shared/domain/models/card.dart' as domain;
+import '../../shared/service/card_service.dart';
+import '../../shared/data/model/card.dart' as domain;
 
 /// 卡片列表状态管理器
 class CardListNotifier extends StateNotifier<List<domain.Card>> {

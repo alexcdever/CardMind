@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../card_list_screen.dart';
+import '../node_management_screen.dart';
 import '../../../shared/screens/card_edit_screen.dart';
 import '../../../shared/screens/card_detail_screen.dart';
-import '../../../shared/screens/node_management_screen.dart';
-import '../../../shared/widgets/initialization_wrapper.dart';
+import '../../../shared/ui/widget/initialization_wrapper.dart';
 
 /// 应用路由配置
 final goRouter = GoRouter(
@@ -72,7 +72,7 @@ final goRouter = GoRouter(
     // 节点管理页面
     GoRoute(
       path: '/nodes',
-      builder: (context, state) => const InitializationWrapper(
+      builder: (context, state) => InitializationWrapper(
         child: NodeManagementScreen(),
       ),
     ),

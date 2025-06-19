@@ -3,30 +3,30 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'dart:async';
 import 'dart:io';
-import '../../utils/logger.dart';
+import '../../util/logger.dart';
 
 /// 数据库管理类
 /// 负责数据库的初始化、连接和关闭
 class DatabaseManager {
   static final _logger = AppLogger.getLogger('DatabaseManager');
   static DatabaseManager? _instance;
-  
+
   // 使用Completer来控制初始化完成的状态
   static final Completer<void> _initCompleter = Completer<void>();
-  
+
   // 初始化状态标志
   static bool _isInitializing = false;
   static bool _isInitialized = false;
-  
+
   late SqliteCrdt _db;
-  static const int schemaVersion = 4;
+  static const int schemaVersion = 6;
 
   /// 获取数据库实例（单例模式）
   static Future<DatabaseManager> getInstance() async {
     // 如果实例不存在，创建新实例并开始初始化
     if (_instance == null) {
       _instance = DatabaseManager._();
-      
+
       // 如果尚未开始初始化，则开始初始化
       if (!_isInitializing) {
         _isInitializing = true;
@@ -41,14 +41,14 @@ class DatabaseManager {
         });
       }
     }
-    
+
     // 等待初始化完成
     if (!_isInitialized) {
       _logger.info('等待数据库初始化完成...');
       await _initCompleter.future;
       _logger.info('数据库初始化已完成，返回实例');
     }
-    
+
     return _instance!;
   }
 
@@ -96,17 +96,20 @@ class DatabaseManager {
       )
     ''');
 
-    // 创建节点表
+    // 创建节点表(版本5)
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS nodes (
-        id TEXT PRIMARY KEY,
-        node_name TEXT NOT NULL,
-        pubkey_fingerprint TEXT NOT NULL,
+      CREATE TABLE IF NOT EXISTS network_nodes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        node_id TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL,
+        ip TEXT NOT NULL,
+        port INTEGER NOT NULL,
+        is_online INTEGER NOT NULL DEFAULT 1,
+        is_local INTEGER NOT NULL DEFAULT 0,
+        last_seen TEXT NOT NULL,
         public_key TEXT,
-        is_trusted INTEGER NOT NULL,
-        is_local_node INTEGER NOT NULL DEFAULT 0,
-        last_sync TEXT,
-        created_at TEXT NOT NULL
+        trust_level INTEGER NOT NULL DEFAULT 0,
+        private_network_id TEXT
       )
     ''');
   }
@@ -146,6 +149,45 @@ class DatabaseManager {
       _logger.info('添加 is_local_node 字段到 nodes 表');
       await db.execute(
           'ALTER TABLE nodes ADD COLUMN is_local_node INTEGER NOT NULL DEFAULT 0');
+    }
+
+    // 版本 4 到版本 5 的迁移
+    if (oldVersion < 5 && newVersion >= 5) {
+      // 删除旧节点表
+      _logger.info('删除旧节点表');
+      await db.execute('DROP TABLE IF EXISTS nodes');
+
+      // 创建新节点表
+      _logger.info('创建新节点表 network_nodes');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS network_nodes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          node_id TEXT NOT NULL UNIQUE,
+          display_name TEXT NOT NULL,
+          ip TEXT NOT NULL,
+          port INTEGER NOT NULL,
+          is_online INTEGER NOT NULL DEFAULT 1,
+          is_local INTEGER NOT NULL DEFAULT 0,
+          last_seen TEXT NOT NULL
+        )
+      ''');
+    }
+
+    // 版本 5 到版本 6 的迁移
+    if (oldVersion < 6 && newVersion >= 6) {
+      _logger.info('添加新字段到 network_nodes 表');
+      await db.execute('''
+        ALTER TABLE network_nodes 
+        ADD COLUMN public_key TEXT
+      ''');
+      await db.execute('''
+        ALTER TABLE network_nodes 
+        ADD COLUMN trust_level INTEGER NOT NULL DEFAULT 0
+      ''');
+      await db.execute('''
+        ALTER TABLE network_nodes 
+        ADD COLUMN private_network_id TEXT
+      ''');
     }
   }
 

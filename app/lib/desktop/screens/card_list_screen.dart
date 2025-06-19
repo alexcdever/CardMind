@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../shared/providers/card_provider.dart';
-import '../../shared/widgets/card_list_item.dart';
+import '../../shared/ui/widget/card_list_item.dart';
 
 /// 桌面端卡片列表界面
 class CardListScreen extends ConsumerWidget {

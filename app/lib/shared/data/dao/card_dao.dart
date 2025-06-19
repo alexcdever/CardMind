@@ -1,6 +1,6 @@
-import 'package:cardmind/shared/utils/logger.dart';
+import 'package:cardmind/shared/util/logger.dart';
 import 'package:sqlite_crdt/sqlite_crdt.dart';
-import '../../domain/models/card.dart';
+import '../model/card.dart';
 
 /// 卡片数据访问对象
 /// 负责卡片相关的数据库操作
