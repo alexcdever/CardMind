@@ -4,7 +4,7 @@ import { BlockType } from '../types/block';
 import { FloatButton, Modal, Input, message } from 'antd';
 import { FileAddOutlined } from '@ant-design/icons';
 
-export const BlockCreator: React.FC = () => {
+export const DocumentCreator: React.FC = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const { openBlockId, createBlock } = useBlockManager();

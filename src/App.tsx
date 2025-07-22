@@ -1,9 +1,9 @@
 import React from 'react';
 import { useBlockManager } from './stores/blockManager';
-import { BlockPage } from './components/BlockPage';
-import { BlockRenderer } from './components/BlockRenderer';
-import { BlockCreator } from './components/BlockCreator';
-import { BlockListView } from './components/BlockListView';
+import { DocumentViewer } from './components/DocumentViewer';
+import { BlockContentRenderer } from './components/BlockContentRenderer';
+import { DocumentCreator } from './components/DocumentCreator';
+import { DocumentGallery } from './components/DocumentGallery';
 
 const App: React.FC = () => {
   const { openBlockId, fetchAllBlocks } = useBlockManager();
@@ -15,13 +15,13 @@ const App: React.FC = () => {
   return (
     <div className="app">
       {openBlockId ? (
-        <BlockPage blockId={openBlockId}>
-          <BlockRenderer blockId={openBlockId} />
-        </BlockPage>
+        <DocumentViewer blockId={openBlockId}>
+          <BlockContentRenderer blockId={openBlockId} />
+        </DocumentViewer>
       ) : (
         <>
-          <BlockCreator />
-          <BlockListView />
+          <DocumentCreator />
+          <DocumentGallery />
         </>
       )}
     </div>

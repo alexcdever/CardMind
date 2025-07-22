@@ -26,7 +26,7 @@ interface Props {
   onCancel: () => void;
 }
 
-export const BlockEditor: React.FC<Props> = ({ block, onSave, onCancel }) => {
+export const BlockContentEditor: React.FC<Props> = ({ block, onSave, onCancel }) => {
   const [editedBlock, setEditedBlock] = useState<UnifiedBlock>({...block});
 
   const handleChange = (key: string, value: any) => {

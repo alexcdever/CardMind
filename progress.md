@@ -21,3 +21,11 @@
 5. 已完成:
    - 将feature/center-server合并到main分支
 6. 任务完成: 当前已在main分支下
+
+## 2025-07-22 组件重构
+1. 已完成组件重命名：
+   - BlockListView → DocumentGallery
+   - BlockPage → DocumentViewer 
+   - BlockRenderer → BlockContentRenderer
+2. 更新了所有相关引用
+3. 使用antd UI组件优化了样式

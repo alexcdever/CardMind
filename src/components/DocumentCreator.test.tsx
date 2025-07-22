@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { BlockCreator } from './BlockCreator';
+import { DocumentCreator } from './DocumentCreator';
 import { useBlockManager } from '../stores/blockManager';
 
 // 修复类型声明
@@ -19,7 +19,7 @@ jest.mock('../stores/blockManager');
 
 const mockUseBlockManager = useBlockManager as jest.MockedFunction<typeof useBlockManager>;
 
-describe('BlockCreator', () => {
+describe('DocumentCreator', () => {
   beforeEach(() => {
     mockUseBlockManager.mockReturnValue({
       openBlockId: 'test-parent',
@@ -28,13 +28,13 @@ describe('BlockCreator', () => {
   });
 
   it('should render the component', () => {
-    render(<BlockCreator />);
+    render(<DocumentCreator />);
     expect(screen.getByPlaceholderText('输入块标题')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '创建' })).toBeInTheDocument();
   });
 
   it('should update title when input changes', () => {
-    render(<BlockCreator />);
+    render(<DocumentCreator />);
     const input = screen.getByPlaceholderText('输入块标题');
     fireEvent.change(input, { target: { value: '测试块' } });
     expect(input).toHaveValue('测试块');
@@ -47,7 +47,7 @@ describe('BlockCreator', () => {
       updateBlock: mockUpdateBlock
     } as any);
 
-    render(<BlockCreator />);
+    render(<DocumentCreator />);
     const input = screen.getByPlaceholderText('输入块标题');
     const button = screen.getByRole('button', { name: '创建' });
 
@@ -67,7 +67,7 @@ describe('BlockCreator', () => {
       updateBlock: mockUpdateBlock
     } as any);
 
-    render(<BlockCreator />);
+    render(<DocumentCreator />);
     const button = screen.getByRole('button', { name: '创建' });
     fireEvent.click(button);
     expect(mockUpdateBlock).not.toHaveBeenCalled();

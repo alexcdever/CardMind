@@ -1,6 +1,8 @@
 import React from 'react';
 import { useBlockManager } from '../stores/blockManager';
 import { UnifiedBlock, BlockType, DocBlockProperties, TextBlockProperties, MediaBlockProperties, CodeBlockProperties } from '../types/block';
+import { Card, Typography } from 'antd';
+const { Title, Paragraph } = Typography;
 
 // 类型守卫函数
 function isDocBlock(block: UnifiedBlock): block is UnifiedBlock & { properties: DocBlockProperties } {
@@ -23,7 +25,7 @@ interface Props {
   blockId: string;
 }
 
-export const BlockRenderer: React.FC<Props> = ({ blockId }) => {
+export const BlockContentRenderer: React.FC<Props> = ({ blockId }) => {
   console.log('BlockRenderer接收到的blockId:', blockId);
   const { openBlock } = useBlockManager();
   console.log('当前openBlock:', openBlock);
@@ -35,33 +37,40 @@ export const BlockRenderer: React.FC<Props> = ({ blockId }) => {
   const renderContent = () => {
     if (isDocBlock(openBlock)) {
       return (
-        <div className="doc-block">
-          <h1>{openBlock.properties.title}</h1>
-          <div>{openBlock.properties.content}</div>
-        </div>
+        <Card className="doc-block">
+          <Title level={2}>{openBlock.properties.title}</Title>
+          <Paragraph>{openBlock.properties.content}</Paragraph>
+        </Card>
       );
     }
 
     if (isTextBlock(openBlock)) {
-      return <div className="text-block">{openBlock.properties.content}</div>;
+      return (
+        <Card className="text-block">
+          <Paragraph>{openBlock.properties.content}</Paragraph>
+        </Card>
+      );
     }
 
     if (isCodeBlock(openBlock)) {
       return (
-        <pre className="code-block">
-          <code>{openBlock.properties.code}</code>
-        </pre>
+        <Card className="code-block">
+          <pre>
+            <code>{openBlock.properties.code}</code>
+          </pre>
+        </Card>
       );
     }
 
     if (isMediaBlock(openBlock)) {
       return (
-        <div className="media-block">
+        <Card className="media-block">
           <img 
             src={openBlock.properties.filePath} 
             alt={openBlock.properties.fileName} 
+            style={{ maxWidth: '100%' }}
           />
-        </div>
+        </Card>
       );
     }
 
