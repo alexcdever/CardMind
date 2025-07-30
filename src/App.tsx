@@ -1,7 +1,7 @@
 import React from 'react';
 import { useBlockManager } from './stores/blockManager';
 import { DocEditor } from './components/DocEditor';
-import { DocumentGallery } from './components/DocumentGallery';
+import { DocList } from './components/DocList';
 
 const App: React.FC = () => {
   const { getAllBlocks } = useBlockManager();
@@ -14,7 +14,7 @@ const App: React.FC = () => {
     <div className="app">
       <>
         <DocEditor />
-        <DocumentGallery />
+        <DocList />
       </>
     </div>
   );

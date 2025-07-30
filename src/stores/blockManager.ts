@@ -104,21 +104,27 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
       Database.create(newBlock)
     ]);
 
-    // 更新块列表
-    await get().getAllBlocks();
+    // 重新获取并更新blocks数组，确保状态同步
+    const updatedBlocks = await get().getAllBlocks();
     return id;
   },
 
   // 更新块数据
   async updateBlock(block: UnifiedBlock) {
+    // 更新数据库和Y.Doc
+    await Promise.all([
+      yDocManager.updateBlock(block.id, block),
+      Database.update(block)
+    ]);
+    
+    // 更新当前块（如果正在查看）
     const { currentBlock } = get();
     if (currentBlock && currentBlock.id === block.id) {
-      await Promise.all([
-        yDocManager.updateBlock(block.id, block),
-        Database.update(block)
-      ]);
       set({ currentBlock: block });
     }
+    
+    // 重新获取并更新blocks数组，确保列表数据同步
+    await get().getAllBlocks();
   },
 
   // 删除块
@@ -142,5 +148,8 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
       await yDocManager.close(id);
       set({ currentBlock: null });
     }
+    
+    // 重新获取并更新blocks数组，确保列表数据同步
+    await get().getAllBlocks();
   }
 }));
