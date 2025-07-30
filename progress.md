@@ -455,3 +455,85 @@ scrollbar-color: #bfbfbf #f0f0f0;
 - ✅ 内容区域独立滚动，滚动条仅作用于内容
 - ✅ 视觉层次清晰，用户体验提升
 - ✅ 保持原有功能完整性
+
+## 2025-07-29 10:00 - 使用pnpm优化依赖管理和图标生成
+
+### 🔍 问题发现
+- **依赖管理**：项目使用npm作为依赖管理工具，但pnpm具有更高的效率和更好的磁盘空间利用率
+- **图标生成**：移动端图标生成脚本需要改进，以适配不同分辨率的设备
+
+### ✅ 解决方案
+1. **切换到pnpm**：
+   - 使用pnpm替代npm进行依赖管理
+   - 安装canvas依赖用于SVG到PNG的转换
+
+2. **优化图标生成**：
+   - 创建新的脚本用于生成移动端图标
+   - 支持多种分辨率的图标生成
+   - 更新package.json中的脚本命令
+
+3. **清理旧文件**：
+   - 删除旧的图标生成脚本
+   - 保持项目结构整洁
+
+### 📁 修改文件
+- `package.json`：更新脚本命令
+- `convert-icon.mjs`：删除旧脚本
+- `scripts/generate-mobile-icons.mjs`：创建新脚本
+- `electron-main.mjs`：更新Electron图标路径
+- `index.html`：更新Web端图标链接
+
+### 🎯 最终效果
+- ✅ 使用pnpm进行依赖管理，提高效率
+- ✅ 自动生成适配不同分辨率的移动端图标
+- ✅ Web端、Electron端和移动端统一使用SVG图标
+- ✅ 项目结构更加清晰，维护性提升
+
+## 2025-07-29 11:00 - 配置所有项目使用pnpm
+
+### 🔍 问题发现
+- **工作区配置**：主项目和CardMindAndroid子项目未正确配置为pnpm工作区
+- **依赖管理**：缺少统一的依赖管理配置
+
+### ✅ 解决方案
+1. **配置工作区**：
+   - 在主项目中添加pnpm-workspace.yaml文件
+   - 配置主项目和CardMindAndroid子项目为工作区
+
+2. **统一依赖管理**：
+   - 在主项目和CardMindAndroid子项目的package.json中添加packageManager字段
+   - 指定使用pnpm@10.13.1进行依赖管理
+
+### 📁 修改文件
+- `pnpm-workspace.yaml`：添加工作区配置
+- `package.json`：添加packageManager字段
+- `CardMindAndroid/package.json`：添加packageManager字段
+
+### 🎯 最终效果
+- ✅ 主项目和CardMindAndroid子项目正确配置为pnpm工作区
+- ✅ 所有项目统一使用pnpm进行依赖管理
+- ✅ 提高依赖管理效率和一致性
+
+## 2025-07-29 12:00 - 为Web端添加PWA支持
+
+### 🔍 问题发现
+- **PWA支持**：Web端应用缺少PWA支持，无法提供类似原生应用的体验
+
+### ✅ 解决方案
+1. **安装PWA插件**：
+   - 安装vite-plugin-pwa依赖
+
+2. **配置PWA插件**：
+   - 在vite.config.ts中配置VitePWA插件
+   - 设置应用名称、描述、主题颜色等元信息
+   - 配置应用图标
+
+### 📁 修改文件
+- `vite.config.ts`：添加VitePWA插件配置
+- `package.json`：添加vite-plugin-pwa依赖
+
+### 🎯 最终效果
+- ✅ Web端应用支持PWA功能
+- ✅ 用户可以将应用安装到主屏幕
+- ✅ 应用可以离线使用
+- ✅ 提供类似原生应用的用户体验
