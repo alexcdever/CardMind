@@ -1,31 +1,19 @@
-# RN Android编译进度记录
+# 删除按钮问题检查记录
 
-## 2025-07-21 15:53
-1. yarn 已成功安装
-2. 准备使用 yarn 安装项目依赖
-3. 下一步：
-   - 执行 yarn install
-   - 检查安装结果
+## 2025-07-28 16:54
 
-## 2025-07-21 17:48
-1. 在CardMindAndroid/android/app/build/outputs/apk/debug/目录下发现app-debug.apk文件
-2. APK文件大小: 61.5MB，最后修改时间: 2025-07-21 17:15
-3. 结论: 项目已成功通过React Native编译生成Android应用的debug版本APK
+### 问题描述
+- 列表页卡片中的删除按钮点击后显示"删除成功"提示，但实际文档未被删除
 
-## 2025-07-21 18:01
-1. 当前Git分支: feature/center-server
-2. 准备将当前分支合并到main分支
-3. 错误: main分支不存在
-4. 已完成:
-   - 创建main分支
-5. 已完成:
-   - 将feature/center-server合并到main分支
-6. 任务完成: 当前已在main分支下
+### 检查步骤
+1. 检查DocumentGallery.tsx中的删除逻辑
+   - 发现调用了blockManager的deleteBlock方法
+   - 删除后有fetchAllBlocks和setBlocks更新状态
+2. 检查blockManager.ts中的deleteBlock实现
+   - 发现deleteBlock方法有一个条件判断：只有当要删除的块是当前打开的块时才会执行删除操作
+   - 这解释了为什么列表页中的删除按钮不生效
 
-## 2025-07-22 组件重构
-1. 已完成组件重命名：
-   - BlockListView → DocumentGallery
-   - BlockPage → DocumentViewer 
-   - BlockRenderer → BlockContentRenderer
-2. 更新了所有相关引用
-3. 使用antd UI组件优化了样式
+### 解决方案
+1. 修改blockManager.ts中的deleteBlock方法，移除了不必要的条件限制
+   - 现在可以删除任何块，而不仅限于当前打开的块
+2. 修改已保存，可以测试删除功能是否正常工作

@@ -7,7 +7,7 @@ import { FileAddOutlined } from '@ant-design/icons';
 export const DocumentCreator: React.FC = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const { openBlockId, createBlock } = useBlockManager();
+  const { currentBlock, createBlock } = useBlockManager();
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleCreate = () => {
@@ -18,7 +18,7 @@ export const DocumentCreator: React.FC = () => {
     try {
       const newBlock = {
         type: BlockType.DOC,
-        parentId: openBlockId,
+        parentId: currentBlock?.id || null,
         childrenIds: [],
         properties: {
           title: title || '未命名文档',

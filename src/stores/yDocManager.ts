@@ -46,29 +46,59 @@ export class yDocManager {
       console.warn('WebRTC连接失败，将使用离线模式:', e);
     }
 
-    this.openDocs.set(blockId, { doc, providers });
-    return { doc };
+    const result = { doc, providers };
+    this.openDocs.set(blockId, result);
+    return result;
   }
 
   // 兼容旧版open方法
   static async open(blockId: string) {
     try {
-      return await this.get(blockId);
-    } catch {
-      return await this.create(blockId);
+      // 如果文档已存在，直接返回
+      if (this.openDocs.has(blockId)) {
+        return this.openDocs.get(blockId)!;
+      }
+      
+      // 否则创建新文档
+      const result = await this.create(blockId);
+      
+      // 添加错误处理
+      result.providers.offline.on('error', (err: Error) => {
+        console.error('IndexedDB持久化错误:', err);
+      });
+      
+      return result;
+    } catch (err) {
+      console.error('打开文档失败:', err);
+      throw err;
     }
   }
 
-  // 关闭文档
-  static close(blockId: string) {
+  // 关闭文档(返回Promise)
+  static async close(blockId: string): Promise<void> {
     const entry = this.openDocs.get(blockId);
     if (!entry) return;
 
-    entry.providers.offline.destroy();
-    if (entry.providers.online) {
-      entry.providers.online.destroy();
+    try {
+      // 并行销毁所有provider
+      await Promise.all([
+        new Promise<void>((resolve) => {
+          entry.providers.offline.destroy();
+          resolve();
+        }),
+        entry.providers.online 
+          ? new Promise<void>((resolve) => {
+              entry.providers.online!.destroy();
+              resolve();
+            })
+          : Promise.resolve()
+      ]);
+      
+      this.openDocs.delete(blockId);
+    } catch (err) {
+      console.error('关闭文档失败:', err);
+      throw err;
     }
-    this.openDocs.delete(blockId);
   }
 
   // 更新块数据到Y.Doc

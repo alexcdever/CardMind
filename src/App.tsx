@@ -1,29 +1,21 @@
 import React from 'react';
 import { useBlockManager } from './stores/blockManager';
-import { DocumentViewer } from './components/DocumentViewer';
-import { BlockContentRenderer } from './components/BlockContentRenderer';
-import { DocumentCreator } from './components/DocumentCreator';
+import { DocEditor } from './components/DocEditor';
 import { DocumentGallery } from './components/DocumentGallery';
 
 const App: React.FC = () => {
-  const { openBlockId, fetchAllBlocks } = useBlockManager();
+  const { getAllBlocks } = useBlockManager();
 
   React.useEffect(() => {
-    fetchAllBlocks();
-  }, [fetchAllBlocks]);
+    getAllBlocks();
+  }, [getAllBlocks]);
 
   return (
     <div className="app">
-      {openBlockId ? (
-        <DocumentViewer blockId={openBlockId}>
-          <BlockContentRenderer blockId={openBlockId} />
-        </DocumentViewer>
-      ) : (
-        <>
-          <DocumentCreator />
-          <DocumentGallery />
-        </>
-      )}
+      <>
+        <DocEditor />
+        <DocumentGallery />
+      </>
     </div>
   );
 };

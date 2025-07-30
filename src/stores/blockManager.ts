@@ -1,45 +1,56 @@
 import { create } from 'zustand';
-import { yDocManager } from './YDocManager';
+import { yDocManager } from './yDocManager';
 import { UnifiedBlock } from '../types/block';
 import { Database } from '../db/operations'; // 导入数据库操作
 
-interface BlockManagerState {
-  // 当前打开的块ID
-  openBlockId: string | null;
-  
+export interface BlockManagerState {
   // 当前打开的块数据
-  openBlock: UnifiedBlock | null;
-
+  currentBlock: UnifiedBlock | null;
+  
   // 所有块列表
   blocks: UnifiedBlock[];
 
-  // 打开块文档
-  openBlockDoc: (id: string) => void;
+  // 状态锁 - 防止并发修改
+  isOpening: boolean;
 
-  // 关闭块文档  
-  closeBlockDoc: () => void;
+  // 查询方法
+  getBlock: (id: string) => Promise<UnifiedBlock | null>;
+  getAllBlocks: () => Promise<UnifiedBlock[]>;
 
-  // 更新块数据
-  updateBlock: (block: UnifiedBlock) => void;
-
-  // 创建新块
+  // 增删改方法
   createBlock: (block: Omit<UnifiedBlock, 'id'>) => Promise<string>;
+  updateBlock: (block: UnifiedBlock) => Promise<void>;
+  deleteBlock: (id: string) => Promise<void>;
 
-  // 获取所有块(返回未删除的块数组)
-  fetchAllBlocks: () => Promise<UnifiedBlock[]>;
+  // 状态管理
+  setCurrentBlock: (id: string | null) => Promise<void>;
+  getCurrentBlock: () => UnifiedBlock | null;
 }
 
 export const useBlockManager = create<BlockManagerState>((set, get) => ({
-  openBlockId: null,
-  openBlock: null,
+  currentBlock: null,
   blocks: [],
-  
-  // 获取所有块(默认只获取未删除的块)
-  async fetchAllBlocks() {
-    // 直接从数据库获取未删除的块
+  isOpening: false,
+
+  // 获取单个块
+  async getBlock(id: string) {
+    try {
+      const block = await Database.get(id);
+      if (block && !block.isDeleted) {
+        await yDocManager.updateBlock(id, block); // 同步到Y.Doc
+        return block;
+      }
+      return null;
+    } catch (error) {
+      console.error('获取块失败:', error);
+      return null;
+    }
+  },
+
+  // 获取所有块
+  async getAllBlocks() {
     const blocks = await Database.getAllBlocks();
     const filteredBlocks = blocks.filter(b => !b.isDeleted);
-    // 按创建时间降序排列
     const sortedBlocks = filteredBlocks.sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -47,44 +58,31 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
     return sortedBlocks;
   },
 
-  // 打开块文档
-  async openBlockDoc(id: string) {
-    // 初始化Y.Doc文档(用于协同编辑)
-    await yDocManager.open(id);
-    
-    // 从数据库获取块数据
-    const block = await Database.get(id);
-    if (block) {
-      console.log('设置当前打开块:', id, block);
-      set({ openBlockId: id, openBlock: block });
-      
-      // 将数据库数据同步到Y.Doc
-      await yDocManager.updateBlock(id, block);
-    } else {
-      console.warn('获取块数据为空:', id);
+  // 设置当前块
+  async setCurrentBlock(id: string | null) {
+    if (!id) {
+      set({ currentBlock: null });
+      return;
+    }
+
+    try {
+      set({ isOpening: true });
+      const block = await get().getBlock(id);
+      if (block) {
+        await yDocManager.open(id); // 初始化Y.Doc
+        set({ currentBlock: block, isOpening: false });
+      } else {
+        set({ currentBlock: null, isOpening: false });
+      }
+    } catch (error) {
+      console.error('设置当前块失败:', error);
+      set({ currentBlock: null, isOpening: false });
     }
   },
 
-  // 关闭块文档
-  closeBlockDoc() {
-    const { openBlockId } = get();
-    if (openBlockId) {
-      yDocManager.close(openBlockId);
-      set({ openBlockId: null, openBlock: null });
-    }
-  },
-
-  // 更新块数据
-  async updateBlock(block: UnifiedBlock) {
-    const { openBlockId } = get();
-    if (openBlockId && openBlockId === block.id) {
-      // 同时更新到Y.Doc和数据库
-      await Promise.all([
-        yDocManager.updateBlock(block.id, block),
-        Database.update(block)
-      ]);
-      set({ openBlock: block });
-    }
+  // 获取当前块
+  getCurrentBlock() {
+    return get().currentBlock;
   },
 
   // 创建新块
@@ -94,7 +92,7 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
     const newBlock = { 
       ...block, 
       id,
-      isDeleted: false, // 确保新块未删除
+      isDeleted: false,
       createdAt: new Date(),
       modifiedAt: new Date()
     };
@@ -107,35 +105,42 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
     ]);
 
     // 更新块列表
-    await get().fetchAllBlocks();
-
-    // 返回新块ID
+    await get().getAllBlocks();
     return id;
   },
 
-  // 删除块(软删除，设置isDeleted为true)
-  async deleteBlock(id: string) {
-    const { openBlockId } = get();
-    if (!openBlockId || openBlockId !== id) return;
+  // 更新块数据
+  async updateBlock(block: UnifiedBlock) {
+    const { currentBlock } = get();
+    if (currentBlock && currentBlock.id === block.id) {
+      await Promise.all([
+        yDocManager.updateBlock(block.id, block),
+        Database.update(block)
+      ]);
+      set({ currentBlock: block });
+    }
+  },
 
-    // 获取当前块数据
+  // 删除块
+  async deleteBlock(id: string) {
     const block = await Database.get(id);
     if (!block) return;
 
-    // 更新为已删除状态
     const deletedBlock = {
       ...block,
       isDeleted: true,
       modifiedAt: new Date()
     };
 
-    // 同步更新到Y.Doc和数据库
     await Promise.all([
       yDocManager.updateBlock(id, deletedBlock),
       Database.update(deletedBlock)
     ]);
 
-    // 关闭并清除当前打开的块
-    get().closeBlockDoc();
+    // 清除当前块状态
+    if (get().currentBlock?.id === id) {
+      await yDocManager.close(id);
+      set({ currentBlock: null });
+    }
   }
 }));
