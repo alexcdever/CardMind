@@ -1,4 +1,6 @@
 {
+  "name": "cardmind",
+  "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@10.13.1",
   "scripts": {
@@ -11,7 +13,8 @@
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
-    "generate-icons": "node scripts/generate-mobile-icons.mjs"
+    "generate-icons": "node scripts/generate-mobile-icons.mjs",
+    "build:all": "pnpm build && docker build -t cardmind . && pnpm electron:build"
   },
   "main": "electron-main.mjs",
   "build": {

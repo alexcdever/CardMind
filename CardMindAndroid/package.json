@@ -11,13 +11,23 @@
     "test": "jest"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.0.0",
+    "antd": "^5.26.6",
+    "dexie": "^4.0.11",
+    "libsodium-wrappers": "^0.7.15",
+    "lru-cache": "^11.1.0",
     "react": "18.2.0",
-    "react-native": "0.71.0"
+    "react-native": "0.71.0",
+    "y-indexeddb": "^9.0.12",
+    "y-webrtc": "^10.3.0",
+    "yjs": "^13.6.27",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",
     "@babel/preset-env": "^7.14.0",
     "@babel/runtime": "^7.12.5",
+    "@react-native-community/cli-platform-android": "10.0.0",
     "@react-native-community/eslint-config": "^3.0.0",
     "@tsconfig/react-native": "^2.0.2",
     "@types/jest": "^29.2.1",
@@ -28,6 +38,7 @@
     "jest": "^29.2.1",
     "metro-react-native-babel-preset": "0.73.5",
     "prettier": "^2.4.1",
+    "react-native-gradle-plugin": "0.71.12",
     "react-test-renderer": "18.2.0",
     "typescript": "4.8.4"
   },

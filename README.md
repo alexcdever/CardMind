@@ -76,14 +76,32 @@ pnpm preview
 cd CardMindAndroid
 
 # Android开发
-npm run android
+pnpm android
 
 # iOS开发 (macOS)
-npm run ios
+pnpm ios
 
 # Metro打包器
-npm start
+pnpm start
 ```
+
+#### Android打包问题解决
+
+如果在执行`pnpm android`命令时遇到问题，请参考以下文档：
+
+- [Android模拟器安装与配置指南](android_emulator_setup_guide.md) - 详细说明如何安装Android Studio并创建AVD模拟器
+- [Android应用打包问题解决方案](android_packaging_solution.md) - 提供针对各种打包问题的解决方案
+- [Android系统镜像安装指南](install_system_image_guide.md) - 指导如何通过Android Studio安装所需的系统镜像
+- [重新安装Android系统镜像指南](reinstall_system_image_guide.md) - 当系统镜像不完整时的重新安装步骤
+
+常见问题包括：
+- Canvas模块加载失败
+- Android SDK环境变量配置问题
+- Android SDK许可证未接受
+- 缺少连接的设备（模拟器或物理设备）
+- 系统镜像未正确安装
+
+请按照文档中的步骤逐一解决这些问题，确保Android应用能够成功打包和运行。
 
 #### 通用命令
 ```bash
