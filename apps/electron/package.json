@@ -1,0 +1,23 @@
+{
+  "name": "@cardmind/electron",
+  "version": "1.0.0",
+  "description": "CardMind Electron桌面应用",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview"
+  },
+  "dependencies": {
+    "electron": "^25.0.0",
+    "electron-vite": "^1.0.0",
+    "@cardmind/shared": "workspace:*",
+    "@cardmind/types": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-builder": "^24.0.0",
+    "typescript": "^5.0.0"
+  }
+}

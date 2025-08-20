@@ -1,0 +1,13 @@
+{
+  "name": "@cardmind/docker",
+  "version": "1.0.0",
+  "description": "CardMind Docker部署配置",
+  "private": true,
+  "scripts": {
+    "build": "docker build -t cardmind .",
+    "start": "docker-compose up"
+  },
+  "dependencies": {
+    "@cardmind/relay": "workspace:*"
+  }
+}

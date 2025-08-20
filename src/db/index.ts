@@ -2,7 +2,10 @@ import Dexie from 'dexie';
 import { UnifiedBlock } from '../types/block';
 
 const isRN = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
-if (isRN) require('indexeddbshim')(global, { checkOrigin: false, win: global });
+if (isRN) {
+  const shim = require('indexeddbshim');
+  shim(global, { checkOrigin: false, win: global });
+}
 
 class NotesDatabase extends Dexie {
   blocks!: Dexie.Table<UnifiedBlock, string>;

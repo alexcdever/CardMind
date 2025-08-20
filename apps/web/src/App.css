@@ -1,0 +1,38 @@
+/* 应用主样式 */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 16px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.app-header h1 {
+  color: #1890ff;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.app-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 280px;
+  background: #fff;
+  border-right: 1px solid #e8e8e8;
+  overflow-y: auto;
+}
+
+.editor-container {
+  flex: 1;
+  background: #fff;
+  overflow: hidden;
+}

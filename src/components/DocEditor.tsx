@@ -5,11 +5,9 @@ import { FloatButton, Modal, Input, message, Button } from 'antd';
 import { FileAddOutlined, EditOutlined } from '@ant-design/icons';
 
 interface DocEditorProps {
-  // 编辑模式时传入block
   block?: UnifiedBlock & {
     properties: DocBlockProperties;
   };
-  // 创建模式回调
   onCreateSuccess?: (blockId: string) => void;
 }
 
@@ -20,7 +18,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({ block, onCreateSuccess }) 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const isEditMode = !!block;
 
-  // 编辑模式初始化
   useEffect(() => {
     if (isEditMode && block) {
       setTitle(block.properties.title);
@@ -35,7 +32,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({ block, onCreateSuccess }) 
   const handleSubmit = async () => {
     try {
       if (isEditMode && block) {
-        // 更新现有块
         await updateBlock({
           ...block,
           properties: {
@@ -46,7 +42,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({ block, onCreateSuccess }) 
         });
         message.success('文档更新成功');
       } else {
-        // 创建新块
         const newBlock = {
           type: BlockType.DOC,
           parentId: null,
@@ -115,13 +110,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({ block, onCreateSuccess }) 
       >
         <Input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
           placeholder="文档标题"
           style={{ marginBottom: 16 }}
         />
         <Input.TextArea
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
           placeholder="文档内容"
           rows={10}
         />

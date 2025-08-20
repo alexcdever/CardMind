@@ -1,7 +1,11 @@
 import sodium from 'libsodium-wrappers';
 
 // 等待sodium库初始化
-await sodium.ready;
+sodium.ready.then(() => {
+  console.log('libsodium-wrappers initialized');
+}).catch((error: Error) => {
+  console.error('libsodium-wrappers initialization failed:', error);
+});
 
 export const Crypto = {
   // 加密文本
@@ -13,7 +17,11 @@ export const Crypto = {
 
   // 解密文本  
   decrypt: (nonce: Uint8Array, cipher: Uint8Array, key: Uint8Array): string => {
-    return sodium.crypto_secretbox_open_easy(cipher, nonce, key, 'text');
+    const result = sodium.crypto_secretbox_open_easy(cipher, nonce, key, 'text');
+    if (!result) {
+      throw new Error('解密失败：无效的密钥或数据');
+    }
+    return result as string;
   },
 
   // 从密码派生密钥

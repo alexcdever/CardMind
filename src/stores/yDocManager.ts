@@ -3,15 +3,20 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebrtcProvider } from 'y-webrtc';
 import { UnifiedBlock } from '../types/block';
 
+interface DocEntry {
+  doc: Y.Doc;
+  providers: { 
+    offline: IndexeddbPersistence; 
+    online: WebrtcProvider | null 
+  };
+}
+
 export class yDocManager {
   // 存储已打开的文档
-  private static openDocs = new Map<string, {
-    doc: Y.Doc;
-    providers: { offline: IndexeddbPersistence; online: WebrtcProvider | null };
-  }>();
+  private static openDocs = new Map<string, DocEntry>();
 
   // 获取已存在的文档
-  static async get(blockId: string) {
+  static async get(blockId: string): Promise<DocEntry> {
     if (!this.openDocs.has(blockId)) {
       throw new Error(`文档 ${blockId} 不存在`);
     }
@@ -19,7 +24,7 @@ export class yDocManager {
   }
 
   // 创建新文档
-  static async create(blockId: string) {
+  static async create(blockId: string): Promise<DocEntry> {
     if (this.openDocs.has(blockId)) {
       throw new Error(`文档 ${blockId} 已存在`);
     }
@@ -52,7 +57,7 @@ export class yDocManager {
   }
 
   // 兼容旧版open方法
-  static async open(blockId: string) {
+  static async open(blockId: string): Promise<DocEntry> {
     try {
       // 如果文档已存在，直接返回
       if (this.openDocs.has(blockId)) {
@@ -102,7 +107,7 @@ export class yDocManager {
   }
 
   // 更新块数据到Y.Doc
-  static async updateBlock(blockId: string, block: UnifiedBlock) {
+  static async updateBlock(blockId: string, block: UnifiedBlock): Promise<void> {
     const { doc } = await this.open(blockId);
     const yMap = doc.getMap('data');
     
@@ -131,7 +136,7 @@ export class yDocManager {
         const blockIds = new Set<string>();
         
         // 遍历所有对象存储
-        Array.from(db.objectStoreNames).forEach(storeName => {
+        Array.from(db.objectStoreNames).forEach((storeName: string) => {
           try {
             const transaction = db.transaction(storeName, 'readonly');
             const store = transaction.objectStore(storeName);
@@ -139,7 +144,7 @@ export class yDocManager {
             
             requestKeys.onsuccess = () => {
               const keys = requestKeys.result as string[];
-              keys.forEach(key => {
+              keys.forEach((key: string) => {
                 if (typeof key === 'string' && key.startsWith('doc_')) {
                   blockIds.add(key.replace('doc_', ''));
                 }

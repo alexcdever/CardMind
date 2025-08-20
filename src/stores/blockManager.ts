@@ -50,8 +50,8 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
   // 获取所有块
   async getAllBlocks() {
     const blocks = await Database.getAllBlocks();
-    const filteredBlocks = blocks.filter(b => !b.isDeleted);
-    const sortedBlocks = filteredBlocks.sort((a, b) => 
+    const filteredBlocks = blocks.filter((b: UnifiedBlock) => !b.isDeleted);
+    const sortedBlocks = filteredBlocks.sort((a: UnifiedBlock, b: UnifiedBlock) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     set({ blocks: sortedBlocks });
