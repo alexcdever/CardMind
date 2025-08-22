@@ -1,5 +1,3 @@
-// 核心类型定义 - 为整个monorepo提供共享的类型
-
 /**
  * 块基类 - 所有块类型的基类
  */
@@ -262,71 +260,3 @@ export function deserializeBlock(data: any): Block {
       throw new Error(`未知的块类型: ${data.type}`);
   }
 }
-
-// 块类型联合 - 使用新的继承式块类型
-export type AnyBlock = DocBlock | TextBlock | MediaBlock | CodeBlock;
-
-// 同步状态
-export interface SyncStatus {
-  isOnline: boolean;
-  lastSyncTime?: Date;
-  pendingChanges: number;
-}
-
-// 协作用户
-export interface Collaborator {
-  id: string;
-  name: string;
-  color: string;
-  cursor?: { x: number; y: number };
-  lastActive: Date;
-}
-
-// 应用配置
-export interface AppConfig {
-  theme: 'light' | 'dark' | 'auto';
-  language: string;
-  autoSave: boolean;
-  syncInterval: number;
-}
-
-// 文档类型 - 使用新的继承式块类型
-export interface Document {
-  id: string;
-  title: string;
-  blocks: AnyBlock[];  // 使用新的继承式块类型
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-  version: number;
-}
-
-// 数据库操作接口
-export interface DatabaseOperations {
-  createDocument(doc: Omit<Document, 'id' | 'createdAt' | 'updatedAt' | 'version'>): Promise<Document>;
-  updateDocument(id: string, updates: Partial<Document>): Promise<Document>;
-  deleteDocument(id: string): Promise<void>;
-  getDocument(id: string): Promise<Document | null>;
-  getAllDocuments(): Promise<Document[]>;
-  searchDocuments(query: string): Promise<Document[]>;
-  
-  // 新的继承式块操作
-  createBlock(block: Omit<AnyBlock, 'id' | 'createdAt' | 'modifiedAt'>): Promise<AnyBlock>;
-  updateBlock(id: string, updates: Partial<AnyBlock>): Promise<AnyBlock>;
-  deleteBlock(id: string): Promise<void>;
-  getBlock(id: string): Promise<AnyBlock | null>;
-  getChildBlocks(parentId: string): Promise<AnyBlock[]>;
-}
-
-// 事件类型
-export type AppEvent = 
-  | { type: 'document_created'; documentId: string }
-  | { type: 'document_updated'; documentId: string }
-  | { type: 'document_deleted'; documentId: string }
-  | { type: 'block_created'; blockId: string; documentId: string }
-  | { type: 'block_updated'; blockId: string; documentId: string }
-  | { type: 'block_deleted'; blockId: string; documentId: string }
-  | { type: 'sync_started' }
-  | { type: 'sync_completed' }
-  | { type: 'collaborator_joined'; userId: string }
-  | { type: 'collaborator_left'; userId: string };

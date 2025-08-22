@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Block } from '@cardmind/types';
+import { Document, AnyBlock } from '@cardmind/types';
 interface DocumentState {
     documents: Document[];
     currentDocument: Document | null;
@@ -29,12 +29,12 @@ type DocumentAction = {
     payload: string;
 } | {
     type: 'ADD_BLOCK';
-    payload: Block;
+    payload: AnyBlock;
 } | {
     type: 'UPDATE_BLOCK';
     payload: {
         documentId: string;
-        block: Block;
+        block: AnyBlock;
     };
 } | {
     type: 'DELETE_BLOCK';
@@ -54,8 +54,8 @@ export declare function useDocuments(): {
     deleteDocument: (id: string) => Promise<void>;
     loadDocuments: () => Promise<void>;
     loadDocument: (id: string) => Promise<void>;
-    addBlock: (block: Omit<Block, "id" | "createdAt" | "updatedAt">) => Promise<void>;
-    updateBlock: (block: Block) => Promise<void>;
+    addBlock: (block: Omit<AnyBlock, "id" | "createdAt" | "modifiedAt">) => Promise<void>;
+    updateBlock: (block: AnyBlock) => Promise<void>;
     deleteBlock: (documentId: string, blockId: string) => Promise<void>;
 };
 export {};

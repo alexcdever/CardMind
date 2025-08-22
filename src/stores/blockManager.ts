@@ -1,30 +1,31 @@
 import { create } from 'zustand';
 import { yDocManager } from './yDocManager';
-import { UnifiedBlock } from '../types/block';
+import { Block, DocBlock, TextBlock, MediaBlock, CodeBlock } from '../types/block-inheritance';
+import { serializeBlock, deserializeBlock } from '../types/block-inheritance';
 import { Database } from '../db/operations'; // 导入数据库操作
 
 export interface BlockManagerState {
   // 当前打开的块数据
-  currentBlock: UnifiedBlock | null;
+  currentBlock: Block | null;
   
   // 所有块列表
-  blocks: UnifiedBlock[];
+  blocks: Block[];
 
   // 状态锁 - 防止并发修改
   isOpening: boolean;
 
   // 查询方法
-  getBlock: (id: string) => Promise<UnifiedBlock | null>;
-  getAllBlocks: () => Promise<UnifiedBlock[]>;
+  getBlock: (id: string) => Promise<Block | null>;
+  getAllBlocks: () => Promise<Block[]>;
 
   // 增删改方法
-  createBlock: (block: Omit<UnifiedBlock, 'id'>) => Promise<string>;
-  updateBlock: (block: UnifiedBlock) => Promise<void>;
+  createBlock: (block: Omit<Block, 'id'>) => Promise<string>;
+  updateBlock: (block: Block) => Promise<void>;
   deleteBlock: (id: string) => Promise<void>;
 
   // 状态管理
   setCurrentBlock: (id: string | null) => Promise<void>;
-  getCurrentBlock: () => UnifiedBlock | null;
+  getCurrentBlock: () => Block | null;
 }
 
 export const useBlockManager = create<BlockManagerState>((set, get) => ({
@@ -50,8 +51,8 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
   // 获取所有块
   async getAllBlocks() {
     const blocks = await Database.getAllBlocks();
-    const filteredBlocks = blocks.filter((b: UnifiedBlock) => !b.isDeleted);
-    const sortedBlocks = filteredBlocks.sort((a: UnifiedBlock, b: UnifiedBlock) => 
+    const filteredBlocks = blocks.filter((b: Block) => !b.isDeleted);
+    const sortedBlocks = filteredBlocks.sort((a: Block, b: Block) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     set({ blocks: sortedBlocks });
@@ -86,7 +87,7 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
   },
 
   // 创建新块
-  async createBlock(block: Omit<UnifiedBlock, 'id'>) {
+  async createBlock(block: Omit<Block, 'id'>) {
     // 生成块ID
     const id = crypto.randomUUID();
     const newBlock = { 
@@ -101,7 +102,8 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
     await Promise.all([
       yDocManager.create(id),
       yDocManager.updateBlock(id, newBlock),
-      Database.create(newBlock)
+      const serializedBlock = serializeBlock(newBlock);
+      Database.create(serializedBlock)
     ]);
 
     // 重新获取并更新blocks数组，确保状态同步
@@ -110,11 +112,12 @@ export const useBlockManager = create<BlockManagerState>((set, get) => ({
   },
 
   // 更新块数据
-  async updateBlock(block: UnifiedBlock) {
+  async updateBlock(block: Block) {
     // 更新数据库和Y.Doc
     await Promise.all([
       yDocManager.updateBlock(block.id, block),
-      Database.update(block)
+      const serializedBlock = serializeBlock(block);
+      Database.update(serializedBlock)
     ]);
     
     // 更新当前块（如果正在查看）

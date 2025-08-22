@@ -1,8 +1,7 @@
 /* 应用主样式 */
-.app {
-  display: flex;
-  flex-direction: column;
+.app-container {
   height: 100vh;
+  overflow: hidden;
 }
 
 .app-header {
@@ -18,21 +17,53 @@
   font-weight: 500;
 }
 
-.app-main {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
+/* 卡片样式 */
+.card-item {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.sidebar {
-  width: 280px;
-  background: #fff;
-  border-right: 1px solid #e8e8e8;
+.card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 主内容区域 */
+.main-content {
+  flex: 1;
   overflow-y: auto;
+  background: #f5f5f5;
 }
 
-.editor-container {
-  flex: 1;
-  background: #fff;
-  overflow: hidden;
+/* 响应式网格布局 */
+@media (max-width: 576px) {
+  .ant-col-xs-24 {
+    padding: 8px;
+  }
+}
+
+@media (min-width: 577px) and (max-width: 768px) {
+  .ant-col-sm-12 {
+    padding: 12px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 992px) {
+  .ant-col-md-8 {
+    padding: 12px;
+  }
+}
+
+@media (min-width: 993px) and (max-width: 1200px) {
+  .ant-col-lg-6 {
+    padding: 16px;
+  }
+}
+
+@media (min-width: 1201px) {
+  .ant-col-xl-4 {
+    padding: 16px;
+  }
 }

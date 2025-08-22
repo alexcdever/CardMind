@@ -1,21 +1,21 @@
 // Dexie数据库实现 - 提供本地存储功能
 import Dexie, { Table } from 'dexie';
-import type { Document, Block, AppConfig, SyncStatus, DatabaseOperations } from '@cardmind/types';
+import type { Document, AnyBlock, AppConfig, SyncStatus, DatabaseOperations } from '@cardmind/types';
 
 // Dexie数据库类
 export class CardMindDatabase extends Dexie {
   public documents!: Table<Document, string>;
-  public blocks!: Table<Block, string>;
+  public blocks!: Table<any, string>; // 使用序列化后的块数据
   public config!: Table<AppConfig, string>;
   public syncStatus!: Table<SyncStatus, string>;
 
   constructor() {
     super('CardMindDatabase');
     
-    // 定义数据库版本和表结构
-    this.version(1).stores({
+    // 定义数据库版本和表结构 - 适配序列化后的块类型
+    this.version(3).stores({
       documents: 'id, title, createdAt, updatedAt, tags',
-      blocks: 'id, type, createdAt, updatedAt',
+      blocks: 'id, type, parentId, createdAt, modifiedAt, isDeleted',
       config: '++id',
       syncStatus: '++id'
     });
@@ -74,11 +74,54 @@ export class DatabaseService implements DatabaseOperations {
     const lowerQuery = query.toLowerCase();
     return await db.documents
       .filter(doc => 
-        doc.title.toLowerCase().includes(lowerQuery) ||
-        (doc.blocks && doc.blocks.some(block => 
-          block.content.toLowerCase().includes(lowerQuery)
-        ))
+        doc.title.toLowerCase().includes(lowerQuery)
       )
+      .toArray();
+  }
+
+  // 使用新的继承式块类型操作方法
+  async createBlock(block: Omit<any, 'id' | 'createdAt' | 'modifiedAt'>): Promise<any> {
+    const now = new Date();
+    const newBlock = {
+      ...block,
+      id: crypto.randomUUID(),
+      createdAt: now,
+      modifiedAt: now
+    };
+
+    await db.blocks.add(newBlock);
+    return newBlock;
+  }
+
+  async updateBlock(id: string, updates: Partial<any>): Promise<any> {
+    const block = await db.blocks.get(id);
+    if (!block) throw new Error(`Block ${id} not found`);
+
+    const updatedBlock = {
+      ...block,
+      ...updates,
+      modifiedAt: new Date()
+    };
+
+    await db.blocks.put(updatedBlock);
+    return updatedBlock;
+  }
+
+  async deleteBlock(id: string): Promise<void> {
+    // 软删除 - 标记为已删除
+    await this.updateBlock(id, { isDeleted: true });
+  }
+
+  async getBlock(id: string): Promise<any | null> {
+    const block = await db.blocks.get(id);
+    return block && !block.isDeleted ? block : null;
+  }
+
+  async getChildBlocks(parentId: string): Promise<any[]> {
+    return await db.blocks
+      .where('parentId')
+      .equals(parentId)
+      .filter(block => !block.isDeleted)
       .toArray();
   }
 }

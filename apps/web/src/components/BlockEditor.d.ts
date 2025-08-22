@@ -1,9 +1,10 @@
-import type { Block } from '@cardmind/types';
+import type { AnyBlock } from '@cardmind/types';
 import './BlockEditor.css';
 interface BlockEditorProps {
-    block: Block;
-    index: number;
+    block: AnyBlock;
+    onSave: (block: AnyBlock) => void;
+    onCancel: () => void;
 }
-export default function BlockEditor({ block, index }: BlockEditorProps): import("react/jsx-runtime").JSX.Element;
+export default function BlockEditor({ block, onSave, onCancel }: BlockEditorProps): import("react/jsx-runtime").JSX.Element;
 export {};
 //# sourceMappingURL=BlockEditor.d.ts.map

@@ -1,7 +1,8 @@
 import * as Y from 'yjs';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebrtcProvider } from 'y-webrtc';
-import { UnifiedBlock } from '../types/block';
+import { Block, DocBlock, TextBlock, MediaBlock, CodeBlock } from '../types/block-inheritance';
+import { serializeBlock, deserializeBlock } from '../types/block-inheritance';
 
 interface DocEntry {
   doc: Y.Doc;
@@ -107,24 +108,24 @@ export class yDocManager {
   }
 
   // 更新块数据到Y.Doc
-  static async updateBlock(blockId: string, block: UnifiedBlock): Promise<void> {
+  static async updateBlock(blockId: string, block: Block): Promise<void> {
     const { doc } = await this.open(blockId);
     const yMap = doc.getMap('data');
     
     doc.transact(() => {
-      Object.entries(block).forEach(([key, value]) => {
+      Object.entries(serializedBlock).forEach(([key, value]) => {
         yMap.set(key, typeof value === 'object' ? JSON.parse(JSON.stringify(value)) : value);
       });
     });
   }
 
   // 从Y.Doc获取块数据
-  static async getBlock(blockId: string): Promise<UnifiedBlock | null> {
+  static async getBlock(blockId: string): Promise<Block | null> {
     const { doc } = await this.open(blockId);
     const yMap = doc.getMap('data');
     if (!yMap.size) return null;
     const data = Object.fromEntries(yMap.entries());
-    return data as unknown as UnifiedBlock;
+    return data as unknown as Block;
   }
 
   // 获取所有块ID

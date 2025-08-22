@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useBlockManager } from '../stores/blockManager';
+import { useSettingsManager } from '../stores/settingsManager';
 import { UnifiedBlock, BlockType, DocBlockProperties, TextBlockProperties } from '../types/block';
 import { Card, Button, Modal, Input, Typography, Space, message } from 'antd';
-import { AppstoreOutlined, MenuOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MenuOutlined, UnorderedListOutlined, SettingOutlined } from '@ant-design/icons';
 import { DocEditor } from './DocEditor';
 import { DocDetail } from './DocDetail';
 
@@ -20,12 +21,16 @@ interface ViewerState {
 
 export const DocList: React.FC = () => {
   const { blocks, updateBlock, deleteBlock, setCurrentBlock } = useBlockManager();
+  const { getRelayEndpoint } = useSettingsManager();
   
   const [layout, setLayout] = useState<'grid' | 'list-single' | 'list-double'>('grid');
   const [editState, setEditState] = useState<EditState>({ visible: false, block: null });
   const [viewerState, setViewerState] = useState<ViewerState>({ blockId: null, visible: false });
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
+
+  // 显示中继服务状态
+  const relayEndpoint = getRelayEndpoint();
 
   const handleEdit = useCallback((id: string) => {
     const block = blocks.find(b => b.id === id);
@@ -152,27 +157,38 @@ export const DocList: React.FC = () => {
   return (
     <div className={`block-list ${layout}`}>
       <div className="layout-controls">
-        <Button
-          type={layout === 'grid' ? 'primary' : 'default'}
-          icon={<AppstoreOutlined />}
-          onClick={() => setLayout('grid')}
-        >
-          平铺
-        </Button>
-        <Button
-          type={layout === 'list-single' ? 'primary' : 'default'}
-          icon={<MenuOutlined />}
-          onClick={() => setLayout('list-single')}
-        >
-          单列
-        </Button>
-        <Button
-          type={layout === 'list-double' ? 'primary' : 'default'}
-          icon={<UnorderedListOutlined />}
-          onClick={() => setLayout('list-double')}
-        >
-          双列
-        </Button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Space>
+            <Button
+              type={layout === 'grid' ? 'primary' : 'default'}
+              icon={<AppstoreOutlined />}
+              onClick={() => setLayout('grid')}
+            >
+              平铺
+            </Button>
+            <Button
+              type={layout === 'list-single' ? 'primary' : 'default'}
+              icon={<MenuOutlined />}
+              onClick={() => setLayout('list-single')}
+            >
+              单列
+            </Button>
+            <Button
+              type={layout === 'list-double' ? 'primary' : 'default'}
+              icon={<UnorderedListOutlined />}
+              onClick={() => setLayout('list-double')}
+            >
+              双列
+            </Button>
+          </Space>
+          
+          {/* 中继服务状态显示 */}
+          {relayEndpoint && (
+            <Text type="success">
+              中继服务: {relayEndpoint}
+            </Text>
+          )}
+        </div>
       </div>
 
       <div className="blocks-container">

@@ -26,17 +26,23 @@ export default function BlockEditor({ block, index }) {
             case 'text':
                 return isEditing ? (_jsx("textarea", { value: content, onChange: (e) => setContent(e.target.value), onBlur: handleSave, onKeyPress: (e) => e.key === 'Enter' && e.shiftKey === false && handleSave(), autoFocus: true, className: "text-editor", placeholder: "\u8F93\u5165\u6587\u672C..." })) : (_jsx("div", { className: "text-display", onClick: () => setIsEditing(true), dangerouslySetInnerHTML: { __html: content.replace(/\n/g, '<br/>') || '<em>点击编辑文本</em>' } }));
             case 'code':
-                return isEditing ? (_jsx("textarea", { value: content, onChange: (e) => setContent(e.target.value), onBlur: handleSave, autoFocus: true, className: "code-editor", placeholder: "\u8F93\u5165\u4EE3\u7801..." })) : (_jsx("pre", { className: "code-display", onClick: () => setIsEditing(true), children: content || _jsx("em", { children: "\u70B9\u51FB\u7F16\u8F91\u4EE3\u7801" }) }));
+                return isEditing ? (_jsx("textarea", { value: content, onChange: (e) => setContent(e.target.value), onBlur: handleSave, onKeyPress: (e) => {
+                        // 对于代码块，只在Ctrl+Enter或Cmd+Enter时保存，允许换行输入
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault();
+                            handleSave();
+                        }
+                    }, autoFocus: true, className: "code-editor", placeholder: "\u8F93\u5165\u4EE3\u7801..." })) : (_jsx("pre", { className: "code-display", onClick: () => setIsEditing(true), children: content || _jsx("em", { children: "\u70B9\u51FB\u7F16\u8F91\u4EE3\u7801" }) }));
             case 'todo':
                 const isChecked = content.startsWith('[x] ');
                 const todoText = content.replace(/^\[x\] |^\[ \] /, '');
-                return (_jsxs("div", { className: "todo-block", children: [_jsx("input", { type: "checkbox", checked: isChecked, onChange: (e) => {
+                return (_jsxs("div", { className: "todo-block", children: [_jsx("input", { type: "checkbox", checked: isChecked, onChange: async (e) => {
                                 const newContent = e.target.checked ? `[x] ${todoText}` : `[ ] ${todoText}`;
                                 setContent(newContent);
-                                updateBlock({ ...block, content: newContent });
+                                await updateBlock({ ...block, content: newContent });
                             } }), isEditing ? (_jsx("input", { type: "text", value: todoText, onChange: (e) => setContent(`[${isChecked ? 'x' : ' '}] ${e.target.value}`), onBlur: handleSave, onKeyPress: (e) => e.key === 'Enter' && handleSave(), autoFocus: true, className: "todo-editor", placeholder: "\u8F93\u5165\u5F85\u529E\u4E8B\u9879..." })) : (_jsx("span", { className: `todo-text ${isChecked ? 'completed' : ''}`, onClick: () => setIsEditing(true), children: todoText || _jsx("em", { children: "\u70B9\u51FB\u7F16\u8F91\u5F85\u529E" }) }))] }));
             case 'image':
-                return isEditing ? (_jsxs("div", { className: "image-editor", children: [_jsx("input", { type: "text", value: content, onChange: (e) => setContent(e.target.value), onBlur: handleSave, onKeyPress: (e) => e.key === 'Enter' && handleSave(), autoFocus: true, placeholder: "\u8F93\u5165\u56FE\u7247URL..." }), _jsx("button", { onClick: handleSave, children: "\u4FDD\u5B58" })] })) : content ? (_jsx("img", { src: content, alt: "\u7528\u6237\u4E0A\u4F20\u7684\u56FE\u7247", className: "image-display", onClick: () => setIsEditing(true) })) : (_jsx("div", { className: "image-placeholder", onClick: () => setIsEditing(true), children: _jsx("span", { children: "\u70B9\u51FB\u6DFB\u52A0\u56FE\u7247URL" }) }));
+                return isEditing ? (_jsxs("div", { className: "image-editor", children: [_jsx("input", { type: "text", value: content, onChange: (e) => setContent(e.target.value), onBlur: handleSave, onKeyPress: (e) => e.key === 'Enter' && handleSave(), autoFocus: true, placeholder: "\u8F93\u5165\u56FE\u7247URL..." })] })) : content ? (_jsx("img", { src: content, alt: "\u7528\u6237\u4E0A\u4F20\u7684\u56FE\u7247", className: "image-display", onClick: () => setIsEditing(true) })) : (_jsx("div", { className: "image-placeholder", onClick: () => setIsEditing(true), children: _jsx("span", { children: "\u70B9\u51FB\u6DFB\u52A0\u56FE\u7247URL" }) }));
             default:
                 return null;
         }

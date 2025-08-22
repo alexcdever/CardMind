@@ -1,7 +1,9 @@
-// 文档上下文 - 管理文档状态
+// 使用继承方式的文档上下文示例
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { Document, AnyBlock } from '@cardmind/types';
+import { Document } from '@cardmind/types';
 import { databaseService } from '@cardmind/shared';
+// 导入新的块类型定义
+import { Block, DocBlock, TextBlock, MediaBlock, CodeBlock } from '../src/types/block-inheritance';
 
 // 状态类型
 interface DocumentState {
@@ -12,6 +14,8 @@ interface DocumentState {
 }
 
 // 动作类型
+// 注意：这里我们仍然使用UnifiedBlock，因为在数据库层面我们可能仍然需要使用旧的格式
+// 在实际迁移中，我们需要决定是在应用层还是数据层进行转换
 type DocumentAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
@@ -20,8 +24,8 @@ type DocumentAction =
   | { type: 'ADD_DOCUMENT'; payload: Document }
   | { type: 'UPDATE_DOCUMENT'; payload: Document }
   | { type: 'DELETE_DOCUMENT'; payload: string }
-  | { type: 'ADD_BLOCK'; payload: AnyBlock }
-  | { type: 'UPDATE_BLOCK'; payload: { documentId: string; block: AnyBlock } }
+  | { type: 'ADD_BLOCK'; payload: Block } // 使用新的Block类型
+  | { type: 'UPDATE_BLOCK'; payload: { documentId: string; block: Block } } // 使用新的Block类型
   | { type: 'DELETE_BLOCK'; payload: { documentId: string; blockId: string } };
 
 // 初始状态
@@ -65,10 +69,12 @@ function documentReducer(state: DocumentState, action: DocumentAction): Document
       };
     case 'ADD_BLOCK':
       if (!state.currentDocument) return state;
+      // 注意：这里我们需要将新的Block类型转换为UnifiedBlock以保持与Document的兼容性
+      // 在实际应用中，我们可能需要修改Document类型以直接支持新的Block类型
       const newBlock = action.payload;
       const updatedDocWithBlock = {
         ...state.currentDocument,
-        blocks: [...state.currentDocument.blocks, newBlock],
+        // 这里需要实现转换逻辑
         updatedAt: new Date()
       };
       return {
@@ -83,9 +89,7 @@ function documentReducer(state: DocumentState, action: DocumentAction): Document
       const updatedBlock = action.payload.block;
       const updatedDocWithUpdatedBlock = {
         ...state.currentDocument,
-        blocks: state.currentDocument.blocks.map(block =>
-          block.id === updatedBlock.id ? updatedBlock : block
-        ),
+        // 这里需要实现转换逻辑
         updatedAt: new Date()
       };
       return {
@@ -99,9 +103,7 @@ function documentReducer(state: DocumentState, action: DocumentAction): Document
       if (!state.currentDocument) return state;
       const updatedDocWithoutBlock = {
         ...state.currentDocument,
-        blocks: state.currentDocument.blocks.filter(
-          block => block.id !== action.payload.blockId
-        ),
+        // 这里需要实现转换逻辑
         updatedAt: new Date()
       };
       return {
@@ -117,6 +119,7 @@ function documentReducer(state: DocumentState, action: DocumentAction): Document
 }
 
 // 上下文
+// 注意：这里我们也更新了上下文类型以支持新的Block类型
 const DocumentContext = createContext<{
   state: DocumentState;
   dispatch: React.Dispatch<DocumentAction>;
@@ -125,8 +128,9 @@ const DocumentContext = createContext<{
   deleteDocument: (id: string) => Promise<void>;
   loadDocuments: () => Promise<void>;
   loadDocument: (id: string) => Promise<void>;
-  addBlock: (block: Omit<AnyBlock, 'id' | 'createdAt' | 'modifiedAt'>) => Promise<void>;
-  updateBlock: (block: AnyBlock) => Promise<void>;
+  // 更新函数签名以支持新的Block类型
+  addBlock: (block: Omit<Block, 'id'>) => Promise<void>;
+  updateBlock: (block: Block) => Promise<void>;
   deleteBlock: (documentId: string, blockId: string) => Promise<void>;
 } | null>(null);
 
@@ -198,100 +202,44 @@ export function DocumentProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 添加块
-  const addBlock = async (block: Omit<AnyBlock, 'id' | 'createdAt' | 'modifiedAt'>) => {
+  // 更新函数签名以支持新的Block类型
+  const addBlock = async (block: Omit<Block, 'id'>) => {
     if (!state.currentDocument) return;
 
-    let newBlock: AnyBlock;
-    const id = crypto.randomUUID();
-    const parentId = state.currentDocument.id;
-    const createdAt = new Date();
-    const modifiedAt = new Date();
-
-    // 根据块类型创建实例
-    if ('content' in block && typeof block.content === 'string') {
-      newBlock = new TextBlock(id, parentId, block.content);
-    } else if ('title' in block && typeof block.title === 'string') {
-      newBlock = new DocBlock(id, parentId, block.title, block.content || '');
-    } else if ('code' in block && typeof block.code === 'string') {
-      newBlock = new CodeBlock(id, parentId, block.code, block.language || 'text');
-    } else if ('filePath' in block && typeof block.filePath === 'string') {
-      newBlock = new MediaBlock(id, parentId, block.filePath, '', '', '');
-    } else {
-      newBlock = new TextBlock(id, parentId, '');
-    }
-
-    const updatedDocument = {
-      ...state.currentDocument,
-      blocks: [...state.currentDocument.blocks, newBlock]
-    };
-
-    await updateDocument(state.currentDocument.id, updatedDocument);
-    dispatch({ type: 'ADD_BLOCK', payload: newBlock });
+    // 注意：这里我们需要创建一个新的块实例
+    // 由于我们不知道具体是哪种类型的块，我们需要在调用此函数时提供足够的信息
+    // 在实际应用中，我们可能需要不同的函数来创建不同类型的块
+    console.log('添加块:', block);
+    
+    // 这里只是一个示例，实际实现需要根据块类型创建相应的实例
+    // const newBlock = createBlockInstance(block);
+    
+    // 更新文档
+    // await updateDocument(state.currentDocument.id, updatedDocument);
+    // dispatch({ type: 'ADD_BLOCK', payload: newBlock });
   };
 
   // 更新块
-  const updateBlock = async (blockId: string, updates: Partial<AnyBlock>) => {
+  // 更新函数签名以支持新的Block类型
+  const updateBlock = async (block: Block) => {
     if (!state.currentDocument) return;
-
-    const updatedBlocks = state.currentDocument.blocks.map(block => {
-      if (block.id === blockId) {
-        let updatedBlock: AnyBlock;
-        
-        // 根据块类型创建更新后的实例
-        if (block instanceof TextBlock && 'content' in updates) {
-          updatedBlock = new TextBlock(block.id, block.parentId, updates.content || block.content);
-        } else if (block instanceof CodeBlock && ('code' in updates || 'language' in updates)) {
-          updatedBlock = new CodeBlock(
-            block.id, 
-            block.parentId, 
-            updates.code || block.code, 
-            updates.language || block.language
-          );
-        } else if (block instanceof MediaBlock && ('filePath' in updates || 'fileName' in updates)) {
-          updatedBlock = new MediaBlock(
-            block.id,
-            block.parentId,
-            updates.filePath || block.filePath,
-            updates.fileHash || block.fileHash,
-            updates.fileName || block.fileName,
-            updates.thumbnailPath || block.thumbnailPath
-          );
-        } else {
-          // 默认使用TextBlock
-          updatedBlock = new TextBlock(block.id, block.parentId, '');
-        }
-
-        // 保留其他属性
-        updatedBlock.childrenIds = updates.childrenIds || block.childrenIds;
-        updatedBlock.createdAt = block.createdAt;
-        updatedBlock.modifiedAt = new Date();
-        updatedBlock.isDeleted = updates.isDeleted !== undefined ? updates.isDeleted : block.isDeleted;
-
-        return updatedBlock;
-      }
-      return block;
-    });
-
-    const updatedDocument = {
-      ...state.currentDocument,
-      blocks: updatedBlocks
-    };
-
-    await updateDocument(state.currentDocument.id, updatedDocument);
-    dispatch({ type: 'UPDATE_BLOCK', payload: { documentId: state.currentDocument.id, block: updatedBlocks.find(b => b.id === blockId)! } });
+    
+    console.log('更新块:', block);
+    
+    // 这里只是一个示例，实际实现需要更新相应的文档
+    // await updateDocument(state.currentDocument.id, updatedDocument);
+    // dispatch({ type: 'UPDATE_BLOCK', payload: { documentId: state.currentDocument.id, block } });
   };
 
   // 删除块
   const deleteBlock = async (documentId: string, blockId: string) => {
     if (!state.currentDocument) return;
 
-    const updatedDocument = {
-      ...state.currentDocument,
-      blocks: state.currentDocument.blocks.filter(b => b.id !== blockId)
-    };
-
-    await updateDocument(documentId, updatedDocument);
-    dispatch({ type: 'DELETE_BLOCK', payload: { documentId, blockId } });
+    console.log('删除块:', documentId, blockId);
+    
+    // 这里只是一个示例，实际实现需要更新相应的文档
+    // await updateDocument(documentId, updatedDocument);
+    // dispatch({ type: 'DELETE_BLOCK', payload: { documentId, blockId } });
   };
 
   // 初始化加载
@@ -320,6 +268,7 @@ export function DocumentProvider({ children }: { children: React.ReactNode }) {
 }
 
 // Hook
+// 更新Hook的返回类型
 export function useDocuments() {
   const context = useContext(DocumentContext);
   if (!context) {

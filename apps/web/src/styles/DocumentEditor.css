@@ -1,0 +1,102 @@
+/* 文档编辑器样式 */
+.document-editor {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.editor-header {
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.document-title h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.editor-toolbar {
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.editor-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.blocks {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.block-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.block-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.empty-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+}
+
+.empty-editor h2 {
+  margin-bottom: 8px;
+  color: #262626;
+}
+
+/* 设置块样式 */
+.settings-block {
+  margin: 16px 0;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-section h3 {
+  margin-bottom: 16px;
+  color: #262626;
+  font-size: 18px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .document-editor {
+    padding: 0;
+  }
+  
+  .editor-header,
+  .editor-toolbar {
+    padding: 12px 16px;
+  }
+  
+  .editor-content {
+    padding: 16px;
+  }
+  
+  .blocks {
+    padding: 0 8px;
+  }
+}

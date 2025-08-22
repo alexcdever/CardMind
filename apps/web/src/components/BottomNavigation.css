@@ -1,0 +1,71 @@
+/* 底部导航栏样式 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: white;
+  border-top: 1px solid #f0f0f0;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+  z-index: 1000;
+  width: 100%; /* 确保宽度占满 */
+}
+
+.bottom-nav-content {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: space-around;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex: 1;
+  color: #666;
+  transition: all 0.3s ease;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+}
+
+.nav-item:hover {
+  color: #1890ff;
+  background: rgba(24,144,255,0.1);
+}
+
+.nav-item.active {
+  color: #1890ff;
+  background: rgba(24,144,255,0.05);
+}
+
+.nav-item .anticon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .bottom-nav {
+    height: 50px;
+  }
+  
+  .nav-item {
+    font-size: 11px;
+  }
+  
+  .nav-item .anticon {
+    font-size: 18px;
+  }
+}
+
+/* 主内容区域底部padding，避免被导航栏遮挡 */
+.main-content {
+  padding-bottom: 80px;
+}

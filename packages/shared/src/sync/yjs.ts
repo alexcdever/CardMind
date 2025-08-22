@@ -1,7 +1,7 @@
 // Yjs同步管理 - 处理实时协作和状态同步
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
-import type { Document, Block, SyncStatus, Collaborator } from '@cardmind/types';
+import type { Document, AnyBlock, SyncStatus, Collaborator } from '@cardmind/types';
 
 // Yjs文档管理器
 export class YjsManager {
@@ -91,17 +91,33 @@ export class YjsManager {
     // 清空现有内容
     yBlocks.delete(0, yBlocks.length);
 
-    // 添加本地块
+    // 添加本地块 - 使用序列化方式
     document.blocks.forEach(block => {
-      yBlocks.push([{
+      const baseData = {
         id: block.id,
-        type: block.type,
-        content: block.content,
-        metadata: block.metadata || {},
-        position: block.position,
+        type: block.constructor.name.toLowerCase().replace('block', ''),
         createdAt: block.createdAt.toISOString(),
-        updatedAt: block.updatedAt.toISOString()
-      }]);
+        modifiedAt: block.modifiedAt.toISOString()
+      };
+
+      // 添加特定类型的属性
+      const blockData: any = {};
+      const b = block as any;
+      
+      if (b.title !== undefined) blockData.title = b.title;
+      if (b.content !== undefined) blockData.content = b.content;
+      if (b.code !== undefined) {
+        blockData.code = b.code;
+        blockData.language = b.language;
+      }
+      if (b.filePath !== undefined) {
+        blockData.filePath = b.filePath;
+        blockData.fileHash = b.fileHash;
+        blockData.fileName = b.fileName;
+        blockData.thumbnailPath = b.thumbnailPath;
+      }
+
+      yBlocks.push([{ ...baseData, ...blockData }]);
     });
 
     // 更新元数据
@@ -119,20 +135,61 @@ export class YjsManager {
     const yBlocks = yDoc.getArray('blocks');
     const yMeta = yDoc.getMap('meta');
 
-    const blocks: Block[] = [];
+    const blocks: AnyBlock[] = [];
     const blockArray = yBlocks.toArray() as any[];
     
     blockArray.forEach((blockData: any) => {
       if (blockData && typeof blockData === 'object') {
-        blocks.push({
-          id: String(blockData.id || ''),
-          type: blockData.type || 'text',
-          content: String(blockData.content || ''),
-          metadata: blockData.metadata || {},
-          position: blockData.position || { x: 0, y: 0 },
-          createdAt: new Date(blockData.createdAt || Date.now()),
-          updatedAt: new Date(blockData.updatedAt || Date.now())
-        });
+        let block: AnyBlock;
+        
+        // 根据类型创建相应的块实例
+        switch (blockData.type) {
+          case 'doc':
+            block = new (require('@cardmind/types').DocBlock)(
+              String(blockData.id || ''),
+              null,
+              blockData.title || '',
+              blockData.content || ''
+            );
+            break;
+          case 'text':
+            block = new (require('@cardmind/types').TextBlock)(
+              String(blockData.id || ''),
+              null,
+              blockData.content || ''
+            );
+            break;
+          case 'code':
+            block = new (require('@cardmind/types').CodeBlock)(
+              String(blockData.id || ''),
+              null,
+              blockData.code || '',
+              blockData.language || 'plaintext'
+            );
+            break;
+          case 'media':
+            block = new (require('@cardmind/types').MediaBlock)(
+              String(blockData.id || ''),
+              null,
+              blockData.filePath || '',
+              blockData.fileHash || '',
+              blockData.fileName || '',
+              blockData.thumbnailPath || ''
+            );
+            break;
+          default:
+            block = new (require('@cardmind/types').TextBlock)(
+              String(blockData.id || ''),
+              null,
+              ''
+            );
+        }
+        
+        // 设置公共属性
+        block.createdAt = new Date(blockData.createdAt || Date.now());
+        block.modifiedAt = new Date(blockData.modifiedAt || Date.now());
+        
+        blocks.push(block);
       }
     });
 

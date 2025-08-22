@@ -1,5 +1,5 @@
 # 分布式笔记应用开发文档  
-（React + React Native 统一版 · 万物皆块 · 一个块 = 一个 Y.Doc · pnpm）
+（React Web版 · 万物皆块 · 一个块 = 一个 Y.Doc · pnpm）
 
 ---
 
@@ -7,12 +7,12 @@
 1. 设计总览  
 2. 统一数据结构  
 3. 技术栈与依赖（pnpm）  
-4. 统一 IndexedDB 层  
+4. IndexedDB 层  
 5. 每块一个 Y.Doc 协同层  
 6. LRU 缓存 & 历史快照  
 7. 状态管理（Zustand）  
 8. 加密工具  
-9. React / RN 共享组件  
+9. React 组件  
 10. 一键启动（pnpm）  
 11. 关键工作流程  
 12. 部署检查清单  
@@ -26,7 +26,7 @@
   - 每块独立 Y.Doc：`doc_<blockId>`  
   - 打开块时创建 Provider，关闭时销毁  
 - **依赖**：pnpm 统一包管理  
-- **代码复用**：≥ 95 % Web / RN  
+- **专注**：纯Web端实现，专注桌面体验  
 
 ---
 
@@ -61,7 +61,7 @@ pnpm install
 
 # 核心依赖
 pnpm add zustand yjs y-indexeddb y-webrtc lru-cache libsodium-wrappers
-pnpm add -D typescript @types/react @types/react-native vite
+pnpm add -D typescript @types/react vite
 ```
 
 ---
@@ -71,8 +71,6 @@ pnpm add -D typescript @types/react @types/react-native vite
 ```typescript
 // db/index.ts
 import Dexie from 'dexie';
-const isRN = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
-if (isRN) require('indexeddbshim')(global, { checkOrigin: false, win: global });
 
 class NotesDatabase extends Dexie {
   blocks = this.table<UnifiedBlock, string>('blocks');
@@ -260,8 +258,6 @@ pnpm install
 
 # 运行
 pnpm web        # Vite dev server
-pnpm android    # RN Android
-pnpm ios        # RN iOS
 ```
 
 ---
@@ -322,16 +318,16 @@ sequenceDiagram
 
 ## 12. 部署检查清单
 
-| 检查项 | Web | RN |
-|---|---|---|
-| **pnpm 依赖** | ✅ | ✅ |
-| **每块一个 Y.Doc** | ✅ | ✅ |
-| **按需打开/销毁** | ✅ | ✅ |
-| **IndexedDB 独立表** | ✅ | ✅ |
-| **历史快照** | ✅ | ✅ |
-| **加密** | ✅ | ✅ |
+| 检查项 | Web |
+|---|---|
+| **pnpm 依赖** | ✅ |
+| **每块一个 Y.Doc** | ✅ |
+| **按需打开/销毁** | ✅ |
+| **IndexedDB 独立表** | ✅ |
+| **历史快照** | ✅ |
+| **加密** | ✅ |
 
 ---
 
 ### ✅ 一句总结  
-**万物皆块 → 每块一篇独立 Y.Doc，按需加载、按需协同，移动端最优解。**
+**万物皆块 → 每块一篇独立 Y.Doc，按需加载、按需协同，专注桌面端最优体验。**

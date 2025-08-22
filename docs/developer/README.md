@@ -1,100 +1,159 @@
 # CardMind 开发者文档
 
-本指南帮助开发者了解 CardMind 项目架构和开发流程。
+## 技术栈
 
-## 🏗️ 项目架构
-
-### 技术栈
 - **前端框架**: React 18 + TypeScript
-- **构建工具**: Vite
-- **UI库**: Ant Design + Tailwind CSS
 - **状态管理**: Zustand
-- **数据存储**: IndexedDB (Dexie.js)
+- **UI组件库**: Ant Design 5.x
+- **数据存储**: IndexedDB (通过 Dexie.js)
+- **配置同步**: Yjs (支持多端同步)
+- **构建工具**: Vite
+- **包管理**: pnpm
 
-### 项目结构
+## 项目结构
 
 ```
 src/
 ├── components/          # React组件
-│   ├── DocEditor.tsx  # 卡片创建/编辑组件
-│   ├── DocList.tsx    # 卡片列表组件
-│   └── DocDetail.tsx  # 卡片详情组件
-├── stores/            # 状态管理
+│   ├── DocEditor.tsx  # 文档编辑器
+│   ├── DocList.tsx    # 文档列表
+│   └── SettingsModal.tsx # 设置弹窗
+├── stores/             # 状态管理
 │   ├── blockManager.ts # 卡片数据管理
-│   └── yDocManager.ts  # Yjs协作管理(预留)
-├── types/             # TypeScript类型定义
-│   └── block.ts       # 卡片数据结构
-├── db/                # 数据库操作
-│   ├── index.ts       # 数据库初始化
-│   └── operations.ts  # 数据操作方法
-└── utils/             # 工具函数
-    └── crypto.ts      # 加密相关(预留)
+│   └── settingsManager.ts # 设置管理
+├── types/              # TypeScript类型定义
+│   ├── block.ts       # 卡片相关类型
+│   └── settings.ts    # 设置相关类型
+└── App.tsx            # 主应用组件
 ```
 
-### 核心功能实现
+## 核心功能实现
 
-#### 卡片数据模型
+### 1. 卡片数据模型
+
 ```typescript
-interface UnifiedBlock {
+interface Block {
   id: string;
-  type: BlockType;
-  parentId: string | null;
-  childrenIds: string[];
-  properties: DocBlockProperties | TextBlockProperties;
-  createdAt: Date;
-  modifiedAt: Date;
-  isDeleted: boolean;
-}
-
-interface DocBlockProperties {
   title: string;
   content: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
-#### 主要功能
-- **创建卡片**: 通过模态框输入标题和内容
-- **编辑卡片**: 修改现有卡片的标题和内容
-- **删除卡片**: 软删除标记
-- **数据持久化**: 使用IndexedDB本地存储
-- **视图切换**: 支持网格、单列、双列三种布局
+### 2. 设置配置模型
 
-### 开发环境
+```typescript
+interface RelaySettings {
+  enabled: boolean;
+  ip: string;
+  port: number;
+  path: string;
+}
 
-#### 环境要求
-- Node.js >= 18
-- pnpm >= 8
+interface AppSettings {
+  relay: RelaySettings;
+}
+```
 
-#### 安装和启动
+### 3. 数据管理
+
+**卡片管理** (`blockManager.ts`):
+- 使用 Dexie.js 操作 IndexedDB
+- 支持 CRUD 操作
+- 实时数据同步
+
+**设置管理** (`settingsManager.ts`):
+- 使用 Zustand 管理状态
+- 集成 Yjs 实现多端配置同步
+- 智能合并配置，避免覆盖现有设置
+
+### 4. 设置功能实现
+
+**配置同步机制**:
+- 使用 Y.Doc 存储配置数据
+- 通过 Y.Map 结构保存设置
+- 支持实时同步和离线缓存
+
+**配置合并策略**:
+- 初始化时检查现有配置
+- 空白配置值不会覆盖现有设置
+- 支持增量更新配置项
+
+**中继服务配置**:
+- 开关控制：enabled 字段
+- 参数配置：ip、port、path
+- 动态验证：配置变更时实时验证
+
+## 开发环境
+
+### 安装依赖
+
 ```bash
-# 安装依赖
 pnpm install
+```
 
+### 开发命令
+
+```bash
 # 启动开发服务器
 pnpm dev
 
 # 构建生产版本
 pnpm build
+
+# 预览构建结果
+pnpm preview
 ```
 
-#### 可用命令
-- `pnpm dev` - 启动开发服务器
-- `pnpm build` - 构建生产版本
-- `pnpm preview` - 预览构建结果
+### 调试工具
 
-### 扩展建议
+- **React DevTools**: 组件调试
+- **Redux DevTools**: 状态管理调试
+- **IndexedDB 浏览器工具**: 查看本地数据
 
-#### 可添加功能
-- 标签系统
-- 搜索功能
-- 数据导入/导出
-- 云端同步
-- 协作编辑
-- 卡片模板
+## 扩展建议
 
-#### 技术改进方向
+### 1. 功能扩展
+
+**卡片功能**:
+- 添加标签系统
+- 支持富文本编辑
+- 添加搜索功能
+- 支持导入导出
+
+**设置功能**:
+- 主题切换
+- 快捷键配置
+- 数据备份/恢复
+
+### 2. 架构优化
+
+**性能优化**:
+- 虚拟滚动优化大列表
+- 数据分页加载
+- 缓存策略优化
+
+**代码组织**:
+- 提取通用组件
+- 实现插件化架构
 - 添加单元测试
-- 实现响应式设计优化
-- 添加错误边界处理
-- 优化性能（虚拟滚动等）
-- 添加国际化支持
+
+### 3. 部署方案
+
+**Web部署**:
+- 支持Docker部署
+- 环境变量配置
+- CDN加速
+
+**桌面应用**:
+- 使用 Electron 打包
+- 自动更新机制
+- 系统托盘集成
+
+## 注意事项
+
+- 所有数据默认保存在浏览器本地，生产环境需配置中继服务
+- 配置变更会实时同步，注意处理并发冲突
+- 开发时注意Yjs文档的生命周期管理
+- 配置验证应在UI层和逻辑层都实现
