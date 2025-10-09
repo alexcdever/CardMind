@@ -3,6 +3,14 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  root: 'apps/web',
+  publicDir: 'public',
+  build: {
+    rollupOptions: {
+      input: './src/main.tsx'
+      }
+    }
+  },
   base: './',
   plugins: [
     react(),
