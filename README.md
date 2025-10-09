@@ -141,6 +141,7 @@ pnpm --filter @cardmind/docker start
 - [架构设计](docs/developer/architecture.md) - 项目架构和技术决策
 - [技术栈详解](docs/developer/tech-stack.md) - 完整技术栈说明
 - [功能逻辑](docs/developer/features.md) - 核心功能实现逻辑
+- [UI/UX设计](docs/02-ui-design.md) - 用户界面和交互体验设计规范
 - [产品定位](docs/developer/product-positioning.md) - 产品规划和路线图
 - [部署指南](docs/developer/deployment.md) - 详细部署流程
 - [迁移计划](docs/developer/migration-plan.md) - 项目重构完成报告

@@ -84,7 +84,8 @@ interface DatabaseSchema {
 | 技术 | 版本 | 用途 | 选择理由 |
 |------|------|------|----------|
 | pnpm | 8.x | 包管理器 | 快速、节省磁盘空间的包管理工具 |
-| React | 18.x | UI框架 | 生态成熟，组件化开发 |
+| React | 18.x | 前端框架 | 生态成熟，组件化开发 |
+| Ant Design | 5.x | UI框架 | 丰富的组件库，美观的设计系统 |
 | TypeScript | 5.x | 类型系统 | 静态类型检查，减少运行时错误 |
 | Vite | 5.x | 构建工具 | 快速开发，优秀的PWA支持 |
 | Tailwind CSS | 3.x | 样式框架 | 快速开发，响应式设计 |
@@ -111,19 +112,23 @@ interface DatabaseSchema {
 
 ## 4. 实现步骤
 
-### 4.1 第一阶段：基础框架搭建 (1-2天)
+### 4.1 第一阶段：基础框架搭建
 
 #### 4.1.1 项目初始化
 ```bash
-# 创建项目结构
-npm create vite@latest cardmind --template react-ts
-cd cardmind
-npm install
+# 克隆项目仓库（新项目初始化）
+# git clone [repository-url]
+# cd CardMind
 
-# 安装核心依赖
-npm install zustand dexie yjs y-indexeddb
-npm install -D tailwindcss postcss autoprefixer
-npm install -D @types/react @types/react-dom
+# 安装项目依赖（使用pnpm）
+pnpm install
+
+# 安装核心依赖已在package.json中定义，包括：
+# - antd 和 @ant-design/icons：UI组件库
+# - zustand：状态管理
+# - dexie：IndexedDB封装
+# - yjs、y-indexeddb、y-webrtc：CRDT同步
+# - libsodium-wrappers：加密功能
 ```
 
 #### 4.1.2 基础配置
