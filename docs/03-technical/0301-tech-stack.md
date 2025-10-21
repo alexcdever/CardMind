@@ -37,7 +37,10 @@
 - **Jest**: 测试框架
 - **Cypress**: E2E测试框架
 
-### 1.8 PWA支持
+### 1.8 依赖管理
+- **pnpm**: 高性能的Node.js包管理器，提供更快的安装速度和更小的磁盘占用
+
+### 1.9 PWA支持
 - **Workbox**: 用于构建Progressive Web App的库
 - **Service Worker**: 实现离线功能和资源缓存
 
