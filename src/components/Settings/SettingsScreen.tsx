@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Layout, Typography, Form, Input, Button, Card, Divider, Space, message, Badge, Switch } from 'antd'
+import { Layout, Typography, Form, Input, Button, Card, Divider, message, Badge, Switch } from 'antd'
 import { ArrowLeftOutlined, WifiOutlined, GlobalOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import useDeviceStore from '@/stores/deviceStore'
 import useAuthStore from '@/stores/authStore'
 import useSyncStore from '@/stores/syncStore'
-import { validateDeviceNickname } from '@/utils/validation'
+// validateDeviceNickname暂时未使用
 
 const { Header, Content } = Layout
 const { Title, Text, Paragraph } = Typography
@@ -29,7 +29,7 @@ const SettingsScreen = () => {
     form.setFieldsValue({
       nickname: nickname
     })
-  }, [nickname])
+  }, [nickname, form])
   
   // 处理昵称保存
   const handleSaveNickname = async (values: { nickname: string }) => {

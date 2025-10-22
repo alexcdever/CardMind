@@ -1,4 +1,4 @@
-import { Spin, Typography } from 'antd'
+import { Typography } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 
 const { Title } = Typography

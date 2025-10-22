@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Layout, Typography, Button, Space, Input, Badge, Divider, Empty, Modal } from 'antd'
-import { PlusOutlined, SearchOutlined, SettingOutlined, SyncOutlined } from '@ant-design/icons'
+import { PlusOutlined, SettingOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import CardList from './CardList/CardList'
 import CardEditor from './CardEditor/CardEditor'
+import { Card as CardType } from '@/types/card.types'
 import useCardStore from '@/stores/cardStore'
 import useSyncStore from '@/stores/syncStore'
 
@@ -20,14 +21,14 @@ const MainScreen = () => {
   const { cards, isLoading, fetchAllCards } = useCardStore()
   const { isOnline, isSyncing, connectedDevices } = useSyncStore()
   
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [showEditor, setShowEditor] = useState(false)
-  const [editingCard, setEditingCard] = useState<any>(null)
+  const [editingCard, setEditingCard] = useState<CardType | null>(null)
   
   // 页面加载时获取卡片数据
     useEffect(() => {
       fetchAllCards()
-    }, []); // 只在组件挂载时执行一次
+    }, [fetchAllCards]); // 只在组件挂载时执行一次
   
   // 处理创建新卡片
   const handleCreateCard = () => {
@@ -36,7 +37,7 @@ const MainScreen = () => {
   }
   
   // 处理编辑卡片
-  const handleEditCard = (card: any) => {
+  const handleEditCard = (card: CardType) => {
     setEditingCard(card)
     setShowEditor(true)
   }

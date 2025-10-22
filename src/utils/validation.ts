@@ -58,16 +58,14 @@ export const sanitizeInput = (input: string): string => {
 }
 
 /**
- * 生成错误消息
+ * 处理验证错误信息
  * @param field 字段名称
  * @param errorType 错误类型
- * @param params 额外参数
  * @returns 错误消息
  */
-export const generateErrorMessage = (
+export const handleValidationError = (
   field: string,
-  errorType: 'required' | 'tooShort' | 'tooLong' | 'invalidFormat',
-  params?: any
+  errorType: 'required' | 'tooShort' | 'tooLong' | 'invalidFormat'
 ): string => {
   const messages: Record<string, Record<string, string>> = {
     title: {

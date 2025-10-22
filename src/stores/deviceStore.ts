@@ -1,13 +1,32 @@
 import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-import { DeviceState } from '@/types/device.types'
+
+// 添加SyncStatus接口来替代any类型
+export interface SyncStatus {
+  lastSyncTime: Date | null;
+  pendingChanges: number;
+  isSyncing: boolean;
+}
+
+// 重新定义DeviceState接口以避免使用any类型
+export interface DeviceState {
+  deviceId: string;
+  nickname: string;
+  deviceType: string;
+  lastSeen: number;
+  onlineDevices: Array<{id: string; nickname: string; deviceType: string}>;
+  isLoading: boolean;
+  error: string | null;
+  syncStatus: SyncStatus; // 使用具体类型替代any
+}
 
 interface DeviceActions {
   initializeDevice: () => Promise<void>;
   updateNickname: (nickname: string) => void;
   updateLastSeen: () => void;
-  updateOnlineDevices: (devices: any[]) => void;
+  updateOnlineDevices: (devices: Array<{id: string; nickname: string; deviceType: string}>) => void;
   getDeviceInfo: () => { id: string; nickname: string; deviceType: string };
+  updateSyncStatus?: (status: Partial<SyncStatus>) => void; // 可选：添加更新同步状态的方法
 }
 
 type DeviceStore = DeviceState & DeviceActions
@@ -40,6 +59,11 @@ const useDeviceStore = create<DeviceStore>((set, get) => ({
   onlineDevices: [],
   isLoading: false,
   error: null,
+  syncStatus: {
+    lastSyncTime: null,
+    pendingChanges: 0,
+    isSyncing: false
+  },
   
   // 初始化设备信息
   initializeDevice: async () => {
@@ -91,7 +115,7 @@ const useDeviceStore = create<DeviceStore>((set, get) => ({
   },
   
   // 更新在线设备列表
-  updateOnlineDevices: (devices) => {
+  updateOnlineDevices: (devices: Array<{id: string; nickname: string; deviceType: string}>) => {
     set({ onlineDevices: devices })
   },
   
