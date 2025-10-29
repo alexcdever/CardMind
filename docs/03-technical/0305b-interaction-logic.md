@@ -301,7 +301,7 @@ const CardEditor: React.FC<CardEditorProps> = ({ initialCard, onClose, onSaveSuc
 ```typescript
 const NetworkAuth: React.FC<NetworkAuthProps> = ({ onSuccess }) => {
   const [state, setState] = useState<NetworkAuthState>({
-    networkId: '',
+    accessCode: '',
     isGenerating: false,
     isJoining: false,
     error: null,
@@ -310,52 +310,38 @@ const NetworkAuth: React.FC<NetworkAuthProps> = ({ onSuccess }) => {
   });
   
   // 使用AuthService
-  const { joinNetwork, generateNetworkId, validateNetworkId } = useAuthStore();
+  const { joinNetwork, generateNetworkId, generateAccessCode, validateAccessCode } = useAuthStore();
   
-  // 检测剪贴板中的网络ID
-  useEffect(() => {
-    const checkClipboard = async () => {
-      try {
-        const text = await navigator.clipboard.readText();
-        if (validateNetworkId(text)) {
-          setState(prev => ({ ...prev, networkId: text }));
-        }
-      } catch (err) {
-        // 剪贴板访问失败，忽略错误
-      }
-    };
-    
-    checkClipboard();
-  }, [validateNetworkId]);
+  // Access Code只在需要时生成，不保存到本地存储
   
-  // 处理网络ID输入
-  const handleNetworkIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setState(prev => ({ 
-      ...prev, 
-      networkId: e.target.value, 
-      error: null 
-    }));
+  // 处理Access Code输入变化
+  const handleAccessCodeChange = (value: string) => {
+    setState(prev => ({ ...prev, accessCode: value, error: '' }));
   };
   
-  // 生成新网络ID
-  const handleGenerateNetworkId = async () => {
+  // 生成新网络
+  const handleGenerateNetwork = async () => {
     setState(prev => ({ ...prev, isGenerating: true, error: null }));
     
     try {
       const newNetworkId = await generateNetworkId();
+      const accessCode = await generateAccessCode(newNetworkId);
+      
+      // 保存网络ID到本地存储
+      localStorage.setItem('currentNetworkId', newNetworkId);
+      
       setState(prev => ({ 
         ...prev, 
-        networkId: newNetworkId, 
+        accessCode: accessCode, 
         isGenerating: false,
         autoJoinMode: true
       }));
       
-      // 自动复制到剪贴板
-      await navigator.clipboard.writeText(newNetworkId);
+      showToast('新网络生成成功！');
     } catch (err) {
       setState(prev => ({
         ...prev,
-        error: '生成网络ID失败',
+        error: '生成网络失败',
         isGenerating: false
       }));
     }
@@ -363,25 +349,30 @@ const NetworkAuth: React.FC<NetworkAuthProps> = ({ onSuccess }) => {
   
   // 加入网络
   const handleJoinNetwork = async () => {
-    // 验证网络ID格式
-    if (!validateNetworkId(state.networkId)) {
-      setState(prev => ({ 
-        ...prev, 
-        error: '请输入有效的网络ID'
-      }));
+    if (!state.accessCode) {
+      setState(prev => ({ ...prev, error: '请输入Access Code' }));
       return;
     }
     
-    setState(prev => ({ ...prev, isJoining: true, error: null }));
+    if (!validateAccessCode(state.accessCode)) {
+      setState(prev => ({ ...prev, error: 'Access Code格式不正确' }));
+      return;
+    }
     
     try {
-      await joinNetwork(state.networkId);
-      onSuccess();
-    } catch (err) {
-      setState(prev => ({
-        ...prev,
-        error: '加入网络失败，请检查网络ID是否正确',
-        isJoining: false
+      setState(prev => ({ ...prev, isJoining: true, error: null }));
+      
+      await joinNetwork(state.accessCode);
+      
+      showToast('成功加入网络！');
+      
+      // 跳转到主界面
+      router.push('/cards');
+    } catch (error) {
+      setState(prev => ({ 
+        ...prev, 
+        isJoining: false, 
+        error: '加入网络失败，请检查Access Code是否正确' 
       }));
     }
   };
@@ -395,12 +386,12 @@ const NetworkAuth: React.FC<NetworkAuthProps> = ({ onSuccess }) => {
     });
   };
   
-  // 复制当前网络ID
-  const handleCopyNetworkId = async () => {
-    if (state.networkId && validateNetworkId(state.networkId)) {
+  // 复制当前Access Code
+  const handleCopyAccessCode = async () => {
+    if (state.accessCode && validateAccessCode(state.accessCode)) {
       try {
-        await navigator.clipboard.writeText(state.networkId);
-        showToast('网络ID已复制到剪贴板');
+        await navigator.clipboard.writeText(state.accessCode);
+        showToast('Access Code已复制到剪贴板');
       } catch (err) {
         showToast('复制失败，请手动复制');
       }
@@ -410,38 +401,37 @@ const NetworkAuth: React.FC<NetworkAuthProps> = ({ onSuccess }) => {
   return (
     <div className="network-auth-container">
       <h1>欢迎使用 CardMind</h1>
-      <p>请输入网络ID加入现有网络，或生成新的网络ID</p>
+      <p>请输入Access Code加入现有网络，或生成新的Access Code</p>
       
       {/* 错误提示 */}
       {state.error && <ErrorMessage message={state.error} />}
       
-      {/* 网络ID输入区域 */}
+      {/* Access Code输入区域 */}
       <InputWithButton
-        value={state.networkId}
-        onChange={handleNetworkIdChange}
-        placeholder="输入网络ID"
+        value={state.accessCode}
+        onChange={handleAccessCodeChange}
+        placeholder="输入Access Code"
         buttonLabel="复制"
-        onButtonClick={handleCopyNetworkId}
-        disabled={!state.networkId || state.isJoining || state.isGenerating}
+        onButtonClick={handleCopyAccessCode}
+        disabled={!state.accessCode || state.isJoining || state.isGenerating}
       />
       
       {/* 操作按钮 */}
       <ButtonGroup>
         <Button
-          primary
           onClick={handleJoinNetwork}
-          disabled={!state.networkId || state.isJoining || state.isGenerating}
+          disabled={!state.accessCode || state.isJoining || state.isGenerating}
           loading={state.isJoining}
         >
           加入网络
         </Button>
         
         <Button
-          onClick={handleGenerateNetworkId}
+          onClick={handleGenerateNetwork}
           disabled={state.isJoining || state.isGenerating}
           loading={state.isGenerating}
         >
-          生成网络ID
+          生成新网络
         </Button>
       </ButtonGroup>
       
@@ -452,7 +442,7 @@ const NetworkAuth: React.FC<NetworkAuthProps> = ({ onSuccess }) => {
       
       {/* 自动加入模式提示 */}
       {state.autoJoinMode && (
-        <InfoBanner message="已自动生成并复制网络ID，请分享给需要同步的设备" />
+        <InfoBanner message="已自动生成并复制Access Code，请分享给需要同步的设备" />
       )}
       
       {/* 高级选项 */}
@@ -630,10 +620,10 @@ const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       case 'confirm':
         return <ConfirmDialog {...props} onClose={closeModal} />;
       case 'settings':
-        return <SettingsModal {...props} onClose={closeModal} />;
-      case 'networkSetup':
-        return <NetworkSetupModal {...props} onClose={closeModal} />;
-      default:
+          return <SettingsModal {...props} onClose={closeModal} />;
+        case 'networkSetup':
+          return <AccessCodeSetupModal {...props} onClose={closeModal} />;
+        default:
         return null;
     }
   };

@@ -40,7 +40,90 @@ class AuthService {
    * 离开当前网络
    */
   leaveNetwork(): void;
+  
+  /**
+   * 生成Access Code
+   * @param networkId 网络ID
+   * @returns Access Code
+   */
+  generateAccessCode(networkId: string): Promise<string>;
+  
+  /**
+   * 解析Access Code
+   * @param accessCode Access Code
+   * @returns 解析后的数据
+   */
+  parseAccessCode(accessCode: string): Promise<AccessCodeData>;
+  
+  /**
+   * 验证Access Code有效性
+   * @param accessCode Access Code
+   * @returns 是否有效
+   */
+  validateAccessCode(accessCode: string): Promise<boolean>;
 }
+
+interface AccessCodeData {
+  networkId: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+/**
+ * 集成测试示例
+ */
+describe('Network Integration', () => {
+  it('should create and join network', async () => {
+    // 创建网络
+    const networkId = await authService.generateNetworkId()
+    await authService.joinNetwork(networkId)
+    
+    // 模拟另一个设备加入
+    const deviceService2 = new DeviceService()
+    await deviceService2.joinNetwork(networkId)
+    
+    // 验证网络状态
+    expect(authService.getCurrentNetworkId()).toBe(networkId)
+    expect(deviceService2.getCurrentNetworkId()).toBe(networkId)
+  })
+})
+
+describe('Access Code Integration', () => {
+  it('should generate and use Access Code for network joining', async () => {
+    // 创建网络并生成Access Code
+    const networkId = await authService.generateNetworkId()
+    await authService.joinNetwork(networkId)
+    const accessCode = await authService.generateAccessCode(networkId)
+    
+    // 解析Access Code获取网络信息
+    const accessData = await authService.parseAccessCode(accessCode)
+    expect(accessData.networkId).toBe(networkId)
+    
+    // 模拟新设备使用Access Code加入
+    const authService2 = new AuthService()
+    const isValid = await authService2.validateAccessCode(accessCode)
+    expect(isValid).toBe(true)
+    
+    await authService2.joinNetwork(accessData.networkId)
+    expect(authService2.getCurrentNetworkId()).toBe(networkId)
+  })
+
+  it('should handle Access Code copy and paste flow', async () => {
+    // 生成Access Code
+    const networkId = await authService.generateNetworkId()
+    const accessCode = await authService.generateAccessCode(networkId)
+    
+    // 模拟复制到剪贴板
+    await navigator.clipboard.writeText(accessCode)
+    
+    // 模拟粘贴和验证
+    const pastedCode = await navigator.clipboard.readText()
+    expect(pastedCode).toBe(accessCode)
+    
+    const isValid = await authService.validateAccessCode(pastedCode)
+    expect(isValid).toBe(true)
+  })
+})
 ```
 
 #### 单元测试
@@ -88,6 +171,46 @@ describe('AuthService', () => {
     authService.joinNetwork(networkId);
     authService.leaveNetwork();
     expect(authService.getCurrentNetworkId()).toBeNull();
+  });
+
+  test('should generate valid Access Code', async () => {
+    const networkId = '123e4567-e89b-12d3-a456-426614174000';
+    const accessCode = await authService.generateAccessCode(networkId);
+    expect(accessCode).toBeTruthy();
+    expect(typeof accessCode).toBe('string');
+    expect(accessCode.length).toBeGreaterThan(50);
+  });
+
+  test('should parse Access Code correctly', async () => {
+    const networkId = '123e4567-e89b-12d3-a456-426614174000';
+    const accessCode = await authService.generateAccessCode(networkId);
+    const data = await authService.parseAccessCode(accessCode);
+    expect(data.networkId).toBe(networkId);
+    expect(data.createdAt).toBeGreaterThan(Date.now() - 60000);
+    expect(data.expiresAt).toBeGreaterThan(Date.now());
+  });
+
+  test('should validate valid Access Code', async () => {
+    const networkId = '123e4567-e89b-12d3-a456-426614174000';
+    const accessCode = await authService.generateAccessCode(networkId);
+    const isValid = await authService.validateAccessCode(accessCode);
+    expect(isValid).toBe(true);
+  });
+
+  test('should reject invalid Access Code', async () => {
+    const isValid = await authService.validateAccessCode('invalid_code');
+    expect(isValid).toBe(false);
+  });
+
+  test('should handle old Access Code with graceful warning', async () => {
+    const networkId = '123e4567-e89b-12d3-a456-426614174000';
+    const accessCode = await authService.generateAccessCode(networkId);
+    jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 7200000);
+    const result = await authService.validateAccessCode(accessCode);
+    // 过期Access Code应给出警告但仍可使用，体现家庭场景友好性
+    expect(result.isValid).toBe(true);
+    expect(result.isStale).toBe(true);
+    (Date.now as jest.Mock).mockRestore();
   });
 });
 ```
@@ -1483,6 +1606,9 @@ describe('Sync System Tests', () => {
    - 生成新网络
    - 输入现有网络ID加入
    - 网络ID格式验证
+   - **Access Code生成与复制测试**
+   - **Access Code输入与验证测试**
+   - **Access Code过期处理测试**
 
 2. **卡片管理界面测试**
    - 卡片列表展示
@@ -1542,6 +1668,46 @@ test.describe('CardMind UI Tests', () => {
     // 验证错误提示
     await expect(page.locator('.error-message')).toBeVisible();
     await expect(page.locator('.error-message')).toContainText('无效的网络ID格式');
+  });
+  
+  test('should generate and copy Access Code', async ({ page }) => {
+    // 创建新网络
+    await page.click('text=创建新网络');
+    await expect(page.locator('.card-list')).toBeVisible();
+    
+    // 进入设置页面
+    await page.click('text=设置');
+    
+    // 点击生成Access Code按钮
+    await page.click('text=生成Access Code');
+    
+    // 验证Access Code显示
+    await expect(page.locator('.access-code-display')).toBeVisible();
+    
+    // 点击复制按钮
+    await page.click('text=复制');
+    
+    // 验证复制成功提示
+    await expect(page.locator('.copy-success')).toBeVisible();
+  });
+  
+  test('should join network using Access Code', async ({ page }) => {
+    // 进入主页
+    await page.goto('/');
+    
+    // 点击使用Access Code加入
+    await page.click('text=使用Access Code加入');
+    
+    // 输入Access Code
+    const testAccessCode = 'eyJuZXR3b3JrSWQiOiJ0ZXN0LW5ldHdvcmstMTIzIiwiY3JlYXRlZEF0IjoxNjM0NTY3ODkwMDAwLCJleHBpcmVzQXQiOjE2MzQ1NzE0OTAwMDAsImRldmljZUlkIjoiZGV2aWNlLTQ1NiJ9';
+    await page.fill('#accessCodeInput', testAccessCode);
+    
+    // 点击加入网络
+    await page.click('text=通过Access Code加入');
+    
+    // 验证成功加入网络
+    await expect(page.locator('.success-message')).toBeVisible();
+    await expect(page.locator('.card-list')).toBeVisible();
   });
   
   test('should create, edit and delete a card', async ({ page }) => {
@@ -1611,6 +1777,11 @@ test.describe('CardMind UI Tests', () => {
 - 标准测试数据集（预定义卡片集合）
 - 性能测试大数据集（1000+卡片）
 - 边缘情况测试数据（空数据、特殊字符、大文本等）
+- **Access Code测试数据集**：
+  - 有效Access Code示例
+  - 过期Access Code示例
+  - 格式错误Access Code示例
+  - 网络ID不匹配的Access Code示例
 
 ### 4.3 回归测试执行计划
 

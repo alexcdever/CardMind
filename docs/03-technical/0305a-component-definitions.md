@@ -54,7 +54,7 @@ interface CardEditorProps {
 #### 状态类型定义
 ```typescript
 interface NetworkAuthState {
-  networkId: string;
+  accessCode: string;
   isGenerating: boolean;
   isJoining: boolean;
   error: string | null;
@@ -95,7 +95,7 @@ interface ModalContextType {
 }
 
 // 模态框类型
-type ModalType = 'cardEdit' | 'cardView' | 'confirm' | 'settings' | 'networkSetup';
+type ModalType = 'cardDetail' | 'cardEditor' | 'confirmDialog' | 'settings' | 'networkSetup';
 ```
 
 #### 组件接口
