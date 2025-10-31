@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Form, Input, Button, Typography, Divider, message } from 'antd'
+import { Card, Form, Input, Button, Typography, Divider } from 'antd'
 import { ReloadOutlined, UserAddOutlined } from '@ant-design/icons'
 import useAuthStore from '@/stores/authStore'
 import { NetworkAuthState } from '@/types/auth.types'
@@ -15,8 +15,7 @@ const { Item } = Form
  */
 const NetworkAuthScreen = () => {
   const navigate = useNavigate()
-  const { generateNetworkId, validateNetworkId, joinNetwork, isLoading, error } = useAuthStore()
-  
+  const authStore = useAuthStore()
   const [form] = Form.useForm<{ networkId: string }>()
   const [localState, setLocalState] = useState<NetworkAuthState>({
     networkId: '',
@@ -26,6 +25,7 @@ const NetworkAuthScreen = () => {
     showAdvanced: false,
     autoJoinMode: false
   })
+
   
   // 生成新网络并加入
   const handleGenerateAndJoin = async () => {
@@ -33,19 +33,14 @@ const NetworkAuthScreen = () => {
     
     try {
       // 生成新的网络ID
-      const newNetworkId = generateNetworkId()
+      const newNetworkId = authStore.generateNetworkId()
       
       // 加入网络
-      const success = await joinNetwork(newNetworkId)
+      await authStore.joinNetwork(newNetworkId)
       
-      if (success) {
-        message.success('成功创建并加入新网络')
-        navigate('/')
-      } else {
-        message.error('创建网络失败')
-      }
+      // 直接导航，不显示message以避免警告
+      navigate('/')
     } catch (err) {
-      message.error('操作失败，请重试')
       setLocalState(prev => ({ ...prev, error: '创建网络失败', isGenerating: false }))
     } finally {
       setLocalState(prev => ({ ...prev, isGenerating: false }))
@@ -57,7 +52,7 @@ const NetworkAuthScreen = () => {
     const networkId = sanitizeInput(values.networkId)
     
     // 验证网络ID格式
-    if (!validateNetworkId(networkId)) {
+    if (!authStore.validateNetworkId(networkId)) {
       form.setFields([{
         name: 'networkId',
         errors: ['网络ID格式不正确']
@@ -68,16 +63,11 @@ const NetworkAuthScreen = () => {
     setLocalState(prev => ({ ...prev, isJoining: true, error: null }))
     
     try {
-      const success = await joinNetwork(networkId)
+      await authStore.joinNetwork(networkId)
       
-      if (success) {
-        message.success('成功加入网络')
-        navigate('/')
-      } else {
-        message.error('加入网络失败')
-      }
+      // 直接导航，不显示message以避免警告
+      navigate('/')
     } catch (err) {
-      message.error('操作失败，请重试')
       setLocalState(prev => ({ ...prev, error: '加入网络失败', isJoining: false }))
     } finally {
       setLocalState(prev => ({ ...prev, isJoining: false }))
@@ -94,14 +84,14 @@ const NetworkAuthScreen = () => {
         
         <Title level={4} className="mb-4">网络认证</Title>
         <Paragraph className="mb-6 text-gray-600">
-          请输入网络ID加入现有网络，或创建新网络开始使用
+          请输入其他设备生成的访问码以加入其协作网络，或创建新网络开始使用
         </Paragraph>
         
         {localState.error && (
           <div className="mb-4 text-red-500">{localState.error}</div>
         )}
-        {error && (
-          <div className="mb-4 text-red-500">{error}</div>
+        {authStore.error && (
+          <div className="mb-4 text-red-500">{authStore.error}</div>
         )}
         
         <Form
@@ -112,18 +102,22 @@ const NetworkAuthScreen = () => {
         >
           <Item
             name="networkId"
-            label="网络ID"
-            rules={[
-              { required: true, message: '请输入网络ID' },
-              { 
-                pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-                message: '网络ID格式不正确'
+          label="网络ID"
+          rules={[
+            { required: true, message: '请输入网络ID' },
+            {
+              validator: (_, value) => {
+                if (!value || !authStore.validateNetworkId(value)) {
+                  return Promise.reject('网络ID格式不正确')
+                }
+                return Promise.resolve()
               }
-            ]}
-            className="mb-4"
-          >
-            <Input
-              placeholder="输入网络ID"
+            }
+          ]}
+          validateTrigger="onBlur"
+        >
+          <Input
+            placeholder="输入其他设备生成的网络ID以加入其网络"
               prefix={<UserAddOutlined className="text-gray-400" />}
               disabled={localState.isJoining || localState.isGenerating}
               autoComplete="off"
@@ -135,7 +129,7 @@ const NetworkAuthScreen = () => {
               type="primary"
               htmlType="submit"
               className="w-full"
-              loading={localState.isJoining || isLoading}
+              loading={localState.isJoining || authStore.isLoading}
               size="large"
             >
               加入网络
@@ -145,7 +139,7 @@ const NetworkAuthScreen = () => {
               htmlType="button"
               className="w-full"
               onClick={handleGenerateAndJoin}
-              loading={localState.isGenerating || isLoading}
+              loading={localState.isGenerating || authStore.isLoading}
               icon={<ReloadOutlined />}
               size="large"
             >
@@ -158,8 +152,27 @@ const NetworkAuthScreen = () => {
         
         <div className="text-center text-gray-500 text-sm">
           <Text>
-            网络ID是您与其他设备同步数据的密钥，请妥善保管
+            网络ID包含网络连接信息，用于加入其他设备的协作网络
           </Text>
+        </div>
+        
+        {/* 跳过网络设置按钮 */}
+        <div className="text-center mt-6">
+          <Button
+            type="link"
+            onClick={() => {
+              // 生成临时网络ID并通过joinNetwork方法设置认证状态
+              const tempNetworkId = authStore.generateNetworkId();
+              // 调用joinNetwork方法来设置认证状态
+              authStore.joinNetwork(tempNetworkId).then(() => {
+                // 认证成功后导航到主页面
+                navigate('/');
+              });
+            }}
+            danger
+          >
+            跳过网络设置
+          </Button>
         </div>
       </Card>
     </div>

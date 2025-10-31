@@ -1,4 +1,11 @@
 {
+  "files.useIgnoreFiles": false,
+  "search.useIgnoreFiles": false,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true
+  },
   // 工作区设置
   "cmake.sourceDirectory": "D:/Projects/CardMind/app/windows",
   "search.exclude": {

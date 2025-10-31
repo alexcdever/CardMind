@@ -77,9 +77,9 @@ export const handleValidationError = (
       tooLong: '内容不能超过2000个字符'
     },
     networkId: {
-      required: '网络ID不能为空',
-      invalidFormat: '网络ID格式不正确'
-    },
+    required: '访问码不能为空',
+    invalidFormat: '访问码格式不正确'
+  },
     nickname: {
       required: '昵称不能为空',
       tooShort: '昵称长度不能少于1个字符',
@@ -89,3 +89,34 @@ export const handleValidationError = (
   
   return messages[field]?.[errorType] || `${field}格式不正确`
 }
+
+/**
+ * 验证访问码格式
+ * 验证是否为有效的Base64编码字符串，并且解码后包含必要的网络连接信息
+ */
+export const validateAccessCode = (accessCode: string): boolean => {
+  if (!accessCode || accessCode.length < 20 || accessCode.length > 200) {
+    return false;
+  }
+
+  // 验证是否为有效的URL安全Base64格式
+  const base64Regex = /^[A-Za-z0-9-_]+={0,2}$/;
+  if (!base64Regex.test(accessCode)) {
+    return false;
+  }
+
+  try {
+    // 尝试解码并验证内容结构
+    const padded = accessCode + '='.repeat((4 - accessCode.length % 4) % 4);
+    const decoded = decodeURIComponent(atob(padded.replace(/-/g, '+').replace(/_/g, '/')));
+    const data = JSON.parse(decoded);
+
+    // 验证解码后的数据是否包含必要字段
+    return data.address && typeof data.address === 'string' &&
+           data.timestamp && typeof data.timestamp === 'number' &&
+           data.randomCode && typeof data.randomCode === 'string';
+  } catch (error) {
+    // 解码失败或数据结构不正确
+    return false;
+  }
+};

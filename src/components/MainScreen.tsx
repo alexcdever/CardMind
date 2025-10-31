@@ -69,15 +69,18 @@ const MainScreen = () => {
           className="ml-2 cursor-help"
           title="正在同步数据"
         />
-        )
+      )
     }
+    
+    // 显示连接的设备数量，包括当前设备
+    const totalDevices = connectedDevices + 1;
     
     return (
       <Badge 
         status="success" 
-        text={`已同步 (${connectedDevices}台设备)`}
+        text={`已同步 (${totalDevices}台设备)`}
         className="ml-2 cursor-help"
-        title={`当前已连接${connectedDevices}台设备`}
+        title={`当前网络中有${totalDevices}台设备已连接`}
       />
     )
   }
@@ -167,7 +170,7 @@ const MainScreen = () => {
         onCancel={() => setShowEditor(false)}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <CardEditor
           initialCard={editingCard}

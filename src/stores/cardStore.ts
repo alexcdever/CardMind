@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { Card } from '@/types/card.types'
 import { v4 as uuidv4 } from 'uuid'
 import useDeviceStore from './deviceStore'
+import { saveCards, getCards } from '@/services/localStorageService'
+import syncService from '@/services/syncService'
 
 interface CardState {
   cards: Card[];
@@ -34,10 +36,11 @@ const useCardStore = create<CardStore>((set, get) => ({
     set({ isLoading: true, error: null })
     
     try {
-      // 这里会在后续与CardService集成
-      // 目前返回空数组作为初始模拟
-      const cards: Card[] = []
-      set({ cards, isLoading: false })
+      // 从本地存储加载卡片数据
+      const cardsFromStorage = getCards<Card>()
+      // 只返回未删除的卡片
+      const activeCards = cardsFromStorage.filter(card => !card.isDeleted)
+      set({ cards: activeCards, isLoading: false })
     } catch (error) {
       set({ error: '获取卡片失败', isLoading: false })
     }
@@ -48,9 +51,9 @@ const useCardStore = create<CardStore>((set, get) => ({
     set({ isLoading: true, error: null })
     
     try {
-      // 这里会在后续与CardService集成
-      // 目前返回空数组作为初始模拟
-      const deletedCards: Card[] = []
+      // 从本地存储加载并过滤已删除的卡片
+      const cardsFromStorage = getCards<Card>()
+      const deletedCards = cardsFromStorage.filter(card => card.isDeleted)
       set({ deletedCards, isLoading: false })
     } catch (error) {
       set({ error: '获取已删除卡片失败', isLoading: false })
@@ -75,9 +78,17 @@ const useCardStore = create<CardStore>((set, get) => ({
         lastModifiedDeviceId: deviceId
       }
       
-      // 这里会在后续与CardService集成
+      // 保存到状态和本地存储
       const { cards } = get()
-      set({ cards: [...cards, newCard], isLoading: false })
+      const updatedCards = [...cards, newCard]
+      set({ cards: updatedCards, isLoading: false })
+      
+      // 保存到本地存储
+      const allCards = getCards<Card>()
+      saveCards<Card>([...allCards.filter(card => card.id !== newCard.id), newCard])
+      
+      // 广播卡片创建事件
+      syncService.broadcastCardUpdate(newCard)
       
       return newCard
     } catch (error) {
@@ -105,10 +116,21 @@ const useCardStore = create<CardStore>((set, get) => ({
         lastModifiedDeviceId: deviceId
       }
       
-      // 这里会在后续与CardService集成
+      // 保存到状态和本地存储
       const updatedCards = [...cards]
       updatedCards[cardIndex] = updatedCard
       set({ cards: updatedCards, isLoading: false })
+      
+      // 更新本地存储中的卡片
+      const allCards = getCards<Card>()
+      const storageIndex = allCards.findIndex(card => card.id === updatedCard.id)
+      if (storageIndex !== -1) {
+        allCards[storageIndex] = updatedCard
+      }
+      saveCards<Card>(allCards)
+      
+      // 广播卡片更新事件
+      syncService.broadcastCardUpdate(updatedCard)
       
       return updatedCard
     } catch (error) {
@@ -138,13 +160,24 @@ const useCardStore = create<CardStore>((set, get) => ({
         lastModifiedDeviceId: deviceId
       }
       
-      // 这里会在后续与CardService集成
+      // 保存到状态和本地存储
       const updatedCards = cards.filter(card => card.id !== cardId)
       set({ 
         cards: updatedCards, 
         deletedCards: [...deletedCards, deletedCard],
         isLoading: false 
       })
+      
+      // 更新本地存储中的卡片（标记为已删除）
+      const allCards = getCards<Card>()
+      const storageIndex = allCards.findIndex(card => card.id === cardId)
+      if (storageIndex !== -1) {
+        allCards[storageIndex] = deletedCard
+      }
+      saveCards<Card>(allCards)
+      
+      // 广播卡片删除事件
+      syncService.broadcastCardUpdate(deletedCard)
     } catch (error) {
       set({ error: '删除卡片失败', isLoading: false })
       throw error
@@ -172,13 +205,24 @@ const useCardStore = create<CardStore>((set, get) => ({
         lastModifiedDeviceId: deviceId
       }
       
-      // 这里会在后续与CardService集成
+      // 保存到状态和本地存储
       const updatedDeletedCards = deletedCards.filter(card => card.id !== cardId)
       set({ 
         cards: [...cards, restoredCard],
         deletedCards: updatedDeletedCards,
         isLoading: false 
       })
+      
+      // 更新本地存储中的卡片（标记为已恢复）
+      const allCards = getCards<Card>()
+      const storageIndex = allCards.findIndex(card => card.id === cardId)
+      if (storageIndex !== -1) {
+        allCards[storageIndex] = restoredCard
+      }
+      saveCards<Card>(allCards)
+      
+      // 广播卡片恢复事件
+      syncService.broadcastCardUpdate(restoredCard)
     } catch (error) {
       set({ error: '恢复卡片失败', isLoading: false })
       throw error

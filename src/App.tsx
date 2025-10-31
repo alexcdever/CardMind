@@ -5,6 +5,8 @@ import { ConfigProvider } from 'antd'
 // 导入状态管理
 import useAuthStore from './stores/authStore'
 import useDeviceStore from './stores/deviceStore'
+// 导入同步服务
+import syncService from './services/syncService'
 
 // 导入组件
 import AppLoadingScreen from './components/AppLoadingScreen'
@@ -25,14 +27,27 @@ function App() {
         // 初始化设备信息
         await initializeDevice()
         
+        // 立即初始化同步服务的基础功能
+        syncService.initialize()
+        
         // 检查是否已认证
         const savedNetworkId = localStorage.getItem('currentNetworkId')
         if (savedNetworkId) {
           try {
             await joinNetwork(savedNetworkId)
+            // 不再需要在这里初始化同步服务
           } catch (error) {
-            // 加入失败，清除保存的网络ID
+            // 加入失败，清除保存的访问码
             localStorage.removeItem('currentNetworkId')
+          }
+        } else {
+          // 对于演示和测试目的，使用默认访问码确保不同实例在同一网络
+          const defaultNetworkId = useAuthStore.getState().getDefaultNetworkId()
+          try {
+            await joinNetwork(defaultNetworkId)
+            // 不再需要在这里初始化同步服务
+          } catch (error) {
+            console.error('Failed to join default network:', error)
           }
         }
       } finally {
@@ -41,6 +56,11 @@ function App() {
     }
     
     initializeApp()
+    
+    // 清理函数
+    return () => {
+      syncService.cleanup()
+    }
   }, [initializeDevice, joinNetwork])
   
   if (isLoading) {

@@ -3,6 +3,7 @@ import { List, Card, Typography, Button, Space, Badge, Tooltip, Modal } from 'an
 import { EditOutlined, DeleteOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import { Card as CardType } from '@/types/card.types'
 import useCardStore from '@/stores/cardStore'
+import useDeviceStore from '@/stores/deviceStore'
 
 const { Title, Text, Paragraph } = Typography
 
@@ -19,6 +20,7 @@ interface CardListProps {
  */
 const CardList: React.FC<CardListProps> = ({ cards, loading, searchQuery, onEditCard }) => {
   const { deleteCard } = useCardStore()
+  const { onlineDevices, deviceId } = useDeviceStore()
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false)
   const [cardToDelete, setCardToDelete] = useState<string | null>(null)
   
@@ -75,6 +77,29 @@ const CardList: React.FC<CardListProps> = ({ cards, loading, searchQuery, onEdit
       : content
   }
   
+  // 根据设备ID获取修改者显示文本
+  const getDeviceModifierText = (deviceId: string): string => {
+    // 查找在线设备中的匹配项
+    const device = onlineDevices.find((d: any) => d.id === deviceId)
+    if (device) {
+      // 无论是本机还是其他设备，都显示设备昵称
+      return `由${device.nickname}修改`
+    }
+    
+    // 如果是本机但没在在线设备列表中，获取本机昵称
+    if (deviceId === useDeviceStore.getState().deviceId) {
+      // 使用getDeviceInfo()方法获取设备信息
+      const localDeviceInfo = useDeviceStore.getState().getDeviceInfo()
+      if (localDeviceInfo.nickname) {
+        return `由${localDeviceInfo.nickname}修改`
+      }
+      return `由本机修改`
+    }
+    
+    // 默认文本
+    return `由设备修改`
+  }
+  
   return (
     <>
       <List
@@ -126,7 +151,7 @@ const CardList: React.FC<CardListProps> = ({ cards, loading, searchQuery, onEdit
               {card.lastModifiedDeviceId && (
                 <div className="mt-2">
                   <Badge.Ribbon 
-                    text={`由设备修改`} 
+                    text={getDeviceModifierText(card.lastModifiedDeviceId)} 
                     placement="end"
                     color="blue"
                   />

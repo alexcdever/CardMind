@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Form, Input, Button, message, Spin } from 'antd'
+import { Form, Input, Button, Spin, message } from 'antd'
 import { Card as CardType } from '@/types/card.types'
 import useCardStore from '@/stores/cardStore'
 import useDeviceStore from '@/stores/deviceStore'
@@ -22,6 +22,7 @@ const CardEditor: React.FC<CardEditorProps> = ({ initialCard, onClose, onSaveSuc
   const { createCard, updateCard } = useCardStore()
   const { deviceId } = useDeviceStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [messageApi, contextHolder] = message.useMessage()
   
   // 初始化表单数据
   useEffect(() => {
@@ -54,25 +55,28 @@ const CardEditor: React.FC<CardEditorProps> = ({ initialCard, onClose, onSaveSuc
       
       if (initialCard) {
         // 更新现有卡片
-        await updateCard({
+        const updatedCard = await updateCard({
           ...cardData,
           id: initialCard.id,
           createdAt: initialCard.createdAt,
           isDeleted: false
         })
-        message.success('卡片更新成功')
+        messageApi.success('卡片更新成功')
+        console.log('Updated card:', updatedCard)
       } else {
         // 创建新卡片
-        await createCard({
+        const newCard = await createCard({
           ...cardData,
           createdAt: Date.now()
         })
-        message.success('卡片创建成功')
+        messageApi.success('卡片创建成功')
+        console.log('Created card:', newCard)
       }
       
+      // 确保父组件重新获取卡片列表
       onSaveSuccess()
     } catch (error) {
-      message.error(initialCard ? '卡片更新失败' : '卡片创建失败')
+      messageApi.error(initialCard ? '卡片更新失败' : '卡片创建失败')
       console.error('Card operation failed:', error)
     } finally {
       setIsSubmitting(false)
@@ -80,7 +84,9 @@ const CardEditor: React.FC<CardEditorProps> = ({ initialCard, onClose, onSaveSuc
   }
   
   return (
-    <div className="p-1">
+    <>
+      {contextHolder}
+      <div className="p-1">
       <Form
         form={form}
         layout="vertical"
@@ -132,6 +138,7 @@ const CardEditor: React.FC<CardEditorProps> = ({ initialCard, onClose, onSaveSuc
         </div>
       </Form>
     </div>
+    </>
   )
 }
 
