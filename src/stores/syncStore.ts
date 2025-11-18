@@ -6,6 +6,10 @@ interface SyncState {
   lastSyncTime: number | null;
   syncError: string | null;
   connectedDevices: number;
+  networkId: string | null;
+  webrtcStatus: 'disconnected' | 'connecting' | 'connected';
+  broadcastStatus: 'inactive' | 'active';
+  syncStatus: 'idle' | 'syncing' | 'error' | 'completed';
 }
 
 interface SyncActions {
@@ -14,6 +18,10 @@ interface SyncActions {
   setSyncError: (error: string | null) => void;
   updateLastSyncTime: () => void;
   updateConnectedDevices: (count: number) => void;
+  setNetworkId: (networkId: string | null) => void;
+  setWebrtcStatus: (status: 'disconnected' | 'connecting' | 'connected') => void;
+  setBroadcastStatus: (status: 'inactive' | 'active') => void;
+  setSyncStatus: (status: 'idle' | 'syncing' | 'error' | 'completed') => void;
   resetSyncState: () => void;
 }
 
@@ -26,6 +34,10 @@ const useSyncStore = create<SyncStore>((set) => ({
   lastSyncTime: null,
   syncError: null,
   connectedDevices: 0,
+  networkId: null,
+  webrtcStatus: 'disconnected',
+  broadcastStatus: 'inactive',
+  syncStatus: 'idle',
   
   // 设置在线状态
   setOnlineStatus: (status: boolean) => {
@@ -52,13 +64,37 @@ const useSyncStore = create<SyncStore>((set) => ({
     set({ connectedDevices: count })
   },
   
+  // 设置网络ID
+  setNetworkId: (networkId: string | null) => {
+    set({ networkId })
+  },
+  
+  // 设置WebRTC状态
+  setWebrtcStatus: (status: 'disconnected' | 'connecting' | 'connected') => {
+    set({ webrtcStatus: status })
+  },
+  
+  // 设置广播通道状态
+  setBroadcastStatus: (status: 'inactive' | 'active') => {
+    set({ broadcastStatus: status })
+  },
+  
+  // 设置同步状态
+  setSyncStatus: (status: 'idle' | 'syncing' | 'error' | 'completed') => {
+    set({ syncStatus: status })
+  },
+  
   // 重置同步状态
   resetSyncState: () => {
     set({
       isSyncing: false,
       syncError: null,
       lastSyncTime: null,
-      connectedDevices: 0
+      connectedDevices: 0,
+      networkId: null,
+      webrtcStatus: 'disconnected',
+      broadcastStatus: 'inactive',
+      syncStatus: 'idle'
     })
   }
 }))

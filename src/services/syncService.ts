@@ -216,6 +216,12 @@ class SyncService {
     try {
       console.log('[SyncService] 开始加入网络:', networkId);
       
+      // 更新网络ID到状态存储
+      useSyncStore.getState().setNetworkId(networkId);
+      
+      // 设置同步状态为连接中
+      useSyncStore.getState().setSyncStatus('syncing');
+      
       // 立即设置在线状态为true，满足测试期望
       useSyncStore.getState().setOnlineStatus(true);
       
@@ -257,6 +263,7 @@ class SyncService {
     } catch (error) {
       console.error('[SyncService] 加入网络失败:', error);
       useSyncStore.getState().setSyncError('加入网络失败');
+      useSyncStore.getState().setSyncStatus('error');
     }
   }
   
@@ -313,8 +320,6 @@ class SyncService {
         peerOpts: {
           iceCandidatePoolSize: 10,
           iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
           ]
         }
       });
@@ -335,7 +340,6 @@ class SyncService {
         peerOpts: {
           iceCandidatePoolSize: 10,
           iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
           ]
         }
       });
@@ -427,14 +431,23 @@ class SyncService {
       
       this.cleanupExistingConnections();
       
+      // 重置网络状态
       this.networkId = null;
       this.isNetworkJoined = false; // 重置网络加入状态
       this.isJoiningNetwork = false; // 重置正在加入状态
+      
+      // 重置同步存储状态
+      useSyncStore.getState().setNetworkId(null);
+      useSyncStore.getState().setWebrtcStatus('disconnected');
+      useSyncStore.getState().setBroadcastStatus('inactive');
+      useSyncStore.getState().setSyncStatus('idle');
+      useSyncStore.getState().updateConnectedDevices(0);
+      useSyncStore.getState().setOnlineStatus(false);
+      
       console.log('[SyncService] 已离开网络');
       
       console.log('[SyncService] 成功离开网络');
       useDeviceStore.getState().updateOnlineDevices([]);
-      useSyncStore.getState().updateConnectedDevices(0);
     } catch (error) {
       console.error('[SyncService] 离开网络失败:', error);
     }
@@ -531,10 +544,26 @@ class SyncService {
       // 根据是否加入网络和是否有对等节点更新在线状态
       // 如果已加入网络，即使没有对等节点也应该显示在线
       useSyncStore.getState().setOnlineStatus(this.isNetworkJoined);
+      
+      // 更新WebRTC状态
+      const webrtcStatus = peersCount > 0 ? 'connected' : (this.isNetworkJoined ? 'connecting' : 'disconnected');
+      useSyncStore.getState().setWebrtcStatus(webrtcStatus);
+      
+      // 更新广播通道状态（基于WebRTC连接）
+      const broadcastStatus = this.webrtcProvider ? 'active' : 'inactive';
+      useSyncStore.getState().setBroadcastStatus(broadcastStatus);
+      
+      // 触发设备列表更新事件，供监控组件使用
+      window.dispatchEvent(new CustomEvent('sync-peers-changed', {
+        detail: { devices: onlineDevices }
+      }));
+      
     } else {
       // 如果没有awareness对象，确保连接设备数为0
       useSyncStore.getState().updateConnectedDevices(0);
       useSyncStore.getState().setOnlineStatus(this.isNetworkJoined);
+      useSyncStore.getState().setWebrtcStatus('disconnected');
+      useSyncStore.getState().setBroadcastStatus('inactive');
     }
   }
 
