@@ -348,7 +348,7 @@ export class DiscoveryService implements IDiscoveryService {
           deviceId: service.name.replace('CardMind-', ''),
           deviceName: service.txt?.deviceName || 'Unknown Device',
           platform: service.txt?.platform || 'unknown',
-          address: service.addresses[0],
+          address: service.addresses[0], // 注意：这里只使用了第一个IP地址，在多网卡设备上可能需要改进
           port: service.port
         });
       }
@@ -379,7 +379,7 @@ export class DiscoveryService implements IDiscoveryService {
             deviceId: data.deviceId,
             deviceName: data.deviceName,
             platform: data.platform,
-            address: remote.address,
+            address: remote.address, // 注意：这里只使用了单个IP地址，在多网卡设备上可能需要改进
             port: data.port
           });
         }
@@ -393,6 +393,23 @@ export class DiscoveryService implements IDiscoveryService {
     console.log('发现设备:', device.deviceName, '地址:', device.address);
     // 触发设备发现事件
     this.emit('deviceDiscovered', device);
+  }
+
+  // 多网卡设备支持的改进建议
+  private async getAvailableIpAddresses(): Promise<string[]> {
+    const networkInterfaces = this.networkAdapter.getNetworkInterfaces();
+    const ipAddresses: string[] = [];
+    
+    for (const [interfaceName, interfaces] of Object.entries(networkInterfaces)) {
+      for (const iface of interfaces) {
+        // 排除IPv6地址和回环地址
+        if (!iface.internal && iface.family === 'IPv4') {
+          ipAddresses.push(iface.address);
+        }
+      }
+    }
+    
+    return ipAddresses;
   }
 }
 ```

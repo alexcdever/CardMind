@@ -21,26 +21,57 @@
 ## 2. 总体架构
 
 ### 2.1 分层架构设计
-```
-┌─────────────────────────────────────────┐
-│        信令API层 (REST + WebSocket)      │
-├─────────────────────────────────────────┤
-│        消息路由层 (设备发现与匹配)        │
-├─────────────────────────────────────────┤
-│        连接管理层 (WebSocket连接池)      │
-├─────────────────────────────────────────┤
-│        传输层 (HTTP服务器适配器)         │
-├─────────────────────────────────────────┤
-│        平台适配层 (多平台实现)            │
-└─────────────────────────────────────────┘
+
+```mermaid
+flowchart TD
+    subgraph "本地HTTP信令服务器"
+        A[信令API层
+REST + WebSocket] --> B[消息路由层
+设备发现与匹配]
+        B --> C[连接管理层
+WebSocket连接池]
+        C --> D[传输层
+HTTP服务器适配器]
+        D --> E[平台适配层
+多平台实现]
+    end
 ```
 
+分层架构设计提供了良好的模块化和可扩展性：
+- **信令API层**：提供标准化的REST和WebSocket接口
+- **消息路由层**：处理设备发现和消息路由
+- **连接管理层**：维护WebSocket连接池
+- **传输层**：适配不同的HTTP服务器实现
+- **平台适配层**：处理不同平台的特定实现
+
 ### 2.2 核心组件关系
+
+```mermaid
+flowchart TD
+    subgraph "设备A (Web平台)"
+        A_App[应用页面] ←→ A_ServiceWorker[Service Worker]
+        A_ServiceWorker ←→ A_WebSocket[WebSocket代理]
+    end
+
+    subgraph "本地信令服务器"
+        Signaling[信令服务器核心] ←→ Adapter[HTTP服务器适配器]
+    end
+
+    subgraph "设备B (Electron平台)"
+        B_App[Electron应用] ←→ B_WebSocket[WebSocket客户端]
+        B_WebSocket ←→ B_NodeHTTP[Node.js HTTP服务器]
+    end
+
+    A_WebSocket <-- WebSocket连接 --> Signaling
+    Signaling <-- WebSocket连接 --> B_WebSocket
+    Adapter --> A_WebSocket
+    B_NodeHTTP --> Signaling
 ```
-设备A (Web) ←→ WebSocket ←→ 信令服务器 ←→ WebSocket ←→ 设备B (Electron)
-     ↕                           ↕                           ↕
-Service Worker              HTTP服务器适配器              Node.js HTTP
-```
+
+核心组件关系图展示了不同平台设备间的信令传输流程：
+- Web平台使用Service Worker作为HTTP服务器代理
+- Electron平台使用原生Node.js HTTP服务器
+- 设备间通过WebSocket连接进行信令传输
 
 ## 3. 平台实现策略
 
@@ -49,15 +80,28 @@ Service Worker              HTTP服务器适配器              Node.js HTTP
 **挑战**：浏览器无法直接创建HTTP服务器
 
 **解决方案**：Service Worker代理模式
+
+```mermaid
+flowchart TD
+    subgraph "Web浏览器架构"
+        AppPage[应用页面] ←→ ServiceWorker[Service Worker]
+        ServiceWorker ←→ WebSocketProxy[WebSocket代理]
+        ServiceWorker ←→ HttpInterceptor[HTTP请求拦截器]
+    end
+
+    subgraph "其他设备"
+        RemoteServer[远程设备HTTP服务器]
+    end
+
+    HttpInterceptor <-- 转发请求 --> WebSocketProxy
+    WebSocketProxy <-- WebSocket连接 --> RemoteServer
 ```
-浏览器架构：
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   应用页面      │ ←→ │  Service Worker  │ ←→ │  WebSocket代理  │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-                                ↕
-                        拦截HTTP请求，转发到
-                        其他设备的真实服务器
-```
+
+Service Worker代理模式解决了Web平台无法创建HTTP服务器的限制：
+- Service Worker拦截特定URL模式的请求
+- 将请求转发到其他设备的WebSocket连接
+- 接收响应并返回给原始请求
+- 维护设备连接映射表
 
 **实现机制**：
 1. Service Worker拦截特定URL模式的请求

@@ -1,35 +1,37 @@
-# CardMind 项目文档导航
+# CardMind 项目文档指南
 
-## 1. 阅读顺序（按这个来，少走弯路）
+## 1. 文档阅读指南
 
-1. **先看「需求文档」** → 知道项目做啥：`docs/01-requirements/requirements.md`
-2. **再看「环境搭建」** → 本地跑通项目：`docs/03-technical/tech-stack.md`
-3. **想贡献代码** → 看「编码规范」+「功能实现计划」：
-   - `docs/03-technical/tech-concepts.md`
-   - `docs/03-technical/implementation-plan.md`
-4. **提PR前** → 看「测试指南」→ 确保代码合格：`docs/04-testing/lan-interconnection-test.md`
+1. **项目概述** → 了解项目目标：`docs/01-requirements/requirements.md`
+2. **环境搭建** → 本地运行项目：`docs/03-technical/tech-stack.md`
+3. **开发指南** → 贡献代码前必读：
+   - 编码规范：`docs/03-technical/tech-concepts.md`
+   - 功能实现计划：`docs/03-technical/implementation-plan.md`
+4. **测试要求** → 提PR前验证：`docs/04-testing/lan-interconnection-test.md`
 
-## 2. 核心疑问（FAQ）
+## 2. 常见问题解答 (FAQ)
 
 - **Q：本地启动报错？**
-  - A：检查Node版本≥16，参考`tech-stack.md`的"开发环境"小节
+  - A：请检查Node版本是否≥16，具体要求可参考`docs/03-technical/tech-stack.md`的"开发环境"小节
 
-- **Q：接口怎么调用？**
-  - A：看`api-testing-design.md`，附Postman测试示例
+- **Q：API接口如何调用？**
+  - A：详细说明请参考`docs/03-technical/api-testing-design.md`，文档中包含Postman测试示例
 
-- **Q：如何实现多设备同步？**
-  - A：参考`offline-lan-architecture.md`了解离线局域网架构
+- **Q：如何实现多设备数据同步？**
+  - A：请阅读`docs/03-technical/offline-lan-architecture.md`了解离线局域网同步架构
 
-- **Q：数据冲突如何解决？**
-  - A：查看`requirements.md`中的"数据合并"部分，了解yjs的CRDT算法实现
+- **Q：分布式环境下数据冲突如何解决？**
+  - A：方案详情请查看`docs/01-requirements/requirements.md`中的"数据合并"部分，我们使用yjs的CRDT算法实现
 
-## 3. 贡献方式
+## 3. 代码贡献指南
 
-1. Fork仓库 → 基于develop分支创建feature分支
-2. 按编码规范开发，参考对应功能的实现计划
-3. 跑通测试用例，提PR时关联对应Issue
+1. Fork本仓库
+2. 基于develop分支创建feature分支
+3. 遵循编码规范开发，参考相关功能的实现计划
+4. 运行测试确保代码质量
+5. 提交PR并关联对应Issue
 
-## 4. 文档结构概览
+## 4. 项目文档结构
 
 ```
 docs/
@@ -54,15 +56,15 @@ docs/
     └── lan-interconnection-test.md     # 局域网互联测试
 ```
 
-## 5. 文档层级说明
+## 5. 文档阅读建议
 
-- **入门层（必看）**：需求概览、环境搭建、快速上手示例
-- **进阶层（按需看）**：详细设计、接口文档、编码规范
-- **深入层（可选看）**：技术选型理由、实现细节、历史迭代记录
+- **基础必读**：需求文档、环境搭建指南、贡献规范
+- **开发参考**：组件定义、交互逻辑、API文档
+- **深入研究**：架构设计、跨平台实现、安全认证机制
 
-## 6. 维护指南
+## 6. 文档维护规范
 
-- 提交代码时，如果涉及文档变更，提交信息必须包含"文档更新"
-- 关键文档（如架构、接口）在代码中留"文档链接"
-- 每完成1个小迭代，检查是否有冗余内容和文档代码不一致的情况
-- 过期文档直接删除或在文件名前加`deprecated-`
+- 修改代码涉及文档变更时，提交信息必须包含"文档更新"关键词
+- 关键技术文档（架构、API等）在相关代码中添加文档链接注释
+- 迭代开发完成后，检查并更新文档与代码的一致性
+- 过期文档请在文件名前添加`deprecated-`前缀或直接归档
