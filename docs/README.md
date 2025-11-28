@@ -1,70 +1,77 @@
-# CardMind 项目文档指南
+# CardMind 项目文档
 
-## 1. 文档阅读指南
+## 1. 快速导航
 
-1. **项目概述** → 了解项目目标：`docs/01-requirements/requirements.md`
-2. **环境搭建** → 本地运行项目：`docs/03-technical/tech-stack.md`
-3. **开发指南** → 贡献代码前必读：
-   - 编码规范：`docs/03-technical/tech-concepts.md`
-   - 功能实现计划：`docs/03-technical/implementation-plan.md`
-4. **测试要求** → 提PR前验证：`docs/04-testing/lan-interconnection-test.md`
+| 文档编号 | 文档名称 | 主要内容 |
+|---------|----------|----------|
+| **0101** | [requirements.md](0101-requirements.md) | 了解项目目标、功能需求和使用场景 |
+| **0201** | [ui-design.md](0201-ui-design.md) | 了解UI设计规范和组件使用 |
+| **0301** | [tech-stack.md](0301-tech-stack.md) | 查看项目使用的核心技术栈和开发环境要求 |
+| **0302** | [architecture.md](0302-architecture.md) | 深入了解系统架构、数据同步机制和跨平台设计 |
+| **0303** | [api.md](0303-api.md) | 查看API接口定义和使用示例 |
+| **0304** | [frontend-development.md](0304-frontend-development.md) | 前端开发指南和最佳实践 |
+| **0401** | [testing.md](0401-testing.md) | 测试要求和验证方法 |
+| **-** | [document-code-binding.md](document-code-binding.md) | 文档与代码强绑定机制说明 |
 
-## 2. 常见问题解答 (FAQ)
+## 2. 文档阅读建议
 
+### 2.1 新开发者入门
+1. 首先阅读 **0101-requirements.md** 了解项目目标
+2. 查看 **0301-tech-stack.md** 准备开发环境
+3. 阅读 **0302-architecture.md** 理解系统架构
+4. 参考 **0304-frontend-development.md** 开始开发
+
+### 2.2 深入学习
+- **数据同步**: 阅读 **0302-architecture.md** 中的"Yjs CRDT 同步机制"部分
+- **跨平台设计**: 阅读 **0302-architecture.md** 中的"跨平台架构设计"部分
+- **API开发**: 查看 **0303-api.md** 了解API接口定义
+
+## 3. 常见问题解答 (FAQ)
+
+### 3.1 开发环境
 - **Q：本地启动报错？**
-  - A：请检查Node版本是否≥16，具体要求可参考`docs/03-technical/tech-stack.md`的"开发环境"小节
+  - A：请检查Node版本是否≥16，具体要求可参考 **0301-tech-stack.md** 的"开发环境"小节
 
+### 3.2 API使用
 - **Q：API接口如何调用？**
-  - A：详细说明请参考`docs/03-technical/api-testing-design.md`，文档中包含Postman测试示例
+  - A：详细说明请参考 **0303-api.md**，文档中包含API接口定义和使用示例
 
+### 3.3 数据同步
 - **Q：如何实现多设备数据同步？**
-  - A：请阅读`docs/03-technical/offline-lan-architecture.md`了解离线局域网同步架构
+  - A：请阅读 **0302-architecture.md** 了解离线局域网同步架构和CRDT数据同步机制
 
 - **Q：分布式环境下数据冲突如何解决？**
-  - A：方案详情请查看`docs/01-requirements/requirements.md`中的"数据合并"部分，我们使用yjs的CRDT算法实现
+  - A：我们使用Yjs的CRDT算法实现无冲突数据合并，详情请查看 **0302-architecture.md** 中的"Yjs CRDT 同步机制"部分
 
-## 3. 代码贡献指南
+### 3.4 平台适配
+- **Q：如何处理浏览器和移动端的存储容量限制？**
+  - A：我们实现了服务端Yjs持久化存储，详情请查看 **0302-architecture.md** 中的"服务端Yjs持久化"部分
+
+- **Q：移动端如何接入协作网络？**
+  - A：移动端可以通过局域网发现或手动输入IP地址连接到PC端服务，跨网络时需要通过web平台的信令服务，详情请查看 **0302-architecture.md** 中的"移动端接入协作网络机制"部分
+
+- **Q：各平台的优先级和部署能力如何？**
+  - A：PC平台（Electron）优先级最高，可以同时部署客户端和服务端；移动端（React Native）优先级中等，仅能部署客户端；Web平台优先级最低，可以同时部署客户端和服务端，详情请查看 **0302-architecture.md** 中的"平台优先级与部署能力"部分
+
+## 4. 代码贡献指南
 
 1. Fork本仓库
 2. 基于develop分支创建feature分支
-3. 遵循编码规范开发，参考相关功能的实现计划
+3. 遵循编码规范开发
 4. 运行测试确保代码质量
 5. 提交PR并关联对应Issue
 
-## 4. 项目文档结构
-
-```
-docs/
-├── 01-requirements/     # 需求类文档
-│   └── requirements.md              # 项目需求文档
-├── 02-design/           # 设计类文档
-│   └── ui-design.md                 # UI设计文档
-├── 03-technical/        # 技术类文档
-│   ├── tech-stack.md                  # 技术栈文档
-│   ├── tech-concepts.md               # 技术概念文档
-│   ├── implementation-plan.md        # 实现计划
-│   ├── api-testing-design.md          # API测试设计
-│   ├── component-definitions.md       # 组件定义
-│   ├── interaction-logic.md           # 交互逻辑
-│   ├── cross-platform-architecture.md # 跨平台架构
-│   ├── offline-lan-architecture.md    # 离线局域网架构
-│   ├── local-signaling-server.md      # 本地信令服务器
-│   ├── cross-platform-compatibility.md # 跨平台兼容性
-│   ├── pure-p2p-architecture.md       # 纯P2P架构
-│   └── security-authentication.md     # 安全认证设计
-└── 04-testing/         # 测试类文档
-    └── lan-interconnection-test.md     # 局域网互联测试
-```
-
-## 5. 文档阅读建议
-
-- **基础必读**：需求文档、环境搭建指南、贡献规范
-- **开发参考**：组件定义、交互逻辑、API文档
-- **深入研究**：架构设计、跨平台实现、安全认证机制
-
-## 6. 文档维护规范
+## 5. 文档维护规范
 
 - 修改代码涉及文档变更时，提交信息必须包含"文档更新"关键词
 - 关键技术文档（架构、API等）在相关代码中添加文档链接注释
 - 迭代开发完成后，检查并更新文档与代码的一致性
-- 过期文档请在文件名前添加`deprecated-`前缀或直接归档
+- 过期文档请移至`archive/`目录归档
+
+## 6. 验证文档与代码绑定
+
+运行以下命令验证文档与代码的绑定关系：
+
+```bash
+npm run doc:verify
+```
