@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="192" height="192">
-  <!-- 背景 -->
-  <rect width="512" height="512" rx="128" fill="#52c41a"/>
-  <!-- 卡片 -->
-  <rect x="80" y="80" width="352" height="352" rx="32" fill="white" opacity="0.9"/>
-  <!-- 加号符号 -->
-  <rect x="236" y="180" width="40" height="152" rx="8" fill="#52c41a"/>
-  <rect x="180" y="236" width="152" height="40" rx="8" fill="#52c41a"/>
-</svg>
