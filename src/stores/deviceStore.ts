@@ -1,35 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-
-// 添加SyncStatus接口来替代any类型
-export interface SyncStatus {
-  lastSyncTime: Date | null;
-  pendingChanges: number;
-  isSyncing: boolean;
-}
-
-// 重新定义DeviceState接口以避免使用any类型
-export interface DeviceState {
-  deviceId: string;
-  nickname: string;
-  deviceType: string;
-  lastSeen: number;
-  onlineDevices: Array<{id: string; nickname: string; deviceType: string}>;
-  isLoading: boolean;
-  error: string | null;
-  syncStatus: SyncStatus; // 使用具体类型替代any
-}
-
-interface DeviceActions {
-  initializeDevice: () => Promise<void>;
-  updateNickname: (nickname: string) => void;
-  updateLastSeen: () => void;
-  updateOnlineDevices: (devices: Array<{id: string; nickname: string; deviceType: string}>) => void;
-  getDeviceInfo: () => { id: string; nickname: string; deviceType: string };
-  updateSyncStatus?: (status: Partial<SyncStatus>) => void; // 可选：添加更新同步状态的方法
-}
-
-type DeviceStore = DeviceState & DeviceActions
+import { DeviceState, DeviceActions } from '../types/device.types'
 
 // 获取设备类型
 const getDeviceType = (): string => {
@@ -50,11 +21,13 @@ const generateDefaultNickname = (): string => {
   return `${typeName}-${Math.floor(Math.random() * 10000)}`
 }
 
+type DeviceStore = DeviceState & DeviceActions
+
 const useDeviceStore = create<DeviceStore>((set, get) => ({
   // 初始状态
-  deviceId: '',
-  nickname: '',
-  deviceType: '',
+  deviceId: localStorage.getItem('deviceId') || uuidv4(),
+  nickname: localStorage.getItem('deviceNickname') || generateDefaultNickname(),
+  deviceType: getDeviceType(),
   lastSeen: Date.now(),
   onlineDevices: [],
   isLoading: false,
@@ -64,65 +37,54 @@ const useDeviceStore = create<DeviceStore>((set, get) => ({
     pendingChanges: 0,
     isSyncing: false
   },
-  
-  // 初始化设备信息
+
+  // 初始化设备
   initializeDevice: async () => {
-    set({ isLoading: true })
-    
     try {
-      // 尝试从本地存储获取设备信息
-      let deviceId = localStorage.getItem('deviceId')
-      let nickname = localStorage.getItem('deviceNickname')
+      set({ isLoading: true, error: null })
       
-      // 如果不存在，生成新的设备ID和默认昵称
-      if (!deviceId) {
-        deviceId = uuidv4()
-        localStorage.setItem('deviceId', deviceId)
-      }
+      // 保存设备信息到本地存储
+      const deviceId = get().deviceId
+      const nickname = get().nickname
+      localStorage.setItem('deviceId', deviceId)
+      localStorage.setItem('deviceNickname', nickname)
       
-      if (!nickname) {
-        nickname = generateDefaultNickname()
-        localStorage.setItem('deviceNickname', nickname)
-      }
-      
-      const deviceType = getDeviceType()
-      const lastSeen = Date.now()
-      
-      set({
-        deviceId,
-        nickname,
-        deviceType,
-        lastSeen,
-        isLoading: false
-      })
+      set({ isLoading: false })
     } catch (error) {
-      set({ error: '初始化设备信息失败', isLoading: false })
+      set({ 
+        error: error instanceof Error ? error.message : '设备初始化失败',
+        isLoading: false 
+      })
     }
   },
-  
+
   // 更新设备昵称
   updateNickname: (nickname: string) => {
-    // 保存到本地存储
     localStorage.setItem('deviceNickname', nickname)
-    
     set({ nickname })
   },
-  
-  // 更新最后在线时间
+
+  // 更新设备最后在线时间
   updateLastSeen: () => {
-    const lastSeen = Date.now()
-    set({ lastSeen })
+    set({ lastSeen: Date.now() })
   },
-  
+
   // 更新在线设备列表
-  updateOnlineDevices: (devices: Array<{id: string; nickname: string; deviceType: string}>) => {
+  updateOnlineDevices: (devices) => {
     set({ onlineDevices: devices })
   },
-  
-  // 获取当前设备信息
+
+  // 获取设备信息
   getDeviceInfo: () => {
     const { deviceId, nickname, deviceType } = get()
     return { id: deviceId, nickname, deviceType }
+  },
+
+  // 更新同步状态
+  updateSyncStatus: (status) => {
+    set((state) => ({
+      syncStatus: { ...state.syncStatus, ...status }
+    }))
   }
 }))
 

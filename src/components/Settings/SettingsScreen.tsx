@@ -1,128 +1,93 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Layout, Typography, Form, Input, Button, Card, Divider, Badge, Switch, Space, Tooltip, message, Tag, List, Avatar } from 'antd'
-import { ArrowLeftOutlined, WifiOutlined, GlobalOutlined, CopyOutlined, CheckOutlined, LinkOutlined, SyncOutlined, ClockCircleOutlined, UserOutlined, MobileOutlined, DesktopOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, WifiOutlined, GlobalOutlined, CopyOutlined, CheckOutlined, LinkOutlined, ClockCircleOutlined, UserOutlined, MobileOutlined, DesktopOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import useDeviceStore from '@/stores/deviceStore'
 import useAuthStore from '@/stores/authStore'
 import useSyncStore from '@/stores/syncStore'
-import SyncService from '@/services/syncService'
-// validateDeviceNickname暂时未使用
-
-// 获取本地IP地址的函数
-const getLocalIPAddresses = async (): Promise<string[]> => {
-  try {
-    // 使用RTCPeerConnection API获取本地IP地址
-    const pc = new RTCPeerConnection({ iceServers: [] });
-    const ips: Set<string> = new Set();
-    
-    // 添加console日志以便调试
-    console.log('开始获取IP地址...');
-    
-    // 创建数据通道以触发ICE候选者收集
-    pc.createDataChannel('');
-    
-    // 监听ICE候选者事件
-    pc.onicecandidate = (event) => {
-      console.log('ICE候选者事件触发:', event);
-      if (event.candidate) {
-        // 解析ICE候选者字符串以提取IP地址
-        const candidate = event.candidate.candidate;
-        console.log('ICE候选者:', candidate);
-        const ipRegex = /([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/;
-        const match = candidate.match(ipRegex);
-        
-        if (match && match[1]) {
-          console.log('找到IP地址:', match[1]);
-          ips.add(match[1]);
-        }
-      } else {
-        console.log('ICE候选者收集完成');
-      }
-    };
-    
-    // 监听ICE连接状态变化
-    pc.oniceconnectionstatechange = () => {
-      console.log('ICE连接状态:', pc.iceConnectionState);
-    };
-    
-    // 创建一个虚拟的offer以触发ICE候选者收集
-    const offer = await pc.createOffer({
-      offerToReceiveAudio: false,
-      offerToReceiveVideo: false
-    });
-    
-    // 必须设置本地描述才能真正触发ICE候选者收集
-    await pc.setLocalDescription(offer);
-    
-    // 延迟返回以确保所有候选者都被收集
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 如果没有收集到IP，尝试添加fallback方法
-    if (ips.size === 0) {
-      console.log('通过RTCPeerConnection未收集到IP，尝试备用方法');
-      // 添加localhost作为备选
-      ips.add('127.0.0.1');
-      // 如果能从window.location中获取，也添加到列表
-      if (window.location.hostname && /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)) {
-        ips.add(window.location.hostname);
-      }
-    }
-    
-    // 清理
-    pc.close();
-    
-    console.log('最终收集到的IP地址:', Array.from(ips));
-    // 返回收集到的IP地址数组
-    return Array.from(ips);
-  } catch (error) {
-    console.error('获取IP地址失败:', error);
-    // 出错时返回localhost作为默认值
-    return ['127.0.0.1'];
-  }
-}
+import syncService from '@/services/syncService'
 
 const { Header, Content } = Layout
 const { Title, Text, Paragraph } = Typography
 
-/**
- * 设置页面组件
- * 允许用户管理设备信息和网络连接
- */
-const SettingsScreen = () => {
+const SettingsScreen: React.FC = () => {
   const navigate = useNavigate()
   const [form] = Form.useForm()
-  const { deviceId, deviceType, nickname, updateNickname, onlineDevices } = useDeviceStore()
-  const { networkId, isAuthenticated, leaveNetwork } = useAuthStore()
-  const { isOnline, setOnlineStatus, lastSyncTime, connectedDevices } = useSyncStore()
-  const [messageApi, contextHolder] = message.useMessage() // 使用useMessage hook获取message API
+  const { deviceId, nickname, deviceType, updateNickname, onlineDevices } = useDeviceStore()
+  const { networkId, isAuthenticated, leaveNetwork, generateAccessCode, accessCode } = useAuthStore()
+  const { isOnline, setOnlineStatus, lastSyncTime } = useSyncStore()
+  const [messageApi, contextHolder] = message.useMessage()
   
   const [isSaving, setIsSaving] = useState(false)
   const [offlineMode, setOfflineMode] = useState(!isOnline)
-  const [copiedStatus, setCopiedStatus] = useState(false) // 用于跟踪复制状态
-  const [ipAddresses, setIpAddresses] = useState<string[]>([]) // 存储IP地址
-  const [hostname, setHostname] = useState<string>('') // 存储主机名
-  const [connectionStatus, setConnectionStatus] = useState({ isConnected: false, peersCount: 0, isSyncing: false }) // 网络连接状态
-  
+  const [copiedStatus, setCopiedStatus] = useState(false)
+  const [accessCodeCopied, setAccessCodeCopied] = useState(false)
+  const [ipAddresses, setIpAddresses] = useState<string[]>([])
+  const [hostname, setHostname] = useState<string>('')
+  const [connectionStatus, setConnectionStatus] = useState({ isConnected: false, peersCount: 0, isSyncing: false })
+
   // 初始化表单值
   useEffect(() => {
     form.setFieldsValue({
       nickname: nickname
     })
   }, [nickname, form])
-  
+
   // 获取IP地址和主机名
   useEffect(() => {
     const fetchNetworkInfo = async () => {
       try {
-        console.log('开始获取网络信息...');
-        // 获取IP地址
-        const ips = await getLocalIPAddresses();
-        setIpAddresses(ips);
+        // 使用RTCPeerConnection API获取本地IP地址
+        const pc = new RTCPeerConnection({ iceServers: [] });
+        const ips: Set<string> = new Set();
+        
+        // 创建数据通道以触发ICE候选者收集
+        pc.createDataChannel('');
+        
+        // 监听ICE候选者事件
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            // 解析ICE候选者字符串以提取IP地址
+            const candidate = event.candidate.candidate;
+            const ipRegex = /([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})/;
+            const match = candidate.match(ipRegex);
+            
+            if (match && match[1]) {
+              ips.add(match[1]);
+            }
+          }
+        };
+        
+        // 创建一个虚拟的offer以触发ICE候选者收集
+        const offer = await pc.createOffer({
+          offerToReceiveAudio: false,
+          offerToReceiveVideo: false
+        });
+        
+        // 必须设置本地描述才能真正触发ICE候选者收集
+        await pc.setLocalDescription(offer);
+        
+        // 延迟返回以确保所有候选者都被收集
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // 如果没有收集到IP，尝试添加fallback方法
+        if (ips.size === 0) {
+          // 添加localhost作为备选
+          ips.add('127.0.0.1');
+          // 如果能从window.location中获取，也添加到列表
+          if (window.location.hostname && /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)) {
+            ips.add(window.location.hostname);
+          }
+        }
+        
+        // 清理
+        pc.close();
+        
+        setIpAddresses(Array.from(ips));
         
         // 获取主机名
         const hostnameValue = window.location.hostname || 'localhost';
         setHostname(hostnameValue);
-        console.log('主机名设置为:', hostnameValue);
       } catch (error) {
         console.error('获取网络信息失败:', error);
         // 出错时设置默认值
@@ -143,7 +108,7 @@ const SettingsScreen = () => {
   // 获取网络连接状态
   useEffect(() => {
     const updateConnectionStatus = () => {
-      const status = SyncService.getConnectionStatus();
+      const status = syncService.getConnectionStatus();
       setConnectionStatus(status);
     };
 
@@ -171,16 +136,16 @@ const SettingsScreen = () => {
   const handleSaveNickname = async (values: { nickname: string }) => {
     // 验证昵称
     if (!values.nickname.trim()) {
-      messageApi.error('昵称不能为空') // 使用messageApi替代静态message
+      messageApi.error('昵称不能为空')
       return
     }
     
     setIsSaving(true)
     try {
-      await updateNickname(values.nickname)
-      messageApi.success('设备昵称更新成功') // 使用messageApi替代静态message
+      updateNickname(values.nickname)
+      messageApi.success('设备昵称更新成功')
     } catch (error) {
-      messageApi.error('设备昵称更新失败') // 使用messageApi替代静态message
+      messageApi.error('设备昵称更新失败')
       console.error('Update nickname error:', error)
     } finally {
       setIsSaving(false)
@@ -191,35 +156,62 @@ const SettingsScreen = () => {
   const handleOfflineModeChange = (checked: boolean) => {
     setOfflineMode(checked)
     setOnlineStatus(!checked)
-    messageApi.info(checked ? '已切换为离线模式' : '已切换为在线模式') // 使用messageApi替代静态message
+    messageApi.info(checked ? '已切换为离线模式' : '已切换为在线模式')
   }
   
   // 处理退出网络
   const handleLeaveNetwork = async () => {
     try {
       await leaveNetwork()
-      messageApi.success('已退出网络') // 使用messageApi替代静态message
+      messageApi.success('已退出网络')
       navigate('/')
     } catch (error) {
-      messageApi.error('退出网络失败') // 使用messageApi替代静态message
+      messageApi.error('退出网络失败')
       console.error('Leave network error:', error)
     }
   }
   
-  // 复制访问码到剪贴板
+  // 复制网络ID到剪贴板
   const handleCopyNetworkId = async () => {
     if (!networkId) return
     
     try {
       await navigator.clipboard.writeText(networkId)
-      messageApi.success('访问码已复制到剪贴板') // 使用messageApi替代静态message
+      messageApi.success('网络ID已复制到剪贴板')
       // 显示复制成功状态
       setCopiedStatus(true)
       // 2秒后恢复原始状态
       setTimeout(() => setCopiedStatus(false), 2000)
     } catch (error) {
-      messageApi.error('复制失败，请手动复制') // 使用messageApi替代静态message
-      console.error('Copy access code error:', error)
+      messageApi.error('复制失败，请手动复制')
+      console.error('Copy network ID error:', error)
+    }
+  }
+
+  // 复制访问码到剪贴板
+  const handleCopyAccessCode = async () => {
+    if (!accessCode) return;
+    try {
+      await navigator.clipboard.writeText(accessCode);
+      messageApi.success('访问码已复制到剪贴板');
+      // 显示复制成功状态
+      setAccessCodeCopied(true);
+      // 2秒后恢复原始状态
+      setTimeout(() => setAccessCodeCopied(false), 2000);
+    } catch (error) {
+      messageApi.error('复制失败，请手动复制');
+      console.error('Copy access code error:', error);
+    }
+  }
+
+  // 生成访问码
+  const handleGenerateAccessCode = () => {
+    try {
+      generateAccessCode();
+      messageApi.success('访问码已生成');
+    } catch (error) {
+      messageApi.error('生成访问码失败');
+      console.error('Generate access code error:', error);
     }
   }
 
@@ -263,17 +255,13 @@ const SettingsScreen = () => {
   
   return (
     <Layout className="min-h-screen">
-      {contextHolder} {/* 添加contextHolder到组件中 */}
+      {contextHolder}
       <Header className="bg-white shadow-sm px-6">
         <div className="flex items-center h-full">
-          {/* 使用Button组件和事件处理程序，这是React推荐的方式 */}
           <Button 
             type="primary" 
             icon={<ArrowLeftOutlined />}
-            onClick={() => {
-              // 直接导航到主页，避免依赖浏览器历史记录
-              navigate('/');
-            }}
+            onClick={() => navigate('/')}
             className="mr-4"
             size="middle"
           >
@@ -397,6 +385,40 @@ const SettingsScreen = () => {
                         {copiedStatus ? "已复制" : "复制"}
                       </Button>
                     </Tooltip>
+                  </Space>
+                </div>
+
+                {/* Access Code 生成 */}
+                <div className="mb-4">
+                  <Text strong className="block mb-2">临时访问码：</Text>
+                  <Space className="w-full flex-wrap" direction="vertical" size="middle">
+                    <Space className="w-full flex-wrap" wrap>
+                      <Text code className="block break-all flex-1 min-w-[200px]">{accessCode || '点击生成按钮获取访问码'}</Text>
+                      <Tooltip title={accessCodeCopied ? "已复制" : "复制访问码"}>
+                        <Button
+                          size="small"
+                          icon={accessCodeCopied ? <CheckOutlined /> : <CopyOutlined />}
+                          onClick={handleCopyAccessCode}
+                          type={accessCodeCopied ? "primary" : "default"}
+                          disabled={!accessCode}
+                        >
+                          {accessCodeCopied ? "已复制" : "复制"}
+                        </Button>
+                      </Tooltip>
+                      <Button
+                        size="small"
+                        icon={<LinkOutlined />}
+                        onClick={handleGenerateAccessCode}
+                        type="primary"
+                      >
+                        生成访问码
+                      </Button>
+                    </Space>
+                    {accessCode && (
+                      <Text type="secondary" className="flex items-center">
+                        <ClockCircleOutlined className="mr-1" /> 访问码有效期：5分钟
+                      </Text>
+                    )}
                   </Space>
                 </div>
 

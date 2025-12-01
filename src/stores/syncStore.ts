@@ -1,29 +1,5 @@
 import { create } from 'zustand'
-
-interface SyncState {
-  isOnline: boolean;
-  isSyncing: boolean;
-  lastSyncTime: number | null;
-  syncError: string | null;
-  connectedDevices: number;
-  networkId: string | null;
-  webrtcStatus: 'disconnected' | 'connecting' | 'connected';
-  broadcastStatus: 'inactive' | 'active';
-  syncStatus: 'idle' | 'syncing' | 'error' | 'completed';
-}
-
-interface SyncActions {
-  setOnlineStatus: (status: boolean) => void;
-  setSyncingStatus: (status: boolean) => void;
-  setSyncError: (error: string | null) => void;
-  updateLastSyncTime: () => void;
-  updateConnectedDevices: (count: number) => void;
-  setNetworkId: (networkId: string | null) => void;
-  setWebrtcStatus: (status: 'disconnected' | 'connecting' | 'connected') => void;
-  setBroadcastStatus: (status: 'inactive' | 'active') => void;
-  setSyncStatus: (status: 'idle' | 'syncing' | 'error' | 'completed') => void;
-  resetSyncState: () => void;
-}
+import { SyncState, SyncActions } from '../types/network.types'
 
 type SyncStore = SyncState & SyncActions
 
@@ -88,8 +64,8 @@ const useSyncStore = create<SyncStore>((set) => ({
   resetSyncState: () => {
     set({
       isSyncing: false,
-      syncError: null,
       lastSyncTime: null,
+      syncError: null,
       connectedDevices: 0,
       networkId: null,
       webrtcStatus: 'disconnected',
@@ -98,14 +74,5 @@ const useSyncStore = create<SyncStore>((set) => ({
     })
   }
 }))
-
-// 监听网络状态变化
-window.addEventListener('online', () => {
-  useSyncStore.getState().setOnlineStatus(true)
-})
-
-window.addEventListener('offline', () => {
-  useSyncStore.getState().setOnlineStatus(false)
-})
 
 export default useSyncStore

@@ -141,8 +141,6 @@
 ### 5.2 代码质量
 - **ESLint**: JavaScript/TypeScript代码检查
 - **Prettier**: 代码格式化
-- **Husky**: Git钩子管理
-- **lint-staged**: 只对暂存文件运行lint
 
 ### 5.3 测试工具
 - **Jest**: JavaScript测试框架
