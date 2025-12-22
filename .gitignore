@@ -87,10 +87,10 @@ test_driver/
 # Flutter platform-specific build outputs
 android/
 ios/
-linux/flutter/
-macos/Flutter/
-windows/flutter/
-web/build/
+linux/
+macos/
+windows/
+web/
 
 # Flutter dependencies
 .pub-cache/
