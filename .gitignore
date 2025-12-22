@@ -57,3 +57,45 @@ yarn.lock
 pnpm-lock.yaml
 .dart_tool
 .vite
+
+# Protoc compiler (local installation)
+r/protobuf/
+rust/protobuf/
+rust/protoc/
+rust/protoc-*.zip
+rust/protoc-*-win64/
+rust/protoc.exe
+rust/protoc-gen-*
+rust/protobuf#*
+
+# Rust build artifacts
+rust/target/
+*.rs.bk
+rust/.cargo/
+rust/Cargo.lock
+rust/.*.swp
+rust/.*.swo
+rust/.*.swm
+rust/.*.swn
+rust/.DS_Store
+rust/Thumbs.db
+
+# Flutter build artifacts
+flutter_*.png
+test_driver/
+
+# Flutter platform-specific build outputs
+android/
+ios/
+linux/flutter/
+macos/Flutter/
+windows/flutter/
+web/build/
+
+# Flutter dependencies
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
