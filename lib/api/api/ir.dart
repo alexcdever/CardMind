@@ -67,11 +67,16 @@ class Card {
 class CreateCardRequest {
   final String title;
   final String content;
+  final String deviceId;
 
-  const CreateCardRequest({required this.title, required this.content});
+  const CreateCardRequest({
+    required this.title,
+    required this.content,
+    required this.deviceId,
+  });
 
   @override
-  int get hashCode => title.hashCode ^ content.hashCode;
+  int get hashCode => title.hashCode ^ content.hashCode ^ deviceId.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -79,7 +84,8 @@ class CreateCardRequest {
       other is CreateCardRequest &&
           runtimeType == other.runtimeType &&
           title == other.title &&
-          content == other.content;
+          content == other.content &&
+          deviceId == other.deviceId;
 }
 
 class CreateDeviceRequest {
@@ -147,11 +153,17 @@ class Device {
 class JoinNetworkRequest {
   final String networkId;
   final String deviceId;
+  final String password;
 
-  const JoinNetworkRequest({required this.networkId, required this.deviceId});
+  const JoinNetworkRequest({
+    required this.networkId,
+    required this.deviceId,
+    required this.password,
+  });
 
   @override
-  int get hashCode => networkId.hashCode ^ deviceId.hashCode;
+  int get hashCode =>
+      networkId.hashCode ^ deviceId.hashCode ^ password.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -159,7 +171,8 @@ class JoinNetworkRequest {
       other is JoinNetworkRequest &&
           runtimeType == other.runtimeType &&
           networkId == other.networkId &&
-          deviceId == other.deviceId;
+          deviceId == other.deviceId &&
+          password == other.password;
 }
 
 class LeaveNetworkRequest {

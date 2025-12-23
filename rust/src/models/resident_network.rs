@@ -5,9 +5,9 @@ use uuid::Uuid;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "resident_network")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub device_id: String,
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false, indexed)]
+    pub device_id: String,  // 添加索引用于快速查询设备的常驻网络
+    #[sea_orm(primary_key, auto_increment = false)]
     pub network_id: Uuid,
     pub set_at: i64,
 }

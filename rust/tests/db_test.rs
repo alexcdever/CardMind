@@ -31,7 +31,6 @@ async fn test_card_crud() {
         content: Set("测试内容".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
-        loro_doc: Set(vec![]),
     };
     
     // 创建卡片
@@ -60,7 +59,6 @@ async fn test_card_crud() {
         content: Set("更新后的内容".to_string()),
         created_at: Set(now),
         updated_at: Set(now + 1),
-        loro_doc: Set(vec![]),
     };
     
     let updated_result = storage.update_card(updated_card).await;
@@ -96,7 +94,6 @@ async fn test_network_crud() {
         password: Set("test_password".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
-        loro_doc: Set(vec![]),
     };
     
     // 创建网络
@@ -166,21 +163,19 @@ async fn test_card_network_relation() {
         content: Set("测试内容".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
-        loro_doc: Set(vec![]),
     };
-    
+
     let created_card = storage.create_card(card).await.unwrap();
-    
+
     // 创建测试网络
     let network_id = Uuid::now_v7();
-    
+
     let network = NetworkActiveModel {
         id: Set(network_id),
         name: Set("测试网络".to_string()),
         password: Set("test_password".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
-        loro_doc: Set(vec![]),
     };
     
     let created_network = storage.create_network(network).await.unwrap();
@@ -210,14 +205,21 @@ async fn test_resident_network() {
         password: Set("test_password".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
-        loro_doc: Set(vec![]),
     };
     
     let created_network = storage.create_network(network).await.unwrap();
-    
-    // 设置常驻网络
+
+    // 创建测试设备
     let device_id = "test_device_id".to_string();
-    
+    let device = DeviceActiveModel {
+        id: Set(device_id.clone()),
+        name: Set("测试设备".to_string()),
+        created_at: Set(now),
+        updated_at: Set(now),
+    };
+    storage.create_device(device).await.unwrap();
+
+    // 设置常驻网络
     let set_result = storage.set_resident_network(created_network.id, device_id.clone()).await;
     assert!(set_result.is_ok(), "设置常驻网络失败");
     
@@ -242,7 +244,6 @@ async fn test_network_device_relation() {
         password: Set("test_password".to_string()),
         created_at: Set(now),
         updated_at: Set(now),
-        loro_doc: Set(vec![]),
     };
     
     let created_network = storage.create_network(network).await.unwrap();
@@ -258,11 +259,11 @@ async fn test_network_device_relation() {
     };
     
     let created_device = storage.create_device(device).await.unwrap();
-    
+
     // 加入网络
-    let join_result = storage.join_network(created_network.id, created_device.id).await;
+    let join_result = storage.join_network(created_network.id, created_device.id.clone()).await;
     assert!(join_result.is_ok(), "加入网络失败");
-    
+
     // 退出网络
     let leave_result = storage.leave_network(created_network.id, created_device.id).await;
     assert!(leave_result.is_ok(), "退出网络失败");

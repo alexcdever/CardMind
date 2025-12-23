@@ -955,11 +955,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CreateCardRequest dco_decode_create_card_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return CreateCardRequest(
       title: dco_decode_String(arr[0]),
       content: dco_decode_String(arr[1]),
+      deviceId: dco_decode_String(arr[2]),
     );
   }
 
@@ -1008,11 +1009,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   JoinNetworkRequest dco_decode_join_network_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return JoinNetworkRequest(
       networkId: dco_decode_String(arr[0]),
       deviceId: dco_decode_String(arr[1]),
+      password: dco_decode_String(arr[2]),
     );
   }
 
@@ -1300,7 +1302,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_title = sse_decode_String(deserializer);
     var var_content = sse_decode_String(deserializer);
-    return CreateCardRequest(title: var_title, content: var_content);
+    var var_deviceId = sse_decode_String(deserializer);
+    return CreateCardRequest(
+      title: var_title,
+      content: var_content,
+      deviceId: var_deviceId,
+    );
   }
 
   @protected
@@ -1350,7 +1357,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_networkId = sse_decode_String(deserializer);
     var var_deviceId = sse_decode_String(deserializer);
-    return JoinNetworkRequest(networkId: var_networkId, deviceId: var_deviceId);
+    var var_password = sse_decode_String(deserializer);
+    return JoinNetworkRequest(
+      networkId: var_networkId,
+      deviceId: var_deviceId,
+      password: var_password,
+    );
   }
 
   @protected
@@ -1674,6 +1686,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.title, serializer);
     sse_encode_String(self.content, serializer);
+    sse_encode_String(self.deviceId, serializer);
   }
 
   @protected
@@ -1718,6 +1731,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.networkId, serializer);
     sse_encode_String(self.deviceId, serializer);
+    sse_encode_String(self.password, serializer);
   }
 
   @protected

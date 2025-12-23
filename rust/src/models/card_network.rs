@@ -5,10 +5,10 @@ use uuid::Uuid;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "card_network")]
 pub struct Model {
-    #[sea_orm(primary_key)]
-    pub card_id: Uuid,
-    #[sea_orm(primary_key)]
-    pub network_id: Uuid,
+    #[sea_orm(primary_key, auto_increment = false, indexed)]
+    pub card_id: Uuid,  // 添加索引用于查询卡片的网络
+    #[sea_orm(primary_key, auto_increment = false, indexed)]
+    pub network_id: Uuid,  // 添加索引用于查询网络的卡片
     pub added_at: i64,
 }
 

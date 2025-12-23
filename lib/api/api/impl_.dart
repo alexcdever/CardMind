@@ -7,6 +7,8 @@ import '../frb_generated.dart';
 import 'ir.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `add_card_to_network_impl`, `create_card_impl`, `create_device_impl`, `create_network_impl`, `delete_card_impl`, `delete_network_impl`, `get_cards_impl`, `get_devices_impl`, `get_networks_impl`, `join_network_impl`, `leave_network_impl`, `remove_card_from_network_impl`, `set_resident_network_impl`, `unset_resident_network_impl`, `update_card_impl`, `update_network_impl`
+
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>>
 abstract class ApiService implements RustOpaqueInterface {
   Future<void> addCardToNetwork({required AddCardToNetworkRequest request});
