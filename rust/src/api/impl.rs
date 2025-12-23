@@ -1,5 +1,5 @@
 use crate::models::*;
-use crate::storage::Storage;
+use crate::db::Storage;
 use crate::api::ir::{Card as IrCard, Network as IrNetwork, Device as IrDevice};
 use uuid::Uuid;
 use sea_orm::Set;

@@ -18,6 +18,7 @@ pub struct Card {
 pub struct CreateCardRequest {
     pub title: String,
     pub content: String,
+    pub device_id: String,
 }
 
 
@@ -83,6 +84,7 @@ pub struct UpdateDeviceRequest {
 pub struct JoinNetworkRequest {
     pub network_id: String,
     pub device_id: String,
+    pub password: String,  // 加入网络时需要提供密码
 }
 
 

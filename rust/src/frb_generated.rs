@@ -71,7 +71,7 @@ fn wire__crate__api__impl___ApiService_add_card_to_network_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__request =
+            let api_request =
                 <crate::api::ir::AddCardToNetworkRequest>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
@@ -96,7 +96,7 @@ fn wire__crate__api__impl___ApiService_add_card_to_network_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::impl_::ApiService::add_card_to_network(
                             &*api_that_guard,
-                            api__request,
+                            api_request,
                         )
                         .await?;
                         Ok(output_ok)
@@ -312,7 +312,7 @@ fn wire__crate__api__impl___ApiService_delete_card_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__id = <String>::sse_decode(&mut deserializer);
+            let api_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
@@ -335,7 +335,7 @@ fn wire__crate__api__impl___ApiService_delete_card_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::impl_::ApiService::delete_card(&*api_that_guard, api__id)
+                            crate::api::impl_::ApiService::delete_card(&*api_that_guard, api_id)
                                 .await?;
                         Ok(output_ok)
                     })()
@@ -370,7 +370,7 @@ fn wire__crate__api__impl___ApiService_delete_network_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__id = <String>::sse_decode(&mut deserializer);
+            let api_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
@@ -392,11 +392,9 @@ fn wire__crate__api__impl___ApiService_delete_network_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::impl_::ApiService::delete_network(
-                            &*api_that_guard,
-                            api__id,
-                        )
-                        .await?;
+                        let output_ok =
+                            crate::api::impl_::ApiService::delete_network(&*api_that_guard, api_id)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -598,7 +596,7 @@ fn wire__crate__api__impl___ApiService_join_network_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__request = <crate::api::ir::JoinNetworkRequest>::sse_decode(&mut deserializer);
+            let api_request = <crate::api::ir::JoinNetworkRequest>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
@@ -622,7 +620,7 @@ fn wire__crate__api__impl___ApiService_join_network_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::impl_::ApiService::join_network(
                             &*api_that_guard,
-                            api__request,
+                            api_request,
                         )
                         .await?;
                         Ok(output_ok)
@@ -658,7 +656,7 @@ fn wire__crate__api__impl___ApiService_leave_network_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__request = <crate::api::ir::LeaveNetworkRequest>::sse_decode(&mut deserializer);
+            let api_request = <crate::api::ir::LeaveNetworkRequest>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
@@ -682,7 +680,7 @@ fn wire__crate__api__impl___ApiService_leave_network_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::impl_::ApiService::leave_network(
                             &*api_that_guard,
-                            api__request,
+                            api_request,
                         )
                         .await?;
                         Ok(output_ok)
@@ -715,12 +713,12 @@ fn wire__crate__api__impl___ApiService_new_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api__db_path = <String>::sse_decode(&mut deserializer);
+            let api_db_path = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
                     (move || async move {
-                        let output_ok = crate::api::impl_::ApiService::new(&api__db_path).await?;
+                        let output_ok = crate::api::impl_::ApiService::new(&api_db_path).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -754,7 +752,7 @@ fn wire__crate__api__impl___ApiService_remove_card_from_network_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__request =
+            let api_request =
                 <crate::api::ir::RemoveCardFromNetworkRequest>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
@@ -779,7 +777,7 @@ fn wire__crate__api__impl___ApiService_remove_card_from_network_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::impl_::ApiService::remove_card_from_network(
                             &*api_that_guard,
-                            api__request,
+                            api_request,
                         )
                         .await?;
                         Ok(output_ok)
@@ -815,7 +813,7 @@ fn wire__crate__api__impl___ApiService_set_resident_network_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__request =
+            let api_request =
                 <crate::api::ir::SetResidentNetworkRequest>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
@@ -840,7 +838,7 @@ fn wire__crate__api__impl___ApiService_set_resident_network_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::impl_::ApiService::set_resident_network(
                             &*api_that_guard,
-                            api__request,
+                            api_request,
                         )
                         .await?;
                         Ok(output_ok)
@@ -876,7 +874,7 @@ fn wire__crate__api__impl___ApiService_unset_resident_network_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ApiService>,
             >>::sse_decode(&mut deserializer);
-            let api__device_id = <String>::sse_decode(&mut deserializer);
+            let api_device_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, String>(
@@ -900,7 +898,7 @@ fn wire__crate__api__impl___ApiService_unset_resident_network_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::impl_::ApiService::unset_resident_network(
                             &*api_that_guard,
-                            api__device_id,
+                            api_device_id,
                         )
                         .await?;
                         Ok(output_ok)
@@ -1103,9 +1101,11 @@ impl SseDecode for crate::api::ir::CreateCardRequest {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_title = <String>::sse_decode(deserializer);
         let mut var_content = <String>::sse_decode(deserializer);
+        let mut var_deviceId = <String>::sse_decode(deserializer);
         return crate::api::ir::CreateCardRequest {
             title: var_title,
             content: var_content,
+            device_id: var_deviceId,
         };
     }
 }
@@ -1158,9 +1158,11 @@ impl SseDecode for crate::api::ir::JoinNetworkRequest {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_networkId = <String>::sse_decode(deserializer);
         let mut var_deviceId = <String>::sse_decode(deserializer);
+        let mut var_password = <String>::sse_decode(deserializer);
         return crate::api::ir::JoinNetworkRequest {
             network_id: var_networkId,
             device_id: var_deviceId,
+            password: var_password,
         };
     }
 }
@@ -1490,6 +1492,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::ir::CreateCardRequest {
         [
             self.title.into_into_dart().into_dart(),
             self.content.into_into_dart().into_dart(),
+            self.device_id.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1567,6 +1570,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::ir::JoinNetworkRequest {
         [
             self.network_id.into_into_dart().into_dart(),
             self.device_id.into_into_dart().into_dart(),
+            self.password.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1758,6 +1762,7 @@ impl SseEncode for crate::api::ir::CreateCardRequest {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.title, serializer);
         <String>::sse_encode(self.content, serializer);
+        <String>::sse_encode(self.device_id, serializer);
     }
 }
 
@@ -1798,6 +1803,7 @@ impl SseEncode for crate::api::ir::JoinNetworkRequest {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.network_id, serializer);
         <String>::sse_encode(self.device_id, serializer);
+        <String>::sse_encode(self.password, serializer);
     }
 }
 

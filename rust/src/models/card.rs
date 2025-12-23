@@ -5,13 +5,13 @@ use uuid::Uuid;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "cards")]
 pub struct Model {
-    #[sea_orm(primary_key)]
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub title: String,
     pub content: String,
     pub created_at: i64,
-    pub updated_at: i64,
-    pub loro_doc: Vec<u8>,
+    #[sea_orm(indexed)]
+    pub updated_at: i64,  // 添加索引用于按时间排序
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

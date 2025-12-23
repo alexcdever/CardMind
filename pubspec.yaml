@@ -35,9 +35,28 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   
+  # TDesign Flutter UI Library
+  tdesign_flutter: ^0.2.6
+  
+  # Logging library
+  logger: ^2.4.0
+  
   # flutter_rust_bridge for communication with Rust
   flutter_rust_bridge: ^2.11.1
   ffi: ^2.1.2
+
+  # Path provider for getting application directories
+  path_provider: ^2.1.0
+  path: ^1.9.0
+
+  # Device info for getting device fingerprint
+  device_info_plus: ^10.0.0
+
+  # Shared preferences for storing device ID
+  shared_preferences: ^2.2.0
+
+  # UUID generation
+  uuid: ^4.3.0
 
 dev_dependencies:
   flutter_test:
