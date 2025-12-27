@@ -1,0 +1,27 @@
+# Clippy配置文件
+# Clippy是Rust的lint工具，帮助发现代码问题和不良实践
+# 参考: https://doc.rust-lang.org/clippy/
+
+# 避免破坏已导出的API
+avoid-breaking-exported-api = false
+
+# 禁止使用的方法列表（可以添加不安全的方法）
+disallowed-methods = []
+
+# 禁止使用的类型列表
+disallowed-types = []
+
+# 认知复杂度阈值（函数太复杂会警告）
+cognitive-complexity-threshold = 30
+
+# 单个函数的最大行数
+too-many-lines-threshold = 100
+
+# 允许的单字母变量名
+single-char-binding-names-threshold = 4
+
+# 文字宽度（字符串字面量超过会警告）
+doc-valid-idents = ["CardMind", "SQLite", "Loro", "CRDT", "UUID"]
+
+# 忽略的lint（按需添加）
+# 示例：如果某些lint过于严格，可以在这里禁用
