@@ -1,0 +1,87 @@
+# Flutter build artifacts and platform-specific directories
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Platform-specific directories (usually auto-generated, not needed for AI context)
+ios/
+android/
+windows/
+macos/
+linux/
+web/
+
+# Rust build artifacts
+target/
+debug/
+release/
+
+# Flutter Rust Bridge generated files (large auto-generated code)
+*_generated.dart
+*_generated.io.dart
+*_generated.web.dart
+*generated.h
+*generated.rs
+bridge_generated.*
+frb_generated.*
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+node_modules/
+.pub-cache/
+.pub/
+
+# Git
+.git/
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+*.lcov
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+
+# Documentation build artifacts (if using tools like rustdoc)
+doc/
+docs/target/
+
+# Local environment files
+.env
+.env.local
+
+# SQLite databases (runtime data, not source code)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Loro files (runtime data)
+*.loro
+
+# Compiled files
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
