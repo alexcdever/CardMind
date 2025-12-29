@@ -10,6 +10,20 @@ lib/generated/
 lib/bridge/bridge_generated.dart
 lib/bridge/bridge_definitions.dart
 
+# Flutter 平台特定构建目录
+android/app/build/
+android/.gradle/
+android/gradle/
+android/local.properties
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner.xcworkspace/
+linux/flutter/
+macos/Flutter/
+windows/flutter/
+
 # Rust
 rust/target/
 rust/Cargo.lock
@@ -19,6 +33,10 @@ rust/src/frb_generated.rs
 *.so
 *.dylib
 *.dll
+
+# Rust 额外的构建文件
+**/*.rs.bk
+rust/**/*.orig
 
 # IDE
 .idea/
