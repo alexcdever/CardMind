@@ -9,7 +9,7 @@ include: package:flutter_lints/flutter.yaml
 
 # 分析器配置
 analyzer:
-  # 排除自动生成的文件
+  # 排除自动生成的文件和工具脚本
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
@@ -17,6 +17,7 @@ analyzer:
     - "**/frb_generated.dart"
     - "build/**"
     - "lib/generated/**"
+    - "tool/**"  # 工具脚本可以使用print
 
   # 语言特性
   language:
