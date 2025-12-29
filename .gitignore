@@ -41,6 +41,7 @@ rust/**/*.orig
 # IDE
 .idea/
 .vscode/
+*.iml
 *.swp
 *.swo
 *~
