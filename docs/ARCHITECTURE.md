@@ -4,26 +4,30 @@
 
 CardMind 采用创新的双层数据架构，使用 Loro CRDT 作为真理源（Source of Truth），SQLite 作为查询缓存层。Flutter 负责 UI 展示，Rust 实现核心业务逻辑。
 
-```
-┌─────────────────────────────────────────────────────┐
-│                   Flutter UI Layer                  │
-│  (Dart - 界面、状态管理、用户交互)                  │
-└────────────────────┬────────────────────────────────┘
-                     │ flutter_rust_bridge
-┌────────────────────▼────────────────────────────────┐
-│               Rust Business Layer                   │
-│  (核心逻辑、Loro CRDT管理、数据同步)                │
-├─────────────────────────────────────────────────────┤
-│  ┌──────────────┐              ┌─────────────────┐  │
-│  │  Loro CRDT   │──订阅机制──→│  SQLite Cache   │  │
-│  │ (真理源/写)  │              │  (查询缓存/读)  │  │
-│  └──────────────┘              └─────────────────┘  │
-│         │                                            │
-│         ↓ 文件持久化                                │
-│  ┌──────────────┐                                   │
-│  │ loro_file    │                                   │
-│  └──────────────┘                                   │
-└─────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "Flutter UI Layer"
+        UI[界面、状态管理、用户交互<br/>Dart]
+    end
+
+    subgraph "Rust Business Layer"
+        API[核心逻辑、Loro CRDT管理、数据同步]
+
+        subgraph "Data Layer"
+            Loro[Loro CRDT<br/>真理源/写]
+            SQLite[SQLite Cache<br/>查询缓存/读]
+            LoroFile[(loro_file<br/>文件持久化)]
+        end
+
+        Loro -->|订阅机制| SQLite
+        Loro -->|文件持久化| LoroFile
+    end
+
+    UI <-->|flutter_rust_bridge| API
+
+    style Loro fill:#f9f,stroke:#333,stroke-width:2px
+    style SQLite fill:#bbf,stroke:#333,stroke-width:2px
+    style LoroFile fill:#dfd,stroke:#333,stroke-width:2px
 ```
 
 ## 2. 技术栈选型
@@ -136,38 +140,26 @@ anyhow = "1.0"
 
 ### 3.1 双层数据流
 
-```
-┌──────────────────────────────────────────────────┐
-│  写操作流程（Write Path）                         │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  用户编辑卡片                                     │
-│       ↓                                          │
-│  Rust API 接收请求                               │
-│       ↓                                          │
-│  修改 Loro 文档                                  │
-│       ↓                                          │
-│  loro.commit()  ← 触发订阅回调                   │
-│       ↓                    ↓                     │
-│  持久化到文件           更新 SQLite              │
-│       ↓                    ↓                     │
-│  返回成功               刷新缓存                  │
-│                                                  │
-└──────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Write["写操作流程 (Write Path)"]
+        W1[用户编辑卡片] --> W2[Rust API 接收请求]
+        W2 --> W3[修改 Loro 文档]
+        W3 --> W4[loro.commit<br/>触发订阅回调]
+        W4 --> W5[持久化到文件]
+        W4 --> W6[更新 SQLite]
+        W5 --> W7[返回成功]
+        W6 --> W8[刷新缓存]
+    end
 
-┌──────────────────────────────────────────────────┐
-│  读操作流程（Read Path）                          │
-├──────────────────────────────────────────────────┤
-│                                                  │
-│  用户查询卡片列表                                 │
-│       ↓                                          │
-│  Rust API 接收请求                               │
-│       ↓                                          │
-│  查询 SQLite 缓存                                │
-│       ↓                                          │
-│  返回结果（快速）                                │
-│                                                  │
-└──────────────────────────────────────────────────┘
+    subgraph Read["读操作流程 (Read Path)"]
+        R1[用户查询卡片列表] --> R2[Rust API 接收请求]
+        R2 --> R3[查询 SQLite 缓存]
+        R3 --> R4[返回结果<br/>快速]
+    end
+
+    style W4 fill:#faa,stroke:#333,stroke-width:2px
+    style R3 fill:#afa,stroke:#333,stroke-width:2px
 ```
 
 ### 3.2 每卡片一LoroDoc架构
@@ -559,24 +551,19 @@ rust/
 
 ### 5.1 libp2p集成架构
 
-```
-┌────────────────────┐         ┌────────────────────┐
-│     Device A       │         │     Device B       │
-├────────────────────┤         ├────────────────────┤
-│                    │         │                    │
-│  ┌──────────────┐  │         │  ┌──────────────┐  │
-│  │  Loro Doc    │  │         │  │  Loro Doc    │  │
-│  └──────┬───────┘  │         │  └──────┬───────┘  │
-│         │          │         │         │          │
-│  ┌──────▼───────┐  │         │  ┌──────▼───────┐  │
-│  │ Sync Engine  │  │         │  │ Sync Engine  │  │
-│  └──────┬───────┘  │         │  └──────┬───────┘  │
-│         │          │         │         │          │
-│  ┌──────▼───────┐  │         │  ┌──────▼───────┐  │
-│  │   libp2p     │◄─┼─────────┼─►│   libp2p     │  │
-│  └──────────────┘  │  P2P    │  └──────────────┘  │
-│                    │  Sync   │                    │
-└────────────────────┘         └────────────────────┘
+```mermaid
+sequenceDiagram
+    participant DeviceA as Device A<br/>Loro Doc
+    participant SyncEngineA as Sync Engine A
+    participant P2P as libp2p P2P Network
+    participant SyncEngineB as Sync Engine B
+    participant DeviceB as Device B<br/>Loro Doc
+
+    DeviceA->>SyncEngineA: 修改数据
+    SyncEngineA->>P2P: 导出更新
+    P2P->>SyncEngineB: P2P 传输
+    SyncEngineB->>DeviceB: 导入更新
+    DeviceB->>DeviceB: 更新 SQLite
 ```
 
 ### 5.2 同步协议设计

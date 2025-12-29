@@ -8,14 +8,17 @@ TDD（Test-Driven Development，测试驱动开发）是一种"先写测试，�
 
 ### TDD三步走
 
-```
-1. Red（红灯）   - 写一个会失败的测试
-        ↓
-2. Green（绿灯）  - 写最少的代码让测试通过
-        ↓
-3. Refactor（重构）- 重构代码，保持测试通过
-        ↓
-      重复循环
+```mermaid
+stateDiagram-v2
+    [*] --> Red
+    Red --> Green: 写代码实现
+    Green --> Refactor: 测试通过
+    Refactor --> Red: 重复循环
+    Refactor --> [*]: 完成
+
+    Red: 🔴 Red<br/>写失败的测试
+    Green: 🟢 Green<br/>让测试通过
+    Refactor: 🔵 Refactor<br/>重构优化
 ```
 
 ### 为什么要用TDD？

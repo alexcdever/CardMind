@@ -4,23 +4,39 @@
 
 CardMind采用**双层数据架构**：
 
-```
-┌─────────────────────────────────────────┐
-│         Loro CRDT (主数据源)            │
-│  - 所有写操作                            │
-│  - 文件持久化                            │
-│  - CRDT冲突解决                         │
-│  - P2P同步                              │
-└──────────────┬──────────────────────────┘
-               │ 订阅机制
-               ↓
-┌──────────────▼──────────────────────────┐
-│       SQLite (查询缓存层)                │
-│  - 只读缓存                              │
-│  - 快速查询                              │
-│  - 全文搜索                              │
-│  - 列表展示                              │
-└─────────────────────────────────────────┘
+```mermaid
+graph TB
+    Loro[Loro CRDT<br/>主数据源]
+    SQLite[SQLite<br/>查询缓存层]
+
+    Loro -->|订阅机制| SQLite
+
+    subgraph "Loro 特性"
+        L1[所有写操作]
+        L2[文件持久化]
+        L3[CRDT冲突解决]
+        L4[P2P同步]
+    end
+
+    subgraph "SQLite 特性"
+        S1[只读缓存]
+        S2[快速查询]
+        S3[全文搜索]
+        S4[列表展示]
+    end
+
+    Loro -.-> L1
+    Loro -.-> L2
+    Loro -.-> L3
+    Loro -.-> L4
+
+    SQLite -.-> S1
+    SQLite -.-> S2
+    SQLite -.-> S3
+    SQLite -.-> S4
+
+    style Loro fill:#f9f,stroke:#333,stroke-width:3px
+    style SQLite fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
 **核心原则**:
