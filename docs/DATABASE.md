@@ -1,8 +1,19 @@
-# CardMind 数据库设计文档
+# CardMind 数据库架构设计
 
-## 1. 数据架构总览
+本文档阐述 CardMind 的数据架构设计理念、技术选型和关键决策。
 
-CardMind采用**双层数据架构**：
+**实现细节请查看源码**:
+- Loro 存储实现: `rust/src/store/loro_store.rs`
+- SQLite 缓存实现: `rust/src/store/sqlite_cache.rs`
+- 订阅机制: `rust/src/store/subscription.rs`
+
+或运行 `cargo doc --open` 查看自动生成的文档。
+
+---
+
+## 1. 架构总览
+
+CardMind 采用**双层数据架构**,结合 CRDT 的分布式一致性和关系数据库的查询性能:
 
 ```mermaid
 graph TB
@@ -39,134 +50,144 @@ graph TB
     style SQLite fill:#bbf,stroke:#333,stroke-width:2px
 ```
 
-**核心原则**:
-- **Loro是真理源（Source of Truth）**: 所有数据修改只通过Loro
-- **SQLite是缓存**: 数据通过Loro订阅机制自动同步
-- **SQLite只读**: 应用层不直接写入SQLite
+### 核心原则
 
-## 2. Loro CRDT数据结构
+- **Loro 是真理源 (Source of Truth)**: 所有数据修改只通过 Loro
+- **SQLite 是缓存**: 数据通过 Loro 订阅机制自动同步
+- **SQLite 只读**: 应用层不直接写入 SQLite
+- **单向数据流**: Loro → SQLite,永不反向
 
-### 2.1 每卡片一LoroDoc架构
+---
 
-**重要**: 每个卡片维护独立的LoroDoc，而不是所有卡片共享一个大LoroDoc。
+## 2. 为什么采用双层架构?
 
-**单个卡片的Loro文档结构**:
+### 2.1 技术选型对比
+
+| 方案 | 优点 | 缺点 | 是否采用 |
+|------|------|------|---------|
+| **纯 Loro CRDT** | 简单,无同步逻辑<br/>分布式冲突解决 | 查询慢,无索引<br/>无全文搜索 | ✗ |
+| **纯 SQLite** | 查询快,索引优化<br/>FTS5 全文搜索 | 无 CRDT,同步困难<br/>冲突解决复杂 | ✗ |
+| **双层架构**<br/>(Loro + SQLite) | **兼具两者优势**<br/>查询快 + CRDT 同步 | 需维护同步机制 | **✓** |
+
+### 2.2 Loro CRDT 的优势
+
+**为什么选择 Loro?**
+
+1. **自动冲突解决**: CRDT 算法保证最终一致性,无需手动处理冲突
+2. **P2P 友好**: 天然支持去中心化同步
+3. **文件持久化**: 简单可靠,无需复杂的数据库
+4. **性能优秀**: Rust 实现,零开销抽象
+5. **细粒度更新**: 只传输变更,减少网络流量
+
+**Loro 不擅长什么?**
+
+- ✗ 复杂查询 (无 SQL)
+- ✗ 全文搜索
+- ✗ 聚合统计
+- ✗ 索引优化
+
+### 2.3 SQLite 的优势
+
+**为什么需要 SQLite?**
+
+1. **快速查询**: 索引优化,毫秒级响应
+2. **全文搜索**: FTS5 支持,搜索体验好
+3. **排序分页**: SQL 原生支持
+4. **熟悉度高**: 开发者熟悉 SQL 语法
+5. **跨平台**: Flutter 所有平台都支持
+
+**SQLite 为什么不适合作为主存储?**
+
+- ✗ 分布式同步复杂 (需要自己实现冲突解决)
+- ✗ 文件锁可能导致并发问题
+- ✗ Schema 迁移需要谨慎处理
+
+### 2.4 架构权衡总结
+
+| 需求 | Loro | SQLite | 双层架构 |
+|------|------|--------|---------|
+| 分布式同步 | ✓ CRDT | ✗ 复杂 | ✓ 由 Loro 提供 |
+| 快速查询 | ✗ 慢 | ✓ 快 | ✓ 由 SQLite 提供 |
+| 冲突解决 | ✓ 自动 | ✗ 手动 | ✓ 由 Loro 提供 |
+| 全文搜索 | ✗ 无 | ✓ FTS5 | ✓ 由 SQLite 提供 |
+| 维护成本 | 低 | 低 | **中** (需同步) |
+
+**结论**: 虽然需要维护同步机制,但双层架构充分利用了两者的优势。
+
+---
+
+## 3. Loro CRDT 数据设计
+
+### 3.1 每卡片一 LoroDoc 架构
+
+**设计决策**: 每个卡片维护独立的 LoroDoc,而不是所有卡片共享一个大 LoroDoc。
+
+**单个卡片的 Loro 文档结构**:
 ```rust
-// 每个卡片有自己的LoroDoc
 {
+  "schema_version": 1,
   "card": LoroMap {
     "id": "<uuid-v7>",
     "title": "卡片标题",
     "content": "Markdown内容",
     "created_at": 1234567890000,
     "updated_at": 1234567890000,
-    "is_deleted": false  // 软删除标记
+    "is_deleted": false
   }
 }
 ```
 
-### 2.2 Loro文件组织和持久化
+### 3.2 为什么每卡片一 LoroDoc?
 
-**文件目录结构**:
+| 方案 | 优点 | 缺点 | 是否采用 |
+|------|------|------|---------|
+| **单个大 LoroDoc**<br/>(所有卡片) | 简单,一个文件 | 加载慢,版本历史混杂<br/>同步全部数据 | ✗ |
+| **每卡片一 LoroDoc** | 隔离性好,按需加载<br/>P2P 按卡片同步 | 文件多,管理复杂 | **✓** |
+
+**优势详解**:
+
+1. **隔离性好**: 每个卡片的版本历史独立,互不影响
+2. **性能优秀**: 小文档加载和操作速度快
+3. **P2P 友好**: 可以按需同步单个卡片,减少流量
+4. **灵活性高**: 便于实现卡片级别的权限控制 (未来扩展)
+5. **文件管理简单**: 删除卡片只需删除对应目录
+
+### 3.3 Loro 文件组织
+
+**目录结构**:
 ```
 应用数据目录/
 └── data/
     └── loro/
         ├── <base64(uuid-1)>/
         │   ├── snapshot.loro    # 完整快照
-        │   └── update.loro      # 增量更新（追加写入）
+        │   └── update.loro      # 增量更新(追加写入)
         ├── <base64(uuid-2)>/
         │   ├── snapshot.loro
         │   └── update.loro
         └── ...
 ```
 
-**更新策略**:
-```rust
-// 追加更新到update.loro
-pub fn append_update(card_id: &str, doc: &LoroDoc) -> Result<()> {
-    let update_path = get_update_path(card_id);
-    let updates = doc.export_updates_since_last_save()?;
+**设计说明**:
 
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)  // 追加模式
-        .open(&update_path)?;
+- **snapshot.loro**: 完整的卡片状态快照
+- **update.loro**: 增量更新,追加写入,避免重写整个文件
+- **合并策略**: 当 `update.loro` 超过 1MB 时,合并到 `snapshot.loro` 并清空
 
-    file.write_all(&updates)?;
+**优势**:
+- 追加写入性能好 (避免频繁重写大文件)
+- 定期合并控制文件大小
+- 故障恢复简单 (先加载快照,再应用增量)
 
-    // 检查是否需要合并
-    let size = std::fs::metadata(&update_path)?.len();
-    if size > 1024 * 1024 {  // 1MB阈值
-        merge_snapshot_and_updates(card_id, doc)?;
-    }
+详细实现见源码: `rust/src/store/loro_store.rs`
 
-    Ok(())
-}
+---
 
-// 合并快照和更新
-pub fn merge_snapshot_and_updates(card_id: &str, doc: &LoroDoc) -> Result<()> {
-    let snapshot_path = get_snapshot_path(card_id);
-    let update_path = get_update_path(card_id);
+## 4. SQLite 缓存层设计
 
-    // 导出完整快照
-    let snapshot = doc.export_snapshot();
-    std::fs::write(&snapshot_path, snapshot)?;
+### 4.1 SQLite 表结构
 
-    // 清空update.loro
-    std::fs::write(&update_path, &[])?;
-
-    Ok(())
-}
-
-// 加载卡片Loro文档
-pub fn load_card_doc(card_id: &str) -> Result<LoroDoc> {
-    let snapshot_path = get_snapshot_path(card_id);
-    let update_path = get_update_path(card_id);
-
-    let doc = LoroDoc::new();
-
-    // 1. 加载快照
-    if snapshot_path.exists() {
-        let snapshot_data = std::fs::read(&snapshot_path)?;
-        doc.import(&snapshot_data)?;
-    }
-
-    // 2. 应用增量更新
-    if update_path.exists() {
-        let update_data = std::fs::read(&update_path)?;
-        if !update_data.is_empty() {
-            doc.import(&update_data)?;
-        }
-    }
-
-    Ok(doc)
-}
-```
-
-### 2.3 为什么选择每卡片一LoroDoc
-
-- ✅ **隔离性好**: 每个卡片的版本历史独立，互不影响
-- ✅ **性能优秀**: 小文档加载和操作速度快
-- ✅ **P2P友好**: 可以按需同步单个卡片，减少流量
-- ✅ **灵活性高**: 便于实现卡片级别的权限控制
-- ✅ **文件管理简单**: 删除卡片只需删除对应目录
-- ✅ **性能优秀**: Rust实现，零开销
-
-## 3. SQLite缓存层设计
-
-### 3.1 为什么需要SQLite
-
-虽然Loro是主数据源，但SQLite提供以下优势：
-
-- ✅ **快速查询**: SQL索引优化，列表查询毫秒级
-- ✅ **全文搜索**: FTS5支持，搜索体验好
-- ✅ **排序分页**: SQL原生支持，实现简单
-- ✅ **熟悉度高**: 开发者熟悉SQL语法
-
-### 3.2 SQLite表结构
-
-#### 3.2.1 cards表（MVP阶段，支持软删除）
+#### cards 表 (MVP 阶段)
 
 ```sql
 CREATE TABLE IF NOT EXISTS cards (
@@ -175,10 +196,9 @@ CREATE TABLE IF NOT EXISTS cards (
     content TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
-    is_deleted INTEGER DEFAULT 0 NOT NULL  -- 软删除标记（0=未删除，1=已删除）
+    is_deleted INTEGER DEFAULT 0 NOT NULL
 );
 
--- 索引（优先查询未删除的卡片）
 CREATE INDEX IF NOT EXISTS idx_cards_not_deleted_created
     ON cards(is_deleted, created_at DESC);
 
@@ -186,963 +206,409 @@ CREATE INDEX IF NOT EXISTS idx_cards_not_deleted_updated
     ON cards(is_deleted, updated_at DESC);
 ```
 
-**字段说明**:
-- `id`: UUID v7字符串，主键
-- `title`: 卡片标题（可选）
-- `content`: Markdown内容
-- `created_at`: 创建时间（Unix毫秒时间戳）
-- `updated_at`: 更新时间（Unix毫秒时间戳）
-- `is_deleted`: 软删除标记（0=未删除，1=已删除）
+**设计要点**:
 
-**软删除机制**:
-- 所有查询默认只查询 `is_deleted = 0`（未删除）的卡片
-- 删除操作只更新标记为 `is_deleted = 1`，不真正删除数据
-- 支持回收站功能（查询 `is_deleted = 1` 的已删除卡片）
-- 支持恢复功能（将 `is_deleted` 从 1 改回 0）
+1. **软删除机制**: `is_deleted = 0/1`,不真正删除数据
+2. **复合索引**: `(is_deleted, created_at)` 优化未删除卡片的查询
+3. **时间戳**: 使用 INTEGER 存储 Unix 毫秒时间戳
 
-#### 3.2.2 全文搜索表（Phase 3）
+#### 全文搜索表 (Phase 3)
 
 ```sql
--- FTS5虚拟表用于全文搜索（仅搜索未删除的卡片）
 CREATE VIRTUAL TABLE IF NOT EXISTS cards_fts USING fts5(
     title,
     content,
     content='cards',
     content_rowid='rowid'
 );
-
--- 触发器：自动同步cards表到FTS表
-CREATE TRIGGER IF NOT EXISTS cards_ai AFTER INSERT ON cards BEGIN
-    INSERT INTO cards_fts(rowid, title, content)
-    VALUES (new.rowid, new.title, new.content);
-END;
-
-CREATE TRIGGER IF NOT EXISTS cards_au AFTER UPDATE ON cards BEGIN
-    UPDATE cards_fts
-    SET title = new.title, content = new.content
-    WHERE rowid = old.rowid;
-END;
-
-CREATE TRIGGER IF NOT EXISTS cards_ad AFTER DELETE ON cards BEGIN
-    DELETE FROM cards_fts WHERE rowid = old.rowid;
-END;
 ```
 
-## 4. Loro到SQLite同步机制
+**设计要点**:
+- FTS5 虚拟表,支持高性能全文搜索
+- 通过触发器自动与 `cards` 表同步
+- Phase 1 暂不实现,保留扩展性
 
-### 4.1 订阅机制实现
+### 4.2 软删除机制
 
-```rust
-use loro::{LoroDoc, LoroEvent, SubscribeOptions};
-use rusqlite::{Connection, params};
+**为什么使用软删除?**
 
-pub struct CardStore {
-    loro_doc: LoroDoc,
-    sqlite_conn: Connection,
-}
+| 方案 | 优点 | 缺点 | 是否采用 |
+|------|------|------|---------|
+| **硬删除**<br/>(DELETE FROM) | 节省空间 | 无法恢复,回收站困难 | ✗ |
+| **软删除**<br/>(is_deleted=1) | 可恢复,支持回收站 | 占用空间,查询需过滤 | **✓** |
 
-impl CardStore {
-    pub fn new(loro_path: &Path, sqlite_path: &Path) -> Result<Self> {
-        let loro_doc = load_loro_doc(loro_path)?;
-        let sqlite_conn = Connection::open(sqlite_path)?;
+**实现方式**:
+- 所有查询默认添加 `WHERE is_deleted = 0`
+- 删除操作只更新标记: `UPDATE cards SET is_deleted = 1`
+- 回收站查询: `WHERE is_deleted = 1`
+- 恢复操作: `UPDATE cards SET is_deleted = 0`
 
-        // 初始化SQLite
-        init_sqlite(&sqlite_conn)?;
-
-        let mut store = Self { loro_doc, sqlite_conn };
-
-        // 设置订阅
-        store.setup_subscription()?;
-
-        // 首次同步：将Loro中的所有数据同步到SQLite
-        store.full_sync_to_sqlite()?;
-
-        Ok(store)
-    }
-
-    fn setup_subscription(&mut self) -> Result<()> {
-        let conn_clone = // ... 获取连接的clone或Arc
-
-        self.loro_doc.subscribe(
-            &SubscribeOptions::default(),
-            move |event: &LoroEvent| {
-                if let Err(e) = handle_loro_event(&conn_clone, event) {
-                    tracing::error!("Failed to sync Loro event to SQLite: {}", e);
-                }
-            }
-        );
-
-        Ok(())
-    }
-
-    // 首次全量同步
-    fn full_sync_to_sqlite(&self) -> Result<()> {
-        let cards_map = self.loro_doc.get_map("cards");
-
-        for (id, card_value) in cards_map.iter() {
-            let card = card_value.as_map()?;
-            sync_card_to_sqlite(&self.sqlite_conn, id, card)?;
-        }
-
-        Ok(())
-    }
-}
-```
-
-### 4.2 事件处理
-
-```rust
-fn handle_loro_event(conn: &Connection, event: &LoroEvent) -> Result<()> {
-    // 解析Loro事件，更新SQLite
-    for diff in &event.diffs {
-        match diff {
-            Diff::Map(map_diff) => {
-                for (key, value_diff) in map_diff {
-                    match value_diff {
-                        ValueDiff::Create(value) => {
-                            // 新建卡片
-                            insert_card_to_sqlite(conn, key, value)?;
-                        }
-                        ValueDiff::Update(value) => {
-                            // 更新卡片
-                            update_card_in_sqlite(conn, key, value)?;
-                        }
-                        ValueDiff::Delete => {
-                            // 删除卡片
-                            delete_card_from_sqlite(conn, key)?;
-                        }
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-fn insert_card_to_sqlite(conn: &Connection, id: &str, card: &LoroMap) -> Result<()> {
-    conn.execute(
-        "INSERT OR REPLACE INTO cards (id, title, content, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![
-            id,
-            card.get("title")?.as_str()?,
-            card.get("content")?.as_str()?,
-            card.get("created_at")?.as_i64()?,
-            card.get("updated_at")?.as_i64()?,
-        ],
-    )?;
-    Ok(())
-}
-
-fn update_card_in_sqlite(conn: &Connection, id: &str, card: &LoroMap) -> Result<()> {
-    conn.execute(
-        "UPDATE cards SET title = ?1, content = ?2, updated_at = ?3 WHERE id = ?4",
-        params![
-            card.get("title")?.as_str()?,
-            card.get("content")?.as_str()?,
-            card.get("updated_at")?.as_i64()?,
-            id,
-        ],
-    )?;
-    Ok(())
-}
-
-fn delete_card_from_sqlite(conn: &Connection, id: &str) -> Result<()> {
-    conn.execute("DELETE FROM cards WHERE id = ?1", params![id])?;
-    Ok(())
-}
-```
-
-## 5. 数据操作模式
-
-### 5.1 写操作（通过Loro）
-
-```rust
-impl CardStore {
-    // 创建卡片
-    pub fn create_card(&mut self, title: &str, content: &str) -> Result<Card> {
-        let cards = self.loro_doc.get_map("cards");
-
-        let id = Uuid::now_v7().to_string();
-        let now = Utc::now().timestamp_millis();
-
-        // 写入Loro
-        let card_map = cards.insert_container(&id, LoroMap::new())?;
-        card_map.insert("id", id.clone())?;
-        card_map.insert("title", title)?;
-        card_map.insert("content", content)?;
-        card_map.insert("created_at", now)?;
-        card_map.insert("updated_at", now)?;
-
-        // commit触发订阅，自动同步到SQLite
-        self.loro_doc.commit();
-
-        // 持久化Loro文档
-        self.save_loro()?;
-
-        Ok(Card {
-            id,
-            title: title.to_string(),
-            content: content.to_string(),
-            created_at: now,
-            updated_at: now,
-        })
-    }
-
-    // 更新卡片
-    pub fn update_card(&mut self, id: &str, title: &str, content: &str) -> Result<()> {
-        let cards = self.loro_doc.get_map("cards");
-        let card = cards.get(id)?.as_map()?;
-
-        // 修改Loro
-        card.insert("title", title)?;
-        card.insert("content", content)?;
-        card.insert("updated_at", Utc::now().timestamp_millis())?;
-
-        // commit触发订阅
-        self.loro_doc.commit();
-        self.save_loro()?;
-
-        Ok(())
-    }
-
-    // 删除卡片
-    pub fn delete_card(&mut self, id: &str) -> Result<()> {
-        let cards = self.loro_doc.get_map("cards");
-        cards.delete(id)?;
-
-        // commit触发订阅
-        self.loro_doc.commit();
-        self.save_loro()?;
-
-        Ok(())
-    }
-}
-```
-
-### 5.2 读操作（从SQLite）
-
-```rust
-impl CardStore {
-    // 获取所有卡片（从SQLite读取，快速）
-    pub fn get_all_cards(&self) -> Result<Vec<Card>> {
-        let mut stmt = self.sqlite_conn.prepare(
-            "SELECT id, title, content, created_at, updated_at
-             FROM cards
-             ORDER BY created_at DESC"
-        )?;
-
-        let cards = stmt.query_map([], |row| {
-            Ok(Card {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                content: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(cards)
-    }
-
-    // 获取单个卡片
-    pub fn get_card(&self, id: &str) -> Result<Option<Card>> {
-        let mut stmt = self.sqlite_conn.prepare(
-            "SELECT id, title, content, created_at, updated_at
-             FROM cards
-             WHERE id = ?1"
-        )?;
-
-        let card = stmt.query_row([id], |row| {
-            Ok(Card {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                content: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
-            })
-        }).optional()?;
-
-        Ok(card)
-    }
-
-    // 分页查询
-    pub fn get_cards_paginated(&self, offset: usize, limit: usize) -> Result<Vec<Card>> {
-        let mut stmt = self.sqlite_conn.prepare(
-            "SELECT id, title, content, created_at, updated_at
-             FROM cards
-             ORDER BY created_at DESC
-             LIMIT ?1 OFFSET ?2"
-        )?;
-
-        let cards = stmt.query_map([limit, offset], |row| {
-            Ok(Card {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                content: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(cards)
-    }
-
-    // 搜索卡片（Phase 3）
-    pub fn search_cards(&self, keyword: &str) -> Result<Vec<Card>> {
-        let mut stmt = self.sqlite_conn.prepare(
-            "SELECT c.id, c.title, c.content, c.created_at, c.updated_at
-             FROM cards c
-             JOIN cards_fts fts ON c.rowid = fts.rowid
-             WHERE cards_fts MATCH ?1
-             ORDER BY rank"
-        )?;
-
-        let cards = stmt.query_map([keyword], |row| {
-            Ok(Card {
-                id: row.get(0)?,
-                title: row.get(1)?,
-                content: row.get(2)?,
-                created_at: row.get(3)?,
-                updated_at: row.get(4)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(cards)
-    }
-}
-```
-
-## 6. SQLite优化配置
-
-### 6.1 PRAGMA设置
-
-```rust
-pub fn init_sqlite(conn: &Connection) -> Result<()> {
-    // 创建表
-    conn.execute_batch(
-        "
-        CREATE TABLE IF NOT EXISTS cards (
-            id TEXT PRIMARY KEY NOT NULL,
-            title TEXT,
-            content TEXT NOT NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_cards_created_at ON cards(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_cards_updated_at ON cards(updated_at DESC);
-
-        -- 性能优化PRAGMA
-        PRAGMA journal_mode = WAL;           -- 提高并发性能
-        PRAGMA synchronous = NORMAL;         -- 平衡性能和安全
-        PRAGMA cache_size = -32000;          -- 32MB缓存
-        PRAGMA temp_store = MEMORY;          -- 临时表在内存
-        PRAGMA mmap_size = 30000000000;      -- 使用内存映射
-        PRAGMA page_size = 4096;             -- 页大小
-        "
-    )?;
-
-    Ok(())
-}
-```
-
-### 6.2 索引策略
+### 4.3 索引策略
 
 **当前索引**:
 - `id` (主键) - 自动索引
-- `created_at` - 按创建时间排序
-- `updated_at` - 按更新时间排序
+- `(is_deleted, created_at DESC)` - 按创建时间排序未删除卡片
+- `(is_deleted, updated_at DESC)` - 按更新时间排序未删除卡片
 
-**未来扩展**:
-- 全文搜索索引（FTS5）
-- 标签索引（如果添加标签功能）
+**为什么使用复合索引?**
 
-## 7. 数据一致性保证
+```sql
+-- 不优化的查询 (需要全表扫描 + 过滤)
+SELECT * FROM cards
+WHERE is_deleted = 0
+ORDER BY created_at DESC;
 
-### 7.1 数据同步流程
-
-```
-用户操作 → Loro修改 → commit
-                         ↓
-                   触发订阅回调
-                         ↓
-                   更新SQLite
-                         ↓
-                   持久化Loro到文件
+-- 优化后 (使用复合索引,只扫描未删除的记录)
+-- 索引: (is_deleted, created_at DESC)
 ```
 
-### 7.2 异常处理
+**未来扩展** (Phase 3):
+- FTS5 全文搜索索引
+- 标签索引 (如果添加标签功能)
 
-**SQLite同步失败处理**:
-```rust
-fn handle_loro_event(conn: &Connection, event: &LoroEvent) -> Result<()> {
-    // 使用事务保证原子性
-    let tx = conn.transaction()?;
+### 4.4 性能优化配置
 
-    for diff in &event.diffs {
-        match sync_diff_to_sqlite(&tx, diff) {
-            Ok(_) => {}
-            Err(e) => {
-                tracing::error!("Sync failed: {}", e);
-                tx.rollback()?;
-                return Err(e);
-            }
-        }
-    }
-
-    tx.commit()?;
-    Ok(())
-}
+**PRAGMA 设置**:
+```sql
+PRAGMA journal_mode = WAL;           -- 写前日志,提高并发性能
+PRAGMA synchronous = NORMAL;         -- 平衡性能和安全
+PRAGMA cache_size = -32000;          -- 32MB 缓存
+PRAGMA temp_store = MEMORY;          -- 临时表在内存
+PRAGMA mmap_size = 30000000000;      -- 使用内存映射
+PRAGMA page_size = 4096;             -- 页大小 4KB
 ```
 
-**SQLite损坏恢复**:
-```rust
-pub fn rebuild_sqlite_from_loro(store: &CardStore) -> Result<()> {
-    // 1. 删除旧的SQLite数据库
-    drop(store.sqlite_conn);
-    std::fs::remove_file(&store.sqlite_path)?;
-
-    // 2. 重新创建数据库
-    let conn = Connection::open(&store.sqlite_path)?;
-    init_sqlite(&conn)?;
-
-    // 3. 从Loro全量同步
-    let cards_map = store.loro_doc.get_map("cards");
-    for (id, card_value) in cards_map.iter() {
-        let card = card_value.as_map()?;
-        sync_card_to_sqlite(&conn, id, card)?;
-    }
-
-    Ok(())
-}
-```
-
-## 8. 性能基准
-
-### 8.1 目标性能指标
-
-| 操作 | 目标时间 | 数据量 |
-|------|---------|--------|
-| 创建卡片 | < 50ms | - |
-| 读取列表 | < 10ms | 1000张卡片 |
-| 搜索 | < 100ms | 1000张卡片 |
-| Loro同步到SQLite | < 5ms | 单条记录 |
-
-### 8.2 性能测试
-
-```rust
-#[cfg(test)]
-mod benchmarks {
-    use super::*;
-
-    #[test]
-    fn bench_create_1000_cards() {
-        let mut store = CardStore::new_in_memory().unwrap();
-        let start = Instant::now();
-
-        for i in 0..1000 {
-            store.create_card(
-                &format!("标题{}", i),
-                &format!("内容{}", i)
-            ).unwrap();
-        }
-
-        let duration = start.elapsed();
-        println!("创建1000张卡片耗时: {:?}", duration);
-        assert!(duration.as_secs() < 5); // 应该在5秒内完成
-    }
-
-    #[test]
-    fn bench_query_1000_cards() {
-        let store = setup_store_with_1000_cards();
-        let start = Instant::now();
-
-        let cards = store.get_all_cards().unwrap();
-
-        let duration = start.elapsed();
-        println!("查询1000张卡片耗时: {:?}", duration);
-        assert!(cards.len() == 1000);
-        assert!(duration.as_millis() < 100); // 应该在100ms内完成
-    }
-}
-```
-
-## 9. 数据文件位置
-
-### 9.1 文件结构
-
-```
-应用数据目录/
-├── loro_doc.loro          # Loro CRDT文档（主数据）
-└── cache.db               # SQLite缓存数据库
-```
-
-### 9.2 备份策略
-
-**Loro文档备份**:
-```rust
-pub fn backup_loro_doc(src: &Path, backup_dir: &Path) -> Result<PathBuf> {
-    let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
-    let backup_path = backup_dir.join(format!("loro_doc_{}.loro", timestamp));
-
-    std::fs::copy(src, &backup_path)?;
-    Ok(backup_path)
-}
-```
-
-**注意**: 只需要备份Loro文档即可，SQLite可以从Loro重建。
-
-## 10. 导入导出设计
-
-### 10.1 导出（Phase 3）
-
-```rust
-// 导出为Loro文档压缩包
-pub fn export_data(loro_path: &Path, output_path: &Path) -> Result<()> {
-    let mut zip = ZipWriter::new(File::create(output_path)?);
-
-    // 1. 添加Loro文档
-    let loro_data = std::fs::read(loro_path)?;
-    zip.start_file("cardmind.loro", FileOptions::default())?;
-    zip.write_all(&loro_data)?;
-
-    // 2. 添加元数据（可选）
-    let metadata = json!({
-        "version": env!("CARGO_PKG_VERSION"),
-        "exported_at": Utc::now().to_rfc3339(),
-        "card_count": get_card_count()?,
-    });
-    zip.start_file("metadata.json", FileOptions::default())?;
-    zip.write_all(metadata.to_string().as_bytes())?;
-
-    zip.finish()?;
-    Ok(())
-}
-```
-
-### 10.2 导入（Phase 3）
-
-```rust
-// 从压缩包导入
-pub fn import_data(zip_path: &Path, loro_path: &Path) -> Result<()> {
-    let file = File::open(zip_path)?;
-    let mut archive = ZipArchive::new(file)?;
-
-    // 1. 提取Loro文档
-    let mut loro_file = archive.by_name("cardmind.loro")?;
-    let mut loro_data = Vec::new();
-    loro_file.read_to_end(&mut loro_data)?;
-
-    // 2. 写入Loro文档
-    std::fs::write(loro_path, loro_data)?;
-
-    // 3. 重建SQLite缓存
-    rebuild_sqlite_from_loro()?;
-
-    Ok(())
-}
-```
-
-## 11. 数据版本管理和迁移
-
-### 11.1 版本号管理
-
-在Loro文档的元数据中存储schema版本号，用于未来的数据迁移。
-
-**版本号方案**:
-```rust
-// 在每个卡片的Loro文档中存储schema版本
-{
-  "schema_version": 1,  // 当前版本
-  "card": {
-    "id": "...",
-    "title": "...",
-    // ...
-  }
-}
-```
-
-**初始化时设置版本**:
-```rust
-impl CardStore {
-    fn create_card_with_version(&mut self, title: &str, content: &str) -> Result<Card> {
-        let doc = LoroDoc::new();
-        let root = doc.get_map("root");
-
-        // 设置schema版本
-        root.insert("schema_version", 1)?;
-
-        // 设置卡片数据
-        let card_map = root.insert_container("card", LoroMap::new())?;
-        // ... 插入卡片字段
-
-        Ok(card)
-    }
-}
-```
-
-### 11.2 迁移策略
-
-当schema发生变更时（如添加新字段、修改数据结构），使用版本号进行迁移。
-
-**迁移函数示例**:
-```rust
-pub fn migrate_card_if_needed(doc: &LoroDoc) -> Result<()> {
-    let root = doc.get_map("root");
-    let version = root.get("schema_version")
-        .and_then(|v| v.as_i64())
-        .unwrap_or(0);  // 旧版本没有version字段，默认为0
-
-    match version {
-        1 => {
-            // 当前版本，无需迁移
-            Ok(())
-        }
-        0 => {
-            // 从v0升级到v1：添加is_deleted字段
-            info!("迁移卡片schema: v0 -> v1");
-            migrate_v0_to_v1(doc)?;
-            root.insert("schema_version", 1)?;
-            doc.commit();
-            Ok(())
-        }
-        _ => {
-            error!("不支持的schema版本: {}", version);
-            Err(CardMindError::UnsupportedVersion(version))
-        }
-    }
-}
-
-fn migrate_v0_to_v1(doc: &LoroDoc) -> Result<()> {
-    let root = doc.get_map("root");
-    let card_map = root.get("card")?.as_map()?;
-
-    // 添加is_deleted字段（默认为false）
-    if !card_map.contains_key("is_deleted") {
-        card_map.insert("is_deleted", false)?;
-        info!("已添加is_deleted字段");
-    }
-
-    Ok(())
-}
-```
-
-**加载卡片时自动迁移**:
-```rust
-impl CardStore {
-    fn load_or_create_card_doc(&mut self, card_id: &str) -> Result<&mut LoroDoc> {
-        if !self.loaded_cards.contains_key(card_id) {
-            let card_dir = self.get_card_dir(card_id);
-            let doc = load_card_doc_from_files(&card_dir)?;
-
-            // 自动迁移
-            migrate_card_if_needed(&doc)?;
-
-            self.setup_subscription_for_card(&doc, card_id)?;
-            self.loaded_cards.insert(card_id.to_string(), doc);
-        }
-
-        Ok(self.loaded_cards.get_mut(card_id).unwrap())
-    }
-}
-```
-
-### 11.3 SQLite schema变更
-
-SQLite是缓存层，可以随时重建，因此schema变更相对简单。
-
-**方案1: 删除并重建**（推荐，简单可靠）
-```rust
-pub fn rebuild_sqlite_cache(sqlite_path: &Path, loro_dir: &Path) -> Result<()> {
-    info!("重建SQLite缓存");
-
-    // 1. 删除旧数据库
-    if sqlite_path.exists() {
-        std::fs::remove_file(sqlite_path)?;
-        info!("已删除旧SQLite数据库");
-    }
-
-    // 2. 创建新数据库
-    let conn = Connection::open(sqlite_path)?;
-    init_sqlite(&conn)?;
-    info!("已创建新SQLite数据库");
-
-    // 3. 从Loro全量同步
-    full_sync_from_loro(&conn, loro_dir)?;
-    info!("SQLite缓存重建完成");
-
-    Ok(())
-}
-
-fn full_sync_from_loro(conn: &Connection, loro_dir: &Path) -> Result<()> {
-    // 遍历所有Loro文档目录
-    for entry in std::fs::read_dir(loro_dir)? {
-        let entry = entry?;
-        let card_dir = entry.path();
-
-        if card_dir.is_dir() {
-            // 加载Loro文档
-            let doc = load_card_doc_from_files(&card_dir)?;
-
-            // 迁移（如果需要）
-            migrate_card_if_needed(&doc)?;
-
-            // 同步到SQLite
-            let root = doc.get_map("root");
-            let card_map = root.get("card")?.as_map()?;
-            sync_card_to_sqlite(conn, card_map)?;
-        }
-    }
-
-    Ok(())
-}
-```
-
-**方案2: ALTER TABLE（复杂场景）**
-```rust
-// 仅在必须保留SQLite数据时使用（通常不需要，因为可以从Loro重建）
-pub fn migrate_sqlite_schema(conn: &Connection, from_version: i32, to_version: i32) -> Result<()> {
-    match (from_version, to_version) {
-        (1, 2) => {
-            // 添加新列
-            conn.execute(
-                "ALTER TABLE cards ADD COLUMN new_field TEXT DEFAULT ''",
-                [],
-            )?;
-        }
-        _ => {
-            return Err(CardMindError::UnsupportedMigration(from_version, to_version));
-        }
-    }
-    Ok(())
-}
-```
-
-### 11.4 应用启动时的迁移检查
-
-在应用启动时检查并执行必要的迁移：
-
-```rust
-impl CardStore {
-    pub fn new(data_dir: PathBuf, sqlite_path: &Path) -> Result<Self> {
-        let sqlite_conn = Connection::open(sqlite_path)?;
-
-        // 检查SQLite版本
-        let sqlite_version = get_sqlite_schema_version(&sqlite_conn)?;
-        if sqlite_version < CURRENT_SQLITE_VERSION {
-            warn!("SQLite schema版本过旧: {} < {}", sqlite_version, CURRENT_SQLITE_VERSION);
-
-            // 重建SQLite（简单可靠）
-            drop(sqlite_conn);
-            rebuild_sqlite_cache(sqlite_path, &data_dir.join("loro"))?;
-            let sqlite_conn = Connection::open(sqlite_path)?;
-        }
-
-        Ok(Self {
-            data_dir,
-            loaded_cards: HashMap::new(),
-            sqlite_conn,
-            update_size_threshold: 1024 * 1024,
-        })
-    }
-}
-
-fn get_sqlite_schema_version(conn: &Connection) -> Result<i32> {
-    // 可以用user_version pragma存储版本号
-    let version: i32 = conn.query_row("PRAGMA user_version", [], |row| row.get(0))?;
-    Ok(version)
-}
-
-fn set_sqlite_schema_version(conn: &Connection, version: i32) -> Result<()> {
-    conn.execute(&format!("PRAGMA user_version = {}", version), [])?;
-    Ok(())
-}
-
-fn init_sqlite(conn: &Connection) -> Result<()> {
-    // 创建表
-    conn.execute_batch(
-        "
-        CREATE TABLE IF NOT EXISTS cards (
-            id TEXT PRIMARY KEY,
-            title TEXT,
-            content TEXT NOT NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL,
-            is_deleted INTEGER DEFAULT 0
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_cards_not_deleted_created
-            ON cards(is_deleted, created_at DESC);
-        "
-    )?;
-
-    // 设置schema版本
-    set_sqlite_schema_version(conn, 1)?;
-
-    Ok(())
-}
-```
-
-### 11.5 迁移测试
-
-**测试旧版本数据能否正确迁移**:
-```rust
-#[cfg(test)]
-mod migration_tests {
-    use super::*;
-
-    #[test]
-    fn test_migrate_v0_to_v1() {
-        // 创建v0格式的Loro文档（没有is_deleted字段）
-        let doc = LoroDoc::new();
-        let root = doc.get_map("root");
-        let card_map = root.insert_container("card", LoroMap::new()).unwrap();
-
-        card_map.insert("id", "test-id").unwrap();
-        card_map.insert("title", "测试").unwrap();
-        card_map.insert("content", "内容").unwrap();
-        // 注意：没有is_deleted字段（模拟v0）
-
-        // 执行迁移
-        migrate_card_if_needed(&doc).unwrap();
-
-        // 验证迁移结果
-        let card_map = root.get("card").unwrap().as_map().unwrap();
-        assert!(card_map.contains_key("is_deleted"));
-        assert_eq!(card_map.get("is_deleted").unwrap().as_bool().unwrap(), false);
-
-        // 验证版本号更新
-        assert_eq!(root.get("schema_version").unwrap().as_i64().unwrap(), 1);
-    }
-
-    #[test]
-    fn test_rebuild_sqlite_from_loro() {
-        let temp_dir = tempdir().unwrap();
-        let sqlite_path = temp_dir.path().join("cache.db");
-        let loro_dir = temp_dir.path().join("loro");
-
-        // 创建测试Loro文档
-        std::fs::create_dir_all(&loro_dir).unwrap();
-        // ... 创建测试数据
-
-        // 重建SQLite
-        rebuild_sqlite_cache(&sqlite_path, &loro_dir).unwrap();
-
-        // 验证数据正确
-        let conn = Connection::open(&sqlite_path).unwrap();
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM cards", [], |row| row.get(0)).unwrap();
-        assert!(count > 0);
-    }
-}
-```
-
-### 11.6 向后兼容原则
-
-**重要原则**:
-1. **新版本能读取旧版本数据**（向后兼容）
-2. **使用默认值填充缺失字段**
-3. **渐进式迁移**（逐个文档迁移，不是一次性全部迁移）
-4. **失败回滚**（迁移失败时保留原始数据）
-
-**示例：添加新字段时使用默认值**:
-```rust
-// 读取时提供默认值
-fn read_card_from_loro(card_map: &LoroMap) -> Result<Card> {
-    Ok(Card {
-        id: card_map.get("id")?.as_str()?.to_string(),
-        title: card_map.get("title")?.as_str()?.to_string(),
-        content: card_map.get("content")?.as_str()?.to_string(),
-        created_at: card_map.get("created_at")?.as_i64()?,
-        updated_at: card_map.get("updated_at")?.as_i64()?,
-        // 旧版本没有is_deleted，使用默认值false
-        is_deleted: card_map.get("is_deleted")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-    })
-}
-```
-
-### 11.7 迁移日志和通知
-
-在迁移过程中提供清晰的日志：
-
-```rust
-pub fn migrate_all_cards(loro_dir: &Path) -> Result<usize> {
-    info!("开始扫描并迁移Loro文档");
-    let mut migrated_count = 0;
-
-    for entry in std::fs::read_dir(loro_dir)? {
-        let entry = entry?;
-        let card_dir = entry.path();
-
-        if card_dir.is_dir() {
-            let doc = load_card_doc_from_files(&card_dir)?;
-            let version_before = get_doc_version(&doc)?;
-
-            if migrate_card_if_needed(&doc)? {
-                migrated_count += 1;
-                info!("已迁移卡片: {:?}, v{} -> v{}",
-                      card_dir.file_name().unwrap(),
-                      version_before,
-                      get_doc_version(&doc)?);
-            }
-        }
-    }
-
-    info!("迁移完成，共迁移{}个文档", migrated_count);
-    Ok(migrated_count)
-}
-```
-
-### 11.8 总结
-
-**数据迁移核心要点**:
-
-1. **Loro是真理源** - 只需迁移Loro数据
-2. **SQLite可重建** - 删除重建是最简单可靠的方案
-3. **版本号管理** - 在Loro文档中存储schema_version
-4. **渐进式迁移** - 加载时按需迁移，不是一次性全部迁移
-5. **向后兼容** - 新版本能读取旧版本数据
-6. **完善测试** - 为每个迁移路径编写测试
-
-**MVP阶段**:
-- 暂时不需要迁移逻辑（从v1开始）
-- 预留schema_version字段
-- 为将来的迁移做好准备
-
-**V2.0及以后**:
-- 根据需要添加迁移逻辑
-- 遵循上述原则，确保平滑升级
+详细配置见源码: `rust/src/store/sqlite_cache.rs`
 
 ---
 
-## 12. 总结
+## 5. Loro 到 SQLite 同步机制
 
-CardMind的数据库设计核心特点：
+### 5.1 订阅驱动的单向同步
 
-1. **Loro作为真理源**:
-   - 所有写操作通过Loro
-   - CRDT保证数据一致性
-   - 文件持久化，简单可靠
+**核心设计**: Loro 的订阅机制 (Subscription) 自动触发 SQLite 更新。
 
-2. **SQLite作为缓存**:
-   - 只读缓存，不直接写入
-   - 订阅机制自动同步
-   - 优化查询性能
+```mermaid
+sequenceDiagram
+    participant App as 应用层
+    participant Loro as Loro CRDT
+    participant Sub as 订阅回调
+    participant SQLite as SQLite Cache
 
-3. **双层架构优势**:
-   - 数据可靠性（Loro CRDT）
-   - 查询性能（SQLite索引）
-   - 易于扩展（独立的两层）
+    App->>Loro: 修改数据
+    App->>Loro: commit()
+    Loro->>Sub: 触发 LoroEvent
+    Sub->>Sub: 解析事件 (Create/Update/Delete)
+    Sub->>SQLite: 执行 SQL (INSERT/UPDATE/DELETE)
+    SQLite-->>Sub: 确认
+    Loro->>Loro: 持久化到文件
+```
 
-4. **简化的备份和导入导出**:
-   - 只需备份Loro文档文件
-   - SQLite可随时从Loro重建
-   - 导入导出就是Loro文件的压缩/解压
+**关键特性**:
+1. **实时同步**: `commit()` 后立即触发
+2. **单向数据流**: Loro → SQLite,永不反向
+3. **原子性**: 订阅回调使用事务保证一致性
+4. **故障恢复**: SQLite 损坏时可从 Loro 重建
 
-这个设计既保证了CRDT的强大同步能力，又提供了SQLite的高性能查询，是卡片笔记应用的理想架构。
+### 5.2 事件处理流程
+
+**LoroEvent 类型映射**:
+
+| Loro 事件 | SQLite 操作 | 说明 |
+|-----------|------------|------|
+| `Create` | `INSERT` | 新建卡片 |
+| `Update` | `UPDATE` | 修改字段 |
+| `Delete` | `UPDATE is_deleted=1` | 软删除 |
+
+**伪代码**:
+```rust
+fn handle_loro_event(event: LoroEvent) -> Result<()> {
+    match event.diff {
+        Diff::Create => sqlite.execute("INSERT INTO cards ..."),
+        Diff::Update => sqlite.execute("UPDATE cards SET ... WHERE id = ?"),
+        Diff::Delete => sqlite.execute("UPDATE cards SET is_deleted = 1 WHERE id = ?"),
+    }
+}
+```
+
+详细实现见源码: `rust/src/store/subscription.rs`
+
+### 5.3 数据一致性保证
+
+**同步失败处理**:
+- 使用 SQLite 事务保证原子性
+- 失败时回滚,不影响 Loro 数据
+- 记录错误日志,便于调试
+
+**SQLite 损坏恢复**:
+1. 删除旧的 SQLite 数据库文件
+2. 重新创建空数据库
+3. 从 Loro 全量同步所有卡片
+4. 重建索引
+
+**一致性检查** (可选,用于调试):
+```rust
+pub fn verify_consistency() -> Result<bool> {
+    // 比较 Loro 中的卡片数量和 SQLite 中的数量
+    let loro_count = count_cards_in_loro();
+    let sqlite_count = count_cards_in_sqlite();
+
+    if loro_count != sqlite_count {
+        warn!("数据不一致: Loro={}, SQLite={}", loro_count, sqlite_count);
+        return Ok(false);
+    }
+    Ok(true)
+}
+```
+
+---
+
+## 6. 数据操作模式
+
+### 6.1 写操作流程 (Write Path)
+
+**原则**: 所有写操作必须通过 Loro。
+
+```mermaid
+graph LR
+    A[用户操作] --> B[Loro.insert/update/delete]
+    B --> C[Loro.commit]
+    C --> D[触发订阅]
+    D --> E[更新 SQLite]
+    C --> F[持久化 Loro 文件]
+```
+
+**示例** (创建卡片):
+1. 生成 UUID v7
+2. 插入数据到 Loro LoroMap
+3. 调用 `commit()` 触发订阅
+4. 订阅回调自动 `INSERT` 到 SQLite
+5. 持久化 Loro 到 `update.loro` (追加写入)
+
+### 6.2 读操作流程 (Read Path)
+
+**原则**: 所有读操作从 SQLite 查询。
+
+```mermaid
+graph LR
+    A[用户查询] --> B[SQLite SELECT]
+    B --> C[利用索引]
+    C --> D[返回结果]
+```
+
+**优势**:
+- 快速: 索引优化,毫秒级响应
+- 灵活: SQL 支持复杂查询、排序、分页
+- 可扩展: 未来可添加全文搜索 (FTS5)
+
+### 6.3 为什么不从 Loro 读取?
+
+| 操作 | Loro | SQLite | 选择 |
+|------|------|--------|------|
+| 获取所有卡片 | 遍历 LoroMap,O(n) | 索引查询,O(log n) | **SQLite** |
+| 按时间排序 | 手动排序,O(n log n) | ORDER BY,使用索引 | **SQLite** |
+| 全文搜索 | 不支持 | FTS5,专门优化 | **SQLite** |
+| 分页查询 | 不支持 | LIMIT/OFFSET | **SQLite** |
+
+**结论**: Loro 专注于写操作和同步,SQLite 专注于查询。
+
+---
+
+## 7. 数据文件管理
+
+### 7.1 文件结构
+
+```
+应用数据目录/
+└── data/
+    ├── loro/
+    │   ├── <base64(uuid-1)>/
+    │   │   ├── snapshot.loro
+    │   │   └── update.loro
+    │   ├── <base64(uuid-2)>/
+    │   │   ├── snapshot.loro
+    │   │   └── update.loro
+    │   └── ...
+    └── cache.db               # SQLite 缓存数据库
+```
+
+### 7.2 备份策略
+
+**重要**: 只需备份 `loro/` 目录,SQLite 可以随时从 Loro 重建。
+
+**备份方案**:
+1. **定期备份**: 每天/每周备份 `loro/` 目录
+2. **增量备份**: 只备份新增或修改的 Loro 文件
+3. **云同步**: P2P 同步本身就是一种备份 (Phase 2)
+
+**恢复方案**:
+1. 恢复 `loro/` 目录
+2. 删除 `cache.db`
+3. 重新初始化应用,自动重建 SQLite
+
+### 7.3 导入导出设计 (Phase 3)
+
+**导出**:
+- 打包 `loro/` 目录为 ZIP
+- 添加元数据 (版本号、导出时间、卡片数量)
+
+**导入**:
+- 解压 ZIP 到 `loro/` 目录
+- 重建 SQLite 缓存
+- 验证数据完整性
+
+---
+
+## 8. 数据版本管理和迁移
+
+### 8.1 Schema 版本控制
+
+**版本号存储**:
+- Loro: 每个卡片文档的 `schema_version` 字段
+- SQLite: `PRAGMA user_version`
+
+**当前版本**: v1
+
+### 8.2 迁移策略
+
+**Loro Schema 迁移** (按需迁移):
+- 加载卡片时检查 `schema_version`
+- 如果版本过旧,自动迁移到最新版本
+- 使用默认值填充新字段 (如 `is_deleted` 默认为 `false`)
+
+**SQLite Schema 迁移** (重建方案):
+- 检测到版本不匹配时,删除旧数据库
+- 重新创建表结构
+- 从 Loro 全量同步
+
+**为什么 SQLite 可以删除重建?**
+- SQLite 是缓存,不是主存储
+- 所有数据都能从 Loro 恢复
+- 重建比复杂的 ALTER TABLE 迁移更可靠
+
+### 8.3 向后兼容原则
+
+1. **新版本能读取旧版本数据**
+2. **使用默认值填充缺失字段**
+3. **渐进式迁移** (逐个文档迁移,不是一次性全部迁移)
+4. **失败回滚** (迁移失败时保留原始数据)
+
+详细迁移逻辑见源码: `rust/src/store/migration.rs`
+
+---
+
+## 9. 性能基准和优化
+
+### 9.1 性能目标
+
+| 操作 | 目标时间 | 数据量 | 说明 |
+|------|---------|--------|------|
+| 创建卡片 | < 50ms | - | 包括 Loro commit 和 SQLite INSERT |
+| 读取列表 | < 10ms | 1000 张卡片 | 利用索引优化 |
+| 搜索 | < 100ms | 1000 张卡片 | FTS5 全文搜索 (Phase 3) |
+| Loro → SQLite 同步 | < 5ms | 单条记录 | 订阅回调延迟 |
+| 应用启动 | < 2s | - | 加载数据库,初始化订阅 |
+| 列表加载 | < 1s | 1000 张卡片 | 查询 + 渲染 |
+
+### 9.2 优化策略
+
+**Loro 优化**:
+- 每卡片一 LoroDoc,避免加载全部数据
+- 追加写入 `update.loro`,减少磁盘 I/O
+- 定期合并快照,控制文件大小
+
+**SQLite 优化**:
+- WAL 模式提高并发性能
+- 复合索引 `(is_deleted, created_at)` 优化查询
+- 32MB 缓存提高命中率
+- 内存映射减少系统调用
+
+**应用层优化**:
+- 批量查询代替循环查询
+- 分页加载 (Dart 层实现)
+- 虚拟滚动 (Flutter ListView.builder)
+
+---
+
+## 10. 数据安全和隐私
+
+### 10.1 数据加密 (未来考虑)
+
+**方案**:
+- 文件级加密: 加密整个 `loro/` 目录
+- 字段级加密: 加密敏感字段 (如内容)
+
+**权衡**:
+- 优势: 保护本地数据
+- 劣势: 性能开销,密钥管理复杂
+
+**MVP 阶段**: 暂不实现,依赖操作系统的文件权限保护。
+
+### 10.2 数据隔离
+
+**文件权限**:
+- `loro/` 目录权限: 仅应用可访问 (0700)
+- `cache.db` 权限: 仅应用可访问
+
+**跨用户隔离**:
+- 每个操作系统用户有独立的数据目录
+- 不同用户的卡片互不可见
+
+---
+
+## 11. 常见问题 (FAQ)
+
+### Q1: SQLite 损坏了怎么办?
+
+**A**: SQLite 是缓存,可以安全删除并重建:
+1. 删除 `cache.db`
+2. 重启应用,自动从 Loro 重建
+
+### Q2: 为什么不直接用 Loro 查询?
+
+**A**: Loro 优化了写操作和 CRDT 合并,不是查询。SQLite 的索引和 SQL 查询能力更强。
+
+### Q3: 如何保证 Loro 和 SQLite 一致?
+
+**A**: 通过订阅机制单向同步,Loro 是唯一的写入点,SQLite 永远是 Loro 的镜像。
+
+### Q4: 卡片很多时,Loro 文件会不会太大?
+
+**A**: 每卡片一 LoroDoc,单个文件很小。定期合并快照控制大小。
+
+### Q5: 如何实现多设备同步?
+
+**A**: Phase 2 使用 libp2p P2P 同步。Loro 的 CRDT 特性天然支持分布式冲突解决。
+
+---
+
+## 12. 相关文档
+
+- [API_DESIGN.md](API_DESIGN.md) - API 设计理念和使用指南
+- [DATA_MODELS.md](DATA_MODELS.md) - 数据模型快速参考
+- [ARCHITECTURE.md](ARCHITECTURE.md) - 系统整体架构
+- [ROADMAP.md](ROADMAP.md) - 开发路线图
+
+**源码位置**:
+- Loro 存储: `rust/src/store/loro_store.rs`
+- SQLite 缓存: `rust/src/store/sqlite_cache.rs`
+- 订阅机制: `rust/src/store/subscription.rs`
+- 数据迁移: `rust/src/store/migration.rs`
+
+**自动生成的文档**:
+```bash
+cd rust && cargo doc --open
+```
+
+---
+
+## 更新日志
+
+| 版本 | 变更 |
+|------|------|
+| 0.2.0 | 重构为架构设计文档,移除实现细节 |
+| 0.1.0 | 初始版本,包含详细实现代码 |
+
+---
+
+**提示**: 本文档专注于架构设计和技术选型。具体的实现细节 (如函数签名、数据结构定义) 请查看源码或运行 `cargo doc --open`。

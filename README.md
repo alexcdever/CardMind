@@ -124,7 +124,7 @@ dependencies:
 ### 📚 深度学习（按需阅读）
 
 - **[DATABASE.md](docs/DATABASE.md)** - 理解Loro和SQLite双层数据设计
-- **[API.md](docs/API.md)** - API接口定义和使用
+- **[API_DESIGN.md](docs/API_DESIGN.md)** - API接口定义和使用
 - **[PRD.md](docs/PRD.md)** - 产品需求全貌
 - **[LOGGING.md](docs/LOGGING.md)** - 日志最佳实践
 - **[FAQ.md](docs/FAQ.md)** - 常见问题解答

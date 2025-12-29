@@ -353,6 +353,6 @@ See the comprehensive documentation in [docs/](docs/):
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Detailed technical architecture
 - [DATABASE.md](docs/DATABASE.md) - Database design and data flow
 - [ROADMAP.md](docs/ROADMAP.md) - Development phases and timeline
-- [API.md](docs/API.md) - API interface definitions
+- [API_DESIGN.md](docs/API_DESIGN.md) - API interface definitions
 - [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) - TDD guide and testing strategy
 - [LOGGING.md](docs/LOGGING.md) - Logging best practices
