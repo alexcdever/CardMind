@@ -1,0 +1,72 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+lib/generated/
+lib/bridge/bridge_generated.dart
+lib/bridge/bridge_definitions.dart
+
+# Rust
+rust/target/
+rust/Cargo.lock
+rust/src/bridge_generated.h
+rust/src/frb_generated.rs
+*.rlib
+*.so
+*.dylib
+*.dll
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 测试覆盖率
+rust/tarpaulin-report.html
+rust/cobertura.xml
+coverage/
+test/.test_coverage.dart
+*.lcov
+
+# 临时文件
+*.log
+*.tmp
+.cache/
+
+# 数据库文件（仅开发测试用）
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Loro数据文件（仅开发测试用）
+loro/
+*.loro
+
+# 生成的文件
+generated/
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 环境配置（如果包含敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 备份文件
+*.bak
+*.backup
+
+# Claude Code
+.claude/
