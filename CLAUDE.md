@@ -39,6 +39,14 @@ Sync Path (Phase 2):
 Device A Loro → Export Updates → P2P (libp2p) → Import Updates → Device B Loro → Update SQLite
 ```
 
+**Critical Architecture Decision**: Each card has its own LoroDoc file (not a single shared LoroDoc):
+- **Isolation**: Individual version history per card
+- **Performance**: Small files load faster
+- **P2P-friendly**: Sync cards selectively
+- **File structure**: `data/loro/<base64(uuid)>/snapshot.loro` and `update.loro`
+
+This design is detailed in [DATABASE.md](docs/DATABASE.md) section 3.
+
 ## Technology Stack
 
 - **Frontend**: Flutter 3.x (Dart)
@@ -89,8 +97,8 @@ flutter build linux        # Linux
 
 ### Code Generation
 ```bash
-# Generate Rust-Dart bridge (will be defined in generate_bridge.sh)
-./generate_bridge.sh
+# Generate Rust-Dart bridge (cross-platform)
+dart tool/generate_bridge.dart
 ```
 
 ### Static Analysis (Run Before Committing)
@@ -337,22 +345,57 @@ fn test_card_creation_syncs_to_sqlite() {
 6. **Follow TDD** - write tests before implementation
 7. **Keep test coverage >80%** - this is a hard requirement
 
+## Documentation Philosophy
+
+**Design vs. Implementation Separation**:
+- **Markdown docs in `docs/`**: Architecture, design principles, and "why" decisions
+- **Rust doc comments (`///`)**: Implementation details, API references, and "how" to use
+- **Never duplicate implementation in Markdown**: Code is the source of truth
+
+**When writing code**:
+1. Write comprehensive Rust doc comments for all public APIs
+2. Include examples in doc comments (tested by `cargo test --doc`)
+3. Run `cargo doc --open` to verify documentation quality
+4. Update Markdown docs only if design principles change
+
+**When seeking implementation details**:
+- ✅ Run `cargo doc --open` for Rust API documentation
+- ✅ Read source code in `rust/src/`
+- ❌ Don't expect implementation details in `docs/*.md`
+
+See [RUST_DOC_GUIDE.md](docs/RUST_DOC_GUIDE.md) for doc comment best practices.
+
 ## Common Pitfalls to Avoid
 
-1. Writing directly to SQLite (breaks architecture)
-2. Forgetting to call `loro_doc.commit()` (subscriptions won't trigger)
-3. Using UUID v4 instead of UUID v7 (loses time-ordering)
-4. Not persisting Loro file after modifications
-5. Reading from Loro for queries (use SQLite instead)
-6. Implementing features not in the roadmap (scope creep)
+1. **Writing directly to SQLite** (breaks architecture) - ALL writes must go through Loro
+2. **Forgetting to call `loro_doc.commit()`** (subscriptions won't trigger) - no SQLite update
+3. **Using UUID v4 instead of UUID v7** (loses time-ordering) - breaks chronological features
+4. **Not persisting Loro file after modifications** - data loss on restart
+5. **Reading from Loro for queries** (use SQLite instead) - slow performance, no indexing
+6. **Implementing features not in the roadmap** (scope creep) - focus on MVP first
+7. **Duplicating implementation details in Markdown docs** - use Rust doc comments instead
+8. **Not writing doc comments for public APIs** - run `cargo doc` to verify documentation
+9. **Assuming single shared LoroDoc** - each card has its own LoroDoc file
 
 ## References
 
 See the comprehensive documentation in [docs/](docs/):
+
+**Core Documentation** (Read First):
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture and design principles
+- [DATABASE.md](docs/DATABASE.md) - Dual-layer data architecture (Loro + SQLite)
+- [API_DESIGN.md](docs/API_DESIGN.md) - API design philosophy and usage patterns
+- [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) - TDD methodology and testing strategy
+
+**Quick Reference**:
+- [DATA_MODELS.md](docs/DATA_MODELS.md) - Data model overview and field definitions
+- [RUST_DOC_GUIDE.md](docs/RUST_DOC_GUIDE.md) - How to write Rust documentation comments
+
+**Additional Resources**:
 - [PRD.md](docs/PRD.md) - Product requirements and features
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Detailed technical architecture
-- [DATABASE.md](docs/DATABASE.md) - Database design and data flow
 - [ROADMAP.md](docs/ROADMAP.md) - Development phases and timeline
-- [API_DESIGN.md](docs/API_DESIGN.md) - API interface definitions
-- [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) - TDD guide and testing strategy
 - [LOGGING.md](docs/LOGGING.md) - Logging best practices
+- [SETUP.md](docs/SETUP.md) - Development environment setup
+- [FAQ.md](docs/FAQ.md) - Frequently asked questions
+
+**Important**: Many design documents now emphasize "implementation details in source code". Always run `cargo doc --open` to view the auto-generated Rust API documentation for implementation details.
