@@ -103,14 +103,16 @@ CardMind 是一款卡片式笔记应用，通过卡片的形式帮助用户组�
 - SQLite仅作为只读缓存，不直接写入
 
 **数据流**:
-```
-用户操作 → Loro文档修改 → Loro.commit()
-                              ↓
-                    触发订阅回调
-                              ↓
-                    更新SQLite缓存
-                              ↓
-                    通知UI刷新
+```mermaid
+flowchart TD
+    User[用户操作] --> Loro[Loro文档修改]
+    Loro --> Commit[Loro.commit]
+    Commit --> Sub[触发订阅回调]
+    Sub --> SQLite[更新SQLite缓存]
+    SQLite --> UI[通知UI刷新]
+
+    style Commit fill:#faa,stroke:#333,stroke-width:2px
+    style Sub fill:#ffa,stroke:#333,stroke-width:2px
 ```
 
 #### 2.1.3 数据持久化
@@ -129,15 +131,17 @@ CardMind 是一款卡片式笔记应用，通过卡片的形式帮助用户组�
 - 自动冲突解决（由Loro CRDT处理）
 
 **同步流程**:
-```
-设备A                          设备B
-  │                              │
-  ├─ 修改Loro文档                 │
-  ├─ Loro.export_updates()       │
-  ├───────── 发送更新 ──────────→ │
-  │                              ├─ Loro.import_updates()
-  │                              ├─ 触发订阅更新SQLite
-  │                              └─ UI刷新
+```mermaid
+sequenceDiagram
+    participant A as 设备A
+    participant B as 设备B
+
+    A->>A: 修改Loro文档
+    A->>A: Loro.export_updates()
+    A->>B: 发送更新
+    B->>B: Loro.import_updates()
+    B->>B: 触发订阅更新SQLite
+    B->>B: UI刷新
 ```
 
 **同步设置**
