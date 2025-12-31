@@ -38,6 +38,10 @@ rust/src/frb_generated.rs
 **/*.rs.bk
 rust/**/*.orig
 
+# Windows 保留文件名（无法删除）
+rust/nul
+nul
+
 # IDE
 .idea/
 .vscode/
