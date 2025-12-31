@@ -78,12 +78,12 @@
 - [ ] 实现错误处理框架（thiserror）
 
 ### 交付标准
-- ✅ Flutter能成功运行
-- ✅ Rust代码能被Flutter调用
-- ✅ Loro能正常工作并持久化
-- ✅ SQLite能正常创建和连接
-- ✅ Loro订阅能自动同步到SQLite
-- ✅ 测试覆盖率 > 80%
+- Flutter能成功运行
+- Rust代码能被Flutter调用
+- Loro能正常工作并持久化
+- SQLite能正常创建和连接
+- Loro订阅能自动同步到SQLite
+- 测试覆盖率 > 80%
 
 ---
 
@@ -617,3 +617,9 @@ pub fn create_card(&mut self, title: &str, content: &str) -> Result<Card> {
 5. **用户反馈**: 及时收集，快速响应
 
 **让我们开始吧！🚀**
+
+---
+
+## 📊 查看当前进度
+
+实时开发进度请查看 **[PROGRESS.md](PROGRESS.md)** 文档。
