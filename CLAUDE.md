@@ -101,17 +101,49 @@ flutter build linux        # Linux
 dart tool/generate_bridge.dart
 ```
 
-### Static Analysis (Run Before Committing)
+### Static Analysis and Auto-Fix
+
+**Automatic Fix (Recommended)**:
+```bash
+# Fix all lint issues automatically (Flutter + Rust)
+dart tool/fix_lint.dart
+
+# Fix only Flutter/Dart issues
+dart tool/fix_lint.dart --flutter-only
+
+# Fix only Rust issues
+dart tool/fix_lint.dart --rust-only
+
+# Check without fixing (for CI/pre-commit validation)
+dart tool/check_lint.dart
+```
+
+**Manual Analysis**:
 ```bash
 # Dart/Flutter static analysis
 flutter analyze
+
+# Dart auto-fix
+dart fix --apply
+
+# Dart format
+dart format .
 
 # Rust static analysis
 cd rust && cargo check
 cd rust && cargo clippy --all-targets --all-features
 
-# Both should pass with zero warnings before committing
+# Rust format
+cd rust && cargo fmt
+
+# Rust auto-fix
+cd rust && cargo clippy --fix --allow-dirty --allow-staged
 ```
+
+**VSCode Integration**:
+- Files are automatically formatted on save
+- Use `Ctrl+Shift+P` → "Run Task" → "Lint: Fix All" to fix all issues
+- Lint errors appear in the Problems panel and are fixed automatically where possible
 
 ## Development Workflow
 

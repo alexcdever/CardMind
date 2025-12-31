@@ -132,6 +132,10 @@ dependencies:
 ### ⚡ 快速命令参考
 
 ```bash
+# 自动修复所有lint问题（推荐！）
+dart tool/fix_lint.dart            # 自动修复Flutter和Rust代码
+dart tool/check_lint.dart          # 只检查不修复
+
 # 运行测试
 cd rust && cargo test              # Rust测试
 flutter test                       # Flutter测试
@@ -140,12 +144,18 @@ flutter test                       # Flutter测试
 cd rust && cargo clippy            # Rust静态分析
 flutter analyze                    # Flutter静态分析
 
+# 代码格式化
+dart format .                      # Dart格式化
+cd rust && cargo fmt               # Rust格式化
+
 # 生成桥接代码（跨平台）
 dart tool/generate_bridge.dart
 
 # 运行应用
 flutter run
 ```
+
+**提示**: 使用 `dart tool/fix_lint.dart` 可以一键修复大部分IDE提示的警告和错误！详见 [docs/LINT_AUTO_FIX.md](docs/LINT_AUTO_FIX.md)
 
 ### 🎯 开发流程
 
