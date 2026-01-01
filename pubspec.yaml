@@ -1,5 +1,5 @@
 name: cardmind
-description: "A new Flutter project."
+description: "CardMind - 简洁高效的卡片笔记应用，支持 Markdown 和离线优先设计"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -50,6 +50,12 @@ dependencies:
 
   # Path provider
   path_provider: ^2.1.0
+
+  # Shared preferences for theme persistence
+  shared_preferences: ^2.2.0
+
+  # Package info for version information
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

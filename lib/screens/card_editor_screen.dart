@@ -1,4 +1,5 @@
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/utils/snackbar_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
@@ -59,9 +60,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     final content = _contentController.text.trim();
 
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Title cannot be empty')),
-      );
+      SnackBarUtils.showWarning(context, 'Title cannot be empty');
       return;
     }
 
@@ -90,14 +89,16 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
       });
 
       if (success) {
+        SnackBarUtils.showSuccess(
+          context,
+          widget.cardId != null ? 'Card updated successfully' : 'Card created successfully',
+        );
         Navigator.pop(context);
       } else {
         setState(() {
           _error = cardProvider.error ?? 'Failed to save card';
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_error!)),
-        );
+        SnackBarUtils.showError(context, _error!);
       }
     }
   }

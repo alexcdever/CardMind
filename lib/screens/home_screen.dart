@@ -1,5 +1,7 @@
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/screens/card_editor_screen.dart';
+import 'package:cardmind/screens/settings_screen.dart';
+import 'package:cardmind/utils/responsive_utils.dart';
 import 'package:cardmind/widgets/card_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +22,18 @@ class HomeScreen extends StatelessWidget {
               context.read<CardProvider>().loadCards();
             },
             tooltip: 'Refresh',
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+            tooltip: 'Settings',
           ),
         ],
       ),
@@ -78,12 +92,36 @@ class HomeScreen extends StatelessWidget {
 
           return RefreshIndicator(
             onRefresh: () => cardProvider.loadCards(),
-            child: ListView.builder(
-              itemCount: cardProvider.cards.length,
-              padding: const EdgeInsets.all(8),
-              itemBuilder: (context, index) {
-                final card = cardProvider.cards[index];
-                return CardListItem(card: card);
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Use GridView for larger screens
+                if (ResponsiveUtils.isTablet(context) ||
+                    ResponsiveUtils.isDesktop(context)) {
+                  return GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: ResponsiveUtils.getGridColumns(context),
+                      childAspectRatio: 3.5,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    padding: ResponsiveUtils.getSafePadding(context),
+                    itemCount: cardProvider.cards.length,
+                    itemBuilder: (context, index) {
+                      final card = cardProvider.cards[index];
+                      return CardListItem(card: card);
+                    },
+                  );
+                }
+
+                // Use ListView for mobile
+                return ListView.builder(
+                  itemCount: cardProvider.cards.length,
+                  padding: const EdgeInsets.all(8),
+                  itemBuilder: (context, index) {
+                    final card = cardProvider.cards[index];
+                    return CardListItem(card: card);
+                  },
+                );
               },
             ),
           );

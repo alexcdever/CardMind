@@ -2,7 +2,9 @@ import 'dart:io';
 
 import 'package:cardmind/bridge/frb_generated.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
+import 'package:cardmind/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -21,15 +23,21 @@ class CardMindApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => CardProvider(),
-      child: MaterialApp(
-        title: 'CardMind',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        home: const AppInitializer(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CardProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: 'CardMind',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const AppInitializer(),
+          );
+        },
       ),
     );
   }
@@ -64,23 +72,29 @@ class _AppInitializerState extends State<AppInitializer> {
         storageDir.createSync(recursive: true);
       }
 
-      // Initialize CardProvider
-      if (mounted) {
-        await context.read<CardProvider>().initialize(storagePath);
-      }
+      if (!mounted) return;
 
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-        });
-      }
+      // Get providers before awaits
+      final themeProvider = context.read<ThemeProvider>();
+      final cardProvider = context.read<CardProvider>();
+
+      // Initialize providers
+      await themeProvider.initialize();
+      if (!mounted) return;
+
+      await cardProvider.initialize(storagePath);
+      if (!mounted) return;
+
+      setState(() {
+        _isInitializing = false;
+      });
     } on Exception catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isInitializing = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _isInitializing = false;
+      });
     }
   }
 
