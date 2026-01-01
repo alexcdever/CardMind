@@ -1,6 +1,7 @@
 import 'package:cardmind/bridge/models/card.dart' as models;
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/screens/card_editor_screen.dart';
+import 'package:cardmind/utils/snackbar_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
@@ -78,15 +79,14 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
     if (mounted) {
       if (success) {
+        SnackBarUtils.showSuccess(context, 'Card deleted successfully');
         Navigator.pop(context);
       } else {
         setState(() {
           _isLoading = false;
           _error = cardProvider.error ?? 'Failed to delete card';
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_error!)),
-        );
+        SnackBarUtils.showError(context, _error!);
       }
     }
   }

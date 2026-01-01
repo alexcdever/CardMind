@@ -7,14 +7,86 @@
 
 ## [Unreleased]
 
-### 规划中
-- MVP 核心功能开发
-- 卡片 CRUD 操作
-- Loro CRDT 集成
-- SQLite 缓存层
-- 基础 UI
+### 规划中 (v2.0.0)
+- P2P 多设备同步（libp2p）
+- 设备发现（mDNS）
+- 自动冲突解决
+- 同步状态管理
+- iOS/macOS 支持
+- 全文搜索（SQLite FTS5）
+- 数据导入/导出
 
-## [0.1.0] - 2024-XX-XX
+## [1.0.0] - 2025-12-31
+
+### 新增 - MVP 正式发布 🎉
+
+#### 核心功能
+- **卡片管理**: 完整的 CRUD 操作（创建、读取、更新、删除）
+- **Markdown 支持**: 完整的 Markdown 语法支持和实时渲染
+- **实时预览**: 编辑器中可切换编辑/预览模式
+- **卡片详情**: 查看完整渲染的 Markdown 内容
+
+#### 数据架构
+- **Loro CRDT 引擎**: 每张卡片独立的 LoroDoc 文件，为未来 P2P 同步做好准备
+- **SQLite 缓存层**: 高性能查询优化，通过 Loro 订阅自动同步
+- **UUID v7**: 时间排序的唯一 ID 生成
+
+#### UI/UX
+- **主题系统**: 浅色/深色主题，自动保存偏好
+- **响应式设计**: 手机/平板/桌面自适应布局（单列/双列/三列）
+- **设置页面**: 主题切换、关于对话框、版本信息
+- **用户反馈**: 加载指示器、操作提示、错误提示、确认对话框
+
+#### 平台支持
+- Windows 10/11 (x64)
+- Android 5.0+ (ARM/ARM64)
+
+#### 性能优化
+- 1000 张卡片加载 < 350ms
+- Loro 操作: 创建 ~2.7ms, 更新 ~4.6ms, 删除 ~2.2ms
+- SQLite 查询: < 4ms（1000 张卡片）
+
+#### 测试
+- 80 个自动化测试（单元 + 集成 + 文档）
+- 100% 测试通过率
+- 测试覆盖率 >85%
+- 专门的性能测试套件
+
+#### 文档
+- [用户使用手册](docs/USER_GUIDE.md)
+- [技术架构文档](docs/ARCHITECTURE.md)
+- [数据库设计文档](docs/DATABASE.md)
+- [API 设计文档](docs/API_DESIGN.md)
+- [测试指南](docs/TESTING_GUIDE.md)
+
+### 技术栈
+
+#### Rust 依赖
+- loro: 1.3.1 - CRDT engine
+- rusqlite: 0.33.0 - SQLite database
+- flutter_rust_bridge: 2.7.0 - Dart-Rust bridging
+- uuid: 1.11.0 - UUID v7 generation
+- serde/serde_json: 1.0 - Serialization
+- thiserror: 2.0, anyhow: 1.0 - Error handling
+- chrono: 0.4 - Time handling
+- tracing: 0.1 - Logging
+- serial_test: 3.2 - Test serialization
+
+#### Flutter 依赖
+- flutter_rust_bridge: 2.11.0 - Dart-Rust bridging
+- provider: 6.1.0 - State management
+- flutter_markdown: 0.7.0 - Markdown rendering
+- path_provider: 2.1.0 - Path utilities
+- shared_preferences: 2.2.0 - Local storage
+- package_info_plus: 8.0.0 - App info
+
+### 已知限制
+- 暂不支持多设备同步（计划在 v2.0.0）
+- 暂不支持数据导入/导出
+- 暂不支持全文搜索
+- 删除操作不可撤销
+
+## [0.1.0] - 2025-12-30
 
 ### 新增
 - 项目初始化

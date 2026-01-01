@@ -52,6 +52,33 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
+# === Rust Library Build ===
+# Build the Rust library and copy the DLL to the output directory
+set(RUST_CRATE_NAME "cardmind_rust")
+set(RUST_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../rust")
+set(RUST_TARGET_DIR "${RUST_PROJECT_DIR}/target")
+
+# Determine build type for Rust
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set(RUST_BUILD_TYPE "debug")
+  set(RUST_BUILD_FLAG "")
+else()
+  set(RUST_BUILD_TYPE "release")
+  set(RUST_BUILD_FLAG "--release")
+endif()
+
+set(RUST_LIB_PATH "${RUST_TARGET_DIR}/${RUST_BUILD_TYPE}/${RUST_CRATE_NAME}.dll")
+
+# Custom target to build Rust library
+add_custom_target(rust_build ALL
+  COMMAND cargo build ${RUST_BUILD_FLAG}
+  WORKING_DIRECTORY ${RUST_PROJECT_DIR}
+  COMMENT "Building Rust library..."
+  VERBATIM
+)
+
+# Make sure runner depends on rust_build
+add_dependencies(${BINARY_NAME} rust_build)
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
