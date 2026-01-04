@@ -62,14 +62,23 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initializeApp() async {
     try {
-      // Get application documents directory
-      final directory = await getApplicationDocumentsDirectory();
-      final storagePath = '${directory.path}/cardmind';
+      // Get application support directory (recommended for app data)
+      final directory = await getApplicationSupportDirectory();
+      final storagePath = directory.path;
+
+      // Debug: Print paths
+      debugPrint('=== CardMind Debug ===');
+      debugPrint('Application support directory: ${directory.path}');
+      debugPrint('Storage path: $storagePath');
+      debugPrint('=====================');
 
       // Create storage directory if it doesn't exist
       final storageDir = Directory(storagePath);
       if (!storageDir.existsSync()) {
         storageDir.createSync(recursive: true);
+        debugPrint('Created storage directory: $storagePath');
+      } else {
+        debugPrint('Storage directory exists: $storagePath');
       }
 
       if (!mounted) return;

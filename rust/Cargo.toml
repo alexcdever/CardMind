@@ -48,6 +48,12 @@ chrono = "0.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+# Password hashing (for data pool network)
+bcrypt = "0.16"
+
+# Keyring for secure password storage
+keyring = "3.6"
+
 [dev-dependencies]
 # For testing
 tempfile = "3.8"
