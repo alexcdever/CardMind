@@ -2,432 +2,349 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## 📍 Quick Start
 
-CardMind is a card-based note-taking application with offline-first design and P2P sync capabilities. The project uses Flutter for UI, Rust for core business logic, Loro CRDT as the source of truth, and SQLite as a query cache layer.
+**New to this project?** Start here:
+1. Read [Product Vision](docs/requirements/product_vision.md) - What is CardMind?
+2. Check [TODO.md](TODO.md) - What needs to be done now?
+3. Review [System Design](docs/architecture/system_design.md) - How is it built?
 
-**Current Status**: Planning phase - documentation complete, implementation pending.
+**Working on a task?**
+- Update [TODO.md](TODO.md) using the `TodoWrite` tool
+- Follow TDD principles (write tests first)
+- Run `cargo doc --open` for implementation details
 
-## Core Architecture
+---
+
+## 🏗️ Project Overview
+
+**CardMind** is a card-based note-taking application with:
+- **Offline-first** design
+- **P2P sync** capabilities (Phase 2)
+- **CRDT** data consistency (Loro)
+- **Dual-layer** architecture (Loro + SQLite)
+
+**Current Status**: MVP v1.0.0 completed ✅, P2P sync in progress 🔄
+
+**Tech Stack**:
+- Frontend: Flutter 3.x
+- Backend: Rust
+- CRDT: Loro 1.3.1
+- Cache: SQLite (rusqlite)
+- Bridge: flutter_rust_bridge
+
+---
+
+## 📚 Documentation Structure
+
+CardMind uses a **layered documentation system**. Always consult the right layer:
+
+### [Management Docs] - Time & Progress
+Track what's being done and when:
+
+- **[TODO.md](TODO.md)** ← Update this frequently!
+  - Current tasks (AI-writable)
+  - Pending work
+  - Completed items
+
+- **[docs/roadmap.md](docs/roadmap.md)**
+  - Version planning (v1.0, v2.0...)
+  - Milestones
+  - Priorities
+
+- **[CHANGELOG.md](CHANGELOG.md)**
+  - Release history
+  - Version changes
+  - Feature additions and bug fixes
+
+### [Design Docs] - Architecture & Rules
+Understand "why" and "what":
+
+#### Requirements Layer - Product Goals
+- [Product Vision](docs/requirements/product_vision.md) - What & why
+- [User Scenarios](docs/requirements/user_scenarios.md) - How users use it (Note: may be incomplete)
+- [Business Rules](docs/requirements/business_rules.md) - Domain logic (Note: may be incomplete)
+- [Success Metrics](docs/requirements/success_metrics.md) - Definition of done (Note: may be incomplete)
+
+#### Interaction Layer - User Experience
+- [UI Flows](docs/interaction/ui_flows.md) - Screen flows (Note: may be incomplete)
+- [Feedback Design](docs/interaction/feedback_design.md) - User feedback (Note: may be incomplete)
+- [Information Architecture](docs/interaction/information_arch.md) - Navigation (Note: may be incomplete)
+- [Accessibility](docs/interaction/accessibility.md) - A11y requirements (Note: may be incomplete)
+
+#### Architecture Layer - System Design
+- **[System Design](docs/architecture/system_design.md)** ← Read this first!
+  - Dual-layer architecture
+  - Data flow principles
+  - Layer responsibilities
+
+- [Data Contract](docs/architecture/data_contract.md) - Data schemas
+- [Layer Separation](docs/architecture/layer_separation.md) - Code organization
+- [Sync Mechanism](docs/architecture/sync_mechanism.md) - How data syncs
+- [Tech Constraints](docs/architecture/tech_constraints.md) - Why these technologies?
+
+### [Implementation Guides] - How to Code
+Point to code and tools:
+
+- **[Rust Doc Guide](docs/implementation/rust_doc_guide.md)** - Documentation standards
+  - Run `cargo doc --open` to see API docs
+  - Implementation details live in code, not markdown
+
+- [Testing Guide](docs/implementation/testing_guide.md) - TDD methodology
+- [Build Guide](tool/BUILD_GUIDE.md) - How to build
+- [Logging Guide](docs/implementation/logging.md) - Logging standards
+
+### [Reference Docs] - Look Up Info
+- [Documentation Index](docs/index/readme.md) - Navigate all docs
+- [Glossary](docs/index/glossary.md) - Term definitions
+- [User Guide](docs/user_guide.md) - For end users
+- [FAQ](docs/faq.md) - Common questions
+
+---
+
+## 🎯 Core Architecture (Quick Reference)
 
 ### Dual-Layer Data Architecture
 
-The application uses an innovative dual-layer data architecture:
-
-1. **Loro CRDT (Source of Truth)**:
-   - All write operations go through Loro
-   - File-based persistence (loro_doc.loro)
-   - Provides automatic conflict resolution via CRDT
-   - Subscription mechanism triggers updates to SQLite
-
-2. **SQLite (Query Cache Layer)**:
-   - Read-only cache synchronized from Loro via subscriptions
-   - Optimized for fast queries, listing, and full-text search
-   - Never written to directly by application code
-   - Can be rebuilt from Loro at any time
-
-### Data Flow
-
 ```
-Write Path:
-User Action → Loro Document → loro.commit() → Subscription Callback → Update SQLite → Persist Loro to File
-
-Read Path:
-User Query → SQLite Cache → Fast Response
-
-Sync Path (Phase 2):
-Device A Loro → Export Updates → P2P (libp2p) → Import Updates → Device B Loro → Update SQLite
+┌─────────────────────────────────────┐
+│   User Action (Create/Edit/Delete) │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│  Loro CRDT (Source of Truth)        │  ← ALL writes go here
+│  - File: data/loro/<uuid>/          │
+│  - Every card = one LoroDoc         │
+└──────────────┬──────────────────────┘
+               │ commit()
+               ▼
+┌─────────────────────────────────────┐
+│  Subscription Callback              │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│  SQLite (Query Cache - Read Only)   │  ← ALL reads from here
+│  - Fast queries                     │
+│  - Full-text search (FTS5)          │
+└─────────────────────────────────────┘
 ```
 
-**Critical Architecture Decision**: Each card has its own LoroDoc file (not a single shared LoroDoc):
-- **Isolation**: Individual version history per card
-- **Performance**: Small files load faster
-- **P2P-friendly**: Sync cards selectively
-- **File structure**: `data/loro/<base64(uuid)>/snapshot.loro` and `update.loro`
+**Critical Rules**:
+1. ✅ ALL writes → Loro (never SQLite directly)
+2. ✅ ALL reads → SQLite (fast cached queries)
+3. ✅ Loro commits trigger subscriptions → update SQLite
+4. ✅ SQLite can be rebuilt from Loro anytime
 
-This design is detailed in [DATABASE.md](docs/DATABASE.md) section 3.
+Details: [System Design](docs/architecture/system_design.md)
 
-## Technology Stack
+---
 
-- **Frontend**: Flutter 3.x (Dart)
-- **Business Logic**: Rust
-- **CRDT Engine**: Loro (file persistence)
-- **Cache Layer**: SQLite with rusqlite
-- **Bridge**: flutter_rust_bridge
-- **P2P Sync**: libp2p (Phase 2)
-- **ID Generation**: UUID v7 (time-ordered, conflict-free)
+## 🔧 Development Workflow
 
-## Development Commands
+### Before Starting Work
+1. Check [TODO.md](TODO.md) for current tasks
+2. Use `TodoWrite` tool to mark task as `in_progress`
+3. Review relevant design docs
 
-**Note**: This project is currently in the planning phase. Once implementation begins, commands will be added here. Based on the documentation, expected commands include:
-
-### Rust Development
-```bash
-# Run Rust tests
-cd rust && cargo test
-
-# Run Rust tests with coverage
-cd rust && cargo tarpaulin --out Xml
-
-# Build Rust library
-cd rust && cargo build
-
-# Run specific test
-cd rust && cargo test test_name
-```
-
-### Flutter Development
-```bash
-# Generate bridge code
-flutter_rust_bridge_codegen generate
-
-# Run Flutter app
-flutter run
-
-# Run Flutter tests
-flutter test
-
-# Build for specific platform
-flutter build apk          # Android
-flutter build ios          # iOS
-flutter build windows      # Windows
-flutter build macos        # macOS
-flutter build linux        # Linux
-```
-
-### Code Generation
-```bash
-# Generate Rust-Dart bridge (cross-platform)
-dart tool/generate_bridge.dart
-```
-
-### Static Analysis and Auto-Fix
-
-**Automatic Fix (Recommended)**:
-```bash
-# Fix all lint issues automatically (Flutter + Rust)
-dart tool/fix_lint.dart
-
-# Fix only Flutter/Dart issues
-dart tool/fix_lint.dart --flutter-only
-
-# Fix only Rust issues
-dart tool/fix_lint.dart --rust-only
-
-# Check without fixing (for CI/pre-commit validation)
-dart tool/check_lint.dart
-```
-
-**Manual Analysis**:
-```bash
-# Dart/Flutter static analysis
-flutter analyze
-
-# Dart auto-fix
-dart fix --apply
-
-# Dart format
-dart format .
-
-# Rust static analysis
-cd rust && cargo check
-cd rust && cargo clippy --all-targets --all-features
-
-# Rust format
-cd rust && cargo fmt
-
-# Rust auto-fix
-cd rust && cargo clippy --fix --allow-dirty --allow-staged
-```
-
-**VSCode Integration**:
-- Files are automatically formatted on save
-- Use `Ctrl+Shift+P` → "Run Task" → "Lint: Fix All" to fix all issues
-- Lint errors appear in the Problems panel and are fixed automatically where possible
-
-## Development Workflow
-
-### Before Requesting Code Review or AI Assistance
-1. **Run static checks first**:
+### While Working
+1. **Write tests first** (TDD - Red, Green, Refactor)
+2. **Run checks**:
    ```bash
    flutter analyze  # Must pass
    cargo check      # Must pass
-   cargo clippy     # Should have zero warnings
+   cargo clippy     # Zero warnings
    ```
+3. **Update TODO.md** when completing tasks
 
-2. **Run relevant tests**:
-   ```bash
-   cargo test                    # Run all Rust tests
-   cargo test test_name          # Run specific test
-   flutter test                  # Run all Flutter tests
-   ```
+### After Completing Work
+1. Mark task as `completed` in TODO.md
+2. Update `docs/roadmap.md` if milestone reached
+3. Update architecture docs if design changed
 
-3. **Only seek help if**:
-   - Static checks fail with unclear errors
-   - Tests fail unexpectedly
-   - Need architectural guidance
+---
 
-### When Requesting Code Changes from AI
-- Share the exact error message from `cargo check`, `clippy`, or `flutter analyze`
-- Specify which test is failing and include the test output
-- Prefer targeted fixes over general "improvements"
+## 🛠️ Quick Commands
 
-### Flutter-Rust Bridge Communication
+### Build
+```bash
+# Build all platforms (recommended)
+dart tool/build_all.dart
 
-The project uses `flutter_rust_bridge` to connect Dart and Rust. Key patterns:
-
-**Rust side (api/card.rs)**:
-```rust
-// Expose functions with simple types
-#[flutter_rust_bridge::frb(sync)]
-pub fn create_card(title: String, content: String) -> Result<Card, CardMindError> {
-    // Implementation
-}
+# Build specific platform
+dart tool/build_all.dart --android
+dart tool/build_all.dart --linux
 ```
 
-**Dart side (services/card_service.dart)**:
-```dart
-// Wrapper around generated bridge code
-class CardService {
-  Future<Card> createCard(String title, String content) async {
-    return await api.createCard(title: title, content: content);
-  }
-}
+### Test
+```bash
+# Rust tests
+cd rust && cargo test
+
+# Flutter tests
+flutter test
 ```
 
-**Bridge files are auto-generated** - never edit them manually:
-- `lib/bridge/bridge_generated.dart`
-- `rust/src/frb_generated.rs`
-- These files are excluded in `.claudeignore`
+### Documentation
+```bash
+# Generate Rust API docs
+cd rust && cargo doc --open
 
-## Key Design Principles
-
-### 1. Loro is the Single Source of Truth
-- **ALL write operations** must go through Loro
-- Never write directly to SQLite - it's read-only
-- SQLite is automatically updated via Loro's subscription mechanism
-- Data consistency is guaranteed by Loro CRDT
-
-### 2. Test-Driven Development (TDD)
-- **Always** write tests before implementation
-- Follow Red-Green-Refactor cycle:
-  1. **Red**: Write failing test
-  2. **Green**: Write minimal code to pass
-  3. **Refactor**: Improve code while keeping tests green
-- Target: >80% test coverage for all new code
-- Integration tests must cover core data flows (Loro ↔ SQLite sync)
-
-### 3. Subscription-Based Sync
-The Loro-to-SQLite sync is implemented via subscription callbacks:
-```rust
-// When Loro document is modified and committed:
-loro_doc.commit() → triggers subscription → sync_to_sqlite(event)
-```
-Any changes to the data layer must respect this flow.
-
-### 4. UUID v7 for IDs
-- Use `Uuid::now_v7()` for all card IDs
-- Time-ordered property enables chronological sorting
-- Distributed generation without conflicts
-- Perfect for CRDT scenarios
-
-## Critical Implementation Notes
-
-### Working with Card Data
-
-1. **Creating Cards**:
-   - Generate UUID v7 ID
-   - Insert into Loro LoroMap structure
-   - Call `loro_doc.commit()` to trigger sync
-   - Persist Loro file to disk
-   - SQLite updates automatically via subscription
-
-2. **Reading Cards**:
-   - Always read from SQLite cache (fast)
-   - Use appropriate indexes for queries
-   - Loro is for writes, SQLite is for reads
-
-3. **Updating Cards**:
-   - Modify Loro document
-   - Call `loro_doc.commit()`
-   - SQLite updates automatically
-   - Persist Loro file
-
-4. **Deleting Cards**:
-   - Delete from Loro document
-   - Call `loro_doc.commit()`
-   - SQLite updates automatically
-
-### Data Consistency
-
-- If SQLite becomes corrupted, rebuild from Loro (full_sync_to_sqlite)
-- SQLite is disposable - Loro file is the only critical data
-- Backup strategy: only backup loro_doc.loro (SQLite can be regenerated)
-
-### Error Handling
-
-- Use `thiserror` for error types
-- Always use `Result<T, CardMindError>` return types
-- Implement proper error propagation with `?` operator
-- Log errors with `tracing` crate
-
-### Performance Targets
-
-- Card creation: <50ms
-- SQLite list query: <10ms (1000 cards)
-- Loro commit: <50ms
-- Loro-to-SQLite sync: <5ms per record
-- App launch: <2 seconds
-- List loading: <1 second (1000 cards)
-
-## Project Structure
-
-### Rust Layer (rust/src/)
-```
-rust/src/
-├── lib.rs                 # Library entry point
-├── api/                   # Flutter-exposed API
-│   ├── mod.rs
-│   └── card.rs           # Card CRUD APIs
-├── store/                 # Data storage layer
-│   ├── mod.rs
-│   ├── card_store.rs     # Loro + SQLite manager
-│   └── subscription.rs   # Loro subscription mechanism
-├── models/                # Data models
-│   ├── mod.rs
-│   └── card.rs
-└── utils/
-    └── uuid_v7.rs        # UUID v7 generation
+# View documentation index
+open docs/index/readme.md
 ```
 
-### Flutter Layer (lib/)
-```
-lib/
-├── main.dart
-├── models/               # Dart data models
-│   └── card.dart
-├── services/             # Rust API wrappers
-│   └── card_service.dart
-├── providers/            # State management (Provider)
-│   └── card_provider.dart
-├── screens/              # UI screens
-│   ├── home/
-│   ├── card_editor/
-│   └── settings/
-├── widgets/              # Reusable widgets
-└── bridge/               # Rust bridge (auto-generated)
-    └── bridge_generated.dart
+### Code Quality
+```bash
+# Auto-fix lint issues
+dart tool/fix_lint.dart
+
+# Check without fixing
+dart tool/check_lint.dart
 ```
 
-## Development Phases
+See [Build Guide](tool/BUILD_GUIDE.md) for details.
 
-### Phase 1: MVP (Current Target)
-- Card CRUD operations
-- Loro CRDT integration with file persistence
-- SQLite cache layer with subscription sync
-- Basic Flutter UI with Markdown support
+---
 
-### Phase 2: P2P Sync
-- libp2p integration
-- Device discovery (mDNS/DHT)
-- CRDT-based synchronization
-- Automatic conflict resolution
+## ⚠️ Critical Constraints
 
-### Phase 3: Enhancement
-- Full-text search (SQLite FTS5)
-- Performance optimization
-- Tag system (optional)
-- Import/Export functionality
+### Data Layer Rules
+- **NEVER write to SQLite directly** - only Loro writes, subscriptions update SQLite
+- **ALWAYS call `loro_doc.commit()`** after modifications
+- **ALWAYS persist Loro files** after commits
+- **Use UUID v7** for all IDs (time-ordered, conflict-free)
 
-## Testing Strategy
+### Development Rules
+- **Write tests first** (TDD required)
+- **Test coverage > 80%** (hard requirement)
+- **Never bypass Loro** for data changes
+- **SQLite is read-only** from app perspective
 
-### Unit Tests
-- Test individual functions in isolation
-- Mock external dependencies
-- Focus on business logic correctness
+### File Organization
+- Each card = one LoroDoc file
+- Path: `data/loro/<base64(uuid)>/snapshot.loro` and `update.loro`
+- Never use a single shared LoroDoc for all cards
 
-### Integration Tests
-- **Critical**: Test Loro-to-SQLite sync mechanism
-- Test complete CRUD flows
-- Verify data consistency between layers
+---
 
-### Example Test Pattern
-```rust
-#[test]
-fn test_card_creation_syncs_to_sqlite() {
-    let mut store = CardStore::new_in_memory().unwrap();
+## 📖 Common Tasks - Where to Look
 
-    // Create card (writes to Loro)
-    let card = store.create_card("Title", "Content").unwrap();
+| Task | Look Here |
+|------|-----------|
+| Understand the product | [Product Vision](docs/requirements/product_vision.md) |
+| See current work | [TODO.md](TODO.md) |
+| Understand architecture | [System Design](docs/architecture/system_design.md) |
+| Learn data schemas | [Data Contract](docs/architecture/data_contract.md) |
+| Write tests | [Testing Guide](docs/implementation/testing_guide.md) |
+| Build the app | [Build Guide](tool/BUILD_GUIDE.md) |
+| Add Rust docs | [Rust Doc Guide](docs/implementation/rust_doc_guide.md) |
+| Find term meanings | See "Core Terminology" below |
 
-    // Verify SQLite was updated via subscription
-    let cards = store.get_all_cards().unwrap();
-    assert_eq!(cards.len(), 1);
-    assert_eq!(cards[0].id, card.id);
-}
-```
+---
 
-## Important Constraints
+## 🤖 AI Usage Guidelines
 
-1. **Never bypass Loro for writes** - all modifications must go through Loro's CRDT
-2. **SQLite is read-only from app perspective** - only subscription callbacks write to it
-3. **Always commit Loro changes** - `loro_doc.commit()` must be called to trigger subscriptions
-4. **Persist after commits** - save Loro file to disk after modifications
-5. **Use UUID v7** - not v4, v5, or other versions
-6. **Follow TDD** - write tests before implementation
-7. **Keep test coverage >80%** - this is a hard requirement
+### When Starting a New Conversation
+1. Read `TODO.md` - what's the current status?
+2. Check relevant design docs for context
+3. Use `TodoWrite` to mark task as `in_progress`
 
-## Documentation Philosophy
+### When Implementing Features
+1. **Check requirements first** - [requirements/](docs/requirements/)
+2. **Understand the architecture** - [architecture/](docs/architecture/)
+3. **Follow TDD** - write tests first
+4. **Update TODO.md** - track progress
+5. **Check implementation details** - run `cargo doc --open`
 
-**Design vs. Implementation Separation**:
-- **Markdown docs in `docs/`**: Architecture, design principles, and "why" decisions
-- **Rust doc comments (`///`)**: Implementation details, API references, and "how" to use
-- **Never duplicate implementation in Markdown**: Code is the source of truth
+### When Stuck
+- Architecture unclear? → [System Design](docs/architecture/system_design.md)
+- Requirements unclear? → [Product Vision](docs/requirements/product_vision.md)
+- Implementation unclear? → `cargo doc --open`
+- Not sure about priority? → [roadmap.md](docs/roadmap.md)
 
-**When writing code**:
-1. Write comprehensive Rust doc comments for all public APIs
-2. Include examples in doc comments (tested by `cargo test --doc`)
-3. Run `cargo doc --open` to verify documentation quality
-4. Update Markdown docs only if design principles change
+---
 
-**When seeking implementation details**:
-- ✅ Run `cargo doc --open` for Rust API documentation
-- ✅ Read source code in `rust/src/`
-- ❌ Don't expect implementation details in `docs/*.md`
+## 📝 Performance Targets
 
-See [RUST_DOC_GUIDE.md](docs/RUST_DOC_GUIDE.md) for doc comment best practices.
+Achieved in MVP v1.0.0:
 
-## Common Pitfalls to Avoid
+- ✅ Card creation: 2.7ms (target < 50ms)
+- ✅ Card update: 4.6ms (target < 50ms)
+- ✅ 1000 cards load: 329ms (target < 1s)
+- ✅ SQLite query: < 4ms (target < 10ms)
 
-1. **Writing directly to SQLite** (breaks architecture) - ALL writes must go through Loro
-2. **Forgetting to call `loro_doc.commit()`** (subscriptions won't trigger) - no SQLite update
-3. **Using UUID v4 instead of UUID v7** (loses time-ordering) - breaks chronological features
-4. **Not persisting Loro file after modifications** - data loss on restart
-5. **Reading from Loro for queries** (use SQLite instead) - slow performance, no indexing
-6. **Implementing features not in the roadmap** (scope creep) - focus on MVP first
-7. **Duplicating implementation details in Markdown docs** - use Rust doc comments instead
-8. **Not writing doc comments for public APIs** - run `cargo doc` to verify documentation
-9. **Assuming single shared LoroDoc** - each card has its own LoroDoc file
+See [CHANGELOG.md](CHANGELOG.md) for release details.
 
-## References
+---
 
-See the comprehensive documentation in [docs/](docs/):
+## 🚀 Current Focus (2026-01)
 
-**Core Documentation** (Read First):
-- [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture and design principles
-- [DATABASE.md](docs/DATABASE.md) - Dual-layer data architecture (Loro + SQLite)
-- [API_DESIGN.md](docs/API_DESIGN.md) - API design philosophy and usage patterns
-- [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) - TDD methodology and testing strategy
+**Phase 5: P2P Sync Preparation** (75% complete)
+- ✅ Loro sync capability verified
+- ✅ P2P sync design complete
+- 🔄 libp2p prototype validation
 
-**Quick Reference**:
-- [DATA_MODELS.md](docs/DATA_MODELS.md) - Data model overview and field definitions
-- [RUST_DOC_GUIDE.md](docs/RUST_DOC_GUIDE.md) - How to write Rust documentation comments
+Next: Phase 6 - P2P Sync Implementation
 
-**Additional Resources**:
-- [PRD.md](docs/PRD.md) - Product requirements and features
-- [ROADMAP.md](docs/ROADMAP.md) - Development phases and timeline
-- [LOGGING.md](docs/LOGGING.md) - Logging best practices
-- [SETUP.md](docs/SETUP.md) - Development environment setup
-- [FAQ.md](docs/FAQ.md) - Frequently asked questions
+See [TODO.md](TODO.md) and [roadmap.md](docs/roadmap.md) for details.
 
-**Important**: Many design documents now emphasize "implementation details in source code". Always run `cargo doc --open` to view the auto-generated Rust API documentation for implementation details.
+---
+
+## 📚 Core Terminology
+
+### Architecture Terms
+
+**CRDT** (Conflict-free Replicated Data Type)
+- 无冲突复制数据类型，支持多设备同时离线编辑并自动合并
+
+**Loro**
+- 基于 Rust 的 CRDT 库，CardMind 的数据核心，支持文件持久化和订阅机制
+
+**双层架构**
+- 源数据层 (Loro) + 查询缓存层 (SQLite)
+- 所有写操作走 Loro，所有读操作走 SQLite
+
+**单向数据流**
+- 写: 用户 → Loro → commit → 订阅 → SQLite → UI
+- 读: 用户 → SQLite → 快速返回
+
+**订阅机制**
+- Loro 变更时自动通知订阅者更新 SQLite，保证数据一致性
+
+### Data Terms
+
+**UUID v7**
+- 时间排序的全局唯一标识符，CardMind 所有 ID 的标准格式
+
+**数据池 (Data Pool)**
+- P2P 同步的逻辑边界，通过密码控制设备间的数据共享范围
+
+**软删除**
+- 设置 `is_deleted = true` 而非物理删除，支持数据恢复和 CRDT 同步
+
+### Development Terms
+
+**TDD** (Test-Driven Development)
+- 先写测试再写实现：Red (失败) → Green (通过) → Refactor (重构)
+
+**P2P** (Peer-to-Peer)
+- 点对点网络，设备间直接通信，无需中央服务器（Phase 2）
+
+**libp2p**
+- 模块化 P2P 网络协议栈，CardMind 用于设备发现和数据传输（Phase 2）
+
+---
+
+## 📌 Important Notes
+
+### Documentation Philosophy
+1. **Design docs are stable** - describe "what" and "why", not "how"
+2. **Implementation details in code** - use `cargo doc` for "how"
+3. **Management docs updated frequently** - TODO.md, roadmap.md
+4. **Never duplicate code in markdown** - point to `cargo doc` instead
+
+---
+
+*Last updated: 2026-01-04*
