@@ -140,15 +140,67 @@
 
 **约束**:
 - `device_id` 全局唯一
-- `device_name` 最大 64 字符,可修改
+- `device_name` 最大 64 字符，**可修改**，数据池特定（同一设备在不同数据池中可以有不同昵称）
 - `joined_at` 加入数据池的时间,不可修改
+
+**默认昵称生成规则**:
+- 格式: `{设备型号}-{UUID前5位}`
+- 示例: `iPhone-018c8`, `MacBook-7a3e1`
+- 用途: 加入数据池时如果用户未自定义昵称，使用此规则即时生成
 
 ### 2.3 安全约束
 
+#### 2.3.1 传输层安全
+
+**TLS 强制加密**:
+- 所有密码传输必须通过 libp2p TLS 加密
+- 禁止明文连接（libp2p 配置强制）
+- 加密算法: AES-256-GCM
+
+**请求时效性**（防简单重放攻击）:
+- 加入请求包含 Unix 毫秒时间戳
+- 验证时效性: 5 分钟内有效
+- 容忍时钟偏差: ±30 秒（可配置）
+
+**JoinRequest 数据结构**:
+```rust
+struct JoinRequest {
+    pool_id: String,
+    password: Zeroizing<String>,  // 自动清零内存
+    timestamp: u64,                // Unix 毫秒时间戳
+}
+```
+
+#### 2.3.2 内存安全
+
+**敏感数据清零**:
+- 使用 `zeroize` crate 清除密码内存
+- 密码类型: `Zeroizing<String>`（离开作用域自动清零）
+- bcrypt 验证后立即清零
+
+**日志安全**:
+- 密码不出现在任何日志中
+- Debug 输出时脱敏处理
+- 错误信息不包含密码提示
+
+#### 2.3.3 密码强度要求
+
+**创建数据池时**:
+- 最少长度: 8 位字符
+- 建议复杂度: 包含字母、数字（可选，不强制）
+- 前端验证 + 后端二次验证
+
+**bcrypt 配置**:
+- 工作因子: 12（平衡性能与安全）
+- 盐值: 自动生成（bcrypt 内置）
+- 哈希格式: `$2b$12$...`
+
+#### 2.3.4 存储安全
+
 1. **明文密码仅存储在系统安全存储中**: 使用 Keyring (不在 CRDT 或 SQLite 中)
 2. **密码哈希使用不可逆算法**: bcrypt (不是 SHA256/MD5)
-3. **网络传输仅验证哈希**: 不传输明文密码
-4. **密码修改同步**: 修改 `password_hash` 后通过 CRDT 同步到所有设备
+3. **密码修改同步**: 修改 `password_hash` 后通过 CRDT 同步到所有设备
+4. **Keyring 密钥格式**: `cardmind.pool.<pool_id>.password`
 
 ### 2.4 权限模型
 
@@ -173,23 +225,28 @@
 | 字段 | 类型 | 约束 | 业务含义 |
 |------|------|------|---------|
 | `device_id` | UniqueIdentifier | 必填、本设备唯一 | 设备唯一标识 |
-| `device_name` | Text | 必填、最大 64 字符 | 设备昵称 (用户可修改) |
-| `joined_pools` | List\<PoolInfo\> | 默认空数组 | 已加入的数据池列表 |
-| `resident_pools` | List\<PoolId\> | 默认空数组 | 常驻池列表 (多选) |
+| `joined_pools` | List\<PoolId\> | 默认空数组 | 已加入的数据池 ID 列表 (仅存 ID，详细信息从 Pool CRDT 读取) |
+| `resident_pools` | List\<PoolId\> | 默认空数组 | 常驻池 ID 列表 (用户偏好设置) |
 
-### 3.2 PoolInfo 结构
-
-```
+**示例**:
+```json
 {
-  "pool_id": UniqueIdentifier,
-  "pool_name": Text,
-  "joined_at": Timestamp
+  "device_id": "018c8f8e-1a2b-7c3d-9e4f-5a6b7c8d9e0f",
+  "joined_pools": ["pool-001", "pool-002"],
+  "resident_pools": ["pool-001"]
 }
 ```
 
-**注意**: 密码不存储在 `config.json` 中,存储在系统 Keyring。
+**设计原则**:
+- **最小化存储**: 仅存储必要的索引信息和用户偏好
+- **避免冗余**: 数据池名称、加入时间、设备昵称等信息从 Pool CRDT 读取
+- **性能优化**: `joined_pools` 用于快速启动，避免扫描文件系统
 
-### 3.3 密码存储契约
+**注意**:
+- 密码不存储在 `config.json` 中，存储在系统 Keyring
+- 设备昵称不存储在本地配置中，仅存储在数据池 CRDT 的 `members` 列表中
+
+### 3.2 密码存储契约
 
 **平台映射**:
 
@@ -220,19 +277,29 @@ cardmind.pool.<pool_id>.password
 ```json
 {
   "device_id": "device-001",
-  "device_name": "MacBook Pro",
+  "device_name": "MacBook-018c8",  // 使用默认昵称 (设备型号-UUID前5位)
   "pools": [
     {
-      "pool_id": "pool-abc",
-      "pool_name": "工作笔记"
+      "pool_id": "pool-abc"  // 仅暴露数据池 ID
     }
   ]
 }
 ```
 
+**说明**:
+- `device_name` 使用即时生成的默认昵称，格式为 `{设备型号}-{UUID前5位}`
+- 不使用数据池中的设备昵称，因为同一设备在不同数据池中可能有不同昵称
+- mDNS 广播是公开的，使用默认昵称可以避免泄露用户在特定数据池中的身份信息
+
+**隐私保护策略**:
+- ✅ **仅暴露 `pool_id`** (UUID): 未授权设备无法推断数据池用途
+- ❌ **不暴露 `pool_name`**: 防止泄露敏感业务信息 (如 "公司机密项目")
+- ✅ **密码验证后获取**: 新设备需输入正确密码后才能从数据池 LoroDoc 获取 `pool_name` 等详细信息
+
 ### 4.2 不包含的敏感信息
 
 **禁止广播**:
+- ❌ 数据池名称 (`pool_name`)
 - ❌ 密码或密码哈希
 - ❌ 成员列表
 - ❌ 卡片数量或内容
@@ -368,6 +435,7 @@ should_sync_card(card, device):
 
 | 版本 | 变更 |
 |------|------|
+| 1.1.0 | 简化设备配置契约：设备昵称改为数据池特定，支持即时生成默认昵称；config.json 仅存储必要索引和用户偏好 |
 | 1.0.0 | 初始版本,从 PRD.md 和 DATABASE.md 提取字段定义 |
 
 ---

@@ -276,7 +276,8 @@ Future<Card> createCard({required String title, required String content});
 - **中心化服务器**: 违背去中心化设计理念
 
 **安全保证**:
-- mDNS 广播仅包含非敏感信息 (设备 ID、数据池 ID/昵称)
+- mDNS 广播仅包含非敏感信息 (设备 ID、数据池 ID)
+- 数据池名称仅在密码验证成功后获取
 - 不包含密码、成员列表、卡片内容
 
 ---

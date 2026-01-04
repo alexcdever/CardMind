@@ -119,23 +119,36 @@ sequenceDiagram
 ```json
 {
   "device_id": "device-001",
-  "device_name": "MacBook Pro",
+  "device_name": "MacBook-018c8",  // 使用默认昵称 (设备型号-UUID前5位)
   "pools": [
     {
-      "pool_id": "pool-abc",
-      "pool_name": "工作笔记"
+      "pool_id": "pool-abc"  // 仅暴露数据池 ID
     }
   ]
 }
 ```
 
+**说明**:
+- `device_name` 使用即时生成的默认昵称，不使用数据池中的设备昵称
+- 默认昵称格式: `{设备型号}-{UUID前5位}`（如 `iPhone-018c8`, `MacBook-7a3e1`）
+- 防止泄露用户在特定数据池中的身份信息
+
+**隐私保护策略**:
+- ✅ **仅暴露 `pool_id`** (UUID): 未授权设备无法推断数据池用途
+- ❌ **不暴露 `pool_name`**: 防止泄露敏感业务信息 (如 "公司机密项目")
+- ✅ **密码验证后获取**: 新设备需输入正确密码后才能获取数据池名称和详细信息
+
 **不包含的敏感信息**:
+- ❌ 数据池名称 (`pool_name`)
 - ❌ 密码或密码哈希
 - ❌ 成员列表
 - ❌ 卡片数量或内容
 - ❌ 任何业务数据
 
-**隐私保护**: 未授权设备无法通过 mDNS 获取数据池的实质性信息。
+**用户体验说明**:
+- 新设备发现数据池时，UI 显示 `pool_id` 的前 8 位 (如 `pool-abc`)
+- 用户输入密码验证成功后，设备接收完整的数据池 LoroDoc，包含 `pool_name` 等详细信息
+- 验证后 UI 显示友好的数据池名称 (如 "工作笔记")
 
 ### 2.3 连接建立
 
@@ -148,36 +161,130 @@ sequenceDiagram
 
     NewDevice->>NewDevice: 用户选择数据池
     NewDevice->>NewDevice: 用户输入密码
-    NewDevice->>ExistingDevice: 发送 (pool_id, password)
+    NewDevice->>ExistingDevice: 发送 (pool_id, password, timestamp) 🔒 TLS 加密
+    ExistingDevice->>ExistingDevice: 验证时间戳（5分钟内有效）
     ExistingDevice->>PoolDoc: 读取 password_hash
     ExistingDevice->>ExistingDevice: bcrypt 验证密码
+    ExistingDevice->>ExistingDevice: 立即清零密码内存 (zeroize)
     alt 密码正确
         ExistingDevice->>NewDevice: 发送数据池 LoroDoc
         NewDevice->>NewDevice: 导入数据池 LoroDoc
         NewDevice->>PoolDoc: 添加自己到 members 列表
-        NewDevice->>Keyring: 存储密码
+        NewDevice->>Keyring: 存储密码（OS 级加密）
         ExistingDevice->>NewDevice: 同步该数据池的所有卡片
-    else 密码错误
+    else 密码错误或时间戳过期
         ExistingDevice->>NewDevice: 返回错误
         NewDevice->>NewDevice: 提示用户密码错误
     end
 ```
 
-### 2.4 安全保证
+### 2.3.1 安全加固措施
 
-1. **密码验证**: 使用 bcrypt 哈希对比,不传输明文
-2. **加密传输**: libp2p 提供加密连接 (TLS)
-3. **授权访问**: 未授权设备无法访问数据池内容
+**传输层安全**:
+- **强制 TLS 加密**: libp2p 配置强制使用 TLS，拒绝明文连接
+- **加密算法**: AES-256-GCM（libp2p 默认）
+- **证书验证**: 使用 libp2p 自签名证书（本地网络信任模型）
+
+**内存安全**:
+- **敏感数据清零**: 使用 `zeroize` crate 清除密码内存
+- **验证后立即清理**: bcrypt 验证完成后立即清零密码
+- **避免日志泄露**: 密码不出现在任何日志中
+
+**请求时效性**（防简单重放攻击）:
+- **时间戳验证**: 加入请求包含 Unix 毫秒时间戳
+- **有效期**: 请求在 5 分钟内有效
+- **时钟偏差**: 容忍 ±30 秒偏差（可配置）
+
+**密码强度要求**:
+- **最少长度**: 8 位字符
+- **建议复杂度**: 包含字母、数字（可选，不强制）
+- **创建时验证**: 数据池创建时检查密码强度
+
+**实现伪代码**:
+```rust
+// 1. 强制 TLS 配置
+let transport = libp2p::tcp::Transport::default()
+    .upgrade(libp2p::core::upgrade::Version::V1)
+    .authenticate(libp2p::noise::Config::new(&keypair)?)
+    .multiplex(libp2p::yamux::Config::default());
+
+// 2. 密码内存清理
+use zeroize::Zeroizing;
+
+fn verify_password(password: Zeroizing<String>, hash: &str) -> Result<bool> {
+    let result = bcrypt::verify(&password, hash)?;
+    // password 离开作用域时自动清零内存
+    Ok(result)
+}
+
+// 3. 时间戳验证
+struct JoinRequest {
+    pool_id: String,
+    password: Zeroizing<String>,
+    timestamp: u64,  // Unix 毫秒时间戳
+}
+
+fn validate_request(req: &JoinRequest) -> Result<()> {
+    let now = current_timestamp_ms();
+    let diff = now.abs_diff(req.timestamp);
+
+    if diff > 300_000 {  // 5 分钟
+        return Err("请求已过期");
+    }
+    Ok(())
+}
+
+// 4. 密码强度验证
+fn validate_password_strength(password: &str) -> Result<()> {
+    if password.len() < 8 {
+        return Err("密码至少 8 位");
+    }
+    Ok(())
+}
+```
+
+### 2.4 安全保证总结
+
+**多层防护体系**:
+
+1. **传输层**: libp2p TLS 加密（AES-256-GCM）
+2. **验证层**: bcrypt 慢哈希（防暴力破解）
+3. **内存层**: zeroize 清零敏感数据
+4. **存储层**: 系统 Keyring OS 级加密
+5. **时效层**: 时间戳验证（防简单重放）
+
+**安全等级**: 适用于家庭/个人局域网场景，提供足够的安全保护。
+
+**未来升级路径**: 如需更高安全性（如广域网），可升级到 SPAKE2 协议（v2.1.0+）。
 
 ### 2.5 自动重连机制
 
 **App 启动时**:
-1. 遍历 `joined_pools` 列表
-2. 从系统 Keyring 读取每个数据池的密码
-3. 自动连接到已发现的数据池成员设备
-4. 如果密码验证失败 (例如密码已更改),提示用户重新输入
+1. 读取本地配置文件 (`config.json`)，获取 `joined_pools` ID 列表
+2. 对每个 pool_id，加载对应的 Pool CRDT 文件，读取数据池详细信息
+3. 从系统 Keyring 读取每个数据池的密码
+4. 自动连接到已发现的数据池成员设备（通过 mDNS）
+5. 如果密码验证失败 (例如密码已更改),提示用户重新输入
 
 **保证**: 用户无需每次手动输入密码,自动恢复同步。
+
+**实现伪代码**:
+```rust
+fn auto_reconnect_on_startup(config: &Config) -> Result<()> {
+    for pool_id in &config.joined_pools {
+        // 1. 加载数据池 CRDT，获取详细信息
+        let pool = load_pool_crdt(pool_id)?;
+        let pool_name = pool.name;
+
+        // 2. 从 Keyring 读取密码
+        let password = keyring::get_password(&format!("cardmind.pool.{}.password", pool_id))?;
+
+        // 3. 连接到数据池成员设备
+        connect_to_pool(pool_id, &password)?;
+    }
+    Ok(())
+}
+```
 
 ---
 
@@ -422,6 +529,8 @@ stateDiagram-v2
 
 | 版本 | 变更 |
 |------|------|
+| 1.2.0 | 增强隐私保护：mDNS 广播仅暴露 `pool_id`，不暴露 `pool_name`；密码验证后才能获取数据池详细信息 |
+| 1.1.0 | 更新设备昵称机制：mDNS 广播使用默认昵称；自动重连时从 CRDT 读取数据池详细信息 |
 | 1.0.0 | 初始版本,从 PRD.md 和 DATABASE.md 提取同步机制设计 |
 
 ---
