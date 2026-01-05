@@ -261,9 +261,8 @@ impl DeviceConfig {
     /// println!("Device ID: {}", config.device_id);
     /// ```
     pub fn load(path: &Path) -> Result<Self, DeviceConfigError> {
-        let content = fs::read_to_string(path).map_err(|e| {
-            DeviceConfigError::ReadError(format!("无法读取配置文件: {e}"))
-        })?;
+        let content = fs::read_to_string(path)
+            .map_err(|e| DeviceConfigError::ReadError(format!("无法读取配置文件: {e}")))?;
 
         serde_json::from_str(&content)
             .map_err(|e| DeviceConfigError::JsonError(format!("JSON 解析失败: {e}")))

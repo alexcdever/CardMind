@@ -135,9 +135,8 @@ impl KeyringStore {
     /// 获取 Keyring Entry
     fn get_entry(&self, pool_id: &str) -> Result<Entry, KeyringError> {
         let entry_name = self.make_entry_name(pool_id);
-        Entry::new(&self.service_name, &entry_name).map_err(|e| {
-            KeyringError::AccessError(format!("无法创建 Keyring Entry: {e}"))
-        })
+        Entry::new(&self.service_name, &entry_name)
+            .map_err(|e| KeyringError::AccessError(format!("无法创建 Keyring Entry: {e}")))
     }
 
     /// 存储数据池密码到 Keyring
@@ -171,9 +170,9 @@ impl KeyringStore {
     ) -> Result<(), KeyringError> {
         let entry = self.get_entry(pool_id)?;
 
-        entry.set_password(password.as_str()).map_err(|e| {
-            KeyringError::StoreError(format!("无法存储密码到 Keyring: {e}"))
-        })?;
+        entry
+            .set_password(password.as_str())
+            .map_err(|e| KeyringError::StoreError(format!("无法存储密码到 Keyring: {e}")))?;
 
         Ok(())
     }
@@ -207,9 +206,9 @@ impl KeyringStore {
     pub fn get_pool_password(&self, pool_id: &str) -> Result<Zeroizing<String>, KeyringError> {
         let entry = self.get_entry(pool_id)?;
 
-        let password = entry.get_password().map_err(|e| {
-            KeyringError::PasswordNotFound(format!("无法从 Keyring 读取密码: {e}"))
-        })?;
+        let password = entry
+            .get_password()
+            .map_err(|e| KeyringError::PasswordNotFound(format!("无法从 Keyring 读取密码: {e}")))?;
 
         Ok(Zeroizing::new(password))
     }
@@ -238,9 +237,9 @@ impl KeyringStore {
     pub fn delete_pool_password(&self, pool_id: &str) -> Result<(), KeyringError> {
         let entry = self.get_entry(pool_id)?;
 
-        entry.delete_credential().map_err(|e| {
-            KeyringError::DeleteError(format!("无法从 Keyring 删除密码: {e}"))
-        })?;
+        entry
+            .delete_credential()
+            .map_err(|e| KeyringError::DeleteError(format!("无法从 Keyring 删除密码: {e}")))?;
 
         Ok(())
     }
@@ -313,7 +312,11 @@ mod tests {
 
         // Retrieve password
         let retrieved = store.get_pool_password(test_pool_id);
-        assert!(retrieved.is_ok(), "Failed to retrieve password: {:?}", retrieved);
+        assert!(
+            retrieved.is_ok(),
+            "Failed to retrieve password: {:?}",
+            retrieved
+        );
         assert_eq!(retrieved.unwrap().as_str(), "test_password_123");
 
         // Cleanup

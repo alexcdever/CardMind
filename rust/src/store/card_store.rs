@@ -176,17 +176,13 @@ impl CardStore {
             .get("created_at")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_i64().copied())
-            .ok_or_else(|| {
-                CardMindError::DatabaseError("Missing created_at field".to_string())
-            })?;
+            .ok_or_else(|| CardMindError::DatabaseError("Missing created_at field".to_string()))?;
 
         let updated_at = map
             .get("updated_at")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_i64().copied())
-            .ok_or_else(|| {
-                CardMindError::DatabaseError("Missing updated_at field".to_string())
-            })?;
+            .ok_or_else(|| CardMindError::DatabaseError("Missing updated_at field".to_string()))?;
 
         let deleted = map
             .get("deleted")
@@ -246,10 +242,7 @@ impl CardStore {
     fn persist_loro_doc(&self, card_id: &str, doc: &LoroDoc) -> Result<(), CardMindError> {
         if let Some(base_path) = &self.base_path {
             // 使用十六进制编码card_id作为目录名
-            let encoded_id: String = card_id
-                .bytes()
-                .map(|b| format!("{:02x}", b))
-                .collect();
+            let encoded_id: String = card_id.bytes().map(|b| format!("{:02x}", b)).collect();
             let card_dir = base_path.join("loro").join(&encoded_id);
 
             // 创建卡片目录
@@ -487,7 +480,10 @@ impl CardStore {
         // 从文件加载
         let base_path = self.base_path.as_ref().unwrap();
         let encoded_id: String = id.bytes().map(|b| format!("{:02x}", b)).collect();
-        let snapshot_path = base_path.join("loro").join(&encoded_id).join("snapshot.loro");
+        let snapshot_path = base_path
+            .join("loro")
+            .join(&encoded_id)
+            .join("snapshot.loro");
 
         if !snapshot_path.exists() {
             return Err(CardMindError::CardNotFound(id.to_string()));
@@ -582,7 +578,11 @@ impl CardStore {
     /// store.remove_card_from_pool(&card.id, "pool-001")?;
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
-    pub fn remove_card_from_pool(&mut self, card_id: &str, pool_id: &str) -> Result<(), CardMindError> {
+    pub fn remove_card_from_pool(
+        &mut self,
+        card_id: &str,
+        pool_id: &str,
+    ) -> Result<(), CardMindError> {
         // 更新 Loro 层的 pool_ids
         let mut card = self.get_card_by_id(card_id)?;
         card.remove_pool(pool_id);

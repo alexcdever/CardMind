@@ -31,7 +31,7 @@ use tracing::{debug, info, warn};
 /// 组合了 Ping 协议，用于心跳检测和连接测试
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "P2PEvent")]
-struct P2PBehaviour {
+pub struct P2PBehaviour {
     /// Ping 协议，用于心跳检测
     ping: PingBehaviour,
 }
@@ -39,7 +39,7 @@ struct P2PBehaviour {
 /// P2P 网络事件
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)]
-enum P2PEvent {
+pub enum P2PEvent {
     /// Ping 事件
     Ping(ping::Event),
 }
@@ -95,8 +95,8 @@ impl P2PNetwork {
         info!("本地 Peer ID: {}", local_peer_id);
 
         // 2. 创建 Noise 加密配置（强制 TLS）
-        let noise_config = noise::Config::new(&local_key)
-            .map_err(|e| format!("Noise 配置失败: {e}"))?;
+        let noise_config =
+            noise::Config::new(&local_key).map_err(|e| format!("Noise 配置失败: {e}"))?;
 
         // 3. 创建传输层
         let transport = tcp::tokio::Transport::default()
@@ -127,6 +127,11 @@ impl P2PNetwork {
     #[must_use]
     pub fn local_peer_id(&self) -> &PeerId {
         self.swarm.local_peer_id()
+    }
+
+    /// 获取 Swarm 的可变引用（用于同步服务）
+    pub fn swarm_mut(&mut self) -> &mut Swarm<P2PBehaviour> {
+        &mut self.swarm
     }
 
     /// 监听指定地址
@@ -195,16 +200,10 @@ impl P2PNetwork {
                     } => {
                         info!("连接建立: {} at {}", peer_id, endpoint.get_remote_address());
                     }
-                    SwarmEvent::ConnectionClosed {
-                        peer_id, cause, ..
-                    } => {
+                    SwarmEvent::ConnectionClosed { peer_id, cause, .. } => {
                         warn!("连接关闭: {} (原因: {:?})", peer_id, cause);
                     }
-                    SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event {
-                        peer,
-                        result,
-                        ..
-                    })) => {
+                    SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event { peer, result, .. })) => {
                         match result {
                             Ok(duration) => {
                                 debug!("Ping 成功: {} (延迟: {:?})", peer, duration);

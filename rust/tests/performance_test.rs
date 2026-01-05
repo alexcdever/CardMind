@@ -34,11 +34,7 @@ fn test_1000_cards_loading_performance() {
     let cards = store.get_all_cards().expect("Failed to get cards");
     let query_duration = query_start.elapsed();
 
-    println!(
-        "Queried {} cards in {:?}",
-        cards.len(),
-        query_duration
-    );
+    println!("Queried {} cards in {:?}", cards.len(), query_duration);
 
     // Assertions
     assert_eq!(cards.len(), 1000, "Should have created 1000 cards");
@@ -64,7 +60,10 @@ fn test_loro_operation_performance() {
     // Test create operation
     let start = Instant::now();
     let card = store
-        .create_card("Performance Test".to_string(), "Testing Loro operation speed".to_string())
+        .create_card(
+            "Performance Test".to_string(),
+            "Testing Loro operation speed".to_string(),
+        )
         .expect("Failed to create card");
     let create_duration = start.elapsed();
     println!("Loro create operation: {:?}", create_duration);
@@ -77,7 +76,11 @@ fn test_loro_operation_performance() {
     // Test update operation
     let start = Instant::now();
     store
-        .update_card(&card.id, Some("Updated Title".to_string()), Some("Updated Content".to_string()))
+        .update_card(
+            &card.id,
+            Some("Updated Title".to_string()),
+            Some("Updated Content".to_string()),
+        )
         .expect("Failed to update card");
     let update_duration = start.elapsed();
     println!("Loro update operation: {:?}", update_duration);
@@ -128,7 +131,9 @@ fn test_sqlite_query_performance() {
 
     // Test get_active_cards query
     let start = Instant::now();
-    let active_cards = store.get_active_cards().expect("Failed to get active cards");
+    let active_cards = store
+        .get_active_cards()
+        .expect("Failed to get active cards");
     let query_active_duration = start.elapsed();
     println!(
         "SQLite get_active_cards ({} cards): {:?}",

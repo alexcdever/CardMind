@@ -493,7 +493,8 @@ mod tests {
         let pool = create_pool("Test Pool".to_string(), "mypassword123".to_string()).unwrap();
 
         // Correct password
-        let valid = verify_pool_password(pool.pool_id.clone(), "mypassword123".to_string()).unwrap();
+        let valid =
+            verify_pool_password(pool.pool_id.clone(), "mypassword123".to_string()).unwrap();
         assert!(valid);
 
         // Wrong password
@@ -514,10 +515,7 @@ mod tests {
         let password = "test_keyring_password_123";
 
         // Store password
-        let result = store_pool_password_in_keyring(
-            test_pool_id.to_string(),
-            password.to_string(),
-        );
+        let result = store_pool_password_in_keyring(test_pool_id.to_string(), password.to_string());
         assert!(result.is_ok(), "Failed to store password: {:?}", result);
 
         // Check if exists
@@ -526,7 +524,11 @@ mod tests {
 
         // Retrieve password
         let retrieved = get_pool_password_from_keyring(test_pool_id.to_string());
-        assert!(retrieved.is_ok(), "Failed to retrieve password: {:?}", retrieved);
+        assert!(
+            retrieved.is_ok(),
+            "Failed to retrieve password: {:?}",
+            retrieved
+        );
         assert_eq!(retrieved.unwrap(), password);
 
         // Cleanup
@@ -540,11 +542,8 @@ mod tests {
         let test_pool_id = "test-keyring-pool-002";
 
         // Store password first
-        store_pool_password_in_keyring(
-            test_pool_id.to_string(),
-            "delete_test".to_string(),
-        )
-        .unwrap();
+        store_pool_password_in_keyring(test_pool_id.to_string(), "delete_test".to_string())
+            .unwrap();
 
         // Verify it exists
         let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
@@ -570,11 +569,8 @@ mod tests {
         assert!(!has_password);
 
         // Store password
-        store_pool_password_in_keyring(
-            test_pool_id.to_string(),
-            "exists_test".to_string(),
-        )
-        .unwrap();
+        store_pool_password_in_keyring(test_pool_id.to_string(), "exists_test".to_string())
+            .unwrap();
 
         // Should exist now
         let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();

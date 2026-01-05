@@ -486,9 +486,7 @@ mod tests {
 
         // 使用很短的有效期（1 秒）
         thread::sleep(Duration::from_millis(1500));
-        assert!(request
-            .validate_timestamp_with_tolerance(1000, 0)
-            .is_err());
+        assert!(request.validate_timestamp_with_tolerance(1000, 0).is_err());
     }
 
     #[test]

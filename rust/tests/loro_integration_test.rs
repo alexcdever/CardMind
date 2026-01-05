@@ -73,10 +73,7 @@ fn test_loro_export_and_import_snapshot() {
 
     // Export to snapshot bytes
     let snapshot_bytes = doc1.export(ExportMode::Snapshot).unwrap();
-    assert!(
-        !snapshot_bytes.is_empty(),
-        "Snapshot should not be empty"
-    );
+    assert!(!snapshot_bytes.is_empty(), "Snapshot should not be empty");
 
     // Create new document from snapshot
     let doc2 = LoroDoc::from_snapshot(&snapshot_bytes).unwrap();
@@ -89,15 +86,8 @@ fn test_loro_export_and_import_snapshot() {
     let title = imported_map.get("title").unwrap().into_value().unwrap();
     assert_eq!(title.as_string().unwrap().to_string(), "Original Card");
 
-    let content = imported_map
-        .get("content")
-        .unwrap()
-        .into_value()
-        .unwrap();
-    assert_eq!(
-        content.as_string().unwrap().to_string(),
-        "Original content"
-    );
+    let content = imported_map.get("content").unwrap().into_value().unwrap();
+    assert_eq!(content.as_string().unwrap().to_string(), "Original content");
 }
 
 /// Test 4: Export updates and import
@@ -209,10 +199,7 @@ fn test_loro_file_persistence() {
     // Step 4: Verify data integrity
     let loaded_map = doc2.get_map("card");
     let id = loaded_map.get("id").unwrap().into_value().unwrap();
-    assert_eq!(
-        id.as_string().unwrap().to_string(),
-        "persistent-card-001"
-    );
+    assert_eq!(id.as_string().unwrap().to_string(), "persistent-card-001");
 
     let title = loaded_map.get("title").unwrap().into_value().unwrap();
     assert_eq!(title.as_string().unwrap().to_string(), "Persistent Card");
@@ -223,11 +210,7 @@ fn test_loro_file_persistence() {
         "This card should survive file save/load"
     );
 
-    let created_at = loaded_map
-        .get("created_at")
-        .unwrap()
-        .into_value()
-        .unwrap();
+    let created_at = loaded_map.get("created_at").unwrap().into_value().unwrap();
     assert_eq!(*created_at.as_i64().unwrap(), 1704153600000i64);
 
     // Cleanup is automatic (TempDir drop)
