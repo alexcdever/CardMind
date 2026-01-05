@@ -266,7 +266,9 @@ impl SyncFilter {
     #[must_use]
     pub fn should_sync(&self, card: &crate::models::card::Card) -> bool {
         // 检查卡片的池ID与设备加入的池是否有交集
-        card.pool_ids.iter().any(|pool_id| self.joined_pools.contains(pool_id))
+        card.pool_ids
+            .iter()
+            .any(|pool_id| self.joined_pools.contains(pool_id))
     }
 
     /// 过滤卡片列表，返回应该同步的卡片
@@ -307,7 +309,10 @@ impl SyncFilter {
     /// assert_eq!(filtered[0].id, "card-1");
     /// ```
     #[must_use]
-    pub fn filter_cards(&self, cards: &[crate::models::card::Card]) -> Vec<crate::models::card::Card> {
+    pub fn filter_cards(
+        &self,
+        cards: &[crate::models::card::Card],
+    ) -> Vec<crate::models::card::Card> {
         cards
             .iter()
             .filter(|card| self.should_sync(card))
@@ -326,7 +331,11 @@ mod tests {
         let filter = SyncFilter::new(vec!["pool-A".to_string(), "pool-C".to_string()]);
 
         // 卡片绑定 pool-A 和 pool-B
-        let mut card1 = Card::new("card-1".to_string(), "Title".to_string(), "Content".to_string());
+        let mut card1 = Card::new(
+            "card-1".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
         card1.add_pool("pool-A".to_string());
         card1.add_pool("pool-B".to_string());
 
@@ -334,14 +343,22 @@ mod tests {
         assert!(filter.should_sync(&card1));
 
         // 卡片仅绑定 pool-B
-        let mut card2 = Card::new("card-2".to_string(), "Title".to_string(), "Content".to_string());
+        let mut card2 = Card::new(
+            "card-2".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
         card2.add_pool("pool-B".to_string());
 
         // 不应该同步（无交集）
         assert!(!filter.should_sync(&card2));
 
         // 卡片没有绑定任何池
-        let card3 = Card::new("card-3".to_string(), "Title".to_string(), "Content".to_string());
+        let card3 = Card::new(
+            "card-3".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
 
         // 不应该同步
         assert!(!filter.should_sync(&card3));

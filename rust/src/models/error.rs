@@ -14,6 +14,9 @@ pub enum CardMindError {
     #[error("Card not found: {0}")]
     CardNotFound(String),
 
+    #[error("Not authorized: {0}")]
+    NotAuthorized(String),
+
     #[error("Invalid UUID: {0}")]
     InvalidUuid(String),
 

@@ -179,14 +179,10 @@ impl SqliteStore {
     /// - synchronous=NORMAL: 平衡性能和安全性
     /// - foreign_keys=ON: 启用外键约束
     fn optimize(&self) -> Result<(), CardMindError> {
-        self.conn
-            .pragma_update(None, "journal_mode", "WAL")?;
-        self.conn
-            .pragma_update(None, "cache_size", -10000)?;
-        self.conn
-            .pragma_update(None, "synchronous", "NORMAL")?;
-        self.conn
-            .pragma_update(None, "foreign_keys", true)?;
+        self.conn.pragma_update(None, "journal_mode", "WAL")?;
+        self.conn.pragma_update(None, "cache_size", -10000)?;
+        self.conn.pragma_update(None, "synchronous", "NORMAL")?;
+        self.conn.pragma_update(None, "foreign_keys", true)?;
         Ok(())
     }
 
@@ -254,9 +250,7 @@ impl SqliteStore {
     /// * `id` - 卡片ID
     #[allow(dead_code)]
     pub(crate) fn delete_card(&self, id: &str) -> Result<(), CardMindError> {
-        let rows_affected = self
-            .conn
-            .execute("DELETE FROM cards WHERE id = ?1", [id])?;
+        let rows_affected = self.conn.execute("DELETE FROM cards WHERE id = ?1", [id])?;
 
         if rows_affected == 0 {
             return Err(CardMindError::CardNotFound(id.to_string()));
@@ -402,11 +396,11 @@ impl SqliteStore {
             .conn
             .query_row("SELECT COUNT(*) FROM cards", [], |row| row.get(0))?;
 
-        let active: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM cards WHERE deleted = 0",
-            [],
-            |row| row.get(0),
-        )?;
+        let active: i64 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM cards WHERE deleted = 0", [], |row| {
+                    row.get(0)
+                })?;
 
         let deleted = total - active;
 
@@ -689,7 +683,11 @@ mod tests {
     #[test]
     fn test_add_and_get_card_pool_binding() {
         let store = SqliteStore::new_in_memory().unwrap();
-        let card = Card::new(generate_uuid_v7(), "测试卡片".to_string(), "内容".to_string());
+        let card = Card::new(
+            generate_uuid_v7(),
+            "测试卡片".to_string(),
+            "内容".to_string(),
+        );
         let pool_id = generate_uuid_v7();
 
         // 插入卡片
@@ -712,7 +710,11 @@ mod tests {
     #[test]
     fn test_remove_card_pool_binding() {
         let store = SqliteStore::new_in_memory().unwrap();
-        let card = Card::new(generate_uuid_v7(), "测试卡片".to_string(), "内容".to_string());
+        let card = Card::new(
+            generate_uuid_v7(),
+            "测试卡片".to_string(),
+            "内容".to_string(),
+        );
         let pool_id = generate_uuid_v7();
 
         // 插入卡片和绑定
@@ -734,7 +736,11 @@ mod tests {
     #[test]
     fn test_clear_card_pools() {
         let store = SqliteStore::new_in_memory().unwrap();
-        let card = Card::new(generate_uuid_v7(), "测试卡片".to_string(), "内容".to_string());
+        let card = Card::new(
+            generate_uuid_v7(),
+            "测试卡片".to_string(),
+            "内容".to_string(),
+        );
         let pool1 = generate_uuid_v7();
         let pool2 = generate_uuid_v7();
 

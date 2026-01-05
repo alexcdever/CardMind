@@ -1,4 +1,4 @@
-use loro::{LoroDoc, ExportMode};
+use loro::{ExportMode, LoroDoc};
 use std::sync::Arc;
 
 fn main() {
@@ -16,5 +16,8 @@ fn main() {
         println!("{:?}", event);
     }));
 
-    println!("Loro API test completed. Snapshot size: {} bytes", bytes.len());
+    println!(
+        "Loro API test completed. Snapshot size: {} bytes",
+        bytes.len()
+    );
 }

@@ -34,11 +34,27 @@ pub fn init_card_store(path: String) -> Result<()> {
 /// Get the global CardStore instance (internal helper)
 fn get_store() -> Result<Arc<Mutex<CardStore>>> {
     let global_store = CARD_STORE.lock().unwrap();
-    global_store
-        .clone()
-        .ok_or_else(|| crate::models::error::CardMindError::DatabaseError(
-            "CardStore not initialized. Call init_card_store first.".to_string()
-        ))
+    global_store.clone().ok_or_else(|| {
+        crate::models::error::CardMindError::DatabaseError(
+            "CardStore not initialized. Call init_card_store first.".to_string(),
+        )
+    })
+}
+
+/// Get the global CardStore Arc (for internal use by other modules)
+///
+/// This function is used internally by other Rust modules (e.g., P2P sync)
+/// that need direct access to the CardStore.
+///
+/// # Returns
+///
+/// Arc<Mutex<CardStore>> instance
+///
+/// # Errors
+///
+/// Returns error if CardStore is not initialized
+pub(crate) fn get_card_store_arc() -> Result<Arc<Mutex<CardStore>>> {
+    get_store()
 }
 
 // ==================== Card CRUD APIs ====================
@@ -430,11 +446,7 @@ mod tests {
         let card = create_card("Old Title".to_string(), "Old Content".to_string()).unwrap();
         let card_id = card.id.clone();
 
-        let result = update_card(
-            card_id.clone(),
-            Some("New Title".to_string()),
-            None,
-        );
+        let result = update_card(card_id.clone(), Some("New Title".to_string()), None);
         assert!(result.is_ok(), "Should update card successfully");
 
         let updated = get_card_by_id(card_id).unwrap();
@@ -489,6 +501,9 @@ mod tests {
         cleanup_store(); // Ensure no store is initialized
 
         let result = create_card("Test".to_string(), "Content".to_string());
-        assert!(result.is_err(), "Should fail when CardStore not initialized");
+        assert!(
+            result.is_err(),
+            "Should fail when CardStore not initialized"
+        );
     }
 }

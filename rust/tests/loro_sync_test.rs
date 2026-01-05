@@ -457,7 +457,9 @@ fn test_snapshot_vs_incremental_updates() {
         let temp_map = temp_doc.get_map("card");
         for i in 0..5 {
             temp_map.insert("title", format!("标题版本{}", i)).unwrap();
-            temp_map.insert("content", format!("内容版本{}", i)).unwrap();
+            temp_map
+                .insert("content", format!("内容版本{}", i))
+                .unwrap();
             temp_doc.commit();
         }
         temp_doc.oplog_vv()

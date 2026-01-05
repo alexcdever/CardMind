@@ -229,7 +229,11 @@ fn test_select_nonexistent_card() {
 fn test_update_card() {
     let conn = setup_test_db();
 
-    let mut card = Card::new(generate_uuid_v7(), "旧标题".to_string(), "旧内容".to_string());
+    let mut card = Card::new(
+        generate_uuid_v7(),
+        "旧标题".to_string(),
+        "旧内容".to_string(),
+    );
     insert_card(&conn, &card).unwrap();
 
     // 更新卡片
@@ -368,7 +372,8 @@ fn insert_card(conn: &Connection, card: &Card) -> Result<(), CardMindError> {
 
 /// 查询所有卡片（包括已删除）
 fn select_all_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
-    let mut stmt = conn.prepare("SELECT id, title, content, created_at, updated_at, deleted FROM cards")?;
+    let mut stmt =
+        conn.prepare("SELECT id, title, content, created_at, updated_at, deleted FROM cards")?;
 
     let cards = stmt
         .query_map([], |row| {
