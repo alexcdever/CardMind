@@ -12,8 +12,12 @@ import 'dart:convert';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 
 import 'api/card.dart';
+import 'api/device_config.dart';
+import 'api/pool.dart';
 import 'frb_generated.dart';
 import 'models/card.dart';
+import 'models/device_config.dart';
+import 'models/pool.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -36,19 +40,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Card dco_decode_card(dynamic raw);
 
   @protected
+  Device dco_decode_device(dynamic raw);
+
+  @protected
+  DeviceConfig dco_decode_device_config(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<Card> dco_decode_list_card(dynamic raw);
+
+  @protected
+  List<Device> dco_decode_list_device(dynamic raw);
+
+  @protected
+  List<Pool> dco_decode_list_pool(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  Pool dco_decode_pool(dynamic raw);
 
   @protected
   (PlatformInt64, PlatformInt64, PlatformInt64) dco_decode_record_i_64_i_64_i_64(dynamic raw);
@@ -72,19 +94,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Card sse_decode_card(SseDeserializer deserializer);
 
   @protected
+  Device sse_decode_device(SseDeserializer deserializer);
+
+  @protected
+  DeviceConfig sse_decode_device_config(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
   List<Card> sse_decode_list_card(SseDeserializer deserializer);
+
+  @protected
+  List<Device> sse_decode_list_device(SseDeserializer deserializer);
+
+  @protected
+  List<Pool> sse_decode_list_pool(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  Pool sse_decode_pool(SseDeserializer deserializer);
 
   @protected
   (PlatformInt64, PlatformInt64, PlatformInt64) sse_decode_record_i_64_i_64_i_64(SseDeserializer deserializer);
@@ -108,19 +148,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_card(Card self, SseSerializer serializer);
 
   @protected
+  void sse_encode_device(Device self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_device_config(DeviceConfig self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_card(List<Card> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_device(List<Device> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_pool(List<Pool> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pool(Pool self, SseSerializer serializer);
 
   @protected
   void sse_encode_record_i_64_i_64_i_64((PlatformInt64, PlatformInt64, PlatformInt64) self, SseSerializer serializer);

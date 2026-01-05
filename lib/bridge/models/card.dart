@@ -23,5 +23,6 @@ sealed class Card with _$Card {
     required PlatformInt64 createdAt,
     required PlatformInt64 updatedAt,
     required bool deleted,
+    required List<String> poolIds,
   }) = _Card;
 }

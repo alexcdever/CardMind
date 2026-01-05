@@ -58,5 +58,23 @@ impl From<loro::LoroEncodeError> for CardMindError {
     }
 }
 
+impl From<crate::security::password::PasswordError> for CardMindError {
+    fn from(err: crate::security::password::PasswordError) -> Self {
+        CardMindError::Unknown(err.to_string())
+    }
+}
+
+impl From<crate::models::device_config::DeviceConfigError> for CardMindError {
+    fn from(err: crate::models::device_config::DeviceConfigError) -> Self {
+        CardMindError::DatabaseError(err.to_string())
+    }
+}
+
+impl From<crate::security::keyring_store::KeyringError> for CardMindError {
+    fn from(err: crate::security::keyring_store::KeyringError) -> Self {
+        CardMindError::Unknown(err.to_string())
+    }
+}
+
 /// Result type alias for CardMind operations
 pub type Result<T> = std::result::Result<T, CardMindError>;

@@ -4,11 +4,15 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/card.dart';
+import 'api/device_config.dart';
+import 'api/pool.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart' if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'models/card.dart';
+import 'models/device_config.dart';
+import 'models/pool.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// Main entrypoint of the Rust API
@@ -61,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -376861755;
+  int get rustContentHash => 1331313342;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'cardmind_rust',
@@ -71,25 +75,91 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<void> crateApiCardAddCardToPool({required String cardId, required String poolId});
+
   int crateApiCardAddNumbers({required int a, required int b});
+
+  Future<void> crateApiPoolAddPoolMember({
+    required String poolId,
+    required String deviceId,
+    required String deviceName,
+  });
+
+  Future<void> crateApiCardClearCardPools({required String cardId});
 
   Future<Card> crateApiCardCreateCard({required String title, required String content});
 
+  Future<Pool> crateApiPoolCreatePool({required String name, required String password});
+
   Future<void> crateApiCardDeleteCard({required String id});
+
+  Future<void> crateApiPoolDeletePool({required String poolId});
+
+  Future<void> crateApiPoolDeletePoolPasswordFromKeyring({required String poolId});
 
   Future<List<Card>> crateApiCardGetActiveCards();
 
   Future<List<Card>> crateApiCardGetAllCards();
 
+  Future<List<Pool>> crateApiPoolGetAllPools();
+
   Future<Card> crateApiCardGetCardById({required String id});
 
   Future<(PlatformInt64, PlatformInt64, PlatformInt64)> crateApiCardGetCardCount();
+
+  Future<List<String>> crateApiCardGetCardPools({required String cardId});
+
+  Future<List<Card>> crateApiCardGetCardsInPools({required List<String> poolIds});
+
+  Future<DeviceConfig> crateApiDeviceConfigGetDeviceConfig();
+
+  Future<String> crateApiDeviceConfigGetDeviceId();
+
+  Future<List<String>> crateApiDeviceConfigGetJoinedPools();
+
+  Future<Pool> crateApiPoolGetPoolById({required String poolId});
+
+  Future<String> crateApiPoolGetPoolPasswordFromKeyring({required String poolId});
+
+  Future<List<String>> crateApiDeviceConfigGetResidentPools();
+
+  Future<bool> crateApiPoolHasPoolPasswordInKeyring({required String poolId});
 
   String crateApiCardHelloCardmind();
 
   Future<void> crateApiCardInitCardStore({required String path});
 
+  Future<DeviceConfig> crateApiDeviceConfigInitDeviceConfig({required String basePath});
+
+  Future<void> crateApiPoolInitPoolStore({required String path});
+
+  Future<bool> crateApiDeviceConfigIsPoolJoined({required String poolId});
+
+  Future<bool> crateApiDeviceConfigIsPoolResident({required String poolId});
+
+  Future<void> crateApiDeviceConfigJoinPool({required String poolId});
+
+  Future<bool> crateApiDeviceConfigLeavePool({required String poolId});
+
+  Future<void> crateApiCardRemoveCardFromPool({required String cardId, required String poolId});
+
+  Future<void> crateApiPoolRemovePoolMember({required String poolId, required String deviceId});
+
+  Future<void> crateApiDeviceConfigSetResidentPool({required String poolId, required bool isResident});
+
+  Future<void> crateApiPoolStorePoolPasswordInKeyring({required String poolId, required String password});
+
   Future<void> crateApiCardUpdateCard({required String id, String? title, String? content});
+
+  Future<void> crateApiPoolUpdateMemberName({
+    required String poolId,
+    required String deviceId,
+    required String newName,
+  });
+
+  Future<void> crateApiPoolUpdatePool({required String poolId, required String name});
+
+  Future<bool> crateApiPoolVerifyPoolPassword({required String poolId, required String password});
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -101,6 +171,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<void> crateApiCardAddCardToPool({required String cardId, required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(cardId, serializer);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiCardAddCardToPoolConstMeta,
+        argValues: [cardId, poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCardAddCardToPoolConstMeta =>
+      const TaskConstMeta(debugName: "add_card_to_pool", argNames: ["cardId", "poolId"]);
+
+  @override
   int crateApiCardAddNumbers({required int a, required int b}) {
     return handler.executeSync(
       SyncTask(
@@ -108,7 +199,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_i_32(a, serializer);
           sse_encode_i_32(b, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
         },
         codec: SseCodec(decodeSuccessData: sse_decode_i_32, decodeErrorData: null),
         constMeta: kCrateApiCardAddNumbersConstMeta,
@@ -122,6 +213,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "add_numbers", argNames: ["a", "b"]);
 
   @override
+  Future<void> crateApiPoolAddPoolMember({
+    required String poolId,
+    required String deviceId,
+    required String deviceName,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(deviceId, serializer);
+          sse_encode_String(deviceName, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolAddPoolMemberConstMeta,
+        argValues: [poolId, deviceId, deviceName],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolAddPoolMemberConstMeta =>
+      const TaskConstMeta(debugName: "add_pool_member", argNames: ["poolId", "deviceId", "deviceName"]);
+
+  @override
+  Future<void> crateApiCardClearCardPools({required String cardId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(cardId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiCardClearCardPoolsConstMeta,
+        argValues: [cardId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCardClearCardPoolsConstMeta =>
+      const TaskConstMeta(debugName: "clear_card_pools", argNames: ["cardId"]);
+
+  @override
   Future<Card> crateApiCardCreateCard({required String title, required String content}) {
     return handler.executeNormal(
       NormalTask(
@@ -129,7 +266,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(title, serializer);
           sse_encode_String(content, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5, port: port_);
         },
         codec: SseCodec(decodeSuccessData: sse_decode_card, decodeErrorData: sse_decode_AnyhowException),
         constMeta: kCrateApiCardCreateCardConstMeta,
@@ -143,13 +280,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "create_card", argNames: ["title", "content"]);
 
   @override
+  Future<Pool> crateApiPoolCreatePool({required String name, required String password}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(name, serializer);
+          sse_encode_String(password, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_pool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolCreatePoolConstMeta,
+        argValues: [name, password],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolCreatePoolConstMeta =>
+      const TaskConstMeta(debugName: "create_pool", argNames: ["name", "password"]);
+
+  @override
   Future<void> crateApiCardDeleteCard({required String id}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(id, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7, port: port_);
         },
         codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
         constMeta: kCrateApiCardDeleteCardConstMeta,
@@ -162,12 +320,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiCardDeleteCardConstMeta => const TaskConstMeta(debugName: "delete_card", argNames: ["id"]);
 
   @override
+  Future<void> crateApiPoolDeletePool({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolDeletePoolConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolDeletePoolConstMeta =>
+      const TaskConstMeta(debugName: "delete_pool", argNames: ["poolId"]);
+
+  @override
+  Future<void> crateApiPoolDeletePoolPasswordFromKeyring({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolDeletePoolPasswordFromKeyringConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolDeletePoolPasswordFromKeyringConstMeta =>
+      const TaskConstMeta(debugName: "delete_pool_password_from_keyring", argNames: ["poolId"]);
+
+  @override
   Future<List<Card>> crateApiCardGetActiveCards() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10, port: port_);
         },
         codec: SseCodec(decodeSuccessData: sse_decode_list_card, decodeErrorData: sse_decode_AnyhowException),
         constMeta: kCrateApiCardGetActiveCardsConstMeta,
@@ -186,7 +384,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 11, port: port_);
         },
         codec: SseCodec(decodeSuccessData: sse_decode_list_card, decodeErrorData: sse_decode_AnyhowException),
         constMeta: kCrateApiCardGetAllCardsConstMeta,
@@ -199,13 +397,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiCardGetAllCardsConstMeta => const TaskConstMeta(debugName: "get_all_cards", argNames: []);
 
   @override
+  Future<List<Pool>> crateApiPoolGetAllPools() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_list_pool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolGetAllPoolsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolGetAllPoolsConstMeta => const TaskConstMeta(debugName: "get_all_pools", argNames: []);
+
+  @override
   Future<Card> crateApiCardGetCardById({required String id}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(id, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 13, port: port_);
         },
         codec: SseCodec(decodeSuccessData: sse_decode_card, decodeErrorData: sse_decode_AnyhowException),
         constMeta: kCrateApiCardGetCardByIdConstMeta,
@@ -224,7 +440,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_record_i_64_i_64_i_64,
@@ -241,12 +457,188 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "get_card_count", argNames: []);
 
   @override
+  Future<List<String>> crateApiCardGetCardPools({required String cardId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(cardId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_list_String, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiCardGetCardPoolsConstMeta,
+        argValues: [cardId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCardGetCardPoolsConstMeta =>
+      const TaskConstMeta(debugName: "get_card_pools", argNames: ["cardId"]);
+
+  @override
+  Future<List<Card>> crateApiCardGetCardsInPools({required List<String> poolIds}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_String(poolIds, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_list_card, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiCardGetCardsInPoolsConstMeta,
+        argValues: [poolIds],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCardGetCardsInPoolsConstMeta =>
+      const TaskConstMeta(debugName: "get_cards_in_pools", argNames: ["poolIds"]);
+
+  @override
+  Future<DeviceConfig> crateApiDeviceConfigGetDeviceConfig() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_device_config, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigGetDeviceConfigConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigGetDeviceConfigConstMeta =>
+      const TaskConstMeta(debugName: "get_device_config", argNames: []);
+
+  @override
+  Future<String> crateApiDeviceConfigGetDeviceId() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_String, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigGetDeviceIdConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigGetDeviceIdConstMeta =>
+      const TaskConstMeta(debugName: "get_device_id", argNames: []);
+
+  @override
+  Future<List<String>> crateApiDeviceConfigGetJoinedPools() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_list_String, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigGetJoinedPoolsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigGetJoinedPoolsConstMeta =>
+      const TaskConstMeta(debugName: "get_joined_pools", argNames: []);
+
+  @override
+  Future<Pool> crateApiPoolGetPoolById({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 20, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_pool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolGetPoolByIdConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolGetPoolByIdConstMeta =>
+      const TaskConstMeta(debugName: "get_pool_by_id", argNames: ["poolId"]);
+
+  @override
+  Future<String> crateApiPoolGetPoolPasswordFromKeyring({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 21, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_String, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolGetPoolPasswordFromKeyringConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolGetPoolPasswordFromKeyringConstMeta =>
+      const TaskConstMeta(debugName: "get_pool_password_from_keyring", argNames: ["poolId"]);
+
+  @override
+  Future<List<String>> crateApiDeviceConfigGetResidentPools() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 22, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_list_String, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigGetResidentPoolsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigGetResidentPoolsConstMeta =>
+      const TaskConstMeta(debugName: "get_resident_pools", argNames: []);
+
+  @override
+  Future<bool> crateApiPoolHasPoolPasswordInKeyring({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_bool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolHasPoolPasswordInKeyringConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolHasPoolPasswordInKeyringConstMeta =>
+      const TaskConstMeta(debugName: "has_pool_password_in_keyring", argNames: ["poolId"]);
+
+  @override
   String crateApiCardHelloCardmind() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
         },
         codec: SseCodec(decodeSuccessData: sse_decode_String, decodeErrorData: null),
         constMeta: kCrateApiCardHelloCardmindConstMeta,
@@ -266,7 +658,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(path, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25, port: port_);
         },
         codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
         constMeta: kCrateApiCardInitCardStoreConstMeta,
@@ -280,6 +672,210 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_card_store", argNames: ["path"]);
 
   @override
+  Future<DeviceConfig> crateApiDeviceConfigInitDeviceConfig({required String basePath}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(basePath, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_device_config, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigInitDeviceConfigConstMeta,
+        argValues: [basePath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigInitDeviceConfigConstMeta =>
+      const TaskConstMeta(debugName: "init_device_config", argNames: ["basePath"]);
+
+  @override
+  Future<void> crateApiPoolInitPoolStore({required String path}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(path, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolInitPoolStoreConstMeta,
+        argValues: [path],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolInitPoolStoreConstMeta =>
+      const TaskConstMeta(debugName: "init_pool_store", argNames: ["path"]);
+
+  @override
+  Future<bool> crateApiDeviceConfigIsPoolJoined({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 28, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_bool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigIsPoolJoinedConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigIsPoolJoinedConstMeta =>
+      const TaskConstMeta(debugName: "is_pool_joined", argNames: ["poolId"]);
+
+  @override
+  Future<bool> crateApiDeviceConfigIsPoolResident({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_bool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigIsPoolResidentConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigIsPoolResidentConstMeta =>
+      const TaskConstMeta(debugName: "is_pool_resident", argNames: ["poolId"]);
+
+  @override
+  Future<void> crateApiDeviceConfigJoinPool({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigJoinPoolConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigJoinPoolConstMeta =>
+      const TaskConstMeta(debugName: "join_pool", argNames: ["poolId"]);
+
+  @override
+  Future<bool> crateApiDeviceConfigLeavePool({required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_bool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigLeavePoolConstMeta,
+        argValues: [poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigLeavePoolConstMeta =>
+      const TaskConstMeta(debugName: "leave_pool", argNames: ["poolId"]);
+
+  @override
+  Future<void> crateApiCardRemoveCardFromPool({required String cardId, required String poolId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(cardId, serializer);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiCardRemoveCardFromPoolConstMeta,
+        argValues: [cardId, poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCardRemoveCardFromPoolConstMeta =>
+      const TaskConstMeta(debugName: "remove_card_from_pool", argNames: ["cardId", "poolId"]);
+
+  @override
+  Future<void> crateApiPoolRemovePoolMember({required String poolId, required String deviceId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(deviceId, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 33, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolRemovePoolMemberConstMeta,
+        argValues: [poolId, deviceId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolRemovePoolMemberConstMeta =>
+      const TaskConstMeta(debugName: "remove_pool_member", argNames: ["poolId", "deviceId"]);
+
+  @override
+  Future<void> crateApiDeviceConfigSetResidentPool({required String poolId, required bool isResident}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_bool(isResident, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiDeviceConfigSetResidentPoolConstMeta,
+        argValues: [poolId, isResident],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeviceConfigSetResidentPoolConstMeta =>
+      const TaskConstMeta(debugName: "set_resident_pool", argNames: ["poolId", "isResident"]);
+
+  @override
+  Future<void> crateApiPoolStorePoolPasswordInKeyring({required String poolId, required String password}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(password, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolStorePoolPasswordInKeyringConstMeta,
+        argValues: [poolId, password],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolStorePoolPasswordInKeyringConstMeta =>
+      const TaskConstMeta(debugName: "store_pool_password_in_keyring", argNames: ["poolId", "password"]);
+
+  @override
   Future<void> crateApiCardUpdateCard({required String id, String? title, String? content}) {
     return handler.executeNormal(
       NormalTask(
@@ -288,7 +884,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(id, serializer);
           sse_encode_opt_String(title, serializer);
           sse_encode_opt_String(content, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 36, port: port_);
         },
         codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
         constMeta: kCrateApiCardUpdateCardConstMeta,
@@ -300,6 +896,74 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiCardUpdateCardConstMeta =>
       const TaskConstMeta(debugName: "update_card", argNames: ["id", "title", "content"]);
+
+  @override
+  Future<void> crateApiPoolUpdateMemberName({
+    required String poolId,
+    required String deviceId,
+    required String newName,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(deviceId, serializer);
+          sse_encode_String(newName, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolUpdateMemberNameConstMeta,
+        argValues: [poolId, deviceId, newName],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolUpdateMemberNameConstMeta =>
+      const TaskConstMeta(debugName: "update_member_name", argNames: ["poolId", "deviceId", "newName"]);
+
+  @override
+  Future<void> crateApiPoolUpdatePool({required String poolId, required String name}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(name, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_unit, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolUpdatePoolConstMeta,
+        argValues: [poolId, name],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolUpdatePoolConstMeta =>
+      const TaskConstMeta(debugName: "update_pool", argNames: ["poolId", "name"]);
+
+  @override
+  Future<bool> crateApiPoolVerifyPoolPassword({required String poolId, required String password}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(password, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39, port: port_);
+        },
+        codec: SseCodec(decodeSuccessData: sse_decode_bool, decodeErrorData: sse_decode_AnyhowException),
+        constMeta: kCrateApiPoolVerifyPoolPasswordConstMeta,
+        argValues: [poolId, password],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolVerifyPoolPasswordConstMeta =>
+      const TaskConstMeta(debugName: "verify_pool_password", argNames: ["poolId", "password"]);
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
@@ -323,7 +987,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Card dco_decode_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return Card(
       id: dco_decode_String(arr[0]),
       title: dco_decode_String(arr[1]),
@@ -331,6 +995,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: dco_decode_i_64(arr[3]),
       updatedAt: dco_decode_i_64(arr[4]),
       deleted: dco_decode_bool(arr[5]),
+      poolIds: dco_decode_list_String(arr[6]),
+    );
+  }
+
+  @protected
+  Device dco_decode_device(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Device(
+      deviceId: dco_decode_String(arr[0]),
+      deviceName: dco_decode_String(arr[1]),
+      joinedAt: dco_decode_i_64(arr[2]),
+    );
+  }
+
+  @protected
+  DeviceConfig dco_decode_device_config(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return DeviceConfig(
+      deviceId: dco_decode_String(arr[0]),
+      joinedPools: dco_decode_list_String(arr[1]),
+      residentPools: dco_decode_list_String(arr[2]),
     );
   }
 
@@ -347,9 +1036,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
   List<Card> dco_decode_list_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_card).toList();
+  }
+
+  @protected
+  List<Device> dco_decode_list_device(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_device).toList();
+  }
+
+  @protected
+  List<Pool> dco_decode_list_pool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_pool).toList();
   }
 
   @protected
@@ -362,6 +1069,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  Pool dco_decode_pool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return Pool(
+      poolId: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      passwordHash: dco_decode_String(arr[2]),
+      members: dco_decode_list_device(arr[3]),
+      createdAt: dco_decode_i_64(arr[4]),
+      updatedAt: dco_decode_i_64(arr[5]),
+    );
   }
 
   @protected
@@ -415,6 +1137,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_createdAt = sse_decode_i_64(deserializer);
     var var_updatedAt = sse_decode_i_64(deserializer);
     var var_deleted = sse_decode_bool(deserializer);
+    var var_poolIds = sse_decode_list_String(deserializer);
     return Card(
       id: var_id,
       title: var_title,
@@ -422,7 +1145,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: var_createdAt,
       updatedAt: var_updatedAt,
       deleted: var_deleted,
+      poolIds: var_poolIds,
     );
+  }
+
+  @protected
+  Device sse_decode_device(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_deviceName = sse_decode_String(deserializer);
+    var var_joinedAt = sse_decode_i_64(deserializer);
+    return Device(deviceId: var_deviceId, deviceName: var_deviceName, joinedAt: var_joinedAt);
+  }
+
+  @protected
+  DeviceConfig sse_decode_device_config(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_joinedPools = sse_decode_list_String(deserializer);
+    var var_residentPools = sse_decode_list_String(deserializer);
+    return DeviceConfig(deviceId: var_deviceId, joinedPools: var_joinedPools, residentPools: var_residentPools);
   }
 
   @protected
@@ -438,6 +1180,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <String>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<Card> sse_decode_list_card(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -445,6 +1199,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <Card>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_card(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<Device> sse_decode_list_device(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <Device>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_device(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<Pool> sse_decode_list_pool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <Pool>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pool(deserializer));
     }
     return ans_;
   }
@@ -465,6 +1243,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     } else {
       return null;
     }
+  }
+
+  @protected
+  Pool sse_decode_pool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_poolId = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_passwordHash = sse_decode_String(deserializer);
+    var var_members = sse_decode_list_device(deserializer);
+    var var_createdAt = sse_decode_i_64(deserializer);
+    var var_updatedAt = sse_decode_i_64(deserializer);
+    return Pool(
+      poolId: var_poolId,
+      name: var_name,
+      passwordHash: var_passwordHash,
+      members: var_members,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+    );
   }
 
   @protected
@@ -514,6 +1311,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.createdAt, serializer);
     sse_encode_i_64(self.updatedAt, serializer);
     sse_encode_bool(self.deleted, serializer);
+    sse_encode_list_String(self.poolIds, serializer);
+  }
+
+  @protected
+  void sse_encode_device(Device self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_String(self.deviceName, serializer);
+    sse_encode_i_64(self.joinedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_device_config(DeviceConfig self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_list_String(self.joinedPools, serializer);
+    sse_encode_list_String(self.residentPools, serializer);
   }
 
   @protected
@@ -529,11 +1343,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_card(List<Card> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_card(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_device(List<Device> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_device(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_pool(List<Pool> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pool(item, serializer);
     }
   }
 
@@ -552,6 +1393,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (self != null) {
       sse_encode_String(self, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_pool(Pool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.poolId, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.passwordHash, serializer);
+    sse_encode_list_device(self.members, serializer);
+    sse_encode_i_64(self.createdAt, serializer);
+    sse_encode_i_64(self.updatedAt, serializer);
   }
 
   @protected

@@ -36,6 +36,10 @@ Future<void> initCardStore({required String path}) => RustLib.instance.api.crate
 ///
 /// The created Card
 ///
+/// # Notes
+///
+/// If resident pools are configured, the card will be automatically bound to them.
+///
 /// # Example (Dart)
 ///
 /// ```dart
@@ -132,6 +136,86 @@ Future<void> deleteCard({required String id}) => RustLib.instance.api.crateApiCa
 /// final (total, active, deleted) = await getCardCount();
 /// ```
 Future<(PlatformInt64, PlatformInt64, PlatformInt64)> getCardCount() => RustLib.instance.api.crateApiCardGetCardCount();
+
+/// Add card to a data pool
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+/// * `pool_id` - Pool ID
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await addCardToPool(cardId: cardId, poolId: poolId);
+/// ```
+Future<void> addCardToPool({required String cardId, required String poolId}) =>
+    RustLib.instance.api.crateApiCardAddCardToPool(cardId: cardId, poolId: poolId);
+
+/// Remove card from a data pool
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+/// * `pool_id` - Pool ID
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await removeCardFromPool(cardId: cardId, poolId: poolId);
+/// ```
+Future<void> removeCardFromPool({required String cardId, required String poolId}) =>
+    RustLib.instance.api.crateApiCardRemoveCardFromPool(cardId: cardId, poolId: poolId);
+
+/// Get all pool IDs that a card belongs to
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+///
+/// # Returns
+///
+/// List of pool IDs
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final pools = await getCardPools(cardId: cardId);
+/// ```
+Future<List<String>> getCardPools({required String cardId}) =>
+    RustLib.instance.api.crateApiCardGetCardPools(cardId: cardId);
+
+/// Get all cards in specified pools
+///
+/// # Arguments
+///
+/// * `pool_ids` - List of pool IDs
+///
+/// # Returns
+///
+/// List of cards (excluding deleted cards)
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final cards = await getCardsInPools(poolIds: ['pool1', 'pool2']);
+/// ```
+Future<List<Card>> getCardsInPools({required List<String> poolIds}) =>
+    RustLib.instance.api.crateApiCardGetCardsInPools(poolIds: poolIds);
+
+/// Clear all pool bindings for a card
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await clearCardPools(cardId: cardId);
+/// ```
+Future<void> clearCardPools({required String cardId}) =>
+    RustLib.instance.api.crateApiCardClearCardPools(cardId: cardId);
 
 /// Test function to verify Flutter-Rust bridge is working
 ///

@@ -54,15 +54,32 @@ fn get_store() -> Result<Arc<Mutex<CardStore>>> {
 ///
 /// The created Card
 ///
+/// # Notes
+///
+/// If resident pools are configured, the card will be automatically bound to them.
+///
 /// # Example (Dart)
 ///
 /// ```dart
 /// final card = await createCard(title: 'My Note', content: '# Hello');
 /// ```
 pub fn create_card(title: String, content: String) -> Result<Card> {
+    use crate::api::device_config::get_resident_pools;
+
     let store = get_store()?;
     let mut store = store.lock().unwrap();
-    store.create_card(title, content)
+
+    // Create the card
+    let card = store.create_card(title, content)?;
+
+    // Auto-bind to resident pools
+    if let Ok(resident_pools) = get_resident_pools() {
+        for pool_id in resident_pools {
+            let _ = store.add_card_to_pool(&card.id, &pool_id);
+        }
+    }
+
+    Ok(card)
 }
 
 /// Get all cards (including deleted ones)
@@ -175,6 +192,103 @@ pub fn get_card_count() -> Result<(i64, i64, i64)> {
     let store = get_store()?;
     let store = store.lock().unwrap();
     store.get_card_count()
+}
+
+// ==================== Pool Binding APIs (Phase 6) ====================
+
+/// Add card to a data pool
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+/// * `pool_id` - Pool ID
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await addCardToPool(cardId: cardId, poolId: poolId);
+/// ```
+pub fn add_card_to_pool(card_id: String, pool_id: String) -> Result<()> {
+    let store = get_store()?;
+    let mut store = store.lock().unwrap();
+    store.add_card_to_pool(&card_id, &pool_id)
+}
+
+/// Remove card from a data pool
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+/// * `pool_id` - Pool ID
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await removeCardFromPool(cardId: cardId, poolId: poolId);
+/// ```
+pub fn remove_card_from_pool(card_id: String, pool_id: String) -> Result<()> {
+    let store = get_store()?;
+    let mut store = store.lock().unwrap();
+    store.remove_card_from_pool(&card_id, &pool_id)
+}
+
+/// Get all pool IDs that a card belongs to
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+///
+/// # Returns
+///
+/// List of pool IDs
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final pools = await getCardPools(cardId: cardId);
+/// ```
+pub fn get_card_pools(card_id: String) -> Result<Vec<String>> {
+    let store = get_store()?;
+    let store = store.lock().unwrap();
+    store.get_card_pools(&card_id)
+}
+
+/// Get all cards in specified pools
+///
+/// # Arguments
+///
+/// * `pool_ids` - List of pool IDs
+///
+/// # Returns
+///
+/// List of cards (excluding deleted cards)
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final cards = await getCardsInPools(poolIds: ['pool1', 'pool2']);
+/// ```
+pub fn get_cards_in_pools(pool_ids: Vec<String>) -> Result<Vec<Card>> {
+    let store = get_store()?;
+    let store = store.lock().unwrap();
+    store.get_cards_in_pools(&pool_ids)
+}
+
+/// Clear all pool bindings for a card
+///
+/// # Arguments
+///
+/// * `card_id` - Card ID
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await clearCardPools(cardId: cardId);
+/// ```
+pub fn clear_card_pools(card_id: String) -> Result<()> {
+    let store = get_store()?;
+    let mut store = store.lock().unwrap();
+    store.clear_card_pools(&card_id)
 }
 
 // ==================== Test Functions ====================
