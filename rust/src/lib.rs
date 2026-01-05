@@ -9,6 +9,8 @@ mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be
 /// including CRDT-based card storage with SQLite caching.
 pub mod api;
 pub mod models;
+pub mod p2p;
+pub mod security;
 pub mod store;
 pub mod utils;
 

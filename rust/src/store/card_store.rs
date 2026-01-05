@@ -194,6 +194,24 @@ impl CardStore {
             .and_then(|v| v.as_bool().copied())
             .unwrap_or(false);
 
+        // 从 Loro 读取 pool_ids
+        let mut pool_ids = Vec::new();
+        if let Some(pool_ids_value) = map.get("pool_ids") {
+            if let Ok(pool_ids_container) = pool_ids_value.into_container() {
+                if let Ok(pool_ids_list) = pool_ids_container.into_list() {
+                    for i in 0..pool_ids_list.len() {
+                        if let Some(pool_id_value) = pool_ids_list.get(i) {
+                            if let Ok(pool_id_val) = pool_id_value.into_value() {
+                                if let Some(pool_id_str) = pool_id_val.as_string() {
+                                    pool_ids.push(pool_id_str.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Ok(Some(Card {
             id,
             title,
@@ -201,18 +219,27 @@ impl CardStore {
             created_at,
             updated_at,
             deleted,
+            pool_ids,
         }))
     }
 
     /// 将Card数据写入LoroDoc
-    fn write_card_to_loro(doc: &LoroDoc, card: &Card) {
+    fn write_card_to_loro(doc: &LoroDoc, card: &Card) -> Result<(), CardMindError> {
         let map = doc.get_map("card");
-        let _ = map.insert("id", card.id.clone());
-        let _ = map.insert("title", card.title.clone());
-        let _ = map.insert("content", card.content.clone());
-        let _ = map.insert("created_at", card.created_at);
-        let _ = map.insert("updated_at", card.updated_at);
-        let _ = map.insert("deleted", card.deleted);
+        map.insert("id", card.id.clone())?;
+        map.insert("title", card.title.clone())?;
+        map.insert("content", card.content.clone())?;
+        map.insert("created_at", card.created_at)?;
+        map.insert("updated_at", card.updated_at)?;
+        map.insert("deleted", card.deleted)?;
+
+        // 写入 pool_ids 作为 LoroList
+        let pool_ids_list = map.insert_container("pool_ids", loro::LoroList::new())?;
+        for pool_id in &card.pool_ids {
+            pool_ids_list.push(pool_id.as_str())?;
+        }
+
+        Ok(())
     }
 
     /// 持久化LoroDoc到文件
@@ -285,7 +312,7 @@ impl CardStore {
 
         // 创建LoroDoc
         let doc = LoroDoc::new();
-        Self::write_card_to_loro(&doc, &card);
+        Self::write_card_to_loro(&doc, &card)?;
         doc.commit();
 
         // 持久化到文件
@@ -374,7 +401,7 @@ impl CardStore {
 
         // 获取LoroDoc并更新
         if let Some(doc) = self.loro_docs.get_mut(id) {
-            Self::write_card_to_loro(doc, &card);
+            Self::write_card_to_loro(doc, &card)?;
             doc.commit();
 
             // 导出snapshot（在借用结束后）
@@ -423,7 +450,7 @@ impl CardStore {
 
         // 获取LoroDoc并更新
         if let Some(doc) = self.loro_docs.get_mut(id) {
-            Self::write_card_to_loro(doc, &card);
+            Self::write_card_to_loro(doc, &card)?;
             doc.commit();
 
             // 导出snapshot
@@ -481,6 +508,215 @@ impl CardStore {
     /// (总数, 活跃数, 已删除数)
     pub fn get_card_count(&self) -> Result<(i64, i64, i64), CardMindError> {
         self.sqlite.get_card_count()
+    }
+
+    // ==================== 数据池绑定相关方法 (Phase 6) ====================
+
+    /// 将卡片添加到数据池
+    ///
+    /// # 参数
+    ///
+    /// * `card_id` - 卡片 ID
+    /// * `pool_id` - 数据池 ID
+    ///
+    /// # 示例
+    ///
+    /// ```rust,no_run
+    /// # use cardmind_rust::store::card_store::CardStore;
+    /// let mut store = CardStore::new_in_memory()?;
+    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
+    /// store.add_card_to_pool(&card.id, "pool-001")?;
+    /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
+    /// ```
+    pub fn add_card_to_pool(&mut self, card_id: &str, pool_id: &str) -> Result<(), CardMindError> {
+        // 更新 Loro 层的 pool_ids
+        let mut card = self.get_card_by_id(card_id)?;
+        card.add_pool(pool_id.to_string());
+
+        // 确保 LoroDoc 已加载
+        self.ensure_loro_doc_loaded(card_id)?;
+
+        // 更新 Loro 并导出
+        let snapshot = if let Some(doc) = self.loro_docs.get_mut(card_id) {
+            Self::write_card_to_loro(doc, &card)?;
+            doc.commit();
+            Some(doc.export(ExportMode::Snapshot)?)
+        } else {
+            None
+        };
+
+        // 持久化
+        if let Some(bytes) = snapshot {
+            if let Some(base_path) = &self.base_path {
+                let encoded_id: String = card_id.bytes().map(|b| format!("{:02x}", b)).collect();
+                let card_dir = base_path.join("loro").join(&encoded_id);
+                std::fs::create_dir_all(&card_dir)?;
+                let snapshot_path = card_dir.join("snapshot.loro");
+                std::fs::write(&snapshot_path, &bytes)?;
+            }
+        }
+
+        // 同步到 SQLite
+        self.sync_card_to_sqlite(&card)?;
+
+        // 添加绑定关系
+        self.sqlite.add_card_pool_binding(card_id, pool_id)?;
+
+        Ok(())
+    }
+
+    /// 将卡片从数据池移除
+    ///
+    /// # 参数
+    ///
+    /// * `card_id` - 卡片 ID
+    /// * `pool_id` - 数据池 ID
+    ///
+    /// # 示例
+    ///
+    /// ```rust,no_run
+    /// # use cardmind_rust::store::card_store::CardStore;
+    /// let mut store = CardStore::new_in_memory()?;
+    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
+    /// # store.add_card_to_pool(&card.id, "pool-001")?;
+    /// store.remove_card_from_pool(&card.id, "pool-001")?;
+    /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
+    /// ```
+    pub fn remove_card_from_pool(&mut self, card_id: &str, pool_id: &str) -> Result<(), CardMindError> {
+        // 更新 Loro 层的 pool_ids
+        let mut card = self.get_card_by_id(card_id)?;
+        card.remove_pool(pool_id);
+
+        // 确保 LoroDoc 已加载
+        self.ensure_loro_doc_loaded(card_id)?;
+
+        // 更新 Loro 并导出
+        let snapshot = if let Some(doc) = self.loro_docs.get_mut(card_id) {
+            Self::write_card_to_loro(doc, &card)?;
+            doc.commit();
+            Some(doc.export(ExportMode::Snapshot)?)
+        } else {
+            None
+        };
+
+        // 持久化
+        if let Some(bytes) = snapshot {
+            if let Some(base_path) = &self.base_path {
+                let encoded_id: String = card_id.bytes().map(|b| format!("{:02x}", b)).collect();
+                let card_dir = base_path.join("loro").join(&encoded_id);
+                std::fs::create_dir_all(&card_dir)?;
+                let snapshot_path = card_dir.join("snapshot.loro");
+                std::fs::write(&snapshot_path, &bytes)?;
+            }
+        }
+
+        // 同步到 SQLite
+        self.sync_card_to_sqlite(&card)?;
+
+        // 移除绑定关系
+        self.sqlite.remove_card_pool_binding(card_id, pool_id)?;
+
+        Ok(())
+    }
+
+    /// 获取卡片所属的所有数据池 ID
+    ///
+    /// # 参数
+    ///
+    /// * `card_id` - 卡片 ID
+    ///
+    /// # 返回
+    ///
+    /// 数据池 ID 列表
+    ///
+    /// # 示例
+    ///
+    /// ```rust,no_run
+    /// # use cardmind_rust::store::card_store::CardStore;
+    /// let store = CardStore::new_in_memory()?;
+    /// # let mut store = store;
+    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
+    /// let pools = store.get_card_pools(&card.id)?;
+    /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
+    /// ```
+    pub fn get_card_pools(&self, card_id: &str) -> Result<Vec<String>, CardMindError> {
+        self.sqlite.get_card_pools(card_id)
+    }
+
+    /// 获取指定数据池中的所有卡片
+    ///
+    /// # 参数
+    ///
+    /// * `pool_ids` - 数据池 ID 列表
+    ///
+    /// # 返回
+    ///
+    /// 卡片列表（排除已删除的卡片）
+    ///
+    /// # 示例
+    ///
+    /// ```rust,no_run
+    /// # use cardmind_rust::store::card_store::CardStore;
+    /// let store = CardStore::new_in_memory()?;
+    /// let pools = vec!["pool-001".to_string(), "pool-002".to_string()];
+    /// let cards = store.get_cards_in_pools(&pools)?;
+    /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
+    /// ```
+    pub fn get_cards_in_pools(&self, pool_ids: &[String]) -> Result<Vec<Card>, CardMindError> {
+        self.sqlite.get_cards_in_pools(pool_ids)
+    }
+
+    /// 清除卡片的所有数据池绑定
+    ///
+    /// # 参数
+    ///
+    /// * `card_id` - 卡片 ID
+    ///
+    /// # 示例
+    ///
+    /// ```rust,no_run
+    /// # use cardmind_rust::store::card_store::CardStore;
+    /// let mut store = CardStore::new_in_memory()?;
+    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
+    /// store.clear_card_pools(&card.id)?;
+    /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
+    /// ```
+    pub fn clear_card_pools(&mut self, card_id: &str) -> Result<(), CardMindError> {
+        // 更新 Loro 层
+        let mut card = self.get_card_by_id(card_id)?;
+        card.pool_ids.clear();
+        card.updated_at = chrono::Utc::now().timestamp_millis();
+
+        // 确保 LoroDoc 已加载
+        self.ensure_loro_doc_loaded(card_id)?;
+
+        // 更新 Loro 并导出
+        let snapshot = if let Some(doc) = self.loro_docs.get_mut(card_id) {
+            Self::write_card_to_loro(doc, &card)?;
+            doc.commit();
+            Some(doc.export(ExportMode::Snapshot)?)
+        } else {
+            None
+        };
+
+        // 持久化
+        if let Some(bytes) = snapshot {
+            if let Some(base_path) = &self.base_path {
+                let encoded_id: String = card_id.bytes().map(|b| format!("{:02x}", b)).collect();
+                let card_dir = base_path.join("loro").join(&encoded_id);
+                std::fs::create_dir_all(&card_dir)?;
+                let snapshot_path = card_dir.join("snapshot.loro");
+                std::fs::write(&snapshot_path, &bytes)?;
+            }
+        }
+
+        // 同步到 SQLite
+        self.sync_card_to_sqlite(&card)?;
+
+        // 清除绑定关系
+        self.sqlite.clear_card_pools(card_id)?;
+
+        Ok(())
     }
 }
 
