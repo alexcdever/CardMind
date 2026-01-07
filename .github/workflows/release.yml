@@ -395,6 +395,8 @@ jobs:
   release:
     name: Create Release
     needs: [prepare, build-android, build-linux, build-windows, build-macos, build-ios]
+    # 即使某些平台构建失败，也创建 release（只上传成功的平台）
+    if: always() && needs.prepare.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -404,9 +406,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+        continue-on-error: true
 
       - name: Display structure of downloaded files
-        run: ls -R artifacts
+        run: ls -R artifacts || echo "No artifacts found"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -414,16 +417,21 @@ jobs:
           name: CardMind ${{ needs.prepare.outputs.version }}
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
           body: |
             ## CardMind ${{ needs.prepare.outputs.version }}
 
             ### 下载
+
+            以下为成功构建的平台（部分平台可能构建失败）：
 
             - **Android**: `cardmind-${{ needs.prepare.outputs.version }}-android.apk`
             - **Linux**: `cardmind-${{ needs.prepare.outputs.version }}-linux.tar.gz`
             - **Windows**: `cardmind-${{ needs.prepare.outputs.version }}-windows.zip`
             - **macOS**: `cardmind-${{ needs.prepare.outputs.version }}-macos.zip`
             - **iOS**: `cardmind-${{ needs.prepare.outputs.version }}-ios.zip`
+
+            如某个平台文件不存在，说明该平台构建失败，请查看 [Actions](https://github.com/${{ github.repository }}/actions) 了解详情。
 
             ### 更新内容
 
