@@ -84,6 +84,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Install flutter_rust_bridge_codegen
+        run: |
+          if ! command -v flutter_rust_bridge_codegen &> /dev/null; then
+            cargo install flutter_rust_bridge_codegen
+          else
+            echo "flutter_rust_bridge_codegen already installed"
+          fi
+
+      - name: Generate bridge code
+        run: dart tool/generate_bridge.dart
+
       - name: Build Android
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
@@ -149,6 +160,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Install flutter_rust_bridge_codegen
+        run: |
+          if ! command -v flutter_rust_bridge_codegen &> /dev/null; then
+            cargo install flutter_rust_bridge_codegen
+          else
+            echo "flutter_rust_bridge_codegen already installed"
+          fi
+
+      - name: Generate bridge code
+        run: dart tool/generate_bridge.dart
+
       - name: Build Linux
         run: dart tool/build_all.dart --linux
 
@@ -206,6 +228,18 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Install flutter_rust_bridge_codegen
+        shell: bash
+        run: |
+          if ! command -v flutter_rust_bridge_codegen &> /dev/null; then
+            cargo install flutter_rust_bridge_codegen
+          else
+            echo "flutter_rust_bridge_codegen already installed"
+          fi
+
+      - name: Generate bridge code
+        run: dart tool/generate_bridge.dart
+
       - name: Build Windows
         run: dart tool/build_all.dart --windows
 
@@ -261,6 +295,17 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Install flutter_rust_bridge_codegen
+        run: |
+          if ! command -v flutter_rust_bridge_codegen &> /dev/null; then
+            cargo install flutter_rust_bridge_codegen
+          else
+            echo "flutter_rust_bridge_codegen already installed"
+          fi
+
+      - name: Generate bridge code
+        run: dart tool/generate_bridge.dart
 
       - name: Build macOS
         run: dart tool/build_all.dart --macos
@@ -319,6 +364,17 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Install flutter_rust_bridge_codegen
+        run: |
+          if ! command -v flutter_rust_bridge_codegen &> /dev/null; then
+            cargo install flutter_rust_bridge_codegen
+          else
+            echo "flutter_rust_bridge_codegen already installed"
+          fi
+
+      - name: Generate bridge code
+        run: dart tool/generate_bridge.dart
 
       - name: Build iOS
         run: dart tool/build_all.dart --ios
