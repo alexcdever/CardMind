@@ -158,8 +158,13 @@ impl MultiPeerSyncCoordinator {
         let mut devices = self.devices.lock().unwrap();
         if let Some(device) = devices.get_mut(peer_id) {
             device.status = DeviceStatus::Online;
-            device.pool_versions.insert(pool_id.to_string(), version.to_vec());
-            debug!("设备同步完成: {} (pool: {}, version: {:?})", peer_id, pool_id, version);
+            device
+                .pool_versions
+                .insert(pool_id.to_string(), version.to_vec());
+            debug!(
+                "设备同步完成: {} (pool: {}, version: {:?})",
+                peer_id, pool_id, version
+            );
         }
     }
 
@@ -271,7 +276,11 @@ impl MultiPeerSyncCoordinator {
             }
         }
 
-        info!("多设备同步完成: {}/{}", synced_devices.len(), online_devices.len());
+        info!(
+            "多设备同步完成: {}/{}",
+            synced_devices.len(),
+            online_devices.len()
+        );
 
         Ok(synced_devices)
     }

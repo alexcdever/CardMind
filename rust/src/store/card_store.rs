@@ -643,6 +643,27 @@ impl CardStore {
         self.sqlite.get_card_pools(card_id)
     }
 
+    /// 从同步数据写入或更新卡片（保持原始 ID）
+    pub fn upsert_card_from_sync(&mut self, card: &Card) -> Result<(), CardMindError> {
+        if self.get_card_by_id(&card.id).is_ok() {
+            self.update_card(
+                &card.id,
+                Some(card.title.clone()),
+                Some(card.content.clone()),
+            )?;
+            self.sqlite.clear_card_pools(&card.id)?;
+        } else {
+            self.sqlite.insert_card(card)?;
+        }
+
+        // 重新写入池绑定
+        for pool_id in &card.pool_ids {
+            self.sqlite.add_card_pool_binding(&card.id, pool_id)?;
+        }
+
+        Ok(())
+    }
+
     /// 获取指定数据池中的所有卡片
     ///
     /// # 参数

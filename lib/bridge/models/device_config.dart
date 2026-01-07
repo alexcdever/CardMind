@@ -28,7 +28,11 @@ import '../frb_generated.dart';
 /// assert_eq!(config.resident_pools.len(), 1);
 /// ```
 class DeviceConfig {
-  const DeviceConfig({required this.deviceId, required this.joinedPools, required this.residentPools});
+  const DeviceConfig({
+    required this.deviceId,
+    required this.joinedPools,
+    required this.residentPools,
+  });
 
   /// 设备唯一标识
   final String deviceId;
@@ -42,7 +46,8 @@ class DeviceConfig {
   final List<String> residentPools;
 
   @override
-  int get hashCode => deviceId.hashCode ^ joinedPools.hashCode ^ residentPools.hashCode;
+  int get hashCode =>
+      deviceId.hashCode ^ joinedPools.hashCode ^ residentPools.hashCode;
 
   @override
   bool operator ==(Object other) =>

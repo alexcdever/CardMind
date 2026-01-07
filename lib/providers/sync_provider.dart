@@ -1,3 +1,4 @@
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as api;
 import 'package:flutter/foundation.dart';
 
 /// SyncProvider manages the state of P2P synchronization
@@ -28,14 +29,10 @@ class SyncProvider extends ChangeNotifier {
       _setLoading(true);
       _clearError();
 
-      // TODO: Uncomment when bridge code is generated
-      // _localPeerId = await api.initSyncService(
-      //   storagePath: storagePath,
-      //   listenAddr: listenAddr,
-      // );
-
-      // Mock initialization for now
-      _localPeerId = 'mock-peer-id-${DateTime.now().millisecondsSinceEpoch}';
+      _localPeerId = await api.initSyncService(
+        storagePath: storagePath,
+        listenAddr: listenAddr,
+      );
       _isInitialized = true;
 
       await refreshStatus();
@@ -54,16 +51,10 @@ class SyncProvider extends ChangeNotifier {
     try {
       _clearError();
 
-      // TODO: Uncomment when bridge code is generated
-      // final status = await api.getSyncStatus();
-      // _onlineDevices = status.onlineDevices;
-      // _syncingDevices = status.syncingDevices;
-      // _offlineDevices = status.offlineDevices;
-
-      // Mock status for now
-      _onlineDevices = 0;
-      _syncingDevices = 0;
-      _offlineDevices = 0;
+      final status = await api.getSyncStatus();
+      _onlineDevices = status.onlineDevices;
+      _syncingDevices = status.syncingDevices;
+      _offlineDevices = status.offlineDevices;
 
       notifyListeners();
     } on Exception catch (e) {
@@ -85,11 +76,7 @@ class SyncProvider extends ChangeNotifier {
     try {
       _clearError();
 
-      // TODO: Uncomment when bridge code is generated
-      // await api.syncPool(poolId: poolId);
-
-      // Mock sync for now
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await api.syncPool(poolId: poolId);
 
       await refreshStatus();
       return true;
@@ -108,11 +95,7 @@ class SyncProvider extends ChangeNotifier {
     try {
       _clearError();
 
-      // TODO: Uncomment when bridge code is generated
-      // return await api.getLocalPeerId();
-
-      // Mock peer ID for now
-      return _localPeerId;
+      return await api.getLocalPeerId();
     } on Exception catch (e) {
       _setError(e.toString());
       return null;
@@ -126,8 +109,7 @@ class SyncProvider extends ChangeNotifier {
     try {
       _clearError();
 
-      // TODO: Uncomment when bridge code is generated
-      // api.cleanupSyncService();
+      api.cleanupSyncService();
 
       _isInitialized = false;
       _localPeerId = null;

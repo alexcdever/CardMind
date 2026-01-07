@@ -5,10 +5,8 @@
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-import '../frb_generated.dart';
-import '../models/device_config.dart';
-
-// These functions are ignored because they are not marked as `pub`: `save_config`, `with_device_config`
+import '../../../frb_generated.dart';
+import '../../../models/device_config.dart';
 
 /// Initialize or load device configuration
 ///
@@ -24,8 +22,10 @@ import '../models/device_config.dart';
 /// ```dart
 /// await initDeviceConfig(basePath: '/path/to/storage');
 /// ```
-Future<DeviceConfig> initDeviceConfig({required String basePath}) =>
-    RustLib.instance.api.crateApiDeviceConfigInitDeviceConfig(basePath: basePath);
+Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
+    .instance
+    .api
+    .cardmindRustApiDeviceConfigInitDeviceConfig(basePath: basePath);
 
 /// Get the current device configuration
 ///
@@ -39,7 +39,8 @@ Future<DeviceConfig> initDeviceConfig({required String basePath}) =>
 /// final config = await getDeviceConfig();
 /// print('Device ID: ${config.deviceId}');
 /// ```
-Future<DeviceConfig> getDeviceConfig() => RustLib.instance.api.crateApiDeviceConfigGetDeviceConfig();
+Future<DeviceConfig> getDeviceConfig() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceConfig();
 
 /// Get the current device ID
 ///
@@ -52,7 +53,8 @@ Future<DeviceConfig> getDeviceConfig() => RustLib.instance.api.crateApiDeviceCon
 /// ```dart
 /// final deviceId = await getDeviceId();
 /// ```
-Future<String> getDeviceId() => RustLib.instance.api.crateApiDeviceConfigGetDeviceId();
+Future<String> getDeviceId() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceId();
 
 /// Join a data pool
 ///
@@ -67,7 +69,8 @@ Future<String> getDeviceId() => RustLib.instance.api.crateApiDeviceConfigGetDevi
 /// ```dart
 /// await joinPool(poolId: poolId);
 /// ```
-Future<void> joinPool({required String poolId}) => RustLib.instance.api.crateApiDeviceConfigJoinPool(poolId: poolId);
+Future<void> joinPool({required String poolId}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigJoinPool(poolId: poolId);
 
 /// Leave a data pool
 ///
@@ -86,7 +89,8 @@ Future<void> joinPool({required String poolId}) => RustLib.instance.api.crateApi
 /// ```dart
 /// final left = await leavePool(poolId: poolId);
 /// ```
-Future<bool> leavePool({required String poolId}) => RustLib.instance.api.crateApiDeviceConfigLeavePool(poolId: poolId);
+Future<bool> leavePool({required String poolId}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigLeavePool(poolId: poolId);
 
 /// Set or unset a pool as resident
 ///
@@ -102,8 +106,13 @@ Future<bool> leavePool({required String poolId}) => RustLib.instance.api.crateAp
 /// ```dart
 /// await setResidentPool(poolId: poolId, isResident: true);
 /// ```
-Future<void> setResidentPool({required String poolId, required bool isResident}) =>
-    RustLib.instance.api.crateApiDeviceConfigSetResidentPool(poolId: poolId, isResident: isResident);
+Future<void> setResidentPool({
+  required String poolId,
+  required bool isResident,
+}) => RustLib.instance.api.cardmindRustApiDeviceConfigSetResidentPool(
+  poolId: poolId,
+  isResident: isResident,
+);
 
 /// Get list of joined pool IDs
 ///
@@ -116,7 +125,8 @@ Future<void> setResidentPool({required String poolId, required bool isResident})
 /// ```dart
 /// final joinedPools = await getJoinedPools();
 /// ```
-Future<List<String>> getJoinedPools() => RustLib.instance.api.crateApiDeviceConfigGetJoinedPools();
+Future<List<String>> getJoinedPools() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigGetJoinedPools();
 
 /// Get list of resident pool IDs
 ///
@@ -129,7 +139,8 @@ Future<List<String>> getJoinedPools() => RustLib.instance.api.crateApiDeviceConf
 /// ```dart
 /// final residentPools = await getResidentPools();
 /// ```
-Future<List<String>> getResidentPools() => RustLib.instance.api.crateApiDeviceConfigGetResidentPools();
+Future<List<String>> getResidentPools() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigGetResidentPools();
 
 /// Check if the device has joined a pool
 ///
@@ -146,8 +157,8 @@ Future<List<String>> getResidentPools() => RustLib.instance.api.crateApiDeviceCo
 /// ```dart
 /// final hasJoined = await isPoolJoined(poolId: poolId);
 /// ```
-Future<bool> isPoolJoined({required String poolId}) =>
-    RustLib.instance.api.crateApiDeviceConfigIsPoolJoined(poolId: poolId);
+Future<bool> isPoolJoined({required String poolId}) => RustLib.instance.api
+    .cardmindRustApiDeviceConfigIsPoolJoined(poolId: poolId);
 
 /// Check if a pool is marked as resident
 ///
@@ -164,5 +175,5 @@ Future<bool> isPoolJoined({required String poolId}) =>
 /// ```dart
 /// final isResident = await isPoolResident(poolId: poolId);
 /// ```
-Future<bool> isPoolResident({required String poolId}) =>
-    RustLib.instance.api.crateApiDeviceConfigIsPoolResident(poolId: poolId);
+Future<bool> isPoolResident({required String poolId}) => RustLib.instance.api
+    .cardmindRustApiDeviceConfigIsPoolResident(poolId: poolId);

@@ -1,6 +1,8 @@
-import 'package:cardmind/bridge/api/device_config.dart' as device_api;
-import 'package:cardmind/bridge/api/pool.dart' as pool_api;
 import 'package:cardmind/bridge/models/pool.dart';
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart'
+    as device_api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/pool.dart'
+    as pool_api;
 import 'package:flutter/foundation.dart';
 
 /// PoolProvider manages the state of data pools

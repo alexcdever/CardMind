@@ -15,6 +15,23 @@ thread_local! {
     static SYNC_SERVICE: RefCell<Option<P2PSyncService>> = RefCell::new(None);
 }
 
+fn take_sync_service() -> Result<P2PSyncService> {
+    SYNC_SERVICE.with(|s| {
+        let service = s.borrow_mut().take();
+        service.ok_or_else(|| {
+            CardMindError::DatabaseError(
+                "Sync service not initialized. Call init_sync_service first.".to_string(),
+            )
+        })
+    })
+}
+
+fn put_sync_service(service: P2PSyncService) {
+    SYNC_SERVICE.with(|s| {
+        *s.borrow_mut() = Some(service);
+    });
+}
+
 /// 同步状态（用于 Flutter 桥接）
 ///
 /// # flutter_rust_bridge 注解
@@ -77,6 +94,7 @@ where
 /// # 错误
 ///
 /// 如果服务已初始化或初始化失败，返回错误
+#[flutter_rust_bridge::frb]
 pub async fn init_sync_service(storage_path: String, listen_addr: String) -> Result<String> {
     info!(
         "初始化 P2P 同步服务: storage={}, listen={}",
@@ -129,14 +147,21 @@ pub async fn init_sync_service(storage_path: String, listen_addr: String) -> Res
 /// # 错误
 ///
 /// 如果服务未初始化或同步失败，返回错误
-pub async fn sync_pool(pool_id: String) -> Result<()> {
+#[flutter_rust_bridge::frb]
+pub async fn sync_pool(pool_id: String) -> Result<i32> {
     info!("手动同步数据池: {}", pool_id);
 
-    // TODO: 实际的同步逻辑需要在 sync_service 中实现
-    // 这里暂时返回成功，等待 libp2p 消息传输协议完成
-    warn!("sync_pool 功能待完整实现（等待 libp2p 消息传输）");
+    // 临时从 thread-local 取出服务，避免在异步期间持有 RefCell 借用
+    let service = take_sync_service()?;
 
-    Ok(())
+    let (service, result) = service
+        .sync_pool_owned(&pool_id)
+        .await
+        .map_err(|e| CardMindError::Unknown(format!("Sync failed: {e}")))?;
+
+    put_sync_service(service);
+
+    Ok(result)
 }
 
 /// 获取同步状态
@@ -155,6 +180,7 @@ pub async fn sync_pool(pool_id: String) -> Result<()> {
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
+#[flutter_rust_bridge::frb]
 pub fn get_sync_status() -> Result<SyncStatus> {
     with_sync_service(|service| {
         let status = service.get_sync_status();
@@ -178,6 +204,7 @@ pub fn get_sync_status() -> Result<SyncStatus> {
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
+#[flutter_rust_bridge::frb]
 pub fn get_local_peer_id() -> Result<String> {
     with_sync_service(|service| Ok(service.local_peer_id().to_string()))
 }
@@ -189,6 +216,7 @@ pub fn get_local_peer_id() -> Result<String> {
 /// # 注意
 ///
 /// 这个函数主要用于测试，生产环境中通常不需要手动调用
+#[flutter_rust_bridge::frb]
 pub fn cleanup_sync_service() {
     SYNC_SERVICE.with(|s| {
         *s.borrow_mut() = None;
@@ -211,10 +239,7 @@ mod tests {
 
         // 验证清理后状态
         let result = get_sync_status();
-        assert!(
-            result.is_err(),
-            "清理后应该无法获取状态"
-        );
+        assert!(result.is_err(), "清理后应该无法获取状态");
 
         cleanup_sync_service();
     }

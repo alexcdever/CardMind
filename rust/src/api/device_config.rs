@@ -29,6 +29,7 @@ thread_local! {
 /// ```dart
 /// await initDeviceConfig(basePath: '/path/to/storage');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn init_device_config(base_path: String) -> Result<DeviceConfig> {
     let base_path_buf = PathBuf::from(base_path);
     let config_path = DeviceConfig::default_path(&base_path_buf);
@@ -107,6 +108,7 @@ fn save_config() -> Result<()> {
 /// final config = await getDeviceConfig();
 /// print('Device ID: ${config.deviceId}');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_device_config() -> Result<DeviceConfig> {
     with_device_config(|config| Ok(config.clone()))
 }
@@ -122,6 +124,7 @@ pub fn get_device_config() -> Result<DeviceConfig> {
 /// ```dart
 /// final deviceId = await getDeviceId();
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_device_id() -> Result<String> {
     with_device_config(|config| Ok(config.device_id.clone()))
 }
@@ -139,6 +142,7 @@ pub fn get_device_id() -> Result<String> {
 /// ```dart
 /// await joinPool(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn join_pool(pool_id: String) -> Result<()> {
     with_device_config(|config| {
         config.join_pool(&pool_id);
@@ -164,6 +168,7 @@ pub fn join_pool(pool_id: String) -> Result<()> {
 /// ```dart
 /// final left = await leavePool(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn leave_pool(pool_id: String) -> Result<bool> {
     let result = with_device_config(|config| Ok(config.leave_pool(&pool_id)))?;
     save_config()?;
@@ -184,6 +189,7 @@ pub fn leave_pool(pool_id: String) -> Result<bool> {
 /// ```dart
 /// await setResidentPool(poolId: poolId, isResident: true);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn set_resident_pool(pool_id: String, is_resident: bool) -> Result<()> {
     with_device_config(|config| {
         config.set_resident_pool(&pool_id, is_resident);
@@ -203,6 +209,7 @@ pub fn set_resident_pool(pool_id: String, is_resident: bool) -> Result<()> {
 /// ```dart
 /// final joinedPools = await getJoinedPools();
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_joined_pools() -> Result<Vec<String>> {
     with_device_config(|config| Ok(config.joined_pools.clone()))
 }
@@ -218,6 +225,7 @@ pub fn get_joined_pools() -> Result<Vec<String>> {
 /// ```dart
 /// final residentPools = await getResidentPools();
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_resident_pools() -> Result<Vec<String>> {
     with_device_config(|config| Ok(config.resident_pools.clone()))
 }
@@ -237,6 +245,7 @@ pub fn get_resident_pools() -> Result<Vec<String>> {
 /// ```dart
 /// final hasJoined = await isPoolJoined(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn is_pool_joined(pool_id: String) -> Result<bool> {
     with_device_config(|config| Ok(config.is_joined(&pool_id)))
 }
@@ -256,6 +265,7 @@ pub fn is_pool_joined(pool_id: String) -> Result<bool> {
 /// ```dart
 /// final isResident = await isPoolResident(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn is_pool_resident(pool_id: String) -> Result<bool> {
     with_device_config(|config| Ok(config.is_resident(&pool_id)))
 }
