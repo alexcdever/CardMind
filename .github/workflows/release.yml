@@ -5,55 +5,29 @@ on:
     tags:
       - 'v*'  # 触发条件：推送 v 开头的 tag，如 v1.0.0
 
+# 明确声明需要的权限
+permissions:
+  contents: write  # 创建 release 和上传资产需要写权限
+
 env:
   FLUTTER_VERSION: '3.27.2'
   RUST_VERSION: 'stable'
 
 jobs:
-  create-release:
-    name: Create Release
+  # 提取版本号，供其他 jobs 使用
+  prepare:
+    name: Prepare Release
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Get version from tag
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: CardMind ${{ steps.get_version.outputs.version }}
-          draft: false
-          prerelease: false
-          body: |
-            ## CardMind ${{ steps.get_version.outputs.version }}
-
-            ### 下载
-
-            - **Android**: `cardmind-${{ steps.get_version.outputs.version }}-android.apk`
-            - **Linux**: `cardmind-${{ steps.get_version.outputs.version }}-linux.tar.gz`
-            - **Windows**: `cardmind-${{ steps.get_version.outputs.version }}-windows.zip`
-            - **macOS**: `cardmind-${{ steps.get_version.outputs.version }}-macos.zip`
-            - **iOS**: `cardmind-${{ steps.get_version.outputs.version }}-ios.zip`
-
-            ### 更新内容
-
-            请查看 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
-
-            ### 注意事项
-
-            - iOS 和 macOS 版本未签名，仅供开发测试使用
-            - 首次运行可能需要在系统偏好设置中允许
-
   build-android:
     name: Build Android
-    needs: create-release
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -118,21 +92,17 @@ jobs:
       - name: Rename APK
         run: |
           mv build/app/outputs/flutter-apk/app-release.apk \
-             cardmind-${{ needs.create-release.outputs.version }}-android.apk
+             cardmind-${{ needs.prepare.outputs.version }}-android.apk
 
-      - name: Upload Android APK
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: cardmind-${{ needs.create-release.outputs.version }}-android.apk
-          asset_name: cardmind-${{ needs.create-release.outputs.version }}-android.apk
-          asset_content_type: application/vnd.android.package-archive
+          name: android-apk
+          path: cardmind-${{ needs.prepare.outputs.version }}-android.apk
 
   build-linux:
     name: Build Linux
-    needs: create-release
+    needs: prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -185,22 +155,18 @@ jobs:
       - name: Package Linux build
         run: |
           cd build/linux/x64/release/bundle
-          tar -czf ../../../../../cardmind-${{ needs.create-release.outputs.version }}-linux.tar.gz *
+          tar -czf ../../../../../cardmind-${{ needs.prepare.outputs.version }}-linux.tar.gz *
           cd ../../../../..
 
-      - name: Upload Linux package
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: cardmind-${{ needs.create-release.outputs.version }}-linux.tar.gz
-          asset_name: cardmind-${{ needs.create-release.outputs.version }}-linux.tar.gz
-          asset_content_type: application/gzip
+          name: linux-tarball
+          path: cardmind-${{ needs.prepare.outputs.version }}-linux.tar.gz
 
   build-windows:
     name: Build Windows
-    needs: create-release
+    needs: prepare
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -246,21 +212,17 @@ jobs:
       - name: Package Windows build
         run: |
           Compress-Archive -Path build/windows/x64/runner/Release/* `
-            -DestinationPath cardmind-${{ needs.create-release.outputs.version }}-windows.zip
+            -DestinationPath cardmind-${{ needs.prepare.outputs.version }}-windows.zip
 
-      - name: Upload Windows package
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: cardmind-${{ needs.create-release.outputs.version }}-windows.zip
-          asset_name: cardmind-${{ needs.create-release.outputs.version }}-windows.zip
-          asset_content_type: application/zip
+          name: windows-zip
+          path: cardmind-${{ needs.prepare.outputs.version }}-windows.zip
 
   build-macos:
     name: Build macOS
-    needs: create-release
+    needs: prepare
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -306,22 +268,18 @@ jobs:
       - name: Package macOS build
         run: |
           cd build/macos/Build/Products/Release
-          zip -r ../../../../../cardmind-${{ needs.create-release.outputs.version }}-macos.zip cardmind.app
+          zip -r ../../../../../cardmind-${{ needs.prepare.outputs.version }}-macos.zip cardmind.app
           cd ../../../../..
 
-      - name: Upload macOS package
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: cardmind-${{ needs.create-release.outputs.version }}-macos.zip
-          asset_name: cardmind-${{ needs.create-release.outputs.version }}-macos.zip
-          asset_content_type: application/zip
+          name: macos-zip
+          path: cardmind-${{ needs.prepare.outputs.version }}-macos.zip
 
   build-ios:
     name: Build iOS
-    needs: create-release
+    needs: prepare
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -368,15 +326,60 @@ jobs:
       - name: Package iOS build
         run: |
           cd build/ios/iphoneos
-          zip -r ../../../cardmind-${{ needs.create-release.outputs.version }}-ios.zip Runner.app
+          zip -r ../../../cardmind-${{ needs.prepare.outputs.version }}-ios.zip Runner.app
           cd ../../..
 
-      - name: Upload iOS package
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: cardmind-${{ needs.create-release.outputs.version }}-ios.zip
-          asset_name: cardmind-${{ needs.create-release.outputs.version }}-ios.zip
-          asset_content_type: application/zip
+          name: ios-zip
+          path: cardmind-${{ needs.prepare.outputs.version }}-ios.zip
+
+  # 创建 release 并上传所有构建产物
+  release:
+    name: Create Release
+    needs: [prepare, build-android, build-linux, build-windows, build-macos, build-ios]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CardMind ${{ needs.prepare.outputs.version }}
+          draft: false
+          prerelease: false
+          body: |
+            ## CardMind ${{ needs.prepare.outputs.version }}
+
+            ### 下载
+
+            - **Android**: `cardmind-${{ needs.prepare.outputs.version }}-android.apk`
+            - **Linux**: `cardmind-${{ needs.prepare.outputs.version }}-linux.tar.gz`
+            - **Windows**: `cardmind-${{ needs.prepare.outputs.version }}-windows.zip`
+            - **macOS**: `cardmind-${{ needs.prepare.outputs.version }}-macos.zip`
+            - **iOS**: `cardmind-${{ needs.prepare.outputs.version }}-ios.zip`
+
+            ### 更新内容
+
+            请查看 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+
+            ### 注意事项
+
+            - iOS 和 macOS 版本未签名，仅供开发测试使用
+            - 首次运行可能需要在系统偏好设置中允许
+          files: |
+            artifacts/android-apk/*.apk
+            artifacts/linux-tarball/*.tar.gz
+            artifacts/windows-zip/*.zip
+            artifacts/macos-zip/*.zip
+            artifacts/ios-zip/*.zip
