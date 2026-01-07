@@ -10,7 +10,7 @@ permissions:
   contents: write  # 创建 release 和上传资产需要写权限
 
 env:
-  FLUTTER_VERSION: '3.27.2'
+  FLUTTER_VERSION: '3.38.5'
   RUST_VERSION: 'stable'
 
 jobs:
