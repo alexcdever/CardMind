@@ -20,9 +20,6 @@ ios/.symlinks/
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
 ios/Runner.xcworkspace/
-linux/flutter/
-macos/Flutter/
-windows/flutter/
 
 # Rust
 rust/target/
