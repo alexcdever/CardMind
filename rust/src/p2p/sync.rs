@@ -46,6 +46,7 @@ use std::collections::HashSet;
 /// let request = SyncMessage::SyncRequest(SyncRequest {
 ///     pool_id: "pool-001".to_string(),
 ///     last_version: None,
+///     device_id: "device-123".to_string(),
 /// });
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -196,12 +197,12 @@ pub enum SyncErrorCode {
 ///
 /// let filter = SyncFilter::new(vec!["pool-A".to_string(), "pool-C".to_string()]);
 ///
-/// let card = Card::new(
+/// let mut card = Card::new(
 ///     "card-001".to_string(),
 ///     "标题".to_string(),
 ///     "内容".to_string(),
 /// );
-/// // card.pool_ids = ["pool-A", "pool-B"]
+/// card.add_pool("pool-A".to_string());
 ///
 /// // 应该同步（因为 pool-A 在交集中）
 /// assert!(filter.should_sync(&card));

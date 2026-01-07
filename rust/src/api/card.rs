@@ -24,6 +24,7 @@ static CARD_STORE: Mutex<Option<Arc<Mutex<CardStore>>>> = Mutex::new(None);
 /// ```dart
 /// await initCardStore(path: '/path/to/storage');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn init_card_store(path: String) -> Result<()> {
     let store = CardStore::new(&path)?;
     let mut global_store = CARD_STORE.lock().unwrap();
@@ -79,6 +80,7 @@ pub(crate) fn get_card_store_arc() -> Result<Arc<Mutex<CardStore>>> {
 /// ```dart
 /// final card = await createCard(title: 'My Note', content: '# Hello');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn create_card(title: String, content: String) -> Result<Card> {
     use crate::api::device_config::get_resident_pools;
 
@@ -109,6 +111,7 @@ pub fn create_card(title: String, content: String) -> Result<Card> {
 /// ```dart
 /// final cards = await getAllCards();
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_all_cards() -> Result<Vec<Card>> {
     let store = get_store()?;
     let store = store.lock().unwrap();
@@ -126,6 +129,7 @@ pub fn get_all_cards() -> Result<Vec<Card>> {
 /// ```dart
 /// final cards = await getActiveCards();
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_active_cards() -> Result<Vec<Card>> {
     let store = get_store()?;
     let store = store.lock().unwrap();
@@ -151,6 +155,7 @@ pub fn get_active_cards() -> Result<Vec<Card>> {
 /// ```dart
 /// final card = await getCardById(id: cardId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_card_by_id(id: String) -> Result<Card> {
     let store = get_store()?;
     let store = store.lock().unwrap();
@@ -170,6 +175,7 @@ pub fn get_card_by_id(id: String) -> Result<Card> {
 /// ```dart
 /// await updateCard(id: cardId, title: 'New Title', content: null);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn update_card(id: String, title: Option<String>, content: Option<String>) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
@@ -187,6 +193,7 @@ pub fn update_card(id: String, title: Option<String>, content: Option<String>) -
 /// ```dart
 /// await deleteCard(id: cardId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn delete_card(id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
@@ -204,6 +211,7 @@ pub fn delete_card(id: String) -> Result<()> {
 /// ```dart
 /// final (total, active, deleted) = await getCardCount();
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_card_count() -> Result<(i64, i64, i64)> {
     let store = get_store()?;
     let store = store.lock().unwrap();
@@ -224,6 +232,7 @@ pub fn get_card_count() -> Result<(i64, i64, i64)> {
 /// ```dart
 /// await addCardToPool(cardId: cardId, poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn add_card_to_pool(card_id: String, pool_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
@@ -242,6 +251,7 @@ pub fn add_card_to_pool(card_id: String, pool_id: String) -> Result<()> {
 /// ```dart
 /// await removeCardFromPool(cardId: cardId, poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn remove_card_from_pool(card_id: String, pool_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
@@ -263,6 +273,7 @@ pub fn remove_card_from_pool(card_id: String, pool_id: String) -> Result<()> {
 /// ```dart
 /// final pools = await getCardPools(cardId: cardId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_card_pools(card_id: String) -> Result<Vec<String>> {
     let store = get_store()?;
     let store = store.lock().unwrap();
@@ -284,6 +295,7 @@ pub fn get_card_pools(card_id: String) -> Result<Vec<String>> {
 /// ```dart
 /// final cards = await getCardsInPools(poolIds: ['pool1', 'pool2']);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_cards_in_pools(pool_ids: Vec<String>) -> Result<Vec<Card>> {
     let store = get_store()?;
     let store = store.lock().unwrap();
@@ -301,6 +313,7 @@ pub fn get_cards_in_pools(pool_ids: Vec<String>) -> Result<Vec<Card>> {
 /// ```dart
 /// await clearCardPools(cardId: cardId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn clear_card_pools(card_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();

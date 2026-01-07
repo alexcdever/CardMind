@@ -384,6 +384,7 @@ fn select_all_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
+                pool_ids: Vec::new(),
             })
         })?
         .collect::<SqliteResult<Vec<_>>>()?;
@@ -409,6 +410,7 @@ fn select_active_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
+                pool_ids: Vec::new(),
             })
         })?
         .collect::<SqliteResult<Vec<_>>>()?;
@@ -432,6 +434,7 @@ fn select_card_by_id(conn: &Connection, id: &str) -> Result<Card, CardMindError>
             created_at: row.get(3)?,
             updated_at: row.get(4)?,
             deleted: row.get(5)?,
+            pool_ids: Vec::new(),
         })
     });
 

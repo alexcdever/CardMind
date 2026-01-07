@@ -89,9 +89,8 @@ Future<bool> generateBridge() async {
   // 配置参数
   final args = [
     'generate',
-    '--rust-input', 'rust/src/api/mod.rs',
-    '--dart-output', 'lib/bridge/bridge_generated.dart',
-    '--dart-decl-output', 'lib/bridge/bridge_definitions.dart',
+    '--rust-input', 'cardmind_rust::api',
+    '--dart-output', 'lib/bridge/',
     '--c-output', 'rust/src/bridge_generated.h',
   ];
 

@@ -24,7 +24,6 @@
 
 use crate::models::card::Card;
 use crate::models::error::{CardMindError, Result};
-use crate::p2p::sync::SyncFilter;
 use crate::store::card_store::CardStore;
 use loro::{ExportMode, LoroDoc};
 use std::collections::HashMap;
@@ -76,7 +75,10 @@ impl SyncManager {
         last_version: Option<&[u8]>,
         joined_pools: &[String],
     ) -> Result<SyncData> {
-        info!("处理同步请求: pool_id={}, version={:?}", pool_id, last_version);
+        info!(
+            "处理同步请求: pool_id={}, version={:?}",
+            pool_id, last_version
+        );
 
         // 1. 验证设备是否加入该数据池
         if !joined_pools.contains(&pool_id.to_string()) {
@@ -87,19 +89,14 @@ impl SyncManager {
             )));
         }
 
-        // 2. 获取所有卡片
+        // 2. 获取所有卡片（当前同步全部卡片；如需严格池过滤，可恢复 SyncFilter）
         let store = self.card_store.lock().unwrap();
-        let all_cards = store.get_all_cards()?;
+        let mut pool_cards = store.get_all_cards()?;
+        for card in &mut pool_cards {
+            card.pool_ids = store.get_card_pools(&card.id).unwrap_or_default();
+        }
 
-        // 3. 过滤出该数据池的卡片
-        let filter = SyncFilter::new(joined_pools.to_vec());
-        let pool_cards = filter.filter_cards(&all_cards);
-
-        debug!(
-            "数据池 {} 包含 {} 个卡片",
-            pool_id,
-            pool_cards.len()
-        );
+        debug!("数据池 {} 包含 {} 个卡片", pool_id, pool_cards.len());
 
         if pool_cards.is_empty() {
             // 没有卡片需要同步，返回空响应
@@ -110,19 +107,16 @@ impl SyncManager {
             });
         }
 
-        // 4. 加载所有相关的 LoroDoc
+        // 4. 为每个卡片构建 LoroDoc 并导出更新
         let mut all_updates = Vec::new();
         for card in &pool_cards {
-            let card_path = self.get_card_path(&card.id);
-            if let Ok(doc) = self.load_loro_doc(&card_path) {
-                // 导出快照（简化实现）
-                match doc.export(ExportMode::Snapshot) {
-                    Ok(snapshot) => {
-                        all_updates.push(snapshot);
-                    }
-                    Err(e) => {
-                        warn!("导出卡片 {} 的 Loro 快照失败: {}", card.id, e);
-                    }
+            let doc = self.build_loro_doc(card)?;
+            match doc.export(ExportMode::all_updates()) {
+                Ok(snapshot) => {
+                    all_updates.push(snapshot);
+                }
+                Err(e) => {
+                    warn!("导出卡片 {} 的 Loro 更新失败: {}", card.id, e);
                 }
             }
         }
@@ -159,6 +153,10 @@ impl SyncManager {
     pub fn import_updates(&self, pool_id: &str, updates: &[u8]) -> Result<Vec<u8>> {
         info!("导入更新: pool_id={}, size={}", pool_id, updates.len());
 
+        if updates.is_empty() {
+            return Ok(self.generate_version());
+        }
+
         // 1. 反序列化更新（简化：假设是单个 LoroDoc 快照）
         let doc = LoroDoc::new();
         doc.import(updates)?;
@@ -170,17 +168,7 @@ impl SyncManager {
         let mut store = self.card_store.lock().unwrap();
 
         // 检查卡片是否已存在
-        let existing_card = store.get_card_by_id(&card.id);
-
-        if existing_card.is_ok() {
-            // 已存在，更新
-            debug!("更新已存在的卡片: {}", card.id);
-            store.update_card(&card.id, Some(card.title.clone()), Some(card.content.clone()))?;
-        } else {
-            // 不存在，创建新卡片
-            debug!("创建新卡片: {}", card.id);
-            store.create_card(card.title.clone(), card.content.clone())?;
-        }
+        store.upsert_card_from_sync(&card)?;
 
         // 4. 生成新版本
         let new_version = self.generate_version();
@@ -208,9 +196,7 @@ impl SyncManager {
 
         debug!(
             "更新同步版本: pool_id={}, peer_id={}, version={:?}",
-            pool_id,
-            peer_id,
-            version
+            pool_id, peer_id, version
         );
 
         Ok(())
@@ -238,34 +224,30 @@ impl SyncManager {
 
     // ==================== 私有辅助方法 ====================
 
-    /// 获取卡片路径
-    fn get_card_path(&self, card_id: &str) -> String {
-        format!("data/loro/{}", card_id)
-    }
-
-    /// 加载 LoroDoc
-    fn load_loro_doc(&self, path: &str) -> Result<LoroDoc> {
-        let bytes = std::fs::read(path).map_err(|e| {
-            CardMindError::IoError(format!("读取 Loro 文件失败: {} - {}", path, e))
-        })?;
-
+    /// 将卡片构建为 LoroDoc（用于同步）
+    fn build_loro_doc(&self, card: &Card) -> Result<LoroDoc> {
         let doc = LoroDoc::new();
-        doc.import(&bytes).map_err(|e| {
-            CardMindError::LoroError(format!("导入 Loro 文件失败: {}", e))
-        })?;
-
+        let map = doc.get_map("card");
+        map.insert("id", card.id.clone()).unwrap();
+        map.insert("title", card.title.clone()).unwrap();
+        map.insert("content", card.content.clone()).unwrap();
+        map.insert("created_at", card.created_at).unwrap();
+        map.insert("updated_at", card.updated_at).unwrap();
+        map.insert("deleted", card.deleted).unwrap();
+        map.insert("pool_ids", card.pool_ids.clone()).unwrap();
+        doc.commit();
         Ok(doc)
     }
 
     /// 合并多个更新
     fn merge_updates(&self, updates: Vec<Vec<u8>>) -> Result<Vec<u8>> {
-        // 简化实现：直接拼接所有更新
-        // TODO: 实现真正的 Loro 更新合并
-        let mut merged = Vec::new();
+        let doc = LoroDoc::new();
         for update in updates {
-            merged.extend_from_slice(&update);
+            doc.import(&update)
+                .map_err(|e| CardMindError::LoroError(format!("导入更新失败: {}", e)))?;
         }
-        Ok(merged)
+        doc.export(ExportMode::all_updates())
+            .map_err(|e| CardMindError::LoroError(format!("导出合并更新失败: {}", e)))
     }
 
     /// 从 LoroDoc 读取卡片
@@ -281,41 +263,31 @@ impl SyncManager {
             .get("id")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_string().map(|s| s.to_string()))
-            .ok_or_else(|| {
-                CardMindError::LoroError("Missing id field".to_string())
-            })?;
+            .ok_or_else(|| CardMindError::LoroError("Missing id field".to_string()))?;
 
         let title = map
             .get("title")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_string().map(|s| s.to_string()))
-            .ok_or_else(|| {
-                CardMindError::LoroError("Missing title field".to_string())
-            })?;
+            .ok_or_else(|| CardMindError::LoroError("Missing title field".to_string()))?;
 
         let content = map
             .get("content")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_string().map(|s| s.to_string()))
-            .ok_or_else(|| {
-                CardMindError::LoroError("Missing content field".to_string())
-            })?;
+            .ok_or_else(|| CardMindError::LoroError("Missing content field".to_string()))?;
 
         let created_at = map
             .get("created_at")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_i64().copied())
-            .ok_or_else(|| {
-                CardMindError::LoroError("Missing created_at field".to_string())
-            })?;
+            .ok_or_else(|| CardMindError::LoroError("Missing created_at field".to_string()))?;
 
         let updated_at = map
             .get("updated_at")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_i64().copied())
-            .ok_or_else(|| {
-                CardMindError::LoroError("Missing updated_at field".to_string())
-            })?;
+            .ok_or_else(|| CardMindError::LoroError("Missing updated_at field".to_string()))?;
 
         let deleted = map
             .get("deleted")
@@ -450,13 +422,30 @@ mod tests {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
-        let updates = vec![
-            vec![1, 2, 3],
-            vec![4, 5, 6],
-            vec![7, 8, 9],
-        ];
+        // 构造一个 Loro 更新
+        let doc = LoroDoc::new();
+        let map = doc.get_map("card");
+        map.insert("id", "card-1").unwrap();
+        map.insert("title", "Title").unwrap();
+        doc.commit();
+
+        let updates = vec![doc.export(ExportMode::all_updates()).unwrap()];
 
         let merged = manager.merge_updates(updates).unwrap();
-        assert_eq!(merged, vec![1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+        // 合并后的更新应该可以被导入
+        let import_doc = LoroDoc::new();
+        import_doc.import(&merged).unwrap();
+        let imported_map = import_doc.get_map("card");
+        assert_eq!(
+            &**imported_map
+                .get("title")
+                .unwrap()
+                .into_value()
+                .unwrap()
+                .as_string()
+                .unwrap(),
+            "Title"
+        );
     }
 }

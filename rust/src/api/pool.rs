@@ -30,6 +30,7 @@ thread_local! {
 /// ```dart
 /// await initPoolStore(path: '/path/to/storage');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn init_pool_store(path: String) -> Result<()> {
     let store = PoolStore::new(&path)?;
     POOL_STORE.with(|s| {
@@ -72,6 +73,7 @@ where
 /// ```dart
 /// final pool = await createPool(name: '工作笔记', password: 'mypassword123');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn create_pool(name: String, password: String) -> Result<Pool> {
     use crate::models::pool::Pool as PoolModel;
     use crate::utils::uuid_v7::generate_uuid_v7;
@@ -102,6 +104,7 @@ pub fn create_pool(name: String, password: String) -> Result<Pool> {
 /// ```dart
 /// final pools = await getAllPools();
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_all_pools() -> Result<Vec<Pool>> {
     with_pool_store(|store| store.get_all_pools())
 }
@@ -125,6 +128,7 @@ pub fn get_all_pools() -> Result<Vec<Pool>> {
 /// ```dart
 /// final pool = await getPoolById(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_pool_by_id(pool_id: String) -> Result<Pool> {
     with_pool_store(|store| store.get_pool_by_id(&pool_id))
 }
@@ -141,6 +145,7 @@ pub fn get_pool_by_id(pool_id: String) -> Result<Pool> {
 /// ```dart
 /// await updatePool(poolId: poolId, name: 'New Name');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn update_pool(pool_id: String, name: String) -> Result<()> {
     with_pool_store(|store| {
         let mut pool = store.get_pool_by_id(&pool_id)?;
@@ -161,6 +166,7 @@ pub fn update_pool(pool_id: String, name: String) -> Result<()> {
 /// ```dart
 /// await deletePool(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn delete_pool(pool_id: String) -> Result<()> {
     with_pool_store(|store| store.delete_pool(&pool_id))
 }
@@ -180,6 +186,7 @@ pub fn delete_pool(pool_id: String) -> Result<()> {
 /// ```dart
 /// await addPoolMember(poolId: poolId, deviceId: deviceId, deviceName: 'My iPhone');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn add_pool_member(pool_id: String, device_id: String, device_name: String) -> Result<()> {
     use crate::models::pool::Device;
 
@@ -199,6 +206,7 @@ pub fn add_pool_member(pool_id: String, device_id: String, device_name: String) 
 /// ```dart
 /// await removePoolMember(poolId: poolId, deviceId: deviceId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn remove_pool_member(pool_id: String, device_id: String) -> Result<()> {
     with_pool_store(|store| store.remove_member(&pool_id, &device_id))
 }
@@ -216,6 +224,7 @@ pub fn remove_pool_member(pool_id: String, device_id: String) -> Result<()> {
 /// ```dart
 /// await updateMemberName(poolId: poolId, deviceId: deviceId, newName: '工作手机');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn update_member_name(pool_id: String, device_id: String, new_name: String) -> Result<()> {
     with_pool_store(|store| store.update_member_name(&pool_id, &device_id, &new_name))
 }
@@ -240,6 +249,7 @@ pub fn update_member_name(pool_id: String, device_id: String, new_name: String) 
 /// ```dart
 /// final isValid = await verifyPoolPassword(poolId: poolId, password: 'mypassword123');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn verify_pool_password(pool_id: String, password: String) -> Result<bool> {
     with_pool_store(|store| {
         let pool = store.get_pool_by_id(&pool_id)?;
@@ -269,6 +279,7 @@ pub fn verify_pool_password(pool_id: String, password: String) -> Result<bool> {
 /// ```dart
 /// await storePoolPasswordInKeyring(poolId: poolId, password: 'mypassword123');
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn store_pool_password_in_keyring(pool_id: String, password: String) -> Result<()> {
     use crate::security::keyring_store::KeyringStore;
 
@@ -300,6 +311,7 @@ pub fn store_pool_password_in_keyring(pool_id: String, password: String) -> Resu
 /// ```dart
 /// final password = await getPoolPasswordFromKeyring(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn get_pool_password_from_keyring(pool_id: String) -> Result<String> {
     use crate::security::keyring_store::KeyringStore;
 
@@ -323,6 +335,7 @@ pub fn get_pool_password_from_keyring(pool_id: String) -> Result<String> {
 /// ```dart
 /// await deletePoolPasswordFromKeyring(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn delete_pool_password_from_keyring(pool_id: String) -> Result<()> {
     use crate::security::keyring_store::KeyringStore;
 
@@ -347,6 +360,7 @@ pub fn delete_pool_password_from_keyring(pool_id: String) -> Result<()> {
 /// ```dart
 /// final hasPassword = await hasPoolPasswordInKeyring(poolId: poolId);
 /// ```
+#[flutter_rust_bridge::frb]
 pub fn has_pool_password_in_keyring(pool_id: String) -> Result<bool> {
     use crate::security::keyring_store::KeyringStore;
 
