@@ -39,10 +39,17 @@ jobs:
             - **Android**: `cardmind-${{ steps.get_version.outputs.version }}-android.apk`
             - **Linux**: `cardmind-${{ steps.get_version.outputs.version }}-linux.tar.gz`
             - **Windows**: `cardmind-${{ steps.get_version.outputs.version }}-windows.zip`
+            - **macOS**: `cardmind-${{ steps.get_version.outputs.version }}-macos.zip`
+            - **iOS**: `cardmind-${{ steps.get_version.outputs.version }}-ios.zip`
 
             ### 更新内容
 
             请查看 [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+
+            ### 注意事项
+
+            - iOS 和 macOS 版本未签名，仅供开发测试使用
+            - 首次运行可能需要在系统偏好设置中允许
 
   build-android:
     name: Build Android
@@ -249,4 +256,127 @@ jobs:
           upload_url: ${{ needs.create-release.outputs.upload_url }}
           asset_path: cardmind-${{ needs.create-release.outputs.version }}-windows.zip
           asset_name: cardmind-${{ needs.create-release.outputs.version }}-windows.zip
+          asset_content_type: application/zip
+
+  build-macos:
+    name: Build macOS
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rust/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS
+        run: dart tool/build_all.dart --macos
+
+      - name: Package macOS build
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../cardmind-${{ needs.create-release.outputs.version }}-macos.zip cardmind.app
+          cd ../../../../..
+
+      - name: Upload macOS package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: cardmind-${{ needs.create-release.outputs.version }}-macos.zip
+          asset_name: cardmind-${{ needs.create-release.outputs.version }}-macos.zip
+          asset_content_type: application/zip
+
+  build-ios:
+    name: Build iOS
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+          targets: aarch64-apple-ios,x86_64-apple-ios
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rust/target/
+          key: ${{ runner.os }}-cargo-ios-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS
+        run: dart tool/build_all.dart --ios
+
+      - name: Package iOS build
+        run: |
+          cd build/ios/iphoneos
+          zip -r ../../../cardmind-${{ needs.create-release.outputs.version }}-ios.zip Runner.app
+          cd ../../..
+
+      - name: Upload iOS package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: cardmind-${{ needs.create-release.outputs.version }}-ios.zip
+          asset_name: cardmind-${{ needs.create-release.outputs.version }}-ios.zip
           asset_content_type: application/zip

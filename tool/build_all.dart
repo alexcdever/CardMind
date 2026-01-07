@@ -609,7 +609,7 @@ Future<bool> buildPlatform(BuildPlatform platform, BuildConfig config) async {
       }
 
       printSuccess('✅ macOS 应用构建成功');
-      printInfo('   输出: build/macos/Build/Products/$buildMode/');
+      printInfo('   输出: build/macos/Build/Products/${config.buildModeCapitalized}/');
       return true;
 
     case BuildPlatform.ios:
