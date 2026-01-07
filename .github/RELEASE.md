@@ -33,10 +33,12 @@ git push origin v1.0.1
 推送 tag 后，GitHub Actions 会自动：
 
 1. 创建 GitHub Release
-2. 并行构建三个平台：
-   - Android APK
-   - Linux bundle (tar.gz)
-   - Windows bundle (zip)
+2. 并行构建五个平台：
+   - **Android** APK
+   - **Linux** bundle (tar.gz)
+   - **Windows** bundle (zip)
+   - **macOS** bundle (zip with .app)
+   - **iOS** bundle (zip with .app, unsigned)
 3. 将构建产物上传到 Release assets
 
 ### 4. 查看发布进度
@@ -56,6 +58,8 @@ https://github.com/YOUR_USERNAME/CardMind/actions
 - `cardmind-{version}-android.apk` - Android 应用安装包
 - `cardmind-{version}-linux.tar.gz` - Linux 应用压缩包
 - `cardmind-{version}-windows.zip` - Windows 应用压缩包
+- `cardmind-{version}-macos.zip` - macOS 应用压缩包（包含 .app bundle）
+- `cardmind-{version}-ios.zip` - iOS 应用压缩包（未签名，仅供测试）
 
 ## 手动发布（备选方案）
 
@@ -65,12 +69,21 @@ https://github.com/YOUR_USERNAME/CardMind/actions
 # 构建所有平台
 dart tool/build_all.dart
 
-# 手动打包
+# 手动打包 - Android
 cd build/app/outputs/flutter-apk
 cp app-release.apk cardmind-{version}-android.apk
 
+# 手动打包 - Linux
 cd build/linux/x64/release/bundle
 tar -czf cardmind-{version}-linux.tar.gz *
+
+# 手动打包 - macOS
+cd build/macos/Build/Products/Release
+zip -r cardmind-{version}-macos.zip cardmind.app
+
+# 手动打包 - iOS
+cd build/ios/iphoneos
+zip -r cardmind-{version}-ios.zip Runner.app
 
 # 在 Windows 上
 cd build/windows/x64/runner/Release
@@ -83,9 +96,12 @@ cd build/windows/x64/runner/Release
 
 1. **版本号格式**：必须以 `v` 开头，例如 `v1.0.0`, `v1.2.3-beta`
 2. **权限要求**：需要仓库的写权限和 releases 权限
-3. **构建时间**：完整构建大约需要 15-30 分钟
+3. **构建时间**：完整构建（5个平台）大约需要 30-45 分钟
+   - Android, Linux, Windows: ~15-20 分钟
+   - macOS, iOS: ~15-25 分钟
 4. **缓存**：使用了依赖缓存，后续构建会更快
 5. **失败处理**：如果某个平台构建失败，不会影响其他平台
+6. **并行构建**：所有平台并行构建，最大化效率
 
 ## 环境要求
 
@@ -96,6 +112,39 @@ GitHub Actions 会自动安装以下环境：
 - Java 17 (Android)
 - Android NDK r26d (Android)
 - GTK 3 开发库 (Linux)
+- Xcode (macOS/iOS，在 macOS runner 上预装)
+
+## 平台特别说明
+
+### iOS
+- **未签名版本**：CI 构建的 iOS 应用未经过代码签名，仅供开发和测试使用
+- **安装方式**：需要通过 Xcode 或其他开发工具侧载到设备
+- **测试设备**：需要注册为开发设备或使用 TestFlight
+- **生产发布**：正式发布需要在本地使用 Apple 开发者证书签名并上传到 App Store
+
+### macOS
+- **未签名版本**：CI 构建的 macOS 应用未经过代码签名，仅供开发和测试使用
+- **安装步骤**：
+  1. 下载 `.zip` 文件
+  2. 解压得到 `cardmind.app`
+  3. 将 `cardmind.app` 拖拽到 `Applications` 文件夹（可选）
+- **安全提示**：首次运行可能提示"来自身份不明开发者"
+- **允许运行**：
+  1. 打开"系统偏好设置" > "安全性与隐私"
+  2. 点击"仍要打开"按钮
+  3. 或者使用命令：`xattr -cr /path/to/cardmind.app`
+- **签名**：如需签名版本，需要在本地使用 Apple 开发者证书重新构建
+
+### Android
+- **自动签名**：使用 Flutter 的调试签名
+- **生产发布**：正式发布需要配置 release keystore
+
+### Linux
+- **依赖库**：可能需要安装 GTK3 和其他系统库
+- **安装命令**：`sudo apt-get install libgtk-3-0`
+
+### Windows
+- **VC++ 运行库**：可能需要安装 Visual C++ Redistributable
 
 ## 故障排查
 
