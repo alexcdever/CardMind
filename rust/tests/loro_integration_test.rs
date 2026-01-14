@@ -10,7 +10,7 @@ use std::sync::{Arc, Mutex};
 /// Validates that we can create a new Loro document successfully.
 /// This is the foundation for all subsequent Loro operations.
 #[test]
-fn test_create_loro_doc() {
+fn it_should_create_loro_doc() {
     // Create a new document
     let doc = LoroDoc::new();
 
@@ -24,7 +24,7 @@ fn test_create_loro_doc() {
 /// Validates that we can create a LoroMap container and insert key-value pairs.
 /// This tests the basic write operation needed for card storage.
 #[test]
-fn test_loro_insert_data_to_map() {
+fn it_should_loro_insert_data_to_map() {
     let doc = LoroDoc::new();
 
     // Create a LoroMap container for storing card data
@@ -62,7 +62,7 @@ fn test_loro_insert_data_to_map() {
 /// Validates that we can export a Loro document to bytes and reconstruct it.
 /// This is critical for file persistence (loro_doc.loro).
 #[test]
-fn test_loro_export_and_import_snapshot() {
+fn it_should_loro_export_and_import_snapshot() {
     // Create original document with data
     let doc1 = LoroDoc::new();
     let map = doc1.get_map("card");
@@ -94,7 +94,7 @@ fn test_loro_export_and_import_snapshot() {
 ///
 /// Validates incremental updates export/import (for P2P sync in Phase 2).
 #[test]
-fn test_loro_export_and_import_updates() {
+fn it_should_loro_export_and_import_updates() {
     // Create original document with data
     let doc1 = LoroDoc::new();
     let map = doc1.get_map("card");
@@ -130,7 +130,7 @@ fn test_loro_export_and_import_updates() {
 /// Validates that we can subscribe to Loro document changes.
 /// This is the foundation for Loro → SQLite automatic sync.
 #[test]
-fn test_loro_subscription_mechanism() {
+fn it_should_loro_subscription_mechanism() {
     let doc = LoroDoc::new();
 
     // Shared state to track subscription callbacks
@@ -167,7 +167,7 @@ fn test_loro_subscription_mechanism() {
 /// Validates the complete cycle: create data → export to file → import from file.
 /// This simulates the real-world persistence scenario.
 #[test]
-fn test_loro_file_persistence() {
+fn it_should_loro_file_persistence() {
     use std::fs;
     use tempfile::TempDir;
 
@@ -222,7 +222,7 @@ fn test_loro_file_persistence() {
 /// Note: Based on architecture decision, each card will have its own LoroDoc file,
 /// but this test validates that the approach works.
 #[test]
-fn test_multiple_cards_in_document() {
+fn it_should_multiple_cards_in_document() {
     let doc = LoroDoc::new();
 
     // Create first card

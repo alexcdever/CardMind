@@ -1,6 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-#[allow(dead_code)]
 struct DeviceConfig {
     device_id: String,
     pool_id: Option<String>,
@@ -25,7 +24,6 @@ impl DeviceConfig {
 }
 
 #[derive(Clone)]
-#[allow(dead_code)]
 struct Pool {
     id: String,
     card_ids: Vec<String>,
@@ -55,23 +53,19 @@ impl TestContext {
         }
     }
     
-    fn config(&self) -> DeviceConfig {
-        DeviceConfig::new()
-    }
-    
-    fn create_pool(&self, id: &str, name: &str, _password: &str) -> Pool {
-        let pool = Pool::new(id.to_string(), name.to_string());
+    fn create_pool(&self, id: &str, _name: &str, _password: &str) -> Pool {
+        let pool = Pool::new(id.to_string(), "PoolName".to_string());
         self.pools.lock().unwrap().push(pool.clone());
         pool
     }
 }
 
 fn main() {
-    std::println!("Single Pool Model Spec Examples");
+    println!("Single Pool Model Spec Examples");
     scenario_1_first_time_user();
     scenario_2_existing_pool_join();
     scenario_3_cannot_join_multiple();
-    std::println!("All scenarios completed");
+    println!("All scenarios completed");
 }
 
 fn scenario_1_first_time_user() {
@@ -81,11 +75,11 @@ fn scenario_1_first_time_user() {
     
     assert!(!config.is_joined());
     
-    config.join_pool("pool_001".to_string()).unwrap();
-    assert_eq!(config.pool_id, Some("pool_001".to_string()));
+    config.join_pool("pool-001".to_string()).unwrap();
+    assert_eq!(config.pool_id, Some("pool-001".to_string()));
     
-    let mut pool = ctx.create_pool("pool_001", "My Notes", "secret123");
-    pool.add_card("card_001".to_string());
+    let mut pool = ctx.create_pool("pool-001", "My Notes", "secret123");
+    pool.add_card("card-001".to_string());
     
     println!("[PASS] Device joined pool");
 }
@@ -95,8 +89,8 @@ fn scenario_2_existing_pool_join() {
     let ctx = TestContext::new();
     let mut pool = ctx.create_pool("existing", "Existing Pool", "secret123");
     
-    pool.add_card("card_001".to_string());
-    pool.add_card("card_002".to_string());
+    pool.add_card("card-001".to_string());
+    pool.add_card("card-002".to_string());
     
     let mut config = ctx.config();
     config.join_pool("existing".to_string()).unwrap();
@@ -108,14 +102,13 @@ fn scenario_2_existing_pool_join() {
 
 fn scenario_3_cannot_join_multiple() {
     println!("[SCENARIO 3] Device cannot join multiple pools");
-    let ctx = TestContext::new();
     let mut config = ctx.config();
     
-    config.join_pool("pool_A".to_string()).unwrap();
-    let result = config.join_pool("pool_B".to_string());
+    config.join_pool("pool-a".to_string()).unwrap();
+    let result = config.join_pool("pool-b".to_string());
     
     assert!(result.is_err());
-    assert_eq!(config.pool_id, Some("pool_A".to_string()));
+    assert_eq!(config.pool_id, Some("pool-a".to_string()));
     
     println!("[PASS] Rejected joining second pool");
 }

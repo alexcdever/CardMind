@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex};
 /// 验证 P2PSyncService 能够正确创建和初始化
 #[test]
 #[serial]
-fn test_sync_service_initialization() {
+fn it_should_sync_service_initialization() {
     // 创建 CardStore
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
 
@@ -42,14 +42,16 @@ fn test_sync_service_initialization() {
 /// 这个测试验证同步服务的核心组件能够正确协作
 #[tokio::test]
 #[serial]
-async fn test_two_device_sync_flow_components() {
+async fn it_should_two_device_sync_flow_components() {
     // 设备 A
     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config_a = DeviceConfig::new("device-a");
+    let mut device_config_a = DeviceConfig::new("device-a");
+    let _ = device_config_a.join_pool("pool-001");
 
     // 设备 B
     let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config_b = DeviceConfig::new("device-b");
+    let mut device_config_b = DeviceConfig::new("device-b");
+    let _ = device_config_b.join_pool("pool-001");
 
     // 创建同步服务
     let service_a = P2PSyncService::new(card_store_a.clone(), device_config_a).unwrap();
@@ -74,7 +76,7 @@ async fn test_two_device_sync_flow_components() {
 /// 验证同步服务能够正确跟踪设备连接和同步状态
 #[tokio::test]
 #[serial]
-async fn test_sync_status_tracking() {
+async fn it_should_sync_status_tracking() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
 
@@ -105,7 +107,7 @@ async fn test_sync_status_tracking() {
 /// 验证同步服务能够启动并监听网络连接
 #[tokio::test]
 #[serial]
-async fn test_sync_service_start_and_listen() {
+async fn it_should_sync_service_start_and_listen() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
 
@@ -135,7 +137,7 @@ async fn test_sync_service_start_and_listen() {
 /// 验证同步服务能够处理多个设备同时连接
 #[tokio::test]
 #[serial]
-async fn test_concurrent_device_connections() {
+async fn it_should_concurrent_device_connections() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
 
@@ -156,11 +158,12 @@ async fn test_concurrent_device_connections() {
 /// 测试场景6：跨设备同步数据池（本地模拟网络）
 #[tokio::test]
 #[serial]
-async fn test_pool_sync_between_services() {
+#[allow(deprecated)]
+async fn it_should_pool_sync_between_services() {
     // 设备 A：创建卡片并绑定池
     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let mut device_config_a = DeviceConfig::new("device-a");
-    device_config_a.join_pool("pool-001");
+    let _ = device_config_a.join_pool("pool-001");
 
     let card_id = {
         let mut store = card_store_a.lock().unwrap();
@@ -174,7 +177,7 @@ async fn test_pool_sync_between_services() {
     // 设备 B：空仓库，已加入相同池
     let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let mut device_config_b = DeviceConfig::new("device-b");
-    device_config_b.join_pool("pool-001");
+    let _ = device_config_b.join_pool("pool-001");
 
     // 创建同步服务（注册到本地模拟网络）
     let service_a = P2PSyncService::new_with_mock_network(card_store_a.clone(), device_config_a).unwrap();
@@ -199,12 +202,12 @@ async fn test_pool_sync_between_services() {
 /// 验证同步服务能够构造和处理同步请求
 #[tokio::test]
 #[serial]
-async fn test_sync_request_handling() {
+async fn it_should_sync_request_handling() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
 
     // 创建设备配置并加入数据池
     let mut device_config = DeviceConfig::new("test-device");
-    device_config.join_pool("test-pool-001");
+    let _ = device_config.join_pool("test-pool-001");
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -232,7 +235,7 @@ async fn test_sync_request_handling() {
 /// 注意：完整的端到端同步测试需要实现 libp2p 的消息传输协议，
 /// 这将在后续的开发中完成。当前测试主要验证各组件的正确性。
 #[test]
-fn test_integration_summary() {
+fn it_should_integration_summary() {
     println!("==============================================");
     println!("P2P 同步服务集成测试总结");
     println!("==============================================");

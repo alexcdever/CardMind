@@ -55,7 +55,7 @@ void main(List<String> arguments) async {
   }
 
   // Summary
-  print('\n${"=" * 60}');
+  print('\n${'=' * 60}');
   if (hasErrors) {
     printError('❌ Some checks failed. Please review errors above.');
     exit(1);
@@ -167,9 +167,9 @@ Future<bool> checkSpecCompleteness(List<File> specFiles) async {
   }
 
   // Summary
-  print('\n${"=" * 60}');
+  print('\n${'=' * 60}');
   if (hasErrors) {
-    printError('❌ Some checks failed. Please review the errors above.');
+    printError('❌ Some checks failed. Please review errors above.');
     exit(1);
   } else {
     printSuccess('✅ All checks passed!');

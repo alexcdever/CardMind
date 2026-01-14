@@ -5,7 +5,7 @@
 use cardmind_rust::p2p::discovery::{DeviceInfo, PoolInfo};
 
 #[test]
-fn test_device_info_serialization_contains_only_whitelisted_fields() {
+fn it_should_device_info_serialization_contains_only_whitelisted_fields() {
     let info = DeviceInfo {
         device_id: "device-001".to_string(),
         device_name: "MacBook-018c8".to_string(),

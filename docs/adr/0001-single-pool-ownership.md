@@ -381,7 +381,7 @@ fn migrate_to_single_pool() -> Result<()> {
 
 ## Related Decisions
 
-无
+- [ADR-0002: 双层架构决策](./0002-dual-layer-architecture.md) - 源数据层 + 查询缓存层架构
 
 ## References
 
