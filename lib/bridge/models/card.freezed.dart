@@ -23,7 +23,6 @@ mixin _$Card {
   int get createdAt => throw _privateConstructorUsedError;
   int get updatedAt => throw _privateConstructorUsedError;
   bool get deleted => throw _privateConstructorUsedError;
-  List<String> get poolIds => throw _privateConstructorUsedError;
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.
@@ -43,7 +42,6 @@ abstract class $CardCopyWith<$Res> {
     int createdAt,
     int updatedAt,
     bool deleted,
-    List<String> poolIds,
   });
 }
 
@@ -68,7 +66,6 @@ class _$CardCopyWithImpl<$Res, $Val extends Card>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deleted = null,
-    Object? poolIds = null,
   }) {
     return _then(
       _value.copyWith(
@@ -96,10 +93,6 @@ class _$CardCopyWithImpl<$Res, $Val extends Card>
                 ? _value.deleted
                 : deleted // ignore: cast_nullable_to_non_nullable
                       as bool,
-            poolIds: null == poolIds
-                ? _value.poolIds
-                : poolIds // ignore: cast_nullable_to_non_nullable
-                      as List<String>,
           )
           as $Val,
     );
@@ -121,7 +114,6 @@ abstract class _$$CardImplCopyWith<$Res> implements $CardCopyWith<$Res> {
     int createdAt,
     int updatedAt,
     bool deleted,
-    List<String> poolIds,
   });
 }
 
@@ -143,7 +135,6 @@ class __$$CardImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deleted = null,
-    Object? poolIds = null,
   }) {
     return _then(
       _$CardImpl(
@@ -171,10 +162,6 @@ class __$$CardImplCopyWithImpl<$Res>
             ? _value.deleted
             : deleted // ignore: cast_nullable_to_non_nullable
                   as bool,
-        poolIds: null == poolIds
-            ? _value._poolIds
-            : poolIds // ignore: cast_nullable_to_non_nullable
-                  as List<String>,
       ),
     );
   }
@@ -190,8 +177,7 @@ class _$CardImpl implements _Card {
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
-    required final List<String> poolIds,
-  }) : _poolIds = poolIds;
+  });
 
   @override
   final String id;
@@ -205,17 +191,10 @@ class _$CardImpl implements _Card {
   final int updatedAt;
   @override
   final bool deleted;
-  final List<String> _poolIds;
-  @override
-  List<String> get poolIds {
-    if (_poolIds is EqualUnmodifiableListView) return _poolIds;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_poolIds);
-  }
 
   @override
   String toString() {
-    return 'Card(id: $id, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, deleted: $deleted, poolIds: $poolIds)';
+    return 'Card(id: $id, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, deleted: $deleted)';
   }
 
   @override
@@ -230,8 +209,7 @@ class _$CardImpl implements _Card {
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
-            (identical(other.deleted, deleted) || other.deleted == deleted) &&
-            const DeepCollectionEquality().equals(other._poolIds, _poolIds));
+            (identical(other.deleted, deleted) || other.deleted == deleted));
   }
 
   @override
@@ -243,7 +221,6 @@ class _$CardImpl implements _Card {
     createdAt,
     updatedAt,
     deleted,
-    const DeepCollectionEquality().hash(_poolIds),
   );
 
   /// Create a copy of Card
@@ -263,7 +240,6 @@ abstract class _Card implements Card {
     required final int createdAt,
     required final int updatedAt,
     required final bool deleted,
-    required final List<String> poolIds,
   }) = _$CardImpl;
 
   @override
@@ -278,8 +254,6 @@ abstract class _Card implements Card {
   int get updatedAt;
   @override
   bool get deleted;
-  @override
-  List<String> get poolIds;
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.

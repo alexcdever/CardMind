@@ -15,10 +15,13 @@
 | `id` | UniqueIdentifier | 必填、全局唯一、时间有序 | 卡片唯一标识 |
 | `title` | OptionalText | 可选、最大 256 字符 | 卡片标题 |
 | `content` | MarkdownText | 必填、非空 | 卡片内容 (Markdown 格式) |
-| `pool_ids` | List\<PoolId\> | 默认空数组 | 绑定的数据池列表 (Phase 2) |
 | `created_at` | Timestamp | 自动生成、不可修改 | 创建时间 (毫秒级) |
 | `updated_at` | Timestamp | 自动更新 | 最后更新时间 (毫秒级) |
 | `is_deleted` | Boolean | 默认 false | 软删除标记 |
+
+**关系字段说明**:
+- **Loro 真理源**: Card 文档仅包含卡片自身内容,不再持有池关系字段。
+- **SQLite 缓存层**: 通过 `card_pool_bindings` 反向填充查询结果中的 `pool_id: Option<String>` 字段,单卡只会关联一个池。
 
 ### 1.2 类型说明
 
@@ -84,8 +87,8 @@
 1. **创建时间不可修改**: `created_at` 在卡片创建后永不改变
 2. **更新时间单调递增**: `updated_at >= created_at`
 3. **软删除可查询**: `is_deleted = true` 的卡片不在默认查询结果中,但数据仍存在
-4. **数据池引用完整性**: `pool_ids` 中的 PoolId 必须是已存在的数据池 (Phase 2)
-5. **内容非空**: `content` 不能为空字符串
+4. **内容非空**: `content` 不能为空字符串
+5. **池归属一致性**: 卡片的池归属由 Pool 文档中的 `card_ids` 决定,SQLite 绑定表必须与之保持一致
 
 ### 1.4 生命周期契约
 
@@ -99,7 +102,7 @@
 
 ---
 
-## 2. 数据池契约 (Phase 2)
+## 2. 数据池契约 (单池模型)
 
 ### 2.1 字段定义
 
@@ -109,6 +112,7 @@
 | `name` | Text | 必填、最大 128 字符 | 数据池昵称 |
 | `password_hash` | SecureHash | 必填、不可逆加密 | 密码哈希 (加密存储) |
 | `members` | List\<Device\> | 至少 1 个成员 | 成员设备列表 |
+| `card_ids` | List\<CardId\> | 默认空数组 | 池内所有卡片 ID 列表 (真理源) |
 | `created_at` | Timestamp | 自动生成 | 创建时间 |
 | `updated_at` | Timestamp | 自动更新 | 最后更新时间 |
 
@@ -202,12 +206,12 @@ struct JoinRequest {
 3. **密码修改同步**: 修改 `password_hash` 后通过 CRDT 同步到所有设备
 4. **Keyring 密钥格式**: `cardmind.pool.<pool_id>.password`
 
-### 2.4 权限模型
+### 2.4 权限与所有权模型
 
-**当前设计** (Phase 2):
+**当前设计**:
 - 所有成员权限平等
-- 所有成员都可以修改数据池信息 (昵称、成员列表)
-- 不支持"踢出成员"功能,仅支持"主动退出"
+- 一个用户 = 一个数据池 (对用户展示为"笔记空间")
+- 池文档持有 `card_ids`,是卡片归属的唯一真理源
 
 **未来扩展** (可选):
 - 引入角色系统 (管理员/普通成员)
@@ -216,7 +220,7 @@ struct JoinRequest {
 
 ---
 
-## 3. 设备配置契约 (Phase 2)
+## 3. 设备配置契约 (单池模型)
 
 ### 3.1 字段定义
 
@@ -225,22 +229,20 @@ struct JoinRequest {
 | 字段 | 类型 | 约束 | 业务含义 |
 |------|------|------|---------|
 | `device_id` | UniqueIdentifier | 必填、本设备唯一 | 设备唯一标识 |
-| `joined_pools` | List\<PoolId\> | 默认空数组 | 已加入的数据池 ID 列表 (仅存 ID，详细信息从 Pool CRDT 读取) |
-| `resident_pools` | List\<PoolId\> | 默认空数组 | 常驻池 ID 列表 (用户偏好设置) |
+| `pool_id` | Option\<PoolId\> | 单值,可为空 | 当前加入的唯一数据池 (笔记空间) |
 
 **示例**:
 ```json
 {
   "device_id": "018c8f8e-1a2b-7c3d-9e4f-5a6b7c8d9e0f",
-  "joined_pools": ["pool-001", "pool-002"],
-  "resident_pools": ["pool-001"]
+  "pool_id": "pool-001"
 }
 ```
 
 **设计原则**:
-- **最小化存储**: 仅存储必要的索引信息和用户偏好
-- **避免冗余**: 数据池名称、加入时间、设备昵称等信息从 Pool CRDT 读取
-- **性能优化**: `joined_pools` 用于快速启动，避免扫描文件系统
+- **单一归属**: 一个设备只能加入一个数据池,如需切换必须先退出
+- **最小化存储**: 仅存储必要的索引信息,池详情从 Pool CRDT 读取
+- **性能优化**: `pool_id` 用于快速启动,避免扫描文件系统
 
 **注意**:
 - 密码不存储在 `config.json` 中，存储在系统 Keyring
@@ -270,31 +272,27 @@ cardmind.pool.<pool_id>.password
 
 ---
 
-## 4. mDNS 广播数据契约 (Phase 2)
+## 4. mDNS 广播数据契约 (单池模型)
 
 ### 4.1 广播内容 (非敏感信息)
 
 ```json
 {
   "device_id": "device-001",
-  "device_name": "MacBook-018c8",  // 使用默认昵称 (设备型号-UUID前5位)
-  "pools": [
-    {
-      "pool_id": "pool-abc"  // 仅暴露数据池 ID
-    }
-  ]
+  "device_name": "MacBook-018c8",  // 默认昵称 (设备型号-UUID前5位)
+  "pool_id": "pool-abc"            // 仅暴露唯一数据池 ID (未加入时可省略)
 }
 ```
 
 **说明**:
-- `device_name` 使用即时生成的默认昵称，格式为 `{设备型号}-{UUID前5位}`
-- 不使用数据池中的设备昵称，因为同一设备在不同数据池中可能有不同昵称
-- mDNS 广播是公开的，使用默认昵称可以避免泄露用户在特定数据池中的身份信息
+- `device_name` 使用即时生成的默认昵称,避免暴露数据池内昵称
+- 单设备仅暴露单个 `pool_id`; 未初始化时可不带该字段
+- mDNS 广播公开可见,信息保持最小化
 
 **隐私保护策略**:
-- ✅ **仅暴露 `pool_id`** (UUID): 未授权设备无法推断数据池用途
-- ❌ **不暴露 `pool_name`**: 防止泄露敏感业务信息 (如 "公司机密项目")
-- ✅ **密码验证后获取**: 新设备需输入正确密码后才能从数据池 LoroDoc 获取 `pool_name` 等详细信息
+- ✅ **仅暴露 `pool_id`** (UUID): 未授权设备无法推断数据用途
+- ❌ **不暴露 `pool_name`**: 防止泄露敏感业务信息
+- ✅ **密码验证后获取**: 新设备需输入正确密码后才能从 Pool LoroDoc 获取 `pool_name` 等详细信息
 
 ### 4.2 不包含的敏感信息
 
@@ -309,46 +307,35 @@ cardmind.pool.<pool_id>.password
 
 ---
 
-## 5. 卡片与数据池绑定契约 (Phase 2)
+## 5. 卡片与数据池绑定契约 (单池模型)
 
 ### 5.1 绑定规则
 
-**多对多关系**:
-- 一个卡片可以绑定多个数据池 (`pool_ids = ["pool-1", "pool-2"]`)
-- 一个数据池可以包含多个卡片
-- 未绑定数据池的卡片仅保存在本地 (`pool_ids = []`)
+**单向绑定**:
+- 一个用户 = 一个数据池 (笔记空间)
+- Pool 文档持有 `card_ids`,是卡片归属的唯一真理源
+- 卡片通过订阅自动映射到 SQLite `card_pool_bindings` 表,查询结果填充 `pool_id`
 
-### 5.2 常驻池机制
+### 5.2 绑定流程
 
-**定义**: 用户从已加入的数据池中选择多个作为"常驻池"。
-
-**行为**:
-- 新建卡片时,自动绑定到所有常驻池 (`pool_ids = resident_pools`)
-- 已存在的卡片不会因加入新数据池而自动绑定
-- 用户可手动修改卡片的绑定池
-
-### 5.3 同步过滤逻辑
-
-**伪代码**:
 ```
-should_sync_card(card, device):
-  device_pools = device.joined_pools
-  card_pools = card.pool_ids
-  return card_pools ∩ device_pools ≠ ∅
+create_card()
+  → 读取 DeviceConfig.pool_id (必须已加入)
+  → 将 card_id 写入 Pool.card_ids
+  → pool_doc.commit() 触发订阅
+  → 订阅回调重建 card_pool_bindings
+  → SQLite 查询填充 Card.pool_id
 ```
 
-**含义**: 仅同步设备已加入且卡片已绑定的数据池。
+### 5.3 移除与退出
 
-### 5.4 绑定冲突处理
+- **移除卡片**: 从 `Pool.card_ids` 删除并 commit → 所有设备收到移除事件
+- **退出数据池**: 清空本地卡片并删除 Pool 文档,`pool_id` 置空
 
-**场景**: 多个设备并发修改卡片绑定时
+### 5.4 约束
 
-**策略**: 使用 CRDT List 类型存储 `pool_ids`,自动合并
-
-**示例**:
-- 设备 A 修改: `pool_ids = [P1, P2]`
-- 设备 B 修改: `pool_ids = [P1, P3]`
-- CRDT 合并结果: `pool_ids = [P1, P2, P3]`
+- 设备必须先加入数据池 (`pool_id` 存在) 才能创建/同步卡片
+- 不存在多池/常驻池概念,也不支持一张卡片属于多个池
 
 ---
 
@@ -357,8 +344,9 @@ should_sync_card(card, device):
 ### 6.1 引用完整性
 
 **约束**:
-- `card.pool_ids` 中的 PoolId 必须存在于 `joined_pools` 中
-- 退出数据池时,如果卡片的 `pool_ids` 仅包含该池,则卡片变为本地卡片 (`pool_ids = []`)
+- DeviceConfig.pool_id 必须存在于 Pool 文档集合中
+- Pool.card_ids 必须与 SQLite `card_pool_bindings` 表保持一致 (由订阅自动维护)
+- 退出数据池时必须删除本地 Pool 文档及其对应卡片数据,避免孤立绑定
 
 ### 6.2 时间戳一致性
 
@@ -405,14 +393,14 @@ should_sync_card(card, device):
 - `id`
 - `created_at`
 
-### 7.3 数据池验证 (Phase 2)
+### 7.3 笔记空间 (数据池) 验证
 
-**创建数据池**:
-- `name` 不能为空
+**创建笔记空间**:
+- 启动时未加入任何池则自动引导创建
 - `password` 明文长度至少 8 字符
 
-**加入数据池**:
-- `pool_id` 必须存在于 mDNS 广播中
+**加入笔记空间**:
+- 通过 mDNS 发现单个 `pool_id`
 - `password` 必须匹配 `password_hash` (bcrypt 验证)
 
 ---

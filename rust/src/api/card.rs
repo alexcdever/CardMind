@@ -82,7 +82,6 @@ pub(crate) fn get_card_store_arc() -> Result<Arc<Mutex<CardStore>>> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn create_card(title: String, content: String) -> Result<Card> {
-    use crate::api::device_config::get_resident_pools;
 
     let store = get_store()?;
     let mut store = store.lock().unwrap();
@@ -90,12 +89,6 @@ pub fn create_card(title: String, content: String) -> Result<Card> {
     // Create the card
     let card = store.create_card(title, content)?;
 
-    // Auto-bind to resident pools
-    if let Ok(resident_pools) = get_resident_pools() {
-        for pool_id in resident_pools {
-            let _ = store.add_card_to_pool(&card.id, &pool_id);
-        }
-    }
 
     Ok(card)
 }
@@ -233,11 +226,14 @@ pub fn get_card_count() -> Result<(i64, i64, i64)> {
 /// await addCardToPool(cardId: cardId, poolId: poolId);
 /// ```
 #[flutter_rust_bridge::frb]
+/// DEPRECATED: Single-pool model
+/*
 pub fn add_card_to_pool(card_id: String, pool_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
     store.add_card_to_pool(&card_id, &pool_id)
 }
+*/
 
 /// Remove card from a data pool
 ///
@@ -252,11 +248,14 @@ pub fn add_card_to_pool(card_id: String, pool_id: String) -> Result<()> {
 /// await removeCardFromPool(cardId: cardId, poolId: poolId);
 /// ```
 #[flutter_rust_bridge::frb]
+/// DEPRECATED: Single-pool model
+/*
 pub fn remove_card_from_pool(card_id: String, pool_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
     store.remove_card_from_pool(&card_id, &pool_id)
 }
+*/
 
 /// Get all pool IDs that a card belongs to
 ///
@@ -314,11 +313,14 @@ pub fn get_cards_in_pools(pool_ids: Vec<String>) -> Result<Vec<Card>> {
 /// await clearCardPools(cardId: cardId);
 /// ```
 #[flutter_rust_bridge::frb]
+/// DEPRECATED: Single-pool model
+/*
 pub fn clear_card_pools(card_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
     store.clear_card_pools(&card_id)
 }
+*/
 
 // ==================== Test Functions ====================
 

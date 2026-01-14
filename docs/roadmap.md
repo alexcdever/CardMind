@@ -1,6 +1,6 @@
 # CardMind 产品路线图
 
-**最后更新**: 2026-01-04
+**最后更新**: 2026-01-14
 
 ---
 
@@ -43,40 +43,52 @@ CardMind 致力于打造一款**离线优先、可靠同步、灵活组织**的�
 
 ### v2.0.0 - P2P 同步版本 🔄
 
-**目标**: 实现去中心化的多设备同步
+**目标**: 实现去中心化的多设备同步（单数据池架构）
 
-**预计完成**: 2026-02 ~ 2026-03
+**预计完成**: 2026-01 ~ 2026-02
 
 **核心功能**:
-- [ ] libp2p P2P 网络集成
-- [ ] 本地网络设备发现（mDNS）
-- [ ] **数据池创建和管理**
-- [ ] **数据池密码验证机制（bcrypt 哈希）**
-- [ ] **密码安全存储（系统 Keyring）**
-- [ ] **多数据池支持和切换**
-- [ ] **常驻池机制（新建卡片自动绑定）**
-- [ ] **卡片绑定池管理（多对多关系）**
-- [ ] **数据池隔离和同步过滤**
-- [ ] 多点对多点同步（支持 3+ 设备）
-- [ ] 离线编辑和自动冲突解决
-- [ ] 同步状态可视化
+- [x] libp2p P2P 网络集成
+- [x] 本地网络设备发现（mDNS）
+- [x] **数据池密码验证机制（bcrypt 哈希）**
+- [x] **密码安全存储（系统 Keyring）**
+- [ ] **单数据池模型实施 + Spec Coding 方法论**（每用户一个笔记空间）
+  - [ ] Pool 持有 card_ids（解决移除操作传播问题）
+  - [ ] DeviceConfig 单池约束
+  - [ ] 自动加入池逻辑
+  - [ ] 规格文档完整覆盖
+- [ ] **初始化流程重构**（首次启动 vs 设备配对）
+- [ ] **数据池隔离和同步过滤**（简化版）
+- [x] 多点对多点同步（支持 3+ 设备）
+- [x] 离线编辑和自动冲突解决
+- [x] 同步状态可视化
 - [ ] NAT 穿透支持（AutoNAT + Relay + DCUtR）
 
 **技术里程碑**:
-- Phase 5: P2P 同步准备（技术调研和原型验证）
+- Phase 5: P2P 同步准备（技术调研和原型验证）✅
   - [x] Loro 同步能力验证（6 个测试通过）
   - [x] P2P 同步设计文档
-  - [ ] libp2p 原型验证
-- Phase 6: P2P 同步实现
-  - [ ] 数据池数据结构实现（Loro + SQLite）
-  - [ ] 密码管理（bcrypt 哈希 + Keyring 存储）
-  - [ ] mDNS 广播数据池信息
-  - [ ] 数据池同步过滤逻辑
-  - [ ] libp2p 集成和测试
-  - [ ] 单对单同步协议
-  - [ ] 多点对多点同步
-  - [ ] 前端数据池界面（创建/加入/管理）
-  - [ ] 前端同步状态显示
+  - [x] libp2p 原型验证
+- Phase 6: P2P 同步实现（Phase 6 已完成，需重构到单池模型）✅
+  - [x] 密码管理（bcrypt 哈希 + Keyring 存储）
+  - [x] mDNS 广播数据池信息
+  - [x] libp2p 集成和测试
+  - [x] 单对单同步协议
+  - [x] 多点对多点同步
+  - [x] 前端同步状态显示
+- Phase 6R: 单池模型重构 + Spec Coding 转型 🔄
+  - [ ] **Spec Coding 方法论实施**
+    - [ ] 建立 specs/ 目录结构
+    - [ ] 编写核心规格文档（Pool, DeviceConfig, CardStore, UI）
+    - [ ] 创建可运行的业务示例
+    - [ ] 重命名测试为 spec 风格（it_should_xxx）
+  - [ ] **单池模型重构**
+    - [ ] Pool.card_ids 替代 Card.pool_ids（真理源）
+    - [ ] DeviceConfig 单池约束（pool_id: Option）
+    - [ ] 自动加入池逻辑
+    - [ ] 初始化流程实现（首次启动 vs 设备配对）
+    - [ ] Flutter UI 术语统一（数据池→笔记空间）
+    - [ ] 数据迁移脚本（处理多池用户数据）
 
 **性能目标**:
 - 设备发现 < 5 秒
@@ -87,11 +99,13 @@ CardMind 致力于打造一款**离线优先、可靠同步、灵活组织**的�
 **验收标准**:
 - **数据池隔离 100% 有效**（局域网内不同用户数据不互串）
 - **密码验证成功率 100%**（未授权设备无法访问）
-- **常驻池机制正常工作**（新建卡片自动绑定到常驻池）
+- **单池模型正常工作**（每设备只能加入一个笔记空间）
+- **移除操作可靠传播**（所有设备同步移除事件）
 - 能在多设备间可靠同步（3+ 设备）
 - 支持离线编辑和自动合并
 - 冲突自动解决（Loro CRDT 保证）
 - 数据不丢失（100% 保证）
+- **数据迁移成功率 100%**（处理多池用户数据）
 - 测试覆盖率 > 80%
 
 ---
@@ -176,24 +190,29 @@ CardMind 致力于打造一款**离线优先、可靠同步、灵活组织**的�
 
 ```
 2025-12 ────────── v1.0.0 MVP ✅
-            │
-2026-01 ────┼──── Phase 5: P2P 准备 🔄
-            │
-2026-02 ────┼──── Phase 6: P2P 实现
-            │
-2026-03 ────────── v2.0.0 P2P 同步
-            │
-2026-03 ────┼──── Phase 7: 搜索功能
-            │
-2026-04 ────────── v2.1.0 搜索增强
-            │
-2026-04 ────┼──── Phase 8: 标签系统 (可选)
-            │
-2026-05 ────────── v2.2.0 标签系统
-            │
-2026-05 ────┼──── Phase 9: 导入导出
-            │
-2026-06 ────────── v2.3.0 完整版本
+             │
+2026-01 ────┼──── Phase 5: P2P 准备 ✅
+             │
+2026-01 ────┼──── Phase 6: P2P 实现 ✅
+             │
+2026-01 ────┼──── Phase 6R: 单池模型重构 + Spec Coding 🔄
+             │             ├─ 建立规格文档
+             │             ├─ 单池架构实施
+             │             └─ UI 重构
+             │
+2026-02 ────────── v2.0.0 P2P 同步（单池架构 + Spec Coding）
+             │
+2026-02 ────┼──── Phase 7: 搜索功能
+             │
+2026-03 ────────── v2.1.0 搜索增强
+             │
+2026-03 ────┼──── Phase 8: 标签系统 (可选)
+             │
+2026-04 ────────── v2.2.0 标签系统
+             │
+2026-04 ────┼──── Phase 9: 导入导出
+             │
+2026-05 ────────── v2.3.0 完整版本
 ```
 
 ---
@@ -274,27 +293,107 @@ CardMind 致力于打造一款**离线优先、可靠同步、灵活组织**的�
 ---
 
 ## 🚀 下一步行动
+ 
+### 当前重点（2026-01-14）- Phase 6R: 单池模型重构 + Spec Coding 🔄
 
-### 当前重点（2026-01）
-1. **完成 Phase 5 - P2P 准备**
-   - [ ] libp2p 原型验证
-   - [ ] mDNS 设备发现测试
-   - [ ] 两设备间基础通信验证
+#### Week 1: Spec Coding 基础设施建立 ✅
+- [x] 创建 specs/ 目录结构（rust/flutter/examples）
+- [x] 编写核心规格文档
+  - [x] SP-SPM-001: 单池模型核心规格
+  - [x] SP-DEV-002: DeviceConfig 改造规格
+  - [x] SP-POOL-003: Pool 模型 CRUD 规格
+  - [x] SP-CARD-004: CardStore 改造规格
+  - [x] SP-FLUT-003: Flutter UI 交互规格
+- [x] 创建可运行的业务示例（single_pool_flow_spec.rs）
+- [x] 创建规格中心索引和实施指南
 
-2. **启动 Phase 6 - P2P 实现**
-   - [ ] libp2p 集成到项目
-   - [ ] 单对单同步协议实现
-   - [ ] 多点对多点同步实现
+#### Week 2: 按照规格实施数据模型层（进行中）
+1. **Rust 模型层**
+    - [ ] `rust/src/models/pool.rs`
+      - [ ] 添加 `card_ids: Vec<String>` 字段（按 SP-POOL-003）
+      - [ ] 实现 `add_card()` / `remove_card()` 方法
+      - [ ] 运行测试 `cargo test pool::`
+    - [ ] `rust/src/models/device_config.rs`
+      - [ ] 重构：`joined_pools` → `pool_id: Option<String>`（按 SP-DEV-002）
+      - [ ] 移除 `resident_pools` / `last_selected_pool` 字段
+      - [ ] 修改 `join_pool()` - 检查单池约束
+      - [ ] 简化 `leave_pool()` 逻辑
+      - [ ] 重命名测试为 spec 风格（it_should_xxx）
+      - [ ] 运行测试 `cargo test device_config::`
+    - [ ] `rust/src/models/card.rs`
+      - [ ] 移除 Loro 层的 `pool_ids` 字段
+      - [ ] 保留 API 层的 `pool_id`（从 SQLite 填充）
 
-3. **文档更新**
-   - [ ] 根据实现更新架构文档
-   - [ ] 补充 P2P 同步实现细节
+2. **Store 层**
+    - [ ] `rust/src/store/card_store.rs`
+      - [ ] 修改 `create_card()` - 自动加入当前池（按 SP-CARD-004）
+      - [ ] 修改 `add_card_to_pool()` - 修改 Pool Loro
+      - [ ] 修改 `remove_card_from_pool()` - 修改 Pool Loro
+      - [ ] 新增 `leave_pool()` - 清空所有本地数据
+    - [ ] `rust/src/store/pool_store.rs`
+      - [ ] 实现 Pool Loro 文档管理
+      - [ ] 新增 `on_pool_updated()` 订阅回调
+      - [ ] 持久化路径：`data/loro/pools/<pool_id>/`
+
+#### Week 3: API 层和 Flutter UI 重构
+3. **API 层**
+    - [ ] `rust/src/api/pool.rs`
+      - [ ] 移除 `create_pool()` API（自动创建）
+      - [ ] 新增 `check_initialization_status()` API
+      - [ ] 新增 `initialize_first_time(password)` API
+      - [ ] 新增 `join_existing_pool(pool_id, password)` API
+      - [ ] 新增 `leave_pool()` API
+    - [ ] `rust/src/api/card.rs`
+      - [ ] 修改 `create_card()` - 移除 pool_id 参数
+      - [ ] 更新池操作方法
+    - [ ] `rust/src/api/device_config.rs`
+      - [ ] 移除所有多池相关 API
+      - [ ] 更新 `get_device_config()` 返回结构
+
+4. **Flutter UI**
+    - [ ] `lib/main.dart`
+      - [ ] 实现启动时状态检查逻辑（按 SP-FLUT-003）
+    - [ ] 新增屏幕
+      - [ ] `screens/onboarding_decision_screen.dart`
+      - [ ] `screens/create_space_screen.dart`
+      - [ ] `screens/pair_device_screen.dart`
+    - [ ] `screens/home_screen.dart`
+      - [ ] 移除"选择数据池"对话框
+      - [ ] FAB 直接进入编辑器
+    - [ ] `screens/card_editor_screen.dart`
+      - [ ] 移除 pool_id 参数传递
+      - [ ] 保存时自动关联到当前池
+    - [ ] `screens/settings_screen.dart`
+      - [ ] 修改术语："数据池" → "笔记空间"
+      - [ ] 移除"数据池管理"
+      - [ ] 新增"退出笔记空间"
+
+#### Week 4: 集成测试和数据迁移
+5. **集成测试**
+    - [ ] 首次启动完整流程（初始化 → 创建空间）
+    - [ ] 设备配对完整流程（发现 → 密码验证 → 加入）
+    - [ ] 移除操作跨设备传播测试
+    - [ ] 退出笔记空间完整流程
+
+6. **数据迁移**
+    - [ ] `rust/src/migration/single_pool_migration.rs`
+      - [ ] 检查设备当前加入的池
+      - [ ] 多池用户：选择第一个并警告
+      - [ ] 可选：导出其他池的数据
+      - [ ] 更新 DeviceConfig（单 pool_id）
+      - [ ] 为 Pool 创建 card_ids（从 bindings 表迁移）
+    - [ ] 测试迁移脚本
+      - [ ] 未加入任何池（首次使用）
+      - [ ] 加入单个池（直接迁移）
+      - [ ] 加入多个池（警告 + 导出）
 
 ### 近期里程碑
-- **本周**: 完成 libp2p 原型验证
-- **下周**: 开始 Phase 6 实现
-- **本月**: 完成单对单同步协议
-- **下月**: 完成多点对多点同步
+- **本周（Jan 14-20）**: Spec Coding 基础设施 + 数据模型层重构
+- **下周（Jan 21-27）**: 存储层和 API 层重构
+- **下下周（Jan 28 - Feb 3）**: Flutter UI 重构
+- **下月（Feb 4-10）**: 集成测试 + 数据迁移
+- **发布目标**: v2.0.0 单池架构 + Spec Coding（Feb 中旬）
+ 
 
 ---
 

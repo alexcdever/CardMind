@@ -95,11 +95,31 @@ if let Err(e) = sync_to_sqlite(event) {
 
 ---
 
-## 2. P2P 设备发现 (Phase 2)
+## 2. 初始化与设备发现 (单池模型)
 
-### 2.1 发现协议
+### 2.1 初始化决策
 
-使用**本地网络广播**协议 (mDNS),设备在同一局域网内自动发现。
+**目标**: 区分第一台设备(创建笔记空间)与后续设备(加入已存在空间)。
+
+**流程概览**:
+```rust
+// 伪代码
+let config = DeviceConfig::load_or_create()?;
+if config.pool_id.is_some() {
+    return InitAction::EnterMain; // 已加入,直接进入并启动同步
+}
+
+let discovery = start_mdns_discovery().await?;
+if discovery.peers.is_empty() {
+    return InitAction::ShowCreateWizard; // 未发现同伴,引导创建
+}
+
+InitAction::ShowChoice { peers: discovery.peers } // 选择配对或创建
+```
+
+### 2.2 发现协议
+
+使用**本地网络广播**协议 (mDNS),设备在同一局域网内自动发现唯一的笔记空间。
 
 ```mermaid
 sequenceDiagram
@@ -108,29 +128,25 @@ sequenceDiagram
     participant ExistingDevice as 现有设备
 
     NewDevice->>mDNS: 监听广播
-    ExistingDevice->>mDNS: 广播数据池信息
-    mDNS->>NewDevice: 发现数据池列表
-    NewDevice->>NewDevice: 显示可加入的数据池
+    ExistingDevice->>mDNS: 广播 pool_id
+    mDNS->>NewDevice: 发现可用 pool_id
+    NewDevice->>NewDevice: 显示可加入的笔记空间
 ```
 
-### 2.2 广播内容 (非敏感信息)
+### 2.3 广播内容 (非敏感信息)
 
 **mDNS 广播包含**:
 ```json
 {
   "device_id": "device-001",
-  "device_name": "MacBook-018c8",  // 使用默认昵称 (设备型号-UUID前5位)
-  "pools": [
-    {
-      "pool_id": "pool-abc"  // 仅暴露数据池 ID
-    }
-  ]
+  "device_name": "MacBook-018c8",  // 默认昵称 (设备型号-UUID前5位)
+  "pool_id": "pool-abc"            // 仅暴露唯一数据池 ID (未加入时可省略)
 }
 ```
 
 **说明**:
-- `device_name` 使用即时生成的默认昵称，不使用数据池中的设备昵称
-- 默认昵称格式: `{设备型号}-{UUID前5位}`（如 `iPhone-018c8`, `MacBook-7a3e1`）
+- `device_name` 使用即时生成的默认昵称,避免暴露数据池内昵称
+- 单设备仅暴露单个 `pool_id`; 未初始化时可不带该字段
 - 防止泄露用户在特定数据池中的身份信息
 
 **隐私保护策略**:
@@ -138,19 +154,7 @@ sequenceDiagram
 - ❌ **不暴露 `pool_name`**: 防止泄露敏感业务信息 (如 "公司机密项目")
 - ✅ **密码验证后获取**: 新设备需输入正确密码后才能获取数据池名称和详细信息
 
-**不包含的敏感信息**:
-- ❌ 数据池名称 (`pool_name`)
-- ❌ 密码或密码哈希
-- ❌ 成员列表
-- ❌ 卡片数量或内容
-- ❌ 任何业务数据
-
-**用户体验说明**:
-- 新设备发现数据池时，UI 显示 `pool_id` 的前 8 位 (如 `pool-abc`)
-- 用户输入密码验证成功后，设备接收完整的数据池 LoroDoc，包含 `pool_name` 等详细信息
-- 验证后 UI 显示友好的数据池名称 (如 "工作笔记")
-
-### 2.3 连接建立
+### 2.4 连接建立
 
 ```mermaid
 sequenceDiagram
@@ -159,8 +163,7 @@ sequenceDiagram
     participant PoolDoc as 数据池 LoroDoc
     participant Keyring as 系统 Keyring
 
-    NewDevice->>NewDevice: 用户选择数据池
-    NewDevice->>NewDevice: 用户输入密码
+    NewDevice->>NewDevice: 用户选择设备并输入密码
     NewDevice->>ExistingDevice: 发送 (pool_id, password, timestamp) 🔒 TLS 加密
     ExistingDevice->>ExistingDevice: 验证时间戳（5分钟内有效）
     ExistingDevice->>PoolDoc: 读取 password_hash
@@ -171,14 +174,14 @@ sequenceDiagram
         NewDevice->>NewDevice: 导入数据池 LoroDoc
         NewDevice->>PoolDoc: 添加自己到 members 列表
         NewDevice->>Keyring: 存储密码（OS 级加密）
-        ExistingDevice->>NewDevice: 同步该数据池的所有卡片
+        ExistingDevice->>NewDevice: 同步该池的所有卡片
     else 密码错误或时间戳过期
         ExistingDevice->>NewDevice: 返回错误
         NewDevice->>NewDevice: 提示用户密码错误
     end
 ```
 
-### 2.3.1 安全加固措施
+### 2.4.1 安全加固措施
 
 **传输层安全**:
 - **强制 TLS 加密**: libp2p 配置强制使用 TLS，拒绝明文连接
@@ -243,7 +246,7 @@ fn validate_password_strength(password: &str) -> Result<()> {
 }
 ```
 
-### 2.4 安全保证总结
+### 2.5 安全保证总结
 
 **多层防护体系**:
 
@@ -257,144 +260,126 @@ fn validate_password_strength(password: &str) -> Result<()> {
 
 **未来升级路径**: 如需更高安全性（如广域网），可升级到 SPAKE2 协议（v2.1.0+）。
 
-### 2.5 自动重连机制
+### 2.6 自动重连机制
 
 **App 启动时**:
-1. 读取本地配置文件 (`config.json`)，获取 `joined_pools` ID 列表
-2. 对每个 pool_id，加载对应的 Pool CRDT 文件，读取数据池详细信息
-3. 从系统 Keyring 读取每个数据池的密码
-4. 自动连接到已发现的数据池成员设备（通过 mDNS）
-5. 如果密码验证失败 (例如密码已更改),提示用户重新输入
+1. 读取本地配置文件 (`config.json`)，获取单个 `pool_id`
+2. 如果存在 `pool_id`，加载对应 Pool CRDT 详情
+3. 从系统 Keyring 读取该池的密码
+4. 自动连接到已发现的池成员设备（通过 mDNS）
+5. 如果密码验证失败,提示用户重新输入
 
 **保证**: 用户无需每次手动输入密码,自动恢复同步。
 
 **实现伪代码**:
 ```rust
 fn auto_reconnect_on_startup(config: &Config) -> Result<()> {
-    for pool_id in &config.joined_pools {
-        // 1. 加载数据池 CRDT，获取详细信息
-        let pool = load_pool_crdt(pool_id)?;
-        let pool_name = pool.name;
+    let Some(pool_id) = &config.pool_id else {
+        return Ok(()); // 未加入,交由初始化流程处理
+    };
 
-        // 2. 从 Keyring 读取密码
-        let password = keyring::get_password(&format!("cardmind.pool.{}.password", pool_id))?;
+    let _pool = load_pool_crdt(pool_id)?; // 预热,获取池详情
+    let password = keyring::get_password(&format!("cardmind.pool.{}.password", pool_id))?;
 
-        // 3. 连接到数据池成员设备
-        connect_to_pool(pool_id, &password)?;
+    connect_to_pool(pool_id, &password)?;
+    Ok(())
+}
+```
+
+---
+
+## 3. 数据池同步策略 (单池模型)
+
+### 3.1 同步范围
+
+**规则**:
+- 每个设备只存在一个 `pool_id`; 未加入则直接返回 `NotJoinedPool`
+- 同步顺序: 先同步 Pool 文档,再根据 `Pool.card_ids` 同步对应卡片
+- 不再使用 `card.pool_ids ∩ device.joined_pools` 交集过滤
+
+**伪代码**:
+```rust
+fn sync_with_peer(peer: PeerId) -> Result<()> {
+    let pool_id = device_config.pool_id.ok_or(CardMindError::NotJoinedPool)?;
+
+    // 1) 同步 Pool 文档 (包含 members + card_ids)
+    sync_pool_doc(peer, &pool_id)?;
+
+    // 2) 使用 Pool.card_ids 作为唯一同步列表
+    let card_ids = load_pool_card_ids(&pool_id)?;
+    for card_id in card_ids {
+        sync_card_doc(peer, &card_id)?;
     }
     Ok(())
 }
 ```
 
----
-
-## 3. 数据池同步策略 (Phase 2)
-
-### 3.1 同步范围
-
-**过滤规则**: 仅同步满足以下条件的卡片:
-
-```
-card.pool_ids ∩ device.joined_pools ≠ ∅
-```
-
-**含义**: 卡片的绑定池与设备的加入池有交集。
-
-**伪代码**:
-```rust
-fn should_sync_card(card: &Card, device: &Device) -> bool {
-    let device_pools: HashSet<_> = device.joined_pools.iter().collect();
-    let card_pools: HashSet<_> = card.pool_ids.iter().collect();
-
-    !device_pools.is_disjoint(&card_pools)
-}
-```
-
-**示例**:
-- 卡片绑定: `pool_ids = ["pool-A", "pool-B"]`
-- 设备加入: `joined_pools = ["pool-A", "pool-C"]`
-- 结果: 同步 (因为 `pool-A` 在交集中)
+**移除传播**:
+- 移除卡片 = 从 `Pool.card_ids` 删除并 commit
+- 由于 Pool 文档不受 SyncFilter 限制,所有设备都能收到移除事件
 
 ### 3.2 冲突解决
 
-**CRDT 自动合并**: 使用 Loro CRDT 的自动冲突解决算法
+**CRDT 自动合并**: Pool.card_ids 与 Card 文档均由 Loro CRDT 管理,自动处理并发修改。
 
 **示例场景**:
-- 设备 A 离线修改卡片标题: "标题 A"
-- 设备 B 离线修改卡片标题: "标题 B"
-- 联网后 CRDT 合并: "标题 A标题 B" 或按时间戳选择最新
+- 设备 A 离线删除卡片,设备 B 离线编辑卡片
+- 联网后 Pool 文档删除事件与 Card 文档更新同时合并
+- 订阅回调依据最终的 Pool.card_ids 决定是否保留卡片绑定
 
 **保证**:
 - 无需用户干预
 - 保证最终一致性
-- 数据永不丢失
+- 移除操作可靠传播
 
 ### 3.3 离线支持
 
 **离线编辑**:
-- 离线时正常编辑卡片
+- 离线时正常编辑卡片或维护 Pool.card_ids
 - 修改保存在本地 Loro 文档
 
 **联网后同步**:
 1. 检测到网络连接
-2. 导出本地更新 (`loro.export_updates()`)
-3. 发送更新到对等设备
-4. 接收对等设备的更新
-5. 导入更新 (`loro.import_updates()`)
-6. CRDT 自动合并冲突
-
-**多设备离线编辑**:
-- 设备 A 和设备 B 同时离线编辑
-- 各自修改不同卡片或同一卡片的不同字段
-- 联网后自动合并,无需手动处理
+2. 导出 Pool 与 Card 的本地更新 (`export_updates`)
+3. 与对等设备交换更新
+4. 导入更新 (`import_updates`)
+5. commit 触发订阅,自动更新 SQLite
 
 ### 3.4 增量同步
 
-**设计**: 仅同步变更部分,不传输完整文档
+**设计**: Pool 与 Card 文档均按增量同步,记录各自的版本。
 
 **流程**:
 ```rust
-// 伪代码
 fn sync_with_peer(peer: PeerId) -> Result<()> {
-    // 1. 获取本地最后同步版本
-    let last_sync_version = get_last_sync_version(peer)?;
+    let pool_id = device_config.pool_id.ok_or(CardMindError::NotJoinedPool)?;
 
-    // 2. 导出增量更新
-    let updates = loro_doc.export_from(last_sync_version)?;
+    // Pool 增量同步
+    sync_doc_increments(peer, &pool_id, DocKind::Pool)?;
 
-    // 3. 发送到对等设备
-    send_to_peer(peer, updates)?;
-
-    // 4. 接收对等设备的更新
-    let peer_updates = receive_from_peer(peer)?;
-
-    // 5. 导入更新
-    loro_doc.import(&peer_updates)?;
-
-    // 6. commit 触发订阅,自动更新 SQLite
-    loro_doc.commit();
-
-    // 7. 更新同步版本
-    set_last_sync_version(peer, loro_doc.current_version())?;
-
+    // 卡片增量同步
+    for card_id in load_pool_card_ids(&pool_id)? {
+        sync_doc_increments(peer, &card_id, DocKind::Card)?;
+    }
     Ok(())
 }
 ```
 
 **优势**:
-- 减少网络流量
-- 提高同步速度
-- 支持断点续传 (记录同步版本)
+- 同步范围由 Pool.card_ids 精确限定,无需额外过滤逻辑
+- 减少网络流量,并保持移除事件可靠传播
 
 ---
 
-## 4. 数据池网络架构 (Phase 2)
+## 4. 数据池网络架构 (单池模型)
 
 ### 4.1 数据池生命周期
 
 ```mermaid
 stateDiagram-v2
     [*] --> 初始化: App 首次启动
+    初始化 --> 已加入: 读取 DeviceConfig.pool_id
+    已加入 --> 同步: 自动重连
     初始化 --> 发现: mDNS 广播
     发现 --> 加入: 输入密码验证
     加入 --> 同步: 连接成功
@@ -403,10 +388,15 @@ stateDiagram-v2
     退出 --> [*]: 删除本地数据
 ```
 
+**说明**:
+- 若本地已有 `pool_id`,跳过发现直接进入同步
+- 未加入时才执行发现/创建分支,符合单池约束
+
 ### 4.2 数据池角色
 
 **平等权限模型**:
 - 所有成员权限相同
+- 一个用户 = 一个数据池,设备只能加入一个池
 - 所有成员都可以修改数据池信息 (昵称、成员列表)
 - 不支持"踢出成员"功能,仅支持"主动退出"
 
@@ -431,7 +421,7 @@ stateDiagram-v2
 
 ---
 
-## 5. 健康检查和状态监控 (Phase 2)
+## 5. 健康检查和状态监控
 
 ### 5.1 在线状态检测
 
@@ -521,7 +511,7 @@ stateDiagram-v2
 - 运行 `cargo doc --open` 查看 Rust 同步模块文档
 - 源码位置:
   - 订阅机制: `rust/src/store/subscription.rs`
-  - P2P 同步: `rust/src/sync/` (Phase 2)
+  - P2P 同步: `rust/src/sync/`
 
 ---
 
@@ -529,6 +519,7 @@ stateDiagram-v2
 
 | 版本 | 变更 |
 |------|------|
+| 1.3.0 | 适配单池模型：新增初始化决策流程、Pool.card_ids 驱动同步范围、单池广播与自动重连逻辑 |
 | 1.2.0 | 增强隐私保护：mDNS 广播仅暴露 `pool_id`，不暴露 `pool_name`；密码验证后才能获取数据池详细信息 |
 | 1.1.0 | 更新设备昵称机制：mDNS 广播使用默认昵称；自动重连时从 CRDT 读取数据池详细信息 |
 | 1.0.0 | 初始版本,从 PRD.md 和 DATABASE.md 提取同步机制设计 |

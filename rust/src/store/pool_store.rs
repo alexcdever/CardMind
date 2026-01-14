@@ -61,6 +61,7 @@ use tracing::{debug, info};
 /// - `base_path`: 数据目录基础路径
 /// - `sqlite_store`: SQLite 缓存层
 /// - `loro_docs`: 内存中的 LoroDoc 缓存
+/// - `on_pool_updated`: Pool更新回调（用于同步SQLite card_pool_bindings）
 pub struct PoolStore {
     /// 数据目录基础路径
     base_path: PathBuf,
@@ -70,6 +71,9 @@ pub struct PoolStore {
 
     /// 内存中的 LoroDoc 缓存（pool_id -> LoroDoc）
     loro_docs: Arc<Mutex<HashMap<String, LoroDoc>>>,
+
+    /// Pool更新回调
+    on_pool_updated: Arc<Mutex<Option<Box<dyn Fn(&Pool) + Send + Sync>>>>,
 }
 
 impl PoolStore {
@@ -106,6 +110,7 @@ impl PoolStore {
             base_path,
             sqlite_store,
             loro_docs: Arc::new(Mutex::new(HashMap::new())),
+            on_pool_updated: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -120,7 +125,49 @@ impl PoolStore {
             base_path: PathBuf::from(":memory:"),
             sqlite_store: Arc::new(SqliteStore::new_in_memory()?),
             loro_docs: Arc::new(Mutex::new(HashMap::new())),
+            on_pool_updated: Arc::new(Mutex::new(None)),
         })
+    }
+
+    /// 设置Pool更新回调
+    ///
+    /// # 参数
+    ///
+    /// - `callback`: 回调函数，接收更新后的Pool对象
+    ///
+    /// # 用途
+    ///
+    /// 当Pool的Loro文档更新后，自动同步SQLite的card_pool_bindings表
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// # use cardmind_rust::store::pool_store::PoolStore;
+    /// # use cardmind_rust::models::pool::Pool;
+    /// let store = PoolStore::new("data").unwrap();
+    ///
+    /// store.set_on_pool_updated(|pool| {
+    ///     // 同步SQLite绑定表
+    ///     println!("Pool updated: {}", pool.pool_id);
+    /// });
+    /// ```
+    pub fn set_on_pool_updated<F>(&self, callback: F)
+    where
+        F: Fn(&Pool) + Send + Sync + 'static,
+    {
+        let mut cb = self.on_pool_updated.lock().unwrap();
+        *cb = Some(Box::new(callback));
+    }
+
+    /// 触发Pool更新回调
+    ///
+    /// # 参数
+    ///
+    /// - `pool`: 更新后的Pool对象
+    fn trigger_pool_update_callback(&self, pool: &Pool) {
+        if let Some(cb) = self.on_pool_updated.lock().unwrap().as_ref() {
+            cb(pool);
+        }
     }
 
     /// 获取数据池的 Loro 文件路径
@@ -276,6 +323,7 @@ impl PoolStore {
             name,
             password_hash,
             members,
+            card_ids: Vec::new(),
             created_at,
             updated_at,
         })
@@ -339,6 +387,9 @@ impl PoolStore {
 
         // 3. 同步到 SQLite
         self.sync_pool_to_sqlite(&pool)?;
+
+        // 4. 触发回调（同步 card_pool_bindings）
+        self.trigger_pool_update_callback(&pool);
 
         Ok(())
     }
@@ -447,6 +498,9 @@ impl PoolStore {
 
         // 3. 同步到 SQLite
         self.sync_pool_to_sqlite(pool)?;
+
+        // 4. 触发回调（同步 card_pool_bindings）
+        self.trigger_pool_update_callback(pool);
 
         Ok(())
     }

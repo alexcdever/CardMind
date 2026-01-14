@@ -6,7 +6,7 @@
 //!
 //! 根据 `docs/architecture/sync_mechanism.md` 3.x 节的设计：
 //! - **增量同步**: 仅传输变更部分,不传输完整文档
-//! - **数据池过滤**: 仅同步 `card.pool_ids ∩ device.joined_pools` 的卡片
+//! - **数据池过滤**: 仅同步 Pool.card_ids 中的卡片（单池模型）
 //! - **版本跟踪**: 记录每个 peer 的最后同步版本,支持断点续传
 //! - **自动合并**: CRDT 自动处理冲突,无需用户干预
 //!
@@ -28,7 +28,6 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// 同步消息类型
 ///
@@ -167,224 +166,11 @@ pub struct SyncError {
 pub enum SyncErrorCode {
     /// 设备未授权（未加入数据池）
     NotAuthorized,
-
-    /// 数据池不存在
-    PoolNotFound,
-
-    /// 版本号无效
-    InvalidVersion,
-
-    /// 其他错误
-    Other,
-}
-
-/// 同步过滤器
-///
-/// 用于判断哪些卡片应该被同步
-///
-/// # 过滤规则
-///
-/// 根据 `docs/architecture/sync_mechanism.md` 3.1 节:
-/// ```text
-/// card.pool_ids ∩ device.joined_pools ≠ ∅
-/// ```
-///
-/// # 示例
-///
-/// ```
-/// use cardmind_rust::p2p::sync::SyncFilter;
-/// use cardmind_rust::models::card::Card;
-///
-/// let filter = SyncFilter::new(vec!["pool-A".to_string(), "pool-C".to_string()]);
-///
-/// let mut card = Card::new(
-///     "card-001".to_string(),
-///     "标题".to_string(),
-///     "内容".to_string(),
-/// );
-/// card.add_pool("pool-A".to_string());
-///
-/// // 应该同步（因为 pool-A 在交集中）
-/// assert!(filter.should_sync(&card));
-/// ```
-pub struct SyncFilter {
-    /// 设备已加入的数据池 ID 集合
-    joined_pools: HashSet<String>,
-}
-
-impl SyncFilter {
-    /// 创建新的同步过滤器
-    ///
-    /// # 参数
-    ///
-    /// - `joined_pools`: 设备已加入的数据池 ID 列表
-    ///
-    /// # 示例
-    ///
-    /// ```
-    /// use cardmind_rust::p2p::sync::SyncFilter;
-    ///
-    /// let filter = SyncFilter::new(vec![
-    ///     "pool-001".to_string(),
-    ///     "pool-002".to_string(),
-    /// ]);
-    /// ```
-    #[must_use]
-    pub fn new(joined_pools: Vec<String>) -> Self {
-        Self {
-            joined_pools: joined_pools.into_iter().collect(),
-        }
-    }
-
-    /// 判断卡片是否应该被同步
-    ///
-    /// # 参数
-    ///
-    /// - `card`: 待检查的卡片
-    ///
-    /// # 返回
-    ///
-    /// - `true`: 应该同步（卡片的池与设备的池有交集）
-    /// - `false`: 不应该同步（无交集）
-    ///
-    /// # 示例
-    ///
-    /// ```
-    /// use cardmind_rust::p2p::sync::SyncFilter;
-    /// use cardmind_rust::models::card::Card;
-    ///
-    /// let filter = SyncFilter::new(vec!["pool-A".to_string()]);
-    ///
-    /// let mut card = Card::new(
-    ///     "card-001".to_string(),
-    ///     "标题".to_string(),
-    ///     "内容".to_string(),
-    /// );
-    /// card.add_pool("pool-A".to_string());
-    ///
-    /// assert!(filter.should_sync(&card));
-    /// ```
-    #[must_use]
-    pub fn should_sync(&self, card: &crate::models::card::Card) -> bool {
-        // 检查卡片的池ID与设备加入的池是否有交集
-        card.pool_ids
-            .iter()
-            .any(|pool_id| self.joined_pools.contains(pool_id))
-    }
-
-    /// 过滤卡片列表，返回应该同步的卡片
-    ///
-    /// # 参数
-    ///
-    /// - `cards`: 卡片列表
-    ///
-    /// # 返回
-    ///
-    /// 过滤后的卡片列表（仅包含应该同步的卡片）
-    ///
-    /// # 示例
-    ///
-    /// ```
-    /// use cardmind_rust::p2p::sync::SyncFilter;
-    /// use cardmind_rust::models::card::Card;
-    ///
-    /// let filter = SyncFilter::new(vec!["pool-A".to_string()]);
-    ///
-    /// let cards = vec![
-    ///     // 这个卡片应该被同步
-    ///     {
-    ///         let mut card = Card::new("card-1".to_string(), "T1".to_string(), "C1".to_string());
-    ///         card.add_pool("pool-A".to_string());
-    ///         card
-    ///     },
-    ///     // 这个卡片不应该被同步
-    ///     {
-    ///         let mut card = Card::new("card-2".to_string(), "T2".to_string(), "C2".to_string());
-    ///         card.add_pool("pool-B".to_string());
-    ///         card
-    ///     },
-    /// ];
-    ///
-    /// let filtered = filter.filter_cards(&cards);
-    /// assert_eq!(filtered.len(), 1);
-    /// assert_eq!(filtered[0].id, "card-1");
-    /// ```
-    #[must_use]
-    pub fn filter_cards(
-        &self,
-        cards: &[crate::models::card::Card],
-    ) -> Vec<crate::models::card::Card> {
-        cards
-            .iter()
-            .filter(|card| self.should_sync(card))
-            .cloned()
-            .collect()
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::card::Card;
-
-    #[test]
-    fn test_sync_filter_should_sync() {
-        let filter = SyncFilter::new(vec!["pool-A".to_string(), "pool-C".to_string()]);
-
-        // 卡片绑定 pool-A 和 pool-B
-        let mut card1 = Card::new(
-            "card-1".to_string(),
-            "Title".to_string(),
-            "Content".to_string(),
-        );
-        card1.add_pool("pool-A".to_string());
-        card1.add_pool("pool-B".to_string());
-
-        // 应该同步（pool-A 在交集中）
-        assert!(filter.should_sync(&card1));
-
-        // 卡片仅绑定 pool-B
-        let mut card2 = Card::new(
-            "card-2".to_string(),
-            "Title".to_string(),
-            "Content".to_string(),
-        );
-        card2.add_pool("pool-B".to_string());
-
-        // 不应该同步（无交集）
-        assert!(!filter.should_sync(&card2));
-
-        // 卡片没有绑定任何池
-        let card3 = Card::new(
-            "card-3".to_string(),
-            "Title".to_string(),
-            "Content".to_string(),
-        );
-
-        // 不应该同步
-        assert!(!filter.should_sync(&card3));
-    }
-
-    #[test]
-    fn test_sync_filter_filter_cards() {
-        let filter = SyncFilter::new(vec!["pool-A".to_string()]);
-
-        let mut card1 = Card::new("card-1".to_string(), "T1".to_string(), "C1".to_string());
-        card1.add_pool("pool-A".to_string());
-
-        let mut card2 = Card::new("card-2".to_string(), "T2".to_string(), "C2".to_string());
-        card2.add_pool("pool-B".to_string());
-
-        let mut card3 = Card::new("card-3".to_string(), "T3".to_string(), "C3".to_string());
-        card3.add_pool("pool-A".to_string());
-
-        let cards = vec![card1, card2, card3];
-        let filtered = filter.filter_cards(&cards);
-
-        assert_eq!(filtered.len(), 2);
-        assert_eq!(filtered[0].id, "card-1");
-        assert_eq!(filtered[1].id, "card-3");
-    }
 
     #[test]
     fn test_sync_message_serialization() {

@@ -1,23 +1,326 @@
 # CardMind 任务进度
 
-**最后更新**: 2026-01-07（Phase 6 P2P 同步实现完成 ✅）
+**最后更新**: 2026-01-14（Spec Coding 模式 + 单池模型重构进行中）
 
-## 当前任务
+---
 
-**Phase 6 已完成（P2P 同步全功能实现）✅**
+## 📋 Spec Coding 实施状态
 
-下一步可选功能（保持待办）：
+### ✅ Week 1: 基础设施建立（100% 完成）
 
-### Phase 7: 搜索功能
+#### specs/ 目录结构
+- [x] specs/rust/ - Rust 后端规格
+- [x] specs/flutter/ - Flutter UI 规格
+- [x] specs/examples/ - 可运行示例
+
+#### 核心规格文档（5 个）
+- [x] SP-SPM-001: single_pool_model_spec.md (17KB, 24+ 测试用例)
+- [x] SP-DEV-002: device_config_spec.md (13KB, 12+ 测试用例)
+- [x] SP-POOL-003: pool_model_spec.md (Pool CRUD 规格)
+- [x] SP-CARD-004: card_store_spec.md (CardStore 改造规格)
+- [x] SP-FLUT-003: ui_interaction_spec.md (12KB, 8 个场景)
+
+#### 支持文档（2 个）
+- [x] SP-GUIDE-005: SPEC_CODING_GUIDE.md (实施指南)
+- [x] SPEC_CODING_SUMMARY.md (实施总结)
+
+#### 可运行示例（1 个）
+- [x] single_pool_flow_spec.rs (13KB, 6 个完整业务场景)
+  - 场景 1: 新用户首次使用（创建池）
+  - 场景 2: 第 N 台设备加入现有池
+  - 场景 3: 设备不能加入多个池（核心约束）
+  - 场景 4: 创建卡片自动加入当前池
+  - 场景 5: 移除卡片传播到所有设备
+  - 场景 6: 退出池清空所有数据
+
+#### 规格中心
+- [x] specs/README.md (索引和快速开始)
+- [x] 统一的规格编号系统 (SP-XXX-XXX)
+- [x] 实施指南和最佳实践
+
+**统计**:
+- 规格文档: 5 个
+- 测试用例: 44+ 个
+- 代码示例: 18+ 个
+- 业务场景: 6 个
+
+### 🔄 Week 2-4: 按照规格实施（进行中）
+
+#### Week 2: 数据模型层
+- [ ] Pool 模型改造（按 SP-POOL-003）
+- [ ] DeviceConfig 改造（按 SP-DEV-002）
+- [ ] 测试重命名为 spec 风格
+
+#### Week 3: 存储层和 API 层
+- [ ] CardStore 改造（按 SP-CARD-004）
+- [ ] PoolStore 实现
+- [ ] API 层重构
+
+#### Week 4: Flutter UI 和集成测试
+- [ ] UI 重构（按 SP-FLUT-003）
+- [ ] 集成测试
+- [ ] 数据迁移脚本
+
+---
+
+## 当前任务 - Phase 6R: 单池模型重构 🔄
+
+### 背景
+1. 完成 Phase 6 P2P 同步实现（✅），但发现关键设计问题：
+   - ❌ 移除操作无法可靠传播到所有设备
+   - ❌ 多池模型过度复杂，不符合"个人笔记"产品定位
+   - ❌ 代码复杂度高，用户困惑
+
+2. **Spec Coding 转型**（2026-01-14）
+   - ✅ Spec Coding 基础设施已建立
+   - ✅ 核心规格文档已编写（5 个规格 + 1 个示例）
+   - ✅ 规格中心已创建
+   - 🔄 正在按规格实施数据模型层
+
+**解决方案**: 
+- 重构为**单数据池模型**（参考 `card_pool_ownership_refactoring.md`）
+- 采用 **Spec Coding 方法论**（参考 `specs/SPEC_CODING_GUIDE.md`）
+  - 测试即规格，规格即文档
+  - 先定义行为，再实现代码
+  - 可执行规格自动验证
+
+---
+
+### 第一阶段：数据模型重构（预计 1 周）🔄
+- 重构为**单数据池模型**（参考 `card_pool_ownership_refactoring.md`）
+- 采用 **Spec Coding 方法论**（参考 `specs/SPEC_CODING_GUIDE.md`）
+  - 测试即规格，规格即文档
+  - 先定义行为，再实现代码
+  - 可执行规格自动验证
+
+### 第一阶段：Spec Coding 基础设施 ✅
+- [x] **创建 specs/ 目录结构**
+  - [x] specs/rust/ - Rust 后端规格
+  - [x] specs/flutter/ - Flutter UI 规格
+  - [x] specs/examples/ - 可运行示例
+- [x] **编写核心规格文档**（3 个）
+  - [x] SP-SPM-001: single_pool_model_spec.md (17KB, 24+ 测试用例）
+  - [x] SP-DEV-002: device_config_spec.md (13KB, 12+ 测试用例)
+  - [x] SP-FLUT-003: ui_interaction_spec.md (12KB, 8 个场景）
+- [x] **补充详细规格文档**（3 个）
+  - [x] SP-POOL-003: pool_model_spec.md (Pool CRUD 规格)
+  - [x] SP-CARD-004: card_store_spec.md (CardStore 改造规格)
+  - [x] SP-GUIDE-005: SPEC_CODING_GUIDE.md (实施指南)
+- [x] **创建可运行示例**（1 个）
+  - [x] rust/examples/single_pool_flow_spec.rs (13KB, 6 个场景)
+- [x] **创建规格中心**
+  - [x] specs/README.md (索引和快速开始）
+  - [x] specs/SPEC_CODING_SUMMARY.md (实施总结)
+
+### 第二阶段：数据模型重构（预计 1 周）🔄
+
+#### Rust 模型层（按照规格实施）
+
+**Pool 模型**（按 SP-POOL-003 实施）
+- [ ] **`rust/src/models/pool.rs`**
+  - [ ] 新增 `card_ids: Vec<String>` 字段
+  - [ ] 添加 `add_card()` 方法（Spec-POOL-002）
+  - [ ] 添加 `remove_card()` 方法（Spec-POOL-003）
+  - [ ] Loro 文档序列化/反序列化（Spec-POOL-008）
+  - [ ] 运行测试 `cargo test pool::`
+
+**DeviceConfig 模型**（按 SP-DEV-002 实施）
+- [ ] **`rust/src/models/device_config.rs`**
+  - [ ] **核心改动**: `joined_pools: Vec<String>` → `pool_id: Option<String>`
+  - [ ] 移除 `resident_pools: Vec<String>` 字段
+  - [ ] 移除 `last_selected_pool: Option<String>` 字段
+  - [ ] 修改 `join_pool()` - 检查是否已加入其他池（Spec-DEV-002-A）
+  - [ ] 简化 `leave_pool()` 逻辑（Spec-DEV-003）
+  - [ ] 移除 `set_resident_pool()` 等方法
+  - [ ] 重命名测试为 spec 风格（it_should_xxx）
+  - [ ] 运行测试 `cargo test device_config::`
+
+**Card 模型**
+- [ ] **`rust/src/models/card.rs`**
+  - [ ] 移除 Loro 层的 `pool_ids` 字段（Loro 层）
+  - [ ] 保留 API 层的 `pool_id: Option<String>`（从 SQLite 填充）
+
+#### 新增发现模型
+- [ ] **`rust/src/models/discovery.rs`**
+  - [ ] 新增 `DiscoveredPeer` 结构体
+  - [ ] 新增 `MdnsDiscovery` 服务
+
+### 第二阶段：存储层重构（预计 1 周）
+
+#### CardStore 修改
+- [ ] **`rust/src/store/card_store.rs`** - 修改 `create_card()` - 自动加入当前设备的池
+- [ ] **`rust/src/store/card_store.rs`** - 修改 `add_card_to_pool()` - 修改 Pool Loro（不再是 Card.pool_ids）
+- [ ] **`rust/src/store/card_store.rs`** - 修改 `remove_card_from_pool()` - 修改 Pool Loro
+- [ ] **`rust/src/store/card_store.rs`** - 新增 `leave_pool()` - 从 Pool.card_ids 获取列表并删除所有数据
+
+#### PoolStore 实现
+- [ ] **`rust/src/store/pool_store.rs`** - 实现 Pool 的 Loro 文档管理
+- [ ] **`rust/src/store/pool_store.rs`** - 持久化路径：`data/loro/pools/<pool_id>/`
+
+#### 订阅机制
+- [ ] **`rust/src/store/subscription.rs`** - 新增 `on_pool_updated()` 订阅回调
+- [ ] **`rust/src/store/subscription.rs`** - 自动维护 `card_pool_bindings` 表
+
+#### SQLite 表结构
+- [ ] 保持 `card_pool_bindings` 表不变（反向查询缓存）
+- [ ] 确认 Card 表中没有 `pool_ids` 字段
+
+### 第三阶段：同步层重构（预计 3-4 天）
+
+#### SyncManager 简化
+- [ ] **`rust/src/p2p/sync_manager.rs`** - 简化 `handle_sync_request()` - 从 Pool.card_ids 获取
+- [ ] **`rust/src/p2p/sync_manager.rs`** - **移除复杂的 SyncFilter 逻辑**（不再需要交集过滤）
+
+#### SyncFilter 重构
+- [ ] **`rust/src/p2p/sync.rs`** - **大幅简化或移除**（只有一个池，无需复杂过滤）
+- [ ] 同步逻辑改为：从 Pool.card_ids 获取卡片列表，直接同步
+
+### 第四阶段：API 层重构（预计 3-4 天）
+
+#### Pool API 变更
+- [ ] **`rust/src/api/pool.rs`** - 移除 `create_pool()` API（系统自动创建）
+- [ ] **`rust/src/api/pool.rs`** - 新增 `initialize_first_time(password)` API
+- [ ] **`rust/src/api/pool.rs`** - 新增 `join_existing_pool(pool_id, password)` API
+- [ ] **`rust/src/api/pool.rs`** - 新增 `check_initialization_status()` API
+- [ ] **`rust/src/api/pool.rs`** - 新增 `leave_pool()` API
+- [ ] **`rust/src/api/pool.rs`** - 新增 `export_pool()` API（用于迁移）
+
+#### Card API 变更
+- [ ] **`rust/src/api/card.rs`** - 修改 `create_card()` - **移除 pool_id 参数**（自动加入）
+- [ ] **`rust/src/api/card.rs`** - 修改 `add_card_to_pool()` / `remove_card_from_pool()`
+- [ ] **`rust/src/api/card.rs`** - 移除常驻池自动绑定逻辑
+
+#### DeviceConfig API 变更
+- [ ] **`rust/src/api/device_config.rs`** - 移除所有多池相关 API
+- [ ] **`rust/src/api/device_config.rs`** - 移除常驻池相关 API
+- [ ] **`rust/src/api/device_config.rs`** - 修改 `get_device_config()` 返回结构
+
+#### Discovery API 新增
+- [ ] **`rust/src/api/discovery.rs`** - 新增 `start_mdns_discovery()` API
+- [ ] **`rust/src/api/discovery.rs`** - 新增 `stop_mdns_discovery()` API
+
+### 第五阶段：Flutter UI 重构（预计 1 周）
+
+#### 初始化流程重构
+- [ ] **`lib/main.dart`** - 实现 `on_app_start()` 决策逻辑（检查配置 + mDNS 发现）
+- [ ] **首次启动向导** - 显示选择界面（创建 vs 配对）
+- [ ] **创建向导** - 显示"设置密码"页面（简洁流程）
+- [ ] **配对向导** - 显示"发现设备"列表 + 密码输入
+
+#### 配对流程实现
+- [ ] mDNS 发现设备界面
+- [ ] 输入密码配对界面
+- [ ] 自动加入数据池逻辑
+
+#### 卡片创建流程优化
+- [ ] **移除"选择数据池"对话框**（只有一个池）
+- [ ] **移除常驻池配置**（自动加入当前池）
+- [ ] 直接进入编辑器（极简流程）
+
+#### 设置页面重构
+- [ ] 移除"数据池管理"菜单项
+- [ ] 新增"退出笔记空间"（高级设置，罕见操作）
+- [ ] 移除"常驻池"设置
+
+#### UI 术语统一
+- [ ] "数据池" → "笔记空间"
+- [ ] "加入数据池" → "配对设备"
+- [ ] "创建数据池" → 移除（系统自动创建）
+
+### 第六阶段：数据迁移实施（预计 2-3 天）
+
+#### 迁移脚本
+- [ ] **`rust/src/migration/single_pool_migration.rs`** - 实现迁移逻辑
+- [ ] 检查设备当前加入的池
+- [ ] 如果加入了多个池，选择第一个并警告用户
+- [ ] 可选：导出其他池的数据到 ZIP
+- [ ] 更新 DeviceConfig 配置（单 pool_id）
+- [ ] 为 Pool 创建 card_ids（从 card_pool_bindings 表迁移）
+
+#### 迁移测试
+- [ ] 测试未加入任何池的场景（首次使用）
+- [ ] 测试加入单个池的场景（直接迁移）
+- [ ] 测试加入多个池的场景（警告 + 导出）
+- [ ] 验证迁移后数据完整性
+
+### 第七阶段：测试覆盖（与重构并行）
+
+#### 单元测试
+- [ ] `DeviceConfig.join_pool()` - 只能加入一个池
+- [ ] `Pool.card_ids` 操作（添加、删除、查询）
+- [ ] 订阅回调正确更新 SQLite
+- [ ] `leave_pool()` 正确删除所有数据
+- [ ] `check_initialization_status()` 正确返回初始化状态
+
+#### 集成测试
+- [ ] 初始化决策逻辑（检查配置 + mDNS 发现）
+- [ ] 首次启动流程（自动创建池）
+- [ ] 新设备配对流程（完整流程）
+- [ ] 移除操作的可靠传播测试
+- [ ] 退出笔记空间的完整流程
+- [ ] 数据迁移脚本测试
+
+#### UI 测试
+- [ ] 首次启动引导界面
+- [ ] 配对设备流程（发现、选择、密码输入）
+- [ ] 创建卡片流程（无需选择池）
+- [ ] 退出笔记空间确认流程
+
+### 第八阶段：文档更新（预计 2-3 天）
+
+#### 架构文档
+- [ ] 更新 `docs/architecture/data_contract.md` - 单池模型
+- [ ] 更新 `docs/architecture/sync_mechanism.md` - 简化同步逻辑
+- [ ] 更新 `docs/architecture/system_design.md` - 架构图
+
+#### 交互文档
+- [ ] 更新 `docs/interaction/ui_flows.md` - 新的初始化和创建流程
+- [ ] 更新 `docs/requirements/product_vision.md` - 澄清"个人笔记"定位
+
+#### API 文档
+- [ ] 生成新的 API 文档（更新的接口）
+- [ ] 标记弃用的 API（向后兼容期）
+
+---
+
+## 已完成的 Phase 6 工作（需重构）
+
+### Phase 6 P2P 同步实现（✅ 已完成，待重构）
+
+以下功能已实现，但基于旧的多池模型，需要重构到单池架构：
+
+- [x] P2P 同步服务端到端打通（libp2p request/response）
+- [x] API 层完整集成（5 个同步 API 函数）
+- [x] Flutter Provider 集成真实桥接（SyncProvider）
+- [x] Flutter UI 集成真实同步状态（sync_screen.dart）
+- [x] 集成测试覆盖真实网络同步（8 个集成测试）
+- [x] 数据池后端基础设施（PoolStore - 9 个测试）
+- [x] 设备配置管理（DeviceConfig - 17 个测试，多池模型）
+- [x] 密码管理和安全（bcrypt + Keyring - 21 个测试）
+- [x] 卡片-数据池绑定机制（5 个 API 函数，常驻池机制）
+- [x] 同步协议和过滤逻辑（SyncFilter - 4 个测试，多池过滤）
+- [x] Loro 增量同步和同步管理器（SyncManager - 6 个测试）
+- [x] 单对单同步流程真实实现
+- [x] P2P 网络集成和协议骨架（libp2p + TLS）
+- [x] 多设备同步协调器（MultiPeerSyncCoordinator - 5 个测试）
+- [x] 前端界面基础（sync_screen.dart - 304 行）
+
+**注意**: 以上功能需要按照 `card_pool_ownership_refactoring.md` 进行重构，核心逻辑保持不变，但数据模型和 API 接口需要重大调整。
+
+---
+
+## 下一步可选功能（保持待办）
+
+### Phase 7: 搜索功能（v2.1.0）
 - [ ] 后端 FTS5 全文搜索实现
 - [ ] 前端搜索界面实现
 - [ ] 搜索结果高亮和排序
 
-### Phase 8: 标签系统
+### Phase 8: 标签系统（v2.2.0，可选）
 - [ ] 数据层标签支持
 - [ ] 前端标签管理界面
 
-### Phase 9: 数据导入导出
+### Phase 9: 数据导入导出（v2.3.0）
 - [ ] 导出功能实现
 - [ ] 导入功能实现
 - [ ] 自动备份机制

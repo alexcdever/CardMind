@@ -13,6 +13,9 @@
 ///   --check-only    Only check for issues, don't fix them
 ///   --flutter-only  Only process Flutter/Dart code
 ///   --rust-only     Only process Rust code
+///
+/// Spec Coding Support:
+///   --spec-check    Verify specs match implementation
 
 import 'dart:io';
 
@@ -27,16 +30,135 @@ void main(List<String> arguments) async {
   final checkOnly = arguments.contains('--check-only');
   final flutterOnly = arguments.contains('--flutter-only');
   final rustOnly = arguments.contains('--rust-only');
+  final specCheck = arguments.contains('--spec-check');
 
-  printHeader('CardMind Lint Fixer');
+  printHeader('CardMind Lint Fixer + Spec Coding Validator');
 
   var hasErrors = false;
+
+  // Spec Coding validation
+  if (specCheck) {
+    printSection('Spec Coding Validation');
+    hasErrors = await validateSpecCoding() || hasErrors;
+  }
 
   // Process Flutter/Dart code
   if (!rustOnly) {
     printSection('Processing Flutter/Dart Code');
     hasErrors = await processFlutter(checkOnly) || hasErrors;
   }
+
+  // Process Rust code
+  if (!flutterOnly) {
+    printSection('Processing Rust Code');
+    hasErrors = await processRust(checkOnly) || hasErrors;
+  }
+
+  // Summary
+  print('\n${"=" * 60}');
+  if (hasErrors) {
+    printError('❌ Some checks failed. Please review errors above.');
+    exit(1);
+  } else {
+    printSuccess('✅ All checks passed!');
+    exit(0);
+  }
+}
+
+/// Spec Coding validation
+Future<bool> validateSpecCoding() async {
+  var hasErrors = false;
+
+  // 1. Check spec documentation exists
+  printStep('Checking spec documentation...');
+  final specDir = Directory('specs');
+  if (!await specDir.exists()) {
+    printError('Spec directory not found');
+    hasErrors = true;
+  } else {
+    final specFiles = await specDir.list().recursive;
+    final mdFiles = specFiles.where((f) => f.path.endsWith('.md')).toList();
+    printSuccess('Found ${mdFiles.length} spec documentation files');
+    
+    // 2. Check for spec numbering consistency
+    printStep('Verifying spec numbering...');
+    final hasNumberingIssues = await checkSpecNumbering(mdFiles);
+    if (hasNumberingIssues) {
+      hasErrors = true;
+    }
+    
+    // 3. Check for spec implementation completeness
+    printStep('Verifying spec completeness...');
+    final hasCompletenessIssues = await checkSpecCompleteness(mdFiles);
+    if (hasCompletenessIssues) {
+      hasErrors = true;
+    }
+  }
+
+  return hasErrors;
+}
+
+/// Check spec numbering consistency
+Future<bool> checkSpecNumbering(List<File> specFiles) async {
+  var hasIssues = false;
+  
+  for (final file in specFiles) {
+    final content = await file.readAsString();
+    
+    // Check for proper spec header
+    if (!content.contains('## 📋 规格编号:')) {
+      if (!content.contains('# 规格编号:')) {
+        printWarning('Missing spec numbering in ${file.path}');
+        hasIssues = true;
+      }
+    }
+    
+    // Check for version and status
+    if (!content.contains('**版本**:')) {
+      printWarning('Missing version in ${file.path}');
+      hasIssues = true;
+    }
+    
+    if (!content.contains('**状态**:')) {
+      printWarning('Missing status in ${file.path}');
+      hasIssues = true;
+    }
+  }
+  
+  if (!hasIssues) {
+    printSuccess('Spec numbering is consistent');
+  }
+  
+  return hasIssues;
+}
+
+/// Check spec completeness
+Future<bool> checkSpecCompleteness(List<File> specFiles) async {
+  var hasIssues = false;
+  var specsWithTests = 0;
+  
+  for (final file in specFiles) {
+    final content = await file.readAsString();
+    
+    // Check for test cases section
+    if (content.contains('#[test]') || content.contains('## 3. 方法规格')) {
+      specsWithTests++;
+    }
+  }
+  
+  printSuccess('Found $specsWithTests specs with test cases');
+  
+  // Check for README
+  final readmeFile = File('specs/README.md');
+  if (await readmeFile.exists()) {
+    printSuccess('Spec center index exists');
+  } else {
+    printWarning('Spec center index (specs/README.md) not found');
+    hasIssues = true;
+  }
+  
+  return hasIssues;
+}
 
   // Process Rust code
   if (!flutterOnly) {

@@ -139,6 +139,40 @@ Point to code and tools:
 
 Details: [System Design](docs/architecture/system_design.md)
 
+### Rust Module Structure
+
+```
+rust/src/
+├── api/           # Flutter Rust Bridge API layer (11 functions)
+│   ├── card.rs    # Card CRUD operations
+│   ├── pool.rs    # Data pool management
+│   ├── device_config.rs  # Device configuration
+│   └── sync.rs    # P2P sync API
+├── store/         # Data persistence layer
+│   ├── card_store.rs     # Card Loro + SQLite operations
+│   └── pool_store.rs     # Pool Loro + SQLite operations
+├── models/        # Data structures
+│   ├── card.rs    # Card, CardMetadata
+│   ├── pool.rs    # DataPool, PoolMember
+│   └── error.rs   # AppError types
+├── p2p/           # P2P networking (Phase 6)
+│   ├── network.rs        # libp2p transport layer
+│   ├── discovery.rs      # mDNS peer discovery
+│   ├── sync.rs           # Sync protocol messages
+│   ├── sync_manager.rs   # Loro sync coordination
+│   ├── sync_service.rs   # P2P sync service
+│   └── multi_peer_sync.rs # Multi-device coordinator
+├── security/      # Security primitives
+│   ├── password.rs       # bcrypt hashing
+│   └── keyring_store.rs  # Secure password storage
+└── utils/         # Utilities (logging, etc.)
+```
+
+**Key Design Patterns**:
+- **Thread-local storage** for API layer to handle SQLite thread safety
+- **Subscription callbacks** for Loro → SQLite synchronization
+- **Mock vs real network** in P2P tests (use `new_with_mock_network()` for testing)
+
 ---
 
 ## 🔧 Development Workflow
@@ -175,12 +209,21 @@ dart tool/build_all.dart
 # Build specific platform
 dart tool/build_all.dart --android
 dart tool/build_all.dart --linux
+
+# Generate Flutter Rust Bridge code
+dart tool/generate_bridge.dart
 ```
 
 ### Test
 ```bash
-# Rust tests
+# Rust tests (all)
 cd rust && cargo test
+
+# Run single Rust test
+cd rust && cargo test test_name
+
+# Run specific test file
+cd rust && cargo test --test sync_integration_test
 
 # Flutter tests
 flutter test
@@ -202,6 +245,9 @@ dart tool/fix_lint.dart
 
 # Check without fixing
 dart tool/check_lint.dart
+
+# Rust linting
+cd rust && cargo clippy
 ```
 
 See [Build Guide](tool/BUILD_GUIDE.md) for details.
@@ -281,12 +327,15 @@ See [CHANGELOG.md](CHANGELOG.md) for release details.
 
 ## 🚀 Current Focus (2026-01)
 
-**Phase 5: P2P Sync Preparation** (75% complete)
-- ✅ Loro sync capability verified
-- ✅ P2P sync design complete
-- 🔄 libp2p prototype validation
+**Phase 6: P2P Sync Implementation** (100% complete) ✅
 
-Next: Phase 6 - P2P Sync Implementation
+All core features implemented:
+- ✅ libp2p request-response protocol
+- ✅ P2P sync service with dual-mode support (real/mock network)
+- ✅ Flutter UI and Provider integration
+- ✅ Complete test coverage (128 tests passing)
+
+**Next Steps**: Optional features (Search, Tags, Import/Export)
 
 See [TODO.md](TODO.md) and [roadmap.md](docs/roadmap.md) for details.
 
@@ -347,4 +396,4 @@ See [TODO.md](TODO.md) and [roadmap.md](docs/roadmap.md) for details.
 
 ---
 
-*Last updated: 2026-01-04*
+*Last updated: 2026-01-08*
