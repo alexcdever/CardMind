@@ -14,16 +14,16 @@ use tempfile::TempDir;
 
 // ==================== 1. 初始化测试 ====================
 
-/// 测试: 创建内存CardStore
+ /// 测试: 创建内存CardStore
 #[test]
-fn test_create_in_memory_card_store() {
+fn it_should_create_in_memory_card_store() {
     let result = CardStore::new_in_memory();
     assert!(result.is_ok(), "应该能创建内存CardStore");
 }
 
 /// 测试: 创建基于文件的CardStore
 #[test]
-fn test_create_file_based_card_store() {
+fn it_should_create_file_based_card_store() {
     let temp_dir = TempDir::new().unwrap();
     let store_path = temp_dir.path().to_str().unwrap();
 
@@ -33,7 +33,7 @@ fn test_create_file_based_card_store() {
 
 /// 测试: CardStore初始化后SQLite表存在
 #[test]
-fn test_card_store_initializes_sqlite() {
+fn it_should_initialize_sqlite_tables_on_card_store_creation() {
     let store = CardStore::new_in_memory().unwrap();
 
     // 验证可以查询（表已创建）
@@ -46,7 +46,7 @@ fn test_card_store_initializes_sqlite() {
 
 /// 测试: 创建卡片 - 基本功能
 #[test]
-fn test_create_card() {
+fn it_should_create_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let result = store.create_card("测试标题".to_string(), "测试内容".to_string());
@@ -62,7 +62,7 @@ fn test_create_card() {
 
 /// 测试: 创建卡片后可以查询到
 #[test]
-fn test_create_card_can_be_retrieved() {
+fn it_should_retrieve_created_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
@@ -82,7 +82,7 @@ fn test_create_card_can_be_retrieved() {
 
 /// 测试: 创建多个卡片
 #[test]
-fn test_create_multiple_cards() {
+fn it_should_create_multiple_cards() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     store
@@ -103,7 +103,7 @@ fn test_create_multiple_cards() {
 
 /// 测试: 获取所有卡片（按创建时间倒序）
 #[test]
-fn test_get_all_cards_ordered_by_created_at() {
+fn it_should_get_all_cards_ordered_by_created_at() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card1 = store
@@ -125,7 +125,7 @@ fn test_get_all_cards_ordered_by_created_at() {
 
 /// 测试: 获取活跃卡片（排除已删除）
 #[test]
-fn test_get_active_cards_excludes_deleted() {
+fn it_should_get_active_cards_excludes_deleted() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card1 = store
@@ -145,7 +145,7 @@ fn test_get_active_cards_excludes_deleted() {
 
 /// 测试: 按ID查询不存在的卡片
 #[test]
-fn test_get_card_by_id_not_found() {
+fn it_should_get_card_by_id_not_found() {
     let store = CardStore::new_in_memory().unwrap();
 
     let result = store.get_card_by_id("nonexistent-id");
@@ -163,7 +163,7 @@ fn test_get_card_by_id_not_found() {
 
 /// 测试: 更新卡片标题和内容
 #[test]
-fn test_update_card() {
+fn it_should_update_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
@@ -194,7 +194,7 @@ fn test_update_card() {
 
 /// 测试: 部分更新（只更新标题）
 #[test]
-fn test_update_card_title_only() {
+fn it_should_update_card_title_only() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
@@ -214,7 +214,7 @@ fn test_update_card_title_only() {
 
 /// 测试: 更新不存在的卡片
 #[test]
-fn test_update_nonexistent_card() {
+fn it_should_update_nonexistent_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let result = store.update_card(
@@ -229,7 +229,7 @@ fn test_update_nonexistent_card() {
 
 /// 测试: 软删除卡片
 #[test]
-fn test_delete_card_soft_delete() {
+fn it_should_delete_card_soft_delete() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
@@ -252,7 +252,7 @@ fn test_delete_card_soft_delete() {
 
 /// 测试: 删除不存在的卡片
 #[test]
-fn test_delete_nonexistent_card() {
+fn it_should_delete_nonexistent_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let result = store.delete_card("nonexistent-id");
@@ -263,7 +263,7 @@ fn test_delete_nonexistent_card() {
 
 /// 测试: 创建卡片后Loro和SQLite数据一致
 #[test]
-fn test_loro_sqlite_sync_on_create() {
+fn it_should_loro_sqlite_sync_on_create() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
@@ -279,7 +279,7 @@ fn test_loro_sqlite_sync_on_create() {
 
 /// 测试: 更新卡片后Loro和SQLite数据一致
 #[test]
-fn test_loro_sqlite_sync_on_update() {
+fn it_should_loro_sqlite_sync_on_update() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
@@ -299,7 +299,7 @@ fn test_loro_sqlite_sync_on_update() {
 
 /// 测试: 删除卡片后Loro和SQLite数据一致
 #[test]
-fn test_loro_sqlite_sync_on_delete() {
+fn it_should_loro_sqlite_sync_on_delete() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
@@ -319,7 +319,7 @@ fn test_loro_sqlite_sync_on_delete() {
 
 /// 测试: CardStore持久化到文件后可以重新加载
 #[test]
-fn test_card_store_persistence() {
+fn it_should_card_store_persistence() {
     let temp_dir = TempDir::new().unwrap();
     let store_path = temp_dir.path().to_str().unwrap();
 
@@ -348,7 +348,7 @@ fn test_card_store_persistence() {
 
 /// 测试: 多次修改后持久化
 #[test]
-fn test_card_store_persistence_after_updates() {
+fn it_should_card_store_persistence_after_updates() {
     let temp_dir = TempDir::new().unwrap();
     let store_path = temp_dir.path().to_str().unwrap();
 
@@ -386,7 +386,7 @@ fn test_card_store_persistence_after_updates() {
 
 /// 测试: 获取卡片数量统计
 #[test]
-fn test_get_card_count() {
+fn it_should_get_card_count() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     // 初始状态

@@ -610,6 +610,27 @@ testWidgets('卡片列表显示正确', (WidgetTester tester) async {
 
 ---
 
+## Spec Coding 风格
+
+对于 Spec Coding 风格的测试（推荐），请参考：
+
+- [Spec Coding 实施指南](../../specs/SPEC_CODING_GUIDE.md)
+- [测试命名规范](../../specs/test_naming_plan.md)
+
+**Spec Coding 风格示例**:
+```rust
+// ❌ 传统风格
+#[test]
+fn test_create_card() { ... }
+
+// ✅ Spec Coding 风格
+/// it_should_create_card_with_title_and_content()
+#[test]
+fn it_should_create_card_with_title_and_content() { ... }
+```
+
+---
+
 ## 参考资源
 
 - [Rust测试文档](https://doc.rust-lang.org/book/ch11-00-testing.html)

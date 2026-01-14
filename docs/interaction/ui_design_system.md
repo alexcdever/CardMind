@@ -588,26 +588,7 @@ class AppTypography {
 
 ---
 
-## 设计决策记录
-
-### 为什么选择青色 (Teal) 作为主色？
-
-1. **区别于竞品**: Notion 用紫色，Obsidian 用紫/蓝，青色更独特
-2. **品牌联想**: 蓝色（可靠）+ 绿色（成长）= 青色（知识成长）
-3. **视觉舒适**: 不如红橙刺激，适合长时间使用
-4. **深色模式友好**: 青色在深色背景上对比度良好
-
-### 为什么使用 8px 栅格系统？
-
-1. **Flutter 适配**: Flutter 默认 8.0 spacing
-2. **Material Design 标准**: Google 推荐 8dp 基准
-3. **响应式缩放**: 8 可被 2、4 整除，方便响应式调整
-
-### 为什么卡片最大宽度 800px？
-
-1. **阅读舒适**: 60-80 字符/行是最佳阅读宽度
-2. **中文特性**: 14px 字号，800px ≈ 57 汉字/行
-3. **避免过宽**: 超过 1000px 阅读需要频繁转头
+**设计决策记录**已移至 [ADR-0004: UI 设计决策](./../../adr/0004-ui-design.md)
 
 ---
 
@@ -619,3 +600,4 @@ class AppTypography {
 **相关文档**:
 - 产品定位 → [product_vision.md](../requirements/product_vision.md)
 - 系统设计 → [system_design.md](../architecture/system_design.md)
+- UI 设计决策 → [ADR-0004](../../adr/0004-ui-design.md)

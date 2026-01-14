@@ -14,7 +14,7 @@ use loro::{ExportMode, LoroDoc};
 ///
 /// 模拟设备A创建卡片，然后完全同步到设备B
 #[test]
-fn test_basic_sync_between_two_devices() {
+fn it_should_basic_sync_between_two_devices() {
     // 设备A
     let device_a = LoroDoc::new();
     device_a.set_peer_id(1).unwrap();
@@ -71,7 +71,7 @@ fn test_basic_sync_between_two_devices() {
 ///
 /// 模拟设备A进行多次修改，设备B只获取新的增量更新
 #[test]
-fn test_incremental_sync_with_version_vector() {
+fn it_should_incremental_sync_with_version_vector() {
     // 设备A
     let device_a = LoroDoc::new();
     device_a.set_peer_id(1).unwrap();
@@ -150,7 +150,7 @@ fn test_incremental_sync_with_version_vector() {
 ///
 /// 设备A和设备B各自修改不同字段，然后互相同步
 #[test]
-fn test_bidirectional_sync() {
+fn it_should_bidirectional_sync() {
     // 设备A
     let device_a = LoroDoc::new();
     device_a.set_peer_id(1).unwrap();
@@ -244,7 +244,7 @@ fn test_bidirectional_sync() {
 ///
 /// 两个设备同时修改同一字段，Loro CRDT 自动解决冲突
 #[test]
-fn test_concurrent_modification_conflict_resolution() {
+fn it_should_concurrent_modification_conflict_resolution() {
     // 设备A
     let device_a = LoroDoc::new();
     device_a.set_peer_id(1).unwrap();
@@ -305,7 +305,7 @@ fn test_concurrent_modification_conflict_resolution() {
 ///
 /// 使用 Card 结构的完整字段进行同步测试
 #[test]
-fn test_real_world_card_sync() {
+fn it_should_real_world_card_sync() {
     // 设备A
     let device_a = LoroDoc::new();
     device_a.set_peer_id(1).unwrap();
@@ -432,7 +432,7 @@ fn test_real_world_card_sync() {
 ///
 /// 比较快照导出和增量更新导出的大小差异
 #[test]
-fn test_snapshot_vs_incremental_updates() {
+fn it_should_snapshot_vs_incremental_updates() {
     let doc = LoroDoc::new();
     let map = doc.get_map("card");
 

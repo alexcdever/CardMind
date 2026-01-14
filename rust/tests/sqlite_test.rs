@@ -18,7 +18,7 @@ use rusqlite::{Connection, Result as SqliteResult};
 
 /// 测试: SQLite数据库连接创建
 #[test]
-fn test_create_in_memory_db() {
+fn it_should_create_in_memory_db() {
     let conn = Connection::open_in_memory();
     assert!(conn.is_ok(), "应该能成功创建内存数据库");
 }
@@ -29,7 +29,7 @@ fn test_create_in_memory_db() {
 /// - 表创建成功
 /// - 可以查询表结构
 #[test]
-fn test_create_cards_table() {
+fn it_should_create_cards_table() {
     let conn = Connection::open_in_memory().unwrap();
 
     // 执行表创建SQL
@@ -51,7 +51,7 @@ fn test_create_cards_table() {
 /// - id为主键
 /// - 索引创建正确
 #[test]
-fn test_table_schema_validation() {
+fn it_should_table_schema_validation() {
     let conn = Connection::open_in_memory().unwrap();
     create_cards_table(&conn).unwrap();
 
@@ -91,7 +91,7 @@ fn test_table_schema_validation() {
 
 /// 测试: 索引创建
 #[test]
-fn test_indexes_creation() {
+fn it_should_indexes_creation() {
     let conn = Connection::open_in_memory().unwrap();
     create_cards_table(&conn).unwrap();
 
@@ -125,7 +125,7 @@ fn test_indexes_creation() {
 /// - cache_size设置正确
 /// - synchronous设置正确
 #[test]
-fn test_sqlite_optimization() {
+fn it_should_sqlite_optimization() {
     let conn = Connection::open_in_memory().unwrap();
     optimize_sqlite(&conn).unwrap();
 
@@ -156,7 +156,7 @@ fn test_sqlite_optimization() {
 
 /// 测试: 插入卡片
 #[test]
-fn test_insert_card() {
+fn it_should_insert_card() {
     let conn = setup_test_db();
 
     let card = Card::new(
@@ -177,7 +177,7 @@ fn test_insert_card() {
 
 /// 测试: 查询所有卡片
 #[test]
-fn test_select_all_cards() {
+fn it_should_select_all_cards() {
     let conn = setup_test_db();
 
     // 插入测试数据
@@ -193,7 +193,7 @@ fn test_select_all_cards() {
 
 /// 测试: 按ID查询卡片
 #[test]
-fn test_select_card_by_id() {
+fn it_should_select_card_by_id() {
     let conn = setup_test_db();
 
     let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
@@ -211,7 +211,7 @@ fn test_select_card_by_id() {
 
 /// 测试: 查询不存在的卡片
 #[test]
-fn test_select_nonexistent_card() {
+fn it_should_select_nonexistent_card() {
     let conn = setup_test_db();
 
     let result = select_card_by_id(&conn, "nonexistent-id");
@@ -226,7 +226,7 @@ fn test_select_nonexistent_card() {
 
 /// 测试: 更新卡片
 #[test]
-fn test_update_card() {
+fn it_should_update_card() {
     let conn = setup_test_db();
 
     let mut card = Card::new(
@@ -249,7 +249,7 @@ fn test_update_card() {
 
 /// 测试: 软删除卡片
 #[test]
-fn test_soft_delete_card() {
+fn it_should_soft_delete_card() {
     let conn = setup_test_db();
 
     let mut card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
@@ -267,7 +267,7 @@ fn test_soft_delete_card() {
 
 /// 测试: 硬删除卡片
 #[test]
-fn test_hard_delete_card() {
+fn it_should_hard_delete_card() {
     let conn = setup_test_db();
 
     let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
@@ -285,7 +285,7 @@ fn test_hard_delete_card() {
 
 /// 测试: 查询时排除已删除的卡片
 #[test]
-fn test_select_excludes_deleted_cards() {
+fn it_should_select_excludes_deleted_cards() {
     let conn = setup_test_db();
 
     // 插入2个卡片，软删除1个
@@ -384,7 +384,6 @@ fn select_all_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
-                pool_ids: Vec::new(),
             })
         })?
         .collect::<SqliteResult<Vec<_>>>()?;
@@ -410,7 +409,6 @@ fn select_active_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
-                pool_ids: Vec::new(),
             })
         })?
         .collect::<SqliteResult<Vec<_>>>()?;
@@ -434,7 +432,6 @@ fn select_card_by_id(conn: &Connection, id: &str) -> Result<Card, CardMindError>
             created_at: row.get(3)?,
             updated_at: row.get(4)?,
             deleted: row.get(5)?,
-            pool_ids: Vec::new(),
         })
     });
 

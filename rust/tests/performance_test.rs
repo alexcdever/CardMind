@@ -10,7 +10,7 @@ use std::time::Instant;
 
 /// Test: Creating and loading 1000 cards should complete in < 1 second total
 #[test]
-fn test_1000_cards_loading_performance() {
+fn it_should_1000_cards_loading_performance() {
     let mut store = CardStore::new_in_memory().expect("Failed to create store");
 
     // Create 1000 cards
@@ -54,7 +54,7 @@ fn test_1000_cards_loading_performance() {
 
 /// Test: Individual Loro operations should be < 50ms
 #[test]
-fn test_loro_operation_performance() {
+fn it_should_loro_operation_performance() {
     let mut store = CardStore::new_in_memory().expect("Failed to create store");
 
     // Test create operation
@@ -104,7 +104,7 @@ fn test_loro_operation_performance() {
 
 /// Test: SQLite queries should be < 10ms for 1000 cards
 #[test]
-fn test_sqlite_query_performance() {
+fn it_should_sqlite_query_performance() {
     let mut store = CardStore::new_in_memory().expect("Failed to create store");
 
     // Populate with 1000 cards
@@ -164,7 +164,7 @@ fn test_sqlite_query_performance() {
 
 /// Test: Card count query should be very fast
 #[test]
-fn test_card_count_performance() {
+fn it_should_card_count_performance() {
     let mut store = CardStore::new_in_memory().expect("Failed to create store");
 
     // Create 1000 cards

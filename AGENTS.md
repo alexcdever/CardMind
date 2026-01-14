@@ -1,384 +1,192 @@
-# CardMind Repository Guidelines for AI Agents
+# CardMind AI Agent Guide
 
 ## Project Context
 
-CardMind: Flutter + Rust offline-first card notes app (MVP v1.0.0 done; P2P sync shipped; future: search/tags/import-export).
+**CardMind** = Flutter + Rust offline-first card notes app
+- MVP v1.0.0 done
+- Currently: Phase 6R - Single Pool Model Refactoring (Spec Coding)
+- **Core**: Dual-layer (Loro CRDT → SQLite), P2P sync via libp2p
 
-**Start every task by reading:**
-- `TODO.md` - current work status
-- `docs/architecture/system_design.md` - system architecture
-- `docs/requirements/product_vision.md` - product vision
-- Use `TodoWrite` to track work status
+## Start Here
 
-## Project Structure
+Read these **before every task**:
+1. `TODO.md` - Current work status
+2. `docs/architecture/system_design.md` - Architecture
+3. `docs/requirements/product_vision.md` - Product vision
 
-```
-lib/                    - Flutter UI/logic (providers, services, screens, widgets)
-  bridge/              - Generated bridge code (NEVER EDIT manually)
-    api/               - Generated API bindings
-    models/            - Generated models
-rust/                  - Rust core logic
-  src/
-    api/               - API layer (Flutter bridge functions)
-    models/            - Data models
-    store/             - Storage layer (Loro + SQLite)
-    p2p/               - P2P networking (libp2p)
-tool/                  - Build and development scripts
-test/                  - Flutter tests
-```
+## Critical Commands
 
-**Never edit generated files:** `*.g.dart`, `*.freezed.dart`, `frb_generated.dart`
-
-## Build Commands
-
-### Quick Lint & Format (Run before EVERY commit)
-
+### Testing (Single Test Focus)
 ```bash
-# Auto-fix everything (recommended before committing)
+# Flutter single test named "test name"
+flutter test --name "test name"
+
+# Rust single test by name (substring match)
+cd rust && cargo test test_name
+
+# Rust specific test file
+cd rust && cargo test --test sqlite_test
+
+# Rust specific test within file
+cd rust && cargo test --test sqlite_test test_add_and_get_card_pool_binding
+
+# Spec Coding examples
+cd rust && cargo test --example single_pool_flow_spec
+```
+
+### Lint & Format (Run before EVERY commit)
+```bash
+# Auto-fix everything (RECOMMENDED)
 dart tool/fix_lint.dart
 
-# Just check without fixing
-dart tool/check_lint.dart
-
-# Manual individual commands
-dart format .                      # Format Dart code
-cd rust && cargo fmt               # Format Rust code
-flutter analyze                    # Flutter static analysis
-cd rust && cargo check             # Rust compile check
-cd rust && cargo clippy --all-targets --all-features  # Rust linting
+# Or manual commands
+dart format .                      # Flutter format
+cd rust && cargo fmt               # Rust format
+flutter analyze                    # Dart analysis
+cd rust && cargo clippy --all-targets --all-features  # Rust lint
 ```
 
-### Testing
-
+### Build
 ```bash
-# Flutter tests
-flutter test                       # Run all Flutter tests
-flutter test test/widget_test.dart # Run single test file
-flutter test --name "test name"    # Run tests matching name
-
-# Rust tests
-cd rust && cargo test              # Run all Rust tests
-cd rust && cargo test test_name    # Run single test by name (substring match)
-cd rust && cargo test --test sqlite_test  # Run specific test file
-cd rust && cargo test --test sqlite_test test_add_and_get_card_pool_binding  # Run specific test in file
-
-# Integration tests
-cd rust && cargo test --test sync_integration_test  # P2P sync tests
-cd rust && cargo test --test sqlite_test           # Database tests
+dart tool/generate_bridge.dart      # After Rust API changes
+dart tool/build_all.dart           # Build all platforms
+dart tool/build_all.dart --android # Android only
 ```
 
-### Building
+## Architecture Rules (NEVER BREAK)
 
-```bash
-# Generate bridge code (after Rust API changes)
-dart tool/generate_bridge.dart
+**Dual-Layer Architecture:**
+1. ALL writes → Loro CRDT (truth source)
+2. ALL reads → SQLite cache
+3. Mutation flow: `loro_doc.commit()` → persist Loro → subscriptions → SQLite
+4. NEVER write SQLite directly (except subscription callbacks)
 
-# Build for specific platforms
-dart tool/build_all.dart                    # Build all platforms
-dart tool/build_all.dart --android         # Android only
-dart tool/build_all.dart --linux --debug   # Linux debug build
-dart tool/build_all.dart --clean           # Clean build artifacts
-```
+**Card Storage:**
+- Each card = separate LoroDoc at `data/loro/<base64(uuid)>/`
+- Use UUID v7 for time-sorting
+- Soft deletes only (`deleted: bool`)
 
-### Full Quality Check
+**Thread Safety:**
+- API layer: thread-local SQLite storage
+- Async: share stores via `Arc<Mutex<T>>`
+- Never share SQLite connections across threads
 
-```bash
-# Complete verification before PR
-cd rust && cargo test                    # All Rust tests
-flutter test                             # All Flutter tests
-dart tool/check_lint.dart                # All linting checks
-cd rust && cargo doc --open              # Generate Rust docs
-```
+**Spec Coding:**
+- Tests = Specifications = Documentation
+- Test naming: `it_should_do_something()`
+- Run examples: `cargo test --example`
 
-## Architecture Rules (NEVER Break These)
+## Code Style
 
-1. **Dual-Layer Architecture:**
-   - ALL writes go to Loro CRDT (truth source)
-   - ALL reads come from SQLite cache
-   - After any mutation: `loro_doc.commit()` → persist Loro → subscriptions update SQLite
-   - NEVER write SQLite directly (except in subscription callbacks)
-
-2. **Card Storage:**
-   - Each card = separate LoroDoc at `data/loro/<base64(uuid)>/`
-   - Use UUID v7 for time-sorting
-   - Soft deletes only (`deleted: bool` flag)
-
-3. **Thread Safety:**
-   - API layer uses thread-local storage for SQLite
-   - Share stores via `Arc<Mutex<T>>` in async contexts
-   - Never share SQLite connections across threads
-
-## Code Style Guidelines
-
-### Dart / Flutter
-
-**Imports:**
+### Dart/Flutter
 ```dart
-// CORRECT - No blank lines between dart: and package:
+// Imports: dart:, package:, files (no blank lines between dart: and package:)
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-// File imports after packages
 import '../providers/card_provider.dart';
 
-// NEVER use: import '../bridge/frb_generated.dart' directly
-```
-
-**Widget Patterns:**
-```dart
-// ALWAYS include key parameter, use const constructors
+// Widgets: const constructor + key parameter
 const MyWidget({Key? key}) : super(key: key);
 
-// Guard async operations
+// Async: always guard with mounted check
 if (!mounted) return;
 setState(() { /* ... */ });
 
 // Use debugPrint() not print()
 debugPrint('Error: $error');
-```
 
-**Type Safety:**
-```dart
-// Prefer final and const over var
-final String title = 'Hello';
-const int maxCards = 100;
-
-// Avoid dynamic
-// WRONG: var result = api.call();
-// RIGHT: final Card result = await api.getCard(id);
-
-// Use type annotations for public APIs
+// Type annotations for public APIs
 Future<List<Card>> getAllCards() async { ... }
 ```
 
-**Naming:**
-- `camelCase` for variables, functions, parameters
-- `PascalCase` for classes, enums, typedefs
-- `SCREAMING_SNAKE_CASE` for constants
-- Private members start with `_`
-
-**Error Handling:**
-```dart
-try {
-  final card = await api.getCard(id);
-  return card;
-} catch (e) {
-  debugPrint('Failed to load card: $e');
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('加载失败: $e')),
-  );
-}
-```
-
 ### Rust
-
-**Naming:**
-- `snake_case` for functions, variables, modules
-- `PascalCase` for types (structs, enums, traits)
-- `SCREAMING_SNAKE_CASE` for constants
-- Methods: `snake_case`
-
-**Error Handling (MANDATORY):**
 ```rust
-// Always use Result<T, CardMindError>
-pub fn create_card(title: String) -> Result<Card, CardMindError> {
-    // ...
-}
+// Naming: snake_case functions, PascalCase types
+pub fn create_card(title: String) -> Result<Card, CardMindError> { ... }
 
-// Use ? operator
+// Errors: always Result<T, CardMindError>, use ? operator
 let store = get_store()?;
-let mut store = store.lock().unwrap();
 
-// Pattern match don't unwrap
-match result {
-    Ok(card) => card,
-    Err(e) => {
-        error!("创建卡片失败: {:?}", e);
-        return Err(e);
-    }
-}
-```
-
-**Documentation:**
-```rust
-/// Creates a new card with the given title and content
+// Documentation: include Args, Returns, Examples
+/// Creates a new card
 ///
 /// # Arguments
 /// * `title` - Card title (max 256 chars)
-/// * `content` - Markdown content
-///
-/// # Returns
-/// * `Ok(Card)` - Newly created card
-/// * `Err(CardMindError)` - If creation fails
-///
-/// # Examples
-/// ```
-/// let card = create_card("Note".to_string(), "Content".to_string())?;
-/// ```
-pub fn create_card(title: String, content: String) -> Result<Card> { ... }
+
+// Clippy limits (from rust/clippy.toml)
+// - Max function lines: 100
+// - Max cognitive complexity: 30
+// - Single-char names: up to 4 allowed
 ```
 
-**Types:**
-- Prefer strong typing over primitives
-- Use `Uuid` type, not String for IDs
-- Use `chrono::DateTime` for timestamps
-- Wrap primitive types in newtypes when meaningful
+## Testing Requirements
 
-**Module Organization:**
-```rust
-// Inside rust/src/
-mod models {     // Data structures
-    pub mod card;
-    pub mod pool;
-    pub mod device_config;
-}
-
-mod store {      // Storage operations
-    pub mod card_store;
-    pub mod pool_store;
-}
-
-mod api {        // Flutter bridge APIs
-    pub mod card;
-    pub mod pool;
-}
-
-mod p2p {        // Networking
-    pub mod network;
-    pub mod sync;
-}
-```
-
-**Clippy Rules (from clippy.toml):**
-- Max function lines: 100
-- Max cognitive complexity: 30
-- Allow single-char names: up to 4
-- Doc-valid-idents: `["CardMind", "SQLite", "Loro", "CRDT", "UUID"]`
-
-## Testing Requirements (MANDATORY)
-
-**TDD Required:**
-1. Write test first (Red)
-2. Write minimal code to pass (Green)
-3. Refactor (Refactor)
-
-**Coverage:**
-- >80% test coverage for all new code
-- Cover happy path AND error paths
+**TDD Required (Red → Green → Refactor)**
+- Coverage >80% for new code
+- Test happy path AND error paths
 - Integration tests for critical paths
 
-**Test Organization:**
-```rust
-// Unit tests in same file
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_feature_x_works() { /* ... */ }
-    
-    #[test]
-    #[should_panic(expected = "error message")]
-    fn test_feature_x_fails_with_invalid_input() { /* ... */ }
-}
+**Test Commands:**
+```bash
+# All tests
+cd rust && cargo test
+flutter test
 
-// Integration tests in tests/ directory
-// tests/integration_test.rs
-#[tokio::test]
-async fn test_full_sync_flow() { /* ... */ }
+# Spec validation (NEW 2026-01-14)
+dart tool/fix_lint.dart --spec-check
 ```
 
-## Commit & PR Guidelines
+## Commit & PR
 
 **Conventional Commits:**
 ```
 feat(p2p): add device discovery via mDNS
-fix: resolve SQLite locking issue in CardStore
+fix: resolve SQLite locking issue
 refactor: simplify sync filter logic
-test: add test for pool membership edge cases
-docs: update API documentation for card creation
+test: add test for pool edge cases
+docs: update API documentation
 chore: update dependencies
 style: format code
 ```
 
 **PR Requirements:**
-- Link to issue/scope
 - Tests passing (`cargo test` + `flutter test`)
 - Coverage >80%
-- `cargo clippy` clean
-- `flutter analyze` clean
+- `cargo clippy` clean (0 warnings)
+- `flutter analyze` clean (0 errors)
 - Screenshots for UI changes
-- Update docs if needed
 
-## Quick Command Reference
+## Quick Reference
 
-```bash
-# Before starting work
-dart tool/check_lint.dart              # Verify clean state
-git pull                               # Get latest changes
+| Task | Command |
+|------|---------|
+| **Fix all lint** | `dart tool/fix_lint.dart` |
+| **Format only** | `dart format . && cd rust && cargo fmt` |
+| **Check only** | `dart tool/check_lint.dart` |
+| **Run single test** | `cd rust && cargo test test_name` |
+| **Spec examples** | `cd rust && cargo test --example single_pool_flow_spec` |
+| **Generate bridge** | `dart tool/generate_bridge.dart` |
+| **Full build** | `dart tool/build_all.dart` |
+| **Check before commit** | `dart tool/check_lint.dart && cd rust && cargo test && flutter test` |
 
-# Development loop
-dart tool/fix_lint.dart                # Auto-fix issues
-flutter test                           # Run Flutter tests
-cd rust && cargo test                  # Run Rust tests
+## Key Files
 
-# Bridge changes
-dart tool/generate_bridge.dart         # After Rust API changes
+**Specs:**
+- `specs/README.md` - Spec Coding center
+- `specs/SPEC_CODING_GUIDE.md` - Implementation guide
 
-# Before commit
-dart tool/check_lint.dart              # Final verification
-git status                             # Review changes
+**Architecture:**
+- `docs/architecture/system_design.md` - Core architecture
+- `docs/architecture/data_contract.md` - Data models
+- `docs/architecture/sync_mechanism.md` - P2P sync
 
-# Build for release
-dart tool/build_all.dart --clean       # Clean build
-dart tool/build_all.dart               # Release build
-```
-
-## Security & Data Rules
-
-- Keep secrets out of repo (.env, credentials.json)
-- Use system Keychain/KeePass for passwords
-- Never log sensitive data
-- Preserve offline-first assumptions
-- Never bypass CRDT/Loro persistence flow
-
-## Documentation Standards
-
-**Use docs as source of truth:**
-- Design/architecture docs → What/Why
-- Code + `cargo doc --open` → How
-
-**Key docs to reference:**
-- `README.md` - Project overview
-- `docs/architecture/system_design.md` - Architecture
-- `docs/requirements/product_vision.md` - Product vision
-- `TODO.md` - Current tasks
-- `docs/roadmap.md` - Milestones
-- `docs/implementation/testing_guide.md` - Testing
-- `tool/BUILD_GUIDE.md` - Build details
-- `docs/implementation/logging.md` - Logging
-
-## Skills & Sub-agents
-
-**Available skills (in `~/.codex/skills/`):**
-- `skill-creator` - Create new skills
-- `skill-installer` - Install skills from repos
-
-**When using skills:**
-1. Open SKILL.md (only what's needed)
-2. Follow provided workflow
-3. Prefer included scripts/templates
-4. Keep context minimal
-
-**Agent delegation:**
-- Use `frontend-ui-ux-engineer` for UI-heavy tasks
-- Use `oracle` for architecture decisions
-- Use `librarian` for external library research
-- Use `explore` for codebase pattern mining
+**Current Focus:**
+- Phase 6R: Single Pool Model Refactoring
+- Removing multi-pool support
+- Simplifying DeviceConfig to single `pool_id: Option<String>`
 
 ---
 
-**Last Updated**: Generated from analysis of analysis_options.yaml, clippy.toml, and tool scripts
-**Purpose**: Guide for AI agents working in this repository
-**Rule**: When in doubt, check docs → ask user → follow existing patterns
+**Last Updated**: 2026-01-14  
+**Purpose**: Essential guide for AI agents working in CardMind  
+**Rule**: When in doubt → check docs → ask user → follow patterns
