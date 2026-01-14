@@ -25,9 +25,6 @@ pub struct Card {
 
     /// Deletion flag (soft delete)
     pub deleted: bool,
-
-    /// Pool IDs this card belongs to (for P2P sync)
-    pub pool_ids: Vec<String>,
 }
 
 impl Card {
@@ -51,45 +48,7 @@ impl Card {
             created_at: now,
             updated_at: now,
             deleted: false,
-            pool_ids: Vec::new(),
         }
-    }
-
-    /// Adds a pool to this card
-    ///
-    /// # Arguments
-    ///
-    /// * `pool_id` - Pool ID to add
-    pub fn add_pool(&mut self, pool_id: String) {
-        if !self.pool_ids.contains(&pool_id) {
-            self.pool_ids.push(pool_id);
-            self.updated_at = chrono::Utc::now().timestamp_millis();
-        }
-    }
-
-    /// Removes a pool from this card
-    ///
-    /// # Arguments
-    ///
-    /// * `pool_id` - Pool ID to remove
-    pub fn remove_pool(&mut self, pool_id: &str) {
-        if let Some(pos) = self.pool_ids.iter().position(|id| id == pool_id) {
-            self.pool_ids.remove(pos);
-            self.updated_at = chrono::Utc::now().timestamp_millis();
-        }
-    }
-
-    /// Checks if card belongs to a pool
-    ///
-    /// # Arguments
-    ///
-    /// * `pool_id` - Pool ID to check
-    ///
-    /// # Returns
-    ///
-    /// true if card belongs to the pool, false otherwise
-    pub fn has_pool(&self, pool_id: &str) -> bool {
-        self.pool_ids.contains(&pool_id.to_string())
     }
 
     /// Updates the card's title and/or content
@@ -161,54 +120,5 @@ mod tests {
         card.mark_deleted();
 
         assert!(card.deleted);
-    }
-
-    #[test]
-    fn test_card_pool_management() {
-        let mut card = Card::new(
-            "test-id".to_string(),
-            "Title".to_string(),
-            "Content".to_string(),
-        );
-
-        // Initially no pools
-        assert_eq!(card.pool_ids.len(), 0);
-        assert!(!card.has_pool("pool-1"));
-
-        // Add a pool
-        card.add_pool("pool-1".to_string());
-        assert_eq!(card.pool_ids.len(), 1);
-        assert!(card.has_pool("pool-1"));
-
-        // Adding same pool again should not duplicate
-        card.add_pool("pool-1".to_string());
-        assert_eq!(card.pool_ids.len(), 1);
-
-        // Add another pool
-        card.add_pool("pool-2".to_string());
-        assert_eq!(card.pool_ids.len(), 2);
-        assert!(card.has_pool("pool-2"));
-
-        // Remove a pool
-        card.remove_pool("pool-1");
-        assert_eq!(card.pool_ids.len(), 1);
-        assert!(!card.has_pool("pool-1"));
-        assert!(card.has_pool("pool-2"));
-
-        // Remove non-existent pool should be safe
-        card.remove_pool("pool-3");
-        assert_eq!(card.pool_ids.len(), 1);
-    }
-
-    #[test]
-    fn test_card_creation_with_empty_pools() {
-        let card = Card::new(
-            "test-id".to_string(),
-            "Title".to_string(),
-            "Content".to_string(),
-        );
-
-        assert_eq!(card.pool_ids.len(), 0);
-        assert!(card.pool_ids.is_empty());
     }
 }

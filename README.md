@@ -316,3 +316,28 @@ fix bug
 - 搜索功能
 - 标签系统（可选）
 
+
+---
+
+## 📋 Spec Coding 模式 (2026-01-14)
+
+### 已建立的基础设施
+
+**规格文档** (specs/):
+- ✅ Rust 后端规格（5 个文档）
+- ✅ Flutter UI 规格（1 个文档）  
+- ✅ 实施指南和总结
+- ✅ 规格中心索引
+
+**可运行示例**:
+- ✅ rust/examples/single_pool_flow_spec.rs (6 个业务场景)
+
+**文档更新**:
+- ✅ docs/roadmap.md - 合并 Spec Coding 任务
+- ✅ TODO.md - 添加 Spec Coding 状态章节
+
+### 下一步
+
+按照规格文档实施重构（参考 `specs/SPEC_CODING_SUMMARY.md`）
+
+详细状态: 查看 [SPECS_STATUS.md](SPECS_STATUS.md)

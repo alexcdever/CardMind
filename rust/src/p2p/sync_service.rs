@@ -279,7 +279,7 @@ impl P2PSyncService {
 
             if let Some(entry) = entry {
                 // 授权检查：使用目标设备的已加入池列表
-                let joined_pools = entry.device_config.lock().unwrap().joined_pools.clone();
+                let joined_pools = vec![entry.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
 
                 let sync_data = entry.sync_manager.lock().unwrap().handle_sync_request(
                     &pool_id,
@@ -315,7 +315,7 @@ impl P2PSyncService {
         info!("处理来自 {} 的同步请求: pool={}", peer_id, request.pool_id);
 
         // 验证授权和生成响应
-        let joined_pools = self.device_config.lock().unwrap().joined_pools.clone();
+        let joined_pools = vec![self.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
 
         let _sync_data = self.sync_manager.lock().unwrap().handle_sync_request(
             &request.pool_id,
@@ -414,7 +414,7 @@ impl P2PSyncService {
 
                                 // 处理同步请求并发送响应
                                 let joined_pools =
-                                    self.device_config.lock().unwrap().joined_pools.clone();
+                                    vec![self.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
 
                                 match self.sync_manager.lock().unwrap().handle_sync_request(
                                     &request.pool_id,
@@ -483,7 +483,7 @@ impl P2PSyncService {
         info!("设备 {} 连接成功，触发自动同步", peer_id);
 
         // 获取设备加入的数据池
-        let joined_pools = self.device_config.lock().unwrap().joined_pools.clone();
+        let joined_pools = vec![self.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
 
         for pool_id in joined_pools {
             info!("自动同步数据池 {} 到设备 {}", pool_id, peer_id);

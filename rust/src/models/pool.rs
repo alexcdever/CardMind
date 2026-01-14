@@ -142,7 +142,8 @@ impl Device {
 /// - `pool_id`: 数据池唯一标识（UUID v7）
 /// - `name`: 数据池名称（最大 128 字符）
 /// - `password_hash`: bcrypt 加密哈希
-/// - `members`: 成员设备列表（至少 1 个成员）
+/// - `members`: 成员设备列表
+/// - `card_ids`: 卡片 ID 列表（单池模型：池持有卡片）
 /// - `created_at`: 创建时间（毫秒级时间戳）
 /// - `updated_at`: 最后更新时间（毫秒级时间戳）
 ///
@@ -154,10 +155,12 @@ impl Device {
 /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed_password");
 /// let device = Device::new("device-001", "My iPhone");
 /// pool.add_member(device);
+/// pool.add_card("card-001");
 ///
 /// assert_eq!(pool.pool_id, "pool-001");
 /// assert_eq!(pool.name, "工作笔记");
 /// assert_eq!(pool.members.len(), 1);
+/// assert_eq!(pool.card_ids.len(), 1);
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pool {
@@ -174,6 +177,10 @@ pub struct Pool {
 
     /// 成员设备列表
     pub members: Vec<Device>,
+
+    /// 卡片 ID 列表（单池模型：真理源在 Pool.layer）
+    #[serde(default)]
+    pub card_ids: Vec<String>,
 
     /// 创建时间（Unix 毫秒时间戳）
     pub created_at: i64,
@@ -209,6 +216,7 @@ impl Pool {
             name: name.to_string(),
             password_hash: password_hash.to_string(),
             members: Vec::new(),
+            card_ids: Vec::new(),
             created_at: now,
             updated_at: now,
         }
@@ -346,6 +354,103 @@ impl Pool {
         }
 
         Ok(())
+    }
+
+    /// 添加卡片到数据池
+    ///
+    /// # 参数
+    ///
+    /// - `card_id`: 卡片唯一标识
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use cardmind_rust::models::pool::Pool;
+    ///
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// pool.add_card("card-001");
+    /// assert_eq!(pool.card_ids.len(), 1);
+    /// assert!(pool.has_card("card-001"));
+    /// ```
+    pub fn add_card(&mut self, card_id: &str) {
+        if !self.card_ids.contains(&card_id.to_string()) {
+            self.card_ids.push(card_id.to_string());
+            self.updated_at = Utc::now().timestamp_millis();
+        }
+    }
+
+    /// 从数据池移除卡片
+    ///
+    /// # 参数
+    ///
+    /// - `card_id`: 卡片唯一标识
+    ///
+    /// # Returns
+    ///
+    /// 如果卡片存在并成功移除，返回 true
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use cardmind_rust::models::pool::Pool;
+    ///
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// pool.add_card("card-001");
+    ///
+    /// let removed = pool.remove_card("card-001");
+    /// assert!(removed);
+    /// assert_eq!(pool.card_ids.len(), 0);
+    /// ```
+    pub fn remove_card(&mut self, card_id: &str) -> bool {
+        let original_len = self.card_ids.len();
+        self.card_ids.retain(|id| id != card_id);
+
+        if self.card_ids.len() < original_len {
+            self.updated_at = Utc::now().timestamp_millis();
+            true
+        } else {
+            false
+        }
+    }
+
+    /// 检查数据池是否包含指定卡片
+    ///
+    /// # 参数
+    ///
+    /// - `card_id`: 卡片唯一标识
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use cardmind_rust::models::pool::Pool;
+    ///
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// pool.add_card("card-001");
+    ///
+    /// assert!(pool.has_card("card-001"));
+    /// assert!(!pool.has_card("card-002"));
+    /// ```
+    #[must_use]
+    pub fn has_card(&self, card_id: &str) -> bool {
+        self.card_ids.contains(&card_id.to_string())
+    }
+
+    /// 获取数据池中的卡片数量
+    ///
+    /// # 示例
+    ///
+    /// ```
+    /// use cardmind_rust::models::pool::Pool;
+    ///
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// pool.add_card("card-001");
+    /// pool.add_card("card-002");
+    ///
+    /// assert_eq!(pool.card_count(), 2);
+    /// ```
+    #[must_use]
+    pub fn card_count(&self) -> usize {
+        self.card_ids.len()
     }
 }
 

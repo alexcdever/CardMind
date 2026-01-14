@@ -5,8 +5,10 @@
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-import '../../../frb_generated.dart';
-import '../../../models/device_config.dart';
+import '../frb_generated.dart';
+import '../models/device_config.dart';
+
+// These functions are ignored because they are not marked as `pub`: `save_config`, `with_device_config`
 
 /// Initialize or load device configuration
 ///
@@ -25,7 +27,7 @@ import '../../../models/device_config.dart';
 Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
     .instance
     .api
-    .cardmindRustApiDeviceConfigInitDeviceConfig(basePath: basePath);
+    .crateApiDeviceConfigInitDeviceConfig(basePath: basePath);
 
 /// Get the current device configuration
 ///
@@ -40,7 +42,7 @@ Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
 /// print('Device ID: ${config.deviceId}');
 /// ```
 Future<DeviceConfig> getDeviceConfig() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceConfig();
+    RustLib.instance.api.crateApiDeviceConfigGetDeviceConfig();
 
 /// Get the current device ID
 ///
@@ -54,7 +56,7 @@ Future<DeviceConfig> getDeviceConfig() =>
 /// final deviceId = await getDeviceId();
 /// ```
 Future<String> getDeviceId() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceId();
+    RustLib.instance.api.crateApiDeviceConfigGetDeviceId();
 
 /// Join a data pool
 ///
@@ -70,7 +72,7 @@ Future<String> getDeviceId() =>
 /// await joinPool(poolId: poolId);
 /// ```
 Future<void> joinPool({required String poolId}) =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigJoinPool(poolId: poolId);
+    RustLib.instance.api.crateApiDeviceConfigJoinPool(poolId: poolId);
 
 /// Leave a data pool
 ///
@@ -89,37 +91,58 @@ Future<void> joinPool({required String poolId}) =>
 /// ```dart
 /// final left = await leavePool(poolId: poolId);
 /// ```
-Future<void> leavePool({required String poolId}) =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigLeavePool(poolId: poolId);
+Future<bool> leavePool({required String poolId}) =>
+    RustLib.instance.api.crateApiDeviceConfigLeavePool(poolId: poolId);
 
-/// 设置或取消常驻池（已废弃，单池模型下无操作）
+/// Set or unset a pool as resident
 ///
-/// # 说明
+/// Resident pools are pools that new cards automatically bind to.
 ///
-/// 单池模型下无需常驻池设置，此方法保留以向后兼容，但实际无操作。
+/// # Arguments
+///
+/// * `pool_id` - Pool ID
+/// * `is_resident` - true to set as resident, false to unset
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await setResidentPool(poolId: poolId, isResident: true);
+/// ```
 Future<void> setResidentPool({
   required String poolId,
   required bool isResident,
-}) => RustLib.instance.api.cardmindRustApiDeviceConfigSetResidentPool(
+}) => RustLib.instance.api.crateApiDeviceConfigSetResidentPool(
   poolId: poolId,
   isResident: isResident,
 );
 
-/// 获取已加入的数据池列表（已废弃）
+/// Get list of joined pool IDs
 ///
-/// # 说明
+/// # Returns
 ///
-/// 单池模型下，设备只能加入一个池。如需获取当前池，请使用 `get_device_config()`。
+/// List of pool IDs the device has joined
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final joinedPools = await getJoinedPools();
+/// ```
 Future<List<String>> getJoinedPools() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetJoinedPools();
+    RustLib.instance.api.crateApiDeviceConfigGetJoinedPools();
 
-/// 获取常驻池列表（已废弃）
+/// Get list of resident pool IDs
 ///
-/// # 说明
+/// # Returns
 ///
-/// 单池模型下无需常驻池设置，此方法保留以向后兼容，始终返回空列表。
+/// List of pool IDs marked as resident
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final residentPools = await getResidentPools();
+/// ```
 Future<List<String>> getResidentPools() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetResidentPools();
+    RustLib.instance.api.crateApiDeviceConfigGetResidentPools();
 
 /// Check if the device has joined a pool
 ///
@@ -136,13 +159,23 @@ Future<List<String>> getResidentPools() =>
 /// ```dart
 /// final hasJoined = await isPoolJoined(poolId: poolId);
 /// ```
-Future<bool> isPoolJoined({required String poolId}) => RustLib.instance.api
-    .cardmindRustApiDeviceConfigIsPoolJoined(poolId: poolId);
+Future<bool> isPoolJoined({required String poolId}) =>
+    RustLib.instance.api.crateApiDeviceConfigIsPoolJoined(poolId: poolId);
 
-/// 检查是否为常驻池（已废弃）
+/// Check if a pool is marked as resident
 ///
-/// # 说明
+/// # Arguments
 ///
-/// 单池模型下无需常驻池概念，此方法保留以向后兼容，始终返回 false。
-Future<bool> isPoolResident({required String poolId}) => RustLib.instance.api
-    .cardmindRustApiDeviceConfigIsPoolResident(poolId: poolId);
+/// * `pool_id` - Pool ID to check
+///
+/// # Returns
+///
+/// true if resident, false otherwise
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final isResident = await isPoolResident(poolId: poolId);
+/// ```
+Future<bool> isPoolResident({required String poolId}) =>
+    RustLib.instance.api.crateApiDeviceConfigIsPoolResident(poolId: poolId);

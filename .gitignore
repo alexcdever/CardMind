@@ -90,3 +90,5 @@ desktop.ini
 
 # Claude Code
 .claude/
+specs/*
+!specs/*.md

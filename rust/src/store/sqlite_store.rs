@@ -271,7 +271,7 @@ impl SqliteStore {
              ORDER BY created_at DESC",
         )?;
 
-        let mut cards = stmt
+        let cards = stmt
             .query_map([], |row| {
                 Ok(Card {
                     id: row.get(0)?,
@@ -280,15 +280,10 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
-                    pool_ids: Vec::new(), // Loaded separately below
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
 
-        // Load pool_ids for each card
-        for card in &mut cards {
-            card.pool_ids = self.get_card_pools(&card.id)?;
-        }
 
         Ok(cards)
     }
@@ -315,7 +310,7 @@ impl SqliteStore {
              ORDER BY created_at DESC",
         )?;
 
-        let mut cards = stmt
+        let cards = stmt
             .query_map([], |row| {
                 Ok(Card {
                     id: row.get(0)?,
@@ -324,15 +319,10 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
-                    pool_ids: Vec::new(), // Loaded separately below
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
 
-        // Load pool_ids for each card
-        for card in &mut cards {
-            card.pool_ids = self.get_card_pools(&card.id)?;
-        }
 
         Ok(cards)
     }
@@ -362,7 +352,7 @@ impl SqliteStore {
              WHERE id = ?1",
         )?;
 
-        let mut card = stmt.query_row([id], |row| {
+        let card = stmt.query_row([id], |row| {
             Ok(Card {
                 id: row.get(0)?,
                 title: row.get(1)?,
@@ -370,15 +360,11 @@ impl SqliteStore {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
-                pool_ids: Vec::new(), // Loaded separately below
             })
         });
 
         match card {
-            Ok(ref mut c) => {
-                c.pool_ids = self.get_card_pools(&c.id)?;
-                Ok(c.clone())
-            }
+            Ok(ref c) => Ok(c.clone()),
             Err(rusqlite::Error::QueryReturnedNoRows) => {
                 Err(CardMindError::CardNotFound(id.to_string()))
             }
@@ -512,7 +498,7 @@ impl SqliteStore {
 
     /// 获取属于指定数据池的所有活跃卡片（同步过滤）
     ///
-    /// 实现同步过滤逻辑：card.pool_ids ∩ device.joined_pools
+    /// 实现同步过滤逻辑：单池模型 - 所有卡片都属于唯一的数据池
     ///
     /// # 参数
     ///
@@ -539,7 +525,7 @@ impl SqliteStore {
 
         let mut stmt = self.conn.prepare(&query)?;
 
-        let mut cards = stmt
+        let cards = stmt
             .query_map(rusqlite::params_from_iter(pool_ids.iter()), |row| {
                 Ok(Card {
                     id: row.get(0)?,
@@ -548,15 +534,10 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
-                    pool_ids: Vec::new(), // Loaded separately below
                 })
             })?
             .collect::<Result<Vec<Card>, _>>()?;
 
-        // Load pool_ids for each card
-        for card in &mut cards {
-            card.pool_ids = self.get_card_pools(&card.id)?;
-        }
 
         Ok(cards)
     }

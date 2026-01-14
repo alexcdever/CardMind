@@ -156,34 +156,32 @@ fn create(card: Card) -> Result<Card> {
 - 删除后卡片仍可查询 (通过 `get_deleted_cards`)
 - 删除后卡片不出现在默认列表中
 
-**数据池绑定规则 (Phase 2)**:
-- 绑定的 `pool_id` 必须存在于 `joined_pools` 中
-- 退出数据池时,检查是否有卡片仅绑定该池,若是则变为本地卡片
+**数据池绑定规则 (单池模型)**:
+- 设备创建/同步前必须已加入单一数据池 (`DeviceConfig.pool_id` 存在)
+- 卡片归属由 Pool 文档的 `card_ids` 决定,Card 文档不存池字段
+- 绑定/解绑 = 修改 `Pool.card_ids` 并 `commit()`,订阅回调自动维护 SQLite
+- 退出数据池时清空本地卡片与 Pool 文档,并重置 `pool_id`
 
 ### 3.3 事务协调
 
 **跨 Repository 操作**:
 ```rust
-// 伪代码
-fn unbind_pool_and_update_cards(pool_id: PoolId) -> Result<()> {
-    // 1. 查询绑定了该数据池的所有卡片
-    let cards = card_repo.list_by_pool(pool_id)?;
+// 伪代码: 退出笔记空间 (单池)
+fn leave_pool() -> Result<()> {
+    let pool_id = device_config.pool_id.ok_or(CardMindError::NotJoinedPool)?;
 
-    // 2. 遍历卡片,移除数据池绑定
-    for card in cards {
-        let mut new_card = card.clone();
-        new_card.pool_ids.remove(&pool_id);
+    // 1. 查询池内卡片 (源自 Pool.card_ids / SQLite)
+    let card_ids = card_repo.list_ids_by_pool(&pool_id)?;
 
-        // 如果卡片没有其他数据池,设置为本地卡片
-        if new_card.pool_ids.is_empty() {
-            new_card.pool_ids = vec![];
-        }
-
-        card_repo.update(new_card)?;
+    // 2. 物理删除本地卡片数据
+    for card_id in card_ids {
+        card_repo.delete_physically(&card_id)?;
     }
 
-    // 3. 退出数据池
-    pool_repo.leave(pool_id)?;
+    // 3. 删除 Pool 文档并清空配置
+    pool_repo.delete_pool_doc(&pool_id)?;
+    device_config.clear_pool()?;
+    keyring::delete_password(&pool_id)?;
 
     Ok(())
 }
@@ -469,6 +467,7 @@ impl CardService {
 
 | 版本 | 变更 |
 |------|------|
+| 1.1.0 | 适配单池模型：新增数据池绑定规则，更新事务协调示例 |
 | 1.0.0 | 初始版本,从 API_DESIGN.md 提取分层策略 |
 
 ---

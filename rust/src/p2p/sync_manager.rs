@@ -91,10 +91,7 @@ impl SyncManager {
 
         // 2. 获取所有卡片（当前同步全部卡片；如需严格池过滤，可恢复 SyncFilter）
         let store = self.card_store.lock().unwrap();
-        let mut pool_cards = store.get_all_cards()?;
-        for card in &mut pool_cards {
-            card.pool_ids = store.get_card_pools(&card.id).unwrap_or_default();
-        }
+        let pool_cards = store.get_all_cards()?;
 
         debug!("数据池 {} 包含 {} 个卡片", pool_id, pool_cards.len());
 
@@ -234,7 +231,6 @@ impl SyncManager {
         map.insert("created_at", card.created_at).unwrap();
         map.insert("updated_at", card.updated_at).unwrap();
         map.insert("deleted", card.deleted).unwrap();
-        map.insert("pool_ids", card.pool_ids.clone()).unwrap();
         doc.commit();
         Ok(doc)
     }
@@ -295,24 +291,6 @@ impl SyncManager {
             .and_then(|v| v.as_bool().copied())
             .unwrap_or(false);
 
-        // 读取 pool_ids 列表
-        let mut pool_ids = Vec::new();
-        if let Some(pool_ids_value) = map.get("pool_ids") {
-            if let Ok(pool_ids_container) = pool_ids_value.into_container() {
-                if let Ok(pool_ids_list) = pool_ids_container.into_list() {
-                    for i in 0..pool_ids_list.len() {
-                        if let Some(pool_id) = pool_ids_list.get(i) {
-                            if let Ok(pool_id_value) = pool_id.into_value() {
-                                if let Some(s) = pool_id_value.as_string() {
-                                    pool_ids.push(s.to_string());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         Ok(Card {
             id,
             title,
@@ -320,7 +298,6 @@ impl SyncManager {
             created_at,
             updated_at,
             deleted,
-            pool_ids,
         })
     }
 
@@ -364,7 +341,7 @@ mod tests {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
-        // 设备未加入数据池
+// 设备未加入数据池
         let result = manager.handle_sync_request("pool-001", None, &vec![]);
         assert!(result.is_err());
 

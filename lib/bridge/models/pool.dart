@@ -65,7 +65,8 @@ class Device {
 /// - `pool_id`: 数据池唯一标识（UUID v7）
 /// - `name`: 数据池名称（最大 128 字符）
 /// - `password_hash`: bcrypt 加密哈希
-/// - `members`: 成员设备列表（至少 1 个成员）
+/// - `members`: 成员设备列表
+/// - `card_ids`: 卡片 ID 列表（单池模型：池持有卡片）
 /// - `created_at`: 创建时间（毫秒级时间戳）
 /// - `updated_at`: 最后更新时间（毫秒级时间戳）
 ///
@@ -77,10 +78,12 @@ class Device {
 /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed_password");
 /// let device = Device::new("device-001", "My iPhone");
 /// pool.add_member(device);
+/// pool.add_card("card-001");
 ///
 /// assert_eq!(pool.pool_id, "pool-001");
 /// assert_eq!(pool.name, "工作笔记");
 /// assert_eq!(pool.members.len(), 1);
+/// assert_eq!(pool.card_ids.len(), 1);
 /// ```
 class Pool {
   const Pool({
@@ -88,6 +91,7 @@ class Pool {
     required this.name,
     required this.passwordHash,
     required this.members,
+    required this.cardIds,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -106,6 +110,9 @@ class Pool {
   /// 成员设备列表
   final List<Device> members;
 
+  /// 卡片 ID 列表（单池模型：真理源在 Pool.layer）
+  final List<String> cardIds;
+
   /// 创建时间（Unix 毫秒时间戳）
   final PlatformInt64 createdAt;
 
@@ -118,6 +125,7 @@ class Pool {
       name.hashCode ^
       passwordHash.hashCode ^
       members.hashCode ^
+      cardIds.hashCode ^
       createdAt.hashCode ^
       updatedAt.hashCode;
 
@@ -130,6 +138,7 @@ class Pool {
           name == other.name &&
           passwordHash == other.passwordHash &&
           members == other.members &&
+          cardIds == other.cardIds &&
           createdAt == other.createdAt &&
           updatedAt == other.updatedAt;
 }
