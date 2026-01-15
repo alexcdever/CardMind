@@ -1,7 +1,8 @@
 //! 设备配置管理
 //!
-//! 本模块管理本地设备配置，包括设备 ID 和当前加入的数据池。
+//! 本模块管理本地设备配置，包括设备 ID、当前加入的数据池，以及 mDNS 临时启用状态。
 
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -29,17 +30,70 @@ pub enum DeviceConfigError {
     InvalidOperationError(String),
 }
 
+/// mDNS 临时启用配置
+///
+/// 5 分钟倒计时模式，用于临时启用 mDNS 设备发现功能。
+/// 计时器状态**不会持久化**，应用重启后会自动重置为关闭状态（隐私保护）。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct MDnsTimerConfig {
+    /// 计时器结束时间戳（毫秒），None 表示未启用
+    /// skip_serializing: 不持久化到存储（重启后重置）
+    #[serde(default, skip_serializing)]
+    pub timer_end_ms: Option<i64>,
+}
+
+impl MDnsTimerConfig {
+    /// 创建新的计时器配置（默认关闭）
+    pub fn new() -> Self {
+        Self { timer_end_ms: None }
+    }
+
+    /// 启用 mDNS 5 分钟倒计时
+    pub fn start_timer(&mut self) {
+        self.timer_end_ms = Some(Utc::now().timestamp_millis() + Self::DURATION_MS);
+    }
+
+    /// 取消计时器
+    pub fn cancel_timer(&mut self) {
+        self.timer_end_ms = None;
+    }
+
+    /// 检查 mDNS 是否处于活跃状态
+    pub fn is_active(&self) -> bool {
+        self.timer_end_ms
+            .map(|end| Utc::now().timestamp_millis() < end)
+            .unwrap_or(false)
+    }
+
+    /// 获取剩余时间（毫秒），0 表示未激活或已过期
+    pub fn remaining_ms(&self) -> i64 {
+        self.timer_end_ms
+            .map(|end| (end - Utc::now().timestamp_millis()).max(0))
+            .unwrap_or(0)
+    }
+
+    /// mDNS 临时启用时长（5 分钟）
+    pub const DURATION_MS: i64 = 5 * 60 * 1000;
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DeviceConfig {
     pub device_id: String,
     pub pool_id: Option<String>,
+    /// mDNS 临时启用计时器（不持久化，重启后重置）
+    #[serde(default)]
+    pub mdns_timer: MDnsTimerConfig,
 }
 
 impl DeviceConfig {
+    /// 临时 mDNS 启用时长（5 分钟）
+    pub const MDNS_TEMP_DURATION_MS: i64 = 5 * 60 * 1000;
+
     pub fn new(device_id: &str) -> Self {
         Self {
             device_id: device_id.to_string(),
             pool_id: None,
+            mdns_timer: MDnsTimerConfig::new(),
         }
     }
 
@@ -120,6 +174,28 @@ impl DeviceConfig {
 
     pub fn default_path(base_path: &Path) -> PathBuf {
         base_path.join("config.json")
+    }
+
+    // === mDNS 临时启用相关方法 ===
+
+    /// 检查 mDNS 是否处于活跃状态（5 分钟倒计时内）
+    pub fn is_mdns_active(&self) -> bool {
+        self.mdns_timer.is_active()
+    }
+
+    /// 启用 mDNS 临时发现功能（5 分钟）
+    pub fn enable_mdns_temporary(&mut self) {
+        self.mdns_timer.start_timer();
+    }
+
+    /// 取消 mDNS 临时启用计时器
+    pub fn cancel_mdns_timer(&mut self) {
+        self.mdns_timer.cancel_timer();
+    }
+
+    /// 获取 mDNS 剩余时间（毫秒）
+    pub fn get_mdns_remaining_ms(&self) -> i64 {
+        self.mdns_timer.remaining_ms()
     }
 }
 
@@ -215,5 +291,67 @@ mod tests {
 
         let config2 = DeviceConfig::get_or_create(&config_path, "device-002").unwrap();
         assert_eq!(config2.device_id, "device-001");
+    }
+
+    // === mDNS 临时启用测试 ===
+
+    #[test]
+    fn test_mdns_inactive_by_default() {
+        let config = DeviceConfig::new("device-001");
+        assert!(!config.is_mdns_active());
+        assert_eq!(config.get_mdns_remaining_ms(), 0);
+    }
+
+    #[test]
+    fn test_enable_mdns_temporary() {
+        let mut config = DeviceConfig::new("device-001");
+        assert!(!config.is_mdns_active());
+
+        config.enable_mdns_temporary();
+
+        assert!(config.is_mdns_active());
+        let remaining = config.get_mdns_remaining_ms();
+        // Should have close to 5 minutes remaining
+        assert!(
+            remaining > 4 * 60 * 1000,
+            "Expected > 4 minutes, got {}ms",
+            remaining
+        );
+        assert!(
+            remaining <= 5 * 60 * 1000,
+            "Expected <= 5 minutes, got {}ms",
+            remaining
+        );
+    }
+
+    #[test]
+    fn test_cancel_mdns_timer() {
+        let mut config = DeviceConfig::new("device-001");
+        config.enable_mdns_temporary();
+        assert!(config.is_mdns_active());
+
+        config.cancel_mdns_timer();
+
+        assert!(!config.is_mdns_active());
+        assert_eq!(config.get_mdns_remaining_ms(), 0);
+    }
+
+    #[test]
+    fn test_mdns_timer_not_persisted() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("config.json");
+
+        // Enable mDNS and save
+        let mut config = DeviceConfig::new("device-001");
+        config.enable_mdns_temporary();
+        assert!(config.mdns_timer.timer_end_ms.is_some());
+        config.save(&config_path).unwrap();
+
+        // Load in a new config (simulating app restart)
+        let loaded = DeviceConfig::load(&config_path).unwrap();
+
+        // Timer should be None because mdns_timer is marked with #[serde(default)]
+        assert!(!loaded.is_mdns_active());
+        assert_eq!(loaded.get_mdns_remaining_ms(), 0);
     }
 }

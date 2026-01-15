@@ -4,8 +4,8 @@
 //! for device configuration management.
 
 use crate::models::device_config::DeviceConfig;
-use crate::models::error::Result;
 use crate::models::error::CardMindError;
+use crate::models::error::Result;
 use crate::utils::uuid_v7::generate_uuid_v7;
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -146,7 +146,9 @@ pub fn get_device_id() -> Result<String> {
 #[flutter_rust_bridge::frb]
 pub fn join_pool(pool_id: String) -> Result<()> {
     with_device_config(|config| {
-        config.join_pool(&pool_id).map_err(|e| CardMindError::DatabaseError(e.to_string()))?;
+        config
+            .join_pool(&pool_id)
+            .map_err(|e| CardMindError::DatabaseError(e.to_string()))?;
         Ok(())
     })?;
     save_config()?;
@@ -172,7 +174,11 @@ pub fn join_pool(pool_id: String) -> Result<()> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn leave_pool(pool_id: String) -> Result<()> {
-    with_device_config(|config| config.leave_pool(&pool_id).map_err(|e| CardMindError::DatabaseError(e.to_string())))?;
+    with_device_config(|config| {
+        config
+            .leave_pool(&pool_id)
+            .map_err(|e| CardMindError::DatabaseError(e.to_string()))
+    })?;
     save_config()?;
     Ok(())
 }
@@ -193,7 +199,9 @@ pub fn leave_pool(pool_id: String) -> Result<()> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn set_resident_pool(_pool_id: String, _is_resident: bool) -> Result<()> {
-    Err(CardMindError::NotAuthorized("单池模型下不支持此操作".to_string()))
+    Err(CardMindError::NotAuthorized(
+        "单池模型下不支持此操作".to_string(),
+    ))
 }
 
 /// Get list of joined pool IDs
@@ -278,6 +286,80 @@ pub fn is_pool_resident(pool_id: String) -> Result<bool> {
     with_device_config(|config| Ok(config.is_joined(&pool_id)))
 }
 
+// ==================== mDNS Temporary Discovery APIs ====================
+
+/// Check if mDNS peer discovery is currently active
+///
+/// mDNS is active only within the 5-minute timer window after being enabled.
+///
+/// # Returns
+///
+/// true if mDNS is active, false otherwise
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final isActive = await isMdnsActive();
+/// ```
+#[flutter_rust_bridge::frb]
+pub fn is_mdns_active() -> Result<bool> {
+    with_device_config(|config| Ok(config.is_mdns_active()))
+}
+
+/// Enable mDNS peer discovery for 5 minutes
+///
+/// Starts a 5-minute timer for mDNS discovery. After 5 minutes,
+/// mDNS will automatically be disabled. Timer does not persist
+/// across app restarts (security feature).
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await enableMdnsTemporary();
+/// ```
+#[flutter_rust_bridge::frb]
+pub fn enable_mdns_temporary() -> Result<()> {
+    with_device_config(|config| {
+        config.enable_mdns_temporary();
+        Ok(())
+    })
+}
+
+/// Cancel the mDNS timer immediately
+///
+/// Disables mDNS discovery right away.
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await cancelMdnsTimer();
+/// ```
+#[flutter_rust_bridge::frb]
+pub fn cancel_mdns_timer() -> Result<()> {
+    with_device_config(|config| {
+        config.cancel_mdns_timer();
+        Ok(())
+    })
+}
+
+/// Get remaining time for mDNS discovery (in milliseconds)
+///
+/// Returns 0 if mDNS is not active or has expired.
+///
+/// # Returns
+///
+/// Remaining time in milliseconds
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final remainingMs = await getMdnsRemainingMs();
+/// ```
+#[flutter_rust_bridge::frb]
+pub fn get_mdns_remaining_ms() -> Result<i64> {
+    with_device_config(|config| Ok(config.get_mdns_remaining_ms()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -303,7 +385,6 @@ mod tests {
         let config = init_device_config(path).unwrap();
         assert!(!config.device_id.is_empty());
         assert!(config.pool_id.is_none());
-        
 
         cleanup_device_config();
     }
@@ -327,12 +408,12 @@ mod tests {
         let is_joined = is_pool_joined("pool-001".to_string()).unwrap();
         assert!(is_joined);
 
-    // Check if resident (same as joined in single-pool model)
-    let is_resident = is_pool_resident("pool-001".to_string()).unwrap();
-    assert!(is_resident);
+        // Check if resident (same as joined in single-pool model)
+        let is_resident = is_pool_resident("pool-001".to_string()).unwrap();
+        assert!(is_resident);
 
         // Leave pool
-    leave_pool("pool-001".to_string()).unwrap();
+        leave_pool("pool-001".to_string()).unwrap();
 
         let joined = get_joined_pools().unwrap();
         assert_eq!(joined.len(), 0);
@@ -406,7 +487,6 @@ mod tests {
         let config = init_device_config(path).unwrap();
         assert_eq!(config.device_id, device_id);
         assert!(config.pool_id.is_some());
-        
 
         cleanup_device_config();
     }
