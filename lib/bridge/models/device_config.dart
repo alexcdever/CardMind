@@ -8,12 +8,19 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import '../frb_generated.dart';
 
 class DeviceConfig {
-  const DeviceConfig({required this.deviceId, this.poolId});
+  const DeviceConfig({
+    required this.deviceId,
+    this.poolId,
+    required this.mdnsTimer,
+  });
   final String deviceId;
   final String? poolId;
 
+  /// mDNS 临时启用计时器（不持久化，重启后重置）
+  final MDnsTimerConfig mdnsTimer;
+
   @override
-  int get hashCode => deviceId.hashCode ^ poolId.hashCode;
+  int get hashCode => deviceId.hashCode ^ poolId.hashCode ^ mdnsTimer.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -21,5 +28,28 @@ class DeviceConfig {
       other is DeviceConfig &&
           runtimeType == other.runtimeType &&
           deviceId == other.deviceId &&
-          poolId == other.poolId;
+          poolId == other.poolId &&
+          mdnsTimer == other.mdnsTimer;
+}
+
+/// mDNS 临时启用配置
+///
+/// 5 分钟倒计时模式，用于临时启用 mDNS 设备发现功能。
+/// 计时器状态**不会持久化**，应用重启后会自动重置为关闭状态（隐私保护）。
+class MDnsTimerConfig {
+  const MDnsTimerConfig({this.timerEndMs});
+
+  /// 计时器结束时间戳（毫秒），None 表示未启用
+  /// skip_serializing: 不持久化到存储（重启后重置）
+  final PlatformInt64? timerEndMs;
+
+  @override
+  int get hashCode => timerEndMs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MDnsTimerConfig &&
+          runtimeType == other.runtimeType &&
+          timerEndMs == other.timerEndMs;
 }

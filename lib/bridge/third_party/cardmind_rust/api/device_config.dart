@@ -92,11 +92,20 @@ Future<void> joinPool({required String poolId}) =>
 Future<void> leavePool({required String poolId}) =>
     RustLib.instance.api.cardmindRustApiDeviceConfigLeavePool(poolId: poolId);
 
-/// 设置或取消常驻池（已废弃，单池模型下无操作）
+/// Set or unset a pool as resident
 ///
-/// # 说明
+/// Resident pools are pools that new cards automatically bind to.
 ///
-/// 单池模型下无需常驻池设置，此方法保留以向后兼容，但实际无操作。
+/// # Arguments
+///
+/// * `pool_id` - Pool ID
+/// * `is_resident` - true to set as resident, false to unset
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await setResidentPool(poolId: poolId, isResident: true);
+/// ```
 Future<void> setResidentPool({
   required String poolId,
   required bool isResident,
@@ -105,19 +114,31 @@ Future<void> setResidentPool({
   isResident: isResident,
 );
 
-/// 获取已加入的数据池列表（已废弃）
+/// Get list of joined pool IDs
 ///
-/// # 说明
+/// # Returns
 ///
-/// 单池模型下，设备只能加入一个池。如需获取当前池，请使用 `get_device_config()`。
+/// List of pool IDs the device has joined
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final joinedPools = await getJoinedPools();
+/// ```
 Future<List<String>> getJoinedPools() =>
     RustLib.instance.api.cardmindRustApiDeviceConfigGetJoinedPools();
 
-/// 获取常驻池列表（已废弃）
+/// Get list of resident pool IDs
 ///
-/// # 说明
+/// # Returns
 ///
-/// 单池模型下无需常驻池设置，此方法保留以向后兼容，始终返回空列表。
+/// List of pool IDs marked as resident
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final residentPools = await getResidentPools();
+/// ```
 Future<List<String>> getResidentPools() =>
     RustLib.instance.api.cardmindRustApiDeviceConfigGetResidentPools();
 
@@ -139,10 +160,78 @@ Future<List<String>> getResidentPools() =>
 Future<bool> isPoolJoined({required String poolId}) => RustLib.instance.api
     .cardmindRustApiDeviceConfigIsPoolJoined(poolId: poolId);
 
-/// 检查是否为常驻池（已废弃）
+/// Check if a pool is marked as resident
 ///
-/// # 说明
+/// # Arguments
 ///
-/// 单池模型下无需常驻池概念，此方法保留以向后兼容，始终返回 false。
+/// * `pool_id` - Pool ID to check
+///
+/// # Returns
+///
+/// true if resident, false otherwise
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final isResident = await isPoolResident(poolId: poolId);
+/// ```
 Future<bool> isPoolResident({required String poolId}) => RustLib.instance.api
     .cardmindRustApiDeviceConfigIsPoolResident(poolId: poolId);
+
+/// Check if mDNS peer discovery is currently active
+///
+/// mDNS is active only within the 5-minute timer window after being enabled.
+///
+/// # Returns
+///
+/// true if mDNS is active, false otherwise
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final isActive = await isMdnsActive();
+/// ```
+Future<bool> isMdnsActive() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigIsMdnsActive();
+
+/// Enable mDNS peer discovery for 5 minutes
+///
+/// Starts a 5-minute timer for mDNS discovery. After 5 minutes,
+/// mDNS will automatically be disabled. Timer does not persist
+/// across app restarts (security feature).
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await enableMdnsTemporary();
+/// ```
+Future<void> enableMdnsTemporary() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigEnableMdnsTemporary();
+
+/// Cancel the mDNS timer immediately
+///
+/// Disables mDNS discovery right away.
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// await cancelMdnsTimer();
+/// ```
+Future<void> cancelMdnsTimer() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigCancelMdnsTimer();
+
+/// Get remaining time for mDNS discovery (in milliseconds)
+///
+/// Returns 0 if mDNS is not active or has expired.
+///
+/// # Returns
+///
+/// Remaining time in milliseconds
+///
+/// # Example (Dart)
+///
+/// ```dart
+/// final remainingMs = await getMdnsRemainingMs();
+/// ```
+Future<PlatformInt64> getMdnsRemainingMs() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigGetMdnsRemainingMs();
