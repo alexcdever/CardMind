@@ -29,7 +29,7 @@
 | SP-FLUT-007 | [onboarding_spec.md](./flutter/onboarding_spec.md) | 初始化流程规格 | ✅ 完成 |
 | SP-FLUT-008 | [home_screen_spec.md](./flutter/home_screen_spec.md) | 主页交互规格 | ✅ 完成 |
 | SP-FLUT-009 | [card_creation_spec.md](./flutter/card_creation_spec.md) | 卡片创建交互规格 | ✅ 完成 |
-| SP-FLUT-010 | [sync_feedback_spec.md](./flutter/sync_feedback_spec.md) | 同步反馈交互规格 | 🚧 进行中 |
+| SP-FLUT-010 | [sync_feedback_spec.md](./flutter/sync_feedback_spec.md) | 同步反馈交互规格 | ✅ 完成 |
 
 ---
 
