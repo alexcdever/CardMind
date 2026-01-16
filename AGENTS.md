@@ -21,16 +21,136 @@
 
 ### OpenSpec - 规范驱动开发
 
-**用途**: 管理 API 规范和架构决策
+**用途**: 管理 API 规范和架构决策，通过结构化的 artifacts 管理变更
 
 **关键文件**:
 - `openspec/specs/` - 11 个功能规范 + 5 个 ADR
 - `openspec/specs/SPEC_CODING_GUIDE.md` - Spec Coding 方法论
+- `openspec/changes/` - 进行中的变更
+- `openspec/changes/archive/` - 已完成的变更
 
-**工作流**:
+**完整工作流**:
 ```
-1. 查看规范 → 2. 编写测试 → 3. 实现代码 → 4. 验证
+1. 开始新变更 → 2. 创建 artifacts → 3. 实施任务 → 4. 验证 → 5. 同步规格 → 6. 归档
 ```
+
+#### OpenSpec 命令详解
+
+**1️⃣ 开始新变更**
+```bash
+/opsx:new
+```
+- **作用**: 创建新的 change 目录和配置文件
+- **生成**: `openspec/changes/<change-name>/` + `.openspec.yaml`
+- **何时使用**: 开始实现新功能、修复复杂 bug、重构模块
+
+**2️⃣ 探索模式（可选）**
+```bash
+/opsx:explore
+```
+- **作用**: 进入探索模式，深入思考和调研
+- **适用**: 需求不清晰、技术方案不确定时
+- **输出**: 思考过程、技术调研、方案对比
+
+**3️⃣ 创建 artifacts**
+
+**方式 A: 逐步创建（推荐复杂变更）**
+```bash
+/opsx:continue
+```
+- **作用**: 按顺序创建下一个 artifact
+- **顺序**: `proposal.md` → `design.md` → `specs/` → `tasks.md`
+- **优点**: 可以审查每个阶段的输出
+- **何时使用**: 需要仔细审查每个阶段
+
+**方式 B: 快速生成（推荐简单变更）**
+```bash
+/opsx:ff
+```
+- **作用**: 一次性生成所有 artifacts
+- **优点**: 快速进入实施阶段
+- **何时使用**: 需求明确、方案清晰
+
+**4️⃣ 实施任务**
+```bash
+/opsx:apply
+```
+- **作用**: 根据 `tasks.md` 实现功能
+- **方法**: Spec Coding（规格 → 测试 → 代码）
+- **跟踪**: 自动跟踪任务进度
+- **何时使用**: artifacts 创建完成，准备编码
+
+**5️⃣ 验证实现**
+```bash
+/opsx:verify
+```
+- **作用**: 验证实现是否符合 specs
+- **检查**: 测试覆盖率、任务完成度、规格一致性
+- **何时使用**: 实施完成后，归档前
+
+**6️⃣ 同步规格**
+```bash
+/opsx:sync
+```
+- **作用**: 将 delta specs 同步到 `openspec/specs/`
+- **更新**: 规格索引 `openspec/specs/README.md`
+- **何时使用**: change 中创建了新的规格文档
+
+**7️⃣ 归档变更**
+```bash
+/opsx:archive
+```
+- **作用**: 将 change 移动到 archive 目录
+- **标记**: 变更完成
+- **何时使用**: 验证通过，准备提交 PR
+
+#### 快速参考表
+
+| 场景 | 命令 | 说明 |
+|------|------|------|
+| 开始新功能 | `/opsx:new` | 创建 change |
+| 需求不清楚 | `/opsx:explore` | 探索和思考 |
+| 逐步创建 | `/opsx:continue` | 创建下一个 artifact |
+| 快速生成 | `/opsx:ff` | 生成所有 artifacts |
+| 开始编码 | `/opsx:apply` | 实施任务 |
+| 验证完成 | `/opsx:verify` | 验证实现 |
+| 同步规格 | `/opsx:sync` | 同步到主规格 |
+| 完成归档 | `/opsx:archive` | 归档 change |
+
+#### 示例工作流
+
+**简单功能（快速模式）**:
+```bash
+/opsx:new          # 创建 change
+/opsx:ff           # 生成所有 artifacts
+/opsx:apply        # 实施任务
+/opsx:verify       # 验证
+/opsx:archive      # 归档
+```
+
+**复杂功能（仔细模式）**:
+```bash
+/opsx:new          # 创建 change
+/opsx:explore      # 探索方案
+/opsx:continue     # 创建 proposal
+# 审查 proposal.md
+/opsx:continue     # 创建 design
+# 审查 design.md
+/opsx:continue     # 创建 specs
+# 审查 specs/
+/opsx:continue     # 创建 tasks
+# 审查 tasks.md
+/opsx:apply        # 实施任务
+/opsx:verify       # 验证
+/opsx:sync         # 同步规格
+/opsx:archive      # 归档
+```
+
+**⚠️ 常见错误**:
+- ❌ 跳过 `/opsx:new` 直接使用其他命令
+- ❌ 在没有 artifacts 时使用 `/opsx:apply`
+- ❌ 忘记使用 `/opsx:sync` 同步新规格
+- ❌ 未验证就归档（跳过 `/opsx:verify`）
 
 ### Project Guardian - 约束自动执行
 

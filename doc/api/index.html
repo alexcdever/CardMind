@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="cardmind API docs, for the Dart programming language.">
+  <title>cardmind - Dart API docs</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="static-assets/github.css?v1">
+  <link rel="stylesheet" href="static-assets/styles.css?v1">
+  <link rel="icon" href="static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li class="self-crumb">cardmind package</li>
+  </ol>
+  <div class="self-name">cardmind</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div id="dartdoc-main-content" class="main-content">
+      
+<section class="desc markdown">
+  <h1 id="cardmind">CardMind</h1>
+<p>一款简洁、高效的卡片笔记应用，支持离线优先和P2P多设备同步。</p>
+<h2 id="">项目简介</h2>
+<p>CardMind 是一款专注于个人知识管理的卡片式笔记应用。通过卡片的形式组织和管理你的笔记、想法和知识片段。应用采用离线优先设计，基于 CRDT 技术实现可靠的多设备同步，支持完全离线编辑和自动冲突解决。</p>
+<h2 id="-2">核心特性</h2>
+<ul>
+<li><strong>卡片式笔记</strong>: 用卡片组织你的想法和知识，每张卡片一个主题</li>
+<li><strong>Markdown支持</strong>: 支持完整的Markdown格式，方便编写结构化笔记</li>
+<li><strong>离线优先</strong>: 基于Loro CRDT，所有数据本地存储，无网络时也能正常使用</li>
+<li><strong>P2P同步</strong>: 去中心化的点对点同步，无需依赖服务器</li>
+<li><strong>自动冲突解决</strong>: CRDT算法自动处理编辑冲突，永不丢失数据</li>
+<li><strong>跨平台</strong>: 基于Flutter开发，支持iOS、Android、Windows、macOS、Linux</li>
+</ul>
+<h2 id="-3">技术栈</h2>
+<ul>
+<li><strong>前端</strong>: Flutter 3.x (Dart)</li>
+<li><strong>后端逻辑</strong>: Rust</li>
+<li><strong>CRDT引擎</strong>: Loro (文件持久化)</li>
+<li><strong>数据库</strong>: SQLite (读取缓存层)</li>
+<li><strong>P2P同步</strong>: libp2p (规划中)</li>
+<li><strong>桥接</strong>: flutter_rust_bridge</li>
+</ul>
+<h2 id="-4">项目状态</h2>
+<p><strong>当前版本</strong>: v1.0.0 (MVP - 已完成)
+<strong>发布日期</strong>: 2025-12-31</p>
+<p>✅ <strong>已完成功能</strong>:</p>
+<ul>
+<li>卡片完整 CRUD 操作（创建、查看、编辑、删除）</li>
+<li>Markdown 完整支持和实时渲染</li>
+<li>Loro CRDT 引擎集成（文件持久化）</li>
+<li>SQLite 缓存层（高性能查询）</li>
+<li>深色/浅色主题切换</li>
+<li>响应式布局（手机/平板/桌面）</li>
+<li>跨平台支持（Windows、Android）</li>
+<li>性能优化（1000张卡片 &lt; 350ms）</li>
+<li>完整测试覆盖（80个测试，100%通过）</li>
+</ul>
+<p>📦 <strong>可用平台</strong>:</p>
+<ul>
+<li>Windows 10/11 (x64)</li>
+<li>Android 5.0+</li>
+</ul>
+<p>🔜 <strong>计划中功能</strong>:</p>
+<ul>
+<li>P2P 多设备同步（v2.0.0）</li>
+<li>iOS/macOS 支持</li>
+<li>全文搜索</li>
+<li>数据导入/导出</li>
+</ul>
+<h2 id="-5">快速开始</h2>
+<h3 id="-6">安装</h3>
+<p><strong>Windows</strong>:</p>
+<ol>
+<li>下载 <code>cardmind-windows-x64-v1.0.0.zip</code></li>
+<li>解压到任意目录</li>
+<li>运行 <code>cardmind.exe</code></li>
+</ol>
+<p><strong>Android</strong>:</p>
+<ol>
+<li>下载 <code>cardmind-v1.0.0.apk</code></li>
+<li>安装 APK 文件</li>
+<li>启动应用</li>
+</ol>
+<h3 id="-7">使用指南</h3>
+<p>详细使用说明请查看 <a href="docs/USER_GUIDE.md">用户使用手册</a>。</p>
+<h3 id="-8">数据位置</h3>
+<ul>
+<li><strong>Windows</strong>: <code>%APPDATA%\cardmind\data\</code></li>
+<li><strong>Android</strong>: <code>/data/data/com.cardmind.app/files/data/</code></li>
+</ul>
+<p><strong>备份建议</strong>: 定期备份数据文件夹以防数据丢失。</p>
+<h2 id="-9">依赖版本锁定</h2>
+<blockquote>
+<p>本项目在开发阶段锁定以下关键依赖版本，确保可重现构建</p>
+</blockquote>
+<h3 id="rustcargotoml">Rust依赖（Cargo.toml）</h3>
+<pre class="language-toml"><code class="language-toml">[dependencies]
+# CRDT引擎（核心依赖）
+loro = "1.0"
+
+# 数据库
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# UUID v7（时间排序）
+uuid = { version = "1.7", features = ["v7", "serde"] }
+
+# 时间处理
+chrono = { version = "0.4", features = ["serde"] }
+
+# 异步运行时
+tokio = { version = "1.35", features = ["full"] }
+
+# Flutter桥接
+flutter_rust_bridge = "2.0"
+
+# 日志
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# 错误处理
+thiserror = "1.0"
+anyhow = "1.0"
+
+# P2P网络（Phase 2）
+# libp2p = { version = "0.53", optional = true }
+</code></pre>
+<h3 id="flutterpubspecyaml">Flutter依赖（pubspec.yaml）</h3>
+<pre class="language-yaml"><code class="language-yaml">dependencies:
+  flutter:
+    sdk: flutter
+
+  # 状态管理
+  provider: ^6.0.0
+
+  # Markdown渲染
+  flutter_markdown: ^0.6.0
+
+  # Rust桥接
+  flutter_rust_bridge: ^2.0.0
+
+  # 本地存储（配置等）
+  shared_preferences: ^2.2.0
+
+  # 日志
+  logger: ^2.0.0
+
+  # UUID v7
+  uuid: ^4.0.0
+</code></pre>
+<h3 id="-10">更新策略</h3>
+<ul>
+<li><strong>MVP阶段</strong>: 不主动升级依赖，保持稳定</li>
+<li><strong>Bug修复</strong>: 仅小版本升级（如1.0.0 → 1.0.1）</li>
+<li><strong>大版本升级</strong>: MVP完成后再评估</li>
+<li><strong>新依赖</strong>: 优先选择成熟稳定的库</li>
+</ul>
+<h2 id="-11">开发者快速上手</h2>
+<h3 id="-5-2">📖 5分钟了解项目</h3>
+<p>如果你是第一次接触这个项目，建议按以下顺序阅读：</p>
+<ol>
+<li><strong><a href="README.md">README.md</a></strong> - 项目概览（你在这里）</li>
+<li><strong><a href="docs/ARCHITECTURE.md">ARCHITECTURE.md</a></strong> 第1-3节 - 核心架构理念（双层数据架构）</li>
+</ol>
+<h3 id="-30">🚀 30分钟开始开发</h3>
+<p>完成上面的阅读后，继续：</p>
+<ol start="3">
+<li><strong><a href="docs/SETUP.md">SETUP.md</a></strong> - 环境搭建详细步骤</li>
+<li><strong><a href="CLAUDE.md">CLAUDE.md</a></strong> - 开发规范和关键注意事项（必读！）</li>
+<li><strong><a href="docs/TESTING_GUIDE.md">TESTING_GUIDE.md</a></strong> - TDD开发流程</li>
+<li><strong><a href="docs/ROADMAP.md">ROADMAP.md</a></strong> Phase 1 - 开始第一个任务</li>
+</ol>
+<h3 id="-">📚 深度学习（按需阅读）</h3>
+<ul>
+<li><strong><a href="docs/DATABASE.md">DATABASE.md</a></strong> - 理解Loro和SQLite双层数据设计</li>
+<li><strong><a href="docs/API_DESIGN.md">API_DESIGN.md</a></strong> - API接口定义和使用</li>
+<li><strong><a href="docs/PRD.md">PRD.md</a></strong> - 产品需求全貌</li>
+<li><strong><a href="docs/LOGGING.md">LOGGING.md</a></strong> - 日志最佳实践</li>
+<li><strong><a href="docs/FAQ.md">FAQ.md</a></strong> - 常见问题解答</li>
+</ul>
+<h3 id="--2">⚡ 快速命令参考</h3>
+<pre class="language-bash"><code class="language-bash"># 自动修复所有lint问题（推荐！）
+dart tool/fix_lint.dart            # 自动修复Flutter和Rust代码
+dart tool/check_lint.dart          # 只检查不修复
+
+# 运行测试
+cd rust &amp;&amp; cargo test              # Rust测试
+flutter test                       # Flutter测试
+
+# 静态检查
+cd rust &amp;&amp; cargo clippy            # Rust静态分析
+flutter analyze                    # Flutter静态分析
+
+# 代码格式化
+dart format .                      # Dart格式化
+cd rust &amp;&amp; cargo fmt               # Rust格式化
+
+# 生成桥接代码（跨平台）
+dart tool/generate_bridge.dart
+
+# 运行应用
+flutter run
+</code></pre>
+<p><strong>提示</strong>: 使用 <code>dart tool/fix_lint.dart</code> 可以一键修复大部分IDE提示的警告和错误！详见 <a href="docs/LINT_AUTO_FIX.md">docs/LINT_AUTO_FIX.md</a></p>
+<h3 id="--3">🎯 开发流程</h3>
+<ol>
+<li><strong>TDD优先</strong>: 先写测试，再写实现（Red-Green-Refactor）</li>
+<li><strong>遵守架构</strong>: 所有写操作必须通过Loro，不直接写SQLite</li>
+<li><strong>测试覆盖</strong>: 新代码测试覆盖率必须 &gt;80%</li>
+<li><strong>提交前检查</strong>: <code>cargo clippy</code> 和 <code>flutter analyze</code> 必须零警告</li>
+</ol>
+<h2 id="git">Git工作流</h2>
+<h3 id="-12">分支策略</h3>
+<ul>
+<li><code>master</code> - 主分支，稳定版本</li>
+<li><code>develop</code> - 开发分支，日常开发</li>
+<li><code>feature/xxx</code> - 功能分支</li>
+<li><code>bugfix/xxx</code> - 修复分支</li>
+</ul>
+<h3 id="-13">提交流程</h3>
+<ol>
+<li>从 <code>develop</code> 创建功能分支</li>
+<li>TDD开发（测试覆盖率 &gt;80%）</li>
+<li>本地验证：<code>cargo test &amp;&amp; flutter test</code></li>
+<li>提交PR到 <code>develop</code></li>
+<li>Code Review通过后合并</li>
+<li>定期从 <code>develop</code> 合并到 <code>master</code> 发布</li>
+</ol>
+<h3 id="pr">PR要求</h3>
+<ul>
+<li>✅ 测试通过</li>
+<li>✅ 测试覆盖率 &gt;80%</li>
+<li>✅ 遵循Commit规范</li>
+<li>✅ <code>cargo clippy</code> 和 <code>flutter analyze</code> 零警告</li>
+</ul>
+<h2 id="git-commit">Git Commit规范</h2>
+<p>本项目采用简化的 Conventional Commits 规范：</p>
+<pre class="language-dart"><code>&lt;type&gt;: &lt;subject&gt;
+
+&lt;body (optional)&gt;
+</code></pre>
+<h3 id="type">Type类型</h3>
+<ul>
+<li><code>feat</code>: 新功能</li>
+<li><code>fix</code>: Bug修复</li>
+<li><code>refactor</code>: 代码重构（不改变功能）</li>
+<li><code>test</code>: 测试相关</li>
+<li><code>docs</code>: 文档更新</li>
+<li><code>chore</code>: 构建/工具/依赖变动</li>
+<li><code>style</code>: 代码格式调整（不影响逻辑）</li>
+</ul>
+<h3 id="-14">示例</h3>
+<pre class="language-bash"><code class="language-bash"># 好的commit
+feat: 实现卡片创建API
+
+- 添加create_card函数
+- Loro订阅机制同步到SQLite
+- 测试覆盖率82%
+
+fix: 修复卡片删除后SQLite未更新bug
+
+订阅回调中缺少删除事件处理，导致软删除标记未更新。
+
+test: 添加Loro到SQLite同步的集成测试
+
+docs: 更新API文档，补充错误码说明
+</code></pre>
+<pre class="language-bash"><code class="language-bash"># 不好的commit（避免）
+update code
+fix bug
+修改了一些东西
+</code></pre>
+<h3 id="-15">原则</h3>
+<ul>
+<li><strong>主题行简洁</strong>: 不超过50字符</li>
+<li><strong>描述清晰</strong>: 说明做了什么和为什么</li>
+<li><strong>一次一件事</strong>: 每个commit只做一件事</li>
+<li><strong>测试通过</strong>: commit前确保测试通过</li>
+</ul>
+<h2 id="-16">文档</h2>
+<ul>
+<li><a href="docs/PRD.md">产品需求文档 (PRD)</a></li>
+<li><a href="docs/ARCHITECTURE.md">技术架构设计</a></li>
+<li><a href="docs/DATABASE.md">数据库设计</a></li>
+<li><a href="docs/ROADMAP.md">开发路线图</a></li>
+<li><a href="docs/API.md">API接口定义</a></li>
+<li><a href="docs/TESTING_GUIDE.md">测试指南</a></li>
+<li><a href="docs/LOGGING.md">日志规范</a></li>
+</ul>
+<h2 id="-17">开发计划</h2>
+<h3 id="---mvp-">第一阶段 - MVP (最小可行产品)</h3>
+<ul>
+<li>卡片基础功能（创建、编辑、删除、查看）</li>
+<li>Markdown内容支持</li>
+<li>Loro CRDT集成（本地文件持久化）</li>
+<li>SQLite缓存层（快速查询）</li>
+</ul>
+<h3 id="---p2p">第二阶段 - P2P同步</h3>
+<ul>
+<li>libp2p集成</li>
+<li>设备发现和连接</li>
+<li>CRDT数据同步</li>
+<li>同步状态管理</li>
+</ul>
+<h3 id="---">第三阶段 - 优化完善</h3>
+<ul>
+<li>性能优化</li>
+<li>UI/UX改进</li>
+<li>搜索功能</li>
+<li>标签系统（可选）</li>
+</ul>
+<hr>
+<h2 id="-spec-coding--2026-01-14">📋 Spec Coding 模式 (2026-01-14)</h2>
+<h3 id="-18">已建立的基础设施</h3>
+<p><strong>规格文档</strong> (specs/):</p>
+<ul>
+<li>✅ Rust 后端规格（5 个文档）</li>
+<li>✅ Flutter UI 规格（1 个文档）</li>
+<li>✅ 实施指南和总结</li>
+<li>✅ 规格中心索引</li>
+</ul>
+<p><strong>可运行示例</strong>:</p>
+<ul>
+<li>✅ rust/examples/single_pool_flow_spec.rs (6 个业务场景)</li>
+</ul>
+<p><strong>文档更新</strong>:</p>
+<ul>
+<li>✅ docs/roadmap.md - 合并 Spec Coding 任务</li>
+<li>✅ TODO.md - 添加 Spec Coding 状态章节</li>
+</ul>
+<h3 id="-19">下一步</h3>
+<p>按照规格文档实施重构（参考 <code>specs/SPEC_CODING_SUMMARY.md</code>）</p>
+<p>详细状态: 查看 <a href="SPECS_STATUS.md">SPECS_STATUS.md</a></p>
+</section>
+
+
+      <section class="summary">
+          <h2>Libraries</h2>
+        <dl>
+          <dt id="card">
+  <span class="name"><a href="bridge_api_card/">bridge/api/card</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="device_config">
+  <span class="name"><a href="bridge_api_device_config/">bridge/api/device_config</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="pool">
+  <span class="name"><a href="bridge_api_pool/">bridge/api/pool</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="sync">
+  <span class="name"><a href="bridge_api_sync/">bridge/api/sync</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="frb_generated">
+  <span class="name"><a href="bridge_frb_generated/">bridge/frb_generated</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="frb_generated.io">
+  <span class="name"><a href="bridge_frb_generated.io/">bridge/frb_generated.io</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="frb_generated.web">
+  <span class="name"><a href="bridge_frb_generated.web/">bridge/frb_generated.web</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card">
+  <span class="name"><a href="bridge_models_card/">bridge/models/card</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="device_config">
+  <span class="name"><a href="bridge_models_device_config/">bridge/models/device_config</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="pool">
+  <span class="name"><a href="bridge_models_pool/">bridge/models/pool</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card">
+  <span class="name"><a href="bridge_third_party_cardmind_rust_api_card/">bridge/third_party/cardmind_rust/api/card</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="device_config">
+  <span class="name"><a href="bridge_third_party_cardmind_rust_api_device_config/">bridge/third_party/cardmind_rust/api/device_config</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="pool">
+  <span class="name"><a href="bridge_third_party_cardmind_rust_api_pool/">bridge/third_party/cardmind_rust/api/pool</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="sync">
+  <span class="name"><a href="bridge_third_party_cardmind_rust_api_sync/">bridge/third_party/cardmind_rust/api/sync</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="main">
+  <span class="name"><a href="main/">main</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_editor_state">
+  <span class="name"><a href="providers_card_editor_state/">providers/card_editor_state</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_provider">
+  <span class="name"><a href="providers_card_provider/">providers/card_provider</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="pool_provider">
+  <span class="name"><a href="providers_pool_provider/">providers/pool_provider</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="sync_provider">
+  <span class="name"><a href="providers_sync_provider/">providers/sync_provider</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="theme_provider">
+  <span class="name"><a href="providers_theme_provider/">providers/theme_provider</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_detail_screen">
+  <span class="name"><a href="screens_card_detail_screen/">screens/card_detail_screen</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_editor_screen">
+  <span class="name"><a href="screens_card_editor_screen/">screens/card_editor_screen</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="home_screen">
+  <span class="name"><a href="screens_home_screen/">screens/home_screen</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="settings_screen">
+  <span class="name"><a href="screens_settings_screen/">screens/settings_screen</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="sync_screen">
+  <span class="name"><a href="screens_sync_screen/">screens/sync_screen</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_api_impl">
+  <span class="name"><a href="services_card_api_impl/">services/card_api_impl</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_api_interface">
+  <span class="name"><a href="services_card_api_interface/">services/card_api_interface</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_service">
+  <span class="name"><a href="services_card_service/">services/card_service</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="mock_card_api">
+  <span class="name"><a href="services_mock_card_api/">services/mock_card_api</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="app_theme">
+  <span class="name"><a href="theme_app_theme/">theme/app_theme</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="responsive_utils">
+  <span class="name"><a href="utils_responsive_utils/">utils/responsive_utils</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="snackbar_utils">
+  <span class="name"><a href="utils_snackbar_utils/">utils/snackbar_utils</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="card_list_item">
+  <span class="name"><a href="widgets_card_list_item/">widgets/card_list_item</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+        </dl>
+      </section>
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li class="self-crumb">cardmind package</li>
+</ol>
+
+    <h5 class="hidden-xs"><span class="package-name">cardmind</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="bridge_api_card/">bridge/api/card</a></li>
+      <li><a href="bridge_api_device_config/">bridge/api/device_config</a></li>
+      <li><a href="bridge_api_pool/">bridge/api/pool</a></li>
+      <li><a href="bridge_api_sync/">bridge/api/sync</a></li>
+      <li><a href="bridge_frb_generated/">bridge/frb_generated</a></li>
+      <li><a href="bridge_frb_generated.io/">bridge/frb_generated.io</a></li>
+      <li><a href="bridge_frb_generated.web/">bridge/frb_generated.web</a></li>
+      <li><a href="bridge_models_card/">bridge/models/card</a></li>
+      <li><a href="bridge_models_device_config/">bridge/models/device_config</a></li>
+      <li><a href="bridge_models_pool/">bridge/models/pool</a></li>
+      <li><a href="bridge_third_party_cardmind_rust_api_card/">bridge/third_party/cardmind_rust/api/card</a></li>
+      <li><a href="bridge_third_party_cardmind_rust_api_device_config/">bridge/third_party/cardmind_rust/api/device_config</a></li>
+      <li><a href="bridge_third_party_cardmind_rust_api_pool/">bridge/third_party/cardmind_rust/api/pool</a></li>
+      <li><a href="bridge_third_party_cardmind_rust_api_sync/">bridge/third_party/cardmind_rust/api/sync</a></li>
+      <li><a href="main/">main</a></li>
+      <li><a href="providers_card_editor_state/">providers/card_editor_state</a></li>
+      <li><a href="providers_card_provider/">providers/card_provider</a></li>
+      <li><a href="providers_pool_provider/">providers/pool_provider</a></li>
+      <li><a href="providers_sync_provider/">providers/sync_provider</a></li>
+      <li><a href="providers_theme_provider/">providers/theme_provider</a></li>
+      <li><a href="screens_card_detail_screen/">screens/card_detail_screen</a></li>
+      <li><a href="screens_card_editor_screen/">screens/card_editor_screen</a></li>
+      <li><a href="screens_home_screen/">screens/home_screen</a></li>
+      <li><a href="screens_settings_screen/">screens/settings_screen</a></li>
+      <li><a href="screens_sync_screen/">screens/sync_screen</a></li>
+      <li><a href="services_card_api_impl/">services/card_api_impl</a></li>
+      <li><a href="services_card_api_interface/">services/card_api_interface</a></li>
+      <li><a href="services_card_service/">services/card_service</a></li>
+      <li><a href="services_mock_card_api/">services/mock_card_api</a></li>
+      <li><a href="theme_app_theme/">theme/app_theme</a></li>
+      <li><a href="utils_responsive_utils/">utils/responsive_utils</a></li>
+      <li><a href="utils_snackbar_utils/">utils/snackbar_utils</a></li>
+      <li><a href="widgets_card_list_item/">widgets/card_list_item</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div>
+</main>
+<footer>
+  <span class="no-break">
+    cardmind
+      1.0.0+1
+  </span>
+  
+</footer>
+
+
+<script src="static-assets/highlight.pack.js?v1"></script>
+<script src="static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
