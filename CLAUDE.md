@@ -23,7 +23,7 @@
 - Backend: Rust (Loro CRDT + SQLite)
 - Bridge: flutter_rust_bridge
 
-**当前状态**: MVP v1.0.0 ✅, Phase 6R: Spec Coding 重构 🔄
+**架构特点**: 双层架构（Loro CRDT + SQLite）、P2P 同步、离线优先
 
 ---
 

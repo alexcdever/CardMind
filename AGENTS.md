@@ -3,9 +3,8 @@
 ## 项目概述
 
 **CardMind** = Flutter + Rust 离线优先的卡片笔记应用
-- MVP v1.0.0 完成 ✅
-- 当前: Phase 6R - Spec Coding 重构 🔄
 - **核心**: 双层架构 (Loro CRDT → SQLite), P2P 同步 (libp2p)
+- **特点**: 离线优先、CRDT 数据一致性、规范驱动开发
 
 ---
 
