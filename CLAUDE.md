@@ -94,9 +94,9 @@ dart tool/validate_constraints.dart --full # 完整验证（含编译）
 3. 使用 `TodoWrite` 跟踪任务
 
 ### 工作中
-1. **TDD**: 先写测试，再写实现
-2. **Spec Coding**: 使用 `it_should_xxx()` 命名
-3. **遵循约束**: Project Guardian 自动检查
+1. **Spec Coding**: 规格 → 测试 → 代码（使用 `it_should_xxx()` 命名）
+2. **遵循约束**: Project Guardian 自动检查
+3. **运行测试**: 确保所有测试通过
 
 ### 完成后
 1. 标记任务完成: `TodoWrite`
@@ -180,7 +180,7 @@ dart tool/validate_constraints.dart
 
 ### 最佳实践
 1. **规范优先** - 先查规范，再写代码
-2. **TDD** - 先写测试，再写实现
+2. **Spec Coding** - 规格 → 测试 → 代码
 3. **约束自动执行** - 信任 Project Guardian
 4. **文档分层** - 按优先级顺序查看文档
 
