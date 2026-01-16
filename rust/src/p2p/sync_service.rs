@@ -111,8 +111,12 @@ impl P2PSyncService {
     pub fn new(card_store: Arc<Mutex<CardStore>>, device_config: DeviceConfig) -> Result<Self> {
         info!("创建 P2P 同步服务");
 
-        // 1. 创建 P2P 网络
-        let network = P2PNetwork::new()
+        // 1. 检查 mDNS 是否激活
+        let mdns_enabled = device_config.is_mdns_active();
+        info!("mDNS 状态: {}", if mdns_enabled { "启用" } else { "禁用" });
+
+        // 2. 创建 P2P 网络（根据 mDNS 状态）
+        let network = P2PNetwork::new(mdns_enabled)
             .map_err(|e| CardMindError::IoError(format!("Failed to create P2P network: {e}")))?;
 
         // 保存 PeerId 的副本，避免借用问题（PeerId 实现了 Copy）
@@ -279,7 +283,13 @@ impl P2PSyncService {
 
             if let Some(entry) = entry {
                 // 授权检查：使用目标设备的已加入池列表
-                let joined_pools = vec![entry.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
+                let joined_pools = vec![entry
+                    .device_config
+                    .lock()
+                    .unwrap()
+                    .get_pool_id()
+                    .map(|s| s.to_string())
+                    .unwrap_or_default()];
 
                 let sync_data = entry.sync_manager.lock().unwrap().handle_sync_request(
                     &pool_id,
@@ -315,7 +325,13 @@ impl P2PSyncService {
         info!("处理来自 {} 的同步请求: pool={}", peer_id, request.pool_id);
 
         // 验证授权和生成响应
-        let joined_pools = vec![self.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
+        let joined_pools = vec![self
+            .device_config
+            .lock()
+            .unwrap()
+            .get_pool_id()
+            .map(|s| s.to_string())
+            .unwrap_or_default()];
 
         let _sync_data = self.sync_manager.lock().unwrap().handle_sync_request(
             &request.pool_id,
@@ -413,8 +429,13 @@ impl P2PSyncService {
                                 info!("收到来自 {} 的同步请求: pool_id={}", peer, request.pool_id);
 
                                 // 处理同步请求并发送响应
-                                let joined_pools =
-                                    vec![self.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
+                                let joined_pools = vec![self
+                                    .device_config
+                                    .lock()
+                                    .unwrap()
+                                    .get_pool_id()
+                                    .map(|s| s.to_string())
+                                    .unwrap_or_default()];
 
                                 match self.sync_manager.lock().unwrap().handle_sync_request(
                                     &request.pool_id,
@@ -483,7 +504,13 @@ impl P2PSyncService {
         info!("设备 {} 连接成功，触发自动同步", peer_id);
 
         // 获取设备加入的数据池
-        let joined_pools = vec![self.device_config.lock().unwrap().get_pool_id().map(|s| s.to_string()).unwrap_or_default()];
+        let joined_pools = vec![self
+            .device_config
+            .lock()
+            .unwrap()
+            .get_pool_id()
+            .map(|s| s.to_string())
+            .unwrap_or_default()];
 
         for pool_id in joined_pools {
             info!("自动同步数据池 {} 到设备 {}", pool_id, peer_id);

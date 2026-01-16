@@ -19,10 +19,10 @@ use crate::p2p::sync::{SyncRequest, SyncResponse};
 use libp2p::{
     core::upgrade,
     futures::StreamExt,
-    identity, noise,
+    identity, mdns, noise,
     ping::{self, Behaviour as PingBehaviour},
     request_response::{self, ProtocolSupport},
-    swarm::{NetworkBehaviour, SwarmEvent},
+    swarm::{behaviour::toggle::Toggle, NetworkBehaviour, SwarmEvent},
     tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm, Transport,
 };
 use std::error::Error;
@@ -30,7 +30,7 @@ use tracing::{debug, info, warn};
 
 /// P2P 网络行为
 ///
-/// 组合了 Ping 协议和 Request/Response 协议
+/// 组合了 Ping 协议、Request/Response 协议和可选的 mDNS 发现
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "P2PEvent")]
 pub struct P2PBehaviour {
@@ -39,6 +39,9 @@ pub struct P2PBehaviour {
 
     /// Request/Response 协议，用于同步消息
     pub sync: request_response::json::Behaviour<SyncRequest, SyncResponse>,
+
+    /// mDNS 设备发现（可选）
+    pub mdns: Toggle<mdns::tokio::Behaviour>,
 }
 
 /// P2P 网络事件
@@ -50,6 +53,9 @@ pub enum P2PEvent {
 
     /// 同步请求/响应事件
     Sync(request_response::Event<SyncRequest, SyncResponse>),
+
+    /// mDNS 发现事件
+    Mdns(mdns::Event),
 }
 
 impl From<ping::Event> for P2PEvent {
@@ -61,6 +67,12 @@ impl From<ping::Event> for P2PEvent {
 impl From<request_response::Event<SyncRequest, SyncResponse>> for P2PEvent {
     fn from(event: request_response::Event<SyncRequest, SyncResponse>) -> Self {
         Self::Sync(event)
+    }
+}
+
+impl From<mdns::Event> for P2PEvent {
+    fn from(event: mdns::Event) -> Self {
+        Self::Mdns(event)
     }
 }
 
@@ -91,6 +103,10 @@ pub struct P2PNetwork {
 impl P2PNetwork {
     /// 创建新的 P2P 网络实例
     ///
+    /// # 参数
+    ///
+    /// - `mdns_enabled`: 是否启用 mDNS 设备发现
+    ///
     /// # 安全保证
     ///
     /// - 自动生成 Ed25519 密钥对
@@ -100,8 +116,8 @@ impl P2PNetwork {
     /// # Errors
     ///
     /// 如果网络初始化失败，返回错误
-    pub fn new() -> Result<Self, Box<dyn Error>> {
-        info!("初始化 P2P 网络...");
+    pub fn new(mdns_enabled: bool) -> Result<Self, Box<dyn Error>> {
+        info!("初始化 P2P 网络 (mDNS: {})...", mdns_enabled);
 
         // 1. 生成身份密钥对
         let local_key = identity::Keypair::generate_ed25519();
@@ -127,12 +143,30 @@ impl P2PNetwork {
             sync_config,
         );
 
+        // 5. 创建可选的 mDNS 行为
+        let mdns_behaviour = if mdns_enabled {
+            match mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id) {
+                Ok(mdns) => {
+                    info!("mDNS 设备发现已启用");
+                    Some(mdns).into()
+                }
+                Err(e) => {
+                    warn!("mDNS 初始化失败，将禁用: {}", e);
+                    None.into()
+                }
+            }
+        } else {
+            info!("mDNS 设备发现已禁用");
+            None.into()
+        };
+
         let behaviour = P2PBehaviour {
             ping: PingBehaviour::new(ping::Config::new()),
             sync: sync_behaviour,
+            mdns: mdns_behaviour,
         };
 
-        // 5. 创建 Swarm（使用 tokio executor）
+        // 6. 创建 Swarm（使用 tokio executor）
         let swarm = Swarm::new(
             transport,
             behaviour,
@@ -172,7 +206,10 @@ impl P2PNetwork {
         request: SyncRequest,
     ) -> request_response::OutboundRequestId {
         info!("发送同步请求到 {}: pool_id={}", peer_id, request.pool_id);
-        self.swarm.behaviour_mut().sync.send_request(&peer_id, request)
+        self.swarm
+            .behaviour_mut()
+            .sync
+            .send_request(&peer_id, request)
     }
 
     /// 监听指定地址
@@ -265,17 +302,25 @@ impl P2PNetwork {
 mod tests {
     use super::*;
 
-    /// 测试网络初始化
+    /// 测试网络初始化（不启用 mDNS）
     #[test]
     fn test_network_creation() {
-        let network = P2PNetwork::new();
+        let network = P2PNetwork::new(false);
+        assert!(network.is_ok(), "网络初始化应该成功");
+    }
+
+    /// 测试网络初始化（启用 mDNS）
+    #[tokio::test]
+    async fn test_network_creation_with_mdns() {
+        let network = P2PNetwork::new(true);
+        // mDNS 可能因为权限问题失败，但网络应该仍然可以创建
         assert!(network.is_ok(), "网络初始化应该成功");
     }
 
     /// 测试 Peer ID 生成
     #[test]
     fn test_peer_id_generation() {
-        let network = P2PNetwork::new().unwrap();
+        let network = P2PNetwork::new(false).unwrap();
         let peer_id = network.local_peer_id();
         assert!(!peer_id.to_string().is_empty(), "Peer ID 不应为空");
     }
@@ -288,8 +333,8 @@ mod tests {
         use std::time::Duration;
         use tokio::time::timeout;
 
-        // 1. 创建节点 A（监听者）
-        let mut network_a = P2PNetwork::new().expect("节点 A 初始化失败");
+        // 1. 创建节点 A（监听者，不启用 mDNS）
+        let mut network_a = P2PNetwork::new(false).expect("节点 A 初始化失败");
         let peer_a_id = *network_a.local_peer_id();
 
         // 2. 节点 A 开始监听
@@ -311,8 +356,8 @@ mod tests {
         println!("节点 A 监听地址: {}", listen_addr);
         println!("节点 A Peer ID: {}", peer_a_id);
 
-        // 3. 创建节点 B（连接者）
-        let mut network_b = P2PNetwork::new().expect("节点 B 初始化失败");
+        // 3. 创建节点 B（连接者，不启用 mDNS）
+        let mut network_b = P2PNetwork::new(false).expect("节点 B 初始化失败");
         let peer_b_id = *network_b.local_peer_id();
 
         println!("节点 B Peer ID: {}", peer_b_id);

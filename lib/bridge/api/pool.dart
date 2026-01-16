@@ -25,7 +25,7 @@ import '../models/pool.dart';
 /// await initPoolStore(path: '/path/to/storage');
 /// ```
 Future<void> initPoolStore({required String path}) =>
-    RustLib.instance.api.crateApiPoolInitPoolStore(path: path);
+    RustLib.instance.api.cardmindRustApiPoolInitPoolStore(path: path);
 
 /// Create a new data pool
 ///
@@ -44,7 +44,10 @@ Future<void> initPoolStore({required String path}) =>
 /// final pool = await createPool(name: '工作笔记', password: 'mypassword123');
 /// ```
 Future<Pool> createPool({required String name, required String password}) =>
-    RustLib.instance.api.crateApiPoolCreatePool(name: name, password: password);
+    RustLib.instance.api.cardmindRustApiPoolCreatePool(
+      name: name,
+      password: password,
+    );
 
 /// Get all pools
 ///
@@ -58,7 +61,7 @@ Future<Pool> createPool({required String name, required String password}) =>
 /// final pools = await getAllPools();
 /// ```
 Future<List<Pool>> getAllPools() =>
-    RustLib.instance.api.crateApiPoolGetAllPools();
+    RustLib.instance.api.cardmindRustApiPoolGetAllPools();
 
 /// Get a pool by ID
 ///
@@ -80,7 +83,7 @@ Future<List<Pool>> getAllPools() =>
 /// final pool = await getPoolById(poolId: poolId);
 /// ```
 Future<Pool> getPoolById({required String poolId}) =>
-    RustLib.instance.api.crateApiPoolGetPoolById(poolId: poolId);
+    RustLib.instance.api.cardmindRustApiPoolGetPoolById(poolId: poolId);
 
 /// Update a pool's name
 ///
@@ -95,7 +98,10 @@ Future<Pool> getPoolById({required String poolId}) =>
 /// await updatePool(poolId: poolId, name: 'New Name');
 /// ```
 Future<void> updatePool({required String poolId, required String name}) =>
-    RustLib.instance.api.crateApiPoolUpdatePool(poolId: poolId, name: name);
+    RustLib.instance.api.cardmindRustApiPoolUpdatePool(
+      poolId: poolId,
+      name: name,
+    );
 
 /// Delete a pool (soft delete)
 ///
@@ -109,7 +115,7 @@ Future<void> updatePool({required String poolId, required String name}) =>
 /// await deletePool(poolId: poolId);
 /// ```
 Future<void> deletePool({required String poolId}) =>
-    RustLib.instance.api.crateApiPoolDeletePool(poolId: poolId);
+    RustLib.instance.api.cardmindRustApiPoolDeletePool(poolId: poolId);
 
 /// Add a member to a pool
 ///
@@ -128,7 +134,7 @@ Future<void> addPoolMember({
   required String poolId,
   required String deviceId,
   required String deviceName,
-}) => RustLib.instance.api.crateApiPoolAddPoolMember(
+}) => RustLib.instance.api.cardmindRustApiPoolAddPoolMember(
   poolId: poolId,
   deviceId: deviceId,
   deviceName: deviceName,
@@ -149,7 +155,7 @@ Future<void> addPoolMember({
 Future<void> removePoolMember({
   required String poolId,
   required String deviceId,
-}) => RustLib.instance.api.crateApiPoolRemovePoolMember(
+}) => RustLib.instance.api.cardmindRustApiPoolRemovePoolMember(
   poolId: poolId,
   deviceId: deviceId,
 );
@@ -171,7 +177,7 @@ Future<void> updateMemberName({
   required String poolId,
   required String deviceId,
   required String newName,
-}) => RustLib.instance.api.crateApiPoolUpdateMemberName(
+}) => RustLib.instance.api.cardmindRustApiPoolUpdateMemberName(
   poolId: poolId,
   deviceId: deviceId,
   newName: newName,
@@ -198,7 +204,7 @@ Future<void> updateMemberName({
 Future<bool> verifyPoolPassword({
   required String poolId,
   required String password,
-}) => RustLib.instance.api.crateApiPoolVerifyPoolPassword(
+}) => RustLib.instance.api.cardmindRustApiPoolVerifyPoolPassword(
   poolId: poolId,
   password: password,
 );
@@ -221,7 +227,7 @@ Future<bool> verifyPoolPassword({
 Future<void> storePoolPasswordInKeyring({
   required String poolId,
   required String password,
-}) => RustLib.instance.api.crateApiPoolStorePoolPasswordInKeyring(
+}) => RustLib.instance.api.cardmindRustApiPoolStorePoolPasswordInKeyring(
   poolId: poolId,
   password: password,
 );
@@ -247,8 +253,10 @@ Future<void> storePoolPasswordInKeyring({
 /// ```dart
 /// final password = await getPoolPasswordFromKeyring(poolId: poolId);
 /// ```
-Future<String> getPoolPasswordFromKeyring({required String poolId}) =>
-    RustLib.instance.api.crateApiPoolGetPoolPasswordFromKeyring(poolId: poolId);
+Future<String> getPoolPasswordFromKeyring({required String poolId}) => RustLib
+    .instance
+    .api
+    .cardmindRustApiPoolGetPoolPasswordFromKeyring(poolId: poolId);
 
 /// Delete pool password from system keyring
 ///
@@ -267,7 +275,7 @@ Future<String> getPoolPasswordFromKeyring({required String poolId}) =>
 Future<void> deletePoolPasswordFromKeyring({required String poolId}) => RustLib
     .instance
     .api
-    .crateApiPoolDeletePoolPasswordFromKeyring(poolId: poolId);
+    .cardmindRustApiPoolDeletePoolPasswordFromKeyring(poolId: poolId);
 
 /// Check if pool password exists in keyring
 ///
@@ -284,5 +292,7 @@ Future<void> deletePoolPasswordFromKeyring({required String poolId}) => RustLib
 /// ```dart
 /// final hasPassword = await hasPoolPasswordInKeyring(poolId: poolId);
 /// ```
-Future<bool> hasPoolPasswordInKeyring({required String poolId}) =>
-    RustLib.instance.api.crateApiPoolHasPoolPasswordInKeyring(poolId: poolId);
+Future<bool> hasPoolPasswordInKeyring({required String poolId}) => RustLib
+    .instance
+    .api
+    .cardmindRustApiPoolHasPoolPasswordInKeyring(poolId: poolId);

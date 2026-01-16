@@ -82,13 +82,11 @@ pub(crate) fn get_card_store_arc() -> Result<Arc<Mutex<CardStore>>> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn create_card(title: String, content: String) -> Result<Card> {
-
     let store = get_store()?;
     let mut store = store.lock().unwrap();
 
     // Create the card
     let card = store.create_card(title, content)?;
-
 
     Ok(card)
 }
@@ -321,7 +319,6 @@ pub fn clear_card_pools(card_id: String) -> Result<()> {
     store.clear_card_pools(&card_id)
 }
 */
-
 // ==================== Test Functions ====================
 
 /// Test function to verify Flutter-Rust bridge is working

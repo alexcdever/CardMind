@@ -1,6 +1,6 @@
 //! SP-SPM-001: Single Pool Model Specification Tests
 //!
-//! Implementation of the core single pool model specs from 
+//! Implementation of the core single pool model specs from
 //! specs/rust/single_pool_model_spec.md
 //!
 //! Test Naming: it_should_[behavior]_when_[condition]()
@@ -41,7 +41,10 @@ fn it_should_reject_joining_second_pool_when_already_joined() {
 
     // Then: Err(AlreadyJoinedPoolError), pool_id unchanged
     assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), DeviceConfigError::InvalidOperationError(_)));
+    assert!(matches!(
+        result.unwrap_err(),
+        DeviceConfigError::InvalidOperationError(_)
+    ));
     assert_eq!(config.pool_id, Some("pool_A".to_string()));
 }
 
@@ -73,10 +76,10 @@ fn it_should_auto_join_current_pool_when_creating_card() {
 
     // When: 创建第一张卡片
     // (This would be implemented in the actual card creation logic)
-    
+
     // Then: 卡片自动关联到池
     // (This would be verified through the card's pool_id field)
-    
+
     // Note: This test requires the full card creation system
     // For now, we verify the config state
     assert_eq!(config.pool_id, Some("pool_A".to_string()));
@@ -89,22 +92,22 @@ fn it_should_auto_join_current_pool_when_creating_card() {
 fn it_should_enforce_single_pool_constraint_across_operations() {
     // Given: 新设备
     let mut config = create_test_config();
-    
+
     // When: 正常加入第一个池
     let result1 = config.join_pool("pool-001");
     assert!(result1.is_ok());
     assert_eq!(config.pool_id, Some("pool-001".to_string()));
-    
+
     // When: 尝试加入第二个池
     let result2 = config.join_pool("pool-002");
     assert!(result2.is_err());
-    
+
     // Then: 仍然保持第一个池
     assert_eq!(config.pool_id, Some("pool-001".to_string()));
-    
+
     // When: 离开当前池
     config.leave_pool("pool-001").unwrap();
-    
+
     // Then: 可以加入新池
     let result3 = config.join_pool("pool-002");
     assert!(result3.is_ok());

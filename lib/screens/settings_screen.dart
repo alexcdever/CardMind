@@ -47,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (_mdnsActive && _remainingMs > 0) {
         _startCountdown();
       }
-    } catch (e) {
+    } on Exception {
       if (!mounted) return;
       setState(() => _isLoading = false);
     }
@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!_mdnsActive) {
         _countdownTimer?.cancel();
       }
-    } catch (e) {
+    } on Exception {
       // Ignore errors during refresh
     }
   }
@@ -91,7 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await enableMdnsTemporary();
       await _refreshMdnsState();
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -103,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await cancelMdnsTimer();
       await _refreshMdnsState();
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -204,12 +204,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 /// mDNS discovery tile widget
 class _MdnsTile extends StatelessWidget {
-  final bool isLoading;
-  final bool isActive;
-  final String? remainingText;
-  final VoidCallback onEnable;
-  final VoidCallback onDisable;
-
   const _MdnsTile({
     required this.isLoading,
     required this.isActive,
@@ -217,6 +211,12 @@ class _MdnsTile extends StatelessWidget {
     required this.onEnable,
     required this.onDisable,
   });
+
+  final bool isLoading;
+  final bool isActive;
+  final String? remainingText;
+  final VoidCallback onEnable;
+  final VoidCallback onDisable;
 
   @override
   Widget build(BuildContext context) {

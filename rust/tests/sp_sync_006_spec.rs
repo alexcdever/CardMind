@@ -122,16 +122,11 @@ fn it_should_handle_concurrent_status_requests() {
     let handles: Vec<_> = (0..5)
         .map(|_| {
             let service_clone = service.clone();
-            std::thread::spawn(move || {
-                service_clone.get_sync_status()
-            })
+            std::thread::spawn(move || service_clone.get_sync_status())
         })
         .collect();
 
-    let results: Vec<_> = handles
-        .into_iter()
-        .map(|h| h.join().unwrap())
-        .collect();
+    let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
 
     // Then: 所有请求应成功
     assert_eq!(results.len(), 5, "所有线程应完成");

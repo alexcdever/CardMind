@@ -180,8 +180,10 @@ async fn it_should_pool_sync_between_services() {
     let _ = device_config_b.join_pool("pool-001");
 
     // 创建同步服务（注册到本地模拟网络）
-    let service_a = P2PSyncService::new_with_mock_network(card_store_a.clone(), device_config_a).unwrap();
-    let mut service_b = P2PSyncService::new_with_mock_network(card_store_b.clone(), device_config_b).unwrap();
+    let service_a =
+        P2PSyncService::new_with_mock_network(card_store_a.clone(), device_config_a).unwrap();
+    let mut service_b =
+        P2PSyncService::new_with_mock_network(card_store_b.clone(), device_config_b).unwrap();
 
     // B 请求与 A 同步指定数据池
     service_b
