@@ -1,0 +1,250 @@
+# Project Guardian Configuration for CardMind
+# 自动约束注入配置 - 防止LLM幻觉和架构违规
+
+[project]
+name = "CardMind"
+type = "flutter-rust"
+description = "Card-based note-taking app with offline-first design and P2P sync"
+
+# ============================================================================
+# 代码编辑约束 - Code Edit Constraints
+# ============================================================================
+
+[constraints.code_edit]
+# 所有代码编辑前必须执行的命令
+pre_edit_commands = []
+
+# ============================================================================
+# Rust 代码约束
+# ============================================================================
+
+[constraints.code_edit.rust]
+architecture_doc = "docs/architecture/system_design.md"
+
+# 禁止模式 - Forbidden Patterns
+forbidden_patterns = [
+  { pattern = "unwrap\\(\\)", message = "❌ 禁止使用 unwrap()，使用 ? 或 match 处理错误" },
+  { pattern = "expect\\(", message = "❌ 禁止使用 expect()，使用 ? 或 match 处理错误" },
+  { pattern = "panic!", message = "❌ 禁止在生产代码中使用 panic!，使用 Result 返回错误" },
+  { pattern = "sqlite.*execute.*UPDATE.*cards", message = "❌ 禁止直接更新 SQLite cards 表，必须通过 Loro CRDT 修改" },
+  { pattern = "sqlite.*execute.*INSERT.*cards", message = "❌ 禁止直接插入 SQLite cards 表，必须通过 Loro CRDT 创建" },
+  { pattern = "sqlite.*execute.*DELETE.*cards", message = "❌ 禁止直接删除 SQLite cards 表，必须通过 Loro 软删除" },
+  { pattern = "todo!", message = "❌ 禁止提交包含 todo!() 的代码" },
+  { pattern = "unimplemented!", message = "❌ 禁止提交包含 unimplemented!() 的代码" },
+  { pattern = "\\.clone\\(\\)\\.clone\\(\\)", message = "❌ 避免多次 clone，考虑使用引用或重构" },
+]
+
+# 必须包含的模式 - Required Patterns
+required_patterns = [
+  { pattern = "Result<.*,.*Error>", message = "✅ API 函数必须返回 Result 类型" },
+  { pattern = "#\\[derive\\(.*Debug", message = "✅ 数据模型必须实现 Debug trait" },
+  { pattern = "loro_doc\\.commit\\(\\)", message = "✅ 修改 Loro 后必须调用 commit()" },
+]
+
+# 验证命令 - Validation Commands
+validation_commands = [
+  "cd rust && cargo check",
+  "cd rust && cargo clippy --all-targets --all-features -- -D warnings",
+  "cd rust && cargo test --all-features",
+]
+
+# ============================================================================
+# Dart/Flutter 代码约束
+# ============================================================================
+
+[constraints.code_edit.dart]
+architecture_doc = "docs/interaction/ui_design_system.md"
+
+# 禁止模式
+forbidden_patterns = [
+  { pattern = "print\\(", message = "❌ 使用 debugPrint() 或 logger，不要使用 print()" },
+  { pattern = "TODO:", message = "❌ 禁止提交包含 TODO 注释的代码" },
+  { pattern = "FIXME:", message = "❌ 禁止提交包含 FIXME 注释的代码" },
+]
+
+# 必须包含的模式
+required_patterns = [
+  { pattern = "const.*\\{Key\\? key\\}", message = "✅ Widget 构造函数必须有 key 参数" },
+  { pattern = "if \\(!mounted\\) return", message = "✅ 异步操作后必须检查 mounted 状态" },
+]
+
+# 验证命令
+validation_commands = [
+  "flutter analyze",
+  "flutter test",
+  "dart tool/check_lint.dart",
+]
+
+# ============================================================================
+# 文档编辑约束 - Document Edit Constraints
+# ============================================================================
+
+[constraints.document_edit]
+# 文档编辑前的检查
+pre_edit_commands = []
+
+# 文档验证命令
+validation_commands = []
+
+# 文档编辑规则
+[[constraints.document_edit.rules]]
+pattern = "docs/architecture/.*\\.md"
+message = "架构文档修改需要同步更新 ADR"
+
+[[constraints.document_edit.rules]]
+pattern = "openspec/specs/.*\\.md"
+message = "Spec 修改需要同步更新对应的测试代码"
+
+# ============================================================================
+# 命令执行约束 - Command Execution Constraints
+# ============================================================================
+
+[constraints.command_execution]
+
+# 允许的命令（带超时限制）
+allowed_commands = [
+  { command = "dart tool/fix_lint.dart", max_duration = "60s" },
+  { command = "dart tool/check_lint.dart", max_duration = "30s" },
+  { command = "dart tool/generate_bridge.dart", max_duration = "120s" },
+  { command = "cd rust && cargo test", max_duration = "300s" },
+  { command = "cd rust && cargo check", max_duration = "120s" },
+  { command = "cd rust && cargo clippy", max_duration = "180s" },
+  { command = "flutter test", max_duration = "180s" },
+  { command = "flutter analyze", max_duration = "60s" },
+  { command = "cargo doc --open", max_duration = "120s" },
+]
+
+# 禁止的命令
+forbidden_commands = [
+  "rm -rf /",
+  "rm -rf .*",
+  "git reset --hard",
+  "git push --force",
+  "flutter clean && rm -rf",
+  "cargo clean && rm -rf",
+]
+
+# 需要人工确认的命令
+require_confirmation = [
+  "git push.*",
+  "dart tool/build_all.dart.*--clean",
+  "flutter pub upgrade",
+  "cargo update",
+]
+
+# ============================================================================
+# 提交约束 - Submission Constraints
+# ============================================================================
+
+[constraints.submission]
+
+# 提交前必须完成的检查清单
+required_checklist = [
+  "✅ 所有验证命令通过（0 错误，0 警告）",
+  "✅ 测试覆盖率 >80%（新代码）",
+  "✅ 没有绕过 Loro 直接写 SQLite",
+  "✅ 没有使用 unwrap()、expect()、panic!()",
+  "✅ 所有 API 函数返回 Result 类型",
+  "✅ 架构文档已更新（如果修改架构）",
+  "✅ Spec 文档已更新（如果修改 API）",
+  "✅ 没有提交 TODO/FIXME 注释",
+]
+
+# 是否需要人工审查
+require_human_review = false
+
+# ============================================================================
+# 经验库 - Experience Database
+# ============================================================================
+
+[experience]
+anti_patterns_file = ".project-guardian/anti-patterns.md"
+best_practices_file = ".project-guardian/best-practices.md"
+failure_log = ".project-guardian/failures.log"
+
+# ============================================================================
+# 项目特定规则 - Project-Specific Rules
+# ============================================================================
+
+[rules]
+
+# 数据层规则
+[[rules.data_layer]]
+name = "Loro 优先原则"
+description = "所有数据写入必须通过 Loro CRDT，SQLite 仅作为查询缓存"
+enforcement = "strict"
+violation_action = "block"
+
+[[rules.data_layer]]
+name = "订阅驱动更新"
+description = "SQLite 更新必须通过 Loro 订阅回调触发，不能直接修改"
+enforcement = "strict"
+violation_action = "block"
+
+[[rules.data_layer]]
+name = "UUID v7 标准"
+description = "所有 ID 必须使用 UUID v7（时间排序）"
+enforcement = "strict"
+violation_action = "block"
+
+# 测试规则
+[[rules.testing]]
+name = "TDD 原则"
+description = "先写测试再写实现（Red-Green-Refactor）"
+enforcement = "recommended"
+violation_action = "warn"
+
+[[rules.testing]]
+name = "Spec Coding"
+description = "测试函数使用 it_should_xxx() 命名风格"
+enforcement = "recommended"
+violation_action = "warn"
+
+# 文档规则
+[[rules.documentation]]
+name = "Spec 优先"
+description = "API 变更必须先更新 Spec 文档"
+enforcement = "strict"
+violation_action = "block"
+
+[[rules.documentation]]
+name = "ADR 记录"
+description = "架构决策必须记录在 ADR 中"
+enforcement = "recommended"
+violation_action = "warn"
+
+# ============================================================================
+# 自动修复配置 - Auto-Fix Configuration
+# ============================================================================
+
+[auto_fix]
+enabled = true
+max_attempts = 3
+
+# 可自动修复的问题类型
+fixable_issues = [
+  "lint_errors",
+  "format_issues",
+  "missing_imports",
+]
+
+# 不可自动修复的问题（需要人工介入）
+manual_fix_required = [
+  "architecture_violations",
+  "logic_errors",
+  "test_failures",
+]
+
+# ============================================================================
+# 通知配置 - Notification Configuration
+# ============================================================================
+
+[notifications]
+# 验证失败时的通知级别
+validation_failure = "error"
+
+# 警告级别的通知
+warning_level = "warn"
+
+# 成功时是否通知
+notify_on_success = true

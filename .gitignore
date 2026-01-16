@@ -92,3 +92,7 @@ desktop.ini
 .claude/
 specs/*
 !specs/*.md
+
+# Project Guardian
+.project-guardian/failures.log
+.project-guardian/*.tmp

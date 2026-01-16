@@ -6,13 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **New to this project?** Start here:
 1. Read [Product Vision](docs/requirements/product_vision.md) - What is CardMind?
-2. Check [TODO.md](TODO.md) - What needs to be done now?
-3. Review [System Design](docs/architecture/system_design.md) - How is it built?
+2. Review [System Design](docs/architecture/system_design.md) - How is it built?
+3. ⭐ **NEW**: Check [OpenSpec Center](openspec/specs/) - What should be implemented?
+4. Run `cargo doc --open` for implementation details
 
 **Working on a task?**
-- Update [TODO.md](TODO.md) using the `TodoWrite` tool
+- 🛡️ **Project Guardian is active** - Constraints auto-enforced
+- Use `TodoWrite` tool to track progress
 - Follow TDD principles (write tests first)
 - Run `cargo doc --open` for implementation details
+- Validate constraints: `dart tool/validate_constraints.dart`
 
 ---
 
@@ -24,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **CRDT** data consistency (Loro)
 - **Dual-layer** architecture (Loro + SQLite)
 
-**Current Status**: MVP v1.0.0 completed ✅, P2P sync in progress 🔄
+**Current Status**: MVP v1.0.0 completed ✅, Phase 6R: Spec Coding Refactoring 🔄
 
 **Tech Stack**:
 - Frontend: Flutter 3.x
@@ -39,66 +42,69 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CardMind uses a **layered documentation system**. Always consult the right layer:
 
-### [Management Docs] - Time & Progress
-Track what's being done and when:
+```
+Layer Priority (When in doubt, check in this order):
+  1. openspec/specs/    ← API specifications (what)
+  2. openspec/specs/adr/ ← Architecture decisions (why)
+  3. docs/architecture/ ← System principles (rules)
+  4. docs/requirements/ ← Product goals (intent)
+```
 
-- **[TODO.md](TODO.md)** ← Update this frequently!
-  - Current tasks (AI-writable)
-  - Pending work
-  - Completed items
+### [Specs] - API Specifications ⭐ NEW
 
-- **[docs/roadmap.md](docs/roadmap.md)**
-  - Version planning (v1.0, v2.0...)
-  - Milestones
-  - Priorities
+**What**: Testable API definitions and behavior contracts
 
-- **[CHANGELOG.md](CHANGELOG.md)**
-  - Release history
-  - Version changes
-  - Feature additions and bug fixes
+| Category | Location | Content |
+|----------|----------|---------|
+| Rust Backend | `openspec/specs/rust/` | 8 specs (SP-TYPE-000 ~ SP-SYNC-006) |
+| Flutter UI | `openspec/specs/flutter/` | 3 specs (SP-FLUT-003/007/008) |
+| Guides | `openspec/specs/` | SPEC_CODING_GUIDE.md, SPEC_CODING_SUMMARY.md |
 
-### [Design Docs] - Architecture & Rules
-Understand "why" and "what":
+**Key Files**:
+- `openspec/specs/README.md` - Spec center index
+- `openspec/specs/SPEC_CODING_GUIDE.md` - Implementation guide
+- `openspec/specs/rust/single_pool_model_spec.md` - SP-SPM-001
+- `openspec/specs/rust/sync_spec.md` - SP-SYNC-006
+- `rust/tests/sp_*_spec.rs` - Executable spec tests (3 files)
 
-#### Requirements Layer - Product Goals
-- [Product Vision](docs/requirements/product_vision.md) - What & why
-- [User Scenarios](docs/requirements/user_scenarios.md) - How users use it (Note: may be incomplete)
-- [Business Rules](docs/requirements/business_rules.md) - Domain logic (Note: may be incomplete)
-- [Success Metrics](docs/requirements/success_metrics.md) - Definition of done (Note: may be incomplete)
+**Spec Coverage**: 11 functional specs + 5 ADRs
 
-#### Interaction Layer - User Experience
-- [UI Flows](docs/interaction/ui_flows.md) - Screen flows (Note: may be incomplete)
-- [Feedback Design](docs/interaction/feedback_design.md) - User feedback (Note: may be incomplete)
-- [Information Architecture](docs/interaction/information_arch.md) - Navigation (Note: may be incomplete)
-- [Accessibility](docs/interaction/accessibility.md) - A11y requirements (Note: may be incomplete)
+### [ADRs] - Architecture Decision Records ⭐ NEW
 
-#### Architecture Layer - System Design
-- **[System Design](docs/architecture/system_design.md)** ← Read this first!
-  - Dual-layer architecture
-  - Data flow principles
-  - Layer responsibilities
+**Why**: Design decisions with context, alternatives, and trade-offs
 
-- [Data Contract](docs/architecture/data_contract.md) - Data schemas
-- [Layer Separation](docs/architecture/layer_separation.md) - Code organization
-- [Sync Mechanism](docs/architecture/sync_mechanism.md) - How data syncs
-- [Tech Constraints](docs/architecture/tech_constraints.md) - Why these technologies?
+| ADR | Topic | Content |
+|-----|-------|---------|
+| 0001 | Single Pool Ownership | Why single pool model? |
+| 0002 | Dual-Layer Architecture | Why Loro + SQLite? |
+| 0003 | Tech Constraints | Why these technologies? |
+| 0004 | UI Design | Why this design system? |
+| 0005 | Logging | Why tracing/logger? Log levels, standards |
 
-### [Implementation Guides] - How to Code
-Point to code and tools:
+**Location**: `openspec/specs/adr/`
 
-- **[Rust Doc Guide](docs/implementation/rust_doc_guide.md)** - Documentation standards
-  - Run `cargo doc --open` to see API docs
-  - Implementation details live in code, not markdown
+### [Architecture] - System Design
 
-- [Testing Guide](docs/implementation/testing_guide.md) - TDD methodology
-- [Build Guide](tool/BUILD_GUIDE.md) - How to build
-- [Logging Guide](docs/implementation/logging.md) - Logging standards
+**Rules**: Invariant principles and constraints
 
-### [Reference Docs] - Look Up Info
-- [Documentation Index](docs/index/readme.md) - Navigate all docs
-- [Glossary](docs/index/glossary.md) - Term definitions
-- [User Guide](docs/user_guide.md) - For end users
-- [FAQ](docs/faq.md) - Common questions
+| Doc | Content |
+|-----|---------|
+| [System Design](docs/architecture/system_design.md) | Dual-layer principles, constraints |
+| [Sync Mechanism](docs/architecture/sync_mechanism.md) | Subscription-driven updates |
+
+### [Requirements] - Product Goals
+
+| Doc | Content |
+|-----|---------|
+| [Product Vision](docs/requirements/product_vision.md) | What & why |
+| [Roadmap](docs/roadmap.md) | Version planning |
+
+### [Implementation] - How to Code
+
+| Doc | Content |
+|-----|---------|
+| [Build Guide](tool/BUILD_GUIDE.md) | How to build |
+| [Logging Guide](docs/implementation/logging.md) | Logging standards |
 
 ---
 
@@ -137,13 +143,14 @@ Point to code and tools:
 3. ✅ Loro commits trigger subscriptions → update SQLite
 4. ✅ SQLite can be rebuilt from Loro anytime
 
-Details: [System Design](docs/architecture/system_design.md)
+**Details**: [System Design](docs/architecture/system_design.md)
+**Decisions**: [ADR-0002](openspec/specs/adr/0002-dual-layer-architecture.md)
 
 ### Rust Module Structure
 
 ```
 rust/src/
-├── api/           # Flutter Rust Bridge API layer (11 functions)
+├── api/           # Flutter Rust Bridge API layer
 │   ├── card.rs    # Card CRUD operations
 │   ├── pool.rs    # Data pool management
 │   ├── device_config.rs  # Device configuration
@@ -155,47 +162,48 @@ rust/src/
 │   ├── card.rs    # Card, CardMetadata
 │   ├── pool.rs    # DataPool, PoolMember
 │   └── error.rs   # AppError types
-├── p2p/           # P2P networking (Phase 6)
+├── p2p/           # P2P networking
 │   ├── network.rs        # libp2p transport layer
 │   ├── discovery.rs      # mDNS peer discovery
-│   ├── sync.rs           # Sync protocol messages
+│   ├── sync.rs           # Sync protocol
 │   ├── sync_manager.rs   # Loro sync coordination
 │   ├── sync_service.rs   # P2P sync service
 │   └── multi_peer_sync.rs # Multi-device coordinator
 ├── security/      # Security primitives
 │   ├── password.rs       # bcrypt hashing
 │   └── keyring_store.rs  # Secure password storage
-└── utils/         # Utilities (logging, etc.)
+└── utils/         # Utilities
 ```
 
-**Key Design Patterns**:
-- **Thread-local storage** for API layer to handle SQLite thread safety
-- **Subscription callbacks** for Loro → SQLite synchronization
-- **Mock vs real network** in P2P tests (use `new_with_mock_network()` for testing)
+**Spec References**:
+- API specs: `openspec/specs/rust/api_spec.md`
+- Card model: `openspec/specs/rust/single_pool_model_spec.md`
+- Sync specs: `openspec/specs/rust/sync_spec.md`
 
 ---
 
 ## 🔧 Development Workflow
 
 ### Before Starting Work
-1. Check [TODO.md](TODO.md) for current tasks
-2. Use `TodoWrite` tool to mark task as `in_progress`
-3. Review relevant design docs
+1. Review relevant specs in `openspec/specs/`
+2. Check ADRs if design context needed
+3. Use `TodoWrite` tool to track tasks
 
 ### While Working
 1. **Write tests first** (TDD - Red, Green, Refactor)
-2. **Run checks**:
+2. **Follow Spec Coding**: Use `it_should_do_something()` naming
+3. **Run checks**:
    ```bash
    flutter analyze  # Must pass
    cargo check      # Must pass
    cargo clippy     # Zero warnings
    ```
-3. **Update TODO.md** when completing tasks
 
 ### After Completing Work
-1. Mark task as `completed` in TODO.md
+1. Mark task as `completed` using `TodoWrite`
 2. Update `docs/roadmap.md` if milestone reached
-3. Update architecture docs if design changed
+3. Update specs if API changed (add test cases)
+4. Document new decisions in ADRs
 
 ---
 
@@ -216,14 +224,19 @@ dart tool/generate_bridge.dart
 
 ### Test
 ```bash
-# Rust tests (all)
-cd rust && cargo test
+# All Rust tests (run from rust/ directory)
+cargo test
+
+# Run spec tests (NEW 2026-01-14)
+cargo test --test sp_spm_001_spec
+cargo test --test sp_sync_006_spec
+cargo test --test sp_mdns_001_spec
 
 # Run single Rust test
-cd rust && cargo test test_name
+cargo test test_name
 
 # Run specific test file
-cd rust && cargo test --test sync_integration_test
+cargo test --test sync_integration_test
 
 # Flutter tests
 flutter test
@@ -232,10 +245,13 @@ flutter test
 ### Documentation
 ```bash
 # Generate Rust API docs
-cd rust && cargo doc --open
+cargo doc --open
 
-# View documentation index
-open docs/index/readme.md
+# View spec center
+cat openspec/specs/README.md
+
+# View Project Guardian config
+cat project-guardian.toml
 ```
 
 ### Code Quality
@@ -247,7 +263,13 @@ dart tool/fix_lint.dart
 dart tool/check_lint.dart
 
 # Rust linting
-cd rust && cargo clippy
+cargo clippy
+
+# Validate Project Guardian constraints
+dart tool/validate_constraints.dart
+
+# Full validation (includes compilation)
+dart tool/validate_constraints.dart --full
 ```
 
 See [Build Guide](tool/BUILD_GUIDE.md) for details.
@@ -255,6 +277,8 @@ See [Build Guide](tool/BUILD_GUIDE.md) for details.
 ---
 
 ## ⚠️ Critical Constraints
+
+🛡️ **Project Guardian Active** - All constraints are automatically enforced via `project-guardian.toml`
 
 ### Data Layer Rules
 - **NEVER write to SQLite directly** - only Loro writes, subscriptions update SQLite
@@ -265,13 +289,23 @@ See [Build Guide](tool/BUILD_GUIDE.md) for details.
 ### Development Rules
 - **Write tests first** (TDD required)
 - **Test coverage > 80%** (hard requirement)
+- **New code requires spec tests** (`it_should_xxx()` style)
 - **Never bypass Loro** for data changes
 - **SQLite is read-only** from app perspective
+
+### Code Quality Rules (Auto-enforced)
+- **No `unwrap()` or `expect()`** - use `?` or `match`
+- **No `panic!()`** - return `Result` types
+- **No `print()`** in Dart - use `debugPrint()`
+- **No TODO/FIXME** in committed code
+- **All API functions return `Result<T, Error>`**
 
 ### File Organization
 - Each card = one LoroDoc file
 - Path: `data/loro/<base64(uuid)>/snapshot.loro` and `update.loro`
 - Never use a single shared LoroDoc for all cards
+
+**See**: `project-guardian.toml` for complete constraint definitions
 
 ---
 
@@ -280,33 +314,81 @@ See [Build Guide](tool/BUILD_GUIDE.md) for details.
 | Task | Look Here |
 |------|-----------|
 | Understand the product | [Product Vision](docs/requirements/product_vision.md) |
-| See current work | [TODO.md](TODO.md) |
 | Understand architecture | [System Design](docs/architecture/system_design.md) |
-| Learn data schemas | [Data Contract](docs/architecture/data_contract.md) |
-| Write tests | [Testing Guide](docs/implementation/testing_guide.md) |
+| Understand design decisions | Check `openspec/specs/adr/` |
+| Find API specs | Check `openspec/specs/` |
+| Write tests | [Spec Coding Guide](openspec/specs/SPEC_CODING_GUIDE.md) |
 | Build the app | [Build Guide](tool/BUILD_GUIDE.md) |
-| Add Rust docs | [Rust Doc Guide](docs/implementation/rust_doc_guide.md) |
-| Find term meanings | See "Core Terminology" below |
+| Check logging standards | [Logging Guide](docs/implementation/logging.md) |
+| **View constraints** | `project-guardian.toml` |
+| **Best practices** | `.project-guardian/best-practices.md` |
+| **Anti-patterns** | `.project-guardian/anti-patterns.md` |
+
+---
+
+## 🛡️ Project Guardian
+
+**What**: Automatic constraint enforcement system that prevents LLM hallucinations and architecture violations.
+
+**Key Files**:
+- `project-guardian.toml` - Main configuration (250 lines)
+- `.project-guardian/README.md` - Usage guide
+- `.project-guardian/best-practices.md` - 11 recommended patterns
+- `.project-guardian/anti-patterns.md` - 11 common mistakes
+- `.project-guardian/failures.log` - Violation history
+
+**Quick Commands**:
+```bash
+# Validate constraints
+dart tool/validate_constraints.dart
+
+# Full validation (with compilation)
+dart tool/validate_constraints.dart --full
+
+# Rust only
+dart tool/validate_constraints.dart --rust-only
+
+# Dart only
+dart tool/validate_constraints.dart --dart-only
+```
+
+**How It Works**:
+1. LLM reads `project-guardian.toml` at conversation start
+2. Constraints are auto-injected based on operation type
+3. Code is checked against forbidden/required patterns
+4. Validation commands run automatically
+5. Violations are logged to `.project-guardian/failures.log`
+
+**Constraint Categories**:
+- **Rust Code**: No unwrap/panic, must use Result, must commit Loro
+- **Dart Code**: No print(), must check mounted, must have key param
+- **Commands**: Forbidden dangerous commands, require confirmation for risky ops
+- **Submission**: 8-item checklist before commit
+
+**See**: `.project-guardian/README.md` for complete documentation
 
 ---
 
 ## 🤖 AI Usage Guidelines
 
 ### When Starting a New Conversation
-1. Read `TODO.md` - what's the current status?
-2. Check relevant design docs for context
-3. Use `TodoWrite` to mark task as `in_progress`
+1. Check `openspec/specs/README.md` - what specs exist?
+2. Check relevant ADRs in `openspec/specs/adr/` - understand design decisions
+3. Review [System Design](docs/architecture/system_design.md) - understand architecture
+4. Use `TodoWrite` to track tasks if needed
 
 ### When Implementing Features
-1. **Check requirements first** - [requirements/](docs/requirements/)
-2. **Understand the architecture** - [architecture/](docs/architecture/)
-3. **Follow TDD** - write tests first
-4. **Update TODO.md** - track progress
+1. **Check specs first** - `openspec/specs/rust/*.md`, `openspec/specs/flutter/*.md`
+2. **Check ADRs for context** - `openspec/specs/adr/*.md`
+3. **Understand architecture** - `docs/architecture/system_design.md`
+4. **Follow TDD** - write spec tests first (`it_should_xxx()` naming)
 5. **Check implementation details** - run `cargo doc --open`
 
 ### When Stuck
-- Architecture unclear? → [System Design](docs/architecture/system_design.md)
-- Requirements unclear? → [Product Vision](docs/requirements/product_vision.md)
+- What to implement? → `openspec/specs/`
+- Why this design? → `openspec/specs/adr/`
+- Architecture unclear? → `docs/architecture/system_design.md`
+- Requirements unclear? → `docs/requirements/product_vision.md`
 - Implementation unclear? → `cargo doc --open`
 - Not sure about priority? → [roadmap.md](docs/roadmap.md)
 
@@ -327,17 +409,24 @@ See [CHANGELOG.md](CHANGELOG.md) for release details.
 
 ## 🚀 Current Focus (2026-01)
 
-**Phase 6: P2P Sync Implementation** (100% complete) ✅
+**Phase 6R: Single Pool Model Refactoring + Spec Coding** 🔄
 
-All core features implemented:
-- ✅ libp2p request-response protocol
-- ✅ P2P sync service with dual-mode support (real/mock network)
-- ✅ Flutter UI and Provider integration
-- ✅ Complete test coverage (128 tests passing)
+- ✅ Spec Coding infrastructure: 11 functional specs + 5 ADRs
+- ✅ Spec tests: 3 executable tests (sp_spm_001_spec, sp_sync_006_spec, sp_mdns_001_spec)
+- 🔄 Remaining: Implement remaining specs, add more tests
 
-**Next Steps**: Optional features (Search, Tags, Import/Export)
+**Spec Center**:
+- `openspec/specs/` - 11 functional specs + 5 ADRs
+- `rust/tests/sp_*_spec.rs` - 3 executable spec tests
 
-See [TODO.md](TODO.md) and [roadmap.md](docs/roadmap.md) for details.
+**ADRs**:
+- `openspec/specs/adr/0001-single-pool-ownership.md` - Single pool model
+- `openspec/specs/adr/0002-dual-layer-architecture.md` - Dual-layer architecture
+- `openspec/specs/adr/0003-tech-constraints.md` - Technology choices
+- `openspec/specs/adr/0004-ui-design.md` - UI design decisions
+- `openspec/specs/adr/0005-logging.md` - Logging system decisions
+
+See [roadmap.md](docs/roadmap.md) for details.
 
 ---
 
@@ -378,22 +467,27 @@ See [TODO.md](TODO.md) and [roadmap.md](docs/roadmap.md) for details.
 **TDD** (Test-Driven Development)
 - 先写测试再写实现：Red (失败) → Green (通过) → Refactor (重构)
 
+**Spec Coding**
+- 测试即规格，规格即文档
+- 使用 `it_should_do_something_when()` 命名
+
 **P2P** (Peer-to-Peer)
-- 点对点网络，设备间直接通信，无需中央服务器（Phase 2）
+- 点对点网络，设备间直接通信，无需中央服务器
 
 **libp2p**
-- 模块化 P2P 网络协议栈，CardMind 用于设备发现和数据传输（Phase 2）
+- 模块化 P2P 网络协议栈，CardMind 用于设备发现和数据传输
 
 ---
 
 ## 📌 Important Notes
 
 ### Documentation Philosophy
-1. **Design docs are stable** - describe "what" and "why", not "how"
-2. **Implementation details in code** - use `cargo doc` for "how"
-3. **Management docs updated frequently** - TODO.md, roadmap.md
-4. **Never duplicate code in markdown** - point to `cargo doc` instead
+1. **Specs are primary** - define "what" and "how" (testable)
+2. **ADRs explain "why"** - design decisions with trade-offs
+3. **Architecture docs describe rules** - invariant principles
+4. **Implementation details in code** - use `cargo doc` for "how"
+5. **Never duplicate code in markdown** - point to specs or code instead
 
 ---
 
-*Last updated: 2026-01-08*
+*Last updated: 2026-01-16*
