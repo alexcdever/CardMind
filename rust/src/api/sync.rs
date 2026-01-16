@@ -32,6 +32,21 @@ fn put_sync_service(service: P2PSyncService) {
     });
 }
 
+/// 同步状态枚举
+///
+/// 定义同步的 4 种状态
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SyncState {
+    /// 未连接到任何对等设备
+    Disconnected,
+    /// 正在同步数据
+    Syncing,
+    /// 同步完成，数据一致
+    Synced,
+    /// 同步失败
+    Failed,
+}
+
 /// 同步状态（用于 Flutter 桥接）
 ///
 /// # flutter_rust_bridge 注解
@@ -39,22 +54,103 @@ fn put_sync_service(service: P2PSyncService) {
 /// 这个结构体会被自动转换为 Dart 类
 #[derive(Debug, Clone)]
 pub struct SyncStatus {
-    /// 在线设备数
+    /// 当前同步状态
+    pub state: SyncState,
+
+    /// 正在同步的对等设备数量
+    pub syncing_peers: i32,
+
+    /// 最后一次同步时间（Unix 时间戳，毫秒）
+    pub last_sync_time: Option<i64>,
+
+    /// 错误信息（仅在 Failed 状态时有值）
+    pub error_message: Option<String>,
+
+    /// 在线设备数（保留兼容性）
     pub online_devices: i32,
 
-    /// 同步中设备数
+    /// 同步中设备数（保留兼容性）
     pub syncing_devices: i32,
 
-    /// 离线设备数
+    /// 离线设备数（保留兼容性）
     pub offline_devices: i32,
 }
 
 impl From<P2PSyncStatus> for SyncStatus {
     fn from(status: P2PSyncStatus) -> Self {
+        // 根据设备数量推断状态
+        let state = if status.online_devices == 0 && status.syncing_devices == 0 {
+            SyncState::Disconnected
+        } else if status.syncing_devices > 0 {
+            SyncState::Syncing
+        } else if status.online_devices > 0 {
+            SyncState::Synced
+        } else {
+            SyncState::Disconnected
+        };
+
         Self {
+            state,
+            syncing_peers: status.syncing_devices as i32,
+            last_sync_time: None, // TODO: 从 P2PSyncService 获取实际时间
+            error_message: None,
             online_devices: status.online_devices as i32,
             syncing_devices: status.syncing_devices as i32,
             offline_devices: status.offline_devices as i32,
+        }
+    }
+}
+
+impl SyncStatus {
+    /// 创建 disconnected 状态
+    pub fn disconnected() -> Self {
+        Self {
+            state: SyncState::Disconnected,
+            syncing_peers: 0,
+            last_sync_time: None,
+            error_message: None,
+            online_devices: 0,
+            syncing_devices: 0,
+            offline_devices: 0,
+        }
+    }
+
+    /// 创建 syncing 状态
+    pub fn syncing(syncing_peers: i32) -> Self {
+        Self {
+            state: SyncState::Syncing,
+            syncing_peers,
+            last_sync_time: None,
+            error_message: None,
+            online_devices: syncing_peers,
+            syncing_devices: syncing_peers,
+            offline_devices: 0,
+        }
+    }
+
+    /// 创建 synced 状态
+    pub fn synced(last_sync_time: i64) -> Self {
+        Self {
+            state: SyncState::Synced,
+            syncing_peers: 0,
+            last_sync_time: Some(last_sync_time),
+            error_message: None,
+            online_devices: 1,
+            syncing_devices: 0,
+            offline_devices: 0,
+        }
+    }
+
+    /// 创建 failed 状态
+    pub fn failed(error_message: String) -> Self {
+        Self {
+            state: SyncState::Failed,
+            syncing_peers: 0,
+            last_sync_time: None,
+            error_message: Some(error_message),
+            online_devices: 0,
+            syncing_devices: 0,
+            offline_devices: 0,
         }
     }
 }
@@ -224,6 +320,58 @@ pub fn cleanup_sync_service() {
     info!("同步服务已清理");
 }
 
+/// 重试同步
+///
+/// 当同步失败时，调用此函数重新尝试同步
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// await retrySync();
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+#[flutter_rust_bridge::frb]
+pub async fn retry_sync() -> Result<()> {
+    info!("重试同步");
+
+    // 临时从 thread-local 取出服务
+    let service = take_sync_service()?;
+
+    // TODO: 实现实际的重试逻辑
+    // 这里可以重新启动网络连接、清除错误状态等
+
+    put_sync_service(service);
+
+    Ok(())
+}
+
+/// 获取同步状态流（Stream）
+///
+/// 返回一个 Stream，实时推送同步状态变化
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final stream = getSyncStatusStream();
+/// stream.listen((status) {
+///   print('状态变化: ${status.state}');
+/// });
+/// ```
+///
+/// # 注意
+///
+/// 目前返回初始状态，实际的 Stream 实现需要在 P2PSyncService 中添加状态变化通知机制
+#[flutter_rust_bridge::frb]
+pub fn get_sync_status_stream() -> Result<SyncStatus> {
+    // TODO: 实现真正的 Stream
+    // flutter_rust_bridge 支持 Stream，但需要使用 StreamSink
+    // 当前先返回当前状态，后续实现完整的 Stream 支持
+    get_sync_status()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,8 +402,44 @@ mod tests {
 
         let status: SyncStatus = p2p_status.into();
 
+        assert_eq!(status.syncing_peers, 1);
         assert_eq!(status.online_devices, 3);
         assert_eq!(status.syncing_devices, 1);
         assert_eq!(status.offline_devices, 2);
+        assert_eq!(status.state, SyncState::Syncing);
+    }
+
+    #[test]
+    fn test_sync_status_factory_methods() {
+        // Test disconnected
+        let disconnected = SyncStatus::disconnected();
+        assert_eq!(disconnected.state, SyncState::Disconnected);
+        assert_eq!(disconnected.syncing_peers, 0);
+        assert!(disconnected.last_sync_time.is_none());
+        assert!(disconnected.error_message.is_none());
+
+        // Test syncing
+        let syncing = SyncStatus::syncing(3);
+        assert_eq!(syncing.state, SyncState::Syncing);
+        assert_eq!(syncing.syncing_peers, 3);
+
+        // Test synced
+        let now = 1234567890;
+        let synced = SyncStatus::synced(now);
+        assert_eq!(synced.state, SyncState::Synced);
+        assert_eq!(synced.last_sync_time, Some(now));
+
+        // Test failed
+        let failed = SyncStatus::failed("Network error".to_string());
+        assert_eq!(failed.state, SyncState::Failed);
+        assert_eq!(failed.error_message, Some("Network error".to_string()));
+    }
+
+    #[test]
+    fn test_sync_state_equality() {
+        assert_eq!(SyncState::Disconnected, SyncState::Disconnected);
+        assert_ne!(SyncState::Disconnected, SyncState::Syncing);
+        assert_ne!(SyncState::Syncing, SyncState::Synced);
+        assert_ne!(SyncState::Synced, SyncState::Failed);
     }
 }

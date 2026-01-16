@@ -547,6 +547,7 @@
 ### 交互规格（可执行）
 - [UI 交互规格](../../openspec/specs/flutter/ui_interaction_spec.md) - 组件交互行为
 - [主页交互规格](../../openspec/specs/flutter/home_screen_spec.md) - 主页组件交互
+- [卡片创建交互规格](../../openspec/specs/flutter/card_creation_spec.md) - 卡片创建流程交互
 
 ### 实现参考
 - Flutter Material Design: https://material.io/components

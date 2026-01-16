@@ -7,6 +7,23 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import '../frb_generated.dart';
 
+/// 同步状态枚举
+///
+/// 定义同步的 4 种状态
+enum SyncState {
+  /// 未连接到任何对等设备
+  disconnected,
+
+  /// 正在同步数据
+  syncing,
+
+  /// 同步完成，数据一致
+  synced,
+
+  /// 同步失败
+  failed,
+}
+
 /// 同步状态（用于 Flutter 桥接）
 ///
 /// # flutter_rust_bridge 注解
@@ -14,22 +31,64 @@ import '../frb_generated.dart';
 /// 这个结构体会被自动转换为 Dart 类
 class SyncStatus {
   const SyncStatus({
+    required this.state,
+    required this.syncingPeers,
+    this.lastSyncTime,
+    this.errorMessage,
     required this.onlineDevices,
     required this.syncingDevices,
     required this.offlineDevices,
   });
 
-  /// 在线设备数
+  /// 当前同步状态
+  final SyncState state;
+
+  /// 正在同步的对等设备数量
+  final int syncingPeers;
+
+  /// 最后一次同步时间（Unix 时间戳，毫秒）
+  final PlatformInt64? lastSyncTime;
+
+  /// 错误信息（仅在 Failed 状态时有值）
+  final String? errorMessage;
+
+  /// 在线设备数（保留兼容性）
   final int onlineDevices;
 
-  /// 同步中设备数
+  /// 同步中设备数（保留兼容性）
   final int syncingDevices;
 
-  /// 离线设备数
+  /// 离线设备数（保留兼容性）
   final int offlineDevices;
+
+  /// 创建 disconnected 状态
+  static Future<SyncStatus> disconnected() =>
+      RustLib.instance.api.crateApiSyncSyncStatusDisconnected();
+
+  /// 创建 failed 状态
+  static Future<SyncStatus> failed({required String errorMessage}) => RustLib
+      .instance
+      .api
+      .crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
+
+  /// 创建 synced 状态
+  static Future<SyncStatus> synced({required PlatformInt64 lastSyncTime}) =>
+      RustLib.instance.api.crateApiSyncSyncStatusSynced(
+        lastSyncTime: lastSyncTime,
+      );
+
+  /// 创建 syncing 状态
+  static Future<SyncStatus> syncing({required int syncingPeers}) => RustLib
+      .instance
+      .api
+      .crateApiSyncSyncStatusSyncing(syncingPeers: syncingPeers);
 
   @override
   int get hashCode =>
+      state.hashCode ^
+      syncingPeers.hashCode ^
+      lastSyncTime.hashCode ^
+      errorMessage.hashCode ^
       onlineDevices.hashCode ^
       syncingDevices.hashCode ^
       offlineDevices.hashCode;
@@ -39,6 +98,10 @@ class SyncStatus {
       identical(this, other) ||
       other is SyncStatus &&
           runtimeType == other.runtimeType &&
+          state == other.state &&
+          syncingPeers == other.syncingPeers &&
+          lastSyncTime == other.lastSyncTime &&
+          errorMessage == other.errorMessage &&
           onlineDevices == other.onlineDevices &&
           syncingDevices == other.syncingDevices &&
           offlineDevices == other.offlineDevices;

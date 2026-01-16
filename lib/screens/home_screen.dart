@@ -1,10 +1,13 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/screens/card_editor_screen.dart';
 import 'package:cardmind/screens/settings_screen.dart';
 import 'package:cardmind/utils/responsive_utils.dart';
 import 'package:cardmind/widgets/card_list_item.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:cardmind/widgets/sync_status_indicator.dart';
 
 /// Home screen showing the list of cards
 class HomeScreen extends StatelessWidget {
@@ -16,6 +19,10 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('CardMind'),
         actions: [
+          // 同步状态指示器
+          SyncStatusIndicator(
+            status: SyncStatus.disconnected(), // TODO: 使用 StreamBuilder 订阅 SyncApi.statusStream
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {

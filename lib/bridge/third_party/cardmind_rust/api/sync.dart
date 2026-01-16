@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import '../../../api/sync.dart';
 import '../../../frb_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `from`
 
 /// 初始化 P2P 同步服务
 ///
@@ -102,3 +102,37 @@ Future<String> getLocalPeerId() =>
 /// 这个函数主要用于测试，生产环境中通常不需要手动调用
 Future<void> cleanupSyncService() =>
     RustLib.instance.api.cardmindRustApiSyncCleanupSyncService();
+
+/// 重试同步
+///
+/// 当同步失败时，调用此函数重新尝试同步
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// await retrySync();
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<void> retrySync() => RustLib.instance.api.cardmindRustApiSyncRetrySync();
+
+/// 获取同步状态流（Stream）
+///
+/// 返回一个 Stream，实时推送同步状态变化
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final stream = getSyncStatusStream();
+/// stream.listen((status) {
+///   print('状态变化: ${status.state}');
+/// });
+/// ```
+///
+/// # 注意
+///
+/// 目前返回初始状态，实际的 Stream 实现需要在 P2PSyncService 中添加状态变化通知机制
+Future<SyncStatus> getSyncStatusStream() =>
+    RustLib.instance.api.cardmindRustApiSyncGetSyncStatusStream();

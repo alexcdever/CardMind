@@ -62,7 +62,10 @@ fn it_should_have_mdns_disabled_by_default_when_loading_existing_config() {
 fn it_should_enable_mdns_for_5_minutes_when_enable_mdns_temporary_is_called() {
     // Arrange: Create a device config
     let mut config = DeviceConfig::new("test-device-003");
-    assert!(!config.is_mdns_active(), "Precondition: mDNS should be disabled");
+    assert!(
+        !config.is_mdns_active(),
+        "Precondition: mDNS should be disabled"
+    );
 
     // Act: Enable mDNS temporarily
     config.enable_mdns_temporary();
@@ -175,7 +178,10 @@ fn it_should_disable_mdns_immediately_when_cancel_mdns_timer_is_called() {
     // Arrange: Create a device config and enable mDNS
     let mut config = DeviceConfig::new("test-device-007");
     config.enable_mdns_temporary();
-    assert!(config.is_mdns_active(), "Precondition: mDNS should be active");
+    assert!(
+        config.is_mdns_active(),
+        "Precondition: mDNS should be active"
+    );
 
     // Act: Cancel the timer
     config.cancel_mdns_timer();
@@ -196,16 +202,16 @@ fn it_should_disable_mdns_immediately_when_cancel_mdns_timer_is_called() {
 fn it_should_do_nothing_when_cancel_mdns_timer_is_called_on_disabled_mdns() {
     // Arrange: Create a device config (mDNS disabled by default)
     let mut config = DeviceConfig::new("test-device-008");
-    assert!(!config.is_mdns_active(), "Precondition: mDNS should be disabled");
+    assert!(
+        !config.is_mdns_active(),
+        "Precondition: mDNS should be disabled"
+    );
 
     // Act: Cancel the timer (should be a no-op)
     config.cancel_mdns_timer();
 
     // Assert: mDNS should still be disabled
-    assert!(
-        !config.is_mdns_active(),
-        "mDNS should remain disabled"
-    );
+    assert!(!config.is_mdns_active(), "mDNS should remain disabled");
 }
 
 // ==================== Persistence Tests ====================
@@ -217,7 +223,10 @@ fn it_should_not_persist_timer_state_when_saving_config() {
     let config_path = temp_dir.path().join("config.json");
     let mut config = DeviceConfig::new("test-device-009");
     config.enable_mdns_temporary();
-    assert!(config.is_mdns_active(), "Precondition: mDNS should be active");
+    assert!(
+        config.is_mdns_active(),
+        "Precondition: mDNS should be active"
+    );
 
     // Act: Save the config
     config.save(&config_path).unwrap();
@@ -297,13 +306,22 @@ fn it_should_support_full_lifecycle_enable_wait_cancel() {
     let mut config = DeviceConfig::new("test-device-013");
 
     // Step 1: Verify initial state (disabled)
-    assert!(!config.is_mdns_active(), "Step 1: Should be disabled initially");
+    assert!(
+        !config.is_mdns_active(),
+        "Step 1: Should be disabled initially"
+    );
 
     // Step 2: Enable mDNS
     config.enable_mdns_temporary();
-    assert!(config.is_mdns_active(), "Step 2: Should be active after enabling");
+    assert!(
+        config.is_mdns_active(),
+        "Step 2: Should be active after enabling"
+    );
     let remaining_after_enable = config.get_mdns_remaining_ms();
-    assert!(remaining_after_enable > 0, "Step 2: Should have remaining time");
+    assert!(
+        remaining_after_enable > 0,
+        "Step 2: Should have remaining time"
+    );
 
     // Step 3: Wait a bit
     thread::sleep(Duration::from_millis(100));
@@ -315,7 +333,10 @@ fn it_should_support_full_lifecycle_enable_wait_cancel() {
 
     // Step 4: Cancel timer
     config.cancel_mdns_timer();
-    assert!(!config.is_mdns_active(), "Step 4: Should be disabled after cancel");
+    assert!(
+        !config.is_mdns_active(),
+        "Step 4: Should be disabled after cancel"
+    );
     assert_eq!(
         config.get_mdns_remaining_ms(),
         0,

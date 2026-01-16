@@ -31,11 +31,11 @@
 │  │ 卡片2                       │   │
 │  └─────────────────────────────┘   │
 │                                     │
-├─────────────────────────────────────┤
-│ 底部操作栏                          │
-│   [新建卡片] [搜索] [设置]          │
+│                            [+] FAB  │
 └─────────────────────────────────────┘
 ```
+
+**注**: FAB（浮动操作按钮）位于右下角，用于快速创建新卡片。详见 SP-FLUT-009。
 
 ---
 
@@ -242,7 +242,16 @@ Widget buildSyncingIndicator() {
 
 #### Spec-HOME-004: 创建新卡片
 ```dart
-/// it_should_navigate_to_card_editor()
+/// it_should_show_fab_button_on_home_screen()
+Widget buildFloatingActionButton() {
+  return FloatingActionButton(
+    onPressed: () => Navigator.pushNamed(context, '/create-card'),
+    child: Icon(Icons.add),
+    tooltip: '创建新卡片',
+  );
+}
+
+/// it_should_navigate_to_card_editor_when_fab_tapped()
 void onCreateCard(BuildContext context) {
   Navigator.pushNamed(context, '/create-card');
 }
@@ -250,12 +259,12 @@ void onCreateCard(BuildContext context) {
 /// it_should_save_card_and_update_list()
 Future<void> onSaveCard(String title, String content) async {
   setLoading(true);
-  
+
   try {
     final card = await CardApi.createCard(title, content);
     _cards.insert(0, card);
     notifyListeners();
-    
+
     Navigator.pop(context);
   } catch (e) {
     _errorMessage = '保存失败: $e';
@@ -264,6 +273,8 @@ Future<void> onSaveCard(String title, String content) async {
   }
 }
 ```
+
+**注**: FAB 按钮的详细交互规格见 SP-FLUT-009（卡片创建交互规格）。
 
 #### Spec-HOME-005: 打开/编辑卡片
 ```dart
