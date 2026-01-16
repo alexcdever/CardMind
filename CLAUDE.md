@@ -138,11 +138,36 @@ dart tool/fix_lint.dart
 dart tool/validate_constraints.dart
 ```
 
+### 代码分析
+```bash
+# 使用 LSP 分析 Rust 代码（在 Claude Code 中）
+/lsp-code-analysis
+
+# 功能：查找定义、引用、实现、符号搜索、文件大纲
+# 适用于探索 rust/ 目录中的代码结构和调用关系
+```
+
 ---
 
 ## ⚠️ 关键约束
 
 🛡️ **Project Guardian 自动执行** - 详见 `project-guardian.toml`
+
+### 文件格式（关键）
+- **所有文本文件必须使用 Unix 换行符（LF）**
+- **禁止使用 Windows 换行符（CRLF）**
+- **文件编码必须是 UTF-8**
+
+**检查和修复**:
+```bash
+# 检查文件
+file <filename>  # 应显示 "UTF-8 text"
+
+# 修复换行符
+sed -i 's/\r$//' <filename>
+```
+
+**原因**: OpenSpec 等工具依赖 Unix 换行符解析文件。CRLF 会导致任务解析失败。
 
 ### 数据层
 - **禁止直接写 SQLite** - 只能通过 Loro 订阅更新

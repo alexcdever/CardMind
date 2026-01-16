@@ -46,6 +46,28 @@
 dart tool/validate_constraints.dart
 ```
 
+### LSP Code Analysis - 语义代码分析
+
+**用途**: 通过 LSP 进行 Rust 代码的语义分析和导航
+
+**使用方法**:
+```bash
+# 在 Claude Code 中使用技能
+/lsp-code-analysis
+```
+
+**功能**:
+- 查找定义、引用、实现
+- 搜索符号（函数、结构体、trait 等）
+- 预览重构操作
+- 获取文件大纲
+- 探索不熟悉的代码库
+
+**适用场景**:
+- 理解 `rust/` 目录中的代码结构
+- 查找函数调用关系
+- 安全重构代码
+
 ---
 
 ## 关键命令
@@ -106,6 +128,22 @@ dart tool/validate_constraints.dart
 ---
 
 ## 代码风格
+
+### 文件格式（关键）
+```bash
+# ⚠️ 所有文本文件必须使用 Unix 换行符（LF）
+# ❌ 禁止使用 Windows 换行符（CRLF）
+
+# 检查文件换行符
+file <filename>  # 应显示 "UTF-8 text"，不应有 "CRLF"
+
+# 转换为 Unix 换行符
+dos2unix <filename>
+# 或
+sed -i 's/\r$//' <filename>
+```
+
+**原因**: OpenSpec 和其他工具依赖 Unix 换行符来正确解析文件。Windows 换行符会导致任务解析失败。
 
 ### Rust
 ```rust
