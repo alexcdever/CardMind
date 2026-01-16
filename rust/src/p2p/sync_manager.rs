@@ -341,7 +341,7 @@ mod tests {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
-// 设备未加入数据池
+        // 设备未加入数据池
         let result = manager.handle_sync_request("pool-001", None, &vec![]);
         assert!(result.is_err());
 

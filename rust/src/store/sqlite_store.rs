@@ -284,7 +284,6 @@ impl SqliteStore {
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
 
-
         Ok(cards)
     }
 
@@ -322,7 +321,6 @@ impl SqliteStore {
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
-
 
         Ok(cards)
     }
@@ -537,7 +535,6 @@ impl SqliteStore {
                 })
             })?
             .collect::<Result<Vec<Card>, _>>()?;
-
 
         Ok(cards)
     }

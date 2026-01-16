@@ -14,7 +14,7 @@ use tempfile::TempDir;
 
 // ==================== 1. 初始化测试 ====================
 
- /// 测试: 创建内存CardStore
+/// 测试: 创建内存CardStore
 #[test]
 fn it_should_create_in_memory_card_store() {
     let result = CardStore::new_in_memory();

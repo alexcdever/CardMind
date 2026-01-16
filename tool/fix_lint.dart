@@ -79,14 +79,14 @@ Future<bool> validateSpecCoding() async {
     final specFiles = await specDir.list().recursive;
     final mdFiles = specFiles.where((f) => f.path.endsWith('.md')).toList();
     printSuccess('Found ${mdFiles.length} spec documentation files');
-    
+
     // 2. Check for spec numbering consistency
     printStep('Verifying spec numbering...');
     final hasNumberingIssues = await checkSpecNumbering(mdFiles);
     if (hasNumberingIssues) {
       hasErrors = true;
     }
-    
+
     // 3. Check for spec implementation completeness
     printStep('Verifying spec completeness...');
     final hasCompletenessIssues = await checkSpecCompleteness(mdFiles);
@@ -101,10 +101,10 @@ Future<bool> validateSpecCoding() async {
 /// Check spec numbering consistency
 Future<bool> checkSpecNumbering(List<File> specFiles) async {
   var hasIssues = false;
-  
+
   for (final file in specFiles) {
     final content = await file.readAsString();
-    
+
     // Check for proper spec header
     if (!content.contains('## 📋 规格编号:')) {
       if (!content.contains('# 规格编号:')) {
@@ -112,69 +112,24 @@ Future<bool> checkSpecNumbering(List<File> specFiles) async {
         hasIssues = true;
       }
     }
-    
+
     // Check for version and status
     if (!content.contains('**版本**:')) {
       printWarning('Missing version in ${file.path}');
       hasIssues = true;
     }
-    
+
     if (!content.contains('**状态**:')) {
       printWarning('Missing status in ${file.path}');
       hasIssues = true;
     }
   }
-  
+
   if (!hasIssues) {
     printSuccess('Spec numbering is consistent');
   }
-  
+
   return hasIssues;
-}
-
-/// Check spec completeness
-Future<bool> checkSpecCompleteness(List<File> specFiles) async {
-  var hasIssues = false;
-  var specsWithTests = 0;
-  
-  for (final file in specFiles) {
-    final content = await file.readAsString();
-    
-    // Check for test cases section
-    if (content.contains('#[test]') || content.contains('## 3. 方法规格')) {
-      specsWithTests++;
-    }
-  }
-  
-  printSuccess('Found $specsWithTests specs with test cases');
-  
-  // Check for README
-  final readmeFile = File('specs/README.md');
-  if (await readmeFile.exists()) {
-    printSuccess('Spec center index exists');
-  } else {
-    printWarning('Spec center index (specs/README.md) not found');
-    hasIssues = true;
-  }
-  
-  return hasIssues;
-}
-
-  // Process Rust code
-  if (!flutterOnly) {
-    printSection('Processing Rust Code');
-    hasErrors = await processRust(checkOnly) || hasErrors;
-  }
-
-  // Summary
-  print('\n${'=' * 60}');
-  if (hasErrors) {
-    printError('❌ Some checks failed. Please review errors above.');
-    exit(1);
-  } else {
-    printSuccess('✅ All checks passed!');
-    exit(0);
-  }
 }
 
 Future<bool> processFlutter(bool checkOnly) async {
@@ -183,23 +138,25 @@ Future<bool> processFlutter(bool checkOnly) async {
   // 1. Run dart format
   printStep('Running dart format...');
   if (checkOnly) {
-    final formatCheck = await runCommand(
-      'dart',
-      ['format', '--set-exit-if-changed', '--output=none', '.'],
-      workingDirectory: '.',
-    );
+    final formatCheck = await runCommand('dart', [
+      'format',
+      '--set-exit-if-changed',
+      '--output=none',
+      '.',
+    ], workingDirectory: '.');
     if (!formatCheck) {
-      printWarning('Code formatting issues found. Run without --check-only to fix.');
+      printWarning(
+        'Code formatting issues found. Run without --check-only to fix.',
+      );
       hasErrors = true;
     } else {
       printSuccess('Code formatting is correct');
     }
   } else {
-    final formatResult = await runCommand(
-      'dart',
-      ['format', '.'],
-      workingDirectory: '.',
-    );
+    final formatResult = await runCommand('dart', [
+      'format',
+      '.',
+    ], workingDirectory: '.');
     if (formatResult) {
       printSuccess('Code formatted successfully');
     } else {
@@ -211,11 +168,10 @@ Future<bool> processFlutter(bool checkOnly) async {
   // 2. Run dart fix
   if (!checkOnly) {
     printStep('Running dart fix --apply...');
-    final fixResult = await runCommand(
-      'dart',
-      ['fix', '--apply'],
-      workingDirectory: '.',
-    );
+    final fixResult = await runCommand('dart', [
+      'fix',
+      '--apply',
+    ], workingDirectory: '.');
     if (fixResult) {
       printSuccess('Applied dart fixes');
     } else {
@@ -225,11 +181,9 @@ Future<bool> processFlutter(bool checkOnly) async {
 
   // 3. Run flutter analyze
   printStep('Running flutter analyze...');
-  final analyzeResult = await runCommand(
-    'flutter',
-    ['analyze'],
-    workingDirectory: '.',
-  );
+  final analyzeResult = await runCommand('flutter', [
+    'analyze',
+  ], workingDirectory: '.');
   if (!analyzeResult) {
     printError('Flutter analyze found issues');
     hasErrors = true;
@@ -253,23 +207,23 @@ Future<bool> processRust(bool checkOnly) async {
   // 1. Run cargo fmt
   printStep('Running cargo fmt...');
   if (checkOnly) {
-    final fmtCheck = await runCommand(
-      'cargo',
-      ['fmt', '--', '--check'],
-      workingDirectory: rustDir,
-    );
+    final fmtCheck = await runCommand('cargo', [
+      'fmt',
+      '--',
+      '--check',
+    ], workingDirectory: rustDir);
     if (!fmtCheck) {
-      printWarning('Code formatting issues found. Run without --check-only to fix.');
+      printWarning(
+        'Code formatting issues found. Run without --check-only to fix.',
+      );
       hasErrors = true;
     } else {
       printSuccess('Code formatting is correct');
     }
   } else {
-    final fmtResult = await runCommand(
-      'cargo',
-      ['fmt'],
-      workingDirectory: rustDir,
-    );
+    final fmtResult = await runCommand('cargo', [
+      'fmt',
+    ], workingDirectory: rustDir);
     if (fmtResult) {
       printSuccess('Code formatted successfully');
     } else {
@@ -280,11 +234,9 @@ Future<bool> processRust(bool checkOnly) async {
 
   // 2. Run cargo check
   printStep('Running cargo check...');
-  final checkResult = await runCommand(
-    'cargo',
-    ['check'],
-    workingDirectory: rustDir,
-  );
+  final checkResult = await runCommand('cargo', [
+    'check',
+  ], workingDirectory: rustDir);
   if (!checkResult) {
     printError('Cargo check failed');
     hasErrors = true;

@@ -12,6 +12,8 @@
 
 import 'dart:io';
 
+String? _cargoBinPath;
+
 void main(List<String> arguments) async {
   print('🔨 CardMind桥接代码生成器');
   print('=' * 50);
@@ -39,25 +41,63 @@ void main(List<String> arguments) async {
   print('  2. 运行 flutter run');
 }
 
+/// 获取 cargo bin 路径
+Future<String?> getCargoBinPath() async {
+  if (_cargoBinPath != null) {
+    return _cargoBinPath;
+  }
+
+  final cargoBinResult = await Process.run('cargo', [
+    'env',
+    '--prefix',
+    'HOME',
+  ]);
+
+  if (cargoBinResult.exitCode == 0) {
+    final home = cargoBinResult.stdout.toString().trim();
+    _cargoBinPath = '$home/.cargo/bin';
+    return _cargoBinPath;
+  }
+
+  // 备用方案：使用环境变量
+  final home = Platform.environment['HOME'];
+  if (home != null) {
+    _cargoBinPath = '$home/.cargo/bin';
+    return _cargoBinPath;
+  }
+
+  return null;
+}
+
 /// 检查环境依赖
 Future<bool> checkEnvironment() async {
   print('📋 检查环境依赖...');
 
-  // 检查flutter_rust_bridge_codegen
-  final codegenCheck = await Process.run(
-    'flutter_rust_bridge_codegen',
-    ['--version'],
-  );
+  final cargoBinPath = await getCargoBinPath();
+  if (cargoBinPath == null) {
+    print('❌ 错误: 无法确定 cargo bin 路径');
+    return false;
+  }
+
+  final codegenPath = '$cargoBinPath/flutter_rust_bridge_codegen';
+  final codegenCheck = await Process.run(codegenPath, ['--version']);
 
   if (codegenCheck.exitCode != 0) {
     print('❌ 错误: 未找到 flutter_rust_bridge_codegen');
     print('');
     print('请安装:');
     print('  cargo install flutter_rust_bridge_codegen');
+    print('');
+    print('或者尝试使用 cargo run:');
+    print(
+      '  cargo run --package flutter_rust_bridge_codegen -- flutter_rust_bridge_codegen',
+    );
     return false;
   }
 
-  print('✓ flutter_rust_bridge_codegen: ${codegenCheck.stdout.toString().trim()}');
+  print(
+    '✓ flutter_rust_bridge_codegen: ${codegenCheck.stdout.toString().trim()}',
+  );
 
   // 检查Rust项目
   final rustDir = Directory('rust');
@@ -86,21 +126,29 @@ Future<bool> checkEnvironment() async {
 Future<bool> generateBridge() async {
   print('🔄 生成桥接代码...');
 
+  final cargoBinPath = await getCargoBinPath();
+  if (cargoBinPath == null) {
+    print('❌ 错误: 无法确定 cargo bin 路径');
+    return false;
+  }
+
+  final codegenPath = '$cargoBinPath/flutter_rust_bridge_codegen';
+
   // 配置参数
   final args = [
     'generate',
-    '--rust-input', 'cardmind_rust::api',
-    '--dart-output', 'lib/bridge/',
-    '--c-output', 'rust/src/bridge_generated.h',
+    '--rust-input',
+    'cardmind_rust::api',
+    '--dart-output',
+    'lib/bridge/',
+    '--c-output',
+    'rust/src/bridge_generated.h',
   ];
 
-  print('运行命令: flutter_rust_bridge_codegen ${args.join(' ')}');
+  print('运行命令: $codegenPath ${args.join(' ')}');
   print('');
 
-  final result = await Process.run(
-    'flutter_rust_bridge_codegen',
-    args,
-  );
+  final result = await Process.run(codegenPath, args);
 
   // 输出日志
   if (result.stdout.toString().isNotEmpty) {
@@ -127,10 +175,7 @@ Future<bool> formatGeneratedCode() async {
   print('🎨 格式化生成的代码...');
 
   // 格式化Dart代码
-  final dartFormatResult = await Process.run(
-    'dart',
-    ['format', 'lib/bridge/'],
-  );
+  final dartFormatResult = await Process.run('dart', ['format', 'lib/bridge/']);
 
   if (dartFormatResult.exitCode != 0) {
     print('⚠️  警告: Dart代码格式化失败（非致命错误）');
@@ -139,11 +184,9 @@ Future<bool> formatGeneratedCode() async {
   }
 
   // 格式化Rust代码
-  final rustFormatResult = await Process.run(
-    'cargo',
-    ['fmt'],
-    workingDirectory: 'rust',
-  );
+  final rustFormatResult = await Process.run('cargo', [
+    'fmt',
+  ], workingDirectory: 'rust');
 
   if (rustFormatResult.exitCode != 0) {
     print('⚠️  警告: Rust代码格式化失败（非致命错误）');
