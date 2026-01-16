@@ -110,7 +110,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute<void>(
-                    builder: (context) => CardEditorScreen(cardId: widget.cardId),
+                    builder: (context) => const CardEditorScreen(),
                   ),
                 );
                 await _loadCard();
