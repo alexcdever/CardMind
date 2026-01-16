@@ -30,9 +30,9 @@
 2. 输入标题和内容（支持 Markdown）
 3. 点击 **完成**
 
-**特点**:
-- 即时保存，无需手动保存
-- 30 秒内可完成创建
+**交互规格**: 详见 [卡片创建交互规格](../../openspec/specs/flutter/card_creation_spec.md) (SP-FLUT-009)
+
+**视觉设计**: 详见 [组件库 - 按钮](../design/component_library.md#1-按钮组件) 和 [输入组件](../design/component_library.md#2-输入组件)
 
 ### 2.2 编辑卡片
 
@@ -102,10 +102,20 @@
 
 ## 相关文档
 
-- [用户手册](./user_guide.md) - 完整使用指南
-- [产品愿景](./requirements/product_vision.md) - 产品定位
-- [UI 设计系统](./ui_design_system.md) - 视觉设计
+### 交互规格（可执行）
+- [卡片创建交互规格](../../openspec/specs/flutter/card_creation_spec.md) - SP-FLUT-009
+- [主页交互规格](../../openspec/specs/flutter/home_screen_spec.md) - SP-FLUT-008
+- [初始化流程规格](../../openspec/specs/flutter/onboarding_spec.md) - SP-FLUT-007
+
+### 视觉设计
+- [视觉风格指南](../design/visual_style.md) - 颜色、字体、间距
+- [布局指南](../design/layout_guide.md) - 页面结构、响应式布局
+- [组件库](../design/component_library.md) - 可复用组件设计
+
+### 产品文档
+- [用户手册](../user_guide.md) - 完整使用指南
+- [产品愿景](../requirements/product_vision.md) - 产品定位
 
 ---
 
-**最后更新**: 2026-01-15
+**最后更新**: 2026-01-16
