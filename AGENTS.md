@@ -1,192 +1,173 @@
-# CardMind AI Agent Guide
+# CardMind AI Agent 指南
 
-## Project Context
+## 项目概述
 
-**CardMind** = Flutter + Rust offline-first card notes app
-- MVP v1.0.0 done
-- Currently: Phase 6R - Single Pool Model Refactoring (Spec Coding)
-- **Core**: Dual-layer (Loro CRDT → SQLite), P2P sync via libp2p
+**CardMind** = Flutter + Rust 离线优先的卡片笔记应用
+- MVP v1.0.0 完成 ✅
+- 当前: Phase 6R - Spec Coding 重构 🔄
+- **核心**: 双层架构 (Loro CRDT → SQLite), P2P 同步 (libp2p)
 
-## Start Here
+---
 
-Read these **before every task**:
-1. `TODO.md` - Current work status
-2. `docs/architecture/system_design.md` - Architecture
-3. `docs/requirements/product_vision.md` - Product vision
+## 快速开始
 
-## Critical Commands
+**每次任务开始前**，按顺序阅读：
+1. `openspec/specs/README.md` - 规范中心索引
+2. `project-guardian.toml` - 代码约束配置
+3. `docs/requirements/product_vision.md` - 产品愿景
 
-### Testing (Single Test Focus)
-```bash
-# Flutter single test named "test name"
-flutter test --name "test name"
+---
 
-# Rust single test by name (substring match)
-cd rust && cargo test test_name
+## 工具链
 
-# Rust specific test file
-cd rust && cargo test --test sqlite_test
+### OpenSpec - 规范驱动开发
 
-# Rust specific test within file
-cd rust && cargo test --test sqlite_test test_add_and_get_card_pool_binding
+**用途**: 管理 API 规范和架构决策
 
-# Spec Coding examples
-cd rust && cargo test --example single_pool_flow_spec
+**关键文件**:
+- `openspec/specs/` - 11 个功能规范 + 5 个 ADR
+- `openspec/specs/SPEC_CODING_GUIDE.md` - Spec Coding 方法论
+
+**工作流**:
+```
+1. 查看规范 → 2. 编写测试 → 3. 实现代码 → 4. 验证
 ```
 
-### Lint & Format (Run before EVERY commit)
+### Project Guardian - 约束自动执行
+
+**用途**: 防止 LLM 幻觉和架构违规
+
+**关键文件**:
+- `project-guardian.toml` - 约束配置
+- `.project-guardian/best-practices.md` - 最佳实践
+- `.project-guardian/anti-patterns.md` - 反模式
+
+**验证命令**:
 ```bash
-# Auto-fix everything (RECOMMENDED)
+dart tool/validate_constraints.dart
+```
+
+---
+
+## 关键命令
+
+### 测试
+```bash
+# Rust 测试
+cd rust && cargo test
+
+# Spec 测试
+cd rust && cargo test --test sp_spm_001_spec
+cd rust && cargo test --test sp_sync_006_spec
+cd rust && cargo test --test sp_mdns_001_spec
+
+# Flutter 测试
+flutter test
+```
+
+### 构建
+```bash
+# 构建所有平台
+dart tool/build_all.dart
+
+# 生成 Rust Bridge
+dart tool/generate_bridge.dart
+```
+
+### 代码质量
+```bash
+# 自动修复所有 lint 问题
 dart tool/fix_lint.dart
 
-# Or manual commands
-dart format .                      # Flutter format
-cd rust && cargo fmt               # Rust format
-flutter analyze                    # Dart analysis
-cd rust && cargo clippy --all-targets --all-features  # Rust lint
+# 验证约束
+dart tool/validate_constraints.dart
 ```
 
-### Build
-```bash
-dart tool/generate_bridge.dart      # After Rust API changes
-dart tool/build_all.dart           # Build all platforms
-dart tool/build_all.dart --android # Android only
-```
+---
 
-## Architecture Rules (NEVER BREAK)
+## 架构规则（绝不违反）
 
-**Dual-Layer Architecture:**
-1. ALL writes → Loro CRDT (truth source)
-2. ALL reads → SQLite cache
-3. Mutation flow: `loro_doc.commit()` → persist Loro → subscriptions → SQLite
-4. NEVER write SQLite directly (except subscription callbacks)
+### 双层架构
+1. 所有写操作 → Loro CRDT（真相源）
+2. 所有读操作 → SQLite（查询缓存）
+3. 数据流: `loro_doc.commit()` → 订阅 → SQLite 更新
+4. **绝不直接写 SQLite**（除订阅回调）
 
-**Card Storage:**
-- Each card = separate LoroDoc at `data/loro/<base64(uuid)>/`
-- Use UUID v7 for time-sorting
-- Soft deletes only (`deleted: bool`)
+### 数据存储
+- 每张卡片 = 独立的 LoroDoc 文件
+- 路径: `data/loro/<base64(uuid)>/`
+- 使用 UUID v7（时间排序）
+- 软删除（`deleted: bool`）
 
-**Thread Safety:**
-- API layer: thread-local SQLite storage
-- Async: share stores via `Arc<Mutex<T>>`
-- Never share SQLite connections across threads
+### Spec Coding
+- 测试 = 规范 = 文档
+- 测试命名: `it_should_do_something()`
+- Spec 文件: `sp_XXX_XXX_spec.rs`
 
-**Spec Coding:**
-- Tests = Specifications = Documentation
-- Test naming: `it_should_do_something()`
-- Run examples: `cargo test --example`
+---
 
-## Code Style
-
-### Dart/Flutter
-```dart
-// Imports: dart:, package:, files (no blank lines between dart: and package:)
-import 'dart:async';
-import 'package:flutter/material.dart';
-import '../providers/card_provider.dart';
-
-// Widgets: const constructor + key parameter
-const MyWidget({Key? key}) : super(key: key);
-
-// Async: always guard with mounted check
-if (!mounted) return;
-setState(() { /* ... */ });
-
-// Use debugPrint() not print()
-debugPrint('Error: $error');
-
-// Type annotations for public APIs
-Future<List<Card>> getAllCards() async { ... }
-```
+## 代码风格
 
 ### Rust
 ```rust
-// Naming: snake_case functions, PascalCase types
-pub fn create_card(title: String) -> Result<Card, CardMindError> { ... }
-
-// Errors: always Result<T, CardMindError>, use ? operator
+// 错误处理: 使用 Result<T, CardMindError>
 let store = get_store()?;
 
-// Documentation: include Args, Returns, Examples
+// 禁止 unwrap/expect/panic
+// ❌ value.unwrap()
+// ✅ value?
+
+// 文档注释
 /// Creates a new card
 ///
 /// # Arguments
 /// * `title` - Card title (max 256 chars)
-
-// Clippy limits (from rust/clippy.toml)
-// - Max function lines: 100
-// - Max cognitive complexity: 30
-// - Single-char names: up to 4 allowed
 ```
 
-## Testing Requirements
+### Dart/Flutter
+```dart
+// 使用 debugPrint，不用 print
+debugPrint('Error: $error');
 
-**TDD Required (Red → Green → Refactor)**
-- Coverage >80% for new code
-- Test happy path AND error paths
-- Integration tests for critical paths
+// Async: 检查 mounted
+if (!mounted) return;
+setState(() { /* ... */ });
 
-**Test Commands:**
-```bash
-# All tests
-cd rust && cargo test
-flutter test
-
-# Spec validation (NEW 2026-01-14)
-dart tool/fix_lint.dart --spec-check
+// Widget: const constructor
+const MyWidget({Key? key}) : super(key: key);
 ```
 
-## Commit & PR
+---
 
-**Conventional Commits:**
+## 文档导航
+
+| 需求 | 查看 |
+|------|------|
+| API 规范 | `openspec/specs/` |
+| 架构决策 | `openspec/specs/adr/` |
+| 代码约束 | `project-guardian.toml` |
+| 产品愿景 | `docs/requirements/product_vision.md` |
+| 构建指南 | `tool/BUILD_GUIDE.md` |
+
+---
+
+## 提交规范
+
+**Conventional Commits**:
 ```
 feat(p2p): add device discovery via mDNS
 fix: resolve SQLite locking issue
 refactor: simplify sync filter logic
 test: add test for pool edge cases
 docs: update API documentation
-chore: update dependencies
-style: format code
 ```
 
-**PR Requirements:**
-- Tests passing (`cargo test` + `flutter test`)
-- Coverage >80%
-- `cargo clippy` clean (0 warnings)
-- `flutter analyze` clean (0 errors)
-- Screenshots for UI changes
-
-## Quick Reference
-
-| Task | Command |
-|------|---------|
-| **Fix all lint** | `dart tool/fix_lint.dart` |
-| **Format only** | `dart format . && cd rust && cargo fmt` |
-| **Check only** | `dart tool/check_lint.dart` |
-| **Run single test** | `cd rust && cargo test test_name` |
-| **Spec examples** | `cd rust && cargo test --example single_pool_flow_spec` |
-| **Generate bridge** | `dart tool/generate_bridge.dart` |
-| **Full build** | `dart tool/build_all.dart` |
-| **Check before commit** | `dart tool/check_lint.dart && cd rust && cargo test && flutter test` |
-
-## Key Files
-
-**Specs:**
-- `specs/README.md` - Spec Coding center
-- `specs/SPEC_CODING_GUIDE.md` - Implementation guide
-
-**Architecture:**
-- `docs/architecture/system_design.md` - Core architecture
-- `docs/architecture/data_contract.md` - Data models
-- `docs/architecture/sync_mechanism.md` - P2P sync
-
-**Current Focus:**
-- Phase 6R: Single Pool Model Refactoring
-- Removing multi-pool support
-- Simplifying DeviceConfig to single `pool_id: Option<String>`
+**PR 要求**:
+- 测试通过 (`cargo test` + `flutter test`)
+- Lint 通过 (`dart tool/fix_lint.dart`)
+- 约束验证通过 (`dart tool/validate_constraints.dart`)
 
 ---
 
-**Last Updated**: 2026-01-14  
-**Purpose**: Essential guide for AI agents working in CardMind  
-**Rule**: When in doubt → check docs → ask user → follow patterns
+**最后更新**: 2026-01-16
+**规则**: 有疑问时 → 查规范 → 查 ADR → 查约束 → 问用户
