@@ -654,4 +654,99 @@ mod tests {
         assert_eq!(status.online_devices, 0, "初始应该没有在线设备");
         assert_eq!(status.syncing_devices, 0, "初始应该没有同步中设备");
     }
+
+    #[test]
+    fn test_notify_status_change() {
+        let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let device_config = DeviceConfig::new("test-device");
+
+        let service = P2PSyncService::new(card_store, device_config).unwrap();
+
+        // 创建订阅者
+        let mut rx = service.status_tx.subscribe();
+
+        // 触发状态变化
+        let new_status = SyncStatus {
+            online_devices: 1,
+            syncing_devices: 1,
+            offline_devices: 0,
+        };
+        service.notify_status_change(new_status.clone());
+
+        // 验证订阅者收到状态
+        let received = rx.try_recv();
+        assert!(received.is_ok(), "应该收到状态更新");
+        assert_eq!(received.unwrap(), new_status);
+    }
+
+    #[test]
+    fn test_notify_status_change_deduplication() {
+        let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let device_config = DeviceConfig::new("test-device");
+
+        let service = P2PSyncService::new(card_store, device_config).unwrap();
+
+        // 创建订阅者
+        let mut rx = service.status_tx.subscribe();
+
+        // 触发相同的状态变化两次
+        let status = SyncStatus {
+            online_devices: 1,
+            syncing_devices: 1,
+            offline_devices: 0,
+        };
+        service.notify_status_change(status.clone());
+        service.notify_status_change(status.clone());
+
+        // 验证只收到一次状态更新
+        assert!(rx.try_recv().is_ok(), "应该收到第一次状态更新");
+        assert!(rx.try_recv().is_err(), "不应该收到重复的状态更新");
+    }
+
+    #[test]
+    fn test_multiple_subscribers() {
+        let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let device_config = DeviceConfig::new("test-device");
+
+        let service = P2PSyncService::new(card_store, device_config).unwrap();
+
+        // 创建多个订阅者
+        let mut rx1 = service.status_tx.subscribe();
+        let mut rx2 = service.status_tx.subscribe();
+
+        // 触发状态变化
+        let new_status = SyncStatus {
+            online_devices: 2,
+            syncing_devices: 1,
+            offline_devices: 0,
+        };
+        service.notify_status_change(new_status.clone());
+
+        // 验证所有订阅者都收到状态
+        assert_eq!(rx1.try_recv().unwrap(), new_status);
+        assert_eq!(rx2.try_recv().unwrap(), new_status);
+    }
+
+    #[test]
+    fn test_status_sender() {
+        let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let device_config = DeviceConfig::new("test-device");
+
+        let service = P2PSyncService::new(card_store, device_config).unwrap();
+
+        // 获取 sender 并创建新的订阅者
+        let sender = service.status_sender();
+        let mut rx = sender.subscribe();
+
+        // 通过 sender 发送状态
+        let status = SyncStatus {
+            online_devices: 1,
+            syncing_devices: 0,
+            offline_devices: 0,
+        };
+        let _ = sender.send(status.clone());
+
+        // 验证订阅者收到状态
+        assert_eq!(rx.try_recv().unwrap(), status);
+    }
 }
