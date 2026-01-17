@@ -4,6 +4,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../bridge/api/device_config.dart';
 import '../providers/theme_provider.dart';
+import '../adaptive/layouts/adaptive_scaffold.dart';
+import '../adaptive/layouts/adaptive_padding.dart';
 
 /// Settings screen for app configuration
 class SettingsScreen extends StatefulWidget {
@@ -120,9 +122,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AdaptiveScaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
+        padding: AdaptivePadding.small,
         children: [
           // Theme Section
           _buildSection(
