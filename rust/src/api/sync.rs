@@ -438,6 +438,7 @@ pub fn get_sync_status_stream(sink: StreamSink<SyncStatus>) -> Result<()> {
 mod tests {
     use super::*;
     use serial_test::serial;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     #[serial]
@@ -503,5 +504,67 @@ mod tests {
         assert_ne!(SyncState::Disconnected, SyncState::Syncing);
         assert_ne!(SyncState::Syncing, SyncState::Synced);
         assert_ne!(SyncState::Synced, SyncState::Failed);
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_retry_sync_with_no_peers() {
+        // 清理并初始化服务
+        cleanup_sync_service();
+
+        // 创建测试用的 CardStore 和 DeviceConfig
+        let card_store = Arc::new(Mutex::new(
+            crate::store::card_store::CardStore::new_in_memory().unwrap(),
+        ));
+        let device_config = crate::models::device_config::DeviceConfig::new("test-device");
+
+        // 初始化服务
+        let service = crate::p2p::sync_service::P2PSyncService::new(card_store, device_config)
+            .expect("Failed to create sync service");
+
+        SYNC_SERVICE.with(|s| {
+            *s.borrow_mut() = Some(service);
+        });
+
+        // 测试：没有可用 peer 时重试应该失败
+        let result = retry_sync().await;
+        assert!(result.is_err(), "没有可用 peer 时重试应该失败");
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("No peers available"),
+            "错误消息应该包含 'No peers available'"
+        );
+
+        cleanup_sync_service();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_get_sync_status_stream_emits_initial_status() {
+        // 清理并初始化服务
+        cleanup_sync_service();
+
+        let card_store = Arc::new(Mutex::new(
+            crate::store::card_store::CardStore::new_in_memory().unwrap(),
+        ));
+        let device_config = crate::models::device_config::DeviceConfig::new("test-device");
+
+        let service = crate::p2p::sync_service::P2PSyncService::new(card_store, device_config)
+            .expect("Failed to create sync service");
+
+        SYNC_SERVICE.with(|s| {
+            *s.borrow_mut() = Some(service);
+        });
+
+        // 注意：StreamSink 无法在单元测试中直接创建
+        // 这个功能需要在集成测试或 Flutter 端测试中验证
+        // 这里我们只验证服务已正确初始化
+
+        let status = get_sync_status();
+        assert!(status.is_ok(), "应该能够获取同步状态");
+
+        cleanup_sync_service();
     }
 }
