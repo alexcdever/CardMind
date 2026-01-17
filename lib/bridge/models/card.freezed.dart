@@ -32,13 +32,22 @@ mixin _$Card {
 
 /// @nodoc
 abstract class $CardCopyWith<$Res> {
-  factory $CardCopyWith(Card value, $Res Function(Card) then) = _$CardCopyWithImpl<$Res, Card>;
+  factory $CardCopyWith(Card value, $Res Function(Card) then) =
+      _$CardCopyWithImpl<$Res, Card>;
   @useResult
-  $Res call({String id, String title, String content, int createdAt, int updatedAt, bool deleted});
+  $Res call({
+    String id,
+    String title,
+    String content,
+    int createdAt,
+    int updatedAt,
+    bool deleted,
+  });
 }
 
 /// @nodoc
-class _$CardCopyWithImpl<$Res, $Val extends Card> implements $CardCopyWith<$Res> {
+class _$CardCopyWithImpl<$Res, $Val extends Card>
+    implements $CardCopyWith<$Res> {
   _$CardCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -92,15 +101,28 @@ class _$CardCopyWithImpl<$Res, $Val extends Card> implements $CardCopyWith<$Res>
 
 /// @nodoc
 abstract class _$$CardImplCopyWith<$Res> implements $CardCopyWith<$Res> {
-  factory _$$CardImplCopyWith(_$CardImpl value, $Res Function(_$CardImpl) then) = __$$CardImplCopyWithImpl<$Res>;
+  factory _$$CardImplCopyWith(
+    _$CardImpl value,
+    $Res Function(_$CardImpl) then,
+  ) = __$$CardImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String title, String content, int createdAt, int updatedAt, bool deleted});
+  $Res call({
+    String id,
+    String title,
+    String content,
+    int createdAt,
+    int updatedAt,
+    bool deleted,
+  });
 }
 
 /// @nodoc
-class __$$CardImplCopyWithImpl<$Res> extends _$CardCopyWithImpl<$Res, _$CardImpl> implements _$$CardImplCopyWith<$Res> {
-  __$$CardImplCopyWithImpl(_$CardImpl _value, $Res Function(_$CardImpl) _then) : super(_value, _then);
+class __$$CardImplCopyWithImpl<$Res>
+    extends _$CardCopyWithImpl<$Res, _$CardImpl>
+    implements _$$CardImplCopyWith<$Res> {
+  __$$CardImplCopyWithImpl(_$CardImpl _value, $Res Function(_$CardImpl) _then)
+    : super(_value, _then);
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.
@@ -183,20 +205,31 @@ class _$CardImpl implements _Card {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.content, content) || other.content == content) &&
-            (identical(other.createdAt, createdAt) || other.createdAt == createdAt) &&
-            (identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt) &&
             (identical(other.deleted, deleted) || other.deleted == deleted));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, id, title, content, createdAt, updatedAt, deleted);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    title,
+    content,
+    createdAt,
+    updatedAt,
+    deleted,
+  );
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardImplCopyWith<_$CardImpl> get copyWith => __$$CardImplCopyWithImpl<_$CardImpl>(this, _$identity);
+  _$$CardImplCopyWith<_$CardImpl> get copyWith =>
+      __$$CardImplCopyWithImpl<_$CardImpl>(this, _$identity);
 }
 
 abstract class _Card implements Card {
@@ -226,5 +259,6 @@ abstract class _Card implements Card {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CardImplCopyWith<_$CardImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$CardImplCopyWith<_$CardImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }

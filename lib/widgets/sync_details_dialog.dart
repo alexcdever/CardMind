@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:cardmind/models/sync_status.dart';
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as sync_api;
 
 /// Sync Details Dialog
 ///
@@ -13,7 +14,7 @@ import 'package:cardmind/models/sync_status.dart';
 /// - 显示错误信息（failed 状态）
 /// - 提供重试按钮（failed 状态）
 
-class SyncDetailsDialog extends StatelessWidget {
+class SyncDetailsDialog extends StatefulWidget {
   const SyncDetailsDialog({
     super.key,
     required this.status,
@@ -22,16 +23,27 @@ class SyncDetailsDialog extends StatelessWidget {
   /// 当前同步状态
   final SyncStatus status;
 
+  @override
+  State<SyncDetailsDialog> createState() => _SyncDetailsDialogState();
+}
+
+class _SyncDetailsDialogState extends State<SyncDetailsDialog> {
+  /// 是否正在重试
+  bool _isRetrying = false;
+
+  /// 重试错误信息
+  String? _retryError;
+
   /// 获取状态描述
   String _getStatusDescription() {
-    switch (status.state) {
+    switch (widget.status.state) {
       case SyncState.disconnected:
         return '当前没有连接到任何对等设备。请确保其他设备在同一网络中。';
       case SyncState.syncing:
-        return '正在与 ${status.syncingPeers} 台设备同步数据...';
+        return '正在与 ${widget.status.syncingPeers} 台设备同步数据...';
       case SyncState.synced:
-        if (status.lastSyncTime != null) {
-          final time = _formatTime(status.lastSyncTime!);
+        if (widget.status.lastSyncTime != null) {
+          final time = _formatTime(widget.status.lastSyncTime!);
           return '数据已同步，最后同步时间：$time';
         }
         return '数据已同步，所有设备数据一致。';
@@ -49,7 +61,7 @@ class SyncDetailsDialog extends StatelessWidget {
 
   /// 获取状态图标
   IconData _getStatusIcon() {
-    switch (status.state) {
+    switch (widget.status.state) {
       case SyncState.disconnected:
         return Icons.cloud_off;
       case SyncState.syncing:
@@ -63,7 +75,7 @@ class SyncDetailsDialog extends StatelessWidget {
 
   /// 获取状态颜色
   Color _getStatusColor() {
-    switch (status.state) {
+    switch (widget.status.state) {
       case SyncState.disconnected:
         return const Color(0xFF757575); // grey
       case SyncState.syncing:
@@ -77,7 +89,7 @@ class SyncDetailsDialog extends StatelessWidget {
 
   /// 获取状态标题
   String _getStatusTitle() {
-    switch (status.state) {
+    switch (widget.status.state) {
       case SyncState.disconnected:
         return '未同步';
       case SyncState.syncing:
@@ -90,11 +102,30 @@ class SyncDetailsDialog extends StatelessWidget {
   }
 
   /// 处理重试
-  void _handleRetry(BuildContext context) {
-    // TODO: 调用 SyncApi.retrySync()
-    // 暂时只关闭对话框
-    Navigator.of(context).pop();
-    debugPrint('Retry sync requested');
+  Future<void> _handleRetry() async {
+    // 设置重试状态
+    setState(() {
+      _isRetrying = true;
+      _retryError = null;
+    });
+
+    try {
+      // 调用 Rust API 重试同步
+      await sync_api.retrySync();
+
+      // 重试成功，关闭对话框
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      // 重试失败，显示错误消息
+      if (mounted) {
+        setState(() {
+          _isRetrying = false;
+          _retryError = '重试失败：${e.toString()}';
+        });
+      }
+    }
   }
 
   @override
@@ -125,7 +156,7 @@ class SyncDetailsDialog extends StatelessWidget {
             const SizedBox(height: 16),
 
             // 对等设备列表（syncing 状态）
-            if (status.state == SyncState.syncing && status.syncingPeers > 0) ...[
+            if (widget.status.state == SyncState.syncing && widget.status.syncingPeers > 0) ...[
               const Text(
                 '连接的设备：',
                 style: TextStyle(
@@ -135,7 +166,7 @@ class SyncDetailsDialog extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               ...List.generate(
-                status.syncingPeers,
+                widget.status.syncingPeers,
                 (index) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
@@ -151,8 +182,8 @@ class SyncDetailsDialog extends StatelessWidget {
             ],
 
             // 错误信息（failed 状态）
-            if (status.state == SyncState.failed &&
-                status.errorMessage != null) ...[
+            if (widget.status.state == SyncState.failed &&
+                widget.status.errorMessage != null) ...[
               const Text(
                 '错误详情：',
                 style: TextStyle(
@@ -174,7 +205,7 @@ class SyncDetailsDialog extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        status.errorMessage!,
+                        widget.status.errorMessage!,
                         style: TextStyle(
                           color: Colors.red.shade700,
                           fontSize: 13,
@@ -185,23 +216,74 @@ class SyncDetailsDialog extends StatelessWidget {
                 ),
               ),
             ],
+
+            // 重试错误信息
+            if (_retryError != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _retryError!,
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // 重试中的 loading 状态
+            if (_isRetrying) ...[
+              const SizedBox(height: 16),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text('正在重试同步...'),
+                ],
+              ),
+            ],
           ],
         ),
       ),
       actions: [
         // 重试按钮（仅在 failed 状态显示）
-        if (status.state == SyncState.failed)
+        if (widget.status.state == SyncState.failed)
           TextButton.icon(
-            onPressed: () => _handleRetry(context),
-            icon: const Icon(Icons.refresh),
-            label: const Text('重试'),
+            onPressed: _isRetrying ? null : _handleRetry,
+            icon: _isRetrying
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            label: Text(_isRetrying ? '重试中...' : '重试'),
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF00897B),
             ),
           ),
         // 关闭按钮
         TextButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _isRetrying ? null : () => Navigator.of(context).pop(),
           child: const Text('关闭'),
         ),
       ],

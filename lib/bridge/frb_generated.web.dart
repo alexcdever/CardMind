@@ -87,7 +87,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Pool dco_decode_pool(dynamic raw);
 
   @protected
-  (PlatformInt64, PlatformInt64, PlatformInt64) dco_decode_record_i_64_i_64_i_64(dynamic raw);
+  (PlatformInt64, PlatformInt64, PlatformInt64)
+  dco_decode_record_i_64_i_64_i_64(dynamic raw);
 
   @protected
   SyncState dco_decode_sync_state(dynamic raw);
@@ -105,7 +106,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
-  RustStreamSink<SyncStatus> sse_decode_StreamSink_sync_status_Sse(SseDeserializer deserializer);
+  RustStreamSink<SyncStatus> sse_decode_StreamSink_sync_status_Sse(
+    SseDeserializer deserializer,
+  );
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
@@ -159,7 +162,8 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Pool sse_decode_pool(SseDeserializer deserializer);
 
   @protected
-  (PlatformInt64, PlatformInt64, PlatformInt64) sse_decode_record_i_64_i_64_i_64(SseDeserializer deserializer);
+  (PlatformInt64, PlatformInt64, PlatformInt64)
+  sse_decode_record_i_64_i_64_i_64(SseDeserializer deserializer);
 
   @protected
   SyncState sse_decode_sync_state(SseDeserializer deserializer);
@@ -174,10 +178,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
-  void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  );
 
   @protected
-  void sse_encode_StreamSink_sync_status_Sse(RustStreamSink<SyncStatus> self, SseSerializer serializer);
+  void sse_encode_StreamSink_sync_status_Sse(
+    RustStreamSink<SyncStatus> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
@@ -186,7 +196,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_i_64(PlatformInt64 self, SseSerializer serializer);
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_card(Card self, SseSerializer serializer);
@@ -216,22 +229,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_pool(List<Pool> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
+  void sse_encode_list_prim_u_8_strict(
+    Uint8List self,
+    SseSerializer serializer,
+  );
 
   @protected
-  void sse_encode_m_dns_timer_config(MDnsTimerConfig self, SseSerializer serializer);
+  void sse_encode_m_dns_timer_config(
+    MDnsTimerConfig self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_box_autoadd_i_64(PlatformInt64? self, SseSerializer serializer);
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_pool(Pool self, SseSerializer serializer);
 
   @protected
-  void sse_encode_record_i_64_i_64_i_64((PlatformInt64, PlatformInt64, PlatformInt64) self, SseSerializer serializer);
+  void sse_encode_record_i_64_i_64_i_64(
+    (PlatformInt64, PlatformInt64, PlatformInt64) self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_sync_state(SyncState self, SseSerializer serializer);

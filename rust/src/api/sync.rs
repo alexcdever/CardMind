@@ -6,9 +6,9 @@
 //!
 //! 使用 thread-local 存储 `P2PSyncService` 实例，避免 SQLite 线程安全问题。
 
+use crate::frb_generated::StreamSink;
 use crate::models::error::{CardMindError, Result};
 use crate::p2p::sync_service::{P2PSyncService, SyncStatus as P2PSyncStatus};
-use crate::frb_generated::StreamSink;
 use std::cell::RefCell;
 use tokio_stream::StreamExt;
 use tracing::{info, warn};

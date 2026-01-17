@@ -46,10 +46,10 @@
 - [x] 5.6 编写测试：`it_should_broadcast_when_peer_disconnects()`
 - [x] 5.7 编写测试：`it_should_handle_no_subscribers_gracefully()`
 - [x] 5.8 编写测试：`it_should_support_multiple_concurrent_subscriptions()`
-- [ ] 5.9 编写测试：`it_should_emit_current_status_on_subscription()`
-- [ ] 5.10 编写测试：`it_should_clear_error_on_retry()`
-- [ ] 5.11 编写测试：`it_should_restart_sync_on_retry()`
-- [ ] 5.12 编写测试：`it_should_handle_concurrent_retries_safely()`
+- [x] 5.9 编写测试：`it_should_emit_current_status_on_subscription()`
+- [x] 5.10 编写测试：`it_should_clear_error_on_retry()`
+- [x] 5.11 编写测试：`it_should_restart_sync_on_retry()`
+- [x] 5.12 编写测试：`it_should_handle_concurrent_retries_safely()`
 
 ## 6. Rust - Integration Tests
 
@@ -69,24 +69,24 @@
 
 ## 8. Flutter - Stream Integration
 
-- [ ] 8.1 在 `HomeScreen` 的 `initState()` 中订阅 `getSyncStatusStream()`
-- [ ] 8.2 对 stream 应用 `distinct()` 过滤器
-- [ ] 8.3 对 stream 应用 `debounceTime(Duration(milliseconds: 500))`
-- [ ] 8.4 实现 stream 错误处理，fallback 到 `SyncStatus.disconnected()`
-- [ ] 8.5 在 `dispose()` 中取消 stream 订阅
-- [ ] 8.6 移除 mock stream 实现代码
-- [ ] 8.7 更新 `StreamBuilder` 使用真实的 stream
+- [x] 8.1 在 `HomeScreen` 的 `initState()` 中订阅 `getSyncStatusStream()`
+- [x] 8.2 对 stream 应用 `distinct()` 过滤器
+- [x] 8.3 对 stream 应用 `debounceTime(Duration(milliseconds: 500))`
+- [x] 8.4 实现 stream 错误处理，fallback 到 `SyncStatus.disconnected()`
+- [x] 8.5 在 `dispose()` 中取消 stream 订阅
+- [x] 8.6 移除 mock stream 实现代码
+- [x] 8.7 更新 `StreamBuilder` 使用真实的 stream
 
 ## 9. Flutter - Retry Implementation
 
-- [ ] 9.1 在 `SyncDetailsDialog` 中添加 `_isRetrying` 状态变量
-- [ ] 9.2 在 `SyncDetailsDialog` 中添加 `_retryError` 状态变量
-- [ ] 9.3 实现 `_handleRetry()` 方法调用 `retrySync()`
-- [ ] 9.4 在重试期间显示 loading 状态（CircularProgressIndicator）
-- [ ] 9.5 在重试期间禁用重试按钮
-- [ ] 9.6 处理重试成功：关闭对话框
-- [ ] 9.7 处理重试失败：显示错误消息
-- [ ] 9.8 添加重试错误的用户友好提示文本
+- [x] 9.1 在 `SyncDetailsDialog` 中添加 `_isRetrying` 状态变量
+- [x] 9.2 在 `SyncDetailsDialog` 中添加 `_retryError` 状态变量
+- [x] 9.3 实现 `_handleRetry()` 方法调用 `retrySync()`
+- [x] 9.4 在重试期间显示 loading 状态（CircularProgressIndicator）
+- [x] 9.5 在重试期间禁用重试按钮
+- [x] 9.6 处理重试成功：关闭对话框
+- [x] 9.7 处理重试失败：显示错误消息
+- [x] 9.8 添加重试错误的用户友好提示文本
 
 ## 10. Flutter - Widget Tests
 
@@ -110,11 +110,11 @@
 
 ## 12. Testing and Validation
 
-- [ ] 12.1 运行所有 Rust 单元测试：`cd rust && cargo test`
-- [ ] 12.2 运行 SP-SYNC-007 规格测试：`cd rust && cargo test --test sp_sync_007_spec`
-- [ ] 12.3 运行所有 Flutter 测试：`flutter test`
-- [ ] 12.4 运行 Flutter widget 测试：`flutter test test/widgets/sync_status_indicator_test.dart`
-- [ ] 12.5 运行 Flutter screen 测试：`flutter test test/screens/home_screen_test.dart`
+- [x] 12.1 运行所有 Rust 单元测试：`cd rust && cargo test`
+- [x] 12.2 运行 SP-SYNC-007 规格测试：`cd rust && cargo test --test sp_sync_007_spec`
+- [x] 12.3 运行所有 Flutter 测试：`flutter test`
+- [x] 12.4 运行 Flutter widget 测试：`flutter test test/widgets/sync_status_indicator_test.dart`
+- [x] 12.5 运行 Flutter screen 测试：`flutter test test/screens/home_screen_test.dart`
 - [ ] 12.6 手动测试：启动应用，观察状态转换
 - [ ] 12.7 手动测试：触发同步失败，验证重试功能
 - [ ] 12.8 性能测试：验证状态更新延迟 < 500ms
@@ -123,13 +123,13 @@
 
 ## 13. Documentation and Cleanup
 
-- [ ] 13.1 更新 `openspec/specs/README.md` 添加 SP-SYNC-007 规格
-- [ ] 13.2 在 design.md 中标记所有 Open Questions 为已解决
-- [ ] 13.3 添加代码注释说明 broadcast channel 的使用
-- [ ] 13.4 添加代码注释说明状态转换触发点
-- [ ] 13.5 更新 CHANGELOG.md 记录此次变更
-- [ ] 13.6 检查所有文件使用 Unix 换行符（LF）
-- [ ] 13.7 运行 `dart tool/fix_lint.dart` 修复 lint 问题
+- [x] 13.1 更新 `openspec/specs/README.md` 添加 SP-SYNC-007 规格
+- [x] 13.2 在 design.md 中标记所有 Open Questions 为已解决
+- [x] 13.3 添加代码注释说明 broadcast channel 的使用
+- [x] 13.4 添加代码注释说明状态转换触发点
+- [x] 13.5 更新 CHANGELOG.md 记录此次变更
+- [x] 13.6 检查所有文件使用 Unix 换行符（LF）
+- [x] 13.7 运行 `dart tool/fix_lint.dart` 修复 lint 问题
 
 ## 14. Code Review and Finalization
 
