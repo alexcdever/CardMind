@@ -9,6 +9,7 @@ import '../../../api/sync.dart';
 import '../../../frb_generated.dart';
 
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `from`
+// These functions have error during generation (see debug logs or enable `stop_on_error: true` for more details): `get_sync_status_stream`
 
 /// 初始化 P2P 同步服务
 ///
@@ -29,13 +30,8 @@ import '../../../frb_generated.dart';
 /// # 错误
 ///
 /// 如果服务已初始化或初始化失败，返回错误
-Future<String> initSyncService({
-  required String storagePath,
-  required String listenAddr,
-}) => RustLib.instance.api.cardmindRustApiSyncInitSyncService(
-  storagePath: storagePath,
-  listenAddr: listenAddr,
-);
+Future<String> initSyncService({required String storagePath, required String listenAddr}) =>
+    RustLib.instance.api.cardmindRustApiSyncInitSyncService(storagePath: storagePath, listenAddr: listenAddr);
 
 /// 手动同步数据池
 ///
@@ -52,8 +48,7 @@ Future<String> initSyncService({
 /// # 错误
 ///
 /// 如果服务未初始化或同步失败，返回错误
-Future<int> syncPool({required String poolId}) =>
-    RustLib.instance.api.cardmindRustApiSyncSyncPool(poolId: poolId);
+Future<int> syncPool({required String poolId}) => RustLib.instance.api.cardmindRustApiSyncSyncPool(poolId: poolId);
 
 /// 获取同步状态
 ///
@@ -71,8 +66,7 @@ Future<int> syncPool({required String poolId}) =>
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<SyncStatus> getSyncStatus() =>
-    RustLib.instance.api.cardmindRustApiSyncGetSyncStatus();
+Future<SyncStatus> getSyncStatus() => RustLib.instance.api.cardmindRustApiSyncGetSyncStatus();
 
 /// 获取本地 Peer ID
 ///
@@ -90,8 +84,7 @@ Future<SyncStatus> getSyncStatus() =>
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<String> getLocalPeerId() =>
-    RustLib.instance.api.cardmindRustApiSyncGetLocalPeerId();
+Future<String> getLocalPeerId() => RustLib.instance.api.cardmindRustApiSyncGetLocalPeerId();
 
 /// 清理同步服务
 ///
@@ -100,8 +93,7 @@ Future<String> getLocalPeerId() =>
 /// # 注意
 ///
 /// 这个函数主要用于测试，生产环境中通常不需要手动调用
-Future<void> cleanupSyncService() =>
-    RustLib.instance.api.cardmindRustApiSyncCleanupSyncService();
+Future<void> cleanupSyncService() => RustLib.instance.api.cardmindRustApiSyncCleanupSyncService();
 
 /// 重试同步
 ///
@@ -115,24 +107,5 @@ Future<void> cleanupSyncService() =>
 ///
 /// # 错误
 ///
-/// 如果服务未初始化，返回错误
+/// 如果服务未初始化或无可用 peer，返回错误
 Future<void> retrySync() => RustLib.instance.api.cardmindRustApiSyncRetrySync();
-
-/// 获取同步状态流（Stream）
-///
-/// 返回一个 Stream，实时推送同步状态变化
-///
-/// # 示例（Flutter）
-///
-/// ```dart
-/// final stream = getSyncStatusStream();
-/// stream.listen((status) {
-///   print('状态变化: ${status.state}');
-/// });
-/// ```
-///
-/// # 注意
-///
-/// 目前返回初始状态，实际的 Stream 实现需要在 P2PSyncService 中添加状态变化通知机制
-Future<SyncStatus> getSyncStatusStream() =>
-    RustLib.instance.api.cardmindRustApiSyncGetSyncStatusStream();

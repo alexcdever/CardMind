@@ -8,11 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import '../frb_generated.dart';
 
 class DeviceConfig {
-  const DeviceConfig({
-    required this.deviceId,
-    this.poolId,
-    required this.mdnsTimer,
-  });
+  const DeviceConfig({required this.deviceId, this.poolId, required this.mdnsTimer});
   final String deviceId;
   final String? poolId;
 
@@ -49,7 +45,5 @@ class MDnsTimerConfig {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MDnsTimerConfig &&
-          runtimeType == other.runtimeType &&
-          timerEndMs == other.timerEndMs;
+      other is MDnsTimerConfig && runtimeType == other.runtimeType && timerEndMs == other.timerEndMs;
 }

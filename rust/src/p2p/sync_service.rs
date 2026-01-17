@@ -39,6 +39,7 @@ use libp2p::swarm::SwarmEvent;
 use libp2p::PeerId;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
+use tokio::sync::broadcast;
 use tracing::{debug, info, warn};
 
 /// 全局注册表用于本地内存内的“模拟网络”同步（测试和受限环境使用）
@@ -79,6 +80,12 @@ pub struct P2PSyncService {
 
     /// 是否使用真实网络传输（默认 true，测试时可设为 false）
     use_real_network: bool,
+
+    /// 状态变化广播通道（用于实时推送同步状态）
+    status_tx: broadcast::Sender<SyncStatus>,
+
+    /// 最后一次广播的状态（用于去重）
+    last_status: Arc<Mutex<Option<SyncStatus>>>,
 }
 
 // 为了让异步 FFI future 可 Send/Sync（使用时仍应确保单线程访问 Swarm）
@@ -133,6 +140,9 @@ impl P2PSyncService {
         let coordinator =
             MultiPeerSyncCoordinator::new(card_store, sync_manager_for_coordinator, local_peer_id);
 
+        // 4. 创建状态广播通道（容量 100）
+        let (status_tx, _rx) = broadcast::channel(100);
+
         // 注册到本地模拟网络，便于测试环境在无真实网络时进行同步
         registry().lock().unwrap().insert(
             local_peer_id,
@@ -150,6 +160,8 @@ impl P2PSyncService {
             device_config,
             connections: Arc::new(Mutex::new(HashMap::new())),
             use_real_network: true, // 默认使用真实网络
+            status_tx,
+            last_status: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -403,6 +415,43 @@ impl P2PSyncService {
         }
     }
 
+    /// 通知状态变化
+    ///
+    /// 广播同步状态变化到所有订阅者。实现去重逻辑，避免发送重复状态。
+    ///
+    /// # 参数
+    ///
+    /// * `new_status` - 新的同步状态
+    pub fn notify_status_change(&self, new_status: SyncStatus) {
+        // 检查是否与上次状态相同（去重）
+        let mut last_status = self.last_status.lock().unwrap();
+
+        if last_status.as_ref() != Some(&new_status) {
+            // 记录状态变化
+            info!(
+                "同步状态变化: {:?} -> {:?}",
+                last_status.as_ref(),
+                new_status
+            );
+
+            // 更新最后状态
+            *last_status = Some(new_status.clone());
+
+            // 广播状态变化（忽略发送错误，因为可能没有订阅者）
+            let _ = self.status_tx.send(new_status);
+        }
+    }
+
+    /// 获取状态广播发送器（用于创建订阅）
+    ///
+    /// # 返回
+    ///
+    /// 返回 broadcast::Sender 的克隆，可用于创建新的订阅者
+    #[must_use]
+    pub fn status_sender(&self) -> broadcast::Sender<SyncStatus> {
+        self.status_tx.clone()
+    }
+
     /// 处理网络事件
     ///
     /// 此方法应该在事件循环中持续调用，用于处理传入的同步请求和响应
@@ -413,11 +462,19 @@ impl P2PSyncService {
                     info!("与设备 {} 建立连接", peer_id);
                     self.connections.lock().unwrap().insert(peer_id, true);
                     self.coordinator.add_or_update_device(peer_id);
+
+                    // 触发状态变化：发现新对等设备 → syncing
+                    let status = self.get_sync_status();
+                    self.notify_status_change(status);
                 }
                 SwarmEvent::ConnectionClosed { peer_id, .. } => {
                     info!("与设备 {} 的连接断开", peer_id);
                     self.connections.lock().unwrap().insert(peer_id, false);
                     self.coordinator.mark_device_offline(&peer_id);
+
+                    // 触发状态变化：检查是否所有 peer 断开 → disconnected
+                    let status = self.get_sync_status();
+                    self.notify_status_change(status);
                 }
                 SwarmEvent::Behaviour(P2PEvent::Sync(sync_event)) => {
                     use libp2p::request_response::Event;
@@ -478,6 +535,13 @@ impl P2PSyncService {
                                 // 处理同步响应
                                 if let Err(e) = self.handle_sync_response(peer, response) {
                                     warn!("处理同步响应失败: {}", e);
+                                    // 触发状态变化：同步失败 → failed
+                                    let status = self.get_sync_status();
+                                    self.notify_status_change(status);
+                                } else {
+                                    // 触发状态变化：同步完成 → synced
+                                    let status = self.get_sync_status();
+                                    self.notify_status_change(status);
                                 }
                             }
                         },
@@ -547,7 +611,7 @@ impl P2PSyncService {
 }
 
 /// 同步状态
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SyncStatus {
     /// 在线设备数
     pub online_devices: usize,
