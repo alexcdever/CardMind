@@ -32,6 +32,16 @@
 | SP-FLUT-009 | [card_creation_spec.md](./flutter/card_creation_spec.md) | 卡片创建交互规格 | ✅ 完成 |
 | SP-FLUT-010 | [sync_feedback_spec.md](./flutter/sync_feedback_spec.md) | 同步反馈交互规格 | ✅ 完成 |
 
+### 平台自适应 UI 规格
+
+| 编号 | 文档 | 描述 | 状态 |
+|-----|------|------|------|
+| SP-ADAPT-001 | [platform-detection/spec.md](./platform-detection/spec.md) | 平台检测规格 | ✅ 完成 |
+| SP-ADAPT-002 | [adaptive-ui-framework/spec.md](./adaptive-ui-framework/spec.md) | 自适应 UI 框架规格 | ✅ 完成 |
+| SP-ADAPT-003 | [keyboard-shortcuts/spec.md](./keyboard-shortcuts/spec.md) | 键盘快捷键规格 | ✅ 完成 |
+| SP-ADAPT-004 | [mobile-ui-patterns/spec.md](./mobile-ui-patterns/spec.md) | 移动端 UI 模式规格 | ✅ 完成 |
+| SP-ADAPT-005 | [desktop-ui-patterns/spec.md](./desktop-ui-patterns/spec.md) | 桌面端 UI 模式规格 | ✅ 完成 |
+
 ---
 
 ## 🚀 快速开始
@@ -139,10 +149,10 @@ done
 
 ## 📊 规格统计
 
-**当前（2026-01-14）**:
-- 功能规格文档: 9 个
+**当前（2026-01-17）**:
+- 功能规格文档: 14 个（新增 5 个平台自适应规格）
 - 工具文档: 5 个
-- Spec 测试: 14 个（全部通过）
+- Spec 测试: 79 个（全部通过）
 - 代码示例: 6 个业务场景
 
 **目标**:
@@ -173,7 +183,8 @@ XXX    - 模块识别码
        - API: API Layer（API 层）
        - SYNC: Sync Layer（同步层）
        - FLUT: Flutter UI
-       
+       - ADAPT: Adaptive UI（平台自适应 UI）
+
 XXX    - 序号（001, 002, 003...）
 ```
 
@@ -226,7 +237,7 @@ test('test_device_can_join_pool', () { ... });
 
 ---
 
-**最后更新**: 2026-01-14  
-**维护者**: CardMind Team  
+**最后更新**: 2026-01-17
+**维护者**: CardMind Team
 **规范的规范**: 本文档本身也是规格 🤯
 

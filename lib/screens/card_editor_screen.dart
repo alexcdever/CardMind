@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/card_editor_state.dart';
+import '../adaptive/layouts/adaptive_scaffold.dart';
+import '../adaptive/platform_detector.dart';
+import '../adaptive/layouts/adaptive_padding.dart';
 
 /// Card Editor Screen
 ///
@@ -112,7 +115,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
           Navigator.of(context).pop();
         }
       },
-      child: Scaffold(
+      child: AdaptiveScaffold(
         appBar: AppBar(
           title: const Text('新建卡片'),
           leading: IconButton(
@@ -132,9 +135,9 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               onPressed: state.isTitleValid
                   ? () => _onCompletePressed(context, state)
                   : null,
-              child: const Text(
-                '完成',
-                style: TextStyle(fontSize: 16),
+              child: Text(
+                PlatformDetector.isMobile ? '完成' : '保存',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
           ],
@@ -146,7 +149,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
 
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: AdaptivePadding.medium,
                 child: Column(
                   children: [
                     // 任务 4.3: 实现标题输入框
@@ -253,7 +256,10 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
   // 完成按钮处理
   // ========================================
 
-  Future<void> _onCompletePressed(BuildContext context, CardEditorState state) async {
+  Future<void> _onCompletePressed(
+    BuildContext context,
+    CardEditorState state,
+  ) async {
     final navigator = Navigator.of(context);
     final success = await state.manualSave();
 

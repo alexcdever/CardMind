@@ -9,10 +9,14 @@ import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/screens/card_editor_screen.dart';
 import 'package:cardmind/screens/settings_screen.dart';
 import 'package:cardmind/bridge/api/sync.dart' as rust_sync;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as sync_api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
+    as sync_api;
 import 'package:cardmind/utils/responsive_utils.dart';
 import 'package:cardmind/widgets/card_list_item.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
+import 'package:cardmind/adaptive/layouts/adaptive_scaffold.dart';
+import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:cardmind/adaptive/layouts/adaptive_padding.dart';
 
 /// Home screen showing the list of cards
 class HomeScreen extends StatefulWidget {
@@ -59,16 +63,18 @@ class _HomeScreenState extends State<HomeScreen> {
       _syncStatusStream = sync_api
           .getSyncStatusStream()
           .map(_convertRustStatus)
-          .distinct((prev, next) =>
-              prev.state == next.state &&
-              prev.syncingPeers == next.syncingPeers &&
-              prev.errorMessage == next.errorMessage)
+          .distinct(
+            (prev, next) =>
+                prev.state == next.state &&
+                prev.syncingPeers == next.syncingPeers &&
+                prev.errorMessage == next.errorMessage,
+          )
           .debounceTime(const Duration(milliseconds: 500))
           .handleError((error) {
-        debugPrint('同步状态 Stream 错误: $error');
-        // 错误时返回 disconnected 状态
-        return SyncStatus.disconnected();
-      });
+            debugPrint('同步状态 Stream 错误: $error');
+            // 错误时返回 disconnected 状态
+            return SyncStatus.disconnected();
+          });
     } catch (e) {
       debugPrint('初始化同步状态 Stream 失败: $e');
       // 如果初始化失败，创建一个只发送 disconnected 状态的 Stream
@@ -85,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AdaptiveScaffold(
       appBar: AppBar(
         title: const Text('CardMind'),
         actions: [
@@ -109,6 +115,20 @@ class _HomeScreenState extends State<HomeScreen> {
             },
             tooltip: 'Refresh',
           ),
+          // Desktop: Add "New Card" button in toolbar
+          if (PlatformDetector.isDesktop)
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (context) => const CardEditorScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Create Card',
+            ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -126,9 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Consumer<CardProvider>(
         builder: (context, cardProvider, child) {
           if (cardProvider.isLoading && cardProvider.cards.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (cardProvider.hasError) {
@@ -158,18 +176,24 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.note_add_outlined, size: 64, color: Colors.grey),
+                  const Icon(
+                    Icons.note_add_outlined,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No cards yet',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.grey,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Tap + to create your first card',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    PlatformDetector.isMobile
+                        ? 'Tap + to create your first card'
+                        : 'Click + to create your first card',
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ],
               ),
@@ -202,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Use ListView for mobile
                 return ListView.builder(
                   itemCount: cardProvider.cards.length,
-                  padding: const EdgeInsets.all(8),
+                  padding: AdaptivePadding.small,
                   itemBuilder: (context, index) {
                     final card = cardProvider.cards[index];
                     return CardListItem(card: card);
@@ -213,18 +237,21 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute<void>(
-              builder: (context) => const CardEditorScreen(),
-            ),
-          );
-        },
-        tooltip: 'Create Card',
-        child: const Icon(Icons.add),
-      ),
+      // Mobile: Show FAB, Desktop: No FAB (button in toolbar)
+      floatingActionButton: PlatformDetector.isMobile
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (context) => const CardEditorScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Create Card',
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
