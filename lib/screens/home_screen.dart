@@ -1,17 +1,87 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:rxdart/rxdart.dart';
 
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/screens/card_editor_screen.dart';
 import 'package:cardmind/screens/settings_screen.dart';
+import 'package:cardmind/bridge/api/sync.dart' as rust_sync;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as sync_api;
 import 'package:cardmind/utils/responsive_utils.dart';
 import 'package:cardmind/widgets/card_list_item.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
 
 /// Home screen showing the list of cards
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Stream<SyncStatus>? _syncStatusStream;
+  StreamSubscription<SyncStatus>? _syncSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSyncStatusStream();
+  }
+
+  /// 将 Rust SyncStatus 转换为 Flutter SyncStatus
+  SyncStatus _convertRustStatus(rust_sync.SyncStatus rustStatus) {
+    switch (rustStatus.state) {
+      case rust_sync.SyncState.disconnected:
+        return SyncStatus.disconnected();
+      case rust_sync.SyncState.syncing:
+        return SyncStatus.syncing(syncingPeers: rustStatus.syncingPeers);
+      case rust_sync.SyncState.synced:
+        final lastSyncTime = rustStatus.lastSyncTime != null
+            ? DateTime.fromMillisecondsSinceEpoch(rustStatus.lastSyncTime!)
+            : DateTime.now();
+        return SyncStatus.synced(lastSyncTime: lastSyncTime);
+      case rust_sync.SyncState.failed:
+        return SyncStatus.failed(
+          errorMessage: rustStatus.errorMessage ?? 'Unknown error',
+        );
+    }
+  }
+
+  void _initSyncStatusStream() {
+    try {
+      // 订阅同步状态 Stream
+      // 应用 distinct() 过滤重复状态
+      // 应用 debounceTime 避免 UI 闪烁
+      _syncStatusStream = sync_api
+          .getSyncStatusStream()
+          .map(_convertRustStatus)
+          .distinct((prev, next) =>
+              prev.state == next.state &&
+              prev.syncingPeers == next.syncingPeers &&
+              prev.errorMessage == next.errorMessage)
+          .debounceTime(const Duration(milliseconds: 500))
+          .handleError((error) {
+        debugPrint('同步状态 Stream 错误: $error');
+        // 错误时返回 disconnected 状态
+        return SyncStatus.disconnected();
+      });
+    } catch (e) {
+      debugPrint('初始化同步状态 Stream 失败: $e');
+      // 如果初始化失败，创建一个只发送 disconnected 状态的 Stream
+      _syncStatusStream = Stream.value(SyncStatus.disconnected());
+    }
+  }
+
+  @override
+  void dispose() {
+    // 取消 Stream 订阅
+    _syncSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,9 +89,18 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('CardMind'),
         actions: [
-          // 同步状态指示器
-          SyncStatusIndicator(
-            status: SyncStatus.disconnected(), // TODO: 使用 StreamBuilder 订阅 SyncApi.statusStream
+          // 同步状态指示器 - 使用 StreamBuilder 订阅真实的 Stream
+          StreamBuilder<SyncStatus>(
+            stream: _syncStatusStream,
+            initialData: SyncStatus.disconnected(),
+            builder: (context, snapshot) {
+              // 错误处理：fallback 到 disconnected 状态
+              final status = snapshot.hasError
+                  ? SyncStatus.disconnected()
+                  : (snapshot.data ?? SyncStatus.disconnected());
+
+              return SyncStatusIndicator(status: status);
+            },
           ),
           IconButton(
             icon: const Icon(Icons.refresh),

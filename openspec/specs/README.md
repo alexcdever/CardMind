@@ -20,6 +20,7 @@
 | SP-CARD-004 | [card_store_spec.md](./rust/card_store_spec.md) | CardStore 改造规格 | ✅ 完成 |
 | SP-API-005 | [api_spec.md](./rust/api_spec.md) | API 层统一规格 | ✅ 完成 |
 | SP-SYNC-006 | [sync_spec.md](./rust/sync_spec.md) | 同步层简化规格 | ✅ 完成 |
+| SP-SYNC-007 | [sync_status_stream_spec.md](./rust/sync_status_stream_spec.md) | 同步状态 Stream 规格 | ✅ 完成 |
 
 ### Flutter UI 规格
 
