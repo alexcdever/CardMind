@@ -59,6 +59,7 @@ keyring = "3.6"
 libp2p = { version = "0.54", features = ["tcp", "tokio", "noise", "yamux", "mdns", "ping", "macros", "request-response", "cbor", "json"] }
 futures = "0.3"
 tokio = { version = "1.0", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 
 # Memory security
 zeroize = "1.7"

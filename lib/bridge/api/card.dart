@@ -23,8 +23,7 @@ import '../models/card.dart';
 /// ```dart
 /// await initCardStore(path: '/path/to/storage');
 /// ```
-Future<void> initCardStore({required String path}) =>
-    RustLib.instance.api.cardmindRustApiCardInitCardStore(path: path);
+Future<void> initCardStore({required String path}) => RustLib.instance.api.cardmindRustApiCardInitCardStore(path: path);
 
 /// Create a new card
 ///
@@ -47,10 +46,7 @@ Future<void> initCardStore({required String path}) =>
 /// final card = await createCard(title: 'My Note', content: '# Hello');
 /// ```
 Future<Card> createCard({required String title, required String content}) =>
-    RustLib.instance.api.cardmindRustApiCardCreateCard(
-      title: title,
-      content: content,
-    );
+    RustLib.instance.api.cardmindRustApiCardCreateCard(title: title, content: content);
 
 /// Get all cards (including deleted ones)
 ///
@@ -63,8 +59,7 @@ Future<Card> createCard({required String title, required String content}) =>
 /// ```dart
 /// final cards = await getAllCards();
 /// ```
-Future<List<Card>> getAllCards() =>
-    RustLib.instance.api.cardmindRustApiCardGetAllCards();
+Future<List<Card>> getAllCards() => RustLib.instance.api.cardmindRustApiCardGetAllCards();
 
 /// Get all active cards (excluding deleted ones)
 ///
@@ -77,8 +72,7 @@ Future<List<Card>> getAllCards() =>
 /// ```dart
 /// final cards = await getActiveCards();
 /// ```
-Future<List<Card>> getActiveCards() =>
-    RustLib.instance.api.cardmindRustApiCardGetActiveCards();
+Future<List<Card>> getActiveCards() => RustLib.instance.api.cardmindRustApiCardGetActiveCards();
 
 /// Get a card by ID
 ///
@@ -99,8 +93,7 @@ Future<List<Card>> getActiveCards() =>
 /// ```dart
 /// final card = await getCardById(id: cardId);
 /// ```
-Future<Card> getCardById({required String id}) =>
-    RustLib.instance.api.cardmindRustApiCardGetCardById(id: id);
+Future<Card> getCardById({required String id}) => RustLib.instance.api.cardmindRustApiCardGetCardById(id: id);
 
 /// Update a card
 ///
@@ -116,11 +109,7 @@ Future<Card> getCardById({required String id}) =>
 /// await updateCard(id: cardId, title: 'New Title', content: null);
 /// ```
 Future<void> updateCard({required String id, String? title, String? content}) =>
-    RustLib.instance.api.cardmindRustApiCardUpdateCard(
-      id: id,
-      title: title,
-      content: content,
-    );
+    RustLib.instance.api.cardmindRustApiCardUpdateCard(id: id, title: title, content: content);
 
 /// Delete a card (soft delete)
 ///
@@ -133,8 +122,7 @@ Future<void> updateCard({required String id, String? title, String? content}) =>
 /// ```dart
 /// await deleteCard(id: cardId);
 /// ```
-Future<void> deleteCard({required String id}) =>
-    RustLib.instance.api.cardmindRustApiCardDeleteCard(id: id);
+Future<void> deleteCard({required String id}) => RustLib.instance.api.cardmindRustApiCardDeleteCard(id: id);
 
 /// Get card count statistics
 ///
@@ -189,9 +177,7 @@ Future<List<Card>> getCardsInPools({required List<String> poolIds}) =>
 /// Test function to verify Flutter-Rust bridge is working
 ///
 /// Returns a greeting message.
-String helloCardmind() =>
-    RustLib.instance.api.cardmindRustApiCardHelloCardmind();
+String helloCardmind() => RustLib.instance.api.cardmindRustApiCardHelloCardmind();
 
 /// Add two numbers (simple test)
-int addNumbers({required int a, required int b}) =>
-    RustLib.instance.api.cardmindRustApiCardAddNumbers(a: a, b: b);
+int addNumbers({required int a, required int b}) => RustLib.instance.api.cardmindRustApiCardAddNumbers(a: a, b: b);

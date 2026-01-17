@@ -47,6 +47,18 @@ Future<String?> getCargoBinPath() async {
     return _cargoBinPath;
   }
 
+  // 优先使用环境变量 HOME（适用于 WSL）
+  final home = Platform.environment['HOME'];
+  if (home != null) {
+    _cargoBinPath = '$home/.cargo/bin';
+    // 验证路径是否存在
+    final binDir = Directory(_cargoBinPath!);
+    if (binDir.existsSync()) {
+      return _cargoBinPath;
+    }
+  }
+
+  // 备用方案：使用 cargo env
   final cargoBinResult = await Process.run('cargo', [
     'env',
     '--prefix',
@@ -54,15 +66,8 @@ Future<String?> getCargoBinPath() async {
   ]);
 
   if (cargoBinResult.exitCode == 0) {
-    final home = cargoBinResult.stdout.toString().trim();
-    _cargoBinPath = '$home/.cargo/bin';
-    return _cargoBinPath;
-  }
-
-  // 备用方案：使用环境变量
-  final home = Platform.environment['HOME'];
-  if (home != null) {
-    _cargoBinPath = '$home/.cargo/bin';
+    final cargoHome = cargoBinResult.stdout.toString().trim();
+    _cargoBinPath = '$cargoHome/.cargo/bin';
     return _cargoBinPath;
   }
 

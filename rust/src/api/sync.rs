@@ -8,7 +8,10 @@
 
 use crate::models::error::{CardMindError, Result};
 use crate::p2p::sync_service::{P2PSyncService, SyncStatus as P2PSyncStatus};
+use futures::stream::Stream;
 use std::cell::RefCell;
+use tokio_stream::wrappers::BroadcastStream;
+use tokio_stream::StreamExt;
 use tracing::{info, warn};
 
 thread_local! {
@@ -332,7 +335,7 @@ pub fn cleanup_sync_service() {
 ///
 /// # 错误
 ///
-/// 如果服务未初始化，返回错误
+/// 如果服务未初始化或无可用 peer，返回错误
 #[flutter_rust_bridge::frb]
 pub async fn retry_sync() -> Result<()> {
     info!("重试同步");
@@ -340,8 +343,26 @@ pub async fn retry_sync() -> Result<()> {
     // 临时从 thread-local 取出服务
     let service = take_sync_service()?;
 
-    // TODO: 实现实际的重试逻辑
-    // 这里可以重新启动网络连接、清除错误状态等
+    // 获取当前状态
+    let current_status = service.get_sync_status();
+
+    // 检查是否有可用的 peer
+    if current_status.online_devices == 0 && current_status.syncing_devices == 0 {
+        put_sync_service(service);
+        return Err(CardMindError::Unknown(
+            "No peers available for sync. Please wait for peer discovery.".to_string(),
+        ));
+    }
+
+    // 触发状态变化：重试 → syncing
+    let syncing_status = P2PSyncStatus {
+        online_devices: current_status.online_devices,
+        syncing_devices: current_status.online_devices,
+        offline_devices: current_status.offline_devices,
+    };
+    service.notify_status_change(syncing_status);
+
+    info!("重试同步完成，状态已更新为 syncing");
 
     put_sync_service(service);
 
@@ -361,15 +382,44 @@ pub async fn retry_sync() -> Result<()> {
 /// });
 /// ```
 ///
-/// # 注意
+/// # 返回
 ///
-/// 目前返回初始状态，实际的 Stream 实现需要在 P2PSyncService 中添加状态变化通知机制
+/// 返回一个 Stream<SyncStatus>，订阅后会立即收到当前状态，然后接收后续的状态更新
 #[flutter_rust_bridge::frb]
-pub fn get_sync_status_stream() -> Result<SyncStatus> {
-    // TODO: 实现真正的 Stream
-    // flutter_rust_bridge 支持 Stream，但需要使用 StreamSink
-    // 当前先返回当前状态，后续实现完整的 Stream 支持
-    get_sync_status()
+pub fn get_sync_status_stream() -> Result<impl Stream<Item = SyncStatus>> {
+    info!("创建同步状态 Stream");
+
+    // 获取当前状态和广播发送器
+    let (current_status, sender) = SYNC_SERVICE.with(|s| {
+        let service_ref = s.borrow();
+        let service = service_ref.as_ref().ok_or_else(|| {
+            CardMindError::DatabaseError(
+                "Sync service not initialized. Call init_sync_service first.".to_string(),
+            )
+        })?;
+
+        let current = service.get_sync_status();
+        let sender = service.status_sender();
+        Ok::<_, CardMindError>((current, sender))
+    })?;
+
+    // 订阅广播通道
+    let rx = sender.subscribe();
+
+    // 将 broadcast receiver 转换为 Stream，并过滤错误
+    let stream = BroadcastStream::new(rx).filter_map(|result| match result {
+        Ok(status) => Some(status.into()),
+        Err(e) => {
+            warn!("接收状态更新失败: {:?}", e);
+            None
+        }
+    });
+
+    // 创建一个包含初始状态的 Stream
+    let initial_stream = tokio_stream::once(current_status.into());
+
+    // 合并初始状态和后续更新
+    Ok(initial_stream.chain(stream))
 }
 
 #[cfg(test)]

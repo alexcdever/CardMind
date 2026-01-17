@@ -62,26 +62,19 @@ class SyncStatus {
   final int offlineDevices;
 
   /// 创建 disconnected 状态
-  static Future<SyncStatus> disconnected() =>
-      RustLib.instance.api.crateApiSyncSyncStatusDisconnected();
+  static Future<SyncStatus> disconnected() => RustLib.instance.api.crateApiSyncSyncStatusDisconnected();
 
   /// 创建 failed 状态
-  static Future<SyncStatus> failed({required String errorMessage}) => RustLib
-      .instance
-      .api
-      .crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
+  static Future<SyncStatus> failed({required String errorMessage}) =>
+      RustLib.instance.api.crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
 
   /// 创建 synced 状态
   static Future<SyncStatus> synced({required PlatformInt64 lastSyncTime}) =>
-      RustLib.instance.api.crateApiSyncSyncStatusSynced(
-        lastSyncTime: lastSyncTime,
-      );
+      RustLib.instance.api.crateApiSyncSyncStatusSynced(lastSyncTime: lastSyncTime);
 
   /// 创建 syncing 状态
-  static Future<SyncStatus> syncing({required int syncingPeers}) => RustLib
-      .instance
-      .api
-      .crateApiSyncSyncStatusSyncing(syncingPeers: syncingPeers);
+  static Future<SyncStatus> syncing({required int syncingPeers}) =>
+      RustLib.instance.api.crateApiSyncSyncStatusSyncing(syncingPeers: syncingPeers);
 
   @override
   int get hashCode =>
