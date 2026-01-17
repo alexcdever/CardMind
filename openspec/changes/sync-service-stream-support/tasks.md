@@ -38,14 +38,14 @@
 
 ## 5. Rust - Unit Tests
 
-- [ ] 5.1 编写测试：`it_should_broadcast_status_to_all_subscribers()`
-- [ ] 5.2 编写测试：`it_should_not_broadcast_duplicate_status()`
-- [ ] 5.3 编写测试：`it_should_broadcast_when_peer_discovered()`
-- [ ] 5.4 编写测试：`it_should_broadcast_when_sync_completes()`
-- [ ] 5.5 编写测试：`it_should_broadcast_when_sync_fails()`
-- [ ] 5.6 编写测试：`it_should_broadcast_when_peer_disconnects()`
-- [ ] 5.7 编写测试：`it_should_handle_no_subscribers_gracefully()`
-- [ ] 5.8 编写测试：`it_should_support_multiple_concurrent_subscriptions()`
+- [x] 5.1 编写测试：`it_should_broadcast_status_to_all_subscribers()`
+- [x] 5.2 编写测试：`it_should_not_broadcast_duplicate_status()`
+- [x] 5.3 编写测试：`it_should_broadcast_when_peer_discovered()`
+- [x] 5.4 编写测试：`it_should_broadcast_when_sync_completes()`
+- [x] 5.5 编写测试：`it_should_broadcast_when_sync_fails()`
+- [x] 5.6 编写测试：`it_should_broadcast_when_peer_disconnects()`
+- [x] 5.7 编写测试：`it_should_handle_no_subscribers_gracefully()`
+- [x] 5.8 编写测试：`it_should_support_multiple_concurrent_subscriptions()`
 - [ ] 5.9 编写测试：`it_should_emit_current_status_on_subscription()`
 - [ ] 5.10 编写测试：`it_should_clear_error_on_retry()`
 - [ ] 5.11 编写测试：`it_should_restart_sync_on_retry()`
