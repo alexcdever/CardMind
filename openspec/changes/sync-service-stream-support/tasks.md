@@ -53,11 +53,11 @@
 
 ## 6. Rust - Integration Tests
 
-- [ ] 6.1 创建 `rust/tests/sp_sync_007_spec.rs` 规格测试文件
-- [ ] 6.2 编写测试：`it_should_stream_status_to_flutter()`
-- [ ] 6.3 编写测试：`it_should_handle_flutter_subscription_cancellation()`
-- [ ] 6.4 编写测试：`it_should_handle_slow_flutter_subscriber()`
-- [ ] 6.5 编写测试：`it_should_integrate_with_flutter_rust_bridge()`
+- [x] 6.1 创建 `rust/tests/sp_sync_007_spec.rs` 规格测试文件
+- [x] 6.2 编写测试：`it_should_stream_status_to_flutter()`
+- [x] 6.3 编写测试：`it_should_handle_flutter_subscription_cancellation()`
+- [x] 6.4 编写测试：`it_should_handle_slow_flutter_subscriber()`
+- [x] 6.5 编写测试：`it_should_integrate_with_flutter_rust_bridge()`
 
 ## 7. Flutter Rust Bridge Generation
 
