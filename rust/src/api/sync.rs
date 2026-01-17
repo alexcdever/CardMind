@@ -8,9 +8,8 @@
 
 use crate::models::error::{CardMindError, Result};
 use crate::p2p::sync_service::{P2PSyncService, SyncStatus as P2PSyncStatus};
-use futures::stream::Stream;
+use crate::frb_generated::StreamSink;
 use std::cell::RefCell;
-use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
 use tracing::{info, warn};
 
@@ -382,11 +381,16 @@ pub async fn retry_sync() -> Result<()> {
 /// });
 /// ```
 ///
+/// # 参数
+///
+/// * `sink` - StreamSink 用于发送状态更新到 Flutter
+///
 /// # 返回
 ///
-/// 返回一个 Stream<SyncStatus>，订阅后会立即收到当前状态，然后接收后续的状态更新
+/// 返回一个 Result，订阅后会立即收到当前状态，然后接收后续的状态更新
 #[flutter_rust_bridge::frb]
-pub fn get_sync_status_stream() -> Result<impl Stream<Item = SyncStatus>> {
+#[allow(unused_must_use)]
+pub fn get_sync_status_stream(sink: StreamSink<SyncStatus>) -> Result<()> {
     info!("创建同步状态 Stream");
 
     // 获取当前状态和广播发送器
@@ -403,23 +407,31 @@ pub fn get_sync_status_stream() -> Result<impl Stream<Item = SyncStatus>> {
         Ok::<_, CardMindError>((current, sender))
     })?;
 
-    // 订阅广播通道
-    let rx = sender.subscribe();
+    // 在后台任务中处理 Stream
+    let _ = tokio::spawn(async move {
+        use tokio_stream::wrappers::BroadcastStream;
 
-    // 将 broadcast receiver 转换为 Stream，并过滤错误
-    let stream = BroadcastStream::new(rx).filter_map(|result| match result {
-        Ok(status) => Some(status.into()),
-        Err(e) => {
-            warn!("接收状态更新失败: {:?}", e);
-            None
+        // 先发送当前状态
+        sink.add(current_status.into());
+
+        // 订阅广播通道
+        let rx = sender.subscribe();
+        let mut stream = BroadcastStream::new(rx);
+
+        // 持续接收并发送状态更新
+        while let Some(result) = stream.next().await {
+            match result {
+                Ok(status) => {
+                    sink.add(status.into());
+                }
+                Err(e) => {
+                    warn!("接收状态更新失败: {:?}", e);
+                }
+            }
         }
     });
 
-    // 创建一个包含初始状态的 Stream
-    let initial_stream = tokio_stream::once(current_status.into());
-
-    // 合并初始状态和后续更新
-    Ok(initial_stream.chain(stream))
+    Ok(())
 }
 
 #[cfg(test)]

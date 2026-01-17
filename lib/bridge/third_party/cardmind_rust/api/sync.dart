@@ -9,7 +9,6 @@ import '../../../api/sync.dart';
 import '../../../frb_generated.dart';
 
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `from`
-// These functions have error during generation (see debug logs or enable `stop_on_error: true` for more details): `get_sync_status_stream`
 
 /// 初始化 P2P 同步服务
 ///
@@ -109,3 +108,25 @@ Future<void> cleanupSyncService() => RustLib.instance.api.cardmindRustApiSyncCle
 ///
 /// 如果服务未初始化或无可用 peer，返回错误
 Future<void> retrySync() => RustLib.instance.api.cardmindRustApiSyncRetrySync();
+
+/// 获取同步状态流（Stream）
+///
+/// 返回一个 Stream，实时推送同步状态变化
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final stream = getSyncStatusStream();
+/// stream.listen((status) {
+///   print('状态变化: ${status.state}');
+/// });
+/// ```
+///
+/// # 参数
+///
+/// * `sink` - StreamSink 用于发送状态更新到 Flutter
+///
+/// # 返回
+///
+/// 返回一个 Result，订阅后会立即收到当前状态，然后接收后续的状态更新
+Stream<SyncStatus> getSyncStatusStream() => RustLib.instance.api.cardmindRustApiSyncGetSyncStatusStream();
