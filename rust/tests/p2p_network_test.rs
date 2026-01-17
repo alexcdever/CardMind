@@ -13,7 +13,7 @@ use tokio::time::{sleep, Duration};
 /// 验证网络可以初始化并监听随机端口
 #[tokio::test]
 async fn it_should_p2p_network_listen() {
-    let mut network = P2PNetwork::new().expect("network should initialize");
+    let mut network = P2PNetwork::new(false).expect("network should initialize");
     let addr = match network.listen_on("/ip4/127.0.0.1/tcp/0").await {
         Ok(addr) => addr,
         Err(err) => {
@@ -39,8 +39,8 @@ async fn it_should_p2p_network_listen() {
 /// 验证两个节点可以建立连接并触发 Ping 事件
 #[tokio::test]
 async fn it_should_p2p_network_connect_and_ping() {
-    let mut node_a = P2PNetwork::new().expect("node A should initialize");
-    let mut node_b = P2PNetwork::new().expect("node B should initialize");
+    let mut node_a = P2PNetwork::new(false).expect("node A should initialize");
+    let mut node_b = P2PNetwork::new(false).expect("node B should initialize");
 
     let listen_addr = match node_a.listen_on("/ip4/127.0.0.1/tcp/0").await {
         Ok(addr) => addr,
