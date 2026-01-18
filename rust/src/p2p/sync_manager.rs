@@ -298,6 +298,8 @@ impl SyncManager {
             created_at,
             updated_at,
             deleted,
+            tags: Vec::new(),
+            last_edit_device: None,
         })
     }
 

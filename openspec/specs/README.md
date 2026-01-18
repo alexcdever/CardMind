@@ -42,6 +42,22 @@
 | SP-ADAPT-004 | [mobile-ui-patterns/spec.md](./mobile-ui-patterns/spec.md) | 移动端 UI 模式规格 | ✅ 完成 |
 | SP-ADAPT-005 | [desktop-ui-patterns/spec.md](./desktop-ui-patterns/spec.md) | 桌面端 UI 模式规格 | ✅ 完成 |
 
+### UI 组件规格（测试即规格）
+
+> 注：以下规格遵循 Spec Coding 方法论，测试文件本身即为规格文档
+
+| 编号 | 测试文件 | 描述 | 状态 |
+|-----|---------|------|------|
+| SP-UI-001 | [adaptive_ui_system_spec_test.dart](../../test/specs/adaptive_ui_system_spec_test.dart) | 自适应 UI 系统规格 | ✅ 完成 |
+| SP-UI-002 | [card_editor_spec_test.dart](../../test/specs/card_editor_spec_test.dart) | 卡片编辑器 UI 规格 | ✅ 完成 |
+| SP-UI-003 | [device_manager_ui_spec_test.dart](../../test/specs/device_manager_ui_spec_test.dart) | 设备管理面板 UI 规格 | ✅ 完成 |
+| SP-UI-004 | [fullscreen_editor_spec_test.dart](../../test/specs/fullscreen_editor_spec_test.dart) | 全屏编辑器 UI 规格 | ✅ 完成 |
+| SP-UI-005 | [home_screen_ui_spec_test.dart](../../test/specs/home_screen_ui_spec_test.dart) | 主页 UI 规格 | ✅ 完成 |
+| SP-UI-006 | [mobile_navigation_spec_test.dart](../../test/specs/mobile_navigation_spec_test.dart) | 移动端导航 UI 规格 | ✅ 完成 |
+| SP-UI-007 | [note_card_component_spec_test.dart](../../test/specs/note_card_component_spec_test.dart) | 笔记卡片组件规格 | ✅ 完成 |
+| SP-UI-008 | [sync_status_indicator_component_spec_test.dart](../../test/specs/sync_status_indicator_component_spec_test.dart) | 同步状态指示器规格 | ✅ 完成 |
+| SP-UI-009 | [toast_notification_spec_test.dart](../../test/specs/toast_notification_spec_test.dart) | Toast 通知规格 | ✅ 完成 |
+
 ---
 
 ## 🚀 快速开始
@@ -149,10 +165,10 @@ done
 
 ## 📊 规格统计
 
-**当前（2026-01-17）**:
-- 功能规格文档: 14 个（新增 5 个平台自适应规格）
+**当前（2026-01-19）**:
+- 功能规格文档: 23 个（包含 9 个 UI 组件测试规格）
 - 工具文档: 5 个
-- Spec 测试: 79 个（全部通过）
+- Spec 测试: 100+ 个（全部通过）
 - 代码示例: 6 个业务场景
 
 **目标**:

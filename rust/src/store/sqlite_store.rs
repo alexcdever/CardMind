@@ -280,6 +280,8 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
+                    tags: Vec::new(),
+                    last_edit_device: None,
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
@@ -318,6 +320,8 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
+                    tags: Vec::new(),
+                    last_edit_device: None,
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
@@ -358,6 +362,8 @@ impl SqliteStore {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
+                tags: Vec::new(),
+                last_edit_device: None,
             })
         });
 
@@ -532,6 +538,8 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
+                    tags: Vec::new(),
+                    last_edit_device: None,
                 })
             })?
             .collect::<Result<Vec<Card>, _>>()?;

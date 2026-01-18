@@ -1,10 +1,11 @@
 import 'dart:io';
 
 import 'package:cardmind/bridge/frb_generated.dart';
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart' as device_config_api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as sync_api;
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
-import 'package:cardmind/screens/card_editor_screen.dart';
 import 'package:cardmind/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -37,10 +38,6 @@ class CardMindApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             home: const AppInitializer(),
-            // 任务 5.3: 注册 /create-card 路由
-            routes: {
-              '/create-card': (context) => const CardEditorScreen(),
-            },
           );
         },
       ),
@@ -98,6 +95,26 @@ class _AppInitializerState extends State<AppInitializer> {
 
       await cardProvider.initialize(storagePath);
       if (!mounted) return;
+
+      // Initialize device config first (required by sync service)
+      try {
+        await device_config_api.initDeviceConfig(basePath: storagePath);
+        debugPrint('Device config initialized successfully');
+      } catch (e) {
+        debugPrint('Warning: Failed to initialize device config: $e');
+      }
+
+      // Initialize sync service
+      try {
+        await sync_api.initSyncService(
+          storagePath: storagePath,
+          listenAddr: '/ip4/0.0.0.0/tcp/0',
+        );
+        debugPrint('Sync service initialized successfully');
+      } catch (e) {
+        debugPrint('Warning: Failed to initialize sync service: $e');
+        // Continue even if sync service fails - app can work without P2P sync
+      }
 
       setState(() {
         _isInitializing = false;

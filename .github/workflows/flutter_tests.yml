@@ -1,0 +1,107 @@
+name: Flutter Tests
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  test:
+    name: Run Flutter Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Check code formatting
+        run: dart format --set-exit-if-changed .
+
+      - name: Run all tests
+        run: flutter test
+
+      - name: Run spec tests
+        run: flutter test test/specs/
+        continue-on-error: true
+
+      - name: Run widget tests
+        run: flutter test test/widgets/
+        continue-on-error: true
+
+      - name: Run screen tests
+        run: flutter test test/screens/
+        continue-on-error: true
+
+      - name: Run integration tests
+        run: flutter test test/integration/
+        continue-on-error: true
+
+      - name: Generate coverage report
+        run: flutter test --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+      - name: Generate coverage summary
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            echo "## Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Coverage report generated successfully." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  spec-validation:
+    name: Validate Test-Spec Mapping
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Validate test-spec mapping
+        run: |
+          if [ -f tool/validate_test_spec_mapping.dart ]; then
+            dart tool/validate_test_spec_mapping.dart
+          else
+            echo "Test-spec mapping validation tool not found, skipping..."
+          fi
+        continue-on-error: true
+
+  constraint-validation:
+    name: Validate Project Constraints
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+
+      - name: Validate constraints
+        run: |
+          if [ -f tool/validate_constraints.dart ]; then
+            dart tool/validate_constraints.dart
+          else
+            echo "Constraint validation tool not found, skipping..."
+          fi
+        continue-on-error: true

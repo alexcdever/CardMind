@@ -23,5 +23,7 @@ sealed class Card with _$Card {
     required PlatformInt64 createdAt,
     required PlatformInt64 updatedAt,
     required bool deleted,
+    required List<String> tags,
+    String? lastEditDevice,
   }) = _Card;
 }
