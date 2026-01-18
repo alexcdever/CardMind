@@ -1,8 +1,8 @@
+import 'package:cardmind/adaptive/keyboard_shortcuts.dart';
+import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/adaptive/keyboard_shortcuts.dart';
-import 'package:cardmind/adaptive/platform_detector.dart';
 
 void main() {
   group('KeyboardShortcuts', () {

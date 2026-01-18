@@ -28,15 +28,17 @@ class MockCardService extends CardService {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     for (int i = 0; i < count; i++) {
-      _cards.add(Card(
-        id: 'card_${_nextId++}',
-        title: 'Test Card $i',
-        content: 'Test content for card $i',
-        createdAt: now,
-        updatedAt: now,
-        deleted: false,
-        tags: [],
-      ));
+      _cards.add(
+        Card(
+          id: 'card_${_nextId++}',
+          title: 'Test Card $i',
+          content: 'Test content for card $i',
+          createdAt: now,
+          updatedAt: now,
+          deleted: false,
+          tags: [],
+        ),
+      );
     }
   }
 
@@ -149,11 +151,7 @@ class MockCardService extends CardService {
   }
 
   @override
-  Future<void> updateCard(
-    String id, {
-    String? title,
-    String? content,
-  }) async {
+  Future<void> updateCard(String id, {String? title, String? content}) async {
     updateCardCallCount++;
 
     if (delayMs > 0) {

@@ -1,7 +1,8 @@
+import 'package:cardmind/models/sync_status.dart';
+import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/sync_status_indicator.dart';
-import 'package:cardmind/models/sync_status.dart';
+
 import '../helpers/test_helpers.dart';
 
 /// Sync Status Indicator Component Specification Tests
@@ -208,7 +209,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建同步失败状态的指示器
-        final status = SyncStatus.failed(errorMessage: "Sync failed");
+        final status = SyncStatus.failed(errorMessage: 'Sync failed');
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),

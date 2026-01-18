@@ -1,15 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/adaptive/layouts/adaptive_scaffold.dart';
 import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AdaptiveScaffold', () {
     testWidgets('it_should_display_body_content', (WidgetTester tester) async {
       // Given: Adaptive scaffold with body
       await tester.pumpWidget(
-        MaterialApp(
-          home: AdaptiveScaffold(body: const Center(child: Text('Test Body'))),
+        const MaterialApp(
+          home: AdaptiveScaffold(body: Center(child: Text('Test Body'))),
         ),
       );
 
@@ -58,8 +58,8 @@ void main() {
     testWidgets('it_should_use_scaffold', (WidgetTester tester) async {
       // Given: Adaptive scaffold
       await tester.pumpWidget(
-        MaterialApp(
-          home: AdaptiveScaffold(body: const Center(child: Text('Body'))),
+        const MaterialApp(
+          home: AdaptiveScaffold(body: Center(child: Text('Body'))),
         ),
       );
 
@@ -115,9 +115,9 @@ void main() {
     ) async {
       // Given: Mobile layout
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: AdaptiveScaffold(
-            body: const Column(children: [Text('Item 1'), Text('Item 2')]),
+            body: Column(children: [Text('Item 1'), Text('Item 2')]),
           ),
         ),
       );

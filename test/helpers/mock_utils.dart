@@ -5,19 +5,10 @@ import 'package:flutter/material.dart';
 /// 提供通用的 Mock 工具，用于测试中模拟各种场景
 
 /// Mock 同步状态
-enum MockSyncStatus {
-  idle,
-  syncing,
-  success,
-  error,
-}
+enum MockSyncStatus { idle, syncing, success, error }
 
 /// Mock 设备信息
 class MockDevice {
-  final String id;
-  final String name;
-  final String platform;
-  final bool isOnline;
 
   MockDevice({
     required this.id,
@@ -25,6 +16,10 @@ class MockDevice {
     required this.platform,
     this.isOnline = true,
   });
+  final String id;
+  final String name;
+  final String platform;
+  final bool isOnline;
 }
 
 /// Mock 同步管理器

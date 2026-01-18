@@ -1,8 +1,7 @@
+import 'package:cardmind/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/screens/home_screen.dart';
-import 'package:cardmind/providers/card_provider.dart';
-import 'package:provider/provider.dart';
+
 import '../helpers/mock_card_service.dart';
 import '../helpers/test_app.dart';
 
@@ -28,14 +27,12 @@ void main() {
     // ========================================
 
     group('First Time User Journey', () {
-      testWidgets('it_should_complete_first_time_user_flow',
-          (WidgetTester tester) async {
+      testWidgets('it_should_complete_first_time_user_flow', (
+        WidgetTester tester,
+      ) async {
         // Given: 新用户首次打开应用
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
 
         // When: 应用加载完成
@@ -46,14 +43,10 @@ void main() {
         expect(find.byType(Scaffold), findsWidgets);
       });
 
-      testWidgets('it_should_create_first_card',
-          (WidgetTester tester) async {
+      testWidgets('it_should_create_first_card', (WidgetTester tester) async {
         // Given: 用户在主屏幕
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -63,7 +56,7 @@ void main() {
         if (fabFinder.evaluate().isNotEmpty) {
           await tester.tap(fabFinder);
           await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+          await tester.pump(const Duration(milliseconds: 100));
 
           // Then: 应该创建新卡片
           expect(mockCardService.createCardCallCount, greaterThan(0));
@@ -76,14 +69,12 @@ void main() {
     // ========================================
 
     group('Card Lifecycle Journey', () {
-      testWidgets('it_should_complete_card_create_edit_delete_flow',
-          (WidgetTester tester) async {
+      testWidgets('it_should_complete_card_create_edit_delete_flow', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主屏幕
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -93,21 +84,17 @@ void main() {
         if (fabFinder.evaluate().isNotEmpty) {
           await tester.tap(fabFinder);
           await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+          await tester.pump(const Duration(milliseconds: 100));
 
           // Then: 卡片应该被创建
           expect(mockCardService.createCardCallCount, greaterThan(0));
         }
       });
 
-      testWidgets('it_should_handle_card_editing',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_card_editing', (WidgetTester tester) async {
         // Given: 用户有一个卡片
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -117,14 +104,12 @@ void main() {
         expect(find.byType(Scaffold), findsWidgets);
       });
 
-      testWidgets('it_should_handle_card_deletion',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_card_deletion', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户有一个卡片
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -140,14 +125,12 @@ void main() {
     // ========================================
 
     group('Search and Filter Journey', () {
-      testWidgets('it_should_search_cards_by_title',
-          (WidgetTester tester) async {
+      testWidgets('it_should_search_cards_by_title', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户有多个卡片
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -157,21 +140,17 @@ void main() {
         if (searchField.evaluate().isNotEmpty) {
           await tester.enterText(searchField.first, 'test');
           await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
+          await tester.pump(const Duration(milliseconds: 100));
 
           // Then: 应该显示搜索结果
           expect(find.byType(Scaffold), findsWidgets);
         }
       });
 
-      testWidgets('it_should_filter_cards_by_tag',
-          (WidgetTester tester) async {
+      testWidgets('it_should_filter_cards_by_tag', (WidgetTester tester) async {
         // Given: 用户有带标签的卡片
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -187,14 +166,10 @@ void main() {
     // ========================================
 
     group('Device Management Journey', () {
-      testWidgets('it_should_view_device_list',
-          (WidgetTester tester) async {
+      testWidgets('it_should_view_device_list', (WidgetTester tester) async {
         // Given: 用户在主屏幕
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -210,14 +185,10 @@ void main() {
     // ========================================
 
     group('Settings Journey', () {
-      testWidgets('it_should_access_settings',
-          (WidgetTester tester) async {
+      testWidgets('it_should_access_settings', (WidgetTester tester) async {
         // Given: 用户在主屏幕
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -233,16 +204,14 @@ void main() {
     // ========================================
 
     group('Error Recovery Journey', () {
-      testWidgets('it_should_handle_network_error_gracefully',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_network_error_gracefully', (
+        WidgetTester tester,
+      ) async {
         // Given: 网络错误
         mockCardService.shouldThrowError = true;
 
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -252,14 +221,12 @@ void main() {
         expect(find.byType(Scaffold), findsWidgets);
       });
 
-      testWidgets('it_should_retry_failed_operations',
-          (WidgetTester tester) async {
+      testWidgets('it_should_retry_failed_operations', (
+        WidgetTester tester,
+      ) async {
         // Given: 操作失败
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -275,16 +242,14 @@ void main() {
     // ========================================
 
     group('Performance Journey', () {
-      testWidgets('it_should_handle_100_cards_efficiently',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_100_cards_efficiently', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户有 100 个卡片
         mockCardService.cardCount = 100;
 
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
 
         // When: 应用加载
@@ -298,16 +263,14 @@ void main() {
         expect(duration.inSeconds, lessThan(2));
       });
 
-      testWidgets('it_should_handle_1000_cards_efficiently',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_1000_cards_efficiently', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户有 1000 个卡片
         mockCardService.cardCount = 1000;
 
         await tester.pumpWidget(
-          TestApp(
-            cardService: mockCardService,
-            child: const HomeScreen(),
-          ),
+          TestApp(cardService: mockCardService, child: const HomeScreen()),
         );
 
         // When: 应用加载

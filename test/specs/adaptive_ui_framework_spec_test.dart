@@ -18,8 +18,9 @@ void main() {
     // 自适应 Builder 测试
     // ========================================
     group('Adaptive Builder', () {
-      testWidgets('it_should_select_widget_based_on_screen_size',
-          (WidgetTester tester) async {
+      testWidgets('it_should_select_widget_based_on_screen_size', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同的屏幕尺寸
         setScreenSize(tester, const Size(400, 800));
 
@@ -45,8 +46,9 @@ void main() {
         expect(find.text('Small'), findsOneWidget);
       });
 
-      testWidgets('it_should_rebuild_on_size_change',
-          (WidgetTester tester) async {
+      testWidgets('it_should_rebuild_on_size_change', (
+        WidgetTester tester,
+      ) async {
         // Given: 初始屏幕尺寸
         setScreenSize(tester, const Size(400, 800));
 
@@ -55,9 +57,7 @@ void main() {
             LayoutBuilder(
               builder: (context, constraints) {
                 return Scaffold(
-                  body: Center(
-                    child: Text('Width: ${constraints.maxWidth}'),
-                  ),
+                  body: Center(child: Text('Width: ${constraints.maxWidth}')),
                 );
               },
             ),
@@ -69,8 +69,9 @@ void main() {
         expect(find.text('Width: 400.0'), findsOneWidget);
       });
 
-      testWidgets('it_should_provide_constraints_to_children',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_constraints_to_children', (
+        WidgetTester tester,
+      ) async {
         // Given: 使用 LayoutBuilder
         await tester.pumpWidget(
           createTestWidget(
@@ -103,8 +104,9 @@ void main() {
     // 自适应组件测试
     // ========================================
     group('Adaptive Components', () {
-      testWidgets('it_should_provide_adaptive_navigation',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_adaptive_navigation', (
+        WidgetTester tester,
+      ) async {
         // Given: 自适应导航组件
         setScreenSize(tester, const Size(400, 800));
 
@@ -141,8 +143,9 @@ void main() {
         expect(find.byType(BottomNavigationBar), findsOneWidget);
       });
 
-      testWidgets('it_should_provide_adaptive_dialog',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_adaptive_dialog', (
+        WidgetTester tester,
+      ) async {
         // Given: 自适应对话框
         await tester.pumpWidget(
           createTestWidget(
@@ -184,8 +187,9 @@ void main() {
         expect(find.text('这是一个自适应对话框'), findsOneWidget);
       });
 
-      testWidgets('it_should_provide_adaptive_button',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_adaptive_button', (
+        WidgetTester tester,
+      ) async {
         // Given: 自适应按钮
         await tester.pumpWidget(
           createTestWidget(
@@ -211,8 +215,9 @@ void main() {
     // 自适应布局测试
     // ========================================
     group('Adaptive Layout', () {
-      testWidgets('it_should_adapt_column_count_by_screen_width',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_column_count_by_screen_width', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同的屏幕宽度
         setScreenSize(tester, const Size(800, 600));
 
@@ -223,8 +228,8 @@ void main() {
                 final columnCount = constraints.maxWidth < 600
                     ? 1
                     : constraints.maxWidth < 1024
-                        ? 2
-                        : 3;
+                    ? 2
+                    : 3;
 
                 return Scaffold(
                   body: GridView.builder(
@@ -233,9 +238,7 @@ void main() {
                     ),
                     itemCount: 6,
                     itemBuilder: (context, index) {
-                      return Card(
-                        child: Center(child: Text('Item $index')),
-                      );
+                      return Card(child: Center(child: Text('Item $index')));
                     },
                   ),
                 );
@@ -250,8 +253,9 @@ void main() {
         expect(find.byType(GridView), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_padding_by_screen_size',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_padding_by_screen_size', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同的屏幕尺寸
         setScreenSize(tester, const Size(400, 800));
 
@@ -278,8 +282,9 @@ void main() {
         expect(find.byType(Padding), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_font_size_by_screen_size',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_font_size_by_screen_size', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同的屏幕尺寸
         setScreenSize(tester, const Size(400, 800));
 
@@ -312,8 +317,9 @@ void main() {
     // 自适应主题测试
     // ========================================
     group('Adaptive Theme', () {
-      testWidgets('it_should_apply_platform_specific_theme',
-          (WidgetTester tester) async {
+      testWidgets('it_should_apply_platform_specific_theme', (
+        WidgetTester tester,
+      ) async {
         // Given: 平台特定的主题
         await tester.pumpWidget(
           MaterialApp(
@@ -340,8 +346,7 @@ void main() {
         expect(find.textContaining('Platform:'), findsOneWidget);
       });
 
-      testWidgets('it_should_support_dark_mode',
-          (WidgetTester tester) async {
+      testWidgets('it_should_support_dark_mode', (WidgetTester tester) async {
         // Given: 深色模式主题
         await tester.pumpWidget(
           MaterialApp(
@@ -366,8 +371,9 @@ void main() {
         expect(find.text('Dark Mode'), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_colors_by_theme',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_colors_by_theme', (
+        WidgetTester tester,
+      ) async {
         // Given: 主题颜色
         await tester.pumpWidget(
           MaterialApp(
@@ -403,17 +409,18 @@ void main() {
     // 自适应动画测试
     // ========================================
     group('Adaptive Animations', () {
-      testWidgets('it_should_reduce_animations_on_low_end_devices',
-          (WidgetTester tester) async {
+      testWidgets('it_should_reduce_animations_on_low_end_devices', (
+        WidgetTester tester,
+      ) async {
         // Given: 自适应动画
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Center(
                 child: AnimatedOpacity(
-                  opacity: 1.0,
-                  duration: const Duration(milliseconds: 300),
-                  child: const Text('Animated Content'),
+                  opacity: 1,
+                  duration: Duration(milliseconds: 300),
+                  child: Text('Animated Content'),
                 ),
               ),
             ),
@@ -425,8 +432,9 @@ void main() {
         expect(find.text('Animated Content'), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_transition_duration',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_transition_duration', (
+        WidgetTester tester,
+      ) async {
         // Given: 自适应过渡时长
         await tester.pumpWidget(
           createTestWidget(
@@ -454,8 +462,9 @@ void main() {
     // 自适应输入测试
     // ========================================
     group('Adaptive Input', () {
-      testWidgets('it_should_show_touch_optimized_controls_on_mobile',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_touch_optimized_controls_on_mobile', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端触摸优化控件
         setScreenSize(tester, const Size(400, 800));
 
@@ -488,8 +497,9 @@ void main() {
         expect(find.byIcon(Icons.add), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_text_field_size',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_text_field_size', (
+        WidgetTester tester,
+      ) async {
         // Given: 自适应文本输入框
         await tester.pumpWidget(
           createTestWidget(
@@ -504,9 +514,7 @@ void main() {
                     return SizedBox(
                       width: width,
                       child: const TextField(
-                        decoration: InputDecoration(
-                          labelText: '输入文本',
-                        ),
+                        decoration: InputDecoration(labelText: '输入文本'),
                       ),
                     );
                   },
@@ -526,8 +534,9 @@ void main() {
     // 自适应性能测试
     // ========================================
     group('Adaptive Performance', () {
-      testWidgets('it_should_optimize_rendering_for_device',
-          (WidgetTester tester) async {
+      testWidgets('it_should_optimize_rendering_for_device', (
+        WidgetTester tester,
+      ) async {
         // Given: 自适应渲染优化
         await tester.pumpWidget(
           createTestWidget(
@@ -535,9 +544,7 @@ void main() {
               body: ListView.builder(
                 itemCount: 100,
                 itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text('Item $index'),
-                  );
+                  return ListTile(title: Text('Item $index'));
                 },
               ),
             ),
@@ -549,8 +556,9 @@ void main() {
         expect(find.text('Item 0'), findsOneWidget);
       });
 
-      testWidgets('it_should_lazy_load_images_on_slow_connections',
-          (WidgetTester tester) async {
+      testWidgets('it_should_lazy_load_images_on_slow_connections', (
+        WidgetTester tester,
+      ) async {
         // Given: 延迟加载图片
         await tester.pumpWidget(
           createTestWidget(

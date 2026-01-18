@@ -1,12 +1,13 @@
+import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
+import 'package:cardmind/models/sync_status.dart';
+import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/screens/home_screen.dart';
+import 'package:cardmind/widgets/mobile_nav.dart';
+import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/screens/home_screen.dart';
-import 'package:cardmind/providers/card_provider.dart';
-import 'package:cardmind/models/sync_status.dart';
-import 'package:cardmind/widgets/sync_status_indicator.dart';
-import 'package:cardmind/widgets/mobile_nav.dart';
-import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
 import 'package:provider/provider.dart';
+
 import '../helpers/mock_card_service.dart';
 
 /// Home Screen UI Specification Tests

@@ -31,22 +31,22 @@ jobs:
         run: dart format --set-exit-if-changed .
 
       - name: Run all tests
-        run: flutter test
+        run: flutter test --concurrency=4
 
       - name: Run spec tests
-        run: flutter test test/specs/
+        run: flutter test test/specs/ --concurrency=4
         continue-on-error: true
 
       - name: Run widget tests
-        run: flutter test test/widgets/
+        run: flutter test test/widgets/ --concurrency=4
         continue-on-error: true
 
       - name: Run screen tests
-        run: flutter test test/screens/
+        run: flutter test test/screens/ --concurrency=4
         continue-on-error: true
 
       - name: Run integration tests
-        run: flutter test test/integration/
+        run: flutter test test/integration/ --concurrency=4
         continue-on-error: true
 
       - name: Generate coverage report
@@ -105,3 +105,55 @@ jobs:
             echo "Constraint validation tool not found, skipping..."
           fi
         continue-on-error: true
+
+  pr-spec-check:
+    name: Check Spec Changes Have Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check spec changes
+        run: |
+          echo "## PR Spec Change Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          
+          # Check for spec changes
+          SPEC_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^openspec/specs/.*\.md$" || true)
+          
+          if [ -n "$SPEC_CHANGES" ]; then
+            echo "### ⚠️ Spec files changed:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$SPEC_CHANGES" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Check for corresponding test changes
+            TEST_CHANGES=$(echo "$CHANGED_FILES" | grep -E "^test/.*_test\.dart$" || true)
+            
+            if [ -z "$TEST_CHANGES" ]; then
+              echo "### ❌ No test files changed!" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Action Required:** Spec changes should include corresponding test updates." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Please update tests in:" >> $GITHUB_STEP_SUMMARY
+              echo "- \`test/specs/\` for spec tests" >> $GITHUB_STEP_SUMMARY
+              echo "- \`test/widgets/\` for widget tests" >> $GITHUB_STEP_SUMMARY
+              echo "- \`test/screens/\` for screen tests" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              echo "### ✅ Test files also changed:" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "$TEST_CHANGES" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "### ℹ️ No spec files changed in this PR" >> $GITHUB_STEP_SUMMARY
+          fi

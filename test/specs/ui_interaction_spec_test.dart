@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../helpers/test_helpers.dart';
+
 import '../helpers/mock_utils.dart';
+import '../helpers/test_helpers.dart';
 
 /// UI Interaction Specification Tests
 ///
@@ -33,10 +34,11 @@ void main() {
     // 应用启动流程测试
     // ========================================
     group('Application Startup Flow', () {
-      testWidgets('it_should_route_to_home_screen_when_device_is_initialized',
-          (WidgetTester tester) async {
+      testWidgets('it_should_route_to_home_screen_when_device_is_initialized', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备已初始化
-        final isInitialized = true;
+        const isInitialized = true;
 
         // When: 应用启动
         await tester.pumpWidget(
@@ -58,50 +60,52 @@ void main() {
       });
 
       testWidgets(
-          'it_should_route_to_onboarding_screen_when_device_is_not_initialized',
-          (WidgetTester tester) async {
-        // Given: 设备未初始化
-        final isInitialized = false;
+        'it_should_route_to_onboarding_screen_when_device_is_not_initialized',
+        (WidgetTester tester) async {
+          // Given: 设备未初始化
+          const isInitialized = false;
 
-        // When: 应用启动
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return isInitialized
-                    ? const Scaffold(body: Text('Home Screen'))
-                    : const Scaffold(body: Text('Onboarding Screen'));
-              },
+          // When: 应用启动
+          await tester.pumpWidget(
+            createTestWidget(
+              Builder(
+                builder: (context) {
+                  return isInitialized
+                      ? const Scaffold(body: Text('Home Screen'))
+                      : const Scaffold(body: Text('Onboarding Screen'));
+                },
+              ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
+          );
+          await tester.pumpAndSettle();
 
-        // Then: 应该显示初始化向导
-        expect(find.text('Onboarding Screen'), findsOneWidget);
-        expect(find.text('Home Screen'), findsNothing);
-      });
+          // Then: 应该显示初始化向导
+          expect(find.text('Onboarding Screen'), findsOneWidget);
+          expect(find.text('Home Screen'), findsNothing);
+        },
+      );
     });
 
     // ========================================
     // 设备发现测试
     // ========================================
     group('Device Discovery', () {
-      testWidgets('it_should_show_loading_indicator_during_discovery',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_loading_indicator_during_discovery', (
+        WidgetTester tester,
+      ) async {
         // Given: 正在发现设备
         mockDeviceManager.delayMs = 1000;
 
         // When: 显示发现界面
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
                 children: [
-                  const Text('欢迎使用 CardMind'),
-                  const SizedBox(height: 32),
-                  const CircularProgressIndicator(),
-                  const Text('正在搜索附近的设备...'),
+                  Text('欢迎使用 CardMind'),
+                  SizedBox(height: 32),
+                  CircularProgressIndicator(),
+                  Text('正在搜索附近的设备...'),
                 ],
               ),
             ),
@@ -113,8 +117,9 @@ void main() {
         expect(find.text('正在搜索附近的设备...'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_discovered_devices_in_list',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_discovered_devices_in_list', (
+        WidgetTester tester,
+      ) async {
         // Given: 发现了 3 个设备
         final devices = [
           MockDevice(id: '1', name: 'Device 1', platform: 'Android'),
@@ -153,10 +158,15 @@ void main() {
         expect(find.byIcon(Icons.devices), findsNWidgets(3));
       });
 
-      testWidgets('it_should_show_pair_button_for_each_device',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_pair_button_for_each_device', (
+        WidgetTester tester,
+      ) async {
         // Given: 发现了设备
-        final device = MockDevice(id: '1', name: 'Test Device', platform: 'Android');
+        final device = MockDevice(
+          id: '1',
+          name: 'Test Device',
+          platform: 'Android',
+        );
 
         // When: 显示设备列表
         await tester.pumpWidget(
@@ -180,8 +190,9 @@ void main() {
         expect(find.byType(ElevatedButton), findsOneWidget);
       });
 
-      testWidgets('it_should_show_empty_state_when_no_devices_found',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_empty_state_when_no_devices_found', (
+        WidgetTester tester,
+      ) async {
         // Given: 没有发现设备
         final devices = <MockDevice>[];
 
@@ -197,10 +208,7 @@ void main() {
                     const SizedBox(height: 16),
                     const Text('未发现附近的设备'),
                     const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: const Text('重新搜索'),
-                    ),
+                    ElevatedButton(onPressed: () {}, child: const Text('重新搜索')),
                   ],
                 ),
               ),
@@ -220,8 +228,9 @@ void main() {
     // 设备配对测试
     // ========================================
     group('Device Pairing', () {
-      testWidgets('it_should_show_confirmation_dialog_before_pairing',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_confirmation_dialog_before_pairing', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户点击配对按钮
         await tester.pumpWidget(
           createTestWidget(
@@ -265,8 +274,9 @@ void main() {
         expect(find.text('确认'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_loading_indicator_during_pairing',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_loading_indicator_during_pairing', (
+        WidgetTester tester,
+      ) async {
         // Given: 正在配对
         mockDeviceManager.delayMs = 1000;
 
@@ -293,51 +303,53 @@ void main() {
         expect(find.text('正在配对...'), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_home_screen_after_successful_pairing',
-          (WidgetTester tester) async {
-        // Given: 配对成功
-        bool pairingSuccess = false;
+      testWidgets(
+        'it_should_navigate_to_home_screen_after_successful_pairing',
+        (WidgetTester tester) async {
+          // Given: 配对成功
+          bool pairingSuccess = false;
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) => Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    // 模拟配对
-                    await Future.delayed(const Duration(milliseconds: 100));
-                    pairingSuccess = true;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () async {
+                      // 模拟配对
+                      await Future.delayed(const Duration(milliseconds: 100));
+                      pairingSuccess = true;
 
-                    // 导航到主页
-                    if (pairingSuccess) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const Scaffold(
-                            body: Text('Home Screen'),
+                      // 导航到主页
+                      if (pairingSuccess) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const Scaffold(body: Text('Home Screen')),
                           ),
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('配对'),
+                        );
+                      }
+                    },
+                    child: const Text('配对'),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
+          );
 
-        // When: 配对完成
-        await tester.tap(find.text('配对'));
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pumpAndSettle();
+          // When: 配对完成
+          await tester.tap(find.text('配对'));
+          await tester.pump(const Duration(milliseconds: 100));
+          await tester.pumpAndSettle();
 
-        // Then: 应该导航到主页
-        expect(find.text('Home Screen'), findsOneWidget);
-      });
+          // Then: 应该导航到主页
+          expect(find.text('Home Screen'), findsOneWidget);
+        },
+      );
 
-      testWidgets('it_should_show_error_message_when_pairing_fails',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_message_when_pairing_fails', (
+        WidgetTester tester,
+      ) async {
         // Given: 配对失败
         mockDeviceManager.shouldThrowError = true;
 
@@ -352,10 +364,7 @@ void main() {
                     const SizedBox(height: 8),
                     const Text('无法连接到设备，请重试'),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: const Text('重试'),
-                    ),
+                    ElevatedButton(onPressed: () {}, child: const Text('重试')),
                   ],
                 ),
               ),
@@ -375,8 +384,9 @@ void main() {
     // 创建新空间测试
     // ========================================
     group('Create New Space', () {
-      testWidgets('it_should_show_create_space_button_on_onboarding_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_create_space_button_on_onboarding_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在初始化向导页面
         await tester.pumpWidget(
           createTestWidget(
@@ -385,10 +395,7 @@ void main() {
                 children: [
                   const Text('欢迎使用 CardMind'),
                   const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('创建新空间'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('创建新空间')),
                 ],
               ),
             ),
@@ -401,8 +408,9 @@ void main() {
         expect(find.byType(ElevatedButton), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_home_screen_after_creating_space',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_home_screen_after_creating_space', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户点击创建新空间
         await tester.pumpWidget(
           MaterialApp(
@@ -414,9 +422,8 @@ void main() {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Home Screen'),
-                        ),
+                        builder: (_) =>
+                            const Scaffold(body: Text('Home Screen')),
                       ),
                     );
                   },
@@ -435,17 +442,18 @@ void main() {
         expect(find.text('Home Screen'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_success_message_after_creating_space',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_success_message_after_creating_space', (
+        WidgetTester tester,
+      ) async {
         // Given: 空间创建成功
         await tester.pumpWidget(
           createTestWidget(
             Scaffold(
               body: Builder(
-                builder: (context) => Column(
+                builder: (context) => const Column(
                   children: [
-                    const Text('空间创建成功'),
-                    const Icon(Icons.check_circle, color: Colors.green),
+                    Text('空间创建成功'),
+                    Icon(Icons.check_circle, color: Colors.green),
                   ],
                 ),
               ),
@@ -464,8 +472,9 @@ void main() {
     // 错误处理测试
     // ========================================
     group('Error Handling', () {
-      testWidgets('it_should_show_error_message_when_discovery_fails',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_message_when_discovery_fails', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备发现失败
         mockDeviceManager.shouldThrowError = true;
 
@@ -481,10 +490,7 @@ void main() {
                   const SizedBox(height: 8),
                   const Text('请检查网络连接后重试'),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('重试'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('重试')),
                 ],
               ),
             ),
@@ -499,8 +505,9 @@ void main() {
         expect(find.byIcon(Icons.error_outline), findsOneWidget);
       });
 
-      testWidgets('it_should_allow_retry_after_error',
-          (WidgetTester tester) async {
+      testWidgets('it_should_allow_retry_after_error', (
+        WidgetTester tester,
+      ) async {
         // Given: 发生错误后显示重试按钮
         int retryCount = 0;
 
@@ -535,8 +542,9 @@ void main() {
     // 密码验证测试（补充）
     // ========================================
     group('Password Validation', () {
-      testWidgets('it_should_validate_password_length_at_least_8_characters',
-          (WidgetTester tester) async {
+      testWidgets('it_should_validate_password_length_at_least_8_characters', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在创建空间对话框
         String? errorMessage;
 
@@ -584,7 +592,8 @@ void main() {
                                         content: const Text('密码至少需要 8 位'),
                                         actions: [
                                           TextButton(
-                                            onPressed: () => Navigator.pop(context),
+                                            onPressed: () =>
+                                                Navigator.pop(context),
                                             child: const Text('确定'),
                                           ),
                                         ],
@@ -620,8 +629,9 @@ void main() {
         expect(find.text('密码至少需要 8 位'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_error_when_passwords_do_not_match',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_when_passwords_do_not_match', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在创建空间对话框
         await tester.pumpWidget(
           createTestWidget(
@@ -669,7 +679,8 @@ void main() {
                                         content: const Text('密码不匹配'),
                                         actions: [
                                           TextButton(
-                                            onPressed: () => Navigator.pop(context),
+                                            onPressed: () =>
+                                                Navigator.pop(context),
                                             child: const Text('确定'),
                                           ),
                                         ],
@@ -706,8 +717,9 @@ void main() {
         expect(find.text('密码不匹配'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_password_input_in_pair_device_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_password_input_in_pair_device_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在配对设备界面
         await tester.pumpWidget(
           createTestWidget(
@@ -717,18 +729,15 @@ void main() {
                 children: [
                   const Text('输入空间密码'),
                   const SizedBox(height: 16),
-                  TextField(
+                  const TextField(
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: '密码',
                       hintText: '输入空间密码',
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('配对'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('配对')),
                 ],
               ),
             ),
@@ -747,8 +756,9 @@ void main() {
     // 设置页面测试（补充）
     // ========================================
     group('Settings - Leave Space', () {
-      testWidgets('it_should_show_leave_space_option_in_settings',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_leave_space_option_in_settings', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在设置页面
         await tester.pumpWidget(
           createTestWidget(
@@ -775,8 +785,9 @@ void main() {
         expect(find.byIcon(Icons.exit_to_app), findsOneWidget);
       });
 
-      testWidgets('it_should_show_confirmation_dialog_before_leaving_space',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_confirmation_dialog_before_leaving_space', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户点击退出空间
         await tester.pumpWidget(
           createTestWidget(
@@ -832,8 +843,9 @@ void main() {
         expect(find.text('确认退出'), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_onboarding_after_leaving_space',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_onboarding_after_leaving_space', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户确认退出空间
         await tester.pumpWidget(
           MaterialApp(
@@ -873,8 +885,9 @@ void main() {
     // 密码强度指示器测试（补充）
     // ========================================
     group('Password Strength Indicator', () {
-      testWidgets('it_should_show_password_strength_indicator',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_password_strength_indicator', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在创建空间对话框输入密码
         await tester.pumpWidget(
           createTestWidget(
@@ -991,8 +1004,9 @@ void main() {
     // 数据清除测试（补充）
     // ========================================
     group('Local Data Cleanup', () {
-      testWidgets('it_should_clear_local_data_after_leaving_space',
-          (WidgetTester tester) async {
+      testWidgets('it_should_clear_local_data_after_leaving_space', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户确认退出空间
         bool dataCleared = false;
 
@@ -1038,9 +1052,7 @@ void main() {
                         // 显示清除完成的提示
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('本地数据已清除'),
-                            ),
+                            const SnackBar(content: Text('本地数据已清除')),
                           );
 
                           // 导航到初始化页面
@@ -1083,21 +1095,22 @@ void main() {
     // 术语统一测试（补充）
     // ========================================
     group('Terminology Consistency', () {
-      testWidgets('it_should_use_correct_terminology_throughout_app',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_correct_terminology_throughout_app', (
+        WidgetTester tester,
+      ) async {
         // Given: 应用使用统一的术语
         await tester.pumpWidget(
           createTestWidget(
             Scaffold(
               body: ListView(
-                children: [
-                  const ListTile(
+                children: const [
+                  ListTile(
                     title: Text('创建笔记空间'), // 新术语
                   ),
-                  const ListTile(
+                  ListTile(
                     title: Text('配对设备'), // 新术语
                   ),
-                  const ListTile(
+                  ListTile(
                     title: Text('退出笔记空间'), // 新术语
                   ),
                 ],

@@ -1,6 +1,6 @@
+import 'package:cardmind/widgets/mobile_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/mobile_nav.dart';
 
 /// Mobile Navigation Specification Tests
 ///
@@ -40,8 +40,9 @@ void main() {
     // ========================================
 
     group('UI Layout Tests', () {
-      testWidgets('it_should_display_three_navigation_tabs',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_three_navigation_tabs', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏加载
         await tester.pumpWidget(createMobileNav());
 
@@ -54,8 +55,7 @@ void main() {
         expect(find.text('设置'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_notes_icon',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_notes_icon', (WidgetTester tester) async {
         // Given: 移动端导航栏加载
         await tester.pumpWidget(createMobileNav());
 
@@ -66,8 +66,9 @@ void main() {
         expect(find.byIcon(Icons.note), findsOneWidget);
       });
 
-      testWidgets('it_should_display_devices_icon',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_devices_icon', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏加载
         await tester.pumpWidget(createMobileNav());
 
@@ -78,8 +79,9 @@ void main() {
         expect(find.byIcon(Icons.wifi), findsOneWidget);
       });
 
-      testWidgets('it_should_display_settings_icon',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_settings_icon', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏加载
         await tester.pumpWidget(createMobileNav());
 
@@ -90,8 +92,9 @@ void main() {
         expect(find.byIcon(Icons.settings), findsOneWidget);
       });
 
-      testWidgets('it_should_have_fixed_height_of_64px',
-          (WidgetTester tester) async {
+      testWidgets('it_should_have_fixed_height_of_64px', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏加载
         await tester.pumpWidget(createMobileNav());
 
@@ -100,16 +103,17 @@ void main() {
 
         // Then: 高度为 64px
         final sizedBox = tester.widget<SizedBox>(
-          find.descendant(
-            of: find.byType(MobileNav),
-            matching: find.byType(SizedBox),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(MobileNav),
+                matching: find.byType(SizedBox),
+              )
+              .first,
         );
         expect(sizedBox.height, equals(64));
       });
 
-      testWidgets('it_should_display_top_border',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_top_border', (WidgetTester tester) async {
         // Given: 移动端导航栏加载
         await tester.pumpWidget(createMobileNav());
 
@@ -118,10 +122,12 @@ void main() {
 
         // Then: 显示顶部边框
         final container = tester.widget<Container>(
-          find.descendant(
-            of: find.byType(MobileNav),
-            matching: find.byType(Container),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(MobileNav),
+                matching: find.byType(Container),
+              )
+              .first,
         );
         expect(container.decoration, isA<BoxDecoration>());
       });
@@ -132,8 +138,9 @@ void main() {
     // ========================================
 
     group('Active Tab Tests', () {
-      testWidgets('it_should_highlight_active_tab',
-          (WidgetTester tester) async {
+      testWidgets('it_should_highlight_active_tab', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         await tester.pumpWidget(createMobileNav(activeTab: 0));
 
@@ -145,8 +152,9 @@ void main() {
         expect(find.byType(Container), findsWidgets);
       });
 
-      testWidgets('it_should_display_indicator_bar_on_active_tab',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_indicator_bar_on_active_tab', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         await tester.pumpWidget(createMobileNav(activeTab: 0));
 
@@ -157,8 +165,9 @@ void main() {
         expect(find.byType(Container), findsWidgets);
       });
 
-      testWidgets('it_should_enlarge_active_tab_icon',
-          (WidgetTester tester) async {
+      testWidgets('it_should_enlarge_active_tab_icon', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         await tester.pumpWidget(createMobileNav(activeTab: 0));
 
@@ -170,8 +179,9 @@ void main() {
         expect(noteIcon.size, equals(26));
       });
 
-      testWidgets('it_should_use_normal_size_for_inactive_tab_icons',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_normal_size_for_inactive_tab_icons', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活，设备标签未激活
         await tester.pumpWidget(createMobileNav(activeTab: 0));
 
@@ -183,8 +193,9 @@ void main() {
         expect(wifiIcon.size, equals(24));
       });
 
-      testWidgets('it_should_bold_active_tab_text',
-          (WidgetTester tester) async {
+      testWidgets('it_should_bold_active_tab_text', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         await tester.pumpWidget(createMobileNav(activeTab: 0));
 
@@ -196,8 +207,9 @@ void main() {
         expect(texts, isNotEmpty);
       });
 
-      testWidgets('it_should_use_primary_color_for_active_tab',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_primary_color_for_active_tab', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         await tester.pumpWidget(createMobileNav(activeTab: 0));
 
@@ -208,8 +220,9 @@ void main() {
         expect(find.byType(MobileNav), findsOneWidget);
       });
 
-      testWidgets('it_should_use_disabled_color_for_inactive_tabs',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_disabled_color_for_inactive_tabs', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         await tester.pumpWidget(createMobileNav(activeTab: 0));
 
@@ -226,8 +239,9 @@ void main() {
     // ========================================
 
     group('Tab Switching Tests', () {
-      testWidgets('it_should_call_onTabChange_when_notes_tab_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_call_onTabChange_when_notes_tab_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备标签激活
         int? tappedTab;
         await tester.pumpWidget(
@@ -248,8 +262,9 @@ void main() {
         expect(tappedTab, equals(0));
       });
 
-      testWidgets('it_should_call_onTabChange_when_devices_tab_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_call_onTabChange_when_devices_tab_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         int? tappedTab;
         await tester.pumpWidget(
@@ -270,8 +285,9 @@ void main() {
         expect(tappedTab, equals(1));
       });
 
-      testWidgets('it_should_call_onTabChange_when_settings_tab_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_call_onTabChange_when_settings_tab_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         int? tappedTab;
         await tester.pumpWidget(
@@ -292,8 +308,9 @@ void main() {
         expect(tappedTab, equals(2));
       });
 
-      testWidgets('it_should_allow_tapping_active_tab',
-          (WidgetTester tester) async {
+      testWidgets('it_should_allow_tapping_active_tab', (
+        WidgetTester tester,
+      ) async {
         // Given: 笔记标签激活
         int tapCount = 0;
         await tester.pumpWidget(
@@ -314,8 +331,9 @@ void main() {
         expect(tapCount, equals(1));
       });
 
-      testWidgets('it_should_respond_to_rapid_tab_switches',
-          (WidgetTester tester) async {
+      testWidgets('it_should_respond_to_rapid_tab_switches', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         int lastTab = 0;
         await tester.pumpWidget(
@@ -346,32 +364,37 @@ void main() {
     // ========================================
 
     group('Badge Tests', () {
-      testWidgets('it_should_display_badge_on_notes_tab_when_count_greater_than_zero',
-          (WidgetTester tester) async {
-        // Given: 有 5 条笔记
-        await tester.pumpWidget(createMobileNav(noteCount: 5));
+      testWidgets(
+        'it_should_display_badge_on_notes_tab_when_count_greater_than_zero',
+        (WidgetTester tester) async {
+          // Given: 有 5 条笔记
+          await tester.pumpWidget(createMobileNav(noteCount: 5));
 
-        // When: 渲染完成
-        await tester.pumpAndSettle();
+          // When: 渲染完成
+          await tester.pumpAndSettle();
 
-        // Then: 显示徽章
-        expect(find.text('5'), findsOneWidget);
-      });
+          // Then: 显示徽章
+          expect(find.text('5'), findsOneWidget);
+        },
+      );
 
-      testWidgets('it_should_display_badge_on_devices_tab_when_count_greater_than_zero',
-          (WidgetTester tester) async {
-        // Given: 有 3 个设备
-        await tester.pumpWidget(createMobileNav(deviceCount: 3));
+      testWidgets(
+        'it_should_display_badge_on_devices_tab_when_count_greater_than_zero',
+        (WidgetTester tester) async {
+          // Given: 有 3 个设备
+          await tester.pumpWidget(createMobileNav(deviceCount: 3));
 
-        // When: 渲染完成
-        await tester.pumpAndSettle();
+          // When: 渲染完成
+          await tester.pumpAndSettle();
 
-        // Then: 显示徽章
-        expect(find.text('3'), findsOneWidget);
-      });
+          // Then: 显示徽章
+          expect(find.text('3'), findsOneWidget);
+        },
+      );
 
-      testWidgets('it_should_not_display_badge_when_count_is_zero',
-          (WidgetTester tester) async {
+      testWidgets('it_should_not_display_badge_when_count_is_zero', (
+        WidgetTester tester,
+      ) async {
         // Given: 没有笔记和设备
         await tester.pumpWidget(createMobileNav(noteCount: 0, deviceCount: 0));
 
@@ -382,8 +405,9 @@ void main() {
         expect(find.text('0'), findsNothing);
       });
 
-      testWidgets('it_should_display_99_plus_for_counts_over_99',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_99_plus_for_counts_over_99', (
+        WidgetTester tester,
+      ) async {
         // Given: 有 150 条笔记
         await tester.pumpWidget(createMobileNav(noteCount: 150));
 
@@ -394,8 +418,9 @@ void main() {
         expect(find.text('99+'), findsOneWidget);
       });
 
-      testWidgets('it_should_position_badge_on_top_right_of_icon',
-          (WidgetTester tester) async {
+      testWidgets('it_should_position_badge_on_top_right_of_icon', (
+        WidgetTester tester,
+      ) async {
         // Given: 有笔记
         await tester.pumpWidget(createMobileNav(noteCount: 5));
 
@@ -406,8 +431,9 @@ void main() {
         expect(find.byType(Positioned), findsWidgets);
       });
 
-      testWidgets('it_should_use_error_color_for_badge_background',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_error_color_for_badge_background', (
+        WidgetTester tester,
+      ) async {
         // Given: 有笔记
         await tester.pumpWidget(createMobileNav(noteCount: 5));
 
@@ -418,8 +444,9 @@ void main() {
         expect(find.text('5'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_white_text_on_badge',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_white_text_on_badge', (
+        WidgetTester tester,
+      ) async {
         // Given: 有笔记
         await tester.pumpWidget(createMobileNav(noteCount: 5));
 
@@ -431,8 +458,9 @@ void main() {
         expect(badgeText.style?.fontSize, equals(10));
       });
 
-      testWidgets('it_should_use_circular_shape_for_badge',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_circular_shape_for_badge', (
+        WidgetTester tester,
+      ) async {
         // Given: 有笔记
         await tester.pumpWidget(createMobileNav(noteCount: 5));
 
@@ -449,8 +477,9 @@ void main() {
     // ========================================
 
     group('Visual Feedback Tests', () {
-      testWidgets('it_should_provide_tap_feedback',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_tap_feedback', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -461,8 +490,7 @@ void main() {
         expect(find.byType(InkWell), findsNWidgets(3));
       });
 
-      testWidgets('it_should_expand_tabs_equally',
-          (WidgetTester tester) async {
+      testWidgets('it_should_expand_tabs_equally', (WidgetTester tester) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -473,8 +501,9 @@ void main() {
         expect(find.byType(Expanded), findsNWidgets(3));
       });
 
-      testWidgets('it_should_center_content_in_each_tab',
-          (WidgetTester tester) async {
+      testWidgets('it_should_center_content_in_each_tab', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -485,8 +514,9 @@ void main() {
         expect(find.byType(Column), findsNWidgets(3));
       });
 
-      testWidgets('it_should_use_consistent_spacing',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_consistent_spacing', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -503,8 +533,7 @@ void main() {
     // ========================================
 
     group('Safe Area Tests', () {
-      testWidgets('it_should_respect_safe_area',
-          (WidgetTester tester) async {
+      testWidgets('it_should_respect_safe_area', (WidgetTester tester) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -515,8 +544,9 @@ void main() {
         expect(find.byType(SafeArea), findsOneWidget);
       });
 
-      testWidgets('it_should_not_apply_safe_area_to_top',
-          (WidgetTester tester) async {
+      testWidgets('it_should_not_apply_safe_area_to_top', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -533,8 +563,9 @@ void main() {
     // ========================================
 
     group('Accessibility Tests', () {
-      testWidgets('it_should_provide_semantic_labels_for_tabs',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_semantic_labels_for_tabs', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -547,8 +578,9 @@ void main() {
         expect(find.text('设置'), findsOneWidget);
       });
 
-      testWidgets('it_should_provide_visual_and_text_labels',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_visual_and_text_labels', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -560,8 +592,9 @@ void main() {
         expect(find.text('笔记'), findsOneWidget);
       });
 
-      testWidgets('it_should_have_sufficient_touch_target_size',
-          (WidgetTester tester) async {
+      testWidgets('it_should_have_sufficient_touch_target_size', (
+        WidgetTester tester,
+      ) async {
         // Given: 移动端导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -579,8 +612,9 @@ void main() {
     // ========================================
 
     group('Edge Case Tests', () {
-      testWidgets('it_should_handle_negative_counts_gracefully',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_negative_counts_gracefully', (
+        WidgetTester tester,
+      ) async {
         // Given: 负数计数（不应该发生，但要处理）
         await tester.pumpWidget(createMobileNav(noteCount: -1));
 
@@ -591,8 +625,9 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('it_should_handle_very_large_counts',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_very_large_counts', (
+        WidgetTester tester,
+      ) async {
         // Given: 非常大的计数
         await tester.pumpWidget(createMobileNav(noteCount: 999999));
 
@@ -603,8 +638,9 @@ void main() {
         expect(find.text('99+'), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_invalid_active_tab_index',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_invalid_active_tab_index', (
+        WidgetTester tester,
+      ) async {
         // Given: 无效的激活标签索引
         await tester.pumpWidget(createMobileNav(activeTab: 99));
 
@@ -615,8 +651,9 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('it_should_handle_null_callback_gracefully',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_null_callback_gracefully', (
+        WidgetTester tester,
+      ) async {
         // Given: 回调为 null（通过默认值处理）
         await tester.pumpWidget(createMobileNav());
 
@@ -634,8 +671,9 @@ void main() {
     // ========================================
 
     group('Performance Tests', () {
-      testWidgets('it_should_render_navigation_within_16ms',
-          (WidgetTester tester) async {
+      testWidgets('it_should_render_navigation_within_16ms', (
+        WidgetTester tester,
+      ) async {
         // Given: 导航栏即将加载
         final startTime = DateTime.now();
 
@@ -650,8 +688,9 @@ void main() {
         expect(duration.inMilliseconds, lessThan(16));
       });
 
-      testWidgets('it_should_handle_rapid_tab_switches_without_lag',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_rapid_tab_switches_without_lag', (
+        WidgetTester tester,
+      ) async {
         // Given: 导航栏显示
         await tester.pumpWidget(createMobileNav());
         await tester.pumpAndSettle();
@@ -666,8 +705,9 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('it_should_not_rebuild_unnecessarily',
-          (WidgetTester tester) async {
+      testWidgets('it_should_not_rebuild_unnecessarily', (
+        WidgetTester tester,
+      ) async {
         // Given: 导航栏已渲染
         await tester.pumpWidget(createMobileNav());
         await tester.pumpAndSettle();
@@ -685,8 +725,7 @@ void main() {
     // ========================================
 
     group('Theme Integration Tests', () {
-      testWidgets('it_should_use_theme_colors',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_theme_colors', (WidgetTester tester) async {
         // Given: 导航栏显示
         await tester.pumpWidget(createMobileNav());
 
@@ -697,8 +736,7 @@ void main() {
         expect(find.byType(MobileNav), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_to_dark_theme',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_to_dark_theme', (WidgetTester tester) async {
         // Given: 深色主题
         await tester.pumpWidget(
           MaterialApp(

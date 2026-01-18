@@ -1,7 +1,7 @@
+import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/widgets/note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/note_card.dart';
-import 'package:cardmind/bridge/models/card.dart' as bridge;
 
 void main() {
   group('NoteCard Widget Tests', () {
@@ -21,7 +21,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_display_card_information', (WidgetTester tester) async {
+    testWidgets('it_should_display_card_information', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -41,7 +43,9 @@ void main() {
       expect(find.text('tag2'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_empty_state_for_empty_title', (WidgetTester tester) async {
+    testWidgets('it_should_display_empty_state_for_empty_title', (
+      WidgetTester tester,
+    ) async {
       final emptyCard = bridge.Card(
         id: 'test-id',
         title: '',
@@ -69,7 +73,9 @@ void main() {
       expect(find.text('无标题笔记'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_empty_state_for_empty_content', (WidgetTester tester) async {
+    testWidgets('it_should_display_empty_state_for_empty_content', (
+      WidgetTester tester,
+    ) async {
       final emptyCard = bridge.Card(
         id: 'test-id',
         title: 'Test Title',
@@ -97,35 +103,40 @@ void main() {
       expect(find.text('空笔记'), findsOneWidget);
     });
 
-    testWidgets('it_should_show_collaboration_indicator_when_edited_by_other_device', (WidgetTester tester) async {
-      final otherDeviceCard = bridge.Card(
-        id: 'test-id',
-        title: 'Test Title',
-        content: 'Test Content',
-        createdAt: DateTime.now().millisecondsSinceEpoch,
-        updatedAt: DateTime.now().millisecondsSinceEpoch,
-        deleted: false,
-        tags: [],
-        lastEditDevice: 'other-device',
-      );
+    testWidgets(
+      'it_should_show_collaboration_indicator_when_edited_by_other_device',
+      (WidgetTester tester) async {
+        final otherDeviceCard = bridge.Card(
+          id: 'test-id',
+          title: 'Test Title',
+          content: 'Test Content',
+          createdAt: DateTime.now().millisecondsSinceEpoch,
+          updatedAt: DateTime.now().millisecondsSinceEpoch,
+          deleted: false,
+          tags: [],
+          lastEditDevice: 'other-device',
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NoteCard(
-              card: otherDeviceCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (_) {},
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: NoteCard(
+                card: otherDeviceCard,
+                currentDevice: currentDevice,
+                onUpdate: (_) {},
+                onDelete: (_) {},
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byIcon(Icons.people), findsOneWidget);
-    });
+        expect(find.byIcon(Icons.people), findsOneWidget);
+      },
+    );
 
-    testWidgets('it_should_call_onDelete_when_delete_menu_item_selected', (WidgetTester tester) async {
+    testWidgets('it_should_call_onDelete_when_delete_menu_item_selected', (
+      WidgetTester tester,
+    ) async {
       String? deletedId;
 
       await tester.pumpWidget(
@@ -162,7 +173,9 @@ void main() {
       expect(deletedId, equals('test-id'));
     });
 
-    testWidgets('it_should_enter_edit_mode_when_edit_menu_item_selected', (WidgetTester tester) async {
+    testWidgets('it_should_enter_edit_mode_when_edit_menu_item_selected', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -197,7 +210,9 @@ void main() {
       expect(find.byIcon(Icons.close), findsOneWidget);
     });
 
-    testWidgets('it_should_save_changes_when_save_button_pressed', (WidgetTester tester) async {
+    testWidgets('it_should_save_changes_when_save_button_pressed', (
+      WidgetTester tester,
+    ) async {
       bridge.Card? updatedCard;
 
       await tester.pumpWidget(
@@ -241,7 +256,9 @@ void main() {
       expect(updatedCard!.title, equals('Updated Title'));
     });
 
-    testWidgets('it_should_cancel_changes_when_cancel_button_pressed', (WidgetTester tester) async {
+    testWidgets('it_should_cancel_changes_when_cancel_button_pressed', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -282,7 +299,9 @@ void main() {
       expect(find.text('Updated Title'), findsNothing);
     });
 
-    testWidgets('it_should_remove_tag_when_delete_icon_pressed', (WidgetTester tester) async {
+    testWidgets('it_should_remove_tag_when_delete_icon_pressed', (
+      WidgetTester tester,
+    ) async {
       bridge.Card? updatedCard;
 
       await tester.pumpWidget(
@@ -316,7 +335,9 @@ void main() {
         title: 'Test Title',
         content: 'Test Content',
         createdAt: now.millisecondsSinceEpoch,
-        updatedAt: now.subtract(const Duration(minutes: 5)).millisecondsSinceEpoch,
+        updatedAt: now
+            .subtract(const Duration(minutes: 5))
+            .millisecondsSinceEpoch,
         deleted: false,
         tags: [],
         lastEditDevice: currentDevice,

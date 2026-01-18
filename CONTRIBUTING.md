@@ -76,10 +76,16 @@
    flutter analyze
 
    # Flutter 格式化
-   dart format lib/
+   dart format .
+
+   # 自动修复代码质量问题
+   dart fix --apply
 
    # 运行所有测试
    cargo test && flutter test
+
+   # 生成测试覆盖率报告
+   flutter test --coverage
 
    # 检查测试覆盖率（必须 >80%）
    cargo tarpaulin --out Html
@@ -122,10 +128,14 @@
   - [ ] 使用 UUID v7（不是 v4）
 
 - [ ] **测试要求**
-  - [ ] 新功能有对应测试
-  - [ ] 所有测试通过
+  - [ ] 新功能有对应测试（Spec Coding 方法论）
+  - [ ] 所有测试通过（`flutter test` 和 `cargo test`）
   - [ ] 测试覆盖率 >80%
+  - [ ] 测试遵循 Given-When-Then 结构
+  - [ ] 测试命名使用 `it_should_xxx()` 格式
+  - [ ] 使用 Mock 服务避免真实依赖
   - [ ] 包含集成测试（如果涉及数据层）
+  - [ ] 参考 [测试指南](docs/testing/TESTING_GUIDE.md)
 
 - [ ] **代码质量**
   - [ ] `cargo clippy` 零警告
@@ -149,7 +159,10 @@
 
 1. **[CLAUDE.md](CLAUDE.md)** - 架构核心规则（5条黄金规则）
 2. **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - 技术架构设计
-3. **[TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - TDD 开发流程
+3. **[测试指南](docs/testing/TESTING_GUIDE.md)** - TDD 开发流程和 Spec Coding 方法论
+4. **[测试模板](docs/testing/TEST_TEMPLATE.md)** - 测试代码模板
+5. **[测试最佳实践](docs/testing/BEST_PRACTICES.md)** - 测试最佳实践
+6. **[Mock API 指南](docs/testing/MOCK_API_GUIDE.md)** - Mock 服务使用说明
 
 ### 架构约束
 

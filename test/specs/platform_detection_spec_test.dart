@@ -18,8 +18,9 @@ void main() {
     // 平台检测测试
     // ========================================
     group('Platform Detection', () {
-      testWidgets('it_should_detect_current_platform',
-          (WidgetTester tester) async {
+      testWidgets('it_should_detect_current_platform', (
+        WidgetTester tester,
+      ) async {
         // Given: 应用运行在某个平台上
         await tester.pumpWidget(
           createTestWidget(
@@ -27,9 +28,7 @@ void main() {
               builder: (context) {
                 final platform = Theme.of(context).platform;
                 return Scaffold(
-                  body: Center(
-                    child: Text('Platform: ${platform.name}'),
-                  ),
+                  body: Center(child: Text('Platform: ${platform.name}')),
                 );
               },
             ),
@@ -41,19 +40,23 @@ void main() {
         expect(find.textContaining('Platform:'), findsOneWidget);
       });
 
-      testWidgets('it_should_identify_mobile_platforms',
-          (WidgetTester tester) async {
+      testWidgets('it_should_identify_mobile_platforms', (
+        WidgetTester tester,
+      ) async {
         // Given: 应用运行在移动平台
         await tester.pumpWidget(
           createTestWidget(
             Builder(
               builder: (context) {
                 final platform = Theme.of(context).platform;
-                final isMobile = platform == TargetPlatform.android ||
+                final isMobile =
+                    platform == TargetPlatform.android ||
                     platform == TargetPlatform.iOS;
                 return Scaffold(
                   body: Center(
-                    child: Text(isMobile ? 'Mobile Platform' : 'Desktop Platform'),
+                    child: Text(
+                      isMobile ? 'Mobile Platform' : 'Desktop Platform',
+                    ),
                   ),
                 );
               },
@@ -66,20 +69,24 @@ void main() {
         expect(find.text('Mobile Platform'), findsOneWidget);
       });
 
-      testWidgets('it_should_identify_desktop_platforms',
-          (WidgetTester tester) async {
+      testWidgets('it_should_identify_desktop_platforms', (
+        WidgetTester tester,
+      ) async {
         // Given: 应用运行在桌面平台
         await tester.pumpWidget(
           createTestWidget(
             Builder(
               builder: (context) {
                 final platform = Theme.of(context).platform;
-                final isDesktop = platform == TargetPlatform.windows ||
+                final isDesktop =
+                    platform == TargetPlatform.windows ||
                     platform == TargetPlatform.macOS ||
                     platform == TargetPlatform.linux;
                 return Scaffold(
                   body: Center(
-                    child: Text(isDesktop ? 'Desktop Platform' : 'Mobile Platform'),
+                    child: Text(
+                      isDesktop ? 'Desktop Platform' : 'Mobile Platform',
+                    ),
                   ),
                 );
               },
@@ -93,8 +100,9 @@ void main() {
         expect(find.text('Mobile Platform'), findsOneWidget);
       });
 
-      testWidgets('it_should_provide_platform_specific_ui',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_platform_specific_ui', (
+        WidgetTester tester,
+      ) async {
         // Given: 应用需要根据平台显示不同 UI
         await tester.pumpWidget(
           createTestWidget(
@@ -119,9 +127,7 @@ void main() {
                     platformWidget = const Text('Unknown Platform');
                 }
 
-                return Scaffold(
-                  body: Center(child: platformWidget),
-                );
+                return Scaffold(body: Center(child: platformWidget));
               },
             ),
           ),
@@ -137,15 +143,17 @@ void main() {
     // 平台能力检测测试
     // ========================================
     group('Platform Capabilities', () {
-      testWidgets('it_should_detect_touch_support',
-          (WidgetTester tester) async {
+      testWidgets('it_should_detect_touch_support', (
+        WidgetTester tester,
+      ) async {
         // Given: 检测触摸支持
         await tester.pumpWidget(
           createTestWidget(
             Builder(
               builder: (context) {
                 final platform = Theme.of(context).platform;
-                final hasTouch = platform == TargetPlatform.android ||
+                final hasTouch =
+                    platform == TargetPlatform.android ||
                     platform == TargetPlatform.iOS;
                 return Scaffold(
                   body: Center(
@@ -162,20 +170,24 @@ void main() {
         expect(find.text('Touch Supported'), findsOneWidget);
       });
 
-      testWidgets('it_should_detect_keyboard_support',
-          (WidgetTester tester) async {
+      testWidgets('it_should_detect_keyboard_support', (
+        WidgetTester tester,
+      ) async {
         // Given: 检测键盘支持
         await tester.pumpWidget(
           createTestWidget(
             Builder(
               builder: (context) {
                 final platform = Theme.of(context).platform;
-                final hasKeyboard = platform == TargetPlatform.windows ||
+                final hasKeyboard =
+                    platform == TargetPlatform.windows ||
                     platform == TargetPlatform.macOS ||
                     platform == TargetPlatform.linux;
                 return Scaffold(
                   body: Center(
-                    child: Text(hasKeyboard ? 'Keyboard Supported' : 'No Keyboard'),
+                    child: Text(
+                      hasKeyboard ? 'Keyboard Supported' : 'No Keyboard',
+                    ),
                   ),
                 );
               },
@@ -188,15 +200,17 @@ void main() {
         expect(find.text('No Keyboard'), findsOneWidget);
       });
 
-      testWidgets('it_should_detect_mouse_support',
-          (WidgetTester tester) async {
+      testWidgets('it_should_detect_mouse_support', (
+        WidgetTester tester,
+      ) async {
         // Given: 检测鼠标支持
         await tester.pumpWidget(
           createTestWidget(
             Builder(
               builder: (context) {
                 final platform = Theme.of(context).platform;
-                final hasMouse = platform == TargetPlatform.windows ||
+                final hasMouse =
+                    platform == TargetPlatform.windows ||
                     platform == TargetPlatform.macOS ||
                     platform == TargetPlatform.linux;
                 return Scaffold(
@@ -219,22 +233,23 @@ void main() {
     // 平台特定行为测试
     // ========================================
     group('Platform-Specific Behavior', () {
-      testWidgets('it_should_use_material_design_on_android',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_material_design_on_android', (
+        WidgetTester tester,
+      ) async {
         // Given: Android 平台
         await tester.pumpWidget(
           MaterialApp(
-            theme: ThemeData(
-              platform: TargetPlatform.android,
-            ),
+            theme: ThemeData(platform: TargetPlatform.android),
             home: Builder(
               builder: (context) {
                 final platform = Theme.of(context).platform;
                 return Scaffold(
                   appBar: AppBar(
-                    title: Text(platform == TargetPlatform.android
-                        ? 'Material Design'
-                        : 'Other Design'),
+                    title: Text(
+                      platform == TargetPlatform.android
+                          ? 'Material Design'
+                          : 'Other Design',
+                    ),
                   ),
                   body: const Center(child: Text('Content')),
                 );
@@ -248,15 +263,17 @@ void main() {
         expect(find.text('Material Design'), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_navigation_style_by_platform',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_navigation_style_by_platform', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同平台
         await tester.pumpWidget(
           createTestWidget(
             Builder(
               builder: (context) {
                 final platform = Theme.of(context).platform;
-                final isMobile = platform == TargetPlatform.android ||
+                final isMobile =
+                    platform == TargetPlatform.android ||
                     platform == TargetPlatform.iOS;
 
                 return Scaffold(
@@ -287,8 +304,9 @@ void main() {
         expect(find.byType(BottomNavigationBar), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_scroll_behavior_by_platform',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_scroll_behavior_by_platform', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同平台的滚动行为
         await tester.pumpWidget(
           createTestWidget(
@@ -322,8 +340,9 @@ void main() {
     // 平台检测工具测试
     // ========================================
     group('Platform Detection Utilities', () {
-      testWidgets('it_should_provide_is_mobile_helper',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_is_mobile_helper', (
+        WidgetTester tester,
+      ) async {
         // Given: 平台检测工具函数
         bool isMobile(BuildContext context) {
           final platform = Theme.of(context).platform;
@@ -350,8 +369,9 @@ void main() {
         expect(find.text('Mobile'), findsOneWidget);
       });
 
-      testWidgets('it_should_provide_is_desktop_helper',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_is_desktop_helper', (
+        WidgetTester tester,
+      ) async {
         // Given: 平台检测工具函数
         bool isDesktop(BuildContext context) {
           final platform = Theme.of(context).platform;
@@ -379,8 +399,9 @@ void main() {
         expect(find.text('Mobile'), findsOneWidget);
       });
 
-      testWidgets('it_should_provide_platform_name_helper',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_platform_name_helper', (
+        WidgetTester tester,
+      ) async {
         // Given: 获取平台名称的工具函数
         String getPlatformName(BuildContext context) {
           final platform = Theme.of(context).platform;
@@ -424,8 +445,9 @@ void main() {
     // 跨平台兼容性测试
     // ========================================
     group('Cross-Platform Compatibility', () {
-      testWidgets('it_should_render_consistently_across_platforms',
-          (WidgetTester tester) async {
+      testWidgets('it_should_render_consistently_across_platforms', (
+        WidgetTester tester,
+      ) async {
         // Given: 跨平台的一致性渲染
         await tester.pumpWidget(
           createTestWidget(
@@ -450,8 +472,9 @@ void main() {
         expect(find.text('离线优先的卡片笔记应用'), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_platform_specific_widgets',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_platform_specific_widgets', (
+        WidgetTester tester,
+      ) async {
         // Given: 平台特定的 Widget
         await tester.pumpWidget(
           createTestWidget(
@@ -475,8 +498,9 @@ void main() {
         expect(find.text('Material Widget'), findsOneWidget);
       });
 
-      testWidgets('it_should_adapt_icons_by_platform',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_icons_by_platform', (
+        WidgetTester tester,
+      ) async {
         // Given: 平台特定的图标
         await tester.pumpWidget(
           createTestWidget(
@@ -487,11 +511,7 @@ void main() {
                     ? Icons.ios_share
                     : Icons.share;
 
-                return Scaffold(
-                  body: Center(
-                    child: Icon(icon),
-                  ),
-                );
+                return Scaffold(body: Center(child: Icon(icon)));
               },
             ),
           ),

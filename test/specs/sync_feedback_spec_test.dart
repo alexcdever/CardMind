@@ -1,9 +1,10 @@
 import 'dart:async';
+
+import 'package:cardmind/models/sync_status.dart';
+import 'package:cardmind/widgets/sync_details_dialog.dart';
+import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/models/sync_status.dart';
-import 'package:cardmind/widgets/sync_status_indicator.dart';
-import 'package:cardmind/widgets/sync_details_dialog.dart';
 
 /// Sync Feedback Interaction Specification Tests
 ///
@@ -133,16 +134,16 @@ void main() {
     // ========================================
 
     group('SyncStatusIndicator Widget Tests', () {
-      testWidgets('it_should_render_sync_status_indicator', (WidgetTester tester) async {
+      testWidgets('it_should_render_sync_status_indicator', (
+        WidgetTester tester,
+      ) async {
         // Given: 一个 SyncStatus
         final status = SyncStatus.disconnected();
 
         // When: 渲染 SyncStatusIndicator
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -150,16 +151,16 @@ void main() {
         expect(find.byType(SyncStatusIndicator), findsOneWidget);
       });
 
-      testWidgets('it_should_show_cloud_off_icon_when_disconnected', (WidgetTester tester) async {
+      testWidgets('it_should_show_cloud_off_icon_when_disconnected', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 disconnected
         final status = SyncStatus.disconnected();
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -167,16 +168,16 @@ void main() {
         expect(find.byIcon(Icons.cloud_off), findsOneWidget);
       });
 
-      testWidgets('it_should_show_sync_icon_when_syncing', (WidgetTester tester) async {
+      testWidgets('it_should_show_sync_icon_when_syncing', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 syncing
         final status = SyncStatus.syncing(syncingPeers: 1);
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -184,16 +185,16 @@ void main() {
         expect(find.byIcon(Icons.sync), findsOneWidget);
       });
 
-      testWidgets('it_should_show_rotating_sync_icon_when_syncing', (WidgetTester tester) async {
+      testWidgets('it_should_show_rotating_sync_icon_when_syncing', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 syncing
         final status = SyncStatus.syncing(syncingPeers: 1);
 
         // When: 渲染指示器并等待动画
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -212,16 +213,16 @@ void main() {
         );
       });
 
-      testWidgets('it_should_show_cloud_done_icon_when_synced', (WidgetTester tester) async {
+      testWidgets('it_should_show_cloud_done_icon_when_synced', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 synced
         final status = SyncStatus.synced(lastSyncTime: DateTime.now());
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -229,16 +230,16 @@ void main() {
         expect(find.byIcon(Icons.cloud_done), findsOneWidget);
       });
 
-      testWidgets('it_should_show_warning_icon_when_failed', (WidgetTester tester) async {
+      testWidgets('it_should_show_warning_icon_when_failed', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 failed
         final status = SyncStatus.failed(errorMessage: 'Network error');
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -246,7 +247,9 @@ void main() {
         expect(find.byIcon(Icons.cloud_off), findsOneWidget);
       });
 
-      testWidgets('it_should_display_correct_text_for_each_state', (WidgetTester tester) async {
+      testWidgets('it_should_display_correct_text_for_each_state', (
+        WidgetTester tester,
+      ) async {
         // Test disconnected text
         await tester.pumpWidget(
           MaterialApp(
@@ -261,7 +264,9 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: SyncStatusIndicator(status: SyncStatus.syncing(syncingPeers: 1)),
+              body: SyncStatusIndicator(
+                status: SyncStatus.syncing(syncingPeers: 1),
+              ),
             ),
           ),
         );
@@ -271,7 +276,9 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: SyncStatusIndicator(status: SyncStatus.synced(lastSyncTime: DateTime.now())),
+              body: SyncStatusIndicator(
+                status: SyncStatus.synced(lastSyncTime: DateTime.now()),
+              ),
             ),
           ),
         );
@@ -281,14 +288,18 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: SyncStatusIndicator(status: SyncStatus.failed(errorMessage: 'Error')),
+              body: SyncStatusIndicator(
+                status: SyncStatus.failed(errorMessage: 'Error'),
+              ),
             ),
           ),
         );
         expect(find.text('同步失败'), findsOneWidget);
       });
 
-      testWidgets('it_should_use_correct_color_for_each_state', (WidgetTester tester) async {
+      testWidgets('it_should_use_correct_color_for_each_state', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同的状态
         final disconnected = SyncStatus.disconnected();
         final syncing = SyncStatus.syncing(syncingPeers: 1);
@@ -299,20 +310,18 @@ void main() {
         // disconnected: grey (#757575)
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: disconnected),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: disconnected)),
           ),
         );
-        final disconnectedIcon = tester.widget<Icon>(find.byIcon(Icons.cloud_off));
+        final disconnectedIcon = tester.widget<Icon>(
+          find.byIcon(Icons.cloud_off),
+        );
         expect(disconnectedIcon.color, const Color(0xFF757575));
 
         // syncing: primary color (#00897B)
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: syncing),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: syncing)),
           ),
         );
         final syncingIcon = tester.widget<Icon>(find.byIcon(Icons.sync));
@@ -321,9 +330,7 @@ void main() {
         // synced: green (#43A047)
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: synced),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: synced)),
           ),
         );
         final syncedIcon = tester.widget<Icon>(find.byIcon(Icons.cloud_done));
@@ -332,25 +339,23 @@ void main() {
         // failed: orange (#FB8C00)
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: failed),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: failed)),
           ),
         );
         final failedIcon = tester.widget<Icon>(find.byIcon(Icons.cloud_off));
         expect(failedIcon.color, const Color(0xFFFB8C00));
       });
 
-      testWidgets('it_should_show_details_dialog_on_tap', (WidgetTester tester) async {
+      testWidgets('it_should_show_details_dialog_on_tap', (
+        WidgetTester tester,
+      ) async {
         // Given: 一个可点击的指示器
         final status = SyncStatus.disconnected();
 
         // When: 点击指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
         await tester.tap(find.byType(SyncStatusIndicator));
@@ -360,16 +365,16 @@ void main() {
         expect(find.byType(SyncDetailsDialog), findsOneWidget);
       });
 
-      testWidgets('it_should_show_peer_count_when_syncing', (WidgetTester tester) async {
+      testWidgets('it_should_show_peer_count_when_syncing', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 syncing，有 3 个对等设备
         final status = SyncStatus.syncing(syncingPeers: 3);
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -377,16 +382,16 @@ void main() {
         expect(find.textContaining('3'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_relative_time_when_synced', (WidgetTester tester) async {
+      testWidgets('it_should_show_relative_time_when_synced', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 synced，刚刚同步完成
         final status = SyncStatus.synced(lastSyncTime: DateTime.now());
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -400,7 +405,9 @@ void main() {
     // ========================================
 
     group('SyncDetailsDialog Tests', () {
-      testWidgets('it_should_show_current_status_in_dialog', (WidgetTester tester) async {
+      testWidgets('it_should_show_current_status_in_dialog', (
+        WidgetTester tester,
+      ) async {
         // Given: 一个状态
         final status = SyncStatus.syncing(syncingPeers: 2);
 
@@ -430,7 +437,9 @@ void main() {
         expect(find.textContaining('同步中'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_peer_list_in_dialog', (WidgetTester tester) async {
+      testWidgets('it_should_show_peer_list_in_dialog', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 syncing，有对等设备
         final status = SyncStatus.syncing(syncingPeers: 2);
 
@@ -462,7 +471,9 @@ void main() {
         expect(find.text('设备 2'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_error_message_when_failed', (WidgetTester tester) async {
+      testWidgets('it_should_show_error_message_when_failed', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 failed
         final status = SyncStatus.failed(errorMessage: 'Network timeout');
 
@@ -491,7 +502,9 @@ void main() {
         expect(find.text('Network timeout'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_retry_button_when_failed', (WidgetTester tester) async {
+      testWidgets('it_should_show_retry_button_when_failed', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 failed
         final status = SyncStatus.failed(errorMessage: 'Network error');
 
@@ -526,8 +539,9 @@ void main() {
     // ========================================
 
     group('Sync Status Stream Tests', () {
-      testWidgets('it_should_subscribe_to_sync_status_stream',
-          (WidgetTester tester) async {
+      testWidgets('it_should_subscribe_to_sync_status_stream', (
+        WidgetTester tester,
+      ) async {
         // Given: 一个同步状态 Stream（使用 StreamController）
         final controller = StreamController<SyncStatus>();
 
@@ -576,8 +590,9 @@ void main() {
     // ========================================
 
     group('Sync Progress Percentage Tests', () {
-      testWidgets('it_should_display_sync_progress_percentage',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_sync_progress_percentage', (
+        WidgetTester tester,
+      ) async {
         // Given: 同步状态包含进度信息
         // 扩展 SyncStatus 以支持进度百分比（模拟）
         final syncingWithProgress = SyncStatus.syncing(syncingPeers: 2);
@@ -627,11 +642,13 @@ void main() {
     // ========================================
 
     group('Sync Error Details Tests', () {
-      testWidgets('it_should_show_sync_error_details',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_sync_error_details', (
+        WidgetTester tester,
+      ) async {
         // Given: 同步失败，包含详细错误信息
         final failedStatus = SyncStatus.failed(
-          errorMessage: 'Network timeout: Failed to connect to peer device after 30 seconds',
+          errorMessage:
+              'Network timeout: Failed to connect to peer device after 30 seconds',
         );
 
         // When: 显示详情对话框
@@ -703,7 +720,9 @@ void main() {
         expect(find.text('同步失败'), findsOneWidget);
         expect(find.text('错误详情：'), findsOneWidget);
         expect(
-          find.text('Network timeout: Failed to connect to peer device after 30 seconds'),
+          find.text(
+            'Network timeout: Failed to connect to peer device after 30 seconds',
+          ),
           findsOneWidget,
         );
         expect(find.text('可能的原因：'), findsOneWidget);
@@ -719,16 +738,16 @@ void main() {
     // ========================================
 
     group('Accessibility Tests', () {
-      testWidgets('it_should_have_semantic_label_for_disconnected', (WidgetTester tester) async {
+      testWidgets('it_should_have_semantic_label_for_disconnected', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 disconnected
         final status = SyncStatus.disconnected();
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -737,16 +756,16 @@ void main() {
         expect(semantics.label, contains('未同步，无可用设备'));
       });
 
-      testWidgets('it_should_have_semantic_label_for_syncing', (WidgetTester tester) async {
+      testWidgets('it_should_have_semantic_label_for_syncing', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 syncing
         final status = SyncStatus.syncing(syncingPeers: 1);
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -755,16 +774,16 @@ void main() {
         expect(semantics.label, contains('正在同步数据'));
       });
 
-      testWidgets('it_should_have_semantic_label_for_synced', (WidgetTester tester) async {
+      testWidgets('it_should_have_semantic_label_for_synced', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 synced
         final status = SyncStatus.synced(lastSyncTime: DateTime.now());
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 
@@ -773,16 +792,16 @@ void main() {
         expect(semantics.label, contains('已同步，数据最新'));
       });
 
-      testWidgets('it_should_have_semantic_label_for_failed', (WidgetTester tester) async {
+      testWidgets('it_should_have_semantic_label_for_failed', (
+        WidgetTester tester,
+      ) async {
         // Given: 状态是 failed
         final status = SyncStatus.failed(errorMessage: 'Error');
 
         // When: 渲染指示器
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: SyncStatusIndicator(status: status),
-            ),
+            home: Scaffold(body: SyncStatusIndicator(status: status)),
           ),
         );
 

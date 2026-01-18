@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../helpers/test_helpers.dart';
+
 import '../helpers/mock_utils.dart';
+import '../helpers/test_helpers.dart';
 
 /// Onboarding Specification Tests
 ///
@@ -33,10 +34,11 @@ void main() {
     // 首次启动检测测试
     // ========================================
     group('First Launch Detection', () {
-      testWidgets('it_should_show_welcome_page_on_first_launch',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_welcome_page_on_first_launch', (
+        WidgetTester tester,
+      ) async {
         // Given: 首次启动应用
-        final isFirstLaunch = true;
+        const isFirstLaunch = true;
 
         // When: 应用启动
         await tester.pumpWidget(
@@ -53,8 +55,9 @@ void main() {
         expect(find.text('Home Screen'), findsNothing);
       });
 
-      testWidgets('it_should_show_splash_screen_during_initialization_check',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_splash_screen_during_initialization_check', (
+        WidgetTester tester,
+      ) async {
         // Given: 正在检查初始化状态
         await tester.pumpWidget(
           createTestWidget(
@@ -81,10 +84,11 @@ void main() {
         expect(find.text('CardMind'), findsOneWidget);
       });
 
-      testWidgets('it_should_skip_welcome_page_on_subsequent_launches',
-          (WidgetTester tester) async {
+      testWidgets('it_should_skip_welcome_page_on_subsequent_launches', (
+        WidgetTester tester,
+      ) async {
         // Given: 非首次启动
-        final isFirstLaunch = false;
+        const isFirstLaunch = false;
 
         // When: 应用启动
         await tester.pumpWidget(
@@ -106,8 +110,9 @@ void main() {
     // 欢迎页测试
     // ========================================
     group('Welcome Page', () {
-      testWidgets('it_should_display_app_name_and_description',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_app_name_and_description', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在欢迎页
         await tester.pumpWidget(
           createTestWidget(
@@ -118,15 +123,15 @@ void main() {
                   children: [
                     const Text(
                       'CardMind',
-                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     const Text('离线优先的卡片笔记应用'),
                     const SizedBox(height: 48),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: const Text('开始使用'),
-                    ),
+                    ElevatedButton(onPressed: () {}, child: const Text('开始使用')),
                   ],
                 ),
               ),
@@ -141,8 +146,9 @@ void main() {
         expect(find.text('开始使用'), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_action_selection_on_button_tap',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_action_selection_on_button_tap', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在欢迎页
         await tester.pumpWidget(
           MaterialApp(
@@ -153,9 +159,8 @@ void main() {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Action Selection'),
-                        ),
+                        builder: (_) =>
+                            const Scaffold(body: Text('Action Selection')),
                       ),
                     );
                   },
@@ -179,8 +184,9 @@ void main() {
     // 操作选择测试
     // ========================================
     group('Action Selection', () {
-      testWidgets('it_should_show_create_pool_and_join_pool_options',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_create_pool_and_join_pool_options', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在操作选择页面
         await tester.pumpWidget(
           createTestWidget(
@@ -190,15 +196,9 @@ void main() {
                 children: [
                   const Text('选择操作'),
                   const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('创建新空间'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('创建新空间')),
                   const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: () {},
-                    child: const Text('加入现有空间'),
-                  ),
+                  OutlinedButton(onPressed: () {}, child: const Text('加入现有空间')),
                 ],
               ),
             ),
@@ -212,8 +212,9 @@ void main() {
         expect(find.text('加入现有空间'), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_create_pool_screen_on_create_tap',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_create_pool_screen_on_create_tap', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在操作选择页面
         await tester.pumpWidget(
           MaterialApp(
@@ -224,9 +225,8 @@ void main() {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Create Pool Screen'),
-                        ),
+                        builder: (_) =>
+                            const Scaffold(body: Text('Create Pool Screen')),
                       ),
                     );
                   },
@@ -245,8 +245,9 @@ void main() {
         expect(find.text('Create Pool Screen'), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_join_pool_screen_on_join_tap',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_join_pool_screen_on_join_tap', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在操作选择页面
         await tester.pumpWidget(
           MaterialApp(
@@ -257,9 +258,8 @@ void main() {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Join Pool Screen'),
-                        ),
+                        builder: (_) =>
+                            const Scaffold(body: Text('Join Pool Screen')),
                       ),
                     );
                   },
@@ -283,8 +283,9 @@ void main() {
     // 创建空间测试
     // ========================================
     group('Create Pool', () {
-      testWidgets('it_should_show_pool_name_input_field',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_pool_name_input_field', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在创建空间页面
         await tester.pumpWidget(
           createTestWidget(
@@ -293,17 +294,14 @@ void main() {
                 children: [
                   const Text('创建新空间'),
                   const SizedBox(height: 16),
-                  TextField(
-                    decoration: const InputDecoration(
+                  const TextField(
+                    decoration: InputDecoration(
                       labelText: '空间名称',
                       hintText: '输入空间名称',
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('创建'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('创建')),
                 ],
               ),
             ),
@@ -318,8 +316,9 @@ void main() {
         expect(find.text('创建'), findsOneWidget);
       });
 
-      testWidgets('it_should_accept_pool_name_input',
-          (WidgetTester tester) async {
+      testWidgets('it_should_accept_pool_name_input', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在创建空间页面
         final controller = TextEditingController();
         await tester.pumpWidget(
@@ -327,9 +326,7 @@ void main() {
             Scaffold(
               body: TextField(
                 controller: controller,
-                decoration: const InputDecoration(
-                  labelText: '空间名称',
-                ),
+                decoration: const InputDecoration(labelText: '空间名称'),
               ),
             ),
           ),
@@ -344,8 +341,9 @@ void main() {
         expect(find.text('我的空间'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_loading_indicator_during_pool_creation',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_loading_indicator_during_pool_creation', (
+        WidgetTester tester,
+      ) async {
         // Given: 正在创建空间
         await tester.pumpWidget(
           createTestWidget(
@@ -369,54 +367,56 @@ void main() {
         expect(find.text('正在创建空间...'), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_home_screen_after_successful_creation',
-          (WidgetTester tester) async {
-        // Given: 空间创建成功
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) => Scaffold(
-                body: ElevatedButton(
-                  onPressed: () async {
-                    // 模拟创建空间
-                    await Future.delayed(const Duration(milliseconds: 100));
+      testWidgets(
+        'it_should_navigate_to_home_screen_after_successful_creation',
+        (WidgetTester tester) async {
+          // Given: 空间创建成功
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Builder(
+                builder: (context) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () async {
+                      // 模拟创建空间
+                      await Future.delayed(const Duration(milliseconds: 100));
 
-                    // 导航到主页
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Home Screen'),
+                      // 导航到主页
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              const Scaffold(body: Text('Home Screen')),
                         ),
-                      ),
-                    );
-                  },
-                  child: const Text('创建'),
+                      );
+                    },
+                    child: const Text('创建'),
+                  ),
                 ),
               ),
             ),
-          ),
-        );
+          );
 
-        // When: 创建完成
-        await tester.tap(find.text('创建'));
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.pumpAndSettle();
+          // When: 创建完成
+          await tester.tap(find.text('创建'));
+          await tester.pump(const Duration(milliseconds: 100));
+          await tester.pumpAndSettle();
 
-        // Then: 应该导航到主页
-        expect(find.text('Home Screen'), findsOneWidget);
-      });
+          // Then: 应该导航到主页
+          expect(find.text('Home Screen'), findsOneWidget);
+        },
+      );
 
-      testWidgets('it_should_show_error_message_when_pool_name_is_empty',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_message_when_pool_name_is_empty', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户未输入空间名称
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
                 children: [
                   TextField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: '空间名称',
                       errorText: '空间名称不能为空',
                     ),
@@ -437,8 +437,9 @@ void main() {
     // 加入空间测试
     // ========================================
     group('Join Pool', () {
-      testWidgets('it_should_show_discovered_pools_list',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_discovered_pools_list', (
+        WidgetTester tester,
+      ) async {
         // Given: 发现了可用的空间
         final pools = [
           {'id': '1', 'name': 'Pool 1', 'deviceCount': 2},
@@ -476,8 +477,9 @@ void main() {
         expect(find.text('1 个设备'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_loading_indicator_during_discovery',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_loading_indicator_during_discovery', (
+        WidgetTester tester,
+      ) async {
         // Given: 正在搜索空间
         await tester.pumpWidget(
           createTestWidget(
@@ -501,8 +503,9 @@ void main() {
         expect(find.text('正在搜索附近的空间...'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_empty_state_when_no_pools_found',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_empty_state_when_no_pools_found', (
+        WidgetTester tester,
+      ) async {
         // Given: 没有发现可用空间
         await tester.pumpWidget(
           createTestWidget(
@@ -517,10 +520,7 @@ void main() {
                     const SizedBox(height: 8),
                     const Text('请确保其他设备已创建空间'),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: const Text('重新搜索'),
-                    ),
+                    ElevatedButton(onPressed: () {}, child: const Text('重新搜索')),
                   ],
                 ),
               ),
@@ -535,8 +535,9 @@ void main() {
         expect(find.text('重新搜索'), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_home_screen_after_successful_join',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_home_screen_after_successful_join', (
+        WidgetTester tester,
+      ) async {
         // Given: 加入空间成功
         await tester.pumpWidget(
           MaterialApp(
@@ -551,9 +552,8 @@ void main() {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Home Screen'),
-                        ),
+                        builder: (_) =>
+                            const Scaffold(body: Text('Home Screen')),
                       ),
                     );
                   },
@@ -578,8 +578,9 @@ void main() {
     // 错误处理测试
     // ========================================
     group('Error Handling', () {
-      testWidgets('it_should_show_error_message_when_pool_creation_fails',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_message_when_pool_creation_fails', (
+        WidgetTester tester,
+      ) async {
         // Given: 空间创建失败
         await tester.pumpWidget(
           createTestWidget(
@@ -592,10 +593,7 @@ void main() {
                   const SizedBox(height: 8),
                   const Text('请检查网络连接后重试'),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('重试'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('重试')),
                 ],
               ),
             ),
@@ -609,8 +607,9 @@ void main() {
         expect(find.text('重试'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_error_message_when_join_fails',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_message_when_join_fails', (
+        WidgetTester tester,
+      ) async {
         // Given: 加入空间失败
         await tester.pumpWidget(
           createTestWidget(
@@ -623,10 +622,7 @@ void main() {
                   const SizedBox(height: 8),
                   const Text('无法连接到该空间'),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('返回'),
-                  ),
+                  ElevatedButton(onPressed: () {}, child: const Text('返回')),
                 ],
               ),
             ),
@@ -640,8 +636,9 @@ void main() {
         expect(find.text('返回'), findsOneWidget);
       });
 
-      testWidgets('it_should_allow_retry_after_error',
-          (WidgetTester tester) async {
+      testWidgets('it_should_allow_retry_after_error', (
+        WidgetTester tester,
+      ) async {
         // Given: 发生错误后显示重试按钮
         int retryCount = 0;
 
@@ -676,22 +673,23 @@ void main() {
     // 导航测试
     // ========================================
     group('Navigation', () {
-      testWidgets('it_should_allow_back_navigation_from_action_selection',
-          (WidgetTester tester) async {
+      testWidgets('it_should_allow_back_navigation_from_action_selection', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在操作选择页面
         await tester.pumpWidget(
           MaterialApp(
             home: const Scaffold(body: Text('Welcome Page')),
             routes: {
               '/action': (context) => Scaffold(
-                    appBar: AppBar(
-                      leading: IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    body: const Text('Action Selection'),
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
                   ),
+                ),
+                body: const Text('Action Selection'),
+              ),
             },
           ),
         );
@@ -709,14 +707,14 @@ void main() {
             ),
             routes: {
               '/action': (context) => Scaffold(
-                    appBar: AppBar(
-                      leading: IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    body: const Text('Action Selection'),
+                appBar: AppBar(
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
                   ),
+                ),
+                body: const Text('Action Selection'),
+              ),
             },
           ),
         );

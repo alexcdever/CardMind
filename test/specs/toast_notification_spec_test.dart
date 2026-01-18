@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/utils/toast_utils.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Toast Notification Specification Tests
 ///
@@ -14,31 +13,27 @@ import 'package:cardmind/utils/toast_utils.dart';
 
 void main() {
   group('SP-UI-009: Toast Notification', () {
-    setUp(() {
-      // 每个测试前取消所有 Toast
-      ToastUtils.cancelAll();
-    });
+    setUp(ToastUtils.cancelAll);
 
-    tearDown(() {
-      // 每个测试后清理
-      ToastUtils.cancelAll();
-    });
+    tearDown(ToastUtils.cancelAll);
 
     // ========================================
     // 任务组 1: Success Toast Tests
     // ========================================
 
     group('Success Toast', () {
-      testWidgets('it_should_provide_show_success_method',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_show_success_method', (
+        WidgetTester tester,
+      ) async {
         // Given: Toast 工具类
         // When: 调用 showSuccess
         // Then: 方法应该存在且可调用
         expect(() => ToastUtils.showSuccess('Success'), returnsNormally);
       });
 
-      testWidgets('it_should_accept_success_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_accept_success_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 成功消息
         const message = 'Operation completed successfully';
 
@@ -47,8 +42,9 @@ void main() {
         expect(() => ToastUtils.showSuccess(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_empty_success_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_empty_success_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 空消息
         const message = '';
 
@@ -57,10 +53,12 @@ void main() {
         expect(() => ToastUtils.showSuccess(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_long_success_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_long_success_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 很长的消息
-        const message = 'This is a very long success message that should be displayed properly without causing any layout issues or crashes in the toast notification system';
+        const message =
+            'This is a very long success message that should be displayed properly without causing any layout issues or crashes in the toast notification system';
 
         // When: 显示长消息的成功 Toast
         // Then: 应该正常执行
@@ -73,16 +71,18 @@ void main() {
     // ========================================
 
     group('Error Toast', () {
-      testWidgets('it_should_provide_show_error_method',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_show_error_method', (
+        WidgetTester tester,
+      ) async {
         // Given: Toast 工具类
         // When: 调用 showError
         // Then: 方法应该存在且可调用
         expect(() => ToastUtils.showError('Error'), returnsNormally);
       });
 
-      testWidgets('it_should_accept_error_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_accept_error_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 错误消息
         const message = 'Operation failed';
 
@@ -91,8 +91,9 @@ void main() {
         expect(() => ToastUtils.showError(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_empty_error_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_empty_error_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 空消息
         const message = '';
 
@@ -101,8 +102,9 @@ void main() {
         expect(() => ToastUtils.showError(message), returnsNormally);
       });
 
-      testWidgets('it_should_display_error_longer_than_success',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_error_longer_than_success', (
+        WidgetTester tester,
+      ) async {
         // Given: 错误消息
         const message = 'Error occurred';
 
@@ -117,16 +119,16 @@ void main() {
     // ========================================
 
     group('Info Toast', () {
-      testWidgets('it_should_provide_show_info_method',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_show_info_method', (
+        WidgetTester tester,
+      ) async {
         // Given: Toast 工具类
         // When: 调用 showInfo
         // Then: 方法应该存在且可调用
         expect(() => ToastUtils.showInfo('Info'), returnsNormally);
       });
 
-      testWidgets('it_should_accept_info_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_accept_info_message', (WidgetTester tester) async {
         // Given: 信息消息
         const message = 'New update available';
 
@@ -135,8 +137,9 @@ void main() {
         expect(() => ToastUtils.showInfo(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_empty_info_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_empty_info_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 空消息
         const message = '';
 
@@ -151,16 +154,18 @@ void main() {
     // ========================================
 
     group('Warning Toast', () {
-      testWidgets('it_should_provide_show_warning_method',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_show_warning_method', (
+        WidgetTester tester,
+      ) async {
         // Given: Toast 工具类
         // When: 调用 showWarning
         // Then: 方法应该存在且可调用
         expect(() => ToastUtils.showWarning('Warning'), returnsNormally);
       });
 
-      testWidgets('it_should_accept_warning_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_accept_warning_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 警告消息
         const message = 'Low storage space';
 
@@ -169,8 +174,9 @@ void main() {
         expect(() => ToastUtils.showWarning(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_empty_warning_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_empty_warning_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 空消息
         const message = '';
 
@@ -185,16 +191,16 @@ void main() {
     // ========================================
 
     group('Cancel Tests', () {
-      testWidgets('it_should_provide_cancel_all_method',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_cancel_all_method', (
+        WidgetTester tester,
+      ) async {
         // Given: Toast 工具类
         // When: 调用 cancelAll
         // Then: 方法应该存在且可调用
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
 
-      testWidgets('it_should_cancel_all_toasts',
-          (WidgetTester tester) async {
+      testWidgets('it_should_cancel_all_toasts', (WidgetTester tester) async {
         // Given: 显示多个 Toast
         ToastUtils.showSuccess('Success 1');
         ToastUtils.showInfo('Info 1');
@@ -204,15 +210,16 @@ void main() {
         ToastUtils.cancelAll();
 
         // Then: 应该正常执行
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
 
-      testWidgets('it_should_handle_cancel_when_no_toasts',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_cancel_when_no_toasts', (
+        WidgetTester tester,
+      ) async {
         // Given: 没有显示任何 Toast
         // When: 取消所有 Toast
         // Then: 应该正常执行（不抛出异常）
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
     });
 
@@ -221,8 +228,9 @@ void main() {
     // ========================================
 
     group('Multiple Toast Tests', () {
-      testWidgets('it_should_handle_multiple_success_toasts',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_multiple_success_toasts', (
+        WidgetTester tester,
+      ) async {
         // Given: 多个成功消息
         // When: 连续显示多个成功 Toast
         ToastUtils.showSuccess('Success 1');
@@ -230,11 +238,12 @@ void main() {
         ToastUtils.showSuccess('Success 3');
 
         // Then: 应该正常执行
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
 
-      testWidgets('it_should_handle_mixed_toast_types',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_mixed_toast_types', (
+        WidgetTester tester,
+      ) async {
         // Given: 不同类型的消息
         // When: 连续显示不同类型的 Toast
         ToastUtils.showSuccess('Success');
@@ -243,7 +252,7 @@ void main() {
         ToastUtils.showWarning('Warning');
 
         // Then: 应该正常执行
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
     });
 
@@ -252,8 +261,9 @@ void main() {
     // ========================================
 
     group('Edge Cases', () {
-      testWidgets('it_should_handle_special_characters',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_special_characters', (
+        WidgetTester tester,
+      ) async {
         // Given: 包含特殊字符的消息
         const message = 'Error: 文件保存失败！@#\$%^&*()';
 
@@ -262,8 +272,9 @@ void main() {
         expect(() => ToastUtils.showError(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_unicode_characters',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_unicode_characters', (
+        WidgetTester tester,
+      ) async {
         // Given: 包含 Unicode 字符的消息
         const message = '操作成功 ✓ 🎉';
 
@@ -272,8 +283,9 @@ void main() {
         expect(() => ToastUtils.showSuccess(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_newline_characters',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_newline_characters', (
+        WidgetTester tester,
+      ) async {
         // Given: 包含换行符的消息
         const message = 'Line 1\nLine 2\nLine 3';
 
@@ -282,8 +294,9 @@ void main() {
         expect(() => ToastUtils.showInfo(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_very_long_message',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_very_long_message', (
+        WidgetTester tester,
+      ) async {
         // Given: 非常长的消息
         final message = 'A' * 1000;
 
@@ -292,8 +305,9 @@ void main() {
         expect(() => ToastUtils.showInfo(message), returnsNormally);
       });
 
-      testWidgets('it_should_handle_rapid_successive_calls',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_rapid_successive_calls', (
+        WidgetTester tester,
+      ) async {
         // Given: 快速连续调用
         // When: 快速显示多个 Toast
         for (int i = 0; i < 10; i++) {
@@ -301,7 +315,7 @@ void main() {
         }
 
         // Then: 应该正常执行
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
     });
 
@@ -351,35 +365,38 @@ void main() {
     // ========================================
 
     group('Integration Tests', () {
-      testWidgets('it_should_work_in_typical_success_flow',
-          (WidgetTester tester) async {
+      testWidgets('it_should_work_in_typical_success_flow', (
+        WidgetTester tester,
+      ) async {
         // Given: 典型的成功流程
         // When: 显示成功消息
         ToastUtils.showSuccess('卡片创建成功');
 
         // Then: 应该正常执行
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
 
-      testWidgets('it_should_work_in_typical_error_flow',
-          (WidgetTester tester) async {
+      testWidgets('it_should_work_in_typical_error_flow', (
+        WidgetTester tester,
+      ) async {
         // Given: 典型的错误流程
         // When: 显示错误消息
         ToastUtils.showError('网络连接失败，请重试');
 
         // Then: 应该正常执行
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
 
-      testWidgets('it_should_work_in_typical_sync_flow',
-          (WidgetTester tester) async {
+      testWidgets('it_should_work_in_typical_sync_flow', (
+        WidgetTester tester,
+      ) async {
         // Given: 典型的同步流程
         // When: 显示同步相关消息
         ToastUtils.showInfo('正在同步数据...');
         ToastUtils.showSuccess('同步完成');
 
         // Then: 应该正常执行
-        expect(() => ToastUtils.cancelAll(), returnsNormally);
+        expect(ToastUtils.cancelAll, returnsNormally);
       });
     });
   });

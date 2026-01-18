@@ -1,7 +1,7 @@
+import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/widgets/fullscreen_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/fullscreen_editor.dart';
-import 'package:cardmind/bridge/models/card.dart' as bridge;
 
 void main() {
   group('FullscreenEditor Widget Tests', () {
