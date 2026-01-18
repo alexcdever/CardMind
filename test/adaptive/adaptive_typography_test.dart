@@ -1,7 +1,7 @@
+import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:cardmind/adaptive/typography/adaptive_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/adaptive/typography/adaptive_typography.dart';
-import 'package:cardmind/adaptive/platform_detector.dart';
 
 void main() {
   group('AdaptiveTypography', () {
@@ -148,10 +148,16 @@ void main() {
             builder: (context) {
               if (PlatformDetector.isMobile) {
                 // Mobile body text should be at least 16px for readability
-                expect(context.adaptiveBodyFontSize, greaterThanOrEqualTo(16.0));
+                expect(
+                  context.adaptiveBodyFontSize,
+                  greaterThanOrEqualTo(16.0),
+                );
 
                 // Mobile headings should be at least 20px
-                expect(context.adaptiveHeadingFontSize, greaterThanOrEqualTo(20.0));
+                expect(
+                  context.adaptiveHeadingFontSize,
+                  greaterThanOrEqualTo(20.0),
+                );
 
                 // Line height should be comfortable (1.4-1.6)
                 expect(context.adaptiveLineHeight, greaterThanOrEqualTo(1.4));
@@ -172,10 +178,16 @@ void main() {
             builder: (context) {
               if (PlatformDetector.isDesktop) {
                 // Desktop body text should be at least 12px for readability
-                expect(context.adaptiveBodyFontSize, greaterThanOrEqualTo(12.0));
+                expect(
+                  context.adaptiveBodyFontSize,
+                  greaterThanOrEqualTo(12.0),
+                );
 
                 // Desktop headings should be at least 18px
-                expect(context.adaptiveHeadingFontSize, greaterThanOrEqualTo(18.0));
+                expect(
+                  context.adaptiveHeadingFontSize,
+                  greaterThanOrEqualTo(18.0),
+                );
 
                 // Line height should be comfortable (1.3-1.5)
                 expect(context.adaptiveLineHeight, greaterThanOrEqualTo(1.3));

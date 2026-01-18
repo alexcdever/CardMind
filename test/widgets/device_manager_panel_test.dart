@@ -1,6 +1,6 @@
+import 'package:cardmind/widgets/device_manager_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/device_manager_panel.dart';
 
 void main() {
   group('DeviceManagerPanel Widget Tests', () {
@@ -34,7 +34,9 @@ void main() {
       ];
     });
 
-    testWidgets('it_should_display_current_device', (WidgetTester tester) async {
+    testWidgets('it_should_display_current_device', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -53,7 +55,9 @@ void main() {
       expect(find.text('当前设备'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_paired_devices', (WidgetTester tester) async {
+    testWidgets('it_should_display_paired_devices', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -91,7 +95,9 @@ void main() {
       expect(find.textContaining('离线'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_empty_state_when_no_paired_devices', (WidgetTester tester) async {
+    testWidgets('it_should_display_empty_state_when_no_paired_devices', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -109,7 +115,9 @@ void main() {
       expect(find.text('暂无配对设备'), findsOneWidget);
     });
 
-    testWidgets('it_should_have_add_device_button', (WidgetTester tester) async {
+    testWidgets('it_should_have_add_device_button', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -127,7 +135,9 @@ void main() {
       expect(find.text('添加'), findsOneWidget);
     });
 
-    testWidgets('it_should_show_add_device_dialog_when_add_button_tapped', (WidgetTester tester) async {
+    testWidgets('it_should_show_add_device_dialog_when_add_button_tapped', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -150,7 +160,9 @@ void main() {
       expect(find.text('局域网发现'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_device_type_icons', (WidgetTester tester) async {
+    testWidgets('it_should_display_device_type_icons', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -170,7 +182,9 @@ void main() {
       expect(find.byIcon(Icons.tablet), findsOneWidget);
     });
 
-    testWidgets('it_should_call_onRemoveDevice_when_delete_button_pressed', (WidgetTester tester) async {
+    testWidgets('it_should_call_onRemoveDevice_when_delete_button_pressed', (
+      WidgetTester tester,
+    ) async {
       String? removedId;
 
       await tester.pumpWidget(
@@ -195,7 +209,9 @@ void main() {
       expect(removedId, equals('device-1'));
     });
 
-    testWidgets('it_should_enter_edit_mode_when_edit_button_pressed', (WidgetTester tester) async {
+    testWidgets('it_should_enter_edit_mode_when_edit_button_pressed', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -217,7 +233,9 @@ void main() {
       expect(find.byType(TextField), findsOneWidget);
     });
 
-    testWidgets('it_should_call_onDeviceNameChange_when_name_saved', (WidgetTester tester) async {
+    testWidgets('it_should_call_onDeviceNameChange_when_name_saved', (
+      WidgetTester tester,
+    ) async {
       String? newName;
 
       await tester.pumpWidget(
@@ -251,7 +269,9 @@ void main() {
       expect(newName, equals('New Device Name'));
     });
 
-    testWidgets('it_should_display_last_seen_time_for_offline_devices', (WidgetTester tester) async {
+    testWidgets('it_should_display_last_seen_time_for_offline_devices', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -269,7 +289,9 @@ void main() {
       expect(find.textContaining('小时前'), findsOneWidget);
     });
 
-    testWidgets('it_should_close_add_device_dialog_when_cancel_pressed', (WidgetTester tester) async {
+    testWidgets('it_should_close_add_device_dialog_when_cancel_pressed', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

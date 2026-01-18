@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/note_card.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/widgets/note_card.dart';
+import 'package:flutter_test/flutter_test.dart';
+
 import '../helpers/test_helpers.dart';
 
 /// Note Card Component Specification Tests
@@ -37,8 +37,7 @@ void main() {
     // ========================================
 
     group('Basic Display', () {
-      testWidgets('it_should_display_card_title',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_card_title', (WidgetTester tester) async {
         // Given: 创建 NoteCard
         await tester.pumpWidget(
           createTestWidget(
@@ -58,8 +57,9 @@ void main() {
         expect(find.text('Test Title'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_card_content_preview',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_card_content_preview', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建 NoteCard
         await tester.pumpWidget(
           createTestWidget(
@@ -79,8 +79,7 @@ void main() {
         expect(find.text('Test Content'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_tags',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_tags', (WidgetTester tester) async {
         // Given: 创建带标签的 NoteCard
         await tester.pumpWidget(
           createTestWidget(
@@ -101,8 +100,7 @@ void main() {
         expect(find.text('tag2'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_metadata',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_metadata', (WidgetTester tester) async {
         // Given: 创建 NoteCard
         await tester.pumpWidget(
           createTestWidget(
@@ -128,8 +126,9 @@ void main() {
     // ========================================
 
     group('Interaction Tests', () {
-      testWidgets('it_should_respond_to_tap_on_mobile',
-          (WidgetTester tester) async {
+      testWidgets('it_should_respond_to_tap_on_mobile', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建可点击的 NoteCard
         bool tapped = false;
         await tester.pumpWidget(
@@ -154,8 +153,9 @@ void main() {
         expect(tapped, isTrue);
       });
 
-      testWidgets('it_should_enter_edit_mode_on_desktop',
-          (WidgetTester tester) async {
+      testWidgets('it_should_enter_edit_mode_on_desktop', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建 NoteCard（桌面端）
         await tester.pumpWidget(
           createTestWidget(
@@ -181,8 +181,7 @@ void main() {
     // ========================================
 
     group('Tag Management', () {
-      testWidgets('it_should_display_all_tags',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_all_tags', (WidgetTester tester) async {
         // Given: 创建带多个标签的卡片
         final cardWithTags = bridge.Card(
           id: 'test-id',
@@ -215,8 +214,7 @@ void main() {
         expect(find.text('tag3'), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_empty_tags',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_empty_tags', (WidgetTester tester) async {
         // Given: 创建没有标签的卡片
         final cardWithoutTags = bridge.Card(
           id: 'test-id',
@@ -253,8 +251,9 @@ void main() {
     // ========================================
 
     group('Update Tests', () {
-      testWidgets('it_should_call_onUpdate_when_card_is_modified',
-          (WidgetTester tester) async {
+      testWidgets('it_should_call_onUpdate_when_card_is_modified', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建 NoteCard
         bridge.Card? updatedCard;
         await tester.pumpWidget(
@@ -283,8 +282,9 @@ void main() {
     // ========================================
 
     group('Delete Tests', () {
-      testWidgets('it_should_call_onDelete_when_delete_is_triggered',
-          (WidgetTester tester) async {
+      testWidgets('it_should_call_onDelete_when_delete_is_triggered', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建 NoteCard
         String? deletedId;
         await tester.pumpWidget(
@@ -313,8 +313,9 @@ void main() {
     // ========================================
 
     group('Visual Feedback', () {
-      testWidgets('it_should_show_hover_effect_on_desktop',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_hover_effect_on_desktop', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建 NoteCard
         await tester.pumpWidget(
           createTestWidget(
@@ -334,8 +335,9 @@ void main() {
         expect(find.byType(NoteCard), findsOneWidget);
       });
 
-      testWidgets('it_should_show_collaboration_indicator',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_collaboration_indicator', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建由其他设备编辑的卡片
         final cardFromOtherDevice = bridge.Card(
           id: 'test-id',
@@ -372,12 +374,12 @@ void main() {
     // ========================================
 
     group('Edge Cases', () {
-      testWidgets('it_should_handle_long_title',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_long_title', (WidgetTester tester) async {
         // Given: 创建标题很长的卡片
         final cardWithLongTitle = bridge.Card(
           id: 'test-id',
-          title: 'This is a very long title that should be truncated or wrapped properly to avoid layout issues',
+          title:
+              'This is a very long title that should be truncated or wrapped properly to avoid layout issues',
           content: 'Content',
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
@@ -404,8 +406,7 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('it_should_handle_empty_title',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_empty_title', (WidgetTester tester) async {
         // Given: 创建空标题的卡片
         final cardWithEmptyTitle = bridge.Card(
           id: 'test-id',
@@ -436,8 +437,9 @@ void main() {
         expect(find.byType(NoteCard), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_empty_content',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_empty_content', (
+        WidgetTester tester,
+      ) async {
         // Given: 创建空内容的卡片
         final cardWithEmptyContent = bridge.Card(
           id: 'test-id',

@@ -1,10 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/adaptive/adaptive_builder.dart';
 import 'package:cardmind/adaptive/platform_detector.dart';
-import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
-import 'package:cardmind/adaptive/widgets/adaptive_button.dart';
-import '../helpers/test_helpers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Adaptive UI System Specification Tests
 ///

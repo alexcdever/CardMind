@@ -1,6 +1,6 @@
+import 'package:cardmind/adaptive/layouts/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/adaptive/layouts/responsive_utils.dart';
 
 void main() {
   group('ResponsiveBreakpoints', () {
@@ -46,7 +46,9 @@ void main() {
         MaterialApp(
           home: Builder(
             builder: (context) {
-              final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(context);
+              final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(
+                context,
+              );
               expect(shouldCollapse, true); // 800 < 1024, should collapse
               return Container();
             },
@@ -60,7 +62,9 @@ void main() {
         MaterialApp(
           home: Builder(
             builder: (context) {
-              final meetsMinimum = ResponsiveUtils.meetsMinimumDesktopSize(context);
+              final meetsMinimum = ResponsiveUtils.meetsMinimumDesktopSize(
+                context,
+              );
               expect(meetsMinimum, true); // 800x600 meets minimum
               return Container();
             },
@@ -75,7 +79,10 @@ void main() {
           home: Builder(
             builder: (context) {
               final orientation = ResponsiveUtils.getOrientation(context);
-              expect(orientation, Orientation.landscape); // 800x600 is landscape
+              expect(
+                orientation,
+                Orientation.landscape,
+              ); // 800x600 is landscape
               return Container();
             },
           ),
@@ -88,7 +95,9 @@ void main() {
         MaterialApp(
           home: Builder(
             builder: (context) {
-              final isKeyboardVisible = ResponsiveUtils.isKeyboardVisible(context);
+              final isKeyboardVisible = ResponsiveUtils.isKeyboardVisible(
+                context,
+              );
               expect(isKeyboardVisible, false); // No keyboard in test
               return Container();
             },
@@ -138,7 +147,9 @@ void main() {
         MaterialApp(
           home: Builder(
             builder: (context) {
-              final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(context);
+              final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(
+                context,
+              );
               expect(shouldCollapse, true);
               return Container();
             },
@@ -158,7 +169,9 @@ void main() {
         MaterialApp(
           home: Builder(
             builder: (context) {
-              final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(context);
+              final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(
+                context,
+              );
               expect(shouldCollapse, false);
               return Container();
             },
@@ -187,7 +200,9 @@ void main() {
       );
     });
 
-    testWidgets('should not meet minimum size for small windows', (tester) async {
+    testWidgets('should not meet minimum size for small windows', (
+      tester,
+    ) async {
       // Set window size to 700x500 (< 800x600)
       tester.view.physicalSize = const Size(700, 500);
       tester.view.devicePixelRatio = 1.0;
@@ -198,7 +213,9 @@ void main() {
         MaterialApp(
           home: Builder(
             builder: (context) {
-              final meetsMinimum = ResponsiveUtils.meetsMinimumDesktopSize(context);
+              final meetsMinimum = ResponsiveUtils.meetsMinimumDesktopSize(
+                context,
+              );
               expect(meetsMinimum, false);
               return Container();
             },

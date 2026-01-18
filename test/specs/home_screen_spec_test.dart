@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../helpers/test_helpers.dart';
+
 import '../helpers/mock_utils.dart';
+import '../helpers/test_helpers.dart';
 
 /// Home Screen Specification Tests
 ///
@@ -33,8 +34,9 @@ void main() {
     // 卡片列表显示测试
     // ========================================
     group('Card List Display', () {
-      testWidgets('it_should_display_card_list_on_home_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_card_list_on_home_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: 有 3 张卡片
         final cards = [
           {'id': '1', 'title': 'Card 1', 'preview': 'Content 1'},
@@ -67,8 +69,9 @@ void main() {
         expect(find.text('Card 3'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_empty_state_when_no_cards',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_empty_state_when_no_cards', (
+        WidgetTester tester,
+      ) async {
         // Given: 没有卡片
         final cards = <Map<String, String>>[];
 
@@ -77,15 +80,15 @@ void main() {
           createTestWidget(
             Scaffold(
               body: cards.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.note_add, size: 64),
-                          const SizedBox(height: 16),
-                          const Text('还没有卡片'),
-                          const SizedBox(height: 8),
-                          const Text('点击右下角的 + 按钮创建第一张卡片'),
+                          Icon(Icons.note_add, size: 64),
+                          SizedBox(height: 16),
+                          Text('还没有卡片'),
+                          SizedBox(height: 8),
+                          Text('点击右下角的 + 按钮创建第一张卡片'),
                         ],
                       ),
                     )
@@ -101,15 +104,18 @@ void main() {
         expect(find.byIcon(Icons.note_add), findsOneWidget);
       });
 
-      testWidgets('it_should_display_card_title_and_preview',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_card_title_and_preview', (
+        WidgetTester tester,
+      ) async {
         // Given: 有一张卡片
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: ListTile(
-                title: const Text('My Card Title'),
-                subtitle: const Text('This is a preview of the card content...'),
+                title: Text('My Card Title'),
+                subtitle: Text(
+                  'This is a preview of the card content...',
+                ),
               ),
             ),
           ),
@@ -118,19 +124,19 @@ void main() {
 
         // Then: 应该显示标题和预览
         expect(find.text('My Card Title'), findsOneWidget);
-        expect(find.text('This is a preview of the card content...'), findsOneWidget);
+        expect(
+          find.text('This is a preview of the card content...'),
+          findsOneWidget,
+        );
       });
 
-      testWidgets('it_should_show_loading_indicator_while_loading_cards',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_loading_indicator_while_loading_cards', (
+        WidgetTester tester,
+      ) async {
         // Given: 正在加载卡片
         await tester.pumpWidget(
           createTestWidget(
-            const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            ),
+            const Scaffold(body: Center(child: CircularProgressIndicator())),
           ),
         );
 
@@ -143,8 +149,9 @@ void main() {
     // FAB 按钮测试
     // ========================================
     group('FAB Button', () {
-      testWidgets('it_should_display_fab_button_on_home_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_fab_button_on_home_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         await tester.pumpWidget(
           createTestWidget(
@@ -164,8 +171,9 @@ void main() {
         expect(find.byIcon(Icons.add), findsOneWidget);
       });
 
-      testWidgets('it_should_navigate_to_editor_on_fab_tap',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_editor_on_fab_tap', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         await tester.pumpWidget(
           MaterialApp(
@@ -177,9 +185,8 @@ void main() {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Card Editor'),
-                        ),
+                        builder: (_) =>
+                            const Scaffold(body: Text('Card Editor')),
                       ),
                     );
                   },
@@ -203,8 +210,9 @@ void main() {
     // 同步状态显示测试
     // ========================================
     group('Sync Status Display', () {
-      testWidgets('it_should_display_sync_status_icon_in_app_bar',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_sync_status_icon_in_app_bar', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         await tester.pumpWidget(
           createTestWidget(
@@ -212,10 +220,7 @@ void main() {
               appBar: AppBar(
                 title: const Text('CardMind'),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.sync),
-                    onPressed: () {},
-                  ),
+                  IconButton(icon: const Icon(Icons.sync), onPressed: () {}),
                 ],
               ),
               body: const Center(child: Text('Home Screen')),
@@ -228,8 +233,9 @@ void main() {
         expect(find.byIcon(Icons.sync), findsOneWidget);
       });
 
-      testWidgets('it_should_show_syncing_indicator_when_syncing',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_syncing_indicator_when_syncing', (
+        WidgetTester tester,
+      ) async {
         // Given: 正在同步
         mockSyncManager.setStatus(MockSyncStatus.syncing);
 
@@ -240,10 +246,7 @@ void main() {
               appBar: AppBar(
                 title: const Text('CardMind'),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.sync),
-                    onPressed: () {},
-                  ),
+                  IconButton(icon: const Icon(Icons.sync), onPressed: () {}),
                   const SizedBox(
                     width: 16,
                     height: 16,
@@ -265,8 +268,9 @@ void main() {
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
       });
 
-      testWidgets('it_should_show_success_icon_after_successful_sync',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_success_icon_after_successful_sync', (
+        WidgetTester tester,
+      ) async {
         // Given: 同步成功
         mockSyncManager.setStatus(MockSyncStatus.success);
 
@@ -293,8 +297,9 @@ void main() {
         expect(find.byIcon(Icons.check_circle), findsOneWidget);
       });
 
-      testWidgets('it_should_show_error_icon_when_sync_fails',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_icon_when_sync_fails', (
+        WidgetTester tester,
+      ) async {
         // Given: 同步失败
         mockSyncManager.setStatus(MockSyncStatus.error);
         mockSyncManager.setError('Network error');
@@ -327,8 +332,9 @@ void main() {
     // 搜索功能测试
     // ========================================
     group('Search Functionality', () {
-      testWidgets('it_should_display_search_icon_in_app_bar',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_search_icon_in_app_bar', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         await tester.pumpWidget(
           createTestWidget(
@@ -336,10 +342,7 @@ void main() {
               appBar: AppBar(
                 title: const Text('CardMind'),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {},
-                  ),
+                  IconButton(icon: const Icon(Icons.search), onPressed: () {}),
                 ],
               ),
               body: const Center(child: Text('Home Screen')),
@@ -352,8 +355,9 @@ void main() {
         expect(find.byIcon(Icons.search), findsOneWidget);
       });
 
-      testWidgets('it_should_show_search_bar_when_search_icon_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_search_bar_when_search_icon_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         bool showSearchBar = false;
 
@@ -398,8 +402,9 @@ void main() {
         expect(find.text('搜索卡片...'), findsOneWidget);
       });
 
-      testWidgets('it_should_filter_cards_based_on_search_query',
-          (WidgetTester tester) async {
+      testWidgets('it_should_filter_cards_based_on_search_query', (
+        WidgetTester tester,
+      ) async {
         // Given: 有多张卡片
         final allCards = [
           {'id': '1', 'title': 'Flutter Tutorial', 'preview': 'Learn Flutter'},
@@ -410,23 +415,23 @@ void main() {
         String searchQuery = '';
         final filteredCards = allCards.where((card) {
           if (searchQuery.isEmpty) return true;
-          return (card['title'] as String)
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              (card['preview'] as String)
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase());
+          return (card['title'] as String).toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              ) ||
+              (card['preview'] as String).toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              );
         }).toList();
 
         // When: 用户搜索 "Flutter"
         searchQuery = 'Flutter';
         final results = allCards.where((card) {
-          return (card['title'] as String)
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()) ||
-              (card['preview'] as String)
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase());
+          return (card['title'] as String).toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              ) ||
+              (card['preview'] as String).toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              );
         }).toList();
 
         // Then: 应该只显示匹配的卡片
@@ -434,41 +439,44 @@ void main() {
         expect(results[0]['title'], equals('Flutter Tutorial'));
       });
 
-      testWidgets('it_should_show_no_results_message_when_search_returns_empty',
-          (WidgetTester tester) async {
-        // Given: 搜索结果为空
-        await tester.pumpWidget(
-          createTestWidget(
-            Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.search_off, size: 64),
-                    const SizedBox(height: 16),
-                    const Text('未找到匹配的卡片'),
-                    const SizedBox(height: 8),
-                    const Text('尝试使用其他关键词'),
-                  ],
+      testWidgets(
+        'it_should_show_no_results_message_when_search_returns_empty',
+        (WidgetTester tester) async {
+          // Given: 搜索结果为空
+          await tester.pumpWidget(
+            createTestWidget(
+              const Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search_off, size: 64),
+                      SizedBox(height: 16),
+                      Text('未找到匹配的卡片'),
+                      SizedBox(height: 8),
+                      Text('尝试使用其他关键词'),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
+          );
+          await tester.pumpAndSettle();
 
-        // Then: 应该显示无结果提示
-        expect(find.text('未找到匹配的卡片'), findsOneWidget);
-        expect(find.text('尝试使用其他关键词'), findsOneWidget);
-      });
+          // Then: 应该显示无结果提示
+          expect(find.text('未找到匹配的卡片'), findsOneWidget);
+          expect(find.text('尝试使用其他关键词'), findsOneWidget);
+        },
+      );
     });
 
     // ========================================
     // 卡片交互测试
     // ========================================
     group('Card Interaction', () {
-      testWidgets('it_should_navigate_to_editor_when_card_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_navigate_to_editor_when_card_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         await tester.pumpWidget(
           MaterialApp(
@@ -480,9 +488,8 @@ void main() {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const Scaffold(
-                          body: Text('Card Editor'),
-                        ),
+                        builder: (_) =>
+                            const Scaffold(body: Text('Card Editor')),
                       ),
                     );
                   },
@@ -500,8 +507,9 @@ void main() {
         expect(find.text('Card Editor'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_card_options_on_long_press',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_card_options_on_long_press', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         await tester.pumpWidget(
           MaterialApp(
@@ -549,8 +557,9 @@ void main() {
     // 下拉刷新测试
     // ========================================
     group('Pull to Refresh', () {
-      testWidgets('it_should_trigger_sync_on_pull_down',
-          (WidgetTester tester) async {
+      testWidgets('it_should_trigger_sync_on_pull_down', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页
         int refreshCount = 0;
 
@@ -583,8 +592,9 @@ void main() {
         expect(refreshCount, equals(1));
       });
 
-      testWidgets('it_should_show_refresh_indicator_during_sync',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_refresh_indicator_during_sync', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户下拉刷新
         await tester.pumpWidget(
           createTestWidget(
@@ -594,9 +604,7 @@ void main() {
                   await Future.delayed(const Duration(seconds: 1));
                 },
                 child: ListView(
-                  children: const [
-                    ListTile(title: Text('Card 1')),
-                  ],
+                  children: const [ListTile(title: Text('Card 1'))],
                 ),
               ),
             ),
@@ -616,8 +624,9 @@ void main() {
     // 错误处理测试
     // ========================================
     group('Error Handling', () {
-      testWidgets('it_should_show_error_message_when_loading_fails',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_error_message_when_loading_fails', (
+        WidgetTester tester,
+      ) async {
         // Given: 加载失败
         await tester.pumpWidget(
           createTestWidget(
@@ -626,16 +635,17 @@ void main() {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 64),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 64,
+                    ),
                     const SizedBox(height: 16),
                     const Text('加载失败'),
                     const SizedBox(height: 8),
                     const Text('请检查网络连接'),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: const Text('重试'),
-                    ),
+                    ElevatedButton(onPressed: () {}, child: const Text('重试')),
                   ],
                 ),
               ),
@@ -650,8 +660,9 @@ void main() {
         expect(find.text('重试'), findsOneWidget);
       });
 
-      testWidgets('it_should_allow_retry_after_error',
-          (WidgetTester tester) async {
+      testWidgets('it_should_allow_retry_after_error', (
+        WidgetTester tester,
+      ) async {
         // Given: 发生错误
         int retryCount = 0;
 
@@ -683,22 +694,20 @@ void main() {
     // 池名称显示测试（补充）
     // ========================================
     group('Pool Name Display', () {
-      testWidgets('it_should_display_pool_name_in_app_bar',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_pool_name_in_app_bar', (
+        WidgetTester tester,
+      ) async {
         // Given: 用户在主页，当前空间名称为 "我的笔记空间"
-        final poolName = '我的笔记空间';
+        const poolName = '我的笔记空间';
 
         // When: 渲染主页
         await tester.pumpWidget(
           createTestWidget(
             Scaffold(
               appBar: AppBar(
-                title: Text(poolName),
+                title: const Text(poolName),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () {},
-                  ),
+                  IconButton(icon: const Icon(Icons.search), onPressed: () {}),
                 ],
               ),
               body: const Center(child: Text('Home Screen')),
@@ -717,8 +726,9 @@ void main() {
     // 卡片更新时间显示测试（补充）
     // ========================================
     group('Card Updated Time Display', () {
-      testWidgets('it_should_display_card_updated_time',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_card_updated_time', (
+        WidgetTester tester,
+      ) async {
         // Given: 有一张卡片，更新时间为 5 分钟前
         final updatedTime = DateTime.now().subtract(const Duration(minutes: 5));
         final card = {
@@ -741,9 +751,9 @@ void main() {
                       children: [
                         Text(card['preview'] as String),
                         const SizedBox(height: 4),
-                        Text(
+                        const Text(
                           '更新于 5 分钟前',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
                           ),
@@ -768,8 +778,9 @@ void main() {
     // 未同步卡片指示器测试（补充）
     // ========================================
     group('Unsynced Card Indicator', () {
-      testWidgets('it_should_show_sync_indicator_on_unsynced_cards',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_sync_indicator_on_unsynced_cards', (
+        WidgetTester tester,
+      ) async {
         // Given: 有两张卡片，一张已同步，一张未同步
         final cards = [
           {'id': '1', 'title': 'Synced Card', 'synced': true},
@@ -830,8 +841,9 @@ void main() {
     // 响应式布局测试
     // ========================================
     group('Responsive Layout', () {
-      testWidgets('it_should_show_mobile_layout_on_small_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_mobile_layout_on_small_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: 小屏幕（移动端）
         setScreenSize(tester, const Size(400, 800));
 
@@ -844,7 +856,10 @@ void main() {
               bottomNavigationBar: BottomNavigationBar(
                 items: const [
                   BottomNavigationBarItem(icon: Icon(Icons.home), label: '主页'),
-                  BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.settings),
+                    label: '设置',
+                  ),
                 ],
               ),
             ),
@@ -856,8 +871,9 @@ void main() {
         expect(find.byType(BottomNavigationBar), findsOneWidget);
       });
 
-      testWidgets('it_should_show_desktop_layout_on_large_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_desktop_layout_on_large_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: 大屏幕（桌面端）
         setScreenSize(tester, const Size(1440, 900));
 
@@ -881,9 +897,7 @@ void main() {
                     ],
                     selectedIndex: 0,
                   ),
-                  const Expanded(
-                    child: Center(child: Text('Home Screen')),
-                  ),
+                  const Expanded(child: Center(child: Text('Home Screen'))),
                 ],
               ),
             ),

@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/adaptive/navigation/adaptive_navigation.dart';
 import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AdaptiveNavigation', () {
@@ -25,7 +25,7 @@ void main() {
 
     testWidgets('it_should_display_current_page', (WidgetTester tester) async {
       // Given: Adaptive navigation with 3 destinations
-      int currentIndex = 0;
+      const int currentIndex = 0;
 
       await tester.pumpWidget(
         MaterialApp(

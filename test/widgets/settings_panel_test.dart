@@ -1,17 +1,16 @@
+import 'package:cardmind/widgets/settings_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/settings_panel.dart';
 
 void main() {
   group('SettingsPanel Widget Tests', () {
-    testWidgets('it_should_display_settings_title', (WidgetTester tester) async {
+    testWidgets('it_should_display_settings_title', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -23,10 +22,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -39,10 +35,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -52,14 +45,13 @@ void main() {
       expect(find.text('仅 WiFi 同步'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_storage_settings', (WidgetTester tester) async {
+    testWidgets('it_should_display_storage_settings', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -72,10 +64,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -85,7 +74,9 @@ void main() {
       expect(find.text('开源许可'), findsOneWidget);
     });
 
-    testWidgets('it_should_call_onThemeChanged_when_theme_toggle_switched', (WidgetTester tester) async {
+    testWidgets('it_should_call_onThemeChanged_when_theme_toggle_switched', (
+      WidgetTester tester,
+    ) async {
       bool? newTheme;
 
       await tester.pumpWidget(
@@ -108,14 +99,13 @@ void main() {
       expect(newTheme, isTrue);
     });
 
-    testWidgets('it_should_show_clear_cache_dialog_when_tapped', (WidgetTester tester) async {
+    testWidgets('it_should_show_clear_cache_dialog_when_tapped', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -128,14 +118,13 @@ void main() {
       expect(find.text('确定'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_light_mode_icon_when_not_dark', (WidgetTester tester) async {
+    testWidgets('it_should_display_light_mode_icon_when_not_dark', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -143,14 +132,13 @@ void main() {
       expect(find.byIcon(Icons.light_mode), findsOneWidget);
     });
 
-    testWidgets('it_should_display_dark_mode_icon_when_dark', (WidgetTester tester) async {
+    testWidgets('it_should_display_dark_mode_icon_when_dark', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: true,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: true, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -158,14 +146,13 @@ void main() {
       expect(find.byIcon(Icons.dark_mode), findsOneWidget);
     });
 
-    testWidgets('it_should_close_clear_cache_dialog_when_cancel_pressed', (WidgetTester tester) async {
+    testWidgets('it_should_close_clear_cache_dialog_when_cancel_pressed', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );
@@ -181,14 +168,13 @@ void main() {
       expect(find.text('确定要清除所有缓存数据吗？此操作不会删除您的笔记。'), findsNothing);
     });
 
-    testWidgets('it_should_display_all_section_icons', (WidgetTester tester) async {
+    testWidgets('it_should_display_all_section_icons', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SettingsPanel(
-              isDarkMode: false,
-              onThemeChanged: (_) {},
-            ),
+            body: SettingsPanel(isDarkMode: false, onThemeChanged: (_) {}),
           ),
         ),
       );

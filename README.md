@@ -38,7 +38,8 @@ CardMind 是一款专注于个人知识管理的卡片式笔记应用。通过�
 - 响应式布局（手机/平板/桌面）
 - 跨平台支持（Windows、Android）
 - 性能优化（1000张卡片 < 350ms）
-- 完整测试覆盖（80个测试，100%通过）
+- 完整测试覆盖（579 个测试通过，92.5% 成功率）
+- CI/CD 自动化测试
 
 📦 **可用平台**:
 - Windows 10/11 (x64)
@@ -165,7 +166,7 @@ dependencies:
 
 3. **[SETUP.md](docs/SETUP.md)** - 环境搭建详细步骤
 4. **[CLAUDE.md](CLAUDE.md)** - 开发规范和关键注意事项（必读！）
-5. **[TESTING_GUIDE.md](docs/TESTING_GUIDE.md)** - TDD开发流程
+5. **[TESTING_GUIDE.md](docs/testing/TESTING_GUIDE.md)** - TDD开发流程和测试指南
 6. **[ROADMAP.md](docs/ROADMAP.md)** Phase 1 - 开始第一个任务
 
 ### 📚 深度学习（按需阅读）
@@ -186,6 +187,12 @@ dart tool/check_lint.dart          # 只检查不修复
 # 运行测试
 cd rust && cargo test              # Rust测试
 flutter test                       # Flutter测试
+flutter test --coverage            # 生成覆盖率报告
+
+# 运行特定测试
+flutter test test/specs/           # 规格测试
+flutter test test/widgets/         # Widget测试
+flutter test test/screens/         # Screen测试
 
 # 静态检查
 cd rust && cargo clippy            # Rust静态分析

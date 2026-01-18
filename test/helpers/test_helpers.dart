@@ -30,10 +30,7 @@ Widget createTestWidget(
     theme: theme,
     home: Scaffold(
       body: providers != null && providers.isNotEmpty
-          ? MultiProvider(
-              providers: providers,
-              child: child,
-            )
+          ? MultiProvider(providers: providers, child: child)
           : child,
     ),
   );

@@ -1,11 +1,12 @@
+import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:cardmind/bridge/models/card.dart';
+import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/screens/home_screen.dart';
+import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:cardmind/screens/home_screen.dart';
-import 'package:cardmind/providers/card_provider.dart';
-import 'package:cardmind/adaptive/platform_detector.dart';
-import 'package:cardmind/widgets/sync_status_indicator.dart';
-import 'package:cardmind/bridge/models/card.dart';
+
 import '../helpers/mock_card_service.dart';
 
 void main() {
@@ -18,8 +19,9 @@ void main() {
       cardProvider = CardProvider(cardService: mockCardService);
     });
 
-    testWidgets('it_should_display_app_bar_with_title',
-        (WidgetTester tester) async {
+    testWidgets('it_should_display_app_bar_with_title', (
+      WidgetTester tester,
+    ) async {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
@@ -57,8 +59,9 @@ void main() {
       }
     });
 
-    testWidgets('it_should_show_new_card_button_in_toolbar_on_desktop',
-        (WidgetTester tester) async {
+    testWidgets('it_should_show_new_card_button_in_toolbar_on_desktop', (
+      WidgetTester tester,
+    ) async {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
@@ -81,8 +84,9 @@ void main() {
       }
     });
 
-    testWidgets('it_should_display_sync_status_indicator',
-        (WidgetTester tester) async {
+    testWidgets('it_should_display_sync_status_indicator', (
+      WidgetTester tester,
+    ) async {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
@@ -98,8 +102,9 @@ void main() {
       expect(find.byType(SyncStatusIndicator), findsOneWidget);
     });
 
-    testWidgets('it_should_display_refresh_button',
-        (WidgetTester tester) async {
+    testWidgets('it_should_display_refresh_button', (
+      WidgetTester tester,
+    ) async {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
@@ -115,8 +120,9 @@ void main() {
       expect(find.byType(SyncStatusIndicator), findsOneWidget);
     });
 
-    testWidgets('it_should_display_settings_button',
-        (WidgetTester tester) async {
+    testWidgets('it_should_display_settings_button', (
+      WidgetTester tester,
+    ) async {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
@@ -133,8 +139,9 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
     });
 
-    testWidgets('it_should_show_empty_state_when_no_cards',
-        (WidgetTester tester) async {
+    testWidgets('it_should_show_empty_state_when_no_cards', (
+      WidgetTester tester,
+    ) async {
       // Given: Home screen with no cards
       await tester.pumpWidget(
         MaterialApp(
@@ -151,8 +158,9 @@ void main() {
       expect(find.text('创建第一条笔记'), findsOneWidget);
     });
 
-    testWidgets('it_should_show_platform_specific_empty_message',
-        (WidgetTester tester) async {
+    testWidgets('it_should_show_platform_specific_empty_message', (
+      WidgetTester tester,
+    ) async {
       // Given: Home screen with no cards
       await tester.pumpWidget(
         MaterialApp(
@@ -169,8 +177,7 @@ void main() {
       expect(find.text('创建第一条笔记'), findsOneWidget);
     });
 
-    testWidgets('it_should_use_adaptive_scaffold',
-        (WidgetTester tester) async {
+    testWidgets('it_should_use_adaptive_scaffold', (WidgetTester tester) async {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
@@ -190,8 +197,9 @@ void main() {
     // 响应式布局测试
     // ========================================
     group('Responsive Layout Tests', () {
-      testWidgets('it_should_adapt_layout_at_mobile_breakpoint',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_layout_at_mobile_breakpoint', (
+        WidgetTester tester,
+      ) async {
         // Given: Mobile screen size (< 1024px)
         tester.view.physicalSize = const Size(375, 667);
         tester.view.devicePixelRatio = 1.0;
@@ -217,8 +225,9 @@ void main() {
         }
       });
 
-      testWidgets('it_should_adapt_layout_at_desktop_breakpoint',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_layout_at_desktop_breakpoint', (
+        WidgetTester tester,
+      ) async {
         // Given: Desktop screen size (>= 1024px)
         tester.view.physicalSize = const Size(1440, 900);
         tester.view.devicePixelRatio = 1.0;
@@ -244,8 +253,9 @@ void main() {
         }
       });
 
-      testWidgets('it_should_handle_breakpoint_transition',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_breakpoint_transition', (
+        WidgetTester tester,
+      ) async {
         // Given: Start with mobile size
         tester.view.physicalSize = const Size(375, 667);
         tester.view.devicePixelRatio = 1.0;
@@ -270,8 +280,9 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_tablet_portrait_layout',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_tablet_portrait_layout', (
+        WidgetTester tester,
+      ) async {
         // Given: Tablet portrait size (768x1024)
         tester.view.physicalSize = const Size(768, 1024);
         tester.view.devicePixelRatio = 1.0;
@@ -293,8 +304,9 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_tablet_landscape_layout',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_tablet_landscape_layout', (
+        WidgetTester tester,
+      ) async {
         // Given: Tablet landscape size (1024x768)
         tester.view.physicalSize = const Size(1024, 768);
         tester.view.devicePixelRatio = 1.0;
@@ -316,8 +328,9 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_orientation_change',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_orientation_change', (
+        WidgetTester tester,
+      ) async {
         // Given: Portrait orientation
         tester.view.physicalSize = const Size(375, 667);
         tester.view.devicePixelRatio = 1.0;
@@ -343,8 +356,9 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
       });
 
-      testWidgets('it_should_handle_very_small_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_very_small_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: Very small screen (320x480)
         tester.view.physicalSize = const Size(320, 480);
         tester.view.devicePixelRatio = 1.0;
@@ -367,8 +381,9 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      testWidgets('it_should_handle_very_large_screen',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_very_large_screen', (
+        WidgetTester tester,
+      ) async {
         // Given: Very large screen (2560x1440)
         tester.view.physicalSize = const Size(2560, 1440);
         tester.view.devicePixelRatio = 1.0;
@@ -390,8 +405,9 @@ void main() {
         expect(find.byType(HomeScreen), findsOneWidget);
       });
 
-      testWidgets('it_should_maintain_state_across_layout_changes',
-          (WidgetTester tester) async {
+      testWidgets('it_should_maintain_state_across_layout_changes', (
+        WidgetTester tester,
+      ) async {
         // Given: Mobile size with cards loaded
         tester.view.physicalSize = const Size(375, 667);
         tester.view.devicePixelRatio = 1.0;
@@ -429,8 +445,9 @@ void main() {
         // State should be maintained
       });
 
-      testWidgets('it_should_adapt_card_grid_columns_by_screen_width',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_card_grid_columns_by_screen_width', (
+        WidgetTester tester,
+      ) async {
         // Given: Different screen widths
         final screenSizes = [
           const Size(375, 667), // Mobile: 1 column
@@ -466,8 +483,9 @@ void main() {
     // 平台特定行为测试
     // ========================================
     group('Platform-Specific Behavior', () {
-      testWidgets('it_should_show_platform_appropriate_empty_state_action',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_platform_appropriate_empty_state_action', (
+        WidgetTester tester,
+      ) async {
         // Given: Empty card list
         await tester.pumpWidget(
           MaterialApp(
@@ -484,8 +502,9 @@ void main() {
         expect(find.text('创建第一条笔记'), findsOneWidget);
       });
 
-      testWidgets('it_should_use_platform_appropriate_navigation',
-          (WidgetTester tester) async {
+      testWidgets('it_should_use_platform_appropriate_navigation', (
+        WidgetTester tester,
+      ) async {
         // Given: Home screen
         await tester.pumpWidget(
           MaterialApp(
@@ -502,8 +521,9 @@ void main() {
         // Navigation type depends on platform detection
       });
 
-      testWidgets('it_should_adapt_touch_targets_for_platform',
-          (WidgetTester tester) async {
+      testWidgets('it_should_adapt_touch_targets_for_platform', (
+        WidgetTester tester,
+      ) async {
         // Given: Home screen with interactive elements
         await tester.pumpWidget(
           MaterialApp(

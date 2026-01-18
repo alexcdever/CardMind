@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../helpers/test_helpers.dart';
+
 import '../helpers/mock_utils.dart';
+import '../helpers/test_helpers.dart';
 
 /// <规格名称> Specification Tests
 ///
@@ -113,11 +114,7 @@ void main() {
 void exampleWidgetRenderingTest() {
   testWidgets('it_should_display_widget', (WidgetTester tester) async {
     // Given: 创建测试 Widget
-    await tester.pumpWidget(
-      createTestWidget(
-        const Text('Hello World'),
-      ),
-    );
+    await tester.pumpWidget(createTestWidget(const Text('Hello World')));
 
     // When: Widget 渲染完成
     await tester.pumpAndSettle();
@@ -213,9 +210,7 @@ void exampleFormInputTest() {
     // Given: 创建带输入框的 Widget
     final controller = TextEditingController();
     await tester.pumpWidget(
-      createTestWidget(
-        TextField(controller: controller),
-      ),
+      createTestWidget(TextField(controller: controller)),
     );
 
     // When: 用户输入文本
@@ -262,9 +257,7 @@ void exampleNavigationTest() {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const Scaffold(
-                  body: Text('New Screen'),
-                ),
+                builder: (_) => const Scaffold(body: Text('New Screen')),
               ),
             ),
             child: const Text('Navigate'),

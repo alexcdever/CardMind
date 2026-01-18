@@ -1,6 +1,6 @@
+import 'package:cardmind/widgets/device_manager_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/device_manager_panel.dart';
 
 /// Device Manager UI Specification Tests
 ///
@@ -71,8 +71,7 @@ void main() {
     // ========================================
 
     group('UI Layout Tests', () {
-      testWidgets('it_should_display_panel_title',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_panel_title', (WidgetTester tester) async {
         // Given: 设备管理面板加载
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -83,8 +82,9 @@ void main() {
         expect(find.text('设备网络'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_current_device_section',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_current_device_section', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备管理面板加载
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -95,8 +95,9 @@ void main() {
         expect(find.text('当前设备'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_paired_devices_section',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_paired_devices_section', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备管理面板加载
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -107,8 +108,9 @@ void main() {
         expect(find.text('已配对设备'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_add_device_button',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_add_device_button', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备管理面板加载
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -119,8 +121,9 @@ void main() {
         expect(find.text('添加'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_wifi_icon_in_title',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_wifi_icon_in_title', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备管理面板加载
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -137,8 +140,9 @@ void main() {
     // ========================================
 
     group('Current Device Tests', () {
-      testWidgets('it_should_display_current_device_name',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_current_device_name', (
+        WidgetTester tester,
+      ) async {
         // Given: 当前设备名称为 "My Laptop"
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -149,8 +153,9 @@ void main() {
         expect(find.text('My Laptop'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_current_device_icon',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_current_device_icon', (
+        WidgetTester tester,
+      ) async {
         // Given: 当前设备类型为 laptop
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -161,8 +166,9 @@ void main() {
         expect(find.byIcon(Icons.laptop), findsOneWidget);
       });
 
-      testWidgets('it_should_display_edit_button_for_current_device',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_edit_button_for_current_device', (
+        WidgetTester tester,
+      ) async {
         // Given: 当前设备显示
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -173,8 +179,9 @@ void main() {
         expect(find.byIcon(Icons.edit), findsOneWidget);
       });
 
-      testWidgets('it_should_show_text_field_when_edit_button_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_text_field_when_edit_button_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 当前设备显示
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -187,8 +194,9 @@ void main() {
         expect(find.byType(TextField), findsOneWidget);
       });
 
-      testWidgets('it_should_show_check_button_in_edit_mode',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_check_button_in_edit_mode', (
+        WidgetTester tester,
+      ) async {
         // Given: 进入编辑模式
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -201,8 +209,9 @@ void main() {
         expect(find.byIcon(Icons.check), findsOneWidget);
       });
 
-      testWidgets('it_should_save_device_name_when_check_button_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_save_device_name_when_check_button_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 编辑模式下修改了名称
         String? savedName;
         await tester.pumpWidget(
@@ -226,8 +235,9 @@ void main() {
         expect(savedName, equals('New Name'));
       });
 
-      testWidgets('it_should_not_save_empty_device_name',
-          (WidgetTester tester) async {
+      testWidgets('it_should_not_save_empty_device_name', (
+        WidgetTester tester,
+      ) async {
         // Given: 编辑模式下输入空名称
         String? savedName;
         await tester.pumpWidget(
@@ -251,8 +261,9 @@ void main() {
         expect(savedName, isNull);
       });
 
-      testWidgets('it_should_highlight_current_device_with_border',
-          (WidgetTester tester) async {
+      testWidgets('it_should_highlight_current_device_with_border', (
+        WidgetTester tester,
+      ) async {
         // Given: 当前设备显示
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -261,10 +272,12 @@ void main() {
 
         // Then: 当前设备有特殊边框样式
         final container = tester.widget<Container>(
-          find.descendant(
-            of: find.text('当前设备').hitTestable(),
-            matching: find.byType(Container),
-          ).first,
+          find
+              .descendant(
+                of: find.text('当前设备').hitTestable(),
+                matching: find.byType(Container),
+              )
+              .first,
         );
         expect(container.decoration, isA<BoxDecoration>());
       });
@@ -275,8 +288,9 @@ void main() {
     // ========================================
 
     group('Paired Devices Tests', () {
-      testWidgets('it_should_display_all_paired_devices',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_all_paired_devices', (
+        WidgetTester tester,
+      ) async {
         // Given: 有 2 个配对设备
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -288,8 +302,9 @@ void main() {
         expect(find.text('iPad Pro'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_device_type_icons',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_device_type_icons', (
+        WidgetTester tester,
+      ) async {
         // Given: 配对设备有不同类型
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -301,8 +316,9 @@ void main() {
         expect(find.byIcon(Icons.tablet), findsOneWidget);
       });
 
-      testWidgets('it_should_display_online_status_for_devices',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_online_status_for_devices', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备有在线和离线状态
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -314,8 +330,9 @@ void main() {
         expect(find.textContaining('离线'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_last_seen_time_for_offline_devices',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_last_seen_time_for_offline_devices', (
+        WidgetTester tester,
+      ) async {
         // Given: 离线设备
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -326,8 +343,9 @@ void main() {
         expect(find.textContaining('小时前'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_delete_button_for_each_device',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_delete_button_for_each_device', (
+        WidgetTester tester,
+      ) async {
         // Given: 配对设备列表
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -338,8 +356,9 @@ void main() {
         expect(find.byIcon(Icons.delete_outline), findsNWidgets(2));
       });
 
-      testWidgets('it_should_call_remove_callback_when_delete_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_call_remove_callback_when_delete_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 配对设备列表
         String? removedDeviceId;
         await tester.pumpWidget(
@@ -359,12 +378,11 @@ void main() {
         expect(removedDeviceId, isNotNull);
       });
 
-      testWidgets('it_should_show_empty_state_when_no_paired_devices',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_empty_state_when_no_paired_devices', (
+        WidgetTester tester,
+      ) async {
         // Given: 没有配对设备
-        await tester.pumpWidget(
-          createDeviceManagerPanel(paired: []),
-        );
+        await tester.pumpWidget(createDeviceManagerPanel(paired: []));
 
         // When: 渲染完成
         await tester.pumpAndSettle();
@@ -379,8 +397,9 @@ void main() {
     // ========================================
 
     group('Add Device Tests', () {
-      testWidgets('it_should_show_add_device_dialog_when_add_button_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_add_device_dialog_when_add_button_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备管理面板显示
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -393,8 +412,9 @@ void main() {
         expect(find.text('添加设备'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_scan_qr_code_option_in_dialog',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_scan_qr_code_option_in_dialog', (
+        WidgetTester tester,
+      ) async {
         // Given: 添加设备对话框显示
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -408,8 +428,9 @@ void main() {
         expect(find.byIcon(Icons.qr_code_scanner), findsOneWidget);
       });
 
-      testWidgets('it_should_show_lan_discovery_option_in_dialog',
-          (WidgetTester tester) async {
+      testWidgets('it_should_show_lan_discovery_option_in_dialog', (
+        WidgetTester tester,
+      ) async {
         // Given: 添加设备对话框显示
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -423,8 +444,9 @@ void main() {
         expect(find.byIcon(Icons.radar), findsOneWidget);
       });
 
-      testWidgets('it_should_close_dialog_when_cancel_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_close_dialog_when_cancel_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 添加设备对话框显示
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -440,8 +462,9 @@ void main() {
         expect(find.text('添加设备'), findsNothing);
       });
 
-      testWidgets('it_should_close_dialog_when_scan_option_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_close_dialog_when_scan_option_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 添加设备对话框显示
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -457,8 +480,9 @@ void main() {
         expect(find.text('添加设备'), findsNothing);
       });
 
-      testWidgets('it_should_close_dialog_when_lan_option_tapped',
-          (WidgetTester tester) async {
+      testWidgets('it_should_close_dialog_when_lan_option_tapped', (
+        WidgetTester tester,
+      ) async {
         // Given: 添加设备对话框显示
         await tester.pumpWidget(createDeviceManagerPanel());
         await tester.pumpAndSettle();
@@ -480,8 +504,9 @@ void main() {
     // ========================================
 
     group('Device Icon Tests', () {
-      testWidgets('it_should_display_phone_icon_for_phone_type',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_phone_icon_for_phone_type', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备类型为 phone
         final phoneDevice = DeviceInfo(
           id: 'phone',
@@ -502,8 +527,9 @@ void main() {
         expect(find.byIcon(Icons.smartphone), findsOneWidget);
       });
 
-      testWidgets('it_should_display_laptop_icon_for_laptop_type',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_laptop_icon_for_laptop_type', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备类型为 laptop
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -514,8 +540,9 @@ void main() {
         expect(find.byIcon(Icons.laptop), findsOneWidget);
       });
 
-      testWidgets('it_should_display_tablet_icon_for_tablet_type',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_tablet_icon_for_tablet_type', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备类型为 tablet
         final tabletDevice = DeviceInfo(
           id: 'tablet',
@@ -542,8 +569,9 @@ void main() {
     // ========================================
 
     group('Time Formatting Tests', () {
-      testWidgets('it_should_display_just_now_for_recent_activity',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_just_now_for_recent_activity', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备刚刚离线
         final recentDevice = DeviceInfo(
           id: 'recent',
@@ -564,8 +592,9 @@ void main() {
         expect(find.text('离线 · 刚刚'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_minutes_ago_for_recent_offline',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_minutes_ago_for_recent_offline', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备几分钟前离线
         final minutesAgoDevice = DeviceInfo(
           id: 'minutes',
@@ -586,8 +615,9 @@ void main() {
         expect(find.textContaining('分钟前'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_hours_ago_for_hours_offline',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_hours_ago_for_hours_offline', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备几小时前离线
         final hoursAgoDevice = DeviceInfo(
           id: 'hours',
@@ -608,8 +638,9 @@ void main() {
         expect(find.textContaining('小时前'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_days_ago_for_days_offline',
-          (WidgetTester tester) async {
+      testWidgets('it_should_display_days_ago_for_days_offline', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备几天前离线
         final daysAgoDevice = DeviceInfo(
           id: 'days',
@@ -636,8 +667,9 @@ void main() {
     // ========================================
 
     group('Accessibility Tests', () {
-      testWidgets('it_should_provide_semantic_labels_for_buttons',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_semantic_labels_for_buttons', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备管理面板显示
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -650,8 +682,9 @@ void main() {
         expect(find.byIcon(Icons.delete_outline), findsWidgets);
       });
 
-      testWidgets('it_should_provide_device_status_information',
-          (WidgetTester tester) async {
+      testWidgets('it_should_provide_device_status_information', (
+        WidgetTester tester,
+      ) async {
         // Given: 设备有在线/离线状态
         await tester.pumpWidget(createDeviceManagerPanel());
 
@@ -669,8 +702,9 @@ void main() {
     // ========================================
 
     group('Performance Tests', () {
-      testWidgets('it_should_render_panel_within_100ms',
-          (WidgetTester tester) async {
+      testWidgets('it_should_render_panel_within_100ms', (
+        WidgetTester tester,
+      ) async {
         // Given: 面板即将加载
         final startTime = DateTime.now();
 
@@ -685,8 +719,9 @@ void main() {
         expect(duration.inMilliseconds, lessThan(100));
       });
 
-      testWidgets('it_should_handle_large_device_list_efficiently',
-          (WidgetTester tester) async {
+      testWidgets('it_should_handle_large_device_list_efficiently', (
+        WidgetTester tester,
+      ) async {
         // Given: 大量配对设备
         final manyDevices = List.generate(
           50,
@@ -700,9 +735,7 @@ void main() {
         );
 
         // When: 渲染面板
-        await tester.pumpWidget(
-          createDeviceManagerPanel(paired: manyDevices),
-        );
+        await tester.pumpWidget(createDeviceManagerPanel(paired: manyDevices));
         await tester.pumpAndSettle();
 
         // Then: 没有性能问题
