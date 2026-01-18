@@ -268,11 +268,17 @@ dart tool/validate_constraints.dart
 
 ### 代码分析
 ```bash
-# 使用 LSP 分析 Rust 代码（在 Claude Code 中）
+# 使用 LSP 进行语义代码分析（在 Claude Code 中）
 /lsp-code-analysis
 
-# 功能：查找定义、引用、实现、符号搜索、文件大纲
-# 适用于探索 rust/ 目录中的代码结构和调用关系
+# 功能：通过启动对应编程语言的 LSP server 进行语义分析
+# - 查找定义、引用、实现
+# - 符号搜索、文件大纲
+# - 预览重构操作
+#
+# 支持多种语言（Rust、TypeScript、Python 等）
+# ⚠️ 注意：使用前需确认目标语言是否支持（例如 Dart 目前不支持）
+# 适用于探索不熟悉的代码库或执行安全的重构操作
 ```
 
 ---

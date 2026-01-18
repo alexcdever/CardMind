@@ -4,7 +4,11 @@ import 'package:flutter/foundation.dart';
 
 /// CardProvider manages the state of cards in the application
 class CardProvider with ChangeNotifier {
-  final CardService _cardService = CardService();
+  final CardService _cardService;
+
+  /// Constructor with optional CardService injection for testing
+  CardProvider({CardService? cardService})
+      : _cardService = cardService ?? CardService();
 
   List<Card> _cards = [];
   bool _isLoading = false;

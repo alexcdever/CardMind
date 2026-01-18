@@ -209,8 +209,17 @@ pub async fn init_sync_service(storage_path: String, listen_addr: String) -> Res
     // 获取 CardStore（假设已通过 init_card_store 初始化）
     let card_store = crate::api::card::get_card_store_arc()?;
 
-    // 获取 DeviceConfig（假设已通过 init_device_config 初始化）
-    let device_config = crate::api::device_config::get_device_config()?;
+    // 获取 DeviceConfig
+    // 由于使用 thread-local 存储，需要确保当前线程已初始化 DeviceConfig
+    // 如果当前线程未初始化，则从文件加载
+    let device_config = match crate::api::device_config::get_device_config() {
+        Ok(config) => config,
+        Err(_) => {
+            // 当前线程未初始化，尝试从文件加载
+            info!("当前线程 DeviceConfig 未初始化，从文件加载");
+            crate::api::device_config::init_device_config(storage_path.clone())?
+        }
+    };
 
     // 创建同步服务
     let mut service = P2PSyncService::new(card_store, device_config)?;

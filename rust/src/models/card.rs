@@ -25,6 +25,12 @@ pub struct Card {
 
     /// Deletion flag (soft delete)
     pub deleted: bool,
+
+    /// Tags associated with the card
+    pub tags: Vec<String>,
+
+    /// Last device that edited this card
+    pub last_edit_device: Option<String>,
 }
 
 impl Card {
@@ -48,6 +54,8 @@ impl Card {
             created_at: now,
             updated_at: now,
             deleted: false,
+            tags: Vec::new(),
+            last_edit_device: None,
         }
     }
 
@@ -59,6 +67,26 @@ impl Card {
         if let Some(c) = content {
             self.content = c;
         }
+        self.updated_at = chrono::Utc::now().timestamp_millis();
+    }
+
+    /// Adds a tag to the card
+    pub fn add_tag(&mut self, tag: String) {
+        if !self.tags.contains(&tag) {
+            self.tags.push(tag);
+            self.updated_at = chrono::Utc::now().timestamp_millis();
+        }
+    }
+
+    /// Removes a tag from the card
+    pub fn remove_tag(&mut self, tag: &str) {
+        self.tags.retain(|t| t != tag);
+        self.updated_at = chrono::Utc::now().timestamp_millis();
+    }
+
+    /// Sets the last edit device
+    pub fn set_last_edit_device(&mut self, device: String) {
+        self.last_edit_device = Some(device);
         self.updated_at = chrono::Utc::now().timestamp_millis();
     }
 

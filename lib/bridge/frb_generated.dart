@@ -1825,8 +1825,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Card dco_decode_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6)
-      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return Card(
       id: dco_decode_String(arr[0]),
       title: dco_decode_String(arr[1]),
@@ -1834,6 +1834,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: dco_decode_i_64(arr[3]),
       updatedAt: dco_decode_i_64(arr[4]),
       deleted: dco_decode_bool(arr[5]),
+      tags: dco_decode_list_String(arr[6]),
+      lastEditDevice: dco_decode_opt_String(arr[7]),
     );
   }
 
@@ -2036,6 +2038,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_createdAt = sse_decode_i_64(deserializer);
     var var_updatedAt = sse_decode_i_64(deserializer);
     var var_deleted = sse_decode_bool(deserializer);
+    var var_tags = sse_decode_list_String(deserializer);
+    var var_lastEditDevice = sse_decode_opt_String(deserializer);
     return Card(
       id: var_id,
       title: var_title,
@@ -2043,6 +2047,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: var_createdAt,
       updatedAt: var_updatedAt,
       deleted: var_deleted,
+      tags: var_tags,
+      lastEditDevice: var_lastEditDevice,
     );
   }
 
@@ -2294,6 +2300,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.createdAt, serializer);
     sse_encode_i_64(self.updatedAt, serializer);
     sse_encode_bool(self.deleted, serializer);
+    sse_encode_list_String(self.tags, serializer);
+    sse_encode_opt_String(self.lastEditDevice, serializer);
   }
 
   @protected

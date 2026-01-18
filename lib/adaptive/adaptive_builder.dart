@@ -1,6 +1,20 @@
 import 'package:flutter/widgets.dart';
 import 'platform_detector.dart';
 
+/// Breakpoint constants for responsive design
+class AdaptiveBreakpoints {
+  AdaptiveBreakpoints._();
+
+  /// Desktop breakpoint (1024px)
+  static const double desktop = 1024.0;
+
+  /// Tablet breakpoint (768px)
+  static const double tablet = 768.0;
+
+  /// Mobile breakpoint (< 768px)
+  static const double mobile = 0.0;
+}
+
 /// Functional adaptive widget builder
 ///
 /// Provides a functional approach to building adaptive widgets without

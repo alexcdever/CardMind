@@ -143,22 +143,23 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
           ],
         ),
         body: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             // 任务 4.5: 实现自动保存指示器
             _buildSaveIndicator(state),
 
-            Expanded(
-              child: SingleChildScrollView(
-                padding: AdaptivePadding.medium,
-                child: Column(
-                  children: [
-                    // 任务 4.3: 实现标题输入框
-                    _buildTitleField(state),
-                    const SizedBox(height: 16),
-                    // 任务 4.4: 实现内容输入框
-                    _buildContentField(state),
-                  ],
-                ),
+            // 任务 4.3 和 4.4: 标题和内容输入框
+            Padding(
+              padding: AdaptivePadding.medium,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 任务 4.3: 实现标题输入框
+                  _buildTitleField(state),
+                  const SizedBox(height: 16),
+                  // 任务 4.4: 实现内容输入框
+                  _buildContentField(state),
+                ],
               ),
             ),
           ],

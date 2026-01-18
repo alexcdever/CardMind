@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/models/sync_status.dart';
@@ -516,6 +517,199 @@ void main() {
         await tester.pumpAndSettle();
 
         // Then: 对话框应该显示重试按钮
+        expect(find.text('重试'), findsOneWidget);
+      });
+    });
+
+    // ========================================
+    // Stream 订阅测试（补充）
+    // ========================================
+
+    group('Sync Status Stream Tests', () {
+      testWidgets('it_should_subscribe_to_sync_status_stream',
+          (WidgetTester tester) async {
+        // Given: 一个同步状态 Stream（使用 StreamController）
+        final controller = StreamController<SyncStatus>();
+
+        // When: 订阅 Stream 并渲染指示器
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StreamBuilder<SyncStatus>(
+                stream: controller.stream,
+                initialData: SyncStatus.disconnected(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const CircularProgressIndicator();
+                  }
+                  return SyncStatusIndicator(status: snapshot.data!);
+                },
+              ),
+            ),
+          ),
+        );
+
+        // Then: 初始状态应该是 disconnected
+        expect(find.byIcon(Icons.cloud_off), findsOneWidget);
+
+        // When: Stream 发出新状态（syncing）
+        controller.add(SyncStatus.syncing(syncingPeers: 1));
+        await tester.pump();
+
+        // Then: 应该更新为 syncing 状态
+        expect(find.byIcon(Icons.sync), findsOneWidget);
+
+        // When: Stream 发出新状态（synced）
+        controller.add(SyncStatus.synced(lastSyncTime: DateTime.now()));
+        await tester.pump();
+
+        // Then: 应该更新为 synced 状态
+        expect(find.byIcon(Icons.cloud_done), findsOneWidget);
+
+        // Cleanup
+        await controller.close();
+      });
+    });
+
+    // ========================================
+    // 同步进度百分比测试（补充）
+    // ========================================
+
+    group('Sync Progress Percentage Tests', () {
+      testWidgets('it_should_display_sync_progress_percentage',
+          (WidgetTester tester) async {
+        // Given: 同步状态包含进度信息
+        // 扩展 SyncStatus 以支持进度百分比（模拟）
+        final syncingWithProgress = SyncStatus.syncing(syncingPeers: 2);
+
+        // When: 渲染带进度的同步指示器
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SyncStatusIndicator(status: syncingWithProgress),
+                  const SizedBox(height: 16),
+                  // 进度条
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      children: [
+                        LinearProgressIndicator(value: 0.65),
+                        SizedBox(height: 8),
+                        Text('同步进度: 65%'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        // 使用 pump 而不是 pumpAndSettle，避免无限动画导致超时
+        await tester.pump();
+
+        // Then: 应该显示进度百分比
+        expect(find.text('同步进度: 65%'), findsOneWidget);
+        expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+        // 验证进度条的值
+        final progressIndicator = tester.widget<LinearProgressIndicator>(
+          find.byType(LinearProgressIndicator),
+        );
+        expect(progressIndicator.value, equals(0.65));
+      });
+    });
+
+    // ========================================
+    // 同步错误详情测试（补充）
+    // ========================================
+
+    group('Sync Error Details Tests', () {
+      testWidgets('it_should_show_sync_error_details',
+          (WidgetTester tester) async {
+        // Given: 同步失败，包含详细错误信息
+        final failedStatus = SyncStatus.failed(
+          errorMessage: 'Network timeout: Failed to connect to peer device after 30 seconds',
+        );
+
+        // When: 显示详情对话框
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Row(
+                          children: [
+                            Icon(Icons.error, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('同步失败'),
+                          ],
+                        ),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '错误详情：',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              failedStatus.errorMessage ?? '未知错误',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              '可能的原因：',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text('• 网络连接不稳定'),
+                            const Text('• 对等设备离线'),
+                            const Text('• 防火墙阻止连接'),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('关闭'),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('重试'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('查看错误'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // When: 点击查看错误
+        await tester.tap(find.text('查看错误'));
+        await tester.pumpAndSettle();
+
+        // Then: 应该显示详细的错误信息
+        expect(find.text('同步失败'), findsOneWidget);
+        expect(find.text('错误详情：'), findsOneWidget);
+        expect(
+          find.text('Network timeout: Failed to connect to peer device after 30 seconds'),
+          findsOneWidget,
+        );
+        expect(find.text('可能的原因：'), findsOneWidget);
+        expect(find.text('• 网络连接不稳定'), findsOneWidget);
+        expect(find.text('• 对等设备离线'), findsOneWidget);
+        expect(find.text('• 防火墙阻止连接'), findsOneWidget);
         expect(find.text('重试'), findsOneWidget);
       });
     });

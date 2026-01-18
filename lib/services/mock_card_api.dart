@@ -85,6 +85,8 @@ class MockCardApi implements CardApiInterface {
       createdAt: DateTime.now().millisecondsSinceEpoch,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: false,
+      tags: [],
+      lastEditDevice: null,
     );
 
     _cards.add(card);
@@ -116,6 +118,8 @@ class MockCardApi implements CardApiInterface {
       createdAt: oldCard.createdAt,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: oldCard.deleted,
+      tags: oldCard.tags,
+      lastEditDevice: oldCard.lastEditDevice,
     );
 
     _cards[index] = updatedCard;
@@ -140,6 +144,8 @@ class MockCardApi implements CardApiInterface {
       createdAt: oldCard.createdAt,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: true,
+      tags: oldCard.tags,
+      lastEditDevice: oldCard.lastEditDevice,
     );
 
     _cards[index] = deletedCard;
