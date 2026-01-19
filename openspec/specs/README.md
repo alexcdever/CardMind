@@ -58,22 +58,9 @@
 | SP-ADAPT-004 | [adaptive-ui/mobile-patterns.md](./flutter/adaptive-ui/mobile-patterns.md) | 移动端 UI 模式规格 | ✅ 完成 |
 | SP-ADAPT-005 | [adaptive-ui/desktop-patterns.md](./flutter/adaptive-ui/desktop-patterns.md) | 桌面端 UI 模式规格 | ✅ 完成 |
 
-#### 测试规格（测试即规格）
+#### UI 组件规格（测试即规格）
 
 > 注：以下规格遵循 Spec Coding 方法论，测试文件本身即为规格文档
-
-| 编号 | 文档 | 描述 | 对应测试文件 | 状态 |
-|-----|------|------|-------------|------|
-| SP-TEST-001 | [testing/ui-component.md](./flutter/testing/ui-component.md) | UI 组件测试规格 | `test/specs/*_spec_test.dart` | ✅ 完成 |
-| SP-TEST-002 | [testing/ui-interaction.md](./flutter/testing/ui-interaction.md) | UI 交互测试规格 | `test/specs/ui_interaction_spec_test.dart` | ✅ 完成 |
-| SP-TEST-003 | [testing/home-screen.md](./flutter/testing/home-screen.md) | 主页测试规格 | `test/specs/home_screen_*_spec_test.dart` | ✅ 完成 |
-| SP-TEST-004 | [testing/onboarding.md](./flutter/testing/onboarding.md) | 初始化测试规格 | `test/specs/onboarding_spec_test.dart` | ✅ 完成 |
-| SP-TEST-005 | [testing/platform-adaptive.md](./flutter/testing/platform-adaptive.md) | 平台自适应测试规格 | `test/specs/platform_*_spec_test.dart` | ✅ 完成 |
-| SP-TEST-006 | [testing/responsive-layout.md](./flutter/testing/responsive-layout.md) | 响应式布局测试规格 | `test/specs/responsive_layout_spec_test.dart` | ✅ 完成 |
-| SP-TEST-007 | [testing/integration.md](./flutter/testing/integration.md) | 集成测试规格 | `test/integration/` | ✅ 完成 |
-| SP-TEST-008 | [testing/test-spec-mapping.md](./flutter/testing/test-spec-mapping.md) | 测试规格映射关系 | - | ✅ 完成 |
-
-#### UI 组件规格（直接测试文件）
 
 | 编号 | 测试文件 | 描述 | 状态 |
 |-----|---------|------|------|
@@ -205,9 +192,8 @@ done
 - Rust 后端规格: 9 个
 - Flutter UI 交互规格: 7 个（1 个已废弃）
 - Flutter 自适应 UI 规格: 5 个
-- Flutter 测试规格: 8 个
-- UI 组件测试规格: 9 个
-- **总计**: 43 个规格文档
+- UI 组件规格（测试即规格）: 9 个（`test/specs/*_spec_test.dart`）
+- **总计**: 35 个规格文档
 
 **目标**:
 - 规格覆盖率: 100%
