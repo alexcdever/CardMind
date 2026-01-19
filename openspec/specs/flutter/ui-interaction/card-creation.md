@@ -1,9 +1,19 @@
 # Card Creation Interaction Specification
 
+> ⚠️ **DEPRECATED**: This spec has been split into platform-specific specs:
+> - **Mobile**: SP-FLUT-011 [mobile_ui_interaction_spec.md](./mobile_ui_interaction_spec.md)
+> - **Desktop**: SP-FLUT-012 [desktop_ui_interaction_spec.md](./desktop_ui_interaction_spec.md)
+> 
+> This document is kept for historical reference only.
+> 
+> **Migration Guide**: See Section "Migration Guide" at the end of this document.
+
 ## 📋 规格编号: SP-FLUT-009
 **版本**: 1.0.0
-**状态**: 已实现
+**状态**: ⚠️ 已废弃 (Deprecated)
 **依赖**: SP-FLUT-008 (主页交互规格), SP-CARD-004 (CardStore 规格)
+**废弃日期**: 2026-01-19
+**替代规格**: SP-FLUT-011 (移动端), SP-FLUT-012 (桌面端)
 
 ---
 
@@ -359,3 +369,117 @@ testWidgets('it_should_display_fab_button_on_home_screen', (WidgetTester tester)
 ### Related Specs
 - SP-FLUT-008: [home_screen_spec.md](./home_screen_spec.md)
 - SP-UI-004: [fullscreen_editor_spec_test.dart](../../test/specs/fullscreen_editor_spec_test.dart)
+
+---
+
+## Migration Guide
+
+### Why was this spec deprecated?
+
+This spec mixed mobile and desktop interaction patterns, causing confusion about which behaviors apply to which platform. The desktop card creation flow was also incomplete (missing auto-enter edit mode).
+
+### Where to find the new specs?
+
+#### For Mobile Implementation
+**New Spec**: SP-FLUT-011 [mobile_ui_interaction_spec.md](./mobile_ui_interaction_spec.md)
+
+**What moved here**:
+- FAB button interaction (Section 2)
+- Fullscreen editor flow (Section 3)
+- Touch gestures (Section 5)
+- Bottom navigation (Section 4)
+- Mobile-specific auto-save (Section 7)
+
+**Example mapping**:
+| Old (SP-FLUT-009) | New (SP-FLUT-011) |
+|-------------------|-------------------|
+| FAB button visible | Section 2.1 |
+| Tapping FAB opens editor | Section 2.2 |
+| Auto-save after 500ms | Section 7.1 |
+| Complete button saves | Section 3.4 |
+
+#### For Desktop Implementation
+**New Spec**: SP-FLUT-012 [desktop_ui_interaction_spec.md](./desktop_ui_interaction_spec.md)
+
+**What moved here**:
+- Toolbar button interaction (Section 2)
+- Inline editing flow (Section 3)
+- Keyboard shortcuts (Section 6)
+- Right-click menu (Section 5)
+- Desktop-specific auto-save (Section 8)
+
+**Example mapping**:
+| Old (SP-FLUT-009) | New (SP-FLUT-012) |
+|-------------------|-------------------|
+| Create button visible | Section 2.1 |
+| Create button creates card | Section 2.2 + **Auto-enter edit mode** |
+| Auto-save after 500ms | Section 8.1 |
+| Cmd/Ctrl+Enter saves | Section 6.2 |
+
+### Key Improvements in New Specs
+
+#### Desktop Auto-Enter Edit Mode (NEW!)
+The old spec didn't specify what happens after creating a card on desktop. The new spec (SP-FLUT-012) adds:
+
+```
+1. Click "新建笔记"
+2. Card created
+3. ✅ Auto-enter inline edit mode (NEW!)
+4. ✅ Title field auto-focused (NEW!)
+5. User can immediately start typing
+```
+
+See: SP-FLUT-012, Section 2.3
+
+### Test File Mapping
+
+| Old Test File | New Spec |
+|---------------|----------|
+| `card_creation_spec_test.dart` (mobile parts) | SP-FLUT-011 |
+| `home_screen_ui_spec_test.dart` (desktop parts) | SP-FLUT-012 |
+| `fullscreen_editor_spec_test.dart` | SP-FLUT-011 |
+
+### Code Migration
+
+#### Before (Mixed)
+```dart
+void _handleCreateCard() {
+  // Unclear which platform this is for
+  Navigator.push(context, CardEditorScreen());
+}
+```
+
+#### After (Platform-Specific)
+```dart
+void _handleCreateCard() {
+  if (PlatformDetector.isMobile) {
+    // Mobile: Open fullscreen editor
+    // Spec: SP-FLUT-011, Section 2
+    Navigator.push(context, FullscreenEditorScreen());
+  } else {
+    // Desktop: Create and auto-enter edit mode
+    // Spec: SP-FLUT-012, Section 2
+    cardProvider.createCard('', '').then((card) {
+      setState(() {
+        _editingCardId = card.id; // Auto-enter edit mode
+      });
+    });
+  }
+}
+```
+
+### Questions?
+
+- **Q**: Do I need to update my code immediately?
+  - **A**: No, this is a documentation change. Code changes will be in a separate implementation task.
+
+- **Q**: Which spec should I reference for new features?
+  - **A**: Use SP-FLUT-011 for mobile, SP-FLUT-012 for desktop.
+
+- **Q**: What about tablet devices?
+  - **A**: Currently treated as mobile (SP-FLUT-011). Future specs may add tablet-specific patterns.
+
+---
+
+**Deprecated**: 2026-01-19
+**Replaced by**: SP-FLUT-011, SP-FLUT-012
