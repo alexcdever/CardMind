@@ -6,6 +6,8 @@
 
 ## 📋 规格分类
 
+> **Spec Coding 原则**：测试代码本身即为可执行规格，无需额外的"测试规格文档"
+
 ### UI 交互规格
 
 用户界面交互流程和行为规格
@@ -32,20 +34,7 @@
 | SP-ADAPT-004 | [mobile-patterns.md](./adaptive-ui/mobile-patterns.md) | 移动端 UI 模式规格 | ✅ 完成 |
 | SP-ADAPT-005 | [desktop-patterns.md](./adaptive-ui/desktop-patterns.md) | 桌面端 UI 模式规格 | ✅ 完成 |
 
-### 测试规格
 
-UI 组件和交互测试规格（测试即规格）
-
-| 编号 | 文档 | 描述 | 对应测试文件 | 状态 |
-|-----|------|------|-------------|------|
-| SP-TEST-001 | [ui-component.md](./testing/ui-component.md) | UI 组件测试规格 | `test/specs/*_spec_test.dart` | ✅ 完成 |
-| SP-TEST-002 | [ui-interaction.md](./testing/ui-interaction.md) | UI 交互测试规格 | `test/specs/ui_interaction_spec_test.dart` | ✅ 完成 |
-| SP-TEST-003 | [home-screen.md](./testing/home-screen.md) | 主页测试规格 | `test/specs/home_screen_*_spec_test.dart` | ✅ 完成 |
-| SP-TEST-004 | [onboarding.md](./testing/onboarding.md) | 初始化测试规格 | `test/specs/onboarding_spec_test.dart` | ✅ 完成 |
-| SP-TEST-005 | [platform-adaptive.md](./testing/platform-adaptive.md) | 平台自适应测试规格 | `test/specs/platform_*_spec_test.dart` | ✅ 完成 |
-| SP-TEST-006 | [responsive-layout.md](./testing/responsive-layout.md) | 响应式布局测试规格 | `test/specs/responsive_layout_spec_test.dart` | ✅ 完成 |
-| SP-TEST-007 | [integration.md](./testing/integration.md) | 集成测试规格 | `test/integration/` | ✅ 完成 |
-| SP-TEST-008 | [test-spec-mapping.md](./testing/test-spec-mapping.md) | 测试规格映射关系 | - | ✅ 完成 |
 
 ---
 
@@ -124,8 +113,7 @@ SP-TEST-XXX
 **当前（2026-01-19）**:
 - UI 交互规格: 7 个（1 个已废弃）
 - 自适应 UI 规格: 5 个
-- 测试规格: 8 个
-- 对应测试文件: 15+ 个
+- 对应测试文件: 18 个（`test/specs/*_spec_test.dart`）
 
 **目标**:
 - 规格覆盖率: 100%
