@@ -221,4 +221,4 @@ testWidgets('it_should_detect_platform_type_correctly', (WidgetTester tester) as
 
 ### Related Specs
 - SP-UI-001: [adaptive_ui_system_spec_test.dart](../../test/specs/adaptive_ui_system_spec_test.dart)
-- SP-ADAPT-002: [adaptive-ui-framework/spec.md](../adaptive-ui-framework/spec.md)
+- SP-ADAPT-002: [framework.md](./framework.md)

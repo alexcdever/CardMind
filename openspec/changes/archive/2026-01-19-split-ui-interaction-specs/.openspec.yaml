@@ -1,0 +1,23 @@
+name: split-ui-interaction-specs
+description: Split UI interaction specs into mobile and desktop specific documents
+status: draft
+created: 2026-01-19
+author: CardMind Team
+
+specs:
+  added:
+    - openspec/specs/flutter/mobile_ui_interaction_spec.md
+    - openspec/specs/flutter/desktop_ui_interaction_spec.md
+  modified:
+    - openspec/specs/flutter/ui_interaction_spec.md
+    - openspec/specs/flutter/card_creation_spec.md
+    - openspec/specs/README.md
+  deprecated:
+    - openspec/specs/flutter/card_creation_spec.md
+
+related_specs:
+  - SP-FLUT-003
+  - SP-FLUT-008
+  - SP-FLUT-009
+  - SP-ADAPT-004
+  - SP-ADAPT-005
