@@ -1,6 +1,7 @@
 # Spec Coverage Checker
+# 规格覆盖率检查器
 
-## Overview
+## Overview | 概述
 
 The Spec Coverage Checker is a tool that verifies the completeness of specification documentation by scanning code files and identifying modules that lack corresponding specs, as well as specs that have no corresponding code implementation.
 
@@ -10,7 +11,7 @@ The Spec Coverage Checker is a tool that verifies the completeness of specificat
 
 **Implementation**: `tool/verify_spec_sync.dart`
 
-## Requirements
+## Requirements | 需求
 
 ### Requirement: Scan code files for modules and components
 
@@ -96,9 +97,9 @@ The system SHALL allow users to scan specific directories or modules instead of 
 - **WHEN** user runs `dart tool/verify_spec_sync.dart --scope=features`
 - **THEN** it SHALL only check Flutter widgets and their feature specs
 
-## Examples
+## Examples | 示例
 
-### Usage Example
+### Usage Example | 使用示例
 
 ```bash
 # Full coverage check
@@ -114,23 +115,23 @@ dart tool/verify_spec_sync.dart --module=card_store
 dart tool/verify_spec_sync.dart --verbose
 ```
 
-### Report Output Example
+### Report Output Example | 报告输出示例
 
 ```markdown
 # Spec Sync Report
 
-## Summary
+## Summary | 总结
 - Coverage: 100.0% (61/61 modules)
 - Missing Specs: 0
 - Orphaned Specs: 0
 - Critical Issues: 0
 - Warnings: 0
 
-## Status
+## Status | 状态
 ✅ All code modules have corresponding specifications
 ```
 
-## See Also
+## See Also | 参见
 
 - [Spec Migration Validator](spec_migration_validator.md) - Validates migration from old to new spec structure
 - [Spec Sync Validator](spec_sync_validator.md) - Validates consistency between specs and code

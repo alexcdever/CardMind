@@ -1,5 +1,4 @@
-# Card Detail Screen Specification
-# 卡片详情屏幕规格
+# Card Detail Screen Specification | 卡片详情屏幕规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,15 +15,13 @@ This specification defines the card detail screen that shows the complete card c
 
 ---
 
-## Requirement: Display full card content
-## 需求：显示完整的卡片内容
+## Requirement: Display full card content | 需求：显示完整的卡片内容
 
 The system SHALL show the complete card content with all metadata and editing capabilities.
 
 系统应显示完整的卡片内容及所有元数据和编辑功能。
 
-### Scenario: Display card title and content
-### 场景：显示卡片标题和内容
+### Scenario: Display card title and content | 场景：显示卡片标题和内容
 
 - **WHEN** card detail screen loads
 - **操作**：卡片详情屏幕加载
@@ -33,8 +30,7 @@ The system SHALL show the complete card content with all metadata and editing ca
 - **AND** show the complete card content with proper formatting
 - **并且**：显示格式正确的完整卡片内容
 
-### Scenario: Show card metadata
-### 场景：显示卡片元数据
+### Scenario: Show card metadata | 场景：显示卡片元数据
 
 - **WHEN** displaying card details
 - **操作**：显示卡片详情
@@ -47,15 +43,13 @@ The system SHALL show the complete card content with all metadata and editing ca
 
 ---
 
-## Requirement: Support inline editing
-## 需求：支持内联编辑
+## Requirement: Support inline editing | 需求：支持内联编辑
 
 The system SHALL allow users to edit the card directly on the detail screen.
 
 系统应允许用户直接在详情屏幕上编辑卡片。
 
-### Scenario: Enter edit mode
-### 场景：进入编辑模式
+### Scenario: Enter edit mode | 场景：进入编辑模式
 
 - **WHEN** user taps the edit button
 - **操作**：用户点击编辑按钮
@@ -64,8 +58,7 @@ The system SHALL allow users to edit the card directly on the detail screen.
 - **AND** show save and cancel buttons
 - **并且**：显示保存和取消按钮
 
-### Scenario: Save changes
-### 场景：保存更改
+### Scenario: Save changes | 场景：保存更改
 
 - **WHEN** user saves edits
 - **操作**：用户保存编辑
@@ -78,23 +71,20 @@ The system SHALL allow users to edit the card directly on the detail screen.
 
 ---
 
-## Requirement: Display and manage tags
-## 需求：显示和管理标签
+## Requirement: Display and manage tags | 需求：显示和管理标签
 
 The system SHALL show card tags and allow tag management.
 
 系统应显示卡片标签并允许标签管理。
 
-### Scenario: Display tags
-### 场景：显示标签
+### Scenario: Display tags | 场景：显示标签
 
 - **WHEN** card has tags
 - **操作**：卡片有标签
 - **THEN** the system SHALL display all tags as chips
 - **预期结果**：系统应将所有标签显示为芯片
 
-### Scenario: Add tag
-### 场景：添加标签
+### Scenario: Add tag | 场景：添加标签
 
 - **WHEN** user adds a tag
 - **操作**：用户添加标签
@@ -103,8 +93,7 @@ The system SHALL show card tags and allow tag management.
 - **AND** update the display immediately
 - **并且**：立即更新显示
 
-### Scenario: Remove tag
-### 场景：移除标签
+### Scenario: Remove tag | 场景：移除标签
 
 - **WHEN** user taps the remove icon on a tag
 - **操作**：用户点击标签上的移除图标
@@ -113,15 +102,13 @@ The system SHALL show card tags and allow tag management.
 
 ---
 
-## Requirement: Provide card actions
-## 需求：提供卡片操作
+## Requirement: Provide card actions | 需求：提供卡片操作
 
 The system SHALL offer actions for managing the card.
 
 系统应提供管理卡片的操作。
 
-### Scenario: Delete card
-### 场景：删除卡片
+### Scenario: Delete card | 场景：删除卡片
 
 - **WHEN** user selects delete action
 - **操作**：用户选择删除操作
@@ -130,8 +117,7 @@ The system SHALL offer actions for managing the card.
 - **AND** delete the card and navigate back upon confirmation
 - **并且**：确认后删除卡片并返回
 
-### Scenario: Share card
-### 场景：分享卡片
+### Scenario: Share card | 场景：分享卡片
 
 - **WHEN** user selects share action
 - **操作**：用户选择分享操作
@@ -140,15 +126,13 @@ The system SHALL offer actions for managing the card.
 
 ---
 
-## Requirement: Show sync information
-## 需求：显示同步信息
+## Requirement: Show sync information | 需求：显示同步信息
 
 The system SHALL display synchronization information for the card.
 
 系统应显示卡片的同步信息。
 
-### Scenario: Show sync status
-### 场景：显示同步状态
+### Scenario: Show sync status | 场景：显示同步状态
 
 - **WHEN** displaying card details
 - **操作**：显示卡片详情

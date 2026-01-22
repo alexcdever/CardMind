@@ -1,5 +1,4 @@
-# Desktop Context Menu Specification
-# 桌面端右键菜单规格
+# Desktop Context Menu Specification | 桌面端右键菜单规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -29,15 +28,13 @@ Define desktop right-click context menu specifications to ensure:
 
 ## 2. Menu Trigger | 菜单触发
 
-### Requirement: Desktop SHALL support right-click menu
-### 需求：桌面端应支持右键菜单
+### Requirement: Desktop SHALL support right-click menu | 需求：桌面端应支持右键菜单
 
 Desktop SHALL support right-click context menu.
 
 桌面端应支持右键菜单。
 
-#### Scenario: Right-clicking card shows menu
-#### 场景：右键点击卡片显示菜单
+#### Scenario: Right-clicking card shows menu | 场景：右键点击卡片显示菜单
 
 - **GIVEN** user views card grid
 - **前置条件**：用户查看卡片网格
@@ -50,8 +47,7 @@ Desktop SHALL support right-click context menu.
 - **AND** menu SHALL not extend off screen
 - **并且**：菜单不应超出屏幕
 
-#### Scenario: Menu appears within 100ms
-#### 场景：菜单在 100ms 内出现
+#### Scenario: Menu appears within 100ms | 场景：菜单在 100ms 内出现
 
 - **GIVEN** user right-clicks card
 - **前置条件**：用户右键点击卡片
@@ -66,15 +62,13 @@ Desktop SHALL support right-click context menu.
 
 ## 3. Menu Content | 菜单内容
 
-### Requirement: Context menu SHALL show card actions
-### 需求：右键菜单应显示卡片操作
+### Requirement: Context menu SHALL show card actions | 需求：右键菜单应显示卡片操作
 
 Context menu SHALL show card actions.
 
 右键菜单应显示卡片操作。
 
-#### Scenario: Menu includes Edit option
-#### 场景：菜单包含编辑选项
+#### Scenario: Menu includes Edit option | 场景：菜单包含编辑选项
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -87,8 +81,7 @@ Context menu SHALL show card actions.
 - **AND** option SHALL show keyboard shortcut
 - **并且**：选项应显示键盘快捷键
 
-#### Scenario: Menu includes Delete option
-#### 场景：菜单包含删除选项
+#### Scenario: Menu includes Delete option | 场景：菜单包含删除选项
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -101,8 +94,7 @@ Context menu SHALL show card actions.
 - **AND** option SHALL be red
 - **并且**：选项应为红色
 
-#### Scenario: Menu includes Copy option
-#### 场景：菜单包含复制选项
+#### Scenario: Menu includes Copy option | 场景：菜单包含复制选项
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -113,8 +105,7 @@ Context menu SHALL show card actions.
 - **AND** option SHALL show copy icon
 - **并且**：选项应显示复制图标
 
-#### Scenario: Menu includes Share option
-#### 场景：菜单包含分享选项
+#### Scenario: Menu includes Share option | 场景：菜单包含分享选项
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -129,15 +120,13 @@ Context menu SHALL show card actions.
 
 ## 4. Menu Interaction | 菜单交互
 
-### Requirement: Menu options SHALL be clickable
-### 需求：菜单选项应可点击
+### Requirement: Menu options SHALL be clickable | 需求：菜单选项应可点击
 
 Menu options SHALL be clickable.
 
 菜单选项应可点击。
 
-#### Scenario: Clicking Edit enters edit mode
-#### 场景：点击编辑进入编辑模式
+#### Scenario: Clicking Edit enters edit mode | 场景：点击编辑进入编辑模式
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -150,8 +139,7 @@ Menu options SHALL be clickable.
 - **AND** title field SHALL have focus
 - **并且**：标题字段应获得焦点
 
-#### Scenario: Clicking Delete shows confirmation
-#### 场景：点击删除显示确认
+#### Scenario: Clicking Delete shows confirmation | 场景：点击删除显示确认
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -164,8 +152,7 @@ Menu options SHALL be clickable.
 - **AND** dialog SHALL ask "确定删除这张笔记？"
 - **并且**：对话框应询问"确定删除这张笔记？"
 
-#### Scenario: Clicking outside dismisses menu
-#### 场景：点击外部关闭菜单
+#### Scenario: Clicking outside dismisses menu | 场景：点击外部关闭菜单
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -180,15 +167,13 @@ Menu options SHALL be clickable.
 
 ## 5. Menu Styling | 菜单样式
 
-### Requirement: Menu SHALL follow platform conventions
-### 需求：菜单应遵循平台规范
+### Requirement: Menu SHALL follow platform conventions | 需求：菜单应遵循平台规范
 
 Menu SHALL follow platform conventions.
 
 菜单应遵循平台规范。
 
-#### Scenario: Menu has proper styling
-#### 场景：菜单有适当的样式
+#### Scenario: Menu has proper styling | 场景：菜单有适当的样式
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示
@@ -201,8 +186,7 @@ Menu SHALL follow platform conventions.
 - **AND** menu SHALL have rounded corners
 - **并且**：菜单应有圆角
 
-#### Scenario: Menu items have hover effect
-#### 场景：菜单项有悬停效果
+#### Scenario: Menu items have hover effect | 场景：菜单项有悬停效果
 
 - **GIVEN** context menu is shown
 - **前置条件**：右键菜单已显示

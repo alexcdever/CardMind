@@ -1,5 +1,4 @@
-# API Layer Unified Specification
-# API 层统一规格说明书
+# API Layer Unified Specification | API 层统一规格说明书
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: To Be Implemented | 待实施

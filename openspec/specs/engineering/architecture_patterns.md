@@ -1,12 +1,15 @@
 # Architecture Patterns
+# 架构模式
 
 > **Purpose**: Define layer separation, dependency rules, and architectural patterns for CardMind Rust backend.
+>
+> **目的**：定义 CardMind Rust 后端的层次分离、依赖规则和架构模式。
 
 ---
 
-## 1. Layer Overview
+## 1. Layer Overview | 层次概述
 
-### 1.1 Layer Structure
+### 1.1 Layer Structure | 层次结构
 
 ```
 ┌─────────────────────────────────────────┐
@@ -33,7 +36,7 @@
 └─────────────────────────────────────────┘
 ```
 
-### 1.2 Dependency Direction
+### 1.2 Dependency Direction | 依赖方向
 
 **Rule**: Dependencies flow downward only.
 
@@ -48,9 +51,9 @@ Flutter UI → Bridge → Service → Repository → Store
 
 ---
 
-## 2. Repository Layer
+## 2. Repository Layer | 仓储层
 
-### 2.1 Responsibilities
+### 2.1 Responsibilities | 职责
 
 **Core Responsibilities**:
 - Isolate data source implementation details
@@ -63,7 +66,7 @@ Flutter UI → Bridge → Service → Repository → Store
 - Data format conversion (Bridge layer)
 - UI logic (Flutter layer)
 
-### 2.2 Interface Contract (Pseudo-code)
+### 2.2 Interface Contract (Pseudo-code) | 接口契约（伪代码）
 
 ```rust
 // Pseudo-code showing contract, not actual implementation
@@ -91,7 +94,7 @@ trait CardRepository {
 }
 ```
 
-### 2.3 Design Guarantees
+### 2.3 Design Guarantees | 设计保证
 
 1. **Idempotency**: All operations produce same result when repeated
 2. **Explicit Errors**: Return specific error types, no panics
@@ -100,9 +103,9 @@ trait CardRepository {
 
 ---
 
-## 3. Service Layer
+## 3. Service Layer | 服务层
 
-### 3.1 Responsibilities
+### 3.1 Responsibilities | 职责
 
 **Core Responsibilities**:
 - Implement business rules and validation
@@ -115,7 +118,7 @@ trait CardRepository {
 - Cross-language communication (Bridge layer)
 - UI state management (Flutter layer)
 
-### 3.2 Business Rules (Examples)
+### 3.2 Business Rules (Examples) | 业务规则（示例）
 
 **Card Creation Rules**:
 - `content` cannot be empty (at least one space)
@@ -141,16 +144,16 @@ trait CardRepository {
 
 ---
 
-## 4. Bridge Layer
+## 4. Bridge Layer | 桥接层
 
-### 4.1 Responsibilities
+### 4.1 Responsibilities | 职责
 
 **Core Responsibilities**:
 - Type conversion between Dart and Rust
 - Error propagation and serialization
 - Thread safety (Flutter main thread ↔ Rust thread)
 
-### 4.2 Type Mapping
+### 4.2 Type Mapping | 类型映射
 
 **Rust → Dart Auto-Conversion**:
 
@@ -165,9 +168,9 @@ trait CardRepository {
 
 ---
 
-## 5. Dependency Rules
+## 5. Dependency Rules | 依赖规则
 
-### 5.1 Dependency Injection
+### 5.1 Dependency Injection | 依赖注入
 
 **Principle**: High-level modules depend on abstractions, not implementations.
 
@@ -188,7 +191,7 @@ let repo = Box::new(LoroCardRepository::new());
 let service = CardService::new(repo);
 ```
 
-### 5.2 Prohibited Cross-Layer Access
+### 5.2 Prohibited Cross-Layer Access | 禁止的跨层访问
 
 **Prohibited**:
 - Bridge layer directly calling Repository layer (skip Service layer)
@@ -200,9 +203,9 @@ let service = CardService::new(repo);
 
 ---
 
-## 6. Common Anti-Patterns
+## 6. Common Anti-Patterns | 常见反模式
 
-### 6.1 Cross-Layer Access
+### 6.1 Cross-Layer Access | 跨层访问
 
 ```rust
 // ❌ Bridge layer directly calling Repository
@@ -218,7 +221,7 @@ pub fn create_card(title: String, content: String) -> Result<Card> {
 }
 ```
 
-### 6.2 Business Logic Leakage
+### 6.2 Business Logic Leakage | 业务逻辑泄漏
 
 ```rust
 // ❌ Repository layer containing business validation
@@ -244,7 +247,7 @@ impl CardService {
 
 ---
 
-## 7. Related Specs
+## 7. Related Specs | 相关规格
 
 - [System Design Principles](../architecture/system_design.md) - Architecture principles
 - [Common Types](./common_types_spec.md) - Data type definitions

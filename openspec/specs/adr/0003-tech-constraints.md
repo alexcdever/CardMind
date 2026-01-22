@@ -1,4 +1,5 @@
 # ADR-0003: Technology Constraints
+# ADR-0003：技术约束
 
 **Status**: Accepted  
 **Date**: 2024-12-31  

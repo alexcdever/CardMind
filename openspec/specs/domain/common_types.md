@@ -16,8 +16,7 @@ This specification defines reusable data types and constraints used across all C
 
 ---
 
-## Requirement: Unique identifier type
-## 需求：唯一标识符类型
+## Requirement: Unique identifier type | 需求：唯一标识符类型
 
 The system SHALL provide a globally unique identifier for distributed systems.
 
@@ -39,8 +38,7 @@ The system SHALL provide a globally unique identifier for distributed systems.
 
 ---
 
-## Requirement: Optional text type
-## 需求：可选文本类型
+## Requirement: Optional text type | 需求：可选文本类型
 
 The system SHALL provide a UTF-8 encoded string type that may be null or empty.
 
@@ -57,8 +55,7 @@ The system SHALL provide a UTF-8 encoded string type that may be null or empty.
 
 ---
 
-## Requirement: Markdown text type
-## 需求：Markdown 文本类型
+## Requirement: Markdown text type | 需求：Markdown 文本类型
 
 The system SHALL provide a content type formatted with CommonMark Markdown.
 
@@ -84,8 +81,7 @@ The system SHALL provide a content type formatted with CommonMark Markdown.
 
 ---
 
-## Requirement: Timestamp type
-## 需求：时间戳类型
+## Requirement: Timestamp type | 需求：时间戳类型
 
 The system SHALL provide a Unix timestamp in milliseconds for time-related fields.
 
@@ -109,8 +105,7 @@ The system SHALL provide a Unix timestamp in milliseconds for time-related field
 
 ---
 
-## Requirement: Domain terminology
-## 需求：域术语
+## Requirement: Domain terminology | 需求：域术语
 
 The system SHALL define standard terminology used throughout the application.
 
@@ -127,8 +122,7 @@ The system SHALL define standard terminology used throughout the application.
 
 ---
 
-## Requirement: Referential integrity
-## 需求：引用完整性
+## Requirement: Referential integrity | 需求：引用完整性
 
 The system SHALL enforce referential integrity constraints across data structures.
 
@@ -152,8 +146,7 @@ The system SHALL enforce referential integrity constraints across data structure
 
 ---
 
-## Requirement: Timestamp consistency
-## 需求：时间戳一致性
+## Requirement: Timestamp consistency | 需求：时间戳一致性
 
 The system SHALL enforce timestamp consistency rules.
 
@@ -185,8 +178,7 @@ The system SHALL enforce timestamp consistency rules.
 
 ---
 
-## Requirement: Soft delete
-## 需求：软删除
+## Requirement: Soft delete | 需求：软删除
 
 The system SHALL support soft delete for cards.
 

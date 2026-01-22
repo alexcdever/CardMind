@@ -1,5 +1,4 @@
-# Adaptive UI Components Specification
-# 自适应 UI 组件规格
+# Adaptive UI Components Specification | 自适应 UI 组件规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -18,8 +17,7 @@ This specification defines adaptive UI components that automatically adjust thei
 
 ## Category: Adaptive Layout Components | 类别：自适应布局组件
 
-### Requirement: Provide platform-specific layout scaffolds
-### 需求：提供平台特定的布局脚手架
+### Requirement: Provide platform-specific layout scaffolds | 需求：提供平台特定的布局脚手架
 
 The system SHALL provide layout components that adapt to desktop and mobile platforms.
 
@@ -55,8 +53,7 @@ The system SHALL provide layout components that adapt to desktop and mobile plat
 - **AND** switch between mobile and desktop layouts automatically
 - **并且**：自动在移动端和桌面端布局之间切换
 
-### Requirement: Provide adaptive spacing and padding
-### 需求：提供自适应间距和内边距
+### Requirement: Provide adaptive spacing and padding | 需求：提供自适应间距和内边距
 
 The system SHALL adjust spacing and padding based on platform and screen size.
 
@@ -76,8 +73,7 @@ The system SHALL adjust spacing and padding based on platform and screen size.
 
 ## Category: Adaptive Widgets | 类别：自适应组件
 
-### Requirement: Provide platform-aware UI components
-### 需求：提供平台感知的 UI 组件
+### Requirement: Provide platform-aware UI components | 需求：提供平台感知的 UI 组件
 
 The system SHALL offer widgets that adapt their behavior and appearance to the platform.
 

@@ -1,5 +1,4 @@
-# Home Screen Specification
-# 主屏幕规格
+# Home Screen Specification | 主屏幕规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,15 +15,13 @@ This specification defines the home screen that displays the user's card collect
 
 ---
 
-## Requirement: Display card list with filtering and search
-## 需求：显示带有过滤和搜索的卡片列表
+## Requirement: Display card list with filtering and search | 需求：显示带有过滤和搜索的卡片列表
 
 The system SHALL provide a home screen that displays all user cards with search and filter capabilities.
 
 系统应提供显示所有用户卡片的主屏幕，并提供搜索和过滤功能。
 
-### Scenario: Display card list
-### 场景：显示卡片列表
+### Scenario: Display card list | 场景：显示卡片列表
 
 - **WHEN** home screen loads
 - **操作**：主屏幕加载
@@ -33,8 +30,7 @@ The system SHALL provide a home screen that displays all user cards with search 
 - **AND** show card titles, preview text, and metadata
 - **并且**：显示卡片标题、预览文本和元数据
 
-### Scenario: Search cards
-### 场景：搜索卡片
+### Scenario: Search cards | 场景：搜索卡片
 
 - **WHEN** user enters text in the search bar
 - **操作**：用户在搜索栏输入文本
@@ -43,16 +39,14 @@ The system SHALL provide a home screen that displays all user cards with search 
 - **AND** update the display in real-time
 - **并且**：实时更新显示
 
-### Scenario: Filter by tags
-### 场景：按标签过滤
+### Scenario: Filter by tags | 场景：按标签过滤
 
 - **WHEN** user selects tag filters
 - **操作**：用户选择标签过滤器
 - **THEN** the system SHALL display only cards with the selected tags
 - **预期结果**：系统应只显示具有选定标签的卡片
 
-### Scenario: Empty state
-### 场景：空状态
+### Scenario: Empty state | 场景：空状态
 
 - **WHEN** user has no cards
 - **操作**：用户没有卡片
@@ -61,23 +55,20 @@ The system SHALL provide a home screen that displays all user cards with search 
 
 ---
 
-## Requirement: Provide card creation action
-## 需求：提供卡片创建操作
+## Requirement: Provide card creation action | 需求：提供卡片创建操作
 
 The system SHALL allow users to create new cards from the home screen.
 
 系统应允许用户从主屏幕创建新卡片。
 
-### Scenario: Create new card (mobile)
-### 场景：创建新卡片（移动端）
+### Scenario: Create new card (mobile) | 场景：创建新卡片（移动端）
 
 - **WHEN** user taps the floating action button on mobile
 - **操作**：用户点击移动端的浮动操作按钮
 - **THEN** the system SHALL open the fullscreen editor for a new card
 - **预期结果**：系统应打开新卡片的全屏编辑器
 
-### Scenario: Create new card (desktop)
-### 场景：创建新卡片（桌面端）
+### Scenario: Create new card (desktop) | 场景：创建新卡片（桌面端）
 
 - **WHEN** user clicks the "New Card" button on desktop
 - **操作**：用户在桌面端点击"新建卡片"按钮
@@ -88,15 +79,13 @@ The system SHALL allow users to create new cards from the home screen.
 
 ---
 
-## Requirement: Navigate to card detail or editor
-## 需求：导航到卡片详情或编辑器
+## Requirement: Navigate to card detail or editor | 需求：导航到卡片详情或编辑器
 
 The system SHALL allow users to open cards for viewing or editing.
 
 系统应允许用户打开卡片进行查看或编辑。
 
-### Scenario: Open card on mobile
-### 场景：在移动端打开卡片
+### Scenario: Open card on mobile | 场景：在移动端打开卡片
 
 - **WHEN** user taps a card on mobile
 - **操作**：用户在移动端点击卡片
@@ -105,8 +94,7 @@ The system SHALL allow users to open cards for viewing or editing.
 - **OR** open fullscreen editor depending on configuration
 - **或者**：根据配置打开全屏编辑器
 
-### Scenario: Open card on desktop
-### 场景：在桌面端打开卡片
+### Scenario: Open card on desktop | 场景：在桌面端打开卡片
 
 - **WHEN** user clicks a card on desktop
 - **操作**：用户在桌面端点击卡片
@@ -117,15 +105,13 @@ The system SHALL allow users to open cards for viewing or editing.
 
 ---
 
-## Requirement: Display sync status
-## 需求：显示同步状态
+## Requirement: Display sync status | 需求：显示同步状态
 
 The system SHALL show synchronization status on the home screen.
 
 系统应在主屏幕上显示同步状态。
 
-### Scenario: Show sync indicator
-### 场景：显示同步指示器
+### Scenario: Show sync indicator | 场景：显示同步指示器
 
 - **WHEN** displaying home screen
 - **操作**：显示主屏幕
@@ -136,15 +122,13 @@ The system SHALL show synchronization status on the home screen.
 
 ---
 
-## Requirement: Support card selection and bulk actions
-## 需求：支持卡片选择和批量操作
+## Requirement: Support card selection and bulk actions | 需求：支持卡片选择和批量操作
 
 The system SHALL allow users to select multiple cards for bulk operations.
 
 系统应允许用户选择多张卡片进行批量操作。
 
-### Scenario: Enter selection mode
-### 场景：进入选择模式
+### Scenario: Enter selection mode | 场景：进入选择模式
 
 - **WHEN** user long-presses a card on mobile OR shift-clicks on desktop
 - **操作**：用户在移动端长按卡片或在桌面端 Shift 点击
@@ -153,8 +137,7 @@ The system SHALL allow users to select multiple cards for bulk operations.
 - **AND** show checkboxes on all cards
 - **并且**：在所有卡片上显示复选框
 
-### Scenario: Bulk delete cards
-### 场景：批量删除卡片
+### Scenario: Bulk delete cards | 场景：批量删除卡片
 
 - **WHEN** user selects multiple cards and triggers delete action
 - **操作**：用户选择多张卡片并触发删除操作

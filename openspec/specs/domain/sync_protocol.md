@@ -16,15 +16,13 @@ This specification defines the P2P sync layer requirements for CardMind, includi
 
 ---
 
-## Requirement: Sync service creation and initialization
-## 需求：同步服务创建和初始化
+## Requirement: Sync service creation and initialization | 需求：同步服务创建和初始化
 
 The system SHALL provide a sync service that manages P2P connections and data synchronization.
 
 系统应提供管理 P2P 连接和数据同步的同步服务。
 
-### Scenario: Create sync service with valid config
-### 场景：使用有效配置创建同步服务
+### Scenario: Create sync service with valid config | 场景：使用有效配置创建同步服务
 
 - **GIVEN** a valid SyncConfig with peer ID and port
 - **前置条件**：具有对等点 ID 和端口的有效 SyncConfig
@@ -35,8 +33,7 @@ The system SHALL provide a sync service that manages P2P connections and data sy
 - **AND** be ready to accept connections
 - **并且**：准备好接受连接
 
-### Scenario: Sync service tracks online peers
-### 场景：同步服务跟踪在线对等点
+### Scenario: Sync service tracks online peers | 场景：同步服务跟踪在线对等点
 
 - **GIVEN** a sync service is running
 - **前置条件**：同步服务正在运行
@@ -49,15 +46,13 @@ The system SHALL provide a sync service that manages P2P connections and data sy
 
 ---
 
-## Requirement: Sync status reporting
-## 需求：同步状态报告
+## Requirement: Sync status reporting | 需求：同步状态报告
 
 The system SHALL provide a SyncStatus struct that reflects the current sync state.
 
 系统应提供反映当前同步状态的 SyncStatus 结构。
 
-### Scenario: Initial sync status has zero online peers
-### 场景：初始同步状态的在线对等点为零
+### Scenario: Initial sync status has zero online peers | 场景：初始同步状态的在线对等点为零
 
 - **GIVEN** a newly created SyncService
 - **前置条件**：新创建的 SyncService
@@ -68,8 +63,7 @@ The system SHALL provide a SyncStatus struct that reflects the current sync stat
 - **AND** syncing_peers count SHALL be 0
 - **并且**：syncing_peers 计数应为 0
 
-### Scenario: Sync status reflects independent copies
-### 场景：同步状态反映独立副本
+### Scenario: Sync status reflects independent copies | 场景：同步状态反映独立副本
 
 - **GIVEN** a SyncService is running
 - **前置条件**：SyncService 正在运行
@@ -82,15 +76,13 @@ The system SHALL provide a SyncStatus struct that reflects the current sync stat
 
 ---
 
-## Requirement: Peer discovery
-## 需求：对等点发现
+## Requirement: Peer discovery | 需求：对等点发现
 
 The system SHALL support peer discovery mechanisms including mDNS for local network discovery.
 
 系统应支持对等点发现机制，包括用于本地网络发现的 mDNS。
 
-### Scenario: mDNS peer discovery enabled
-### 场景：启用 mDNS 对等点发现
+### Scenario: mDNS peer discovery enabled | 场景：启用 mDNS 对等点发现
 
 - **GIVEN** the sync service is configured with mDNS
 - **前置条件**：同步服务已配置 mDNS
@@ -103,15 +95,13 @@ The system SHALL support peer discovery mechanisms including mDNS for local netw
 
 ---
 
-## Requirement: P2P data synchronization
-## 需求：P2P 数据同步
+## Requirement: P2P data synchronization | 需求：P2P 数据同步
 
 The system SHALL synchronize Loro documents between peers in the same pool.
 
 系统应在同一池中的对等点之间同步 Loro 文档。
 
-### Scenario: Sync changes to connected peers
-### 场景：向已连接的对等点同步更改
+### Scenario: Sync changes to connected peers | 场景：向已连接的对等点同步更改
 
 - **GIVEN** two devices in the same pool
 - **前置条件**：同一池中的两台设备
@@ -124,8 +114,7 @@ The system SHALL synchronize Loro documents between peers in the same pool.
 - **AND** device B SHALL reflect the updated card
 - **并且**：设备 B 应反映更新的卡片
 
-### Scenario: Handle sync conflicts with CRDT
-### 场景：使用 CRDT 处理同步冲突
+### Scenario: Handle sync conflicts with CRDT | 场景：使用 CRDT 处理同步冲突
 
 - **GIVEN** two devices make concurrent changes to the same card
 - **前置条件**：两台设备同时更改同一张卡片
@@ -138,15 +127,13 @@ The system SHALL synchronize Loro documents between peers in the same pool.
 
 ---
 
-## Requirement: Sync filtering by pool
-## 需求：按池过滤同步
+## Requirement: Sync filtering by pool | 需求：按池过滤同步
 
 The system SHALL only sync data within the current pool.
 
 系统应仅同步当前池内的数据。
 
-### Scenario: Only sync current pool data
-### 场景：仅同步当前池数据
+### Scenario: Only sync current pool data | 场景：仅同步当前池数据
 
 - **GIVEN** a device is in pool_A
 - **前置条件**：设备在 pool_A 中

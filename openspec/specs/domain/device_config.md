@@ -18,8 +18,7 @@ It describes the current, stable schema with a single `pool_id` field.
 
 ---
 
-## Requirement: Device configuration structure
-## 需求：设备配置结构
+## Requirement: Device configuration structure | 需求：设备配置结构
 
 The system SHALL provide a device configuration structure with unique device ID, device name, and optional pool ID.
 The structure SHALL store a single `pool_id` and SHALL NOT include legacy fields `joined_pools`, `resident_pools`, or `last_selected_pool`.
@@ -51,8 +50,7 @@ pub struct DeviceConfig {
 
 ---
 
-## Requirement: Load or create device configuration
-## 需求：加载或创建设备配置
+## Requirement: Load or create device configuration | 需求：加载或创建设备配置
 
 The system SHALL provide a method to load existing configuration or create new configuration on first launch.
 
@@ -135,8 +133,7 @@ fn it_loads_existing_config_on_subsequent_launch() {
 
 ---
 
-## Requirement: Join pool with single pool constraint
-## 需求：加入池（单池约束）
+## Requirement: Join pool with single pool constraint | 需求：加入池（单池约束）
 
 The system SHALL enforce that a device can join at most one pool.
 
@@ -266,8 +263,7 @@ fn it_should_preserve_config_when_join_fails() {
 
 ---
 
-## Requirement: Leave pool with cleanup
-## 需求：退出池并清理
+## Requirement: Leave pool with cleanup | 需求：退出池并清理
 
 The system SHALL provide a method to leave the current pool and clean up all local data.
 
@@ -398,8 +394,7 @@ async fn it_should_cleanup_local_data_on_leave() {
 
 ---
 
-## Requirement: Query methods
-## 需求：查询方法
+## Requirement: Query methods | 需求：查询方法
 
 The system SHALL provide methods to query the current pool ID and join status.
 
@@ -491,8 +486,7 @@ fn is_joined_should_return_false_after_leaving() {
 
 ---
 
-## Requirement: Device name management
-## 需求：设备名称管理
+## Requirement: Device name management | 需求：设备名称管理
 
 The system SHALL provide methods to get and set device names.
 
@@ -566,8 +560,7 @@ fn it_should_allow_setting_custom_device_name() {
 
 ---
 
-## Requirement: Configuration persistence
-## 需求：配置持久化
+## Requirement: Configuration persistence | 需求：配置持久化
 
 The system SHALL persist device configuration in JSON format at ~/.cardmind/config/device_config.json.
 
@@ -605,8 +598,7 @@ impl DeviceConfig {
 
 ---
 
-## Requirement: Integration with CardStore
-## 需求：与 CardStore 集成
+## Requirement: Integration with CardStore | 需求：与 CardStore 集成
 
 The system SHALL integrate with CardStore to automatically associate created cards with the current pool.
 
@@ -656,8 +648,7 @@ fn creating_card_should_auto_add_to_current_pool() {
 
 ---
 
-## Requirement: Integration with P2P Sync
-## 需求：与 P2P 同步集成
+## Requirement: Integration with P2P Sync | 需求：与 P2P 同步集成
 
 The system SHALL integrate with the sync service to filter sync operations based on pool_id.
 

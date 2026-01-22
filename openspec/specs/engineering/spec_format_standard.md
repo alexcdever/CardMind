@@ -1,6 +1,7 @@
 # Spec Format Standard
+# 规格格式标准
 
-## ADDED Requirements
+## ADDED Requirements | 新增需求
 
 ### Requirement: Main specs describe stable behavior
 The system SHALL describe the current, stable behavior of the system in specs under `openspec/specs/`.

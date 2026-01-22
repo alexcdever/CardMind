@@ -1,5 +1,4 @@
-# Sync Details Dialog Specification
-# 同步详情对话框规格
+# Sync Details Dialog Specification | 同步详情对话框规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,15 +15,13 @@ This specification defines the sync details dialog that provides comprehensive s
 
 ---
 
-## Requirement: Display comprehensive sync information
-## 需求：显示全面的同步信息
+## Requirement: Display comprehensive sync information | 需求：显示全面的同步信息
 
 The system SHALL provide a dialog showing detailed synchronization information including device list, sync history, and configuration.
 
 系统应提供显示详细同步信息的对话框，包括设备列表、同步历史和配置。
 
-### Scenario: Show connected devices
-### 场景：显示已连接设备
+### Scenario: Show connected devices | 场景：显示已连接设备
 
 - **WHEN** dialog is opened
 - **操作**：打开对话框
@@ -35,8 +32,7 @@ The system SHALL provide a dialog showing detailed synchronization information i
 - **AND** show last seen timestamp for each device
 - **并且**：显示每个设备的上次可见时间戳
 
-### Scenario: Show sync statistics
-### 场景：显示同步统计信息
+### Scenario: Show sync statistics | 场景：显示同步统计信息
 
 - **WHEN** dialog is opened
 - **操作**：打开对话框
@@ -49,15 +45,13 @@ The system SHALL provide a dialog showing detailed synchronization information i
 
 ---
 
-## Requirement: Display recent sync history
-## 需求：显示最近的同步历史
+## Requirement: Display recent sync history | 需求：显示最近的同步历史
 
 The system SHALL show a chronological list of recent synchronization events.
 
 系统应显示最近同步事件的时间顺序列表。
 
-### Scenario: Show sync event log
-### 场景：显示同步事件日志
+### Scenario: Show sync event log | 场景：显示同步事件日志
 
 - **WHEN** displaying sync history
 - **操作**：显示同步历史
@@ -68,8 +62,7 @@ The system SHALL show a chronological list of recent synchronization events.
 - **AND** show which device was involved in each sync event
 - **并且**：显示每个同步事件涉及的设备
 
-### Scenario: Show sync conflict information
-### 场景：显示同步冲突信息
+### Scenario: Show sync conflict information | 场景：显示同步冲突信息
 
 - **WHEN** sync conflicts occurred
 - **操作**：发生同步冲突
@@ -80,15 +73,13 @@ The system SHALL show a chronological list of recent synchronization events.
 
 ---
 
-## Requirement: Provide manual sync controls
-## 需求：提供手动同步控制
+## Requirement: Provide manual sync controls | 需求：提供手动同步控制
 
 The system SHALL allow users to manually trigger synchronization actions.
 
 系统应允许用户手动触发同步操作。
 
-### Scenario: Trigger manual sync
-### 场景：触发手动同步
+### Scenario: Trigger manual sync | 场景：触发手动同步
 
 - **WHEN** user taps the "Sync Now" button
 - **操作**：用户点击"立即同步"按钮
@@ -97,8 +88,7 @@ The system SHALL allow users to manually trigger synchronization actions.
 - **AND** update the sync status in real-time
 - **并且**：实时更新同步状态
 
-### Scenario: Refresh device list
-### 场景：刷新设备列表
+### Scenario: Refresh device list | 场景：刷新设备列表
 
 - **WHEN** user taps the "Refresh Devices" button
 - **操作**：用户点击"刷新设备"按钮
@@ -109,23 +99,20 @@ The system SHALL allow users to manually trigger synchronization actions.
 
 ---
 
-## Requirement: Show sync configuration
-## 需求：显示同步配置
+## Requirement: Show sync configuration | 需求：显示同步配置
 
 The system SHALL display current sync configuration settings.
 
 系统应显示当前的同步配置设置。
 
-### Scenario: Show auto-sync status
-### 场景：显示自动同步状态
+### Scenario: Show auto-sync status | 场景：显示自动同步状态
 
 - **WHEN** displaying sync configuration
 - **操作**：显示同步配置
 - **THEN** the system SHALL indicate whether auto-sync is enabled or disabled
 - **预期结果**：系统应指示自动同步是启用还是禁用
 
-### Scenario: Show sync protocol info
-### 场景：显示同步协议信息
+### Scenario: Show sync protocol info | 场景：显示同步协议信息
 
 - **WHEN** displaying sync configuration
 - **操作**：显示同步配置
@@ -136,15 +123,13 @@ The system SHALL display current sync configuration settings.
 
 ---
 
-## Requirement: Handle dialog dismissal
-## 需求：处理对话框关闭
+## Requirement: Handle dialog dismissal | 需求：处理对话框关闭
 
 The system SHALL provide clear actions to close the dialog.
 
 系统应提供明确的操作来关闭对话框。
 
-### Scenario: Close dialog
-### 场景：关闭对话框
+### Scenario: Close dialog | 场景：关闭对话框
 
 - **WHEN** user taps outside the dialog or presses the close button
 - **操作**：用户点击对话框外部或按下关闭按钮
