@@ -12,52 +12,31 @@
 **新结构**: 领域驱动组织 (Domain-Driven Organization)
 
 旧的 `rust/` 和 `flutter/` 目录已弃用，所有规格已迁移到新的领域驱动结构：
-- 📐 `engineering/` - 工程实践
 - 🏗️ `domain/` - 领域模型
 - 🔌 `api/` - 公共接口
 - ✨ `features/` - 用户功能
 - 🎨 `ui_system/` - UI 系统
 
-详细约定见 [engineering/directory_conventions.md](./engineering/directory_conventions.md)
+详细约定见 [工程指南](../engineering/directory_conventions.md)
 
 ---
 
-## 📂 新目录结构
+## 📂 目录结构
 
 ```
 openspec/specs/
-├── engineering/       # 工程实践和架构模式
 ├── domain/            # 领域模型和业务逻辑
 ├── api/               # 公共 API 和 FFI 接口
 ├── features/          # 用户功能（按能力组织）
-├── ui_system/         # UI 设计系统
-└── adr/               # 架构决策记录
+└── ui_system/         # UI 设计系统
 ```
+
+**工程指南**: 参见 [openspec/engineering/](../engineering/)
+**架构决策**: 参见 [docs/adr/](../../docs/adr/)
 
 ---
 
 ## 📋 规格文档索引
-
-### 🏛️ 架构决策记录 (ADR)
-
-| 编号 | 文档 | 描述 | 状态 |
-|-----|------|------|------|
-| ADR-0001 | [0001-single-pool-ownership.md](./adr/0001-single-pool-ownership.md) | 单池所有权模型 | ✅ 已接受 |
-| ADR-0002 | [0002-dual-layer-architecture.md](./adr/0002-dual-layer-architecture.md) | 双层数据架构 | ✅ 已接受 |
-| ADR-0003 | [0003-tech-constraints.md](./adr/0003-tech-constraints.md) | 技术约束 | ✅ 已接受 |
-| ADR-0004 | [0004-ui-design.md](./adr/0004-ui-design.md) | UI 设计原则 | ✅ 已接受 |
-| ADR-0005 | [0005-logging.md](./adr/0005-logging.md) | 日志规范 | ✅ 已接受 |
-
-### 📐 Engineering (工程实践)
-
-| 文档 | 描述 | 状态 |
-|------|------|------|
-| [guide.md](./engineering/guide.md) | Spec Coding 指南 | ✅ 完成 |
-| [summary.md](./engineering/summary.md) | Spec Coding 快速参考 | ✅ 完成 |
-| [architecture_patterns.md](./engineering/architecture_patterns.md) | 分层架构模式 | ✅ 完成 |
-| [tech_stack.md](./engineering/tech_stack.md) | 技术栈约束 | ✅ 完成 |
-| [directory_conventions.md](./engineering/directory_conventions.md) | 目录结构约定 | ✅ 完成 |
-| [spec_format_standard.md](./engineering/spec_format_standard.md) | 主规格格式标准 | ✅ 完成 |
 
 ### 🏗️ Domain (领域模型)
 
