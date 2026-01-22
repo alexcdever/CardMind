@@ -11,7 +11,7 @@
 
 **重要区分**：
 - ✅ **本目录**：视觉设计（颜色、字体、布局等）- **不可执行**
-- ✅ **`openspec/specs/flutter/`**：交互规格（用户操作、状态变化等）- **可执行测试**
+- ✅ **`openspec/specs/features/`**：交互规格（用户操作、状态变化等）- **可执行测试**
 
 ---
 
@@ -41,16 +41,16 @@ CardMind 的设计遵循四大原则：
 ### 交互规格（可执行）
 这些文档定义**用户如何与界面交互**，包含可执行的测试用例：
 
-- [UI 交互规格](../../openspec/specs/flutter/ui_interaction_spec.md) - 通用交互行为
-- [主页交互规格](../../openspec/specs/flutter/home_screen_spec.md) - 主页交互流程
-- [初始化流程规格](../../openspec/specs/flutter/onboarding_spec.md) - 首次使用流程
+- [主页交互规格](../../openspec/specs/features/home_screen/ui_shared.md) - 主页交互流程
+- [初始化流程规格](../../openspec/specs/features/onboarding/ui_shared.md) - 首次使用流程
+- [卡片编辑器规格](../../openspec/specs/features/card_editor/ui_mobile.md) - 卡片编辑交互
 
 ### 产品文档
 - [产品愿景](../requirements/product_vision.md) - 产品定位和目标
 - [用户手册](../user_guide.md) - 完整使用指南
 
 ### 架构文档
-- [架构决策记录](../../openspec/specs/adr/) - 技术架构决策
+- [架构决策记录](../../docs/adr/) - 技术架构决策
 
 ---
 
@@ -63,12 +63,12 @@ CardMind 的设计遵循四大原则：
 
 ### 对于开发者
 1. **实现视觉外观**：参考本目录的设计文档
-2. **实现交互行为**：参考 `openspec/specs/flutter/` 的交互规格
+2. **实现交互行为**：参考 `openspec/specs/features/` 的交互规格
 3. **编写测试**：根据交互规格编写可执行测试
 
 ### 对于 AI Agent
 1. **视觉设计问题**：查看本目录文档
-2. **交互行为问题**：查看 `openspec/specs/flutter/` 规格
+2. **交互行为问题**：查看 `openspec/specs/features/` 规格
 3. **新增交互规格**：使用 OpenSpec 流程创建 change
 
 ---
@@ -123,7 +123,7 @@ CardMind 的设计遵循四大原则：
 ### 需要新增组件？
 1. 先在 Figma 设计组件外观
 2. 在 `component_library.md` 添加视觉规范
-3. 在 `openspec/specs/flutter/` 创建交互规格（使用 OpenSpec 流程）
+3. 在 `openspec/specs/features/` 创建交互规格（使用 OpenSpec 流程）
 4. 实现组件并编写测试
 
 ---

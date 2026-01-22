@@ -10,9 +10,9 @@
 
 ## Overview | 概述
 
-This specification defines the Single Pool Model, where each card belongs to exactly one pool, and each device can join multiple pools but has exactly one resident pool.
+This specification defines the Single Pool Model, where each card belongs to exactly one pool, and each device can join at most one pool. When a device creates a new card, it automatically belongs to the pool that the device has joined.
 
-本规格定义了单池模型，其中每张卡片仅属于一个池，每个设备可以加入多个池但只有一个常驻池。
+本规格定义了单池模型，其中每张卡片仅属于一个池，每个设备最多只能加入一个池。当设备创建新卡片时，卡片自动属于设备已加入的池。
 
 ---
 
@@ -48,35 +48,35 @@ The system SHALL enforce that a device can join at most one pool for personal no
 
 ---
 
-## Requirement: Card Creation in Resident Pool | 需求：在常驻池中创建卡片
+## Requirement: Card Creation in Joined Pool | 需求：在已加入池中创建卡片
 
-When a device creates a new card, it SHALL automatically belong to the device's resident pool.
+When a device creates a new card, it SHALL automatically belong to the pool that the device has joined.
 
-当设备创建新卡片时，卡片应自动归属于设备的常驻池。
+当设备创建新卡片时，卡片应自动归属于设备已加入的池。
 
-### Scenario: Create card auto-joins resident pool
-### 场景：创建卡片自动加入常驻池
+### Scenario: Create card auto-joins the pool
+### 场景：创建卡片自动加入池
 
-- **GIVEN** a device has a resident pool set
-- **前置条件**：设备已设置常驻池
+- **GIVEN** a device has joined a pool
+- **前置条件**：设备已加入一个池
 - **WHEN** a user creates a new card
 - **操作**：用户创建新卡片
-- **THEN** the card SHALL be created in the resident pool
-- **预期结果**：卡片应在常驻池中创建
+- **THEN** the card SHALL be created in the joined pool
+- **预期结果**：卡片应在已加入的池中创建
 - **AND** the card SHALL be visible to all devices in that pool
 - **并且**：该池中的所有设备应可见该卡片
 
-### Scenario: Create card fails when no resident pool
-### 场景：无常驻池时创建卡片失败
+### Scenario: Create card fails when no pool joined
+### 场景：未加入池时创建卡片失败
 
-- **GIVEN** a device has no resident pool set
-- **前置条件**：设备未设置常驻池
+- **GIVEN** a device has not joined any pool
+- **前置条件**：设备未加入任何池
 - **WHEN** a user attempts to create a new card
 - **操作**：用户尝试创建新卡片
 - **THEN** the system SHALL reject the request
 - **预期结果**：系统应拒绝该请求
-- **AND** return an error indicating no resident pool
-- **并且**：返回表明无常驻池的错误
+- **AND** return an error indicating no pool joined
+- **并且**：返回表明未加入池的错误
 
 ---
 

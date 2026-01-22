@@ -9,7 +9,7 @@
 
 本文档定义 CardMind 的**布局结构**，包括页面结构、响应式规则等。
 
-**注意**: 本文档不包含交互行为规格。交互规格请查看 `openspec/specs/flutter/`。
+**注意**: 本文档不包含交互行为规格。交互规格请查看 `openspec/specs/features/`。
 
 ---
 
@@ -327,8 +327,8 @@ if (width < mobileBreakpoint) {
 - [组件库](./component_library.md) - 可复用组件设计
 
 ### 交互规格（可执行）
-- [UI 交互规格](../../openspec/specs/flutter/ui_interaction_spec.md)
-- [主页交互规格](../../openspec/specs/flutter/home_screen_spec.md)
+- [主页交互规格](../../openspec/specs/features/home_screen/ui_shared.md)
+- [卡片列表规格](../../openspec/specs/features/card_list/ui_mobile.md)
 
 ---
 

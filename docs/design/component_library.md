@@ -9,7 +9,7 @@
 
 本文档定义 CardMind 的**可复用组件视觉规范**，包括按钮、卡片、输入框等组件的外观设计。
 
-**注意**: 本文档只定义视觉外观，不包含交互行为。交互规格请查看 `openspec/specs/flutter/`。
+**注意**: 本文档只定义视觉外观，不包含交互行为。交互规格请查看 `openspec/specs/features/`。
 
 ---
 
@@ -545,9 +545,9 @@
 - [布局指南](./layout_guide.md) - 响应式布局规范
 
 ### 交互规格（可执行）
-- [UI 交互规格](../../openspec/specs/flutter/ui_interaction_spec.md) - 组件交互行为
-- [主页交互规格](../../openspec/specs/flutter/home_screen_spec.md) - 主页组件交互
-- [卡片创建交互规格](../../openspec/specs/flutter/card_creation_spec.md) - 卡片创建流程交互
+- [主页交互规格](../../openspec/specs/features/home_screen/ui_shared.md) - 主页组件交互
+- [卡片编辑器规格](../../openspec/specs/features/card_editor/ui_mobile.md) - 卡片编辑交互
+- [卡片列表规格](../../openspec/specs/features/card_list/ui_mobile.md) - 卡片列表交互
 
 ### 实现参考
 - Flutter Material Design: https://material.io/components

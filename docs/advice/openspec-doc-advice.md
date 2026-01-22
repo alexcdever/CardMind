@@ -58,7 +58,7 @@ markdown
 所有新创建的规格必须遵循以下位置：
 - 核心模型定义 -> `specs/domain/`
 - 具体业务功能 -> `specs/features/<feature_name>/`
-- 技术栈决策 -> `specs/adr/`
+- 技术栈决策 -> `docs/adr/`
 
 禁止在 `specs/rust/` 或 `specs/flutter/` 下创建新的零散文件。
 请谨慎使用此类代码。
