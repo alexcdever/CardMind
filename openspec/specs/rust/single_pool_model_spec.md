@@ -9,6 +9,11 @@
 
 ## Overview
 
+## 📋 规格编号: SP-SPM-001
+**版本**: 1.0.0
+**状态**: 待实施
+**依赖**: 
+
 This spec defines the Single Pool Model, where each card belongs to exactly one pool, and each device can join multiple pools but has exactly one resident pool.
 
 ---

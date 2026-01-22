@@ -1,14 +1,44 @@
 # CardMind 规格中心
 
-> **Spec Coding 方法论**: 测试即规格，规格即文档
+> **Spec Coding 方法论**: 测试即规格,规格即文档
 
 主规格文档入口，所有功能规格都集中在这里管理。
 
 ---
 
+## 🔔 重要通知：目录结构已迁移
+
+**迁移日期**: 2026-01-20
+**新结构**: 领域驱动组织 (Domain-Driven Organization)
+
+旧的 `rust/` 和 `flutter/` 目录已弃用，所有规格已迁移到新的领域驱动结构：
+- 📐 `engineering/` - 工程实践
+- 🏗️ `domain/` - 领域模型
+- 🔌 `api/` - 公共接口
+- ✨ `features/` - 用户功能
+- 🎨 `ui_system/` - UI 系统
+
+详细约定见 [engineering/directory_conventions.md](./engineering/directory_conventions.md)
+
+---
+
+## 📂 新目录结构
+
+```
+openspec/specs/
+├── engineering/       # 工程实践和架构模式
+├── domain/            # 领域模型和业务逻辑
+├── api/               # 公共 API 和 FFI 接口
+├── features/          # 用户功能（按能力组织）
+├── ui_system/         # UI 设计系统
+└── adr/               # 架构决策记录
+```
+
+---
+
 ## 📋 规格文档索引
 
-### 架构决策记录 (ADR)
+### 🏛️ 架构决策记录 (ADR)
 
 | 编号 | 文档 | 描述 | 状态 |
 |-----|------|------|------|
@@ -18,47 +48,115 @@
 | ADR-0004 | [0004-ui-design.md](./adr/0004-ui-design.md) | UI 设计原则 | ✅ 已接受 |
 | ADR-0005 | [0005-logging.md](./adr/0005-logging.md) | 日志规范 | ✅ 已接受 |
 
-### Rust 后端规格
+### 📐 Engineering (工程实践)
 
-| 编号 | 文档 | 描述 | 状态 |
-|-----|------|------|------|
-| SP-TYPE-000 | [common_types_spec.md](./rust/common_types_spec.md) | 通用类型系统 | ✅ 完成 |
-| SP-ARCH-000 | [architecture_patterns_spec.md](./rust/architecture_patterns_spec.md) | 分层架构模式 | ✅ 完成 |
-| SP-SPM-001 | [single_pool_model_spec.md](./rust/single_pool_model_spec.md) | 单池模型核心规格 | ✅ 完成 |
-| SP-DEV-002 | [device_config_spec.md](./rust/device_config_spec.md) | DeviceConfig 改造规格 | ✅ 完成 |
-| SP-POOL-003 | [pool_model_spec.md](./rust/pool_model_spec.md) | Pool 模型 CRUD 规格 | ✅ 完成 |
-| SP-CARD-004 | [card_store_spec.md](./rust/card_store_spec.md) | CardStore 改造规格 | ✅ 完成 |
-| SP-API-005 | [api_spec.md](./rust/api_spec.md) | API 层统一规格 | ✅ 完成 |
-| SP-SYNC-006 | [sync_spec.md](./rust/sync_spec.md) | 同步层简化规格 | ✅ 完成 |
-| SP-SYNC-007 | [sync_status_stream_spec.md](./rust/sync_status_stream_spec.md) | 同步状态 Stream 规格 | ✅ 完成 |
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [guide.md](./engineering/guide.md) | Spec Coding 指南 | ✅ 完成 |
+| [summary.md](./engineering/summary.md) | Spec Coding 快速参考 | ✅ 完成 |
+| [architecture_patterns.md](./engineering/architecture_patterns.md) | 分层架构模式 | ✅ 完成 |
+| [tech_stack.md](./engineering/tech_stack.md) | 技术栈约束 | ✅ 完成 |
+| [directory_conventions.md](./engineering/directory_conventions.md) | 目录结构约定 | ✅ 完成 |
+| [spec_format_standard.md](./engineering/spec_format_standard.md) | 主规格格式标准 | ✅ 完成 |
 
-### Flutter 前端规格
+### 🏗️ Domain (领域模型)
 
-> 详细索引见 [flutter/README.md](./flutter/README.md)
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [common_types.md](./domain/common_types.md) | 通用类型系统 | ✅ 完成 |
+| [pool_model.md](./domain/pool_model.md) | 单池模型核心规格 | ✅ 完成 |
+| [device_config.md](./domain/device_config.md) | 设备配置规格 | ✅ 完成 |
+| [card_store.md](./domain/card_store.md) | 卡片存储规格 | ✅ 完成 |
+| [sync_protocol.md](./domain/sync_protocol.md) | 同步协议规格 | ✅ 完成 |
 
-#### UI 交互规格
+### 🔌 API (公共接口)
 
-| 编号 | 文档 | 描述 | 状态 |
-|-----|------|------|------|
-| SP-FLUT-003 | [ui-interaction/overview.md](./flutter/ui-interaction/overview.md) | UI 交互规格总览 | ✅ 完成 |
-| SP-FLUT-007 | [ui-interaction/onboarding.md](./flutter/ui-interaction/onboarding.md) | 初始化流程规格 | ✅ 完成 |
-| SP-FLUT-008 | [ui-interaction/home-screen.md](./flutter/ui-interaction/home-screen.md) | 主页交互规格 | ✅ 完成 |
-| SP-FLUT-011 | [ui-interaction/mobile.md](./flutter/ui-interaction/mobile.md) | 移动端 UI 交互规格 | ✅ 完成 |
-| SP-FLUT-012 | [ui-interaction/desktop.md](./flutter/ui-interaction/desktop.md) | 桌面端 UI 交互规格 | ✅ 完成 |
-| ~~SP-FLUT-009~~ | ~~[ui-interaction/card-creation.md](./flutter/ui-interaction/card-creation.md)~~ | ~~卡片创建交互规格~~ | ⚠️ 已废弃 → SP-FLUT-011/012 |
-| SP-FLUT-010 | [ui-interaction/sync-feedback.md](./flutter/ui-interaction/sync-feedback.md) | 同步反馈交互规格 | ✅ 完成 |
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [api_spec.md](./api/api_spec.md) | Rust API 统一规格 | ✅ 完成 |
 
-#### 自适应 UI 规格
+### ✨ Features (用户功能)
 
-| 编号 | 文档 | 描述 | 状态 |
-|-----|------|------|------|
-| SP-ADAPT-001 | [adaptive-ui/platform-detection.md](./flutter/adaptive-ui/platform-detection.md) | 平台检测规格 | ✅ 完成 |
-| SP-ADAPT-002 | [adaptive-ui/framework.md](./flutter/adaptive-ui/framework.md) | 自适应 UI 框架规格 | ✅ 完成 |
-| SP-ADAPT-003 | [adaptive-ui/keyboard-shortcuts.md](./flutter/adaptive-ui/keyboard-shortcuts.md) | 键盘快捷键规格 | ✅ 完成 |
-| SP-ADAPT-004 | [adaptive-ui/mobile-patterns.md](./flutter/adaptive-ui/mobile-patterns.md) | 移动端 UI 模式规格 | ✅ 完成 |
-| SP-ADAPT-005 | [adaptive-ui/desktop-patterns.md](./flutter/adaptive-ui/desktop-patterns.md) | 桌面端 UI 模式规格 | ✅ 完成 |
+按用户能力组织，每个功能可包含 `logic.md` (后端逻辑)、`ui_mobile.md` (移动端 UI)、`ui_desktop.md` (桌面端 UI)、`ui_shared.md` (共享 UI)。
 
-#### UI 组件规格（测试即规格）
+#### 📝 Card Editor (卡片编辑器)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_mobile.md](./features/card_editor/ui_mobile.md) | Mobile | ✅ 完成 |
+| [ui_desktop.md](./features/card_editor/ui_desktop.md) | Desktop | ✅ 完成 |
+
+#### 📋 Card List (卡片列表)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_mobile.md](./features/card_list/ui_mobile.md) | Mobile | ✅ 完成 |
+| [ui_desktop.md](./features/card_list/ui_desktop.md) | Desktop | ✅ 完成 |
+
+#### 🔍 Search (搜索)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_mobile.md](./features/search/ui_mobile.md) | Mobile | ✅ 完成 |
+| [ui_desktop.md](./features/search/ui_desktop.md) | Desktop | ✅ 完成 |
+
+#### 🌟 Onboarding (初始化引导)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_shared.md](./features/onboarding/ui_shared.md) | Shared | ✅ 完成 |
+
+#### 🏠 Home Screen (主页)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_shared.md](./features/home_screen/ui_shared.md) | Shared | ✅ 完成 |
+
+#### 🔄 Sync Feedback (同步反馈)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_shared.md](./features/sync_feedback/ui_shared.md) | Shared | ✅ 完成 |
+
+#### 🧭 Navigation (导航)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_mobile.md](./features/navigation/ui_mobile.md) | Mobile | ✅ 完成 |
+
+#### ✋ Gestures (手势)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_mobile.md](./features/gestures/ui_mobile.md) | Mobile | ✅ 完成 |
+
+#### ➕ FAB (浮动按钮)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_mobile.md](./features/fab/ui_mobile.md) | Mobile | ✅ 完成 |
+
+#### 🛠️ Toolbar (工具栏)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_desktop.md](./features/toolbar/ui_desktop.md) | Desktop | ✅ 完成 |
+
+#### 📌 Context Menu (右键菜单)
+
+| 文档 | 平台 | 状态 |
+|------|------|------|
+| [ui_desktop.md](./features/context_menu/ui_desktop.md) | Desktop | ✅ 完成 |
+
+### 🎨 UI System (UI 系统)
+
+| 文档 | 描述 | 状态 |
+|------|------|------|
+| [design_tokens.md](./ui_system/design_tokens.md) | 设计令牌（颜色、字体等） | ✅ 完成 |
+| [responsive_layout.md](./ui_system/responsive_layout.md) | 响应式布局系统 | ✅ 完成 |
+| [shared_widgets.md](./ui_system/shared_widgets.md) | 共享组件 | 📝 占位符 |
+
+### 🧪 UI 组件规格（测试即规格）
 
 > 注：以下规格遵循 Spec Coding 方法论，测试文件本身即为规格文档
 
@@ -81,25 +179,31 @@
 ### 1. 查看规格文档
 
 ```bash
-# Rust 规格
-cat openspec/specs/rust/single_pool_model_spec.md
+# Engineering (工程实践)
+cat openspec/specs/engineering/guide.md
 
-# Flutter 规格
-cat openspec/specs/flutter/ui-interaction/overview.md
+# Domain (领域模型)
+cat openspec/specs/domain/pool_model.md
+cat openspec/specs/domain/sync_protocol.md
 
-# 自适应 UI 规格
-cat openspec/specs/flutter/adaptive-ui/framework.md
+# API (公共接口)
+cat openspec/specs/api/api_spec.md
 
-# 实施总结
-cat openspec/specs/SPEC_CODING_SUMMARY.md
+# Features (用户功能)
+cat openspec/specs/features/card_editor/ui_mobile.md
+cat openspec/specs/features/card_list/ui_desktop.md
+
+# UI System (UI 系统)
+cat openspec/specs/ui_system/design_tokens.md
 ```
 
 ### 2. 运行可执行规格
 
 ```bash
-# 单池模型流程示例
+# 后端规格测试
 cd rust
-cargo run --example single_pool_flow_spec
+cargo test --test sp_spm_001_spec
+cargo test --test sp_sync_006_spec
 
 # Flutter 规格测试
 flutter test test/specs/
@@ -113,8 +217,8 @@ flutter test test/specs/
 
 ```markdown
 ## 📋 规格编号: SP-XXX-XXX
-**版本**: 1.0.0  
-**状态**: 待实施/进行中/已完成  
+**版本**: 1.0.0
+**状态**: 待实施/进行中/已完成
 **依赖**: 依赖的其他规格
 
 ## 1. 概述
@@ -147,14 +251,14 @@ flutter test test/specs/
 
 | 优先级 | 任务 | 状态 |
 |--------|------|------|
-| 高 | 修改 Rust 数据模型（按照 SP-SPM-001） | 待实施 |
-| 高 | 更新 DeviceConfig（按照 SP-DEV-002） | 待实施 |
-| 高 | 修改 Flutter UI（按照 SP-FLUT-003/007/008） | 待实施 |
+| 高 | 修改 Rust 数据模型（domain/ 规格） | 待实施 |
+| 高 | 更新 API 层（api/ 规格） | 待实施 |
+| 高 | 修改 Flutter UI（features/ 规格） | 待实施 |
 | 中 | 补充单元测试 | 进行中 |
 | 中 | 完善集成测试 | 进行中 |
 | 低 | 规格文档网站生成 | 待规划 |
 
-**参考**: 完整路线图见 [产品路线图](../docs/roadmap.md) Phase 6R
+**参考**: 完整路线图见 [产品路线图](../docs/roadmap.md)
 
 ---
 
@@ -164,13 +268,13 @@ flutter test test/specs/
 
 ```bash
 # 查找所有与 pool 相关的规格
-grep -r "Spec-.*pool" openspec/specs/
+grep -r "pool" openspec/specs/domain/
 
-# 查看所有测试用例
-grep -r "it_should_" openspec/specs/
+# 查看所有功能规格
+ls openspec/specs/features/
 
-# 查看 Flutter 规格索引
-cat openspec/specs/flutter/README.md
+# 查找特定功能
+find openspec/specs/features -name "*card_editor*"
 ```
 
 ### Git 集成
@@ -187,13 +291,15 @@ done
 
 ## 📊 规格统计
 
-**当前（2026-01-19）**:
-- 架构决策记录: 5 个
-- Rust 后端规格: 9 个
-- Flutter UI 交互规格: 7 个（1 个已废弃）
-- Flutter 自适应 UI 规格: 5 个
-- UI 组件规格（测试即规格）: 9 个（`test/specs/*_spec_test.dart`）
-- **总计**: 35 个规格文档
+**当前（2026-01-22）**:
+- 架构决策记录 (ADR): 5 个
+- Engineering 规格: 6 个
+- Domain 规格: 5 个
+- API 规格: 1 个
+- Feature 规格: 14 个（11 个功能）
+- UI System 规格: 3 个
+- UI 组件规格（测试即规格）: 9 个
+- **总计**: 43 个规格文档
 
 **目标**:
 - 规格覆盖率: 100%
@@ -206,36 +312,18 @@ done
 
 ### 添加新规格
 
-1. 在对应目录创建新规格文档
-2. 分配规格编号（遵循 SP-XXX-XXX 格式）
-3. 编写完整测试用例
-4. 添加到本索引和对应的子索引（如 flutter/README.md）
+1. 确定规格类别（engineering / domain / api / features / ui_system）
+2. 在对应目录创建新规格文档
+3. 遵循命名约定（详见 [engineering/directory_conventions.md](./engineering/directory_conventions.md)）
+4. 编写完整测试用例
+5. 添加到本索引
 
-### 规格编号规则
+### 命名约定
 
-```
-SP     - 规格前缀
-XXX    - 模块识别码
-       - TYPE: Type System（类型系统）
-       - ARCH: Architecture（架构）
-       - SPM: Single Pool Model（单池模型）
-       - DEV: Device Config（设备配置）
-       - POOL: Pool Model（池模型）
-       - CARD: Card Store（卡片存储）
-       - API: API Layer（API 层）
-       - SYNC: Sync Layer（同步层）
-       - FLUT: Flutter UI（Flutter UI）
-       - ADAPT: Adaptive UI（平台自适应 UI）
-       - TEST: Testing（测试）
-       - UI: UI Components（UI 组件）
-
-XXX    - 序号（001, 002, 003...）
-```
-
-**示例**: 
-- `SP-SPM-001` = 单池模型 - 第一个规格
-- `SP-FLUT-003` = Flutter UI - 第三个规格
-- `SP-ADAPT-001` = 自适应 UI - 第一个规格
+- **Domain/API/UI System**: `snake_case.md`
+- **Features**:
+  - 目录: `lowercase_with_underscores/`
+  - 文件: `logic.md`, `ui_mobile.md`, `ui_desktop.md`, `ui_shared.md`
 
 ### 测试命名规范
 
@@ -252,9 +340,9 @@ test('test_device_can_join_pool', () { ... });
 ## 🔗 相关文档
 
 ### 规格文档
-- [Spec Coding 指南](./SPEC_CODING_GUIDE.md) - Spec Coding 方法论
-- [实施总结](./SPEC_CODING_SUMMARY.md) - Spec Coding 完整指南
-- [Flutter 规格索引](./flutter/README.md) - Flutter 规格详细索引
+- [Spec Coding 指南](./engineering/guide.md) - Spec Coding 方法论
+- [实施总结](./engineering/summary.md) - Spec Coding 完整指南
+- [目录结构约定](./engineering/directory_conventions.md) - 新结构说明
 
 ### 用户文档
 - [产品愿景](../../docs/requirements/product_vision.md) - 产品定位和目标
@@ -263,7 +351,6 @@ test('test_device_can_join_pool', () { ... });
 
 ### AI 开发指南
 - [CLAUDE.md](../../CLAUDE.md) - Claude Code 工作指南
-- [AGENTS.md](../../AGENTS.md) - AI Agent 指南
 
 ---
 
@@ -271,48 +358,63 @@ test('test_device_can_join_pool', () { ... });
 
 ### 需要帮助？
 
-1. **查看实施总结**: `openspec/specs/SPEC_CODING_SUMMARY.md`
-2. **运行示例**: `cargo run --example single_pool_flow_spec`
-3. **查看完整规格**: `openspec/specs/rust/single_pool_model_spec.md`
-4. **查看 Flutter 规格**: `openspec/specs/flutter/README.md`
+1. **查看目录约定**: `openspec/specs/engineering/directory_conventions.md`
+2. **查看实施总结**: `openspec/specs/engineering/summary.md`
+3. **运行示例**: `cargo test --test sp_spm_001_spec`
+4. **查看配置**: `openspec/.openspec/config.json`
 
 ### 常见问题
 
-**Q**: 规格文档和代码注释有什么区别？  
+**Q**: 规格文档和代码注释有什么区别？
 **A**: 规格文档描述"应该做什么"，代码注释描述"如何做的"。规格是需求，注释是实现。
 
-**Q**: 如何保持规格和代码同步？  
+**Q**: 如何保持规格和代码同步？
 **A**: 通过可执行规格（测试用例）自动验证，每次 PR 必须包含规格实施状态。
 
-**Q**: Flutter 规格为什么分成三个子目录？  
-**A**: 按功能分类（UI 交互 / 自适应 UI / 测试），便于查找和维护。详见 [flutter/README.md](./flutter/README.md)。
+**Q**: 为什么要按领域驱动重组？
+**A**: 旧结构按技术栈分类（rust / flutter），导致相关功能分散。新结构按领域和用户能力组织，更易查找和维护。详见 [engineering/directory_conventions.md](./engineering/directory_conventions.md)。
 
----
-
-**最后更新**: 2026-01-19
-**维护者**: CardMind Team
-**规范的规范**: 本文档本身也是规格 🤯
+**Q**: 旧的 rust/ 和 flutter/ 目录怎么办？
+**A**: 已标记为弃用，保留一段时间后将移除。所有内容已迁移到新结构。
 
 ---
 
 ## 📝 最近更新
 
-### 2026-01-19: 规格文档重组
-- ✅ 重组 Flutter 规格为三个子目录（ui-interaction / adaptive-ui / testing）
-- ✅ 统一文件命名规范（使用 `-` 分隔符）
-- ✅ 创建 Flutter 规格索引（flutter/README.md）
-- ✅ 消除散落的独立规格目录（13 个 → 3 个）
-- ✅ 集中管理测试规格
+### 2026-01-20: 迁移到领域驱动结构（第三次重构）
 
-**原因**: 原结构混乱，同一层级既有集合目录（adr/rust/flutter）又有独立规格目录（platform-detection 等），导致查找困难。重组后按技术栈分层，Flutter 内部按功能分类，结构清晰。
+**重大变更**: 从技术栈驱动 → 领域驱动组织
 
-### 2026-01-19: UI 规格平台拆分
-- ✅ 新增 SP-FLUT-011: 移动端 UI 交互规格
-- ✅ 新增 SP-FLUT-012: 桌面端 UI 交互规格
-- ✅ 更新 SP-FLUT-003: 改为总览文档
-- ⚠️ 废弃 SP-FLUT-009: 拆分为 SP-FLUT-011 和 SP-FLUT-012
+#### 新目录结构
+- ✅ 创建 `engineering/` - 工程实践
+- ✅ 创建 `domain/` - 领域模型
+- ✅ 创建 `api/` - 公共接口
+- ✅ 创建 `features/` - 用户功能（11 个功能目录）
+- ✅ 创建 `ui_system/` - UI 系统
 
-**原因**: 原规格混合了移动端和桌面端交互，导致实现不清晰。拆分后每个平台有独立的完整规格。
+#### 迁移内容
+- Engineering: 6 个文档（guide, summary, architecture_patterns, tech_stack, directory_conventions, spec_format_standard）
+- Domain: 5 个文档（common_types, pool_model, device_config, card_store, sync_protocol）
+- API: 1 个文档（api_spec）
+- Features: 14 个文档（11 个功能，每个 1-2 个平台规格）
+- UI System: 3 个文档（design_tokens, responsive_layout, shared_widgets）
 
-**详情**: 查看 [openspec/changes/split-ui-interaction-specs/SUMMARY.md](../changes/split-ui-interaction-specs/SUMMARY.md)
+#### 变更原因
+旧结构（rust / flutter）按技术栈组织，导致：
+1. 相关功能分散在不同目录
+2. 难以按用户能力查找规格
+3. 技术栈前缀冗长（SP-FLT-MOB-001）
 
+新结构按领域和用户能力组织：
+1. 相关规格集中在一起（如 `features/card_editor/`）
+2. 清晰的关注点分离（engineering / domain / features）
+3. 简洁的文件名（ui_mobile.md, ui_desktop.md）
+
+#### 迁移指南
+详见 [engineering/directory_conventions.md](./engineering/directory_conventions.md)
+
+---
+
+**最后更新**: 2026-01-22
+**维护者**: CardMind Team
+**规范的规范**: 本文档本身也是规格 🤯
