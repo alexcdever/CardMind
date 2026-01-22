@@ -1,5 +1,4 @@
-# Home Screen Specification (Shared)
-# 主屏幕规格（通用）
+# Home Screen Specification (Shared) | 主屏幕规格（通用）
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -33,15 +32,13 @@ Define cross-platform common specifications for CardMind home screen to ensure:
 
 ## 2. Card Display | 卡片显示
 
-### Requirement: Home screen SHALL display all cards
-### 需求：主页应显示所有卡片
+### Requirement: Home screen SHALL display all cards | 需求：主页应显示所有卡片
 
 Home screen SHALL display all cards.
 
 主页应显示所有卡片。
 
-#### Scenario: Cards are loaded on screen open
-#### 场景：打开屏幕时加载卡片
+#### Scenario: Cards are loaded on screen open | 场景：打开屏幕时加载卡片
 
 - **GIVEN** user opens home screen
 - **前置条件**：用户打开主屏幕
@@ -52,8 +49,7 @@ Home screen SHALL display all cards.
 - **AND** cards SHALL be displayed
 - **并且**：卡片应显示
 
-#### Scenario: Empty state is shown when no cards
-#### 场景：无卡片时显示空状态
+#### Scenario: Empty state is shown when no cards | 场景：无卡片时显示空状态
 
 - **GIVEN** user has no cards
 - **前置条件**：用户没有卡片
@@ -64,8 +60,7 @@ Home screen SHALL display all cards.
 - **AND** message SHALL say "还没有笔记"
 - **并且**：消息应显示"还没有笔记"
 
-#### Scenario: Cards show title and preview
-#### 场景：卡片显示标题和预览
+#### Scenario: Cards show title and preview | 场景：卡片显示标题和预览
 
 - **GIVEN** cards are displayed
 - **前置条件**：卡片已显示
@@ -82,15 +77,13 @@ Home screen SHALL display all cards.
 
 ## 3. Sync Status | 同步状态
 
-### Requirement: Home screen SHALL show sync status
-### 需求：主页应显示同步状态
+### Requirement: Home screen SHALL show sync status | 需求：主页应显示同步状态
 
 Home screen SHALL show sync status.
 
 主页应显示同步状态。
 
-#### Scenario: Sync status indicator is visible
-#### 场景：同步状态指示器可见
+#### Scenario: Sync status indicator is visible | 场景：同步状态指示器可见
 
 - **GIVEN** user is on home screen
 - **前置条件**：用户在主屏幕上
@@ -101,8 +94,7 @@ Home screen SHALL show sync status.
 - **AND** indicator SHALL show current sync state
 - **并且**：指示器应显示当前同步状态
 
-#### Scenario: Syncing shows progress
-#### 场景：同步中显示进度
+#### Scenario: Syncing shows progress | 场景：同步中显示进度
 
 - **GIVEN** sync is in progress
 - **前置条件**：同步正在进行
@@ -113,8 +105,7 @@ Home screen SHALL show sync status.
 - **AND** progress animation SHALL be visible
 - **并且**：进度动画应可见
 
-#### Scenario: Synced shows success
-#### 场景：已同步显示成功
+#### Scenario: Synced shows success | 场景：已同步显示成功
 
 - **GIVEN** sync completed successfully
 - **前置条件**：同步已成功完成
@@ -129,15 +120,13 @@ Home screen SHALL show sync status.
 
 ## 4. Card Actions | 卡片操作
 
-### Requirement: User SHALL interact with cards
-### 需求：用户应与卡片交互
+### Requirement: User SHALL interact with cards | 需求：用户应与卡片交互
 
 User SHALL interact with cards.
 
 用户应与卡片交互。
 
-#### Scenario: Tapping card opens it
-#### 场景：点击卡片打开它
+#### Scenario: Tapping card opens it | 场景：点击卡片打开它
 
 - **GIVEN** user taps a card
 - **前置条件**：用户点击卡片
@@ -148,8 +137,7 @@ User SHALL interact with cards.
 - **AND** navigation SHALL be smooth
 - **并且**：导航应流畅
 
-#### Scenario: Creating new card is available
-#### 场景：创建新卡片可用
+#### Scenario: Creating new card is available | 场景：创建新卡片可用
 
 - **GIVEN** user is on home screen
 - **前置条件**：用户在主屏幕上
@@ -164,15 +152,13 @@ User SHALL interact with cards.
 
 ## 5. Search Function | 搜索功能
 
-### Requirement: User SHALL search cards
-### 需求：用户应搜索卡片
+### Requirement: User SHALL search cards | 需求：用户应搜索卡片
 
 User SHALL search cards.
 
 用户应搜索卡片。
 
-#### Scenario: Search is available
-#### 场景：搜索可用
+#### Scenario: Search is available | 场景：搜索可用
 
 - **GIVEN** user is on home screen
 - **前置条件**：用户在主屏幕上
@@ -183,8 +169,7 @@ User SHALL search cards.
 - **AND** search SHALL be easily accessible
 - **并且**：搜索应易于访问
 
-#### Scenario: Search filters cards
-#### 场景：搜索过滤卡片
+#### Scenario: Search filters cards | 场景：搜索过滤卡片
 
 - **GIVEN** user enters search query
 - **前置条件**：用户输入搜索查询
@@ -199,15 +184,13 @@ User SHALL search cards.
 
 ## 6. Performance Requirements | 性能要求
 
-### Requirement: Home screen SHALL be performant
-### 需求：主页应满足性能要求
+### Requirement: Home screen SHALL be performant | 需求：主页应满足性能要求
 
 Home screen SHALL meet performance requirements.
 
 主页应满足性能要求。
 
-#### Scenario: Cards load within 350ms
-#### 场景：卡片在 350ms 内加载
+#### Scenario: Cards load within 350ms | 场景：卡片在 350ms 内加载
 
 - **GIVEN** user opens home screen
 - **前置条件**：用户打开主屏幕
@@ -218,8 +201,7 @@ Home screen SHALL meet performance requirements.
 - **AND** loading indicator SHALL be shown
 - **并且**：加载指示器应显示
 
-#### Scenario: Scrolling is smooth
-#### 场景：滚动流畅
+#### Scenario: Scrolling is smooth | 场景：滚动流畅
 
 - **GIVEN** user scrolls card list
 - **前置条件**：用户滚动卡片列表

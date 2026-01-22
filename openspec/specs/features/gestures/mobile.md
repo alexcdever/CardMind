@@ -1,5 +1,4 @@
-# Mobile Gestures Specification
-# 移动端手势规格
+# Mobile Gestures Specification | 移动端手势规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -29,15 +28,13 @@ Define mobile gesture interaction specifications to ensure:
 
 ## 2. Swipe Gestures | 滑动手势
 
-### Requirement: Mobile SHALL support swipe gestures
-### 需求：移动端应支持滑动手势
+### Requirement: Mobile SHALL support swipe gestures | 需求：移动端应支持滑动手势
 
 Mobile SHALL support swipe gestures for quick actions.
 
 移动端应支持滑动手势进行快速操作。
 
-#### Scenario: Swipe left reveals delete
-#### 场景：左滑显示删除
+#### Scenario: Swipe left reveals delete | 场景：左滑显示删除
 
 - **GIVEN** user views card list
 - **前置条件**：用户查看卡片列表
@@ -50,8 +47,7 @@ Mobile SHALL support swipe gestures for quick actions.
 - **AND** button SHALL be red
 - **并且**：按钮应为红色
 
-#### Scenario: Swipe right dismisses action
-#### 场景：右滑关闭操作
+#### Scenario: Swipe right dismisses action | 场景：右滑关闭操作
 
 - **GIVEN** delete button is revealed
 - **前置条件**：删除按钮已显示
@@ -62,8 +58,7 @@ Mobile SHALL support swipe gestures for quick actions.
 - **AND** card SHALL slide back
 - **并且**：卡片应滑回
 
-#### Scenario: Tapping delete removes card
-#### 场景：点击删除移除卡片
+#### Scenario: Tapping delete removes card | 场景：点击删除移除卡片
 
 - **GIVEN** delete button is revealed
 - **前置条件**：删除按钮已显示
@@ -80,15 +75,13 @@ Mobile SHALL support swipe gestures for quick actions.
 
 ## 3. Long-Press Gesture | 长按手势
 
-### Requirement: Mobile SHALL support long-press
-### 需求：移动端应支持长按
+### Requirement: Mobile SHALL support long-press | 需求：移动端应支持长按
 
 Mobile SHALL support long-press gesture to open context menu.
 
 移动端应支持长按手势打开上下文菜单。
 
-#### Scenario: Long-press shows context menu
-#### 场景：长按显示上下文菜单
+#### Scenario: Long-press shows context menu | 场景：长按显示上下文菜单
 
 - **GIVEN** user views card list
 - **前置条件**：用户查看卡片列表
@@ -99,8 +92,7 @@ Mobile SHALL support long-press gesture to open context menu.
 - **AND** menu SHALL include: "编辑", "删除", "分享"
 - **并且**：菜单应包含："编辑"、"删除"、"分享"
 
-#### Scenario: Context menu positioned near touch
-#### 场景：上下文菜单靠近触摸点
+#### Scenario: Context menu positioned near touch | 场景：上下文菜单靠近触摸点
 
 - **GIVEN** context menu is shown
 - **前置条件**：上下文菜单已显示
@@ -111,8 +103,7 @@ Mobile SHALL support long-press gesture to open context menu.
 - **AND** menu SHALL not extend off screen
 - **并且**：菜单不应超出屏幕
 
-#### Scenario: Tapping outside dismisses menu
-#### 场景：点击外部关闭菜单
+#### Scenario: Tapping outside dismisses menu | 场景：点击外部关闭菜单
 
 - **GIVEN** context menu is shown
 - **前置条件**：上下文菜单已显示
@@ -127,15 +118,13 @@ Mobile SHALL support long-press gesture to open context menu.
 
 ## 4. Pull-to-Refresh | 下拉刷新
 
-### Requirement: Mobile SHALL support pull-to-refresh
-### 需求：移动端应支持下拉刷新
+### Requirement: Mobile SHALL support pull-to-refresh | 需求：移动端应支持下拉刷新
 
 Mobile SHALL support pull-to-refresh gesture.
 
 移动端应支持下拉刷新手势。
 
-#### Scenario: Pull down shows indicator
-#### 场景：下拉显示指示器
+#### Scenario: Pull down shows indicator | 场景：下拉显示指示器
 
 - **GIVEN** user is at top of list
 - **前置条件**：用户在列表顶部
@@ -146,8 +135,7 @@ Mobile SHALL support pull-to-refresh gesture.
 - **AND** indicator SHALL follow pull distance
 - **并且**：指示器应跟随下拉距离
 
-#### Scenario: Release triggers refresh
-#### 场景：释放触发刷新
+#### Scenario: Release triggers refresh | 场景：释放触发刷新
 
 - **GIVEN** user pulled past threshold
 - **前置条件**：用户下拉超过阈值

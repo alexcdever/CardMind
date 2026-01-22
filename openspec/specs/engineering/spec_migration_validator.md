@@ -1,6 +1,7 @@
 # Spec Migration Validator
+# 规格迁移验证器
 
-## Overview
+## Overview | 概述
 
 The Spec Migration Validator verifies that the migration from technology-stack-based specification structure (`rust/`, `flutter/`) to domain-driven structure (`engineering/`, `domain/`, `api/`, `features/`, `ui_system/`) is complete and properly documented.
 
@@ -10,7 +11,7 @@ The Spec Migration Validator verifies that the migration from technology-stack-b
 
 **Implementation**: `tool/verify_spec_sync.dart` (migration validation layer)
 
-## Requirements
+## Requirements | 需求
 
 ### Requirement: Verify completeness of domain-driven spec structure
 
@@ -121,9 +122,9 @@ The system SHALL generate a report showing the migration validation status and a
 - **WHEN** validation completes
 - **THEN** it SHALL generate a scorecard showing: Structure Completeness (X/Y), Naming Compliance (X/Y), Reference Validity (X/Y), Spec Quality (X/Y)
 
-## Examples
+## Examples | 示例
 
-### Usage Example
+### Usage Example | 使用示例
 
 ```bash
 # Run migration validation
@@ -134,30 +135,30 @@ grep -r "rust/" openspec/specs/domain/
 grep -r "flutter/" openspec/specs/features/
 ```
 
-### Validation Report Example
+### Validation Report Example | 验证报告示例
 
 ```markdown
-## Migration Validation
+## Migration Validation | 迁移验证
 
-### Structure Completeness: ✅ 5/5
+### Structure Completeness: ✅ 5/5 | 结构完整性：✅ 5/5
 - ✅ engineering/ directory exists with required files
 - ✅ domain/ directory exists with core models
 - ✅ api/ directory exists with API specs
 - ✅ features/ directory exists with feature specs
 - ✅ ui_system/ directory exists with UI specs
 
-### Naming Compliance: ✅ 100%
+### Naming Compliance: ✅ 100% | 命名合规性：✅ 100%
 - All spec files use snake_case naming
 - No technology prefixes found
 - Semantic names used throughout
 
-### Reference Validity: ✅ 100%
+### Reference Validity: ✅ 100% | 引用有效性：✅ 100%
 - All cross-references point to valid locations
 - No references to deprecated locations
 - All ADR references valid
 ```
 
-## See Also
+## See Also | 参见
 
 - [Spec Coverage Checker](spec_coverage_checker.md) - Checks coverage of code modules
 - [Directory Conventions](directory_conventions.md) - Specification directory structure

@@ -1,5 +1,4 @@
-# Settings Panel Specification
-# 设置面板规格
+# Settings Panel Specification | 设置面板规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,15 +15,13 @@ This specification defines the settings panel component that displays and manage
 
 ---
 
-## Requirement: Display theme settings
-## 需求：显示主题设置
+## Requirement: Display theme settings | 需求：显示主题设置
 
 The system SHALL provide theme customization options.
 
 系统应提供主题自定义选项。
 
-### Scenario: Show current theme mode
-### 场景：显示当前主题模式
+### Scenario: Show current theme mode | 场景：显示当前主题模式
 
 - **WHEN** displaying settings panel
 - **操作**：显示设置面板
@@ -33,8 +30,7 @@ The system SHALL provide theme customization options.
 - **AND** display a toggle or switch control
 - **并且**：显示切换或开关控件
 
-### Scenario: Toggle theme
-### 场景：切换主题
+### Scenario: Toggle theme | 场景：切换主题
 
 - **WHEN** user toggles the theme switch
 - **操作**：用户切换主题开关
@@ -45,23 +41,20 @@ The system SHALL provide theme customization options.
 
 ---
 
-## Requirement: Display synchronization settings
-## 需求：显示同步设置
+## Requirement: Display synchronization settings | 需求：显示同步设置
 
 The system SHALL show synchronization-related configuration options.
 
 系统应显示与同步相关的配置选项。
 
-### Scenario: Show auto-sync preference
-### 场景：显示自动同步偏好
+### Scenario: Show auto-sync preference | 场景：显示自动同步偏好
 
 - **WHEN** displaying sync settings
 - **操作**：显示同步设置
 - **THEN** the system SHALL display auto-sync enable/disable toggle
 - **预期结果**：系统应显示自动同步启用/禁用切换
 
-### Scenario: Show sync frequency options
-### 场景：显示同步频率选项
+### Scenario: Show sync frequency options | 场景：显示同步频率选项
 
 - **WHEN** auto-sync is enabled
 - **操作**：自动同步已启用
@@ -70,23 +63,20 @@ The system SHALL show synchronization-related configuration options.
 
 ---
 
-## Requirement: Display application information
-## 需求：显示应用程序信息
+## Requirement: Display application information | 需求：显示应用程序信息
 
 The system SHALL show application version and build information.
 
 系统应显示应用程序版本和构建信息。
 
-### Scenario: Show app version
-### 场景：显示应用版本
+### Scenario: Show app version | 场景：显示应用版本
 
 - **WHEN** displaying about section
 - **操作**：显示关于部分
 - **THEN** the system SHALL show application version number from package info
 - **预期结果**：系统应从包信息中显示应用程序版本号
 
-### Scenario: Show app name and description
-### 场景：显示应用名称和描述
+### Scenario: Show app name and description | 场景：显示应用名称和描述
 
 - **WHEN** displaying about section
 - **操作**：显示关于部分
@@ -97,15 +87,13 @@ The system SHALL show application version and build information.
 
 ---
 
-## Requirement: Provide navigation to device management
-## 需求：提供到设备管理的导航
+## Requirement: Provide navigation to device management | 需求：提供到设备管理的导航
 
 The system SHALL link to the device management interface.
 
 系统应链接到设备管理界面。
 
-### Scenario: Navigate to device manager
-### 场景：导航到设备管理器
+### Scenario: Navigate to device manager | 场景：导航到设备管理器
 
 - **WHEN** user taps "Manage Devices" option
 - **操作**：用户点击"管理设备"选项
@@ -114,15 +102,13 @@ The system SHALL link to the device management interface.
 
 ---
 
-## Requirement: Support data management actions
-## 需求：支持数据管理操作
+## Requirement: Support data management actions | 需求：支持数据管理操作
 
 The system SHALL provide options for managing application data.
 
 系统应提供管理应用程序数据的选项。
 
-### Scenario: Clear local cache
-### 场景：清除本地缓存
+### Scenario: Clear local cache | 场景：清除本地缓存
 
 - **WHEN** user selects "Clear Cache" option
 - **操作**：用户选择"清除缓存"选项
@@ -131,8 +117,7 @@ The system SHALL provide options for managing application data.
 - **AND** clear cached data upon confirmation
 - **并且**：确认后清除缓存数据
 
-### Scenario: Export data
-### 场景：导出数据
+### Scenario: Export data | 场景：导出数据
 
 - **WHEN** user selects "Export Data" option
 - **操作**：用户选择"导出数据"选项
@@ -143,23 +128,20 @@ The system SHALL provide options for managing application data.
 
 ---
 
-## Requirement: Display legal and privacy information
-## 需求：显示法律和隐私信息
+## Requirement: Display legal and privacy information | 需求：显示法律和隐私信息
 
 The system SHALL provide access to legal documents and privacy policy.
 
 系统应提供访问法律文档和隐私政策的途径。
 
-### Scenario: Show privacy policy
-### 场景：显示隐私政策
+### Scenario: Show privacy policy | 场景：显示隐私政策
 
 - **WHEN** user selects "Privacy Policy" option
 - **操作**：用户选择"隐私政策"选项
 - **THEN** the system SHALL open privacy policy document
 - **预期结果**：系统应打开隐私政策文档
 
-### Scenario: Show terms of service
-### 场景：显示服务条款
+### Scenario: Show terms of service | 场景：显示服务条款
 
 - **WHEN** user selects "Terms of Service" option
 - **操作**：用户选择"服务条款"选项
@@ -168,15 +150,13 @@ The system SHALL provide access to legal documents and privacy policy.
 
 ---
 
-## Requirement: Organize settings into sections
-## 需求：将设置组织到部分
+## Requirement: Organize settings into sections | 需求：将设置组织到部分
 
 The system SHALL group related settings into logical sections.
 
 系统应将相关设置分组到逻辑部分。
 
-### Scenario: Display section headers
-### 场景：显示部分标题
+### Scenario: Display section headers | 场景：显示部分标题
 
 - **WHEN** rendering settings panel
 - **操作**：渲染设置面板

@@ -1,5 +1,4 @@
-# Device Manager Panel Specification
-# 设备管理面板规格
+# Device Manager Panel Specification | 设备管理面板规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active

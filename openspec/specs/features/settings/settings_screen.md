@@ -1,5 +1,4 @@
-# Settings Screen Specification
-# 设置屏幕规格
+# Settings Screen Specification | 设置屏幕规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,15 +15,13 @@ This specification defines the settings screen that provides comprehensive appli
 
 ---
 
-## Requirement: Display categorized settings
-## 需求：显示分类设置
+## Requirement: Display categorized settings | 需求：显示分类设置
 
 The system SHALL organize settings into logical categories for easy navigation.
 
 系统应将设置组织到逻辑类别中以便于导航。
 
-### Scenario: Show settings sections
-### 场景：显示设置部分
+### Scenario: Show settings sections | 场景：显示设置部分
 
 - **WHEN** settings screen loads
 - **操作**：设置屏幕加载
@@ -33,15 +30,13 @@ The system SHALL organize settings into logical categories for easy navigation.
 
 ---
 
-## Requirement: Appearance settings
-## 需求：外观设置
+## Requirement: Appearance settings | 需求：外观设置
 
 The system SHALL provide theme and display customization options.
 
 系统应提供主题和显示自定义选项。
 
-### Scenario: Toggle theme mode
-### 场景：切换主题模式
+### Scenario: Toggle theme mode | 场景：切换主题模式
 
 - **WHEN** user toggles theme setting
 - **操作**：用户切换主题设置
@@ -50,8 +45,7 @@ The system SHALL provide theme and display customization options.
 - **AND** apply the theme immediately
 - **并且**：立即应用主题
 
-### Scenario: Adjust text size
-### 场景：调整文本大小
+### Scenario: Adjust text size | 场景：调整文本大小
 
 - **WHEN** user changes text size setting
 - **操作**：用户更改文本大小设置
@@ -62,23 +56,20 @@ The system SHALL provide theme and display customization options.
 
 ---
 
-## Requirement: Device management access
-## 需求：设备管理访问
+## Requirement: Device management access | 需求：设备管理访问
 
 The system SHALL provide navigation to device management interface.
 
 系统应提供到设备管理界面的导航。
 
-### Scenario: Navigate to device manager
-### 场景：导航到设备管理器
+### Scenario: Navigate to device manager | 场景：导航到设备管理器
 
 - **WHEN** user selects "Manage Devices" option
 - **操作**：用户选择"管理设备"选项
 - **THEN** the system SHALL navigate to device management screen
 - **预期结果**：系统应导航到设备管理屏幕
 
-### Scenario: Show current device info
-### 场景：显示当前设备信息
+### Scenario: Show current device info | 场景：显示当前设备信息
 
 - **WHEN** displaying device settings
 - **操作**：显示设备设置
@@ -87,31 +78,27 @@ The system SHALL provide navigation to device management interface.
 
 ---
 
-## Requirement: Synchronization settings
-## 需求：同步设置
+## Requirement: Synchronization settings | 需求：同步设置
 
 The system SHALL provide sync configuration options.
 
 系统应提供同步配置选项。
 
-### Scenario: Configure auto-sync
-### 场景：配置自动同步
+### Scenario: Configure auto-sync | 场景：配置自动同步
 
 - **WHEN** user toggles auto-sync
 - **操作**：用户切换自动同步
 - **THEN** the system SHALL enable or disable automatic synchronization
 - **预期结果**：系统应启用或禁用自动同步
 
-### Scenario: Set sync preferences
-### 场景：设置同步偏好
+### Scenario: Set sync preferences | 场景：设置同步偏好
 
 - **WHEN** user modifies sync settings
 - **操作**：用户修改同步设置
 - **THEN** the system SHALL allow configuration of sync frequency, network preferences, etc.
 - **预期结果**：系统应允许配置同步频率、网络偏好等
 
-### Scenario: Navigate to sync details
-### 场景：导航到同步详情
+### Scenario: Navigate to sync details | 场景：导航到同步详情
 
 - **WHEN** user selects "Sync Details" option
 - **操作**：用户选择"同步详情"选项
@@ -120,15 +107,13 @@ The system SHALL provide sync configuration options.
 
 ---
 
-## Requirement: Data management
-## 需求：数据管理
+## Requirement: Data management | 需求：数据管理
 
 The system SHALL provide options for managing application data.
 
 系统应提供管理应用程序数据的选项。
 
-### Scenario: View storage usage
-### 场景：查看存储使用情况
+### Scenario: View storage usage | 场景：查看存储使用情况
 
 - **WHEN** displaying data settings
 - **操作**：显示数据设置
@@ -137,8 +122,7 @@ The system SHALL provide options for managing application data.
 - **AND** break down by categories (cards, attachments, cache)
 - **并且**：按类别细分（卡片、附件、缓存）
 
-### Scenario: Clear cache
-### 场景：清除缓存
+### Scenario: Clear cache | 场景：清除缓存
 
 - **WHEN** user selects "Clear Cache"
 - **操作**：用户选择"清除缓存"
@@ -147,8 +131,7 @@ The system SHALL provide options for managing application data.
 - **AND** clear cached data upon confirmation
 - **并且**：确认后清除缓存数据
 
-### Scenario: Export all data
-### 场景：导出所有数据
+### Scenario: Export all data | 场景：导出所有数据
 
 - **WHEN** user selects "Export Data"
 - **操作**：用户选择"导出数据"
@@ -157,8 +140,7 @@ The system SHALL provide options for managing application data.
 - **AND** save exported data to user-selected location
 - **并且**：将导出的数据保存到用户选择的位置
 
-### Scenario: Import data
-### 场景：导入数据
+### Scenario: Import data | 场景：导入数据
 
 - **WHEN** user selects "Import Data"
 - **操作**：用户选择"导入数据"
@@ -169,31 +151,27 @@ The system SHALL provide options for managing application data.
 
 ---
 
-## Requirement: About information
-## 需求：关于信息
+## Requirement: About information | 需求：关于信息
 
 The system SHALL display application and legal information.
 
 系统应显示应用程序和法律信息。
 
-### Scenario: Show app version
-### 场景：显示应用版本
+### Scenario: Show app version | 场景：显示应用版本
 
 - **WHEN** viewing about section
 - **操作**：查看关于部分
 - **THEN** the system SHALL display app version, build number, and release date
 - **预期结果**：系统应显示应用版本、构建号和发布日期
 
-### Scenario: Show licenses
-### 场景：显示许可证
+### Scenario: Show licenses | 场景：显示许可证
 
 - **WHEN** user selects "Open Source Licenses"
 - **操作**：用户选择"开源许可证"
 - **THEN** the system SHALL display third-party licenses
 - **预期结果**：系统应显示第三方许可证
 
-### Scenario: Access support
-### 场景：访问支持
+### Scenario: Access support | 场景：访问支持
 
 - **WHEN** user selects "Help & Support"
 - **操作**：用户选择"帮助与支持"
@@ -228,8 +206,7 @@ The system SHALL provide links to privacy policy and terms of service.
 
 系统应提供隐私政策和服务条款的链接。
 
-### Scenario: View privacy policy
-### 场景：查看隐私政策
+### Scenario: View privacy policy | 场景：查看隐私政策
 
 - **WHEN** user selects "Privacy Policy"
 - **操作**：用户选择"隐私政策"

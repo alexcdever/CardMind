@@ -1,5 +1,4 @@
-# Sync Screen Specification
-# 同步屏幕规格
+# Sync Screen Specification | 同步屏幕规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,15 +15,13 @@ This specification defines a dedicated screen showing comprehensive synchronizat
 
 ---
 
-## Requirement: Display comprehensive sync status
-## 需求：显示全面的同步状态
+## Requirement: Display comprehensive sync status | 需求：显示全面的同步状态
 
 The system SHALL provide a dedicated screen showing detailed synchronization information.
 
 系统应提供显示详细同步信息的专用屏幕。
 
-### Scenario: Show overall sync status
-### 场景：显示整体同步状态
+### Scenario: Show overall sync status | 场景：显示整体同步状态
 
 - **WHEN** sync screen loads
 - **操作**：同步屏幕加载
@@ -37,15 +34,13 @@ The system SHALL provide a dedicated screen showing detailed synchronization inf
 
 ---
 
-## Requirement: List discovered devices
-## 需求：列出发现的设备
+## Requirement: List discovered devices | 需求：列出发现的设备
 
 The system SHALL show all discovered peer devices and their connection status.
 
 系统应显示所有发现的对等设备及其连接状态。
 
-### Scenario: Display device list
-### 场景：显示设备列表
+### Scenario: Display device list | 场景：显示设备列表
 
 - **WHEN** sync screen loads
 - **操作**：同步屏幕加载
@@ -58,8 +53,7 @@ The system SHALL show all discovered peer devices and their connection status.
 - **AND** show last seen timestamp for offline devices
 - **并且**：显示离线设备的上次可见时间戳
 
-### Scenario: Refresh device list
-### 场景：刷新设备列表
+### Scenario: Refresh device list | 场景：刷新设备列表
 
 - **WHEN** user triggers refresh action
 - **操作**：用户触发刷新操作
@@ -70,15 +64,13 @@ The system SHALL show all discovered peer devices and their connection status.
 
 ---
 
-## Requirement: Show sync history
-## 需求：显示同步历史
+## Requirement: Show sync history | 需求：显示同步历史
 
 The system SHALL display a chronological list of recent sync events.
 
 系统应显示最近同步事件的时间顺序列表。
 
-### Scenario: Display sync event log
-### 场景：显示同步事件日志
+### Scenario: Display sync event log | 场景：显示同步事件日志
 
 - **WHEN** viewing sync history section
 - **操作**：查看同步历史部分
@@ -89,8 +81,7 @@ The system SHALL display a chronological list of recent sync events.
 - **AND** show which device was involved in each sync
 - **并且**：显示每次同步涉及的设备
 
-### Scenario: Filter sync history
-### 场景：过滤同步历史
+### Scenario: Filter sync history | 场景：过滤同步历史
 
 - **WHEN** user applies history filters
 - **操作**：用户应用历史过滤器
@@ -99,15 +90,13 @@ The system SHALL display a chronological list of recent sync events.
 
 ---
 
-## Requirement: Provide manual sync controls
-## 需求：提供手动同步控制
+## Requirement: Provide manual sync controls | 需求：提供手动同步控制
 
 The system SHALL offer manual synchronization actions.
 
 系统应提供手动同步操作。
 
-### Scenario: Trigger manual sync
-### 场景：触发手动同步
+### Scenario: Trigger manual sync | 场景：触发手动同步
 
 - **WHEN** user taps "Sync Now" button
 - **操作**：用户点击"立即同步"按钮
@@ -118,8 +107,7 @@ The system SHALL offer manual synchronization actions.
 - **AND** update status when complete
 - **并且**：完成时更新状态
 
-### Scenario: Force full sync
-### 场景：强制完全同步
+### Scenario: Force full sync | 场景：强制完全同步
 
 - **WHEN** user triggers full sync action
 - **操作**：用户触发完全同步操作
@@ -130,15 +118,13 @@ The system SHALL offer manual synchronization actions.
 
 ---
 
-## Requirement: Display sync statistics
-## 需求：显示同步统计信息
+## Requirement: Display sync statistics | 需求：显示同步统计信息
 
 The system SHALL show synchronization metrics and statistics.
 
 系统应显示同步指标和统计信息。
 
-### Scenario: Show data volume
-### 场景：显示数据量
+### Scenario: Show data volume | 场景：显示数据量
 
 - **WHEN** displaying sync statistics
 - **操作**：显示同步统计信息
@@ -147,8 +133,7 @@ The system SHALL show synchronization metrics and statistics.
 - **AND** display data synced per device
 - **并且**：显示每个设备同步的数据
 
-### Scenario: Show sync success rate
-### 场景：显示同步成功率
+### Scenario: Show sync success rate | 场景：显示同步成功率
 
 - **WHEN** displaying sync statistics
 - **操作**：显示同步统计信息
@@ -159,23 +144,20 @@ The system SHALL show synchronization metrics and statistics.
 
 ---
 
-## Requirement: Configure sync settings
-## 需求：配置同步设置
+## Requirement: Configure sync settings | 需求：配置同步设置
 
 The system SHALL allow users to configure synchronization preferences.
 
 系统应允许用户配置同步首选项。
 
-### Scenario: Toggle auto-sync
-### 场景：切换自动同步
+### Scenario: Toggle auto-sync | 场景：切换自动同步
 
 - **WHEN** user toggles auto-sync setting
 - **操作**：用户切换自动同步设置
 - **THEN** the system SHALL enable or disable automatic synchronization
 - **预期结果**：系统应启用或禁用自动同步
 
-### Scenario: Set sync frequency
-### 场景：设置同步频率
+### Scenario: Set sync frequency | 场景：设置同步频率
 
 - **WHEN** auto-sync is enabled
 - **操作**：自动同步已启用
@@ -184,15 +166,13 @@ The system SHALL allow users to configure synchronization preferences.
 
 ---
 
-## Requirement: Show sync conflicts
-## 需求：显示同步冲突
+## Requirement: Show sync conflicts | 需求：显示同步冲突
 
 The system SHALL display and help resolve synchronization conflicts.
 
 系统应显示并帮助解决同步冲突。
 
-### Scenario: List conflicts
-### 场景：列出冲突
+### Scenario: List conflicts | 场景：列出冲突
 
 - **WHEN** sync conflicts exist
 - **操作**：存在同步冲突
@@ -201,8 +181,7 @@ The system SHALL display and help resolve synchronization conflicts.
 - **AND** list all unresolved conflicts
 - **并且**：列出所有未解决的冲突
 
-### Scenario: View conflict details
-### 场景：查看冲突详情
+### Scenario: View conflict details | 场景：查看冲突详情
 
 - **WHEN** user taps on a conflict
 - **操作**：用户点击冲突

@@ -1,4 +1,5 @@
 # ADR-0002: Dual-Layer Architecture
+# ADR-0002：双层架构
 
 **Status**: Accepted  
 **Date**: 2024-12-31  
@@ -6,7 +7,7 @@
 
 ---
 
-## Context
+## Context | 上下文
 
 CardMind's data layer must balance two core requirements:
 1. **Distributed Sync**: Multi-device P2P sync, offline editing, automatic conflict resolution
@@ -14,7 +15,7 @@ CardMind's data layer must balance two core requirements:
 
 ---
 
-## Decision
+## Decision | 决策
 
 **Adopt Dual-Layer Architecture**:
 
@@ -77,9 +78,9 @@ The system SHALL route all read operations through the SQLite cache.
 
 ---
 
-## Technical Details
+## Technical Details | 技术细节
 
-### Loro CRDT Layer (Write)
+### Loro CRDT Layer (Write) | Loro CRDT 层（写入）
 
 **Responsibilities**:
 - Receive all write operations

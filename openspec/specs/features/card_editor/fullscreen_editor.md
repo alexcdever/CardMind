@@ -1,5 +1,4 @@
-# Fullscreen Editor Specification
-# 全屏编辑器规格
+# Fullscreen Editor Specification | 全屏编辑器规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,23 +15,20 @@ This specification defines the fullscreen editor for mobile platforms, providing
 
 ---
 
-## Requirement: Provide immersive fullscreen editing experience
-## 需求：提供沉浸式全屏编辑体验
+## Requirement: Provide immersive fullscreen editing experience | 需求：提供沉浸式全屏编辑体验
 
 The system SHALL provide a fullscreen editor optimized for mobile platforms with minimal distractions.
 
 系统应提供针对移动平台优化的全屏编辑器，减少干扰。
 
-### Scenario: Open editor with existing card
-### 场景：打开现有卡片的编辑器
+### Scenario: Open editor with existing card | 场景：打开现有卡片的编辑器
 
 - **WHEN** user opens the fullscreen editor with an existing card
 - **操作**：用户打开包含现有卡片的全屏编辑器
 - **THEN** the system SHALL pre-populate title and content fields with the card's current data
 - **预期结果**：系统应使用卡片的当前数据预填充标题和内容字段
 
-### Scenario: Open editor for new card
-### 场景：打开新卡片编辑器
+### Scenario: Open editor for new card | 场景：打开新卡片编辑器
 
 - **WHEN** user opens the fullscreen editor without a card
 - **操作**：用户打开不含卡片的全屏编辑器
@@ -41,23 +37,20 @@ The system SHALL provide a fullscreen editor optimized for mobile platforms with
 
 ---
 
-## Requirement: Auto-save draft periodically
-## 需求：定期自动保存草稿
+## Requirement: Auto-save draft periodically | 需求：定期自动保存草稿
 
 The system SHALL automatically save draft content to prevent data loss during editing.
 
 系统应自动保存草稿内容，以防止编辑期间数据丢失。
 
-### Scenario: Auto-save after content change
-### 场景：内容更改后自动保存
+### Scenario: Auto-save after content change | 场景：内容更改后自动保存
 
 - **WHEN** user modifies title or content
 - **操作**：用户修改标题或内容
 - **THEN** the system SHALL trigger auto-save after 2 seconds of inactivity
 - **预期结果**：系统应在 2 秒无活动后触发自动保存
 
-### Scenario: Restore draft on re-open
-### 场景：重新打开时恢复草稿
+### Scenario: Restore draft on re-open | 场景：重新打开时恢复草稿
 
 - **WHEN** user closes editor without saving and reopens
 - **操作**：用户未保存关闭编辑器并重新打开
@@ -66,23 +59,20 @@ The system SHALL automatically save draft content to prevent data loss during ed
 
 ---
 
-## Requirement: Manage tags within editor
-## 需求：在编辑器内管理标签
+## Requirement: Manage tags within editor | 需求：在编辑器内管理标签
 
 The system SHALL provide tag management functionality within the fullscreen editor.
 
 系统应在全屏编辑器内提供标签管理功能。
 
-### Scenario: Add tag during editing
-### 场景：编辑时添加标签
+### Scenario: Add tag during editing | 场景：编辑时添加标签
 
 - **WHEN** user adds a tag in the editor
 - **操作**：用户在编辑器中添加标签
 - **THEN** the tag SHALL be included when saving the card
 - **预期结果**：保存卡片时应包含该标签
 
-### Scenario: Remove tag during editing
-### 场景：编辑时移除标签
+### Scenario: Remove tag during editing | 场景：编辑时移除标签
 
 - **WHEN** user removes a tag in the editor
 - **操作**：用户在编辑器中移除标签
@@ -91,15 +81,13 @@ The system SHALL provide tag management functionality within the fullscreen edit
 
 ---
 
-## Requirement: Save and cancel actions
-## 需求：保存和取消操作
+## Requirement: Save and cancel actions | 需求：保存和取消操作
 
 The system SHALL provide explicit save and cancel actions.
 
 系统应提供明确的保存和取消操作。
 
-### Scenario: Save edited card
-### 场景：保存编辑的卡片
+### Scenario: Save edited card | 场景：保存编辑的卡片
 
 - **WHEN** user taps the save button
 - **操作**：用户点击保存按钮
@@ -108,8 +96,7 @@ The system SHALL provide explicit save and cancel actions.
 - **AND** close the fullscreen editor
 - **并且**：关闭全屏编辑器
 
-### Scenario: Cancel editing
-### 场景：取消编辑
+### Scenario: Cancel editing | 场景：取消编辑
 
 - **WHEN** user taps the cancel button
 - **操作**：用户点击取消按钮
@@ -122,23 +109,20 @@ The system SHALL provide explicit save and cancel actions.
 
 ---
 
-## Requirement: Keyboard optimization
-## 需求：键盘优化
+## Requirement: Keyboard optimization | 需求：键盘优化
 
 The system SHALL optimize keyboard behavior for efficient mobile editing.
 
 系统应优化键盘行为以实现高效的移动编辑。
 
-### Scenario: Auto-focus on title field
-### 场景：自动聚焦标题字段
+### Scenario: Auto-focus on title field | 场景：自动聚焦标题字段
 
 - **WHEN** editor opens for a new card
 - **操作**：为新卡片打开编辑器
 - **THEN** the system SHALL automatically focus the title field and show the keyboard
 - **预期结果**：系统应自动聚焦标题字段并显示键盘
 
-### Scenario: Maintain keyboard across field transitions
-### 场景：字段转换时保持键盘显示
+### Scenario: Maintain keyboard across field transitions | 场景：字段转换时保持键盘显示
 
 - **WHEN** user moves from title to content field
 - **操作**：用户从标题字段移动到内容字段

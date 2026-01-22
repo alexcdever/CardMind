@@ -1,4 +1,5 @@
 # ADR-0004: UI Design System
+# ADR-0004：UI 设计系统
 
 **Status**: Accepted  
 **Date**: 2026-01-08  
@@ -6,15 +7,15 @@
 
 ---
 
-## Overview
+## Overview | 概述
 
 This document records UI design system decisions including colors, typography, spacing, and layout.
 
 ---
 
-## 1. Color System
+## 1. Color System | 颜色系统
 
-### Primary Color: Teal
+### Primary Color: Teal | 主色：青色
 
 **Decision**: Use **Teal (#00BFA5)** as the primary color.
 
@@ -40,9 +41,9 @@ The system SHALL use consistent color semantics.
 
 ---
 
-## 2. Typography
+## 2. Typography | 排版
 
-### Font Family
+### Font Family | 字体系列
 
 **Decision**: Use platform-native system fonts.
 
@@ -68,7 +69,7 @@ The system SHALL use consistent typography hierarchy.
 
 ---
 
-## 3. Spacing System
+## 3. Spacing System | 间距系统
 
 ### Grid Baseline
 

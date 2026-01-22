@@ -1,5 +1,4 @@
-# Mobile Navigation Specification
-# 移动端导航规格
+# Mobile Navigation Specification | 移动端导航规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,15 +15,13 @@ This specification defines the mobile bottom navigation bar component that provi
 
 ---
 
-## Requirement: Display bottom navigation bar with three tabs
-## 需求：显示带有三个标签页的底部导航栏
+## Requirement: Display bottom navigation bar with three tabs | 需求：显示带有三个标签页的底部导航栏
 
 The system SHALL provide a mobile bottom navigation bar with three main sections.
 
 系统应提供带有三个主要部分的移动端底部导航栏。
 
-### Scenario: Show navigation tabs
-### 场景：显示导航标签页
+### Scenario: Show navigation tabs | 场景：显示导航标签页
 
 - **WHEN** rendering mobile navigation
 - **操作**：渲染移动端导航
@@ -33,8 +30,7 @@ The system SHALL provide a mobile bottom navigation bar with three main sections
 - **AND** position them evenly across the bottom bar
 - **并且**：将它们均匀分布在底部栏上
 
-### Scenario: Highlight active tab
-### 场景：高亮激活的标签页
+### Scenario: Highlight active tab | 场景：高亮激活的标签页
 
 - **WHEN** a tab is active
 - **操作**：标签页处于激活状态
@@ -45,31 +41,27 @@ The system SHALL provide a mobile bottom navigation bar with three main sections
 
 ---
 
-## Requirement: Show badge counts on tabs
-## 需求：在标签页上显示徽章计数
+## Requirement: Show badge counts on tabs | 需求：在标签页上显示徽章计数
 
 The system SHALL display badge counts for relevant tabs.
 
 系统应为相关标签页显示徽章计数。
 
-### Scenario: Show note count on Notes tab
-### 场景：在笔记标签页上显示笔记数量
+### Scenario: Show note count on Notes tab | 场景：在笔记标签页上显示笔记数量
 
 - **WHEN** displaying Notes tab
 - **操作**：显示笔记标签页
 - **THEN** the system SHALL show a badge with the total number of notes
 - **预期结果**：系统应显示带有笔记总数的徽章
 
-### Scenario: Show device count on Devices tab
-### 场景：在设备标签页上显示设备数量
+### Scenario: Show device count on Devices tab | 场景：在设备标签页上显示设备数量
 
 - **WHEN** displaying Devices tab
 - **操作**：显示设备标签页
 - **THEN** the system SHALL show a badge with the number of paired devices
 - **预期结果**：系统应显示带有配对设备数量的徽章
 
-### Scenario: Hide badge when count is zero
-### 场景：计数为零时隐藏徽章
+### Scenario: Hide badge when count is zero | 场景：计数为零时隐藏徽章
 
 - **WHEN** a tab's count is zero
 - **操作**：标签页的计数为零
@@ -78,15 +70,13 @@ The system SHALL display badge counts for relevant tabs.
 
 ---
 
-## Requirement: Handle tab selection
-## 需求：处理标签页选择
+## Requirement: Handle tab selection | 需求：处理标签页选择
 
 The system SHALL respond to user tab selections and notify the parent component.
 
 系统应响应用户的标签页选择并通知父组件。
 
-### Scenario: Switch to different tab
-### 场景：切换到不同的标签页
+### Scenario: Switch to different tab | 场景：切换到不同的标签页
 
 - **WHEN** user taps on a non-active tab
 - **操作**：用户点击非激活标签页
@@ -95,8 +85,7 @@ The system SHALL respond to user tab selections and notify the parent component.
 - **AND** update the active tab visual state
 - **并且**：更新激活标签页的视觉状态
 
-### Scenario: Tap on already active tab
-### 场景：点击已激活的标签页
+### Scenario: Tap on already active tab | 场景：点击已激活的标签页
 
 - **WHEN** user taps on the currently active tab
 - **操作**：用户点击当前激活的标签页
@@ -107,15 +96,13 @@ The system SHALL respond to user tab selections and notify the parent component.
 
 ---
 
-## Requirement: Use appropriate icons for tabs
-## 需求：为标签页使用适当的图标
+## Requirement: Use appropriate icons for tabs | 需求：为标签页使用适当的图标
 
 The system SHALL display semantic icons for each navigation tab.
 
 系统应为每个导航标签页显示语义化图标。
 
-### Scenario: Display tab icons
-### 场景：显示标签页图标
+### Scenario: Display tab icons | 场景：显示标签页图标
 
 - **WHEN** rendering navigation tabs
 - **操作**：渲染导航标签页
@@ -126,8 +113,7 @@ The system SHALL display semantic icons for each navigation tab.
 - **AND** show a settings icon for the Settings tab
 - **并且**：为设置标签页显示设置图标
 
-### Scenario: Icon state transition
-### 场景：图标状态转换
+### Scenario: Icon state transition | 场景：图标状态转换
 
 - **WHEN** switching between tabs
 - **操作**：在标签页之间切换
@@ -138,15 +124,13 @@ The system SHALL display semantic icons for each navigation tab.
 
 ---
 
-## Requirement: Provide safe area insets
-## 需求：提供安全区域内边距
+## Requirement: Provide safe area insets | 需求：提供安全区域内边距
 
 The system SHALL respect device safe area to avoid interfering with system gestures or notches.
 
 系统应遵守设备安全区域，以避免干扰系统手势或刘海。
 
-### Scenario: Apply safe area padding
-### 场景：应用安全区域内边距
+### Scenario: Apply safe area padding | 场景：应用安全区域内边距
 
 - **WHEN** rendering on devices with bottom safe area (e.g., iPhone with home indicator)
 - **操作**：在带有底部安全区域的设备上渲染（例如带主页指示器的 iPhone）

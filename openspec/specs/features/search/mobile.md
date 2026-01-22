@@ -1,5 +1,4 @@
-# Mobile Search Specification
-# 移动端搜索规格
+# Mobile Search Specification | 移动端搜索规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -29,15 +28,13 @@ Define mobile search feature specifications to ensure:
 
 ## 2. Search Entry | 搜索入口
 
-### Requirement: Mobile SHALL use search overlay
-### 需求：移动端应使用搜索覆盖模式
+### Requirement: Mobile SHALL use search overlay | 需求：移动端应使用搜索覆盖模式
 
 Mobile SHALL use search overlay mode.
 
 移动端应使用搜索覆盖模式。
 
-#### Scenario: Search icon in app bar
-#### 场景：搜索图标在应用栏中
+#### Scenario: Search icon in app bar | 场景：搜索图标在应用栏中
 
 - **GIVEN** user is on home screen
 - **前置条件**：用户在主屏幕上
@@ -48,8 +45,7 @@ Mobile SHALL use search overlay mode.
 - **AND** icon SHALL be on right side
 - **并且**：图标应在右侧
 
-#### Scenario: Tapping icon opens overlay
-#### 场景：点击图标打开覆盖层
+#### Scenario: Tapping icon opens overlay | 场景：点击图标打开覆盖层
 
 - **GIVEN** user taps search icon
 - **前置条件**：用户点击搜索图标

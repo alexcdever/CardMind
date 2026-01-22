@@ -1,5 +1,4 @@
-# Mobile Card Editor Specification
-# 移动端卡片编辑器规格
+# Mobile Card Editor Specification | 移动端卡片编辑器规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -30,15 +29,13 @@ Define mobile fullscreen card editor specifications to ensure:
 
 ## 2. Editor Layout | 编辑器布局
 
-### Requirement: Mobile editor SHALL use fullscreen layout
-### 需求：移动端编辑器应使用全屏布局
+### Requirement: Mobile editor SHALL use fullscreen layout | 需求：移动端编辑器应使用全屏布局
 
 Mobile editor SHALL use fullscreen layout.
 
 移动端编辑器应使用全屏布局。
 
-#### Scenario: Editor occupies full screen
-#### 场景：编辑器占据全屏
+#### Scenario: Editor occupies full screen | 场景：编辑器占据全屏
 
 - **GIVEN** user opens editor
 - **前置条件**：用户打开编辑器
@@ -51,8 +48,7 @@ Mobile editor SHALL use fullscreen layout.
 - **AND** only app bar SHALL be visible
 - **并且**：只有应用栏应可见
 
-#### Scenario: Title field is at top
-#### 场景：标题字段在顶部
+#### Scenario: Title field is at top | 场景：标题字段在顶部
 
 - **GIVEN** editor is open
 - **前置条件**：编辑器已打开
@@ -65,8 +61,7 @@ Mobile editor SHALL use fullscreen layout.
 - **AND** field SHALL have single line
 - **并且**：字段应为单行
 
-#### Scenario: Content field is below title
-#### 场景：内容字段在标题下方
+#### Scenario: Content field is below title | 场景：内容字段在标题下方
 
 - **GIVEN** editor is open
 - **前置条件**：编辑器已打开
@@ -83,15 +78,13 @@ Mobile editor SHALL use fullscreen layout.
 
 ## 3. Auto-save | 自动保存
 
-### Requirement: Mobile editor SHALL auto-save
-### 需求：移动端编辑器应自动保存
+### Requirement: Mobile editor SHALL auto-save | 需求：移动端编辑器应自动保存
 
 Mobile editor SHALL auto-save user input.
 
 移动端编辑器应自动保存用户输入。
 
-#### Scenario: Auto-save triggers after 500ms
-#### 场景：500ms 后触发自动保存
+#### Scenario: Auto-save triggers after 500ms | 场景：500ms 后触发自动保存
 
 - **GIVEN** user is typing
 - **前置条件**：用户正在输入
@@ -102,8 +95,7 @@ Mobile editor SHALL auto-save user input.
 - **AND** indicator SHALL show "自动保存中..."
 - **并且**：指示器应显示"自动保存中..."
 
-#### Scenario: Auto-save debounces typing
-#### 场景：自动保存防抖输入
+#### Scenario: Auto-save debounces typing | 场景：自动保存防抖输入
 
 - **GIVEN** user types continuously
 - **前置条件**：用户连续输入
@@ -114,8 +106,7 @@ Mobile editor SHALL auto-save user input.
 - **AND** timer SHALL reset on each keystroke
 - **并且**：每次按键应重置计时器
 
-#### Scenario: Auto-save shows success
-#### 场景：自动保存显示成功
+#### Scenario: Auto-save shows success | 场景：自动保存显示成功
 
 - **GIVEN** save completes
 - **前置条件**：保存完成
@@ -130,15 +121,13 @@ Mobile editor SHALL auto-save user input.
 
 ## 4. Keyboard Interaction | 键盘交互
 
-### Requirement: Mobile editor SHALL handle keyboard
-### 需求：移动端编辑器应处理键盘
+### Requirement: Mobile editor SHALL handle keyboard | 需求：移动端编辑器应处理键盘
 
 Mobile editor SHALL gracefully handle keyboard display and hide.
 
 移动端编辑器应优雅处理键盘显示和隐藏。
 
-#### Scenario: Keyboard appears on editor open
-#### 场景：打开编辑器时显示键盘
+#### Scenario: Keyboard appears on editor open | 场景：打开编辑器时显示键盘
 
 - **GIVEN** user opens editor
 - **前置条件**：用户打开编辑器
@@ -149,8 +138,7 @@ Mobile editor SHALL gracefully handle keyboard display and hide.
 - **AND** title field SHALL have focus
 - **并且**：标题字段应获得焦点
 
-#### Scenario: Layout adjusts for keyboard
-#### 场景：布局为键盘调整
+#### Scenario: Layout adjusts for keyboard | 场景：布局为键盘调整
 
 - **GIVEN** keyboard is shown
 - **前置条件**：键盘已显示
@@ -163,8 +151,7 @@ Mobile editor SHALL gracefully handle keyboard display and hide.
 - **AND** no content SHALL be hidden
 - **并且**：不应有内容被隐藏
 
-#### Scenario: Tapping outside dismisses keyboard
-#### 场景：点击外部关闭键盘
+#### Scenario: Tapping outside dismisses keyboard | 场景：点击外部关闭键盘
 
 - **GIVEN** keyboard is shown
 - **前置条件**：键盘已显示
@@ -179,15 +166,13 @@ Mobile editor SHALL gracefully handle keyboard display and hide.
 
 ## 5. Input Validation | 输入验证
 
-### Requirement: Mobile editor SHALL validate input
-### 需求：移动端编辑器应验证输入
+### Requirement: Mobile editor SHALL validate input | 需求：移动端编辑器应验证输入
 
 Mobile editor SHALL validate user input.
 
 移动端编辑器应验证用户输入。
 
-#### Scenario: Empty title prevents save
-#### 场景：空标题阻止保存
+#### Scenario: Empty title prevents save | 场景：空标题阻止保存
 
 - **GIVEN** title is empty
 - **前置条件**：标题为空
@@ -198,8 +183,7 @@ Mobile editor SHALL validate user input.
 - **AND** no save SHALL occur
 - **并且**：不应发生保存
 
-#### Scenario: Title with whitespace is invalid
-#### 场景：只有空格的标题无效
+#### Scenario: Title with whitespace is invalid | 场景：只有空格的标题无效
 
 - **GIVEN** title has only spaces
 - **前置条件**：标题只有空格
@@ -210,8 +194,7 @@ Mobile editor SHALL validate user input.
 - **AND** system SHALL trim whitespace
 - **并且**：系统应修剪空格
 
-#### Scenario: Empty content is allowed
-#### 场景：允许空内容
+#### Scenario: Empty content is allowed | 场景：允许空内容
 
 - **GIVEN** content is empty
 - **前置条件**：内容为空

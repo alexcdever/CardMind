@@ -1,3 +1,4 @@
+# Spec Coding Implementation Summary
 # Spec Coding 实施总结
 
 > **⚠️ 历史文档**: 本文档记录了原始 Spec Coding 实施过程。文档中的路径引用已迁移到新的领域驱动结构。

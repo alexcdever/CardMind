@@ -16,8 +16,7 @@ This specification defines the Single Pool Model, where each card belongs to exa
 
 ---
 
-## Requirement: Single Pool Constraint
-## 需求：单池约束
+## Requirement: Single Pool Constraint | 需求：单池约束
 
 The system SHALL enforce that a device can join at most one pool for personal note-taking.
 
@@ -49,8 +48,7 @@ The system SHALL enforce that a device can join at most one pool for personal no
 
 ---
 
-## Requirement: Card Creation in Resident Pool
-## 需求：在常驻池中创建卡片
+## Requirement: Card Creation in Resident Pool | 需求：在常驻池中创建卡片
 
 When a device creates a new card, it SHALL automatically belong to the device's resident pool.
 
@@ -82,8 +80,7 @@ When a device creates a new card, it SHALL automatically belong to the device's 
 
 ---
 
-## Requirement: Device Leaving Pool
-## 需求：设备离开池
+## Requirement: Device Leaving Pool | 需求：设备离开池
 
 When a device leaves a pool, the system SHALL clear all data associated with that pool.
 

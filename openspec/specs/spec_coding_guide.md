@@ -1,4 +1,4 @@
-# Spec Coding 实施指南
+# Spec Coding Implementation Guide | Spec Coding 实施指南
 
 > **⚠️ 路径更新**: 本文档中的路径示例基于旧的规格结构。当前规格已迁移到领域驱动组织。
 >

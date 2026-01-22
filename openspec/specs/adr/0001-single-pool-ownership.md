@@ -1,4 +1,5 @@
 # ADR-0001: Single Pool Ownership Model
+# ADR-0001：单池所有权模型
 
 **Status**: Accepted  
 **Date**: 2026-01-09  
@@ -6,14 +7,14 @@
 
 ---
 
-## Context
+## Context | 上下文
 
 CardMind is designed for **individual users** with multiple devices:
 - Personal note-taking across devices (phone, tablet, computer)
 - P2P decentralized sync without central servers
 - Offline-first, data completely self-owned
 
-### Problem Background
+### Problem Background | 问题背景
 
 **Previous Design** allowed cards to belong to multiple pools:
 ```rust
@@ -28,7 +29,7 @@ DeviceConfig {
 }
 ```
 
-### Issues Identified
+### Issues Identified | 识别的问题
 
 1. **Removal propagation fails**: When a device removes a card from a pool, devices that only joined that pool never receive the removal event because SyncFilter excludes cards not belonging to their pools.
 
@@ -38,7 +39,7 @@ DeviceConfig {
 
 ---
 
-## Decision
+## Decision | 决策
 
 **Adopt Single Pool Ownership Model**:
 - Each **card** belongs to exactly **one** pool
@@ -79,7 +80,7 @@ A device MAY join multiple pools for syncing purposes.
 
 ---
 
-## Alternatives Considered
+## Alternatives Considered | 考虑的替代方案
 
 | Alternative | Why Rejected |
 |-------------|--------------|
@@ -89,14 +90,14 @@ A device MAY join multiple pools for syncing purposes.
 
 ---
 
-## Consequences
+## Consequences | 后果
 
-### Benefits
+### Benefits | 优势
 - Simple mental model: one user = one pool
 - Reliable sync semantics (removals always propagate)
 - Reduced implementation complexity
 
-### Drawbacks
+### Drawbacks | 缺点
 - Users cannot categorize notes into multiple pools
 - Switching between "contexts" requires leaving/joining pools
 

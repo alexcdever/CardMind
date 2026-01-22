@@ -1,5 +1,4 @@
-# Mobile FAB Specification
-# 移动端浮动操作按钮规格
+# Mobile FAB Specification | 移动端浮动操作按钮规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -29,15 +28,13 @@ Define mobile floating action button (FAB) specifications to ensure:
 
 ## 2. FAB Position and Style | FAB 位置和样式
 
-### Requirement: Mobile SHALL use FAB for primary action
-### 需求：移动端应使用 FAB 作为主要操作入口
+### Requirement: Mobile SHALL use FAB for primary action | 需求：移动端应使用 FAB 作为主要操作入口
 
 Mobile SHALL use FAB for primary action.
 
 移动端应使用 FAB 作为主要操作入口。
 
-#### Scenario: FAB is at bottom-right
-#### 场景：FAB 在右下角
+#### Scenario: FAB is at bottom-right | 场景：FAB 在右下角
 
 - **GIVEN** user is on home screen
 - **前置条件**：用户在主屏幕上
@@ -50,8 +47,7 @@ Mobile SHALL use FAB for primary action.
 - **AND** FAB SHALL use primary color
 - **并且**：FAB 应使用主色
 
-#### Scenario: FAB shows plus icon
-#### 场景：FAB 显示加号图标
+#### Scenario: FAB shows plus icon | 场景：FAB 显示加号图标
 
 - **GIVEN** FAB is displayed
 - **前置条件**：FAB 已显示
@@ -64,8 +60,7 @@ Mobile SHALL use FAB for primary action.
 - **AND** icon SHALL be 24x24 logical pixels
 - **并且**：图标应为 24x24 逻辑像素
 
-#### Scenario: FAB has elevation
-#### 场景：FAB 有高度
+#### Scenario: FAB has elevation | 场景：FAB 有高度
 
 - **GIVEN** FAB is displayed
 - **前置条件**：FAB 已显示
@@ -80,8 +75,7 @@ Mobile SHALL use FAB for primary action.
 
 ## 3. FAB Interaction | FAB 交互
 
-### Requirement: FAB SHALL respond to touch
-### 需求：FAB 应响应触摸交互
+### Requirement: FAB SHALL respond to touch | 需求：FAB 应响应触摸交互
 
 FAB SHALL respond to touch interaction.
 

@@ -1,4 +1,5 @@
 # ADR-0003: Technology Constraints
+# ADR-0003：技术约束
 
 **Status**: Accepted  
 **Date**: 2024-12-31  
@@ -6,23 +7,23 @@
 
 ---
 
-## Overview
+## Overview | 概述
 
 This document records CardMind's core technology stack decisions.
 
 ---
 
-## 1. CRDT: Loro
+## 1. CRDT: Loro | CRDT：Loro
 
-### Context
+### Context | 上下文
 
 Need offline multi-device editing, automatic merge on reconnection, decentralized sync, data never lost.
 
-### Decision
+### Decision | 决策
 
 **Use Loro CRDT** as the data sync engine.
 
-### Requirement: CRDT Operations
+### Requirement: CRDT Operations | 需求：CRDT 操作
 
 The system SHALL use Loro CRDT for all data synchronization.
 
@@ -40,17 +41,17 @@ The system SHALL use Loro CRDT for all data synchronization.
 
 ---
 
-## 2. Cache Layer: SQLite
+## 2. Cache Layer: SQLite | 缓存层：SQLite
 
-### Context
+### Context | 上下文
 
 Loro CRDT focuses on consistency and sync, not querying. Need fast list queries, full-text search, sorting, pagination.
 
-### Decision
+### Decision | 决策
 
 **Use SQLite** for query caching with FTS5 full-text search.
 
-### Requirement: Query Performance
+### Requirement: Query Performance | 需求：查询性能
 
 The system SHALL achieve query performance targets.
 
@@ -66,17 +67,17 @@ The system SHALL achieve query performance targets.
 
 ---
 
-## 3. ID Format: UUID v7
+## 3. ID Format: UUID v7 | ID 格式：UUID v7
 
-### Context
+### Context | 上下文
 
 Need time-ordered, conflict-free unique identifiers for all entities.
 
-### Decision
+### Decision | 决策
 
 **Use UUID v7** for all entity IDs.
 
-### Requirement: ID Generation
+### Requirement: ID Generation | 需求：ID 生成
 
 The system SHALL generate UUID v7 format IDs.
 
@@ -88,37 +89,37 @@ The system SHALL generate UUID v7 format IDs.
 
 ---
 
-## 4. Cross-Platform Bridge: flutter_rust_bridge
+## 4. Cross-Platform Bridge: flutter_rust_bridge | 跨平台桥接：flutter_rust_bridge
 
-### Context
+### Context | 上下文
 
 Need type-safe, efficient communication between Flutter and Rust.
 
-### Decision
+### Decision | 决策
 
 **Use flutter_rust_bridge** for code generation.
 
 ---
 
-## 5. Password Security: bcrypt + Keyring
+## 5. Password Security: bcrypt + Keyring | 密码安全：bcrypt + Keyring
 
-### Context
+### Context | 上下文
 
 Need secure password hashing and secure storage for pool passwords.
 
-### Decision
+### Decision | 决策
 
 **Use bcrypt** for hashing and platform Keyring for storage.
 
 ---
 
-## 6. Peer Discovery: mDNS
+## 6. Peer Discovery: mDNS | 对等发现：mDNS
 
-### Context
+### Context | 上下文
 
 Need automatic peer discovery on local network for P2P sync.
 
-### Decision
+### Decision | 决策
 
 **Use mDNS** for peer discovery.
 

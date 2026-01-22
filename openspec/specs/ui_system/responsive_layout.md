@@ -1,5 +1,4 @@
-# Desktop Layout Specification
-# 桌面端布局规格
+# Desktop Layout Specification | 桌面端布局规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -32,15 +31,13 @@ Define desktop layout specifications to ensure:
 
 ## 2. Three-Column Layout | 三栏布局
 
-### Requirement: Desktop SHALL use three-column layout
-### 需求：桌面端应使用三栏布局
+### Requirement: Desktop SHALL use three-column layout | 需求：桌面端应使用三栏布局
 
 Desktop SHALL use three-column layout.
 
 桌面端应使用三栏布局。
 
-#### Scenario: Left column shows device manager
-#### 场景：左栏显示设备管理器
+#### Scenario: Left column shows device manager | 场景：左栏显示设备管理器
 
 - **GIVEN** user is on desktop
 - **前置条件**：用户在桌面端
@@ -53,8 +50,7 @@ Desktop SHALL use three-column layout.
 - **AND** column SHALL be scrollable
 - **并且**：栏应可滚动
 
-#### Scenario: Middle column is reserved
-#### 场景：中栏预留
+#### Scenario: Middle column is reserved | 场景：中栏预留
 
 - **GIVEN** user is on desktop
 - **前置条件**：用户在桌面端
@@ -65,8 +61,7 @@ Desktop SHALL use three-column layout.
 - **AND** column SHALL expand to fill space
 - **并且**：栏应扩展填充空间
 
-#### Scenario: Right column shows card grid
-#### 场景：右栏显示卡片网格
+#### Scenario: Right column shows card grid | 场景：右栏显示卡片网格
 
 - **GIVEN** user is on desktop
 - **前置条件**：用户在桌面端
@@ -83,15 +78,13 @@ Desktop SHALL use three-column layout.
 
 ## 3. Column Width Adjustment | 列宽调整
 
-### Requirement: Columns SHALL be resizable
-### 需求：列应可调整宽度
+### Requirement: Columns SHALL be resizable | 需求：列应可调整宽度
 
 Columns SHALL be resizable.
 
 列应可调整宽度。
 
-#### Scenario: Columns have dividers
-#### 场景：列之间有分隔符
+#### Scenario: Columns have dividers | 场景：列之间有分隔符
 
 - **GIVEN** user is on desktop
 - **前置条件**：用户在桌面端
@@ -104,8 +97,7 @@ Columns SHALL be resizable.
 - **AND** dividers SHALL be gray
 - **并且**：分隔符应为灰色
 
-#### Scenario: Dragging divider resizes columns
-#### 场景：拖动分隔符调整列宽
+#### Scenario: Dragging divider resizes columns | 场景：拖动分隔符调整列宽
 
 - **GIVEN** user drags column divider
 - **前置条件**：用户拖动列分隔符
@@ -118,8 +110,7 @@ Columns SHALL be resizable.
 - **AND** cursor SHALL show resize icon
 - **并且**：光标应显示调整大小图标
 
-#### Scenario: Minimum widths are enforced
-#### 场景：强制执行最小宽度
+#### Scenario: Minimum widths are enforced | 场景：强制执行最小宽度
 
 - **GIVEN** user tries to resize very small
 - **前置条件**：用户尝试调整得非常小
@@ -136,15 +127,13 @@ Columns SHALL be resizable.
 
 ## 4. Window Size | 窗口大小
 
-### Requirement: Layout SHALL adapt to window size
-### 需求：布局应适应窗口大小
+### Requirement: Layout SHALL adapt to window size | 需求：布局应适应窗口大小
 
 Layout SHALL adapt to window size.
 
 布局应适应窗口大小。
 
-#### Scenario: Layout adapts to width
-#### 场景：布局适应宽度
+#### Scenario: Layout adapts to width | 场景：布局适应宽度
 
 - **GIVEN** user resizes window
 - **前置条件**：用户调整窗口大小
@@ -157,8 +146,7 @@ Layout SHALL adapt to window size.
 - **AND** no content SHALL be cut off
 - **并且**：不应有内容被截断
 
-#### Scenario: Minimum window size is enforced
-#### 场景：强制执行最小窗口大小
+#### Scenario: Minimum window size is enforced | 场景：强制执行最小窗口大小
 
 - **GIVEN** user tries to resize very small
 - **前置条件**：用户尝试调整得非常小
@@ -169,8 +157,7 @@ Layout SHALL adapt to window size.
 - **AND** content SHALL remain readable
 - **并且**：内容应保持可读
 
-#### Scenario: Window size is persisted
-#### 场景：窗口大小被持久化
+#### Scenario: Window size is persisted | 场景：窗口大小被持久化
 
 - **GIVEN** user resizes window
 - **前置条件**：用户调整窗口大小
@@ -185,15 +172,13 @@ Layout SHALL adapt to window size.
 
 ## 5. Device Management Panel | 设备管理面板
 
-### Requirement: Left column SHALL show device manager
-### 需求：左栏应显示设备管理器
+### Requirement: Left column SHALL show device manager | 需求：左栏应显示设备管理器
 
 Left column SHALL show device manager panel.
 
 左栏应显示设备管理面板。
 
-#### Scenario: Current device is shown
-#### 场景：显示当前设备
+#### Scenario: Current device is shown | 场景：显示当前设备
 
 - **GIVEN** user is on desktop
 - **前置条件**：用户在桌面端
@@ -206,8 +191,7 @@ Left column SHALL show device manager panel.
 - **AND** device type SHALL be shown
 - **并且**：设备类型应显示
 
-#### Scenario: Paired devices are listed
-#### 场景：列出配对设备
+#### Scenario: Paired devices are listed | 场景：列出配对设备
 
 - **GIVEN** user has paired devices
 - **前置条件**：用户有配对设备
@@ -220,8 +204,7 @@ Left column SHALL show device manager panel.
 - **AND** list SHALL be scrollable
 - **并且**：列表应可滚动
 
-#### Scenario: Settings are below devices
-#### 场景：设置在设备下方
+#### Scenario: Settings are below devices | 场景：设置在设备下方
 
 - **GIVEN** user is on desktop
 - **前置条件**：用户在桌面端

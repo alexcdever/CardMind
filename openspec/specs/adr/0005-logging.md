@@ -1,4 +1,5 @@
 # ADR-0005: Logging System
+# ADR-0005：日志系统
 
 **Status**: Accepted  
 **Date**: 2024-12-31  
@@ -6,13 +7,13 @@
 
 ---
 
-## Context
+## Context | 上下文
 
 Need unified logging solution for both Rust and Flutter, supporting debugging, tracing, and monitoring.
 
 ---
 
-## Decision
+## Decision | 决策
 
 **Use platform-appropriate logging solutions**:
 
@@ -39,9 +40,9 @@ The system SHALL produce logs with consistent information.
 
 ---
 
-## Log Level Policy
+## Log Level Policy | 日志级别策略
 
-### Level Definitions
+### Level Definitions | 级别定义
 
 | Level | Use Case | Example |
 |-------|----------|---------|

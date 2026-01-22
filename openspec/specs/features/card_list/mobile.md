@@ -1,5 +1,4 @@
-# Mobile Card List Specification
-# 移动端卡片列表规格
+# Mobile Card List Specification | 移动端卡片列表规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -30,15 +29,13 @@ Define mobile card list display and interaction specifications to ensure:
 
 ## 2. List Layout | 列表布局
 
-### Requirement: Mobile SHALL use vertical list layout
-### 需求：移动端应使用垂直列表布局
+### Requirement: Mobile SHALL use vertical list layout | 需求：移动端应使用垂直列表布局
 
 Mobile SHALL use vertical list layout to display cards.
 
 移动端应使用垂直列表布局显示卡片。
 
-#### Scenario: Cards are displayed in vertical list
-#### 场景：卡片在垂直列表中显示
+#### Scenario: Cards are displayed in vertical list | 场景：卡片在垂直列表中显示
 
 - **GIVEN** user has multiple cards
 - **前置条件**：用户有多张卡片
@@ -51,8 +48,7 @@ Mobile SHALL use vertical list layout to display cards.
 - **AND** cards SHALL have 8px vertical spacing
 - **并且**：卡片应有 8px 垂直间距
 
-#### Scenario: List scrolls vertically
-#### 场景：列表垂直滚动
+#### Scenario: List scrolls vertically | 场景：列表垂直滚动
 
 - **GIVEN** user has many cards
 - **前置条件**：用户有很多卡片
@@ -65,8 +61,7 @@ Mobile SHALL use vertical list layout to display cards.
 - **AND** scroll physics SHALL feel natural
 - **并且**：滚动物理效果应自然
 
-#### Scenario: List supports infinite scroll
-#### 场景：列表支持无限滚动
+#### Scenario: List supports infinite scroll | 场景：列表支持无限滚动
 
 - **GIVEN** user has many cards
 - **前置条件**：用户有很多卡片
@@ -83,15 +78,13 @@ Mobile SHALL use vertical list layout to display cards.
 
 ## 3. Card Display | 卡片显示
 
-### Requirement: Mobile cards SHALL show title and preview
-### 需求：移动端卡片应显示标题和预览
+### Requirement: Mobile cards SHALL show title and preview | 需求：移动端卡片应显示标题和预览
 
 Mobile cards SHALL show title and content preview.
 
 移动端卡片应显示标题和内容预览。
 
-#### Scenario: Card shows title
-#### 场景：卡片显示标题
+#### Scenario: Card shows title | 场景：卡片显示标题
 
 - **GIVEN** card is displayed in list
 - **前置条件**：卡片在列表中显示
@@ -104,8 +97,7 @@ Mobile cards SHALL show title and content preview.
 - **AND** title SHALL use 18sp font size
 - **并且**：标题应使用 18sp 字号
 
-#### Scenario: Card shows content preview
-#### 场景：卡片显示内容预览
+#### Scenario: Card shows content preview | 场景：卡片显示内容预览
 
 - **GIVEN** card is displayed in list
 - **前置条件**：卡片在列表中显示
@@ -118,8 +110,7 @@ Mobile cards SHALL show title and content preview.
 - **AND** content SHALL use 14sp font size
 - **并且**：内容应使用 14sp 字号
 
-#### Scenario: Card shows metadata
-#### 场景：卡片显示元数据
+#### Scenario: Card shows metadata | 场景：卡片显示元数据
 
 - **GIVEN** card is displayed in list
 - **前置条件**：卡片在列表中显示
@@ -136,15 +127,13 @@ Mobile cards SHALL show title and content preview.
 
 ## 4. Pull-to-Refresh | 下拉刷新
 
-### Requirement: Mobile SHALL support pull-to-refresh
-### 需求：移动端应支持下拉刷新
+### Requirement: Mobile SHALL support pull-to-refresh | 需求：移动端应支持下拉刷新
 
 Mobile SHALL support pull-to-refresh for card list.
 
 移动端应支持下拉刷新卡片列表。
 
-#### Scenario: Pull down shows refresh indicator
-#### 场景：下拉显示刷新指示器
+#### Scenario: Pull down shows refresh indicator | 场景：下拉显示刷新指示器
 
 - **GIVEN** user is at top of list
 - **前置条件**：用户在列表顶部
@@ -155,8 +144,7 @@ Mobile SHALL support pull-to-refresh for card list.
 - **AND** indicator SHALL follow pull distance
 - **并且**：指示器应跟随下拉距离
 
-#### Scenario: Release triggers refresh
-#### 场景：释放触发刷新
+#### Scenario: Release triggers refresh | 场景：释放触发刷新
 
 - **GIVEN** user pulled down past threshold
 - **前置条件**：用户下拉超过阈值
@@ -169,8 +157,7 @@ Mobile SHALL support pull-to-refresh for card list.
 - **AND** list SHALL update with new data
 - **并且**：列表应更新为新数据
 
-#### Scenario: Refresh completes within 2 seconds
-#### 场景：刷新在 2 秒内完成
+#### Scenario: Refresh completes within 2 seconds | 场景：刷新在 2 秒内完成
 
 - **GIVEN** refresh is triggered
 - **前置条件**：刷新已触发
@@ -185,15 +172,13 @@ Mobile SHALL support pull-to-refresh for card list.
 
 ## 5. Empty State | 空状态
 
-### Requirement: Mobile SHALL show empty state when no cards
-### 需求：移动端应在无卡片时显示空状态
+### Requirement: Mobile SHALL show empty state when no cards | 需求：移动端应在无卡片时显示空状态
 
 Mobile SHALL show empty state when user has no cards.
 
 移动端应在用户无卡片时显示空状态。
 
-#### Scenario: Empty state shows message
-#### 场景：空状态显示消息
+#### Scenario: Empty state shows message | 场景：空状态显示消息
 
 - **GIVEN** user has no cards
 - **前置条件**：用户没有卡片
@@ -206,8 +191,7 @@ Mobile SHALL show empty state when user has no cards.
 - **AND** icon SHALL be displayed
 - **并且**：应显示图标
 
-#### Scenario: Empty state shows create button
-#### 场景：空状态显示创建按钮
+#### Scenario: Empty state shows create button | 场景：空状态显示创建按钮
 
 - **GIVEN** empty state is shown
 - **前置条件**：空状态已显示
@@ -222,15 +206,13 @@ Mobile SHALL show empty state when user has no cards.
 
 ## 6. Performance Requirements | 性能要求
 
-### Requirement: Mobile list SHALL be performant
-### 需求：移动端列表应满足性能要求
+### Requirement: Mobile list SHALL be performant | 需求：移动端列表应满足性能要求
 
 Mobile list SHALL meet performance requirements.
 
 移动端列表应满足性能要求。
 
-#### Scenario: List scrolling maintains 60fps
-#### 场景：列表滚动保持 60fps
+#### Scenario: List scrolling maintains 60fps | 场景：列表滚动保持 60fps
 
 - **GIVEN** user scrolls list
 - **前置条件**：用户滚动列表
@@ -241,8 +223,7 @@ Mobile list SHALL meet performance requirements.
 - **AND** no frame drops SHALL occur
 - **并且**：不应有掉帧
 
-#### Scenario: Cards load within 350ms
-#### 场景：卡片在 350ms 内加载
+#### Scenario: Cards load within 350ms | 场景：卡片在 350ms 内加载
 
 - **GIVEN** user opens home screen
 - **前置条件**：用户打开主屏幕

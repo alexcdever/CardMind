@@ -1,5 +1,4 @@
-# Desktop Card Grid Specification
-# 桌面端卡片网格规格
+# Desktop Card Grid Specification | 桌面端卡片网格规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -30,15 +29,13 @@ Define desktop card grid layout specifications to ensure:
 
 ## 2. Grid Layout | 网格布局
 
-### Requirement: Desktop SHALL use grid layout
-### 需求：桌面端应使用网格布局
+### Requirement: Desktop SHALL use grid layout | 需求：桌面端应使用网格布局
 
 Desktop SHALL use grid layout to display cards.
 
 桌面端应使用网格布局显示卡片。
 
-#### Scenario: Cards are displayed in grid
-#### 场景：卡片在网格中显示
+#### Scenario: Cards are displayed in grid | 场景：卡片在网格中显示
 
 - **GIVEN** user has multiple cards
 - **前置条件**：用户有多张卡片
@@ -51,8 +48,7 @@ Desktop SHALL use grid layout to display cards.
 - **AND** column count SHALL adapt to width
 - **并且**：列数应适应宽度
 
-#### Scenario: Grid uses max cross-axis extent
-#### 场景：网格使用最大交叉轴范围
+#### Scenario: Grid uses max cross-axis extent | 场景：网格使用最大交叉轴范围
 
 - **GIVEN** cards are in grid
 - **前置条件**：卡片在网格中
@@ -65,8 +61,7 @@ Desktop SHALL use grid layout to display cards.
 - **AND** spacing SHALL be 16px
 - **并且**：间距应为 16px
 
-#### Scenario: Grid scrolls vertically
-#### 场景：网格垂直滚动
+#### Scenario: Grid scrolls vertically | 场景：网格垂直滚动
 
 - **GIVEN** user has many cards
 - **前置条件**：用户有很多卡片
@@ -83,15 +78,13 @@ Desktop SHALL use grid layout to display cards.
 
 ## 3. Responsive Column Count | 响应式列数
 
-### Requirement: Grid SHALL adapt column count
-### 需求：网格应调整列数
+### Requirement: Grid SHALL adapt column count | 需求：网格应调整列数
 
 Grid SHALL adapt column count based on window width.
 
 网格应根据窗口宽度调整列数。
 
-#### Scenario: Wide window shows 3+ columns
-#### 场景：宽窗口显示 3+ 列
+#### Scenario: Wide window shows 3+ columns | 场景：宽窗口显示 3+ 列
 
 - **GIVEN** window width is 1600px+
 - **前置条件**：窗口宽度为 1600px+
@@ -102,8 +95,7 @@ Grid SHALL adapt column count based on window width.
 - **AND** cards SHALL fill available space
 - **并且**：卡片应填充可用空间
 
-#### Scenario: Medium window shows 2 columns
-#### 场景：中等窗口显示 2 列
+#### Scenario: Medium window shows 2 columns | 场景：中等窗口显示 2 列
 
 - **GIVEN** window width is 1200-1600px
 - **前置条件**：窗口宽度为 1200-1600px
@@ -114,8 +106,7 @@ Grid SHALL adapt column count based on window width.
 - **AND** cards SHALL be properly sized
 - **并且**：卡片应适当调整大小
 
-#### Scenario: Narrow window shows 1 column
-#### 场景：窄窗口显示 1 列
+#### Scenario: Narrow window shows 1 column | 场景：窄窗口显示 1 列
 
 - **GIVEN** window width is 800-1200px
 - **前置条件**：窗口宽度为 800-1200px
@@ -130,15 +121,13 @@ Grid SHALL adapt column count based on window width.
 
 ## 4. Card Display | 卡片显示
 
-### Requirement: Desktop cards SHALL show full content
-### 需求：桌面端卡片应显示完整内容
+### Requirement: Desktop cards SHALL show full content | 需求：桌面端卡片应显示完整内容
 
 Desktop cards SHALL show full content preview.
 
 桌面端卡片应显示完整内容预览。
 
-#### Scenario: Card shows title
-#### 场景：卡片显示标题
+#### Scenario: Card shows title | 场景：卡片显示标题
 
 - **GIVEN** card is displayed in grid
 - **前置条件**：卡片在网格中显示
@@ -151,8 +140,7 @@ Desktop cards SHALL show full content preview.
 - **AND** title SHALL use 20px font size
 - **并且**：标题应使用 20px 字号
 
-#### Scenario: Card shows content preview
-#### 场景：卡片显示内容预览
+#### Scenario: Card shows content preview | 场景：卡片显示内容预览
 
 - **GIVEN** card is displayed in grid
 - **前置条件**：卡片在网格中显示
@@ -165,8 +153,7 @@ Desktop cards SHALL show full content preview.
 - **AND** content SHALL use 16px font size
 - **并且**：内容应使用 16px 字号
 
-#### Scenario: Card shows metadata
-#### 场景：卡片显示元数据
+#### Scenario: Card shows metadata | 场景：卡片显示元数据
 
 - **GIVEN** card is displayed in grid
 - **前置条件**：卡片在网格中显示
@@ -183,15 +170,13 @@ Desktop cards SHALL show full content preview.
 
 ## 5. Hover Effects | 悬停效果
 
-### Requirement: Desktop cards SHALL show hover effects
-### 需求：桌面端卡片应显示悬停效果
+### Requirement: Desktop cards SHALL show hover effects | 需求：桌面端卡片应显示悬停效果
 
 Desktop cards SHALL show hover effects.
 
 桌面端卡片应显示悬停效果。
 
-#### Scenario: Hovering card shows elevation
-#### 场景：悬停卡片显示提升
+#### Scenario: Hovering card shows elevation | 场景：悬停卡片显示提升
 
 - **GIVEN** user hovers over card
 - **前置条件**：用户悬停在卡片上
@@ -204,8 +189,7 @@ Desktop cards SHALL show hover effects.
 - **AND** transition SHALL be 200ms
 - **并且**：过渡应为 200ms
 
-#### Scenario: Hovering shows action buttons
-#### 场景：悬停显示操作按钮
+#### Scenario: Hovering shows action buttons | 场景：悬停显示操作按钮
 
 - **GIVEN** user hovers over card
 - **前置条件**：用户悬停在卡片上
@@ -218,8 +202,7 @@ Desktop cards SHALL show hover effects.
 - **AND** buttons SHALL be in top-right corner
 - **并且**：按钮应在右上角
 
-#### Scenario: Leaving card hides effects
-#### 场景：离开卡片隐藏效果
+#### Scenario: Leaving card hides effects | 场景：离开卡片隐藏效果
 
 - **GIVEN** hover effects are shown
 - **前置条件**：悬停效果已显示
@@ -236,15 +219,13 @@ Desktop cards SHALL show hover effects.
 
 ## 6. Performance Requirements | 性能要求
 
-### Requirement: Desktop grid SHALL be performant
-### 需求：桌面端网格应满足性能要求
+### Requirement: Desktop grid SHALL be performant | 需求：桌面端网格应满足性能要求
 
 Desktop grid SHALL meet performance requirements.
 
 桌面端网格应满足性能要求。
 
-#### Scenario: Grid scrolling maintains 60fps
-#### 场景：网格滚动保持 60fps
+#### Scenario: Grid scrolling maintains 60fps | 场景：网格滚动保持 60fps
 
 - **GIVEN** user scrolls grid
 - **前置条件**：用户滚动网格
@@ -255,8 +236,7 @@ Desktop grid SHALL meet performance requirements.
 - **AND** no frame drops SHALL occur
 - **并且**：不应有掉帧
 
-#### Scenario: Cards load within 350ms
-#### 场景：卡片在 350ms 内加载
+#### Scenario: Cards load within 350ms | 场景：卡片在 350ms 内加载
 
 - **GIVEN** user opens home screen
 - **前置条件**：用户打开主屏幕
@@ -267,8 +247,7 @@ Desktop grid SHALL meet performance requirements.
 - **AND** loading indicator SHALL be shown
 - **并且**：应显示加载指示器
 
-#### Scenario: Hover effects appear within 50ms
-#### 场景：悬停效果在 50ms 内出现
+#### Scenario: Hover effects appear within 50ms | 场景：悬停效果在 50ms 内出现
 
 - **GIVEN** user hovers over card
 - **前置条件**：用户悬停在卡片上

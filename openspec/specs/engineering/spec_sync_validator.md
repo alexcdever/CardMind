@@ -1,6 +1,7 @@
 # Spec Sync Validator
+# 规格同步验证器
 
-## Overview
+## Overview | 概述
 
 The Spec Sync Validator verifies that specification documents accurately reflect the actual code implementation by comparing API signatures, data structures, and behavioral contracts between specs and code.
 
@@ -12,7 +13,7 @@ The Spec Sync Validator verifies that specification documents accurately reflect
 
 **Status**: Specification complete, implementation deferred to v2
 
-## Requirements
+## Requirements | 需求
 
 ### Requirement: Extract API signatures from specifications
 
@@ -117,9 +118,9 @@ The system SHALL provide specific recommendations for each inconsistency to guid
 - **WHEN** reporting an inconsistency
 - **THEN** the system SHALL include file path and line number for both spec and code locations
 
-## Examples
+## Examples | 示例
 
-### Usage Example (Planned for v2)
+### Usage Example (Planned for v2) | 使用示例（计划用于 v2）
 
 ```bash
 # Validate all specs against code
@@ -132,12 +133,12 @@ dart tool/verify_spec_sync.dart --module=card_store --validate-content
 dart tool/verify_spec_sync.dart --scope=domain --validate-content
 ```
 
-### Expected Report Example
+### Expected Report Example | 预期报告示例
 
 ```markdown
-## Content Validation
+## Content Validation | 内容验证
 
-### Domain Module: card_store
+### Domain Module: card_store | 领域模块：card_store
 
 #### ⚠️ Signature Mismatch
 **Function**: `create_card`
@@ -154,7 +155,7 @@ dart tool/verify_spec_sync.dart --scope=domain --validate-content
 - All fields match between spec and code
 ```
 
-## Implementation Notes
+## Implementation Notes | 实现说明
 
 This capability is specified but not yet implemented. The current `verify_spec_sync.dart` tool implements:
 - ✅ Coverage checking (Layer 1)
@@ -168,7 +169,7 @@ The content validation layer requires:
 3. Semantic comparison logic with backward compatibility rules
 4. Detailed diff reporting with file/line references
 
-## See Also
+## See Also | 参见
 
 - [Spec Coverage Checker](spec_coverage_checker.md) - Checks coverage of code modules
 - [Spec Migration Validator](spec_migration_validator.md) - Validates migration completeness

@@ -1,5 +1,4 @@
-# Desktop Search Specification
-# 桌面端搜索规格
+# Desktop Search Specification | 桌面端搜索规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -30,15 +29,13 @@ Define desktop search feature specifications to ensure:
 
 ## 2. Search Field | 搜索字段
 
-### Requirement: Desktop SHALL use inline search
-### 需求：桌面端应使用内联搜索
+### Requirement: Desktop SHALL use inline search | 需求：桌面端应使用内联搜索
 
 Desktop SHALL use inline search.
 
 桌面端应使用内联搜索。
 
-#### Scenario: Search field is in toolbar
-#### 场景：搜索字段在工具栏中
+#### Scenario: Search field is in toolbar | 场景：搜索字段在工具栏中
 
 - **GIVEN** user is on home screen
 - **前置条件**：用户在主屏幕上
@@ -51,8 +48,7 @@ Desktop SHALL use inline search.
 - **AND** field SHALL have 300px width
 - **并且**：字段应有 300px 宽度
 
-#### Scenario: Search field has placeholder
-#### 场景：搜索字段有占位符
+#### Scenario: Search field has placeholder | 场景：搜索字段有占位符
 
 - **GIVEN** search field is empty
 - **前置条件**：搜索字段为空
@@ -63,8 +59,7 @@ Desktop SHALL use inline search.
 - **AND** placeholder SHALL be gray
 - **并且**：占位符应为灰色
 
-#### Scenario: Cmd/Ctrl+F focuses search
-#### 场景：Cmd/Ctrl+F 聚焦搜索
+#### Scenario: Cmd/Ctrl+F focuses search | 场景：Cmd/Ctrl+F 聚焦搜索
 
 - **GIVEN** user is on home screen
 - **前置条件**：用户在主屏幕上
@@ -79,15 +74,13 @@ Desktop SHALL use inline search.
 
 ## 3. Real-Time Filtering | 实时过滤
 
-### Requirement: Search SHALL filter in real-time
-### 需求：搜索应实时过滤
+### Requirement: Search SHALL filter in real-time | 需求：搜索应实时过滤
 
 Search SHALL filter cards in real-time.
 
 搜索应实时过滤卡片。
 
-#### Scenario: Results update as user types
-#### 场景：用户输入时结果更新
+#### Scenario: Results update as user types | 场景：用户输入时结果更新
 
 - **GIVEN** user types in search field
 - **前置条件**：用户在搜索字段中输入
@@ -100,8 +93,7 @@ Search SHALL filter cards in real-time.
 - **AND** filtering SHALL be smooth (no flicker)
 - **并且**：过滤应平滑（无闪烁）
 
-#### Scenario: Filtering completes within 200ms
-#### 场景：过滤在 200ms 内完成
+#### Scenario: Filtering completes within 200ms | 场景：过滤在 200ms 内完成
 
 - **GIVEN** user types character
 - **前置条件**：用户输入字符
@@ -112,8 +104,7 @@ Search SHALL filter cards in real-time.
 - **AND** UI SHALL remain responsive
 - **并且**：UI 应保持响应
 
-#### Scenario: Clearing search shows all cards
-#### 场景：清空搜索显示所有卡片
+#### Scenario: Clearing search shows all cards | 场景：清空搜索显示所有卡片
 
 - **GIVEN** search is active
 - **前置条件**：搜索已激活
@@ -128,15 +119,13 @@ Search SHALL filter cards in real-time.
 
 ## 4. Match Highlighting | 匹配高亮
 
-### Requirement: Search SHALL highlight matches
-### 需求：搜索应高亮匹配
+### Requirement: Search SHALL highlight matches | 需求：搜索应高亮匹配
 
 Search SHALL highlight matching text.
 
 搜索应高亮匹配文本。
 
-#### Scenario: Matching text is highlighted
-#### 场景：匹配文本被高亮
+#### Scenario: Matching text is highlighted | 场景：匹配文本被高亮
 
 - **GIVEN** search results are shown
 - **前置条件**：搜索结果已显示
@@ -149,8 +138,7 @@ Search SHALL highlight matching text.
 - **AND** highlight SHALL be visible
 - **并且**：高亮应可见
 
-#### Scenario: Multiple matches are highlighted
-#### 场景：多个匹配被高亮
+#### Scenario: Multiple matches are highlighted | 场景：多个匹配被高亮
 
 - **GIVEN** card has multiple matches
 - **前置条件**：卡片有多个匹配
@@ -165,15 +153,13 @@ Search SHALL highlight matching text.
 
 ## 5. Empty Results | 空结果
 
-### Requirement: Search SHALL show empty state
-### 需求：搜索应显示空状态
+### Requirement: Search SHALL show empty state | 需求：搜索应显示空状态
 
 Search SHALL show empty state when no results.
 
 搜索应在无结果时显示空状态。
 
-#### Scenario: No results shows message
-#### 场景：无结果显示消息
+#### Scenario: No results shows message | 场景：无结果显示消息
 
 - **GIVEN** search has no matches
 - **前置条件**：搜索无匹配
@@ -186,8 +172,7 @@ Search SHALL show empty state when no results.
 - **AND** search term SHALL be shown
 - **并且**：搜索词应显示
 
-#### Scenario: Empty state suggests clearing
-#### 场景：空状态建议清空
+#### Scenario: Empty state suggests clearing | 场景：空状态建议清空
 
 - **GIVEN** no results are shown
 - **前置条件**：无结果显示

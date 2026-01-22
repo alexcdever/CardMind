@@ -16,15 +16,13 @@ This specification defines CardStore behavior for the single pool architecture, 
 
 ---
 
-## Requirement: Create card with automatic pool association
-## 需求：创建卡片并自动关联池
+## Requirement: Create card with automatic pool association | 需求：创建卡片并自动关联池
 
 The system SHALL provide a card creation method that automatically associates the card with the device's current pool.
 
 系统应提供卡片创建方法，自动将卡片关联到设备的当前池。
 
-### Scenario: Create card and auto-add to current pool
-### 场景：创建卡片并自动添加到当前池
+### Scenario: Create card and auto-add to current pool | 场景：创建卡片并自动添加到当前池
 
 - **GIVEN** the device has joined pool_A
 - **前置条件**：设备已加入 pool_A
@@ -125,15 +123,13 @@ fn it_should_trigger_subscription_to_update_bindings() {
 
 ---
 
-## Requirement: Add card to pool
-## 需求：添加卡片到池
+## Requirement: Add card to pool | 需求：添加卡片到池
 
 The system SHALL provide a method to add a card to a pool by modifying Pool.card_ids instead of Card.pool_ids.
 
 系统应提供将卡片添加到池的方法，通过修改 Pool.card_ids 而非 Card.pool_ids。
 
-### Scenario: Modify Pool.card_ids on add
-### 场景：添加时修改 Pool.card_ids
+### Scenario: Modify Pool.card_ids on add | 场景：添加时修改 Pool.card_ids
 
 - **GIVEN** a pool and a card exist
 - **前置条件**：池和卡片存在
@@ -144,8 +140,7 @@ The system SHALL provide a method to add a card to a pool by modifying Pool.card
 - **AND** SQLite bindings table SHALL be updated
 - **并且**：SQLite bindings 表应被更新
 
-### Scenario: Idempotent add operation
-### 场景：幂等的添加操作
+### Scenario: Idempotent add operation | 场景：幂等的添加操作
 
 - **GIVEN** a card has been added to a pool
 - **前置条件**：卡片已被添加到池
@@ -217,8 +212,7 @@ fn it_should_be_idempotent() {
 
 ---
 
-## Requirement: Remove card from pool
-## 需求：从池移除卡片
+## Requirement: Remove card from pool | 需求：从池移除卡片
 
 The system SHALL provide a method to remove a card from a pool, and the removal SHALL propagate to all devices.
 
@@ -322,8 +316,7 @@ fn it_should_propagate_removal_to_all_devices() {
 
 ---
 
-## Requirement: Leave pool with data cleanup
-## 需求：退出池并清理数据
+## Requirement: Leave pool with data cleanup | 需求：退出池并清理数据
 
 The system SHALL provide a method to leave a pool and clean up all local data.
 
@@ -411,8 +404,7 @@ fn it_should_clean_up_all_data_when_leaving_pool() {
 
 ---
 
-## Requirement: Pool subscription callback
-## 需求：Pool 订阅回调
+## Requirement: Pool subscription callback | 需求：Pool 订阅回调
 
 The system SHALL provide a subscription callback that automatically maintains the card_pool_bindings table when Pool Loro documents are updated.
 

@@ -1,5 +1,4 @@
-# NoteCard Component Specification
-# NoteCard 组件规格
+# NoteCard Component Specification | NoteCard 组件规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
@@ -16,31 +15,27 @@ This specification defines the requirements for the NoteCard component, which di
 
 ---
 
-## Requirement: Display card content with platform-specific editing
-## 需求：显示卡片内容并支持平台特定的编辑
+## Requirement: Display card content with platform-specific editing | 需求：显示卡片内容并支持平台特定的编辑
 
 The system SHALL provide a card display component that adapts editing behavior based on the platform.
 
 系统应提供卡片显示组件，根据平台调整编辑行为。
 
-### Scenario: Desktop inline editing
-### 场景：桌面端内联编辑
+### Scenario: Desktop inline editing | 场景：桌面端内联编辑
 
 - **WHEN** user clicks on a card on desktop platform
 - **操作**：用户在桌面平台上点击卡片
 - **THEN** the card SHALL switch to inline editing mode within the card component
 - **预期结果**：卡片应在组件内切换到内联编辑模式
 
-### Scenario: Mobile tap to open fullscreen editor
-### 场景：移动端点击打开全屏编辑器
+### Scenario: Mobile tap to open fullscreen editor | 场景：移动端点击打开全屏编辑器
 
 - **WHEN** user taps on a card on mobile platform
 - **操作**：用户在移动平台上点击卡片
 - **THEN** the system SHALL trigger the onTap callback to open a fullscreen editor
 - **预期结果**：系统应触发 onTap 回调以打开全屏编辑器
 
-### Scenario: Real-time content update
-### 场景：实时内容更新
+### Scenario: Real-time content update | 场景：实时内容更新
 
 - **WHEN** user edits card title or content
 - **操作**：用户编辑卡片标题或内容
@@ -49,23 +44,20 @@ The system SHALL provide a card display component that adapts editing behavior b
 
 ---
 
-## Requirement: Support tag management
-## 需求：支持标签管理
+## Requirement: Support tag management | 需求：支持标签管理
 
 The system SHALL allow users to add and remove tags on cards.
 
 系统应允许用户在卡片上添加和删除标签。
 
-### Scenario: Add tag to card
-### 场景：向卡片添加标签
+### Scenario: Add tag to card | 场景：向卡片添加标签
 
 - **WHEN** user enters a tag name and confirms
 - **操作**：用户输入标签名称并确认
 - **THEN** the system SHALL add the tag to the card and call onUpdate callback
 - **预期结果**：系统应将标签添加到卡片并调用 onUpdate 回调
 
-### Scenario: Remove tag from card
-### 场景：从卡片移除标签
+### Scenario: Remove tag from card | 场景：从卡片移除标签
 
 - **WHEN** user clicks the remove button on a tag
 - **操作**：用户点击标签上的移除按钮
@@ -74,23 +66,20 @@ The system SHALL allow users to add and remove tags on cards.
 
 ---
 
-## Requirement: Show collaboration indicators
-## 需求：显示协作指示器
+## Requirement: Show collaboration indicators | 需求：显示协作指示器
 
 The system SHALL display visual indicators when a card is being edited by other devices.
 
 系统应在卡片被其他设备编辑时显示可视化指示器。
 
-### Scenario: Show last modified device
-### 场景：显示最后修改设备
+### Scenario: Show last modified device | 场景：显示最后修改设备
 
 - **WHEN** a card was last modified by a device different from the current device
 - **操作**：卡片最后被与当前设备不同的设备修改
 - **THEN** the system SHALL display the device name and modification time
 - **预期结果**：系统应显示设备名称和修改时间
 
-### Scenario: Highlight current device edits
-### 场景：高亮显示当前设备的编辑
+### Scenario: Highlight current device edits | 场景：高亮显示当前设备的编辑
 
 - **WHEN** viewing a card last modified by the current device
 - **操作**：查看由当前设备最后修改的卡片
@@ -99,15 +88,13 @@ The system SHALL display visual indicators when a card is being edited by other 
 
 ---
 
-## Requirement: Support card deletion
-## 需求：支持卡片删除
+## Requirement: Support card deletion | 需求：支持卡片删除
 
 The system SHALL provide a delete action for cards.
 
 系统应提供卡片删除操作。
 
-### Scenario: Delete card
-### 场景：删除卡片
+### Scenario: Delete card | 场景：删除卡片
 
 - **WHEN** user triggers the delete action
 - **操作**：用户触发删除操作

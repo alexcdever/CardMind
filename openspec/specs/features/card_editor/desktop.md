@@ -1,5 +1,4 @@
-# Desktop Inline Editor Specification
-# 桌面端内联编辑器规格
+# Desktop Inline Editor Specification | 桌面端内联编辑器规格
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -30,15 +29,13 @@ Define desktop inline editor specifications to ensure:
 
 ## 2. Editor Activation | 编辑器激活
 
-### Requirement: Desktop SHALL use inline editing
-### 需求：桌面端应使用内联编辑
+### Requirement: Desktop SHALL use inline editing | 需求：桌面端应使用内联编辑
 
 Desktop SHALL use inline editing mode.
 
 桌面端应使用内联编辑模式。
 
-#### Scenario: Creating card enters edit mode
-#### 场景：创建卡片进入编辑模式
+#### Scenario: Creating card enters edit mode | 场景：创建卡片进入编辑模式
 
 - **GIVEN** user clicks "新建笔记"
 - **前置条件**：用户点击"新建笔记"
@@ -51,8 +48,7 @@ Desktop SHALL use inline editing mode.
 - **AND** cursor SHALL be at beginning
 - **并且**：光标应在开头
 
-#### Scenario: Clicking edit button enters edit mode
-#### 场景：点击编辑按钮进入编辑模式
+#### Scenario: Clicking edit button enters edit mode | 场景：点击编辑按钮进入编辑模式
 
 - **GIVEN** user clicks edit button on card
 - **前置条件**：用户点击卡片上的编辑按钮
@@ -65,8 +61,7 @@ Desktop SHALL use inline editing mode.
 - **AND** existing content SHALL be preserved
 - **并且**：现有内容应保留
 
-#### Scenario: Only one card can be edited
-#### 场景：只能编辑一张卡片
+#### Scenario: Only one card can be edited | 场景：只能编辑一张卡片
 
 - **GIVEN** user is editing card A
 - **前置条件**：用户正在编辑卡片 A
@@ -83,15 +78,13 @@ Desktop SHALL use inline editing mode.
 
 ## 3. Editor Layout | 编辑器布局
 
-### Requirement: Inline editor SHALL show fields vertically
-### 需求：内联编辑器应垂直显示字段
+### Requirement: Inline editor SHALL show fields vertically | 需求：内联编辑器应垂直显示字段
 
 Inline editor SHALL show fields vertically.
 
 内联编辑器应垂直显示字段。
 
-#### Scenario: Title field is at top
-#### 场景：标题字段在顶部
+#### Scenario: Title field is at top | 场景：标题字段在顶部
 
 - **GIVEN** card is in edit mode
 - **前置条件**：卡片处于编辑模式
@@ -104,8 +97,7 @@ Inline editor SHALL show fields vertically.
 - **AND** field SHALL have single line
 - **并且**：字段应为单行
 
-#### Scenario: Content field is below title
-#### 场景：内容字段在标题下方
+#### Scenario: Content field is below title | 场景：内容字段在标题下方
 
 - **GIVEN** card is in edit mode
 - **前置条件**：卡片处于编辑模式
@@ -118,8 +110,7 @@ Inline editor SHALL show fields vertically.
 - **AND** field SHALL expand to fit text
 - **并且**：字段应扩展以适应文本
 
-#### Scenario: Action buttons are in top-right
-#### 场景：操作按钮在右上角
+#### Scenario: Action buttons are in top-right | 场景：操作按钮在右上角
 
 - **GIVEN** card is in edit mode
 - **前置条件**：卡片处于编辑模式
@@ -136,15 +127,13 @@ Inline editor SHALL show fields vertically.
 
 ## 4. Keyboard Navigation | 键盘导航
 
-### Requirement: Editor SHALL support keyboard navigation
-### 需求：编辑器应支持键盘导航
+### Requirement: Editor SHALL support keyboard navigation | 需求：编辑器应支持键盘导航
 
 Editor SHALL support keyboard navigation.
 
 编辑器应支持键盘导航。
 
-#### Scenario: Tab moves to content field
-#### 场景：Tab 移动到内容字段
+#### Scenario: Tab moves to content field | 场景：Tab 移动到内容字段
 
 - **GIVEN** cursor is in title field
 - **前置条件**：光标在标题字段
@@ -155,8 +144,7 @@ Editor SHALL support keyboard navigation.
 - **AND** cursor SHALL be at beginning
 - **并且**：光标应在开头
 
-#### Scenario: Shift+Tab moves to title field
-#### 场景：Shift+Tab 移动到标题字段
+#### Scenario: Shift+Tab moves to title field | 场景：Shift+Tab 移动到标题字段
 
 - **GIVEN** cursor is in content field
 - **前置条件**：光标在内容字段
@@ -167,8 +155,7 @@ Editor SHALL support keyboard navigation.
 - **AND** cursor SHALL be at end
 - **并且**：光标应在末尾
 
-#### Scenario: Cmd/Ctrl+Enter saves
-#### 场景：Cmd/Ctrl+Enter 保存
+#### Scenario: Cmd/Ctrl+Enter saves | 场景：Cmd/Ctrl+Enter 保存
 
 - **GIVEN** user is editing
 - **前置条件**：用户正在编辑
@@ -181,8 +168,7 @@ Editor SHALL support keyboard navigation.
 - **AND** saved content SHALL be shown
 - **并且**：保存的内容应显示
 
-#### Scenario: Escape cancels
-#### 场景：Escape 取消
+#### Scenario: Escape cancels | 场景：Escape 取消
 
 - **GIVEN** user is editing
 - **前置条件**：用户正在编辑
@@ -199,15 +185,13 @@ Editor SHALL support keyboard navigation.
 
 ## 5. Auto-save | 自动保存
 
-### Requirement: Editor SHALL auto-save
-### 需求：编辑器应自动保存
+### Requirement: Editor SHALL auto-save | 需求：编辑器应自动保存
 
 Editor SHALL auto-save user input.
 
 编辑器应自动保存用户输入。
 
-#### Scenario: Auto-save triggers after 500ms
-#### 场景：500ms 后触发自动保存
+#### Scenario: Auto-save triggers after 500ms | 场景：500ms 后触发自动保存
 
 - **GIVEN** user is typing
 - **前置条件**：用户正在输入
@@ -218,8 +202,7 @@ Editor SHALL auto-save user input.
 - **AND** indicator SHALL show "保存中..."
 - **并且**：指示器应显示"保存中..."
 
-#### Scenario: Auto-save indicator is subtle
-#### 场景：自动保存指示器很微妙
+#### Scenario: Auto-save indicator is subtle | 场景：自动保存指示器很微妙
 
 - **GIVEN** auto-save is in progress
 - **前置条件**：自动保存正在进行
@@ -232,8 +215,7 @@ Editor SHALL auto-save user input.
 - **AND** indicator SHALL not block content
 - **并且**：指示器不应阻挡内容
 
-#### Scenario: Auto-save shows success briefly
-#### 场景：自动保存短暂显示成功
+#### Scenario: Auto-save shows success briefly | 场景：自动保存短暂显示成功
 
 - **GIVEN** save completes
 - **前置条件**：保存完成
@@ -248,15 +230,13 @@ Editor SHALL auto-save user input.
 
 ## 6. Visual Feedback | 视觉反馈
 
-### Requirement: Editor SHALL provide clear feedback
-### 需求：编辑器应提供清晰的反馈
+### Requirement: Editor SHALL provide clear feedback | 需求：编辑器应提供清晰的反馈
 
 Editor SHALL provide clear visual feedback.
 
 编辑器应提供清晰的视觉反馈。
 
-#### Scenario: Edit mode shows elevated card
-#### 场景：编辑模式显示提升的卡片
+#### Scenario: Edit mode shows elevated card | 场景：编辑模式显示提升的卡片
 
 - **GIVEN** card is in edit mode
 - **前置条件**：卡片处于编辑模式
@@ -269,8 +249,7 @@ Editor SHALL provide clear visual feedback.
 - **AND** card SHALL stand out from others
 - **并且**：卡片应从其他卡片中脱颖而出
 
-#### Scenario: Save button is green
-#### 场景：保存按钮为绿色
+#### Scenario: Save button is green | 场景：保存按钮为绿色
 
 - **GIVEN** card is in edit mode
 - **前置条件**：卡片处于编辑模式
@@ -281,8 +260,7 @@ Editor SHALL provide clear visual feedback.
 - **AND** button SHALL show checkmark icon
 - **并且**：按钮应显示对勾图标
 
-#### Scenario: Cancel button is red
-#### 场景：取消按钮为红色
+#### Scenario: Cancel button is red | 场景：取消按钮为红色
 
 - **GIVEN** card is in edit mode
 - **前置条件**：卡片处于编辑模式

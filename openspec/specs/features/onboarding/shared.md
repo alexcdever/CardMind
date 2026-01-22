@@ -1,5 +1,4 @@
-# Onboarding Flow Specification (Shared)
-# 应用引导流程规格（通用）
+# Onboarding Flow Specification (Shared) | 应用引导流程规格（通用）
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
@@ -33,15 +32,13 @@ Define CardMind application initialization flow specifications to ensure:
 
 ## 2. Initialization Flow | 初始化流程
 
-### Requirement: App SHALL detect first launch
-### 需求：应用应检测首次启动
+### Requirement: App SHALL detect first launch | 需求：应用应检测首次启动
 
 App SHALL detect first launch.
 
 应用应检测首次启动。
 
-#### Scenario: First launch shows welcome screen
-#### 场景：首次启动显示欢迎页
+#### Scenario: First launch shows welcome screen | 场景：首次启动显示欢迎页
 
 - **GIVEN** user opens app for first time
 - **前置条件**：用户首次打开应用
@@ -52,8 +49,7 @@ App SHALL detect first launch.
 - **AND** device config SHALL not exist
 - **并且**：设备配置不应存在
 
-#### Scenario: Subsequent launch shows home screen
-#### 场景：后续启动显示主屏幕
+#### Scenario: Subsequent launch shows home screen | 场景：后续启动显示主屏幕
 
 - **GIVEN** user has completed onboarding
 - **前置条件**：用户已完成引导
@@ -68,15 +64,13 @@ App SHALL detect first launch.
 
 ## 3. Welcome Screen | 欢迎页
 
-### Requirement: Welcome screen SHALL introduce app
-### 需求：欢迎页应介绍应用
+### Requirement: Welcome screen SHALL introduce app | 需求：欢迎页应介绍应用
 
 Welcome screen SHALL introduce app.
 
 欢迎页应介绍应用。
 
-#### Scenario: Welcome screen shows app name
-#### 场景：欢迎页显示应用名称
+#### Scenario: Welcome screen shows app name | 场景：欢迎页显示应用名称
 
 - **GIVEN** welcome screen is displayed
 - **前置条件**：欢迎页已显示
@@ -87,8 +81,7 @@ Welcome screen SHALL introduce app.
 - **AND** app description SHALL be shown
 - **并且**：应用描述应显示
 
-#### Scenario: Get Started button is available
-#### 场景：开始使用按钮可用
+#### Scenario: Get Started button is available | 场景：开始使用按钮可用
 
 - **GIVEN** welcome screen is displayed
 - **前置条件**：欢迎页已显示
@@ -103,15 +96,13 @@ Welcome screen SHALL introduce app.
 
 ## 4. Pool Creation Flow | 池创建流程
 
-### Requirement: User SHALL create or join pool
-### 需求：用户应创建或加入池
+### Requirement: User SHALL create or join pool | 需求：用户应创建或加入池
 
 User SHALL create or join pool.
 
 用户应创建或加入池。
 
-#### Scenario: User can create new pool
-#### 场景：用户可以创建新池
+#### Scenario: User can create new pool | 场景：用户可以创建新池
 
 - **GIVEN** user taps "开始使用"
 - **前置条件**：用户点击"开始使用"
@@ -122,8 +113,7 @@ User SHALL create or join pool.
 - **AND** tapping option SHALL show pool creation form
 - **并且**：点击选项应显示池创建表单
 
-#### Scenario: Pool creation requires name
-#### 场景：池创建需要名称
+#### Scenario: Pool creation requires name | 场景：池创建需要名称
 
 - **GIVEN** pool creation form is shown
 - **前置条件**：池创建表单已显示
@@ -134,8 +124,7 @@ User SHALL create or join pool.
 - **AND** empty name SHALL be rejected
 - **并且**：空名称应被拒绝
 
-#### Scenario: Pool creation succeeds
-#### 场景：池创建成功
+#### Scenario: Pool creation succeeds | 场景：池创建成功
 
 - **GIVEN** user enters valid pool name
 - **前置条件**：用户输入有效的池名称
@@ -152,15 +141,13 @@ User SHALL create or join pool.
 
 ## 5. Initialization Complete | 初始化完成
 
-### Requirement: Initialization SHALL complete successfully
-### 需求：初始化应成功完成
+### Requirement: Initialization SHALL complete successfully | 需求：初始化应成功完成
 
 Initialization SHALL complete successfully.
 
 初始化应成功完成。
 
-#### Scenario: Device config is saved
-#### 场景：设备配置已保存
+#### Scenario: Device config is saved | 场景：设备配置已保存
 
 - **GIVEN** pool creation succeeds
 - **前置条件**：池创建成功
@@ -171,8 +158,7 @@ Initialization SHALL complete successfully.
 - **AND** pool ID SHALL be stored
 - **并且**：池 ID 应存储
 
-#### Scenario: Card store is initialized
-#### 场景：卡片存储已初始化
+#### Scenario: Card store is initialized | 场景：卡片存储已初始化
 
 - **GIVEN** pool creation succeeds
 - **前置条件**：池创建成功

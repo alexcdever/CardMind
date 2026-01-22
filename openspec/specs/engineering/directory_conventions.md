@@ -1,15 +1,18 @@
 # Directory Conventions
+# 目录约定
 
-## Overview
+## Overview | 概述
 
 This document describes the directory structure and naming conventions for the CardMind OpenSpec documentation.
+
+本文档描述 CardMind OpenSpec 文档的目录结构和命名约定。
 
 **Migration Date**: 2026-01-20
 **Structure Version**: 1.0.0 (Domain-Driven)
 
 ---
 
-## Directory Structure
+## Directory Structure | 目录结构
 
 ```
 openspec/specs/
@@ -23,7 +26,7 @@ openspec/specs/
 
 ---
 
-## Top-Level Directories
+## Top-Level Directories | 顶层目录
 
 ### 📐 `engineering/`
 **Purpose**: How we build software
@@ -124,36 +127,36 @@ features/
 
 ---
 
-## File Naming Conventions
+## File Naming Conventions | 文件命名约定
 
-### General Rules
+### General Rules | 通用规则
 - **Format**: `snake_case.md`
 - **Language**: English
 - **Encoding**: UTF-8
 - **Line endings**: Unix (LF), not Windows (CRLF)
 
-### Feature Files
+### Feature Files | 功能文件
 - Backend logic: `logic.md`
 - Mobile UI: `ui_mobile.md`
 - Desktop UI: `ui_desktop.md`
 - Shared UI: `ui_shared.md`
 
-### Spec Files
+### Spec Files | 规格文件
 - Domain specs: Descriptive names (e.g., `card_store.md`, `sync_protocol.md`)
 - No tech stack prefixes in file names
 
 ---
 
-## Migration from Old Structure
+## Migration from Old Structure | 从旧结构迁移
 
-### Old Structure (Deprecated)
+### Old Structure (Deprecated) | 旧结构（已废弃）
 ```
 openspec/specs/
 ├── rust/           # ❌ Deprecated → Migrated to domain/ and api/
 └── flutter/        # ❌ Deprecated → Migrated to features/ and ui_system/
 ```
 
-### Migration Mapping
+### Migration Mapping | 迁移映射
 
 | Old Path | New Path |
 |----------|----------|
@@ -166,9 +169,9 @@ openspec/specs/
 
 ---
 
-## Validation
+## Validation | 验证
 
-### Directory Structure
+### Directory Structure | 目录结构
 ```bash
 # Verify all top-level directories exist
 ls -d openspec/specs/{engineering,domain,api,features,ui_system,adr}
@@ -177,7 +180,7 @@ ls -d openspec/specs/{engineering,domain,api,features,ui_system,adr}
 ls -d openspec/specs/features/*/ | wc -l
 ```
 
-### File Migration
+### File Migration | 文件迁移
 ```bash
 # Count files in new structure
 find openspec/specs/{engineering,domain,api,features,ui_system} -name "*.md" | wc -l
@@ -188,7 +191,7 @@ grep -r "SP-FLT-" openspec/specs/features/
 
 ---
 
-## Best Practices
+## Best Practices | 最佳实践
 
 ### ✅ Do
 - Organize by user capability (features/)
@@ -205,7 +208,7 @@ grep -r "SP-FLT-" openspec/specs/features/
 
 ---
 
-## References
+## References | 参考
 
 - Configuration: `openspec/.openspec/config.json`
 - Spec Coding Guide: `openspec/specs/engineering/guide.md`
