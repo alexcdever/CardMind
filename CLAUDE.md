@@ -41,15 +41,23 @@
 
 **内容**: 可执行的 API 规范和测试用例
 
+**新结构（2026-01-20 迁移）**: 领域驱动组织
+
 | 类型 | 位置 | 说明 |
 |------|------|------|
-| Rust 规范 | `openspec/specs/rust/` | 8 个规范 (SP-TYPE-000 ~ SP-SYNC-006) |
-| Flutter 规范 | `openspec/specs/flutter/` | 3 个规范 (SP-FLUT-003/007/008) |
+| Engineering 规范 | `openspec/specs/engineering/` | 5 个规范（工程实践和架构模式） |
+| Domain 规范 | `openspec/specs/domain/` | 5 个规范（领域模型和业务逻辑） |
+| API 规范 | `openspec/specs/api/` | 1 个规范（公共接口） |
+| Feature 规范 | `openspec/specs/features/` | 14 个规范（11 个用户功能） |
+| UI System 规范 | `openspec/specs/ui_system/` | 3 个规范（UI 设计系统） |
 | ADR | `openspec/specs/adr/` | 5 个架构决策记录 |
 
 **关键文件**:
 - `openspec/specs/README.md` - 规范索引
-- `openspec/specs/SPEC_CODING_GUIDE.md` - Spec Coding 方法论
+- `openspec/specs/engineering/guide.md` - Spec Coding 方法论
+- `openspec/specs/engineering/directory_conventions.md` - 目录结构约定
+
+**旧目录已弃用**: `rust/` 和 `flutter/` 目录保留但已弃用，所有内容已迁移到新结构
 
 ### 约束系统 (Project Guardian)
 
@@ -264,6 +272,38 @@ dart tool/fix_lint.dart
 
 # 验证约束
 dart tool/validate_constraints.dart
+
+# 验证规格与代码同步
+dart tool/verify_spec_sync.dart
+```
+
+### 规格验证
+```bash
+# 全量验证规格与代码同步
+dart tool/verify_spec_sync.dart
+
+# 仅验证领域模块（Rust）
+dart tool/verify_spec_sync.dart --scope=domain
+
+# 仅验证功能组件（Flutter）
+dart tool/verify_spec_sync.dart --scope=features
+
+# 验证特定模块
+dart tool/verify_spec_sync.dart --module=card_store
+
+# 详细输出
+dart tool/verify_spec_sync.dart --verbose
+```
+
+**验证报告**:
+- Markdown 报告: `SPEC_SYNC_REPORT.md`
+- JSON 报告: `spec_sync_report.json`
+- 详细文档: `tool/README_VERIFY_SPECS.md`
+
+**何时运行**:
+- 重大重构后验证规格同步
+- 新功能开发前检查模块规格
+- 定期维护（每周/月）
 ```
 
 ### 代码分析
