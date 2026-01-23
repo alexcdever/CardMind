@@ -1,14 +1,19 @@
 # Single Pool Model Specification
 # 单池模型规格
 
-**Version** | **版本**: 1.0.0
-**Status** | **状态**: Active
-**Dependencies** | **依赖**: [common_types.md](common_types.md), [device_config.md](device_config.md)
-**Related Tests** | **相关测试**: `rust/tests/sp_spm_001_spec.rs`
+**Version**: 1.0.0
+**版本**: 1.0.0
+**Status**: Active
+**状态**: Active
+**Dependencies**: [../types.md](../types.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
+**依赖**: [../types.md](../types.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
+**Related Tests**: `rust/tests/sp_spm_001_spec.rs`
+**相关测试**: `rust/tests/sp_spm_001_spec.rs`
 
 ---
 
-## Overview | 概述
+## Overview
+## 概述
 
 This specification defines the Single Pool Model, where each card belongs to exactly one pool, and each device can join at most one pool. When a device creates a new card, it automatically belongs to the pool that the device has joined.
 
@@ -16,7 +21,8 @@ This specification defines the Single Pool Model, where each card belongs to exa
 
 ---
 
-## Requirement: Single Pool Constraint | 需求：单池约束
+## Requirement: Single Pool Constraint
+## 需求：单池约束
 
 The system SHALL enforce that a device can join at most one pool for personal note-taking.
 
@@ -48,7 +54,8 @@ The system SHALL enforce that a device can join at most one pool for personal no
 
 ---
 
-## Requirement: Card Creation in Joined Pool | 需求：在已加入池中创建卡片
+## Requirement: Card Creation in Joined Pool
+## 需求：在已加入池中创建卡片
 
 When a device creates a new card, it SHALL automatically belong to the pool that the device has joined.
 
@@ -80,7 +87,8 @@ When a device creates a new card, it SHALL automatically belong to the pool that
 
 ---
 
-## Requirement: Device Leaving Pool | 需求：设备离开池
+## Requirement: Device Leaving Pool
+## 需求：设备离开池
 
 When a device leaves a pool, the system SHALL clear all data associated with that pool.
 
@@ -111,7 +119,7 @@ When a device leaves a pool, the system SHALL clear all data associated with tha
 ## Related Documents | 相关文档
 
 **ADRs** | **架构决策记录**:
-- [ADR-0001: Single Pool Ownership](../adr/0001-single-pool-ownership.md)
+- [ADR-0001: Single Pool Ownership](../../../../docs/adr/0001-单池所有权模型.md)
 
 ---
 

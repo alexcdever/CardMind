@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [sync_protocol.md](../../domain/sync_protocol.md)
+**Dependencies** | **依赖**: [sync_protocol.md](../../architecture/sync/service.md)
 **Related Tests** | **相关测试**: `test/widgets/sync_status_indicator_test.dart`
 
 ---
@@ -134,7 +134,7 @@ The system SHALL automatically update the sync status display when synchronizati
 
 **Related Specs** | **相关规格**:
 - [sync_details_dialog.md](sync_details_dialog.md) - Sync details dialog | 同步详情对话框
-- [sync_protocol.md](../../domain/sync_protocol.md) - Sync protocol | 同步协议
+- [sync_protocol.md](../../architecture/sync/service.md) - Sync protocol | 同步协议
 
 ---
 

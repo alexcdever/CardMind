@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
-**Dependencies** | **依赖**: [card_store.md](../../domain/card_store.md), [pool_model.md](../../domain/pool_model.md)
+**Dependencies** | **依赖**: [card_store.md](../../architecture/storage/card_store.md), [pool_model.md](../../domain/pool/model.md)
 
 ---
 

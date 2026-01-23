@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [sync_protocol.md](../../domain/sync_protocol.md), [sync_status_indicator.md](sync_status_indicator.md)
+**Dependencies** | **依赖**: [sync_protocol.md](../../architecture/sync/service.md), [sync_status_indicator.md](sync_status_indicator.md)
 **Related Tests** | **相关测试**: `test/widgets/sync_details_dialog_test.dart`
 
 ---
@@ -171,7 +171,7 @@ The system SHALL provide clear actions to close the dialog.
 
 **Related Specs** | **相关规格**:
 - [sync_status_indicator.md](sync_status_indicator.md) - Sync status indicator | 同步状态指示器
-- [sync_protocol.md](../../domain/sync_protocol.md) - Sync protocol | 同步协议
+- [sync_protocol.md](../../architecture/sync/service.md) - Sync protocol | 同步协议
 
 ---
 
