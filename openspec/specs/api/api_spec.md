@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: To Be Implemented | 待实施
-**Dependencies** | **依赖**: [pool_model.md](../domain/pool_model.md)
+**Dependencies** | **依赖**: [pool_model.md](../domain/pool/model.md)
 
 ---
 

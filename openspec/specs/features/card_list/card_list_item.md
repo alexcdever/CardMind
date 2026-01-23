@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [card_store.md](../../domain/card_store.md)
+**Dependencies** | **依赖**: [card_store.md](../../architecture/storage/card_store.md)
 **Related Tests** | **相关测试**: `test/widgets/card_list_item_test.dart`
 
 ---
@@ -129,7 +129,7 @@ The system SHALL show synchronization status for each card.
 ## Related Documents | 相关文档
 
 **Related Specs** | **相关规格**:
-- [card_store.md](../../domain/card_store.md) - Card storage | 卡片存储
+- [card_store.md](../../architecture/storage/card_store.md) - Card storage | 卡片存储
 - [sync_status_indicator.md](../sync_feedback/sync_status_indicator.md) - Sync status | 同步状态
 
 ---

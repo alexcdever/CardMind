@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [sync_protocol.md](../../domain/sync_protocol.md)
+**Dependencies** | **依赖**: [sync_protocol.md](../../architecture/sync/service.md)
 **Related Tests** | **相关测试**: `test/screens/sync_screen_test.dart`
 
 ---
@@ -224,7 +224,7 @@ The system SHALL display and help resolve synchronization conflicts.
 ## Related Documents | 相关文档
 
 **Related Specs** | **相关规格**:
-- [sync_protocol.md](../../domain/sync_protocol.md) - Sync protocol | 同步协议
+- [sync_protocol.md](../../architecture/sync/service.md) - Sync protocol | 同步协议
 - [sync_status_indicator.md](../sync_feedback/sync_status_indicator.md) - Status indicator | 状态指示器
 - [sync_details_dialog.md](../sync_feedback/sync_details_dialog.md) - Details dialog | 详情对话框
 

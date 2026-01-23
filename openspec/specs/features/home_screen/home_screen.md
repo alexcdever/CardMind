@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [card_store.md](../../domain/card_store.md), [sync_protocol.md](../../domain/sync_protocol.md)
+**Dependencies** | **依赖**: [card_store.md](../../architecture/storage/card_store.md), [sync_protocol.md](../../architecture/sync/service.md)
 **Related Tests** | **相关测试**: `test/screens/home_screen_test.dart`
 
 ---
@@ -179,7 +179,7 @@ The system SHALL allow users to select multiple cards for bulk operations.
 ## Related Documents | 相关文档
 
 **Related Specs** | **相关规格**:
-- [card_store.md](../../domain/card_store.md) - Card storage | 卡片存储
+- [card_store.md](../../architecture/storage/card_store.md) - Card storage | 卡片存储
 - [card_list_item.md](../card_list/card_list_item.md) - Card list item | 卡片列表项
 - [card_detail_screen.md](../card_detail/card_detail_screen.md) - Card detail screen | 卡片详情屏幕
 - [fullscreen_editor.md](../card_editor/fullscreen_editor.md) - Fullscreen editor | 全屏编辑器

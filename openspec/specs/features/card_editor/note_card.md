@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [card_store.md](../../domain/card_store.md)
+**Dependencies** | **依赖**: [card_store.md](../../architecture/storage/card_store.md)
 **Related Tests** | **相关测试**: `test/widgets/note_card_test.dart`
 
 ---
@@ -127,7 +127,7 @@ The system SHALL provide a delete action for cards.
 
 **Related Specs** | **相关规格**:
 - [fullscreen_editor.md](fullscreen_editor.md) - Mobile fullscreen editor | 移动端全屏编辑器
-- [card_store.md](../../domain/card_store.md) - Card storage and synchronization | 卡片存储和同步
+- [card_store.md](../../architecture/storage/card_store.md) - Card storage and synchronization | 卡片存储和同步
 
 ---
 

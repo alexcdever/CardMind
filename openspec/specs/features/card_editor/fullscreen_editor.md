@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [card_store.md](../../domain/card_store.md), [note_card.md](note_card.md)
+**Dependencies** | **依赖**: [card_store.md](../../architecture/storage/card_store.md), [note_card.md](note_card.md)
 **Related Tests** | **相关测试**: `test/widgets/fullscreen_editor_test.dart`
 
 ---
@@ -160,7 +160,7 @@ The system SHALL optimize keyboard behavior for efficient mobile editing.
 
 **Related Specs** | **相关规格**:
 - [note_card.md](note_card.md) - NoteCard component | NoteCard 组件
-- [card_store.md](../../domain/card_store.md) - Card storage | 卡片存储
+- [card_store.md](../../architecture/storage/card_store.md) - Card storage | 卡片存储
 
 ---
 

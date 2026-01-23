@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active
-**Dependencies** | **依赖**: [device_config.md](../../domain/device_config.md), [sync_protocol.md](../../domain/sync_protocol.md)
+**Dependencies** | **依赖**: [device_config.md](../../architecture/storage/device_config.md), [sync_protocol.md](../../architecture/sync/service.md)
 **Related Tests** | **相关测试**: `test/screens/settings_screen_test.dart`
 
 ---
@@ -286,8 +286,8 @@ The system SHALL allow users to provide feedback and rate the app.
 ## Related Documents | 相关文档
 
 **Related Specs** | **相关规格**:
-- [device_config.md](../../domain/device_config.md) - Device configuration | 设备配置
-- [sync_protocol.md](../../domain/sync_protocol.md) - Sync protocol | 同步协议
+- [device_config.md](../../architecture/storage/device_config.md) - Device configuration | 设备配置
+- [sync_protocol.md](../../architecture/sync/service.md) - Sync protocol | 同步协议
 - [device_manager_panel.md](device_manager_panel.md) - Device manager | 设备管理器
 - [settings_panel.md](settings_panel.md) - Settings panel | 设置面板
 - [sync_screen.md](../sync/sync_screen.md) - Sync screen | 同步屏幕

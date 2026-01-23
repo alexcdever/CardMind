@@ -2,7 +2,7 @@
 
 **Version** | **版本**: 1.0.0
 **Status** | **状态**: Active | 已完成
-**Dependencies** | **依赖**: [sync_protocol.md](../../domain/sync_protocol.md), [home_screen/shared.md](../home_screen/shared.md)
+**Dependencies** | **依赖**: [sync_protocol.md](../../architecture/sync/service.md), [home_screen/shared.md](../home_screen/shared.md)
 
 ---
 
