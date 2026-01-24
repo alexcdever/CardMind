@@ -885,8 +885,201 @@ Before submitting a specification, verify:
 
 ---
 
-**Last Updated**: 2026-01-23
-**最后更新**: 2026-01-23
+## Spec-Code-Test Mapping Conventions
+## 规格-代码-测试映射约定
+
+**Purpose**: Establish clear traceability from specifications to code and tests.
+**目的**: 建立从规格到代码和测试的清晰追踪关系。
+
+### Spec Numbering System
+### 规格编号系统
+
+**Format**: `SP-{MODULE}-{NUMBER}`
+**格式**: `SP-{MODULE}-{NUMBER}`
+
+**Examples**:
+**示例**:
+- `SP-SPM-001`: Single Pool Model (单池模型)
+- `SP-SYNC-006`: P2P Sync Service (P2P 同步服务)
+- `SP-MDNS-001`: mDNS Discovery (mDNS 发现)
+- `SP-CARD-001`: Card Model (卡片模型)
+
+**Module Codes**:
+**模块代码**:
+- `SPM`: Single Pool Model (单池模型)
+- `SYNC`: Synchronization (同步)
+- `MDNS`: mDNS Discovery (mDNS 发现)
+- `CARD`: Card Management (卡片管理)
+- `POOL`: Pool Management (池管理)
+- `UI`: User Interface (用户界面)
+- `ADAPT`: Adaptive System (自适应系统)
+
+### Rust Module Mapping
+### Rust 模块映射
+
+**Convention**: Spec number directly maps to test filename
+**约定**: 规格编号直接映射到测试文件名
+
+| Spec Number | Spec File | Test File | Code File |
+|-------------|-----------|-----------|-----------|
+| SP-SPM-001 | `domain/pool/model.md` | `rust/tests/sp_spm_001_spec.rs` | `rust/src/models/device_config.rs` |
+| SP-SYNC-006 | `architecture/sync/service.md` | `rust/tests/sp_sync_006_spec.rs` | `rust/src/services/sync_service.rs` |
+| SP-SYNC-007 | `architecture/sync/service.md` | `rust/tests/sp_sync_007_spec.rs` | `rust/src/services/sync_service.rs` |
+| SP-MDNS-001 | `architecture/sync/peer_discovery.md` | `rust/tests/sp_mdns_001_spec.rs` | `rust/src/network/mdns.rs` |
+
+**Naming Rules**:
+**命名规则**:
+1. Test file: `sp_{module}_{number}_spec.rs` (lowercase, underscores)
+2. Test file: `sp_{module}_{number}_spec.rs` (小写，下划线)
+3. Test functions: `it_should_{behavior}()` (BDD style)
+4. Test functions: `it_should_{behavior}()` (BDD 风格)
+
+**Example Test Structure**:
+**测试结构示例**:
+```rust
+// rust/tests/sp_spm_001_spec.rs
+// SP-SPM-001: Single Pool Model Specification
+// 规格: 单池模型
+
+#[cfg(test)]
+mod sp_spm_001_spec {
+    use super::*;
+
+    #[test]
+    fn it_should_enforce_single_pool_constraint() {
+        // GIVEN: Device has joined a pool
+        // 前置条件: 设备已加入一个池
+
+        // WHEN: Attempting to join another pool
+        // 操作: 尝试加入另一个池
+
+        // THEN: Operation fails with error
+        // 预期结果: 操作失败并返回错误
+    }
+}
+```
+
+### Flutter Module Mapping
+### Flutter 模块映射
+
+**Convention**: Spec file path maps to test directory structure
+**约定**: 规格文件路径映射到测试目录结构
+
+| Spec File | Test File | Widget File |
+|-----------|-----------|-------------|
+| `ui/screens/mobile/home_screen.md` | `test/specs/home_screen_spec_test.dart` | `lib/screens/home.dart` |
+| `ui/components/shared/note_card.md` | `test/specs/note_card_component_spec_test.dart` | `lib/widgets/components/note_card.dart` |
+| `ui/adaptive/layouts.md` | `test/specs/responsive_layout_spec_test.dart` | `lib/adaptive/layouts.dart` |
+
+**Naming Rules**:
+**命名规则**:
+1. Spec test: `test/specs/{feature}_spec_test.dart`
+2. Spec test: `test/specs/{feature}_spec_test.dart`
+3. Widget test: `test/widgets/{widget}_test.dart`
+4. Widget test: `test/widgets/{widget}_test.dart`
+5. Integration test: `test/integration/{feature}_test.dart`
+6. Integration test: `test/integration/{feature}_test.dart`
+
+**Example Test Structure**:
+**测试结构示例**:
+```dart
+// test/specs/home_screen_spec_test.dart
+// Spec: ui/screens/mobile/home_screen.md
+// 规格: ui/screens/mobile/home_screen.md
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  group('Home Screen Specification', () {
+    testWidgets('it should display card list', (tester) async {
+      // GIVEN: User has cards in the pool
+      // 前置条件: 用户池中有卡片
+
+      // WHEN: Home screen loads
+      // 操作: 主屏幕加载
+
+      // THEN: Card list is displayed
+      // 预期结果: 显示卡片列表
+    });
+  });
+}
+```
+
+### Mapping Documentation
+### 映射文档
+
+**Rust Mapping**: Documented in spec file's "Related Tests" metadata
+**Rust 映射**: 在规格文件的"相关测试"元数据中记录
+
+```markdown
+**Related Tests**: `rust/tests/sp_spm_001_spec.rs`
+**相关测试**: `rust/tests/sp_spm_001_spec.rs`
+```
+
+**Flutter Mapping**: Documented in [FLUTTER_SPEC_TEST_MAP.md](../../docs/testing/FLUTTER_SPEC_TEST_MAP.md)
+**Flutter 映射**: 记录在 [FLUTTER_SPEC_TEST_MAP.md](../../docs/testing/FLUTTER_SPEC_TEST_MAP.md)
+
+### Verification
+### 验证
+
+**Check Rust Mapping**:
+**检查 Rust 映射**:
+```bash
+# List all spec tests
+ls rust/tests/sp_*.rs
+
+# Verify spec number in test file
+grep "SP-SPM-001" rust/tests/sp_spm_001_spec.rs
+```
+
+**Check Flutter Mapping**:
+**检查 Flutter 映射**:
+```bash
+# List all spec tests
+find test/specs -name "*_spec_test.dart"
+
+# Check mapping table
+cat docs/testing/FLUTTER_SPEC_TEST_MAP.md
+```
+
+### Best Practices
+### 最佳实践
+
+1. **Always create spec before code**: Spec → Test → Code
+2. **总是先创建规格再写代码**: 规格 → 测试 → 代码
+
+3. **Use spec numbers in commits**: "feat(SP-SPM-001): implement single pool constraint"
+4. **在提交中使用规格编号**: "feat(SP-SPM-001): implement single pool constraint"
+
+5. **Link spec in test comments**: Add spec file path at top of test file
+6. **在测试注释中链接规格**: 在测试文件顶部添加规格文件路径
+
+7. **Update mapping when refactoring**: Keep spec-test-code mapping current
+8. **重构时更新映射**: 保持规格-测试-代码映射最新
+
+9. **One spec number per test file**: Don't mix multiple specs in one test
+10. **每个测试文件一个规格编号**: 不要在一个测试中混合多个规格
+
+### Coverage Tracking
+### 覆盖率追踪
+
+**Current Coverage**:
+**当前覆盖率**:
+- Rust: 4/87 specs have explicit tests (~5%)
+- Rust: 4/87 规格有显式测试 (~5%)
+- Flutter: 28/60 specs have tests (~47%)
+- Flutter: 28/60 规格有测试 (~47%)
+
+**Goal**: 90% spec coverage by end of Phase 4
+**目标**: Phase 4 结束时达到 90% 规格覆盖率
+
+**Tracking**: See [DOCUMENTATION_MAP.md](../../docs/DOCUMENTATION_MAP.md) for full mapping
+**追踪**: 查看 [DOCUMENTATION_MAP.md](../../docs/DOCUMENTATION_MAP.md) 获取完整映射
+
+---
+
+**Last Updated**: 2026-01-24
+**最后更新**: 2026-01-24
 
 **Maintainers**: CardMind Team
 **维护者**: CardMind Team
