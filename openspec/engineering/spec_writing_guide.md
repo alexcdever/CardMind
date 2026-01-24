@@ -888,61 +888,56 @@ Before submitting a specification, verify:
 ## Spec-Code-Test Mapping Conventions
 ## 规格-代码-测试映射约定
 
-**Purpose**: Establish clear traceability from specifications to code and tests.
-**目的**: 建立从规格到代码和测试的清晰追踪关系。
+**Purpose**: Establish clear traceability from specifications to code and tests using semantic naming.
+**目的**: 使用语义化命名建立从规格到代码和测试的清晰追踪关系。
 
-### Spec Numbering System
-### 规格编号系统
+### Naming Philosophy
+### 命名哲学
 
-**Format**: `SP-{MODULE}-{NUMBER}`
-**格式**: `SP-{MODULE}-{NUMBER}`
+**Use semantic, descriptive names instead of numeric codes.**
+**使用语义化、描述性的名称而不是数字编码。**
 
-**Examples**:
-**示例**:
-- `SP-SPM-001`: Single Pool Model (单池模型)
-- `SP-SYNC-006`: P2P Sync Service (P2P 同步服务)
-- `SP-MDNS-001`: mDNS Discovery (mDNS 发现)
-- `SP-CARD-001`: Card Model (卡片模型)
-
-**Module Codes**:
-**模块代码**:
-- `SPM`: Single Pool Model (单池模型)
-- `SYNC`: Synchronization (同步)
-- `MDNS`: mDNS Discovery (mDNS 发现)
-- `CARD`: Card Management (卡片管理)
-- `POOL`: Pool Management (池管理)
-- `UI`: User Interface (用户界面)
-- `ADAPT`: Adaptive System (自适应系统)
+**Why semantic naming?**
+**为什么使用语义化命名？**
+- **Human-readable**: Immediately understand what the test covers
+- **人类可读**: 立即理解测试覆盖的内容
+- **AI-friendly**: Tools can infer relationships without lookup tables
+- **AI友好**: 工具可以推断关系而无需查找表
+- **Maintainable**: No need to maintain separate numbering systems
+- **易维护**: 无需维护单独的编号系统
+- **Self-documenting**: File names describe their purpose
+- **自文档化**: 文件名描述其用途
 
 ### Rust Module Mapping
 ### Rust 模块映射
 
-**Convention**: Spec number directly maps to test filename
-**约定**: 规格编号直接映射到测试文件名
+**Convention**: Test filename semantically matches the spec and implementation
+**约定**: 测试文件名语义上匹配规格和实现
 
-| Spec Number | Spec File | Test File | Code File |
-|-------------|-----------|-----------|-----------|
-| SP-SPM-001 | `domain/pool/model.md` | `rust/tests/sp_spm_001_spec.rs` | `rust/src/models/device_config.rs` |
-| SP-SYNC-006 | `architecture/sync/service.md` | `rust/tests/sp_sync_006_spec.rs` | `rust/src/services/sync_service.rs` |
-| SP-SYNC-007 | `architecture/sync/service.md` | `rust/tests/sp_sync_007_spec.rs` | `rust/src/services/sync_service.rs` |
-| SP-MDNS-001 | `architecture/sync/peer_discovery.md` | `rust/tests/sp_mdns_001_spec.rs` | `rust/src/network/mdns.rs` |
+| Spec File | Test File | Code File |
+|-----------|-----------|-----------|
+| `domain/pool/model.md` | `rust/tests/pool_model_test.rs` | `rust/src/models/pool.rs` |
+| `architecture/sync/service.md` | `rust/tests/sync_service_test.rs` | `rust/src/services/sync_service.rs` |
+| `architecture/sync/peer_discovery.md` | `rust/tests/peer_discovery_test.rs` | `rust/src/network/peer_discovery.rs` |
+| `architecture/storage/card_store.md` | `rust/tests/card_store_test.rs` | `rust/src/storage/card_store.rs` |
+| `architecture/storage/device_config.md` | `rust/tests/device_config_test.rs` | `rust/src/models/device_config.rs` |
 
 **Naming Rules**:
 **命名规则**:
-1. Test file: `sp_{module}_{number}_spec.rs` (lowercase, underscores)
-2. Test file: `sp_{module}_{number}_spec.rs` (小写，下划线)
+1. Test file: `{feature}_test.rs` (lowercase, underscores, descriptive)
+2. Test file: `{feature}_test.rs` (小写，下划线，描述性)
 3. Test functions: `it_should_{behavior}()` (BDD style)
 4. Test functions: `it_should_{behavior}()` (BDD 风格)
 
 **Example Test Structure**:
 **测试结构示例**:
 ```rust
-// rust/tests/sp_spm_001_spec.rs
-// SP-SPM-001: Single Pool Model Specification
-// 规格: 单池模型
+// rust/tests/pool_model_test.rs
+// Spec: openspec/specs/domain/pool/model.md
+// 规格: openspec/specs/domain/pool/model.md
 
 #[cfg(test)]
-mod sp_spm_001_spec {
+mod pool_model_test {
     use super::*;
 
     #[test]
@@ -1005,15 +1000,15 @@ void main() {
 }
 ```
 
-### Mapping Documentation
-### 映射文档
+**Mapping Documentation**:
+**映射文档**:
 
 **Rust Mapping**: Documented in spec file's "Related Tests" metadata
 **Rust 映射**: 在规格文件的"相关测试"元数据中记录
 
 ```markdown
-**Related Tests**: `rust/tests/sp_spm_001_spec.rs`
-**相关测试**: `rust/tests/sp_spm_001_spec.rs`
+**Related Tests**: `rust/tests/pool_model_test.rs`
+**相关测试**: `rust/tests/pool_model_test.rs`
 ```
 
 **Flutter Mapping**: Documented in [FLUTTER_SPEC_TEST_MAP.md](../../docs/testing/FLUTTER_SPEC_TEST_MAP.md)
@@ -1025,11 +1020,11 @@ void main() {
 **Check Rust Mapping**:
 **检查 Rust 映射**:
 ```bash
-# List all spec tests
-ls rust/tests/sp_*.rs
+# List all test files
+ls rust/tests/*_test.rs
 
-# Verify spec number in test file
-grep "SP-SPM-001" rust/tests/sp_spm_001_spec.rs
+# Verify spec reference in test file
+grep "Spec:" rust/tests/pool_model_test.rs
 ```
 
 **Check Flutter Mapping**:
@@ -1048,8 +1043,8 @@ cat docs/testing/FLUTTER_SPEC_TEST_MAP.md
 1. **Always create spec before code**: Spec → Test → Code
 2. **总是先创建规格再写代码**: 规格 → 测试 → 代码
 
-3. **Use spec numbers in commits**: "feat(SP-SPM-001): implement single pool constraint"
-4. **在提交中使用规格编号**: "feat(SP-SPM-001): implement single pool constraint"
+3. **Use descriptive names in commits**: "feat(pool): implement single pool constraint"
+4. **在提交中使用描述性名称**: "feat(pool): implement single pool constraint"
 
 5. **Link spec in test comments**: Add spec file path at top of test file
 6. **在测试注释中链接规格**: 在测试文件顶部添加规格文件路径
@@ -1057,8 +1052,8 @@ cat docs/testing/FLUTTER_SPEC_TEST_MAP.md
 7. **Update mapping when refactoring**: Keep spec-test-code mapping current
 8. **重构时更新映射**: 保持规格-测试-代码映射最新
 
-9. **One spec number per test file**: Don't mix multiple specs in one test
-10. **每个测试文件一个规格编号**: 不要在一个测试中混合多个规格
+9. **One feature per test file**: Keep tests focused and cohesive
+10. **每个测试文件一个功能**: 保持测试专注和内聚
 
 ### Coverage Tracking
 ### 覆盖率追踪

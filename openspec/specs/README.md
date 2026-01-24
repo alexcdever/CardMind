@@ -197,8 +197,9 @@ cat openspec/specs/ui/adaptive/layouts.md
 ```bash
 # 后端规格测试
 cd rust
-cargo test --test sp_spm_001_spec
-cargo test --test sp_sync_006_spec
+cargo test --test pool_model_test
+cargo test --test sync_service_test
+cargo test --test device_config_test
 
 # Flutter 规格测试
 flutter test test/specs/
@@ -354,7 +355,7 @@ test('test_device_can_join_pool', () { ... });
 
 1. **查看目录约定**: `openspec/specs/engineering/directory_conventions.md`
 2. **查看实施总结**: `openspec/specs/engineering/summary.md`
-3. **运行示例**: `cargo test --test sp_spm_001_spec`
+3. **运行示例**: `cargo test --test pool_model_test`
 4. **查看配置**: `openspec/.openspec/config.json`
 
 ### 常见问题

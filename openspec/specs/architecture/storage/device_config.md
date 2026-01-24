@@ -7,8 +7,8 @@
 **状态**: Active
 **Dependencies**: [../../domain/pool/model.md](../../domain/pool/model.md)
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md)
-**Related Tests**: `rust/tests/sp_spm_001_spec.rs`
-**相关测试**: `rust/tests/sp_spm_001_spec.rs`
+**Related Tests**: `rust/tests/device_config_test.rs`
+**相关测试**: `rust/tests/device_config_test.rs`
 
 ---
 
