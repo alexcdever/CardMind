@@ -56,7 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initSyncStatusStream();
+    // Delay sync status stream initialization to ensure sync service is ready
+    Future.delayed(const Duration(milliseconds: 500), _initSyncStatusStream);
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
@@ -91,7 +92,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _initSyncStatusStream() {
-    // 如果提供了测试用的 stream，直接使用
+    // Temporarily disable sync status stream due to threading issues
+    // TODO: Fix Tokio runtime context issue
+    _syncStatusStream = Stream.value(SyncStatus.disconnected());
+    return;
+
+    // Original code (disabled)
+    /*
     if (widget.syncStatusStream != null) {
       _syncStatusStream = widget.syncStatusStream;
       return;
@@ -116,6 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('初始化同步状态 Stream 失败: $e');
       _syncStatusStream = Stream.value(SyncStatus.disconnected());
     }
+    */
   }
 
   void _handleCreateCard() {

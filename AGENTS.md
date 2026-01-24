@@ -301,7 +301,7 @@ const MyWidget({Key? key}) : super(key: key);
 | 需求 | 查看 |
 |------|------|
 | API 规范 | `openspec/specs/` |
-| 架构决策 | `openspec/specs/adr/` |
+| 架构决策 | `docs/adr/` |
 | 代码约束 | `project-guardian.toml` |
 | 产品愿景 | `docs/requirements/product_vision.md` |
 | 构建指南 | `tool/BUILD_GUIDE.md` |

@@ -32,7 +32,7 @@
 ```
 优先级顺序（有疑问时按此顺序查看）：
   1. openspec/specs/       ← API 规范（what & how）
-  2. openspec/specs/adr/   ← 架构决策（why）
+  2. docs/adr/             ← 架构决策（why）
   3. project-guardian.toml ← 代码约束（rules）
   4. docs/requirements/    ← 产品目标（intent）
 ```
@@ -41,15 +41,23 @@
 
 **内容**: 可执行的 API 规范和测试用例
 
+**新结构（2026-01-20 迁移）**: 领域驱动组织
+
 | 类型 | 位置 | 说明 |
 |------|------|------|
-| Rust 规范 | `openspec/specs/rust/` | 8 个规范 (SP-TYPE-000 ~ SP-SYNC-006) |
-| Flutter 规范 | `openspec/specs/flutter/` | 3 个规范 (SP-FLUT-003/007/008) |
-| ADR | `openspec/specs/adr/` | 5 个架构决策记录 |
+| Domain 规范 | `openspec/specs/domain/` | 5 个规范（领域模型和业务逻辑） |
+| API 规范 | `openspec/specs/api/` | 1 个规范（公共接口） |
+| Feature 规范 | `openspec/specs/features/` | 14 个规范（11 个用户功能） |
+| UI System 规范 | `openspec/specs/ui_system/` | 3 个规范（UI 设计系统） |
+| 工程指南 | `openspec/engineering/` | 工程实践和架构模式 |
+| ADR | `docs/adr/` | 5 个架构决策记录（纯中文） |
 
 **关键文件**:
 - `openspec/specs/README.md` - 规范索引
-- `openspec/specs/SPEC_CODING_GUIDE.md` - Spec Coding 方法论
+- `openspec/engineering/guide.md` - Spec Coding 方法论
+- `openspec/engineering/directory_conventions.md` - 目录结构约定
+
+**旧目录已弃用**: `rust/` 和 `flutter/` 目录保留但已弃用，所有内容已迁移到新结构
 
 ### 约束系统 (Project Guardian)
 
@@ -82,7 +90,7 @@ dart tool/validate_constraints.dart --full # 完整验证（含编译）
 - ✅ Loro commit 触发订阅 → 更新 SQLite
 - ✅ 使用 UUID v7（时间排序）
 
-**详细说明**: `openspec/specs/adr/0002-dual-layer-architecture.md`
+**详细说明**: `docs/adr/0002-双层架构.md`
 
 ---
 
@@ -218,7 +226,7 @@ dart tool/validate_constraints.dart --full # 完整验证（含编译）
 
 **开始工作前**
 1. 查看相关规范: `openspec/specs/`
-2. 查看相关 ADR: `openspec/specs/adr/`
+2. 查看相关 ADR: `docs/adr/`
 3. 使用 `TodoWrite` 跟踪任务
 
 **工作中**
@@ -264,6 +272,38 @@ dart tool/fix_lint.dart
 
 # 验证约束
 dart tool/validate_constraints.dart
+
+# 验证规格与代码同步
+dart tool/verify_spec_sync.dart
+```
+
+### 规格验证
+```bash
+# 全量验证规格与代码同步
+dart tool/verify_spec_sync.dart
+
+# 仅验证领域模块（Rust）
+dart tool/verify_spec_sync.dart --scope=domain
+
+# 仅验证功能组件（Flutter）
+dart tool/verify_spec_sync.dart --scope=features
+
+# 验证特定模块
+dart tool/verify_spec_sync.dart --module=card_store
+
+# 详细输出
+dart tool/verify_spec_sync.dart --verbose
+```
+
+**验证报告**:
+- Markdown 报告: `SPEC_SYNC_REPORT.md`
+- JSON 报告: `spec_sync_report.json`
+- 详细文档: `tool/README_VERIFY_SPECS.md`
+
+**何时运行**:
+- 重大重构后验证规格同步
+- 新功能开发前检查模块规格
+- 定期维护（每周/月）
 ```
 
 ### 代码分析
@@ -322,9 +362,9 @@ sed -i 's/\r$//' <filename>
 |------|------|
 | 理解产品 | `docs/requirements/product_vision.md` |
 | 查看规范 | `openspec/specs/README.md` |
-| 理解架构决策 | `openspec/specs/adr/` |
+| 理解架构决策 | `docs/adr/` |
 | 查看约束 | `project-guardian.toml` |
-| 编写测试 | `openspec/specs/SPEC_CODING_GUIDE.md` |
+| 编写测试 | `openspec/engineering/guide.md` |
 | 构建应用 | `tool/BUILD_GUIDE.md` |
 
 ---
@@ -333,7 +373,7 @@ sed -i 's/\r$//' <filename>
 
 ### 遇到问题时
 - 不知道实现什么？ → `openspec/specs/`
-- 不理解设计决策？ → `openspec/specs/adr/`
+- 不理解设计决策？ → `docs/adr/`
 - 不确定优先级？ → `docs/roadmap.md`
 - 代码约束不清楚？ → `project-guardian.toml`
 

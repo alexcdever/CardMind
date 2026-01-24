@@ -203,7 +203,7 @@ Flow: User Action → Loro commit → Subscription → SQLite update
 |---------|----------|
 | **Specs (OpenSpec)** | `openspec/specs/` |
 | **Change Proposals** | `openspec/changes/` |
-| **ADRs** | `openspec/specs/adr/` |
+| **ADRs** | `docs/adr/` |
 | **Architecture Principles** | `docs/architecture/` |
 | **Product Vision** | `docs/requirements/` |
 | **User Guide** | `docs/user_guide.md` |
@@ -294,7 +294,7 @@ openspec validate <change> --strict      # Validate change
 | **UI/UX Design** | `docs/interaction/` |
 | **Architecture Principles** | `docs/architecture/` |
 | **Specs (What)** | `openspec/specs/` |
-| **ADRs (Why)** | `openspec/specs/adr/` |
+| **ADRs (Why)** | `docs/adr/` |
 | **Change Proposals** | `openspec/changes/` |
 
 ---
