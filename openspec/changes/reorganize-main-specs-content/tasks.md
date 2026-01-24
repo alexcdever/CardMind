@@ -177,7 +177,7 @@
 
 - [x] 17.1 Create migration guide document explaining the new structure
 - [x] 17.2 Document the bilingual-compliance issue and resolution
-- [ ] 17.3 Update OpenSpec workflow documentation to prevent similar issues
+- [x] 17.3 Update OpenSpec workflow documentation to prevent similar issues
 - [x] 17.4 Create visual diagram of new directory structure
 - [x] 17.5 Prepare announcement for team about documentation reorganization
 
