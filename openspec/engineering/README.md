@@ -23,10 +23,8 @@
 
 | 文档 | 描述 |
 |------|------|
-| [bilingual_spec_guide.md](./bilingual_spec_guide.md) | 双语规格编写指南 |
+| [spec_writing_guide.md](./spec_writing_guide.md) | 完整的规格编写指南(包含模板和示例) |
 | [spec_conversion_guide.md](./spec_conversion_guide.md) | 规格格式转换指南 |
-| [spec_template.md](./spec_template.md) | 规格文档模板 |
-| [spec_example.md](./spec_example.md) | 规格文档示例 |
 | [spec_format_standard.md](./spec_format_standard.md) | 规格格式标准 |
 
 ### 实施指南
@@ -57,9 +55,8 @@ docs/
 ## 快速开始
 
 1. **新手入门**: 先读 [guide.md](./guide.md) 了解 Spec Coding 方法论
-2. **编写规格**: 使用 [spec_template.md](./spec_template.md) 作为模板
-3. **参考示例**: 查看 [spec_example.md](./spec_example.md)
-4. **遵循约定**: 参考 [directory_conventions.md](./directory_conventions.md)
+2. **编写规格**: 使用 [spec_writing_guide.md](./spec_writing_guide.md) 学习详细指南
+3. **遵循约定**: 参考 [directory_conventions.md](./directory_conventions.md)
 
 ## 相关文档
 

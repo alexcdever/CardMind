@@ -63,10 +63,6 @@ CardMind 是一款专注于个人知识管理的卡片式笔记应用。通过�
 - **Rust**: 1.70+
 - **Dart**: 3.x
 
-### 环境搭建
-
-详细步骤请查看 [环境搭建指南](docs/SETUP.md)。
-
 ### 快速命令
 
 ```bash
@@ -258,19 +254,11 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 - [架构决策记录 (ADR)](docs/adr/README.md) - 架构决策历史
 
 ### 开发指南
-- [环境搭建](docs/SETUP.md) - 开发环境配置
 - [测试指南](docs/testing/TESTING_GUIDE.md) - TDD 开发流程
-- [API 设计](docs/API_DESIGN.md) - API 接口定义
 
 ### 产品文档
-- [产品需求文档 (PRD)](docs/PRD.md) - 产品需求全貌
-- [开发路线图](docs/ROADMAP.md) - 开发计划和进度
-- [用户使用手册](docs/USER_GUIDE.md) - 用户指南
-
-### 技术文档
-- [技术架构设计](docs/ARCHITECTURE.md) - 架构设计详解
-- [数据库设计](docs/DATABASE.md) - Loro + SQLite 双层设计
-- [日志规范](docs/LOGGING.md) - 日志最佳实践
+- [开发路线图](docs/roadmap.md) - 开发计划和进度
+- [用户使用手册](docs/user_guide.md) - 用户指南
 
 ## 依赖版本
 
