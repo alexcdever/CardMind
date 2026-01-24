@@ -255,6 +255,8 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 
 ### 开发指南
 - [测试指南](docs/testing/TESTING_GUIDE.md) - TDD 开发流程
+- [文档导航地图](docs/DOCUMENTATION_MAP.md) - 完整的文档索引
+- [文档更新流程](docs/DOCUMENTATION_UPDATE_PROCESS.md) - 如何维护文档
 
 ### 产品文档
 - [开发路线图](docs/roadmap.md) - 开发计划和进度
