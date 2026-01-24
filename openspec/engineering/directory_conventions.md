@@ -187,6 +187,122 @@ grep -r "SP-FLT-" openspec/specs/features/
 
 ---
 
+## OpenSpec 变更工作流约定
+
+### 变更中的 `specs/` 目录使用规范
+
+**重要**：OpenSpec 变更归档时，会将变更中的 `openspec/specs/` 目录内容同步到主规格目录。因此，变更中的 `specs/` 目录**必须只包含业务规格文档**。
+
+#### ✅ 应该放在变更的 `specs/` 目录
+
+以下类型的文档应该放在变更的 `specs/` 目录中（归档时会同步到主规格）：
+
+1. **领域模型** (`domain/`)
+   - 核心业务概念和数据模型
+   - 业务规则和约束
+   - 示例：`domain/pool/model.md`、`domain/card/rules.md`
+
+2. **功能规格** (`features/`)
+   - 面向用户的功能描述
+   - 用户交互流程
+   - 示例：`features/card_management/spec.md`
+
+3. **UI 规格** (`ui/`)
+   - 界面布局和交互
+   - 平台特定的 UI 行为
+   - 示例：`ui/screens/mobile/home_screen.md`
+
+4. **架构规格** (`architecture/`)
+   - 技术实现方案
+   - 系统架构设计
+   - 示例：`architecture/storage/card_store.md`
+
+5. **API 规格** (`api/`)
+   - 公共接口定义
+   - FFI 桥接规格
+   - 示例：`api/api_spec.md`
+
+#### ❌ 不应该放在变更的 `specs/` 目录
+
+以下类型的文档**不应该**放在变更的 `specs/` 目录中：
+
+1. **工程指南文档**
+   - 编码规范、测试指南
+   - 应放在：变更的 `engineering/` 目录
+   - 归档后手动移动到：`openspec/engineering/`
+
+2. **工具和脚本文档**
+   - 验证脚本、检查工具的说明
+   - 应放在：变更的 `tools/` 或 `scripts/` 目录
+
+3. **临时分析文档**
+   - 问题调查、技术调研
+   - 应放在：变更的 `analysis/` 或 `research/` 目录
+
+4. **迁移和重构文档**
+   - 迁移映射表、重构计划
+   - 应放在：变更的根目录或 `docs/` 目录
+
+### 归档前检查清单
+
+在执行 `openspec archive` 之前，请检查：
+
+- [ ] 变更的 `specs/` 目录中只包含业务规格文档
+- [ ] 所有工程指南文档已移到 `engineering/` 目录
+- [ ] 所有文档符合双语格式规范
+- [ ] 所有文档包含必需的元数据字段
+- [ ] 文档路径符合四层架构（domain/features/ui/architecture）
+
+### 常见错误示例
+
+**❌ 错误示例 1：工程指南放在 specs/ 目录**
+```
+openspec/changes/my-change/
+└── specs/
+    └── bilingual-compliance/    # ❌ 错误：工程指南
+        └── spec.md
+```
+
+**✅ 正确做法**：
+```
+openspec/changes/my-change/
+└── engineering/                 # ✅ 正确：工程指南
+    └── bilingual_compliance_spec.md
+```
+
+**❌ 错误示例 2：迁移文档放在 specs/ 目录**
+```
+openspec/changes/my-change/
+└── specs/
+    └── migration_map.md         # ❌ 错误：迁移文档
+```
+
+**✅ 正确做法**：
+```
+openspec/changes/my-change/
+└── migration_map.md             # ✅ 正确：放在变更根目录
+```
+
+### 验证脚本
+
+可以使用以下命令验证变更中的文档分类：
+
+```bash
+# 检查 specs/ 目录中是否有工程文档关键词
+grep -r "工程指南\|编码规范\|测试指南\|验证脚本" openspec/changes/*/specs/
+
+# 检查 specs/ 目录结构是否符合四层架构
+ls -d openspec/changes/*/specs/{domain,features,ui,architecture}
+```
+
+### 相关问题记录
+
+- **问题案例**：变更 `bilingual-spec-compliance` 归档时，工程指南文档 `specs/bilingual-compliance/spec.md` 被错误同步到主规格目录（提交 38d86a4）
+- **解决方案**：将文档迁移到 `engineering/bilingual_compliance_spec.md`，删除错误目录
+- **预防措施**：本章节的约定和检查清单
+
+---
+
 ## 参考
 
 - 配置：`openspec/.openspec/config.json`
