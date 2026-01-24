@@ -9,7 +9,7 @@
 
 本文档定义 CardMind 的**视觉设计元素**，包括颜色、字体、间距等。
 
-**注意**: 本文档不包含交互行为规格。交互规格请查看 `openspec/specs/flutter/`。
+**注意**: 本文档不包含交互行为规格。交互规格请查看 `openspec/specs/features/`。
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### 1.2 快速响应 (Fast & Responsive)
 - 清晰的视觉层级，快速定位信息
-- 即时的交互反馈（交互规格见 `openspec/specs/flutter/`）
+- 即时的交互反馈（交互规格见 `openspec/specs/features/`）
 
 ### 1.3 轻量舒适 (Light & Comfortable)
 - 柔和的颜色，减少视觉疲劳
@@ -31,7 +31,7 @@
 
 ### 1.4 一致可靠 (Consistent & Reliable)
 - 统一的设计语言
-- 可预测的交互模式（交互规格见 `openspec/specs/flutter/`）
+- 可预测的交互模式（交互规格见 `openspec/specs/features/`）
 
 ---
 
@@ -257,7 +257,7 @@ xxl: 48px (6 单位)
 弹性: Curves.elasticOut
 ```
 
-**注意**: 具体的动画触发条件和交互行为，请查看 `openspec/specs/flutter/` 中的交互规格。
+**注意**: 具体的动画触发条件和交互行为，请查看 `openspec/specs/features/` 中的交互规格。
 
 ---
 
@@ -309,9 +309,9 @@ xxl: 48px (6 单位)
 - [组件库](./component_library.md) - 可复用组件设计
 
 ### 交互规格（可执行）
-- [UI 交互规格](../../openspec/specs/flutter/ui_interaction_spec.md)
-- [主页交互规格](../../openspec/specs/flutter/home_screen_spec.md)
-- [初始化流程规格](../../openspec/specs/flutter/onboarding_spec.md)
+- [主页交互规格](../../openspec/specs/features/home_screen/ui_shared.md)
+- [初始化流程规格](../../openspec/specs/features/onboarding/ui_shared.md)
+- [卡片编辑器规格](../../openspec/specs/features/card_editor/ui_mobile.md)
 
 ### 产品文档
 - [产品愿景](../requirements/product_vision.md)

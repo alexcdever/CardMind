@@ -30,7 +30,7 @@
 2. 输入标题和内容（支持 Markdown）
 3. 点击 **完成**
 
-**交互规格**: 详见 [卡片创建交互规格](../../openspec/specs/flutter/card_creation_spec.md) (SP-FLUT-009)
+**交互规格**: 详见 [卡片编辑器交互规格](../../openspec/specs/features/card_editor/ui_mobile.md)
 
 **视觉设计**: 详见 [组件库 - 按钮](../design/component_library.md#1-按钮组件) 和 [输入组件](../design/component_library.md#2-输入组件)
 
@@ -103,9 +103,9 @@
 ## 相关文档
 
 ### 交互规格（可执行）
-- [卡片创建交互规格](../../openspec/specs/flutter/card_creation_spec.md) - SP-FLUT-009
-- [主页交互规格](../../openspec/specs/flutter/home_screen_spec.md) - SP-FLUT-008
-- [初始化流程规格](../../openspec/specs/flutter/onboarding_spec.md) - SP-FLUT-007
+- [卡片编辑器交互规格](../../openspec/specs/features/card_editor/ui_mobile.md)
+- [主页交互规格](../../openspec/specs/features/home_screen/ui_shared.md)
+- [初始化流程规格](../../openspec/specs/features/onboarding/ui_shared.md)
 
 ### 视觉设计
 - [视觉风格指南](../design/visual_style.md) - 颜色、字体、间距

@@ -84,10 +84,12 @@ AI:  Runs: openspec archive <change> --yes
 
 | Path | Content |
 |------|---------|
-| `openspec/specs/` | All specifications (API, ADRs, guides) |
-| `openspec/specs/adr/` | Architecture decision records |
-| `openspec/specs/rust/` | Rust backend specs |
-| `openspec/specs/flutter/` | Flutter UI specs |
+| `openspec/specs/` | All specifications (domain-driven structure) |
+| `openspec/specs/domain/` | Domain models and business logic |
+| `openspec/specs/api/` | Public API specifications |
+| `openspec/specs/features/` | User-facing features |
+| `openspec/specs/ui_system/` | UI design system |
+| `docs/adr/` | Architecture decision records (Chinese) |
 | `openspec/changes/` | Proposed changes (active) |
 
 ---
@@ -128,7 +130,7 @@ The system SHALL create a new card with a unique UUID v7 ID.
 - [OpenSpec Official Docs](https://openspec.dev/)
 - [CardMind Spec Center](specs/README.md)
 - [CardMind Architecture](../../docs/architecture/system_design.md)
-- [ADRs](specs/adr/README.md)
+- [ADRs](../../docs/adr/)
 
 ---
 

@@ -2,7 +2,7 @@
 //!
 //! 测试 P2P 同步服务的核心功能和状态管理
 //!
-//! 规格: specs/rust/sync_spec.md
+//! 规格: openspec/specs/architecture/sync/service.md
 
 use cardmind_rust::models::device_config::DeviceConfig;
 use cardmind_rust::p2p::P2PSyncService;
