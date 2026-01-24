@@ -7,8 +7,8 @@
 **状态**: Active
 **Dependencies**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../domain/sync/model.md](../../domain/sync/model.md), [../storage/device_config.md](../storage/device_config.md)
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../domain/sync/model.md](../../domain/sync/model.md), [../storage/device_config.md](../storage/device_config.md)
-**Related Tests**: `rust/tests/sp_sync_006_spec.rs`
-**相关测试**: `rust/tests/sp_sync_006_spec.rs`
+**Related Tests**: `rust/tests/sync_service_test.rs`
+**相关测试**: `rust/tests/sync_service_test.rs`
 
 ---
 

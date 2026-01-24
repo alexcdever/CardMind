@@ -61,13 +61,13 @@ class SpecMappingVerifier {
 
       for (final file in files) {
         final content = file.readAsStringSync();
-        final specNumbers = extractSpecNumbers(content);
+        final testFile = extractRelatedTests(content);
 
-        for (final specNum in specNumbers) {
+        if (testFile != null && testFile.startsWith('rust/')) {
           final mapping = SpecMapping(
-            specNumber: specNum,
+            specNumber: null, // No longer using spec numbers
             specFile: file.path,
-            testFile: inferRustTestFile(specNum),
+            testFile: testFile,
             codeFile: inferRustCodeFile(file.path),
           );
           rustMappings.add(mapping);
@@ -119,7 +119,7 @@ class SpecMappingVerifier {
         final testFile = File(mapping.testFile!);
         if (!testFile.existsSync()) {
           missingTests.add(
-              '${mapping.specNumber}: ${mapping.testFile} (spec: ${mapping.specFile})');
+              '${mapping.specFile}: ${mapping.testFile}');
         }
       }
     }
@@ -150,7 +150,7 @@ class SpecMappingVerifier {
       final testFiles = rustTestDir
           .listSync()
           .whereType<File>()
-          .where((f) => f.path.endsWith('_spec.rs'));
+          .where((f) => f.path.endsWith('_test.rs'));
 
       for (final testFile in testFiles) {
         final testPath = testFile.path;
@@ -259,20 +259,12 @@ class SpecMappingVerifier {
     print('=' * 60);
   }
 
-  List<String> extractSpecNumbers(String content) {
-    final regex = RegExp(r'SP-[A-Z]+-\d+');
-    final matches = regex.allMatches(content);
-    return matches.map((m) => m.group(0)!).toSet().toList();
-  }
-
-  String? inferRustTestFile(String specNumber) {
-    // SP-SPM-001 -> rust/tests/sp_spm_001_spec.rs
-    final parts = specNumber.split('-');
-    if (parts.length != 3) return null;
-
-    final module = parts[1].toLowerCase();
-    final number = parts[2];
-    return 'rust/tests/sp_${module}_${number}_spec.rs';
+  String? extractRelatedTests(String content) {
+    // Extract test file from "Related Tests" metadata
+    // **Related Tests**: `rust/tests/pool_model_test.rs`
+    final regex = RegExp(r'\*\*Related Tests\*\*:\s*`([^`]+)`');
+    final match = regex.firstMatch(content);
+    return match?.group(1);
   }
 
   String? inferRustCodeFile(String specPath) {

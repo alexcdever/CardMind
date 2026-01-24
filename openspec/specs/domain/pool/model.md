@@ -7,8 +7,8 @@
 **状态**: Active
 **Dependencies**: [../types.md](../types.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
 **依赖**: [../types.md](../types.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
-**Related Tests**: `rust/tests/sp_spm_001_spec.rs`
-**相关测试**: `rust/tests/sp_spm_001_spec.rs`
+**Related Tests**: `rust/tests/pool_model_test.rs`
+**相关测试**: `rust/tests/pool_model_test.rs`
 
 ---
 
