@@ -198,34 +198,190 @@ class SyncStatus {
 
 **测试文件**: `test/widgets/sync_status_indicator_test.dart`
 
+#### 渲染测试
+
 1. `it_should_show_not_yet_synced_badge()` - 显示尚未同步徽章
+   - ✅ 验证显示灰色 Badge
+   - ✅ 验证显示 CloudOff 图标
+   - ✅ 验证显示"尚未同步"文本
+   - ✅ 验证无动画
+
 2. `it_should_show_syncing_badge_with_animation()` - 显示同步中徽章（带动画）
+   - ✅ 验证显示次要色 Badge
+   - ✅ 验证显示 RefreshCw 图标
+   - ✅ 验证显示"同步中..."文本
+   - ✅ 验证图标旋转动画（360° 每2秒）
+
 3. `it_should_show_synced_badge_with_just_now_text()` - 显示"刚刚"文本（10秒内）
+   - ✅ 验证显示白色边框 Badge
+   - ✅ 验证显示绿色 Check 图标
+   - ✅ 验证显示"刚刚"文本
+   - ✅ 验证无动画
+
 4. `it_should_show_synced_badge_with_synced_text()` - 显示"已同步"文本（超过10秒）
+   - ✅ 验证显示白色边框 Badge
+   - ✅ 验证显示绿色 Check 图标
+   - ✅ 验证显示"已同步"文本
+   - ✅ 验证无动画
+
 5. `it_should_show_failed_badge()` - 显示同步失败徽章
+   - ✅ 验证显示红色 Badge
+   - ✅ 验证显示 AlertCircle 图标
+   - ✅ 验证显示"同步失败"文本
+   - ✅ 验证无动画
+
 6. `it_should_use_correct_colors_for_each_state()` - 验证每个状态的颜色正确
+   - ✅ 尚未同步：灰色
+   - ✅ 同步中：次要色
+   - ✅ 已同步：白色边框
+   - ✅ 同步失败：红色
+
 7. `it_should_use_correct_icons_for_each_state()` - 验证每个状态的图标正确
+   - ✅ 尚未同步：CloudOff
+   - ✅ 同步中：RefreshCw
+   - ✅ 已同步：Check（绿色）
+   - ✅ 同步失败：AlertCircle
+
+#### 交互测试
+
 8. `it_should_open_details_dialog_on_tap()` - 点击打开详情对话框
+   - ✅ 模拟用户点击指示器
+   - ✅ 验证详情对话框显示
+   - ✅ 验证对话框包含当前状态信息
+   - ✅ 验证对话框包含设备列表
+   - ✅ 验证对话框包含同步历史
+
 9. `it_should_have_correct_semantic_labels()` - 验证无障碍标签正确
+   - ✅ 尚未同步：语义标签"尚未同步，点击查看详情"
+   - ✅ 同步中：语义标签"正在同步数据，点击查看详情"
+   - ✅ 已同步：语义标签"已同步，数据最新，点击查看详情"
+   - ✅ 同步失败：语义标签"同步失败，点击查看详情并重试"
+
+#### 状态更新测试
+
 10. `it_should_update_when_status_changes()` - 状态变化时更新显示
+    - ✅ 创建初始状态为"尚未同步"的指示器
+    - ✅ 模拟状态流发出"同步中"状态
+    - ✅ 验证指示器更新为"同步中"样式
+    - ✅ 模拟状态流发出"已同步"状态
+    - ✅ 验证指示器更新为"已同步"样式
+    - ✅ 验证过渡动画流畅
+
 11. `it_should_filter_duplicate_status_updates()` - 过滤重复状态更新
-12. `it_should_stop_timer_when_disposed()` - dispose 时停止定时器
-13. `it_should_cancel_subscription_when_disposed()` - dispose 时取消订阅
+    - ✅ 创建指示器
+    - ✅ 模拟状态流连续发出3次相同状态
+    - ✅ 验证 UI 只重建1次
+    - ✅ 验证性能优化生效
+
+12. `it_should_update_relative_time_display()` - 更新相对时间显示
+    - ✅ 创建"已同步"状态（5秒前）
+    - ✅ 验证显示"刚刚"
+    - ✅ 等待10秒
+    - ✅ 验证显示"已同步"
+    - ✅ 验证定时器停止
+
+#### 资源管理测试
+
+13. `it_should_stop_timer_when_disposed()` - dispose 时停止定时器
+    - ✅ 创建"已同步"状态指示器（启动定时器）
+    - ✅ 调用 dispose
+    - ✅ 验证定时器被取消
+    - ✅ 验证不再有内存泄漏
+
+14. `it_should_cancel_subscription_when_disposed()` - dispose 时取消订阅
+    - ✅ 创建指示器（订阅状态流）
+    - ✅ 调用 dispose
+    - ✅ 验证流订阅被取消
+    - ✅ 验证不再接收状态更新
 
 ### 5.3 Widget 测试（SyncDetailsDialog）
 
 **测试文件**: `test/widgets/sync_details_dialog_test.dart`
 
+#### 渲染测试
+
 1. `it_should_show_current_status()` - 显示当前状态
+   - ✅ 打开对话框
+   - ✅ 验证显示当前同步状态（尚未同步/同步中/已同步/同步失败）
+   - ✅ 验证显示状态描述文本
+   - ✅ 验证状态图标正确
+
 2. `it_should_show_device_list()` - 显示设备列表
+   - ✅ 打开对话框（有3个已发现设备）
+   - ✅ 验证显示设备列表
+   - ✅ 验证每个设备显示名称
+   - ✅ 验证显示连接状态（已连接/未连接）
+   - ✅ 验证显示上次可见时间
+
 3. `it_should_show_sync_statistics()` - 显示同步统计
+   - ✅ 打开对话框
+   - ✅ 验证显示已同步卡片数量
+   - ✅ 验证显示同步数据大小
+   - ✅ 验证显示成功/失败同步次数
+
 4. `it_should_show_sync_history()` - 显示同步历史
+   - ✅ 打开对话框（有同步历史）
+   - ✅ 验证显示最近10条同步事件
+   - ✅ 验证每个事件显示时间戳
+   - ✅ 验证每个事件显示成功/失败状态
+   - ✅ 验证每个事件显示涉及的设备
+
+#### 错误状态测试
+
 5. `it_should_show_error_message_when_failed()` - 失败时显示错误信息
+   - ✅ 打开对话框（状态为失败）
+   - ✅ 验证显示错误消息
+   - ✅ 验证错误消息内容正确（"未发现可用设备"等）
+   - ✅ 验证显示错误图标
+
 6. `it_should_show_retry_button_when_failed()` - 失败时显示重试按钮
+   - ✅ 打开对话框（状态为失败）
+   - ✅ 验证显示"重试"按钮
+   - ✅ 验证按钮可点击
+   - ✅ 验证按钮样式正确
+
+#### 交互测试
+
 7. `it_should_trigger_sync_on_retry()` - 点击重试触发同步
+   - ✅ 打开对话框（状态为失败）
+   - ✅ 模拟点击"重试"按钮
+   - ✅ 验证调用同步 API
+   - ✅ 验证状态更新为"同步中"
+   - ✅ 验证按钮变为禁用状态（防止重复点击）
+
 8. `it_should_trigger_sync_on_sync_now_button()` - 点击立即同步按钮触发同步
+   - ✅ 打开对话框（任意状态）
+   - ✅ 模拟点击"立即同步"按钮
+   - ✅ 验证调用同步 API
+   - ✅ 验证状态更新为"同步中"
+   - ✅ 验证显示同步进度
+
 9. `it_should_refresh_devices_on_refresh_button()` - 点击刷新按钮刷新设备列表
+   - ✅ 打开对话框
+   - ✅ 模拟点击"刷新设备列表"按钮
+   - ✅ 验证调用设备扫描 API
+   - ✅ 验证设备列表更新
+   - ✅ 验证显示刷新动画
+
 10. `it_should_dismiss_on_close()` - 点击关闭按钮关闭对话框
+    - ✅ 打开对话框
+    - ✅ 模拟点击关闭按钮
+    - ✅ 验证对话框关闭
+    - ✅ 验证关闭动画流畅
+
+#### 实时更新测试
+
+11. `it_should_update_status_in_realtime()` - 实时更新状态
+    - ✅ 打开对话框（状态为"同步中"）
+    - ✅ 模拟状态流发出"已同步"状态
+    - ✅ 验证对话框内状态实时更新
+    - ✅ 验证不需要手动刷新
+
+12. `it_should_update_device_list_in_realtime()` - 实时更新设备列表
+    - ✅ 打开对话框
+    - ✅ 模拟发现新设备
+    - ✅ 验证设备列表自动更新
+    - ✅ 验证新设备显示在列表中
 
 ---
 
