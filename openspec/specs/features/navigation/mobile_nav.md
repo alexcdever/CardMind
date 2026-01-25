@@ -1,179 +1,456 @@
-# Mobile Navigation Specification | 移动端导航规格
-
-**Version** | **版本**: 1.0.0
-**Status** | **状态**: Active
-**Dependencies** | **依赖**: None
-**Related Tests** | **相关测试**: `test/widgets/mobile_nav_test.dart`
-
+---
+version: 2.0.0
+status: draft
+platform: mobile
 ---
 
-## Overview | 概述
+# 移动端底部导航栏规格
 
-This specification defines the mobile bottom navigation bar component that provides access to the three main sections of the application.
+## 元数据
 
-本规格定义了移动端底部导航栏组件，提供对应用三个主要部分的访问。
+- **功能名称**: 移动端底部导航栏 (MobileNav)
+- **版本**: 2.0.0
+- **状态**: 草稿
+- **平台**: 移动端 (iOS/Android)
+- **依赖**: 无
+- **参考**: `react_ui_reference/src/components/mobile-nav.tsx`
 
----
+## 业务逻辑
 
-## Requirement: Display bottom navigation bar with three tabs | 需求：显示带有三个标签页的底部导航栏
+### 核心功能
 
-The system SHALL provide a mobile bottom navigation bar with three main sections.
+移动端底部导航栏提供应用的主要导航功能，包含三个标签页：
 
-系统应提供带有三个主要部分的移动端底部导航栏。
+1. **Notes（笔记）**: 显示笔记列表，徽章显示笔记数量
+2. **Devices（设备）**: 显示设备列表，徽章显示设备数量
+3. **Settings（设置）**: 显示应用设置，无徽章
 
-### Scenario: Show navigation tabs | 场景：显示导航标签页
+### 导航状态
 
-- **WHEN** rendering mobile navigation
-- **操作**：渲染移动端导航
-- **THEN** the system SHALL display three tabs: Notes, Devices, and Settings
-- **预期结果**：系统应显示三个标签页：笔记、设备和设置
-- **AND** position them evenly across the bottom bar
-- **并且**：将它们均匀分布在底部栏上
+```dart
+enum NavTab {
+  notes,    // 笔记标签
+  devices,  // 设备标签
+  settings, // 设置标签
+}
 
-### Scenario: Highlight active tab | 场景：高亮激活的标签页
+class NavState {
+  final NavTab currentTab;      // 当前激活的标签
+  final int notesCount;         // 笔记数量
+  final int devicesCount;       // 设备数量
+}
+```
 
-- **WHEN** a tab is active
-- **操作**：标签页处于激活状态
-- **THEN** the system SHALL apply active styling to the tab
-- **预期结果**：系统应对标签页应用激活状态样式
-- **AND** use distinct color and icon fill to indicate selection
-- **并且**：使用不同的颜色和图标填充来指示选择
+### 徽章规则
 
----
+- **显示条件**: count > 0
+- **数字显示**:
+  - 1 ≤ count ≤ 99: 显示实际数字
+  - count > 99: 显示 "99+"
+- **隐藏条件**: count = 0
+- **Settings 标签**: 始终不显示徽章
 
-## Requirement: Show badge counts on tabs | 需求：在标签页上显示徽章计数
+### 状态更新
 
-The system SHALL display badge counts for relevant tabs.
+- **currentTab**: 用户点击标签时更新
+- **notesCount**: 监听笔记列表变化，自动更新
+- **devicesCount**: 监听设备列表变化，自动更新
 
-系统应为相关标签页显示徽章计数。
+## 交互逻辑
 
-### Scenario: Show note count on Notes tab | 场景：在笔记标签页上显示笔记数量
+### 标签切换
 
-- **WHEN** displaying Notes tab
-- **操作**：显示笔记标签页
-- **THEN** the system SHALL show a badge with the total number of notes
-- **预期结果**：系统应显示带有笔记总数的徽章
+**触发条件**: 用户点击标签项
 
-### Scenario: Show device count on Devices tab | 场景：在设备标签页上显示设备数量
+**前置条件**: 无
 
-- **WHEN** displaying Devices tab
-- **操作**：显示设备标签页
-- **THEN** the system SHALL show a badge with the number of paired devices
-- **预期结果**：系统应显示带有配对设备数量的徽章
+**执行流程**:
+1. 检查点击的标签是否为当前激活标签
+2. 如果是当前激活标签，不执行任何操作
+3. 如果不是当前激活标签：
+   - 更新 currentTab 为新标签
+   - 触发视觉反馈动画
+   - 通知父组件切换页面
 
-### Scenario: Hide badge when count is zero | 场景：计数为零时隐藏徽章
+**后置条件**: currentTab 更新为新标签
 
-- **WHEN** a tab's count is zero
-- **操作**：标签页的计数为零
-- **THEN** the system SHALL hide the badge for that tab
-- **预期结果**：系统应隐藏该标签页的徽章
+**视觉反馈**:
+- 新激活标签：图标和文字变为主题色，显示顶部指示器，图标缩放动画
+- 原激活标签：图标和文字变为灰色，隐藏顶部指示器
 
----
+**动画时长**: 200ms
 
-## Requirement: Handle tab selection | 需求：处理标签页选择
+### 点击反馈
 
-The system SHALL respond to user tab selections and notify the parent component.
+**触发条件**: 用户按下标签项
 
-系统应响应用户的标签页选择并通知父组件。
+**视觉反馈**:
+- 按下时：标签项背景色变为浅灰色 (#F0F0F0)
+- 松开时：背景色恢复原色
 
-### Scenario: Switch to different tab | 场景：切换到不同的标签页
+**动画时长**: 100ms
 
-- **WHEN** user taps on a non-active tab
-- **操作**：用户点击非激活标签页
-- **THEN** the system SHALL call onTabChange callback with the new tab index
-- **预期结果**：系统应使用新标签页索引调用 onTabChange 回调
-- **AND** update the active tab visual state
-- **并且**：更新激活标签页的视觉状态
+### 徽章更新
 
-### Scenario: Tap on already active tab | 场景：点击已激活的标签页
+**触发条件**: notesCount 或 devicesCount 变化
 
-- **WHEN** user taps on the currently active tab
-- **操作**：用户点击当前激活的标签页
-- **THEN** the system SHALL NOT call onTabChange callback
-- **预期结果**：系统不应调用 onTabChange 回调
-- **AND** optionally scroll the current view to top
-- **并且**：可选地将当前视图滚动到顶部
+**执行流程**:
+1. 检查新旧值是否相同
+2. 如果相同，不执行任何操作
+3. 如果不同：
+   - 更新徽章数字
+   - 触发徽章动画
 
----
+**视觉反馈**:
+- 数字变化：缩放动画（1.0 → 1.2 → 1.0）
+- 从 0 变为非 0：淡入 + 缩放动画
+- 从非 0 变为 0：淡出动画
 
-## Requirement: Use appropriate icons for tabs | 需求：为标签页使用适当的图标
+**动画时长**: 200ms
 
-The system SHALL display semantic icons for each navigation tab.
+## 边界与约束
 
-系统应为每个导航标签页显示语义化图标。
+### 数据边界
 
-### Scenario: Display tab icons | 场景：显示标签页图标
+| 场景 | 约束 | 处理方式 |
+|------|------|----------|
+| notesCount < 0 | 不允许 | 视为 0，不显示徽章 |
+| devicesCount < 0 | 不允许 | 视为 0，不显示徽章 |
+| notesCount > 999 | 允许 | 显示 "99+" |
+| devicesCount > 999 | 允许 | 显示 "99+" |
+| currentTab 为 null | 不允许 | 必须提供有效的 NavTab 值 |
 
-- **WHEN** rendering navigation tabs
-- **操作**：渲染导航标签页
-- **THEN** the system SHALL show a notes icon for the Notes tab
-- **预期结果**：系统应为笔记标签页显示笔记图标
-- **AND** show a devices icon for the Devices tab
-- **并且**：为设备标签页显示设备图标
-- **AND** show a settings icon for the Settings tab
-- **并且**：为设置标签页显示设置图标
+### 交互边界
 
-### Scenario: Icon state transition | 场景：图标状态转换
+| 场景 | 约束 | 处理方式 |
+|------|------|----------|
+| 点击当前激活标签 | 允许 | 不触发切换，保持当前状态 |
+| 快速连续点击 | 允许 | 防抖处理，忽略重复点击 |
+| 切换动画进行中再次点击 | 允许 | 取消当前动画，立即切换到新标签 |
+| 同时更新多个徽章 | 允许 | 独立更新，互不影响 |
 
-- **WHEN** switching between tabs
-- **操作**：在标签页之间切换
-- **THEN** the system SHALL use filled icons for active tab
-- **预期结果**：系统应为激活标签页使用填充图标
-- **AND** use outlined icons for inactive tabs
-- **并且**：为非激活标签页使用轮廓图标
+### 布局边界
 
----
+| 场景 | 约束 | 处理方式 |
+|------|------|----------|
+| 无 SafeArea 底部安全区域 | 允许 | 使用固定 64px 高度 |
+| 有 SafeArea 底部安全区域 | 允许 | 64px + SafeArea.bottom |
+| 屏幕宽度 < 320px | 允许 | 标签项等比缩小，保持布局 |
+| 屏幕宽度 > 768px | 不允许 | 仅在移动端显示，不支持平板 |
 
-## Requirement: Provide safe area insets | 需求：提供安全区域内边距
+### 性能约束
 
-The system SHALL respect device safe area to avoid interfering with system gestures or notches.
+- 标签切换响应时间 < 50ms
+- 动画帧率 ≥ 60fps
+- 徽章更新响应时间 < 100ms
 
-系统应遵守设备安全区域，以避免干扰系统手势或刘海。
+## 组件接口
 
-### Scenario: Apply safe area padding | 场景：应用安全区域内边距
+### MobileNav 组件
 
-- **WHEN** rendering on devices with bottom safe area (e.g., iPhone with home indicator)
-- **操作**：在带有底部安全区域的设备上渲染（例如带主页指示器的 iPhone）
-- **THEN** the navigation bar SHALL add appropriate padding to avoid overlap
-- **预期结果**：导航栏应添加适当的内边距以避免重叠
+```dart
+class MobileNav extends StatelessWidget {
+  /// 当前激活的标签
+  final NavTab currentTab;
+  
+  /// 笔记数量（用于徽章显示）
+  final int notesCount;
+  
+  /// 设备数量（用于徽章显示）
+  final int devicesCount;
+  
+  /// 标签切换回调
+  final OnTabChange onTabChange;
 
----
+  const MobileNav({
+    required this.currentTab,
+    required this.notesCount,
+    required this.devicesCount,
+    required this.onTabChange,
+  });
+}
 
-## Test Coverage | 测试覆盖
+typedef OnTabChange = void Function(NavTab tab);
+```
 
-**Test File** | **测试文件**: `test/widgets/mobile_nav_test.dart`
+### NavTabItem 组件
 
-**Widget Tests** | **Widget 测试**:
-- `it_should_display_three_tabs()` - Display three tabs | 显示三个标签页
-- `it_should_position_tabs_evenly()` - Even positioning | 均匀定位
-- `it_should_highlight_active_tab()` - Highlight active | 高亮激活标签
-- `it_should_show_note_count_badge()` - Note count badge | 笔记计数徽章
-- `it_should_show_device_count_badge()` - Device count badge | 设备计数徽章
-- `it_should_hide_zero_badges()` - Hide zero badges | 隐藏零计数徽章
-- `it_should_switch_tabs()` - Switch tabs | 切换标签页
-- `it_should_not_callback_on_active_tap()` - No callback on active tap | 点击激活标签无回调
-- `it_should_scroll_to_top_on_active_tap()` - Scroll to top | 滚动到顶部
-- `it_should_use_semantic_icons()` - Semantic icons | 语义化图标
-- `it_should_transition_icon_states()` - Icon state transition | 图标状态转换
-- `it_should_apply_safe_area_padding()` - Safe area padding | 安全区域内边距
+```dart
+class NavTabItem extends StatelessWidget {
+  /// 标签类型
+  final NavTab tab;
+  
+  /// 是否为激活状态
+  final bool isActive;
+  
+  /// 徽章数量（null 表示不显示徽章）
+  final int? badgeCount;
+  
+  /// 点击回调
+  final VoidCallback onTap;
 
-**Acceptance Criteria** | **验收标准**:
-- [ ] All widget tests pass | 所有 Widget 测试通过
-- [ ] Tab switching is smooth | 标签页切换流畅
-- [ ] Badge counts update correctly | 徽章计数正确更新
-- [ ] Safe area is respected on all devices | 在所有设备上遵守安全区域
-- [ ] Code review approved | 代码审查通过
-- [ ] Documentation updated | 文档已更新
+  const NavTabItem({
+    required this.tab,
+    required this.isActive,
+    this.badgeCount,
+    required this.onTap,
+  });
+}
+```
 
----
+## 测试用例
 
-## Related Documents | 相关文档
+### 单元测试（5 个）
 
-**Related Specs** | **相关规格**:
-- [home_screen.md](../home_screen/home_screen.md) - Home screen | 主屏幕
-- [sync_screen.md](../sync/sync_screen.md) - Sync screen | 同步屏幕
+#### NavState 测试
 
----
+**UT-001: 测试初始状态创建**
+- **输入**: currentTab = NavTab.notes, notesCount = 5, devicesCount = 3
+- **预期**: NavState 正确初始化，所有字段值正确
 
-**Last Updated** | **最后更新**: 2026-01-21
-**Authors** | **作者**: CardMind Team
+**UT-002: 测试徽章显示逻辑**
+- **输入**: count = 0, 50, 100
+- **预期**:
+  - count = 0: 不显示徽章
+  - count = 50: 显示 "50"
+  - count = 100: 显示 "99+"
+
+**UT-003: 测试负数处理**
+- **输入**: notesCount = -1, devicesCount = -5
+- **预期**: 视为 0，不显示徽章
+
+**UT-004: 测试标签枚举**
+- **输入**: NavTab.notes, NavTab.devices, NavTab.settings
+- **预期**: 枚举值可正确比较和使用
+
+**UT-005: 测试回调类型定义**
+- **输入**: OnTabChange 回调函数
+- **预期**: 类型定义正确，可正确调用
+
+### Widget 测试（41 个）
+
+#### 渲染测试（9 个）
+
+**WT-001: 测试基本渲染**
+- **输入**: MobileNav 组件
+- **预期**: 正确渲染，包含 3 个标签项
+
+**WT-002: 测试标签项内容**
+- **输入**: 3 个标签项
+- **预期**:
+  - Notes 标签显示笔记图标和 "笔记" 文本
+  - Devices 标签显示设备图标和 "设备" 文本
+  - Settings 标签显示设置图标和 "设置" 文本
+
+**WT-003: 测试激活状态**
+- **输入**: currentTab = NavTab.notes
+- **预期**:
+  - Notes 标签显示主题色和顶部指示器
+  - Devices 和 Settings 标签显示灰色
+
+**WT-004: 测试徽章渲染**
+- **输入**: notesCount = 5, devicesCount = 3
+- **预期**:
+  - Notes 标签显示徽章 "5"
+  - Devices 标签显示徽章 "3"
+  - Settings 标签不显示徽章
+
+**WT-005: 测试徽章数字显示**
+- **输入**: count = 5, 99, 100
+- **预期**:
+  - count = 5: 显示 "5"
+  - count = 99: 显示 "99"
+  - count = 100: 显示 "99+"
+
+**WT-006: 测试徽章隐藏**
+- **输入**: notesCount = 0, devicesCount = 0
+- **预期**: 不显示徽章
+
+**WT-007: 测试布局高度**
+- **输入**: SafeArea.bottom = 0 和 34
+- **预期**:
+  - SafeArea.bottom = 0: 高度 64px
+  - SafeArea.bottom = 34: 高度 98px
+
+**WT-008: 测试顶部边框**
+- **输入**: MobileNav 组件
+- **预期**: 存在 1px 顶部分隔线
+
+**WT-009: 测试标签分布**
+- **输入**: MobileNav 组件
+- **预期**: 3 个标签均匀分布
+
+#### 交互测试（20 个）
+
+**WT-010: 测试点击 Notes 标签**
+- **操作**: 点击 Notes 标签
+- **预期**: onTabChange 被调用，参数为 NavTab.notes
+
+**WT-011: 测试点击 Devices 标签**
+- **操作**: 点击 Devices 标签
+- **预期**: onTabChange 被调用，参数为 NavTab.devices
+
+**WT-012: 测试点击 Settings 标签**
+- **操作**: 点击 Settings 标签
+- **预期**: onTabChange 被调用，参数为 NavTab.settings
+
+**WT-013: 测试点击当前激活标签**
+- **输入**: currentTab = NavTab.notes
+- **操作**: 点击 Notes 标签
+- **预期**: onTabChange 不被调用
+
+**WT-014: 测试标签切换视觉反馈**
+- **输入**: currentTab = NavTab.notes
+- **操作**: 点击 Devices 标签
+- **预期**:
+  - Devices 标签颜色变为主题色
+  - Notes 标签颜色变为灰色
+
+**WT-015: 测试图标缩放动画**
+- **操作**: 点击标签项
+- **预期**: 图标执行缩放动画（1.0 → 1.1 → 1.0）
+
+**WT-016: 测试顶部指示器动画**
+- **输入**: currentTab = NavTab.notes
+- **操作**: 点击 Devices 标签
+- **预期**:
+  - Devices 标签顶部指示器淡入显示
+  - Notes 标签顶部指示器淡出隐藏
+
+**WT-017: 测试点击反馈**
+- **操作**: 按下标签项
+- **预期**: 背景色变为浅灰色，松开后恢复
+
+**WT-018: 测试快速连续点击**
+- **操作**: 快速点击 Devices 标签 3 次
+- **预期**: onTabChange 只被调用 1 次
+
+**WT-019: 测试切换动画进行中再次点击**
+- **操作**: 点击 Devices 标签（动画开始），立即点击 Settings 标签
+- **预期**: 取消 Devices 动画，立即切换到 Settings
+
+**WT-020: 测试触摸区域**
+- **操作**: 点击标签项边缘
+- **预期**: onTabChange 被正确调用
+
+**WT-021: 测试徽章更新动画**
+- **输入**: notesCount = 5
+- **操作**: 更新 notesCount = 10
+- **预期**: 徽章数字执行缩放动画
+
+**WT-022: 测试徽章出现动画**
+- **输入**: notesCount = 0
+- **操作**: 更新 notesCount = 1
+- **预期**: 徽章执行淡入 + 缩放动画
+
+**WT-023: 测试徽章消失动画**
+- **输入**: notesCount = 1
+- **操作**: 更新 notesCount = 0
+- **预期**: 徽章执行淡出动画
+
+**WT-024: 测试多次标签切换**
+- **操作**: 依次点击 Devices、Settings、Notes
+- **预期**: 每次切换都正确更新激活状态
+
+**WT-025: 测试标签切换后徽章保持**
+- **输入**: notesCount = 5, devicesCount = 3
+- **操作**: 切换到 Devices 标签
+- **预期**: Notes 标签徽章仍显示 "5"
+
+**WT-026: 测试同时更新多个徽章**
+- **操作**: 同时更新 notesCount 和 devicesCount
+- **预期**: 两个徽章都正确更新
+
+**WT-027: 测试标签切换动画时长**
+- **操作**: 点击标签项
+- **预期**: 动画时长为 200ms
+
+**WT-028: 测试点击反馈动画时长**
+- **操作**: 按下标签项
+- **预期**: 动画时长为 100ms
+
+**WT-029: 测试徽章动画时长**
+- **操作**: 更新徽章数字
+- **预期**: 动画时长为 200ms
+
+#### 边界测试（12 个）
+
+**WT-030: 测试负数 notesCount**
+- **输入**: notesCount = -1
+- **预期**: 不显示徽章
+
+**WT-031: 测试负数 devicesCount**
+- **输入**: devicesCount = -5
+- **预期**: 不显示徽章
+
+**WT-032: 测试超大 notesCount**
+- **输入**: notesCount = 1000
+- **预期**: 显示 "99+"
+
+**WT-033: 测试超大 devicesCount**
+- **输入**: devicesCount = 9999
+- **预期**: 显示 "99+"
+
+**WT-034: 测试 notesCount = 0**
+- **输入**: notesCount = 0
+- **预期**: 不显示徽章
+
+**WT-035: 测试 devicesCount = 0**
+- **输入**: devicesCount = 0
+- **预期**: 不显示徽章
+
+**WT-036: 测试 notesCount = 1**
+- **输入**: notesCount = 1
+- **预期**: 显示 "1"
+
+**WT-037: 测试 notesCount = 99**
+- **输入**: notesCount = 99
+- **预期**: 显示 "99"
+
+**WT-038: 测试 notesCount = 100**
+- **输入**: notesCount = 100
+- **预期**: 显示 "99+"
+
+**WT-039: 测试窄屏幕布局**
+- **输入**: 屏幕宽度 = 300px
+- **预期**: 标签项等比缩小，保持布局
+
+**WT-040: 测试无 SafeArea**
+- **输入**: SafeArea.bottom = 0
+- **预期**: 高度为 64px
+
+**WT-041: 测试有 SafeArea**
+- **输入**: SafeArea.bottom = 34px
+- **预期**: 高度为 98px (64 + 34)
+
+## 实现建议
+
+### 性能优化
+
+- 使用 `const` 构造函数减少重建
+- 徽章数字变化时只重建徽章组件
+- 标签切换时使用 `AnimatedSwitcher` 优化动画
+
+### 状态管理
+
+- 使用 `Provider` 或 `Riverpod` 管理导航状态
+- 监听笔记和设备数据变化，自动更新徽章
+
+### 主题适配
+
+- 支持浅色和深色模式
+- 使用 `Theme.of(context)` 获取主题色
+- 图标和文字颜色根据主题自动调整
+
+### 平台适配
+
+- 仅在移动端显示（iOS/Android）
+- 使用 `SafeArea` 处理底部安全区域
+- 考虑不同屏幕尺寸的布局适配
+
+## 参考资料
+
+- React UI 参考: `react_ui_reference/src/components/mobile-nav.tsx`
+- 设计文档: `docs/plans/2026-01-25-mobile-nav-ui-design.md`
+- Flutter 底部导航栏: https://api.flutter.dev/flutter/material/BottomNavigationBar-class.html
+- Material Design 导航栏: https://m3.material.io/components/navigation-bar/overview
