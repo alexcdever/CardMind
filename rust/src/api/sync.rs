@@ -479,7 +479,7 @@ mod tests {
         assert_eq!(syncing.syncing_peers, 3);
 
         // Test synced
-        let now = 1234567890;
+        let now = 1_234_567_890;
         let synced = SyncStatus::synced(now);
         assert_eq!(synced.state, SyncState::Synced);
         assert_eq!(synced.last_sync_time, Some(now));

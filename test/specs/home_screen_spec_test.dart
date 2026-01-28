@@ -262,7 +262,7 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         // Then: 应该显示同步进度指示器
         expect(find.byType(CircularProgressIndicator), findsOneWidget);

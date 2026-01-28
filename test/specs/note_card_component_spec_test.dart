@@ -43,8 +43,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -65,8 +65,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -85,8 +85,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -95,9 +95,10 @@ void main() {
         // When: Widget 渲染完成
         await tester.pumpAndSettle();
 
-        // Then: 应该显示标签
-        expect(find.text('tag1'), findsOneWidget);
-        expect(find.text('tag2'), findsOneWidget);
+        // Then: 标签不在卡片上显示（在详情对话框中显示）
+        // 新设计中标签只在详情对话框中显示，不在卡片预览中显示
+        expect(find.text('tag1'), findsNothing);
+        expect(find.text('tag2'), findsNothing);
       });
 
       testWidgets('it_should_display_metadata', (WidgetTester tester) async {
@@ -106,8 +107,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -135,8 +136,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
               onTap: () {
                 tapped = true;
@@ -161,8 +162,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -198,8 +199,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: cardWithTags,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -208,10 +209,10 @@ void main() {
         // When: Widget 渲染完成
         await tester.pumpAndSettle();
 
-        // Then: 应该显示所有标签
-        expect(find.text('tag1'), findsOneWidget);
-        expect(find.text('tag2'), findsOneWidget);
-        expect(find.text('tag3'), findsOneWidget);
+        // Then: 标签不在卡片上显示（在详情对话框中显示）
+        expect(find.text('tag1'), findsNothing);
+        expect(find.text('tag2'), findsNothing);
+        expect(find.text('tag3'), findsNothing);
       });
 
       testWidgets('it_should_handle_empty_tags', (WidgetTester tester) async {
@@ -231,8 +232,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: cardWithoutTags,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -260,8 +261,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (card) {
+              // currentDevice removed from API
+              onEdit: (card) {
                 updatedCard = card;
               },
               onDelete: (_) {},
@@ -291,8 +292,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (id) {
                 deletedId = id;
               },
@@ -321,8 +322,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -354,8 +355,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: cardFromOtherDevice,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -392,8 +393,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: cardWithLongTitle,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -423,8 +424,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: cardWithEmptyTitle,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),
@@ -456,8 +457,8 @@ void main() {
           createTestWidget(
             NoteCard(
               card: cardWithEmptyContent,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
+              // currentDevice removed from API
+              onEdit: (_) {},
               onDelete: (_) {},
             ),
           ),

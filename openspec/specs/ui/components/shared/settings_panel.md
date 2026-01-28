@@ -217,14 +217,112 @@ The system SHALL group related settings into logical sections.
 
 ---
 
+## Design Details
+## 设计细节
+
+### Functional Scope
+### 功能范围
+
+The settings panel provides the following functional areas:
+
+设置面板提供以下功能区域：
+
+- **Notification Settings**: Sync notification toggle
+- **通知设置**：同步通知开关
+- **Appearance Settings**: Dark mode toggle
+- **外观设置**：深色模式开关
+- **Data Management**: Export/import Loro format data
+- **数据管理**：导出/导入 Loro 格式数据
+- **About Application**: Version, tech stack, GitHub links, contributors, changelog
+- **关于应用**：版本、技术栈、GitHub 链接、贡献者、更新日志
+
+### Platform Differences
+### 平台差异
+
+The settings panel adapts to different platforms with distinct interaction patterns:
+
+设置面板适应不同平台，具有不同的交互模式：
+
+- **Mobile**: Full-screen page, accessed via bottom navigation bar
+- **移动端**：全屏页面，通过底部导航栏进入
+- **Desktop**: Popup dialog, accessible via Ctrl/Cmd+, shortcut
+- **桌面端**：弹出对话框，快捷键 Ctrl/Cmd+,
+
+### Data Operations
+### 数据操作
+
+Data management capabilities with specific format and size constraints:
+
+具有特定格式和大小约束的数据管理功能：
+
+- **Export**: Loro binary format (.loro)
+- **导出**：Loro 二进制格式（.loro）
+- **Import**: Merge with existing data (no overwrite)
+- **导入**：合并到现有数据，不覆盖
+- **File size limit**: 100MB
+- **文件大小限制**：100MB
+
+### Interaction Design
+### 交互设计
+
+Interaction patterns with specific timing and animation requirements:
+
+具有特定时间和动画要求的交互模式：
+
+- **Switches**: Immediate effect, 200ms animation
+- **开关**：即时生效，200ms 动画
+- **Theme switching**: 300ms smooth transition
+- **主题切换**：300ms 平滑过渡
+- **Export/Import**: Confirmation dialog + progress indication
+- **导出/导入**：确认对话框 + 进度提示
+
+### Key Decisions
+### 关键决策
+
+Important design decisions for security and user experience:
+
+安全性和用户体验的重要设计决策：
+
+- **Removed "Clear Data" feature** (security considerations)
+- **移除"清空数据"功能**（安全性考虑）
+- **Loro format only** (for completeness and consistency)
+- **仅支持 Loro 格式**（完整性和一致性）
+- **Import uses merge mode** (to avoid overwriting existing data)
+- **导入采用合并模式**（避免覆盖现有数据）
+- **Changelog shows only recent 3 versions**
+- **更新日志只显示最近 3 个版本**
+
+---
+
 ## Test Coverage
 ## 测试覆盖
 
-**Test File**: `test/widgets/settings_panel_test.dart`
-**测试文件**: `test/widgets/settings_panel_test.dart`
+**Test Files**: `test/unit/settings_panel_test.dart`, `test/widgets/settings_panel_test.dart`
+**测试文件**: `test/unit/settings_panel_test.dart`, `test/widgets/settings_panel_test.dart`
 
-**Widget Tests**:
-**Widget 测试**:
+**Unit Tests** (8):
+**单元测试** (8):
+- Theme switching logic
+- 主题切换逻辑
+- Data export/import validation
+- 数据导出/导入验证
+- Settings state management
+- 设置状态管理
+- File size validation
+- 文件大小验证
+- Configuration persistence
+- 配置持久化
+- Error handling for invalid operations
+- 无效操作的错误处理
+- Platform-specific behavior detection
+- 平台特定行为检测
+- Notification preference management
+- 通知偏好管理
+- Change log version filtering
+- 更新日志版本过滤
+
+**Widget Tests** (45):
+**Widget 测试** (45):
 - `it_should_show_current_theme_mode()` - Display theme mode
 - `it_should_show_current_theme_mode()` - 显示主题模式
 - `it_should_toggle_theme()` - Toggle theme
@@ -283,8 +381,8 @@ The system SHALL group related settings into logical sections.
 
 ---
 
-**Last Updated**: 2026-01-24
-**最后更新**: 2026-01-24
+**Last Updated**: 2026-01-27
+**最后更新**: 2026-01-27
 
 **Authors**: CardMind Team
 **作者**: CardMind Team

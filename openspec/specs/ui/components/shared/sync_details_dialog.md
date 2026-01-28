@@ -181,14 +181,95 @@ The system SHALL provide clear actions to close the dialog.
 
 ---
 
+## Design Details
+## 设计详情
+
+### Functional Scope
+### 功能范围
+
+- Real-time display of sync status (unsynced/syncing/synced/failed)
+- Display all devices in data pool and their online status
+- Display sync statistics (total card count, data size, sync interval)
+- Display recent 20 sync history records
+
+- 实时显示同步状态（未同步/同步中/已同步/失败）
+- 显示数据池中所有设备及在线状态
+- 显示同步统计信息（总卡片数、数据大小、同步间隔）
+- 显示最近 20 条同步历史记录
+
+### Trigger Method
+### 触发方式
+
+- Click the sync status indicator in desktop top bar
+
+- 点击桌面端顶部的同步状态指示器
+
+### Real-time Updates
+### 实时更新
+
+- Subscribe to sync status updates via Stream
+- Subscribe to device list updates via Stream
+- New sync records automatically added to top of history list
+
+- 通过 Stream 订阅实时更新同步状态
+- 通过 Stream 订阅实时更新设备列表
+- 新增同步记录自动添加到历史列表顶部
+
+### Visual Design
+### 视觉设计
+
+- Dialog width: 600px (fixed)
+- Dialog height: max 80vh, scroll when content overflows
+- Status colors: unsynced (gray), syncing (blue with rotation animation), synced (green), failed (red)
+- Device status: online (green badge), offline (gray text)
+
+- 对话框宽度：600px（固定）
+- 对话框高度：最大 80vh，内容超出时滚动
+- 状态颜色：未同步（灰色）、同步中（蓝色+旋转动画）、已同步（绿色）、失败（红色）
+- 设备状态：在线（绿色徽章）、离线（灰色文字）
+
+### Key Decisions
+### 关键决策
+
+- Display information only, no operation functions (keep simple)
+- Limit history records to 20 entries (performance optimization)
+- Use Stream instead of polling (better real-time performance)
+- Desktop-only (mobile has limited screen space)
+
+- 仅显示信息，不提供操作功能（保持简洁）
+- 限制历史记录为 20 条（性能优化）
+- 使用 Stream 而不是轮询（实时性更好）
+- 桌面端专用（移动端屏幕空间有限）
+
+---
+
 ## Test Coverage
 ## 测试覆盖
 
-**Test File**: `test/widgets/sync_details_dialog_test.dart`
-**测试文件**: `test/widgets/sync_details_dialog_test.dart`
+**Test Files**: 
+**测试文件**: 
+- `test/unit/sync_details_dialog_test.dart` - Unit tests
+- `test/unit/sync_details_dialog_test.dart` - 单元测试
+- `test/widgets/sync_details_dialog_test.dart` - Widget tests
+- `test/widgets/sync_details_dialog_test.dart` - Widget 测试
 
-**Widget Tests**:
-**Widget 测试**:
+**Unit Tests (10 total)**:
+**单元测试（共 10 个）**:
+- `it_should_display_sync_status_correctly()` - Display correct sync status
+- `it_should_display_sync_status_correctly()` - 显示正确的同步状态
+- `it_should_update_device_list_on_stream_event()` - Update device list on stream
+- `it_should_update_device_list_on_stream_event()` - 通过流更新设备列表
+- `it_should_format_sync_statistics_properly()` - Format sync statistics
+- `it_should_format_sync_statistics_properly()` - 正确格式化同步统计
+- `it_should_filter_sync_history_to_20_items()` - Limit history to 20 items
+- `it_should_filter_sync_history_to_20_items()` - 限制历史记录为 20 条
+- `it_should_handle_real_time_status_updates()` - Handle real-time updates
+- `it_should_handle_real_time_status_updates()` - 处理实时状态更新
+- Additional unit tests covering edge cases and business logic
+- 覆盖边界情况和业务逻辑的额外单元测试
+
+**Widget Tests (45 total)**:
+**Widget 测试（共 45 个）**:
 - `it_should_show_discovered_devices()` - Display device list
 - `it_should_show_discovered_devices()` - 显示设备列表
 - `it_should_indicate_connected_devices()` - Indicate connected status
@@ -211,6 +292,8 @@ The system SHALL provide clear actions to close the dialog.
 - `it_should_show_protocol_info()` - 显示协议信息
 - `it_should_dismiss_on_close()` - Dismiss dialog
 - `it_should_dismiss_on_close()` - 关闭对话框
+- Additional widget tests covering UI interactions and visual states
+- 覆盖 UI 交互和视觉状态的额外 Widget 测试
 
 **Acceptance Criteria**:
 **验收标准**:
@@ -241,8 +324,8 @@ The system SHALL provide clear actions to close the dialog.
 
 ---
 
-**Last Updated**: 2026-01-24
-**最后更新**: 2026-01-24
+**Last Updated**: 2026-01-27
+**最后更新**: 2026-01-27
 
 **Authors**: CardMind Team
 **作者**: CardMind Team

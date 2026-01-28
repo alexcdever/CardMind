@@ -96,129 +96,185 @@ dart tool/validate_constraints.dart --full # 完整验证（含编译）
 
 ## 🔧 开发工作流
 
-### OpenSpec 工作流（推荐用于新功能）
+### Superpowers + OpenSpec 集成工作流（推荐）
 
-**OpenSpec** 是规范驱动开发工具，通过结构化的 artifacts 管理变更。
+**适用场景**: 新功能开发、功能修改、功能删除、复杂 bug 修复、架构重构
+
+**核心理念**: Superpowers 主导开发流程，OpenSpec 自动嵌入到执行阶段
+
+**角色分工**:
+- **Superpowers Brainstorm**: 需求分析、方案设计、生成计划文档（`docs/plans/`）
+- **Superpowers ExecutePlan**: 执行计划时自动嵌入 OpenSpec 流程
+- **OpenSpec**: 规格文档同步和归档工具
 
 #### 完整流程
 
 ```
-1. 开始新变更 → 2. 创建 artifacts → 3. 实施任务 → 4. 验证 → 5. 同步规格 → 6. 归档
+1. Brainstorm（对话生成计划） → 2. ExecutePlan（自动嵌入 OpenSpec） → 3. 归档（双重归档）
 ```
 
-#### 详细步骤和命令
+#### 详细步骤
 
-**1️⃣ 开始新变更**
+**阶段 1: Brainstorm（需求分析和方案设计）**
+
+用户与 Superpowers 对话，探讨需求和技术方案：
+
+**示例 1: 新功能开发**
+```
+用户: "我想添加卡片标签功能"
+  ↓
+Superpowers Brainstorm:
+  ├─ 理解需求和背景
+  ├─ 探讨技术方案（标签存储、查询、UI）
+  ├─ 设计架构和接口
+  ├─ 制定详细实施计划
+  └─ 生成计划文档: docs/plans/2026-01-28-card-tags-feature.md
+```
+
+**示例 2: 功能修改**
+```
+用户: "修改卡片编辑器，支持 Markdown 实时预览"
+  ↓
+Superpowers Brainstorm:
+  ├─ 分析现有实现
+  ├─ 设计修改方案（分屏预览、同步滚动）
+  ├─ 评估影响范围
+  └─ 生成计划文档: docs/plans/2026-01-28-editor-preview-enhancement.md
+```
+
+**示例 3: 功能删除**
+```
+用户: "移除旧的同步协议，统一使用新的 P2P 方案"
+  ↓
+Superpowers Brainstorm:
+  ├─ 识别依赖关系
+  ├─ 制定迁移策略
+  ├─ 规划清理步骤
+  └─ 生成计划文档: docs/plans/2026-01-28-remove-legacy-sync.md
+```
+
+**计划文档结构**:
+- 执行摘要：目标、预期成果、背景
+- 实施策略：方法论、优先级排序
+- 详细任务分解：按阶段组织的任务清单
+- 验收标准：测试、规格、约束验证
+
+**阶段 2: ExecutePlan（自动嵌入 OpenSpec）**
+
+用户触发执行，Superpowers 自动处理 OpenSpec 流程：
+```
+用户: "执行 docs/plans/2026-01-28-card-tags-feature.md"
+  ↓
+Superpowers ExecutePlan 自动执行:
+  ├─ 1. 创建 OpenSpec change (/opsx:new)
+  ├─ 2. 生成 artifacts（从计划提取）
+  │   ├─ proposal.md（执行摘要 + 背景）
+  │   ├─ design.md（实施策略 + 任务分解）
+  │   ├─ specs/*.md（数据模型 + API 设计）
+  │   └─ tasks.md（详细任务分解）
+  ├─ 3. 执行任务（按计划实施）
+  ├─ 4. 质量审查 (/superpowers:code-reviewer)
+  └─ 5. 验证和归档 (/opsx:verify + /opsx:sync + /opsx:archive)
+```
+
+**阶段 3: 归档（双重归档）**
+
+OpenSpec 归档成功后，自动归档原始计划文档：
 ```bash
-/opsx:new
-```
-- 创建新的 change 目录（`openspec/changes/<change-name>/`）
-- 生成 `.openspec.yaml` 配置文件
-- **何时使用**: 开始实现新功能、修复复杂 bug、重构模块
+# OpenSpec 归档
+openspec/changes/card-tags/ → openspec/changes/archive/card-tags/
 
-**2️⃣ 探索和思考（可选）**
-```bash
-/opsx:explore
-```
-- 进入探索模式，深入思考问题
-- 调研技术方案、分析需求
-- **何时使用**: 需求不清晰、技术方案不确定时
+# 自动触发计划文档归档
+docs/plans/2026-01-28-card-tags-feature.md → docs/archive/
 
-**3️⃣ 创建 artifacts**
-
-有两种方式：
-
-**方式 A: 逐步创建（推荐用于复杂变更）**
-```bash
-/opsx:continue
-```
-- 按顺序创建: `proposal.md` → `design.md` → `specs/` → `tasks.md`
-- 每次创建一个 artifact，可以审查后再继续
-- **何时使用**: 需要仔细审查每个阶段的输出
-
-**方式 B: 快速生成（推荐用于简单变更）**
-```bash
-/opsx:ff
-```
-- 一次性生成所有 artifacts
-- 快速进入实施阶段
-- **何时使用**: 需求明确、方案清晰的简单变更
-
-**4️⃣ 实施任务**
-```bash
-/opsx:apply
-```
-- 根据 `tasks.md` 实现功能
-- 自动跟踪任务进度
-- 遵循 Spec Coding 方法（规格 → 测试 → 代码）
-- **何时使用**: artifacts 创建完成，准备开始编码
-
-**5️⃣ 验证实现**
-```bash
-/opsx:verify
-```
-- 验证实现是否符合 specs
-- 检查测试覆盖率
-- 确认所有任务完成
-- **何时使用**: 实施完成后，归档前
-
-**6️⃣ 同步规格（如有新规格）**
-```bash
-/opsx:sync
-```
-- 将 `specs/` 中的 delta specs 同步到 `openspec/specs/`
-- 更新规格索引 `openspec/specs/README.md`
-- **何时使用**: change 中创建了新的规格文档
-
-**7️⃣ 归档变更**
-```bash
-/opsx:archive
-```
-- 将 change 移动到 `openspec/changes/archive/`
-- 标记变更完成
-- **何时使用**: 验证通过，准备提交 PR
-
-#### 快速参考
-
-| 场景 | 命令 |
-|------|------|
-| 开始新功能 | `/opsx:new` |
-| 需求不清楚 | `/opsx:explore` |
-| 逐步创建 artifacts | `/opsx:continue` |
-| 快速生成 artifacts | `/opsx:ff` |
-| 开始编码 | `/opsx:apply` |
-| 验证完成度 | `/opsx:verify` |
-| 同步新规格 | `/opsx:sync` |
-| 完成并归档 | `/opsx:archive` |
-
-#### 示例工作流
-
-**简单功能（快速模式）**:
-```bash
-/opsx:new          # 创建 change
-/opsx:ff           # 生成所有 artifacts
-/opsx:apply        # 实施任务
-/opsx:verify       # 验证
-/opsx:archive      # 归档
+# 结果：双重归档完成
+✅ openspec/changes/archive/card-tags/
+✅ docs/archive/2026-01-28-card-tags-feature.md
 ```
 
-**复杂功能（仔细模式）**:
-```bash
-/opsx:new          # 创建 change
-/opsx:explore      # 探索方案
-/opsx:continue     # 创建 proposal
-# 审查 proposal.md
-/opsx:continue     # 创建 design
-# 审查 design.md
-/opsx:continue     # 创建 specs
-# 审查 specs/
-/opsx:continue     # 创建 tasks
-# 审查 tasks.md
-/opsx:apply        # 实施任务
-/opsx:verify       # 验证
-/opsx:sync         # 同步规格
-/opsx:archive      # 归档
+#### 典型对话流程
+
+**场景 1: 新功能开发**
 ```
+用户: "我想添加卡片标签功能"
+  ↓
+Superpowers Brainstorm: "让我们讨论一下需求..."
+  [对话过程，探讨方案]
+  ↓
+Superpowers: "我已经生成了完整的实施计划"
+  生成: docs/plans/2026-01-28-card-tags-feature.md
+  ↓
+用户: "方案看起来不错，开始实施吧"
+  ↓
+Superpowers ExecutePlan:
+  ├─ 自动创建 OpenSpec change
+  ├─ 自动生成 artifacts
+  ├─ 按计划执行任务
+  ├─ 自动调用代码审查
+  ├─ 自动验证和归档
+  └─ 报告: "✅ 卡片标签功能已完成并归档"
+```
+
+**场景 2: 功能修改**
+```
+用户: "修改卡片编辑器，支持 Markdown 实时预览"
+  ↓
+Superpowers Brainstorm: "让我分析现有实现..."
+  [分析代码，设计修改方案]
+  ↓
+Superpowers: "我已经生成了修改计划"
+  生成: docs/plans/2026-01-28-editor-preview-enhancement.md
+  ↓
+用户: "开始修改吧"
+  ↓
+Superpowers ExecutePlan:
+  ├─ 自动创建 OpenSpec change
+  ├─ 修改现有代码和规格
+  ├─ 更新测试用例
+  ├─ 自动代码审查
+  └─ 报告: "✅ 编辑器预览功能已完成并归档"
+```
+
+**场景 3: 功能删除**
+```
+用户: "移除旧的同步协议"
+  ↓
+Superpowers Brainstorm: "让我识别依赖关系..."
+  [分析影响范围，制定清理策略]
+  ↓
+Superpowers: "我已经生成了清理计划"
+  生成: docs/plans/2026-01-28-remove-legacy-sync.md
+  ↓
+用户: "开始清理吧"
+  ↓
+Superpowers ExecutePlan:
+  ├─ 删除旧代码和规格
+  ├─ 更新依赖模块
+  ├─ 清理测试用例
+  ├─ 自动代码审查
+  └─ 报告: "✅ 旧同步协议已移除并归档"
+```
+
+#### 优势
+
+1. **无缝集成**: 用户不需要手动调用 OpenSpec 命令
+2. **自动化**: ExecutePlan 自动处理 OpenSpec 流程
+3. **可追溯**: 计划文档和规格文档双向关联
+4. **质量保障**: 自动嵌入代码审查和验证步骤
+5. **双重归档**: 计划和规格同步归档，保持一致性
+6. **全场景覆盖**: 支持增删改查，不仅限于新功能开发
+
+#### 文件组织
+
+```
+docs/plans/          # 进行中的计划
+docs/archive/        # 已完成的计划（归档）
+
+openspec/changes/    # 进行中的变更
+openspec/changes/archive/  # 已完成的变更（归档）
+```
+
+**归档关联**: 通过文件名和时间戳关联，可快速查找对应的计划和规格
 
 ---
 

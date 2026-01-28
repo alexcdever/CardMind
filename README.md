@@ -102,29 +102,52 @@ flutter run
 
 ### 🚀 开发工作流
 
-本项目使用 **OpenSpec 规范驱动开发**：
+本项目使用 **Superpowers + OpenSpec 集成工作流**：
 
-#### 方式 1：OpenSpec 工作流（推荐用于新功能）
+#### 方式 1：Superpowers + OpenSpec 工作流（推荐）
 
-```bash
-# 1. 开始新变更
-/opsx:new
+**适用场景**: 新功能开发、功能修改、功能删除、复杂 bug 修复、架构重构
 
-# 2. 快速创建所有 artifacts
-/opsx:ff
+**核心理念**: Superpowers 主导开发流程，OpenSpec 自动嵌入到执行阶段
 
-# 3. 实施任务
-/opsx:apply
-
-# 4. 验证实现
-/opsx:verify
-
-# 5. 同步规格
-/opsx:sync
-
-# 6. 归档变更
-/opsx:archive
+**完整流程**:
 ```
+1. Brainstorm（对话生成计划） 
+   ↓
+2. ExecutePlan（自动嵌入 OpenSpec）
+   ↓
+3. 归档（双重归档）
+```
+
+**典型对话**:
+```
+用户: "我想添加卡片标签功能"（或修改/删除某功能）
+  ↓
+Superpowers Brainstorm: 
+  - 理解需求和背景
+  - 探讨技术方案
+  - 生成计划文档: docs/plans/2026-01-28-card-tags-feature.md
+  ↓
+用户: "开始实施吧"
+  ↓
+Superpowers ExecutePlan:
+  - 自动创建 OpenSpec change
+  - 自动生成 artifacts（proposal, design, specs, tasks）
+  - 按计划执行任务
+  - 自动代码审查
+  - 自动验证和归档
+  ↓
+完成: 计划和规格双重归档
+```
+
+**优势**:
+- ✅ 无缝集成：用户不需要手动调用 OpenSpec 命令
+- ✅ 自动化：ExecutePlan 自动处理 OpenSpec 流程
+- ✅ 可追溯：计划文档和规格文档双向关联
+- ✅ 质量保障：自动嵌入代码审查和验证步骤
+- ✅ 全场景覆盖：支持增删改查，不仅限于新功能开发
+
+详细说明请查看 [AGENTS.md](AGENTS.md)。
 
 #### 方式 2：传统工作流（用于小改动）
 

@@ -11,10 +11,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
+              currentTab: NavTab.notes,
               onTabChange: (_) {},
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -30,10 +30,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
+              currentTab: NavTab.notes,
               onTabChange: (_) {},
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -51,10 +51,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
+              currentTab: NavTab.notes,
               onTabChange: (_) {},
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -70,10 +70,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
+              currentTab: NavTab.notes,
               onTabChange: (_) {},
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -89,10 +89,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
+              currentTab: NavTab.notes,
               onTabChange: (_) {},
-              noteCount: 150,
-              deviceCount: 2,
+              notesCount: 150,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -108,10 +108,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
+              currentTab: NavTab.notes,
               onTabChange: (_) {},
-              noteCount: 0,
-              deviceCount: 0,
+              notesCount: 0,
+              devicesCount: 0,
             ),
           ),
         ),
@@ -124,18 +124,18 @@ void main() {
     testWidgets('it_should_call_onTabChange_when_notes_tab_tapped', (
       WidgetTester tester,
     ) async {
-      int? selectedTab;
+      NavTab? selectedTab;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 1,
-              onTabChange: (index) {
-                selectedTab = index;
+              currentTab: NavTab.devices,
+              onTabChange: (tab) {
+                selectedTab = tab;
               },
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -144,24 +144,24 @@ void main() {
       await tester.tap(find.text('笔记'));
       await tester.pumpAndSettle();
 
-      expect(selectedTab, equals(0));
+      expect(selectedTab, equals(NavTab.notes));
     });
 
     testWidgets('it_should_call_onTabChange_when_devices_tab_tapped', (
       WidgetTester tester,
     ) async {
-      int? selectedTab;
+      NavTab? selectedTab;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
-              onTabChange: (index) {
-                selectedTab = index;
+              currentTab: NavTab.notes,
+              onTabChange: (tab) {
+                selectedTab = tab;
               },
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -170,24 +170,24 @@ void main() {
       await tester.tap(find.text('设备'));
       await tester.pumpAndSettle();
 
-      expect(selectedTab, equals(1));
+      expect(selectedTab, equals(NavTab.devices));
     });
 
     testWidgets('it_should_call_onTabChange_when_settings_tab_tapped', (
       WidgetTester tester,
     ) async {
-      int? selectedTab;
+      NavTab? selectedTab;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 0,
-              onTabChange: (index) {
-                selectedTab = index;
+              currentTab: NavTab.notes,
+              onTabChange: (tab) {
+                selectedTab = tab;
               },
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),
@@ -196,7 +196,7 @@ void main() {
       await tester.tap(find.text('设置'));
       await tester.pumpAndSettle();
 
-      expect(selectedTab, equals(2));
+      expect(selectedTab, equals(NavTab.settings));
     });
 
     testWidgets('it_should_highlight_active_tab_with_indicator', (
@@ -206,10 +206,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             bottomNavigationBar: MobileNav(
-              activeTab: 1,
+              currentTab: NavTab.devices,
               onTabChange: (_) {},
-              noteCount: 5,
-              deviceCount: 2,
+              notesCount: 5,
+              devicesCount: 2,
             ),
           ),
         ),

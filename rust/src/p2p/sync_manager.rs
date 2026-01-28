@@ -349,7 +349,7 @@ mod tests {
 
         match result {
             Err(CardMindError::NotAuthorized(_)) => {}
-            _ => panic!("应该返回 NotAuthorized 错误"),
+            _ => assert!(false, "应该返回 NotAuthorized 错误"),
         }
     }
 

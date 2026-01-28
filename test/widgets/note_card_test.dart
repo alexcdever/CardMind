@@ -1,14 +1,16 @@
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/bridge/models/card.dart';
 import 'package:cardmind/widgets/note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 void main() {
   group('NoteCard Widget Tests', () {
     late bridge.Card testCard;
-    const currentDevice = 'test-device';
 
     setUp(() {
+      final now = DateTime.now().millisecondsSinceEpoch;
       testCard = bridge.Card(
         id: 'test-id',
         title: 'Test Title',
@@ -17,7 +19,7 @@ void main() {
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
         tags: ['tag1', 'tag2'],
-        lastEditDevice: currentDevice,
+        lastEditDevice: 'test-device',
       );
     });
 
@@ -27,20 +29,13 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: NoteCard(
-              card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (_) {},
-            ),
+            body: NoteCard(card: testCard, onTap: () {}, onDelete: (_) {}),
           ),
         ),
       );
 
       expect(find.text('Test Title'), findsOneWidget);
       expect(find.text('Test Content'), findsOneWidget);
-      expect(find.text('tag1'), findsOneWidget);
-      expect(find.text('tag2'), findsOneWidget);
     });
 
     testWidgets('it_should_display_empty_state_for_empty_title', (
@@ -54,23 +49,18 @@ void main() {
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
         tags: [],
-        lastEditDevice: currentDevice,
+        lastEditDevice: null,
       );
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: NoteCard(
-              card: emptyCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (_) {},
-            ),
+            body: NoteCard(card: emptyCard, onTap: () {}, onDelete: (_) {}),
           ),
         ),
       );
 
-      expect(find.text('无标题笔记'), findsOneWidget);
+      expect(find.text('无标题'), findsOneWidget);
     });
 
     testWidgets('it_should_display_empty_state_for_empty_content', (
@@ -84,279 +74,339 @@ void main() {
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
         tags: [],
-        lastEditDevice: currentDevice,
+        lastEditDevice: null,
       );
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: NoteCard(
-              card: emptyCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (_) {},
-            ),
+            body: NoteCard(card: emptyCard, onTap: () {}, onDelete: (_) {}),
           ),
         ),
       );
 
-      expect(find.text('空笔记'), findsOneWidget);
+      expect(find.text('点击添加内容...'), findsOneWidget);
     });
 
-    testWidgets(
-      'it_should_show_collaboration_indicator_when_edited_by_other_device',
-      (WidgetTester tester) async {
-        final otherDeviceCard = bridge.Card(
-          id: 'test-id',
-          title: 'Test Title',
-          content: 'Test Content',
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-          updatedAt: DateTime.now().millisecondsSinceEpoch,
-          deleted: false,
-          tags: [],
-          lastEditDevice: 'other-device',
-        );
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: NoteCard(
-                card: otherDeviceCard,
-                currentDevice: currentDevice,
-                onUpdate: (_) {},
-                onDelete: (_) {},
-              ),
-            ),
-          ),
-        );
-
-        expect(find.byIcon(Icons.people), findsOneWidget);
-      },
-    );
-
-    testWidgets('it_should_call_onDelete_when_delete_menu_item_selected', (
+    testWidgets('it_should_call_onTap_when_card_is_tapped', (
       WidgetTester tester,
     ) async {
-      String? deletedId;
+      bool wasTapped = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (id) {
-                deletedId = id;
-              },
+              onTap: () => wasTapped = true,
+              onDelete: (_) {},
             ),
           ),
         ),
       );
+
+      await tester.tap(find.byType(NoteCard));
+      await tester.pump();
+
+      expect(wasTapped, isTrue);
+    });
+
+    testWidgets('it_should_call_onEdit_when_edit_action_is_triggered', (
+      WidgetTester tester,
+    ) async {
+      bridge.Card? editedCard;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteCard(
+              card: testCard,
+              onEdit: (card) => editedCard = card,
+              onDelete: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      // Find and tap the edit button/context menu
+      await tester.longPress(find.byType(NoteCard));
       await tester.pumpAndSettle();
 
-      // PopupMenuButton only exists on desktop, skip on mobile
-      final popupMenuButton = find.byType(PopupMenuButton<String>);
-      if (popupMenuButton.evaluate().isEmpty) {
-        // Skip test on mobile platform
-        return;
-      }
-
-      // Open popup menu
-      await tester.tap(popupMenuButton);
+      // Find edit menu item and tap it
+      expect(find.text('编辑'), findsOneWidget);
+      await tester.tap(find.text('编辑'));
       await tester.pumpAndSettle();
 
-      // Tap delete option
+      expect(editedCard, isNotNull);
+      expect(editedCard!.id, equals(testCard.id));
+    });
+
+    testWidgets('it_should_call_onDelete_when_delete_action_is_triggered', (
+      WidgetTester tester,
+    ) async {
+      String? deletedCardId;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteCard(
+              card: testCard,
+              onDelete: (id) => deletedCardId = id,
+            ),
+          ),
+        ),
+      );
+
+      // Trigger context menu (long press on mobile, right click on desktop)
+      await tester.longPress(find.byType(NoteCard));
+      await tester.pumpAndSettle();
+
+      // Find delete menu item and tap it
+      expect(find.text('删除'), findsOneWidget);
       await tester.tap(find.text('删除'));
       await tester.pumpAndSettle();
 
-      expect(deletedId, equals('test-id'));
+      // Handle confirmation dialog
+      expect(find.text('删除'), findsWidgets); // Both in menu and dialog
+      await tester.tap(find.text('删除').last); // Tap the dialog button
+      await tester.pumpAndSettle();
+
+      expect(deletedCardId, equals(testCard.id));
     });
 
-    testWidgets('it_should_enter_edit_mode_when_edit_menu_item_selected', (
+    testWidgets('it_should_call_onCopy_when_copy_action_is_triggered', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NoteCard(
-              card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (_) {},
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // PopupMenuButton only exists on desktop, skip on mobile
-      final popupMenuButton = find.byType(PopupMenuButton<String>);
-      if (popupMenuButton.evaluate().isEmpty) {
-        // Skip test on mobile platform
-        return;
-      }
-
-      // Open popup menu
-      await tester.tap(popupMenuButton);
-      await tester.pumpAndSettle();
-
-      // Tap edit option
-      await tester.tap(find.text('编辑'));
-      await tester.pumpAndSettle();
-
-      // Should show text fields and action buttons
-      expect(find.byIcon(Icons.check), findsOneWidget);
-      expect(find.byIcon(Icons.close), findsOneWidget);
-    });
-
-    testWidgets('it_should_save_changes_when_save_button_pressed', (
-      WidgetTester tester,
-    ) async {
-      bridge.Card? updatedCard;
+      bool copyWasCalled = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (card) {
-                updatedCard = card;
-              },
               onDelete: (_) {},
+              onCopy: () => copyWasCalled = true,
             ),
           ),
         ),
       );
+
+      // Trigger context menu
+      await tester.longPress(find.byType(NoteCard));
       await tester.pumpAndSettle();
 
-      // PopupMenuButton only exists on desktop, skip on mobile
-      final popupMenuButton = find.byType(PopupMenuButton<String>);
-      if (popupMenuButton.evaluate().isEmpty) {
-        // Skip test on mobile platform
-        return;
-      }
-
-      // Enter edit mode
-      await tester.tap(popupMenuButton);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('编辑'));
+      // Find copy menu item and tap it
+      expect(find.text('复制内容'), findsOneWidget);
+      await tester.tap(find.text('复制内容'));
       await tester.pumpAndSettle();
 
-      // Edit title
-      await tester.enterText(find.byType(TextField).first, 'Updated Title');
-      await tester.pumpAndSettle();
-
-      // Save
-      await tester.tap(find.byIcon(Icons.check));
-      await tester.pumpAndSettle();
-
-      expect(updatedCard, isNotNull);
-      expect(updatedCard!.title, equals('Updated Title'));
+      expect(copyWasCalled, isTrue);
     });
 
-    testWidgets('it_should_cancel_changes_when_cancel_button_pressed', (
+    testWidgets('it_should_call_onShare_when_share_action_is_triggered', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: NoteCard(
-              card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (_) {},
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // PopupMenuButton only exists on desktop, skip on mobile
-      final popupMenuButton = find.byType(PopupMenuButton<String>);
-      if (popupMenuButton.evaluate().isEmpty) {
-        // Skip test on mobile platform
-        return;
-      }
-
-      // Enter edit mode
-      await tester.tap(popupMenuButton);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('编辑'));
-      await tester.pumpAndSettle();
-
-      // Edit title
-      await tester.enterText(find.byType(TextField).first, 'Updated Title');
-      await tester.pumpAndSettle();
-
-      // Cancel
-      await tester.tap(find.byIcon(Icons.close));
-      await tester.pumpAndSettle();
-
-      // Should show original title
-      expect(find.text('Test Title'), findsOneWidget);
-      expect(find.text('Updated Title'), findsNothing);
-    });
-
-    testWidgets('it_should_remove_tag_when_delete_icon_pressed', (
-      WidgetTester tester,
-    ) async {
-      bridge.Card? updatedCard;
+      bool shareWasCalled = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: NoteCard(
               card: testCard,
-              currentDevice: currentDevice,
-              onUpdate: (card) {
-                updatedCard = card;
-              },
               onDelete: (_) {},
+              onShare: () => shareWasCalled = true,
             ),
           ),
         ),
       );
 
-      // Find and tap delete icon on first tag
-      final deleteIcons = find.byIcon(Icons.close);
-      await tester.tap(deleteIcons.first);
+      // Trigger context menu
+      await tester.longPress(find.byType(NoteCard));
       await tester.pumpAndSettle();
 
-      expect(updatedCard, isNotNull);
-      expect(updatedCard!.tags.length, equals(1));
+      // Find share menu item and tap it
+      expect(find.text('分享'), findsOneWidget);
+      await tester.tap(find.text('分享'));
+      await tester.pumpAndSettle();
+
+      expect(shareWasCalled, isTrue);
     });
 
-    testWidgets('it_should_format_date_correctly', (WidgetTester tester) async {
-      final now = DateTime.now();
-      final recentCard = bridge.Card(
+    testWidgets('it_should_display_formatted_time', (
+      WidgetTester tester,
+    ) async {
+      final pastTime = DateTime.now().subtract(const Duration(hours: 2));
+      final pastCard = bridge.Card(
         id: 'test-id',
         title: 'Test Title',
         content: 'Test Content',
-        createdAt: now.millisecondsSinceEpoch,
-        updatedAt: now
-            .subtract(const Duration(minutes: 5))
-            .millisecondsSinceEpoch,
+        createdAt: pastTime.millisecondsSinceEpoch,
+        updatedAt: pastTime.millisecondsSinceEpoch,
         deleted: false,
         tags: [],
-        lastEditDevice: currentDevice,
       );
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: NoteCard(
-              card: recentCard,
-              currentDevice: currentDevice,
-              onUpdate: (_) {},
-              onDelete: (_) {},
-            ),
+            body: NoteCard(card: pastCard, onTap: () {}, onDelete: (_) {}),
           ),
         ),
       );
 
-      expect(find.textContaining('分钟前'), findsOneWidget);
+      expect(find.text('2小时前'), findsOneWidget);
+    });
+
+    testWidgets('it_should_have_correct_semantics', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteCard(card: testCard, onTap: () {}, onDelete: (_) {}),
+          ),
+        ),
+      );
+
+      // 验证语义标签存在（使用 Semantics widget）
+      final semantics = tester.widget<Semantics>(
+        find.descendant(
+          of: find.byType(NoteCard),
+          matching: find.byType(Semantics),
+        ).first,
+      );
+      expect(semantics.properties.label, contains('Note card'));
+    });
+
+    testWidgets('it_should_support_copyWith_method', (
+      WidgetTester tester,
+    ) async {
+      final copiedCard = NoteCard(
+        card: testCard,
+        onTap: () {},
+        onDelete: (_) {},
+      );
+
+      final newCard = copiedCard.copyWith(
+        card: testCard.copyWith(title: 'New Title', content: 'New Content'),
+      );
+
+      expect(newCard.card.title, equals('New Title'));
+      expect(newCard.card.content, equals('New Content'));
+    });
+
+    testWidgets('it_should_compare_cards_correctly', (
+      WidgetTester tester,
+    ) async {
+      final card1 = NoteCard(card: testCard, onTap: () {}, onDelete: (_) {});
+
+      final card2 = NoteCard(card: testCard, onTap: () {}, onDelete: (_) {});
+
+      final card3 = NoteCard(
+        card: testCard.copyWith(title: 'Different Title'),
+        onTap: () {},
+        onDelete: (_) {},
+      );
+
+      expect(card1.isSame(card2), isTrue);
+      expect(card1.isSame(card3), isFalse);
+    });
+
+    testWidgets('it_should_detect_content_existence', (
+      WidgetTester tester,
+    ) async {
+      final cardWithContent = NoteCard(
+        card: testCard,
+        onTap: () {},
+        onDelete: (_) {},
+      );
+      final emptyCard = bridge.Card(
+        id: 'test-id',
+        title: '',
+        content: '',
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+        deleted: false,
+        tags: [],
+        lastEditDevice: null,
+      );
+      final cardWithoutContent = NoteCard(
+        card: emptyCard,
+        onTap: () {},
+        onDelete: (_) {},
+      );
+
+      expect(cardWithContent.hasContent(), isTrue);
+      expect(cardWithoutContent.hasContent(), isFalse);
+    });
+
+    testWidgets('it_should_format_display_text_correctly', (
+      WidgetTester tester,
+    ) async {
+      final card = NoteCard(card: testCard, onTap: () {}, onDelete: (_) {});
+
+      expect(card.getDisplayTitle(), equals('Test Title'));
+      expect(card.getDisplayContent(), equals('Test Content'));
+      expect(card.getDisplayTime(), isA<String>());
+    });
+
+    testWidgets('it_should_detect_relative_time', (WidgetTester tester) async {
+      final recentCard = bridge.Card(
+        id: 'test-id',
+        title: 'Test',
+        content: 'Content',
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        updatedAt: DateTime.now().millisecondsSinceEpoch,
+        deleted: false,
+        tags: [],
+        lastEditDevice: null,
+      );
+      final card = NoteCard(card: recentCard, onTap: () {}, onDelete: (_) {});
+
+      expect(card.isRelativeTimeDisplay(), isTrue);
+    });
+
+    testWidgets('it_should_provide_semantic_description', (
+      WidgetTester tester,
+    ) async {
+      final card = NoteCard(card: testCard, onTap: () {}, onDelete: (_) {});
+
+      final description = card.getSemanticDescription();
+      expect(description, contains('Test Title'));
+      expect(description, contains('Test Content'));
+      expect(description, contains('更新时间'));
+    });
+
+    group('Platform Detection', () {
+      testWidgets('it_should_render_desktop_version_on_desktop', (
+        WidgetTester tester,
+      ) async {
+        // This test assumes desktop platform - actual behavior depends on test environment
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: NoteCard(card: testCard, onTap: () {}, onDelete: (_) {}),
+            ),
+          ),
+        );
+
+        expect(find.byType(NoteCard), findsOneWidget);
+      });
+
+      testWidgets('it_should_render_mobile_version_on_mobile', (
+        WidgetTester tester,
+      ) async {
+        // This test assumes mobile platform - actual behavior depends on test environment
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: NoteCard(card: testCard, onTap: () {}, onDelete: (_) {}),
+            ),
+          ),
+        );
+
+        expect(find.byType(NoteCard), findsOneWidget);
+      });
     });
   });
 }

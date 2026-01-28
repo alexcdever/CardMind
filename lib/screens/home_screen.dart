@@ -1,25 +1,20 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:rxdart/rxdart.dart';
-
+import 'package:cardmind/adaptive/layouts/three_column_layout.dart';
+import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
+import 'package:cardmind/bridge/models/card.dart' as bridge;
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
-import 'package:cardmind/bridge/api/sync.dart' as rust_sync;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
-    as sync_api;
-import 'package:cardmind/widgets/note_card.dart';
-import 'package:cardmind/widgets/mobile_nav.dart';
-import 'package:cardmind/widgets/fullscreen_editor.dart';
+import 'package:cardmind/utils/toast_utils.dart';
 import 'package:cardmind/widgets/device_manager_panel.dart';
+import 'package:cardmind/widgets/mobile_nav.dart';
+import 'package:cardmind/widgets/note_card.dart';
+import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:cardmind/widgets/settings_panel.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
-import 'package:cardmind/adaptive/platform_detector.dart';
-import 'package:cardmind/adaptive/layouts/three_column_layout.dart';
-import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
-import 'package:cardmind/utils/toast_utils.dart';
-import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 /// 主屏幕 - 自适应移动端和桌面端布局
 class HomeScreen extends StatefulWidget {
@@ -35,9 +30,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Stream<SyncStatus>? _syncStatusStream;
   StreamSubscription<SyncStatus>? _syncSubscription;
+  Timer? _initTimer;
 
   // 移动端标签页状态
-  int _activeTab = 0;
+  NavTab _activeTab = NavTab.notes;
 
   // 搜索状态
   final TextEditingController _searchController = TextEditingController();
@@ -57,7 +53,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     // Delay sync status stream initialization to ensure sync service is ready
-    Future.delayed(const Duration(milliseconds: 500), _initSyncStatusStream);
+    _initTimer = Timer(
+      const Duration(milliseconds: 500),
+      _initSyncStatusStream,
+    );
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
@@ -67,29 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _initTimer?.cancel();
     _syncSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  /// 将 Rust SyncStatus 转换为 Flutter SyncStatus
-  SyncStatus _convertRustStatus(rust_sync.SyncStatus rustStatus) {
-    switch (rustStatus.state) {
-      case rust_sync.SyncState.disconnected:
-        return SyncStatus.disconnected();
-      case rust_sync.SyncState.syncing:
-        return SyncStatus.syncing(syncingPeers: rustStatus.syncingPeers);
-      case rust_sync.SyncState.synced:
-        final lastSyncTime = rustStatus.lastSyncTime != null
-            ? DateTime.fromMillisecondsSinceEpoch(rustStatus.lastSyncTime!)
-            : DateTime.now();
-        return SyncStatus.synced(lastSyncTime: lastSyncTime);
-      case rust_sync.SyncState.failed:
-        return SyncStatus.failed(
-          errorMessage: rustStatus.errorMessage ?? 'Unknown error',
-        );
-    }
-  }
 
   void _initSyncStatusStream() {
     // Temporarily disable sync status stream due to threading issues
@@ -127,6 +109,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleCreateCard() {
+    // 移动端直接打开新的全屏编辑器
+    if (PlatformDetector.isMobile) {
+      setState(() {
+        _editingCard = null; // null 表示新建模式
+        _isEditorOpen = true;
+      });
+      return;
+    }
+
+    // 桌面端保持原有逻辑
     final cardProvider = context.read<CardProvider>();
 
     // 创建新卡片
@@ -135,19 +127,46 @@ class _HomeScreenState extends State<HomeScreen> {
         .then((card) {
           if (card != null) {
             ToastUtils.showSuccess('创建新笔记');
-
-            // 移动端打开全屏编辑器
-            if (PlatformDetector.isMobile) {
-              setState(() {
-                _editingCard = card;
-                _isEditorOpen = true;
-              });
-            }
           }
         })
         .catchError((Object error) {
           ToastUtils.showError('创建失败: $error');
         });
+  }
+
+  void _handleSaveCard(bridge.Card card) {
+    final cardProvider = context.read<CardProvider>();
+
+    if (_editingCard == null) {
+      // 新建模式：创建新卡片
+      cardProvider
+          .createCard(card.title, card.content)
+          .then((createdCard) {
+            if (createdCard != null) {
+              ToastUtils.showSuccess('笔记已创建');
+            }
+          })
+          .catchError((Object error) {
+            ToastUtils.showError('创建失败: $error');
+          });
+    } else {
+      // 编辑模式：更新现有卡片
+      cardProvider
+          .updateCard(card.id, title: card.title, content: card.content)
+          .then((_) {
+            ToastUtils.showSuccess('笔记已更新');
+          })
+          .catchError((Object error) {
+            ToastUtils.showError('更新失败: $error');
+          });
+    }
+  }
+
+  void _handleCloseEditor() {
+    setState(() {
+      _isEditorOpen = false;
+      _editingCard = null;
+    });
   }
 
   void _handleUpdateCard(bridge.Card card) {
@@ -218,17 +237,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // 全屏编辑器（移动端）
-          if (_isEditorOpen && _editingCard != null)
-            FullscreenEditor(
-              card: _editingCard!,
+          if (_isEditorOpen)
+            NoteEditorFullscreen(
+              card: _editingCard, // null = 新建模式，非 null = 编辑模式
               currentDevice: _currentDeviceName,
-              onSave: _handleUpdateCard,
-              onCancel: () {
-                setState(() {
-                  _isEditorOpen = false;
-                  _editingCard = null;
-                });
-              },
+              isOpen: _isEditorOpen,
+              onClose: _handleCloseEditor,
+              onSave: _handleSaveCard,
             ),
         ],
       ),
@@ -246,14 +261,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ? Consumer<CardProvider>(
               builder: (context, cardProvider, _) {
                 return MobileNav(
-                  activeTab: _activeTab,
-                  onTabChange: (index) {
+                  currentTab: _activeTab,
+                  onTabChange: (tab) {
                     setState(() {
-                      _activeTab = index;
+                      _activeTab = tab;
                     });
                   },
-                  noteCount: cardProvider.cards.length,
-                  deviceCount: 0, // TODO: 从实际数据获取
+                  notesCount: cardProvider.cards.length,
+                  devicesCount: 0, // TODO: 从实际数据获取
                 );
               },
             )
@@ -401,8 +416,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context, index) {
                       return NoteCard(
                         card: filteredCards[index],
-                        currentDevice: _currentDeviceName,
-                        onUpdate: _handleUpdateCard,
+                        onEdit: (card) {
+                          _handleUpdateCard(card);
+                        },
                         onDelete: _handleDeleteCard,
                       );
                     },
@@ -418,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMobileLayout() {
     return IndexedStack(
-      index: _activeTab,
+      index: _activeTab.index,
       children: [
         // 笔记标签页
         _buildNotesTab(),
@@ -504,8 +520,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: NoteCard(
                       card: filteredCards[index],
-                      currentDevice: _currentDeviceName,
-                      onUpdate: _handleUpdateCard,
+                      onEdit: (card) {
+                        _handleUpdateCard(card);
+                      },
                       onDelete: _handleDeleteCard,
                       onTap: () {
                         setState(() {
