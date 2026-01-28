@@ -455,6 +455,113 @@ void main() {
   });
 
   group('NoteEditorFullscreen Widget Tests - Edge Cases', () {
+    testWidgets('WT-019: 测试确认对话框 - 保存并关闭', (tester) async {
+      bridge.Card? savedCard;
+      var closeCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteEditorFullscreen(
+              card: bridge.Card(
+                id: 'test-id',
+                title: '原标题',
+                content: '原内容',
+                createdAt: 1737878400000,
+                updatedAt: 1737878400000,
+                deleted: false,
+                tags: [],
+                lastEditDevice: 'test-device',
+              ),
+              currentDevice: 'test-device',
+              isOpen: true,
+              onClose: () => closeCalled = true,
+              onSave: (card) => savedCard = card,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 修改内容
+      final contentField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField &&
+            widget.decoration?.hintText == '开始写笔记...',
+      );
+      await tester.enterText(contentField, '新内容');
+      await tester.pump();
+
+      // 点击关闭按钮
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      // 点击"保存并关闭"按钮
+      await tester.tap(find.text('保存并关闭'));
+      await tester.pumpAndSettle();
+
+      // 验证保存和关闭
+      expect(savedCard, isNotNull);
+      expect(savedCard?.content, '新内容');
+      expect(closeCalled, true);
+    });
+
+    testWidgets('WT-020: 测试确认对话框 - 放弃更改', (tester) async {
+      var closeCalled = false;
+      bridge.Card? lastSavedCard;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteEditorFullscreen(
+              card: bridge.Card(
+                id: 'test-id',
+                title: '原标题',
+                content: '原内容',
+                createdAt: 1737878400000,
+                updatedAt: 1737878400000,
+                deleted: false,
+                tags: [],
+                lastEditDevice: 'test-device',
+              ),
+              currentDevice: 'test-device',
+              isOpen: true,
+              onClose: () => closeCalled = true,
+              onSave: (card) => lastSavedCard = card,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 修改内容
+      final contentField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField &&
+            widget.decoration?.hintText == '开始写笔记...',
+      );
+      await tester.enterText(contentField, '新内容');
+
+      // 等待一小段时间但不足以触发自动保存
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // 点击关闭按钮
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      // 验证显示确认对话框
+      expect(find.text('有未保存的更改'), findsOneWidget);
+
+      // 点击"放弃更改"按钮
+      await tester.tap(find.text('放弃更改'));
+      await tester.pumpAndSettle();
+
+      // 验证已关闭
+      expect(closeCalled, true);
+    });
+
     testWidgets('WT-035: 测试标题只有空格', (tester) async {
       bridge.Card? savedCard;
 
@@ -611,6 +718,101 @@ void main() {
 
       // 点击完成按钮
       await tester.tap(find.text('完成'));
+      await tester.pumpAndSettle();
+
+      // 验证显示错误提示
+      expect(find.text('内容不能为空'), findsOneWidget);
+      expect(savedCard, isNull);
+    });
+
+    testWidgets('WT-027: 测试编辑模式空内容关闭', (tester) async {
+      var closeCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteEditorFullscreen(
+              card: bridge.Card(
+                id: 'test-id',
+                title: '标题',
+                content: '原内容',
+                createdAt: 1737878400000,
+                updatedAt: 1737878400000,
+                deleted: false,
+                tags: [],
+                lastEditDevice: 'test-device',
+              ),
+              currentDevice: 'test-device',
+              isOpen: true,
+              onClose: () => closeCalled = true,
+              onSave: (card) {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 清空内容
+      final contentField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField &&
+            widget.decoration?.hintText == '开始写笔记...',
+      );
+      await tester.enterText(contentField, '');
+      await tester.pump();
+
+      // 点击关闭按钮
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      // 验证显示确认对话框（因为有更改）
+      expect(find.text('有未保存的更改'), findsOneWidget);
+    });
+
+    testWidgets('WT-044: 测试确认对话框保存空内容', (tester) async {
+      bridge.Card? savedCard;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NoteEditorFullscreen(
+              card: bridge.Card(
+                id: 'test-id',
+                title: '标题',
+                content: '原内容',
+                createdAt: 1737878400000,
+                updatedAt: 1737878400000,
+                deleted: false,
+                tags: [],
+                lastEditDevice: 'test-device',
+              ),
+              currentDevice: 'test-device',
+              isOpen: true,
+              onClose: () {},
+              onSave: (card) => savedCard = card,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // 清空内容
+      final contentField = find.byWidgetPredicate(
+        (widget) =>
+            widget is TextField &&
+            widget.decoration?.hintText == '开始写笔记...',
+      );
+      await tester.enterText(contentField, '   ');
+      await tester.pump();
+
+      // 点击关闭按钮
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      // 点击"保存并关闭"
+      await tester.tap(find.text('保存并关闭'));
       await tester.pumpAndSettle();
 
       // 验证显示错误提示
