@@ -179,5 +179,93 @@
   "cardEditDialogCloseTooltip": "Close (ESC)",
   "@cardEditDialogCloseTooltip": {
     "description": "Close button tooltip"
+  },
+
+  "noteEditorFullscreenTitleHint": "Note Title",
+  "@noteEditorFullscreenTitleHint": {
+    "description": "Fullscreen editor: title input hint"
+  },
+
+  "noteEditorFullscreenContentHint": "Start writing...",
+  "@noteEditorFullscreenContentHint": {
+    "description": "Fullscreen editor: content input hint"
+  },
+
+  "noteEditorFullscreenAutoSave": "Auto Save",
+  "@noteEditorFullscreenAutoSave": {
+    "description": "Fullscreen editor: auto-save indicator text"
+  },
+
+  "noteEditorFullscreenComplete": "Done",
+  "@noteEditorFullscreenComplete": {
+    "description": "Fullscreen editor: complete button text"
+  },
+
+  "noteEditorFullscreenUntitled": "Untitled Note",
+  "@noteEditorFullscreenUntitled": {
+    "description": "Fullscreen editor: default title for untitled notes"
+  },
+
+  "noteEditorFullscreenEmptyContent": "Content cannot be empty",
+  "@noteEditorFullscreenEmptyContent": {
+    "description": "Fullscreen editor: validation error for empty content"
+  },
+
+  "noteEditorFullscreenUnsavedTitle": "Unsaved Changes",
+  "@noteEditorFullscreenUnsavedTitle": {
+    "description": "Fullscreen editor: unsaved changes dialog title"
+  },
+
+  "noteEditorFullscreenUnsavedMessage": "Do you want to save your changes?",
+  "@noteEditorFullscreenUnsavedMessage": {
+    "description": "Fullscreen editor: unsaved changes dialog message"
+  },
+
+  "noteEditorFullscreenSaveAndClose": "Save & Close",
+  "@noteEditorFullscreenSaveAndClose": {
+    "description": "Fullscreen editor: save and close button"
+  },
+
+  "noteEditorFullscreenDiscard": "Discard Changes",
+  "@noteEditorFullscreenDiscard": {
+    "description": "Fullscreen editor: discard changes button"
+  },
+
+  "noteEditorFullscreenCancel": "Cancel",
+  "@noteEditorFullscreenCancel": {
+    "description": "Fullscreen editor: cancel button"
+  },
+
+  "noteEditorFullscreenCreatedAt": "Created: {time}",
+  "@noteEditorFullscreenCreatedAt": {
+    "description": "Fullscreen editor: created time label",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2025/01/26 08:00:00"
+      }
+    }
+  },
+
+  "noteEditorFullscreenUpdatedAt": "Updated: {time}",
+  "@noteEditorFullscreenUpdatedAt": {
+    "description": "Fullscreen editor: updated time label",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2025/01/26 08:00:00"
+      }
+    }
+  },
+
+  "noteEditorFullscreenLastEditDevice": "Last edited on: {device}",
+  "@noteEditorFullscreenLastEditDevice": {
+    "description": "Fullscreen editor: last edit device label",
+    "placeholders": {
+      "device": {
+        "type": "String",
+        "example": "iPhone 13"
+      }
+    }
   }
 }
