@@ -391,47 +391,66 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
   Widget _buildToolbar(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
-        border: Border(
-          bottom: BorderSide(
-            color: theme.dividerColor,
-            width: 1,
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          // 关闭按钮
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: _handleClose,
-            tooltip: '关闭',
-          ),
-
-          const Spacer(),
-
-          // 自动保存状态
-          Text(
-            '自动保存',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+    return Semantics(
+      container: true,
+      label: '编辑器工具栏',
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
+          border: Border(
+            bottom: BorderSide(
+              color: theme.dividerColor,
+              width: 1,
             ),
           ),
+        ),
+        child: Row(
+          children: [
+            // 关闭按钮
+            Semantics(
+              button: true,
+              label: '关闭编辑器',
+              hint: '关闭当前笔记编辑器',
+              child: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _handleClose,
+                tooltip: '关闭',
+              ),
+            ),
 
-          const SizedBox(width: 16),
+            const Spacer(),
 
-          // 完成按钮
-          FilledButton.icon(
-            onPressed: _isSaving ? null : _handleComplete,
-            icon: const Icon(Icons.check, size: 18),
-            label: const Text('完成'),
-          ),
+            // 自动保存状态
+            Semantics(
+              label: '自动保存已启用',
+              readOnly: true,
+              child: Text(
+                '自动保存',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                ),
+              ),
+            ),
 
-          const SizedBox(width: 16),
-        ],
+            const SizedBox(width: 16),
+
+            // 完成按钮
+            Semantics(
+              button: true,
+              label: '完成编辑',
+              hint: '保存笔记并关闭编辑器',
+              enabled: !_isSaving,
+              child: FilledButton.icon(
+                onPressed: _isSaving ? null : _handleComplete,
+                icon: const Icon(Icons.check, size: 18),
+                label: const Text('完成'),
+              ),
+            ),
+
+            const SizedBox(width: 16),
+          ],
+        ),
       ),
     );
   }
@@ -440,17 +459,22 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
   Widget _buildTitleInput(BuildContext context) {
     final theme = Theme.of(context);
 
-    return TextField(
-      controller: _titleController,
-      decoration: const InputDecoration(
-        hintText: '笔记标题',
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.zero,
+    return Semantics(
+      textField: true,
+      label: '笔记标题',
+      hint: '输入笔记标题',
+      child: TextField(
+        controller: _titleController,
+        decoration: const InputDecoration(
+          hintText: '笔记标题',
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+        ),
+        style: theme.textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+        maxLines: null,
       ),
-      style: theme.textTheme.headlineMedium?.copyWith(
-        fontWeight: FontWeight.bold,
-      ),
-      maxLines: null,
     );
   }
 
@@ -459,20 +483,26 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
     final theme = Theme.of(context);
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        minHeight: screenHeight * 0.6, // 60vh
-      ),
-      child: TextField(
-        controller: _contentController,
-        decoration: const InputDecoration(
-          hintText: '开始写笔记...',
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
+    return Semantics(
+      textField: true,
+      label: '笔记内容',
+      hint: '输入笔记内容',
+      multiline: true,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: screenHeight * 0.6, // 60vh
         ),
-        style: theme.textTheme.bodyLarge,
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
+        child: TextField(
+          controller: _contentController,
+          decoration: const InputDecoration(
+            hintText: '开始写笔记...',
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+          style: theme.textTheme.bodyLarge,
+          maxLines: null,
+          keyboardType: TextInputType.multiline,
+        ),
       ),
     );
   }
@@ -530,31 +560,52 @@ class UnsavedChangesDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('有未保存的更改'),
-      content: const Text('是否保存更改？'),
-      actions: [
-        // 取消按钮
-        TextButton(
-          onPressed: () => Navigator.of(context).pop('cancel'),
-          child: const Text('取消'),
-        ),
-
-        // 放弃更改按钮
-        TextButton(
-          onPressed: () => Navigator.of(context).pop('discard'),
-          style: TextButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.error,
+    return Semantics(
+      namesRoute: true,
+      scopesRoute: true,
+      explicitChildNodes: true,
+      label: '未保存更改确认对话框',
+      child: AlertDialog(
+        title: const Text('有未保存的更改'),
+        content: const Text('是否保存更改？'),
+        actions: [
+          // 取消按钮
+          Semantics(
+            button: true,
+            label: '取消',
+            hint: '返回继续编辑',
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop('cancel'),
+              child: const Text('取消'),
+            ),
           ),
-          child: const Text('放弃更改'),
-        ),
 
-        // 保存并关闭按钮
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop('save'),
-          child: const Text('保存并关闭'),
-        ),
-      ],
+          // 放弃更改按钮
+          Semantics(
+            button: true,
+            label: '放弃更改',
+            hint: '放弃所有未保存的更改并关闭',
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop('discard'),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              child: const Text('放弃更改'),
+            ),
+          ),
+
+          // 保存并关闭按钮
+          Semantics(
+            button: true,
+            label: '保存并关闭',
+            hint: '保存更改并关闭编辑器',
+            child: FilledButton(
+              onPressed: () => Navigator.of(context).pop('save'),
+              child: const Text('保存并关闭'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

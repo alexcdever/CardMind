@@ -179,5 +179,93 @@
   "cardEditDialogCloseTooltip": "关闭 (ESC)",
   "@cardEditDialogCloseTooltip": {
     "description": "Close button tooltip"
+  },
+
+  "noteEditorFullscreenTitleHint": "笔记标题",
+  "@noteEditorFullscreenTitleHint": {
+    "description": "Fullscreen editor: title input hint"
+  },
+
+  "noteEditorFullscreenContentHint": "开始写笔记...",
+  "@noteEditorFullscreenContentHint": {
+    "description": "Fullscreen editor: content input hint"
+  },
+
+  "noteEditorFullscreenAutoSave": "自动保存",
+  "@noteEditorFullscreenAutoSave": {
+    "description": "Fullscreen editor: auto-save indicator text"
+  },
+
+  "noteEditorFullscreenComplete": "完成",
+  "@noteEditorFullscreenComplete": {
+    "description": "Fullscreen editor: complete button text"
+  },
+
+  "noteEditorFullscreenUntitled": "无标题笔记",
+  "@noteEditorFullscreenUntitled": {
+    "description": "Fullscreen editor: default title for untitled notes"
+  },
+
+  "noteEditorFullscreenEmptyContent": "内容不能为空",
+  "@noteEditorFullscreenEmptyContent": {
+    "description": "Fullscreen editor: validation error for empty content"
+  },
+
+  "noteEditorFullscreenUnsavedTitle": "有未保存的更改",
+  "@noteEditorFullscreenUnsavedTitle": {
+    "description": "Fullscreen editor: unsaved changes dialog title"
+  },
+
+  "noteEditorFullscreenUnsavedMessage": "是否保存更改？",
+  "@noteEditorFullscreenUnsavedMessage": {
+    "description": "Fullscreen editor: unsaved changes dialog message"
+  },
+
+  "noteEditorFullscreenSaveAndClose": "保存并关闭",
+  "@noteEditorFullscreenSaveAndClose": {
+    "description": "Fullscreen editor: save and close button"
+  },
+
+  "noteEditorFullscreenDiscard": "放弃更改",
+  "@noteEditorFullscreenDiscard": {
+    "description": "Fullscreen editor: discard changes button"
+  },
+
+  "noteEditorFullscreenCancel": "取消",
+  "@noteEditorFullscreenCancel": {
+    "description": "Fullscreen editor: cancel button"
+  },
+
+  "noteEditorFullscreenCreatedAt": "创建时间: {time}",
+  "@noteEditorFullscreenCreatedAt": {
+    "description": "Fullscreen editor: created time label",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2025/01/26 08:00:00"
+      }
+    }
+  },
+
+  "noteEditorFullscreenUpdatedAt": "更新时间: {time}",
+  "@noteEditorFullscreenUpdatedAt": {
+    "description": "Fullscreen editor: updated time label",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2025/01/26 08:00:00"
+      }
+    }
+  },
+
+  "noteEditorFullscreenLastEditDevice": "最后编辑设备: {device}",
+  "@noteEditorFullscreenLastEditDevice": {
+    "description": "Fullscreen editor: last edit device label",
+    "placeholders": {
+      "device": {
+        "type": "String",
+        "example": "iPhone 13"
+      }
+    }
   }
 }
