@@ -50,8 +50,8 @@ void main() {
           createTestWidget(SyncStatusIndicator(status: status)),
         );
 
-        // When: Widget 渲染完成
-        await tester.pumpAndSettle();
+        // When: Widget 渲染完成（使用 pump 而不是 pumpAndSettle，因为有持续动画）
+        await tester.pump();
 
         // Then: 应该显示同步图标和文字
         expect(find.byIcon(Icons.sync), findsOneWidget);
@@ -112,11 +112,11 @@ void main() {
           createTestWidget(SyncStatusIndicator(status: status)),
         );
 
-        // When: Widget 渲染完成
-        await tester.pumpAndSettle();
+        // When: Widget 渲染完成（使用 pump 而不是 pumpAndSettle，因为有持续动画）
+        await tester.pump();
 
         // Then: 应该有旋转动画
-        expect(find.byType(RotationTransition), findsOneWidget);
+        expect(find.byType(RotationTransition), findsWidgets);
       });
 
       testWidgets('it_should_stop_animation_when_sync_completes', (
@@ -128,7 +128,7 @@ void main() {
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: syncingStatus)),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         // When: 状态变为已同步
         final syncedStatus = SyncStatus.synced(lastSyncTime: DateTime.now());
@@ -138,8 +138,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Then: 动画应该停止
-        expect(find.byType(RotationTransition), findsNothing);
+        // Then: 动画应该停止（不再有 sync 图标的旋转动画）
+        // 检查是否有 sync 图标
+        expect(find.byIcon(Icons.sync), findsNothing);
+        // 应该显示 cloud_done 图标
+        expect(find.byIcon(Icons.cloud_done), findsOneWidget);
       });
     });
 
@@ -176,14 +179,18 @@ void main() {
           createTestWidget(SyncStatusIndicator(status: status)),
         );
 
-        // When: Widget 渲染完成
-        await tester.pumpAndSettle();
+        // When: Widget 渲染完成（使用 pump 而不是 pumpAndSettle，因为有持续动画）
+        await tester.pump();
 
         // Then: 应该使用主题色
-        final rotationTransition = tester.widget<RotationTransition>(
+        final rotationTransitions = tester.widgetList<RotationTransition>(
           find.byType(RotationTransition),
         );
-        final icon = rotationTransition.child as Icon;
+        // 查找包含 sync 图标的 RotationTransition
+        final syncRotation = rotationTransitions.firstWhere(
+          (rt) => rt.child is Icon && (rt.child as Icon).icon == Icons.sync,
+        );
+        final icon = syncRotation.child as Icon;
         expect(icon.color, equals(const Color(0xFF00897B)));
       });
 
@@ -248,7 +255,9 @@ void main() {
 
       testWidgets('it_should_display_minutes_ago', (WidgetTester tester) async {
         // Given: 创建几分钟前同步的状态
-        final status = SyncStatus.synced(lastSyncTime: DateTime.now());
+        final status = SyncStatus.synced(
+          lastSyncTime: DateTime.now().subtract(const Duration(minutes: 5)),
+        );
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -263,7 +272,9 @@ void main() {
 
       testWidgets('it_should_display_hours_ago', (WidgetTester tester) async {
         // Given: 创建几小时前同步的状态
-        final status = SyncStatus.synced(lastSyncTime: DateTime.now());
+        final status = SyncStatus.synced(
+          lastSyncTime: DateTime.now().subtract(const Duration(hours: 2)),
+        );
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -278,7 +289,9 @@ void main() {
 
       testWidgets('it_should_display_days_ago', (WidgetTester tester) async {
         // Given: 创建几天前同步的状态
-        final status = SyncStatus.synced(lastSyncTime: DateTime.now());
+        final status = SyncStatus.synced(
+          lastSyncTime: DateTime.now().subtract(const Duration(days: 3)),
+        );
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -380,7 +393,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建没有最后同步时间的状态
-        final status = SyncStatus.synced(lastSyncTime: DateTime.now());
+        final status = SyncStatus.synced();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),

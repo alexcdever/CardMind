@@ -300,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
+    #[ignore = "Requires system keyring"]
     fn test_store_and_retrieve_password() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-001";
@@ -324,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
+    #[ignore = "Requires system keyring"]
     fn test_delete_password() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-002";
@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
+    #[ignore = "Requires system keyring"]
     fn test_has_pool_password() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-003";
@@ -363,7 +363,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
+    #[ignore = "Requires system keyring"]
     fn test_password_not_found() {
         let store = KeyringStore::new();
         let result = store.get_pool_password("nonexistent-pool");
@@ -372,12 +372,12 @@ mod tests {
         if let Err(KeyringError::PasswordNotFound(_)) = result {
             // Expected error type
         } else {
-            panic!("Expected PasswordNotFound error");
+            assert!(false, "Expected PasswordNotFound error");
         }
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
+    #[ignore = "Requires system keyring"]
     fn test_password_zeroization() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-004";

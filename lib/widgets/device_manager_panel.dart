@@ -86,9 +86,10 @@ class _DeviceManagerPanelState extends State<DeviceManagerPanel> {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // 标题
             Row(
               children: [
@@ -206,6 +207,7 @@ class _DeviceManagerPanelState extends State<DeviceManagerPanel> {
                 (device) => _buildDeviceItem(context, device),
               ),
           ],
+        ),
         ),
       ),
     );

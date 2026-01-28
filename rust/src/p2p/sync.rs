@@ -190,7 +190,7 @@ mod tests {
                 assert_eq!(req.pool_id, "pool-001");
                 assert_eq!(req.device_id, "device-001");
             }
-            _ => panic!("Wrong message type"),
+            _ => assert!(false, "Wrong message type"),
         }
     }
 

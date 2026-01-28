@@ -48,7 +48,7 @@ class SyncStatus {
   }
 
   /// 创建 synced 状态
-  factory SyncStatus.synced({required DateTime lastSyncTime}) {
+  factory SyncStatus.synced({DateTime? lastSyncTime}) {
     return SyncStatus._(
       state: SyncState.synced,
       lastSyncTime: lastSyncTime,

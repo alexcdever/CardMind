@@ -3,6 +3,7 @@ import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
 import 'package:cardmind/widgets/mobile_nav.dart';
+import 'package:cardmind/widgets/note_card.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -462,8 +463,8 @@ void main() {
         await tester.tap(find.byType(AdaptiveFab));
         await tester.pumpAndSettle();
 
-        // Then: 显示新卡片
-        expect(find.byType(Card), findsWidgets);
+        // Then: 显示新卡片（使用 NoteCard 而不是 Card）
+        expect(find.byType(NoteCard), findsWidgets);
       });
     });
 
