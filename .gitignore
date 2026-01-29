@@ -23,6 +23,7 @@ ios/Runner.xcworkspace/
 
 # Rust
 rust/target/
+target/
 rust/Cargo.lock
 rust/src/bridge_generated.h
 rust/src/frb_generated.rs
