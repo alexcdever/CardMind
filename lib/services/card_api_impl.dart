@@ -1,4 +1,4 @@
-import '../bridge/api/card.dart' as card_api;
+import '../bridge/third_party/cardmind_rust/api/card.dart' as card_api;
 import '../bridge/models/card.dart';
 import 'card_api_interface.dart';
 

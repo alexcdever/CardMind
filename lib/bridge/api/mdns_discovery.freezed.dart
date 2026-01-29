@@ -26,19 +26,29 @@ mixin _$DiscoveredDevice {
   /// Create a copy of DiscoveredDevice
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $DiscoveredDeviceCopyWith<DiscoveredDevice> get copyWith => throw _privateConstructorUsedError;
+  $DiscoveredDeviceCopyWith<DiscoveredDevice> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class $DiscoveredDeviceCopyWith<$Res> {
-  factory $DiscoveredDeviceCopyWith(DiscoveredDevice value, $Res Function(DiscoveredDevice) then) =
-      _$DiscoveredDeviceCopyWithImpl<$Res, DiscoveredDevice>;
+  factory $DiscoveredDeviceCopyWith(
+    DiscoveredDevice value,
+    $Res Function(DiscoveredDevice) then,
+  ) = _$DiscoveredDeviceCopyWithImpl<$Res, DiscoveredDevice>;
   @useResult
-  $Res call({String peerId, String deviceName, List<String> multiaddrs, bool isOnline, int lastSeen});
+  $Res call({
+    String peerId,
+    String deviceName,
+    List<String> multiaddrs,
+    bool isOnline,
+    int lastSeen,
+  });
 }
 
 /// @nodoc
-class _$DiscoveredDeviceCopyWithImpl<$Res, $Val extends DiscoveredDevice> implements $DiscoveredDeviceCopyWith<$Res> {
+class _$DiscoveredDeviceCopyWithImpl<$Res, $Val extends DiscoveredDevice>
+    implements $DiscoveredDeviceCopyWith<$Res> {
   _$DiscoveredDeviceCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -86,19 +96,31 @@ class _$DiscoveredDeviceCopyWithImpl<$Res, $Val extends DiscoveredDevice> implem
 }
 
 /// @nodoc
-abstract class _$$DiscoveredDeviceImplCopyWith<$Res> implements $DiscoveredDeviceCopyWith<$Res> {
-  factory _$$DiscoveredDeviceImplCopyWith(_$DiscoveredDeviceImpl value, $Res Function(_$DiscoveredDeviceImpl) then) =
-      __$$DiscoveredDeviceImplCopyWithImpl<$Res>;
+abstract class _$$DiscoveredDeviceImplCopyWith<$Res>
+    implements $DiscoveredDeviceCopyWith<$Res> {
+  factory _$$DiscoveredDeviceImplCopyWith(
+    _$DiscoveredDeviceImpl value,
+    $Res Function(_$DiscoveredDeviceImpl) then,
+  ) = __$$DiscoveredDeviceImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String peerId, String deviceName, List<String> multiaddrs, bool isOnline, int lastSeen});
+  $Res call({
+    String peerId,
+    String deviceName,
+    List<String> multiaddrs,
+    bool isOnline,
+    int lastSeen,
+  });
 }
 
 /// @nodoc
-class __$$DiscoveredDeviceImplCopyWithImpl<$Res> extends _$DiscoveredDeviceCopyWithImpl<$Res, _$DiscoveredDeviceImpl>
+class __$$DiscoveredDeviceImplCopyWithImpl<$Res>
+    extends _$DiscoveredDeviceCopyWithImpl<$Res, _$DiscoveredDeviceImpl>
     implements _$$DiscoveredDeviceImplCopyWith<$Res> {
-  __$$DiscoveredDeviceImplCopyWithImpl(_$DiscoveredDeviceImpl _value, $Res Function(_$DiscoveredDeviceImpl) _then)
-    : super(_value, _then);
+  __$$DiscoveredDeviceImplCopyWithImpl(
+    _$DiscoveredDeviceImpl _value,
+    $Res Function(_$DiscoveredDeviceImpl) _then,
+  ) : super(_value, _then);
 
   /// Create a copy of DiscoveredDevice
   /// with the given fields replaced by the non-null parameter values.
@@ -177,10 +199,16 @@ class _$DiscoveredDeviceImpl implements _DiscoveredDevice {
         (other.runtimeType == runtimeType &&
             other is _$DiscoveredDeviceImpl &&
             (identical(other.peerId, peerId) || other.peerId == peerId) &&
-            (identical(other.deviceName, deviceName) || other.deviceName == deviceName) &&
-            const DeepCollectionEquality().equals(other._multiaddrs, _multiaddrs) &&
-            (identical(other.isOnline, isOnline) || other.isOnline == isOnline) &&
-            (identical(other.lastSeen, lastSeen) || other.lastSeen == lastSeen));
+            (identical(other.deviceName, deviceName) ||
+                other.deviceName == deviceName) &&
+            const DeepCollectionEquality().equals(
+              other._multiaddrs,
+              _multiaddrs,
+            ) &&
+            (identical(other.isOnline, isOnline) ||
+                other.isOnline == isOnline) &&
+            (identical(other.lastSeen, lastSeen) ||
+                other.lastSeen == lastSeen));
   }
 
   @override
@@ -199,7 +227,10 @@ class _$DiscoveredDeviceImpl implements _DiscoveredDevice {
   @override
   @pragma('vm:prefer-inline')
   _$$DiscoveredDeviceImplCopyWith<_$DiscoveredDeviceImpl> get copyWith =>
-      __$$DiscoveredDeviceImplCopyWithImpl<_$DiscoveredDeviceImpl>(this, _$identity);
+      __$$DiscoveredDeviceImplCopyWithImpl<_$DiscoveredDeviceImpl>(
+        this,
+        _$identity,
+      );
 }
 
 abstract class _DiscoveredDevice implements DiscoveredDevice {
@@ -226,5 +257,6 @@ abstract class _DiscoveredDevice implements DiscoveredDevice {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$DiscoveredDeviceImplCopyWith<_$DiscoveredDeviceImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$DiscoveredDeviceImplCopyWith<_$DiscoveredDeviceImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }

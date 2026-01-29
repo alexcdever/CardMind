@@ -169,7 +169,8 @@ impl DiscoveryManager {
                                         let peer_id_str = peer_id.to_string();
 
                                         // 检查是否在信任列表中
-                                        let is_trusted = if let Some(db_path) = &trust_list_db_path {
+                                        let is_trusted = if let Some(db_path) = &trust_list_db_path
+                                        {
                                             if let Ok(conn) = Connection::open(db_path) {
                                                 let manager = TrustListManager::new(&conn);
                                                 manager.is_trusted(&peer_id_str).unwrap_or(false)
@@ -189,39 +190,56 @@ impl DiscoveryManager {
                                                 .unwrap_or(false);
 
                                             if was_offline {
-                                                info!("设备重新上线: {} at {}", peer_id_str, multiaddr);
+                                                info!(
+                                                    "设备重新上线: {} at {}",
+                                                    peer_id_str, multiaddr
+                                                );
                                                 // 重置重连状态
-                                                if let Some(state) = reconnect_lock.get_mut(&peer_id_str) {
+                                                if let Some(state) =
+                                                    reconnect_lock.get_mut(&peer_id_str)
+                                                {
                                                     state.reset();
                                                 }
                                             } else {
-                                                info!("发现信任设备: {} at {}", peer_id_str, multiaddr);
+                                                info!(
+                                                    "发现信任设备: {} at {}",
+                                                    peer_id_str, multiaddr
+                                                );
                                             }
 
                                             // 更新或创建设备信息
                                             let multiaddr_str = multiaddr.to_string();
-                                            if let Some(device) = devices_lock.get_mut(&peer_id_str) {
+                                            if let Some(device) = devices_lock.get_mut(&peer_id_str)
+                                            {
                                                 // 设备已存在，更新地址列表
                                                 if !device.multiaddrs.contains(&multiaddr_str) {
-                                                    info!("设备 {} 添加新地址: {}", peer_id_str, multiaddr_str);
+                                                    info!(
+                                                        "设备 {} 添加新地址: {}",
+                                                        peer_id_str, multiaddr_str
+                                                    );
                                                     device.multiaddrs.push(multiaddr_str);
                                                 }
                                                 device.is_online = true;
                                                 device.last_seen = SystemTime::now()
                                                     .duration_since(UNIX_EPOCH)
                                                     .unwrap()
-                                                    .as_secs() as i64;
+                                                    .as_secs()
+                                                    as i64;
                                             } else {
                                                 // 新设备，创建设备信息
                                                 let device = DiscoveredDevice {
                                                     peer_id: peer_id_str.clone(),
-                                                    device_name: format!("Device-{}", &peer_id_str[..8]),
+                                                    device_name: format!(
+                                                        "Device-{}",
+                                                        &peer_id_str[..8]
+                                                    ),
                                                     multiaddrs: vec![multiaddr_str],
                                                     is_online: true,
                                                     last_seen: SystemTime::now()
                                                         .duration_since(UNIX_EPOCH)
                                                         .unwrap()
-                                                        .as_secs() as i64,
+                                                        .as_secs()
+                                                        as i64,
                                                 };
                                                 devices_lock.insert(peer_id_str, device);
                                             }
@@ -247,7 +265,10 @@ impl DiscoveryManager {
 
                                             // 如果没有可用地址了，标记设备为离线
                                             if device.multiaddrs.is_empty() {
-                                                warn!("设备 {} 所有地址已过期，标记为离线", peer_id_str);
+                                                warn!(
+                                                    "设备 {} 所有地址已过期，标记为离线",
+                                                    peer_id_str
+                                                );
                                                 device.is_online = false;
 
                                                 // 初始化重连状态

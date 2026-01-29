@@ -201,7 +201,10 @@ impl P2PNetwork {
         identity_manager: &IdentityManager,
         mdns_enabled: bool,
     ) -> Result<Self, Box<dyn Error>> {
-        info!("初始化 P2P 网络（使用持久化密钥对，mDNS: {}）...", mdns_enabled);
+        info!(
+            "初始化 P2P 网络（使用持久化密钥对，mDNS: {}）...",
+            mdns_enabled
+        );
 
         // 1. 加载或生成身份密钥对
         let local_key = identity_manager

@@ -182,11 +182,9 @@ impl<'a> TrustListManager<'a> {
     ///
     /// - 数据库操作失败
     pub fn count(&self) -> Result<usize, CardMindError> {
-        let count: i64 = self
-            .conn
-            .query_row("SELECT COUNT(*) FROM trusted_devices", [], |row| {
-                row.get(0)
-            })?;
+        let count: i64 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM trusted_devices", [], |row| row.get(0))?;
         Ok(count as usize)
     }
 }
