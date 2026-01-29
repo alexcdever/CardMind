@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:cardmind/bridge/frb_generated.dart';
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart' as device_config_api;
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as sync_api;
+import 'package:cardmind/providers/app_info_provider.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/settings_provider.dart';
 import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
 import 'package:cardmind/theme/app_theme.dart';
@@ -29,6 +31,8 @@ class CardMindApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CardProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => AppInfoProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -88,9 +92,17 @@ class _AppInitializerState extends State<AppInitializer> {
       // Get providers before awaits
       final themeProvider = context.read<ThemeProvider>();
       final cardProvider = context.read<CardProvider>();
+      final settingsProvider = context.read<SettingsProvider>();
+      final appInfoProvider = context.read<AppInfoProvider>();
 
       // Initialize providers
       await themeProvider.initialize();
+      if (!mounted) return;
+
+      await settingsProvider.initialize();
+      if (!mounted) return;
+
+      await appInfoProvider.initialize();
       if (!mounted) return;
 
       await cardProvider.initialize(storagePath);

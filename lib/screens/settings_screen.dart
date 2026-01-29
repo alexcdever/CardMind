@@ -1,11 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
-import '../bridge/api/device_config.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../bridge/third_party/cardmind_rust/api/device_config.dart';
+import '../providers/app_info_provider.dart';
+import '../providers/card_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/theme_provider.dart';
 import '../adaptive/layouts/adaptive_scaffold.dart';
 import '../adaptive/layouts/adaptive_padding.dart';
+import '../services/loro_file_service.dart';
+import '../widgets/dialogs/export_confirm_dialog.dart';
+import '../widgets/settings/button_setting_item.dart';
+import '../widgets/settings/toggle_setting_item.dart';
 
 /// Settings screen for app configuration
 class SettingsScreen extends StatefulWidget {
@@ -20,6 +29,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _remainingMs = 0;
   Timer? _countdownTimer;
   bool _isLoading = true;
+  bool _isExporting = false;
+  bool _isImporting = false;
 
   @override
   void initState() {
@@ -120,13 +131,149 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return '${minutes}m ${remainingSeconds}s remaining';
   }
 
+  Future<void> _handleExport(BuildContext context) async {
+    try {
+      setState(() => _isExporting = true);
+
+      // 获取卡片数量
+      final cardProvider = context.read<CardProvider>();
+      final cards = cardProvider.cards;
+
+      // 显示确认对话框
+      final confirmed = await ExportConfirmDialog.show(context, cards.length);
+      if (!confirmed) {
+        setState(() => _isExporting = false);
+        return;
+      }
+
+      // 导出数据
+      final filePath = await LoroFileService.exportData();
+
+      if (!mounted) return;
+
+      if (filePath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('数据已导出到: $filePath')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导出失败: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  Future<void> _handleImport(BuildContext context) async {
+    try {
+      setState(() => _isImporting = true);
+
+      // 导入数据
+      final count = await LoroFileService.importData();
+
+      if (!mounted) return;
+
+      if (count != null) {
+        // 刷新卡片列表
+        final cardProvider = context.read<CardProvider>();
+        await cardProvider.loadCards();
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('成功导入 $count 张卡片')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导入失败: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isImporting = false);
+      }
+    }
+  }
+
+  Future<void> _handleToggleSyncNotification(
+    BuildContext context,
+    bool value,
+  ) async {
+    try {
+      final settingsProvider = context.read<SettingsProvider>();
+      await settingsProvider.setSyncNotificationEnabled(value);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('设置失败: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AdaptiveScaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: AdaptivePadding.small,
-        children: [
+    final settingsProvider = context.watch<SettingsProvider>();
+
+    return CallbackShortcuts(
+      bindings: {
+        // Escape key to close settings (desktop)
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        },
+        // Ctrl/Cmd + E to export data
+        const SingleActivator(
+          LogicalKeyboardKey.keyE,
+          control: true,
+          meta: true,
+        ): () => _handleExport(context),
+        // Ctrl/Cmd + I to import data
+        const SingleActivator(
+          LogicalKeyboardKey.keyI,
+          control: true,
+          meta: true,
+        ): () => _handleImport(context),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Semantics(
+          label: 'Settings Screen',
+          child: AdaptiveScaffold(
+            appBar: AppBar(
+              title: const Text('Settings'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Back',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            body: ListView(
+              padding: AdaptivePadding.small,
+              children: [
+          // Notifications Section
+          _buildSection(
+            context,
+            title: 'Notifications',
+            children: [
+              ToggleSettingItem(
+                icon: Icons.notifications,
+                label: 'Sync Notifications',
+                description: 'Notify when sync completes',
+                value: settingsProvider.syncNotificationEnabled,
+                onChanged: (value) =>
+                    _handleToggleSyncNotification(context, value),
+              ),
+            ],
+          ),
+
+          const Divider(),
+
           // Theme Section
           _buildSection(
             context,
@@ -155,28 +302,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const Divider(),
 
-          // About Section
-          _buildSection(context, title: 'About', children: [_AboutTile()]),
-
-          const Divider(),
-
-          // Data Management (reserved for future)
+          // Data Management Section
           _buildSection(
             context,
             title: 'Data Management',
             children: [
-              ListTile(
-                leading: const Icon(Icons.storage),
-                title: const Text('Data Management'),
-                subtitle: const Text('Coming soon'),
-                enabled: false,
-                onTap: () {
-                  // Reserved for future implementation
-                },
+              ButtonSettingItem(
+                icon: Icons.upload_file,
+                label: 'Export Data',
+                description: 'Export all notes to backup file',
+                onPressed: _isExporting ? null : () => _handleExport(context),
+                isLoading: _isExporting,
+              ),
+              ButtonSettingItem(
+                icon: Icons.download,
+                label: 'Import Data',
+                description: 'Import notes from backup file',
+                onPressed: _isImporting ? null : () => _handleImport(context),
+                isLoading: _isImporting,
               ),
             ],
           ),
-        ],
+
+          const Divider(),
+
+          // About Section
+          _buildSection(context, title: 'About', children: [_AboutTile()]),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -297,24 +452,152 @@ class _AboutTile extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    showAboutDialog(
+    final appInfoProvider = context.read<AppInfoProvider>();
+    final appInfo = appInfoProvider.appInfo;
+
+    showDialog(
       context: context,
-      applicationName: packageInfo.appName,
-      applicationVersion: 'v${packageInfo.version}+${packageInfo.buildNumber}',
-      applicationLegalese: '© 2025 CardMind Team',
-      applicationIcon: const Icon(Icons.card_membership, size: 48),
-      children: [
-        const SizedBox(height: 16),
-        const Text(
-          'CardMind is an offline-first, card-based note-taking app '
-          'with P2P sync capabilities powered by CRDT technology.',
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.card_membership, size: 32),
+            const SizedBox(width: 12),
+            Text(packageInfo.appName),
+          ],
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Built with Flutter and Rust.',
-          style: TextStyle(fontStyle: FontStyle.italic),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Version info
+              Text(
+                'Version ${packageInfo.version} (${packageInfo.buildNumber})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+
+              // Description
+              Text(
+                appInfo.description,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+
+              // Technical Stack
+              Text(
+                'Technical Stack',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              const Text('• Flutter - Cross-platform UI framework'),
+              const Text('• Rust - High-performance backend'),
+              const Text('• Loro CRDT - Conflict-free data sync'),
+              const Text('• SQLite - Local data storage'),
+              const SizedBox(height: 16),
+
+              // Contributors
+              if (appInfo.contributors.isNotEmpty) ...[
+                Text(
+                  'Contributors',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                ...appInfo.contributors
+                    .map((contributor) => Text('• $contributor')),
+                const SizedBox(height: 16),
+              ],
+
+              // Changelog (recent 3 versions)
+              if (appInfo.changelog.isNotEmpty) ...[
+                Text(
+                  'Recent Changes',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                ...appInfo.changelog.take(3).map((entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'v${entry.version} (${entry.date})',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          ...entry.changes.map((change) => Text('  • $change')),
+                        ],
+                      ),
+                    )),
+                const SizedBox(height: 8),
+              ],
+
+              // Links
+              InkWell(
+                onTap: () => _launchUrl(appInfo.homepage),
+                child: Row(
+                  children: [
+                    const Icon(Icons.link, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Project Homepage',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => _launchUrl(appInfo.issuesUrl),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bug_report, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Report Issues',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Copyright
+              Text(
+                '© 2025 CardMind Team',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey,
+                    ),
+              ),
+            ],
+          ),
         ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
