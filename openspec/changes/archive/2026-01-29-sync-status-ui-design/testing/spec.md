@@ -1,3 +1,5 @@
+## ADDED Requirements
+
 # Testing Specification for Sync Status UI
 
 ## Unit Tests: SyncStatus Model
