@@ -29,3 +29,36 @@ CardMind 需要一个完整的设置面板来管理应用的核心配置，包�
 - **Integration**: 需要 Rust 端的 Loro 文件操作接口
 - **Testing**: 需要完整的单元测试和 Widget 测试覆盖（53 个测试用例）
 - **Dependencies**: 依赖现有的设置持久化、文件操作和主题系统
+
+## Documentation Structure
+
+本提案包含以下文档：
+
+- **proposal.md** (本文件): 提案概述和影响分析
+- **design.md**: 设计决策和权衡分析
+- **specs/settings-panel/spec.md**: 完整的功能规格说明，包括：
+  - 需求场景定义
+  - 视觉设计规格（移动端和桌面端）
+  - 详细交互流程
+  - 数据边界和约束
+  - 性能约束
+  - 组件规格
+  - 数据模型定义
+  - 测试规格
+  - Rust FFI 接口定义
+- **implementation.md**: 技术实现指南，包括：
+  - 依赖包详细说明
+  - Riverpod 状态管理实现
+  - 设置持久化实现
+  - Loro 文件操作实现
+  - 主题管理实现
+  - 错误处理和性能优化
+  - 测试工具和辅助函数
+- **references.md**: 参考资料汇总，包括：
+  - Flutter 包文档链接
+  - Material Design 规范
+  - Loro CRDT 文档
+  - 平台设计指南
+  - 可访问性标准
+  - 测试和性能资源
+- **tasks.md**: 实现任务清单，包含详细的测试用例列表
