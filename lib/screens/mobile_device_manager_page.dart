@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import 'package:cardmind/models/device.dart';
-import 'package:cardmind/providers/device_manager_provider.dart';
 import 'package:cardmind/utils/device_utils.dart';
 import 'package:cardmind/widgets/current_device_card.dart';
 import 'package:cardmind/widgets/device_list_item.dart';

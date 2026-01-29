@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -154,10 +154,11 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
 
       // 解析二维码数据
       final qrText = barcode.rawValue!;
-      final qrData = QRCodeParser._parseQRData(qrText);
+      final jsonData = jsonDecode(qrText) as Map<String, dynamic>;
+      final qrData = QRCodeData.fromJson(jsonData);
 
       // 验证数据
-      QRCodeParser._validateQRData(qrData);
+      _validateQRData(qrData);
 
       // 调用回调
       await widget.onQRCodeScanned(qrData);
@@ -177,6 +178,57 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
         // 重新启动扫描
         await _controller?.start();
       }
+    }
+  }
+
+  /// 验证二维码数据
+  void _validateQRData(QRCodeData data) {
+    // 验证版本
+    if (data.version != '1.0') {
+      throw Exception('不支持的二维码版本: ${data.version}');
+    }
+
+    // 验证类型
+    if (data.type != 'pairing') {
+      throw Exception('无效的二维码类型: ${data.type}');
+    }
+
+    // 验证 PeerId
+    if (data.peerId.isEmpty) {
+      throw Exception('PeerId 不能为空');
+    }
+
+    // 验证设备名称
+    if (data.deviceName.isEmpty) {
+      throw Exception('设备名称不能为空');
+    }
+
+    // 验证设备类型
+    if (!['phone', 'laptop', 'tablet'].contains(data.deviceType)) {
+      throw Exception('无效的设备类型: ${data.deviceType}');
+    }
+
+    // 验证 Multiaddrs
+    if (data.multiaddrs.isEmpty) {
+      throw Exception('Multiaddrs 不能为空');
+    }
+
+    // 验证时间戳（10 分钟有效期）
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final age = now - data.timestamp;
+
+    if (age < 0) {
+      throw Exception('二维码时间戳无效（未来时间）');
+    }
+
+    if (age > 600) {
+      // 10 分钟 = 600 秒
+      throw Exception('二维码已过期（超过 10 分钟）');
+    }
+
+    // 验证 PoolId
+    if (data.poolId.isEmpty) {
+      throw Exception('PoolId 不能为空');
     }
   }
 
@@ -380,22 +432,22 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
                   _buildCornerDecoration(
                     theme,
                     Alignment.topLeft,
-                    [BorderSide.top, BorderSide.left],
+                    [_CornerSide.top, _CornerSide.left],
                   ),
                   _buildCornerDecoration(
                     theme,
                     Alignment.topRight,
-                    [BorderSide.top, BorderSide.right],
+                    [_CornerSide.top, _CornerSide.right],
                   ),
                   _buildCornerDecoration(
                     theme,
                     Alignment.bottomLeft,
-                    [BorderSide.bottom, BorderSide.left],
+                    [_CornerSide.bottom, _CornerSide.left],
                   ),
                   _buildCornerDecoration(
                     theme,
                     Alignment.bottomRight,
-                    [BorderSide.bottom, BorderSide.right],
+                    [_CornerSide.bottom, _CornerSide.right],
                   ),
                 ],
               ),
@@ -424,7 +476,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
   Widget _buildCornerDecoration(
     ThemeData theme,
     Alignment alignment,
-    List<BorderSide> sides,
+    List<_CornerSide> sides,
   ) {
     return Align(
       alignment: alignment,
@@ -433,16 +485,16 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
         height: 32,
         decoration: BoxDecoration(
           border: Border(
-            top: sides.contains(BorderSide.top)
+            top: sides.contains(_CornerSide.top)
                 ? BorderSide(color: theme.colorScheme.primary, width: 4)
                 : BorderSide.none,
-            left: sides.contains(BorderSide.left)
+            left: sides.contains(_CornerSide.left)
                 ? BorderSide(color: theme.colorScheme.primary, width: 4)
                 : BorderSide.none,
-            right: sides.contains(BorderSide.right)
+            right: sides.contains(_CornerSide.right)
                 ? BorderSide(color: theme.colorScheme.primary, width: 4)
                 : BorderSide.none,
-            bottom: sides.contains(BorderSide.bottom)
+            bottom: sides.contains(_CornerSide.bottom)
                 ? BorderSide(color: theme.colorScheme.primary, width: 4)
                 : BorderSide.none,
           ),
@@ -515,8 +567,8 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
   }
 }
 
-/// 边框方向枚举
-enum BorderSide {
+/// 角落方向枚举
+enum _CornerSide {
   top,
   left,
   right,
