@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:cardmind/models/device.dart';
+
 import 'package:cardmind/models/pairing_request.dart';
 
 // ============================================================================
