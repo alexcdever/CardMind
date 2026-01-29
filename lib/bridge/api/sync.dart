@@ -7,6 +7,189 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import '../frb_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `get_sync_service`, `put_sync_service`, `with_sync_service`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
+
+/// 初始化 P2P 同步服务
+///
+/// # 参数
+///
+/// * `storage_path` - 存储路径
+/// * `listen_addr` - 监听地址（如 "/ip4/0.0.0.0/tcp/0"）
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// await initSyncService(
+///   storagePath: '/data/cardmind',
+///   listenAddr: '/ip4/0.0.0.0/tcp/0',
+/// );
+/// ```
+///
+/// # 错误
+///
+/// 如果服务已初始化或初始化失败，返回错误
+Future<String> initSyncService({required String storagePath, required String listenAddr}) =>
+    RustLib.instance.api.crateApiSyncInitSyncService(storagePath: storagePath, listenAddr: listenAddr);
+
+/// 手动同步数据池
+///
+/// # 参数
+///
+/// * `pool_id` - 数据池 ID
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// await syncPool(poolId: 'pool-001');
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化或同步失败，返回错误
+Future<int> syncPool({required String poolId}) => RustLib.instance.api.crateApiSyncSyncPool(poolId: poolId);
+
+/// 获取同步状态
+///
+/// # 返回
+///
+/// 返回包含在线设备数、同步中设备数和离线设备数的状态
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final status = await getSyncStatus();
+/// print('在线设备: ${status.onlineDevices}');
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<SyncStatus> getSyncStatus() => RustLib.instance.api.crateApiSyncGetSyncStatus();
+
+/// 获取本地 Peer ID
+///
+/// # 返回
+///
+/// 返回本地设备的 Peer ID 字符串
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final peerId = await getLocalPeerId();
+/// print('本地 Peer ID: $peerId');
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<String> getLocalPeerId() => RustLib.instance.api.crateApiSyncGetLocalPeerId();
+
+/// 清理同步服务
+///
+/// 在测试或重新初始化前调用此函数清理 thread-local 存储
+///
+/// # 注意
+///
+/// 这个函数主要用于测试，生产环境中通常不需要手动调用
+Future<void> cleanupSyncService() => RustLib.instance.api.crateApiSyncCleanupSyncService();
+
+/// 重试同步
+///
+/// 当同步失败时，调用此函数重新尝试同步
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// await retrySync();
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化或无可用 peer，返回错误
+Future<void> retrySync() => RustLib.instance.api.crateApiSyncRetrySync();
+
+/// 获取同步状态流（Stream）
+///
+/// 返回一个 Stream，实时推送同步状态变化
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final stream = getSyncStatusStream();
+/// stream.listen((status) {
+///   print('状态变化: ${status.state}');
+/// });
+/// ```
+///
+/// # 参数
+///
+/// * `sink` - StreamSink 用于发送状态更新到 Flutter
+///
+/// # 返回
+///
+/// 返回一个 Result，订阅后会立即收到当前状态，然后接收后续的状态更新
+Stream<SyncStatus> getSyncStatusStream() => RustLib.instance.api.crateApiSyncGetSyncStatusStream();
+
+/// 获取设备列表
+///
+/// # 返回
+///
+/// 返回所有已发现的设备列表
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final devices = await getDeviceList();
+/// for (final device in devices) {
+///   print('设备: ${device.deviceName}, 状态: ${device.status}');
+/// }
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<List<DeviceInfo>> getDeviceList() => RustLib.instance.api.crateApiSyncGetDeviceList();
+
+/// 获取同步统计信息
+///
+/// # 返回
+///
+/// 返回同步统计信息
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final stats = await getSyncStatistics();
+/// print('已同步卡片: ${stats.syncedCards}');
+/// print('成功次数: ${stats.successfulSyncs}');
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<SyncStatistics> getSyncStatistics() => RustLib.instance.api.crateApiSyncGetSyncStatistics();
+
+/// 获取同步历史
+///
+/// # 返回
+///
+/// 返回最近的同步事件列表（最多10条）
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final history = await getSyncHistory();
+/// for (final event in history) {
+///   print('${event.timestamp}: ${event.status} - ${event.deviceName}');
+/// }
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<List<SyncHistoryEvent>> getSyncHistory() => RustLib.instance.api.crateApiSyncGetSyncHistory();
+
 /// 设备连接状态枚举
 enum DeviceConnectionStatus {
   /// 在线（已连接）
@@ -23,12 +206,7 @@ enum DeviceConnectionStatus {
 ///
 /// 表示一个已发现的对等设备
 class DeviceInfo {
-  const DeviceInfo({
-    required this.deviceId,
-    required this.deviceName,
-    required this.status,
-    required this.lastSeen,
-  });
+  const DeviceInfo({required this.deviceId, required this.deviceName, required this.status, required this.lastSeen});
 
   /// 设备 ID (Peer ID)
   final String deviceId;
@@ -43,11 +221,7 @@ class DeviceInfo {
   final PlatformInt64 lastSeen;
 
   @override
-  int get hashCode =>
-      deviceId.hashCode ^
-      deviceName.hashCode ^
-      status.hashCode ^
-      lastSeen.hashCode;
+  int get hashCode => deviceId.hashCode ^ deviceName.hashCode ^ status.hashCode ^ lastSeen.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -207,24 +381,18 @@ class SyncStatus {
   final int offlineDevices;
 
   /// 创建 failed 状态
-  static Future<SyncStatus> failed({required String errorMessage}) => RustLib
-      .instance
-      .api
-      .crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
+  static Future<SyncStatus> failed({required String errorMessage}) =>
+      RustLib.instance.api.crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
 
   /// 创建 notYetSynced 状态
-  static Future<SyncStatus> notYetSynced() =>
-      RustLib.instance.api.crateApiSyncSyncStatusNotYetSynced();
+  static Future<SyncStatus> notYetSynced() => RustLib.instance.api.crateApiSyncSyncStatusNotYetSynced();
 
   /// 创建 synced 状态
   static Future<SyncStatus> synced({required PlatformInt64 lastSyncTime}) =>
-      RustLib.instance.api.crateApiSyncSyncStatusSynced(
-        lastSyncTime: lastSyncTime,
-      );
+      RustLib.instance.api.crateApiSyncSyncStatusSynced(lastSyncTime: lastSyncTime);
 
   /// 创建 syncing 状态
-  static Future<SyncStatus> syncing() =>
-      RustLib.instance.api.crateApiSyncSyncStatusSyncing();
+  static Future<SyncStatus> syncing() => RustLib.instance.api.crateApiSyncSyncStatusSyncing();
 
   @override
   int get hashCode =>

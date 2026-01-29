@@ -29,13 +29,8 @@ import '../../../frb_generated.dart';
 /// # 错误
 ///
 /// 如果服务已初始化或初始化失败，返回错误
-Future<String> initSyncService({
-  required String storagePath,
-  required String listenAddr,
-}) => RustLib.instance.api.cardmindRustApiSyncInitSyncService(
-  storagePath: storagePath,
-  listenAddr: listenAddr,
-);
+Future<String> initSyncService({required String storagePath, required String listenAddr}) =>
+    RustLib.instance.api.cardmindRustApiSyncInitSyncService(storagePath: storagePath, listenAddr: listenAddr);
 
 /// 手动同步数据池
 ///
@@ -52,8 +47,7 @@ Future<String> initSyncService({
 /// # 错误
 ///
 /// 如果服务未初始化或同步失败，返回错误
-Future<int> syncPool({required String poolId}) =>
-    RustLib.instance.api.cardmindRustApiSyncSyncPool(poolId: poolId);
+Future<int> syncPool({required String poolId}) => RustLib.instance.api.cardmindRustApiSyncSyncPool(poolId: poolId);
 
 /// 获取同步状态
 ///
@@ -71,8 +65,7 @@ Future<int> syncPool({required String poolId}) =>
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<SyncStatus> getSyncStatus() =>
-    RustLib.instance.api.cardmindRustApiSyncGetSyncStatus();
+Future<SyncStatus> getSyncStatus() => RustLib.instance.api.cardmindRustApiSyncGetSyncStatus();
 
 /// 获取本地 Peer ID
 ///
@@ -90,8 +83,7 @@ Future<SyncStatus> getSyncStatus() =>
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<String> getLocalPeerId() =>
-    RustLib.instance.api.cardmindRustApiSyncGetLocalPeerId();
+Future<String> getLocalPeerId() => RustLib.instance.api.cardmindRustApiSyncGetLocalPeerId();
 
 /// 清理同步服务
 ///
@@ -100,8 +92,7 @@ Future<String> getLocalPeerId() =>
 /// # 注意
 ///
 /// 这个函数主要用于测试，生产环境中通常不需要手动调用
-Future<void> cleanupSyncService() =>
-    RustLib.instance.api.cardmindRustApiSyncCleanupSyncService();
+Future<void> cleanupSyncService() => RustLib.instance.api.cardmindRustApiSyncCleanupSyncService();
 
 /// 重试同步
 ///
@@ -138,8 +129,7 @@ Future<void> retrySync() => RustLib.instance.api.cardmindRustApiSyncRetrySync();
 /// # 返回
 ///
 /// 返回一个 Result，订阅后会立即收到当前状态，然后接收后续的状态更新
-Stream<SyncStatus> getSyncStatusStream() =>
-    RustLib.instance.api.cardmindRustApiSyncGetSyncStatusStream();
+Stream<SyncStatus> getSyncStatusStream() => RustLib.instance.api.cardmindRustApiSyncGetSyncStatusStream();
 
 /// 获取设备列表
 ///
@@ -159,8 +149,7 @@ Stream<SyncStatus> getSyncStatusStream() =>
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<List<DeviceInfo>> getDeviceList() =>
-    RustLib.instance.api.cardmindRustApiSyncGetDeviceList();
+Future<List<DeviceInfo>> getDeviceList() => RustLib.instance.api.cardmindRustApiSyncGetDeviceList();
 
 /// 获取同步统计信息
 ///
@@ -179,8 +168,7 @@ Future<List<DeviceInfo>> getDeviceList() =>
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<SyncStatistics> getSyncStatistics() =>
-    RustLib.instance.api.cardmindRustApiSyncGetSyncStatistics();
+Future<SyncStatistics> getSyncStatistics() => RustLib.instance.api.cardmindRustApiSyncGetSyncStatistics();
 
 /// 获取同步历史
 ///
@@ -200,5 +188,4 @@ Future<SyncStatistics> getSyncStatistics() =>
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<List<SyncHistoryEvent>> getSyncHistory() =>
-    RustLib.instance.api.cardmindRustApiSyncGetSyncHistory();
+Future<List<SyncHistoryEvent>> getSyncHistory() => RustLib.instance.api.cardmindRustApiSyncGetSyncHistory();

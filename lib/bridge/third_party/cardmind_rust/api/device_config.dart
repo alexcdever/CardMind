@@ -22,10 +22,8 @@ import '../../../models/device_config.dart';
 /// ```dart
 /// await initDeviceConfig(basePath: '/path/to/storage');
 /// ```
-Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
-    .instance
-    .api
-    .cardmindRustApiDeviceConfigInitDeviceConfig(basePath: basePath);
+Future<DeviceConfig> initDeviceConfig({required String basePath}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigInitDeviceConfig(basePath: basePath);
 
 /// Get the current device configuration
 ///
@@ -39,8 +37,7 @@ Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
 /// final config = await getDeviceConfig();
 /// print('Device ID: ${config.deviceId}');
 /// ```
-Future<DeviceConfig> getDeviceConfig() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceConfig();
+Future<DeviceConfig> getDeviceConfig() => RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceConfig();
 
 /// Get the current device ID
 ///
@@ -53,8 +50,7 @@ Future<DeviceConfig> getDeviceConfig() =>
 /// ```dart
 /// final deviceId = await getDeviceId();
 /// ```
-Future<String> getDeviceId() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceId();
+Future<String> getDeviceId() => RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceId();
 
 /// Join a data pool
 ///
@@ -106,13 +102,8 @@ Future<void> leavePool({required String poolId}) =>
 /// ```dart
 /// await setResidentPool(poolId: poolId, isResident: true);
 /// ```
-Future<void> setResidentPool({
-  required String poolId,
-  required bool isResident,
-}) => RustLib.instance.api.cardmindRustApiDeviceConfigSetResidentPool(
-  poolId: poolId,
-  isResident: isResident,
-);
+Future<void> setResidentPool({required String poolId, required bool isResident}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigSetResidentPool(poolId: poolId, isResident: isResident);
 
 /// Get list of joined pool IDs
 ///
@@ -125,8 +116,7 @@ Future<void> setResidentPool({
 /// ```dart
 /// final joinedPools = await getJoinedPools();
 /// ```
-Future<List<String>> getJoinedPools() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetJoinedPools();
+Future<List<String>> getJoinedPools() => RustLib.instance.api.cardmindRustApiDeviceConfigGetJoinedPools();
 
 /// Get list of resident pool IDs
 ///
@@ -139,8 +129,7 @@ Future<List<String>> getJoinedPools() =>
 /// ```dart
 /// final residentPools = await getResidentPools();
 /// ```
-Future<List<String>> getResidentPools() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetResidentPools();
+Future<List<String>> getResidentPools() => RustLib.instance.api.cardmindRustApiDeviceConfigGetResidentPools();
 
 /// Check if the device has joined a pool
 ///
@@ -157,8 +146,8 @@ Future<List<String>> getResidentPools() =>
 /// ```dart
 /// final hasJoined = await isPoolJoined(poolId: poolId);
 /// ```
-Future<bool> isPoolJoined({required String poolId}) => RustLib.instance.api
-    .cardmindRustApiDeviceConfigIsPoolJoined(poolId: poolId);
+Future<bool> isPoolJoined({required String poolId}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigIsPoolJoined(poolId: poolId);
 
 /// Check if a pool is marked as resident
 ///
@@ -175,8 +164,8 @@ Future<bool> isPoolJoined({required String poolId}) => RustLib.instance.api
 /// ```dart
 /// final isResident = await isPoolResident(poolId: poolId);
 /// ```
-Future<bool> isPoolResident({required String poolId}) => RustLib.instance.api
-    .cardmindRustApiDeviceConfigIsPoolResident(poolId: poolId);
+Future<bool> isPoolResident({required String poolId}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigIsPoolResident(poolId: poolId);
 
 /// Check if mDNS peer discovery is currently active
 ///
@@ -191,8 +180,7 @@ Future<bool> isPoolResident({required String poolId}) => RustLib.instance.api
 /// ```dart
 /// final isActive = await isMdnsActive();
 /// ```
-Future<bool> isMdnsActive() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigIsMdnsActive();
+Future<bool> isMdnsActive() => RustLib.instance.api.cardmindRustApiDeviceConfigIsMdnsActive();
 
 /// Enable mDNS peer discovery for 5 minutes
 ///
@@ -205,8 +193,7 @@ Future<bool> isMdnsActive() =>
 /// ```dart
 /// await enableMdnsTemporary();
 /// ```
-Future<void> enableMdnsTemporary() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigEnableMdnsTemporary();
+Future<void> enableMdnsTemporary() => RustLib.instance.api.cardmindRustApiDeviceConfigEnableMdnsTemporary();
 
 /// Cancel the mDNS timer immediately
 ///
@@ -217,8 +204,7 @@ Future<void> enableMdnsTemporary() =>
 /// ```dart
 /// await cancelMdnsTimer();
 /// ```
-Future<void> cancelMdnsTimer() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigCancelMdnsTimer();
+Future<void> cancelMdnsTimer() => RustLib.instance.api.cardmindRustApiDeviceConfigCancelMdnsTimer();
 
 /// Get remaining time for mDNS discovery (in milliseconds)
 ///
@@ -233,5 +219,4 @@ Future<void> cancelMdnsTimer() =>
 /// ```dart
 /// final remainingMs = await getMdnsRemainingMs();
 /// ```
-Future<PlatformInt64> getMdnsRemainingMs() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetMdnsRemainingMs();
+Future<PlatformInt64> getMdnsRemainingMs() => RustLib.instance.api.cardmindRustApiDeviceConfigGetMdnsRemainingMs();

@@ -7,6 +7,7 @@
 //! - **强制 TLS**: 使用 Noise 协议加密所有连接
 //! - **多路复用**: 使用 Yamux 在单一连接上多路复用
 //! - **心跳检测**: 使用 Ping 协议检测连接状态
+//! - **密钥持久化**: 使用 IdentityManager 管理密钥对
 //!
 //! # 设计原则
 //!
@@ -15,6 +16,7 @@
 //! - 使用 libp2p 自签名证书（本地网络信任模型）
 //! - 禁用明文连接
 
+use crate::p2p::identity::IdentityManager;
 use crate::p2p::sync::{SyncRequest, SyncResponse};
 use libp2p::{
     core::upgrade,
@@ -121,6 +123,90 @@ impl P2PNetwork {
 
         // 1. 生成身份密钥对
         let local_key = identity::Keypair::generate_ed25519();
+        let local_peer_id = PeerId::from(local_key.public());
+        info!("本地 Peer ID: {}", local_peer_id);
+
+        // 2. 创建 Noise 加密配置（强制 TLS）
+        let noise_config =
+            noise::Config::new(&local_key).map_err(|e| format!("Noise 配置失败: {e}"))?;
+
+        // 3. 创建传输层
+        let transport = tcp::tokio::Transport::default()
+            .upgrade(upgrade::Version::V1)
+            .authenticate(noise_config)
+            .multiplex(yamux::Config::default())
+            .boxed();
+
+        // 4. 创建网络行为
+        let sync_protocol = StreamProtocol::new("/cardmind/sync/1.0.0");
+        let sync_config = request_response::Config::default();
+        let sync_behaviour = request_response::json::Behaviour::new(
+            [(sync_protocol, ProtocolSupport::Full)],
+            sync_config,
+        );
+
+        // 5. 创建可选的 mDNS 行为
+        let mdns_behaviour = if mdns_enabled {
+            match mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id) {
+                Ok(mdns) => {
+                    info!("mDNS 设备发现已启用");
+                    Some(mdns).into()
+                }
+                Err(e) => {
+                    warn!("mDNS 初始化失败，将禁用: {}", e);
+                    None.into()
+                }
+            }
+        } else {
+            info!("mDNS 设备发现已禁用");
+            None.into()
+        };
+
+        let behaviour = P2PBehaviour {
+            ping: PingBehaviour::new(ping::Config::new()),
+            sync: sync_behaviour,
+            mdns: mdns_behaviour,
+        };
+
+        // 6. 创建 Swarm（使用 tokio executor）
+        let swarm = Swarm::new(
+            transport,
+            behaviour,
+            local_peer_id,
+            libp2p::swarm::Config::with_executor(Box::new(|fut| {
+                tokio::spawn(fut);
+            })),
+        );
+
+        Ok(Self { swarm })
+    }
+
+    /// 使用持久化密钥对创建 P2P 网络实例
+    ///
+    /// # 参数
+    ///
+    /// - `identity_manager`: 身份管理器，用于加载或生成密钥对
+    /// - `mdns_enabled`: 是否启用 mDNS 设备发现
+    ///
+    /// # 安全保证
+    ///
+    /// - 使用持久化的 Ed25519 密钥对
+    /// - 强制使用 Noise 协议加密
+    /// - 使用 Yamux 多路复用
+    ///
+    /// # Errors
+    ///
+    /// 如果网络初始化失败，返回错误
+    pub fn new_with_identity(
+        identity_manager: &IdentityManager,
+        mdns_enabled: bool,
+    ) -> Result<Self, Box<dyn Error>> {
+        info!("初始化 P2P 网络（使用持久化密钥对，mDNS: {}）...", mdns_enabled);
+
+        // 1. 加载或生成身份密钥对
+        let local_key = identity_manager
+            .get_or_create_keypair()
+            .map_err(|e| format!("加载密钥对失败: {e}"))?;
         let local_peer_id = PeerId::from(local_key.public());
         info!("本地 Peer ID: {}", local_peer_id);
 

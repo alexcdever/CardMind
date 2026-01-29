@@ -27,11 +27,7 @@ import '../frb_generated.dart';
 /// };
 /// ```
 class Device {
-  const Device({
-    required this.deviceId,
-    required this.deviceName,
-    required this.joinedAt,
-  });
+  const Device({required this.deviceId, required this.deviceName, required this.joinedAt});
 
   /// 设备唯一标识
   final String deviceId;
@@ -45,8 +41,7 @@ class Device {
   final PlatformInt64 joinedAt;
 
   @override
-  int get hashCode =>
-      deviceId.hashCode ^ deviceName.hashCode ^ joinedAt.hashCode;
+  int get hashCode => deviceId.hashCode ^ deviceName.hashCode ^ joinedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
