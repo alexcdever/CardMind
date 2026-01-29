@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import '../../../api/sync.dart';
 import '../../../frb_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
 
 /// 初始化 P2P 同步服务
 ///
@@ -140,3 +140,65 @@ Future<void> retrySync() => RustLib.instance.api.cardmindRustApiSyncRetrySync();
 /// 返回一个 Result，订阅后会立即收到当前状态，然后接收后续的状态更新
 Stream<SyncStatus> getSyncStatusStream() =>
     RustLib.instance.api.cardmindRustApiSyncGetSyncStatusStream();
+
+/// 获取设备列表
+///
+/// # 返回
+///
+/// 返回所有已发现的设备列表
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final devices = await getDeviceList();
+/// for (final device in devices) {
+///   print('设备: ${device.deviceName}, 状态: ${device.status}');
+/// }
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<List<DeviceInfo>> getDeviceList() =>
+    RustLib.instance.api.cardmindRustApiSyncGetDeviceList();
+
+/// 获取同步统计信息
+///
+/// # 返回
+///
+/// 返回同步统计信息
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final stats = await getSyncStatistics();
+/// print('已同步卡片: ${stats.syncedCards}');
+/// print('成功次数: ${stats.successfulSyncs}');
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<SyncStatistics> getSyncStatistics() =>
+    RustLib.instance.api.cardmindRustApiSyncGetSyncStatistics();
+
+/// 获取同步历史
+///
+/// # 返回
+///
+/// 返回最近的同步事件列表（最多10条）
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final history = await getSyncHistory();
+/// for (final event in history) {
+///   print('${event.timestamp}: ${event.status} - ${event.deviceName}');
+/// }
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+Future<List<SyncHistoryEvent>> getSyncHistory() =>
+    RustLib.instance.api.cardmindRustApiSyncGetSyncHistory();

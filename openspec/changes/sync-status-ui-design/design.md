@@ -55,7 +55,134 @@ CardMind 基于 Loro CRDT 的双层架构已经实现，但缺少用户层面的
 - 自然支持防抖和性能优化
 - 与 Flutter 生态系统良好集成
 
-## Risks / Trade-offs
+## Visual Specifications
+
+### State Visual Mapping
+
+| 状态 | Badge 样式 | 图标 | 图标颜色 | 文本 | 动画 |
+|------|-----------|------|---------|------|------|
+| `notYetSynced` | 灰色 Badge | `CloudOff` | 灰色 | "尚未同步" | 无 |
+| `syncing` | 次要色 Badge | `RefreshCw` | 次要色 | "同步中..." | 360° 旋转，2秒/周 |
+| `synced` (≤10s) | 白色边框 Badge | `Check` | 绿色 | "刚刚" | 无 |
+| `synced` (>10s) | 白色边框 Badge | `Check` | 绿色 | "已同步" | 无 |
+| `failed` | 红色 Badge | `AlertCircle` | 红色 | "同步失败" | 无 |
+
+### Animation Parameters
+
+**同步中旋转动画**:
+- 旋转角度: 360°
+- 动画时长: 2000ms (2秒)
+- 动画曲线: `Curves.linear`
+- 重复模式: 无限循环 (`repeat: true`)
+
+**相对时间更新**:
+- 更新间隔: 1000ms (1秒)
+- 触发条件: `state == synced` 且 `lastSyncTime` 距离现在 ≤ 10秒
+- 停止条件: 超过 10秒后停止定时器
+
+### Accessibility Labels
+
+| 状态 | 语义标签 |
+|------|---------|
+| `notYetSynced` | "尚未同步，点击查看详情" |
+| `syncing` | "正在同步数据，点击查看详情" |
+| `synced` | "已同步，数据最新，点击查看详情" |
+| `failed` | "同步失败，点击查看详情并重试" |
+
+## Performance Optimization Strategies
+
+### 1. State Update Optimization
+
+**Stream 去重**:
+```dart
+syncStatusStream
+  .distinct((prev, next) => prev.state == next.state &&
+                            prev.lastSyncTime == next.lastSyncTime &&
+                            prev.errorMessage == next.errorMessage)
+  .listen((status) {
+    // 仅在状态真正变化时更新 UI
+  });
+```
+
+**防抖处理**:
+- 状态快速切换（< 300ms）时，延迟 UI 更新以避免闪烁
+- 例外：从 `syncing` 到 `synced` 立即更新，不延迟（用户期望即时反馈）
+
+```dart
+syncStatusStream
+  .debounceTime(Duration(milliseconds: 300))
+  .listen((status) {
+    // 延迟更新，避免闪烁
+  });
+```
+
+### 2. Timer Management
+
+**相对时间定时器**:
+- 仅在 `synced` 状态且距离同步时间 ≤ 10秒时启动
+- 每秒更新一次显示文本
+- 超过 10秒后自动停止定时器
+
+```dart
+Timer? _relativeTimeTimer;
+
+void _startRelativeTimeTimer() {
+  _relativeTimeTimer?.cancel();
+  if (state == SyncState.synced && _isWithin10Seconds()) {
+    _relativeTimeTimer = Timer.periodic(Duration(seconds: 1), (_) {
+      if (!_isWithin10Seconds()) {
+        _relativeTimeTimer?.cancel();
+      }
+      setState(() {});
+    });
+  }
+}
+```
+
+### 3. Animation Controller Management
+
+**动画控制器生命周期**:
+- 仅在 `syncing` 状态时启动旋转动画
+- 其他状态立即停止动画控制器
+- Widget dispose 时释放动画控制器
+
+```dart
+AnimationController? _rotationController;
+
+void _updateAnimation() {
+  if (state == SyncState.syncing) {
+    _rotationController?.repeat();
+  } else {
+    _rotationController?.stop();
+  }
+}
+
+@override
+void dispose() {
+  _rotationController?.dispose();
+  super.dispose();
+}
+```
+
+### 4. Resource Cleanup
+
+**Widget dispose 清理清单**:
+- ✅ 取消 Stream 订阅
+- ✅ 取消相对时间定时器
+- ✅ 释放动画控制器
+- ✅ 清理对话框资源
+
+```dart
+@override
+void dispose() {
+  _statusSubscription?.cancel();
+  _relativeTimeTimer?.cancel();
+  _rotationController?.dispose();
+  super.dispose();
+}
+```
+
+## Data Models
 
 ### 性能风险: 状态更新频率过高
 **风险**: 同步状态可能频繁变化，导致 UI 过度重建
@@ -84,6 +211,78 @@ CardMind 基于 Loro CRDT 的双层架构已经实现，但缺少用户层面的
 - 使用枚举明确定义状态
 - 实现状态转换验证逻辑
 - 提供完整的测试覆盖
+
+## Data Models
+
+### SyncState Enum
+
+```dart
+enum SyncState {
+  notYetSynced,  // 尚未同步
+  syncing,       // 同步中
+  synced,        // 已同步
+  failed,        // 同步失败
+}
+```
+
+### SyncStatus Class
+
+```dart
+class SyncStatus {
+  final SyncState state;
+  final DateTime? lastSyncTime;  // 上次同步时间，null 表示从未同步
+  final String? errorMessage;    // 错误信息，仅在 failed 状态时有值
+
+  SyncStatus({
+    required this.state,
+    this.lastSyncTime,
+    this.errorMessage,
+  });
+
+  // State consistency validation
+  bool isValid() {
+    // notYetSynced 状态时，lastSyncTime 必须为 null
+    if (state == SyncState.notYetSynced && lastSyncTime != null) {
+      return false;
+    }
+    // failed 状态时，errorMessage 必须非空
+    if (state == SyncState.failed && (errorMessage == null || errorMessage!.isEmpty)) {
+      return false;
+    }
+    // synced 状态时，lastSyncTime 必须非空
+    if (state == SyncState.synced && lastSyncTime == null) {
+      return false;
+    }
+    return true;
+  }
+}
+```
+
+### State Transition Rules
+
+**允许的状态转换**:
+- `notYetSynced` → `syncing` (用户触发同步或自动同步启动)
+- `syncing` → `synced` (同步成功)
+- `syncing` → `failed` (同步出错)
+- `failed` → `syncing` (用户重试)
+- `synced` → `syncing` (检测到新变更或用户手动触发)
+
+**禁止的状态转换**:
+- `synced` → `failed` (必须经过 `syncing`)
+- `notYetSynced` → `synced` (必须经过 `syncing`)
+- `notYetSynced` → `failed` (必须经过 `syncing`)
+
+### Error Types
+
+系统定义以下错误类型和对应的中文错误消息：
+
+| 错误类型 | 错误消息 | 触发条件 |
+|---------|---------|---------|
+| `NO_AVAILABLE_PEERS` | "未发现可用设备" | 无可用对等设备 |
+| `CONNECTION_TIMEOUT` | "连接超时" | 连接超时 |
+| `DATA_TRANSMISSION_FAILED` | "数据传输失败" | 数据传输失败 |
+| `CRDT_MERGE_FAILED` | "数据合并失败" | CRDT 合并失败 |
+| `LOCAL_STORAGE_ERROR` | "本地存储错误" | 本地存储错误 |
 
 ## Migration Plan
 

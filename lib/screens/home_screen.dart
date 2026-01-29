@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _initSyncStatusStream() {
     // Temporarily disable sync status stream due to threading issues
     // TODO: Fix Tokio runtime context issue
-    _syncStatusStream = Stream.value(SyncStatus.disconnected());
+    _syncStatusStream = Stream.value(SyncStatus.notYetSynced());
     return;
 
     // Original code (disabled)
@@ -99,11 +99,11 @@ class _HomeScreenState extends State<HomeScreen> {
           .debounceTime(const Duration(milliseconds: 500))
           .handleError((Object error) {
             debugPrint('同步状态 Stream 错误: $error');
-            return SyncStatus.disconnected();
+            return SyncStatus.notYetSynced();
           });
     } catch (e) {
       debugPrint('初始化同步状态 Stream 失败: $e');
-      _syncStatusStream = Stream.value(SyncStatus.disconnected());
+      _syncStatusStream = Stream.value(SyncStatus.notYetSynced());
     }
     */
   }
@@ -310,11 +310,11 @@ class _HomeScreenState extends State<HomeScreen> {
               // 同步状态指示器
               StreamBuilder<SyncStatus>(
                 stream: _syncStatusStream,
-                initialData: SyncStatus.disconnected(),
+                initialData: SyncStatus.notYetSynced(),
                 builder: (context, snapshot) {
                   final status = snapshot.hasError
-                      ? SyncStatus.disconnected()
-                      : (snapshot.data ?? SyncStatus.disconnected());
+                      ? SyncStatus.notYetSynced()
+                      : (snapshot.data ?? SyncStatus.notYetSynced());
                   return SyncStatusIndicator(status: status);
                 },
               ),

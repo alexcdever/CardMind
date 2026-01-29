@@ -26,7 +26,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建断开连接状态的指示器
-        final status = SyncStatus.disconnected();
+        final status = SyncStatus.notYetSynced();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -44,7 +44,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建同步中状态的指示器
-        final status = SyncStatus.syncing(syncingPeers: 2);
+        final status = SyncStatus.syncing();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -106,7 +106,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建同步中状态的指示器
-        final status = SyncStatus.syncing(syncingPeers: 1);
+        final status = SyncStatus.syncing();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -123,7 +123,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建同步中状态的指示器
-        final syncingStatus = SyncStatus.syncing(syncingPeers: 1);
+        final syncingStatus = SyncStatus.syncing();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: syncingStatus)),
@@ -155,7 +155,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建断开连接状态的指示器
-        final status = SyncStatus.disconnected();
+        final status = SyncStatus.notYetSynced();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -173,7 +173,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建同步中状态的指示器
-        final status = SyncStatus.syncing(syncingPeers: 1);
+        final status = SyncStatus.syncing();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -410,7 +410,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建没有同步设备的同步中状态
-        final status = SyncStatus.syncing(syncingPeers: 0);
+        final status = SyncStatus.syncing();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: status)),
@@ -427,7 +427,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建同步中状态的指示器
-        final syncingStatus = SyncStatus.syncing(syncingPeers: 1);
+        final syncingStatus = SyncStatus.syncing();
 
         await tester.pumpWidget(
           createTestWidget(SyncStatusIndicator(status: syncingStatus)),

@@ -337,18 +337,21 @@ mod tests {
         let mut network_a = P2PNetwork::new(false).expect("节点 A 初始化失败");
         let peer_a_id = *network_a.local_peer_id();
 
-        let listen_addr = network_a.listen_on("/ip4/127.0.0.1/tcp/0").await.unwrap_or_else(|err| {
-            let msg = err.to_string();
-            if msg.contains("Permission denied")
-                || msg.contains("Operation not permitted")
-                || msg.is_empty()
-            {
-                println!("跳过网络连接测试：{}", msg);
-                "/ip4/127.0.0.1/tcp/0".parse().unwrap()
-            } else {
-                panic!("节点 A 监听失败: {err}");
-            }
-        });
+        let listen_addr = network_a
+            .listen_on("/ip4/127.0.0.1/tcp/0")
+            .await
+            .unwrap_or_else(|err| {
+                let msg = err.to_string();
+                if msg.contains("Permission denied")
+                    || msg.contains("Operation not permitted")
+                    || msg.is_empty()
+                {
+                    println!("跳过网络连接测试：{}", msg);
+                    "/ip4/127.0.0.1/tcp/0".parse().unwrap()
+                } else {
+                    panic!("节点 A 监听失败: {err}");
+                }
+            });
 
         println!("节点 A 监听地址: {}", listen_addr);
         println!("节点 A Peer ID: {}", peer_a_id);
