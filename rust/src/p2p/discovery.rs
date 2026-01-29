@@ -248,7 +248,10 @@ impl MdnsDiscovery {
     /// 成功返回 Ok(())，失败返回错误
     pub fn listen(&mut self, addr: &str) -> Result<(), String> {
         self.swarm
-            .listen_on(addr.parse().map_err(|e: libp2p::multiaddr::Error| e.to_string())?)
+            .listen_on(
+                addr.parse()
+                    .map_err(|e: libp2p::multiaddr::Error| e.to_string())?,
+            )
             .map_err(|e| e.to_string())?;
         Ok(())
     }

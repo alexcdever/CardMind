@@ -10,34 +10,6 @@ import '../frb_generated.dart';
 
 part 'mdns_discovery.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `get_devices`, `is_trusted`, `new`, `set_pool_id`, `set_trust_list_db`, `start`, `stop`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `DeviceDiscoveryEvent`, `DiscoveryManager`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
-// These functions have error during generation (see debug logs or enable `stop_on_error: true` for more details): `subscribe_discovery_events`
-
-/// 启动 mDNS 设备发现
-///
-/// # 参数
-///
-/// - `trust_list_db_path`: 信任列表数据库路径（可选）
-/// - `pool_id`: 数据池 ID（可选，仅在加入池后才广播）
-///
-/// # 返回
-///
-/// 成功返回 Ok(())，失败返回错误信息
-void startMdnsDiscovery({String? trustListDbPath, String? poolId}) =>
-    RustLib.instance.api.crateApiMdnsDiscoveryStartMdnsDiscovery(trustListDbPath: trustListDbPath, poolId: poolId);
-
-/// 停止 mDNS 设备发现
-void stopMdnsDiscovery() => RustLib.instance.api.crateApiMdnsDiscoveryStopMdnsDiscovery();
-
-/// 获取发现的设备列表
-///
-/// # 返回
-///
-/// 返回当前在线的设备列表
-List<DiscoveredDevice> getDiscoveredDevices() => RustLib.instance.api.crateApiMdnsDiscoveryGetDiscoveredDevices();
-
 /// 发现的设备信息
 @freezed
 sealed class DiscoveredDevice with _$DiscoveredDevice {
