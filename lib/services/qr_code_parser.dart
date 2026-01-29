@@ -76,10 +76,10 @@ class QRCodeParser {
     }
 
     // 解析 JSON 数据
-    final qrData = _parseQRData(result);
+    final qrData = parseQRData(result);
 
     // 验证数据
-    _validateQRData(qrData);
+    validateQRData(qrData);
 
     return qrData;
   }
@@ -115,7 +115,7 @@ class QRCodeParser {
   }
 
   /// 解析二维码数据
-  static QRCodeData _parseQRData(String qrText) {
+  static QRCodeData parseQRData(String qrText) {
     try {
       final json = jsonDecode(qrText) as Map<String, dynamic>;
       return QRCodeData.fromJson(json);
@@ -125,7 +125,7 @@ class QRCodeParser {
   }
 
   /// 验证二维码数据
-  static void _validateQRData(QRCodeData data) {
+  static void validateQRData(QRCodeData data) {
     // 验证版本
     if (data.version != '1.0') {
       throw Exception('不支持的二维码版本: ${data.version}');

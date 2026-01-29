@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -154,11 +152,10 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
 
       // 解析二维码数据
       final qrText = barcode.rawValue!;
-      final jsonData = jsonDecode(qrText) as Map<String, dynamic>;
-      final qrData = QRCodeData.fromJson(jsonData);
+      final qrData = QRCodeParser.parseQRData(qrText);
 
       // 验证数据
-      _validateQRData(qrData);
+      QRCodeParser.validateQRData(qrData);
 
       // 调用回调
       await widget.onQRCodeScanned(qrData);
@@ -178,57 +175,6 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
         // 重新启动扫描
         await _controller?.start();
       }
-    }
-  }
-
-  /// 验证二维码数据
-  void _validateQRData(QRCodeData data) {
-    // 验证版本
-    if (data.version != '1.0') {
-      throw Exception('不支持的二维码版本: ${data.version}');
-    }
-
-    // 验证类型
-    if (data.type != 'pairing') {
-      throw Exception('无效的二维码类型: ${data.type}');
-    }
-
-    // 验证 PeerId
-    if (data.peerId.isEmpty) {
-      throw Exception('PeerId 不能为空');
-    }
-
-    // 验证设备名称
-    if (data.deviceName.isEmpty) {
-      throw Exception('设备名称不能为空');
-    }
-
-    // 验证设备类型
-    if (!['phone', 'laptop', 'tablet'].contains(data.deviceType)) {
-      throw Exception('无效的设备类型: ${data.deviceType}');
-    }
-
-    // 验证 Multiaddrs
-    if (data.multiaddrs.isEmpty) {
-      throw Exception('Multiaddrs 不能为空');
-    }
-
-    // 验证时间戳（10 分钟有效期）
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final age = now - data.timestamp;
-
-    if (age < 0) {
-      throw Exception('二维码时间戳无效（未来时间）');
-    }
-
-    if (age > 600) {
-      // 10 分钟 = 600 秒
-      throw Exception('二维码已过期（超过 10 分钟）');
-    }
-
-    // 验证 PoolId
-    if (data.poolId.isEmpty) {
-      throw Exception('PoolId 不能为空');
     }
   }
 
