@@ -24,7 +24,6 @@ use libp2p::{
     tcp, yamux, Multiaddr, PeerId, Swarm, Transport,
 };
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use tracing::{info, warn};
 
 /// mDNS 广播的设备信息
@@ -90,7 +89,7 @@ struct MdnsNetworkBehaviour {
 /// mDNS 事件
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)]
-enum MdnsEvent {
+pub enum MdnsEvent {
     /// mDNS 事件
     Mdns(mdns::Event),
 }
@@ -131,7 +130,7 @@ impl MdnsDiscovery {
     /// # Errors
     ///
     /// 如果 mDNS 初始化失败，返回错误
-    pub async fn new() -> Result<Self, Box<dyn Error>> {
+    pub async fn new() -> Result<Self, String> {
         info!("初始化 mDNS 设备发现...");
 
         // 1. 生成身份密钥对
@@ -140,7 +139,8 @@ impl MdnsDiscovery {
         info!("mDNS 本地 Peer ID: {}", local_peer_id);
 
         // 2. 创建 mDNS 行为
-        let mdns_behaviour = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
+        let mdns_behaviour = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)
+            .map_err(|e| e.to_string())?;
 
         let behaviour = MdnsNetworkBehaviour {
             mdns: mdns_behaviour,
@@ -149,7 +149,7 @@ impl MdnsDiscovery {
         // 3. 创建传输层（mDNS 不需要加密，因为仅用于发现）
         let transport = tcp::tokio::Transport::default()
             .upgrade(upgrade::Version::V1)
-            .authenticate(noise::Config::new(&local_key)?)
+            .authenticate(noise::Config::new(&local_key).map_err(|e| e.to_string())?)
             .multiplex(yamux::Config::default())
             .boxed();
 
@@ -179,12 +179,13 @@ impl MdnsDiscovery {
     /// # Errors
     ///
     /// 如果发现失败，返回错误
-    pub async fn start_discovery(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn start_discovery(&mut self) -> Result<(), String> {
         info!("开始 mDNS 设备发现...");
 
         // 监听所有接口
         self.swarm
-            .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())?;
+            .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
+            .map_err(|e| e.to_string())?;
 
         // 处理事件
         loop {
@@ -222,6 +223,34 @@ impl MdnsDiscovery {
                 (peer_id, Vec::new())
             })
             .collect()
+    }
+
+    /// 处理下一个 Swarm 事件
+    ///
+    /// 这个方法用于在外部事件循环中处理单个事件
+    ///
+    /// # 返回
+    ///
+    /// 返回下一个 Swarm 事件，如果没有事件则返回 None
+    pub async fn poll_next(&mut self) -> Option<SwarmEvent<MdnsEvent>> {
+        use libp2p::futures::StreamExt;
+        self.swarm.next().await
+    }
+
+    /// 在指定地址上开始监听
+    ///
+    /// # 参数
+    ///
+    /// - `addr`: 要监听的地址
+    ///
+    /// # 返回
+    ///
+    /// 成功返回 Ok(())，失败返回错误
+    pub fn listen(&mut self, addr: &str) -> Result<(), String> {
+        self.swarm
+            .listen_on(addr.parse().map_err(|e: libp2p::multiaddr::Error| e.to_string())?)
+            .map_err(|e| e.to_string())?;
+        Ok(())
     }
 
     /// 生成默认设备昵称
@@ -282,6 +311,7 @@ impl MdnsDiscovery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::error::Error;
 
     /// 测试默认设备昵称生成
     #[test]

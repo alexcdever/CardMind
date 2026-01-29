@@ -281,3 +281,278 @@ The system SHALL optimize performance for smooth mobile experience.
 - **THEN** system maintains 60fps animation frame rate
 - **AND** uses RepaintBoundary for expensive widgets
 - **AND** minimizes widget rebuilds
+
+## ADDED Visual Design Specifications
+
+### Requirement: Follow precise visual design specifications for all UI components
+The system SHALL implement all UI components according to detailed visual specifications for consistency and quality.
+
+#### Scenario: Page layout specifications
+- **WHEN** rendering device manager page
+- **THEN** system uses white background in light mode
+- **AND** uses dark background in dark mode
+- **AND** applies 16px horizontal padding
+- **AND** applies 16px top and bottom padding
+- **AND** uses 16px spacing between components
+- **AND** makes entire page scrollable
+
+#### Scenario: Not in pool overlay specifications
+- **WHEN** displaying not in pool state
+- **THEN** system shows semi-transparent gray overlay (rgba(0, 0, 0, 0.5))
+- **AND** displays centered white card with 12px border radius
+- **AND** applies 24px padding to card
+- **AND** shows gray warning icon at 48x48px
+- **AND** displays "请先加入数据池" text at 16px in gray color
+
+#### Scenario: Current device card visual design
+- **WHEN** rendering current device card
+- **THEN** system uses theme color at 10% opacity for background (#007AFF 10%)
+- **AND** applies 1px border with theme color at 20% opacity
+- **AND** uses 12px border radius
+- **AND** applies 16px padding
+- **AND** shows device icon at 24x24px in theme color
+- **AND** displays device name at 16px bold in black
+- **AND** shows "本机" subtitle at 12px in gray
+- **AND** displays online badge with green background (#34C759)
+- **AND** shows "在线" text at 12px in white
+- **AND** includes WiFi icon at 12x12px
+- **AND** applies 4px border radius to badge with 4px 8px padding
+- **AND** shows "编辑" button at 14px in theme color
+- **AND** ensures edit button has minimum 48x48px touch area
+
+#### Scenario: Pair device button specifications
+- **WHEN** rendering pair device button
+- **THEN** system uses theme color fill
+- **AND** sets button height to 36px with 12px 16px padding
+- **AND** applies 8px border radius
+- **AND** shows Plus icon at 16x16px in white
+- **AND** displays "配对设备" text at 14px in white
+
+#### Scenario: Pair device dialog specifications
+- **WHEN** displaying pair device dialog
+- **THEN** system sets width to screen width minus 32px (16px margins)
+- **AND** limits maximum width to 400px
+- **AND** uses white background with 16px border radius
+- **AND** applies 24px padding
+- **AND** shows "配对新设备" title at 18px bold
+
+#### Scenario: Tab bar design specifications
+- **WHEN** rendering tab bar in pair dialog
+- **THEN** system sets tab bar height to 48px
+- **AND** shows unselected tabs with gray text and no background
+- **AND** shows selected tab with theme color text and light background
+- **AND** displays tab icons at 16x16px
+- **AND** shows tab text at 14px
+- **AND** uses 8px spacing between icon and text
+
+#### Scenario: QR code display tab specifications
+- **WHEN** showing QR code display tab
+- **THEN** system renders QR code at exactly 240x240px
+- **AND** centers QR code in view
+- **AND** displays hint text 16px below QR code
+- **AND** shows "请在另一台设备上扫描此二维码" at 14px gray centered
+
+#### Scenario: QR code scanning tab specifications
+- **WHEN** showing QR code scanning tab
+- **THEN** system displays camera view at 240x240px
+- **AND** applies 12px border radius to camera view
+- **AND** centers camera view
+- **AND** shows scanning frame at 200x200px
+- **AND** uses 2px white dashed border for frame
+- **AND** adds rounded corner markers
+- **AND** displays hint text 16px below camera view
+- **AND** shows "对准二维码进行扫描" at 14px gray centered
+
+#### Scenario: Verification code display dialog specifications
+- **WHEN** showing verification code to scanned user
+- **THEN** system sets dialog width to screen width minus 32px
+- **AND** limits maximum width to 360px
+- **AND** uses white background with 16px border radius
+- **AND** applies 24px padding
+- **AND** shows "配对请求" title at 18px bold centered
+- **AND** displays device info text 16px below title
+- **AND** shows "设备 '{deviceName}' 正在请求配对" at 14px gray centered
+- **AND** displays verification code 24px below device info
+- **AND** uses light gray background (#F5F5F5) for code container
+- **AND** applies 12px border radius with 20px padding
+- **AND** shows verification code at 32px bold monospace black centered
+- **AND** uses 8px character spacing
+- **AND** displays hint text 16px below code
+- **AND** shows "请将此验证码告知对方" at 12px gray centered
+- **AND** shows "关闭" button at 16px theme color with 48px height full width
+
+#### Scenario: Verification code input dialog specifications
+- **WHEN** showing verification code input dialog
+- **THEN** system sets dialog width to screen width minus 32px
+- **AND** limits maximum width to 360px
+- **AND** uses white background with 16px border radius
+- **AND** applies 24px padding
+- **AND** shows "输入验证码" title at 18px bold centered
+- **AND** displays device info text 16px below title
+- **AND** shows "请输入设备 '{deviceName}' 显示的验证码" at 14px gray centered
+- **AND** displays 6 input boxes 24px below device info
+- **AND** sizes each input box at 48x56px
+- **AND** applies 1px gray border with 8px border radius
+- **AND** uses 24px bold monospace font centered
+- **AND** spaces input boxes 8px apart
+- **AND** changes border to theme color 2px when focused
+- **AND** uses light blue background (#F0F8FF) when filled
+- **AND** shows error text 8px below inputs when verification fails
+- **AND** displays "验证码错误，请重试" at 12px red
+- **AND** shows button group at bottom with 12px spacing
+- **AND** renders cancel button with gray border and gray text at 48px height
+- **AND** renders confirm button with theme color fill and white text at 48px height
+- **AND** disables confirm button when input incomplete (gray and unclickable)
+
+#### Scenario: Device list design specifications
+- **WHEN** rendering device list
+- **THEN** system shows list title "已配对设备 ({count})" at 14px gray
+- **AND** positions title left of pair button
+- **AND** adds 12px spacing below title
+
+#### Scenario: Empty state specifications
+- **WHEN** displaying empty device list
+- **THEN** system shows WiFi Off icon at 64x64px gray with 50% opacity
+- **AND** displays "暂无配对设备" text at 14px gray
+- **AND** shows "点击上方按钮配对新设备" subtitle at 12px light gray
+- **AND** arranges vertically centered with 8px spacing
+- **AND** applies 48px top and bottom padding
+
+#### Scenario: Device list item specifications
+- **WHEN** rendering device list item
+- **THEN** system uses light gray background (#F5F5F5)
+- **AND** applies 1px gray border (#E0E0E0)
+- **AND** uses 12px border radius
+- **AND** applies 16px padding
+- **AND** spaces list items 8px apart
+- **AND** auto-adjusts height to content
+- **AND** shows device icon at 24x24px in gray
+- **AND** displays device name at 16px bold black
+- **AND** shows last seen time at 12px gray
+- **AND** formats online devices as "在线"
+- **AND** formats offline devices as "最后在线：{time}"
+- **AND** shows online badge with green background (#34C759) and white text
+- **AND** shows offline badge with gray background (#8E8E93) and white text
+- **AND** applies 4px 8px padding to badges with 4px border radius
+- **AND** uses 12px font for badge text
+
+## ADDED Performance Constraints
+
+### Requirement: Meet strict performance benchmarks for mobile experience
+The system SHALL meet specific performance benchmarks to ensure smooth mobile experience.
+
+#### Scenario: Page loading performance
+- **WHEN** user opens device manager page
+- **THEN** system completes page load in less than 500ms
+- **AND** displays initial content without visible delay
+
+#### Scenario: Device list rendering performance
+- **WHEN** rendering device list with any number of devices
+- **THEN** system completes list rendering in less than 200ms
+- **AND** maintains smooth scrolling at 60fps
+- **AND** caches up to 1000 devices maximum
+
+#### Scenario: QR code generation performance
+- **WHEN** generating QR code for device
+- **THEN** system completes generation in less than 100ms
+- **AND** produces image smaller than 50KB
+- **AND** caches generated QR code for reuse
+
+#### Scenario: Camera initialization performance
+- **WHEN** activating camera for scanning
+- **THEN** system initializes camera in less than 1000ms
+- **AND** uses 720p resolution for preview
+- **AND** minimizes battery and memory usage
+
+#### Scenario: Verification response performance
+- **WHEN** submitting verification code
+- **THEN** system responds within 2000ms
+- **AND** provides loading feedback during verification
+
+#### Scenario: Animation frame rate performance
+- **WHEN** performing any UI animation
+- **THEN** system maintains minimum 60fps frame rate
+- **AND** ensures smooth dialog open/close transitions
+- **AND** provides fluid list update animations
+- **AND** maintains smooth tab switching animations
+
+## ADDED Boundary Conditions and Error Handling
+
+### Requirement: Handle all data boundary conditions correctly
+The system SHALL handle all data boundary conditions with proper validation and constraints.
+
+#### Scenario: Device name validation boundaries
+- **WHEN** device name is empty string
+- **THEN** system disables save button
+- **WHEN** device name contains only spaces
+- **THEN** system disables save button
+- **WHEN** device name length exceeds 32 characters
+- **THEN** system limits input to first 32 characters
+- **WHEN** device name contains special characters
+- **THEN** system allows and saves normally
+- **WHEN** device name duplicates another device
+- **THEN** system allows (different devices can share names)
+
+#### Scenario: Device list boundary conditions
+- **WHEN** device count is 0
+- **THEN** system displays empty state
+- **WHEN** device count exceeds 100
+- **THEN** system displays all devices with scrollable list
+- **WHEN** device ID is empty
+- **THEN** system excludes device from display
+- **WHEN** device lastSeen is null
+- **THEN** system displays "未知" for time
+- **WHEN** device type is unknown
+- **THEN** system displays default laptop icon
+
+#### Scenario: Verification code validation boundaries
+- **WHEN** verification code length is not 6 digits
+- **THEN** system disables confirm button
+- **WHEN** verification code contains non-digit characters
+- **THEN** system rejects input (input field only accepts digits)
+- **WHEN** verification code has expired (over 5 minutes)
+- **THEN** system shows timeout message and closes dialog
+- **WHEN** verification code error count exceeds 3
+- **THEN** system continues allowing retries (no lockout)
+
+#### Scenario: QR code validation boundaries
+- **WHEN** QR code data format is invalid
+- **THEN** system displays "无效的二维码" toast
+- **WHEN** user scans own QR code
+- **THEN** system displays "不能配对自己" toast and prevents pairing
+- **WHEN** user scans already paired device
+- **THEN** system displays "设备已配对" toast
+- **WHEN** QR code generation fails
+- **THEN** system displays error message in dialog
+
+#### Scenario: Network error handling
+- **WHEN** network request times out
+- **THEN** system displays "网络超时，请重试" toast
+- **WHEN** other device is offline during pairing
+- **THEN** system displays "对方设备离线，无法配对" toast
+- **WHEN** server returns error
+- **THEN** system displays "配对失败，请稍后重试" toast
+- **WHEN** user has not joined data pool
+- **THEN** system displays "请先加入数据池" toast
+- **WHEN** device list loading fails
+- **THEN** system displays retry button
+- **WHEN** data parsing fails
+- **THEN** system displays empty state
+- **WHEN** device name save fails
+- **THEN** system displays "保存失败，请重试" toast and keeps dialog open
+
+#### Scenario: Camera permission error handling
+- **WHEN** camera permission not yet requested
+- **THEN** system automatically requests permission
+- **WHEN** camera permission is granted
+- **THEN** system displays camera preview
+- **WHEN** camera permission is denied
+- **THEN** system displays permission message with "去设置" button
+- **WHEN** camera permission is permanently denied
+- **THEN** system displays permission message with "去设置" button
+- **WHEN** camera initialization fails
+- **THEN** system displays "相机启动失败" toast
+- **WHEN** camera is occupied by another app
+- **THEN** system displays "相机被其他应用占用" toast
+- **WHEN** device has no camera
+- **THEN** system displays "设备不支持相机" message

@@ -63,6 +63,21 @@ dependencies:
   # Toast notifications
   fluttertoast: ^8.2.8
 
+  # QR Code generation and scanning
+  qr_flutter: ^4.1.0
+  image: ^4.1.0
+  mobile_scanner: ^5.2.3
+
+  # File picker for desktop
+  file_picker: ^8.0.0
+
+  # Desktop drag and drop
+  desktop_drop: ^0.4.4
+  zxing_lib: ^1.1.4
+
+  # Permission handling
+  permission_handler: ^11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -78,6 +93,7 @@ dev_dependencies:
   build_runner: ^2.4.0
   freezed: ^2.5.0
   json_serializable: ^6.8.0
+  qr: ^3.0.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

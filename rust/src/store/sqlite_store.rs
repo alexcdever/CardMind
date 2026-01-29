@@ -168,6 +168,25 @@ impl SqliteStore {
             [],
         )?;
 
+        // 创建 trusted_devices 表（设备管理）
+        // 存储已配对的信任设备列表
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS trusted_devices (
+                peer_id TEXT PRIMARY KEY NOT NULL,
+                device_name TEXT NOT NULL,
+                device_type TEXT NOT NULL,
+                paired_at INTEGER NOT NULL,
+                last_seen INTEGER NOT NULL
+            )",
+            [],
+        )?;
+
+        // 创建索引 - 优化按最后在线时间排序
+        self.conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_trusted_devices_last_seen ON trusted_devices(last_seen DESC)",
+            [],
+        )?;
+
         Ok(())
     }
 
