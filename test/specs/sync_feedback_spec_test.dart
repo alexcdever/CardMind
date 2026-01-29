@@ -26,11 +26,10 @@ void main() {
       test('it_should_initialize_with_disconnected_state', () {
         // Given: 创建一个新的 SyncStatus
         // When: 使用 disconnected 工厂方法
-        final status = SyncStatus.disconnected();
+        final status = SyncStatus.notYetSynced();
 
         // Then: 状态应该是 disconnected
-        expect(status.state, SyncState.disconnected);
-        expect(status.syncingPeers, 0);
+        expect(status.state, SyncState.notYetSynced);
         expect(status.lastSyncTime, isNull);
         expect(status.errorMessage, isNull);
         expect(status.isActive, false);
@@ -38,21 +37,20 @@ void main() {
 
       test('it_should_transition_from_disconnected_to_syncing', () {
         // Given: 初始状态是 disconnected
-        final disconnected = SyncStatus.disconnected();
+        final disconnected = SyncStatus.notYetSynced();
 
         // When: 发现对等设备并开始同步
-        final syncing = SyncStatus.syncing(syncingPeers: 1);
+        final syncing = SyncStatus.syncing();
 
         // Then: 状态应该转换为 syncing
-        expect(disconnected.state, SyncState.disconnected);
+        expect(disconnected.state, SyncState.notYetSynced);
         expect(syncing.state, SyncState.syncing);
-        expect(syncing.syncingPeers, 1);
         expect(syncing.isActive, true);
       });
 
       test('it_should_transition_from_syncing_to_synced', () {
         // Given: 当前状态是 syncing
-        final syncing = SyncStatus.syncing(syncingPeers: 1);
+        final syncing = SyncStatus.syncing();
 
         // When: 同步成功完成
         final synced = SyncStatus.synced(lastSyncTime: DateTime.now());
@@ -66,7 +64,7 @@ void main() {
 
       test('it_should_transition_from_syncing_to_failed', () {
         // Given: 当前状态是 syncing
-        final syncing = SyncStatus.syncing(syncingPeers: 1);
+        final syncing = SyncStatus.syncing();
 
         // When: 同步失败
         final failed = SyncStatus.failed(errorMessage: 'Network error');
@@ -83,7 +81,7 @@ void main() {
         final synced = SyncStatus.synced(lastSyncTime: DateTime.now());
 
         // When: 检测到新变化
-        final syncing = SyncStatus.syncing(syncingPeers: 1);
+        final syncing = SyncStatus.syncing();
 
         // Then: 状态应该转换为 syncing
         expect(synced.state, SyncState.synced);
@@ -95,7 +93,7 @@ void main() {
         final failed = SyncStatus.failed(errorMessage: 'Network error');
 
         // When: 用户重试同步
-        final syncing = SyncStatus.syncing(syncingPeers: 1);
+        final syncing = SyncStatus.syncing();
 
         // Then: 状态应该转换为 syncing
         expect(failed.state, SyncState.failed);
@@ -104,8 +102,8 @@ void main() {
 
       test('it_should_filter_duplicate_status_updates', () {
         // Given: 两个相同的状态
-        final status1 = SyncStatus.disconnected();
-        final status2 = SyncStatus.disconnected();
+        final status1 = SyncStatus.notYetSynced();
+        final status2 = SyncStatus.notYetSynced();
 
         // When: 比较两个状态
         // Then: 应该相等（用于 Stream.distinct()）
@@ -115,8 +113,8 @@ void main() {
 
       test('it_should_identify_active_states', () {
         // Given: 不同的状态
-        final disconnected = SyncStatus.disconnected();
-        final syncing = SyncStatus.syncing(syncingPeers: 1);
+        final disconnected = SyncStatus.notYetSynced();
+        final syncing = SyncStatus.syncing();
         final synced = SyncStatus.synced(lastSyncTime: DateTime.now());
         final failed = SyncStatus.failed(errorMessage: 'Error');
 
@@ -138,7 +136,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 一个 SyncStatus
-        final status = SyncStatus.disconnected();
+        final status = SyncStatus.notYetSynced();
 
         // When: 渲染 SyncStatusIndicator
         await tester.pumpWidget(
@@ -155,7 +153,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 状态是 disconnected
-        final status = SyncStatus.disconnected();
+        final status = SyncStatus.notYetSynced();
 
         // When: 渲染指示器
         await tester.pumpWidget(
@@ -172,7 +170,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 状态是 syncing
-        final status = SyncStatus.syncing(syncingPeers: 1);
+        final status = SyncStatus.syncing();
 
         // When: 渲染指示器
         await tester.pumpWidget(
@@ -189,7 +187,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 状态是 syncing
-        final status = SyncStatus.syncing(syncingPeers: 1);
+        final status = SyncStatus.syncing();
 
         // When: 渲染指示器并等待动画
         await tester.pumpWidget(
@@ -254,7 +252,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: SyncStatusIndicator(status: SyncStatus.disconnected()),
+              body: SyncStatusIndicator(status: SyncStatus.notYetSynced()),
             ),
           ),
         );
@@ -265,7 +263,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: SyncStatusIndicator(
-                status: SyncStatus.syncing(syncingPeers: 1),
+                status: SyncStatus.syncing(),
               ),
             ),
           ),
@@ -301,8 +299,8 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 不同的状态
-        final disconnected = SyncStatus.disconnected();
-        final syncing = SyncStatus.syncing(syncingPeers: 1);
+        final disconnected = SyncStatus.notYetSynced();
+        final syncing = SyncStatus.syncing();
         final synced = SyncStatus.synced(lastSyncTime: DateTime.now());
         final failed = SyncStatus.failed(errorMessage: 'Error');
 
@@ -350,7 +348,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 一个可点击的指示器
-        final status = SyncStatus.disconnected();
+        final status = SyncStatus.notYetSynced();
 
         // When: 点击指示器
         await tester.pumpWidget(
@@ -369,7 +367,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 状态是 syncing，有 3 个对等设备
-        final status = SyncStatus.syncing(syncingPeers: 3);
+        final status = SyncStatus.syncing();
 
         // When: 渲染指示器
         await tester.pumpWidget(
@@ -409,7 +407,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 一个状态
-        final status = SyncStatus.syncing(syncingPeers: 2);
+        final status = SyncStatus.syncing();
 
         // When: 显示详情对话框
         await tester.pumpWidget(
@@ -441,7 +439,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 状态是 syncing，有对等设备
-        final status = SyncStatus.syncing(syncingPeers: 2);
+        final status = SyncStatus.syncing();
 
         // When: 显示详情对话框
         await tester.pumpWidget(
@@ -551,7 +549,7 @@ void main() {
             home: Scaffold(
               body: StreamBuilder<SyncStatus>(
                 stream: controller.stream,
-                initialData: SyncStatus.disconnected(),
+                initialData: SyncStatus.notYetSynced(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const CircularProgressIndicator();
@@ -567,7 +565,7 @@ void main() {
         expect(find.byIcon(Icons.cloud_off), findsOneWidget);
 
         // When: Stream 发出新状态（syncing）
-        controller.add(SyncStatus.syncing(syncingPeers: 1));
+        controller.add(SyncStatus.syncing());
         await tester.pump();
 
         // Then: 应该更新为 syncing 状态
@@ -595,7 +593,7 @@ void main() {
       ) async {
         // Given: 同步状态包含进度信息
         // 扩展 SyncStatus 以支持进度百分比（模拟）
-        final syncingWithProgress = SyncStatus.syncing(syncingPeers: 2);
+        final syncingWithProgress = SyncStatus.syncing();
 
         // When: 渲染带进度的同步指示器
         await tester.pumpWidget(
@@ -742,7 +740,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 状态是 disconnected
-        final status = SyncStatus.disconnected();
+        final status = SyncStatus.notYetSynced();
 
         // When: 渲染指示器
         await tester.pumpWidget(
@@ -760,7 +758,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 状态是 syncing
-        final status = SyncStatus.syncing(syncingPeers: 1);
+        final status = SyncStatus.syncing();
 
         // When: 渲染指示器
         await tester.pumpWidget(

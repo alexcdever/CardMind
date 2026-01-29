@@ -452,6 +452,17 @@ impl P2PSyncService {
         self.status_tx.clone()
     }
 
+    /// 获取连接状态
+    ///
+    /// 返回所有已知设备的连接状态
+    ///
+    /// # 返回
+    ///
+    /// 返回 HashMap，key 为 PeerId，value 为连接状态（true 表示已连接）
+    pub fn get_connections(&self) -> HashMap<PeerId, bool> {
+        self.connections.lock().unwrap().clone()
+    }
+
     /// 清除错误状态
     ///
     /// 用于重试同步时清除之前的错误状态

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:cardmind/models/sync_status.dart';
@@ -9,8 +11,9 @@ import 'package:cardmind/widgets/sync_details_dialog.dart';
 ///
 /// 规格编号: SP-FLUT-010
 /// 功能：
-/// - 根据状态显示不同的图标和颜色
-/// - syncing 状态显示旋转动画
+/// - 根据状态显示不同的图标和颜色（Badge 样式）
+/// - syncing 状态显示旋转动画（360° 每2秒）
+/// - 相对时间显示（10秒内"刚刚"，超过10秒"已同步"）
 /// - 点击显示详情对话框
 /// - 提供无障碍支持
 
@@ -30,6 +33,7 @@ class SyncStatusIndicator extends StatefulWidget {
 class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
     with SingleTickerProviderStateMixin {
   late AnimationController _rotationController;
+  Timer? _relativeTimeTimer;
 
   @override
   void initState() {
@@ -41,15 +45,31 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
     );
 
     // 如果初始状态是 syncing，开始旋转
-    if (widget.status.state == SyncState.syncing) {
-      _rotationController.repeat();
-    }
+    _updateAnimation();
+
+    // 如果是 synced 状态且在10秒内，启动相对时间定时器
+    _startRelativeTimeTimer();
   }
 
   @override
   void didUpdateWidget(SyncStatusIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
     // 状态变化时更新动画
+    _updateAnimation();
+
+    // 更新相对时间定时器
+    _startRelativeTimeTimer();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    _relativeTimeTimer?.cancel();
+    super.dispose();
+  }
+
+  /// 更新动画状态
+  void _updateAnimation() {
     if (widget.status.state == SyncState.syncing) {
       if (!_rotationController.isAnimating) {
         _rotationController.repeat();
@@ -59,54 +79,97 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
     }
   }
 
-  @override
-  void dispose() {
-    _rotationController.dispose();
-    super.dispose();
+  /// 启动相对时间定时器
+  void _startRelativeTimeTimer() {
+    _relativeTimeTimer?.cancel();
+
+    if (widget.status.state == SyncState.synced &&
+        widget.status.lastSyncTime != null &&
+        _isWithin10Seconds(widget.status.lastSyncTime!)) {
+      _relativeTimeTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!_isWithin10Seconds(widget.status.lastSyncTime!)) {
+          _relativeTimeTimer?.cancel();
+        }
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  /// 检查是否在10秒内
+  bool _isWithin10Seconds(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+    return difference.inSeconds <= 10;
   }
 
   /// 获取状态对应的图标
   IconData _getIcon() {
     switch (widget.status.state) {
-      case SyncState.disconnected:
+      case SyncState.notYetSynced:
         return Icons.cloud_off;
       case SyncState.syncing:
-        return Icons.sync;
+        return Icons.refresh;
       case SyncState.synced:
-        return Icons.cloud_done;
+        return Icons.check;
       case SyncState.failed:
-        return Icons.cloud_off;
+        return Icons.error_outline;
     }
   }
 
   /// 获取状态对应的颜色
-  Color _getColor() {
+  Color _getColor(BuildContext context) {
+    final theme = Theme.of(context);
     switch (widget.status.state) {
-      case SyncState.disconnected:
-        return const Color(0xFF757575); // grey
+      case SyncState.notYetSynced:
+        return theme.colorScheme.outline; // 灰色
       case SyncState.syncing:
-        return const Color(0xFF00897B); // primary color
+        return theme.colorScheme.secondary; // 次要色
       case SyncState.synced:
-        return const Color(0xFF43A047); // green
+        return const Color(0xFF43A047); // 绿色
       case SyncState.failed:
-        return const Color(0xFFFB8C00); // orange
+        return theme.colorScheme.error; // 红色
     }
+  }
+
+  /// 获取 Badge 背景颜色
+  Color _getBadgeColor(BuildContext context) {
+    final theme = Theme.of(context);
+    switch (widget.status.state) {
+      case SyncState.notYetSynced:
+        return theme.colorScheme.surfaceContainerHighest; // 灰色背景
+      case SyncState.syncing:
+        return theme.colorScheme.secondaryContainer; // 次要色背景
+      case SyncState.synced:
+        return Colors.transparent; // 白色边框，透明背景
+      case SyncState.failed:
+        return theme.colorScheme.errorContainer; // 红色背景
+    }
+  }
+
+  /// 获取 Badge 边框
+  BoxBorder? _getBadgeBorder(BuildContext context) {
+    if (widget.status.state == SyncState.synced) {
+      return Border.all(
+        color: Theme.of(context).colorScheme.outline,
+        width: 1,
+      );
+    }
+    return null;
   }
 
   /// 获取状态对应的文字
   String _getText() {
     switch (widget.status.state) {
-      case SyncState.disconnected:
-        return '未同步';
+      case SyncState.notYetSynced:
+        return '尚未同步';
       case SyncState.syncing:
-        if (widget.status.syncingPeers > 0) {
-          return '同步中 (${widget.status.syncingPeers} 台设备)';
-        }
         return '同步中...';
       case SyncState.synced:
-        if (widget.status.lastSyncTime != null) {
-          final relativeTime = _getRelativeTime(widget.status.lastSyncTime!);
-          return '已同步 ($relativeTime)';
+        if (widget.status.lastSyncTime != null &&
+            _isWithin10Seconds(widget.status.lastSyncTime!)) {
+          return '刚刚';
         }
         return '已同步';
       case SyncState.failed:
@@ -114,35 +177,17 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
     }
   }
 
-  /// 获取相对时间描述
-  String _getRelativeTime(DateTime time) {
-    final now = DateTime.now();
-    final difference = now.difference(time);
-
-    if (difference.inSeconds < 10) {
-      return '刚刚';
-    } else if (difference.inMinutes < 1) {
-      return '${difference.inSeconds} 秒前';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} 分钟前';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} 小时前';
-    } else {
-      return '${difference.inDays} 天前';
-    }
-  }
-
   /// 获取无障碍标签
   String _getSemanticLabel() {
     switch (widget.status.state) {
-      case SyncState.disconnected:
-        return '未同步，无可用设备';
+      case SyncState.notYetSynced:
+        return '尚未同步，点击查看详情';
       case SyncState.syncing:
-        return '正在同步数据';
+        return '正在同步数据，点击查看详情';
       case SyncState.synced:
-        return '已同步，数据最新';
+        return '已同步，数据最新，点击查看详情';
       case SyncState.failed:
-        return '同步失败，点击查看详情';
+        return '同步失败，点击查看详情并重试';
     }
   }
 
@@ -157,7 +202,9 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
   @override
   Widget build(BuildContext context) {
     final icon = _getIcon();
-    final color = _getColor();
+    final color = _getColor(context);
+    final badgeColor = _getBadgeColor(context);
+    final badgeBorder = _getBadgeBorder(context);
     final text = _getText();
     final semanticLabel = _getSemanticLabel();
 
@@ -166,9 +213,14 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
       button: true,
       child: InkWell(
         onTap: _showDetailsDialog,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: badgeColor,
+            border: badgeBorder,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -176,17 +228,17 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
               if (widget.status.state == SyncState.syncing)
                 RotationTransition(
                   turns: _rotationController,
-                  child: Icon(icon, color: color, size: 20),
+                  child: Icon(icon, color: color, size: 16),
                 )
               else
-                Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
+                Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
               // 文字
               Text(
                 text,
                 style: TextStyle(
                   color: color,
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),

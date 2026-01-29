@@ -71,7 +71,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -2068872422;
+  int get rustContentHash => 22069390;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -137,6 +137,8 @@ abstract class RustLibApi extends BaseApi {
 
   Future<String> cardmindRustApiDeviceConfigGetDeviceId();
 
+  Future<List<DeviceInfo>> cardmindRustApiSyncGetDeviceList();
+
   Future<List<String>> cardmindRustApiDeviceConfigGetJoinedPools();
 
   Future<String> cardmindRustApiSyncGetLocalPeerId();
@@ -150,6 +152,10 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Future<List<String>> cardmindRustApiDeviceConfigGetResidentPools();
+
+  Future<List<SyncHistoryEvent>> cardmindRustApiSyncGetSyncHistory();
+
+  Future<SyncStatistics> cardmindRustApiSyncGetSyncStatistics();
 
   Future<SyncStatus> cardmindRustApiSyncGetSyncStatus();
 
@@ -207,17 +213,17 @@ abstract class RustLibApi extends BaseApi {
 
   Future<int> cardmindRustApiSyncSyncPool({required String poolId});
 
-  Future<SyncStatus> crateApiSyncSyncStatusDisconnected();
-
   Future<SyncStatus> crateApiSyncSyncStatusFailed({
     required String errorMessage,
   });
+
+  Future<SyncStatus> crateApiSyncSyncStatusNotYetSynced();
 
   Future<SyncStatus> crateApiSyncSyncStatusSynced({
     required PlatformInt64 lastSyncTime,
   });
 
-  Future<SyncStatus> crateApiSyncSyncStatusSyncing({required int syncingPeers});
+  Future<SyncStatus> crateApiSyncSyncStatusSyncing();
 
   Future<void> cardmindRustApiCardUpdateCard({
     required String id,
@@ -807,7 +813,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "get_device_id", argNames: []);
 
   @override
-  Future<List<String>> cardmindRustApiDeviceConfigGetJoinedPools() {
+  Future<List<DeviceInfo>> cardmindRustApiSyncGetDeviceList() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -816,6 +822,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             generalizedFrbRustBinding,
             serializer,
             funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_device_info,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCardmindRustApiSyncGetDeviceListConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCardmindRustApiSyncGetDeviceListConstMeta =>
+      const TaskConstMeta(debugName: "get_device_list", argNames: []);
+
+  @override
+  Future<List<String>> cardmindRustApiDeviceConfigGetJoinedPools() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 21,
             port: port_,
           );
         },
@@ -842,7 +875,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 22,
             port: port_,
           );
         },
@@ -869,7 +902,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 23,
             port: port_,
           );
         },
@@ -897,7 +930,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 24,
             port: port_,
           );
         },
@@ -927,7 +960,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 25,
             port: port_,
           );
         },
@@ -957,7 +990,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 26,
             port: port_,
           );
         },
@@ -976,6 +1009,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "get_resident_pools", argNames: []);
 
   @override
+  Future<List<SyncHistoryEvent>> cardmindRustApiSyncGetSyncHistory() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_sync_history_event,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCardmindRustApiSyncGetSyncHistoryConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCardmindRustApiSyncGetSyncHistoryConstMeta =>
+      const TaskConstMeta(debugName: "get_sync_history", argNames: []);
+
+  @override
+  Future<SyncStatistics> cardmindRustApiSyncGetSyncStatistics() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 28,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_sync_statistics,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCardmindRustApiSyncGetSyncStatisticsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCardmindRustApiSyncGetSyncStatisticsConstMeta =>
+      const TaskConstMeta(debugName: "get_sync_statistics", argNames: []);
+
+  @override
   Future<SyncStatus> cardmindRustApiSyncGetSyncStatus() {
     return handler.executeNormal(
       NormalTask(
@@ -984,7 +1071,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1014,7 +1101,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 27,
+              funcId: 30,
               port: port_,
             );
           },
@@ -1049,7 +1136,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1076,7 +1163,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 29)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 32)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -1102,7 +1189,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1132,7 +1219,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1163,7 +1250,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1195,7 +1282,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1225,7 +1312,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1255,7 +1342,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1285,7 +1372,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1313,7 +1400,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1341,7 +1428,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 41,
             port: port_,
           );
         },
@@ -1373,7 +1460,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1403,7 +1490,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1435,7 +1522,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1470,7 +1557,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1501,7 +1588,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1520,33 +1607,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "sync_pool", argNames: ["poolId"]);
 
   @override
-  Future<SyncStatus> crateApiSyncSyncStatusDisconnected() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 44,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_sync_status,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiSyncSyncStatusDisconnectedConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSyncSyncStatusDisconnectedConstMeta =>
-      const TaskConstMeta(debugName: "sync_status_disconnected", argNames: []);
-
-  @override
   Future<SyncStatus> crateApiSyncSyncStatusFailed({
     required String errorMessage,
   }) {
@@ -1558,7 +1618,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1580,6 +1640,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<SyncStatus> crateApiSyncSyncStatusNotYetSynced() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 48,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_sync_status,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSyncSyncStatusNotYetSyncedConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncSyncStatusNotYetSyncedConstMeta =>
+      const TaskConstMeta(
+        debugName: "sync_status_not_yet_synced",
+        argNames: [],
+      );
+
+  @override
   Future<SyncStatus> crateApiSyncSyncStatusSynced({
     required PlatformInt64 lastSyncTime,
   }) {
@@ -1591,7 +1681,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 49,
             port: port_,
           );
         },
@@ -1613,18 +1703,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<SyncStatus> crateApiSyncSyncStatusSyncing({
-    required int syncingPeers,
-  }) {
+  Future<SyncStatus> crateApiSyncSyncStatusSyncing() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_i_32(syncingPeers, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 50,
             port: port_,
           );
         },
@@ -1633,17 +1720,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: null,
         ),
         constMeta: kCrateApiSyncSyncStatusSyncingConstMeta,
-        argValues: [syncingPeers],
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiSyncSyncStatusSyncingConstMeta =>
-      const TaskConstMeta(
-        debugName: "sync_status_syncing",
-        argNames: ["syncingPeers"],
-      );
+      const TaskConstMeta(debugName: "sync_status_syncing", argNames: []);
 
   @override
   Future<void> cardmindRustApiCardUpdateCard({
@@ -1661,7 +1745,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 51,
             port: port_,
           );
         },
@@ -1698,7 +1782,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 52,
             port: port_,
           );
         },
@@ -1733,7 +1817,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 53,
             port: port_,
           );
         },
@@ -1768,7 +1852,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 54,
             port: port_,
           );
         },
@@ -1866,6 +1950,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DeviceConnectionStatus dco_decode_device_connection_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DeviceConnectionStatus.values[raw as int];
+  }
+
+  @protected
+  DeviceInfo dco_decode_device_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return DeviceInfo(
+      deviceId: dco_decode_String(arr[0]),
+      deviceName: dco_decode_String(arr[1]),
+      status: dco_decode_device_connection_status(arr[2]),
+      lastSeen: dco_decode_i_64(arr[3]),
+    );
+  }
+
+  @protected
   int dco_decode_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
@@ -1896,6 +2000,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<DeviceInfo> dco_decode_list_device_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_device_info).toList();
+  }
+
+  @protected
   List<Pool> dco_decode_list_pool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_pool).toList();
@@ -1905,6 +2015,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  List<SyncHistoryEvent> dco_decode_list_sync_history_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_sync_history_event).toList();
   }
 
   @protected
@@ -1961,25 +2077,55 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SyncHistoryEvent dco_decode_sync_history_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return SyncHistoryEvent(
+      timestamp: dco_decode_i_64(arr[0]),
+      status: dco_decode_sync_state(arr[1]),
+      deviceId: dco_decode_String(arr[2]),
+      deviceName: dco_decode_String(arr[3]),
+      poolId: dco_decode_String(arr[4]),
+      errorMessage: dco_decode_opt_String(arr[5]),
+    );
+  }
+
+  @protected
   SyncState dco_decode_sync_state(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return SyncState.values[raw as int];
   }
 
   @protected
+  SyncStatistics dco_decode_sync_statistics(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return SyncStatistics(
+      syncedCards: dco_decode_i_32(arr[0]),
+      syncedDataSize: dco_decode_i_64(arr[1]),
+      successfulSyncs: dco_decode_i_32(arr[2]),
+      failedSyncs: dco_decode_i_32(arr[3]),
+      lastSyncTime: dco_decode_opt_box_autoadd_i_64(arr[4]),
+    );
+  }
+
+  @protected
   SyncStatus dco_decode_sync_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return SyncStatus(
       state: dco_decode_sync_state(arr[0]),
-      syncingPeers: dco_decode_i_32(arr[1]),
-      lastSyncTime: dco_decode_opt_box_autoadd_i_64(arr[2]),
-      errorMessage: dco_decode_opt_String(arr[3]),
-      onlineDevices: dco_decode_i_32(arr[4]),
-      syncingDevices: dco_decode_i_32(arr[5]),
-      offlineDevices: dco_decode_i_32(arr[6]),
+      lastSyncTime: dco_decode_opt_box_autoadd_i_64(arr[1]),
+      errorMessage: dco_decode_opt_String(arr[2]),
+      onlineDevices: dco_decode_i_32(arr[3]),
+      syncingDevices: dco_decode_i_32(arr[4]),
+      offlineDevices: dco_decode_i_32(arr[5]),
     );
   }
 
@@ -2079,6 +2225,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  DeviceConnectionStatus sse_decode_device_connection_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return DeviceConnectionStatus.values[inner];
+  }
+
+  @protected
+  DeviceInfo sse_decode_device_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_deviceName = sse_decode_String(deserializer);
+    var var_status = sse_decode_device_connection_status(deserializer);
+    var var_lastSeen = sse_decode_i_64(deserializer);
+    return DeviceInfo(
+      deviceId: var_deviceId,
+      deviceName: var_deviceName,
+      status: var_status,
+      lastSeen: var_lastSeen,
+    );
+  }
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getInt32();
@@ -2127,6 +2297,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<DeviceInfo> sse_decode_list_device_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <DeviceInfo>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_device_info(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<Pool> sse_decode_list_pool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -2143,6 +2325,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  List<SyncHistoryEvent> sse_decode_list_sync_history_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SyncHistoryEvent>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_sync_history_event(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -2206,6 +2402,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SyncHistoryEvent sse_decode_sync_history_event(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_timestamp = sse_decode_i_64(deserializer);
+    var var_status = sse_decode_sync_state(deserializer);
+    var var_deviceId = sse_decode_String(deserializer);
+    var var_deviceName = sse_decode_String(deserializer);
+    var var_poolId = sse_decode_String(deserializer);
+    var var_errorMessage = sse_decode_opt_String(deserializer);
+    return SyncHistoryEvent(
+      timestamp: var_timestamp,
+      status: var_status,
+      deviceId: var_deviceId,
+      deviceName: var_deviceName,
+      poolId: var_poolId,
+      errorMessage: var_errorMessage,
+    );
+  }
+
+  @protected
   SyncState sse_decode_sync_state(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
@@ -2213,10 +2428,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SyncStatistics sse_decode_sync_statistics(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_syncedCards = sse_decode_i_32(deserializer);
+    var var_syncedDataSize = sse_decode_i_64(deserializer);
+    var var_successfulSyncs = sse_decode_i_32(deserializer);
+    var var_failedSyncs = sse_decode_i_32(deserializer);
+    var var_lastSyncTime = sse_decode_opt_box_autoadd_i_64(deserializer);
+    return SyncStatistics(
+      syncedCards: var_syncedCards,
+      syncedDataSize: var_syncedDataSize,
+      successfulSyncs: var_successfulSyncs,
+      failedSyncs: var_failedSyncs,
+      lastSyncTime: var_lastSyncTime,
+    );
+  }
+
+  @protected
   SyncStatus sse_decode_sync_status(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_state = sse_decode_sync_state(deserializer);
-    var var_syncingPeers = sse_decode_i_32(deserializer);
     var var_lastSyncTime = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_errorMessage = sse_decode_opt_String(deserializer);
     var var_onlineDevices = sse_decode_i_32(deserializer);
@@ -2224,7 +2455,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_offlineDevices = sse_decode_i_32(deserializer);
     return SyncStatus(
       state: var_state,
-      syncingPeers: var_syncingPeers,
       lastSyncTime: var_lastSyncTime,
       errorMessage: var_errorMessage,
       onlineDevices: var_onlineDevices,
@@ -2321,6 +2551,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_device_connection_status(
+    DeviceConnectionStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_device_info(DeviceInfo self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_String(self.deviceName, serializer);
+    sse_encode_device_connection_status(self.status, serializer);
+    sse_encode_i_64(self.lastSeen, serializer);
+  }
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
@@ -2360,6 +2608,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_device_info(
+    List<DeviceInfo> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_device_info(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_pool(List<Pool> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -2376,6 +2636,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_list_sync_history_event(
+    List<SyncHistoryEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_sync_history_event(item, serializer);
+    }
   }
 
   @protected
@@ -2434,16 +2706,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_sync_history_event(
+    SyncHistoryEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.timestamp, serializer);
+    sse_encode_sync_state(self.status, serializer);
+    sse_encode_String(self.deviceId, serializer);
+    sse_encode_String(self.deviceName, serializer);
+    sse_encode_String(self.poolId, serializer);
+    sse_encode_opt_String(self.errorMessage, serializer);
+  }
+
+  @protected
   void sse_encode_sync_state(SyncState self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
   }
 
   @protected
+  void sse_encode_sync_statistics(
+    SyncStatistics self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.syncedCards, serializer);
+    sse_encode_i_64(self.syncedDataSize, serializer);
+    sse_encode_i_32(self.successfulSyncs, serializer);
+    sse_encode_i_32(self.failedSyncs, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.lastSyncTime, serializer);
+  }
+
+  @protected
   void sse_encode_sync_status(SyncStatus self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_sync_state(self.state, serializer);
-    sse_encode_i_32(self.syncingPeers, serializer);
     sse_encode_opt_box_autoadd_i_64(self.lastSyncTime, serializer);
     sse_encode_opt_String(self.errorMessage, serializer);
     sse_encode_i_32(self.onlineDevices, serializer);

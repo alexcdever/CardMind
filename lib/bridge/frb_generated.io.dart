@@ -52,6 +52,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DeviceConfig dco_decode_device_config(dynamic raw);
 
   @protected
+  DeviceConnectionStatus dco_decode_device_connection_status(dynamic raw);
+
+  @protected
+  DeviceInfo dco_decode_device_info(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -67,10 +73,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Device> dco_decode_list_device(dynamic raw);
 
   @protected
+  List<DeviceInfo> dco_decode_list_device_info(dynamic raw);
+
+  @protected
   List<Pool> dco_decode_list_pool(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  List<SyncHistoryEvent> dco_decode_list_sync_history_event(dynamic raw);
 
   @protected
   MDnsTimerConfig dco_decode_m_dns_timer_config(dynamic raw);
@@ -89,7 +101,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_record_i_64_i_64_i_64(dynamic raw);
 
   @protected
+  SyncHistoryEvent dco_decode_sync_history_event(dynamic raw);
+
+  @protected
   SyncState dco_decode_sync_state(dynamic raw);
+
+  @protected
+  SyncStatistics dco_decode_sync_statistics(dynamic raw);
 
   @protected
   SyncStatus dco_decode_sync_status(dynamic raw);
@@ -127,6 +145,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DeviceConfig sse_decode_device_config(SseDeserializer deserializer);
 
   @protected
+  DeviceConnectionStatus sse_decode_device_connection_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceInfo sse_decode_device_info(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
@@ -142,10 +168,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Device> sse_decode_list_device(SseDeserializer deserializer);
 
   @protected
+  List<DeviceInfo> sse_decode_list_device_info(SseDeserializer deserializer);
+
+  @protected
   List<Pool> sse_decode_list_pool(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<SyncHistoryEvent> sse_decode_list_sync_history_event(
+    SseDeserializer deserializer,
+  );
 
   @protected
   MDnsTimerConfig sse_decode_m_dns_timer_config(SseDeserializer deserializer);
@@ -164,7 +198,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_record_i_64_i_64_i_64(SseDeserializer deserializer);
 
   @protected
+  SyncHistoryEvent sse_decode_sync_history_event(SseDeserializer deserializer);
+
+  @protected
   SyncState sse_decode_sync_state(SseDeserializer deserializer);
+
+  @protected
+  SyncStatistics sse_decode_sync_statistics(SseDeserializer deserializer);
 
   @protected
   SyncStatus sse_decode_sync_status(SseDeserializer deserializer);
@@ -209,6 +249,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_device_config(DeviceConfig self, SseSerializer serializer);
 
   @protected
+  void sse_encode_device_connection_status(
+    DeviceConnectionStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_device_info(DeviceInfo self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
@@ -224,11 +273,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_device(List<Device> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_device_info(
+    List<DeviceInfo> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_pool(List<Pool> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_sync_history_event(
+    List<SyncHistoryEvent> self,
     SseSerializer serializer,
   );
 
@@ -257,7 +318,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_sync_history_event(
+    SyncHistoryEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_sync_state(SyncState self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sync_statistics(
+    SyncStatistics self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_sync_status(SyncStatus self, SseSerializer serializer);

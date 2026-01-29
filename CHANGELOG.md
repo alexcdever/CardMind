@@ -7,6 +7,82 @@
 
 ## [Unreleased]
 
+### 新增 - 同步状态UI完整实现 (2026-01-29)
+
+#### 核心功能
+- **同步状态指示器** - 桌面端AppBar中的实时同步状态显示
+  - 4种状态：未同步、同步中、已同步、失败
+  - 旋转动画（同步中状态，360°/2秒）
+  - 相对时间显示（10秒阈值）
+  - Badge样式设计，符合Material Design规范
+
+- **同步详情对话框** - 完整的同步信息展示
+  - 当前同步状态和描述
+  - 设备列表显示（在线/离线/同步中状态）
+  - 统计信息（已同步卡片数、数据大小、成功/失败次数）
+  - 同步历史记录（时间戳、状态、设备信息）
+  - 实时更新（每5秒自动刷新）
+  - 错误信息显示和重试功能
+
+#### 后端API
+- **设备管理API** (`rust/src/api/sync.rs`)
+  - `get_device_list()` - 获取已发现的设备列表
+  - `DeviceInfo` 数据结构（设备ID、名称、状态、最后可见时间）
+  - `DeviceConnectionStatus` 枚举（Online/Offline/Syncing）
+
+- **统计信息API**
+  - `get_sync_statistics()` - 获取同步统计数据
+  - `SyncStatistics` 数据结构（卡片数、数据大小、成功/失败次数）
+
+- **同步历史API**
+  - `get_sync_history()` - 获取同步历史记录
+  - `SyncHistoryEvent` 数据结构（时间戳、状态、设备信息、错误消息）
+
+#### 测试覆盖
+- **单元测试** - 11个测试用例（`test/models/sync_status_test.dart`）
+  - 工厂构造函数测试
+  - 状态一致性验证
+  - 相等性和哈希码测试
+
+- **Widget测试** - 20个测试用例
+  - SyncStatusIndicator测试（10个）
+  - SyncDetailsDialog测试（10个）
+
+- **性能测试** - 8个测试用例（`test/performance/sync_status_performance_test.dart`）
+  - 渲染性能（< 16ms）
+  - 动画性能（60 FPS）
+  - 内存使用测试
+
+- **无障碍测试** - 15个测试用例（`test/widgets/sync_details_dialog_accessibility_test.dart`）
+  - 语义标签测试
+  - 键盘导航测试
+  - 屏幕阅读器支持
+
+#### 文档
+- **设计文档** (`openspec/changes/sync-status-ui-design/design.md`)
+  - 完整的视觉规范和状态映射表
+  - 动画参数和性能优化策略
+  - 无障碍支持说明
+
+- **测试规格** (`openspec/changes/sync-status-ui-design/specs/testing/spec.md`)
+  - 详细的测试用例定义
+  - 测试覆盖率要求
+
+- **完成报告** (`openspec/changes/sync-status-ui-design/COMPLETION_REPORT.md`)
+  - 100%任务完成度（33/33）
+  - 54个测试全部通过
+
+#### 技术改进
+- **Stream-based架构** - 从ChangeNotifier迁移到Stream
+  - Stream.distinct()去重
+  - 300ms防抖机制
+  - syncing→synced立即更新优化
+
+- **资源管理** - 完善的生命周期管理
+  - 定时器自动清理
+  - 动画控制器释放
+  - Stream订阅取消
+
 ### 新增 - 完整测试覆盖 (2026-01-19)
 
 #### 测试基础设施

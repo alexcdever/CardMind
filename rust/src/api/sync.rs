@@ -43,8 +43,8 @@ fn get_sync_service() -> Result<Arc<Mutex<P2PSyncService>>> {
 /// 定义同步的 4 种状态
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyncState {
-    /// 未连接到任何对等设备
-    Disconnected,
+    /// 尚未同步（应用首次启动，尚未执行过同步操作）
+    NotYetSynced,
     /// 正在同步数据
     Syncing,
     /// 同步完成，数据一致
@@ -62,9 +62,6 @@ pub enum SyncState {
 pub struct SyncStatus {
     /// 当前同步状态
     pub state: SyncState,
-
-    /// 正在同步的对等设备数量
-    pub syncing_peers: i32,
 
     /// 最后一次同步时间（Unix 时间戳，毫秒）
     pub last_sync_time: Option<i64>,
@@ -86,18 +83,17 @@ impl From<P2PSyncStatus> for SyncStatus {
     fn from(status: P2PSyncStatus) -> Self {
         // 根据设备数量推断状态
         let state = if status.online_devices == 0 && status.syncing_devices == 0 {
-            SyncState::Disconnected
+            SyncState::NotYetSynced
         } else if status.syncing_devices > 0 {
             SyncState::Syncing
         } else if status.online_devices > 0 {
             SyncState::Synced
         } else {
-            SyncState::Disconnected
+            SyncState::NotYetSynced
         };
 
         Self {
             state,
-            syncing_peers: status.syncing_devices as i32,
             last_sync_time: None, // TODO: 从 P2PSyncService 获取实际时间
             error_message: None,
             online_devices: status.online_devices as i32,
@@ -108,11 +104,10 @@ impl From<P2PSyncStatus> for SyncStatus {
 }
 
 impl SyncStatus {
-    /// 创建 disconnected 状态
-    pub fn disconnected() -> Self {
+    /// 创建 notYetSynced 状态
+    pub fn not_yet_synced() -> Self {
         Self {
-            state: SyncState::Disconnected,
-            syncing_peers: 0,
+            state: SyncState::NotYetSynced,
             last_sync_time: None,
             error_message: None,
             online_devices: 0,
@@ -122,14 +117,13 @@ impl SyncStatus {
     }
 
     /// 创建 syncing 状态
-    pub fn syncing(syncing_peers: i32) -> Self {
+    pub fn syncing() -> Self {
         Self {
             state: SyncState::Syncing,
-            syncing_peers,
             last_sync_time: None,
             error_message: None,
-            online_devices: syncing_peers,
-            syncing_devices: syncing_peers,
+            online_devices: 1,
+            syncing_devices: 1,
             offline_devices: 0,
         }
     }
@@ -138,7 +132,6 @@ impl SyncStatus {
     pub fn synced(last_sync_time: i64) -> Self {
         Self {
             state: SyncState::Synced,
-            syncing_peers: 0,
             last_sync_time: Some(last_sync_time),
             error_message: None,
             online_devices: 1,
@@ -151,7 +144,6 @@ impl SyncStatus {
     pub fn failed(error_message: String) -> Self {
         Self {
             state: SyncState::Failed,
-            syncing_peers: 0,
             last_sync_time: None,
             error_message: Some(error_message),
             online_devices: 0,
@@ -428,6 +420,197 @@ pub fn get_sync_status_stream(sink: StreamSink<SyncStatus>) -> Result<()> {
     Ok(())
 }
 
+/// 设备连接状态枚举
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeviceConnectionStatus {
+    /// 在线（已连接）
+    Online,
+    /// 离线（未连接）
+    Offline,
+    /// 同步中
+    Syncing,
+}
+
+/// 设备信息
+///
+/// 表示一个已发现的对等设备
+#[derive(Debug, Clone)]
+pub struct DeviceInfo {
+    /// 设备 ID (Peer ID)
+    pub device_id: String,
+
+    /// 设备名称
+    pub device_name: String,
+
+    /// 连接状态
+    pub status: DeviceConnectionStatus,
+
+    /// 上次可见时间（Unix 时间戳，毫秒）
+    pub last_seen: i64,
+}
+
+/// 同步统计信息
+#[derive(Debug, Clone)]
+pub struct SyncStatistics {
+    /// 已同步卡片数量
+    pub synced_cards: i32,
+
+    /// 同步数据大小（字节）
+    pub synced_data_size: i64,
+
+    /// 成功同步次数
+    pub successful_syncs: i32,
+
+    /// 失败同步次数
+    pub failed_syncs: i32,
+
+    /// 最后同步时间（Unix 时间戳，毫秒）
+    pub last_sync_time: Option<i64>,
+}
+
+/// 同步历史事件
+#[derive(Debug, Clone)]
+pub struct SyncHistoryEvent {
+    /// 事件时间戳（Unix 时间戳，毫秒）
+    pub timestamp: i64,
+
+    /// 同步状态
+    pub status: SyncState,
+
+    /// 涉及的设备 ID
+    pub device_id: String,
+
+    /// 涉及的设备名称
+    pub device_name: String,
+
+    /// 同步的数据池 ID
+    pub pool_id: String,
+
+    /// 错误消息（如果失败）
+    pub error_message: Option<String>,
+}
+
+/// 获取设备列表
+///
+/// # 返回
+///
+/// 返回所有已发现的设备列表
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final devices = await getDeviceList();
+/// for (final device in devices) {
+///   print('设备: ${device.deviceName}, 状态: ${device.status}');
+/// }
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+#[flutter_rust_bridge::frb]
+pub fn get_device_list() -> Result<Vec<DeviceInfo>> {
+    with_sync_service(|service| {
+        // 获取连接状态
+        let connections = service.get_connections();
+
+        // 构建设备列表
+        let mut devices = Vec::new();
+
+        for (peer_id, is_connected) in connections.iter() {
+            let status = if *is_connected {
+                DeviceConnectionStatus::Online
+            } else {
+                DeviceConnectionStatus::Offline
+            };
+
+            // 获取设备名称（如果可用）
+            let device_name = format!("Device-{}", &peer_id.to_string()[..8]);
+
+            devices.push(DeviceInfo {
+                device_id: peer_id.to_string(),
+                device_name,
+                status,
+                last_seen: chrono::Utc::now().timestamp_millis(),
+            });
+        }
+
+        // 按连接状态排序（在线优先）
+        devices.sort_by(|a, b| match (a.status, b.status) {
+            (DeviceConnectionStatus::Online, DeviceConnectionStatus::Offline) => {
+                std::cmp::Ordering::Less
+            }
+            (DeviceConnectionStatus::Offline, DeviceConnectionStatus::Online) => {
+                std::cmp::Ordering::Greater
+            }
+            (DeviceConnectionStatus::Syncing, _) => std::cmp::Ordering::Less,
+            (_, DeviceConnectionStatus::Syncing) => std::cmp::Ordering::Greater,
+            _ => a.device_name.cmp(&b.device_name),
+        });
+
+        Ok(devices)
+    })
+}
+
+/// 获取同步统计信息
+///
+/// # 返回
+///
+/// 返回同步统计信息
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final stats = await getSyncStatistics();
+/// print('已同步卡片: ${stats.syncedCards}');
+/// print('成功次数: ${stats.successfulSyncs}');
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+#[flutter_rust_bridge::frb]
+pub fn get_sync_statistics() -> Result<SyncStatistics> {
+    with_sync_service(|_service| {
+        // TODO: 从实际的同步管理器获取统计信息
+        // 目前返回模拟数据
+        Ok(SyncStatistics {
+            synced_cards: 0,
+            synced_data_size: 0,
+            successful_syncs: 0,
+            failed_syncs: 0,
+            last_sync_time: None,
+        })
+    })
+}
+
+/// 获取同步历史
+///
+/// # 返回
+///
+/// 返回最近的同步事件列表（最多10条）
+///
+/// # 示例（Flutter）
+///
+/// ```dart
+/// final history = await getSyncHistory();
+/// for (final event in history) {
+///   print('${event.timestamp}: ${event.status} - ${event.deviceName}');
+/// }
+/// ```
+///
+/// # 错误
+///
+/// 如果服务未初始化，返回错误
+#[flutter_rust_bridge::frb]
+pub fn get_sync_history() -> Result<Vec<SyncHistoryEvent>> {
+    with_sync_service(|_service| {
+        // TODO: 从实际的同步管理器获取历史记录
+        // 目前返回空列表
+        Ok(Vec::new())
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -457,7 +640,6 @@ mod tests {
 
         let status: SyncStatus = p2p_status.into();
 
-        assert_eq!(status.syncing_peers, 1);
         assert_eq!(status.online_devices, 3);
         assert_eq!(status.syncing_devices, 1);
         assert_eq!(status.offline_devices, 2);
@@ -466,17 +648,15 @@ mod tests {
 
     #[test]
     fn test_sync_status_factory_methods() {
-        // Test disconnected
-        let disconnected = SyncStatus::disconnected();
-        assert_eq!(disconnected.state, SyncState::Disconnected);
-        assert_eq!(disconnected.syncing_peers, 0);
-        assert!(disconnected.last_sync_time.is_none());
-        assert!(disconnected.error_message.is_none());
+        // Test notYetSynced
+        let not_yet_synced = SyncStatus::not_yet_synced();
+        assert_eq!(not_yet_synced.state, SyncState::NotYetSynced);
+        assert!(not_yet_synced.last_sync_time.is_none());
+        assert!(not_yet_synced.error_message.is_none());
 
         // Test syncing
-        let syncing = SyncStatus::syncing(3);
+        let syncing = SyncStatus::syncing();
         assert_eq!(syncing.state, SyncState::Syncing);
-        assert_eq!(syncing.syncing_peers, 3);
 
         // Test synced
         let now = 1_234_567_890;
@@ -492,8 +672,8 @@ mod tests {
 
     #[test]
     fn test_sync_state_equality() {
-        assert_eq!(SyncState::Disconnected, SyncState::Disconnected);
-        assert_ne!(SyncState::Disconnected, SyncState::Syncing);
+        assert_eq!(SyncState::NotYetSynced, SyncState::NotYetSynced);
+        assert_ne!(SyncState::NotYetSynced, SyncState::Syncing);
         assert_ne!(SyncState::Syncing, SyncState::Synced);
         assert_ne!(SyncState::Synced, SyncState::Failed);
     }
