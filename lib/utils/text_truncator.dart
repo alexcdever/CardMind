@@ -90,9 +90,8 @@ class TextTruncator {
       text: TextSpan(text: text, style: style),
       maxLines: maxLines,
       textDirection: TextDirection.ltr,
-    );
+    )..layout(maxWidth: maxWidth);
 
-    textPainter.layout(maxWidth: maxWidth);
     return textPainter.size.height;
   }
 

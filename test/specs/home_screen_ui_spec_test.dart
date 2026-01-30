@@ -32,9 +32,8 @@ void main() {
     // Helper: 创建 HomeScreen
     // ========================================
     Widget createHomeScreen({Stream<SyncStatus>? syncStatusStream}) {
-      final provider = CardProvider(cardService: mockCardService);
-      // Load cards immediately
-      provider.loadCards();
+      final provider = CardProvider(cardService: mockCardService)
+        ..loadCards(); // Load cards immediately
 
       return MaterialApp(
         home: ChangeNotifierProvider.value(

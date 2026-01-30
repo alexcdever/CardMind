@@ -118,12 +118,12 @@ void main() {
     });
 
     test('cancelSession removes session', () {
-      service.createSession(
-        remotePeerId: '12D3KooWTest',
-        remoteDeviceName: 'Test Device',
-      );
-
-      service.cancelSession('12D3KooWTest');
+      service
+        ..createSession(
+          remotePeerId: '12D3KooWTest',
+          remoteDeviceName: 'Test Device',
+        )
+        ..cancelSession('12D3KooWTest');
 
       final session = service.getSession('12D3KooWTest');
       expect(session, isNull);

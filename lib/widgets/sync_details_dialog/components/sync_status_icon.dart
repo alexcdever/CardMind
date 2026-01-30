@@ -58,8 +58,9 @@ class _SyncStatusIconState extends State<SyncStatusIcon>
     if (_isSyncing) {
       _rotationController.repeat();
     } else {
-      _rotationController.stop();
-      _rotationController.reset();
+      _rotationController
+        ..stop()
+        ..reset();
     }
   }
 

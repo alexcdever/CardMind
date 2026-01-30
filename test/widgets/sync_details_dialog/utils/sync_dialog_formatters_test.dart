@@ -201,8 +201,9 @@ void main() {
     });
 
     test('clears cache', () {
-      cache.getOrCompute('key1', () => 'value1');
-      cache.clear();
+      cache
+        ..getOrCompute('key1', () => 'value1')
+        ..clear();
 
       var computeCount = 0;
       cache.getOrCompute('key1', () {
@@ -214,19 +215,21 @@ void main() {
     });
 
     test('removes specific key', () {
-      cache.getOrCompute('key1', () => 'value1');
-      cache.getOrCompute('key2', () => 'value2');
-      cache.remove('key1');
+      cache
+        ..getOrCompute('key1', () => 'value1')
+        ..getOrCompute('key2', () => 'value2')
+        ..remove('key1');
 
       var computeCount = 0;
-      cache.getOrCompute('key1', () {
-        computeCount++;
-        return 'value1';
-      });
-      cache.getOrCompute('key2', () {
-        computeCount++;
-        return 'value2';
-      });
+      cache
+        ..getOrCompute('key1', () {
+          computeCount++;
+          return 'value1';
+        })
+        ..getOrCompute('key2', () {
+          computeCount++;
+          return 'value2';
+        });
 
       expect(computeCount, 1); // Only key1 should recompute
     });

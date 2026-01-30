@@ -419,8 +419,9 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 保存失败
-        mockCardApi.shouldThrowError = true;
-        mockCardApi.customErrorMessage = 'Test error';
+        mockCardApi
+          ..shouldThrowError = true
+          ..customErrorMessage = 'Test error';
         await tester.pumpWidget(createEditorWithMockApi());
         await tester.pumpAndSettle();
 
