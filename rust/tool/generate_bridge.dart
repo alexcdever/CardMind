@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 
 /// 生成 flutter_rust_bridge 代码
@@ -7,7 +9,9 @@ Future<void> main() async {
   print('🔧 开始生成 flutter_rust_bridge 代码...\n');
 
   // 检查是否安装了 flutter_rust_bridge_codegen
-  final checkResult = await Process.run('flutter_rust_bridge_codegen', ['--version']);
+  final checkResult = await Process.run('flutter_rust_bridge_codegen', [
+    '--version',
+  ]);
 
   if (checkResult.exitCode != 0) {
     print('❌ 错误: flutter_rust_bridge_codegen 未安装');
@@ -20,16 +24,15 @@ Future<void> main() async {
   // 运行代码生成
   print('\n🚀 正在生成代码...\n');
 
-  final result = await Process.run(
-    'flutter_rust_bridge_codegen',
-    [
-      'generate',
-      '--rust-input', 'rust/src/api/mod.rs',
-      '--dart-output', 'lib/bridge_generated.dart',
-      '--rust-output', 'rust/src/frb_generated.rs',
-    ],
-    runInShell: true,
-  );
+  final result = await Process.run('flutter_rust_bridge_codegen', [
+    'generate',
+    '--rust-input',
+    'rust/src/api/mod.rs',
+    '--dart-output',
+    'lib/bridge_generated.dart',
+    '--rust-output',
+    'rust/src/frb_generated.rs',
+  ], runInShell: true);
 
   print(result.stdout);
 

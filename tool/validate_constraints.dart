@@ -156,8 +156,11 @@ Future<void> checkRustConstraints() async {
 
   // 检查直接 SQLite 修改
   totalChecks++;
-  final sqliteUpdateFiles =
-      await findPattern(r'execute.*UPDATE.*cards', 'rust/src', '*.rs');
+  final sqliteUpdateFiles = await findPattern(
+    r'execute.*UPDATE.*cards',
+    'rust/src',
+    '*.rs',
+  );
   if (sqliteUpdateFiles.isNotEmpty) {
     printError('发现直接修改 SQLite cards 表 (${sqliteUpdateFiles.length} 处)');
     for (final file in sqliteUpdateFiles.take(5)) {
@@ -192,8 +195,11 @@ Future<void> checkRustConstraints() async {
 
   // 检查 unimplemented!()
   totalChecks++;
-  final unimplementedFiles =
-      await findPattern(r'unimplemented!\(\)', 'rust/src', '*.rs');
+  final unimplementedFiles = await findPattern(
+    r'unimplemented!\(\)',
+    'rust/src',
+    '*.rs',
+  );
   if (unimplementedFiles.isNotEmpty) {
     printError('发现 unimplemented!() 宏 (${unimplementedFiles.length} 处)');
     for (final file in unimplementedFiles.take(5)) {
@@ -296,11 +302,14 @@ Future<void> runRustValidation() async {
   // cargo clippy
   totalChecks++;
   printInfo('运行 cargo clippy...');
-  final clippyResult = await runCommand(
-    'cargo',
-    ['clippy', '--all-targets', '--all-features', '--', '-D', 'warnings'],
-    workingDir: 'rust',
-  );
+  final clippyResult = await runCommand('cargo', [
+    'clippy',
+    '--all-targets',
+    '--all-features',
+    '--',
+    '-D',
+    'warnings',
+  ], workingDir: 'rust');
   if (clippyResult) {
     printSuccess('cargo clippy 通过（0 警告）');
     passedChecks++;
@@ -336,11 +345,12 @@ Future<List<String>> findPattern(
   final results = <String>[];
 
   try {
-    final grepProcess = await Process.run(
-      'grep',
-      ['-rn', pattern, directory, '--include=$filePattern'],
-      runInShell: true,
-    );
+    final grepProcess = await Process.run('grep', [
+      '-rn',
+      pattern,
+      directory,
+      '--include=$filePattern',
+    ], runInShell: true);
 
     if (grepProcess.exitCode == 0) {
       final output = grepProcess.stdout.toString();
@@ -401,7 +411,8 @@ Future<void> logFailure(
   final timestamp = DateTime.now().toString();
   final logFile = File('.project-guardian/failures.log');
 
-  final entry = '''
+  final entry =
+      '''
 
 [$timestamp] [$level] [$operation] [$file]
 描述: $description
@@ -446,9 +457,13 @@ void printHeader(String message) {
 }
 
 void printSection(String message) {
-  print('\n$bold$blue━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
+  print(
+    '\n$bold$blue━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset',
+  );
   print('$bold$blue$message$reset');
-  print('$bold$blue━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset');
+  print(
+    '$bold$blue━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$reset',
+  );
 }
 
 void printInfo(String message) {

@@ -73,7 +73,7 @@ class SyncHistorySection extends StatelessWidget {
             Icon(
               Icons.error_outline,
               size: 48,
-              color: SyncDialogColor.error.withOpacity(0.5),
+              color: SyncDialogColor.error.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(

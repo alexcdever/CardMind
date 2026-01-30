@@ -94,11 +94,11 @@ class SyncStatusSection extends StatelessWidget {
   Color _getBackgroundColor() {
     switch (status.state) {
       case api.SyncState.syncing:
-        return SyncDialogColor.syncing.withOpacity(0.1);
+        return SyncDialogColor.syncing.withValues(alpha: 0.1);
       case api.SyncState.synced:
-        return SyncDialogColor.success.withOpacity(0.1);
+        return SyncDialogColor.success.withValues(alpha: 0.1);
       case api.SyncState.failed:
-        return SyncDialogColor.error.withOpacity(0.1);
+        return SyncDialogColor.error.withValues(alpha: 0.1);
       case api.SyncState.notYetSynced:
         return Colors.transparent;
     }

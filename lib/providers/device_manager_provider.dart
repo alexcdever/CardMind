@@ -180,11 +180,8 @@ class PairingRequestsProvider extends ChangeNotifier {
 
   /// Get a request by ID
   PairingRequest? getRequest(String requestId) {
-    try {
-      return _requests.firstWhere((r) => r.requestId == requestId);
-    } catch (e) {
-      return null;
-    }
+    final matches = _requests.where((r) => r.requestId == requestId);
+    return matches.isEmpty ? null : matches.first;
   }
 
   /// Remove expired requests

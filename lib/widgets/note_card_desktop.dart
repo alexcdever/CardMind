@@ -169,19 +169,19 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: _isHovered
-                            ? theme.colorScheme.primary.withOpacity(0.5)
-                            : theme.dividerColor.withOpacity(0.2),
+                            ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                            : theme.dividerColor.withValues(alpha: 0.2),
                         width: _isHovered ? 2 : 1,
                       ),
                       boxShadow: [
                         if (_isHovered)
                           BoxShadow(
-                            color: theme.shadowColor.withOpacity(0.15),
+                            color: theme.shadowColor.withValues(alpha: 0.15),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
                         BoxShadow(
-                          color: theme.shadowColor.withOpacity(0.08),
+                          color: theme.shadowColor.withValues(alpha: 0.08),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -205,7 +205,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                             // Divider
                             Container(
                               height: 1,
-                              color: theme.dividerColor.withOpacity(0.3),
+                              color: theme.dividerColor.withValues(alpha: 0.3),
                             ),
                             const SizedBox(height: 16),
 
@@ -216,7 +216,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                             // Divider
                             Container(
                               height: 1,
-                              color: theme.dividerColor.withOpacity(0.3),
+                              color: theme.dividerColor.withValues(alpha: 0.3),
                             ),
                             const SizedBox(height: 12),
 
@@ -254,7 +254,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
           Icon(
             Icons.more_horiz,
             size: 16,
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
           ),
         ],
       ],
@@ -265,7 +265,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
     return TextTruncator.buildRichTextPreview(
       widget.card.content,
       style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
         height: 1.5,
       ),
       showOverflowIndicator: true,
@@ -279,7 +279,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
         Text(
           TimeFormatter.formatTime(widget.card.updatedAt),
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
             fontSize: 12,
             fontWeight: FontWeight.w400,
           ),
@@ -313,7 +313,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.color?.withOpacity(0.6),
+                  ).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -332,7 +332,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.color?.withOpacity(0.6),
+                  ).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -351,7 +351,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.color?.withOpacity(0.6),
+                  ).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -370,7 +370,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.color?.withOpacity(0.6),
+                  ).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
                 ),
               ),
             ],

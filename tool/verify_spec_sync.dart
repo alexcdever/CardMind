@@ -12,16 +12,20 @@ import 'package:path/path.dart' as path;
 /// 包括三层检查：覆盖率检查、结构验证、迁移验证
 void main(List<String> arguments) async {
   final parser = ArgParser()
-    ..addOption('scope',
-        abbr: 's',
-        help: 'Scope of verification: all, domain, features',
-        defaultsTo: 'all',
-        allowed: ['all', 'domain', 'features'])
-    ..addOption('module',
-        abbr: 'm', help: 'Verify specific module only (e.g., card_store)')
+    ..addOption(
+      'scope',
+      abbr: 's',
+      help: 'Scope of verification: all, domain, features',
+      defaultsTo: 'all',
+      allowed: ['all', 'domain', 'features'],
+    )
+    ..addOption(
+      'module',
+      abbr: 'm',
+      help: 'Verify specific module only (e.g., card_store)',
+    )
     ..addFlag('help', abbr: 'h', help: 'Show usage help', negatable: false)
-    ..addFlag('verbose',
-        abbr: 'v', help: 'Verbose output', negatable: false);
+    ..addFlag('verbose', abbr: 'v', help: 'Verbose output', negatable: false);
 
   try {
     final results = parser.parse(arguments);
@@ -106,7 +110,10 @@ String? _findProjectRoot() {
   }
 }
 
-Future<void> _generateReports(VerificationReport report, String projectRoot) async {
+Future<void> _generateReports(
+  VerificationReport report,
+  String projectRoot,
+) async {
   // Markdown 报告
   final mdReportPath = path.join(projectRoot, 'SPEC_SYNC_REPORT.md');
   final mdContent = _generateMarkdownReport(report);
@@ -128,7 +135,9 @@ String _generateMarkdownReport(VerificationReport report) {
   buffer.writeln('');
   buffer.writeln('## Summary');
   buffer.writeln('');
-  buffer.writeln('- 覆盖率: ${report.coveragePercentage.toStringAsFixed(1)}% (${report.modulesWithSpecs}/${report.totalModules} 模块有规格)');
+  buffer.writeln(
+    '- 覆盖率: ${report.coveragePercentage.toStringAsFixed(1)}% (${report.modulesWithSpecs}/${report.totalModules} 模块有规格)',
+  );
   buffer.writeln('- Critical 问题: ${report.criticalIssues}');
   buffer.writeln('- Warning 问题: ${report.warningIssues}');
   buffer.writeln('');
@@ -203,8 +212,12 @@ class ConfigLoader {
   ConfigLoader(this.projectRoot);
 
   Map<String, dynamic>? loadOpenSpecConfig() {
-    final configPath =
-        path.join(projectRoot, 'openspec', '.openspec', 'config.json');
+    final configPath = path.join(
+      projectRoot,
+      'openspec',
+      '.openspec',
+      'config.json',
+    );
     final configFile = File(configPath);
 
     if (!configFile.existsSync()) {
@@ -250,7 +263,7 @@ abstract class FileScanner {
 /// Rust 模块扫描器
 class RustScanner extends FileScanner {
   RustScanner(String projectRoot, {bool verbose = false})
-      : super(projectRoot, verbose: verbose);
+    : super(projectRoot, verbose: verbose);
 
   @override
   Future<List<CodeModule>> scan() async {
@@ -262,8 +275,10 @@ class RustScanner extends FileScanner {
       return modules;
     }
 
-    await for (final entity
-        in srcDir.list(recursive: true, followLinks: false)) {
+    await for (final entity in srcDir.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       if (entity is File && entity.path.endsWith('.rs')) {
         if (shouldExclude(entity.path)) {
           continue;
@@ -272,12 +287,14 @@ class RustScanner extends FileScanner {
         final relativePath = path.relative(entity.path, from: projectRoot);
         final moduleName = _extractModuleName(entity.path);
 
-        modules.add(CodeModule(
-          name: moduleName,
-          filePath: relativePath,
-          language: 'rust',
-          type: 'module',
-        ));
+        modules.add(
+          CodeModule(
+            name: moduleName,
+            filePath: relativePath,
+            language: 'rust',
+            type: 'module',
+          ),
+        );
       }
     }
 
@@ -294,7 +311,7 @@ class RustScanner extends FileScanner {
 /// Flutter 组件扫描器
 class FlutterScanner extends FileScanner {
   FlutterScanner(String projectRoot, {bool verbose = false})
-      : super(projectRoot, verbose: verbose);
+    : super(projectRoot, verbose: verbose);
 
   @override
   Future<List<CodeModule>> scan() async {
@@ -326,12 +343,14 @@ class FlutterScanner extends FileScanner {
         final relativePath = path.relative(entity.path, from: projectRoot);
         final componentName = _extractComponentName(entity.path);
 
-        modules.add(CodeModule(
-          name: componentName,
-          filePath: relativePath,
-          language: 'dart',
-          type: 'widget',
-        ));
+        modules.add(
+          CodeModule(
+            name: componentName,
+            filePath: relativePath,
+            language: 'dart',
+            type: 'widget',
+          ),
+        );
       }
     }
   }
@@ -374,8 +393,10 @@ class SpecSyncVerifier {
     return abstractSpecs.contains(basename);
   }
 
-  Future<VerificationReport> verify(
-      {required String scope, String? module}) async {
+  Future<VerificationReport> verify({
+    required String scope,
+    String? module,
+  }) async {
     final report = VerificationReport();
 
     if (verbose) {
@@ -405,7 +426,10 @@ class SpecSyncVerifier {
   }
 
   Future<void> _checkCoverage(
-      VerificationReport report, String scope, String? module) async {
+    VerificationReport report,
+    String scope,
+    String? module,
+  ) async {
     // 扫描代码模块
     final codeModules = <CodeModule>[];
 
@@ -429,7 +453,8 @@ class SpecSyncVerifier {
     // 检查每个模块是否有对应的规格
     for (final codeModule in modulesToCheck) {
       // 跳过基础设施组件（有综合文档覆盖）
-      if (codeModule.language == 'dart' && _isInfrastructureComponent(codeModule.filePath)) {
+      if (codeModule.language == 'dart' &&
+          _isInfrastructureComponent(codeModule.filePath)) {
         report.modulesWithSpecs++; // 视为已有规格（综合文档）
         continue;
       }
@@ -440,14 +465,15 @@ class SpecSyncVerifier {
         report.modulesWithSpecs++;
       } else {
         // 缺失规格
-        final priority =
-            codeModule.language == 'rust' ? 'CRITICAL' : 'WARNING';
-        report.missingSpecs.add(Issue(
-          priority: priority,
-          description: '${codeModule.filePath} → 缺少规格文档',
-          filePath: codeModule.filePath,
-          recommendation: '在 ${_getExpectedSpecLocation(codeModule)} 创建规格文档',
-        ));
+        final priority = codeModule.language == 'rust' ? 'CRITICAL' : 'WARNING';
+        report.missingSpecs.add(
+          Issue(
+            priority: priority,
+            description: '${codeModule.filePath} → 缺少规格文档',
+            filePath: codeModule.filePath,
+            recommendation: '在 ${_getExpectedSpecLocation(codeModule)} 创建规格文档',
+          ),
+        );
       }
     }
 
@@ -458,18 +484,32 @@ class SpecSyncVerifier {
   String? _findSpecForModule(CodeModule module) {
     if (module.language == 'rust') {
       // Rust 模块映射到 domain/ 或 api/
-      final domainPath = path.join(projectRoot, 'openspec', 'specs', 'domain', '${module.name}.md');
+      final domainPath = path.join(
+        projectRoot,
+        'openspec',
+        'specs',
+        'domain',
+        '${module.name}.md',
+      );
       if (File(domainPath).existsSync()) {
         return domainPath;
       }
-      final apiPath = path.join(projectRoot, 'openspec', 'specs', 'api', 'api_spec.md');
+      final apiPath = path.join(
+        projectRoot,
+        'openspec',
+        'specs',
+        'api',
+        'api_spec.md',
+      );
       if (File(apiPath).existsSync()) {
         return apiPath;
       }
     } else {
       // Flutter 组件需要在 features/ 和 ui_system/ 的子目录中递归查找
       // 先尝试 features 目录
-      final featuresDir = Directory(path.join(projectRoot, 'openspec', 'specs', 'features'));
+      final featuresDir = Directory(
+        path.join(projectRoot, 'openspec', 'specs', 'features'),
+      );
       if (featuresDir.existsSync()) {
         final foundInFeatures = _findSpecInDirectory(featuresDir, module.name);
         if (foundInFeatures != null) {
@@ -478,7 +518,9 @@ class SpecSyncVerifier {
       }
 
       // 再尝试 ui_system 目录
-      final uiSystemDir = Directory(path.join(projectRoot, 'openspec', 'specs', 'ui_system'));
+      final uiSystemDir = Directory(
+        path.join(projectRoot, 'openspec', 'specs', 'ui_system'),
+      );
       if (uiSystemDir.existsSync()) {
         final foundInUiSystem = _findSpecInDirectory(uiSystemDir, module.name);
         if (foundInUiSystem != null) {
@@ -518,7 +560,9 @@ class SpecSyncVerifier {
   }
 
   Future<void> _checkOrphanedSpecs(
-      VerificationReport report, List<CodeModule> codeModules) async {
+    VerificationReport report,
+    List<CodeModule> codeModules,
+  ) async {
     final specDirs = [
       path.join(projectRoot, 'openspec', 'specs', 'domain'),
       path.join(projectRoot, 'openspec', 'specs', 'api'),
@@ -532,8 +576,10 @@ class SpecSyncVerifier {
       final specDir = Directory(specDirPath);
       if (!specDir.existsSync()) continue;
 
-      await for (final entity
-          in specDir.list(recursive: true, followLinks: false)) {
+      await for (final entity in specDir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         if (entity is File && entity.path.endsWith('.md')) {
           final specName = path.basenameWithoutExtension(entity.path);
 
@@ -550,20 +596,23 @@ class SpecSyncVerifier {
           }
 
           // 跳过旧平台特定规格（这些已被新的领域驱动规格取代）
-          if (specName == 'desktop' || specName == 'mobile' || specName == 'shared') {
+          if (specName == 'desktop' ||
+              specName == 'mobile' ||
+              specName == 'shared') {
             continue;
           }
 
           // 检查是否有对应的代码模块
           if (!codeModuleNames.contains(specName)) {
-            final relativePath =
-                path.relative(entity.path, from: projectRoot);
-            report.orphanedSpecs.add(Issue(
-              priority: 'WARNING',
-              description: '$relativePath → 未找到对应的代码实现',
-              filePath: relativePath,
-              recommendation: '确认是否需要删除或归档此规格',
-            ));
+            final relativePath = path.relative(entity.path, from: projectRoot);
+            report.orphanedSpecs.add(
+              Issue(
+                priority: 'WARNING',
+                description: '$relativePath → 未找到对应的代码实现',
+                filePath: relativePath,
+                recommendation: '确认是否需要删除或归档此规格',
+              ),
+            );
           }
         }
       }
@@ -574,16 +623,20 @@ class SpecSyncVerifier {
     // 检查规格文档结构
     final specsDir = Directory(path.join(projectRoot, 'openspec', 'specs'));
     if (!specsDir.existsSync()) {
-      report.structureIssues.add(Issue(
-        priority: 'CRITICAL',
-        description: 'openspec/specs/ 目录不存在',
-        recommendation: '创建规格目录结构',
-      ));
+      report.structureIssues.add(
+        Issue(
+          priority: 'CRITICAL',
+          description: 'openspec/specs/ 目录不存在',
+          recommendation: '创建规格目录结构',
+        ),
+      );
       return;
     }
 
-    await for (final entity
-        in specsDir.list(recursive: true, followLinks: false)) {
+    await for (final entity in specsDir.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       if (entity is File && entity.path.endsWith('.md')) {
         await _validateSpecStructure(entity.path, report);
       }
@@ -591,7 +644,9 @@ class SpecSyncVerifier {
   }
 
   Future<void> _validateSpecStructure(
-      String specPath, VerificationReport report) async {
+    String specPath,
+    VerificationReport report,
+  ) async {
     final relativePath = path.relative(specPath, from: projectRoot);
 
     // 跳过已废弃目录的验证（这些是旧规格，已标记 DEPRECATED）
@@ -609,48 +664,57 @@ class SpecSyncVerifier {
     if (basename.contains(RegExp(r'[A-Z]')) &&
         basename != 'README' &&
         basename != 'DEPRECATED') {
-      report.structureIssues.add(Issue(
-        priority: 'WARNING',
-        description: '$relativePath → 文件名应使用 snake_case',
-        filePath: relativePath,
-        recommendation: '重命名为 ${basename.toLowerCase()}.md',
-      ));
+      report.structureIssues.add(
+        Issue(
+          priority: 'WARNING',
+          description: '$relativePath → 文件名应使用 snake_case',
+          filePath: relativePath,
+          recommendation: '重命名为 ${basename.toLowerCase()}.md',
+        ),
+      );
     }
 
     // 检查技术栈前缀
     if (basename.startsWith('rust_') || basename.startsWith('flutter_')) {
-      report.structureIssues.add(Issue(
-        priority: 'WARNING',
-        description: '$relativePath → 文件名不应包含技术栈前缀',
-        filePath: relativePath,
-        recommendation: '移除 rust_/flutter_ 前缀',
-      ));
+      report.structureIssues.add(
+        Issue(
+          priority: 'WARNING',
+          description: '$relativePath → 文件名不应包含技术栈前缀',
+          filePath: relativePath,
+          recommendation: '移除 rust_/flutter_ 前缀',
+        ),
+      );
     }
 
     // 检查必需章节（简化版）
-    final hasRequirements = content.contains('## ADDED Requirements') ||
+    final hasRequirements =
+        content.contains('## ADDED Requirements') ||
         content.contains('## Requirements') ||
         content.contains('### Requirement');
 
     // 豁免某些文档类型的 Requirements 检查
-    final isExemptFromRequirements = relativePath.contains('README') ||
+    final isExemptFromRequirements =
+        relativePath.contains('README') ||
         relativePath.contains('DEPRECATED') ||
         relativePath.contains('/engineering/') || // 工程实践文档
         basename.endsWith('_guide') || // 指南文档
         basename.endsWith('_summary') || // 总结文档
         basename.contains('GUIDE') || // 大写指南
         basename.contains('SUMMARY') || // 大写总结
-        relativePath.contains('/domain/') && _isAbstractSpec(basename) || // 抽象领域规格
+        relativePath.contains('/domain/') &&
+            _isAbstractSpec(basename) || // 抽象领域规格
         relativePath.contains('/api/') || // API 规范
         relativePath.contains('/ui_system/'); // UI 系统文档
 
     if (!hasRequirements && !isExemptFromRequirements) {
-      report.structureIssues.add(Issue(
-        priority: 'WARNING',
-        description: '$relativePath → 缺少 Requirements 章节',
-        filePath: relativePath,
-        recommendation: '添加 Requirements 章节定义需求',
-      ));
+      report.structureIssues.add(
+        Issue(
+          priority: 'WARNING',
+          description: '$relativePath → 缺少 Requirements 章节',
+          filePath: relativePath,
+          recommendation: '添加 Requirements 章节定义需求',
+        ),
+      );
     }
 
     // 3.2 检查规格依赖关系（Referenced specs）
@@ -661,7 +725,11 @@ class SpecSyncVerifier {
   }
 
   Future<void> _checkSpecDependencies(
-      String specPath, String content, String relativePath, VerificationReport report) async {
+    String specPath,
+    String content,
+    String relativePath,
+    VerificationReport report,
+  ) async {
     // 查找 "See:" 或 "参考：" 或 "Referenced specs:" 等模式
     final referencePatterns = [
       RegExp(r'See:\s+([a-z_/]+\.md)', multiLine: true),
@@ -678,19 +746,27 @@ class SpecSyncVerifier {
 
         // 检查引用的规格是否存在
         final referencedPath = path.join(
-            path.dirname(specPath),
-            referencedSpec);
+          path.dirname(specPath),
+          referencedSpec,
+        );
 
         if (!File(referencedPath).existsSync()) {
           // 尝试从 specs 根目录查找
-          final rootPath = path.join(projectRoot, 'openspec', 'specs', referencedSpec);
+          final rootPath = path.join(
+            projectRoot,
+            'openspec',
+            'specs',
+            referencedSpec,
+          );
           if (!File(rootPath).existsSync()) {
-            report.structureIssues.add(Issue(
-              priority: 'WARNING',
-              description: '$relativePath → 引用的规格不存在: $referencedSpec',
-              filePath: relativePath,
-              recommendation: '检查引用路径或创建缺失的规格文档',
-            ));
+            report.structureIssues.add(
+              Issue(
+                priority: 'WARNING',
+                description: '$relativePath → 引用的规格不存在: $referencedSpec',
+                filePath: relativePath,
+                recommendation: '检查引用路径或创建缺失的规格文档',
+              ),
+            );
           }
         }
       }
@@ -698,7 +774,11 @@ class SpecSyncVerifier {
   }
 
   Future<void> _checkCrossSpecReferences(
-      String specPath, String content, String relativePath, VerificationReport report) async {
+    String specPath,
+    String content,
+    String relativePath,
+    VerificationReport report,
+  ) async {
     // 豁免某些文档类型的旧引用检查（这些文档需要引用旧位置作为迁移映射）
     if (relativePath.contains('directory_conventions.md') ||
         relativePath.contains('DEPRECATED.md')) {
@@ -716,12 +796,14 @@ class SpecSyncVerifier {
     // 检查引用到旧位置的问题（rust/*, flutter/*）
     if (content.contains(RegExp(r'\brust/[a-z_]+\.md')) ||
         content.contains(RegExp(r'\bflutter/[a-z_]+\.md'))) {
-      report.structureIssues.add(Issue(
-        priority: 'WARNING',
-        description: '$relativePath → 引用了旧的规格位置 (rust/*, flutter/*)',
-        filePath: relativePath,
-        recommendation: '更新引用到新的领域驱动结构路径',
-      ));
+      report.structureIssues.add(
+        Issue(
+          priority: 'WARNING',
+          description: '$relativePath → 引用了旧的规格位置 (rust/*, flutter/*)',
+          filePath: relativePath,
+          recommendation: '更新引用到新的领域驱动结构路径',
+        ),
+      );
     }
   }
 
@@ -738,11 +820,13 @@ class SpecSyncVerifier {
     for (final dirPath in requiredDirs) {
       final dir = Directory(path.join(projectRoot, dirPath));
       if (!dir.existsSync()) {
-        report.migrationIssues.add(Issue(
-          priority: 'CRITICAL',
-          description: '$dirPath 目录缺失',
-          recommendation: '创建领域驱动结构目录',
-        ));
+        report.migrationIssues.add(
+          Issue(
+            priority: 'CRITICAL',
+            description: '$dirPath 目录缺失',
+            recommendation: '创建领域驱动结构目录',
+          ),
+        );
       }
     }
 
@@ -755,11 +839,13 @@ class SpecSyncVerifier {
     for (final filePath in deprecatedFiles) {
       final file = File(path.join(projectRoot, filePath));
       if (!file.existsSync()) {
-        report.migrationIssues.add(Issue(
-          priority: 'WARNING',
-          description: '$filePath 不存在',
-          recommendation: '添加 DEPRECATED 标记文件',
-        ));
+        report.migrationIssues.add(
+          Issue(
+            priority: 'WARNING',
+            description: '$filePath 不存在',
+            recommendation: '添加 DEPRECATED 标记文件',
+          ),
+        );
       } else {
         // 4.3 验证迁移映射文档内容
         await _validateMigrationMapping(file, filePath, report);
@@ -771,7 +857,10 @@ class SpecSyncVerifier {
   }
 
   Future<void> _validateMigrationMapping(
-      File deprecatedFile, String filePath, VerificationReport report) async {
+    File deprecatedFile,
+    String filePath,
+    VerificationReport report,
+  ) async {
     final content = await deprecatedFile.readAsString();
 
     // 检查是否包含迁移映射信息
@@ -780,32 +869,42 @@ class SpecSyncVerifier {
     // 2. 旧规格到新规格的映射（→ 或 ->）
     // 3. 表格形式的映射
 
-    final hasMigrationHeader = content.contains(RegExp(r'##\s*(迁移|Migration)', multiLine: true));
+    final hasMigrationHeader = content.contains(
+      RegExp(r'##\s*(迁移|Migration)', multiLine: true),
+    );
     final hasMappingArrows = content.contains('→') || content.contains('->');
-    final hasTableMapping = content.contains('|') &&
-                           (content.contains('旧位置') || content.contains('Old Location') ||
-                            content.contains('新位置') || content.contains('New Location'));
+    final hasTableMapping =
+        content.contains('|') &&
+        (content.contains('旧位置') ||
+            content.contains('Old Location') ||
+            content.contains('新位置') ||
+            content.contains('New Location'));
 
     if (!hasMigrationHeader && !hasMappingArrows && !hasTableMapping) {
-      report.migrationIssues.add(Issue(
-        priority: 'WARNING',
-        description: '$filePath → 缺少迁移映射说明',
-        filePath: filePath,
-        recommendation: '添加旧规格到新规格的迁移映射文档（使用表格或箭头标记）',
-      ));
+      report.migrationIssues.add(
+        Issue(
+          priority: 'WARNING',
+          description: '$filePath → 缺少迁移映射说明',
+          filePath: filePath,
+          recommendation: '添加旧规格到新规格的迁移映射文档（使用表格或箭头标记）',
+        ),
+      );
       return;
     }
 
     // 如果有迁移信息，检查是否包含足够的映射条目
     // 简单启发式：至少应该有 3 个映射（→ 或 -> 出现次数）
-    final arrowCount = '→'.allMatches(content).length + '->'.allMatches(content).length;
+    final arrowCount =
+        '→'.allMatches(content).length + '->'.allMatches(content).length;
     if (arrowCount < 3 && !hasTableMapping) {
-      report.migrationIssues.add(Issue(
-        priority: 'WARNING',
-        description: '$filePath → 迁移映射条目较少（发现 $arrowCount 个映射）',
-        filePath: filePath,
-        recommendation: '补充完整的旧规格到新规格的迁移映射',
-      ));
+      report.migrationIssues.add(
+        Issue(
+          priority: 'WARNING',
+          description: '$filePath → 迁移映射条目较少（发现 $arrowCount 个映射）',
+          filePath: filePath,
+          recommendation: '补充完整的旧规格到新规格的迁移映射',
+        ),
+      );
     }
   }
 
@@ -813,8 +912,10 @@ class SpecSyncVerifier {
     final specsDir = Directory(path.join(projectRoot, 'openspec', 'specs'));
     if (!specsDir.existsSync()) return;
 
-    await for (final entity
-        in specsDir.list(recursive: true, followLinks: false)) {
+    await for (final entity in specsDir.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       if (entity is File && entity.path.endsWith('.md')) {
         // 跳过旧目录本身
         if (entity.path.contains('/rust/') ||
@@ -842,12 +943,14 @@ class SpecSyncVerifier {
         // 检查是否引用旧位置
         if (content.contains(RegExp(r'\brust/[a-z_]+\.md')) ||
             content.contains(RegExp(r'\bflutter/[a-z_]+\.md'))) {
-          report.migrationIssues.add(Issue(
-            priority: 'WARNING',
-            description: '$relativePath → 引用了旧的规格位置 (rust/*, flutter/*)',
-            filePath: relativePath,
-            recommendation: '更新引用到新的领域驱动结构路径',
-          ));
+          report.migrationIssues.add(
+            Issue(
+              priority: 'WARNING',
+              description: '$relativePath → 引用了旧的规格位置 (rust/*, flutter/*)',
+              filePath: relativePath,
+              recommendation: '更新引用到新的领域驱动结构路径',
+            ),
+          );
         }
       }
     }
@@ -881,27 +984,29 @@ class VerificationReport {
   List<Issue> structureIssues = [];
   List<Issue> migrationIssues = [];
 
-  int get criticalIssues => missingSpecs.where((i) => i.priority == 'CRITICAL').length +
+  int get criticalIssues =>
+      missingSpecs.where((i) => i.priority == 'CRITICAL').length +
       orphanedSpecs.where((i) => i.priority == 'CRITICAL').length +
       structureIssues.where((i) => i.priority == 'CRITICAL').length +
       migrationIssues.where((i) => i.priority == 'CRITICAL').length;
 
-  int get warningIssues => missingSpecs.where((i) => i.priority == 'WARNING').length +
+  int get warningIssues =>
+      missingSpecs.where((i) => i.priority == 'WARNING').length +
       orphanedSpecs.where((i) => i.priority == 'WARNING').length +
       structureIssues.where((i) => i.priority == 'WARNING').length +
       migrationIssues.where((i) => i.priority == 'WARNING').length;
 
   Map<String, dynamic> toJson() => {
-        'totalModules': totalModules,
-        'modulesWithSpecs': modulesWithSpecs,
-        'coveragePercentage': coveragePercentage,
-        'missingSpecs': missingSpecs.map((i) => i.toJson()).toList(),
-        'orphanedSpecs': orphanedSpecs.map((i) => i.toJson()).toList(),
-        'structureIssues': structureIssues.map((i) => i.toJson()).toList(),
-        'migrationIssues': migrationIssues.map((i) => i.toJson()).toList(),
-        'criticalIssues': criticalIssues,
-        'warningIssues': warningIssues,
-      };
+    'totalModules': totalModules,
+    'modulesWithSpecs': modulesWithSpecs,
+    'coveragePercentage': coveragePercentage,
+    'missingSpecs': missingSpecs.map((i) => i.toJson()).toList(),
+    'orphanedSpecs': orphanedSpecs.map((i) => i.toJson()).toList(),
+    'structureIssues': structureIssues.map((i) => i.toJson()).toList(),
+    'migrationIssues': migrationIssues.map((i) => i.toJson()).toList(),
+    'criticalIssues': criticalIssues,
+    'warningIssues': warningIssues,
+  };
 }
 
 /// 问题记录
@@ -919,9 +1024,9 @@ class Issue {
   });
 
   Map<String, dynamic> toJson() => {
-        'priority': priority,
-        'description': description,
-        if (filePath != null) 'filePath': filePath,
-        if (recommendation != null) 'recommendation': recommendation,
-      };
+    'priority': priority,
+    'description': description,
+    if (filePath != null) 'filePath': filePath,
+    if (recommendation != null) 'recommendation': recommendation,
+  };
 }

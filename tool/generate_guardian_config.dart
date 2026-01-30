@@ -101,8 +101,14 @@ String promptProjectType() {
 }
 
 bool isValidProjectType(String type) {
-  return ['rust', 'dart', 'flutter', 'flutter-rust', 'python', 'nodejs']
-      .contains(type);
+  return [
+    'rust',
+    'dart',
+    'flutter',
+    'flutter-rust',
+    'python',
+    'nodejs',
+  ].contains(type);
 }
 
 String generateConfig(String projectType) {

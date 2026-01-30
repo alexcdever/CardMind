@@ -76,7 +76,7 @@ class _EditDeviceNameDialogState extends State<EditDeviceNameDialog> {
       if (mounted) {
         Navigator.of(context).pop();
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         setState(() {
           _errorMessage = '保存失败：$e';

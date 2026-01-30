@@ -129,7 +129,7 @@ class _MobileDeviceManagerPageState extends State<MobileDeviceManagerPage> {
           Icon(
             Icons.wifi_off,
             size: 64,
-            color: theme.colorScheme.outline.withOpacity(0.5),
+            color: theme.colorScheme.outline.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 8),
           Text(
@@ -155,7 +155,7 @@ class _MobileDeviceManagerPageState extends State<MobileDeviceManagerPage> {
     final theme = Theme.of(context);
 
     return Container(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Center(
         child: Card(
           margin: const EdgeInsets.all(24),

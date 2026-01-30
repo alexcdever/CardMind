@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -301,11 +303,13 @@ void main() {
 
                       // 导航到主页
                       if (pairingSuccess) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute<void>(
-                            builder: (_) =>
-                                const Scaffold(body: Text('Home Screen')),
+                        unawaited(
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  const Scaffold(body: Text('Home Screen')),
+                            ),
                           ),
                         );
                       }
@@ -1036,11 +1040,13 @@ void main() {
                           );
 
                           // 导航到初始化页面
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute<void>(
-                              builder: (_) => const Scaffold(
-                                body: Center(child: Text('Onboarding Screen')),
+                          unawaited(
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => const Scaffold(
+                                  body: Center(child: Text('Onboarding Screen')),
+                                ),
                               ),
                             ),
                           );

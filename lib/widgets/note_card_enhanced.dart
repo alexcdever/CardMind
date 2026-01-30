@@ -386,7 +386,7 @@ class _NoteCardState extends State<NoteCard> {
                           _formattedUpdateTime,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.textTheme.bodySmall?.color
-                                ?.withOpacity(0.7),
+                                ?.withValues(alpha: 0.7),
                           ),
                         ),
 
@@ -409,7 +409,7 @@ class _NoteCardState extends State<NoteCard> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: theme.colorScheme.primary
-                                              .withOpacity(0.1),
+                                              .withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(
                                             4,
                                           ),

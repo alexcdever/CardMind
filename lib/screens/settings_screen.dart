@@ -154,15 +154,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       if (filePath != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('数据已导出到: $filePath')));
+        }
+      }
+    } on Exception catch (e) {
+      if (!mounted) return;
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('数据已导出到: $filePath')));
+        ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
       }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
     } finally {
       if (mounted) {
         setState(() => _isExporting = false);
@@ -181,20 +185,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (count != null) {
         // 刷新卡片列表
-        final cardProvider = context.read<CardProvider>();
-        await cardProvider.loadCards();
+        if (mounted) {
+          final cardProvider = context.read<CardProvider>();
+          await cardProvider.loadCards();
+        }
 
         if (!mounted) return;
 
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('成功导入 $count 张卡片')));
+        }
+      }
+    } on Exception catch (e) {
+      if (!mounted) return;
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('成功导入 $count 张卡片')));
+        ).showSnackBar(SnackBar(content: Text('导入失败: $e')));
       }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('导入失败: $e')));
     } finally {
       if (mounted) {
         setState(() => _isImporting = false);
@@ -209,11 +219,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final settingsProvider = context.read<SettingsProvider>();
       await settingsProvider.setSyncNotificationEnabled(value);
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('设置失败: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('设置失败: $e')));
+      }
     }
   }
 
@@ -467,9 +479,10 @@ class _AboutTile extends StatelessWidget {
     final appInfoProvider = context.read<AppInfoProvider>();
     final appInfo = appInfoProvider.appInfo;
 
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
+    unawaited(
+      showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
         title: Row(
           children: [
             const Icon(Icons.card_membership, size: 32),

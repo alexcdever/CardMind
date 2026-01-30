@@ -70,7 +70,7 @@ Future<Map<String, int>> countSpecFiles() async {
 
   final rust = await countMarkdownFiles(rustDir);
   final flutter = await countMarkdownFiles(flutterDir);
-  
+
   // 统计平台自适应规格
   int adaptive = 0;
   final adaptiveDirs = [
@@ -80,7 +80,7 @@ Future<Map<String, int>> countSpecFiles() async {
     'mobile-ui-patterns',
     'desktop-ui-patterns',
   ];
-  
+
   for (final dir in adaptiveDirs) {
     final dirPath = Directory('openspec/specs/$dir');
     if (await dirPath.exists()) {
@@ -98,7 +98,7 @@ Future<Map<String, int>> countSpecFiles() async {
 
 Future<int> countDartFiles(Directory dir) async {
   if (!await dir.exists()) return 0;
-  
+
   return await dir
       .list(recursive: false)
       .where((entity) => entity is File && entity.path.endsWith('.dart'))
@@ -107,10 +107,15 @@ Future<int> countDartFiles(Directory dir) async {
 
 Future<int> countMarkdownFiles(Directory dir) async {
   if (!await dir.exists()) return 0;
-  
+
   return await dir
       .list(recursive: false)
-      .where((entity) => entity is File && entity.path.endsWith('.md') && !entity.path.endsWith('README.md'))
+      .where(
+        (entity) =>
+            entity is File &&
+            entity.path.endsWith('.md') &&
+            !entity.path.endsWith('README.md'),
+      )
       .length;
 }
 
@@ -136,7 +141,7 @@ Future<void> generateReport(
   Map<String, double> coverage,
 ) async {
   final report = StringBuffer();
-  
+
   report.writeln('# Test Coverage Report');
   report.writeln('');
   report.writeln('Generated: ${DateTime.now().toIso8601String()}');

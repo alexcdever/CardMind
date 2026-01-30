@@ -59,7 +59,7 @@ class DeviceDiscoveryService {
       });
 
       _isStarted = true;
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception('Failed to start mDNS discovery: $e');
     }
   }
@@ -110,7 +110,7 @@ class DeviceDiscoveryService {
           _stateChangeController.add(event);
         }
       }
-    } catch (e) {
+    } on Exception catch (e) {
       // 忽略轮询错误，继续下一次轮询
     }
   }
@@ -130,7 +130,7 @@ class DeviceDiscoveryService {
       mdns_api.stopMdnsDiscovery();
 
       _isStarted = false;
-    } catch (e) {
+    } on Exception catch (e) {
       throw Exception('Failed to stop mDNS discovery: $e');
     }
   }

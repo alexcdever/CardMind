@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print, avoid_catches_without_on_clauses
+
 import 'dart:io';
 
 import 'package:cardmind/services/qr_code_parser.dart';

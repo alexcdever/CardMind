@@ -1,0 +1,2093 @@
+
+[1m[34m============================================================
+  CardMind Lint Fixer + Spec Coding Validator
+============================================================[0m
+
+
+[1m[33m━━━ Processing Flutter/Dart Code ━━━[0m
+
+
+[1mRunning dart format...[0m
+[34m  → Running: dart format --set-exit-if-changed --output=none .[0m
+Changed lib/adaptive/adaptive_builder.dart
+Changed lib/adaptive/keyboard_shortcuts.dart
+Changed lib/adaptive/layouts/adaptive_scaffold.dart
+Changed lib/adaptive/layouts/desktop_layout.dart
+Changed lib/adaptive/layouts/mobile_layout.dart
+Changed lib/adaptive/layouts/three_column_layout.dart
+Changed lib/adaptive/navigation/adaptive_navigation.dart
+Changed lib/adaptive/navigation/desktop_navigation.dart
+Changed lib/adaptive/navigation/mobile_navigation.dart
+Changed lib/adaptive/typography/adaptive_text.dart
+Changed lib/adaptive/widgets/adaptive_button.dart
+Changed lib/adaptive/widgets/adaptive_list_item.dart
+Changed lib/adaptive/widgets/touch_target.dart
+Changed lib/main.dart
+Changed lib/models/app_info.dart
+Changed lib/models/device.dart
+Changed lib/models/pairing_request.dart
+Changed lib/models/sync_status.dart
+Changed lib/providers/card_editor_state.dart
+Changed lib/providers/card_provider.dart
+Changed lib/providers/sync_provider.dart
+Changed lib/providers/theme_provider.dart
+Changed lib/screens/card_detail_screen.dart
+Changed lib/screens/card_edit_dialog.dart
+Changed lib/screens/home_screen.dart
+Changed lib/screens/settings_screen.dart
+Changed lib/screens/sync_screen.dart
+Changed lib/services/card_api_interface.dart
+Changed lib/services/card_service.dart
+Changed lib/services/device_discovery_service.dart
+Changed lib/services/qr_code_generator.dart
+Changed lib/services/qr_code_parser.dart
+Changed lib/services/verification_code_service.dart
+Changed lib/theme/app_theme.dart
+Changed lib/utils/snackbar_utils.dart
+Changed lib/utils/time_formatter.dart
+Changed lib/widgets/card_list_item.dart
+Changed lib/widgets/device_manager_panel.dart
+Changed lib/widgets/dialogs/export_confirm_dialog.dart
+Changed lib/widgets/dialogs/import_confirm_dialog.dart
+Changed lib/widgets/fullscreen_editor.dart
+Changed lib/widgets/note_editor_fullscreen.dart
+Changed lib/widgets/pair_device_dialog.dart
+Changed lib/widgets/qr_code_scanner_tab.dart
+Changed lib/widgets/qr_code_upload_tab.dart
+Changed lib/widgets/settings/button_setting_item.dart
+Changed lib/widgets/settings/info_setting_item.dart
+Changed lib/widgets/settings/toggle_setting_item.dart
+Changed lib/widgets/settings_panel.dart
+Changed lib/widgets/sync_details_dialog.dart
+Changed lib/widgets/sync_details_dialog/components/device_list_item.dart
+Changed lib/widgets/sync_details_dialog/components/empty_state_widget.dart
+Changed lib/widgets/sync_details_dialog/components/statistic_item.dart
+Changed lib/widgets/sync_details_dialog/components/sync_history_item.dart
+Changed lib/widgets/sync_details_dialog/components/sync_status_icon.dart
+Changed lib/widgets/sync_details_dialog/sections/device_list_section.dart
+Changed lib/widgets/sync_details_dialog/sections/sync_history_section.dart
+Changed lib/widgets/sync_details_dialog/sections/sync_statistics_section.dart
+Changed lib/widgets/sync_details_dialog/sections/sync_status_section.dart
+Changed lib/widgets/sync_status_indicator.dart
+Changed lib/widgets/verification_code_dialog.dart
+Changed lib/widgets/verification_code_input.dart
+Changed rust/tool/generate_bridge.dart
+Changed test/accessibility/settings_accessibility_test.dart
+Changed test/helpers/mock_utils.dart
+Changed test/helpers/test_app.dart
+Changed test/mobile_nav_widget_test.dart
+Changed test/models/device_test.dart
+Changed test/models/sync_status_test.dart
+Changed test/performance/note_card_performance_test.dart
+Changed test/performance/note_editor_fullscreen_performance_test.dart
+Changed test/performance/settings_performance_test.dart
+Changed test/qr_code_parser_test.dart
+Changed test/services/qr_code_generator_test.dart
+Changed test/services/verification_code_service_test.dart
+Changed test/specs/fullscreen_editor_spec_test.dart
+Changed test/specs/home_screen_spec_test.dart
+Changed test/specs/onboarding_spec_test.dart
+Changed test/specs/ui_interaction_spec_test.dart
+Changed test/widgets/note_card_enhanced_test.dart
+Changed test/widgets/note_card_test.dart
+Changed test/widgets/note_editor_fullscreen_test.dart
+Changed test/widgets/note_editor_fullscreen_unit_test.dart
+Changed test/widgets/settings_components_test.dart
+Changed test/widgets/settings_edge_case_test.dart
+Changed test/widgets/settings_interaction_test.dart
+Changed test/widgets/sync_details_dialog/sync_details_dialog_widget_test.dart
+Changed test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart
+Changed tool/build_all.dart
+Changed tool/check_markdown_links.dart
+Changed tool/generate_guardian_config.dart
+Changed tool/guardian_stats.dart
+Changed tool/run.dart
+Changed tool/run_tests.dart
+Changed tool/test_coverage_tracker.dart
+Changed tool/validate_constraints.dart
+Changed tool/validate_test_spec_mapping.dart
+Changed tool/verify_spec_mapping.dart
+Changed tool/verify_spec_sync.dart
+Formatted 207 files (99 changed) in 0.94 seconds.
+[33m⚠ Code formatting issues found. Run without --check-only to fix.[0m
+
+[1mRunning flutter analyze...[0m
+[34m  → Running: flutter analyze[0m
+Analyzing CardMind...                                           
+
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/main.dart:115:9 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/main.dart:126:9 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/providers/device_manager_provider.dart:185:7 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/providers/settings_provider.dart:17:7 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/device_manager_page.dart:114:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/device_manager_page.dart:340:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/home_screen.dart:284:46 • deprecated_member_use
+   info • Closure should be a tearoff • lib/screens/home_screen.dart:419:33 • unnecessary_lambdas
+   info • Closure should be a tearoff • lib/screens/home_screen.dart:523:31 • unnecessary_lambdas
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/mobile_device_manager_page.dart:132:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/mobile_device_manager_page.dart:158:27 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:157:30 • use_build_context_synchronously
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/settings_screen.dart:161:7 • avoid_catches_without_on_clauses
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:163:28 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:184:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:189:30 • use_build_context_synchronously
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/settings_screen.dart:193:7 • avoid_catches_without_on_clauses
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:195:28 • use_build_context_synchronously
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/settings_screen.dart:212:7 • avoid_catches_without_on_clauses
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:214:28 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/settings_screen.dart:460:5 • unawaited_futures
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/services/device_discovery_service.dart:108:7 • avoid_catches_without_on_clauses
+   info • Unnecessary duplication of receiver • lib/utils/device_utils.dart:15:5 • cascade_invocations
+   info • Unnecessary duplication of receiver • lib/utils/text_truncator.dart:95:5 • cascade_invocations
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/current_device_card.dart:104:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/current_device_card.dart:106:48 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/widgets/device_list_item.dart:142:27 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/device_list_item.dart:343:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/device_manager_panel.dart:117:59 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/device_manager_panel.dart:120:52 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/edit_device_name_dialog.dart:79:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:172:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:173:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:179:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:184:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:208:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:219:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:257:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:268:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:282:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:316:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:335:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:354:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:373:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_enhanced.dart:389:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_enhanced.dart:412:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:91:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:96:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:140:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:153:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/pair_device_dialog.dart:151:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/pair_device_dialog.dart:176:69 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/pair_device_dialog.dart:261:11 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/pair_device_dialog.dart:266:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/pair_device_dialog.dart:279:61 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_scanner_tab.dart:124:7 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_scanner_tab.dart:167:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_scanner_tab.dart:351:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_scanner_tab.dart:407:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_scanner_tab.dart:495:27 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_upload_tab.dart:108:7 • avoid_catches_without_on_clauses
+   info • Use of an async 'dart:io' method • lib/widgets/qr_code_upload_tab.dart:161:18 • avoid_slow_async_io
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_upload_tab.dart:199:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_upload_tab.dart:302:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_upload_tab.dart:303:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_upload_tab.dart:433:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/components/device_list_item.dart:130:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/components/empty_state_widget.dart:38:52 • deprecated_member_use
+   info • Unnecessary duplication of receiver • lib/widgets/sync_details_dialog/components/sync_status_icon.dart:62:7 • cascade_invocations
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/device_list_section.dart:82:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_history_section.dart:82:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_statistics_section.dart:77:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_status_section.dart:106:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_status_section.dart:108:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_status_section.dart:110:38 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/widgets/verification_code_dialog.dart:53:24 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/widgets/verification_code_dialog.dart:56:24 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/verification_code_dialog.dart:133:46 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/verification_code_input.dart:310:7 • avoid_catches_without_on_clauses
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:7:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:13:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:14:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:18:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:21:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:34:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:37:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:38:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:42:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/debug_semantics.dart:29:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/debug_semantics.dart:35:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:18:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:52:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:53:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:56:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:59:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:60:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:61:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:62:5 • avoid_print
+   info • Catch clause should use 'on' to specify the type of exception being caught • test/generate_test_qr_v3.dart:63:5 • avoid_catches_without_on_clauses
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:64:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:22:7 • avoid_print
+   info • Catch clause should use 'on' to specify the type of exception being caught • test/helpers/integration_test_helper.dart:23:7 • avoid_catches_without_on_clauses
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:24:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:25:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:49:7 • avoid_print
+   info • Setter has no corresponding getter • test/helpers/mock_card_service.dart:25:7 • avoid_setters_without_getters
+   info • Use of an async 'dart:io' method • test/qr_code_parser_test.dart:177:18 • avoid_slow_async_io
+   info • Don't invoke 'print' in production code • test/qr_code_parser_test.dart:178:9 • avoid_print
+   info • Use of an async 'dart:io' method • test/qr_code_parser_test.dart:209:18 • avoid_slow_async_io
+   info • Don't invoke 'print' in production code • test/qr_code_parser_test.dart:210:9 • avoid_print
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:76:19 • avoid_slow_async_io
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:108:19 • avoid_slow_async_io
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:136:21 • avoid_slow_async_io
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:167:19 • avoid_slow_async_io
+   info • Unnecessary duplication of receiver • test/services/verification_code_service_test.dart:123:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/specs/card_creation_spec_test.dart:423:9 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/specs/home_screen_spec_test.dart:305:9 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/specs/home_screen_ui_spec_test.dart:37:7 • cascade_invocations
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/onboarding_spec_test.dart:376:33 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/onboarding_spec_test.dart:544:31 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/ui_interaction_spec_test.dart:306:35 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/ui_interaction_spec_test.dart:1041:37 • unawaited_futures
+   info • Unnecessary duplication of receiver • test/utils/time_formatter_test.dart:254:9 • cascade_invocations
+   info • Local variables should be final • test/widgets/settings_interaction_test.dart:242:15 • prefer_final_locals
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:199:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:212:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:213:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:220:7 • cascade_invocations
+
+128 issues found. (ran in 4.3s)
+[31m✗ Flutter analyze found issues[0m
+
+[1m[33m━━━ Processing Rust Code ━━━[0m
+
+
+[1mRunning cargo fmt...[0m
+[34m  → Running: cargo fmt -- --check[0m
+Diff in /home/alexc/Projects/CardMind/rust/src/api/mdns_discovery.rs:171:
+                                         let peer_id_str = peer_id.to_string();
+ 
+                                         // 检查是否在信任列表中
+[31m-                                        let is_trusted = trust_list_db_path.as_ref().is_none_or(|db_path| {
+(B[m[31m-                                            Connection::open(db_path).is_ok_and(|conn| {
+(B[m[31m-                                                let manager = TrustListManager::new(&conn);
+(B[m[31m-                                                manager.is_trusted(&peer_id_str).unwrap_or(false)
+(B[m[31m-                                            })
+(B[m[31m-                                        });
+(B[m[32m+                                        let is_trusted =
+(B[m[32m+                                            trust_list_db_path.as_ref().is_none_or(|db_path| {
+(B[m[32m+                                                Connection::open(db_path).is_ok_and(|conn| {
+(B[m[32m+                                                    let manager = TrustListManager::new(&conn);
+(B[m[32m+                                                    manager
+(B[m[32m+                                                        .is_trusted(&peer_id_str)
+(B[m[32m+                                                        .unwrap_or(false)
+(B[m[32m+                                                })
+(B[m[32m+                                            });
+(B[m 
+                                         if is_trusted {
+                                             // 检查是否是重连的设备
+Diff in /home/alexc/Projects/CardMind/rust/src/api/mdns_discovery.rs:277:
+                                                     peer_id_str,
+                                                     reconnect_lock
+                                                         .get(&peer_id_str)
+[31m-                                                        .map_or(0, |s| s.calculate_backoff().as_secs())
+(B[m[32m+                                                        .map_or(0, |s| s
+(B[m[32m+                                                            .calculate_backoff()
+(B[m[32m+                                                            .as_secs())
+(B[m                                                 );
+                                             } else {
+                                                 info!(
+Diff in /home/alexc/Projects/CardMind/rust/src/p2p/sync_manager.rs:187:
+     pub fn track_sync_version(&self, pool_id: &str, peer_id: &str, version: &[u8]) {
+         let mut versions = self.sync_versions.lock().unwrap();
+ 
+[31m-        let pool_versions = versions
+(B[m[31m-            .entry(pool_id.to_string())
+(B[m[31m-            .or_default();
+(B[m[32m+        let pool_versions = versions.entry(pool_id.to_string()).or_default();
+(B[m 
+         pool_versions.insert(peer_id.to_string(), version.to_vec());
+ 
+Diff in /home/alexc/Projects/CardMind/rust/src/p2p/sync_manager.rs:359:
+         let manager = SyncManager::new(store);
+ 
+         let version = vec![1, 2, 3, 4];
+[31m-        manager
+(B[m[31m-            .track_sync_version("pool-001", "peer-001", &version);
+(B[m[32m+        manager.track_sync_version("pool-001", "peer-001", &version);
+(B[m 
+         let retrieved = manager.get_last_sync_version("pool-001", "peer-001");
+         assert_eq!(retrieved, Some(version));
+Diff in /home/alexc/Projects/CardMind/rust/src/p2p/sync_service.rs:584:
+                                     .map(std::string::ToString::to_string)
+                                     .unwrap_or_default()];
+ 
+[31m-                                let sync_result = self.sync_manager.lock().unwrap().handle_sync_request(
+(B[m[31m-                                    &request.pool_id,
+(B[m[31m-                                    request.last_version.as_deref(),
+(B[m[31m-                                    &joined_pools,
+(B[m[31m-                                );
+(B[m[32m+                                let sync_result =
+(B[m[32m+                                    self.sync_manager.lock().unwrap().handle_sync_request(
+(B[m[32m+                                        &request.pool_id,
+(B[m[32m+                                        request.last_version.as_deref(),
+(B[m[32m+                                        &joined_pools,
+(B[m[32m+                                    );
+(B[m 
+                                 match sync_result {
+                                     Ok(sync_data) => {
+Diff in /home/alexc/Projects/CardMind/rust/src/store/card_store.rs:218:
+     fn persist_loro_doc(&self, card_id: &str, doc: &LoroDoc) -> Result<(), CardMindError> {
+         if let Some(base_path) = &self.base_path {
+             // 使用十六进制编码card_id作为目录名
+[31m-            let encoded_id: String = card_id.bytes().fold(String::with_capacity(card_id.len() * 2), |mut acc, b| { use std::fmt::Write; let _ = write!(&mut acc, "{b:02x}"); acc });
+(B[m[32m+            let encoded_id: String =
+(B[m[32m+                card_id
+(B[m[32m+                    .bytes()
+(B[m[32m+                    .fold(String::with_capacity(card_id.len() * 2), |mut acc, b| {
+(B[m[32m+                        use std::fmt::Write;
+(B[m[32m+                        let _ = write!(&mut acc, "{b:02x}");
+(B[m[32m+                        acc
+(B[m[32m+                    });
+(B[m             let card_dir = base_path.join("loro").join(&encoded_id);
+ 
+             // 创建卡片目录
+Diff in /home/alexc/Projects/CardMind/rust/src/store/card_store.rs:378:
+ 
+             // 持久化到文件
+             if let Some(base_path) = &self.base_path {
+[31m-                let encoded_id: String = id.bytes().fold(String::with_capacity(id.len() * 2), |mut acc, b| { use std::fmt::Write; let _ = write!(&mut acc, "{b:02x}"); acc });
+(B[m[32m+                let encoded_id: String =
+(B[m[32m+                    id.bytes()
+(B[m[32m+                        .fold(String::with_capacity(id.len() * 2), |mut acc, b| {
+(B[m[32m+                            use std::fmt::Write;
+(B[m[32m+                            let _ = write!(&mut acc, "{b:02x}");
+(B[m[32m+                            acc
+(B[m[32m+                        });
+(B[m                 let card_dir = base_path.join("loro").join(&encoded_id);
+                 std::fs::create_dir_all(&card_dir)?;
+                 let snapshot_path = card_dir.join("snapshot.loro");
+Diff in /home/alexc/Projects/CardMind/rust/src/store/card_store.rs:427:
+ 
+             // 持久化到文件
+             if let Some(base_path) = &self.base_path {
+[31m-                let encoded_id: String = id.bytes().fold(String::with_capacity(id.len() * 2), |mut acc, b| { use std::fmt::Write; let _ = write!(&mut acc, "{b:02x}"); acc });
+(B[m[32m+                let encoded_id: String =
+(B[m[32m+                    id.bytes()
+(B[m[32m+                        .fold(String::with_capacity(id.len() * 2), |mut acc, b| {
+(B[m[32m+                            use std::fmt::Write;
+(B[m[32m+                            let _ = write!(&mut acc, "{b:02x}");
+(B[m[32m+                            acc
+(B[m[32m+                        });
+(B[m                 let card_dir = base_path.join("loro").join(&encoded_id);
+                 std::fs::create_dir_all(&card_dir)?;
+                 let snapshot_path = card_dir.join("snapshot.loro");
+Diff in /home/alexc/Projects/CardMind/rust/src/store/card_store.rs:455:
+ 
+         // 从文件加载
+         let base_path = self.base_path.as_ref().unwrap();
+[31m-        let encoded_id: String = id.bytes().fold(String::with_capacity(id.len() * 2), |mut acc, b| { use std::fmt::Write; let _ = write!(&mut acc, "{b:02x}"); acc });
+(B[m[32m+        let encoded_id: String =
+(B[m[32m+            id.bytes()
+(B[m[32m+                .fold(String::with_capacity(id.len() * 2), |mut acc, b| {
+(B[m[32m+                    use std::fmt::Write;
+(B[m[32m+                    let _ = write!(&mut acc, "{b:02x}");
+(B[m[32m+                    acc
+(B[m[32m+                });
+(B[m         let snapshot_path = base_path
+             .join("loro")
+             .join(&encoded_id)
+Diff in /home/alexc/Projects/CardMind/rust/src/store/card_store.rs:529:
+     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
+     /// ```
+     #[deprecated(note = "单池模型下，卡片归属由 Pool 管理，请使用 PoolStore 操作")]
+[31m-    pub fn remove_card_from_pool(
+(B[m[31m-        &self,
+(B[m[31m-        card_id: &str,
+(B[m[31m-        pool_id: &str,
+(B[m[31m-    ) -> Result<(), CardMindError> {
+(B[m[32m+    pub fn remove_card_from_pool(&self, card_id: &str, pool_id: &str) -> Result<(), CardMindError> {
+(B[m         // 单池模型：仅维护 SQLite 绑定表（用于反向查询）
+         // 不再修改 Card Loro（Card 不再持有 pool_ids）
+ 
+Diff in /home/alexc/Projects/CardMind/rust/src/store/sqlite_store.rs:792:
+         store.add_card_pool_binding(&card3.id, &pool2).unwrap();
+ 
+         // 查询 pool1 的卡片（应该有 card1 和 card2）
+[31m-        let cards = store.get_cards_in_pools(std::slice::from_ref(&pool1)).unwrap();
+(B[m[32m+        let cards = store
+(B[m[32m+            .get_cards_in_pools(std::slice::from_ref(&pool1))
+(B[m[32m+            .unwrap();
+(B[m         assert_eq!(cards.len(), 2);
+         let card_ids: Vec<String> = cards.iter().map(|c| c.id.clone()).collect();
+         assert!(card_ids.contains(&card1.id));
+Diff in /home/alexc/Projects/CardMind/rust/src/store/sqlite_store.rs:799:
+         assert!(card_ids.contains(&card2.id));
+ 
+         // 查询 pool2 的卡片（应该有 card2 和 card3）
+[31m-        let cards = store.get_cards_in_pools(std::slice::from_ref(&pool2)).unwrap();
+(B[m[32m+        let cards = store
+(B[m[32m+            .get_cards_in_pools(std::slice::from_ref(&pool2))
+(B[m[32m+            .unwrap();
+(B[m         assert_eq!(cards.len(), 2);
+         let card_ids: Vec<String> = cards.iter().map(|c| c.id.clone()).collect();
+         assert!(card_ids.contains(&card2.id));
+[33m⚠ Code formatting issues found. Run without --check-only to fix.[0m
+
+[1mRunning cargo check...[0m
+[34m  → Running: cargo check[0m
+    Checking cardmind_rust v0.1.0 (/home/alexc/Projects/CardMind/rust)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.83s
+[32m✓ Cargo check passed[0m
+
+[1mRunning cargo clippy...[0m
+[34m  → Running: cargo clippy --all-targets --all-features[0m
+    Checking cardmind_rust v0.1.0 (/home/alexc/Projects/CardMind/rust)
+error: long literal lacking separators
+  --> tests/loro_integration_test.rs:38:30
+   |
+38 |     map.insert("created_at", 1704067200000i64).unwrap(); // 2024-01-01 00:00:00 UTC
+   |                              ^^^^^^^^^^^^^^^^ help: consider: `1_704_067_200_000_i64`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+   = note: `-D clippy::unreadable-literal` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unreadable_literal)]`
+
+error: long literal lacking separators
+  --> tests/loro_sync_test.rs:31:32
+   |
+31 |     map_a.insert("created_at", 1672531200i64).unwrap();
+   |                                ^^^^^^^^^^^^^ help: consider: `1_672_531_200_i64`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+   = note: `-D clippy::unreadable-literal` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unreadable_literal)]`
+
+error: long literal lacking separators
+  --> tests/loro_integration_test.rs:57:47
+   |
+57 |     assert_eq!(*created_at.as_i64().unwrap(), 1704067200000i64);
+   |                                               ^^^^^^^^^^^^^^^^ help: consider: `1_704_067_200_000_i64`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:324:32
+    |
+324 |     map_a.insert("created_at", 1704067200i64).unwrap(); // 2024-01-01
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_067_200_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:325:32
+    |
+325 |     map_a.insert("updated_at", 1704067200i64).unwrap();
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_067_200_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: variables can be used directly in the `format!` string
+   --> src/models/device_config.rs:321:9
+    |
+321 | /         assert!(
+322 | |             remaining > 4 * 60 * 1000,
+323 | |             "Expected > 4 minutes, got {}ms",
+324 | |             remaining
+325 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+    = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:373:32
+    |
+373 |     map_a.insert("updated_at", 1704153600i64).unwrap(); // 2024-01-02
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_153_600_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:399:9
+    |
+399 |         1704153600i64
+    |         ^^^^^^^^^^^^^ help: consider: `1_704_153_600_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:406:32
+    |
+406 |     map_a.insert("updated_at", 1704240000i64).unwrap(); // 2024-01-03
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_240_000_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: variables can be used directly in the `format!` string
+   --> src/models/device_config.rs:326:9
+    |
+326 | /         assert!(
+327 | |             remaining <= 5 * 60 * 1000,
+328 | |             "Expected <= 5 minutes, got {}ms",
+329 | |             remaining
+330 | |         );
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: long literal lacking separators
+   --> tests/loro_integration_test.rs:185:30
+    |
+185 |     map.insert("created_at", 1704153600000i64).unwrap();
+    |                              ^^^^^^^^^^^^^^^^ help: consider: `1_704_153_600_000_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_integration_test.rs:214:47
+    |
+214 |     assert_eq!(*created_at.as_i64().unwrap(), 1704153600000i64);
+    |                                               ^^^^^^^^^^^^^^^^ help: consider: `1_704_153_600_000_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: this could be a `const fn`
+  --> examples/simple_pool_spec.rs:9:5
+   |
+ 9 | /     fn new() -> Self {
+10 | |         Self { pool_id: None }
+11 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+   = note: `-D clippy::missing-const-for-fn` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::missing_const_for_fn)]`
+help: make the function `const`
+   |
+ 9 |     const fn new() -> Self {
+   |     +++++
+
+error: this could be a `const fn`
+  --> examples/simple_pool_spec.rs:13:5
+   |
+13 | /     fn is_joined(&self) -> bool {
+14 | |         self.pool_id.is_some()
+15 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+help: make the function `const`
+   |
+13 |     const fn is_joined(&self) -> bool {
+   |     +++++
+
+error: this function's return value is unnecessary
+  --> examples/simple_pool_spec.rs:17:5
+   |
+17 |     fn join_pool(&mut self, pool_id: String) -> Result<(), ()> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unnecessary_wraps
+   = note: `-D clippy::unnecessary-wraps` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unnecessary_wraps)]`
+help: remove the return type...
+   |
+17 -     fn join_pool(&mut self, pool_id: String) -> Result<(), ()> {
+17 +     fn join_pool(&mut self, pool_id: String) -> () {
+   |
+help: ...and then remove returned values
+   |
+19 -         Ok(())
+   |
+
+error: binding's name is too similar to existing binding
+   --> tests/card_store_test.rs:118:9
+    |
+118 |     let cards = store.get_all_cards().unwrap();
+    |         ^^^^^
+    |
+note: existing binding defined here
+   --> tests/card_store_test.rs:109:9
+    |
+109 |     let card1 = store
+    |         ^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#similar_names
+    = note: `-D clippy::similar-names` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::similar_names)]`
+
+error: binding's name is too similar to existing binding
+   --> tests/sqlite_test.rs:190:9
+    |
+190 |     let cards = select_all_cards(&conn).unwrap();
+    |         ^^^^^
+    |
+note: existing binding defined here
+   --> tests/sqlite_test.rs:184:9
+    |
+184 |     let card1 = Card::new(generate_uuid_v7(), "标题1".to_string(), "内容1".to_string());
+    |         ^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#similar_names
+    = note: `-D clippy::similar-names` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::similar_names)]`
+
+error: could not compile `cardmind_rust` (example "simple_pool_spec") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: binding's name is too similar to existing binding
+   --> tests/sqlite_test.rs:302:9
+    |
+302 |     let cards = select_active_cards(&conn).unwrap();
+    |         ^^^^^
+    |
+note: existing binding defined here
+   --> tests/sqlite_test.rs:292:13
+    |
+292 |     let mut card1 = Card::new(generate_uuid_v7(), "标题1".to_string(), "内容1".to_string());
+    |             ^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#similar_names
+
+error: this could be a `const fn`
+  --> examples/single_pool_flow_spec.rs:17:5
+   |
+17 | /     fn is_joined(&self) -> bool {
+18 | |         self.pool_id.is_some()
+19 | |     }
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#missing_const_for_fn
+   = note: `-D clippy::missing-const-for-fn` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::missing_const_for_fn)]`
+help: make the function `const`
+   |
+17 |     const fn is_joined(&self) -> bool {
+   |     +++++
+
+error: this function's return value is unnecessary
+  --> examples/single_pool_flow_spec.rs:21:5
+   |
+21 |     fn join_pool(&mut self, pool_id: String) -> Result<(), String> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unnecessary_wraps
+   = note: `-D clippy::unnecessary-wraps` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unnecessary_wraps)]`
+help: remove the return type...
+   |
+21 -     fn join_pool(&mut self, pool_id: String) -> Result<(), String> {
+21 +     fn join_pool(&mut self, pool_id: String) -> () {
+   |
+help: ...and then remove returned values
+   |
+23 -         Ok(())
+   |
+
+error: unused `self` argument
+  --> examples/single_pool_flow_spec.rs:58:15
+   |
+58 |     fn config(&self) -> DeviceConfig {
+   |               ^^^^^
+   |
+   = help: consider refactoring to an associated function
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+   = note: `-D clippy::unused-self` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unused_self)]`
+
+error: variables can be used directly in the `format!` string
+  --> examples/loro_api_test.rs:16:9
+   |
+16 |         println!("{:?}", event);
+   |         ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+   |
+16 -         println!("{:?}", event);
+16 +         println!("{event:?}");
+   |
+
+error: could not compile `cardmind_rust` (example "single_pool_flow_spec") due to 3 previous errors
+error: item in documentation is missing backticks
+ --> tests/sp_spm_001_spec.rs:4:5
+  |
+4 | //! specs/rust/single_pool_model_spec.md
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+  = note: `-D clippy::doc-markdown` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+  |
+4 - //! specs/rust/single_pool_model_spec.md
+4 + //! `specs/rust/single_pool_model_spec.md`
+  |
+
+error: item in documentation is missing backticks
+ --> tests/sp_spm_001_spec.rs:6:18
+  |
+6 | //! Test Naming: it_should_[behavior]_when_[condition]()
+  |                  ^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+  |
+6 - //! Test Naming: it_should_[behavior]_when_[condition]()
+6 + //! Test Naming: `it_should`_[behavior]_when_[condition]()
+  |
+
+error: item in documentation is missing backticks
+  --> tests/sp_spm_001_spec.rs:10:35
+   |
+10 | /// Test helper to create a basic DeviceConfig for testing
+   |                                   ^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+10 - /// Test helper to create a basic DeviceConfig for testing
+10 + /// Test helper to create a basic `DeviceConfig` for testing
+   |
+
+error: could not compile `cardmind_rust` (example "loro_api_test") due to 1 previous error
+error: item in documentation is missing backticks
+  --> tests/sp_spm_001_spec.rs:18:5
+   |
+18 | /// it_should_allow_joining_first_pool_successfully()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+18 - /// it_should_allow_joining_first_pool_successfully()
+18 + /// `it_should_allow_joining_first_pool_successfully()`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/sp_spm_001_spec.rs:33:5
+   |
+33 | /// it_should_reject_joining_second_pool_when_already_joined()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+33 - /// it_should_reject_joining_second_pool_when_already_joined()
+33 + /// `it_should_reject_joining_second_pool_when_already_joined()`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/sp_spm_001_spec.rs:54:5
+   |
+54 | /// it_should_clear_all_data_when_leaving_pool()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+54 - /// it_should_clear_all_data_when_leaving_pool()
+54 + /// `it_should_clear_all_data_when_leaving_pool()`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/sp_spm_001_spec.rs:71:5
+   |
+71 | /// it_should_auto_join_current_pool_when_creating_card()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+71 - /// it_should_auto_join_current_pool_when_creating_card()
+71 + /// `it_should_auto_join_current_pool_when_creating_card()`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/sp_spm_001_spec.rs:91:5
+   |
+91 | /// it_should_enforce_single_pool_constraint_across_operations()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+91 - /// it_should_enforce_single_pool_constraint_across_operations()
+91 + /// `it_should_enforce_single_pool_constraint_across_operations()`
+   |
+
+error: item in documentation is missing backticks
+ --> tests/loro_sync_test.rs:8:8
+  |
+8 | /// 3. VersionVector 使用
+  |        ^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+  = note: `-D clippy::doc-markdown` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+  |
+8 - /// 3. VersionVector 使用
+8 + /// 3. `VersionVector` 使用
+  |
+
+error: item in documentation is missing backticks
+ --> tests/loro_integration_test.rs:8:22
+  |
+8 | /// Test 1: Create a LoroDoc instance
+  |                      ^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+  = note: `-D clippy::doc-markdown` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+  |
+8 - /// Test 1: Create a LoroDoc instance
+8 + /// Test 1: Create a `LoroDoc` instance
+  |
+
+error: variables can be used directly in the `format!` string
+  --> tests/sp_mdns_001_spec.rs:81:5
+   |
+81 | /     assert!(
+82 | |         remaining > 4 * 60 * 1000,
+83 | |         "Remaining time should be > 4 minutes, got {}ms",
+84 | |         remaining
+85 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+
+error: could not compile `cardmind_rust` (test "sp_spm_001_spec") due to 8 previous errors
+error: variables can be used directly in the `format!` string
+  --> tests/sp_mdns_001_spec.rs:86:5
+   |
+86 | /     assert!(
+87 | |         remaining <= 5 * 60 * 1000,
+88 | |         "Remaining time should be <= 5 minutes, got {}ms",
+89 | |         remaining
+90 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: item in documentation is missing backticks
+  --> tests/sp_sync_007_spec.rs:14:5
+   |
+14 | /// it_should_broadcast_status_to_all_subscribers()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+   = note: `-D clippy::doc-markdown` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+   |
+14 - /// it_should_broadcast_status_to_all_subscribers()
+14 + /// `it_should_broadcast_status_to_all_subscribers()`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/loro_integration_test.rs:22:30
+   |
+22 | /// Test 2: Insert data into LoroMap
+   |                              ^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+22 - /// Test 2: Insert data into LoroMap
+22 + /// Test 2: Insert data into `LoroMap`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/loro_integration_test.rs:24:36
+   |
+24 | /// Validates that we can create a LoroMap container and insert key-value pairs.
+   |                                    ^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+24 - /// Validates that we can create a LoroMap container and insert key-value pairs.
+24 + /// Validates that we can create a `LoroMap` container and insert key-value pairs.
+   |
+
+error: variables can be used directly in the `format!` string
+   --> tests/sp_mdns_001_spec.rs:109:5
+    |
+109 | /     assert!(
+110 | |         second_remaining > first_remaining,
+111 | |         "Timer should be reset when enabling again. First: {}ms, Second: {}ms",
+112 | |         first_remaining,
+113 | |         second_remaining
+114 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: variables can be used directly in the `format!` string
+  --> tests/loro_sync_test.rs:95:5
+   |
+95 |     println!("设备B版本向量: {:?}", vv_b);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+   |
+95 -     println!("设备B版本向量: {:?}", vv_b);
+95 +     println!("设备B版本向量: {vv_b:?}");
+   |
+
+error: variables can be used directly in the `format!` string
+   --> tests/sp_mdns_001_spec.rs:118:5
+    |
+118 | /     assert!(
+119 | |         difference >= 150,
+120 | |         "Timer reset should show significant difference. Difference: {}ms",
+121 | |         difference
+122 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: item in documentation is missing backticks
+  --> tests/loro_integration_test.rs:63:44
+   |
+63 | /// This is critical for file persistence (loro_doc.loro).
+   |                                            ^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+63 - /// This is critical for file persistence (loro_doc.loro).
+63 + /// This is critical for file persistence (`loro_doc.loro`).
+   |
+
+error: variables can be used directly in the `format!` string
+  --> tests/performance_test.rs:19:21
+   |
+19 |         let title = format!("Test Card {}", i);
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+   |
+19 -         let title = format!("Test Card {}", i);
+19 +         let title = format!("Test Card {i}");
+   |
+
+error: variables can be used directly in the `format!` string
+   --> tests/sp_mdns_001_spec.rs:162:5
+    |
+162 | /     assert!(
+163 | |         after_wait_remaining < initial_remaining,
+164 | |         "Remaining time should decrease. Initial: {}ms, After: {}ms",
+165 | |         initial_remaining,
+166 | |         after_wait_remaining
+167 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: variables can be used directly in the `format!` string
+  --> tests/performance_test.rs:20:23
+   |
+20 |         let content = format!("This is test card number {} with some content", i);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+20 -         let content = format!("This is test card number {} with some content", i);
+20 +         let content = format!("This is test card number {i} with some content");
+   |
+
+error: casting `u128` to `f64` causes a loss of precision (`u128` is 128 bits wide, but `f64`'s mantissa is only 52 bits wide)
+  --> tests/performance_test.rs:29:9
+   |
+29 |         create_duration.as_millis() as f64 / 1000.0
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+   = note: `-D clippy::cast-precision-loss` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::cast_precision_loss)]`
+
+error: variables can be used directly in the `format!` string
+  --> tests/performance_test.rs:49:5
+   |
+49 | /     println!(
+50 | |         "Total time for 1000 cards creation + query: {:?}",
+51 | |         total_duration
+52 | |     );
+   | |_____^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: variables can be used directly in the `format!` string
+  --> tests/performance_test.rs:69:5
+   |
+69 |     println!("Loro create operation: {:?}", create_duration);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+69 -     println!("Loro create operation: {:?}", create_duration);
+69 +     println!("Loro create operation: {create_duration:?}");
+   |
+
+error: variables can be used directly in the `format!` string
+  --> tests/performance_test.rs:86:5
+   |
+86 |     println!("Loro update operation: {:?}", update_duration);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+86 -     println!("Loro update operation: {:?}", update_duration);
+86 +     println!("Loro update operation: {update_duration:?}");
+   |
+
+error: variables can be used directly in the `format!` string
+  --> tests/performance_test.rs:97:5
+   |
+97 |     println!("Loro delete operation: {:?}", delete_duration);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+   |
+97 -     println!("Loro delete operation: {:?}", delete_duration);
+97 +     println!("Loro delete operation: {delete_duration:?}");
+   |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/loro_sync_test.rs:355:5
+    |
+355 | /     assert_eq!(
+356 | |         *map_b
+357 | |             .get("deleted")
+358 | |             .unwrap()
+...   |
+363 | |         false
+364 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#bool_assert_comparison
+    = note: `-D clippy::bool-assert-comparison` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::bool_assert_comparison)]`
+help: replace it with `assert!(..)`
+    |
+355 ~     assert!(
+356 ~         !(*map_b
+357 +             .get("deleted")
+358 +             .unwrap()
+359 +             .into_value()
+360 +             .unwrap()
+361 +             .as_bool()
+362 ~             .unwrap())
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/performance_test.rs:113:26
+    |
+113 |             .create_card(format!("Card {}", i), format!("Content {}", i))
+    |                          ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+113 -             .create_card(format!("Card {}", i), format!("Content {}", i))
+113 +             .create_card(format!("Card {i}"), format!("Content {}", i))
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/performance_test.rs:113:49
+    |
+113 |             .create_card(format!("Card {}", i), format!("Content {}", i))
+    |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+113 -             .create_card(format!("Card {}", i), format!("Content {}", i))
+113 +             .create_card(format!("Card {}", i), format!("Content {i}"))
+    |
+
+error: used `assert_eq!` with a literal bool
+   --> tests/loro_sync_test.rs:414:5
+    |
+414 | /     assert_eq!(
+415 | |         *map_b
+416 | |             .get("deleted")
+417 | |             .unwrap()
+...   |
+422 | |         true
+423 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#bool_assert_comparison
+help: replace it with `assert!(..)`
+    |
+414 ~     assert!(
+415 |         *map_b
+...
+420 |             .as_bool()
+421 ~             .unwrap()
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/sp_mdns_001_spec.rs:387:5
+    |
+387 | /     assert!(
+388 | |         remaining > expected_duration - 1000, // Allow 1 second tolerance
+389 | |         "Duration should be close to 5 minutes ({}ms), got {}ms",
+390 | |         expected_duration,
+391 | |         remaining
+392 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: variables can be used directly in the `format!` string
+   --> tests/performance_test.rs:156:5
+    |
+156 |     println!("SQLite get_card_by_id: {:?}", query_by_id_duration);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+156 -     println!("SQLite get_card_by_id: {:?}", query_by_id_duration);
+156 +     println!("SQLite get_card_by_id: {query_by_id_duration:?}");
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/sp_mdns_001_spec.rs:393:5
+    |
+393 | /     assert!(
+394 | |         remaining <= expected_duration,
+395 | |         "Duration should not exceed 5 minutes ({}ms), got {}ms",
+396 | |         expected_duration,
+397 | |         remaining
+398 | |     );
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+
+error: item in documentation is missing backticks
+   --> tests/loro_integration_test.rs:221:60
+    |
+221 | /// Validates that we can store multiple cards in separate LoroMap containers.
+    |                                                            ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+221 - /// Validates that we can store multiple cards in separate LoroMap containers.
+221 + /// Validates that we can store multiple cards in separate `LoroMap` containers.
+    |
+
+error: item in documentation is missing backticks
+   --> tests/loro_integration_test.rs:222:71
+    |
+222 | /// Note: Based on architecture decision, each card will have its own LoroDoc file,
+    |                                                                       ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+222 - /// Note: Based on architecture decision, each card will have its own LoroDoc file,
+222 + /// Note: Based on architecture decision, each card will have its own `LoroDoc` file,
+    |
+
+error: item in documentation is missing backticks
+  --> tests/sp_sync_006_spec.rs:14:5
+   |
+14 | /// it_should_create_sync_service_with_valid_config()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+   = note: `-D clippy::doc-markdown` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+   |
+14 - /// it_should_create_sync_service_with_valid_config()
+14 + /// `it_should_create_sync_service_with_valid_config()`
+   |
+
+error: variables can be used directly in the `format!` string
+   --> tests/loro_sync_test.rs:441:29
+    |
+441 |         map.insert("title", format!("标题版本{}", i)).unwrap();
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+441 -         map.insert("title", format!("标题版本{}", i)).unwrap();
+441 +         map.insert("title", format!("标题版本{i}")).unwrap();
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/loro_sync_test.rs:442:31
+    |
+442 |         map.insert("content", format!("内容版本{}", i)).unwrap();
+    |                               ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+442 -         map.insert("content", format!("内容版本{}", i)).unwrap();
+442 +         map.insert("content", format!("内容版本{i}")).unwrap();
+    |
+
+error: item in documentation is missing backticks
+  --> tests/sp_sync_007_spec.rs:48:5
+   |
+48 | /// it_should_not_broadcast_duplicate_status()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+48 - /// it_should_not_broadcast_duplicate_status()
+48 + /// `it_should_not_broadcast_duplicate_status()`
+   |
+
+error: redundant clone
+  --> tests/sp_sync_007_spec.rs:70:40
+   |
+70 |     service.notify_status_change(status.clone());
+   |                                        ^^^^^^^^ help: remove this
+   |
+note: this value is dropped without further use
+  --> tests/sp_sync_007_spec.rs:70:34
+   |
+70 |     service.notify_status_change(status.clone());
+   |                                  ^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+   = note: `-D clippy::redundant-clone` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::redundant_clone)]`
+
+error: variables can be used directly in the `format!` string
+   --> tests/performance_test.rs:173:26
+    |
+173 |             .create_card(format!("Card {}", i), format!("Content {}", i))
+    |                          ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+173 -             .create_card(format!("Card {}", i), format!("Content {}", i))
+173 +             .create_card(format!("Card {i}"), format!("Content {}", i))
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/loro_sync_test.rs:459:38
+    |
+459 |             temp_map.insert("title", format!("标题版本{}", i)).unwrap();
+    |                                      ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+459 -             temp_map.insert("title", format!("标题版本{}", i)).unwrap();
+459 +             temp_map.insert("title", format!("标题版本{i}")).unwrap();
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/performance_test.rs:173:49
+    |
+173 |             .create_card(format!("Card {}", i), format!("Content {}", i))
+    |                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+173 -             .create_card(format!("Card {}", i), format!("Content {}", i))
+173 +             .create_card(format!("Card {}", i), format!("Content {i}"))
+    |
+
+error: variables can be used directly in the `format!` string
+   --> tests/loro_sync_test.rs:461:36
+    |
+461 |                 .insert("content", format!("内容版本{}", i))
+    |                                    ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+461 -                 .insert("content", format!("内容版本{}", i))
+461 +                 .insert("content", format!("内容版本{i}"))
+    |
+
+error: item in documentation is missing backticks
+ --> tests/card_store_test.rs:1:5
+  |
+1 | /// CardStore集成测试
+  |     ^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+  = note: `-D clippy::doc-markdown` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+  |
+1 - /// CardStore集成测试
+1 + /// `CardStore集成测试`
+  |
+
+error: item in documentation is missing backticks
+ --> tests/card_store_test.rs:3:36
+  |
+3 | /// 测试CardStore的双层架构实现：Loro CRDT + SQLite缓存
+  |                                              ^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+  |
+3 - /// 测试CardStore的双层架构实现：Loro CRDT + SQLite缓存
+3 + /// 测试CardStore的双层架构实现：Loro CRDT + `SQLite缓存`
+  |
+
+error: item in documentation is missing backticks
+ --> tests/card_store_test.rs:6:7
+  |
+6 | /// - CardStore创建和初始化
+  |       ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+  |
+6 - /// - CardStore创建和初始化
+6 + /// - `CardStore创建和初始化`
+  |
+
+error: item in documentation is missing backticks
+  --> tests/sp_sync_007_spec.rs:79:5
+   |
+79 | /// it_should_handle_no_subscribers_gracefully()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+79 - /// it_should_handle_no_subscribers_gracefully()
+79 + /// `it_should_handle_no_subscribers_gracefully()`
+   |
+
+error: variables can be used directly in the `format!` string
+   --> tests/performance_test.rs:181:5
+    |
+181 |     println!("SQLite get_card_count: {:?}", count_duration);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+181 -     println!("SQLite get_card_count: {:?}", count_duration);
+181 +     println!("SQLite get_card_count: {count_duration:?}");
+    |
+
+error: item in documentation is missing backticks
+  --> tests/card_store_test.rs:17:9
+   |
+17 | /// 测试: 创建内存CardStore
+   |           ^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+17 - /// 测试: 创建内存CardStore
+17 + /// 测试: `创建内存CardStore`
+   |
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_007_spec.rs:106:5
+    |
+106 | /// it_should_support_status_sender_cloning()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+106 - /// it_should_support_status_sender_cloning()
+106 + /// `it_should_support_status_sender_cloning()`
+    |
+
+error: casting `usize` to `f64` causes a loss of precision on targets with 64-bit wide pointers (`usize` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> tests/loro_sync_test.rs:480:20
+    |
+480 |             (1.0 - incremental.len() as f64 / all_updates.len() as f64) * 100.0
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+    = note: `-D clippy::cast-precision-loss` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::cast_precision_loss)]`
+
+error: casting `usize` to `f64` causes a loss of precision on targets with 64-bit wide pointers (`usize` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> tests/loro_sync_test.rs:480:47
+    |
+480 |             (1.0 - incremental.len() as f64 / all_updates.len() as f64) * 100.0
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_007_spec.rs:141:5
+    |
+141 | /// it_should_maintain_subscriber_independence()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+141 - /// it_should_maintain_subscriber_independence()
+141 + /// `it_should_maintain_subscriber_independence()`
+    |
+
+error: item in documentation is missing backticks
+  --> tests/card_store_test.rs:24:9
+   |
+24 | /// 测试: 创建基于文件的CardStore
+   |           ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+24 - /// 测试: 创建基于文件的CardStore
+24 + /// 测试: `创建基于文件的CardStore`
+   |
+
+error: item in documentation is missing backticks
+ --> tests/sqlite_test.rs:1:5
+  |
+1 | /// SQLite集成测试
+  |     ^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+  = note: `-D clippy::doc-markdown` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+  |
+1 - /// SQLite集成测试
+1 + /// `SQLite集成测试`
+  |
+
+error: item in documentation is missing backticks
+ --> tests/sqlite_test.rs:6:7
+  |
+6 | /// - SQLite数据库创建和连接
+  |       ^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+  |
+6 - /// - SQLite数据库创建和连接
+6 + /// - `SQLite数据库创建和连接`
+  |
+
+error: item in documentation is missing backticks
+ --> tests/sqlite_test.rs:8:7
+  |
+8 | /// - SQLite优化参数配置
+  |       ^^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+  |
+8 - /// - SQLite优化参数配置
+8 + /// - `SQLite优化参数配置`
+  |
+
+error: item in documentation is missing backticks
+  --> tests/card_store_test.rs:34:9
+   |
+34 | /// 测试: CardStore初始化后SQLite表存在
+   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+34 - /// 测试: CardStore初始化后SQLite表存在
+34 + /// 测试: `CardStore初始化后SQLite表存在`
+   |
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_007_spec.rs:176:5
+    |
+176 | /// it_should_have_disconnected_initial_status()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+176 - /// it_should_have_disconnected_initial_status()
+176 + /// `it_should_have_disconnected_initial_status()`
+    |
+
+error: item in documentation is missing backticks
+  --> tests/sqlite_test.rs:19:9
+   |
+19 | /// 测试: SQLite数据库连接创建
+   |           ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+19 - /// 测试: SQLite数据库连接创建
+19 + /// 测试: `SQLite数据库连接创建`
+   |
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_007_spec.rs:200:5
+    |
+200 | /// it_should_compare_status_equality_correctly()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+200 - /// it_should_compare_status_equality_correctly()
+200 + /// `it_should_compare_status_equality_correctly()`
+    |
+
+error: could not compile `cardmind_rust` (test "sp_mdns_001_spec") due to 7 previous errors
+error: item in documentation is missing backticks
+   --> tests/sp_sync_007_spec.rs:234:5
+    |
+234 | /// it_should_clone_status_correctly()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+234 - /// it_should_clone_status_correctly()
+234 + /// `it_should_clone_status_correctly()`
+    |
+
+error: redundant clone
+  --> tests/card_store_test.rs:71:26
+   |
+71 |     let card_id = card.id.clone();
+   |                          ^^^^^^^^ help: remove this
+   |
+note: this value is dropped without further use
+  --> tests/card_store_test.rs:71:19
+   |
+71 |     let card_id = card.id.clone();
+   |                   ^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+   = note: `-D clippy::redundant-clone` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::redundant_clone)]`
+
+error: could not compile `cardmind_rust` (test "loro_sync_test") due to 16 previous errors
+error: could not compile `cardmind_rust` (test "performance_test") due to 13 previous errors
+error: item in documentation is missing backticks
+  --> tests/sp_sync_006_spec.rs:40:5
+   |
+40 | /// it_should_create_service_regardless_of_pool_status()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+40 - /// it_should_create_service_regardless_of_pool_status()
+40 + /// `it_should_create_service_regardless_of_pool_status()`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/sp_sync_006_spec.rs:61:5
+   |
+61 | /// it_should_return_valid_sync_status_when_created()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+61 - /// it_should_return_valid_sync_status_when_created()
+61 + /// `it_should_return_valid_sync_status_when_created()`
+   |
+
+error: item in documentation is missing backticks
+  --> tests/sp_sync_006_spec.rs:66:14
+   |
+66 | /// - 则返回有效的 SyncStatus 结构
+   |                    ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+66 - /// - 则返回有效的 SyncStatus 结构
+66 + /// - 则返回有效的 `SyncStatus` 结构
+   |
+
+error: this assertion is always `true`
+  --> tests/sp_sync_006_spec.rs:78:5
+   |
+78 |     assert!(true);
+   |     ^^^^^^^^^^^^^
+   |
+   = help: remove the assertion
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+   = note: `-D clippy::assertions-on-constants` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::assertions_on_constants)]`
+
+error: this assertion is always `true`
+  --> tests/sp_sync_006_spec.rs:79:5
+   |
+79 |     assert!(true);
+   |     ^^^^^^^^^^^^^
+   |
+   = help: remove the assertion
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: this assertion is always `true`
+  --> tests/sp_sync_006_spec.rs:80:5
+   |
+80 |     assert!(true);
+   |     ^^^^^^^^^^^^^
+   |
+   = help: remove the assertion
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: item in documentation is missing backticks
+  --> tests/sp_sync_006_spec.rs:85:5
+   |
+85 | /// it_should_track_local_peer_id_consistency()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+   |
+85 - /// it_should_track_local_peer_id_consistency()
+85 + /// `it_should_track_local_peer_id_consistency()`
+   |
+
+error: could not compile `cardmind_rust` (test "loro_integration_test") due to 10 previous errors
+error: item in documentation is missing backticks
+   --> tests/sp_sync_006_spec.rs:108:5
+    |
+108 | /// it_should_handle_concurrent_status_requests()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+108 - /// it_should_handle_concurrent_status_requests()
+108 + /// `it_should_handle_concurrent_status_requests()`
+    |
+
+error: item in documentation is missing backticks
+   --> tests/sqlite_test.rs:121:9
+    |
+121 | /// 测试: SQLite优化参数配置
+    |           ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+121 - /// 测试: SQLite优化参数配置
+121 + /// 测试: `SQLite优化参数配置`
+    |
+
+error: item in documentation is missing backticks
+   --> tests/sqlite_test.rs:125:7
+    |
+125 | /// - cache_size设置正确
+    |       ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+125 - /// - cache_size设置正确
+125 + /// - `cache_size设置正确`
+    |
+
+error: avoid using `collect()` when not needed
+   --> tests/sp_sync_006_spec.rs:127:10
+    |
+127 |         .collect();
+    |          ^^^^^^^
+128 |
+129 |     let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    |                           ------------------- the iterator could be used here instead
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_collect
+    = note: `-D clippy::needless-collect` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_collect)]`
+help: use the original Iterator instead of collecting it and then producing a new one
+    |
+122 ~     
+123 |
+124 ~     let results: Vec<_> = (0..5)
+125 +         .map(|_| {
+126 +             let service_clone = service.clone();
+127 +             std::thread::spawn(move || service_clone.get_sync_status())
+128 ~         }).map(|h| h.join().unwrap()).collect();
+    |
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_006_spec.rs:138:5
+    |
+138 | /// it_should_use_device_config_for_pool_info()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+138 - /// it_should_use_device_config_for_pool_info()
+138 + /// `it_should_use_device_config_for_pool_info()`
+    |
+
+error: this assertion is always `true`
+   --> tests/sp_sync_006_spec.rs:155:5
+    |
+155 |     assert!(true);
+    |     ^^^^^^^^^^^^^
+    |
+    = help: remove the assertion
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: this assertion is always `true`
+   --> tests/sp_sync_006_spec.rs:156:5
+    |
+156 |     assert!(true);
+    |     ^^^^^^^^^^^^^
+    |
+    = help: remove the assertion
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_006_spec.rs:161:5
+    |
+161 | /// it_should_support_mock_network_mode()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+161 - /// it_should_support_mock_network_mode()
+161 + /// `it_should_support_mock_network_mode()`
+    |
+
+error: redundant clone
+   --> tests/card_store_test.rs:203:26
+    |
+203 |     let card_id = card.id.clone();
+    |                          ^^^^^^^^ help: remove this
+    |
+note: this value is dropped without further use
+   --> tests/card_store_test.rs:203:19
+    |
+203 |     let card_id = card.id.clone();
+    |                   ^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_006_spec.rs:182:5
+    |
+182 | /// it_should_have_zero_online_peers_initially()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+182 - /// it_should_have_zero_online_peers_initially()
+182 + /// `it_should_have_zero_online_peers_initially()`
+    |
+
+error: item in documentation is missing backticks
+   --> tests/sp_sync_006_spec.rs:205:5
+    |
+205 | /// it_should_return_independent_status_copies()
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+205 - /// it_should_return_independent_status_copies()
+205 + /// `it_should_return_independent_status_copies()`
+    |
+
+error: redundant clone
+   --> tests/card_store_test.rs:238:26
+    |
+238 |     let card_id = card.id.clone();
+    |                          ^^^^^^^^ help: remove this
+    |
+note: this value is dropped without further use
+   --> tests/card_store_test.rs:238:19
+    |
+238 |     let card_id = card.id.clone();
+    |                   ^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: item in documentation is missing backticks
+   --> tests/card_store_test.rs:264:9
+    |
+264 | /// 测试: 创建卡片后Loro和SQLite数据一致
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+264 - /// 测试: 创建卡片后Loro和SQLite数据一致
+264 + /// 测试: `创建卡片后Loro和SQLite数据一致`
+    |
+
+error: item in documentation is missing backticks
+   --> tests/card_store_test.rs:280:9
+    |
+280 | /// 测试: 更新卡片后Loro和SQLite数据一致
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+280 - /// 测试: 更新卡片后Loro和SQLite数据一致
+280 + /// 测试: `更新卡片后Loro和SQLite数据一致`
+    |
+
+error: redundant clone
+   --> tests/card_store_test.rs:288:26
+    |
+288 |     let card_id = card.id.clone();
+    |                          ^^^^^^^^ help: remove this
+    |
+note: this value is dropped without further use
+   --> tests/card_store_test.rs:288:19
+    |
+288 |     let card_id = card.id.clone();
+    |                   ^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: item in documentation is missing backticks
+   --> tests/card_store_test.rs:300:9
+    |
+300 | /// 测试: 删除卡片后Loro和SQLite数据一致
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+300 - /// 测试: 删除卡片后Loro和SQLite数据一致
+300 + /// 测试: `删除卡片后Loro和SQLite数据一致`
+    |
+
+error: redundant clone
+   --> tests/card_store_test.rs:308:26
+    |
+308 |     let card_id = card.id.clone();
+    |                          ^^^^^^^^ help: remove this
+    |
+note: this value is dropped without further use
+   --> tests/card_store_test.rs:308:19
+    |
+308 |     let card_id = card.id.clone();
+    |                   ^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: item in documentation is missing backticks
+   --> tests/card_store_test.rs:320:9
+    |
+320 | /// 测试: CardStore持久化到文件后可以重新加载
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+320 - /// 测试: CardStore持久化到文件后可以重新加载
+320 + /// 测试: `CardStore持久化到文件后可以重新加载`
+    |
+
+error: redundant clone
+   --> tests/card_store_test.rs:334:26
+    |
+334 |         card_id = card.id.clone();
+    |                          ^^^^^^^^ help: remove this
+    |
+note: this value is dropped without further use
+   --> tests/card_store_test.rs:334:19
+    |
+334 |         card_id = card.id.clone();
+    |                   ^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: could not compile `cardmind_rust` (test "sp_sync_007_spec") due to 9 previous errors
+error: item in documentation is missing backticks
+   --> tests/sqlite_test.rs:345:5
+    |
+345 | /// 配置SQLite优化参数
+    |     ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+345 - /// 配置SQLite优化参数
+345 + /// `配置SQLite优化参数`
+    |
+
+error: item in documentation is missing backticks
+  --> tests/sync_integration_test.rs:18:8
+   |
+18 | /// 验证 P2PSyncService 能够正确创建和初始化
+   |          ^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+   = note: `-D clippy::doc-markdown` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::doc_markdown)]`
+help: try
+   |
+18 - /// 验证 P2PSyncService 能够正确创建和初始化
+18 + /// 验证 `P2PSyncService` 能够正确创建和初始化
+   |
+
+error: item in documentation is missing backticks
+   --> tests/sqlite_test.rs:356:5
+    |
+356 | /// 插入卡片到SQLite
+    |     ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#doc_markdown
+help: try
+    |
+356 - /// 插入卡片到SQLite
+356 + /// `插入卡片到SQLite`
+    |
+
+error: could not compile `cardmind_rust` (test "sp_sync_006_spec") due to 16 previous errors
+error: redundant clone
+   --> tests/card_store_test.rs:363:26
+    |
+363 |         card_id = card.id.clone();
+    |                          ^^^^^^^^ help: remove this
+    |
+note: this value is dropped without further use
+   --> tests/card_store_test.rs:363:19
+    |
+363 |         card_id = card.id.clone();
+    |                   ^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: variables can be used directly in the `format!` string
+  --> tests/sync_integration_test.rs:36:5
+   |
+36 |     println!("✅ 同步服务初始化成功，Peer ID: {}", peer_id);
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+   = note: `-D clippy::uninlined-format-args` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::uninlined_format_args)]`
+help: change this to
+   |
+36 -     println!("✅ 同步服务初始化成功，Peer ID: {}", peer_id);
+36 +     println!("✅ 同步服务初始化成功，Peer ID: {peer_id}");
+   |
+
+error: redundant clone
+  --> tests/sync_integration_test.rs:57:53
+   |
+57 |     let service_a = P2PSyncService::new(card_store_a.clone(), device_config_a).unwrap();
+   |                                                     ^^^^^^^^ help: remove this
+   |
+note: this value is dropped without further use
+  --> tests/sync_integration_test.rs:57:41
+   |
+57 |     let service_a = P2PSyncService::new(card_store_a.clone(), device_config_a).unwrap();
+   |                                         ^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+   = note: `-D clippy::redundant-clone` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::redundant_clone)]`
+
+error: redundant clone
+  --> tests/sync_integration_test.rs:58:53
+   |
+58 |     let service_b = P2PSyncService::new(card_store_b.clone(), device_config_b).unwrap();
+   |                                                     ^^^^^^^^ help: remove this
+   |
+note: this value is dropped without further use
+  --> tests/sync_integration_test.rs:58:41
+   |
+58 |     let service_b = P2PSyncService::new(card_store_b.clone(), device_config_b).unwrap();
+   |                                         ^^^^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: could not compile `cardmind_rust` (test "card_store_test") due to 18 previous errors
+error: variables can be used directly in the `format!` string
+   --> tests/sync_integration_test.rs:127:13
+    |
+127 |             println!("跳过同步服务监听测试：{}", msg);
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#uninlined_format_args
+help: change this to
+    |
+127 -             println!("跳过同步服务监听测试：{}", msg);
+127 +             println!("跳过同步服务监听测试：{msg}");
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> tests/sync_integration_test.rs:171:17
+    |
+170 |       let card_id = {
+    |  ___________________-
+171 | |         let mut store = card_store_a.lock().unwrap();
+    | |                 ^^^^^
+172 | |         let card = store
+173 | |             .create_card("Title A".to_string(), "Content A".to_string())
+...   |
+176 | |         card.id
+177 | |     };
+    | |_____- temporary `store` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+    = note: `-D clippy::significant-drop-tightening` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::significant_drop_tightening)]`
+help: drop the temporary after the end of its last usage
+    |
+175 ~         store.add_card_to_pool(&card.id, "pool-001").unwrap();
+176 +         drop(store);
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> tests/sync_integration_test.rs:196:9
+    |
+164 |   async fn it_should_pool_sync_between_services() {
+    |  _________________________________________________-
+165 | |     // 设备 A：创建卡片并绑定池
+166 | |     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+167 | |     let mut device_config_a = DeviceConfig::new("device-a");
+...   |
+196 | |     let store_b = card_store_b.lock().unwrap();
+    | |         ^^^^^^^
+...   |
+201 | |     println!("✅ 跨设备数据池同步测试通过");
+202 | | }
+    | |_- temporary `store_b` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+196 ~     
+197 +     let card_b = card_store_b.lock().unwrap().unwrap();
+198 ~     
+    |
+
+error: redundant clone
+   --> tests/sync_integration_test.rs:186:59
+    |
+186 |         P2PSyncService::new_with_mock_network(card_store_a.clone(), device_config_a).unwrap();
+    |                                                           ^^^^^^^^ help: remove this
+    |
+note: this value is dropped without further use
+   --> tests/sync_integration_test.rs:186:47
+    |
+186 |         P2PSyncService::new_with_mock_network(card_store_a.clone(), device_config_a).unwrap();
+    |                                               ^^^^^^^^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_clone
+
+error: could not compile `cardmind_rust` (test "sqlite_test") due to 10 previous errors
+error: could not compile `cardmind_rust` (test "sync_integration_test") due to 8 previous errors
+error: could not compile `cardmind_rust` (lib test) due to 2 previous errors
+[33m⚠ Clippy found issues. Run without --check-only to fix.[0m
+
+============================================================
+[31m✗ ❌ Some checks failed. Please review errors above.[0m

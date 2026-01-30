@@ -1,9 +1,4 @@
-# sync-details-dialog Specification
-
-## Purpose
-This specification defines the comprehensive sync details dialog for desktop platforms, providing real-time synchronization status, device management, statistics, and history tracking with desktop-specific interactions and accessibility support.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Display desktop-only sync details dialog
 The system SHALL display a comprehensive sync details dialog only on desktop platforms.
@@ -167,24 +162,6 @@ The system SHALL handle various error states and edge cases with appropriate fee
 - **AND** continues to show other available information
 - **AND** logs error for debugging
 - **AND** provides retry mechanism
-
-#### Scenario: Handle empty device list
-- **WHEN** no devices have been discovered
-- **THEN** system displays appropriate empty state message
-- **AND** provides instructions for device discovery
-- **AND** shows refresh device list button
-
-#### Scenario: Handle no sync history
-- **WHEN** no sync history exists
-- **THEN** system displays appropriate empty state message
-- **AND** explains that sync history will appear after first sync
-- **AND** maintains consistent dialog layout
-
-#### Scenario: Handle data loading errors
-- **WHEN** dialog data fails to load
-- **THEN** system displays error message with retry option
-- **AND** gracefully degrades dialog functionality
-- **AND** provides user feedback for troubleshooting
 
 ### Requirement: Optimize performance for desktop usage
 The system SHALL optimize rendering and memory usage for desktop platforms.
@@ -439,3 +416,631 @@ The system SHALL implement the following dialog dimensions:
 - **1-23 hours**: Display "X 小时前"
 - **1-6 days**: Display "X 天前"
 - **≥ 7 days**: Display absolute date "YYYY-MM-DD HH:mm"
+
+## IMPLEMENTATION Details
+
+### Component Structure
+
+#### SyncDetailsDialog Component
+
+```dart
+class SyncDetailsDialog extends StatefulWidget {
+  const SyncDetailsDialog();
+
+  @override
+  State<SyncDetailsDialog> createState() => _SyncDetailsDialogState();
+}
+
+class _SyncDetailsDialogState extends State<SyncDetailsDialog> {
+  late StreamSubscription<SyncStatus> _syncStatusSubscription;
+  late StreamSubscription<List<Device>> _devicesSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // 订阅实时更新
+    _syncStatusSubscription = syncStatusStream.listen((status) {
+      setState(() {
+        // 更新状态
+      });
+    });
+    _devicesSubscription = devicesStream.listen((devices) {
+      setState(() {
+        // 更新设备列表
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncStatusSubscription.cancel();
+    _devicesSubscription.cancel();
+    super.dispose();
+  }
+}
+```
+
+#### SyncStatusSection Component
+
+```dart
+class SyncStatusSection extends StatelessWidget {
+  final SyncState state;
+  final String? errorMessage;
+
+  const SyncStatusSection({
+    required this.state,
+    this.errorMessage,
+  });
+}
+```
+
+#### DeviceListSection Component
+
+```dart
+class DeviceListSection extends StatelessWidget {
+  final List<Device> devices;
+  final String currentDeviceId;
+
+  const DeviceListSection({
+    required this.devices,
+    required this.currentDeviceId,
+  });
+}
+```
+
+#### SyncStatisticsSection Component
+
+```dart
+class SyncStatisticsSection extends StatelessWidget {
+  final SyncStatistics statistics;
+
+  const SyncStatisticsSection({
+    required this.statistics,
+  });
+}
+```
+
+#### SyncHistorySection Component
+
+```dart
+class SyncHistorySection extends StatelessWidget {
+  final List<SyncHistoryEntry> history;
+
+  const SyncHistorySection({
+    required this.history,
+  });
+}
+```
+
+### Data Models
+
+#### SyncState Enum
+
+```dart
+enum SyncState {
+  /// 未同步
+  notYetSynced,
+
+  /// 同步中
+  syncing,
+
+  /// 已同步
+  synced,
+
+  /// 失败
+  failed,
+}
+```
+
+#### SyncStatistics Class
+
+```dart
+class SyncStatistics {
+  /// 总卡片数量
+  final int totalCards;
+
+  /// 总数据大小（字节）
+  final int totalDataSize;
+
+  /// 最后同步时间
+  final DateTime? lastSyncTime;
+
+  /// 同步间隔（秒）
+  final int syncInterval;
+
+  const SyncStatistics({
+    required this.totalCards,
+    required this.totalDataSize,
+    this.lastSyncTime,
+    required this.syncInterval,
+  });
+
+  /// 格式化数据大小
+  String get formattedDataSize {
+    if (totalDataSize < 1024) {
+      return '$totalDataSize B';
+    } else if (totalDataSize < 1024 * 1024) {
+      return '${(totalDataSize / 1024).toStringAsFixed(1)} KB';
+    } else {
+      return '${(totalDataSize / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+  }
+}
+```
+
+#### SyncHistoryEntry Class
+
+```dart
+class SyncHistoryEntry {
+  /// 同步时间
+  final DateTime timestamp;
+
+  /// 同步结果
+  final SyncResult result;
+
+  /// 同步的卡片数量
+  final int cardCount;
+
+  /// 同步的设备名称
+  final String deviceName;
+
+  /// 同步的数据大小（字节）
+  final int dataSize;
+
+  /// 同步耗时（毫秒）
+  final int duration;
+
+  /// 错误信息（仅失败时）
+  final String? errorMessage;
+
+  const SyncHistoryEntry({
+    required this.timestamp,
+    required this.result,
+    required this.cardCount,
+    required this.deviceName,
+    required this.dataSize,
+    required this.duration,
+    this.errorMessage,
+  });
+
+  /// 格式化数据大小
+  String get formattedDataSize {
+    if (dataSize < 1024) {
+      return '$dataSize B';
+    } else if (dataSize < 1024 * 1024) {
+      return '${(dataSize / 1024).toStringAsFixed(1)} KB';
+    } else {
+      return '${(dataSize / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+  }
+
+  /// 格式化耗时
+  String get formattedDuration {
+    if (duration < 1000) {
+      return '$duration ms';
+    } else {
+      return '${(duration / 1000).toStringAsFixed(1)} s';
+    }
+  }
+}
+```
+
+#### SyncResult Enum
+
+```dart
+enum SyncResult {
+  /// 成功
+  success,
+
+  /// 失败
+  failed,
+}
+```
+
+#### Device Class
+
+```dart
+class Device {
+  /// 设备 ID（libp2p PeerId）
+  final String id;
+
+  /// 设备名称
+  final String name;
+
+  /// 设备类型
+  final DeviceType type;
+
+  /// 在线状态
+  final bool isOnline;
+
+  /// 最后在线时间
+  final DateTime? lastOnlineTime;
+
+  const Device({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.isOnline,
+    this.lastOnlineTime,
+  });
+}
+```
+
+#### DeviceType Enum
+
+```dart
+enum DeviceType {
+  phone,
+  laptop,
+  tablet,
+}
+```
+
+### State Management
+
+使用 Riverpod 管理状态：
+
+```dart
+// 同步状态 Provider
+final syncStatusProvider = StreamProvider<SyncStatus>((ref) {
+  return getSyncStatusStream();
+});
+
+// 设备列表 Provider
+final devicesProvider = StreamProvider<List<Device>>((ref) {
+  return getDevicesStream();
+});
+
+// 同步统计 Provider
+final syncStatisticsProvider = FutureProvider<SyncStatistics>((ref) {
+  return getSyncStatistics();
+});
+
+// 同步历史 Provider
+final syncHistoryProvider = FutureProvider<List<SyncHistoryEntry>>((ref) {
+  return getSyncHistory(limit: 20);
+});
+```
+
+### Rust FFI Interfaces
+
+需要 Rust 端提供以下 FFI 接口：
+
+```rust
+/// 获取同步状态（实时 Stream）
+pub fn get_sync_status_stream() -> Stream<SyncStatus>;
+
+/// 获取设备列表（实时 Stream）
+pub fn get_devices_stream() -> Stream<Vec<Device>>;
+
+/// 获取同步统计信息
+pub async fn get_sync_statistics() -> Result<SyncStatistics, SyncError>;
+
+/// 获取同步历史记录
+pub async fn get_sync_history(limit: usize) -> Result<Vec<SyncHistoryEntry>, SyncError>;
+```
+
+### Performance Optimization
+
+#### 1. Stream 订阅管理
+- 在 `initState` 中订阅
+- 在 `dispose` 中取消订阅
+- 避免内存泄漏
+
+#### 2. 历史记录限制
+- 只加载最近 20 条记录
+- 减少数据传输和渲染开销
+
+#### 3. 列表优化
+- 使用 `ListView.builder` 构建列表
+- 只渲染可见项
+
+#### 4. 动画性能
+- 使用 `AnimatedOpacity` 和 `AnimatedScale`
+- 避免重复构建
+
+### Accessibility Support
+
+#### 1. 语义标签
+- 为所有交互元素添加 `Semantics` 标签
+- 状态变化时通知屏幕阅读器
+
+#### 2. 键盘导航
+- 支持 Tab 键切换焦点
+- 支持 ESC 键关闭对话框
+- 支持 Enter 键触发操作
+
+#### 3. 对比度
+- 确保文字和背景对比度符合 WCAG AA 标准
+- 状态颜色具有足够的区分度
+
+### Error Handling
+
+#### 1. 数据加载失败
+- 显示错误提示
+- 提供重试按钮
+
+#### 2. Stream 订阅失败
+- 降级为静态数据显示
+- 记录错误日志
+
+#### 3. 网络异常
+- 显示离线状态
+- 不阻塞 UI 渲染
+
+## TESTING Specifications
+
+### Unit Tests (10 test cases)
+
+#### Test Suite: Data Models
+
+1. **SyncState Enum Values**
+   - Verify all four states exist: notYetSynced, syncing, synced, failed
+   - Verify enum can be serialized and deserialized
+
+2. **SyncStatistics Data Size Formatting - Bytes**
+   - Input: 512 bytes
+   - Expected: "512 B"
+
+3. **SyncStatistics Data Size Formatting - Kilobytes**
+   - Input: 2048 bytes
+   - Expected: "2.0 KB"
+
+4. **SyncStatistics Data Size Formatting - Megabytes**
+   - Input: 2621440 bytes (2.5 MB)
+   - Expected: "2.5 MB"
+
+5. **SyncHistoryEntry Duration Formatting - Milliseconds**
+   - Input: 250 ms
+   - Expected: "250 ms"
+
+6. **SyncHistoryEntry Duration Formatting - Seconds**
+   - Input: 1500 ms
+   - Expected: "1.5 s"
+
+7. **Device Model Structure**
+   - Verify all fields: id, name, type, isOnline, lastOnlineTime
+   - Verify Device can be created with required fields
+
+8. **DeviceType Enum Values**
+   - Verify all three types exist: phone, laptop, tablet
+   - Verify enum can be used in Device model
+
+9. **Time Formatting - Recent**
+   - Input: 5 seconds ago
+   - Expected: "刚刚"
+
+10. **Time Formatting - Minutes Ago**
+    - Input: 15 minutes ago
+    - Expected: "15 分钟前"
+
+### Widget Tests (45 test cases)
+
+#### Test Suite: Rendering (15 tests)
+
+11. **Dialog Basic Rendering**
+    - Verify dialog appears with correct dimensions (600px width)
+    - Verify all sections are present
+
+12. **Title Bar Rendering**
+    - Verify title text "同步详情"
+    - Verify close button is present and clickable
+
+13. **Sync Status - Not Yet Synced**
+    - Verify gray icon (#9E9E9E)
+    - Verify "从未同步" text
+
+14. **Sync Status - Syncing**
+    - Verify blue icon (#2196F3)
+    - Verify "同步中" text
+    - Verify rotation animation is active
+
+15. **Sync Status - Synced**
+    - Verify green icon (#4CAF50)
+    - Verify "已同步" text
+    - Verify last sync time is displayed
+
+16. **Sync Status - Failed**
+    - Verify red icon (#F44336)
+    - Verify "同步失败" text
+    - Verify error message is displayed
+
+17. **Device List - With Devices**
+    - Verify device count in header
+    - Verify all devices are listed
+    - Verify device icons match types
+
+18. **Device List - Empty State**
+    - Verify empty state icon
+    - Verify "暂无设备" message
+    - Verify guidance text
+
+19. **Current Device Identification**
+    - Verify "本机" label on current device
+    - Verify current device is highlighted
+
+20. **Device Online Status**
+    - Verify online devices show green badge
+    - Verify offline devices show gray text with last seen time
+
+21. **Statistics Section Rendering**
+    - Verify total card count
+    - Verify total data size with formatting
+    - Verify last sync time
+    - Verify sync interval
+
+22. **Sync History - With Records**
+    - Verify history list displays
+    - Verify records are sorted by time (newest first)
+    - Verify maximum 20 records shown
+
+23. **Sync History - Empty State**
+    - Verify empty state icon
+    - Verify "暂无同步记录" message
+
+24. **Sync History - Success Record**
+    - Verify green success icon
+    - Verify timestamp, card count, device name
+    - Verify data size and duration
+
+25. **Sync History - Failed Record**
+    - Verify red failed icon
+    - Verify error message is displayed
+    - Verify record is visually distinct
+
+#### Test Suite: Interactions (15 tests)
+
+26. **Close Button Click**
+    - Click close button
+    - Verify dialog closes with animation
+    - Verify backdrop disappears
+
+27. **Click Outside Dialog**
+    - Click backdrop area
+    - Verify dialog closes
+    - Verify close animation plays
+
+28. **ESC Key Press**
+    - Press Escape key
+    - Verify dialog closes
+    - Verify focus returns to trigger element
+
+29. **Close Button Hover**
+    - Hover over close button
+    - Verify background changes to #F5F5F5
+    - Verify hover transition is smooth
+
+30. **History Item Hover**
+    - Hover over history record
+    - Verify background changes to #FAFAFA
+    - Verify full-width highlight
+
+31. **Content Scrolling**
+    - Add content exceeding 80vh
+    - Verify scrollbar appears
+    - Verify smooth scrolling behavior
+
+32. **Real-time Status Update**
+    - Emit new sync status via Stream
+    - Verify status section updates immediately
+    - Verify animation plays for state change
+
+33. **Real-time Device List Update**
+    - Emit device online/offline event
+    - Verify device list updates
+    - Verify status badge changes
+
+34. **New Sync Record Addition**
+    - Emit new sync completion event
+    - Verify new record appears at top
+    - Verify list maintains 20 record limit
+
+35. **Dialog Open Animation**
+    - Open dialog
+    - Verify fade-in animation (200ms)
+    - Verify scale animation (0.95 → 1.0)
+
+36. **Dialog Close Animation**
+    - Close dialog
+    - Verify fade-out animation (150ms)
+    - Verify scale animation (1.0 → 0.95)
+
+37. **Syncing Rotation Animation**
+    - Set status to syncing
+    - Verify icon rotates continuously
+    - Verify 2-second rotation period
+
+38. **Device Type Icons**
+    - Create devices with different types
+    - Verify phone icon for phone type
+    - Verify laptop icon for laptop type
+    - Verify tablet icon for tablet type
+
+39. **Time Formatting Display**
+    - Set various last sync times
+    - Verify "刚刚" for < 10 seconds
+    - Verify "X 分钟前" for minutes
+    - Verify "X 小时前" for hours
+
+40. **Data Size Formatting Display**
+    - Set various data sizes
+    - Verify "X B" for bytes
+    - Verify "X.X KB" for kilobytes
+    - Verify "X.X MB" for megabytes
+
+#### Test Suite: Edge Cases (15 tests)
+
+41. **No Devices Edge Case**
+    - Provide empty device list
+    - Verify empty state displays
+    - Verify guidance text is helpful
+
+42. **No Sync History Edge Case**
+    - Provide empty history list
+    - Verify empty state displays
+    - Verify section is not hidden
+
+43. **Sync Failed Edge Case**
+    - Set status to failed with error
+    - Verify error message displays
+    - Verify red color scheme
+
+44. **Network Disconnection Edge Case**
+    - Simulate network disconnect
+    - Verify all devices show offline
+    - Verify sync status shows failed
+
+45. **Data Loading State**
+    - Delay data loading
+    - Verify loading spinner displays
+    - Verify spinner disappears when data loads
+
+46. **History Record Limit**
+    - Provide 30 sync records
+    - Verify only 20 most recent display
+    - Verify oldest records are not shown
+
+47. **Long Device Name**
+    - Provide device with 50-character name
+    - Verify text truncates with ellipsis
+    - Verify tooltip shows full name on hover
+
+48. **Long Error Message**
+    - Provide 200-character error message
+    - Verify text truncates after 3 lines
+    - Verify "查看详情" link appears
+
+49. **Zero Card Count**
+    - Set total cards to 0
+    - Verify displays "0 张卡片"
+    - Verify no error state
+
+50. **Zero Data Size**
+    - Set total data size to 0
+    - Verify displays "0 B"
+    - Verify formatting is correct
+
+51. **Never Synced State**
+    - Set lastSyncTime to null
+    - Verify displays "从未同步"
+    - Verify no time formatting error
+
+52. **Last Sync Time Null**
+    - Set lastSyncTime to null in statistics
+    - Verify displays "从未同步"
+    - Verify section still renders
+
+53. **Device Last Online Time Null**
+    - Set device lastOnlineTime to null
+    - Verify displays "从未在线"
+    - Verify device still renders
+
+54. **Very Short Sync Duration**
+    - Set duration to 0 ms
+    - Verify displays "< 1 ms"
+    - Verify no negative values
+
+55. **Very Long Sync Duration**
+    - Set duration to 125000 ms (2+ minutes)
+    - Verify displays "2 分 5 秒"
+    - Verify formatting is readable

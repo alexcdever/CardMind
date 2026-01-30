@@ -114,7 +114,7 @@ class _AppInitializerState extends State<AppInitializer> {
       try {
         await device_config_api.initDeviceConfig(basePath: storagePath);
         debugPrint('Device config initialized successfully');
-      } catch (e) {
+      } on Exception catch (e) {
         debugPrint('Warning: Failed to initialize device config: $e');
       }
 
@@ -125,7 +125,7 @@ class _AppInitializerState extends State<AppInitializer> {
           listenAddr: '/ip4/0.0.0.0/tcp/0',
         );
         debugPrint('Sync service initialized successfully');
-      } catch (e) {
+      } on Exception catch (e) {
         debugPrint('Warning: Failed to initialize sync service: $e');
         // Continue even if sync service fails - app can work without P2P sync
       }

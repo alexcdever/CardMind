@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_slow_async_io
+
 import 'dart:io';
 
 import 'package:cardmind/services/qr_code_generator.dart';

@@ -45,10 +45,7 @@ class SpecMappingVerifier {
 
   void scanRustSpecs() {
     // Scan openspec/specs for Rust-related specs
-    final specDirs = [
-      'openspec/specs/domain',
-      'openspec/specs/architecture',
-    ];
+    final specDirs = ['openspec/specs/domain', 'openspec/specs/architecture'];
 
     for (final dir in specDirs) {
       final directory = Directory(dir);
@@ -81,10 +78,7 @@ class SpecMappingVerifier {
 
   void scanFlutterSpecs() {
     // Scan openspec/specs/ui and openspec/specs/features
-    final specDirs = [
-      'openspec/specs/ui',
-      'openspec/specs/features',
-    ];
+    final specDirs = ['openspec/specs/ui', 'openspec/specs/features'];
 
     for (final dir in specDirs) {
       final directory = Directory(dir);
@@ -118,8 +112,7 @@ class SpecMappingVerifier {
       if (mapping.testFile != null) {
         final testFile = File(mapping.testFile!);
         if (!testFile.existsSync()) {
-          missingTests.add(
-              '${mapping.specFile}: ${mapping.testFile}');
+          missingTests.add('${mapping.specFile}: ${mapping.testFile}');
         }
       }
     }
@@ -132,7 +125,8 @@ class SpecMappingVerifier {
         final testFile = File(mapping.testFile!);
         if (!testFile.existsSync()) {
           missingTests.add(
-              'Flutter: ${mapping.testFile} (spec: ${mapping.specFile})');
+            'Flutter: ${mapping.testFile} (spec: ${mapping.specFile})',
+          );
         }
       }
     }
@@ -147,10 +141,9 @@ class SpecMappingVerifier {
     // Check Rust tests
     final rustTestDir = Directory('rust/tests');
     if (rustTestDir.existsSync()) {
-      final testFiles = rustTestDir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.endsWith('_test.rs'));
+      final testFiles = rustTestDir.listSync().whereType<File>().where(
+        (f) => f.path.endsWith('_test.rs'),
+      );
 
       for (final testFile in testFiles) {
         final testPath = testFile.path;
@@ -164,10 +157,9 @@ class SpecMappingVerifier {
     // Check Flutter tests
     final flutterTestDir = Directory('test/specs');
     if (flutterTestDir.existsSync()) {
-      final testFiles = flutterTestDir
-          .listSync()
-          .whereType<File>()
-          .where((f) => f.path.endsWith('_spec_test.dart'));
+      final testFiles = flutterTestDir.listSync().whereType<File>().where(
+        (f) => f.path.endsWith('_spec_test.dart'),
+      );
 
       for (final testFile in testFiles) {
         final testPath = testFile.path;
@@ -200,13 +192,16 @@ class SpecMappingVerifier {
     print('');
 
     // Rust coverage
-    final rustWithTests =
-        rustMappings.where((m) => m.testFile != null && File(m.testFile!).existsSync()).length;
+    final rustWithTests = rustMappings
+        .where((m) => m.testFile != null && File(m.testFile!).existsSync())
+        .length;
     final rustCoverage = rustMappings.isEmpty
         ? 0.0
         : (rustWithTests / rustMappings.length * 100);
     print('📈 Rust Test Coverage / Rust 测试覆盖率:');
-    print('   ${rustWithTests}/${rustMappings.length} (${rustCoverage.toStringAsFixed(1)}%)');
+    print(
+      '   ${rustWithTests}/${rustMappings.length} (${rustCoverage.toStringAsFixed(1)}%)',
+    );
     print('');
 
     // Flutter coverage
@@ -218,7 +213,8 @@ class SpecMappingVerifier {
         : (flutterWithTests / flutterMappings.length * 100);
     print('📈 Flutter Test Coverage / Flutter 测试覆盖率:');
     print(
-        '   ${flutterWithTests}/${flutterMappings.length} (${flutterCoverage.toStringAsFixed(1)}%)');
+      '   ${flutterWithTests}/${flutterMappings.length} (${flutterCoverage.toStringAsFixed(1)}%)',
+    );
     print('');
 
     // Missing tests

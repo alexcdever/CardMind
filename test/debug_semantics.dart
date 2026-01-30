@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:cardmind/bridge/models/card.dart' as bridge;
 import 'package:cardmind/widgets/note_card.dart';
 import 'package:flutter/material.dart';

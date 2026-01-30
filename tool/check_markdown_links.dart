@@ -46,11 +46,7 @@ class MarkdownLinkChecker {
 
   List<String> getAllMarkdownFiles() {
     final files = <String>[];
-    final dirs = [
-      'docs',
-      'openspec',
-      '.',
-    ];
+    final dirs = ['docs', 'openspec', '.'];
 
     for (final dir in dirs) {
       final directory = Directory(dir);
@@ -125,7 +121,9 @@ class MarkdownLinkChecker {
     final targetDir = Directory(targetPath);
 
     if (!targetFile.existsSync() && !targetDir.existsSync()) {
-      brokenLinks.add('$sourceFile: [${link.text}](${link.url}) -> $targetPath');
+      brokenLinks.add(
+        '$sourceFile: [${link.text}](${link.url}) -> $targetPath',
+      );
     }
   }
 

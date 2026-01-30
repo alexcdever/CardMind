@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -371,11 +373,13 @@ void main() {
                       );
 
                       // 导航到主页
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute<void>(
-                          builder: (_) =>
-                              const Scaffold(body: Text('Home Screen')),
+                      unawaited(
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                const Scaffold(body: Text('Home Screen')),
+                          ),
                         ),
                       );
                     },
@@ -541,11 +545,13 @@ void main() {
                     );
 
                     // 导航到主页
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            const Scaffold(body: Text('Home Screen')),
+                    unawaited(
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              const Scaffold(body: Text('Home Screen')),
+                        ),
                       ),
                     );
                   },

@@ -51,10 +51,14 @@ class _VerificationCodeDialogState extends State<VerificationCodeDialog> {
           // 处理状态变化
           if (session.status == VerificationStatus.verified) {
             widget.onVerified?.call();
-            Navigator.of(context).pop(true);
+            if (mounted) {
+              Navigator.of(context).pop(true);
+            }
           } else if (session.status == VerificationStatus.timeout) {
             widget.onTimeout?.call();
-            Navigator.of(context).pop(false);
+            if (mounted) {
+              Navigator.of(context).pop(false);
+            }
           }
         }
       },
@@ -132,7 +136,7 @@ class _VerificationCodeDialogState extends State<VerificationCodeDialog> {
                 color: colorScheme.primaryContainer,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: colorScheme.primary.withOpacity(0.3),
+                  color: colorScheme.primary.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),

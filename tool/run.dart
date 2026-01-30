@@ -33,7 +33,8 @@ void main(List<String> arguments) async {
   ];
 
   if (env.containsKey('PKG_CONFIG_PATH')) {
-    env['PKG_CONFIG_PATH'] = '${pkgConfigPaths.join(':')}:${env['PKG_CONFIG_PATH']}';
+    env['PKG_CONFIG_PATH'] =
+        '${pkgConfigPaths.join(':')}:${env['PKG_CONFIG_PATH']}';
   } else {
     env['PKG_CONFIG_PATH'] = pkgConfigPaths.join(':');
   }

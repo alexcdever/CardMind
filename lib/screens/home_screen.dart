@@ -280,7 +280,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withOpacity(0.8),
+        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
         border: Border(bottom: BorderSide(color: theme.dividerColor, width: 1)),
       ),
       child: SafeArea(

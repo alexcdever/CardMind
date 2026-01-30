@@ -98,11 +98,7 @@ Future<Map<String, dynamic>> analyzeConfig() async {
 Future<Map<String, dynamic>> analyzeViolations() async {
   final logFile = File('.project-guardian/failures.log');
   if (!await logFile.exists()) {
-    return {
-      'total': 0,
-      'by_type': {},
-      'by_constraint': {},
-    };
+    return {'total': 0, 'by_type': {}, 'by_constraint': {}};
   }
 
   final content = await logFile.readAsString();
@@ -138,10 +134,7 @@ Future<Map<String, dynamic>> analyzeCodebase() async {
   final rustStats = await _analyzeRustCode();
   final dartStats = await _analyzeDartCode();
 
-  return {
-    'rust': rustStats,
-    'dart': dartStats,
-  };
+  return {'rust': rustStats, 'dart': dartStats};
 }
 
 Future<Map<String, dynamic>> _analyzeRustCode() async {
@@ -300,8 +293,8 @@ String generateTextReport(Map<String, dynamic> stats) {
   final scoreColor = score >= 80
       ? green
       : score >= 60
-          ? yellow
-          : red;
+      ? yellow
+      : red;
   buffer.writeln('总分: $scoreColor$score/100$reset');
   buffer.writeln();
 
@@ -419,8 +412,8 @@ String generateHtmlReport(Map<String, dynamic> stats) {
   final scoreColor = score >= 80
       ? '#4CAF50'
       : score >= 60
-          ? '#FF9800'
-          : '#F44336';
+      ? '#FF9800'
+      : '#F44336';
 
   return '''
 <!DOCTYPE html>
