@@ -70,6 +70,10 @@ class _DeviceListItemState extends State<DeviceListItem> {
       Offset.zero & overlay.size,
     );
 
+    // 在异步操作前保存 context 和 messenger
+    final savedContext = context;
+    final messenger = ScaffoldMessenger.of(context);
+
     showMenu<String>(
       context: context,
       position: position,
@@ -139,17 +143,22 @@ class _DeviceListItemState extends State<DeviceListItem> {
       ],
     ).then((value) {
       if (value != null && mounted) {
-        _handleMenuAction(context, value);
+        // ignore: use_build_context_synchronously
+        _handleMenuAction(savedContext, value, messenger);
       }
     });
   }
 
   /// 处理菜单操作
-  void _handleMenuAction(BuildContext context, String action) {
+  void _handleMenuAction(
+    BuildContext context,
+    String action,
+    ScaffoldMessengerState messenger,
+  ) {
     switch (action) {
       case 'copy_peer_id':
         Clipboard.setData(ClipboardData(text: widget.device.id));
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             content: Text('PeerId 已复制到剪贴板'),
             duration: Duration(seconds: 2),
@@ -160,7 +169,7 @@ class _DeviceListItemState extends State<DeviceListItem> {
         if (widget.device.multiaddrs.isNotEmpty) {
           final addresses = widget.device.multiaddrs.join('\n');
           Clipboard.setData(ClipboardData(text: addresses));
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             SnackBar(
               content: Text('已复制 ${widget.device.multiaddrs.length} 个地址到剪贴板'),
               duration: const Duration(seconds: 2),
