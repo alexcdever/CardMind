@@ -13,7 +13,7 @@ fn main() {
 
     // Subscribe using Arc wrapper
     let _sub = doc.subscribe_root(Arc::new(|event| {
-        println!("{:?}", event);
+        println!("{event:?}");
     }));
 
     println!(

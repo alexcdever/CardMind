@@ -1,4 +1,6 @@
-#[allow(unused_imports)]
+#![allow(clippy::unnecessary_wraps)]
+#![allow(unused_imports)]
+
 use std::sync::{Arc, Mutex};
 
 struct DeviceConfig {
@@ -6,11 +8,11 @@ struct DeviceConfig {
 }
 
 impl DeviceConfig {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self { pool_id: None }
     }
 
-    fn is_joined(&self) -> bool {
+    const fn is_joined(&self) -> bool {
         self.pool_id.is_some()
     }
 

@@ -1,4 +1,4 @@
-/// CardStore - 管理Loro CRDT文档和SQLite缓存
+/// `CardStore` - 管理`Loro` CRDT文档和`SQLite`缓存
 ///
 /// 这是核心存储层，实现双层架构：
 /// - **Loro**: 数据源头，每个卡片独立的LoroDoc文件
@@ -36,14 +36,14 @@ use loro::{ExportMode, LoroDoc};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-/// CardStore - 卡片存储管理器
+/// `CardStore` - 卡片存储管理器
 ///
-/// 管理Loro文档和SQLite缓存的核心组件
+/// 管理`Loro`文档和`SQLite`缓存的核心组件
 pub struct CardStore {
-    /// SQLite缓存层
+    /// `SQLite`缓存层
     sqlite: SqliteStore,
 
-    /// 每个卡片的LoroDoc映射 (card_id -> LoroDoc)
+    /// 每个卡片的`LoroDoc`映射 (`card_id` -> `LoroDoc`)
     loro_docs: HashMap<String, LoroDoc>,
 
     /// 存储根目录（None表示内存模式）
@@ -71,7 +71,7 @@ impl CardStore {
         })
     }
 
-    /// 创建基于文件的CardStore
+    /// 创建基于文件的`CardStore`
     ///
     /// # 参数
     ///
@@ -99,7 +99,7 @@ impl CardStore {
         let mut store = Self {
             sqlite,
             loro_docs: HashMap::new(),
-            base_path: Some(base_path.clone()),
+            base_path: Some(base_path),
         };
 
         // 加载现有的卡片
@@ -127,7 +127,7 @@ impl CardStore {
                             doc.import(&bytes)?;
 
                             // 从Loro提取卡片数据
-                            if let Some(card) = self.extract_card_from_loro(&doc)? {
+                            if let Some(card) = Self::extract_card_from_loro(&doc)? {
                                 let card_id = card.id.clone();
 
                                 // 同步到SQLite
@@ -145,8 +145,8 @@ impl CardStore {
         Ok(())
     }
 
-    /// 从LoroDoc提取Card数据
-    fn extract_card_from_loro(&self, doc: &LoroDoc) -> Result<Option<Card>, CardMindError> {
+    /// 从`LoroDoc`提取`Card`数据
+    fn extract_card_from_loro(doc: &LoroDoc) -> Result<Option<Card>, CardMindError> {
         let map = doc.get_map("card");
 
         // 检查是否有数据
@@ -202,7 +202,7 @@ impl CardStore {
         }))
     }
 
-    /// 将Card数据写入LoroDoc
+    /// 将`Card`数据写入`LoroDoc`
     fn write_card_to_loro(doc: &LoroDoc, card: &Card) -> Result<(), CardMindError> {
         let map = doc.get_map("card");
         map.insert("id", card.id.clone())?;
@@ -214,11 +214,18 @@ impl CardStore {
         Ok(())
     }
 
-    /// 持久化LoroDoc到文件
+    /// 持久化`LoroDoc`到文件
     fn persist_loro_doc(&self, card_id: &str, doc: &LoroDoc) -> Result<(), CardMindError> {
         if let Some(base_path) = &self.base_path {
             // 使用十六进制编码card_id作为目录名
-            let encoded_id: String = card_id.bytes().map(|b| format!("{:02x}", b)).collect();
+            let encoded_id: String =
+                card_id
+                    .bytes()
+                    .fold(String::with_capacity(card_id.len() * 2), |mut acc, b| {
+                        use std::fmt::Write;
+                        let _ = write!(&mut acc, "{b:02x}");
+                        acc
+                    });
             let card_dir = base_path.join("loro").join(&encoded_id);
 
             // 创建卡片目录
@@ -233,7 +240,7 @@ impl CardStore {
         Ok(())
     }
 
-    /// 同步Card到SQLite
+    /// 同步`Card`到`SQLite`
     fn sync_card_to_sqlite(&self, card: &Card) -> Result<(), CardMindError> {
         // 检查卡片是否已存在
         match self.sqlite.get_card_by_id(&card.id) {
@@ -378,7 +385,13 @@ impl CardStore {
 
             // 持久化到文件
             if let Some(base_path) = &self.base_path {
-                let encoded_id: String = id.bytes().map(|b| format!("{:02x}", b)).collect();
+                let encoded_id: String =
+                    id.bytes()
+                        .fold(String::with_capacity(id.len() * 2), |mut acc, b| {
+                            use std::fmt::Write;
+                            let _ = write!(&mut acc, "{b:02x}");
+                            acc
+                        });
                 let card_dir = base_path.join("loro").join(&encoded_id);
                 std::fs::create_dir_all(&card_dir)?;
                 let snapshot_path = card_dir.join("snapshot.loro");
@@ -427,7 +440,13 @@ impl CardStore {
 
             // 持久化到文件
             if let Some(base_path) = &self.base_path {
-                let encoded_id: String = id.bytes().map(|b| format!("{:02x}", b)).collect();
+                let encoded_id: String =
+                    id.bytes()
+                        .fold(String::with_capacity(id.len() * 2), |mut acc, b| {
+                            use std::fmt::Write;
+                            let _ = write!(&mut acc, "{b:02x}");
+                            acc
+                        });
                 let card_dir = base_path.join("loro").join(&encoded_id);
                 std::fs::create_dir_all(&card_dir)?;
                 let snapshot_path = card_dir.join("snapshot.loro");
@@ -441,7 +460,7 @@ impl CardStore {
         Ok(())
     }
 
-    /// 确保LoroDoc已加载到缓存中
+    /// 确保`LoroDoc`已加载到缓存中
     fn ensure_loro_doc_loaded(&mut self, id: &str) -> Result<(), CardMindError> {
         // 如果已缓存，直接返回
         if self.loro_docs.contains_key(id) {
@@ -455,7 +474,13 @@ impl CardStore {
 
         // 从文件加载
         let base_path = self.base_path.as_ref().unwrap();
-        let encoded_id: String = id.bytes().map(|b| format!("{:02x}", b)).collect();
+        let encoded_id: String =
+            id.bytes()
+                .fold(String::with_capacity(id.len() * 2), |mut acc, b| {
+                    use std::fmt::Write;
+                    let _ = write!(&mut acc, "{b:02x}");
+                    acc
+                });
         let snapshot_path = base_path
             .join("loro")
             .join(&encoded_id)
@@ -501,7 +526,7 @@ impl CardStore {
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
     #[deprecated(note = "单池模型下，卡片归属由 Pool 管理，请使用 PoolStore 操作")]
-    pub fn add_card_to_pool(&mut self, card_id: &str, pool_id: &str) -> Result<(), CardMindError> {
+    pub fn add_card_to_pool(&self, card_id: &str, pool_id: &str) -> Result<(), CardMindError> {
         // 单池模型：仅维护 SQLite 绑定表（用于反向查询）
         // 不再修改 Card Loro（Card 不再持有 pool_ids）
 
@@ -529,11 +554,7 @@ impl CardStore {
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
     #[deprecated(note = "单池模型下，卡片归属由 Pool 管理，请使用 PoolStore 操作")]
-    pub fn remove_card_from_pool(
-        &mut self,
-        card_id: &str,
-        pool_id: &str,
-    ) -> Result<(), CardMindError> {
+    pub fn remove_card_from_pool(&self, card_id: &str, pool_id: &str) -> Result<(), CardMindError> {
         // 单池模型：仅维护 SQLite 绑定表（用于反向查询）
         // 不再修改 Card Loro（Card 不再持有 pool_ids）
 
@@ -571,7 +592,7 @@ impl CardStore {
     ///
     /// # 注意
     ///
-    /// 单池模型下，卡片同步不再包含 pool_ids（归属由 Pool 管理）
+    /// 单池模型下，卡片同步不再包含 `pool_ids`（归属由 `Pool` 管理）
     pub fn upsert_card_from_sync(&mut self, card: &Card) -> Result<(), CardMindError> {
         if self.get_card_by_id(&card.id).is_ok() {
             self.update_card(
@@ -613,7 +634,7 @@ impl CardStore {
     }
 
     #[deprecated(note = "单池模型下，卡片归属由 Pool 管理，请使用 PoolStore 操作")]
-    pub fn clear_card_pools(&mut self, card_id: &str) -> Result<(), CardMindError> {
+    pub fn clear_card_pools(&self, card_id: &str) -> Result<(), CardMindError> {
         // 单池模型：Card 不再持有 pool_ids
         // 仅清除 SQLite 绑定关系（用于反向查询）
 

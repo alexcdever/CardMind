@@ -1,16 +1,16 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/models/device.dart';
 import 'package:cardmind/models/pairing_request.dart';
 import 'package:cardmind/utils/device_utils.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Device Model Tests', () {
     test('UT-001: 测试 Device 模型创建', () {
       // Arrange
-      final id = '12D3KooWTest123';
-      final name = '测试设备';
-      final type = DeviceType.phone;
-      final status = DeviceStatus.online;
+      const id = '12D3KooWTest123';
+      const name = '测试设备';
+      const type = DeviceType.phone;
+      const status = DeviceStatus.online;
       final lastSeen = DateTime.now();
 
       // Act
@@ -55,11 +55,11 @@ void main() {
   group('PairingRequest Model Tests', () {
     test('UT-004: 测试 PairingRequest 模型创建', () {
       // Arrange
-      final requestId = 'request-123';
-      final deviceId = '12D3KooWTest456';
-      final deviceName = '配对设备';
-      final deviceType = DeviceType.laptop;
-      final verificationCode = '123456';
+      const requestId = 'request-123';
+      const deviceId = '12D3KooWTest456';
+      const deviceName = '配对设备';
+      const deviceType = DeviceType.laptop;
+      const verificationCode = '123456';
       final timestamp = DateTime.now();
 
       // Act
@@ -205,7 +205,7 @@ void main() {
       expect(DeviceUtils.getDeviceNameError('我的手机'), isNull);
 
       // 测试超长名称（>32 字符，无效）
-      final longName = '这是一个非常非常非常非常非常非常非常非常非常非常非常长的设备名称啊';
+      const longName = '这是一个非常非常非常非常非常非常非常非常非常非常非常长的设备名称啊';
       expect(longName.length, greaterThan(32));
       expect(DeviceUtils.isValidDeviceName(longName), isFalse);
       expect(
@@ -214,7 +214,7 @@ void main() {
       );
 
       // 测试边界情况（正好 32 字符，有效）
-      final exactName = '这是一个正好三十二个字符的设备名称测试用例啊啊啊啊啊啊啊啊啊啊啊';
+      const exactName = '这是一个正好三十二个字符的设备名称测试用例啊啊啊啊啊啊啊啊啊啊啊';
       expect(exactName.length, equals(32));
       expect(DeviceUtils.isValidDeviceName(exactName), isTrue);
       expect(DeviceUtils.getDeviceNameError(exactName), isNull);

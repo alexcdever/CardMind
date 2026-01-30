@@ -1,5 +1,5 @@
-import '../bridge/third_party/cardmind_rust/api/card.dart' as card_api;
 import '../bridge/models/card.dart';
+import '../bridge/third_party/cardmind_rust/api/card.dart' as card_api;
 import 'card_api_interface.dart';
 
 /// Real Card API Implementation
@@ -11,7 +11,7 @@ class CardApiImpl implements CardApiInterface {
     required String title,
     required String content,
   }) async {
-    return await card_api.createCard(title: title, content: content);
+    return card_api.createCard(title: title, content: content);
   }
 
   @override
@@ -30,16 +30,16 @@ class CardApiImpl implements CardApiInterface {
 
   @override
   Future<Card> getCardById({required String id}) async {
-    return await card_api.getCardById(id: id);
+    return card_api.getCardById(id: id);
   }
 
   @override
   Future<List<Card>> getActiveCards() async {
-    return await card_api.getActiveCards();
+    return card_api.getActiveCards();
   }
 
   @override
   Future<List<Card>> getAllCards() async {
-    return await card_api.getAllCards();
+    return card_api.getAllCards();
   }
 }

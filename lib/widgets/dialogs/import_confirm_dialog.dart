@@ -3,13 +3,10 @@ import '../../bridge/api/loro_export.dart';
 
 /// 导入确认对话框
 class ImportConfirmDialog extends StatelessWidget {
+  const ImportConfirmDialog({super.key, required this.preview});
+
   /// 文件预览信息
   final FilePreview preview;
-
-  const ImportConfirmDialog({
-    super.key,
-    required this.preview,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -71,10 +68,7 @@ class ImportConfirmDialog extends StatelessWidget {
   }
 
   /// 显示对话框
-  static Future<bool> show(
-    BuildContext context,
-    FilePreview preview,
-  ) async {
+  static Future<bool> show(BuildContext context, FilePreview preview) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => ImportConfirmDialog(preview: preview),

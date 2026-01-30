@@ -1,6 +1,6 @@
+import 'package:cardmind/utils/text_truncator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/utils/text_truncator.dart';
 
 /// Unit tests for TextTruncator utility
 /// Based on design specification section 5.2.1
@@ -19,7 +19,7 @@ void main() {
 
       test('it_should_return_1_line_for_title', () {
         // When: Get max title lines
-        final maxLines = TextTruncator.maxTitleLines;
+        const maxLines = TextTruncator.maxTitleLines;
 
         // Then: Should always return 1 line for title
         expect(maxLines, equals(1));

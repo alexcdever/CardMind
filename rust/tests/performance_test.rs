@@ -1,3 +1,5 @@
+#![allow(clippy::cast_precision_loss)]
+
 // Performance tests for CardMind MVP
 //
 // Tests verify that performance targets are met:
@@ -16,8 +18,8 @@ fn it_should_1000_cards_loading_performance() {
     // Create 1000 cards
     let create_start = Instant::now();
     for i in 0..1000 {
-        let title = format!("Test Card {}", i);
-        let content = format!("This is test card number {} with some content", i);
+        let title = format!("Test Card {i}");
+        let content = format!("This is test card number {i} with some content");
         store
             .create_card(title, content)
             .expect("Failed to create card");
@@ -47,8 +49,7 @@ fn it_should_1000_cards_loading_performance() {
     // Total time for creation + query should be reasonable
     let total_duration = create_start.elapsed();
     println!(
-        "Total time for 1000 cards creation + query: {:?}",
-        total_duration
+        "Total time for 1000 cards creation + query: {total_duration:?}"
     );
 }
 
@@ -66,7 +67,7 @@ fn it_should_loro_operation_performance() {
         )
         .expect("Failed to create card");
     let create_duration = start.elapsed();
-    println!("Loro create operation: {:?}", create_duration);
+    println!("Loro create operation: {create_duration:?}");
     assert!(
         create_duration.as_millis() < 50,
         "Loro create should be < 50ms (was {} ms)",
@@ -83,7 +84,7 @@ fn it_should_loro_operation_performance() {
         )
         .expect("Failed to update card");
     let update_duration = start.elapsed();
-    println!("Loro update operation: {:?}", update_duration);
+    println!("Loro update operation: {update_duration:?}");
     assert!(
         update_duration.as_millis() < 50,
         "Loro update should be < 50ms (was {} ms)",
@@ -94,7 +95,7 @@ fn it_should_loro_operation_performance() {
     let start = Instant::now();
     store.delete_card(&card.id).expect("Failed to delete card");
     let delete_duration = start.elapsed();
-    println!("Loro delete operation: {:?}", delete_duration);
+    println!("Loro delete operation: {delete_duration:?}");
     assert!(
         delete_duration.as_millis() < 50,
         "Loro delete should be < 50ms (was {} ms)",
@@ -110,7 +111,7 @@ fn it_should_sqlite_query_performance() {
     // Populate with 1000 cards
     for i in 0..1000 {
         store
-            .create_card(format!("Card {}", i), format!("Content {}", i))
+            .create_card(format!("Card {i}"), format!("Content {i}"))
             .expect("Failed to create card");
     }
 
@@ -153,7 +154,7 @@ fn it_should_sqlite_query_performance() {
         .get_card_by_id(card_id)
         .expect("Failed to get card by id");
     let query_by_id_duration = start.elapsed();
-    println!("SQLite get_card_by_id: {:?}", query_by_id_duration);
+    println!("SQLite get_card_by_id: {query_by_id_duration:?}");
     assert!(
         query_by_id_duration.as_millis() < 10,
         "SQLite get_card_by_id should be < 10ms (was {} ms)",
@@ -170,7 +171,7 @@ fn it_should_card_count_performance() {
     // Create 1000 cards
     for i in 0..1000 {
         store
-            .create_card(format!("Card {}", i), format!("Content {}", i))
+            .create_card(format!("Card {i}"), format!("Content {i}"))
             .expect("Failed to create card");
     }
 
@@ -178,7 +179,7 @@ fn it_should_card_count_performance() {
     let start = Instant::now();
     let (total, active, deleted) = store.get_card_count().expect("Failed to get card count");
     let count_duration = start.elapsed();
-    println!("SQLite get_card_count: {:?}", count_duration);
+    println!("SQLite get_card_count: {count_duration:?}");
 
     assert_eq!(total, 1000, "Should have 1000 cards total");
     assert_eq!(active, 1000, "Should have 1000 active cards");

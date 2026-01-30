@@ -9,7 +9,6 @@ import 'mobile_layout.dart';
 /// Mobile: Single-column layout with optional FAB
 /// Desktop: Multi-column layout with side navigation
 class AdaptiveScaffold extends AdaptiveWidget {
-
   const AdaptiveScaffold({
     super.key,
     required this.body,

@@ -1,11 +1,13 @@
-/// SQLite集成测试
+#![allow(clippy::similar_names)]
+
+/// `SQLite集成测试`
 ///
 /// 测试SQLite表创建、CRUD操作和数据库初始化功能
 ///
 /// 测试内容:
-/// - SQLite数据库创建和连接
+/// - `SQLite数据库创建和连接`
 /// - cards表创建和schema验证
-/// - SQLite优化参数配置
+/// - `SQLite优化参数配置`
 /// - 基础CRUD操作
 ///
 /// 注意: 所有测试使用内存数据库，不创建实际文件
@@ -16,7 +18,7 @@ use rusqlite::{Connection, Result as SqliteResult};
 
 // ==================== 1. 表创建测试 ====================
 
-/// 测试: SQLite数据库连接创建
+/// 测试: `SQLite数据库连接创建`
 #[test]
 fn it_should_create_in_memory_db() {
     let conn = Connection::open_in_memory();
@@ -118,11 +120,11 @@ fn it_should_indexes_creation() {
 
 // ==================== 2. SQLite优化参数测试 ====================
 
-/// 测试: SQLite优化参数配置
+/// 测试: `SQLite优化参数配置`
 ///
 /// 验收标准:
 /// - WAL模式启用
-/// - cache_size设置正确
+/// - `cache_size设置正确`
 /// - synchronous设置正确
 #[test]
 fn it_should_sqlite_optimization() {
@@ -342,7 +344,7 @@ fn create_cards_table(conn: &Connection) -> Result<(), CardMindError> {
     Ok(())
 }
 
-/// 配置SQLite优化参数
+/// `配置SQLite优化参数`
 fn optimize_sqlite(conn: &Connection) -> Result<(), CardMindError> {
     // 使用pragma_update来设置PRAGMA值（不期望返回结果）
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -353,7 +355,7 @@ fn optimize_sqlite(conn: &Connection) -> Result<(), CardMindError> {
     Ok(())
 }
 
-/// 插入卡片到SQLite
+/// `插入卡片到SQLite`
 fn insert_card(conn: &Connection, card: &Card) -> Result<(), CardMindError> {
     conn.execute(
         "INSERT INTO cards (id, title, content, created_at, updated_at, deleted)

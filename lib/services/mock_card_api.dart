@@ -56,7 +56,7 @@ class MockCardApi implements CardApiInterface {
 
   Future<void> _simulateDelay() async {
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
   }
 

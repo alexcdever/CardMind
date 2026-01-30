@@ -1,10 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
 import 'package:cardmind/widgets/note_card_enhanced.dart';
-import 'package:cardmind/adaptive/platform_detector.dart';
-import 'package:cardmind/utils/time_formatter.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 // Test-specific constants
 const int kSecondaryMouseButton = 2; // Right mouse button
@@ -39,8 +36,8 @@ void main() {
       VoidCallback? onViewDetails,
       VoidCallback? onCopyContent,
       VoidCallback? onShare,
-      Function(bridge.Card)? onUpdate,
-      Function(String)? onDelete,
+      void Function(bridge.Card)? onUpdate,
+      void Function(String)? onDelete,
     }) {
       return MaterialApp(
         home: Scaffold(
@@ -186,8 +183,7 @@ void main() {
     testWidgets('it_should_call_onEdit_when_edit_triggered', (
       WidgetTester tester,
     ) async {
-      bool wasEdited = false;
-      await tester.pumpWidget(createTestWidget(onEdit: () => wasEdited = true));
+      await tester.pumpWidget(createTestWidget(onEdit: () {}));
 
       // Note: The actual behavior depends on platform detection
       // On desktop, onEdit should be called; on mobile, onTap should be called
@@ -288,7 +284,9 @@ void main() {
       final allTexts = find.byType(Text);
       final textWidgets = tester.widgetList<Text>(allTexts);
       final timeText = textWidgets.firstWhere(
-        (text) => text.data != null && RegExp(r'(\d{2}-\d{2}|\d{4}-\d{2}-\d{2})').hasMatch(text.data!),
+        (text) =>
+            text.data != null &&
+            RegExp(r'(\d{2}-\d{2}|\d{4}-\d{2}-\d{2})').hasMatch(text.data!),
       );
       // Should show absolute time format (MM-DD or YYYY-MM-DD)
       expect(
@@ -347,8 +345,7 @@ void main() {
     testWidgets('it_should_show_context_menu_on_right_click_desktop', (
       WidgetTester tester,
     ) async {
-      bool menuShown = false;
-      await tester.pumpWidget(createTestWidget(onEdit: () => menuShown = true));
+      await tester.pumpWidget(createTestWidget(onEdit: () {}));
 
       await tester.tap(find.byType(NoteCard), buttons: kSecondaryMouseButton);
       await tester.pumpAndSettle();
@@ -374,10 +371,7 @@ void main() {
     testWidgets('it_should_call_onCopyContent_when_copy_selected', (
       WidgetTester tester,
     ) async {
-      bool wasCopied = false;
-      await tester.pumpWidget(
-        createTestWidget(onCopyContent: () => wasCopied = true),
-      );
+      await tester.pumpWidget(createTestWidget(onCopyContent: () {}));
 
       // Note: Full context menu interaction testing would be complex
       // This verifies the callback is properly set up
@@ -387,10 +381,7 @@ void main() {
     testWidgets('it_should_call_onViewDetails_when_view_details_selected', (
       WidgetTester tester,
     ) async {
-      bool wasViewed = false;
-      await tester.pumpWidget(
-        createTestWidget(onViewDetails: () => wasViewed = true),
-      );
+      await tester.pumpWidget(createTestWidget(onViewDetails: () {}));
 
       expect(find.byType(NoteCard), findsOneWidget);
     });
@@ -398,10 +389,7 @@ void main() {
     testWidgets('it_should_call_onShare_when_share_selected', (
       WidgetTester tester,
     ) async {
-      bool wasShared = false;
-      await tester.pumpWidget(
-        createTestWidget(onShare: () => wasShared = true),
-      );
+      await tester.pumpWidget(createTestWidget(onShare: () {}));
 
       expect(find.byType(NoteCard), findsOneWidget);
     });
@@ -419,10 +407,7 @@ void main() {
     testWidgets('it_should_call_onDelete_when_delete_confirmed', (
       WidgetTester tester,
     ) async {
-      String? deletedId;
-      await tester.pumpWidget(
-        createTestWidget(onDelete: (id) => deletedId = id),
-      );
+      await tester.pumpWidget(createTestWidget(onDelete: (id) {}));
 
       expect(find.byType(NoteCard), findsOneWidget);
     });
@@ -513,7 +498,9 @@ void main() {
       final allTexts = find.byType(Text);
       final textWidgets = tester.widgetList<Text>(allTexts);
       final timeText = textWidgets.firstWhere(
-        (text) => text.data != null && RegExp(r'(\d{2}-\d{2}|\d{4}-\d{2}-\d{2})').hasMatch(text.data!),
+        (text) =>
+            text.data != null &&
+            RegExp(r'(\d{2}-\d{2}|\d{4}-\d{2}-\d{2})').hasMatch(text.data!),
       );
       // Should show absolute time format
       expect(
@@ -534,9 +521,7 @@ void main() {
       // Find all text widgets and look for "未知时间"
       final allTexts = find.byType(Text);
       final textWidgets = tester.widgetList<Text>(allTexts);
-      final timeText = textWidgets.firstWhere(
-        (text) => text.data == '未知时间',
-      );
+      final timeText = textWidgets.firstWhere((text) => text.data == '未知时间');
       expect(timeText.data, equals('未知时间'));
     });
 
@@ -553,9 +538,7 @@ void main() {
       // Find all text widgets and look for "刚刚"
       final allTexts = find.byType(Text);
       final textWidgets = tester.widgetList<Text>(allTexts);
-      final timeText = textWidgets.firstWhere(
-        (text) => text.data == '刚刚',
-      );
+      final timeText = textWidgets.firstWhere((text) => text.data == '刚刚');
       expect(timeText.data, equals('刚刚'));
     });
 

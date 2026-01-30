@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:flutter/material.dart';
 
 /// 自适应浮动操作按钮
 ///

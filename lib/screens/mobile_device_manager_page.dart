@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-
 import 'package:cardmind/models/device.dart';
 import 'package:cardmind/utils/device_utils.dart';
 import 'package:cardmind/widgets/current_device_card.dart';
 import 'package:cardmind/widgets/device_list_item.dart';
 import 'package:cardmind/widgets/pair_device_dialog.dart';
+import 'package:flutter/material.dart';
 
 /// 移动端设备管理页面
 ///

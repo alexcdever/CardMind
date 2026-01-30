@@ -31,18 +31,13 @@ class AppTheme {
       ),
 
       // AppBar theme
-      appBarTheme: const AppBarTheme(
-        centerTitle: false,
-        elevation: 0,
-      ),
+      appBarTheme: const AppBarTheme(centerTitle: false, elevation: 0),
 
       // Card theme
       cardTheme: CardThemeData(
         elevation: 2,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         shadowColor: cardShadowColor,
       ),
 
@@ -53,17 +48,12 @@ class AppTheme {
 
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
       ),
 
       // Divider theme
-      dividerTheme: const DividerThemeData(
-        space: 1,
-        thickness: 1,
-      ),
+      dividerTheme: const DividerThemeData(space: 1, thickness: 1),
     );
   }
 
@@ -78,18 +68,13 @@ class AppTheme {
       ),
 
       // AppBar theme
-      appBarTheme: const AppBarTheme(
-        centerTitle: false,
-        elevation: 0,
-      ),
+      appBarTheme: const AppBarTheme(centerTitle: false, elevation: 0),
 
       // Card theme
       cardTheme: CardThemeData(
         elevation: 2,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         shadowColor: cardShadowColor,
       ),
 
@@ -100,17 +85,12 @@ class AppTheme {
 
       // Input decoration theme
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
       ),
 
       // Divider theme
-      dividerTheme: const DividerThemeData(
-        space: 1,
-        thickness: 1,
-      ),
+      dividerTheme: const DividerThemeData(space: 1, thickness: 1),
     );
   }
 }

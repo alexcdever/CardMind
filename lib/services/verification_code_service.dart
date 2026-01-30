@@ -18,6 +18,15 @@ enum VerificationStatus {
 
 /// 验证码会话
 class VerificationSession {
+  VerificationSession({
+    required this.code,
+    required this.remotePeerId,
+    required this.remoteDeviceName,
+    required this.createdAt,
+    required this.expiresAt,
+    this.status = VerificationStatus.pending,
+  });
+
   /// 验证码
   final String code;
 
@@ -35,15 +44,6 @@ class VerificationSession {
 
   /// 当前状态
   VerificationStatus status;
-
-  VerificationSession({
-    required this.code,
-    required this.remotePeerId,
-    required this.remoteDeviceName,
-    required this.createdAt,
-    required this.expiresAt,
-    this.status = VerificationStatus.pending,
-  });
 
   /// 是否已过期
   bool get isExpired => DateTime.now().isAfter(expiresAt);
@@ -78,10 +78,12 @@ class VerificationCodeService {
   final Map<String, VerificationSession> _sessions = {};
 
   /// 会话状态变化流控制器
-  final _sessionStateController = StreamController<VerificationSession>.broadcast();
+  final _sessionStateController =
+      StreamController<VerificationSession>.broadcast();
 
   /// 会话状态变化流
-  Stream<VerificationSession> get sessionStateChanges => _sessionStateController.stream;
+  Stream<VerificationSession> get sessionStateChanges =>
+      _sessionStateController.stream;
 
   /// 定时器（用于倒计时）
   Timer? _countdownTimer;
@@ -136,10 +138,7 @@ class VerificationCodeService {
   /// [inputCode] 用户输入的验证码
   ///
   /// 返回验证是否成功
-  bool verifyCode({
-    required String remotePeerId,
-    required String inputCode,
-  }) {
+  bool verifyCode({required String remotePeerId, required String inputCode}) {
     final session = _sessions[remotePeerId];
 
     // 会话不存在

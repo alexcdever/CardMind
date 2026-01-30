@@ -11,7 +11,6 @@ import 'mock_card_service.dart';
 /// 用于测试的应用包装器，跳过 Rust Bridge 初始化
 /// 避免集成测试中的超时问题
 class TestApp extends StatelessWidget {
-
   const TestApp({
     super.key,
     required this.child,
@@ -47,7 +46,6 @@ class TestApp extends StatelessWidget {
 ///
 /// 用于简单组件测试的包装器
 class SimpleTestApp extends StatelessWidget {
-
   const SimpleTestApp({super.key, required this.child, this.themeMode});
   final Widget child;
   final ThemeMode? themeMode;

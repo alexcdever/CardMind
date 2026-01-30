@@ -80,13 +80,11 @@ fn it_should_enable_mdns_for_5_minutes_when_enable_mdns_temporary_is_called() {
     let remaining = config.get_mdns_remaining_ms();
     assert!(
         remaining > 4 * 60 * 1000,
-        "Remaining time should be > 4 minutes, got {}ms",
-        remaining
+        "Remaining time should be > 4 minutes, got {remaining}ms"
     );
     assert!(
         remaining <= 5 * 60 * 1000,
-        "Remaining time should be <= 5 minutes, got {}ms",
-        remaining
+        "Remaining time should be <= 5 minutes, got {remaining}ms"
     );
 }
 
@@ -108,17 +106,14 @@ fn it_should_update_timer_when_enable_mdns_temporary_is_called_multiple_times() 
     // The difference should be at least the time we waited (200ms)
     assert!(
         second_remaining > first_remaining,
-        "Timer should be reset when enabling again. First: {}ms, Second: {}ms",
-        first_remaining,
-        second_remaining
+        "Timer should be reset when enabling again. First: {first_remaining}ms, Second: {second_remaining}ms"
     );
 
     // Verify the difference is significant (at least 150ms to account for timing variance)
     let difference = second_remaining - first_remaining;
     assert!(
         difference >= 150,
-        "Timer reset should show significant difference. Difference: {}ms",
-        difference
+        "Timer reset should show significant difference. Difference: {difference}ms"
     );
 }
 
@@ -161,9 +156,7 @@ fn it_should_countdown_remaining_time_when_mdns_is_active() {
     // Assert: Remaining time should decrease
     assert!(
         after_wait_remaining < initial_remaining,
-        "Remaining time should decrease. Initial: {}ms, After: {}ms",
-        initial_remaining,
-        after_wait_remaining
+        "Remaining time should decrease. Initial: {initial_remaining}ms, After: {after_wait_remaining}ms"
     );
     assert!(
         initial_remaining - after_wait_remaining >= 100,
@@ -386,15 +379,11 @@ fn it_should_comply_with_5_minute_duration_specification() {
 
     assert!(
         remaining > expected_duration - 1000, // Allow 1 second tolerance
-        "Duration should be close to 5 minutes ({}ms), got {}ms",
-        expected_duration,
-        remaining
+        "Duration should be close to 5 minutes ({expected_duration}ms), got {remaining}ms"
     );
     assert!(
         remaining <= expected_duration,
-        "Duration should not exceed 5 minutes ({}ms), got {}ms",
-        expected_duration,
-        remaining
+        "Duration should not exceed 5 minutes ({expected_duration}ms), got {remaining}ms"
     );
 }
 

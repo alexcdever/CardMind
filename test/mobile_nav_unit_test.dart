@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/widgets/mobile_nav/nav_models.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Unit tests for navigation components
 /// Based on design specification section 8.1
@@ -68,7 +68,7 @@ void main() {
   group('NavTab Enum Tests', () {
     test('it_should_contain_all_required_tabs', () {
       // Given: NavTab enum values
-      final tabs = NavTab.values;
+      const tabs = NavTab.values;
 
       // Then: Should contain exactly the required tabs
       expect(tabs.length, equals(3));
@@ -109,7 +109,7 @@ void main() {
       }
 
       // Then: Should be assignable to OnTabChange type
-      OnTabChange callback = testCallback;
+      final OnTabChange callback = testCallback;
       expect(callback, isA<Function>());
     });
 

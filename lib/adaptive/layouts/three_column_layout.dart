@@ -27,17 +27,12 @@ class ThreeColumnLayout extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 左侧栏
-        SizedBox(
-          width: leftColumnWidth,
-          child: leftColumn,
-        ),
+        SizedBox(width: leftColumnWidth, child: leftColumn),
 
         const SizedBox(width: 24),
 
         // 右侧栏（占据剩余空间）
-        Expanded(
-          child: rightColumn,
-        ),
+        Expanded(child: rightColumn),
       ],
     );
   }

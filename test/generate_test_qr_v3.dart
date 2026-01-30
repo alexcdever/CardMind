@@ -1,9 +1,9 @@
 import 'dart:io';
+
+import 'package:cardmind/services/qr_code_parser.dart';
 import 'package:image/image.dart' as img;
-import 'package:zxing_lib/common.dart';
 import 'package:zxing_lib/qrcode.dart';
 import 'package:zxing_lib/zxing.dart';
-import 'package:cardmind/services/qr_code_parser.dart';
 
 void main() async {
   // 生成测试用的二维码数据
@@ -19,7 +19,7 @@ void main() async {
 
   // 使用 zxing_lib 生成二维码
   final writer = QRCodeWriter();
-  final hints = EncodeHint(
+  const hints = EncodeHint(
     errorCorrectionLevel: ErrorCorrectionLevel.H,
     margin: 1,
   );

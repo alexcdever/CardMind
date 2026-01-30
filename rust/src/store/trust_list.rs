@@ -7,7 +7,7 @@ use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 
 /// 信任设备信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct TrustedDevice {
     /// libp2p PeerId（设备唯一标识）
     pub peer_id: String,
@@ -36,7 +36,7 @@ impl<'a> TrustListManager<'a> {
     /// # 参数
     ///
     /// - `conn`: SQLite 连接引用
-    pub fn new(conn: &'a Connection) -> Self {
+    pub const fn new(conn: &'a Connection) -> Self {
         Self { conn }
     }
 
@@ -71,7 +71,7 @@ impl<'a> TrustListManager<'a> {
     ///
     /// # 参数
     ///
-    /// - `peer_id`: 设备 PeerId
+    /// - `peer_id`: 设备 `PeerId`
     ///
     /// # Errors
     ///
@@ -115,7 +115,7 @@ impl<'a> TrustListManager<'a> {
     ///
     /// # 参数
     ///
-    /// - `peer_id`: 设备 PeerId
+    /// - `peer_id`: 设备 `PeerId`
     ///
     /// # Errors
     ///
@@ -133,7 +133,7 @@ impl<'a> TrustListManager<'a> {
     ///
     /// # 参数
     ///
-    /// - `peer_id`: 设备 PeerId
+    /// - `peer_id`: 设备 `PeerId`
     ///
     /// # Errors
     ///
@@ -162,7 +162,7 @@ impl<'a> TrustListManager<'a> {
     ///
     /// # 参数
     ///
-    /// - `peer_id`: 设备 PeerId
+    /// - `peer_id`: 设备 `PeerId`
     /// - `last_seen`: 最后在线时间（Unix 毫秒时间戳）
     ///
     /// # Errors
@@ -185,7 +185,7 @@ impl<'a> TrustListManager<'a> {
         let count: i64 =
             self.conn
                 .query_row("SELECT COUNT(*) FROM trusted_devices", [], |row| row.get(0))?;
-        Ok(count as usize)
+        Ok(count.cast_unsigned().try_into().unwrap())
     }
 }
 
@@ -197,7 +197,7 @@ mod tests {
     fn create_test_device(peer_id: &str) -> TrustedDevice {
         TrustedDevice {
             peer_id: peer_id.to_string(),
-            device_name: format!("Device {}", peer_id),
+            device_name: format!("Device {peer_id}"),
             device_type: "laptop".to_string(),
             paired_at: 1000,
             last_seen: 2000,
@@ -243,6 +243,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::similar_names)]
     fn test_get_all_devices() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);

@@ -26,8 +26,8 @@ class NoteCardMobile extends StatefulWidget {
 
   final bridge.Card card;
   final VoidCallback? onTap;
-  final Function(bridge.Card)? onEdit;
-  final Function(String cardId) onDelete;
+  final void Function(bridge.Card)? onEdit;
+  final void Function(String cardId) onDelete;
   final VoidCallback? onCopy;
   final VoidCallback? onShare;
 
@@ -100,7 +100,7 @@ class _NoteCardMobileState extends State<NoteCardMobile> {
               ],
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
@@ -159,7 +159,7 @@ class _NoteCardMobileState extends State<NoteCardMobile> {
   }
 
   void _showContextMenu(BuildContext context) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (context) => Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -203,7 +203,7 @@ class _NoteCardMobileState extends State<NoteCardMobile> {
   }
 
   void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('删除确认'),

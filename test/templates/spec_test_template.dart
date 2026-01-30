@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../helpers/mock_card_service.dart';
 import '../helpers/mock_utils.dart';
 import '../helpers/test_helpers.dart';
 
@@ -18,17 +19,17 @@ import '../helpers/test_helpers.dart';
 void main() {
   group('SP-XXX-XXX: <规格名称>', () {
     // Setup - 在每个测试前执行
-    late MockCardApi mockApi;
+    late MockCardService mockCardService;
     late MockSyncManager mockSyncManager;
 
     setUp(() {
-      mockApi = MockCardApi();
+      mockCardService = MockCardService();
       mockSyncManager = MockSyncManager();
     });
 
     // Teardown - 在每个测试后执行
     tearDown(() {
-      mockApi.reset();
+      mockCardService.reset();
       mockSyncManager.reset();
     });
 
@@ -81,7 +82,7 @@ void main() {
     group('Error Handling', () {
       testWidgets('it_should_handle_<错误场景>', (WidgetTester tester) async {
         // Given: 配置 Mock 抛出错误
-        mockApi.shouldThrowError = true;
+        mockCardService.shouldThrowError = true;
 
         // When: 执行操作
 
@@ -256,7 +257,7 @@ void exampleNavigationTest() {
           builder: (context) => ElevatedButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
+              MaterialPageRoute<void>(
                 builder: (_) => const Scaffold(body: Text('New Screen')),
               ),
             ),

@@ -1,8 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
-
 import 'package:cardmind/models/device.dart';
 import 'package:cardmind/services/qr_code_generator.dart';
 import 'package:cardmind/services/qr_code_parser.dart';
@@ -10,7 +7,8 @@ import 'package:cardmind/services/verification_code_service.dart';
 import 'package:cardmind/widgets/qr_code_scanner_tab.dart';
 import 'package:cardmind/widgets/qr_code_upload_tab.dart';
 import 'package:cardmind/widgets/verification_code_dialog.dart';
-import 'package:cardmind/widgets/verification_code_input.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
 
 /// 配对设备对话框
 ///
@@ -32,7 +30,8 @@ class PairDeviceDialog extends StatefulWidget {
   final String poolId;
 
   /// 配对设备回调
-  final Future<bool> Function(String deviceId, String verificationCode) onPairDevice;
+  final Future<bool> Function(String deviceId, String verificationCode)
+  onPairDevice;
 
   @override
   State<PairDeviceDialog> createState() => _PairDeviceDialogState();
@@ -64,10 +63,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
   Widget build(BuildContext context) {
     return Dialog(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 600,
-          maxHeight: 700,
-        ),
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -78,10 +74,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
             TabBar(
               controller: _tabController,
               tabs: [
-                const Tab(
-                  icon: Icon(Icons.qr_code),
-                  text: '显示二维码',
-                ),
+                const Tab(icon: Icon(Icons.qr_code), text: '显示二维码'),
                 Tab(
                   icon: Icon(_isMobile ? Icons.camera_alt : Icons.upload_file),
                   text: _isMobile ? '扫描二维码' : '上传二维码',
@@ -113,10 +106,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
         children: [
           const Icon(Icons.devices, size: 28),
           const SizedBox(width: 12),
-          Text(
-            '配对新设备',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('配对新设备', style: Theme.of(context).textTheme.titleLarge),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.close),
@@ -175,7 +165,9 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.primaryContainer.withOpacity(0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -189,8 +181,8 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
                   child: Text(
                     '二维码有效期为 10 分钟',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ),
               ],
@@ -205,16 +197,12 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
   Widget _buildScanQRTab(BuildContext context) {
     if (_isMobile) {
       // 移动端使用相机扫描
-      return QRCodeScannerTab(
-        onQRCodeScanned: _handleQRCodeScanned,
-      );
+      return QRCodeScannerTab(onQRCodeScanned: _handleQRCodeScanned);
     } else {
       // 桌面端使用文件上传
       return Padding(
         padding: const EdgeInsets.all(24),
-        child: QRCodeUploadTab(
-          onQRCodeScanned: _handleQRCodeScanned,
-        ),
+        child: QRCodeUploadTab(onQRCodeScanned: _handleQRCodeScanned),
       );
     }
   }
@@ -237,7 +225,11 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
         builder: (context) => VerificationCodeDialog(
           session: session,
           onVerified: () {
-            _showSuccessMessage(context, '配对成功', '设备 ${qrData.deviceName} 已成功配对');
+            _showSuccessMessage(
+              context,
+              '配对成功',
+              '设备 ${qrData.deviceName} 已成功配对',
+            );
           },
           onTimeout: () {
             _showErrorMessage(context, '验证超时', '验证码已过期，请重新扫描二维码');
@@ -327,16 +319,16 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
           child: Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
           ),
         ),
       ],

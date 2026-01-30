@@ -35,7 +35,7 @@ void main() {
     Widget createFullscreenEditor({
       bridge.Card? card,
       String? currentDevice,
-      Function(bridge.Card)? onSave,
+      void Function(bridge.Card)? onSave,
       VoidCallback? onCancel,
     }) {
       return MaterialApp(
@@ -357,6 +357,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 用户输入新标签
+        // ignore: unused_local_variable
         bridge.Card? savedCard;
         await tester.pumpWidget(
           createFullscreenEditor(

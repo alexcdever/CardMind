@@ -6,7 +6,6 @@ import 'mobile_navigation.dart';
 
 /// Navigation destination for adaptive navigation
 class AdaptiveNavigationDestination {
-
   const AdaptiveNavigationDestination({
     required this.icon,
     required this.label,
@@ -23,7 +22,6 @@ class AdaptiveNavigationDestination {
 /// - Mobile: BottomNavigationBar
 /// - Desktop: NavigationRail (side navigation)
 class AdaptiveNavigation extends AdaptiveWidget {
-
   const AdaptiveNavigation({
     super.key,
     required this.destinations,

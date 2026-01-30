@@ -15,7 +15,7 @@ class SettingsPanel extends StatefulWidget {
   });
 
   final bool isDarkMode;
-  final Function(bool) onThemeChanged;
+  final void Function(bool) onThemeChanged;
 
   @override
   State<SettingsPanel> createState() => _SettingsPanelState();
@@ -43,137 +43,134 @@ class _SettingsPanelState extends State<SettingsPanel> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            // 标题
-            Row(
-              children: [
-                Icon(Icons.settings, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  '设置',
-                  style: theme.textTheme.titleLarge,
+              // 标题
+              Row(
+                children: [
+                  Icon(Icons.settings, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text('设置', style: theme.textTheme.titleLarge),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // 外观设置
+              Text(
+                '外观',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
+              ),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                title: const Text('暗色模式'),
+                subtitle: const Text('切换应用主题'),
+                value: widget.isDarkMode,
+                onChanged: widget.onThemeChanged,
+                secondary: Icon(
+                  widget.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                ),
+              ),
+              const Divider(),
 
-            // 外观设置
-            Text(
-              '外观',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.textTheme.bodySmall?.color,
+              // 同步设置
+              const SizedBox(height: 8),
+              Text(
+                '同步',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: const Text('暗色模式'),
-              subtitle: const Text('切换应用主题'),
-              value: widget.isDarkMode,
-              onChanged: widget.onThemeChanged,
-              secondary: Icon(
-                widget.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.sync),
+                title: const Text('自动同步'),
+                subtitle: const Text('在后台自动同步数据'),
+                trailing: Switch(
+                  value: true,
+                  onChanged: (value) {
+                    // TODO: 实现自动同步开关
+                  },
+                ),
               ),
-            ),
-            const Divider(),
+              ListTile(
+                leading: const Icon(Icons.wifi),
+                title: const Text('仅 WiFi 同步'),
+                subtitle: const Text('仅在 WiFi 网络下同步'),
+                trailing: Switch(
+                  value: false,
+                  onChanged: (value) {
+                    // TODO: 实现 WiFi 同步开关
+                  },
+                ),
+              ),
+              const Divider(),
 
-            // 同步设置
-            const SizedBox(height: 8),
-            Text(
-              '同步',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.textTheme.bodySmall?.color,
+              // 存储设置
+              const SizedBox(height: 8),
+              Text(
+                '存储',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.sync),
-              title: const Text('自动同步'),
-              subtitle: const Text('在后台自动同步数据'),
-              trailing: Switch(
-                value: true,
-                onChanged: (value) {
-                  // TODO: 实现自动同步开关
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.storage),
+                title: const Text('清除缓存'),
+                subtitle: const Text('清除本地缓存数据'),
+                onTap: () {
+                  _showClearCacheDialog(context);
                 },
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.wifi),
-              title: const Text('仅 WiFi 同步'),
-              subtitle: const Text('仅在 WiFi 网络下同步'),
-              trailing: Switch(
-                value: false,
-                onChanged: (value) {
-                  // TODO: 实现 WiFi 同步开关
+              const Divider(),
+
+              // 关于
+              const SizedBox(height: 8),
+              Text(
+                '关于',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('版本信息'),
+                subtitle: Text(
+                  _packageInfo != null
+                      ? 'v${_packageInfo!.version} (${_packageInfo!.buildNumber})'
+                      : '加载中...',
+                ),
+                onTap: () {
+                  _showAboutDialog(context);
                 },
               ),
-            ),
-            const Divider(),
-
-            // 存储设置
-            const SizedBox(height: 8),
-            Text(
-              '存储',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.textTheme.bodySmall?.color,
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('开源许可'),
+                onTap: () {
+                  showLicensePage(
+                    context: context,
+                    applicationName: 'CardMind',
+                    applicationVersion: _packageInfo?.version ?? '1.0.0',
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.storage),
-              title: const Text('清除缓存'),
-              subtitle: const Text('清除本地缓存数据'),
-              onTap: () {
-                _showClearCacheDialog(context);
-              },
-            ),
-            const Divider(),
-
-            // 关于
-            const SizedBox(height: 8),
-            Text(
-              '关于',
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.textTheme.bodySmall?.color,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('版本信息'),
-              subtitle: Text(
-                _packageInfo != null
-                    ? 'v${_packageInfo!.version} (${_packageInfo!.buildNumber})'
-                    : '加载中...',
-              ),
-              onTap: () {
-                _showAboutDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: const Text('开源许可'),
-              onTap: () {
-                showLicensePage(
-                  context: context,
-                  applicationName: 'CardMind',
-                  applicationVersion: _packageInfo?.version ?? '1.0.0',
-                );
-              },
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _showClearCacheDialog(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('清除缓存'),
@@ -187,9 +184,9 @@ class _SettingsPanelState extends State<SettingsPanel> {
             onPressed: () {
               Navigator.pop(context);
               // TODO: 实现清除缓存
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('缓存已清除')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('缓存已清除')));
             },
             child: const Text('确定'),
           ),

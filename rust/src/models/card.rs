@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Represents a single card with title, content, and metadata.
 /// IDs are UUID v7 (time-ordered).
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[frb(dart_metadata=("freezed"))]
 pub struct Card {
     /// Unique identifier (UUID v7)
@@ -45,6 +45,7 @@ impl Card {
     /// # Returns
     ///
     /// A new Card instance with timestamps set to current time
+    #[must_use]
     pub fn new(id: String, title: String, content: String) -> Self {
         let now = chrono::Utc::now().timestamp_millis();
         Self {

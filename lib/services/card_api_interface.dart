@@ -11,21 +11,14 @@ abstract class CardApiInterface {
   /// [content] - 卡片内容（Markdown 格式）
   ///
   /// 返回创建的卡片
-  Future<Card> createCard({
-    required String title,
-    required String content,
-  });
+  Future<Card> createCard({required String title, required String content});
 
   /// 更新卡片
   ///
   /// [id] - 卡片 ID
   /// [title] - 新标题（可选）
   /// [content] - 新内容（可选）
-  Future<void> updateCard({
-    required String id,
-    String? title,
-    String? content,
-  });
+  Future<void> updateCard({required String id, String? title, String? content});
 
   /// 删除卡片（软删除）
   ///

@@ -29,7 +29,7 @@ struct ReconnectState {
 
 impl ReconnectState {
     /// 创建新的重连状态
-    fn new() -> Self {
+    const fn new() -> Self {
         Self {
             attempts: 0,
             next_retry_at: 0,
@@ -53,6 +53,7 @@ impl ReconnectState {
     }
 
     /// 记录连接失败
+    #[allow(clippy::cast_possible_wrap)]
     fn record_failure(&mut self) {
         self.attempts += 1;
         let now = SystemTime::now()
@@ -72,7 +73,7 @@ impl ReconnectState {
     }
 
     /// 重置重连状态（连接成功后调用）
-    fn reset(&mut self) {
+    const fn reset(&mut self) {
         self.attempts = 0;
         self.next_retry_at = 0;
         self.last_failure_at = 0;
@@ -98,7 +99,7 @@ struct DiscoveryManager {
 impl DiscoveryManager {
     /// 创建新的管理器
     fn new() -> Result<Self, String> {
-        let runtime = Runtime::new().map_err(|e| format!("创建 tokio 运行时失败: {}", e))?;
+        let runtime = Runtime::new().map_err(|e| format!("创建 tokio 运行时失败: {e}"))?;
 
         Ok(Self {
             devices: Arc::new(Mutex::new(HashMap::new())),
@@ -121,6 +122,7 @@ impl DiscoveryManager {
     }
 
     /// 启动发现
+    #[allow(clippy::cast_possible_wrap, clippy::too_many_lines)]
     fn start(&mut self) -> Result<(), String> {
         if self.task_handle.is_some() {
             return Err("mDNS 发现已经在运行".to_string());
@@ -169,25 +171,21 @@ impl DiscoveryManager {
                                         let peer_id_str = peer_id.to_string();
 
                                         // 检查是否在信任列表中
-                                        let is_trusted = if let Some(db_path) = &trust_list_db_path
-                                        {
-                                            if let Ok(conn) = Connection::open(db_path) {
-                                                let manager = TrustListManager::new(&conn);
-                                                manager.is_trusted(&peer_id_str).unwrap_or(false)
-                                            } else {
-                                                false
-                                            }
-                                        } else {
-                                            // 如果没有设置信任列表，接受所有设备
-                                            true
-                                        };
+                                        let is_trusted =
+                                            trust_list_db_path.as_ref().is_none_or(|db_path| {
+                                                Connection::open(db_path).is_ok_and(|conn| {
+                                                    let manager = TrustListManager::new(&conn);
+                                                    manager
+                                                        .is_trusted(&peer_id_str)
+                                                        .unwrap_or(false)
+                                                })
+                                            });
 
                                         if is_trusted {
                                             // 检查是否是重连的设备
                                             let was_offline = devices_lock
                                                 .get(&peer_id_str)
-                                                .map(|d| !d.is_online)
-                                                .unwrap_or(false);
+                                                .is_some_and(|d| !d.is_online);
 
                                             if was_offline {
                                                 info!(
@@ -282,8 +280,9 @@ impl DiscoveryManager {
                                                     peer_id_str,
                                                     reconnect_lock
                                                         .get(&peer_id_str)
-                                                        .map(|s| s.calculate_backoff().as_secs())
-                                                        .unwrap_or(0)
+                                                        .map_or(0, |s| s
+                                                            .calculate_backoff()
+                                                            .as_secs())
                                                 );
                                             } else {
                                                 info!(
@@ -302,7 +301,7 @@ impl DiscoveryManager {
                     }
                 }
                 Err(e) => {
-                    error!("mDNS 发现初始化失败: {}", e.to_string());
+                    error!("mDNS 发现初始化失败: {}", e);
                 }
             }
         });
@@ -435,6 +434,7 @@ pub struct DiscoveredDevice {
 /// # 返回
 ///
 /// 成功返回 Ok(())，失败返回错误信息
+#[allow(clippy::unused_async)]
 pub async fn subscribe_discovery_events(
     _callback: impl Fn(DeviceDiscoveryEvent) + Send + Sync + 'static,
 ) -> Result<(), String> {
@@ -470,7 +470,7 @@ mod tests {
                 assert_eq!(device_name, "Test Device");
                 assert_eq!(multiaddrs.len(), 1);
             }
-            _ => panic!("Wrong event type"),
+            DeviceDiscoveryEvent::DeviceOffline { .. } => panic!("Wrong event type"),
         }
     }
 
@@ -481,7 +481,7 @@ mod tests {
             device_name: "Test Device".to_string(),
             multiaddrs: vec!["/ip4/192.168.1.100/tcp/4001".to_string()],
             is_online: true,
-            last_seen: 1706234567,
+            last_seen: 1_706_234_567,
         };
 
         assert_eq!(device.peer_id, "12D3KooWTest");
@@ -551,7 +551,7 @@ mod tests {
             device_name: "Test Device".to_string(),
             multiaddrs: vec!["/ip4/192.168.1.100/tcp/4001".to_string()],
             is_online: true,
-            last_seen: 1706234567,
+            last_seen: 1_706_234_567,
         };
 
         // 添加新地址

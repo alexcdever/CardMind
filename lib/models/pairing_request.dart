@@ -4,6 +4,30 @@ import 'package:cardmind/models/device.dart';
 ///
 /// Represents a pairing request between two devices with verification code.
 class PairingRequest {
+  const PairingRequest({
+    required this.requestId,
+    required this.deviceId,
+    required this.deviceName,
+    required this.deviceType,
+    required this.verificationCode,
+    required this.timestamp,
+  });
+
+  /// Create from JSON
+  factory PairingRequest.fromJson(Map<String, dynamic> json) {
+    return PairingRequest(
+      requestId: json['requestId'] as String,
+      deviceId: json['deviceId'] as String,
+      deviceName: json['deviceName'] as String,
+      deviceType: DeviceType.values.firstWhere(
+        (e) => e.name == json['deviceType'],
+        orElse: () => DeviceType.laptop,
+      ),
+      verificationCode: json['verificationCode'] as String,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] as int),
+    );
+  }
+
   /// Unique request identifier
   final String requestId;
 
@@ -37,15 +61,6 @@ class PairingRequest {
     return expiresAt.difference(now);
   }
 
-  const PairingRequest({
-    required this.requestId,
-    required this.deviceId,
-    required this.deviceName,
-    required this.deviceType,
-    required this.verificationCode,
-    required this.timestamp,
-  });
-
   /// Create a copy with updated fields
   PairingRequest copyWith({
     String? requestId,
@@ -75,21 +90,6 @@ class PairingRequest {
       'verificationCode': verificationCode,
       'timestamp': timestamp.millisecondsSinceEpoch,
     };
-  }
-
-  /// Create from JSON
-  factory PairingRequest.fromJson(Map<String, dynamic> json) {
-    return PairingRequest(
-      requestId: json['requestId'] as String,
-      deviceId: json['deviceId'] as String,
-      deviceName: json['deviceName'] as String,
-      deviceType: DeviceType.values.firstWhere(
-        (e) => e.name == json['deviceType'],
-        orElse: () => DeviceType.laptop,
-      ),
-      verificationCode: json['verificationCode'] as String,
-      timestamp: DateTime.fromMillisecondsSinceEpoch(json['timestamp'] as int),
-    );
   }
 
   @override

@@ -5,12 +5,12 @@
 //! # 数据池设计
 //!
 //! 根据 `docs/architecture/data_contract.md` 2.1 节的定义：
-//! - **pool_id**: 数据池唯一标识（UUID v7）
+//! - **`pool_id`**: 数据池唯一标识（UUID v7）
 //! - **name**: 数据池名称（最大 128 字符）
-//! - **password_hash**: bcrypt 加密哈希（不可逆）
+//! - **`password_hash`**: bcrypt 加密哈希（不可逆）
 //! - **members**: 成员设备列表（至少 1 个成员）
-//! - **created_at**: 创建时间（毫秒级时间戳）
-//! - **updated_at**: 最后更新时间（毫秒级时间戳）
+//! - **`created_at`**: 创建时间（毫秒级时间戳）
+//! - **`updated_at`**: 最后更新时间（毫秒级时间戳）
 //!
 //! # 安全特性
 //!
@@ -73,7 +73,8 @@ pub enum PoolError {
 ///     joined_at: 1704067200000,
 /// };
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[allow(clippy::struct_field_names)]
 pub struct Device {
     /// 设备唯一标识
     pub device_id: String,
@@ -163,6 +164,7 @@ impl Device {
 /// assert_eq!(pool.card_ids.len(), 1);
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(clippy::struct_field_names)]
 pub struct Pool {
     /// 数据池唯一标识
     pub pool_id: String,
@@ -449,7 +451,7 @@ impl Pool {
     /// assert_eq!(pool.card_count(), 2);
     /// ```
     #[must_use]
-    pub fn card_count(&self) -> usize {
+    pub const fn card_count(&self) -> usize {
         self.card_ids.len()
     }
 }
@@ -493,11 +495,11 @@ mod tests {
         pool.add_member(device1.clone());
         assert_eq!(pool.members.len(), 1);
 
-        pool.add_member(device2.clone());
+        pool.add_member(device2);
         assert_eq!(pool.members.len(), 2);
 
         // 重复添加相同设备应该被忽略
-        pool.add_member(device1.clone());
+        pool.add_member(device1);
         assert_eq!(pool.members.len(), 2);
     }
 

@@ -1,6 +1,6 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/providers/app_info_provider.dart';
 import 'package:cardmind/models/app_info.dart';
+import 'package:cardmind/providers/app_info_provider.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('AppInfoProvider', () {

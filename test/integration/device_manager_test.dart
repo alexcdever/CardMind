@@ -1,7 +1,6 @@
+import 'package:cardmind/widgets/device_manager_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:cardmind/widgets/device_manager_panel.dart';
 
 void main() {
   group('HomeScreen Integration Tests - Device Management', () {

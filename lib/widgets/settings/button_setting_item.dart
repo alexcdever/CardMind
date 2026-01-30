@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 
 /// 按钮设置项组件
 class ButtonSettingItem extends StatelessWidget {
+  const ButtonSettingItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.description,
+    this.onPressed,
+    this.isLoading = false,
+  });
+
   /// 图标
   final IconData icon;
 
@@ -16,15 +25,6 @@ class ButtonSettingItem extends StatelessWidget {
 
   /// 是否显示加载状态
   final bool isLoading;
-
-  const ButtonSettingItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    this.description,
-    this.onPressed,
-    this.isLoading = false,
-  });
 
   @override
   Widget build(BuildContext context) {

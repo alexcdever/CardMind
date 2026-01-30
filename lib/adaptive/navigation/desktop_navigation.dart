@@ -3,7 +3,6 @@ import 'adaptive_navigation.dart';
 
 /// Desktop navigation using NavigationRail
 class DesktopNavigation extends StatelessWidget {
-
   const DesktopNavigation({
     super.key,
     required this.destinations,

@@ -1,3 +1,6 @@
+#![allow(clippy::assertions_on_constants)]
+#![allow(clippy::needless_collect)]
+
 //! SP-SYNC-006: 同步层简化规格测试
 //!
 //! 测试 P2P 同步服务的核心功能和状态管理
@@ -11,7 +14,7 @@ use std::sync::{Arc, Mutex};
 
 /// Spec-SYNC-001: 同步服务初始化
 ///
-/// it_should_create_sync_service_with_valid_config()
+/// `it_should_create_sync_service_with_valid_config()`
 ///
 /// 验收标准:
 /// - 给定有效的设备配置
@@ -37,7 +40,7 @@ fn it_should_create_sync_service_with_valid_config() {
 
 /// Spec-SYNC-001: 同步服务初始化
 ///
-/// it_should_create_service_regardless_of_pool_status()
+/// `it_should_create_service_regardless_of_pool_status()`
 ///
 /// 验收标准:
 /// - 给定任意设备配置
@@ -58,12 +61,12 @@ fn it_should_create_service_regardless_of_pool_status() {
 
 /// Spec-SYNC-003: 获取同步状态
 ///
-/// it_should_return_valid_sync_status_when_created()
+/// `it_should_return_valid_sync_status_when_created()`
 ///
 /// 验收标准:
 /// - 给定新创建的同步服务
 /// - 当获取同步状态时
-/// - 则返回有效的 SyncStatus 结构
+/// - 则返回有效的 `SyncStatus` 结构
 #[test]
 fn it_should_return_valid_sync_status_when_created() {
     // Given: 新创建的同步服务
@@ -82,7 +85,7 @@ fn it_should_return_valid_sync_status_when_created() {
 
 /// Spec-SYNC-002: 同步服务生命周期
 ///
-/// it_should_track_local_peer_id_consistency()
+/// `it_should_track_local_peer_id_consistency()`
 ///
 /// 验收标准:
 /// - 给定同步服务实例
@@ -105,7 +108,7 @@ fn it_should_track_local_peer_id_consistency() {
 
 /// Spec-SYNC-004: 并发访问安全
 ///
-/// it_should_handle_concurrent_status_requests()
+/// `it_should_handle_concurrent_status_requests()`
 ///
 /// 验收标准:
 /// - 给定同步服务
@@ -135,7 +138,7 @@ fn it_should_handle_concurrent_status_requests() {
 
 /// Spec-SYNC-001: 设备配置集成
 ///
-/// it_should_use_device_config_for_pool_info()
+/// `it_should_use_device_config_for_pool_info()`
 ///
 /// 验收标准:
 /// - 给定已配置的设备配置
@@ -158,7 +161,7 @@ fn it_should_use_device_config_for_pool_info() {
 
 /// Spec-SYNC-001: 模拟网络模式
 ///
-/// it_should_support_mock_network_mode()
+/// `it_should_support_mock_network_mode()`
 ///
 /// 验收标准:
 /// - 给定使用模拟网络的配置
@@ -179,7 +182,7 @@ fn it_should_support_mock_network_mode() {
 
 /// Spec-SYNC-003: 初始状态值
 ///
-/// it_should_have_zero_online_peers_initially()
+/// `it_should_have_zero_online_peers_initially()`
 ///
 /// 验收标准:
 /// - 给定新创建的同步服务
@@ -202,7 +205,7 @@ fn it_should_have_zero_online_peers_initially() {
 
 /// Spec-SYNC-004: 状态独立性
 ///
-/// it_should_return_independent_status_copies()
+/// `it_should_return_independent_status_copies()`
 ///
 /// 验收标准:
 /// - 给定同步服务

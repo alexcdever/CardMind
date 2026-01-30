@@ -9,7 +9,6 @@ import 'responsive_utils.dart';
 /// - Horizontal space optimization
 /// - Responsive: collapses to single column when width < 1024px
 class DesktopLayout extends StatelessWidget {
-
   const DesktopLayout({
     super.key,
     required this.body,

@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
 import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:cardmind/models/device.dart';
 import 'package:cardmind/widgets/current_device_card.dart';
 import 'package:cardmind/widgets/device_list_item.dart';
 import 'package:cardmind/widgets/pair_device_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// 设备名称修改回调
 typedef OnDeviceNameChange = void Function(String newName);

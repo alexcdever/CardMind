@@ -1,4 +1,4 @@
-/// SQLite缓存层实现
+/// `SQLite`缓存层实现
 ///
 /// 该模块提供SQLite数据库的管理和操作功能，作为Loro CRDT的查询缓存层。
 ///
@@ -6,7 +6,7 @@
 ///
 /// - **只读设计**: 应用代码不直接写入SQLite，只通过Loro订阅更新
 /// - **快速查询**: 优化的索引和查询性能
-/// - **可重建**: SQLite数据可以随时从Loro重建
+/// - **可重建**: `SQLite`数据可以随时从`Loro`重建
 ///
 /// # 使用示例
 ///
@@ -25,7 +25,7 @@ use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use rusqlite::{Connection, Result as SqliteResult};
 
-/// SQLite存储管理器
+/// `SQLite`存储管理器
 ///
 /// 负责SQLite数据库的创建、优化和CRUD操作。
 pub struct SqliteStore {
@@ -33,7 +33,7 @@ pub struct SqliteStore {
 }
 
 impl SqliteStore {
-    /// 创建一个新的内存SQLite store（用于测试）
+    /// 创建一个新的内存`SQLite` store（用于测试）
     ///
     /// # 示例
     ///
@@ -44,16 +44,16 @@ impl SqliteStore {
     /// ```
     pub fn new_in_memory() -> Result<Self, CardMindError> {
         let conn = Connection::open_in_memory()?;
-        let mut store = Self { conn };
+        let store = Self { conn };
         store.initialize()?;
         Ok(store)
     }
 
-    /// 创建一个基于文件的SQLite store
+    /// 创建一个基于文件的`SQLite` store
     ///
     /// # 参数
     ///
-    /// * `path` - SQLite数据库文件路径
+    /// * `path` - `SQLite`数据库文件路径
     ///
     /// # 示例
     ///
@@ -64,13 +64,13 @@ impl SqliteStore {
     /// ```
     pub fn new(path: &str) -> Result<Self, CardMindError> {
         let conn = Connection::open(path)?;
-        let mut store = Self { conn };
+        let store = Self { conn };
         store.initialize()?;
         Ok(store)
     }
 
     /// 初始化数据库（创建表和优化参数）
-    fn initialize(&mut self) -> Result<(), CardMindError> {
+    fn initialize(&self) -> Result<(), CardMindError> {
         self.create_tables()?;
         self.optimize()?;
         Ok(())
@@ -84,21 +84,21 @@ impl SqliteStore {
     /// - id (TEXT PRIMARY KEY): UUID v7
     /// - title (TEXT): 卡片标题
     /// - content (TEXT): Markdown内容
-    /// - created_at (INTEGER): 创建时间戳（Unix毫秒）
-    /// - updated_at (INTEGER): 更新时间戳（Unix毫秒）
+    /// - `created_at` (INTEGER): 创建时间戳（Unix毫秒）
+    /// - `updated_at` (INTEGER): 更新时间戳（Unix毫秒）
     /// - deleted (INTEGER): 软删除标记（0/1）
     ///
     /// **pools 表** (Phase 6):
-    /// - pool_id (TEXT PRIMARY KEY): UUID v7
+    /// - `pool_id` (TEXT PRIMARY KEY): UUID v7
     /// - name (TEXT): 数据池名称
-    /// - password_hash (TEXT): bcrypt 哈希
-    /// - created_at (INTEGER): 创建时间戳
-    /// - updated_at (INTEGER): 更新时间戳
+    /// - `password_hash` (TEXT): bcrypt 哈希
+    /// - `created_at` (INTEGER): 创建时间戳
+    /// - `updated_at` (INTEGER): 更新时间戳
     ///
-    /// **card_pool_bindings 表** (Phase 6):
-    /// - card_id (TEXT): 卡片 ID（外键）
-    /// - pool_id (TEXT): 数据池 ID（外键）
-    /// - 主键: (card_id, pool_id)
+    /// **`card_pool_bindings` 表** (Phase 6):
+    /// - `card_id` (TEXT): 卡片 ID（外键）
+    /// - `pool_id` (TEXT): 数据池 ID（外键）
+    /// - 主键: (`card_id`, `pool_id`)
     fn create_tables(&self) -> Result<(), CardMindError> {
         // 创建 cards 表
         self.conn.execute(
@@ -190,13 +190,13 @@ impl SqliteStore {
         Ok(())
     }
 
-    /// 配置SQLite优化参数
+    /// 配置`SQLite`优化参数
     ///
     /// 优化设置:
-    /// - journal_mode=WAL: Write-Ahead Logging模式（文件数据库）
+    /// - `journal_mode=WAL`: Write-Ahead Logging模式（文件数据库）
     /// - cache_size=-10000: 10MB缓存
     /// - synchronous=NORMAL: 平衡性能和安全性
-    /// - foreign_keys=ON: 启用外键约束
+    /// - `foreign_keys=ON`: 启用外键约束
     fn optimize(&self) -> Result<(), CardMindError> {
         self.conn.pragma_update(None, "journal_mode", "WAL")?;
         self.conn.pragma_update(None, "cache_size", -10000)?;
@@ -207,7 +207,7 @@ impl SqliteStore {
 
     // ==================== CRUD操作 ====================
 
-    /// 插入卡片到SQLite
+    /// 插入卡片到`SQLite`
     ///
     /// **注意**: 该方法仅供Loro订阅回调使用，应用代码不应直接调用。
     ///
@@ -541,9 +541,8 @@ impl SqliteStore {
             "SELECT DISTINCT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted
              FROM cards c
              INNER JOIN card_pool_bindings cpb ON c.id = cpb.card_id
-             WHERE cpb.pool_id IN ({}) AND c.deleted = 0
-             ORDER BY c.created_at DESC",
-            placeholders
+             WHERE cpb.pool_id IN ({placeholders}) AND c.deleted = 0
+             ORDER BY c.created_at DESC"
         );
 
         let mut stmt = self.conn.prepare(&query)?;
@@ -739,6 +738,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::similar_names)]
     fn test_clear_card_pools() {
         let store = SqliteStore::new_in_memory().unwrap();
         let card = Card::new(
@@ -767,6 +767,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::similar_names)]
     fn test_get_cards_in_pools() {
         let store = SqliteStore::new_in_memory().unwrap();
 
@@ -791,14 +792,18 @@ mod tests {
         store.add_card_pool_binding(&card3.id, &pool2).unwrap();
 
         // 查询 pool1 的卡片（应该有 card1 和 card2）
-        let cards = store.get_cards_in_pools(&[pool1.clone()]).unwrap();
+        let cards = store
+            .get_cards_in_pools(std::slice::from_ref(&pool1))
+            .unwrap();
         assert_eq!(cards.len(), 2);
         let card_ids: Vec<String> = cards.iter().map(|c| c.id.clone()).collect();
         assert!(card_ids.contains(&card1.id));
         assert!(card_ids.contains(&card2.id));
 
         // 查询 pool2 的卡片（应该有 card2 和 card3）
-        let cards = store.get_cards_in_pools(&[pool2.clone()]).unwrap();
+        let cards = store
+            .get_cards_in_pools(std::slice::from_ref(&pool2))
+            .unwrap();
         assert_eq!(cards.len(), 2);
         let card_ids: Vec<String> = cards.iter().map(|c| c.id.clone()).collect();
         assert!(card_ids.contains(&card2.id));
@@ -810,6 +815,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::similar_names)]
     fn test_get_cards_in_pools_excludes_deleted() {
         let store = SqliteStore::new_in_memory().unwrap();
 

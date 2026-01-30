@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
 import 'package:cardmind/models/device.dart';
 import 'package:cardmind/screens/device_manager_page.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// 当前设备卡片
 ///

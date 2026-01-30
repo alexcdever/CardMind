@@ -1,12 +1,11 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:cardmind/services/qr_code_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:zxing_lib/qrcode.dart';
 import 'package:zxing_lib/zxing.dart';
-
-import 'package:cardmind/services/qr_code_parser.dart';
 
 /// 二维码生成服务
 class QRCodeGenerator {
@@ -40,7 +39,7 @@ class QRCodeGenerator {
 
     // 使用 zxing_lib 生成二维码
     final writer = QRCodeWriter();
-    final hints = EncodeHint(
+    const hints = EncodeHint(
       errorCorrectionLevel: ErrorCorrectionLevel.H,
       margin: 1,
     );
@@ -97,9 +96,7 @@ class QRCodeGenerator {
           return SizedBox(
             width: size.toDouble(),
             height: size.toDouble(),
-            child: const Center(
-              child: CircularProgressIndicator(),
-            ),
+            child: const Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -113,10 +110,7 @@ class QRCodeGenerator {
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 8),
-                  Text(
-                    '生成失败',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text('生成失败', style: Theme.of(context).textTheme.bodySmall),
                 ],
               ),
             ),
@@ -124,10 +118,7 @@ class QRCodeGenerator {
         }
 
         if (!snapshot.hasData) {
-          return SizedBox(
-            width: size.toDouble(),
-            height: size.toDouble(),
-          );
+          return SizedBox(width: size.toDouble(), height: size.toDouble());
         }
 
         return Image.memory(

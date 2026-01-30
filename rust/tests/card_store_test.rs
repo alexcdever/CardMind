@@ -1,9 +1,11 @@
-/// CardStore集成测试
+#![allow(clippy::similar_names)]
+
+/// `CardStore集成测试`
 ///
-/// 测试CardStore的双层架构实现：Loro CRDT + SQLite缓存
+/// 测试CardStore的双层架构实现：Loro CRDT + `SQLite缓存`
 ///
 /// 测试内容:
-/// - CardStore创建和初始化
+/// - `CardStore创建和初始化`
 /// - 卡片CRUD操作（create, get, update, delete）
 /// - Loro→SQLite自动同步机制
 /// - 数据一致性验证
@@ -14,14 +16,14 @@ use tempfile::TempDir;
 
 // ==================== 1. 初始化测试 ====================
 
-/// 测试: 创建内存CardStore
+/// 测试: `创建内存CardStore`
 #[test]
 fn it_should_create_in_memory_card_store() {
     let result = CardStore::new_in_memory();
     assert!(result.is_ok(), "应该能创建内存CardStore");
 }
 
-/// 测试: 创建基于文件的CardStore
+/// 测试: `创建基于文件的CardStore`
 #[test]
 fn it_should_create_file_based_card_store() {
     let temp_dir = TempDir::new().unwrap();
@@ -31,7 +33,7 @@ fn it_should_create_file_based_card_store() {
     assert!(result.is_ok(), "应该能创建基于文件的CardStore");
 }
 
-/// 测试: CardStore初始化后SQLite表存在
+/// 测试: `CardStore初始化后SQLite表存在`
 #[test]
 fn it_should_initialize_sqlite_tables_on_card_store_creation() {
     let store = CardStore::new_in_memory().unwrap();
@@ -68,7 +70,7 @@ fn it_should_retrieve_created_card() {
     let card = store
         .create_card("标题".to_string(), "内容".to_string())
         .unwrap();
-    let card_id = card.id.clone();
+    let card_id = card.id;
 
     // 按ID查询
     let retrieved = store.get_card_by_id(&card_id);
@@ -200,7 +202,7 @@ fn it_should_update_card_title_only() {
     let card = store
         .create_card("旧标题".to_string(), "内容".to_string())
         .unwrap();
-    let card_id = card.id.clone();
+    let card_id = card.id;
 
     // 只更新标题
     store
@@ -235,7 +237,7 @@ fn it_should_delete_card_soft_delete() {
     let card = store
         .create_card("标题".to_string(), "内容".to_string())
         .unwrap();
-    let card_id = card.id.clone();
+    let card_id = card.id;
 
     // 软删除
     let result = store.delete_card(&card_id);
@@ -261,7 +263,7 @@ fn it_should_delete_nonexistent_card() {
 
 // ==================== 6. Loro→SQLite同步测试 ====================
 
-/// 测试: 创建卡片后Loro和SQLite数据一致
+/// 测试: `创建卡片后Loro和SQLite数据一致`
 #[test]
 fn it_should_loro_sqlite_sync_on_create() {
     let mut store = CardStore::new_in_memory().unwrap();
@@ -277,7 +279,7 @@ fn it_should_loro_sqlite_sync_on_create() {
     assert_eq!(sqlite_card.content, card.content);
 }
 
-/// 测试: 更新卡片后Loro和SQLite数据一致
+/// 测试: `更新卡片后Loro和SQLite数据一致`
 #[test]
 fn it_should_loro_sqlite_sync_on_update() {
     let mut store = CardStore::new_in_memory().unwrap();
@@ -285,7 +287,7 @@ fn it_should_loro_sqlite_sync_on_update() {
     let card = store
         .create_card("旧标题".to_string(), "旧内容".to_string())
         .unwrap();
-    let card_id = card.id.clone();
+    let card_id = card.id;
 
     // 更新卡片
     store
@@ -297,7 +299,7 @@ fn it_should_loro_sqlite_sync_on_update() {
     assert_eq!(updated_card.title, "新标题");
 }
 
-/// 测试: 删除卡片后Loro和SQLite数据一致
+/// 测试: `删除卡片后Loro和SQLite数据一致`
 #[test]
 fn it_should_loro_sqlite_sync_on_delete() {
     let mut store = CardStore::new_in_memory().unwrap();
@@ -305,7 +307,7 @@ fn it_should_loro_sqlite_sync_on_delete() {
     let card = store
         .create_card("标题".to_string(), "内容".to_string())
         .unwrap();
-    let card_id = card.id.clone();
+    let card_id = card.id;
 
     // 删除卡片
     store.delete_card(&card_id).unwrap();
@@ -317,7 +319,7 @@ fn it_should_loro_sqlite_sync_on_delete() {
 
 // ==================== 7. 文件持久化测试 ====================
 
-/// 测试: CardStore持久化到文件后可以重新加载
+/// 测试: `CardStore持久化到文件后可以重新加载`
 #[test]
 fn it_should_card_store_persistence() {
     let temp_dir = TempDir::new().unwrap();
@@ -331,7 +333,7 @@ fn it_should_card_store_persistence() {
         let card = store
             .create_card("持久化测试".to_string(), "内容".to_string())
             .unwrap();
-        card_id = card.id.clone();
+        card_id = card.id;
     } // store dropped，应该自动保存
 
     // 重新加载store
@@ -360,7 +362,7 @@ fn it_should_card_store_persistence_after_updates() {
         let card = store
             .create_card("初始标题".to_string(), "初始内容".to_string())
             .unwrap();
-        card_id = card.id.clone();
+        card_id = card.id;
 
         // 多次更新
         store

@@ -1,3 +1,5 @@
+#![allow(clippy::significant_drop_tightening)]
+
 /// P2P 同步服务集成测试
 ///
 /// 这个测试文件验证 P2P 同步服务的端到端功能。
@@ -15,7 +17,7 @@ use std::sync::{Arc, Mutex};
 
 /// 测试场景1：同步服务创建和初始化
 ///
-/// 验证 P2PSyncService 能够正确创建和初始化
+/// 验证 `P2PSyncService` 能够正确创建和初始化
 #[test]
 #[serial]
 fn it_should_sync_service_initialization() {
@@ -33,7 +35,7 @@ fn it_should_sync_service_initialization() {
     let service = service.unwrap();
     let peer_id = service.local_peer_id();
 
-    println!("✅ 同步服务初始化成功，Peer ID: {}", peer_id);
+    println!("✅ 同步服务初始化成功，Peer ID: {peer_id}");
 }
 
 /// 测试场景2：两设备同步流程（简化版本）
@@ -54,8 +56,8 @@ async fn it_should_two_device_sync_flow_components() {
     let _ = device_config_b.join_pool("pool-001");
 
     // 创建同步服务
-    let service_a = P2PSyncService::new(card_store_a.clone(), device_config_a).unwrap();
-    let service_b = P2PSyncService::new(card_store_b.clone(), device_config_b).unwrap();
+    let service_a = P2PSyncService::new(card_store_a, device_config_a).unwrap();
+    let service_b = P2PSyncService::new(card_store_b, device_config_b).unwrap();
 
     println!("设备 A Peer ID: {}", service_a.local_peer_id());
     println!("设备 B Peer ID: {}", service_b.local_peer_id());
@@ -76,6 +78,7 @@ async fn it_should_two_device_sync_flow_components() {
 /// 验证同步服务能够正确跟踪设备连接和同步状态
 #[tokio::test]
 #[serial]
+#[allow(unused_mut)]
 async fn it_should_sync_status_tracking() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
@@ -123,7 +126,7 @@ async fn it_should_sync_service_start_and_listen() {
             || msg.contains("Failed to listen")
             || msg.is_empty()
         {
-            println!("跳过同步服务监听测试：{}", msg);
+            println!("跳过同步服务监听测试：{msg}");
             return;
         }
         panic!("同步服务启动应该成功: {err}");
@@ -137,6 +140,7 @@ async fn it_should_sync_service_start_and_listen() {
 /// 验证同步服务能够处理多个设备同时连接
 #[tokio::test]
 #[serial]
+#[allow(unused_mut)]
 async fn it_should_concurrent_device_connections() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
@@ -181,7 +185,7 @@ async fn it_should_pool_sync_between_services() {
 
     // 创建同步服务（注册到本地模拟网络）
     let service_a =
-        P2PSyncService::new_with_mock_network(card_store_a.clone(), device_config_a).unwrap();
+        P2PSyncService::new_with_mock_network(card_store_a, device_config_a).unwrap();
     let mut service_b =
         P2PSyncService::new_with_mock_network(card_store_b.clone(), device_config_b).unwrap();
 

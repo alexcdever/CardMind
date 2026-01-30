@@ -1,12 +1,14 @@
+import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/note_editor_fullscreen.dart';
-import 'package:cardmind/bridge/models/card.dart' as bridge;
 
 void main() {
   group('NoteEditorFullscreen Widget Tests - Rendering', () {
     testWidgets('WT-001: 测试基本渲染（新建模式）', (tester) async {
+      // ignore: unused_local_variable
       var closeCalled = false;
+      // ignore: unused_local_variable
       bridge.Card? savedCard;
 
       await tester.pumpWidget(
@@ -39,7 +41,7 @@ void main() {
     });
 
     testWidgets('WT-002: 测试基本渲染（编辑模式）', (tester) async {
-      final testCard = bridge.Card(
+      const testCard = bridge.Card(
         id: 'test-id',
         title: '测试标题',
         content: '测试内容',
@@ -124,8 +126,7 @@ void main() {
       // 验证标题输入框存在
       final titleField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '笔记标题',
+            widget is TextField && widget.decoration?.hintText == '笔记标题',
       );
       expect(titleField, findsOneWidget);
 
@@ -153,8 +154,7 @@ void main() {
       // 验证内容输入框存在
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       expect(contentField, findsOneWidget);
 
@@ -163,7 +163,7 @@ void main() {
     });
 
     testWidgets('WT-006: 测试元数据渲染（编辑模式）', (tester) async {
-      final testCard = bridge.Card(
+      const testCard = bridge.Card(
         id: 'test-id',
         title: '测试标题',
         content: '测试内容',
@@ -307,7 +307,7 @@ void main() {
     });
 
     testWidgets('WT-012: 测试时间格式', (tester) async {
-      final testCard = bridge.Card(
+      const testCard = bridge.Card(
         id: 'test-id',
         title: '测试标题',
         content: '测试内容',
@@ -361,8 +361,7 @@ void main() {
       // 找到标题输入框
       final titleField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '笔记标题',
+            widget is TextField && widget.decoration?.hintText == '笔记标题',
       );
 
       // 输入标题
@@ -393,8 +392,7 @@ void main() {
       // 找到内容输入框
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
 
       // 输入内容
@@ -428,8 +426,7 @@ void main() {
       // 输入内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -505,13 +502,14 @@ void main() {
     });
 
     testWidgets('WT-018: 测试点击关闭按钮（有更改）', (tester) async {
+      // ignore: unused_local_variable
       var closeCalled = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '原标题',
                 content: '原内容',
@@ -535,8 +533,7 @@ void main() {
       // 修改内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '新内容');
       await tester.pump();
@@ -557,7 +554,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '原标题',
                 content: '原内容',
@@ -581,8 +578,7 @@ void main() {
       // 修改内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '新内容');
       await tester.pump();
@@ -608,7 +604,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '原标题',
                 content: '原内容',
@@ -632,8 +628,7 @@ void main() {
       // 修改内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '新内容');
       await tester.pump();
@@ -654,13 +649,14 @@ void main() {
 
     testWidgets('WT-020: 测试确认对话框 - 放弃更改', (tester) async {
       var closeCalled = false;
+      // ignore: unused_local_variable
       bridge.Card? savedCard;
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '原标题',
                 content: '原内容',
@@ -684,8 +680,7 @@ void main() {
       // 修改内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '新内容');
       await tester.pump();
@@ -728,8 +723,7 @@ void main() {
       // 输入内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -763,8 +757,7 @@ void main() {
 
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
 
       // 快速输入多次
@@ -803,8 +796,7 @@ void main() {
       // 输入内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -843,8 +835,7 @@ void main() {
       // 只输入内容，不输入标题
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -888,6 +879,7 @@ void main() {
     });
 
     testWidgets('WT-027: 测试编辑模式空内容关闭', (tester) async {
+      // ignore: unused_local_variable
       var closeCalled = false;
       bridge.Card? savedCard;
 
@@ -895,7 +887,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '标题',
                 content: '原内容',
@@ -919,8 +911,7 @@ void main() {
       // 清空内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '');
       await tester.pump();
@@ -957,8 +948,7 @@ void main() {
       // 输入内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -1050,7 +1040,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '原标题',
                 content: '原内容',
@@ -1074,8 +1064,7 @@ void main() {
       // 修改内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '新内容');
       await tester.pump();
@@ -1118,15 +1107,13 @@ void main() {
       final longTitle = '测试' * 500;
       final titleField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '笔记标题',
+            widget is TextField && widget.decoration?.hintText == '笔记标题',
       );
       await tester.enterText(titleField, longTitle);
 
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -1163,8 +1150,7 @@ void main() {
       final longContent = '测试内容' * 1000;
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, longContent);
       await tester.pump();
@@ -1200,15 +1186,13 @@ void main() {
       // 输入空格标题和有效内容
       final titleField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '笔记标题',
+            widget is TextField && widget.decoration?.hintText == '笔记标题',
       );
       await tester.enterText(titleField, '   ');
 
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -1244,8 +1228,7 @@ void main() {
       // 输入空格内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '   ');
       await tester.pump();
@@ -1265,7 +1248,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '标题',
                 content: '原内容',
@@ -1289,8 +1272,7 @@ void main() {
       // 清空内容，输入空格
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '   ');
       await tester.pump();
@@ -1326,8 +1308,7 @@ void main() {
       // 输入换行符
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '\n\n\n');
       await tester.pump();
@@ -1365,7 +1346,7 @@ void main() {
     });
 
     testWidgets('WT-040: 测试 card 不为 null', (tester) async {
-      final testCard = bridge.Card(
+      const testCard = bridge.Card(
         id: 'test-id',
         title: '测试标题',
         content: '测试内容',
@@ -1443,7 +1424,9 @@ void main() {
     });
 
     testWidgets('WT-043: 测试自动保存期间关闭', (tester) async {
+      // ignore: unused_local_variable
       var closeCalled = false;
+      // ignore: unused_local_variable
       bridge.Card? savedCard;
 
       await tester.pumpWidget(
@@ -1465,8 +1448,7 @@ void main() {
       // 输入内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '测试内容');
       await tester.pump();
@@ -1487,7 +1469,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: NoteEditorFullscreen(
-              card: bridge.Card(
+              card: const bridge.Card(
                 id: 'test-id',
                 title: '标题',
                 content: '原内容',
@@ -1511,8 +1493,7 @@ void main() {
       // 清空内容
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
       await tester.enterText(contentField, '   ');
       await tester.pump();
@@ -1531,7 +1512,7 @@ void main() {
     });
 
     testWidgets('WT-045: 测试元数据缺失字段', (tester) async {
-      final testCard = bridge.Card(
+      const testCard = bridge.Card(
         id: 'test-id',
         title: '测试标题',
         content: '测试内容',

@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import '../services/card_api_interface.dart';
+
 import '../services/card_api_impl.dart';
+import '../services/card_api_interface.dart';
 
 /// Card Editor State Management
 ///
@@ -12,16 +14,15 @@ import '../services/card_api_impl.dart';
 /// - 错误处理
 /// - 验证逻辑
 class CardEditorState extends ChangeNotifier {
+  /// 构造函数，允许注入 API 实现
+  CardEditorState({CardApiInterface? cardApi})
+    : _cardApi = cardApi ?? CardApiImpl();
   // ========================================
   // 依赖注入
   // ========================================
 
   /// Card API 接口（可以注入 mock 实现用于测试）
   final CardApiInterface _cardApi;
-
-  /// 构造函数，允许注入 API 实现
-  CardEditorState({CardApiInterface? cardApi})
-      : _cardApi = cardApi ?? CardApiImpl();
 
   // ========================================
   // 状态字段

@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
 import 'package:cardmind/models/device.dart';
 import 'package:cardmind/utils/time_formatter.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// 设备列表项
 ///

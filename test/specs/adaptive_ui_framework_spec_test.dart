@@ -155,7 +155,7 @@ void main() {
                   body: Center(
                     child: ElevatedButton(
                       onPressed: () {
-                        showDialog(
+                        showDialog<void>(
                           context: context,
                           builder: (context) => AlertDialog(
                             title: const Text('提示'),

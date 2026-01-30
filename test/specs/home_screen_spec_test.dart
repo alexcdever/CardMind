@@ -113,9 +113,7 @@ void main() {
             const Scaffold(
               body: ListTile(
                 title: Text('My Card Title'),
-                subtitle: Text(
-                  'This is a preview of the card content...',
-                ),
+                subtitle: Text('This is a preview of the card content...'),
               ),
             ),
           ),
@@ -184,7 +182,7 @@ void main() {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             const Scaffold(body: Text('Card Editor')),
                       ),
@@ -413,6 +411,7 @@ void main() {
         ];
 
         String searchQuery = '';
+        // ignore: unused_local_variable
         final filteredCards = allCards.where((card) {
           if (searchQuery.isEmpty) return true;
           return (card['title'] as String).toLowerCase().contains(
@@ -487,7 +486,7 @@ void main() {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             const Scaffold(body: Text('Card Editor')),
                       ),
@@ -518,7 +517,7 @@ void main() {
                 body: ListTile(
                   title: const Text('My Card'),
                   onLongPress: () {
-                    showModalBottomSheet(
+                    showModalBottomSheet<void>(
                       context: context,
                       builder: (context) => Column(
                         mainAxisSize: MainAxisSize.min,
@@ -569,7 +568,7 @@ void main() {
               body: RefreshIndicator(
                 onRefresh: () async {
                   refreshCount++;
-                  await Future.delayed(const Duration(milliseconds: 100));
+                  await Future<void>.delayed(const Duration(milliseconds: 100));
                 },
                 child: ListView(
                   children: const [
@@ -601,7 +600,7 @@ void main() {
             Scaffold(
               body: RefreshIndicator(
                 onRefresh: () async {
-                  await Future.delayed(const Duration(seconds: 1));
+                  await Future<void>.delayed(const Duration(seconds: 1));
                 },
                 child: ListView(
                   children: const [ListTile(title: Text('Card 1'))],
@@ -753,10 +752,7 @@ void main() {
                         const SizedBox(height: 4),
                         const Text(
                           '更新于 5 分钟前',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),

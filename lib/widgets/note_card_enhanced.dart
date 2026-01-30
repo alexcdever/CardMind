@@ -1,10 +1,11 @@
 import 'dart:async';
+
+import 'package:cardmind/adaptive/platform_detector.dart';
+import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/utils/text_truncator.dart';
+import 'package:cardmind/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cardmind/bridge/models/card.dart' as bridge;
-import 'package:cardmind/adaptive/platform_detector.dart';
-import 'package:cardmind/utils/time_formatter.dart';
-import 'package:cardmind/utils/text_truncator.dart';
 
 /// Enhanced Note Card component following design specifications
 ///
@@ -32,8 +33,8 @@ class NoteCard extends StatefulWidget {
 
   final bridge.Card card;
   final String currentDevice;
-  final Function(bridge.Card) onUpdate;
-  final Function(String) onDelete;
+  final void Function(bridge.Card) onUpdate;
+  final void Function(String) onDelete;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onViewDetails;
@@ -46,11 +47,9 @@ class NoteCard extends StatefulWidget {
 
 class _NoteCardState extends State<NoteCard> {
   bool _isHovered = false;
-  bool _isPressed = false;
   final TimeCache _timeCache = TimeFormatter.createTimeCache();
 
   // Context menu state
-  final GlobalKey _menuKey = GlobalKey();
   bool _isContextMenuOpen = false;
 
   // Long press detection for mobile
@@ -139,9 +138,7 @@ class _NoteCardState extends State<NoteCard> {
         children: [
           // Background overlay
           GestureDetector(
-            onTap: () {
-              _hideContextMenu();
-            },
+            onTap: _hideContextMenu,
             child: Container(
               color: Colors.transparent,
               width: double.infinity,
@@ -180,7 +177,7 @@ class _NoteCardState extends State<NoteCard> {
 
   /// Show mobile context menu (bottom sheet)
   void _showMobileContextMenu() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       builder: (context) => Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -269,7 +266,7 @@ class _NoteCardState extends State<NoteCard> {
 
   /// Show delete confirmation dialog
   void _showDeleteConfirmation() {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('确认删除'),
@@ -298,7 +295,6 @@ class _NoteCardState extends State<NoteCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isMobile = PlatformDetector.isMobile;
     final maxContentLines = TextTruncator.getContentMaxLines();
 
     return MouseRegion(

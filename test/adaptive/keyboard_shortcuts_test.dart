@@ -222,6 +222,7 @@ void main() {
       WidgetTester tester,
     ) async {
       // Given: Keyboard shortcuts with only create card callback
+      // ignore: unused_local_variable
       bool createCardCalled = false;
 
       await tester.pumpWidget(

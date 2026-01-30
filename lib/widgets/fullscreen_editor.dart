@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:flutter/material.dart';
 
 /// 移动端全屏笔记编辑器
 ///
@@ -19,7 +20,7 @@ class FullscreenEditor extends StatefulWidget {
 
   final bridge.Card card;
   final String currentDevice;
-  final Function(bridge.Card) onSave;
+  final void Function(bridge.Card) onSave;
   final VoidCallback onCancel;
 
   @override
@@ -58,9 +59,7 @@ class _FullscreenEditorState extends State<FullscreenEditor> {
     // 取消之前的定时器
     _autoSaveTimer?.cancel();
     // 2 秒后自动保存草稿
-    _autoSaveTimer = Timer(const Duration(seconds: 2), () {
-      _saveDraft();
-    });
+    _autoSaveTimer = Timer(const Duration(seconds: 2), _saveDraft);
   }
 
   void _saveDraft() {
@@ -109,16 +108,11 @@ class _FullscreenEditorState extends State<FullscreenEditor> {
           onPressed: widget.onCancel,
         ),
         title: const Text('编辑笔记'),
-        actions: [
-          TextButton(
-            onPressed: _handleSave,
-            child: const Text('保存'),
-          ),
-        ],
+        actions: [TextButton(onPressed: _handleSave, child: const Text('保存'))],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -151,10 +145,7 @@ class _FullscreenEditorState extends State<FullscreenEditor> {
               const SizedBox(height: 24),
 
               // 标签管理
-              Text(
-                '标签',
-                style: theme.textTheme.titleMedium,
-              ),
+              Text('标签', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,

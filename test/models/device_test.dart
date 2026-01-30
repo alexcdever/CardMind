@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/models/device.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Device Tests', () {
@@ -20,7 +20,7 @@ void main() {
       expect(json['type'], 'laptop');
       expect(json['status'], 'online');
       expect(json['lastSeen'], isA<int>());
-      expect(json['multiaddrs'], isA<List>());
+      expect(json['multiaddrs'], isA<List<dynamic>>());
       expect(json['multiaddrs'].length, 1);
     });
 
@@ -84,10 +84,7 @@ void main() {
         type: DeviceType.tablet,
         status: DeviceStatus.online,
         lastSeen: DateTime(2024, 1, 1, 12, 0, 0),
-        multiaddrs: [
-          '/ip4/192.168.1.100/tcp/4001',
-          '/ip6/::1/tcp/4001',
-        ],
+        multiaddrs: ['/ip4/192.168.1.100/tcp/4001', '/ip6/::1/tcp/4001'],
       );
 
       final json = original.toJson();
@@ -112,10 +109,7 @@ void main() {
       const invalidPeerId = '11D3KooWTest123456789ABCDEFGHJKLMNPQRSTUVWXYZabc';
       expect(PeerIdValidator.isValid(invalidPeerId), false);
       expect(PeerIdValidator.validate(invalidPeerId), isNotNull);
-      expect(
-        PeerIdValidator.validate(invalidPeerId),
-        contains('12D3KooW'),
-      );
+      expect(PeerIdValidator.validate(invalidPeerId), contains('12D3KooW'));
     });
 
     test('rejects PeerId that is too short', () {
@@ -126,8 +120,7 @@ void main() {
     });
 
     test('rejects PeerId that is too long', () {
-      final longPeerId =
-          '12D3KooW${'A' * 100}'; // 超过 60 个字符
+      final longPeerId = '12D3KooW${'A' * 100}'; // 超过 60 个字符
       expect(PeerIdValidator.isValid(longPeerId), false);
       expect(PeerIdValidator.validate(longPeerId), isNotNull);
       expect(PeerIdValidator.validate(longPeerId), contains('长度过长'));

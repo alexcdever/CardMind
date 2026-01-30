@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/providers/settings_provider.dart';
 import 'package:cardmind/providers/theme_provider.dart';
-import 'package:cardmind/widgets/settings/toggle_setting_item.dart';
-import 'package:cardmind/widgets/settings/button_setting_item.dart';
 import 'package:cardmind/widgets/dialogs/export_confirm_dialog.dart';
+import 'package:cardmind/widgets/settings/button_setting_item.dart';
+import 'package:cardmind/widgets/settings/toggle_setting_item.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,8 +14,9 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('WT-016: Tap sync notification switch toggles state',
-        (tester) async {
+    testWidgets('WT-016: Tap sync notification switch toggles state', (
+      tester,
+    ) async {
       final provider = SettingsProvider();
       await provider.initialize();
 
@@ -120,8 +121,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () async {
-                    final result =
-                        await ExportConfirmDialog.show(context, 10);
+                    final result = await ExportConfirmDialog.show(context, 10);
                     if (result) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Export confirmed')),
@@ -160,8 +160,7 @@ void main() {
               builder: (context) {
                 return ElevatedButton(
                   onPressed: () async {
-                    final result =
-                        await ExportConfirmDialog.show(context, 10);
+                    final result = await ExportConfirmDialog.show(context, 10);
                     if (!result) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Export cancelled')),
@@ -191,8 +190,9 @@ void main() {
       expect(find.text('Export cancelled'), findsOneWidget);
     });
 
-    testWidgets('WT-030: Switch toggle shows success (no toast in test)',
-        (tester) async {
+    testWidgets('WT-030: Switch toggle shows success (no toast in test)', (
+      tester,
+    ) async {
       final provider = SettingsProvider();
       await provider.initialize();
 
@@ -231,15 +231,16 @@ void main() {
       expect(find.text('Setting updated'), findsOneWidget);
     });
 
-    testWidgets('WT-031: Switch failure shows error and reverts',
-        (tester) async {
-      bool shouldFail = true;
+    testWidgets('WT-031: Switch failure shows error and reverts', (
+      tester,
+    ) async {
+      const bool shouldFail = true;
 
       await tester.pumpWidget(
         MaterialApp(
           home: StatefulBuilder(
             builder: (context, setState) {
-              bool value = true;
+              const bool value = true;
               return Scaffold(
                 body: ToggleSettingItem(
                   icon: Icons.notifications,
@@ -251,10 +252,6 @@ void main() {
                         const SnackBar(content: Text('Failed to update')),
                       );
                       // Don't update state on failure
-                    } else {
-                      setState(() {
-                        value = newValue;
-                      });
                     }
                   },
                 ),
@@ -317,9 +314,9 @@ void main() {
                   icon: Icons.upload_file,
                   label: 'Export Data',
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('导出失败: 权限不足')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('导出失败: 权限不足')));
                   },
                 );
               },
@@ -336,8 +333,9 @@ void main() {
       expect(find.text('导出失败: 权限不足'), findsOneWidget);
     });
 
-    testWidgets('WT-034: Import success shows toast with count',
-        (tester) async {
+    testWidgets('WT-034: Import success shows toast with count', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

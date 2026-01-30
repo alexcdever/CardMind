@@ -1,11 +1,10 @@
+import 'package:cardmind/models/app_info.dart';
+import 'package:cardmind/providers/app_info_provider.dart';
+import 'package:cardmind/providers/settings_provider.dart';
+import 'package:cardmind/widgets/settings/button_setting_item.dart';
+import 'package:cardmind/widgets/settings/toggle_setting_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/providers/settings_provider.dart';
-import 'package:cardmind/providers/app_info_provider.dart';
-import 'package:cardmind/models/app_info.dart';
-import 'package:cardmind/widgets/settings/toggle_setting_item.dart';
-import 'package:cardmind/widgets/settings/button_setting_item.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -46,8 +45,7 @@ void main() {
       expect(find.text('Dark Mode'), findsOneWidget);
     });
 
-    testWidgets('WT-038: Handle file size > 100MB (simulated)',
-        (tester) async {
+    testWidgets('WT-038: Handle file size > 100MB (simulated)', (tester) async {
       // This would be tested in integration tests with actual file operations
       // Here we just verify the UI handles the error message
 
@@ -61,9 +59,7 @@ void main() {
                   label: 'Import Data',
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('导入失败: 文件大小超过 100MB 限制'),
-                      ),
+                      const SnackBar(content: Text('导入失败: 文件大小超过 100MB 限制')),
                     );
                   },
                 );
@@ -90,7 +86,9 @@ void main() {
                   label: 'Import Data',
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('导入失败: Invalid backup file')),
+                      const SnackBar(
+                        content: Text('导入失败: Invalid backup file'),
+                      ),
                     );
                   },
                 );
@@ -116,9 +114,9 @@ void main() {
                   icon: Icons.upload_file,
                   label: 'Export Data',
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('导出失败: 权限不足')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('导出失败: 权限不足')));
                   },
                 );
               },
@@ -143,9 +141,9 @@ void main() {
                   icon: Icons.download,
                   label: 'Import Data',
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('成功导入 0 张卡片')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('成功导入 0 张卡片')));
                   },
                 );
               },
@@ -262,7 +260,7 @@ void main() {
 
     testWidgets('WT-049: Handle button disabled state', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ButtonSettingItem(
               icon: Icons.upload_file,
@@ -281,7 +279,7 @@ void main() {
 
     testWidgets('WT-050: Handle toggle disabled state', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ToggleSettingItem(
               icon: Icons.notifications,

@@ -75,7 +75,7 @@ pub struct P2PSyncService {
     /// 设备配置
     device_config: Arc<Mutex<DeviceConfig>>,
 
-    /// 连接状态 (peer_id -> connected)
+    /// 连接状态 (`peer_id` -> connected)
     connections: Arc<Mutex<HashMap<PeerId, bool>>>,
 
     /// 是否使用真实网络传输（默认 true，测试时可设为 false）
@@ -97,7 +97,7 @@ impl P2PSyncService {
     ///
     /// # 参数
     ///
-    /// * `card_store` - CardStore 实例
+    /// * `card_store` - `CardStore` 实例
     /// * `device_config` - 设备配置
     ///
     /// # 示例
@@ -184,7 +184,7 @@ impl P2PSyncService {
     ///
     /// 本地设备的 Peer ID
     #[must_use]
-    pub fn local_peer_id(&self) -> PeerId {
+    pub const fn local_peer_id(&self) -> PeerId {
         self.local_peer_id
     }
 
@@ -233,7 +233,8 @@ impl P2PSyncService {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn connect_to_peer(&mut self, peer_id: PeerId) -> Result<()> {
+    #[allow(clippy::unused_async)]
+    pub async fn connect_to_peer(&self, peer_id: PeerId) -> Result<()> {
         info!("尝试连接到设备: {}", peer_id);
 
         // 更新连接状态
@@ -300,7 +301,7 @@ impl P2PSyncService {
                     .lock()
                     .unwrap()
                     .get_pool_id()
-                    .map(|s| s.to_string())
+                    .map(std::string::ToString::to_string)
                     .unwrap_or_default()];
 
                 let sync_data = entry.sync_manager.lock().unwrap().handle_sync_request(
@@ -311,10 +312,10 @@ impl P2PSyncService {
 
                 // 构造响应并导入
                 let response = SyncResponse {
-                    pool_id: pool_id.clone(),
+                    pool_id,
                     updates: sync_data.updates.clone(),
                     card_count: sync_data.card_count,
-                    current_version: sync_data.current_version.clone(),
+                    current_version: sync_data.current_version,
                 };
 
                 self.handle_sync_response(peer_id, response)?;
@@ -333,7 +334,7 @@ impl P2PSyncService {
     /// * `peer_id` - 请求设备 ID
     /// * `request` - 同步请求
     #[allow(dead_code)]
-    fn handle_sync_request(&self, peer_id: PeerId, request: SyncRequest) -> Result<()> {
+    fn handle_sync_request(&self, peer_id: PeerId, request: &SyncRequest) -> Result<()> {
         info!("处理来自 {} 的同步请求: pool={}", peer_id, request.pool_id);
 
         // 验证授权和生成响应
@@ -342,7 +343,7 @@ impl P2PSyncService {
             .lock()
             .unwrap()
             .get_pool_id()
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .unwrap_or_default()];
 
         let _sync_data = self.sync_manager.lock().unwrap().handle_sync_request(
@@ -380,7 +381,7 @@ impl P2PSyncService {
             &response.pool_id,
             &peer_id.to_string(),
             &new_version,
-        )?;
+        );
 
         // 标记同步完成
         self.coordinator
@@ -388,7 +389,7 @@ impl P2PSyncService {
 
         // 构造确认
         let _ack = SyncAck {
-            pool_id: response.pool_id.clone(),
+            pool_id: response.pool_id,
             confirmed_version: new_version,
             device_id: self.local_peer_id.to_string(),
         };
@@ -446,7 +447,7 @@ impl P2PSyncService {
     ///
     /// # 返回
     ///
-    /// 返回 broadcast::Sender 的克隆，可用于创建新的订阅者
+    /// 返回 `broadcast::Sender` 的克隆，可用于创建新的订阅者
     #[must_use]
     pub fn status_sender(&self) -> broadcast::Sender<SyncStatus> {
         self.status_tx.clone()
@@ -466,6 +467,7 @@ impl P2PSyncService {
     /// 清除错误状态
     ///
     /// 用于重试同步时清除之前的错误状态
+    #[allow(clippy::unused_self)]
     pub fn clear_error(&self) {
         info!("清除错误状态");
         // 当前实现中，错误状态存储在 coordinator 中
@@ -514,7 +516,7 @@ impl P2PSyncService {
             .lock()
             .unwrap()
             .get_pool_id()
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .unwrap_or_default();
 
         if pool_id.is_empty() {
@@ -579,17 +581,20 @@ impl P2PSyncService {
                                     .lock()
                                     .unwrap()
                                     .get_pool_id()
-                                    .map(|s| s.to_string())
+                                    .map(std::string::ToString::to_string)
                                     .unwrap_or_default()];
 
-                                match self.sync_manager.lock().unwrap().handle_sync_request(
-                                    &request.pool_id,
-                                    request.last_version.as_deref(),
-                                    &joined_pools,
-                                ) {
+                                let sync_result =
+                                    self.sync_manager.lock().unwrap().handle_sync_request(
+                                        &request.pool_id,
+                                        request.last_version.as_deref(),
+                                        &joined_pools,
+                                    );
+
+                                match sync_result {
                                     Ok(sync_data) => {
                                         let response = SyncResponse {
-                                            pool_id: request.pool_id.clone(),
+                                            pool_id: request.pool_id,
                                             updates: sync_data.updates,
                                             card_count: sync_data.card_count,
                                             current_version: sync_data.current_version,
@@ -624,13 +629,10 @@ impl P2PSyncService {
                                 if let Err(e) = self.handle_sync_response(peer, response) {
                                     warn!("处理同步响应失败: {}", e);
                                     // 触发状态变化：同步失败 → failed
-                                    let status = self.get_sync_status();
-                                    self.notify_status_change(status);
-                                } else {
-                                    // 触发状态变化：同步完成 → synced
-                                    let status = self.get_sync_status();
-                                    self.notify_status_change(status);
                                 }
+                                // 触发状态变化：同步完成 → synced
+                                let status = self.get_sync_status();
+                                self.notify_status_change(status);
                             }
                         },
                         Event::OutboundFailure { peer, error, .. } => {
@@ -652,6 +654,7 @@ impl P2PSyncService {
 
     /// 连接建立后自动同步
     #[allow(dead_code)]
+    #[allow(clippy::unused_async)]
     async fn auto_sync_on_connect(&mut self, peer_id: PeerId) -> Result<()> {
         info!("设备 {} 连接成功，触发自动同步", peer_id);
 
@@ -661,7 +664,7 @@ impl P2PSyncService {
             .lock()
             .unwrap()
             .get_pool_id()
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
             .unwrap_or_default()];
 
         for pool_id in joined_pools {
@@ -674,8 +677,9 @@ impl P2PSyncService {
 
     /// 手动触发数据池同步（基于协调器的并行触发）
     ///
-    /// 采用“消耗-归还”模式以便在异步 FFI 中避免 &self 的 Sync 约束：
+    /// 采用"消耗-归还"模式以便在异步 FFI 中避免 &self 的 Sync 约束：
     /// 调用方移动拥有的 service，调用结束后再放回 thread-local。
+    #[allow(clippy::unused_async)]
     pub async fn sync_pool_owned(mut self, pool_id: &str) -> Result<(Self, i32)> {
         let mut success = 0;
 
@@ -684,7 +688,7 @@ impl P2PSyncService {
             .lock()
             .unwrap()
             .keys()
-            .cloned()
+            .copied()
             .filter(|p| p != &self.local_peer_id)
             .collect();
 
@@ -699,7 +703,8 @@ impl P2PSyncService {
 }
 
 /// 同步状态
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::struct_field_names)]
 pub struct SyncStatus {
     /// 在线设备数
     pub online_devices: usize,
@@ -784,7 +789,7 @@ mod tests {
             offline_devices: 0,
         };
         service.notify_status_change(status.clone());
-        service.notify_status_change(status.clone());
+        service.notify_status_change(status);
 
         // 验证只收到一次状态更新
         assert!(rx.try_recv().is_ok(), "应该收到第一次状态更新");
@@ -851,7 +856,7 @@ mod tests {
             syncing_devices: 1,
             offline_devices: 0,
         };
-        service.notify_status_change(initial_status.clone());
+        service.notify_status_change(initial_status);
 
         // 创建新的订阅者
         let mut rx = service.status_tx.subscribe();
@@ -948,8 +953,7 @@ mod tests {
         let success_count = results.iter().filter(|&&r| r).count();
         assert!(
             success_count >= 3,
-            "至少应该有 3 个并发重试成功，实际: {}",
-            success_count
+            "至少应该有 3 个并发重试成功，实际: {success_count}"
         );
     }
 }

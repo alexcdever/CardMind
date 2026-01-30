@@ -10,7 +10,6 @@ import 'responsive_utils.dart';
 /// - Handles screen rotation automatically
 /// - Adjusts for keyboard visibility
 class MobileLayout extends StatelessWidget {
-
   const MobileLayout({
     super.key,
     required this.body,

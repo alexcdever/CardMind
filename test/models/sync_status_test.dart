@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/models/sync_status.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('SyncStatus Model Tests', () {
@@ -32,7 +32,9 @@ void main() {
         expect(status.isValid(), isTrue);
 
         // WHEN: 创建 syncing 状态（带上次同步时间）
-        final lastSyncTime = DateTime.now().subtract(const Duration(seconds: 5));
+        final lastSyncTime = DateTime.now().subtract(
+          const Duration(seconds: 5),
+        );
         final statusWithTime = SyncStatus.syncing(lastSyncTime: lastSyncTime);
 
         // THEN: lastSyncTime 应非空
@@ -70,7 +72,9 @@ void main() {
         expect(status.isValid(), isTrue);
 
         // WHEN: 创建 failed 状态（带错误信息和上次同步时间）
-        final lastSyncTime = DateTime.now().subtract(const Duration(minutes: 5));
+        final lastSyncTime = DateTime.now().subtract(
+          const Duration(minutes: 5),
+        );
         final statusWithTime = SyncStatus.failed(
           errorMessage: SyncErrorType.connectionTimeout,
           lastSyncTime: lastSyncTime,
@@ -97,7 +101,7 @@ void main() {
 
       test('it_should_enforce_failed_has_error_message', () {
         // WHEN: 创建 failed 状态（errorMessage 为 null）
-        final statusWithNull = SyncStatus(
+        const statusWithNull = SyncStatus(
           state: SyncState.failed,
           errorMessage: null,
         );
@@ -106,7 +110,7 @@ void main() {
         expect(statusWithNull.isValid(), isFalse);
 
         // WHEN: 创建 failed 状态（errorMessage 为空字符串）
-        final statusWithEmpty = SyncStatus(
+        const statusWithEmpty = SyncStatus(
           state: SyncState.failed,
           errorMessage: '',
         );
@@ -117,10 +121,7 @@ void main() {
 
       test('it_should_enforce_synced_has_non_null_time', () {
         // WHEN: 创建 synced 状态（lastSyncTime 为 null）
-        final status = SyncStatus(
-          state: SyncState.synced,
-          lastSyncTime: null,
-        );
+        const status = SyncStatus(state: SyncState.synced, lastSyncTime: null);
 
         // THEN: isValid() 应返回 false
         expect(status.isValid(), isFalse);
@@ -155,10 +156,7 @@ void main() {
           isTrue,
         );
         expect(SyncStatus.notYetSynced().isActive, isFalse);
-        expect(
-          SyncStatus.failed(errorMessage: 'error').isActive,
-          isFalse,
-        );
+        expect(SyncStatus.failed(errorMessage: 'error').isActive, isFalse);
       });
     });
 
@@ -182,7 +180,10 @@ void main() {
 
         // 禁止的转换
         expect(status.canTransitionTo(SyncState.synced), isFalse);
-        expect(status.canTransitionTo(SyncState.notYetSynced), isTrue); // 相同状态允许
+        expect(
+          status.canTransitionTo(SyncState.notYetSynced),
+          isTrue,
+        ); // 相同状态允许
       });
 
       test('syncing can transition to synced or failed', () {

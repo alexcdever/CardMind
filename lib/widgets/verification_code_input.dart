@@ -5,6 +5,13 @@ import 'package:flutter/services.dart';
 ///
 /// 用于输入 6 位数字验证码进行设备配对验证
 class VerificationCodeInput extends StatefulWidget {
+  const VerificationCodeInput({
+    super.key,
+    required this.remoteDeviceName,
+    required this.onVerify,
+    this.onCancel,
+  });
+
   /// 对方设备名称
   final String remoteDeviceName;
 
@@ -13,13 +20,6 @@ class VerificationCodeInput extends StatefulWidget {
 
   /// 取消回调
   final VoidCallback? onCancel;
-
-  const VerificationCodeInput({
-    super.key,
-    required this.remoteDeviceName,
-    required this.onVerify,
-    this.onCancel,
-  });
 
   @override
   State<VerificationCodeInput> createState() => _VerificationCodeInputState();
@@ -31,10 +31,7 @@ class _VerificationCodeInputState extends State<VerificationCodeInput> {
     (_) => TextEditingController(),
   );
 
-  final List<FocusNode> _focusNodes = List.generate(
-    6,
-    (_) => FocusNode(),
-  );
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   bool _isVerifying = false;
   String? _errorMessage;
@@ -136,7 +133,10 @@ class _VerificationCodeInputState extends State<VerificationCodeInput> {
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: colorScheme.errorContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -184,9 +184,7 @@ class _VerificationCodeInputState extends State<VerificationCodeInput> {
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('验证'),
                 ),
@@ -218,31 +216,20 @@ class _VerificationCodeInputState extends State<VerificationCodeInput> {
           counterText: '',
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: colorScheme.outline,
-              width: 2,
-            ),
+            borderSide: BorderSide(color: colorScheme.outline, width: 2),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: colorScheme.primary,
-              width: 2,
-            ),
+            borderSide: BorderSide(color: colorScheme.primary, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: colorScheme.error,
-              width: 2,
-            ),
+            borderSide: BorderSide(color: colorScheme.error, width: 2),
           ),
           filled: true,
           fillColor: colorScheme.surfaceContainerHighest,
         ),
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-        ],
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         onChanged: (value) {
           if (value.isNotEmpty) {
             // 自动跳转到下一个输入框

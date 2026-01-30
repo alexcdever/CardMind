@@ -67,7 +67,7 @@ class MockCardService extends CardService {
     initializeCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -80,7 +80,7 @@ class MockCardService extends CardService {
     createCardCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -107,7 +107,7 @@ class MockCardService extends CardService {
     getAllCardsCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -122,7 +122,7 @@ class MockCardService extends CardService {
     getActiveCardsCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -137,7 +137,7 @@ class MockCardService extends CardService {
     getCardByIdCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -155,7 +155,7 @@ class MockCardService extends CardService {
     updateCardCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -186,7 +186,7 @@ class MockCardService extends CardService {
     deleteCardCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -217,7 +217,7 @@ class MockCardService extends CardService {
     getCardCountCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {

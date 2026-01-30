@@ -3,7 +3,6 @@ import 'adaptive_navigation.dart';
 
 /// Mobile navigation using BottomNavigationBar
 class MobileNavigation extends StatelessWidget {
-
   const MobileNavigation({
     super.key,
     required this.destinations,

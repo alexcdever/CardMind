@@ -63,7 +63,6 @@ class RedoIntent extends Intent {
 /// - Ctrl/Cmd+Z: Undo
 /// - Ctrl/Cmd+Shift+Z: Redo
 class KeyboardShortcuts extends StatelessWidget {
-
   const KeyboardShortcuts({
     super.key,
     required this.child,

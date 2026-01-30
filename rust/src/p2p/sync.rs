@@ -6,7 +6,7 @@
 //!
 //! 根据 `docs/architecture/sync_mechanism.md` 3.x 节的设计：
 //! - **增量同步**: 仅传输变更部分,不传输完整文档
-//! - **数据池过滤**: 仅同步 Pool.card_ids 中的卡片（单池模型）
+//! - **数据池过滤**: 仅同步 `Pool.card_ids` 中的卡片（单池模型）
 //! - **版本跟踪**: 记录每个 peer 的最后同步版本,支持断点续传
 //! - **自动合并**: CRDT 自动处理冲突,无需用户干预
 //!
@@ -33,9 +33,9 @@ use serde::{Deserialize, Serialize};
 ///
 /// # 消息流
 ///
-/// 1. **SyncRequest**: 请求同步特定数据池的卡片
-/// 2. **SyncResponse**: 返回增量更新数据
-/// 3. **SyncAck**: 确认接收,更新同步版本
+/// 1. **`SyncRequest`**: 请求同步特定数据池的卡片
+/// 2. **`SyncResponse`**: 返回增量更新数据
+/// 3. **`SyncAck`**: 确认接收,更新同步版本
 ///
 /// # 示例
 ///
@@ -50,6 +50,7 @@ use serde::{Deserialize, Serialize};
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[allow(clippy::enum_variant_names)]
 pub enum SyncMessage {
     /// 同步请求
     SyncRequest(SyncRequest),
@@ -114,7 +115,7 @@ pub struct SyncResponse {
     ///
     /// # 格式
     ///
-    /// 这是多个卡片的 LoroDoc 更新合并后的结果
+    /// 这是多个卡片的 `LoroDoc` 更新合并后的结果
     pub updates: Vec<u8>,
 
     /// 本次同步的卡片数量
@@ -190,7 +191,7 @@ mod tests {
                 assert_eq!(req.pool_id, "pool-001");
                 assert_eq!(req.device_id, "device-001");
             }
-            _ => assert!(false, "Wrong message type"),
+            _ => panic!("Wrong message type"),
         }
     }
 

@@ -1,25 +1,11 @@
 /// 设备类型枚举
-enum DeviceType {
-  phone,
-  laptop,
-  tablet,
-}
+enum DeviceType { phone, laptop, tablet }
 
 /// 设备状态枚举
-enum DeviceStatus {
-  online,
-  offline,
-}
+enum DeviceStatus { online, offline }
 
 /// 设备信息模型
 class Device {
-  final String id; // libp2p PeerId
-  final String name;
-  final DeviceType type;
-  final DeviceStatus status;
-  final DateTime lastSeen;
-  final List<String> multiaddrs;
-
   Device({
     required this.id,
     required this.name,
@@ -28,8 +14,6 @@ class Device {
     required this.lastSeen,
     this.multiaddrs = const [],
   });
-
-  bool get isOnline => status == DeviceStatus.online;
 
   /// 从 JSON 创建 Device
   factory Device.fromJson(Map<String, dynamic> json) {
@@ -45,12 +29,21 @@ class Device {
         orElse: () => DeviceStatus.offline,
       ),
       lastSeen: DateTime.fromMillisecondsSinceEpoch(json['lastSeen'] as int),
-      multiaddrs: (json['multiaddrs'] as List<dynamic>?)
+      multiaddrs:
+          (json['multiaddrs'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
     );
   }
+  final String id; // libp2p PeerId
+  final String name;
+  final DeviceType type;
+  final DeviceStatus status;
+  final DateTime lastSeen;
+  final List<String> multiaddrs;
+
+  bool get isOnline => status == DeviceStatus.online;
 
   /// 转换为 JSON
   Map<String, dynamic> toJson() {
@@ -156,7 +149,11 @@ class PeerIdValidator {
   /// 格式化 PeerId 用于显示（截断中间部分）
   ///
   /// 例如: 12D3KooW...xyz123
-  static String format(String peerId, {int prefixLength = 12, int suffixLength = 6}) {
+  static String format(
+    String peerId, {
+    int prefixLength = 12,
+    int suffixLength = 6,
+  }) {
     if (peerId.length <= prefixLength + suffixLength) {
       return peerId;
     }

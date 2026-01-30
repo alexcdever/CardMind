@@ -1,6 +1,5 @@
-import 'package:flutter/foundation.dart';
-
 import 'package:cardmind/models/pairing_request.dart';
+import 'package:flutter/foundation.dart';
 
 // ============================================================================
 // Page State Management

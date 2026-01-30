@@ -1,12 +1,20 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:cardmind/services/verification_code_service.dart';
+import 'package:flutter/material.dart';
 
 /// 验证码显示对话框
 ///
 /// 用于显示 6 位数字验证码，供对方设备输入验证
 class VerificationCodeDialog extends StatefulWidget {
+  const VerificationCodeDialog({
+    super.key,
+    required this.session,
+    this.onCancel,
+    this.onVerified,
+    this.onTimeout,
+  });
+
   /// 验证码会话
   final VerificationSession session;
 
@@ -18,14 +26,6 @@ class VerificationCodeDialog extends StatefulWidget {
 
   /// 超时回调
   final VoidCallback? onTimeout;
-
-  const VerificationCodeDialog({
-    super.key,
-    required this.session,
-    this.onCancel,
-    this.onVerified,
-    this.onTimeout,
-  });
 
   @override
   State<VerificationCodeDialog> createState() => _VerificationCodeDialogState();
@@ -41,22 +41,24 @@ class _VerificationCodeDialogState extends State<VerificationCodeDialog> {
     _currentSession = widget.session;
 
     // 监听会话状态变化
-    _subscription = VerificationCodeManager.instance.sessionStateChanges.listen((session) {
-      if (session.remotePeerId == widget.session.remotePeerId) {
-        setState(() {
-          _currentSession = session;
-        });
+    _subscription = VerificationCodeManager.instance.sessionStateChanges.listen(
+      (session) {
+        if (session.remotePeerId == widget.session.remotePeerId) {
+          setState(() {
+            _currentSession = session;
+          });
 
-        // 处理状态变化
-        if (session.status == VerificationStatus.verified) {
-          widget.onVerified?.call();
-          Navigator.of(context).pop(true);
-        } else if (session.status == VerificationStatus.timeout) {
-          widget.onTimeout?.call();
-          Navigator.of(context).pop(false);
+          // 处理状态变化
+          if (session.status == VerificationStatus.verified) {
+            widget.onVerified?.call();
+            Navigator.of(context).pop(true);
+          } else if (session.status == VerificationStatus.timeout) {
+            widget.onTimeout?.call();
+            Navigator.of(context).pop(false);
+          }
         }
-      }
-    });
+      },
+    );
   }
 
   @override

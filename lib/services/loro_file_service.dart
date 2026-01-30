@@ -90,6 +90,6 @@ class LoroFileService {
 
   /// 获取文件预览信息
   static Future<FilePreview> getFilePreview(String json) async {
-    return await loroParseFile(data: json);
+    return loroParseFile(data: json);
   }
 }

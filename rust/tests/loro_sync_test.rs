@@ -1,3 +1,6 @@
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::cast_precision_loss)]
+
 /// Loro P2P 同步能力原型测试
 ///
 /// 这个测试文件验证 Loro CRDT 的增量同步功能，为 Phase 5 P2P 同步做技术准备。
@@ -5,7 +8,7 @@
 /// 测试场景：
 /// 1. 两个设备间的基础同步
 /// 2. 增量更新导出/导入
-/// 3. VersionVector 使用
+/// 3. `VersionVector` 使用
 /// 4. 离线编辑后的同步
 /// 5. 并发修改的自动合并
 use loro::{ExportMode, LoroDoc};
@@ -28,7 +31,7 @@ fn it_should_basic_sync_between_two_devices() {
     map_a.insert("id", "card-001").unwrap();
     map_a.insert("title", "测试标题").unwrap();
     map_a.insert("content", "测试内容").unwrap();
-    map_a.insert("created_at", 1672531200i64).unwrap();
+    map_a.insert("created_at", 1_672_531_200_i64).unwrap();
     device_a.commit();
 
     // 导出设备A的所有更新
@@ -92,7 +95,7 @@ fn it_should_incremental_sync_with_version_vector() {
 
     // 记录设备B的版本向量
     let vv_b = device_b.oplog_vv();
-    println!("设备B版本向量: {:?}", vv_b);
+    println!("设备B版本向量: {vv_b:?}");
 
     // 第二次修改：更新标题
     map_a.insert("title", "修改后的标题").unwrap();
@@ -352,15 +355,14 @@ fn it_should_real_world_card_sync() {
             .unwrap(),
         "我的笔记"
     );
-    assert_eq!(
-        *map_b
+    assert!(
+        !(*map_b
             .get("deleted")
             .unwrap()
             .into_value()
             .unwrap()
             .as_bool()
-            .unwrap(),
-        false
+            .unwrap())
     );
 
     let vv_b = device_b.oplog_vv();
@@ -411,15 +413,14 @@ fn it_should_real_world_card_sync() {
     device_b.import(&delete_update).unwrap();
 
     // 验证删除标记
-    assert_eq!(
+    assert!(
         *map_b
             .get("deleted")
             .unwrap()
             .into_value()
             .unwrap()
             .as_bool()
-            .unwrap(),
-        true
+            .unwrap()
     );
 
     // 最终一致性检查
@@ -438,8 +439,8 @@ fn it_should_snapshot_vs_incremental_updates() {
 
     // 进行10次修改
     for i in 0..10 {
-        map.insert("title", format!("标题版本{}", i)).unwrap();
-        map.insert("content", format!("内容版本{}", i)).unwrap();
+        map.insert("title", format!("标题版本{i}")).unwrap();
+        map.insert("content", format!("内容版本{i}")).unwrap();
         doc.commit();
     }
 
@@ -456,9 +457,9 @@ fn it_should_snapshot_vs_incremental_updates() {
         let temp_doc = LoroDoc::new();
         let temp_map = temp_doc.get_map("card");
         for i in 0..5 {
-            temp_map.insert("title", format!("标题版本{}", i)).unwrap();
+            temp_map.insert("title", format!("标题版本{i}")).unwrap();
             temp_map
-                .insert("content", format!("内容版本{}", i))
+                .insert("content", format!("内容版本{i}"))
                 .unwrap();
             temp_doc.commit();
         }

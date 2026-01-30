@@ -1,7 +1,8 @@
 import 'dart:io';
-import 'package:flutter_test/flutter_test.dart';
+
 import 'package:cardmind/services/qr_code_generator.dart';
 import 'package:cardmind/services/qr_code_parser.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('QRCodeGenerator Tests', () {
@@ -122,7 +123,11 @@ void main() {
           poolId: 'test-pool-id',
         );
 
-        expect(bytes, isNotEmpty, reason: 'Failed for device type: $deviceType');
+        expect(
+          bytes,
+          isNotEmpty,
+          reason: 'Failed for device type: $deviceType',
+        );
 
         // 验证可以解码
         final tempFile = File('test/fixtures/temp_qr_$deviceType.png');

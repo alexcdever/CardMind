@@ -1,19 +1,18 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:flutter_test/flutter_test.dart';
 
 /// 编辑器状态模型（用于测试）
 class EditorState {
-  final String title;
-  final String content;
-  final bool hasUnsavedChanges;
-  final bool isAutoSaving;
-
   const EditorState({
     required this.title,
     required this.content,
     required this.hasUnsavedChanges,
     required this.isAutoSaving,
   });
+  final String title;
+  final String content;
+  final bool hasUnsavedChanges;
+  final bool isAutoSaving;
 
   EditorState copyWith({
     String? title,
@@ -101,7 +100,7 @@ void main() {
       const originalContent = '旧内容';
       const currentContent = '新内容';
 
-      final hasUnsavedChanges = currentContent != originalContent;
+      const hasUnsavedChanges = currentContent != originalContent;
 
       expect(hasUnsavedChanges, true);
     });
@@ -112,11 +111,9 @@ void main() {
       // 注意：这个测试需要在 Widget 测试中验证，这里只测试逻辑
 
       var autoSaveCount = 0;
-      var lastInputTime = DateTime.now();
 
       // 模拟连续输入
       for (var i = 0; i < 5; i++) {
-        lastInputTime = DateTime.now();
         // 每次输入都会重置定时器
       }
 
@@ -145,7 +142,7 @@ void main() {
         savedCard = card;
       }
 
-      final testCard = bridge.Card(
+      const testCard = bridge.Card(
         id: 'test-id',
         title: 'Test',
         content: 'Content',
@@ -234,7 +231,7 @@ void main() {
       const currentTitle = '标题';
       const currentContent = '内容';
 
-      final hasChanges =
+      const hasChanges =
           currentTitle != originalTitle || currentContent != originalContent;
 
       expect(hasChanges, false);
@@ -246,7 +243,7 @@ void main() {
       const currentTitle = '新标题';
       const currentContent = '内容';
 
-      final hasChanges =
+      const hasChanges =
           currentTitle != originalTitle || currentContent != originalContent;
 
       expect(hasChanges, true);
@@ -258,7 +255,7 @@ void main() {
       const currentTitle = '标题';
       const currentContent = '新内容';
 
-      final hasChanges =
+      const hasChanges =
           currentTitle != originalTitle || currentContent != originalContent;
 
       expect(hasChanges, true);
@@ -270,7 +267,7 @@ void main() {
       const currentTitle = '新标题';
       const currentContent = '新内容';
 
-      final hasChanges =
+      const hasChanges =
           currentTitle != originalTitle || currentContent != originalContent;
 
       expect(hasChanges, true);

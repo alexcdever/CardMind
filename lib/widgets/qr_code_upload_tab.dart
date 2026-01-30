@@ -1,8 +1,9 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:desktop_drop/desktop_drop.dart';
+
 import 'package:cardmind/services/qr_code_parser.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 
 /// 二维码扫描回调
 typedef OnQRCodeScanned = Future<void> Function(QRCodeData qrData);
@@ -19,11 +20,6 @@ enum QRUploadErrorType {
 
 /// 错误信息类
 class QRUploadError {
-  final QRUploadErrorType type;
-  final String message;
-  final String? suggestion;
-  final dynamic originalError;
-
   QRUploadError({
     required this.type,
     required this.message,
@@ -64,6 +60,10 @@ class QRUploadError {
       );
     }
   }
+  final QRUploadErrorType type;
+  final String message;
+  final String? suggestion;
+  final dynamic originalError;
 }
 
 /// 二维码上传标签页

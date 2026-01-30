@@ -1,16 +1,18 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../adaptive/layouts/adaptive_padding.dart';
+import '../adaptive/layouts/adaptive_scaffold.dart';
 import '../bridge/third_party/cardmind_rust/api/device_config.dart';
 import '../providers/app_info_provider.dart';
 import '../providers/card_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/theme_provider.dart';
-import '../adaptive/layouts/adaptive_scaffold.dart';
-import '../adaptive/layouts/adaptive_padding.dart';
 import '../services/loro_file_service.dart';
 import '../widgets/dialogs/export_confirm_dialog.dart';
 import '../widgets/settings/button_setting_item.dart';
@@ -152,15 +154,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       if (filePath != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('数据已导出到: $filePath')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('数据已导出到: $filePath')));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('导出失败: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
     } finally {
       if (mounted) {
         setState(() => _isExporting = false);
@@ -184,15 +186,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('成功导入 $count 张卡片')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('成功导入 $count 张卡片')));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('导入失败: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导入失败: $e')));
     } finally {
       if (mounted) {
         setState(() => _isImporting = false);
@@ -209,9 +211,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await settingsProvider.setSyncNotificationEnabled(value);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('设置失败: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('设置失败: $e')));
     }
   }
 
@@ -232,13 +234,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           LogicalKeyboardKey.keyE,
           control: true,
           meta: true,
-        ): () => _handleExport(context),
+        ): () =>
+            _handleExport(context),
         // Ctrl/Cmd + I to import data
         const SingleActivator(
           LogicalKeyboardKey.keyI,
           control: true,
           meta: true,
-        ): () => _handleImport(context),
+        ): () =>
+            _handleImport(context),
       },
       child: Focus(
         autofocus: true,
@@ -256,78 +260,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
             body: ListView(
               padding: AdaptivePadding.small,
               children: [
-          // Notifications Section
-          _buildSection(
-            context,
-            title: 'Notifications',
-            children: [
-              ToggleSettingItem(
-                icon: Icons.notifications,
-                label: 'Sync Notifications',
-                description: 'Notify when sync completes',
-                value: settingsProvider.syncNotificationEnabled,
-                onChanged: (value) =>
-                    _handleToggleSyncNotification(context, value),
-              ),
-            ],
-          ),
+                // Notifications Section
+                _buildSection(
+                  context,
+                  title: 'Notifications',
+                  children: [
+                    ToggleSettingItem(
+                      icon: Icons.notifications,
+                      label: 'Sync Notifications',
+                      description: 'Notify when sync completes',
+                      value: settingsProvider.syncNotificationEnabled,
+                      onChanged: (value) =>
+                          _handleToggleSyncNotification(context, value),
+                    ),
+                  ],
+                ),
 
-          const Divider(),
+                const Divider(),
 
-          // Theme Section
-          _buildSection(
-            context,
-            title: 'Appearance',
-            children: [_ThemeSwitchTile()],
-          ),
+                // Theme Section
+                _buildSection(
+                  context,
+                  title: 'Appearance',
+                  children: [_ThemeSwitchTile()],
+                ),
 
-          const Divider(),
+                const Divider(),
 
-          // Sync Section (mDNS)
-          _buildSection(
-            context,
-            title: 'Sync',
-            children: [
-              _MdnsTile(
-                isLoading: _isLoading,
-                isActive: _mdnsActive,
-                remainingText: _mdnsActive
-                    ? _formatDuration(_remainingMs)
-                    : null,
-                onEnable: _enableMdnsTemporary,
-                onDisable: _cancelMdnsTimer,
-              ),
-            ],
-          ),
+                // Sync Section (mDNS)
+                _buildSection(
+                  context,
+                  title: 'Sync',
+                  children: [
+                    _MdnsTile(
+                      isLoading: _isLoading,
+                      isActive: _mdnsActive,
+                      remainingText: _mdnsActive
+                          ? _formatDuration(_remainingMs)
+                          : null,
+                      onEnable: _enableMdnsTemporary,
+                      onDisable: _cancelMdnsTimer,
+                    ),
+                  ],
+                ),
 
-          const Divider(),
+                const Divider(),
 
-          // Data Management Section
-          _buildSection(
-            context,
-            title: 'Data Management',
-            children: [
-              ButtonSettingItem(
-                icon: Icons.upload_file,
-                label: 'Export Data',
-                description: 'Export all notes to backup file',
-                onPressed: _isExporting ? null : () => _handleExport(context),
-                isLoading: _isExporting,
-              ),
-              ButtonSettingItem(
-                icon: Icons.download,
-                label: 'Import Data',
-                description: 'Import notes from backup file',
-                onPressed: _isImporting ? null : () => _handleImport(context),
-                isLoading: _isImporting,
-              ),
-            ],
-          ),
+                // Data Management Section
+                _buildSection(
+                  context,
+                  title: 'Data Management',
+                  children: [
+                    ButtonSettingItem(
+                      icon: Icons.upload_file,
+                      label: 'Export Data',
+                      description: 'Export all notes to backup file',
+                      onPressed: _isExporting
+                          ? null
+                          : () => _handleExport(context),
+                      isLoading: _isExporting,
+                    ),
+                    ButtonSettingItem(
+                      icon: Icons.download,
+                      label: 'Import Data',
+                      description: 'Import notes from backup file',
+                      onPressed: _isImporting
+                          ? null
+                          : () => _handleImport(context),
+                      isLoading: _isImporting,
+                    ),
+                  ],
+                ),
 
-          const Divider(),
+                const Divider(),
 
-          // About Section
-          _buildSection(context, title: 'About', children: [_AboutTile()]),
+                // About Section
+                _buildSection(
+                  context,
+                  title: 'About',
+                  children: [_AboutTile()],
+                ),
               ],
             ),
           ),
@@ -455,7 +467,7 @@ class _AboutTile extends StatelessWidget {
     final appInfoProvider = context.read<AppInfoProvider>();
     final appInfo = appInfoProvider.appInfo;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: Row(
@@ -487,9 +499,9 @@ class _AboutTile extends StatelessWidget {
               // Technical Stack
               Text(
                 'Technical Stack',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text('• Flutter - Cross-platform UI framework'),
@@ -502,13 +514,14 @@ class _AboutTile extends StatelessWidget {
               if (appInfo.contributors.isNotEmpty) ...[
                 Text(
                   'Contributors',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                ...appInfo.contributors
-                    .map((contributor) => Text('• $contributor')),
+                ...appInfo.contributors.map(
+                  (contributor) => Text('• $contributor'),
+                ),
                 const SizedBox(height: 16),
               ],
 
@@ -516,25 +529,33 @@ class _AboutTile extends StatelessWidget {
               if (appInfo.changelog.isNotEmpty) ...[
                 Text(
                   'Recent Changes',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                ...appInfo.changelog.take(3).map((entry) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'v${entry.version} (${entry.date})',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 4),
-                          ...entry.changes.map((change) => Text('  • $change')),
-                        ],
+                ...appInfo.changelog
+                    .take(3)
+                    .map(
+                      (entry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'v${entry.version} (${entry.date})',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            ...entry.changes.map(
+                              (change) => Text('  • $change'),
+                            ),
+                          ],
+                        ),
                       ),
-                    )),
+                    ),
                 const SizedBox(height: 8),
               ],
 
@@ -577,9 +598,9 @@ class _AboutTile extends StatelessWidget {
               // Copyright
               Text(
                 '© 2025 CardMind Team',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
             ],
           ),

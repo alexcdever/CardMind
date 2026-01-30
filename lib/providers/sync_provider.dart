@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cardmind/bridge/api/sync.dart' as api_types;
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as api;
 import 'package:cardmind/models/sync_status.dart' as model;
 import 'package:flutter/foundation.dart';
@@ -13,7 +14,7 @@ class SyncProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool _isLoading = false;
   String? _error;
-  StreamSubscription<api.SyncStatus>? _statusSubscription;
+  StreamSubscription<api_types.SyncStatus>? _statusSubscription;
   Timer? _debounceTimer;
 
   model.SyncStatus get status => _status;
@@ -57,7 +58,10 @@ class SyncProvider extends ChangeNotifier {
       final stream = api.getSyncStatusStream();
 
       // 应用 Stream.distinct() 去重
-      final distinctStream = stream.distinct((prev, next) {
+      final distinctStream = stream.distinct((
+        api_types.SyncStatus prev,
+        api_types.SyncStatus next,
+      ) {
         // 比较状态是否真正变化
         return prev.state == next.state &&
             prev.lastSyncTime == next.lastSyncTime &&
@@ -65,9 +69,10 @@ class SyncProvider extends ChangeNotifier {
       });
 
       _statusSubscription = distinctStream.listen(
-        (apiStatus) {
+        (api_types.SyncStatus apiStatus) {
           // syncing→synced 立即更新，其他状态防抖 300ms
-          final shouldUpdateImmediately = apiStatus.state == api.SyncState.synced &&
+          final shouldUpdateImmediately =
+              apiStatus.state == api_types.SyncState.synced &&
               _status.state == model.SyncState.syncing;
 
           if (shouldUpdateImmediately) {
@@ -81,7 +86,7 @@ class SyncProvider extends ChangeNotifier {
             });
           }
         },
-        onError: (error) {
+        onError: (Object error) {
           _setError(error.toString());
         },
       );
@@ -91,27 +96,27 @@ class SyncProvider extends ChangeNotifier {
   }
 
   /// 更新状态并通知监听器
-  void _updateStatus(api.SyncStatus apiStatus) {
+  void _updateStatus(api_types.SyncStatus apiStatus) {
     _status = _convertApiStatusToModel(apiStatus);
     notifyListeners();
   }
 
   /// 将 API SyncStatus 转换为 Model SyncStatus
-  model.SyncStatus _convertApiStatusToModel(api.SyncStatus apiStatus) {
+  model.SyncStatus _convertApiStatusToModel(api_types.SyncStatus apiStatus) {
     switch (apiStatus.state) {
-      case api.SyncState.notYetSynced:
+      case api_types.SyncState.notYetSynced:
         return model.SyncStatus.notYetSynced();
-      case api.SyncState.syncing:
+      case api_types.SyncState.syncing:
         final lastSyncTime = apiStatus.lastSyncTime != null
             ? DateTime.fromMillisecondsSinceEpoch(apiStatus.lastSyncTime!)
             : null;
         return model.SyncStatus.syncing(lastSyncTime: lastSyncTime);
-      case api.SyncState.synced:
+      case api_types.SyncState.synced:
         final lastSyncTime = apiStatus.lastSyncTime != null
             ? DateTime.fromMillisecondsSinceEpoch(apiStatus.lastSyncTime!)
             : DateTime.now();
         return model.SyncStatus.synced(lastSyncTime: lastSyncTime);
-      case api.SyncState.failed:
+      case api_types.SyncState.failed:
         final lastSyncTime = apiStatus.lastSyncTime != null
             ? DateTime.fromMillisecondsSinceEpoch(apiStatus.lastSyncTime!)
             : null;

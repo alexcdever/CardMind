@@ -38,19 +38,9 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 设备已初始化
-        const isInitialized = true;
-
         // When: 应用启动
         await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return isInitialized
-                    ? const Scaffold(body: Text('Home Screen'))
-                    : const Scaffold(body: Text('Onboarding Screen'));
-              },
-            ),
-          ),
+          createTestWidget(const Scaffold(body: Text('Home Screen'))),
         );
         await tester.pumpAndSettle();
 
@@ -63,19 +53,9 @@ void main() {
         'it_should_route_to_onboarding_screen_when_device_is_not_initialized',
         (WidgetTester tester) async {
           // Given: 设备未初始化
-          const isInitialized = false;
-
           // When: 应用启动
           await tester.pumpWidget(
-            createTestWidget(
-              Builder(
-                builder: (context) {
-                  return isInitialized
-                      ? const Scaffold(body: Text('Home Screen'))
-                      : const Scaffold(body: Text('Onboarding Screen'));
-                },
-              ),
-            ),
+            createTestWidget(const Scaffold(body: Text('Onboarding Screen'))),
           );
           await tester.pumpAndSettle();
 
@@ -194,8 +174,6 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 没有发现设备
-        final devices = <MockDevice>[];
-
         // When: 显示空状态
         await tester.pumpWidget(
           createTestWidget(
@@ -238,7 +216,7 @@ void main() {
               body: Builder(
                 builder: (context) => ElevatedButton(
                   onPressed: () {
-                    showDialog(
+                    showDialog<void>(
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text('确认配对'),
@@ -316,14 +294,16 @@ void main() {
                   body: ElevatedButton(
                     onPressed: () async {
                       // 模拟配对
-                      await Future.delayed(const Duration(milliseconds: 100));
+                      await Future<void>.delayed(
+                        const Duration(milliseconds: 100),
+                      );
                       pairingSuccess = true;
 
                       // 导航到主页
                       if (pairingSuccess) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          MaterialPageRoute<void>(
                             builder: (_) =>
                                 const Scaffold(body: Text('Home Screen')),
                           ),
@@ -421,7 +401,7 @@ void main() {
                     // 创建空间后导航到主页
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             const Scaffold(body: Text('Home Screen')),
                       ),
@@ -555,7 +535,7 @@ void main() {
                 body: Center(
                   child: ElevatedButton(
                     onPressed: () {
-                      showDialog(
+                      showDialog<void>(
                         context: context,
                         builder: (context) {
                           final passwordController = TextEditingController();
@@ -585,7 +565,7 @@ void main() {
                                   if (passwordController.text.length < 8) {
                                     // 显示错误
                                     Navigator.pop(context);
-                                    showDialog(
+                                    showDialog<void>(
                                       context: context,
                                       builder: (context) => AlertDialog(
                                         title: const Text('错误'),
@@ -640,7 +620,7 @@ void main() {
                 body: Center(
                   child: ElevatedButton(
                     onPressed: () {
-                      showDialog(
+                      showDialog<void>(
                         context: context,
                         builder: (context) {
                           final passwordController = TextEditingController();
@@ -672,7 +652,7 @@ void main() {
                                   if (passwordController.text !=
                                       confirmController.text) {
                                     Navigator.pop(context);
-                                    showDialog(
+                                    showDialog<void>(
                                       context: context,
                                       builder: (context) => AlertDialog(
                                         title: const Text('错误'),
@@ -796,7 +776,7 @@ void main() {
                 body: Center(
                   child: ElevatedButton(
                     onPressed: () {
-                      showDialog(
+                      showDialog<void>(
                         context: context,
                         builder: (context) => AlertDialog(
                           title: const Text('确认退出？'),
@@ -857,7 +837,7 @@ void main() {
                       // 模拟退出空间
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
+                        MaterialPageRoute<void>(
                           builder: (_) => const Scaffold(
                             body: Center(child: Text('Onboarding Screen')),
                           ),
@@ -896,7 +876,7 @@ void main() {
                 body: Center(
                   child: ElevatedButton(
                     onPressed: () {
-                      showDialog(
+                      showDialog<void>(
                         context: context,
                         builder: (context) {
                           final passwordController = TextEditingController();
@@ -1058,7 +1038,7 @@ void main() {
                           // 导航到初始化页面
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(
+                            MaterialPageRoute<void>(
                               builder: (_) => const Scaffold(
                                 body: Center(child: Text('Onboarding Screen')),
                               ),

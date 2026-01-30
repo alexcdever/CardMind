@@ -34,17 +34,18 @@ pub enum DeviceConfigError {
 ///
 /// 5 分钟倒计时模式，用于临时启用 mDNS 设备发现功能。
 /// 计时器状态**不会持久化**，应用重启后会自动重置为关闭状态（隐私保护）。
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct MDnsTimerConfig {
     /// 计时器结束时间戳（毫秒），None 表示未启用
-    /// skip_serializing: 不持久化到存储（重启后重置）
+    /// `skip_serializing`: 不持久化到存储（重启后重置）
     #[serde(default, skip_serializing)]
     pub timer_end_ms: Option<i64>,
 }
 
 impl MDnsTimerConfig {
     /// 创建新的计时器配置（默认关闭）
-    pub fn new() -> Self {
+    #[must_use]
+    pub const fn new() -> Self {
         Self { timer_end_ms: None }
     }
 
@@ -54,29 +55,29 @@ impl MDnsTimerConfig {
     }
 
     /// 取消计时器
-    pub fn cancel_timer(&mut self) {
+    pub const fn cancel_timer(&mut self) {
         self.timer_end_ms = None;
     }
 
     /// 检查 mDNS 是否处于活跃状态
+    #[must_use]
     pub fn is_active(&self) -> bool {
         self.timer_end_ms
-            .map(|end| Utc::now().timestamp_millis() < end)
-            .unwrap_or(false)
+            .is_some_and(|end| Utc::now().timestamp_millis() < end)
     }
 
     /// 获取剩余时间（毫秒），0 表示未激活或已过期
+    #[must_use]
     pub fn remaining_ms(&self) -> i64 {
         self.timer_end_ms
-            .map(|end| (end - Utc::now().timestamp_millis()).max(0))
-            .unwrap_or(0)
+            .map_or(0, |end| (end - Utc::now().timestamp_millis()).max(0))
     }
 
     /// mDNS 临时启用时长（5 分钟）
     pub const DURATION_MS: i64 = 5 * 60 * 1000;
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DeviceConfig {
     pub device_id: String,
     pub pool_id: Option<String>,
@@ -89,6 +90,7 @@ impl DeviceConfig {
     /// 临时 mDNS 启用时长（5 分钟）
     pub const MDNS_TEMP_DURATION_MS: i64 = 5 * 60 * 1000;
 
+    #[must_use]
     pub fn new(device_id: &str) -> Self {
         Self {
             device_id: device_id.to_string(),
@@ -101,8 +103,7 @@ impl DeviceConfig {
         if let Some(current_pool) = &self.pool_id {
             if current_pool != pool_id {
                 return Err(DeviceConfigError::InvalidOperationError(format!(
-                    "设备已加入数据池: {}, 无法加入新的数据池: {}",
-                    current_pool, pool_id
+                    "设备已加入数据池: {current_pool}, 无法加入新的数据池: {pool_id}"
                 )));
             }
         }
@@ -117,8 +118,7 @@ impl DeviceConfig {
                 Ok(())
             }
             Some(current_pool_id) => Err(DeviceConfigError::InvalidOperationError(format!(
-                "设备的当前池: {}, 无法退出指定池: {}",
-                current_pool_id, pool_id
+                "设备的当前池: {current_pool_id}, 无法退出指定池: {pool_id}"
             ))),
             None => Err(DeviceConfigError::InvalidOperationError(
                 "设备未加入任何数据池".to_string(),
@@ -126,14 +126,17 @@ impl DeviceConfig {
         }
     }
 
+    #[must_use]
     pub fn is_joined(&self, pool_id: &str) -> bool {
         self.pool_id == Some(pool_id.to_string())
     }
 
-    pub fn is_joined_any(&self) -> bool {
+    #[must_use]
+    pub const fn is_joined_any(&self) -> bool {
         self.pool_id.is_some()
     }
 
+    #[must_use]
     pub fn get_pool_id(&self) -> Option<&str> {
         self.pool_id.as_deref()
     }
@@ -172,6 +175,7 @@ impl DeviceConfig {
         }
     }
 
+    #[must_use]
     pub fn default_path(base_path: &Path) -> PathBuf {
         base_path.join("config.json")
     }
@@ -179,6 +183,7 @@ impl DeviceConfig {
     // === mDNS 临时启用相关方法 ===
 
     /// 检查 mDNS 是否处于活跃状态（5 分钟倒计时内）
+    #[must_use]
     pub fn is_mdns_active(&self) -> bool {
         self.mdns_timer.is_active()
     }
@@ -189,11 +194,12 @@ impl DeviceConfig {
     }
 
     /// 取消 mDNS 临时启用计时器
-    pub fn cancel_mdns_timer(&mut self) {
+    pub const fn cancel_mdns_timer(&mut self) {
         self.mdns_timer.cancel_timer();
     }
 
     /// 获取 mDNS 剩余时间（毫秒）
+    #[must_use]
     pub fn get_mdns_remaining_ms(&self) -> i64 {
         self.mdns_timer.remaining_ms()
     }
@@ -314,13 +320,11 @@ mod tests {
         // Should have close to 5 minutes remaining
         assert!(
             remaining > 4 * 60 * 1000,
-            "Expected > 4 minutes, got {}ms",
-            remaining
+            "Expected > 4 minutes, got {remaining}ms"
         );
         assert!(
             remaining <= 5 * 60 * 1000,
-            "Expected <= 5 minutes, got {}ms",
-            remaining
+            "Expected <= 5 minutes, got {remaining}ms"
         );
     }
 

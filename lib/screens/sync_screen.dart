@@ -10,15 +10,11 @@ class SyncScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('P2P Sync'),
-      ),
+      appBar: AppBar(title: const Text('P2P Sync')),
       body: Consumer<SyncProvider>(
         builder: (context, syncProvider, child) {
           if (syncProvider.isLoading && !syncProvider.isInitialized) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (syncProvider.hasError) {
@@ -47,9 +43,9 @@ class SyncScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'P2P Sync Not Initialized',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.grey,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(color: Colors.grey),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -247,10 +243,7 @@ class SyncScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],
               ),
