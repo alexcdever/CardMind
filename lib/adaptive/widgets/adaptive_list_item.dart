@@ -3,7 +3,6 @@ import '../adaptive_widget.dart';
 
 /// Adaptive list item that adapts to platform conventions
 class AdaptiveListItem extends AdaptiveWidget {
-
   const AdaptiveListItem({
     super.key,
     this.leading,
@@ -54,7 +53,6 @@ class AdaptiveListItem extends AdaptiveWidget {
 
 /// Adaptive dialog that adapts to platform conventions
 class AdaptiveDialog extends AdaptiveWidget {
-
   const AdaptiveDialog({
     super.key,
     required this.title,
@@ -92,7 +90,6 @@ class AdaptiveDialog extends AdaptiveWidget {
 
 /// Adaptive text field that adapts to platform conventions
 class AdaptiveTextField extends AdaptiveWidget {
-
   const AdaptiveTextField({
     super.key,
     this.controller,

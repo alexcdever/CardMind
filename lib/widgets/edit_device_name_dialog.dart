@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:cardmind/utils/device_utils.dart';
+import 'package:flutter/material.dart';
 
 /// 编辑设备名称对话框
 ///

@@ -11,9 +11,9 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 
 thread_local! {
-    /// Thread-local DeviceConfig instance
-    static DEVICE_CONFIG: RefCell<Option<DeviceConfig>> = RefCell::new(None);
-    static CONFIG_PATH: RefCell<Option<PathBuf>> = RefCell::new(None);
+    /// Thread-local `DeviceConfig` instance
+    static DEVICE_CONFIG: RefCell<Option<DeviceConfig>> = const { RefCell::new(None) };
+    static CONFIG_PATH: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
 }
 
 /// Initialize or load device configuration
@@ -52,7 +52,7 @@ pub fn init_device_config(base_path: String) -> Result<DeviceConfig> {
     Ok(config)
 }
 
-/// Execute a function with access to the DeviceConfig (internal helper)
+/// Execute a function with access to the `DeviceConfig` (internal helper)
 fn with_device_config<F, R>(f: F) -> Result<R>
 where
     F: FnOnce(&mut DeviceConfig) -> Result<R>,

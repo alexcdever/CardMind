@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/utils/time_formatter.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Unit tests for TimeFormatter utility
 /// Based on design specification section 5.2.1
@@ -236,7 +236,7 @@ void main() {
 
         // When: Format, wait for expiration, format again
         final result1 = cache.format(timestamp, now: now);
-        await Future.delayed(const Duration(milliseconds: 150));
+        await Future<void>.delayed(const Duration(milliseconds: 150));
         final result2 = cache.format(timestamp, now: now);
 
         // Then: Results should still be identical (same input)

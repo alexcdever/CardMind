@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/settings/toggle_setting_item.dart';
 import 'package:cardmind/widgets/settings/button_setting_item.dart';
 import 'package:cardmind/widgets/settings/info_setting_item.dart';
+import 'package:cardmind/widgets/settings/toggle_setting_item.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Settings Components Rendering Tests', () {
@@ -51,8 +51,9 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsOneWidget);
     });
 
-    testWidgets('WT-003: ButtonSettingItem shows loading state',
-        (tester) async {
+    testWidgets('WT-003: ButtonSettingItem shows loading state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -73,7 +74,7 @@ void main() {
 
     testWidgets('WT-004: InfoSettingItem renders correctly', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: InfoSettingItem(
               icon: Icons.info,
@@ -149,8 +150,9 @@ void main() {
       expect(tapped, true);
     });
 
-    testWidgets('WT-007: ButtonSettingItem disabled when loading',
-        (tester) async {
+    testWidgets('WT-007: ButtonSettingItem disabled when loading', (
+      tester,
+    ) async {
       bool tapped = false;
 
       await tester.pumpWidget(

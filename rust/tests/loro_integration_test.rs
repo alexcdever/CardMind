@@ -1,3 +1,5 @@
+#![allow(clippy::unreadable_literal)]
+
 /// Loro CRDT Integration Tests
 ///
 /// This test suite validates the Loro CRDT integration following Phase 1.3 requirements.
@@ -5,7 +7,7 @@
 use loro::{ExportMode, LoroDoc};
 use std::sync::{Arc, Mutex};
 
-/// Test 1: Create a LoroDoc instance
+/// Test 1: Create a `LoroDoc` instance
 ///
 /// Validates that we can create a new Loro document successfully.
 /// This is the foundation for all subsequent Loro operations.
@@ -19,9 +21,9 @@ fn it_should_create_loro_doc() {
     assert!(peer_id > 0, "Peer ID should be a positive number");
 }
 
-/// Test 2: Insert data into LoroMap
+/// Test 2: Insert data into `LoroMap`
 ///
-/// Validates that we can create a LoroMap container and insert key-value pairs.
+/// Validates that we can create a `LoroMap` container and insert key-value pairs.
 /// This tests the basic write operation needed for card storage.
 #[test]
 fn it_should_loro_insert_data_to_map() {
@@ -60,7 +62,7 @@ fn it_should_loro_insert_data_to_map() {
 /// Test 3: Export and import snapshot
 ///
 /// Validates that we can export a Loro document to bytes and reconstruct it.
-/// This is critical for file persistence (loro_doc.loro).
+/// This is critical for file persistence (`loro_doc.loro`).
 #[test]
 fn it_should_loro_export_and_import_snapshot() {
     // Create original document with data
@@ -218,8 +220,8 @@ fn it_should_loro_file_persistence() {
 
 /// Test 7: Multiple cards in document
 ///
-/// Validates that we can store multiple cards in separate LoroMap containers.
-/// Note: Based on architecture decision, each card will have its own LoroDoc file,
+/// Validates that we can store multiple cards in separate `LoroMap` containers.
+/// Note: Based on architecture decision, each card will have its own `LoroDoc` file,
 /// but this test validates that the approach works.
 #[test]
 fn it_should_multiple_cards_in_document() {

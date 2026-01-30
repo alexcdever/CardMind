@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 
 /// 开关设置项组件
 class ToggleSettingItem extends StatelessWidget {
+  const ToggleSettingItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    this.description,
+    required this.value,
+    this.onChanged,
+  });
+
   /// 图标
   final IconData icon;
 
@@ -16,15 +25,6 @@ class ToggleSettingItem extends StatelessWidget {
 
   /// 值改变回调
   final ValueChanged<bool>? onChanged;
-
-  const ToggleSettingItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    this.description,
-    required this.value,
-    this.onChanged,
-  });
 
   @override
   Widget build(BuildContext context) {

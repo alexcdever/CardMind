@@ -72,7 +72,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-
   void _initSyncStatusStream() {
     // Temporarily disable sync status stream due to threading issues
     // TODO: Fix Tokio runtime context issue
@@ -337,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildDesktopLayout() {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(24),
       child: ThreeColumnLayout(
         leftColumnWidth: 320,
         leftColumn: SingleChildScrollView(
@@ -416,9 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     itemBuilder: (context, index) {
                       return NoteCard(
                         card: filteredCards[index],
-                        onEdit: (card) {
-                          _handleUpdateCard(card);
-                        },
+                        onEdit: _handleUpdateCard,
                         onDelete: _handleDeleteCard,
                       );
                     },
@@ -441,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // 设备标签页
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: DeviceManagerPanel(
             currentDevice: DeviceInfo(
               id: 'current',
@@ -465,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // 设置标签页
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: SettingsPanel(
             isDarkMode: _isDarkMode,
             onThemeChanged: (value) {
@@ -485,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // 搜索栏
         Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
@@ -520,9 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: NoteCard(
                       card: filteredCards[index],
-                      onEdit: (card) {
-                        _handleUpdateCard(card);
-                      },
+                      onEdit: _handleUpdateCard,
                       onDelete: _handleDeleteCard,
                       onTap: () {
                         setState(() {

@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:cardmind/widgets/mobile_nav/badge_widget.dart';
 import 'package:cardmind/widgets/mobile_nav/mobile_nav.dart';
 import 'package:cardmind/widgets/mobile_nav/nav_models.dart';
-import 'package:cardmind/widgets/mobile_nav/badge_widget.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Advanced widget tests for MobileNav component
 /// Covers animation, boundary cases, and theme adaptation

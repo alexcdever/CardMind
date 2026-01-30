@@ -8,6 +8,7 @@ use uuid::Uuid;
 /// # Returns
 ///
 /// A new UUID v7 as a String
+#[must_use]
 pub fn generate_uuid_v7() -> String {
     Uuid::now_v7().to_string()
 }
@@ -21,6 +22,7 @@ pub fn generate_uuid_v7() -> String {
 /// # Returns
 ///
 /// `true` if valid, `false` otherwise
+#[must_use]
 pub fn is_valid_uuid(id: &str) -> bool {
     Uuid::parse_str(id).is_ok()
 }

@@ -55,7 +55,7 @@ pub enum SyncState {
 
 /// 同步状态（用于 Flutter 桥接）
 ///
-/// # flutter_rust_bridge 注解
+/// # `flutter_rust_bridge` 注解
 ///
 /// 这个结构体会被自动转换为 Dart 类
 #[derive(Debug, Clone)]
@@ -80,6 +80,7 @@ pub struct SyncStatus {
 }
 
 impl From<P2PSyncStatus> for SyncStatus {
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     fn from(status: P2PSyncStatus) -> Self {
         // 根据设备数量推断状态
         let state = if status.online_devices == 0 && status.syncing_devices == 0 {
@@ -105,7 +106,8 @@ impl From<P2PSyncStatus> for SyncStatus {
 
 impl SyncStatus {
     /// 创建 notYetSynced 状态
-    pub fn not_yet_synced() -> Self {
+    #[must_use]
+    pub const fn not_yet_synced() -> Self {
         Self {
             state: SyncState::NotYetSynced,
             last_sync_time: None,
@@ -117,7 +119,8 @@ impl SyncStatus {
     }
 
     /// 创建 syncing 状态
-    pub fn syncing() -> Self {
+    #[must_use]
+    pub const fn syncing() -> Self {
         Self {
             state: SyncState::Syncing,
             last_sync_time: None,
@@ -129,7 +132,8 @@ impl SyncStatus {
     }
 
     /// 创建 synced 状态
-    pub fn synced(last_sync_time: i64) -> Self {
+    #[must_use]
+    pub const fn synced(last_sync_time: i64) -> Self {
         Self {
             state: SyncState::Synced,
             last_sync_time: Some(last_sync_time),
@@ -141,6 +145,8 @@ impl SyncStatus {
     }
 
     /// 创建 failed 状态
+    #[must_use]
+    #[allow(clippy::missing_const_for_fn)]
     pub fn failed(error_message: String) -> Self {
         Self {
             state: SyncState::Failed,
@@ -153,14 +159,14 @@ impl SyncStatus {
     }
 }
 
-/// 辅助函数：在 SYNC_SERVICE 上执行操作
+/// 辅助函数：在 `SYNC_SERVICE` 上执行操作
 fn with_sync_service<F, R>(f: F) -> Result<R>
 where
     F: FnOnce(&mut P2PSyncService) -> Result<R>,
 {
     let service_arc = get_sync_service()?;
     let mut service = service_arc.lock().unwrap();
-    f(&mut *service)
+    f(&mut service)
 }
 
 /// 初始化 P2P 同步服务

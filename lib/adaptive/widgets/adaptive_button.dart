@@ -3,7 +3,6 @@ import '../adaptive_widget.dart';
 
 /// Adaptive button that adapts to platform conventions
 class AdaptiveButton extends AdaptiveWidget {
-
   const AdaptiveButton({
     super.key,
     required this.onPressed,
@@ -43,7 +42,6 @@ class AdaptiveButton extends AdaptiveWidget {
 
 /// Adaptive text button
 class AdaptiveTextButton extends AdaptiveWidget {
-
   const AdaptiveTextButton({
     super.key,
     required this.onPressed,
@@ -79,7 +77,6 @@ class AdaptiveTextButton extends AdaptiveWidget {
 
 /// Adaptive icon button
 class AdaptiveIconButton extends AdaptiveWidget {
-
   const AdaptiveIconButton({
     super.key,
     required this.onPressed,

@@ -49,9 +49,9 @@ void main() {
     Widget createDeviceManagerPanel({
       DeviceInfo? current,
       List<DeviceInfo>? paired,
-      Function(String)? onDeviceNameChange,
-      Function(DeviceInfo)? onAddDevice,
-      Function(String)? onRemoveDevice,
+      void Function(String)? onDeviceNameChange,
+      void Function(DeviceInfo)? onAddDevice,
+      void Function(String)? onRemoveDevice,
     }) {
       return MaterialApp(
         home: Scaffold(

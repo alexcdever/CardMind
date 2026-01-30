@@ -1,15 +1,14 @@
 import 'package:cardmind/bridge/models/card.dart' as bridge;
-import 'package:cardmind/bridge/models/card.dart';
 import 'package:cardmind/widgets/note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 void main() {
   group('NoteCard Widget Tests', () {
     late bridge.Card testCard;
 
     setUp(() {
+      // ignore: unused_local_variable
       final now = DateTime.now().millisecondsSinceEpoch;
       testCard = bridge.Card(
         id: 'test-id',
@@ -270,10 +269,12 @@ void main() {
 
       // 验证语义标签存在（使用 Semantics widget）
       final semantics = tester.widget<Semantics>(
-        find.descendant(
-          of: find.byType(NoteCard),
-          matching: find.byType(Semantics),
-        ).first,
+        find
+            .descendant(
+              of: find.byType(NoteCard),
+              matching: find.byType(Semantics),
+            )
+            .first,
       );
       expect(semantics.properties.label, contains('Note card'));
     });

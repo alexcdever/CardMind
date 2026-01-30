@@ -7,7 +7,7 @@
 //! - **强制 TLS**: 使用 Noise 协议加密所有连接
 //! - **多路复用**: 使用 Yamux 在单一连接上多路复用
 //! - **心跳检测**: 使用 Ping 协议检测连接状态
-//! - **密钥持久化**: 使用 IdentityManager 管理密钥对
+//! - **密钥持久化**: 使用 `IdentityManager` 管理密钥对
 //!
 //! # 设计原则
 //!
@@ -275,7 +275,7 @@ impl P2PNetwork {
     }
 
     /// 获取 Swarm 的可变引用（用于同步服务）
-    pub fn swarm_mut(&mut self) -> &mut Swarm<P2PBehaviour> {
+    pub const fn swarm_mut(&mut self) -> &mut Swarm<P2PBehaviour> {
         &mut self.swarm
     }
 
@@ -418,6 +418,7 @@ mod tests {
     ///
     /// 创建两个节点，一个监听，一个连接，验证 Ping 协议工作
     #[tokio::test]
+    #[allow(clippy::similar_names)]
     async fn test_basic_connection() {
         use std::time::Duration;
         use tokio::time::timeout;
@@ -435,24 +436,24 @@ mod tests {
                     || msg.contains("Operation not permitted")
                     || msg.is_empty()
                 {
-                    println!("跳过网络连接测试：{}", msg);
+                    println!("跳过网络连接测试：{msg}");
                     "/ip4/127.0.0.1/tcp/0".parse().unwrap()
                 } else {
                     panic!("节点 A 监听失败: {err}");
                 }
             });
 
-        println!("节点 A 监听地址: {}", listen_addr);
-        println!("节点 A Peer ID: {}", peer_a_id);
+        println!("节点 A 监听地址: {listen_addr}");
+        println!("节点 A Peer ID: {peer_a_id}");
 
         // 3. 创建节点 B（连接者，不启用 mDNS）
         let mut network_b = P2PNetwork::new(false).expect("节点 B 初始化失败");
         let peer_b_id = *network_b.local_peer_id();
 
-        println!("节点 B Peer ID: {}", peer_b_id);
+        println!("节点 B Peer ID: {peer_b_id}");
 
         // 4. 节点 B 连接到节点 A
-        let dial_addr = format!("{}/p2p/{}", listen_addr, peer_a_id);
+        let dial_addr = format!("{listen_addr}/p2p/{peer_a_id}");
         let dial_multiaddr: Multiaddr = dial_addr.parse().expect("地址解析失败");
 
         network_b.dial(&dial_multiaddr).expect("节点 B 拨号失败");
@@ -468,11 +469,11 @@ mod tests {
                         if let Some(event) = event {
                             match event {
                                 SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                                    println!("节点 A: 连接建立 from {}", peer_id);
+                                    println!("节点 A: 连接建立 from {peer_id}");
                                     a_connected = true;
                                 }
                                 SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event { peer, result: Ok(rtt), .. })) => {
-                                    println!("节点 A: 收到 Ping from {} (RTT: {:?})", peer, rtt);
+                                    println!("节点 A: 收到 Ping from {peer} (RTT: {rtt:?})");
                                 }
                                 _ => {}
                             }
@@ -482,11 +483,11 @@ mod tests {
                         if let Some(event) = event {
                             match event {
                                 SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                                    println!("节点 B: 连接建立 to {}", peer_id);
+                                    println!("节点 B: 连接建立 to {peer_id}");
                                     b_connected = true;
                                 }
                                 SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event { peer, result: Ok(rtt), .. })) => {
-                                    println!("节点 B: 收到 Ping from {} (RTT: {:?})", peer, rtt);
+                                    println!("节点 B: 收到 Ping from {peer} (RTT: {rtt:?})");
                                 }
                                 _ => {}
                             }
@@ -507,10 +508,10 @@ mod tests {
                 println!("✅ 连接测试成功: 双向连接建立");
             }
             Ok(Err(e)) => {
-                assert!(false, "❌ 连接测试失败: {e}");
+                panic!("❌ 连接测试失败: {e}");
             }
-            Err(_) => {
-                assert!(false, "❌ 连接测试超时");
+            Err(e) => {
+                panic!("❌ 连接测试超时: {e}");
             }
         }
     }

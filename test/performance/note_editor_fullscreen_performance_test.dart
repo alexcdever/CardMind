@@ -1,7 +1,6 @@
+import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/widgets/note_editor_fullscreen.dart';
-import 'package:cardmind/bridge/models/card.dart' as bridge;
 
 void main() {
   group('NoteEditorFullscreen Performance Tests', () {
@@ -25,8 +24,7 @@ void main() {
       // 查找内容输入框
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
 
       // 验证输入框存在且可以输入
@@ -65,8 +63,7 @@ void main() {
 
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
 
       // 快速输入多次
@@ -79,15 +76,17 @@ void main() {
       await tester.pump(const Duration(milliseconds: 1100));
 
       // 验证保存次数（应该只有 1-2 次，因为有防抖）
-      expect(saveCount, lessThanOrEqualTo(2),
-          reason: '自动保存应该有防抖机制，避免频繁保存');
+      expect(saveCount, lessThanOrEqualTo(2), reason: '自动保存应该有防抖机制，避免频繁保存');
 
       // 如果有多次保存，验证间隔 >= 1 秒
       if (saveTimes.length > 1) {
         for (var i = 1; i < saveTimes.length; i++) {
           final interval = saveTimes[i].difference(saveTimes[i - 1]);
-          expect(interval.inMilliseconds, greaterThanOrEqualTo(1000),
-              reason: '自动保存间隔应至少 1 秒');
+          expect(
+            interval.inMilliseconds,
+            greaterThanOrEqualTo(1000),
+            reason: '自动保存间隔应至少 1 秒',
+          );
         }
       }
     });
@@ -114,8 +113,11 @@ void main() {
       stopwatch.stop();
 
       // 验证单帧时间 <= 16ms
-      expect(stopwatch.elapsedMilliseconds, lessThanOrEqualTo(16),
-          reason: '动画帧时间应 <= 16ms 以保持 60fps');
+      expect(
+        stopwatch.elapsedMilliseconds,
+        lessThanOrEqualTo(16),
+        reason: '动画帧时间应 <= 16ms 以保持 60fps',
+      );
 
       await tester.pumpAndSettle();
       expect(find.byType(NoteEditorFullscreen), findsOneWidget);
@@ -143,19 +145,14 @@ void main() {
         // 输入一些内容
         final contentField = find.byWidgetPredicate(
           (widget) =>
-              widget is TextField &&
-              widget.decoration?.hintText == '开始写笔记...',
+              widget is TextField && widget.decoration?.hintText == '开始写笔记...',
         );
         await tester.enterText(contentField, '测试内容 $i');
         await tester.pump();
 
         // 关闭编辑器
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(),
-            ),
-          ),
+          const MaterialApp(home: Scaffold(body: SizedBox())),
         );
         await tester.pumpAndSettle();
       }
@@ -183,8 +180,7 @@ void main() {
 
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
 
       // 模拟长时间编辑（多次输入）
@@ -220,8 +216,7 @@ void main() {
 
       final contentField = find.byWidgetPredicate(
         (widget) =>
-            widget is TextField &&
-            widget.decoration?.hintText == '开始写笔记...',
+            widget is TextField && widget.decoration?.hintText == '开始写笔记...',
       );
 
       // 输入超长内容
@@ -232,8 +227,11 @@ void main() {
       stopwatch.stop();
 
       // 验证处理超长内容的时间合理（< 100ms）
-      expect(stopwatch.elapsedMilliseconds, lessThan(100),
-          reason: '处理超长内容应该在 100ms 内完成');
+      expect(
+        stopwatch.elapsedMilliseconds,
+        lessThan(100),
+        reason: '处理超长内容应该在 100ms 内完成',
+      );
 
       // 验证编辑器仍然正常
       expect(find.byType(NoteEditorFullscreen), findsOneWidget);
@@ -263,11 +261,7 @@ void main() {
 
         // 关闭编辑器
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
-              body: SizedBox(),
-            ),
-          ),
+          const MaterialApp(home: Scaffold(body: SizedBox())),
         );
         await tester.pumpAndSettle();
 
@@ -276,8 +270,7 @@ void main() {
 
       // 验证平均切换时间 < 100ms
       final averageTime = stopwatch.elapsedMilliseconds / 5;
-      expect(averageTime, lessThan(100),
-          reason: '编辑器切换平均时间应 < 100ms');
+      expect(averageTime, lessThan(100), reason: '编辑器切换平均时间应 < 100ms');
     });
   });
 }

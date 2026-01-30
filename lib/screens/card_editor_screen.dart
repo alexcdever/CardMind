@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/card_editor_state.dart';
+
+import '../adaptive/layouts/adaptive_padding.dart';
 import '../adaptive/layouts/adaptive_scaffold.dart';
 import '../adaptive/platform_detector.dart';
-import '../adaptive/layouts/adaptive_padding.dart';
+import '../providers/card_editor_state.dart';
 
 /// Card Editor Screen
 ///

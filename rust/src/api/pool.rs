@@ -11,9 +11,9 @@ use std::cell::RefCell;
 use zeroize::Zeroizing;
 
 thread_local! {
-    /// Thread-local PoolStore instance
+    /// Thread-local `PoolStore` instance
     /// SQLite connections are not thread-safe, so we use thread_local storage
-    static POOL_STORE: RefCell<Option<PoolStore>> = RefCell::new(None);
+    static POOL_STORE: RefCell<Option<PoolStore>> = const { RefCell::new(None) };
 }
 
 /// Initialize the PoolStore with the given storage path
@@ -39,7 +39,7 @@ pub fn init_pool_store(path: String) -> Result<()> {
     Ok(())
 }
 
-/// Execute a function with access to the PoolStore (internal helper)
+/// Execute a function with access to the `PoolStore` (internal helper)
 fn with_pool_store<F, R>(f: F) -> Result<R>
 where
     F: FnOnce(&mut PoolStore) -> Result<R>,
@@ -88,7 +88,7 @@ pub fn create_pool(name: String, password: String) -> Result<Pool> {
 
     // Store it
     with_pool_store(|store| {
-        store.create_pool(pool.clone())?;
+        store.create_pool(&pool)?;
         Ok(pool)
     })
 }
@@ -555,7 +555,7 @@ mod tests {
 
         // Store password
         let result = store_pool_password_in_keyring(test_pool_id.to_string(), password.to_string());
-        assert!(result.is_ok(), "Failed to store password: {:?}", result);
+        assert!(result.is_ok(), "Failed to store password: {result:?}");
 
         // Check if exists
         let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
@@ -565,8 +565,7 @@ mod tests {
         let retrieved = get_pool_password_from_keyring(test_pool_id.to_string());
         assert!(
             retrieved.is_ok(),
-            "Failed to retrieve password: {:?}",
-            retrieved
+            "Failed to retrieve password: {retrieved:?}"
         );
         assert_eq!(retrieved.unwrap(), password);
 

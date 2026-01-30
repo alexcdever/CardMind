@@ -38,15 +38,9 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 首次启动应用
-        const isFirstLaunch = true;
-
         // When: 应用启动
         await tester.pumpWidget(
-          createTestWidget(
-            isFirstLaunch
-                ? const Scaffold(body: Text('Welcome Page'))
-                : const Scaffold(body: Text('Home Screen')),
-          ),
+          createTestWidget(const Scaffold(body: Text('Welcome Page'))),
         );
         await tester.pumpAndSettle();
 
@@ -88,15 +82,9 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 非首次启动
-        const isFirstLaunch = false;
-
-        // When: 应用启动
+        // When: 应用启动（直接显示主页内容）
         await tester.pumpWidget(
-          createTestWidget(
-            isFirstLaunch
-                ? const Scaffold(body: Text('Welcome Page'))
-                : const Scaffold(body: Text('Home Screen')),
-          ),
+          createTestWidget(const Scaffold(body: Text('Home Screen'))),
         );
         await tester.pumpAndSettle();
 
@@ -158,7 +146,7 @@ void main() {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             const Scaffold(body: Text('Action Selection')),
                       ),
@@ -224,7 +212,7 @@ void main() {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             const Scaffold(body: Text('Create Pool Screen')),
                       ),
@@ -257,7 +245,7 @@ void main() {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             const Scaffold(body: Text('Join Pool Screen')),
                       ),
@@ -378,12 +366,14 @@ void main() {
                   body: ElevatedButton(
                     onPressed: () async {
                       // 模拟创建空间
-                      await Future.delayed(const Duration(milliseconds: 100));
+                      await Future<void>.delayed(
+                        const Duration(milliseconds: 100),
+                      );
 
                       // 导航到主页
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
+                        MaterialPageRoute<void>(
                           builder: (_) =>
                               const Scaffold(body: Text('Home Screen')),
                         ),
@@ -546,12 +536,14 @@ void main() {
                 body: ElevatedButton(
                   onPressed: () async {
                     // 模拟加入空间
-                    await Future.delayed(const Duration(milliseconds: 100));
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 100),
+                    );
 
                     // 导航到主页
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute<void>(
                         builder: (_) =>
                             const Scaffold(body: Text('Home Screen')),
                       ),

@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 
 /// Spec-SYNC-007-001: 状态广播机制
 ///
-/// it_should_broadcast_status_to_all_subscribers()
+/// `it_should_broadcast_status_to_all_subscribers()`
 ///
 /// 验收标准:
 /// - 给定一个同步服务和多个订阅者
@@ -45,7 +45,7 @@ fn it_should_broadcast_status_to_all_subscribers() {
 
 /// Spec-SYNC-007-002: 状态去重
 ///
-/// it_should_not_broadcast_duplicate_status()
+/// `it_should_not_broadcast_duplicate_status()`
 ///
 /// 验收标准:
 /// - 给定一个同步服务和订阅者
@@ -67,7 +67,7 @@ fn it_should_not_broadcast_duplicate_status() {
     };
     service.notify_status_change(status.clone());
     service.notify_status_change(status.clone());
-    service.notify_status_change(status.clone());
+    service.notify_status_change(status);
 
     // Then: 只收到一次状态更新
     assert!(rx.try_recv().is_ok(), "应该收到第一次状态更新");
@@ -76,7 +76,7 @@ fn it_should_not_broadcast_duplicate_status() {
 
 /// Spec-SYNC-007-003: 无订阅者时的处理
 ///
-/// it_should_handle_no_subscribers_gracefully()
+/// `it_should_handle_no_subscribers_gracefully()`
 ///
 /// 验收标准:
 /// - 给定一个同步服务但没有订阅者
@@ -103,7 +103,7 @@ fn it_should_handle_no_subscribers_gracefully() {
 
 /// Spec-SYNC-007-004: 状态发送器克隆
 ///
-/// it_should_support_status_sender_cloning()
+/// `it_should_support_status_sender_cloning()`
 ///
 /// 验收标准:
 /// - 给定一个同步服务
@@ -138,7 +138,7 @@ fn it_should_support_status_sender_cloning() {
 
 /// Spec-SYNC-007-005: 订阅者独立性
 ///
-/// it_should_maintain_subscriber_independence()
+/// `it_should_maintain_subscriber_independence()`
 ///
 /// 验收标准:
 /// - 给定多个订阅者
@@ -173,7 +173,7 @@ fn it_should_maintain_subscriber_independence() {
 
 /// Spec-SYNC-007-006: 初始状态
 ///
-/// it_should_have_disconnected_initial_status()
+/// `it_should_have_disconnected_initial_status()`
 ///
 /// 验收标准:
 /// - 给定一个新创建的同步服务
@@ -197,7 +197,7 @@ fn it_should_have_disconnected_initial_status() {
 
 /// Spec-SYNC-007-007: 状态相等性
 ///
-/// it_should_compare_status_equality_correctly()
+/// `it_should_compare_status_equality_correctly()`
 ///
 /// 验收标准:
 /// - 给定两个相同的状态
@@ -231,7 +231,7 @@ fn it_should_compare_status_equality_correctly() {
 
 /// Spec-SYNC-007-008: 状态克隆
 ///
-/// it_should_clone_status_correctly()
+/// `it_should_clone_status_correctly()`
 ///
 /// 验收标准:
 /// - 给定一个状态

@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/services/verification_code_service.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('VerificationCodeService Tests', () {
@@ -54,7 +54,10 @@ void main() {
       );
 
       final expectedExpiry = session.createdAt.add(const Duration(minutes: 5));
-      expect(session.expiresAt.difference(expectedExpiry).inSeconds, lessThan(1));
+      expect(
+        session.expiresAt.difference(expectedExpiry).inSeconds,
+        lessThan(1),
+      );
     });
 
     test('verifyCode returns true for correct code', () {
@@ -175,7 +178,7 @@ void main() {
         remoteDeviceName: 'Test Device',
       );
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(events.length, greaterThan(0));
       expect(events.first.remotePeerId, equals('12D3KooWTest'));
@@ -190,15 +193,12 @@ void main() {
         remoteDeviceName: 'Test Device',
       );
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
       events.clear();
 
-      service.verifyCode(
-        remotePeerId: '12D3KooWTest',
-        inputCode: session.code,
-      );
+      service.verifyCode(remotePeerId: '12D3KooWTest', inputCode: session.code);
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(events.length, greaterThan(0));
       expect(events.last.status, equals(VerificationStatus.verified));
@@ -206,9 +206,7 @@ void main() {
   });
 
   group('VerificationCodeManager Tests', () {
-    tearDown(() {
-      VerificationCodeManager.reset();
-    });
+    tearDown(VerificationCodeManager.reset);
 
     test('returns singleton instance', () {
       final instance1 = VerificationCodeManager.instance;

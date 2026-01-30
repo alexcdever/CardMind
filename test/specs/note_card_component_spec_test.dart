@@ -256,6 +256,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建 NoteCard
+        // ignore: unused_local_variable
         bridge.Card? updatedCard;
         await tester.pumpWidget(
           createTestWidget(
@@ -287,6 +288,7 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 创建 NoteCard
+        // ignore: unused_local_variable
         String? deletedId;
         await tester.pumpWidget(
           createTestWidget(

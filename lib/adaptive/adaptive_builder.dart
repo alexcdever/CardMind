@@ -6,13 +6,13 @@ class AdaptiveBreakpoints {
   AdaptiveBreakpoints._();
 
   /// Desktop breakpoint (1024px)
-  static const double desktop = 1024.0;
+  static const double desktop = 1024;
 
   /// Tablet breakpoint (768px)
-  static const double tablet = 768.0;
+  static const double tablet = 768;
 
   /// Mobile breakpoint (< 768px)
-  static const double mobile = 0.0;
+  static const double mobile = 0;
 }
 
 /// Functional adaptive widget builder
@@ -29,12 +29,12 @@ class AdaptiveBreakpoints {
 /// )
 /// ```
 class AdaptiveBuilder extends StatelessWidget {
-
   const AdaptiveBuilder({
     super.key,
     required this.mobile,
     required this.desktop,
   });
+
   /// Builder function for mobile platforms
   final WidgetBuilder mobile;
 

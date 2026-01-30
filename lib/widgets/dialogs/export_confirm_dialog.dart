@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 
 /// 导出确认对话框
 class ExportConfirmDialog extends StatelessWidget {
+  const ExportConfirmDialog({super.key, required this.cardCount});
+
   /// 卡片数量
   final int cardCount;
-
-  const ExportConfirmDialog({
-    super.key,
-    required this.cardCount,
-  });
 
   @override
   Widget build(BuildContext context) {

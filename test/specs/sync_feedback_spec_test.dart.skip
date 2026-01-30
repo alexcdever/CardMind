@@ -416,10 +416,7 @@ void main() {
               body: Builder(
                 builder: (context) => ElevatedButton(
                   onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => SyncDetailsDialog(status: status),
-                    );
+                    SyncDetailsDialog.show(context, status);
                   },
                   child: const Text('Show'),
                 ),
@@ -448,10 +445,7 @@ void main() {
               body: Builder(
                 builder: (context) => ElevatedButton(
                   onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => SyncDetailsDialog(status: status),
-                    );
+                    SyncDetailsDialog.show(context, status);
                   },
                   child: const Text('Show'),
                 ),
@@ -482,10 +476,7 @@ void main() {
               body: Builder(
                 builder: (context) => ElevatedButton(
                   onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => SyncDetailsDialog(status: status),
-                    );
+                    SyncDetailsDialog.show(context, status);
                   },
                   child: const Text('Show'),
                 ),
@@ -513,10 +504,7 @@ void main() {
               body: Builder(
                 builder: (context) => ElevatedButton(
                   onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => SyncDetailsDialog(status: status),
-                    );
+                    SyncDetailsDialog.show(context, status);
                   },
                   child: const Text('Show'),
                 ),

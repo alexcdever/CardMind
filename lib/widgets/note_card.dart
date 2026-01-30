@@ -64,12 +64,12 @@ class NoteCard extends StatelessWidget {
   /// Callback when the card should be edited
   ///
   /// Provides the card object to be edited
-  final Function(bridge.Card)? onEdit;
+  final void Function(bridge.Card)? onEdit;
 
   /// Callback when the card should be deleted
   ///
   /// Provides the card ID to be deleted
-  final Function(String cardId) onDelete;
+  final void Function(String cardId) onDelete;
 
   /// Callback when the card content should be copied to clipboard
   ///
@@ -111,8 +111,8 @@ class NoteCard extends StatelessWidget {
     Key? key,
     bridge.Card? card,
     VoidCallback? onTap,
-    Function(bridge.Card card)? onEdit,
-    Function(String cardId)? onDelete,
+    void Function(bridge.Card card)? onEdit,
+    void Function(String cardId)? onDelete,
     VoidCallback? onCopy,
     VoidCallback? onShare,
   }) {

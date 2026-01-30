@@ -72,13 +72,10 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+        );
 
     // 初始化文本控制器
     if (widget.card != null) {
@@ -107,7 +104,8 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     // 确保动画状态与 isOpen 同步
-    if (widget.isOpen && _animationController.status == AnimationStatus.dismissed) {
+    if (widget.isOpen &&
+        _animationController.status == AnimationStatus.dismissed) {
       _animationController.forward();
     }
   }
@@ -140,7 +138,8 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
   /// 文本变化处理
   void _onTextChanged() {
     // 检测是否有未保存的更改
-    final hasChanges = _titleController.text != _originalTitle ||
+    final hasChanges =
+        _titleController.text != _originalTitle ||
         _contentController.text != _originalContent;
 
     if (hasChanges != _hasUnsavedChanges) {
@@ -399,10 +398,7 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
           border: Border(
-            bottom: BorderSide(
-              color: theme.dividerColor,
-              width: 1,
-            ),
+            bottom: BorderSide(color: theme.dividerColor, width: 1),
           ),
         ),
         child: Row(
@@ -428,7 +424,9 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
               child: Text(
                 '自动保存',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                  color: theme.textTheme.bodySmall?.color?.withValues(
+                    alpha: 0.6,
+                  ),
                 ),
               ),
             ),

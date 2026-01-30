@@ -7,15 +7,6 @@ import 'package:zxing_lib/zxing.dart';
 
 /// 二维码数据模型
 class QRCodeData {
-  final String version;
-  final String type;
-  final String peerId;
-  final String deviceName;
-  final String deviceType;
-  final List<String> multiaddrs;
-  final int timestamp;
-  final String poolId;
-
   QRCodeData({
     required this.version,
     required this.type,
@@ -39,6 +30,14 @@ class QRCodeData {
       poolId: json['poolId'] as String,
     );
   }
+  final String version;
+  final String type;
+  final String peerId;
+  final String deviceName;
+  final String deviceType;
+  final List<String> multiaddrs;
+  final int timestamp;
+  final String poolId;
 
   Map<String, dynamic> toJson() {
     return {
@@ -94,10 +93,7 @@ class QRCodeParser {
       final source = RGBLuminanceSource(
         rgbaImage.width,
         rgbaImage.height,
-        rgbaImage
-            .getBytes(order: img.ChannelOrder.rgba)
-            .buffer
-            .asInt32List(),
+        rgbaImage.getBytes(order: img.ChannelOrder.rgba).buffer.asInt32List(),
       );
 
       // 创建 BinaryBitmap

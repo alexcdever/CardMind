@@ -33,49 +33,49 @@ pub enum CardMindError {
 // Implement From traits for converting errors
 impl From<rusqlite::Error> for CardMindError {
     fn from(err: rusqlite::Error) -> Self {
-        CardMindError::DatabaseError(err.to_string())
+        Self::DatabaseError(err.to_string())
     }
 }
 
 impl From<serde_json::Error> for CardMindError {
     fn from(err: serde_json::Error) -> Self {
-        CardMindError::SerializationError(err.to_string())
+        Self::SerializationError(err.to_string())
     }
 }
 
 impl From<std::io::Error> for CardMindError {
     fn from(err: std::io::Error) -> Self {
-        CardMindError::IoError(err.to_string())
+        Self::IoError(err.to_string())
     }
 }
 
 impl From<loro::LoroError> for CardMindError {
     fn from(err: loro::LoroError) -> Self {
-        CardMindError::LoroError(err.to_string())
+        Self::LoroError(err.to_string())
     }
 }
 
 impl From<loro::LoroEncodeError> for CardMindError {
     fn from(err: loro::LoroEncodeError) -> Self {
-        CardMindError::LoroError(err.to_string())
+        Self::LoroError(err.to_string())
     }
 }
 
 impl From<crate::security::password::PasswordError> for CardMindError {
     fn from(err: crate::security::password::PasswordError) -> Self {
-        CardMindError::Unknown(err.to_string())
+        Self::Unknown(err.to_string())
     }
 }
 
 impl From<crate::models::device_config::DeviceConfigError> for CardMindError {
     fn from(err: crate::models::device_config::DeviceConfigError) -> Self {
-        CardMindError::DatabaseError(err.to_string())
+        Self::DatabaseError(err.to_string())
     }
 }
 
 impl From<crate::security::keyring_store::KeyringError> for CardMindError {
     fn from(err: crate::security::keyring_store::KeyringError) -> Self {
-        CardMindError::Unknown(err.to_string())
+        Self::Unknown(err.to_string())
     }
 }
 

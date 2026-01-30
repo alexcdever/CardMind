@@ -1,7 +1,8 @@
 import 'dart:io';
+
+import 'package:cardmind/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:cardmind/theme/app_theme.dart';
 
 /// Toast 通知工具类
 class ToastUtils {
@@ -27,7 +28,7 @@ class ToastUtils {
       timeInSecForIosWeb: 2,
       backgroundColor: AppTheme.successColor,
       textColor: Colors.white,
-      fontSize: 16.0,
+      fontSize: 16,
     );
   }
 
@@ -44,7 +45,7 @@ class ToastUtils {
       timeInSecForIosWeb: 4,
       backgroundColor: AppTheme.errorColor,
       textColor: Colors.white,
-      fontSize: 16.0,
+      fontSize: 16,
     );
   }
 
@@ -61,7 +62,7 @@ class ToastUtils {
       timeInSecForIosWeb: 2,
       backgroundColor: AppTheme.infoColor,
       textColor: Colors.white,
-      fontSize: 16.0,
+      fontSize: 16,
     );
   }
 
@@ -78,7 +79,7 @@ class ToastUtils {
       timeInSecForIosWeb: 2,
       backgroundColor: AppTheme.warningColor,
       textColor: Colors.white,
-      fontSize: 16.0,
+      fontSize: 16,
     );
   }
 

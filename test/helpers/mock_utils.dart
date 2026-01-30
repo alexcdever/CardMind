@@ -9,7 +9,6 @@ enum MockSyncStatus { idle, syncing, success, error }
 
 /// Mock 设备信息
 class MockDevice {
-
   MockDevice({
     required this.id,
     required this.name,
@@ -46,7 +45,7 @@ class MockSyncManager {
     _status = MockSyncStatus.syncing;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -96,7 +95,7 @@ class MockDeviceManager {
     discoverCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -110,7 +109,7 @@ class MockDeviceManager {
     pairCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -130,7 +129,7 @@ class MockDeviceManager {
     removeCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {
@@ -163,7 +162,7 @@ class MockSearchService {
     searchCallCount++;
 
     if (delayMs > 0) {
-      await Future.delayed(Duration(milliseconds: delayMs));
+      await Future<void>.delayed(Duration(milliseconds: delayMs));
     }
 
     if (shouldThrowError) {

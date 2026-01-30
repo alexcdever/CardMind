@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 
 /// 信息展示设置项组件
 class InfoSettingItem extends StatelessWidget {
+  const InfoSettingItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
+
   /// 图标
   final IconData icon;
 
@@ -13,14 +21,6 @@ class InfoSettingItem extends StatelessWidget {
 
   /// 点击回调（可选，用于可点击的信息项）
   final VoidCallback? onTap;
-
-  const InfoSettingItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.onTap,
-  });
 
   @override
   Widget build(BuildContext context) {

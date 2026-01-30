@@ -1,26 +1,5 @@
 /// 应用信息模型
 class AppInfo {
-  /// 应用版本号
-  final String version;
-
-  /// 构建号
-  final String buildNumber;
-
-  /// 应用描述
-  final String description;
-
-  /// 项目主页 URL
-  final String homepage;
-
-  /// 问题反馈 URL
-  final String issuesUrl;
-
-  /// 贡献者列表
-  final List<String> contributors;
-
-  /// 更新日志
-  final List<ChangelogEntry> changelog;
-
   const AppInfo({
     required this.version,
     required this.buildNumber,
@@ -62,16 +41,39 @@ class AppInfo {
       description: json['description'] as String? ?? '',
       homepage: json['homepage'] as String? ?? '',
       issuesUrl: json['issuesUrl'] as String? ?? '',
-      contributors: (json['contributors'] as List<dynamic>?)
+      contributors:
+          (json['contributors'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
-      changelog: (json['changelog'] as List<dynamic>?)
+      changelog:
+          (json['changelog'] as List<dynamic>?)
               ?.map((e) => ChangelogEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );
   }
+
+  /// 应用版本号
+  final String version;
+
+  /// 构建号
+  final String buildNumber;
+
+  /// 应用描述
+  final String description;
+
+  /// 项目主页 URL
+  final String homepage;
+
+  /// 问题反馈 URL
+  final String issuesUrl;
+
+  /// 贡献者列表
+  final List<String> contributors;
+
+  /// 更新日志
+  final List<ChangelogEntry> changelog;
 
   /// 转换为 JSON
   Map<String, dynamic> toJson() {
@@ -125,15 +127,6 @@ class AppInfo {
 
 /// 更新日志条目
 class ChangelogEntry {
-  /// 版本号
-  final String version;
-
-  /// 发布日期
-  final String date;
-
-  /// 变更列表
-  final List<String> changes;
-
   const ChangelogEntry({
     required this.version,
     required this.date,
@@ -145,20 +138,26 @@ class ChangelogEntry {
     return ChangelogEntry(
       version: json['version'] as String? ?? '',
       date: json['date'] as String? ?? '',
-      changes: (json['changes'] as List<dynamic>?)
+      changes:
+          (json['changes'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
     );
   }
 
+  /// 版本号
+  final String version;
+
+  /// 发布日期
+  final String date;
+
+  /// 变更列表
+  final List<String> changes;
+
   /// 转换为 JSON
   Map<String, dynamic> toJson() {
-    return {
-      'version': version,
-      'date': date,
-      'changes': changes,
-    };
+    return {'version': version, 'date': date, 'changes': changes};
   }
 
   @override
@@ -173,11 +172,7 @@ class ChangelogEntry {
 
   @override
   int get hashCode {
-    return Object.hash(
-      version,
-      date,
-      Object.hashAll(changes),
-    );
+    return Object.hash(version, date, Object.hashAll(changes));
   }
 
   bool _listEquals<T>(List<T>? a, List<T>? b) {

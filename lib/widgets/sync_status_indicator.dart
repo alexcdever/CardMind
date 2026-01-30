@@ -1,9 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
-
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
+    as sync_api;
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/widgets/sync_details_dialog.dart';
+import 'package:flutter/material.dart';
 
 /// Sync Status Indicator Widget
 ///
@@ -18,10 +19,7 @@ import 'package:cardmind/widgets/sync_details_dialog.dart';
 /// - 提供无障碍支持
 
 class SyncStatusIndicator extends StatefulWidget {
-  const SyncStatusIndicator({
-    super.key,
-    required this.status,
-  });
+  const SyncStatusIndicator({super.key, required this.status});
 
   /// 当前同步状态
   final SyncStatus status;
@@ -151,10 +149,7 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
   /// 获取 Badge 边框
   BoxBorder? _getBadgeBorder(BuildContext context) {
     if (widget.status.state == SyncState.synced) {
-      return Border.all(
-        color: Theme.of(context).colorScheme.outline,
-        width: 1,
-      );
+      return Border.all(color: Theme.of(context).colorScheme.outline, width: 1);
     }
     return null;
   }
@@ -192,11 +187,16 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
   }
 
   /// 显示详情对话框
-  void _showDetailsDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (context) => SyncDetailsDialog(status: widget.status),
-    );
+  Future<void> _showDetailsDialog() async {
+    // 获取当前的 API 同步状态
+    try {
+      final apiStatus = await sync_api.getSyncStatus();
+      if (mounted) {
+        await SyncDetailsDialog.show(context, apiStatus);
+      }
+    } on Exception catch (e) {
+      debugPrint('获取同步状态失败: $e');
+    }
   }
 
   @override

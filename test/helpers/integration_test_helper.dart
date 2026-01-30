@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/bridge/frb_generated.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// 集成测试环境初始化
 ///

@@ -1,13 +1,4 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
-
-import 'package:cardmind/bridge/api/sync.dart' as api_sync;
-import 'package:cardmind/bridge/api/sync.dart' show DeviceInfo, SyncStatistics, SyncHistoryEvent, DeviceConnectionStatus;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart' as sync_api;
-import 'package:cardmind/models/sync_status.dart';
-
-/// Sync Details Dialog
+/// 同步详情对话框
 ///
 /// 显示同步状态详情的对话框
 ///
@@ -15,628 +6,378 @@ import 'package:cardmind/models/sync_status.dart';
 /// 功能：
 /// - 显示当前同步状态和描述
 /// - 显示对等设备列表
-/// - 显示错误信息（failed 状态）
+/// - 显示同步统计信息
+/// - 显示同步历史记录
 /// - 提供重试按钮（failed 状态）
+library;
 
+import 'dart:async';
+
+import 'package:cardmind/bridge/api/sync.dart' as api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
+    as sync_api;
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'sync_details_dialog/sections/device_list_section.dart';
+import 'sync_details_dialog/sections/sync_history_section.dart';
+import 'sync_details_dialog/sections/sync_statistics_section.dart';
+import 'sync_details_dialog/sections/sync_status_section.dart';
+import 'sync_details_dialog/utils/sync_dialog_constants.dart';
+
+/// 同步详情对话框
 class SyncDetailsDialog extends StatefulWidget {
-  const SyncDetailsDialog({
-    super.key,
-    required this.status,
-  });
+  const SyncDetailsDialog({super.key, required this.initialStatus});
 
-  /// 当前同步状态
-  final SyncStatus status;
+  /// 初始同步状态
+  final api.SyncStatus initialStatus;
+
+  /// 显示对话框
+  static Future<void> show(BuildContext context, api.SyncStatus status) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => SyncDetailsDialog(initialStatus: status),
+    );
+  }
 
   @override
   State<SyncDetailsDialog> createState() => _SyncDetailsDialogState();
 }
 
-class _SyncDetailsDialogState extends State<SyncDetailsDialog> {
-  /// 是否正在重试
-  bool _isRetrying = false;
+class _SyncDetailsDialogState extends State<SyncDetailsDialog>
+    with SingleTickerProviderStateMixin {
+  // 动画控制器
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
-  /// 重试错误信息
-  String? _retryError;
+  // 数据状态
+  late api.SyncStatus _currentStatus;
+  List<api.DeviceInfo> _devices = [];
+  api.SyncStatistics? _statistics;
+  List<api.SyncHistoryEvent> _history = [];
 
-  /// 设备列表
-  List<DeviceInfo>? _devices;
+  // 加载状态
+  bool _isLoadingDevices = true;
+  bool _isLoadingStatistics = true;
+  bool _isLoadingHistory = true;
 
-  /// 同步统计信息
-  SyncStatistics? _statistics;
+  // 错误状态
+  String? _devicesError;
+  String? _statisticsError;
+  String? _historyError;
 
-  /// 同步历史
-  List<SyncHistoryEvent>? _history;
+  // Stream 订阅
+  StreamSubscription<api.SyncStatus>? _statusSubscription;
 
-  /// 是否正在加载数据
-  bool _isLoading = true;
+  // 定时器
+  Timer? _devicePollingTimer;
 
-  /// 定时器用于定期刷新数据
-  Timer? _refreshTimer;
+  // 上一个同步状态（用于检测 syncing → synced 转换）
+  api.SyncState? _previousSyncState;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
-    // 每5秒刷新一次数据
-    _refreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      _loadData();
-    });
+
+    // 初始化状态
+    _currentStatus = widget.initialStatus;
+    _previousSyncState = widget.initialStatus.state;
+
+    // 初始化动画
+    _animationController = AnimationController(
+      duration: SyncDialogDuration.dialogOpen,
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: SyncDialogCurve.dialogOpen,
+      ),
+    );
+
+    _scaleAnimation =
+        Tween<double>(
+          begin: SyncDialogScale.dialogOpenStart,
+          end: SyncDialogScale.dialogOpenEnd,
+        ).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: SyncDialogCurve.dialogOpen,
+          ),
+        );
+
+    // 启动动画
+    _animationController.forward();
+
+    // 订阅同步状态流
+    _subscribeToStatusStream();
+
+    // 加载初始数据
+    _loadDeviceList();
+    _loadStatistics();
+    _loadHistory();
+
+    // 启动设备列表轮询（每 5 秒）
+    _devicePollingTimer = Timer.periodic(
+      SyncDialogPolling.deviceList,
+      (_) => _loadDeviceList(),
+    );
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
+    _animationController.dispose();
+    _statusSubscription?.cancel();
+    _devicePollingTimer?.cancel();
     super.dispose();
   }
 
-  /// 加载设备列表、统计信息和历史记录
-  Future<void> _loadData() async {
+  /// 订阅同步状态流
+  void _subscribeToStatusStream() {
+    _statusSubscription?.cancel();
+
+    try {
+      final stream = sync_api.getSyncStatusStream();
+      _statusSubscription = stream.listen(
+        (status) {
+          if (!mounted) return;
+
+          setState(() {
+            // 检测 syncing → synced 转换
+            final isCompletedSync =
+                _previousSyncState == api.SyncState.syncing &&
+                status.state == api.SyncState.synced;
+
+            _previousSyncState = _currentStatus.state;
+            _currentStatus = status;
+
+            // 同步完成时刷新统计和历史
+            if (isCompletedSync) {
+              _loadStatistics();
+              _loadHistory();
+            }
+          });
+        },
+        onError: (Object error) {
+          debugPrint('同步状态流错误: $error');
+        },
+      );
+    } on Exception catch (e) {
+      debugPrint('订阅同步状态流失败: $e');
+    }
+  }
+
+  /// 加载设备列表
+  Future<void> _loadDeviceList() async {
     try {
       final devices = await sync_api.getDeviceList();
-      final statistics = await sync_api.getSyncStatistics();
-      final history = await sync_api.getSyncHistory();
-
       if (mounted) {
         setState(() {
           _devices = devices;
-          _statistics = statistics;
-          _history = history;
-          _isLoading = false;
+          _isLoadingDevices = false;
+          _devicesError = null;
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
+      debugPrint('加载设备列表失败: $e');
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isLoadingDevices = false;
+          _devicesError = '加载设备列表失败';
         });
       }
     }
   }
 
-  /// 获取状态描述
-  String _getStatusDescription() {
-    switch (widget.status.state) {
-      case SyncState.notYetSynced:
-        return '应用尚未执行过同步操作。请确保其他设备在同一网络中。';
-      case SyncState.syncing:
-        return '正在同步数据...';
-      case SyncState.synced:
-        if (widget.status.lastSyncTime != null) {
-          final time = _formatTime(widget.status.lastSyncTime!);
-          return '数据已同步，最后同步时间：$time';
-        }
-        return '数据已同步，所有设备数据一致。';
-      case SyncState.failed:
-        return '同步失败，请检查网络连接或重试。';
-    }
-  }
-
-  /// 格式化时间
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}:'
-        '${time.second.toString().padLeft(2, '0')}';
-  }
-
-  /// 获取状态图标
-  IconData _getStatusIcon() {
-    switch (widget.status.state) {
-      case SyncState.notYetSynced:
-        return Icons.cloud_off;
-      case SyncState.syncing:
-        return Icons.refresh;
-      case SyncState.synced:
-        return Icons.check;
-      case SyncState.failed:
-        return Icons.error_outline;
-    }
-  }
-
-  /// 获取状态颜色
-  Color _getStatusColor() {
-    switch (widget.status.state) {
-      case SyncState.notYetSynced:
-        return const Color(0xFF757575); // grey
-      case SyncState.syncing:
-        return const Color(0xFF00897B); // secondary color
-      case SyncState.synced:
-        return const Color(0xFF43A047); // green
-      case SyncState.failed:
-        return const Color(0xFFE53935); // red
-    }
-  }
-
-  /// 获取状态标题
-  String _getStatusTitle() {
-    switch (widget.status.state) {
-      case SyncState.notYetSynced:
-        return '尚未同步';
-      case SyncState.syncing:
-        return '同步中';
-      case SyncState.synced:
-        return '已同步';
-      case SyncState.failed:
-        return '同步失败';
-    }
-  }
-
-  /// 处理重试
-  Future<void> _handleRetry() async {
-    // 设置重试状态
-    setState(() {
-      _isRetrying = true;
-      _retryError = null;
-    });
-
+  /// 加载统计信息
+  Future<void> _loadStatistics() async {
     try {
-      // 调用 Rust API 重试同步
-      await sync_api.retrySync();
-
-      // 重试成功，关闭对话框
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      // 重试失败，显示错误消息
+      final statistics = await sync_api.getSyncStatistics();
       if (mounted) {
         setState(() {
-          _isRetrying = false;
-          _retryError = '重试失败：${e.toString()}';
+          _statistics = statistics;
+          _isLoadingStatistics = false;
+          _statisticsError = null;
+        });
+      }
+    } on Exception catch (e) {
+      debugPrint('加载统计信息失败: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingStatistics = false;
+          _statisticsError = '加载统计信息失败';
         });
       }
     }
   }
 
-  /// 构建设备列表项
-  Widget _buildDeviceItem(DeviceInfo device) {
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
-
-    switch (device.status) {
-      case DeviceConnectionStatus.online:
-        statusColor = const Color(0xFF43A047); // green
-        statusIcon = Icons.check_circle;
-        statusText = '在线';
-        break;
-      case DeviceConnectionStatus.offline:
-        statusColor = const Color(0xFF757575); // grey
-        statusIcon = Icons.circle_outlined;
-        statusText = '离线';
-        break;
-      case DeviceConnectionStatus.syncing:
-        statusColor = const Color(0xFF00897B); // secondary color
-        statusIcon = Icons.sync;
-        statusText = '同步中';
-        break;
-    }
-
-    // 格式化最后可见时间
-    final lastSeen = DateTime.fromMillisecondsSinceEpoch(device.lastSeen);
-    final now = DateTime.now();
-    final difference = now.difference(lastSeen);
-
-    String lastSeenText;
-    if (difference.inSeconds < 60) {
-      lastSeenText = '刚刚';
-    } else if (difference.inMinutes < 60) {
-      lastSeenText = '${difference.inMinutes}分钟前';
-    } else if (difference.inHours < 24) {
-      lastSeenText = '${difference.inHours}小时前';
-    } else {
-      lastSeenText = '${difference.inDays}天前';
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(statusIcon, color: statusColor, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  device.deviceName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '上次可见：$lastSeenText',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              statusText,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 构建统计信息部分
-  Widget _buildStatisticsSection(SyncStatistics stats) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: Column(
-        children: [
-          _buildStatItem('已同步卡片', '${stats.syncedCards}张'),
-          const Divider(height: 16),
-          _buildStatItem('同步数据大小', _formatBytes(stats.syncedDataSize)),
-          const Divider(height: 16),
-          _buildStatItem('成功次数', '${stats.successfulSyncs}次'),
-          const Divider(height: 16),
-          _buildStatItem('失败次数', '${stats.failedSyncs}次'),
-        ],
-      ),
-    );
-  }
-
-  /// 构建统计项
-  Widget _buildStatItem(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.grey.shade700,
-            fontSize: 13,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// 格式化字节大小
-  String _formatBytes(int bytes) {
-    if (bytes < 1024) {
-      return '$bytes B';
-    } else if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    } else if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    } else {
-      return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  /// 加载同步历史
+  Future<void> _loadHistory() async {
+    try {
+      final history = await sync_api.getSyncHistory();
+      if (mounted) {
+        setState(() {
+          _history = history;
+          _isLoadingHistory = false;
+          _historyError = null;
+        });
+      }
+    } on Exception catch (e) {
+      debugPrint('加载同步历史失败: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingHistory = false;
+          _historyError = '加载同步历史失败';
+        });
+      }
     }
   }
 
-  /// 构建历史记录项
-  Widget _buildHistoryItem(SyncHistoryEvent event) {
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
+  /// 关闭对话框（带动画）
+  Future<void> _closeDialog() async {
+    // 反向播放动画
+    _animationController.duration = SyncDialogDuration.dialogClose;
+    await _animationController.reverse();
 
-    switch (event.status) {
-      case api_sync.SyncState.notYetSynced:
-        statusColor = const Color(0xFF757575);
-        statusIcon = Icons.cloud_off;
-        statusText = '尚未同步';
-        break;
-      case api_sync.SyncState.syncing:
-        statusColor = const Color(0xFF00897B);
-        statusIcon = Icons.sync;
-        statusText = '同步中';
-        break;
-      case api_sync.SyncState.synced:
-        statusColor = const Color(0xFF43A047);
-        statusIcon = Icons.check_circle;
-        statusText = '已同步';
-        break;
-      case api_sync.SyncState.failed:
-        statusColor = const Color(0xFFE53935);
-        statusIcon = Icons.error;
-        statusText = '失败';
-        break;
+    if (mounted) {
+      Navigator.of(context).pop();
     }
+  }
 
-    // 格式化时间戳
-    final timestamp = DateTime.fromMillisecondsSinceEpoch(event.timestamp);
-    final timeStr = _formatTime(timestamp);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(statusIcon, color: statusColor, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      statusText,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                        color: statusColor,
-                      ),
-                    ),
-                    Text(
-                      timeStr,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '设备：${event.deviceName}',
-                  style: TextStyle(
-                    color: Colors.grey.shade700,
-                    fontSize: 12,
-                  ),
-                ),
-                if (event.errorMessage != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '错误：${event.errorMessage}',
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  /// 处理键盘事件
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape) {
+      _closeDialog();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _getStatusColor();
-    final statusIcon = _getStatusIcon();
-    final statusTitle = _getStatusTitle();
-    final statusDescription = _getStatusDescription();
-
-    return AlertDialog(
-      title: Row(
-        children: [
-          Icon(statusIcon, color: statusColor, size: 28),
-          const SizedBox(width: 12),
-          Text(statusTitle),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 状态描述
-            Text(
-              statusDescription,
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-
-            // 同步进度指示器（syncing 状态）
-            if (widget.status.state == SyncState.syncing) ...[
-              const SizedBox(height: 8),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 12),
-                  Text('正在同步数据...'),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // 错误信息（failed 状态）
-            if (widget.status.state == SyncState.failed &&
-                widget.status.errorMessage != null) ...[
-              const Text(
-                '错误详情：',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+    return Semantics(
+      label: '同步详情对话框',
+      scopesRoute: true,
+      namesRoute: true,
+      child: Focus(
+        autofocus: true,
+        onKeyEvent: _handleKeyEvent,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: AlertDialog(
+              contentPadding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  SyncDialogSize.borderRadius,
                 ),
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
+              content: Container(
+                width: SyncDialogSize.width,
+                constraints: BoxConstraints(
+                  maxHeight:
+                      MediaQuery.of(context).size.height *
+                      SyncDialogSize.maxHeightRatio,
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.status.errorMessage!,
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 13,
+                    // 标题栏
+                    _buildHeader(),
+                    // 内容区域（可滚动）
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(SyncDialogSize.padding),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 同步状态区域
+                            SyncStatusSection(status: _currentStatus),
+                            const SizedBox(
+                              height: SyncDialogSize.sectionSpacing,
+                            ),
+
+                            // 设备列表区域
+                            DeviceListSection(
+                              devices: _devices,
+                              isLoading: _isLoadingDevices,
+                              error: _devicesError,
+                              onRetry: _loadDeviceList,
+                            ),
+                            const SizedBox(
+                              height: SyncDialogSize.sectionSpacing,
+                            ),
+
+                            // 统计信息区域
+                            if (_statistics != null || _statisticsError != null)
+                              SyncStatisticsSection(
+                                statistics:
+                                    _statistics ??
+                                    const api.SyncStatistics(
+                                      syncedCards: 0,
+                                      syncedDataSize: 0,
+                                      successfulSyncs: 0,
+                                      failedSyncs: 0,
+                                    ),
+                                isLoading: _isLoadingStatistics,
+                                error: _statisticsError,
+                                onRetry: _loadStatistics,
+                              ),
+                            if (_statistics != null || _statisticsError != null)
+                              const SizedBox(
+                                height: SyncDialogSize.sectionSpacing,
+                              ),
+
+                            // 同步历史区域
+                            SyncHistorySection(
+                              history: _history,
+                              isLoading: _isLoadingHistory,
+                              error: _historyError,
+                              onRetry: _loadHistory,
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-
-            // 设备列表
-            if (_devices != null && _devices!.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const Text(
-                '已发现的设备',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ..._devices!.map((device) => _buildDeviceItem(device)),
-            ],
-
-            // 同步统计信息
-            if (_statistics != null) ...[
-              const SizedBox(height: 24),
-              const Text(
-                '同步统计',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _buildStatisticsSection(_statistics!),
-            ],
-
-            // 同步历史
-            if (_history != null && _history!.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const Text(
-                '同步历史',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ..._history!.map((event) => _buildHistoryItem(event)),
-            ],
-
-            // 加载指示器
-            if (_isLoading) ...[
-              const SizedBox(height: 16),
-              const Center(
-                child: CircularProgressIndicator(),
-              ),
-            ],
-
-            // 重试错误信息
-            if (_retryError != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _retryError!,
-                        style: TextStyle(
-                          color: Colors.orange.shade700,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            // 重试中的 loading 状态
-            if (_isRetrying) ...[
-              const SizedBox(height: 16),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  SizedBox(width: 12),
-                  Text('正在重试同步...'),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        // 重试按钮（仅在 failed 状态显示）
-        if (widget.status.state == SyncState.failed)
-          TextButton.icon(
-            onPressed: _isRetrying ? null : _handleRetry,
-            icon: _isRetrying
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.refresh),
-            label: Text(_isRetrying ? '重试中...' : '重试'),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF00897B),
             ),
           ),
-        // 关闭按钮
-        TextButton(
-          onPressed: _isRetrying ? null : () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
         ),
-      ],
+      ),
+    );
+  }
+
+  /// 构建标题栏
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(SyncDialogSize.padding),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: SyncDialogColor.divider, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Text('同步详情', style: SyncDialogTextStyle.title),
+          const Spacer(),
+          // 关闭按钮
+          IconButton(
+            icon: const Icon(Icons.close),
+            iconSize: 20,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: _closeDialog,
+            tooltip: '关闭 (ESC)',
+          ),
+        ],
+      ),
     );
   }
 }

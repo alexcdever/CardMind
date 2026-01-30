@@ -236,6 +236,7 @@ pub fn update_device_last_seen(peer_id: String, last_seen: i64) -> Result<(), St
 /// print('已配对 $count 个设备');
 /// ```
 #[flutter_rust_bridge::frb(sync)]
+#[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub fn get_trusted_device_count() -> Result<i32, String> {
     let global = TRUST_STORE.lock().map_err(|e| format!("锁定失败: {e}"))?;
     let store = global

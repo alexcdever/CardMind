@@ -1,19 +1,19 @@
 import 'dart:async';
 
-import 'package:cardmind/bridge/api/mdns_discovery.dart' as mdns_api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/mdns_discovery.dart'
+    as mdns_api;
 import 'package:cardmind/models/device.dart';
 
 /// 设备发现事件
 class DeviceDiscoveryEvent {
-  final String peerId;
-  final List<String> multiaddrs;
-  final bool isOnline;
-
   DeviceDiscoveryEvent({
     required this.peerId,
     required this.multiaddrs,
     required this.isOnline,
   });
+  final String peerId;
+  final List<String> multiaddrs;
+  final bool isOnline;
 }
 
 /// 设备发现服务
@@ -28,10 +28,12 @@ class DeviceDiscoveryService {
   final Map<String, DeviceDiscoveryEvent> _deviceStates = {};
 
   /// 设备状态变化流控制器
-  final _stateChangeController = StreamController<DeviceDiscoveryEvent>.broadcast();
+  final _stateChangeController =
+      StreamController<DeviceDiscoveryEvent>.broadcast();
 
   /// 设备状态变化流
-  Stream<DeviceDiscoveryEvent> get stateChanges => _stateChangeController.stream;
+  Stream<DeviceDiscoveryEvent> get stateChanges =>
+      _stateChangeController.stream;
 
   /// 是否已启动
   bool _isStarted = false;
@@ -75,7 +77,8 @@ class DeviceDiscoveryService {
 
         final previousState = _deviceStates[device.peerId];
         final isNewDevice = previousState == null;
-        final statusChanged = previousState != null && previousState.isOnline != device.isOnline;
+        final statusChanged =
+            previousState != null && previousState.isOnline != device.isOnline;
 
         if (isNewDevice || statusChanged) {
           final event = DeviceDiscoveryEvent(
@@ -90,7 +93,9 @@ class DeviceDiscoveryService {
       }
 
       // 检测离线设备（之前在线但现在不在列表中的设备）
-      final offlineDevices = _deviceStates.keys.where((peerId) => !currentPeerIds.contains(peerId)).toList();
+      final offlineDevices = _deviceStates.keys
+          .where((peerId) => !currentPeerIds.contains(peerId))
+          .toList();
 
       for (final peerId in offlineDevices) {
         final previousState = _deviceStates[peerId]!;
@@ -184,7 +189,9 @@ class DeviceDiscoveryService {
 
       return device.copyWith(
         status: state.isOnline ? DeviceStatus.online : DeviceStatus.offline,
-        multiaddrs: state.multiaddrs.isNotEmpty ? state.multiaddrs : device.multiaddrs,
+        multiaddrs: state.multiaddrs.isNotEmpty
+            ? state.multiaddrs
+            : device.multiaddrs,
         lastSeen: state.isOnline ? DateTime.now() : device.lastSeen,
       );
     }).toList();

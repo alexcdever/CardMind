@@ -9,7 +9,6 @@ import '../platform_detector.dart';
 /// On desktop platforms, this widget does not expand the touch area
 /// since mouse precision is higher.
 class TouchTarget extends StatelessWidget {
-
   const TouchTarget({
     super.key,
     required this.child,

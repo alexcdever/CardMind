@@ -128,6 +128,7 @@ impl KeyringStore {
     /// assert_eq!(key, "pool.pool-001.password");
     /// ```
     #[must_use]
+    #[allow(clippy::unused_self)]
     pub fn make_entry_name(&self, pool_id: &str) -> String {
         format!("pool.{pool_id}.password")
     }
@@ -308,14 +309,13 @@ mod tests {
 
         // Store password
         let result = store.store_pool_password(test_pool_id, &password);
-        assert!(result.is_ok(), "Failed to store password: {:?}", result);
+        assert!(result.is_ok(), "Failed to store password: {result:?}");
 
         // Retrieve password
         let retrieved = store.get_pool_password(test_pool_id);
         assert!(
             retrieved.is_ok(),
-            "Failed to retrieve password: {:?}",
-            retrieved
+            "Failed to retrieve password: {retrieved:?}"
         );
         assert_eq!(retrieved.unwrap().as_str(), "test_password_123");
 
@@ -372,7 +372,7 @@ mod tests {
         if let Err(KeyringError::PasswordNotFound(_)) = result {
             // Expected error type
         } else {
-            assert!(false, "Expected PasswordNotFound error");
+            panic!("Expected PasswordNotFound error");
         }
     }
 

@@ -1,3 +1,6 @@
+#![allow(clippy::unnecessary_wraps)]
+#![allow(clippy::unused_self)]
+
 use std::sync::{Arc, Mutex};
 
 #[allow(dead_code)]
@@ -14,7 +17,7 @@ impl DeviceConfig {
         }
     }
 
-    fn is_joined(&self) -> bool {
+    const fn is_joined(&self) -> bool {
         self.pool_id.is_some()
     }
 

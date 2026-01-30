@@ -35,11 +35,11 @@ class NoteCardDesktop extends StatefulWidget {
 
   /// Callback when the card should be edited
   /// Provides the card object to be edited
-  final Function(bridge.Card card)? onEdit;
+  final void Function(bridge.Card card)? onEdit;
 
   /// Callback when the card should be deleted
   /// Provides the card ID to be deleted
-  final Function(String cardId) onDelete;
+  final void Function(String cardId) onDelete;
 
   /// Callback when the card content should be copied to clipboard
   final VoidCallback? onCopy;
@@ -67,7 +67,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    _hoverAnimation = Tween<double>(begin: 1.0, end: 1.02).animate(
+    _hoverAnimation = Tween<double>(begin: 1, end: 1.02).animate(
       CurvedAnimation(parent: _hoverController, curve: Curves.easeOutCubic),
     );
     _focusNode.addListener(_handleFocusChange);
@@ -193,7 +193,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
                           : 'Note card: Untitled',
                       button: true,
                       child: Padding(
-                        padding: const EdgeInsets.all(20.0),
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -304,7 +304,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
           value: 'edit',
           child: Row(
             children: [
-              Icon(Icons.edit_outlined, size: 18),
+              const Icon(Icons.edit_outlined, size: 18),
               const SizedBox(width: 12),
               const Text('编辑'),
               const Spacer(),
@@ -323,7 +323,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete_outline, size: 18, color: Colors.red),
+              const Icon(Icons.delete_outline, size: 18, color: Colors.red),
               const SizedBox(width: 12),
               const Text('删除', style: TextStyle(color: Colors.red)),
               const Spacer(),
@@ -342,7 +342,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
           value: 'view_details',
           child: Row(
             children: [
-              Icon(Icons.info_outline, size: 18),
+              const Icon(Icons.info_outline, size: 18),
               const SizedBox(width: 12),
               const Text('查看详情'),
               const Spacer(),
@@ -361,7 +361,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
           value: 'copy_content',
           child: Row(
             children: [
-              Icon(Icons.copy_outlined, size: 18),
+              const Icon(Icons.copy_outlined, size: 18),
               const SizedBox(width: 12),
               const Text('复制内容'),
               const Spacer(),
@@ -377,9 +377,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
           ),
         ),
       ],
-    ).then((value) {
-      _handleContextMenuSelection(value);
-    });
+    ).then(_handleContextMenuSelection);
   }
 
   void _handleContextMenuSelection(String? value) {
@@ -400,7 +398,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
   }
 
   void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('删除确认'),
@@ -433,7 +431,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
     final tags = widget.card.tags.isEmpty ? '无' : widget.card.tags.join(', ');
     final lastEditDevice = widget.card.lastEditDevice ?? '未知';
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('卡片详情'),
@@ -468,7 +466,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
 
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

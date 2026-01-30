@@ -1,6 +1,7 @@
 import 'dart:io';
-import 'package:flutter_test/flutter_test.dart';
+
 import 'package:cardmind/services/qr_code_parser.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('QRCodeData Model Tests', () {
@@ -46,7 +47,7 @@ void main() {
       expect(json['peerId'], '12D3KooWTest');
       expect(json['deviceName'], 'Test Device');
       expect(json['deviceType'], 'laptop');
-      expect(json['multiaddrs'], isA<List>());
+      expect(json['multiaddrs'], isA<List<dynamic>>());
       expect(json['timestamp'], 1706234567);
       expect(json['poolId'], 'test-pool-id');
     });
@@ -80,10 +81,7 @@ void main() {
         'poolId': 'test-pool-id',
       };
 
-      expect(
-        () => QRCodeData.fromJson(json),
-        returnsNormally,
-      );
+      expect(() => QRCodeData.fromJson(json), returnsNormally);
     });
 
     test('validates device type correctly', () {
@@ -145,10 +143,7 @@ void main() {
         'poolId': 'test-pool-id',
       };
 
-      expect(
-        () => QRCodeData.fromJson(json),
-        returnsNormally,
-      );
+      expect(() => QRCodeData.fromJson(json), returnsNormally);
     });
 
     test('validates multiaddrs not empty', () {
@@ -193,10 +188,7 @@ void main() {
       final file = File('test/fixtures/invalid_image.txt');
       await file.writeAsString('not an image');
 
-      expect(
-        () => QRCodeParser.parseFromFile(file),
-        throwsA(isA<Exception>()),
-      );
+      expect(() => QRCodeParser.parseFromFile(file), throwsA(isA<Exception>()));
 
       await file.delete();
     });
@@ -210,10 +202,7 @@ void main() {
         return;
       }
 
-      expect(
-        () => QRCodeParser.parseFromFile(file),
-        throwsA(isA<Exception>()),
-      );
+      expect(() => QRCodeParser.parseFromFile(file), throwsA(isA<Exception>()));
     });
   });
 }

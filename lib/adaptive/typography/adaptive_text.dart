@@ -3,7 +3,6 @@ import 'adaptive_typography.dart';
 
 /// Adaptive text widget that uses platform-appropriate font sizes
 class AdaptiveText extends StatelessWidget {
-
   const AdaptiveText(
     this.text, {
     super.key,
@@ -38,7 +37,6 @@ class AdaptiveText extends StatelessWidget {
 
 /// Adaptive heading text widget
 class AdaptiveHeading extends StatelessWidget {
-
   const AdaptiveHeading(
     this.text, {
     super.key,
@@ -97,7 +95,6 @@ class AdaptiveHeading extends StatelessWidget {
 
 /// Adaptive body text widget
 class AdaptiveBodyText extends StatelessWidget {
-
   const AdaptiveBodyText(
     this.text, {
     super.key,
@@ -133,7 +130,6 @@ class AdaptiveBodyText extends StatelessWidget {
 
 /// Adaptive caption text widget
 class AdaptiveCaptionText extends StatelessWidget {
-
   const AdaptiveCaptionText(
     this.text, {
     super.key,

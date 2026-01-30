@@ -34,7 +34,7 @@ class TimeFormatter {
     if (secondsAgo <= 10) {
       return '刚刚'; // 0-10 seconds: "Just now"
     } else if (secondsAgo <= 59) {
-      return '${secondsAgo}秒前'; // 11-59 seconds: "X seconds ago"
+      return '$secondsAgo秒前'; // 11-59 seconds: "X seconds ago"
     } else if (difference.inMinutes < 60) {
       return '${difference.inMinutes}分钟前'; // 1-59 minutes: "X minutes ago"
     } else if (difference.inHours < 24) {
@@ -111,10 +111,9 @@ class TimeFormatter {
 
 /// Cache-friendly time formatting with TTL
 class TimeCache {
+  TimeCache({Duration? ttl}) : _ttl = ttl ?? const Duration(seconds: 60);
   final Map<String, _CacheEntry> _cache = {};
   final Duration _ttl;
-
-  TimeCache({Duration? ttl}) : _ttl = ttl ?? const Duration(seconds: 60);
 
   String format(int timestamp, {DateTime? now}) {
     final key = timestamp.toString();
@@ -142,8 +141,7 @@ class TimeCache {
 
 /// Cache entry for time formatting
 class _CacheEntry {
+  _CacheEntry(this.formattedTime, this.timestamp);
   final String formattedTime;
   final DateTime timestamp;
-
-  _CacheEntry(this.formattedTime, this.timestamp);
 }

@@ -1,5 +1,5 @@
-import 'package:cardmind/widgets/note_card.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/widgets/note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -24,17 +24,15 @@ void main() {
     );
 
     // Print all semantics labels
-    final renderObject = tester.binding.pipelineOwner!.semanticsOwner!;
-    final semantics = renderObject.debugDescribeSemanticsTree(
-      includeChildIds: true,
-    );
-    print('Semantics tree:');
-    print(semantics);
+    // Note: debugDescribeSemanticsTree is no longer available in newer Flutter versions
+    // Use SemanticsDebugger widget or flutter inspector instead
+    print('Semantics tree: Use SemanticsDebugger widget for debugging');
 
     // Find all semantics widgets
     final semanticsWidgets = find.byType(Semantics).evaluate();
     for (final widget in semanticsWidgets) {
-      print('Semantics widget: ${widget.debugLabel}');
+      // Note: debugLabel is no longer available on Element
+      print('Semantics widget: ${widget.widget.runtimeType}');
     }
   });
 }

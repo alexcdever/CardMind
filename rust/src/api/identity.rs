@@ -1,6 +1,6 @@
 //! 设备身份 API
 //!
-//! 提供设备身份管理的 FFI 接口，包括 PeerId 获取和密钥对管理。
+//! 提供设备身份管理的 FFI 接口，包括 `PeerId` 获取和密钥对管理。
 
 use crate::p2p::identity::IdentityManager;
 use std::path::PathBuf;
@@ -225,7 +225,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let base_path = temp_dir.path().to_string_lossy().to_string();
 
-        init_identity_manager(base_path.clone()).unwrap();
+        init_identity_manager(base_path).unwrap();
 
         let path = get_keypair_path().unwrap();
         assert!(path.contains("identity"));

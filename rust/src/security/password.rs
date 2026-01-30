@@ -125,7 +125,7 @@ impl JoinRequest {
         Self {
             pool_id: pool_id.to_string(),
             password,
-            timestamp: Utc::now().timestamp_millis() as u64,
+            timestamp: Utc::now().timestamp_millis().cast_unsigned(),
         }
     }
 
@@ -173,7 +173,7 @@ impl JoinRequest {
         max_age_ms: u64,
         tolerance_ms: u64,
     ) -> Result<(), PasswordError> {
-        let now = Utc::now().timestamp_millis() as u64;
+        let now = Utc::now().timestamp_millis().cast_unsigned();
 
         // 检查时间戳是否在未来（考虑时钟偏差）
         if self.timestamp > now + tolerance_ms {
@@ -345,8 +345,8 @@ impl PasswordManager {
     /// ```
     #[must_use]
     pub fn strength_hint(password: &Zeroizing<String>) -> &'static str {
-        let has_letter = password.chars().any(|c| c.is_alphabetic());
-        let has_digit = password.chars().any(|c| c.is_numeric());
+        let has_letter = password.chars().any(char::is_alphabetic);
+        let has_digit = password.chars().any(char::is_numeric);
         let has_special = password.chars().any(|c| !c.is_alphanumeric());
 
         let strength_score = [has_letter, has_digit, has_special]
@@ -412,7 +412,7 @@ mod tests {
         let weak = Zeroizing::new("pass".to_string());
         assert!(PasswordManager::validate_strength(&weak).is_err());
 
-        let empty = Zeroizing::new("".to_string());
+        let empty = Zeroizing::new(String::new());
         assert!(PasswordManager::validate_strength(&empty).is_err());
     }
 
@@ -434,7 +434,7 @@ mod tests {
     #[test]
     fn test_join_request_creation() {
         let password = Zeroizing::new("test_password".to_string());
-        let request = JoinRequest::new("pool-001", password.clone());
+        let request = JoinRequest::new("pool-001", password);
 
         assert_eq!(request.pool_id, "pool-001");
         assert_eq!(request.password.as_str(), "test_password");
@@ -456,7 +456,7 @@ mod tests {
         let mut request = JoinRequest::new("pool-001", password);
 
         // 设置一个 6 分钟前的时间戳
-        request.timestamp = (Utc::now().timestamp_millis() - 360_000) as u64;
+        request.timestamp = (Utc::now().timestamp_millis() - 360_000).cast_unsigned();
 
         // 应该过期
         assert!(request.validate_timestamp().is_err());
@@ -468,7 +468,7 @@ mod tests {
         let mut request = JoinRequest::new("pool-001", password);
 
         // 设置一个未来的时间戳（超过容忍范围）
-        request.timestamp = (Utc::now().timestamp_millis() + 60_000) as u64;
+        request.timestamp = (Utc::now().timestamp_millis() + 60_000).cast_unsigned();
 
         // 应该无效
         assert!(request.validate_timestamp().is_err());

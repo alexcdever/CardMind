@@ -4,11 +4,10 @@ import 'package:flutter/foundation.dart';
 
 /// CardProvider manages the state of cards in the application
 class CardProvider with ChangeNotifier {
-  final CardService _cardService;
-
   /// Constructor with optional CardService injection for testing
   CardProvider({CardService? cardService})
-      : _cardService = cardService ?? CardService();
+    : _cardService = cardService ?? CardService();
+  final CardService _cardService;
 
   List<Card> _cards = [];
   bool _isLoading = false;
@@ -72,11 +71,7 @@ class CardProvider with ChangeNotifier {
   }
 
   /// Update a card
-  Future<bool> updateCard(
-    String id, {
-    String? title,
-    String? content,
-  }) async {
+  Future<bool> updateCard(String id, {String? title, String? content}) async {
     try {
       _clearError();
       await _cardService.updateCard(id, title: title, content: content);

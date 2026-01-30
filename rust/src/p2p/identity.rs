@@ -46,6 +46,7 @@ impl IdentityManager {
     ///
     /// let manager = IdentityManager::new(Path::new("/path/to/app/data"));
     /// ```
+    #[must_use]
     pub fn new(base_path: &Path) -> Self {
         let identity_dir = base_path.join("identity");
         let keypair_path = identity_dir.join("keypair.bin");
@@ -172,7 +173,7 @@ impl IdentityManager {
 
     /// 删除密钥对文件
     ///
-    /// **警告**: 此操作不可逆，删除后设备将获得新的 PeerId。
+    /// **警告**: 此操作不可逆，删除后设备将获得新的 `PeerId`。
     ///
     /// # Errors
     ///
@@ -186,11 +187,13 @@ impl IdentityManager {
     }
 
     /// 检查密钥对文件是否存在
+    #[must_use]
     pub fn keypair_exists(&self) -> bool {
         self.keypair_path.exists()
     }
 
     /// 获取密钥对文件路径
+    #[must_use]
     pub fn keypair_path(&self) -> &Path {
         &self.keypair_path
     }

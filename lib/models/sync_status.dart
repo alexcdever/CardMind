@@ -24,33 +24,21 @@ enum SyncState {
 /// 同步状态模型
 class SyncStatus {
   /// 构造函数
-  const SyncStatus({
-    required this.state,
-    this.lastSyncTime,
-    this.errorMessage,
-  });
+  const SyncStatus({required this.state, this.lastSyncTime, this.errorMessage});
 
   /// 创建 notYetSynced 状态
   factory SyncStatus.notYetSynced() {
-    return const SyncStatus(
-      state: SyncState.notYetSynced,
-    );
+    return const SyncStatus(state: SyncState.notYetSynced);
   }
 
   /// 创建 syncing 状态
   factory SyncStatus.syncing({DateTime? lastSyncTime}) {
-    return SyncStatus(
-      state: SyncState.syncing,
-      lastSyncTime: lastSyncTime,
-    );
+    return SyncStatus(state: SyncState.syncing, lastSyncTime: lastSyncTime);
   }
 
   /// 创建 synced 状态
   factory SyncStatus.synced({required DateTime lastSyncTime}) {
-    return SyncStatus(
-      state: SyncState.synced,
-      lastSyncTime: lastSyncTime,
-    );
+    return SyncStatus(state: SyncState.synced, lastSyncTime: lastSyncTime);
   }
 
   /// 创建 failed 状态
@@ -150,11 +138,7 @@ class SyncStatus {
 
   @override
   int get hashCode {
-    return Object.hash(
-      state,
-      lastSyncTime,
-      errorMessage,
-    );
+    return Object.hash(state, lastSyncTime, errorMessage);
   }
 
   @override

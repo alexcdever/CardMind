@@ -91,7 +91,7 @@ class NavTabItem extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: NavConstants.indicatorIconSpacing),
+              const SizedBox(height: NavConstants.indicatorIconSpacing),
               // 图标和徽章
               Stack(
                 clipBehavior: Clip.none,
@@ -115,7 +115,7 @@ class NavTabItem extends StatelessWidget {
                     ),
                 ],
               ),
-              SizedBox(height: NavConstants.iconLabelSpacing),
+              const SizedBox(height: NavConstants.iconLabelSpacing),
               // 标签文字
               AnimatedDefaultTextStyle(
                 duration: NavConstants.tabSwitchDuration,

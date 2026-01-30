@@ -1,13 +1,13 @@
 //! SP-SPM-001: Single Pool Model Specification Tests
 //!
 //! Implementation of the core single pool model specs from
-//! specs/rust/single_pool_model_spec.md
+//! `specs/rust/single_pool_model_spec.md`
 //!
-//! Test Naming: it_should_[behavior]_when_[condition]()
+//! Test Naming: `it_should`_[behavior]_when_[condition]()
 
 use cardmind_rust::models::device_config::{DeviceConfig, DeviceConfigError};
 
-/// Test helper to create a basic DeviceConfig for testing
+/// Test helper to create a basic `DeviceConfig` for testing
 fn create_test_config() -> DeviceConfig {
     DeviceConfig::new("test-device-001")
 }
@@ -15,7 +15,7 @@ fn create_test_config() -> DeviceConfig {
 // ==== SP-SPM-001 Spec-002-A: 设备只能加入一个池 ====
 
 #[test]
-/// it_should_allow_joining_first_pool_successfully()
+/// `it_should_allow_joining_first_pool_successfully()`
 fn it_should_allow_joining_first_pool_successfully() {
     // Given: DeviceConfig { pool_id: None }
     let mut config = create_test_config();
@@ -30,7 +30,7 @@ fn it_should_allow_joining_first_pool_successfully() {
 }
 
 #[test]
-/// it_should_reject_joining_second_pool_when_already_joined()
+/// `it_should_reject_joining_second_pool_when_already_joined()`
 fn it_should_reject_joining_second_pool_when_already_joined() {
     // Given: DeviceConfig { pool_id: Some("pool_A".to_string()) }
     let mut config = create_test_config();
@@ -51,7 +51,7 @@ fn it_should_reject_joining_second_pool_when_already_joined() {
 // ==== SP-SPM-001 Spec-002-B: 退出池时清空所有数据 ====
 
 #[test]
-/// it_should_clear_all_data_when_leaving_pool()
+/// `it_should_clear_all_data_when_leaving_pool()`
 fn it_should_clear_all_data_when_leaving_pool() {
     // Given: 已加入 pool_A
     let mut config = create_test_config();
@@ -68,7 +68,7 @@ fn it_should_clear_all_data_when_leaving_pool() {
 // ==== SP-SPM-001 Spec-005-A: 创建卡片时自动加入当前池 ====
 
 #[test]
-/// it_should_auto_join_current_pool_when_creating_card()
+/// `it_should_auto_join_current_pool_when_creating_card()`
 fn it_should_auto_join_current_pool_when_creating_card() {
     // Given: DeviceConfig { pool_id: Some("pool_A".to_string()) }
     let mut config = create_test_config();
@@ -88,7 +88,7 @@ fn it_should_auto_join_current_pool_when_creating_card() {
 // ==== Integration Tests ====
 
 #[test]
-/// it_should_enforce_single_pool_constraint_across_operations()
+/// `it_should_enforce_single_pool_constraint_across_operations()`
 fn it_should_enforce_single_pool_constraint_across_operations() {
     // Given: 新设备
     let mut config = create_test_config();

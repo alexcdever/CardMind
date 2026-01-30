@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/widgets/mobile_nav/mobile_nav.dart';
 import 'package:cardmind/widgets/mobile_nav/nav_models.dart';
 import 'package:cardmind/widgets/mobile_nav/nav_tab_item.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 /// Widget tests for MobileNav component
 /// Based on design specification section 8.2
@@ -211,6 +211,7 @@ void main() {
 
         // Then: Should have correct height
         final mobileNav = tester.widget<MobileNav>(find.byType(MobileNav));
+        // ignore: unused_local_variable
         final container = tester.widget<Container>(
           find
               .descendant(

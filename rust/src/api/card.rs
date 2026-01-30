@@ -8,7 +8,7 @@ use crate::models::error::Result;
 use crate::store::card_store::CardStore;
 use std::sync::{Arc, Mutex};
 
-/// Global CardStore instance
+/// Global `CardStore` instance
 static CARD_STORE: Mutex<Option<Arc<Mutex<CardStore>>>> = Mutex::new(None);
 
 /// Initialize the CardStore with the given storage path
@@ -32,7 +32,7 @@ pub fn init_card_store(path: String) -> Result<()> {
     Ok(())
 }
 
-/// Get the global CardStore instance (internal helper)
+/// Get the global `CardStore` instance (internal helper)
 fn get_store() -> Result<Arc<Mutex<CardStore>>> {
     let global_store = CARD_STORE.lock().unwrap();
     global_store.clone().ok_or_else(|| {
@@ -42,10 +42,10 @@ fn get_store() -> Result<Arc<Mutex<CardStore>>> {
     })
 }
 
-/// Get the global CardStore Arc (for internal use by other modules)
+/// Get the global `CardStore` Arc (for internal use by other modules)
 ///
 /// This function is used internally by other Rust modules (e.g., P2P sync)
-/// that need direct access to the CardStore.
+/// that need direct access to the `CardStore`.
 ///
 /// # Returns
 ///
@@ -53,7 +53,7 @@ fn get_store() -> Result<Arc<Mutex<CardStore>>> {
 ///
 /// # Errors
 ///
-/// Returns error if CardStore is not initialized
+/// Returns error if `CardStore` is not initialized
 pub(crate) fn get_card_store_arc() -> Result<Arc<Mutex<CardStore>>> {
     get_store()
 }
@@ -341,7 +341,7 @@ mod tests {
     use serial_test::serial;
     use tempfile::TempDir;
 
-    /// Helper: Initialize a temporary CardStore for testing
+    /// Helper: Initialize a temporary `CardStore` for testing
     fn init_test_store() -> TempDir {
         let temp_dir = TempDir::new().unwrap();
         let path = temp_dir.path().to_str().unwrap().to_string();
@@ -439,7 +439,7 @@ mod tests {
         let _temp = init_test_store();
 
         let card = create_card("Test".to_string(), "Content".to_string()).unwrap();
-        let card_id = card.id.clone();
+        let card_id = card.id;
 
         let result = get_card_by_id(card_id);
         assert!(result.is_ok(), "Should get card by ID successfully");
@@ -456,7 +456,7 @@ mod tests {
         let _temp = init_test_store();
 
         let card = create_card("Old Title".to_string(), "Old Content".to_string()).unwrap();
-        let card_id = card.id.clone();
+        let card_id = card.id;
 
         let result = update_card(card_id.clone(), Some("New Title".to_string()), None);
         assert!(result.is_ok(), "Should update card successfully");
@@ -474,7 +474,7 @@ mod tests {
         let _temp = init_test_store();
 
         let card = create_card("Test".to_string(), "Content".to_string()).unwrap();
-        let card_id = card.id.clone();
+        let card_id = card.id;
 
         let result = delete_card(card_id.clone());
         assert!(result.is_ok(), "Should delete card successfully");

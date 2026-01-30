@@ -19,7 +19,7 @@ class CardEditDialog extends StatefulWidget {
 
   final bridge.Card card;
   final String currentDevice;
-  final Function(bridge.Card) onSave;
+  final void Function(bridge.Card) onSave;
 
   @override
   State<CardEditDialog> createState() => _CardEditDialogState();
@@ -60,7 +60,8 @@ class _CardEditDialogState extends State<CardEditDialog> {
   }
 
   void _onTextChanged() {
-    final hasChanges = _titleController.text != widget.card.title ||
+    final hasChanges =
+        _titleController.text != widget.card.title ||
         _contentController.text != widget.card.content;
 
     if (hasChanges != _hasUnsavedChanges) {
@@ -100,10 +101,7 @@ class _CardEditDialogState extends State<CardEditDialog> {
     // 验证标题不为空
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('标题不能为空'),
-          duration: Duration(seconds: 2),
-        ),
+        const SnackBar(content: Text('标题不能为空'), duration: Duration(seconds: 2)),
       );
       return;
     }
@@ -145,9 +143,7 @@ class _CardEditDialogState extends State<CardEditDialog> {
         }
       },
       child: Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: screenSize.width * 0.6,
           constraints: BoxConstraints(
@@ -264,10 +260,7 @@ class _CardEditDialogState extends State<CardEditDialog> {
                     bottomRight: Radius.circular(16),
                   ),
                   border: Border(
-                    top: BorderSide(
-                      color: theme.dividerColor,
-                      width: 1,
-                    ),
+                    top: BorderSide(color: theme.dividerColor, width: 1),
                   ),
                 ),
                 child: Row(

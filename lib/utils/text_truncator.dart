@@ -175,16 +175,18 @@ class TextTruncator {
 
   /// Validate if text meets card display requirements
   static bool isValidForDisplay(String text, {required bool isTitle}) {
-    if (text.isEmpty)
+    if (text.isEmpty) {
       return true; // Empty text is valid (will show placeholder)
+    }
 
     // Check for excessively long text that might cause performance issues
     const int maxReasonableLength = 10000; // 10k characters
     if (text.length > maxReasonableLength) return false;
 
     // Check for control characters that might break rendering
-    if (text.contains(RegExp(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]')))
+    if (text.contains(RegExp(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]'))) {
       return false;
+    }
 
     return true;
   }

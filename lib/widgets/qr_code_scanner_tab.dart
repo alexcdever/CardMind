@@ -1,28 +1,19 @@
+import 'package:cardmind/services/qr_code_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
-
-import 'package:cardmind/services/qr_code_parser.dart';
 
 /// 二维码扫描回调
 typedef OnQRCodeScanned = Future<void> Function(QRCodeData qrData);
 
 /// 相机权限状态
-enum CameraPermissionStatus {
-  notRequested,
-  granted,
-  denied,
-  permanentlyDenied,
-}
+enum CameraPermissionStatus { notRequested, granted, denied, permanentlyDenied }
 
 /// 二维码扫描标签页
 ///
 /// 使用相机扫描二维码进行设备配对。
 class QRCodeScannerTab extends StatefulWidget {
-  const QRCodeScannerTab({
-    super.key,
-    required this.onQRCodeScanned,
-  });
+  const QRCodeScannerTab({super.key, required this.onQRCodeScanned});
 
   final OnQRCodeScanned onQRCodeScanned;
 
@@ -33,7 +24,8 @@ class QRCodeScannerTab extends StatefulWidget {
 class _QRCodeScannerTabState extends State<QRCodeScannerTab>
     with AutomaticKeepAliveClientMixin {
   MobileScannerController? _controller;
-  CameraPermissionStatus _permissionStatus = CameraPermissionStatus.notRequested;
+  CameraPermissionStatus _permissionStatus =
+      CameraPermissionStatus.notRequested;
   bool _isProcessing = false;
   String? _errorMessage;
 
@@ -199,10 +191,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
       children: [
         // 相机预览
         if (_controller != null)
-          MobileScanner(
-            controller: _controller!,
-            onDetect: _handleBarcode,
-          ),
+          MobileScanner(controller: _controller!, onDetect: _handleBarcode),
 
         // 扫描框和提示
         _buildScanOverlay(theme),
@@ -302,11 +291,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 24),
             Text(
               '相机启动失败',
@@ -352,9 +337,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
           color: Colors.black.withOpacity(0.5),
           child: Text(
             '将二维码放入框内',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-            ),
+            style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
             textAlign: TextAlign.center,
           ),
         ),
@@ -366,35 +349,28 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
               width: 280,
               height: 280,
               decoration: BoxDecoration(
-                border: Border.all(
-                  color: theme.colorScheme.primary,
-                  width: 3,
-                ),
+                border: Border.all(color: theme.colorScheme.primary, width: 3),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Stack(
                 children: [
                   // 四个角的装饰
-                  _buildCornerDecoration(
-                    theme,
-                    Alignment.topLeft,
-                    [_CornerSide.top, _CornerSide.left],
-                  ),
-                  _buildCornerDecoration(
-                    theme,
-                    Alignment.topRight,
-                    [_CornerSide.top, _CornerSide.right],
-                  ),
-                  _buildCornerDecoration(
-                    theme,
-                    Alignment.bottomLeft,
-                    [_CornerSide.bottom, _CornerSide.left],
-                  ),
-                  _buildCornerDecoration(
-                    theme,
-                    Alignment.bottomRight,
-                    [_CornerSide.bottom, _CornerSide.right],
-                  ),
+                  _buildCornerDecoration(theme, Alignment.topLeft, [
+                    _CornerSide.top,
+                    _CornerSide.left,
+                  ]),
+                  _buildCornerDecoration(theme, Alignment.topRight, [
+                    _CornerSide.top,
+                    _CornerSide.right,
+                  ]),
+                  _buildCornerDecoration(theme, Alignment.bottomLeft, [
+                    _CornerSide.bottom,
+                    _CornerSide.left,
+                  ]),
+                  _buildCornerDecoration(theme, Alignment.bottomRight, [
+                    _CornerSide.bottom,
+                    _CornerSide.right,
+                  ]),
                 ],
               ),
             ),
@@ -408,9 +384,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
           color: Colors.black.withOpacity(0.5),
           child: Text(
             '扫描对方设备显示的二维码',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: Colors.white70,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
             textAlign: TextAlign.center,
           ),
         ),
@@ -502,9 +476,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
             const SizedBox(height: 24),
             Text(
               '正在处理二维码...',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
             ),
           ],
         ),
@@ -514,9 +486,4 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
 }
 
 /// 角落方向枚举
-enum _CornerSide {
-  top,
-  left,
-  right,
-  bottom,
-}
+enum _CornerSide { top, left, right, bottom }
