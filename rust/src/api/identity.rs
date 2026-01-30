@@ -167,8 +167,16 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
+    // 测试辅助函数：清理全局状态
+    fn cleanup_global_state() {
+        let mut global = IDENTITY_MANAGER.lock().unwrap();
+        *global = None;
+    }
+
     #[test]
     fn test_init_and_get_peer_id() {
+        cleanup_global_state();
+
         let temp_dir = TempDir::new().unwrap();
         let base_path = temp_dir.path().to_string_lossy().to_string();
 
@@ -187,6 +195,8 @@ mod tests {
 
     #[test]
     fn test_keypair_exists() {
+        cleanup_global_state();
+
         let temp_dir = TempDir::new().unwrap();
         let base_path = temp_dir.path().to_string_lossy().to_string();
 
@@ -202,6 +212,8 @@ mod tests {
 
     #[test]
     fn test_delete_keypair() {
+        cleanup_global_state();
+
         let temp_dir = TempDir::new().unwrap();
         let base_path = temp_dir.path().to_string_lossy().to_string();
 
@@ -222,6 +234,8 @@ mod tests {
 
     #[test]
     fn test_get_keypair_path() {
+        cleanup_global_state();
+
         let temp_dir = TempDir::new().unwrap();
         let base_path = temp_dir.path().to_string_lossy().to_string();
 
