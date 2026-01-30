@@ -1,0 +1,747 @@
+
+[1m[34m============================================================
+  CardMind Lint Fixer + Spec Coding Validator
+============================================================[0m
+
+
+[1m[33m━━━ Processing Flutter/Dart Code ━━━[0m
+
+
+[1mRunning dart format...[0m
+[34m  → Running: dart format --set-exit-if-changed --output=none .[0m
+Formatted 207 files (0 changed) in 0.85 seconds.
+[32m✓ Code formatting is correct[0m
+
+[1mRunning flutter analyze...[0m
+[34m  → Running: flutter analyze[0m
+Analyzing CardMind...                                           
+
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/main.dart:117:9 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/main.dart:128:9 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/providers/device_manager_provider.dart:185:7 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/providers/settings_provider.dart:17:7 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/device_manager_page.dart:114:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/device_manager_page.dart:340:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/home_screen.dart:283:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/mobile_device_manager_page.dart:132:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/mobile_device_manager_page.dart:158:27 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:158:11 • use_build_context_synchronously
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/settings_screen.dart:161:7 • avoid_catches_without_on_clauses
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:164:9 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:184:30 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:190:11 • use_build_context_synchronously
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/settings_screen.dart:193:7 • avoid_catches_without_on_clauses
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:196:9 • use_build_context_synchronously
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/screens/settings_screen.dart:212:7 • avoid_catches_without_on_clauses
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/screens/settings_screen.dart:215:9 • use_build_context_synchronously
+   info • Missing an 'await' for the 'Future' computed by this expression • lib/screens/settings_screen.dart:470:5 • unawaited_futures
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/services/device_discovery_service.dart:113:7 • avoid_catches_without_on_clauses
+   info • Unnecessary duplication of receiver • lib/utils/device_utils.dart:15:5 • cascade_invocations
+   info • Unnecessary duplication of receiver • lib/utils/text_truncator.dart:95:5 • cascade_invocations
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/current_device_card.dart:104:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/current_device_card.dart:106:48 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/widgets/device_list_item.dart:142:27 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/device_list_item.dart:343:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/device_manager_panel.dart:113:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/device_manager_panel.dart:116:54 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/edit_device_name_dialog.dart:79:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:172:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:173:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:179:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:184:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:208:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:219:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:257:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:268:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:282:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:316:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:335:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:354:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_desktop.dart:373:49 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_enhanced.dart:389:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_enhanced.dart:412:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:91:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:96:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:140:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/note_card_mobile.dart:153:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/pair_device_dialog.dart:143:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/pair_device_dialog.dart:170:46 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/pair_device_dialog.dart:255:11 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/pair_device_dialog.dart:260:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/pair_device_dialog.dart:273:61 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_scanner_tab.dart:117:7 • avoid_catches_without_on_clauses
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_scanner_tab.dart:160:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_scanner_tab.dart:337:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_scanner_tab.dart:384:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_scanner_tab.dart:470:27 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_upload_tab.dart:107:7 • avoid_catches_without_on_clauses
+   info • Use of an async 'dart:io' method • lib/widgets/qr_code_upload_tab.dart:160:18 • avoid_slow_async_io
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/qr_code_upload_tab.dart:198:7 • avoid_catches_without_on_clauses
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_upload_tab.dart:301:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_upload_tab.dart:302:57 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/qr_code_upload_tab.dart:432:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/components/device_list_item.dart:131:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/components/empty_state_widget.dart:38:52 • deprecated_member_use
+   info • Unnecessary duplication of receiver • lib/widgets/sync_details_dialog/components/sync_status_icon.dart:62:7 • cascade_invocations
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/device_list_section.dart:79:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_history_section.dart:76:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_statistics_section.dart:74:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_status_section.dart:97:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_status_section.dart:99:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/sync_details_dialog/sections/sync_status_section.dart:101:38 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/widgets/verification_code_dialog.dart:54:26 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/widgets/verification_code_dialog.dart:57:26 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/widgets/verification_code_dialog.dart:135:46 • deprecated_member_use
+   info • Catch clause should use 'on' to specify the type of exception being caught • lib/widgets/verification_code_input.dart:297:7 • avoid_catches_without_on_clauses
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:7:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:15:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:16:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:20:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:23:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:35:3 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:38:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:39:5 • avoid_print
+   info • Don't invoke 'print' in production code • rust/tool/generate_bridge.dart:43:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/debug_semantics.dart:29:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/debug_semantics.dart:35:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:18:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:52:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:53:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:56:3 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:59:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:60:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:61:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:62:5 • avoid_print
+   info • Catch clause should use 'on' to specify the type of exception being caught • test/generate_test_qr_v3.dart:63:5 • avoid_catches_without_on_clauses
+   info • Don't invoke 'print' in production code • test/generate_test_qr_v3.dart:64:5 • avoid_print
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:22:7 • avoid_print
+   info • Catch clause should use 'on' to specify the type of exception being caught • test/helpers/integration_test_helper.dart:23:7 • avoid_catches_without_on_clauses
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:24:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:25:7 • avoid_print
+   info • Don't invoke 'print' in production code • test/helpers/integration_test_helper.dart:49:7 • avoid_print
+   info • Setter has no corresponding getter • test/helpers/mock_card_service.dart:25:7 • avoid_setters_without_getters
+   info • Use of an async 'dart:io' method • test/qr_code_parser_test.dart:171:18 • avoid_slow_async_io
+   info • Don't invoke 'print' in production code • test/qr_code_parser_test.dart:172:9 • avoid_print
+   info • Use of an async 'dart:io' method • test/qr_code_parser_test.dart:200:18 • avoid_slow_async_io
+   info • Don't invoke 'print' in production code • test/qr_code_parser_test.dart:201:9 • avoid_print
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:76:19 • avoid_slow_async_io
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:108:19 • avoid_slow_async_io
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:140:21 • avoid_slow_async_io
+   info • Use of an async 'dart:io' method • test/services/qr_code_generator_test.dart:171:19 • avoid_slow_async_io
+   info • Unnecessary duplication of receiver • test/services/verification_code_service_test.dart:126:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/specs/card_creation_spec_test.dart:423:9 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/specs/home_screen_spec_test.dart:303:9 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/specs/home_screen_ui_spec_test.dart:37:7 • cascade_invocations
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/onboarding_spec_test.dart:374:33 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/onboarding_spec_test.dart:544:31 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/ui_interaction_spec_test.dart:304:35 • unawaited_futures
+   info • Missing an 'await' for the 'Future' computed by this expression • test/specs/ui_interaction_spec_test.dart:1039:37 • unawaited_futures
+   info • Unnecessary duplication of receiver • test/utils/time_formatter_test.dart:254:9 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:205:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:218:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:219:7 • cascade_invocations
+   info • Unnecessary duplication of receiver • test/widgets/sync_details_dialog/utils/sync_dialog_formatters_test.dart:226:7 • cascade_invocations
+
+125 issues found. (ran in 2.5s)
+[31m✗ Flutter analyze found issues[0m
+
+[1m[33m━━━ Processing Rust Code ━━━[0m
+
+
+[1mRunning cargo fmt...[0m
+[34m  → Running: cargo fmt -- --check[0m
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Diff in /home/alexc/Projects/CardMind/rust/tests/loro_sync_test.rs:410:
+     device_b.import(&delete_update).unwrap();
+ 
+     // 验证删除标记
+[31m-    assert!(
+(B[m[31m-        *map_b
+(B[m[31m-            .get("deleted")
+(B[m[31m-            .unwrap()
+(B[m[31m-            .into_value()
+(B[m[31m-            .unwrap()
+(B[m[31m-            .as_bool()
+(B[m[31m-            .unwrap()
+(B[m[31m-    );
+(B[m[32m+    assert!(*map_b
+(B[m[32m+        .get("deleted")
+(B[m[32m+        .unwrap()
+(B[m[32m+        .into_value()
+(B[m[32m+        .unwrap()
+(B[m[32m+        .as_bool()
+(B[m[32m+        .unwrap());
+(B[m 
+     // 最终一致性检查
+     assert_eq!(device_a.get_deep_value(), device_b.get_deep_value());
+Diff in /home/alexc/Projects/CardMind/rust/tests/loro_sync_test.rs:455:
+         let temp_map = temp_doc.get_map("card");
+         for i in 0..5 {
+             temp_map.insert("title", format!("标题版本{i}")).unwrap();
+[31m-            temp_map
+(B[m[31m-                .insert("content", format!("内容版本{i}"))
+(B[m[31m-                .unwrap();
+(B[m[32m+            temp_map.insert("content", format!("内容版本{i}")).unwrap();
+(B[m             temp_doc.commit();
+         }
+         temp_doc.oplog_vv()
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Diff in /home/alexc/Projects/CardMind/rust/tests/performance_test.rs:46:
+ 
+     // Total time for creation + query should be reasonable
+     let total_duration = create_start.elapsed();
+[31m-    println!(
+(B[m[31m-        "Total time for 1000 cards creation + query: {total_duration:?}"
+(B[m[31m-    );
+(B[m[32m+    println!("Total time for 1000 cards creation + query: {total_duration:?}");
+(B[m }
+ 
+ /// Test: Individual Loro operations should be < 50ms
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Warning: can't set `wrap_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `comment_width = 80`, unstable features are only available in nightly channel.
+Warning: can't set `normalize_comments = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_strings = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_matchers = true`, unstable features are only available in nightly channel.
+Warning: can't set `format_macro_bodies = true`, unstable features are only available in nightly channel.
+Warning: can't set `struct_lit_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `fn_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `where_single_line = false`, unstable features are only available in nightly channel.
+Warning: can't set `imports_granularity = Crate`, unstable features are only available in nightly channel.
+Warning: can't set `group_imports = StdExternalCrate`, unstable features are only available in nightly channel.
+Warning: can't set `enum_discrim_align_threshold = 0`, unstable features are only available in nightly channel.
+Diff in /home/alexc/Projects/CardMind/rust/tests/sync_integration_test.rs:182:
+     let _ = device_config_b.join_pool("pool-001");
+ 
+     // 创建同步服务（注册到本地模拟网络）
+[31m-    let service_a =
+(B[m[31m-        P2PSyncService::new_with_mock_network(card_store_a, device_config_a).unwrap();
+(B[m[32m+    let service_a = P2PSyncService::new_with_mock_network(card_store_a, device_config_a).unwrap();
+(B[m     let mut service_b =
+         P2PSyncService::new_with_mock_network(card_store_b.clone(), device_config_b).unwrap();
+ 
+[33m⚠ Code formatting issues found. Run without --check-only to fix.[0m
+
+[1mRunning cargo check...[0m
+[34m  → Running: cargo check[0m
+    Checking cardmind_rust v0.1.0 (/home/alexc/Projects/CardMind/rust)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.51s
+[32m✓ Cargo check passed[0m
+
+[1mRunning cargo clippy...[0m
+[34m  → Running: cargo clippy --all-targets --all-features[0m
+    Checking cardmind_rust v0.1.0 (/home/alexc/Projects/CardMind/rust)
+error: this function's return value is unnecessary
+  --> examples/simple_pool_spec.rs:17:5
+   |
+17 |     fn join_pool(&mut self, pool_id: String) -> Result<(), ()> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unnecessary_wraps
+   = note: `-D clippy::unnecessary-wraps` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unnecessary_wraps)]`
+help: remove the return type...
+   |
+17 -     fn join_pool(&mut self, pool_id: String) -> Result<(), ()> {
+17 +     fn join_pool(&mut self, pool_id: String) -> () {
+   |
+help: ...and then remove returned values
+   |
+19 -         Ok(())
+   |
+
+error: long literal lacking separators
+  --> tests/loro_integration_test.rs:38:30
+   |
+38 |     map.insert("created_at", 1704067200000i64).unwrap(); // 2024-01-01 00:00:00 UTC
+   |                              ^^^^^^^^^^^^^^^^ help: consider: `1_704_067_200_000_i64`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+   = note: `-D clippy::unreadable-literal` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unreadable_literal)]`
+
+error: long literal lacking separators
+  --> tests/loro_integration_test.rs:57:47
+   |
+57 |     assert_eq!(*created_at.as_i64().unwrap(), 1704067200000i64);
+   |                                               ^^^^^^^^^^^^^^^^ help: consider: `1_704_067_200_000_i64`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_integration_test.rs:185:30
+    |
+185 |     map.insert("created_at", 1704153600000i64).unwrap();
+    |                              ^^^^^^^^^^^^^^^^ help: consider: `1_704_153_600_000_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_integration_test.rs:214:47
+    |
+214 |     assert_eq!(*created_at.as_i64().unwrap(), 1704153600000i64);
+    |                                               ^^^^^^^^^^^^^^^^ help: consider: `1_704_153_600_000_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+  --> tests/loro_sync_test.rs:31:32
+   |
+31 |     map_a.insert("created_at", 1672531200i64).unwrap();
+   |                                ^^^^^^^^^^^^^ help: consider: `1_672_531_200_i64`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+   = note: `-D clippy::unreadable-literal` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unreadable_literal)]`
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:324:32
+    |
+324 |     map_a.insert("created_at", 1704067200i64).unwrap(); // 2024-01-01
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_067_200_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:325:32
+    |
+325 |     map_a.insert("updated_at", 1704067200i64).unwrap();
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_067_200_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:372:32
+    |
+372 |     map_a.insert("updated_at", 1704153600i64).unwrap(); // 2024-01-02
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_153_600_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:398:9
+    |
+398 |         1704153600i64
+    |         ^^^^^^^^^^^^^ help: consider: `1_704_153_600_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: long literal lacking separators
+   --> tests/loro_sync_test.rs:405:32
+    |
+405 |     map_a.insert("updated_at", 1704240000i64).unwrap(); // 2024-01-03
+    |                                ^^^^^^^^^^^^^ help: consider: `1_704_240_000_i64`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unreadable_literal
+
+error: binding's name is too similar to existing binding
+   --> tests/sqlite_test.rs:190:9
+    |
+190 |     let cards = select_all_cards(&conn).unwrap();
+    |         ^^^^^
+    |
+note: existing binding defined here
+   --> tests/sqlite_test.rs:184:9
+    |
+184 |     let card1 = Card::new(generate_uuid_v7(), "标题1".to_string(), "内容1".to_string());
+    |         ^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#similar_names
+    = note: `-D clippy::similar-names` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::similar_names)]`
+
+error: could not compile `cardmind_rust` (example "simple_pool_spec") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: binding's name is too similar to existing binding
+   --> tests/sqlite_test.rs:302:9
+    |
+302 |     let cards = select_active_cards(&conn).unwrap();
+    |         ^^^^^
+    |
+note: existing binding defined here
+   --> tests/sqlite_test.rs:292:13
+    |
+292 |     let mut card1 = Card::new(generate_uuid_v7(), "标题1".to_string(), "内容1".to_string());
+    |             ^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#similar_names
+
+error: binding's name is too similar to existing binding
+   --> tests/card_store_test.rs:118:9
+    |
+118 |     let cards = store.get_all_cards().unwrap();
+    |         ^^^^^
+    |
+note: existing binding defined here
+   --> tests/card_store_test.rs:109:9
+    |
+109 |     let card1 = store
+    |         ^^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#similar_names
+    = note: `-D clippy::similar-names` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::similar_names)]`
+
+error: this function's return value is unnecessary
+  --> examples/single_pool_flow_spec.rs:21:5
+   |
+21 |     fn join_pool(&mut self, pool_id: String) -> Result<(), String> {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unnecessary_wraps
+   = note: `-D clippy::unnecessary-wraps` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unnecessary_wraps)]`
+help: remove the return type...
+   |
+21 -     fn join_pool(&mut self, pool_id: String) -> Result<(), String> {
+21 +     fn join_pool(&mut self, pool_id: String) -> () {
+   |
+help: ...and then remove returned values
+   |
+23 -         Ok(())
+   |
+
+error: unused `self` argument
+  --> examples/single_pool_flow_spec.rs:58:15
+   |
+58 |     fn config(&self) -> DeviceConfig {
+   |               ^^^^^
+   |
+   = help: consider refactoring to an associated function
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#unused_self
+   = note: `-D clippy::unused-self` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::unused_self)]`
+
+error: could not compile `cardmind_rust` (example "single_pool_flow_spec") due to 2 previous errors
+error: casting `u128` to `f64` causes a loss of precision (`u128` is 128 bits wide, but `f64`'s mantissa is only 52 bits wide)
+  --> tests/performance_test.rs:29:9
+   |
+29 |         create_duration.as_millis() as f64 / 1000.0
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+   = note: `-D clippy::cast-precision-loss` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::cast_precision_loss)]`
+
+error: could not compile `cardmind_rust` (test "performance_test") due to 1 previous error
+error: casting `usize` to `f64` causes a loss of precision on targets with 64-bit wide pointers (`usize` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> tests/loro_sync_test.rs:478:20
+    |
+478 |             (1.0 - incremental.len() as f64 / all_updates.len() as f64) * 100.0
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+    = note: `-D clippy::cast-precision-loss` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::cast_precision_loss)]`
+
+error: casting `usize` to `f64` causes a loss of precision on targets with 64-bit wide pointers (`usize` is 64 bits wide, but `f64`'s mantissa is only 52 bits wide)
+   --> tests/loro_sync_test.rs:478:47
+    |
+478 |             (1.0 - incremental.len() as f64 / all_updates.len() as f64) * 100.0
+    |                                               ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#cast_precision_loss
+
+error: could not compile `cardmind_rust` (test "loro_integration_test") due to 4 previous errors
+error: this assertion is always `true`
+  --> tests/sp_sync_006_spec.rs:78:5
+   |
+78 |     assert!(true);
+   |     ^^^^^^^^^^^^^
+   |
+   = help: remove the assertion
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+   = note: `-D clippy::assertions-on-constants` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::assertions_on_constants)]`
+
+error: this assertion is always `true`
+  --> tests/sp_sync_006_spec.rs:79:5
+   |
+79 |     assert!(true);
+   |     ^^^^^^^^^^^^^
+   |
+   = help: remove the assertion
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: this assertion is always `true`
+  --> tests/sp_sync_006_spec.rs:80:5
+   |
+80 |     assert!(true);
+   |     ^^^^^^^^^^^^^
+   |
+   = help: remove the assertion
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: avoid using `collect()` when not needed
+   --> tests/sp_sync_006_spec.rs:127:10
+    |
+127 |         .collect();
+    |          ^^^^^^^
+128 |
+129 |     let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+    |                           ------------------- the iterator could be used here instead
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#needless_collect
+    = note: `-D clippy::needless-collect` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_collect)]`
+help: use the original Iterator instead of collecting it and then producing a new one
+    |
+122 ~     
+123 |
+124 ~     let results: Vec<_> = (0..5)
+125 +         .map(|_| {
+126 +             let service_clone = service.clone();
+127 +             std::thread::spawn(move || service_clone.get_sync_status())
+128 ~         }).map(|h| h.join().unwrap()).collect();
+    |
+
+error: could not compile `cardmind_rust` (test "loro_sync_test") due to 8 previous errors
+error: this assertion is always `true`
+   --> tests/sp_sync_006_spec.rs:155:5
+    |
+155 |     assert!(true);
+    |     ^^^^^^^^^^^^^
+    |
+    = help: remove the assertion
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: this assertion is always `true`
+   --> tests/sp_sync_006_spec.rs:156:5
+    |
+156 |     assert!(true);
+    |     ^^^^^^^^^^^^^
+    |
+    = help: remove the assertion
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#assertions_on_constants
+
+error: could not compile `cardmind_rust` (test "sp_sync_006_spec") due to 6 previous errors
+error: temporary with significant `Drop` can be early dropped
+   --> tests/sync_integration_test.rs:171:17
+    |
+170 |       let card_id = {
+    |  ___________________-
+171 | |         let mut store = card_store_a.lock().unwrap();
+    | |                 ^^^^^
+172 | |         let card = store
+173 | |             .create_card("Title A".to_string(), "Content A".to_string())
+...   |
+176 | |         card.id
+177 | |     };
+    | |_____- temporary `store` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+    = note: `-D clippy::significant-drop-tightening` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::significant_drop_tightening)]`
+help: drop the temporary after the end of its last usage
+    |
+175 ~         store.add_card_to_pool(&card.id, "pool-001").unwrap();
+176 +         drop(store);
+    |
+
+error: temporary with significant `Drop` can be early dropped
+   --> tests/sync_integration_test.rs:196:9
+    |
+164 |   async fn it_should_pool_sync_between_services() {
+    |  _________________________________________________-
+165 | |     // 设备 A：创建卡片并绑定池
+166 | |     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+167 | |     let mut device_config_a = DeviceConfig::new("device-a");
+...   |
+196 | |     let store_b = card_store_b.lock().unwrap();
+    | |         ^^^^^^^
+...   |
+201 | |     println!("✅ 跨设备数据池同步测试通过");
+202 | | }
+    | |_- temporary `store_b` is currently being dropped at the end of its contained scope
+    |
+    = note: this might lead to unnecessary resource contention
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#significant_drop_tightening
+help: merge the temporary construction with its single usage
+    |
+196 ~     
+197 +     let card_b = card_store_b.lock().unwrap().unwrap();
+198 ~     
+    |
+
+error: could not compile `cardmind_rust` (test "sqlite_test") due to 2 previous errors
+error: could not compile `cardmind_rust` (test "card_store_test") due to 1 previous error
+error: could not compile `cardmind_rust` (test "sync_integration_test") due to 2 previous errors
+[33m⚠ Clippy found issues. Run without --check-only to fix.[0m
+
+============================================================
+[31m✗ ❌ Some checks failed. Please review errors above.[0m

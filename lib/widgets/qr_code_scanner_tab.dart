@@ -114,7 +114,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
           _errorMessage = null;
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         setState(() {
           _errorMessage = '相机启动失败: $e';
@@ -157,7 +157,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
           _isProcessing = false;
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         setState(() {
           _isProcessing = false;
@@ -334,7 +334,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(24),
-          color: Colors.black.withOpacity(0.5),
+          color: Colors.black.withValues(alpha: 0.5),
           child: Text(
             '将二维码放入框内',
             style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
@@ -381,7 +381,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(24),
-          color: Colors.black.withOpacity(0.5),
+          color: Colors.black.withValues(alpha: 0.5),
           child: Text(
             '扫描对方设备显示的二维码',
             style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
@@ -467,7 +467,7 @@ class _QRCodeScannerTabState extends State<QRCodeScannerTab>
   /// 构建处理中遮罩
   Widget _buildProcessingOverlay(ThemeData theme) {
     return Container(
-      color: Colors.black.withOpacity(0.7),
+      color: Colors.black.withValues(alpha: 0.7),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

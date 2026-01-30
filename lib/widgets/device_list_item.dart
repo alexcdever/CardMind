@@ -138,7 +138,7 @@ class _DeviceListItemState extends State<DeviceListItem> {
           ),
       ],
     ).then((value) {
-      if (value != null) {
+      if (value != null && mounted) {
         _handleMenuAction(context, value);
       }
     });
@@ -340,7 +340,7 @@ class _DeviceListItemState extends State<DeviceListItem> {
                   ? theme.colorScheme.surfaceContainerHighest
                   : theme.colorScheme.surface,
               border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.3),
+                color: theme.colorScheme.outline.withValues(alpha: 0.3),
               ),
               borderRadius: BorderRadius.circular(8),
             ),

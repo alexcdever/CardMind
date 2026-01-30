@@ -88,12 +88,12 @@ class _NoteCardMobileState extends State<NoteCardMobile> {
               color: theme.cardColor,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: theme.dividerColor.withOpacity(0.3),
+                color: theme.dividerColor.withValues(alpha: 0.3),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: theme.shadowColor.withOpacity(0.1),
+                  color: theme.shadowColor.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -137,7 +137,7 @@ class _NoteCardMobileState extends State<NoteCardMobile> {
       widget.card.content.isEmpty ? '点击添加内容...' : widget.card.content,
       isTitle: false,
       style: theme.textTheme.bodyMedium?.copyWith(
-        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.85),
         height: 1.5,
       ),
     );
@@ -150,7 +150,7 @@ class _NoteCardMobileState extends State<NoteCardMobile> {
         Text(
           TimeFormatter.formatTime(widget.card.updatedAt),
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+            color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.7),
             fontSize: 12,
           ),
         ),

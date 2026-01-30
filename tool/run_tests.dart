@@ -120,11 +120,10 @@ Future<void> watchTests() async {
 }
 
 Future<void> runFlutterTest(List<String> args) async {
-  final result = await Process.run(
-    'flutter',
-    ['test', ...args],
-    runInShell: true,
-  );
+  final result = await Process.run('flutter', [
+    'test',
+    ...args,
+  ], runInShell: true);
 
   stdout.write(result.stdout);
   stderr.write(result.stderr);

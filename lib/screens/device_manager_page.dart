@@ -111,7 +111,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
           ),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -337,7 +337,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     final cardPadding = screenWidth > 1200 ? 64.0 : 48.0;
 
     return Container(
-      color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       child: Center(
         child: Card(
           margin: EdgeInsets.symmetric(

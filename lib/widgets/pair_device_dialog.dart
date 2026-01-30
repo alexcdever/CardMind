@@ -140,7 +140,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -167,7 +167,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
             decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.primaryContainer.withOpacity(0.3),
+              ).colorScheme.primaryContainer.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -252,12 +252,12 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
           } else {
             _showErrorMessage(context, '配对失败', '无法完成设备配对，请重试');
           }
-        } catch (e) {
+        } on Exception catch (e) {
           if (!mounted) return;
           _showErrorMessage(context, '配对错误', '配对过程中发生错误: $e');
         }
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
       _showErrorMessage(context, '处理失败', '二维码处理失败: $e');
     }
@@ -270,7 +270,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.3)),
+        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

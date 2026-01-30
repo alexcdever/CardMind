@@ -35,7 +35,7 @@ class EmptyStateWidget extends StatelessWidget {
             Icon(
               icon,
               size: 48,
-              color: SyncDialogColor.textSecondary.withOpacity(0.5),
+              color: SyncDialogColor.textSecondary.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(

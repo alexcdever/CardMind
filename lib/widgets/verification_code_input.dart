@@ -294,7 +294,7 @@ class _VerificationCodeInputState extends State<VerificationCodeInput> {
         // 聚焦第一个输入框
         _focusNodes[0].requestFocus();
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
 
       setState(() {

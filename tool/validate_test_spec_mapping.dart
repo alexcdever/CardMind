@@ -75,11 +75,7 @@ class TestSpecValidator {
       final specId = _extractSpecId(content);
 
       if (specId != null) {
-        specs.add(SpecDoc(
-          path: file.path,
-          specId: specId,
-          content: content,
-        ));
+        specs.add(SpecDoc(path: file.path, specId: specId, content: content));
       }
     }
 
@@ -95,20 +91,15 @@ class TestSpecValidator {
       return tests;
     }
 
-    final files = testsDirectory
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('_test.dart'));
+    final files = testsDirectory.listSync().whereType<File>().where(
+      (f) => f.path.endsWith('_test.dart'),
+    );
 
     for (final file in files) {
       final content = file.readAsStringSync();
       final specIds = _extractSpecIdsFromTest(content);
 
-      tests.add(TestFile(
-        path: file.path,
-        specIds: specIds,
-        content: content,
-      ));
+      tests.add(TestFile(path: file.path, specIds: specIds, content: content));
     }
 
     return tests;
@@ -155,15 +146,18 @@ class TestSpecValidator {
     return specIds;
   }
 
-  void _validateSpec(SpecDoc spec, List<TestFile> tests, ValidationResults results) {
+  void _validateSpec(
+    SpecDoc spec,
+    List<TestFile> tests,
+    ValidationResults results,
+  ) {
     // 查找引用此规格的测试文件
-    final relatedTests = tests.where((t) => t.specIds.contains(spec.specId)).toList();
+    final relatedTests = tests
+        .where((t) => t.specIds.contains(spec.specId))
+        .toList();
 
     if (relatedTests.isEmpty) {
-      results.addWarning(
-        '规格 ${spec.specId} 没有对应的测试文件',
-        spec.path,
-      );
+      results.addWarning('规格 ${spec.specId} 没有对应的测试文件', spec.path);
     } else {
       // 检查规格文档是否有 Test Implementation 章节
       if (!spec.content.contains('Test Implementation') &&
@@ -181,12 +175,13 @@ class TestSpecValidator {
     }
   }
 
-  void _validateTest(TestFile test, List<SpecDoc> specs, ValidationResults results) {
+  void _validateTest(
+    TestFile test,
+    List<SpecDoc> specs,
+    ValidationResults results,
+  ) {
     if (test.specIds.isEmpty) {
-      results.addWarning(
-        '测试文件没有引用任何规格编号',
-        test.path,
-      );
+      results.addWarning('测试文件没有引用任何规格编号', test.path);
       return;
     }
 
@@ -194,15 +189,9 @@ class TestSpecValidator {
       final relatedSpec = specs.where((s) => s.specId == specId).firstOrNull;
 
       if (relatedSpec == null) {
-        results.addError(
-          '测试引用的规格 $specId 不存在',
-          test.path,
-        );
+        results.addError('测试引用的规格 $specId 不存在', test.path);
       } else {
-        results.addSuccess(
-          '测试正确引用规格 $specId',
-          test.path,
-        );
+        results.addSuccess('测试正确引用规格 $specId', test.path);
       }
     }
   }
@@ -213,11 +202,7 @@ class SpecDoc {
   final String specId;
   final String content;
 
-  SpecDoc({
-    required this.path,
-    required this.specId,
-    required this.content,
-  });
+  SpecDoc({required this.path, required this.specId, required this.content});
 }
 
 class TestFile {
@@ -225,46 +210,47 @@ class TestFile {
   final List<String> specIds;
   final String content;
 
-  TestFile({
-    required this.path,
-    required this.specIds,
-    required this.content,
-  });
+  TestFile({required this.path, required this.specIds, required this.content});
 }
 
 class ValidationResults {
   final List<ValidationMessage> messages = [];
 
   void addSuccess(String message, String path) {
-    messages.add(ValidationMessage(
-      type: MessageType.success,
-      message: message,
-      path: path,
-    ));
+    messages.add(
+      ValidationMessage(
+        type: MessageType.success,
+        message: message,
+        path: path,
+      ),
+    );
   }
 
   void addWarning(String message, String path) {
-    messages.add(ValidationMessage(
-      type: MessageType.warning,
-      message: message,
-      path: path,
-    ));
+    messages.add(
+      ValidationMessage(
+        type: MessageType.warning,
+        message: message,
+        path: path,
+      ),
+    );
   }
 
   void addError(String message, String path) {
-    messages.add(ValidationMessage(
-      type: MessageType.error,
-      message: message,
-      path: path,
-    ));
+    messages.add(
+      ValidationMessage(type: MessageType.error, message: message, path: path),
+    );
   }
 
   bool get hasErrors => messages.any((m) => m.type == MessageType.error);
   bool get hasWarnings => messages.any((m) => m.type == MessageType.warning);
 
-  int get errorCount => messages.where((m) => m.type == MessageType.error).length;
-  int get warningCount => messages.where((m) => m.type == MessageType.warning).length;
-  int get successCount => messages.where((m) => m.type == MessageType.success).length;
+  int get errorCount =>
+      messages.where((m) => m.type == MessageType.error).length;
+  int get warningCount =>
+      messages.where((m) => m.type == MessageType.warning).length;
+  int get successCount =>
+      messages.where((m) => m.type == MessageType.success).length;
 }
 
 class ValidationMessage {
@@ -279,11 +265,7 @@ class ValidationMessage {
   });
 }
 
-enum MessageType {
-  success,
-  warning,
-  error,
-}
+enum MessageType { success, warning, error }
 
 void _printResults(ValidationResults results) {
   print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -292,7 +274,9 @@ void _printResults(ValidationResults results) {
   // 按类型分组打印
   final errors = results.messages.where((m) => m.type == MessageType.error);
   final warnings = results.messages.where((m) => m.type == MessageType.warning);
-  final successes = results.messages.where((m) => m.type == MessageType.success);
+  final successes = results.messages.where(
+    (m) => m.type == MessageType.success,
+  );
 
   if (errors.isNotEmpty) {
     print('❌ 错误 (${errors.length}):');

@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print, avoid_catches_without_on_clauses
+
 import 'package:cardmind/bridge/frb_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 

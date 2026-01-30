@@ -21,6 +21,9 @@ class MockCardService extends CardService {
   int deleteCardCallCount = 0;
   int getCardCountCallCount = 0;
 
+  /// Get the number of cards
+  int get cardCount => _cards.length;
+
   /// Set the number of cards for performance testing
   set cardCount(int count) {
     _cards.clear();

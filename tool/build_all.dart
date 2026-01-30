@@ -38,13 +38,7 @@ const String cyan = '\x1B[36m';
 const String bold = '\x1B[1m';
 
 // 平台定义
-enum BuildPlatform {
-  android,
-  linux,
-  windows,
-  macos,
-  ios,
-}
+enum BuildPlatform { android, linux, windows, macos, ios }
 
 // 构建配置
 class BuildConfig {
@@ -146,7 +140,12 @@ Future<void> cleanAll() async {
 
   final cleanTasks = [
     runCommand('flutter', ['clean'], description: 'Flutter clean'),
-    runCommand('cargo', ['clean'], workingDirectory: 'rust', description: 'Cargo clean'),
+    runCommand(
+      'cargo',
+      ['clean'],
+      workingDirectory: 'rust',
+      description: 'Cargo clean',
+    ),
   ];
 
   await Future.wait(cleanTasks);
@@ -188,7 +187,12 @@ Future<bool> checkEnvironment(BuildConfig config) async {
 
   // 检查 Flutter
   printStep('检查 Flutter...');
-  if (await runCommand('flutter', ['--version'], quiet: true, description: 'Flutter version')) {
+  if (await runCommand(
+    'flutter',
+    ['--version'],
+    quiet: true,
+    description: 'Flutter version',
+  )) {
     printSuccess('Flutter 已安装');
   } else {
     printError('Flutter 未安装');
@@ -197,7 +201,12 @@ Future<bool> checkEnvironment(BuildConfig config) async {
 
   // 检查 Rust
   printStep('检查 Rust...');
-  if (await runCommand('cargo', ['--version'], quiet: true, description: 'Cargo version')) {
+  if (await runCommand(
+    'cargo',
+    ['--version'],
+    quiet: true,
+    description: 'Cargo version',
+  )) {
     printSuccess('Rust 已安装');
   } else {
     printError('Rust 未安装');
@@ -206,11 +215,19 @@ Future<bool> checkEnvironment(BuildConfig config) async {
 
   // 检查 flutter_rust_bridge_codegen
   printStep('检查 flutter_rust_bridge_codegen...');
-  if (await runCommand('flutter_rust_bridge_codegen', ['--version'], quiet: true, description: 'FRB version')) {
+  if (await runCommand(
+    'flutter_rust_bridge_codegen',
+    ['--version'],
+    quiet: true,
+    description: 'FRB version',
+  )) {
     printSuccess('flutter_rust_bridge_codegen 已安装');
   } else {
     printWarning('flutter_rust_bridge_codegen 未安装，尝试安装中...');
-    if (await runCommand('cargo', ['install', 'flutter_rust_bridge_codegen'], description: 'Install FRB')) {
+    if (await runCommand('cargo', [
+      'install',
+      'flutter_rust_bridge_codegen',
+    ], description: 'Install FRB')) {
       printSuccess('flutter_rust_bridge_codegen 安装成功');
     } else {
       printError('flutter_rust_bridge_codegen 安装失败');
@@ -226,7 +243,10 @@ Future<bool> checkEnvironment(BuildConfig config) async {
   return success;
 }
 
-Future<bool> checkPlatformEnvironment(BuildPlatform platform, BuildConfig config) async {
+Future<bool> checkPlatformEnvironment(
+  BuildPlatform platform,
+  BuildConfig config,
+) async {
   switch (platform) {
     case BuildPlatform.android:
       printStep('检查 Android 环境...');
@@ -238,19 +258,41 @@ Future<bool> checkPlatformEnvironment(BuildPlatform platform, BuildConfig config
       }
 
       // 检查 Android 目标
-      final targets = ['aarch64-linux-android', 'armv7-linux-androideabi', 'x86_64-linux-android', 'i686-linux-android'];
+      final targets = [
+        'aarch64-linux-android',
+        'armv7-linux-androideabi',
+        'x86_64-linux-android',
+        'i686-linux-android',
+      ];
       for (final target in targets) {
-        if (!await runCommand('rustup', ['target', 'list', '--installed'], quiet: true, description: 'Check Rust target')) {
+        if (!await runCommand(
+          'rustup',
+          ['target', 'list', '--installed'],
+          quiet: true,
+          description: 'Check Rust target',
+        )) {
           printWarning('Rust Android 目标未完全安装，尝试安装...');
-          await runCommand('rustup', ['target', 'add', ...targets], description: 'Add Android targets');
+          await runCommand('rustup', [
+            'target',
+            'add',
+            ...targets,
+          ], description: 'Add Android targets');
           break;
         }
       }
 
       // 检查 cargo-ndk
-      if (!await runCommand('cargo-ndk', ['--version'], quiet: true, description: 'cargo-ndk version')) {
+      if (!await runCommand(
+        'cargo-ndk',
+        ['--version'],
+        quiet: true,
+        description: 'cargo-ndk version',
+      )) {
         printWarning('cargo-ndk 未安装，尝试安装...');
-        await runCommand('cargo', ['install', 'cargo-ndk'], description: 'Install cargo-ndk');
+        await runCommand('cargo', [
+          'install',
+          'cargo-ndk',
+        ], description: 'Install cargo-ndk');
       }
       return true;
 
@@ -277,7 +319,9 @@ Future<bool> checkPlatformEnvironment(BuildPlatform platform, BuildConfig config
         }
 
         if (!pkgConfigResult) {
-          printWarning('GTK 3 开发库未安装，请运行: sudo apt-get install libgtk-3-dev pkg-config');
+          printWarning(
+            'GTK 3 开发库未安装，请运行: sudo apt-get install libgtk-3-dev pkg-config',
+          );
           return false;
         }
         printSuccess('GTK 3 开发库已安装');
@@ -307,7 +351,12 @@ Future<bool> checkPlatformEnvironment(BuildPlatform platform, BuildConfig config
     case BuildPlatform.ios:
       printStep('检查 iOS 环境...');
       if (Platform.isMacOS) {
-        if (await runCommand('xcodebuild', ['-version'], quiet: true, description: 'Xcode version')) {
+        if (await runCommand(
+          'xcodebuild',
+          ['-version'],
+          quiet: true,
+          description: 'Xcode version',
+        )) {
           printSuccess('Xcode 已安装');
         } else {
           printError('Xcode 未安装');
@@ -360,12 +409,14 @@ Map<String, String> getAndroidEnvironment() {
   env['CC_aarch64_linux_android'] = 'aarch64-linux-android21-clang';
   env['CXX_aarch64_linux_android'] = 'aarch64-linux-android21-clang++';
   env['AR_aarch64_linux_android'] = 'llvm-ar';
-  env['CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER'] = 'aarch64-linux-android21-clang';
+  env['CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER'] =
+      'aarch64-linux-android21-clang';
 
   env['CC_armv7_linux_androideabi'] = 'armv7a-linux-androideabi21-clang';
   env['CXX_armv7_linux_androideabi'] = 'armv7a-linux-androideabi21-clang++';
   env['AR_armv7_linux_androideabi'] = 'llvm-ar';
-  env['CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER'] = 'armv7a-linux-androideabi21-clang';
+  env['CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER'] =
+      'armv7a-linux-androideabi21-clang';
 
   env['CC_i686_linux_android'] = 'i686-linux-android21-clang';
   env['CXX_i686_linux_android'] = 'i686-linux-android21-clang++';
@@ -375,7 +426,8 @@ Map<String, String> getAndroidEnvironment() {
   env['CC_x86_64_linux_android'] = 'x86_64-linux-android21-clang';
   env['CXX_x86_64_linux_android'] = 'x86_64-linux-android21-clang++';
   env['AR_x86_64_linux_android'] = 'llvm-ar';
-  env['CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER'] = 'x86_64-linux-android21-clang';
+  env['CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER'] =
+      'x86_64-linux-android21-clang';
 
   return env;
 }
@@ -526,11 +578,11 @@ Future<bool> buildPlatform(BuildPlatform platform, BuildConfig config) async {
 
   switch (platform) {
     case BuildPlatform.android:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'apk', '--$buildMode'],
-        description: 'Build Android APK',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'apk',
+        '--$buildMode',
+      ], description: 'Build Android APK')) {
         printError('Android APK 构建失败');
         return false;
       }
@@ -558,7 +610,8 @@ Future<bool> buildPlatform(BuildPlatform platform, BuildConfig config) async {
 
       // 复制 Rust 库到 bundle
       final rustLib = 'rust/target/$buildMode/libcardmind_rust.so';
-      final bundleLib = 'build/linux/x64/$buildMode/bundle/lib/libcardmind_rust.so';
+      final bundleLib =
+          'build/linux/x64/$buildMode/bundle/lib/libcardmind_rust.so';
 
       try {
         File(rustLib).copySync(bundleLib);
@@ -573,11 +626,11 @@ Future<bool> buildPlatform(BuildPlatform platform, BuildConfig config) async {
       return true;
 
     case BuildPlatform.windows:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'windows', '--$buildMode'],
-        description: 'Build Windows app',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'windows',
+        '--$buildMode',
+      ], description: 'Build Windows app')) {
         printError('Windows 应用构建失败');
         return false;
       }
@@ -599,25 +652,28 @@ Future<bool> buildPlatform(BuildPlatform platform, BuildConfig config) async {
       return true;
 
     case BuildPlatform.macos:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'macos', '--$buildMode'],
-        description: 'Build macOS app',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'macos',
+        '--$buildMode',
+      ], description: 'Build macOS app')) {
         printError('macOS 应用构建失败');
         return false;
       }
 
       printSuccess('✅ macOS 应用构建成功');
-      printInfo('   输出: build/macos/Build/Products/${config.buildModeCapitalized}/');
+      printInfo(
+        '   输出: build/macos/Build/Products/${config.buildModeCapitalized}/',
+      );
       return true;
 
     case BuildPlatform.ios:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'ios', '--$buildMode', '--no-codesign'],
-        description: 'Build iOS app',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'ios',
+        '--$buildMode',
+        '--no-codesign',
+      ], description: 'Build iOS app')) {
         printError('iOS 应用构建失败');
         return false;
       }
@@ -651,7 +707,8 @@ Future<void> printBuildArtifacts(BuildConfig config) async {
         break;
 
       case BuildPlatform.macos:
-        final appPath = 'build/macos/Build/Products/${config.buildModeCapitalized}/';
+        final appPath =
+            'build/macos/Build/Products/${config.buildModeCapitalized}/';
         await printArtifact('macOS App', appPath);
         break;
 

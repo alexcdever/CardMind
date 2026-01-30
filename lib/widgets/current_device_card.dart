@@ -101,9 +101,9 @@ class CurrentDeviceCardState extends State<CurrentDeviceCard> {
     return Container(
       padding: EdgeInsets.all(containerPadding),
       decoration: BoxDecoration(
-        color: primaryColor.withOpacity(0.1),
+        color: primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: primaryColor.withOpacity(0.3), width: 1),
+        border: Border.all(color: primaryColor.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

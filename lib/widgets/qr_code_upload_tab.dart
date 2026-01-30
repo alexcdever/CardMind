@@ -104,7 +104,7 @@ class _QRCodeUploadTabState extends State<QRCodeUploadTab> {
       setState(() {
         _error = QRUploadError.fromException(e);
       });
-    } catch (e) {
+    } on Exception catch (e) {
       _logError('文件选择失败', e);
       setState(() {
         _error = QRUploadError(
@@ -157,7 +157,7 @@ class _QRCodeUploadTabState extends State<QRCodeUploadTab> {
 
     try {
       // 检查文件是否存在
-      if (!await file.exists()) {
+      if (!file.existsSync()) {
         throw FileSystemException('文件不存在', file.path);
       }
 
@@ -195,7 +195,7 @@ class _QRCodeUploadTabState extends State<QRCodeUploadTab> {
           _error = QRUploadError.fromException(e);
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
       _logError('文件处理失败', e);
       if (mounted) {
         setState(() {
@@ -298,8 +298,8 @@ class _QRCodeUploadTabState extends State<QRCodeUploadTab> {
         ),
         borderRadius: BorderRadius.circular(12),
         color: _isDragging
-            ? theme.colorScheme.primaryContainer.withOpacity(0.1)
-            : theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.1)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       ),
       child: _isProcessing
           ? _buildProcessingState(theme)
@@ -429,7 +429,7 @@ class _QRCodeUploadTabState extends State<QRCodeUploadTab> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withOpacity(0.5),
+                color: theme.colorScheme.surface.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
