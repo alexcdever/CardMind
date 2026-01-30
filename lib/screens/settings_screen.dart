@@ -134,6 +134,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleExport(BuildContext context) async {
+    // 在任何异步操作前保存 messenger
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       setState(() => _isExporting = true);
 
@@ -154,19 +157,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
 
       if (filePath != null) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('数据已导出到: $filePath')));
-        }
+        messenger.showSnackBar(SnackBar(content: Text('数据已导出到: $filePath')));
       }
     } on Exception catch (e) {
       if (!mounted) return;
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
-      }
+      messenger.showSnackBar(SnackBar(content: Text('导出失败: $e')));
     } finally {
       if (mounted) {
         setState(() => _isExporting = false);
@@ -175,6 +170,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleImport(BuildContext context) async {
+    // 在任何异步操作前保存 provider 和 messenger
+    final cardProvider = context.read<CardProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       setState(() => _isImporting = true);
 
@@ -185,26 +184,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       if (count != null) {
         // 刷新卡片列表
-        if (mounted) {
-          final cardProvider = context.read<CardProvider>();
-          await cardProvider.loadCards();
-        }
+        await cardProvider.loadCards();
 
         if (!mounted) return;
 
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('成功导入 $count 张卡片')));
-        }
+        messenger.showSnackBar(SnackBar(content: Text('成功导入 $count 张卡片')));
       }
     } on Exception catch (e) {
       if (!mounted) return;
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('导入失败: $e')));
-      }
+      messenger.showSnackBar(SnackBar(content: Text('导入失败: $e')));
     } finally {
       if (mounted) {
         setState(() => _isImporting = false);
@@ -216,16 +204,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     BuildContext context,
     bool value,
   ) async {
+    // 在任何异步操作前保存 provider 和 messenger
+    final settingsProvider = context.read<SettingsProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
-      final settingsProvider = context.read<SettingsProvider>();
       await settingsProvider.setSyncNotificationEnabled(value);
     } on Exception catch (e) {
       if (!mounted) return;
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('设置失败: $e')));
-      }
+      messenger.showSnackBar(SnackBar(content: Text('设置失败: $e')));
     }
   }
 
