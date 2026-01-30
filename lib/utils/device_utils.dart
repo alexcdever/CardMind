@@ -10,22 +10,21 @@ class DeviceUtils {
   /// 1. 在线设备优先
   /// 2. 同状态设备按最后在线时间倒序排列
   static List<Device> sortDevices(List<Device> devices) {
-    final sorted = List<Device>.from(devices);
+    return List<Device>.from(devices)
+      ..sort((a, b) {
+        // 在线设备优先
+        if (a.status == DeviceStatus.online &&
+            b.status != DeviceStatus.online) {
+          return -1;
+        }
+        if (a.status != DeviceStatus.online &&
+            b.status == DeviceStatus.online) {
+          return 1;
+        }
 
-    sorted.sort((a, b) {
-      // 在线设备优先
-      if (a.status == DeviceStatus.online && b.status != DeviceStatus.online) {
-        return -1;
-      }
-      if (a.status != DeviceStatus.online && b.status == DeviceStatus.online) {
-        return 1;
-      }
-
-      // 同状态设备按最后在线时间倒序排列（最近的在前）
-      return b.lastSeen.compareTo(a.lastSeen);
-    });
-
-    return sorted;
+        // 同状态设备按最后在线时间倒序排列（最近的在前）
+        return b.lastSeen.compareTo(a.lastSeen);
+      });
   }
 
   /// 格式化最后在线时间

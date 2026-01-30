@@ -299,8 +299,9 @@ void main() {
         WidgetTester tester,
       ) async {
         // Given: 同步失败
-        mockSyncManager.setStatus(MockSyncStatus.error);
-        mockSyncManager.setError('Network error');
+        mockSyncManager
+          ..setStatus(MockSyncStatus.error)
+          ..setError('Network error');
 
         // When: 显示同步状态
         await tester.pumpWidget(

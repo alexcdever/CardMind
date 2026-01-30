@@ -250,8 +250,9 @@ void main() {
         final timestamp = now.millisecondsSinceEpoch;
 
         // When: Format, clear cache, format again
-        cache.format(timestamp, now: now);
-        cache.clear();
+        cache
+          ..format(timestamp, now: now)
+          ..clear();
         final result = cache.format(timestamp, now: now);
 
         // Then: Should work after clearing
