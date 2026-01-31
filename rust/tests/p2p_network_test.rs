@@ -13,7 +13,10 @@ use tokio::time::{timeout, Duration};
 /// 验证网络可以初始化并监听随机端口
 #[tokio::test]
 async fn it_should_p2p_network_listen() {
+    // Given: 一个 P2P 网络实例
     let mut network = P2PNetwork::new(false).expect("network should initialize");
+
+    // When: 在本地地址上监听
     let addr = match network.listen_on("/ip4/127.0.0.1/tcp/0").await {
         Ok(addr) => addr,
         Err(err) => {
@@ -29,7 +32,7 @@ async fn it_should_p2p_network_listen() {
         }
     };
 
-    // 地址应包含 tcp 端口
+    // Then: 监听地址应该包含 TCP 端口
     assert!(
         addr.iter().any(|p| matches!(p, Protocol::Tcp(_))),
         "listen addr should contain tcp port"
@@ -41,6 +44,7 @@ async fn it_should_p2p_network_listen() {
 /// 连接建立成功即证明 Noise 加密握手成功，加密信道可用
 #[tokio::test]
 async fn it_should_p2p_network_connect() {
+    // Given: 两个 P2P 网络节点
     let mut node_a = P2PNetwork::new(false).expect("node A should initialize");
     let mut node_b = P2PNetwork::new(false).expect("node B should initialize");
 
@@ -59,10 +63,10 @@ async fn it_should_p2p_network_connect() {
         }
     };
 
-    // node_b 拨号 node_a
+    // When: 节点 B 拨号节点 A
     node_b.dial(&listen_addr).expect("dial should succeed");
 
-    // 等待连接建立（最多 5 秒）
+    // Then: 两个节点应该建立连接（证明 Noise 加密握手成功）
     let timeout_duration = Duration::from_secs(5);
     let result = timeout(timeout_duration, async {
         let mut got_connection = false;

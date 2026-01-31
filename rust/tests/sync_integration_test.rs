@@ -21,15 +21,14 @@ use std::sync::{Arc, Mutex};
 #[test]
 #[serial]
 fn it_should_sync_service_initialization() {
-    // 创建 CardStore
+    // Given: CardStore 和 DeviceConfig
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-
-    // 创建 DeviceConfig
     let device_config = DeviceConfig::new("test-device-001");
 
-    // 创建同步服务
+    // When: 创建 P2PSyncService
     let service = P2PSyncService::new(card_store, device_config);
 
+    // Then: 服务应该成功创建并返回有效的 Peer ID
     assert!(service.is_ok(), "同步服务创建应该成功");
 
     let service = service.unwrap();
@@ -45,24 +44,22 @@ fn it_should_sync_service_initialization() {
 #[tokio::test]
 #[serial]
 async fn it_should_two_device_sync_flow_components() {
-    // 设备 A
+    // Given: 两个设备的 CardStore、DeviceConfig（已加入相同池）和 P2PSyncService
     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let mut device_config_a = DeviceConfig::new("device-a");
     let _ = device_config_a.join_pool("pool-001");
 
-    // 设备 B
     let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let mut device_config_b = DeviceConfig::new("device-b");
     let _ = device_config_b.join_pool("pool-001");
 
-    // 创建同步服务
     let service_a = P2PSyncService::new(card_store_a, device_config_a).unwrap();
     let service_b = P2PSyncService::new(card_store_b, device_config_b).unwrap();
 
     println!("设备 A Peer ID: {}", service_a.local_peer_id());
     println!("设备 B Peer ID: {}", service_b.local_peer_id());
 
-    // 验证初始状态
+    // When: 验证初始状态（两个设备都未在线）
     let status_a = service_a.get_sync_status();
     assert_eq!(status_a.online_devices, 0, "初始应该没有在线设备");
     assert_eq!(status_a.syncing_devices, 0, "初始应该没有同步中设备");
@@ -70,6 +67,7 @@ async fn it_should_two_device_sync_flow_components() {
     let status_b = service_b.get_sync_status();
     assert_eq!(status_b.online_devices, 0, "初始应该没有在线设备");
 
+    // Then: 两个设备的同步状态应该是空的
     println!("✅ 两设备同步流程组件测试通过");
 }
 
@@ -80,22 +78,22 @@ async fn it_should_two_device_sync_flow_components() {
 #[serial]
 #[allow(unused_mut)]
 async fn it_should_sync_status_tracking() {
+    // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
-    // 初始状态
+    // When: 初始状态为空，然后连接一个设备
     let status = service.get_sync_status();
     assert_eq!(status.online_devices, 0);
     assert_eq!(status.syncing_devices, 0);
     assert_eq!(status.offline_devices, 0);
 
-    // 模拟设备连接
     let peer_id = libp2p::PeerId::random();
     service.connect_to_peer(peer_id).await.unwrap();
 
-    // 验证设备已连接（注意：实际状态更新在协调器中）
+    // Then: 设备应该被标记为在线
     let status = service.get_sync_status();
     println!(
         "连接后状态 - 在线: {}, 同步中: {}, 离线: {}",
@@ -111,14 +109,16 @@ async fn it_should_sync_status_tracking() {
 #[tokio::test]
 #[serial]
 async fn it_should_sync_service_start_and_listen() {
+    // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
-    // 启动服务（使用随机端口）
+    // When: 启动服务（使用随机端口）
     let result = service.start("/ip4/127.0.0.1/tcp/0").await;
 
+    // Then: 服务应该成功启动（或跳过测试如果权限不足）
     if let Err(err) = result {
         let msg = err.to_string();
         if msg.contains("Permission denied")
@@ -142,12 +142,13 @@ async fn it_should_sync_service_start_and_listen() {
 #[serial]
 #[allow(unused_mut)]
 async fn it_should_concurrent_device_connections() {
+    // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new("test-device");
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
-    // 模拟多个设备连接
+    // When: 模拟多个设备同时连接
     let peer1 = libp2p::PeerId::random();
     let peer2 = libp2p::PeerId::random();
     let peer3 = libp2p::PeerId::random();
@@ -156,6 +157,7 @@ async fn it_should_concurrent_device_connections() {
     service.connect_to_peer(peer2).await.unwrap();
     service.connect_to_peer(peer3).await.unwrap();
 
+    // Then: 所有连接应该成功
     println!("✅ 并发设备连接测试通过");
 }
 
@@ -164,7 +166,7 @@ async fn it_should_concurrent_device_connections() {
 #[serial]
 #[allow(deprecated)]
 async fn it_should_pool_sync_between_services() {
-    // 设备 A：创建卡片并绑定池
+    // Given: 两个设备（A有卡片并绑定池，B加入相同池）和模拟网络服务
     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let mut device_config_a = DeviceConfig::new("device-a");
     let _ = device_config_a.join_pool("pool-001");
@@ -178,22 +180,20 @@ async fn it_should_pool_sync_between_services() {
         card.id
     };
 
-    // 设备 B：空仓库，已加入相同池
     let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let mut device_config_b = DeviceConfig::new("device-b");
     let _ = device_config_b.join_pool("pool-001");
 
-    // 创建同步服务（注册到本地模拟网络）
     let service_a = P2PSyncService::new_with_mock_network(card_store_a, device_config_a).unwrap();
     let mut service_b =
         P2PSyncService::new_with_mock_network(card_store_b.clone(), device_config_b).unwrap();
 
-    // B 请求与 A 同步指定数据池
+    // When: 设备 B 请求与 A 同步指定数据池
     service_b
         .request_sync(service_a.local_peer_id(), "pool-001".to_string())
         .unwrap();
 
-    // 验证 B 收到卡片
+    // Then: 设备 B 应该收到设备 A 的卡片
     let store_b = card_store_b.lock().unwrap();
     let card_b = store_b.get_card_by_id(&card_id).unwrap();
     assert_eq!(card_b.title, "Title A");
@@ -208,20 +208,18 @@ async fn it_should_pool_sync_between_services() {
 #[tokio::test]
 #[serial]
 async fn it_should_sync_request_handling() {
+    // Given: CardStore、DeviceConfig（已加入数据池）和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-
-    // 创建设备配置并加入数据池
     let mut device_config = DeviceConfig::new("test-device");
     let _ = device_config.join_pool("test-pool-001");
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
-    // 模拟向对等设备发起同步请求
+    // When: 模拟向对等设备发起同步请求
     let peer_id = libp2p::PeerId::random();
     let result = service.request_sync(peer_id, "test-pool-001".to_string());
 
-    // 注意：由于 libp2p 消息传输协议尚未完整实现，
-    // 这个测试主要验证请求能够被构造而不报错
+    // Then: 同步请求应该被成功构造（注意：这是模拟测试，不是完整的消息传输）
     assert!(result.is_ok(), "同步请求应该被成功构造");
 
     println!("✅ 同步请求处理测试通过");
