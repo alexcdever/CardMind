@@ -13,10 +13,12 @@ use std::sync::{Arc, Mutex};
 /// This is the foundation for all subsequent Loro operations.
 #[test]
 fn it_should_create_loro_doc() {
-    // Create a new document
+    // Given: 无需前置条件
+
+    // When: 创建一个新的 Loro 文档
     let doc = LoroDoc::new();
 
-    // Verify we can get peer ID (proves document is initialized)
+    // Then: 文档应该成功初始化，具有有效的 peer ID
     let peer_id = doc.peer_id();
     assert!(peer_id > 0, "Peer ID should be a positive number");
 }
@@ -24,25 +26,22 @@ fn it_should_create_loro_doc() {
 /// Test 2: Insert data into `LoroMap`
 ///
 /// Validates that we can create a `LoroMap` container and insert key-value pairs.
-/// This tests the basic write operation needed for card storage.
+/// This tests basic write operation needed for card storage.
 #[test]
 fn it_should_loro_insert_data_to_map() {
+    // Given: 一个 Loro 文档
     let doc = LoroDoc::new();
 
-    // Create a LoroMap container for storing card data
+    // When: 创建 LoroMap 容器并插入卡片字段
     let map = doc.get_map("card");
-
-    // Insert card fields
     map.insert("id", "test-uuid-123").unwrap();
     map.insert("title", "Test Card Title").unwrap();
     map.insert("content", "Test card content in Markdown")
         .unwrap();
     map.insert("created_at", 1704067200000i64).unwrap(); // 2024-01-01 00:00:00 UTC
-
-    // Commit to finalize the transaction
     doc.commit();
 
-    // Verify data was inserted correctly
+    // Then: 应该能够正确读取插入的数据
     let value = map.get("id").unwrap().into_value().unwrap();
     assert_eq!(value.as_string().unwrap().to_string(), "test-uuid-123");
 
@@ -65,7 +64,7 @@ fn it_should_loro_insert_data_to_map() {
 /// This is critical for file persistence (`loro_doc.loro`).
 #[test]
 fn it_should_loro_export_and_import_snapshot() {
-    // Create original document with data
+    // Given: 一个包含数据的 Loro 文档
     let doc1 = LoroDoc::new();
     let map = doc1.get_map("card");
     map.insert("id", "card-001").unwrap();
@@ -73,14 +72,13 @@ fn it_should_loro_export_and_import_snapshot() {
     map.insert("content", "Original content").unwrap();
     doc1.commit();
 
-    // Export to snapshot bytes
+    // When: 导出为快照字节数组并从快照创建新文档
     let snapshot_bytes = doc1.export(ExportMode::Snapshot).unwrap();
     assert!(!snapshot_bytes.is_empty(), "Snapshot should not be empty");
 
-    // Create new document from snapshot
     let doc2 = LoroDoc::from_snapshot(&snapshot_bytes).unwrap();
 
-    // Verify imported data matches original
+    // Then: 导入的数据应该与原始数据匹配
     let imported_map = doc2.get_map("card");
     let id = imported_map.get("id").unwrap().into_value().unwrap();
     assert_eq!(id.as_string().unwrap().to_string(), "card-001");
@@ -97,28 +95,26 @@ fn it_should_loro_export_and_import_snapshot() {
 /// Validates incremental updates export/import (for P2P sync in Phase 2).
 #[test]
 fn it_should_loro_export_and_import_updates() {
-    // Create original document with data
+    // Given: 一个包含数据的 Loro 文档
     let doc1 = LoroDoc::new();
     let map = doc1.get_map("card");
     map.insert("id", "card-002").unwrap();
     map.insert("title", "Update Test").unwrap();
     doc1.commit();
 
-    // Export all updates
+    // When: 导出所有更新并导入到新文档
     let updates = doc1.export(ExportMode::all_updates()).unwrap();
     assert!(!updates.is_empty(), "Updates should not be empty");
 
-    // Create new document and import updates
     let doc2 = LoroDoc::new();
     let status = doc2.import(&updates).unwrap();
 
-    // Verify import was successful (no pending updates)
+    // Then: 导入应该成功，数据应该匹配，且没有待处理的更新
     assert!(
         status.pending.is_none(),
         "Import should have no pending updates"
     );
 
-    // Verify data matches
     let imported_map = doc2.get_map("card");
     let id = imported_map.get("id").unwrap().into_value().unwrap();
     assert_eq!(id.as_string().unwrap().to_string(), "card-002");
@@ -133,19 +129,17 @@ fn it_should_loro_export_and_import_updates() {
 /// This is the foundation for Loro → SQLite automatic sync.
 #[test]
 fn it_should_loro_subscription_mechanism() {
+    // Given: 一个 Loro 文档和订阅回调计数器
     let doc = LoroDoc::new();
-
-    // Shared state to track subscription callbacks
     let callback_count = Arc::new(Mutex::new(0));
     let callback_count_clone = callback_count.clone();
 
-    // Subscribe to all changes
+    // When: 订阅文档的所有更改并提交多次
     let _subscription = doc.subscribe_root(Arc::new(move |_event| {
         let mut count = callback_count_clone.lock().unwrap();
         *count += 1;
     }));
 
-    // Make changes to the document
     let map = doc.get_map("card");
     map.insert("title", "First Title").unwrap();
     doc.commit();
@@ -156,7 +150,7 @@ fn it_should_loro_subscription_mechanism() {
     map.insert("title", "Updated Title").unwrap();
     doc.commit();
 
-    // Verify subscription was triggered for each commit
+    // Then: 订阅应该被触发 3 次（每次 commit 一次）
     let final_count = *callback_count.lock().unwrap();
     assert_eq!(
         final_count, 3,
@@ -166,18 +160,18 @@ fn it_should_loro_subscription_mechanism() {
 
 /// Test 6: File persistence integration
 ///
-/// Validates the complete cycle: create data → export to file → import from file.
-/// This simulates the real-world persistence scenario.
+/// Validates complete cycle: create data → export to file → import from file.
+/// This simulates real-world persistence scenario.
 #[test]
 fn it_should_loro_file_persistence() {
     use std::fs;
     use tempfile::TempDir;
 
-    // Create temporary directory for test files
+    // Given: 一个临时目录和文件路径
     let temp_dir = TempDir::new().unwrap();
     let file_path = temp_dir.path().join("test_card.loro");
 
-    // Step 1: Create document with data
+    // When: 创建文档并导出到文件，然后从文件加载
     let doc1 = LoroDoc::new();
     let map = doc1.get_map("card");
     map.insert("id", "persistent-card-001").unwrap();
@@ -187,18 +181,14 @@ fn it_should_loro_file_persistence() {
     map.insert("created_at", 1704153600000i64).unwrap();
     doc1.commit();
 
-    // Step 2: Export to file
     let snapshot = doc1.export(ExportMode::Snapshot).unwrap();
     fs::write(&file_path, snapshot).unwrap();
-
-    // Verify file was created
     assert!(file_path.exists(), "Loro file should be created");
 
-    // Step 3: Load from file
     let loaded_bytes = fs::read(&file_path).unwrap();
     let doc2 = LoroDoc::from_snapshot(&loaded_bytes).unwrap();
 
-    // Step 4: Verify data integrity
+    // Then: 从文件加载的数据应该保持完整性
     let loaded_map = doc2.get_map("card");
     let id = loaded_map.get("id").unwrap().into_value().unwrap();
     assert_eq!(id.as_string().unwrap().to_string(), "persistent-card-001");
@@ -222,18 +212,18 @@ fn it_should_loro_file_persistence() {
 ///
 /// Validates that we can store multiple cards in separate `LoroMap` containers.
 /// Note: Based on architecture decision, each card will have its own `LoroDoc` file,
-/// but this test validates that the approach works.
+/// but this test validates that approach works.
 #[test]
 fn it_should_multiple_cards_in_document() {
+    // Given: 一个 Loro 文档
     let doc = LoroDoc::new();
 
-    // Create first card
+    // When: 创建两个独立的 LoroMap 容器存储不同卡片
     let card1 = doc.get_map("card_1");
     card1.insert("id", "card-001").unwrap();
     card1.insert("title", "First Card").unwrap();
     card1.insert("content", "First content").unwrap();
 
-    // Create second card
     let card2 = doc.get_map("card_2");
     card2.insert("id", "card-002").unwrap();
     card2.insert("title", "Second Card").unwrap();
@@ -241,14 +231,13 @@ fn it_should_multiple_cards_in_document() {
 
     doc.commit();
 
-    // Verify both cards exist
+    // Then: 应该能够读取所有卡片，并且能够导出导入
     let c1_title = card1.get("title").unwrap().into_value().unwrap();
     assert_eq!(c1_title.as_string().unwrap().to_string(), "First Card");
 
     let c2_title = card2.get("title").unwrap().into_value().unwrap();
     assert_eq!(c2_title.as_string().unwrap().to_string(), "Second Card");
 
-    // Verify we can export and import
     let snapshot = doc.export(ExportMode::Snapshot).unwrap();
     let doc2 = LoroDoc::from_snapshot(&snapshot).unwrap();
 
