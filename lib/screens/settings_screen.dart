@@ -470,147 +470,148 @@ class _AboutTile extends StatelessWidget {
       showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.card_membership, size: 32),
-            const SizedBox(width: 12),
-            Text(packageInfo.appName),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+          title: Row(
             children: [
-              // Version info
-              Text(
-                'Version ${packageInfo.version} (${packageInfo.buildNumber})',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 16),
-
-              // Description
-              Text(
-                appInfo.description,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-
-              // Technical Stack
-              Text(
-                'Technical Stack',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text('• Flutter - Cross-platform UI framework'),
-              const Text('• Rust - High-performance backend'),
-              const Text('• Loro CRDT - Conflict-free data sync'),
-              const Text('• SQLite - Local data storage'),
-              const SizedBox(height: 16),
-
-              // Contributors
-              if (appInfo.contributors.isNotEmpty) ...[
-                Text(
-                  'Contributors',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ...appInfo.contributors.map(
-                  (contributor) => Text('• $contributor'),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Changelog (recent 3 versions)
-              if (appInfo.changelog.isNotEmpty) ...[
-                Text(
-                  'Recent Changes',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ...appInfo.changelog
-                    .take(3)
-                    .map(
-                      (entry) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'v${entry.version} (${entry.date})',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            ...entry.changes.map(
-                              (change) => Text('  • $change'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                const SizedBox(height: 8),
-              ],
-
-              // Links
-              InkWell(
-                onTap: () => _launchUrl(appInfo.homepage),
-                child: Row(
-                  children: [
-                    const Icon(Icons.link, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Project Homepage',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () => _launchUrl(appInfo.issuesUrl),
-                child: Row(
-                  children: [
-                    const Icon(Icons.bug_report, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Report Issues',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Copyright
-              Text(
-                '© 2025 CardMind Team',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
-              ),
+              const Icon(Icons.card_membership, size: 32),
+              const SizedBox(width: 12),
+              Text(packageInfo.appName),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Version info
+                Text(
+                  'Version ${packageInfo.version} (${packageInfo.buildNumber})',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+
+                // Description
+                Text(
+                  appInfo.description,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+
+                // Technical Stack
+                Text(
+                  'Technical Stack',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text('• Flutter - Cross-platform UI framework'),
+                const Text('• Rust - High-performance backend'),
+                const Text('• Loro CRDT - Conflict-free data sync'),
+                const Text('• SQLite - Local data storage'),
+                const SizedBox(height: 16),
+
+                // Contributors
+                if (appInfo.contributors.isNotEmpty) ...[
+                  Text(
+                    'Contributors',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...appInfo.contributors.map(
+                    (contributor) => Text('• $contributor'),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Changelog (recent 3 versions)
+                if (appInfo.changelog.isNotEmpty) ...[
+                  Text(
+                    'Recent Changes',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...appInfo.changelog
+                      .take(3)
+                      .map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'v${entry.version} (${entry.date})',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              ...entry.changes.map(
+                                (change) => Text('  • $change'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  const SizedBox(height: 8),
+                ],
+
+                // Links
+                InkWell(
+                  onTap: () => _launchUrl(appInfo.homepage),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.link, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Project Homepage',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () => _launchUrl(appInfo.issuesUrl),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.bug_report, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Report Issues',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Copyright
+                Text(
+                  '© 2025 CardMind Team',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
       ),
     );
   }

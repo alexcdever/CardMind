@@ -260,7 +260,7 @@ impl P2PSyncService {
     /// ```rust,no_run
     /// # use cardmind_rust::p2p::P2PSyncService;
     /// # use libp2p::PeerId;
-    /// # fn example(service: &P2PSyncService, peer_id: PeerId) -> Result<(), Box<dyn std::error::Error>> {
+    /// # fn example(service: &mut P2PSyncService, peer_id: PeerId) -> Result<(), Box<dyn std::error::Error>> {
     /// service.request_sync(peer_id, "pool-001".to_string())?;
     /// # Ok(())
     /// # }

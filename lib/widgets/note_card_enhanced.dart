@@ -385,8 +385,9 @@ class _NoteCardState extends State<NoteCard> {
                         Text(
                           _formattedUpdateTime,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color
-                                ?.withValues(alpha: 0.7),
+                            color: theme.textTheme.bodySmall?.color?.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                         ),
 

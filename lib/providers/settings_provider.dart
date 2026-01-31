@@ -14,8 +14,8 @@ class SettingsProvider extends ChangeNotifier {
     try {
       _syncNotificationEnabled =
           prefs.getBool(StorageKeys.syncNotificationEnabled) ?? true;
-    } on Exception {
-      // Handle corrupted settings data by falling back to default
+    } on Object {
+      // Handle corrupted settings data (including type errors) by falling back to default
       _syncNotificationEnabled = true;
     }
     notifyListeners();

@@ -88,7 +88,7 @@ impl From<mdns::Event> for P2PEvent {
 /// use cardmind_rust::p2p::P2PNetwork;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let mut network = P2PNetwork::new()?;
+/// let mut network = P2PNetwork::new(false)?;
 /// let peer_id = network.local_peer_id();
 /// println!("本地 Peer ID: {}", peer_id);
 ///

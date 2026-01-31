@@ -7,8 +7,9 @@ hard_tabs = false
 tab_spaces = 4
 
 # 导入
-imports_granularity = "Crate"
-group_imports = "StdExternalCrate"
+# 注意：以下选项需要 nightly 版本，在 stable 版本中会产生警告
+# imports_granularity = "Crate"
+# group_imports = "StdExternalCrate"
 reorder_imports = true
 
 # 链式调用
