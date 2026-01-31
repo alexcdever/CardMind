@@ -110,7 +110,7 @@ class DeviceDiscoveryService {
           _stateChangeController.add(event);
         }
       }
-    } on Exception catch (e) {
+    } on Exception {
       // 忽略轮询错误，继续下一次轮询
     }
   }

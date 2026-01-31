@@ -413,15 +413,13 @@ fn it_should_real_world_card_sync() {
     device_b.import(&delete_update).unwrap();
 
     // 验证删除标记
-    assert!(
-        *map_b
-            .get("deleted")
-            .unwrap()
-            .into_value()
-            .unwrap()
-            .as_bool()
-            .unwrap()
-    );
+    assert!(*map_b
+        .get("deleted")
+        .unwrap()
+        .into_value()
+        .unwrap()
+        .as_bool()
+        .unwrap());
 
     // 最终一致性检查
     assert_eq!(device_a.get_deep_value(), device_b.get_deep_value());
@@ -458,9 +456,7 @@ fn it_should_snapshot_vs_incremental_updates() {
         let temp_map = temp_doc.get_map("card");
         for i in 0..5 {
             temp_map.insert("title", format!("标题版本{i}")).unwrap();
-            temp_map
-                .insert("content", format!("内容版本{i}"))
-                .unwrap();
+            temp_map.insert("content", format!("内容版本{i}")).unwrap();
             temp_doc.commit();
         }
         temp_doc.oplog_vv()

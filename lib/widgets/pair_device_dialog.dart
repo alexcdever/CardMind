@@ -270,7 +270,9 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(

@@ -263,6 +263,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
       label: '同步详情对话框',
       scopesRoute: true,
       namesRoute: true,
+      explicitChildNodes: true,
       child: Focus(
         autofocus: true,
         onKeyEvent: _handleKeyEvent,

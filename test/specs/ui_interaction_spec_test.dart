@@ -1045,7 +1045,9 @@ void main() {
                               context,
                               MaterialPageRoute<void>(
                                 builder: (_) => const Scaffold(
-                                  body: Center(child: Text('Onboarding Screen')),
+                                  body: Center(
+                                    child: Text('Onboarding Screen'),
+                                  ),
                                 ),
                               ),
                             ),

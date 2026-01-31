@@ -32,7 +32,7 @@
 //!
 //! // 创建数据池
 //! let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
-//! store.create_pool(pool)?;
+//! store.create_pool(&pool)?;
 //!
 //! // 查询数据池
 //! let pool = store.get_pool_by_id("pool-001")?;
@@ -373,7 +373,7 @@ impl PoolStore {
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let store = PoolStore::new("data")?;
     /// let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
-    /// store.create_pool(pool)?;
+    /// store.create_pool(&pool)?;
     /// # Ok(())
     /// # }
     /// ```
