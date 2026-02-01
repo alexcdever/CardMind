@@ -47,6 +47,7 @@ pub enum LoroStoreError {
 /// # Ok(())
 /// # }
 /// ```
+#[derive(Debug)]
 pub struct LoroStore {
     doc: LoroDoc,
 }
@@ -349,7 +350,7 @@ mod tests {
 
         // 导入到新存储
         let mut new_store = LoroStore::new();
-        new_store.doc_mut().import_batch(&snapshot).unwrap();
+        new_store.doc_mut().import_batch(&[snapshot]).unwrap();
 
         // 验证数据
         let text_value = new_store.doc().get_text("test").to_string();
@@ -449,9 +450,9 @@ mod tests {
         let doc = store.doc_mut();
         let text = doc.get_text("test");
         text.insert(0, "A").unwrap();
-        let op_count1 = store.doc.oplog_len();
+        let op_count1 = store.doc.oplog_vv();
         store.commit();
-        assert!(store.doc.oplog_len() > op_count1);
+        assert!(store.doc.oplog_vv() > op_count1);
     }
 
     #[test]

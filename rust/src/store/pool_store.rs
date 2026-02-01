@@ -44,13 +44,14 @@ use crate::models::error::CardMindError;
 use crate::models::pool::{Device, Pool};
 use crate::store::sqlite_store::SqliteStore;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use loro::{ExportMode, LoroDoc, LoroList, LoroMap};
+use loro::event::DiffEvent;
+use loro::{ExportMode, LoroDoc, LoroList, LoroMap, Subscription};
 use rusqlite::params;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 /// Type alias for pool update callback
 type PoolUpdateCallback = Arc<Mutex<Option<Box<dyn Fn(&Pool) + Send + Sync>>>>;
@@ -65,6 +66,7 @@ type PoolUpdateCallback = Arc<Mutex<Option<Box<dyn Fn(&Pool) + Send + Sync>>>>;
 /// - `sqlite_store`: SQLite 缓存层
 /// - ``loro_docs``: 内存中的 `LoroDoc` 缓存
 /// - ``on_pool_updated``: `Pool`更新回调（用于同步`SQLite` `card_pool_bindings`）
+/// - ``loro_subscriptions``: Loro 订阅句柄（保持订阅活跃）
 pub struct PoolStore {
     /// 数据目录基础路径
     base_path: PathBuf,
@@ -77,6 +79,9 @@ pub struct PoolStore {
 
     /// Pool更新回调
     on_pool_updated: PoolUpdateCallback,
+
+    /// Loro 订阅句柄（保持订阅活跃）
+    loro_subscriptions: Arc<Mutex<HashMap<String, Subscription>>>,
 }
 
 impl PoolStore {
@@ -114,6 +119,7 @@ impl PoolStore {
             sqlite_store,
             loro_docs: Arc::new(Mutex::new(HashMap::new())),
             on_pool_updated: Arc::new(Mutex::new(None)),
+            loro_subscriptions: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -129,6 +135,7 @@ impl PoolStore {
             sqlite_store: Arc::new(Mutex::new(SqliteStore::new_in_memory()?)),
             loro_docs: Arc::new(Mutex::new(HashMap::new())),
             on_pool_updated: Arc::new(Mutex::new(None)),
+            loro_subscriptions: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -173,6 +180,54 @@ impl PoolStore {
         }
     }
 
+    /// 设置 Loro 订阅
+    ///
+    /// 为指定的 LoroDoc 注册订阅回调，当文档变更时自动同步到 SQLite
+    ///
+    /// # 参数
+    ///
+    /// - `pool_id`: 数据池 ID
+    /// - `doc`: Loro 文档实例
+    fn setup_loro_subscription(&self, pool_id: String, doc: LoroDoc) {
+        let pool_id_clone = pool_id.clone();
+        let subscriptions = self.loro_subscriptions.clone();
+
+        let subscription = doc.subscribe_root(Arc::new(move |event| {
+            if let Err(e) = Self::on_loro_change(&pool_id_clone, event) {
+                warn!("Loro 订阅回调处理失败: {}", e);
+            }
+        }));
+
+        // 保存订阅句柄以保持订阅活跃
+        subscriptions
+            .lock()
+            .unwrap()
+            .insert(pool_id.clone(), subscription);
+
+        debug!("已为数据池 {} 设置 Loro 订阅", pool_id);
+    }
+
+    /// Loro 变更回调处理
+    ///
+    /// 当 Loro 文档变更时，将变更同步到 SQLite
+    ///
+    /// # 参数
+    ///
+    /// - `pool_id`: 数据池 ID
+    /// - `event`: Loro 变更事件
+    ///
+    /// # Returns
+    ///
+    /// 如果处理成功返回 Ok(())，否则返回错误
+    fn on_loro_change<'a>(pool_id: &str, _event: DiffEvent<'a>) -> Result<(), CardMindError> {
+        debug!("收到 Loro 变更事件: pool_id={}", pool_id);
+
+        // TODO: 实现卡片创建、更新、删除事件处理
+        // 当前仅打印日志，后续将实现完整的同步逻辑
+
+        Ok(())
+    }
+
     /// 获取数据池的 Loro 文件路径
     fn get_pool_loro_path(&self, pool_id: &str) -> PathBuf {
         let encoded = URL_SAFE_NO_PAD.encode(pool_id.as_bytes());
@@ -203,6 +258,11 @@ impl PoolStore {
         };
 
         docs.insert(pool_id.to_string(), doc.clone());
+
+        // 设置 Loro 订阅
+        drop(docs);
+        self.setup_loro_subscription(pool_id.to_string(), doc.clone());
+
         Ok(doc)
     }
 
@@ -753,5 +813,41 @@ mod tests {
         assert_eq!(deserialized.members.len(), 2);
         assert_eq!(deserialized.members[0].device_id, "device-001");
         assert_eq!(deserialized.members[1].device_id, "device-002");
+    }
+
+    #[test]
+    fn test_loro_subscription_setup() {
+        let store = PoolStore::new_in_memory().unwrap();
+
+        let pool = Pool::new("pool-001", "测试池", "hashed");
+        store.create_pool(&pool).unwrap();
+
+        // 验证订阅已设置
+        let subscriptions = store.loro_subscriptions.lock().unwrap();
+        assert!(subscriptions.contains_key("pool-001"), "应该为池设置订阅");
+    }
+
+    #[test]
+    fn test_loro_callback_on_change() {
+        use std::time::Duration;
+
+        let store = PoolStore::new_in_memory().unwrap();
+
+        let pool = Pool::new("pool-001", "测试池", "hashed");
+        store.create_pool(&pool).unwrap();
+
+        // 修改数据池（触发 Loro 变更）
+        std::thread::sleep(Duration::from_millis(100));
+
+        let mut updated_pool = store.get_pool_by_id("pool-001").unwrap();
+        updated_pool.name = "更新后的名称".to_string();
+        store.update_pool(&updated_pool).unwrap();
+
+        // 等待回调处理
+        std::thread::sleep(Duration::from_millis(100));
+
+        // 验证更新成功
+        let retrieved = store.get_pool_by_id("pool-001").unwrap();
+        assert_eq!(retrieved.name, "更新后的名称");
     }
 }

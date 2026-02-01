@@ -72,6 +72,7 @@ impl SqliteStore {
     /// 初始化数据库（创建表和优化参数）
     fn initialize(&self) -> Result<(), CardMindError> {
         self.create_tables()?;
+        self.setup_fts5()?;
         self.optimize()?;
         Ok(())
     }
@@ -184,6 +185,42 @@ impl SqliteStore {
         // 创建索引 - 优化按最后在线时间排序
         self.conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_trusted_devices_last_seen ON trusted_devices(last_seen DESC)",
+            [],
+        )?;
+
+        Ok(())
+    }
+
+    fn setup_fts5(&self) -> Result<(), CardMindError> {
+        self.conn.execute(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS cards_fts USING fts5(
+                id UNINDEXED,
+                title,
+                content
+            )",
+            [],
+        )?;
+
+        self.conn.execute(
+            "CREATE TRIGGER IF NOT EXISTS cards_ai AFTER INSERT ON cards BEGIN
+                INSERT INTO cards_fts(id, title, content)
+                VALUES (new.id, new.title, new.content);
+            END",
+            [],
+        )?;
+
+        self.conn.execute(
+            "CREATE TRIGGER IF NOT EXISTS cards_au AFTER UPDATE ON cards BEGIN
+                UPDATE cards_fts SET title = new.title, content = new.content
+                WHERE id = new.id;
+            END",
+            [],
+        )?;
+
+        self.conn.execute(
+            "CREATE TRIGGER IF NOT EXISTS cards_ad AFTER DELETE ON cards BEGIN
+                DELETE FROM cards_fts WHERE id = old.id;
+            END",
             [],
         )?;
 
@@ -414,6 +451,43 @@ impl SqliteStore {
         let deleted = total - active;
 
         Ok((total, active, deleted))
+    }
+
+    /// 全文搜索卡片
+    ///
+    /// # 参数
+    ///
+    /// * `query` - 搜索关键词（支持 FTS5 查询语法）
+    ///
+    /// # 返回
+    ///
+    /// 匹配的卡片列表（只返回未删除的卡片）
+    pub fn search_cards(&self, query: &str) -> Result<Vec<Card>, CardMindError> {
+        let mut stmt = self.conn.prepare(
+            "SELECT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted
+             FROM cards_fts
+             INNER JOIN cards c ON cards_fts.id = c.id
+             WHERE cards_fts MATCH ?1 AND c.deleted = 0
+             ORDER BY rank
+             LIMIT 50",
+        )?;
+
+        let cards = stmt
+            .query_map([query], |row| {
+                Ok(Card {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    content: row.get(2)?,
+                    created_at: row.get(3)?,
+                    updated_at: row.get(4)?,
+                    deleted: row.get(5)?,
+                    tags: Vec::new(),
+                    last_edit_device: None,
+                })
+            })?
+            .collect::<SqliteResult<Vec<_>>>()?;
+
+        Ok(cards)
     }
 
     // ==================== 卡片-数据池绑定操作 ====================
@@ -871,5 +945,68 @@ mod tests {
         // 空数据池列表应返回空结果
         let cards = store.get_cards_in_pools(&[]).unwrap();
         assert_eq!(cards.len(), 0);
+    }
+
+    #[test]
+    fn test_fts5_search_cards() {
+        let store = SqliteStore::new_in_memory().unwrap();
+
+        let card1 = Card::new(
+            generate_uuid_v7(),
+            "Rust Programming".to_string(),
+            "Learn Rust language".to_string(),
+        );
+        let card2 = Card::new(
+            generate_uuid_v7(),
+            "Flutter Development".to_string(),
+            "Flutter app development".to_string(),
+        );
+        let card3 = Card::new(
+            generate_uuid_v7(),
+            "Database".to_string(),
+            "SQLite and PostgreSQL".to_string(),
+        );
+
+        store.insert_card(&card1).unwrap();
+        store.insert_card(&card2).unwrap();
+        store.insert_card(&card3).unwrap();
+
+        let results = store.search_cards("Rust").unwrap();
+        assert_eq!(results.len(), 1);
+        assert!(results[0].title.contains("Rust"));
+
+        let results = store.search_cards("Flutter").unwrap();
+        assert_eq!(results.len(), 1);
+        assert!(results[0].title.contains("Flutter"));
+
+        let results = store.search_cards("Database").unwrap();
+        assert_eq!(results.len(), 1);
+        assert!(results[0].title.contains("Database"));
+    }
+
+    #[test]
+    fn test_fts5_search_exclude_deleted() {
+        let store = SqliteStore::new_in_memory().unwrap();
+
+        let mut card1 = Card::new(
+            generate_uuid_v7(),
+            "Card 1".to_string(),
+            "Content 1".to_string(),
+        );
+        let card2 = Card::new(
+            generate_uuid_v7(),
+            "Card 2".to_string(),
+            "Content 2".to_string(),
+        );
+
+        store.insert_card(&card1).unwrap();
+        store.insert_card(&card2).unwrap();
+
+        card1.mark_deleted();
+        store.update_card(&card1).unwrap();
+
+        let results = store.search_cards("Card").unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, card2.id);
     }
 }
