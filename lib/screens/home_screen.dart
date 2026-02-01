@@ -6,10 +6,12 @@ import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/pool_provider.dart';
 import 'package:cardmind/utils/toast_utils.dart';
 import 'package:cardmind/widgets/device_manager_panel.dart';
 import 'package:cardmind/widgets/mobile_nav.dart';
 import 'package:cardmind/widgets/note_card.dart';
+import 'package:cardmind/widgets/note_editor_dialog.dart';
 import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:cardmind/widgets/settings_panel.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
@@ -117,26 +119,27 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // 桌面端保持原有逻辑
-    final cardProvider = context.read<CardProvider>();
-
-    // 创建新卡片
-    cardProvider
-        .createCard('', '')
-        .then((card) {
-          if (card != null) {
-            ToastUtils.showSuccess('创建新笔记');
-          }
-        })
-        .catchError((Object error) {
-          ToastUtils.showError('创建失败: $error');
-        });
+    // 桌面端打开模态对话框编辑器（新建模式）
+    showDialog<void>(
+      context: context,
+      builder: (context) => NoteEditorDialog(
+        card: null, // null 表示新建模式
+        currentDevice: _currentDeviceName,
+        onSave: _handleSaveCard,
+        onCancel: () {
+          // 取消回调（可选）
+        },
+      ),
+    );
   }
 
   void _handleSaveCard(bridge.Card card) {
     final cardProvider = context.read<CardProvider>();
 
-    if (_editingCard == null) {
+    // 判断是新建还是编辑：如果 card.id 是临时 ID（纯数字字符串），则为新建模式
+    final isNewCard = _isTemporaryId(card.id);
+
+    if (isNewCard) {
       // 新建模式：创建新卡片
       cardProvider
           .createCard(card.title, card.content)
@@ -159,6 +162,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ToastUtils.showError('更新失败: $error');
           });
     }
+  }
+
+  /// 判断是否为临时 ID（用于区分新建和编辑）
+  bool _isTemporaryId(String id) {
+    // 临时 ID 是纯数字字符串（时间戳）
+    // 真实 ID 是 UUID 格式
+    return int.tryParse(id) != null;
   }
 
   void _handleCloseEditor() {
@@ -187,6 +197,21 @@ class _HomeScreenState extends State<HomeScreen> {
         .catchError((Object error) {
           ToastUtils.showError('更新失败: $error');
         });
+  }
+
+  void _handleEditCard(bridge.Card card) {
+    // 桌面端：打开模态对话框编辑器
+    showDialog<void>(
+      context: context,
+      builder: (context) => NoteEditorDialog(
+        card: card,
+        currentDevice: _currentDeviceName,
+        onSave: _handleUpdateCard,
+        onCancel: () {
+          // 取消回调（可选）
+        },
+      ),
+    );
   }
 
   void _handleDeleteCard(String id) {
@@ -335,18 +360,129 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDesktopLayout() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: ThreeColumnLayout(
-        leftColumnWidth: 320,
-        leftColumn: SingleChildScrollView(
-          child: Column(
-            children: [
-              DeviceManagerPanel(
+    return Consumer<PoolProvider>(
+      builder: (context, poolProvider, _) {
+        // Single pool constraint UI: check if user has joined a pool
+        if (!poolProvider.isJoined) {
+          return _buildPoolNotJoinedState();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: ThreeColumnLayout(
+            leftColumnWidth: 320,
+            leftColumn: SingleChildScrollView(
+              child: Column(
+                children: [
+                  DeviceManagerPanel(
+                    currentDevice: DeviceInfo(
+                      id: 'current',
+                      name: _currentDeviceName,
+                      type: DeviceType.laptop,
+                      isOnline: true,
+                      lastSeen: DateTime.now(),
+                    ),
+                    pairedDevices: const [], // TODO: 从实际数据获取
+                    onDeviceNameChange: (name) {
+                      // TODO: 实现设备重命名
+                    },
+                    onAddDevice: (device) {
+                      // TODO: 实现添加设备
+                    },
+                    onRemoveDevice: (id) {
+                      // TODO: 实现移除设备
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  SettingsPanel(
+                    isDarkMode: _isDarkMode,
+                    onThemeChanged: (value) {
+                      setState(() {
+                        _isDarkMode = value;
+                      });
+                      // TODO: 实现主题切换
+                    },
+                  ),
+                ],
+              ),
+            ),
+            rightColumn: Column(
+              children: [
+                // 搜索栏
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: '搜索笔记标题、内容或标签...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 笔记网格
+                Expanded(
+                  child: Consumer<CardProvider>(
+                    builder: (context, cardProvider, _) {
+                      if (cardProvider.isLoading &&
+                          cardProvider.cards.isEmpty) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final filteredCards = _getFilteredCards(
+                        cardProvider.cards,
+                      );
+
+                      if (filteredCards.isEmpty) {
+                        return _buildEmptyState();
+                      }
+
+                      return GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: 400,
+                              childAspectRatio: 1.2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                            ),
+                        itemCount: filteredCards.length,
+                        itemBuilder: (context, index) {
+                          return NoteCard(
+                            card: filteredCards[index],
+                            onEdit: _handleEditCard,
+                            onDelete: _handleDeleteCard,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Consumer<PoolProvider>(
+      builder: (context, poolProvider, _) {
+        return IndexedStack(
+          index: _activeTab.index,
+          children: [
+            // 笔记标签页
+            if (poolProvider.isJoined) _buildNotesTab() else _buildPoolNotJoinedState(),
+
+            // 设备标签页
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: DeviceManagerPanel(
                 currentDevice: DeviceInfo(
                   id: 'current',
                   name: _currentDeviceName,
-                  type: DeviceType.laptop,
+                  type: DeviceType.phone,
                   isOnline: true,
                   lastSeen: DateTime.now(),
                 ),
@@ -361,8 +497,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   // TODO: 实现移除设备
                 },
               ),
-              const SizedBox(height: 16),
-              SettingsPanel(
+            ),
+
+            // 设置标签页
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SettingsPanel(
                 isDarkMode: _isDarkMode,
                 onThemeChanged: (value) {
                   setState(() {
@@ -371,109 +511,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   // TODO: 实现主题切换
                 },
               ),
-            ],
-          ),
-        ),
-        rightColumn: Column(
-          children: [
-            // 搜索栏
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜索笔记标题、内容或标签...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 笔记网格
-            Expanded(
-              child: Consumer<CardProvider>(
-                builder: (context, cardProvider, _) {
-                  if (cardProvider.isLoading && cardProvider.cards.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final filteredCards = _getFilteredCards(cardProvider.cards);
-
-                  if (filteredCards.isEmpty) {
-                    return _buildEmptyState();
-                  }
-
-                  return GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 400,
-                          childAspectRatio: 1.2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                    itemCount: filteredCards.length,
-                    itemBuilder: (context, index) {
-                      return NoteCard(
-                        card: filteredCards[index],
-                        onEdit: _handleUpdateCard,
-                        onDelete: _handleDeleteCard,
-                      );
-                    },
-                  );
-                },
-              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileLayout() {
-    return IndexedStack(
-      index: _activeTab.index,
-      children: [
-        // 笔记标签页
-        _buildNotesTab(),
-
-        // 设备标签页
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: DeviceManagerPanel(
-            currentDevice: DeviceInfo(
-              id: 'current',
-              name: _currentDeviceName,
-              type: DeviceType.phone,
-              isOnline: true,
-              lastSeen: DateTime.now(),
-            ),
-            pairedDevices: const [], // TODO: 从实际数据获取
-            onDeviceNameChange: (name) {
-              // TODO: 实现设备重命名
-            },
-            onAddDevice: (device) {
-              // TODO: 实现添加设备
-            },
-            onRemoveDevice: (id) {
-              // TODO: 实现移除设备
-            },
-          ),
-        ),
-
-        // 设置标签页
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: SettingsPanel(
-            isDarkMode: _isDarkMode,
-            onThemeChanged: (value) {
-              setState(() {
-                _isDarkMode = value;
-              });
-              // TODO: 实现主题切换
-            },
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -559,6 +600,33 @@ class _HomeScreenState extends State<HomeScreen> {
               label: const Text('创建第一条笔记'),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPoolNotJoinedState() {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.folder_off, size: 64, color: theme.disabledColor),
+          const SizedBox(height: 16),
+          Text(
+            '您还没有加入数据池',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.disabledColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '创建或加入一个数据池来开始使用',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.disabledColor,
+            ),
+          ),
         ],
       ),
     );

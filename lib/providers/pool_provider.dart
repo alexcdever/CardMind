@@ -11,12 +11,22 @@ class PoolProvider extends ChangeNotifier {
   List<String> _residentPools = [];
   bool _isLoading = false;
   String? _error;
+  Pool? _currentPool;
 
   List<Pool> get joinedPools => _joinedPools;
   List<String> get residentPools => _residentPools;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasError => _error != null;
+
+  /// Check if user has joined any pool (single pool constraint)
+  bool get isJoined => _currentPool != null;
+
+  /// Get current pool ID if user has joined a pool
+  String? get currentPoolId => _currentPool?.poolId;
+
+  /// Get current pool if user has joined a pool
+  Pool? get currentPool => _currentPool;
 
   /// Initialize the PoolStore
   Future<void> initialize(String storagePath) async {
@@ -39,6 +49,12 @@ class PoolProvider extends ChangeNotifier {
       _setLoading(true);
       _clearError();
       _joinedPools = await pool_api.getAllPools();
+      // Update current pool based on single pool constraint
+      if (_joinedPools.isNotEmpty) {
+        _currentPool = _joinedPools.first;
+      } else {
+        _currentPool = null;
+      }
       notifyListeners();
     } on Exception catch (e) {
       _setError(e.toString());
@@ -110,6 +126,10 @@ class PoolProvider extends ChangeNotifier {
       final deviceId = await device_api.getDeviceId();
       await pool_api.removePoolMember(poolId: poolId, deviceId: deviceId);
       await loadPools();
+      // Clear current pool after leaving
+      if (_currentPool?.poolId == poolId) {
+        _currentPool = null;
+      }
       return true;
     } on Exception catch (e) {
       _setError(e.toString());
