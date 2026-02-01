@@ -540,9 +540,9 @@ impl SqliteStore {
         let query = format!(
             "SELECT DISTINCT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted
              FROM cards c
-             INNER JOIN card_pool_bindings cpb ON c.id = cpb.card_id
-             WHERE cpb.pool_id IN ({placeholders}) AND c.deleted = 0
-             ORDER BY c.created_at DESC"
+              INNER JOIN card_pool_bindings cpb ON c.id = cpb.card_id
+              WHERE cpb.pool_id IN ({placeholders}) AND c.deleted = 0
+              ORDER BY c.created_at DESC"
         );
 
         let mut stmt = self.conn.prepare(&query)?;
@@ -563,6 +563,31 @@ impl SqliteStore {
             .collect::<Result<Vec<Card>, _>>()?;
 
         Ok(cards)
+    }
+
+    // Test helpers for integration tests
+    #[cfg(test)]
+    pub fn test_insert_card(&self, card: &Card) -> Result<(), CardMindError> {
+        self.insert_card(card)
+    }
+
+    #[cfg(test)]
+    pub fn test_update_card(&self, card: &Card) -> Result<(), CardMindError> {
+        self.update_card(card)
+    }
+
+    #[cfg(test)]
+    pub fn test_add_card_pool_binding(
+        &self,
+        card_id: &str,
+        pool_id: &str,
+    ) -> Result<(), CardMindError> {
+        self.add_card_pool_binding(card_id, pool_id)
+    }
+
+    #[cfg(test)]
+    pub fn test_get_connection(&self) -> &rusqlite::Connection {
+        &self.conn
     }
 }
 

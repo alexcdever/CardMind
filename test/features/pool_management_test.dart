@@ -4,7 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,19 +34,19 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('pool_name'),
                       decoration: InputDecoration(labelText: '池名称'),
                     ),
-                    TextField(
+                    const TextField(
                       key: Key('pool_password'),
                       decoration: InputDecoration(labelText: '密码'),
                       obscureText: true,
                     ),
                     ElevatedButton(
-                      key: Key('create_button'),
+                      key: const Key('create_button'),
                       onPressed: () {},
-                      child: Text('创建'),
+                      child: const Text('创建'),
                     ),
                   ],
                 ),
@@ -56,9 +55,9 @@ void main() {
           );
 
           // When: 用户创建名称为"Family Notes"、密码为"secure123"的新池
-          await tester.enterText(find.byKey(Key('pool_name')), 'Family Notes');
-          await tester.enterText(find.byKey(Key('pool_password')), 'secure123');
-          await tester.tap(find.byKey(Key('create_button')));
+          await tester.enterText(find.byKey(const Key('pool_name')), 'Family Notes');
+          await tester.enterText(find.byKey(const Key('pool_password')), 'secure123');
+          await tester.tap(find.byKey(const Key('create_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应使用 UUID v7 标识符创建池
@@ -78,7 +77,7 @@ void main() {
             Scaffold(
               body: Column(
                 children: [
-                  TextField(
+                  const TextField(
                     key: Key('pool_name'),
                     decoration: InputDecoration(
                       labelText: '池名称',
@@ -86,9 +85,9 @@ void main() {
                     ),
                   ),
                   ElevatedButton(
-                    key: Key('create_button'),
+                    key: const Key('create_button'),
                     onPressed: () {},
-                    child: Text('创建'),
+                    child: const Text('创建'),
                   ),
                 ],
               ),
@@ -97,8 +96,8 @@ void main() {
         );
 
         // When: 用户提供空名称或仅包含空格的名称
-        await tester.enterText(find.byKey(Key('pool_name')), '');
-        await tester.tap(find.byKey(Key('create_button')));
+        await tester.enterText(find.byKey(const Key('pool_name')), '');
+        await tester.tap(find.byKey(const Key('create_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应拒绝创建
@@ -115,7 +114,7 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('pool_password'),
                       decoration: InputDecoration(
                         labelText: '密码',
@@ -123,9 +122,9 @@ void main() {
                       ),
                     ),
                     ElevatedButton(
-                      key: Key('create_button'),
+                      key: const Key('create_button'),
                       onPressed: () {},
-                      child: Text('创建'),
+                      child: const Text('创建'),
                     ),
                   ],
                 ),
@@ -134,8 +133,8 @@ void main() {
           );
 
           // When: 用户提供少于6个字符的密码
-          await tester.enterText(find.byKey(Key('pool_password')), '123');
-          await tester.tap(find.byKey(Key('create_button')));
+          await tester.enterText(find.byKey(const Key('pool_password')), '123');
+          await tester.tap(find.byKey(const Key('create_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应拒绝创建
@@ -150,8 +149,8 @@ void main() {
         // Given: 设备已加入一个池
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
-              body: Column(children: const [Text('您已加入一个池'), Text('请先离开当前池')]),
+            const Scaffold(
+              body: Column(children: [Text('您已加入一个池'), Text('请先离开当前池')]),
             ),
           ),
         );
@@ -179,19 +178,19 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('pool_id'),
                       decoration: InputDecoration(labelText: '池 ID'),
                     ),
-                    TextField(
+                    const TextField(
                       key: Key('pool_password'),
                       decoration: InputDecoration(labelText: '密码'),
                       obscureText: true,
                     ),
                     ElevatedButton(
-                      key: Key('join_button'),
+                      key: const Key('join_button'),
                       onPressed: () {},
-                      child: Text('加入'),
+                      child: const Text('加入'),
                     ),
                   ],
                 ),
@@ -200,9 +199,9 @@ void main() {
           );
 
           // When: 用户使用 ID"pool-123"和密码"secure123"加入池
-          await tester.enterText(find.byKey(Key('pool_id')), 'pool-123');
-          await tester.enterText(find.byKey(Key('pool_password')), 'secure123');
-          await tester.tap(find.byKey(Key('join_button')));
+          await tester.enterText(find.byKey(const Key('pool_id')), 'pool-123');
+          await tester.enterText(find.byKey(const Key('pool_password')), 'secure123');
+          await tester.tap(find.byKey(const Key('join_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应根据存储的哈希验证密码
@@ -221,7 +220,7 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('pool_password'),
                       decoration: InputDecoration(
                         labelText: '密码',
@@ -229,9 +228,9 @@ void main() {
                       ),
                     ),
                     ElevatedButton(
-                      key: Key('join_button'),
+                      key: const Key('join_button'),
                       onPressed: () {},
-                      child: Text('加入'),
+                      child: const Text('加入'),
                     ),
                   ],
                 ),
@@ -241,10 +240,10 @@ void main() {
 
           // When: 用户尝试使用密码"wrong-password"加入
           await tester.enterText(
-            find.byKey(Key('pool_password')),
+            find.byKey(const Key('pool_password')),
             'wrong-password',
           );
-          await tester.tap(find.byKey(Key('join_button')));
+          await tester.tap(find.byKey(const Key('join_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应拒绝加入请求
@@ -262,7 +261,7 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('pool_id'),
                       decoration: InputDecoration(
                         labelText: '池 ID',
@@ -270,9 +269,9 @@ void main() {
                       ),
                     ),
                     ElevatedButton(
-                      key: Key('join_button'),
+                      key: const Key('join_button'),
                       onPressed: () {},
-                      child: Text('加入'),
+                      child: const Text('加入'),
                     ),
                   ],
                 ),
@@ -282,10 +281,10 @@ void main() {
 
           // When: 用户提供不存在的池 ID
           await tester.enterText(
-            find.byKey(Key('pool_id')),
+            find.byKey(const Key('pool_id')),
             'nonexistent-pool',
           );
-          await tester.tap(find.byKey(Key('join_button')));
+          await tester.tap(find.byKey(const Key('join_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应拒绝加入请求
@@ -300,9 +299,9 @@ void main() {
           // Given: 设备已加入池"pool-A"
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [Text('您一次只能加入一个池'), Text('请先离开当前池')],
+                  children: [Text('您一次只能加入一个池'), Text('请先离开当前池')],
                 ),
               ),
             ),
@@ -327,9 +326,9 @@ void main() {
           // Given: 设备已加入池
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('池名称: Family Notes'),
                     Text('池 ID: pool-123'),
                     Text('创建时间: 2026-01-31'),
@@ -362,9 +361,9 @@ void main() {
           // Given: 设备已加入包含多个设备的池
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     ListTile(
                       title: Text('iPhone 14'),
                       subtitle: Text('phone'),
@@ -408,8 +407,8 @@ void main() {
                 children: [
                   const Text('池 ID: pool-123'),
                   IconButton(
-                    key: Key('copy_button'),
-                    icon: Icon(Icons.copy),
+                    key: const Key('copy_button'),
+                    icon: const Icon(Icons.copy),
                     onPressed: () {},
                   ),
                   const Text('池 ID 已复制'),
@@ -421,7 +420,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // When: 用户点击"复制池 ID"
-        await tester.tap(find.byKey(Key('copy_button')));
+        await tester.tap(find.byKey(const Key('copy_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应将池 ID 复制到剪贴板
@@ -444,14 +443,14 @@ void main() {
               body: Column(
                 children: [
                   TextField(
-                    key: Key('pool_name'),
+                    key: const Key('pool_name'),
                     controller: TextEditingController(text: 'Old Name'),
-                    decoration: InputDecoration(labelText: '池名称'),
+                    decoration: const InputDecoration(labelText: '池名称'),
                   ),
                   ElevatedButton(
-                    key: Key('update_button'),
+                    key: const Key('update_button'),
                     onPressed: () {},
-                    child: Text('更新'),
+                    child: const Text('更新'),
                   ),
                 ],
               ),
@@ -460,8 +459,8 @@ void main() {
         );
 
         // When: 用户将池名称更新为"New Name"
-        await tester.enterText(find.byKey(Key('pool_name')), 'New Name');
-        await tester.tap(find.byKey(Key('update_button')));
+        await tester.enterText(find.byKey(const Key('pool_name')), 'New Name');
+        await tester.tap(find.byKey(const Key('update_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应更新池名称
@@ -479,7 +478,7 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('pool_name'),
                       decoration: InputDecoration(
                         labelText: '池名称',
@@ -487,9 +486,9 @@ void main() {
                       ),
                     ),
                     ElevatedButton(
-                      key: Key('update_button'),
+                      key: const Key('update_button'),
                       onPressed: () {},
-                      child: Text('更新'),
+                      child: const Text('更新'),
                     ),
                   ],
                 ),
@@ -498,8 +497,8 @@ void main() {
           );
 
           // When: 用户提供空名称或仅包含空格的名称
-          await tester.enterText(find.byKey(Key('pool_name')), '');
-          await tester.tap(find.byKey(Key('update_button')));
+          await tester.enterText(find.byKey(const Key('pool_name')), '');
+          await tester.tap(find.byKey(const Key('update_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应拒绝更新
@@ -517,20 +516,20 @@ void main() {
             Scaffold(
               body: Column(
                 children: [
-                  TextField(
+                  const TextField(
                     key: Key('current_password'),
                     decoration: InputDecoration(labelText: '当前密码'),
                     obscureText: true,
                   ),
-                  TextField(
+                  const TextField(
                     key: Key('new_password'),
                     decoration: InputDecoration(labelText: '新密码'),
                     obscureText: true,
                   ),
                   ElevatedButton(
-                    key: Key('update_button'),
+                    key: const Key('update_button'),
                     onPressed: () {},
-                    child: Text('更新'),
+                    child: const Text('更新'),
                   ),
                 ],
               ),
@@ -540,11 +539,11 @@ void main() {
 
         // When: 用户将池密码更新为"new-password"
         await tester.enterText(
-          find.byKey(Key('current_password')),
+          find.byKey(const Key('current_password')),
           'secure123',
         );
-        await tester.enterText(find.byKey(Key('new_password')), 'new-password');
-        await tester.tap(find.byKey(Key('update_button')));
+        await tester.enterText(find.byKey(const Key('new_password')), 'new-password');
+        await tester.tap(find.byKey(const Key('update_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应首先验证当前密码
@@ -563,7 +562,7 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('new_password'),
                       decoration: InputDecoration(
                         labelText: '新密码',
@@ -571,9 +570,9 @@ void main() {
                       ),
                     ),
                     ElevatedButton(
-                      key: Key('update_button'),
+                      key: const Key('update_button'),
                       onPressed: () {},
-                      child: Text('更新'),
+                      child: const Text('更新'),
                     ),
                   ],
                 ),
@@ -582,8 +581,8 @@ void main() {
           );
 
           // When: 用户提供少于6个字符的密码
-          await tester.enterText(find.byKey(Key('new_password')), '123');
-          await tester.tap(find.byKey(Key('update_button')));
+          await tester.enterText(find.byKey(const Key('new_password')), '123');
+          await tester.tap(find.byKey(const Key('update_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应拒绝更新
@@ -669,9 +668,9 @@ void main() {
         // Given: 设备已离开池
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
-                children: const [Text('未加入任何池'), Text('您可以创建或加入新池')],
+                children: [Text('未加入任何池'), Text('您可以创建或加入新池')],
               ),
             ),
           ),
@@ -701,9 +700,9 @@ void main() {
               body: Column(
                 children: [
                   const Text('加入我的 CardMind 池！'),
-                  Text('池 ID：pool-123'),
-                  Text('密码：向我索取密码'),
-                  ElevatedButton(onPressed: () {}, child: Text('分享')),
+                  const Text('池 ID：pool-123'),
+                  const Text('密码：向我索取密码'),
+                  ElevatedButton(onPressed: () {}, child: const Text('分享')),
                 ],
               ),
             ),
@@ -729,19 +728,19 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('pool_id'),
                       decoration: InputDecoration(labelText: '池 ID'),
                     ),
-                    TextField(
+                    const TextField(
                       key: Key('pool_password'),
                       decoration: InputDecoration(labelText: '池密码'),
                       obscureText: true,
                     ),
                     ElevatedButton(
-                      key: Key('join_button'),
+                      key: const Key('join_button'),
                       onPressed: () {},
-                      child: Text('加入池'),
+                      child: const Text('加入池'),
                     ),
                   ],
                 ),
@@ -750,7 +749,7 @@ void main() {
           );
 
           // When: 用户在加入池表单中输入池 ID
-          await tester.enterText(find.byKey(Key('pool_id')), 'pool-123');
+          await tester.enterText(find.byKey(const Key('pool_id')), 'pool-123');
           await tester.pump();
 
           // Then: 系统应验证池 ID 格式

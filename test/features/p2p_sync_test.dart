@@ -32,9 +32,9 @@ void main() {
           // Given: 所有本地更改都已与对等设备同步
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Icon(Icons.cloud_done, color: Colors.green),
                     Text('已同步'),
                     Text('上次同步: 2026-01-31 10:00'),
@@ -60,9 +60,9 @@ void main() {
           // Given: 同步正在进行中
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     CircularProgressIndicator(),
                     Text('同步中'),
                     Text('正在与 2 个设备同步'),
@@ -88,9 +88,9 @@ void main() {
           // Given: 存在尚未同步的本地更改
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Icon(Icons.cloud_upload, color: Colors.orange),
                     Text('待同步'),
                   ],
@@ -113,9 +113,9 @@ void main() {
           // Given: 同步遇到错误
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Icon(Icons.cloud_off, color: Colors.red),
                     Text('同步错误'),
                     TextButton(
@@ -144,9 +144,9 @@ void main() {
           // Given: 没有可用于同步的对等设备
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Icon(Icons.cloud_off, color: Colors.grey),
                     Text('未连接'),
                     Text('没有可用设备'),
@@ -177,12 +177,12 @@ void main() {
           // Given: 用户正在查看同步状态指示器
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
                     Icon(Icons.cloud_done, key: Key('status_indicator')),
-                    const Text('已同步'),
-                    const Text('同步状态: 已同步'),
+                    Text('已同步'),
+                    Text('同步状态: 已同步'),
                   ],
                 ),
               ),
@@ -190,7 +190,7 @@ void main() {
           );
 
           // When: 用户点击同步状态指示器
-          await tester.tap(find.byKey(Key('status_indicator')));
+          await tester.tap(find.byKey(const Key('status_indicator')));
           await tester.pumpAndSettle();
 
           // Then: 系统应显示详细的同步信息视图
@@ -205,9 +205,9 @@ void main() {
           // Given: 同步详情视图已打开
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('已连接设备'),
                     ListTile(
                       title: Text('iPhone 14'),
@@ -244,9 +244,9 @@ void main() {
           // Given: 同步详情视图已打开
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('同步统计'),
                     Text('已同步卡片: 150'),
                     Text('数据大小: 5.2 MB'),
@@ -277,9 +277,9 @@ void main() {
           // Given: 同步详情视图已打开
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('同步历史'),
                     ListTile(
                       title: Text('成功'),
@@ -315,9 +315,9 @@ void main() {
           // Given: 同步历史已显示
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('筛选: 显示全部'),
                     Text('同步历史'),
                     ListTile(
@@ -352,12 +352,12 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('sync_now_button'),
+                      key: const Key('sync_now_button'),
                       onPressed: () {},
-                      child: Text('立即同步'),
+                      child: const Text('立即同步'),
                     ),
-                    CircularProgressIndicator(),
-                    Text('正在同步...'),
+                    const CircularProgressIndicator(),
+                    const Text('正在同步...'),
                   ],
                 ),
               ),
@@ -365,7 +365,7 @@ void main() {
           );
 
           // When: 用户点击"立即同步"按钮
-          await tester.tap(find.byKey(Key('sync_now_button')));
+          await tester.tap(find.byKey(const Key('sync_now_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应立即尝试与可用设备同步
@@ -386,9 +386,9 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('sync_now_button'),
+                      key: const Key('sync_now_button'),
                       onPressed: () {},
-                      child: Text('立即同步'),
+                      child: const Text('立即同步'),
                     ),
                     const Text('错误：没有可用设备'),
                     const Text('请确保其他设备在线'),
@@ -399,7 +399,7 @@ void main() {
           );
 
           // When: 用户点击"立即同步"按钮
-          await tester.tap(find.byKey(Key('sync_now_button')));
+          await tester.tap(find.byKey(const Key('sync_now_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应显示错误消息，指示没有可用设备
@@ -419,12 +419,12 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('full_sync_button'),
+                      key: const Key('full_sync_button'),
                       onPressed: () {},
-                      child: Text('完全同步'),
+                      child: const Text('完全同步'),
                     ),
-                    LinearProgressIndicator(value: 0.5),
-                    Text('正在重新同步所有数据...'),
+                    const LinearProgressIndicator(value: 0.5),
+                    const Text('正在重新同步所有数据...'),
                   ],
                 ),
               ),
@@ -432,7 +432,7 @@ void main() {
           );
 
           // When: 用户触发"完全同步"操作
-          await tester.tap(find.byKey(Key('full_sync_button')));
+          await tester.tap(find.byKey(const Key('full_sync_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应执行所有数据的完全重新同步
@@ -451,9 +451,9 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('refresh_button'),
+                      key: const Key('refresh_button'),
                       onPressed: () {},
-                      child: Text('刷新设备'),
+                      child: const Text('刷新设备'),
                     ),
                     const Text('正在搜索设备...'),
                   ],
@@ -463,7 +463,7 @@ void main() {
           );
 
           // When: 用户点击"刷新设备"按钮
-          await tester.tap(find.byKey(Key('refresh_button')));
+          await tester.tap(find.byKey(const Key('refresh_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应重新扫描可用的对等设备
@@ -488,11 +488,11 @@ void main() {
                   children: [
                     const Text('同步失败'),
                     ElevatedButton(
-                      key: Key('retry_button'),
+                      key: const Key('retry_button'),
                       onPressed: () {},
-                      child: Text('重试'),
+                      child: const Text('重试'),
                     ),
-                    CircularProgressIndicator(),
+                    const CircularProgressIndicator(),
                     const Text('正在重新同步...'),
                   ],
                 ),
@@ -501,7 +501,7 @@ void main() {
           );
 
           // When: 用户点击错误详情中的"重试"按钮
-          await tester.tap(find.byKey(Key('retry_button')));
+          await tester.tap(find.byKey(const Key('retry_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应尝试重新启动同步
@@ -527,7 +527,7 @@ void main() {
                 body: Column(
                   children: [
                     Switch(
-                      key: Key('auto_sync_switch'),
+                      key: const Key('auto_sync_switch'),
                       value: false,
                       onChanged: (value) {},
                     ),
@@ -540,7 +540,7 @@ void main() {
           );
 
           // When: 用户启用自动同步设置
-          await tester.tap(find.byKey(Key('auto_sync_switch')));
+          await tester.tap(find.byKey(const Key('auto_sync_switch')));
           await tester.pumpAndSettle();
 
           // Then: 系统应启用自动同步
@@ -559,7 +559,7 @@ void main() {
                 body: Column(
                   children: [
                     Switch(
-                      key: Key('auto_sync_switch'),
+                      key: const Key('auto_sync_switch'),
                       value: true,
                       onChanged: (value) {},
                     ),
@@ -567,7 +567,7 @@ void main() {
                     const Text('自动同步已禁用'),
                     ElevatedButton(
                       onPressed: () {},
-                      child: Text('立即同步'),
+                      child: const Text('立即同步'),
                     ),
                   ],
                 ),
@@ -576,7 +576,7 @@ void main() {
           );
 
           // When: 用户禁用自动同步设置
-          await tester.tap(find.byKey(Key('auto_sync_switch')));
+          await tester.tap(find.byKey(const Key('auto_sync_switch')));
           await tester.pumpAndSettle();
 
           // Then: 系统应停止自动同步
@@ -599,7 +599,7 @@ void main() {
                     const Text('同步频率'),
                     DropdownButton<String>(
                       value: 'Every 5 minutes',
-                      items: [
+                      items: const [
                         DropdownMenuItem(
                           value: 'Every 1 minute',
                           child: Text('每 1 分钟'),
@@ -636,9 +636,9 @@ void main() {
           // Given: 存在同步冲突
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('同步冲突'),
                     Text('未解决的冲突: 2'),
                     ListTile(
@@ -668,9 +668,9 @@ void main() {
           // Given: 用户正在查看冲突列表
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('冲突详情'),
                     Card(
                       child: Column(
@@ -719,9 +719,9 @@ void main() {
                   children: [
                     const Text('冲突详情'),
                     ElevatedButton(
-                      key: Key('select_version_1'),
+                      key: const Key('select_version_1'),
                       onPressed: () {},
-                      child: Text('选择版本 1'),
+                      child: const Text('选择版本 1'),
                     ),
                     const Text('冲突已解决'),
                   ],
@@ -731,7 +731,7 @@ void main() {
           );
 
           // When: 用户选择保留哪个版本
-          await tester.tap(find.byKey(Key('select_version_1')));
+          await tester.tap(find.byKey(const Key('select_version_1')));
           await tester.pumpAndSettle();
 
           // Then: 系统应应用所选版本
@@ -747,9 +747,9 @@ void main() {
           // Given: 基于 CRDT 的冲突解决已启用
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('同步历史'),
                     ListTile(
                       title: Text('自动解决冲突'),
@@ -786,17 +786,17 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('sync_screen_button'),
+                      key: const Key('sync_screen_button'),
                       onPressed: () {},
-                      child: Text('查看同步详情'),
+                      child: const Text('查看同步详情'),
                     ),
                   ],
                 ),
               ),
               routes: {
-                '/sync': (context) => Scaffold(
+                '/sync': (context) => const Scaffold(
                       body: Column(
-                        children: const [
+                        children: [
                           Text('同步屏幕'),
                           Text('同步状态: 已同步'),
                           Text('已连接设备'),
@@ -810,7 +810,7 @@ void main() {
           );
 
           // When: 用户从设置或主菜单导航到同步屏幕
-          await tester.tap(find.byKey(Key('sync_screen_button')));
+          await tester.tap(find.byKey(const Key('sync_screen_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应显示专用同步屏幕
@@ -831,9 +831,9 @@ void main() {
           // Given: 同步屏幕已显示
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('同步状态: 已同步'),
                     Text('上次同步: 2026-01-31 10:00'),
                     Text('已同步卡片: 150'),

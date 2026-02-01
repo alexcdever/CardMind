@@ -4,7 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,9 +31,9 @@ void main() {
           // Given: 设备有已配置的名称
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('设备名称'),
                     Text('我的 iPhone'),
                     Text('设备 ID: device-123'),
@@ -66,12 +65,12 @@ void main() {
               body: Column(
                 children: [
                   TextField(
-                    key: Key('device_name_field'),
+                    key: const Key('device_name_field'),
                     controller: TextEditingController(text: '我的 iPhone'),
-                    decoration: InputDecoration(labelText: '设备名称'),
+                    decoration: const InputDecoration(labelText: '设备名称'),
                   ),
                   ElevatedButton(
-                    key: Key('save_button'),
+                    key: const Key('save_button'),
                     onPressed: () {},
                     child: const Text('保存'),
                   ),
@@ -83,10 +82,10 @@ void main() {
 
         // When: 用户将设备名称更改为"My Work Phone"并保存
         await tester.enterText(
-          find.byKey(Key('device_name_field')),
+          find.byKey(const Key('device_name_field')),
           'My Work Phone',
         );
-        await tester.tap(find.byKey(Key('save_button')));
+        await tester.tap(find.byKey(const Key('save_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应在设备配置中更新设备名称
@@ -105,7 +104,7 @@ void main() {
             Scaffold(
               body: Column(
                 children: [
-                  TextField(
+                  const TextField(
                     key: Key('device_name_field'),
                     decoration: InputDecoration(
                       labelText: '设备名称',
@@ -113,7 +112,7 @@ void main() {
                     ),
                   ),
                   ElevatedButton(
-                    key: Key('save_button'),
+                    key: const Key('save_button'),
                     onPressed: () {},
                     child: const Text('保存'),
                   ),
@@ -124,8 +123,8 @@ void main() {
         );
 
         // When: 用户提供空名称或仅包含空格的名称
-        await tester.enterText(find.byKey(Key('device_name_field')), '');
-        await tester.tap(find.byKey(Key('save_button')));
+        await tester.enterText(find.byKey(const Key('device_name_field')), '');
+        await tester.tap(find.byKey(const Key('save_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应拒绝更改
@@ -139,9 +138,9 @@ void main() {
           // Given: 用户正在查看设备设置
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('设备信息'),
                     Text('设备 ID: device-123'),
                     Text('设备类型: phone'),
@@ -182,7 +181,7 @@ void main() {
               body: Column(
                 children: [
                   Switch(
-                    key: Key('theme_switch'),
+                    key: const Key('theme_switch'),
                     value: false,
                     onChanged: (value) {},
                   ),
@@ -194,7 +193,7 @@ void main() {
         );
 
         // When: 用户将主题设置切换为深色模式
-        await tester.tap(find.byKey(Key('theme_switch')));
+        await tester.tap(find.byKey(const Key('theme_switch')));
         await tester.pumpAndSettle();
 
         // Then: 系统应立即应用深色主题
@@ -212,7 +211,7 @@ void main() {
               body: Column(
                 children: [
                   const Text('文本大小'),
-                  Slider(value: 1.0, onChanged: (value) {}),
+                  Slider(value: 1, onChanged: (value) {}),
                   const Text('当前: 大'),
                   const Text('预览文本'),
                 ],
@@ -273,7 +272,7 @@ void main() {
               body: Column(
                 children: [
                   Switch(
-                    key: Key('auto_sync_switch'),
+                    key: const Key('auto_sync_switch'),
                     value: false,
                     onChanged: (value) {},
                   ),
@@ -285,7 +284,7 @@ void main() {
         );
 
         // When: 用户启用自动同步
-        await tester.tap(find.byKey(Key('auto_sync_switch')));
+        await tester.tap(find.byKey(const Key('auto_sync_switch')));
         await tester.pumpAndSettle();
 
         // Then: 系统应启用自动同步
@@ -303,12 +302,12 @@ void main() {
               body: Column(
                 children: [
                   Switch(
-                    key: Key('auto_sync_switch'),
+                    key: const Key('auto_sync_switch'),
                     value: true,
                     onChanged: (value) {},
                   ),
                   const Text('自动同步'),
-                  ElevatedButton(onPressed: () {}, child: Text('立即同步')),
+                  ElevatedButton(onPressed: () {}, child: const Text('立即同步')),
                 ],
               ),
             ),
@@ -316,7 +315,7 @@ void main() {
         );
 
         // When: 用户禁用自动同步
-        await tester.tap(find.byKey(Key('auto_sync_switch')));
+        await tester.tap(find.byKey(const Key('auto_sync_switch')));
         await tester.pumpAndSettle();
 
         // Then: 系统应停止自动同步
@@ -337,7 +336,7 @@ void main() {
                     const Text('同步频率'),
                     DropdownButton<String>(
                       value: 'Every 5 minutes',
-                      items: [
+                      items: const [
                         DropdownMenuItem(
                           value: 'Every 1 minute',
                           child: Text('每 1 分钟'),
@@ -374,7 +373,7 @@ void main() {
                 body: Column(
                   children: [
                     Switch(
-                      key: Key('wifi_only_switch'),
+                      key: const Key('wifi_only_switch'),
                       value: false,
                       onChanged: (value) {},
                     ),
@@ -386,7 +385,7 @@ void main() {
           );
 
           // When: 用户启用"仅在 Wi-Fi 上同步"
-          await tester.tap(find.byKey(Key('wifi_only_switch')));
+          await tester.tap(find.byKey(const Key('wifi_only_switch')));
           await tester.pumpAndSettle();
 
           // Then: 系统应将同步限制为 Wi-Fi 连接
@@ -405,17 +404,17 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('sync_details_button'),
+                      key: const Key('sync_details_button'),
                       onPressed: () {},
-                      child: Text('查看同步详情'),
+                      child: const Text('查看同步详情'),
                     ),
                   ],
                 ),
               ),
               routes: {
-                '/sync': (context) => Scaffold(
+                '/sync': (context) => const Scaffold(
                   body: Column(
-                    children: const [Text('同步详情'), Text('同步状态: 已同步')],
+                    children: [Text('同步详情'), Text('同步状态: 已同步')],
                   ),
                 ),
               },
@@ -423,7 +422,7 @@ void main() {
           );
 
           // When: 用户选择"查看同步详情"
-          await tester.tap(find.byKey(Key('sync_details_button')));
+          await tester.tap(find.byKey(const Key('sync_details_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应导航到同步屏幕
@@ -444,9 +443,9 @@ void main() {
           // Given: 用户正在查看数据设置
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('存储使用情况'),
                     Text('总计: 125.5 MB'),
                     Text('卡片: 98.2 MB'),
@@ -480,9 +479,9 @@ void main() {
               body: Column(
                 children: [
                   ElevatedButton(
-                    key: Key('clear_cache_button'),
+                    key: const Key('clear_cache_button'),
                     onPressed: () {},
-                    child: Text('清除缓存'),
+                    child: const Text('清除缓存'),
                   ),
                 ],
               ),
@@ -492,7 +491,7 @@ void main() {
         );
 
         // Then: 系统应显示确认对话框"清除所有缓存数据？"
-        await tester.tap(find.byKey(Key('clear_cache_button')));
+        await tester.tap(find.byKey(const Key('clear_cache_button')));
         await tester.pumpAndSettle();
 
         // AND: 如果用户确认，系统应删除所有缓存数据
@@ -510,9 +509,9 @@ void main() {
               body: Column(
                 children: [
                   ElevatedButton(
-                    key: Key('export_button'),
+                    key: const Key('export_button'),
                     onPressed: () {},
-                    child: Text('导出数据'),
+                    child: const Text('导出数据'),
                   ),
                 ],
               ),
@@ -521,7 +520,7 @@ void main() {
         );
 
         // When: 用户选择"导出数据"
-        await tester.tap(find.byKey(Key('export_button')));
+        await tester.tap(find.byKey(const Key('export_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应生成包含所有卡片和池数据的导出文件
@@ -540,9 +539,9 @@ void main() {
               body: Column(
                 children: [
                   ElevatedButton(
-                    key: Key('import_button'),
+                    key: const Key('import_button'),
                     onPressed: () {},
-                    child: Text('导入数据'),
+                    child: const Text('导入数据'),
                   ),
                 ],
               ),
@@ -551,7 +550,7 @@ void main() {
         );
 
         // When: 用户选择"导入数据"
-        await tester.tap(find.byKey(Key('import_button')));
+        await tester.tap(find.byKey(const Key('import_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应打开文件选择器
@@ -566,8 +565,8 @@ void main() {
           // Given: 用户正在导入数据
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
-                body: Column(children: const [Text('导入数据'), Text('错误：文件格式无效')]),
+              const Scaffold(
+                body: Column(children: [Text('导入数据'), Text('错误：文件格式无效')]),
               ),
             ),
           );
@@ -591,9 +590,9 @@ void main() {
           // Given: 用户正在查看关于部分
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('应用信息'),
                     Text('版本: 1.0.0'),
                     Text('构建号: 123'),
@@ -625,9 +624,9 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('licenses_button'),
+                      key: const Key('licenses_button'),
                       onPressed: () {},
-                      child: Text('开源许可证'),
+                      child: const Text('开源许可证'),
                     ),
                   ],
                 ),
@@ -636,7 +635,7 @@ void main() {
           );
 
           // When: 用户选择"开源许可证"
-          await tester.tap(find.byKey(Key('licenses_button')));
+          await tester.tap(find.byKey(const Key('licenses_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应显示所有第三方库许可证
@@ -654,9 +653,9 @@ void main() {
               body: Column(
                 children: [
                   ElevatedButton(
-                    key: Key('help_button'),
+                    key: const Key('help_button'),
                     onPressed: () {},
-                    child: Text('帮助与支持'),
+                    child: const Text('帮助与支持'),
                   ),
                 ],
               ),
@@ -665,7 +664,7 @@ void main() {
         );
 
         // When: 用户选择"帮助与支持"
-        await tester.tap(find.byKey(Key('help_button')));
+        await tester.tap(find.byKey(const Key('help_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应打开支持文档或联系表单
@@ -682,9 +681,9 @@ void main() {
                 body: Column(
                   children: [
                     ElevatedButton(
-                      key: Key('feedback_button'),
+                      key: const Key('feedback_button'),
                       onPressed: () {},
-                      child: Text('发送反馈'),
+                      child: const Text('发送反馈'),
                     ),
                   ],
                 ),
@@ -693,7 +692,7 @@ void main() {
           );
 
           // When: 用户选择"发送反馈"
-          await tester.tap(find.byKey(Key('feedback_button')));
+          await tester.tap(find.byKey(const Key('feedback_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应打开反馈表单或电子邮件客户端
@@ -711,9 +710,9 @@ void main() {
               body: Column(
                 children: [
                   ElevatedButton(
-                    key: Key('rate_button'),
+                    key: const Key('rate_button'),
                     onPressed: () {},
-                    child: Text('为应用评分'),
+                    child: const Text('为应用评分'),
                   ),
                 ],
               ),
@@ -722,7 +721,7 @@ void main() {
         );
 
         // When: 用户选择"为应用评分"
-        await tester.tap(find.byKey(Key('rate_button')));
+        await tester.tap(find.byKey(const Key('rate_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应打开应用商店评分页面
@@ -743,9 +742,9 @@ void main() {
               body: Column(
                 children: [
                   ElevatedButton(
-                    key: Key('privacy_button'),
+                    key: const Key('privacy_button'),
                     onPressed: () {},
-                    child: Text('隐私政策'),
+                    child: const Text('隐私政策'),
                   ),
                 ],
               ),
@@ -754,7 +753,7 @@ void main() {
         );
 
         // When: 用户选择"隐私政策"
-        await tester.tap(find.byKey(Key('privacy_button')));
+        await tester.tap(find.byKey(const Key('privacy_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应打开隐私政策文档
@@ -771,9 +770,9 @@ void main() {
               body: Column(
                 children: [
                   ElevatedButton(
-                    key: Key('terms_button'),
+                    key: const Key('terms_button'),
                     onPressed: () {},
-                    child: Text('服务条款'),
+                    child: const Text('服务条款'),
                   ),
                 ],
               ),
@@ -782,7 +781,7 @@ void main() {
         );
 
         // When: 用户选择"服务条款"
-        await tester.tap(find.byKey(Key('terms_button')));
+        await tester.tap(find.byKey(const Key('terms_button')));
         await tester.pumpAndSettle();
 
         // Then: 系统应打开服务条款文档
@@ -837,7 +836,7 @@ void main() {
             MaterialApp(
               home: Scaffold(
                 body: ListView(
-                  children: [
+                  children: const [
                     ListTile(
                       key: Key('appearance_section'),
                       title: Text('外观'),
@@ -847,9 +846,9 @@ void main() {
                 ),
               ),
               routes: {
-                '/appearance': (context) => Scaffold(
+                '/appearance': (context) => const Scaffold(
                   body: Column(
-                    children: const [Text('外观设置'), Text('主题模式'), Text('文本大小')],
+                    children: [Text('外观设置'), Text('主题模式'), Text('文本大小')],
                   ),
                 ),
               },
@@ -857,7 +856,7 @@ void main() {
           );
 
           // When: 用户点击某个部分
-          await tester.tap(find.byKey(Key('appearance_section')));
+          await tester.tap(find.byKey(const Key('appearance_section')));
           await tester.pumpAndSettle();
 
           // Then: 系统应展开或导航到该部分

@@ -4,7 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,9 +31,9 @@ void main() {
         // Given: 存在多张具有不同标题的卡片
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
-                children: const [
+                children: [
                   Text('Meeting Notes'),
                   Text('Project Plan'),
                   Text('Shopping List'),
@@ -65,9 +64,9 @@ void main() {
           // Given: 存在多张具有不同内容的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card 1'),
                     Text('project timeline'),
                     Text('Card 2'),
@@ -97,9 +96,9 @@ void main() {
           // Given: 存在具有各种内容的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Rust Programming'),
                     Text('Tutorial'),
                     TextField(
@@ -132,14 +131,14 @@ void main() {
         // Given: 用户正在搜索字段中输入
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
                 children: [
-                  const Text('Card 1'),
-                  const Text('Card 2'),
+                  Text('Card 1'),
+                  Text('Card 2'),
                   TextField(
-                    key: const Key('search_field'),
-                    decoration: const InputDecoration(
+                    key: Key('search_field'),
+                    decoration: InputDecoration(
                       hintText: 'Search cards...',
                     ),
                   ),
@@ -171,15 +170,15 @@ void main() {
           // Given: 搜索已激活并显示过滤结果
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
-                    const Text('Card 1'),
-                    const Text('Card 2'),
-                    const Text('Card 3'),
+                    Text('Card 1'),
+                    Text('Card 2'),
+                    Text('Card 3'),
                     TextField(
-                      key: const Key('search_field'),
-                      decoration: const InputDecoration(
+                      key: Key('search_field'),
+                      decoration: InputDecoration(
                         hintText: 'Search cards...',
                       ),
                     ),
@@ -212,13 +211,13 @@ void main() {
         // Given: 用户输入搜索查询
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
                 children: [
-                  const Text('未找到相关笔记'),
-                  const Text('尝试其他关键词'),
+                  Text('未找到相关笔记'),
+                  Text('尝试其他关键词'),
                   TextField(
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Search cards...',
                     ),
                   ),
@@ -250,9 +249,9 @@ void main() {
           // Given: 搜索结果已显示
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text.rich(
                       TextSpan(
                         children: [
@@ -289,9 +288,9 @@ void main() {
           // Given: 搜索结果已显示
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card Title'),
                     Text.rich(
                       TextSpan(
@@ -329,9 +328,9 @@ void main() {
           // Given: 用户使用多个关键词搜索
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text.rich(
                       TextSpan(
                         children: [
@@ -380,9 +379,9 @@ void main() {
           // Given: 存在具有各种标签的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('work (3)'),
                     Text('urgent (2)'),
                     Text('meeting (1)'),
@@ -410,14 +409,14 @@ void main() {
           // Given: 存在具有不同标签的多张卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
-                    const Text('work (3)'),
-                    const Text('urgent (2)'),
-                    const Text('Card 1 - work'),
-                    const Text('Card 2 - work'),
-                    const Text('Card 3 - urgent'),
+                    Text('work (3)'),
+                    Text('urgent (2)'),
+                    Text('Card 1 - work'),
+                    Text('Card 2 - work'),
+                    Text('Card 3 - urgent'),
                   ],
                 ),
               ),
@@ -443,9 +442,9 @@ void main() {
           // Given: 存在具有各种标签的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('work (3)'),
                     Text('urgent (2)'),
                     Text('Card 1 - work'),
@@ -480,14 +479,14 @@ void main() {
         // Given: 标签过滤器已激活
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
                 children: [
-                  const Text('Clear filters'),
-                  const Text('work (3)'),
-                  const Text('Card 1 - work'),
-                  const Text('Card 2 - work'),
-                  const Text('Card 3 - urgent'),
+                  Text('Clear filters'),
+                  Text('work (3)'),
+                  Text('Card 1 - work'),
+                  Text('Card 2 - work'),
+                  Text('Card 3 - urgent'),
                 ],
               ),
             ),
@@ -516,8 +515,8 @@ void main() {
         // Given: 用户选择一个标签
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
-              body: Column(children: const [Text('未找到相关笔记'), Text('清除过滤器')]),
+            const Scaffold(
+              body: Column(children: [Text('未找到相关笔记'), Text('清除过滤器')]),
             ),
           ),
         );
@@ -541,9 +540,9 @@ void main() {
           // Given: 用户已选择标签"work"
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('work (3)'),
                     Text('Card 1 - work'),
                     Text('Card 2 - work (meeting)'),
@@ -579,9 +578,9 @@ void main() {
           // Given: 用户已输入搜索关键词"project"
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('urgent (2)'),
                     Text('Card 1 - project'),
                     Text('Card 2 - project (urgent)'),
@@ -615,9 +614,9 @@ void main() {
         // Given: 搜索和标签过滤器都已激活
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
-                children: const [
+                children: [
                   Text('Clear all filters'),
                   Text('work (3)'),
                   TextField(
@@ -659,9 +658,9 @@ void main() {
         // Given: 存在多张卡片
         await tester.pumpWidget(
           createTestWidget(
-            Scaffold(
+            const Scaffold(
               body: Column(
-                children: const [
+                children: [
                   Text('Card 3 - Updated: 2026-01-31 10:00'),
                   Text('Card 2 - Updated: 2026-01-31 09:00'),
                   Text('Card 1 - Updated: 2026-01-31 08:00'),
@@ -687,9 +686,9 @@ void main() {
           // Given: 存在多张卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Sort: Created Time'),
                     Text('Card 3 - Created: 2026-01-31 10:00'),
                     Text('Card 2 - Created: 2026-01-31 09:00'),
@@ -726,9 +725,9 @@ void main() {
           // Given: 存在多张卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Sort: Title A-Z'),
                     Text('Apple Card'),
                     Text('Banana Card'),
@@ -756,9 +755,9 @@ void main() {
           // Given: 卡片按升序排序
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Sort: Title Z-A'),
                     Icon(Icons.arrow_upward, key: Key('sort_direction')),
                     Text('Cherry Card'),
@@ -790,9 +789,9 @@ void main() {
           // Given: 用户已选择排序顺序
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Sort: Created Time'),
                     Text('work (3)'),
                     Text('Card 3 - work - Created: 2026-01-31 10:00'),
@@ -841,9 +840,9 @@ void main() {
 
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card 1'),
                     Text('Card 2'),
                     TextField(
@@ -875,9 +874,9 @@ void main() {
 
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('work (3)'),
                     Text('Card 1 - work'),
                     Text('Card 2 - work'),

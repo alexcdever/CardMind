@@ -126,9 +126,9 @@ void main() {
               Scaffold(
                 body: Column(
                   children: [
-                    TextField(
+                    const TextField(
                       key: Key('title_field'),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '标题',
                         errorText: '标题为必填项',
                       ),
@@ -161,9 +161,9 @@ void main() {
           // Given: 用户未加入任何池
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('请先加入或创建一个池'),
                     ElevatedButton(
                       onPressed: null,
@@ -194,9 +194,9 @@ void main() {
           // Given: 存在包含标题、内容和标签的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Meeting Notes', style: TextStyle(fontSize: 24)),
                     Text('Discussed project timeline'),
                     SizedBox(height: 16),
@@ -231,9 +231,9 @@ void main() {
           // Given: 卡片最后由另一设备修改
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Meeting Notes'),
                     Text('最后修改: MacBook Pro'),
                     Text('修改时间: 2026-01-31 11:00'),
@@ -258,9 +258,9 @@ void main() {
           // Given: 卡片有同步状态信息
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Meeting Notes'),
                     Icon(Icons.cloud_done, color: Colors.green),
                     Text('同步状态: 已同步'),
@@ -295,12 +295,12 @@ void main() {
                 body: Column(
                   children: [
                     TextField(
-                      key: Key('title_field'),
+                      key: const Key('title_field'),
                       controller: TextEditingController(text: 'Old Title'),
                       decoration: const InputDecoration(labelText: '标题'),
                     ),
                     TextField(
-                      key: Key('content_field'),
+                      key: const Key('content_field'),
                       controller: TextEditingController(text: 'Old Content'),
                       decoration: const InputDecoration(labelText: '内容'),
                     ),
@@ -341,9 +341,9 @@ void main() {
           // Given: 用户正在编辑卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     TextField(
                       key: Key('content_field'),
                       decoration: InputDecoration(labelText: '内容'),
@@ -410,7 +410,7 @@ void main() {
                 body: Column(
                   children: [
                     TextField(
-                      key: Key('title_field'),
+                      key: const Key('title_field'),
                       controller: TextEditingController(text: 'Draft Title'),
                       decoration: const InputDecoration(labelText: '标题'),
                     ),
@@ -482,11 +482,11 @@ void main() {
           // Given: 存在没有标签的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
-                    const Text('Card Title'),
-                    const Text('标签: work'),
+                    Text('Card Title'),
+                    Text('标签: work'),
                     IconButton(
                       key: Key('add_tag_button'),
                       icon: Icon(Icons.add),
@@ -515,9 +515,9 @@ void main() {
           // Given: 存在包含标签"work"的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card Title'),
                     Text('标签: work, urgent, meeting'),
                   ],
@@ -539,9 +539,9 @@ void main() {
           // Given: 卡片有标签"work"
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card Title'),
                     Text('标签: work'),
                     Text('标签已存在'),
@@ -565,11 +565,11 @@ void main() {
           // Given: 卡片有标签"work"和"urgent"
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
-                    const Text('Card Title'),
-                    const Text('标签: work'),
+                    Text('Card Title'),
+                    Text('标签: work'),
                     IconButton(
                       key: Key('remove_urgent_button'),
                       icon: Icon(Icons.close),
@@ -597,9 +597,9 @@ void main() {
           // Given: 卡片有标签"Work"
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card Title'),
                     Text('标签: Work, work'),
                   ],
@@ -694,9 +694,9 @@ void main() {
           // Given: 卡片被软删除
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card Title'),
                     Icon(Icons.delete, color: Colors.grey),
                     Text('已删除'),
@@ -726,9 +726,9 @@ void main() {
           // Given: 存在包含标题和内容的卡片
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card Title'),
                     Text('Card Content'),
                     ElevatedButton(
@@ -754,9 +754,9 @@ void main() {
           // Given: 卡片有标题、内容和标签"work"、"urgent"
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     Text('Card Title'),
                     Text('Card Content'),
                     Text('标签: work, urgent'),
@@ -788,15 +788,15 @@ void main() {
           // Given: 用户在桌面上
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
                     TextField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '编辑卡片（内联模式）',
                       ),
                     ),
-                    const Text('按 Cmd/Ctrl+Enter 保存，Escape 取消'),
+                    Text('按 Cmd/Ctrl+Enter 保存，Escape 取消'),
                   ],
                 ),
               ),
@@ -821,16 +821,16 @@ void main() {
         (WidgetTester tester) async {
           // Given: 用户在移动平台上
           await tester.pumpWidget(
-            MaterialApp(
+            const MaterialApp(
               home: Scaffold(
                 body: Column(
                   children: [
                     TextField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '编辑卡片（全屏模式）',
                       ),
                     ),
-                    const Text('全屏编辑模式'),
+                    Text('全屏编辑模式'),
                   ],
                 ),
               ),
@@ -854,16 +854,16 @@ void main() {
           // Given: 用户在桌面端正在编辑卡片A
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
                     TextField(
                       key: Key('card_a'),
-                      decoration: const InputDecoration(labelText: 'Card A'),
+                      decoration: InputDecoration(labelText: 'Card A'),
                     ),
                     TextField(
                       key: Key('card_b'),
-                      decoration: const InputDecoration(labelText: 'Card B'),
+                      decoration: InputDecoration(labelText: 'Card B'),
                     ),
                   ],
                 ),
