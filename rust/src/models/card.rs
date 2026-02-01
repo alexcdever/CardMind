@@ -85,6 +85,34 @@ impl Card {
         self.updated_at = chrono::Utc::now().timestamp_millis();
     }
 
+    /// 检查卡片是否包含指定标签
+    ///
+    /// # 参数
+    ///
+    /// * `tag` - 要检查的标签
+    ///
+    /// # Returns
+    ///
+    /// 如果卡片包含该标签返回 true，否则返回 false
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.tags.contains(&tag.to_string())
+    }
+
+    /// 获取卡片的所有标签
+    ///
+    /// # Returns
+    ///
+    /// 标签切片的引用
+    pub fn get_tags(&self) -> &[String] {
+        &self.tags
+    }
+
+    /// 清空卡片的所有标签
+    pub fn clear_tags(&mut self) {
+        self.tags.clear();
+        self.updated_at = chrono::Utc::now().timestamp_millis();
+    }
+
     /// Sets the last edit device
     pub fn set_last_edit_device(&mut self, device: String) {
         self.last_edit_device = Some(device);
@@ -149,5 +177,104 @@ mod tests {
         card.mark_deleted();
 
         assert!(card.deleted);
+    }
+
+    #[test]
+    fn test_add_tag() {
+        let mut card = Card::new(
+            "test-id".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
+
+        assert!(card.tags.is_empty());
+
+        card.add_tag("work".to_string());
+        assert_eq!(card.tags.len(), 1);
+        assert!(card.has_tag("work"));
+    }
+
+    #[test]
+    fn test_add_duplicate_tag() {
+        let mut card = Card::new(
+            "test-id".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
+
+        card.add_tag("work".to_string());
+        card.add_tag("work".to_string());
+
+        assert_eq!(card.tags.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_tag() {
+        let mut card = Card::new(
+            "test-id".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
+
+        card.add_tag("work".to_string());
+        card.add_tag("personal".to_string());
+        assert_eq!(card.tags.len(), 2);
+
+        card.remove_tag("work");
+        assert_eq!(card.tags.len(), 1);
+        assert!(!card.has_tag("work"));
+        assert!(card.has_tag("personal"));
+    }
+
+    #[test]
+    fn test_has_tag() {
+        let mut card = Card::new(
+            "test-id".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
+
+        assert!(!card.has_tag("work"));
+
+        card.add_tag("work".to_string());
+        assert!(card.has_tag("work"));
+        assert!(!card.has_tag("personal"));
+    }
+
+    #[test]
+    fn test_get_tags() {
+        let mut card = Card::new(
+            "test-id".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
+
+        assert!(card.get_tags().is_empty());
+
+        card.add_tag("work".to_string());
+        card.add_tag("personal".to_string());
+
+        let tags = card.get_tags();
+        assert_eq!(tags.len(), 2);
+        assert!(tags.contains(&"work".to_string()));
+        assert!(tags.contains(&"personal".to_string()));
+    }
+
+    #[test]
+    fn test_clear_tags() {
+        let mut card = Card::new(
+            "test-id".to_string(),
+            "Title".to_string(),
+            "Content".to_string(),
+        );
+
+        card.add_tag("work".to_string());
+        card.add_tag("personal".to_string());
+        assert_eq!(card.tags.len(), 2);
+
+        card.clear_tags();
+        assert!(card.tags.is_empty());
+        assert!(!card.has_tag("work"));
+        assert!(!card.has_tag("personal"));
     }
 }
