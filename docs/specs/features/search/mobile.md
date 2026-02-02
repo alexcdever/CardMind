@@ -1,24 +1,29 @@
 # 移动端搜索规格
 
+**版本**: 1.0.0
+**状态**: 活跃
+**依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
+**相关测试**: `flutter/test/features/search/mobile_search_test.dart`
 
 ---
 
+## 概述
 
-### 1.1 目标
-
-
-定义移动端搜索功能规范，确保：
+本规格定义移动端搜索功能规范，确保：
 
 - 覆盖模式提供专注体验
 - 实时搜索结果
 - 流畅的键盘交互
 
-### 1.2 适用平台
-
+**适用平台**:
 - Android
 - iOS
 - iPadOS（视为移动端）
 
+**技术栈**:
+- Flutter TextField - 搜索输入框
+- Provider/Riverpod - 状态管理
+- flutter_rust_bridge - 数据桥接
 
 ---
 
@@ -43,6 +48,56 @@
 - **并且**：搜索字段应获得焦点
 - **并且**：键盘应出现
 
+**实现逻辑**:
+
+```
+structure MobileSearch:
+    isSearchOverlayOpen: bool = false
+    searchQuery: String = ""
+    searchController: TextEditingController
+    focusNode: FocusNode
+
+    // 打开搜索覆盖层
+    function openSearchOverlay():
+        // 步骤1：显示覆盖层
+        isSearchOverlayOpen = true
+
+        // 步骤2：聚焦搜索字段
+        focusNode.requestFocus()
+
+        // 步骤3：显示键盘
+        showKeyboard()
+
+        // 步骤4：渲染覆盖层
+        renderSearchOverlay()
+
+    // 渲染搜索覆盖层
+    function renderSearchOverlay():
+        return Overlay(
+            child: Column([
+                AppBar(
+                    leading: BackButton(onPressed: closeSearchOverlay),
+                    title: TextField(
+                        controller: searchController,
+                        focusNode: focusNode,
+                        placeholder: "搜索笔记...",
+                        onChanged: handleSearchInput
+                    )
+                ),
+                SearchResults(
+                    results: filteredCards,
+                    onTap: handleResultTap
+                )
+            ])
+        )
+
+    // 关闭搜索覆盖层
+    function closeSearchOverlay():
+        isSearchOverlayOpen = false
+        searchQuery = ""
+        searchController.clear()
+        hideKeyboard()
+```
 
 ---
 
@@ -66,39 +121,152 @@
 - **预期结果**：覆盖层应关闭
 - **并且**：卡片列表应重新出现
 
+**实现逻辑**:
+
+```
+structure SearchOverlay:
+    // 处理返回按钮
+    function handleBackButton():
+        closeSearchOverlay()
+        navigateBack()
+```
 
 ---
 
-
-### 需求：搜索应实时过滤
-
+## 需求：搜索应实时过滤
 
 搜索应实时过滤卡片。
 
-#### 场景：用户输入时结果更新
+### 场景：用户输入时结果更新
 
 - **前置条件**：用户在搜索字段中输入
 - **操作**：用户输入文本
 - **预期结果**：结果应立即更新
 - **并且**：过滤应平滑
 
-#### 场景：无结果显示消息
+### 场景：无结果显示消息
 
 - **前置条件**：搜索无匹配
 - **操作**：查看结果
 - **预期结果**：消息应显示"未找到相关笔记"
 - **并且**：图标应显示
 
-#### 场景：点击结果打开卡片
+### 场景：点击结果打开卡片
 
 - **前置条件**：搜索结果已显示
 - **操作**：用户点击结果
 - **预期结果**：覆盖层应关闭
 - **并且**：卡片应打开
 
+**实现逻辑**:
+
+```
+structure SearchFiltering:
+    cards: List<Card>
+    filteredCards: List<Card>
+    searchQuery: String
+
+    // 处理搜索输入
+    function handleSearchInput(query):
+        searchQuery = query
+
+        // 防抖处理（200ms）
+        debounce(200, () => {
+            filterCards()
+        })
+
+    // 过滤卡片
+    function filterCards():
+        if searchQuery.trim().isEmpty():
+            filteredCards = []
+        else:
+            filteredCards = cards.filter((card) =>
+                matchesSearch(card, searchQuery)
+            )
+
+        render()
+
+    // 检查卡片是否匹配搜索
+    function matchesSearch(card, query):
+        queryLower = query.toLowerCase()
+
+        return card.title.toLowerCase().contains(queryLower) ||
+               card.content.toLowerCase().contains(queryLower) ||
+               card.tags.any((tag) => tag.toLowerCase().contains(queryLower))
+
+    // 处理结果点击
+    function handleResultTap(card):
+        // 步骤1：关闭搜索覆盖层
+        closeSearchOverlay()
+
+        // 步骤2：打开卡片
+        navigateTo(CardDetailScreen(cardId: card.id))
+
+    // 渲染搜索结果
+    function renderSearchResults():
+        if searchQuery.isEmpty():
+            return EmptyState(
+                icon: Icons.search,
+                message: "输入关键词开始搜索"
+            )
+
+        if filteredCards.isEmpty():
+            return EmptyState(
+                icon: Icons.search_off,
+                message: "未找到相关笔记",
+                subtitle: "搜索词: \"{searchQuery}\""
+            )
+
+        return ListView(
+            items: filteredCards.map((card) => CardListItem(
+                card: card,
+                onTap: () => handleResultTap(card)
+            ))
+        )
+```
 
 ---
 
+## 测试覆盖
 
-**最后更新**: 2026-01-23
+**测试文件**: `flutter/test/features/search/mobile_search_test.dart`
+
+**单元测试**:
+- `test_open_search_overlay()` - 测试打开搜索覆盖层
+- `test_search_field_focus()` - 测试搜索字段聚焦
+- `test_keyboard_appears()` - 测试键盘出现
+- `test_close_search_overlay()` - 测试关闭搜索覆盖层
+- `test_filter_cards()` - 测试过滤卡片
+- `test_empty_state_display()` - 测试空状态显示
+- `test_result_tap()` - 测试点击结果
+- `test_back_button_closes()` - 测试返回按钮关闭
+
+**集成测试**:
+- `test_search_workflow()` - 测试搜索完整流程
+- `test_search_and_open_card()` - 测试搜索并打开卡片
+
+**验收标准**:
+- [ ] 所有单元测试通过
+- [ ] 搜索覆盖层正常打开/关闭
+- [ ] 实时过滤流畅
+- [ ] 空状态显示正确
+- [ ] 点击结果正常打开卡片
+- [ ] 代码审查通过
+- [ ] 文档已更新
+
+---
+
+## 相关文档
+
+**相关规格**:
+- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
+- [./desktop.md](./desktop.md) - 桌面端搜索
+
+**架构决策记录**:
+- 无
+
+---
+
+**最后更新**: 2026-02-02
 **作者**: CardMind Team
