@@ -1,6 +1,5 @@
 # 移动端底部导航栏规格
 
-**版本**: 2.0.0
 **状态**: 草稿
 **依赖**: 无
 **相关测试**: `flutter/test/features/navigation/mobile_nav_test.dart`
@@ -9,11 +8,12 @@
 
 ## 概述
 
-本规格定义移动端底部导航栏的交互规范，确保：
+本规格定义移动端底部导航栏的交互规范，覆盖标签结构、徽章更新与切换动画。
 
+**核心目标**:
 - 提供应用的主要导航功能
 - 徽章显示实时更新
-- 流畅的切换动画
+- 切换动画流畅
 - 符合移动端交互习惯
 
 **适用平台**:
@@ -34,11 +34,7 @@
 
 ## 需求：底部导航栏显示
 
-移动端底部导航栏提供应用的主要导航功能，包含三个标签页：
-
-1. **Notes（笔记）**: 显示笔记列表，徽章显示笔记数量
-2. **Devices（设备）**: 显示设备列表，徽章显示设备数量
-3. **Settings（设置）**: 显示应用设置，无徽章
+移动端底部导航栏提供应用的主要导航功能，包含三个标签页。
 
 ### 场景：点击标签切换页面
 
@@ -191,6 +187,14 @@ structure MobileNav:
 
 ---
 
+## 相关文档
+
+**相关规格**:
+- [../home_screen/home_screen.md](../home_screen/home_screen.md) - 主屏幕
+- [../../ui/components/mobile/mobile_nav.md](../../ui/components/mobile/mobile_nav.md) - 移动端导航组件
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `flutter/test/features/navigation/mobile_nav_test.dart`
@@ -223,16 +227,3 @@ structure MobileNav:
 - [ ] SafeArea 适配正确
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../home_screen/home_screen.md](../home_screen/home_screen.md) - 主屏幕
-- [../../ui/components/mobile/mobile_nav.md](../../ui/components/mobile/mobile_nav.md) - 移动端导航组件
-
-**架构决策记录**:
-- 无
-
----
