@@ -1,6 +1,5 @@
 # 同步领域模型规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [card.md](card.md), [pool.md](pool.md)
 **相关测试**: `rust/tests/sync_test.rs`
@@ -9,7 +8,7 @@
 
 ## 概述
 
-本规格定义了同步领域模型,包括版本追踪、冲突解决策略和分布式卡片协作的同步状态管理。
+本规格定义了同步领域模型，包括版本追踪、冲突解决策略和分布式卡片协作的同步状态管理。
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档同步
@@ -27,7 +26,7 @@
 
 ## 需求：版本追踪
 
-系统应追踪每张卡片和每个池的同步版本,以支持增量更新。
+系统应追踪每张卡片和每个池的同步版本，以支持增量更新。
 
 ### 场景：按卡片追踪版本
 
@@ -139,7 +138,7 @@ function apply_incremental_updates(card_id, updates):
 
 ## 需求：基于 CRDT 的冲突解决
 
-系统应使用 CRDT（无冲突复制数据类型）自动解决冲突,无需用户干预。
+系统应使用 CRDT（无冲突复制数据类型）自动解决冲突，无需用户干预。
 
 ### 场景：并发编辑自动合并
 
@@ -282,7 +281,7 @@ function merge_card_fields(card_a, card_b):
 
 ## 需求：同步状态管理
 
-系统应为每个对等设备维护同步状态,以追踪同步进度。
+系统应为每个对等设备维护同步状态，以追踪同步进度。
 
 ### 场景：按对等设备追踪同步状态
 
@@ -411,7 +410,7 @@ function restore_sync_states_on_startup():
 
 ## 需求：同步方向
 
-系统应支持双向同步,允许推送和拉取变更。
+系统应支持双向同步，允许推送和拉取变更。
 
 ### 场景：设备推送本地变更
 
@@ -522,7 +521,7 @@ function bidirectional_sync(peer_id, card_id):
 
 ## 需求：同步原子性
 
-每个同步操作应是原子的,要么完全成功,要么完全失败。
+每个同步操作应是原子的，要么完全成功，要么完全失败。
 
 ### 场景：同步完全成功
 
@@ -597,7 +596,7 @@ function rollback_sync(peer_id, transaction):
 
 ## 需求：无冲突标签合并
 
-系统应使用集合并集合并来自多个设备的标签,无冲突。
+系统应使用集合并集合并来自多个设备的标签，无冲突。
 
 ### 场景：使用集合并集合并标签
 
@@ -653,12 +652,7 @@ function demonstrate_tag_merge():
 
 ---
 
-## 实现细节
-
-**技术栈**:
-- **loro** = "1.0" - CRDT 文档同步
-- **tokio** - 异步运行时
-- **serde** = "1.0" - 序列化/反序列化
+## 补充说明
 
 **数据结构**:
 ```rust
@@ -701,6 +695,25 @@ pub struct VersionVector {
 
 ---
 
+## 相关文档
+
+**领域规格**:
+- [card.md](card.md) - 卡片领域模型
+- [pool.md](pool.md) - 池领域模型
+- [types.md](types.md) - 共享类型定义
+
+**架构规格**:
+- [../architecture/sync/service.md](../architecture/sync/service.md) - 同步服务
+- [../architecture/sync/conflict_resolution.md](../architecture/sync/conflict_resolution.md) - 冲突解决
+- [../architecture/sync/subscription.md](../architecture/sync/subscription.md) - 订阅机制
+- [../architecture/storage/loro_integration.md](../architecture/storage/loro_integration.md) - Loro 集成
+
+**架构决策记录**:
+- ADR-0002: 双层架构 - 读写分离设计
+- ADR-0003: Loro CRDT - CRDT 库选择
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `rust/tests/sync_test.rs`
@@ -731,27 +744,3 @@ pub struct VersionVector {
 - [x] 原子性保证有效
 - [x] 收敛性验证通过
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**领域规格**:
-- [card.md](card.md) - 卡片领域模型
-- [pool.md](pool.md) - 池领域模型
-- [types.md](types.md) - 共享类型定义
-
-**架构规格**:
-- [../architecture/sync/service.md](../architecture/sync/service.md) - 同步服务
-- [../architecture/sync/conflict_resolution.md](../architecture/sync/conflict_resolution.md) - 冲突解决
-- [../architecture/sync/subscription.md](../architecture/sync/subscription.md) - 订阅机制
-- [../architecture/storage/loro_integration.md](../architecture/storage/loro_integration.md) - Loro 集成
-
-**架构决策记录**:
-- ADR-0002: 双层架构 - 读写分离设计
-- ADR-0003: Loro CRDT - CRDT 库选择
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
