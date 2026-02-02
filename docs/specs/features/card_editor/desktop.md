@@ -1,6 +1,5 @@
 # 桌面端卡片编辑器规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `flutter/test/features/card_editor/desktop_card_editor_test.dart`
@@ -9,12 +8,13 @@
 
 ## 概述
 
-本规格定义桌面端卡片编辑器的交互规范，确保：
+本规格定义桌面端卡片编辑器交互规范，强调内联编辑、快捷键效率与多窗口能力。
 
+**核心目标**:
 - 内联编辑保持上下文
-- 支持键盘快捷键
-- 响应式布局
-- 多窗口支持
+- 键盘快捷键提升效率
+- 响应式布局与可调整编辑区域
+- 多窗口编辑支持
 
 **适用平台**:
 - macOS
@@ -34,7 +34,7 @@
 
 ### 场景：编辑器在侧边打开
 
-- **前置条件**: 用户选择编辑卡片
+- **前置条件**: 用户在卡片列表中选择编辑卡片
 - **操作**: 用户点击编辑按钮
 - **预期结果**: 编辑器应在侧边打开
 - **并且**: 卡片列表应保持可见
@@ -50,7 +50,7 @@
 
 ### 场景：点击外部关闭编辑器
 
-- **前置条件**: 编辑器已打开
+- **前置条件**: 编辑器已打开且存在待保存更改
 - **操作**: 用户点击编辑器外部
 - **预期结果**: 编辑器应关闭
 - **并且**: 更改应自动保存
@@ -106,14 +106,14 @@ structure InlineEditor:
 
 ### 场景：Ctrl+S 保存
 
-- **前置条件**: 编辑器已打开
+- **前置条件**: 编辑器已打开且存在可保存内容
 - **操作**: 用户按 Ctrl+S
 - **预期结果**: 卡片应保存
 - **并且**: 应显示保存成功提示
 
 ### 场景：Ctrl+Enter 完成
 
-- **前置条件**: 编辑器已打开
+- **前置条件**: 编辑器已打开且存在可保存内容
 - **操作**: 用户按 Ctrl+Enter
 - **预期结果**: 编辑器应关闭
 - **并且**: 更改应保存
@@ -178,7 +178,7 @@ structure KeyboardShortcuts:
 
 ### 场景：在新窗口打开编辑器
 
-- **前置条件**: 用户查看卡片列表
+- **前置条件**: 用户在卡片列表中选择卡片
 - **操作**: 用户选择"在新窗口编辑"
 - **预期结果**: 新窗口应打开
 - **并且**: 编辑器应在窗口中显示
@@ -230,6 +230,16 @@ structure MultiWindowManager:
 
 ---
 
+## 相关文档
+
+**相关规格**:
+- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
+- [./fullscreen_editor.md](./fullscreen_editor.md) - 全屏编辑器
+- [./mobile.md](./mobile.md) - 移动端编辑器
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `flutter/test/features/card_editor/desktop_card_editor_test.dart`
@@ -257,21 +267,3 @@ structure MultiWindowManager:
 - [ ] 自动保存功能正常
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
-- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
-- [./fullscreen_editor.md](./fullscreen_editor.md) - 全屏编辑器
-- [./mobile.md](./mobile.md) - 移动端编辑器
-
-**架构决策记录**:
-- 无
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
