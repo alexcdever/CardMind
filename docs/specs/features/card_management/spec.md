@@ -60,6 +60,47 @@
 - **预期结果**: 系统应以错误"NO_POOL_JOINED"拒绝创建
 - **并且**: 系统应提示用户加入或创建池
 
+**实现逻辑**:
+
+```
+structure CardManagement:
+    currentPool: Pool?
+    deviceConfig: DeviceConfig
+
+    // 创建新卡片
+    function createCard(title, content):
+        // 步骤1：检查是否已加入池
+        if currentPool == null:
+            return error("NO_POOL_JOINED", "请先加入或创建一个池")
+
+        // 步骤2：验证标题
+        if title.trim().isEmpty():
+            return error("INVALID_TITLE", "标题为必填项")
+
+        // 步骤3：生成卡片 ID
+        cardId = generateUUIDv7()
+
+        // 步骤4：创建卡片
+        card = Card(
+            id: cardId,
+            poolId: currentPool.id,
+            title: title,
+            content: content,
+            tags: [],
+            createdAt: currentTime(),
+            updatedAt: currentTime(),
+            lastModifiedDevice: deviceConfig.deviceId
+        )
+
+        // 步骤5：保存卡片
+        cardStore.save(card)
+
+        // 步骤6：同步到所有设备
+        syncService.syncCardCreation(card)
+
+        return ok(card)
+```
+
 ---
 
 ## 需求：卡片查看
@@ -90,6 +131,35 @@
 - **操作**: 用户查看卡片详情
 - **预期结果**: 系统应显示当前同步状态（已同步、同步中或错误）
 - **并且**: 系统应显示最后同步时间戳
+
+**实现逻辑**:
+
+```
+structure CardViewing:
+    // 查看卡片详情
+    function viewCardDetails(cardId):
+        // 步骤1：加载卡片
+        card = cardStore.getCard(cardId)
+
+        // 步骤2：获取同步状态
+        syncStatus = syncService.getCardSyncStatus(cardId)
+
+        // 步骤3：获取设备信息
+        lastModifiedDevice = deviceStore.getDevice(card.lastModifiedDevice)
+
+        // 步骤4：返回详情
+        return {
+            id: card.id,
+            title: card.title,
+            content: card.content,
+            tags: card.tags,
+            createdAt: formatTimestamp(card.createdAt),
+            updatedAt: formatTimestamp(card.updatedAt),
+            lastModifiedDevice: lastModifiedDevice.name,
+            syncStatus: syncStatus.status,
+            lastSyncTime: formatTimestamp(syncStatus.lastSyncTime)
+        }
+```
 
 ---
 
@@ -146,6 +216,76 @@
 - **并且**: 系统应显示错误"标题不能为空"
 - **并且**: 系统应保持编辑器打开
 
+**实现逻辑**:
+
+```
+structure CardEditing:
+    card: Card
+    draftKey: String
+    autoSaveTimer: Timer?
+
+    // 编辑卡片
+    function editCard(cardId, newTitle, newContent):
+        // 步骤1：验证标题
+        if newTitle.trim().isEmpty():
+            return error("INVALID_TITLE", "标题不能为空")
+
+        // 步骤2：加载卡片
+        card = cardStore.getCard(cardId)
+
+        // 步骤3：更新卡片
+        card.title = newTitle
+        card.content = newContent
+        card.updatedAt = currentTime()
+        card.lastModifiedDevice = deviceConfig.deviceId
+
+        // 步骤4：保存卡片
+        cardStore.save(card)
+
+        // 步骤5：删除草稿
+        deleteDraft(draftKey)
+
+        // 步骤6：同步到所有设备
+        syncService.syncCardUpdate(card)
+
+        return ok(card)
+
+    // 自动保存草稿
+    function autoSaveDraft(cardId, title, content):
+        // 步骤1：取消之前的定时器
+        if autoSaveTimer:
+            autoSaveTimer.cancel()
+
+        // 步骤2：设置新定时器（500ms）
+        autoSaveTimer = Timer(500, () => {
+            // 步骤3：保存草稿
+            draft = {
+                cardId: cardId,
+                title: title,
+                content: content,
+                timestamp: currentTime()
+            }
+            localStorage.set(draftKey, draft)
+
+            // 步骤4：显示指示器
+            showToast("草稿已保存")
+        })
+
+    // 恢复草稿
+    function restoreDraft(cardId):
+        draft = localStorage.get(draftKey)
+
+        if draft and draft.cardId == cardId:
+            showToast("草稿已恢复")
+            return draft
+        else:
+            return null
+
+    // 删除草稿
+    function deleteDraft(draftKey):
+        localStorage.remove(draftKey)
+```
+
 ---
 
 ## 需求：标签管理
@@ -188,10 +328,52 @@
 - **预期结果**: 系统应将"Work"和"work"视为不同标签
 - **并且**: 两个标签都应添加到卡片
 
+**实现逻辑**:
+
+```
+structure TagManagement:
+    card: Card
+
+    // 添加标签
+    function addTag(cardId, tagName):
+        // 步骤1：加载卡片
+        card = cardStore.getCard(cardId)
+
+        // 步骤2：检查重复（大小写敏感）
+        if card.tags.contains(tagName):
+            return error("DUPLICATE_TAG", "标签已存在")
+
+        // 步骤3：添加标签
+        card.tags.add(tagName)
+
+        // 步骤4：保存卡片
+        cardStore.save(card)
+
+        // 步骤5：同步到所有设备
+        syncService.syncCardUpdate(card)
+
+        return ok()
+
+    // 移除标签
+    function removeTag(cardId, tagName):
+        // 步骤1：加载卡片
+        card = cardStore.getCard(cardId)
+
+        // 步骤2：移除标签
+        card.tags.remove(tagName)
+
+        // 步骤3：保存卡片
+        cardStore.save(card)
+
+        // 步骤4：同步到所有设备
+        syncService.syncCardUpdate(card)
+
+        return ok()
+```
+
 ---
 
 ## 需求：卡片删除
-
 
 用户应能够删除卡片并确认，以防止意外删除。
 
@@ -217,10 +399,78 @@
 - **预期结果**: 系统应恢复已删除的卡片
 - **并且**: 卡片应重新出现在所有设备上
 
+**实现逻辑**:
+
+```
+structure CardDeletion:
+    deletedCard: Card?
+    undoTimer: Timer?
+
+    // 删除卡片
+    function deleteCard(cardId):
+        // 步骤1：显示确认对话框
+        confirmed = showConfirmDialog(
+            title: "确认删除",
+            message: "确定要删除这张笔记吗？",
+            confirmText: "删除",
+            cancelText: "取消"
+        )
+
+        if not confirmed:
+            return cancelled()
+
+        // 步骤2：加载卡片
+        card = cardStore.getCard(cardId)
+
+        // 步骤3：保存到撤销缓存
+        deletedCard = card
+
+        // 步骤4：删除卡片
+        cardStore.delete(cardId)
+
+        // 步骤5：同步到所有设备
+        syncService.syncCardDeletion(cardId)
+
+        // 步骤6：显示撤销提示
+        showUndoSnackbar(
+            message: "卡片已删除",
+            action: "撤销",
+            onUndo: undoDelete,
+            duration: 5000
+        )
+
+        // 步骤7：设置撤销定时器
+        undoTimer = Timer(5000, () => {
+            // 5秒后清除撤销缓存
+            deletedCard = null
+        })
+
+        return ok()
+
+    // 撤销删除
+    function undoDelete():
+        if deletedCard:
+            // 步骤1：取消定时器
+            undoTimer.cancel()
+
+            // 步骤2：恢复卡片
+            cardStore.save(deletedCard)
+
+            // 步骤3：同步到所有设备
+            syncService.syncCardCreation(deletedCard)
+
+            // 步骤4：清除缓存
+            deletedCard = null
+
+            // 步骤5：显示确认
+            showToast("卡片已恢复")
+
+            return ok()
+```
+
 ---
 
 ## 需求：卡片分享
-
 
 用户应能够与其他应用分享卡片内容。
 
@@ -244,6 +494,57 @@
 - **操作**: 用户选择 Markdown 格式
 - **预期结果**: 分享内容应为 Markdown 格式
 - **并且**: 标题应格式化为 Markdown 标题
+
+**实现逻辑**:
+
+```
+structure CardSharing:
+    // 分享卡片
+    function shareCard(cardId, format):
+        // 步骤1：加载卡片
+        card = cardStore.getCard(cardId)
+
+        // 步骤2：格式化内容
+        shareContent = formatShareContent(card, format)
+
+        // 步骤3：打开系统分享对话框
+        showShareDialog(
+            content: shareContent,
+            mimeType: getMimeType(format)
+        )
+
+    // 格式化分享内容
+    function formatShareContent(card, format):
+        if format == "text":
+            return formatAsText(card)
+        else if format == "markdown":
+            return formatAsMarkdown(card)
+        else:
+            return formatAsText(card)
+
+    // 格式化为文本
+    function formatAsText(card):
+        return """
+        标题: {card.title}
+
+        {card.content}
+        """
+
+    // 格式化为 Markdown
+    function formatAsMarkdown(card):
+        return """
+        # {card.title}
+
+        {card.content}
+        """
+
+    // 获取 MIME 类型
+    function getMimeType(format):
+        if format == "markdown":
+            return "text/markdown"
+        else:
+            return "text/plain"
+```
 
 ---
 
