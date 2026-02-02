@@ -1,6 +1,5 @@
 # SQLite 缓存架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [./dual_layer.md](./dual_layer.md), [./card_store.md](./card_store.md), [./pool_store.md](./pool_store.md)
 **相关测试**: `rust/tests/sqlite_cache_test.rs`
@@ -691,7 +690,7 @@ function optimize_database():
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **rusqlite** = "0.31" - SQLite Rust 绑定
@@ -716,6 +715,21 @@ function optimize_database():
 - **缓存大小**: 10MB
 - **内存映射**: 256MB
 - **连接池**: ~1MB per connection
+
+---
+
+## 相关文档
+
+**架构规格**:
+- [./dual_layer.md](./dual_layer.md) - 双层架构
+- [./card_store.md](./card_store.md) - CardStore 实现
+- [./pool_store.md](./pool_store.md) - PoolStore 实现
+- [./loro_integration.md](./loro_integration.md) - Loro 集成
+- [../sync/subscription.md](../sync/subscription.md) - 订阅机制
+
+**领域规格**:
+- [../../domain/card/model.md](../../domain/card/model.md) - 卡片模型
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 池模型
 
 ---
 
@@ -754,23 +768,3 @@ function optimize_database():
 - [x] 连接池高效
 - [x] 事务正确处理
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**架构规格**:
-- [./dual_layer.md](./dual_layer.md) - 双层架构
-- [./card_store.md](./card_store.md) - CardStore 实现
-- [./pool_store.md](./pool_store.md) - PoolStore 实现
-- [./loro_integration.md](./loro_integration.md) - Loro 集成
-- [../sync/subscription.md](../sync/subscription.md) - 订阅机制
-
-**领域规格**:
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片模型
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池模型
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
