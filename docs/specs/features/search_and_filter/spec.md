@@ -76,6 +76,59 @@
 - **并且**: 系统应显示搜索词
 - **并且**: 系统应建议尝试不同的关键词
 
+**实现逻辑**:
+
+```
+structure SearchAndFilter:
+    searchQuery: String = ""
+    selectedTags: List<String> = []
+    sortBy: SortOption = SortOption.ModifiedTime
+    cards: List<Card>
+    filteredCards: List<Card>
+
+    // 全文搜索
+    function searchCards(query):
+        // 步骤1：防抖处理（200ms）
+        debounce(200, () => {
+            searchQuery = query
+
+            // 步骤2：使用 FTS5 全文搜索
+            if query.isEmpty():
+                filteredCards = cards
+            else:
+                // 使用 SQLite FTS5 搜索
+                filteredCards = sqliteCache.searchFTS5(
+                    query: query,
+                    fields: ["title", "content"]
+                )
+
+            // 步骤3：应用标签过滤
+            applyTagFilter()
+
+            // 步骤4：应用排序
+            applySorting()
+
+            // 步骤5：更新显示
+            render()
+        })
+
+    // FTS5 搜索查询
+    function searchFTS5(query, fields):
+        // 构建 FTS5 查询
+        ftsQuery = """
+            SELECT card_id, rank
+            FROM cards_fts
+            WHERE cards_fts MATCH ?
+            ORDER BY rank
+        """
+
+        // 执行查询
+        results = database.query(ftsQuery, [query])
+
+        // 加载完整卡片
+        return results.map((row) => cardStore.getCard(row.card_id))
+```
+
 ---
 
 ## 需求：搜索匹配高亮
