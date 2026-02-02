@@ -1,6 +1,33 @@
 # 卡片编辑器屏幕规格
 
-本规格定义了卡片编辑器屏幕，提供针对专注内容创作优化的全屏卡片编辑体验。
+**版本**: 1.0.0
+**状态**: 活跃
+**依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
+**相关测试**: `flutter/test/ui/card_editor_screen_test.dart`
+
+---
+
+## 概述
+
+本规格定义了卡片编辑器屏幕，提供针对专注内容创作优化的全屏卡片编辑体验，确保：
+
+- 全屏沉浸式编辑体验
+- 自动保存防止数据丢失
+- 基本富文本格式化支持
+- 标签管理功能
+- 内容统计显示
+
+**适用平台**:
+- iOS
+- Android
+- macOS
+- Windows
+- Linux
+
+**技术栈**:
+- Flutter TextField/TextFormField - 文本编辑
+- Provider/Riverpod - 状态管理
+- flutter_rust_bridge - 数据桥接
 
 ---
 
@@ -20,6 +47,39 @@
 - **预期结果**：系统应显示空的标题和内容字段
 - **并且**：自动聚焦标题字段
 
+**实现逻辑**:
+
+```
+structure CardEditorScreen:
+    card: Card?
+    titleController: TextEditingController
+    contentController: TextEditingController
+    tags: List<String>
+    isDraft: bool = false
+
+    // 初始化编辑器
+    function initialize(cardId?):
+        if cardId:
+            // 编辑现有卡片
+            card = cardStore.getCard(cardId)
+            titleController.text = card.title
+            contentController.text = card.content
+            tags = card.tags
+        else:
+            // 创建新卡片
+            card = null
+            titleController.text = ""
+            contentController.text = ""
+            tags = []
+
+            // 自动聚焦标题字段
+            focusTitleField()
+
+    // 聚焦标题字段
+    function focusTitleField():
+        titleFocusNode.requestFocus()
+```
+
 ---
 
 ## 需求：自动保存
@@ -36,6 +96,55 @@
 - **操作**：用户返回到未保存的草稿
 - **预期结果**：系统应恢复草稿内容
 
+**实现逻辑**:
+
+```
+structure AutoSave:
+    autoSaveTimer: Timer?
+    draftKey: String
+
+    // 监听内容变化
+    function onContentChanged():
+        // 步骤1：取消之前的定时器
+        if autoSaveTimer:
+            autoSaveTimer.cancel()
+
+        // 步骤2：设置新定时器（2秒）
+        autoSaveTimer = Timer(2000, () => {
+            saveDraft()
+        })
+
+    // 保存草稿
+    function saveDraft():
+        draft = {
+            title: titleController.text,
+            content: contentController.text,
+            tags: tags,
+            timestamp: currentTime()
+        }
+
+        // 保存到本地存储
+        localStorage.set(draftKey, draft)
+        isDraft = true
+
+    // 恢复草稿
+    function restoreDraft():
+        draft = localStorage.get(draftKey)
+
+        if draft:
+            titleController.text = draft.title
+            contentController.text = draft.content
+            tags = draft.tags
+            isDraft = true
+
+            showToast("已恢复草稿")
+
+    // 清除草稿
+    function clearDraft():
+        localStorage.remove(draftKey)
+        isDraft = false
+```
+
 ---
 
 ## 需求：富文本格式化
@@ -47,6 +156,53 @@
 - **操作**：用户应用格式（粗体、斜体等）
 - **预期结果**：系统应将格式应用于选定的文本
 - **并且**：在保存的内容中保持格式
+
+**实现逻辑**:
+
+```
+structure RichTextFormatter:
+    contentController: TextEditingController
+    selection: TextSelection
+
+    // 应用粗体格式
+    function applyBold():
+        selectedText = getSelectedText()
+        formattedText = "**{selectedText}**"
+        replaceSelection(formattedText)
+
+    // 应用斜体格式
+    function applyItalic():
+        selectedText = getSelectedText()
+        formattedText = "*{selectedText}*"
+        replaceSelection(formattedText)
+
+    // 应用标题格式
+    function applyHeading(level):
+        selectedText = getSelectedText()
+        prefix = "#" * level
+        formattedText = "{prefix} {selectedText}"
+        replaceSelection(formattedText)
+
+    // 获取选中文本
+    function getSelectedText():
+        start = selection.start
+        end = selection.end
+        return contentController.text.substring(start, end)
+
+    // 替换选中文本
+    function replaceSelection(newText):
+        start = selection.start
+        end = selection.end
+
+        before = contentController.text.substring(0, start)
+        after = contentController.text.substring(end)
+
+        contentController.text = before + newText + after
+
+        // 更新选择位置
+        newPosition = start + newText.length
+        contentController.selection = TextSelection.collapsed(offset: newPosition)
+```
 
 ---
 
@@ -68,6 +224,84 @@
 - **并且**：如果确认则丢弃更改
 - **并且**：如果取消则继续编辑
 
+**实现逻辑**:
+
+```
+structure SaveAndDiscard:
+    hasUnsavedChanges: bool
+
+    // 保存编辑
+    function saveEdit():
+        // 步骤1：验证内容
+        if contentController.text.trim().isEmpty():
+            showToast("内容不能为空")
+            return
+
+        // 步骤2：处理空标题
+        title = titleController.text.trim()
+        if title.isEmpty():
+            title = "无标题笔记"
+
+        // 步骤3：保存卡片
+        if card:
+            // 更新现有卡片
+            cardStore.updateCard(
+                card.id,
+                title: title,
+                content: contentController.text,
+                tags: tags
+            )
+        else:
+            // 创建新卡片
+            cardStore.createCard(
+                title: title,
+                content: contentController.text,
+                tags: tags
+            )
+
+        // 步骤4：清除草稿
+        clearDraft()
+
+        // 步骤5：返回上一页
+        navigateBack()
+
+        // 步骤6：显示确认
+        showToast("保存成功")
+
+    // 取消编辑
+    function cancelEdit():
+        // 步骤1：检查是否有未保存更改
+        if hasUnsavedChanges:
+            // 显示确认对话框
+            showConfirmDialog(
+                title: "放弃更改",
+                message: "确定要放弃未保存的更改吗？",
+                onConfirm: () => {
+                    clearDraft()
+                    navigateBack()
+                },
+                onCancel: () => {
+                    // 继续编辑
+                }
+            )
+        else:
+            // 直接返回
+            navigateBack()
+
+    // 检查是否有未保存更改
+    function checkUnsavedChanges():
+        if card:
+            // 编辑模式：比较当前内容与原始内容
+            return titleController.text != card.title ||
+                   contentController.text != card.content ||
+                   tags != card.tags
+        else:
+            // 新建模式：检查是否有内容
+            return titleController.text.trim().isNotEmpty() ||
+                   contentController.text.trim().isNotEmpty() ||
+                   tags.isNotEmpty()
+```
+
 ---
 
 ## 需求：标签管理
@@ -84,6 +318,46 @@
 - **操作**：用户移除标签
 - **预期结果**：保存卡片时应排除该标签
 
+**实现逻辑**:
+
+```
+structure TagManagement:
+    tags: List<String>
+
+    // 添加标签
+    function addTag(tagName):
+        // 步骤1：验证标签名
+        if tagName.trim().isEmpty():
+            showToast("标签名不能为空")
+            return
+
+        // 步骤2：检查重复
+        if tags.contains(tagName):
+            showToast("标签已存在")
+            return
+
+        // 步骤3：添加标签
+        tags.add(tagName)
+
+        // 步骤4：触发自动保存
+        onContentChanged()
+
+    // 移除标签
+    function removeTag(tagName):
+        // 步骤1：从列表移除
+        tags.remove(tagName)
+
+        // 步骤2：触发自动保存
+        onContentChanged()
+
+    // 渲染标签列表
+    function renderTags():
+        return tags.map((tag) => TagChip(
+            label: tag,
+            onRemove: () => removeTag(tag)
+        ))
+```
+
 ---
 
 ## 需求：内容统计
@@ -94,6 +368,53 @@
 
 - **操作**：用户正在编辑内容
 - **预期结果**：系统可以在状态区域显示字符计数或单词计数
+
+**实现逻辑**:
+
+```
+structure ContentStats:
+    contentController: TextEditingController
+
+    // 计算字符数
+    function getCharacterCount():
+        return contentController.text.length
+
+    // 计算单词数
+    function getWordCount():
+        text = contentController.text.trim()
+        if text.isEmpty():
+            return 0
+
+        // 按空白字符分割
+        words = text.split(RegExp(r'\s+'))
+        return words.length
+
+    // 渲染统计信息
+    function renderStats():
+        charCount = getCharacterCount()
+        wordCount = getWordCount()
+
+        return StatsBar(
+            items: [
+                StatItem(
+                    label: "字符",
+                    value: charCount
+                ),
+                StatItem(
+                    label: "单词",
+                    value: wordCount
+                )
+            ]
+        )
+
+    // 监听内容变化更新统计
+    function onContentChanged():
+        // 更新统计显示
+        renderStats()
+
+        // 触发自动保存
+        autoSave.onContentChanged()
+```
 
 ---
 

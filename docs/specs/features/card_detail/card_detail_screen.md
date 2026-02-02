@@ -1,6 +1,33 @@
 # 卡片详情屏幕规格
 
-本规格定义了卡片详情屏幕，显示完整的卡片内容及所有元数据和编辑功能。
+**版本**: 1.0.0
+**状态**: 活跃
+**依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
+**相关测试**: `flutter/test/ui/card_detail_screen_test.dart`
+
+---
+
+## 概述
+
+本规格定义了卡片详情屏幕，显示完整的卡片内容及所有元数据和编辑功能，确保：
+
+- 完整显示卡片内容和元数据
+- 支持内联编辑
+- 标签管理功能
+- 卡片操作（删除、分享）
+- 同步状态显示
+
+**适用平台**:
+- iOS
+- Android
+- macOS
+- Windows
+- Linux
+
+**技术栈**:
+- Flutter Scaffold - 页面框架
+- Provider/Riverpod - 状态管理
+- flutter_rust_bridge - 数据桥接
 
 ---
 
@@ -21,6 +48,44 @@
 - **并且**：显示最后修改时间戳
 - **并且**：显示最后修改的设备名称
 
+**实现逻辑**:
+
+```
+structure CardDetailScreen:
+    card: Card
+
+    // 加载卡片详情
+    function loadCardDetail(cardId):
+        // 步骤1：从存储加载卡片
+        card = cardStore.getCard(cardId)
+
+        // 步骤2：格式化显示数据
+        displayData = {
+            title: card.title,
+            content: card.content,
+            createdAt: formatTimestamp(card.created_at),
+            updatedAt: formatTimestamp(card.updated_at),
+            lastDevice: getDeviceName(card.last_modified_device)
+        }
+
+        // 步骤3：渲染界面
+        render(displayData)
+
+    // 格式化时间戳
+    function formatTimestamp(timestamp):
+        now = currentTime()
+        diff = now - timestamp
+
+        if diff < 60:
+            return "刚刚"
+        else if diff < 3600:
+            return "{diff / 60} 分钟前"
+        else if diff < 86400:
+            return "{diff / 3600} 小时前"
+        else:
+            return formatDate(timestamp, "yyyy-MM-dd HH:mm")
+```
+
 ---
 
 ## 需求：编辑卡片
@@ -39,6 +104,53 @@
 - **预期结果**：系统应在后端更新卡片
 - **并且**：退出编辑模式
 - **并且**：显示确认反馈
+
+**实现逻辑**:
+
+```
+structure CardEditor:
+    isEditMode: bool = false
+    editedTitle: String
+    editedContent: String
+    originalCard: Card
+
+    // 进入编辑模式
+    function enterEditMode():
+        isEditMode = true
+        editedTitle = originalCard.title
+        editedContent = originalCard.content
+
+    // 保存编辑
+    function saveEdit():
+        // 步骤1：验证内容
+        if editedContent.trim().isEmpty():
+            showToast("内容不能为空")
+            return
+
+        // 步骤2：处理空标题
+        if editedTitle.trim().isEmpty():
+            editedTitle = "无标题笔记"
+
+        // 步骤3：更新卡片
+        updatedCard = cardStore.updateCard(
+            originalCard.id,
+            title: editedTitle,
+            content: editedContent
+        )
+
+        // 步骤4：退出编辑模式
+        isEditMode = false
+        originalCard = updatedCard
+
+        // 步骤5：显示确认
+        showToast("保存成功")
+
+    // 取消编辑
+    function cancelEdit():
+        isEditMode = false
+        editedTitle = originalCard.title
+        editedContent = originalCard.content
+```
 
 ---
 
@@ -62,6 +174,52 @@
 - **操作**：用户点击标签上的移除图标
 - **预期结果**：系统应从卡片中移除标签
 
+**实现逻辑**:
+
+```
+structure TagManager:
+    card: Card
+    tags: List<String>
+
+    // 显示标签
+    function displayTags():
+        tags = card.tags
+        return tags.map((tag) => TagChip(
+            label: tag,
+            onRemove: () => removeTag(tag)
+        ))
+
+    // 添加标签
+    function addTag(tagName):
+        // 步骤1：验证标签名
+        if tagName.trim().isEmpty():
+            showToast("标签名不能为空")
+            return
+
+        // 步骤2：检查重复
+        if tags.contains(tagName):
+            showToast("标签已存在")
+            return
+
+        // 步骤3：添加标签
+        tags.add(tagName)
+        cardStore.updateCard(card.id, tags: tags)
+
+        // 步骤4：更新显示
+        render()
+
+    // 移除标签
+    function removeTag(tagName):
+        // 步骤1：从列表移除
+        tags.remove(tagName)
+
+        // 步骤2：更新存储
+        cardStore.updateCard(card.id, tags: tags)
+
+        // 步骤3：更新显示
+        render()
+```
+
 ---
 
 ## 需求：卡片操作
@@ -79,6 +237,57 @@
 - **操作**：用户选择分享操作
 - **预期结果**：系统应打开包含卡片内容的分享对话框
 
+**实现逻辑**:
+
+```
+structure CardActions:
+    card: Card
+
+    // 删除卡片
+    function deleteCard():
+        // 步骤1：显示确认对话框
+        showConfirmDialog(
+            title: "确认删除",
+            message: "确定要删除这张笔记吗？",
+            onConfirm: () => {
+                // 步骤2：执行删除
+                cardStore.deleteCard(card.id)
+
+                // 步骤3：返回上一页
+                navigateBack()
+
+                // 步骤4：显示确认
+                showToast("笔记已删除")
+            }
+        )
+
+    // 分享卡片
+    function shareCard():
+        // 步骤1：准备分享内容
+        shareContent = formatShareContent(card)
+
+        // 步骤2：打开分享对话框
+        showShareDialog(
+            title: "分享笔记",
+            content: shareContent,
+            onShare: (platform) => {
+                // 步骤3：执行分享
+                shareToPlatform(platform, shareContent)
+            }
+        )
+
+    // 格式化分享内容
+    function formatShareContent(card):
+        return """
+        {card.title}
+
+        {card.content}
+
+        ---
+        来自 CardMind
+        """
+```
+
 ---
 
 ## 需求：同步状态显示
@@ -90,6 +299,45 @@
 - **操作**：显示卡片详情
 - **预期结果**：系统应显示卡片是否已在设备间同步
 - **并且**：显示上次同步时间戳
+
+**实现逻辑**:
+
+```
+structure SyncStatusDisplay:
+    card: Card
+    syncStatus: SyncStatus
+
+    // 获取同步状态
+    function getSyncStatus():
+        // 步骤1：查询同步服务
+        syncStatus = syncService.getCardSyncStatus(card.id)
+
+        // 步骤2：格式化显示
+        return {
+            isSynced: syncStatus.isSynced,
+            lastSyncTime: formatTimestamp(syncStatus.lastSyncTime),
+            syncedDevices: syncStatus.syncedDevices.length
+        }
+
+    // 渲染同步状态
+    function renderSyncStatus():
+        status = getSyncStatus()
+
+        if status.isSynced:
+            return SyncIndicator(
+                icon: Icons.cloud_done,
+                text: "已同步到 {status.syncedDevices} 台设备",
+                subtitle: "上次同步: {status.lastSyncTime}",
+                color: Colors.green
+            )
+        else:
+            return SyncIndicator(
+                icon: Icons.cloud_off,
+                text: "未同步",
+                subtitle: "等待同步",
+                color: Colors.grey
+            )
+```
 
 ---
 
