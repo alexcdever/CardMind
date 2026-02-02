@@ -1,6 +1,5 @@
 # 移动端卡片编辑器规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `flutter/test/features/card_editor/mobile_card_editor_test.dart`
@@ -9,12 +8,13 @@
 
 ## 概述
 
-本规格定义移动端卡片编辑器的交互规范，确保：
+本规格定义移动端卡片编辑器的交互规范，聚焦全屏编辑、手势操作与触摸友好体验。
 
+**核心目标**:
 - 全屏编辑提供沉浸式体验
-- 针对触摸输入优化
-- 支持手势操作
-- 响应式布局
+- 手势操作自然直观
+- 触摸输入友好
+- 移动端布局自适应
 
 **适用平台**:
 - Android
@@ -127,7 +127,7 @@ structure MobileEditor:
 
 ### 场景：下拉保存
 
-- **前置条件**: 编辑器已打开
+- **前置条件**: 编辑器已打开且存在可保存内容
 - **操作**: 用户下拉
 - **预期结果**: 卡片应保存
 - **并且**: 应显示保存成功提示
@@ -255,6 +255,16 @@ structure TouchOptimization:
 
 ---
 
+## 相关文档
+
+**相关规格**:
+- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
+- [./desktop.md](./desktop.md) - 桌面端编辑器
+- [./fullscreen_editor.md](./fullscreen_editor.md) - 全屏编辑器
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `flutter/test/features/card_editor/mobile_card_editor_test.dart`
@@ -283,21 +293,3 @@ structure TouchOptimization:
 - [ ] 键盘交互良好
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
-- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
-- [./desktop.md](./desktop.md) - 桌面端编辑器
-- [./fullscreen_editor.md](./fullscreen_editor.md) - 全屏编辑器
-
-**架构决策记录**:
-- 无
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
