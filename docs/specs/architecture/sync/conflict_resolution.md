@@ -1,6 +1,5 @@
 # 冲突解决架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/sync/model.md](../../domain/sync/model.md), [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md)
 **相关测试**: `rust/tests/conflict_resolution_test.rs`
@@ -477,7 +476,7 @@ function demonstrate_three_way_convergence():
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 库
@@ -506,6 +505,22 @@ function demonstrate_three_way_convergence():
 - **字段级**: 最后写入优先（LWW）
 - **文本级**: 操作转换（OT）
 - **列表级**: 位置独立插入/删除
+
+---
+
+## 相关文档
+
+**领域规格**:
+- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步领域模型
+
+**架构规格**:
+- [../storage/dual_layer.md](../storage/dual_layer.md) - 双层架构
+- [../storage/loro_integration.md](../storage/loro_integration.md) - Loro 集成
+- [./service.md](./service.md) - P2P 同步服务
+- [./peer_discovery.md](./peer_discovery.md) - 对等点发现
+
+**架构决策记录**:
+- ADR-0003: Loro CRDT - CRDT 库选择理由
 
 ---
 
@@ -539,24 +554,3 @@ function demonstrate_three_way_convergence():
 - [x] 性能可接受（< 100ms 合并时间）
 - [x] 因果关系正确保持
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**领域规格**:
-- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步领域模型
-
-**架构规格**:
-- [../storage/dual_layer.md](../storage/dual_layer.md) - 双层架构
-- [../storage/loro_integration.md](../storage/loro_integration.md) - Loro 集成
-- [./service.md](./service.md) - P2P 同步服务
-- [./peer_discovery.md](./peer_discovery.md) - 对等点发现
-
-**架构决策记录**:
-- ADR-0003: Loro CRDT - CRDT 库选择理由
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
