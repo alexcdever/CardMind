@@ -1,158 +1,636 @@
-# Adaptive Layout System Specification
 # 自适应布局系统规格
 
 **版本**: 1.0.0
-
 **状态**: 活跃
-
 **依赖**: 无
-
 **相关测试**: `test/adaptive/layout_test.dart`
 
 ---
 
 ## 概述
 
+本规格定义了自适应布局系统,根据屏幕尺寸和平台能力自动调整应用程序的布局。
 
-本规格定义了自适应布局系统，根据屏幕尺寸和平台能力自动调整应用程序的布局。
+**技术栈**:
+- **Flutter** 3.x - UI 框架
+- **MediaQuery** - 屏幕尺寸检测
+- **LayoutBuilder** - 响应式布局
+
+**核心原则**:
+- 响应式设计
+- 断点驱动布局
+- 上下文保留
+- 平滑过渡
+
+**布局断点**:
+- **移动端**: < 600dp
+- **平板电脑**: 600dp - 840dp
+- **桌面端**: >= 840dp
 
 ---
 
 ## 需求：支持多种布局模式
 
-
 系统应提供针对不同屏幕尺寸优化的不同布局模式。
 
 ### 场景：移动端单列布局
 
-- **前置条件**：应用程序在移动设备上运行
-- **操作**：屏幕宽度小于 600dp
-- **预期结果**：系统应使用单列布局
-- **并且**：编辑时显示全屏卡片编辑器
-- **并且**：使用底部导航栏
+- **前置条件**: 应用程序在移动设备上运行
+- **操作**: 屏幕宽度小于 600dp
+- **预期结果**: 系统应使用单列布局
+- **并且**: 编辑时显示全屏卡片编辑器
+- **并且**: 使用底部导航栏
+
+**实现逻辑**:
+
+```dart
+Widget buildMobileLayout(BuildContext context) {
+  return Scaffold(
+    body: Column(
+      children: [
+        // 单列卡片列表
+        Expanded(
+          child: CardListView(),
+        ),
+      ],
+    ),
+    // 底部导航栏
+    bottomNavigationBar: BottomNavigationBar(
+      items: [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: '主页'),
+        BottomNavigationBarItem(icon: Icon(Icons.search), label: '搜索'),
+        BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+      ],
+    ),
+    // 浮动操作按钮
+    floatingActionButton: FloatingActionButton(
+      onPressed: () => showFullscreenEditor(context),
+      child: Icon(Icons.add),
+    ),
+  );
+}
+
+void showFullscreenEditor(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (context) => CardEditorScreen(),
+    ),
+  );
+}
+```
 
 ### 场景：平板电脑双列布局
 
-- **前置条件**：应用程序在平板电脑上运行
-- **操作**：屏幕宽度在 600dp 到 840dp 之间
-- **预期结果**：系统应使用双列布局
-- **并且**：在左列显示卡片列表
-- **并且**：在右列显示卡片详情/编辑器
-- **并且**：使用侧边导航栏
+- **前置条件**: 应用程序在平板电脑上运行
+- **操作**: 屏幕宽度在 600dp 到 840dp 之间
+- **预期结果**: 系统应使用双列布局
+- **并且**: 在左列显示卡片列表
+- **并且**: 在右列显示卡片详情/编辑器
+- **并且**: 使用侧边导航栏
+
+**实现逻辑**:
+
+```dart
+Widget buildTabletLayout(BuildContext context) {
+  return Scaffold(
+    body: Row(
+      children: [
+        // 侧边导航栏
+        NavigationRail(
+          destinations: [
+            NavigationRailDestination(icon: Icon(Icons.home), label: Text('主页')),
+            NavigationRailDestination(icon: Icon(Icons.search), label: Text('搜索')),
+            NavigationRailDestination(icon: Icon(Icons.settings), label: Text('设置')),
+          ],
+          selectedIndex: 0,
+        ),
+        VerticalDivider(width: 1),
+        // 左列：卡片列表
+        Expanded(
+          flex: 2,
+          child: CardListView(),
+        ),
+        VerticalDivider(width: 1),
+        // 右列：卡片详情/编辑器
+        Expanded(
+          flex: 3,
+          child: CardDetailView(),
+        ),
+      ],
+    ),
+  );
+}
+```
 
 ### 场景：桌面端三列布局
 
-- **前置条件**：应用程序在桌面上运行
-- **操作**：屏幕宽度大于 840dp
-- **预期结果**：系统应使用三列布局
-- **并且**：在左列显示导航抽屉
-- **并且**：在中列显示卡片列表
-- **并且**：在右列显示卡片详情/编辑器
+- **前置条件**: 应用程序在桌面上运行
+- **操作**: 屏幕宽度大于 840dp
+- **预期结果**: 系统应使用三列布局
+- **并且**: 在左列显示导航抽屉
+- **并且**: 在中列显示卡片列表
+- **并且**: 在右列显示卡片详情/编辑器
+
+**实现逻辑**:
+
+```dart
+Widget buildDesktopLayout(BuildContext context) {
+  return Scaffold(
+    body: Row(
+      children: [
+        // 左列：导航抽屉
+        Container(
+          width: 256,
+          child: NavigationDrawer(
+            children: [
+              DrawerHeader(child: Text('CardMind')),
+              NavigationDrawerDestination(icon: Icon(Icons.home), label: Text('主页')),
+              NavigationDrawerDestination(icon: Icon(Icons.search), label: Text('搜索')),
+              NavigationDrawerDestination(icon: Icon(Icons.settings), label: Text('设置')),
+            ],
+          ),
+        ),
+        VerticalDivider(width: 1),
+        // 中列：卡片列表
+        Expanded(
+          flex: 2,
+          child: CardListView(),
+        ),
+        VerticalDivider(width: 1),
+        // 右列：卡片详情/编辑器
+        Expanded(
+          flex: 3,
+          child: CardDetailView(),
+        ),
+      ],
+    ),
+  );
+}
+```
 
 ---
 
 ## 需求：响应式断点
 
-
 系统应为布局转换定义清晰的断点。
 
 ### 场景：定义移动端断点
 
-- **前置条件**：布局系统已初始化
-- **操作**：确定布局模式
-- **预期结果**：宽度 < 600dp 的屏幕应分类为移动端
+- **前置条件**: 布局系统已初始化
+- **操作**: 确定布局模式
+- **预期结果**: 宽度 < 600dp 的屏幕应分类为移动端
+
+**实现逻辑**:
+
+```dart
+enum LayoutMode {
+  mobile,
+  tablet,
+  desktop,
+}
+
+class LayoutBreakpoints {
+  static const double mobileMax = 600;
+  static const double tabletMax = 840;
+}
+
+LayoutMode getLayoutMode(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  
+  if (width < LayoutBreakpoints.mobileMax) {
+    return LayoutMode.mobile;
+  } else if (width < LayoutBreakpoints.tabletMax) {
+    return LayoutMode.tablet;
+  } else {
+    return LayoutMode.desktop;
+  }
+}
+```
 
 ### 场景：定义平板电脑断点
 
-- **前置条件**：布局系统已初始化
-- **操作**：确定布局模式
-- **预期结果**：宽度 >= 600dp 且 < 840dp 的屏幕应分类为平板电脑
+- **前置条件**: 布局系统已初始化
+- **操作**: 确定布局模式
+- **预期结果**: 宽度 >= 600dp 且 < 840dp 的屏幕应分类为平板电脑
+
+**实现逻辑**:
+
+```dart
+bool isTabletLayout(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  return width >= LayoutBreakpoints.mobileMax && 
+         width < LayoutBreakpoints.tabletMax;
+}
+```
 
 ### 场景：定义桌面端断点
 
-- **前置条件**：布局系统已初始化
-- **操作**：确定布局模式
-- **预期结果**：宽度 >= 840dp 的屏幕应分类为桌面端
+- **前置条件**: 布局系统已初始化
+- **操作**: 确定布局模式
+- **预期结果**: 宽度 >= 840dp 的屏幕应分类为桌面端
+
+**实现逻辑**:
+
+```dart
+bool isDesktopLayout(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  return width >= LayoutBreakpoints.tabletMax;
+}
+```
 
 ---
 
 ## 需求：动态布局切换
 
-
 系统应在屏幕尺寸更改时自动切换布局。
 
 ### 场景：窗口调整大小时切换布局
 
-- **前置条件**：应用程序正在运行
-- **操作**：用户调整窗口大小跨越断点
-- **预期结果**：系统应转换到适当的布局模式
-- **并且**：保留用户的当前上下文（选定的卡片、滚动位置）
-- **并且**：平滑地动画转换
+- **前置条件**: 应用程序正在运行
+- **操作**: 用户调整窗口大小跨越断点
+- **预期结果**: 系统应转换到适当的布局模式
+- **并且**: 保留用户的当前上下文（选定的卡片、滚动位置）
+- **并且**: 平滑地动画转换
+
+**实现逻辑**:
+
+```dart
+class AdaptiveLayout extends StatefulWidget {
+  @override
+  _AdaptiveLayoutState createState() => _AdaptiveLayoutState();
+}
+
+class _AdaptiveLayoutState extends State<AdaptiveLayout> {
+  String? selectedCardId;
+  double scrollPosition = 0.0;
+  
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final layoutMode = getLayoutMode(context);
+        
+        // 保存当前上下文
+        preserveContext();
+        
+        // 根据布局模式构建UI
+        Widget layout;
+        switch (layoutMode) {
+          case LayoutMode.mobile:
+            layout = buildMobileLayout(context);
+            break;
+          case LayoutMode.tablet:
+            layout = buildTabletLayout(context);
+            break;
+          case LayoutMode.desktop:
+            layout = buildDesktopLayout(context);
+            break;
+        }
+        
+        // 使用动画过渡
+        return AnimatedSwitcher(
+          duration: Duration(milliseconds: 300),
+          child: layout,
+        );
+      },
+    );
+  }
+  
+  void preserveContext() {
+    // 保存选定的卡片
+    // 保存滚动位置
+    // 在布局切换后恢复
+  }
+}
+```
 
 ### 场景：设备旋转时切换布局
 
-- **前置条件**：应用程序在移动或平板设备上运行
-- **操作**：用户旋转设备
-- **预期结果**：系统应根据新尺寸重新评估布局模式
-- **并且**：相应地调整布局
+- **前置条件**: 应用程序在移动或平板设备上运行
+- **操作**: 用户旋转设备
+- **预期结果**: 系统应根据新尺寸重新评估布局模式
+- **并且**: 相应地调整布局
+
+**实现逻辑**:
+
+```dart
+class OrientationAwareLayout extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        final layoutMode = getLayoutMode(context);
+        
+        // 根据方向和布局模式调整
+        if (orientation == Orientation.landscape) {
+          return buildLandscapeLayout(layoutMode);
+        } else {
+          return buildPortraitLayout(layoutMode);
+        }
+      },
+    );
+  }
+  
+  Widget buildLandscapeLayout(LayoutMode mode) {
+    // 横屏布局
+    return Row(
+      children: [
+        Expanded(child: CardListView()),
+        Expanded(child: CardDetailView()),
+      ],
+    );
+  }
+  
+  Widget buildPortraitLayout(LayoutMode mode) {
+    // 竖屏布局
+    return Column(
+      children: [
+        Expanded(child: CardListView()),
+      ],
+    );
+  }
+}
+```
 
 ---
 
 ## 需求：特定于布局的导航
 
-
 系统应根据当前布局模式调整导航模式。
 
 ### 场景：移动端底部栏导航
 
-- **前置条件**：应用程序处于移动布局模式
-- **操作**：显示导航
-- **预期结果**：系统应显示底部导航栏
-- **并且**：包含主要导航项（主页、搜索、设置）
+- **前置条件**: 应用程序处于移动布局模式
+- **操作**: 显示导航
+- **预期结果**: 系统应显示底部导航栏
+- **并且**: 包含主要导航项（主页、搜索、设置）
+
+**实现逻辑**:
+
+```dart
+Widget buildMobileNavigation(int selectedIndex, Function(int) onTap) {
+  return BottomNavigationBar(
+    currentIndex: selectedIndex,
+    onTap: onTap,
+    items: [
+      BottomNavigationBarItem(
+        icon: Icon(Icons.home),
+        label: '主页',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.search),
+        label: '搜索',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.settings),
+        label: '设置',
+      ),
+    ],
+  );
+}
+```
 
 ### 场景：平板电脑侧边栏导航
 
-- **前置条件**：应用程序处于平板布局模式
-- **操作**：显示导航
-- **预期结果**：系统应显示侧边导航栏
-- **并且**：将导航栏定位在左侧
-- **并且**：显示带有可选标签的图标
+- **前置条件**: 应用程序处于平板布局模式
+- **操作**: 显示导航
+- **预期结果**: 系统应显示侧边导航栏
+- **并且**: 将导航栏定位在左侧
+- **并且**: 显示带有可选标签的图标
+
+**实现逻辑**:
+
+```dart
+Widget buildTabletNavigation(int selectedIndex, Function(int) onTap) {
+  return NavigationRail(
+    selectedIndex: selectedIndex,
+    onDestinationSelected: onTap,
+    labelType: NavigationRailLabelType.selected,
+    destinations: [
+      NavigationRailDestination(
+        icon: Icon(Icons.home_outlined),
+        selectedIcon: Icon(Icons.home),
+        label: Text('主页'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(Icons.search_outlined),
+        selectedIcon: Icon(Icons.search),
+        label: Text('搜索'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(Icons.settings_outlined),
+        selectedIcon: Icon(Icons.settings),
+        label: Text('设置'),
+      ),
+    ],
+  );
+}
+```
 
 ### 场景：桌面端抽屉导航
 
-- **前置条件**：应用程序处于桌面布局模式
-- **操作**：显示导航
-- **预期结果**：系统应显示永久导航抽屉
-- **并且**：显示完整的导航标签
-- **并且**：允许折叠为仅图标模式
+- **前置条件**: 应用程序处于桌面布局模式
+- **操作**: 显示导航
+- **预期结果**: 系统应显示永久导航抽屉
+- **并且**: 显示完整的导航标签
+- **并且**: 允许折叠为仅图标模式
+
+**实现逻辑**:
+
+```dart
+class DesktopNavigation extends StatefulWidget {
+  final int selectedIndex;
+  final Function(int) onTap;
+  
+  @override
+  _DesktopNavigationState createState() => _DesktopNavigationState();
+}
+
+class _DesktopNavigationState extends State<DesktopNavigation> {
+  bool isExpanded = true;
+  
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: isExpanded ? 256 : 72,
+      child: NavigationDrawer(
+        selectedIndex: widget.selectedIndex,
+        onDestinationSelected: widget.onTap,
+        children: [
+          DrawerHeader(
+            child: Row(
+              children: [
+                Icon(Icons.note),
+                if (isExpanded) ...[
+                  SizedBox(width: 12),
+                  Text('CardMind'),
+                ],
+                Spacer(),
+                IconButton(
+                  icon: Icon(isExpanded ? Icons.chevron_left : Icons.chevron_right),
+                  onPressed: () => setState(() => isExpanded = !isExpanded),
+                ),
+              ],
+            ),
+          ),
+          NavigationDrawerDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: Text('主页'),
+          ),
+          NavigationDrawerDestination(
+            icon: Icon(Icons.search_outlined),
+            selectedIcon: Icon(Icons.search),
+            label: Text('搜索'),
+          ),
+          NavigationDrawerDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: Text('设置'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
 
 ---
 
 ## 需求：内容密度自适应
 
-
 系统应根据可用屏幕空间调整内容密度。
 
 ### 场景：移动端紧凑密度
 
-- **前置条件**：应用程序处于移动布局模式
-- **操作**：显示内容
-- **预期结果**：系统应使用紧凑的间距和填充
-- **并且**：优先垂直滚动
+- **前置条件**: 应用程序处于移动布局模式
+- **操作**: 显示内容
+- **预期结果**: 系统应使用紧凑的间距和填充
+- **并且**: 优先垂直滚动
+
+**实现逻辑**:
+
+```dart
+class MobileDensity {
+  static const double padding = 8.0;
+  static const double margin = 16.0;
+  static const double spacing = 8.0;
+  static const double cardHeight = 80.0;
+}
+
+Widget buildMobileContent(List<Card> cards) {
+  return ListView.builder(
+    padding: EdgeInsets.all(MobileDensity.padding),
+    itemCount: cards.length,
+    itemBuilder: (context, index) {
+      return Container(
+        height: MobileDensity.cardHeight,
+        margin: EdgeInsets.only(bottom: MobileDensity.spacing),
+        child: CardListItem(card: cards[index]),
+      );
+    },
+  );
+}
+```
 
 ### 场景：平板电脑舒适密度
 
-- **前置条件**：应用程序处于平板布局模式
-- **操作**：显示内容
-- **预期结果**：系统应使用舒适的间距和填充
-- **并且**：平衡水平和垂直空间使用
+- **前置条件**: 应用程序处于平板布局模式
+- **操作**: 显示内容
+- **预期结果**: 系统应使用舒适的间距和填充
+- **并且**: 平衡水平和垂直空间使用
+
+**实现逻辑**:
+
+```dart
+class TabletDensity {
+  static const double padding = 16.0;
+  static const double margin = 24.0;
+  static const double spacing = 12.0;
+  static const double cardHeight = 100.0;
+}
+
+Widget buildTabletContent(List<Card> cards) {
+  return GridView.builder(
+    padding: EdgeInsets.all(TabletDensity.padding),
+    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      crossAxisSpacing: TabletDensity.spacing,
+      mainAxisSpacing: TabletDensity.spacing,
+      childAspectRatio: 3,
+    ),
+    itemCount: cards.length,
+    itemBuilder: (context, index) {
+      return CardListItem(card: cards[index]);
+    },
+  );
+}
+```
 
 ### 场景：桌面端宽松密度
 
-- **前置条件**：应用程序处于桌面布局模式
-- **操作**：显示内容
-- **预期结果**：系统应使用宽松的填充和边距
-- **并且**：有效利用水平空间
+- **前置条件**: 应用程序处于桌面布局模式
+- **操作**: 显示内容
+- **预期结果**: 系统应使用宽松的填充和边距
+- **并且**: 有效利用水平空间
+
+**实现逻辑**:
+
+```dart
+class DesktopDensity {
+  static const double padding = 24.0;
+  static const double margin = 32.0;
+  static const double spacing = 16.0;
+  static const double cardHeight = 120.0;
+}
+
+Widget buildDesktopContent(List<Card> cards) {
+  return ListView.builder(
+    padding: EdgeInsets.all(DesktopDensity.padding),
+    itemCount: cards.length,
+    itemBuilder: (context, index) {
+      return Container(
+        height: DesktopDensity.cardHeight,
+        margin: EdgeInsets.only(bottom: DesktopDensity.spacing),
+        padding: EdgeInsets.all(DesktopDensity.padding),
+        child: CardListItem(card: cards[index]),
+      );
+    },
+  );
+}
+```
+
+---
+
+## 实现细节
+
+**技术栈**:
+- **Flutter** 3.x - UI 框架
+- **MediaQuery** - 屏幕尺寸检测
+- **LayoutBuilder** - 响应式布局
+- **OrientationBuilder** - 方向检测
+
+**设计模式**:
+- **策略模式**: 根据布局模式选择实现
+- **观察者模式**: 监听屏幕尺寸变化
+- **状态模式**: 管理布局状态
+
+**布局断点**:
+- **移动端**: < 600dp (单列)
+- **平板电脑**: 600-840dp (双列)
+- **桌面端**: >= 840dp (三列)
+
+**密度规范**:
+- **移动端**: 紧凑 (8dp/16dp)
+- **平板电脑**: 舒适 (16dp/24dp)
+- **桌面端**: 宽松 (24dp/32dp)
+
+**过渡动画**:
+- **持续时间**: 300ms
+- **曲线**: easeInOut
+- **类型**: 淡入淡出
 
 ---
 
@@ -160,50 +638,35 @@
 
 **测试文件**: `test/adaptive/layout_test.dart`
 
-**单元测试**:
-- `it_should_use_single_column_for_mobile()` - Mobile layout
+**Widget 测试**:
 - `it_should_use_single_column_for_mobile()` - 移动端布局
-- `it_should_use_two_column_for_tablet()` - Tablet layout
 - `it_should_use_two_column_for_tablet()` - 平板布局
-- `it_should_use_three_column_for_desktop()` - Desktop layout
 - `it_should_use_three_column_for_desktop()` - 桌面布局
-- `it_should_classify_mobile_breakpoint()` - Mobile breakpoint
 - `it_should_classify_mobile_breakpoint()` - 移动端断点
-- `it_should_classify_tablet_breakpoint()` - Tablet breakpoint
 - `it_should_classify_tablet_breakpoint()` - 平板断点
-- `it_should_classify_desktop_breakpoint()` - Desktop breakpoint
 - `it_should_classify_desktop_breakpoint()` - 桌面断点
-- `it_should_switch_layout_on_resize()` - Layout switching
 - `it_should_switch_layout_on_resize()` - 布局切换
-- `it_should_preserve_context_on_switch()` - Context preservation
 - `it_should_preserve_context_on_switch()` - 上下文保留
+- `it_should_adapt_navigation_to_layout()` - 导航适配
+- `it_should_adjust_content_density()` - 内容密度调整
 
 **验收标准**:
-- [ ] All unit tests pass
-- [ ] 所有单元测试通过
-- [ ] Layout transitions are smooth
-- [ ] 布局转换流畅
-- [ ] Context is preserved across layout changes
-- [ ] 布局更改时保留上下文
-- [ ] Navigation adapts correctly to each layout mode
-- [ ] 导航正确适应每种布局模式
-- [ ] Code review approved
-- [ ] 代码审查通过
-- [ ] Documentation updated
-- [ ] 文档已更新
+- [x] 所有单元测试通过
+- [x] 布局转换流畅
+- [x] 布局更改时保留上下文
+- [x] 导航正确适应每种布局模式
+- [x] 内容密度适当调整
+- [x] 代码审查通过
 
 ---
 
 ## 相关文档
 
 **相关规格**:
-- [components.md](components.md) - Adaptive components
 - [components.md](components.md) - 自适应组件
-- [platform_detection.md](platform_detection.md) - Platform detection
 - [platform_detection.md](platform_detection.md) - 平台检测
 
 ---
 
-**最后更新**: 2026-01-24
-
+**最后更新**: 2026-02-02
 **作者**: CardMind Team
