@@ -94,6 +94,9 @@ desktop.ini
 specs/*
 !specs/*.md
 
+# Git worktrees
+.worktrees/
+
 # Project Guardian
 .project-guardian/failures.log
 .project-guardian/*.tmp
