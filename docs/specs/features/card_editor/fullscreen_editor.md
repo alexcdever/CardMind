@@ -1,6 +1,5 @@
 # 全屏编辑器规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `flutter/test/features/card_editor/fullscreen_editor_test.dart`
@@ -9,12 +8,13 @@
 
 ## 概述
 
-本规格定义全屏编辑器的交互规范，确保：
+本规格定义全屏编辑器的交互规范，覆盖全屏展示、导航控制、自动保存与编辑区域最大化。
 
-- 沉浸式编辑体验
-- 最大化屏幕空间利用
-- 清晰的导航和操作
-- 自动保存功能
+**核心目标**:
+- 沉浸式全屏编辑体验
+- 清晰的导航与完成操作
+- 自动保存降低数据丢失风险
+- 最大化可用编辑空间
 
 **适用平台**:
 - Android
@@ -125,7 +125,7 @@ structure FullscreenEditor:
 
 ### 场景：完成按钮保存并关闭
 
-- **前置条件**: 编辑器已打开
+- **前置条件**: 编辑器已打开且存在可保存更改
 - **操作**: 用户点击完成按钮
 - **预期结果**: 更改应保存
 - **并且**: 编辑器应关闭
@@ -195,7 +195,7 @@ structure NavigationBar:
 
 ### 场景：关闭时保存
 
-- **前置条件**: 用户在编辑器中有更改
+- **前置条件**: 编辑器存在未保存更改
 - **操作**: 用户关闭编辑器
 - **预期结果**: 更改应自动保存
 - **并且**: 不应提示确认
@@ -325,6 +325,16 @@ structure EditorLayout:
 
 ---
 
+## 相关文档
+
+**相关规格**:
+- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
+- [./desktop.md](./desktop.md) - 桌面端编辑器
+- [./mobile.md](./mobile.md) - 移动端编辑器
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `flutter/test/features/card_editor/fullscreen_editor_test.dart`
@@ -355,21 +365,3 @@ structure EditorLayout:
 - [ ] 键盘交互流畅
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
-- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
-- [./desktop.md](./desktop.md) - 桌面端编辑器
-- [./mobile.md](./mobile.md) - 移动端编辑器
-
-**架构决策记录**:
-- 无
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
