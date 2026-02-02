@@ -1,4 +1,3 @@
-# 数据池管理功能规格
 # 池管理功能规格
 
 **版本**: 1.0.0
@@ -62,6 +61,54 @@
 - **预期结果**: 系统应以错误"ALREADY_JOINED_POOL"拒绝创建
 - **并且**: 系统应提示用户先离开当前池
 
+**实现逻辑**:
+
+```
+structure PoolManagement:
+    currentPool: Pool?
+    deviceConfig: DeviceConfig
+
+    // 创建新池
+    function createPool(name, password):
+        // 步骤1：检查是否已加入池
+        if currentPool != null:
+            return error("ALREADY_JOINED_POOL", "请先离开当前池")
+
+        // 步骤2：验证池名称
+        if name.trim().isEmpty():
+            return error("INVALID_NAME", "池名称为必填项")
+
+        // 步骤3：验证密码强度
+        if password.length < 6:
+            return error("WEAK_PASSWORD", "密码必须至少6个字符")
+
+        // 步骤4：生成池 ID
+        poolId = generateUUIDv7()
+
+        // 步骤5：哈希密码
+        passwordHash = bcrypt.hash(password, cost=12)
+
+        // 步骤6：创建池
+        pool = Pool(
+            id: poolId,
+            name: name,
+            passwordHash: passwordHash,
+            createdAt: currentTime(),
+            devices: [deviceConfig.deviceId]
+        )
+
+        // 步骤7：保存池
+        poolStore.save(pool)
+
+        // 步骤8：设备加入池
+        deviceConfig.joinPool(poolId)
+
+        // 步骤9：更新当前池
+        currentPool = pool
+
+        return ok(pool)
+```
+
 ---
 
 ## 需求：池加入
@@ -102,6 +149,44 @@
 - **预期结果**: 系统应以错误"ALREADY_JOINED_POOL"拒绝加入
 - **并且**: 系统应提示用户先离开当前池
 
+**实现逻辑**:
+
+```
+structure PoolJoining:
+    currentPool: Pool?
+    deviceConfig: DeviceConfig
+
+    // 加入现有池
+    function joinPool(poolId, password):
+        // 步骤1：检查是否已加入池
+        if currentPool != null:
+            return error("ALREADY_JOINED_POOL", "请先离开当前池")
+
+        // 步骤2：查找池
+        pool = poolStore.getPool(poolId)
+        if pool == null:
+            return error("POOL_NOT_FOUND", "未找到池")
+
+        // 步骤3：验证密码
+        if not bcrypt.verify(password, pool.passwordHash):
+            return error("INVALID_PASSWORD", "密码无效")
+
+        // 步骤4：添加设备到池
+        pool.devices.add(deviceConfig.deviceId)
+        poolStore.save(pool)
+
+        // 步骤5：设备加入池
+        deviceConfig.joinPool(poolId)
+
+        // 步骤6：更新当前池
+        currentPool = pool
+
+        // 步骤7：开始同步
+        syncService.startSync(poolId)
+
+        return ok(pool)
+```
+
 ---
 
 ## 需求：池查看
@@ -125,6 +210,38 @@
 - **并且**: 系统应指示当前设备
 - **并且**: 系统应显示每个设备的名称和类型
 
+**实现逻辑**:
+
+```
+structure PoolViewing:
+    currentPool: Pool
+    deviceConfig: DeviceConfig
+
+    // 查看池信息
+    function viewPoolInfo():
+        return {
+            poolId: currentPool.id,
+            poolName: currentPool.name,
+            deviceCount: currentPool.devices.length,
+            createdAt: currentPool.createdAt
+        }
+
+    // 查看池设备
+    function viewPoolDevices():
+        devices = []
+
+        for deviceId in currentPool.devices:
+            device = deviceStore.getDevice(deviceId)
+            devices.add({
+                deviceId: deviceId,
+                deviceName: device.name,
+                deviceType: device.type,
+                isCurrent: deviceId == deviceConfig.deviceId
+            })
+
+        return devices
+```
+
 ---
 
 ## 需求：池设置
@@ -147,10 +264,49 @@
 - **并且**: 更改应同步到所有设备
 - **并且**: 现有设备应保持加入
 
+**实现逻辑**:
+
+```
+structure PoolSettings:
+    currentPool: Pool
+
+    // 更新池名称
+    function updatePoolName(newName):
+        // 步骤1：验证名称
+        if newName.trim().isEmpty():
+            return error("INVALID_NAME", "池名称为必填项")
+
+        // 步骤2：更新池名称
+        currentPool.name = newName
+        poolStore.save(currentPool)
+
+        // 步骤3：同步到所有设备
+        syncService.syncPoolUpdate(currentPool)
+
+        return ok()
+
+    // 更新池密码
+    function updatePoolPassword(newPassword):
+        // 步骤1：验证密码强度
+        if newPassword.length < 6:
+            return error("WEAK_PASSWORD", "密码必须至少6个字符")
+
+        // 步骤2：哈希新密码
+        newPasswordHash = bcrypt.hash(newPassword, cost=12)
+
+        // 步骤3：更新池密码
+        currentPool.passwordHash = newPasswordHash
+        poolStore.save(currentPool)
+
+        // 步骤4：同步到所有设备
+        syncService.syncPoolUpdate(currentPool)
+
+        return ok()
+```
+
 ---
 
 ## 需求：离开池
-
 
 用户应能够离开池并清除本地数据。
 
@@ -169,6 +325,51 @@
 - **操作**: 用户在确认对话框中点击"取消"
 - **预期结果**: 系统应保持设备在池中
 - **并且**: 所有数据应保持不变
+
+**实现逻辑**:
+
+```
+structure PoolLeaving:
+    currentPool: Pool
+    deviceConfig: DeviceConfig
+
+    // 离开池
+    function leavePool():
+        // 步骤1：显示确认对话框
+        confirmed = showConfirmDialog(
+            title: "离开池",
+            message: "确定要离开池吗？所有本地数据将被清除。",
+            confirmText: "离开",
+            cancelText: "取消"
+        )
+
+        if not confirmed:
+            return cancelled()
+
+        // 步骤2：从池的设备列表中移除设备
+        currentPool.devices.remove(deviceConfig.deviceId)
+        poolStore.save(currentPool)
+
+        // 步骤3：通知其他设备
+        syncService.notifyDeviceLeft(currentPool.id, deviceConfig.deviceId)
+
+        // 步骤4：清除本地池数据
+        poolStore.delete(currentPool.id)
+
+        // 步骤5：清除所有本地卡片数据
+        cardStore.deleteAll()
+
+        // 步骤6：清除设备配置
+        deviceConfig.leavePool()
+
+        // 步骤7：更新当前池
+        currentPool = null
+
+        // 步骤8：导航到引导流程
+        navigateTo(OnboardingScreen())
+
+        return ok()
+```
 
 ---
 
