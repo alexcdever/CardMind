@@ -1,6 +1,5 @@
 # 对等点发现架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [./service.md](./service.md), [../storage/device_config.md](../storage/device_config.md)
 **相关测试**: `rust/tests/peer_discovery_test.rs`
@@ -477,7 +476,7 @@ structure PeerManager:
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **mdns-sd** = "0.10" - Rust mDNS 库
@@ -499,6 +498,21 @@ structure PeerManager:
 - **服务端口**: 可配置（默认 8080）
 - **发现间隔**: 持续监听
 - **连接超时**: 10 秒
+
+---
+
+## 相关文档
+
+**架构规格**:
+- [./service.md](./service.md) - P2P 同步服务
+- [./conflict_resolution.md](./conflict_resolution.md) - 冲突解决
+- [../storage/device_config.md](../storage/device_config.md) - 设备配置
+
+**领域规格**:
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 池模型
+
+**架构决策记录**:
+- ADR-0004: mDNS 发现 - mDNS 对等点发现决策
 
 ---
 
@@ -532,23 +546,3 @@ structure PeerManager:
 - [x] 隐私保护已验证
 - [x] 握手协议正确执行
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**架构规格**:
-- [./service.md](./service.md) - P2P 同步服务
-- [./conflict_resolution.md](./conflict_resolution.md) - 冲突解决
-- [../storage/device_config.md](../storage/device_config.md) - 设备配置
-
-**领域规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池模型
-
-**架构决策记录**:
-- ADR-0004: mDNS 发现 - mDNS 对等点发现决策
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
