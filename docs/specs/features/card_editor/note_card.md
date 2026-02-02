@@ -1,6 +1,5 @@
 # 笔记卡片编辑器规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `flutter/test/features/card_editor/note_card_editor_test.dart`
@@ -9,15 +8,14 @@
 
 ## 概述
 
-本规格定义了笔记卡片编辑器组件，这是一个可复用的 Widget，用于在桌面端和移动端创建和编辑卡片。
+本规格定义笔记卡片编辑器组件规范，该组件在桌面端与移动端复用，用于创建或编辑卡片。
 
 **核心功能**:
-- 创建新卡片（新建模式）
-- 编辑现有卡片（编辑模式）
-- 平台特定的布局（桌面端：内联，移动端：全屏）
-- 自动保存和手动保存
-- 表单验证
-- 无障碍支持
+- 新建与编辑两种模式
+- 表单字段渲染与输入
+- 自动保存与手动保存
+- 保存前表单验证
+- 桌面/移动端布局适配
 
 **适用平台**:
 - 桌面端（macOS、Windows、Linux）
@@ -154,7 +152,7 @@ structure FormFields:
 
 ### 场景：手动保存
 
-- **前置条件**: 编辑器已打开
+- **前置条件**: 编辑器已打开且存在可保存内容
 - **操作**: 用户点击保存按钮
 - **预期结果**: 系统应立即保存卡片
 - **并且**: 应显示成功消息
@@ -349,6 +347,17 @@ structure PlatformLayout:
 
 ---
 
+## 相关文档
+
+**相关规格**:
+- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
+- [./desktop.md](./desktop.md) - 桌面端编辑器
+- [./mobile.md](./mobile.md) - 移动端编辑器
+- [./fullscreen_editor.md](./fullscreen_editor.md) - 全屏编辑器
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `flutter/test/features/card_editor/note_card_editor_test.dart`
@@ -380,22 +389,3 @@ structure PlatformLayout:
 - [ ] 平台布局适配良好
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
-- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
-- [./desktop.md](./desktop.md) - 桌面端编辑器
-- [./mobile.md](./mobile.md) - 移动端编辑器
-- [./fullscreen_editor.md](./fullscreen_editor.md) - 全屏编辑器
-
-**架构决策记录**:
-- 无
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
