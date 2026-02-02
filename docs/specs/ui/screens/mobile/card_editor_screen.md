@@ -1,0 +1,217 @@
+# Card Editor Screen Specification
+# 卡片编辑器屏幕规格
+
+**版本**: 1.0.0
+
+**状态**: 活跃
+
+**平台**: 移动端
+
+**依赖**: [card/model.md](../../../domain/card/model.md)
+
+**相关测试**: `test/screens/card_editor_screen_mobile_test.dart`
+
+---
+
+## 概述
+
+
+本规格定义了移动端卡片编辑器屏幕，提供针对移动设备专注内容创作优化的全屏卡片编辑体验。
+
+---
+
+## 需求：提供专用的卡片编辑界面
+
+
+系统应提供针对专注内容创作优化的全屏卡片编辑体验。
+
+### 场景：加载现有卡片进行编辑
+
+- **前置条件**：用户导航到编辑器并带有现有卡片
+- **操作**：编辑器屏幕打开现有卡片
+- **预期结果**：系统应预填充标题和内容字段
+- **并且**：加载现有标签
+
+### 场景：创建新卡片
+
+- **前置条件**：用户发起新卡片创建
+- **操作**：编辑器屏幕打开以创建新卡片
+- **预期结果**：系统应显示空的标题和内容字段
+- **并且**：自动聚焦标题字段
+
+---
+
+## 需求：自动保存草稿内容
+
+
+系统应自动保存草稿内容以防止数据丢失。
+
+### 场景：内容更改时自动保存
+
+- **前置条件**：用户正在编辑卡片
+- **操作**：用户修改标题或内容
+- **预期结果**：系统应在 2 秒无活动后触发自动保存
+
+### 场景：返回时恢复草稿
+
+- **前置条件**：用户有未保存的草稿
+- **操作**：用户返回到未保存的草稿
+- **预期结果**：系统应恢复草稿内容
+
+---
+
+## 需求：富文本编辑支持
+
+
+系统应支持基本的富文本格式化。
+
+### 场景：应用文本格式
+
+- **前置条件**：用户正在编辑内容
+- **操作**：用户应用格式（粗体、斜体等）
+- **预期结果**：系统应将格式应用于选定的文本
+- **并且**：在保存的内容中保持格式
+
+---
+
+## 需求：提供保存和丢弃操作
+
+
+系统应提供明确的保存和丢弃选项。
+
+### 场景：保存卡片
+
+- **前置条件**：用户已编辑卡片内容
+- **操作**：用户点击保存按钮
+- **预期结果**：系统应将卡片持久化到后端
+- **并且**：导航回上一个屏幕
+- **并且**：显示成功确认
+
+### 场景：丢弃更改
+
+- **前置条件**：用户有未保存的更改
+- **操作**：用户在有未保存更改时点击取消/返回按钮
+- **预期结果**：系统应显示确认对话框
+- **并且**：如果确认则丢弃更改
+- **并且**：如果取消则继续编辑
+
+---
+
+## 需求：编辑器中的标签管理
+
+
+系统应在编辑器内提供标签管理。
+
+### 场景：编辑时添加标签
+
+- **前置条件**：用户正在编辑卡片
+- **操作**：用户添加标签
+- **预期结果**：保存卡片时应包含该标签
+
+### 场景：编辑时移除标签
+
+- **前置条件**：卡片有标签
+- **操作**：用户移除标签
+- **预期结果**：保存卡片时应排除该标签
+
+---
+
+## 需求：显示字符计数（可选）
+
+
+系统应可选地显示字符或单词计数。
+
+### 场景：显示内容统计
+
+- **前置条件**：用户正在编辑内容
+- **操作**：用户正在编辑内容
+- **预期结果**：系统可以在状态区域显示字符计数或单词计数
+
+---
+
+## 移动端特定模式
+
+### Full-Screen Editing
+### 全屏编辑
+
+
+系统应在移动设备上使用全屏布局以实现无干扰编辑。
+
+### Touch-Optimized Toolbar
+### 触摸优化工具栏
+
+
+系统应提供具有大触摸目标的触摸优化格式工具栏。
+
+### Keyboard Handling
+### 键盘处理
+
+
+系统应在键盘出现时自动调整布局以保持内容可见。
+
+---
+
+## 测试覆盖
+
+**测试文件**: `test/screens/card_editor_screen_mobile_test.dart`
+
+- `it_should_prepopulate_existing_card()` - Pre-populate existing card
+- `it_should_prepopulate_existing_card()` - 预填充现有卡片
+- `it_should_load_existing_tags()` - Load existing tags
+- `it_should_load_existing_tags()` - 加载现有标签
+- `it_should_display_empty_fields_for_new_card()` - Empty fields for new card
+- `it_should_display_empty_fields_for_new_card()` - 新卡片空字段
+- `it_should_autofocus_title_field()` - Auto-focus title
+- `it_should_autofocus_title_field()` - 自动聚焦标题
+- `it_should_autosave_after_inactivity()` - Auto-save after 2s
+- `it_should_autosave_after_inactivity()` - 2秒后自动保存
+- `it_should_restore_draft()` - Restore draft
+- `it_should_restore_draft()` - 恢复草稿
+- `it_should_apply_text_formatting()` - Apply formatting
+- `it_should_apply_text_formatting()` - 应用格式
+- `it_should_maintain_formatting_in_saved_content()` - Maintain formatting
+- `it_should_maintain_formatting_in_saved_content()` - 保持格式
+- `it_should_save_and_navigate_back()` - Save and navigate
+- `it_should_save_and_navigate_back()` - 保存并导航
+- `it_should_show_confirmation_on_discard()` - Confirmation dialog
+- `it_should_show_confirmation_on_discard()` - 确认对话框
+- `it_should_add_tags()` - Add tags
+- `it_should_add_tags()` - 添加标签
+- `it_should_remove_tags()` - Remove tags
+- `it_should_remove_tags()` - 移除标签
+- `it_should_display_character_count()` - Display count (optional)
+- `it_should_display_character_count()` - 显示计数（可选）
+
+**验收标准**:
+- [ ] All widget tests pass
+- [ ] 所有 Widget 测试通过
+- [ ] Auto-save works reliably
+- [ ] 自动保存可靠工作
+- [ ] Rich text formatting works correctly
+- [ ] 富文本格式正确工作
+- [ ] Confirmation dialog prevents data loss
+- [ ] 确认对话框防止数据丢失
+- [ ] Full-screen layout is optimized for mobile
+- [ ] 全屏布局针对移动端优化
+- [ ] Code review approved
+- [ ] 代码审查通过
+- [ ] Documentation updated
+- [ ] 文档已更新
+
+---
+
+## 相关文档
+
+**相关规格**:
+- [fullscreen_editor.md](../../components/shared/fullscreen_editor.md) - Fullscreen editor
+- [fullscreen_editor.md](../../components/shared/fullscreen_editor.md) - 全屏编辑器
+- [note_card.md](../../components/shared/note_card.md) - NoteCard component
+- [note_card.md](../../components/shared/note_card.md) - NoteCard 组件
+- [card/model.md](../../../domain/card/model.md) - Card domain model
+- [card/model.md](../../../domain/card/model.md) - 卡片领域模型
+
+---
+
+**最后更新**: 2026-01-24
+
+**作者**: CardMind Team
