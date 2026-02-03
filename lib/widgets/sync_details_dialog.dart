@@ -52,6 +52,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  late FocusScopeNode _focusScopeNode;
 
   // 数据状态
   late api.SyncStatus _currentStatus;
@@ -95,6 +96,8 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
     _currentStatus = widget.initialStatus;
     _previousSyncState = widget.initialStatus.state;
 
+    _focusScopeNode = FocusScopeNode();
+
     // 初始化动画
     _animationController = AnimationController(
       duration: SyncDialogDuration.dialogOpen,
@@ -137,6 +140,11 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
     );
 
     HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusScopeNode.requestFocus();
+      }
+    });
   }
 
   @override
@@ -145,6 +153,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
     _statusSubscription?.cancel();
     _devicePollingTimer?.cancel();
     HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
+    _focusScopeNode.dispose();
     super.dispose();
   }
 
@@ -277,7 +286,8 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
       scopesRoute: true,
       namesRoute: true,
       explicitChildNodes: true,
-      child: Focus(
+      child: FocusScope(
+        node: _focusScopeNode,
         autofocus: true,
         onKeyEvent: _handleKeyEvent,
         child: FadeTransition(
