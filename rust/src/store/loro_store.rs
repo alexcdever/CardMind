@@ -400,7 +400,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn test_export_import_updates() {
         let mut store1 = LoroStore::new();
@@ -430,7 +429,6 @@ mod tests {
         assert!(!updates.is_empty());
         store2.import_updates(&updates).unwrap();
     }
-
 
     #[test]
     fn test_version_vector() {
