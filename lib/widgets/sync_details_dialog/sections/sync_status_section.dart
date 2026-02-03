@@ -57,13 +57,13 @@ class SyncStatusSection extends StatelessWidget {
   /// 获取状态字符串
   String _getStatusString() {
     switch (status.state) {
-      case api.SyncState.notYetSynced:
+      case api.SyncUiState.notYetSynced:
         return 'idle';
-      case api.SyncState.syncing:
+      case api.SyncUiState.syncing:
         return 'syncing';
-      case api.SyncState.synced:
+      case api.SyncUiState.synced:
         return 'synced';
-      case api.SyncState.failed:
+      case api.SyncUiState.failed:
         return 'failed';
     }
   }
@@ -76,16 +76,16 @@ class SyncStatusSection extends StatelessWidget {
   /// 获取副标题文本
   String _getSubtitleText() {
     switch (status.state) {
-      case api.SyncState.notYetSynced:
+      case api.SyncUiState.notYetSynced:
         return '尚未执行同步操作';
-      case api.SyncState.syncing:
+      case api.SyncUiState.syncing:
         return '正在与其他设备同步数据...';
-      case api.SyncState.synced:
+      case api.SyncUiState.synced:
         final lastSyncTime = status.lastSyncTime != null
             ? DateTime.fromMillisecondsSinceEpoch(status.lastSyncTime!)
             : null;
         return '最后同步: ${SyncDialogFormatters.formatRelativeTime(lastSyncTime)}';
-      case api.SyncState.failed:
+      case api.SyncUiState.failed:
         return status.errorMessage ?? '同步失败，请重试';
     }
   }
@@ -93,13 +93,13 @@ class SyncStatusSection extends StatelessWidget {
   /// 获取背景颜色
   Color _getBackgroundColor() {
     switch (status.state) {
-      case api.SyncState.syncing:
+      case api.SyncUiState.syncing:
         return SyncDialogColor.syncing.withValues(alpha: 0.1);
-      case api.SyncState.synced:
+      case api.SyncUiState.synced:
         return SyncDialogColor.success.withValues(alpha: 0.1);
-      case api.SyncState.failed:
+      case api.SyncUiState.failed:
         return SyncDialogColor.error.withValues(alpha: 0.1);
-      case api.SyncState.notYetSynced:
+      case api.SyncUiState.notYetSynced:
         return Colors.transparent;
     }
   }

@@ -14,7 +14,7 @@ void main() {
   group('SyncDetailsDialog Widget Tests', () {
     // 创建测试用的同步状态
     api.SyncStatus createTestStatus({
-      api.SyncState state = api.SyncState.synced,
+      api.SyncUiState state = api.SyncUiState.synced,
       int? lastSyncTime,
       String? errorMessage,
     }) {
@@ -80,7 +80,7 @@ void main() {
 
       integrationTest('renders synced status', (WidgetTester tester) async {
         final status = createTestStatus(
-          state: api.SyncState.synced,
+          state: api.SyncUiState.synced,
           lastSyncTime: DateTime.now().millisecondsSinceEpoch,
         );
 
@@ -106,7 +106,7 @@ void main() {
       });
 
       integrationTest('renders syncing status', (WidgetTester tester) async {
-        final status = createTestStatus(state: api.SyncState.syncing);
+        final status = createTestStatus(state: api.SyncUiState.syncing);
 
         await tester.pumpWidget(
           MaterialApp(
@@ -131,7 +131,7 @@ void main() {
 
       integrationTest('renders failed status', (WidgetTester tester) async {
         final status = createTestStatus(
-          state: api.SyncState.failed,
+          state: api.SyncUiState.failed,
           errorMessage: '网络连接失败',
         );
 
@@ -390,9 +390,15 @@ void main() {
         await tester.pump(const Duration(milliseconds: 300));
 
         // 验证主对话框有语义标签
+        final dialogSemantics = find.bySemanticsLabel('同步详情对话框');
+        expect(dialogSemantics, findsOneWidget);
         expect(
-          tester.getSemantics(find.text('同步详情').first),
-          matchesSemantics(label: '同步详情对话框', isButton: false),
+          tester.getSemantics(dialogSemantics.first),
+          matchesSemantics(
+            label: '同步详情对话框',
+            scopesRoute: true,
+            namesRoute: true,
+          ),
         );
       });
 
@@ -432,7 +438,7 @@ void main() {
     group('Edge Cases', () {
       integrationTest('handles null lastSyncTime', (WidgetTester tester) async {
         final status = createTestStatus(
-          state: api.SyncState.notYetSynced,
+          state: api.SyncUiState.notYetSynced,
           lastSyncTime: null,
         );
 
@@ -461,7 +467,7 @@ void main() {
         WidgetTester tester,
       ) async {
         final status = createTestStatus(
-          state: api.SyncState.failed,
+          state: api.SyncUiState.failed,
           errorMessage: '',
         );
 

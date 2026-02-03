@@ -75,7 +75,7 @@ class SyncHistoryEvent {
   final PlatformInt64 timestamp;
 
   /// 同步状态
-  final SyncState status;
+  final SyncUiState status;
 
   /// 涉及的设备 ID
   final String deviceId;
@@ -109,23 +109,6 @@ class SyncHistoryEvent {
           deviceName == other.deviceName &&
           poolId == other.poolId &&
           errorMessage == other.errorMessage;
-}
-
-/// 同步状态枚举
-///
-/// 定义同步的 4 种状态
-enum SyncState {
-  /// 尚未同步（应用首次启动，尚未执行过同步操作）
-  notYetSynced,
-
-  /// 正在同步数据
-  syncing,
-
-  /// 同步完成，数据一致
-  synced,
-
-  /// 同步失败
-  failed,
 }
 
 /// 同步统计信息
@@ -175,7 +158,7 @@ class SyncStatistics {
 
 /// 同步状态（用于 Flutter 桥接）
 ///
-/// # flutter_rust_bridge 注解
+/// # `flutter_rust_bridge` 注解
 ///
 /// 这个结构体会被自动转换为 Dart 类
 class SyncStatus {
@@ -189,7 +172,7 @@ class SyncStatus {
   });
 
   /// 当前同步状态
-  final SyncState state;
+  final SyncUiState state;
 
   /// 最后一次同步时间（Unix 时间戳，毫秒）
   final PlatformInt64? lastSyncTime;
@@ -246,4 +229,21 @@ class SyncStatus {
           onlineDevices == other.onlineDevices &&
           syncingDevices == other.syncingDevices &&
           offlineDevices == other.offlineDevices;
+}
+
+/// 同步 UI 状态枚举
+///
+/// 定义同步的 4 种状态
+enum SyncUiState {
+  /// 尚未同步（应用首次启动，尚未执行过同步操作）
+  notYetSynced,
+
+  /// 正在同步数据
+  syncing,
+
+  /// 同步完成，数据一致
+  synced,
+
+  /// 同步失败
+  failed,
 }

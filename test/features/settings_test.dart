@@ -401,14 +401,17 @@ void main() {
           await tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
-                body: Column(
-                  children: [
-                    ElevatedButton(
-                      key: const Key('sync_details_button'),
-                      onPressed: () {},
-                      child: const Text('查看同步详情'),
-                    ),
-                  ],
+                body: Builder(
+                  builder: (context) => Column(
+                    children: [
+                      ElevatedButton(
+                        key: const Key('sync_details_button'),
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed('/sync'),
+                        child: const Text('查看同步详情'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               routes: {
@@ -835,14 +838,19 @@ void main() {
           await tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
-                body: ListView(
-                  children: const [
-                    ListTile(
-                      key: Key('appearance_section'),
-                      title: Text('外观'),
-                      trailing: Icon(Icons.chevron_right),
-                    ),
-                  ],
+                body: Builder(
+                  builder: (context) => ListView(
+                    children: [
+                      ListTile(
+                        key: const Key('appearance_section'),
+                        title: const Text('外观'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.of(context).pushNamed(
+                          '/appearance',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               routes: {

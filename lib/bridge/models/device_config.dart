@@ -40,7 +40,7 @@ class MDnsTimerConfig {
   const MDnsTimerConfig({this.timerEndMs});
 
   /// 计时器结束时间戳（毫秒），None 表示未启用
-  /// skip_serializing: 不持久化到存储（重启后重置）
+  /// `skip_serializing`: 不持久化到存储（重启后重置）
   final PlatformInt64? timerEndMs;
 
   @override

@@ -1,97 +1,87 @@
-# Sync Status Indicator Specification
 # 同步状态指示器规格
 
-**版本**: 1.0.0
-
 **状态**: 活跃
-
-**依赖**: [sync/protocol.md](../../../architecture/sync/service.md)
-
+**依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
 **相关测试**: `test/widgets/sync_status_indicator_test.dart`
 
 ---
 
 ## 概述
 
-
-本规格定义了同步状态指示器 widget，提供关于同步状态的实时视觉反馈。
+本规格定义同步状态指示器组件，提供关于同步状态的实时视觉反馈。
 
 ---
 
 ## 需求：显示实时同步状态
 
-
 系统应提供显示当前同步状态的可视化指示器。
 
 ### 场景：显示已同步状态
 
-- **前置条件**：设备已连接到对等点
-- **操作**：所有本地更改都已与对等点同步
-- **预期结果**：指示器应显示带有成功颜色的"已同步"状态
+- **前置条件**: 设备已连接到对等点
+- **操作**: 所有本地更改都已与对等点同步
+- **预期结果**: 指示器应显示带有成功颜色的"已同步"状态
 
 ### 场景：显示同步中状态
 
-- **前置条件**：设备已连接到对等点
-- **操作**：正在进行同步
-- **预期结果**：指示器应显示带有动画的"同步中"状态
+- **前置条件**: 设备已连接到对等点
+- **操作**: 正在进行同步
+- **预期结果**: 指示器应显示带有动画的"同步中"状态
 
 ### 场景：显示待同步状态
 
-- **前置条件**：设备有本地更改
-- **操作**：存在尚未同步的本地更改
-- **预期结果**：指示器应显示带有警告颜色的"待同步"状态
+- **前置条件**: 设备有本地更改
+- **操作**: 存在尚未同步的本地更改
+- **预期结果**: 指示器应显示带有警告颜色的"待同步"状态
 
 ### 场景：显示错误状态
 
-- **前置条件**：设备尝试了同步
-- **操作**：同步遇到错误
-- **预期结果**：指示器应显示带有错误颜色的"错误"状态
+- **前置条件**: 设备尝试了同步
+- **操作**: 同步遇到错误
+- **预期结果**: 指示器应显示带有错误颜色的"错误"状态
 
 ---
 
 ## 需求：显示同步统计信息
 
-
 系统应显示同步统计信息和指标。
 
 ### 场景：显示已连接设备数量
 
-- **前置条件**：同步状态指示器可见
-- **操作**：显示同步状态
-- **预期结果**：指示器应显示当前连接的对等设备数量
+- **前置条件**: 同步状态指示器可见
+- **操作**: 显示同步状态
+- **预期结果**: 指示器应显示当前连接的对等设备数量
 
 ### 场景：显示上次同步时间
 
-- **前置条件**：至少完成了一次同步
-- **操作**：显示同步状态
-- **预期结果**：指示器应显示上次成功同步的时间戳
+- **前置条件**: 至少完成了一次同步
+- **操作**: 显示同步状态
+- **预期结果**: 指示器应显示上次成功同步的时间戳
 
 ---
 
 ## 需求：交互式状态详情
 
-
 系统应允许用户点击指示器以查看详细的同步信息。
 
 ### 场景：点击打开同步详情
 
-- **前置条件**：同步状态指示器可见
-- **操作**：用户点击同步状态指示器
-- **预期结果**：系统应打开详细的同步信息对话框或屏幕
+- **前置条件**: 同步状态指示器可见
+- **操作**: 用户点击同步状态指示器
+- **预期结果**: 系统应打开详细的同步信息对话框或屏幕
 
 ---
 
 ## 需求：自动更新状态
 
-
 系统应在同步状态更改时自动更新同步状态显示。
 
 ### 场景：同步状态更改时更新状态
 
-- **前置条件**：同步状态指示器可见
-- **操作**：底层同步状态更改
-- **预期结果**：指示器应在 1 秒内更新其可视状态
-- **并且**：在状态之间添加过渡动画
+- **前置条件**: 同步状态指示器可见
+- **操作**: 底层同步状态更改
+- **预期结果**: 指示器应在 1 秒内更新其可视状态
+- **并且**: 在状态之间添加过渡动画
 
 ---
 
@@ -99,51 +89,21 @@
 
 **测试文件**: `test/widgets/sync_status_indicator_test.dart`
 
-- `it_should_show_synced_status()` - Display synced state
+**组件测试**:
 - `it_should_show_synced_status()` - 显示已同步状态
-- `it_should_show_syncing_status_with_animation()` - Display syncing state
 - `it_should_show_syncing_status_with_animation()` - 显示同步中状态
-- `it_should_show_pending_status()` - Display pending state
 - `it_should_show_pending_status()` - 显示待同步状态
-- `it_should_show_error_status()` - Display error state
 - `it_should_show_error_status()` - 显示错误状态
-- `it_should_show_connected_devices_count()` - Show device count
 - `it_should_show_connected_devices_count()` - 显示设备数量
-- `it_should_show_last_sync_time()` - Show last sync time
 - `it_should_show_last_sync_time()` - 显示上次同步时间
-- `it_should_open_details_on_tap()` - Open details on tap
 - `it_should_open_details_on_tap()` - 点击打开详情
-- `it_should_update_within_1_second()` - Update within 1s
 - `it_should_update_within_1_second()` - 1秒内更新
-- `it_should_animate_state_transitions()` - Animate transitions
 - `it_should_animate_state_transitions()` - 状态过渡动画
 
 **验收标准**:
-- [ ] All widget tests pass
 - [ ] 所有 Widget 测试通过
-- [ ] Visual states are clearly distinguishable
 - [ ] 可视状态清晰可辨
-- [ ] Animations are smooth and performant
 - [ ] 动画流畅且性能良好
-- [ ] Status updates respond quickly to state changes
 - [ ] 状态更新快速响应状态变化
-- [ ] Code review approved
 - [ ] 代码审查通过
-- [ ] Documentation updated
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [sync_details_dialog.md](sync_details_dialog.md) - Sync details dialog
-- [sync_details_dialog.md](sync_details_dialog.md) - 同步详情对话框
-- [sync/protocol.md](../../../architecture/sync/service.md) - Sync protocol
-- [sync/protocol.md](../../../architecture/sync/service.md) - 同步协议
-
----
-
-**最后更新**: 2026-01-24
-
-**作者**: CardMind Team

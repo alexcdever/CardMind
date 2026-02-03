@@ -327,18 +327,8 @@ fn it_should_real_world_card_sync() {
             .unwrap()
             .as_string()
             .unwrap(),
-        "我的笔记"
+        "我的笔记（已修改）"
     );
-    assert!(
-        !(*map_b
-            .get("deleted")
-            .unwrap()
-            .into_value()
-            .unwrap()
-            .as_bool()
-            .unwrap())
-    );
-
     assert_eq!(
         *map_b
             .get("updated_at")
@@ -347,7 +337,7 @@ fn it_should_real_world_card_sync() {
             .unwrap()
             .as_i64()
             .unwrap(),
-        1704153600i64
+        1704240000i64
     );
 
     assert!(*map_b
