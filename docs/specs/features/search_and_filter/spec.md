@@ -1,17 +1,12 @@
 # 搜索和过滤功能规格
 
-**版本**: 1.0.0
-
 **状态**: 活跃
-
 **依赖**: [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../domain/card/model.md](../../domain/card/model.md), [../card_management/spec.md](../card_management/spec.md)
-
 **相关测试**: `test/features/search_and_filter_test.dart`
 
 ---
 
 ## 概述
-
 
 本规格定义了搜索和过滤功能，使用户能够通过全文搜索、标签过滤和排序功能快速查找和组织卡片。该功能提供实时搜索结果和高亮匹配，支持多种过滤条件，帮助用户高效浏览大量卡片集合。
 
@@ -25,7 +20,6 @@
 ---
 
 ## 需求：全文搜索
-
 
 用户应能够使用关键词搜索卡片，匹配卡片标题和内容。
 
@@ -133,7 +127,6 @@ structure SearchAndFilter:
 
 ## 需求：搜索匹配高亮
 
-
 系统应在搜索结果中高亮匹配文本，帮助用户识别相关内容。
 
 ### 场景：高亮卡片标题中的匹配
@@ -162,7 +155,6 @@ structure SearchAndFilter:
 ---
 
 ## 需求：标签过滤
-
 
 用户应能够按标签过滤卡片，快速找到特定类别的笔记。
 
@@ -198,7 +190,6 @@ structure SearchAndFilter:
 
 ## 需求：排序选项
 
-
 用户应能够按不同标准排序卡片，以有意义的顺序组织结果。
 
 ### 场景：按创建时间排序
@@ -233,6 +224,7 @@ structure SearchAndFilter:
 
 ## 测试覆盖
 
+**测试文件**: `test/features/search_and_filter_test.dart`
 
 **单元测试**:
 - `test_search_by_title_keyword()` - 按标题关键词搜索
@@ -250,7 +242,7 @@ structure SearchAndFilter:
 - `test_clear_tag_filter()` - 清除标签过滤器
 - `test_combine_search_and_tag_filter()` - 组合搜索和标签过滤
 - `test_sort_by_creation_time()` - 按创建时间排序
-- `test_sort_by_modification_time()` - 按修改时间排序
+- `test_sort_by_modification_time()` - 按最后修改时间排序
 - `test_sort_by_title()` - 按标题排序
 - `test_preserve_sort_preference()` - 保持排序偏好
 
@@ -269,17 +261,3 @@ structure SearchAndFilter:
 - [ ] 搜索响应时间小于200ms
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-
-- [SQLite Cache](../../architecture/storage/sqlite_cache.md) - SQLite缓存
-- [Card Model](../../domain/card/model.md) - 卡片模型
-- [Card Management](../card_management/spec.md) - 卡片管理
-
----
-
-**最后更新**: 2026-01-23
-**作者**: CardMind Team

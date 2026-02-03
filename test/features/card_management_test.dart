@@ -377,7 +377,7 @@ void main() {
             createTestWidget(
               Scaffold(
                 body: Column(
-                  children: const [
+                  children: [
                     TextField(
                       key: Key('title_field'),
                       controller: TextEditingController(
@@ -385,7 +385,7 @@ void main() {
                       ),
                       decoration: InputDecoration(labelText: '标题'),
                     ),
-                    Text('草稿已恢复'),
+                    const Text('草稿已恢复'),
                   ],
                 ),
               ),
@@ -442,16 +442,18 @@ void main() {
             MaterialApp(
               home: Scaffold(
                 body: Column(
-                  children: const [
-                    Text('未保存的更改'),
+                  children: [
+                    const Text('未保存的更改'),
                     AlertDialog(
-                      title: Text('丢弃未保存的更改？'),
+                      title: const Text('丢弃未保存的更改？'),
                       actions: [
                         TextButton(
                           child: Text('取消'),
+                          onPressed: () {},
                         ),
                         TextButton(
                           child: Text('丢弃'),
+                          onPressed: () {},
                         ),
                       ],
                     ),
@@ -459,7 +461,6 @@ void main() {
                 ),
               ),
             ),
-          ),
           );
           await tester.pumpAndSettle();
 
@@ -629,13 +630,19 @@ void main() {
             MaterialApp(
               home: Scaffold(
                 body: Column(
-                  children: const [
-                    Text('Card Title'),
+                  children: [
+                    const Text('Card Title'),
                     AlertDialog(
-                      title: Text('删除此卡片？'),
+                      title: const Text('删除此卡片？'),
                       actions: [
-                        TextButton(child: Text('取消')),
-                        TextButton(child: Text('删除')),
+                        TextButton(
+                          onPressed: () {},
+                          child: Text('取消'),
+                        ),
+                        TextButton(
+                          onPressed: () {},
+                          child: Text('删除'),
+                        ),
                       ],
                     ),
                   ],
@@ -662,13 +669,19 @@ void main() {
             MaterialApp(
               home: Scaffold(
                 body: Column(
-                  children: const [
-                    Text('Card Title'),
+                  children: [
+                    const Text('Card Title'),
                     AlertDialog(
-                      title: Text('删除此卡片？'),
+                      title: const Text('删除此卡片？'),
                       actions: [
-                        TextButton(child: Text('取消')),
-                        TextButton(child: Text('删除')),
+                        TextButton(
+                          onPressed: () {},
+                          child: Text('取消'),
+                        ),
+                        TextButton(
+                          onPressed: () {},
+                          child: Text('删除'),
+                        ),
                       ],
                     ),
                   ],

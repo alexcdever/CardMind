@@ -1,158 +1,146 @@
-# Card List Item Specification (Desktop)
-# 卡片列表项规格（桌面端）
-
-**版本**: 1.0.0
+# 桌面端卡片列表项规格
 
 **状态**: 生效中
-
-**依赖**: [card/model.md](../../domain/card/model.md)
-
+**依赖**: [../../domain/card/model.md](../../domain/card/model.md)
 **相关测试**: `test/widgets/card_list_item_desktop_test.dart`
 
 ---
 
 ## 概述
 
-
-本规格定义了桌面端卡片列表项组件,用于在网格布局中显示卡片摘要。桌面端版本针对鼠标交互进行了优化,具有悬停效果和内联操作。
+本规格定义桌面端卡片列表项组件，用于在网格布局中显示卡片摘要，针对鼠标交互进行优化，提供悬停效果与内联操作。
 
 ---
 
-## 需求:在桌面端网格中显示卡片摘要
-
+## 需求：桌面端卡片摘要显示
 
 系统应为桌面设备提供鼠标优化的卡片列表项组件。
 
-### 场景:在桌面端显示卡片标题和预览
+### 场景：显示卡片标题和预览
 
-- **前置条件**:卡片列表项在桌面端渲染
-- **操作**:显示项
-- **预期结果**:系统应以粗体 20px 字体显示卡片标题
-- **并且**:显示内容预览（前 5 行）
-- **并且**:如果太长则用省略号截断
-- **并且**:使用卡片大小的容器（最大 400px 宽度）
+- **前置条件**: 卡片列表项在桌面端渲染
+- **操作**: 显示项
+- **预期结果**: 系统应以粗体 20px 字体显示卡片标题
+- **并且**: 显示内容预览（前 5 行）
+- **并且**: 如果太长则用省略号截断
+- **并且**: 使用卡片大小的容器（最大 400px 宽度）
 
-### 场景:在桌面端显示卡片元数据
+### 场景：显示卡片元数据
 
-- **前置条件**:卡片列表项在桌面端渲染
-- **操作**:显示项
-- **预期结果**:系统应以相对格式显示最后修改时间戳
-- **并且**:将所有标签显示为芯片
-- **并且**:元数据使用 14px 字体
+- **前置条件**: 卡片列表项在桌面端渲染
+- **操作**: 显示项
+- **预期结果**: 系统应以相对格式显示最后修改时间戳
+- **并且**: 将所有标签显示为芯片
+- **并且**: 元数据使用 14px 字体
 
 ---
 
-## 需求:支持桌面端鼠标交互
-
+## 需求：桌面端鼠标交互
 
 系统应在桌面端使用悬停效果处理鼠标交互。
 
-### 场景:在桌面端点击打开卡片
+### 场景：点击打开卡片
 
-- **前置条件**:用户在桌面端点击卡片列表项
-- **操作**:点击发生
-- **预期结果**:系统应使用卡片数据调用 onClick 回调
-- **并且**:导航到卡片详情视图
+- **前置条件**: 用户在桌面端点击卡片列表项
+- **操作**: 点击发生
+- **预期结果**: 系统应使用卡片数据调用 onClick 回调
+- **并且**: 导航到卡片详情视图
 
-### 场景:在桌面端右键点击显示上下文菜单
+### 场景：右键点击显示上下文菜单
 
-- **前置条件**:用户在桌面端右键点击卡片列表项
-- **操作**:检测到右键点击
-- **预期结果**:系统应调用 onContextMenu 回调
-- **并且**:在光标附近显示上下文菜单
+- **前置条件**: 用户在桌面端右键点击卡片列表项
+- **操作**: 检测到右键点击
+- **预期结果**: 系统应调用 onContextMenu 回调
+- **并且**: 在光标附近显示上下文菜单
 
 ---
 
-## 需求:显示桌面端优化的悬停效果
-
+## 需求：悬停效果
 
 系统应为桌面端的鼠标交互提供清晰的悬停效果。
 
-### 场景:悬停时显示提升
+### 场景：悬停时显示提升
 
-- **前置条件**:用户在桌面端悬停在卡片列表项上
-- **操作**:鼠标进入卡片区域
-- **预期结果**:系统应增加卡片提升并显示阴影
-- **并且**:使用 200ms 流畅过渡
+- **前置条件**: 用户在桌面端悬停在卡片列表项上
+- **操作**: 鼠标进入卡片区域
+- **预期结果**: 系统应增加卡片提升并显示阴影
+- **并且**: 使用 200ms 流畅过渡
 
-### 场景:悬停时显示操作按钮
+### 场景：悬停时显示操作按钮
 
-- **前置条件**:用户在桌面端悬停在卡片列表项上
-- **操作**:鼠标进入卡片区域
-- **预期结果**:系统应显示编辑和删除按钮
-- **并且**:将按钮定位在右上角
-- **并且**:平滑地淡入按钮
+- **前置条件**: 用户在桌面端悬停在卡片列表项上
+- **操作**: 鼠标进入卡片区域
+- **预期结果**: 系统应显示编辑和删除按钮
+- **并且**: 将按钮定位在右上角
+- **并且**: 平滑地淡入按钮
 
-### 场景:鼠标离开时隐藏效果
+### 场景：鼠标离开时隐藏效果
 
-- **前置条件**:桌面端悬停效果已显示
-- **操作**:鼠标离开卡片区域
-- **预期结果**:系统应将提升恢复正常
-- **并且**:淡出操作按钮
-- **并且**:使用流畅过渡
+- **前置条件**: 桌面端悬停效果已显示
+- **操作**: 鼠标离开卡片区域
+- **预期结果**: 系统应将提升恢复正常
+- **并且**: 淡出操作按钮
+- **并且**: 使用流畅过渡
 
 ---
 
-## 需求:在桌面端显示同步状态
-
+## 需求：同步状态显示
 
 系统应在桌面端为每张卡片显示同步状态。
 
-### 场景:在桌面端显示已同步指示器
+### 场景：显示已同步指示器
 
-- **前置条件**:卡片在桌面端已完全同步
-- **操作**:显示项
-- **预期结果**:系统应在角落显示小型同步图标
-- **并且**:使用柔和的颜色以避免分散注意力
+- **前置条件**: 卡片在桌面端已完全同步
+- **操作**: 显示项
+- **预期结果**: 系统应在角落显示小型同步图标
+- **并且**: 使用柔和的颜色以避免分散注意力
 
-### 场景:在桌面端显示待同步指示器
+### 场景：显示待同步指示器
 
-- **前置条件**:卡片在桌面端有未同步的更改
-- **操作**:显示项
-- **预期结果**:系统应显示待同步图标
-- **并且**:使用更突出的颜色以指示需要操作
+- **前置条件**: 卡片在桌面端有未同步的更改
+- **操作**: 显示项
+- **预期结果**: 系统应显示待同步图标
+- **并且**: 使用更突出的颜色以指示需要操作
 
 ---
 
-## 需求:支持键盘导航
-
+## 需求：键盘导航
 
 系统应在桌面端支持卡片列表项的键盘导航。
 
-### 场景:用键盘聚焦卡片
+### 场景：用键盘聚焦卡片
 
-- **前置条件**:用户在桌面端使用键盘导航
-- **操作**:卡片获得焦点
-- **预期结果**:系统应显示焦点指示器
-- **并且**:使用可见的轮廓
+- **前置条件**: 用户在桌面端使用键盘导航
+- **操作**: 卡片获得焦点
+- **预期结果**: 系统应显示焦点指示器
+- **并且**: 使用可见的轮廓
 
-### 场景:按 Enter 打开卡片
+### 场景：按 Enter 打开卡片
 
-- **前置条件**:卡片在桌面端有键盘焦点
-- **操作**:用户按 Enter
-- **预期结果**:系统应打开卡片详情视图
+- **前置条件**: 卡片在桌面端有键盘焦点
+- **操作**: 用户按 Enter
+- **预期结果**: 系统应打开卡片详情视图
 
 ---
 
-## 需求:优化桌面端性能
-
+## 需求：桌面端性能优化
 
 系统应优化桌面设备的卡片列表项渲染。
 
-### 场景:在桌面端使用高效渲染
+### 场景：高效渲染
 
-- **前置条件**:卡片网格在桌面端包含许多项
-- **操作**:滚动网格
-- **预期结果**:系统应保持 60fps 滚动
-- **并且**:对屏幕外项使用延迟加载
-- **并且**:回收列表项组件
+- **前置条件**: 卡片网格在桌面端包含许多项
+- **操作**: 滚动网格
+- **预期结果**: 系统应保持 60fps 滚动
+- **并且**: 对屏幕外项使用延迟加载
+- **并且**: 回收列表项组件
 
-### 场景:悬停效果快速出现
+### 场景：悬停效果快速出现
 
-- **前置条件**:用户在桌面端悬停在卡片上
-- **操作**:鼠标进入
-- **预期结果**:系统应在 50ms 内显示效果
-- **并且**:使用流畅过渡
+- **前置条件**: 用户在桌面端悬停在卡片上
+- **操作**: 鼠标进入
+- **预期结果**: 系统应在 50ms 内显示效果
+- **并且**: 使用流畅过渡
 
 ---
 
@@ -161,65 +149,25 @@
 **测试文件**: `test/widgets/card_list_item_desktop_test.dart`
 
 **组件测试**:
-- `it_should_display_title_desktop()` - Display title on desktop
 - `it_should_display_title_desktop()` - 在桌面端显示标题
-- `it_should_show_content_preview_desktop()` - Show preview on desktop
 - `it_should_show_content_preview_desktop()` - 在桌面端显示预览
-- `it_should_display_metadata_desktop()` - Show metadata on desktop
 - `it_should_display_metadata_desktop()` - 在桌面端显示元数据
-- `it_should_handle_click_desktop()` - Handle click on desktop
 - `it_should_handle_click_desktop()` - 在桌面端处理点击
-- `it_should_handle_right_click()` - Handle right-click
 - `it_should_handle_right_click()` - 处理右键点击
-- `it_should_show_elevation_on_hover()` - Show elevation on hover
 - `it_should_show_elevation_on_hover()` - 悬停时显示提升
-- `it_should_show_action_buttons_on_hover()` - Show action buttons on hover
 - `it_should_show_action_buttons_on_hover()` - 悬停时显示操作按钮
-- `it_should_hide_effects_on_leave()` - Hide effects when mouse leaves
 - `it_should_hide_effects_on_leave()` - 鼠标离开时隐藏效果
-- `it_should_show_synced_indicator_desktop()` - Show synced indicator on desktop
 - `it_should_show_synced_indicator_desktop()` - 在桌面端显示已同步指示器
-- `it_should_show_pending_indicator_desktop()` - Show pending indicator on desktop
 - `it_should_show_pending_indicator_desktop()` - 在桌面端显示待同步指示器
-- `it_should_support_keyboard_focus()` - Support keyboard focus
 - `it_should_support_keyboard_focus()` - 支持键盘焦点
-- `it_should_open_on_enter()` - Open on Enter key
 - `it_should_open_on_enter()` - 按 Enter 打开
-- `it_should_maintain_scroll_performance()` - Maintain scroll performance
 - `it_should_maintain_scroll_performance()` - 保持滚动性能
-- `it_should_show_hover_quickly()` - Show hover effects quickly
 - `it_should_show_hover_quickly()` - 快速显示悬停效果
 
 **验收标准**:
-- [ ] All widget tests pass
 - [ ] 所有组件测试通过
-- [ ] Hover effects are smooth and responsive
 - [ ] 悬停效果流畅且响应灵敏
-- [ ] Keyboard navigation works correctly
 - [ ] 键盘导航正常工作
-- [ ] Scrolling maintains 60fps
 - [ ] 滚动保持 60fps
-- [ ] Code review approved
 - [ ] 代码审查通过
-- [ ] Documentation updated
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [card/model.md](../../domain/card/model.md) - Card domain model
-- [card/model.md](../../domain/card/model.md) - 卡片领域模型
-- [sync_status_indicator.md](../shared/sync_status_indicator.md) - Sync status indicator
-- [sync_status_indicator.md](../shared/sync_status_indicator.md) - 同步状态指示器
-- [home_screen.md](../../screens/desktop/home_screen.md) - Desktop home screen
-- [home_screen.md](../../screens/desktop/home_screen.md) - 桌面端主屏幕
-- [context_menu.md](./context_menu.md) - Desktop context menu
-- [context_menu.md](./context_menu.md) - 桌面端右键菜单
-
----
-
-**最后更新**: 2026-01-24
-
-**作者**: CardMind Team

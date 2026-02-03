@@ -39,8 +39,8 @@ fn it_should_generate_default_device_name() {
 /// Scenario: Verify pool info only contains ID
 fn it_should_not_expose_sensitive_pool_data() {
     // Given: 数据池信息应仅包含 ID
-    let pool_id = "pool-018c8a1b-2c3d-7e4f-8a9b-0c1d2e3f4a5b";
-    let pool_name = "工作笔记";
+    let pool_id = "018c8a1b-2c3d-7e4f-8a9b-0c1d2e3f4a5b";
+    let pool_name = "";
 
     // When: 构建设备信息
     // Note: 实际的 mDNS 广播应通过 mDNS 服务实现
@@ -48,7 +48,7 @@ fn it_should_not_expose_sensitive_pool_data() {
     assert_eq!(pool_id.len(), 36); // UUIDv7 format
 
     // Then: 池信息应仅包含 ID
-    assert!(!pool_name.is_empty());
+    assert!(pool_name.is_empty());
 }
 
 // ==== Requirement: Timestamp Validation ====
@@ -84,13 +84,16 @@ fn it_should_reject_expired_timestamp() {
 #[test]
 /// Scenario: Memory zeroing works correctly
 fn it_should_zero_password_after_processing() {
-    // Given: 密码在处理范围内
-    let password = "sensitive_password";
-    let zeroed = "";
+    use zeroize::Zeroize;
 
-    // When: 密码离开作用域
-    // Note: 在实际实现中，使用 RAII 模式清零
-    assert_eq!(zeroed, password);
+    // Given: 密码在处理范围内
+    let mut password = String::from("sensitive_password");
+
+    // When: 密码离开作用域前执行清零
+    password.zeroize();
+
+    // Then: 内存中的密码应被清零
+    assert!(password.as_bytes().iter().all(|byte| *byte == 0));
 }
 
 // ==== Integration Tests ====

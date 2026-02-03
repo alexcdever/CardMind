@@ -37,6 +37,7 @@ class SyncDetailsDialog extends StatefulWidget {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
+      requestFocus: true,
       builder: (context) => SyncDetailsDialog(initialStatus: status),
     );
   }
@@ -74,8 +75,17 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
   // 定时器
   Timer? _devicePollingTimer;
 
+  bool _handleGlobalKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape) {
+      _closeDialog();
+      return true;
+    }
+    return false;
+  }
+
   // 上一个同步状态（用于检测 syncing → synced 转换）
-  api.SyncState? _previousSyncState;
+  api.SyncUiState? _previousSyncState;
 
   @override
   void initState() {
@@ -125,6 +135,8 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
       SyncDialogPolling.deviceList,
       (_) => _loadDeviceList(),
     );
+
+    HardwareKeyboard.instance.addHandler(_handleGlobalKeyEvent);
   }
 
   @override
@@ -132,6 +144,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
     _animationController.dispose();
     _statusSubscription?.cancel();
     _devicePollingTimer?.cancel();
+    HardwareKeyboard.instance.removeHandler(_handleGlobalKeyEvent);
     super.dispose();
   }
 
@@ -148,8 +161,8 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
           setState(() {
             // 检测 syncing → synced 转换
             final isCompletedSync =
-                _previousSyncState == api.SyncState.syncing &&
-                status.state == api.SyncState.synced;
+                _previousSyncState == api.SyncUiState.syncing &&
+                status.state == api.SyncUiState.synced;
 
             _previousSyncState = _currentStatus.state;
             _currentStatus = status;
@@ -240,7 +253,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
   Future<void> _closeDialog() async {
     // 反向播放动画
     _animationController.duration = SyncDialogDuration.dialogClose;
-    await _animationController.reverse();
+    unawaited(_animationController.reverse());
 
     if (mounted) {
       Navigator.of(context).pop();

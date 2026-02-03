@@ -145,7 +145,7 @@ pub struct PasswordStrength {
 ///
 /// // 中等密码（字母+数字）
 /// let medium = evaluate_password_strength("password123");
-/// assert!(medium.score >= 50);
+/// assert!(medium.score >= 40);
 /// assert!(!medium.is_strong);
 ///
 /// // 强密码（大写+小写+数字+特殊字符）

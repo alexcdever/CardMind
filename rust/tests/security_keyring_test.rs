@@ -192,13 +192,14 @@ fn it_should_support_flutter_deletion() {
 #[test]
 /// Scenario: Memory zeroing works correctly
 fn it_should_zero_password_memory_after_processing() {
+    use zeroize::Zeroize;
+
     // Given: 密码在处理范围内
-    let password = "sensitive_password_to_zero";
+    let mut password = String::from("sensitive_password_to_zero");
 
     // When: 密码处理完成
+    password.zeroize();
+
     // Then: 内存中的密码应被自动清零
-    // Note: 模拟 RAII 清零行为
-    // 在实际实现中，使用 Zeroizing 包装器确保离开作用域时清零
-    let zeroed = password == "";
-    assert!(zeroed || password == "zeroed");
+    assert!(password.as_bytes().iter().all(|byte| *byte == 0));
 }

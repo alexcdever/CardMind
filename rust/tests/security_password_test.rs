@@ -116,7 +116,7 @@ fn it_should_validate_expired_timestamp() {
     // Given: 收到过期的加入请求
     let now = chrono::Utc::now();
     let six_minutes_ago = now.timestamp_millis() - 360000;
-    let expired_timestamp = six_minutes_ago;
+    let expired_timestamp = six_minutes_ago - 1;
 
     // When: 时间戳验证函数被调用
     // Then: 应拒绝过期请求
@@ -135,7 +135,7 @@ fn it_should_zero_password_after_processing() {
     // When: 密码离开作用域
     // Then: 密码应被清零
     // Note: 在测试中模拟清零行为
-    assert!(password, "sensitive_password");
+    assert_eq!(password, "sensitive_password");
     // 实际的清零应由 RAII 模式在离开作用域时自动完成
 }
 

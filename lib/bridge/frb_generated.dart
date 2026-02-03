@@ -2671,18 +2671,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return SyncHistoryEvent(
       timestamp: dco_decode_i_64(arr[0]),
-      status: dco_decode_sync_state(arr[1]),
+      status: dco_decode_sync_ui_state(arr[1]),
       deviceId: dco_decode_String(arr[2]),
       deviceName: dco_decode_String(arr[3]),
       poolId: dco_decode_String(arr[4]),
       errorMessage: dco_decode_opt_String(arr[5]),
     );
-  }
-
-  @protected
-  SyncState dco_decode_sync_state(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return SyncState.values[raw as int];
   }
 
   @protected
@@ -2707,13 +2701,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 6)
       throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return SyncStatus(
-      state: dco_decode_sync_state(arr[0]),
+      state: dco_decode_sync_ui_state(arr[0]),
       lastSyncTime: dco_decode_opt_box_autoadd_i_64(arr[1]),
       errorMessage: dco_decode_opt_String(arr[2]),
       onlineDevices: dco_decode_i_32(arr[3]),
       syncingDevices: dco_decode_i_32(arr[4]),
       offlineDevices: dco_decode_i_32(arr[5]),
     );
+  }
+
+  @protected
+  SyncUiState dco_decode_sync_ui_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SyncUiState.values[raw as int];
   }
 
   @protected
@@ -3042,7 +3042,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SyncHistoryEvent sse_decode_sync_history_event(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_timestamp = sse_decode_i_64(deserializer);
-    var var_status = sse_decode_sync_state(deserializer);
+    var var_status = sse_decode_sync_ui_state(deserializer);
     var var_deviceId = sse_decode_String(deserializer);
     var var_deviceName = sse_decode_String(deserializer);
     var var_poolId = sse_decode_String(deserializer);
@@ -3055,13 +3055,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       poolId: var_poolId,
       errorMessage: var_errorMessage,
     );
-  }
-
-  @protected
-  SyncState sse_decode_sync_state(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_i_32(deserializer);
-    return SyncState.values[inner];
   }
 
   @protected
@@ -3084,7 +3077,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   SyncStatus sse_decode_sync_status(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_state = sse_decode_sync_state(deserializer);
+    var var_state = sse_decode_sync_ui_state(deserializer);
     var var_lastSyncTime = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_errorMessage = sse_decode_opt_String(deserializer);
     var var_onlineDevices = sse_decode_i_32(deserializer);
@@ -3098,6 +3091,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       syncingDevices: var_syncingDevices,
       offlineDevices: var_offlineDevices,
     );
+  }
+
+  @protected
+  SyncUiState sse_decode_sync_ui_state(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return SyncUiState.values[inner];
   }
 
   @protected
@@ -3388,17 +3388,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self.timestamp, serializer);
-    sse_encode_sync_state(self.status, serializer);
+    sse_encode_sync_ui_state(self.status, serializer);
     sse_encode_String(self.deviceId, serializer);
     sse_encode_String(self.deviceName, serializer);
     sse_encode_String(self.poolId, serializer);
     sse_encode_opt_String(self.errorMessage, serializer);
-  }
-
-  @protected
-  void sse_encode_sync_state(SyncState self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -3417,12 +3411,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_sync_status(SyncStatus self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_sync_state(self.state, serializer);
+    sse_encode_sync_ui_state(self.state, serializer);
     sse_encode_opt_box_autoadd_i_64(self.lastSyncTime, serializer);
     sse_encode_opt_String(self.errorMessage, serializer);
     sse_encode_i_32(self.onlineDevices, serializer);
     sse_encode_i_32(self.syncingDevices, serializer);
     sse_encode_i_32(self.offlineDevices, serializer);
+  }
+
+  @protected
+  void sse_encode_sync_ui_state(SyncUiState self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

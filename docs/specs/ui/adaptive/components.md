@@ -1,6 +1,5 @@
 # 自适应组件规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [layouts.md](layouts.md), [platform_detection.md](platform_detection.md)
 **相关测试**: `test/adaptive/components_test.dart`
@@ -9,18 +8,33 @@
 
 ## 概述
 
-本规格定义了自适应 UI 组件,根据平台和屏幕尺寸自动调整其外观和行为。
+本规格定义自适应 UI 组件，根据平台和屏幕尺寸自动调整外观与行为，保持一致的用户体验。
 
 **技术栈**:
-- **Flutter** 3.x - UI 框架
-- **Material Design** 3 - 设计系统
-- **Cupertino** - iOS 风格组件
+- Flutter 3.x - UI 框架
+- Material Design 3 - 设计系统
+- Cupertino - iOS 风格组件
 
 **核心原则**:
 - 平台自适应
 - 触摸友好设计
 - 响应式布局
 - 一致的用户体验
+
+**实现策略**:
+- 策略模式: 根据平台选择组件实现
+- 工厂模式: 创建平台特定组件
+- 适配器模式: 统一不同平台接口
+
+**触摸目标尺寸**:
+- 移动端: 最小 48dp × 48dp
+- 桌面端: 最小 36dp × 36dp
+- 平板电脑: 最小 44dp × 44dp
+
+**间距规范**:
+- 移动端: 紧凑间距(8dp、16dp)
+- 桌面端: 舒适间距(12dp、24dp)
+- 平板电脑: 中等间距(10dp、20dp)
 
 ---
 
@@ -535,30 +549,6 @@ void showDesktopMenu(BuildContext context, Offset position, List<MenuItem> items
 
 ---
 
-## 实现细节
-
-**技术栈**:
-- **Flutter** 3.x - UI 框架
-- **Material Design** 3 - 设计系统
-- **Cupertino** - iOS 风格组件
-
-**设计模式**:
-- **策略模式**: 根据平台选择组件实现
-- **工厂模式**: 创建平台特定组件
-- **适配器模式**: 统一不同平台的接口
-
-**触摸目标尺寸**:
-- **移动端**: 最小 48dp × 48dp
-- **桌面端**: 最小 36dp × 36dp
-- **平板电脑**: 最小 44dp × 44dp
-
-**间距规范**:
-- **移动端**: 紧凑间距（8dp、16dp）
-- **桌面端**: 舒适间距（12dp、24dp）
-- **平板电脑**: 中等间距（10dp、20dp）
-
----
-
 ## 测试覆盖
 
 **测试文件**: `test/adaptive/components_test.dart`
@@ -584,17 +574,3 @@ void showDesktopMenu(BuildContext context, Offset position, List<MenuItem> items
 - [x] 桌面端悬停状态正常工作
 - [x] 移动端手势正常工作
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**相关规格**:
-- [layouts.md](layouts.md) - 自适应布局系统
-- [platform_detection.md](platform_detection.md) - 平台检测
-- [../components/mobile/gestures.md](../components/mobile/gestures.md) - 移动端手势
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

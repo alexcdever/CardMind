@@ -1,6 +1,7 @@
 import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:cardmind/bridge/models/card.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/pool_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart' hide Card;
@@ -8,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import '../helpers/mock_card_service.dart';
+import '../helpers/mock_pool_provider.dart';
 
 void main() {
   group('HomeScreen Adaptive UI', () {
@@ -25,8 +27,13 @@ void main() {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -43,8 +50,13 @@ void main() {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -65,8 +77,13 @@ void main() {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -90,8 +107,13 @@ void main() {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -108,8 +130,13 @@ void main() {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -126,8 +153,13 @@ void main() {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -145,8 +177,13 @@ void main() {
       // Given: Home screen with no cards
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -164,8 +201,13 @@ void main() {
       // Given: Home screen with no cards
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -181,8 +223,13 @@ void main() {
       // Given: Home screen
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<CardProvider>.value(
-            value: cardProvider,
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
             child: const HomeScreen(),
           ),
         ),
@@ -209,11 +256,16 @@ void main() {
         // When: Home screen loads
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -237,11 +289,16 @@ void main() {
         // When: Home screen loads
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -264,11 +321,16 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -292,11 +354,16 @@ void main() {
         // When: Home screen loads
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -316,11 +383,16 @@ void main() {
         // When: Home screen loads
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -339,11 +411,16 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -368,11 +445,16 @@ void main() {
         // When: Home screen loads
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -393,11 +475,16 @@ void main() {
         // When: Home screen loads
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -428,11 +515,16 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -462,11 +554,16 @@ void main() {
           // When: Home screen loads
           await tester.pumpWidget(
             MaterialApp(
-              home: ChangeNotifierProvider<CardProvider>.value(
-                value: cardProvider,
-                child: const HomeScreen(),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
               ),
-            ),
+            ],
+            child: const HomeScreen(),
+          ),
+        ),
           );
           await tester.pumpAndSettle();
 
@@ -489,11 +586,16 @@ void main() {
         // Given: Empty card list
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -508,11 +610,16 @@ void main() {
         // Given: Home screen
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
@@ -527,11 +634,16 @@ void main() {
         // Given: Home screen with interactive elements
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider<CardProvider>.value(
-              value: cardProvider,
-              child: const HomeScreen(),
-            ),
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<CardProvider>.value(value: cardProvider),
+              ChangeNotifierProvider<PoolProvider>(
+                create: (_) => MockPoolProvider(isJoined: true),
+              ),
+            ],
+            child: const HomeScreen(),
           ),
+        ),
         );
         await tester.pumpAndSettle();
 
