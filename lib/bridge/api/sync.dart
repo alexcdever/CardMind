@@ -233,7 +233,7 @@ class SyncStatus {
 
 /// 同步 UI 状态枚举
 ///
-/// 定义同步的 4 种状态
+/// 定义同步的 4 种状态（用于界面展示）
 enum SyncUiState {
   /// 尚未同步（应用首次启动，尚未执行过同步操作）
   notYetSynced,
