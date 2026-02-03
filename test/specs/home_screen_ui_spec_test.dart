@@ -1,7 +1,9 @@
 import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/pool_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
+import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:cardmind/widgets/mobile_nav.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import '../helpers/mock_card_service.dart';
+import '../helpers/mock_pool_provider.dart';
 
 /// Home Screen UI Specification Tests
 ///
@@ -36,8 +39,13 @@ void main() {
         ..loadCards(); // Load cards immediately
 
       return MaterialApp(
-        home: ChangeNotifierProvider.value(
-          value: provider,
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: provider),
+            ChangeNotifierProvider<PoolProvider>(
+              create: (_) => MockPoolProvider(isJoined: true),
+            ),
+          ],
           child: HomeScreen(
             syncStatusStream:
                 syncStatusStream ?? Stream.value(SyncStatus.notYetSynced()),
@@ -349,9 +357,9 @@ void main() {
         await tester.tap(find.text('创建第一条笔记'));
         await tester.pumpAndSettle();
 
-        // Then: 在移动端打开编辑器（FAB 隐藏）
+        // Then: 在移动端打开编辑器
         // 注意：在移动端，点击创建按钮不会立即创建卡片，而是打开编辑器
-        expect(find.byType(AdaptiveFab), findsNothing);
+        expect(find.byType(NoteEditorFullscreen), findsOneWidget);
       });
 
       testWidgets('it_should_display_no_results_message_when_search_empty', (
@@ -458,9 +466,9 @@ void main() {
         await tester.tap(find.byType(AdaptiveFab));
         await tester.pumpAndSettle();
 
-        // Then: 在移动端打开编辑器（FAB 隐藏）
+        // Then: 在移动端打开编辑器
         // 注意：在移动端，点击 FAB 不会立即显示新卡片，而是打开编辑器
-        expect(find.byType(AdaptiveFab), findsNothing);
+        expect(find.byType(NoteEditorFullscreen), findsOneWidget);
       });
     });
 

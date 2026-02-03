@@ -1,10 +1,12 @@
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/pool_provider.dart';
 import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'mock_card_service.dart';
+import 'mock_pool_provider.dart';
 
 /// Test App Wrapper
 ///
@@ -30,6 +32,9 @@ class TestApp extends StatelessWidget {
               CardProvider(cardService: cardService ?? MockCardService()),
         ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider<PoolProvider>(
+          create: (_) => MockPoolProvider(isJoined: true),
+        ),
       ],
       child: MaterialApp(
         title: 'CardMind Test',
@@ -79,6 +84,9 @@ Widget createTestWidgetWithProviders({
             CardProvider(cardService: cardService ?? MockCardService()),
       ),
       ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ChangeNotifierProvider<PoolProvider>(
+        create: (_) => MockPoolProvider(isJoined: true),
+      ),
     ],
     child: MaterialApp(home: child),
   );

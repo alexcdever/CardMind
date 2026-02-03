@@ -38,11 +38,11 @@ fn get_sync_service() -> Result<Arc<Mutex<P2PSyncService>>> {
     })
 }
 
-/// 同步状态枚举
+/// 同步 UI 状态枚举
 ///
 /// 定义同步的 4 种状态
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SyncState {
+pub enum SyncUiState {
     /// 尚未同步（应用首次启动，尚未执行过同步操作）
     NotYetSynced,
     /// 正在同步数据
@@ -61,7 +61,7 @@ pub enum SyncState {
 #[derive(Debug, Clone)]
 pub struct SyncStatus {
     /// 当前同步状态
-    pub state: SyncState,
+    pub state: SyncUiState,
 
     /// 最后一次同步时间（Unix 时间戳，毫秒）
     pub last_sync_time: Option<i64>,
@@ -84,13 +84,13 @@ impl From<P2PSyncStatus> for SyncStatus {
     fn from(status: P2PSyncStatus) -> Self {
         // 根据设备数量推断状态
         let state = if status.online_devices == 0 && status.syncing_devices == 0 {
-            SyncState::NotYetSynced
+            SyncUiState::NotYetSynced
         } else if status.syncing_devices > 0 {
-            SyncState::Syncing
+            SyncUiState::Syncing
         } else if status.online_devices > 0 {
-            SyncState::Synced
+            SyncUiState::Synced
         } else {
-            SyncState::NotYetSynced
+            SyncUiState::NotYetSynced
         };
 
         Self {
@@ -109,7 +109,7 @@ impl SyncStatus {
     #[must_use]
     pub const fn not_yet_synced() -> Self {
         Self {
-            state: SyncState::NotYetSynced,
+            state: SyncUiState::NotYetSynced,
             last_sync_time: None,
             error_message: None,
             online_devices: 0,
@@ -122,7 +122,7 @@ impl SyncStatus {
     #[must_use]
     pub const fn syncing() -> Self {
         Self {
-            state: SyncState::Syncing,
+            state: SyncUiState::Syncing,
             last_sync_time: None,
             error_message: None,
             online_devices: 1,
@@ -135,7 +135,7 @@ impl SyncStatus {
     #[must_use]
     pub const fn synced(last_sync_time: i64) -> Self {
         Self {
-            state: SyncState::Synced,
+            state: SyncUiState::Synced,
             last_sync_time: Some(last_sync_time),
             error_message: None,
             online_devices: 1,
@@ -149,7 +149,7 @@ impl SyncStatus {
     #[allow(clippy::missing_const_for_fn)]
     pub fn failed(error_message: String) -> Self {
         Self {
-            state: SyncState::Failed,
+            state: SyncUiState::Failed,
             last_sync_time: None,
             error_message: Some(error_message),
             online_devices: 0,
@@ -481,7 +481,7 @@ pub struct SyncHistoryEvent {
     pub timestamp: i64,
 
     /// 同步状态
-    pub status: SyncState,
+    pub status: SyncUiState,
 
     /// 涉及的设备 ID
     pub device_id: String,
@@ -649,39 +649,39 @@ mod tests {
         assert_eq!(status.online_devices, 3);
         assert_eq!(status.syncing_devices, 1);
         assert_eq!(status.offline_devices, 2);
-        assert_eq!(status.state, SyncState::Syncing);
+        assert_eq!(status.state, SyncUiState::Syncing);
     }
 
     #[test]
     fn test_sync_status_factory_methods() {
         // Test notYetSynced
         let not_yet_synced = SyncStatus::not_yet_synced();
-        assert_eq!(not_yet_synced.state, SyncState::NotYetSynced);
+        assert_eq!(not_yet_synced.state, SyncUiState::NotYetSynced);
         assert!(not_yet_synced.last_sync_time.is_none());
         assert!(not_yet_synced.error_message.is_none());
 
         // Test syncing
         let syncing = SyncStatus::syncing();
-        assert_eq!(syncing.state, SyncState::Syncing);
+        assert_eq!(syncing.state, SyncUiState::Syncing);
 
         // Test synced
         let now = 1_234_567_890;
         let synced = SyncStatus::synced(now);
-        assert_eq!(synced.state, SyncState::Synced);
+        assert_eq!(synced.state, SyncUiState::Synced);
         assert_eq!(synced.last_sync_time, Some(now));
 
         // Test failed
         let failed = SyncStatus::failed("Network error".to_string());
-        assert_eq!(failed.state, SyncState::Failed);
+        assert_eq!(failed.state, SyncUiState::Failed);
         assert_eq!(failed.error_message, Some("Network error".to_string()));
     }
 
     #[test]
     fn test_sync_state_equality() {
-        assert_eq!(SyncState::NotYetSynced, SyncState::NotYetSynced);
-        assert_ne!(SyncState::NotYetSynced, SyncState::Syncing);
-        assert_ne!(SyncState::Syncing, SyncState::Synced);
-        assert_ne!(SyncState::Synced, SyncState::Failed);
+        assert_eq!(SyncUiState::NotYetSynced, SyncUiState::NotYetSynced);
+        assert_ne!(SyncUiState::NotYetSynced, SyncUiState::Syncing);
+        assert_ne!(SyncUiState::Syncing, SyncUiState::Synced);
+        assert_ne!(SyncUiState::Synced, SyncUiState::Failed);
     }
 
     #[tokio::test]

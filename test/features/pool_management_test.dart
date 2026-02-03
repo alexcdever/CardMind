@@ -604,12 +604,18 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: Column(
-                children: const [
+                children: [
                   AlertDialog(
-                    title: Text('离开池？所有本地数据将被删除。'),
+                    title: const Text('离开池？所有本地数据将被删除。'),
                     actions: [
-                      TextButton(child: Text('取消')),
-                      TextButton(child: Text('离开')),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text('取消'),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text('离开'),
+                      ),
                     ],
                   ),
                 ],
@@ -637,15 +643,21 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: Column(
-                children: const [
+                children: [
                   AlertDialog(
-                    title: Text('离开池？所有本地数据将被删除。'),
+                    title: const Text('离开池？所有本地数据将被删除。'),
                     actions: [
-                      TextButton(child: Text('取消')),
-                      TextButton(child: Text('离开')),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text('取消'),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text('离开'),
+                      ),
                     ],
                   ),
-                  Text('所有数据保持完整'),
+                  const Text('所有数据保持完整'),
                 ],
               ),
             ),

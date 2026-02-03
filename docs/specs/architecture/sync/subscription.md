@@ -1,6 +1,5 @@
 # Loro 订阅架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md), [../storage/sqlite_cache.md](../storage/sqlite_cache.md)
 **相关测试**: `rust/tests/subscription_test.rs`
@@ -571,7 +570,7 @@ function batch_update_sqlite(cards, pools):
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档库
@@ -593,6 +592,16 @@ function batch_update_sqlite(cards, pools):
 - **订阅管理器**: ~1KB per subscription
 - **批处理缓冲区**: ~10KB
 - **重试队列**: ~1KB per task
+
+---
+
+## 相关文档
+
+**架构规格**:
+- [../storage/dual_layer.md](../storage/dual_layer.md) - 双层架构
+- [../storage/loro_integration.md](../storage/loro_integration.md) - Loro 集成
+- [../storage/sqlite_cache.md](../storage/sqlite_cache.md) - SQLite 缓存
+- [./service.md](./service.md) - P2P 同步服务
 
 ---
 
@@ -625,18 +634,3 @@ function batch_update_sqlite(cards, pools):
 - [x] 重试机制工作正常
 - [x] 批处理提高性能
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**架构规格**:
-- [../storage/dual_layer.md](../storage/dual_layer.md) - 双层架构
-- [../storage/loro_integration.md](../storage/loro_integration.md) - Loro 集成
-- [../storage/sqlite_cache.md](../storage/sqlite_cache.md) - SQLite 缓存
-- [./service.md](./service.md) - P2P 同步服务
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

@@ -117,13 +117,13 @@ class _SyncHistoryItemState extends State<SyncHistoryItem> {
   /// 获取状态图标
   IconData _getStatusIcon() {
     switch (widget.event.status) {
-      case api.SyncState.syncing:
+      case api.SyncUiState.syncing:
         return Icons.sync;
-      case api.SyncState.synced:
+      case api.SyncUiState.synced:
         return Icons.check_circle;
-      case api.SyncState.failed:
+      case api.SyncUiState.failed:
         return Icons.error;
-      case api.SyncState.notYetSynced:
+      case api.SyncUiState.notYetSynced:
         return Icons.cloud_off;
     }
   }
@@ -131,13 +131,13 @@ class _SyncHistoryItemState extends State<SyncHistoryItem> {
   /// 获取状态颜色
   Color _getStatusColor() {
     switch (widget.event.status) {
-      case api.SyncState.syncing:
+      case api.SyncUiState.syncing:
         return SyncDialogColor.syncing;
-      case api.SyncState.synced:
+      case api.SyncUiState.synced:
         return SyncDialogColor.success;
-      case api.SyncState.failed:
+      case api.SyncUiState.failed:
         return SyncDialogColor.error;
-      case api.SyncState.notYetSynced:
+      case api.SyncUiState.notYetSynced:
         return SyncDialogColor.textSecondary;
     }
   }

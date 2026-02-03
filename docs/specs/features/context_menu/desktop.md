@@ -1,6 +1,5 @@
 # 桌面端上下文菜单规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `flutter/test/features/context_menu/desktop_context_menu_test.dart`
@@ -9,11 +8,12 @@
 
 ## 概述
 
-本规格定义桌面端右键上下文菜单的交互规范，确保：
+本规格定义桌面端右键上下文菜单的交互规范，覆盖菜单显示、操作项配置、交互行为与平台样式。
 
+**核心目标**:
 - 符合桌面应用程序惯例
-- 提供对常用操作的快速访问
-- 清晰的菜单层次结构
+- 提供常用操作的快速访问
+- 菜单结构清晰可用
 
 **适用平台**:
 - macOS
@@ -284,6 +284,15 @@ structure MenuStyle:
 
 ---
 
+## 相关文档
+
+**相关规格**:
+- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
+- [../card_list/desktop.md](../card_list/desktop.md) - 桌面端卡片列表
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `flutter/test/features/context_menu/desktop_context_menu_test.dart`
@@ -313,20 +322,3 @@ structure MenuStyle:
 - [ ] 平台样式符合规范
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
-- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
-- [../card_list/desktop.md](../card_list/desktop.md) - 桌面端卡片列表
-
-**架构决策记录**:
-- 无
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

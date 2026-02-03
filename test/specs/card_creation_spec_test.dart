@@ -1,5 +1,6 @@
 import 'package:cardmind/providers/card_editor_state.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/pool_provider.dart';
 import 'package:cardmind/screens/card_editor_screen.dart';
 import 'package:cardmind/screens/home_screen.dart';
 import 'package:cardmind/services/mock_card_api.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import '../helpers/mock_card_service.dart';
+import '../helpers/mock_pool_provider.dart';
 
 /// Card Creation Interaction Specification Tests
 ///
@@ -54,8 +56,15 @@ void main() {
         // Given: 用户在主页
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider(
-              create: (_) => CardProvider(cardService: mockCardService),
+            home: MultiProvider(
+              providers: [
+                ChangeNotifierProvider(
+                  create: (_) => CardProvider(cardService: mockCardService),
+                ),
+                ChangeNotifierProvider<PoolProvider>(
+                  create: (_) => MockPoolProvider(isJoined: true),
+                ),
+              ],
               child: const HomeScreen(),
             ),
           ),
@@ -74,8 +83,15 @@ void main() {
         // Given: 用户在主页，FAB 按钮可见
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider(
-              create: (_) => CardProvider(cardService: mockCardService),
+            home: MultiProvider(
+              providers: [
+                ChangeNotifierProvider(
+                  create: (_) => CardProvider(cardService: mockCardService),
+                ),
+                ChangeNotifierProvider<PoolProvider>(
+                  create: (_) => MockPoolProvider(isJoined: true),
+                ),
+              ],
               child: const HomeScreen(),
             ),
           ),
@@ -101,8 +117,15 @@ void main() {
         // When: 主页加载
         await tester.pumpWidget(
           MaterialApp(
-            home: ChangeNotifierProvider(
-              create: (_) => CardProvider(cardService: mockCardService),
+            home: MultiProvider(
+              providers: [
+                ChangeNotifierProvider(
+                  create: (_) => CardProvider(cardService: mockCardService),
+                ),
+                ChangeNotifierProvider<PoolProvider>(
+                  create: (_) => MockPoolProvider(isJoined: true),
+                ),
+              ],
               child: const HomeScreen(),
             ),
           ),

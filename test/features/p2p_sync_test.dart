@@ -43,7 +43,7 @@ void main() {
               ),
             ),
           );
-          await tester.pumpAndSettle();
+          await tester.pump();
 
           // When: 用户查看同步状态指示器
           // Then: 系统应显示带有成功指示的"已同步"状态
@@ -71,7 +71,7 @@ void main() {
               ),
             ),
           );
-          await tester.pumpAndSettle();
+          await tester.pump();
 
           // When: 用户查看同步状态指示器
           // Then: 系统应显示带有动画指示的"同步中"状态
@@ -98,7 +98,7 @@ void main() {
               ),
             ),
           );
-          await tester.pumpAndSettle();
+          await tester.pump();
 
           // When: 用户查看同步状态指示器
           // Then: 系统应显示带有警告指示的"待同步"状态
@@ -127,7 +127,7 @@ void main() {
               ),
             ),
           );
-          await tester.pumpAndSettle();
+          await tester.pump();
 
           // When: 用户查看同步状态指示器
           // Then: 系统应显示带有错误指示的"错误"状态
@@ -366,7 +366,7 @@ void main() {
 
           // When: 用户点击"立即同步"按钮
           await tester.tap(find.byKey(const Key('sync_now_button')));
-          await tester.pumpAndSettle();
+          await tester.pump();
 
           // Then: 系统应立即尝试与可用设备同步
           // AND: 显示同步进度指示器
@@ -502,7 +502,7 @@ void main() {
 
           // When: 用户点击错误详情中的"重试"按钮
           await tester.tap(find.byKey(const Key('retry_button')));
-          await tester.pumpAndSettle();
+          await tester.pump();
 
           // Then: 系统应尝试重新启动同步
           // AND: 清除之前的错误状态
@@ -785,10 +785,13 @@ void main() {
               home: Scaffold(
                 body: Column(
                   children: [
-                    ElevatedButton(
-                      key: const Key('sync_screen_button'),
-                      onPressed: () {},
-                      child: const Text('查看同步详情'),
+                    Builder(
+                      builder: (context) => ElevatedButton(
+                        key: const Key('sync_screen_button'),
+                        onPressed: () =>
+                            Navigator.of(context).pushNamed('/sync'),
+                        child: const Text('查看同步详情'),
+                      ),
                     ),
                   ],
                 ),
@@ -804,7 +807,6 @@ void main() {
                         ],
                       ),
                     ),
-                  ),
               },
             ),
           );
@@ -919,9 +921,12 @@ void main() {
                       subtitle: Text('phone'),
                       trailing: Text('在线'),
                     ),
-                    SnackBar(
-                      content: Text('发现新设备: MacBook Pro'),
+                    ListTile(
+                      title: Text('MacBook Pro'),
+                      subtitle: Text('laptop'),
+                      trailing: Text('在线'),
                     ),
+                    Text('发现新设备: MacBook Pro'),
                   ],
                 ),
               ),

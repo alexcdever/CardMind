@@ -1,6 +1,5 @@
 # bcrypt 密码管理架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md)
 **相关测试**: `rust/tests/security/password_test.rs`
@@ -18,7 +17,6 @@
 ---
 
 ## 需求：密码哈希
-
 
 系统应使用 bcrypt 算法对数据池密码进行哈希，工作因子为 12，并自动生成盐值。
 
@@ -47,7 +45,6 @@ function hash_password(password):
 
 ## 需求：密码验证
 
-
 系统应验证用户输入的密码与存储的哈希值是否匹配，不暴露具体错误信息以防止时序攻击。
 
 ### 场景：加入数据池时验证密码
@@ -74,7 +71,6 @@ function verify_password(password, hash):
 ---
 
 ## 需求：密码强度验证
-
 
 系统应验证密码强度，要求最少 8 位字符，并根据字符类型评估强度等级。
 
@@ -118,7 +114,6 @@ function validate_strength(password):
 ---
 
 ## 需求：时间戳验证
-
 
 系统应验证加入请求的时间戳，防止重放攻击，有效期为 5 分钟，容忍 ±30 秒时钟偏差。
 
@@ -168,7 +163,6 @@ structure JoinRequest:
 
 ## 需求：内存安全
 
-
 系统应在密码离开作用域时自动清零内存，防止敏感数据泄露。
 
 ### 场景：密码处理完成后清零内存
@@ -190,6 +184,17 @@ structure ZeroizingString:
     on_drop():
         zero_memory(data)
 ```
+
+---
+
+## 相关文档
+
+**相关规格**:
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 数据池领域模型
+- [../storage/pool_store.md](../storage/pool_store.md) - 数据池存储实现
+
+**架构决策记录**:
+- [../../../docs/adr/0001-single-pool-constraint.md](../../../docs/adr/0001-single-pool-constraint.md) - 单池约束
 
 ---
 
@@ -220,19 +225,3 @@ structure ZeroizingString:
 - [x] 时间戳验证防止重放攻击
 - [x] 代码审查通过
 - [x] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 数据池领域模型
-- [../storage/pool_store.md](../storage/pool_store.md) - 数据池存储实现
-
-**架构决策记录**:
-- [../../../docs/adr/0001-single-pool-constraint.md](../../../docs/adr/0001-single-pool-constraint.md) - 单池约束
-
----
-
-**最后更新**: 2026-01-23
-**作者**: CardMind Team

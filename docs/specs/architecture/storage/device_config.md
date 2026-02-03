@@ -1,6 +1,5 @@
 # DeviceConfig 存储架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md)
 **相关测试**: `rust/tests/device_config_test.rs`
@@ -28,6 +27,13 @@
 
 系统应提供包含唯一设备 ID、设备名称和可选池 ID 的设备配置结构。
 该结构应仅保留单一的 `pool_id`，并且不应包含 `joined_pools`、`resident_pools` 或 `last_selected_pool` 等旧字段。
+
+### 场景：定义设备配置结构
+
+- **前置条件**: 系统需要持久化设备身份信息
+- **操作**: 定义 DeviceConfig 数据结构
+- **预期结果**: 包含 device_id、device_name、pool_id、updated_at
+- **并且**: pool_id 为可选单值
 
 **数据结构**:
 
@@ -386,6 +392,13 @@ function set_device_name(new_name):
 
 系统应以 JSON 格式将设备配置持久化到 ~/.cardmind/config/device_config.json。
 
+### 场景：持久化设备配置文件
+
+- **前置条件**: 配置发生变更
+- **操作**: 保存配置到磁盘
+- **预期结果**: 配置文件应按 JSON 格式写入
+- **并且**: 写入应使用原子替换
+
 **文件路径**: `~/.cardmind/config/device_config.json`
 
 **格式**:
@@ -613,7 +626,7 @@ function sync_pool_data(pool_id, peer_id):
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **serde_json** = "1.0" - JSON 序列化/反序列化
@@ -635,6 +648,22 @@ function sync_pool_data(pool_id, peer_id):
 - **配置损坏**: 自动备份并重新创建
 - **磁盘满**: 返回明确错误，不破坏现有配置
 - **权限问题**: 提示用户检查文件权限
+
+---
+
+## 相关文档
+
+**领域规格**:
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+
+**相关架构规格**:
+- [./card_store.md](./card_store.md) - CardStore 实现
+- [./pool_store.md](./pool_store.md) - PoolStore 实现
+- [../security/keyring.md](../security/keyring.md) - Keyring 密码存储
+
+**架构决策记录**:
+- ADR-0001: 单池约束 - 每设备单池设计决策
+- ADR-0002: 双层架构 - Loro + SQLite 架构
 
 ---
 
@@ -677,24 +706,3 @@ function sync_pool_data(pool_id, peer_id):
 - [x] 配置持久化可靠
 - [x] 代码审查通过
 - [x] 文档已更新
-
----
-
-## 相关文档
-
-**领域规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
-
-**相关架构规格**:
-- [./card_store.md](./card_store.md) - CardStore 实现
-- [./pool_store.md](./pool_store.md) - PoolStore 实现
-- [../security/keyring.md](../security/keyring.md) - Keyring 密码存储
-
-**架构决策记录**:
-- ADR-0001: 单池约束 - 每设备单池设计决策
-- ADR-0002: 双层架构 - Loro + SQLite 架构
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

@@ -1,6 +1,5 @@
 # 卡片领域模型规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [types.md](types.md)
 **相关测试**: `rust/src/models/card.rs` (tests module)
@@ -9,7 +8,7 @@
 
 ## 概述
 
-本规格定义了 Card 领域实体,代表 CardMind 系统中的单个笔记卡片。每张卡片包含标题、Markdown 内容、元数据,并支持软删除。
+本规格定义了 Card 领域实体，代表 CardMind 系统中的单个笔记卡片。每张卡片包含标题、Markdown 内容、元数据，并支持软删除。
 
 **技术栈**:
 - **uuid** = "1.6" - UUID v7 生成
@@ -28,7 +27,7 @@
 
 ## 需求：卡片实体定义
 
-系统应定义 Card 实体,包含以下核心属性。
+系统应定义 Card 实体，包含以下核心属性。
 
 ### 场景：卡片包含必需属性
 
@@ -397,7 +396,7 @@ function clear_all_tags(card):
 
 ## 需求：软删除
 
-系统应支持软删除卡片,而不是物理删除。
+系统应支持软删除卡片，而不是物理删除。
 
 ### 场景：软删除卡片
 
@@ -495,12 +494,7 @@ function is_valid_device_id(device_id):
 
 ---
 
-## 实现细节
-
-**技术栈**:
-- **uuid** = "1.6" - UUID v7 生成
-- **serde** = "1.0" - 序列化/反序列化
-- **chrono** = "0.4" - 时间戳处理
+## 补充说明
 
 **数据结构**:
 ```rust
@@ -536,6 +530,22 @@ pub struct Card {
 
 ---
 
+## 相关文档
+
+**领域规格**:
+- [pool.md](pool.md) - 池领域模型
+- [sync.md](sync.md) - 同步领域模型
+- [types.md](types.md) - 共享类型定义
+
+**架构规格**:
+- [../architecture/storage/card_store.md](../architecture/storage/card_store.md) - CardStore 实现
+- [../architecture/storage/loro_integration.md](../architecture/storage/loro_integration.md) - Loro 集成
+
+**实现**:
+- `rust/src/models/card.rs` - Card 模型实现
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `rust/src/models/card.rs` (tests module)
@@ -566,24 +576,3 @@ pub struct Card {
 - [x] 软删除功能正常
 - [x] 设备追踪工作正常
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**领域规格**:
-- [pool.md](pool.md) - 池领域模型
-- [sync.md](sync.md) - 同步领域模型
-- [types.md](types.md) - 共享类型定义
-
-**架构规格**:
-- [../architecture/storage/card_store.md](../architecture/storage/card_store.md) - CardStore 实现
-- [../architecture/storage/loro_integration.md](../architecture/storage/loro_integration.md) - Loro 集成
-
-**实现**:
-- `rust/src/models/card.rs` - Card 模型实现
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team
