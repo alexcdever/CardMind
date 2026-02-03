@@ -8,39 +8,39 @@
 
 ## 概述
 
-本规格定义了单池架构中设备配置的结构和管理方法。系统使用 JSON 格式将设备配置持久化到本地文件系统，确保设备身份和池成员资格在应用重启后保持一致。
+本规格定义了单池架构中设备配置的结构和管理方法。系统使用 JSON 格式将设备配置持久化到本地文件系统，确保设备身份（peer_id）和池成员资格在应用重启后保持一致。
 
 **技术栈**:
 - **serde_json** = "1.0" - JSON 序列化/反序列化
-- **uuid** = "1.6" - UUID v7 生成
 - **tokio::fs** - 异步文件操作
 
 **核心特性**:
 - **单池约束**: 每个设备最多只能加入一个池
 - **自动持久化**: 配置变更自动保存到磁盘
-- **UUID v7**: 时间可排序的设备标识符
+- **peer_id 作为设备标识**: 来源于持久化密钥对
 - **零配置**: 首次启动自动创建配置
 
 ---
 
 ## 需求：设备配置结构
 
-系统应提供包含唯一设备 ID、设备名称和可选池 ID 的设备配置结构。
+系统应提供包含 peer_id、设备名称和可选池 ID 的设备配置结构。
 该结构应仅保留单一的 `pool_id`，并且不应包含 `joined_pools`、`resident_pools` 或 `last_selected_pool` 等旧字段。
 
 ### 场景：定义设备配置结构
 
 - **前置条件**: 系统需要持久化设备身份信息
 - **操作**: 定义 DeviceConfig 数据结构
-- **预期结果**: 包含 device_id、device_name、pool_id、updated_at
+- **预期结果**: 包含 peer_id、device_name、pool_id、updated_at
 - **并且**: pool_id 为可选单值
 
 **数据结构**:
 
 ```
 structure DeviceConfig:
-    // 设备唯一标识符（UUID v7 格式）
-    device_id: String
+    // 设备唯一标识符（PeerId 字符串）
+    // 由持久化密钥对派生，可能在加入池时生成
+    peer_id: Optional<String>
 
     // 设备昵称（自动生成，用户可修改）
     device_name: String
@@ -71,7 +71,7 @@ structure DeviceConfig:
 - **前置条件**: 存在上次会话的配置文件
 - **操作**: 调用 load_or_create()
 - **预期结果**: 应加载现有配置
-- **并且**: device_id 应保持不变
+- **并且**: peer_id（若存在）应保持不变
 
 **实现逻辑**:
 
@@ -86,16 +86,14 @@ function load_or_create():
         json_data = read_file(config_path)
         config = deserialize_from_json(json_data)
         
-        log_debug("Loaded existing device config: " + config.device_id)
+        log_debug("Loaded existing device config: " + config.peer_id)
         return config
     else:
         // 步骤2：创建新配置
-        // 设计决策：生成 UUID v7 以实现时间可排序的设备 ID
-        device_id = generate_uuid_v7()
         device_name = generate_default_device_name()
         
         config = DeviceConfig {
-            device_id: device_id,
+            peer_id: None,
             device_name: device_name,
             pool_id: None,
             updated_at: current_timestamp()
@@ -106,7 +104,7 @@ function load_or_create():
         ensure_config_directory_exists()
         save_config_to_file(config)
 
-        log_info("Created new device config: " + device_id)
+        log_info("Created new device config")
         return config
 
 function get_config_file_path():
@@ -117,11 +115,11 @@ function get_config_file_path():
 
 function generate_default_device_name():
     // 生成默认设备名称
-    // 格式：<主机名>-<设备ID后5位>
+    // 格式：<主机名>-<随机后缀>
     hostname = get_hostname()
-    device_id_suffix = generate_uuid_v7().take_last(5_chars)
+    random_suffix = generate_short_random_suffix()
     
-    return hostname + "-" + device_id_suffix
+    return hostname + "-" + random_suffix
 
 function ensure_config_directory_exists():
     // 确保配置目录存在
@@ -324,9 +322,9 @@ function is_joined():
     // 设计决策：简单的空值检查
     return pool_id is not None
 
-function get_device_id():
+function get_peer_id():
     // 返回设备唯一标识符
-    return device_id
+    return peer_id
 ```
 
 ---
@@ -339,7 +337,7 @@ function get_device_id():
 
 - **前置条件**: 新设备配置
 - **操作**: 检查设备名称
-- **预期结果**: 应自动生成默认名称（格式：<主机名>-<ID后缀>）
+- **预期结果**: 应自动生成默认名称（格式：<主机名>-<随机后缀>）
 
 ### 场景：允许设置自定义设备名称
 
@@ -404,7 +402,7 @@ function set_device_name(new_name):
 **格式**:
 ```json
 {
-  "device_id": "018dcc2b-b42f-7c7a-b7e8-3b5c3b7e8b7e",
+  "peer_id": "12D3KooWQ1examplePeerId",
   "device_name": "MacBook Pro-3b7e8",
   "pool_id": "018dcc2b-b42f-7c7a-b7e8-3b5c3b7e8b7f",
   "updated_at": 1705171200
@@ -418,7 +416,7 @@ function save_config_to_file():
     // 步骤1：序列化配置为 JSON
     // 设计决策：使用缩进格式便于人工阅读
     config_data = {
-        "device_id": device_id,
+        "peer_id": peer_id,
         "device_name": device_name,
         "pool_id": pool_id,
         "updated_at": updated_at
@@ -464,15 +462,12 @@ function load_config_from_file():
         config_data = deserialize_from_json(json_string)
         
         // 步骤3：验证配置完整性
-        if not config_data.has_field("device_id"):
-            return error "InvalidConfig: missing device_id"
-        
         if not config_data.has_field("device_name"):
             return error "InvalidConfig: missing device_name"
         
         // 步骤4：构造配置对象
         config = DeviceConfig {
-            device_id: config_data.device_id,
+            peer_id: config_data.peer_id,
             device_name: config_data.device_name,
             pool_id: config_data.pool_id,
             updated_at: config_data.updated_at
@@ -577,11 +572,9 @@ async function sync_with_peer(peer_id):
         return error "NotJoinedPool"
 
     // 步骤2：验证对等点在同一池中
-    // 设计决策：通过 mDNS 发现时已过滤池成员资格
-    peer_pool_id = get_peer_pool_id(peer_id)
-    
-    if peer_pool_id != config.pool_id:
-        log_warn("Pool mismatch: peer in " + peer_pool_id + ", we are in " + config.pool_id)
+    // 设计决策：通过连接后的握手校验 pool_hash
+    if not has_completed_pool_handshake(peer_id):
+        log_warn("Pool mismatch: handshake not verified for " + peer_id)
         return error "PoolMismatch"
 
     // 步骤3：仅同步当前池的数据
@@ -630,7 +623,6 @@ function sync_pool_data(pool_id, peer_id):
 
 **技术栈**:
 - **serde_json** = "1.0" - JSON 序列化/反序列化
-- **uuid** = "1.6" - UUID v7 生成（时间可排序）
 - **tokio::fs** - 异步文件操作
 - **std::path::PathBuf** - 跨平台路径处理
 
