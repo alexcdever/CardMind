@@ -11,7 +11,7 @@ import '../../../models/device_config.dart';
 /// Initialize or load device configuration
 ///
 /// If a config file exists at the path, it will be loaded.
-/// Otherwise, a new config will be created with a generated device ID.
+/// Otherwise, a new config will be created with default values.
 ///
 /// # Arguments
 ///
@@ -37,24 +37,10 @@ Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
 ///
 /// ```dart
 /// final config = await getDeviceConfig();
-/// print('Device ID: ${config.deviceId}');
+/// print('Peer ID: ${config.peerId}');
 /// ```
 Future<DeviceConfig> getDeviceConfig() =>
     RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceConfig();
-
-/// Get the current device ID
-///
-/// # Returns
-///
-/// The device UUID
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final deviceId = await getDeviceId();
-/// ```
-Future<String> getDeviceId() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceId();
 
 /// Join a data pool
 ///
@@ -177,61 +163,3 @@ Future<bool> isPoolJoined({required String poolId}) => RustLib.instance.api
 /// ```
 Future<bool> isPoolResident({required String poolId}) => RustLib.instance.api
     .cardmindRustApiDeviceConfigIsPoolResident(poolId: poolId);
-
-/// Check if mDNS peer discovery is currently active
-///
-/// mDNS is active only within the 5-minute timer window after being enabled.
-///
-/// # Returns
-///
-/// true if mDNS is active, false otherwise
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final isActive = await isMdnsActive();
-/// ```
-Future<bool> isMdnsActive() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigIsMdnsActive();
-
-/// Enable mDNS peer discovery for 5 minutes
-///
-/// Starts a 5-minute timer for mDNS discovery. After 5 minutes,
-/// mDNS will automatically be disabled. Timer does not persist
-/// across app restarts (security feature).
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await enableMdnsTemporary();
-/// ```
-Future<void> enableMdnsTemporary() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigEnableMdnsTemporary();
-
-/// Cancel the mDNS timer immediately
-///
-/// Disables mDNS discovery right away.
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await cancelMdnsTimer();
-/// ```
-Future<void> cancelMdnsTimer() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigCancelMdnsTimer();
-
-/// Get remaining time for mDNS discovery (in milliseconds)
-///
-/// Returns 0 if mDNS is not active or has expired.
-///
-/// # Returns
-///
-/// Remaining time in milliseconds
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final remainingMs = await getMdnsRemainingMs();
-/// ```
-Future<PlatformInt64> getMdnsRemainingMs() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetMdnsRemainingMs();
