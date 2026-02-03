@@ -890,8 +890,8 @@ mod tests {
         // 未来可以扩展验证错误状态确实被清除
     }
 
-    #[test]
-    fn it_should_restart_sync_on_retry() {
+    #[tokio::test]
+    async fn it_should_restart_sync_on_retry() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let mut device_config = DeviceConfig::new();
         device_config.join_pool("test-pool").unwrap();

@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex};
 fn it_should_create_sync_service_with_valid_config() {
     // Given: 有效的设备配置和 CardStore
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-001");
+    let device_config = DeviceConfig::new();
 
     // When: 创建同步服务
     let service = P2PSyncService::new(card_store, device_config);
@@ -50,7 +50,7 @@ fn it_should_create_sync_service_with_valid_config() {
 fn it_should_create_service_regardless_of_pool_status() {
     // Given: 未加入任何池的设备配置
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-unjoined");
+    let device_config = DeviceConfig::new();
 
     // When: 创建同步服务
     let service = P2PSyncService::new(card_store, device_config);
@@ -71,7 +71,7 @@ fn it_should_create_service_regardless_of_pool_status() {
 fn it_should_return_valid_sync_status_when_created() {
     // Given: 新创建的同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-status");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // When: 获取同步状态
@@ -95,7 +95,7 @@ fn it_should_return_valid_sync_status_when_created() {
 fn it_should_track_local_peer_id_consistency() {
     // Given: 同步服务实例
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-consistent");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // When: 多次获取 Peer ID
@@ -118,7 +118,7 @@ fn it_should_track_local_peer_id_consistency() {
 fn it_should_handle_concurrent_status_requests() {
     // Given: 同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-concurrent");
+    let device_config = DeviceConfig::new();
     let service = Arc::new(P2PSyncService::new(card_store, device_config).unwrap());
 
     // When: 多个线程同时请求状态
@@ -144,11 +144,11 @@ fn it_should_handle_concurrent_status_requests() {
 /// - 给定已配置的设备配置
 /// - 当同步服务使用设备配置时
 /// - 则配置信息被正确使用
-#[test]
-fn it_should_use_device_config_for_pool_info() {
+#[tokio::test]
+async fn it_should_use_device_config_for_pool_info() {
     // Given: 已加入特定池的设备配置
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let mut device_config = DeviceConfig::new("test-device-pool-info");
+    let mut device_config = DeviceConfig::new();
     let _ = device_config.join_pool("my-custom-pool-123");
 
     let service = P2PSyncService::new(card_store, device_config).unwrap();
@@ -171,7 +171,7 @@ fn it_should_use_device_config_for_pool_info() {
 fn it_should_support_mock_network_mode() {
     // Given: CardStore 和设备配置
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-mock");
+    let device_config = DeviceConfig::new();
 
     // When: 使用模拟网络创建服务
     let service = P2PSyncService::new_with_mock_network(card_store, device_config);
@@ -192,7 +192,7 @@ fn it_should_support_mock_network_mode() {
 fn it_should_have_zero_online_peers_initially() {
     // Given: 新创建的同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-zero-peers");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // When: 获取初始状态
@@ -215,7 +215,7 @@ fn it_should_have_zero_online_peers_initially() {
 fn it_should_return_independent_status_copies() {
     // Given: 同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-independent");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // When: 获取多个状态
