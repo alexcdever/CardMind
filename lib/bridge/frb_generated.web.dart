@@ -102,9 +102,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SyncHistoryEvent> dco_decode_list_sync_history_event(dynamic raw);
 
   @protected
-  MDnsTimerConfig dco_decode_m_dns_timer_config(dynamic raw);
-
-  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
@@ -211,9 +208,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<SyncHistoryEvent> sse_decode_list_sync_history_event(
     SseDeserializer deserializer,
   );
-
-  @protected
-  MDnsTimerConfig sse_decode_m_dns_timer_config(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
@@ -339,12 +333,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_sync_history_event(
     List<SyncHistoryEvent> self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void sse_encode_m_dns_timer_config(
-    MDnsTimerConfig self,
     SseSerializer serializer,
   );
 
