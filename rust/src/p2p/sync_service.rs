@@ -123,8 +123,7 @@ impl P2PSyncService {
         info!("mDNS 状态: {}", if mdns_enabled { "启用" } else { "禁用" });
 
         // 2. 创建 P2P 网络（根据 mDNS 状态）
-        let network = P2PNetwork::new(mdns_enabled)
-            .map_err(|e| CardMindError::IoError(format!("Failed to create P2P network: {e}")))?;
+        let network = P2PNetwork::new(mdns_enabled)?;
 
         // 保存 PeerId 的副本，避免借用问题（PeerId 实现了 Copy）
         let local_peer_id = *network.local_peer_id();
