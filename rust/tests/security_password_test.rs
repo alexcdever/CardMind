@@ -6,6 +6,10 @@
 
 #![allow(unused)]
 
+use cardmind_rust::security::password::derive_pool_hash;
+use hkdf::Hkdf;
+use sha2::Sha256;
+
 // ==== Requirement: Password Hashing ====
 
 #[test]
@@ -180,4 +184,26 @@ fn it_should_fail_joining_when_password_not_found() {
     // Then: 应提示用户设置密码
     // Note: 在实际实现中，Keyring 查询会返回"未找到"错误
     assert_eq!(password, "any_password");
+}
+
+#[test]
+/// Scenario: Derive pool hash with HKDF
+fn it_should_derive_pool_hash_with_hkdf() {
+    // Given: pool_id + password
+    let pool_id = "pool-123";
+    let password = "secret";
+
+    // When: derive_pool_hash 被调用
+    let hash = derive_pool_hash(pool_id, password).unwrap();
+
+    // Then: 应该得到 32 字节输出的 hex（64 chars）
+    let expected = {
+        let hk = Hkdf::<Sha256>::new(Some(pool_id.as_bytes()), password.as_bytes());
+        let mut okm = [0u8; 32];
+        hk.expand(&[], &mut okm).unwrap();
+        hex::encode(okm)
+    };
+
+    assert_eq!(hash, expected);
+    assert_eq!(hash.len(), 64);
 }

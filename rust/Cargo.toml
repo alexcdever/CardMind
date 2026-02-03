@@ -51,6 +51,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Password hashing (for data pool network)
 bcrypt = "0.16"
+hkdf = "0.12"
+sha2 = "0.10"
+hex = "0.4"
 
 # Keyring for secure password storage
 keyring = "3.6"

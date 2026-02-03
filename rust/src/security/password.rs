@@ -27,6 +27,8 @@
 
 use bcrypt::{hash, verify, BcryptError, DEFAULT_COST};
 use chrono::Utc;
+use hkdf::Hkdf;
+use sha2::Sha256;
 use thiserror::Error;
 use zeroize::Zeroizing;
 
@@ -45,6 +47,10 @@ pub enum PasswordError {
     #[error("密码强度不足: {0}")]
     WeakPassword(String),
 
+    /// 派生池哈希失败
+    #[error("派生池哈希失败: {0}")]
+    KeyDerivationFailed(String),
+
     /// 请求已过期
     #[error("请求已过期（时间戳: {0}）")]
     RequestExpired(u64),
@@ -58,6 +64,29 @@ impl From<BcryptError> for PasswordError {
     fn from(error: BcryptError) -> Self {
         Self::HashError(error.to_string())
     }
+}
+
+/// 计算数据池哈希（pool_hash）
+///
+/// # 规则
+///
+/// - HKDF-SHA256
+/// - salt = pool_id
+/// - ikm = password
+/// - info 为空
+/// - 输出 32 字节，hex 编码（64 字符）
+///
+/// # Errors
+///
+/// 如果派生失败，返回错误
+pub fn derive_pool_hash(pool_id: &str, password: &str) -> Result<String, PasswordError> {
+    let hkdf = Hkdf::<Sha256>::new(Some(pool_id.as_bytes()), password.as_bytes());
+    let mut okm = [0u8; 32];
+    hkdf
+        .expand(&[], &mut okm)
+        .map_err(|e| PasswordError::KeyDerivationFailed(e.to_string()))?;
+
+    Ok(hex::encode(okm))
 }
 
 /// 密码强度评估结果
