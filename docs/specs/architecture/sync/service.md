@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../domain/sync/model.md](../../domain/sync/model.md), [../storage/device_config.md](../storage/device_config.md)
-**相关测试**: `rust/tests/sync_service_test.rs`
+**相关测试**: `rust/tests/sync_test.rs`
 
 ---
 
@@ -13,7 +13,7 @@
 **技术栈**:
 - **tokio** - 异步运行时
 - **loro** = "1.0" - CRDT 文档同步
-- **mdns-sd** = "0.10" - 对等点发现
+- **libp2p mdns** - 对等点发现
 
 **核心职责**:
 - 管理 P2P 连接和数据同步
@@ -29,7 +29,7 @@
 
 ### 场景：使用有效配置创建同步服务
 
-- **前置条件**: 具有对等点 ID 和端口的有效 SyncConfig
+- **前置条件**: 设备已加入池，具备可用的 PeerId 与监听端口
 - **操作**: 创建新的 SyncService
 - **预期结果**: 服务应成功初始化
 - **并且**: 准备好接受连接
@@ -39,6 +39,9 @@
 ```
 function create_sync_service(config):
     // 步骤1：验证配置
+    if not config.is_joined_pool:
+        return error "InvalidState: NotJoinedPool"
+
     if config.peer_id is empty:
         return error "InvalidConfig: peer_id is required"
     
@@ -103,12 +106,10 @@ function start_network_listener(port):
 
 ```
 function handle_peer_connection(peer_info):
-    // 步骤1：验证对等点在同一池中
-    current_pool_id = get_current_pool_id()
-    
-    if peer_info.pool_id != current_pool_id:
-        log_warn("Rejecting peer from different pool: " + peer_info.pool_id)
-        reject_connection("Different pool")
+    // 步骤1：执行握手，验证是否同池
+    if not perform_pool_handshake(peer_info.connection):
+        log_warn("Rejecting peer due to pool mismatch")
+        reject_connection("PoolMismatch")
         return
 
     // 步骤2：添加到在线对等点
@@ -179,43 +180,26 @@ structure SyncStatus:
 
 ## 需求：对等点发现
 
-系统应支持对等点发现机制，包括用于本地网络发现的 mDNS。
+系统应支持对等点发现机制，包括用于本地网络发现的 libp2p mDNS。
 
-### 场景：启用 mDNS 对等点发现
+### 场景：加入池后启用 mDNS 对等点发现
 
-- **前置条件**: 同步服务已配置 mDNS
-- **操作**: 在本地网络上发现对等点
-- **预期结果**: 服务应找到其他 CardMind 实例
-- **并且**: 将它们添加到对等点列表
+- **前置条件**: 设备已加入池
+- **操作**: 启动同步服务
+- **预期结果**: 服务应发现其他 CardMind 实例
+- **并且**: 发现事件触发连接尝试
 
 **实现逻辑**:
 
 ```
 function discover_peers_via_mdns():
-    // 步骤1：获取当前池 ID
-    device_config = load_device_config()
-    
-    if not device_config.is_joined():
-        log_warn("Cannot discover peers: not joined to any pool")
-        return error "NotJoinedPool"
-    
-    pool_id = device_config.get_pool_id()
+    // libp2p mDNS 在启动后自动广播与监听
+    // 设计决策：发现阶段不做池过滤
+    on mdns_event.discovered(peer_info):
+        attempt_connection(peer_info)
+    on mdns_event.expired(peer_info):
+        mark_peer_offline(peer_info.peer_id)
 
-    // 步骤2：广播服务公告
-    // 设计决策：使用mDNS实现零配置本地网络发现
-    announce_service(
-        device_id: device_config.device_id,
-        pool_id: pool_id,
-        port: listen_port
-    )
-
-    // 步骤3：监听对等点公告
-    discover_peers(pool_id, on_peer_discovered: function(peer_info):
-        // 仅连接同一池中的对等点
-        if peer_info.pool_hash == hash_pool_id(pool_id):
-            attempt_connection(peer_info)
-    )
-    
     log_info("mDNS peer discovery started")
     return success
 
@@ -236,10 +220,33 @@ function attempt_connection(peer_info):
     // 步骤3：添加到在线对等点
     handle_peer_connection({
         peer_id: peer_info.peer_id,
-        pool_id: current_pool_id,
         connection: connection
     })
 ```
+
+---
+
+## 需求：启动与错误码
+
+系统应提供语义化错误码以指示 mDNS 启动失败或非法状态。
+
+### 场景：未加入池时启动同步服务
+
+- **前置条件**: 设备未加入池
+- **操作**: 调用同步服务初始化
+- **预期结果**: 返回 `InvalidState: NotJoinedPool`
+
+### 场景：mDNS 启动失败
+
+- **前置条件**: 设备已加入池
+- **操作**: 启动 mDNS
+- **预期结果**: 返回结构化错误码
+
+**错误码**:
+- `MdnsError::PermissionDenied` - 权限不足
+- `MdnsError::SocketUnavailable` - 端口/套接字不可用
+- `MdnsError::Unsupported` - 平台不支持
+- `MdnsError::StartFailed` - 其他启动失败
 
 ---
 
@@ -432,7 +439,7 @@ function filter_sync_by_pool(sync_message):
 **技术栈**:
 - **tokio** - 异步运行时和网络 I/O
 - **loro** = "1.0" - CRDT 文档同步
-- **mdns-sd** = "0.10" - 对等点发现
+- **libp2p mdns** - 对等点发现
 
 **设计模式**:
 - **服务模式**: SyncService 作为中心协调器
@@ -483,7 +490,7 @@ function filter_sync_by_pool(sync_message):
 - `it_should_return_initial_status_with_zero_peers()` - 初始状态
 - `it_should_return_independent_status_copies()` - 独立副本
 - `it_should_discover_peers_via_mdns()` - mDNS 发现
-- `it_should_filter_peers_by_pool()` - 池过滤
+- `it_should_reject_peer_on_pool_hash_mismatch()` - 握手池校验
 
 **集成测试**:
 - `it_should_sync_changes_between_peers()` - 对等点间同步
