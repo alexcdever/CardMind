@@ -1,6 +1,5 @@
 # 单池模型规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [types.md](types.md), [../architecture/storage/device_config.md](../architecture/storage/device_config.md)
 **相关测试**: `rust/tests/pool_model_test.rs`
@@ -9,7 +8,7 @@
 
 ## 概述
 
-本规格定义了单池模型,其中每张卡片仅属于一个池,每个设备最多只能加入一个池。当设备创建新卡片时,卡片自动属于设备已加入的池。
+本规格定义了单池模型，其中每张卡片仅属于一个池，每个设备最多只能加入一个池。当设备创建新卡片时，卡片自动属于设备已加入的池。
 
 **技术栈**:
 - **uuid** = "1.6" - UUID v7 生成
@@ -140,7 +139,7 @@ function get_joined_pool_info(device_config):
 
 ## 需求：在已加入池中创建卡片
 
-当设备创建新卡片时,卡片应自动归属于设备已加入的池。
+当设备创建新卡片时，卡片应自动归属于设备已加入的池。
 
 ### 场景：创建卡片自动加入池
 
@@ -305,7 +304,7 @@ function handle_create_card_error(error):
 
 ## 需求：设备离开池
 
-当设备离开池时,系统应清除与该池关联的所有数据。
+当设备离开池时，系统应清除与该池关联的所有数据。
 
 ### 场景：设备离开池并清除数据
 
@@ -542,13 +541,7 @@ function complete_leave_pool_workflow(device_config):
 
 ---
 
-## 实现细节
-
-**技术栈**:
-- **uuid** = "1.6" - UUID v7 生成
-- **bcrypt** = "0.15" - 密码哈希验证
-- **serde** = "1.0" - 序列化/反序列化
-- **tokio** - 异步运行时
+## 补充说明
 
 **数据结构**:
 ```rust
@@ -596,6 +589,23 @@ pub struct DeviceConfig {
 
 ---
 
+## 相关文档
+
+**领域规格**:
+- [card.md](card.md) - 卡片领域模型
+- [sync.md](sync.md) - 同步领域模型
+- [types.md](types.md) - 共享类型定义
+
+**架构规格**:
+- [../architecture/storage/pool_store.md](../architecture/storage/pool_store.md) - PoolStore 实现
+- [../architecture/storage/device_config.md](../architecture/storage/device_config.md) - DeviceConfig 实现
+- [../architecture/sync/service.md](../architecture/sync/service.md) - P2P 同步服务
+
+**架构决策记录**:
+- ADR-0001: 单池所有权模型 - 每设备单池设计决策
+
+---
+
 ## 测试覆盖
 
 **测试文件**: `rust/tests/pool_model_test.rs`
@@ -625,25 +635,3 @@ pub struct DeviceConfig {
 - [x] 离开池时数据完全清理
 - [x] 错误消息友好且准确
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**领域规格**:
-- [card.md](card.md) - 卡片领域模型
-- [sync.md](sync.md) - 同步领域模型
-- [types.md](types.md) - 共享类型定义
-
-**架构规格**:
-- [../architecture/storage/pool_store.md](../architecture/storage/pool_store.md) - PoolStore 实现
-- [../architecture/storage/device_config.md](../architecture/storage/device_config.md) - DeviceConfig 实现
-- [../architecture/sync/service.md](../architecture/sync/service.md) - P2P 同步服务
-
-**架构决策记录**:
-- ADR-0001: 单池所有权模型 - 每设备单池设计决策
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

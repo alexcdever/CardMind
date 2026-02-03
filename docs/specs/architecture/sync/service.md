@@ -1,6 +1,5 @@
 # P2P 同步服务架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../domain/sync/model.md](../../domain/sync/model.md), [../storage/device_config.md](../storage/device_config.md)
 **相关测试**: `rust/tests/sync_service_test.rs`
@@ -428,7 +427,7 @@ function filter_sync_by_pool(sync_message):
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **tokio** - 异步运行时和网络 I/O
@@ -450,6 +449,25 @@ function filter_sync_by_pool(sync_message):
 - **同步延迟**: < 100ms（本地网络）
 - **并发连接**: 支持 100+ 对等点
 - **内存使用**: ~10MB + 每连接 1MB
+
+---
+
+## 相关文档
+
+**领域规格**:
+- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步领域模型
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+
+**相关架构规格**:
+- [../storage/device_config.md](../storage/device_config.md) - 设备配置存储
+- [../storage/card_store.md](../storage/card_store.md) - CardStore 实现
+- [./peer_discovery.md](./peer_discovery.md) - 对等点发现
+- [./conflict_resolution.md](./conflict_resolution.md) - 冲突解决
+- [./subscription.md](./subscription.md) - 订阅机制
+
+**架构决策记录**:
+- ADR-0002: 双层架构 - 读写分离设计
+- ADR-0003: Loro CRDT - CRDT 库选择
 
 ---
 
@@ -481,27 +499,3 @@ function filter_sync_by_pool(sync_message):
 - [x] CRDT 正确合并并发更改
 - [x] 池过滤正确执行
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**领域规格**:
-- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步领域模型
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
-
-**相关架构规格**:
-- [../storage/device_config.md](../storage/device_config.md) - 设备配置存储
-- [../storage/card_store.md](../storage/card_store.md) - CardStore 实现
-- [./peer_discovery.md](./peer_discovery.md) - 对等点发现
-- [./conflict_resolution.md](./conflict_resolution.md) - 冲突解决
-- [./subscription.md](./subscription.md) - 订阅机制
-
-**架构决策记录**:
-- ADR-0002: 双层架构 - 读写分离设计
-- ADR-0003: Loro CRDT - CRDT 库选择
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

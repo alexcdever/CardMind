@@ -1,6 +1,5 @@
 # Loro 集成架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [./dual_layer.md](./dual_layer.md), [../sync/subscription.md](../sync/subscription.md)
 **相关测试**: `rust/tests/loro_integration_test.rs`
@@ -642,7 +641,7 @@ function handle_version_mismatch(error, crdt_doc, peer_id):
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档库
@@ -667,6 +666,20 @@ function handle_version_mismatch(error, crdt_doc, peer_id):
 - **文档缓存**: 最多 100 个文档
 - **自动压缩**: 当历史 > 状态 × 3 时触发
 - **LRU 驱逐**: 自动移除冷文档
+
+---
+
+## 相关文档
+
+**架构规格**:
+- [./dual_layer.md](./dual_layer.md) - 双层架构
+- [./card_store.md](./card_store.md) - CardStore 实现
+- [./pool_store.md](./pool_store.md) - PoolStore 实现
+- [../sync/subscription.md](../sync/subscription.md) - 订阅机制
+- [../sync/conflict_resolution.md](../sync/conflict_resolution.md) - 冲突解决
+
+**架构决策记录**:
+- ADR-0003: Loro CRDT - CRDT 库选择理由
 
 ---
 
@@ -702,22 +715,3 @@ function handle_version_mismatch(error, crdt_doc, peer_id):
 - [x] 文档压缩正常工作
 - [x] 错误处理健壮
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**架构规格**:
-- [./dual_layer.md](./dual_layer.md) - 双层架构
-- [./card_store.md](./card_store.md) - CardStore 实现
-- [./pool_store.md](./pool_store.md) - PoolStore 实现
-- [../sync/subscription.md](../sync/subscription.md) - 订阅机制
-- [../sync/conflict_resolution.md](../sync/conflict_resolution.md) - 冲突解决
-
-**架构决策记录**:
-- ADR-0003: Loro CRDT - CRDT 库选择理由
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

@@ -1,4 +1,5 @@
 import 'package:cardmind/screens/home_screen.dart';
+import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -86,8 +87,8 @@ void main() {
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 100));
 
-          // Then: 在移动端应该打开编辑器（FAB 隐藏）
-          expect(find.byType(FloatingActionButton), findsNothing);
+          // Then: 在移动端应该打开编辑器
+          expect(find.byType(NoteEditorFullscreen), findsOneWidget);
         }
       });
 

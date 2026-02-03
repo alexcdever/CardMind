@@ -1,6 +1,5 @@
 # Keyring 密码存储架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [./password.md](./password.md)
 **相关测试**: `rust/tests/security/keyring_test.rs`

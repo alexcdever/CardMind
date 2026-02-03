@@ -1,32 +1,26 @@
 # 卡片管理功能规格
 
-**版本**: 1.0.0
-
 **状态**: 活跃
-
 **依赖**: [../../domain/card/rules.md](../../domain/card/rules.md), [../../domain/pool/model.md](../../domain/pool/model.md)
-
 **相关测试**: `test/features/card_management_test.dart`
 
 ---
 
 ## 概述
 
-
-本规格定义了卡片管理功能，使用户能够在 CardMind 系统中创建、查看、编辑和删除笔记卡片。该功能提供从卡片创建到删除的完整用户旅程，支持自动草稿保存、标签管理和多设备协作。
+本规格定义卡片管理功能，覆盖卡片创建、查看、编辑与删除全流程，并支持草稿、标签与协作信息展示。
 
 **核心用户旅程**:
-- 创建包含标题和内容的新笔记卡片
-- 查看包含元数据的完整卡片详情
+- 创建包含标题和内容的新卡片
+- 查看包含元数据的完整详情
 - 编辑现有卡片并自动保存草稿
-- 管理标签（添加、移除、防止重复）
+- 管理标签（添加/移除/去重）
 - 删除卡片并确认
-- 与其他应用分享卡片内容
+- 分享卡片内容到其他应用
 
 ---
 
 ## 需求：卡片创建
-
 
 用户应能够创建包含标题和可选内容的新笔记卡片。
 
@@ -105,7 +99,6 @@ structure CardManagement:
 
 ## 需求：卡片查看
 
-
 用户应能够查看完整的卡片详情，包括内容、元数据、标签和同步信息。
 
 ### 场景：查看卡片详情
@@ -165,7 +158,6 @@ structure CardViewing:
 
 ## 需求：卡片编辑
 
-
 用户应能够编辑现有卡片，并自动保存草稿以防止数据丢失。
 
 ### 场景：编辑卡片标题和内容
@@ -181,13 +173,13 @@ structure CardViewing:
 ### 场景：编辑时自动保存草稿
 
 - **前置条件**: 用户正在编辑卡片
-- **操作**: 用户停止输入500毫秒
+- **操作**: 用户停止输入 500 毫秒
 - **预期结果**: 系统应自动将当前状态保存为草稿
 - **并且**: 系统应显示"草稿已保存"指示器
 
 ### 场景：重新打开编辑器时恢复草稿
 
-- **前置条件**: 用户正在编辑卡片并在未保存的情况下关闭了编辑器
+- **前置条件**: 用户正在编辑卡片并在未保存的情况下关闭编辑器
 - **并且**: 草稿已自动保存
 - **操作**: 用户重新打开同一卡片的编辑器
 - **预期结果**: 系统应恢复草稿内容
@@ -258,354 +250,129 @@ structure CardEditing:
 
         // 步骤2：设置新定时器（500ms）
         autoSaveTimer = Timer(500, () => {
-            // 步骤3：保存草稿
-            draft = {
-                cardId: cardId,
-                title: title,
-                content: content,
-                timestamp: currentTime()
-            }
-            localStorage.set(draftKey, draft)
-
-            // 步骤4：显示指示器
-            showToast("草稿已保存")
+            saveDraft(cardId, title, content)
         })
-
-    // 恢复草稿
-    function restoreDraft(cardId):
-        draft = localStorage.get(draftKey)
-
-        if draft and draft.cardId == cardId:
-            showToast("草稿已恢复")
-            return draft
-        else:
-            return null
-
-    // 删除草稿
-    function deleteDraft(draftKey):
-        localStorage.remove(draftKey)
-```
-
----
-
-## 需求：标签管理
-
-
-用户应能够添加和移除标签以组织卡片，并自动防止重复。
-
-### 场景：向卡片添加标签
-
-- **前置条件**: 存在没有标签的卡片
-- **操作**: 用户添加标签"work"
-- **预期结果**: 系统应将标签关联到卡片
-- **并且**: 标签应在卡片视图中可见
-- **并且**: 更改应同步到所有设备
-
-### 场景：向卡片添加多个标签
-
-- **前置条件**: 存在包含标签"work"的卡片
-- **操作**: 用户添加标签"urgent"和"meeting"
-- **预期结果**: 卡片应有三个标签："work"、"urgent"、"meeting"
-
-### 场景：防止重复标签
-
-- **前置条件**: 卡片有标签"work"
-- **操作**: 用户尝试再次添加标签"work"
-- **预期结果**: 系统应拒绝重复标签
-- **并且**: 系统应显示消息"标签已存在"
-
-### 场景：从卡片移除标签
-
-- **前置条件**: 卡片有标签"work"和"urgent"
-- **操作**: 用户移除标签"urgent"
-- **预期结果**: 卡片应只有标签"work"
-- **并且**: 更改应同步到所有设备
-
-### 场景：标签大小写敏感性
-
-- **前置条件**: 卡片有标签"Work"
-- **操作**: 用户尝试添加标签"work"
-- **预期结果**: 系统应将"Work"和"work"视为不同标签
-- **并且**: 两个标签都应添加到卡片
-
-**实现逻辑**:
-
-```
-structure TagManagement:
-    card: Card
-
-    // 添加标签
-    function addTag(cardId, tagName):
-        // 步骤1：加载卡片
-        card = cardStore.getCard(cardId)
-
-        // 步骤2：检查重复（大小写敏感）
-        if card.tags.contains(tagName):
-            return error("DUPLICATE_TAG", "标签已存在")
-
-        // 步骤3：添加标签
-        card.tags.add(tagName)
-
-        // 步骤4：保存卡片
-        cardStore.save(card)
-
-        // 步骤5：同步到所有设备
-        syncService.syncCardUpdate(card)
-
-        return ok()
-
-    // 移除标签
-    function removeTag(cardId, tagName):
-        // 步骤1：加载卡片
-        card = cardStore.getCard(cardId)
-
-        // 步骤2：移除标签
-        card.tags.remove(tagName)
-
-        // 步骤3：保存卡片
-        cardStore.save(card)
-
-        // 步骤4：同步到所有设备
-        syncService.syncCardUpdate(card)
-
-        return ok()
 ```
 
 ---
 
 ## 需求：卡片删除
 
-用户应能够删除卡片并确认，以防止意外删除。
+用户应能够删除卡片，并在删除前确认。
 
-### 场景：确认后删除卡片
+### 场景：删除卡片并确认
 
-- **前置条件**: 存在标题为"Delete Me"的卡片
-- **操作**: 用户触发删除操作并确认删除
-- **预期结果**: 系统应从池中删除卡片
-- **并且**: 卡片应从所有设备移除
-- **并且**: 系统应显示"卡片已删除"确认
+- **前置条件**: 用户在卡片详情或列表中选择删除
+- **操作**: 用户确认删除
+- **预期结果**: 系统应删除卡片并从列表移除
+- **并且**: 系统应显示删除成功提示
 
-### 场景：取消删除操作
+### 场景：取消删除
 
-- **前置条件**: 用户触发删除操作
-- **操作**: 用户在确认对话框中点击"取消"
+- **前置条件**: 删除确认对话框已显示
+- **操作**: 用户取消删除
 - **预期结果**: 系统应保持卡片不变
-- **并且**: 卡片应保留在所有设备上
-
-### 场景：删除后撤销
-
-- **前置条件**: 用户已删除卡片
-- **操作**: 用户在提示条显示时点击"撤销"
-- **预期结果**: 系统应恢复已删除的卡片
-- **并且**: 卡片应重新出现在所有设备上
+- **并且**: 取消对话框关闭
 
 **实现逻辑**:
 
 ```
-structure CardDeletion:
-    deletedCard: Card?
-    undoTimer: Timer?
-
-    // 删除卡片
-    function deleteCard(cardId):
-        // 步骤1：显示确认对话框
-        confirmed = showConfirmDialog(
-            title: "确认删除",
-            message: "确定要删除这张笔记吗？",
-            confirmText: "删除",
-            cancelText: "取消"
-        )
-
-        if not confirmed:
-            return cancelled()
-
-        // 步骤2：加载卡片
-        card = cardStore.getCard(cardId)
-
-        // 步骤3：保存到撤销缓存
-        deletedCard = card
-
-        // 步骤4：删除卡片
-        cardStore.delete(cardId)
-
-        // 步骤5：同步到所有设备
-        syncService.syncCardDeletion(cardId)
-
-        // 步骤6：显示撤销提示
-        showUndoSnackbar(
-            message: "卡片已删除",
-            action: "撤销",
-            onUndo: undoDelete,
-            duration: 5000
-        )
-
-        // 步骤7：设置撤销定时器
-        undoTimer = Timer(5000, () => {
-            // 5秒后清除撤销缓存
-            deletedCard = null
-        })
-
-        return ok()
-
-    // 撤销删除
-    function undoDelete():
-        if deletedCard:
-            // 步骤1：取消定时器
-            undoTimer.cancel()
-
-            // 步骤2：恢复卡片
-            cardStore.save(deletedCard)
-
-            // 步骤3：同步到所有设备
-            syncService.syncCardCreation(deletedCard)
-
-            // 步骤4：清除缓存
-            deletedCard = null
-
-            // 步骤5：显示确认
-            showToast("卡片已恢复")
-
-            return ok()
+function deleteCard(cardId):
+    showConfirmDialog(
+        title: "确认删除",
+        message: "确定要删除这张卡片吗？",
+        onConfirm: () => {
+            cardStore.delete(cardId)
+            showToast("已删除")
+        }
+    )
 ```
 
 ---
 
-## 需求：卡片分享
+## 需求：标签管理
 
-用户应能够与其他应用分享卡片内容。
+用户应能够管理卡片标签。
 
-### 场景：分享卡片内容
+### 场景：添加标签
 
-- **前置条件**: 存在包含标题和内容的卡片
-- **操作**: 用户选择分享操作
-- **预期结果**: 系统应打开系统分享对话框
-- **并且**: 分享内容应包含卡片标题和内容
+- **前置条件**: 用户正在编辑卡片
+- **操作**: 用户添加标签
+- **预期结果**: 系统应添加标签到卡片
+- **并且**: 标签应去重
 
-### 场景：以文本格式分享
+### 场景：移除标签
 
-- **前置条件**: 用户分享卡片
-- **操作**: 用户选择文本格式
-- **预期结果**: 分享内容应为纯文本格式
-- **并且**: 内容应格式化为"标题: {title}\n\n{content}"
-
-### 场景：以 Markdown 格式分享
-
-- **前置条件**: 用户分享卡片
-- **操作**: 用户选择 Markdown 格式
-- **预期结果**: 分享内容应为 Markdown 格式
-- **并且**: 标题应格式化为 Markdown 标题
+- **前置条件**: 卡片包含标签
+- **操作**: 用户移除标签
+- **预期结果**: 系统应移除标签
 
 **实现逻辑**:
 
 ```
-structure CardSharing:
-    // 分享卡片
-    function shareCard(cardId, format):
-        // 步骤1：加载卡片
-        card = cardStore.getCard(cardId)
+function addTag(cardId, tagName):
+    if tagName.trim().isEmpty():
+        return error("INVALID_TAG", "标签不能为空")
 
-        // 步骤2：格式化内容
-        shareContent = formatShareContent(card, format)
+    tags = cardStore.getTags(cardId)
+    if tags.contains(tagName):
+        return error("DUPLICATE_TAG", "标签已存在")
 
-        // 步骤3：打开系统分享对话框
-        showShareDialog(
-            content: shareContent,
-            mimeType: getMimeType(format)
-        )
+    tags.add(tagName)
+    cardStore.updateTags(cardId, tags)
+```
 
-    // 格式化分享内容
-    function formatShareContent(card, format):
-        if format == "text":
-            return formatAsText(card)
-        else if format == "markdown":
-            return formatAsMarkdown(card)
-        else:
-            return formatAsText(card)
+---
 
-    // 格式化为文本
-    function formatAsText(card):
-        return """
-        标题: {card.title}
+## 需求：分享卡片
 
-        {card.content}
-        """
+用户应能够分享卡片内容到其他应用。
 
-    // 格式化为 Markdown
-    function formatAsMarkdown(card):
-        return """
-        # {card.title}
+### 场景：分享卡片
 
-        {card.content}
-        """
+- **前置条件**: 用户在卡片详情界面选择分享
+- **操作**: 用户触发分享
+- **预期结果**: 系统应打开平台分享对话框
+- **并且**: 分享内容应包含标题和正文
 
-    // 获取 MIME 类型
-    function getMimeType(format):
-        if format == "markdown":
-            return "text/markdown"
-        else:
-            return "text/plain"
+**实现逻辑**:
+
+```
+function shareCard(card):
+    content = "{card.title}\n\n{card.content}"
+    openShareDialog(content)
 ```
 
 ---
 
 ## 测试覆盖
 
+**测试文件**: `test/features/card_management_test.dart`
 
 **单元测试**:
-- `test_create_card_with_title_and_content()` - 创建包含标题和内容的卡片
-- `test_create_card_with_title_only()` - 仅使用标题创建卡片
-- `test_reject_card_without_title()` - 拒绝无标题的卡片
-- `test_reject_card_when_no_pool()` - 未加入池时拒绝创建卡片
-- `test_view_card_details()` - 查看卡片详情
+- `test_create_card_with_title_and_content()` - 创建卡片
+- `test_create_card_with_title_only()` - 仅标题创建
+- `test_reject_empty_title()` - 拒绝空标题
+- `test_reject_without_pool()` - 未加入池拒绝创建
+- `test_view_card_details()` - 查看详情
 - `test_view_collaboration_info()` - 查看协作信息
 - `test_view_sync_status()` - 查看同步状态
-- `test_edit_card_title_and_content()` - 编辑卡片标题和内容
-- `test_autosave_draft_while_editing()` - 编辑时自动保存草稿
-- `test_restore_draft_on_reopen()` - 重新打开时恢复草稿
-- `test_discard_draft_on_explicit_save()` - 显式保存时丢弃草稿
-- `test_cancel_edit_discard_changes()` - 取消编辑丢弃更改
-- `test_prevent_save_empty_title()` - 防止保存空标题
-- `test_add_tag_to_card()` - 向卡片添加标签
-- `test_add_multiple_tags()` - 添加多个标签
-- `test_prevent_duplicate_tags()` - 防止重复标签
-- `test_remove_tag_from_card()` - 从卡片移除标签
-- `test_tag_case_sensitivity()` - 标签大小写敏感性
-- `test_delete_card_with_confirmation()` - 带确认删除卡片
-- `test_cancel_delete_operation()` - 取消删除操作
-- `test_undo_delete_action()` - 撤销删除操作
-- `test_share_card_content()` - 分享卡片内容
-- `test_share_as_text_format()` - 以文本格式分享
-- `test_share_as_markdown_format()` - 以 Markdown 格式分享
-
-**集成测试**:
-- `test_card_creation_syncs_to_all_devices()` - 卡片创建同步到所有设备
-- `test_card_edit_syncs_to_all_devices()` - 卡片编辑同步到所有设备
-- `test_card_deletion_syncs_to_all_devices()` - 卡片删除同步到所有设备
-- `test_tag_changes_sync_to_all_devices()` - 标签更改同步到所有设备
+- `test_edit_card_updates_timestamps()` - 编辑更新时间戳
+- `test_auto_save_draft()` - 自动保存草稿
+- `test_restore_draft()` - 恢复草稿
+- `test_discard_draft_on_save()` - 保存时丢弃草稿
+- `test_discard_changes_on_cancel()` - 取消丢弃更改
+- `test_reject_empty_title_on_edit()` - 编辑空标题拒绝
+- `test_delete_card_confirmation()` - 删除确认
+- `test_cancel_delete()` - 取消删除
+- `test_add_tag()` - 添加标签
+- `test_remove_tag()` - 移除标签
+- `test_share_card()` - 分享卡片
 
 **验收标准**:
-- [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
-- [ ] 卡片创建在所有平台上正常工作
-- [ ] 卡片编辑在所有平台上正常工作
-- [ ] 标签管理在所有平台上正常工作
-- [ ] 卡片删除在所有平台上正常工作
-- [ ] 卡片分享在所有平台上正常工作
-- [ ] 草稿自动保存可靠工作
-- [ ] 代码审查通过
+- [ ] 所有测试通过
+- [ ] 创建/查看/编辑/删除流程正常
+- [ ] 草稿保存与恢复可靠
+- [ ] 标签管理无重复
+- [ ] 分享功能可用
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-
-- [Card Domain Rules](../../domain/card/rules.md) - 卡片域规则
-- [Pool Model](../../domain/pool/model.md) - 池模型
-- [Card Store](../../architecture/storage/card_store.md) - 卡片存储
-- [Sync Service](../../architecture/sync/service.md) - 同步服务
-
----
-
-**最后更新**: 2026-01-23
-**作者**: CardMind Team

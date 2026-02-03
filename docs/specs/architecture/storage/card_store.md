@@ -1,6 +1,5 @@
 # CardStore 架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/card/rules.md](../../domain/card/rules.md), [../../domain/pool/model.md](../../domain/pool/model.md), [./device_config.md](./device_config.md)
 **相关测试**: `rust/tests/card_store_test.rs`
@@ -132,6 +131,10 @@ function convert_crdt_to_card(crdt_doc):
 
 ### 场景：cards 表的 SQLite schema
 
+- **前置条件**: 需要定义卡片缓存表结构
+- **操作**: 设定 cards 表字段
+- **预期结果**: 表包含卡片核心字段与删除标记
+- **并且**: schema 片段可用于初始化表
 
 ```sql
     id TEXT PRIMARY KEY,
@@ -141,18 +144,20 @@ function convert_crdt_to_card(crdt_doc):
     updated_at INTEGER NOT NULL,
     deleted INTEGER NOT NULL DEFAULT 0
 );
-
 ```
 
 ### 场景：card_pool_bindings 表的 SQLite schema
 
+- **前置条件**: 需要定义卡片与池的绑定关系表
+- **操作**: 设定 card_pool_bindings 表字段
+- **预期结果**: 表包含 card_id 与 pool_id 组合主键
+- **并且**: schema 片段可用于初始化表
 
 ```sql
     card_id TEXT NOT NULL,
     pool_id TEXT NOT NULL,
     PRIMARY KEY (card_id, pool_id)
 );
-
 ```
 
 ---
@@ -316,7 +321,7 @@ function clear_sqlite_database():
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **Rust std::fs**: 用于 Loro 文档持久化的文件系统操作
@@ -336,6 +341,23 @@ function clear_sqlite_database():
 - **文件权限**: Loro 文档以仅用户读写权限存储
 - **SQLite 加密**: 考虑使用 SQLite 加密扩展保护敏感数据
 - **输入验证**: 验证 card_id 和 pool_id 以防止路径遍历
+
+---
+
+## 相关文档
+
+**领域规格**:
+- [../../domain/card/rules.md](../../domain/card/rules.md) - 卡片业务规则
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+
+**相关架构规格**:
+- [./device_config.md](./device_config.md) - 设备配置存储
+- [./pool_store.md](./pool_store.md) - PoolStore 实现
+- [../sync/service.md](../sync/service.md) - P2P 同步服务
+
+**架构决策记录**:
+- [../../../docs/adr/0002-dual-layer-architecture.md](../../../docs/adr/0002-dual-layer-architecture.md) - 双层架构
+- [../../../docs/adr/0003-loro-crdt.md](../../../docs/adr/0003-loro-crdt.md) - Loro CRDT 用于无冲突同步
 
 ---
 
@@ -366,25 +388,3 @@ function clear_sqlite_database():
 - [ ] 性能基准满足要求
 - [ ] 代码审查通过
 - [ ] 文档已更新
-
----
-
-## 相关文档
-
-**领域规格**:
-- [../../domain/card/rules.md](../../domain/card/rules.md) - 卡片业务规则
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
-
-**相关架构规格**:
-- [./device_config.md](./device_config.md) - 设备配置存储
-- [./pool_store.md](./pool_store.md) - PoolStore 实现
-- [../sync/service.md](../sync/service.md) - P2P 同步服务
-
-**架构决策记录**:
-- [../../../docs/adr/0002-dual-layer-architecture.md](../../../docs/adr/0002-dual-layer-architecture.md) - 双层架构
-- [../../../docs/adr/0003-loro-crdt.md](../../../docs/adr/0003-loro-crdt.md) - Loro CRDT 用于无冲突同步
-
----
-
-**最后更新**: 2026-01-23
-**作者**: CardMind Team

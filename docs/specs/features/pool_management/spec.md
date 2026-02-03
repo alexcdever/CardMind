@@ -1,17 +1,12 @@
 # 池管理功能规格
 
-**版本**: 1.0.0
-
 **状态**: 活跃
-
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
-
 **相关测试**: `test/features/pool_management_test.dart`
 
 ---
 
 ## 概述
-
 
 本规格定义了池管理功能，使用户能够创建池、加入现有池、管理池设置和离开池。该功能强制执行单池约束，即每个设备一次最多只能加入一个池，设备上创建的所有卡片自动属于已加入的池。
 
@@ -26,7 +21,6 @@
 ---
 
 ## 需求：池创建
-
 
 用户应能够创建包含名称和密码的新池。
 
@@ -113,7 +107,6 @@ structure PoolManagement:
 
 ## 需求：池加入
 
-
 用户应能够使用池 ID 和密码加入现有池。
 
 ### 场景：使用有效凭据加入池
@@ -191,7 +184,6 @@ structure PoolJoining:
 
 ## 需求：池查看
 
-
 用户应能够查看当前池的信息。
 
 ### 场景：查看池信息
@@ -245,7 +237,6 @@ structure PoolViewing:
 ---
 
 ## 需求：池设置
-
 
 用户应能够管理池设置。
 
@@ -375,6 +366,7 @@ structure PoolLeaving:
 
 ## 测试覆盖
 
+**测试文件**: `test/features/pool_management_test.dart`
 
 **单元测试**:
 - `test_create_pool_with_name_and_password()` - 使用名称和密码创建池

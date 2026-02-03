@@ -121,13 +121,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SyncHistoryEvent dco_decode_sync_history_event(dynamic raw);
 
   @protected
-  SyncState dco_decode_sync_state(dynamic raw);
-
-  @protected
   SyncStatistics dco_decode_sync_statistics(dynamic raw);
 
   @protected
   SyncStatus dco_decode_sync_status(dynamic raw);
+
+  @protected
+  SyncUiState dco_decode_sync_ui_state(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -232,13 +232,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SyncHistoryEvent sse_decode_sync_history_event(SseDeserializer deserializer);
 
   @protected
-  SyncState sse_decode_sync_state(SseDeserializer deserializer);
-
-  @protected
   SyncStatistics sse_decode_sync_statistics(SseDeserializer deserializer);
 
   @protected
   SyncStatus sse_decode_sync_status(SseDeserializer deserializer);
+
+  @protected
+  SyncUiState sse_decode_sync_ui_state(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -373,9 +373,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_sync_state(SyncState self, SseSerializer serializer);
-
-  @protected
   void sse_encode_sync_statistics(
     SyncStatistics self,
     SseSerializer serializer,
@@ -383,6 +380,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_sync_status(SyncStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sync_ui_state(SyncUiState self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

@@ -72,7 +72,7 @@ class SyncProvider extends ChangeNotifier {
         (api_types.SyncStatus apiStatus) {
           // syncing→synced 立即更新，其他状态防抖 300ms
           final shouldUpdateImmediately =
-              apiStatus.state == api_types.SyncState.synced &&
+              apiStatus.state == api_types.SyncUiState.synced &&
               _status.state == model.SyncState.syncing;
 
           if (shouldUpdateImmediately) {
@@ -104,19 +104,19 @@ class SyncProvider extends ChangeNotifier {
   /// 将 API SyncStatus 转换为 Model SyncStatus
   model.SyncStatus _convertApiStatusToModel(api_types.SyncStatus apiStatus) {
     switch (apiStatus.state) {
-      case api_types.SyncState.notYetSynced:
+      case api_types.SyncUiState.notYetSynced:
         return model.SyncStatus.notYetSynced();
-      case api_types.SyncState.syncing:
+      case api_types.SyncUiState.syncing:
         final lastSyncTime = apiStatus.lastSyncTime != null
             ? DateTime.fromMillisecondsSinceEpoch(apiStatus.lastSyncTime!)
             : null;
         return model.SyncStatus.syncing(lastSyncTime: lastSyncTime);
-      case api_types.SyncState.synced:
+      case api_types.SyncUiState.synced:
         final lastSyncTime = apiStatus.lastSyncTime != null
             ? DateTime.fromMillisecondsSinceEpoch(apiStatus.lastSyncTime!)
             : DateTime.now();
         return model.SyncStatus.synced(lastSyncTime: lastSyncTime);
-      case api_types.SyncState.failed:
+      case api_types.SyncUiState.failed:
         final lastSyncTime = apiStatus.lastSyncTime != null
             ? DateTime.fromMillisecondsSinceEpoch(apiStatus.lastSyncTime!)
             : null;

@@ -1,6 +1,5 @@
 # 平台检测规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: 无
 **相关测试**: `test/adaptive/platform_detection_test.dart`
@@ -9,12 +8,13 @@
 
 ## 概述
 
-本规格定义了平台检测系统,识别当前平台和设备特性以启用自适应 UI 行为。
+本规格定义平台检测系统，识别当前平台与设备特性以启用自适应 UI 行为。
 
 **技术栈**:
-- **Flutter** 3.x - UI 框架
-- **dart:io** - 平台检测
-- **MediaQuery** - 屏幕信息
+- Flutter 3.x - UI 框架
+- dart:io - 平台检测
+- MediaQuery - 屏幕信息
+- ChangeNotifier - 状态管理
 
 **核心功能**:
 - 操作系统检测
@@ -22,6 +22,16 @@
 - 输入能力检测
 - 屏幕特性查询
 - 平台变化响应
+
+**平台分类**:
+- 移动端: Android, iOS (< 600dp)
+- 平板电脑: Android, iOS (>= 600dp)
+- 桌面端: Windows, macOS, Linux
+
+**输入能力**:
+- 触摸: 移动端和平板电脑
+- 指针: 桌面端
+- 物理键盘: 桌面端
 
 ---
 
@@ -230,7 +240,7 @@ bool isDesktopPlatform() {
 
 - **前置条件**: 应用程序正在运行
 - **操作**: 查询输入能力
-- **预期结果**: 对于移动和平板设备,系统应返回 true 表示支持触摸
+- **预期结果**: 对于移动和平板设备，系统应返回 true 表示支持触摸
 - **并且**: 对于没有触摸屏的传统桌面平台返回 false
 
 **实现逻辑**:
@@ -285,7 +295,7 @@ bool supportsTouch(BuildContext context) {
 
 - **前置条件**: 应用程序正在运行
 - **操作**: 查询输入能力
-- **预期结果**: 对于桌面平台,系统应返回 true 表示支持指针
+- **预期结果**: 对于桌面平台，系统应返回 true 表示支持指针
 - **并且**: 对于不支持鼠标的移动手机返回 false
 
 **实现逻辑**:
@@ -305,7 +315,7 @@ bool supportsHover(BuildContext context) {
 
 - **前置条件**: 应用程序正在运行
 - **操作**: 查询输入能力
-- **预期结果**: 对于桌面的物理键盘,系统应返回 true
+- **预期结果**: 对于桌面的物理键盘，系统应返回 true
 - **并且**: 对于仅有虚拟键盘的移动设备返回 false
 
 **实现逻辑**:
@@ -438,7 +448,7 @@ bool isLandscape(BuildContext context) {
 
 - **前置条件**: 应用程序正在运行
 - **操作**: 检查平台类别
-- **预期结果**: 当平台为 Android 或 iOS 且为手机形态时,系统应为 isMobile 返回 true
+- **预期结果**: 当平台为 Android 或 iOS 且为手机形态时，系统应为 isMobile 返回 true
 
 **实现逻辑**:
 
@@ -481,7 +491,7 @@ bool isMobile(BuildContext context) {
 
 - **前置条件**: 应用程序正在运行
 - **操作**: 检查平台类别
-- **预期结果**: 当平台为 Windows、macOS 或 Linux 时,系统应为 isDesktop 返回 true
+- **预期结果**: 当平台为 Windows、macOS 或 Linux 时，系统应为 isDesktop 返回 true
 
 **实现逻辑**:
 
@@ -495,7 +505,7 @@ bool isDesktopFlag(BuildContext context) {
 
 - **前置条件**: 应用程序正在运行
 - **操作**: 检查悬停支持
-- **预期结果**: 对于桌面平台,系统应为 supportsHover 返回 true
+- **预期结果**: 对于桌面平台，系统应为 supportsHover 返回 true
 - **并且**: 对于没有指针的移动平台返回 false
 
 **实现逻辑**:
@@ -510,7 +520,7 @@ bool supportsHoverFlag(BuildContext context) {
 
 - **前置条件**: 应用程序正在运行
 - **操作**: 检查手势支持
-- **预期结果**: 对于支持触摸的设备,系统应为 supportsGestures 返回 true
+- **预期结果**: 对于支持触摸的设备，系统应为 supportsGestures 返回 true
 - **并且**: 对于没有触摸屏的桌面返回 false
 
 **实现逻辑**:
@@ -631,36 +641,6 @@ class OrientationAwareWidget extends StatelessWidget {
 
 ---
 
-## 实现细节
-
-**技术栈**:
-- **Flutter** 3.x - UI 框架
-- **dart:io** - 平台检测
-- **MediaQuery** - 屏幕信息
-- **ChangeNotifier** - 状态管理
-
-**设计模式**:
-- **单例模式**: 平台检测服务
-- **观察者模式**: 平台变化通知
-- **策略模式**: 平台特定行为
-
-**平台分类**:
-- **移动端**: Android, iOS (< 600dp)
-- **平板电脑**: Android, iOS (>= 600dp)
-- **桌面端**: Windows, macOS, Linux
-
-**输入能力**:
-- **触摸**: 移动端和平板电脑
-- **指针**: 桌面端
-- **物理键盘**: 桌面端
-
-**屏幕断点**:
-- **手机**: < 600dp
-- **平板**: 600-840dp
-- **桌面**: >= 840dp
-
----
-
 ## 测试覆盖
 
 **测试文件**: `test/adaptive/platform_detection_test.dart`
@@ -692,16 +672,3 @@ class OrientationAwareWidget extends StatelessWidget {
 - [x] 输入能力检测可靠工作
 - [x] 平台变化事件正确发出
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**相关规格**:
-- [layouts.md](layouts.md) - 自适应布局系统
-- [components.md](components.md) - 自适应组件
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

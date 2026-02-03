@@ -1,6 +1,5 @@
 # PoolStore 架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [./device_config.md](./device_config.md), [./dual_layer.md](./dual_layer.md)
 **相关测试**: `rust/tests/pool_store_test.rs`
@@ -586,7 +585,7 @@ function verify_password_with_bcrypt(password, password_hash):
 
 ---
 
-## 实现细节
+## 补充说明
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档存储
@@ -612,6 +611,24 @@ function verify_password_with_bcrypt(password, password_hash):
 - **池加载时间**: < 10ms（缓存命中）
 - **池创建时间**: < 100ms
 - **密码哈希时间**: ~100ms（bcrypt 成本因子 12）
+
+---
+
+## 相关文档
+
+**领域规格**:
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+
+**架构规格**:
+- [./dual_layer.md](./dual_layer.md) - 双层架构
+- [./card_store.md](./card_store.md) - CardStore 实现
+- [./device_config.md](./device_config.md) - 设备配置
+- [./loro_integration.md](./loro_integration.md) - Loro 集成
+- [../sync/service.md](../sync/service.md) - P2P 同步服务
+- [../security/password.md](../security/password.md) - 密码管理
+
+**架构决策记录**:
+- ADR-0001: 单池模型 - 每设备单池设计决策
 
 ---
 
@@ -653,26 +670,3 @@ function verify_password_with_bcrypt(password, password_hash):
 - [x] 离开池时数据清理
 - [x] 缓存提高性能
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**领域规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
-
-**架构规格**:
-- [./dual_layer.md](./dual_layer.md) - 双层架构
-- [./card_store.md](./card_store.md) - CardStore 实现
-- [./device_config.md](./device_config.md) - 设备配置
-- [./loro_integration.md](./loro_integration.md) - Loro 集成
-- [../sync/service.md](../sync/service.md) - P2P 同步服务
-- [../security/password.md](../security/password.md) - 密码管理
-
-**架构决策记录**:
-- ADR-0001: 单池模型 - 每设备单池设计决策
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

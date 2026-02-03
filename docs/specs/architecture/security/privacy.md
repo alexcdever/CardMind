@@ -1,6 +1,5 @@
 # mDNS 隐私保护架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../domain/sync/model.md](../../domain/sync/model.md)
 **相关测试**: `rust/tests/p2p/discovery_test.rs`
@@ -8,7 +7,6 @@
 ---
 
 ## 概述
-
 
 本规格定义了 CardMind 中 mDNS 设备发现的隐私保护机制。系统在局域网内广播设备信息时，仅暴露非敏感信息（设备 ID、默认设备昵称、数据池 ID），不暴露数据池名称、成员列表、卡片数量等敏感信息，确保未授权设备无法获取用户隐私数据。
 
@@ -20,7 +18,6 @@
 ---
 
 ## 需求：最小信息暴露
-
 
 系统应在 mDNS 广播中仅暴露非敏感信息，包括设备 ID、默认设备昵称和数据池 ID。
 
@@ -74,7 +71,6 @@ function serialize_device_info(device_info):
 
 ## 需求：默认设备昵称生成
 
-
 系统应生成默认设备昵称，格式为 "Unknown-{UUID前5位}"，不使用用户自定义昵称。
 
 ### 场景：生成设备昵称
@@ -102,7 +98,6 @@ function generate_device_name(device_id):
 ---
 
 ## 需求：密码验证后获取详情
-
 
 系统应要求新设备输入密码验证后，才能获取数据池的完整信息（名称、成员列表等）。
 
@@ -147,7 +142,6 @@ function join_pool(pool_id, password):
 
 ## 需求：加密传输
 
-
 系统应使用 Noise 协议加密 P2P 通信，防止中间人攻击和窃听。
 
 ### 场景：设备间通信
@@ -183,7 +177,6 @@ function start_discovery():
 
 ## 需求：数据池 ID 不泄露内容
 
-
 系统应使用 UUID v7 作为数据池 ID，确保 ID 本身不包含任何业务信息。
 
 ### 场景：广播数据池 ID
@@ -192,6 +185,19 @@ function start_discovery():
 - **操作**: 广播数据池 ID
 - **预期结果**: 广播的 ID 应为 UUID v7 格式（如 "018c8a1b-2c3d-7e4f-8a9b-0c1d2e3f4a5b"）
 - **并且**: ID 不应包含数据池名称、创建时间等信息
+
+---
+
+## 相关文档
+
+**相关规格**:
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 数据池领域模型
+- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步模型
+- [../sync/peer_discovery.md](../sync/peer_discovery.md) - mDNS 设备发现
+- [./password.md](./password.md) - bcrypt 密码管理
+
+**架构决策记录**:
+- [../../../docs/adr/0003-p2p-sync-architecture.md](../../../docs/adr/0003-p2p-sync-architecture.md) - P2P 同步架构
 
 ---
 
@@ -224,21 +230,3 @@ function start_discovery():
 - [x] 密码验证后才能获取详情
 - [x] 代码审查通过
 - [x] 文档已更新
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 数据池领域模型
-- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步模型
-- [../sync/peer_discovery.md](../sync/peer_discovery.md) - mDNS 设备发现
-- [./password.md](./password.md) - bcrypt 密码管理
-
-**架构决策记录**:
-- [../../../docs/adr/0003-p2p-sync-architecture.md](../../../docs/adr/0003-p2p-sync-architecture.md) - P2P 同步架构
-
----
-
-**最后更新**: 2026-01-23
-**作者**: CardMind Team

@@ -1,6 +1,5 @@
 # 双层存储架构规格
 
-**版本**: 1.0.0
 **状态**: 活跃
 **依赖**: [./card_store.md](./card_store.md), [../../domain/card/model.md](../../domain/card/model.md)
 **相关测试**: `rust/tests/dual_layer_test.rs`
@@ -97,6 +96,11 @@ function update_card(card_id, title, content):
 
 ### 场景：卡片的 Loro 文档结构
 
+- **前置条件**: 系统需要定义卡片的 CRDT 文档结构
+- **操作**: 设定卡片的 Loro 文档字段
+- **预期结果**: 文档包含卡片核心字段
+- **并且**: 字段使用 UUIDv7 与毫秒级时间戳
+
 **文档结构**:
 
 ```rust
@@ -143,6 +147,11 @@ function create_card_loro_document(card_id, title, content):
 ```
 
 ### 场景：池的 Loro 文档结构
+
+- **前置条件**: 系统需要定义池的 CRDT 文档结构
+- **操作**: 设定池的 Loro 文档字段
+- **预期结果**: 文档包含池与成员列表信息
+- **并且**: 列表字段使用 Loro List CRDT
 
 **文档结构**:
 
@@ -244,6 +253,11 @@ function get_cards_in_pool(pool_id, limit, offset):
 
 ### 场景：SQLite schema 设计
 
+- **前置条件**: 系统需要定义缓存层的表结构
+- **操作**: 建立卡片、池及绑定关系的表
+- **预期结果**: 支持常用查询并具备索引
+- **并且**: schema 可被重复初始化
+
 **卡片表**:
 
 ```sql
@@ -329,6 +343,11 @@ function initialize_sqlite_schema():
 ```
 
 ### 场景：查询优化示例
+
+- **前置条件**: 需要验证常用查询的可读性与索引使用
+- **操作**: 列出典型查询语句
+- **预期结果**: 查询语句覆盖列表、搜索与计数
+- **并且**: 可用于性能调优
 
 **示例 1：获取当前池中的所有卡片**
 
@@ -628,6 +647,11 @@ function parse_pool_from_loro(loro_doc):
 
 ### 场景：写性能 - Loro
 
+- **前置条件**: 高频写入导致响应延迟上升
+- **操作**: 引入缓存与延迟持久化策略
+- **预期结果**: 写入延迟保持可控
+- **并且**: 不影响最终一致性
+
 **优化**:
 - **内存缓存**: 将频繁访问的 Loro 文档保存在内存中
 - **延迟持久化**: 批量写入磁盘
@@ -658,6 +682,11 @@ structure LoroDocumentCache:
 ```
 
 ### 场景：读性能 - SQLite
+
+- **前置条件**: 读取查询成为性能瓶颈
+- **操作**: 配置 SQLite 并优化索引
+- **预期结果**: 读取延迟降低
+- **并且**: 读写并发能力提升
 
 **优化**:
 - **索引**: 在频繁查询的列上创建索引
@@ -695,13 +724,7 @@ function configure_sqlite(connection):
 
 ---
 
-## 实现细节
-
-**技术栈**:
-- **loro** = "1.0" - CRDT 文档存储
-- **rusqlite** = "0.31" - SQLite 数据库
-- **tokio** - 异步运行时
-- **serde** = "1.0" - 序列化/反序列化
+## 补充说明
 
 **设计模式**:
 - **CQRS（命令查询职责分离）**: 分离写入和读取模型
@@ -717,6 +740,25 @@ function configure_sqlite(connection):
 - **读取延迟**: < 10ms（SQLite 索引查询）
 - **同步延迟**: < 100ms（订阅回调）
 - **重建时间**: < 5s（10000 张卡片）
+
+---
+
+## 相关文档
+
+**架构规格**:
+- [./card_store.md](./card_store.md) - CardStore 实现
+- [./pool_store.md](./pool_store.md) - PoolStore 实现
+- [./sqlite_cache.md](./sqlite_cache.md) - SQLite 缓存细节
+- [./loro_integration.md](./loro_integration.md) - Loro 集成
+- [../sync/subscription.md](../sync/subscription.md) - 订阅机制
+
+**领域规格**:
+- [../../domain/card/model.md](../../domain/card/model.md) - 卡片领域模型
+- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+
+**架构决策记录**:
+- ADR-0002: 双层架构 - 读写分离设计决策
+- ADR-0003: Loro CRDT - CRDT 选择理由
 
 ---
 
@@ -749,27 +791,3 @@ function configure_sqlite(connection):
 - [x] 10000 张卡片的 SQLite 重建在 5 秒内完成
 - [x] 订阅回调延迟 < 100ms
 - [x] 代码审查通过
-
----
-
-## 相关文档
-
-**架构规格**:
-- [./card_store.md](./card_store.md) - CardStore 实现
-- [./pool_store.md](./pool_store.md) - PoolStore 实现
-- [./sqlite_cache.md](./sqlite_cache.md) - SQLite 缓存细节
-- [./loro_integration.md](./loro_integration.md) - Loro 集成
-- [../sync/subscription.md](../sync/subscription.md) - 订阅机制
-
-**领域规格**:
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片领域模型
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
-
-**架构决策记录**:
-- ADR-0002: 双层架构 - 读写分离设计决策
-- ADR-0003: Loro CRDT - CRDT 选择理由
-
----
-
-**最后更新**: 2026-02-02
-**作者**: CardMind Team

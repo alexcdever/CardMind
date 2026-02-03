@@ -39,11 +39,10 @@ pub enum LoroStoreError {
 /// use std::path::Path;
 ///
 /// # async fn example() -> anyhow::Result<()> {
-/// let store = LoroStore::new();
 /// let path = Path::new("/path/to/document.loro");
 ///
 /// // 加载文档
-/// let _doc = store.load_from_path(path)?;
+/// let _store = LoroStore::from_path(path)?;
 /// # Ok(())
 /// # }
 /// ```
@@ -125,7 +124,7 @@ impl LoroStore {
     /// ```
     /// use cardmind_rust::store::loro_store::LoroStore;
     ///
-    /// let store = LoroStore::new();
+    /// let mut store = LoroStore::new();
     /// let doc = store.doc_mut();
     /// // 现在可以使用 doc 创建和操作 CRDT 数据结构
     /// ```
@@ -220,9 +219,11 @@ impl LoroStore {
     ///
     /// ```
     /// use cardmind_rust::store::loro_store::LoroStore;
+    /// use loro::VersionVector;
     ///
     /// let store = LoroStore::new();
-    /// let updates = store.export_updates(&[]).unwrap();
+    /// let version = VersionVector::default().encode();
+    /// let updates = store.export_updates(&version).unwrap();
     /// // updates 包含自指定版本以来的所有变更
     /// ```
     pub fn export_updates(&self, since_version: &[u8]) -> Result<Vec<u8>, LoroStoreError> {
@@ -252,10 +253,19 @@ impl LoroStore {
     ///
     /// ```
     /// use cardmind_rust::store::loro_store::LoroStore;
+    /// use loro::VersionVector;
     ///
     /// let mut store = LoroStore::new();
-    /// let updates = vec![/* ... */];
-    /// store.import_updates(&updates).unwrap();
+    /// let doc = store.doc_mut();
+    /// let text = doc.get_text("test");
+    /// text.insert(0, "Hello").unwrap();
+    /// store.commit();
+    ///
+    /// let version = VersionVector::default().encode();
+    /// let updates = store.export_updates(&version).unwrap();
+    ///
+    /// let mut other = LoroStore::new();
+    /// other.import_updates(&updates).unwrap();
     /// // 文档状态现在合并了更新
     /// ```
     pub fn import_updates(&mut self, updates: &[u8]) -> Result<(), LoroStoreError> {
@@ -319,7 +329,7 @@ impl LoroStore {
     /// 如果文档没有数据，返回 true
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.size() == 0
+        self.doc.oplog_vv().is_empty()
     }
 }
 
@@ -390,6 +400,7 @@ mod tests {
         }
     }
 
+
     #[test]
     fn test_export_import_updates() {
         let mut store1 = LoroStore::new();
@@ -401,12 +412,11 @@ mod tests {
         text1.insert(0, "First").unwrap();
         store1.commit();
 
-        // 获取版本向量
-        let version = store1.get_version_vector().unwrap();
-
-        // 导出更新（第一次应该为空，因为刚刚提交）
+        // 使用对端版本向量导出更新（首次同步）
+        let version = store2.get_version_vector().unwrap();
         let updates = store1.export_updates(&version).unwrap();
-        assert!(updates.is_empty());
+        assert!(!updates.is_empty());
+        store2.import_updates(&updates).unwrap();
 
         // 修改数据
         let doc1 = store1.doc_mut();
@@ -414,15 +424,13 @@ mod tests {
         text1.insert(5, " Update").unwrap();
         store1.commit();
 
-        // 再次获取版本向量并导出
-        let version = store1.get_version_vector().unwrap();
+        // 使用对端最新版本向量导出增量更新
+        let version = store2.get_version_vector().unwrap();
         let updates = store1.export_updates(&version).unwrap();
-        // 现在应该有更新
         assert!(!updates.is_empty());
-
-        // 导入到 store2
         store2.import_updates(&updates).unwrap();
     }
+
 
     #[test]
     fn test_version_vector() {
@@ -447,10 +455,10 @@ mod tests {
         store.commit();
 
         // 添加数据并提交
+        let op_count1 = store.doc.oplog_vv();
         let doc = store.doc_mut();
         let text = doc.get_text("test");
         text.insert(0, "A").unwrap();
-        let op_count1 = store.doc.oplog_vv();
         store.commit();
         assert!(store.doc.oplog_vv() > op_count1);
     }
@@ -458,7 +466,7 @@ mod tests {
     #[test]
     fn test_size() {
         let mut store = LoroStore::new();
-        assert_eq!(store.size(), 0);
+        let base_size = store.size();
 
         // 添加数据
         let doc = store.doc_mut();
@@ -466,7 +474,7 @@ mod tests {
         text.insert(0, "Hello World").unwrap();
         store.commit();
 
-        assert!(store.size() > 0);
+        assert!(store.size() > base_size);
     }
 
     #[test]

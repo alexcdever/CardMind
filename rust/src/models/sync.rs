@@ -242,7 +242,7 @@ mod tests {
             .insert("peer-001".to_string(), 10u64);
 
         let mut remote_versions = HashMap::new();
-        remote_versions.insert("device-001".to_string(), 20u64); // 对等设备有更新版本
+        remote_versions.insert("peer-001".to_string(), 20u64); // 对等设备有更新版本
 
         assert!(sync_state.needs_sync(&remote_versions));
     }
@@ -255,7 +255,7 @@ mod tests {
             .insert("peer-001".to_string(), 20u64);
 
         let mut remote_versions = HashMap::new();
-        remote_versions.insert("device-001".to_string(), 10u64); // 对等设备版本更旧
+        remote_versions.insert("peer-001".to_string(), 10u64); // 对等设备版本更旧
 
         assert!(!sync_state.needs_sync(&remote_versions));
     }
@@ -268,7 +268,7 @@ mod tests {
             .insert("peer-001".to_string(), 20u64);
 
         let mut remote_versions = HashMap::new();
-        remote_versions.insert("device-001".to_string(), 20u64); // 版本相同
+        remote_versions.insert("peer-001".to_string(), 20u64); // 版本相同
 
         assert!(!sync_state.needs_sync(&remote_versions));
     }

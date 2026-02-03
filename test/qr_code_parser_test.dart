@@ -2,6 +2,7 @@
 
 import 'dart:io';
 
+import 'package:cardmind/services/qr_code_generator.dart';
 import 'package:cardmind/services/qr_code_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -167,23 +168,32 @@ void main() {
 
   group('QRCodeParser Decoding Tests', () {
     test('parseFromFile decodes valid QR code image', () async {
-      final file = File('test/fixtures/test_qr_code.png');
+      final file = File('test/fixtures/tmp_qr_code.png');
+      final bytes = await QRCodeGenerator.generatePairingQRCode(
+        peerId: '12D3KooWTest123456789',
+        deviceName: 'Test Device',
+        deviceType: 'laptop',
+        multiaddrs: ['/ip4/192.168.1.100/tcp/4001'],
+        poolId: 'test-pool-id-123',
+      );
 
-      // 跳过测试如果文件不存在
-      if (!await file.exists()) {
-        print('Skipping test: test QR code image not found');
-        return;
+      await file.writeAsBytes(bytes);
+
+      try {
+        final qrData = await QRCodeParser.parseFromFile(file);
+
+        expect(qrData.version, '1.0');
+        expect(qrData.type, 'pairing');
+        expect(qrData.peerId, '12D3KooWTest123456789');
+        expect(qrData.deviceName, 'Test Device');
+        expect(qrData.deviceType, 'laptop');
+        expect(qrData.multiaddrs, ['/ip4/192.168.1.100/tcp/4001']);
+        expect(qrData.poolId, 'test-pool-id-123');
+      } finally {
+        if (await file.exists()) {
+          await file.delete();
+        }
       }
-
-      final qrData = await QRCodeParser.parseFromFile(file);
-
-      expect(qrData.version, '1.0');
-      expect(qrData.type, 'pairing');
-      expect(qrData.peerId, '12D3KooWTest123456789');
-      expect(qrData.deviceName, 'Test Device');
-      expect(qrData.deviceType, 'laptop');
-      expect(qrData.multiaddrs, ['/ip4/192.168.1.100/tcp/4001']);
-      expect(qrData.poolId, 'test-pool-id-123');
     });
 
     test('parseFromFile throws on invalid image', () async {
