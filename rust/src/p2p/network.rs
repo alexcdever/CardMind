@@ -16,6 +16,7 @@
 //! - 使用 libp2p 自签名证书（本地网络信任模型）
 //! - 禁用明文连接
 
+use crate::models::error::{CardMindError, MdnsError};
 use crate::p2p::identity::IdentityManager;
 use crate::p2p::sync::{SyncRequest, SyncResponse};
 use libp2p::{
@@ -118,7 +119,7 @@ impl P2PNetwork {
     /// # Errors
     ///
     /// 如果网络初始化失败，返回错误
-    pub fn new(mdns_enabled: bool) -> Result<Self, Box<dyn Error>> {
+    pub fn new(mdns_enabled: bool) -> Result<Self, CardMindError> {
         info!("初始化 P2P 网络 (mDNS: {})...", mdns_enabled);
 
         // 1. 生成身份密钥对
@@ -127,8 +128,8 @@ impl P2PNetwork {
         info!("本地 Peer ID: {}", local_peer_id);
 
         // 2. 创建 Noise 加密配置（强制 TLS）
-        let noise_config =
-            noise::Config::new(&local_key).map_err(|e| format!("Noise 配置失败: {e}"))?;
+        let noise_config = noise::Config::new(&local_key)
+            .map_err(|e| CardMindError::IoError(format!("Noise 配置失败: {e}")))?;
 
         // 3. 创建传输层
         let transport = tcp::tokio::Transport::default()
@@ -147,16 +148,10 @@ impl P2PNetwork {
 
         // 5. 创建可选的 mDNS 行为
         let mdns_behaviour = if mdns_enabled {
-            match mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id) {
-                Ok(mdns) => {
-                    info!("mDNS 设备发现已启用");
-                    Some(mdns).into()
-                }
-                Err(e) => {
-                    warn!("mDNS 初始化失败，将禁用: {}", e);
-                    None.into()
-                }
-            }
+            let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)
+                .map_err(|e| CardMindError::Mdns(MdnsError::from_message(&e.to_string())))?;
+            info!("mDNS 设备发现已启用");
+            Some(mdns).into()
         } else {
             info!("mDNS 设备发现已禁用");
             None.into()
@@ -200,7 +195,7 @@ impl P2PNetwork {
     pub fn new_with_identity(
         identity_manager: &IdentityManager,
         mdns_enabled: bool,
-    ) -> Result<Self, Box<dyn Error>> {
+    ) -> Result<Self, CardMindError> {
         info!(
             "初始化 P2P 网络（使用持久化密钥对，mDNS: {}）...",
             mdns_enabled
@@ -209,13 +204,13 @@ impl P2PNetwork {
         // 1. 加载或生成身份密钥对
         let local_key = identity_manager
             .get_or_create_keypair()
-            .map_err(|e| format!("加载密钥对失败: {e}"))?;
+            .map_err(|e| CardMindError::IoError(format!("加载密钥对失败: {e}")))?;
         let local_peer_id = PeerId::from(local_key.public());
         info!("本地 Peer ID: {}", local_peer_id);
 
         // 2. 创建 Noise 加密配置（强制 TLS）
-        let noise_config =
-            noise::Config::new(&local_key).map_err(|e| format!("Noise 配置失败: {e}"))?;
+        let noise_config = noise::Config::new(&local_key)
+            .map_err(|e| CardMindError::IoError(format!("Noise 配置失败: {e}")))?;
 
         // 3. 创建传输层
         let transport = tcp::tokio::Transport::default()
@@ -234,16 +229,10 @@ impl P2PNetwork {
 
         // 5. 创建可选的 mDNS 行为
         let mdns_behaviour = if mdns_enabled {
-            match mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id) {
-                Ok(mdns) => {
-                    info!("mDNS 设备发现已启用");
-                    Some(mdns).into()
-                }
-                Err(e) => {
-                    warn!("mDNS 初始化失败，将禁用: {}", e);
-                    None.into()
-                }
-            }
+            let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)
+                .map_err(|e| CardMindError::Mdns(MdnsError::from_message(&e.to_string())))?;
+            info!("mDNS 设备发现已启用");
+            Some(mdns).into()
         } else {
             info!("mDNS 设备发现已禁用");
             None.into()
@@ -402,8 +391,11 @@ mod tests {
     #[tokio::test]
     async fn test_network_creation_with_mdns() {
         let network = P2PNetwork::new(true);
-        // mDNS 可能因为权限问题失败，但网络应该仍然可以创建
-        assert!(network.is_ok(), "网络初始化应该成功");
+        match network {
+            Ok(_) => {}
+            Err(CardMindError::Mdns(_)) => {}
+            Err(err) => panic!("网络初始化失败: {err}"),
+        }
     }
 
     /// 测试 Peer ID 生成
