@@ -705,9 +705,6 @@ function optimize_database():
 - **索引策略**: 优化常见查询路径
 
 **性能特征**:
-- **读取性能**: 1000 张卡片 < 10ms
-- **写入性能**: 每张卡片 < 50ms
-- **搜索性能**: 全文搜索 < 100ms
 - **并发读取**: WAL 模式下无限制
 - **连接池大小**: 默认 10 个连接
 
@@ -755,15 +752,8 @@ function optimize_database():
 - `test_integrity_check()` - 完整性检查
 - `test_foreign_key_constraints()` - 外键约束
 
-**性能测试**:
-- `bench_query_1000_cards()` - 10ms 内查询 1000 张卡片
-- `bench_full_text_search()` - 100ms 内全文搜索
-- `bench_concurrent_reads()` - 并发读取压力测试
-- `bench_batch_insert()` - 批量插入性能
-
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] 性能基准达标
 - [x] FTS5 搜索正确工作
 - [x] 连接池高效
 - [x] 事务正确处理

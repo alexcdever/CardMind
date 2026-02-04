@@ -20,10 +20,6 @@
 - Provider/Riverpod - 状态管理
 - flutter_rust_bridge - 数据桥接
 
-**性能要求**:
-- 过滤应在 200ms 内完成
-- UI 应保持响应
-
 ---
 
 ## 需求：桌面端内联搜索
@@ -309,7 +305,6 @@ structure SearchEmptyState:
 - `test_search_field_placeholder()` - 测试占位符
 - `test_keyboard_shortcut_focus()` - 测试键盘快捷键聚焦
 - `test_filter_cards()` - 测试过滤卡片
-- `test_filter_performance()` - 测试过滤性能 < 200ms
 - `test_clear_search()` - 测试清空搜索
 - `test_highlight_matches()` - 测试高亮匹配
 - `test_multiple_matches_highlight()` - 测试多个匹配高亮

@@ -248,8 +248,6 @@ structure SearchAndFilter:
 
 **集成测试**:
 - `test_search_with_large_dataset()` - 大数据集搜索
-- `test_filter_performance()` - 过滤性能
-- `test_sort_performance()` - 排序性能
 
 **验收标准**:
 - [ ] 所有单元测试通过

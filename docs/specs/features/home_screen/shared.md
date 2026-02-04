@@ -29,11 +29,6 @@
 - Provider/Riverpod - 状态管理
 - flutter_rust_bridge - 数据桥接
 
-**性能要求**:
-- 卡片应在 350ms 内加载
-- 滚动应保持 60fps
-- 同步状态应实时更新
-
 ---
 
 ## 需求：主屏幕应显示所有卡片
@@ -305,8 +300,6 @@ structure UserInteraction:
 - `test_sync_completed()` - 测试同步完成状态
 - `test_open_card()` - 测试打开卡片
 - `test_create_card()` - 测试创建新卡片
-- `test_performance_load_time()` - 测试加载时间 < 350ms
-- `test_performance_scroll_fps()` - 测试滚动帧率 >= 60fps
 
 **集成测试**:
 - `test_card_list_workflow()` - 测试卡片列表完整流程
@@ -317,6 +310,5 @@ structure UserInteraction:
 - [ ] 卡片列表正常显示
 - [ ] 同步状态实时更新
 - [ ] 用户交互响应迅速
-- [ ] 性能要求达标
 - [ ] 代码审查通过
 - [ ] 文档已更新

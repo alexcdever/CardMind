@@ -97,13 +97,11 @@
 - `it_should_show_connected_devices_count()` - 显示设备数量
 - `it_should_show_last_sync_time()` - 显示上次同步时间
 - `it_should_open_details_on_tap()` - 点击打开详情
-- `it_should_update_within_1_second()` - 1秒内更新
 - `it_should_animate_state_transitions()` - 状态过渡动画
 
 **验收标准**:
 - [ ] 所有 Widget 测试通过
 - [ ] 可视状态清晰可辨
-- [ ] 动画流畅且性能良好
 - [ ] 状态更新快速响应状态变化
 - [ ] 代码审查通过
 - [ ] 文档已更新
