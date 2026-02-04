@@ -32,19 +32,32 @@
 - [密钥存储](architecture/security/keyring.md) - Keyring 密钥存储
 
 
-- [API 规格](../../openspec/specs/api/api_spec.md) - Rust API 统一接口定义
+- [API 文档](../../doc/api/) - Rust API 参考文档
 
 ## 功能规格（Features）
 
 用户功能详细规格：
 
 - [卡片管理](features/card_management/) - 卡片创建、编辑、删除
-- [池管理](features/pool_management/) - 池加入、退出、管理
+- [卡片列表](features/card_list/) - 列表/网格展示
+- [卡片详情](features/card_detail/) - 详情视图
+- [卡片编辑](features/card_editor/) - 编辑与保存
+- [上下文菜单](features/context_menu/) - 右键/长按菜单
+- [浮动按钮](features/fab/) - FAB 交互
+- [手势交互](features/gestures/) - 手势操作
+- [主屏幕](features/home_screen/) - 主页流程
+- [导航](features/navigation/) - 导航体系
+- [新手引导](features/onboarding/) - 引导流程
 - [P2P 同步](features/p2p_sync/) - 点对点同步功能
+- [池管理](features/pool_management/) - 池加入、退出、管理
+- [搜索](features/search/) - 搜索体验
 - [搜索过滤](features/search_and_filter/) - 全文搜索和筛选
 - [设置](features/settings/) - 应用设置
+- [同步](features/sync/) - 同步流程
+- [同步反馈](features/sync_feedback/) - 同步状态反馈
+- [工具栏](features/toolbar/) - 工具栏交互
 
-（共 19 个功能规格）
+（共 18 个功能规格）
 
 
 界面组件和交互设计：
@@ -53,7 +66,7 @@
 - [components/](ui/components/) - 组件规格
 - [adaptive/](ui/adaptive/) - 自适应布局
 
-（共 4 个 UI 目录，包含 30+ 个 UI 规格）
+（共 3 个 UI 目录，包含 30+ 个 UI 规格）
 
 ---
 

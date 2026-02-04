@@ -30,7 +30,7 @@ CardMind 是一款专注于个人知识管理的卡片式笔记应用。通过�
 - **规格驱动**: OpenSpec 规范驱动开发
 - **约束自动化**: Project Guardian 自动执行代码约束
 
-详细技术决策请查看 [架构决策记录 (ADR)](docs/adr/)。
+详细技术决策请查看 [架构规格](docs/specs/architecture/)。
 
 ## 项目状态
 
@@ -97,8 +97,8 @@ flutter run
 
 1. **[README.md](README.md)** - 项目概览（你在这里）
 2. **[CLAUDE.md](CLAUDE.md)** - 开发规范和文档导航（必读！）
-3. **[docs/adr/](docs/adr/)** - 架构决策记录（了解"为什么"）
-4. **[openspec/specs/](openspec/specs/)** - 规格文档（了解"是什么"）
+3. **[docs/specs/architecture/](docs/specs/architecture/)** - 架构规格（了解"为什么"）
+4. **[docs/specs/README.md](docs/specs/README.md)** - 规格文档索引（了解"是什么"）
 
 ### 🚀 开发工作流
 
@@ -151,8 +151,8 @@ Superpowers ExecutePlan:
 
 #### 方式 2：传统工作流（用于小改动）
 
-1. 查看相关规范: `openspec/specs/`
-2. 查看相关 ADR: `docs/adr/`
+1. 查看相关规范: `docs/specs/`
+2. 查看相关架构规格: `docs/specs/architecture/`
 3. 使用 `TodoWrite` 跟踪任务
 4. 遵循约束: Project Guardian 自动检查
 5. 运行测试: 确保所有测试通过
@@ -163,38 +163,43 @@ Superpowers ExecutePlan:
 
 | 优先级 | 位置 | 内容 | 特点 |
 |--------|------|------|------|
-| 1 | `openspec/specs/` | API 规范、行为定义 | 可执行、可测试 |
-| 2 | `docs/adr/` | 架构决策记录 | 不可变、历史记录 |
+| 1 | `docs/specs/` | 规格文档、领域模型、架构设计 | 可执行、可测试 |
+| 2 | `doc/api/` | API 文档 | 自动生成 |
 | 3 | `project-guardian.toml` | 代码约束规则 | 自动执行 |
-| 4 | `docs/requirements/` | 产品需求和愿景 | 指导方向 |
+| 4 | `docs/plans/` | 实施计划 | 进行中 |
 
-#### OpenSpec 规格文档（`openspec/specs/`）
+#### 规格文档（`docs/specs/`）
 
-按领域组织的规格文档：
+按层级组织的规格文档：
 
 ```
-openspec/specs/
-├── engineering/       # 工程实践和架构模式
-├── domain/            # 领域模型和业务逻辑
-├── api/               # 公共 API 和 FFI 接口
+docs/specs/
+├── README.md          # 规格索引
+├── domain/            # 领域模型
+├── architecture/      # 架构规格
 ├── features/          # 用户功能规格
-└── ui_system/         # UI 设计系统
+└── ui/                # UI 规格
 ```
 
-**关键文件**:
-- `openspec/specs/README.md` - 规格索引
-- `openspec/engineering/guide.md` - Spec Coding 方法论
-- `openspec/engineering/directory_conventions.md` - 目录结构约定
+**关键入口**:
+- `docs/specs/README.md` - 规格索引
+- `docs/specs/domain/` - 领域模型
+- `docs/specs/architecture/` - 架构规格
+- `docs/specs/features/` - 功能规格
+- `docs/specs/ui/` - UI 规格
 
-#### 架构决策记录（`docs/adr/`）
+#### 架构规格（`docs/specs/architecture/`）
 
-记录重要架构决策的"为什么"：
+记录架构设计与实现规范：
 
-- [ADR-0001: 单池所有权模型](docs/adr/0001-单池所有权模型.md)
-- [ADR-0002: 双层架构](docs/adr/0002-双层架构.md)
-- [ADR-0003: 技术约束](docs/adr/0003-技术约束.md)
-- [ADR-0004: UI 设计系统](docs/adr/0004-UI设计系统.md)
-- [ADR-0005: 日志系统](docs/adr/0005-日志系统.md)
+- [双层架构](docs/specs/architecture/storage/dual_layer.md)
+- [卡片存储](docs/specs/architecture/storage/card_store.md)
+- [池存储](docs/specs/architecture/storage/pool_store.md)
+- [同步服务](docs/specs/architecture/sync/service.md)
+- [节点发现](docs/specs/architecture/sync/peer_discovery.md)
+- [冲突解决](docs/specs/architecture/sync/conflict_resolution.md)
+- [密码管理](docs/specs/architecture/security/password.md)
+- [密钥存储](docs/specs/architecture/security/keyring.md)
 
 #### Project Guardian 约束系统
 
@@ -272,18 +277,19 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 - [CLAUDE.md](CLAUDE.md) - 开发规范和文档导航（必读）
 - [AGENTS.md](AGENTS.md) - AI Agent 工作指南
 
-### 规格和决策
-- [OpenSpec 规格中心](openspec/specs/README.md) - 所有规格文档索引
-- [架构决策记录 (ADR)](docs/adr/README.md) - 架构决策历史
+### 规格文档
+- [规格索引](docs/specs/README.md) - 规格文档入口
+- [领域模型](docs/specs/domain/) - 业务实体定义
+- [架构规格](docs/specs/architecture/) - 技术实现规范
+- [功能规格](docs/specs/features/) - 用户功能规格
+- [UI 规格](docs/specs/ui/) - 界面与交互规范
 
-### 开发指南
-- [测试指南](docs/testing/TESTING_GUIDE.md) - TDD 开发流程
-- [文档导航地图](docs/DOCUMENTATION_MAP.md) - 完整的文档索引
-- [文档更新流程](docs/DOCUMENTATION_UPDATE_PROCESS.md) - 如何维护文档
+### 计划与产物
+- [实施计划](docs/plans/) - 进行中的计划文档
+- [API 文档](doc/api/) - 自动生成的 API 页面
 
-### 产品文档
-- [开发路线图](docs/roadmap.md) - 开发计划和进度
-- [用户使用手册](docs/user_guide.md) - 用户指南
+### 工具与流程
+- [工具脚本](tool/README.md) - 构建与质量检查入口
 
 ## 依赖版本
 

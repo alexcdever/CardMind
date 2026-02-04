@@ -116,12 +116,6 @@ ui/
 ---
 
 
-参考 UI 文档模板：
-- [../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/ui_template.md](../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/ui_template.md)
-
----
-
-
 - **Features Layer**
 - **UI System**
 - **Architecture Layer**
