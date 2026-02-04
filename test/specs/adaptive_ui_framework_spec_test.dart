@@ -529,6 +529,5 @@ void main() {
         expect(find.byType(TextField), findsOneWidget);
       });
     });
-
   });
 }

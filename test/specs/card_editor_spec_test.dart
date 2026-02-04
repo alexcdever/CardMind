@@ -604,6 +604,5 @@ void main() {
         expect(find.byKey(const Key('complete_button')), findsOneWidget);
       });
     });
-
   });
 }

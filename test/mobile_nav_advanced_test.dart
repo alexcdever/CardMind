@@ -81,7 +81,6 @@ void main() {
         expect(find.byType(BadgeWidget), findsWidgets);
         await tester.pumpAndSettle();
       });
-
     });
 
     group('Boundary Tests', () {
