@@ -105,10 +105,13 @@ impl SyncState {
         }
 
         // 更新最后同步时间
-        self.last_sync = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64;
+        self.last_sync = u64::try_from(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+        )
+        .unwrap_or(u64::MAX);
     }
 
     /// 检查是否需要同步

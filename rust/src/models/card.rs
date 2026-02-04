@@ -94,6 +94,7 @@ impl Card {
     /// # Returns
     ///
     /// 如果卡片包含该标签返回 true，否则返回 false
+    #[must_use]
     pub fn has_tag(&self, tag: &str) -> bool {
         self.tags.contains(&tag.to_string())
     }
@@ -103,6 +104,7 @@ impl Card {
     /// # Returns
     ///
     /// 标签切片的引用
+    #[must_use]
     pub fn get_tags(&self) -> &[String] {
         &self.tags
     }
