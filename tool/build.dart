@@ -13,6 +13,8 @@ const String cyan = '\x1B[36m';
 const String bold = '\x1B[1m';
 const String buildMode = 'release';
 
+String? _cargoBinPath;
+
 enum BuildPlatform { android, linux, windows, macos, ios }
 
 class BuildConfig {
@@ -193,6 +195,45 @@ void printError(String message) {
   stderr.writeln('$red✗ $message$reset');
 }
 
+Future<String?> getCargoBinPath({bool forceRefresh = false}) async {
+  if (_cargoBinPath != null && !forceRefresh) {
+    return _cargoBinPath;
+  }
+
+  final home = Platform.environment['HOME'];
+  if (home != null) {
+    final candidate = '$home/.cargo/bin';
+    if (Directory(candidate).existsSync()) {
+      _cargoBinPath = candidate;
+      return _cargoBinPath;
+    }
+  }
+
+  final result = await Process.run('cargo', ['env', '--prefix', 'HOME']);
+  if (result.exitCode == 0) {
+    final cargoHome = result.stdout.toString().trim();
+    _cargoBinPath = '$cargoHome/.cargo/bin';
+    return _cargoBinPath;
+  }
+
+  return null;
+}
+
+Future<String?> getCodegenPath({bool forceRefresh = false}) async {
+  final cargoBin = await getCargoBinPath(forceRefresh: forceRefresh);
+  if (cargoBin == null) {
+    return null;
+  }
+  final executable = Platform.isWindows
+      ? 'flutter_rust_bridge_codegen.exe'
+      : 'flutter_rust_bridge_codegen';
+  final path = '$cargoBin/$executable';
+  if (!File(path).existsSync()) {
+    return null;
+  }
+  return path;
+}
+
 Future<bool> checkEnvironment(BuildConfig config) async {
   var success = true;
 
@@ -223,12 +264,14 @@ Future<bool> checkEnvironment(BuildConfig config) async {
   }
 
   printStep('检查 flutter_rust_bridge_codegen...');
-  if (await runCommand(
-    'flutter_rust_bridge_codegen',
-    ['--version'],
-    quiet: true,
-    description: 'FRB version',
-  )) {
+  final codegenPath = await getCodegenPath();
+  if (codegenPath != null &&
+      await runCommand(
+        codegenPath,
+        ['--version'],
+        quiet: true,
+        description: 'FRB version',
+      )) {
     printSuccess('flutter_rust_bridge_codegen 已安装');
   } else {
     printWarning('flutter_rust_bridge_codegen 未安装，尝试安装中...');
@@ -237,7 +280,19 @@ Future<bool> checkEnvironment(BuildConfig config) async {
       ['install', 'flutter_rust_bridge_codegen'],
       description: 'Install FRB',
     )) {
-      printSuccess('flutter_rust_bridge_codegen 安装成功');
+      final installedPath = await getCodegenPath(forceRefresh: true);
+      if (installedPath != null &&
+          await runCommand(
+            installedPath,
+            ['--version'],
+            quiet: true,
+            description: 'FRB version',
+          )) {
+        printSuccess('flutter_rust_bridge_codegen 安装成功');
+      } else {
+        printError('flutter_rust_bridge_codegen 安装失败');
+        success = false;
+      }
     } else {
       printError('flutter_rust_bridge_codegen 安装失败');
       success = false;
@@ -262,6 +317,12 @@ Future<bool> checkEnvironment(BuildConfig config) async {
 }
 
 Future<bool> generateBridge() async {
+  final codegenPath = await getCodegenPath();
+  if (codegenPath == null) {
+    printError('无法找到 flutter_rust_bridge_codegen，请确认已安装');
+    return false;
+  }
+
   final args = [
     'generate',
     '--rust-input',
@@ -272,9 +333,9 @@ Future<bool> generateBridge() async {
     'rust/src/bridge_generated.h',
   ];
 
-  printInfo('运行: flutter_rust_bridge_codegen ${args.join(' ')}');
+  printInfo('运行: $codegenPath ${args.join(' ')}');
   return runCommand(
-    'flutter_rust_bridge_codegen',
+    codegenPath,
     args,
     description: 'Generate FRB bindings',
   );
