@@ -13,6 +13,7 @@ import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
 import 'package:cardmind/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -20,7 +21,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize flutter_rust_bridge
-  await RustLib.init();
+  final externalLibrary =
+      (Platform.isIOS || Platform.isMacOS) ? ExternalLibrary.process() : null;
+  await RustLib.init(externalLibrary: externalLibrary);
 
   runApp(const CardMindApp());
 }
