@@ -136,8 +136,20 @@ Future<void> runApp(BuildConfig config) async {
     exit(1);
   }
 
-  printSection('app');
-  printInfo('应用构建流程尚未实现');
+  printSection('📱 构建 Flutter 应用');
+  var hasErrors = false;
+  for (final platform in config.platforms) {
+    if (!await buildPlatform(platform)) {
+      hasErrors = true;
+    }
+  }
+
+  if (hasErrors) {
+    printError('部分平台构建失败，请查看上方错误信息');
+    exit(1);
+  }
+
+  printSuccess('✅ 所有平台构建成功');
 }
 
 void printUsage({String? error}) {
@@ -553,6 +565,107 @@ Future<bool> buildRustLibraries(BuildConfig config) async {
   }
 
   return true;
+}
+
+Future<bool> buildPlatform(BuildPlatform platform) async {
+  printStep('构建 ${platform.name} 应用...');
+
+  switch (platform) {
+    case BuildPlatform.android:
+      if (!await runCommand(
+        'flutter',
+        ['build', 'apk', '--release'],
+        description: 'Build Android APK',
+      )) {
+        printError('Android APK 构建失败');
+        return false;
+      }
+      printSuccess('✅ Android APK 构建成功');
+      printInfo('   输出: build/app/outputs/flutter-apk/app-release.apk');
+      return true;
+
+    case BuildPlatform.linux:
+      final env = Map<String, String>.from(Platform.environment);
+      if (!env.containsKey('PKG_CONFIG_PATH')) {
+        env['PATH'] = '/usr/bin:${env['PATH']}';
+      }
+      if (!await runCommand(
+        'flutter',
+        ['build', 'linux', '--release'],
+        environment: env,
+        description: 'Build Linux app',
+      )) {
+        printError('Linux 应用构建失败');
+        return false;
+      }
+
+      final rustLib = 'rust/target/$buildMode/libcardmind_rust.so';
+      final bundleLib =
+          'build/linux/x64/$buildMode/bundle/lib/libcardmind_rust.so';
+      try {
+        File(bundleLib).parent.createSync(recursive: true);
+        File(rustLib).copySync(bundleLib);
+        printInfo('  复制 Rust 库: $rustLib -> $bundleLib');
+      } catch (e) {
+        printError('复制 Rust 库失败: $e');
+        return false;
+      }
+
+      printSuccess('✅ Linux 应用构建成功');
+      printInfo('   输出: build/linux/x64/$buildMode/bundle/');
+      return true;
+
+    case BuildPlatform.windows:
+      if (!await runCommand(
+        'flutter',
+        ['build', 'windows', '--release'],
+        description: 'Build Windows app',
+      )) {
+        printError('Windows 应用构建失败');
+        return false;
+      }
+
+      final rustLib = 'rust/target/$buildMode/cardmind_rust.dll';
+      final bundleLib = 'build/windows/x64/runner/Release/cardmind_rust.dll';
+      try {
+        File(bundleLib).parent.createSync(recursive: true);
+        File(rustLib).copySync(bundleLib);
+        printInfo('  复制 Rust 库: $rustLib -> $bundleLib');
+      } catch (e) {
+        printError('复制 Rust 库失败: $e');
+        return false;
+      }
+
+      printSuccess('✅ Windows 应用构建成功');
+      printInfo('   输出: build/windows/x64/runner/Release/');
+      return true;
+
+    case BuildPlatform.macos:
+      if (!await runCommand(
+        'flutter',
+        ['build', 'macos', '--release'],
+        description: 'Build macOS app',
+      )) {
+        printError('macOS 应用构建失败');
+        return false;
+      }
+      printSuccess('✅ macOS 应用构建成功');
+      printInfo('   输出: build/macos/Build/Products/Release/');
+      return true;
+
+    case BuildPlatform.ios:
+      if (!await runCommand(
+        'flutter',
+        ['build', 'ios', '--release', '--no-codesign'],
+        description: 'Build iOS app',
+      )) {
+        printError('iOS 应用构建失败');
+        return false;
+      }
+      printSuccess('✅ iOS 应用构建成功');
+      printInfo('   输出: build/ios/iphoneos/');
+      return true;
+  }
 }
 
 Future<bool> copyAndroidLibraries() async {
