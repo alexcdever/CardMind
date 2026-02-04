@@ -5,6 +5,7 @@
 //! - 监听/拨号并建立连接
 //! - 证明加密信道可用（Noise 握手成功即证明）
 
+use cardmind_rust::models::error::MdnsError;
 use cardmind_rust::p2p::P2PNetwork;
 use futures::StreamExt;
 use libp2p::{multiaddr::Protocol, swarm::SwarmEvent, Multiaddr};
@@ -106,4 +107,34 @@ fn _debug_addr(addr: &Multiaddr) -> String {
         .map(|p| p.to_string())
         .collect::<Vec<_>>()
         .join("/")
+}
+
+#[test]
+fn it_should_map_mdns_error_message() {
+    enum Expect {
+        PermissionDenied,
+        SocketUnavailable,
+        Unsupported,
+        StartFailed,
+    }
+
+    let cases = [
+        ("Permission denied", Expect::PermissionDenied),
+        ("Operation not permitted", Expect::PermissionDenied),
+        ("address already in use", Expect::SocketUnavailable),
+        ("unsupported operation", Expect::Unsupported),
+        ("unexpected failure", Expect::StartFailed),
+    ];
+
+    for (msg, expected) in cases {
+        let err = MdnsError::from_message(msg);
+        let matched = match (expected, err) {
+            (Expect::PermissionDenied, MdnsError::PermissionDenied(_)) => true,
+            (Expect::SocketUnavailable, MdnsError::SocketUnavailable(_)) => true,
+            (Expect::Unsupported, MdnsError::Unsupported(_)) => true,
+            (Expect::StartFailed, MdnsError::StartFailed(_)) => true,
+            _ => false,
+        };
+        assert!(matched, "message '{msg}' should map correctly");
+    }
 }

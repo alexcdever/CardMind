@@ -1,6 +1,44 @@
 use flutter_rust_bridge::frb;
 use thiserror::Error;
 
+/// mDNS 错误类型
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+#[frb(dart_metadata=("freezed"))]
+pub enum MdnsError {
+    #[error("mDNS 权限不足: {0}")]
+    PermissionDenied(String),
+
+    #[error("mDNS Socket 不可用: {0}")]
+    SocketUnavailable(String),
+
+    #[error("mDNS 不支持: {0}")]
+    Unsupported(String),
+
+    #[error("mDNS 启动失败: {0}")]
+    StartFailed(String),
+}
+
+impl MdnsError {
+    #[must_use]
+    pub fn from_message(message: &str) -> Self {
+        let lowered = message.to_lowercase();
+        if lowered.contains("permission denied") || lowered.contains("operation not permitted") {
+            Self::PermissionDenied(message.to_string())
+        } else if lowered.contains("address in use")
+            || lowered.contains("address already in use")
+            || lowered.contains("addrinuse")
+            || lowered.contains("eaddrinuse")
+            || lowered.contains("socket")
+        {
+            Self::SocketUnavailable(message.to_string())
+        } else if lowered.contains("unsupported") || lowered.contains("not supported") {
+            Self::Unsupported(message.to_string())
+        } else {
+            Self::StartFailed(message.to_string())
+        }
+    }
+}
+
 /// CardMind error types
 #[derive(Error, Debug, Clone)]
 #[frb(dart_metadata=("freezed"))]
@@ -25,6 +63,9 @@ pub enum CardMindError {
 
     #[error("IO error: {0}")]
     IoError(String),
+
+    #[error("mDNS error: {0}")]
+    Mdns(MdnsError),
 
     #[error("Unknown error: {0}")]
     Unknown(String),
@@ -76,6 +117,12 @@ impl From<crate::models::device_config::DeviceConfigError> for CardMindError {
 impl From<crate::security::keyring_store::KeyringError> for CardMindError {
     fn from(err: crate::security::keyring_store::KeyringError) -> Self {
         Self::Unknown(err.to_string())
+    }
+}
+
+impl From<MdnsError> for CardMindError {
+    fn from(err: MdnsError) -> Self {
+        Self::Mdns(err)
     }
 }
 

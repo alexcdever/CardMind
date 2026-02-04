@@ -6,7 +6,6 @@
 use crate::models::device_config::DeviceConfig;
 use crate::models::error::CardMindError;
 use crate::models::error::Result;
-use crate::utils::uuid_v7::generate_uuid_v7;
 use std::cell::RefCell;
 use std::path::PathBuf;
 
@@ -19,7 +18,7 @@ thread_local! {
 /// Initialize or load device configuration
 ///
 /// If a config file exists at the path, it will be loaded.
-/// Otherwise, a new config will be created with a generated device ID.
+/// Otherwise, a new config will be created with default values.
 ///
 /// # Arguments
 ///
@@ -35,10 +34,7 @@ pub fn init_device_config(base_path: String) -> Result<DeviceConfig> {
     let base_path_buf = PathBuf::from(base_path);
     let config_path = DeviceConfig::default_path(&base_path_buf);
 
-    // Generate a new device ID if creating new config
-    let device_id = generate_uuid_v7();
-
-    let config = DeviceConfig::get_or_create(&config_path, &device_id)?;
+    let config = DeviceConfig::get_or_create(&config_path)?;
 
     // Store in thread-local
     DEVICE_CONFIG.with(|c| {
@@ -107,27 +103,11 @@ fn save_config() -> Result<()> {
 ///
 /// ```dart
 /// final config = await getDeviceConfig();
-/// print('Device ID: ${config.deviceId}');
+/// print('Peer ID: ${config.peerId}');
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn get_device_config() -> Result<DeviceConfig> {
     with_device_config(|config| Ok(config.clone()))
-}
-
-/// Get the current device ID
-///
-/// # Returns
-///
-/// The device UUID
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final deviceId = await getDeviceId();
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn get_device_id() -> Result<String> {
-    with_device_config(|config| Ok(config.device_id.clone()))
 }
 
 /// Join a data pool
@@ -286,80 +266,6 @@ pub fn is_pool_resident(pool_id: String) -> Result<bool> {
     with_device_config(|config| Ok(config.is_joined(&pool_id)))
 }
 
-// ==================== mDNS Temporary Discovery APIs ====================
-
-/// Check if mDNS peer discovery is currently active
-///
-/// mDNS is active only within the 5-minute timer window after being enabled.
-///
-/// # Returns
-///
-/// true if mDNS is active, false otherwise
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final isActive = await isMdnsActive();
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn is_mdns_active() -> Result<bool> {
-    with_device_config(|config| Ok(config.is_mdns_active()))
-}
-
-/// Enable mDNS peer discovery for 5 minutes
-///
-/// Starts a 5-minute timer for mDNS discovery. After 5 minutes,
-/// mDNS will automatically be disabled. Timer does not persist
-/// across app restarts (security feature).
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await enableMdnsTemporary();
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn enable_mdns_temporary() -> Result<()> {
-    with_device_config(|config| {
-        config.enable_mdns_temporary();
-        Ok(())
-    })
-}
-
-/// Cancel the mDNS timer immediately
-///
-/// Disables mDNS discovery right away.
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await cancelMdnsTimer();
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn cancel_mdns_timer() -> Result<()> {
-    with_device_config(|config| {
-        config.cancel_mdns_timer();
-        Ok(())
-    })
-}
-
-/// Get remaining time for mDNS discovery (in milliseconds)
-///
-/// Returns 0 if mDNS is not active or has expired.
-///
-/// # Returns
-///
-/// Remaining time in milliseconds
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final remainingMs = await getMdnsRemainingMs();
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn get_mdns_remaining_ms() -> Result<i64> {
-    with_device_config(|config| Ok(config.get_mdns_remaining_ms()))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -383,7 +289,8 @@ mod tests {
         let path = dir.path().to_str().unwrap().to_string();
 
         let config = init_device_config(path).unwrap();
-        assert!(!config.device_id.is_empty());
+        assert!(config.peer_id.is_none());
+        assert!(!config.device_name.is_empty());
         assert!(config.pool_id.is_none());
 
         cleanup_device_config();
@@ -458,34 +365,24 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_device_id_api() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
-
-        init_device_config(path).unwrap();
-
-        let device_id = get_device_id().unwrap();
-        assert!(!device_id.is_empty());
-
-        cleanup_device_config();
-    }
-
-    #[test]
-    #[serial]
     fn test_persistence() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
         // Initialize and join pool
         init_device_config(path.clone()).unwrap();
-        let device_id = get_device_id().unwrap();
+        with_device_config(|config| {
+            config.peer_id = Some("peer-001".to_string());
+            Ok(())
+        })
+        .unwrap();
         join_pool("pool-001".to_string()).unwrap();
 
         cleanup_device_config();
 
         // Reload and check persistence
         let config = init_device_config(path).unwrap();
-        assert_eq!(config.device_id, device_id);
+        assert_eq!(config.peer_id.as_deref(), Some("peer-001"));
         assert!(config.pool_id.is_some());
 
         cleanup_device_config();

@@ -21,23 +21,25 @@ fn create_test_config_path() -> (TempDir, PathBuf) {
 /// Scenario: Device config has required fields
 fn it_should_have_required_fields() {
     // Given: 创建新设备配置
-    let config = DeviceConfig::new("test-device-001");
+    let config = DeviceConfig::new();
 
     // Then: 应包含所有必需字段
-    assert_eq!(config.device_id, "test-device-001");
+    assert!(config.peer_id.is_none());
+    assert!(!config.device_name.is_empty());
     assert!(config.pool_id.is_none());
+    assert!(config.updated_at > 0);
 }
 
 #[test]
 /// Scenario: Device config does not contain legacy fields
 fn it_should_not_contain_legacy_fields() {
     // Given: 创建新设备配置
-    let config = DeviceConfig::new("test-device-001");
+    let config = DeviceConfig::new();
 
     // Then: 应仅包含 pool_id，不包含旧字段
-    // 验证结构体只有 pool_id 字段（编译时检查）
-    // 在代码中，旧字段 joined_pools, resident_pools, last_selected_pool 已被移除
-    assert!(config.pool_id.is_none());
+    let json = serde_json::to_string(&config).unwrap();
+    assert!(!json.contains("device_id"));
+    assert!(!json.contains("mdns_timer"));
 }
 
 // ==== Requirement: Load or create device configuration ====
@@ -49,13 +51,13 @@ fn it_should_create_new_config_on_first_launch() {
     let (_temp_dir, config_path) = create_test_config_path();
 
     // When: 调用 get_or_create()
-    let result = DeviceConfig::get_or_create(&config_path, "test-device-001");
+    let result = DeviceConfig::get_or_create(&config_path);
 
     // Then: 应创建新配置，pool_id = None
     assert!(result.is_ok());
     let config = result.unwrap();
     assert!(config.pool_id.is_none());
-    assert_eq!(config.device_id, "test-device-001");
+    assert!(config.peer_id.is_none());
 
     // And: 配置文件应被保存
     assert!(config_path.exists());
@@ -66,19 +68,20 @@ fn it_should_create_new_config_on_first_launch() {
 fn it_should_load_existing_config_on_subsequent_launch() {
     // Given: 存在上次会话的配置文件
     let (_temp_dir, config_path) = create_test_config_path();
-    let mut config1 = DeviceConfig::get_or_create(&config_path, "device-001").unwrap();
+    let mut config1 = DeviceConfig::get_or_create(&config_path).unwrap();
+    config1.peer_id = Some("peer-001".to_string());
     config1.join_pool("pool_A").unwrap();
     config1.save(&config_path).unwrap();
 
     // When: 再次调用 get_or_create()
-    let result = DeviceConfig::get_or_create(&config_path, "device-002");
+    let result = DeviceConfig::get_or_create(&config_path);
 
     // Then: 应加载现有配置
     assert!(result.is_ok());
     let config2 = result.unwrap();
 
-    // And: device_id 应保持不变
-    assert_eq!(config2.device_id, "device-001");
+    // And: peer_id 应保持不变
+    assert_eq!(config2.peer_id.as_deref(), Some("peer-001"));
     assert_eq!(config2.pool_id, Some("pool_A".to_string()));
 }
 
@@ -88,22 +91,25 @@ fn it_should_load_existing_config_on_subsequent_launch() {
 /// Scenario: Allow joining first pool successfully
 fn it_should_allow_joining_first_pool_successfully() {
     // Given: 设备未加入任何池
-    let mut config = DeviceConfig::new("test-device-001");
+    let mut config = DeviceConfig::new();
     assert!(config.pool_id.is_none());
+    let before = config.updated_at;
 
     // When: 加入 pool_A
+    std::thread::sleep(std::time::Duration::from_millis(1));
     let result = config.join_pool("pool_A");
 
     // Then: pool_id 应被设置为 pool_A
     assert!(result.is_ok());
     assert_eq!(config.pool_id, Some("pool_A".to_string()));
+    assert!(config.updated_at >= before);
 }
 
 #[test]
 /// Scenario: Reject joining second pool
 fn it_should_reject_joining_second_pool() {
     // Given: 设备已加入 pool_A
-    let mut config = DeviceConfig::new("test-device-001");
+    let mut config = DeviceConfig::new();
     config.join_pool("pool_A").unwrap();
 
     // When: 尝试加入 pool_B
@@ -124,7 +130,7 @@ fn it_should_reject_joining_second_pool() {
 /// Scenario: Preserve config when join fails
 fn it_should_preserve_config_when_join_fails() {
     // Given: 设备已加入 pool_A
-    let mut config = DeviceConfig::new("test-device-001");
+    let mut config = DeviceConfig::new();
     config.join_pool("pool_A").unwrap();
 
     // When: 尝试非法操作（加入 pool_B）
@@ -141,7 +147,7 @@ fn it_should_preserve_config_when_join_fails() {
 /// Scenario: Clear pool_id on leave
 fn it_should_clear_pool_id_on_leave() {
     // Given: 设备已加入池
-    let mut config = DeviceConfig::new("test-device-001");
+    let mut config = DeviceConfig::new();
     config.join_pool("pool_A").unwrap();
 
     // When: 退出池
@@ -156,7 +162,7 @@ fn it_should_clear_pool_id_on_leave() {
 /// Scenario: Fail when leaving without joining
 fn it_should_fail_when_leaving_without_joining() {
     // Given: 设备未加入任何池
-    let mut config = DeviceConfig::new("test-device-001");
+    let mut config = DeviceConfig::new();
 
     // When: 尝试退出
     let result = config.leave_pool("pool_A");
@@ -174,7 +180,7 @@ fn it_should_fail_when_leaving_without_joining() {
 fn it_should_cleanup_local_data_on_leave() {
     // Given: 设备已加入池并有数据
     let (_temp_dir, config_path) = create_test_config_path();
-    let mut config = DeviceConfig::get_or_create(&config_path, "device-001").unwrap();
+    let mut config = DeviceConfig::get_or_create(&config_path).unwrap();
     config.join_pool("pool_A").unwrap();
 
     // When: 退出池
@@ -197,7 +203,7 @@ fn it_should_cleanup_local_data_on_leave() {
 /// Scenario: Get pool ID when not joined
 fn get_pool_id_should_return_none_when_not_joined() {
     // Given: 新设备未加入任何池
-    let config = DeviceConfig::new("test-device-001");
+    let config = DeviceConfig::new();
 
     // When: 调用 get_pool_id()
     let pool_id = config.get_pool_id();
@@ -210,7 +216,7 @@ fn get_pool_id_should_return_none_when_not_joined() {
 /// Scenario: Get pool ID when joined
 fn get_pool_id_should_return_some_when_joined() {
     // Given: 设备已加入 pool_A
-    let mut config = DeviceConfig::new("test-device-001");
+    let mut config = DeviceConfig::new();
     config.join_pool("pool_A").unwrap();
 
     // When: 调用 get_pool_id()
@@ -224,7 +230,7 @@ fn get_pool_id_should_return_some_when_joined() {
 /// Scenario: Check join status
 fn is_joined_should_return_correct_boolean() {
     // Given: 各种设备状态
-    let mut config = DeviceConfig::new("test-device-001");
+    let mut config = DeviceConfig::new();
 
     // When: 未加入时调用 is_joined_any()
     assert!(!config.is_joined_any());
@@ -244,11 +250,11 @@ fn is_joined_should_return_correct_boolean() {
 /// Scenario: Generate default device name
 fn it_should_generate_default_device_name() {
     // Given: 新设备配置
-    let config = DeviceConfig::new("test-device-001");
+    let config = DeviceConfig::new();
 
     // When: 检查设备名称
-    // Then: 应使用默认生成的 device_id
-    assert_eq!(config.device_id, "test-device-001");
+    // Then: 应使用默认生成的 device_name
+    assert!(!config.device_name.is_empty());
 }
 
 #[test]
@@ -256,17 +262,17 @@ fn it_should_generate_default_device_name() {
 fn it_should_allow_setting_custom_device_name() {
     // Given: 设备配置
     let (_temp_dir, config_path) = create_test_config_path();
-    let mut config = DeviceConfig::get_or_create(&config_path, "device-001").unwrap();
+    let mut config = DeviceConfig::get_or_create(&config_path).unwrap();
 
     // When: 设置自定义名称
-    config.device_id = "my-custom-device".to_string();
+    config.device_name = "my-custom-device".to_string();
 
     // Then: 名称应被保存
     config.save(&config_path).unwrap();
 
     // And: 配置应被持久化
     let loaded = DeviceConfig::load(&config_path).unwrap();
-    assert_eq!(loaded.device_id, "my-custom-device");
+    assert_eq!(loaded.device_name, "my-custom-device");
 }
 
 // ==== Requirement: Configuration persistence ====
@@ -276,7 +282,7 @@ fn it_should_allow_setting_custom_device_name() {
 fn it_should_persist_and_load_config_in_json_format() {
     // Given: 设备配置
     let (_temp_dir, config_path) = create_test_config_path();
-    let config = DeviceConfig::new("device-001");
+    let config = DeviceConfig::new();
 
     // When: 保存到文件
     config.save(&config_path).unwrap();
@@ -286,8 +292,10 @@ fn it_should_persist_and_load_config_in_json_format() {
 
     // And: 应能加载
     let loaded = DeviceConfig::load(&config_path).unwrap();
-    assert_eq!(loaded.device_id, config.device_id);
+    assert_eq!(loaded.peer_id, config.peer_id);
+    assert_eq!(loaded.device_name, config.device_name);
     assert_eq!(loaded.pool_id, config.pool_id);
+    assert_eq!(loaded.updated_at, config.updated_at);
 }
 
 // ==== Integration Tests ====
@@ -297,7 +305,7 @@ fn it_should_persist_and_load_config_in_json_format() {
 fn it_should_support_full_lifecycle() {
     // Given: 新设备
     let (_temp_dir, config_path) = create_test_config_path();
-    let mut config = DeviceConfig::get_or_create(&config_path, "device-001").unwrap();
+    let mut config = DeviceConfig::get_or_create(&config_path).unwrap();
 
     // When: 加入池
     assert!(config.join_pool("pool_A").is_ok());
