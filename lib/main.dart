@@ -21,8 +21,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize flutter_rust_bridge
-  final externalLibrary =
-      (Platform.isIOS || Platform.isMacOS) ? ExternalLibrary.process() : null;
+  final externalLibrary = (Platform.isIOS || Platform.isMacOS)
+      ? ExternalLibrary.process(iKnowHowToUseIt: true)
+      : null;
   await RustLib.init(externalLibrary: externalLibrary);
 
   runApp(const CardMindApp());
