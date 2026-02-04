@@ -66,12 +66,12 @@ impl From<BcryptError> for PasswordError {
     }
 }
 
-/// 计算数据池哈希（pool_hash）
+/// 计算数据池哈希（`pool_hash`）
 ///
 /// # 规则
 ///
 /// - HKDF-SHA256
-/// - salt = pool_id
+/// - salt = `pool_id`
 /// - ikm = password
 /// - info 为空
 /// - 输出 32 字节，hex 编码（64 字符）
@@ -110,6 +110,7 @@ pub fn derive_pool_hash(pool_id: &str, password: &str) -> Result<String, Passwor
 /// assert!(strength.score >= 70);
 /// assert!(strength.is_strong);
 /// ```
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PasswordStrength {
     /// 强度分数（0-100）
@@ -189,7 +190,7 @@ pub fn evaluate_password_strength(password: &str) -> PasswordStrength {
     let has_special = password.chars().any(|c| !c.is_alphanumeric());
 
     // 长度分数（最多25分）
-    let length_score = password.len().min(25) as u8;
+    let length_score = u8::try_from(password.len().min(25)).unwrap_or(25);
 
     let mut score = length_score;
     if has_uppercase {
