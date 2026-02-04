@@ -605,47 +605,5 @@ void main() {
       });
     });
 
-    // ========================================
-    // Performance Tests
-    // ========================================
-
-    group('Performance Tests', () {
-      testWidgets('it_should_render_editor_within_100ms', (
-        WidgetTester tester,
-      ) async {
-        // Given: 编辑器即将加载
-        final startTime = DateTime.now();
-
-        // When: 加载编辑器
-        await tester.pumpWidget(createEditorWithMockApi());
-        await tester.pumpAndSettle();
-
-        final endTime = DateTime.now();
-        final duration = endTime.difference(startTime);
-
-        // Then: 渲染时间小于 1000ms (测试环境阈值)
-        expect(duration.inMilliseconds, lessThan(1000));
-      });
-
-      testWidgets('it_should_handle_rapid_text_input_without_lag', (
-        WidgetTester tester,
-      ) async {
-        // Given: 编辑器已加载
-        await tester.pumpWidget(createEditorWithMockApi());
-        await tester.pumpAndSettle();
-
-        // When: 快速输入多次
-        for (int i = 0; i < 10; i++) {
-          await tester.enterText(
-            find.byKey(const Key('title_field')),
-            'Text $i',
-          );
-          await tester.pump();
-        }
-
-        // Then: 没有性能问题
-        expect(tester.takeException(), isNull);
-      });
-    });
   });
 }

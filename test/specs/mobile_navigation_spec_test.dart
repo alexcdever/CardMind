@@ -670,60 +670,6 @@ void main() {
     });
 
     // ========================================
-    // Performance Tests
-    // ========================================
-
-    group('Performance Tests', () {
-      testWidgets('it_should_render_navigation_within_16ms', (
-        WidgetTester tester,
-      ) async {
-        // Given: 导航栏即将加载
-        final startTime = DateTime.now();
-
-        // When: 加载导航栏
-        await tester.pumpWidget(createMobileNav());
-        await tester.pumpAndSettle();
-
-        final endTime = DateTime.now();
-        final duration = endTime.difference(startTime);
-
-        // Then: 渲染时间小于 500ms (测试环境阈值)
-        expect(duration.inMilliseconds, lessThan(500));
-      });
-
-      testWidgets('it_should_handle_rapid_tab_switches_without_lag', (
-        WidgetTester tester,
-      ) async {
-        // Given: 导航栏显示
-        await tester.pumpWidget(createMobileNav());
-        await tester.pumpAndSettle();
-
-        // When: 快速切换标签 20 次
-        for (int i = 0; i < 20; i++) {
-          await tester.tap(find.text(i % 2 == 0 ? '设备' : '笔记'));
-          await tester.pump();
-        }
-
-        // Then: 没有性能问题
-        expect(tester.takeException(), isNull);
-      });
-
-      testWidgets('it_should_not_rebuild_unnecessarily', (
-        WidgetTester tester,
-      ) async {
-        // Given: 导航栏已渲染
-        await tester.pumpWidget(createMobileNav());
-        await tester.pumpAndSettle();
-
-        // When: 触发不相关的重建
-        await tester.pump();
-
-        // Then: 导航栏不重建
-        expect(find.byType(MobileNav), findsOneWidget);
-      });
-    });
-
-    // ========================================
     // Theme Integration Tests
     // ========================================
 

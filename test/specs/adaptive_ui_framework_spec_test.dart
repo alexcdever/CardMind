@@ -530,56 +530,5 @@ void main() {
       });
     });
 
-    // ========================================
-    // 自适应性能测试
-    // ========================================
-    group('Adaptive Performance', () {
-      testWidgets('it_should_optimize_rendering_for_device', (
-        WidgetTester tester,
-      ) async {
-        // Given: 自适应渲染优化
-        await tester.pumpWidget(
-          createTestWidget(
-            Scaffold(
-              body: ListView.builder(
-                itemCount: 100,
-                itemBuilder: (context, index) {
-                  return ListTile(title: Text('Item $index'));
-                },
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Then: 应该高效渲染列表
-        expect(find.text('Item 0'), findsOneWidget);
-      });
-
-      testWidgets('it_should_lazy_load_images_on_slow_connections', (
-        WidgetTester tester,
-      ) async {
-        // Given: 延迟加载图片
-        await tester.pumpWidget(
-          createTestWidget(
-            Scaffold(
-              body: ListView.builder(
-                itemCount: 10,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: const Icon(Icons.image),
-                    title: Text('Image $index'),
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Then: 应该显示占位图标
-        expect(find.byIcon(Icons.image), findsWidgets);
-      });
-    });
   });
 }

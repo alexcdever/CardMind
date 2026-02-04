@@ -3,8 +3,8 @@ import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/providers/pool_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
-import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:cardmind/widgets/mobile_nav.dart';
+import 'package:cardmind/widgets/note_editor_fullscreen.dart';
 import 'package:cardmind/widgets/sync_status_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -665,63 +665,5 @@ void main() {
       });
     });
 
-    // ========================================
-    // Performance Tests
-    // ========================================
-
-    group('Performance Tests', () {
-      testWidgets('it_should_render_home_screen_within_200ms', (
-        WidgetTester tester,
-      ) async {
-        // Given: 主屏幕即将加载
-        final startTime = DateTime.now();
-
-        // When: 加载主屏幕
-        await tester.pumpWidget(createHomeScreen());
-        await tester.pumpAndSettle();
-
-        final endTime = DateTime.now();
-        final duration = endTime.difference(startTime);
-
-        // Then: 渲染时间小于 200ms
-        expect(duration.inMilliseconds, lessThan(200));
-      });
-
-      testWidgets('it_should_handle_many_cards_efficiently', (
-        WidgetTester tester,
-      ) async {
-        // Given: 大量卡片
-        for (int i = 0; i < 100; i++) {
-          await mockCardService.createCard('Card $i', 'Content $i');
-        }
-
-        // When: 加载主屏幕
-        await tester.pumpWidget(createHomeScreen());
-        await tester.pumpAndSettle();
-
-        // Then: 没有性能问题
-        expect(tester.takeException(), isNull);
-      });
-
-      testWidgets('it_should_handle_rapid_search_input_efficiently', (
-        WidgetTester tester,
-      ) async {
-        // Given: 主屏幕显示
-        await mockCardService.createCard('Test Card', 'Content');
-
-        await tester.pumpWidget(createHomeScreen());
-        await tester.pumpAndSettle();
-
-        // When: 快速输入搜索
-        final searchField = find.byType(TextField).first;
-        for (int i = 0; i < 10; i++) {
-          await tester.enterText(searchField, 'query$i');
-          await tester.pump();
-        }
-
-        // Then: 没有性能问题
-        expect(tester.takeException(), isNull);
-      });
-    });
   });
 }

@@ -4,8 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -54,58 +52,56 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_display_syncing_status_when_sync_is_in_progress',
-        (WidgetTester tester) async {
-          // Given: 同步正在进行中
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    CircularProgressIndicator(),
-                    Text('同步中'),
-                    Text('正在与 2 个设备同步'),
-                  ],
-                ),
+      testWidgets('it_should_display_syncing_status_when_sync_is_in_progress', (
+        WidgetTester tester,
+      ) async {
+        // Given: 同步正在进行中
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  CircularProgressIndicator(),
+                  Text('同步中'),
+                  Text('正在与 2 个设备同步'),
+                ],
               ),
             ),
-          );
-          await tester.pump();
+          ),
+        );
+        await tester.pump();
 
-          // When: 用户查看同步状态指示器
-          // Then: 系统应显示带有动画指示的"同步中"状态
-          expect(find.text('同步中'), findsOneWidget);
-          expect(find.byType(CircularProgressIndicator), findsOneWidget);
-          // AND: 显示正在同步的设备数量
-          expect(find.text('正在与 2 个设备同步'), findsOneWidget);
-        },
-      );
+        // When: 用户查看同步状态指示器
+        // Then: 系统应显示带有动画指示的"同步中"状态
+        expect(find.text('同步中'), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        // AND: 显示正在同步的设备数量
+        expect(find.text('正在与 2 个设备同步'), findsOneWidget);
+      });
 
-      testWidgets(
-        'it_should_display_pending_status_when_changes_not_synced',
-        (WidgetTester tester) async {
-          // Given: 存在尚未同步的本地更改
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Icon(Icons.cloud_upload, color: Colors.orange),
-                    Text('待同步'),
-                  ],
-                ),
+      testWidgets('it_should_display_pending_status_when_changes_not_synced', (
+        WidgetTester tester,
+      ) async {
+        // Given: 存在尚未同步的本地更改
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Icon(Icons.cloud_upload, color: Colors.orange),
+                  Text('待同步'),
+                ],
               ),
             ),
-          );
-          await tester.pump();
+          ),
+        );
+        await tester.pump();
 
-          // When: 用户查看同步状态指示器
-          // Then: 系统应显示带有警告指示的"待同步"状态
-          expect(find.text('待同步'), findsOneWidget);
-          expect(find.byIcon(Icons.cloud_upload), findsOneWidget);
-        },
-      );
+        // When: 用户查看同步状态指示器
+        // Then: 系统应显示带有警告指示的"待同步"状态
+        expect(find.text('待同步'), findsOneWidget);
+        expect(find.byIcon(Icons.cloud_upload), findsOneWidget);
+      });
 
       testWidgets(
         'it_should_display_error_status_when_sync_encountered_error',
@@ -118,10 +114,7 @@ void main() {
                   children: [
                     Icon(Icons.cloud_off, color: Colors.red),
                     Text('同步错误'),
-                    TextButton(
-                      onPressed: null,
-                      child: Text('查看错误详情'),
-                    ),
+                    TextButton(onPressed: null, child: Text('查看错误详情')),
                   ],
                 ),
               ),
@@ -199,44 +192,43 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_display_device_list_when_user_views_devices',
-        (WidgetTester tester) async {
-          // Given: 同步详情视图已打开
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('已连接设备'),
-                    ListTile(
-                      title: Text('iPhone 14'),
-                      subtitle: Text('phone'),
-                      trailing: Text('在线'),
-                    ),
-                    ListTile(
-                      title: Text('MacBook Pro'),
-                      subtitle: Text('laptop'),
-                      trailing: Text('在线'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_display_device_list_when_user_views_devices', (
+        WidgetTester tester,
+      ) async {
+        // Given: 同步详情视图已打开
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('已连接设备'),
+                  ListTile(
+                    title: Text('iPhone 14'),
+                    subtitle: Text('phone'),
+                    trailing: Text('在线'),
+                  ),
+                  ListTile(
+                    title: Text('MacBook Pro'),
+                    subtitle: Text('laptop'),
+                    trailing: Text('在线'),
+                  ),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户查看设备列表部分
-          // Then: 系统应显示所有发现的对等设备
-          expect(find.text('已连接设备'), findsOneWidget);
-          expect(find.text('iPhone 14'), findsOneWidget);
-          expect(find.text('MacBook Pro'), findsOneWidget);
-          // AND: 指示每个设备的在线/离线状态
-          expect(find.text('在线'), findsWidgets);
-          // AND: 显示设备类型（手机、笔记本、平板）
-          // AND: 显示离线设备的上次可见时间戳
-        },
-      );
+        // When: 用户查看设备列表部分
+        // Then: 系统应显示所有发现的对等设备
+        expect(find.text('已连接设备'), findsOneWidget);
+        expect(find.text('iPhone 14'), findsOneWidget);
+        expect(find.text('MacBook Pro'), findsOneWidget);
+        // AND: 指示每个设备的在线/离线状态
+        expect(find.text('在线'), findsWidgets);
+        // AND: 显示设备类型（手机、笔记本、平板）
+        // AND: 显示离线设备的上次可见时间戳
+      });
 
       testWidgets(
         'it_should_display_sync_statistics_when_user_views_statistics',
@@ -271,321 +263,309 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_display_sync_history_when_user_views_history',
-        (WidgetTester tester) async {
-          // Given: 同步详情视图已打开
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('同步历史'),
-                    ListTile(
-                      title: Text('成功'),
-                      subtitle: Text('2026-01-31 10:00 - iPhone 14'),
-                      trailing: Icon(Icons.check, color: Colors.green),
-                    ),
-                    ListTile(
-                      title: Text('失败'),
-                      subtitle: Text('2026-01-31 09:30 - MacBook Pro'),
-                      trailing: Icon(Icons.close, color: Colors.red),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_display_sync_history_when_user_views_history', (
+        WidgetTester tester,
+      ) async {
+        // Given: 同步详情视图已打开
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('同步历史'),
+                  ListTile(
+                    title: Text('成功'),
+                    subtitle: Text('2026-01-31 10:00 - iPhone 14'),
+                    trailing: Icon(Icons.check, color: Colors.green),
+                  ),
+                  ListTile(
+                    title: Text('失败'),
+                    subtitle: Text('2026-01-31 09:30 - MacBook Pro'),
+                    trailing: Icon(Icons.close, color: Colors.red),
+                  ),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户查看同步历史部分
-          // Then: 系统应显示带有时间戳的最近同步事件
-          expect(find.text('同步历史'), findsOneWidget);
-          // AND: 指示每个事件的成功或失败
-          expect(find.byIcon(Icons.check), findsOneWidget);
-          expect(find.byIcon(Icons.close), findsOneWidget);
-          // AND: 显示每次同步涉及的设备
-          expect(find.textContaining('iPhone 14'), findsOneWidget);
-        },
-      );
+        // When: 用户查看同步历史部分
+        // Then: 系统应显示带有时间戳的最近同步事件
+        expect(find.text('同步历史'), findsOneWidget);
+        // AND: 指示每个事件的成功或失败
+        expect(find.byIcon(Icons.check), findsOneWidget);
+        expect(find.byIcon(Icons.close), findsOneWidget);
+        // AND: 显示每次同步涉及的设备
+        expect(find.textContaining('iPhone 14'), findsOneWidget);
+      });
 
-      testWidgets(
-        'it_should_filter_sync_history_when_user_applies_filters',
-        (WidgetTester tester) async {
-          // Given: 同步历史已显示
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('筛选: 显示全部'),
-                    Text('同步历史'),
-                    ListTile(
-                      title: Text('成功'),
-                      subtitle: Text('2026-01-31 10:00'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_filter_sync_history_when_user_applies_filters', (
+        WidgetTester tester,
+      ) async {
+        // Given: 同步历史已显示
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('筛选: 显示全部'),
+                  Text('同步历史'),
+                  ListTile(
+                    title: Text('成功'),
+                    subtitle: Text('2026-01-31 10:00'),
+                  ),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户应用历史过滤器
-          // Then: 系统应按设备、状态或时间范围过滤事件
-          expect(find.text('筛选: 显示全部'), findsOneWidget);
-        },
-      );
+        // When: 用户应用历史过滤器
+        // Then: 系统应按设备、状态或时间范围过滤事件
+        expect(find.text('筛选: 显示全部'), findsOneWidget);
+      });
     });
 
     // ========================================
     // Manually Trigger Synchronization Requirement (4 scenarios)
     // ========================================
     group('Requirement: Manually Trigger Synchronization', () {
-      testWidgets(
-        'it_should_trigger_manual_sync_when_user_taps_sync_now',
-        (WidgetTester tester) async {
-          // Given: 至少有一个对等设备可用
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    ElevatedButton(
-                      key: const Key('sync_now_button'),
-                      onPressed: () {},
-                      child: const Text('立即同步'),
-                    ),
-                    const CircularProgressIndicator(),
-                    const Text('正在同步...'),
-                  ],
-                ),
+      testWidgets('it_should_trigger_manual_sync_when_user_taps_sync_now', (
+        WidgetTester tester,
+      ) async {
+        // Given: 至少有一个对等设备可用
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  ElevatedButton(
+                    key: const Key('sync_now_button'),
+                    onPressed: () {},
+                    child: const Text('立即同步'),
+                  ),
+                  const CircularProgressIndicator(),
+                  const Text('正在同步...'),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户点击"立即同步"按钮
-          await tester.tap(find.byKey(const Key('sync_now_button')));
-          await tester.pump();
+        // When: 用户点击"立即同步"按钮
+        await tester.tap(find.byKey(const Key('sync_now_button')));
+        await tester.pump();
 
-          // Then: 系统应立即尝试与可用设备同步
-          // AND: 显示同步进度指示器
-          expect(find.byType(CircularProgressIndicator), findsOneWidget);
-          // AND: 同步完成时更新状态
-          expect(find.text('正在同步...'), findsOneWidget);
-        },
-      );
+        // Then: 系统应立即尝试与可用设备同步
+        // AND: 显示同步进度指示器
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        // AND: 同步完成时更新状态
+        expect(find.text('正在同步...'), findsOneWidget);
+      });
 
-      testWidgets(
-        'it_should_show_error_when_no_devices_available',
-        (WidgetTester tester) async {
-          // Given: 没有可用的对等设备
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    ElevatedButton(
-                      key: const Key('sync_now_button'),
-                      onPressed: () {},
-                      child: const Text('立即同步'),
-                    ),
-                    const Text('错误：没有可用设备'),
-                    const Text('请确保其他设备在线'),
-                  ],
-                ),
+      testWidgets('it_should_show_error_when_no_devices_available', (
+        WidgetTester tester,
+      ) async {
+        // Given: 没有可用的对等设备
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  ElevatedButton(
+                    key: const Key('sync_now_button'),
+                    onPressed: () {},
+                    child: const Text('立即同步'),
+                  ),
+                  const Text('错误：没有可用设备'),
+                  const Text('请确保其他设备在线'),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户点击"立即同步"按钮
-          await tester.tap(find.byKey(const Key('sync_now_button')));
-          await tester.pumpAndSettle();
+        // When: 用户点击"立即同步"按钮
+        await tester.tap(find.byKey(const Key('sync_now_button')));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应显示错误消息，指示没有可用设备
-          expect(find.text('错误：没有可用设备'), findsOneWidget);
-          // AND: 建议发现设备的操作
-          expect(find.text('请确保其他设备在线'), findsOneWidget);
-        },
-      );
+        // Then: 系统应显示错误消息，指示没有可用设备
+        expect(find.text('错误：没有可用设备'), findsOneWidget);
+        // AND: 建议发现设备的操作
+        expect(find.text('请确保其他设备在线'), findsOneWidget);
+      });
 
-      testWidgets(
-        'it_should_force_full_sync_when_user_triggers_full_sync',
-        (WidgetTester tester) async {
-          // Given: 用户想要执行完全重新同步
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    ElevatedButton(
-                      key: const Key('full_sync_button'),
-                      onPressed: () {},
-                      child: const Text('完全同步'),
-                    ),
-                    const LinearProgressIndicator(value: 0.5),
-                    const Text('正在重新同步所有数据...'),
-                  ],
-                ),
+      testWidgets('it_should_force_full_sync_when_user_triggers_full_sync', (
+        WidgetTester tester,
+      ) async {
+        // Given: 用户想要执行完全重新同步
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  ElevatedButton(
+                    key: const Key('full_sync_button'),
+                    onPressed: () {},
+                    child: const Text('完全同步'),
+                  ),
+                  const LinearProgressIndicator(value: 0.5),
+                  const Text('正在重新同步所有数据...'),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户触发"完全同步"操作
-          await tester.tap(find.byKey(const Key('full_sync_button')));
-          await tester.pumpAndSettle();
+        // When: 用户触发"完全同步"操作
+        await tester.tap(find.byKey(const Key('full_sync_button')));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应执行所有数据的完全重新同步
-          // AND: 显示详细的进度信息
-          expect(find.text('正在重新同步所有数据...'), findsOneWidget);
-        },
-      );
+        // Then: 系统应执行所有数据的完全重新同步
+        // AND: 显示详细的进度信息
+        expect(find.text('正在重新同步所有数据...'), findsOneWidget);
+      });
 
-      testWidgets(
-        'it_should_refresh_device_list_when_user_refreshes',
-        (WidgetTester tester) async {
-          // Given: 用户想要发现新设备
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    ElevatedButton(
-                      key: const Key('refresh_button'),
-                      onPressed: () {},
-                      child: const Text('刷新设备'),
-                    ),
-                    const Text('正在搜索设备...'),
-                  ],
-                ),
+      testWidgets('it_should_refresh_device_list_when_user_refreshes', (
+        WidgetTester tester,
+      ) async {
+        // Given: 用户想要发现新设备
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  ElevatedButton(
+                    key: const Key('refresh_button'),
+                    onPressed: () {},
+                    child: const Text('刷新设备'),
+                  ),
+                  const Text('正在搜索设备...'),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户点击"刷新设备"按钮
-          await tester.tap(find.byKey(const Key('refresh_button')));
-          await tester.pumpAndSettle();
+        // When: 用户点击"刷新设备"按钮
+        await tester.tap(find.byKey(const Key('refresh_button')));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应重新扫描可用的对等设备
-          // AND: 更新设备列表显示
-          expect(find.text('正在搜索设备...'), findsOneWidget);
-        },
-      );
+        // Then: 系统应重新扫描可用的对等设备
+        // AND: 更新设备列表显示
+        expect(find.text('正在搜索设备...'), findsOneWidget);
+      });
     });
 
     // ========================================
     // Retry Failed Synchronization Requirement (1 scenario)
     // ========================================
     group('Requirement: Retry Failed Synchronization', () {
-      testWidgets(
-        'it_should_retry_failed_sync_when_user_taps_retry',
-        (WidgetTester tester) async {
-          // Given: 同步因错误而失败
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    const Text('同步失败'),
-                    ElevatedButton(
-                      key: const Key('retry_button'),
-                      onPressed: () {},
-                      child: const Text('重试'),
-                    ),
-                    const CircularProgressIndicator(),
-                    const Text('正在重新同步...'),
-                  ],
-                ),
+      testWidgets('it_should_retry_failed_sync_when_user_taps_retry', (
+        WidgetTester tester,
+      ) async {
+        // Given: 同步因错误而失败
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  const Text('同步失败'),
+                  ElevatedButton(
+                    key: const Key('retry_button'),
+                    onPressed: () {},
+                    child: const Text('重试'),
+                  ),
+                  const CircularProgressIndicator(),
+                  const Text('正在重新同步...'),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户点击错误详情中的"重试"按钮
-          await tester.tap(find.byKey(const Key('retry_button')));
-          await tester.pump();
+        // When: 用户点击错误详情中的"重试"按钮
+        await tester.tap(find.byKey(const Key('retry_button')));
+        await tester.pump();
 
-          // Then: 系统应尝试重新启动同步
-          // AND: 清除之前的错误状态
-          // AND: 显示同步中状态
-          expect(find.byType(CircularProgressIndicator), findsOneWidget);
-          expect(find.text('正在重新同步...'), findsOneWidget);
-        },
-      );
+        // Then: 系统应尝试重新启动同步
+        // AND: 清除之前的错误状态
+        // AND: 显示同步中状态
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        expect(find.text('正在重新同步...'), findsOneWidget);
+      });
     });
 
     // ========================================
     // Configure Sync Settings Requirement (3 scenarios)
     // ========================================
     group('Requirement: Configure Sync Settings', () {
-      testWidgets(
-        'it_should_enable_auto_sync_when_user_enables_auto_sync',
-        (WidgetTester tester) async {
-          // Given: 自动同步当前已禁用
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    Switch(
-                      key: const Key('auto_sync_switch'),
-                      value: false,
-                      onChanged: (value) {},
-                    ),
-                    const Text('自动同步'),
-                    const Text('已启用自动同步'),
-                  ],
-                ),
+      testWidgets('it_should_enable_auto_sync_when_user_enables_auto_sync', (
+        WidgetTester tester,
+      ) async {
+        // Given: 自动同步当前已禁用
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  Switch(
+                    key: const Key('auto_sync_switch'),
+                    value: false,
+                    onChanged: (value) {},
+                  ),
+                  const Text('自动同步'),
+                  const Text('已启用自动同步'),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户启用自动同步设置
-          await tester.tap(find.byKey(const Key('auto_sync_switch')));
-          await tester.pumpAndSettle();
+        // When: 用户启用自动同步设置
+        await tester.tap(find.byKey(const Key('auto_sync_switch')));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应启用自动同步
-          // AND: 显示确认消息
-          expect(find.text('已启用自动同步'), findsOneWidget);
-        },
-      );
+        // Then: 系统应启用自动同步
+        // AND: 显示确认消息
+        expect(find.text('已启用自动同步'), findsOneWidget);
+      });
 
-      testWidgets(
-        'it_should_disable_auto_sync_when_user_disables_auto_sync',
-        (WidgetTester tester) async {
-          // Given: 自动同步当前已启用
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    Switch(
-                      key: const Key('auto_sync_switch'),
-                      value: true,
-                      onChanged: (value) {},
-                    ),
-                    const Text('自动同步'),
-                    const Text('自动同步已禁用'),
-                    ElevatedButton(
-                      onPressed: () {},
-                      child: const Text('立即同步'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_disable_auto_sync_when_user_disables_auto_sync', (
+        WidgetTester tester,
+      ) async {
+        // Given: 自动同步当前已启用
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  Switch(
+                    key: const Key('auto_sync_switch'),
+                    value: true,
+                    onChanged: (value) {},
+                  ),
+                  const Text('自动同步'),
+                  const Text('自动同步已禁用'),
+                  ElevatedButton(onPressed: () {}, child: const Text('立即同步')),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户禁用自动同步设置
-          await tester.tap(find.byKey(const Key('auto_sync_switch')));
-          await tester.pumpAndSettle();
+        // When: 用户禁用自动同步设置
+        await tester.tap(find.byKey(const Key('auto_sync_switch')));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应停止自动同步
-          // AND: 需要手动触发同步
-          expect(find.text('自动同步已禁用'), findsOneWidget);
-          expect(find.text('立即同步'), findsOneWidget);
-          // AND: 显示确认消息
-        },
-      );
+        // Then: 系统应停止自动同步
+        // AND: 需要手动触发同步
+        expect(find.text('自动同步已禁用'), findsOneWidget);
+        expect(find.text('立即同步'), findsOneWidget);
+        // AND: 显示确认消息
+      });
 
       testWidgets(
         'it_should_set_sync_frequency_when_user_configures_frequency',
@@ -630,37 +610,36 @@ void main() {
     // View and Resolve Sync Conflicts Requirement (4 scenarios)
     // ========================================
     group('Requirement: View and Resolve Sync Conflicts', () {
-      testWidgets(
-        'it_should_display_conflict_list_when_conflicts_exist',
-        (WidgetTester tester) async {
-          // Given: 存在同步冲突
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('同步冲突'),
-                    Text('未解决的冲突: 2'),
-                    ListTile(
-                      title: Text('卡片: Meeting Notes'),
-                      subtitle: Text('冲突: 标题不同'),
-                      trailing: Text('查看'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_display_conflict_list_when_conflicts_exist', (
+        WidgetTester tester,
+      ) async {
+        // Given: 存在同步冲突
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('同步冲突'),
+                  Text('未解决的冲突: 2'),
+                  ListTile(
+                    title: Text('卡片: Meeting Notes'),
+                    subtitle: Text('冲突: 标题不同'),
+                    trailing: Text('查看'),
+                  ),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户查看同步详情
-          // Then: 系统应显示冲突部分
-          expect(find.text('同步冲突'), findsOneWidget);
-          // AND: 列出所有未解决的冲突
-          expect(find.text('未解决的冲突: 2'), findsOneWidget);
-          // AND: 指示冲突数量
-        },
-      );
+        // When: 用户查看同步详情
+        // Then: 系统应显示冲突部分
+        expect(find.text('同步冲突'), findsOneWidget);
+        // AND: 列出所有未解决的冲突
+        expect(find.text('未解决的冲突: 2'), findsOneWidget);
+        // AND: 指示冲突数量
+      });
 
       testWidgets(
         'it_should_display_conflict_details_when_user_views_conflict',
@@ -682,14 +661,8 @@ void main() {
                         ],
                       ),
                     ),
-                    ElevatedButton(
-                      onPressed: null,
-                      child: Text('选择版本 1'),
-                    ),
-                    ElevatedButton(
-                      onPressed: null,
-                      child: Text('选择版本 2'),
-                    ),
+                    ElevatedButton(onPressed: null, child: Text('选择版本 1')),
+                    ElevatedButton(onPressed: null, child: Text('选择版本 2')),
                   ],
                 ),
               ),
@@ -741,35 +714,34 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_auto_resolve_crdt_conflicts_when_crdt_enabled',
-        (WidgetTester tester) async {
-          // Given: 基于 CRDT 的冲突解决已启用
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('同步历史'),
-                    ListTile(
-                      title: Text('自动解决冲突'),
-                      subtitle: Text('2026-01-31 10:00'),
-                      trailing: Icon(Icons.merge, color: Colors.blue),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_auto_resolve_crdt_conflicts_when_crdt_enabled', (
+        WidgetTester tester,
+      ) async {
+        // Given: 基于 CRDT 的冲突解决已启用
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('同步历史'),
+                  ListTile(
+                    title: Text('自动解决冲突'),
+                    subtitle: Text('2026-01-31 10:00'),
+                    trailing: Icon(Icons.merge, color: Colors.blue),
+                  ),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 发生冲突
-          // Then: 系统应使用 CRDT 合并规则自动解决冲突
-          expect(find.text('自动解决冲突'), findsOneWidget);
-          expect(find.byIcon(Icons.merge), findsOneWidget);
-          // AND: 在同步历史中记录冲突解决
-        },
-      );
+        // When: 发生冲突
+        // Then: 系统应使用 CRDT 合并规则自动解决冲突
+        expect(find.text('自动解决冲突'), findsOneWidget);
+        expect(find.byIcon(Icons.merge), findsOneWidget);
+        // AND: 在同步历史中记录冲突解决
+      });
     });
 
     // ========================================
@@ -798,15 +770,15 @@ void main() {
               ),
               routes: {
                 '/sync': (context) => const Scaffold(
-                      body: Column(
-                        children: [
-                          Text('同步屏幕'),
-                          Text('同步状态: 已同步'),
-                          Text('已连接设备'),
-                          Text('同步历史'),
-                        ],
-                      ),
-                    ),
+                  body: Column(
+                    children: [
+                      Text('同步屏幕'),
+                      Text('同步状态: 已同步'),
+                      Text('已连接设备'),
+                      Text('同步历史'),
+                    ],
+                  ),
+                ),
               },
             ),
           );
@@ -868,54 +840,15 @@ void main() {
     // ========================================
     group('Requirement: Receive Sync Status Updates', () {
       testWidgets(
-        'it_should_update_status_within_1_second_when_state_changes',
-        (WidgetTester tester) async {
-          // Given: 用户正在查看同步状态
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    const Text('同步状态: 同步中'),
-                    const CircularProgressIndicator(),
-                  ],
-                ),
-              ),
-            ),
-          );
-
-          // When: 底层同步状态更改
-          await tester.pump(const Duration(milliseconds: 500));
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: const [
-                    Text('同步状态: 已同步'),
-                    Icon(Icons.cloud_done, color: Colors.green),
-                  ],
-                ),
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // Then: 系统应在 1 秒内更新显示
-          expect(find.text('同步状态: 已同步'), findsOneWidget);
-          // AND: 在状态之间添加过渡动画
-        },
-      );
-
-      testWidgets(
         'it_should_update_device_list_on_discovery_when_new_device_found',
         (WidgetTester tester) async {
           // Given: 用户正在查看设备列表
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
-                    const Text('已连接设备'),
+                    Text('已连接设备'),
                     ListTile(
                       title: Text('iPhone 14'),
                       subtitle: Text('phone'),
@@ -948,10 +881,10 @@ void main() {
           // Given: 用户正在查看设备列表
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
-                    const Text('已连接设备'),
+                    Text('已连接设备'),
                     ListTile(
                       key: Key('device_item'),
                       title: Text('MacBook Pro'),
@@ -967,10 +900,10 @@ void main() {
           // When: 设备的连接状态更改
           await tester.pumpWidget(
             createTestWidget(
-              Scaffold(
+              const Scaffold(
                 body: Column(
                   children: [
-                    const Text('已连接设备'),
+                    Text('已连接设备'),
                     ListTile(
                       key: Key('device_item'),
                       title: Text('MacBook Pro'),

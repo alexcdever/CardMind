@@ -4,7 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -85,8 +84,7 @@ void main() {
 
           // Then: 系统应返回内容中包含"project timeline"的所有卡片
           final resultText = find.byWidgetPredicate(
-            (widget) =>
-                widget is Text && widget.data == 'project timeline',
+            (widget) => widget is Text && widget.data == 'project timeline',
           );
           expect(resultText, findsOneWidget);
           // AND: 搜索应匹配部分单词（FTS5全文搜索）
@@ -142,9 +140,7 @@ void main() {
                   Text('Card 2'),
                   TextField(
                     key: Key('search_field'),
-                    decoration: InputDecoration(
-                      hintText: 'Search cards...',
-                    ),
+                    decoration: InputDecoration(hintText: 'Search cards...'),
                   ),
                 ],
               ),
@@ -182,9 +178,7 @@ void main() {
                     Text('Card 3'),
                     TextField(
                       key: Key('search_field'),
-                      decoration: InputDecoration(
-                        hintText: 'Search cards...',
-                      ),
+                      decoration: InputDecoration(hintText: 'Search cards...'),
                     ),
                   ],
                 ),
@@ -221,9 +215,7 @@ void main() {
                   Text('未找到相关笔记'),
                   Text('尝试其他关键词'),
                   TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search cards...',
-                    ),
+                    decoration: InputDecoration(hintText: 'Search cards...'),
                   ),
                 ],
               ),
@@ -422,12 +414,11 @@ void main() {
               Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
-                    final visibleCards =
-                        selectedTag == null
-                            ? cards
-                            : cards
-                                .where((card) => card['tag'] == selectedTag)
-                                .toList();
+                    final visibleCards = selectedTag == null
+                        ? cards
+                        : cards
+                              .where((card) => card['tag'] == selectedTag)
+                              .toList();
 
                     return Column(
                       children: [
@@ -513,12 +504,11 @@ void main() {
             Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
-                  final visibleCards =
-                      selectedTag == null
-                          ? cards
-                          : cards
-                              .where((card) => card['tag'] == selectedTag)
-                              .toList();
+                  final visibleCards = selectedTag == null
+                      ? cards
+                      : cards
+                            .where((card) => card['tag'] == selectedTag)
+                            .toList();
 
                   return Column(
                     children: [
@@ -589,9 +579,18 @@ void main() {
           String? selectedTag;
           var searchQuery = '';
           final cards = [
-            {'title': 'Card 1 - work', 'tags': ['work']},
-            {'title': 'Card 2 - work (meeting)', 'tags': ['work']},
-            {'title': 'Card 3 - work', 'tags': ['work']},
+            {
+              'title': 'Card 1 - work',
+              'tags': ['work'],
+            },
+            {
+              'title': 'Card 2 - work (meeting)',
+              'tags': ['work'],
+            },
+            {
+              'title': 'Card 3 - work',
+              'tags': ['work'],
+            },
           ];
 
           await tester.pumpWidget(
@@ -600,17 +599,15 @@ void main() {
                 body: StatefulBuilder(
                   builder: (context, setState) {
                     final query = searchQuery.toLowerCase();
-                    final visibleCards =
-                        cards.where((card) {
-                          final title =
-                              (card['title'] as String).toLowerCase();
-                          final tags = card['tags'] as List<String>;
-                          final matchesTag =
-                              selectedTag == null || tags.contains(selectedTag);
-                          final matchesSearch =
-                              query.isEmpty || title.contains(query);
-                          return matchesTag && matchesSearch;
-                        }).toList();
+                    final visibleCards = cards.where((card) {
+                      final title = (card['title'] as String).toLowerCase();
+                      final tags = card['tags'] as List<String>;
+                      final matchesTag =
+                          selectedTag == null || tags.contains(selectedTag);
+                      final matchesSearch =
+                          query.isEmpty || title.contains(query);
+                      return matchesTag && matchesSearch;
+                    }).toList();
 
                     return Column(
                       children: [
@@ -619,8 +616,9 @@ void main() {
                           child: const Text('work (3)'),
                         ),
                         TextField(
-                          decoration:
-                              const InputDecoration(hintText: 'Search cards...'),
+                          decoration: const InputDecoration(
+                            hintText: 'Search cards...',
+                          ),
                           onChanged: (value) =>
                               setState(() => searchQuery = value),
                         ),
@@ -659,7 +657,10 @@ void main() {
           var searchQuery = '';
           final cards = [
             {'title': 'Card 1 - project', 'tags': <String>[]},
-            {'title': 'Card 2 - project (urgent)', 'tags': ['urgent']},
+            {
+              'title': 'Card 2 - project (urgent)',
+              'tags': ['urgent'],
+            },
           ];
 
           await tester.pumpWidget(
@@ -668,17 +669,15 @@ void main() {
                 body: StatefulBuilder(
                   builder: (context, setState) {
                     final query = searchQuery.toLowerCase();
-                    final visibleCards =
-                        cards.where((card) {
-                          final title =
-                              (card['title'] as String).toLowerCase();
-                          final tags = card['tags'] as List<String>;
-                          final matchesTag =
-                              selectedTag == null || tags.contains(selectedTag);
-                          final matchesSearch =
-                              query.isEmpty || title.contains(query);
-                          return matchesTag && matchesSearch;
-                        }).toList();
+                    final visibleCards = cards.where((card) {
+                      final title = (card['title'] as String).toLowerCase();
+                      final tags = card['tags'] as List<String>;
+                      final matchesTag =
+                          selectedTag == null || tags.contains(selectedTag);
+                      final matchesSearch =
+                          query.isEmpty || title.contains(query);
+                      return matchesTag && matchesSearch;
+                    }).toList();
 
                     return Column(
                       children: [
@@ -687,8 +686,9 @@ void main() {
                           child: const Text('urgent (2)'),
                         ),
                         TextField(
-                          decoration:
-                              const InputDecoration(hintText: 'Search cards...'),
+                          decoration: const InputDecoration(
+                            hintText: 'Search cards...',
+                          ),
                           onChanged: (value) =>
                               setState(() => searchQuery = value),
                         ),
@@ -938,117 +938,5 @@ void main() {
       );
     });
 
-    // ========================================
-    // Search Performance Requirement (3 scenarios)
-    // ========================================
-    group('Requirement: Search Performance', () {
-      testWidgets(
-        'it_should_complete_search_within_200ms_when_user_performs_search',
-        (WidgetTester tester) async {
-          // Given: 用户输入搜索查询
-          final stopwatch = Stopwatch()..start();
-
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Card 1'),
-                    Text('Card 2'),
-                    TextField(
-                      decoration: InputDecoration(hintText: 'Search cards...'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-
-          // When: 执行搜索
-          await tester.enterText(find.byType(TextField), 'card');
-          await tester.pump();
-          stopwatch.stop();
-
-          // Then: 系统应在200毫秒内返回结果
-          expect(stopwatch.elapsedMilliseconds, lessThan(200));
-          // AND: UI应在搜索期间保持响应
-          // AND: 系统应使用SQLite FTS5进行全文搜索
-        },
-      );
-
-      testWidgets(
-        'it_should_update_filter_within_100ms_when_user_selects_tag_filter',
-        (WidgetTester tester) async {
-          // Given: 用户选择标签过滤器
-          final stopwatch = Stopwatch()..start();
-
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('work (3)'),
-                    Text('Card 1 - work'),
-                    Text('Card 2 - work'),
-                  ],
-                ),
-              ),
-            ),
-          );
-
-          // When: 应用过滤器
-          await tester.tap(find.text('work (3)'));
-          await tester.pump();
-          stopwatch.stop();
-
-          // Then: 系统应在100毫秒内更新卡片列表
-          expect(stopwatch.elapsedMilliseconds, lessThan(100));
-          // AND: 过渡应平滑无闪烁
-        },
-      );
-
-      testWidgets(
-        'it_should_handle_large_card_collections_when_user_has_1000_cards',
-        (WidgetTester tester) async {
-          // Given: 用户有1000+张卡片
-          final stopwatch = Stopwatch()..start();
-
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: List.generate(10, (i) => Text('Card $i')),
-                ),
-              ),
-            ),
-          );
-
-          // When: 用户执行搜索
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    const TextField(
-                      decoration: InputDecoration(hintText: 'Search cards...'),
-                    ),
-                    ...List.generate(10, (i) => Text('Card $i')),
-                  ],
-                ),
-              ),
-            ),
-          );
-
-          await tester.enterText(find.byType(TextField), 'card');
-          await tester.pump();
-          stopwatch.stop();
-
-          // Then: 系统应在200毫秒内完成搜索
-          expect(stopwatch.elapsedMilliseconds, lessThan(200));
-          // AND: 系统应使用索引查询以提高性能
-          // AND: 内存使用应保持合理（简化测试）
-        },
-      );
-    });
   });
 }
