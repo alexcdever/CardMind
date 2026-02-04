@@ -1142,8 +1142,8 @@ bool ensureFrameworkSearchPathsForConfig(
   if (!hasFrameworkSearch) {
     final insertion = [
       '${indent}FRAMEWORK_SEARCH_PATHS = (',
-      '${indent}\\t\"\\$(inherited)\",',
-      '${indent}\\t\"\\$(PROJECT_DIR)/Runner/Frameworks\",',
+      '${indent}\t"\$(inherited)",',
+      '${indent}\t"\$(PROJECT_DIR)/Runner/Frameworks",',
       '${indent});',
     ];
     lines.insertAll(buildSettingsLine + 1, insertion);
@@ -1151,10 +1151,7 @@ bool ensureFrameworkSearchPathsForConfig(
   }
 
   if (searchStart != -1 && searchEnd != -1) {
-    lines.insert(
-      searchEnd,
-      '${indent}\\t\"\\$(PROJECT_DIR)/Runner/Frameworks\",',
-    );
+    lines.insert(searchEnd, '${indent}\t"\$(PROJECT_DIR)/Runner/Frameworks",');
     return true;
   }
 
