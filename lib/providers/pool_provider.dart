@@ -1,6 +1,8 @@
 import 'package:cardmind/bridge/models/pool.dart';
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart'
     as device_api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
+    as identity_api;
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/pool.dart'
     as pool_api;
 import 'package:flutter/foundation.dart';
@@ -101,10 +103,10 @@ class PoolProvider extends ChangeNotifier {
       );
 
       if (success) {
-        final deviceId = await device_api.getDeviceId();
+        final peerId = identity_api.getPeerId();
         await pool_api.addPoolMember(
           poolId: poolId,
-          deviceId: deviceId,
+          deviceId: peerId,
           deviceName: 'My Device',
         );
         await loadPools();
@@ -123,8 +125,8 @@ class PoolProvider extends ChangeNotifier {
   Future<bool> leavePool(String poolId) async {
     try {
       _clearError();
-      final deviceId = await device_api.getDeviceId();
-      await pool_api.removePoolMember(poolId: poolId, deviceId: deviceId);
+      final peerId = identity_api.getPeerId();
+      await pool_api.removePoolMember(poolId: poolId, deviceId: peerId);
       await loadPools();
       // Clear current pool after leaving
       if (_currentPool?.poolId == poolId) {

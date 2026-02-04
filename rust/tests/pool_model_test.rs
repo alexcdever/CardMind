@@ -9,7 +9,7 @@ use cardmind_rust::models::pool::{Device, Pool};
 
 /// 测试辅助函数：创建测试用的设备配置
 fn create_test_device_config() -> DeviceConfig {
-    DeviceConfig::new("test-device-001")
+    DeviceConfig::new()
 }
 
 /// 测试辅助函数：创建测试用的数据池

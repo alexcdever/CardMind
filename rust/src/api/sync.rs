@@ -694,7 +694,7 @@ mod tests {
         let card_store = Arc::new(Mutex::new(
             crate::store::card_store::CardStore::new_in_memory().unwrap(),
         ));
-        let device_config = crate::models::device_config::DeviceConfig::new("test-device");
+        let device_config = crate::models::device_config::DeviceConfig::new();
 
         // 初始化服务
         let service = crate::p2p::sync_service::P2PSyncService::new(card_store, device_config)
@@ -724,7 +724,7 @@ mod tests {
         let card_store = Arc::new(Mutex::new(
             crate::store::card_store::CardStore::new_in_memory().unwrap(),
         ));
-        let device_config = crate::models::device_config::DeviceConfig::new("test-device");
+        let device_config = crate::models::device_config::DeviceConfig::new();
 
         let service = crate::p2p::sync_service::P2PSyncService::new(card_store, device_config)
             .expect("Failed to create sync service");

@@ -359,7 +359,7 @@ fn it_should_enforce_pool_reference_validity() {
     // Given: 设备配置和池
     use cardmind_rust::models::device_config::DeviceConfig;
 
-    let mut device_config = DeviceConfig::new("device-001");
+    let mut device_config = DeviceConfig::new();
     let pool = Pool::new("pool-001", "工作笔记", "hashed");
 
     // When: 设备加入池

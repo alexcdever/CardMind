@@ -82,8 +82,7 @@ impl From<BcryptError> for PasswordError {
 pub fn derive_pool_hash(pool_id: &str, password: &str) -> Result<String, PasswordError> {
     let hkdf = Hkdf::<Sha256>::new(Some(pool_id.as_bytes()), password.as_bytes());
     let mut okm = [0u8; 32];
-    hkdf
-        .expand(&[], &mut okm)
+    hkdf.expand(&[], &mut okm)
         .map_err(|e| PasswordError::KeyDerivationFailed(e.to_string()))?;
 
     Ok(hex::encode(okm))

@@ -23,7 +23,7 @@ use std::sync::{Arc, Mutex};
 fn it_should_sync_service_initialization() {
     // Given: CardStore 和 DeviceConfig
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-001");
+    let device_config = DeviceConfig::new();
 
     // When: 创建 P2PSyncService
     let service = P2PSyncService::new(card_store, device_config);
@@ -46,11 +46,11 @@ fn it_should_sync_service_initialization() {
 async fn it_should_two_device_sync_flow_components() {
     // Given: 两个设备的 CardStore、DeviceConfig（已加入相同池）和 P2PSyncService
     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let mut device_config_a = DeviceConfig::new("device-a");
+    let mut device_config_a = DeviceConfig::new();
     let _ = device_config_a.join_pool("pool-001");
 
     let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let mut device_config_b = DeviceConfig::new("device-b");
+    let mut device_config_b = DeviceConfig::new();
     let _ = device_config_b.join_pool("pool-001");
 
     let service_a = P2PSyncService::new(card_store_a, device_config_a).unwrap();
@@ -80,7 +80,7 @@ async fn it_should_two_device_sync_flow_components() {
 async fn it_should_sync_status_tracking() {
     // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device");
+    let device_config = DeviceConfig::new();
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -111,7 +111,7 @@ async fn it_should_sync_status_tracking() {
 async fn it_should_sync_service_start_and_listen() {
     // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device");
+    let device_config = DeviceConfig::new();
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -144,7 +144,7 @@ async fn it_should_sync_service_start_and_listen() {
 async fn it_should_concurrent_device_connections() {
     // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device");
+    let device_config = DeviceConfig::new();
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -168,7 +168,7 @@ async fn it_should_concurrent_device_connections() {
 async fn it_should_pool_sync_between_services() {
     // Given: 两个设备（A有卡片并绑定池，B加入相同池）和模拟网络服务
     let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let mut device_config_a = DeviceConfig::new("device-a");
+    let mut device_config_a = DeviceConfig::new();
     let _ = device_config_a.join_pool("pool-001");
 
     let card_id = {
@@ -181,7 +181,7 @@ async fn it_should_pool_sync_between_services() {
     };
 
     let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let mut device_config_b = DeviceConfig::new("device-b");
+    let mut device_config_b = DeviceConfig::new();
     let _ = device_config_b.join_pool("pool-001");
 
     let service_a = P2PSyncService::new_with_mock_network(card_store_a, device_config_a).unwrap();
@@ -210,7 +210,7 @@ async fn it_should_pool_sync_between_services() {
 async fn it_should_sync_request_handling() {
     // Given: CardStore、DeviceConfig（已加入数据池）和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let mut device_config = DeviceConfig::new("test-device");
+    let mut device_config = DeviceConfig::new();
     let _ = device_config.join_pool("test-pool-001");
 
     let mut service = P2PSyncService::new(card_store, device_config).unwrap();
