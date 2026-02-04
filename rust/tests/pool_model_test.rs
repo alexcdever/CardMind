@@ -109,7 +109,7 @@ fn it_should_fail_to_create_card_when_no_pool_joined() {
 
     // And: 返回表明未加入池的错误
     if let Some(pool_id) = config.get_pool_id() {
-        panic!("设备未加入池，但 pool_id 为: {:?}", pool_id);
+        panic!("设备未加入池，但 pool_id 为: {pool_id:?}");
     }
 }
 
@@ -185,7 +185,7 @@ fn it_should_manage_pool_members_correctly() {
     let device2 = Device::new("device-002", "MacBook");
     let device3 = Device::new("device-003", "iPad");
 
-    pool.add_member(device1.clone());
+    pool.add_member(device1);
     pool.add_member(device2);
     pool.add_member(device3);
 

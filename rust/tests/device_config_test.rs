@@ -1,4 +1,4 @@
-//! Architecture Layer Test: DeviceConfig Storage
+//! Architecture Layer Test: `DeviceConfig` Storage
 //!
 //! 实现规格: `openspec/specs/architecture/storage/device_config.md`
 //!
@@ -144,7 +144,7 @@ fn it_should_preserve_config_when_join_fails() {
 // ==== Requirement: Leave pool with cleanup ====
 
 #[test]
-/// Scenario: Clear pool_id on leave
+/// Scenario: Clear `pool_id` on leave
 fn it_should_clear_pool_id_on_leave() {
     // Given: 设备已加入池
     let mut config = DeviceConfig::new();
