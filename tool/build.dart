@@ -92,12 +92,40 @@ Set<BuildPlatform>? parsePlatforms(List<String> args) {
 
 Future<void> runBridge(BuildConfig config) async {
   printHeader('🔨 CardMind 构建工具');
-  printSection('bridge');
-  printInfo('桥接构建流程尚未实现');
+  printSection('📋 检查构建环境');
+  if (!await checkEnvironment(config)) {
+    printError('环境检查失败，无法继续');
+    exit(1);
+  }
+
+  printSection('🔧 生成桥接代码');
+  if (!await generateBridge()) {
+    printError('桥接代码生成失败');
+    exit(1);
+  }
+
+  printSection('🎨 格式化生成代码');
+  await formatGeneratedCode();
+  printSuccess('✅ 桥接准备完成');
 }
 
 Future<void> runApp(BuildConfig config) async {
   printHeader('🔨 CardMind 构建工具');
+  printSection('📋 检查构建环境');
+  if (!await checkEnvironment(config)) {
+    printError('环境检查失败，无法继续');
+    exit(1);
+  }
+
+  printSection('🔧 生成桥接代码');
+  if (!await generateBridge()) {
+    printError('桥接代码生成失败');
+    exit(1);
+  }
+
+  printSection('🎨 格式化生成代码');
+  await formatGeneratedCode();
+
   printSection('app');
   printInfo('应用构建流程尚未实现');
 }
@@ -141,4 +169,154 @@ void printWarning(String message) {
 
 void printError(String message) {
   stderr.writeln('$red✗ $message$reset');
+}
+
+Future<bool> checkEnvironment(BuildConfig config) async {
+  var success = true;
+
+  printStep('检查 Flutter...');
+  if (await runCommand(
+    'flutter',
+    ['--version'],
+    quiet: true,
+    description: 'Flutter version',
+  )) {
+    printSuccess('Flutter 已安装');
+  } else {
+    printError('Flutter 未安装');
+    success = false;
+  }
+
+  printStep('检查 Rust...');
+  if (await runCommand(
+    'cargo',
+    ['--version'],
+    quiet: true,
+    description: 'Cargo version',
+  )) {
+    printSuccess('Rust 已安装');
+  } else {
+    printError('Rust 未安装');
+    success = false;
+  }
+
+  printStep('检查 flutter_rust_bridge_codegen...');
+  if (await runCommand(
+    'flutter_rust_bridge_codegen',
+    ['--version'],
+    quiet: true,
+    description: 'FRB version',
+  )) {
+    printSuccess('flutter_rust_bridge_codegen 已安装');
+  } else {
+    printWarning('flutter_rust_bridge_codegen 未安装，尝试安装中...');
+    if (await runCommand(
+      'cargo',
+      ['install', 'flutter_rust_bridge_codegen'],
+      description: 'Install FRB',
+    )) {
+      printSuccess('flutter_rust_bridge_codegen 安装成功');
+    } else {
+      printError('flutter_rust_bridge_codegen 安装失败');
+      success = false;
+    }
+  }
+
+  if (!Directory('rust').existsSync()) {
+    printError('未找到 rust/ 目录');
+    success = false;
+  }
+
+  if (!File('pubspec.yaml').existsSync()) {
+    printError('未找到 pubspec.yaml，请在项目根目录运行');
+    success = false;
+  }
+
+  return success;
+}
+
+Future<bool> generateBridge() async {
+  final args = [
+    'generate',
+    '--rust-input',
+    'cardmind_rust::api',
+    '--dart-output',
+    'lib/bridge/',
+    '--c-output',
+    'rust/src/bridge_generated.h',
+  ];
+
+  printInfo('运行: flutter_rust_bridge_codegen ${args.join(' ')}');
+  return runCommand(
+    'flutter_rust_bridge_codegen',
+    args,
+    description: 'Generate FRB bindings',
+  );
+}
+
+Future<void> formatGeneratedCode() async {
+  final dartFormat = await runCommand(
+    'dart',
+    ['format', 'lib/bridge/'],
+    description: 'Dart format',
+  );
+  if (!dartFormat) {
+    printWarning('Dart 格式化失败（非致命）');
+  }
+
+  final rustFormat = await runCommand(
+    'cargo',
+    ['fmt'],
+    workingDirectory: 'rust',
+    description: 'Cargo fmt',
+  );
+  if (!rustFormat) {
+    printWarning('Rust 格式化失败（非致命）');
+  }
+}
+
+Future<bool> runCommand(
+  String executable,
+  List<String> arguments, {
+  String? workingDirectory,
+  Map<String, String>? environment,
+  bool quiet = false,
+  String? description,
+}) async {
+  final workDir = workingDirectory ?? '.';
+
+  if (!quiet && description != null) {
+    printInfo('  → $description');
+  }
+
+  try {
+    final process = await Process.start(
+      executable,
+      arguments,
+      workingDirectory: workDir,
+      environment: environment,
+      runInShell: Platform.isWindows,
+    );
+
+    if (!quiet) {
+      process.stdout.listen((data) => stdout.add(data));
+      process.stderr.listen((data) => stderr.add(data));
+    } else {
+      process.stdout.drain();
+      process.stderr.drain();
+    }
+
+    final exitCode = await process.exitCode;
+    return exitCode == 0;
+  } catch (e) {
+    if (!quiet) {
+      printError('命令执行失败: $executable ${arguments.join(' ')}');
+      printError('错误: $e');
+    }
+    return false;
+  }
+}
+
+void printStep(String message) {
+  stdout.writeln('$bold$cyan$message$reset');
 }
