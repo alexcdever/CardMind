@@ -82,8 +82,7 @@ async fn it_should_sync_status_tracking() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new();
 
-    let mut service =
-        P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
 
     // When: 初始状态为空，然后连接一个设备
     let status = service.get_sync_status();
@@ -114,8 +113,7 @@ async fn it_should_sync_service_start_and_listen() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new();
 
-    let mut service =
-        P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
 
     // When: 启动服务（使用随机端口）
     let result = service.start("/ip4/127.0.0.1/tcp/0").await;
@@ -148,8 +146,7 @@ async fn it_should_concurrent_device_connections() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new();
 
-    let mut service =
-        P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
 
     // When: 模拟多个设备同时连接
     let peer1 = libp2p::PeerId::random();
@@ -216,19 +213,14 @@ async fn it_should_sync_request_handling() {
     let mut device_config = DeviceConfig::new();
     let _ = device_config.join_pool("test-pool-001");
 
-    let mut service =
-        P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
 
     // When: 模拟向对等设备发起同步请求
     let peer_id = libp2p::PeerId::random();
     let result = service.request_sync(peer_id, "test-pool-001".to_string());
 
     // Then: 同步请求应该被成功构造（注意：这是模拟测试，不是完整的消息传输）
-    assert!(
-        result.is_ok(),
-        "同步请求应该被成功构造: {:?}",
-        result
-    );
+    assert!(result.is_ok(), "同步请求应该被成功构造: {result:?}");
 
     println!("✅ 同步请求处理测试通过");
 }

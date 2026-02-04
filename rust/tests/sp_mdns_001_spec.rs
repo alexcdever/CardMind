@@ -4,5 +4,4 @@
 
 #[test]
 fn it_should_skip_mdns_temporary_toggle_spec() {
-    assert!(true);
 }

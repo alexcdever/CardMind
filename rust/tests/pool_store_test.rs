@@ -1,4 +1,4 @@
-//! Architecture Layer Test: PoolStore Architecture
+//! Architecture Layer Test: `PoolStore` Architecture
 //!
 //! 实现规格: `openspec/specs/architecture/storage/pool_store.md`
 //!

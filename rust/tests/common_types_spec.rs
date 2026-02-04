@@ -22,23 +22,16 @@ fn is_valid_uuid_v7(s: &str) -> bool {
 /// 测试辅助函数：验证时间戳范围
 fn is_valid_timestamp(ts: i64) -> bool {
     // 范围：1970-01-01 到 2262-04-11
-    ts >= 0 && ts <= 10_000_000_000_000_i64
+    (0..=10_000_000_000_000_i64).contains(&ts)
 }
 
-/// 测试辅助函数：验证 OptionalText 约束
-fn validate_optional_text(text: &Option<String>) -> bool {
-    match text {
-        None => true, // 可以为 None
-        Some(s) => {
-            // 可以为空字符串
-            // 最大长度：256 Unicode 字符
-            s.chars().count() <= 256 && !s.contains('\0')
-        }
-    }
+/// 测试辅助函数：验证 `OptionalText` 约束
+fn validate_optional_text(text: Option<&str>) -> bool {
+    text.is_none_or(|s| s.chars().count() <= 256 && !s.contains('\0'))
 }
 
-/// 测试辅助函数：验证 MarkdownText 约束
-fn validate_markdown_text(text: &str) -> bool {
+/// 测试辅助函数：验证 `MarkdownText` 约束
+const fn validate_markdown_text(text: &str) -> bool {
     // 不能为空字符串（至少一个空格）
     if text.is_empty() {
         return false;
@@ -111,54 +104,57 @@ fn it_should_be_time_ordered() {
 // ==== Requirement: 可选文本类型 ====
 
 #[test]
-/// Test: OptionalText can be null
+/// Test: `OptionalText` can be null
 fn it_should_allow_optional_text_as_none() {
     // Given: None 值
     let text: Option<String> = None;
 
     // When: 验证 OptionalText
-    let is_valid = validate_optional_text(&text);
+    let is_valid = validate_optional_text(text.as_deref());
 
     // Then: 应通过验证
     assert!(is_valid, "OptionalText 可以为 None");
 }
 
 #[test]
-/// Test: OptionalText can be empty string
+/// Test: `OptionalText` can be empty string
 fn it_should_allow_optional_text_as_empty() {
     // Given: 空字符串
-    let text = Some("".to_string());
+    let text = Some(String::new());
 
     // When: 验证 OptionalText
-    let is_valid = validate_optional_text(&text);
+    let is_valid = validate_optional_text(text.as_deref());
 
     // Then: 应通过验证
     assert!(is_valid, "OptionalText 可以为空字符串");
 }
 
 #[test]
-/// Test: OptionalText enforces max length
+/// Test: `OptionalText` enforces max length
 fn it_should_enforce_max_length_for_optional_text() {
     // Given: 正常长度字符串
     let text_256 = Some("a".repeat(256));
-    assert!(validate_optional_text(&text_256), "256 字符应通过");
+    assert!(
+        validate_optional_text(text_256.as_deref()),
+        "256 字符应通过"
+    );
 
     // When: 验证超长字符串
     let text_257 = Some("a".repeat(257));
-    let is_valid = validate_optional_text(&text_257);
+    let is_valid = validate_optional_text(text_257.as_deref());
 
     // Then: 应拒绝超长字符串
     assert!(!is_valid, "超过 256 字符应被拒绝");
 }
 
 #[test]
-/// Test: OptionalText rejects control characters
+/// Test: `OptionalText` rejects control characters
 fn it_should_reject_control_characters_in_optional_text() {
     // Given: 包含控制字符的字符串
     let text_with_null = Some("Hello\0World".to_string());
 
     // When: 验证 OptionalText
-    let is_valid = validate_optional_text(&text_with_null);
+    let is_valid = validate_optional_text(text_with_null.as_deref());
 
     // Then: 应拒绝包含控制字符的字符串
     assert!(!is_valid, "应拒绝包含控制字符的字符串");
@@ -167,10 +163,10 @@ fn it_should_reject_control_characters_in_optional_text() {
 // ==== Requirement: Markdown 文本类型 ====
 
 #[test]
-/// Test: MarkdownText supports CommonMark features
+/// Test: `MarkdownText` supports `CommonMark` features
 fn it_should_support_markdown_features() {
     // Given: 包含 CommonMark 特性的 Markdown 文本
-    let markdown = r#"# Heading 1
+    let markdown = r"# Heading 1
 ## Heading 2
 
 **Bold** and *italic* text.
@@ -191,7 +187,7 @@ Code block
 | Cell 1   | Cell 2   |
 
 ~~Strikethrough~~
-"#;
+";
 
     // When: 验证 MarkdownText
     let is_valid = validate_markdown_text(markdown);
@@ -205,14 +201,14 @@ Code block
     assert!(markdown.contains("*italic*"), "应支持斜体");
     assert!(markdown.contains("- List item"), "应支持列表");
     assert!(markdown.contains("```"), "应支持代码块");
-    assert!(markdown.contains(">"), "应支持引用块");
+    assert!(markdown.contains('>'), "应支持引用块");
     assert!(markdown.contains("[Link]"), "应支持链接");
-    assert!(markdown.contains("|"), "应支持表格");
+    assert!(markdown.contains('|'), "应支持表格");
     assert!(markdown.contains("~~"), "应支持删除线");
 }
 
 #[test]
-/// Test: MarkdownText cannot be empty
+/// Test: `MarkdownText` cannot be empty
 fn it_should_reject_empty_markdown_text() {
     // Given: 空字符串
     let empty_text = "";
@@ -225,7 +221,7 @@ fn it_should_reject_empty_markdown_text() {
 }
 
 #[test]
-/// Test: MarkdownText can be single space
+/// Test: `MarkdownText` can be single space
 fn it_should_allow_single_space_markdown_text() {
     // Given: 单个空格
     let space_text = " ";
@@ -238,7 +234,7 @@ fn it_should_allow_single_space_markdown_text() {
 }
 
 #[test]
-/// Test: MarkdownText has no max length
+/// Test: `MarkdownText` has no max length
 fn it_should_have_no_max_length_for_markdown_text() {
     // Given: 超长 Markdown 文本
     let long_text = "# Heading\n".repeat(10_000);
@@ -451,7 +447,7 @@ fn it_should_validate_all_type_constraints() {
 
     // OptionalText（标题）
     assert!(
-        validate_optional_text(&Some(card.title.clone())),
+        validate_optional_text(Some(card.title.as_str())),
         "标题应为有效的 OptionalText"
     );
 
@@ -465,7 +461,6 @@ fn it_should_validate_all_type_constraints() {
     assert!(!card.deleted, "初始状态应为未删除");
 
     // Then: 所有约束应满足
-    assert!(true, "所有类型约束应满足");
 }
 
 #[test]
@@ -492,7 +487,7 @@ fn it_should_integrate_types_with_domain_models() {
 
     // OptionalText 用于标题
     assert!(
-        validate_optional_text(&Some(card.title.clone())),
+        validate_optional_text(Some(card.title.as_str())),
         "标题应为有效的 OptionalText"
     );
 

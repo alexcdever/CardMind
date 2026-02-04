@@ -25,7 +25,6 @@ fn it_should_hash_password_when_creating_pool() {
     // Note: 实际的 bcrypt 哈希应该在测试辅助方法中完成
     // 这里我们验证密码字符串的传递和处理
     assert_eq!(hash, "test_password_123");
-    assert!(!hash.is_empty());
 }
 
 #[test]
@@ -119,7 +118,7 @@ fn it_should_validate_valid_timestamp() {
 fn it_should_validate_expired_timestamp() {
     // Given: 收到过期的加入请求
     let now = chrono::Utc::now();
-    let six_minutes_ago = now.timestamp_millis() - 360000;
+    let six_minutes_ago = now.timestamp_millis() - 360_000;
     let expired_timestamp = six_minutes_ago - 1;
 
     // When: 时间戳验证函数被调用

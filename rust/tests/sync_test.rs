@@ -54,14 +54,14 @@ struct MockSyncOperation {
 }
 
 impl MockSyncOperation {
-    fn successful() -> Self {
+    const fn successful() -> Self {
         Self {
             success: true,
             changes_applied: true,
         }
     }
 
-    fn failed() -> Self {
+    const fn failed() -> Self {
         Self {
             success: false,
             changes_applied: false,
@@ -89,7 +89,7 @@ fn it_should_track_version_per_card() {
     assert_eq!(versions.get(&card.id).unwrap().version, "v2");
 
     // And: 版本应与卡片的 CRDT 状态一起存储
-    assert!(versions.get(&card.id).is_some());
+    assert!(versions.contains_key(&card.id));
     assert_ne!(old_version.version, new_version.version);
 }
 
@@ -155,7 +155,6 @@ fn it_should_merge_concurrent_edits_automatically() {
     assert_eq!(final_state, "设备 A 的标题|设备 B 的内容");
 
     // And: 不应需要用户干预
-    assert!(true, "CRDT 应自动解决冲突");
 }
 
 #[test]
@@ -252,18 +251,19 @@ fn it_should_push_local_changes() {
     let device_a_card = create_test_card("card-001", "本地标题", "本地内容");
 
     // 模拟设备 B 的本地状态（没有此变更）
-    let device_b_cards: std::collections::HashMap<String, Card> = std::collections::HashMap::new();
+    let mut remote_cards: std::collections::HashMap<String, Card> =
+        std::collections::HashMap::new();
 
     // When: 设备 A 发起与设备 B 的同步
-    let mut device_b_cards = device_b_cards.clone();
-    device_b_cards.insert(device_a_card.id.clone(), device_a_card.clone());
+    let device_a_id = device_a_card.id.clone();
+    remote_cards.insert(device_a_id, device_a_card);
 
     // Then: 设备 A 应将其变更推送到设备 B
-    assert_eq!(device_b_cards.len(), 1);
-    assert_eq!(device_b_cards.get("card-001").unwrap().title, "本地标题");
+    assert_eq!(remote_cards.len(), 1);
+    assert_eq!(remote_cards.get("card-001").unwrap().title, "本地标题");
 
     // And: 设备 B 应将变更应用到其本地状态
-    let applied_card = device_b_cards.get("card-001").unwrap();
+    let applied_card = remote_cards.get("card-001").unwrap();
     assert_eq!(applied_card.id, "card-001");
     assert_eq!(applied_card.title, "本地标题");
     assert_eq!(applied_card.content, "本地内容");
@@ -273,27 +273,27 @@ fn it_should_push_local_changes() {
 /// Scenario: Device pulls remote changes
 fn it_should_pull_remote_changes() {
     // Given: 设备 B 有设备 A 没有的变更
-    let mut device_b_cards: std::collections::HashMap<String, Card> =
+    let mut remote_cards: std::collections::HashMap<String, Card> =
         std::collections::HashMap::new();
-    device_b_cards.insert(
+    remote_cards.insert(
         "card-002".to_string(),
         create_test_card("card-002", "远程标题", "远程内容"),
     );
 
     // 设备 A 的本地状态（为空）
-    let mut device_a_cards: std::collections::HashMap<String, Card> =
+    let mut local_cards: std::collections::HashMap<String, Card> =
         std::collections::HashMap::new();
 
     // When: 设备 A 发起与设备 B 的同步
-    let pulled_card = device_b_cards.get("card-002").unwrap();
-    device_a_cards.insert(pulled_card.id.clone(), pulled_card.clone());
+    let pulled_card = remote_cards.get("card-002").unwrap();
+    local_cards.insert(pulled_card.id.clone(), pulled_card.clone());
 
     // Then: 设备 A 应从设备 B 拉取变更
-    assert_eq!(device_a_cards.len(), 1);
-    assert_eq!(device_a_cards.get("card-002").unwrap().title, "远程标题");
+    assert_eq!(local_cards.len(), 1);
+    assert_eq!(local_cards.get("card-002").unwrap().title, "远程标题");
 
     // And: 设备 A 应将变更应用到其本地状态
-    let applied_card = device_a_cards.get("card-002").unwrap();
+    let applied_card = local_cards.get("card-002").unwrap();
     assert_eq!(applied_card.id, "card-002");
     assert_eq!(applied_card.title, "远程标题");
     assert_eq!(applied_card.content, "远程内容");
@@ -385,34 +385,36 @@ fn it_should_merge_tags_using_set_union() {
 /// 集成测试：完整的双向同步流程
 fn it_should_handle_bidirectional_sync() {
     // Given: 两个设备都有本地变更
-    let mut device_a_cards: std::collections::HashMap<String, Card> =
+    let mut cards_alpha: std::collections::HashMap<String, Card> =
         std::collections::HashMap::new();
-    let mut device_b_cards: std::collections::HashMap<String, Card> =
+    let mut cards_beta: std::collections::HashMap<String, Card> =
         std::collections::HashMap::new();
 
     // 设备 A 创建 card-001
     let card_a = create_test_card("card-001", "设备 A 的卡片", "内容 A");
-    device_a_cards.insert(card_a.id.clone(), card_a.clone());
+    let card_alpha_id = card_a.id.clone();
+    cards_alpha.insert(card_alpha_id.clone(), card_a.clone());
 
     // 设备 B 创建 card-002
     let card_b = create_test_card("card-002", "设备 B 的卡片", "内容 B");
-    device_b_cards.insert(card_b.id.clone(), card_b.clone());
+    let card_beta_id = card_b.id.clone();
+    cards_beta.insert(card_beta_id.clone(), card_b.clone());
 
     // When: 双向同步
     // 设备 A 推送到设备 B
-    device_b_cards.insert(card_a.id.clone(), card_a.clone());
+    cards_beta.insert(card_alpha_id, card_a);
 
     // 设备 B 推送到设备 A
-    device_a_cards.insert(card_b.id.clone(), card_b.clone());
+    cards_alpha.insert(card_beta_id, card_b);
 
     // Then: 两个设备应具有一致的数据
-    assert_eq!(device_a_cards.len(), 2);
-    assert_eq!(device_b_cards.len(), 2);
+    assert_eq!(cards_alpha.len(), 2);
+    assert_eq!(cards_beta.len(), 2);
 
-    assert!(device_a_cards.contains_key("card-001"));
-    assert!(device_a_cards.contains_key("card-002"));
-    assert!(device_b_cards.contains_key("card-001"));
-    assert!(device_b_cards.contains_key("card-002"));
+    assert!(cards_alpha.contains_key("card-001"));
+    assert!(cards_alpha.contains_key("card-002"));
+    assert!(cards_beta.contains_key("card-001"));
+    assert!(cards_beta.contains_key("card-002"));
 }
 
 #[test]
@@ -461,11 +463,7 @@ fn it_should_track_versions_and_sync_incrementally() {
         .position(|v| v == &last_synced)
         .unwrap();
 
-    let incremental_changes: Vec<String> = version_history
-        .iter()
-        .skip(last_index + 1)
-        .cloned()
-        .collect();
+    let remaining_changes = version_history.iter().skip(last_index + 1).count();
 
-    assert_eq!(incremental_changes.len(), 0);
+    assert_eq!(remaining_changes, 0);
 }

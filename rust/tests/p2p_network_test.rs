@@ -128,13 +128,13 @@ fn it_should_map_mdns_error_message() {
 
     for (msg, expected) in cases {
         let err = MdnsError::from_message(msg);
-        let matched = match (expected, err) {
-            (Expect::PermissionDenied, MdnsError::PermissionDenied(_)) => true,
-            (Expect::SocketUnavailable, MdnsError::SocketUnavailable(_)) => true,
-            (Expect::Unsupported, MdnsError::Unsupported(_)) => true,
-            (Expect::StartFailed, MdnsError::StartFailed(_)) => true,
-            _ => false,
-        };
+        let matched = matches!(
+            (expected, err),
+            (Expect::PermissionDenied, MdnsError::PermissionDenied(_))
+                | (Expect::SocketUnavailable, MdnsError::SocketUnavailable(_))
+                | (Expect::Unsupported, MdnsError::Unsupported(_))
+                | (Expect::StartFailed, MdnsError::StartFailed(_))
+        );
         assert!(matched, "message '{msg}' should map correctly");
     }
 }

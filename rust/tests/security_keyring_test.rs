@@ -30,7 +30,6 @@ fn it_should_support_windows_credential_manager() {
     // Then: 应使用 Windows Credential Manager
     // Note: 在实际实现中，会检测平台并调用相应 API
     // Windows 使用 Credential Manager
-    assert!(true);
 }
 
 #[test]
@@ -41,7 +40,6 @@ fn it_should_support_macos_keychain() {
     // Then: 应使用 macOS Keychain
     // Note: 在实际实现中，会检测平台并调用相应 API
     // macOS 使用 Keychain
-    assert!(true);
 }
 
 #[test]
@@ -52,7 +50,6 @@ fn it_should_support_linux_secret_service() {
     // Then: 应使用 Linux Secret Service (libsecret)
     // Note: 在实际实现中，会检测平台并调用相应 API
     // Linux 使用 Secret Service
-    assert!(true);
 }
 
 #[test]
@@ -63,7 +60,6 @@ fn it_should_support_android_keystore() {
     // Then: 应使用 Android Keystore
     // Note: 在实际实现中，会检测平台并调用相应 API
     // Android 使用 Keystore
-    assert!(true);
 }
 
 // ==== Requirement: Password Storage Format ====
@@ -78,8 +74,8 @@ fn it_should_store_pool_password() {
     // When: 存储数据池密码
     // Then: 密钥名称应为 "cardmind" 且格式为 "pool.<pool_id>.password"
     // Note: 模拟密钥格式验证
-    let expected_key_name = format!("pool.{}.password", pool_id);
-    assert_eq!(expected_key_name, format!("pool.{}.password", pool_id));
+    let expected_key_name = format!("pool.{pool_id}.password");
+    assert_eq!(expected_key_name, format!("pool.{pool_id}.password"));
 }
 
 // ==== Requirement: Password Retrieval ====
@@ -109,7 +105,6 @@ fn it_should_delete_pool_password() {
     // When: 删除密码（模拟）
     // Then: 密码应从 Keyring 中删除
     // Note: 模拟密码删除
-    assert!(true);
 }
 
 // ==== Requirement: Password Existence Check ====
@@ -133,15 +128,15 @@ fn it_should_check_password_cache_on_startup() {
 /// Scenario: User joins multiple pools
 fn it_should_support_multiple_pools() {
     // Given: 用户已加入多个数据池
-    let pool_a_id = "pool-001";
-    let pool_b_id = "pool-002";
+    let primary_pool_id = "pool-001";
+    let secondary_pool_id = "pool-002";
     let password_a = "password_1";
     let password_b = "password_2";
 
     // When: 存储多个池的密码
     // Then: 每个池应使用独立的密钥
     // Note: 模拟多池存储
-    assert_ne!(pool_a_id, pool_b_id);
+    assert_ne!(primary_pool_id, secondary_pool_id);
     assert_ne!(password_a, password_b);
 }
 

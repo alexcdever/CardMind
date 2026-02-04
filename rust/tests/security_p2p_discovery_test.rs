@@ -18,7 +18,7 @@ fn it_should_broadcast_minimal_information() {
     let device_name = format!("Unknown-{}", &device_id[0..5]);
 
     // Then: 设备信息应包含最少字段
-    assert!(!device_id.is_empty());
+    assert_eq!(device_id.len(), 36);
     assert!(!device_name.is_empty());
 }
 
@@ -48,7 +48,7 @@ fn it_should_not_expose_sensitive_pool_data() {
     assert_eq!(pool_id.len(), 36); // UUIDv7 format
 
     // Then: 池信息应仅包含 ID
-    assert!(pool_name.is_empty());
+    assert_eq!(pool_name, "");
 }
 
 // ==== Requirement: Timestamp Validation ====
@@ -73,7 +73,7 @@ fn it_should_reject_expired_timestamp() {
     // Given: 收到过期的加入请求（6 分钟前）
     let now = chrono::Utc::now();
     let current_timestamp = now.timestamp_millis();
-    let six_minutes_ago = current_timestamp - 360000;
+    let six_minutes_ago = current_timestamp - 360_000;
 
     // When: 验证过期时间戳
     assert!(six_minutes_ago < current_timestamp);
