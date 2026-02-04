@@ -24,7 +24,9 @@ class BuildConfig {
 }
 
 Future<void> main(List<String> arguments) async {
-  if (arguments.isEmpty || arguments.contains('-h') || arguments.contains('--help')) {
+  if (arguments.isEmpty ||
+      arguments.contains('-h') ||
+      arguments.contains('--help')) {
     printUsage();
     exit(0);
   }
@@ -163,8 +165,12 @@ void printUsage({String? error}) {
   stdout.writeln('CardMind 构建脚本');
   stdout.writeln('');
   stdout.writeln('用法:');
-  stdout.writeln('  dart tool/build.dart bridge [--android|--linux|--windows|--macos|--ios]');
-  stdout.writeln('  dart tool/build.dart app    [--android|--linux|--windows|--macos|--ios]');
+  stdout.writeln(
+    '  dart tool/build.dart bridge [--android|--linux|--windows|--macos|--ios]',
+  );
+  stdout.writeln(
+    '  dart tool/build.dart app    [--android|--linux|--windows|--macos|--ios]',
+  );
   stdout.writeln('');
   stdout.writeln('未指定平台参数时，默认构建当前系统可构建的全部平台。');
 }
@@ -275,11 +281,10 @@ Future<bool> checkEnvironment(BuildConfig config) async {
     printSuccess('flutter_rust_bridge_codegen 已安装');
   } else {
     printWarning('flutter_rust_bridge_codegen 未安装，尝试安装中...');
-    if (await runCommand(
-      'cargo',
-      ['install', 'flutter_rust_bridge_codegen'],
-      description: 'Install FRB',
-    )) {
+    if (await runCommand('cargo', [
+      'install',
+      'flutter_rust_bridge_codegen',
+    ], description: 'Install FRB')) {
       final installedPath = await getCodegenPath(forceRefresh: true);
       if (installedPath != null &&
           await runCommand(
@@ -379,11 +384,10 @@ Future<bool> suppressGeneratedRustWarnings() async {
 }
 
 Future<void> formatGeneratedCode() async {
-  final dartFormat = await runCommand(
-    'dart',
-    ['format', 'lib/bridge/'],
-    description: 'Dart format',
-  );
+  final dartFormat = await runCommand('dart', [
+    'format',
+    'lib/bridge/',
+  ], description: 'Dart format');
   if (!dartFormat) {
     printWarning('Dart 格式化失败（非致命）');
   }
@@ -424,11 +428,11 @@ Future<bool> checkPlatformEnvironment(BuildPlatform platform) async {
       );
       if (!rustupOk) {
         printWarning('Rust Android 目标未完全安装，尝试安装...');
-        await runCommand(
-          'rustup',
-          ['target', 'add', ...targets],
-          description: 'Add Android targets',
-        );
+        await runCommand('rustup', [
+          'target',
+          'add',
+          ...targets,
+        ], description: 'Add Android targets');
       }
 
       if (!await runCommand(
@@ -438,11 +442,10 @@ Future<bool> checkPlatformEnvironment(BuildPlatform platform) async {
         description: 'cargo-ndk version',
       )) {
         printWarning('cargo-ndk 未安装，尝试安装...');
-        await runCommand(
-          'cargo',
-          ['install', 'cargo-ndk'],
-          description: 'Install cargo-ndk',
-        );
+        await runCommand('cargo', [
+          'install',
+          'cargo-ndk',
+        ], description: 'Install cargo-ndk');
       }
       return true;
 
@@ -670,11 +673,11 @@ Future<bool> buildPlatform(BuildPlatform platform) async {
 
   switch (platform) {
     case BuildPlatform.android:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'apk', '--release'],
-        description: 'Build Android APK',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'apk',
+        '--release',
+      ], description: 'Build Android APK')) {
         printError('Android APK 构建失败');
         return false;
       }
@@ -714,11 +717,11 @@ Future<bool> buildPlatform(BuildPlatform platform) async {
       return true;
 
     case BuildPlatform.windows:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'windows', '--release'],
-        description: 'Build Windows app',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'windows',
+        '--release',
+      ], description: 'Build Windows app')) {
         printError('Windows 应用构建失败');
         return false;
       }
@@ -739,11 +742,11 @@ Future<bool> buildPlatform(BuildPlatform platform) async {
       return true;
 
     case BuildPlatform.macos:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'macos', '--release'],
-        description: 'Build macOS app',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'macos',
+        '--release',
+      ], description: 'Build macOS app')) {
         printError('macOS 应用构建失败');
         return false;
       }
@@ -752,11 +755,12 @@ Future<bool> buildPlatform(BuildPlatform platform) async {
       return true;
 
     case BuildPlatform.ios:
-      if (!await runCommand(
-        'flutter',
-        ['build', 'ios', '--release', '--no-codesign'],
-        description: 'Build iOS app',
-      )) {
+      if (!await runCommand('flutter', [
+        'build',
+        'ios',
+        '--release',
+        '--no-codesign',
+      ], description: 'Build iOS app')) {
         printError('iOS 应用构建失败');
         return false;
       }
@@ -837,7 +841,9 @@ Future<bool> createXcframeworkIfNeeded(BuildConfig config) async {
     args.addAll(['-library', iosSimLib, '-headers', 'rust/src']);
   }
 
-  final tempDir = await Directory.systemTemp.createTemp('cardmind_xcframework_');
+  final tempDir = await Directory.systemTemp.createTemp(
+    'cardmind_xcframework_',
+  );
   final outputPath = '${tempDir.path}/cardmind_rust.xcframework';
   args.addAll(['-output', outputPath]);
 
@@ -942,7 +948,8 @@ Future<bool> patchXcodeProject(
   }
   insertBeforeSectionEnd(lines, 'PBXBuildFile', embedBuildLine);
 
-  final frameworksGroupId = findFrameworksGroupId(lines) ?? findMainGroupId(lines);
+  final frameworksGroupId =
+      findFrameworksGroupId(lines) ?? findMainGroupId(lines);
   if (frameworksGroupId == null ||
       !addLineToObjectList(
         lines,
@@ -954,8 +961,7 @@ Future<bool> patchXcodeProject(
     return false;
   }
 
-  final frameworksPhaseId =
-      findRunnerBuildPhaseId(lines, 'Frameworks') ?? '';
+  final frameworksPhaseId = findRunnerBuildPhaseId(lines, 'Frameworks') ?? '';
   if (frameworksPhaseId.isEmpty ||
       !addLineToObjectList(
         lines,
@@ -1186,10 +1192,7 @@ List<String> findBuildConfigIds(List<String> lines, String configListId) {
   return ids;
 }
 
-bool ensureFrameworkSearchPathsForConfig(
-  List<String> lines,
-  String configId,
-) {
+bool ensureFrameworkSearchPathsForConfig(List<String> lines, String configId) {
   final startIndex = findObjectStart(lines, configId);
   if (startIndex == -1) {
     return false;

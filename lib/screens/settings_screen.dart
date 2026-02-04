@@ -231,11 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const Divider(),
 
       // About Section
-      _buildSection(
-        context,
-        title: 'About',
-        children: [_AboutTile()],
-      ),
+      _buildSection(context, title: 'About', children: [_AboutTile()]),
     ];
 
     final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(context);
@@ -249,10 +245,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
 
-    return ListView(
-      padding: AdaptivePadding.small,
-      children: sections,
-    );
+    return ListView(padding: AdaptivePadding.small, children: sections);
   }
 
   Widget _buildSection(

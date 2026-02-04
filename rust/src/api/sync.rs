@@ -755,8 +755,7 @@ mod tests {
         crate::api::card::init_card_store(base_path.clone()).unwrap();
         crate::api::device_config::init_device_config(base_path.clone()).unwrap();
 
-        let result =
-            init_sync_service(base_path, "/ip4/127.0.0.1/tcp/0".to_string()).await;
+        let result = init_sync_service(base_path, "/ip4/127.0.0.1/tcp/0".to_string()).await;
 
         assert!(result.is_err(), "未加入数据池时应该拒绝启动 P2P");
         let message = result.unwrap_err().to_string();
