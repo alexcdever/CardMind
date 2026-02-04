@@ -249,22 +249,29 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        // ignore: deprecated_member_use
-        ...SyncInterval.values.map((interval) {
-          return RadioListTile<SyncInterval>(
-            title: Text(_getSyncIntervalLabel(interval)),
-            subtitle: Text(_getSyncIntervalDescription(interval)),
-            value: interval,
-            groupValue: _syncInterval,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _syncInterval = value;
-                });
-              }
-            },
-          );
-        }),
+        RadioGroup<SyncInterval>(
+          groupValue: _syncInterval,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            setState(() {
+              _syncInterval = value;
+            });
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...SyncInterval.values.map((interval) {
+                return RadioListTile<SyncInterval>(
+                  title: Text(_getSyncIntervalLabel(interval)),
+                  subtitle: Text(_getSyncIntervalDescription(interval)),
+                  value: interval,
+                );
+              }),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -384,22 +391,29 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        // ignore: deprecated_member_use
-        ...ConflictResolutionStrategy.values.map((strategy) {
-          return RadioListTile<ConflictResolutionStrategy>(
-            title: Text(_getConflictStrategyLabel(strategy)),
-            subtitle: Text(_getConflictStrategyDescription(strategy)),
-            value: strategy,
-            groupValue: _conflictStrategy,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _conflictStrategy = value;
-                });
-              }
-            },
-          );
-        }),
+        RadioGroup<ConflictResolutionStrategy>(
+          groupValue: _conflictStrategy,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            setState(() {
+              _conflictStrategy = value;
+            });
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ...ConflictResolutionStrategy.values.map((strategy) {
+                return RadioListTile<ConflictResolutionStrategy>(
+                  title: Text(_getConflictStrategyLabel(strategy)),
+                  subtitle: Text(_getConflictStrategyDescription(strategy)),
+                  value: strategy,
+                );
+              }),
+            ],
+          ),
+        ),
       ],
     );
   }
