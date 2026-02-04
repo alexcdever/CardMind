@@ -37,7 +37,7 @@ class _PoolJoinScreenState extends State<PoolJoinScreen> {
       // TODO: 实现加入 Pool 的逻辑
       // 1. 检查是否已加入 Pool
       // 2. 调用 Rust API 加入 Pool
-      await Future.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
 
@@ -46,7 +46,7 @@ class _PoolJoinScreenState extends State<PoolJoinScreen> {
       ).showSnackBar(const SnackBar(content: Text('成功加入数据池')));
 
       Navigator.of(context).pop(true);
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(

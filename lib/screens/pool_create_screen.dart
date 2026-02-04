@@ -37,7 +37,7 @@ class _PoolCreateScreenState extends State<PoolCreateScreen> {
     try {
       // TODO: 实现创建 Pool 的逻辑
       // 调用 Rust API 创建 Pool
-      await Future.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
 
@@ -46,7 +46,7 @@ class _PoolCreateScreenState extends State<PoolCreateScreen> {
       ).showSnackBar(const SnackBar(content: Text('数据池创建成功')));
 
       Navigator.of(context).pop(true);
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(
