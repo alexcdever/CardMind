@@ -4,7 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -238,10 +237,10 @@ void main() {
             Scaffold(
               body: Column(
                 children: [
-                  Radio<String>(
-                    value: 'system',
+                  RadioGroup<String>(
                     groupValue: 'system',
                     onChanged: (value) {},
+                    child: const Radio<String>(value: 'system'),
                   ),
                   const Text('跟随系统'),
                 ],
@@ -416,9 +415,7 @@ void main() {
               ),
               routes: {
                 '/sync': (context) => const Scaffold(
-                  body: Column(
-                    children: [Text('同步详情'), Text('同步状态: 已同步')],
-                  ),
+                  body: Column(children: [Text('同步详情'), Text('同步状态: 已同步')]),
                 ),
               },
             ),
@@ -845,9 +842,8 @@ void main() {
                         key: const Key('appearance_section'),
                         title: const Text('外观'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.of(context).pushNamed(
-                          '/appearance',
-                        ),
+                        onTap: () =>
+                            Navigator.of(context).pushNamed('/appearance'),
                       ),
                     ],
                   ),
