@@ -19,7 +19,7 @@
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
 //! let card_store = Arc::new(Mutex::new(CardStore::new_in_memory()?));
-//! let device_config = DeviceConfig::new("device-001");
+//! let device_config = DeviceConfig::new();
 //!
 //! let mut service = P2PSyncService::new(card_store, device_config)?;
 //! service.start("/ip4/0.0.0.0/tcp/0").await?;
@@ -109,7 +109,7 @@ impl P2PSyncService {
     /// # use std::sync::{Arc, Mutex};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let card_store = Arc::new(Mutex::new(CardStore::new_in_memory()?));
-    /// let device_config = DeviceConfig::new("device-001");
+    /// let device_config = DeviceConfig::new();
     ///
     /// let service = P2PSyncService::new(card_store, device_config)?;
     /// # Ok(())
@@ -118,13 +118,12 @@ impl P2PSyncService {
     pub fn new(card_store: Arc<Mutex<CardStore>>, device_config: DeviceConfig) -> Result<Self> {
         info!("创建 P2P 同步服务");
 
-        // 1. 检查 mDNS 是否激活
-        let mdns_enabled = device_config.is_mdns_active();
+        // 1. 仅在加入数据池时启用 mDNS
+        let mdns_enabled = device_config.is_joined_any();
         info!("mDNS 状态: {}", if mdns_enabled { "启用" } else { "禁用" });
 
         // 2. 创建 P2P 网络（根据 mDNS 状态）
-        let network = P2PNetwork::new(mdns_enabled)
-            .map_err(|e| CardMindError::IoError(format!("Failed to create P2P network: {e}")))?;
+        let network = P2PNetwork::new(mdns_enabled)?;
 
         // 保存 PeerId 的副本，避免借用问题（PeerId 实现了 Copy）
         let local_peer_id = *network.local_peer_id();
@@ -723,7 +722,7 @@ mod tests {
     #[test]
     fn test_sync_service_creation() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config);
         assert!(service.is_ok(), "同步服务创建应该成功");
@@ -739,7 +738,7 @@ mod tests {
     #[test]
     fn test_get_sync_status() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config).unwrap();
         let status = service.get_sync_status();
@@ -751,7 +750,7 @@ mod tests {
     #[test]
     fn test_notify_status_change() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -775,7 +774,7 @@ mod tests {
     #[test]
     fn test_notify_status_change_deduplication() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -799,7 +798,7 @@ mod tests {
     #[test]
     fn test_multiple_subscribers() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -823,7 +822,7 @@ mod tests {
     #[test]
     fn test_status_sender() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -846,7 +845,7 @@ mod tests {
     #[test]
     fn it_should_emit_current_status_on_subscription() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -880,7 +879,7 @@ mod tests {
     #[test]
     fn it_should_clear_error_on_retry() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let device_config = DeviceConfig::new("test-device");
+        let device_config = DeviceConfig::new();
 
         let service = P2PSyncService::new(card_store, device_config).unwrap();
 
@@ -891,10 +890,10 @@ mod tests {
         // 未来可以扩展验证错误状态确实被清除
     }
 
-    #[test]
-    fn it_should_restart_sync_on_retry() {
+    #[tokio::test]
+    async fn it_should_restart_sync_on_retry() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let mut device_config = DeviceConfig::new("test-device");
+        let mut device_config = DeviceConfig::new();
         device_config.join_pool("test-pool").unwrap();
 
         let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
@@ -914,7 +913,7 @@ mod tests {
     #[tokio::test]
     async fn it_should_handle_concurrent_retries_safely() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let mut device_config = DeviceConfig::new("test-device");
+        let mut device_config = DeviceConfig::new();
         device_config.join_pool("test-pool").unwrap();
 
         let service = Arc::new(Mutex::new(
