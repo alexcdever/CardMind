@@ -16,7 +16,7 @@
 定义技术实现方案：
 
 ### 存储架构
-- [双层架构](architecture/storage/dual-layer.md) - Loro + SQLite 双层存储设计
+- [双层架构](architecture/storage/dual_layer.md) - Loro + SQLite 双层存储设计
 - [卡片存储](architecture/storage/card_store.md) - 卡片存储实现
 - [池存储](architecture/storage/pool_store.md) - 池存储实现
 - [设备配置](architecture/storage/device_config.md) - 设备配置存储
@@ -32,7 +32,7 @@
 - [密钥存储](architecture/security/keyring.md) - Keyring 密钥存储
 
 
-- [API 规格](api/api_spec.md) - Rust API 统一接口定义
+- [API 规格](../../openspec/specs/api/api_spec.md) - Rust API 统一接口定义
 
 ## 功能规格（Features）
 

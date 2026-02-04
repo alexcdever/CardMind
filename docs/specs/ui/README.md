@@ -117,7 +117,7 @@ ui/
 
 
 参考 UI 文档模板：
-- [../changes/reorganize-main-specs-content/templates/ui_template.md](../changes/reorganize-main-specs-content/templates/ui_template.md)
+- [../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/ui_template.md](../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/ui_template.md)
 
 ---
 
@@ -127,4 +127,3 @@ ui/
 - **Architecture Layer**
 
 ---
-

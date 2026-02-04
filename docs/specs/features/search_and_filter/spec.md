@@ -1,7 +1,7 @@
 # 搜索和过滤功能规格
 
 **状态**: 活跃
-**依赖**: [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../domain/card/model.md](../../domain/card/model.md), [../card_management/spec.md](../card_management/spec.md)
+**依赖**: [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../domain/card.md](../../domain/card.md), [../card_management/spec.md](../card_management/spec.md)
 **相关测试**: `test/features/search_and_filter_test.dart`
 
 ---

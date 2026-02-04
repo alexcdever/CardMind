@@ -1,7 +1,7 @@
 # 移动端全屏笔记编辑器规格
 
 **状态**: 草稿
-**依赖**: [../../domain/card/model.md](../../domain/card/model.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
+**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
 **相关测试**: `flutter/test/features/card_list/note_editor_fullscreen_test.dart`
 
 ---
@@ -488,7 +488,7 @@ structure EditorLayout:
 ## 相关文档
 
 **相关规格**:
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片模型
+- [../../domain/card.md](../../domain/card.md) - 卡片模型
 - [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
 - [../card_editor/card_editor_screen.md](../card_editor/card_editor_screen.md) - 卡片编辑器
 

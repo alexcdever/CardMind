@@ -421,7 +421,7 @@ structure BatchOperations:
 - [card_list_item.md](../card_list/card_list_item.md) - 卡片列表项
 - [card_detail_screen.md](../card_detail/card_detail_screen.md) - 卡片详情屏幕
 - [fullscreen_editor.md](../card_editor/fullscreen_editor.md) - 全屏编辑器
-- [sync_status_indicator.md](../sync_feedback/sync_status_indicator.md) - 同步状态
+- [sync_status_indicator.md](../../ui/components/shared/sync_status_indicator.md) - 同步状态
 
 ---
 

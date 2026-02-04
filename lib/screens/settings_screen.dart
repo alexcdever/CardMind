@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../adaptive/layouts/adaptive_padding.dart';
 import '../adaptive/layouts/adaptive_scaffold.dart';
-import '../bridge/third_party/cardmind_rust/api/device_config.dart';
+import '../adaptive/layouts/responsive_utils.dart';
 import '../providers/app_info_provider.dart';
 import '../providers/card_provider.dart';
 import '../providers/settings_provider.dart';
@@ -27,111 +27,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _mdnsActive = false;
-  int _remainingMs = 0;
-  Timer? _countdownTimer;
-  bool _isLoading = true;
   bool _isExporting = false;
   bool _isImporting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadMdnsState();
-  }
-
-  @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _loadMdnsState() async {
-    try {
-      final isActive = await isMdnsActive();
-      final remaining = await getMdnsRemainingMs();
-
-      if (!mounted) return;
-
-      setState(() {
-        _mdnsActive = isActive;
-        _remainingMs = remaining;
-        _isLoading = false;
-      });
-
-      if (_mdnsActive && _remainingMs > 0) {
-        _startCountdown();
-      }
-    } on Exception {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _startCountdown() {
-    _countdownTimer?.cancel();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
-      if (_remainingMs <= 0) {
-        _countdownTimer?.cancel();
-        await _refreshMdnsState();
-      } else {
-        setState(() {
-          _remainingMs = (_remainingMs - 1000).clamp(0, _remainingMs);
-        });
-      }
-    });
-  }
-
-  Future<void> _refreshMdnsState() async {
-    try {
-      final isActive = await isMdnsActive();
-      final remaining = await getMdnsRemainingMs();
-
-      if (!mounted) return;
-
-      setState(() {
-        _mdnsActive = isActive;
-        _remainingMs = remaining;
-      });
-
-      if (!_mdnsActive) {
-        _countdownTimer?.cancel();
-      }
-    } on Exception {
-      // Ignore errors during refresh
-    }
-  }
-
-  Future<void> _enableMdnsTemporary() async {
-    try {
-      await enableMdnsTemporary();
-      await _refreshMdnsState();
-    } on Exception catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to enable mDNS: $e')));
-    }
-  }
-
-  Future<void> _cancelMdnsTimer() async {
-    try {
-      await cancelMdnsTimer();
-      await _refreshMdnsState();
-    } on Exception catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to disable mDNS: $e')));
-    }
-  }
-
-  String _formatDuration(int ms) {
-    final seconds = (ms / 1000).round();
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes}m ${remainingSeconds}s remaining';
-  }
 
   Future<void> _handleExport(BuildContext context) async {
     // 在任何异步操作前保存 messenger
@@ -256,94 +153,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
-            body: ListView(
-              padding: AdaptivePadding.small,
-              children: [
-                // Notifications Section
-                _buildSection(
-                  context,
-                  title: 'Notifications',
-                  children: [
-                    ToggleSettingItem(
-                      icon: Icons.notifications,
-                      label: 'Sync Notifications',
-                      description: 'Notify when sync completes',
-                      value: settingsProvider.syncNotificationEnabled,
-                      onChanged: (value) =>
-                          _handleToggleSyncNotification(context, value),
-                    ),
-                  ],
-                ),
-
-                const Divider(),
-
-                // Theme Section
-                _buildSection(
-                  context,
-                  title: 'Appearance',
-                  children: [_ThemeSwitchTile()],
-                ),
-
-                const Divider(),
-
-                // Sync Section (mDNS)
-                _buildSection(
-                  context,
-                  title: 'Sync',
-                  children: [
-                    _MdnsTile(
-                      isLoading: _isLoading,
-                      isActive: _mdnsActive,
-                      remainingText: _mdnsActive
-                          ? _formatDuration(_remainingMs)
-                          : null,
-                      onEnable: _enableMdnsTemporary,
-                      onDisable: _cancelMdnsTimer,
-                    ),
-                  ],
-                ),
-
-                const Divider(),
-
-                // Data Management Section
-                _buildSection(
-                  context,
-                  title: 'Data Management',
-                  children: [
-                    ButtonSettingItem(
-                      icon: Icons.upload_file,
-                      label: 'Export Data',
-                      description: 'Export all notes to backup file',
-                      onPressed: _isExporting
-                          ? null
-                          : () => _handleExport(context),
-                      isLoading: _isExporting,
-                    ),
-                    ButtonSettingItem(
-                      icon: Icons.download,
-                      label: 'Import Data',
-                      description: 'Import notes from backup file',
-                      onPressed: _isImporting
-                          ? null
-                          : () => _handleImport(context),
-                      isLoading: _isImporting,
-                    ),
-                  ],
-                ),
-
-                const Divider(),
-
-                // About Section
-                _buildSection(
-                  context,
-                  title: 'About',
-                  children: [_AboutTile()],
-                ),
-              ],
-            ),
+            body: _buildSettingsBody(context, settingsProvider),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSettingsBody(
+    BuildContext context,
+    SettingsProvider settingsProvider,
+  ) {
+    final sections = <Widget>[
+      // Notifications Section
+      _buildSection(
+        context,
+        title: 'Notifications',
+        children: [
+          ToggleSettingItem(
+            icon: Icons.notifications,
+            label: 'Sync Notifications',
+            description: 'Notify when sync completes',
+            value: settingsProvider.syncNotificationEnabled,
+            onChanged: (value) => _handleToggleSyncNotification(context, value),
+          ),
+        ],
+      ),
+
+      const Divider(),
+
+      // Theme Section
+      _buildSection(
+        context,
+        title: 'Appearance',
+        children: [_ThemeSwitchTile()],
+      ),
+
+      const Divider(),
+
+      // Sync Section
+      _buildSection(
+        context,
+        title: 'Sync',
+        children: [
+          const ListTile(
+            leading: Icon(Icons.sync),
+            title: Text('同步由系统自动管理'),
+            subtitle: Text('加入数据池后自动发现与同步，无需手动设置'),
+          ),
+        ],
+      ),
+
+      const Divider(),
+
+      // Data Management Section
+      _buildSection(
+        context,
+        title: 'Data Management',
+        children: [
+          ButtonSettingItem(
+            icon: Icons.upload_file,
+            label: 'Export Data',
+            description: 'Export all notes to backup file',
+            onPressed: _isExporting ? null : () => _handleExport(context),
+            isLoading: _isExporting,
+          ),
+          ButtonSettingItem(
+            icon: Icons.download,
+            label: 'Import Data',
+            description: 'Import notes from backup file',
+            onPressed: _isImporting ? null : () => _handleImport(context),
+            isLoading: _isImporting,
+          ),
+        ],
+      ),
+
+      const Divider(),
+
+      // About Section
+      _buildSection(
+        context,
+        title: 'About',
+        children: [_AboutTile()],
+      ),
+    ];
+
+    final shouldCollapse = ResponsiveUtils.shouldCollapseLayout(context);
+    if (shouldCollapse) {
+      return Padding(
+        padding: AdaptivePadding.small,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: sections,
+        ),
+      );
+    }
+
+    return ListView(
+      padding: AdaptivePadding.small,
+      children: sections,
     );
   }
 
@@ -367,50 +275,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         ...children,
       ],
-    );
-  }
-}
-
-/// mDNS discovery tile widget
-class _MdnsTile extends StatelessWidget {
-  const _MdnsTile({
-    required this.isLoading,
-    required this.isActive,
-    this.remainingText,
-    required this.onEnable,
-    required this.onDisable,
-  });
-
-  final bool isLoading;
-  final bool isActive;
-  final String? remainingText;
-  final VoidCallback onEnable;
-  final VoidCallback onDisable;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(
-        isActive ? Icons.wifi_find : Icons.wifi_find_outlined,
-        color: isActive ? Colors.green : null,
-      ),
-      title: const Text('mDNS Discovery'),
-      subtitle: isLoading
-          ? const Text('Loading...')
-          : isActive
-          ? Text(
-              'Active - $remainingText',
-              style: const TextStyle(color: Colors.green),
-            )
-          : const Text('Disabled'),
-      trailing: ElevatedButton(
-        onPressed: isLoading ? null : (isActive ? onDisable : onEnable),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: isActive ? Colors.red[100] : null,
-          foregroundColor: isActive ? Colors.red : null,
-        ),
-        child: Text(isActive ? 'Turn Off' : 'Enable 5 min'),
-      ),
     );
   }
 }

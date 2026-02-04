@@ -1,7 +1,7 @@
 # 移动端手势规格
 
 **状态**: 活跃
-**依赖**: [../../domain/card/model.md](../../domain/card/model.md)
+**依赖**: [../../domain/card.md](../../domain/card.md)
 **相关测试**: `flutter/test/features/gestures/mobile_gestures_test.dart`
 
 ---
@@ -224,7 +224,7 @@ structure PullToRefresh:
 ## 相关文档
 
 **相关规格**:
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片领域模型
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
 - [../card_list/mobile.md](../card_list/mobile.md) - 移动端卡片列表
 - [../card_list/card_list_item.md](../card_list/card_list_item.md) - 卡片列表项
 

@@ -1,7 +1,7 @@
 # 桌面端主屏幕规格
 
 **状态**: 活跃
-**依赖**: [../../../domain/card/model.md](../../../domain/card/model.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
+**依赖**: [../../../domain/card.md](../../../domain/card.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
 **相关测试**: `test/screens/home_screen_desktop_test.dart`
 
 ---

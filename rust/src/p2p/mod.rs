@@ -43,6 +43,9 @@ pub use discovery::MdnsDiscovery;
 pub use identity::IdentityManager;
 pub use multi_peer_sync::{DeviceInfo, DeviceStats, DeviceStatus, MultiPeerSyncCoordinator};
 pub use network::{P2PBehaviour, P2PEvent, P2PNetwork};
-pub use sync::{SyncAck, SyncError, SyncErrorCode, SyncMessage, SyncRequest, SyncResponse};
+pub use sync::{
+    HandshakeRequest, HandshakeResponse, P2PRequest, P2PResponse, SyncAck, SyncError,
+    SyncErrorCode, SyncMessage, SyncRequest, SyncResponse,
+};
 pub use sync_manager::{SyncData, SyncManager};
 pub use sync_service::{P2PSyncService, SyncStatus};

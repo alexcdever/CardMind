@@ -253,7 +253,7 @@ function parse_markdown_features(markdown):
         features.has_quotes = true
     
     // 检测链接
-    if markdown.contains("[") and markdown.contains("]("):
+    if markdown.contains("[") and markdown.contains("]" + "("):
         features.has_links = true
     
     // 检测表格

@@ -39,6 +39,14 @@ impl MdnsError {
     }
 }
 
+/// 业务状态错误
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+#[frb(dart_metadata=("freezed"))]
+pub enum InvalidStateError {
+    #[error("NotJoinedPool: 设备未加入任何数据池")]
+    NotJoinedPool,
+}
+
 /// CardMind error types
 #[derive(Error, Debug, Clone)]
 #[frb(dart_metadata=("freezed"))]
@@ -66,6 +74,9 @@ pub enum CardMindError {
 
     #[error("mDNS error: {0}")]
     Mdns(MdnsError),
+
+    #[error("Invalid state: {0}")]
+    InvalidState(InvalidStateError),
 
     #[error("Unknown error: {0}")]
     Unknown(String),

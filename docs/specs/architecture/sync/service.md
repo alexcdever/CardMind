@@ -1,7 +1,7 @@
 # P2P 同步服务架构规格
 
 **状态**: 活跃
-**依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../domain/sync/model.md](../../domain/sync/model.md), [../storage/device_config.md](../storage/device_config.md)
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../storage/device_config.md](../storage/device_config.md)
 **相关测试**: `rust/tests/sync_test.rs`
 
 ---
@@ -462,8 +462,8 @@ function filter_sync_by_pool(sync_message):
 ## 相关文档
 
 **领域规格**:
-- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步领域模型
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+- [../../domain/sync.md](../../domain/sync.md) - 同步领域模型
+- [../../domain/pool.md](../../domain/pool.md) - 池领域模型
 
 **相关架构规格**:
 - [../storage/device_config.md](../storage/device_config.md) - 设备配置存储

@@ -1,7 +1,7 @@
 # CardStore 架构规格
 
 **状态**: 活跃
-**依赖**: [../../domain/card/rules.md](../../domain/card/rules.md), [../../domain/pool/model.md](../../domain/pool/model.md), [./device_config.md](./device_config.md)
+**依赖**: [../../domain/card.md](../../domain/card.md), [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md)
 **相关测试**: `rust/tests/card_store_test.rs`
 
 ---
@@ -347,8 +347,8 @@ function clear_sqlite_database():
 ## 相关文档
 
 **领域规格**:
-- [../../domain/card/rules.md](../../domain/card/rules.md) - 卡片业务规则
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+- [../../domain/card.md](../../domain/card.md) - 卡片业务规则
+- [../../domain/pool.md](../../domain/pool.md) - 池领域模型
 
 **相关架构规格**:
 - [./device_config.md](./device_config.md) - 设备配置存储
@@ -356,8 +356,6 @@ function clear_sqlite_database():
 - [../sync/service.md](../sync/service.md) - P2P 同步服务
 
 **架构决策记录**:
-- [../../../docs/adr/0002-dual-layer-architecture.md](../../../docs/adr/0002-dual-layer-architecture.md) - 双层架构
-- [../../../docs/adr/0003-loro-crdt.md](../../../docs/adr/0003-loro-crdt.md) - Loro CRDT 用于无冲突同步
 
 ---
 

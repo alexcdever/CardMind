@@ -1,7 +1,7 @@
 # 设置功能规格
 
 **状态**: 活跃
-**依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../domain/pool/model.md](../../domain/pool/model.md)
+**依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../domain/pool.md](../../domain/pool.md)
 **相关测试**: `test/features/settings_test.dart`
 
 ---

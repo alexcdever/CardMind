@@ -205,7 +205,7 @@ function validate_markdown_syntax(content):
     // 检查常见的 Markdown 元素
     has_headers = content.contains("#")
     has_lists = content.contains("- ") or content.contains("* ")
-    has_links = content.contains("[") and content.contains("](")
+    has_links = content.contains("[") and content.contains("]" + "(")
     
     return {
         is_valid: true,
