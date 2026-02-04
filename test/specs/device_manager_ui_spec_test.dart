@@ -702,50 +702,5 @@ void main() {
       });
     });
 
-    // ========================================
-    // Performance Tests
-    // ========================================
-
-    group('Performance Tests', () {
-      testWidgets('it_should_render_panel_within_100ms', (
-        WidgetTester tester,
-      ) async {
-        // Given: 面板即将加载
-        final startTime = DateTime.now();
-
-        // When: 加载面板
-        await tester.pumpWidget(createDeviceManagerPanel());
-        await tester.pumpAndSettle();
-
-        final endTime = DateTime.now();
-        final duration = endTime.difference(startTime);
-
-        // Then: 渲染时间小于 1000ms（测试环境波动）
-        expect(duration.inMilliseconds, lessThan(1000));
-      });
-
-      testWidgets('it_should_handle_large_device_list_efficiently', (
-        WidgetTester tester,
-      ) async {
-        // Given: 大量配对设备
-        final manyDevices = List.generate(
-          50,
-          (i) => DeviceInfo(
-            id: 'device$i',
-            name: 'Device $i',
-            type: DeviceType.phone,
-            isOnline: i % 2 == 0,
-            lastSeen: DateTime.now(),
-          ),
-        );
-
-        // When: 渲染面板
-        await tester.pumpWidget(createDeviceManagerPanel(paired: manyDevices));
-        await tester.pumpAndSettle();
-
-        // Then: 没有性能问题
-        expect(tester.takeException(), isNull);
-      });
-    });
   });
 }

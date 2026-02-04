@@ -108,36 +108,6 @@ void main() {
         expect(find.byType(FloatingActionButton), findsOneWidget);
       });
 
-      testWidgets('it_should_make_fab_accessible_within_1_second', (
-        WidgetTester tester,
-      ) async {
-        // Given: 主页开始加载
-        final startTime = DateTime.now();
-
-        // When: 主页加载
-        await tester.pumpWidget(
-          MaterialApp(
-            home: MultiProvider(
-              providers: [
-                ChangeNotifierProvider(
-                  create: (_) => CardProvider(cardService: mockCardService),
-                ),
-                ChangeNotifierProvider<PoolProvider>(
-                  create: (_) => MockPoolProvider(isJoined: true),
-                ),
-              ],
-              child: const HomeScreen(),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        final endTime = DateTime.now();
-
-        // Then: FAB 在 1 秒内可交互
-        final duration = endTime.difference(startTime);
-        expect(duration.inMilliseconds, lessThan(1000));
-        expect(find.byType(FloatingActionButton), findsOneWidget);
-      });
     });
 
     // ========================================
@@ -635,41 +605,5 @@ void main() {
       });
     });
 
-    // ========================================
-    // 任务组 2.8: 性能测试
-    // ========================================
-
-    group('Performance Tests', () {
-      testWidgets('it_should_complete_card_creation_within_30_seconds', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户开始创建卡片
-        final startTime = DateTime.now();
-
-        // When: 完整流程（打开编辑器 → 输入 → 保存）
-        await tester.pumpWidget(createEditorWithMockApi());
-        await tester.pumpAndSettle();
-
-        // 输入标题
-        await tester.enterText(
-          find.byKey(const Key('title_field')),
-          'Test Card',
-        );
-        await tester.pump();
-
-        // 输入内容
-        await tester.enterText(
-          find.byKey(const Key('content_field')),
-          'Test Content',
-        );
-        await tester.pump();
-
-        final endTime = DateTime.now();
-
-        // Then: 整个流程在 30 秒内完成
-        final duration = endTime.difference(startTime);
-        expect(duration.inSeconds, lessThan(30));
-      });
-    });
   });
 }

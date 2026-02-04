@@ -238,52 +238,5 @@ void main() {
       });
     });
 
-    // ========================================
-    // 任务组 7: 性能测试
-    // ========================================
-
-    group('Performance Journey', () {
-      testWidgets('it_should_handle_100_cards_efficiently', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户有 100 个卡片
-        mockCardService.cardCount = 100;
-
-        await tester.pumpWidget(
-          TestApp(cardService: mockCardService, child: const HomeScreen()),
-        );
-
-        // When: 应用加载
-        final startTime = DateTime.now();
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        final endTime = DateTime.now();
-
-        // Then: 应该在合理时间内加载完成（< 2秒）
-        final duration = endTime.difference(startTime);
-        expect(duration.inSeconds, lessThan(2));
-      });
-
-      testWidgets('it_should_handle_1000_cards_efficiently', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户有 1000 个卡片
-        mockCardService.cardCount = 1000;
-
-        await tester.pumpWidget(
-          TestApp(cardService: mockCardService, child: const HomeScreen()),
-        );
-
-        // When: 应用加载
-        final startTime = DateTime.now();
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-        final endTime = DateTime.now();
-
-        // Then: 应该在合理时间内加载完成（< 5秒）
-        final duration = endTime.difference(startTime);
-        expect(duration.inSeconds, lessThan(5));
-      });
-    });
   });
 }

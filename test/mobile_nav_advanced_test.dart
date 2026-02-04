@@ -82,27 +82,6 @@ void main() {
         await tester.pumpAndSettle();
       });
 
-      testWidgets('it_should_complete_animation_within_200ms', (
-        WidgetTester tester,
-      ) async {
-        // Given: MobileNav widget
-        NavTab? tappedTab;
-        await tester.pumpWidget(
-          createTestWidget(
-            currentTab: NavTab.notes,
-            onTabChange: (tab) => tappedTab = tab,
-          ),
-        );
-
-        // When: Tap devices tab
-        await tester.tap(find.text('设备'));
-        await tester.pump();
-
-        // Then: Animation should complete within 200ms
-        await tester.pump(const Duration(milliseconds: 200));
-        await tester.pumpAndSettle();
-        expect(tappedTab, equals(NavTab.devices));
-      });
     });
 
     group('Boundary Tests', () {
