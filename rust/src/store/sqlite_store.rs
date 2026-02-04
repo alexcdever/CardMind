@@ -660,7 +660,7 @@ impl SqliteStore {
     }
 
     #[cfg(test)]
-    pub fn test_get_connection(&self) -> &rusqlite::Connection {
+    pub const fn test_get_connection(&self) -> &rusqlite::Connection {
         &self.conn
     }
 }

@@ -51,7 +51,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Type alias for pool update callback
 type PoolUpdateCallback = Arc<Mutex<Option<Box<dyn Fn(&Pool) + Send + Sync>>>>;
@@ -182,27 +182,26 @@ impl PoolStore {
 
     /// 设置 Loro 订阅
     ///
-    /// 为指定的 LoroDoc 注册订阅回调，当文档变更时自动同步到 SQLite
+    /// 为指定的 `LoroDoc` 注册订阅回调，当文档变更时自动同步到 SQLite
     ///
     /// # 参数
     ///
     /// - `pool_id`: 数据池 ID
     /// - `doc`: Loro 文档实例
-    fn setup_loro_subscription(&self, pool_id: String, doc: LoroDoc) {
-        let pool_id_clone = pool_id.clone();
+    fn setup_loro_subscription(&self, pool_id: &str, doc: &LoroDoc) {
+        let pool_id_owned = pool_id.to_string();
+        let pool_id_clone = pool_id_owned.clone();
         let subscriptions = self.loro_subscriptions.clone();
 
         let subscription = doc.subscribe_root(Arc::new(move |event| {
-            if let Err(e) = Self::on_loro_change(&pool_id_clone, event) {
-                warn!("Loro 订阅回调处理失败: {}", e);
-            }
+            Self::on_loro_change(&pool_id_clone, event);
         }));
 
         // 保存订阅句柄以保持订阅活跃
         subscriptions
             .lock()
             .unwrap()
-            .insert(pool_id.clone(), subscription);
+            .insert(pool_id_owned, subscription);
 
         debug!("已为数据池 {} 设置 Loro 订阅", pool_id);
     }
@@ -219,13 +218,11 @@ impl PoolStore {
     /// # Returns
     ///
     /// 如果处理成功返回 Ok(())，否则返回错误
-    fn on_loro_change<'a>(pool_id: &str, _event: DiffEvent<'a>) -> Result<(), CardMindError> {
+    fn on_loro_change(pool_id: &str, _event: DiffEvent<'_>) {
         debug!("收到 Loro 变更事件: pool_id={}", pool_id);
 
         // TODO: 实现卡片创建、更新、删除事件处理
         // 当前仅打印日志，后续将实现完整的同步逻辑
-
-        Ok(())
     }
 
     /// 获取数据池的 Loro 文件路径
@@ -261,7 +258,7 @@ impl PoolStore {
 
         // 设置 Loro 订阅
         drop(docs);
-        self.setup_loro_subscription(pool_id.to_string(), doc.clone());
+        self.setup_loro_subscription(pool_id, &doc);
 
         Ok(doc)
     }

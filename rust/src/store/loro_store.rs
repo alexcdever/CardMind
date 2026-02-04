@@ -51,6 +51,12 @@ pub struct LoroStore {
     doc: LoroDoc,
 }
 
+impl Default for LoroStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LoroStore {
     /// 创建新的 Loro 存储实例
     ///
@@ -268,9 +274,9 @@ impl LoroStore {
     /// other.import_updates(&updates).unwrap();
     /// // 文档状态现在合并了更新
     /// ```
-    pub fn import_updates(&mut self, updates: &[u8]) -> Result<(), LoroStoreError> {
-        let _status = self.doc.import(updates);
-        _status.map_err(|e| LoroStoreError::ImportFailed(format!("导入更新失败: {e}")))?;
+    pub fn import_updates(&self, updates: &[u8]) -> Result<(), LoroStoreError> {
+        let status = self.doc.import(updates);
+        status.map_err(|e| LoroStoreError::ImportFailed(format!("导入更新失败: {e}")))?;
         Ok(())
     }
 
@@ -286,13 +292,13 @@ impl LoroStore {
     /// use cardmind_rust::store::loro_store::LoroStore;
     ///
     /// let store = LoroStore::new();
-    /// let version = store.get_version_vector().unwrap();
+    /// let version = store.get_version_vector();
     /// // version 可以用于增量同步
     /// ```
-    pub fn get_version_vector(&self) -> Result<Vec<u8>, LoroStoreError> {
+    #[must_use]
+    pub fn get_version_vector(&self) -> Vec<u8> {
         let vv = self.doc.oplog_vv();
-        let encoded = vv.encode();
-        Ok(encoded)
+        vv.encode()
     }
 
     /// 提交文档变更
@@ -307,7 +313,7 @@ impl LoroStore {
     /// store.commit();
     /// // 变更已提交
     /// ```
-    pub fn commit(&mut self) {
+    pub fn commit(&self) {
         self.doc.commit();
     }
 
@@ -403,7 +409,7 @@ mod tests {
     #[test]
     fn test_export_import_updates() {
         let mut store1 = LoroStore::new();
-        let mut store2 = LoroStore::new();
+        let store2 = LoroStore::new();
 
         // store1 添加数据
         let doc1 = store1.doc_mut();
@@ -412,7 +418,7 @@ mod tests {
         store1.commit();
 
         // 使用对端版本向量导出更新（首次同步）
-        let version = store2.get_version_vector().unwrap();
+        let version = store2.get_version_vector();
         let updates = store1.export_updates(&version).unwrap();
         assert!(!updates.is_empty());
         store2.import_updates(&updates).unwrap();
@@ -424,7 +430,7 @@ mod tests {
         store1.commit();
 
         // 使用对端最新版本向量导出增量更新
-        let version = store2.get_version_vector().unwrap();
+        let version = store2.get_version_vector();
         let updates = store1.export_updates(&version).unwrap();
         assert!(!updates.is_empty());
         store2.import_updates(&updates).unwrap();
@@ -441,7 +447,7 @@ mod tests {
         store.commit();
 
         // 获取版本向量
-        let version = store.get_version_vector().unwrap();
+        let version = store.get_version_vector();
         assert!(!version.is_empty());
     }
 
