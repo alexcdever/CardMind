@@ -83,7 +83,7 @@ pub struct P2PSyncService {
     /// 连接状态 (`peer_id` -> connected)
     connections: Arc<Mutex<HashMap<PeerId, bool>>>,
 
-    /// 是否强制校验 pool_hash（mock 网络默认关闭）
+    /// 是否强制校验 `pool_hash`（mock 网络默认关闭）
     enforce_pool_hash: bool,
 
     /// 是否使用真实网络传输（默认 true，测试时可设为 false）
@@ -257,17 +257,17 @@ impl P2PSyncService {
         Ok(())
     }
 
-    /// 解析本地数据池哈希（pool_hash）
-    fn resolve_pool_hash(&self, pool_id: &str) -> Result<String> {
+    /// 解析本地数据池哈希（`pool_hash`）
+    fn resolve_pool_hash(pool_id: &str) -> Result<String> {
         let keyring = KeyringStore::new();
         let password = keyring.get_pool_password(pool_id)?;
         let hash = derive_pool_hash(pool_id, password.as_str())?;
         Ok(hash)
     }
 
-    /// 校验远端 pool_hash 是否匹配
-    fn verify_pool_hash(&self, pool_id: &str, remote_hash: &str) -> bool {
-        match self.resolve_pool_hash(pool_id) {
+    /// 校验远端 `pool_hash` 是否匹配
+    fn verify_pool_hash(pool_id: &str, remote_hash: &str) -> bool {
+        match Self::resolve_pool_hash(pool_id) {
             Ok(local_hash) => local_hash == remote_hash,
             Err(err) => {
                 warn!("pool_hash 校验失败: {}", err);
@@ -307,7 +307,7 @@ impl P2PSyncService {
             .get_last_sync_version(&pool_id, &peer_id.to_string());
 
         let pool_hash = if self.enforce_pool_hash {
-            self.resolve_pool_hash(&pool_id)?
+            Self::resolve_pool_hash(&pool_id)?
         } else {
             String::new()
         };
@@ -330,7 +330,9 @@ impl P2PSyncService {
             let entry = registry().lock().unwrap().get(&peer_id).cloned();
 
             if let Some(entry) = entry {
-                if self.enforce_pool_hash && !self.verify_pool_hash(&pool_id, &request.pool_hash) {
+                if self.enforce_pool_hash
+                    && !Self::verify_pool_hash(&pool_id, &request.pool_hash)
+                {
                     return Err(CardMindError::NotAuthorized(
                         "pool_hash mismatch".to_string(),
                     ));
@@ -586,6 +588,7 @@ impl P2PSyncService {
     /// 处理网络事件
     ///
     /// 此方法应该在事件循环中持续调用，用于处理传入的同步请求和响应
+    #[allow(clippy::too_many_lines)]
     pub async fn handle_network_events(&mut self) -> Result<()> {
         if let Some(event) = self.network.swarm_mut().next().await {
             match event {
@@ -607,7 +610,7 @@ impl P2PSyncService {
                         return Ok(());
                     }
 
-                    let pool_hash = self.resolve_pool_hash(&pool_id)?;
+                    let pool_hash = Self::resolve_pool_hash(&pool_id)?;
                     let handshake = HandshakeRequest {
                         pool_id,
                         pool_hash,
@@ -638,8 +641,10 @@ impl P2PSyncService {
                                         peer, request.pool_id
                                     );
 
-                                    let accepted = self
-                                        .verify_pool_hash(&request.pool_id, &request.pool_hash);
+                                    let accepted = Self::verify_pool_hash(
+                                        &request.pool_id,
+                                        &request.pool_hash,
+                                    );
 
                                     let response = HandshakeResponse {
                                         accepted,
@@ -679,7 +684,7 @@ impl P2PSyncService {
                                     );
 
                                     if self.enforce_pool_hash
-                                        && !self.verify_pool_hash(
+                                        && !Self::verify_pool_hash(
                                             &request.pool_id,
                                             &request.pool_hash,
                                         )

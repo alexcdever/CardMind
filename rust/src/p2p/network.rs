@@ -414,8 +414,7 @@ mod tests {
     async fn test_network_creation_with_mdns() {
         let network = P2PNetwork::new(true);
         match network {
-            Ok(_) => {}
-            Err(CardMindError::Mdns(_)) => {}
+            Ok(_) | Err(CardMindError::Mdns(_)) => {}
             Err(err) => panic!("网络初始化失败: {err}"),
         }
     }
