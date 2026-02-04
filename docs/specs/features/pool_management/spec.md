@@ -1,7 +1,7 @@
 # 池管理功能规格
 
 **状态**: 活跃
-**依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
 **相关测试**: `test/features/pool_management_test.dart`
 
 ---
@@ -406,7 +406,7 @@ structure PoolLeaving:
 ## 相关文档
 
 
-- [Pool Model](../../domain/pool/model.md) - 池模型
+- [Pool Model](../../domain/pool.md) - 池模型
 - [Pool Store](../../architecture/storage/pool_store.md) - 池存储
 - [Device Config](../../architecture/storage/device_config.md) - 设备配置
 - [Sync Service](../../architecture/sync/service.md) - 同步服务

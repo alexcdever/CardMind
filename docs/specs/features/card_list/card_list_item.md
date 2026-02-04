@@ -1,7 +1,7 @@
 # 卡片列表项规格
 
 **状态**: 活跃
-**依赖**: [../../domain/card/model.md](../../domain/card/model.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
+**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
 **相关测试**: `flutter/test/features/card_list/card_list_item_test.dart`
 
 ---
@@ -188,10 +188,10 @@ function renderSyncIndicator():
 ## 相关文档
 
 **相关规格**:
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片领域模型
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
 - [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
 - [./note_card.md](./note_card.md) - 笔记卡片组件
-- [../sync_feedback/sync_status_indicator.md](../sync_feedback/sync_status_indicator.md) - 同步状态指示器
+- [../../ui/components/shared/sync_status_indicator.md](../../ui/components/shared/sync_status_indicator.md) - 同步状态指示器
 
 ---
 

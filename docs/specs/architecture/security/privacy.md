@@ -1,7 +1,7 @@
 # mDNS 隐私保护架构规格
 
 **状态**: 活跃
-**依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [../../domain/sync/model.md](../../domain/sync/model.md)
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md)
 **相关测试**: `rust/tests/p2p/discovery_test.rs`
 
 ---
@@ -191,13 +191,12 @@ function start_discovery():
 ## 相关文档
 
 **相关规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 数据池领域模型
-- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步模型
+- [../../domain/pool.md](../../domain/pool.md) - 数据池领域模型
+- [../../domain/sync.md](../../domain/sync.md) - 同步模型
 - [../sync/peer_discovery.md](../sync/peer_discovery.md) - mDNS 设备发现
 - [./password.md](./password.md) - bcrypt 密码管理
 
 **架构决策记录**:
-- [../../../docs/adr/0003-p2p-sync-architecture.md](../../../docs/adr/0003-p2p-sync-architecture.md) - P2P 同步架构
 
 ---
 

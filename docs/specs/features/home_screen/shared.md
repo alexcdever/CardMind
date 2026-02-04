@@ -288,7 +288,7 @@ structure UserInteraction:
 - [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
 - [../../domain/card.md](../../domain/card.md) - 卡片领域模型
 - [../card_list/card_list_item.md](../card_list/card_list_item.md) - 卡片列表项
-- [../sync_feedback/sync_status_indicator.md](../sync_feedback/sync_status_indicator.md) - 同步状态指示器
+- [../../ui/components/shared/sync_status_indicator.md](../../ui/components/shared/sync_status_indicator.md) - 同步状态指示器
 
 ---
 

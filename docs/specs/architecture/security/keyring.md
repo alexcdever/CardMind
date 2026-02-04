@@ -1,7 +1,7 @@
 # Keyring 密码存储架构规格
 
 **状态**: 活跃
-**依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [./password.md](./password.md)
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [./password.md](./password.md)
 **相关测试**: `rust/tests/security/keyring_test.rs`
 
 ---
@@ -230,12 +230,11 @@ async function hasPoolPasswordInKeyring(poolId):
 ## 相关文档
 
 **相关规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 数据池领域模型
+- [../../domain/pool.md](../../domain/pool.md) - 数据池领域模型
 - [./password.md](./password.md) - bcrypt 密码管理
 - [../storage/pool_store.md](../storage/pool_store.md) - 数据池存储实现
 
 **架构决策记录**:
-- [../../../docs/adr/0001-single-pool-constraint.md](../../../docs/adr/0001-single-pool-constraint.md) - 单池约束
 
 ---
 

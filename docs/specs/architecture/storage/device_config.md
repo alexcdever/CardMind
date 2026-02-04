@@ -1,7 +1,7 @@
 # DeviceConfig 存储架构规格
 
 **状态**: 活跃
-**依赖**: [../../domain/pool/model.md](../../domain/pool/model.md)
+**依赖**: [../../domain/pool.md](../../domain/pool.md)
 **相关测试**: `rust/tests/device_config_test.rs`
 
 ---
@@ -646,7 +646,7 @@ function sync_pool_data(pool_id, peer_id):
 ## 相关文档
 
 **领域规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+- [../../domain/pool.md](../../domain/pool.md) - 池领域模型
 
 **相关架构规格**:
 - [./card_store.md](./card_store.md) - CardStore 实现

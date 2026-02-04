@@ -1,7 +1,7 @@
 # 桌面端卡片列表规格
 
 **状态**: 活跃
-**依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card/model.md](../../domain/card/model.md)
+**依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `flutter/test/features/card_list/desktop_card_list_test.dart`
 
 ---
@@ -267,7 +267,7 @@ function renderEmptyState(context):
 
 **相关规格**:
 - [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md) - 卡片存储
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片领域模型
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
 - [./card_list_item.md](./card_list_item.md) - 卡片列表项组件
 - [../context_menu/desktop.md](../context_menu/desktop.md) - 桌面端上下文菜单
 

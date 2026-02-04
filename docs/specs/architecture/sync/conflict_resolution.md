@@ -1,7 +1,7 @@
 # 冲突解决架构规格
 
 **状态**: 活跃
-**依赖**: [../../domain/sync/model.md](../../domain/sync/model.md), [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md)
+**依赖**: [../../domain/sync.md](../../domain/sync.md), [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md)
 **相关测试**: `rust/tests/conflict_resolution_test.rs`
 
 ---
@@ -511,7 +511,7 @@ function demonstrate_three_way_convergence():
 ## 相关文档
 
 **领域规格**:
-- [../../domain/sync/model.md](../../domain/sync/model.md) - 同步领域模型
+- [../../domain/sync.md](../../domain/sync.md) - 同步领域模型
 
 **架构规格**:
 - [../storage/dual_layer.md](../storage/dual_layer.md) - 双层架构

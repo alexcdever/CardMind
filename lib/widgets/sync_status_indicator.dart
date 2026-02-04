@@ -196,7 +196,7 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
       }
     } on StateError catch (e) {
       debugPrint('Rust Bridge 未初始化，无法获取同步状态: $e');
-    } on Exception catch (e) {
+    } catch (e) {
       debugPrint('获取同步状态失败: $e');
     }
   }

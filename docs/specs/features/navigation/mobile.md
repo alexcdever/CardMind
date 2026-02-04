@@ -1,7 +1,7 @@
 # 移动端导航规格
 
 **状态**: 活跃
-**依赖**: [../../architecture/ui/navigation.md](../../architecture/ui/navigation.md), [../home_screen/home_screen.md](../home_screen/home_screen.md)
+**依赖**: [./mobile_nav.md](./mobile_nav.md), [../home_screen/home_screen.md](../home_screen/home_screen.md)
 **相关测试**: `flutter/test/features/navigation/mobile_navigation_test.dart`
 
 ---
@@ -378,7 +378,7 @@ structure NavigationAccessibility:
 ## 相关文档
 
 **相关规格**:
-- [../../architecture/ui/navigation.md](../../architecture/ui/navigation.md) - 导航架构
+- [./mobile_nav.md](./mobile_nav.md) - 导航组件规格
 - [../home_screen/home_screen.md](../home_screen/home_screen.md) - 主屏幕
 - [../settings/settings_screen.md](../settings/settings_screen.md) - 设置屏幕
 

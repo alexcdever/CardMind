@@ -18,7 +18,7 @@
 
 use crate::models::error::{CardMindError, MdnsError};
 use crate::p2p::identity::IdentityManager;
-use crate::p2p::sync::{SyncRequest, SyncResponse};
+use crate::p2p::sync::{HandshakeRequest, P2PRequest, P2PResponse, SyncRequest};
 use libp2p::{
     core::upgrade,
     futures::StreamExt,
@@ -41,7 +41,7 @@ pub struct P2PBehaviour {
     pub ping: PingBehaviour,
 
     /// Request/Response 协议，用于同步消息
-    pub sync: request_response::json::Behaviour<SyncRequest, SyncResponse>,
+    pub sync: request_response::json::Behaviour<P2PRequest, P2PResponse>,
 
     /// mDNS 设备发现（可选）
     pub mdns: Toggle<mdns::tokio::Behaviour>,
@@ -55,7 +55,7 @@ pub enum P2PEvent {
     Ping(ping::Event),
 
     /// 同步请求/响应事件
-    Sync(request_response::Event<SyncRequest, SyncResponse>),
+    Sync(request_response::Event<P2PRequest, P2PResponse>),
 
     /// mDNS 发现事件
     Mdns(mdns::Event),
@@ -67,8 +67,8 @@ impl From<ping::Event> for P2PEvent {
     }
 }
 
-impl From<request_response::Event<SyncRequest, SyncResponse>> for P2PEvent {
-    fn from(event: request_response::Event<SyncRequest, SyncResponse>) -> Self {
+impl From<request_response::Event<P2PRequest, P2PResponse>> for P2PEvent {
+    fn from(event: request_response::Event<P2PRequest, P2PResponse>) -> Self {
         Self::Sync(event)
     }
 }
@@ -287,7 +287,29 @@ impl P2PNetwork {
         self.swarm
             .behaviour_mut()
             .sync
-            .send_request(&peer_id, request)
+            .send_request(&peer_id, P2PRequest::Sync(request))
+    }
+
+    /// 发送握手请求到对等节点
+    ///
+    /// # 参数
+    ///
+    /// - `peer_id`: 目标对等节点 ID
+    /// - `request`: 握手请求
+    ///
+    /// # 返回
+    ///
+    /// 返回请求 ID，用于跟踪响应
+    pub fn send_handshake_request(
+        &mut self,
+        peer_id: PeerId,
+        request: HandshakeRequest,
+    ) -> request_response::OutboundRequestId {
+        info!("发送握手请求到 {}: pool_id={}", peer_id, request.pool_id);
+        self.swarm
+            .behaviour_mut()
+            .sync
+            .send_request(&peer_id, P2PRequest::Handshake(request))
     }
 
     /// 监听指定地址

@@ -7,7 +7,7 @@
 //! 使用全局 Mutex 存储 `P2PSyncService` 实例，确保跨线程访问。
 
 use crate::frb_generated::StreamSink;
-use crate::models::error::{CardMindError, Result};
+use crate::models::error::{CardMindError, InvalidStateError, Result};
 use crate::p2p::sync_service::{P2PSyncService, SyncStatus as P2PSyncStatus};
 use std::sync::{Arc, Mutex};
 use tokio_stream::StreamExt;
@@ -219,6 +219,12 @@ pub async fn init_sync_service(storage_path: String, listen_addr: String) -> Res
             crate::api::device_config::init_device_config(storage_path.clone())?
         }
     };
+
+    if !device_config.is_joined_any() {
+        return Err(CardMindError::InvalidState(
+            InvalidStateError::NotJoinedPool,
+        ));
+    }
 
     // 创建同步服务
     let mut service = P2PSyncService::new(card_store, device_config)?;
@@ -622,6 +628,7 @@ mod tests {
     use super::*;
     use serial_test::serial;
     use std::sync::{Arc, Mutex};
+    use tempfile::TempDir;
 
     #[test]
     #[serial]
@@ -733,6 +740,30 @@ mod tests {
 
         let status = get_sync_status();
         assert!(status.is_ok(), "应该能够获取同步状态");
+
+        cleanup_sync_service();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn it_should_not_start_p2p_when_not_joined() {
+        cleanup_sync_service();
+
+        let temp_dir = TempDir::new().unwrap();
+        let base_path = temp_dir.path().to_string_lossy().to_string();
+
+        crate::api::card::init_card_store(base_path.clone()).unwrap();
+        crate::api::device_config::init_device_config(base_path.clone()).unwrap();
+
+        let result =
+            init_sync_service(base_path, "/ip4/127.0.0.1/tcp/0".to_string()).await;
+
+        assert!(result.is_err(), "未加入数据池时应该拒绝启动 P2P");
+        let message = result.unwrap_err().to_string();
+        assert!(
+            message.contains("NotJoinedPool"),
+            "错误信息应包含 NotJoinedPool，实际: {message}"
+        );
 
         cleanup_sync_service();
     }

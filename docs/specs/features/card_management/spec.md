@@ -1,7 +1,7 @@
 # 卡片管理功能规格
 
 **状态**: 活跃
-**依赖**: [../../domain/card/rules.md](../../domain/card/rules.md), [../../domain/pool/model.md](../../domain/pool/model.md)
+**依赖**: [../../domain/card.md](../../domain/card.md), [../../domain/pool.md](../../domain/pool.md)
 **相关测试**: `test/features/card_management_test.dart`
 
 ---

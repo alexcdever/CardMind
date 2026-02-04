@@ -5,10 +5,9 @@ import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart
     as device_config_api;
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
     as identity_api;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
-    as sync_api;
 import 'package:cardmind/providers/app_info_provider.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/pool_provider.dart';
 import 'package:cardmind/providers/settings_provider.dart';
 import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
@@ -37,6 +36,7 @@ class CardMindApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProvider(create: (_) => AppInfoProvider()),
+        ChangeNotifierProvider(create: (_) => PoolProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -96,6 +96,7 @@ class _AppInitializerState extends State<AppInitializer> {
       // Get providers before awaits
       final themeProvider = context.read<ThemeProvider>();
       final cardProvider = context.read<CardProvider>();
+      final poolProvider = context.read<PoolProvider>();
       final settingsProvider = context.read<SettingsProvider>();
       final appInfoProvider = context.read<AppInfoProvider>();
 
@@ -112,26 +113,27 @@ class _AppInitializerState extends State<AppInitializer> {
       await cardProvider.initialize(storagePath);
       if (!mounted) return;
 
+      await poolProvider.initialize(storagePath);
+      if (!mounted) return;
+
       // Initialize device config first (required by sync service)
       try {
-        identity_api.initIdentityManager(basePath: storagePath);
         await device_config_api.initDeviceConfig(basePath: storagePath);
         debugPrint('Device config initialized successfully');
       } on Exception catch (e) {
         debugPrint('Warning: Failed to initialize device config: $e');
       }
 
-      // Initialize sync service
+      // Initialize identity manager (required for peer_id)
       try {
-        await sync_api.initSyncService(
-          storagePath: storagePath,
-          listenAddr: '/ip4/0.0.0.0/tcp/0',
-        );
-        debugPrint('Sync service initialized successfully');
+        identity_api.initIdentityManager(basePath: storagePath);
+        debugPrint('Identity manager initialized successfully');
       } on Exception catch (e) {
-        debugPrint('Warning: Failed to initialize sync service: $e');
-        // Continue even if sync service fails - app can work without P2P sync
+        debugPrint('Warning: Failed to initialize identity manager: $e');
       }
+
+      // Start sync service only when joined
+      await poolProvider.startSyncServiceIfJoined();
 
       setState(() {
         _isInitializing = false;

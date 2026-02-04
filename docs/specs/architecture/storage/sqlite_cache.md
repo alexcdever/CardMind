@@ -728,8 +728,8 @@ function optimize_database():
 - [../sync/subscription.md](../sync/subscription.md) - 订阅机制
 
 **领域规格**:
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片模型
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池模型
+- [../../domain/card.md](../../domain/card.md) - 卡片模型
+- [../../domain/pool.md](../../domain/pool.md) - 池模型
 
 ---
 

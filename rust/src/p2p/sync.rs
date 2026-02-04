@@ -44,6 +44,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// let request = SyncMessage::SyncRequest(SyncRequest {
 ///     pool_id: "pool-001".to_string(),
+///     pool_hash: "pool-hash-001".to_string(),
 ///     last_version: None,
 ///     device_id: "device-123".to_string(),
 /// });
@@ -81,6 +82,9 @@ pub enum SyncMessage {
 pub struct SyncRequest {
     /// 数据池 ID
     pub pool_id: String,
+
+    /// 数据池哈希（用于握手校验）
+    pub pool_hash: String,
 
     /// 最后同步的版本号（用于增量同步）
     ///
@@ -123,6 +127,51 @@ pub struct SyncResponse {
 
     /// 当前版本号（用于下次增量同步）
     pub current_version: Vec<u8>,
+}
+
+/// 握手请求（连接后验证数据池）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandshakeRequest {
+    /// 数据池 ID
+    pub pool_id: String,
+
+    /// 数据池哈希（HKDF-derived）
+    pub pool_hash: String,
+
+    /// 请求设备 ID
+    pub device_id: String,
+}
+
+/// 握手响应
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandshakeResponse {
+    /// 是否接受握手
+    pub accepted: bool,
+
+    /// 拒绝原因（可选）
+    pub reason: Option<String>,
+}
+
+/// P2P 请求消息（握手 + 同步）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum P2PRequest {
+    /// 握手请求
+    Handshake(HandshakeRequest),
+
+    /// 同步请求
+    Sync(SyncRequest),
+}
+
+/// P2P 响应消息（握手 + 同步）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum P2PResponse {
+    /// 握手响应
+    Handshake(HandshakeResponse),
+
+    /// 同步响应
+    Sync(SyncResponse),
 }
 
 /// 同步确认
@@ -177,6 +226,7 @@ mod tests {
     fn test_sync_message_serialization() {
         let request = SyncMessage::SyncRequest(SyncRequest {
             pool_id: "pool-001".to_string(),
+            pool_hash: "pool-hash-001".to_string(),
             last_version: None,
             device_id: "device-001".to_string(),
         });
@@ -189,6 +239,7 @@ mod tests {
         match deserialized {
             SyncMessage::SyncRequest(req) => {
                 assert_eq!(req.pool_id, "pool-001");
+                assert_eq!(req.pool_hash, "pool-hash-001");
                 assert_eq!(req.device_id, "device-001");
             }
             _ => panic!("Wrong message type"),

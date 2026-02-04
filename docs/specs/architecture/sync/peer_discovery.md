@@ -287,7 +287,7 @@ structure PeerManager:
 - [../storage/device_config.md](../storage/device_config.md) - 设备配置
 
 **领域规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池模型
+- [../../domain/pool.md](../../domain/pool.md) - 池模型
 
 **架构决策记录**:
 - ADR-0004: mDNS 发现 - mDNS 对等点发现决策

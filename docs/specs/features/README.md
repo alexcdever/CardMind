@@ -72,7 +72,7 @@ features/
 
 
 参考功能文档模板：
-- [../changes/reorganize-main-specs-content/templates/feature_template.md](../changes/reorganize-main-specs-content/templates/feature_template.md)
+- [../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/feature_template.md](../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/feature_template.md)
 
 
 ---

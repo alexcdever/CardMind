@@ -30,8 +30,13 @@ use crate::models::device_config::DeviceConfig;
 use crate::models::error::{CardMindError, Result};
 use crate::p2p::multi_peer_sync::MultiPeerSyncCoordinator;
 use crate::p2p::network::{P2PEvent, P2PNetwork};
-use crate::p2p::sync::{SyncAck, SyncRequest, SyncResponse};
+use crate::p2p::sync::{
+    HandshakeRequest, HandshakeResponse, P2PRequest, P2PResponse, SyncAck, SyncRequest,
+    SyncResponse,
+};
 use crate::p2p::sync_manager::SyncManager;
+use crate::security::keyring_store::KeyringStore;
+use crate::security::password::derive_pool_hash;
 use crate::store::card_store::CardStore;
 use futures::StreamExt;
 use libp2p::request_response::Message;
@@ -77,6 +82,9 @@ pub struct P2PSyncService {
 
     /// 连接状态 (`peer_id` -> connected)
     connections: Arc<Mutex<HashMap<PeerId, bool>>>,
+
+    /// 是否强制校验 pool_hash（mock 网络默认关闭）
+    enforce_pool_hash: bool,
 
     /// 是否使用真实网络传输（默认 true，测试时可设为 false）
     use_real_network: bool,
@@ -158,6 +166,7 @@ impl P2PSyncService {
             local_peer_id,
             device_config,
             connections: Arc::new(Mutex::new(HashMap::new())),
+            enforce_pool_hash: true,
             use_real_network: true, // 默认使用真实网络
             status_tx,
             last_status: Arc::new(Mutex::new(None)),
@@ -174,6 +183,7 @@ impl P2PSyncService {
     ) -> Result<Self> {
         let mut service = Self::new(card_store, device_config)?;
         service.use_real_network = false;
+        service.enforce_pool_hash = false;
         Ok(service)
     }
 
@@ -247,6 +257,25 @@ impl P2PSyncService {
         Ok(())
     }
 
+    /// 解析本地数据池哈希（pool_hash）
+    fn resolve_pool_hash(&self, pool_id: &str) -> Result<String> {
+        let keyring = KeyringStore::new();
+        let password = keyring.get_pool_password(pool_id)?;
+        let hash = derive_pool_hash(pool_id, password.as_str())?;
+        Ok(hash)
+    }
+
+    /// 校验远端 pool_hash 是否匹配
+    fn verify_pool_hash(&self, pool_id: &str, remote_hash: &str) -> bool {
+        match self.resolve_pool_hash(pool_id) {
+            Ok(local_hash) => local_hash == remote_hash,
+            Err(err) => {
+                warn!("pool_hash 校验失败: {}", err);
+                false
+            }
+        }
+    }
+
     /// 发起同步请求
     ///
     /// # 参数
@@ -277,9 +306,16 @@ impl P2PSyncService {
             .unwrap()
             .get_last_sync_version(&pool_id, &peer_id.to_string());
 
+        let pool_hash = if self.enforce_pool_hash {
+            self.resolve_pool_hash(&pool_id)?
+        } else {
+            String::new()
+        };
+
         // 构造同步请求
         let request = SyncRequest {
             pool_id: pool_id.clone(),
+            pool_hash,
             last_version,
             device_id: self.local_peer_id.to_string(),
         };
@@ -294,6 +330,12 @@ impl P2PSyncService {
             let entry = registry().lock().unwrap().get(&peer_id).cloned();
 
             if let Some(entry) = entry {
+                if self.enforce_pool_hash && !self.verify_pool_hash(&pool_id, &request.pool_hash) {
+                    return Err(CardMindError::NotAuthorized(
+                        "pool_hash mismatch".to_string(),
+                    ));
+                }
+
                 // 授权检查：使用目标设备的已加入池列表
                 let joined_pools = vec![entry
                     .device_config
@@ -549,12 +591,30 @@ impl P2PSyncService {
             match event {
                 SwarmEvent::ConnectionEstablished { peer_id, .. } => {
                     info!("与设备 {} 建立连接", peer_id);
-                    self.connections.lock().unwrap().insert(peer_id, true);
-                    self.coordinator.add_or_update_device(peer_id);
+                    self.connections.lock().unwrap().insert(peer_id, false);
 
-                    // 触发状态变化：发现新对等设备 → syncing
-                    let status = self.get_sync_status();
-                    self.notify_status_change(status);
+                    let pool_id = self
+                        .device_config
+                        .lock()
+                        .unwrap()
+                        .get_pool_id()
+                        .map(std::string::ToString::to_string)
+                        .unwrap_or_default();
+
+                    if pool_id.is_empty() {
+                        warn!("未加入数据池，拒绝发送握手请求");
+                        let _ = self.network.swarm_mut().disconnect_peer_id(peer_id);
+                        return Ok(());
+                    }
+
+                    let pool_hash = self.resolve_pool_hash(&pool_id)?;
+                    let handshake = HandshakeRequest {
+                        pool_id,
+                        pool_hash,
+                        device_id: self.local_peer_id.to_string(),
+                    };
+
+                    self.network.send_handshake_request(peer_id, handshake);
                 }
                 SwarmEvent::ConnectionClosed { peer_id, .. } => {
                     info!("与设备 {} 的连接断开", peer_id);
@@ -571,68 +631,141 @@ impl P2PSyncService {
                         Event::Message { peer, message } => match message {
                             Message::Request {
                                 request, channel, ..
-                            } => {
-                                info!("收到来自 {} 的同步请求: pool_id={}", peer, request.pool_id);
-
-                                // 处理同步请求并发送响应
-                                let joined_pools = vec![self
-                                    .device_config
-                                    .lock()
-                                    .unwrap()
-                                    .get_pool_id()
-                                    .map(std::string::ToString::to_string)
-                                    .unwrap_or_default()];
-
-                                let sync_result =
-                                    self.sync_manager.lock().unwrap().handle_sync_request(
-                                        &request.pool_id,
-                                        request.last_version.as_deref(),
-                                        &joined_pools,
+                            } => match request {
+                                P2PRequest::Handshake(request) => {
+                                    info!(
+                                        "收到来自 {} 的握手请求: pool_id={}",
+                                        peer, request.pool_id
                                     );
 
-                                match sync_result {
-                                    Ok(sync_data) => {
-                                        let response = SyncResponse {
-                                            pool_id: request.pool_id,
-                                            updates: sync_data.updates,
-                                            card_count: sync_data.card_count,
-                                            current_version: sync_data.current_version,
-                                        };
+                                    let accepted = self
+                                        .verify_pool_hash(&request.pool_id, &request.pool_hash);
 
-                                        // 发送响应
-                                        if self
-                                            .network
-                                            .swarm_mut()
-                                            .behaviour_mut()
-                                            .sync
-                                            .send_response(channel, response)
-                                            .is_ok()
-                                        {
-                                            info!("成功发送同步响应到 {}", peer);
+                                    let response = HandshakeResponse {
+                                        accepted,
+                                        reason: if accepted {
+                                            None
                                         } else {
-                                            warn!("发送同步响应到 {} 失败", peer);
+                                            Some("pool_hash mismatch".to_string())
+                                        },
+                                    };
+
+                                    if self
+                                        .network
+                                        .swarm_mut()
+                                        .behaviour_mut()
+                                        .sync
+                                        .send_response(channel, P2PResponse::Handshake(response))
+                                        .is_ok()
+                                    {
+                                        info!("成功发送握手响应到 {}", peer);
+                                    } else {
+                                        warn!("发送握手响应到 {} 失败", peer);
+                                    }
+
+                                    if accepted {
+                                        self.connections.lock().unwrap().insert(peer, true);
+                                        self.coordinator.add_or_update_device(peer);
+                                        let status = self.get_sync_status();
+                                        self.notify_status_change(status);
+                                    } else {
+                                        let _ = self.network.swarm_mut().disconnect_peer_id(peer);
+                                    }
+                                }
+                                P2PRequest::Sync(request) => {
+                                    info!(
+                                        "收到来自 {} 的同步请求: pool_id={}",
+                                        peer, request.pool_id
+                                    );
+
+                                    if self.enforce_pool_hash
+                                        && !self.verify_pool_hash(
+                                            &request.pool_id,
+                                            &request.pool_hash,
+                                        )
+                                    {
+                                        warn!(
+                                            "pool_hash 不匹配，拒绝同步: peer={}, pool_id={}",
+                                            peer, request.pool_id
+                                        );
+                                        let _ = self.network.swarm_mut().disconnect_peer_id(peer);
+                                        return Ok(());
+                                    }
+
+                                    // 处理同步请求并发送响应
+                                    let joined_pools = vec![self
+                                        .device_config
+                                        .lock()
+                                        .unwrap()
+                                        .get_pool_id()
+                                        .map(std::string::ToString::to_string)
+                                        .unwrap_or_default()];
+
+                                    let sync_result =
+                                        self.sync_manager.lock().unwrap().handle_sync_request(
+                                            &request.pool_id,
+                                            request.last_version.as_deref(),
+                                            &joined_pools,
+                                        );
+
+                                    match sync_result {
+                                        Ok(sync_data) => {
+                                            let response = SyncResponse {
+                                                pool_id: request.pool_id,
+                                                updates: sync_data.updates,
+                                                card_count: sync_data.card_count,
+                                                current_version: sync_data.current_version,
+                                            };
+
+                                            // 发送响应
+                                            if self
+                                                .network
+                                                .swarm_mut()
+                                                .behaviour_mut()
+                                                .sync
+                                                .send_response(channel, P2PResponse::Sync(response))
+                                                .is_ok()
+                                            {
+                                                info!("成功发送同步响应到 {}", peer);
+                                            } else {
+                                                warn!("发送同步响应到 {} 失败", peer);
+                                            }
+                                        }
+                                        Err(e) => {
+                                            warn!("处理同步请求失败: {}", e);
                                         }
                                     }
-                                    Err(e) => {
-                                        warn!("处理同步请求失败: {}", e);
+                                }
+                            },
+                            Message::Response { response, .. } => match response {
+                                P2PResponse::Handshake(response) => {
+                                    if response.accepted {
+                                        info!("与设备 {} 握手成功", peer);
+                                        self.connections.lock().unwrap().insert(peer, true);
+                                        self.coordinator.add_or_update_device(peer);
+                                        let status = self.get_sync_status();
+                                        self.notify_status_change(status);
+                                    } else {
+                                        warn!("与设备 {} 握手失败: {:?}", peer, response.reason);
+                                        let _ = self.network.swarm_mut().disconnect_peer_id(peer);
                                     }
                                 }
-                            }
-                            Message::Response { response, .. } => {
-                                info!(
-                                    "收到来自 {} 的同步响应: {} 个卡片",
-                                    peer, response.card_count
-                                );
+                                P2PResponse::Sync(response) => {
+                                    info!(
+                                        "收到来自 {} 的同步响应: {} 个卡片",
+                                        peer, response.card_count
+                                    );
 
-                                // 处理同步响应
-                                if let Err(e) = self.handle_sync_response(peer, response) {
-                                    warn!("处理同步响应失败: {}", e);
-                                    // 触发状态变化：同步失败 → failed
+                                    // 处理同步响应
+                                    if let Err(e) = self.handle_sync_response(peer, response) {
+                                        warn!("处理同步响应失败: {}", e);
+                                        // 触发状态变化：同步失败 → failed
+                                    }
+                                    // 触发状态变化：同步完成 → synced
+                                    let status = self.get_sync_status();
+                                    self.notify_status_change(status);
                                 }
-                                // 触发状态变化：同步完成 → synced
-                                let status = self.get_sync_status();
-                                self.notify_status_change(status);
-                            }
+                            },
                         },
                         Event::OutboundFailure { peer, error, .. } => {
                             warn!("发送到 {} 失败: {:?}", peer, error);
@@ -718,6 +851,7 @@ pub struct SyncStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::uuid_v7::generate_uuid_v7;
 
     #[test]
     fn test_sync_service_creation() {
@@ -908,6 +1042,28 @@ mod tests {
         // 验证重启成功
         assert!(result.is_ok(), "重启同步应该成功");
         assert_eq!(result.unwrap(), 1, "应该成功重启 1 个 peer 的同步");
+    }
+
+    #[tokio::test]
+    async fn it_should_reject_peer_on_pool_hash_mismatch() {
+        let pool_id = format!("pool-{}", generate_uuid_v7());
+
+        let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let mut device_config_a = DeviceConfig::new();
+        device_config_a.join_pool(&pool_id).unwrap();
+        let service_a = P2PSyncService::new_with_mock_network(card_store_a, device_config_a)
+            .expect("Failed to create service A");
+
+        let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let mut device_config_b = DeviceConfig::new();
+        device_config_b.join_pool(&pool_id).unwrap();
+        let mut service_b = P2PSyncService::new_with_mock_network(card_store_b, device_config_b)
+            .expect("Failed to create service B");
+        service_b.enforce_pool_hash = true;
+
+        let result = service_b.request_sync(service_a.local_peer_id(), pool_id);
+
+        assert!(result.is_err(), "pool_hash 不匹配时应拒绝同步");
     }
 
     #[tokio::test]

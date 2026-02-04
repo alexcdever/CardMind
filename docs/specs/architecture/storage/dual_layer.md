@@ -1,7 +1,7 @@
 # 双层存储架构规格
 
 **状态**: 活跃
-**依赖**: [./card_store.md](./card_store.md), [../../domain/card/model.md](../../domain/card/model.md)
+**依赖**: [./card_store.md](./card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `rust/tests/dual_layer_test.rs`
 
 ---
@@ -753,8 +753,8 @@ function configure_sqlite(connection):
 - [../sync/subscription.md](../sync/subscription.md) - 订阅机制
 
 **领域规格**:
-- [../../domain/card/model.md](../../domain/card/model.md) - 卡片领域模型
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+- [../../domain/card.md](../../domain/card.md) - 卡片领域模型
+- [../../domain/pool.md](../../domain/pool.md) - 池领域模型
 
 **架构决策记录**:
 - ADR-0002: 双层架构 - 读写分离设计决策

@@ -1,7 +1,7 @@
 # PoolStore 架构规格
 
 **状态**: 活跃
-**依赖**: [../../domain/pool/model.md](../../domain/pool/model.md), [./device_config.md](./device_config.md), [./dual_layer.md](./dual_layer.md)
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md), [./dual_layer.md](./dual_layer.md)
 **相关测试**: `rust/tests/pool_store_test.rs`
 
 ---
@@ -617,7 +617,7 @@ function verify_password_with_bcrypt(password, password_hash):
 ## 相关文档
 
 **领域规格**:
-- [../../domain/pool/model.md](../../domain/pool/model.md) - 池领域模型
+- [../../domain/pool.md](../../domain/pool.md) - 池领域模型
 
 **架构规格**:
 - [./dual_layer.md](./dual_layer.md) - 双层架构
