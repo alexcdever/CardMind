@@ -281,8 +281,7 @@ fn it_should_pull_remote_changes() {
     );
 
     // 设备 A 的本地状态（为空）
-    let mut local_cards: std::collections::HashMap<String, Card> =
-        std::collections::HashMap::new();
+    let mut local_cards: std::collections::HashMap<String, Card> = std::collections::HashMap::new();
 
     // When: 设备 A 发起与设备 B 的同步
     let pulled_card = remote_cards.get("card-002").unwrap();
@@ -385,10 +384,8 @@ fn it_should_merge_tags_using_set_union() {
 /// 集成测试：完整的双向同步流程
 fn it_should_handle_bidirectional_sync() {
     // Given: 两个设备都有本地变更
-    let mut cards_alpha: std::collections::HashMap<String, Card> =
-        std::collections::HashMap::new();
-    let mut cards_beta: std::collections::HashMap<String, Card> =
-        std::collections::HashMap::new();
+    let mut cards_alpha: std::collections::HashMap<String, Card> = std::collections::HashMap::new();
+    let mut cards_beta: std::collections::HashMap<String, Card> = std::collections::HashMap::new();
 
     // 设备 A 创建 card-001
     let card_a = create_test_card("card-001", "设备 A 的卡片", "内容 A");
