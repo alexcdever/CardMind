@@ -1,6 +1,6 @@
 //! 设备配置管理
 //!
-//! 本模块管理本地设备配置，包括 peer_id、设备名称与当前加入的数据池。
+//! 本模块管理本地设备配置，包括 `peer_id`、设备名称与当前加入的数据池。
 
 use crate::utils::uuid_v7::generate_uuid_v7;
 use chrono::Utc;
@@ -37,6 +37,12 @@ pub struct DeviceConfig {
     pub device_name: String,
     pub pool_id: Option<String>,
     pub updated_at: i64,
+}
+
+impl Default for DeviceConfig {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DeviceConfig {
