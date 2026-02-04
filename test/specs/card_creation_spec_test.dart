@@ -107,7 +107,6 @@ void main() {
         // 这个测试主要验证点击不会导致崩溃
         expect(find.byType(FloatingActionButton), findsOneWidget);
       });
-
     });
 
     // ========================================
@@ -604,6 +603,5 @@ void main() {
         expect(find.text('Test'), findsOneWidget);
       });
     });
-
   });
 }

@@ -701,6 +701,5 @@ void main() {
         expect(find.textContaining('离线'), findsOneWidget);
       });
     });
-
   });
 }

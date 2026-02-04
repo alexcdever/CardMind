@@ -777,6 +777,5 @@ void main() {
         expect(find.byIcon(Icons.close), findsWidgets);
       });
     });
-
   });
 }

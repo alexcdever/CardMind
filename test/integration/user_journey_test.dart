@@ -237,6 +237,5 @@ void main() {
         expect(find.byType(Scaffold), findsWidgets);
       });
     });
-
   });
 }

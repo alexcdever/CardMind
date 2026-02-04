@@ -664,6 +664,5 @@ void main() {
         expect(fab.tooltip, isNotNull);
       });
     });
-
   });
 }
