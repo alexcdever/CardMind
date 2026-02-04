@@ -21,7 +21,7 @@ use std::sync::{Arc, Mutex};
 fn it_should_broadcast_status_to_all_subscribers() {
     // Given: 创建同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-broadcast");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // And: 创建多个订阅者
@@ -55,7 +55,7 @@ fn it_should_broadcast_status_to_all_subscribers() {
 fn it_should_not_broadcast_duplicate_status() {
     // Given: 创建同步服务和订阅者
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-dedup");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
     let mut rx = service.status_sender().subscribe();
 
@@ -86,7 +86,7 @@ fn it_should_not_broadcast_duplicate_status() {
 fn it_should_handle_no_subscribers_gracefully() {
     // Given: 创建同步服务但不创建订阅者
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-no-sub");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // When: 触发状态变化
@@ -113,7 +113,7 @@ fn it_should_handle_no_subscribers_gracefully() {
 fn it_should_support_status_sender_cloning() {
     // Given: 创建同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-clone");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // When: 获取并克隆状态发送器
@@ -148,7 +148,7 @@ fn it_should_support_status_sender_cloning() {
 fn it_should_maintain_subscriber_independence() {
     // Given: 创建同步服务和多个订阅者
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-independence");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     let mut rx1 = service.status_sender().subscribe();
@@ -183,7 +183,7 @@ fn it_should_maintain_subscriber_independence() {
 fn it_should_have_disconnected_initial_status() {
     // Given: 创建同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let device_config = DeviceConfig::new("test-device-initial");
+    let device_config = DeviceConfig::new();
     let service = P2PSyncService::new(card_store, device_config).unwrap();
 
     // When: 获取同步状态

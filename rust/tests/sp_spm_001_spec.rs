@@ -9,7 +9,7 @@ use cardmind_rust::models::device_config::{DeviceConfig, DeviceConfigError};
 
 /// Test helper to create a basic `DeviceConfig` for testing
 fn create_test_config() -> DeviceConfig {
-    DeviceConfig::new("test-device-001")
+    DeviceConfig::new()
 }
 
 // ==== SP-SPM-001 Spec-002-A: 设备只能加入一个池 ====

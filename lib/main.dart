@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:cardmind/bridge/frb_generated.dart';
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart'
     as device_config_api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
+    as identity_api;
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
     as sync_api;
 import 'package:cardmind/providers/app_info_provider.dart';
@@ -112,6 +114,7 @@ class _AppInitializerState extends State<AppInitializer> {
 
       // Initialize device config first (required by sync service)
       try {
+        identity_api.initIdentityManager(basePath: storagePath);
         await device_config_api.initDeviceConfig(basePath: storagePath);
         debugPrint('Device config initialized successfully');
       } on Exception catch (e) {
