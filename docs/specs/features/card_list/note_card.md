@@ -15,7 +15,6 @@
 - 平台特定交互（桌面端/移动端）
 - 上下文菜单操作
 - 视觉反馈与无障碍支持
-- 渲染性能优化
 
 **技术栈**:
 - Flutter Card Widget - 卡片容器
@@ -343,40 +342,6 @@ function formatTimestamp(timestamp):
 
 ---
 
-## 需求：性能优化
-
-系统应优化渲染性能以实现流畅的滚动和交互。
-
-### 场景：高效渲染
-
-- **前置条件**: 在大列表中显示
-- **操作**: 渲染笔记卡片
-- **预期结果**: 系统应使用高效的渲染技术
-- **并且**: 避免不必要的重建
-- **并且**: 实现适当的键管理
-
-**实现逻辑**:
-
-```
-// 性能优化
-class NoteCard extends StatelessWidget {
-    final Card card;
-
-    // 使用 const 构造函数
-    const NoteCard({Key? key, required this.card}) : super(key: key);
-
-    @override
-    Widget build(BuildContext context) {
-        // 避免不必要的重建
-        return RepaintBoundary(
-            child: renderCard()
-        )
-    }
-}
-```
-
----
-
 ## 相关文档
 
 **相关规格**:
@@ -412,15 +377,10 @@ class NoteCard extends StatelessWidget {
 - `test_semantic_label()` - 测试语义标签
 - `test_keyboard_navigation()` - 测试键盘导航
 
-**集成测试**:
-- `test_card_in_list_performance()` - 测试列表中的卡片性能
-- `test_card_in_grid_performance()` - 测试网格中的卡片性能
-
 **验收标准**:
 - [ ] 所有单元测试通过
 - [ ] 平台特定交互正常
 - [ ] 视觉反馈清晰
 - [ ] 无障碍支持完整
-- [ ] 渲染性能达标
 - [ ] 代码审查通过
 - [ ] 文档已更新

@@ -606,12 +606,6 @@ function verify_password_with_bcrypt(password, password_hash):
 - **访问控制**: 只有 Pool.device_ids 中的设备可以访问池数据
 - **密码长度**: 最小 8 字符，最大 72 字符（bcrypt 限制）
 
-**性能特征**:
-- **缓存命中率**: > 90%（热池）
-- **池加载时间**: < 10ms（缓存命中）
-- **池创建时间**: < 100ms
-- **密码哈希时间**: ~100ms（bcrypt 成本因子 12）
-
 ---
 
 ## 相关文档

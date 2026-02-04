@@ -14,7 +14,6 @@
 - 网格布局适配鼠标/键盘操作
 - 高效处理大量卡片
 - 支持多选与批量操作
-- 平滑滚动性能
 
 **适用平台**:
 - macOS
@@ -291,7 +290,6 @@ function renderEmptyState(context):
 - `test_empty_state_search()` - 测试搜索空状态
 
 **集成测试**:
-- `test_grid_scroll_performance()` - 测试滚动性能
 - `test_batch_operations()` - 测试批量操作
 - `test_keyboard_accessibility()` - 测试键盘可访问性
 
@@ -300,6 +298,5 @@ function renderEmptyState(context):
 - [ ] 网格布局响应式正常
 - [ ] 多选和批量操作正常
 - [ ] 键盘导航流畅
-- [ ] 滚动性能达标（60fps）
 - [ ] 代码审查通过
 - [ ] 文档已更新

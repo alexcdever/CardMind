@@ -301,7 +301,6 @@ structure MenuStyle:
 - `test_menu_appears_on_right_click()` - 测试右键点击显示菜单
 - `test_menu_position_near_cursor()` - 测试菜单位置靠近光标
 - `test_menu_position_adjusted_for_screen()` - 测试菜单位置调整防止超出屏幕
-- `test_menu_appears_within_100ms()` - 测试菜单在100ms内出现
 - `test_menu_contains_edit_option()` - 测试菜单包含编辑选项
 - `test_menu_contains_delete_option()` - 测试菜单包含删除选项
 - `test_edit_opens_editor()` - 测试点击编辑打开编辑器

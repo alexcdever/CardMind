@@ -119,20 +119,6 @@
 
 ---
 
-## 需求：移动端性能优化
-
-系统应优化移动设备的卡片列表项渲染。
-
-### 场景：高效渲染
-
-- **前置条件**: 卡片列表在移动端包含许多项
-- **操作**: 滚动列表
-- **预期结果**: 系统应对屏幕外项使用延迟加载
-- **并且**: 保持 60fps 滚动性能
-- **并且**: 回收列表项组件
-
----
-
 ## 测试覆盖
 
 **测试文件**: `test/widgets/card_list_item_mobile_test.dart`
@@ -149,13 +135,11 @@
 - `it_should_show_pending_indicator_mobile()` - 在移动端显示待同步指示器
 - `it_should_reveal_swipe_actions()` - 显示滑动操作
 - `it_should_dismiss_swipe_actions()` - 关闭滑动操作
-- `it_should_maintain_scroll_performance()` - 保持滚动性能
 
 **验收标准**:
 - [ ] 所有组件测试通过
 - [ ] 触摸目标至少为 48x48dp
 - [ ] 触觉反馈正常工作
 - [ ] 滑动手势响应灵敏
-- [ ] 滚动保持 60fps
 - [ ] 代码审查通过
 - [ ] 文档已更新

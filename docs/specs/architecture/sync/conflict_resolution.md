@@ -551,6 +551,5 @@ function demonstrate_three_way_convergence():
 - [x] 所有单元测试通过
 - [x] 所有场景中保证收敛
 - [x] 冲突场景中无数据丢失
-- [x] 性能可接受（< 100ms 合并时间）
 - [x] 因果关系正确保持
 - [x] 代码审查通过

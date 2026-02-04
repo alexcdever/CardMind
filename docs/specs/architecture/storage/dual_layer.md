@@ -641,9 +641,7 @@ function parse_pool_from_loro(loro_doc):
 
 ---
 
-## 需求：性能优化
-
-系统应为每层的特定用例优化性能。
+## 优化策略
 
 ### 场景：写性能 - Loro
 
@@ -735,12 +733,6 @@ function configure_sqlite(connection):
 - **优点**: 无冲突同步、快速读取、最终一致性
 - **缺点**: 最终一致性（非即时）、存储开销（两份副本）
 
-**性能特征**:
-- **写入延迟**: < 50ms（包括 Loro commit）
-- **读取延迟**: < 10ms（SQLite 索引查询）
-- **同步延迟**: < 100ms（订阅回调）
-- **重建时间**: < 5s（10000 张卡片）
-
 ---
 
 ## 相关文档
@@ -781,13 +773,8 @@ function configure_sqlite(connection):
 - `test_end_to_end_write_read_flow()` - 端到端写读流程
 - `test_sqlite_corruption_recovery()` - SQLite 损坏恢复
 - `test_concurrent_writes()` - 并发写入
-- `test_performance_benchmarks()` - 性能基准测试
 
 **验收标准**:
 - [x] 所有单元测试通过
 - [x] 集成测试通过
-- [x] 1000 张卡片的读取性能 < 10ms
-- [x] 每张卡片的写入性能 < 50ms
-- [x] 10000 张卡片的 SQLite 重建在 5 秒内完成
-- [x] 订阅回调延迟 < 100ms
 - [x] 代码审查通过

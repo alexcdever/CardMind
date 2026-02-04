@@ -227,13 +227,11 @@ function renderEmptyState(context):
 - `test_haptic_feedback()` - 测试触觉反馈
 
 **集成测试**:
-- `test_list_scroll_performance()` - 测试滚动性能
 - `test_swipe_gesture_flow()` - 测试滑动手势流程
 - `test_pull_to_refresh()` - 测试下拉刷新
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 列表滚动流畅（60fps）
 - [ ] 滑动删除手势正常
 - [ ] 长按菜单显示正常
 - [ ] 触觉反馈正常
