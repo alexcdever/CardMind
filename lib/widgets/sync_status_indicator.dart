@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cardmind/bridge/frb_generated.dart';
 import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
     as sync_api;
 import 'package:cardmind/models/sync_status.dart';
@@ -189,14 +190,16 @@ class _SyncStatusIndicatorState extends State<SyncStatusIndicator>
   /// 显示详情对话框
   Future<void> _showDetailsDialog() async {
     // 获取当前的 API 同步状态
+    if (!RustLib.instance.initialized) {
+      debugPrint('Rust Bridge 未初始化，无法获取同步状态');
+      return;
+    }
     try {
       final apiStatus = await sync_api.getSyncStatus();
       if (mounted) {
         await SyncDetailsDialog.show(context, apiStatus);
       }
-    } on StateError catch (e) {
-      debugPrint('Rust Bridge 未初始化，无法获取同步状态: $e');
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('获取同步状态失败: $e');
     }
   }
