@@ -334,11 +334,48 @@ Future<bool> generateBridge() async {
   ];
 
   printInfo('运行: $codegenPath ${args.join(' ')}');
-  return runCommand(
+  final generated = await runCommand(
     codegenPath,
     args,
     description: 'Generate FRB bindings',
   );
+  if (!generated) {
+    return false;
+  }
+  return suppressGeneratedRustWarnings();
+}
+
+Future<bool> suppressGeneratedRustWarnings() async {
+  final generatedFile = File('rust/src/frb_generated.rs');
+  if (!generatedFile.existsSync()) {
+    printError('未找到 rust/src/frb_generated.rs，无法注入告警抑制');
+    return false;
+  }
+
+  const allowLine = '#![allow(warnings)]';
+  try {
+    final content = await generatedFile.readAsString();
+    if (content.contains(allowLine)) {
+      return true;
+    }
+
+    final lines = content.split('\n');
+    var insertAt = 0;
+    while (insertAt < lines.length && lines[insertAt].startsWith('//')) {
+      insertAt++;
+    }
+    lines.insert(insertAt, allowLine);
+    lines.insert(insertAt + 1, '');
+
+    final updated = lines.join('\n');
+    await generatedFile.writeAsString(
+      updated.endsWith('\n') ? updated : '$updated\n',
+    );
+    return true;
+  } catch (error) {
+    printError('注入告警抑制失败: $error');
+    return false;
+  }
 }
 
 Future<void> formatGeneratedCode() async {
