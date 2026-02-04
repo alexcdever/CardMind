@@ -1,9 +1,9 @@
+import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:cardmind/providers/app_info_provider.dart';
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/providers/settings_provider.dart';
 import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/screens/settings_screen.dart';
-import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -36,18 +36,17 @@ void main() {
     tearDown(() {
       PlatformDetector.debugOverridePlatform = null;
     });
-    testWidgets(
-      'it_should_not_display_mdns_toggle',
-      (WidgetTester tester) async {
-        addTearDown(() async {
-          await tester.binding.setSurfaceSize(null);
-        });
-        await _pumpSettingsScreen(tester);
+    testWidgets('it_should_not_display_mdns_toggle', (
+      WidgetTester tester,
+    ) async {
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+      await _pumpSettingsScreen(tester);
 
-        expect(find.text('mDNS Discovery'), findsNothing);
-        expect(find.text('Enable 5 min'), findsNothing);
-        expect(find.text('Turn Off'), findsNothing);
-      },
-    );
+      expect(find.text('mDNS Discovery'), findsNothing);
+      expect(find.text('Enable 5 min'), findsNothing);
+      expect(find.text('Turn Off'), findsNothing);
+    });
   });
 }

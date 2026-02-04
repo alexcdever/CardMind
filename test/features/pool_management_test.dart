@@ -4,7 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -55,8 +54,14 @@ void main() {
           );
 
           // When: 用户创建名称为"Family Notes"、密码为"secure123"的新池
-          await tester.enterText(find.byKey(const Key('pool_name')), 'Family Notes');
-          await tester.enterText(find.byKey(const Key('pool_password')), 'secure123');
+          await tester.enterText(
+            find.byKey(const Key('pool_name')),
+            'Family Notes',
+          );
+          await tester.enterText(
+            find.byKey(const Key('pool_password')),
+            'secure123',
+          );
           await tester.tap(find.byKey(const Key('create_button')));
           await tester.pumpAndSettle();
 
@@ -200,7 +205,10 @@ void main() {
 
           // When: 用户使用 ID"pool-123"和密码"secure123"加入池
           await tester.enterText(find.byKey(const Key('pool_id')), 'pool-123');
-          await tester.enterText(find.byKey(const Key('pool_password')), 'secure123');
+          await tester.enterText(
+            find.byKey(const Key('pool_password')),
+            'secure123',
+          );
           await tester.tap(find.byKey(const Key('join_button')));
           await tester.pumpAndSettle();
 
@@ -300,9 +308,7 @@ void main() {
           await tester.pumpWidget(
             createTestWidget(
               const Scaffold(
-                body: Column(
-                  children: [Text('您一次只能加入一个池'), Text('请先离开当前池')],
-                ),
+                body: Column(children: [Text('您一次只能加入一个池'), Text('请先离开当前池')]),
               ),
             ),
           );
@@ -542,7 +548,10 @@ void main() {
           find.byKey(const Key('current_password')),
           'secure123',
         );
-        await tester.enterText(find.byKey(const Key('new_password')), 'new-password');
+        await tester.enterText(
+          find.byKey(const Key('new_password')),
+          'new-password',
+        );
         await tester.tap(find.byKey(const Key('update_button')));
         await tester.pumpAndSettle();
 
@@ -608,14 +617,8 @@ void main() {
                   AlertDialog(
                     title: const Text('离开池？所有本地数据将被删除。'),
                     actions: [
-                      TextButton(
-                        onPressed: () {},
-                        child: Text('取消'),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: Text('离开'),
-                      ),
+                      TextButton(onPressed: () {}, child: const Text('取消')),
+                      TextButton(onPressed: () {}, child: const Text('离开')),
                     ],
                   ),
                 ],
@@ -647,14 +650,8 @@ void main() {
                   AlertDialog(
                     title: const Text('离开池？所有本地数据将被删除。'),
                     actions: [
-                      TextButton(
-                        onPressed: () {},
-                        child: Text('取消'),
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        child: Text('离开'),
-                      ),
+                      TextButton(onPressed: () {}, child: const Text('取消')),
+                      TextButton(onPressed: () {}, child: const Text('离开')),
                     ],
                   ),
                   const Text('所有数据保持完整'),
@@ -681,9 +678,7 @@ void main() {
         await tester.pumpWidget(
           createTestWidget(
             const Scaffold(
-              body: Column(
-                children: [Text('未加入任何池'), Text('您可以创建或加入新池')],
-              ),
+              body: Column(children: [Text('未加入任何池'), Text('您可以创建或加入新池')]),
             ),
           ),
         );

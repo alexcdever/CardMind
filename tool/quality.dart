@@ -80,11 +80,7 @@ Future<bool> runBridgeBuild() async {
   printSection('🔧 生成桥接与动态库');
 
   final args = ['tool/build.dart', 'bridge', ...bridgePlatformArgs()];
-  if (!await runCommand(
-    'dart',
-    args,
-    description: 'build.dart bridge',
-  )) {
+  if (!await runCommand('dart', args, description: 'build.dart bridge')) {
     printError('桥接构建失败');
     return false;
   }
@@ -109,38 +105,27 @@ List<String> bridgePlatformArgs() {
 Future<bool> runFlutterChecks() async {
   printSection('🎯 Dart/Flutter 代码检查');
 
-  if (!await runCommand(
-    'dart',
-    ['fix', '--apply'],
-    description: 'dart fix --apply',
-  )) {
+  if (!await runCommand('dart', [
+    'fix',
+    '--apply',
+  ], description: 'dart fix --apply')) {
     printError('dart fix 失败');
     return false;
   }
 
-  if (!await runCommand(
-    'dart',
-    ['format', '.'],
-    description: 'dart format',
-  )) {
+  if (!await runCommand('dart', ['format', '.'], description: 'dart format')) {
     printError('dart format 失败');
     return false;
   }
 
-  if (!await runCommand(
-    'flutter',
-    ['analyze'],
-    description: 'flutter analyze',
-  )) {
+  if (!await runCommand('flutter', [
+    'analyze',
+  ], description: 'flutter analyze')) {
     printError('flutter analyze 失败');
     return false;
   }
 
-  if (!await runCommand(
-    'flutter',
-    ['test'],
-    description: 'flutter test',
-  )) {
+  if (!await runCommand('flutter', ['test'], description: 'flutter test')) {
     printError('flutter test 失败');
     return false;
   }

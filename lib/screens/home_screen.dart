@@ -473,7 +473,10 @@ class _HomeScreenState extends State<HomeScreen> {
           index: _activeTab.index,
           children: [
             // 笔记标签页
-            if (poolProvider.isJoined) _buildNotesTab() else _buildPoolNotJoinedState(),
+            if (poolProvider.isJoined)
+              _buildNotesTab()
+            else
+              _buildPoolNotJoinedState(),
 
             // 设备标签页
             Padding(

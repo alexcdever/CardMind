@@ -4,8 +4,6 @@
 //
 // 测试命名: it_should_[behavior]_when_[condition]
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -155,75 +153,70 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_reject_creation_when_not_joined_to_pool',
-        (WidgetTester tester) async {
-          // Given: 用户未加入任何池
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('请先加入或创建一个池'),
-                    ElevatedButton(
-                      onPressed: null,
-                      child: Text('创建卡片'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_reject_creation_when_not_joined_to_pool', (
+        WidgetTester tester,
+      ) async {
+        // Given: 用户未加入任何池
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('请先加入或创建一个池'),
+                  ElevatedButton(onPressed: null, child: Text('创建卡片')),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户尝试创建新卡片
-          // Then: 系统应以错误"NO_POOL_JOINED"拒绝创建
-          expect(find.text('请先加入或创建一个池'), findsOneWidget);
-          // AND: 系统应提示用户加入或创建池
-        },
-      );
+        // When: 用户尝试创建新卡片
+        // Then: 系统应以错误"NO_POOL_JOINED"拒绝创建
+        expect(find.text('请先加入或创建一个池'), findsOneWidget);
+        // AND: 系统应提示用户加入或创建池
+      });
     });
 
     // ========================================
     // Card Viewing Requirement (3 scenarios)
     // ========================================
     group('Requirement: Card Viewing', () {
-      testWidgets(
-        'it_should_display_card_details_when_user_opens_card',
-        (WidgetTester tester) async {
-          // Given: 存在包含标题、内容和标签的卡片
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Meeting Notes', style: TextStyle(fontSize: 24)),
-                    Text('Discussed project timeline'),
-                    SizedBox(height: 16),
-                    Text('创建于: 2026-01-31 10:00'),
-                    Text('修改于: 2026-01-31 11:00'),
-                    SizedBox(height: 8),
-                    Text('标签: work, urgent'),
-                  ],
-                ),
+      testWidgets('it_should_display_card_details_when_user_opens_card', (
+        WidgetTester tester,
+      ) async {
+        // Given: 存在包含标题、内容和标签的卡片
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('Meeting Notes', style: TextStyle(fontSize: 24)),
+                  Text('Discussed project timeline'),
+                  SizedBox(height: 16),
+                  Text('创建于: 2026-01-31 10:00'),
+                  Text('修改于: 2026-01-31 11:00'),
+                  SizedBox(height: 8),
+                  Text('标签: work, urgent'),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户打开卡片详情视图
-          // Then: 系统应显示卡片标题
-          expect(find.text('Meeting Notes'), findsOneWidget);
-          // AND: 系统应显示卡片内容
-          expect(find.text('Discussed project timeline'), findsOneWidget);
-          // AND: 系统应显示创建时间戳
-          expect(find.text('创建于: 2026-01-31 10:00'), findsOneWidget);
-          // AND: 系统应显示最后修改时间戳
-          expect(find.text('修改于: 2026-01-31 11:00'), findsOneWidget);
-          // AND: 系统应显示所有关联的标签
-          expect(find.text('标签: work, urgent'), findsOneWidget);
-        },
-      );
+        // When: 用户打开卡片详情视图
+        // Then: 系统应显示卡片标题
+        expect(find.text('Meeting Notes'), findsOneWidget);
+        // AND: 系统应显示卡片内容
+        expect(find.text('Discussed project timeline'), findsOneWidget);
+        // AND: 系统应显示创建时间戳
+        expect(find.text('创建于: 2026-01-31 10:00'), findsOneWidget);
+        // AND: 系统应显示最后修改时间戳
+        expect(find.text('修改于: 2026-01-31 11:00'), findsOneWidget);
+        // AND: 系统应显示所有关联的标签
+        expect(find.text('标签: work, urgent'), findsOneWidget);
+      });
 
       testWidgets(
         'it_should_display_collaboration_info_when_card_was_modified_by_other_device',
@@ -252,33 +245,32 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_display_sync_status_when_card_has_sync_info',
-        (WidgetTester tester) async {
-          // Given: 卡片有同步状态信息
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Meeting Notes'),
-                    Icon(Icons.cloud_done, color: Colors.green),
-                    Text('同步状态: 已同步'),
-                    Text('最后同步: 2026-01-31 11:00'),
-                  ],
-                ),
+      testWidgets('it_should_display_sync_status_when_card_has_sync_info', (
+        WidgetTester tester,
+      ) async {
+        // Given: 卡片有同步状态信息
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('Meeting Notes'),
+                  Icon(Icons.cloud_done, color: Colors.green),
+                  Text('同步状态: 已同步'),
+                  Text('最后同步: 2026-01-31 11:00'),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户查看卡片详情
-          // Then: 系统应显示当前同步状态（已同步、同步中或错误）
-          expect(find.text('同步状态: 已同步'), findsOneWidget);
-          // AND: 系统应显示最后同步时间戳
-          expect(find.text('最后同步: 2026-01-31 11:00'), findsOneWidget);
-        },
-      );
+        // When: 用户查看卡片详情
+        // Then: 系统应显示当前同步状态（已同步、同步中或错误）
+        expect(find.text('同步状态: 已同步'), findsOneWidget);
+        // AND: 系统应显示最后同步时间戳
+        expect(find.text('最后同步: 2026-01-31 11:00'), findsOneWidget);
+      });
     });
 
     // ========================================
@@ -335,104 +327,99 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_auto_save_draft_when_user_stops_typing',
-        (WidgetTester tester) async {
-          // Given: 用户正在编辑卡片
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    TextField(
-                      key: Key('content_field'),
-                      decoration: InputDecoration(labelText: '内容'),
-                    ),
-                    Text('草稿已保存', key: Key('draft_indicator')),
-                  ],
-                ),
+      testWidgets('it_should_auto_save_draft_when_user_stops_typing', (
+        WidgetTester tester,
+      ) async {
+        // Given: 用户正在编辑卡片
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  TextField(
+                    key: Key('content_field'),
+                    decoration: InputDecoration(labelText: '内容'),
+                  ),
+                  Text('草稿已保存', key: Key('draft_indicator')),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户停止输入500毫秒
-          await tester.enterText(
-            find.byKey(const Key('content_field')),
-            'Test content',
-          );
-          await tester.pump(const Duration(milliseconds: 500));
+        // When: 用户停止输入500毫秒
+        await tester.enterText(
+          find.byKey(const Key('content_field')),
+          'Test content',
+        );
+        await tester.pump(const Duration(milliseconds: 500));
 
-          // Then: 系统应自动将当前状态保存为草稿
-          expect(find.byKey(const Key('draft_indicator')), findsOneWidget);
-          // AND: 系统应显示"草稿已保存"指示器
-        },
-      );
+        // Then: 系统应自动将当前状态保存为草稿
+        expect(find.byKey(const Key('draft_indicator')), findsOneWidget);
+        // AND: 系统应显示"草稿已保存"指示器
+      });
 
-      testWidgets(
-        'it_should_restore_draft_when_user_reopens_editor',
-        (WidgetTester tester) async {
-          // Given: 用户正在编辑卡片并在未保存的情况下关闭了编辑器
-          // AND: 草稿已自动保存
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    TextField(
-                      key: Key('title_field'),
-                      controller: TextEditingController(
-                        text: 'Draft Title',
-                      ),
-                      decoration: InputDecoration(labelText: '标题'),
-                    ),
-                    const Text('草稿已恢复'),
-                  ],
-                ),
+      testWidgets('it_should_restore_draft_when_user_reopens_editor', (
+        WidgetTester tester,
+      ) async {
+        // Given: 用户正在编辑卡片并在未保存的情况下关闭了编辑器
+        // AND: 草稿已自动保存
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  TextField(
+                    key: const Key('title_field'),
+                    controller: TextEditingController(text: 'Draft Title'),
+                    decoration: const InputDecoration(labelText: '标题'),
+                  ),
+                  const Text('草稿已恢复'),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户重新打开同一卡片的编辑器
-          // Then: 系统应恢复草稿内容
-          expect(find.text('Draft Title'), findsOneWidget);
-          // AND: 系统应显示"草稿已恢复"消息
-          expect(find.text('草稿已恢复'), findsOneWidget);
-        },
-      );
+        // When: 用户重新打开同一卡片的编辑器
+        // Then: 系统应恢复草稿内容
+        expect(find.text('Draft Title'), findsOneWidget);
+        // AND: 系统应显示"草稿已恢复"消息
+        expect(find.text('草稿已恢复'), findsOneWidget);
+      });
 
-      testWidgets(
-        'it_should_discard_draft_on_explicit_save_when_user_saves',
-        (WidgetTester tester) async {
-          // Given: 用户有已保存的草稿
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    TextField(
-                      key: const Key('title_field'),
-                      controller: TextEditingController(text: 'Draft Title'),
-                      decoration: const InputDecoration(labelText: '标题'),
-                    ),
-                    ElevatedButton(
-                      key: const Key('save_button'),
-                      onPressed: () {},
-                      child: const Text('保存'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_discard_draft_on_explicit_save_when_user_saves', (
+        WidgetTester tester,
+      ) async {
+        // Given: 用户有已保存的草稿
+        await tester.pumpWidget(
+          createTestWidget(
+            Scaffold(
+              body: Column(
+                children: [
+                  TextField(
+                    key: const Key('title_field'),
+                    controller: TextEditingController(text: 'Draft Title'),
+                    decoration: const InputDecoration(labelText: '标题'),
+                  ),
+                  ElevatedButton(
+                    key: const Key('save_button'),
+                    onPressed: () {},
+                    child: const Text('保存'),
+                  ),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户显式保存卡片
-          await tester.tap(find.byKey(const Key('save_button')));
-          await tester.pumpAndSettle();
+        // When: 用户显式保存卡片
+        await tester.tap(find.byKey(const Key('save_button')));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应将更改持久化到卡片
-          // AND: 系统应删除草稿
-        },
-      );
+        // Then: 系统应将更改持久化到卡片
+        // AND: 系统应删除草稿
+      });
 
       testWidgets(
         'it_should_confirm_discard_changes_when_user_cancels_editing',
@@ -447,14 +434,8 @@ void main() {
                     AlertDialog(
                       title: const Text('丢弃未保存的更改？'),
                       actions: [
-                        TextButton(
-                          child: Text('取消'),
-                          onPressed: () {},
-                        ),
-                        TextButton(
-                          child: Text('丢弃'),
-                          onPressed: () {},
-                        ),
+                        TextButton(child: const Text('取消'), onPressed: () {}),
+                        TextButton(child: const Text('丢弃'), onPressed: () {}),
                       ],
                     ),
                   ],
@@ -477,38 +458,37 @@ void main() {
     // Tag Management Requirement (5 scenarios)
     // ========================================
     group('Requirement: Tag Management', () {
-      testWidgets(
-        'it_should_add_tag_to_card_when_user_adds_tag',
-        (WidgetTester tester) async {
-          // Given: 存在没有标签的卡片
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Card Title'),
-                    Text('标签: work'),
-                    IconButton(
-                      key: Key('add_tag_button'),
-                      icon: Icon(Icons.add),
-                      onPressed: null,
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_add_tag_to_card_when_user_adds_tag', (
+        WidgetTester tester,
+      ) async {
+        // Given: 存在没有标签的卡片
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('Card Title'),
+                  Text('标签: work'),
+                  IconButton(
+                    key: Key('add_tag_button'),
+                    icon: Icon(Icons.add),
+                    onPressed: null,
+                  ),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户添加标签"work"
-          await tester.tap(find.byKey(const Key('add_tag_button')));
-          await tester.pumpAndSettle();
+        // When: 用户添加标签"work"
+        await tester.tap(find.byKey(const Key('add_tag_button')));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应将标签关联到卡片
-          expect(find.text('标签: work'), findsOneWidget);
-          // AND: 标签应在卡片视图中可见
-          // AND: 更改应同步到所有设备
-        },
-      );
+        // Then: 系统应将标签关联到卡片
+        expect(find.text('标签: work'), findsOneWidget);
+        // AND: 标签应在卡片视图中可见
+        // AND: 更改应同步到所有设备
+      });
 
       testWidgets(
         'it_should_add_multiple_tags_to_card_when_user_adds_multiple_tags',
@@ -560,37 +540,36 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_remove_tag_from_card_when_user_removes_tag',
-        (WidgetTester tester) async {
-          // Given: 卡片有标签"work"和"urgent"
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Card Title'),
-                    Text('标签: work'),
-                    IconButton(
-                      key: Key('remove_urgent_button'),
-                      icon: Icon(Icons.close),
-                      onPressed: null,
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_remove_tag_from_card_when_user_removes_tag', (
+        WidgetTester tester,
+      ) async {
+        // Given: 卡片有标签"work"和"urgent"
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('Card Title'),
+                  Text('标签: work'),
+                  IconButton(
+                    key: Key('remove_urgent_button'),
+                    icon: Icon(Icons.close),
+                    onPressed: null,
+                  ),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户移除标签"urgent"
-          await tester.tap(find.byKey(const Key('remove_urgent_button')));
-          await tester.pumpAndSettle();
+        // When: 用户移除标签"urgent"
+        await tester.tap(find.byKey(const Key('remove_urgent_button')));
+        await tester.pumpAndSettle();
 
-          // Then: 卡片应只有标签"work"
-          expect(find.text('标签: work'), findsOneWidget);
-          // AND: 更改应同步到所有设备
-        },
-      );
+        // Then: 卡片应只有标签"work"
+        expect(find.text('标签: work'), findsOneWidget);
+        // AND: 更改应同步到所有设备
+      });
 
       testWidgets(
         'it_should_treat_tags_case_sensitively_when_user_adds_different_case',
@@ -600,10 +579,7 @@ void main() {
             createTestWidget(
               const Scaffold(
                 body: Column(
-                  children: [
-                    Text('Card Title'),
-                    Text('标签: Work, work'),
-                  ],
+                  children: [Text('Card Title'), Text('标签: Work, work')],
                 ),
               ),
             ),
@@ -635,14 +611,8 @@ void main() {
                     AlertDialog(
                       title: const Text('删除此卡片？'),
                       actions: [
-                        TextButton(
-                          onPressed: () {},
-                          child: Text('取消'),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          child: Text('删除'),
-                        ),
+                        TextButton(onPressed: () {}, child: const Text('取消')),
+                        TextButton(onPressed: () {}, child: const Text('删除')),
                       ],
                     ),
                   ],
@@ -661,45 +631,38 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_cancel_deletion_when_user_cancels',
-        (WidgetTester tester) async {
-          // Given: 存在卡片
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: Column(
-                  children: [
-                    const Text('Card Title'),
-                    AlertDialog(
-                      title: const Text('删除此卡片？'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {},
-                          child: Text('取消'),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          child: Text('删除'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_cancel_deletion_when_user_cancels', (
+        WidgetTester tester,
+      ) async {
+        // Given: 存在卡片
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Column(
+                children: [
+                  const Text('Card Title'),
+                  AlertDialog(
+                    title: const Text('删除此卡片？'),
+                    actions: [
+                      TextButton(onPressed: () {}, child: const Text('取消')),
+                      TextButton(onPressed: () {}, child: const Text('删除')),
+                    ],
+                  ),
+                ],
               ),
             ),
-          );
-          await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          // When: 用户在确认对话框中点击"取消"
-          await tester.tap(find.text('取消'));
-          await tester.pumpAndSettle();
+        // When: 用户在确认对话框中点击"取消"
+        await tester.tap(find.text('取消'));
+        await tester.pumpAndSettle();
 
-          // Then: 系统应不删除卡片
-          expect(find.text('Card Title'), findsOneWidget);
-          // AND: 卡片应保持可见和可访问
-        },
-      );
+        // Then: 系统应不删除卡片
+        expect(find.text('Card Title'), findsOneWidget);
+        // AND: 卡片应保持可见和可访问
+      });
 
       testWidgets(
         'it_should_soft_delete_card_when_administrator_queries_deleted_cards',
@@ -733,62 +696,54 @@ void main() {
     // Card Sharing Requirement (2 scenarios)
     // ========================================
     group('Requirement: Card Sharing', () {
-      testWidgets(
-        'it_should_share_card_as_plain_text_when_user_shares',
-        (WidgetTester tester) async {
-          // Given: 存在包含标题和内容的卡片
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Card Title'),
-                    Text('Card Content'),
-                    ElevatedButton(
-                      onPressed: null,
-                      child: Text('分享'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_share_card_as_plain_text_when_user_shares', (
+        WidgetTester tester,
+      ) async {
+        // Given: 存在包含标题和内容的卡片
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('Card Title'),
+                  Text('Card Content'),
+                  ElevatedButton(onPressed: null, child: Text('分享')),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户选择"分享"操作
-          // Then: 系统应将卡片格式化为纯文本
-          // AND: 格式应为："标题\n\n内容"
-          // AND: 系统应打开平台分享对话框
-        },
-      );
+        // When: 用户选择"分享"操作
+        // Then: 系统应将卡片格式化为纯文本
+        // AND: 格式应为："标题\n\n内容"
+        // AND: 系统应打开平台分享对话框
+      });
 
-      testWidgets(
-        'it_should_share_card_with_tags_when_card_has_tags',
-        (WidgetTester tester) async {
-          // Given: 卡片有标题、内容和标签"work"、"urgent"
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Card Title'),
-                    Text('Card Content'),
-                    Text('标签: work, urgent'),
-                    ElevatedButton(
-                      onPressed: null,
-                      child: Text('分享'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_share_card_with_tags_when_card_has_tags', (
+        WidgetTester tester,
+      ) async {
+        // Given: 卡片有标题、内容和标签"work"、"urgent"
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  Text('Card Title'),
+                  Text('Card Content'),
+                  Text('标签: work, urgent'),
+                  ElevatedButton(onPressed: null, child: Text('分享')),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户分享卡片
-          // Then: 分享的文本应在末尾包含标签
-          // AND: 格式应为："标题\n\n内容\n\n标签：work, urgent"
-          expect(find.text('标签: work, urgent'), findsOneWidget);
-        },
-      );
+        // When: 用户分享卡片
+        // Then: 分享的文本应在末尾包含标签
+        // AND: 格式应为："标题\n\n内容\n\n标签：work, urgent"
+        expect(find.text('标签: work, urgent'), findsOneWidget);
+      });
     });
 
     // ========================================
@@ -805,9 +760,7 @@ void main() {
                 body: Column(
                   children: [
                     TextField(
-                      decoration: InputDecoration(
-                        labelText: '编辑卡片（内联模式）',
-                      ),
+                      decoration: InputDecoration(labelText: '编辑卡片（内联模式）'),
                     ),
                     Text('按 Cmd/Ctrl+Enter 保存，Escape 取消'),
                   ],
@@ -822,10 +775,7 @@ void main() {
           expect(find.text('编辑卡片（内联模式）'), findsOneWidget);
           // AND: 系统应保持周围上下文可见
           // AND: 系统应支持键盘快捷键（Cmd/Ctrl+Enter保存，Escape取消）
-          expect(
-            find.text('按 Cmd/Ctrl+Enter 保存，Escape 取消'),
-            findsOneWidget,
-          );
+          expect(find.text('按 Cmd/Ctrl+Enter 保存，Escape 取消'), findsOneWidget);
         },
       );
 
@@ -839,9 +789,7 @@ void main() {
                 body: Column(
                   children: [
                     TextField(
-                      decoration: InputDecoration(
-                        labelText: '编辑卡片（全屏模式）',
-                      ),
+                      decoration: InputDecoration(labelText: '编辑卡片（全屏模式）'),
                     ),
                     Text('全屏编辑模式'),
                   ],
@@ -861,35 +809,34 @@ void main() {
         },
       );
 
-      testWidgets(
-        'it_should_only_allow_one_card_editable_at_time_on_desktop',
-        (WidgetTester tester) async {
-          // Given: 用户在桌面端正在编辑卡片A
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    TextField(
-                      key: Key('card_a'),
-                      decoration: InputDecoration(labelText: 'Card A'),
-                    ),
-                    TextField(
-                      key: Key('card_b'),
-                      decoration: InputDecoration(labelText: 'Card B'),
-                    ),
-                  ],
-                ),
+      testWidgets('it_should_only_allow_one_card_editable_at_time_on_desktop', (
+        WidgetTester tester,
+      ) async {
+        // Given: 用户在桌面端正在编辑卡片A
+        await tester.pumpWidget(
+          createTestWidget(
+            const Scaffold(
+              body: Column(
+                children: [
+                  TextField(
+                    key: Key('card_a'),
+                    decoration: InputDecoration(labelText: 'Card A'),
+                  ),
+                  TextField(
+                    key: Key('card_b'),
+                    decoration: InputDecoration(labelText: 'Card B'),
+                  ),
+                ],
               ),
             ),
-          );
+          ),
+        );
 
-          // When: 用户点击卡片B的"编辑"
-          // Then: 系统应自动保存卡片A
-          // AND: 系统应退出卡片A的编辑模式
-          // AND: 系统应进入卡片B的编辑模式
-        },
-      );
+        // When: 用户点击卡片B的"编辑"
+        // Then: 系统应自动保存卡片A
+        // AND: 系统应退出卡片A的编辑模式
+        // AND: 系统应进入卡片B的编辑模式
+      });
     });
   });
 }

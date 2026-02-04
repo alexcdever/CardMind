@@ -78,7 +78,11 @@ class _ConflictResolutionDialogState extends State<ConflictResolutionDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.amber,
+            size: 28,
+          ),
           const SizedBox(width: 12),
           Expanded(child: Text('发现冲突', style: theme.textTheme.titleLarge)),
         ],
