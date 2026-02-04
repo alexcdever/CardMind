@@ -195,11 +195,16 @@ docs/specs/
 - [双层架构](docs/specs/architecture/storage/dual_layer.md)
 - [卡片存储](docs/specs/architecture/storage/card_store.md)
 - [池存储](docs/specs/architecture/storage/pool_store.md)
+- [设备配置](docs/specs/architecture/storage/device_config.md)
+- [SQLite 缓存](docs/specs/architecture/storage/sqlite_cache.md)
+- [Loro 集成](docs/specs/architecture/storage/loro_integration.md)
 - [同步服务](docs/specs/architecture/sync/service.md)
 - [节点发现](docs/specs/architecture/sync/peer_discovery.md)
+- [订阅同步](docs/specs/architecture/sync/subscription.md)
 - [冲突解决](docs/specs/architecture/sync/conflict_resolution.md)
 - [密码管理](docs/specs/architecture/security/password.md)
 - [密钥存储](docs/specs/architecture/security/keyring.md)
+- [隐私保护](docs/specs/architecture/security/privacy.md)
 
 #### Project Guardian 约束系统
 
