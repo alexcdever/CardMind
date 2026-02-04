@@ -9,16 +9,24 @@
 
 ```
 features/
-├── card_management/    # 卡片管理功能
-│   └── spec.md
-├── pool_management/    # 数据池管理功能
-│   └── spec.md
-├── p2p_sync/          # P2P 同步功能
-│   └── spec.md
-├── search_and_filter/ # 搜索和过滤功能
-│   └── spec.md
-└── settings/          # 设置功能
-    └── spec.md
+├── card_detail/        # 卡片详情
+├── card_editor/        # 卡片编辑
+├── card_list/          # 卡片列表
+├── card_management/    # 卡片管理
+├── context_menu/       # 上下文菜单
+├── fab/                # 浮动操作按钮
+├── gestures/           # 手势交互
+├── home_screen/        # 主屏幕
+├── navigation/         # 导航
+├── onboarding/         # 新手引导
+├── p2p_sync/           # P2P 同步
+├── pool_management/    # 数据池管理
+├── search/             # 搜索
+├── search_and_filter/  # 搜索和过滤
+├── settings/           # 设置
+├── sync/               # 同步流程
+├── sync_feedback/      # 同步反馈
+└── toolbar/            # 工具栏
 ```
 
 
@@ -66,13 +74,6 @@ features/
 - 用户为什么需要这个功能
 - 功能解决什么问题
 - 功能如何帮助用户
-
-
----
-
-
-参考功能文档模板：
-- [../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/feature_template.md](../../archive/openspec/2026-01-24-reorganize-main-specs-content/templates/feature_template.md)
 
 
 ---
