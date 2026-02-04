@@ -21,15 +21,18 @@
 - [池存储](architecture/storage/pool_store.md) - 池存储实现
 - [设备配置](architecture/storage/device_config.md) - 设备配置存储
 - [SQLite 缓存](architecture/storage/sqlite_cache.md) - 查询缓存层
+- [Loro 集成](architecture/storage/loro_integration.md) - Loro 集成与持久化
 
 ### 同步架构
 - [同步服务](architecture/sync/service.md) - P2P 同步服务
 - [节点发现](architecture/sync/peer_discovery.md) - mDNS 对等发现
+- [订阅同步](architecture/sync/subscription.md) - 同步订阅与事件处理
 - [冲突解决](architecture/sync/conflict_resolution.md) - CRDT 冲突处理
 
 ### 安全架构
 - [密码管理](architecture/security/password.md) - bcrypt 密码管理
 - [密钥存储](architecture/security/keyring.md) - Keyring 密钥存储
+- [隐私保护](architecture/security/privacy.md) - 隐私保护策略
 
 
 - [API 文档](../../doc/api/) - Rust API 参考文档
