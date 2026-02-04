@@ -330,9 +330,7 @@ impl P2PSyncService {
             let entry = registry().lock().unwrap().get(&peer_id).cloned();
 
             if let Some(entry) = entry {
-                if self.enforce_pool_hash
-                    && !Self::verify_pool_hash(&pool_id, &request.pool_hash)
-                {
+                if self.enforce_pool_hash && !Self::verify_pool_hash(&pool_id, &request.pool_hash) {
                     return Err(CardMindError::NotAuthorized(
                         "pool_hash mismatch".to_string(),
                     ));
