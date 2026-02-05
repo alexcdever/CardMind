@@ -280,7 +280,7 @@ structure TouchOptimization:
 - `test_keyboard_layout_adjustment()` - 测试键盘布局调整
 - `test_scroll_to_focused_field()` - 测试滚动到聚焦字段
 
-**集成测试**:
+**功能测试**:
 - `test_mobile_editor_workflow()` - 测试移动端编辑器完整流程
 - `test_gesture_interactions()` - 测试手势交互
 - `test_keyboard_interactions()` - 测试键盘交互

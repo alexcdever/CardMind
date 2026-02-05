@@ -309,7 +309,7 @@ structure MenuStyle:
 - `test_menu_has_proper_styling()` - 测试菜单样式
 - `test_menu_item_hover_effect()` - 测试菜单项悬停效果
 
-**集成测试**:
+**功能测试**:
 - `test_context_menu_workflow()` - 测试上下文菜单完整流程
 - `test_menu_keyboard_shortcuts()` - 测试菜单键盘快捷键
 

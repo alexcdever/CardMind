@@ -733,7 +733,7 @@ pub type Timestamp = i64;  // Unix 毫秒
 - `it_should_format_timestamps()` - 时间戳格式化
 - `it_should_repair_bindings()` - 绑定修复
 
-**集成测试**:
+**功能测试**:
 - `test_type_system_integration()` - 类型系统集成
 - `test_constraint_enforcement()` - 约束强制执行
 - `test_data_consistency()` - 数据一致性

@@ -769,12 +769,12 @@ function configure_sqlite(connection):
 - `test_retry_mechanism()` - 重试机制
 - `test_transaction_atomicity()` - 事务原子性
 
-**集成测试**:
+**功能测试**:
 - `test_end_to_end_write_read_flow()` - 端到端写读流程
 - `test_sqlite_corruption_recovery()` - SQLite 损坏恢复
 - `test_concurrent_writes()` - 并发写入
 
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] 集成测试通过
+- [x] 功能测试通过
 - [x] 代码审查通过

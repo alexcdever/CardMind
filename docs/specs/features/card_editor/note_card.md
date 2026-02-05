@@ -376,7 +376,7 @@ structure PlatformLayout:
 - `test_desktop_inline_layout()` - 测试桌面端内联布局
 - `test_mobile_fullscreen_layout()` - 测试移动端全屏布局
 
-**集成测试**:
+**功能测试**:
 - `test_create_card_workflow()` - 测试创建卡片完整流程
 - `test_edit_card_workflow()` - 测试编辑卡片完整流程
 - `test_auto_save_reliability()` - 测试自动保存可靠性

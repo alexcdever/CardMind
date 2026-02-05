@@ -729,7 +729,7 @@ pub struct VersionVector {
 - `test_sync_rollback()` - 同步回滚
 - `test_convergence()` - 收敛性验证
 
-**集成测试**:
+**功能测试**:
 - `test_multi_device_sync()` - 多设备同步
 - `test_offline_sync()` - 离线同步
 - `test_network_failure_recovery()` - 网络故障恢复

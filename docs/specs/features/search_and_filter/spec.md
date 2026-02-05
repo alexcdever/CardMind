@@ -246,12 +246,12 @@ structure SearchAndFilter:
 - `test_sort_by_title()` - 按标题排序
 - `test_preserve_sort_preference()` - 保持排序偏好
 
-**集成测试**:
+**功能测试**:
 - `test_search_with_large_dataset()` - 大数据集搜索
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 搜索在所有平台上正常工作
 - [ ] 过滤在所有平台上正常工作
 - [ ] 排序在所有平台上正常工作

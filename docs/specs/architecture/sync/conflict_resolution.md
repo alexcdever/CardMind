@@ -542,7 +542,7 @@ function demonstrate_three_way_convergence():
 - `test_three_way_convergence()` - 三向收敛
 - `test_deterministic_merge()` - 确定性合并
 
-**集成测试**:
+**功能测试**:
 - `test_complex_multi_device_scenario()` - 复杂的多设备编辑场景
 - `test_network_partition_recovery()` - 网络分区和恢复
 - `test_concurrent_operations_stress()` - 100+ 并发操作的压力测试

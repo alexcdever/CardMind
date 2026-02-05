@@ -542,13 +542,13 @@ structure IndicatorClickHandler:
 - `test_click_opens_sync_details()` - 点击打开同步详情
 - `test_click_failed_shows_retry()` - 点击失败显示重试
 
-**集成测试**:
+**功能测试**:
 - `test_complete_sync_state_flow()` - 完整同步状态流程
 - `test_indicator_interaction_workflow()` - 指示器交互流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 状态转换正确
 - [ ] 实时更新及时
 - [ ] 动画流畅

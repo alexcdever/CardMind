@@ -210,7 +210,7 @@ function start_discovery():
 - `test_device_info_no_sensitive_data()` - 测试设备信息不包含敏感数据
 - `test_pool_info_only_id()` - 测试数据池信息仅包含 ID
 
-**集成测试**:
+**功能测试**:
 - `test_mdns_discovery()` - 测试 mDNS 设备发现
 - `test_join_pool_with_password()` - 测试密码验证后加入数据池
 - `test_encrypted_communication()` - 测试加密通信

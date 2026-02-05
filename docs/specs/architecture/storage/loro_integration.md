@@ -702,7 +702,7 @@ function handle_version_mismatch(error, crdt_doc, peer_id):
 - `test_error_handling()` - 错误处理
 - `test_version_vector()` - 版本向量跟踪
 
-**集成测试**:
+**功能测试**:
 - `test_end_to_end_sync()` - 端到端同步
 - `test_multi_device_sync()` - 多设备同步
 - `test_concurrent_edits()` - 并发编辑

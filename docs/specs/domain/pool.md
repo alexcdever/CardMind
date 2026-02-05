@@ -619,7 +619,7 @@ pub struct DeviceConfig {
 - `test_pool_not_found()` - 池不存在错误处理
 - `test_device_removed_from_pool()` - 设备被移除错误处理
 
-**集成测试**:
+**功能测试**:
 - `test_pool_lifecycle()` - 完整池生命周期
 - `test_multi_device_pool()` - 多设备池场景
 - `test_concurrent_join_attempts()` - 并发加入尝试

@@ -206,7 +206,7 @@ async function hasPoolPasswordInKeyring(poolId):
 - `test_memory_zeroing()` - 测试内存清零
 - `test_error_not_found()` - 测试未找到错误
 
-**集成测试**:
+**功能测试**:
 - `test_pool_join_with_keyring()` - 测试加入数据池时的 Keyring 集成
 - `test_auto_login_with_keyring()` - 测试使用 Keyring 自动登录
 

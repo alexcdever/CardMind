@@ -510,14 +510,14 @@ structure ConflictResolution:
 - `test_list_conflicts()` - 列出冲突
 - `test_show_conflict_details()` - 显示冲突详情
 
-**集成测试**:
+**功能测试**:
 - `test_complete_sync_screen_workflow()` - 完整同步屏幕流程
 - `test_manual_sync_workflow()` - 手动同步流程
 - `test_conflict_resolution_workflow()` - 冲突解决流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 设备发现正常工作
 - [ ] 手动同步控制可靠
 - [ ] 冲突解决清晰明了

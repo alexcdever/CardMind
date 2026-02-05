@@ -326,7 +326,7 @@ structure ResponsiveToolbar:
 - `test_responsive_layout()` - 测试响应式布局
 - `test_small_window_compact()` - 测试小窗口紧凑模式
 
-**集成测试**:
+**功能测试**:
 - `test_toolbar_workflow()` - 测试工具栏完整流程
 - `test_toolbar_keyboard_shortcuts()` - 测试工具栏键盘快捷键
 

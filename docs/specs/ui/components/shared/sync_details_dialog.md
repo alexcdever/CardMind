@@ -137,7 +137,7 @@
 
 **测试文件**:
 - `test/unit/sync_details_dialog_test.dart` - 单元测试
-- `test/widgets/sync_details_dialog_test.dart` - Widget 测试
+- `test/widgets/sync_details_dialog_test.dart` - 功能测试（Widget）
 
 **单元测试（10 个）**:
 - `it_should_display_sync_status_correctly()` - 显示正确的同步状态
@@ -147,7 +147,7 @@
 - `it_should_handle_real_time_status_updates()` - 处理实时状态更新
 - 其他覆盖边界情况与业务逻辑的单元测试
 
-**Widget 测试**:
+**功能测试（Widget）**:
 - `it_should_show_discovered_devices()` - 显示设备列表
 - `it_should_indicate_connected_devices()` - 指示连接状态
 - `it_should_show_last_seen_timestamps()` - 显示上次可见时间
@@ -159,10 +159,10 @@
 - `it_should_show_auto_sync_status()` - 显示自动同步状态
 - `it_should_show_protocol_info()` - 显示协议信息
 - `it_should_dismiss_on_close()` - 关闭对话框
-- 其他覆盖 UI 交互和视觉状态的 Widget 测试
+- 其他覆盖 UI 交互和视觉状态的 功能测试（Widget）
 
 **验收标准**:
-- [ ] 所有 Widget 测试通过
+- [ ] 所有功能测试（Widget）通过
 - [ ] 设备列表正确更新
 - [ ] 同步历史准确显示
 - [ ] 手动同步控制可靠工作

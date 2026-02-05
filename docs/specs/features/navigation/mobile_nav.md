@@ -210,7 +210,7 @@ structure MobileNav:
 - `test_large_count()` - 测试超大数字
 - `test_safe_area_layout()` - 测试 SafeArea 布局
 
-**集成测试**:
+**功能测试**:
 - `test_navigation_workflow()` - 测试导航完整流程
 - `test_badge_real_time_update()` - 测试徽章实时更新
 

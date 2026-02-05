@@ -289,7 +289,7 @@ function renderEmptyState(context):
 - `test_empty_state_no_cards()` - 测试无卡片空状态
 - `test_empty_state_search()` - 测试搜索空状态
 
-**集成测试**:
+**功能测试**:
 - `test_batch_operations()` - 测试批量操作
 - `test_keyboard_accessibility()` - 测试键盘可访问性
 

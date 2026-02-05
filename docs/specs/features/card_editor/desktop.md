@@ -254,7 +254,7 @@ structure MultiWindowManager:
 - `test_open_in_new_window()` - 测试在新窗口打开
 - `test_multi_window_sync()` - 测试多窗口同步
 
-**集成测试**:
+**功能测试**:
 - `test_auto_save_on_close()` - 测试关闭时自动保存
 - `test_keyboard_shortcuts_work()` - 测试键盘快捷键
 - `test_window_state_persistence()` - 测试窗口状态持久化

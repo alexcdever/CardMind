@@ -384,7 +384,7 @@ structure PoolLeaving:
 - `test_leave_pool()` - 离开池
 - `test_cancel_leave_pool()` - 取消离开池
 
-**集成测试**:
+**功能测试**:
 - `test_pool_creation_syncs_to_all_devices()` - 池创建同步到所有设备
 - `test_pool_join_syncs_to_all_devices()` - 池加入同步到所有设备
 - `test_pool_settings_sync_to_all_devices()` - 池设置同步到所有设备
@@ -392,7 +392,7 @@ structure PoolLeaving:
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 池创建在所有平台上正常工作
 - [ ] 池加入在所有平台上正常工作
 - [ ] 池设置在在所有平台上正常工作
