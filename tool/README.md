@@ -37,6 +37,7 @@ dart tool/build.dart app [--android|--linux|--windows|--macos|--ios]
 ## quality.dart - 质量检查入口
 
 **用途**:
+- 单元测试覆盖率检查（公开项数量 vs 单元测试数量，阈值 ≥ 90%）
 - Rust: `cargo fmt` → `cargo check` → `cargo clippy` → `cargo test`
 - 生成桥接与库（宿主平台 + Android；macOS 额外 iOS）
 - Dart/Flutter: `dart fix --apply` → `dart format` → `flutter analyze` → `flutter test`
@@ -44,8 +45,13 @@ dart tool/build.dart app [--android|--linux|--windows|--macos|--ios]
 **用法**:
 ```bash
 dart tool/quality.dart
+dart tool/quality.dart fuzz
 ```
 
 **说明**:
 - 自动修复默认开启（在 format 之前）
 - 始终包含测试步骤
+
+**fuzz 子命令**:
+- Rust: cargo-fuzz 目标列表（默认 2–3 个目标，每目标 60 秒）
+- Flutter: flutter test test/fuzz
