@@ -47,6 +47,35 @@ pub enum InvalidStateError {
     NotJoinedPool,
 }
 
+/// 输入校验错误
+#[derive(Error, Debug, Clone, PartialEq, Eq)]
+#[frb(dart_metadata=("freezed"))]
+pub enum ValidationError {
+    #[error("标题不能为空")]
+    TitleEmpty,
+
+    #[error("标题长度不能超过200字符")]
+    TitleTooLong,
+
+    #[error("标签不能为空")]
+    TagEmpty,
+
+    #[error("标签长度不能超过50字符")]
+    TagTooLong,
+
+    #[error("设备名称不能为空")]
+    DeviceNameEmpty,
+
+    #[error("设备名称长度不能超过50字符")]
+    DeviceNameTooLong,
+
+    #[error("数据池 ID 不能为空")]
+    PoolIdEmpty,
+
+    #[error("设备 ID 格式无效")]
+    DeviceIdInvalid,
+}
+
 /// CardMind error types
 #[derive(Error, Debug, Clone)]
 #[frb(dart_metadata=("freezed"))]
@@ -77,6 +106,9 @@ pub enum CardMindError {
 
     #[error("Invalid state: {0}")]
     InvalidState(InvalidStateError),
+
+    #[error("Validation error: {0}")]
+    Validation(ValidationError),
 
     #[error("Unknown error: {0}")]
     Unknown(String),
@@ -137,5 +169,34 @@ impl From<MdnsError> for CardMindError {
     }
 }
 
+impl From<ValidationError> for CardMindError {
+    fn from(err: ValidationError) -> Self {
+        Self::Validation(err)
+    }
+}
+
 /// Result type alias for CardMind operations
 pub type Result<T> = std::result::Result<T, CardMindError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_should_display_validation_error_messages() {
+        assert_eq!(ValidationError::TitleEmpty.to_string(), "标题不能为空");
+        assert_eq!(
+            ValidationError::DeviceNameTooLong.to_string(),
+            "设备名称长度不能超过50字符"
+        );
+    }
+
+    #[test]
+    fn it_should_convert_validation_error_to_cardmind_error() {
+        let err: CardMindError = ValidationError::TagEmpty.into();
+        assert!(matches!(
+            err,
+            CardMindError::Validation(ValidationError::TagEmpty)
+        ));
+    }
+}
