@@ -319,7 +319,7 @@ mod tests {
 
     /// 测试默认设备昵称生成
     #[test]
-    fn test_generate_device_name() {
+    fn it_should_generate_device_name() {
         let device_id = "018c8a1b2c3d4e5f";
         let device_name = MdnsDiscovery::generate_device_name(device_id);
         assert_eq!(device_name, "Unknown-018c8");
@@ -327,7 +327,7 @@ mod tests {
 
     /// 测试设备信息创建
     #[test]
-    fn test_create_device_info() {
+    fn it_should_create_device_info() {
         let device_info =
             MdnsDiscovery::create_device_info("device-001", vec!["pool-abc", "pool-def"]);
 
@@ -340,7 +340,7 @@ mod tests {
 
     /// 测试设备信息序列化
     #[test]
-    fn test_device_info_serialization() {
+    fn it_should_device_info_serialization() {
         let device_info =
             MdnsDiscovery::create_device_info("device-001", vec!["pool-abc", "pool-def"]);
 
@@ -352,7 +352,7 @@ mod tests {
 
     /// 测试 mDNS 发现初始化
     #[tokio::test]
-    async fn test_mdns_discovery_creation() {
+    async fn it_should_mdns_discovery_creation() {
         let discovery = MdnsDiscovery::new().await;
         if let Err(err) = discovery {
             let msg = err.clone();
@@ -369,7 +369,7 @@ mod tests {
     /// 创建两个 mDNS 节点，验证它们能够相互发现
     #[tokio::test]
     #[allow(clippy::similar_names)]
-    async fn test_mdns_peer_discovery() {
+    async fn it_should_mdns_peer_discovery() {
         use std::time::Duration;
         use tokio::time::timeout;
 

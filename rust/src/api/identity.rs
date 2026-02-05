@@ -175,7 +175,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_init_and_get_peer_id() {
+    fn it_should_init_and_get_peer_id() {
         cleanup_global_state();
 
         let temp_dir = TempDir::new().unwrap();
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_keypair_exists() {
+    fn it_should_keypair_exists() {
         cleanup_global_state();
 
         let temp_dir = TempDir::new().unwrap();
@@ -214,7 +214,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_delete_keypair() {
+    fn it_should_delete_keypair() {
         cleanup_global_state();
 
         let temp_dir = TempDir::new().unwrap();
@@ -237,7 +237,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_keypair_path() {
+    fn it_should_get_keypair_path() {
         cleanup_global_state();
 
         let temp_dir = TempDir::new().unwrap();

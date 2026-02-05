@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_and_get_device() {
+    fn it_should_add_and_get_device() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);
 
@@ -217,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_trusted() {
+    fn it_should_is_trusted() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);
 
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_device() {
+    fn it_should_remove_device() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);
 
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn test_get_all_devices() {
+    fn it_should_get_all_devices() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);
 
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_last_seen() {
+    fn it_should_update_last_seen() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);
 
@@ -289,7 +289,7 @@ mod tests {
     }
 
     #[test]
-    fn test_count() {
+    fn it_should_count() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);
 
@@ -306,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_device_updates_existing() {
+    fn it_should_add_device_updates_existing() {
         let store = SqliteStore::new_in_memory().unwrap();
         let manager = TrustListManager::new(&store.conn);
 

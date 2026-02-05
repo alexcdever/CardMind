@@ -284,7 +284,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_init_device_config() {
+    fn it_should_init_device_config() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_join_and_leave_pool_api() {
+    fn it_should_join_and_leave_pool_api() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_resident_pool_api() {
+    fn it_should_resident_pool_api() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
@@ -365,7 +365,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_persistence() {
+    fn it_should_persistence() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 

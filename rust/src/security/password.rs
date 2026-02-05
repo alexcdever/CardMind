@@ -544,7 +544,7 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn test_hash_password() {
+    fn it_should_hash_password() {
         let password = Zeroizing::new("test_password_123".to_string());
         let hash = PasswordManager::hash_password(&password).unwrap();
 
@@ -555,7 +555,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_password_correct() {
+    fn it_should_verify_password_correct() {
         let password = Zeroizing::new("test_password_123".to_string());
         let hash = PasswordManager::hash_password(&password).unwrap();
 
@@ -564,7 +564,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_password_incorrect() {
+    fn it_should_verify_password_incorrect() {
         let password = Zeroizing::new("test_password_123".to_string());
         let hash = PasswordManager::hash_password(&password).unwrap();
 
@@ -574,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_strength_valid() {
+    fn it_should_validate_strength_valid() {
         let password = Zeroizing::new("password123".to_string());
         assert!(PasswordManager::validate_strength(&password).is_ok());
 
@@ -583,7 +583,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_strength_too_short() {
+    fn it_should_validate_strength_too_short() {
         let weak = Zeroizing::new("pass".to_string());
         assert!(PasswordManager::validate_strength(&weak).is_err());
 
@@ -592,7 +592,7 @@ mod tests {
     }
 
     #[test]
-    fn test_strength_hint() {
+    fn it_should_strength_hint() {
         // 弱密码（仅数字）
         let weak = Zeroizing::new("12345678".to_string());
         assert_eq!(PasswordManager::strength_hint(&weak), "Weak");
@@ -607,7 +607,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_creation() {
+    fn it_should_join_request_creation() {
         let password = Zeroizing::new("test_password".to_string());
         let request = JoinRequest::new("pool-001", password);
 
@@ -617,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_valid_timestamp() {
+    fn it_should_join_request_valid_timestamp() {
         let password = Zeroizing::new("test_password".to_string());
         let request = JoinRequest::new("pool-001", password);
 
@@ -626,7 +626,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_expired_timestamp() {
+    fn it_should_join_request_expired_timestamp() {
         let password = Zeroizing::new("test_password".to_string());
         let mut request = JoinRequest::new("pool-001", password);
 
@@ -638,7 +638,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_future_timestamp() {
+    fn it_should_join_request_future_timestamp() {
         let password = Zeroizing::new("test_password".to_string());
         let mut request = JoinRequest::new("pool-001", password);
 
@@ -650,7 +650,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_custom_tolerance() {
+    fn it_should_join_request_custom_tolerance() {
         let password = Zeroizing::new("test_password".to_string());
         let request = JoinRequest::new("pool-001", password);
 
@@ -665,7 +665,7 @@ mod tests {
     }
 
     #[test]
-    fn test_password_memory_zeroization() {
+    fn it_should_password_memory_zeroization() {
         // 验证 Zeroizing 在作用域结束后清零内存
         let password_str = "sensitive_password";
         {
@@ -678,7 +678,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hash_different_passwords_different_hashes() {
+    fn it_should_hash_different_passwords_different_hashes() {
         let password1 = Zeroizing::new("password1".to_string());
         let password2 = Zeroizing::new("password2".to_string());
 
@@ -690,7 +690,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hash_same_password_different_salts() {
+    fn it_should_hash_same_password_different_salts() {
         let password = Zeroizing::new("password123".to_string());
 
         let hash1 = PasswordManager::hash_password(&password).unwrap();
@@ -705,7 +705,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluate_password_strength_weak() {
+    fn it_should_evaluate_password_strength_weak() {
         let strength = evaluate_password_strength("123456");
 
         assert!(strength.score < 50);
@@ -717,7 +717,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluate_password_strength_medium() {
+    fn it_should_evaluate_password_strength_medium() {
         let strength = evaluate_password_strength("password123");
 
         // 长度11 + 小写15 + 数字15 = 41分
@@ -730,7 +730,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluate_password_strength_strong() {
+    fn it_should_evaluate_password_strength_strong() {
         let strength = evaluate_password_strength("Password123!");
 
         assert!(strength.score >= 70);
@@ -742,7 +742,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluate_password_strength_empty() {
+    fn it_should_evaluate_password_strength_empty() {
         let strength = evaluate_password_strength("");
 
         assert!(strength.score < 20);
@@ -754,7 +754,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluate_password_strength_short() {
+    fn it_should_evaluate_password_strength_short() {
         let strength = evaluate_password_strength("A1!");
 
         // 短密码会被惩罚，即使包含多种字符类型
@@ -763,7 +763,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluate_password_strength_long_without_variety() {
+    fn it_should_evaluate_password_strength_long_without_variety() {
         let strength = evaluate_password_strength(&"a".repeat(30));
 
         assert!(!strength.is_strong);
@@ -774,7 +774,7 @@ mod tests {
     }
 
     #[test]
-    fn test_evaluate_password_strength_perfect() {
+    fn it_should_evaluate_password_strength_perfect() {
         let strength = evaluate_password_strength("Perfect123!@#");
 
         // 长度13 + 大写15 + 小写15 + 数字15 + 特殊20 + 奖励10 = 88分

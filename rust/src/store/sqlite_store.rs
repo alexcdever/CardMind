@@ -671,13 +671,13 @@ mod tests {
     use crate::utils::uuid_v7::generate_uuid_v7;
 
     #[test]
-    fn test_sqlite_store_creation() {
+    fn it_should_sqlite_store_creation() {
         let store = SqliteStore::new_in_memory();
         assert!(store.is_ok(), "应该能创建内存SQLite store");
     }
 
     #[test]
-    fn test_insert_and_get_card() {
+    fn it_should_insert_and_get_card() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
@@ -694,7 +694,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_active_cards_excludes_deleted() {
+    fn it_should_get_active_cards_excludes_deleted() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         // 插入两个卡片
@@ -715,7 +715,7 @@ mod tests {
     }
 
     #[test]
-    fn test_card_count() {
+    fn it_should_card_count() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         // 初始状态
@@ -748,7 +748,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pools_and_bindings_tables_creation() {
+    fn it_should_pools_and_bindings_tables_creation() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         // 验证 pools 表已创建
@@ -784,7 +784,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_and_get_card_pool_binding() {
+    fn it_should_add_and_get_card_pool_binding() {
         let store = SqliteStore::new_in_memory().unwrap();
         let card = Card::new(
             generate_uuid_v7(),
@@ -811,7 +811,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_card_pool_binding() {
+    fn it_should_remove_card_pool_binding() {
         let store = SqliteStore::new_in_memory().unwrap();
         let card = Card::new(
             generate_uuid_v7(),
@@ -838,7 +838,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn test_clear_card_pools() {
+    fn it_should_clear_card_pools() {
         let store = SqliteStore::new_in_memory().unwrap();
         let card = Card::new(
             generate_uuid_v7(),
@@ -867,7 +867,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn test_get_cards_in_pools() {
+    fn it_should_get_cards_in_pools() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         // 创建3个卡片
@@ -915,7 +915,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn test_get_cards_in_pools_excludes_deleted() {
+    fn it_should_get_cards_in_pools_excludes_deleted() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         let mut card1 = Card::new(generate_uuid_v7(), "卡片1".to_string(), "内容1".to_string());
@@ -939,7 +939,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_cards_in_pools_empty_pools() {
+    fn it_should_get_cards_in_pools_empty_pools() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         // 空数据池列表应返回空结果
@@ -948,7 +948,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fts5_search_cards() {
+    fn it_should_fts5_search_cards() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         let card1 = Card::new(
@@ -985,7 +985,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fts5_search_exclude_deleted() {
+    fn it_should_fts5_search_exclude_deleted() {
         let store = SqliteStore::new_in_memory().unwrap();
 
         let mut card1 = Card::new(

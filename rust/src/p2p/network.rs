@@ -404,14 +404,14 @@ mod tests {
 
     /// 测试网络初始化（不启用 mDNS）
     #[test]
-    fn test_network_creation() {
+    fn it_should_network_creation() {
         let network = P2PNetwork::new(false);
         assert!(network.is_ok(), "网络初始化应该成功");
     }
 
     /// 测试网络初始化（启用 mDNS）
     #[tokio::test]
-    async fn test_network_creation_with_mdns() {
+    async fn it_should_network_creation_with_mdns() {
         let network = P2PNetwork::new(true);
         match network {
             Ok(_) | Err(CardMindError::Mdns(_)) => {}
@@ -421,7 +421,7 @@ mod tests {
 
     /// 测试 Peer ID 生成
     #[test]
-    fn test_peer_id_generation() {
+    fn it_should_peer_id_generation() {
         let network = P2PNetwork::new(false).unwrap();
         let peer_id = network.local_peer_id();
         assert!(!peer_id.to_string().is_empty(), "Peer ID 不应为空");
@@ -432,7 +432,7 @@ mod tests {
     /// 创建两个节点，一个监听，一个连接，验证 Ping 协议工作
     #[tokio::test]
     #[allow(clippy::similar_names)]
-    async fn test_basic_connection() {
+    async fn it_should_basic_connection() {
         use std::time::Duration;
         use tokio::time::timeout;
 

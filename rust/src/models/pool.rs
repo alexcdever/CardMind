@@ -461,7 +461,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_device_creation() {
+    fn it_should_device_creation() {
         let device = Device::new("device-001", "My iPhone");
         assert_eq!(device.device_id, "device-001");
         assert_eq!(device.device_name, "My iPhone");
@@ -469,14 +469,14 @@ mod tests {
     }
 
     #[test]
-    fn test_device_default_name_generation() {
+    fn it_should_device_default_name_generation() {
         let device_id = "018c8a1b2c3d4e5f";
         let name = Device::generate_default_name(device_id);
         assert_eq!(name, "Unknown-018c8");
     }
 
     #[test]
-    fn test_pool_creation() {
+    fn it_should_pool_creation() {
         let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
         assert_eq!(pool.pool_id, "pool-001");
         assert_eq!(pool.name, "工作笔记");
@@ -487,7 +487,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_member() {
+    fn it_should_add_member() {
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
         let device1 = Device::new("device-001", "iPhone");
         let device2 = Device::new("device-002", "MacBook");
@@ -504,7 +504,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_member() {
+    fn it_should_remove_member() {
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
         let device = Device::new("device-001", "iPhone");
         pool.add_member(device);
@@ -519,7 +519,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_member_name() {
+    fn it_should_update_member_name() {
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
         let device = Device::new("device-001", "My iPhone");
         pool.add_member(device);
@@ -534,7 +534,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_pool_name() {
+    fn it_should_validate_pool_name() {
         // 有效名称
         assert!(Pool::validate_name("工作笔记").is_ok());
         assert!(Pool::validate_name("a").is_ok());
@@ -552,7 +552,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_password() {
+    fn it_should_validate_password() {
         // 有效密码
         assert!(Pool::validate_password("12345678").is_ok());
         assert!(Pool::validate_password("password123").is_ok());
@@ -566,7 +566,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pool_serialization() {
+    fn it_should_pool_serialization() {
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
         let device = Device::new("device-001", "iPhone");
         pool.add_member(device);
