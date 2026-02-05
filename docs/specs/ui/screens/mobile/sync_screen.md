@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/screens/sync_screen_test.dart`
+**相关测试**: `test/feature/screens/sync_screen_feature_test.dart`
 
 ---
 
@@ -153,7 +153,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/screens/sync_screen_test.dart`
+**测试文件**: `test/feature/screens/sync_screen_feature_test.dart`
 
 **屏幕测试**:
 - `it_should_show_overall_sync_status()` - 显示整体同步状态

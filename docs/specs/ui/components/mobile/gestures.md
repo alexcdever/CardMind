@@ -2,7 +2,7 @@
 
 **状态**: 生效中
 **依赖**: 无
-**相关测试**: `test/widgets/mobile_gestures_test.dart`
+**相关测试**: `test/feature/widgets/mobile_gestures_feature_test.dart`
 
 ---
 
@@ -130,7 +130,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/mobile_gestures_test.dart`
+**测试文件**: `test/feature/widgets/mobile_gestures_feature_test.dart`
 
 **组件测试**:
 - `it_should_reveal_delete_on_swipe_left()` - 显示删除按钮

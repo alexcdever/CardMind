@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [layouts.md](layouts.md), [platform_detection.md](platform_detection.md)
-**相关测试**: `test/adaptive/components_test.dart`
+**相关测试**: `test/feature/adaptive/components_feature_test.dart`
 
 ---
 
@@ -551,7 +551,7 @@ void showDesktopMenu(BuildContext context, Offset position, List<MenuItem> items
 
 ## 测试覆盖
 
-**测试文件**: `test/adaptive/components_test.dart`
+**测试文件**: `test/feature/adaptive/components_feature_test.dart`
 
 **功能测试（Widget）**:
 - `it_should_use_touch_friendly_buttons_on_mobile()` - 移动端按钮

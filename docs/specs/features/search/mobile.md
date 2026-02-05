@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/search/mobile_search_test.dart`
+**相关测试**: `test/feature/features/mobile_search_feature_test.dart`
 
 ---
 
@@ -220,7 +220,7 @@ structure SearchFiltering:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/search/mobile_search_test.dart`
+**测试文件**: `test/feature/features/mobile_search_feature_test.dart`
 
 **单元测试**:
 - `test_open_search_overlay()` - 测试打开搜索覆盖层

@@ -2,7 +2,7 @@
 
 **状态**: 草稿
 **依赖**: 无
-**相关测试**: `flutter/test/features/navigation/mobile_nav_test.dart`
+**相关测试**: `test/feature/widgets/mobile_nav_feature_test.dart`
 
 ---
 
@@ -192,7 +192,7 @@ structure MobileNav:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/navigation/mobile_nav_test.dart`
+**测试文件**: `test/feature/widgets/mobile_nav_feature_test.dart`
 
 **单元测试**:
 - `test_render_navigation_bar()` - 测试渲染导航栏

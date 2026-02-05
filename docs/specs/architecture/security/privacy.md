@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md)
-**相关测试**: `rust/tests/p2p/discovery_test.rs`
+**相关测试**: `rust/tests/security_p2p_discovery_feature_test.rs`
 
 ---
 
@@ -202,7 +202,7 @@ function start_discovery():
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/p2p/discovery_test.rs`
+**测试文件**: `rust/tests/security_p2p_discovery_feature_test.rs`
 
 **单元测试**:
 - `test_generate_device_name()` - 测试默认昵称生成

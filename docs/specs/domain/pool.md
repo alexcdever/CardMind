@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [types.md](types.md), [../architecture/storage/device_config.md](../architecture/storage/device_config.md)
-**相关测试**: `rust/tests/pool_model_test.rs`
+**相关测试**: `rust/tests/pool_model_feature_test.rs`
 
 ---
 
@@ -605,7 +605,7 @@ pub struct DeviceConfig {
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/pool_model_test.rs`
+**测试文件**: `rust/tests/pool_model_feature_test.rs`
 
 **单元测试**:
 - `test_join_first_pool()` - 成功加入第一个池

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/widgets/settings_panel_test.dart`
+**相关测试**: `test/feature/widgets/settings_panel_feature_test.dart`
 
 ---
 
@@ -159,7 +159,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/unit/settings_panel_test.dart`, `test/widgets/settings_panel_test.dart`
+**测试文件**: `test/unit/widgets/settings_panel_unit_test.dart`, `test/feature/widgets/settings_panel_feature_test.dart`
 
 **单元测试（9）**:
 - 主题切换逻辑

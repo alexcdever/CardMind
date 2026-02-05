@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [./mobile_nav.md](./mobile_nav.md), [../home_screen/home_screen.md](../home_screen/home_screen.md)
-**相关测试**: `flutter/test/features/navigation/mobile_navigation_test.dart`
+**相关测试**: `test/feature/adaptive/mobile_navigation_feature_test.dart`
 
 ---
 
@@ -386,7 +386,7 @@ structure NavigationAccessibility:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/navigation/mobile_navigation_test.dart`
+**测试文件**: `test/feature/adaptive/mobile_navigation_feature_test.dart`
 
 **单元测试**:
 - `test_bottom_nav_has_three_tabs()` - 底部导航有3个标签

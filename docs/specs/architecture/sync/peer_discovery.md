@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [./service.md](./service.md), [../storage/device_config.md](../storage/device_config.md)
-**相关测试**: `rust/tests/mdns_discovery_test.rs`
+**相关测试**: `rust/tests/mdns_discovery_feature_test.rs`
 
 ---
 
@@ -296,7 +296,7 @@ structure PeerManager:
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/mdns_discovery_test.rs`
+**测试文件**: `rust/tests/mdns_discovery_feature_test.rs`
 
 **单元测试**:
 - `test_mdns_discovery_creation()` - mDNS 初始化

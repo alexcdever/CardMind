@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `flutter/test/features/sync_feedback/shared_sync_indicator_test.dart`
+**相关测试**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 ---
 
@@ -519,7 +519,7 @@ structure IndicatorClickHandler:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/sync_feedback/shared_sync_indicator_test.dart`
+**测试文件**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 **单元测试**:
 - `test_indicator_visible_in_appbar()` - 指示器在应用栏中可见

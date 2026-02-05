@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/card_editor/fullscreen_editor_test.dart`
+**相关测试**: `test/feature/widgets/fullscreen_editor_feature_test.dart`
 
 ---
 
@@ -337,7 +337,7 @@ structure EditorLayout:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_editor/fullscreen_editor_test.dart`
+**测试文件**: `test/feature/widgets/fullscreen_editor_feature_test.dart`
 
 **单元测试**:
 - `test_fullscreen_mode_enabled()` - 测试全屏模式启用

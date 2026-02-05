@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/screens/card_editor_screen_desktop_test.dart`
+**相关测试**: `test/feature/screens/card_editor_screen_feature_test.dart`
 
 ---
 
@@ -124,7 +124,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/screens/card_editor_screen_desktop_test.dart`
+**测试文件**: `test/feature/screens/card_editor_screen_feature_test.dart`
 
 **组件测试**:
 - `it_should_prepopulate_existing_card()` - 预填充现有卡片

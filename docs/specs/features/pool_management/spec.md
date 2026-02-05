@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
-**相关测试**: `test/features/pool_management_test.dart`
+**相关测试**: `test/feature/features/pool_management_feature_test.dart`
 
 ---
 
@@ -366,7 +366,7 @@ structure PoolLeaving:
 
 ## 测试覆盖
 
-**测试文件**: `test/features/pool_management_test.dart`
+**测试文件**: `test/feature/features/pool_management_feature_test.dart`
 
 **单元测试**:
 - `test_create_pool_with_name_and_password()` - 使用名称和密码创建池

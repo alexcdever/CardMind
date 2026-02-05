@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../domain/card.md](../../../domain/card.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/screens/home_screen_mobile_test.dart`
+**相关测试**: `test/feature/screens/home_screen_adaptive_feature_test.dart`
 
 ---
 
@@ -115,7 +115,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/screens/home_screen_mobile_test.dart`
+**测试文件**: `test/feature/screens/home_screen_adaptive_feature_test.dart`
 
 **屏幕测试**:
 - `it_should_display_card_list()` - 显示卡片列表

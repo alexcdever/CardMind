@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
-**相关测试**: `flutter/test/features/card_list/card_list_item_test.dart`
+**相关测试**: `test/feature/widgets/card_list_item_feature_test.dart`
 
 ---
 
@@ -197,7 +197,7 @@ function renderSyncIndicator():
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_list/card_list_item_test.dart`
+**测试文件**: `test/feature/widgets/card_list_item_feature_test.dart`
 
 **单元测试**:
 - `test_display_title_prominently()` - 测试显示标题

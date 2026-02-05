@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/widgets/sync_status_indicator_test.dart`
+**相关测试**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 ---
 
@@ -87,7 +87,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/sync_status_indicator_test.dart`
+**测试文件**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 **组件测试**:
 - `it_should_show_synced_status()` - 显示已同步状态

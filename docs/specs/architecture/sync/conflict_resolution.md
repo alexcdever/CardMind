@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/sync.md](../../domain/sync.md), [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md)
-**相关测试**: `rust/tests/conflict_resolution_test.rs`
+**相关测试**: `rust/tests/loro_sync_feature_test.rs`
 
 ---
 
@@ -526,7 +526,7 @@ function demonstrate_three_way_convergence():
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/conflict_resolution_test.rs`
+**测试文件**: `rust/tests/loro_sync_feature_test.rs`
 
 **单元测试**:
 - `test_concurrent_field_edits()` - 不同字段编辑

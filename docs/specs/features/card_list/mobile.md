@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/card_list/mobile_card_list_test.dart`
+**相关测试**: `test/feature/features/mobile_card_list_feature_test.dart`
 
 ---
 
@@ -213,7 +213,7 @@ function renderEmptyState(context):
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_list/mobile_card_list_test.dart`
+**测试文件**: `test/feature/features/mobile_card_list_feature_test.dart`
 
 **单元测试**:
 - `test_list_layout_renders()` - 测试列表布局渲染

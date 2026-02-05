@@ -2,7 +2,7 @@
 
 **状态**: 生效中
 **依赖**: 无
-**相关测试**: `test/widgets/mobile_fab_test.dart`
+**相关测试**: `test/feature/widgets/mobile_fab_feature_test.dart`
 
 ---
 
@@ -136,7 +136,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/mobile_fab_test.dart`
+**测试文件**: `test/feature/widgets/mobile_fab_feature_test.dart`
 
 **组件测试**:
 - `it_should_position_at_bottom_right()` - 定位在右下角

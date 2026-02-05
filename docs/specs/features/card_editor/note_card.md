@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/card_editor/note_card_editor_test.dart`
+**相关测试**: `test/feature/features/note_card_editor_feature_test.dart`
 
 ---
 
@@ -360,7 +360,7 @@ structure PlatformLayout:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_editor/note_card_editor_test.dart`
+**测试文件**: `test/feature/features/note_card_editor_feature_test.dart`
 
 **单元测试**:
 - `test_create_mode_empty_form()` - 测试新建模式显示空表单

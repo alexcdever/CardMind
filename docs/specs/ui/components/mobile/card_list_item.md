@@ -2,7 +2,7 @@
 
 **状态**: 生效中
 **依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/widgets/card_list_item_mobile_test.dart`
+**相关测试**: `test/feature/widgets/card_list_item_mobile_feature_test.dart`
 
 ---
 
@@ -121,7 +121,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/card_list_item_mobile_test.dart`
+**测试文件**: `test/feature/widgets/card_list_item_mobile_feature_test.dart`
 
 **组件测试**:
 - `it_should_display_title_mobile()` - 在移动端显示标题
