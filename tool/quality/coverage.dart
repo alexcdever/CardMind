@@ -1,3 +1,5 @@
+import 'dart:io';
+
 Set<String> parseRustPublicItems(String source) {
   final Set<String> items = <String>{};
   final List<String> lines = source.split('\n');
@@ -181,6 +183,159 @@ Set<String> parseDartPublicItems(String source) {
   return items;
 }
 
+Set<String> parseRustUnitTestItems(String source) {
+  final Set<String> items = <String>{};
+  final List<String> lines = source.split('\n');
+  final RegExp testPattern =
+      RegExp(r'^\s*(?:async\s+)?fn\s+it_should_([A-Za-z0-9_]+)\s*\(');
+
+  for (final String rawLine in lines) {
+    final String line = _stripLineComment(rawLine).trimRight();
+    final RegExpMatch? match = testPattern.firstMatch(line);
+    if (match != null) {
+      items.add(match.group(1)!);
+    }
+  }
+
+  return items;
+}
+
+Set<String> parseDartUnitTestItems(String source) {
+  final Set<String> items = <String>{};
+  final RegExp testPattern = RegExp(
+    r'''test(?:Widgets)?\s*\(\s*['"]it_should_([^'"]+)['"]''',
+  );
+
+  final Iterable<RegExpMatch> matches = testPattern.allMatches(source);
+  for (final RegExpMatch match in matches) {
+    items.add(match.group(1)!);
+  }
+
+  return items;
+}
+
+CoverageSummary calculateCoverageSummary({
+  required Set<String> publicItems,
+  required Set<String> unitTestItems,
+}) {
+  final Map<String, String> normalizedToOriginal = <String, String>{};
+  for (final String item in publicItems) {
+    final String normalized = normalizeItemName(item);
+    normalizedToOriginal.putIfAbsent(normalized, () => item);
+  }
+
+  final Set<String> normalizedPublicItems = normalizedToOriginal.keys.toSet();
+  final Set<String> normalizedUnitTests =
+      unitTestItems.map(normalizeItemName).toSet();
+  final Set<String> missingNormalized =
+      normalizedPublicItems.difference(normalizedUnitTests);
+  final List<String> missingItems =
+      missingNormalized.map((name) => normalizedToOriginal[name]!).toList()
+        ..sort();
+
+  final int expectedCount = normalizedPublicItems.length;
+  final int actualCount = expectedCount - missingNormalized.length;
+  final double coverageRate =
+      expectedCount == 0 ? 1.0 : actualCount / expectedCount;
+
+  return CoverageSummary(
+    expectedCount: expectedCount,
+    actualCount: actualCount,
+    coverageRate: coverageRate,
+    missingItems: missingItems,
+  );
+}
+
+String normalizeItemName(String name) {
+  final List<String> segments = name.split('__');
+  final List<String> normalizedSegments = <String>[];
+  for (final String segment in segments) {
+    normalizedSegments.add(_toSnakeCase(segment).toLowerCase());
+  }
+  return normalizedSegments.join('__');
+}
+
+Future<CoverageSummary> analyzeCoverageFromPaths({
+  required List<String> sourceDirectories,
+  required List<String> testDirectories,
+  required String sourceExtension,
+  required String testExtension,
+  required Set<String> Function(String) publicParser,
+  required Set<String> Function(String) unitTestParser,
+  required Set<String> excludedPathFragments,
+}) async {
+  final Set<String> publicItems = await _collectItemsFromDirectories(
+    directories: sourceDirectories,
+    extension: sourceExtension,
+    parser: publicParser,
+    excludedPathFragments: excludedPathFragments,
+  );
+  final Set<String> unitTestItems = await _collectItemsFromDirectories(
+    directories: testDirectories,
+    extension: testExtension,
+    parser: unitTestParser,
+    excludedPathFragments: excludedPathFragments,
+  );
+
+  return calculateCoverageSummary(
+    publicItems: publicItems,
+    unitTestItems: unitTestItems,
+  );
+}
+
+class CoverageSummary {
+  const CoverageSummary({
+    required this.expectedCount,
+    required this.actualCount,
+    required this.coverageRate,
+    required this.missingItems,
+  });
+
+  final int expectedCount;
+  final int actualCount;
+  final double coverageRate;
+  final List<String> missingItems;
+}
+
+Future<Set<String>> _collectItemsFromDirectories({
+  required List<String> directories,
+  required String extension,
+  required Set<String> Function(String) parser,
+  required Set<String> excludedPathFragments,
+}) async {
+  final Set<String> items = <String>{};
+  for (final String directoryPath in directories) {
+    final Directory directory = Directory(directoryPath);
+    if (!directory.existsSync()) {
+      continue;
+    }
+    await for (final FileSystemEntity entity
+        in directory.list(recursive: true, followLinks: false)) {
+      if (entity is! File) {
+        continue;
+      }
+      if (!entity.path.endsWith(extension)) {
+        continue;
+      }
+      if (_isExcludedPath(entity.path, excludedPathFragments)) {
+        continue;
+      }
+      final String contents = await entity.readAsString();
+      items.addAll(parser(contents));
+    }
+  }
+  return items;
+}
+
+bool _isExcludedPath(String path, Set<String> excludedPathFragments) {
+  for (final String fragment in excludedPathFragments) {
+    if (path.contains(fragment)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void _addIfMatch(Set<String> items, RegExp pattern, String line) {
   final RegExpMatch? match = pattern.firstMatch(line);
   if (match != null) {
@@ -197,6 +352,19 @@ String _stripLineComment(String line) {
     return line;
   }
   return line.substring(0, index);
+}
+
+String _toSnakeCase(String input) {
+  final StringBuffer buffer = StringBuffer();
+  for (int i = 0; i < input.length; i += 1) {
+    final String char = input[i];
+    final bool isUpper = char.toUpperCase() == char && char.toLowerCase() != char;
+    if (isUpper && i > 0 && input[i - 1] != '_') {
+      buffer.write('_');
+    }
+    buffer.write(char.toLowerCase());
+  }
+  return buffer.toString();
 }
 
 int _braceDelta(String line) {
