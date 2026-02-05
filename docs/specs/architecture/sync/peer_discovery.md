@@ -304,7 +304,7 @@ structure PeerManager:
 - `it_should_reject_peer_on_pool_hash_mismatch()` - 握手池校验
 - `it_should_not_start_p2p_when_not_joined()` - 未加入池不启动
 
-**集成测试**:
+**功能测试**:
 - `test_multi_device_discovery()` - 多设备发现场景
 - `test_network_interruption_recovery()` - 网络中断后重新连接
 

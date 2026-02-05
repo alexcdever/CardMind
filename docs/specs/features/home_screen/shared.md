@@ -301,7 +301,7 @@ structure UserInteraction:
 - `test_open_card()` - 测试打开卡片
 - `test_create_card()` - 测试创建新卡片
 
-**集成测试**:
+**功能测试**:
 - `test_card_list_workflow()` - 测试卡片列表完整流程
 - `test_sync_status_updates()` - 测试同步状态实时更新
 

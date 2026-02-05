@@ -403,14 +403,14 @@ structure NavigationAccessibility:
 - `test_voice_announces_tab_name()` - 语音提示标签名称
 - `test_keyboard_navigation_works()` - 键盘导航工作
 
-**集成测试**:
+**功能测试**:
 - `test_complete_navigation_workflow()` - 完整导航流程
 - `test_state_preservation_across_tabs()` - 跨标签状态保持
 - `test_navigation_with_notifications()` - 带通知的导航
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 底部导航在所有平台正常工作
 - [ ] 标签切换流畅无卡顿
 - [ ] 状态保持可靠

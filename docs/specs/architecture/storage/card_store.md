@@ -375,13 +375,13 @@ function clear_sqlite_database():
 - `it_should_update_bindings_on_pool_change()` - 更新绑定
 - `it_should_clear_old_bindings_when_pool_changes()` - 清除旧绑定
 
-**集成测试**:
+**功能测试**:
 - 创建卡片自动加入当前池
 - 移除操作跨设备传播
 - 退出池完整流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 集成测试通过
+- [ ] 功能测试通过
 - [ ] 代码审查通过
 - [ ] 文档已更新

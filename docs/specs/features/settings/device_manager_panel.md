@@ -421,13 +421,13 @@ structure DeviceStatus:
 - `test_show_last_seen_for_offline()` - 显示离线设备上次可见时间
 - `test_show_online_now()` - 显示在线指示器
 
-**集成测试**:
+**功能测试**:
 - `test_complete_device_management_workflow()` - 完整设备管理流程
 - `test_device_name_editing_workflow()` - 设备名称编辑流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 设备名称编辑正常工作
 - [ ] 设备配对/取消配对流程流畅
 - [ ] 状态指示器准确

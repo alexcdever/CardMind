@@ -364,13 +364,13 @@ structure DialogActions:
 - `test_show_protocol_info()` - 显示协议信息
 - `test_close_dialog()` - 关闭对话框
 
-**集成测试**:
+**功能测试**:
 - `test_complete_sync_details_workflow()` - 完整同步详情流程
 - `test_manual_sync_from_dialog()` - 从对话框手动同步
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 设备列表正确显示
 - [ ] 同步历史准确记录
 - [ ] 手动同步操作正常

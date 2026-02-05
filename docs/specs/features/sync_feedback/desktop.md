@@ -565,13 +565,13 @@ structure BadgeStyle:
 - `test_click_failed_shows_error()` - 点击失败显示错误
 - `test_badge_style_consistency()` - 徽章样式一致性
 
-**集成测试**:
+**功能测试**:
 - `test_complete_sync_state_flow()` - 完整同步状态流程
 - `test_error_recovery_workflow()` - 错误恢复流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 状态转换正确
 - [ ] 动画流畅
 - [ ] 样式一致

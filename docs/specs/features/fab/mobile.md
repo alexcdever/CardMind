@@ -197,7 +197,7 @@ function renderAccessibleFAB():
 - `test_semantic_label()` - 测试语义标签
 - `test_accessible_quickly()` - 测试快速可访问
 
-**集成测试**:
+**功能测试**:
 - `test_fab_to_editor_flow()` - 测试 FAB 到编辑器流程
 - `test_fab_with_keyboard()` - 测试 FAB 与键盘交互
 

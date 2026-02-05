@@ -553,7 +553,7 @@ void showDesktopMenu(BuildContext context, Offset position, List<MenuItem> items
 
 **测试文件**: `test/adaptive/components_test.dart`
 
-**Widget 测试**:
+**功能测试（Widget）**:
 - `it_should_use_touch_friendly_buttons_on_mobile()` - 移动端按钮
 - `it_should_use_compact_buttons_on_desktop()` - 桌面端按钮
 - `it_should_position_fab_correctly_on_mobile()` - 移动端 FAB
@@ -568,7 +568,7 @@ void showDesktopMenu(BuildContext context, Offset position, List<MenuItem> items
 - `it_should_show_dropdown_menus_on_desktop()` - 桌面端菜单
 
 **验收标准**:
-- [x] 所有 Widget 测试通过
+- [x] 所有功能测试（Widget）通过
 - [x] 组件正确适应每个平台
 - [x] 触摸目标符合可访问性指南
 - [x] 桌面端悬停状态正常工作

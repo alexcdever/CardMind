@@ -212,7 +212,7 @@ function renderSyncIndicator():
 - `test_empty_title_placeholder()` - 测试空标题占位符
 - `test_empty_content_placeholder()` - 测试空内容占位符
 
-**集成测试**:
+**功能测试**:
 - `test_list_item_in_list_view()` - 测试在列表视图中的表现
 - `test_list_item_in_grid_view()` - 测试在网格视图中的表现
 

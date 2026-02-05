@@ -246,7 +246,7 @@ structure PullToRefresh:
 - `test_refresh_completes_quickly()` - 测试刷新快速完成
 - `test_haptic_feedback()` - 测试触觉反馈
 
-**集成测试**:
+**功能测试**:
 - `test_swipe_gesture_flow()` - 测试滑动手势流程
 - `test_long_press_menu_flow()` - 测试长按菜单流程
 - `test_pull_to_refresh_flow()` - 测试下拉刷新流程

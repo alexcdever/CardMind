@@ -438,7 +438,7 @@ structure SyncConfiguration:
 - `test_initialize_storage()` - 测试初始化存储
 - `test_configure_sync()` - 测试配置同步
 
-**集成测试**:
+**功能测试**:
 - `test_onboarding_create_pool_workflow()` - 测试创建池完整流程
 - `test_onboarding_join_pool_workflow()` - 测试加入池完整流程
 

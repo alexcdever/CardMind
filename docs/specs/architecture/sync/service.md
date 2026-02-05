@@ -486,7 +486,7 @@ function filter_sync_by_pool(sync_message):
 - `it_should_discover_peers_via_mdns()` - mDNS 发现
 - `it_should_reject_peer_on_pool_hash_mismatch()` - 握手池校验
 
-**集成测试**:
+**功能测试**:
 - `it_should_sync_changes_between_peers()` - 对等点间同步
 - `it_should_handle_concurrent_changes()` - CRDT 冲突解决
 - `it_should_filter_sync_by_pool()` - 基于池的过滤
@@ -495,7 +495,7 @@ function filter_sync_by_pool(sync_message):
 
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] 集成测试通过
+- [x] 功能测试通过
 - [x] 对等点发现在本地网络上工作
 - [x] CRDT 正确合并并发更改
 - [x] 池过滤正确执行

@@ -232,7 +232,7 @@ structure SearchFiltering:
 - `test_result_tap()` - 测试点击结果
 - `test_back_button_closes()` - 测试返回按钮关闭
 
-**集成测试**:
+**功能测试**:
 - `test_search_workflow()` - 测试搜索完整流程
 - `test_search_and_open_card()` - 测试搜索并打开卡片
 

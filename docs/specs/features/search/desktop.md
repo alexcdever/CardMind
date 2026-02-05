@@ -311,7 +311,7 @@ structure SearchEmptyState:
 - `test_empty_state_display()` - 测试空状态显示
 - `test_empty_state_clear_button()` - 测试清空按钮
 
-**集成测试**:
+**功能测试**:
 - `test_search_workflow()` - 测试搜索完整流程
 - `test_search_with_highlight()` - 测试搜索和高亮
 

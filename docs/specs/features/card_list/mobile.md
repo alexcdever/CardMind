@@ -226,7 +226,7 @@ function renderEmptyState(context):
 - `test_empty_state_search()` - 测试搜索空状态
 - `test_haptic_feedback()` - 测试触觉反馈
 
-**集成测试**:
+**功能测试**:
 - `test_swipe_gesture_flow()` - 测试滑动手势流程
 - `test_pull_to_refresh()` - 测试下拉刷新
 

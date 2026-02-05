@@ -416,13 +416,13 @@ structure SettingsPanel:
 - `test_show_terms_of_service()` - 显示服务条款
 - `test_group_settings_by_sections()` - 按部分分组设置
 
-**集成测试**:
+**功能测试**:
 - `test_complete_settings_workflow()` - 完整设置流程
 - `test_theme_switching_workflow()` - 主题切换流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 主题切换正常工作
 - [ ] 同步设置功能正常
 - [ ] 数据管理操作可靠

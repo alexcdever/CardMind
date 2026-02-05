@@ -122,7 +122,7 @@
 - `it_should_maintain_keyboard_on_field_transition()` - 保持键盘
 
 **验收标准**:
-- [ ] 所有 Widget 测试通过
+- [ ] 所有功能测试（Widget）通过
 - [ ] 自动保存可靠工作
 - [ ] 键盘行为流畅
 - [ ] 代码审查通过

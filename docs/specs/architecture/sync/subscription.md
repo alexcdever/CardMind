@@ -617,7 +617,7 @@ function batch_update_sqlite(cards, pools):
 - `test_subscription_lifecycle()` - 订阅生命周期
 - `test_unregister_subscription()` - 取消订阅
 
-**集成测试**:
+**功能测试**:
 - `test_end_to_end_subscription()` - 端到端订阅流程
 - `test_concurrent_updates()` - 并发更新
 - `test_database_failure_recovery()` - 数据库故障恢复
