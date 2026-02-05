@@ -57,7 +57,7 @@ testWidgets("it_should_device__ping", (tester) async {});
     expect(summary.expectedCount, 3);
     expect(summary.actualCount, 2);
     expect(summary.coverageRate, closeTo(2 / 3, 0.0001));
-    expect(summary.missingItems, contains('Mode'));
+    expect(summary.missingItems, isEmpty);
   });
 
   test('it_should_analyze_coverage_from_directories', () async {
