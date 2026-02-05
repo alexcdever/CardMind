@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `flutter/test/features/sync/sync_screen_test.dart`
+**相关测试**: `test/feature/screens/sync_screen_feature_test.dart`
 
 ---
 
@@ -493,7 +493,7 @@ structure ConflictResolution:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/sync/sync_screen_test.dart`
+**测试文件**: `test/feature/screens/sync_screen_feature_test.dart`
 
 **单元测试**:
 - `test_show_overall_sync_status()` - 显示总体同步状态

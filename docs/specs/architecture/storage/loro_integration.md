@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [./dual_layer.md](./dual_layer.md), [../sync/subscription.md](../sync/subscription.md)
-**相关测试**: `rust/tests/loro_integration_test.rs`
+**相关测试**: `rust/tests/loro_integration_feature_test.rs`
 
 ---
 
@@ -685,7 +685,7 @@ function handle_version_mismatch(error, crdt_doc, peer_id):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/loro_integration_test.rs`
+**测试文件**: `rust/tests/loro_integration_feature_test.rs`
 
 **单元测试**:
 - `test_create_card_document()` - 卡片文档创建

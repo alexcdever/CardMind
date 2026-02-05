@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/ui/home_screen_test.dart`
+**相关测试**: `test/feature/screens/home_screen_adaptive_feature_test.dart`
 
 ---
 
@@ -427,7 +427,7 @@ structure BatchOperations:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/ui/home_screen_test.dart`
+**测试文件**: `test/feature/screens/home_screen_adaptive_feature_test.dart`
 
 **单元测试**:
 - `it_should_display_card_list()` - 显示卡片列表

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: 无
-**相关测试**: `rust/tests/common_types_spec.rs`
+**相关测试**: `rust/tests/common_types_feature_test.rs`
 
 ---
 
@@ -717,7 +717,7 @@ pub type Timestamp = i64;  // Unix 毫秒
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/common_types_spec.rs`
+**测试文件**: `rust/tests/common_types_feature_test.rs`
 
 **单元测试**:
 - `it_should_generate_valid_uuid_v7()` - 验证唯一标识符

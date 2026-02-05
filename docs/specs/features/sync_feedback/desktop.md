@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `flutter/test/features/sync_feedback/desktop_sync_indicator_test.dart`
+**相关测试**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 ---
 
@@ -548,7 +548,7 @@ structure BadgeStyle:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/sync_feedback/desktop_sync_indicator_test.dart`
+**测试文件**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 **单元测试**:
 - `test_initial_state_not_yet_synced()` - 初始状态为尚未同步

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: 无
-**相关测试**: `flutter/test/features/toolbar/desktop_toolbar_test.dart`
+**相关测试**: `test/feature/widgets/desktop_toolbar_feature_test.dart`
 
 ---
 
@@ -311,7 +311,7 @@ structure ResponsiveToolbar:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/toolbar/desktop_toolbar_test.dart`
+**测试文件**: `test/feature/widgets/desktop_toolbar_feature_test.dart`
 
 **单元测试**:
 - `test_render_toolbar()` - 测试渲染工具栏

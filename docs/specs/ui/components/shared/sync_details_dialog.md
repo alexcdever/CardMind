@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md), [sync_status_indicator.md](sync_status_indicator.md)
-**相关测试**: `test/widgets/sync_details_dialog_test.dart`
+**相关测试**: `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart`
 
 ---
 
@@ -136,8 +136,8 @@
 ## 测试覆盖
 
 **测试文件**:
-- `test/unit/sync_details_dialog_test.dart` - 单元测试
-- `test/widgets/sync_details_dialog_test.dart` - 功能测试（Widget）
+- `test/unit/widgets/sync_details_dialog_unit_test.dart` - 单元测试
+- `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart` - 功能测试（Widget）
 
 **单元测试（10 个）**:
 - `it_should_display_sync_status_correctly()` - 显示正确的同步状态

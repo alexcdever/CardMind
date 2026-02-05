@@ -2,7 +2,7 @@
 
 **状态**: 草稿
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
-**相关测试**: `flutter/test/features/card_list/note_editor_fullscreen_test.dart`
+**相关测试**: `test/feature/widgets/note_editor_fullscreen_feature_test.dart`
 
 ---
 
@@ -496,7 +496,7 @@ structure EditorLayout:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_list/note_editor_fullscreen_test.dart`
+**测试文件**: `test/feature/widgets/note_editor_fullscreen_feature_test.dart`
 
 **单元测试**:
 - `test_new_mode_opens_with_empty_fields()` - 新建模式打开空字段

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: 无
-**相关测试**: `test/adaptive/platform_detection_test.dart`
+**相关测试**: `test/feature/adaptive/platform_detector_feature_test.dart`
 
 ---
 
@@ -643,7 +643,7 @@ class OrientationAwareWidget extends StatelessWidget {
 
 ## 测试覆盖
 
-**测试文件**: `test/adaptive/platform_detection_test.dart`
+**测试文件**: `test/feature/adaptive/platform_detector_feature_test.dart`
 
 **单元测试**:
 - `it_should_detect_android_platform()` - Android 检测

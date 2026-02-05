@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md), [../storage/sqlite_cache.md](../storage/sqlite_cache.md)
-**相关测试**: `rust/tests/subscription_test.rs`
+**相关测试**: `rust/tests/loro_integration_feature_test.rs`
 
 ---
 
@@ -602,7 +602,7 @@ function batch_update_sqlite(cards, pools):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/subscription_test.rs`
+**测试文件**: `rust/tests/loro_integration_feature_test.rs`
 
 **单元测试**:
 - `test_card_subscription()` - Card 订阅

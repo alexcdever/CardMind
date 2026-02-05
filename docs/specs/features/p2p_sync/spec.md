@@ -2,7 +2,7 @@
 
 **状态**: 生效中
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `test/features/p2p_sync_test.dart`
+**相关测试**: `test/feature/features/p2p_sync_feature_test.dart`
 
 ---
 
@@ -602,7 +602,7 @@ structure ConflictResolution:
 
 ## 测试覆盖
 
-**测试文件**: `test/features/p2p_sync_test.dart`
+**测试文件**: `test/feature/features/p2p_sync_feature_test.dart`
 
 **单元测试**:
 - `test_view_synced_status()` - 查看已同步状态

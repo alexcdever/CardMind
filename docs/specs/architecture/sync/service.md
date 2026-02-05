@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../storage/device_config.md](../storage/device_config.md)
-**相关测试**: `rust/tests/sync_test.rs`
+**相关测试**: `rust/tests/sync_feature_test.rs`
 
 ---
 
@@ -474,7 +474,7 @@ function filter_sync_by_pool(sync_message):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/sync_service_test.rs`
+**测试文件**: `rust/tests/sync_integration_feature_test.rs`
 
 **单元测试**:
 - `it_should_create_sync_service_with_valid_config()` - 创建同步服务

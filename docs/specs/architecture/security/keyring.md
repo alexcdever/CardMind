@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [./password.md](./password.md)
-**相关测试**: `rust/tests/security/keyring_test.rs`
+**相关测试**: `rust/tests/security_keyring_feature_test.rs`
 
 ---
 
@@ -195,7 +195,7 @@ async function hasPoolPasswordInKeyring(poolId):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/security/keyring_test.rs`
+**测试文件**: `rust/tests/security_keyring_feature_test.rs`
 
 **单元测试**:
 - `test_store_password()` - 测试存储密码

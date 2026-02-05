@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `flutter/test/features/sync_feedback/sync_details_dialog_test.dart`
+**相关测试**: `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart`
 
 ---
 
@@ -349,7 +349,7 @@ structure DialogActions:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/sync_feedback/sync_details_dialog_test.dart`
+**测试文件**: `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart`
 
 **单元测试**:
 - `test_show_discovered_devices()` - 显示发现的设备

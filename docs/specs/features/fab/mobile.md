@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../card_editor/mobile.md](../card_editor/mobile.md)
-**相关测试**: `flutter/test/features/fab/mobile_fab_test.dart`
+**相关测试**: `test/feature/widgets/mobile_fab_feature_test.dart`
 
 ---
 
@@ -182,7 +182,7 @@ function renderAccessibleFAB():
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/fab/mobile_fab_test.dart`
+**测试文件**: `test/feature/widgets/mobile_fab_feature_test.dart`
 
 **单元测试**:
 - `test_fab_positioned_bottom_right()` - 测试 FAB 位置

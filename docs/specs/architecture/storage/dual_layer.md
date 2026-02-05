@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [./card_store.md](./card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `rust/tests/dual_layer_test.rs`
+**相关测试**: `rust/tests/dual_layer_feature_test.rs`
 
 ---
 
@@ -756,7 +756,7 @@ function configure_sqlite(connection):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/dual_layer_test.rs`
+**测试文件**: `rust/tests/dual_layer_feature_test.rs`
 
 **单元测试**:
 - `test_write_to_loro_updates_sqlite()` - 写入传播

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/context_menu/desktop_context_menu_test.dart`
+**相关测试**: `test/feature/widgets/desktop_context_menu_feature_test.dart`
 
 ---
 
@@ -295,7 +295,7 @@ structure MenuStyle:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/context_menu/desktop_context_menu_test.dart`
+**测试文件**: `test/feature/widgets/desktop_context_menu_feature_test.dart`
 
 **单元测试**:
 - `test_menu_appears_on_right_click()` - 测试右键点击显示菜单

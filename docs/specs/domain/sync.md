@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [card.md](card.md), [pool.md](pool.md)
-**相关测试**: `rust/tests/sync_test.rs`
+**相关测试**: `rust/tests/sync_feature_test.rs`
 
 ---
 
@@ -715,7 +715,7 @@ pub struct VersionVector {
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/sync_test.rs`
+**测试文件**: `rust/tests/sync_feature_test.rs`
 
 **单元测试**:
 - `test_version_tracking()` - 版本追踪

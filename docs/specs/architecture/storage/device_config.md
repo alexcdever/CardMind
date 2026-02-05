@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `rust/tests/device_config_test.rs`
+**相关测试**: `rust/tests/device_config_feature_test.rs`
 
 ---
 
@@ -661,7 +661,7 @@ function sync_pool_data(pool_id, peer_id):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/device_config_test.rs`
+**测试文件**: `rust/tests/device_config_feature_test.rs`
 
 **单元测试**:
 - `it_creates_new_config_on_first_launch()` - 首次启动创建配置

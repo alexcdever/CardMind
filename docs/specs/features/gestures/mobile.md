@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/gestures/mobile_gestures_test.dart`
+**相关测试**: `test/feature/widgets/mobile_gestures_feature_test.dart`
 
 ---
 
@@ -232,7 +232,7 @@ structure PullToRefresh:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/gestures/mobile_gestures_test.dart`
+**测试文件**: `test/feature/widgets/mobile_gestures_feature_test.dart`
 
 **单元测试**:
 - `test_swipe_left_shows_delete()` - 测试左滑显示删除

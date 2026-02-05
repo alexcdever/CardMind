@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `test/features/settings_test.dart`
+**相关测试**: `test/feature/features/settings_feature_test.dart`
 
 ---
 
@@ -661,7 +661,7 @@ structure SettingsOrganization:
 
 ## 测试覆盖
 
-**测试文件**: `test/features/settings_test.dart`
+**测试文件**: `test/feature/features/settings_feature_test.dart`
 
 **单元测试**:
 - `test_view_current_device_name()` - 查看设备名称
