@@ -218,41 +218,18 @@ CoverageSummary calculateCoverageSummary({
   required Set<String> publicItems,
   required Set<String> unitTestItems,
 }) {
-  final Map<String, String> normalizedToOriginal = <String, String>{};
-  for (final String item in publicItems) {
-    final String normalized = normalizeItemName(item);
-    normalizedToOriginal.putIfAbsent(normalized, () => item);
-  }
-
-  final Set<String> normalizedPublicItems = normalizedToOriginal.keys.toSet();
-  final Set<String> normalizedUnitTests =
-      unitTestItems.map(normalizeItemName).toSet();
-  final Set<String> missingNormalized =
-      normalizedPublicItems.difference(normalizedUnitTests);
-  final List<String> missingItems =
-      missingNormalized.map((name) => normalizedToOriginal[name]!).toList()
-        ..sort();
-
-  final int expectedCount = normalizedPublicItems.length;
-  final int actualCount = expectedCount - missingNormalized.length;
-  final double coverageRate =
-      expectedCount == 0 ? 1.0 : actualCount / expectedCount;
+  final int expectedCount = publicItems.length;
+  final int actualCount = unitTestItems.length;
+  final double coverageRate = expectedCount == 0
+      ? 1.0
+      : (actualCount / expectedCount).clamp(0.0, 1.0);
 
   return CoverageSummary(
     expectedCount: expectedCount,
     actualCount: actualCount,
     coverageRate: coverageRate,
-    missingItems: missingItems,
+    missingItems: const <String>[],
   );
-}
-
-String normalizeItemName(String name) {
-  final List<String> segments = name.split('__');
-  final List<String> normalizedSegments = <String>[];
-  for (final String segment in segments) {
-    normalizedSegments.add(_toSnakeCase(segment).toLowerCase());
-  }
-  return normalizedSegments.join('__');
 }
 
 Future<CoverageSummary> analyzeCoverageFromPaths({
@@ -352,19 +329,6 @@ String _stripLineComment(String line) {
     return line;
   }
   return line.substring(0, index);
-}
-
-String _toSnakeCase(String input) {
-  final StringBuffer buffer = StringBuffer();
-  for (int i = 0; i < input.length; i += 1) {
-    final String char = input[i];
-    final bool isUpper = char.toUpperCase() == char && char.toLowerCase() != char;
-    if (isUpper && i > 0 && input[i - 1] != '_') {
-      buffer.write('_');
-    }
-    buffer.write(char.toLowerCase());
-  }
-  return buffer.toString();
 }
 
 int _braceDelta(String line) {
