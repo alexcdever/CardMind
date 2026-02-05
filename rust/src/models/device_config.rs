@@ -166,7 +166,7 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_new_device_config() {
+    fn it_should_new_device_config() {
         let config = DeviceConfig::new();
         assert!(config.peer_id.is_none());
         assert!(!config.device_name.is_empty());
@@ -175,7 +175,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_pool() {
+    fn it_should_join_pool() {
         let mut config = DeviceConfig::new();
         let before = config.updated_at;
         std::thread::sleep(std::time::Duration::from_millis(1));
@@ -185,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_pool_with_same_pool() {
+    fn it_should_join_pool_with_same_pool() {
         let mut config = DeviceConfig::new();
         config.join_pool("pool-001").unwrap();
         assert!(config.join_pool("pool-001").is_ok());
@@ -193,7 +193,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cannot_join_multiple_pools() {
+    fn it_should_cannot_join_multiple_pools() {
         let mut config = DeviceConfig::new();
         config.join_pool("pool-001").unwrap();
         let result = config.join_pool("pool-002");
@@ -202,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_joined() {
+    fn it_should_is_joined() {
         let mut config = DeviceConfig::new();
         config.join_pool("pool-001").unwrap();
         assert!(config.is_joined("pool-001"));
@@ -210,7 +210,7 @@ mod tests {
     }
 
     #[test]
-    fn test_leave_pool() {
+    fn it_should_leave_pool() {
         let mut config = DeviceConfig::new();
         config.join_pool("pool-001").unwrap();
         assert!(config.leave_pool("pool-001").is_ok());
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cannot_leave_wrong_pool() {
+    fn it_should_cannot_leave_wrong_pool() {
         let mut config = DeviceConfig::new();
         config.join_pool("pool-001").unwrap();
         let result = config.leave_pool("pool-002");
@@ -227,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn test_save_and_load() {
+    fn it_should_save_and_load() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.json");
         let mut config = DeviceConfig::new();
@@ -242,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_or_create_new() {
+    fn it_should_get_or_create_new() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.json");
         let config = DeviceConfig::get_or_create(&config_path).unwrap();
@@ -250,7 +250,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_or_create_existing() {
+    fn it_should_get_or_create_existing() {
         let temp_dir = TempDir::new().unwrap();
         let config_path = temp_dir.path().join("config.json");
         let mut config1 = DeviceConfig::get_or_create(&config_path).unwrap();

@@ -32,14 +32,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_generate_uuid_v7() {
+    fn it_should_generate_uuid_v7() {
         let id = generate_uuid_v7();
         assert!(is_valid_uuid(&id));
         assert_eq!(id.len(), 36); // UUID format: 8-4-4-4-12
     }
 
     #[test]
-    fn test_uuid_v7_is_time_ordered() {
+    fn it_should_uuid_v7_is_time_ordered() {
         let id1 = generate_uuid_v7();
         std::thread::sleep(std::time::Duration::from_millis(10));
         let id2 = generate_uuid_v7();
@@ -49,7 +49,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_valid_uuid() {
+    fn it_should_is_valid_uuid() {
         assert!(is_valid_uuid("550e8400-e29b-41d4-a716-446655440000"));
         assert!(!is_valid_uuid("not-a-uuid"));
         assert!(!is_valid_uuid(""));

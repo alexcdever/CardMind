@@ -668,13 +668,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pool_store_creation() {
+    fn it_should_pool_store_creation() {
         let store = PoolStore::new_in_memory();
         assert!(store.is_ok(), "应该能创建内存 PoolStore");
     }
 
     #[test]
-    fn test_create_and_get_pool() {
+    fn it_should_create_and_get_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
@@ -691,7 +691,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_pool() {
+    fn it_should_update_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
@@ -708,7 +708,7 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_pool() {
+    fn it_should_delete_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
@@ -724,7 +724,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn test_get_all_pools() {
+    fn it_should_get_all_pools() {
         let store = PoolStore::new_in_memory().unwrap();
 
         // 创建多个数据池
@@ -739,7 +739,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_member() {
+    fn it_should_add_member() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed");
@@ -756,7 +756,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_member() {
+    fn it_should_remove_member() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
@@ -772,7 +772,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_member_name() {
+    fn it_should_update_member_name() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
@@ -790,7 +790,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pool_persistence_loro_serialization() {
+    fn it_should_pool_persistence_loro_serialization() {
         let _store = PoolStore::new_in_memory().unwrap();
 
         // 创建包含成员的数据池
@@ -813,7 +813,7 @@ mod tests {
     }
 
     #[test]
-    fn test_loro_subscription_setup() {
+    fn it_should_loro_subscription_setup() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "测试池", "hashed");
@@ -825,7 +825,7 @@ mod tests {
     }
 
     #[test]
-    fn test_loro_callback_on_change() {
+    fn it_should_loro_callback_on_change() {
         use std::time::Duration;
 
         let store = PoolStore::new_in_memory().unwrap();

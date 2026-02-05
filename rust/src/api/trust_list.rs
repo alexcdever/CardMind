@@ -255,7 +255,7 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_init_and_add_device() {
+    fn it_should_init_and_add_device() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_all_devices() {
+    fn it_should_get_all_devices() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -306,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_device() {
+    fn it_should_remove_device() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -330,7 +330,7 @@ mod tests {
     }
 
     #[test]
-    fn test_update_last_seen() {
+    fn it_should_update_last_seen() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -354,7 +354,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_count() {
+    fn it_should_get_count() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();

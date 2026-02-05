@@ -632,7 +632,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_sync_service_lifecycle() {
+    fn it_should_sync_service_lifecycle() {
         // 注意：这个测试需要先初始化 CardStore 和 DeviceConfig
         cleanup_sync_service();
 
@@ -644,7 +644,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_status_conversion() {
+    fn it_should_sync_status_conversion() {
         let p2p_status = P2PSyncStatus {
             online_devices: 3,
             syncing_devices: 1,
@@ -660,7 +660,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_status_factory_methods() {
+    fn it_should_sync_status_factory_methods() {
         // Test notYetSynced
         let not_yet_synced = SyncStatus::not_yet_synced();
         assert_eq!(not_yet_synced.state, SyncUiState::NotYetSynced);
@@ -684,7 +684,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_state_equality() {
+    fn it_should_sync_state_equality() {
         assert_eq!(SyncUiState::NotYetSynced, SyncUiState::NotYetSynced);
         assert_ne!(SyncUiState::NotYetSynced, SyncUiState::Syncing);
         assert_ne!(SyncUiState::Syncing, SyncUiState::Synced);
@@ -693,7 +693,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_retry_sync_with_no_peers() {
+    async fn it_should_retry_sync_with_no_peers() {
         // 清理并初始化服务
         cleanup_sync_service();
 
@@ -725,7 +725,7 @@ mod tests {
 
     #[tokio::test]
     #[serial]
-    async fn test_get_sync_status_stream_emits_initial_status() {
+    async fn it_should_get_sync_status_stream_emits_initial_status() {
         cleanup_sync_service();
 
         let card_store = Arc::new(Mutex::new(

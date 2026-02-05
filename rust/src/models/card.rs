@@ -133,7 +133,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_card_creation() {
+    fn it_should_card_creation() {
         let card = Card::new(
             "test-id".to_string(),
             "Test Title".to_string(),
@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    fn test_card_update() {
+    fn it_should_card_update() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Old Title".to_string(),
@@ -167,7 +167,7 @@ mod tests {
     }
 
     #[test]
-    fn test_card_soft_delete() {
+    fn it_should_card_soft_delete() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Title".to_string(),
@@ -182,7 +182,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_tag() {
+    fn it_should_add_tag() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Title".to_string(),
@@ -197,7 +197,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_duplicate_tag() {
+    fn it_should_add_duplicate_tag() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Title".to_string(),
@@ -211,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_tag() {
+    fn it_should_remove_tag() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Title".to_string(),
@@ -229,7 +229,7 @@ mod tests {
     }
 
     #[test]
-    fn test_has_tag() {
+    fn it_should_has_tag() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Title".to_string(),
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_tags() {
+    fn it_should_get_tags() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Title".to_string(),
@@ -263,7 +263,7 @@ mod tests {
     }
 
     #[test]
-    fn test_clear_tags() {
+    fn it_should_clear_tags() {
         let mut card = Card::new(
             "test-id".to_string(),
             "Title".to_string(),

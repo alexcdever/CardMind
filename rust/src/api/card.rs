@@ -356,20 +356,20 @@ mod tests {
     }
 
     #[test]
-    fn test_hello_cardmind() {
+    fn it_should_hello_cardmind() {
         let result = hello_cardmind();
         assert!(result.contains("CardMind"));
     }
 
     #[test]
-    fn test_add_numbers() {
+    fn it_should_add_numbers() {
         assert_eq!(add_numbers(2, 3), 5);
         assert_eq!(add_numbers(-1, 1), 0);
     }
 
     #[test]
     #[serial]
-    fn test_init_card_store() {
+    fn it_should_init_card_store() {
         let temp_dir = TempDir::new().unwrap();
         let path = temp_dir.path().to_str().unwrap().to_string();
 
@@ -381,7 +381,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_create_card_api() {
+    fn it_should_create_card_api() {
         let _temp = init_test_store();
 
         let result = create_card("Test Title".to_string(), "Test Content".to_string());
@@ -397,7 +397,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_all_cards_api() {
+    fn it_should_get_all_cards_api() {
         let _temp = init_test_store();
 
         // Create some cards
@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_active_cards_api() {
+    fn it_should_get_active_cards_api() {
         let _temp = init_test_store();
 
         let card1 = create_card("Card 1".to_string(), "Content 1".to_string()).unwrap();
@@ -435,7 +435,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_card_by_id_api() {
+    fn it_should_get_card_by_id_api() {
         let _temp = init_test_store();
 
         let card = create_card("Test".to_string(), "Content".to_string()).unwrap();
@@ -452,7 +452,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_update_card_api() {
+    fn it_should_update_card_api() {
         let _temp = init_test_store();
 
         let card = create_card("Old Title".to_string(), "Old Content".to_string()).unwrap();
@@ -470,7 +470,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_delete_card_api() {
+    fn it_should_delete_card_api() {
         let _temp = init_test_store();
 
         let card = create_card("Test".to_string(), "Content".to_string()).unwrap();
@@ -487,7 +487,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_card_count_api() {
+    fn it_should_get_card_count_api() {
         let _temp = init_test_store();
 
         let card1 = create_card("Card 1".to_string(), "Content 1".to_string()).unwrap();
@@ -509,7 +509,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_api_without_init_fails() {
+    fn it_should_api_without_init_fails() {
         cleanup_store(); // Ensure no store is initialized
 
         let result = create_card("Test".to_string(), "Content".to_string());

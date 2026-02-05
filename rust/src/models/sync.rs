@@ -199,7 +199,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sync_state_creation() {
+    fn it_should_sync_state_creation() {
         let sync_state = SyncState::new("device-001");
         assert_eq!(sync_state.device_id, "device-001");
         assert_eq!(sync_state.last_sync, 0);
@@ -207,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_state_update() {
+    fn it_should_sync_state_update() {
         let mut sync_state = SyncState::new("device-001");
         let mut new_versions = HashMap::new();
         new_versions.insert("peer-001".to_string(), 42u64);
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_state_update_merge() {
+    fn it_should_sync_state_update_merge() {
         let mut sync_state = SyncState::new("device-001");
         sync_state
             .version_vector
@@ -238,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn test_needs_sync_true() {
+    fn it_should_needs_sync_true() {
         let mut sync_state = SyncState::new("device-001");
         sync_state
             .version_vector
@@ -251,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn test_needs_sync_false() {
+    fn it_should_needs_sync_false() {
         let mut sync_state = SyncState::new("device-001");
         sync_state
             .version_vector
@@ -264,7 +264,7 @@ mod tests {
     }
 
     #[test]
-    fn test_needs_sync_equal() {
+    fn it_should_needs_sync_equal() {
         let mut sync_state = SyncState::new("device-001");
         sync_state
             .version_vector
@@ -277,14 +277,14 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_op_variants() {
+    fn it_should_sync_op_variants() {
         assert_eq!(SyncOp::Push, SyncOp::Push);
         assert_eq!(SyncOp::Pull, SyncOp::Pull);
         assert_eq!(SyncOp::Bidirectional, SyncOp::Bidirectional);
     }
 
     #[test]
-    fn test_conflict_resolution_variants() {
+    fn it_should_conflict_resolution_variants() {
         assert_eq!(
             ConflictResolution::LastWriteWins,
             ConflictResolution::LastWriteWins
@@ -294,12 +294,12 @@ mod tests {
     }
 
     #[test]
-    fn test_conflict_resolution_default() {
+    fn it_should_conflict_resolution_default() {
         assert_eq!(ConflictResolution::default(), ConflictResolution::Merge);
     }
 
     #[test]
-    fn test_sync_state_serialization() {
+    fn it_should_sync_state_serialization() {
         let mut sync_state = SyncState::new("device-001");
         sync_state
             .version_vector

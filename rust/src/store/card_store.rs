@@ -650,13 +650,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_card_store_creation() {
+    fn it_should_card_store_creation() {
         let store = CardStore::new_in_memory();
         assert!(store.is_ok(), "应该能创建CardStore");
     }
 
     #[test]
-    fn test_create_and_get_card() {
+    fn it_should_create_and_get_card() {
         let mut store = CardStore::new_in_memory().unwrap();
 
         let card = store

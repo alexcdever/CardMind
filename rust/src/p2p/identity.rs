@@ -205,7 +205,7 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
-    fn test_generate_and_load_keypair() {
+    fn it_should_generate_and_load_keypair() {
         let temp_dir = TempDir::new().unwrap();
         let manager = IdentityManager::new(temp_dir.path());
 
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_peer_id() {
+    fn it_should_get_peer_id() {
         let temp_dir = TempDir::new().unwrap();
         let manager = IdentityManager::new(temp_dir.path());
 
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_keypair() {
+    fn it_should_delete_keypair() {
         let temp_dir = TempDir::new().unwrap();
         let manager = IdentityManager::new(temp_dir.path());
 
@@ -244,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keypair_persistence() {
+    fn it_should_keypair_persistence() {
         let temp_dir = TempDir::new().unwrap();
         let manager1 = IdentityManager::new(temp_dir.path());
 
@@ -262,7 +262,7 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn test_file_permissions() {
+    fn it_should_file_permissions() {
         use std::os::unix::fs::PermissionsExt;
 
         let temp_dir = TempDir::new().unwrap();
