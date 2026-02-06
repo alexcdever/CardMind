@@ -10,20 +10,14 @@ void main() {
     WidgetTester tester,
   ) async {
     setScreenSize(tester, const Size(1200, 900));
-    await tester.pumpWidget(
-      const MaterialApp(home: PoolCreateScreen()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: PoolCreateScreen()));
 
     expect(find.text('创建数据池'), findsOneWidget);
   });
 
-  testWidgets('it_should_render_pool_join_screen', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('it_should_render_pool_join_screen', (WidgetTester tester) async {
     setScreenSize(tester, const Size(1200, 900));
-    await tester.pumpWidget(
-      const MaterialApp(home: PoolJoinScreen()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: PoolJoinScreen()));
 
     expect(find.text('加入数据池'), findsOneWidget);
   });

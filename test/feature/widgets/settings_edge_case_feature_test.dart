@@ -13,7 +13,9 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('it_should_WT-036: Handle null sync notification value', (tester) async {
+    testWidgets('it_should_WT-036: Handle null sync notification value', (
+      tester,
+    ) async {
       // Test with missing key in SharedPreferences
       SharedPreferences.setMockInitialValues({});
 
@@ -24,7 +26,9 @@ void main() {
       expect(provider.syncNotificationEnabled, true);
     });
 
-    testWidgets('it_should_WT-037: Handle null dark mode value', (tester) async {
+    testWidgets('it_should_WT-037: Handle null dark mode value', (
+      tester,
+    ) async {
       // Test with missing key in SharedPreferences
       SharedPreferences.setMockInitialValues({});
 
@@ -45,7 +49,9 @@ void main() {
       expect(find.text('Dark Mode'), findsOneWidget);
     });
 
-    testWidgets('it_should_WT-038: Handle file size > 100MB (simulated)', (tester) async {
+    testWidgets('it_should_WT-038: Handle file size > 100MB (simulated)', (
+      tester,
+    ) async {
       // This would be tested in integration tests with actual file operations
       // Here we just verify the UI handles the error message
 
@@ -104,7 +110,9 @@ void main() {
       expect(find.textContaining('Invalid backup file'), findsOneWidget);
     });
 
-    testWidgets('it_should_WT-040: Handle file permission denied', (tester) async {
+    testWidgets('it_should_WT-040: Handle file permission denied', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -158,7 +166,9 @@ void main() {
       expect(find.text('成功导入 0 张卡片'), findsOneWidget);
     });
 
-    testWidgets('it_should_WT-042: Handle settings load timeout', (tester) async {
+    testWidgets('it_should_WT-042: Handle settings load timeout', (
+      tester,
+    ) async {
       // Simulate timeout by testing with default values
       final provider = SettingsProvider();
       // Don't call initialize to simulate timeout
@@ -167,7 +177,9 @@ void main() {
       expect(provider.syncNotificationEnabled, true);
     });
 
-    testWidgets('it_should_WT-043: Handle settings save failure', (tester) async {
+    testWidgets('it_should_WT-043: Handle settings save failure', (
+      tester,
+    ) async {
       final provider = SettingsProvider();
       await provider.initialize();
 
@@ -178,7 +190,9 @@ void main() {
       expect(provider.syncNotificationEnabled, false);
     });
 
-    testWidgets('it_should_WT-044: Handle corrupted settings data', (tester) async {
+    testWidgets('it_should_WT-044: Handle corrupted settings data', (
+      tester,
+    ) async {
       // Test with invalid data type
       SharedPreferences.setMockInitialValues({
         'sync_notification_enabled': 'invalid_string',
@@ -200,7 +214,9 @@ void main() {
       expect(provider.appInfo.version, isNotEmpty);
     });
 
-    testWidgets('it_should_WT-046: Handle empty contributors list', (tester) async {
+    testWidgets('it_should_WT-046: Handle empty contributors list', (
+      tester,
+    ) async {
       final provider = AppInfoProvider();
       const emptyInfo = AppInfo(
         version: '1.0.0',
@@ -258,7 +274,9 @@ void main() {
       expect(provider.appInfo.changelog.length, 100);
     });
 
-    testWidgets('it_should_WT-049: Handle button disabled state', (tester) async {
+    testWidgets('it_should_WT-049: Handle button disabled state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -277,7 +295,9 @@ void main() {
       expect(listTile.onTap, null); // But onTap is null
     });
 
-    testWidgets('it_should_WT-050: Handle toggle disabled state', (tester) async {
+    testWidgets('it_should_WT-050: Handle toggle disabled state', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

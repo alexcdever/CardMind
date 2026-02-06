@@ -6,7 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Settings Components Rendering Tests', () {
-    testWidgets('it_should_WT-001: ToggleSettingItem renders correctly', (tester) async {
+    testWidgets('it_should_WT-001: ToggleSettingItem renders correctly', (
+      tester,
+    ) async {
       bool value = true;
 
       await tester.pumpWidget(
@@ -31,7 +33,9 @@ void main() {
       expect(find.byType(Switch), findsOneWidget);
     });
 
-    testWidgets('it_should_WT-002: ButtonSettingItem renders correctly', (tester) async {
+    testWidgets('it_should_WT-002: ButtonSettingItem renders correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -72,7 +76,9 @@ void main() {
       expect(find.byIcon(Icons.chevron_right), findsNothing);
     });
 
-    testWidgets('it_should_WT-004: InfoSettingItem renders correctly', (tester) async {
+    testWidgets('it_should_WT-004: InfoSettingItem renders correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -90,7 +96,9 @@ void main() {
       expect(find.byIcon(Icons.info), findsOneWidget);
     });
 
-    testWidgets('it_should_WT-005: ToggleSettingItem can be toggled', (tester) async {
+    testWidgets('it_should_WT-005: ToggleSettingItem can be toggled', (
+      tester,
+    ) async {
       bool value = false;
 
       await tester.pumpWidget(
@@ -127,7 +135,9 @@ void main() {
       expect(updatedSwitch.value, true);
     });
 
-    testWidgets('it_should_WT-006: ButtonSettingItem can be tapped', (tester) async {
+    testWidgets('it_should_WT-006: ButtonSettingItem can be tapped', (
+      tester,
+    ) async {
       bool tapped = false;
 
       await tester.pumpWidget(

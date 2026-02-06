@@ -18,9 +18,7 @@ bridge.Card _createCard() {
 }
 
 void main() {
-  testWidgets('it_should_render_card_list_item', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('it_should_render_card_list_item', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(body: CardListItem(card: _createCard())),

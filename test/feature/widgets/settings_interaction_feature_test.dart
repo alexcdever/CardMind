@@ -14,45 +14,48 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('it_should_WT-016: Tap sync notification switch toggles state', (
-      tester,
-    ) async {
-      final provider = SettingsProvider();
-      await provider.initialize();
+    testWidgets(
+      'it_should_WT-016: Tap sync notification switch toggles state',
+      (tester) async {
+        final provider = SettingsProvider();
+        await provider.initialize();
 
-      await tester.pumpWidget(
-        ChangeNotifierProvider.value(
-          value: provider,
-          child: MaterialApp(
-            home: Scaffold(
-              body: Consumer<SettingsProvider>(
-                builder: (context, settings, _) {
-                  return ToggleSettingItem(
-                    icon: Icons.notifications,
-                    label: 'Sync Notifications',
-                    value: settings.syncNotificationEnabled,
-                    onChanged: (value) =>
-                        settings.setSyncNotificationEnabled(value),
-                  );
-                },
+        await tester.pumpWidget(
+          ChangeNotifierProvider.value(
+            value: provider,
+            child: MaterialApp(
+              home: Scaffold(
+                body: Consumer<SettingsProvider>(
+                  builder: (context, settings, _) {
+                    return ToggleSettingItem(
+                      icon: Icons.notifications,
+                      label: 'Sync Notifications',
+                      value: settings.syncNotificationEnabled,
+                      onChanged: (value) =>
+                          settings.setSyncNotificationEnabled(value),
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      // Initial state should be true
-      expect(provider.syncNotificationEnabled, true);
+        // Initial state should be true
+        expect(provider.syncNotificationEnabled, true);
 
-      // Tap the switch
-      await tester.tap(find.byType(Switch));
-      await tester.pumpAndSettle();
+        // Tap the switch
+        await tester.tap(find.byType(Switch));
+        await tester.pumpAndSettle();
 
-      // State should be toggled
-      expect(provider.syncNotificationEnabled, false);
-    });
+        // State should be toggled
+        expect(provider.syncNotificationEnabled, false);
+      },
+    );
 
-    testWidgets('it_should_WT-017: Tap dark mode switch toggles state', (tester) async {
+    testWidgets('it_should_WT-017: Tap dark mode switch toggles state', (
+      tester,
+    ) async {
       final provider = ThemeProvider();
       await provider.initialize();
 
@@ -89,7 +92,9 @@ void main() {
       expect(provider.isDarkMode, true);
     });
 
-    testWidgets('it_should_WT-018: Tap export button shows dialog', (tester) async {
+    testWidgets('it_should_WT-018: Tap export button shows dialog', (
+      tester,
+    ) async {
       bool dialogShown = false;
 
       await tester.pumpWidget(
@@ -152,7 +157,9 @@ void main() {
       expect(find.text('Export confirmed'), findsOneWidget);
     });
 
-    testWidgets('it_should_WT-021: Cancel export closes dialog', (tester) async {
+    testWidgets('it_should_WT-021: Cancel export closes dialog', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -190,46 +197,47 @@ void main() {
       expect(find.text('Export cancelled'), findsOneWidget);
     });
 
-    testWidgets('it_should_WT-030: Switch toggle shows success (no toast in test)', (
-      tester,
-    ) async {
-      final provider = SettingsProvider();
-      await provider.initialize();
+    testWidgets(
+      'it_should_WT-030: Switch toggle shows success (no toast in test)',
+      (tester) async {
+        final provider = SettingsProvider();
+        await provider.initialize();
 
-      await tester.pumpWidget(
-        ChangeNotifierProvider.value(
-          value: provider,
-          child: MaterialApp(
-            home: Scaffold(
-              body: Consumer<SettingsProvider>(
-                builder: (context, settings, _) {
-                  return ToggleSettingItem(
-                    icon: Icons.notifications,
-                    label: 'Sync Notifications',
-                    value: settings.syncNotificationEnabled,
-                    onChanged: (value) async {
-                      await settings.setSyncNotificationEnabled(value);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Setting updated')),
-                        );
-                      }
-                    },
-                  );
-                },
+        await tester.pumpWidget(
+          ChangeNotifierProvider.value(
+            value: provider,
+            child: MaterialApp(
+              home: Scaffold(
+                body: Consumer<SettingsProvider>(
+                  builder: (context, settings, _) {
+                    return ToggleSettingItem(
+                      icon: Icons.notifications,
+                      label: 'Sync Notifications',
+                      value: settings.syncNotificationEnabled,
+                      onChanged: (value) async {
+                        await settings.setSyncNotificationEnabled(value);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Setting updated')),
+                          );
+                        }
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      // Tap the switch
-      await tester.tap(find.byType(Switch));
-      await tester.pumpAndSettle();
+        // Tap the switch
+        await tester.tap(find.byType(Switch));
+        await tester.pumpAndSettle();
 
-      // Verify snackbar is shown
-      expect(find.text('Setting updated'), findsOneWidget);
-    });
+        // Verify snackbar is shown
+        expect(find.text('Setting updated'), findsOneWidget);
+      },
+    );
 
     testWidgets('it_should_WT-031: Switch failure shows error and reverts', (
       tester,

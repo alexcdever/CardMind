@@ -290,7 +290,9 @@ void main() {
       expect(find.text('1.0.0'), findsOneWidget);
     });
 
-    testWidgets('it_should_AT-017: Button is tappable', (WidgetTester tester) async {
+    testWidgets('it_should_AT-017: Button is tappable', (
+      WidgetTester tester,
+    ) async {
       bool tapped = false;
 
       await tester.pumpWidget(
@@ -314,7 +316,9 @@ void main() {
       expect(tapped, isTrue, reason: 'Button should be tappable');
     });
 
-    testWidgets('it_should_AT-018: Toggle is switchable', (WidgetTester tester) async {
+    testWidgets('it_should_AT-018: Toggle is switchable', (
+      WidgetTester tester,
+    ) async {
       bool value = false;
 
       await tester.pumpWidget(

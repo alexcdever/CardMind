@@ -28,7 +28,10 @@ void main() {
     cardService.addCard(card);
 
     await tester.pumpWidget(
-      TestApp(child: CardDetailScreen(cardId: card.id), cardService: cardService),
+      TestApp(
+        cardService: cardService,
+        child: CardDetailScreen(cardId: card.id),
+      ),
     );
     await tester.pumpAndSettle();
 
