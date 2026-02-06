@@ -96,6 +96,74 @@ void main() {
       expect(restored.status, original.status);
       expect(restored.multiaddrs, original.multiaddrs);
     });
+
+    test('it_should_fromJson_fallbacks_for_invalid_type_and_status', () {
+      final json = {
+        'id': '12D3KooWInvalid',
+        'name': 'Invalid Device',
+        'type': 'invalid-type',
+        'status': 'invalid-status',
+        'lastSeen': DateTime(2024, 1, 1, 12, 0, 0).millisecondsSinceEpoch,
+      };
+
+      final device = Device.fromJson(json);
+
+      expect(device.type, DeviceType.laptop);
+      expect(device.status, DeviceStatus.offline);
+    });
+
+    test('it_should_isOnline_reflects_status', () {
+      final onlineDevice = Device(
+        id: 'peer-1',
+        name: 'Online',
+        type: DeviceType.phone,
+        status: DeviceStatus.online,
+        lastSeen: DateTime.now(),
+      );
+      final offlineDevice = Device(
+        id: 'peer-2',
+        name: 'Offline',
+        type: DeviceType.tablet,
+        status: DeviceStatus.offline,
+        lastSeen: DateTime.now(),
+      );
+
+      expect(onlineDevice.isOnline, isTrue);
+      expect(offlineDevice.isOnline, isFalse);
+    });
+
+    test('it_should_copyWith_keeps_original_values_when_null', () {
+      final original = Device(
+        id: 'peer-1',
+        name: 'Original',
+        type: DeviceType.laptop,
+        status: DeviceStatus.offline,
+        lastSeen: DateTime(2024, 1, 1, 12, 0, 0),
+      );
+
+      final updated = original.copyWith();
+
+      expect(updated.id, original.id);
+      expect(updated.name, original.name);
+      expect(updated.type, original.type);
+      expect(updated.status, original.status);
+      expect(updated.lastSeen, original.lastSeen);
+    });
+
+    test('it_should_toJson_preserves_last_seen_millis', () {
+      final lastSeen = DateTime(2024, 1, 1, 12, 0, 0);
+      final device = Device(
+        id: 'peer-1',
+        name: 'Device',
+        type: DeviceType.laptop,
+        status: DeviceStatus.online,
+        lastSeen: lastSeen,
+      );
+
+      final json = device.toJson();
+
+      expect(json['lastSeen'], lastSeen.millisecondsSinceEpoch);
+    });
   });
 
   group('PeerIdValidator Tests', () {
