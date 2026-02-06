@@ -164,12 +164,15 @@ void main() {
         expect(SyncDialogFormatters.formatEllipsis('Hello', 10), 'Hello');
       });
 
-      test('it_should_truncates and adds ellipsis if longer than max length', () {
-        expect(
-          SyncDialogFormatters.formatEllipsis('Hello World', 5),
-          'Hello...',
-        );
-      });
+      test(
+        'it_should_truncates and adds ellipsis if longer than max length',
+        () {
+          expect(
+            SyncDialogFormatters.formatEllipsis('Hello World', 5),
+            'Hello...',
+          );
+        },
+      );
 
       test('it_should_handles exact length', () {
         expect(SyncDialogFormatters.formatEllipsis('Hello', 5), 'Hello');

@@ -12,9 +12,7 @@ void main() {
     PlatformDetector.debugOverridePlatform = null;
   });
 
-  testWidgets('it_should_render_mobile_fab', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('it_should_render_mobile_fab', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

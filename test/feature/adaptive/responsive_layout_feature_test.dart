@@ -56,69 +56,71 @@ void main() {
       expect(find.text('Mobile'), findsNothing);
     });
 
-    testWidgets('it_should_should switch from mobile to desktop at breakpoint', (
-      WidgetTester tester,
-    ) async {
-      // Start with mobile size
-      tester.view.physicalSize = const Size(800, 600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'it_should_should switch from mobile to desktop at breakpoint',
+      (WidgetTester tester) async {
+        // Start with mobile size
+        tester.view.physicalSize = const Size(800, 600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                final isMobile = MediaQuery.of(context).size.width < 1024;
-                return Center(child: Text(isMobile ? 'Mobile' : 'Desktop'));
-              },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  final isMobile = MediaQuery.of(context).size.width < 1024;
+                  return Center(child: Text(isMobile ? 'Mobile' : 'Desktop'));
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Mobile'), findsOneWidget);
+        expect(find.text('Mobile'), findsOneWidget);
 
-      // Resize to desktop
-      tester.view.physicalSize = const Size(1280, 720);
-      await tester.pumpAndSettle();
+        // Resize to desktop
+        tester.view.physicalSize = const Size(1280, 720);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Desktop'), findsOneWidget);
-      expect(find.text('Mobile'), findsNothing);
-    });
+        expect(find.text('Desktop'), findsOneWidget);
+        expect(find.text('Mobile'), findsNothing);
+      },
+    );
 
-    testWidgets('it_should_should switch from desktop to mobile at breakpoint', (
-      WidgetTester tester,
-    ) async {
-      // Start with desktop size
-      tester.view.physicalSize = const Size(1280, 720);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'it_should_should switch from desktop to mobile at breakpoint',
+      (WidgetTester tester) async {
+        // Start with desktop size
+        tester.view.physicalSize = const Size(1280, 720);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                final isMobile = MediaQuery.of(context).size.width < 1024;
-                return Center(child: Text(isMobile ? 'Mobile' : 'Desktop'));
-              },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  final isMobile = MediaQuery.of(context).size.width < 1024;
+                  return Center(child: Text(isMobile ? 'Mobile' : 'Desktop'));
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Desktop'), findsOneWidget);
+        expect(find.text('Desktop'), findsOneWidget);
 
-      // Resize to mobile
-      tester.view.physicalSize = const Size(800, 600);
-      await tester.pumpAndSettle();
+        // Resize to mobile
+        tester.view.physicalSize = const Size(800, 600);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Mobile'), findsOneWidget);
-      expect(find.text('Desktop'), findsNothing);
-    });
+        expect(find.text('Mobile'), findsOneWidget);
+        expect(find.text('Desktop'), findsNothing);
+      },
+    );
 
     testWidgets('it_should_should handle exact breakpoint (1024px)', (
       WidgetTester tester,

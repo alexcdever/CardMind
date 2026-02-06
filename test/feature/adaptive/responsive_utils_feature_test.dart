@@ -12,7 +12,9 @@ void main() {
   });
 
   group('ResponsiveUtils', () {
-    testWidgets('it_should_should detect window width correctly', (tester) async {
+    testWidgets('it_should_should detect window width correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -26,7 +28,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should detect window height correctly', (tester) async {
+    testWidgets('it_should_should detect window height correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -40,7 +44,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should detect layout collapse correctly', (tester) async {
+    testWidgets('it_should_should detect layout collapse correctly', (
+      tester,
+    ) async {
       // Test with default size (800x600) - should not collapse
       await tester.pumpWidget(
         MaterialApp(
@@ -57,7 +63,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should detect minimum desktop size correctly', (tester) async {
+    testWidgets('it_should_should detect minimum desktop size correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -73,7 +81,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should detect orientation correctly', (tester) async {
+    testWidgets('it_should_should detect orientation correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -90,7 +100,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should detect keyboard visibility correctly', (tester) async {
+    testWidgets('it_should_should detect keyboard visibility correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -106,7 +118,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should get keyboard height correctly', (tester) async {
+    testWidgets('it_should_should get keyboard height correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -120,7 +134,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should get safe area insets correctly', (tester) async {
+    testWidgets('it_should_should get safe area insets correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -136,7 +152,9 @@ void main() {
   });
 
   group('ResponsiveUtils - Different Window Sizes', () {
-    testWidgets('it_should_should collapse layout for narrow windows', (tester) async {
+    testWidgets('it_should_should collapse layout for narrow windows', (
+      tester,
+    ) async {
       // Set window size to 900x600 (< 1024px)
       tester.view.physicalSize = const Size(900, 600);
       tester.view.devicePixelRatio = 1.0;
@@ -158,7 +176,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_should not collapse layout for wide windows', (tester) async {
+    testWidgets('it_should_should not collapse layout for wide windows', (
+      tester,
+    ) async {
       // Set window size to 1200x800 (>= 1024px)
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;

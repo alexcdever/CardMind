@@ -18,9 +18,7 @@ bridge.Card _createCard() {
 }
 
 void main() {
-  testWidgets('it_should_render_note_card_editor', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('it_should_render_note_card_editor', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: NoteEditorDialog(

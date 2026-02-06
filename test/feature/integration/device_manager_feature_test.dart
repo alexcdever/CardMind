@@ -34,7 +34,9 @@ void main() {
       expect(find.byIcon(Icons.smartphone), findsOneWidget);
     });
 
-    testWidgets('it_should_should rename current device', (WidgetTester tester) async {
+    testWidgets('it_should_should rename current device', (
+      WidgetTester tester,
+    ) async {
       String? newName;
       final currentDevice = DeviceInfo(
         id: 'device-1',
@@ -178,7 +180,9 @@ void main() {
       expect(find.byIcon(Icons.circle_outlined), findsOneWidget);
     });
 
-    testWidgets('it_should_should open add device dialog', (WidgetTester tester) async {
+    testWidgets('it_should_should open add device dialog', (
+      WidgetTester tester,
+    ) async {
       final currentDevice = DeviceInfo(
         id: 'device-1',
         name: 'My Phone',
@@ -213,7 +217,9 @@ void main() {
       expect(find.text('局域网发现'), findsOneWidget);
     });
 
-    testWidgets('it_should_should remove paired device', (WidgetTester tester) async {
+    testWidgets('it_should_should remove paired device', (
+      WidgetTester tester,
+    ) async {
       String? removedDeviceId;
       final currentDevice = DeviceInfo(
         id: 'device-1',

@@ -117,7 +117,9 @@ void main() {
   });
 
   group('AdaptiveTypographyExtension', () {
-    testWidgets('it_should_should provide context extension methods', (tester) async {
+    testWidgets('it_should_should provide context extension methods', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -201,7 +203,9 @@ void main() {
       );
     });
 
-    testWidgets('it_should_font size differences should be appropriate', (tester) async {
+    testWidgets('it_should_font size differences should be appropriate', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(

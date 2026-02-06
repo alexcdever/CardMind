@@ -5,9 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('it_should_render_sync_screen', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('it_should_render_sync_screen', (WidgetTester tester) async {
     await tester.pumpWidget(
       ChangeNotifierProvider<SyncProvider>(
         create: (_) => TestSyncProvider(),
