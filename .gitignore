@@ -31,9 +31,6 @@ rust/src/frb_generated.rs
 *.so
 *.dylib
 *.dll
-rust/fuzz/target/
-rust/fuzz/corpus/
-rust/fuzz/artifacts/
 
 # Rust 额外的构建文件
 **/*.rs.bk
