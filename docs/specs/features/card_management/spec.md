@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `test/features/card_management_test.dart`
+**相关测试**: `test/feature/features/card_management_feature_test.dart`
 
 ---
 
@@ -347,7 +347,7 @@ function shareCard(card):
 
 ## 测试覆盖
 
-**测试文件**: `test/features/card_management_test.dart`
+**测试文件**: `test/feature/features/card_management_feature_test.dart`
 
 **单元测试**:
 - `test_create_card_with_title_and_content()` - 创建卡片

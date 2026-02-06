@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/widgets/sync_status_indicator_test.dart`
+**相关测试**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 ---
 
@@ -87,7 +87,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/sync_status_indicator_test.dart`
+**测试文件**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 **组件测试**:
 - `it_should_show_synced_status()` - 显示已同步状态
@@ -100,7 +100,7 @@
 - `it_should_animate_state_transitions()` - 状态过渡动画
 
 **验收标准**:
-- [ ] 所有 Widget 测试通过
+- [ ] 所有功能测试（Widget）通过
 - [ ] 可视状态清晰可辨
 - [ ] 状态更新快速响应状态变化
 - [ ] 代码审查通过

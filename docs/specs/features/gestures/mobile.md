@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/gestures/mobile_gestures_test.dart`
+**相关测试**: `test/feature/widgets/mobile_gestures_feature_test.dart`
 
 ---
 
@@ -232,7 +232,7 @@ structure PullToRefresh:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/gestures/mobile_gestures_test.dart`
+**测试文件**: `test/feature/widgets/mobile_gestures_feature_test.dart`
 
 **单元测试**:
 - `test_swipe_left_shows_delete()` - 测试左滑显示删除
@@ -246,7 +246,7 @@ structure PullToRefresh:
 - `test_refresh_completes_quickly()` - 测试刷新快速完成
 - `test_haptic_feedback()` - 测试触觉反馈
 
-**集成测试**:
+**功能测试**:
 - `test_swipe_gesture_flow()` - 测试滑动手势流程
 - `test_long_press_menu_flow()` - 测试长按菜单流程
 - `test_pull_to_refresh_flow()` - 测试下拉刷新流程

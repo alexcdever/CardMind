@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md)
-**相关测试**: `rust/tests/card_store_test.rs`
+**相关测试**: `rust/tests/card_store_feature_test.rs`
 
 ---
 
@@ -361,7 +361,7 @@ function clear_sqlite_database():
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/card_store_test.rs`
+**测试文件**: `rust/tests/card_store_feature_test.rs`
 
 **单元测试**:
 - `it_creates_card_and_auto_adds_to_current_pool()` - 创建卡片自动加入池
@@ -375,13 +375,13 @@ function clear_sqlite_database():
 - `it_should_update_bindings_on_pool_change()` - 更新绑定
 - `it_should_clear_old_bindings_when_pool_changes()` - 清除旧绑定
 
-**集成测试**:
+**功能测试**:
 - 创建卡片自动加入当前池
 - 移除操作跨设备传播
 - 退出池完整流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 集成测试通过
+- [ ] 功能测试通过
 - [ ] 代码审查通过
 - [ ] 文档已更新

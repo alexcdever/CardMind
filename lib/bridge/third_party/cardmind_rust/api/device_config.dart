@@ -42,6 +42,14 @@ Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
 Future<DeviceConfig> getDeviceConfig() =>
     RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceConfig();
 
+/// Get current device name
+Future<String> getDeviceName() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceName();
+
+/// Set device name
+Future<void> setDeviceName({required String name}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigSetDeviceName(name: name);
+
 /// Join a data pool
 ///
 /// Adds the pool ID to the joined_pools list.

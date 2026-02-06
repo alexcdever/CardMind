@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/widgets/device_manager_panel_test.dart`
+**相关测试**: `test/feature/widgets/device_manager_panel_feature_test.dart`
 
 ---
 
@@ -197,7 +197,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/device_manager_panel_test.dart`
+**测试文件**: `test/feature/widgets/device_manager_panel_feature_test.dart`
 
 **单元测试（8 个）**:
 - Device 模型创建
@@ -209,7 +209,7 @@
 - 时间格式化
 - 设备名称验证
 
-**Widget 测试（45 个）**:
+**功能测试（Widget，45 个）**:
 - `it_should_render_page_basic()` - 基础渲染
 - `it_should_show_not_in_pool_state()` - 未加入池状态
 - `it_should_show_current_device_card()` - 当前设备
@@ -240,7 +240,7 @@
 - 以及其他交互/边界测试（共 45 个）
 
 **验收标准**:
-- [ ] 所有 53 个测试通过（8 个单元测试 + 45 个 Widget 测试）
+- [ ] 所有 53 个测试通过（8 个单元测试 + 45 个功能测试（Widget））
 - [ ] 设备名称编辑正常工作
 - [ ] 二维码配对流程流畅（移动端和桌面端）
 - [ ] 验证码验证正常工作

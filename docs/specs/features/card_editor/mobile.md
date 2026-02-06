@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/card_editor/mobile_card_editor_test.dart`
+**相关测试**: `test/feature/features/mobile_card_editor_feature_test.dart`
 
 ---
 
@@ -267,7 +267,7 @@ structure TouchOptimization:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_editor/mobile_card_editor_test.dart`
+**测试文件**: `test/feature/features/mobile_card_editor_feature_test.dart`
 
 **单元测试**:
 - `test_fullscreen_editor_opens()` - 测试全屏编辑器打开
@@ -280,7 +280,7 @@ structure TouchOptimization:
 - `test_keyboard_layout_adjustment()` - 测试键盘布局调整
 - `test_scroll_to_focused_field()` - 测试滚动到聚焦字段
 
-**集成测试**:
+**功能测试**:
 - `test_mobile_editor_workflow()` - 测试移动端编辑器完整流程
 - `test_gesture_interactions()` - 测试手势交互
 - `test_keyboard_interactions()` - 测试键盘交互

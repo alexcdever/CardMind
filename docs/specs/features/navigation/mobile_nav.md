@@ -2,7 +2,7 @@
 
 **状态**: 草稿
 **依赖**: 无
-**相关测试**: `flutter/test/features/navigation/mobile_nav_test.dart`
+**相关测试**: `test/feature/widgets/mobile_nav_feature_test.dart`
 
 ---
 
@@ -192,7 +192,7 @@ structure MobileNav:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/navigation/mobile_nav_test.dart`
+**测试文件**: `test/feature/widgets/mobile_nav_feature_test.dart`
 
 **单元测试**:
 - `test_render_navigation_bar()` - 测试渲染导航栏
@@ -210,7 +210,7 @@ structure MobileNav:
 - `test_large_count()` - 测试超大数字
 - `test_safe_area_layout()` - 测试 SafeArea 布局
 
-**集成测试**:
+**功能测试**:
 - `test_navigation_workflow()` - 测试导航完整流程
 - `test_badge_real_time_update()` - 测试徽章实时更新
 

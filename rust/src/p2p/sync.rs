@@ -223,7 +223,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sync_message_serialization() {
+    fn it_should_sync_message_serialization() {
         let request = SyncMessage::SyncRequest(SyncRequest {
             pool_id: "pool-001".to_string(),
             pool_hash: "pool-hash-001".to_string(),
@@ -247,7 +247,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_error_creation() {
+    fn it_should_sync_error_creation() {
         let error = SyncError {
             code: SyncErrorCode::NotAuthorized,
             message: "设备未加入数据池".to_string(),

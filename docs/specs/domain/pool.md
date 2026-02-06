@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [types.md](types.md), [../architecture/storage/device_config.md](../architecture/storage/device_config.md)
-**相关测试**: `rust/tests/pool_model_test.rs`
+**相关测试**: `rust/tests/pool_model_feature_test.rs`
 
 ---
 
@@ -605,7 +605,7 @@ pub struct DeviceConfig {
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/pool_model_test.rs`
+**测试文件**: `rust/tests/pool_model_feature_test.rs`
 
 **单元测试**:
 - `test_join_first_pool()` - 成功加入第一个池
@@ -619,7 +619,7 @@ pub struct DeviceConfig {
 - `test_pool_not_found()` - 池不存在错误处理
 - `test_device_removed_from_pool()` - 设备被移除错误处理
 
-**集成测试**:
+**功能测试**:
 - `test_pool_lifecycle()` - 完整池生命周期
 - `test_multi_device_pool()` - 多设备池场景
 - `test_concurrent_join_attempts()` - 并发加入尝试

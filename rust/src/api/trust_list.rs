@@ -252,10 +252,12 @@ pub fn get_trusted_device_count() -> Result<i32, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::TempDir;
 
     #[test]
-    fn test_init_and_add_device() {
+    #[serial]
+    fn it_should_init_and_add_device() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -275,7 +277,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_all_devices() {
+    #[serial]
+    fn it_should_get_all_devices() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -306,7 +309,8 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_device() {
+    #[serial]
+    fn it_should_remove_device() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -330,7 +334,8 @@ mod tests {
     }
 
     #[test]
-    fn test_update_last_seen() {
+    #[serial]
+    fn it_should_update_last_seen() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();
@@ -354,7 +359,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_count() {
+    #[serial]
+    fn it_should_get_count() {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("test.db");
         let db_path_str = db_path.to_string_lossy().to_string();

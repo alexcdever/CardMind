@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/widgets/note_card_test.dart`
+**相关测试**: `test/feature/widgets/note_card_feature_test.dart`
 
 ---
 
@@ -86,7 +86,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/note_card_test.dart`
+**测试文件**: `test/feature/widgets/note_card_feature_test.dart`
 
 **组件测试**:
 - `it_should_switch_to_inline_editing_on_desktop()` - 验证桌面编辑行为
@@ -97,7 +97,7 @@
 - `it_should_delete_card()` - 验证删除
 
 **验收标准**:
-- [ ] 所有 Widget 测试通过
+- [ ] 所有功能测试（Widget）通过
 - [ ] 已在桌面端和移动端验证平台特定行为
 - [ ] 代码审查通过
 - [ ] 文档已更新

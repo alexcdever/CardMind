@@ -2,7 +2,7 @@
 
 **状态**: 生效中
 **依赖**: [../../../domain/pool.md](../../../domain/pool.md), [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md)
-**相关测试**: `test/screens/onboarding_screen_test.dart`
+**相关测试**: `test/feature/screens/onboarding_screen_feature_test.dart`
 
 ---
 
@@ -137,7 +137,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/screens/onboarding_screen_test.dart`
+**测试文件**: `test/feature/screens/onboarding_screen_feature_test.dart`
 
 **组件测试**:
 - `it_should_detect_first_launch()` - 检测首次启动

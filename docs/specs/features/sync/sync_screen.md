@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `flutter/test/features/sync/sync_screen_test.dart`
+**相关测试**: `test/feature/screens/sync_screen_feature_test.dart`
 
 ---
 
@@ -493,7 +493,7 @@ structure ConflictResolution:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/sync/sync_screen_test.dart`
+**测试文件**: `test/feature/screens/sync_screen_feature_test.dart`
 
 **单元测试**:
 - `test_show_overall_sync_status()` - 显示总体同步状态
@@ -510,14 +510,14 @@ structure ConflictResolution:
 - `test_list_conflicts()` - 列出冲突
 - `test_show_conflict_details()` - 显示冲突详情
 
-**集成测试**:
+**功能测试**:
 - `test_complete_sync_screen_workflow()` - 完整同步屏幕流程
 - `test_manual_sync_workflow()` - 手动同步流程
 - `test_conflict_resolution_workflow()` - 冲突解决流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 设备发现正常工作
 - [ ] 手动同步控制可靠
 - [ ] 冲突解决清晰明了

@@ -2,11 +2,11 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 统一 Rust/Flutter 的单元/功能/模糊测试体系，并在 `tool/quality.dart` 中引入基于公开项数量的单元测试覆盖率检查与 `fuzz` 子命令。
+**Goal:** 统一 Rust/Flutter 的单元/功能测试体系，并在 `tool/quality.dart` 中引入基于公开项数量的单元测试覆盖率检查。
 
-**Architecture:** 规格文档先定义测试分类与覆盖率规则；质量脚本在常规流程中执行覆盖率检查，`fuzz` 子命令独立执行模糊测试。Rust 遵循官方测试组织方式（模块内单元 + `rust/tests` 功能），Flutter 使用 `test/unit|feature|fuzz` 目录并统一 `it_should_` 命名。
+**Architecture:** 规格文档先定义测试分类与覆盖率规则；质量脚本在常规流程中执行覆盖率检查。Rust 遵循官方测试组织方式（模块内单元 + `rust/tests` 功能），Flutter 使用 `test/unit|feature` 目录并统一 `it_should_` 命名。
 
-**Tech Stack:** Rust, Flutter/Dart, cargo-fuzz, flutter_test.
+**Tech Stack:** Rust, Flutter/Dart, flutter_test.
 
 ---
 
@@ -22,7 +22,6 @@
 
 - **单元测试**：面向逻辑代码的单模块验证（不跨多层调用）
 - **功能测试**：跨模块/多层行为验证；规格测试默认归为功能测试
-- **模糊测试**：随机/属性驱动输入的边界与异常探索
 
 **单元测试覆盖率**：
 - 统计规则：公开项数量与对应单元测试数量之比
@@ -157,7 +156,7 @@ git commit -m "docs: rename integration tests to feature tests"
 
 ---
 
-### Task 3: 更新工具文档说明覆盖率与 fuzz 子命令
+### Task 3: 更新工具文档说明覆盖率检查
 
 **Files:**
 - Modify: `tool/README.md`
@@ -171,18 +170,13 @@ git commit -m "docs: rename integration tests to feature tests"
 
 **用法**:
 dart tool/quality.dart
-dart tool/quality.dart fuzz
-
-**fuzz 子命令**:
-- Rust: cargo-fuzz 目标列表（默认 2–3 个目标，每目标 60 秒）
-- Flutter: flutter test test/fuzz
 ```
 
 **Step 2: Commit**
 
 ```bash
 git add tool/README.md
-git commit -m "docs: document coverage check and fuzz subcommand"
+git commit -m "docs: document coverage check"
 ```
 
 ---
@@ -259,47 +253,27 @@ git commit -m "test: add coverage parser with unit tests"
 
 ---
 
-### Task 6: 将覆盖率检查与 fuzz 子命令接入 quality.dart
+### Task 6: 将覆盖率检查接入 quality.dart
 
 **Files:**
 - Modify: `tool/quality.dart`
 
-**Step 1: 增加参数分发**
-
-```dart
-if (arguments.isNotEmpty && arguments.first == 'fuzz') {
-  await runFuzzChecks();
-  return;
-}
-```
-
-**Step 2: 常规流程增加覆盖率检查**
+**Step 1: 常规流程增加覆盖率检查**
 
 ```dart
 if (!await runCoverageCheck()) exit(1);
 ```
 
-**Step 3: 实现 fuzz 子命令**
-
-```dart
-Future<bool> runFuzzChecks() async {
-  return await runRustFuzzTargets() && await runFlutterFuzzTests();
-}
-```
-
-**Step 4: 验证脚本**
+**Step 2: 验证脚本**
 
 Run: `dart tool/quality.dart`  
 Expected: PASS（覆盖率检查通过或提示缺失）  
 
-Run: `dart tool/quality.dart fuzz`  
-Expected: 若未安装 cargo-fuzz，应提示安装并退出非 0
-
-**Step 5: Commit**
+**Step 3: Commit**
 
 ```bash
 git add tool/quality.dart
-git commit -m "feat(tool): add coverage check and fuzz subcommand"
+git commit -m "feat(tool): add coverage check"
 ```
 
 ---
@@ -343,50 +317,7 @@ git commit -m "refactor(rust): rename tests to it_should and feature files"
 
 ---
 
-### Task 8: Rust 模糊测试引入（cargo-fuzz）
-
-**Files:**
-- Create: `rust/fuzz/Cargo.toml`
-- Create: `rust/fuzz/fuzz_targets/fuzz_password_strength.rs`
-- Create: `rust/fuzz/fuzz_targets/fuzz_pool_validation.rs`
-- Create: `rust/fuzz/fuzz_targets/fuzz_pool_hash.rs`
-- Modify: `.gitignore`
-
-**Step 1: 添加 fuzz target**
-
-```rust
-#![no_main]
-use libfuzzer_sys::fuzz_target;
-use cardmind_rust::security::password::evaluate_password_strength;
-
-fuzz_target!(|data: &str| {
-  let _ = evaluate_password_strength(data);
-});
-```
-
-**Step 2: 更新 .gitignore**
-
-```
-rust/fuzz/target/
-rust/fuzz/corpus/
-rust/fuzz/artifacts/
-```
-
-**Step 3: 运行（短时）**
-
-Run: `cargo fuzz run fuzz_password_strength -- -max_total_time=60`  
-Expected: PASS（无 crash）
-
-**Step 4: Commit**
-
-```bash
-git add rust/fuzz .gitignore
-git commit -m "test(fuzz): add cargo-fuzz targets"
-```
-
----
-
-### Task 9: Flutter 测试目录重排与文件命名
+### Task 8: Flutter 测试目录重排与文件命名
 
 **Files:**
 - Modify: `test/**`
@@ -429,51 +360,7 @@ git commit -m "refactor(test): reorganize flutter tests into unit/feature"
 
 ---
 
-### Task 10: Flutter 模糊测试新增
-
-**Files:**
-- Create: `test/fuzz/text_truncator_fuzz_test.dart`
-- Create: `test/fuzz/qr_code_parser_fuzz_test.dart`
-
-**Step 1: 新增 fuzz 测试**
-
-```dart
-import 'dart:math';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:cardmind/utils/text_truncator.dart';
-
-void main() {
-  test('it_should_handle_random_text_without_crash', () {
-    final random = Random(42);
-    for (var i = 0; i < 500; i++) {
-      final text = String.fromCharCodes(
-        List.generate(256, (_) => random.nextInt(128)),
-      );
-      final cleaned = TextUtils.cleanTextForDisplay(text);
-      expect(
-        cleaned.contains(RegExp(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]')),
-        isFalse,
-      );
-    }
-  });
-}
-```
-
-**Step 2: 运行 fuzz 子集**
-
-Run: `flutter test test/fuzz`  
-Expected: PASS
-
-**Step 3: Commit**
-
-```bash
-git add test/fuzz
-git commit -m "test(fuzz): add flutter fuzz tests"
-```
-
----
-
-### Task 11: 覆盖率规则与测试路径的规格文档同步
+### Task 9: 覆盖率规则与测试路径的规格文档同步
 
 **Files:**
 - Modify: `docs/specs/ui/components/shared/sync_details_dialog.md`
@@ -503,19 +390,14 @@ git commit -m "docs: align spec test references with new structure"
 
 ---
 
-### Task 12: 全量验证
+### Task 10: 全量验证
 
 **Step 1: 常规质量检查**
 
 Run: `dart tool/quality.dart`  
 Expected: PASS（覆盖率 ≥ 90%）
 
-**Step 2: Fuzz 子命令**
-
-Run: `dart tool/quality.dart fuzz`  
-Expected: PASS（cargo-fuzz + flutter fuzz）
-
-**Step 3: Commit**
+**Step 2: Commit**
 
 ```bash
 git add .

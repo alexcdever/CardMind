@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/home_screen/shared_home_screen_test.dart`
+**相关测试**: `test/feature/features/home_screen_shared_feature_test.dart`
 
 ---
 
@@ -289,7 +289,7 @@ structure UserInteraction:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/home_screen/shared_home_screen_test.dart`
+**测试文件**: `test/feature/features/home_screen_shared_feature_test.dart`
 
 **单元测试**:
 - `test_load_cards()` - 测试加载卡片列表
@@ -301,7 +301,7 @@ structure UserInteraction:
 - `test_open_card()` - 测试打开卡片
 - `test_create_card()` - 测试创建新卡片
 
-**集成测试**:
+**功能测试**:
 - `test_card_list_workflow()` - 测试卡片列表完整流程
 - `test_sync_status_updates()` - 测试同步状态实时更新
 

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md)
-**相关测试**: `rust/tests/p2p/discovery_test.rs`
+**相关测试**: `rust/tests/security_p2p_discovery_feature_test.rs`
 
 ---
 
@@ -202,7 +202,7 @@ function start_discovery():
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/p2p/discovery_test.rs`
+**测试文件**: `rust/tests/security_p2p_discovery_feature_test.rs`
 
 **单元测试**:
 - `test_generate_device_name()` - 测试默认昵称生成
@@ -210,7 +210,7 @@ function start_discovery():
 - `test_device_info_no_sensitive_data()` - 测试设备信息不包含敏感数据
 - `test_pool_info_only_id()` - 测试数据池信息仅包含 ID
 
-**集成测试**:
+**功能测试**:
 - `test_mdns_discovery()` - 测试 mDNS 设备发现
 - `test_join_pool_with_password()` - 测试密码验证后加入数据池
 - `test_encrypted_communication()` - 测试加密通信

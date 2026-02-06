@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `flutter/test/features/onboarding/shared_onboarding_test.dart`
+**相关测试**: `test/feature/screens/onboarding_screen_feature_test.dart`
 
 ---
 
@@ -425,7 +425,7 @@ structure SyncConfiguration:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/onboarding/shared_onboarding_test.dart`
+**测试文件**: `test/feature/screens/onboarding_screen_feature_test.dart`
 
 **单元测试**:
 - `test_check_first_launch()` - 测试首次启动检测
@@ -438,7 +438,7 @@ structure SyncConfiguration:
 - `test_initialize_storage()` - 测试初始化存储
 - `test_configure_sync()` - 测试配置同步
 
-**集成测试**:
+**功能测试**:
 - `test_onboarding_create_pool_workflow()` - 测试创建池完整流程
 - `test_onboarding_join_pool_workflow()` - 测试加入池完整流程
 

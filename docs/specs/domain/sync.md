@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [card.md](card.md), [pool.md](pool.md)
-**相关测试**: `rust/tests/sync_test.rs`
+**相关测试**: `rust/tests/sync_feature_test.rs`
 
 ---
 
@@ -715,7 +715,7 @@ pub struct VersionVector {
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/sync_test.rs`
+**测试文件**: `rust/tests/sync_feature_test.rs`
 
 **单元测试**:
 - `test_version_tracking()` - 版本追踪
@@ -729,7 +729,7 @@ pub struct VersionVector {
 - `test_sync_rollback()` - 同步回滚
 - `test_convergence()` - 收敛性验证
 
-**集成测试**:
+**功能测试**:
 - `test_multi_device_sync()` - 多设备同步
 - `test_offline_sync()` - 离线同步
 - `test_network_failure_recovery()` - 网络故障恢复

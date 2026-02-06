@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `flutter/test/features/sync_feedback/sync_details_dialog_test.dart`
+**相关测试**: `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart`
 
 ---
 
@@ -349,7 +349,7 @@ structure DialogActions:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/sync_feedback/sync_details_dialog_test.dart`
+**测试文件**: `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart`
 
 **单元测试**:
 - `test_show_discovered_devices()` - 显示发现的设备
@@ -364,13 +364,13 @@ structure DialogActions:
 - `test_show_protocol_info()` - 显示协议信息
 - `test_close_dialog()` - 关闭对话框
 
-**集成测试**:
+**功能测试**:
 - `test_complete_sync_details_workflow()` - 完整同步详情流程
 - `test_manual_sync_from_dialog()` - 从对话框手动同步
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 设备列表正确显示
 - [ ] 同步历史准确记录
 - [ ] 手动同步操作正常

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md), [./dual_layer.md](./dual_layer.md)
-**相关测试**: `rust/tests/pool_store_test.rs`
+**相关测试**: `rust/tests/pool_store_feature_test.rs`
 
 ---
 
@@ -628,7 +628,7 @@ function verify_password_with_bcrypt(password, password_hash):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/pool_store_test.rs`
+**测试文件**: `rust/tests/pool_store_feature_test.rs`
 
 **单元测试**:
 - `test_create_pool()` - 创建池
@@ -651,7 +651,7 @@ function verify_password_with_bcrypt(password, password_hash):
 - `test_cache_hit()` - 缓存命中
 - `test_cache_miss()` - 缓存未命中
 
-**集成测试**:
+**功能测试**:
 - `test_pool_lifecycle()` - 池生命周期
 - `test_multi_device_pool()` - 多设备池
 - `test_pool_sync_across_devices()` - 跨设备同步

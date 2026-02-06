@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `flutter/test/features/settings/settings_screen_test.dart`
+**相关测试**: `test/feature/screens/settings_screen_feature_test.dart`
 
 ---
 
@@ -586,7 +586,7 @@ structure FeedbackAndRating:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/settings/settings_screen_test.dart`
+**测试文件**: `test/feature/screens/settings_screen_feature_test.dart`
 
 **单元测试**:
 - `test_show_settings_sections()` - 显示设置部分
@@ -610,14 +610,14 @@ structure FeedbackAndRating:
 - `test_send_feedback()` - 发送反馈
 - `test_rate_app()` - 评分应用
 
-**集成测试**:
+**功能测试**:
 - `test_complete_settings_workflow()` - 完整设置流程
 - `test_theme_switching_workflow()` - 主题切换流程
 - `test_data_management_workflow()` - 数据管理流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 设置逻辑组织清晰
 - [ ] 所有配置选项正常工作
 - [ ] 导航流程直观
