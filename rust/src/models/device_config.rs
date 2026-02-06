@@ -2,6 +2,7 @@
 //!
 //! 本模块管理本地设备配置，包括 `peer_id`、设备名称与当前加入的数据池。
 
+use crate::models::error::ValidationError;
 use crate::utils::uuid_v7::generate_uuid_v7;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -29,6 +30,9 @@ pub enum DeviceConfigError {
 
     #[error("无效操作: {0}")]
     InvalidOperationError(String),
+
+    #[error("Validation error: {0}")]
+    ValidationError(#[from] ValidationError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -63,6 +67,14 @@ impl DeviceConfig {
 
     #[must_use]
     fn default_device_name() -> String {
+        let hostname = std::env::var("HOSTNAME")
+            .or_else(|_| std::env::var("COMPUTERNAME"))
+            .unwrap_or_else(|_| "Device".to_string());
+        let base_name = if hostname.trim().is_empty() {
+            "Device".to_string()
+        } else {
+            hostname
+        };
         let suffix = generate_uuid_v7()
             .chars()
             .rev()
@@ -71,10 +83,30 @@ impl DeviceConfig {
             .chars()
             .rev()
             .collect::<String>();
-        format!("Device-{suffix}")
+        format!("{base_name}-{suffix}")
+    }
+
+    #[must_use]
+    pub fn get_device_name(&self) -> &str {
+        &self.device_name
+    }
+
+    pub fn set_device_name(&mut self, new_name: &str) -> Result<(), DeviceConfigError> {
+        if new_name.is_empty() {
+            return Err(ValidationError::DeviceNameEmpty.into());
+        }
+        if new_name.chars().count() > 50 {
+            return Err(ValidationError::DeviceNameTooLong.into());
+        }
+        self.device_name = new_name.to_string();
+        self.updated_at = Self::now_ms();
+        Ok(())
     }
 
     pub fn join_pool(&mut self, pool_id: &str) -> Result<(), DeviceConfigError> {
+        if pool_id.is_empty() {
+            return Err(ValidationError::PoolIdEmpty.into());
+        }
         if let Some(current_pool) = &self.pool_id {
             if current_pool != pool_id {
                 return Err(DeviceConfigError::InvalidOperationError(format!(
@@ -163,7 +195,36 @@ impl DeviceConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::TempDir;
+
+    struct EnvGuard {
+        key: &'static str,
+        original: Option<String>,
+    }
+
+    impl EnvGuard {
+        fn set(key: &'static str, value: &str) -> Self {
+            let original = std::env::var(key).ok();
+            std::env::set_var(key, value);
+            Self { key, original }
+        }
+
+        fn remove(key: &'static str) -> Self {
+            let original = std::env::var(key).ok();
+            std::env::remove_var(key);
+            Self { key, original }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            match &self.original {
+                Some(value) => std::env::set_var(self.key, value),
+                None => std::env::remove_var(self.key),
+            }
+        }
+    }
 
     #[test]
     fn it_should_new_device_config() {
@@ -172,6 +233,57 @@ mod tests {
         assert!(!config.device_name.is_empty());
         assert!(config.pool_id.is_none());
         assert!(config.updated_at > 0);
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_generate_default_device_name_with_hostname() {
+        let _hostname_guard = EnvGuard::set("HOSTNAME", "test-host");
+        let _computername_guard = EnvGuard::remove("COMPUTERNAME");
+
+        let config = DeviceConfig::new();
+        assert!(config.device_name.starts_with("test-host-"));
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_fallback_device_name_when_hostname_missing() {
+        let _hostname_guard = EnvGuard::remove("HOSTNAME");
+        let _computername_guard = EnvGuard::remove("COMPUTERNAME");
+
+        let config = DeviceConfig::new();
+        assert!(config.device_name.starts_with("Device-"));
+    }
+
+    #[test]
+    fn it_should_set_device_name_updates_timestamp() {
+        let mut config = DeviceConfig::new();
+        let before = config.updated_at;
+        std::thread::sleep(std::time::Duration::from_millis(1));
+        assert!(config.set_device_name("MyDevice").is_ok());
+        assert_eq!(config.device_name, "MyDevice");
+        assert!(config.updated_at >= before);
+    }
+
+    #[test]
+    fn it_should_get_device_name_returns_current() {
+        let mut config = DeviceConfig::new();
+        assert!(config.set_device_name("Device-X").is_ok());
+        assert_eq!(config.get_device_name(), "Device-X");
+    }
+
+    #[test]
+    fn it_should_reject_empty_device_name() {
+        let mut config = DeviceConfig::new();
+        let result = config.set_device_name("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn it_should_reject_too_long_device_name() {
+        let mut config = DeviceConfig::new();
+        let result = config.set_device_name(&"a".repeat(51));
+        assert!(result.is_err());
     }
 
     #[test]
@@ -202,11 +314,39 @@ mod tests {
     }
 
     #[test]
+    fn it_should_reject_empty_pool_id_on_join() {
+        let mut config = DeviceConfig::new();
+        let result = config.join_pool("");
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn it_should_is_joined() {
         let mut config = DeviceConfig::new();
         config.join_pool("pool-001").unwrap();
         assert!(config.is_joined("pool-001"));
         assert!(!config.is_joined("pool-002"));
+    }
+
+    #[test]
+    fn it_should_is_joined_any_reflects_state() {
+        let mut config = DeviceConfig::new();
+        assert!(!config.is_joined_any());
+        config.join_pool("pool-001").unwrap();
+        assert!(config.is_joined_any());
+    }
+
+    #[test]
+    fn it_should_get_pool_id_returns_none_when_not_joined() {
+        let config = DeviceConfig::new();
+        assert_eq!(config.get_pool_id(), None);
+    }
+
+    #[test]
+    fn it_should_get_pool_id_returns_some_when_joined() {
+        let mut config = DeviceConfig::new();
+        config.join_pool("pool-001").unwrap();
+        assert_eq!(config.get_pool_id(), Some("pool-001"));
     }
 
     #[test]

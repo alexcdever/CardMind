@@ -153,7 +153,12 @@ impl From<crate::security::password::PasswordError> for CardMindError {
 
 impl From<crate::models::device_config::DeviceConfigError> for CardMindError {
     fn from(err: crate::models::device_config::DeviceConfigError) -> Self {
-        Self::DatabaseError(err.to_string())
+        match err {
+            crate::models::device_config::DeviceConfigError::ValidationError(validation) => {
+                Self::Validation(validation)
+            }
+            other => Self::DatabaseError(other.to_string()),
+        }
     }
 }
 

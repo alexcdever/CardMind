@@ -19,7 +19,7 @@ use std::collections::HashMap;
 /// # 示例
 ///
 /// ```
-/// use cardmind_rust::models::sync::SyncState;
+/// use cardmind_rust::models::sync::{SyncState, SyncStatus};
 /// use std::collections::HashMap;
 ///
 /// let mut version_vector = HashMap::new();
@@ -99,7 +99,7 @@ impl SyncState {
     pub fn update(&mut self, new_version_vector: &HashMap<String, u64>) {
         use std::time::{SystemTime, UNIX_EPOCH};
 
-        self.last_sync_version = new_version_vector.clone();
+        self.last_sync_version.clone_from(new_version_vector);
 
         let now_ms = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -149,7 +149,7 @@ impl SyncState {
     }
 
     #[must_use]
-    pub fn get_last_sync_version(&self) -> &HashMap<String, u64> {
+    pub const fn get_last_sync_version(&self) -> &HashMap<String, u64> {
         &self.last_sync_version
     }
 }
@@ -228,10 +228,7 @@ mod tests {
 
         sync_state.update(&new_versions);
 
-        assert_eq!(
-            sync_state.last_sync_version.get("peer-001"),
-            Some(&10u64)
-        );
+        assert_eq!(sync_state.last_sync_version.get("peer-001"), Some(&10u64));
         assert!(sync_state.last_sync_time > 0);
         assert_eq!(sync_state.sync_status, SyncStatus::Completed);
     }
@@ -350,6 +347,32 @@ mod tests {
     #[test]
     fn it_should_conflict_resolution_default() {
         assert_eq!(ConflictResolution::default(), ConflictResolution::Merge);
+    }
+
+    #[test]
+    fn it_should_needs_sync_false_when_remote_empty() {
+        let sync_state = SyncState::new("peer-001");
+        let remote_versions = HashMap::new();
+        assert!(!sync_state.needs_sync(&remote_versions));
+    }
+
+    #[test]
+    fn it_should_needs_sync_when_remote_has_new_peer() {
+        let sync_state = SyncState::new("peer-001");
+        let mut remote_versions = HashMap::new();
+        remote_versions.insert("peer-002".to_string(), 1u64);
+        assert!(sync_state.needs_sync(&remote_versions));
+    }
+
+    #[test]
+    fn it_should_update_keeps_peer_id() {
+        let mut sync_state = SyncState::new("peer-001");
+        let mut new_versions = HashMap::new();
+        new_versions.insert("peer-002".to_string(), 1u64);
+
+        sync_state.update(&new_versions);
+
+        assert_eq!(sync_state.peer_id, "peer-001");
     }
 
     #[test]
