@@ -38,6 +38,40 @@ void main() {
       expect(info1, equals(info2));
       expect(info1.hashCode, equals(info2.hashCode));
     });
+
+    test('it_should_default_info_contains_links', () {
+      final info = AppInfo.defaultInfo();
+
+      expect(info.homepage, isNotEmpty);
+      expect(info.issuesUrl, isNotEmpty);
+    });
+
+    test('it_should_fromJson_apply_defaults_when_missing', () {
+      final info = AppInfo.fromJson(const {});
+
+      expect(info.version, '0.0.0');
+      expect(info.buildNumber, '0');
+      expect(info.description, '');
+      expect(info.homepage, '');
+      expect(info.issuesUrl, '');
+      expect(info.contributors, isEmpty);
+      expect(info.changelog, isEmpty);
+    });
+
+    test('it_should_app_info_not_equal_when_version_differs', () {
+      final info = AppInfo.defaultInfo();
+      final other = AppInfo(
+        version: '0.1.1',
+        buildNumber: info.buildNumber,
+        description: info.description,
+        homepage: info.homepage,
+        issuesUrl: info.issuesUrl,
+        contributors: info.contributors,
+        changelog: info.changelog,
+      );
+
+      expect(other, isNot(equals(info)));
+    });
   });
 
   group('ChangelogEntry', () {
@@ -83,6 +117,18 @@ void main() {
 
       expect(entry1, equals(entry2));
       expect(entry1.hashCode, equals(entry2.hashCode));
+    });
+
+    test('it_should_changelog_entry_round_trip', () {
+      const entry = ChangelogEntry(
+        version: '1.2.3',
+        date: '2026-02-01',
+        changes: ['Fix A', 'Fix B'],
+      );
+
+      final restored = ChangelogEntry.fromJson(entry.toJson());
+
+      expect(restored, equals(entry));
     });
   });
 }

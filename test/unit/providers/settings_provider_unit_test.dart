@@ -46,5 +46,33 @@ void main() {
 
       expect(notified, true);
     });
+
+    test('it_should_initialize_with_corrupted_storage_defaults_true', () async {
+      SharedPreferences.setMockInitialValues({
+        'sync_notification_enabled': 'invalid',
+      });
+      final newProvider = SettingsProvider();
+
+      await newProvider.initialize();
+
+      expect(newProvider.syncNotificationEnabled, true);
+    });
+
+    test('it_should_not_notify_when_setting_same_value', () async {
+      var notified = false;
+      provider.addListener(() {
+        notified = true;
+      });
+
+      await provider.setSyncNotificationEnabled(true);
+
+      expect(notified, false);
+    });
+
+    test('it_should_setSyncNotificationEnabled_updates_value', () async {
+      await provider.setSyncNotificationEnabled(false);
+
+      expect(provider.syncNotificationEnabled, false);
+    });
   });
 }

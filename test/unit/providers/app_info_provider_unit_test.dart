@@ -54,5 +54,38 @@ void main() {
 
       expect(notified, true);
     });
+
+    test('it_should_initialize_overwrites_custom_info', () async {
+      const customInfo = AppInfo(
+        version: '9.9.9',
+        buildNumber: '999',
+        description: 'Custom',
+        homepage: 'https://example.com',
+        issuesUrl: 'https://example.com/issues',
+        contributors: ['Tester'],
+        changelog: [],
+      );
+      provider.setAppInfo(customInfo);
+
+      await provider.initialize();
+
+      expect(provider.appInfo.version, '0.1.0');
+    });
+
+    test('it_should_setAppInfo_updates_instance', () {
+      const customInfo = AppInfo(
+        version: '3.0.0',
+        buildNumber: '300',
+        description: 'Another',
+        homepage: 'https://example.com',
+        issuesUrl: 'https://example.com/issues',
+        contributors: ['Tester'],
+        changelog: [],
+      );
+
+      provider.setAppInfo(customInfo);
+
+      expect(provider.appInfo, same(customInfo));
+    });
   });
 }
