@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/card_editor/desktop_card_editor_test.dart`
+**相关测试**: `test/feature/features/desktop_card_editor_feature_test.dart`
 
 ---
 
@@ -242,7 +242,7 @@ structure MultiWindowManager:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_editor/desktop_card_editor_test.dart`
+**测试文件**: `test/feature/features/desktop_card_editor_feature_test.dart`
 
 **单元测试**:
 - `test_inline_editor_opens()` - 测试内联编辑器打开
@@ -254,7 +254,7 @@ structure MultiWindowManager:
 - `test_open_in_new_window()` - 测试在新窗口打开
 - `test_multi_window_sync()` - 测试多窗口同步
 
-**集成测试**:
+**功能测试**:
 - `test_auto_save_on_close()` - 测试关闭时自动保存
 - `test_keyboard_shortcuts_work()` - 测试键盘快捷键
 - `test_window_state_persistence()` - 测试窗口状态持久化

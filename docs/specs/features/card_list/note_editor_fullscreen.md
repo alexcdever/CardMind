@@ -2,7 +2,7 @@
 
 **状态**: 草稿
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
-**相关测试**: `flutter/test/features/card_list/note_editor_fullscreen_test.dart`
+**相关测试**: `test/feature/widgets/note_editor_fullscreen_feature_test.dart`
 
 ---
 
@@ -496,7 +496,7 @@ structure EditorLayout:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_list/note_editor_fullscreen_test.dart`
+**测试文件**: `test/feature/widgets/note_editor_fullscreen_feature_test.dart`
 
 **单元测试**:
 - `test_new_mode_opens_with_empty_fields()` - 新建模式打开空字段
@@ -519,14 +519,14 @@ structure EditorLayout:
 - `test_title_input_field()` - 标题输入框
 - `test_content_input_field()` - 内容输入框
 
-**集成测试**:
+**功能测试**:
 - `test_complete_new_note_workflow()` - 完整新建笔记流程
 - `test_complete_edit_note_workflow()` - 完整编辑笔记流程
 - `test_autosave_and_manual_save_interaction()` - 自动保存与手动保存交互
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 新建模式在所有平台正常工作
 - [ ] 编辑模式在所有平台正常工作
 - [ ] 自动保存可靠工作

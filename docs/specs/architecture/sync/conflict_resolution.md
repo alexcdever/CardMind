@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/sync.md](../../domain/sync.md), [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md)
-**相关测试**: `rust/tests/conflict_resolution_test.rs`
+**相关测试**: `rust/tests/loro_sync_feature_test.rs`
 
 ---
 
@@ -526,7 +526,7 @@ function demonstrate_three_way_convergence():
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/conflict_resolution_test.rs`
+**测试文件**: `rust/tests/loro_sync_feature_test.rs`
 
 **单元测试**:
 - `test_concurrent_field_edits()` - 不同字段编辑
@@ -542,7 +542,7 @@ function demonstrate_three_way_convergence():
 - `test_three_way_convergence()` - 三向收敛
 - `test_deterministic_merge()` - 确定性合并
 
-**集成测试**:
+**功能测试**:
 - `test_complex_multi_device_scenario()` - 复杂的多设备编辑场景
 - `test_network_partition_recovery()` - 网络分区和恢复
 - `test_concurrent_operations_stress()` - 100+ 并发操作的压力测试

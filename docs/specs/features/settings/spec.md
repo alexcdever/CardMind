@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `test/features/settings_test.dart`
+**相关测试**: `test/feature/features/settings_feature_test.dart`
 
 ---
 
@@ -661,7 +661,7 @@ structure SettingsOrganization:
 
 ## 测试覆盖
 
-**测试文件**: `test/features/settings_test.dart`
+**测试文件**: `test/feature/features/settings_feature_test.dart`
 
 **单元测试**:
 - `test_view_current_device_name()` - 查看设备名称
@@ -691,13 +691,13 @@ structure SettingsOrganization:
 - `test_display_settings_sections()` - 显示部分
 - `test_navigate_between_sections()` - 在部分之间导航
 
-**集成测试**:
+**功能测试**:
 - `test_complete_settings_workflow()` - 完整设置流程
 - `test_data_export_import_workflow()` - 数据导出导入流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 设备名称管理正常工作
 - [ ] 主题和外观设置立即应用
 - [ ] 同步配置功能正常

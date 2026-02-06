@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `flutter/test/features/sync_feedback/desktop_sync_indicator_test.dart`
+**相关测试**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 ---
 
@@ -548,7 +548,7 @@ structure BadgeStyle:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/sync_feedback/desktop_sync_indicator_test.dart`
+**测试文件**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
 
 **单元测试**:
 - `test_initial_state_not_yet_synced()` - 初始状态为尚未同步
@@ -565,13 +565,13 @@ structure BadgeStyle:
 - `test_click_failed_shows_error()` - 点击失败显示错误
 - `test_badge_style_consistency()` - 徽章样式一致性
 
-**集成测试**:
+**功能测试**:
 - `test_complete_sync_state_flow()` - 完整同步状态流程
 - `test_error_recovery_workflow()` - 错误恢复流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 状态转换正确
 - [ ] 动画流畅
 - [ ] 样式一致

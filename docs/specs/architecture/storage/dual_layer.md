@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [./card_store.md](./card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `rust/tests/dual_layer_test.rs`
+**相关测试**: `rust/tests/dual_layer_feature_test.rs`
 
 ---
 
@@ -756,7 +756,7 @@ function configure_sqlite(connection):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/dual_layer_test.rs`
+**测试文件**: `rust/tests/dual_layer_feature_test.rs`
 
 **单元测试**:
 - `test_write_to_loro_updates_sqlite()` - 写入传播
@@ -769,12 +769,12 @@ function configure_sqlite(connection):
 - `test_retry_mechanism()` - 重试机制
 - `test_transaction_atomicity()` - 事务原子性
 
-**集成测试**:
+**功能测试**:
 - `test_end_to_end_write_read_flow()` - 端到端写读流程
 - `test_sqlite_corruption_recovery()` - SQLite 损坏恢复
 - `test_concurrent_writes()` - 并发写入
 
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] 集成测试通过
+- [x] 功能测试通过
 - [x] 代码审查通过

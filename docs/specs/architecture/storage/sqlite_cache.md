@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [./dual_layer.md](./dual_layer.md), [./card_store.md](./card_store.md), [./pool_store.md](./pool_store.md)
-**相关测试**: `rust/tests/sqlite_cache_test.rs`
+**相关测试**: `rust/tests/sqlite_cache_feature_test.rs`
 
 ---
 
@@ -732,7 +732,7 @@ function optimize_database():
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/sqlite_cache_test.rs`
+**测试文件**: `rust/tests/sqlite_cache_feature_test.rs`
 
 **单元测试**:
 - `test_schema_creation()` - Schema 初始化

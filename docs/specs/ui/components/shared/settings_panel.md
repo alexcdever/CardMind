@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/widgets/settings_panel_test.dart`
+**相关测试**: `test/feature/widgets/settings_panel_feature_test.dart`
 
 ---
 
@@ -159,7 +159,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/unit/settings_panel_test.dart`, `test/widgets/settings_panel_test.dart`
+**测试文件**: `test/unit/widgets/settings_panel_unit_test.dart`, `test/feature/widgets/settings_panel_feature_test.dart`
 
 **单元测试（9）**:
 - 主题切换逻辑
@@ -172,7 +172,7 @@
 - 通知偏好管理
 - 更新日志版本过滤
 
-**Widget 测试**:
+**功能测试（Widget）**:
 - `it_should_show_current_theme_mode()` - 显示主题模式
 - `it_should_toggle_theme()` - 切换主题
 - `it_should_show_auto_sync_preference()` - 自动同步偏好
@@ -187,7 +187,7 @@
 - `it_should_group_settings_by_sections()` - 部分分组
 
 **验收标准**:
-- [ ] 所有 Widget 测试通过
+- [ ] 所有功能测试（Widget）通过
 - [ ] 主题切换正常工作
 - [ ] 同步设置功能正常
 - [ ] 数据管理操作可靠工作

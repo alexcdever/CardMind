@@ -2,7 +2,7 @@
 
 **状态**: 生效中
 **依赖**: [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../domain/types.md](../../domain/types.md)
-**相关测试**: `test/features/p2p_sync_test.dart`
+**相关测试**: `test/feature/features/p2p_sync_feature_test.dart`
 
 ---
 
@@ -602,7 +602,7 @@ structure ConflictResolution:
 
 ## 测试覆盖
 
-**测试文件**: `test/features/p2p_sync_test.dart`
+**测试文件**: `test/feature/features/p2p_sync_feature_test.dart`
 
 **单元测试**:
 - `test_view_synced_status()` - 查看已同步状态
@@ -625,14 +625,14 @@ structure ConflictResolution:
 - `test_set_sync_frequency()` - 设置同步频率
 - `test_view_conflict_list()` - 查看冲突列表
 
-**集成测试**:
+**功能测试**:
 - `test_sync_status_updates_in_realtime()` - 同步状态实时更新
 - `test_device_list_updates_automatically()` - 设备列表自动更新
 - `test_sync_history_records_all_events()` - 同步历史记录所有事件
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 同步状态显示在所有平台上正常工作
 - [ ] 同步详情视图在所有平台上正常工作
 - [ ] 手动同步在所有平台上正常工作

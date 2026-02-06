@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: 无
-**相关测试**: `test/adaptive/layout_test.dart`
+**相关测试**: `test/feature/adaptive/layout_feature_test.dart`
 
 ---
 
@@ -616,9 +616,9 @@ Widget buildDesktopContent(List<Card> cards) {
 
 ## 测试覆盖
 
-**测试文件**: `test/adaptive/layout_test.dart`
+**测试文件**: `test/feature/adaptive/layout_feature_test.dart`
 
-**Widget 测试**:
+**功能测试（Widget）**:
 - `it_should_use_single_column_for_mobile()` - 移动端布局
 - `it_should_use_two_column_for_tablet()` - 平板布局
 - `it_should_use_three_column_for_desktop()` - 桌面布局

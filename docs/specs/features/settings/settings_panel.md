@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `flutter/test/features/settings/settings_panel_test.dart`
+**相关测试**: `test/feature/widgets/settings_panel_feature_test.dart`
 
 ---
 
@@ -400,7 +400,7 @@ structure SettingsPanel:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/settings/settings_panel_test.dart`
+**测试文件**: `test/feature/widgets/settings_panel_feature_test.dart`
 
 **单元测试**:
 - `test_show_current_theme_mode()` - 显示当前主题模式
@@ -416,13 +416,13 @@ structure SettingsPanel:
 - `test_show_terms_of_service()` - 显示服务条款
 - `test_group_settings_by_sections()` - 按部分分组设置
 
-**集成测试**:
+**功能测试**:
 - `test_complete_settings_workflow()` - 完整设置流程
 - `test_theme_switching_workflow()` - 主题切换流程
 
 **验收标准**:
 - [ ] 所有单元测试通过
-- [ ] 所有集成测试通过
+- [ ] 所有功能测试通过
 - [ ] 主题切换正常工作
 - [ ] 同步设置功能正常
 - [ ] 数据管理操作可靠

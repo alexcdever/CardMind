@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/card_editor/note_card_editor_test.dart`
+**相关测试**: `test/feature/features/note_card_editor_feature_test.dart`
 
 ---
 
@@ -360,7 +360,7 @@ structure PlatformLayout:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_editor/note_card_editor_test.dart`
+**测试文件**: `test/feature/features/note_card_editor_feature_test.dart`
 
 **单元测试**:
 - `test_create_mode_empty_form()` - 测试新建模式显示空表单
@@ -376,7 +376,7 @@ structure PlatformLayout:
 - `test_desktop_inline_layout()` - 测试桌面端内联布局
 - `test_mobile_fullscreen_layout()` - 测试移动端全屏布局
 
-**集成测试**:
+**功能测试**:
 - `test_create_card_workflow()` - 测试创建卡片完整流程
 - `test_edit_card_workflow()` - 测试编辑卡片完整流程
 - `test_auto_save_reliability()` - 测试自动保存可靠性

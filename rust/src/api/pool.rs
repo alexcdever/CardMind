@@ -383,7 +383,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_init_pool_store() {
+    fn it_should_init_pool_store() {
         let dir = tempdir().expect("Failed to create temp directory");
         let path = dir
             .path()
@@ -399,7 +399,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_create_and_get_pool_api() {
+    fn it_should_create_and_get_pool_api() {
         let dir = tempdir().expect("Failed to create temp directory");
         let path = dir
             .path()
@@ -428,7 +428,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_update_pool_api() {
+    fn it_should_update_pool_api() {
         let dir = tempdir().expect("Failed to create temp directory");
         let path = dir
             .path()
@@ -451,7 +451,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_delete_pool_api() {
+    fn it_should_delete_pool_api() {
         let dir = tempdir().expect("Failed to create temp directory");
         let path = dir
             .path()
@@ -475,7 +475,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_member_management_api() {
+    fn it_should_member_management_api() {
         let dir = tempdir().expect("Failed to create temp directory");
         let path = dir
             .path()
@@ -523,7 +523,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_verify_password_api() {
+    fn it_should_verify_password_api() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
@@ -549,7 +549,7 @@ mod tests {
     #[test]
     #[serial]
     #[ignore = "Requires system keyring"]
-    fn test_store_and_retrieve_password_from_keyring() {
+    fn it_should_store_and_retrieve_password_from_keyring() {
         let test_pool_id = "test-keyring-pool-001";
         let password = "test_keyring_password_123";
 
@@ -576,7 +576,7 @@ mod tests {
     #[test]
     #[serial]
     #[ignore = "Requires system keyring"]
-    fn test_delete_password_from_keyring() {
+    fn it_should_delete_password_from_keyring() {
         let test_pool_id = "test-keyring-pool-002";
 
         // Store password first
@@ -599,7 +599,7 @@ mod tests {
     #[test]
     #[serial]
     #[ignore = "Requires system keyring"]
-    fn test_has_pool_password_in_keyring() {
+    fn it_should_has_pool_password_in_keyring() {
         let test_pool_id = "test-keyring-pool-003";
 
         // Should not exist initially
@@ -621,7 +621,7 @@ mod tests {
     #[test]
     #[serial]
     #[ignore = "Requires system keyring"]
-    fn test_keyring_password_not_found() {
+    fn it_should_keyring_password_not_found() {
         let result = get_pool_password_from_keyring("nonexistent-pool".to_string());
         assert!(result.is_err());
     }
@@ -629,7 +629,7 @@ mod tests {
     #[test]
     #[serial]
     #[ignore = "Requires system keyring"]
-    fn test_pool_workflow_with_keyring() {
+    fn it_should_pool_workflow_with_keyring() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 

@@ -857,7 +857,7 @@ mod tests {
     use crate::utils::uuid_v7::generate_uuid_v7;
 
     #[test]
-    fn test_sync_service_creation() {
+    fn it_should_sync_service_creation() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let device_config = DeviceConfig::new();
 
@@ -873,7 +873,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_sync_status() {
+    fn it_should_get_sync_status() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let device_config = DeviceConfig::new();
 
@@ -885,7 +885,7 @@ mod tests {
     }
 
     #[test]
-    fn test_notify_status_change() {
+    fn it_should_notify_status_change() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let device_config = DeviceConfig::new();
 
@@ -909,7 +909,7 @@ mod tests {
     }
 
     #[test]
-    fn test_notify_status_change_deduplication() {
+    fn it_should_notify_status_change_deduplication() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let device_config = DeviceConfig::new();
 
@@ -933,7 +933,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_subscribers() {
+    fn it_should_multiple_subscribers() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let device_config = DeviceConfig::new();
 
@@ -957,7 +957,7 @@ mod tests {
     }
 
     #[test]
-    fn test_status_sender() {
+    fn it_should_status_sender() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let device_config = DeviceConfig::new();
 

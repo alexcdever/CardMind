@@ -453,7 +453,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_device_discovery_event_creation() {
+    fn it_should_device_discovery_event_creation() {
         let event = DeviceDiscoveryEvent::DeviceOnline {
             peer_id: "12D3KooWTest".to_string(),
             device_name: "Test Device".to_string(),
@@ -475,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn test_discovered_device_creation() {
+    fn it_should_discovered_device_creation() {
         let device = DiscoveredDevice {
             peer_id: "12D3KooWTest".to_string(),
             device_name: "Test Device".to_string(),
@@ -490,7 +490,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reconnect_state_creation() {
+    fn it_should_reconnect_state_creation() {
         let state = ReconnectState::new();
         assert_eq!(state.attempts, 0);
         assert_eq!(state.next_retry_at, 0);
@@ -498,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reconnect_backoff_calculation() {
+    fn it_should_reconnect_backoff_calculation() {
         let mut state = ReconnectState::new();
 
         // 第一次失败：1秒
@@ -528,7 +528,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reconnect_state_reset() {
+    fn it_should_reconnect_state_reset() {
         let mut state = ReconnectState::new();
 
         // 记录几次失败
@@ -544,7 +544,7 @@ mod tests {
     }
 
     #[test]
-    fn test_device_multiaddr_updates() {
+    fn it_should_device_multiaddr_updates() {
         // 测试设备地址列表更新逻辑
         let mut device = DiscoveredDevice {
             peer_id: "12D3KooWTest".to_string(),

@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../storage/device_config.md](../storage/device_config.md)
-**相关测试**: `rust/tests/sync_test.rs`
+**相关测试**: `rust/tests/sync_feature_test.rs`
 
 ---
 
@@ -474,7 +474,7 @@ function filter_sync_by_pool(sync_message):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/sync_service_test.rs`
+**测试文件**: `rust/tests/sync_integration_feature_test.rs`
 
 **单元测试**:
 - `it_should_create_sync_service_with_valid_config()` - 创建同步服务
@@ -486,7 +486,7 @@ function filter_sync_by_pool(sync_message):
 - `it_should_discover_peers_via_mdns()` - mDNS 发现
 - `it_should_reject_peer_on_pool_hash_mismatch()` - 握手池校验
 
-**集成测试**:
+**功能测试**:
 - `it_should_sync_changes_between_peers()` - 对等点间同步
 - `it_should_handle_concurrent_changes()` - CRDT 冲突解决
 - `it_should_filter_sync_by_pool()` - 基于池的过滤
@@ -495,7 +495,7 @@ function filter_sync_by_pool(sync_message):
 
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] 集成测试通过
+- [x] 功能测试通过
 - [x] 对等点发现在本地网络上工作
 - [x] CRDT 正确合并并发更改
 - [x] 池过滤正确执行

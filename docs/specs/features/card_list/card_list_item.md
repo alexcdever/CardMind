@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
-**相关测试**: `flutter/test/features/card_list/card_list_item_test.dart`
+**相关测试**: `test/feature/widgets/card_list_item_feature_test.dart`
 
 ---
 
@@ -197,7 +197,7 @@ function renderSyncIndicator():
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/card_list/card_list_item_test.dart`
+**测试文件**: `test/feature/widgets/card_list_item_feature_test.dart`
 
 **单元测试**:
 - `test_display_title_prominently()` - 测试显示标题
@@ -212,7 +212,7 @@ function renderSyncIndicator():
 - `test_empty_title_placeholder()` - 测试空标题占位符
 - `test_empty_content_placeholder()` - 测试空内容占位符
 
-**集成测试**:
+**功能测试**:
 - `test_list_item_in_list_view()` - 测试在列表视图中的表现
 - `test_list_item_in_grid_view()` - 测试在网格视图中的表现
 

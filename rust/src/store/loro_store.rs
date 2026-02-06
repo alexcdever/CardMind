@@ -345,13 +345,13 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
-    fn test_loro_store_creation() {
+    fn it_should_loro_store_creation() {
         let store = LoroStore::new();
         assert!(store.is_empty());
     }
 
     #[test]
-    fn test_export_import_snapshot() {
+    fn it_should_export_import_snapshot() {
         let mut store = LoroStore::new();
 
         // 创建一些数据
@@ -374,7 +374,7 @@ mod tests {
     }
 
     #[test]
-    fn test_save_load_from_path() {
+    fn it_should_save_load_from_path() {
         let mut store = LoroStore::new();
 
         // 创建数据
@@ -395,7 +395,7 @@ mod tests {
     }
 
     #[test]
-    fn test_load_nonexistent_file() {
+    fn it_should_load_nonexistent_file() {
         let path = Path::new("/nonexistent/file.loro");
         let result = LoroStore::from_path(path);
 
@@ -407,7 +407,7 @@ mod tests {
     }
 
     #[test]
-    fn test_export_import_updates() {
+    fn it_should_export_import_updates() {
         let mut store1 = LoroStore::new();
         let store2 = LoroStore::new();
 
@@ -437,7 +437,7 @@ mod tests {
     }
 
     #[test]
-    fn test_version_vector() {
+    fn it_should_version_vector() {
         let mut store = LoroStore::new();
 
         // 修改文档
@@ -452,7 +452,7 @@ mod tests {
     }
 
     #[test]
-    fn test_commit() {
+    fn it_should_commit() {
         let mut store = LoroStore::new();
 
         // 提交空文档
@@ -468,7 +468,7 @@ mod tests {
     }
 
     #[test]
-    fn test_size() {
+    fn it_should_size() {
         let mut store = LoroStore::new();
         let base_size = store.size();
 
@@ -482,7 +482,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_empty() {
+    fn it_should_is_empty() {
         let store = LoroStore::new();
         assert!(store.is_empty());
 

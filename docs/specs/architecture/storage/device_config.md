@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `rust/tests/device_config_test.rs`
+**相关测试**: `rust/tests/device_config_feature_test.rs`
 
 ---
 
@@ -661,7 +661,7 @@ function sync_pool_data(pool_id, peer_id):
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/device_config_test.rs`
+**测试文件**: `rust/tests/device_config_feature_test.rs`
 
 **单元测试**:
 - `it_creates_new_config_on_first_launch()` - 首次启动创建配置
@@ -682,7 +682,7 @@ function sync_pool_data(pool_id, peer_id):
 - `it_should_persist_config_atomically()` - 原子持久化
 - `it_should_handle_corrupted_config_file()` - 处理损坏配置
 
-**集成测试**:
+**功能测试**:
 - `test_first_launch_flow()` - 首次启动流程
 - `test_join_pool_flow()` - 加入池流程
 - `test_leave_pool_flow()` - 退出池流程
@@ -693,7 +693,7 @@ function sync_pool_data(pool_id, peer_id):
 
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] 集成测试通过
+- [x] 功能测试通过
 - [x] 单池约束正确执行
 - [x] 配置持久化可靠
 - [x] 代码审查通过

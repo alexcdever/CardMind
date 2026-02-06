@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `rust/tests/security/password_test.rs`
+**相关测试**: `rust/tests/security_password_feature_test.rs`
 
 ---
 
@@ -199,7 +199,7 @@ structure ZeroizingString:
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/security/password_test.rs`
+**测试文件**: `rust/tests/security_password_feature_test.rs`
 
 **单元测试**:
 - `test_hash_password()` - 测试密码哈希生成
@@ -212,7 +212,7 @@ structure ZeroizingString:
 - `test_validate_timestamp_expired()` - 测试过期时间戳
 - `test_memory_zeroing()` - 测试内存清零
 
-**集成测试**:
+**功能测试**:
 - `test_pool_creation_with_password()` - 测试创建数据池时的密码哈希
 - `test_pool_join_with_password()` - 测试加入数据池时的密码验证
 

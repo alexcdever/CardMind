@@ -330,14 +330,14 @@ mod tests {
     use crate::store::card_store::CardStore;
 
     #[test]
-    fn test_sync_manager_creation() {
+    fn it_should_sync_manager_creation() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
         assert_eq!(manager.sync_versions.lock().unwrap().len(), 0);
     }
 
     #[test]
-    fn test_sync_request_not_authorized() {
+    fn it_should_sync_request_not_authorized() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
@@ -352,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_version_tracking() {
+    fn it_should_sync_version_tracking() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
@@ -364,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_last_sync_version_not_found() {
+    fn it_should_get_last_sync_version_not_found() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
@@ -373,7 +373,7 @@ mod tests {
     }
 
     #[test]
-    fn test_version_generation() {
+    fn it_should_version_generation() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let _manager = SyncManager::new(store);
 
@@ -393,7 +393,7 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_updates() {
+    fn it_should_merge_updates() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let _manager = SyncManager::new(store);
 

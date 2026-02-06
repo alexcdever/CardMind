@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: 无
-**相关测试**: `flutter/test/features/toolbar/desktop_toolbar_test.dart`
+**相关测试**: `test/feature/widgets/desktop_toolbar_feature_test.dart`
 
 ---
 
@@ -311,7 +311,7 @@ structure ResponsiveToolbar:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/toolbar/desktop_toolbar_test.dart`
+**测试文件**: `test/feature/widgets/desktop_toolbar_feature_test.dart`
 
 **单元测试**:
 - `test_render_toolbar()` - 测试渲染工具栏
@@ -326,7 +326,7 @@ structure ResponsiveToolbar:
 - `test_responsive_layout()` - 测试响应式布局
 - `test_small_window_compact()` - 测试小窗口紧凑模式
 
-**集成测试**:
+**功能测试**:
 - `test_toolbar_workflow()` - 测试工具栏完整流程
 - `test_toolbar_keyboard_shortcuts()` - 测试工具栏键盘快捷键
 

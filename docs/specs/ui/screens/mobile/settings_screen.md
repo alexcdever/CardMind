@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/screens/settings_screen_mobile_test.dart`
+**相关测试**: `test/feature/screens/settings_screen_feature_test.dart`
 
 ---
 
@@ -186,7 +186,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/screens/settings_screen_mobile_test.dart`
+**测试文件**: `test/feature/screens/settings_screen_feature_test.dart`
 
 **屏幕测试**:
 - `it_should_show_settings_sections()` - 显示设置分区

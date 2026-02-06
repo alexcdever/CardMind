@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../../domain/card.md](../../../domain/card.md), [note_card.md](note_card.md)
-**相关测试**: `test/widgets/fullscreen_editor_test.dart`
+**相关测试**: `test/feature/widgets/fullscreen_editor_feature_test.dart`
 
 ---
 
@@ -107,7 +107,7 @@
 
 ## 测试覆盖
 
-**测试文件**: `test/widgets/fullscreen_editor_test.dart`
+**测试文件**: `test/feature/widgets/fullscreen_editor_feature_test.dart`
 
 **组件测试**:
 - `it_should_prepopulate_existing_card_data()` - 预填充现有卡片
@@ -122,7 +122,7 @@
 - `it_should_maintain_keyboard_on_field_transition()` - 保持键盘
 
 **验收标准**:
-- [ ] 所有 Widget 测试通过
+- [ ] 所有功能测试（Widget）通过
 - [ ] 自动保存可靠工作
 - [ ] 键盘行为流畅
 - [ ] 代码审查通过

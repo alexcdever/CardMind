@@ -11,41 +11,43 @@ use std::collections::HashMap;
 ///
 /// # 字段说明
 ///
-/// - `device_id`: 设备唯一标识（UUID v7）
-/// - `last_sync`: 最后同步时间（Unix 毫秒时间戳）
-/// - `version_vector`: 版本向量（Lamport 时间戳，用于增量同步）
+/// - `peer_id`: 对等设备标识
+/// - `last_sync_version`: 最后同步版本向量
+/// - `last_sync_time`: 最后同步时间（Unix 毫秒时间戳）
+/// - `sync_status`: 同步状态
 ///
 /// # 示例
 ///
 /// ```
-/// use cardmind_rust::models::sync::SyncState;
+/// use cardmind_rust::models::sync::{SyncState, SyncStatus};
 /// use std::collections::HashMap;
 ///
 /// let mut version_vector = HashMap::new();
 /// version_vector.insert("peer-001".to_string(), 42u64);
 ///
 /// let sync_state = SyncState {
-///     device_id: "device-001".to_string(),
-///     last_sync: 1704067200000,
-///     version_vector,
+///     peer_id: "peer-001".to_string(),
+///     last_sync_version: version_vector,
+///     last_sync_time: 1704067200000,
+///     sync_status: SyncStatus::Idle,
 /// };
 ///
-/// assert_eq!(sync_state.device_id, "device-001");
-/// assert_eq!(sync_state.last_sync, 1704067200000);
+/// assert_eq!(sync_state.peer_id, "peer-001");
+/// assert_eq!(sync_state.last_sync_time, 1704067200000);
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SyncState {
-    /// 设备唯一标识
-    pub device_id: String,
+    /// 对等设备标识
+    pub peer_id: String,
+
+    /// 最后同步版本向量
+    pub last_sync_version: HashMap<String, u64>,
 
     /// 最后同步时间（Unix 毫秒时间戳）
-    pub last_sync: u64,
+    pub last_sync_time: i64,
 
-    /// 版本向量（Lamport 时间戳）
-    ///
-    /// Key: 设备 ID
-    /// Value: 该设备的最后已知版本号
-    pub version_vector: HashMap<String, u64>,
+    /// 同步状态
+    pub sync_status: SyncStatus,
 }
 
 impl SyncState {
@@ -53,23 +55,24 @@ impl SyncState {
     ///
     /// # 参数
     ///
-    /// - `device_id`: 设备 UUID
+    /// - `peer_id`: 对等设备 ID
     ///
     /// # 示例
     ///
     /// ```
     /// use cardmind_rust::models::sync::SyncState;
     ///
-    /// let sync_state = SyncState::new("device-001");
-    /// assert_eq!(sync_state.device_id, "device-001");
-    /// assert!(sync_state.version_vector.is_empty());
+    /// let sync_state = SyncState::new("peer-001");
+    /// assert_eq!(sync_state.peer_id, "peer-001");
+    /// assert!(sync_state.last_sync_version.is_empty());
     /// ```
     #[must_use]
-    pub fn new(device_id: &str) -> Self {
+    pub fn new(peer_id: &str) -> Self {
         Self {
-            device_id: device_id.to_string(),
-            last_sync: 0,
-            version_vector: HashMap::new(),
+            peer_id: peer_id.to_string(),
+            last_sync_version: HashMap::new(),
+            last_sync_time: 0,
+            sync_status: SyncStatus::Idle,
         }
     }
 
@@ -85,33 +88,27 @@ impl SyncState {
     /// use cardmind_rust::models::sync::SyncState;
     /// use std::collections::HashMap;
     ///
-    /// let mut sync_state = SyncState::new("device-001");
+    /// let mut sync_state = SyncState::new("peer-001");
     /// let mut new_versions = HashMap::new();
     /// new_versions.insert("peer-001".to_string(), 42u64);
     ///
     /// sync_state.update(&new_versions);
-    /// assert_eq!(sync_state.last_sync > 0, true);
-    /// assert_eq!(sync_state.version_vector["peer-001"], 42);
+    /// assert_eq!(sync_state.last_sync_time > 0, true);
+    /// assert_eq!(sync_state.last_sync_version["peer-001"], 42);
     /// ```
     pub fn update(&mut self, new_version_vector: &HashMap<String, u64>) {
         use std::time::{SystemTime, UNIX_EPOCH};
 
-        // 更新版本向量（合并新版本）
-        for (device_id, version) in new_version_vector {
-            let current_version = self.version_vector.get(device_id).copied().unwrap_or(0);
-            if *version > current_version {
-                self.version_vector.insert(device_id.clone(), *version);
-            }
-        }
+        self.last_sync_version.clone_from(new_version_vector);
 
-        // 更新最后同步时间
-        self.last_sync = u64::try_from(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis(),
-        )
-        .unwrap_or(u64::MAX);
+        let now_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|duration| duration.as_millis())
+            .ok()
+            .and_then(|millis| i64::try_from(millis).ok())
+            .unwrap_or(i64::MAX);
+        self.last_sync_time = now_ms;
+        self.sync_status = SyncStatus::Completed;
     }
 
     /// 检查是否需要同步
@@ -130,8 +127,10 @@ impl SyncState {
     /// use cardmind_rust::models::sync::SyncState;
     /// use std::collections::HashMap;
     ///
-    /// let mut sync_state = SyncState::new("device-001");
-    /// sync_state.version_vector.insert("peer-001".to_string(), 10u64);
+    /// let mut sync_state = SyncState::new("peer-001");
+    /// sync_state
+    ///     .last_sync_version
+    ///     .insert("peer-001".to_string(), 10u64);
     ///
     /// let mut remote_versions = HashMap::new();
     /// remote_versions.insert("device-001".to_string(), 20u64);
@@ -141,13 +140,27 @@ impl SyncState {
     #[must_use]
     pub fn needs_sync(&self, remote_version_vector: &HashMap<String, u64>) -> bool {
         for (device_id, remote_version) in remote_version_vector {
-            let local_version = self.version_vector.get(device_id).copied().unwrap_or(0);
+            let local_version = self.last_sync_version.get(device_id).copied().unwrap_or(0);
             if *remote_version > local_version {
                 return true;
             }
         }
         false
     }
+
+    #[must_use]
+    pub const fn get_last_sync_version(&self) -> &HashMap<String, u64> {
+        &self.last_sync_version
+    }
+}
+
+/// 同步状态
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum SyncStatus {
+    Idle,
+    Syncing,
+    Failed,
+    Completed,
 }
 
 /// 同步操作类型
@@ -199,49 +212,87 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_sync_state_creation() {
-        let sync_state = SyncState::new("device-001");
-        assert_eq!(sync_state.device_id, "device-001");
-        assert_eq!(sync_state.last_sync, 0);
-        assert!(sync_state.version_vector.is_empty());
+    fn it_should_sync_state_defaults() {
+        let sync_state = SyncState::new("peer-001");
+        assert_eq!(sync_state.peer_id, "peer-001");
+        assert_eq!(sync_state.last_sync_time, 0);
+        assert!(sync_state.last_sync_version.is_empty());
+        assert_eq!(sync_state.sync_status, SyncStatus::Idle);
     }
 
     #[test]
-    fn test_sync_state_update() {
-        let mut sync_state = SyncState::new("device-001");
+    fn it_should_update_sync_state_sets_version_time_status() {
+        let mut sync_state = SyncState::new("peer-001");
+        let mut new_versions = HashMap::new();
+        new_versions.insert("peer-001".to_string(), 10u64);
+
+        sync_state.update(&new_versions);
+
+        assert_eq!(sync_state.last_sync_version.get("peer-001"), Some(&10u64));
+        assert!(sync_state.last_sync_time > 0);
+        assert_eq!(sync_state.sync_status, SyncStatus::Completed);
+    }
+
+    #[test]
+    fn it_should_get_last_sync_version_returns_empty_when_new() {
+        let sync_state = SyncState::new("peer-001");
+        assert!(sync_state.get_last_sync_version().is_empty());
+    }
+
+    #[test]
+    fn it_should_sync_status_variants() {
+        assert_eq!(SyncStatus::Idle, SyncStatus::Idle);
+        assert_eq!(SyncStatus::Syncing, SyncStatus::Syncing);
+        assert_eq!(SyncStatus::Failed, SyncStatus::Failed);
+        assert_eq!(SyncStatus::Completed, SyncStatus::Completed);
+    }
+
+    #[test]
+    fn it_should_sync_state_creation() {
+        let sync_state = SyncState::new("peer-001");
+        assert_eq!(sync_state.peer_id, "peer-001");
+        assert_eq!(sync_state.last_sync_time, 0);
+        assert!(sync_state.last_sync_version.is_empty());
+        assert_eq!(sync_state.sync_status, SyncStatus::Idle);
+    }
+
+    #[test]
+    fn it_should_sync_state_update() {
+        let mut sync_state = SyncState::new("peer-001");
         let mut new_versions = HashMap::new();
         new_versions.insert("peer-001".to_string(), 42u64);
         new_versions.insert("peer-002".to_string(), 100u64);
 
         sync_state.update(&new_versions);
 
-        assert_eq!(sync_state.version_vector["peer-001"], 42);
-        assert_eq!(sync_state.version_vector["peer-002"], 100);
-        assert!(sync_state.last_sync > 0);
+        assert_eq!(sync_state.last_sync_version["peer-001"], 42);
+        assert_eq!(sync_state.last_sync_version["peer-002"], 100);
+        assert!(sync_state.last_sync_time > 0);
+        assert_eq!(sync_state.sync_status, SyncStatus::Completed);
     }
 
     #[test]
-    fn test_sync_state_update_merge() {
-        let mut sync_state = SyncState::new("device-001");
+    fn it_should_sync_state_update_overwrites_version() {
+        let mut sync_state = SyncState::new("peer-001");
         sync_state
-            .version_vector
+            .last_sync_version
             .insert("peer-001".to_string(), 10u64);
 
         let mut new_versions = HashMap::new();
-        new_versions.insert("peer-001".to_string(), 5u64); // 更小的版本，应该被忽略
+        new_versions.insert("peer-001".to_string(), 5u64);
         new_versions.insert("peer-002".to_string(), 20u64);
 
         sync_state.update(&new_versions);
 
-        assert_eq!(sync_state.version_vector["peer-001"], 10); // 保持更大的版本
-        assert_eq!(sync_state.version_vector["peer-002"], 20);
+        assert_eq!(sync_state.last_sync_version["peer-001"], 5);
+        assert_eq!(sync_state.last_sync_version["peer-002"], 20);
     }
 
     #[test]
-    fn test_needs_sync_true() {
-        let mut sync_state = SyncState::new("device-001");
+    fn it_should_needs_sync_true() {
+        let mut sync_state = SyncState::new("peer-001");
         sync_state
-            .version_vector
+            .last_sync_version
             .insert("peer-001".to_string(), 10u64);
 
         let mut remote_versions = HashMap::new();
@@ -251,10 +302,10 @@ mod tests {
     }
 
     #[test]
-    fn test_needs_sync_false() {
-        let mut sync_state = SyncState::new("device-001");
+    fn it_should_needs_sync_false() {
+        let mut sync_state = SyncState::new("peer-001");
         sync_state
-            .version_vector
+            .last_sync_version
             .insert("peer-001".to_string(), 20u64);
 
         let mut remote_versions = HashMap::new();
@@ -264,10 +315,10 @@ mod tests {
     }
 
     #[test]
-    fn test_needs_sync_equal() {
-        let mut sync_state = SyncState::new("device-001");
+    fn it_should_needs_sync_equal() {
+        let mut sync_state = SyncState::new("peer-001");
         sync_state
-            .version_vector
+            .last_sync_version
             .insert("peer-001".to_string(), 20u64);
 
         let mut remote_versions = HashMap::new();
@@ -277,14 +328,14 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_op_variants() {
+    fn it_should_sync_op_variants() {
         assert_eq!(SyncOp::Push, SyncOp::Push);
         assert_eq!(SyncOp::Pull, SyncOp::Pull);
         assert_eq!(SyncOp::Bidirectional, SyncOp::Bidirectional);
     }
 
     #[test]
-    fn test_conflict_resolution_variants() {
+    fn it_should_conflict_resolution_variants() {
         assert_eq!(
             ConflictResolution::LastWriteWins,
             ConflictResolution::LastWriteWins
@@ -294,25 +345,51 @@ mod tests {
     }
 
     #[test]
-    fn test_conflict_resolution_default() {
+    fn it_should_conflict_resolution_default() {
         assert_eq!(ConflictResolution::default(), ConflictResolution::Merge);
     }
 
     #[test]
-    fn test_sync_state_serialization() {
-        let mut sync_state = SyncState::new("device-001");
+    fn it_should_needs_sync_false_when_remote_empty() {
+        let sync_state = SyncState::new("peer-001");
+        let remote_versions = HashMap::new();
+        assert!(!sync_state.needs_sync(&remote_versions));
+    }
+
+    #[test]
+    fn it_should_needs_sync_when_remote_has_new_peer() {
+        let sync_state = SyncState::new("peer-001");
+        let mut remote_versions = HashMap::new();
+        remote_versions.insert("peer-002".to_string(), 1u64);
+        assert!(sync_state.needs_sync(&remote_versions));
+    }
+
+    #[test]
+    fn it_should_update_keeps_peer_id() {
+        let mut sync_state = SyncState::new("peer-001");
+        let mut new_versions = HashMap::new();
+        new_versions.insert("peer-002".to_string(), 1u64);
+
+        sync_state.update(&new_versions);
+
+        assert_eq!(sync_state.peer_id, "peer-001");
+    }
+
+    #[test]
+    fn it_should_sync_state_serialization() {
+        let mut sync_state = SyncState::new("peer-001");
         sync_state
-            .version_vector
+            .last_sync_version
             .insert("peer-001".to_string(), 42u64);
 
         // 序列化
         let json = serde_json::to_string(&sync_state).unwrap();
-        assert!(json.contains("device-001"));
+        assert!(json.contains("peer-001"));
         assert!(json.contains("42"));
 
         // 反序列化
         let deserialized: SyncState = serde_json::from_str(&json).unwrap();
-        assert_eq!(deserialized.device_id, sync_state.device_id);
-        assert_eq!(deserialized.version_vector, sync_state.version_vector);
+        assert_eq!(deserialized.peer_id, sync_state.peer_id);
+        assert_eq!(deserialized.last_sync_version, sync_state.last_sync_version);
     }
 }

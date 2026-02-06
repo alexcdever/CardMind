@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [./service.md](./service.md), [../storage/device_config.md](../storage/device_config.md)
-**相关测试**: `rust/tests/mdns_discovery_test.rs`
+**相关测试**: `rust/tests/mdns_discovery_feature_test.rs`
 
 ---
 
@@ -296,7 +296,7 @@ structure PeerManager:
 
 ## 测试覆盖
 
-**测试文件**: `rust/tests/mdns_discovery_test.rs`
+**测试文件**: `rust/tests/mdns_discovery_feature_test.rs`
 
 **单元测试**:
 - `test_mdns_discovery_creation()` - mDNS 初始化
@@ -304,7 +304,7 @@ structure PeerManager:
 - `it_should_reject_peer_on_pool_hash_mismatch()` - 握手池校验
 - `it_should_not_start_p2p_when_not_joined()` - 未加入池不启动
 
-**集成测试**:
+**功能测试**:
 - `test_multi_device_discovery()` - 多设备发现场景
 - `test_network_interruption_recovery()` - 网络中断后重新连接
 

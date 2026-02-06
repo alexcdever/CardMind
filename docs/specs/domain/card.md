@@ -560,7 +560,7 @@ pub struct Card {
 - `test_timestamp_management()` - 时间戳管理
 - `test_restore_deleted_card()` - 恢复已删除卡片
 
-**集成测试**:
+**功能测试**:
 - `test_card_lifecycle()` - 完整生命周期
 - `test_concurrent_updates()` - 并发更新
 - `test_serialization()` - 序列化/反序列化

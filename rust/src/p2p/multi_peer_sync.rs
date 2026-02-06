@@ -372,7 +372,7 @@ mod tests {
     use libp2p::PeerId;
 
     #[test]
-    fn test_coordinator_creation() {
+    fn it_should_coordinator_creation() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -385,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_or_update_device() {
+    fn it_should_add_or_update_device() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -406,7 +406,7 @@ mod tests {
     }
 
     #[test]
-    fn test_mark_device_offline() {
+    fn it_should_mark_device_offline() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -425,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    fn test_device_sync_state() {
+    fn it_should_device_sync_state() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -443,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cleanup_offline_devices() {
+    fn it_should_cleanup_offline_devices() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();

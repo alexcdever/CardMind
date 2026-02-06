@@ -2,7 +2,7 @@
 
 **状态**: 活跃
 **依赖**: [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `flutter/test/features/search/desktop_search_test.dart`
+**相关测试**: `test/feature/features/desktop_search_feature_test.dart`
 
 ---
 
@@ -298,7 +298,7 @@ structure SearchEmptyState:
 
 ## 测试覆盖
 
-**测试文件**: `flutter/test/features/search/desktop_search_test.dart`
+**测试文件**: `test/feature/features/desktop_search_feature_test.dart`
 
 **单元测试**:
 - `test_render_search_field()` - 测试渲染搜索字段
@@ -311,7 +311,7 @@ structure SearchEmptyState:
 - `test_empty_state_display()` - 测试空状态显示
 - `test_empty_state_clear_button()` - 测试清空按钮
 
-**集成测试**:
+**功能测试**:
 - `test_search_workflow()` - 测试搜索完整流程
 - `test_search_with_highlight()` - 测试搜索和高亮
 
