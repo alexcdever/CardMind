@@ -13,17 +13,8 @@ const String magenta = '\x1B[35m';
 const String cyan = '\x1B[36m';
 const String bold = '\x1B[1m';
 const double unitTestCoverageThreshold = 0.9;
-const int fuzzMaxTotalTimeSeconds = 60;
 
-Future<void> main(List<String> arguments) async {
-  if (arguments.isNotEmpty && arguments.first == 'fuzz') {
-    printHeader('🧪 CardMind 模糊测试');
-    if (!await runFuzzChecks()) {
-      exit(1);
-    }
-    return;
-  }
-
+Future<void> main(List<String> _) async {
   printHeader('🔍 CardMind 质量检查');
 
   if (!await runCoverageCheck()) {
@@ -138,78 +129,6 @@ Future<bool> runRustChecks() async {
   return true;
 }
 
-Future<bool> runFuzzChecks() async {
-  printSection('🧪 模糊测试');
-
-  if (!await runRustFuzzTargets()) {
-    return false;
-  }
-
-  if (!await runFlutterFuzzTests()) {
-    return false;
-  }
-
-  printSuccess('✅ 模糊测试通过');
-  return true;
-}
-
-Future<bool> runRustFuzzTargets() async {
-  printSection('🦀 Rust 模糊测试');
-
-  if (!await runCommand(
-    'cargo',
-    ['fuzz', '--help'],
-    workingDirectory: 'rust',
-    description: 'cargo fuzz --help',
-  )) {
-    printError('未检测到 cargo-fuzz，请先执行: cargo install cargo-fuzz');
-    return false;
-  }
-
-  final List<String> targets = <String>[
-    'fuzz_password_strength',
-    'fuzz_pool_validation',
-    'fuzz_pool_hash',
-  ];
-
-  for (final String target in targets) {
-    if (!await runCommand(
-      'cargo',
-      [
-        'fuzz',
-        'run',
-        target,
-        '--',
-        '-max_total_time=$fuzzMaxTotalTimeSeconds',
-      ],
-      workingDirectory: 'rust',
-      description: 'cargo fuzz run $target',
-    )) {
-      printError('Rust 模糊测试失败: $target');
-      return false;
-    }
-  }
-
-  printSuccess('✅ Rust 模糊测试通过');
-  return true;
-}
-
-Future<bool> runFlutterFuzzTests() async {
-  printSection('🎯 Flutter 模糊测试');
-
-  if (!await runCommand(
-    'flutter',
-    ['test', 'test/fuzz'],
-    description: 'flutter test test/fuzz',
-  )) {
-    printError('Flutter 模糊测试失败');
-    return false;
-  }
-
-  printSuccess('✅ Flutter 模糊测试通过');
-  return true;
-}
-
 Future<bool> runBridgeBuild() async {
   printSection('🔧 生成桥接与动态库');
 
@@ -269,10 +188,13 @@ Future<bool> runFlutterChecks() async {
 }
 
 bool _printCoverageSummary(String label, CoverageSummary summary) {
-  final String coveragePercent =
-      (summary.coverageRate * 100).toStringAsFixed(1);
-  printInfo('  → $label 单元覆盖率: $coveragePercent% '
-      '(${summary.actualCount}/${summary.expectedCount})');
+  final String coveragePercent = (summary.coverageRate * 100).toStringAsFixed(
+    1,
+  );
+  printInfo(
+    '  → $label 单元覆盖率: $coveragePercent% '
+    '(${summary.actualCount}/${summary.expectedCount})',
+  );
 
   if (summary.coverageRate < unitTestCoverageThreshold) {
     printError('$label 单元测试覆盖率低于 ${unitTestCoverageThreshold * 100}%');

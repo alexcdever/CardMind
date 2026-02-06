@@ -28,6 +28,16 @@ String formatId(String id) => id;
     expect(items, containsAll(<String>{'Device', 'Device__ping', 'formatId'}));
   });
 
+  test('it_should_parse_dart_public_items_with_enum_mixin_extension', () {
+    const source = '''
+enum Mode { a, b }
+mixin Trackable { void track() {} }
+extension IdExtension on String { String withPrefix() => this; }
+''';
+    final items = parseDartPublicItems(source);
+    expect(items, containsAll(<String>{'Mode', 'Trackable', 'IdExtension'}));
+  });
+
   test('it_should_parse_rust_unit_test_items', () {
     const source = '''
 #[test]
@@ -61,14 +71,14 @@ testWidgets("it_should_device__ping", (tester) async {});
   });
 
   test('it_should_analyze_coverage_from_directories', () async {
-    final Directory tempDir =
-        await Directory.systemTemp.createTemp('coverage_analyze_');
+    final Directory tempDir = await Directory.systemTemp.createTemp(
+      'coverage_analyze_',
+    );
     try {
-      final Directory sourceDir =
-          Directory('${tempDir.path}/lib/models')..createSync(recursive: true);
-      final Directory testDir =
-          Directory('${tempDir.path}/test/unit/models')
-            ..createSync(recursive: true);
+      final Directory sourceDir = Directory('${tempDir.path}/lib/models')
+        ..createSync(recursive: true);
+      final Directory testDir = Directory('${tempDir.path}/test/unit/models')
+        ..createSync(recursive: true);
 
       final File sourceFile = File('${sourceDir.path}/device.dart');
       await sourceFile.writeAsString('class Device { void ping() {} }');
