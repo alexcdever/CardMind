@@ -10,9 +10,8 @@ CardMind = Flutter + Rust 离线优先的卡片笔记应用
 
 ## 快速开始
 
-每次任务开始前，按顺序阅读：
-1. docs/specs/README.md - 规范中心索引
-2. docs/requirements/product_vision.md - 产品愿景
+每次任务开始前，先阅读：
+- docs/specs/README.md - 规范中心索引
 
 ---
 
@@ -108,7 +107,6 @@ Dart/Flutter:
 
 查看规范: docs/specs/README.md
 理解架构: docs/specs/architecture/
-产品愿景: docs/requirements/product_vision.md
 
 ---
 
