@@ -5,6 +5,7 @@
 //! 测试命名: `it_should_[behavior]_when_[condition]()`
 
 use cardmind_rust::models::card::Card;
+use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::models::pool::Pool;
 use uuid::Uuid;
 
@@ -38,6 +39,12 @@ const fn validate_markdown_text(text: &str) -> bool {
     }
     // 无最大长度限制
     true
+}
+
+const fn require_card(
+    result: std::result::Result<Card, CardMindError>,
+) -> std::result::Result<Card, CardMindError> {
+    result
 }
 
 // ==== Requirement: 唯一标识符类型 ====
@@ -305,9 +312,13 @@ fn it_should_have_millisecond_precision() {
 
 #[test]
 /// Constraint: Created at <= updated at
-fn it_should_enforce_created_before_updated() {
+fn it_should_enforce_created_before_updated() -> Result<(), CardMindError> {
     // Given: 创建新卡片
-    let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
+    let card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
 
     // When: 验证时间戳一致性
     // Then: created_at <= updated_at 应始终为真
@@ -319,7 +330,7 @@ fn it_should_enforce_created_before_updated() {
     // When: 更新卡片
     let mut updated_card = card.clone();
     std::thread::sleep(std::time::Duration::from_millis(10));
-    updated_card.update(Some("新标题".to_string()), None);
+    updated_card.update(Some("新标题".to_string()), None)?;
 
     // Then: updated_at 应自动更新
     assert!(
@@ -330,21 +341,27 @@ fn it_should_enforce_created_before_updated() {
         updated_card.created_at, card.created_at,
         "created_at 应保持不变"
     );
+    Ok(())
 }
 
 #[test]
 /// Constraint: Updated at is automatic
-fn it_should_automatically_update_updated_at() {
+fn it_should_automatically_update_updated_at() -> Result<(), CardMindError> {
     // Given: 创建新实体
-    let mut card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
+    let mut card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
     let old_updated_at = card.updated_at;
 
     // When: 修改实体
     std::thread::sleep(std::time::Duration::from_millis(10));
-    card.update(Some("新标题".to_string()), None);
+    card.update(Some("新标题".to_string()), None)?;
 
     // Then: updated_at 必须自动更新
     assert!(card.updated_at > old_updated_at, "updated_at 应自动更新");
+    Ok(())
 }
 
 // ==== Requirement: 引用完整性 ====
@@ -386,13 +403,17 @@ fn it_should_enforce_card_pool_binding_consistency() {
 
 #[test]
 /// Constraint: Soft-deleted cards not in default queries
-fn it_should_exclude_soft_deleted_cards_from_default_queries() {
+fn it_should_exclude_soft_deleted_cards_from_default_queries() -> Result<(), CardMindError> {
     // Given: 软删除的卡片
-    let mut card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
+    let mut card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
     assert!(!card.deleted, "初始状态应未删除");
 
     // When: 软删除卡片
-    card.mark_deleted();
+    card.mark_deleted()?;
 
     // Then: 卡片不应出现在默认查询中
     assert!(card.deleted, "卡片应标记为删除");
@@ -403,14 +424,19 @@ fn it_should_exclude_soft_deleted_cards_from_default_queries() {
         !should_show_in_default_query,
         "软删除的卡片不应出现在默认查询中"
     );
+    Ok(())
 }
 
 #[test]
 /// Constraint: Soft-deleted cards can be recovered
-fn it_should_allow_recovering_soft_deleted_cards() {
+fn it_should_allow_recovering_soft_deleted_cards() -> Result<(), CardMindError> {
     // Given: 软删除的卡片
-    let mut card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
-    card.mark_deleted();
+    let mut card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
+    card.mark_deleted()?;
     assert!(card.deleted, "卡片应标记为删除");
 
     // When: 恢复卡片（设置 deleted = false）
@@ -423,15 +449,20 @@ fn it_should_allow_recovering_soft_deleted_cards() {
     // And: 恢复的卡片应在活跃列表中
     let should_show_in_active_query = !card.deleted;
     assert!(should_show_in_active_query, "恢复的卡片应在活跃列表中");
+    Ok(())
 }
 
 // ==== 集成测试 ====
 
 #[test]
 /// 集成测试：完整的类型约束验证
-fn it_should_validate_all_type_constraints() {
+fn it_should_validate_all_type_constraints() -> Result<(), CardMindError> {
     // Given: 创建新卡片
-    let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
+    let card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
 
     // When: 验证所有类型约束
     // UUID v7
@@ -461,18 +492,19 @@ fn it_should_validate_all_type_constraints() {
     assert!(!card.deleted, "初始状态应为未删除");
 
     // Then: 所有约束应满足
+    Ok(())
 }
 
 #[test]
 /// 集成测试：类型与域模型集成
-fn it_should_integrate_types_with_domain_models() {
+fn it_should_integrate_types_with_domain_models() -> Result<(), CardMindError> {
     // Given: 创建池和卡片
     let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
-    let card = Card::new(
+    let card = require_card(Card::new(
         generate_uuid_v7(),
         "测试标题".to_string(),
         "# 测试内容\n\n**粗体**文本".to_string(),
-    );
+    ))?;
 
     // When: 将卡片添加到池
     pool.add_card(&card.id);
@@ -502,4 +534,5 @@ fn it_should_integrate_types_with_domain_models() {
 
     // 软删除标志
     assert!(!card.deleted, "初始状态应为未删除");
+    Ok(())
 }

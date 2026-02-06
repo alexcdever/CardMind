@@ -668,88 +668,116 @@ impl SqliteStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::error::Result;
     use crate::utils::uuid_v7::generate_uuid_v7;
 
-    #[test]
-    fn it_should_sqlite_store_creation() {
-        let store = SqliteStore::new_in_memory();
-        assert!(store.is_ok(), "应该能创建内存SQLite store");
+    fn require_card(result: Result<Card>) -> Result<Card> {
+        result
     }
 
     #[test]
-    fn it_should_insert_and_get_card() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_sqlite_store_creation() -> Result<()> {
+        SqliteStore::new_in_memory()?;
+        Ok(())
+    }
 
-        let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
+    #[test]
+    fn it_should_insert_and_get_card() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
+
+        let card = require_card(Card::new(
+            generate_uuid_v7(),
+            "标题".to_string(),
+            "内容".to_string(),
+        ))?;
         let card_id = card.id.clone();
 
         // 插入卡片
-        store.insert_card(&card).unwrap();
+        store.insert_card(&card)?;
 
         // 查询卡片
-        let retrieved = store.get_card_by_id(&card_id).unwrap();
+        let retrieved = store.get_card_by_id(&card_id)?;
         assert_eq!(retrieved.id, card_id);
         assert_eq!(retrieved.title, "标题");
         assert_eq!(retrieved.content, "内容");
+        Ok(())
     }
 
     #[test]
-    fn it_should_get_active_cards_excludes_deleted() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_get_active_cards_excludes_deleted() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
         // 插入两个卡片
-        let mut card1 = Card::new(generate_uuid_v7(), "卡片1".to_string(), "内容1".to_string());
-        let card2 = Card::new(generate_uuid_v7(), "卡片2".to_string(), "内容2".to_string());
+        let mut card1 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片1".to_string(),
+            "内容1".to_string(),
+        ))?;
+        let card2 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片2".to_string(),
+            "内容2".to_string(),
+        ))?;
 
-        store.insert_card(&card1).unwrap();
-        store.insert_card(&card2).unwrap();
+        store.insert_card(&card1)?;
+        store.insert_card(&card2)?;
 
         // 软删除card1
-        card1.mark_deleted();
-        store.update_card(&card1).unwrap();
+        card1.mark_deleted()?;
+        store.update_card(&card1)?;
 
         // 查询活跃卡片
-        let active_cards = store.get_active_cards().unwrap();
+        let active_cards = store.get_active_cards()?;
         assert_eq!(active_cards.len(), 1);
         assert_eq!(active_cards[0].id, card2.id);
+        Ok(())
     }
 
     #[test]
-    fn it_should_card_count() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_card_count() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
         // 初始状态
-        let (total, active, deleted) = store.get_card_count().unwrap();
+        let (total, active, deleted) = store.get_card_count()?;
         assert_eq!(total, 0);
         assert_eq!(active, 0);
         assert_eq!(deleted, 0);
 
         // 插入两个卡片
-        let mut card1 = Card::new(generate_uuid_v7(), "卡片1".to_string(), "内容1".to_string());
-        let card2 = Card::new(generate_uuid_v7(), "卡片2".to_string(), "内容2".to_string());
+        let mut card1 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片1".to_string(),
+            "内容1".to_string(),
+        ))?;
+        let card2 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片2".to_string(),
+            "内容2".to_string(),
+        ))?;
 
-        store.insert_card(&card1).unwrap();
-        store.insert_card(&card2).unwrap();
+        store.insert_card(&card1)?;
+        store.insert_card(&card2)?;
 
         // 检查数量
-        let (total, active, deleted) = store.get_card_count().unwrap();
+        let (total, active, deleted) = store.get_card_count()?;
         assert_eq!(total, 2);
         assert_eq!(active, 2);
         assert_eq!(deleted, 0);
 
         // 软删除一个
-        card1.mark_deleted();
-        store.update_card(&card1).unwrap();
+        card1.mark_deleted()?;
+        store.update_card(&card1)?;
 
-        let (total, active, deleted) = store.get_card_count().unwrap();
+        let (total, active, deleted) = store.get_card_count()?;
         assert_eq!(total, 2);
         assert_eq!(active, 1);
         assert_eq!(deleted, 1);
+        Ok(())
     }
 
     #[test]
-    fn it_should_pools_and_bindings_tables_creation() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_pools_and_bindings_tables_creation() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
         // 验证 pools 表已创建
         let result = store.conn.query_row(
@@ -781,232 +809,257 @@ mod tests {
             |row| row.get::<_, String>(0),
         );
         assert!(result.is_ok(), "card_pool_bindings pool_id 索引应该已创建");
+        Ok(())
     }
 
     #[test]
-    fn it_should_add_and_get_card_pool_binding() {
-        let store = SqliteStore::new_in_memory().unwrap();
-        let card = Card::new(
+    fn it_should_add_and_get_card_pool_binding() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
+        let card = require_card(Card::new(
             generate_uuid_v7(),
             "测试卡片".to_string(),
             "内容".to_string(),
-        );
+        ))?;
         let pool_id = generate_uuid_v7();
 
         // 插入卡片
-        store.insert_card(&card).unwrap();
+        store.insert_card(&card)?;
 
         // 添加绑定
-        store.add_card_pool_binding(&card.id, &pool_id).unwrap();
+        store.add_card_pool_binding(&card.id, &pool_id)?;
 
         // 查询卡片的数据池
-        let pools = store.get_card_pools(&card.id).unwrap();
+        let pools = store.get_card_pools(&card.id)?;
         assert_eq!(pools.len(), 1);
         assert_eq!(pools[0], pool_id);
 
         // 查询数据池的卡片
-        let cards = store.get_pool_cards(&pool_id).unwrap();
+        let cards = store.get_pool_cards(&pool_id)?;
         assert_eq!(cards.len(), 1);
         assert_eq!(cards[0], card.id);
+        Ok(())
     }
 
     #[test]
-    fn it_should_remove_card_pool_binding() {
-        let store = SqliteStore::new_in_memory().unwrap();
-        let card = Card::new(
+    fn it_should_remove_card_pool_binding() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
+        let card = require_card(Card::new(
             generate_uuid_v7(),
             "测试卡片".to_string(),
             "内容".to_string(),
-        );
+        ))?;
         let pool_id = generate_uuid_v7();
 
         // 插入卡片和绑定
-        store.insert_card(&card).unwrap();
-        store.add_card_pool_binding(&card.id, &pool_id).unwrap();
+        store.insert_card(&card)?;
+        store.add_card_pool_binding(&card.id, &pool_id)?;
 
         // 验证绑定存在
-        let pools = store.get_card_pools(&card.id).unwrap();
+        let pools = store.get_card_pools(&card.id)?;
         assert_eq!(pools.len(), 1);
 
         // 移除绑定
-        store.remove_card_pool_binding(&card.id, &pool_id).unwrap();
+        store.remove_card_pool_binding(&card.id, &pool_id)?;
 
         // 验证绑定已移除
-        let pools = store.get_card_pools(&card.id).unwrap();
+        let pools = store.get_card_pools(&card.id)?;
         assert_eq!(pools.len(), 0);
+        Ok(())
     }
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn it_should_clear_card_pools() {
-        let store = SqliteStore::new_in_memory().unwrap();
-        let card = Card::new(
+    fn it_should_clear_card_pools() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
+        let card = require_card(Card::new(
             generate_uuid_v7(),
             "测试卡片".to_string(),
             "内容".to_string(),
-        );
+        ))?;
         let pool1 = generate_uuid_v7();
         let pool2 = generate_uuid_v7();
 
         // 插入卡片和多个绑定
-        store.insert_card(&card).unwrap();
-        store.add_card_pool_binding(&card.id, &pool1).unwrap();
-        store.add_card_pool_binding(&card.id, &pool2).unwrap();
+        store.insert_card(&card)?;
+        store.add_card_pool_binding(&card.id, &pool1)?;
+        store.add_card_pool_binding(&card.id, &pool2)?;
 
         // 验证绑定存在
-        let pools = store.get_card_pools(&card.id).unwrap();
+        let pools = store.get_card_pools(&card.id)?;
         assert_eq!(pools.len(), 2);
 
         // 清除所有绑定
-        store.clear_card_pools(&card.id).unwrap();
+        store.clear_card_pools(&card.id)?;
 
         // 验证绑定已清除
-        let pools = store.get_card_pools(&card.id).unwrap();
+        let pools = store.get_card_pools(&card.id)?;
         assert_eq!(pools.len(), 0);
+        Ok(())
     }
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn it_should_get_cards_in_pools() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_get_cards_in_pools() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
         // 创建3个卡片
-        let card1 = Card::new(generate_uuid_v7(), "卡片1".to_string(), "内容1".to_string());
-        let card2 = Card::new(generate_uuid_v7(), "卡片2".to_string(), "内容2".to_string());
-        let card3 = Card::new(generate_uuid_v7(), "卡片3".to_string(), "内容3".to_string());
+        let card1 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片1".to_string(),
+            "内容1".to_string(),
+        ))?;
+        let card2 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片2".to_string(),
+            "内容2".to_string(),
+        ))?;
+        let card3 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片3".to_string(),
+            "内容3".to_string(),
+        ))?;
 
         // 创建2个数据池
         let pool1 = generate_uuid_v7();
         let pool2 = generate_uuid_v7();
 
         // 插入卡片
-        store.insert_card(&card1).unwrap();
-        store.insert_card(&card2).unwrap();
-        store.insert_card(&card3).unwrap();
+        store.insert_card(&card1)?;
+        store.insert_card(&card2)?;
+        store.insert_card(&card3)?;
 
         // 绑定关系: card1->pool1, card2->pool1, card2->pool2, card3->pool2
-        store.add_card_pool_binding(&card1.id, &pool1).unwrap();
-        store.add_card_pool_binding(&card2.id, &pool1).unwrap();
-        store.add_card_pool_binding(&card2.id, &pool2).unwrap();
-        store.add_card_pool_binding(&card3.id, &pool2).unwrap();
+        store.add_card_pool_binding(&card1.id, &pool1)?;
+        store.add_card_pool_binding(&card2.id, &pool1)?;
+        store.add_card_pool_binding(&card2.id, &pool2)?;
+        store.add_card_pool_binding(&card3.id, &pool2)?;
 
         // 查询 pool1 的卡片（应该有 card1 和 card2）
-        let cards = store
-            .get_cards_in_pools(std::slice::from_ref(&pool1))
-            .unwrap();
+        let cards = store.get_cards_in_pools(std::slice::from_ref(&pool1))?;
         assert_eq!(cards.len(), 2);
         let card_ids: Vec<String> = cards.iter().map(|c| c.id.clone()).collect();
         assert!(card_ids.contains(&card1.id));
         assert!(card_ids.contains(&card2.id));
 
         // 查询 pool2 的卡片（应该有 card2 和 card3）
-        let cards = store
-            .get_cards_in_pools(std::slice::from_ref(&pool2))
-            .unwrap();
+        let cards = store.get_cards_in_pools(std::slice::from_ref(&pool2))?;
         assert_eq!(cards.len(), 2);
         let card_ids: Vec<String> = cards.iter().map(|c| c.id.clone()).collect();
         assert!(card_ids.contains(&card2.id));
         assert!(card_ids.contains(&card3.id));
 
         // 查询 pool1 和 pool2 的卡片（应该有所有3个卡片）
-        let cards = store.get_cards_in_pools(&[pool1, pool2]).unwrap();
+        let cards = store.get_cards_in_pools(&[pool1, pool2])?;
         assert_eq!(cards.len(), 3);
+        Ok(())
     }
 
     #[test]
     #[allow(clippy::similar_names)]
-    fn it_should_get_cards_in_pools_excludes_deleted() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_get_cards_in_pools_excludes_deleted() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
-        let mut card1 = Card::new(generate_uuid_v7(), "卡片1".to_string(), "内容1".to_string());
-        let card2 = Card::new(generate_uuid_v7(), "卡片2".to_string(), "内容2".to_string());
+        let mut card1 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片1".to_string(),
+            "内容1".to_string(),
+        ))?;
+        let card2 = require_card(Card::new(
+            generate_uuid_v7(),
+            "卡片2".to_string(),
+            "内容2".to_string(),
+        ))?;
         let pool_id = generate_uuid_v7();
 
         // 插入卡片和绑定
-        store.insert_card(&card1).unwrap();
-        store.insert_card(&card2).unwrap();
-        store.add_card_pool_binding(&card1.id, &pool_id).unwrap();
-        store.add_card_pool_binding(&card2.id, &pool_id).unwrap();
+        store.insert_card(&card1)?;
+        store.insert_card(&card2)?;
+        store.add_card_pool_binding(&card1.id, &pool_id)?;
+        store.add_card_pool_binding(&card2.id, &pool_id)?;
 
         // 软删除 card1
-        card1.mark_deleted();
-        store.update_card(&card1).unwrap();
+        card1.mark_deleted()?;
+        store.update_card(&card1)?;
 
         // 查询数据池卡片（应该只有 card2）
-        let cards = store.get_cards_in_pools(&[pool_id]).unwrap();
+        let cards = store.get_cards_in_pools(&[pool_id])?;
         assert_eq!(cards.len(), 1);
         assert_eq!(cards[0].id, card2.id);
+        Ok(())
     }
 
     #[test]
-    fn it_should_get_cards_in_pools_empty_pools() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_get_cards_in_pools_empty_pools() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
         // 空数据池列表应返回空结果
-        let cards = store.get_cards_in_pools(&[]).unwrap();
+        let cards = store.get_cards_in_pools(&[])?;
         assert_eq!(cards.len(), 0);
+        Ok(())
     }
 
     #[test]
-    fn it_should_fts5_search_cards() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_fts5_search_cards() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
-        let card1 = Card::new(
+        let card1 = require_card(Card::new(
             generate_uuid_v7(),
             "Rust Programming".to_string(),
             "Learn Rust language".to_string(),
-        );
-        let card2 = Card::new(
+        ))?;
+        let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "Flutter Development".to_string(),
             "Flutter app development".to_string(),
-        );
-        let card3 = Card::new(
+        ))?;
+        let card3 = require_card(Card::new(
             generate_uuid_v7(),
             "Database".to_string(),
             "SQLite and PostgreSQL".to_string(),
-        );
+        ))?;
 
-        store.insert_card(&card1).unwrap();
-        store.insert_card(&card2).unwrap();
-        store.insert_card(&card3).unwrap();
+        store.insert_card(&card1)?;
+        store.insert_card(&card2)?;
+        store.insert_card(&card3)?;
 
-        let results = store.search_cards("Rust").unwrap();
+        let results = store.search_cards("Rust")?;
         assert_eq!(results.len(), 1);
         assert!(results[0].title.contains("Rust"));
 
-        let results = store.search_cards("Flutter").unwrap();
+        let results = store.search_cards("Flutter")?;
         assert_eq!(results.len(), 1);
         assert!(results[0].title.contains("Flutter"));
 
-        let results = store.search_cards("Database").unwrap();
+        let results = store.search_cards("Database")?;
         assert_eq!(results.len(), 1);
         assert!(results[0].title.contains("Database"));
+        Ok(())
     }
 
     #[test]
-    fn it_should_fts5_search_exclude_deleted() {
-        let store = SqliteStore::new_in_memory().unwrap();
+    fn it_should_fts5_search_exclude_deleted() -> Result<()> {
+        let store = SqliteStore::new_in_memory()?;
 
-        let mut card1 = Card::new(
+        let mut card1 = require_card(Card::new(
             generate_uuid_v7(),
             "Card 1".to_string(),
             "Content 1".to_string(),
-        );
-        let card2 = Card::new(
+        ))?;
+        let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "Card 2".to_string(),
             "Content 2".to_string(),
-        );
+        ))?;
 
-        store.insert_card(&card1).unwrap();
-        store.insert_card(&card2).unwrap();
+        store.insert_card(&card1)?;
+        store.insert_card(&card2)?;
 
-        card1.mark_deleted();
-        store.update_card(&card1).unwrap();
+        card1.mark_deleted()?;
+        store.update_card(&card1)?;
 
-        let results = store.search_cards("Card").unwrap();
+        let results = store.search_cards("Card")?;
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].id, card2.id);
+        Ok(())
     }
 }

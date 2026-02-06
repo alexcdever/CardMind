@@ -110,6 +110,32 @@ pub fn get_device_config() -> Result<DeviceConfig> {
     with_device_config(|config| Ok(config.clone()))
 }
 
+/// Get current device name
+#[flutter_rust_bridge::frb]
+pub fn get_device_name() -> Result<String> {
+    with_device_config(|config| Ok(config.get_device_name().to_string()))
+}
+
+/// Set device name
+#[flutter_rust_bridge::frb]
+pub fn set_device_name(name: String) -> Result<()> {
+    let old_name = with_device_config(|config| {
+        let old = config.device_name.clone();
+        config.set_device_name(&name)?;
+        Ok(old)
+    })?;
+
+    if let Err(err) = save_config() {
+        let _ = with_device_config(|config| {
+            config.device_name = old_name;
+            Ok(())
+        });
+        return Err(err);
+    }
+
+    Ok(())
+}
+
 /// Join a data pool
 ///
 /// Adds the pool ID to the joined_pools list.
@@ -126,9 +152,7 @@ pub fn get_device_config() -> Result<DeviceConfig> {
 #[flutter_rust_bridge::frb]
 pub fn join_pool(pool_id: String) -> Result<()> {
     with_device_config(|config| {
-        config
-            .join_pool(&pool_id)
-            .map_err(|e| CardMindError::DatabaseError(e.to_string()))?;
+        config.join_pool(&pool_id)?;
         Ok(())
     })?;
     save_config()?;
@@ -155,9 +179,8 @@ pub fn join_pool(pool_id: String) -> Result<()> {
 #[flutter_rust_bridge::frb]
 pub fn leave_pool(pool_id: String) -> Result<()> {
     with_device_config(|config| {
-        config
-            .leave_pool(&pool_id)
-            .map_err(|e| CardMindError::DatabaseError(e.to_string()))
+        config.leave_pool(&pool_id)?;
+        Ok(())
     })?;
     save_config()?;
     Ok(())
@@ -292,6 +315,63 @@ mod tests {
         assert!(config.peer_id.is_none());
         assert!(!config.device_name.is_empty());
         assert!(config.pool_id.is_none());
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_get_device_name_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        let name = get_device_name().unwrap();
+        assert!(!name.is_empty());
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_set_device_name_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        set_device_name("MyDevice".to_string()).unwrap();
+        let name = get_device_name().unwrap();
+        assert_eq!(name, "MyDevice");
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_reject_invalid_device_name_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        let result = set_device_name(String::new());
+        assert!(result.is_err());
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_reject_empty_pool_id_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        let result = join_pool(String::new());
+        assert!(result.is_err());
 
         cleanup_device_config();
     }

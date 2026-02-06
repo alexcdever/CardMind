@@ -5,37 +5,36 @@
 //! 测试命名: `it_should_[behavior]_when_[condition]()`
 
 use cardmind_rust::models::card::Card;
+use cardmind_rust::models::error::Result;
 use cardmind_rust::store::sqlite_store::SqliteStore;
+use cardmind_rust::utils::uuid_v7::generate_uuid_v7;
 
 // ==== Requirement: Write Layer - Loro CRDT ====
 
 #[test]
 /// Scenario: All writes go to Loro first
-fn it_should_write_to_loro_first() {
+fn it_should_write_to_loro_first() -> Result<()> {
     // Given: 用户修改卡片
-    let card_id = "test-card-001".to_string();
+    let card_id = generate_uuid_v7();
     let card = Card::new(
         card_id.clone(),
         "测试卡片".to_string(),
         "测试内容".to_string(),
-    );
+    )?;
 
     // When: 保存修改
     // Then: 变更应首先写入 Loro 文档
     // Note: 验证 Card 模型结构正确
     assert_eq!(card.id, card_id);
     assert_eq!(card.title, "测试卡片");
+    Ok(())
 }
 
 #[test]
 /// Scenario: Loro document structure for Card
-fn it_should_have_correct_card_structure() {
+fn it_should_have_correct_card_structure() -> Result<()> {
     // Given: 创建卡片
-    let card = Card::new(
-        "test-card-002".to_string(),
-        "标题".to_string(),
-        "内容".to_string(),
-    );
+    let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string())?;
 
     // When: 检查卡片结构
     // Then: 应包含所有必需字段
@@ -45,6 +44,7 @@ fn it_should_have_correct_card_structure() {
     assert!(card.created_at > 0);
     assert!(card.updated_at > 0);
     assert!(!card.deleted);
+    Ok(())
 }
 
 // ==== Requirement: Read Layer - SQLite Cache ====

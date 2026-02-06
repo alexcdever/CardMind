@@ -284,7 +284,7 @@ impl CardStore {
         let card_id = generate_uuid_v7();
 
         // 创建Card对象
-        let card = Card::new(card_id.clone(), title, content);
+        let card = Card::new(card_id.clone(), title, content)?;
 
         // 创建LoroDoc
         let doc = LoroDoc::new();
@@ -370,7 +370,7 @@ impl CardStore {
         let mut card = self.get_card_by_id(id)?;
 
         // 更新字段
-        card.update(title, content);
+        card.update(title, content)?;
 
         // 加载LoroDoc（如果未缓存）
         self.ensure_loro_doc_loaded(id)?;
@@ -425,7 +425,7 @@ impl CardStore {
         let mut card = self.get_card_by_id(id)?;
 
         // 标记为已删除
-        card.mark_deleted();
+        card.mark_deleted()?;
 
         // 加载LoroDoc（如果未缓存）
         self.ensure_loro_doc_loaded(id)?;
@@ -665,5 +665,96 @@ mod tests {
 
         let retrieved = store.get_card_by_id(&card.id).unwrap();
         assert_eq!(retrieved.title, "测试");
+    }
+
+    #[test]
+    fn it_should_create_card_updates_counts() {
+        let mut store = CardStore::new_in_memory().unwrap();
+
+        let card = store
+            .create_card("标题".to_string(), "内容".to_string())
+            .unwrap();
+        let (total, active, deleted) = store.get_card_count().unwrap();
+
+        assert_eq!(total, 1);
+        assert_eq!(active, 1);
+        assert_eq!(deleted, 0);
+
+        let fetched = store.get_card_by_id(&card.id).unwrap();
+        assert_eq!(fetched.title, "标题");
+    }
+
+    #[test]
+    fn it_should_update_card_title_and_content() {
+        let mut store = CardStore::new_in_memory().unwrap();
+        let card = store
+            .create_card("旧标题".to_string(), "旧内容".to_string())
+            .unwrap();
+
+        store
+            .update_card(
+                &card.id,
+                Some("新标题".to_string()),
+                Some("新内容".to_string()),
+            )
+            .unwrap();
+
+        let updated = store.get_card_by_id(&card.id).unwrap();
+        assert_eq!(updated.title, "新标题");
+        assert_eq!(updated.content, "新内容");
+    }
+
+    #[test]
+    fn it_should_delete_card_marks_deleted() {
+        let mut store = CardStore::new_in_memory().unwrap();
+        let card = store
+            .create_card("标题".to_string(), "内容".to_string())
+            .unwrap();
+
+        store.delete_card(&card.id).unwrap();
+
+        let updated = store.get_card_by_id(&card.id).unwrap();
+        assert!(updated.deleted);
+    }
+
+    #[test]
+    fn it_should_get_card_pools_empty_when_none() {
+        let mut store = CardStore::new_in_memory().unwrap();
+        let card = store
+            .create_card("标题".to_string(), "内容".to_string())
+            .unwrap();
+
+        let pools = store.get_card_pools(&card.id).unwrap();
+        assert!(pools.is_empty());
+    }
+
+    #[test]
+    fn it_should_get_active_cards_excludes_deleted() {
+        let mut store = CardStore::new_in_memory().unwrap();
+        let card = store
+            .create_card("标题".to_string(), "内容".to_string())
+            .unwrap();
+
+        store.delete_card(&card.id).unwrap();
+
+        let active = store.get_active_cards().unwrap();
+        assert!(active.is_empty());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    fn it_should_manage_card_pool_bindings() {
+        let mut store = CardStore::new_in_memory().unwrap();
+        let card = store
+            .create_card("标题".to_string(), "内容".to_string())
+            .unwrap();
+
+        store.add_card_to_pool(&card.id, "pool-001").unwrap();
+        let pools = store.get_card_pools(&card.id).unwrap();
+        assert_eq!(pools, vec!["pool-001".to_string()]);
+
+        store.remove_card_from_pool(&card.id, "pool-001").unwrap();
+        let pools = store.get_card_pools(&card.id).unwrap();
+        assert!(pools.is_empty());
     }
 }

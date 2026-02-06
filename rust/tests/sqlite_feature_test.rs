@@ -16,6 +16,12 @@ use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::utils::uuid_v7::generate_uuid_v7;
 use rusqlite::{Connection, Result as SqliteResult};
 
+const fn require_card(
+    result: std::result::Result<Card, CardMindError>,
+) -> std::result::Result<Card, CardMindError> {
+    result
+}
+
 // ==================== 1. 表创建测试 ====================
 
 /// 测试: `SQLite数据库连接创建`
@@ -164,14 +170,14 @@ fn it_should_sqlite_optimization() {
 
 /// 测试: 插入卡片
 #[test]
-fn it_should_insert_card() {
+fn it_should_insert_card() -> Result<(), CardMindError> {
     // Given: 一个测试数据库和卡片对象
     let conn = setup_test_db();
-    let card = Card::new(
+    let card = require_card(Card::new(
         generate_uuid_v7(),
         "测试标题".to_string(),
         "测试内容".to_string(),
-    );
+    ))?;
 
     // When: 插入卡片
     let result = insert_card(&conn, &card);
@@ -183,33 +189,47 @@ fn it_should_insert_card() {
         .query_row("SELECT COUNT(*) FROM cards", [], |row| row.get(0))
         .unwrap();
     assert_eq!(count, 1, "应该有1条记录");
+    Ok(())
 }
 
 /// 测试: 查询所有卡片
 #[test]
-fn it_should_select_all_cards() {
+fn it_should_select_all_cards() -> Result<(), CardMindError> {
     // Given: 一个测试数据库和两张卡片
     let conn = setup_test_db();
-    let card1 = Card::new(generate_uuid_v7(), "标题1".to_string(), "内容1".to_string());
-    let card2 = Card::new(generate_uuid_v7(), "标题2".to_string(), "内容2".to_string());
-    insert_card(&conn, &card1).unwrap();
-    insert_card(&conn, &card2).unwrap();
+    let card1 = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题1".to_string(),
+        "内容1".to_string(),
+    ))?;
+    let card2 = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题2".to_string(),
+        "内容2".to_string(),
+    ))?;
+    insert_card(&conn, &card1)?;
+    insert_card(&conn, &card2)?;
 
     // When: 查询所有卡片
-    let cards = select_all_cards(&conn).unwrap();
+    let cards = select_all_cards(&conn)?;
 
     // Then: 应该查询到 2 条记录
     assert_eq!(cards.len(), 2, "应该查询到2条记录");
+    Ok(())
 }
 
 /// 测试: 按ID查询卡片
 #[test]
-fn it_should_select_card_by_id() {
+fn it_should_select_card_by_id() -> Result<(), CardMindError> {
     // Given: 一个测试数据库和已插入的卡片
     let conn = setup_test_db();
-    let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
+    let card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
     let card_id = card.id.clone();
-    insert_card(&conn, &card).unwrap();
+    insert_card(&conn, &card)?;
 
     // When: 按 ID 查询卡片
     let result = select_card_by_id(&conn, &card_id);
@@ -220,6 +240,7 @@ fn it_should_select_card_by_id() {
     let found_card = result.unwrap();
     assert_eq!(found_card.id, card_id);
     assert_eq!(found_card.title, "标题");
+    Ok(())
 }
 
 /// 测试: 查询不存在的卡片
@@ -243,55 +264,65 @@ fn it_should_select_nonexistent_card() {
 
 /// 测试: 更新卡片
 #[test]
-fn it_should_update_card() {
+fn it_should_update_card() -> Result<(), CardMindError> {
     // Given: 一个测试数据库和已插入的卡片
     let conn = setup_test_db();
-    let mut card = Card::new(
+    let mut card = require_card(Card::new(
         generate_uuid_v7(),
         "旧标题".to_string(),
         "旧内容".to_string(),
-    );
-    insert_card(&conn, &card).unwrap();
+    ))?;
+    insert_card(&conn, &card)?;
 
     // When: 更新卡片的标题和内容
-    card.update(Some("新标题".to_string()), Some("新内容".to_string()));
+    card.update(Some("新标题".to_string()), Some("新内容".to_string()))?;
     let result = update_card(&conn, &card);
 
     // Then: 更新应该成功，且数据已更新
     assert!(result.is_ok(), "更新卡片应该成功");
 
-    let updated_card = select_card_by_id(&conn, &card.id).unwrap();
+    let updated_card = select_card_by_id(&conn, &card.id)?;
     assert_eq!(updated_card.title, "新标题");
     assert_eq!(updated_card.content, "新内容");
+    Ok(())
 }
 
 /// 测试: 软删除卡片
 #[test]
-fn it_should_soft_delete_card() {
+fn it_should_soft_delete_card() -> Result<(), CardMindError> {
     // Given: 一个测试数据库和已插入的卡片
     let conn = setup_test_db();
-    let mut card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
-    insert_card(&conn, &card).unwrap();
+    let mut card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
+    insert_card(&conn, &card)?;
 
     // When: 软删除卡片
-    card.mark_deleted();
+    card.mark_deleted()?;
     let result = update_card(&conn, &card);
 
     // Then: 软删除应该成功，且 deleted 标记为 true
     assert!(result.is_ok(), "软删除应该成功");
 
-    let deleted_card = select_card_by_id(&conn, &card.id).unwrap();
+    let deleted_card = select_card_by_id(&conn, &card.id)?;
     assert!(deleted_card.deleted, "deleted应该为true");
+    Ok(())
 }
 
 /// 测试: 硬删除卡片
 #[test]
-fn it_should_hard_delete_card() {
+fn it_should_hard_delete_card() -> Result<(), CardMindError> {
     // Given: 一个测试数据库和已插入的卡片
     let conn = setup_test_db();
-    let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string());
+    let card = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+    ))?;
     let card_id = card.id.clone();
-    insert_card(&conn, &card).unwrap();
+    insert_card(&conn, &card)?;
 
     // When: 硬删除卡片
     let result = delete_card(&conn, &card_id);
@@ -301,28 +332,38 @@ fn it_should_hard_delete_card() {
 
     let result = select_card_by_id(&conn, &card_id);
     assert!(result.is_err(), "删除后不应该能查询到卡片");
+    Ok(())
 }
 
 /// 测试: 查询时排除已删除的卡片
 #[test]
-fn it_should_select_excludes_deleted_cards() {
+fn it_should_select_excludes_deleted_cards() -> Result<(), CardMindError> {
     // Given: 一个测试数据库和两张卡片
     let conn = setup_test_db();
-    let mut card1 = Card::new(generate_uuid_v7(), "标题1".to_string(), "内容1".to_string());
-    let card2 = Card::new(generate_uuid_v7(), "标题2".to_string(), "内容2".to_string());
+    let mut card1 = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题1".to_string(),
+        "内容1".to_string(),
+    ))?;
+    let card2 = require_card(Card::new(
+        generate_uuid_v7(),
+        "标题2".to_string(),
+        "内容2".to_string(),
+    ))?;
 
     // When: 软删除其中一张卡片，然后查询所有未删除的卡片
-    insert_card(&conn, &card1).unwrap();
-    insert_card(&conn, &card2).unwrap();
+    insert_card(&conn, &card1)?;
+    insert_card(&conn, &card2)?;
 
-    card1.mark_deleted();
-    update_card(&conn, &card1).unwrap();
+    card1.mark_deleted()?;
+    update_card(&conn, &card1)?;
 
-    let cards = select_active_cards(&conn).unwrap();
+    let cards = select_active_cards(&conn)?;
 
     // Then: 应该只返回未删除的卡片
     assert_eq!(cards.len(), 1, "应该只返回1个未删除的卡片");
     assert_eq!(cards[0].id, card2.id);
+    Ok(())
 }
 
 // ==================== 辅助函数 ====================
