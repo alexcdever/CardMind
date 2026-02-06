@@ -3,26 +3,34 @@ import 'dart:io';
 Set<String> parseRustPublicItems(String source) {
   final Set<String> items = <String>{};
   final List<String> lines = source.split('\n');
-  final RegExp structPattern =
-      RegExp(r'^\s*pub(\([^)]*\))?\s+struct\s+([A-Za-z_][A-Za-z0-9_]*)');
-  final RegExp enumPattern =
-      RegExp(r'^\s*pub(\([^)]*\))?\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)');
-  final RegExp traitPattern =
-      RegExp(r'^\s*pub(\([^)]*\))?\s+trait\s+([A-Za-z_][A-Za-z0-9_]*)');
-  final RegExp typePattern =
-      RegExp(r'^\s*pub(\([^)]*\))?\s+type\s+([A-Za-z_][A-Za-z0-9_]*)');
-  final RegExp constPattern =
-      RegExp(r'^\s*pub(\([^)]*\))?\s+const\s+([A-Za-z_][A-Za-z0-9_]*)');
-  final RegExp staticPattern =
-      RegExp(r'^\s*pub(\([^)]*\))?\s+static\s+([A-Za-z_][A-Za-z0-9_]*)');
-  final RegExp fnPattern =
-      RegExp(r'^\s*pub(\([^)]*\))?\s+fn\s+([A-Za-z_][A-Za-z0-9_]*)');
-  final RegExp implStartPattern =
-      RegExp(r'^\s*impl\b[^;{]*\b([A-Za-z_][A-Za-z0-9_]*)\b');
-  final RegExp implForPattern =
-      RegExp(r'\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\b');
-  final RegExp implMethodPattern =
-      RegExp(r'\bpub(\([^)]*\))?\s+fn\s+([A-Za-z_][A-Za-z0-9_]*)');
+  final RegExp structPattern = RegExp(
+    r'^\s*pub(\([^)]*\))?\s+struct\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
+  final RegExp enumPattern = RegExp(
+    r'^\s*pub(\([^)]*\))?\s+enum\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
+  final RegExp traitPattern = RegExp(
+    r'^\s*pub(\([^)]*\))?\s+trait\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
+  final RegExp typePattern = RegExp(
+    r'^\s*pub(\([^)]*\))?\s+type\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
+  final RegExp constPattern = RegExp(
+    r'^\s*pub(\([^)]*\))?\s+const\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
+  final RegExp staticPattern = RegExp(
+    r'^\s*pub(\([^)]*\))?\s+static\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
+  final RegExp fnPattern = RegExp(
+    r'^\s*pub(\([^)]*\))?\s+fn\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
+  final RegExp implStartPattern = RegExp(
+    r'^\s*impl\b[^;{]*\b([A-Za-z_][A-Za-z0-9_]*)\b',
+  );
+  final RegExp implForPattern = RegExp(r'\bfor\s+([A-Za-z_][A-Za-z0-9_]*)\b');
+  final RegExp implMethodPattern = RegExp(
+    r'\bpub(\([^)]*\))?\s+fn\s+([A-Za-z_][A-Za-z0-9_]*)',
+  );
 
   String? currentImplType;
   String? pendingImplType;
@@ -46,8 +54,9 @@ Set<String> parseRustPublicItems(String source) {
       final RegExpMatch? implMatch = implStartPattern.firstMatch(line);
       if (implMatch != null) {
         final RegExpMatch? forMatch = implForPattern.firstMatch(line);
-        final String implType =
-            forMatch != null ? forMatch.group(1)! : implMatch.group(1)!;
+        final String implType = forMatch != null
+            ? forMatch.group(1)!
+            : implMatch.group(1)!;
         if (line.contains('{')) {
           currentImplType = implType;
           implBraceDepth = _braceDelta(line);
@@ -58,8 +67,9 @@ Set<String> parseRustPublicItems(String source) {
     }
 
     if (currentImplType != null) {
-      final Iterable<RegExpMatch> methodMatches =
-          implMethodPattern.allMatches(line);
+      final Iterable<RegExpMatch> methodMatches = implMethodPattern.allMatches(
+        line,
+      );
       for (final RegExpMatch match in methodMatches) {
         final String methodName = match.group(2)!;
         items.add('${currentImplType!}__${methodName}');
@@ -91,16 +101,15 @@ Set<String> parseRustPublicItems(String source) {
 Set<String> parseDartPublicItems(String source) {
   final Set<String> items = <String>{};
   final List<String> lines = source.split('\n');
-  final RegExp classPattern =
-      RegExp(r'^\s*class\s+([A-Za-z][A-Za-z0-9_]*)\b');
-  final RegExp mixinPattern =
-      RegExp(r'^\s*mixin\s+([A-Za-z][A-Za-z0-9_]*)\b');
-  final RegExp enumPattern =
-      RegExp(r'^\s*enum\s+([A-Za-z][A-Za-z0-9_]*)\b');
-  final RegExp extensionPattern =
-      RegExp(r'^\s*extension\s+([A-Za-z][A-Za-z0-9_]*)\b');
-  final RegExp functionPattern =
-      RegExp(r'^\s*(?:[A-Za-z0-9_<>,? ]+\s+)?([A-Za-z][A-Za-z0-9_]*)\s*\(');
+  final RegExp classPattern = RegExp(r'^\s*class\s+([A-Za-z][A-Za-z0-9_]*)\b');
+  final RegExp mixinPattern = RegExp(r'^\s*mixin\s+([A-Za-z][A-Za-z0-9_]*)\b');
+  final RegExp enumPattern = RegExp(r'^\s*enum\s+([A-Za-z][A-Za-z0-9_]*)\b');
+  final RegExp extensionPattern = RegExp(
+    r'^\s*extension\s+([A-Za-z][A-Za-z0-9_]*)\b',
+  );
+  final RegExp functionPattern = RegExp(
+    r'^\s*(?:[A-Za-z0-9_<>,? ]+\s+)?([A-Za-z][A-Za-z0-9_]*)\s*\(',
+  );
 
   String? currentClass;
   int classBraceDepth = 0;
@@ -147,8 +156,7 @@ Set<String> parseDartPublicItems(String source) {
       final RegExpMatch? functionMatch = functionPattern.firstMatch(line);
       if (functionMatch != null) {
         final String functionName = functionMatch.group(1)!;
-        if (!functionName.startsWith('_') &&
-            !_isDartDeclarationKeyword(line)) {
+        if (!functionName.startsWith('_') && !_isDartDeclarationKeyword(line)) {
           items.add(functionName);
         }
       }
@@ -186,8 +194,9 @@ Set<String> parseDartPublicItems(String source) {
 Set<String> parseRustUnitTestItems(String source) {
   final Set<String> items = <String>{};
   final List<String> lines = source.split('\n');
-  final RegExp testPattern =
-      RegExp(r'^\s*(?:async\s+)?fn\s+it_should_([A-Za-z0-9_]+)\s*\(');
+  final RegExp testPattern = RegExp(
+    r'^\s*(?:async\s+)?fn\s+it_should_([A-Za-z0-9_]+)\s*\(',
+  );
 
   for (final String rawLine in lines) {
     final String line = _stripLineComment(rawLine).trimRight();
@@ -286,8 +295,10 @@ Future<Set<String>> _collectItemsFromDirectories({
     if (!directory.existsSync()) {
       continue;
     }
-    await for (final FileSystemEntity entity
-        in directory.list(recursive: true, followLinks: false)) {
+    await for (final FileSystemEntity entity in directory.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       if (entity is! File) {
         continue;
       }
@@ -316,8 +327,10 @@ bool _isExcludedPath(String path, Set<String> excludedPathFragments) {
 void _addIfMatch(Set<String> items, RegExp pattern, String line) {
   final RegExpMatch? match = pattern.firstMatch(line);
   if (match != null) {
-    final String name = match.group(2) ?? match.group(1)!;
-    if (!name.startsWith('_')) {
+    final String? name = match.groupCount >= 2
+        ? match.group(2)
+        : match.group(1);
+    if (name != null && !name.startsWith('_')) {
       items.add(name);
     }
   }

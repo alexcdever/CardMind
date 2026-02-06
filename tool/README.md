@@ -45,13 +45,8 @@ dart tool/build.dart app [--android|--linux|--windows|--macos|--ios]
 **用法**:
 ```bash
 dart tool/quality.dart
-dart tool/quality.dart fuzz
 ```
 
 **说明**:
 - 自动修复默认开启（在 format 之前）
 - 始终包含测试步骤
-
-**fuzz 子命令**:
-- Rust: cargo-fuzz 目标列表（默认 2–3 个目标，每目标 60 秒）
-- Flutter: flutter test test/fuzz
