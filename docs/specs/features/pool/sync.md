@@ -1,6 +1,5 @@
 # 池同步规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/sync/subscription.md](../../architecture/sync/subscription.md), [../../architecture/sync/conflict_resolution.md](../../architecture/sync/conflict_resolution.md)
 **相关测试**: `test/feature/features/p2p_sync_feature_test.dart`, `rust/tests/sync_feature_test.rs`
 

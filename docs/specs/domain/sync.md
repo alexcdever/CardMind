@@ -1,6 +1,5 @@
 # 同步领域模型规格
 
-**状态**: 活跃
 **依赖**: [card.md](card.md), [pool.md](pool.md)
 **相关测试**: `rust/tests/sync_feature_test.rs`
 

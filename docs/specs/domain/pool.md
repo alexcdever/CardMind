@@ -1,6 +1,5 @@
 # 单池模型规格
 
-**状态**: 活跃
 **依赖**: [types.md](types.md), [../architecture/storage/device_config.md](../architecture/storage/device_config.md)
 **相关测试**: `rust/tests/pool_model_feature_test.rs`
 

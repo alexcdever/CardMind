@@ -1,6 +1,5 @@
 # 应用信息规格
 
-**状态**: 生效中
 **依赖**: 无
 **相关测试**: `test/feature/features/settings_feature_test.dart`
 

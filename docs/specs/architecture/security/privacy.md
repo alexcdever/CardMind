@@ -1,6 +1,5 @@
 # mDNS 隐私保护架构规格
 
-**状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md)
 **相关测试**: `rust/tests/security_p2p_discovery_feature_test.rs`
 

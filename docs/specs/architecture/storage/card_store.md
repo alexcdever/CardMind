@@ -1,6 +1,5 @@
 # CardStore 架构规格
 
-**状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md)
 **相关测试**: `rust/tests/card_store_feature_test.rs`
 

@@ -1,6 +1,5 @@
 # 卡片查看业务规格
 
-**状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
 **相关测试**: `test/feature/features/card_management_feature_test.dart`
 

@@ -1,6 +1,5 @@
 # 数据管理规格
 
-**状态**: 生效中
 **依赖**: [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md)
 **相关测试**: `test/feature/features/settings_feature_test.dart`
 

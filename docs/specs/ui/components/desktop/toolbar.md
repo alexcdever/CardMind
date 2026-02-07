@@ -1,6 +1,5 @@
 # 桌面端工具栏规格
 
-**状态**: 生效中
 **依赖**: 无
 **相关测试**: `test/feature/widgets/desktop_toolbar_feature_test.dart`
 

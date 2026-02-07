@@ -1,6 +1,5 @@
 # 桌面端设置屏幕规格
 
-**状态**: 活跃
 **依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md)
 **相关测试**: `test/feature/screens/settings_screen_feature_test.dart`
 

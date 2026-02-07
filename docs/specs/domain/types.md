@@ -1,6 +1,5 @@
 # 通用类型系统规格
 
-**状态**: 活跃
 **依赖**: 无
 **相关测试**: `rust/tests/common_types_feature_test.rs`
 

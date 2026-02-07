@@ -1,6 +1,5 @@
 # P2P 同步服务架构规格
 
-**状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../storage/device_config.md](../storage/device_config.md)
 **相关测试**: `rust/tests/sync_feature_test.rs`
 

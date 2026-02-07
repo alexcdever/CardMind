@@ -1,6 +1,5 @@
 # 外观设置规格
 
-**状态**: 生效中
 **依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
 **相关测试**: `test/feature/features/settings_feature_test.dart`
 

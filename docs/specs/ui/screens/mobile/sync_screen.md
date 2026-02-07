@@ -1,6 +1,5 @@
 # 移动端同步屏幕规格
 
-**状态**: 活跃
 **依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
 **相关测试**: `test/feature/screens/sync_screen_feature_test.dart`
 

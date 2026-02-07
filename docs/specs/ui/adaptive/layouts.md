@@ -1,6 +1,5 @@
 # 自适应布局系统规格
 
-**状态**: 活跃
 **依赖**: 无
 **相关测试**: `test/feature/adaptive/layout_feature_test.dart`
 

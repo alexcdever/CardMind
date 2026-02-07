@@ -1,6 +1,5 @@
 # 设备设置规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
 **相关测试**: `test/feature/features/settings_feature_test.dart`
 

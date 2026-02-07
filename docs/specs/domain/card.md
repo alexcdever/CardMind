@@ -1,6 +1,5 @@
 # 卡片领域模型规格
 
-**状态**: 活跃
 **依赖**: [types.md](types.md)
 **相关测试**: `rust/src/models/card.rs` (tests module)
 

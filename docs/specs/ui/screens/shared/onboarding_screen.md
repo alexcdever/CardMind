@@ -1,6 +1,5 @@
 # 应用引导屏幕规格（通用）
 
-**状态**: 生效中
 **依赖**: [../../../domain/pool.md](../../../domain/pool.md), [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md)
 **相关测试**: `test/feature/screens/onboarding_screen_feature_test.dart`
 
