@@ -40,7 +40,7 @@
 function create_sync_service(config):
     // 步骤1：验证配置
     if not config.is_joined_pool:
-        return error "InvalidState: NotJoinedPool"
+        return error "INVALID_STATE: NOT_JOINED_POOL"
 
     if config.peer_id is empty:
         return error "InvalidConfig: peer_id is required"
@@ -234,7 +234,7 @@ function attempt_connection(peer_info):
 
 - **前置条件**: 设备未加入池
 - **操作**: 调用同步服务初始化
-- **预期结果**: 返回 `InvalidState: NotJoinedPool`
+- **预期结果**: 返回 `INVALID_STATE: NOT_JOINED_POOL`
 
 ### 场景：mDNS 启动失败
 

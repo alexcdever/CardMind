@@ -146,7 +146,7 @@ function ensure_config_directory_exists():
 
 - **前置条件**: 设备已加入 pool_A
 - **操作**: 尝试加入 pool_B
-- **预期结果**: 操作应失败并返回 AlreadyJoinedError
+- **预期结果**: 操作应失败并返回 ALREADY_JOINED_POOL
 - **并且**: pool_id 应保持为 pool_A
 
 ### 场景：加入失败时保持配置不变
@@ -168,7 +168,7 @@ function join_pool(new_pool_id):
     // 设计决策：每个设备只允许一个池以保持简单性
     if pool_id is not None:
         log_warn("Attempted to join pool " + new_pool_id + " while already in pool " + pool_id)
-        return error "AlreadyJoinedPool"
+        return error "ALREADY_JOINED_POOL"
 
     // 步骤3：更新配置
     pool_id = new_pool_id
@@ -204,7 +204,7 @@ function join_pool(new_pool_id):
 
 - **前置条件**: 设备未加入任何池
 - **操作**: 尝试退出
-- **预期结果**: 操作应失败并返回 NotJoinedPool 错误
+- **预期结果**: 操作应失败并返回 NOT_JOINED_POOL 错误
 
 ### 场景：退出时清理本地数据
 
@@ -221,7 +221,7 @@ async function leave_pool():
     // 步骤1：验证前置条件
     if pool_id is None:
         log_warn("Attempted to leave pool when not joined")
-        return error "NotJoinedPool"
+        return error "NOT_JOINED_POOL"
 
     // 步骤2：保存当前池 ID 用于清理
     current_pool_id = pool_id
@@ -495,7 +495,7 @@ function load_config_from_file():
 
 - **前置条件**: 设备未加入任何池
 - **操作**: 尝试创建卡片
-- **预期结果**: 应返回 NotJoinedPool 错误
+- **预期结果**: 应返回 NOT_JOINED_POOL 错误
 
 **实现逻辑**:
 
@@ -506,7 +506,7 @@ function create_card(title, content):
     
     if config.pool_id is None:
         log_warn("Cannot create card: device not joined to any pool")
-        return error "NotJoinedPool"
+        return error "NOT_JOINED_POOL"
     
     // 步骤2：在 Loro 存储中创建卡片
     // 设计决策：使用 CRDT 实现无冲突复制
@@ -569,7 +569,7 @@ async function sync_with_peer(peer_id):
     
     if config.pool_id is None:
         log_warn("Cannot sync: device not joined to any pool")
-        return error "NotJoinedPool"
+        return error "NOT_JOINED_POOL"
 
     // 步骤2：验证对等点在同一池中
     // 设计决策：通过连接后的握手校验 pool_hash

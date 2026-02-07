@@ -111,7 +111,7 @@ function load_pool(pool_id):
     file_path = get_pool_document_path(pool_id)
     
     if not file_exists(file_path):
-        return error "PoolNotFound"
+        return error "POOL_NOT_FOUND"
     
     crdt_doc = load_document(file_path)
     
@@ -212,7 +212,7 @@ function join_pool(pool_id, password):
     
     if device_config.is_joined():
         log_warn("Device already joined pool: " + device_config.pool_id)
-        return error "AlreadyJoinedPool"
+        return error "ALREADY_JOINED_POOL"
 
     // 步骤2：加载池
     pool = load_pool(pool_id)
@@ -224,7 +224,7 @@ function join_pool(pool_id, password):
     // 安全：使用恒定时间比较以防止时序攻击
     if not verify_password_with_bcrypt(password, pool.password_hash):
         log_warn("Invalid password for pool: " + pool_id)
-        return error "InvalidPassword"
+        return error "INVALID_PASSWORD"
 
     // 步骤4：将设备添加到池的设备列表
     // 注意：幂等操作 - 可以安全地多次调用
@@ -262,7 +262,7 @@ function join_pool(pool_id, password):
 
 - **前置条件**: 设备已加入 pool_A
 - **操作**: 为 pool_B 调用 PoolStore.join_pool()
-- **预期结果**: 系统应返回 AlreadyJoinedPool 错误
+- **预期结果**: 系统应返回 ALREADY_JOINED_POOL 错误
 - **并且**: DeviceConfig.pool_id 应保持为 pool_A
 
 ---
@@ -289,7 +289,7 @@ function leave_pool():
     
     if not device_config.is_joined():
         log_warn("Device not joined to any pool")
-        return error "NotJoinedPool"
+        return error "NOT_JOINED_POOL"
 
     pool_id = device_config.get_pool_id()
     device_id = device_config.device_id
