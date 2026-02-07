@@ -39,24 +39,6 @@
 
 ---
 
-## 需求：自动保存草稿内容
-
-系统应自动保存草稿内容以防止数据丢失。
-
-### 场景：内容更改时自动保存
-
-- **前置条件**: 用户正在编辑卡片
-- **操作**: 用户修改标题或内容
-- **预期结果**: 系统应在 2 秒无活动后触发自动保存
-
-### 场景：返回时恢复草稿
-
-- **前置条件**: 用户有未保存的草稿
-- **操作**: 用户返回到未保存的草稿
-- **预期结果**: 系统应恢复草稿内容
-
----
-
 ## 需求：富文本编辑支持
 
 系统应支持基本的富文本格式化。
@@ -132,8 +114,6 @@
 - `it_should_keep_card_list_visible()` - 保持列表可见
 - `it_should_display_empty_fields_for_new_card()` - 新卡片空字段
 - `it_should_autofocus_title_field()` - 自动聚焦标题
-- `it_should_autosave_after_inactivity()` - 2秒后自动保存
-- `it_should_restore_draft()` - 恢复草稿
 - `it_should_apply_text_formatting()` - 应用格式
 - `it_should_maintain_formatting_in_saved_content()` - 保持格式
 - `it_should_save_with_ctrl_s()` - 使用 Ctrl+S 保存
@@ -146,7 +126,6 @@
 
 **验收标准**:
 - [ ] 所有功能测试（Widget）通过
-- [ ] 自动保存可靠工作
 - [ ] 富文本格式正确工作
 - [ ] 确认对话框防止数据丢失
 - [ ] 侧面板布局流畅工作

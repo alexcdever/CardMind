@@ -65,13 +65,6 @@
 - **预期结果**: 系统应显示"复制"选项
 - **并且**: 在选项旁显示复制图标
 
-### 场景：菜单包含分享选项
-
-- **前置条件**: 上下文菜单已显示
-- **操作**: 查看菜单
-- **预期结果**: 系统应显示"分享"选项
-- **并且**: 在选项旁显示分享图标
-
 ---
 
 ## 需求：处理菜单选项选择
@@ -136,7 +129,6 @@
 - `it_should_show_edit_option()` - 显示编辑选项
 - `it_should_show_delete_option()` - 显示删除选项
 - `it_should_show_copy_option()` - 显示复制选项
-- `it_should_show_share_option()` - 显示分享选项
 - `it_should_enter_edit_mode()` - 进入编辑模式
 - `it_should_show_delete_confirmation()` - 显示删除确认
 - `it_should_dismiss_on_outside_click()` - 点击外部时关闭
