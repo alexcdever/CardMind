@@ -1,0 +1,27 @@
+# 卡片查看业务规格
+
+**状态**: 活跃
+**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
+**相关测试**: `test/feature/features/card_management_feature_test.dart`
+
+---
+
+## 概述
+
+本规格定义卡片查看的业务规则。查看结果应包含卡片的标题、内容、时间戳、标签以及最后编辑设备等业务字段。
+
+## GIVEN-WHEN-THEN 场景
+
+### 场景：查看卡片基础信息
+
+- **GIVEN** 存在一张卡片
+- **WHEN** 调用方请求该卡片详情
+- **THEN** 系统应返回卡片标题与内容
+- **AND** 系统应返回 `created_at` 与 `updated_at`
+- **AND** 系统应返回卡片标签集合
+
+### 场景：查看最后编辑设备
+
+- **GIVEN** 卡片已记录 `last_edit_device`
+- **WHEN** 调用方请求该卡片详情
+- **THEN** 系统应返回最后编辑设备标识

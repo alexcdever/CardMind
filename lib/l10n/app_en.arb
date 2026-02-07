@@ -1,0 +1,271 @@
+{
+  "@@locale": "en",
+  "@@context": "CardMind NoteCard Component Localization",
+
+  "noteCardUntitled": "Untitled",
+  "@noteCardUntitled": {
+    "description": "Placeholder text when card has no title"
+  },
+
+  "noteCardEmptyContent": "Click to add content...",
+  "@noteCardEmptyContent": {
+    "description": "Placeholder text when card has no content"
+  },
+
+  "noteCardJustNow": "Just now",
+  "@noteCardJustNow": {
+    "description": "Relative time: just now (0-10 seconds ago)"
+  },
+
+  "noteCardSecondsAgo": "{seconds} seconds ago",
+  "@noteCardSecondsAgo": {
+    "description": "Relative time: X seconds ago",
+    "placeholders": {
+      "seconds": {
+        "type": "int",
+        "example": "30"
+      }
+    }
+  },
+
+  "noteCardMinutesAgo": "{minutes} minutes ago",
+  "@noteCardMinutesAgo": {
+    "description": "Relative time: X minutes ago",
+    "placeholders": {
+      "minutes": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+
+  "noteCardHoursAgo": "{hours} hours ago",
+  "@noteCardHoursAgo": {
+    "description": "Relative time: X hours ago",
+    "placeholders": {
+      "hours": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+
+  "noteCardUnknownTime": "Unknown time",
+  "@noteCardUnknownTime": {
+    "description": "Fallback text for invalid timestamps"
+  },
+
+  "noteCardContextMenuEdit": "Edit",
+  "@noteCardContextMenuEdit": {
+    "description": "Context menu option: Edit"
+  },
+
+  "noteCardContextMenuDelete": "Delete",
+  "@noteCardContextMenuDelete": {
+    "description": "Context menu option: Delete"
+  },
+
+  "noteCardContextMenuViewDetails": "View Details",
+  "@noteCardContextMenuViewDetails": {
+    "description": "Context menu option: View details"
+  },
+
+  "noteCardContextMenuCopy": "Copy Content",
+  "@noteCardContextMenuCopy": {
+    "description": "Context menu option: Copy content"
+  },
+
+  "noteCardContextMenuShare": "Share",
+  "@noteCardContextMenuShare": {
+    "description": "Context menu option: Share"
+  },
+
+  "noteCardDeleteConfirmTitle": "Confirm Delete",
+  "@noteCardDeleteConfirmTitle": {
+    "description": "Delete confirmation dialog title"
+  },
+
+  "noteCardDeleteConfirmMessage": "Are you sure you want to delete this note? This action cannot be undone.",
+  "@noteCardDeleteConfirmMessage": {
+    "description": "Delete confirmation dialog message"
+  },
+
+  "noteCardDeleteConfirmCancel": "Cancel",
+  "@noteCardDeleteConfirmCancel": {
+    "description": "Delete confirmation dialog: Cancel button"
+  },
+
+  "noteCardDeleteConfirmDelete": "Delete",
+  "@noteCardDeleteConfirmDelete": {
+    "description": "Delete confirmation dialog: Delete button"
+  },
+
+  "noteCardCopySuccess": "Copied to clipboard",
+  "@noteCardCopySuccess": {
+    "description": "Toast message when content is copied"
+  },
+
+  "noteCardSemanticLabel": "Note card: {title}",
+  "@noteCardSemanticLabel": {
+    "description": "Semantic label for screen readers",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "My Note"
+      }
+    }
+  },
+
+  "noteCardSemanticLabelUntitled": "Note card: Untitled",
+  "@noteCardSemanticLabelUntitled": {
+    "description": "Semantic label for untitled cards"
+  },
+
+  "cardEditDialogTitle": "Edit Note",
+  "@cardEditDialogTitle": {
+    "description": "Edit dialog title"
+  },
+
+  "cardEditDialogTitleLabel": "Title",
+  "@cardEditDialogTitleLabel": {
+    "description": "Title field label"
+  },
+
+  "cardEditDialogTitleHint": "Enter note title",
+  "@cardEditDialogTitleHint": {
+    "description": "Title field hint text"
+  },
+
+  "cardEditDialogContentLabel": "Content",
+  "@cardEditDialogContentLabel": {
+    "description": "Content field label"
+  },
+
+  "cardEditDialogContentHint": "Enter note content (Markdown supported)",
+  "@cardEditDialogContentHint": {
+    "description": "Content field hint text"
+  },
+
+  "cardEditDialogSave": "Save",
+  "@cardEditDialogSave": {
+    "description": "Save button text"
+  },
+
+  "cardEditDialogCancel": "Cancel",
+  "@cardEditDialogCancel": {
+    "description": "Cancel button text"
+  },
+
+  "cardEditDialogDiscardTitle": "Discard Changes?",
+  "@cardEditDialogDiscardTitle": {
+    "description": "Discard changes confirmation title"
+  },
+
+  "cardEditDialogDiscardMessage": "You have unsaved changes. Are you sure you want to discard them?",
+  "@cardEditDialogDiscardMessage": {
+    "description": "Discard changes confirmation message"
+  },
+
+  "cardEditDialogDiscardConfirm": "Discard",
+  "@cardEditDialogDiscardConfirm": {
+    "description": "Discard changes confirmation button"
+  },
+
+  "cardEditDialogTitleRequired": "Title cannot be empty",
+  "@cardEditDialogTitleRequired": {
+    "description": "Validation error: title is required"
+  },
+
+  "cardEditDialogCloseTooltip": "Close (ESC)",
+  "@cardEditDialogCloseTooltip": {
+    "description": "Close button tooltip"
+  },
+
+  "noteEditorFullscreenTitleHint": "Note Title",
+  "@noteEditorFullscreenTitleHint": {
+    "description": "Fullscreen editor: title input hint"
+  },
+
+  "noteEditorFullscreenContentHint": "Start writing...",
+  "@noteEditorFullscreenContentHint": {
+    "description": "Fullscreen editor: content input hint"
+  },
+
+  "noteEditorFullscreenAutoSave": "Auto Save",
+  "@noteEditorFullscreenAutoSave": {
+    "description": "Fullscreen editor: auto-save indicator text"
+  },
+
+  "noteEditorFullscreenComplete": "Done",
+  "@noteEditorFullscreenComplete": {
+    "description": "Fullscreen editor: complete button text"
+  },
+
+  "noteEditorFullscreenUntitled": "Untitled Note",
+  "@noteEditorFullscreenUntitled": {
+    "description": "Fullscreen editor: default title for untitled notes"
+  },
+
+  "noteEditorFullscreenEmptyContent": "Content cannot be empty",
+  "@noteEditorFullscreenEmptyContent": {
+    "description": "Fullscreen editor: validation error for empty content"
+  },
+
+  "noteEditorFullscreenUnsavedTitle": "Unsaved Changes",
+  "@noteEditorFullscreenUnsavedTitle": {
+    "description": "Fullscreen editor: unsaved changes dialog title"
+  },
+
+  "noteEditorFullscreenUnsavedMessage": "Do you want to save your changes?",
+  "@noteEditorFullscreenUnsavedMessage": {
+    "description": "Fullscreen editor: unsaved changes dialog message"
+  },
+
+  "noteEditorFullscreenSaveAndClose": "Save & Close",
+  "@noteEditorFullscreenSaveAndClose": {
+    "description": "Fullscreen editor: save and close button"
+  },
+
+  "noteEditorFullscreenDiscard": "Discard Changes",
+  "@noteEditorFullscreenDiscard": {
+    "description": "Fullscreen editor: discard changes button"
+  },
+
+  "noteEditorFullscreenCancel": "Cancel",
+  "@noteEditorFullscreenCancel": {
+    "description": "Fullscreen editor: cancel button"
+  },
+
+  "noteEditorFullscreenCreatedAt": "Created: {time}",
+  "@noteEditorFullscreenCreatedAt": {
+    "description": "Fullscreen editor: created time label",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2025/01/26 08:00:00"
+      }
+    }
+  },
+
+  "noteEditorFullscreenUpdatedAt": "Updated: {time}",
+  "@noteEditorFullscreenUpdatedAt": {
+    "description": "Fullscreen editor: updated time label",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2025/01/26 08:00:00"
+      }
+    }
+  },
+
+  "noteEditorFullscreenLastEditDevice": "Last edited on: {device}",
+  "@noteEditorFullscreenLastEditDevice": {
+    "description": "Fullscreen editor: last edit device label",
+    "placeholders": {
+      "device": {
+        "type": "String",
+        "example": "iPhone 13"
+      }
+    }
+  }
+}

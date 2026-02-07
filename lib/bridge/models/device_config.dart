@@ -7,54 +7,32 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import '../frb_generated.dart';
 
-/// 设备配置
-///
-/// # 字段说明
-///
-/// - `device_id`: 设备唯一标识（UUID v7）
-/// - `joined_pools`: 已加入的数据池 ID 列表
-/// - `resident_pools`: 常驻池 ID 列表
-///
-/// # 示例
-///
-/// ```
-/// use cardmind_rust::models::device_config::DeviceConfig;
-///
-/// let mut config = DeviceConfig::new("device-001");
-/// config.join_pool("pool-001");
-/// config.set_resident_pool("pool-001", true);
-///
-/// assert_eq!(config.joined_pools.len(), 1);
-/// assert_eq!(config.resident_pools.len(), 1);
-/// ```
 class DeviceConfig {
   const DeviceConfig({
-    required this.deviceId,
-    required this.joinedPools,
-    required this.residentPools,
+    this.peerId,
+    required this.deviceName,
+    this.poolId,
+    required this.updatedAt,
   });
-
-  /// 设备唯一标识
-  final String deviceId;
-
-  /// 已加入的数据池 ID 列表
-  final List<String> joinedPools;
-
-  /// 常驻池 ID 列表（用户偏好设置）
-  ///
-  /// 常驻池：新建卡片时自动绑定到这些数据池
-  final List<String> residentPools;
+  final String? peerId;
+  final String deviceName;
+  final String? poolId;
+  final PlatformInt64 updatedAt;
 
   @override
   int get hashCode =>
-      deviceId.hashCode ^ joinedPools.hashCode ^ residentPools.hashCode;
+      peerId.hashCode ^
+      deviceName.hashCode ^
+      poolId.hashCode ^
+      updatedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is DeviceConfig &&
           runtimeType == other.runtimeType &&
-          deviceId == other.deviceId &&
-          joinedPools == other.joinedPools &&
-          residentPools == other.residentPools;
+          peerId == other.peerId &&
+          deviceName == other.deviceName &&
+          poolId == other.poolId &&
+          updatedAt == other.updatedAt;
 }

@@ -32,6 +32,7 @@
 //! - [x] 多点对多点同步
 
 pub mod discovery;
+pub mod identity;
 pub mod multi_peer_sync;
 pub mod network;
 pub mod sync;
@@ -39,10 +40,12 @@ pub mod sync_manager;
 pub mod sync_service;
 
 pub use discovery::MdnsDiscovery;
+pub use identity::IdentityManager;
 pub use multi_peer_sync::{DeviceInfo, DeviceStats, DeviceStatus, MultiPeerSyncCoordinator};
 pub use network::{P2PBehaviour, P2PEvent, P2PNetwork};
 pub use sync::{
-    SyncAck, SyncError, SyncErrorCode, SyncFilter, SyncMessage, SyncRequest, SyncResponse,
+    HandshakeRequest, HandshakeResponse, P2PRequest, P2PResponse, SyncAck, SyncError,
+    SyncErrorCode, SyncMessage, SyncRequest, SyncResponse,
 };
 pub use sync_manager::{SyncData, SyncManager};
 pub use sync_service::{P2PSyncService, SyncStatus};

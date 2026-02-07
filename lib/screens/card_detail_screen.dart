@@ -8,10 +8,7 @@ import 'package:provider/provider.dart';
 
 /// Card detail screen showing full card content
 class CardDetailScreen extends StatefulWidget {
-  const CardDetailScreen({
-    required this.cardId,
-    super.key,
-  });
+  const CardDetailScreen({required this.cardId, super.key});
 
   final String cardId;
 
@@ -110,7 +107,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                 await Navigator.push(
                   context,
                   MaterialPageRoute<void>(
-                    builder: (context) => CardEditorScreen(cardId: widget.cardId),
+                    builder: (context) => const CardEditorScreen(),
                   ),
                 );
                 await _loadCard();
@@ -128,68 +125,65 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadCard,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
                   ),
-                )
-              : _card == null
-                  ? const Center(child: Text('Card not found'))
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _card!.title,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Created: ${_formatDateTime(_card!.createdAt)}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey,
-                                ),
-                          ),
-                          Text(
-                            'Updated: ${_formatDateTime(_card!.updatedAt)}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Colors.grey,
-                                ),
-                          ),
-                          const Divider(height: 32),
-                          if (_card!.content.isEmpty)
-                            const Text(
-                              'No content',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            )
-                          else
-                            MarkdownBody(
-                              data: _card!.content,
-                              selectable: true,
-                            ),
-                        ],
-                      ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadCard,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+          : _card == null
+          ? const Center(child: Text('Card not found'))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _card!.title,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Created: ${_formatDateTime(_card!.createdAt)}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  ),
+                  Text(
+                    'Updated: ${_formatDateTime(_card!.updatedAt)}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                  ),
+                  const Divider(height: 32),
+                  if (_card!.content.isEmpty)
+                    const Text(
+                      'No content',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    )
+                  else
+                    MarkdownBody(data: _card!.content, selectable: true),
+                ],
+              ),
+            ),
     );
   }
 }

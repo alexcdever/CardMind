@@ -7,29 +7,213 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import '../frb_generated.dart';
 
+/// 设备连接状态枚举
+enum DeviceConnectionStatus {
+  /// 在线（已连接）
+  online,
+
+  /// 离线（未连接）
+  offline,
+
+  /// 同步中
+  syncing,
+}
+
+/// 设备信息
+///
+/// 表示一个已发现的对等设备
+class DeviceInfo {
+  const DeviceInfo({
+    required this.deviceId,
+    required this.deviceName,
+    required this.status,
+    required this.lastSeen,
+  });
+
+  /// 设备 ID (Peer ID)
+  final String deviceId;
+
+  /// 设备名称
+  final String deviceName;
+
+  /// 连接状态
+  final DeviceConnectionStatus status;
+
+  /// 上次可见时间（Unix 时间戳，毫秒）
+  final PlatformInt64 lastSeen;
+
+  @override
+  int get hashCode =>
+      deviceId.hashCode ^
+      deviceName.hashCode ^
+      status.hashCode ^
+      lastSeen.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DeviceInfo &&
+          runtimeType == other.runtimeType &&
+          deviceId == other.deviceId &&
+          deviceName == other.deviceName &&
+          status == other.status &&
+          lastSeen == other.lastSeen;
+}
+
+/// 同步历史事件
+class SyncHistoryEvent {
+  const SyncHistoryEvent({
+    required this.timestamp,
+    required this.status,
+    required this.deviceId,
+    required this.deviceName,
+    required this.poolId,
+    this.errorMessage,
+  });
+
+  /// 事件时间戳（Unix 时间戳，毫秒）
+  final PlatformInt64 timestamp;
+
+  /// 同步状态
+  final SyncUiState status;
+
+  /// 涉及的设备 ID
+  final String deviceId;
+
+  /// 涉及的设备名称
+  final String deviceName;
+
+  /// 同步的数据池 ID
+  final String poolId;
+
+  /// 错误消息（如果失败）
+  final String? errorMessage;
+
+  @override
+  int get hashCode =>
+      timestamp.hashCode ^
+      status.hashCode ^
+      deviceId.hashCode ^
+      deviceName.hashCode ^
+      poolId.hashCode ^
+      errorMessage.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncHistoryEvent &&
+          runtimeType == other.runtimeType &&
+          timestamp == other.timestamp &&
+          status == other.status &&
+          deviceId == other.deviceId &&
+          deviceName == other.deviceName &&
+          poolId == other.poolId &&
+          errorMessage == other.errorMessage;
+}
+
+/// 同步统计信息
+class SyncStatistics {
+  const SyncStatistics({
+    required this.syncedCards,
+    required this.syncedDataSize,
+    required this.successfulSyncs,
+    required this.failedSyncs,
+    this.lastSyncTime,
+  });
+
+  /// 已同步卡片数量
+  final int syncedCards;
+
+  /// 同步数据大小（字节）
+  final PlatformInt64 syncedDataSize;
+
+  /// 成功同步次数
+  final int successfulSyncs;
+
+  /// 失败同步次数
+  final int failedSyncs;
+
+  /// 最后同步时间（Unix 时间戳，毫秒）
+  final PlatformInt64? lastSyncTime;
+
+  @override
+  int get hashCode =>
+      syncedCards.hashCode ^
+      syncedDataSize.hashCode ^
+      successfulSyncs.hashCode ^
+      failedSyncs.hashCode ^
+      lastSyncTime.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncStatistics &&
+          runtimeType == other.runtimeType &&
+          syncedCards == other.syncedCards &&
+          syncedDataSize == other.syncedDataSize &&
+          successfulSyncs == other.successfulSyncs &&
+          failedSyncs == other.failedSyncs &&
+          lastSyncTime == other.lastSyncTime;
+}
+
 /// 同步状态（用于 Flutter 桥接）
 ///
-/// # flutter_rust_bridge 注解
+/// # `flutter_rust_bridge` 注解
 ///
 /// 这个结构体会被自动转换为 Dart 类
 class SyncStatus {
   const SyncStatus({
+    required this.state,
+    this.lastSyncTime,
+    this.errorMessage,
     required this.onlineDevices,
     required this.syncingDevices,
     required this.offlineDevices,
   });
 
-  /// 在线设备数
+  /// 当前同步状态
+  final SyncUiState state;
+
+  /// 最后一次同步时间（Unix 时间戳，毫秒）
+  final PlatformInt64? lastSyncTime;
+
+  /// 错误信息（仅在 Failed 状态时有值）
+  final String? errorMessage;
+
+  /// 在线设备数（保留兼容性）
   final int onlineDevices;
 
-  /// 同步中设备数
+  /// 同步中设备数（保留兼容性）
   final int syncingDevices;
 
-  /// 离线设备数
+  /// 离线设备数（保留兼容性）
   final int offlineDevices;
+
+  /// 创建 failed 状态
+  static Future<SyncStatus> failed({required String errorMessage}) => RustLib
+      .instance
+      .api
+      .crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
+
+  /// 创建 notYetSynced 状态
+  static Future<SyncStatus> notYetSynced() =>
+      RustLib.instance.api.crateApiSyncSyncStatusNotYetSynced();
+
+  /// 创建 synced 状态
+  static Future<SyncStatus> synced({required PlatformInt64 lastSyncTime}) =>
+      RustLib.instance.api.crateApiSyncSyncStatusSynced(
+        lastSyncTime: lastSyncTime,
+      );
+
+  /// 创建 syncing 状态
+  static Future<SyncStatus> syncing() =>
+      RustLib.instance.api.crateApiSyncSyncStatusSyncing();
 
   @override
   int get hashCode =>
+      state.hashCode ^
+      lastSyncTime.hashCode ^
+      errorMessage.hashCode ^
       onlineDevices.hashCode ^
       syncingDevices.hashCode ^
       offlineDevices.hashCode;
@@ -39,7 +223,27 @@ class SyncStatus {
       identical(this, other) ||
       other is SyncStatus &&
           runtimeType == other.runtimeType &&
+          state == other.state &&
+          lastSyncTime == other.lastSyncTime &&
+          errorMessage == other.errorMessage &&
           onlineDevices == other.onlineDevices &&
           syncingDevices == other.syncingDevices &&
           offlineDevices == other.offlineDevices;
+}
+
+/// 同步 UI 状态枚举
+///
+/// 定义同步的 4 种状态（用于界面展示）
+enum SyncUiState {
+  /// 尚未同步（应用首次启动，尚未执行过同步操作）
+  notYetSynced,
+
+  /// 正在同步数据
+  syncing,
+
+  /// 同步完成，数据一致
+  synced,
+
+  /// 同步失败
+  failed,
 }

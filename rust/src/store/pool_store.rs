@@ -5,7 +5,7 @@
 //! # 架构设计
 //!
 //! 遵循双层架构原则：
-//! - **Loro 层**: 源数据，每个数据池一个 LoroDoc
+//! - **`Loro` 层**: 源数据，每个数据池一个 `LoroDoc`
 //! - **SQLite 层**: 查询缓存，快速读取
 //! - **订阅机制**: Loro 变更自动同步到 SQLite
 //!
@@ -32,7 +32,7 @@
 //!
 //! // 创建数据池
 //! let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
-//! store.create_pool(pool)?;
+//! store.create_pool(&pool)?;
 //!
 //! // 查询数据池
 //! let pool = store.get_pool_by_id("pool-001")?;
@@ -44,13 +44,17 @@ use crate::models::error::CardMindError;
 use crate::models::pool::{Device, Pool};
 use crate::store::sqlite_store::SqliteStore;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
-use loro::{ExportMode, LoroDoc, LoroList, LoroMap};
+use loro::event::DiffEvent;
+use loro::{ExportMode, LoroDoc, LoroList, LoroMap, Subscription};
 use rusqlite::params;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tracing::{debug, info};
+
+/// Type alias for pool update callback
+type PoolUpdateCallback = Arc<Mutex<Option<Box<dyn Fn(&Pool) + Send + Sync>>>>;
 
 /// 数据池存储管理器
 ///
@@ -60,20 +64,28 @@ use tracing::{debug, info};
 ///
 /// - `base_path`: 数据目录基础路径
 /// - `sqlite_store`: SQLite 缓存层
-/// - `loro_docs`: 内存中的 LoroDoc 缓存
+/// - ``loro_docs``: 内存中的 `LoroDoc` 缓存
+/// - ``on_pool_updated``: `Pool`更新回调（用于同步`SQLite` `card_pool_bindings`）
+/// - ``loro_subscriptions``: Loro 订阅句柄（保持订阅活跃）
 pub struct PoolStore {
     /// 数据目录基础路径
     base_path: PathBuf,
 
     /// SQLite 缓存层
-    sqlite_store: Arc<SqliteStore>,
+    sqlite_store: Arc<Mutex<SqliteStore>>,
 
-    /// 内存中的 LoroDoc 缓存（pool_id -> LoroDoc）
+    /// 内存中的 `LoroDoc` 缓存（`pool_id` -> `LoroDoc`）
     loro_docs: Arc<Mutex<HashMap<String, LoroDoc>>>,
+
+    /// Pool更新回调
+    on_pool_updated: PoolUpdateCallback,
+
+    /// Loro 订阅句柄（保持订阅活跃）
+    loro_subscriptions: Arc<Mutex<HashMap<String, Subscription>>>,
 }
 
 impl PoolStore {
-    /// 创建新的 PoolStore
+    /// 创建新的 `PoolStore`
     ///
     /// # 参数
     ///
@@ -100,12 +112,14 @@ impl PoolStore {
 
         // 初始化 SQLite
         let cache_path = base_path.join("cache.db");
-        let sqlite_store = Arc::new(SqliteStore::new(cache_path.to_str().unwrap())?);
+        let sqlite_store = Arc::new(Mutex::new(SqliteStore::new(cache_path.to_str().unwrap())?));
 
         Ok(Self {
             base_path,
             sqlite_store,
             loro_docs: Arc::new(Mutex::new(HashMap::new())),
+            on_pool_updated: Arc::new(Mutex::new(None)),
+            loro_subscriptions: Arc::new(Mutex::new(HashMap::new())),
         })
     }
 
@@ -118,9 +132,97 @@ impl PoolStore {
     pub fn new_in_memory() -> Result<Self, CardMindError> {
         Ok(Self {
             base_path: PathBuf::from(":memory:"),
-            sqlite_store: Arc::new(SqliteStore::new_in_memory()?),
+            sqlite_store: Arc::new(Mutex::new(SqliteStore::new_in_memory()?)),
             loro_docs: Arc::new(Mutex::new(HashMap::new())),
+            on_pool_updated: Arc::new(Mutex::new(None)),
+            loro_subscriptions: Arc::new(Mutex::new(HashMap::new())),
         })
+    }
+
+    /// 设置Pool更新回调
+    ///
+    /// # 参数
+    ///
+    /// - `callback`: 回调函数，接收更新后的Pool对象
+    ///
+    /// # 用途
+    ///
+    /// 当`Pool`的`Loro`文档更新后，自动同步`SQLite`的`card_pool_bindings`表
+    ///
+    /// # 示例
+    ///
+    /// ```no_run
+    /// # use cardmind_rust::store::pool_store::PoolStore;
+    /// # use cardmind_rust::models::pool::Pool;
+    /// let store = PoolStore::new("data").unwrap();
+    ///
+    /// store.set_on_pool_updated(|pool| {
+    ///     // 同步SQLite绑定表
+    ///     println!("Pool updated: {}", pool.pool_id);
+    /// });
+    /// ```
+    pub fn set_on_pool_updated<F>(&self, callback: F)
+    where
+        F: Fn(&Pool) + Send + Sync + 'static,
+    {
+        let mut cb = self.on_pool_updated.lock().unwrap();
+        *cb = Some(Box::new(callback));
+    }
+
+    /// 触发Pool更新回调
+    ///
+    /// # 参数
+    ///
+    /// - `pool`: 更新后的Pool对象
+    fn trigger_pool_update_callback(&self, pool: &Pool) {
+        if let Some(cb) = self.on_pool_updated.lock().unwrap().as_ref() {
+            cb(pool);
+        }
+    }
+
+    /// 设置 Loro 订阅
+    ///
+    /// 为指定的 `LoroDoc` 注册订阅回调，当文档变更时自动同步到 SQLite
+    ///
+    /// # 参数
+    ///
+    /// - `pool_id`: 数据池 ID
+    /// - `doc`: Loro 文档实例
+    fn setup_loro_subscription(&self, pool_id: &str, doc: &LoroDoc) {
+        let pool_id_owned = pool_id.to_string();
+        let pool_id_clone = pool_id_owned.clone();
+        let subscriptions = self.loro_subscriptions.clone();
+
+        let subscription = doc.subscribe_root(Arc::new(move |event| {
+            Self::on_loro_change(&pool_id_clone, event);
+        }));
+
+        // 保存订阅句柄以保持订阅活跃
+        subscriptions
+            .lock()
+            .unwrap()
+            .insert(pool_id_owned, subscription);
+
+        debug!("已为数据池 {} 设置 Loro 订阅", pool_id);
+    }
+
+    /// Loro 变更回调处理
+    ///
+    /// 当 Loro 文档变更时，将变更同步到 SQLite
+    ///
+    /// # 参数
+    ///
+    /// - `pool_id`: 数据池 ID
+    /// - `event`: Loro 变更事件
+    ///
+    /// # Returns
+    ///
+    /// 如果处理成功返回 Ok(())，否则返回错误
+    fn on_loro_change(pool_id: &str, _event: DiffEvent<'_>) {
+        debug!("收到 Loro 变更事件: pool_id={}", pool_id);
+
+        // TODO: 实现卡片创建、更新、删除事件处理
+        // 当前仅打印日志，后续将实现完整的同步逻辑
     }
 
     /// 获取数据池的 Loro 文件路径
@@ -129,7 +231,7 @@ impl PoolStore {
         self.base_path.join("pools").join(encoded)
     }
 
-    /// 加载或创建数据池的 LoroDoc
+    /// 加载或创建数据池的 `LoroDoc`
     fn get_or_create_loro_doc(&self, pool_id: &str) -> Result<LoroDoc, CardMindError> {
         let mut docs = self.loro_docs.lock().unwrap();
 
@@ -153,12 +255,17 @@ impl PoolStore {
         };
 
         docs.insert(pool_id.to_string(), doc.clone());
+
+        // 设置 Loro 订阅
+        drop(docs);
+        self.setup_loro_subscription(pool_id, &doc);
+
         Ok(doc)
     }
 
-    /// 持久化数据池 LoroDoc
+    /// 持久化数据池 `LoroDoc`
     fn persist_loro_doc(&self, pool_id: &str, doc: &LoroDoc) -> Result<(), CardMindError> {
-        if self.base_path == PathBuf::from(":memory:") {
+        if self.base_path == Path::new(":memory:") {
             return Ok(()); // 内存模式不持久化
         }
 
@@ -173,8 +280,8 @@ impl PoolStore {
         Ok(())
     }
 
-    /// 将 Pool 对象序列化到 LoroDoc
-    fn serialize_pool_to_loro(&self, pool: &Pool, doc: &LoroDoc) -> Result<(), CardMindError> {
+    /// 将 Pool 对象序列化到 `LoroDoc`
+    fn serialize_pool_to_loro(pool: &Pool, doc: &LoroDoc) -> Result<(), CardMindError> {
         let map = doc.get_map("pool");
 
         map.insert("pool_id", pool.pool_id.clone())?;
@@ -195,8 +302,8 @@ impl PoolStore {
         Ok(())
     }
 
-    /// 从 LoroDoc 反序列化 Pool 对象
-    fn deserialize_pool_from_loro(&self, doc: &LoroDoc) -> Result<Pool, CardMindError> {
+    /// 从 `LoroDoc` 反序列化 Pool 对象
+    fn deserialize_pool_from_loro(doc: &LoroDoc) -> Result<Pool, CardMindError> {
         let map = doc.get_map("pool");
 
         let pool_id = map
@@ -276,6 +383,7 @@ impl PoolStore {
             name,
             password_hash,
             members,
+            card_ids: Vec::new(),
             created_at,
             updated_at,
         })
@@ -283,7 +391,7 @@ impl PoolStore {
 
     /// 同步 Pool 到 SQLite
     fn sync_pool_to_sqlite(&self, pool: &Pool) -> Result<(), CardMindError> {
-        let conn = &self.sqlite_store.conn;
+        let conn = &self.sqlite_store.lock().unwrap().conn;
 
         conn.execute(
             "INSERT OR REPLACE INTO pools (pool_id, name, password_hash, created_at, updated_at)
@@ -322,23 +430,26 @@ impl PoolStore {
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let store = PoolStore::new("data")?;
     /// let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
-    /// store.create_pool(pool)?;
+    /// store.create_pool(&pool)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn create_pool(&self, pool: Pool) -> Result<(), CardMindError> {
+    pub fn create_pool(&self, pool: &Pool) -> Result<(), CardMindError> {
         info!("创建数据池: {}", pool.pool_id);
 
         // 1. 写入 Loro
         let doc = self.get_or_create_loro_doc(&pool.pool_id)?;
-        self.serialize_pool_to_loro(&pool, &doc)?;
+        Self::serialize_pool_to_loro(pool, &doc)?;
         doc.commit();
 
         // 2. 持久化 Loro
         self.persist_loro_doc(&pool.pool_id, &doc)?;
 
         // 3. 同步到 SQLite
-        self.sync_pool_to_sqlite(&pool)?;
+        self.sync_pool_to_sqlite(pool)?;
+
+        // 4. 触发回调（同步 card_pool_bindings）
+        self.trigger_pool_update_callback(pool);
 
         Ok(())
     }
@@ -370,7 +481,7 @@ impl PoolStore {
 
         // 从 Loro 读取（源数据）
         let doc = self.get_or_create_loro_doc(pool_id)?;
-        self.deserialize_pool_from_loro(&doc)
+        Self::deserialize_pool_from_loro(&doc)
     }
 
     /// 查询所有数据池
@@ -394,7 +505,7 @@ impl PoolStore {
     pub fn get_all_pools(&self) -> Result<Vec<Pool>, CardMindError> {
         debug!("查询所有数据池");
 
-        let conn = &self.sqlite_store.conn;
+        let conn = &self.sqlite_store.lock().unwrap().conn;
         let mut stmt = conn.prepare("SELECT pool_id FROM pools ORDER BY updated_at DESC")?;
 
         let pool_ids: Vec<String> = stmt
@@ -439,7 +550,7 @@ impl PoolStore {
 
         // 1. 更新 Loro
         let doc = self.get_or_create_loro_doc(&pool.pool_id)?;
-        self.serialize_pool_to_loro(pool, &doc)?;
+        Self::serialize_pool_to_loro(pool, &doc)?;
         doc.commit();
 
         // 2. 持久化 Loro
@@ -447,6 +558,9 @@ impl PoolStore {
 
         // 3. 同步到 SQLite
         self.sync_pool_to_sqlite(pool)?;
+
+        // 4. 触发回调（同步 card_pool_bindings）
+        self.trigger_pool_update_callback(pool);
 
         Ok(())
     }
@@ -479,7 +593,7 @@ impl PoolStore {
         self.loro_docs.lock().unwrap().remove(pool_id);
 
         // 2. 删除 Loro 文件
-        if self.base_path != PathBuf::from(":memory:") {
+        if self.base_path != Path::new(":memory:") {
             let pool_path = self.get_pool_loro_path(pool_id);
             if pool_path.exists() {
                 fs::remove_dir_all(pool_path)?;
@@ -487,7 +601,7 @@ impl PoolStore {
         }
 
         // 3. 从 SQLite 删除
-        let conn = &self.sqlite_store.conn;
+        let conn = &self.sqlite_store.lock().unwrap().conn;
         conn.execute("DELETE FROM pools WHERE pool_id = ?1", params![pool_id])?;
 
         Ok(())
@@ -554,20 +668,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pool_store_creation() {
+    fn it_should_pool_store_creation() {
         let store = PoolStore::new_in_memory();
         assert!(store.is_ok(), "应该能创建内存 PoolStore");
     }
 
     #[test]
-    fn test_create_and_get_pool() {
+    fn it_should_create_and_get_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
         let pool_id = pool.pool_id.clone();
 
         // 创建数据池
-        store.create_pool(pool).unwrap();
+        store.create_pool(&pool).unwrap();
 
         // 查询数据池
         let retrieved = store.get_pool_by_id(&pool_id).unwrap();
@@ -577,11 +691,11 @@ mod tests {
     }
 
     #[test]
-    fn test_update_pool() {
+    fn it_should_update_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
-        store.create_pool(pool).unwrap();
+        store.create_pool(&pool).unwrap();
 
         // 更新数据池
         let mut updated_pool = store.get_pool_by_id("pool-001").unwrap();
@@ -594,11 +708,11 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_pool() {
+    fn it_should_delete_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
-        store.create_pool(pool).unwrap();
+        store.create_pool(&pool).unwrap();
 
         // 删除数据池
         store.delete_pool("pool-001").unwrap();
@@ -609,14 +723,15 @@ mod tests {
     }
 
     #[test]
-    fn test_get_all_pools() {
+    #[allow(clippy::similar_names)]
+    fn it_should_get_all_pools() {
         let store = PoolStore::new_in_memory().unwrap();
 
         // 创建多个数据池
         let pool1 = Pool::new("pool-001", "工作笔记", "hash1");
         let pool2 = Pool::new("pool-002", "个人笔记", "hash2");
-        store.create_pool(pool1).unwrap();
-        store.create_pool(pool2).unwrap();
+        store.create_pool(&pool1).unwrap();
+        store.create_pool(&pool2).unwrap();
 
         // 查询所有数据池
         let pools = store.get_all_pools().unwrap();
@@ -624,11 +739,11 @@ mod tests {
     }
 
     #[test]
-    fn test_add_member() {
+    fn it_should_add_member() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let pool = Pool::new("pool-001", "工作笔记", "hashed");
-        store.create_pool(pool).unwrap();
+        store.create_pool(&pool).unwrap();
 
         // 添加成员
         let device = Device::new("device-001", "我的手机");
@@ -641,12 +756,12 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_member() {
+    fn it_should_remove_member() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
         pool.add_member(Device::new("device-001", "我的手机"));
-        store.create_pool(pool).unwrap();
+        store.create_pool(&pool).unwrap();
 
         // 移除成员
         store.remove_member("pool-001", "device-001").unwrap();
@@ -657,12 +772,12 @@ mod tests {
     }
 
     #[test]
-    fn test_update_member_name() {
+    fn it_should_update_member_name() {
         let store = PoolStore::new_in_memory().unwrap();
 
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
         pool.add_member(Device::new("device-001", "我的手机"));
-        store.create_pool(pool).unwrap();
+        store.create_pool(&pool).unwrap();
 
         // 更新成员昵称
         store
@@ -675,8 +790,8 @@ mod tests {
     }
 
     #[test]
-    fn test_pool_persistence_loro_serialization() {
-        let store = PoolStore::new_in_memory().unwrap();
+    fn it_should_pool_persistence_loro_serialization() {
+        let _store = PoolStore::new_in_memory().unwrap();
 
         // 创建包含成员的数据池
         let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
@@ -685,15 +800,51 @@ mod tests {
 
         // 序列化到 Loro
         let doc = LoroDoc::new();
-        store.serialize_pool_to_loro(&pool, &doc).unwrap();
+        PoolStore::serialize_pool_to_loro(&pool, &doc).unwrap();
 
         // 反序列化
-        let deserialized = store.deserialize_pool_from_loro(&doc).unwrap();
+        let deserialized = PoolStore::deserialize_pool_from_loro(&doc).unwrap();
 
         assert_eq!(deserialized.pool_id, pool.pool_id);
         assert_eq!(deserialized.name, pool.name);
         assert_eq!(deserialized.members.len(), 2);
         assert_eq!(deserialized.members[0].device_id, "device-001");
         assert_eq!(deserialized.members[1].device_id, "device-002");
+    }
+
+    #[test]
+    fn it_should_loro_subscription_setup() {
+        let store = PoolStore::new_in_memory().unwrap();
+
+        let pool = Pool::new("pool-001", "测试池", "hashed");
+        store.create_pool(&pool).unwrap();
+
+        // 验证订阅已设置
+        let subscriptions = store.loro_subscriptions.lock().unwrap();
+        assert!(subscriptions.contains_key("pool-001"), "应该为池设置订阅");
+    }
+
+    #[test]
+    fn it_should_loro_callback_on_change() {
+        use std::time::Duration;
+
+        let store = PoolStore::new_in_memory().unwrap();
+
+        let pool = Pool::new("pool-001", "测试池", "hashed");
+        store.create_pool(&pool).unwrap();
+
+        // 修改数据池（触发 Loro 变更）
+        std::thread::sleep(Duration::from_millis(100));
+
+        let mut updated_pool = store.get_pool_by_id("pool-001").unwrap();
+        updated_pool.name = "更新后的名称".to_string();
+        store.update_pool(&updated_pool).unwrap();
+
+        // 等待回调处理
+        std::thread::sleep(Duration::from_millis(100));
+
+        // 验证更新成功
+        let retrieved = store.get_pool_by_id("pool-001").unwrap();
+        assert_eq!(retrieved.name, "更新后的名称");
     }
 }

@@ -1,6 +1,7 @@
 // Allow flutter_rust_bridge cfg conditions during build
 #![allow(unexpected_cfgs)]
 #![allow(dependency_on_unit_never_type_fallback)]
+#![allow(clippy::significant_drop_tightening)]
 // 允许自引用路径以兼容生成代码使用的 `cardmind_rust::` 前缀
 #![allow(unused_extern_crates)]
 extern crate self as cardmind_rust;

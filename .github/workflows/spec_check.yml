@@ -1,0 +1,140 @@
+name: Spec Coding Verification
+
+on:
+  push:
+    paths:
+      - 'specs/**'
+      - 'tool/**'
+      - '.github/workflows/spec_check.yml'
+  pull_request:
+    paths:
+      - 'specs/**'
+      - 'tool/**'
+      - '.github/workflows/spec_check.yml'
+
+jobs:
+  spec-verification:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Dart
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: stable
+    
+    - name: Run Spec Validator
+      run: |
+        echo "=== Running Spec Coding Validator ==="
+        dart tool/specs_tool.dart
+        
+        # Check coverage threshold
+        COVERAGE=$(dart tool/specs_tool.dart 2>&1 | grep "Coverage:" | awk '{print $2}')
+        echo "Coverage: $COVERAGE"
+        
+        if [ "$COVERAGE" < "90.00%" ]; then
+          echo "ERROR: Spec coverage below 90% threshold"
+          exit 1
+        fi
+        
+        echo "✓ Spec coverage meets threshold"
+
+  spec-documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Check Spec Headers
+      run: |
+        echo "=== Checking Spec Document Headers ==="
+        
+        # Check all spec files have proper headers
+        for file in specs/rust/*.md specs/flutter/*.md; do
+          if [ -f "$file" ]; then
+            if grep -q "规格编号:" "$file"; then
+              echo "✓ $(basename $file) has valid header"
+            else
+              echo "✗ $(basename $file) missing spec header"
+              exit 1
+            fi
+          fi
+        done
+        
+        echo "✓ All spec files have valid headers"
+
+  test-naming:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Check Test Naming Convention
+      run: |
+        echo "=== Checking Test Naming Convention ==="
+        
+        # Count test functions
+        OLD_STYLE=$(grep -r "^fn test_" rust/tests/*.rs 2>/dev/null | wc -l)
+        NEW_STYLE=$(grep -r "^fn it_should_" rust/tests/*.rs 2>/dev/null | wc -l)
+        
+        echo "Old-style tests (test_xxx): $OLD_STYLE"
+        echo "New-style tests (it_should_xxx): $NEW_STYLE"
+        
+        if [ "$OLD_STYLE" -gt 0 ]; then
+          echo "WARNING: $OLD_STYLE tests still use old naming convention"
+          echo "Run: dart tool/rename_tests.dart"
+        else
+          echo "✓ All tests use it_should_xxx naming convention"
+        fi
+
+  rust-spec-tests:
+    runs-on: ubuntu-latest
+    needs: spec-verification
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+    
+    - name: Cache Rust dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargoregistry/
+          target/
+        key: ${{ runner.os }}-rust-spec-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-rust-spec-
+    
+    - name: Run Spec Tests
+      run: |
+        echo "=== Running Rust Spec Tests ==="
+        cd rust
+        
+        # Run SP-SPM-001 spec tests
+        cargo test --test sp_spm_001_spec
+        
+        # Run all tests to ensure no regressions
+        cargo test --lib
+        
+        echo "✓ All spec tests passed"
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [spec-verification, spec-documentation, test-naming, rust-spec-tests]
+    
+    steps:
+    - name: Summary
+      run: |
+        echo "=== Spec Coding Verification Complete ==="
+        echo "✓ All spec documentation validated"
+        echo "✓ All spec headers checked"
+        echo "✓ Test naming convention verified"
+        echo "✓ Rust spec tests passed"
+        echo ""
+        echo "🎉 Spec Coding checks passed!"

@@ -5,7 +5,7 @@
 //! # 隐私保护
 //!
 //! 根据 `docs/architecture/sync_mechanism.md` 2.2 节的设计：
-//! - **仅暴露数据池 ID**：不暴露 pool_name 等敏感信息
+//! - **仅暴露数据池 ID**：不暴露 `pool_name` 等敏感信息
 //! - **使用默认设备昵称**：格式为 "{设备型号}-{UUID前5位}"
 //! - **密码验证后获取详情**：新设备需输入密码才能获取数据池完整信息
 //!
@@ -24,7 +24,6 @@ use libp2p::{
     tcp, yamux, Multiaddr, PeerId, Swarm, Transport,
 };
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use tracing::{info, warn};
 
 /// mDNS 广播的设备信息
@@ -32,7 +31,7 @@ use tracing::{info, warn};
 /// # 隐私设计
 ///
 /// 此结构体仅包含非敏感信息，用于 mDNS 广播。
-/// 敏感信息（pool_name、密码、成员列表等）不会在广播中暴露。
+/// 敏感信息（`pool_name`、密码、成员列表等）不会在广播中暴露。
 ///
 /// # 示例
 ///
@@ -72,7 +71,7 @@ pub struct DeviceInfo {
 ///
 /// # 隐私保护
 ///
-/// 仅暴露 pool_id，不暴露 pool_name、成员列表、卡片数量等敏感信息。
+/// 仅暴露 `pool_id`，不暴露 `pool_name`、成员列表、卡片数量等敏感信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoolInfo {
     /// 数据池 ID（UUID v7）
@@ -90,7 +89,7 @@ struct MdnsNetworkBehaviour {
 /// mDNS 事件
 #[derive(Debug)]
 #[allow(clippy::enum_variant_names)]
-enum MdnsEvent {
+pub enum MdnsEvent {
     /// mDNS 事件
     Mdns(mdns::Event),
 }
@@ -131,7 +130,8 @@ impl MdnsDiscovery {
     /// # Errors
     ///
     /// 如果 mDNS 初始化失败，返回错误
-    pub async fn new() -> Result<Self, Box<dyn Error>> {
+    #[allow(clippy::unused_async)]
+    pub async fn new() -> Result<Self, String> {
         info!("初始化 mDNS 设备发现...");
 
         // 1. 生成身份密钥对
@@ -140,7 +140,8 @@ impl MdnsDiscovery {
         info!("mDNS 本地 Peer ID: {}", local_peer_id);
 
         // 2. 创建 mDNS 行为
-        let mdns_behaviour = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)?;
+        let mdns_behaviour = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)
+            .map_err(|e| e.to_string())?;
 
         let behaviour = MdnsNetworkBehaviour {
             mdns: mdns_behaviour,
@@ -149,7 +150,7 @@ impl MdnsDiscovery {
         // 3. 创建传输层（mDNS 不需要加密，因为仅用于发现）
         let transport = tcp::tokio::Transport::default()
             .upgrade(upgrade::Version::V1)
-            .authenticate(noise::Config::new(&local_key)?)
+            .authenticate(noise::Config::new(&local_key).map_err(|e| e.to_string())?)
             .multiplex(yamux::Config::default())
             .boxed();
 
@@ -179,12 +180,13 @@ impl MdnsDiscovery {
     /// # Errors
     ///
     /// 如果发现失败，返回错误
-    pub async fn start_discovery(&mut self) -> Result<(), Box<dyn Error>> {
+    pub async fn start_discovery(&mut self) -> Result<(), String> {
         info!("开始 mDNS 设备发现...");
 
         // 监听所有接口
         self.swarm
-            .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())?;
+            .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
+            .map_err(|e| e.to_string())?;
 
         // 处理事件
         loop {
@@ -224,6 +226,37 @@ impl MdnsDiscovery {
             .collect()
     }
 
+    /// 处理下一个 Swarm 事件
+    ///
+    /// 这个方法用于在外部事件循环中处理单个事件
+    ///
+    /// # 返回
+    ///
+    /// 返回下一个 Swarm 事件，如果没有事件则返回 None
+    pub async fn poll_next(&mut self) -> Option<SwarmEvent<MdnsEvent>> {
+        use libp2p::futures::StreamExt;
+        self.swarm.next().await
+    }
+
+    /// 在指定地址上开始监听
+    ///
+    /// # 参数
+    ///
+    /// - `addr`: 要监听的地址
+    ///
+    /// # 返回
+    ///
+    /// 成功返回 Ok(())，失败返回错误
+    pub fn listen(&mut self, addr: &str) -> Result<(), String> {
+        self.swarm
+            .listen_on(
+                addr.parse()
+                    .map_err(|e: libp2p::multiaddr::Error| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
     /// 生成默认设备昵称
     ///
     /// # 格式
@@ -241,7 +274,7 @@ impl MdnsDiscovery {
     #[must_use]
     pub fn generate_device_name(device_id: &str) -> String {
         let short_id = &device_id[..5.min(device_id.len())];
-        format!("Unknown-{}", short_id)
+        format!("Unknown-{short_id}")
     }
 
     /// 创建设备信息用于 mDNS 广播
@@ -282,10 +315,11 @@ impl MdnsDiscovery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::error::Error;
 
     /// 测试默认设备昵称生成
     #[test]
-    fn test_generate_device_name() {
+    fn it_should_generate_device_name() {
         let device_id = "018c8a1b2c3d4e5f";
         let device_name = MdnsDiscovery::generate_device_name(device_id);
         assert_eq!(device_name, "Unknown-018c8");
@@ -293,7 +327,7 @@ mod tests {
 
     /// 测试设备信息创建
     #[test]
-    fn test_create_device_info() {
+    fn it_should_create_device_info() {
         let device_info =
             MdnsDiscovery::create_device_info("device-001", vec!["pool-abc", "pool-def"]);
 
@@ -306,7 +340,7 @@ mod tests {
 
     /// 测试设备信息序列化
     #[test]
-    fn test_device_info_serialization() {
+    fn it_should_device_info_serialization() {
         let device_info =
             MdnsDiscovery::create_device_info("device-001", vec!["pool-abc", "pool-def"]);
 
@@ -318,12 +352,12 @@ mod tests {
 
     /// 测试 mDNS 发现初始化
     #[tokio::test]
-    async fn test_mdns_discovery_creation() {
+    async fn it_should_mdns_discovery_creation() {
         let discovery = MdnsDiscovery::new().await;
         if let Err(err) = discovery {
-            let msg = err.to_string();
+            let msg = err.clone();
             if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
-                println!("跳过 mDNS 初始化测试：{}", err);
+                println!("跳过 mDNS 初始化测试：{err}");
                 return;
             }
             panic!("mDNS 发现初始化应该成功: {err}");
@@ -334,38 +368,43 @@ mod tests {
     ///
     /// 创建两个 mDNS 节点，验证它们能够相互发现
     #[tokio::test]
-    async fn test_mdns_peer_discovery() {
+    #[allow(clippy::similar_names)]
+    async fn it_should_mdns_peer_discovery() {
         use std::time::Duration;
         use tokio::time::timeout;
 
         // 1. 创建节点 A
         let discovery_a = MdnsDiscovery::new().await;
-        if let Err(err) = discovery_a {
-            let msg = err.to_string();
-            if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
-                println!("跳过 mDNS 互发现测试：{}", err);
-                return;
+        let mut discovery_a = match discovery_a {
+            Ok(discovery) => discovery,
+            Err(err) => {
+                let msg = err.clone();
+                if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
+                    println!("跳过 mDNS 互发现测试：{err}");
+                    return;
+                }
+                panic!("节点 A 初始化失败: {err}");
             }
-            panic!("节点 A 初始化失败: {err}");
-        }
-        let mut discovery_a = discovery_a.unwrap();
+        };
         let peer_a_id = *discovery_a.local_peer_id();
 
         // 2. 创建节点 B
         let discovery_b = MdnsDiscovery::new().await;
-        if let Err(err) = discovery_b {
-            let msg = err.to_string();
-            if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
-                println!("跳过 mDNS 互发现测试：{}", err);
-                return;
+        let mut discovery_b = match discovery_b {
+            Ok(discovery) => discovery,
+            Err(err) => {
+                let msg = err.clone();
+                if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
+                    println!("跳过 mDNS 互发现测试：{err}");
+                    return;
+                }
+                panic!("节点 B 初始化失败: {err}");
             }
-            panic!("节点 B 初始化失败: {err}");
-        }
-        let mut discovery_b = discovery_b.unwrap();
+        };
         let peer_b_id = *discovery_b.local_peer_id();
 
-        println!("节点 A Peer ID: {}", peer_a_id);
-        println!("节点 B Peer ID: {}", peer_b_id);
+        println!("节点 A Peer ID: {peer_a_id}");
+        println!("节点 B Peer ID: {peer_b_id}");
 
         // 3. 启动监听
         discovery_a
@@ -385,25 +424,21 @@ mod tests {
             loop {
                 tokio::select! {
                     event = discovery_a.swarm.next() => {
-                        if let Some(event) = event {
-                            if let SwarmEvent::Behaviour(MdnsEvent::Mdns(mdns::Event::Discovered(list))) = event {
-                                for (peer_id, addr) in list {
-                                    if peer_id == peer_b_id {
-                                        println!("✅ 节点 A 发现了节点 B: {}", addr);
-                                        a_discovered_b = true;
-                                    }
+                        if let Some(SwarmEvent::Behaviour(MdnsEvent::Mdns(mdns::Event::Discovered(list)))) = event {
+                            for (peer_id, addr) in list {
+                                if peer_id == peer_b_id {
+                                    println!("✅ 节点 A 发现了节点 B: {addr}");
+                                    a_discovered_b = true;
                                 }
                             }
                         }
                     }
                     event = discovery_b.swarm.next() => {
-                        if let Some(event) = event {
-                            if let SwarmEvent::Behaviour(MdnsEvent::Mdns(mdns::Event::Discovered(list))) = event {
-                                for (peer_id, addr) in list {
-                                    if peer_id == peer_a_id {
-                                        println!("✅ 节点 B 发现了节点 A: {}", addr);
-                                        b_discovered_a = true;
-                                    }
+                        if let Some(SwarmEvent::Behaviour(MdnsEvent::Mdns(mdns::Event::Discovered(list)))) = event {
+                            for (peer_id, addr) in list {
+                                if peer_id == peer_a_id {
+                                    println!("✅ 节点 B 发现了节点 A: {addr}");
+                                    b_discovered_a = true;
                                 }
                             }
                         }
@@ -423,10 +458,10 @@ mod tests {
                 println!("✅ mDNS 发现测试成功: 两个节点相互发现");
             }
             Ok(Err(e)) => {
-                panic!("❌ mDNS 发现测试失败: {}", e);
+                panic!("❌ mDNS 发现测试失败: {e}");
             }
-            Err(_) => {
-                panic!("❌ mDNS 发现测试超时（30秒）");
+            Err(e) => {
+                panic!("❌ mDNS 发现测试超时（30秒）: {e}");
             }
         }
     }

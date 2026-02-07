@@ -2,7 +2,7 @@
 # Ensures consistent line endings across different platforms
 
 # Auto detect text files and normalize line endings to LF in repository
-* text=auto
+* text=auto eol=lf
 
 # Explicitly declare text files
 *.dart text

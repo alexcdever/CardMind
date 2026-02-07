@@ -160,12 +160,7 @@ Future<(PlatformInt64, PlatformInt64, PlatformInt64)> getCardCount() =>
 /// ```dart
 /// await addCardToPool(cardId: cardId, poolId: poolId);
 /// ```
-Future<void> addCardToPool({required String cardId, required String poolId}) =>
-    RustLib.instance.api.cardmindRustApiCardAddCardToPool(
-      cardId: cardId,
-      poolId: poolId,
-    );
-
+/// DEPRECATED: Single-pool model
 /// Remove card from a data pool
 ///
 /// # Arguments
@@ -178,14 +173,7 @@ Future<void> addCardToPool({required String cardId, required String poolId}) =>
 /// ```dart
 /// await removeCardFromPool(cardId: cardId, poolId: poolId);
 /// ```
-Future<void> removeCardFromPool({
-  required String cardId,
-  required String poolId,
-}) => RustLib.instance.api.cardmindRustApiCardRemoveCardFromPool(
-  cardId: cardId,
-  poolId: poolId,
-);
-
+/// DEPRECATED: Single-pool model
 /// Get all pool IDs that a card belongs to
 ///
 /// # Arguments
@@ -233,9 +221,7 @@ Future<List<Card>> getCardsInPools({required List<String> poolIds}) =>
 /// ```dart
 /// await clearCardPools(cardId: cardId);
 /// ```
-Future<void> clearCardPools({required String cardId}) =>
-    RustLib.instance.api.cardmindRustApiCardClearCardPools(cardId: cardId);
-
+/// DEPRECATED: Single-pool model
 /// Test function to verify Flutter-Rust bridge is working
 ///
 /// Returns a greeting message.
