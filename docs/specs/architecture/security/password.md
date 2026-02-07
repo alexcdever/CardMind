@@ -21,20 +21,6 @@
 - **预期结果**: 应返回 bcrypt 格式的哈希字符串（`$2b$12$...`）
 - **并且**: 原始密码应在内存中自动清零
 
-**实现逻辑**:
-
-```
-function hash_password(password):
-    // 使用 bcrypt 哈希密码，工作因子 12
-    // 设计决策：工作因子 12 平衡安全性和性能
-    hash = bcrypt.hash(password, cost=12)
-
-    // 密码离开作用域时自动清零
-    // 注意：使用 Zeroizing<String> 包装器
-
-    return hash
-```
-
 ---
 
 ## 需求：密码验证
@@ -47,20 +33,6 @@ function hash_password(password):
 - **操作**: 调用密码验证函数
 - **预期结果**: 应返回布尔值表示是否匹配
 - **并且**: 验证时间应恒定，不因密码正确性而变化
-
-**实现逻辑**:
-
-```
-function verify_password(password, hash):
-    // 验证密码与哈希是否匹配
-    // 设计决策：恒定时间比较防止时序攻击
-    is_valid = bcrypt.verify(password, hash)
-
-    // 不暴露具体错误信息
-    // 注意：仅返回布尔值，不返回错误详情
-
-    return is_valid
-```
 
 ---
 
@@ -80,31 +52,6 @@ function verify_password(password, hash):
 - 数字
 - 特殊字符
 
-**实现逻辑**:
-
-```
-function validate_strength(password):
-    // 检查最小长度
-    if length(password) < 8:
-        return "too_short"
-
-    // 统计字符类型
-    // 设计决策：基于多样性评估，而非复杂性规则
-    has_letter = contains_letter(password)
-    has_number = contains_number(password)
-    has_special = contains_special(password)
-
-    type_count = count(has_letter, has_number, has_special)
-
-    // 评估强度
-    if type_count <= 1:
-        return "weak"
-    else if type_count == 2:
-        return "medium"
-    else:
-        return "strong"
-```
-
 ---
 
 ## 需求：时间戳验证
@@ -117,26 +64,6 @@ function validate_strength(password):
 - **操作**: 调用时间戳验证函数
 - **预期结果**: 时间戳应在有效期内（当前时间 ±5 分钟 ±30 秒）
 - **并且**: 过期请求应被拒绝
-
-**实现逻辑**:
-
-```
-function validate_timestamp(timestamp):
-    // 获取当前时间
-    now = current_time()
-
-    // 计算时间差
-    diff = abs(now - timestamp)
-
-    // 检查有效期（5 分钟 + 30 秒容差）
-    // 设计决策：容差考虑设备间的时钟偏差
-    max_age = 5 * 60 * 1000 + 30 * 1000  // milliseconds
-
-    if diff > max_age:
-        return error("timestamp_expired")
-
-    return ok()
-```
 
 **数据结构**:
 
@@ -165,19 +92,6 @@ structure JoinRequest:
 - **操作**: 密码变量离开作用域
 - **预期结果**: 内存中的密码数据应自动清零
 - **并且**: 密码不应参与序列化，防止意外泄露
-
-**实现逻辑**:
-
-```
-// 自动清零的密码包装器
-structure ZeroizingString:
-    data: String
-
-    // 离开作用域时自动清零
-    // 设计决策：使用 RAII 模式实现自动清理
-    on_drop():
-        zero_memory(data)
-```
 
 ---
 

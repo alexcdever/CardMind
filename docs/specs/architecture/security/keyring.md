@@ -45,22 +45,6 @@
 - **预期结果**: 密钥名称应为 "pool.018c8a1b-2c3d-7e4f-8a9b-0c1d2e3f4a5b.password"
 - **并且**: 服务名称应为 "cardmind"
 
-**实现逻辑**:
-
-```
-structure KeyringStore:
-    service_name: String = "cardmind"
-
-    // 存储密码
-    // 设计决策：在密钥名称中使用池 ID 以支持多池
-    function store_pool_password(pool_id, password):
-        key_name = "pool." + pool_id + ".password"
-        keyring.set(service_name, key_name, password)
-
-        // 密码自动清零
-        return ok()
-```
-
 ---
 
 ## 需求：密码读取
@@ -74,19 +58,6 @@ structure KeyringStore:
 - **操作**: 调用密码读取函数
 - **预期结果**: 应返回 Zeroizing<String> 包装的密码
 - **并且**: 密码离开作用域时应自动清零内存
-
-**实现逻辑**:
-
-```
-function get_pool_password(pool_id):
-    // 从 Keyring 读取密码
-    key_name = "pool." + pool_id + ".password"
-    password = keyring.get(service_name, key_name)
-
-    // 返回自动清零的字符串
-    // 设计决策：使用 Zeroizing 包装以防止内存泄露
-    return Zeroizing(password)
-```
 
 ---
 
@@ -102,16 +73,6 @@ function get_pool_password(pool_id):
 - **预期结果**: 密码应从 Keyring 中删除
 - **并且**: 后续读取操作应返回"未找到"错误
 
-**实现逻辑**:
-
-```
-function delete_pool_password(pool_id):
-    // 从 Keyring 删除密码
-    key_name = "pool." + pool_id + ".password"
-    keyring.delete(service_name, key_name)
-    return ok()
-```
-
 ---
 
 ## 需求：密码存在性检查
@@ -125,16 +86,6 @@ function delete_pool_password(pool_id):
 - **操作**: 调用密码存在性检查函数
 - **预期结果**: 应返回布尔值表示密码是否存储
 - **并且**: 不应读取实际密码内容，仅检查存在性
-
-**实现逻辑**:
-
-```
-function has_pool_password(pool_id):
-    // 检查密码是否存在于 Keyring
-    // 设计决策：不读取密码，仅检查存在性
-    key_name = "pool." + pool_id + ".password"
-    return keyring.exists(service_name, key_name)
-```
 
 ---
 
