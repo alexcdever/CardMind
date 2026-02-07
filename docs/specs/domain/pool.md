@@ -42,17 +42,17 @@ function join_pool(device_config, pool_id, password):
     // 设计决策：每个设备最多只能加入一个池
     if device_config.is_joined():
         current_pool = device_config.get_pool_id()
-        return error "AlreadyJoinedPool: " + current_pool
+        return error "ALREADY_JOINED_POOL: " + current_pool
     
     // 步骤2：验证池存在
     pool = load_pool(pool_id)
     if pool is error:
-        return error "PoolNotFound: " + pool_id
+        return error "POOL_NOT_FOUND: " + pool_id
     
     // 步骤3：验证密码
     // 安全：使用 bcrypt 恒定时间比较
     if not verify_password(password, pool.password_hash):
-        return error "InvalidPassword"
+        return error "INVALID_PASSWORD"
     
     // 步骤4：将设备添加到池的设备列表
     device_id = device_config.device_id
@@ -113,7 +113,7 @@ function enforce_single_pool_constraint(device_config, new_pool_id):
         error_message = "您已经加入了笔记空间'" + pool_name + "'"
         
         log_warn("Device attempted to join second pool: " + new_pool_id)
-        return error "AlreadyJoinedPool: " + error_message
+        return error "ALREADY_JOINED_POOL: " + error_message
     
     // 步骤4：如果是同一个池,允许重新加入（幂等操作）
     log_debug("Device re-joining same pool: " + current_pool_id)
@@ -155,7 +155,7 @@ function create_card_in_pool(device_config, title, content):
     // 步骤1：验证设备已加入池
     // 设计决策：卡片必须属于某个池
     if not device_config.is_joined():
-        return error "NotJoinedPool: 请先加入或创建笔记空间"
+        return error "NOT_JOINED_POOL: 请先加入或创建笔记空间"
     
     // 步骤2：获取当前池 ID
     pool_id = device_config.get_pool_id()
@@ -243,7 +243,7 @@ function validate_can_create_card(device_config):
     // 步骤1：检查设备是否已加入池
     if not device_config.is_joined():
         return error {
-            code: "NotJoinedPool",
+            code: "NOT_JOINED_POOL",
             message: "请先加入或创建笔记空间",
             action: "show_onboarding"
         }
@@ -257,7 +257,7 @@ function validate_can_create_card(device_config):
         device_config.leave_pool()
         
         return error {
-            code: "PoolNotFound",
+            code: "POOL_NOT_FOUND",
             message: "笔记空间不存在,请重新加入",
             action: "show_onboarding"
         }
@@ -269,7 +269,7 @@ function validate_can_create_card(device_config):
         device_config.leave_pool()
         
         return error {
-            code: "DeviceRemovedFromPool",
+            code: "DEVICE_REMOVED_FROM_POOL",
             message: "您已被移出笔记空间",
             action: "show_onboarding"
         }
@@ -279,18 +279,18 @@ function validate_can_create_card(device_config):
 function handle_create_card_error(error):
     // 处理创建卡片错误
     
-    if error.code == "NotJoinedPool":
+    if error.code == "NOT_JOINED_POOL":
         // 显示引导流程
         show_onboarding_screen()
         return
     
-    if error.code == "PoolNotFound":
+    if error.code == "POOL_NOT_FOUND":
         // 显示池不存在提示
         show_error_dialog(error.message)
         show_onboarding_screen()
         return
     
-    if error.code == "DeviceRemovedFromPool":
+    if error.code == "DEVICE_REMOVED_FROM_POOL":
         // 显示被移除提示
         show_error_dialog(error.message)
         show_onboarding_screen()
@@ -320,7 +320,7 @@ function leave_pool(device_config):
     // 步骤1：验证设备已加入池
     if not device_config.is_joined():
         log_warn("Device not joined to any pool")
-        return error "NotJoinedPool"
+        return error "NOT_JOINED_POOL"
     
     pool_id = device_config.get_pool_id()
     device_id = device_config.device_id
@@ -462,7 +462,7 @@ function validate_join_pool_request(device_config, new_pool_id):
             pool_name = current_pool.pool_name
             
             return error {
-                code: "AlreadyJoinedPool",
+                code: "ALREADY_JOINED_POOL",
                 message: "您已经加入了笔记空间'" + pool_name + "'",
                 current_pool_id: current_pool_id,
                 current_pool_name: pool_name
@@ -486,7 +486,7 @@ function auto_assign_card_to_pool(card, device_config):
     
     // 步骤1：获取设备已加入的池
     if not device_config.is_joined():
-        return error "NotJoinedPool"
+        return error "NOT_JOINED_POOL"
     
     pool_id = device_config.get_pool_id()
     
@@ -575,11 +575,11 @@ pub struct DeviceConfig {
 - **清理完整性**: 离开池时清除所有相关数据
 
 **错误处理**:
-- **AlreadyJoinedPool**: 尝试加入第二个池
-- **NotJoinedPool**: 未加入池时创建卡片
-- **PoolNotFound**: 池不存在
-- **DeviceRemovedFromPool**: 设备被从池中移除
-- **InvalidPassword**: 密码验证失败
+- **ALREADY_JOINED_POOL**: 尝试加入第二个池
+- **NOT_JOINED_POOL**: 未加入池时创建卡片
+- **POOL_NOT_FOUND**: 池不存在
+- **DEVICE_REMOVED_FROM_POOL**: 设备被从池中移除
+- **INVALID_PASSWORD**: 密码验证失败
 
 **性能特征**:
 - **数据清理**: O(n) 其中 n 是卡片数量
