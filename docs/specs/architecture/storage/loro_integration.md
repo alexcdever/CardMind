@@ -1,6 +1,5 @@
 # Loro 集成架构规格
 
-**状态**: 活跃
 **依赖**: [./dual_layer.md](./dual_layer.md), [../sync/subscription.md](../sync/subscription.md)
 **相关测试**: `rust/tests/loro_integration_feature_test.rs`
 

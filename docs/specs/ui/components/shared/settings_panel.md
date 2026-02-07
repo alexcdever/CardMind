@@ -1,6 +1,5 @@
 # 设置面板规格
 
-**状态**: 活跃
 **依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md)
 **相关测试**: `test/feature/widgets/settings_panel_feature_test.dart`
 

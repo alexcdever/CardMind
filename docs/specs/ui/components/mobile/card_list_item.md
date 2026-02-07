@@ -1,6 +1,5 @@
 # 移动端卡片列表项规格
 
-**状态**: 生效中
 **依赖**: [../../../domain/card.md](../../../domain/card.md)
 **相关测试**: `test/feature/widgets/card_list_item_mobile_feature_test.dart`
 

@@ -1,6 +1,5 @@
 # Loro 订阅架构规格
 
-**状态**: 活跃
 **依赖**: [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md), [../storage/sqlite_cache.md](../storage/sqlite_cache.md)
 **相关测试**: `rust/tests/loro_integration_feature_test.rs`
 

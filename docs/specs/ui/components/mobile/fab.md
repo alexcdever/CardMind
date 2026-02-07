@@ -1,6 +1,5 @@
 # 移动端浮动操作按钮规格
 
-**状态**: 生效中
 **依赖**: 无
 **相关测试**: `test/feature/widgets/mobile_fab_feature_test.dart`
 

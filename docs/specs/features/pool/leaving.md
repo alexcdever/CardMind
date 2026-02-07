@@ -1,6 +1,5 @@
 # 离开池规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/sync/subscription.md](../../architecture/sync/subscription.md)
 **相关测试**: `test/feature/features/pool_management_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
 

@@ -1,6 +1,5 @@
 # 对等点发现架构规格
 
-**状态**: 活跃
 **依赖**: [./service.md](./service.md), [../storage/device_config.md](../storage/device_config.md)
 **相关测试**: `rust/tests/mdns_discovery_feature_test.rs`
 

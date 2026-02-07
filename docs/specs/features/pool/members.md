@@ -1,6 +1,5 @@
 # 池成员规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/sync/peer_discovery.md](../../architecture/sync/peer_discovery.md)
 **相关测试**: `test/feature/features/pool_management_feature_test.dart`, `test/feature/features/p2p_sync_feature_test.dart`
 

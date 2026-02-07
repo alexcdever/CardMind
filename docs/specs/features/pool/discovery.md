@@ -1,6 +1,5 @@
 # 池发现规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/sync/peer_discovery.md](../../architecture/sync/peer_discovery.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
 **相关测试**: `test/feature/features/p2p_sync_feature_test.dart`
 

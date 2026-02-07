@@ -1,6 +1,5 @@
 # 单池约束规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
 **相关测试**: `rust/tests/pool_model_feature_test.rs`, `test/feature/features/pool_management_feature_test.dart`
 

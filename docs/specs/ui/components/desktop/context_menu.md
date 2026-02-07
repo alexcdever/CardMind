@@ -1,6 +1,5 @@
 # 桌面端右键菜单规格
 
-**状态**: 生效中
 **依赖**: 无
 **相关测试**: `test/feature/widgets/desktop_context_menu_feature_test.dart`
 

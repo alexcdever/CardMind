@@ -1,6 +1,5 @@
 # 平台检测规格
 
-**状态**: 活跃
 **依赖**: 无
 **相关测试**: `test/feature/adaptive/platform_detector_feature_test.dart`
 

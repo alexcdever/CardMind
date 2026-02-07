@@ -1,6 +1,5 @@
 # 移动端导航栏规格
 
-**状态**: 生效中
 **依赖**: 无
 **相关测试**: `test/feature/widgets/mobile_nav_feature_test.dart`
 

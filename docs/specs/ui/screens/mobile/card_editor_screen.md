@@ -1,6 +1,5 @@
 # 移动端卡片编辑器屏幕规格
 
-**状态**: 活跃
 **依赖**: [../../../domain/card.md](../../../domain/card.md)
 **相关测试**: `test/feature/screens/card_editor_screen_feature_test.dart`
 

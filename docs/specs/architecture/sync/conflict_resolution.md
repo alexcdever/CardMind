@@ -1,6 +1,5 @@
 # 冲突解决架构规格
 
-**状态**: 活跃
 **依赖**: [../../domain/sync.md](../../domain/sync.md), [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md)
 **相关测试**: `rust/tests/loro_sync_feature_test.rs`
 

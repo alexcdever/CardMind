@@ -1,6 +1,5 @@
 # 卡片标签业务规格
 
-**状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
 **相关测试**: `test/feature/features/card_management_feature_test.dart`
 

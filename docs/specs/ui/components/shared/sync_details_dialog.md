@@ -1,6 +1,5 @@
 # 同步详情对话框规格
 
-**状态**: 活跃
 **依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md), [sync_status_indicator.md](sync_status_indicator.md)
 **相关测试**: `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart`
 

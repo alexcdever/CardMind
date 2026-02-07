@@ -1,6 +1,5 @@
 # 池信息查询规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/types.md](../../domain/types.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md)
 **相关测试**: `test/feature/features/pool_management_feature_test.dart`
 

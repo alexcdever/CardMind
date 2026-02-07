@@ -1,6 +1,5 @@
 # PoolStore 架构规格
 
-**状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md), [./dual_layer.md](./dual_layer.md)
 **相关测试**: `rust/tests/pool_store_feature_test.rs`
 

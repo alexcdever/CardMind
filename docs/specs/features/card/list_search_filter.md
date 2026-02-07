@@ -1,6 +1,5 @@
 # 卡片列表与搜索过滤业务规格
 
-**状态**: 活跃
 **依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md)
 **相关测试**: `test/feature/features/search_and_filter_feature_test.dart`
 

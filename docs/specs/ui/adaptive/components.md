@@ -1,6 +1,5 @@
 # 自适应组件规格
 
-**状态**: 活跃
 **依赖**: [layouts.md](layouts.md), [platform_detection.md](platform_detection.md)
 **相关测试**: `test/feature/adaptive/components_feature_test.dart`
 

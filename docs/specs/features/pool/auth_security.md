@@ -1,6 +1,5 @@
 # 池认证与安全规格
 
-**状态**: 生效中
 **依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/security/password.md](../../architecture/security/password.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/security/privacy.md](../../architecture/security/privacy.md)
 **相关测试**: `test/feature/features/p2p_sync_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
 

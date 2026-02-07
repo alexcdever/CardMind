@@ -1,6 +1,5 @@
 # bcrypt 密码管理架构规格
 
-**状态**: 活跃
 **依赖**: [../../domain/pool.md](../../domain/pool.md)
 **相关测试**: `rust/tests/security_password_feature_test.rs`
 

@@ -1,6 +1,5 @@
 # 双层存储架构规格
 
-**状态**: 活跃
 **依赖**: [./card_store.md](./card_store.md), [../../domain/card.md](../../domain/card.md)
 **相关测试**: `rust/tests/dual_layer_feature_test.rs`
 

@@ -1,6 +1,5 @@
 # 全屏编辑器规格
 
-**状态**: 活跃
 **依赖**: [../../../domain/card.md](../../../domain/card.md), [note_card.md](note_card.md)
 **相关测试**: `test/feature/widgets/fullscreen_editor_feature_test.dart`
 

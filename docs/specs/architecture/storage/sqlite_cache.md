@@ -1,6 +1,5 @@
 # SQLite 缓存架构规格
 
-**状态**: 活跃
 **依赖**: [./dual_layer.md](./dual_layer.md), [./card_store.md](./card_store.md), [./pool_store.md](./pool_store.md)
 **相关测试**: `rust/tests/sqlite_cache_feature_test.rs`
 

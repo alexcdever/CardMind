@@ -1,6 +1,5 @@
 # 移动端手势规格
 
-**状态**: 生效中
 **依赖**: 无
 **相关测试**: `test/feature/widgets/mobile_gestures_feature_test.dart`
 
