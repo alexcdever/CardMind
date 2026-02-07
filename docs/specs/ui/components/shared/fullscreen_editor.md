@@ -30,24 +30,6 @@
 
 ---
 
-## 需求：定期自动保存草稿
-
-系统应自动保存草稿内容，以防止编辑期间数据丢失。
-
-### 场景：内容更改后自动保存
-
-- **前置条件**: 用户正在编辑卡片
-- **操作**: 用户修改标题或内容
-- **预期结果**: 系统应在 2 秒无活动后触发自动保存
-
-### 场景：重新打开时恢复草稿
-
-- **前置条件**: 用户有自动保存的草稿
-- **操作**: 用户未保存关闭编辑器并重新打开
-- **预期结果**: 系统应恢复最后一次自动保存的草稿
-
----
-
 ## 需求：编辑器内标签管理
 
 系统应在全屏编辑器内提供标签管理功能。
@@ -83,7 +65,6 @@
 - **操作**: 用户点击取消按钮
 - **预期结果**: 系统应在不保存的情况下调用 onCancel 回调
 - **并且**: 关闭全屏编辑器
-- **并且**: 丢弃自动保存的草稿
 
 ---
 
@@ -112,18 +93,14 @@
 **组件测试**:
 - `it_should_prepopulate_existing_card_data()` - 预填充现有卡片
 - `it_should_display_empty_fields_for_new_card()` - 显示空字段
-- `it_should_autosave_after_inactivity()` - 2秒无活动后自动保存
-- `it_should_restore_draft_on_reopen()` - 恢复草稿
 - `it_should_include_added_tags()` - 包含添加的标签
 - `it_should_exclude_removed_tags()` - 排除移除的标签
 - `it_should_save_and_close_on_save()` - 保存并关闭
-- `it_should_cancel_and_discard_draft()` - 取消并丢弃
 - `it_should_autofocus_title_for_new_card()` - 自动聚焦标题
 - `it_should_maintain_keyboard_on_field_transition()` - 保持键盘
 
 **验收标准**:
 - [ ] 所有功能测试（Widget）通过
-- [ ] 自动保存可靠工作
 - [ ] 键盘行为流畅
 - [ ] 代码审查通过
 - [ ] 文档已更新
