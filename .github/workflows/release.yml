@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'  # 触发条件：推送 v 开头的 tag，如 v1.0.0
+    branches:
+      - release  # 仅 release 分支触发（HEAD 必须带 v* tag 才会发布）
 
 # 明确声明需要的权限
 permissions:
@@ -19,15 +19,38 @@ jobs:
     name: Prepare Release
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.get_version.outputs.version }}
+      version: ${{ steps.resolve_tag.outputs.version }}
+      tag: ${{ steps.resolve_tag.outputs.tag }}
+      should_release: ${{ steps.resolve_tag.outputs.should_release }}
     steps:
-      - name: Get version from tag
-        id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve tag on release HEAD
+        id: resolve_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          tag=$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n 1 || true)
+          if [[ -z "$tag" ]]; then
+            echo "No v* tag on release HEAD; skip publishing."
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
 
   build-android:
     name: Build Android
     needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -114,6 +137,7 @@ jobs:
   build-linux:
     name: Build Linux
     needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -189,6 +213,7 @@ jobs:
   build-windows:
     name: Build Windows
     needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: windows-latest
     steps:
       - name: Checkout code
@@ -257,6 +282,7 @@ jobs:
   build-macos:
     name: Build macOS
     needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -325,6 +351,7 @@ jobs:
   build-ios:
     name: Build iOS
     needs: prepare
+    if: needs.prepare.outputs.should_release == 'true'
     runs-on: macos-latest
     steps:
       - name: Checkout code
@@ -396,7 +423,7 @@ jobs:
     name: Create Release
     needs: [prepare, build-android, build-linux, build-windows, build-macos, build-ios]
     # 即使某些平台构建失败，也创建 release（只上传成功的平台）
-    if: always() && needs.prepare.result == 'success'
+    if: always() && needs.prepare.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -414,6 +441,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
           name: CardMind ${{ needs.prepare.outputs.version }}
           draft: false
           prerelease: false
