@@ -1,10 +1,5 @@
 # 移动端设置屏幕规格
 
-**依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md)
-**相关测试**: `test/feature/screens/settings_screen_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动端设置屏幕，提供按逻辑类别组织的应用配置与管理入口，针对移动端导航进行优化。

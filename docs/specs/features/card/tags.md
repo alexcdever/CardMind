@@ -1,10 +1,5 @@
 # 卡片标签业务规格
 
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/card_management_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义卡片标签管理的业务规则。标签支持新增与移除，标签集合需去重且区分大小写，任何标签变更都必须进入同步流程。

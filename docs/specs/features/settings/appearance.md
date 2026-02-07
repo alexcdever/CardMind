@@ -1,10 +1,5 @@
 # 外观设置规格
 
-**依赖**: [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
-**相关测试**: `test/feature/features/settings_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义主题模式与文本大小的业务规则。外观偏好属于本地设置，必须持久化并立即生效，不参与数据池同步。

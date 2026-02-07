@@ -1,10 +1,5 @@
 # Keyring 密码存储架构规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [./password.md](./password.md)
-**相关测试**: `rust/tests/security_keyring_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 CardMind 中数据池密码的跨平台安全存储机制。系统使用系统级 Keyring 服务（Windows 凭据管理器、macOS 钥匙串、Linux Secret Service、Android 密钥库）存储密码，确保密码加密存储且不在内存中长期驻留。

@@ -1,10 +1,5 @@
 # 池设置规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/security/password.md](../../architecture/security/password.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/pool_management_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
-
----
-
 ## 概述
 
 定义池设置变更的业务规则：可更新名称与密钥；更新密钥需验证旧密钥；任何变更必须同步到池内所有设备。

@@ -1,10 +1,5 @@
 # Loro 订阅架构规格
 
-**依赖**: [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md), [../storage/sqlite_cache.md](../storage/sqlite_cache.md)
-**相关测试**: `rust/tests/loro_integration_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 Loro 文档订阅机制，自动将变更从写入层（Loro CRDT）传播到读取层（SQLite 缓存），确保双层架构中的最终一致性。

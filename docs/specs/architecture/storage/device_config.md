@@ -1,10 +1,5 @@
 # DeviceConfig 存储架构规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `rust/tests/device_config_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了单池架构中设备配置的结构和管理方法。系统使用 JSON 格式将设备配置持久化到本地文件系统，确保设备身份（peer_id）和池成员资格在应用重启后保持一致。

@@ -1,10 +1,5 @@
 # 设备设置规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/settings_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义设备信息查看与设备名称管理的业务规则。设备名称必填且需裁剪前后空白，更新后必须持久化；当设备已加入数据池时，设备信息变更需进入同步流程。

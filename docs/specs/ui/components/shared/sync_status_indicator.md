@@ -1,10 +1,5 @@
 # 同步状态指示器规格
 
-**依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/feature/widgets/sync_status_indicator_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义同步状态指示器组件，提供关于同步状态的实时视觉反馈。

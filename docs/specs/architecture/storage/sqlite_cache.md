@@ -1,10 +1,5 @@
 # SQLite 缓存架构规格
 
-**依赖**: [./dual_layer.md](./dual_layer.md), [./card_store.md](./card_store.md), [./pool_store.md](./pool_store.md)
-**相关测试**: `rust/tests/sqlite_cache_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 CardMind 的 SQLite 缓存层，提供对卡片和池数据的快速读取访问，同时与 Loro CRDT 层保持最终一致性。

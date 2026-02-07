@@ -1,10 +1,5 @@
 # 单池模型规格
 
-**依赖**: [types.md](types.md), [../architecture/storage/device_config.md](../architecture/storage/device_config.md)
-**相关测试**: `rust/tests/pool_model_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了单池模型，其中每张卡片仅属于一个池，每个设备最多只能加入一个池。当设备创建新卡片时，卡片自动属于设备已加入的池。

@@ -1,10 +1,5 @@
 # 卡片列表与搜索过滤业务规格
 
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md)
-**相关测试**: `test/feature/features/search_and_filter_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义卡片列表、搜索与过滤的业务规则。系统应在无条件时返回未删除卡片全量，在有条件时叠加过滤并按默认排序返回。分页与增量加载不在本规格范围。

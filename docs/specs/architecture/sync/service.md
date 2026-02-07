@@ -1,10 +1,5 @@
 # P2P 同步服务架构规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../storage/device_config.md](../storage/device_config.md)
-**相关测试**: `rust/tests/sync_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 CardMind 的 P2P 同步服务架构，包括服务初始化、对等点发现、同步状态跟踪和数据同步实现。

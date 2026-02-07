@@ -1,10 +1,5 @@
 # 移动端同步屏幕规格
 
-**依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/feature/screens/sync_screen_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动端同步屏幕，用于展示同步状态、设备列表、同步历史与控制同步行为。

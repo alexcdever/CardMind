@@ -1,10 +1,5 @@
 # bcrypt 密码管理架构规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md)
-**相关测试**: `rust/tests/security_password_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 CardMind 中数据池密码的哈希、验证和强度检查机制。系统使用 bcrypt 算法进行密码哈希，工作因子为 12，并通过内存清零技术保护敏感数据。

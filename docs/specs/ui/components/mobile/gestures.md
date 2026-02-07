@@ -1,10 +1,5 @@
 # 移动端手势规格
 
-**依赖**: 无
-**相关测试**: `test/feature/widgets/mobile_gestures_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动端手势交互，提供直观方式执行快速操作，如删除卡片、访问上下文菜单和刷新内容。

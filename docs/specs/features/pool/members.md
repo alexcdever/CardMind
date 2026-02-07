@@ -1,10 +1,5 @@
 # 池成员规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/sync/peer_discovery.md](../../architecture/sync/peer_discovery.md)
-**相关测试**: `test/feature/features/pool_management_feature_test.dart`, `test/feature/features/p2p_sync_feature_test.dart`
-
----
-
 ## 概述
 
 定义池成员的业务查询与变更：设备列表包含在线状态与当前设备标记；成员增删应通过同步机制保持一致。

@@ -1,10 +1,5 @@
 # 卡片删除业务规格
 
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/card_management_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义卡片删除的业务规则。删除必须在确认后执行，采用软删除方式保留数据；已删除卡片在显式查询条件下仍可被检索，并且删除变更必须同步。

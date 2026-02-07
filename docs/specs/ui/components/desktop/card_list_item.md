@@ -1,10 +1,5 @@
 # 桌面端卡片列表项规格
 
-**依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/feature/widgets/card_list_item_desktop_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义桌面端卡片列表项组件，用于在网格布局中显示卡片摘要，针对鼠标交互进行优化，提供悬停效果与内联操作。

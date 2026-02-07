@@ -1,10 +1,5 @@
 # CardStore 架构规格
 
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md)
-**相关测试**: `rust/tests/card_store_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了单池架构下 CardStore 的技术实现，包括双层存储架构（Loro + SQLite）、订阅驱动的同步机制和数据管理操作。

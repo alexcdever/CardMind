@@ -1,10 +1,5 @@
 # 平台检测规格
 
-**依赖**: 无
-**相关测试**: `test/feature/adaptive/platform_detector_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义平台检测系统，识别当前平台与设备特性以启用自适应 UI 行为。

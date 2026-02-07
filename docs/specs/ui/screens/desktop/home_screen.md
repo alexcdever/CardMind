@@ -1,10 +1,5 @@
 # 桌面端主屏幕规格
 
-**依赖**: [../../../domain/card.md](../../../domain/card.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/feature/screens/home_screen_adaptive_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义桌面端主屏幕，显示用户卡片集合并提供搜索、过滤与管理功能，采用多列布局。

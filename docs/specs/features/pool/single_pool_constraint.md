@@ -1,10 +1,5 @@
 # 单池约束规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
-**相关测试**: `rust/tests/pool_model_feature_test.rs`, `test/feature/features/pool_management_feature_test.dart`
-
----
-
 ## 概述
 
 定义单设备仅允许加入一个池的业务约束。系统必须在加入与创建等入口处强制该约束，避免设备同时属于多个池。
