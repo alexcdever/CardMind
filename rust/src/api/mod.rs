@@ -4,5 +4,9 @@
 /// via flutter_rust_bridge.
 pub mod card;
 pub mod device_config;
+pub mod identity;
+pub mod loro_export;
+pub mod mdns_discovery;
 pub mod pool;
 pub mod sync;
+pub mod trust_list;

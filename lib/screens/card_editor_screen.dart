@@ -1,17 +1,22 @@
-import 'package:cardmind/providers/card_provider.dart';
-import 'package:cardmind/utils/snackbar_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:provider/provider.dart';
 
-/// Card editor screen for creating and editing cards
-class CardEditorScreen extends StatefulWidget {
-  const CardEditorScreen({
-    this.cardId,
-    super.key,
-  });
+import '../adaptive/layouts/adaptive_padding.dart';
+import '../adaptive/layouts/adaptive_scaffold.dart';
+import '../adaptive/platform_detector.dart';
+import '../providers/card_editor_state.dart';
 
-  final String? cardId;
+/// Card Editor Screen
+///
+/// 规格编号: SP-FLUT-009
+/// 卡片编辑器界面，支持：
+/// - 标题和内容输入
+/// - 自动保存（500ms debounce）
+/// - 手动保存（完成按钮）
+/// - 错误处理和重试
+/// - 返回确认对话框
+class CardEditorScreen extends StatefulWidget {
+  const CardEditorScreen({super.key});
 
   @override
   State<CardEditorScreen> createState() => _CardEditorScreenState();
@@ -20,184 +25,250 @@ class CardEditorScreen extends StatefulWidget {
 class _CardEditorScreenState extends State<CardEditorScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  bool _isLoading = false;
-  bool _showPreview = false;
-  String? _error;
+  final _titleFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    if (widget.cardId != null) {
-      _loadCard();
-    }
-  }
 
-  Future<void> _loadCard() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
+    // 自动聚焦标题字段
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _titleFocusNode.requestFocus();
     });
-
-    final cardProvider = context.read<CardProvider>();
-    final card = await cardProvider.getCard(widget.cardId!);
-
-    if (card != null) {
-      setState(() {
-        _titleController.text = card.title;
-        _contentController.text = card.content;
-        _isLoading = false;
-      });
-    } else {
-      setState(() {
-        _error = 'Failed to load card';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _saveCard() async {
-    final title = _titleController.text.trim();
-    final content = _contentController.text.trim();
-
-    if (title.isEmpty) {
-      SnackBarUtils.showWarning(context, 'Title cannot be empty');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    final cardProvider = context.read<CardProvider>();
-    bool success;
-
-    if (widget.cardId != null) {
-      success = await cardProvider.updateCard(
-        widget.cardId!,
-        title: title,
-        content: content,
-      );
-    } else {
-      final card = await cardProvider.createCard(title, content);
-      success = card != null;
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (success) {
-        SnackBarUtils.showSuccess(
-          context,
-          widget.cardId != null ? 'Card updated successfully' : 'Card created successfully',
-        );
-        Navigator.pop(context);
-      } else {
-        setState(() {
-          _error = cardProvider.error ?? 'Failed to save card';
-        });
-        SnackBarUtils.showError(context, _error!);
-      }
-    }
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+    _titleFocusNode.dispose();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.cardId != null ? 'Edit Card' : 'New Card'),
+  // ========================================
+  // 任务 4.7: 实现返回确认对话框
+  // ========================================
+
+  Future<bool> _onWillPop(CardEditorState state) async {
+    // 如果没有未保存的更改，直接返回
+    if (!state.hasUnsavedChanges) {
+      return true;
+    }
+
+    // 显示确认对话框
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('放弃更改？'),
+        content: const Text('您有未保存的更改，确定要放弃吗？'),
         actions: [
-          IconButton(
-            icon: Icon(_showPreview ? Icons.edit : Icons.visibility),
-            onPressed: () {
-              setState(() {
-                _showPreview = !_showPreview;
-              });
-            },
-            tooltip: _showPreview ? 'Edit' : 'Preview',
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
           ),
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _isLoading ? null : _saveCard,
-            tooltip: 'Save',
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('确定'),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadCard,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: _titleController,
-                        decoration: const InputDecoration(
-                          labelText: 'Title',
-                          border: OutlineInputBorder(),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: _showPreview
-                            ? Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Markdown(
-                                    data: _contentController.text.isEmpty
-                                        ? '*Preview will appear here*'
-                                        : _contentController.text,
-                                  ),
-                                ),
-                              )
-                            : TextField(
-                                controller: _contentController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Content (Markdown supported)',
-                                  border: OutlineInputBorder(),
-                                  alignLabelWithHint: true,
-                                ),
-                                maxLines: null,
-                                expands: true,
-                                textAlignVertical: TextAlignVertical.top,
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
     );
+
+    return result ?? false;
+  }
+
+  // ========================================
+  // 任务 4.2: 实现 AppBar
+  // ========================================
+
+  @override
+  Widget build(BuildContext context) {
+    // 尝试从父级获取 CardEditorState，如果没有则创建新的
+    final existingState = context.read<CardEditorState?>();
+
+    if (existingState != null) {
+      // 如果已经有 Provider，直接使用
+      return Consumer<CardEditorState>(
+        builder: (context, state, _) {
+          return _buildEditor(context, state);
+        },
+      );
+    }
+
+    // 如果没有 Provider，创建新的
+    return ChangeNotifierProvider(
+      create: (_) => CardEditorState(),
+      child: Consumer<CardEditorState>(
+        builder: (context, state, _) {
+          return _buildEditor(context, state);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEditor(BuildContext context, CardEditorState state) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+        final canPop = await _onWillPop(state);
+        if (canPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: AdaptiveScaffold(
+        appBar: AppBar(
+          title: const Text('新建卡片'),
+          leading: IconButton(
+            key: const Key('back_button'),
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () async {
+              final canPop = await _onWillPop(state);
+              if (canPop && context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          actions: [
+            // 任务 4.6: 实现完成按钮状态（启用/禁用）
+            TextButton(
+              key: const Key('complete_button'),
+              onPressed: state.isTitleValid
+                  ? () => _onCompletePressed(context, state)
+                  : null,
+              child: Text(
+                PlatformDetector.isMobile ? '完成' : '保存',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 任务 4.5: 实现自动保存指示器
+            _buildSaveIndicator(state),
+
+            // 任务 4.3 和 4.4: 标题和内容输入框
+            Padding(
+              padding: AdaptivePadding.medium,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 任务 4.3: 实现标题输入框
+                  _buildTitleField(state),
+                  const SizedBox(height: 16),
+                  // 任务 4.4: 实现内容输入框
+                  _buildContentField(state),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ========================================
+  // 任务 4.3: 实现标题输入框（TextField with controller）
+  // ========================================
+
+  Widget _buildTitleField(CardEditorState state) {
+    return TextField(
+      key: const Key('title_field'),
+      controller: _titleController,
+      focusNode: _titleFocusNode,
+      decoration: const InputDecoration(
+        hintText: '卡片标题',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      maxLength: 200,
+      onChanged: (value) {
+        state.updateTitle(value);
+      },
+    );
+  }
+
+  // ========================================
+  // 任务 4.4: 实现内容输入框（多行 TextField）
+  // ========================================
+
+  Widget _buildContentField(CardEditorState state) {
+    return TextField(
+      key: const Key('content_field'),
+      controller: _contentController,
+      decoration: const InputDecoration(
+        hintText: '输入内容（支持 Markdown）',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      style: const TextStyle(fontSize: 16),
+      maxLines: null,
+      minLines: 10,
+      keyboardType: TextInputType.multiline,
+      onChanged: (value) {
+        state.updateContent(value);
+      },
+    );
+  }
+
+  // ========================================
+  // 任务 4.5: 实现自动保存指示器
+  // ========================================
+
+  Widget _buildSaveIndicator(CardEditorState state) {
+    if (state.isSaving) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        color: Colors.blue.shade50,
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 8),
+            Text('自动保存中...', style: TextStyle(fontSize: 14)),
+          ],
+        ),
+      );
+    }
+
+    if (state.showSuccessIndicator) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        color: Colors.green.shade50,
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle, size: 16, color: Colors.green),
+            SizedBox(width: 8),
+            Text('已保存', style: TextStyle(fontSize: 14, color: Colors.green)),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  // ========================================
+  // 完成按钮处理
+  // ========================================
+
+  Future<void> _onCompletePressed(
+    BuildContext context,
+    CardEditorState state,
+  ) async {
+    final navigator = Navigator.of(context);
+    final success = await state.manualSave();
+
+    if (success && mounted) {
+      // 保存成功，返回主页
+      navigator.pop();
+    }
+    // 如果失败，错误信息会通过 state.errorMessage 显示
   }
 }

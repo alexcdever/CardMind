@@ -7,6 +7,7 @@
 //! - **强制 TLS**: 使用 Noise 协议加密所有连接
 //! - **多路复用**: 使用 Yamux 在单一连接上多路复用
 //! - **心跳检测**: 使用 Ping 协议检测连接状态
+//! - **密钥持久化**: 使用 `IdentityManager` 管理密钥对
 //!
 //! # 设计原则
 //!
@@ -15,14 +16,16 @@
 //! - 使用 libp2p 自签名证书（本地网络信任模型）
 //! - 禁用明文连接
 
-use crate::p2p::sync::{SyncRequest, SyncResponse};
+use crate::models::error::{CardMindError, MdnsError};
+use crate::p2p::identity::IdentityManager;
+use crate::p2p::sync::{HandshakeRequest, P2PRequest, P2PResponse, SyncRequest};
 use libp2p::{
     core::upgrade,
     futures::StreamExt,
-    identity, noise,
+    identity, mdns, noise,
     ping::{self, Behaviour as PingBehaviour},
     request_response::{self, ProtocolSupport},
-    swarm::{NetworkBehaviour, SwarmEvent},
+    swarm::{behaviour::toggle::Toggle, NetworkBehaviour, SwarmEvent},
     tcp, yamux, Multiaddr, PeerId, StreamProtocol, Swarm, Transport,
 };
 use std::error::Error;
@@ -30,7 +33,7 @@ use tracing::{debug, info, warn};
 
 /// P2P 网络行为
 ///
-/// 组合了 Ping 协议和 Request/Response 协议
+/// 组合了 Ping 协议、Request/Response 协议和可选的 mDNS 发现
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "P2PEvent")]
 pub struct P2PBehaviour {
@@ -38,7 +41,10 @@ pub struct P2PBehaviour {
     pub ping: PingBehaviour,
 
     /// Request/Response 协议，用于同步消息
-    pub sync: request_response::json::Behaviour<SyncRequest, SyncResponse>,
+    pub sync: request_response::json::Behaviour<P2PRequest, P2PResponse>,
+
+    /// mDNS 设备发现（可选）
+    pub mdns: Toggle<mdns::tokio::Behaviour>,
 }
 
 /// P2P 网络事件
@@ -49,7 +55,10 @@ pub enum P2PEvent {
     Ping(ping::Event),
 
     /// 同步请求/响应事件
-    Sync(request_response::Event<SyncRequest, SyncResponse>),
+    Sync(request_response::Event<P2PRequest, P2PResponse>),
+
+    /// mDNS 发现事件
+    Mdns(mdns::Event),
 }
 
 impl From<ping::Event> for P2PEvent {
@@ -58,9 +67,15 @@ impl From<ping::Event> for P2PEvent {
     }
 }
 
-impl From<request_response::Event<SyncRequest, SyncResponse>> for P2PEvent {
-    fn from(event: request_response::Event<SyncRequest, SyncResponse>) -> Self {
+impl From<request_response::Event<P2PRequest, P2PResponse>> for P2PEvent {
+    fn from(event: request_response::Event<P2PRequest, P2PResponse>) -> Self {
         Self::Sync(event)
+    }
+}
+
+impl From<mdns::Event> for P2PEvent {
+    fn from(event: mdns::Event) -> Self {
+        Self::Mdns(event)
     }
 }
 
@@ -74,7 +89,7 @@ impl From<request_response::Event<SyncRequest, SyncResponse>> for P2PEvent {
 /// use cardmind_rust::p2p::P2PNetwork;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let mut network = P2PNetwork::new()?;
+/// let mut network = P2PNetwork::new(false)?;
 /// let peer_id = network.local_peer_id();
 /// println!("本地 Peer ID: {}", peer_id);
 ///
@@ -91,6 +106,10 @@ pub struct P2PNetwork {
 impl P2PNetwork {
     /// 创建新的 P2P 网络实例
     ///
+    /// # 参数
+    ///
+    /// - `mdns_enabled`: 是否启用 mDNS 设备发现
+    ///
     /// # 安全保证
     ///
     /// - 自动生成 Ed25519 密钥对
@@ -100,8 +119,8 @@ impl P2PNetwork {
     /// # Errors
     ///
     /// 如果网络初始化失败，返回错误
-    pub fn new() -> Result<Self, Box<dyn Error>> {
-        info!("初始化 P2P 网络...");
+    pub fn new(mdns_enabled: bool) -> Result<Self, CardMindError> {
+        info!("初始化 P2P 网络 (mDNS: {})...", mdns_enabled);
 
         // 1. 生成身份密钥对
         let local_key = identity::Keypair::generate_ed25519();
@@ -109,8 +128,8 @@ impl P2PNetwork {
         info!("本地 Peer ID: {}", local_peer_id);
 
         // 2. 创建 Noise 加密配置（强制 TLS）
-        let noise_config =
-            noise::Config::new(&local_key).map_err(|e| format!("Noise 配置失败: {e}"))?;
+        let noise_config = noise::Config::new(&local_key)
+            .map_err(|e| CardMindError::IoError(format!("Noise 配置失败: {e}")))?;
 
         // 3. 创建传输层
         let transport = tcp::tokio::Transport::default()
@@ -127,12 +146,105 @@ impl P2PNetwork {
             sync_config,
         );
 
+        // 5. 创建可选的 mDNS 行为
+        let mdns_behaviour = if mdns_enabled {
+            let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)
+                .map_err(|e| CardMindError::Mdns(MdnsError::from_message(&e.to_string())))?;
+            info!("mDNS 设备发现已启用");
+            Some(mdns).into()
+        } else {
+            info!("mDNS 设备发现已禁用");
+            None.into()
+        };
+
         let behaviour = P2PBehaviour {
             ping: PingBehaviour::new(ping::Config::new()),
             sync: sync_behaviour,
+            mdns: mdns_behaviour,
         };
 
-        // 5. 创建 Swarm（使用 tokio executor）
+        // 6. 创建 Swarm（使用 tokio executor）
+        let swarm = Swarm::new(
+            transport,
+            behaviour,
+            local_peer_id,
+            libp2p::swarm::Config::with_executor(Box::new(|fut| {
+                tokio::spawn(fut);
+            })),
+        );
+
+        Ok(Self { swarm })
+    }
+
+    /// 使用持久化密钥对创建 P2P 网络实例
+    ///
+    /// # 参数
+    ///
+    /// - `identity_manager`: 身份管理器，用于加载或生成密钥对
+    /// - `mdns_enabled`: 是否启用 mDNS 设备发现
+    ///
+    /// # 安全保证
+    ///
+    /// - 使用持久化的 Ed25519 密钥对
+    /// - 强制使用 Noise 协议加密
+    /// - 使用 Yamux 多路复用
+    ///
+    /// # Errors
+    ///
+    /// 如果网络初始化失败，返回错误
+    pub fn new_with_identity(
+        identity_manager: &IdentityManager,
+        mdns_enabled: bool,
+    ) -> Result<Self, CardMindError> {
+        info!(
+            "初始化 P2P 网络（使用持久化密钥对，mDNS: {}）...",
+            mdns_enabled
+        );
+
+        // 1. 加载或生成身份密钥对
+        let local_key = identity_manager
+            .get_or_create_keypair()
+            .map_err(|e| CardMindError::IoError(format!("加载密钥对失败: {e}")))?;
+        let local_peer_id = PeerId::from(local_key.public());
+        info!("本地 Peer ID: {}", local_peer_id);
+
+        // 2. 创建 Noise 加密配置（强制 TLS）
+        let noise_config = noise::Config::new(&local_key)
+            .map_err(|e| CardMindError::IoError(format!("Noise 配置失败: {e}")))?;
+
+        // 3. 创建传输层
+        let transport = tcp::tokio::Transport::default()
+            .upgrade(upgrade::Version::V1)
+            .authenticate(noise_config)
+            .multiplex(yamux::Config::default())
+            .boxed();
+
+        // 4. 创建网络行为
+        let sync_protocol = StreamProtocol::new("/cardmind/sync/1.0.0");
+        let sync_config = request_response::Config::default();
+        let sync_behaviour = request_response::json::Behaviour::new(
+            [(sync_protocol, ProtocolSupport::Full)],
+            sync_config,
+        );
+
+        // 5. 创建可选的 mDNS 行为
+        let mdns_behaviour = if mdns_enabled {
+            let mdns = mdns::tokio::Behaviour::new(mdns::Config::default(), local_peer_id)
+                .map_err(|e| CardMindError::Mdns(MdnsError::from_message(&e.to_string())))?;
+            info!("mDNS 设备发现已启用");
+            Some(mdns).into()
+        } else {
+            info!("mDNS 设备发现已禁用");
+            None.into()
+        };
+
+        let behaviour = P2PBehaviour {
+            ping: PingBehaviour::new(ping::Config::new()),
+            sync: sync_behaviour,
+            mdns: mdns_behaviour,
+        };
+
+        // 6. 创建 Swarm（使用 tokio executor）
         let swarm = Swarm::new(
             transport,
             behaviour,
@@ -152,7 +264,7 @@ impl P2PNetwork {
     }
 
     /// 获取 Swarm 的可变引用（用于同步服务）
-    pub fn swarm_mut(&mut self) -> &mut Swarm<P2PBehaviour> {
+    pub const fn swarm_mut(&mut self) -> &mut Swarm<P2PBehaviour> {
         &mut self.swarm
     }
 
@@ -172,7 +284,32 @@ impl P2PNetwork {
         request: SyncRequest,
     ) -> request_response::OutboundRequestId {
         info!("发送同步请求到 {}: pool_id={}", peer_id, request.pool_id);
-        self.swarm.behaviour_mut().sync.send_request(&peer_id, request)
+        self.swarm
+            .behaviour_mut()
+            .sync
+            .send_request(&peer_id, P2PRequest::Sync(request))
+    }
+
+    /// 发送握手请求到对等节点
+    ///
+    /// # 参数
+    ///
+    /// - `peer_id`: 目标对等节点 ID
+    /// - `request`: 握手请求
+    ///
+    /// # 返回
+    ///
+    /// 返回请求 ID，用于跟踪响应
+    pub fn send_handshake_request(
+        &mut self,
+        peer_id: PeerId,
+        request: HandshakeRequest,
+    ) -> request_response::OutboundRequestId {
+        info!("发送握手请求到 {}: pool_id={}", peer_id, request.pool_id);
+        self.swarm
+            .behaviour_mut()
+            .sync
+            .send_request(&peer_id, P2PRequest::Handshake(request))
     }
 
     /// 监听指定地址
@@ -265,17 +402,27 @@ impl P2PNetwork {
 mod tests {
     use super::*;
 
-    /// 测试网络初始化
+    /// 测试网络初始化（不启用 mDNS）
     #[test]
-    fn test_network_creation() {
-        let network = P2PNetwork::new();
+    fn it_should_network_creation() {
+        let network = P2PNetwork::new(false);
         assert!(network.is_ok(), "网络初始化应该成功");
+    }
+
+    /// 测试网络初始化（启用 mDNS）
+    #[tokio::test]
+    async fn it_should_network_creation_with_mdns() {
+        let network = P2PNetwork::new(true);
+        match network {
+            Ok(_) | Err(CardMindError::Mdns(_)) => {}
+            Err(err) => panic!("网络初始化失败: {err}"),
+        }
     }
 
     /// 测试 Peer ID 生成
     #[test]
-    fn test_peer_id_generation() {
-        let network = P2PNetwork::new().unwrap();
+    fn it_should_peer_id_generation() {
+        let network = P2PNetwork::new(false).unwrap();
         let peer_id = network.local_peer_id();
         assert!(!peer_id.to_string().is_empty(), "Peer ID 不应为空");
     }
@@ -284,41 +431,42 @@ mod tests {
     ///
     /// 创建两个节点，一个监听，一个连接，验证 Ping 协议工作
     #[tokio::test]
-    async fn test_basic_connection() {
+    #[allow(clippy::similar_names)]
+    async fn it_should_basic_connection() {
         use std::time::Duration;
         use tokio::time::timeout;
 
-        // 1. 创建节点 A（监听者）
-        let mut network_a = P2PNetwork::new().expect("节点 A 初始化失败");
+        // 1. 创建节点 A（监听者，不启用 mDNS）
+        let mut network_a = P2PNetwork::new(false).expect("节点 A 初始化失败");
         let peer_a_id = *network_a.local_peer_id();
 
-        // 2. 节点 A 开始监听
-        let listen_addr = match network_a.listen_on("/ip4/127.0.0.1/tcp/0").await {
-            Ok(addr) => addr,
-            Err(err) => {
+        let listen_addr = network_a
+            .listen_on("/ip4/127.0.0.1/tcp/0")
+            .await
+            .unwrap_or_else(|err| {
                 let msg = err.to_string();
                 if msg.contains("Permission denied")
                     || msg.contains("Operation not permitted")
                     || msg.is_empty()
                 {
-                    println!("跳过网络连接测试：{}", msg);
-                    return;
+                    println!("跳过网络连接测试：{msg}");
+                    "/ip4/127.0.0.1/tcp/0".parse().unwrap()
+                } else {
+                    panic!("节点 A 监听失败: {err}");
                 }
-                panic!("节点 A 监听失败: {err}");
-            }
-        };
+            });
 
-        println!("节点 A 监听地址: {}", listen_addr);
-        println!("节点 A Peer ID: {}", peer_a_id);
+        println!("节点 A 监听地址: {listen_addr}");
+        println!("节点 A Peer ID: {peer_a_id}");
 
-        // 3. 创建节点 B（连接者）
-        let mut network_b = P2PNetwork::new().expect("节点 B 初始化失败");
+        // 3. 创建节点 B（连接者，不启用 mDNS）
+        let mut network_b = P2PNetwork::new(false).expect("节点 B 初始化失败");
         let peer_b_id = *network_b.local_peer_id();
 
-        println!("节点 B Peer ID: {}", peer_b_id);
+        println!("节点 B Peer ID: {peer_b_id}");
 
         // 4. 节点 B 连接到节点 A
-        let dial_addr = format!("{}/p2p/{}", listen_addr, peer_a_id);
+        let dial_addr = format!("{listen_addr}/p2p/{peer_a_id}");
         let dial_multiaddr: Multiaddr = dial_addr.parse().expect("地址解析失败");
 
         network_b.dial(&dial_multiaddr).expect("节点 B 拨号失败");
@@ -334,11 +482,11 @@ mod tests {
                         if let Some(event) = event {
                             match event {
                                 SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                                    println!("节点 A: 连接建立 from {}", peer_id);
+                                    println!("节点 A: 连接建立 from {peer_id}");
                                     a_connected = true;
                                 }
                                 SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event { peer, result: Ok(rtt), .. })) => {
-                                    println!("节点 A: 收到 Ping from {} (RTT: {:?})", peer, rtt);
+                                    println!("节点 A: 收到 Ping from {peer} (RTT: {rtt:?})");
                                 }
                                 _ => {}
                             }
@@ -348,11 +496,11 @@ mod tests {
                         if let Some(event) = event {
                             match event {
                                 SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                                    println!("节点 B: 连接建立 to {}", peer_id);
+                                    println!("节点 B: 连接建立 to {peer_id}");
                                     b_connected = true;
                                 }
                                 SwarmEvent::Behaviour(P2PEvent::Ping(ping::Event { peer, result: Ok(rtt), .. })) => {
-                                    println!("节点 B: 收到 Ping from {} (RTT: {:?})", peer, rtt);
+                                    println!("节点 B: 收到 Ping from {peer} (RTT: {rtt:?})");
                                 }
                                 _ => {}
                             }
@@ -375,8 +523,8 @@ mod tests {
             Ok(Err(e)) => {
                 panic!("❌ 连接测试失败: {e}");
             }
-            Err(_) => {
-                panic!("❌ 连接测试超时");
+            Err(e) => {
+                panic!("❌ 连接测试超时: {e}");
             }
         }
     }

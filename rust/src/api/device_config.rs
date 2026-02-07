@@ -4,21 +4,21 @@
 //! for device configuration management.
 
 use crate::models::device_config::DeviceConfig;
+use crate::models::error::CardMindError;
 use crate::models::error::Result;
-use crate::utils::uuid_v7::generate_uuid_v7;
 use std::cell::RefCell;
 use std::path::PathBuf;
 
 thread_local! {
-    /// Thread-local DeviceConfig instance
-    static DEVICE_CONFIG: RefCell<Option<DeviceConfig>> = RefCell::new(None);
-    static CONFIG_PATH: RefCell<Option<PathBuf>> = RefCell::new(None);
+    /// Thread-local `DeviceConfig` instance
+    static DEVICE_CONFIG: RefCell<Option<DeviceConfig>> = const { RefCell::new(None) };
+    static CONFIG_PATH: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
 }
 
 /// Initialize or load device configuration
 ///
 /// If a config file exists at the path, it will be loaded.
-/// Otherwise, a new config will be created with a generated device ID.
+/// Otherwise, a new config will be created with default values.
 ///
 /// # Arguments
 ///
@@ -34,10 +34,7 @@ pub fn init_device_config(base_path: String) -> Result<DeviceConfig> {
     let base_path_buf = PathBuf::from(base_path);
     let config_path = DeviceConfig::default_path(&base_path_buf);
 
-    // Generate a new device ID if creating new config
-    let device_id = generate_uuid_v7();
-
-    let config = DeviceConfig::get_or_create(&config_path, &device_id)?;
+    let config = DeviceConfig::get_or_create(&config_path)?;
 
     // Store in thread-local
     DEVICE_CONFIG.with(|c| {
@@ -51,7 +48,7 @@ pub fn init_device_config(base_path: String) -> Result<DeviceConfig> {
     Ok(config)
 }
 
-/// Execute a function with access to the DeviceConfig (internal helper)
+/// Execute a function with access to the `DeviceConfig` (internal helper)
 fn with_device_config<F, R>(f: F) -> Result<R>
 where
     F: FnOnce(&mut DeviceConfig) -> Result<R>,
@@ -106,27 +103,37 @@ fn save_config() -> Result<()> {
 ///
 /// ```dart
 /// final config = await getDeviceConfig();
-/// print('Device ID: ${config.deviceId}');
+/// print('Peer ID: ${config.peerId}');
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn get_device_config() -> Result<DeviceConfig> {
     with_device_config(|config| Ok(config.clone()))
 }
 
-/// Get the current device ID
-///
-/// # Returns
-///
-/// The device UUID
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final deviceId = await getDeviceId();
-/// ```
+/// Get current device name
 #[flutter_rust_bridge::frb]
-pub fn get_device_id() -> Result<String> {
-    with_device_config(|config| Ok(config.device_id.clone()))
+pub fn get_device_name() -> Result<String> {
+    with_device_config(|config| Ok(config.get_device_name().to_string()))
+}
+
+/// Set device name
+#[flutter_rust_bridge::frb]
+pub fn set_device_name(name: String) -> Result<()> {
+    let old_name = with_device_config(|config| {
+        let old = config.device_name.clone();
+        config.set_device_name(&name)?;
+        Ok(old)
+    })?;
+
+    if let Err(err) = save_config() {
+        let _ = with_device_config(|config| {
+            config.device_name = old_name;
+            Ok(())
+        });
+        return Err(err);
+    }
+
+    Ok(())
 }
 
 /// Join a data pool
@@ -145,10 +152,11 @@ pub fn get_device_id() -> Result<String> {
 #[flutter_rust_bridge::frb]
 pub fn join_pool(pool_id: String) -> Result<()> {
     with_device_config(|config| {
-        config.join_pool(&pool_id);
+        config.join_pool(&pool_id)?;
         Ok(())
     })?;
-    save_config()
+    save_config()?;
+    Ok(())
 }
 
 /// Leave a data pool
@@ -169,10 +177,13 @@ pub fn join_pool(pool_id: String) -> Result<()> {
 /// final left = await leavePool(poolId: poolId);
 /// ```
 #[flutter_rust_bridge::frb]
-pub fn leave_pool(pool_id: String) -> Result<bool> {
-    let result = with_device_config(|config| Ok(config.leave_pool(&pool_id)))?;
+pub fn leave_pool(pool_id: String) -> Result<()> {
+    with_device_config(|config| {
+        config.leave_pool(&pool_id)?;
+        Ok(())
+    })?;
     save_config()?;
-    Ok(result)
+    Ok(())
 }
 
 /// Set or unset a pool as resident
@@ -190,12 +201,10 @@ pub fn leave_pool(pool_id: String) -> Result<bool> {
 /// await setResidentPool(poolId: poolId, isResident: true);
 /// ```
 #[flutter_rust_bridge::frb]
-pub fn set_resident_pool(pool_id: String, is_resident: bool) -> Result<()> {
-    with_device_config(|config| {
-        config.set_resident_pool(&pool_id, is_resident);
-        Ok(())
-    })?;
-    save_config()
+pub fn set_resident_pool(_pool_id: String, _is_resident: bool) -> Result<()> {
+    Err(CardMindError::NotAuthorized(
+        "单池模型下不支持此操作".to_string(),
+    ))
 }
 
 /// Get list of joined pool IDs
@@ -211,7 +220,12 @@ pub fn set_resident_pool(pool_id: String, is_resident: bool) -> Result<()> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn get_joined_pools() -> Result<Vec<String>> {
-    with_device_config(|config| Ok(config.joined_pools.clone()))
+    with_device_config(|config| {
+        Ok(config
+            .get_pool_id()
+            .map(|id| vec![id.to_string()])
+            .unwrap_or_default())
+    })
 }
 
 /// Get list of resident pool IDs
@@ -227,7 +241,12 @@ pub fn get_joined_pools() -> Result<Vec<String>> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn get_resident_pools() -> Result<Vec<String>> {
-    with_device_config(|config| Ok(config.resident_pools.clone()))
+    with_device_config(|config| {
+        Ok(config
+            .get_pool_id()
+            .map(|id| vec![id.to_string()])
+            .unwrap_or_default())
+    })
 }
 
 /// Check if the device has joined a pool
@@ -267,7 +286,7 @@ pub fn is_pool_joined(pool_id: String) -> Result<bool> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn is_pool_resident(pool_id: String) -> Result<bool> {
-    with_device_config(|config| Ok(config.is_resident(&pool_id)))
+    with_device_config(|config| Ok(config.is_joined(&pool_id)))
 }
 
 #[cfg(test)]
@@ -288,21 +307,78 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_init_device_config() {
+    fn it_should_init_device_config() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
         let config = init_device_config(path).unwrap();
-        assert!(!config.device_id.is_empty());
-        assert!(config.joined_pools.is_empty());
-        assert!(config.resident_pools.is_empty());
+        assert!(config.peer_id.is_none());
+        assert!(!config.device_name.is_empty());
+        assert!(config.pool_id.is_none());
 
         cleanup_device_config();
     }
 
     #[test]
     #[serial]
-    fn test_join_and_leave_pool_api() {
+    fn it_should_get_device_name_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        let name = get_device_name().unwrap();
+        assert!(!name.is_empty());
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_set_device_name_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        set_device_name("MyDevice".to_string()).unwrap();
+        let name = get_device_name().unwrap();
+        assert_eq!(name, "MyDevice");
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_reject_invalid_device_name_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        let result = set_device_name(String::new());
+        assert!(result.is_err());
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_reject_empty_pool_id_api() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().to_str().unwrap().to_string();
+
+        init_device_config(path).unwrap();
+
+        let result = join_pool(String::new());
+        assert!(result.is_err());
+
+        cleanup_device_config();
+    }
+
+    #[test]
+    #[serial]
+    fn it_should_join_and_leave_pool_api() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
@@ -319,9 +395,12 @@ mod tests {
         let is_joined = is_pool_joined("pool-001".to_string()).unwrap();
         assert!(is_joined);
 
+        // Check if resident (same as joined in single-pool model)
+        let is_resident = is_pool_resident("pool-001".to_string()).unwrap();
+        assert!(is_resident);
+
         // Leave pool
-        let left = leave_pool("pool-001".to_string()).unwrap();
-        assert!(left);
+        leave_pool("pool-001".to_string()).unwrap();
 
         let joined = get_joined_pools().unwrap();
         assert_eq!(joined.len(), 0);
@@ -331,91 +410,60 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_resident_pool_api() {
+    fn it_should_resident_pool_api() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
         init_device_config(path).unwrap();
 
-        // Join pool first
+        // Join pool (automatically resident in single-pool model)
         join_pool("pool-001".to_string()).unwrap();
 
-        // Set as resident
-        set_resident_pool("pool-001".to_string(), true).unwrap();
-
-        let resident = get_resident_pools().unwrap();
-        assert_eq!(resident.len(), 1);
-        assert_eq!(resident[0], "pool-001");
+        // Check resident pools (should return joined pool)
+        let resident_pools = get_resident_pools().unwrap();
+        assert_eq!(resident_pools.len(), 1);
+        assert_eq!(resident_pools[0], "pool-001");
 
         let is_resident = is_pool_resident("pool-001".to_string()).unwrap();
         assert!(is_resident);
 
-        // Unset resident
-        set_resident_pool("pool-001".to_string(), false).unwrap();
+        // is_pool_resident for different pool should return false
+        let is_resident = is_pool_resident("pool-002".to_string()).unwrap();
+        assert!(!is_resident);
 
-        let resident = get_resident_pools().unwrap();
-        assert_eq!(resident.len(), 0);
+        // Leave pool (removes from resident in single-pool model)
+        leave_pool("pool-001".to_string()).unwrap();
 
-        cleanup_device_config();
-    }
+        let resident_pools = get_resident_pools().unwrap();
+        assert_eq!(resident_pools.len(), 0);
 
-    #[test]
-    #[serial]
-    fn test_get_device_id_api() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
-
-        init_device_config(path).unwrap();
-
-        let device_id = get_device_id().unwrap();
-        assert!(!device_id.is_empty());
+        let is_resident = is_pool_resident("pool-001".to_string()).unwrap();
+        assert!(!is_resident);
 
         cleanup_device_config();
     }
 
     #[test]
     #[serial]
-    fn test_persistence() {
+    fn it_should_persistence() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
         // Initialize and join pool
         init_device_config(path.clone()).unwrap();
-        let device_id = get_device_id().unwrap();
+        with_device_config(|config| {
+            config.peer_id = Some("peer-001".to_string());
+            Ok(())
+        })
+        .unwrap();
         join_pool("pool-001".to_string()).unwrap();
-        set_resident_pool("pool-001".to_string(), true).unwrap();
 
         cleanup_device_config();
 
         // Reload and check persistence
         let config = init_device_config(path).unwrap();
-        assert_eq!(config.device_id, device_id);
-        assert_eq!(config.joined_pools.len(), 1);
-        assert_eq!(config.resident_pools.len(), 1);
-
-        cleanup_device_config();
-    }
-
-    #[test]
-    #[serial]
-    fn test_leave_pool_removes_from_resident() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
-
-        init_device_config(path).unwrap();
-
-        join_pool("pool-001".to_string()).unwrap();
-        set_resident_pool("pool-001".to_string(), true).unwrap();
-
-        // Verify it's resident
-        let is_resident = is_pool_resident("pool-001".to_string()).unwrap();
-        assert!(is_resident);
-
-        // Leave pool should also remove from resident
-        leave_pool("pool-001".to_string()).unwrap();
-
-        let is_resident = is_pool_resident("pool-001".to_string()).unwrap();
-        assert!(!is_resident);
+        assert_eq!(config.peer_id.as_deref(), Some("peer-001"));
+        assert!(config.pool_id.is_some());
 
         cleanup_device_config();
     }

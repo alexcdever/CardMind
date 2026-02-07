@@ -1,0 +1,39 @@
+# 卡片标签业务规格
+
+**状态**: 活跃
+**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
+**相关测试**: `test/feature/features/card_management_feature_test.dart`
+
+---
+
+## 概述
+
+本规格定义卡片标签管理的业务规则。标签支持新增与移除，标签集合需去重且区分大小写，任何标签变更都必须进入同步流程。
+
+## GIVEN-WHEN-THEN 场景
+
+### 场景：新增标签
+
+- **GIVEN** 卡片存在且尚未包含目标标签
+- **WHEN** 调用方为卡片新增标签
+- **THEN** 系统应将标签加入卡片标签集合
+- **AND** 标签变更应进入同步流程
+
+### 场景：移除标签
+
+- **GIVEN** 卡片已包含目标标签
+- **WHEN** 调用方移除该标签
+- **THEN** 系统应从标签集合中移除该标签
+- **AND** 标签变更应进入同步流程
+
+### 场景：标签去重
+
+- **GIVEN** 卡片已包含某个标签
+- **WHEN** 调用方再次添加相同标签（大小写完全一致）
+- **THEN** 标签集合不得出现重复项
+
+### 场景：标签区分大小写
+
+- **GIVEN** 卡片已包含标签 "Work"
+- **WHEN** 调用方添加标签 "work"
+- **THEN** 系统应将其视为不同标签并允许同时存在

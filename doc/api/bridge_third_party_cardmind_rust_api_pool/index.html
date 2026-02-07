@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="pool library API docs, for the Dart programming language.">
+  <title>pool library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">cardmind</a></li>
+    <li class="self-crumb">bridge/third_party/cardmind_rust/api/pool.dart</li>
+  </ol>
+  <div class="self-name">pool</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar=""
+    data-below-sidebar="bridge_third_party_cardmind_rust_api_pool&#47;bridge_third_party_cardmind_rust_api_pool-library-sidebar.html">
+  
+    <div>
+      
+
+      <h1>
+        <span class="kind-library">bridge/third_party/cardmind_rust/api/pool</span>
+        library 
+ 
+
+      </h1>
+    </div>
+
+    
+
+
+
+
+
+
+
+
+
+    <section class="summary offset-anchor" id="functions">
+      <h2>Functions</h2>
+      <dl class="callables">
+          <dt id="addPoolMember" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/addPoolMember.html">addPoolMember</a></span><span class="signature">(<wbr>{<span class="parameter" id="addPoolMember-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span>, </span><span class="parameter" id="addPoolMember-param-deviceId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">deviceId</span>, </span><span class="parameter" id="addPoolMember-param-deviceName"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">deviceName</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Add a member to a pool
+  
+
+</dd>
+
+          <dt id="createPool" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/createPool.html">createPool</a></span><span class="signature">(<wbr>{<span class="parameter" id="createPool-param-name"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="createPool-param-password"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">password</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../bridge_models_pool/Pool-class.html">Pool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Create a new data pool
+  
+
+</dd>
+
+          <dt id="deletePool" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/deletePool.html">deletePool</a></span><span class="signature">(<wbr>{<span class="parameter" id="deletePool-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Delete a pool (soft delete)
+  
+
+</dd>
+
+          <dt id="deletePoolPasswordFromKeyring" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/deletePoolPasswordFromKeyring.html">deletePoolPasswordFromKeyring</a></span><span class="signature">(<wbr>{<span class="parameter" id="deletePoolPasswordFromKeyring-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Delete pool password from system keyring
+  
+
+</dd>
+
+          <dt id="getAllPools" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/getAllPools.html">getAllPools</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../bridge_models_pool/Pool-class.html">Pool</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get all pools
+  
+
+</dd>
+
+          <dt id="getPoolById" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/getPoolById.html">getPoolById</a></span><span class="signature">(<wbr>{<span class="parameter" id="getPoolById-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../bridge_models_pool/Pool-class.html">Pool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get a pool by ID
+  
+
+</dd>
+
+          <dt id="getPoolPasswordFromKeyring" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/getPoolPasswordFromKeyring.html">getPoolPasswordFromKeyring</a></span><span class="signature">(<wbr>{<span class="parameter" id="getPoolPasswordFromKeyring-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get pool password from system keyring
+  
+
+</dd>
+
+          <dt id="hasPoolPasswordInKeyring" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/hasPoolPasswordInKeyring.html">hasPoolPasswordInKeyring</a></span><span class="signature">(<wbr>{<span class="parameter" id="hasPoolPasswordInKeyring-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Check if pool password exists in keyring
+  
+
+</dd>
+
+          <dt id="initPoolStore" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/initPoolStore.html">initPoolStore</a></span><span class="signature">(<wbr>{<span class="parameter" id="initPoolStore-param-path"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">path</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Initialize the PoolStore with the given storage path
+  
+
+</dd>
+
+          <dt id="removePoolMember" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/removePoolMember.html">removePoolMember</a></span><span class="signature">(<wbr>{<span class="parameter" id="removePoolMember-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span>, </span><span class="parameter" id="removePoolMember-param-deviceId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">deviceId</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Remove a member from a pool
+  
+
+</dd>
+
+          <dt id="storePoolPasswordInKeyring" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/storePoolPasswordInKeyring.html">storePoolPasswordInKeyring</a></span><span class="signature">(<wbr>{<span class="parameter" id="storePoolPasswordInKeyring-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span>, </span><span class="parameter" id="storePoolPasswordInKeyring-param-password"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">password</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Store pool password in system keyring
+  
+
+</dd>
+
+          <dt id="updateMemberName" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/updateMemberName.html">updateMemberName</a></span><span class="signature">(<wbr>{<span class="parameter" id="updateMemberName-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span>, </span><span class="parameter" id="updateMemberName-param-deviceId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">deviceId</span>, </span><span class="parameter" id="updateMemberName-param-newName"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">newName</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Update a member's nickname in a pool
+  
+
+</dd>
+
+          <dt id="updatePool" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/updatePool.html">updatePool</a></span><span class="signature">(<wbr>{<span class="parameter" id="updatePool-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span>, </span><span class="parameter" id="updatePool-param-name"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Update a pool's name
+  
+
+</dd>
+
+          <dt id="verifyPoolPassword" class="callable">
+  <span class="name"><a href="../bridge_third_party_cardmind_rust_api_pool/verifyPoolPassword.html">verifyPoolPassword</a></span><span class="signature">(<wbr>{<span class="parameter" id="verifyPoolPassword-param-poolId"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">poolId</span>, </span><span class="parameter" id="verifyPoolPassword-param-password"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">password</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Verify a pool password
+  
+
+</dd>
+
+      </dl>
+    </section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">cardmind</a></li>
+    <li class="self-crumb">bridge/third_party/cardmind_rust/api/pool.dart</li>
+</ol>
+
+    <h5><span class="package-name">cardmind</span> <span class="package-kind">package</span></h5>
+    <ol>
+      <li class="section-title">Libraries</li>
+      <li><a href="../bridge_api_card/">bridge/api/card</a></li>
+      <li><a href="../bridge_api_device_config/">bridge/api/device_config</a></li>
+      <li><a href="../bridge_api_pool/">bridge/api/pool</a></li>
+      <li><a href="../bridge_api_sync/">bridge/api/sync</a></li>
+      <li><a href="../bridge_frb_generated/">bridge/frb_generated</a></li>
+      <li><a href="../bridge_frb_generated.io/">bridge/frb_generated.io</a></li>
+      <li><a href="../bridge_frb_generated.web/">bridge/frb_generated.web</a></li>
+      <li><a href="../bridge_models_card/">bridge/models/card</a></li>
+      <li><a href="../bridge_models_device_config/">bridge/models/device_config</a></li>
+      <li><a href="../bridge_models_pool/">bridge/models/pool</a></li>
+      <li><a href="../bridge_third_party_cardmind_rust_api_card/">bridge/third_party/cardmind_rust/api/card</a></li>
+      <li><a href="../bridge_third_party_cardmind_rust_api_device_config/">bridge/third_party/cardmind_rust/api/device_config</a></li>
+      <li><a href="../bridge_third_party_cardmind_rust_api_pool/">bridge/third_party/cardmind_rust/api/pool</a></li>
+      <li><a href="../bridge_third_party_cardmind_rust_api_sync/">bridge/third_party/cardmind_rust/api/sync</a></li>
+      <li><a href="../main/">main</a></li>
+      <li><a href="../providers_card_editor_state/">providers/card_editor_state</a></li>
+      <li><a href="../providers_card_provider/">providers/card_provider</a></li>
+      <li><a href="../providers_pool_provider/">providers/pool_provider</a></li>
+      <li><a href="../providers_sync_provider/">providers/sync_provider</a></li>
+      <li><a href="../providers_theme_provider/">providers/theme_provider</a></li>
+      <li><a href="../screens_card_detail_screen/">screens/card_detail_screen</a></li>
+      <li><a href="../screens_card_editor_screen/">screens/card_editor_screen</a></li>
+      <li><a href="../screens_home_screen/">screens/home_screen</a></li>
+      <li><a href="../screens_settings_screen/">screens/settings_screen</a></li>
+      <li><a href="../screens_sync_screen/">screens/sync_screen</a></li>
+      <li><a href="../services_card_api_impl/">services/card_api_impl</a></li>
+      <li><a href="../services_card_api_interface/">services/card_api_interface</a></li>
+      <li><a href="../services_card_service/">services/card_service</a></li>
+      <li><a href="../services_mock_card_api/">services/mock_card_api</a></li>
+      <li><a href="../theme_app_theme/">theme/app_theme</a></li>
+      <li><a href="../utils_responsive_utils/">utils/responsive_utils</a></li>
+      <li><a href="../utils_snackbar_utils/">utils/snackbar_utils</a></li>
+      <li><a href="../widgets_card_list_item/">widgets/card_list_item</a></li>
+</ol>
+
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+    <h5>pool library</h5>
+  </div><!--/sidebar-offcanvas-right-->
+</main>
+<footer>
+  <span class="no-break">
+    cardmind
+      1.0.0+1
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

@@ -30,15 +30,18 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tracing::{debug, info, warn};
 
+/// Type alias for sync version tracking
+type SyncVersionMap = HashMap<String, HashMap<String, Vec<u8>>>;
+
 /// 同步管理器
 ///
 /// 负责管理 P2P 卡片同步的核心逻辑
 pub struct SyncManager {
-    /// CardStore 引用
+    /// `CardStore` 引用
     card_store: Arc<Mutex<CardStore>>,
 
-    /// 版本跟踪 (pool_id -> peer_id -> version)
-    sync_versions: Arc<Mutex<HashMap<String, HashMap<String, Vec<u8>>>>>,
+    /// 版本跟踪 (`pool_id` -> `peer_id` -> version)
+    sync_versions: Arc<Mutex<SyncVersionMap>>,
 }
 
 impl SyncManager {
@@ -46,7 +49,7 @@ impl SyncManager {
     ///
     /// # 参数
     ///
-    /// * `card_store` - CardStore 实例
+    /// * `card_store` - `CardStore` 实例
     pub fn new(card_store: Arc<Mutex<CardStore>>) -> Self {
         Self {
             card_store,
@@ -64,7 +67,7 @@ impl SyncManager {
     ///
     /// # 返回
     ///
-    /// 包含增量更新的 SyncData
+    /// 包含增量更新的 `SyncData`
     ///
     /// # 错误
     ///
@@ -84,17 +87,13 @@ impl SyncManager {
         if !joined_pools.contains(&pool_id.to_string()) {
             warn!("设备未授权访问数据池: {}", pool_id);
             return Err(CardMindError::NotAuthorized(format!(
-                "设备未加入数据池: {}",
-                pool_id
+                "设备未加入数据池: {pool_id}"
             )));
         }
 
         // 2. 获取所有卡片（当前同步全部卡片；如需严格池过滤，可恢复 SyncFilter）
         let store = self.card_store.lock().unwrap();
-        let mut pool_cards = store.get_all_cards()?;
-        for card in &mut pool_cards {
-            card.pool_ids = store.get_card_pools(&card.id).unwrap_or_default();
-        }
+        let pool_cards = store.get_all_cards()?;
 
         debug!("数据池 {} 包含 {} 个卡片", pool_id, pool_cards.len());
 
@@ -110,7 +109,7 @@ impl SyncManager {
         // 4. 为每个卡片构建 LoroDoc 并导出更新
         let mut all_updates = Vec::new();
         for card in &pool_cards {
-            let doc = self.build_loro_doc(card)?;
+            let doc = Self::build_loro_doc(card);
             match doc.export(ExportMode::all_updates()) {
                 Ok(snapshot) => {
                     all_updates.push(snapshot);
@@ -122,10 +121,10 @@ impl SyncManager {
         }
 
         // 5. 合并所有更新（简化：直接拼接）
-        let merged_updates = self.merge_updates(all_updates)?;
+        let merged_updates = Self::merge_updates(all_updates)?;
 
         // 6. 生成当前版本（简化：使用时间戳）
-        let current_version = self.generate_version();
+        let current_version = Self::generate_version();
 
         info!(
             "成功生成同步数据: {} 个卡片, {} 字节",
@@ -154,7 +153,7 @@ impl SyncManager {
         info!("导入更新: pool_id={}, size={}", pool_id, updates.len());
 
         if updates.is_empty() {
-            return Ok(self.generate_version());
+            return Ok(Self::generate_version());
         }
 
         // 1. 反序列化更新（简化：假设是单个 LoroDoc 快照）
@@ -162,7 +161,7 @@ impl SyncManager {
         doc.import(updates)?;
 
         // 2. 获取卡片数据
-        let card = self.read_card_from_loro(&doc)?;
+        let card = Self::read_card_from_loro(&doc)?;
 
         // 3. 写入到 CardStore
         let mut store = self.card_store.lock().unwrap();
@@ -171,7 +170,7 @@ impl SyncManager {
         store.upsert_card_from_sync(&card)?;
 
         // 4. 生成新版本
-        let new_version = self.generate_version();
+        let new_version = Self::generate_version();
 
         info!("成功导入更新: {}", pool_id);
 
@@ -185,12 +184,10 @@ impl SyncManager {
     /// * `pool_id` - 数据池 ID
     /// * `peer_id` - 对等设备 ID
     /// * `version` - 同步版本
-    pub fn track_sync_version(&self, pool_id: &str, peer_id: &str, version: &[u8]) -> Result<()> {
+    pub fn track_sync_version(&self, pool_id: &str, peer_id: &str, version: &[u8]) {
         let mut versions = self.sync_versions.lock().unwrap();
 
-        let pool_versions = versions
-            .entry(pool_id.to_string())
-            .or_insert_with(HashMap::new);
+        let pool_versions = versions.entry(pool_id.to_string()).or_default();
 
         pool_versions.insert(peer_id.to_string(), version.to_vec());
 
@@ -198,8 +195,6 @@ impl SyncManager {
             "更新同步版本: pool_id={}, peer_id={}, version={:?}",
             pool_id, peer_id, version
         );
-
-        Ok(())
     }
 
     /// 获取最后同步版本
@@ -225,7 +220,7 @@ impl SyncManager {
     // ==================== 私有辅助方法 ====================
 
     /// 将卡片构建为 LoroDoc（用于同步）
-    fn build_loro_doc(&self, card: &Card) -> Result<LoroDoc> {
+    fn build_loro_doc(card: &Card) -> LoroDoc {
         let doc = LoroDoc::new();
         let map = doc.get_map("card");
         map.insert("id", card.id.clone()).unwrap();
@@ -234,24 +229,23 @@ impl SyncManager {
         map.insert("created_at", card.created_at).unwrap();
         map.insert("updated_at", card.updated_at).unwrap();
         map.insert("deleted", card.deleted).unwrap();
-        map.insert("pool_ids", card.pool_ids.clone()).unwrap();
         doc.commit();
-        Ok(doc)
+        doc
     }
 
     /// 合并多个更新
-    fn merge_updates(&self, updates: Vec<Vec<u8>>) -> Result<Vec<u8>> {
+    fn merge_updates(updates: Vec<Vec<u8>>) -> Result<Vec<u8>> {
         let doc = LoroDoc::new();
         for update in updates {
             doc.import(&update)
-                .map_err(|e| CardMindError::LoroError(format!("导入更新失败: {}", e)))?;
+                .map_err(|e| CardMindError::LoroError(format!("导入更新失败: {e}")))?;
         }
         doc.export(ExportMode::all_updates())
-            .map_err(|e| CardMindError::LoroError(format!("导出合并更新失败: {}", e)))
+            .map_err(|e| CardMindError::LoroError(format!("导出合并更新失败: {e}")))
     }
 
-    /// 从 LoroDoc 读取卡片
-    fn read_card_from_loro(&self, doc: &LoroDoc) -> Result<Card> {
+    /// 从 `LoroDoc` 读取卡片
+    fn read_card_from_loro(doc: &LoroDoc) -> Result<Card> {
         let map = doc.get_map("card");
 
         // 检查是否有数据
@@ -295,24 +289,6 @@ impl SyncManager {
             .and_then(|v| v.as_bool().copied())
             .unwrap_or(false);
 
-        // 读取 pool_ids 列表
-        let mut pool_ids = Vec::new();
-        if let Some(pool_ids_value) = map.get("pool_ids") {
-            if let Ok(pool_ids_container) = pool_ids_value.into_container() {
-                if let Ok(pool_ids_list) = pool_ids_container.into_list() {
-                    for i in 0..pool_ids_list.len() {
-                        if let Some(pool_id) = pool_ids_list.get(i) {
-                            if let Ok(pool_id_value) = pool_id.into_value() {
-                                if let Some(s) = pool_id_value.as_string() {
-                                    pool_ids.push(s.to_string());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         Ok(Card {
             id,
             title,
@@ -320,12 +296,13 @@ impl SyncManager {
             created_at,
             updated_at,
             deleted,
-            pool_ids,
+            tags: Vec::new(),
+            last_edit_device: None,
         })
     }
 
     /// 生成版本（简化：使用时间戳）
-    fn generate_version(&self) -> Vec<u8> {
+    fn generate_version() -> Vec<u8> {
         use chrono::Utc;
         let timestamp = Utc::now().timestamp_millis();
         timestamp.to_be_bytes().to_vec()
@@ -353,19 +330,19 @@ mod tests {
     use crate::store::card_store::CardStore;
 
     #[test]
-    fn test_sync_manager_creation() {
+    fn it_should_sync_manager_creation() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
         assert_eq!(manager.sync_versions.lock().unwrap().len(), 0);
     }
 
     #[test]
-    fn test_sync_request_not_authorized() {
+    fn it_should_sync_request_not_authorized() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
         // 设备未加入数据池
-        let result = manager.handle_sync_request("pool-001", None, &vec![]);
+        let result = manager.handle_sync_request("pool-001", None, &[]);
         assert!(result.is_err());
 
         match result {
@@ -375,21 +352,19 @@ mod tests {
     }
 
     #[test]
-    fn test_sync_version_tracking() {
+    fn it_should_sync_version_tracking() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
         let version = vec![1, 2, 3, 4];
-        manager
-            .track_sync_version("pool-001", "peer-001", &version)
-            .unwrap();
+        manager.track_sync_version("pool-001", "peer-001", &version);
 
         let retrieved = manager.get_last_sync_version("pool-001", "peer-001");
         assert_eq!(retrieved, Some(version));
     }
 
     #[test]
-    fn test_get_last_sync_version_not_found() {
+    fn it_should_get_last_sync_version_not_found() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let manager = SyncManager::new(store);
 
@@ -398,11 +373,11 @@ mod tests {
     }
 
     #[test]
-    fn test_version_generation() {
+    fn it_should_version_generation() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let manager = SyncManager::new(store);
+        let _manager = SyncManager::new(store);
 
-        let version1 = manager.generate_version();
+        let version1 = SyncManager::generate_version();
 
         // 版本应该是 8 字节（timestamp_millis 作为 i64）
         assert_eq!(version1.len(), 8);
@@ -410,7 +385,7 @@ mod tests {
         // 等待 2ms 确保时间戳不同
         std::thread::sleep(std::time::Duration::from_millis(2));
 
-        let version2 = manager.generate_version();
+        let version2 = SyncManager::generate_version();
         assert_eq!(version2.len(), 8);
 
         // 版本应该不同（时间戳不同）
@@ -418,9 +393,9 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_updates() {
+    fn it_should_merge_updates() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-        let manager = SyncManager::new(store);
+        let _manager = SyncManager::new(store);
 
         // 构造一个 Loro 更新
         let doc = LoroDoc::new();
@@ -431,7 +406,7 @@ mod tests {
 
         let updates = vec![doc.export(ExportMode::all_updates()).unwrap()];
 
-        let merged = manager.merge_updates(updates).unwrap();
+        let merged = SyncManager::merge_updates(updates).unwrap();
 
         // 合并后的更新应该可以被导入
         let import_doc = LoroDoc::new();

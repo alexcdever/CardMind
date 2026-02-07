@@ -59,13 +59,13 @@ pub struct DeviceInfo {
 /// 管理与多个设备的同步关系和状态
 #[allow(dead_code)]
 pub struct MultiPeerSyncCoordinator {
-    /// CardStore 引用
+    /// `CardStore` 引用
     card_store: Arc<Mutex<CardStore>>,
 
     /// 同步管理器
     sync_manager: SyncManager,
 
-    /// 设备信息 (peer_id -> DeviceInfo)
+    /// 设备信息 (`peer_id` -> `DeviceInfo`)
     devices: Arc<Mutex<HashMap<PeerId, DeviceInfo>>>,
 
     /// 本地 Peer ID
@@ -77,8 +77,8 @@ impl MultiPeerSyncCoordinator {
     ///
     /// # 参数
     ///
-    /// * `card_store` - CardStore 实例
-    /// * `sync_manager` - SyncManager 实例
+    /// * `card_store` - `CardStore` 实例
+    /// * `sync_manager` - `SyncManager` 实例
     /// * `local_peer_id` - 本地 Peer ID
     pub fn new(
         card_store: Arc<Mutex<CardStore>>,
@@ -110,12 +110,12 @@ impl MultiPeerSyncCoordinator {
         } else {
             // 添加新设备
             let device = DeviceInfo {
-                peer_id: peer_id.clone(),
+                peer_id,
                 status: DeviceStatus::Online,
                 last_seen: now,
                 pool_versions: HashMap::new(),
             };
-            devices.insert(peer_id.clone(), device);
+            devices.insert(peer_id, device);
             info!("添加新设备: {}", peer_id);
         }
     }
@@ -179,7 +179,7 @@ impl MultiPeerSyncCoordinator {
         devices
             .iter()
             .filter(|(_, device)| matches!(device.status, DeviceStatus::Online))
-            .map(|(peer_id, _)| peer_id.clone())
+            .map(|(peer_id, _)| *peer_id)
             .collect()
     }
 
@@ -301,7 +301,7 @@ impl MultiPeerSyncCoordinator {
             let elapsed = now.signed_duration_since(device.last_seen);
 
             if elapsed > timeout {
-                to_remove.push(peer_id.clone());
+                to_remove.push(*peer_id);
                 info!("清理长时间离线设备: {} (离线时间: {:?})", peer_id, elapsed);
             }
         }
@@ -344,7 +344,7 @@ impl MultiPeerSyncCoordinator {
             card_store: self.card_store.clone(),
             sync_manager: SyncManager::new(self.card_store.clone()),
             devices: self.devices.clone(),
-            local_peer_id: self.local_peer_id.clone(),
+            local_peer_id: self.local_peer_id,
         }
     }
 }
@@ -372,7 +372,7 @@ mod tests {
     use libp2p::PeerId;
 
     #[test]
-    fn test_coordinator_creation() {
+    fn it_should_coordinator_creation() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -385,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_or_update_device() {
+    fn it_should_add_or_update_device() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -393,20 +393,20 @@ mod tests {
         let coordinator = MultiPeerSyncCoordinator::new(store, sync_manager, local_peer_id);
 
         let peer_id = PeerId::random();
-        coordinator.add_or_update_device(peer_id.clone());
+        coordinator.add_or_update_device(peer_id);
 
         let stats = coordinator.get_device_stats();
         assert_eq!(stats.total, 1);
         assert_eq!(stats.online, 1);
 
         // 更新设备
-        coordinator.add_or_update_device(peer_id.clone());
+        coordinator.add_or_update_device(peer_id);
         let stats = coordinator.get_device_stats();
         assert_eq!(stats.total, 1); // 不应该重复添加
     }
 
     #[test]
-    fn test_mark_device_offline() {
+    fn it_should_mark_device_offline() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -414,7 +414,7 @@ mod tests {
         let coordinator = MultiPeerSyncCoordinator::new(store, sync_manager, local_peer_id);
 
         let peer_id = PeerId::random();
-        coordinator.add_or_update_device(peer_id.clone());
+        coordinator.add_or_update_device(peer_id);
 
         let stats = coordinator.get_device_stats();
         assert_eq!(stats.online, 1);
@@ -425,7 +425,7 @@ mod tests {
     }
 
     #[test]
-    fn test_device_sync_state() {
+    fn it_should_device_sync_state() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -433,7 +433,7 @@ mod tests {
         let coordinator = MultiPeerSyncCoordinator::new(store, sync_manager, local_peer_id);
 
         let peer_id = PeerId::random();
-        coordinator.add_or_update_device(peer_id.clone());
+        coordinator.add_or_update_device(peer_id);
 
         let version = vec![1, 2, 3, 4];
         coordinator.mark_device_synced(&peer_id, "test-pool", &version);
@@ -443,7 +443,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cleanup_offline_devices() {
+    fn it_should_cleanup_offline_devices() {
         let store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
         let sync_manager = SyncManager::new(store.clone());
         let local_peer_id = PeerId::random();
@@ -451,7 +451,7 @@ mod tests {
         let coordinator = MultiPeerSyncCoordinator::new(store, sync_manager, local_peer_id);
 
         let peer_id = PeerId::random();
-        coordinator.add_or_update_device(peer_id.clone());
+        coordinator.add_or_update_device(peer_id);
 
         // 手动设置 last_seen 为过去时间
         {

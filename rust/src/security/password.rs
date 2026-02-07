@@ -27,6 +27,8 @@
 
 use bcrypt::{hash, verify, BcryptError, DEFAULT_COST};
 use chrono::Utc;
+use hkdf::Hkdf;
+use sha2::Sha256;
 use thiserror::Error;
 use zeroize::Zeroizing;
 
@@ -45,6 +47,10 @@ pub enum PasswordError {
     #[error("密码强度不足: {0}")]
     WeakPassword(String),
 
+    /// 派生池哈希失败
+    #[error("派生池哈希失败: {0}")]
+    KeyDerivationFailed(String),
+
     /// 请求已过期
     #[error("请求已过期（时间戳: {0}）")]
     RequestExpired(u64),
@@ -57,6 +63,175 @@ pub enum PasswordError {
 impl From<BcryptError> for PasswordError {
     fn from(error: BcryptError) -> Self {
         Self::HashError(error.to_string())
+    }
+}
+
+/// 计算数据池哈希（`pool_hash`）
+///
+/// # 规则
+///
+/// - HKDF-SHA256
+/// - salt = `pool_id`
+/// - ikm = password
+/// - info 为空
+/// - 输出 32 字节，hex 编码（64 字符）
+///
+/// # Errors
+///
+/// 如果派生失败，返回错误
+pub fn derive_pool_hash(pool_id: &str, password: &str) -> Result<String, PasswordError> {
+    let hkdf = Hkdf::<Sha256>::new(Some(pool_id.as_bytes()), password.as_bytes());
+    let mut okm = [0u8; 32];
+    hkdf.expand(&[], &mut okm)
+        .map_err(|e| PasswordError::KeyDerivationFailed(e.to_string()))?;
+
+    Ok(hex::encode(okm))
+}
+
+/// 密码强度评估结果
+///
+/// 提供详细的密码强度分析，包括分数和各项指标
+///
+/// # 字段说明
+///
+/// - `score`: 强度分数（0-100），越高表示密码越强
+/// - `has_uppercase`: 是否包含大写字母
+/// - `has_lowercase`: 是否包含小写字母
+/// - `has_digit`: 是否包含数字
+/// - `has_special`: 是否包含特殊字符
+/// - `is_strong`: 是否被认为是强密码（分数 >= 70）
+///
+/// # 示例
+///
+/// ```
+/// use cardmind_rust::security::password::evaluate_password_strength;
+///
+/// let strength = evaluate_password_strength("Password123!");
+/// assert!(strength.score >= 70);
+/// assert!(strength.is_strong);
+/// ```
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PasswordStrength {
+    /// 强度分数（0-100）
+    pub score: u8,
+
+    /// 是否包含大写字母
+    pub has_uppercase: bool,
+
+    /// 是否包含小写字母
+    pub has_lowercase: bool,
+
+    /// 是否包含数字
+    pub has_digit: bool,
+
+    /// 是否包含特殊字符
+    pub has_special: bool,
+
+    /// 是否被认为是强密码
+    pub is_strong: bool,
+}
+
+/// 评估密码强度
+///
+/// # 功能
+///
+/// 分析密码的各项特征并计算强度分数（0-100）
+///
+/// # 评分规则
+///
+/// 1. **长度分数**（最多25分）：
+///    - 每个字符1分，最多25分
+/// 2. **大写字母**（+15分）：至少1个
+/// 3. **小写字母**（+15分）：至少1个
+/// 4. **数字**（+15分）：至少1个
+/// 5. **特殊字符**（+20分）：至少1个
+/// 6. **额外奖励**（+10分）：满足所有条件
+/// 7. **惩罚**（-20分）：密码长度 < 8
+///
+/// # 强密码标准
+///
+/// - 分数 >= 70
+/// - 至少包含大写、小写、数字、特殊字符中的3种
+///
+/// # 参数
+///
+/// - `password`: 要评估的密码
+///
+/// # Returns
+///
+/// 密码强度评估结果
+///
+/// # 示例
+///
+/// ```
+/// use cardmind_rust::security::password::evaluate_password_strength;
+///
+/// // 弱密码（仅数字）
+/// let weak = evaluate_password_strength("123456");
+/// assert!(weak.score < 50);
+/// assert!(!weak.is_strong);
+///
+/// // 中等密码（字母+数字）
+/// let medium = evaluate_password_strength("password123");
+/// assert!(medium.score >= 40);
+/// assert!(!medium.is_strong);
+///
+/// // 强密码（大写+小写+数字+特殊字符）
+/// let strong = evaluate_password_strength("Password123!");
+/// assert!(strong.score >= 70);
+/// assert!(strong.is_strong);
+/// ```
+#[must_use]
+pub fn evaluate_password_strength(password: &str) -> PasswordStrength {
+    let has_uppercase = password.chars().any(|c| c.is_ascii_uppercase());
+    let has_lowercase = password.chars().any(|c| c.is_ascii_lowercase());
+    let has_digit = password.chars().any(|c| c.is_ascii_digit());
+    let has_special = password.chars().any(|c| !c.is_alphanumeric());
+
+    // 长度分数（最多25分）
+    let length_score = u8::try_from(password.len().min(25)).unwrap_or(25);
+
+    let mut score = length_score;
+    if has_uppercase {
+        score = score.saturating_add(15);
+    }
+    if has_lowercase {
+        score = score.saturating_add(15);
+    }
+    if has_digit {
+        score = score.saturating_add(15);
+    }
+    if has_special {
+        score = score.saturating_add(20);
+    }
+
+    // 惩罚：密码长度 < 8
+    if password.len() < 8 {
+        score = score.saturating_sub(20);
+    }
+
+    // 额外奖励：满足所有条件
+    if has_uppercase && has_lowercase && has_digit && has_special {
+        score = score.saturating_add(10);
+    }
+
+    let score = score.min(100);
+
+    // 强密码标准：分数 >= 70 且至少包含3种字符类型
+    let variety_count = [has_uppercase, has_lowercase, has_digit, has_special]
+        .iter()
+        .filter(|&&x| x)
+        .count();
+    let is_strong = score >= 70 && variety_count >= 3;
+
+    PasswordStrength {
+        score,
+        has_uppercase,
+        has_lowercase,
+        has_digit,
+        has_special,
+        is_strong,
     }
 }
 
@@ -125,7 +300,7 @@ impl JoinRequest {
         Self {
             pool_id: pool_id.to_string(),
             password,
-            timestamp: Utc::now().timestamp_millis() as u64,
+            timestamp: Utc::now().timestamp_millis().cast_unsigned(),
         }
     }
 
@@ -173,7 +348,7 @@ impl JoinRequest {
         max_age_ms: u64,
         tolerance_ms: u64,
     ) -> Result<(), PasswordError> {
-        let now = Utc::now().timestamp_millis() as u64;
+        let now = Utc::now().timestamp_millis().cast_unsigned();
 
         // 检查时间戳是否在未来（考虑时钟偏差）
         if self.timestamp > now + tolerance_ms {
@@ -345,8 +520,8 @@ impl PasswordManager {
     /// ```
     #[must_use]
     pub fn strength_hint(password: &Zeroizing<String>) -> &'static str {
-        let has_letter = password.chars().any(|c| c.is_alphabetic());
-        let has_digit = password.chars().any(|c| c.is_numeric());
+        let has_letter = password.chars().any(char::is_alphabetic);
+        let has_digit = password.chars().any(char::is_numeric);
         let has_special = password.chars().any(|c| !c.is_alphanumeric());
 
         let strength_score = [has_letter, has_digit, has_special]
@@ -369,7 +544,7 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn test_hash_password() {
+    fn it_should_hash_password() {
         let password = Zeroizing::new("test_password_123".to_string());
         let hash = PasswordManager::hash_password(&password).unwrap();
 
@@ -380,7 +555,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_password_correct() {
+    fn it_should_verify_password_correct() {
         let password = Zeroizing::new("test_password_123".to_string());
         let hash = PasswordManager::hash_password(&password).unwrap();
 
@@ -389,7 +564,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verify_password_incorrect() {
+    fn it_should_verify_password_incorrect() {
         let password = Zeroizing::new("test_password_123".to_string());
         let hash = PasswordManager::hash_password(&password).unwrap();
 
@@ -399,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_strength_valid() {
+    fn it_should_validate_strength_valid() {
         let password = Zeroizing::new("password123".to_string());
         assert!(PasswordManager::validate_strength(&password).is_ok());
 
@@ -408,16 +583,16 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_strength_too_short() {
+    fn it_should_validate_strength_too_short() {
         let weak = Zeroizing::new("pass".to_string());
         assert!(PasswordManager::validate_strength(&weak).is_err());
 
-        let empty = Zeroizing::new("".to_string());
+        let empty = Zeroizing::new(String::new());
         assert!(PasswordManager::validate_strength(&empty).is_err());
     }
 
     #[test]
-    fn test_strength_hint() {
+    fn it_should_strength_hint() {
         // 弱密码（仅数字）
         let weak = Zeroizing::new("12345678".to_string());
         assert_eq!(PasswordManager::strength_hint(&weak), "Weak");
@@ -432,9 +607,9 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_creation() {
+    fn it_should_join_request_creation() {
         let password = Zeroizing::new("test_password".to_string());
-        let request = JoinRequest::new("pool-001", password.clone());
+        let request = JoinRequest::new("pool-001", password);
 
         assert_eq!(request.pool_id, "pool-001");
         assert_eq!(request.password.as_str(), "test_password");
@@ -442,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_valid_timestamp() {
+    fn it_should_join_request_valid_timestamp() {
         let password = Zeroizing::new("test_password".to_string());
         let request = JoinRequest::new("pool-001", password);
 
@@ -451,31 +626,31 @@ mod tests {
     }
 
     #[test]
-    fn test_join_request_expired_timestamp() {
+    fn it_should_join_request_expired_timestamp() {
         let password = Zeroizing::new("test_password".to_string());
         let mut request = JoinRequest::new("pool-001", password);
 
         // 设置一个 6 分钟前的时间戳
-        request.timestamp = (Utc::now().timestamp_millis() - 360_000) as u64;
+        request.timestamp = (Utc::now().timestamp_millis() - 360_000).cast_unsigned();
 
         // 应该过期
         assert!(request.validate_timestamp().is_err());
     }
 
     #[test]
-    fn test_join_request_future_timestamp() {
+    fn it_should_join_request_future_timestamp() {
         let password = Zeroizing::new("test_password".to_string());
         let mut request = JoinRequest::new("pool-001", password);
 
         // 设置一个未来的时间戳（超过容忍范围）
-        request.timestamp = (Utc::now().timestamp_millis() + 60_000) as u64;
+        request.timestamp = (Utc::now().timestamp_millis() + 60_000).cast_unsigned();
 
         // 应该无效
         assert!(request.validate_timestamp().is_err());
     }
 
     #[test]
-    fn test_join_request_custom_tolerance() {
+    fn it_should_join_request_custom_tolerance() {
         let password = Zeroizing::new("test_password".to_string());
         let request = JoinRequest::new("pool-001", password);
 
@@ -490,7 +665,7 @@ mod tests {
     }
 
     #[test]
-    fn test_password_memory_zeroization() {
+    fn it_should_password_memory_zeroization() {
         // 验证 Zeroizing 在作用域结束后清零内存
         let password_str = "sensitive_password";
         {
@@ -503,7 +678,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hash_different_passwords_different_hashes() {
+    fn it_should_hash_different_passwords_different_hashes() {
         let password1 = Zeroizing::new("password1".to_string());
         let password2 = Zeroizing::new("password2".to_string());
 
@@ -515,7 +690,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hash_same_password_different_salts() {
+    fn it_should_hash_same_password_different_salts() {
         let password = Zeroizing::new("password123".to_string());
 
         let hash1 = PasswordManager::hash_password(&password).unwrap();
@@ -527,5 +702,87 @@ mod tests {
         // 但两个哈希都应该能验证原密码
         assert!(PasswordManager::verify_password(&password, &hash1).unwrap());
         assert!(PasswordManager::verify_password(&password, &hash2).unwrap());
+    }
+
+    #[test]
+    fn it_should_evaluate_password_strength_weak() {
+        let strength = evaluate_password_strength("123456");
+
+        assert!(strength.score < 50);
+        assert!(!strength.is_strong);
+        assert!(!strength.has_uppercase);
+        assert!(!strength.has_lowercase);
+        assert!(strength.has_digit);
+        assert!(!strength.has_special);
+    }
+
+    #[test]
+    fn it_should_evaluate_password_strength_medium() {
+        let strength = evaluate_password_strength("password123");
+
+        // 长度11 + 小写15 + 数字15 = 41分
+        assert_eq!(strength.score, 41);
+        assert!(!strength.is_strong);
+        assert!(!strength.has_uppercase);
+        assert!(strength.has_lowercase);
+        assert!(strength.has_digit);
+        assert!(!strength.has_special);
+    }
+
+    #[test]
+    fn it_should_evaluate_password_strength_strong() {
+        let strength = evaluate_password_strength("Password123!");
+
+        assert!(strength.score >= 70);
+        assert!(strength.is_strong);
+        assert!(strength.has_uppercase);
+        assert!(strength.has_lowercase);
+        assert!(strength.has_digit);
+        assert!(strength.has_special);
+    }
+
+    #[test]
+    fn it_should_evaluate_password_strength_empty() {
+        let strength = evaluate_password_strength("");
+
+        assert!(strength.score < 20);
+        assert!(!strength.is_strong);
+        assert!(!strength.has_uppercase);
+        assert!(!strength.has_lowercase);
+        assert!(!strength.has_digit);
+        assert!(!strength.has_special);
+    }
+
+    #[test]
+    fn it_should_evaluate_password_strength_short() {
+        let strength = evaluate_password_strength("A1!");
+
+        // 短密码会被惩罚，即使包含多种字符类型
+        assert!(strength.score < 50);
+        assert!(!strength.is_strong);
+    }
+
+    #[test]
+    fn it_should_evaluate_password_strength_long_without_variety() {
+        let strength = evaluate_password_strength(&"a".repeat(30));
+
+        assert!(!strength.is_strong);
+        assert!(strength.has_lowercase);
+        assert!(!strength.has_uppercase);
+        assert!(!strength.has_digit);
+        assert!(!strength.has_special);
+    }
+
+    #[test]
+    fn it_should_evaluate_password_strength_perfect() {
+        let strength = evaluate_password_strength("Perfect123!@#");
+
+        // 长度13 + 大写15 + 小写15 + 数字15 + 特殊20 + 奖励10 = 88分
+        assert_eq!(strength.score, 88);
+        assert!(strength.is_strong);
+        assert!(strength.has_uppercase);
+        assert!(strength.has_lowercase);
+        assert!(strength.has_digit);
+        assert!(strength.has_special);
     }
 }

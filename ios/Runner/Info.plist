@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>需要使用相机扫描二维码以配对设备</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于在局域网内发现并同步设备</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_p2p._udp</string>
+	</array>
 </dict>
 </plist>

@@ -23,6 +23,7 @@ ios/Runner.xcworkspace/
 
 # Rust
 rust/target/
+target/
 rust/Cargo.lock
 rust/src/bridge_generated.h
 rust/src/frb_generated.rs
@@ -90,3 +91,12 @@ desktop.ini
 
 # Claude Code
 .claude/
+specs/*
+!specs/*.md
+
+# Git worktrees
+.worktrees/
+
+# Project Guardian
+.project-guardian/failures.log
+.project-guardian/*.tmp

@@ -1,11 +1,19 @@
 import 'dart:io';
 
 import 'package:cardmind/bridge/frb_generated.dart';
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart'
+    as device_config_api;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
+    as identity_api;
+import 'package:cardmind/providers/app_info_provider.dart';
 import 'package:cardmind/providers/card_provider.dart';
+import 'package:cardmind/providers/pool_provider.dart';
+import 'package:cardmind/providers/settings_provider.dart';
 import 'package:cardmind/providers/theme_provider.dart';
 import 'package:cardmind/screens/home_screen.dart';
 import 'package:cardmind/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -13,7 +21,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize flutter_rust_bridge
-  await RustLib.init();
+  final externalLibrary = (Platform.isIOS || Platform.isMacOS)
+      ? ExternalLibrary.process(iKnowHowToUseIt: true)
+      : null;
+  await RustLib.init(externalLibrary: externalLibrary);
 
   runApp(const CardMindApp());
 }
@@ -27,6 +38,9 @@ class CardMindApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => CardProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => AppInfoProvider()),
+        ChangeNotifierProvider(create: (_) => PoolProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -86,13 +100,44 @@ class _AppInitializerState extends State<AppInitializer> {
       // Get providers before awaits
       final themeProvider = context.read<ThemeProvider>();
       final cardProvider = context.read<CardProvider>();
+      final poolProvider = context.read<PoolProvider>();
+      final settingsProvider = context.read<SettingsProvider>();
+      final appInfoProvider = context.read<AppInfoProvider>();
 
       // Initialize providers
       await themeProvider.initialize();
       if (!mounted) return;
 
+      await settingsProvider.initialize();
+      if (!mounted) return;
+
+      await appInfoProvider.initialize();
+      if (!mounted) return;
+
       await cardProvider.initialize(storagePath);
       if (!mounted) return;
+
+      await poolProvider.initialize(storagePath);
+      if (!mounted) return;
+
+      // Initialize device config first (required by sync service)
+      try {
+        await device_config_api.initDeviceConfig(basePath: storagePath);
+        debugPrint('Device config initialized successfully');
+      } on Exception catch (e) {
+        debugPrint('Warning: Failed to initialize device config: $e');
+      }
+
+      // Initialize identity manager (required for peer_id)
+      try {
+        identity_api.initIdentityManager(basePath: storagePath);
+        debugPrint('Identity manager initialized successfully');
+      } on Exception catch (e) {
+        debugPrint('Warning: Failed to initialize identity manager: $e');
+      }
+
+      // Start sync service only when joined
+      await poolProvider.startSyncServiceIfJoined();
 
       setState(() {
         _isInitializing = false;

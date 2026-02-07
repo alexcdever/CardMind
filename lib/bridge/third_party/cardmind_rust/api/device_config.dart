@@ -11,7 +11,7 @@ import '../../../models/device_config.dart';
 /// Initialize or load device configuration
 ///
 /// If a config file exists at the path, it will be loaded.
-/// Otherwise, a new config will be created with a generated device ID.
+/// Otherwise, a new config will be created with default values.
 ///
 /// # Arguments
 ///
@@ -37,24 +37,18 @@ Future<DeviceConfig> initDeviceConfig({required String basePath}) => RustLib
 ///
 /// ```dart
 /// final config = await getDeviceConfig();
-/// print('Device ID: ${config.deviceId}');
+/// print('Peer ID: ${config.peerId}');
 /// ```
 Future<DeviceConfig> getDeviceConfig() =>
     RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceConfig();
 
-/// Get the current device ID
-///
-/// # Returns
-///
-/// The device UUID
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final deviceId = await getDeviceId();
-/// ```
-Future<String> getDeviceId() =>
-    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceId();
+/// Get current device name
+Future<String> getDeviceName() =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigGetDeviceName();
+
+/// Set device name
+Future<void> setDeviceName({required String name}) =>
+    RustLib.instance.api.cardmindRustApiDeviceConfigSetDeviceName(name: name);
 
 /// Join a data pool
 ///
@@ -89,7 +83,7 @@ Future<void> joinPool({required String poolId}) =>
 /// ```dart
 /// final left = await leavePool(poolId: poolId);
 /// ```
-Future<bool> leavePool({required String poolId}) =>
+Future<void> leavePool({required String poolId}) =>
     RustLib.instance.api.cardmindRustApiDeviceConfigLeavePool(poolId: poolId);
 
 /// Set or unset a pool as resident

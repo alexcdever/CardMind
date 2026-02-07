@@ -11,9 +11,9 @@ use std::cell::RefCell;
 use zeroize::Zeroizing;
 
 thread_local! {
-    /// Thread-local PoolStore instance
+    /// Thread-local `PoolStore` instance
     /// SQLite connections are not thread-safe, so we use thread_local storage
-    static POOL_STORE: RefCell<Option<PoolStore>> = RefCell::new(None);
+    static POOL_STORE: RefCell<Option<PoolStore>> = const { RefCell::new(None) };
 }
 
 /// Initialize the PoolStore with the given storage path
@@ -39,7 +39,7 @@ pub fn init_pool_store(path: String) -> Result<()> {
     Ok(())
 }
 
-/// Execute a function with access to the PoolStore (internal helper)
+/// Execute a function with access to the `PoolStore` (internal helper)
 fn with_pool_store<F, R>(f: F) -> Result<R>
 where
     F: FnOnce(&mut PoolStore) -> Result<R>,
@@ -88,7 +88,7 @@ pub fn create_pool(name: String, password: String) -> Result<Pool> {
 
     // Store it
     with_pool_store(|store| {
-        store.create_pool(pool.clone())?;
+        store.create_pool(&pool)?;
         Ok(pool)
     })
 }
@@ -383,9 +383,13 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_init_pool_store() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
+    fn it_should_init_pool_store() {
+        let dir = tempdir().expect("Failed to create temp directory");
+        let path = dir
+            .path()
+            .to_str()
+            .expect("Failed to convert path to string")
+            .to_string();
 
         let result = init_pool_store(path);
         assert!(result.is_ok());
@@ -395,23 +399,28 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_create_and_get_pool_api() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
+    fn it_should_create_and_get_pool_api() {
+        let dir = tempdir().expect("Failed to create temp directory");
+        let path = dir
+            .path()
+            .to_str()
+            .expect("Failed to convert path to string")
+            .to_string();
 
-        init_pool_store(path).unwrap();
+        init_pool_store(path).expect("Failed to initialize pool store");
 
         // Create pool
-        let pool = create_pool("Test Pool".to_string(), "password123".to_string()).unwrap();
+        let pool = create_pool("Test Pool".to_string(), "password123".to_string())
+            .expect("Failed to create pool");
         assert_eq!(pool.name, "Test Pool");
 
         // Get pool by ID
-        let retrieved = get_pool_by_id(pool.pool_id.clone()).unwrap();
+        let retrieved = get_pool_by_id(pool.pool_id.clone()).expect("Failed to get pool by ID");
         assert_eq!(retrieved.pool_id, pool.pool_id);
         assert_eq!(retrieved.name, "Test Pool");
 
         // Get all pools
-        let all_pools = get_all_pools().unwrap();
+        let all_pools = get_all_pools().expect("Failed to get all pools");
         assert_eq!(all_pools.len(), 1);
 
         cleanup_pool_store();
@@ -419,17 +428,22 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_update_pool_api() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
+    fn it_should_update_pool_api() {
+        let dir = tempdir().expect("Failed to create temp directory");
+        let path = dir
+            .path()
+            .to_str()
+            .expect("Failed to convert path to string")
+            .to_string();
 
-        init_pool_store(path).unwrap();
+        init_pool_store(path).expect("Failed to initialize pool store");
 
-        let pool = create_pool("Original".to_string(), "password123".to_string()).unwrap();
+        let pool = create_pool("Original".to_string(), "password123".to_string())
+            .expect("Failed to create pool");
 
-        update_pool(pool.pool_id.clone(), "Updated".to_string()).unwrap();
+        update_pool(pool.pool_id.clone(), "Updated".to_string()).expect("Failed to update pool");
 
-        let updated = get_pool_by_id(pool.pool_id).unwrap();
+        let updated = get_pool_by_id(pool.pool_id).expect("Failed to get pool by ID");
         assert_eq!(updated.name, "Updated");
 
         cleanup_pool_store();
@@ -437,15 +451,20 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_delete_pool_api() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
+    fn it_should_delete_pool_api() {
+        let dir = tempdir().expect("Failed to create temp directory");
+        let path = dir
+            .path()
+            .to_str()
+            .expect("Failed to convert path to string")
+            .to_string();
 
-        init_pool_store(path).unwrap();
+        init_pool_store(path).expect("Failed to initialize pool store");
 
-        let pool = create_pool("To Delete".to_string(), "password123".to_string()).unwrap();
+        let pool = create_pool("To Delete".to_string(), "password123".to_string())
+            .expect("Failed to create pool");
 
-        delete_pool(pool.pool_id.clone()).unwrap();
+        delete_pool(pool.pool_id.clone()).expect("Failed to delete pool");
 
         // Pool should not be found after deletion (soft delete means it's still in DB but marked)
         let result = get_pool_by_id(pool.pool_id);
@@ -456,13 +475,18 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_member_management_api() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
+    fn it_should_member_management_api() {
+        let dir = tempdir().expect("Failed to create temp directory");
+        let path = dir
+            .path()
+            .to_str()
+            .expect("Failed to convert path to string")
+            .to_string();
 
-        init_pool_store(path).unwrap();
+        init_pool_store(path).expect("Failed to initialize pool store");
 
-        let pool = create_pool("Test Pool".to_string(), "password123".to_string()).unwrap();
+        let pool = create_pool("Test Pool".to_string(), "password123".to_string())
+            .expect("Failed to create pool");
 
         // Add member
         add_pool_member(
@@ -470,9 +494,9 @@ mod tests {
             "device-001".to_string(),
             "My iPhone".to_string(),
         )
-        .unwrap();
+        .expect("Failed to add pool member");
 
-        let updated = get_pool_by_id(pool.pool_id.clone()).unwrap();
+        let updated = get_pool_by_id(pool.pool_id.clone()).expect("Failed to get pool by ID");
         assert_eq!(updated.members.len(), 1);
         assert_eq!(updated.members[0].device_id, "device-001");
 
@@ -482,13 +506,14 @@ mod tests {
             "device-001".to_string(),
             "Work Phone".to_string(),
         )
-        .unwrap();
+        .expect("Failed to update member name");
 
-        let updated = get_pool_by_id(pool.pool_id.clone()).unwrap();
+        let updated = get_pool_by_id(pool.pool_id.clone()).expect("Failed to get pool by ID");
         assert_eq!(updated.members[0].device_name, "Work Phone");
 
         // Remove member
-        remove_pool_member(pool.pool_id.clone(), "device-001".to_string()).unwrap();
+        remove_pool_member(pool.pool_id.clone(), "device-001".to_string())
+            .expect("Failed to remove pool member");
 
         let updated = get_pool_by_id(pool.pool_id).unwrap();
         assert_eq!(updated.members.len(), 0);
@@ -498,7 +523,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_verify_password_api() {
+    fn it_should_verify_password_api() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 
@@ -523,14 +548,14 @@ mod tests {
 
     #[test]
     #[serial]
-    #[ignore] // Requires system keyring
-    fn test_store_and_retrieve_password_from_keyring() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_store_and_retrieve_password_from_keyring() {
         let test_pool_id = "test-keyring-pool-001";
         let password = "test_keyring_password_123";
 
         // Store password
         let result = store_pool_password_in_keyring(test_pool_id.to_string(), password.to_string());
-        assert!(result.is_ok(), "Failed to store password: {:?}", result);
+        assert!(result.is_ok(), "Failed to store password: {result:?}");
 
         // Check if exists
         let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
@@ -540,8 +565,7 @@ mod tests {
         let retrieved = get_pool_password_from_keyring(test_pool_id.to_string());
         assert!(
             retrieved.is_ok(),
-            "Failed to retrieve password: {:?}",
-            retrieved
+            "Failed to retrieve password: {retrieved:?}"
         );
         assert_eq!(retrieved.unwrap(), password);
 
@@ -551,8 +575,8 @@ mod tests {
 
     #[test]
     #[serial]
-    #[ignore] // Requires system keyring
-    fn test_delete_password_from_keyring() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_delete_password_from_keyring() {
         let test_pool_id = "test-keyring-pool-002";
 
         // Store password first
@@ -574,8 +598,8 @@ mod tests {
 
     #[test]
     #[serial]
-    #[ignore] // Requires system keyring
-    fn test_has_pool_password_in_keyring() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_has_pool_password_in_keyring() {
         let test_pool_id = "test-keyring-pool-003";
 
         // Should not exist initially
@@ -596,16 +620,16 @@ mod tests {
 
     #[test]
     #[serial]
-    #[ignore] // Requires system keyring
-    fn test_keyring_password_not_found() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_keyring_password_not_found() {
         let result = get_pool_password_from_keyring("nonexistent-pool".to_string());
         assert!(result.is_err());
     }
 
     #[test]
     #[serial]
-    #[ignore] // Requires system keyring
-    fn test_pool_workflow_with_keyring() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_pool_workflow_with_keyring() {
         let dir = tempdir().unwrap();
         let path = dir.path().to_str().unwrap().to_string();
 

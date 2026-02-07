@@ -128,6 +128,7 @@ impl KeyringStore {
     /// assert_eq!(key, "pool.pool-001.password");
     /// ```
     #[must_use]
+    #[allow(clippy::unused_self)]
     pub fn make_entry_name(&self, pool_id: &str) -> String {
         format!("pool.{pool_id}.password")
     }
@@ -287,35 +288,34 @@ mod tests {
     // These tests are designed to pass on developer machines
 
     #[test]
-    fn test_keyring_store_creation() {
+    fn it_should_keyring_store_creation() {
         let store = KeyringStore::new();
         assert_eq!(store.service_name, "cardmind");
     }
 
     #[test]
-    fn test_make_entry_name() {
+    fn it_should_make_entry_name() {
         let store = KeyringStore::new();
         let name = store.make_entry_name("pool-001");
         assert_eq!(name, "pool.pool-001.password");
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
-    fn test_store_and_retrieve_password() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_store_and_retrieve_password() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-001";
         let password = Zeroizing::new("test_password_123".to_string());
 
         // Store password
         let result = store.store_pool_password(test_pool_id, &password);
-        assert!(result.is_ok(), "Failed to store password: {:?}", result);
+        assert!(result.is_ok(), "Failed to store password: {result:?}");
 
         // Retrieve password
         let retrieved = store.get_pool_password(test_pool_id);
         assert!(
             retrieved.is_ok(),
-            "Failed to retrieve password: {:?}",
-            retrieved
+            "Failed to retrieve password: {retrieved:?}"
         );
         assert_eq!(retrieved.unwrap().as_str(), "test_password_123");
 
@@ -324,8 +324,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
-    fn test_delete_password() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_delete_password() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-002";
         let password = Zeroizing::new("delete_test".to_string());
@@ -343,8 +343,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
-    fn test_has_pool_password() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_has_pool_password() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-003";
 
@@ -363,8 +363,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
-    fn test_password_not_found() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_password_not_found() {
         let store = KeyringStore::new();
         let result = store.get_pool_password("nonexistent-pool");
         assert!(result.is_err());
@@ -377,8 +377,8 @@ mod tests {
     }
 
     #[test]
-    #[ignore] // Ignore by default as it requires system keyring
-    fn test_password_zeroization() {
+    #[ignore = "Requires system keyring"]
+    fn it_should_password_zeroization() {
         let store = KeyringStore::new();
         let test_pool_id = "test-pool-004";
         let password = Zeroizing::new("zeroize_test".to_string());

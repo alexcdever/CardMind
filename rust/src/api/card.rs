@@ -8,7 +8,7 @@ use crate::models::error::Result;
 use crate::store::card_store::CardStore;
 use std::sync::{Arc, Mutex};
 
-/// Global CardStore instance
+/// Global `CardStore` instance
 static CARD_STORE: Mutex<Option<Arc<Mutex<CardStore>>>> = Mutex::new(None);
 
 /// Initialize the CardStore with the given storage path
@@ -32,7 +32,7 @@ pub fn init_card_store(path: String) -> Result<()> {
     Ok(())
 }
 
-/// Get the global CardStore instance (internal helper)
+/// Get the global `CardStore` instance (internal helper)
 fn get_store() -> Result<Arc<Mutex<CardStore>>> {
     let global_store = CARD_STORE.lock().unwrap();
     global_store.clone().ok_or_else(|| {
@@ -42,10 +42,10 @@ fn get_store() -> Result<Arc<Mutex<CardStore>>> {
     })
 }
 
-/// Get the global CardStore Arc (for internal use by other modules)
+/// Get the global `CardStore` Arc (for internal use by other modules)
 ///
 /// This function is used internally by other Rust modules (e.g., P2P sync)
-/// that need direct access to the CardStore.
+/// that need direct access to the `CardStore`.
 ///
 /// # Returns
 ///
@@ -53,7 +53,7 @@ fn get_store() -> Result<Arc<Mutex<CardStore>>> {
 ///
 /// # Errors
 ///
-/// Returns error if CardStore is not initialized
+/// Returns error if `CardStore` is not initialized
 pub(crate) fn get_card_store_arc() -> Result<Arc<Mutex<CardStore>>> {
     get_store()
 }
@@ -82,20 +82,11 @@ pub(crate) fn get_card_store_arc() -> Result<Arc<Mutex<CardStore>>> {
 /// ```
 #[flutter_rust_bridge::frb]
 pub fn create_card(title: String, content: String) -> Result<Card> {
-    use crate::api::device_config::get_resident_pools;
-
     let store = get_store()?;
     let mut store = store.lock().unwrap();
 
     // Create the card
     let card = store.create_card(title, content)?;
-
-    // Auto-bind to resident pools
-    if let Ok(resident_pools) = get_resident_pools() {
-        for pool_id in resident_pools {
-            let _ = store.add_card_to_pool(&card.id, &pool_id);
-        }
-    }
 
     Ok(card)
 }
@@ -233,11 +224,14 @@ pub fn get_card_count() -> Result<(i64, i64, i64)> {
 /// await addCardToPool(cardId: cardId, poolId: poolId);
 /// ```
 #[flutter_rust_bridge::frb]
+/// DEPRECATED: Single-pool model
+/*
 pub fn add_card_to_pool(card_id: String, pool_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
     store.add_card_to_pool(&card_id, &pool_id)
 }
+*/
 
 /// Remove card from a data pool
 ///
@@ -252,11 +246,14 @@ pub fn add_card_to_pool(card_id: String, pool_id: String) -> Result<()> {
 /// await removeCardFromPool(cardId: cardId, poolId: poolId);
 /// ```
 #[flutter_rust_bridge::frb]
+/// DEPRECATED: Single-pool model
+/*
 pub fn remove_card_from_pool(card_id: String, pool_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
     store.remove_card_from_pool(&card_id, &pool_id)
 }
+*/
 
 /// Get all pool IDs that a card belongs to
 ///
@@ -314,12 +311,14 @@ pub fn get_cards_in_pools(pool_ids: Vec<String>) -> Result<Vec<Card>> {
 /// await clearCardPools(cardId: cardId);
 /// ```
 #[flutter_rust_bridge::frb]
+/// DEPRECATED: Single-pool model
+/*
 pub fn clear_card_pools(card_id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
     store.clear_card_pools(&card_id)
 }
-
+*/
 // ==================== Test Functions ====================
 
 /// Test function to verify Flutter-Rust bridge is working
@@ -342,7 +341,7 @@ mod tests {
     use serial_test::serial;
     use tempfile::TempDir;
 
-    /// Helper: Initialize a temporary CardStore for testing
+    /// Helper: Initialize a temporary `CardStore` for testing
     fn init_test_store() -> TempDir {
         let temp_dir = TempDir::new().unwrap();
         let path = temp_dir.path().to_str().unwrap().to_string();
@@ -357,20 +356,20 @@ mod tests {
     }
 
     #[test]
-    fn test_hello_cardmind() {
+    fn it_should_hello_cardmind() {
         let result = hello_cardmind();
         assert!(result.contains("CardMind"));
     }
 
     #[test]
-    fn test_add_numbers() {
+    fn it_should_add_numbers() {
         assert_eq!(add_numbers(2, 3), 5);
         assert_eq!(add_numbers(-1, 1), 0);
     }
 
     #[test]
     #[serial]
-    fn test_init_card_store() {
+    fn it_should_init_card_store() {
         let temp_dir = TempDir::new().unwrap();
         let path = temp_dir.path().to_str().unwrap().to_string();
 
@@ -382,7 +381,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_create_card_api() {
+    fn it_should_create_card_api() {
         let _temp = init_test_store();
 
         let result = create_card("Test Title".to_string(), "Test Content".to_string());
@@ -398,7 +397,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_all_cards_api() {
+    fn it_should_get_all_cards_api() {
         let _temp = init_test_store();
 
         // Create some cards
@@ -416,7 +415,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_active_cards_api() {
+    fn it_should_get_active_cards_api() {
         let _temp = init_test_store();
 
         let card1 = create_card("Card 1".to_string(), "Content 1".to_string()).unwrap();
@@ -436,11 +435,11 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_card_by_id_api() {
+    fn it_should_get_card_by_id_api() {
         let _temp = init_test_store();
 
         let card = create_card("Test".to_string(), "Content".to_string()).unwrap();
-        let card_id = card.id.clone();
+        let card_id = card.id;
 
         let result = get_card_by_id(card_id);
         assert!(result.is_ok(), "Should get card by ID successfully");
@@ -453,11 +452,11 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_update_card_api() {
+    fn it_should_update_card_api() {
         let _temp = init_test_store();
 
         let card = create_card("Old Title".to_string(), "Old Content".to_string()).unwrap();
-        let card_id = card.id.clone();
+        let card_id = card.id;
 
         let result = update_card(card_id.clone(), Some("New Title".to_string()), None);
         assert!(result.is_ok(), "Should update card successfully");
@@ -471,11 +470,11 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_delete_card_api() {
+    fn it_should_delete_card_api() {
         let _temp = init_test_store();
 
         let card = create_card("Test".to_string(), "Content".to_string()).unwrap();
-        let card_id = card.id.clone();
+        let card_id = card.id;
 
         let result = delete_card(card_id.clone());
         assert!(result.is_ok(), "Should delete card successfully");
@@ -488,7 +487,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_get_card_count_api() {
+    fn it_should_get_card_count_api() {
         let _temp = init_test_store();
 
         let card1 = create_card("Card 1".to_string(), "Content 1".to_string()).unwrap();
@@ -510,7 +509,7 @@ mod tests {
 
     #[test]
     #[serial]
-    fn test_api_without_init_fails() {
+    fn it_should_api_without_init_fails() {
         cleanup_store(); // Ensure no store is initialized
 
         let result = create_card("Test".to_string(), "Content".to_string());

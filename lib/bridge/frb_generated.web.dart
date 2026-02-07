@@ -11,6 +11,8 @@ import 'dart:convert';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 
+import 'api/loro_export.dart';
+import 'api/mdns_discovery.dart';
 import 'api/sync.dart';
 import 'frb_generated.dart';
 import 'models/card.dart';
@@ -18,8 +20,12 @@ import 'models/device_config.dart';
 import 'models/pool.dart';
 import 'third_party/cardmind_rust/api/card.dart';
 import 'third_party/cardmind_rust/api/device_config.dart';
+import 'third_party/cardmind_rust/api/identity.dart';
+import 'third_party/cardmind_rust/api/loro_export.dart';
+import 'third_party/cardmind_rust/api/mdns_discovery.dart';
 import 'third_party/cardmind_rust/api/pool.dart';
 import 'third_party/cardmind_rust/api/sync.dart';
+import 'third_party/cardmind_rust/api/trust_list.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -33,10 +39,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
+  RustStreamSink<SyncStatus> dco_decode_StreamSink_sync_status_Sse(dynamic raw);
+
+  @protected
   String dco_decode_String(dynamic raw);
 
   @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
   Card dco_decode_card(dynamic raw);
@@ -46,6 +58,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DeviceConfig dco_decode_device_config(dynamic raw);
+
+  @protected
+  DeviceConnectionStatus dco_decode_device_connection_status(dynamic raw);
+
+  @protected
+  DeviceInfo dco_decode_device_info(dynamic raw);
+
+  @protected
+  DiscoveredDevice dco_decode_discovered_device(dynamic raw);
+
+  @protected
+  FilePreview dco_decode_file_preview(dynamic raw);
 
   @protected
   int dco_decode_i_32(dynamic raw);
@@ -63,13 +87,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Device> dco_decode_list_device(dynamic raw);
 
   @protected
+  List<DeviceInfo> dco_decode_list_device_info(dynamic raw);
+
+  @protected
+  List<DiscoveredDevice> dco_decode_list_discovered_device(dynamic raw);
+
+  @protected
   List<Pool> dco_decode_list_pool(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<SyncHistoryEvent> dco_decode_list_sync_history_event(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
 
   @protected
   Pool dco_decode_pool(dynamic raw);
@@ -79,7 +115,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_record_i_64_i_64_i_64(dynamic raw);
 
   @protected
+  SyncHistoryEvent dco_decode_sync_history_event(dynamic raw);
+
+  @protected
+  SyncStatistics dco_decode_sync_statistics(dynamic raw);
+
+  @protected
   SyncStatus dco_decode_sync_status(dynamic raw);
+
+  @protected
+  SyncUiState dco_decode_sync_ui_state(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -88,13 +133,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  BigInt dco_decode_usize(dynamic raw);
+
+  @protected
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+
+  @protected
+  RustStreamSink<SyncStatus> sse_decode_StreamSink_sync_status_Sse(
+    SseDeserializer deserializer,
+  );
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
   Card sse_decode_card(SseDeserializer deserializer);
@@ -104,6 +160,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DeviceConfig sse_decode_device_config(SseDeserializer deserializer);
+
+  @protected
+  DeviceConnectionStatus sse_decode_device_connection_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DeviceInfo sse_decode_device_info(SseDeserializer deserializer);
+
+  @protected
+  DiscoveredDevice sse_decode_discovered_device(SseDeserializer deserializer);
+
+  @protected
+  FilePreview sse_decode_file_preview(SseDeserializer deserializer);
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
@@ -121,13 +191,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<Device> sse_decode_list_device(SseDeserializer deserializer);
 
   @protected
+  List<DeviceInfo> sse_decode_list_device_info(SseDeserializer deserializer);
+
+  @protected
+  List<DiscoveredDevice> sse_decode_list_discovered_device(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<Pool> sse_decode_list_pool(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<SyncHistoryEvent> sse_decode_list_sync_history_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
   Pool sse_decode_pool(SseDeserializer deserializer);
@@ -137,7 +223,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_record_i_64_i_64_i_64(SseDeserializer deserializer);
 
   @protected
+  SyncHistoryEvent sse_decode_sync_history_event(SseDeserializer deserializer);
+
+  @protected
+  SyncStatistics sse_decode_sync_statistics(SseDeserializer deserializer);
+
+  @protected
   SyncStatus sse_decode_sync_status(SseDeserializer deserializer);
+
+  @protected
+  SyncUiState sse_decode_sync_ui_state(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -146,8 +241,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
+  BigInt sse_decode_usize(SseDeserializer deserializer);
+
+  @protected
   void sse_encode_AnyhowException(
     AnyhowException self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_sync_status_Sse(
+    RustStreamSink<SyncStatus> self,
     SseSerializer serializer,
   );
 
@@ -158,6 +262,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_card(Card self, SseSerializer serializer);
 
   @protected
@@ -165,6 +275,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_device_config(DeviceConfig self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_device_connection_status(
+    DeviceConnectionStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_device_info(DeviceInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_discovered_device(
+    DiscoveredDevice self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_file_preview(FilePreview self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
@@ -182,6 +310,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_device(List<Device> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_device_info(
+    List<DeviceInfo> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_discovered_device(
+    List<DiscoveredDevice> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_pool(List<Pool> self, SseSerializer serializer);
 
   @protected
@@ -191,7 +331,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_sync_history_event(
+    List<SyncHistoryEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_pool(Pool self, SseSerializer serializer);
@@ -203,13 +355,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_sync_history_event(
+    SyncHistoryEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sync_statistics(
+    SyncStatistics self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_sync_status(SyncStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sync_ui_state(SyncUiState self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_unit(void self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_usize(BigInt self, SseSerializer serializer);
 }
 
 // Section: wire_class
