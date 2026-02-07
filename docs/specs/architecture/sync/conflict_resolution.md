@@ -1,10 +1,5 @@
 # 冲突解决架构规格
 
-**依赖**: [../../domain/sync.md](../../domain/sync.md), [../storage/dual_layer.md](../storage/dual_layer.md), [../storage/loro_integration.md](../storage/loro_integration.md)
-**相关测试**: `rust/tests/loro_sync_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 CardMind P2P 同步的冲突解决机制，使用 Loro CRDT（无冲突复制数据类型）自动合并并发编辑，无需用户干预。

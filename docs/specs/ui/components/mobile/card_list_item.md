@@ -1,10 +1,5 @@
 # 移动端卡片列表项规格
 
-**依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/feature/widgets/card_list_item_mobile_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动端卡片列表项组件，用于在列表布局中显示卡片摘要，针对触摸交互优化，提供更大的点击目标与移动端手势。

@@ -1,10 +1,5 @@
 # 双层存储架构规格
 
-**依赖**: [./card_store.md](./card_store.md), [../../domain/card.md](../../domain/card.md)
-**相关测试**: `rust/tests/dual_layer_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了双层存储架构，将写操作（Loro CRDT）与读操作（SQLite 缓存）分离，在保持查询性能的同时实现无冲突同步。

@@ -1,10 +1,5 @@
 # 池加入规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/security/password.md](../../architecture/security/password.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/pool_management_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
-
----
-
 ## 概述
 
 定义加入已有池的业务规则：使用池 ID 与密钥校验、校验池存在性、错误需可识别且不产生副作用；加入成功后启动同步。

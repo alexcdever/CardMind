@@ -1,10 +1,5 @@
 # 设置面板规格
 
-**依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md)
-**相关测试**: `test/feature/widgets/settings_panel_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义设置面板组件，显示和管理按逻辑部分组织的应用程序设置。

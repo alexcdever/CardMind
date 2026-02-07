@@ -1,10 +1,5 @@
 # Loro 集成架构规格
 
-**依赖**: [./dual_layer.md](./dual_layer.md), [../sync/subscription.md](../sync/subscription.md)
-**相关测试**: `rust/tests/loro_integration_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 Loro CRDT 库集成到 CardMind 中，包括文档管理、序列化、P2P 同步和版本控制。

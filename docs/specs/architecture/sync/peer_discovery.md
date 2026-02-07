@@ -1,10 +1,5 @@
 # 对等点发现架构规格
 
-**依赖**: [./service.md](./service.md), [../storage/device_config.md](../storage/device_config.md)
-**相关测试**: `rust/tests/mdns_discovery_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 CardMind P2P 同步的对等点发现机制，使用 libp2p mDNS 在本地网络中自动发现对等点，并在连接后完成池验证。

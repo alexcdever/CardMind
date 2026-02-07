@@ -1,10 +1,5 @@
 # 设备管理面板规格
 
-**依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md), [../../../architecture/sync/service.md](../../../architecture/sync/service.md)
-**相关测试**: `test/feature/widgets/device_manager_panel_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义设备管理面板，显示当前设备信息、配对设备与设备管理操作，覆盖设备名称编辑、配对流程与设备状态展示。

@@ -1,10 +1,5 @@
 # 池同步规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/sync/subscription.md](../../architecture/sync/subscription.md), [../../architecture/sync/conflict_resolution.md](../../architecture/sync/conflict_resolution.md)
-**相关测试**: `test/feature/features/p2p_sync_feature_test.dart`, `rust/tests/sync_feature_test.rs`
-
----
-
 ## 概述
 
 定义池内同步的业务规则：加入池即启动同步；支持增量与全量同步；维护版本追踪；冲突自动合并；失败可重试。

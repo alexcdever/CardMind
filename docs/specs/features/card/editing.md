@@ -1,10 +1,5 @@
 # 卡片编辑业务规格
 
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/card_management_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义卡片编辑的业务规则。编辑应更新标题与内容，并同步更新 `updated_at` 与 `last_edit_device`。任何成功的编辑变更都必须进入同步流程。

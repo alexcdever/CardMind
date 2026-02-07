@@ -1,10 +1,5 @@
 # 自适应组件规格
 
-**依赖**: [layouts.md](layouts.md), [platform_detection.md](platform_detection.md)
-**相关测试**: `test/feature/adaptive/components_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义自适应 UI 组件，根据平台和屏幕尺寸自动调整外观与行为，保持一致的用户体验。

@@ -1,10 +1,5 @@
 # 移动端浮动操作按钮规格
 
-**依赖**: 无
-**相关测试**: `test/feature/widgets/mobile_fab_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动端浮动操作按钮（FAB）组件，提供快速访问创建新卡片的主要操作，遵循 Material Design 指南并针对触摸交互优化。

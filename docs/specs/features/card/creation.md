@@ -1,10 +1,5 @@
 # 卡片创建业务规格
 
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/card_management_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义卡片创建的业务规则。创建时标题必填，内容必填且不可为空或仅空白字符，必须在已加入的池内创建。创建成功后应生成 UUID v7 标识符，初始化时间戳与最后编辑设备信息，并进入同步流程。

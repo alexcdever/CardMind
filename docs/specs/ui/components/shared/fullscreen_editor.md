@@ -1,10 +1,5 @@
 # 全屏编辑器规格
 
-**依赖**: [../../../domain/card.md](../../../domain/card.md), [note_card.md](note_card.md)
-**相关测试**: `test/feature/widgets/fullscreen_editor_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动平台的全屏编辑器，提供沉浸式编辑体验并减少干扰。

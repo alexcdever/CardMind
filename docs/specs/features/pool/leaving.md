@@ -1,10 +1,5 @@
 # 离开池规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/sync/subscription.md](../../architecture/sync/subscription.md)
-**相关测试**: `test/feature/features/pool_management_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
-
----
-
 ## 概述
 
 定义离开池的业务规则：确认后移除设备与池的关系；仅清理本地属于该池的数据（卡片、池与同步元数据），保留本地独立数据；清除设备配置中的池 ID。

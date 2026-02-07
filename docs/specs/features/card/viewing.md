@@ -1,10 +1,5 @@
 # 卡片查看业务规格
 
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
-**相关测试**: `test/feature/features/card_management_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义卡片查看的业务规则。查看结果应包含卡片的标题、内容、时间戳、标签以及最后编辑设备等业务字段。

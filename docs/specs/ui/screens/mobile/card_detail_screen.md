@@ -1,10 +1,5 @@
 # 移动端卡片详情屏幕规格
 
-**依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/feature/screens/card_detail_screen_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动端卡片详情屏幕，显示完整卡片内容、元数据与编辑功能。

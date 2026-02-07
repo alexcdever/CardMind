@@ -1,10 +1,5 @@
 # 桌面端右键菜单规格
 
-**依赖**: 无
-**相关测试**: `test/feature/widgets/desktop_context_menu_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义桌面端右键菜单组件，为常见卡片操作提供快速访问，并遵循桌面应用约定在鼠标光标附近出现。

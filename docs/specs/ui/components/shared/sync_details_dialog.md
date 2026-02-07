@@ -1,10 +1,5 @@
 # 同步详情对话框规格
 
-**依赖**: [../../../architecture/sync/service.md](../../../architecture/sync/service.md), [sync_status_indicator.md](sync_status_indicator.md)
-**相关测试**: `test/feature/widgets/sync_details_dialog/sync_details_dialog_widget_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义同步详情对话框，提供全面的同步信息，包括设备列表、同步历史和配置。

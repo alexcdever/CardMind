@@ -1,10 +1,5 @@
 # mDNS 隐私保护架构规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md)
-**相关测试**: `rust/tests/security_p2p_discovery_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 CardMind 中 mDNS 设备发现的隐私保护机制。系统在局域网内广播设备信息时，仅暴露非敏感信息（设备 ID、默认设备昵称、数据池 ID），不暴露数据池名称、成员列表、卡片数量等敏感信息，确保未授权设备无法获取用户隐私数据。

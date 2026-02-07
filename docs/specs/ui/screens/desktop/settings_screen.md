@@ -1,10 +1,5 @@
 # 桌面端设置屏幕规格
 
-**依赖**: [../../../architecture/storage/device_config.md](../../../architecture/storage/device_config.md)
-**相关测试**: `test/feature/screens/settings_screen_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义桌面端设置屏幕，提供按逻辑类别组织的应用程序配置和管理选项，采用侧面板或标签页布局。

@@ -1,10 +1,5 @@
 # NoteCard 组件规格
 
-**依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/feature/widgets/note_card_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义 NoteCard 组件需求，该组件显示卡片内容并根据平台（桌面端 vs 移动端）调整编辑行为。

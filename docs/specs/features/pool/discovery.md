@@ -1,10 +1,5 @@
 # 池发现规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/sync/peer_discovery.md](../../architecture/sync/peer_discovery.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/p2p_sync_feature_test.dart`
-
----
-
 ## 概述
 
 定义池发现与加入的业务规则：仅通过二维码组池，加入需处于同一局域网；加入成功后启动 mDNS 监听与广播以发现对等设备。

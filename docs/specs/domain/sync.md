@@ -1,10 +1,5 @@
 # 同步领域模型规格
 
-**依赖**: [card.md](card.md), [pool.md](pool.md)
-**相关测试**: `rust/tests/sync_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了同步领域模型，包括版本追踪、冲突解决策略和分布式卡片协作的同步状态管理。

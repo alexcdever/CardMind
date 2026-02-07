@@ -1,10 +1,5 @@
 # 池创建规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/types.md](../../domain/types.md), [../../architecture/security/password.md](../../architecture/security/password.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
-**相关测试**: `test/feature/features/pool_management_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
-
----
-
 ## 概述
 
 定义池创建的业务规则：名称必填、密钥长度不少于 6、池 ID 使用 UUID v7、密钥以 bcrypt 哈希存储；创建成功后设备自动加入并触发同步。

@@ -1,10 +1,5 @@
 # 数据管理规格
 
-**依赖**: [../../architecture/storage/dual_layer.md](../../architecture/storage/dual_layer.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md)
-**相关测试**: `test/feature/features/settings_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义数据存储使用统计、缓存清理、数据导出与导入的业务规则。缓存清理仅影响临时缓存数据，不得删除用户内容；导出与导入使用 UTF-8 编码的 JSON 格式，并执行结构校验。

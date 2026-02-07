@@ -1,10 +1,5 @@
 # 池认证与安全规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/security/password.md](../../architecture/security/password.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/security/privacy.md](../../architecture/security/privacy.md)
-**相关测试**: `test/feature/features/p2p_sync_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
-
----
-
 ## 概述
 
 定义池访问认证与对等安全：加入与访问必须同时具备池 ID 与池密钥；对等连接需基于 libp2p 公私钥对白名单进行验证。

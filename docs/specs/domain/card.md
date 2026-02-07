@@ -1,10 +1,5 @@
 # 卡片领域模型规格
 
-**依赖**: [types.md](types.md)
-**相关测试**: `rust/src/models/card.rs` (tests module)
-
----
-
 ## 概述
 
 本规格定义了 Card 领域实体，代表 CardMind 系统中的单个笔记卡片。每张卡片包含标题、Markdown 内容、元数据，并支持软删除。

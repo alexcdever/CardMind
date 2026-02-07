@@ -1,10 +1,5 @@
 # 移动端卡片编辑器屏幕规格
 
-**依赖**: [../../../domain/card.md](../../../domain/card.md)
-**相关测试**: `test/feature/screens/card_editor_screen_feature_test.dart`
-
----
-
 ## 概述
 
 本规格定义移动端卡片编辑器屏幕，提供针对移动设备专注内容创作优化的全屏卡片编辑体验。

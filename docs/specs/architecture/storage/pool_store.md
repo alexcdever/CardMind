@@ -1,10 +1,5 @@
 # PoolStore 架构规格
 
-**依赖**: [../../domain/pool.md](../../domain/pool.md), [./device_config.md](./device_config.md), [./dual_layer.md](./dual_layer.md)
-**相关测试**: `rust/tests/pool_store_feature_test.rs`
-
----
-
 ## 概述
 
 本规格定义了 PoolStore 的技术实现，使用双层架构（Loro + SQLite）管理池数据并强制执行单池约束。
