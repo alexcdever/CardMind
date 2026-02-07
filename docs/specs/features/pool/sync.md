@@ -1,0 +1,45 @@
+# 池同步规格
+
+**状态**: 生效中
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/sync.md](../../domain/sync.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/sync/subscription.md](../../architecture/sync/subscription.md), [../../architecture/sync/conflict_resolution.md](../../architecture/sync/conflict_resolution.md)
+**相关测试**: `test/feature/features/p2p_sync_feature_test.dart`, `rust/tests/sync_feature_test.rs`
+
+---
+
+## 概述
+
+定义池内同步的业务规则：加入池即启动同步；支持增量与全量同步；维护版本追踪；冲突自动合并；失败可重试。
+
+---
+
+## GIVEN-WHEN-THEN 场景
+
+### 场景：加入池后自动启动同步
+
+- **GIVEN**: 设备成功加入某个池
+- **WHEN**: 加入流程完成
+- **THEN**: 同步服务立即启动并进入同步状态
+
+### 场景：存在版本记录时执行增量同步
+
+- **GIVEN**: 本地已有该池的版本记录
+- **WHEN**: 发起同步
+- **THEN**: 系统仅同步增量变更
+
+### 场景：缺少版本记录时执行全量同步
+
+- **GIVEN**: 本地无该池版本记录或版本不可用
+- **WHEN**: 发起同步
+- **THEN**: 系统执行全量同步并重建版本记录
+
+### 场景：同步冲突自动合并
+
+- **GIVEN**: 多设备对同一数据产生并发变更
+- **WHEN**: 同步合并发生冲突
+- **THEN**: 系统使用 CRDT 自动合并并产生一致结果
+
+### 场景：同步失败后可重试
+
+- **GIVEN**: 同步因网络或对等不可达失败
+- **WHEN**: 触发重试
+- **THEN**: 系统在保持版本一致性的前提下重新同步

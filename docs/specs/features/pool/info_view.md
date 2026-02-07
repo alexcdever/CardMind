@@ -1,0 +1,30 @@
+# 池信息查询规格
+
+**状态**: 生效中
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../domain/types.md](../../domain/types.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/sqlite_cache.md](../../architecture/storage/sqlite_cache.md)
+**相关测试**: `test/feature/features/pool_management_feature_test.dart`
+
+---
+
+## 概述
+
+定义池信息的业务查询内容：池名称、池 ID、创建时间、设备数与卡片数。该查询仅反映当前池的权威数据。
+
+---
+
+## GIVEN-WHEN-THEN 场景
+
+### 场景：已加入池时获取池信息
+
+- **GIVEN**: 设备已加入某个池
+- **WHEN**: 请求当前池信息
+- **THEN**: 返回池名称与池 ID
+- **并且**: 返回池创建时间
+- **并且**: 返回池内设备数
+- **并且**: 返回池内卡片数
+
+### 场景：未加入池时获取池信息失败
+
+- **GIVEN**: 设备未加入任何池
+- **WHEN**: 请求池信息
+- **THEN**: 系统拒绝并返回错误 `NOT_JOINED_POOL`

@@ -1,0 +1,39 @@
+# 池认证与安全规格
+
+**状态**: 生效中
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/security/password.md](../../architecture/security/password.md), [../../architecture/sync/service.md](../../architecture/sync/service.md), [../../architecture/security/privacy.md](../../architecture/security/privacy.md)
+**相关测试**: `test/feature/features/p2p_sync_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
+
+---
+
+## 概述
+
+定义池访问认证与对等安全：加入与访问必须同时具备池 ID 与池密钥；对等连接需基于 libp2p 公私钥对白名单进行验证。
+
+---
+
+## GIVEN-WHEN-THEN 场景
+
+### 场景：凭据完整时允许认证
+
+- **GIVEN**: 提供有效池 ID 与池密钥
+- **WHEN**: 发起加入或访问请求
+- **THEN**: 系统验证通过并允许访问
+
+### 场景：凭据不完整或无效时拒绝认证
+
+- **GIVEN**: 缺少池 ID 或池密钥，或密钥校验失败
+- **WHEN**: 发起加入或访问请求
+- **THEN**: 系统拒绝并返回错误 `AUTH_REQUIRED`
+
+### 场景：对等公钥在白名单内允许连接
+
+- **GIVEN**: 对等设备公钥已登记在池成员白名单
+- **WHEN**: 建立 P2P 连接
+- **THEN**: 系统允许连接并进入同步流程
+
+### 场景：对等公钥不在白名单拒绝连接
+
+- **GIVEN**: 对等设备公钥未在池成员白名单
+- **WHEN**: 建立 P2P 连接
+- **THEN**: 系统拒绝连接并记录安全事件

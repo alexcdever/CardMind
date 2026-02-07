@@ -1,0 +1,43 @@
+# 池加入规格
+
+**状态**: 生效中
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/security/password.md](../../architecture/security/password.md), [../../architecture/storage/pool_store.md](../../architecture/storage/pool_store.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md), [../../architecture/sync/service.md](../../architecture/sync/service.md)
+**相关测试**: `test/feature/features/pool_management_feature_test.dart`, `rust/tests/pool_model_feature_test.rs`
+
+---
+
+## 概述
+
+定义加入已有池的业务规则：使用池 ID 与密钥校验、校验池存在性、错误需可识别且不产生副作用；加入成功后启动同步。
+
+---
+
+## GIVEN-WHEN-THEN 场景
+
+### 场景：使用有效凭据加入池
+
+- **GIVEN**: 目标池存在且密钥匹配，设备未加入任何池
+- **WHEN**: 用户提供池 ID 与密钥发起加入请求
+- **THEN**: 系统验证密钥通过后将设备加入池成员列表
+- **并且**: 设备配置记录池 ID
+- **并且**: 同步服务对该池立即启动
+
+### 场景：池不存在时拒绝加入
+
+- **GIVEN**: 提供的池 ID 在本地与已发现数据中均不存在
+- **WHEN**: 用户发起加入请求
+- **THEN**: 系统拒绝加入并返回错误 `POOL_NOT_FOUND`
+- **并且**: 设备配置不发生变更
+
+### 场景：密钥无效时拒绝加入
+
+- **GIVEN**: 目标池存在但密钥不匹配
+- **WHEN**: 用户发起加入请求
+- **THEN**: 系统拒绝加入并返回错误 `INVALID_PASSWORD`
+- **并且**: 设备不加入池成员列表
+
+### 场景：已加入池时拒绝加入
+
+- **GIVEN**: 设备已加入某个池
+- **WHEN**: 用户发起加入其他池请求
+- **THEN**: 系统拒绝加入并返回错误 `ALREADY_JOINED_POOL`

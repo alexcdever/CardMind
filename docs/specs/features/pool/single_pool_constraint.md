@@ -1,0 +1,33 @@
+# 单池约束规格
+
+**状态**: 生效中
+**依赖**: [../../domain/pool.md](../../domain/pool.md), [../../architecture/storage/device_config.md](../../architecture/storage/device_config.md)
+**相关测试**: `rust/tests/pool_model_feature_test.rs`, `test/feature/features/pool_management_feature_test.dart`
+
+---
+
+## 概述
+
+定义单设备仅允许加入一个池的业务约束。系统必须在加入与创建等入口处强制该约束，避免设备同时属于多个池。
+
+---
+
+## GIVEN-WHEN-THEN 场景
+
+### 场景：未加入池时允许加入第一个池
+
+- **GIVEN**: 设备未加入任何池
+- **WHEN**: 设备使用有效凭据加入池
+- **THEN**: 系统允许加入并记录唯一池 ID
+
+### 场景：已加入池时拒绝加入其他池
+
+- **GIVEN**: 设备已加入池 A
+- **WHEN**: 设备尝试加入池 B
+- **THEN**: 系统拒绝请求并返回错误 `ALREADY_JOINED_POOL`
+
+### 场景：已加入池时拒绝创建新池
+
+- **GIVEN**: 设备已加入某个池
+- **WHEN**: 设备尝试创建新池
+- **THEN**: 系统拒绝请求并返回错误 `ALREADY_JOINED_POOL`
