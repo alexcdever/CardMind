@@ -74,40 +74,6 @@ Widget buildTabletLayout(BuildContext context) {
     ),
   );
 }
-```
-
-### 场景：桌面端三列布局
-
-- **前置条件**: 应用程序在桌面上运行
-- **操作**: 屏幕宽度大于 840dp
-- **预期结果**: 系统应使用三列布局
-- **并且**: 在左列显示导航抽屉
-- **并且**: 在中列显示卡片列表
-- **并且**: 在右列显示卡片详情/编辑器
-
-enum LayoutMode {
-  mobile,
-  tablet,
-  desktop,
-}
-
-class LayoutBreakpoints {
-  static const double mobileMax = 600;
-  static const double tabletMax = 840;
-}
-
-LayoutMode getLayoutMode(BuildContext context) {
-  final width = MediaQuery.of(context).size.width;
-  
-  if (width < LayoutBreakpoints.mobileMax) {
-    return LayoutMode.mobile;
-  } else if (width < LayoutBreakpoints.tabletMax) {
-    return LayoutMode.tablet;
-  } else {
-    return LayoutMode.desktop;
-  }
-}
-```
 
 ### 场景：定义平板电脑断点
 
@@ -119,59 +85,6 @@ bool isDesktopLayout(BuildContext context) {
   final width = MediaQuery.of(context).size.width;
   return width >= LayoutBreakpoints.tabletMax;
 }
-```
-
----
-
-## 需求：动态布局切换
-
-系统应在屏幕尺寸更改时自动切换布局。
-
-### 场景：窗口调整大小时切换布局
-
-- **前置条件**: 应用程序正在运行
-- **操作**: 用户调整窗口大小跨越断点
-- **预期结果**: 系统应转换到适当的布局模式
-- **并且**: 保留用户的当前上下文（选定的卡片、滚动位置）
-- **并且**: 平滑地动画转换
-
-class OrientationAwareLayout extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return OrientationBuilder(
-      builder: (context, orientation) {
-        final layoutMode = getLayoutMode(context);
-        
-        // 根据方向和布局模式调整
-        if (orientation == Orientation.landscape) {
-          return buildLandscapeLayout(layoutMode);
-        } else {
-          return buildPortraitLayout(layoutMode);
-        }
-      },
-    );
-  }
-  
-  Widget buildLandscapeLayout(LayoutMode mode) {
-    // 横屏布局
-    return Row(
-      children: [
-        Expanded(child: CardListView()),
-        Expanded(child: CardDetailView()),
-      ],
-    );
-  }
-  
-  Widget buildPortraitLayout(LayoutMode mode) {
-    // 竖屏布局
-    return Column(
-      children: [
-        Expanded(child: CardListView()),
-      ],
-    );
-  }
-}
-```
 
 ---
 
@@ -210,37 +123,6 @@ Widget buildTabletNavigation(int selectedIndex, Function(int) onTap) {
     ],
   );
 }
-```
-
-### 场景：桌面端抽屉导航
-
-- **前置条件**: 应用程序处于桌面布局模式
-- **操作**: 显示导航
-- **预期结果**: 系统应显示永久导航抽屉
-- **并且**: 显示完整的导航标签
-- **并且**: 允许折叠为仅图标模式
-
-class MobileDensity {
-  static const double padding = 8.0;
-  static const double margin = 16.0;
-  static const double spacing = 8.0;
-  static const double cardHeight = 80.0;
-}
-
-Widget buildMobileContent(List<Card> cards) {
-  return ListView.builder(
-    padding: EdgeInsets.all(MobileDensity.padding),
-    itemCount: cards.length,
-    itemBuilder: (context, index) {
-      return Container(
-        height: MobileDensity.cardHeight,
-        margin: EdgeInsets.only(bottom: MobileDensity.spacing),
-        child: CardListItem(card: cards[index]),
-      );
-    },
-  );
-}
-```
 
 ### 场景：平板电脑舒适密度
 
@@ -270,30 +152,3 @@ Widget buildDesktopContent(List<Card> cards) {
     },
   );
 }
-```
-
----
-
-## 测试覆盖
-
-**测试文件**: `test/feature/adaptive/layout_feature_test.dart`
-
-**功能测试（Widget）**:
-- `it_should_use_single_column_for_mobile()` - 移动端布局
-- `it_should_use_two_column_for_tablet()` - 平板布局
-- `it_should_use_three_column_for_desktop()` - 桌面布局
-- `it_should_classify_mobile_breakpoint()` - 移动端断点
-- `it_should_classify_tablet_breakpoint()` - 平板断点
-- `it_should_classify_desktop_breakpoint()` - 桌面断点
-- `it_should_switch_layout_on_resize()` - 布局切换
-- `it_should_preserve_context_on_switch()` - 上下文保留
-- `it_should_adapt_navigation_to_layout()` - 导航适配
-- `it_should_adjust_content_density()` - 内容密度调整
-
-**验收标准**:
-- [x] 所有单元测试通过
-- [x] 布局转换流畅
-- [x] 布局更改时保留上下文
-- [x] 导航正确适应每种布局模式
-- [x] 内容密度适当调整
-- [x] 代码审查通过

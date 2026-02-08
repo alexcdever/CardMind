@@ -190,12 +190,6 @@
 ## 补充说明
 
 **类型定义**:
-```rust
-pub type UniqueIdentifier = String;  // UUID v7 格式
-pub type OptionalText = Option<String>;  // 最大 256 字符
-pub type MarkdownText = String;  // 无长度限制
-pub type Timestamp = i64;  // Unix 毫秒
-```
 
 **验证规则**:
 - **UniqueIdentifier**: 必须是有效的 UUID v7 格式

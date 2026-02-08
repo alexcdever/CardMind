@@ -56,33 +56,6 @@ Widget buildDesktopButton(String label, VoidCallback onPressed) {
     ),
   );
 }
-```
-
----
-
-## 需求：自适应 FAB（浮动操作按钮）
-
-系统应提供根据布局模式调整位置和行为的 FAB。
-
-### 场景：移动端右下角 FAB
-
-- **前置条件**: 应用程序处于移动布局模式
-- **操作**: 显示 FAB
-- **预期结果**: FAB 应定位在右下角
-- **并且**: 浮动在底部导航栏上方
-- **并且**: 使用大尺寸（56dp 直径）
-
-Widget buildDesktopFAB(VoidCallback onPressed) {
-  return ElevatedButton.icon(
-    onPressed: onPressed,
-    icon: Icon(Icons.add),
-    label: Text('新建卡片'),
-    style: ElevatedButton.styleFrom(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-    ),
-  );
-}
-```
 
 ### 场景：平板电脑带扩展标签的 FAB
 
@@ -111,40 +84,6 @@ Widget buildMobileListItem(Card card, VoidCallback onTap) {
     ),
   );
 }
-```
-
-### 场景：桌面端带悬停操作的列表项
-
-- **前置条件**: 应用程序在桌面端运行
-- **操作**: 显示卡片列表项
-- **预期结果**: 列表项应在悬停时显示操作按钮
-- **并且**: 支持右键上下文菜单
-- **并且**: 使用带有更多间距的多行布局
-
-Widget buildTabletListItem(Card card, VoidCallback onTap) {
-  return Dismissible(
-    key: Key(card.id),
-    background: Container(color: Colors.red),
-    child: InkWell(
-      onTap: onTap,
-      onLongPress: () {
-        showActionSheet(context, card);
-      },
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(card.title, style: TextStyle(fontSize: 16)),
-            SizedBox(height: 4),
-            Text(card.content, maxLines: 2, overflow: TextOverflow.ellipsis),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-```
 
 ---
 
@@ -188,29 +127,6 @@ void showDesktopDialog(BuildContext context, Widget content) {
     ),
   );
 }
-```
-
-### 场景：平板电脑自适应对话框
-
-- **前置条件**: 应用程序在平板电脑上运行
-- **操作**: 显示对话框
-- **预期结果**: 对话框应居中并具有舒适的宽度（480-600dp）
-- **并且**: 显示背景遮罩
-- **并且**: 同时支持触摸和指针交互
-
-Widget buildMobileTextField(TextEditingController controller) {
-  return TextField(
-    controller: controller,
-    decoration: InputDecoration(
-      hintText: '输入内容',
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    ),
-    style: TextStyle(fontSize: 16),
-    minLines: 1,
-    maxLines: 5,
-  );
-}
-```
 
 ### 场景：桌面端带键盘快捷键的文本字段
 
@@ -236,13 +152,3 @@ void showMobileMenu(BuildContext context, List<MenuItem> items) {
     ),
   );
 }
-```
-
-### 场景：桌面端下拉菜单
-
-- **前置条件**: 应用程序在桌面端运行
-- **操作**: 显示菜单
-- **预期结果**: 菜单应显示为触发器附近的下拉菜单
-- **并且**: 为菜单项显示键盘快捷键
-- **并且**: 支持悬停高亮
-

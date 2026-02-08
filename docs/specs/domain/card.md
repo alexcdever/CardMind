@@ -146,18 +146,6 @@
 ## 补充说明
 
 **数据结构**:
-```rust
-pub struct Card {
-    pub id: String,                    // UUID v7
-    pub title: String,                 // 卡片标题
-    pub content: String,               // Markdown 内容
-    pub created_at: i64,              // Unix 毫秒
-    pub updated_at: i64,              // Unix 毫秒
-    pub deleted: bool,                // 软删除标志
-    pub tags: Vec<String>,            // 标签列表
-    pub last_edit_device: Option<String>,  // 设备 ID
-}
-```
 
 **设计模式**:
 - **值对象模式**: Card 作为不可变实体

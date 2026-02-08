@@ -45,11 +45,11 @@
 
 - **前置条件**: 设备已加入池并启动 mDNS
 - **操作**: 设备通过 mDNS 广播自己
-- **预期结果**: 广播中不包含 pool_id、pool_name 或 password
+- **预期结果**: 广播中不包含 pool_id、pool_name 或 secretkey
 
 **隐私考虑**:
 - **仅限本地网络**: mDNS 不可路由到本地网络之外
-- **无池信息**: 广播不包含 pool_id/pool_name/password
+- **无池信息**: 广播不包含 pool_id/pool_name/secretkey
 - **无个人信息**: 广播不包含用户昵称或成员信息
 
 ---
@@ -94,7 +94,7 @@
 **技术栈**:
 - **libp2p mdns** - 对等点发现
 - **tokio** - 异步运行时
-- **hkdf** + **sha2** - pool_hash 派生
+- **sha2** - pool_hash 计算（SHA-256）
 
 **设计模式**:
 - **观察者模式**: 基于回调的对等点发现

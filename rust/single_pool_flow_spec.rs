@@ -53,7 +53,7 @@ impl TestContext {
         }
     }
     
-    fn create_pool(&self, id: &str, _name: &str, _password: &str) -> Pool {
+    fn create_pool(&self, id: &str, _name: &str, _secretkey: &str) -> Pool {
         let pool = Pool::new(id.to_string(), "PoolName".to_string());
         self.pools.lock().unwrap().push(pool.clone());
         pool

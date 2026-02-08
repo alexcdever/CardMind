@@ -89,10 +89,10 @@ class PoolProvider extends ChangeNotifier {
   /// Create a new pool
   ///
   /// Returns the created pool if successful, null otherwise
-  Future<Pool?> createPool(String name, String password) async {
+  Future<Pool?> createPool(String name, String secretkey) async {
     try {
       _clearError();
-      final pool = await pool_api.createPool(name: name, password: password);
+      final pool = await pool_api.createPool(name: name, secretkey: secretkey);
       await loadPools();
       return pool;
     } on Exception catch (e) {
@@ -104,12 +104,14 @@ class PoolProvider extends ChangeNotifier {
   /// Join an existing pool
   ///
   /// Returns true if successful
-  Future<bool> joinPool(String poolId, String password) async {
+  Future<bool> joinPool(String poolId, String secretkey) async {
     try {
       _clearError();
-      final success = await pool_api.verifyPoolPassword(
+      final hash =
+          await pool_api.hashPoolSecretkey(secretkey: secretkey);
+      final success = await pool_api.verifyPoolSecretkeyHash(
         poolId: poolId,
-        password: password,
+        secretkeyHash: hash,
       );
 
       if (success) {

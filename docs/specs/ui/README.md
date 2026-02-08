@@ -2,21 +2,6 @@
 
 ## 目录结构
 
-```
-ui/
-├── screens/              # 屏幕规格
-│   ├── mobile/          # 移动端屏幕
-│   ├── desktop/         # 桌面端屏幕
-│   └── shared/          # 共享屏幕
-├── components/          # 组件规格
-│   ├── mobile/          # 移动端组件
-│   ├── desktop/         # 桌面端组件
-│   └── shared/          # 共享组件
-└── adaptive/            # 自适应系统
-    ├── layouts.md       # 自适应布局
-    ├── components.md    # 自适应组件
-    └── platform_detection.md  # 平台检测
-```
 
 ---
 
@@ -84,30 +69,12 @@ ui/
 
 每个 UI 规格必须明确其目标平台：
 
-```markdown
-```
 
 ### Describe Technical Implementation
 
-```markdown
-✅ 好的示例：
-
-系统应提供 CardListItem Widget，包含标题、预览、时间戳和标签。
-
-```
 
 ### Document Platform-Specific Patterns
 
-```markdown
-
-- 使用手势滑动删除卡片
-- 长按显示上下文菜单
-- 下拉刷新列表
-
-- 右键点击显示上下文菜单
-- 悬停显示工具提示
-- 键盘快捷键支持
-```
 
 ---
 

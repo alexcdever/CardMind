@@ -24,5 +24,6 @@ fn it_should_device_info_serialization_contains_only_whitelisted_fields() {
     assert!(json.contains("pool-abc"));
 
     assert!(!json.contains("pool_name"));
-    assert!(!json.contains("password"));
+    assert!(!json.contains("secretkey"));
+    assert!(!json.contains("secretkey_hash"));
 }

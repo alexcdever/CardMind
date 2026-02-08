@@ -14,15 +14,15 @@ class PoolJoinScreen extends StatefulWidget {
 class _PoolJoinScreenState extends State<PoolJoinScreen> {
   final _formKey = GlobalKey<FormState>();
   final _poolIdController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _secretkeyController = TextEditingController();
   bool _isLoading = false;
-  bool _obscurePassword = true;
+  bool _obscureSecretkey = true;
   final bool _hasExistingPool = false;
 
   @override
   void dispose() {
     _poolIdController.dispose();
-    _passwordController.dispose();
+    _secretkeyController.dispose();
     super.dispose();
   }
 
@@ -76,12 +76,9 @@ class _PoolJoinScreenState extends State<PoolJoinScreen> {
     return null;
   }
 
-  String? _validatePassword(String? value) {
+  String? _validateSecretkey(String? value) {
     if (value == null || value.isEmpty) {
-      return '请输入密码';
-    }
-    if (value.length < 8) {
-      return '密码至少 8 个字符';
+      return '请输入 secretkey';
     }
     return null;
   }
@@ -105,7 +102,7 @@ class _PoolJoinScreenState extends State<PoolJoinScreen> {
                   Text('加入现有数据池', style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 8),
                   Text(
-                    '请输入数据池 ID 和密码以加入',
+                    '请输入数据池 ID 和 secretkey 以加入',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -173,28 +170,30 @@ class _PoolJoinScreenState extends State<PoolJoinScreen> {
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _passwordController,
+                    controller: _secretkeyController,
                     decoration: InputDecoration(
-                      labelText: '密码',
-                      hintText: '请输入数据池密码',
+                      labelText: 'secretkey',
+                      hintText: '请输入数据池 secretkey',
                       prefixIcon: const Icon(Icons.lock_outline),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscurePassword
+                          _obscureSecretkey
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                         ),
                         onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
+                          setState(
+                            () => _obscureSecretkey = !_obscureSecretkey,
+                          );
                         },
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    obscureText: _obscurePassword,
+                    obscureText: _obscureSecretkey,
                     maxLength: 64,
-                    validator: _validatePassword,
+                    validator: _validateSecretkey,
                     enabled: !_isLoading,
                     textInputAction: TextInputAction.done,
                     onFieldSubmitted: (_) => _handleJoin(),

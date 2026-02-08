@@ -32,8 +32,7 @@
 - [冲突解决](architecture/sync/conflict_resolution.md) - CRDT 冲突处理
 
 ### 安全架构
-- [密码管理](architecture/security/password.md) - bcrypt 密码管理
-- [密钥存储](architecture/security/keyring.md) - Keyring 密钥存储
+- [secretkey 管理](architecture/security/password.md) - secretkey 明文与哈希校验
 - [隐私保护](architecture/security/privacy.md) - 隐私保护策略
 
 
@@ -84,19 +83,3 @@
 4. **测试**：测试用例必须覆盖规格中的场景
 
 ### 更新流程
-
-```
-/brainstorm 新功能
-  ↓
-生成 docs/plans/ 计划文档
-  ↓
-明确涉及的 specs 文件
-  ↓
-更新 docs/specs/ 相关规格（必须）
-  ↓
-编码实现
-  ↓
-验证测试
-  ↓
-归档计划到 docs/archive/
-```

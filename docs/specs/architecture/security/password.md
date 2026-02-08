@@ -1,97 +1,60 @@
-# bcrypt 密码管理架构规格
+# secretkey 管理架构规格（临时方案）
 
 ## 概述
 
-本规格定义了 CardMind 中数据池密码的哈希、验证和强度检查机制。系统使用 bcrypt 算法进行密码哈希，工作因子为 12，并通过内存清零技术保护敏感数据。
-
-**技术栈**:
-- bcrypt = "0.16" - 密码哈希算法
-- zeroize = "1.7" - 内存清零
+当前阶段仅定义最小可用的 secretkey 处理规则。secretkey 明文保存在数据池元数据中；加入与同步只做哈希校验，不提供强度、时间戳或内存安全等能力。
 
 ---
 
-## 需求：密码哈希
+## 需求：明文保存 secretkey
 
-系统应使用 bcrypt 算法对数据池密码进行哈希，工作因子为 12，并自动生成盐值。
+系统在创建数据池时应保存用户提供的 secretkey 明文到数据池元数据。
 
-### 场景：创建数据池时哈希密码
+### 场景：创建数据池时保存 secretkey
 
-- **前置条件**: 用户提供明文密码字符串
-- **操作**: 调用密码哈希函数
-- **预期结果**: 应返回 bcrypt 格式的哈希字符串（`$2b$12$...`）
-- **并且**: 原始密码应在内存中自动清零
-
----
-
-## 需求：密码验证
-
-系统应验证用户输入的密码与存储的哈希值是否匹配，不暴露具体错误信息以防止时序攻击。
-
-### 场景：加入数据池时验证密码
-
-- **前置条件**: 用户输入密码和存储的密码哈希
-- **操作**: 调用密码验证函数
-- **预期结果**: 应返回布尔值表示是否匹配
-- **并且**: 验证时间应恒定，不因密码正确性而变化
+- **前置条件**: 用户提供 secretkey
+- **操作**: 保存到数据池元数据
+- **预期结果**: 元数据中保存明文 secretkey
+- **并且**: 不进行强度检查或其他安全处理
 
 ---
 
-## 需求：密码强度验证
+## 需求：加入时携带 secretkey 哈希
 
-系统应验证密码强度，要求最少 8 位字符，并根据字符类型评估强度等级。
+系统在加入数据池请求中携带 secretkey 的 SHA-256 哈希值，用于与目标数据池的 secretkey 校验匹配。
 
-### 场景：创建数据池时检查密码强度
+### 场景：加入数据池时发送哈希
 
-- **前置条件**: 用户提供密码字符串
-- **操作**: 调用强度验证函数
-- **预期结果**: 应返回强度等级（弱/中/强）
-- **并且**: 弱密码（0-1 种字符类型）、中密码（2 种）、强密码（3 种+）
-
-**字符类型**:
-- 字母（大小写）
-- 数字
-- 特殊字符
+- **前置条件**: 用户输入 secretkey，目标数据池已保存 secretkey
+- **操作**: 发送 secretkey 的 SHA-256 哈希
+- **预期结果**: 目标设备使用一致的哈希方式进行匹配
+- **并且**: 哈希仅用于匹配，不作为安全防护
 
 ---
 
-## 需求：时间戳验证
+## 需求：同步请求携带 secretkey 哈希
 
-系统应验证加入请求的时间戳，防止重放攻击，有效期为 5 分钟，容忍 ±30 秒时钟偏差。
+每次同步请求必须携带 `pool_id` 与 secretkey 的 SHA-256 哈希，用于同步前校验。
 
-### 场景：处理加入请求时验证时间戳
+### 场景：同步请求校验
 
-- **前置条件**: 收到包含时间戳的加入请求
-- **操作**: 调用时间戳验证函数
-- **预期结果**: 时间戳应在有效期内（当前时间 ±5 分钟 ±30 秒）
-- **并且**: 过期请求应被拒绝
-
-**数据结构**:
-
-```
-// 包含时间戳的加入请求
-structure JoinRequest:
-    pool_id: String
-    device_id: String
-    password: ZeroizingString
-    timestamp: i64  // Unix timestamp in milliseconds
-
-    // 验证时间戳
-    function validate_timestamp():
-        return validate_timestamp(this.timestamp)
-```
+- **前置条件**: 设备已加入数据池
+- **操作**: 发起同步请求
+- **预期结果**: 请求携带 `pool_id` 与 secretkey 哈希
+- **并且**: 校验不通过时拒绝同步
 
 ---
 
-## 需求：内存安全
+## 需求：不提供安全性能力
 
-系统应在密码离开作用域时自动清零内存，防止敏感数据泄露。
+系统不提供 secretkey 强度、时间戳防重放、内存清零等安全能力，待安全性功能完成后再完善。
 
-### 场景：密码处理完成后清零内存
+### 场景：当前阶段安全能力缺失
 
-- **前置条件**: 密码存储在 Zeroizing 包装器中
-- **操作**: 密码变量离开作用域
-- **预期结果**: 内存中的密码数据应自动清零
-- **并且**: 密码不应参与序列化，防止意外泄露
+- **前置条件**: 系统处于临时方案阶段
+- **操作**: 使用明文 secretkey 与简化匹配流程
+- **预期结果**: 不包含强度、时间戳、防重放等能力
+- **并且**: 后续安全功能完成后再补充
 
 ---
 
@@ -110,25 +73,16 @@ structure JoinRequest:
 **测试文件**: `rust/tests/security_password_feature_test.rs`
 
 **单元测试**:
-- `test_hash_password()` - 测试密码哈希生成
-- `test_verify_password_success()` - 测试密码验证成功
-- `test_verify_password_failure()` - 测试密码验证失败
-- `test_validate_strength_weak()` - 测试弱密码检测
-- `test_validate_strength_medium()` - 测试中等密码检测
-- `test_validate_strength_strong()` - 测试强密码检测
-- `test_validate_timestamp_valid()` - 测试有效时间戳
-- `test_validate_timestamp_expired()` - 测试过期时间戳
-- `test_memory_zeroing()` - 测试内存清零
+- `it_should_hash_secretkey_with_sha256()` - 测试 secretkey 哈希生成
+- `it_should_verify_secretkey_hash_successfully()` - 测试 secretkey 哈希验证成功
+- `it_should_verify_secretkey_hash_failure()` - 测试 secretkey 哈希验证失败
 
 **功能测试**:
-- `test_pool_creation_with_password()` - 测试创建数据池时的密码哈希
-- `test_pool_join_with_password()` - 测试加入数据池时的密码验证
+- `it_should_create_pool_with_secretkey()` - 测试创建数据池时 secretkey 处理
+- `it_should_join_pool_with_secretkey_hash_verification()` - 测试加入数据池时哈希验证
 
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] 密码哈希格式正确（`$2b$12$...`）
-- [x] 密码验证时间恒定
-- [x] 内存清零功能正常
-- [x] 时间戳验证防止重放攻击
-- [x] 代码审查通过
+- [x] secretkey 哈希为 SHA-256
+- [x] 加入与同步使用哈希匹配
 - [x] 文档已更新

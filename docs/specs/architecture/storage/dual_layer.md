@@ -12,27 +12,6 @@
 
 **架构模式**:
 
-```
-┌─────────────────────────────────────────┐
-│              应用层                      │
-│         (UI, 业务逻辑)                   │
-└─────────────────────────────────────────┘
-           │                    │
-           │      写入          │ 读取
-           ▼                    ▼
-┌──────────────────┐  ┌──────────────────┐
-│      写入层      │  │      读取层      │
-│   (Loro CRDT)    │  │   (SQLite)       │
-│                  │  │                  │
-│ - 单一数据源     │  │ - 查询缓存       │
-│ - P2P 同步       │  │ - 索引           │
-│ - 无冲突         │  │ - 快速读取       │
-└──────────────────┘  └──────────────────┘
-           │                    ▲
-           │      订阅          │
-           └────────────────────┘
-              (自动更新)
-```
 
 **核心原则**:
 - **单一数据源**: Loro 文档是权威数据源
@@ -68,19 +47,6 @@
 
 **文档结构**:
 
-```rust
-// 卡片的 Loro 文档
-{
-  "card": {
-    "id": "01JQXXX...",           // UUIDv7
-    "title": "卡片标题",
-    "content": "# 内容",
-    "created_at": 1706000000000,  // Unix 时间戳 (毫秒)
-    "updated_at": 1706000001000,  // Unix 时间戳 (毫秒)
-    "deleted": false
-  }
-}
-```
 
 **文件位置**:
 - 路径: `data/loro/<card_id>/snapshot.loro`
@@ -95,25 +61,6 @@
 
 **文档结构**:
 
-```rust
-// 池的 Loro 文档
-{
-  "pool": {
-    "pool_id": "01JQYYY...",      // UUIDv7
-    "pool_name": "我的池",
-    "card_ids": [                 // 卡片 ID 列表
-      "01JQXXX...",
-      "01JQZZZ..."
-    ],
-    "device_ids": [               // 设备 ID 列表
-      "device_A",
-      "device_B"
-    ],
-    "created_at": 1706000000000,  // Unix 时间戳 (毫秒)
-    "updated_at": 1706000001000   // Unix 时间戳 (毫秒)
-  }
-}
-```
 
 **文件位置**:
 - 路径: `data/loro/<pool_id>/snapshot.loro`
@@ -145,46 +92,12 @@
 
 **卡片表**:
 
-```sql
-CREATE TABLE IF NOT EXISTS cards (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    deleted INTEGER NOT NULL DEFAULT 0
-);
-
--- 常用查询的索引
-CREATE INDEX IF NOT EXISTS idx_cards_updated_at ON cards(updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_cards_deleted ON cards(deleted);
-```
 
 **卡片-池绑定表**:
 
-```sql
-CREATE TABLE IF NOT EXISTS card_pool_bindings (
-    card_id TEXT NOT NULL,
-    pool_id TEXT NOT NULL,
-    PRIMARY KEY (card_id, pool_id),
-    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE
-);
-
--- 关系查询的索引
-CREATE INDEX IF NOT EXISTS idx_bindings_pool_id ON card_pool_bindings(pool_id);
-CREATE INDEX IF NOT EXISTS idx_bindings_card_id ON card_pool_bindings(card_id);
-```
 
 **池表**:
 
-```sql
-CREATE TABLE IF NOT EXISTS pools (
-    pool_id TEXT PRIMARY KEY,
-    pool_name TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-```
 
 ### 场景：查询优化示例
 
@@ -195,39 +108,12 @@ CREATE TABLE IF NOT EXISTS pools (
 
 **示例 1：获取当前池中的所有卡片**
 
-```sql
--- 使用索引的快速查询
-SELECT c.id, c.title, c.content, c.created_at, c.updated_at
-FROM cards c
-INNER JOIN card_pool_bindings b ON c.id = b.card_id
-WHERE b.pool_id = ?
-  AND c.deleted = 0
-ORDER BY c.updated_at DESC;
-```
 
 **示例 2：按标题搜索卡片**
 
-```sql
--- 全文搜索（可使用 FTS5 优化）
-SELECT c.id, c.title, c.content, c.created_at, c.updated_at
-FROM cards c
-INNER JOIN card_pool_bindings b ON c.id = b.card_id
-WHERE b.pool_id = ?
-  AND c.deleted = 0
-  AND c.title LIKE ?
-ORDER BY c.updated_at DESC;
-```
 
 **示例 3：统计池中的卡片数量**
 
-```sql
--- 使用索引的快速计数
-SELECT COUNT(*)
-FROM card_pool_bindings b
-INNER JOIN cards c ON b.card_id = c.id
-WHERE b.pool_id = ?
-  AND c.deleted = 0;
-```
 
 ---
 

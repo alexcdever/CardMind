@@ -31,21 +31,6 @@
 
 **Schema 定义**:
 
-```sql
-CREATE TABLE IF NOT EXISTS cards (
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    deleted INTEGER NOT NULL DEFAULT 0
-);
-
--- 常用查询的索引
-CREATE INDEX IF NOT EXISTS idx_cards_updated_at ON cards(updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_cards_deleted ON cards(deleted);
-CREATE INDEX IF NOT EXISTS idx_cards_created_at ON cards(created_at DESC);
-```
 
 **字段描述**:
 - `id`: 卡片 ID（UUIDv7）
@@ -63,14 +48,6 @@ CREATE INDEX IF NOT EXISTS idx_cards_created_at ON cards(created_at DESC);
 
 **Schema 定义**:
 
-```sql
-CREATE TABLE IF NOT EXISTS pools (
-    pool_id TEXT PRIMARY KEY,
-    pool_name TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-);
-```
 
 ### 场景：Card-Pool 绑定表 schema
 
@@ -81,19 +58,6 @@ CREATE TABLE IF NOT EXISTS pools (
 
 **Schema 定义**:
 
-```sql
-CREATE TABLE IF NOT EXISTS card_pool_bindings (
-    card_id TEXT NOT NULL,
-    pool_id TEXT NOT NULL,
-    PRIMARY KEY (card_id, pool_id),
-    FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
-    FOREIGN KEY (pool_id) REFERENCES pools(pool_id) ON DELETE CASCADE
-);
-
--- 关系查询的索引
-CREATE INDEX IF NOT EXISTS idx_bindings_pool_id ON card_pool_bindings(pool_id);
-CREATE INDEX IF NOT EXISTS idx_bindings_card_id ON card_pool_bindings(card_id);
-```
 
 **理由**:
 - 复合主键确保唯一的卡片-池关系
@@ -115,32 +79,6 @@ CREATE INDEX IF NOT EXISTS idx_bindings_card_id ON card_pool_bindings(card_id);
 
 **Schema 定义**:
 
-```sql
--- FTS5 虚拟表用于全文搜索
-CREATE VIRTUAL TABLE IF NOT EXISTS cards_fts USING fts5(
-    id UNINDEXED,
-    title,
-    content,
-    content='cards',
-    content_rowid='rowid'
-);
-
--- 保持 FTS5 与 cards 表同步的触发器
-CREATE TRIGGER IF NOT EXISTS cards_fts_insert AFTER INSERT ON cards BEGIN
-    INSERT INTO cards_fts(rowid, id, title, content)
-    VALUES (new.rowid, new.id, new.title, new.content);
-END;
-
-CREATE TRIGGER IF NOT EXISTS cards_fts_update AFTER UPDATE ON cards BEGIN
-    UPDATE cards_fts
-    SET title = new.title, content = new.content
-    WHERE rowid = new.rowid;
-END;
-
-CREATE TRIGGER IF NOT EXISTS cards_fts_delete AFTER DELETE ON cards BEGIN
-    DELETE FROM cards_fts WHERE rowid = old.rowid;
-END;
-```
 
 ### 场景：按关键词搜索卡片
 

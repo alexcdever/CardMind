@@ -42,15 +42,6 @@
 - **预期结果**: 表包含卡片核心字段与删除标记
 - **并且**: schema 片段可用于初始化表
 
-```sql
-    id TEXT PRIMARY KEY,
-    title TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
-    deleted INTEGER NOT NULL DEFAULT 0
-);
-```
 
 ### 场景：card_pool_bindings 表的 SQLite schema
 
@@ -59,12 +50,6 @@
 - **预期结果**: 表包含 card_id 与 pool_id 组合主键
 - **并且**: schema 片段可用于初始化表
 
-```sql
-    card_id TEXT NOT NULL,
-    pool_id TEXT NOT NULL,
-    PRIMARY KEY (card_id, pool_id)
-);
-```
 
 ---
 

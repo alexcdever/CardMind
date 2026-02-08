@@ -138,25 +138,6 @@
 ## 补充说明
 
 **数据结构**:
-```rust
-pub struct SyncState {
-    pub peer_id: String,
-    pub last_sync_version: VersionVector,
-    pub last_sync_time: i64,
-    pub sync_status: SyncStatus,
-}
-
-pub enum SyncStatus {
-    Idle,
-    Syncing,
-    Failed,
-    Completed,
-}
-
-pub struct VersionVector {
-    // Loro 内部版本向量表示
-}
-```
 
 **设计模式**:
 - **版本向量模式**: 追踪因果历史

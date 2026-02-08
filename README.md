@@ -202,8 +202,7 @@ docs/specs/
 - [节点发现](docs/specs/architecture/sync/peer_discovery.md)
 - [订阅同步](docs/specs/architecture/sync/subscription.md)
 - [冲突解决](docs/specs/architecture/sync/conflict_resolution.md)
-- [密码管理](docs/specs/architecture/security/password.md)
-- [密钥存储](docs/specs/architecture/security/keyring.md)
+- [secretkey 管理](docs/specs/architecture/security/password.md)
 - [隐私保护](docs/specs/architecture/security/privacy.md)
 
 #### Project Guardian 约束系统

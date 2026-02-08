@@ -55,21 +55,21 @@
 - ❌ `pool_name`
 - ❌ `member_list`
 - ❌ `card_count`
-- ❌ `password_hash`
+- ❌ `secretkey_hash`
 - ❌ `user_defined_nickname`
 
 ---
 
-## 需求：密码验证后获取详情
+## 需求：secretkey 验证后获取详情
 
-系统应要求新设备输入密码验证后，才能获取数据池的完整信息（名称、成员列表等）。
+系统应要求新设备输入 secretkey 验证后，才能获取数据池的完整信息（名称、成员列表等）。
 
 ### 场景：新设备加入数据池
 
 - **前置条件**: 新设备通过 mDNS 发现同一局域网的节点
 - **操作**: 新设备尝试加入数据池
-- **预期结果**: 系统应要求输入密码
-- **并且**: 密码验证成功后，应能获取数据池名称、成员列表等详细信息
+- **预期结果**: 系统应要求输入 secretkey
+- **并且**: secretkey 验证成功后，应能获取数据池名称、成员列表等详细信息
 
 ---
 
@@ -105,7 +105,7 @@
 - [../../domain/pool.md](../../domain/pool.md) - 数据池领域模型
 - [../../domain/sync.md](../../domain/sync.md) - 同步模型
 - [../sync/peer_discovery.md](../sync/peer_discovery.md) - mDNS 设备发现
-- [./password.md](./password.md) - bcrypt 密码管理
+- [./password.md](./password.md) - secretkey 管理
 
 **架构决策记录**:
 
@@ -119,7 +119,7 @@
 - 默认未加入数据池时不启动 mDNS
 - 加入数据池后默认开启 mDNS 监听与广播
 - mDNS 广播不包含任何自定义字段
-- 密码验证后才能获取数据池详情
+- secretkey 验证后才能获取数据池详情
 - P2P 通信使用 Noise 加密
 - 数据池 ID 为 UUID v7 且不泄露业务信息
 
@@ -127,6 +127,6 @@
 - [x] 所有单元测试通过
 - [x] 所有隐私测试通过
 - [x] mDNS 广播不包含自定义信息
-- [x] 密码验证后才能获取详情
+- [x] secretkey 验证后才能获取详情
 - [x] 代码审查通过
 - [x] 文档已更新

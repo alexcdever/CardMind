@@ -128,47 +128,6 @@
 
 **错误类型**:
 
-```
-error ImportError:
-    // 无法将更新导入 CRDT 文档
-    message: string
-    cause: optional error
-
-error ExportError:
-    // 无法从 CRDT 文档导出更新
-    message: string
-    cause: optional error
-
-error InvalidFormatError:
-    // 二进制数据不是有效的 CRDT 格式
-    message: string
-    data_size: integer
-
-error VersionMismatchError:
-    // 同步期间版本向量不匹配
-    expected_version: string
-    actual_version: string
-
-error DocumentNotFoundError:
-    // 请求的文档不存在
-    document_id: string
-    file_path: string
-
-error FileReadError:
-    // 无法读取文档文件
-    file_path: string
-    cause: error
-
-error FileWriteError:
-    // 无法写入文档文件
-    file_path: string
-    cause: error
-
-error NetworkError:
-    // 网络通信失败
-    message: string
-    peer_id: string
-```
 
 ---
 

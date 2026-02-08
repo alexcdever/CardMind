@@ -25,7 +25,7 @@ void main() {
     // ========================================
     group('Requirement: Pool Creation', () {
       testWidgets(
-        'it_should_create_pool_with_name_and_password_when_user_creates_pool',
+        'it_should_create_pool_with_name_and_secretkey_when_user_creates_pool',
         (WidgetTester tester) async {
           // Given: 设备未加入任何池
           await tester.pumpWidget(
@@ -38,8 +38,8 @@ void main() {
                       decoration: InputDecoration(labelText: '池名称'),
                     ),
                     const TextField(
-                      key: Key('pool_password'),
-                      decoration: InputDecoration(labelText: '密码'),
+                      key: Key('pool_secretkey'),
+                      decoration: InputDecoration(labelText: 'secretkey'),
                       obscureText: true,
                     ),
                     ElevatedButton(
@@ -53,13 +53,13 @@ void main() {
             ),
           );
 
-          // When: 用户创建名称为"Family Notes"、密码为"secure123"的新池
+          // When: 用户创建名称为"Family Notes"、secretkey 为"secure123"的新池
           await tester.enterText(
             find.byKey(const Key('pool_name')),
             'Family Notes',
           );
           await tester.enterText(
-            find.byKey(const Key('pool_password')),
+            find.byKey(const Key('pool_secretkey')),
             'secure123',
           );
           await tester.tap(find.byKey(const Key('create_button')));
@@ -67,9 +67,9 @@ void main() {
 
           // Then: 系统应使用 UUID v7 标识符创建池
           // AND: 池名称应设置为"Family Notes"
-          // AND: 密码应使用 bcrypt 哈希并存储
+          // AND: secretkey 明文保存于池元数据
           // AND: 设备应自动加入池
-          // AND: 使用正确密码加入的所有设备应可见该池
+          // AND: 使用正确 secretkey 加入的所有设备应可见该池
         },
       );
 
@@ -110,44 +110,6 @@ void main() {
         // AND: 系统应显示错误消息"池名称为必填项"
       });
 
-      testWidgets(
-        'it_should_reject_pool_with_weak_password_when_password_too_short',
-        (WidgetTester tester) async {
-          // Given: 用户尝试创建池
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    const TextField(
-                      key: Key('pool_password'),
-                      decoration: InputDecoration(
-                        labelText: '密码',
-                        errorText: '密码必须至少6个字符',
-                      ),
-                    ),
-                    ElevatedButton(
-                      key: const Key('create_button'),
-                      onPressed: () {},
-                      child: const Text('创建'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-
-          // When: 用户提供少于6个字符的密码
-          await tester.enterText(find.byKey(const Key('pool_password')), '123');
-          await tester.tap(find.byKey(const Key('create_button')));
-          await tester.pumpAndSettle();
-
-          // Then: 系统应拒绝创建
-          expect(find.text('密码必须至少6个字符'), findsOneWidget);
-          // AND: 系统应显示错误消息"密码必须至少6个字符"
-        },
-      );
-
       testWidgets('it_should_reject_creation_when_already_joined_to_pool', (
         WidgetTester tester,
       ) async {
@@ -176,7 +138,7 @@ void main() {
       testWidgets(
         'it_should_join_pool_with_valid_credentials_when_credentials_are_correct',
         (WidgetTester tester) async {
-          // Given: 存在 ID 为"pool-123"、密码为"secure123"的池
+          // Given: 存在 ID 为"pool-123"、secretkey 为"secure123"的池
           // AND: 设备未加入任何池
           await tester.pumpWidget(
             createTestWidget(
@@ -188,8 +150,8 @@ void main() {
                       decoration: InputDecoration(labelText: '池 ID'),
                     ),
                     const TextField(
-                      key: Key('pool_password'),
-                      decoration: InputDecoration(labelText: '密码'),
+                      key: Key('pool_secretkey'),
+                      decoration: InputDecoration(labelText: 'secretkey'),
                       obscureText: true,
                     ),
                     ElevatedButton(
@@ -203,16 +165,16 @@ void main() {
             ),
           );
 
-          // When: 用户使用 ID"pool-123"和密码"secure123"加入池
+          // When: 用户使用 ID"pool-123"和 secretkey "secure123"加入池
           await tester.enterText(find.byKey(const Key('pool_id')), 'pool-123');
           await tester.enterText(
-            find.byKey(const Key('pool_password')),
+            find.byKey(const Key('pool_secretkey')),
             'secure123',
           );
           await tester.tap(find.byKey(const Key('join_button')));
           await tester.pumpAndSettle();
 
-          // Then: 系统应根据存储的哈希验证密码
+          // Then: 系统应根据存储的哈希验证 secretkey
           // AND: 设备应添加到池的设备列表
           // AND: 设备配置应使用池 ID 更新
           // AND: 系统应开始同步池数据
@@ -220,19 +182,19 @@ void main() {
       );
 
       testWidgets(
-        'it_should_reject_join_with_invalid_password_when_password_wrong',
+        'it_should_reject_join_with_invalid_secretkey_when_secretkey_wrong',
         (WidgetTester tester) async {
-          // Given: 存在 ID 为"pool-123"、密码为"secure123"的池
+          // Given: 存在 ID 为"pool-123"、secretkey 为"secure123"的池
           await tester.pumpWidget(
             createTestWidget(
               Scaffold(
                 body: Column(
                   children: [
                     const TextField(
-                      key: Key('pool_password'),
+                      key: Key('pool_secretkey'),
                       decoration: InputDecoration(
-                        labelText: '密码',
-                        errorText: '密码无效',
+                        labelText: 'secretkey',
+                        errorText: 'secretkey 无效',
                       ),
                     ),
                     ElevatedButton(
@@ -246,16 +208,16 @@ void main() {
             ),
           );
 
-          // When: 用户尝试使用密码"wrong-password"加入
+          // When: 用户尝试使用 secretkey "wrong-secretkey"加入
           await tester.enterText(
-            find.byKey(const Key('pool_password')),
-            'wrong-password',
+            find.byKey(const Key('pool_secretkey')),
+            'wrong-secretkey',
           );
           await tester.tap(find.byKey(const Key('join_button')));
           await tester.pumpAndSettle();
 
           // Then: 系统应拒绝加入请求
-          expect(find.text('密码无效'), findsOneWidget);
+          expect(find.text('secretkey 无效'), findsOneWidget);
           // AND: 设备不应添加到池
         },
       );
@@ -513,7 +475,7 @@ void main() {
         },
       );
 
-      testWidgets('it_should_update_pool_password_when_user_changes_password', (
+      testWidgets('it_should_update_pool_secretkey_when_user_changes_secretkey', (
         WidgetTester tester,
       ) async {
         // Given: 设备已加入池
@@ -523,13 +485,13 @@ void main() {
               body: Column(
                 children: [
                   const TextField(
-                    key: Key('current_password'),
-                    decoration: InputDecoration(labelText: '当前密码'),
+                    key: Key('current_secretkey'),
+                    decoration: InputDecoration(labelText: '当前 secretkey'),
                     obscureText: true,
                   ),
                   const TextField(
-                    key: Key('new_password'),
-                    decoration: InputDecoration(labelText: '新密码'),
+                    key: Key('new_secretkey'),
+                    decoration: InputDecoration(labelText: '新 secretkey'),
                     obscureText: true,
                   ),
                   ElevatedButton(
@@ -543,62 +505,23 @@ void main() {
           ),
         );
 
-        // When: 用户将池密码更新为"new-password"
+        // When: 用户将池 secretkey 更新为"new-secretkey"
         await tester.enterText(
-          find.byKey(const Key('current_password')),
+          find.byKey(const Key('current_secretkey')),
           'secure123',
         );
         await tester.enterText(
-          find.byKey(const Key('new_password')),
-          'new-password',
+          find.byKey(const Key('new_secretkey')),
+          'new-secretkey',
         );
         await tester.tap(find.byKey(const Key('update_button')));
         await tester.pumpAndSettle();
 
-        // Then: 系统应首先验证当前密码
-        // AND: 系统应使用 bcrypt 哈希新密码
-        // AND: 系统应更新密码哈希
+        // Then: 系统应首先验证当前 secretkey
+        // AND: 系统应更新 secretkey
         // AND: 更改应同步到池中的所有设备
-        // AND: 系统应显示确认消息"池密码已更新"
+        // AND: 系统应显示确认消息"池 secretkey 已更新"
       });
-
-      testWidgets(
-        'it_should_reject_weak_password_update_when_password_too_short',
-        (WidgetTester tester) async {
-          // Given: 用户尝试更新池密码
-          await tester.pumpWidget(
-            createTestWidget(
-              Scaffold(
-                body: Column(
-                  children: [
-                    const TextField(
-                      key: Key('new_password'),
-                      decoration: InputDecoration(
-                        labelText: '新密码',
-                        errorText: '密码必须至少6个字符',
-                      ),
-                    ),
-                    ElevatedButton(
-                      key: const Key('update_button'),
-                      onPressed: () {},
-                      child: const Text('更新'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-
-          // When: 用户提供少于6个字符的密码
-          await tester.enterText(find.byKey(const Key('new_password')), '123');
-          await tester.tap(find.byKey(const Key('update_button')));
-          await tester.pumpAndSettle();
-
-          // Then: 系统应拒绝更新
-          expect(find.text('密码必须至少6个字符'), findsOneWidget);
-          // AND: 系统应显示错误消息"密码必须至少6个字符"
-        },
-      );
     });
 
     // ========================================
@@ -708,7 +631,7 @@ void main() {
                 children: [
                   const Text('加入我的 CardMind 池！'),
                   const Text('池 ID：pool-123'),
-                  const Text('密码：向我索取密码'),
+                  const Text('secretkey：向我索取 secretkey'),
                   ElevatedButton(onPressed: () {}, child: const Text('分享')),
                 ],
               ),
@@ -721,8 +644,8 @@ void main() {
         // Then: 系统应格式化包含池 ID 和说明的分享文本
         expect(find.text('加入我的 CardMind 池！'), findsOneWidget);
         expect(find.text('池 ID：pool-123'), findsOneWidget);
-        expect(find.text('密码：向我索取密码'), findsOneWidget);
-        // AND: 格式应为："加入我的 CardMind 池！\n池 ID：[pool-id]\n密码：[向我索取密码]"
+        expect(find.text('secretkey：向我索取 secretkey'), findsOneWidget);
+        // AND: 格式应为："加入我的 CardMind 池！\n池 ID：[pool-id]\nsecretkey：[向我索取 secretkey]"
         // AND: 系统应打开平台分享对话框
       });
 
@@ -740,8 +663,8 @@ void main() {
                       decoration: InputDecoration(labelText: '池 ID'),
                     ),
                     const TextField(
-                      key: Key('pool_password'),
-                      decoration: InputDecoration(labelText: '池密码'),
+                      key: Key('pool_secretkey'),
+                      decoration: InputDecoration(labelText: '池 secretkey'),
                       obscureText: true,
                     ),
                     ElevatedButton(
@@ -760,7 +683,7 @@ void main() {
           await tester.pump();
 
           // Then: 系统应验证池 ID 格式
-          // AND: 系统应提示输入池密码
+          // AND: 系统应提示输入池 secretkey
           // AND: 系统应尝试加入池
         },
       );

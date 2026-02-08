@@ -30,22 +30,6 @@
 
 **数据结构**:
 
-```
-structure DeviceConfig:
-    // 设备唯一标识符（PeerId 字符串）
-    // 由持久化密钥对派生，可能在加入池时生成
-    peer_id: Optional<String>
-
-    // 设备昵称（自动生成，用户可修改）
-    device_name: String
-
-    // 当前加入的数据池 ID（单值，可选）
-    // 设计决策：每设备单池以保持简单性
-    pool_id: Optional<String>
-
-    // 最后更新时间戳（Unix 时间戳）
-    updated_at: Integer
-```
 
 ---
 
@@ -119,7 +103,6 @@ structure DeviceConfig:
 - **操作**: 退出池
 - **预期结果**: 所有本地卡片应被删除
 - **并且**: 所有本地池元数据应被删除
-- **并且**: Keyring 中的池密码应被删除
 
 ---
 
@@ -186,14 +169,6 @@ structure DeviceConfig:
 **文件路径**: `~/.cardmind/config/device_config.json`
 
 **格式**:
-```json
-{
-  "peer_id": "12D3KooWQ1examplePeerId",
-  "device_name": "MacBook Pro-3b7e8",
-  "pool_id": "018dcc2b-b42f-7c7a-b7e8-3b5c3b7e8b7f",
-  "updated_at": 1705171200
-}
-```
 
 ---
 
@@ -265,7 +240,6 @@ structure DeviceConfig:
 **相关架构规格**:
 - [./card_store.md](./card_store.md) - CardStore 实现
 - [./pool_store.md](./pool_store.md) - PoolStore 实现
-- [../security/keyring.md](../security/keyring.md) - Keyring 密码存储
 
 **架构决策记录**:
 - ADR-0001: 单池约束 - 每设备单池设计决策

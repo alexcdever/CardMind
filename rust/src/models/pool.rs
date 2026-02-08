@@ -1,22 +1,6 @@
 //! 数据池模型定义
 //!
 //! 本模块定义数据池（Pool）和设备（Device）的数据结构。
-//!
-//! # 数据池设计
-//!
-//! 根据 `docs/architecture/data_contract.md` 2.1 节的定义：
-//! - **`pool_id`**: 数据池唯一标识（UUID v7）
-//! - **name**: 数据池名称（最大 128 字符）
-//! - **`password_hash`**: bcrypt 加密哈希（不可逆）
-//! - **members**: 成员设备列表（至少 1 个成员）
-//! - **`created_at`**: 创建时间（毫秒级时间戳）
-//! - **`updated_at`**: 最后更新时间（毫秒级时间戳）
-//!
-//! # 安全特性
-//!
-//! - 密码使用 bcrypt 哈希（工作因子 12）
-//! - 明文密码存储在系统 Keyring，不在 Pool 结构中
-//! - 设备昵称支持数据池特定自定义
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -25,10 +9,6 @@ use thiserror::Error;
 /// 数据池错误类型
 #[derive(Error, Debug)]
 pub enum PoolError {
-    /// 密码验证失败
-    #[error("密码验证失败")]
-    InvalidPassword,
-
     /// 数据池未找到
     #[error("数据池未找到: {0}")]
     PoolNotFound(String),
@@ -40,14 +20,6 @@ pub enum PoolError {
     /// 数据池名称无效
     #[error("数据池名称无效: {0}")]
     InvalidPoolName(String),
-
-    /// 密码强度不足
-    #[error("密码强度不足: {0}")]
-    WeakPassword(String),
-
-    /// bcrypt 错误
-    #[error("bcrypt 错误: {0}")]
-    BcryptError(String),
 
     /// 其他错误
     #[error("数据池错误: {0}")]
@@ -142,7 +114,7 @@ impl Device {
 ///
 /// - `pool_id`: 数据池唯一标识（UUID v7）
 /// - `name`: 数据池名称（最大 128 字符）
-/// - `password_hash`: bcrypt 加密哈希
+/// - `secretkey`: 数据池 secretkey（明文保存于元数据）
 /// - `members`: 成员设备列表
 /// - `card_ids`: 卡片 ID 列表（单池模型：池持有卡片）
 /// - `created_at`: 创建时间（毫秒级时间戳）
@@ -153,7 +125,7 @@ impl Device {
 /// ```
 /// use cardmind_rust::models::pool::{Pool, Device};
 ///
-/// let mut pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+/// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
 /// let device = Device::new("device-001", "My iPhone");
 /// pool.add_member(device);
 /// pool.add_card("card-001");
@@ -172,10 +144,8 @@ pub struct Pool {
     /// 数据池名称（最大 128 字符）
     pub name: String,
 
-    /// bcrypt 密码哈希
-    ///
-    /// 格式：`$2b$12$...`（工作因子 12）
-    pub password_hash: String,
+    /// 数据池 secretkey（明文）
+    pub secretkey: String,
 
     /// 成员设备列表
     pub members: Vec<Device>,
@@ -198,25 +168,25 @@ impl Pool {
     ///
     /// - `pool_id`: 数据池 UUID
     /// - `name`: 数据池名称
-    /// - `password_hash`: bcrypt 加密后的密码哈希
+    /// - `secretkey`: 数据池 secretkey
     ///
     /// # 示例
     ///
     /// ```
     /// use cardmind_rust::models::pool::Pool;
     ///
-    /// let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+    /// let pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// assert_eq!(pool.pool_id, "pool-001");
     /// assert_eq!(pool.name, "工作笔记");
     /// assert!(pool.members.is_empty());
     /// ```
     #[must_use]
-    pub fn new(pool_id: &str, name: &str, password_hash: &str) -> Self {
+    pub fn new(pool_id: &str, name: &str, secretkey: &str) -> Self {
         let now = Utc::now().timestamp_millis();
         Self {
             pool_id: pool_id.to_string(),
             name: name.to_string(),
-            password_hash: password_hash.to_string(),
+            secretkey: secretkey.to_string(),
             members: Vec::new(),
             card_ids: Vec::new(),
             created_at: now,
@@ -235,7 +205,7 @@ impl Pool {
     /// ```
     /// use cardmind_rust::models::pool::{Pool, Device};
     ///
-    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// let device = Device::new("device-001", "My iPhone");
     /// pool.add_member(device);
     ///
@@ -263,7 +233,7 @@ impl Pool {
     /// ```
     /// use cardmind_rust::models::pool::{Pool, Device};
     ///
-    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// let device = Device::new("device-001", "My iPhone");
     /// pool.add_member(device);
     ///
@@ -299,7 +269,7 @@ impl Pool {
     /// ```
     /// use cardmind_rust::models::pool::{Pool, Device};
     ///
-    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// let device = Device::new("device-001", "My iPhone");
     /// pool.add_member(device);
     ///
@@ -340,24 +310,6 @@ impl Pool {
         Ok(())
     }
 
-    /// 验证密码强度
-    ///
-    /// # 规则
-    ///
-    /// - 最少 8 位字符
-    /// - 建议包含字母和数字（可选，不强制）
-    ///
-    /// # Errors
-    ///
-    /// 密码强度不足时返回错误
-    pub fn validate_password(password: &str) -> Result<(), PoolError> {
-        if password.len() < 8 {
-            return Err(PoolError::WeakPassword("密码至少 8 位字符".to_string()));
-        }
-
-        Ok(())
-    }
-
     /// 添加卡片到数据池
     ///
     /// # 参数
@@ -369,7 +321,7 @@ impl Pool {
     /// ```
     /// use cardmind_rust::models::pool::Pool;
     ///
-    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// pool.add_card("card-001");
     /// assert_eq!(pool.card_ids.len(), 1);
     /// assert!(pool.has_card("card-001"));
@@ -396,7 +348,7 @@ impl Pool {
     /// ```
     /// use cardmind_rust::models::pool::Pool;
     ///
-    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// pool.add_card("card-001");
     ///
     /// let removed = pool.remove_card("card-001");
@@ -426,7 +378,7 @@ impl Pool {
     /// ```
     /// use cardmind_rust::models::pool::Pool;
     ///
-    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// pool.add_card("card-001");
     ///
     /// assert!(pool.has_card("card-001"));
@@ -444,7 +396,7 @@ impl Pool {
     /// ```
     /// use cardmind_rust::models::pool::Pool;
     ///
-    /// let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// pool.add_card("card-001");
     /// pool.add_card("card-002");
     ///
@@ -477,10 +429,10 @@ mod tests {
 
     #[test]
     fn it_should_pool_creation() {
-        let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+        let pool = Pool::new("pool-001", "工作笔记", "secretkey");
         assert_eq!(pool.pool_id, "pool-001");
         assert_eq!(pool.name, "工作笔记");
-        assert_eq!(pool.password_hash, "hashed_password");
+        assert_eq!(pool.secretkey, "secretkey");
         assert!(pool.members.is_empty());
         assert!(pool.created_at > 0);
         assert_eq!(pool.created_at, pool.updated_at);
@@ -488,7 +440,7 @@ mod tests {
 
     #[test]
     fn it_should_add_member() {
-        let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+        let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
         let device1 = Device::new("device-001", "iPhone");
         let device2 = Device::new("device-002", "MacBook");
 
@@ -505,7 +457,7 @@ mod tests {
 
     #[test]
     fn it_should_remove_member() {
-        let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+        let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
         let device = Device::new("device-001", "iPhone");
         pool.add_member(device);
 
@@ -520,7 +472,7 @@ mod tests {
 
     #[test]
     fn it_should_update_member_name() {
-        let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+        let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
         let device = Device::new("device-001", "My iPhone");
         pool.add_member(device);
 
@@ -552,22 +504,8 @@ mod tests {
     }
 
     #[test]
-    fn it_should_validate_password() {
-        // 有效密码
-        assert!(Pool::validate_password("12345678").is_ok());
-        assert!(Pool::validate_password("password123").is_ok());
-
-        // 太短的密码
-        assert!(Pool::validate_password("1234567").is_err());
-        assert!(Pool::validate_password("").is_err());
-
-        // 8 位正好应该通过
-        assert!(Pool::validate_password("12345678").is_ok());
-    }
-
-    #[test]
     fn it_should_pool_serialization() {
-        let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+        let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
         let device = Device::new("device-001", "iPhone");
         pool.add_member(device);
 

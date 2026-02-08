@@ -10,7 +10,12 @@
 use cardmind_rust::models::device_config::DeviceConfig;
 use cardmind_rust::p2p::P2PSyncService;
 use cardmind_rust::store::card_store::CardStore;
+use cardmind_rust::store::pool_store::PoolStore;
 use std::sync::{Arc, Mutex};
+
+fn new_pool_store() -> Arc<Mutex<PoolStore>> {
+    Arc::new(Mutex::new(PoolStore::new_in_memory().unwrap()))
+}
 
 /// Spec-SYNC-001: 同步服务初始化
 ///
@@ -24,10 +29,11 @@ use std::sync::{Arc, Mutex};
 fn it_should_create_sync_service_with_valid_config() {
     // Given: 有效的设备配置和 CardStore
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
 
     // When: 创建同步服务
-    let service = P2PSyncService::new(card_store, device_config);
+    let service = P2PSyncService::new(card_store, pool_store, device_config);
 
     // Then: 服务创建成功
     assert!(service.is_ok(), "同步服务应该创建成功");
@@ -50,10 +56,11 @@ fn it_should_create_sync_service_with_valid_config() {
 fn it_should_create_service_regardless_of_pool_status() {
     // Given: 未加入任何池的设备配置
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
 
     // When: 创建同步服务
-    let service = P2PSyncService::new(card_store, device_config);
+    let service = P2PSyncService::new(card_store, pool_store, device_config);
 
     // Then: 服务创建成功
     assert!(service.is_ok(), "同步服务应该能创建");
@@ -71,8 +78,9 @@ fn it_should_create_service_regardless_of_pool_status() {
 fn it_should_return_valid_sync_status_when_created() {
     // Given: 新创建的同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
-    let service = P2PSyncService::new(card_store, device_config).unwrap();
+    let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // When: 获取同步状态
     let _status = service.get_sync_status();
@@ -95,8 +103,9 @@ fn it_should_return_valid_sync_status_when_created() {
 fn it_should_track_local_peer_id_consistency() {
     // Given: 同步服务实例
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
-    let service = P2PSyncService::new(card_store, device_config).unwrap();
+    let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // When: 多次获取 Peer ID
     let peer_id_1 = service.local_peer_id();
@@ -118,8 +127,9 @@ fn it_should_track_local_peer_id_consistency() {
 fn it_should_handle_concurrent_status_requests() {
     // Given: 同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
-    let service = Arc::new(P2PSyncService::new(card_store, device_config).unwrap());
+    let service = Arc::new(P2PSyncService::new(card_store, pool_store, device_config).unwrap());
 
     // When: 多个线程同时请求状态
     let handles: Vec<_> = (0..5)
@@ -148,10 +158,11 @@ fn it_should_handle_concurrent_status_requests() {
 async fn it_should_use_device_config_for_pool_info() {
     // Given: 已加入特定池的设备配置
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let mut device_config = DeviceConfig::new();
     let _ = device_config.join_pool("my-custom-pool-123");
 
-    let service = P2PSyncService::new(card_store, device_config).unwrap();
+    let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // Then: 服务应该能正常工作
     let _status = service.get_sync_status();
@@ -171,10 +182,11 @@ async fn it_should_use_device_config_for_pool_info() {
 fn it_should_support_mock_network_mode() {
     // Given: CardStore 和设备配置
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
 
     // When: 使用模拟网络创建服务
-    let service = P2PSyncService::new_with_mock_network(card_store, device_config);
+    let service = P2PSyncService::new_with_mock_network(card_store, pool_store, device_config);
 
     // Then: 服务创建成功
     assert!(service.is_ok(), "模拟网络模式服务应该创建成功");
@@ -192,8 +204,9 @@ fn it_should_support_mock_network_mode() {
 fn it_should_have_zero_online_peers_initially() {
     // Given: 新创建的同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
-    let service = P2PSyncService::new(card_store, device_config).unwrap();
+    let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // When: 获取初始状态
     let status = service.get_sync_status();
@@ -215,8 +228,9 @@ fn it_should_have_zero_online_peers_initially() {
 fn it_should_return_independent_status_copies() {
     // Given: 同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
-    let service = P2PSyncService::new(card_store, device_config).unwrap();
+    let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // When: 获取多个状态
     let status1 = service.get_sync_status();

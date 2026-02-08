@@ -21,21 +21,15 @@
 - **WHEN**: 请求更新池名称
 - **THEN**: 系统拒绝并返回错误 `INVALID_NAME`
 
-### 场景：更新池密钥成功
+### 场景：更新池 secretkey 成功
 
-- **GIVEN**: 设备已加入某个池且提供正确旧密钥
-- **WHEN**: 请求设置新密钥且长度不少于 6
-- **THEN**: 系统使用 bcrypt 哈希保存新密钥
+- **GIVEN**: 设备已加入某个池且提供正确旧 secretkey
+- **WHEN**: 请求设置新 secretkey
+- **THEN**: 系统保存新 secretkey 明文到池元数据
 - **并且**: 变更同步到所有设备
 
-### 场景：旧密钥验证失败
+### 场景：旧 secretkey 验证失败
 
-- **GIVEN**: 提供的旧密钥错误
-- **WHEN**: 请求更新池密钥
-- **THEN**: 系统拒绝并返回错误 `INVALID_PASSWORD`
-
-### 场景：新密钥过短
-
-- **GIVEN**: 新密钥长度少于 6
-- **WHEN**: 请求更新池密钥
-- **THEN**: 系统拒绝并返回错误 `WEAK_PASSWORD`
+- **GIVEN**: 提供的旧 secretkey 错误
+- **WHEN**: 请求更新池 secretkey
+- **THEN**: 系统拒绝并返回错误 `INVALID_SECRETKEY`

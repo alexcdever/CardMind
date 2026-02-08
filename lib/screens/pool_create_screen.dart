@@ -13,17 +13,17 @@ class PoolCreateScreen extends StatefulWidget {
 class _PoolCreateScreenState extends State<PoolCreateScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
+  final _secretkeyController = TextEditingController();
+  final _confirmSecretkeyController = TextEditingController();
   bool _isLoading = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirm = true;
+  bool _obscureSecretkey = true;
+  bool _obscureConfirmSecretkey = true;
 
   @override
   void dispose() {
     _nameController.dispose();
-    _passwordController.dispose();
-    _confirmController.dispose();
+    _secretkeyController.dispose();
+    _confirmSecretkeyController.dispose();
     super.dispose();
   }
 
@@ -69,22 +69,19 @@ class _PoolCreateScreenState extends State<PoolCreateScreen> {
     return null;
   }
 
-  String? _validatePassword(String? value) {
+  String? _validateSecretkey(String? value) {
     if (value == null || value.isEmpty) {
-      return '请输入密码';
-    }
-    if (value.length < 8) {
-      return '密码至少 8 个字符';
+      return '请输入 secretkey';
     }
     return null;
   }
 
-  String? _validateConfirm(String? value) {
+  String? _validateConfirmSecretkey(String? value) {
     if (value == null || value.isEmpty) {
-      return '请确认密码';
+      return '请确认 secretkey';
     }
-    if (value != _passwordController.text) {
-      return '两次输入的密码不一致';
+    if (value != _secretkeyController.text) {
+      return '两次输入的 secretkey 不一致';
     }
     return null;
   }
@@ -130,55 +127,60 @@ class _PoolCreateScreenState extends State<PoolCreateScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _passwordController,
+                  controller: _secretkeyController,
                   decoration: InputDecoration(
-                    labelText: '密码',
-                    hintText: '至少 8 个字符',
+                    labelText: 'secretkey',
+                    hintText: '请输入 secretkey',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword
+                        _obscureSecretkey
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                       ),
                       onPressed: () {
-                        setState(() => _obscurePassword = !_obscurePassword);
+                        setState(
+                          () => _obscureSecretkey = !_obscureSecretkey,
+                        );
                       },
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  obscureText: _obscurePassword,
+                  obscureText: _obscureSecretkey,
                   maxLength: 64,
-                  validator: _validatePassword,
+                  validator: _validateSecretkey,
                   enabled: !_isLoading,
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _confirmController,
+                  controller: _confirmSecretkeyController,
                   decoration: InputDecoration(
-                    labelText: '确认密码',
-                    hintText: '再次输入密码',
+                    labelText: '确认 secretkey',
+                    hintText: '再次输入 secretkey',
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscureConfirm
+                        _obscureConfirmSecretkey
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                       ),
                       onPressed: () {
-                        setState(() => _obscureConfirm = !_obscureConfirm);
+                        setState(
+                          () => _obscureConfirmSecretkey =
+                              !_obscureConfirmSecretkey,
+                        );
                       },
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  obscureText: _obscureConfirm,
+                  obscureText: _obscureConfirmSecretkey,
                   maxLength: 64,
-                  validator: _validateConfirm,
+                  validator: _validateConfirmSecretkey,
                   enabled: !_isLoading,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleCreate(),

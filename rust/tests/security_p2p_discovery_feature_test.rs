@@ -51,85 +51,40 @@ fn it_should_not_expose_sensitive_pool_data() {
     assert_eq!(pool_name, "");
 }
 
-// ==== Requirement: Timestamp Validation ====
-
-#[test]
-/// Scenario: Validate timestamp - valid
-fn it_should_validate_valid_timestamp() {
-    // Given: 收到当前时间戳的加入请求
-    let now = chrono::Utc::now();
-    let current_timestamp = now.timestamp_millis();
-    let one_minute_ago = current_timestamp - 60000;
-    let recent_timestamp = current_timestamp - 30000;
-
-    // When: 验证时间戳
-    assert!(recent_timestamp > one_minute_ago);
-    assert!(recent_timestamp < current_timestamp);
-}
-
-#[test]
-/// Scenario: Validate timestamp - expired
-fn it_should_reject_expired_timestamp() {
-    // Given: 收到过期的加入请求（6 分钟前）
-    let now = chrono::Utc::now();
-    let current_timestamp = now.timestamp_millis();
-    let six_minutes_ago = current_timestamp - 360_000;
-
-    // When: 验证过期时间戳
-    assert!(six_minutes_ago < current_timestamp);
-}
-
-// ==== Requirement: Memory Safety ====
-
-#[test]
-/// Scenario: Memory zeroing works correctly
-fn it_should_zero_password_after_processing() {
-    use zeroize::Zeroize;
-
-    // Given: 密码在处理范围内
-    let mut password = String::from("sensitive_password");
-
-    // When: 密码离开作用域前执行清零
-    password.zeroize();
-
-    // Then: 内存中的密码应被清零
-    assert!(password.as_bytes().iter().all(|byte| *byte == 0));
-}
-
 // ==== Integration Tests ====
 
 #[test]
-/// Scenario: Pool creation with password
-fn it_should_create_pool_with_password() {
-    // Given: 用户创建新数据池并设置密码
+/// Scenario: Pool creation with secretkey
+fn it_should_create_pool_with_secretkey() {
+    // Given: 用户创建新数据池并设置 secretkey
     let pool_id = "pool-new-001";
-    let password = "secure_password_123";
+    let secretkey = "secure_secretkey_123";
 
     // When: 创建数据池的操作
-    // Note: 密码哈希应该在此处完成
-    assert_eq!(password, "secure_password_123");
+    // Note: secretkey 明文保存在元数据
+    assert_eq!(secretkey, "secure_secretkey_123");
 }
 
 #[test]
-/// Scenario: Join pool with password verification
-fn it_should_join_pool_with_password_verification() {
-    // Given: 用户尝试加入数据池并输入密码
+/// Scenario: Join pool with secretkey hash verification
+fn it_should_join_pool_with_secretkey_hash_verification() {
+    // Given: 用户尝试加入数据池并输入 secretkey
     let pool_id = "existing-pool-001";
-    let password = "correct_password";
+    let secretkey = "correct_secretkey";
 
     // When: 加入数据池的操作
-    // Note: 密码验证应该在加入请求中完成
-    assert_eq!(password, "correct_password");
+    // Note: secretkey 哈希验证应该在加入请求中完成
+    assert_eq!(secretkey, "correct_secretkey");
 }
 
 #[test]
-/// Scenario: Password not found when joining pool
-fn it_should_fail_joining_when_password_not_found() {
-    // Given: 用户尝试加入新数据池（无存储的密码）
+/// Scenario: Secretkey not found when joining pool
+fn it_should_fail_joining_when_secretkey_not_found() {
+    // Given: 用户尝试加入新数据池（无存储的 secretkey）
     let pool_id = "new-pool-002";
-    let password = "any_password";
+    let secretkey = "any_secretkey";
 
     // When: 加入数据池的操作
-    // Note: 应提示用户设置密码
-    assert_eq!(password, "any_password");
+    // Note: 应提示用户设置 secretkey
+    assert_eq!(secretkey, "any_secretkey");
 }

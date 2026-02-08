@@ -523,97 +523,10 @@ void main() {
     });
 
     // ========================================
-    // 密码验证测试（补充）
+    // secretkey 验证测试（补充）
     // ========================================
-    group('Password Validation', () {
-      testWidgets('it_should_validate_password_length_at_least_8_characters', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户在创建空间对话框
-        String? errorMessage;
-
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) => Scaffold(
-                body: Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (context) {
-                          final passwordController = TextEditingController();
-                          return AlertDialog(
-                            title: const Text('创建笔记空间'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextField(
-                                  controller: passwordController,
-                                  obscureText: true,
-                                  decoration: InputDecoration(
-                                    labelText: '密码',
-                                    hintText: '至少 8 位',
-                                    errorText: errorMessage,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('取消'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  if (passwordController.text.length < 8) {
-                                    // 显示错误
-                                    Navigator.pop(context);
-                                    showDialog<void>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('错误'),
-                                        content: const Text('密码至少需要 8 位'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context),
-                                            child: const Text('确定'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: const Text('创建'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                    child: const Text('创建空间'),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-
-        // When: 用户输入少于 8 位的密码
-        await tester.tap(find.text('创建空间'));
-        await tester.pumpAndSettle();
-
-        final textField = find.byType(TextField);
-        await tester.enterText(textField, '1234567'); // 7 位
-        await tester.tap(find.text('创建'));
-        await tester.pumpAndSettle();
-
-        // Then: 应该显示错误提示
-        expect(find.text('密码至少需要 8 位'), findsOneWidget);
-      });
-
-      testWidgets('it_should_show_error_when_passwords_do_not_match', (
+    group('Secretkey Validation', () {
+      testWidgets('it_should_show_error_when_secretkeys_do_not_match', (
         WidgetTester tester,
       ) async {
         // Given: 用户在创建空间对话框
@@ -627,7 +540,7 @@ void main() {
                       showDialog<void>(
                         context: context,
                         builder: (context) {
-                          final passwordController = TextEditingController();
+                          final secretkeyController = TextEditingController();
                           final confirmController = TextEditingController();
                           return AlertDialog(
                             title: const Text('创建笔记空间'),
@@ -635,17 +548,17 @@ void main() {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 TextField(
-                                  controller: passwordController,
+                                  controller: secretkeyController,
                                   obscureText: true,
                                   decoration: const InputDecoration(
-                                    labelText: '密码',
+                                    labelText: 'secretkey',
                                   ),
                                 ),
                                 TextField(
                                   controller: confirmController,
                                   obscureText: true,
                                   decoration: const InputDecoration(
-                                    labelText: '确认密码',
+                                    labelText: '确认 secretkey',
                                   ),
                                 ),
                               ],
@@ -653,14 +566,14 @@ void main() {
                             actions: [
                               ElevatedButton(
                                 onPressed: () {
-                                  if (passwordController.text !=
+                                  if (secretkeyController.text !=
                                       confirmController.text) {
                                     Navigator.pop(context);
                                     showDialog<void>(
                                       context: context,
                                       builder: (context) => AlertDialog(
                                         title: const Text('错误'),
-                                        content: const Text('密码不匹配'),
+                                        content: const Text('secretkey 不匹配'),
                                         actions: [
                                           TextButton(
                                             onPressed: () =>
@@ -687,21 +600,21 @@ void main() {
           ),
         );
 
-        // When: 用户输入不匹配的密码
+        // When: 用户输入不匹配的 secretkey
         await tester.tap(find.text('创建空间'));
         await tester.pumpAndSettle();
 
         final textFields = find.byType(TextField);
-        await tester.enterText(textFields.first, 'password123');
-        await tester.enterText(textFields.last, 'password456');
+        await tester.enterText(textFields.first, 'secretkey123');
+        await tester.enterText(textFields.last, 'secretkey456');
         await tester.tap(find.text('创建'));
         await tester.pumpAndSettle();
 
         // Then: 应该显示错误提示
-        expect(find.text('密码不匹配'), findsOneWidget);
+        expect(find.text('secretkey 不匹配'), findsOneWidget);
       });
 
-      testWidgets('it_should_show_password_input_in_pair_device_screen', (
+      testWidgets('it_should_show_secretkey_input_in_pair_device_screen', (
         WidgetTester tester,
       ) async {
         // Given: 用户在配对设备界面
@@ -711,13 +624,13 @@ void main() {
               appBar: AppBar(title: const Text('配对设备')),
               body: Column(
                 children: [
-                  const Text('输入空间密码'),
+                  const Text('输入空间 secretkey'),
                   const SizedBox(height: 16),
                   const TextField(
                     obscureText: true,
                     decoration: InputDecoration(
-                      labelText: '密码',
-                      hintText: '输入空间密码',
+                      labelText: 'secretkey',
+                      hintText: '输入空间 secretkey',
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -729,9 +642,9 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Then: 应该显示密码输入框
-        expect(find.text('输入空间密码'), findsWidgets);
-        expect(find.text('密码'), findsOneWidget);
+        // Then: 应该显示 secretkey 输入框
+        expect(find.text('输入空间 secretkey'), findsWidgets);
+        expect(find.text('secretkey'), findsOneWidget);
         expect(find.byType(TextField), findsOneWidget);
       });
     });
@@ -862,125 +775,6 @@ void main() {
 
         // Then: 应该导航到初始化页面
         expect(find.text('Onboarding Screen'), findsOneWidget);
-      });
-    });
-
-    // ========================================
-    // 密码强度指示器测试（补充）
-    // ========================================
-    group('Password Strength Indicator', () {
-      testWidgets('it_should_show_password_strength_indicator', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户在创建空间对话框输入密码
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) => Scaffold(
-                body: Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (context) {
-                          final passwordController = TextEditingController();
-                          String passwordStrength = '弱';
-                          Color strengthColor = Colors.red;
-
-                          return StatefulBuilder(
-                            builder: (context, setState) {
-                              return AlertDialog(
-                                title: const Text('创建笔记空间'),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    TextField(
-                                      controller: passwordController,
-                                      obscureText: true,
-                                      decoration: const InputDecoration(
-                                        labelText: '密码',
-                                        hintText: '至少 8 位',
-                                      ),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          if (value.length < 8) {
-                                            passwordStrength = '弱';
-                                            strengthColor = Colors.red;
-                                          } else if (value.length < 12) {
-                                            passwordStrength = '中';
-                                            strengthColor = Colors.orange;
-                                          } else {
-                                            passwordStrength = '强';
-                                            strengthColor = Colors.green;
-                                          }
-                                        });
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        const Text('密码强度: '),
-                                        Text(
-                                          passwordStrength,
-                                          style: TextStyle(
-                                            color: strengthColor,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('取消'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('创建'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                    child: const Text('创建空间'),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-
-        // When: 用户输入不同长度的密码
-        await tester.tap(find.text('创建空间'));
-        await tester.pumpAndSettle();
-
-        // 输入短密码（弱）
-        final textField = find.byType(TextField);
-        await tester.enterText(textField, '1234567'); // 7 位
-        await tester.pump();
-
-        // Then: 应该显示"弱"
-        expect(find.text('密码强度: '), findsOneWidget);
-        expect(find.text('弱'), findsOneWidget);
-
-        // When: 输入中等长度密码（中）
-        await tester.enterText(textField, '12345678'); // 8 位
-        await tester.pump();
-
-        // Then: 应该显示"中"
-        expect(find.text('中'), findsOneWidget);
-
-        // When: 输入长密码（强）
-        await tester.enterText(textField, '123456789012'); // 12 位
-        await tester.pump();
-
-        // Then: 应该显示"强"
-        expect(find.text('强'), findsOneWidget);
       });
     });
 

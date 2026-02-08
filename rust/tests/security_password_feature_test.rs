@@ -6,203 +6,94 @@
 
 #![allow(unused)]
 
-use cardmind_rust::security::password::derive_pool_hash;
-use hkdf::Hkdf;
-use sha2::Sha256;
+use cardmind_rust::security::password::{hash_secretkey, verify_secretkey_hash};
+use sha2::{Digest, Sha256};
 
-// ==== Requirement: Password Hashing ====
+// ==== Requirement: Secretkey Hashing ====
 
 #[test]
-/// Scenario: Hash password when creating pool
-fn it_should_hash_password_when_creating_pool() {
-    // Given: User provides plaintext password string
-    let password = "test_password_123";
+/// Scenario: Hash secretkey when creating pool
+fn it_should_hash_secretkey_with_sha256() {
+    // Given: User provides plaintext secretkey string
+    let secretkey = "test_secretkey_123";
 
-    // When: 密码哈希函数被调用
-    let hash = password;
+    // When: secretkey 哈希函数被调用
+    let hash = hash_secretkey(secretkey).unwrap();
 
-    // Then: 应返回字符串（在测试中验证哈希格式）
-    // Note: 实际的 bcrypt 哈希应该在测试辅助方法中完成
-    // 这里我们验证密码字符串的传递和处理
-    assert_eq!(hash, "test_password_123");
+    // Then: 应为 SHA-256 hex 编码
+    let mut hasher = Sha256::new();
+    hasher.update(secretkey.as_bytes());
+    let expected = format!("{:x}", hasher.finalize());
+    assert_eq!(hash, expected);
 }
 
 #[test]
-/// Scenario: Verify password success
-fn it_should_verify_password_successfully() {
-    // Given: 正确的密码和哈希
-    let password = "correct_password";
-    let hash = "$2b$12$salt_hash";
+/// Scenario: Verify secretkey hash success
+fn it_should_verify_secretkey_hash_successfully() {
+    // Given: 正确的 secretkey 与哈希
+    let secretkey = "correct_secretkey";
+    let hash = hash_secretkey(secretkey).unwrap();
 
     // When: 验证函数被调用
-    // Then: 应返回 true（密码匹配）
-    // Note: 在实际实现中，这里模拟验证逻辑
-    assert_eq!(password, "correct_password");
+    let is_valid = verify_secretkey_hash(secretkey, &hash).unwrap();
+
+    // Then: 应返回 true（哈希匹配）
+    assert!(is_valid);
 }
 
 #[test]
-/// Scenario: Verify password failure
-fn it_should_verify_password_failure() {
-    // Given: 错误的密码
-    let password = "wrong_password";
-    let hash = "$2b$12$diff_hash";
+/// Scenario: Verify secretkey hash failure
+fn it_should_verify_secretkey_hash_failure() {
+    // Given: 错误的 secretkey 或哈希
+    let secretkey = "wrong_secretkey";
+    let hash = hash_secretkey("correct_secretkey").unwrap();
 
     // When: 验证函数被调用
-    // Then: 应返回 false（密码不匹配）
-    assert_eq!(password, "wrong_password");
-}
+    let is_valid = verify_secretkey_hash(secretkey, &hash).unwrap();
 
-// ==== Requirement: Password Strength Validation ====
-
-#[test]
-/// Scenario: Validate strength - too short
-fn it_should_reject_too_short_password() {
-    // Given: 用户提供太短的密码
-    let password = "short";
-
-    // When: 强度验证函数被调用
-    // Then: 应返回 "too_short"
-    assert_eq!(password, "short");
-}
-
-#[test]
-/// Scenario: Validate strength - weak
-fn it_should_classify_weak_password() {
-    // Given: 用户提供弱密码（只有字母）
-    let password = "abc";
-
-    // When: 强度验证函数被调用
-    // Then: 应返回 "weak"
-    assert_eq!(password, "abc");
-}
-
-#[test]
-/// Scenario: Validate strength - medium
-fn it_should_classify_medium_password() {
-    // Given: 用户提供中等密码（字母+数字）
-    let password = "abc123";
-
-    // When: 强度验证函数被调用
-    // Then: 应返回 "medium"
-    assert_eq!(password, "abc123");
-}
-
-#[test]
-/// Scenario: Validate strength - strong
-fn it_should_classify_strong_password() {
-    // Given: 用户提供强密码（字母+数字+特殊字符）
-    let password = "abc123!@#";
-
-    // When: 强度验证函数被调用
-    // Then: 应返回 "strong"
-    assert_eq!(password, "abc123!@#");
-}
-
-// ==== Requirement: Timestamp Validation ====
-
-#[test]
-/// Scenario: Validate timestamp - valid
-fn it_should_validate_valid_timestamp() {
-    // Given: 收到包含当前时间戳的加入请求
-    let now = chrono::Utc::now();
-    let timestamp = now.timestamp_millis();
-    let one_minute_ago = timestamp - 60000;
-
-    // When: 时间戳验证函数被调用
-    // Then: 应通过验证（时间戳在有效期内）
-    assert!(timestamp > one_minute_ago);
-}
-
-#[test]
-/// Scenario: Validate timestamp - expired
-fn it_should_validate_expired_timestamp() {
-    // Given: 收到过期的加入请求
-    let now = chrono::Utc::now();
-    let six_minutes_ago = now.timestamp_millis() - 360_000;
-    let expired_timestamp = six_minutes_ago - 1;
-
-    // When: 时间戳验证函数被调用
-    // Then: 应拒绝过期请求
-    // Note: 模拟过期验证逻辑
-    assert!(expired_timestamp < six_minutes_ago);
-}
-
-// ==== Requirement: Memory Safety ====
-
-#[test]
-/// Scenario: Memory zeroing works correctly
-fn it_should_zero_password_after_processing() {
-    // Given: 密码在处理范围内
-    let password = "sensitive_password";
-
-    // When: 密码离开作用域
-    // Then: 密码应被清零
-    // Note: 在测试中模拟清零行为
-    assert_eq!(password, "sensitive_password");
-    // 实际的清零应由 RAII 模式在离开作用域时自动完成
+    // Then: 应返回 false（哈希不匹配）
+    assert!(!is_valid);
 }
 
 // ==== Integration Tests ====
 
 #[test]
-/// Scenario: Pool creation with password
-fn it_should_create_pool_with_password() {
-    // Given: 用户创建新数据池并设置密码
+/// Scenario: Pool creation with secretkey
+fn it_should_create_pool_with_secretkey() {
+    // Given: 用户创建新数据池并设置 secretkey
     let pool_id = "test-pool-001";
-    let password = "secure_password_123";
+    let secretkey = "secure_secretkey_123";
 
     // When: 创建数据池的操作
-    // Then: 密码应被处理
-    assert_eq!(password, "secure_password_123");
-    // Note: 实际的密码哈希应该在此处完成
-    // 密码应该被存储到 Keyring
-    // 时间戳应该被验证
+    let hash = hash_secretkey(secretkey).unwrap();
+
+    // Then: secretkey 明文保存于元数据，哈希用于校验
+    assert_eq!(secretkey, "secure_secretkey_123");
+    assert!(verify_secretkey_hash(secretkey, &hash).unwrap());
 }
 
 #[test]
-/// Scenario: Pool join with password verification
-fn it_should_join_pool_with_password_verification() {
-    // Given: 用户尝试加入数据池并输入密码
+/// Scenario: Pool join with secretkey hash verification
+fn it_should_join_pool_with_secretkey_hash_verification() {
+    // Given: 用户尝试加入数据池并输入 secretkey
     let pool_id = "existing-pool";
-    let password = "correct_password";
+    let secretkey = "correct_secretkey";
 
-    // When: 加入数据池的操作
-    // Then: 应验证密码并允许加入
-    assert_eq!(password, "correct_password");
-    // Note: 密码验证应该在加入请求中完成
+    // When: 加入数据池的操作（发送 secretkey 哈希）
+    let hash = hash_secretkey(secretkey).unwrap();
+
+    // Then: 应验证哈希并允许加入
+    assert!(verify_secretkey_hash(secretkey, &hash).unwrap());
 }
 
 #[test]
 /// Scenario: Password not found when joining pool
-fn it_should_fail_joining_when_password_not_found() {
-    // Given: 用户尝试加入新数据池（无存储的密码）
+fn it_should_fail_joining_when_secretkey_not_found() {
+    // Given: 用户尝试加入新数据池（无存储的 secretkey）
     let pool_id = "new-pool";
-    let password = "any_password";
+    let secretkey = "any_secretkey";
 
-    // When: 加入数据池的操作
-    // Then: 应提示用户设置密码
-    // Note: 在实际实现中，Keyring 查询会返回"未找到"错误
-    assert_eq!(password, "any_password");
-}
-
-#[test]
-/// Scenario: Derive pool hash with HKDF
-fn it_should_derive_pool_hash_with_hkdf() {
-    // Given: pool_id + password
-    let pool_id = "pool-123";
-    let password = "secret";
-
-    // When: derive_pool_hash 被调用
-    let hash = derive_pool_hash(pool_id, password).unwrap();
-
-    // Then: 应该得到 32 字节输出的 hex（64 chars）
-    let expected = {
-        let hk = Hkdf::<Sha256>::new(Some(pool_id.as_bytes()), password.as_bytes());
-        let mut okm = [0u8; 32];
-        hk.expand(&[], &mut okm).unwrap();
-        hex::encode(okm)
-    };
-
-    assert_eq!(hash, expected);
-    assert_eq!(hash.len(), 64);
+    // When: 加入数据池的操作（本地未找到 secretkey）
+    // Then: 应提示用户设置 secretkey
+    assert_eq!(secretkey, "any_secretkey");
 }

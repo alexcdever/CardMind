@@ -44,7 +44,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// let request = SyncMessage::SyncRequest(SyncRequest {
 ///     pool_id: "pool-001".to_string(),
-///     pool_hash: "pool-hash-001".to_string(),
+///     pool_hash: "secretkey-hash-001".to_string(),
 ///     last_version: None,
 ///     device_id: "device-123".to_string(),
 /// });
@@ -83,7 +83,7 @@ pub struct SyncRequest {
     /// 数据池 ID
     pub pool_id: String,
 
-    /// 数据池哈希（用于握手校验）
+    /// 数据池 secretkey 的 SHA-256 哈希（用于握手校验）
     pub pool_hash: String,
 
     /// 最后同步的版本号（用于增量同步）
@@ -135,7 +135,7 @@ pub struct HandshakeRequest {
     /// 数据池 ID
     pub pool_id: String,
 
-    /// 数据池哈希（HKDF-derived）
+    /// 数据池 secretkey 的 SHA-256 哈希
     pub pool_hash: String,
 
     /// 请求设备 ID
@@ -226,7 +226,7 @@ mod tests {
     fn it_should_sync_message_serialization() {
         let request = SyncMessage::SyncRequest(SyncRequest {
             pool_id: "pool-001".to_string(),
-            pool_hash: "pool-hash-001".to_string(),
+            pool_hash: "secretkey-hash-001".to_string(),
             last_version: None,
             device_id: "device-001".to_string(),
         });
@@ -239,7 +239,7 @@ mod tests {
         match deserialized {
             SyncMessage::SyncRequest(req) => {
                 assert_eq!(req.pool_id, "pool-001");
-                assert_eq!(req.pool_hash, "pool-hash-001");
+                assert_eq!(req.pool_hash, "secretkey-hash-001");
                 assert_eq!(req.device_id, "device-001");
             }
             _ => panic!("Wrong message type"),

@@ -14,9 +14,8 @@ fn create_test_device_config() -> DeviceConfig {
 
 /// 测试辅助函数：创建测试用的数据池
 fn create_test_pool(pool_id: &str, name: &str) -> Pool {
-    // 使用 bcrypt 哈希的密码（模拟）
-    let password_hash = "$2b$12$test_hash_placeholder";
-    Pool::new(pool_id, name, password_hash)
+    let secretkey = "test_secretkey_placeholder";
+    Pool::new(pool_id, name, secretkey)
 }
 
 // ==== Requirement: 单池约束 ====
@@ -28,7 +27,7 @@ fn it_should_join_first_pool_successfully() {
     let mut config = create_test_device_config();
     assert!(config.pool_id.is_none());
 
-    // When: 设备使用有效密码加入池
+    // When: 设备使用有效 secretkey 加入池
     let result = config.join_pool("pool_A");
 
     // Then: 该池应添加到设备的已加入池列表

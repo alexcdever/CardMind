@@ -53,18 +53,6 @@ bool isIPhone(BuildContext context) {
   final size = MediaQuery.of(context).size;
   return Platform.isIOS && size.shortestSide < 600;
 }
-```
-
-### 场景：检测 Windows 平台
-
-- **前置条件**: 应用程序正在运行
-- **操作**: 查询平台
-- **预期结果**: 在 Windows 桌面上运行时系统应返回"Windows"
-
-bool isMacOS() {
-  return Platform.isMacOS;
-}
-```
 
 ### 场景：检测 Linux 平台
 
@@ -104,22 +92,6 @@ FormFactor detectFormFactor(BuildContext context) {
 bool isPhone(BuildContext context) {
   return detectFormFactor(context) == FormFactor.phone;
 }
-```
-
-### 场景：检测平板电脑
-
-- **前置条件**: 应用程序正在运行
-- **操作**: 确定设备形态
-- **预期结果**: 当屏幕宽度 >= 600dp 且平台为 Android 或 iOS 时系统应分类为"平板电脑"
-
-bool isDesktop(BuildContext context) {
-  return detectFormFactor(context) == FormFactor.desktop;
-}
-
-bool isDesktopPlatform() {
-  return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-}
-```
 
 ---
 
@@ -142,47 +114,6 @@ bool supportsHover(BuildContext context) {
   // 悬停需要指针输入
   return supportsPointer(context);
 }
-```
-
-### 场景：检测键盘输入
-
-- **前置条件**: 应用程序正在运行
-- **操作**: 查询输入能力
-- **预期结果**: 对于桌面的物理键盘，系统应返回 true
-- **并且**: 对于仅有虚拟键盘的移动设备返回 false
-
-class ScreenInfo {
-  final double widthDp;
-  final double heightDp;
-  final double pixelDensity;
-  final Orientation orientation;
-  
-  ScreenInfo({
-    required this.widthDp,
-    required this.heightDp,
-    required this.pixelDensity,
-    required this.orientation,
-  });
-}
-
-ScreenInfo getScreenInfo(BuildContext context) {
-  final size = MediaQuery.of(context).size;
-  final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-  
-  return ScreenInfo(
-    widthDp: size.width,
-    heightDp: size.height,
-    pixelDensity: devicePixelRatio,
-    orientation: size.width > size.height 
-        ? Orientation.landscape 
-        : Orientation.portrait,
-  );
-}
-
-double getScreenWidth(BuildContext context) {
-  return MediaQuery.of(context).size.width;
-}
-```
 
 ### 场景：获取屏幕高度（dp）
 
@@ -197,48 +128,6 @@ double getPixelDensity(BuildContext context) {
 bool isHighDensityScreen(BuildContext context) {
   return getPixelDensity(context) >= 2.0;
 }
-```
-
-### 场景：检测屏幕方向
-
-- **前置条件**: 应用程序正在运行
-- **操作**: 查询屏幕方向
-- **预期结果**: 当高度 > 宽度时系统应返回"竖屏"
-- **并且**: 当宽度 > 高度时返回"横屏"
-
-class PlatformFlags {
-  final bool isMobile;
-  final bool isTablet;
-  final bool isDesktop;
-  final bool supportsHover;
-  final bool supportsGestures;
-  
-  PlatformFlags({
-    required this.isMobile,
-    required this.isTablet,
-    required this.isDesktop,
-    required this.supportsHover,
-    required this.supportsGestures,
-  });
-}
-
-PlatformFlags getPlatformFlags(BuildContext context) {
-  final formFactor = detectFormFactor(context);
-  final capabilities = detectInputCapabilities(context);
-  
-  return PlatformFlags(
-    isMobile: formFactor == FormFactor.phone,
-    isTablet: formFactor == FormFactor.tablet,
-    isDesktop: formFactor == FormFactor.desktop,
-    supportsHover: capabilities.supportsPointer,
-    supportsGestures: capabilities.supportsTouch,
-  );
-}
-
-bool isMobile(BuildContext context) {
-  return getPlatformFlags(context).isMobile;
-}
-```
 
 ### 场景：检查平台是否为桌面端
 
@@ -249,67 +138,6 @@ bool isMobile(BuildContext context) {
 bool supportsHoverFlag(BuildContext context) {
   return getPlatformFlags(context).supportsHover;
 }
-```
-
-### 场景：检查平台是否支持手势
-
-- **前置条件**: 应用程序正在运行
-- **操作**: 检查手势支持
-- **预期结果**: 对于支持触摸的设备，系统应为 supportsGestures 返回 true
-- **并且**: 对于没有触摸屏的桌面返回 false
-
-import 'dart:async';
-
-class PlatformChangeNotifier extends ChangeNotifier {
-  ScreenInfo? _lastScreenInfo;
-  FormFactor? _lastFormFactor;
-  
-  void checkForChanges(BuildContext context) {
-    final currentScreenInfo = getScreenInfo(context);
-    final currentFormFactor = detectFormFactor(context);
-    
-    bool hasChanged = false;
-    
-    // 检查屏幕尺寸变化
-    if (_lastScreenInfo == null ||
-        _lastScreenInfo!.widthDp != currentScreenInfo.widthDp ||
-        _lastScreenInfo!.heightDp != currentScreenInfo.heightDp) {
-      hasChanged = true;
-      _lastScreenInfo = currentScreenInfo;
-    }
-    
-    // 检查形态变化
-    if (_lastFormFactor == null ||
-        _lastFormFactor != currentFormFactor) {
-      hasChanged = true;
-      _lastFormFactor = currentFormFactor;
-    }
-    
-    if (hasChanged) {
-      notifyListeners();
-    }
-  }
-}
-
-class PlatformAwareWidget extends StatefulWidget {
-  final Widget Function(BuildContext, PlatformFlags) builder;
-  
-  @override
-  _PlatformAwareWidgetState createState() => _PlatformAwareWidgetState();
-}
-
-class _PlatformAwareWidgetState extends State<PlatformAwareWidget> {
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final flags = getPlatformFlags(context);
-        return widget.builder(context, flags);
-      },
-    );
-  }
-}
-```
 
 ### 场景：检测方向变化
 

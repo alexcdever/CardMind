@@ -71,16 +71,11 @@
 - chrono =0.4
 - tracing =0.1
 - tracing-subscriber =0.3
-- bcrypt =0.16
-- hkdf =0.12
 - sha2 =0.10
-- hex =0.4
-- keyring =3.6
 - libp2p =0.54
 - futures =0.3
 - tokio =1.0
 - tokio-stream =0.1
-- zeroize =1.7
 
 ### Rust（开发/测试）
 

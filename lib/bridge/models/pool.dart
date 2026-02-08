@@ -64,7 +64,7 @@ class Device {
 ///
 /// - `pool_id`: 数据池唯一标识（UUID v7）
 /// - `name`: 数据池名称（最大 128 字符）
-/// - `password_hash`: bcrypt 加密哈希
+/// - `secretkey`: 数据池 secretkey（明文保存于元数据）
 /// - `members`: 成员设备列表
 /// - `card_ids`: 卡片 ID 列表（单池模型：池持有卡片）
 /// - `created_at`: 创建时间（毫秒级时间戳）
@@ -75,7 +75,7 @@ class Device {
 /// ```
 /// use cardmind_rust::models::pool::{Pool, Device};
 ///
-/// let mut pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+/// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
 /// let device = Device::new("device-001", "My iPhone");
 /// pool.add_member(device);
 /// pool.add_card("card-001");
@@ -89,7 +89,7 @@ class Pool {
   const Pool({
     required this.poolId,
     required this.name,
-    required this.passwordHash,
+    required this.secretkey,
     required this.members,
     required this.cardIds,
     required this.createdAt,
@@ -102,10 +102,8 @@ class Pool {
   /// 数据池名称（最大 128 字符）
   final String name;
 
-  /// bcrypt 密码哈希
-  ///
-  /// 格式：`$2b$12$...`（工作因子 12）
-  final String passwordHash;
+  /// 数据池 secretkey（明文）
+  final String secretkey;
 
   /// 成员设备列表
   final List<Device> members;
@@ -123,7 +121,7 @@ class Pool {
   int get hashCode =>
       poolId.hashCode ^
       name.hashCode ^
-      passwordHash.hashCode ^
+      secretkey.hashCode ^
       members.hashCode ^
       cardIds.hashCode ^
       createdAt.hashCode ^
@@ -136,7 +134,7 @@ class Pool {
           runtimeType == other.runtimeType &&
           poolId == other.poolId &&
           name == other.name &&
-          passwordHash == other.passwordHash &&
+          secretkey == other.secretkey &&
           members == other.members &&
           cardIds == other.cardIds &&
           createdAt == other.createdAt &&

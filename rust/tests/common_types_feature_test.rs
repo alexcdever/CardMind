@@ -373,7 +373,7 @@ fn it_should_enforce_pool_reference_validity() {
     use cardmind_rust::models::device_config::DeviceConfig;
 
     let mut device_config = DeviceConfig::new();
-    let pool = Pool::new("pool-001", "工作笔记", "hashed");
+    let pool = Pool::new("pool-001", "工作笔记", "secretkey");
 
     // When: 设备加入池
     let result = device_config.join_pool(&pool.pool_id);
@@ -387,7 +387,7 @@ fn it_should_enforce_pool_reference_validity() {
 /// Constraint: Card-pool binding consistency
 fn it_should_enforce_card_pool_binding_consistency() {
     // Given: 池和卡片
-    let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     let card_id = generate_uuid_v7();
 
     // When: 池添加卡片 ID
@@ -499,7 +499,7 @@ fn it_should_validate_all_type_constraints() -> Result<(), CardMindError> {
 /// 集成测试：类型与域模型集成
 fn it_should_integrate_types_with_domain_models() -> Result<(), CardMindError> {
     // Given: 创建池和卡片
-    let mut pool = Pool::new("pool-001", "工作笔记", "hashed");
+    let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
     let card = require_card(Card::new(
         generate_uuid_v7(),
         "测试标题".to_string(),
