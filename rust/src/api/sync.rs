@@ -227,7 +227,7 @@ pub async fn init_sync_service(storage_path: String, listen_addr: String) -> Res
         ));
     }
 
-    // 创建 PoolStore
+    // 创建 PoolStore（用于读取 pool secretkey）
     let pool_store = Arc::new(Mutex::new(PoolStore::new(&storage_path)?));
 
     // 创建同步服务

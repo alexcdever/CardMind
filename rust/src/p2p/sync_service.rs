@@ -22,7 +22,7 @@
 //! let card_store = Arc::new(Mutex::new(CardStore::new_in_memory()?));
 //! let device_config = DeviceConfig::new();
 //!
-//! let pool_store = Arc::new(Mutex::new(PoolStore::new_in_memory()?));
+//! let pool_store = Arc::new(Mutex::new(PoolStore::new("data")?));
 //! let mut service = P2PSyncService::new(card_store, pool_store, device_config)?;
 //! service.start("/ip4/0.0.0.0/tcp/0").await?;
 //! # Ok(())
@@ -124,7 +124,7 @@ impl P2PSyncService {
     /// let card_store = Arc::new(Mutex::new(CardStore::new_in_memory()?));
     /// let device_config = DeviceConfig::new();
     ///
-    /// let pool_store = Arc::new(Mutex::new(PoolStore::new_in_memory()?));
+    /// let pool_store = Arc::new(Mutex::new(PoolStore::new("data")?));
     /// let service = P2PSyncService::new(card_store, pool_store, device_config)?;
     /// # Ok(())
     /// # }
@@ -359,11 +359,8 @@ impl P2PSyncService {
             let entry = registry().lock().unwrap().get(&peer_id).cloned();
 
             if let Some(entry) = entry {
-                if !Self::verify_pool_hash_with_store(
-                    &entry.pool_store,
-                    &pool_id,
-                    &request.pool_hash,
-                ) {
+                if !Self::verify_pool_hash_with_store(&entry.pool_store, &pool_id, &request.pool_hash)
+                {
                     return Err(CardMindError::NotAuthorized(
                         "pool_hash mismatch".to_string(),
                     ));
@@ -712,8 +709,7 @@ impl P2PSyncService {
                                         peer, request.pool_id
                                     );
 
-                                    if !self.verify_pool_hash(&request.pool_id, &request.pool_hash)
-                                    {
+                                    if !self.verify_pool_hash(&request.pool_id, &request.pool_hash) {
                                         warn!(
                                             "pool_hash 不匹配，拒绝同步: peer={}, pool_id={}",
                                             peer, request.pool_id
@@ -882,8 +878,8 @@ pub struct SyncStatus {
 mod tests {
     use super::*;
     use crate::models::pool::Pool;
-    use crate::store::pool_store::PoolStore;
     use crate::utils::uuid_v7::generate_uuid_v7;
+    use crate::store::pool_store::PoolStore;
 
     fn new_pool_store() -> Arc<Mutex<PoolStore>> {
         Arc::new(Mutex::new(PoolStore::new_in_memory().unwrap()))

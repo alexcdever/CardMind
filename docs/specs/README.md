@@ -32,7 +32,7 @@
 - [冲突解决](architecture/sync/conflict_resolution.md) - CRDT 冲突处理
 
 ### 安全架构
-- [secretkey 管理](architecture/security/password.md) - secretkey 明文与哈希校验
+- [secretkey 管理](architecture/security/password.md) - SHA-256 明文校验
 - [隐私保护](architecture/security/privacy.md) - 隐私保护策略
 
 

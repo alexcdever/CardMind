@@ -98,6 +98,23 @@
 ## 补充说明
 
 **数据结构**:
+```rust
+pub struct Pool {
+    pub pool_id: String,              // UUID v7
+    pub pool_name: String,            // 池名称
+    pub secretkey: String,            // 明文密钥
+    pub card_ids: Vec<String>,        // 卡片 ID 列表
+    pub device_ids: Vec<String>,      // 设备 ID 列表
+    pub created_at: i64,             // Unix 毫秒
+    pub updated_at: i64,             // Unix 毫秒
+}
+
+pub struct DeviceConfig {
+    pub device_id: String,            // UUID v7
+    pub pool_id: Option<String>,      // 已加入的池 ID
+    pub joined_at: Option<i64>,       // 加入时间
+}
+```
 
 **设计模式**:
 - **约束强制模式**: 应用层强制单池约束
@@ -116,7 +133,7 @@
 - **NOT_JOINED_POOL**: 未加入池时创建卡片
 - **POOL_NOT_FOUND**: 池不存在
 - **DEVICE_REMOVED_FROM_POOL**: 设备被从池中移除
-- **INVALID_SECRETKEY**: secretkey 验证失败
+- **INVALID_PASSWORD**: 密钥校验失败
 
 **性能特征**:
 - **数据清理**: O(n) 其中 n 是卡片数量

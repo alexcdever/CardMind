@@ -94,7 +94,7 @@
 **技术栈**:
 - **libp2p mdns** - 对等点发现
 - **tokio** - 异步运行时
-- **sha2** - pool_hash 计算（SHA-256）
+- **sha2** - pool_hash 计算（SHA-256(secretkey)）
 
 **设计模式**:
 - **观察者模式**: 基于回调的对等点发现

@@ -6,7 +6,6 @@
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档存储
-- **sha2** = "0.10" - secretkey 哈希
 - **rusqlite** = "0.31" - SQLite 数据库
 - **uuid** = "1.6" - UUID v7 生成
 
@@ -115,16 +114,15 @@
 
 ---
 
-## 需求：secretkey 管理
+## 需求：secretkey 存取与校验支持
 
-系统应支持以 secretkey 作为池访问凭据，并在加入与同步时进行哈希校验。
+系统应持久化保存池密钥，并提供读取能力供上层进行 SHA-256 校验。
 
-### 场景：验证 secretkey 哈希
+### 场景：读取池密钥用于校验
 
 - **前置条件**: 用户尝试加入池
-- **操作**: 校验提供的 secretkey 哈希
-- **预期结果**: 应使用一致的哈希方式进行匹配
-- **并且**: 校验不通过时拒绝加入
+- **操作**: 上层读取池密钥并进行 SHA-256 校验
+- **预期结果**: 返回的密钥可用于完成哈希匹配
 
 ---
 
@@ -132,7 +130,6 @@
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档存储
-- **sha2** = "0.10" - secretkey 哈希
 - **rusqlite** = "0.31" - SQLite 数据库
 - **uuid** = "1.6" - UUID v7 生成
 - **tokio** - 异步运行时
@@ -144,9 +141,8 @@
 - **缓存模式**: 两级缓存（内存 + 磁盘）
 
 **安全考虑**:
-- **secretkey 明文**: secretkey 明文保存于池元数据
-- **哈希校验**: 加入与同步使用 SHA-256 哈希匹配
 - **访问控制**: 只有 Pool.device_ids 中的设备可以访问池数据
+- **密钥存储**: 本阶段以明文形式持久化密钥，由上层进行 SHA-256 校验
 
 ---
 
@@ -175,10 +171,12 @@
 **单元测试**:
 - `it_should_create_new_pool()` - 创建池
 - `it_should_load_pool_from_disk()` - 加载池
-- `it_should_allow_joining_first_pool_successfully()` - 成功加入池
-- `it_should_reject_joining_second_pool()` - 拒绝第二个池
-- `it_should_leave_pool_with_cleanup()` - 离开池
-- `it_should_cleanup_local_data_on_leave()` - 离开时数据清理
+- `it_should_allow_joining_first_pool_successfully()` - 成功加入第一个池
+- `it_should_reject_joining_second_pool()` - 拒绝加入第二个池
+- `it_should_preserve_config_when_join_fails()` - 加入失败保持配置
+- `it_should_leave_pool_with_cleanup()` - 离开池并清理
+- `it_should_fail_when_leaving_without_joining()` - 未加入时退出失败
+- `it_should_cleanup_local_data_on_leave()` - 退出时清理数据
 - `it_should_add_card_to_pool()` - 添加卡片
 - `it_should_remove_card_from_pool()` - 移除卡片
 

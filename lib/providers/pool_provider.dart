@@ -107,8 +107,7 @@ class PoolProvider extends ChangeNotifier {
   Future<bool> joinPool(String poolId, String secretkey) async {
     try {
       _clearError();
-      final hash =
-          await pool_api.hashPoolSecretkey(secretkey: secretkey);
+      final hash = await pool_api.hashPoolSecretkey(secretkey: secretkey);
       final success = await pool_api.verifyPoolSecretkeyHash(
         poolId: poolId,
         secretkeyHash: hash,

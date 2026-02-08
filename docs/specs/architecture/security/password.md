@@ -2,7 +2,11 @@
 
 ## 概述
 
-当前阶段仅定义最小可用的 secretkey 处理规则。secretkey 明文保存在数据池元数据中；加入与同步只做哈希校验，不提供强度、时间戳或内存安全等能力。
+当前阶段仅定义最小可用的 secretkey 处理规则。secretkey 明文保存在数据池元数据中；加入与同步只做 SHA-256 哈希校验，不提供强度、时间戳或内存安全等能力。
+
+**技术栈**:
+- sha2 = "0.10" - SHA-256 哈希
+- hex = "0.4" - 哈希十六进制编码
 
 ---
 
@@ -16,6 +20,18 @@
 - **操作**: 保存到数据池元数据
 - **预期结果**: 元数据中保存明文 secretkey
 - **并且**: 不进行强度检查或其他安全处理
+
+---
+
+## 需求：secretkey 哈希
+
+系统应提供对数据池密钥的 SHA-256 哈希能力。
+
+### 场景：计算密钥哈希
+
+- **前置条件**: 用户提供明文密钥字符串
+- **操作**: 调用密钥哈希函数
+- **预期结果**: 返回 64 字符十六进制哈希字符串
 
 ---
 
@@ -47,7 +63,7 @@
 
 ## 需求：不提供安全性能力
 
-系统不提供 secretkey 强度、时间戳防重放、内存清零等安全能力，待安全性功能完成后再完善。
+系统不提供 secretkey 强度、时间戳防重放、内存清零、Keyring 安全存储等能力，待安全性功能完成后再完善。
 
 ### 场景：当前阶段安全能力缺失
 
@@ -62,7 +78,7 @@
 
 **相关规格**:
 - [../../domain/pool.md](../../domain/pool.md) - 数据池领域模型
-- [../storage/pool_store.md](../storage/pool_store.md) - 数据池存储实现
+- [../sync/peer_discovery.md](../sync/peer_discovery.md) - mDNS 设备发现
 
 **架构决策记录**:
 
@@ -73,16 +89,12 @@
 **测试文件**: `rust/tests/security_password_feature_test.rs`
 
 **单元测试**:
-- `it_should_hash_secretkey_with_sha256()` - 测试 secretkey 哈希生成
-- `it_should_verify_secretkey_hash_successfully()` - 测试 secretkey 哈希验证成功
-- `it_should_verify_secretkey_hash_failure()` - 测试 secretkey 哈希验证失败
-
-**功能测试**:
-- `it_should_create_pool_with_secretkey()` - 测试创建数据池时 secretkey 处理
-- `it_should_join_pool_with_secretkey_hash_verification()` - 测试加入数据池时哈希验证
+- `it_should_hash_secretkey_with_sha256()` - 测试密钥哈希
+- `it_should_verify_secretkey_hash_successfully()` - 测试校验成功
+- `it_should_verify_secretkey_hash_failure()` - 测试校验失败
 
 **验收标准**:
 - [x] 所有单元测试通过
-- [x] secretkey 哈希为 SHA-256
-- [x] 加入与同步使用哈希匹配
+- [x] 哈希结果为 64 字符十六进制字符串
+- [x] 校验返回布尔值
 - [x] 文档已更新

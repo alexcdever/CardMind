@@ -9,9 +9,12 @@ use cardmind_rust::p2p::sync_service::{P2PSyncService, SyncStatus};
 use cardmind_rust::store::card_store::CardStore;
 use cardmind_rust::store::pool_store::PoolStore;
 use std::sync::{Arc, Mutex};
+use tempfile::TempDir;
 
-fn new_pool_store() -> Arc<Mutex<PoolStore>> {
-    Arc::new(Mutex::new(PoolStore::new_in_memory().unwrap()))
+fn new_pool_store() -> (Arc<Mutex<PoolStore>>, TempDir) {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(Mutex::new(PoolStore::new(temp_dir.path()).unwrap()));
+    (store, temp_dir)
 }
 
 /// Spec-SYNC-007-001: 状态广播机制
@@ -26,8 +29,8 @@ fn new_pool_store() -> Arc<Mutex<PoolStore>> {
 fn it_should_broadcast_status_to_all_subscribers() {
     // Given: 创建同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
     let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // And: 创建多个订阅者
@@ -61,8 +64,8 @@ fn it_should_broadcast_status_to_all_subscribers() {
 fn it_should_not_broadcast_duplicate_status() {
     // Given: 创建同步服务和订阅者
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
     let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
     let mut rx = service.status_sender().subscribe();
 
@@ -93,8 +96,8 @@ fn it_should_not_broadcast_duplicate_status() {
 fn it_should_handle_no_subscribers_gracefully() {
     // Given: 创建同步服务但不创建订阅者
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
     let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // When: 触发状态变化
@@ -121,8 +124,8 @@ fn it_should_handle_no_subscribers_gracefully() {
 fn it_should_support_status_sender_cloning() {
     // Given: 创建同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
     let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // When: 获取并克隆状态发送器
@@ -157,8 +160,8 @@ fn it_should_support_status_sender_cloning() {
 fn it_should_maintain_subscriber_independence() {
     // Given: 创建同步服务和多个订阅者
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
     let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     let mut rx1 = service.status_sender().subscribe();
@@ -193,8 +196,8 @@ fn it_should_maintain_subscriber_independence() {
 fn it_should_have_disconnected_initial_status() {
     // Given: 创建同步服务
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
-    let pool_store = new_pool_store();
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
     let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
     // When: 获取同步状态

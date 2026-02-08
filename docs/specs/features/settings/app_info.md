@@ -72,6 +72,7 @@
 - tracing =0.1
 - tracing-subscriber =0.3
 - sha2 =0.10
+- hex =0.4
 - libp2p =0.54
 - futures =0.3
 - tokio =1.0
