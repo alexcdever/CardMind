@@ -79,6 +79,8 @@ docs/
 
 规范编码:
 - 测试 = 规格 = 文档
+- 任何功能/行为变更：先更新规格文档（GIVEN-WHEN-THEN/接口/数据流），再更新测试，最后实现代码
+- 测试是规格的可执行验证，必须先于实现
 - 测试命名: it_should_do_something()
 - 规格格式: GIVEN-WHEN-THEN
 
