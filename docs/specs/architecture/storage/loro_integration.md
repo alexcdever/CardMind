@@ -168,8 +168,6 @@
 - [../sync/subscription.md](../sync/subscription.md) - 订阅机制
 - [../sync/conflict_resolution.md](../sync/conflict_resolution.md) - 冲突解决
 
-**架构决策记录**:
-- ADR-0003: Loro CRDT - CRDT 库选择理由
 
 ---
 
