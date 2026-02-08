@@ -9,6 +9,7 @@
 use crate::frb_generated::StreamSink;
 use crate::models::error::{CardMindError, InvalidStateError, Result};
 use crate::p2p::sync_service::{P2PSyncService, SyncStatus as P2PSyncStatus};
+use crate::store::pool_store::PoolStore;
 use std::sync::{Arc, Mutex};
 use tokio_stream::StreamExt;
 use tracing::{info, warn};
@@ -226,8 +227,11 @@ pub async fn init_sync_service(storage_path: String, listen_addr: String) -> Res
         ));
     }
 
+    // 创建 PoolStore（用于读取 pool secretkey）
+    let pool_store = Arc::new(Mutex::new(PoolStore::new(&storage_path)?));
+
     // 创建同步服务
-    let mut service = P2PSyncService::new(card_store, device_config)?;
+    let mut service = P2PSyncService::new(card_store, pool_store, device_config)?;
 
     // 启动服务
     service.start(&listen_addr).await?;
@@ -702,9 +706,16 @@ mod tests {
             crate::store::card_store::CardStore::new_in_memory().unwrap(),
         ));
         let device_config = crate::models::device_config::DeviceConfig::new();
+        let pool_store = Arc::new(Mutex::new(
+            crate::store::pool_store::PoolStore::new_in_memory().unwrap(),
+        ));
 
         // 初始化服务
-        let service = crate::p2p::sync_service::P2PSyncService::new(card_store, device_config)
+        let service = crate::p2p::sync_service::P2PSyncService::new(
+            card_store,
+            pool_store,
+            device_config,
+        )
             .expect("Failed to create sync service");
 
         put_sync_service(service);
@@ -732,8 +743,15 @@ mod tests {
             crate::store::card_store::CardStore::new_in_memory().unwrap(),
         ));
         let device_config = crate::models::device_config::DeviceConfig::new();
+        let pool_store = Arc::new(Mutex::new(
+            crate::store::pool_store::PoolStore::new_in_memory().unwrap(),
+        ));
 
-        let service = crate::p2p::sync_service::P2PSyncService::new(card_store, device_config)
+        let service = crate::p2p::sync_service::P2PSyncService::new(
+            card_store,
+            pool_store,
+            device_config,
+        )
             .expect("Failed to create sync service");
 
         put_sync_service(service);

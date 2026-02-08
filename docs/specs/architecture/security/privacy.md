@@ -105,7 +105,7 @@
 - [../../domain/pool.md](../../domain/pool.md) - 数据池领域模型
 - [../../domain/sync.md](../../domain/sync.md) - 同步模型
 - [../sync/peer_discovery.md](../sync/peer_discovery.md) - mDNS 设备发现
-- [./password.md](./password.md) - bcrypt 密码管理
+- [./password.md](./password.md) - SHA-256 密码校验
 
 **架构决策记录**:
 

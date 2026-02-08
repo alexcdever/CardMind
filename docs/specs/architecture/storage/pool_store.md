@@ -6,7 +6,6 @@
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档存储
-- **bcrypt** = "0.15" - 密码哈希
 - **rusqlite** = "0.31" - SQLite 数据库
 - **uuid** = "1.6" - UUID v7 生成
 
@@ -115,16 +114,15 @@
 
 ---
 
-## 需求：密码管理
+## 需求：密钥存取
 
-系统应安全地管理池密码。
+系统应持久化保存池密钥，并提供读取能力供上层校验使用。
 
-### 场景：验证池密码
+### 场景：读取池密钥用于校验
 
 - **前置条件**: 用户尝试加入池
-- **操作**: 验证提供的密码
-- **预期结果**: 应使用恒定时间比较
-- **并且**: 应防止时序攻击
+- **操作**: 上层读取池密钥并进行 SHA-256 校验
+- **预期结果**: 返回的密钥可用于完成哈希匹配
 
 ---
 
@@ -132,7 +130,6 @@
 
 **技术栈**:
 - **loro** = "1.0" - CRDT 文档存储
-- **bcrypt** = "0.15" - 密码哈希（成本因子 12）
 - **rusqlite** = "0.31" - SQLite 数据库
 - **uuid** = "1.6" - UUID v7 生成
 - **tokio** - 异步运行时
@@ -144,10 +141,8 @@
 - **缓存模式**: 两级缓存（内存 + 磁盘）
 
 **安全考虑**:
-- **密码哈希**: 使用成本因子 12 的 bcrypt
-- **密码验证**: 通过 bcrypt 的恒定时间比较
 - **访问控制**: 只有 Pool.device_ids 中的设备可以访问池数据
-- **密码长度**: 最小 8 字符，最大 72 字符（bcrypt 限制）
+- **密钥存储**: 本阶段以明文形式持久化密钥，由上层进行 SHA-256 校验
 
 ---
 
@@ -174,25 +169,16 @@
 **测试文件**: `rust/tests/pool_store_feature_test.rs`
 
 **单元测试**:
-- `test_create_pool()` - 创建池
-- `test_create_pool_with_weak_password()` - 弱密码验证
-- `test_load_pool()` - 加载池
-- `test_load_nonexistent_pool()` - 加载不存在的池
-- `test_update_pool_name()` - 更新池名称
-- `test_join_pool_success()` - 成功加入池
-- `test_join_pool_invalid_password()` - 无效密码
-- `test_join_pool_rejects_second()` - 拒绝第二个池
-- `test_leave_pool()` - 离开池
-- `test_leave_pool_not_joined()` - 未加入时离开
-- `test_add_card_to_pool()` - 添加卡片
-- `test_add_card_idempotent()` - 幂等添加
-- `test_remove_card_from_pool()` - 移除卡片
-- `test_get_pool_cards()` - 获取池卡片
-- `test_sqlite_sync()` - SQLite 同步
-- `test_password_hashing()` - 密码哈希
-- `test_password_verification()` - 密码验证
-- `test_cache_hit()` - 缓存命中
-- `test_cache_miss()` - 缓存未命中
+- `it_should_create_new_pool()` - 创建池
+- `it_should_load_pool_from_disk()` - 加载池
+- `it_should_allow_joining_first_pool_successfully()` - 成功加入第一个池
+- `it_should_reject_joining_second_pool()` - 拒绝加入第二个池
+- `it_should_preserve_config_when_join_fails()` - 加入失败保持配置
+- `it_should_leave_pool_with_cleanup()` - 离开池并清理
+- `it_should_fail_when_leaving_without_joining()` - 未加入时退出失败
+- `it_should_cleanup_local_data_on_leave()` - 退出时清理数据
+- `it_should_add_card_to_pool()` - 添加卡片
+- `it_should_remove_card_from_pool()` - 移除卡片
 
 **功能测试**:
 - `test_pool_lifecycle()` - 池生命周期

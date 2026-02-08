@@ -14,9 +14,8 @@ fn create_test_device_config() -> DeviceConfig {
 
 /// 测试辅助函数：创建测试用的数据池
 fn create_test_pool(pool_id: &str, name: &str) -> Pool {
-    // 使用 bcrypt 哈希的密码（模拟）
-    let password_hash = "$2b$12$test_hash_placeholder";
-    Pool::new(pool_id, name, password_hash)
+    let secretkey = "plain_secretkey";
+    Pool::new(pool_id, name, secretkey)
 }
 
 // ==== Requirement: 单池约束 ====

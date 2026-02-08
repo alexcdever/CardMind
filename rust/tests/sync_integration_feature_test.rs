@@ -10,10 +10,19 @@
 /// 3. 多设备同步协调
 /// 4. 同步状态跟踪
 use cardmind_rust::models::device_config::DeviceConfig;
+use cardmind_rust::models::pool::Pool;
 use cardmind_rust::p2p::P2PSyncService;
 use cardmind_rust::store::card_store::CardStore;
+use cardmind_rust::store::pool_store::PoolStore;
 use serial_test::serial;
 use std::sync::{Arc, Mutex};
+use tempfile::TempDir;
+
+fn new_pool_store() -> (Arc<Mutex<PoolStore>>, TempDir) {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let store = Arc::new(Mutex::new(PoolStore::new(temp_dir.path()).unwrap()));
+    (store, temp_dir)
+}
 
 /// 测试场景1：同步服务创建和初始化
 ///
@@ -24,9 +33,10 @@ fn it_should_sync_service_initialization() {
     // Given: CardStore 和 DeviceConfig
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
 
     // When: 创建 P2PSyncService
-    let service = P2PSyncService::new(card_store, device_config);
+    let service = P2PSyncService::new(card_store, pool_store, device_config);
 
     // Then: 服务应该成功创建并返回有效的 Peer ID
     assert!(service.is_ok(), "同步服务创建应该成功");
@@ -53,8 +63,10 @@ async fn it_should_two_device_sync_flow_components() {
     let mut device_config_b = DeviceConfig::new();
     let _ = device_config_b.join_pool("pool-001");
 
-    let service_a = P2PSyncService::new(card_store_a, device_config_a).unwrap();
-    let service_b = P2PSyncService::new(card_store_b, device_config_b).unwrap();
+    let (pool_store_a, _temp_dir_a) = new_pool_store();
+    let (pool_store_b, _temp_dir_b) = new_pool_store();
+    let service_a = P2PSyncService::new(card_store_a, pool_store_a, device_config_a).unwrap();
+    let service_b = P2PSyncService::new(card_store_b, pool_store_b, device_config_b).unwrap();
 
     println!("设备 A Peer ID: {}", service_a.local_peer_id());
     println!("设备 B Peer ID: {}", service_b.local_peer_id());
@@ -81,8 +93,10 @@ async fn it_should_sync_status_tracking() {
     // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
 
-    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service =
+        P2PSyncService::new_with_mock_network(card_store, pool_store, device_config).unwrap();
 
     // When: 初始状态为空，然后连接一个设备
     let status = service.get_sync_status();
@@ -112,8 +126,10 @@ async fn it_should_sync_service_start_and_listen() {
     // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
 
-    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service =
+        P2PSyncService::new_with_mock_network(card_store, pool_store, device_config).unwrap();
 
     // When: 启动服务（使用随机端口）
     let result = service.start("/ip4/127.0.0.1/tcp/0").await;
@@ -145,8 +161,10 @@ async fn it_should_concurrent_device_connections() {
     // Given: CardStore、DeviceConfig 和 P2PSyncService
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let device_config = DeviceConfig::new();
+    let (pool_store, _temp_dir) = new_pool_store();
 
-    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service =
+        P2PSyncService::new_with_mock_network(card_store, pool_store, device_config).unwrap();
 
     // When: 模拟多个设备同时连接
     let peer1 = libp2p::PeerId::random();
@@ -184,9 +202,17 @@ async fn it_should_pool_sync_between_services() {
     let mut device_config_b = DeviceConfig::new();
     let _ = device_config_b.join_pool("pool-001");
 
-    let service_a = P2PSyncService::new_with_mock_network(card_store_a, device_config_a).unwrap();
+    let (pool_store_a, _temp_dir_a) = new_pool_store();
+    let (pool_store_b, _temp_dir_b) = new_pool_store();
+    let pool = Pool::new("pool-001", "测试池", "secretkey");
+    pool_store_a.lock().unwrap().create_pool(&pool).unwrap();
+    pool_store_b.lock().unwrap().create_pool(&pool).unwrap();
+    let service_a =
+        P2PSyncService::new_with_mock_network(card_store_a, pool_store_a, device_config_a)
+            .unwrap();
     let mut service_b =
-        P2PSyncService::new_with_mock_network(card_store_b.clone(), device_config_b).unwrap();
+        P2PSyncService::new_with_mock_network(card_store_b.clone(), pool_store_b, device_config_b)
+            .unwrap();
 
     // When: 设备 B 请求与 A 同步指定数据池
     service_b
@@ -212,8 +238,12 @@ async fn it_should_sync_request_handling() {
     let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
     let mut device_config = DeviceConfig::new();
     let _ = device_config.join_pool("test-pool-001");
+    let (pool_store, _temp_dir) = new_pool_store();
+    let pool = Pool::new("test-pool-001", "测试池", "secretkey");
+    pool_store.lock().unwrap().create_pool(&pool).unwrap();
 
-    let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+    let mut service =
+        P2PSyncService::new_with_mock_network(card_store, pool_store, device_config).unwrap();
 
     // When: 模拟向对等设备发起同步请求
     let peer_id = libp2p::PeerId::random();

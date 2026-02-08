@@ -162,12 +162,6 @@ impl From<crate::models::device_config::DeviceConfigError> for CardMindError {
     }
 }
 
-impl From<crate::security::keyring_store::KeyringError> for CardMindError {
-    fn from(err: crate::security::keyring_store::KeyringError) -> Self {
-        Self::Unknown(err.to_string())
-    }
-}
-
 impl From<MdnsError> for CardMindError {
     fn from(err: MdnsError) -> Self {
         Self::Mdns(err)

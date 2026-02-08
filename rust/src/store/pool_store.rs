@@ -31,7 +31,7 @@
 //! let store = PoolStore::new("data")?;
 //!
 //! // 创建数据池
-//! let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+//! let pool = Pool::new("pool-001", "工作笔记", "secretkey");
 //! store.create_pool(&pool)?;
 //!
 //! // 查询数据池
@@ -286,7 +286,7 @@ impl PoolStore {
 
         map.insert("pool_id", pool.pool_id.clone())?;
         map.insert("name", pool.name.clone())?;
-        map.insert("password_hash", pool.password_hash.clone())?;
+        map.insert("secretkey", pool.secretkey.clone())?;
         map.insert("created_at", pool.created_at)?;
         map.insert("updated_at", pool.updated_at)?;
 
@@ -318,11 +318,11 @@ impl PoolStore {
             .and_then(|v| v.as_string().map(|s| s.to_string()))
             .ok_or_else(|| CardMindError::Unknown("name 字段缺失".to_string()))?;
 
-        let password_hash = map
-            .get("password_hash")
+        let secretkey = map
+            .get("secretkey")
             .and_then(|v| v.into_value().ok())
             .and_then(|v| v.as_string().map(|s| s.to_string()))
-            .ok_or_else(|| CardMindError::Unknown("password_hash 字段缺失".to_string()))?;
+            .ok_or_else(|| CardMindError::Unknown("secretkey 字段缺失".to_string()))?;
 
         let created_at = map
             .get("created_at")
@@ -381,7 +381,7 @@ impl PoolStore {
         Ok(Pool {
             pool_id,
             name,
-            password_hash,
+            secretkey,
             members,
             card_ids: Vec::new(),
             created_at,
@@ -394,12 +394,12 @@ impl PoolStore {
         let conn = &self.sqlite_store.lock().unwrap().conn;
 
         conn.execute(
-            "INSERT OR REPLACE INTO pools (pool_id, name, password_hash, created_at, updated_at)
+            "INSERT OR REPLACE INTO pools (pool_id, name, secretkey, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
                 &pool.pool_id,
                 &pool.name,
-                &pool.password_hash,
+                &pool.secretkey,
                 pool.created_at,
                 pool.updated_at,
             ],
@@ -429,7 +429,7 @@ impl PoolStore {
     ///
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let store = PoolStore::new("data")?;
-    /// let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+    /// let pool = Pool::new("pool-001", "工作笔记", "secretkey");
     /// store.create_pool(&pool)?;
     /// # Ok(())
     /// # }
@@ -677,7 +677,7 @@ mod tests {
     fn it_should_create_and_get_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
-        let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+        let pool = Pool::new("pool-001", "工作笔记", "secretkey");
         let pool_id = pool.pool_id.clone();
 
         // 创建数据池
@@ -687,14 +687,14 @@ mod tests {
         let retrieved = store.get_pool_by_id(&pool_id).unwrap();
         assert_eq!(retrieved.pool_id, pool_id);
         assert_eq!(retrieved.name, "工作笔记");
-        assert_eq!(retrieved.password_hash, "hashed_password");
+        assert_eq!(retrieved.secretkey, "secretkey");
     }
 
     #[test]
     fn it_should_update_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
-        let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+        let pool = Pool::new("pool-001", "工作笔记", "secretkey");
         store.create_pool(&pool).unwrap();
 
         // 更新数据池
@@ -711,7 +711,7 @@ mod tests {
     fn it_should_delete_pool() {
         let store = PoolStore::new_in_memory().unwrap();
 
-        let pool = Pool::new("pool-001", "工作笔记", "hashed_password");
+        let pool = Pool::new("pool-001", "工作笔记", "secretkey");
         store.create_pool(&pool).unwrap();
 
         // 删除数据池

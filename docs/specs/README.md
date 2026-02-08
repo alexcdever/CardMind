@@ -32,8 +32,7 @@
 - [冲突解决](architecture/sync/conflict_resolution.md) - CRDT 冲突处理
 
 ### 安全架构
-- [密码管理](architecture/security/password.md) - bcrypt 密码管理
-- [密钥存储](architecture/security/keyring.md) - Keyring 密钥存储
+- [密码管理](architecture/security/password.md) - SHA-256 密码校验
 - [隐私保护](architecture/security/privacy.md) - 隐私保护策略
 
 

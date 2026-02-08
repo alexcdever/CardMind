@@ -30,7 +30,7 @@ Future<void> initPoolStore({required String path}) =>
 /// # Arguments
 ///
 /// * `name` - Pool name (max 128 characters)
-/// * `password` - Pool password (min 8 characters)
+/// * `password` - Pool password (plaintext, stored in pool metadata)
 ///
 /// # Returns
 ///
@@ -181,14 +181,14 @@ Future<void> updateMemberName({
   newName: newName,
 );
 
-/// Verify a pool password
+/// Verify a pool password hash
 ///
 /// Used when joining an existing pool.
 ///
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `password` - Password to verify
+/// * `password_hash` - SHA-256 hash to verify
 ///
 /// # Returns
 ///
@@ -197,100 +197,18 @@ Future<void> updateMemberName({
 /// # Example (Dart)
 ///
 /// ```dart
-/// final isValid = await verifyPoolPassword(poolId: poolId, password: 'mypassword123');
+/// final isValid = await verifyPoolPassword(poolId: poolId, passwordHash: hash);
 /// ```
 Future<bool> verifyPoolPassword({
   required String poolId,
-  required String password,
+  required String passwordHash,
 }) => RustLib.instance.api.cardmindRustApiPoolVerifyPoolPassword(
   poolId: poolId,
-  password: password,
+  passwordHash: passwordHash,
 );
 
-/// Store pool password in system keyring
-///
-/// Securely stores the pool password in the operating system's credential storage.
-/// This allows the password to be retrieved later without the user re-entering it.
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-/// * `password` - Password to store (will be securely stored)
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await storePoolPasswordInKeyring(poolId: poolId, password: 'mypassword123');
-/// ```
-Future<void> storePoolPasswordInKeyring({
-  required String poolId,
-  required String password,
-}) => RustLib.instance.api.cardmindRustApiPoolStorePoolPasswordInKeyring(
-  poolId: poolId,
-  password: password,
-);
-
-/// Get pool password from system keyring
-///
-/// Retrieves the stored password from the operating system's credential storage.
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-///
-/// # Returns
-///
-/// The stored password
-///
-/// # Errors
-///
-/// Returns error if password not found in keyring
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final password = await getPoolPasswordFromKeyring(poolId: poolId);
-/// ```
-Future<String> getPoolPasswordFromKeyring({required String poolId}) => RustLib
+/// Hash a pool secretkey using SHA-256
+Future<String> hashPoolSecretkey({required String secretkey}) => RustLib
     .instance
     .api
-    .cardmindRustApiPoolGetPoolPasswordFromKeyring(poolId: poolId);
-
-/// Delete pool password from system keyring
-///
-/// Removes the password from the operating system's credential storage.
-/// Should be called when leaving a pool.
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await deletePoolPasswordFromKeyring(poolId: poolId);
-/// ```
-Future<void> deletePoolPasswordFromKeyring({required String poolId}) => RustLib
-    .instance
-    .api
-    .cardmindRustApiPoolDeletePoolPasswordFromKeyring(poolId: poolId);
-
-/// Check if pool password exists in keyring
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-///
-/// # Returns
-///
-/// true if password is stored in keyring, false otherwise
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final hasPassword = await hasPoolPasswordInKeyring(poolId: poolId);
-/// ```
-Future<bool> hasPoolPasswordInKeyring({required String poolId}) => RustLib
-    .instance
-    .api
-    .cardmindRustApiPoolHasPoolPasswordInKeyring(poolId: poolId);
+    .cardmindRustApiPoolHashPoolSecretkey(secretkey: secretkey);

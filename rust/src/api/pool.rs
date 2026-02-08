@@ -5,10 +5,9 @@
 
 use crate::models::error::Result;
 use crate::models::pool::Pool;
-use crate::security::password::PasswordManager;
+use crate::security::password::{hash_secretkey, verify_secretkey_hash};
 use crate::store::pool_store::PoolStore;
 use std::cell::RefCell;
-use zeroize::Zeroizing;
 
 thread_local! {
     /// Thread-local `PoolStore` instance
@@ -62,7 +61,7 @@ where
 /// # Arguments
 ///
 /// * `name` - Pool name (max 128 characters)
-/// * `password` - Pool password (min 8 characters)
+/// * `password` - Pool password (plaintext, stored in pool metadata)
 ///
 /// # Returns
 ///
@@ -78,13 +77,9 @@ pub fn create_pool(name: String, password: String) -> Result<Pool> {
     use crate::models::pool::Pool as PoolModel;
     use crate::utils::uuid_v7::generate_uuid_v7;
 
-    // Hash password
-    let password_zeroizing = Zeroizing::new(password);
-    let password_hash = PasswordManager::hash_password(&password_zeroizing)?;
-
     // Create pool object
     let pool_id = generate_uuid_v7();
-    let pool = PoolModel::new(&pool_id, &name, &password_hash);
+    let pool = PoolModel::new(&pool_id, &name, &password);
 
     // Store it
     with_pool_store(|store| {
@@ -231,14 +226,14 @@ pub fn update_member_name(pool_id: String, device_id: String, new_name: String) 
 
 // ==================== Pool Password APIs ====================
 
-/// Verify a pool password
+/// Verify a pool password hash
 ///
 /// Used when joining an existing pool.
 ///
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `password` - Password to verify
+/// * `password_hash` - SHA-256 hash to verify
 ///
 /// # Returns
 ///
@@ -247,125 +242,20 @@ pub fn update_member_name(pool_id: String, device_id: String, new_name: String) 
 /// # Example (Dart)
 ///
 /// ```dart
-/// final isValid = await verifyPoolPassword(poolId: poolId, password: 'mypassword123');
+/// final isValid = await verifyPoolPassword(poolId: poolId, passwordHash: hash);
 /// ```
 #[flutter_rust_bridge::frb]
-pub fn verify_pool_password(pool_id: String, password: String) -> Result<bool> {
+pub fn verify_pool_password(pool_id: String, password_hash: String) -> Result<bool> {
     with_pool_store(|store| {
         let pool = store.get_pool_by_id(&pool_id)?;
-        let password_zeroizing = Zeroizing::new(password);
-
-        Ok(PasswordManager::verify_password(
-            &password_zeroizing,
-            &pool.password_hash,
-        )?)
+        Ok(verify_secretkey_hash(&pool.secretkey, &password_hash)?)
     })
 }
 
-// ==================== Keyring Password Storage APIs ====================
-
-/// Store pool password in system keyring
-///
-/// Securely stores the pool password in the operating system's credential storage.
-/// This allows the password to be retrieved later without the user re-entering it.
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-/// * `password` - Password to store (will be securely stored)
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await storePoolPasswordInKeyring(poolId: poolId, password: 'mypassword123');
-/// ```
+/// Hash a pool secretkey using SHA-256
 #[flutter_rust_bridge::frb]
-pub fn store_pool_password_in_keyring(pool_id: String, password: String) -> Result<()> {
-    use crate::security::keyring_store::KeyringStore;
-
-    let keyring = KeyringStore::new();
-    let password_zeroizing = Zeroizing::new(password);
-
-    keyring.store_pool_password(&pool_id, &password_zeroizing)?;
-    Ok(())
-}
-
-/// Get pool password from system keyring
-///
-/// Retrieves the stored password from the operating system's credential storage.
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-///
-/// # Returns
-///
-/// The stored password
-///
-/// # Errors
-///
-/// Returns error if password not found in keyring
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final password = await getPoolPasswordFromKeyring(poolId: poolId);
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn get_pool_password_from_keyring(pool_id: String) -> Result<String> {
-    use crate::security::keyring_store::KeyringStore;
-
-    let keyring = KeyringStore::new();
-    let password = keyring.get_pool_password(&pool_id)?;
-
-    Ok(password.to_string())
-}
-
-/// Delete pool password from system keyring
-///
-/// Removes the password from the operating system's credential storage.
-/// Should be called when leaving a pool.
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// await deletePoolPasswordFromKeyring(poolId: poolId);
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn delete_pool_password_from_keyring(pool_id: String) -> Result<()> {
-    use crate::security::keyring_store::KeyringStore;
-
-    let keyring = KeyringStore::new();
-    keyring.delete_pool_password(&pool_id)?;
-
-    Ok(())
-}
-
-/// Check if pool password exists in keyring
-///
-/// # Arguments
-///
-/// * `pool_id` - Pool ID
-///
-/// # Returns
-///
-/// true if password is stored in keyring, false otherwise
-///
-/// # Example (Dart)
-///
-/// ```dart
-/// final hasPassword = await hasPoolPasswordInKeyring(poolId: poolId);
-/// ```
-#[flutter_rust_bridge::frb]
-pub fn has_pool_password_in_keyring(pool_id: String) -> Result<bool> {
-    use crate::security::keyring_store::KeyringStore;
-
-    let keyring = KeyringStore::new();
-    Ok(keyring.has_pool_password(&pool_id))
+pub fn hash_pool_secretkey(secretkey: String) -> Result<String> {
+    Ok(hash_secretkey(&secretkey)?)
 }
 
 #[cfg(test)]
@@ -530,128 +420,17 @@ mod tests {
         init_pool_store(path).unwrap();
 
         let pool = create_pool("Test Pool".to_string(), "mypassword123".to_string()).unwrap();
+        let valid_hash = hash_secretkey("mypassword123").unwrap();
 
         // Correct password
-        let valid =
-            verify_pool_password(pool.pool_id.clone(), "mypassword123".to_string()).unwrap();
+        let valid = verify_pool_password(pool.pool_id.clone(), valid_hash).unwrap();
         assert!(valid);
 
         // Wrong password
-        let invalid = verify_pool_password(pool.pool_id, "wrongpassword".to_string()).unwrap();
+        let invalid_hash = hash_secretkey("wrongpassword").unwrap();
+        let invalid = verify_pool_password(pool.pool_id, invalid_hash).unwrap();
         assert!(!invalid);
 
-        cleanup_pool_store();
-    }
-
-    // ==================== Keyring API Tests ====================
-    // Note: These tests require system keyring access and are ignored by default
-
-    #[test]
-    #[serial]
-    #[ignore = "Requires system keyring"]
-    fn it_should_store_and_retrieve_password_from_keyring() {
-        let test_pool_id = "test-keyring-pool-001";
-        let password = "test_keyring_password_123";
-
-        // Store password
-        let result = store_pool_password_in_keyring(test_pool_id.to_string(), password.to_string());
-        assert!(result.is_ok(), "Failed to store password: {result:?}");
-
-        // Check if exists
-        let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
-        assert!(has_password);
-
-        // Retrieve password
-        let retrieved = get_pool_password_from_keyring(test_pool_id.to_string());
-        assert!(
-            retrieved.is_ok(),
-            "Failed to retrieve password: {retrieved:?}"
-        );
-        assert_eq!(retrieved.unwrap(), password);
-
-        // Cleanup
-        let _ = delete_pool_password_from_keyring(test_pool_id.to_string());
-    }
-
-    #[test]
-    #[serial]
-    #[ignore = "Requires system keyring"]
-    fn it_should_delete_password_from_keyring() {
-        let test_pool_id = "test-keyring-pool-002";
-
-        // Store password first
-        store_pool_password_in_keyring(test_pool_id.to_string(), "delete_test".to_string())
-            .unwrap();
-
-        // Verify it exists
-        let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
-        assert!(has_password);
-
-        // Delete password
-        let result = delete_pool_password_from_keyring(test_pool_id.to_string());
-        assert!(result.is_ok());
-
-        // Verify it's gone
-        let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
-        assert!(!has_password);
-    }
-
-    #[test]
-    #[serial]
-    #[ignore = "Requires system keyring"]
-    fn it_should_has_pool_password_in_keyring() {
-        let test_pool_id = "test-keyring-pool-003";
-
-        // Should not exist initially
-        let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
-        assert!(!has_password);
-
-        // Store password
-        store_pool_password_in_keyring(test_pool_id.to_string(), "exists_test".to_string())
-            .unwrap();
-
-        // Should exist now
-        let has_password = has_pool_password_in_keyring(test_pool_id.to_string()).unwrap();
-        assert!(has_password);
-
-        // Cleanup
-        let _ = delete_pool_password_from_keyring(test_pool_id.to_string());
-    }
-
-    #[test]
-    #[serial]
-    #[ignore = "Requires system keyring"]
-    fn it_should_keyring_password_not_found() {
-        let result = get_pool_password_from_keyring("nonexistent-pool".to_string());
-        assert!(result.is_err());
-    }
-
-    #[test]
-    #[serial]
-    #[ignore = "Requires system keyring"]
-    fn it_should_pool_workflow_with_keyring() {
-        let dir = tempdir().unwrap();
-        let path = dir.path().to_str().unwrap().to_string();
-
-        init_pool_store(path).unwrap();
-
-        // Create pool
-        let password = "workflow_test_password";
-        let pool = create_pool("Keyring Test Pool".to_string(), password.to_string()).unwrap();
-
-        // Store password in keyring
-        store_pool_password_in_keyring(pool.pool_id.clone(), password.to_string()).unwrap();
-
-        // Retrieve and verify
-        let retrieved_password = get_pool_password_from_keyring(pool.pool_id.clone()).unwrap();
-        assert_eq!(retrieved_password, password);
-
-        // Verify pool password using keyring password
-        let is_valid = verify_pool_password(pool.pool_id.clone(), retrieved_password).unwrap();
-        assert!(is_valid);
-
-        // Cleanup
-        delete_pool_password_from_keyring(pool.pool_id).unwrap();
         cleanup_pool_store();
     }
 }

@@ -14,6 +14,7 @@
 //! ```rust,no_run
 //! use cardmind_rust::p2p::P2PSyncService;
 //! use cardmind_rust::store::card_store::CardStore;
+//! use cardmind_rust::store::pool_store::PoolStore;
 //! use cardmind_rust::models::device_config::DeviceConfig;
 //! use std::sync::{Arc, Mutex};
 //!
@@ -21,7 +22,8 @@
 //! let card_store = Arc::new(Mutex::new(CardStore::new_in_memory()?));
 //! let device_config = DeviceConfig::new();
 //!
-//! let mut service = P2PSyncService::new(card_store, device_config)?;
+//! let pool_store = Arc::new(Mutex::new(PoolStore::new("data")?));
+//! let mut service = P2PSyncService::new(card_store, pool_store, device_config)?;
 //! service.start("/ip4/0.0.0.0/tcp/0").await?;
 //! # Ok(())
 //! # }
@@ -35,9 +37,9 @@ use crate::p2p::sync::{
     SyncResponse,
 };
 use crate::p2p::sync_manager::SyncManager;
-use crate::security::keyring_store::KeyringStore;
-use crate::security::password::derive_pool_hash;
 use crate::store::card_store::CardStore;
+use crate::store::pool_store::PoolStore;
+use crate::security::password::hash_secretkey;
 use futures::StreamExt;
 use libp2p::request_response::Message;
 use libp2p::swarm::SwarmEvent;
@@ -53,6 +55,7 @@ use tracing::{debug, info, warn};
 struct ServiceEntry {
     sync_manager: Arc<Mutex<SyncManager>>,
     device_config: Arc<Mutex<DeviceConfig>>,
+    pool_store: Arc<Mutex<PoolStore>>,
 }
 
 fn registry() -> &'static Mutex<HashMap<PeerId, ServiceEntry>> {
@@ -80,11 +83,11 @@ pub struct P2PSyncService {
     /// 设备配置
     device_config: Arc<Mutex<DeviceConfig>>,
 
+    /// 数据池存储（用于读取 secretkey）
+    pool_store: Arc<Mutex<PoolStore>>,
+
     /// 连接状态 (`peer_id` -> connected)
     connections: Arc<Mutex<HashMap<PeerId, bool>>>,
-
-    /// 是否强制校验 `pool_hash`（mock 网络默认关闭）
-    enforce_pool_hash: bool,
 
     /// 是否使用真实网络传输（默认 true，测试时可设为 false）
     use_real_network: bool,
@@ -106,6 +109,7 @@ impl P2PSyncService {
     /// # 参数
     ///
     /// * `card_store` - `CardStore` 实例
+    /// * `pool_store` - `PoolStore` 实例
     /// * `device_config` - 设备配置
     ///
     /// # 示例
@@ -113,17 +117,23 @@ impl P2PSyncService {
     /// ```rust,no_run
     /// # use cardmind_rust::p2p::P2PSyncService;
     /// # use cardmind_rust::store::card_store::CardStore;
+    /// # use cardmind_rust::store::pool_store::PoolStore;
     /// # use cardmind_rust::models::device_config::DeviceConfig;
     /// # use std::sync::{Arc, Mutex};
     /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// let card_store = Arc::new(Mutex::new(CardStore::new_in_memory()?));
     /// let device_config = DeviceConfig::new();
     ///
-    /// let service = P2PSyncService::new(card_store, device_config)?;
+    /// let pool_store = Arc::new(Mutex::new(PoolStore::new("data")?));
+    /// let service = P2PSyncService::new(card_store, pool_store, device_config)?;
     /// # Ok(())
     /// # }
     /// ```
-    pub fn new(card_store: Arc<Mutex<CardStore>>, device_config: DeviceConfig) -> Result<Self> {
+    pub fn new(
+        card_store: Arc<Mutex<CardStore>>,
+        pool_store: Arc<Mutex<PoolStore>>,
+        device_config: DeviceConfig,
+    ) -> Result<Self> {
         info!("创建 P2P 同步服务");
 
         // 1. 仅在加入数据池时启用 mDNS
@@ -156,6 +166,7 @@ impl P2PSyncService {
             ServiceEntry {
                 sync_manager: sync_manager.clone(),
                 device_config: device_config.clone(),
+                pool_store: pool_store.clone(),
             },
         );
 
@@ -165,8 +176,8 @@ impl P2PSyncService {
             coordinator: Arc::new(coordinator),
             local_peer_id,
             device_config,
+            pool_store,
             connections: Arc::new(Mutex::new(HashMap::new())),
-            enforce_pool_hash: true,
             use_real_network: true, // 默认使用真实网络
             status_tx,
             last_status: Arc::new(Mutex::new(None)),
@@ -179,11 +190,11 @@ impl P2PSyncService {
     #[doc(hidden)]
     pub fn new_with_mock_network(
         card_store: Arc<Mutex<CardStore>>,
+        pool_store: Arc<Mutex<PoolStore>>,
         device_config: DeviceConfig,
     ) -> Result<Self> {
-        let mut service = Self::new(card_store, device_config)?;
+        let mut service = Self::new(card_store, pool_store, device_config)?;
         service.use_real_network = false;
-        service.enforce_pool_hash = false;
         Ok(service)
     }
 
@@ -258,16 +269,39 @@ impl P2PSyncService {
     }
 
     /// 解析本地数据池哈希（`pool_hash`）
-    fn resolve_pool_hash(pool_id: &str) -> Result<String> {
-        let keyring = KeyringStore::new();
-        let password = keyring.get_pool_password(pool_id)?;
-        let hash = derive_pool_hash(pool_id, password.as_str())?;
-        Ok(hash)
+    fn resolve_pool_hash(&self, pool_id: &str) -> Result<String> {
+        let store = self.pool_store.lock().unwrap();
+        let pool = store.get_pool_by_id(pool_id)?;
+        Ok(hash_secretkey(&pool.secretkey)?)
     }
 
     /// 校验远端 `pool_hash` 是否匹配
-    fn verify_pool_hash(pool_id: &str, remote_hash: &str) -> bool {
-        match Self::resolve_pool_hash(pool_id) {
+    fn verify_pool_hash(&self, pool_id: &str, remote_hash: &str) -> bool {
+        match self.resolve_pool_hash(pool_id) {
+            Ok(local_hash) => local_hash == remote_hash,
+            Err(err) => {
+                warn!("pool_hash 校验失败: {}", err);
+                false
+            }
+        }
+    }
+
+    /// 使用指定 `PoolStore` 校验 `pool_hash`
+    fn verify_pool_hash_with_store(
+        pool_store: &Arc<Mutex<PoolStore>>,
+        pool_id: &str,
+        remote_hash: &str,
+    ) -> bool {
+        let store = pool_store.lock().unwrap();
+        let pool = match store.get_pool_by_id(pool_id) {
+            Ok(pool) => pool,
+            Err(err) => {
+                warn!("pool_hash 校验失败: {}", err);
+                return false;
+            }
+        };
+
+        match hash_secretkey(&pool.secretkey) {
             Ok(local_hash) => local_hash == remote_hash,
             Err(err) => {
                 warn!("pool_hash 校验失败: {}", err);
@@ -306,11 +340,7 @@ impl P2PSyncService {
             .unwrap()
             .get_last_sync_version(&pool_id, &peer_id.to_string());
 
-        let pool_hash = if self.enforce_pool_hash {
-            Self::resolve_pool_hash(&pool_id)?
-        } else {
-            String::new()
-        };
+        let pool_hash = self.resolve_pool_hash(&pool_id)?;
 
         // 构造同步请求
         let request = SyncRequest {
@@ -330,7 +360,8 @@ impl P2PSyncService {
             let entry = registry().lock().unwrap().get(&peer_id).cloned();
 
             if let Some(entry) = entry {
-                if self.enforce_pool_hash && !Self::verify_pool_hash(&pool_id, &request.pool_hash) {
+                if !Self::verify_pool_hash_with_store(&entry.pool_store, &pool_id, &request.pool_hash)
+                {
                     return Err(CardMindError::NotAuthorized(
                         "pool_hash mismatch".to_string(),
                     ));
@@ -608,7 +639,7 @@ impl P2PSyncService {
                         return Ok(());
                     }
 
-                    let pool_hash = Self::resolve_pool_hash(&pool_id)?;
+                    let pool_hash = self.resolve_pool_hash(&pool_id)?;
                     let handshake = HandshakeRequest {
                         pool_id,
                         pool_hash,
@@ -639,10 +670,8 @@ impl P2PSyncService {
                                         peer, request.pool_id
                                     );
 
-                                    let accepted = Self::verify_pool_hash(
-                                        &request.pool_id,
-                                        &request.pool_hash,
-                                    );
+                                    let accepted =
+                                        self.verify_pool_hash(&request.pool_id, &request.pool_hash);
 
                                     let response = HandshakeResponse {
                                         accepted,
@@ -681,12 +710,10 @@ impl P2PSyncService {
                                         peer, request.pool_id
                                     );
 
-                                    if self.enforce_pool_hash
-                                        && !Self::verify_pool_hash(
-                                            &request.pool_id,
-                                            &request.pool_hash,
-                                        )
-                                    {
+                                    if !self.verify_pool_hash(
+                                        &request.pool_id,
+                                        &request.pool_hash,
+                                    ) {
                                         warn!(
                                             "pool_hash 不匹配，拒绝同步: peer={}, pool_id={}",
                                             peer, request.pool_id
@@ -854,14 +881,21 @@ pub struct SyncStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::pool::Pool;
     use crate::utils::uuid_v7::generate_uuid_v7;
+    use crate::store::pool_store::PoolStore;
+
+    fn new_pool_store() -> Arc<Mutex<PoolStore>> {
+        Arc::new(Mutex::new(PoolStore::new_in_memory().unwrap()))
+    }
 
     #[test]
     fn it_should_sync_service_creation() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config);
+        let service = P2PSyncService::new(card_store, pool_store, device_config);
         assert!(service.is_ok(), "同步服务创建应该成功");
 
         let service = service.unwrap();
@@ -875,9 +909,10 @@ mod tests {
     #[test]
     fn it_should_get_sync_status() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config).unwrap();
+        let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
         let status = service.get_sync_status();
 
         assert_eq!(status.online_devices, 0, "初始应该没有在线设备");
@@ -887,9 +922,10 @@ mod tests {
     #[test]
     fn it_should_notify_status_change() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config).unwrap();
+        let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
         // 创建订阅者
         let mut rx = service.status_tx.subscribe();
@@ -911,9 +947,10 @@ mod tests {
     #[test]
     fn it_should_notify_status_change_deduplication() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config).unwrap();
+        let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
         // 创建订阅者
         let mut rx = service.status_tx.subscribe();
@@ -935,9 +972,10 @@ mod tests {
     #[test]
     fn it_should_multiple_subscribers() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config).unwrap();
+        let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
         // 创建多个订阅者
         let mut rx1 = service.status_tx.subscribe();
@@ -959,9 +997,10 @@ mod tests {
     #[test]
     fn it_should_status_sender() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config).unwrap();
+        let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
         // 获取 sender 并创建新的订阅者
         let sender = service.status_sender();
@@ -982,9 +1021,10 @@ mod tests {
     #[test]
     fn it_should_emit_current_status_on_subscription() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config).unwrap();
+        let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
         // 先设置一个状态
         let initial_status = SyncStatus {
@@ -1016,9 +1056,10 @@ mod tests {
     #[test]
     fn it_should_clear_error_on_retry() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let device_config = DeviceConfig::new();
 
-        let service = P2PSyncService::new(card_store, device_config).unwrap();
+        let service = P2PSyncService::new(card_store, pool_store, device_config).unwrap();
 
         // 调用 clear_error 方法
         service.clear_error();
@@ -1030,10 +1071,18 @@ mod tests {
     #[tokio::test]
     async fn it_should_restart_sync_on_retry() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let mut device_config = DeviceConfig::new();
         device_config.join_pool("test-pool").unwrap();
 
-        let mut service = P2PSyncService::new_with_mock_network(card_store, device_config).unwrap();
+        {
+            let store = pool_store.lock().unwrap();
+            let pool = Pool::new("test-pool", "测试池", "secretkey");
+            store.create_pool(&pool).unwrap();
+        }
+
+        let mut service =
+            P2PSyncService::new_with_mock_network(card_store, pool_store, device_config).unwrap();
 
         // 模拟一个已连接的 peer
         let peer_id = libp2p::PeerId::random();
@@ -1052,17 +1101,30 @@ mod tests {
         let pool_id = format!("pool-{}", generate_uuid_v7());
 
         let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store_a = new_pool_store();
         let mut device_config_a = DeviceConfig::new();
         device_config_a.join_pool(&pool_id).unwrap();
-        let service_a = P2PSyncService::new_with_mock_network(card_store_a, device_config_a)
-            .expect("Failed to create service A");
+        {
+            let store = pool_store_a.lock().unwrap();
+            let pool = Pool::new(&pool_id, "测试池", "secretkey_a");
+            store.create_pool(&pool).unwrap();
+        }
+        let service_a =
+            P2PSyncService::new_with_mock_network(card_store_a, pool_store_a, device_config_a)
+                .expect("Failed to create service A");
 
         let card_store_b = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store_b = new_pool_store();
         let mut device_config_b = DeviceConfig::new();
         device_config_b.join_pool(&pool_id).unwrap();
-        let mut service_b = P2PSyncService::new_with_mock_network(card_store_b, device_config_b)
-            .expect("Failed to create service B");
-        service_b.enforce_pool_hash = true;
+        {
+            let store = pool_store_b.lock().unwrap();
+            let pool = Pool::new(&pool_id, "测试池", "secretkey_b");
+            store.create_pool(&pool).unwrap();
+        }
+        let mut service_b =
+            P2PSyncService::new_with_mock_network(card_store_b, pool_store_b, device_config_b)
+                .expect("Failed to create service B");
 
         let result = service_b.request_sync(service_a.local_peer_id(), pool_id);
 
@@ -1072,11 +1134,18 @@ mod tests {
     #[tokio::test]
     async fn it_should_handle_concurrent_retries_safely() {
         let card_store = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
+        let pool_store = new_pool_store();
         let mut device_config = DeviceConfig::new();
         device_config.join_pool("test-pool").unwrap();
 
+        {
+            let store = pool_store.lock().unwrap();
+            let pool = Pool::new("test-pool", "测试池", "secretkey");
+            store.create_pool(&pool).unwrap();
+        }
+
         let service = Arc::new(Mutex::new(
-            P2PSyncService::new_with_mock_network(card_store, device_config).unwrap(),
+            P2PSyncService::new_with_mock_network(card_store, pool_store, device_config).unwrap(),
         ));
 
         // 模拟一个已连接的 peer

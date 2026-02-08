@@ -83,7 +83,7 @@ pub struct SyncRequest {
     /// 数据池 ID
     pub pool_id: String,
 
-    /// 数据池哈希（用于握手校验）
+    /// 数据池哈希（SHA-256(secretkey)）
     pub pool_hash: String,
 
     /// 最后同步的版本号（用于增量同步）
@@ -135,7 +135,7 @@ pub struct HandshakeRequest {
     /// 数据池 ID
     pub pool_id: String,
 
-    /// 数据池哈希（HKDF-derived）
+    /// 数据池哈希（SHA-256(secretkey)）
     pub pool_hash: String,
 
     /// 请求设备 ID

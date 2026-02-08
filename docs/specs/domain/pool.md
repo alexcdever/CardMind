@@ -6,7 +6,7 @@
 
 **技术栈**:
 - **uuid** = "1.6" - UUID v7 生成
-- **bcrypt** = "0.15" - 密码哈希验证
+- **sha2** = "0.10" - 密钥哈希校验
 - **serde** = "1.0" - 序列化/反序列化
 
 **核心原则**:
@@ -24,7 +24,7 @@
 ### 场景：设备成功加入第一个池
 
 - **前置条件**: 设备未加入任何池
-- **操作**: 设备使用有效密码加入池
+- **操作**: 设备使用有效密钥加入池
 - **预期结果**: 该池应添加到设备的已加入池列表
 - **并且**: 应开始该池的同步
 
@@ -102,7 +102,7 @@
 pub struct Pool {
     pub pool_id: String,              // UUID v7
     pub pool_name: String,            // 池名称
-    pub password_hash: String,        // bcrypt 哈希
+    pub secretkey: String,            // 明文密钥
     pub card_ids: Vec<String>,        // 卡片 ID 列表
     pub device_ids: Vec<String>,      // 设备 ID 列表
     pub created_at: i64,             // Unix 毫秒
@@ -133,7 +133,7 @@ pub struct DeviceConfig {
 - **NOT_JOINED_POOL**: 未加入池时创建卡片
 - **POOL_NOT_FOUND**: 池不存在
 - **DEVICE_REMOVED_FROM_POOL**: 设备被从池中移除
-- **INVALID_PASSWORD**: 密码验证失败
+- **INVALID_PASSWORD**: 密钥校验失败
 
 **性能特征**:
 - **数据清理**: O(n) 其中 n 是卡片数量

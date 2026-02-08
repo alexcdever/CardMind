@@ -92,7 +92,7 @@ impl SqliteStore {
     /// **pools 表** (Phase 6):
     /// - `pool_id` (TEXT PRIMARY KEY): UUID v7
     /// - name (TEXT): 数据池名称
-    /// - `password_hash` (TEXT): bcrypt 哈希
+    /// - `secretkey` (TEXT): 明文密码
     /// - `created_at` (INTEGER): 创建时间戳
     /// - `updated_at` (INTEGER): 更新时间戳
     ///
@@ -131,7 +131,7 @@ impl SqliteStore {
             "CREATE TABLE IF NOT EXISTS pools (
                 pool_id TEXT PRIMARY KEY NOT NULL,
                 name TEXT NOT NULL,
-                password_hash TEXT NOT NULL,
+                secretkey TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL
             )",

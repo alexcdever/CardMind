@@ -119,7 +119,6 @@ structure DeviceConfig:
 - **操作**: 退出池
 - **预期结果**: 所有本地卡片应被删除
 - **并且**: 所有本地池元数据应被删除
-- **并且**: Keyring 中的池密码应被删除
 
 ---
 
@@ -265,7 +264,6 @@ structure DeviceConfig:
 **相关架构规格**:
 - [./card_store.md](./card_store.md) - CardStore 实现
 - [./pool_store.md](./pool_store.md) - PoolStore 实现
-- [../security/keyring.md](../security/keyring.md) - Keyring 密码存储
 
 **架构决策记录**:
 - ADR-0001: 单池约束 - 每设备单池设计决策
