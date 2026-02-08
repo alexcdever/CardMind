@@ -4,11 +4,6 @@
 
 本规格定义了在所有 CardMind 规格中使用的可重用数据类型和约束，确保系统内数据建模一致性。
 
-**技术栈**:
-- **uuid** = "1.6" - UUID v7 生成
-- **chrono** = "0.4" - 时间戳处理
-- **serde** = "1.0" - 序列化/反序列化
-
 **核心类型**:
 - UniqueIdentifier (UUID v7)
 - OptionalText (可选字符串)

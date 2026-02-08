@@ -4,11 +4,6 @@
 
 本规格定义了单池模型，其中每张卡片仅属于一个池，每个设备最多只能加入一个池。当设备创建新卡片时，卡片自动属于设备已加入的池。
 
-**技术栈**:
-- **uuid** = "1.6" - UUID v7 生成
-- **sha2** = "0.10" - secretkey 哈希
-- **serde** = "1.0" - 序列化/反序列化
-
 **核心原则**:
 - **单池约束**: 每个设备最多加入一个池
 - **自动归属**: 新卡片自动属于已加入的池
@@ -97,24 +92,19 @@
 
 ## 补充说明
 
-**数据结构**:
-```rust
-pub struct Pool {
-    pub pool_id: String,              // UUID v7
-    pub pool_name: String,            // 池名称
-    pub secretkey: String,            // 明文密钥
-    pub card_ids: Vec<String>,        // 卡片 ID 列表
-    pub device_ids: Vec<String>,      // 设备 ID 列表
-    pub created_at: i64,             // Unix 毫秒
-    pub updated_at: i64,             // Unix 毫秒
-}
-
-pub struct DeviceConfig {
-    pub device_id: String,            // UUID v7
-    pub pool_id: Option<String>,      // 已加入的池 ID
-    pub joined_at: Option<i64>,       // 加入时间
-}
-```
+**数据结构（概念）**:
+- **Pool**
+  - pool_id: 字符串，UUID v7
+  - pool_name: 字符串，池名称
+  - secretkey: 字符串，明文密钥
+  - card_ids: 字符串列表，卡片 ID 列表
+  - device_ids: 字符串列表，设备 ID 列表
+  - created_at: 整数，Unix 毫秒时间戳
+  - updated_at: 整数，Unix 毫秒时间戳
+- **DeviceConfig**
+  - device_id: 字符串，UUID v7
+  - pool_id: 可选字符串，已加入的池 ID
+  - joined_at: 可选整数，加入时间（Unix 毫秒时间戳）
 
 **设计模式**:
 - **约束强制模式**: 应用层强制单池约束
@@ -152,8 +142,6 @@ pub struct DeviceConfig {
 - [../architecture/storage/device_config.md](../architecture/storage/device_config.md) - DeviceConfig 实现
 - [../architecture/sync/service.md](../architecture/sync/service.md) - P2P 同步服务
 
-**架构决策记录**:
-- ADR-0001: 单池所有权模型 - 每设备单池设计决策
 
 ---
 
