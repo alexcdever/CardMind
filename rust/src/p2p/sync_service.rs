@@ -37,7 +37,7 @@ use crate::p2p::sync::{
     SyncResponse,
 };
 use crate::p2p::sync_manager::SyncManager;
-use crate::security::password::hash_secretkey;
+use crate::security::password::hash_pool_id;
 use crate::store::card_store::CardStore;
 use crate::store::pool_store::PoolStore;
 use futures::StreamExt;
@@ -83,7 +83,7 @@ pub struct P2PSyncService {
     /// 设备配置
     device_config: Arc<Mutex<DeviceConfig>>,
 
-    /// 数据池存储（用于读取 secretkey）
+    /// 数据池存储（用于校验池存在）
     pool_store: Arc<Mutex<PoolStore>>,
 
     /// 连接状态 (`peer_id` -> connected)
@@ -268,22 +268,22 @@ impl P2PSyncService {
         Ok(())
     }
 
-    /// 解析本地数据池哈希（`pool_hash`）
+    /// 解析本地数据池哈希（`pool_id` 的 SHA-256）
     fn resolve_pool_hash(&self, pool_id: &str) -> Result<String> {
-        let pool = self.pool_store.lock().unwrap().get_pool_by_id(pool_id)?;
-        Ok(hash_secretkey(&pool.secretkey)?)
+        let _pool = self.pool_store.lock().unwrap().get_pool_by_id(pool_id)?;
+        Ok(hash_pool_id(pool_id)?)
     }
 
-    /// 解析指定 PoolStore 的数据池哈希（`pool_hash`）
+    /// 解析指定 PoolStore 的数据池哈希（`pool_id` 的 SHA-256）
     fn resolve_pool_hash_with_store(
         pool_store: &Arc<Mutex<PoolStore>>,
         pool_id: &str,
     ) -> Result<String> {
-        let pool = pool_store.lock().unwrap().get_pool_by_id(pool_id)?;
-        Ok(hash_secretkey(&pool.secretkey)?)
+        let _pool = pool_store.lock().unwrap().get_pool_by_id(pool_id)?;
+        Ok(hash_pool_id(pool_id)?)
     }
 
-    /// 校验远端 `pool_hash` 是否匹配
+    /// 校验远端 `pool_hash`（pool_id 哈希）是否匹配
     fn verify_pool_hash(&self, pool_id: &str, remote_hash: &str) -> bool {
         match self.resolve_pool_hash(pool_id) {
             Ok(local_hash) => local_hash == remote_hash,
@@ -294,7 +294,7 @@ impl P2PSyncService {
         }
     }
 
-    /// 使用指定 PoolStore 校验远端 `pool_hash`
+    /// 使用指定 PoolStore 校验远端 `pool_hash`（pool_id 哈希）
     fn verify_pool_hash_with_store(
         pool_store: &Arc<Mutex<PoolStore>>,
         pool_id: &str,
@@ -365,7 +365,7 @@ impl P2PSyncService {
                     &request.pool_hash,
                 ) {
                     return Err(CardMindError::NotAuthorized(
-                        "pool_hash mismatch".to_string(),
+                        "pool_id_hash mismatch".to_string(),
                     ));
                 }
 
@@ -680,7 +680,7 @@ impl P2PSyncService {
                                         reason: if accepted {
                                             None
                                         } else {
-                                            Some("pool_hash mismatch".to_string())
+                                            Some("pool_id_hash mismatch".to_string())
                                         },
                                     };
 
@@ -715,7 +715,7 @@ impl P2PSyncService {
                                     if !self.verify_pool_hash(&request.pool_id, &request.pool_hash)
                                     {
                                         warn!(
-                                            "pool_hash 不匹配，拒绝同步: peer={}, pool_id={}",
+                                            "pool_id_hash 不匹配，拒绝同步: peer={}, pool_id={}",
                                             peer, request.pool_id
                                         );
                                         let _ = self.network.swarm_mut().disconnect_peer_id(peer);
@@ -1094,7 +1094,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn it_should_reject_peer_on_pool_hash_mismatch() {
+    async fn it_should_allow_sync_when_pool_id_matches() {
         let pool_id = format!("pool-{}", generate_uuid_v7());
 
         let card_store_a = Arc::new(Mutex::new(CardStore::new_in_memory().unwrap()));
@@ -1119,7 +1119,7 @@ mod tests {
 
         let result = service_b.request_sync(service_a.local_peer_id(), pool_id);
 
-        assert!(result.is_err(), "pool_hash 不匹配时应拒绝同步");
+        assert!(result.is_ok(), "pool_id 一致时应允许同步");
     }
 
     #[tokio::test]

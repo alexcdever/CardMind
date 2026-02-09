@@ -20,6 +20,11 @@ pub fn hash_secretkey(secretkey: &str) -> Result<String, PasswordError> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+/// 计算明文 `pool_id` 的 SHA-256 哈希
+pub fn hash_pool_id(pool_id: &str) -> Result<String, PasswordError> {
+    hash_secretkey(pool_id)
+}
+
 /// 验证 `secretkey` 哈希是否匹配
 pub fn verify_secretkey_hash(secretkey: &str, provided_hash: &str) -> Result<bool, PasswordError> {
     let local_hash = hash_secretkey(secretkey)?;
