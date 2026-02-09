@@ -10,9 +10,14 @@
 /// - Loro→SQLite自动同步机制
 /// - 数据一致性验证
 /// - 文件持久化
+use cardmind_rust::models::card::OwnerType;
 use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::store::card_store::CardStore;
 use tempfile::TempDir;
+
+fn default_peer_id() -> String {
+    "12D3KooWTestPeerId".to_string()
+}
 
 // ==================== 1. 初始化测试 ====================
 
@@ -65,7 +70,13 @@ fn it_should_create_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     // When: 创建一张新卡片
-    let result = store.create_card("测试标题".to_string(), "测试内容".to_string());
+    let result = store.create_card(
+        "测试标题".to_string(),
+        "测试内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
+    );
 
     // Then: 卡片应该创建成功，包含正确的标题、内容和时间戳
     assert!(result.is_ok(), "创建卡片应该成功");
@@ -85,7 +96,13 @@ fn it_should_retrieve_created_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
-        .create_card("标题".to_string(), "内容".to_string())
+        .create_card(
+            "标题".to_string(),
+            "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     let card_id = card.id;
 
@@ -109,13 +126,31 @@ fn it_should_create_multiple_cards() {
 
     // When: 创建三张卡片
     store
-        .create_card("卡片1".to_string(), "内容1".to_string())
+        .create_card(
+            "卡片1".to_string(),
+            "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     store
-        .create_card("卡片2".to_string(), "内容2".to_string())
+        .create_card(
+            "卡片2".to_string(),
+            "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     store
-        .create_card("卡片3".to_string(), "内容3".to_string())
+        .create_card(
+            "卡片3".to_string(),
+            "内容3".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
 
     // Then: 应该能查询到所有三张卡片
@@ -132,12 +167,24 @@ fn it_should_get_all_cards_ordered_by_created_at() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card1 = store
-        .create_card("第一个".to_string(), "内容1".to_string())
+        .create_card(
+            "第一个".to_string(),
+            "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     std::thread::sleep(std::time::Duration::from_millis(5));
 
     let card2 = store
-        .create_card("第二个".to_string(), "内容2".to_string())
+        .create_card(
+            "第二个".to_string(),
+            "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
 
     // When: 获取所有卡片
@@ -156,14 +203,26 @@ fn it_should_get_active_cards_excludes_deleted() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card1 = store
-        .create_card("卡片1".to_string(), "内容1".to_string())
+        .create_card(
+            "卡片1".to_string(),
+            "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     let card2 = store
-        .create_card("卡片2".to_string(), "内容2".to_string())
+        .create_card(
+            "卡片2".to_string(),
+            "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
 
     // When: 软删除 card1 并获取活跃卡片
-    store.delete_card(&card1.id).unwrap();
+    store.delete_card(&card1.id, default_peer_id()).unwrap();
     let active_cards = store.get_active_cards().unwrap();
 
     // Then: 应该只返回未删除的卡片
@@ -200,7 +259,13 @@ fn it_should_update_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
-        .create_card("旧标题".to_string(), "旧内容".to_string())
+        .create_card(
+            "旧标题".to_string(),
+            "旧内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     let card_id = card.id.clone();
     let old_updated_at = card.updated_at;
@@ -212,6 +277,7 @@ fn it_should_update_card() {
         &card_id,
         Some("新标题".to_string()),
         Some("新内容".to_string()),
+        default_peer_id(),
     );
 
     // Then: 卡片应该更新成功，且 updated_at 应该更新
@@ -233,13 +299,19 @@ fn it_should_update_card_title_only() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
-        .create_card("旧标题".to_string(), "内容".to_string())
+        .create_card(
+            "旧标题".to_string(),
+            "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     let card_id = card.id;
 
     // When: 只更新卡片的标题
     store
-        .update_card(&card_id, Some("新标题".to_string()), None)
+        .update_card(&card_id, Some("新标题".to_string()), None, default_peer_id())
         .unwrap();
 
     // Then: 标题应该更新，内容应该保持不变
@@ -259,6 +331,7 @@ fn it_should_update_nonexistent_card() {
         "nonexistent-id",
         Some("标题".to_string()),
         Some("内容".to_string()),
+        default_peer_id(),
     );
 
     // Then: 应该返回错误
@@ -274,12 +347,18 @@ fn it_should_delete_card_soft_delete() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
-        .create_card("标题".to_string(), "内容".to_string())
+        .create_card(
+            "标题".to_string(),
+            "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     let card_id = card.id;
 
     // When: 软删除卡片
-    let result = store.delete_card(&card_id);
+    let result = store.delete_card(&card_id, default_peer_id());
 
     // Then: 卡片应该被标记为删除，且不在活跃列表中
     assert!(result.is_ok(), "删除卡片应该成功");
@@ -298,7 +377,7 @@ fn it_should_delete_nonexistent_card() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     // When: 尝试删除不存在的卡片
-    let result = store.delete_card("nonexistent-id");
+    let result = store.delete_card("nonexistent-id", default_peer_id());
 
     // Then: 应该返回错误
     assert!(result.is_err(), "删除不存在的卡片应该返回错误");
@@ -314,7 +393,13 @@ fn it_should_loro_sqlite_sync_on_create() {
 
     // When: 创建一张卡片
     let card = store
-        .create_card("标题".to_string(), "内容".to_string())
+        .create_card(
+            "标题".to_string(),
+            "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
 
     // Then: 从 SQLite 查询应该能获取到相同的数据（验证 Loro→SQLite 同步）
@@ -331,13 +416,19 @@ fn it_should_loro_sqlite_sync_on_update() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
-        .create_card("旧标题".to_string(), "旧内容".to_string())
+        .create_card(
+            "旧标题".to_string(),
+            "旧内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     let card_id = card.id;
 
     // When: 更新卡片标题
     store
-        .update_card(&card_id, Some("新标题".to_string()), None)
+        .update_card(&card_id, Some("新标题".to_string()), None, default_peer_id())
         .unwrap();
 
     // Then: 从 SQLite 查询应该能获取到更新后的数据（验证 Loro→SQLite 同步）
@@ -352,12 +443,18 @@ fn it_should_loro_sqlite_sync_on_delete() {
     let mut store = CardStore::new_in_memory().unwrap();
 
     let card = store
-        .create_card("标题".to_string(), "内容".to_string())
+        .create_card(
+            "标题".to_string(),
+            "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     let card_id = card.id;
 
     // When: 删除卡片
-    store.delete_card(&card_id).unwrap();
+    store.delete_card(&card_id, default_peer_id()).unwrap();
 
     // Then: 从 SQLite 查询应该能获取到删除标记（验证 Loro→SQLite 同步）
     let deleted_card = store.get_card_by_id(&card_id).unwrap();
@@ -378,7 +475,13 @@ fn it_should_card_store_persistence() {
     {
         let mut store = CardStore::new(store_path).unwrap();
         let card = store
-            .create_card("持久化测试".to_string(), "内容".to_string())
+            .create_card(
+                "持久化测试".to_string(),
+                "内容".to_string(),
+                OwnerType::Local,
+                None,
+                default_peer_id(),
+            )
             .unwrap();
         card_id = card.id;
     } // store dropped，应该自动保存
@@ -407,19 +510,25 @@ fn it_should_card_store_persistence_after_updates() {
     {
         let mut store = CardStore::new(store_path).unwrap();
         let card = store
-            .create_card("初始标题".to_string(), "初始内容".to_string())
+            .create_card(
+                "初始标题".to_string(),
+                "初始内容".to_string(),
+                OwnerType::Local,
+                None,
+                default_peer_id(),
+            )
             .unwrap();
         card_id = card.id;
 
         // 多次更新
         store
-            .update_card(&card_id, Some("更新1".to_string()), None)
+            .update_card(&card_id, Some("更新1".to_string()), None, default_peer_id())
             .unwrap();
         store
-            .update_card(&card_id, Some("更新2".to_string()), None)
+            .update_card(&card_id, Some("更新2".to_string()), None, default_peer_id())
             .unwrap();
         store
-            .update_card(&card_id, Some("最终标题".to_string()), None)
+            .update_card(&card_id, Some("最终标题".to_string()), None, default_peer_id())
             .unwrap();
     }
 
@@ -449,13 +558,31 @@ fn it_should_get_card_count() {
 
     // When: 创建 3 张卡片后获取数量
     let card1 = store
-        .create_card("卡片1".to_string(), "内容1".to_string())
+        .create_card(
+            "卡片1".to_string(),
+            "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     store
-        .create_card("卡片2".to_string(), "内容2".to_string())
+        .create_card(
+            "卡片2".to_string(),
+            "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
     store
-        .create_card("卡片3".to_string(), "内容3".to_string())
+        .create_card(
+            "卡片3".to_string(),
+            "内容3".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
+        )
         .unwrap();
 
     let (total, active, deleted) = store.get_card_count().unwrap();
@@ -466,7 +593,7 @@ fn it_should_get_card_count() {
     assert_eq!(deleted, 0);
 
     // When: 删除 1 张卡片后获取数量
-    store.delete_card(&card1.id).unwrap();
+    store.delete_card(&card1.id, default_peer_id()).unwrap();
 
     let (total, active, deleted) = store.get_card_count().unwrap();
 

@@ -9,7 +9,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: NoteEditorDialog(
-          currentDevice: 'desktop-device',
+          currentPeerId: '12D3KooWDesktopPeerId1234567890',
+          currentPoolId: null,
           onSave: (_) {},
           onCancel: () {},
         ),

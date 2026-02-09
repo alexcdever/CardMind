@@ -19,6 +19,6 @@ void main() {
     await tester.pumpWidget(const TestApp(child: HomeScreen()));
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(find.text('搜索笔记标题、内容或标签...'), findsOneWidget);
+    expect(find.text('搜索笔记标题或内容...'), findsOneWidget);
   });
 }

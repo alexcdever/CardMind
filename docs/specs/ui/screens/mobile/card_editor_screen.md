@@ -20,7 +20,6 @@
 - **前置条件**: 用户导航到编辑器并带有现有卡片
 - **操作**: 编辑器屏幕打开现有卡片
 - **预期结果**: 系统应预填充标题和内容字段
-- **并且**: 加载现有标签
 
 ### 场景：创建新卡片
 
@@ -66,24 +65,6 @@
 
 ---
 
-## 需求：编辑器中的标签管理
-
-系统应在编辑器内提供标签管理。
-
-### 场景：编辑时添加标签
-
-- **前置条件**: 用户正在编辑卡片
-- **操作**: 用户添加标签
-- **预期结果**: 保存卡片时应包含该标签
-
-### 场景：编辑时移除标签
-
-- **前置条件**: 卡片有标签
-- **操作**: 用户移除标签
-- **预期结果**: 保存卡片时应排除该标签
-
----
-
 ## 需求：显示字符计数（可选）
 
 系统应可选地显示字符或单词计数。
@@ -102,15 +83,12 @@
 
 **屏幕测试**:
 - `it_should_prepopulate_existing_card()` - 预填充现有卡片
-- `it_should_load_existing_tags()` - 加载现有标签
 - `it_should_display_empty_fields_for_new_card()` - 新卡片空字段
 - `it_should_autofocus_title_field()` - 自动聚焦标题
 - `it_should_apply_text_formatting()` - 应用格式
 - `it_should_maintain_formatting_in_saved_content()` - 保持格式
 - `it_should_save_and_navigate_back()` - 保存并导航
 - `it_should_show_confirmation_on_discard()` - 确认对话框
-- `it_should_add_tags()` - 添加标签
-- `it_should_remove_tags()` - 移除标签
 - `it_should_display_character_count()` - 显示计数（可选）
 
 **验收标准**:

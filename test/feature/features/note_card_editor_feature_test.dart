@@ -12,8 +12,9 @@ bridge.Card _createCard() {
     createdAt: now,
     updatedAt: now,
     deleted: false,
-    tags: const [],
-    lastEditDevice: 'device',
+    ownerType: bridge.OwnerType.local,
+    poolId: null,
+    lastEditPeer: '12D3KooWTestPeerId1234567890',
   );
 }
 
@@ -23,7 +24,8 @@ void main() {
       MaterialApp(
         home: NoteEditorDialog(
           card: _createCard(),
-          currentDevice: 'desktop-device',
+          currentPeerId: '12D3KooWDesktopPeerId1234567890',
+          currentPoolId: null,
           onSave: (_) {},
           onCancel: () {},
         ),

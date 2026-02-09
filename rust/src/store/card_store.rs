@@ -17,18 +17,25 @@
 ///
 /// ```rust,no_run
 /// use cardmind_rust::store::card_store::CardStore;
+/// use cardmind_rust::models::card::OwnerType;
 ///
 /// // 创建store
 /// let mut store = CardStore::new_in_memory()?;
 ///
 /// // 创建卡片
-/// let card = store.create_card("标题".to_string(), "内容".to_string())?;
+/// let card = store.create_card(
+///     "标题".to_string(),
+///     "内容".to_string(),
+///     OwnerType::Local,
+///     None,
+///     "12D3KooWTestPeerId".to_string(),
+/// )?;
 ///
 /// // 查询卡片
 /// let cards = store.get_active_cards()?;
 /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
 /// ```
-use crate::models::card::Card;
+use crate::models::card::{Card, OwnerType};
 use crate::models::error::CardMindError;
 use crate::store::sqlite_store::SqliteStore;
 use crate::utils::uuid_v7::generate_uuid_v7;
@@ -190,6 +197,31 @@ impl CardStore {
             .and_then(|v| v.as_bool().copied())
             .unwrap_or(false);
 
+        let owner_type = map
+            .get("owner_type")
+            .and_then(|v| v.into_value().ok())
+            .and_then(|v| v.as_string().map(|s| s.to_string()))
+            .and_then(|value| OwnerType::try_from(value.as_str()).ok())
+            .unwrap_or(OwnerType::Local);
+
+        let pool_id = map
+            .get("pool_id")
+            .and_then(|v| v.into_value().ok())
+            .and_then(|v| v.as_string().map(|s| s.to_string()))
+            .and_then(|value| {
+                if value.trim().is_empty() {
+                    None
+                } else {
+                    Some(value)
+                }
+            });
+
+        let last_edit_peer = map
+            .get("last_edit_peer")
+            .and_then(|v| v.into_value().ok())
+            .and_then(|v| v.as_string().map(|s| s.to_string()))
+            .unwrap_or_else(|| "unknown".to_string());
+
         Ok(Some(Card {
             id,
             title,
@@ -197,8 +229,9 @@ impl CardStore {
             created_at,
             updated_at,
             deleted,
-            tags: Vec::new(),
-            last_edit_device: None,
+            owner_type,
+            pool_id,
+            last_edit_peer,
         }))
     }
 
@@ -211,6 +244,9 @@ impl CardStore {
         map.insert("created_at", card.created_at)?;
         map.insert("updated_at", card.updated_at)?;
         map.insert("deleted", card.deleted)?;
+        map.insert("owner_type", card.owner_type.as_str())?;
+        map.insert("pool_id", card.pool_id.clone().unwrap_or_default())?;
+        map.insert("last_edit_peer", card.last_edit_peer.clone())?;
         Ok(())
     }
 
@@ -275,16 +311,37 @@ impl CardStore {
     ///
     /// ```rust,no_run
     /// # use cardmind_rust::store::card_store::CardStore;
+    /// # use cardmind_rust::models::card::OwnerType;
     /// let mut store = CardStore::new_in_memory()?;
-    /// let card = store.create_card("我的笔记".to_string(), "内容".to_string())?;
+    /// let card = store.create_card(
+    ///     "我的笔记".to_string(),
+    ///     "内容".to_string(),
+    ///     OwnerType::Local,
+    ///     None,
+    ///     "12D3KooWTestPeerId".to_string(),
+    /// )?;
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
-    pub fn create_card(&mut self, title: String, content: String) -> Result<Card, CardMindError> {
+    pub fn create_card(
+        &mut self,
+        title: String,
+        content: String,
+        owner_type: OwnerType,
+        pool_id: Option<String>,
+        last_edit_peer: String,
+    ) -> Result<Card, CardMindError> {
         // 生成UUID v7
         let card_id = generate_uuid_v7();
 
         // 创建Card对象
-        let card = Card::new(card_id.clone(), title, content)?;
+        let card = Card::new(
+            card_id.clone(),
+            title,
+            content,
+            owner_type,
+            pool_id,
+            last_edit_peer,
+        )?;
 
         // 创建LoroDoc
         let doc = LoroDoc::new();
@@ -355,9 +412,21 @@ impl CardStore {
     ///
     /// ```rust,no_run
     /// # use cardmind_rust::store::card_store::CardStore;
+    /// # use cardmind_rust::models::card::OwnerType;
     /// let mut store = CardStore::new_in_memory()?;
-    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
-    /// store.update_card(&card.id, Some("新标题".to_string()), None)?;
+    /// # let card = store.create_card(
+    /// #     "标题".to_string(),
+    /// #     "内容".to_string(),
+    /// #     OwnerType::Local,
+    /// #     None,
+    /// #     "12D3KooWTestPeerId".to_string(),
+    /// # )?;
+    /// store.update_card(
+    ///     &card.id,
+    ///     Some("新标题".to_string()),
+    ///     None,
+    ///     "12D3KooWTestPeerId".to_string(),
+    /// )?;
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
     pub fn update_card(
@@ -365,12 +434,13 @@ impl CardStore {
         id: &str,
         title: Option<String>,
         content: Option<String>,
+        last_edit_peer: String,
     ) -> Result<(), CardMindError> {
         // 获取当前卡片数据
         let mut card = self.get_card_by_id(id)?;
 
         // 更新字段
-        card.update(title, content)?;
+        card.update(title, content, last_edit_peer)?;
 
         // 加载LoroDoc（如果未缓存）
         self.ensure_loro_doc_loaded(id)?;
@@ -415,17 +485,24 @@ impl CardStore {
     ///
     /// ```rust,no_run
     /// # use cardmind_rust::store::card_store::CardStore;
+    /// # use cardmind_rust::models::card::OwnerType;
     /// let mut store = CardStore::new_in_memory()?;
-    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
-    /// store.delete_card(&card.id)?;
+    /// # let card = store.create_card(
+    /// #     "标题".to_string(),
+    /// #     "内容".to_string(),
+    /// #     OwnerType::Local,
+    /// #     None,
+    /// #     "12D3KooWTestPeerId".to_string(),
+    /// # )?;
+    /// store.delete_card(&card.id, "12D3KooWTestPeerId".to_string())?;
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
-    pub fn delete_card(&mut self, id: &str) -> Result<(), CardMindError> {
+    pub fn delete_card(&mut self, id: &str, last_edit_peer: String) -> Result<(), CardMindError> {
         // 获取当前卡片数据
         let mut card = self.get_card_by_id(id)?;
 
         // 标记为已删除
-        card.mark_deleted()?;
+        card.mark_deleted(last_edit_peer)?;
 
         // 加载LoroDoc（如果未缓存）
         self.ensure_loro_doc_loaded(id)?;
@@ -520,8 +597,15 @@ impl CardStore {
     ///
     /// ```rust,no_run
     /// # use cardmind_rust::store::card_store::CardStore;
+    /// # use cardmind_rust::models::card::OwnerType;
     /// let mut store = CardStore::new_in_memory()?;
-    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
+    /// # let card = store.create_card(
+    /// #     "标题".to_string(),
+    /// #     "内容".to_string(),
+    /// #     OwnerType::Local,
+    /// #     None,
+    /// #     "12D3KooWTestPeerId".to_string(),
+    /// # )?;
     /// store.add_card_to_pool(&card.id, "pool-001")?;
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
@@ -547,8 +631,15 @@ impl CardStore {
     ///
     /// ```rust,no_run
     /// # use cardmind_rust::store::card_store::CardStore;
+    /// # use cardmind_rust::models::card::OwnerType;
     /// let mut store = CardStore::new_in_memory()?;
-    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
+    /// # let card = store.create_card(
+    /// #     "标题".to_string(),
+    /// #     "内容".to_string(),
+    /// #     OwnerType::Local,
+    /// #     None,
+    /// #     "12D3KooWTestPeerId".to_string(),
+    /// # )?;
     /// # store.add_card_to_pool(&card.id, "pool-001")?;
     /// store.remove_card_from_pool(&card.id, "pool-001")?;
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
@@ -580,7 +671,14 @@ impl CardStore {
     /// # use cardmind_rust::store::card_store::CardStore;
     /// let store = CardStore::new_in_memory()?;
     /// # let mut store = store;
-    /// # let card = store.create_card("标题".to_string(), "内容".to_string())?;
+    /// # use cardmind_rust::models::card::OwnerType;
+    /// # let card = store.create_card(
+    /// #     "标题".to_string(),
+    /// #     "内容".to_string(),
+    /// #     OwnerType::Local,
+    /// #     None,
+    /// #     "12D3KooWTestPeerId".to_string(),
+    /// # )?;
     /// let pools = store.get_card_pools(&card.id)?;
     /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
     /// ```
@@ -599,6 +697,7 @@ impl CardStore {
                 &card.id,
                 Some(card.title.clone()),
                 Some(card.content.clone()),
+                card.last_edit_peer.clone(),
             )?;
         } else {
             self.sqlite.insert_card(card)?;
@@ -649,6 +748,22 @@ impl CardStore {
 mod tests {
     use super::*;
 
+    fn default_peer_id() -> String {
+        "12D3KooWTestPeerId".to_string()
+    }
+
+    fn create_local_card(store: &mut CardStore, title: &str, content: &str) -> Card {
+        store
+            .create_card(
+                title.to_string(),
+                content.to_string(),
+                OwnerType::Local,
+                None,
+                default_peer_id(),
+            )
+            .unwrap()
+    }
+
     #[test]
     fn it_should_card_store_creation() {
         let store = CardStore::new_in_memory();
@@ -659,9 +774,7 @@ mod tests {
     fn it_should_create_and_get_card() {
         let mut store = CardStore::new_in_memory().unwrap();
 
-        let card = store
-            .create_card("测试".to_string(), "内容".to_string())
-            .unwrap();
+        let card = create_local_card(&mut store, "测试", "内容");
 
         let retrieved = store.get_card_by_id(&card.id).unwrap();
         assert_eq!(retrieved.title, "测试");
@@ -671,9 +784,7 @@ mod tests {
     fn it_should_create_card_updates_counts() {
         let mut store = CardStore::new_in_memory().unwrap();
 
-        let card = store
-            .create_card("标题".to_string(), "内容".to_string())
-            .unwrap();
+        let card = create_local_card(&mut store, "标题", "内容");
         let (total, active, deleted) = store.get_card_count().unwrap();
 
         assert_eq!(total, 1);
@@ -687,15 +798,14 @@ mod tests {
     #[test]
     fn it_should_update_card_title_and_content() {
         let mut store = CardStore::new_in_memory().unwrap();
-        let card = store
-            .create_card("旧标题".to_string(), "旧内容".to_string())
-            .unwrap();
+        let card = create_local_card(&mut store, "旧标题", "旧内容");
 
         store
             .update_card(
                 &card.id,
                 Some("新标题".to_string()),
                 Some("新内容".to_string()),
+                "12D3KooWUpdatedPeer".to_string(),
             )
             .unwrap();
 
@@ -707,11 +817,11 @@ mod tests {
     #[test]
     fn it_should_delete_card_marks_deleted() {
         let mut store = CardStore::new_in_memory().unwrap();
-        let card = store
-            .create_card("标题".to_string(), "内容".to_string())
-            .unwrap();
+        let card = create_local_card(&mut store, "标题", "内容");
 
-        store.delete_card(&card.id).unwrap();
+        store
+            .delete_card(&card.id, "12D3KooWDeletePeer".to_string())
+            .unwrap();
 
         let updated = store.get_card_by_id(&card.id).unwrap();
         assert!(updated.deleted);
@@ -720,9 +830,7 @@ mod tests {
     #[test]
     fn it_should_get_card_pools_empty_when_none() {
         let mut store = CardStore::new_in_memory().unwrap();
-        let card = store
-            .create_card("标题".to_string(), "内容".to_string())
-            .unwrap();
+        let card = create_local_card(&mut store, "标题", "内容");
 
         let pools = store.get_card_pools(&card.id).unwrap();
         assert!(pools.is_empty());
@@ -731,11 +839,11 @@ mod tests {
     #[test]
     fn it_should_get_active_cards_excludes_deleted() {
         let mut store = CardStore::new_in_memory().unwrap();
-        let card = store
-            .create_card("标题".to_string(), "内容".to_string())
-            .unwrap();
+        let card = create_local_card(&mut store, "标题", "内容");
 
-        store.delete_card(&card.id).unwrap();
+        store
+            .delete_card(&card.id, "12D3KooWDeletePeer".to_string())
+            .unwrap();
 
         let active = store.get_active_cards().unwrap();
         assert!(active.is_empty());
@@ -745,9 +853,7 @@ mod tests {
     #[allow(deprecated)]
     fn it_should_manage_card_pool_bindings() {
         let mut store = CardStore::new_in_memory().unwrap();
-        let card = store
-            .create_card("标题".to_string(), "内容".to_string())
-            .unwrap();
+        let card = create_local_card(&mut store, "标题", "内容");
 
         store.add_card_to_pool(&card.id, "pool-001").unwrap();
         let pools = store.get_card_pools(&card.id).unwrap();

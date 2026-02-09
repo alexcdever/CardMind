@@ -21,7 +21,7 @@
 /// let cards = store.get_active_cards()?;
 /// # Ok::<(), cardmind_rust::models::error::CardMindError>(())
 /// ```
-use crate::models::card::Card;
+use crate::models::card::{Card, OwnerType};
 use crate::models::error::CardMindError;
 use rusqlite::{Connection, Result as SqliteResult};
 
@@ -33,6 +33,12 @@ pub struct SqliteStore {
 }
 
 impl SqliteStore {
+    fn parse_owner_type(owner_type: String) -> SqliteResult<OwnerType> {
+        OwnerType::try_from(owner_type.as_str()).map_err(|err| {
+            rusqlite::Error::FromSqlConversionFailure(6, rusqlite::types::Type::Text, Box::new(err))
+        })
+    }
+
     /// 创建一个新的内存`SQLite` store（用于测试）
     ///
     /// # 示例
@@ -88,6 +94,9 @@ impl SqliteStore {
     /// - `created_at` (INTEGER): 创建时间戳（Unix毫秒）
     /// - `updated_at` (INTEGER): 更新时间戳（Unix毫秒）
     /// - deleted (INTEGER): 软删除标记（0/1）
+    /// - owner_type (TEXT): 卡片所有权（local | pool）
+    /// - pool_id (TEXT): 数据池 ID（可空）
+    /// - last_edit_peer (TEXT): 最后编辑 PeerId
     ///
     /// **pools 表** (Phase 6):
     /// - `pool_id` (TEXT PRIMARY KEY): UUID v7
@@ -109,7 +118,10 @@ impl SqliteStore {
                 content TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
-                deleted INTEGER NOT NULL DEFAULT 0
+                deleted INTEGER NOT NULL DEFAULT 0,
+                owner_type TEXT NOT NULL,
+                pool_id TEXT,
+                last_edit_peer TEXT NOT NULL
             )",
             [],
         )?;
@@ -254,8 +266,8 @@ impl SqliteStore {
     #[allow(dead_code)]
     pub(crate) fn insert_card(&self, card: &Card) -> Result<(), CardMindError> {
         self.conn.execute(
-            "INSERT INTO cards (id, title, content, created_at, updated_at, deleted)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO cards (id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             rusqlite::params![
                 &card.id,
                 &card.title,
@@ -263,6 +275,9 @@ impl SqliteStore {
                 card.created_at,
                 card.updated_at,
                 card.deleted,
+                card.owner_type.as_str(),
+                &card.pool_id,
+                &card.last_edit_peer,
             ],
         )?;
         Ok(())
@@ -279,13 +294,16 @@ impl SqliteStore {
     pub(crate) fn update_card(&self, card: &Card) -> Result<(), CardMindError> {
         let rows_affected = self.conn.execute(
             "UPDATE cards
-             SET title = ?1, content = ?2, updated_at = ?3, deleted = ?4
-             WHERE id = ?5",
+             SET title = ?1, content = ?2, updated_at = ?3, deleted = ?4, owner_type = ?5, pool_id = ?6, last_edit_peer = ?7
+             WHERE id = ?8",
             rusqlite::params![
                 &card.title,
                 &card.content,
                 card.updated_at,
                 card.deleted,
+                card.owner_type.as_str(),
+                &card.pool_id,
+                &card.last_edit_peer,
                 &card.id,
             ],
         )?;
@@ -322,7 +340,7 @@ impl SqliteStore {
     /// 按创建时间倒序排列的卡片列表
     pub fn get_all_cards(&self) -> Result<Vec<Card>, CardMindError> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, title, content, created_at, updated_at, deleted
+            "SELECT id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer
              FROM cards
              ORDER BY created_at DESC",
         )?;
@@ -336,8 +354,9 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
-                    tags: Vec::new(),
-                    last_edit_device: None,
+                    owner_type: Self::parse_owner_type(row.get(6)?)?,
+                    pool_id: row.get(7)?,
+                    last_edit_peer: row.get(8)?,
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
@@ -361,7 +380,7 @@ impl SqliteStore {
     /// ```
     pub fn get_active_cards(&self) -> Result<Vec<Card>, CardMindError> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, title, content, created_at, updated_at, deleted
+            "SELECT id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer
              FROM cards
              WHERE deleted = 0
              ORDER BY created_at DESC",
@@ -376,8 +395,9 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
-                    tags: Vec::new(),
-                    last_edit_device: None,
+                    owner_type: Self::parse_owner_type(row.get(6)?)?,
+                    pool_id: row.get(7)?,
+                    last_edit_peer: row.get(8)?,
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
@@ -405,7 +425,7 @@ impl SqliteStore {
     /// ```
     pub fn get_card_by_id(&self, id: &str) -> Result<Card, CardMindError> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, title, content, created_at, updated_at, deleted
+            "SELECT id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer
              FROM cards
              WHERE id = ?1",
         )?;
@@ -418,8 +438,9 @@ impl SqliteStore {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
-                tags: Vec::new(),
-                last_edit_device: None,
+                owner_type: Self::parse_owner_type(row.get(6)?)?,
+                pool_id: row.get(7)?,
+                last_edit_peer: row.get(8)?,
             })
         });
 
@@ -464,7 +485,7 @@ impl SqliteStore {
     /// 匹配的卡片列表（只返回未删除的卡片）
     pub fn search_cards(&self, query: &str) -> Result<Vec<Card>, CardMindError> {
         let mut stmt = self.conn.prepare(
-            "SELECT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted
+            "SELECT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted, c.owner_type, c.pool_id, c.last_edit_peer
              FROM cards_fts
              INNER JOIN cards c ON cards_fts.id = c.id
              WHERE cards_fts MATCH ?1 AND c.deleted = 0
@@ -481,8 +502,9 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
-                    tags: Vec::new(),
-                    last_edit_device: None,
+                    owner_type: Self::parse_owner_type(row.get(6)?)?,
+                    pool_id: row.get(7)?,
+                    last_edit_peer: row.get(8)?,
                 })
             })?
             .collect::<SqliteResult<Vec<_>>>()?;
@@ -612,7 +634,7 @@ impl SqliteStore {
         // 构建 IN 子句的占位符
         let placeholders = pool_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
         let query = format!(
-            "SELECT DISTINCT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted
+            "SELECT DISTINCT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted, c.owner_type, c.pool_id, c.last_edit_peer
              FROM cards c
               INNER JOIN card_pool_bindings cpb ON c.id = cpb.card_id
               WHERE cpb.pool_id IN ({placeholders}) AND c.deleted = 0
@@ -630,8 +652,9 @@ impl SqliteStore {
                     created_at: row.get(3)?,
                     updated_at: row.get(4)?,
                     deleted: row.get(5)?,
-                    tags: Vec::new(),
-                    last_edit_device: None,
+                    owner_type: Self::parse_owner_type(row.get(6)?)?,
+                    pool_id: row.get(7)?,
+                    last_edit_peer: row.get(8)?,
                 })
             })?
             .collect::<Result<Vec<Card>, _>>()?;
@@ -675,6 +698,10 @@ mod tests {
         result
     }
 
+    fn default_peer_id() -> String {
+        "12D3KooWTestPeerId".to_string()
+    }
+
     #[test]
     fn it_should_sqlite_store_creation() -> Result<()> {
         SqliteStore::new_in_memory()?;
@@ -689,6 +716,9 @@ mod tests {
             generate_uuid_v7(),
             "标题".to_string(),
             "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card_id = card.id.clone();
 
@@ -712,18 +742,24 @@ mod tests {
             generate_uuid_v7(),
             "卡片1".to_string(),
             "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "卡片2".to_string(),
             "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
 
         store.insert_card(&card1)?;
         store.insert_card(&card2)?;
 
         // 软删除card1
-        card1.mark_deleted()?;
+        card1.mark_deleted("12D3KooWDeletePeer".to_string())?;
         store.update_card(&card1)?;
 
         // 查询活跃卡片
@@ -748,11 +784,17 @@ mod tests {
             generate_uuid_v7(),
             "卡片1".to_string(),
             "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "卡片2".to_string(),
             "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
 
         store.insert_card(&card1)?;
@@ -765,7 +807,7 @@ mod tests {
         assert_eq!(deleted, 0);
 
         // 软删除一个
-        card1.mark_deleted()?;
+        card1.mark_deleted("12D3KooWDeletePeer".to_string())?;
         store.update_card(&card1)?;
 
         let (total, active, deleted) = store.get_card_count()?;
@@ -819,6 +861,9 @@ mod tests {
             generate_uuid_v7(),
             "测试卡片".to_string(),
             "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let pool_id = generate_uuid_v7();
 
@@ -847,6 +892,9 @@ mod tests {
             generate_uuid_v7(),
             "测试卡片".to_string(),
             "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let pool_id = generate_uuid_v7();
 
@@ -875,6 +923,9 @@ mod tests {
             generate_uuid_v7(),
             "测试卡片".to_string(),
             "内容".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let pool1 = generate_uuid_v7();
         let pool2 = generate_uuid_v7();
@@ -907,16 +958,25 @@ mod tests {
             generate_uuid_v7(),
             "卡片1".to_string(),
             "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "卡片2".to_string(),
             "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card3 = require_card(Card::new(
             generate_uuid_v7(),
             "卡片3".to_string(),
             "内容3".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
 
         // 创建2个数据池
@@ -963,11 +1023,17 @@ mod tests {
             generate_uuid_v7(),
             "卡片1".to_string(),
             "内容1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "卡片2".to_string(),
             "内容2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let pool_id = generate_uuid_v7();
 
@@ -978,7 +1044,7 @@ mod tests {
         store.add_card_pool_binding(&card2.id, &pool_id)?;
 
         // 软删除 card1
-        card1.mark_deleted()?;
+        card1.mark_deleted("12D3KooWDeletePeer".to_string())?;
         store.update_card(&card1)?;
 
         // 查询数据池卡片（应该只有 card2）
@@ -1006,16 +1072,25 @@ mod tests {
             generate_uuid_v7(),
             "Rust Programming".to_string(),
             "Learn Rust language".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "Flutter Development".to_string(),
             "Flutter app development".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card3 = require_card(Card::new(
             generate_uuid_v7(),
             "Database".to_string(),
             "SQLite and PostgreSQL".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
 
         store.insert_card(&card1)?;
@@ -1044,17 +1119,23 @@ mod tests {
             generate_uuid_v7(),
             "Card 1".to_string(),
             "Content 1".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
         let card2 = require_card(Card::new(
             generate_uuid_v7(),
             "Card 2".to_string(),
             "Content 2".to_string(),
+            OwnerType::Local,
+            None,
+            default_peer_id(),
         ))?;
 
         store.insert_card(&card1)?;
         store.insert_card(&card2)?;
 
-        card1.mark_deleted()?;
+        card1.mark_deleted("12D3KooWDeletePeer".to_string())?;
         store.update_card(&card1)?;
 
         let results = store.search_cards("Card")?;

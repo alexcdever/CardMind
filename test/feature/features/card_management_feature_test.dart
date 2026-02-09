@@ -185,7 +185,7 @@ void main() {
       testWidgets('it_should_display_card_details_when_user_opens_card', (
         WidgetTester tester,
       ) async {
-        // Given: 存在包含标题、内容和标签的卡片
+        // Given: 存在包含标题和内容的卡片
         await tester.pumpWidget(
           createTestWidget(
             const Scaffold(
@@ -196,8 +196,6 @@ void main() {
                   SizedBox(height: 16),
                   Text('创建于: 2026-01-31 10:00'),
                   Text('修改于: 2026-01-31 11:00'),
-                  SizedBox(height: 8),
-                  Text('标签: work, urgent'),
                 ],
               ),
             ),
@@ -214,8 +212,6 @@ void main() {
         expect(find.text('创建于: 2026-01-31 10:00'), findsOneWidget);
         // AND: 系统应显示最后修改时间戳
         expect(find.text('修改于: 2026-01-31 11:00'), findsOneWidget);
-        // AND: 系统应显示所有关联的标签
-        expect(find.text('标签: work, urgent'), findsOneWidget);
       });
 
       testWidgets(
@@ -455,146 +451,6 @@ void main() {
     });
 
     // ========================================
-    // Tag Management Requirement (5 scenarios)
-    // ========================================
-    group('Requirement: Tag Management', () {
-      testWidgets('it_should_add_tag_to_card_when_user_adds_tag', (
-        WidgetTester tester,
-      ) async {
-        // Given: 存在没有标签的卡片
-        await tester.pumpWidget(
-          createTestWidget(
-            const Scaffold(
-              body: Column(
-                children: [
-                  Text('Card Title'),
-                  Text('标签: work'),
-                  IconButton(
-                    key: Key('add_tag_button'),
-                    icon: Icon(Icons.add),
-                    onPressed: null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-
-        // When: 用户添加标签"work"
-        await tester.tap(find.byKey(const Key('add_tag_button')));
-        await tester.pumpAndSettle();
-
-        // Then: 系统应将标签关联到卡片
-        expect(find.text('标签: work'), findsOneWidget);
-        // AND: 标签应在卡片视图中可见
-        // AND: 更改应同步到所有设备
-      });
-
-      testWidgets(
-        'it_should_add_multiple_tags_to_card_when_user_adds_multiple_tags',
-        (WidgetTester tester) async {
-          // Given: 存在包含标签"work"的卡片
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Card Title'),
-                    Text('标签: work, urgent, meeting'),
-                  ],
-                ),
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // When: 用户添加标签"urgent"和"meeting"
-          // Then: 卡片应有三个标签："work"、"urgent"、"meeting"
-          expect(find.text('标签: work, urgent, meeting'), findsOneWidget);
-        },
-      );
-
-      testWidgets(
-        'it_should_prevent_duplicate_tags_when_user_adds_existing_tag',
-        (WidgetTester tester) async {
-          // Given: 卡片有标签"work"
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [
-                    Text('Card Title'),
-                    Text('标签: work'),
-                    Text('标签已存在'),
-                  ],
-                ),
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // When: 用户尝试再次添加标签"work"
-          // Then: 系统应拒绝重复标签
-          expect(find.text('标签已存在'), findsOneWidget);
-          // AND: 系统应显示消息"标签已存在"
-        },
-      );
-
-      testWidgets('it_should_remove_tag_from_card_when_user_removes_tag', (
-        WidgetTester tester,
-      ) async {
-        // Given: 卡片有标签"work"和"urgent"
-        await tester.pumpWidget(
-          createTestWidget(
-            const Scaffold(
-              body: Column(
-                children: [
-                  Text('Card Title'),
-                  Text('标签: work'),
-                  IconButton(
-                    key: Key('remove_urgent_button'),
-                    icon: Icon(Icons.close),
-                    onPressed: null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-
-        // When: 用户移除标签"urgent"
-        await tester.tap(find.byKey(const Key('remove_urgent_button')));
-        await tester.pumpAndSettle();
-
-        // Then: 卡片应只有标签"work"
-        expect(find.text('标签: work'), findsOneWidget);
-        // AND: 更改应同步到所有设备
-      });
-
-      testWidgets(
-        'it_should_treat_tags_case_sensitively_when_user_adds_different_case',
-        (WidgetTester tester) async {
-          // Given: 卡片有标签"Work"
-          await tester.pumpWidget(
-            createTestWidget(
-              const Scaffold(
-                body: Column(
-                  children: [Text('Card Title'), Text('标签: Work, work')],
-                ),
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-
-          // When: 用户尝试添加标签"work"
-          // Then: 系统应将"Work"和"work"视为不同标签
-          expect(find.text('标签: Work, work'), findsOneWidget);
-          // AND: 两个标签都应添加到卡片
-        },
-      );
-    });
-
-    // ========================================
     // Card Deletion Requirement (3 scenarios)
     // ========================================
     group('Requirement: Card Deletion', () {
@@ -720,30 +576,6 @@ void main() {
         // AND: 系统应打开平台分享对话框
       });
 
-      testWidgets('it_should_share_card_with_tags_when_card_has_tags', (
-        WidgetTester tester,
-      ) async {
-        // Given: 卡片有标题、内容和标签"work"、"urgent"
-        await tester.pumpWidget(
-          createTestWidget(
-            const Scaffold(
-              body: Column(
-                children: [
-                  Text('Card Title'),
-                  Text('Card Content'),
-                  Text('标签: work, urgent'),
-                  ElevatedButton(onPressed: null, child: Text('分享')),
-                ],
-              ),
-            ),
-          ),
-        );
-
-        // When: 用户分享卡片
-        // Then: 分享的文本应在末尾包含标签
-        // AND: 格式应为："标题\n\n内容\n\n标签：work, urgent"
-        expect(find.text('标签: work, urgent'), findsOneWidget);
-      });
     });
 
     // ========================================

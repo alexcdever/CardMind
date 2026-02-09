@@ -135,9 +135,14 @@ pub fn loro_import_merge(data: String) -> Result<usize> {
                 // Card exists - merge by comparing timestamps
                 if card.updated_at > existing.updated_at {
                     // Import is newer - update
-                    store.update_card(&card.id, Some(card.title), Some(card.content))?;
+                    store.update_card(
+                        &card.id,
+                        Some(card.title),
+                        Some(card.content),
+                        card.last_edit_peer.clone(),
+                    )?;
                     if card.deleted && !existing.deleted {
-                        store.delete_card(&card.id)?;
+                        store.delete_card(&card.id, card.last_edit_peer.clone())?;
                     }
                     imported_count += 1;
                 }
@@ -145,7 +150,13 @@ pub fn loro_import_merge(data: String) -> Result<usize> {
             }
             Err(CardMindError::CardNotFound(_)) => {
                 // Card doesn't exist - create it
-                store.create_card(card.title, card.content)?;
+                store.create_card(
+                    card.title,
+                    card.content,
+                    card.owner_type,
+                    card.pool_id,
+                    card.last_edit_peer,
+                )?;
                 imported_count += 1;
             }
             Err(e) => return Err(e),

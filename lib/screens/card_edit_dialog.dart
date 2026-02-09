@@ -13,12 +13,12 @@ class CardEditDialog extends StatefulWidget {
   const CardEditDialog({
     super.key,
     required this.card,
-    required this.currentDevice,
+    required this.currentPeerId,
     required this.onSave,
   });
 
   final bridge.Card card;
-  final String currentDevice;
+  final String currentPeerId;
   final void Function(bridge.Card) onSave;
 
   @override
@@ -113,8 +113,9 @@ class _CardEditDialogState extends State<CardEditDialog> {
       createdAt: widget.card.createdAt,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: widget.card.deleted,
-      tags: widget.card.tags,
-      lastEditDevice: widget.currentDevice,
+      ownerType: widget.card.ownerType,
+      poolId: widget.card.poolId,
+      lastEditPeer: widget.currentPeerId,
     );
 
     widget.onSave(updatedCard);

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/bridge/models/pool.dart' as pool;
+import 'package:cardmind/models/device.dart';
 import 'package:cardmind/utils/text_truncator.dart';
 import 'package:cardmind/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +23,8 @@ class NoteCard extends StatefulWidget {
   const NoteCard({
     super.key,
     required this.card,
-    required this.currentDevice,
+    required this.currentPeerId,
+    this.poolMembers,
     required this.onUpdate,
     required this.onDelete,
     this.onTap,
@@ -32,7 +35,8 @@ class NoteCard extends StatefulWidget {
   });
 
   final bridge.Card card;
-  final String currentDevice;
+  final String currentPeerId;
+  final List<pool.Device>? poolMembers;
   final void Function(bridge.Card) onUpdate;
   final void Function(String) onDelete;
   final VoidCallback? onTap;
@@ -64,13 +68,31 @@ class _NoteCardState extends State<NoteCard> {
 
   /// Check if card was edited by another device
   bool get _isEditedByOther {
-    return widget.card.lastEditDevice != null &&
-        widget.card.lastEditDevice != widget.currentDevice;
+    if (widget.card.ownerType != bridge.OwnerType.pool) {
+      return false;
+    }
+    if (widget.card.lastEditPeer.trim().isEmpty) {
+      return false;
+    }
+    return widget.card.lastEditPeer != widget.currentPeerId;
   }
 
   /// Get formatted update time
   String get _formattedUpdateTime {
     return _timeCache.format(widget.card.updatedAt);
+  }
+
+  String _resolvePeerName(String peerId) {
+    if (peerId.trim().isEmpty) {
+      return '未知';
+    }
+    final members = widget.poolMembers ?? const <pool.Device>[];
+    for (final member in members) {
+      if (member.deviceId == peerId) {
+        return member.deviceName;
+      }
+    }
+    return PeerIdValidator.format(peerId);
   }
 
   /// Handle card tap (different behavior for desktop vs mobile)
@@ -354,7 +376,8 @@ class _NoteCardState extends State<NoteCard> {
                         const SizedBox(width: 8),
                         if (_isEditedByOther)
                           Tooltip(
-                            message: '最后编辑: ${widget.card.lastEditDevice}',
+                            message:
+                                '最后编辑节点: ${_resolvePeerName(widget.card.lastEditPeer)}',
                             child: Icon(
                               Icons.people,
                               size: 18,
@@ -376,7 +399,7 @@ class _NoteCardState extends State<NoteCard> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Footer with time and optional tags
+                    // Footer with time
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -390,47 +413,6 @@ class _NoteCardState extends State<NoteCard> {
                             ),
                           ),
                         ),
-
-                        // Tags (show max 2 tags)
-                        if (widget.card.tags.isNotEmpty) ...[
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Wrap(
-                                spacing: 4,
-                                runSpacing: 2,
-                                alignment: WrapAlignment.end,
-                                children: widget.card.tags
-                                    .take(2) // Show max 2 tags
-                                    .map(
-                                      (tag) => Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.primary
-                                              .withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          tag,
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                                color:
-                                                    theme.colorScheme.primary,
-                                                fontSize: 11,
-                                              ),
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ],
@@ -447,13 +429,10 @@ class _NoteCardState extends State<NoteCard> {
   String _buildSemanticLabel() {
     final title = widget.card.title.isEmpty ? '无标题' : widget.card.title;
     final timeText = _formattedUpdateTime;
-    final deviceText = _isEditedByOther
-        ? '，最后编辑设备: ${widget.card.lastEditDevice}'
-        : '';
-    final tagText = widget.card.tags.isNotEmpty
-        ? '，标签: ${widget.card.tags.join(', ')}'
+    final peerText = _isEditedByOther
+        ? '，最后编辑节点: ${_resolvePeerName(widget.card.lastEditPeer)}'
         : '';
 
-    return '笔记卡片: $title，更新时间: $timeText$deviceText$tagText';
+    return '笔记卡片: $title，更新时间: $timeText$peerText';
   }
 }

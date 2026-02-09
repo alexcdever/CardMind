@@ -509,7 +509,9 @@ void main() {
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
+          ownerType: OwnerType.local,
+          poolId: null,
+          lastEditPeer: '12D3KooWTestPeerId1234567890',
         );
         mockCardService.addCard(testCard);
 

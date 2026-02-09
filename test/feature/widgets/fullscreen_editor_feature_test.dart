@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('FullscreenEditor Widget Tests', () {
     late bridge.Card testCard;
-    const currentDevice = 'test-device';
+    const currentPeerId = '12D3KooWCurrentPeerId1234567890';
 
     setUp(() {
       testCard = bridge.Card(
@@ -16,8 +16,9 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: ['tag1', 'tag2'],
-        lastEditDevice: 'other-device',
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: currentPeerId,
       );
     });
 
@@ -28,7 +29,7 @@ void main() {
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (_) {},
             onCancel: () {},
           ),
@@ -39,22 +40,6 @@ void main() {
       expect(find.text('Test Content'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_existing_tags', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: FullscreenEditor(
-            card: testCard,
-            currentDevice: currentDevice,
-            onSave: (_) {},
-            onCancel: () {},
-          ),
-        ),
-      );
-
-      expect(find.text('tag1'), findsOneWidget);
-      expect(find.text('tag2'), findsOneWidget);
-    });
-
     testWidgets('it_should_have_save_and_cancel_buttons', (
       WidgetTester tester,
     ) async {
@@ -62,7 +47,7 @@ void main() {
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (_) {},
             onCancel: () {},
           ),
@@ -83,7 +68,7 @@ void main() {
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (card) {
               savedCard = card;
             },
@@ -108,7 +93,7 @@ void main() {
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (_) {},
             onCancel: () {
               cancelled = true;
@@ -137,7 +122,7 @@ void main() {
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (card) {
               savedCard = card;
             },
@@ -166,7 +151,7 @@ void main() {
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (card) {
               savedCard = card;
             },
@@ -188,88 +173,12 @@ void main() {
       expect(savedCard!.content, equals('New Content'));
     });
 
-    testWidgets('it_should_add_new_tag', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: FullscreenEditor(
-            card: testCard,
-            currentDevice: currentDevice,
-            onSave: (_) {},
-            onCancel: () {},
-          ),
-        ),
-      );
-
-      // Find tag input field (last TextField)
-      final textFields = find.byType(TextField);
-      await tester.enterText(textFields.last, 'newtag');
-      await tester.pumpAndSettle();
-
-      // Tap add button
-      await tester.tap(find.byIcon(Icons.add));
-      await tester.pumpAndSettle();
-
-      expect(find.text('newtag'), findsOneWidget);
-    });
-
-    testWidgets('it_should_remove_tag', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: FullscreenEditor(
-            card: testCard,
-            currentDevice: currentDevice,
-            onSave: (_) {},
-            onCancel: () {},
-          ),
-        ),
-      );
-
-      // Find the first tag chip and tap its delete button
-      final firstChip = find.widgetWithText(Chip, 'tag1');
-      expect(firstChip, findsOneWidget);
-
-      // Find delete icon within the first chip
-      final deleteButton = find.descendant(
-        of: firstChip,
-        matching: find.byIcon(Icons.close),
-      );
-      await tester.tap(deleteButton);
-      await tester.pumpAndSettle();
-
-      // Tag should be removed
-      expect(find.text('tag1'), findsNothing);
-    });
-
-    testWidgets('it_should_not_add_duplicate_tag', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: FullscreenEditor(
-            card: testCard,
-            currentDevice: currentDevice,
-            onSave: (_) {},
-            onCancel: () {},
-          ),
-        ),
-      );
-
-      // Try to add existing tag
-      final textFields = find.byType(TextField);
-      await tester.enterText(textFields.last, 'tag1');
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.add));
-      await tester.pumpAndSettle();
-
-      // Should still only find one chip with tag1 (the text appears in both Chip and TextField)
-      expect(find.widgetWithText(Chip, 'tag1'), findsOneWidget);
-    });
-
     testWidgets('it_should_display_creation_time', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (_) {},
             onCancel: () {},
           ),
@@ -279,55 +188,22 @@ void main() {
       expect(find.textContaining('创建时间:'), findsOneWidget);
     });
 
-    testWidgets('it_should_display_last_edit_device', (
+    testWidgets('it_should_display_last_edit_peer', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: FullscreenEditor(
             card: testCard,
-            currentDevice: currentDevice,
+            currentPeerId: currentPeerId,
             onSave: (_) {},
             onCancel: () {},
           ),
         ),
       );
 
-      expect(find.textContaining('最后编辑设备:'), findsOneWidget);
-      expect(find.textContaining('other-device'), findsOneWidget);
-    });
-
-    testWidgets('it_should_save_with_updated_tags', (
-      WidgetTester tester,
-    ) async {
-      bridge.Card? savedCard;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: FullscreenEditor(
-            card: testCard,
-            currentDevice: currentDevice,
-            onSave: (card) {
-              savedCard = card;
-            },
-            onCancel: () {},
-          ),
-        ),
-      );
-
-      // Add a new tag
-      final textFields = find.byType(TextField);
-      await tester.enterText(textFields.last, 'newtag');
-      await tester.tap(find.byIcon(Icons.add));
-      await tester.pumpAndSettle();
-
-      // Save
-      await tester.tap(find.text('保存'));
-      await tester.pumpAndSettle();
-
-      expect(savedCard, isNotNull);
-      expect(savedCard!.tags.contains('newtag'), isTrue);
-      expect(savedCard!.tags.length, equals(3));
+      expect(find.textContaining('最后编辑节点:'), findsOneWidget);
+      expect(find.textContaining(currentPeerId), findsOneWidget);
     });
   });
 }

@@ -2263,8 +2263,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Card dco_decode_card(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return Card(
       id: dco_decode_String(arr[0]),
       title: dco_decode_String(arr[1]),
@@ -2272,8 +2272,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: dco_decode_i_64(arr[3]),
       updatedAt: dco_decode_i_64(arr[4]),
       deleted: dco_decode_bool(arr[5]),
-      tags: dco_decode_list_String(arr[6]),
-      lastEditDevice: dco_decode_opt_String(arr[7]),
+      ownerType: dco_decode_owner_type(arr[6]),
+      poolId: dco_decode_opt_String(arr[7]),
+      lastEditPeer: dco_decode_String(arr[8]),
     );
   }
 
@@ -2425,6 +2426,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OwnerType dco_decode_owner_type(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return OwnerType.values[raw as int];
+  }
+
+  @protected
   Pool dco_decode_pool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2570,8 +2577,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_createdAt = sse_decode_i_64(deserializer);
     var var_updatedAt = sse_decode_i_64(deserializer);
     var var_deleted = sse_decode_bool(deserializer);
-    var var_tags = sse_decode_list_String(deserializer);
-    var var_lastEditDevice = sse_decode_opt_String(deserializer);
+    var var_ownerType = sse_decode_owner_type(deserializer);
+    var var_poolId = sse_decode_opt_String(deserializer);
+    var var_lastEditPeer = sse_decode_String(deserializer);
     return Card(
       id: var_id,
       title: var_title,
@@ -2579,8 +2587,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: var_createdAt,
       updatedAt: var_updatedAt,
       deleted: var_deleted,
-      tags: var_tags,
-      lastEditDevice: var_lastEditDevice,
+      ownerType: var_ownerType,
+      poolId: var_poolId,
+      lastEditPeer: var_lastEditPeer,
     );
   }
 
@@ -2796,6 +2805,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OwnerType sse_decode_owner_type(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return OwnerType.values[inner];
+  }
+
+  @protected
   Pool sse_decode_pool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_poolId = sse_decode_String(deserializer);
@@ -2961,8 +2977,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.createdAt, serializer);
     sse_encode_i_64(self.updatedAt, serializer);
     sse_encode_bool(self.deleted, serializer);
-    sse_encode_list_String(self.tags, serializer);
-    sse_encode_opt_String(self.lastEditDevice, serializer);
+    sse_encode_owner_type(self.ownerType, serializer);
+    sse_encode_opt_String(self.poolId, serializer);
+    sse_encode_String(self.lastEditPeer, serializer);
   }
 
   @protected
@@ -3136,6 +3153,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (self != null) {
       sse_encode_box_autoadd_i_64(self, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_owner_type(OwnerType self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

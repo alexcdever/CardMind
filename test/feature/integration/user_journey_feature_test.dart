@@ -148,18 +148,6 @@ void main() {
         }
       });
 
-      testWidgets('it_should_filter_cards_by_tag', (WidgetTester tester) async {
-        // Given: 用户有带标签的卡片
-        await tester.pumpWidget(
-          TestApp(cardService: mockCardService, child: const HomeScreen()),
-        );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
-
-        // When: 用户按标签过滤
-        // Then: 应该显示过滤结果
-        expect(find.byType(Scaffold), findsWidgets);
-      });
     });
 
     // ========================================

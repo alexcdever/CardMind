@@ -23,7 +23,11 @@ sealed class Card with _$Card {
     required PlatformInt64 createdAt,
     required PlatformInt64 updatedAt,
     required bool deleted,
-    required List<String> tags,
-    String? lastEditDevice,
+    required OwnerType ownerType,
+    String? poolId,
+    required String lastEditPeer,
   }) = _Card;
 }
+
+/// Card owner type
+enum OwnerType { local, pool }

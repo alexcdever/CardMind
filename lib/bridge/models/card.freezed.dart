@@ -23,8 +23,9 @@ mixin _$Card {
   int get createdAt => throw _privateConstructorUsedError;
   int get updatedAt => throw _privateConstructorUsedError;
   bool get deleted => throw _privateConstructorUsedError;
-  List<String> get tags => throw _privateConstructorUsedError;
-  String? get lastEditDevice => throw _privateConstructorUsedError;
+  OwnerType get ownerType => throw _privateConstructorUsedError;
+  String? get poolId => throw _privateConstructorUsedError;
+  String get lastEditPeer => throw _privateConstructorUsedError;
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.
@@ -44,8 +45,9 @@ abstract class $CardCopyWith<$Res> {
     int createdAt,
     int updatedAt,
     bool deleted,
-    List<String> tags,
-    String? lastEditDevice,
+    OwnerType ownerType,
+    String? poolId,
+    String lastEditPeer,
   });
 }
 
@@ -70,8 +72,9 @@ class _$CardCopyWithImpl<$Res, $Val extends Card>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deleted = null,
-    Object? tags = null,
-    Object? lastEditDevice = freezed,
+    Object? ownerType = null,
+    Object? poolId = freezed,
+    Object? lastEditPeer = null,
   }) {
     return _then(
       _value.copyWith(
@@ -99,14 +102,18 @@ class _$CardCopyWithImpl<$Res, $Val extends Card>
                 ? _value.deleted
                 : deleted // ignore: cast_nullable_to_non_nullable
                       as bool,
-            tags: null == tags
-                ? _value.tags
-                : tags // ignore: cast_nullable_to_non_nullable
-                      as List<String>,
-            lastEditDevice: freezed == lastEditDevice
-                ? _value.lastEditDevice
-                : lastEditDevice // ignore: cast_nullable_to_non_nullable
+            ownerType: null == ownerType
+                ? _value.ownerType
+                : ownerType // ignore: cast_nullable_to_non_nullable
+                      as OwnerType,
+            poolId: freezed == poolId
+                ? _value.poolId
+                : poolId // ignore: cast_nullable_to_non_nullable
                       as String?,
+            lastEditPeer: null == lastEditPeer
+                ? _value.lastEditPeer
+                : lastEditPeer // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -128,8 +135,9 @@ abstract class _$$CardImplCopyWith<$Res> implements $CardCopyWith<$Res> {
     int createdAt,
     int updatedAt,
     bool deleted,
-    List<String> tags,
-    String? lastEditDevice,
+    OwnerType ownerType,
+    String? poolId,
+    String lastEditPeer,
   });
 }
 
@@ -151,8 +159,9 @@ class __$$CardImplCopyWithImpl<$Res>
     Object? createdAt = null,
     Object? updatedAt = null,
     Object? deleted = null,
-    Object? tags = null,
-    Object? lastEditDevice = freezed,
+    Object? ownerType = null,
+    Object? poolId = freezed,
+    Object? lastEditPeer = null,
   }) {
     return _then(
       _$CardImpl(
@@ -180,14 +189,18 @@ class __$$CardImplCopyWithImpl<$Res>
             ? _value.deleted
             : deleted // ignore: cast_nullable_to_non_nullable
                   as bool,
-        tags: null == tags
-            ? _value._tags
-            : tags // ignore: cast_nullable_to_non_nullable
-                  as List<String>,
-        lastEditDevice: freezed == lastEditDevice
-            ? _value.lastEditDevice
-            : lastEditDevice // ignore: cast_nullable_to_non_nullable
+        ownerType: null == ownerType
+            ? _value.ownerType
+            : ownerType // ignore: cast_nullable_to_non_nullable
+                  as OwnerType,
+        poolId: freezed == poolId
+            ? _value.poolId
+            : poolId // ignore: cast_nullable_to_non_nullable
                   as String?,
+        lastEditPeer: null == lastEditPeer
+            ? _value.lastEditPeer
+            : lastEditPeer // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -203,9 +216,10 @@ class _$CardImpl implements _Card {
     required this.createdAt,
     required this.updatedAt,
     required this.deleted,
-    required final List<String> tags,
-    this.lastEditDevice,
-  }) : _tags = tags;
+    required this.ownerType,
+    this.poolId,
+    required this.lastEditPeer,
+  });
 
   @override
   final String id;
@@ -219,20 +233,16 @@ class _$CardImpl implements _Card {
   final int updatedAt;
   @override
   final bool deleted;
-  final List<String> _tags;
   @override
-  List<String> get tags {
-    if (_tags is EqualUnmodifiableListView) return _tags;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tags);
-  }
-
+  final OwnerType ownerType;
   @override
-  final String? lastEditDevice;
+  final String? poolId;
+  @override
+  final String lastEditPeer;
 
   @override
   String toString() {
-    return 'Card(id: $id, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, deleted: $deleted, tags: $tags, lastEditDevice: $lastEditDevice)';
+    return 'Card(id: $id, title: $title, content: $content, createdAt: $createdAt, updatedAt: $updatedAt, deleted: $deleted, ownerType: $ownerType, poolId: $poolId, lastEditPeer: $lastEditPeer)';
   }
 
   @override
@@ -248,9 +258,11 @@ class _$CardImpl implements _Card {
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt) &&
             (identical(other.deleted, deleted) || other.deleted == deleted) &&
-            const DeepCollectionEquality().equals(other._tags, _tags) &&
-            (identical(other.lastEditDevice, lastEditDevice) ||
-                other.lastEditDevice == lastEditDevice));
+            (identical(other.ownerType, ownerType) ||
+                other.ownerType == ownerType) &&
+            (identical(other.poolId, poolId) || other.poolId == poolId) &&
+            (identical(other.lastEditPeer, lastEditPeer) ||
+                other.lastEditPeer == lastEditPeer));
   }
 
   @override
@@ -262,8 +274,9 @@ class _$CardImpl implements _Card {
     createdAt,
     updatedAt,
     deleted,
-    const DeepCollectionEquality().hash(_tags),
-    lastEditDevice,
+    ownerType,
+    poolId,
+    lastEditPeer,
   );
 
   /// Create a copy of Card
@@ -283,8 +296,9 @@ abstract class _Card implements Card {
     required final int createdAt,
     required final int updatedAt,
     required final bool deleted,
-    required final List<String> tags,
-    final String? lastEditDevice,
+    required final OwnerType ownerType,
+    final String? poolId,
+    required final String lastEditPeer,
   }) = _$CardImpl;
 
   @override
@@ -300,9 +314,11 @@ abstract class _Card implements Card {
   @override
   bool get deleted;
   @override
-  List<String> get tags;
+  OwnerType get ownerType;
   @override
-  String? get lastEditDevice;
+  String? get poolId;
+  @override
+  String get lastEditPeer;
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.

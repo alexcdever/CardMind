@@ -24,24 +24,6 @@
 
 ---
 
-## 需求：编辑器内标签管理
-
-系统应在全屏编辑器内提供标签管理功能。
-
-### 场景：编辑时添加标签
-
-- **前置条件**: 用户正在编辑卡片
-- **操作**: 用户在编辑器中添加标签
-- **预期结果**: 保存卡片时应包含该标签
-
-### 场景：编辑时移除标签
-
-- **前置条件**: 卡片有一个或多个标签
-- **操作**: 用户在编辑器中移除标签
-- **预期结果**: 保存卡片时应排除该标签
-
----
-
 ## 需求：保存与取消操作
 
 系统应提供明确的保存和取消操作。
@@ -87,8 +69,6 @@
 **组件测试**:
 - `it_should_prepopulate_existing_card_data()` - 预填充现有卡片
 - `it_should_display_empty_fields_for_new_card()` - 显示空字段
-- `it_should_include_added_tags()` - 包含添加的标签
-- `it_should_exclude_removed_tags()` - 排除移除的标签
 - `it_should_save_and_close_on_save()` - 保存并关闭
 - `it_should_autofocus_title_for_new_card()` - 自动聚焦标题
 - `it_should_maintain_keyboard_on_field_transition()` - 保持键盘

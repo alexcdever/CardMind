@@ -4,6 +4,8 @@ import 'package:cardmind/adaptive/layouts/three_column_layout.dart';
 import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
+    as identity_api;
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';
 import 'package:cardmind/providers/pool_provider.dart';
@@ -50,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 当前设备信息（模拟）
   final String _currentDeviceName = '我的设备';
+  String _currentPeerId = '';
 
   @override
   void initState() {
@@ -64,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _searchQuery = _searchController.text;
       });
     });
+    _loadCurrentPeerId();
   }
 
   @override
@@ -109,7 +113,21 @@ class _HomeScreenState extends State<HomeScreen> {
     */
   }
 
+  void _loadCurrentPeerId() {
+    try {
+      final peerId = identity_api.getPeerId();
+      if (peerId.isNotEmpty) {
+        setState(() {
+          _currentPeerId = peerId;
+        });
+      }
+    } catch (e) {
+      debugPrint('获取 PeerId 失败: $e');
+    }
+  }
+
   void _handleCreateCard() {
+    final poolId = context.read<PoolProvider>().currentPoolId;
     // 移动端直接打开新的全屏编辑器
     if (PlatformDetector.isMobile) {
       setState(() {
@@ -124,7 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) => NoteEditorDialog(
         card: null, // null 表示新建模式
-        currentDevice: _currentDeviceName,
+        currentPeerId: _currentPeerId,
+        currentPoolId: poolId,
         onSave: _handleSaveCard,
         onCancel: () {
           // 取消回调（可选）
@@ -200,12 +219,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleEditCard(bridge.Card card) {
+    final poolId = context.read<PoolProvider>().currentPoolId;
     // 桌面端：打开模态对话框编辑器
     showDialog<void>(
       context: context,
       builder: (context) => NoteEditorDialog(
         card: card,
-        currentDevice: _currentDeviceName,
+        currentPeerId: _currentPeerId,
+        currentPoolId: poolId,
         onSave: _handleUpdateCard,
         onCancel: () {
           // 取消回调（可选）
@@ -235,14 +256,14 @@ class _HomeScreenState extends State<HomeScreen> {
     final query = _searchQuery.toLowerCase();
     return cards.where((card) {
       return card.title.toLowerCase().contains(query) ||
-          card.content.toLowerCase().contains(query) ||
-          card.tags.any((tag) => tag.toLowerCase().contains(query));
+          card.content.toLowerCase().contains(query);
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = PlatformDetector.isMobile;
+    final poolProvider = context.watch<PoolProvider>();
 
     return Scaffold(
       body: Stack(
@@ -264,7 +285,8 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_isEditorOpen)
             NoteEditorFullscreen(
               card: _editingCard, // null = 新建模式，非 null = 编辑模式
-              currentDevice: _currentDeviceName,
+              currentPeerId: _currentPeerId,
+              currentPoolId: poolProvider.currentPoolId,
               isOpen: _isEditorOpen,
               onClose: _handleCloseEditor,
               onSave: _handleSaveCard,
@@ -412,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: '搜索笔记标题、内容或标签...',
+                    hintText: '搜索笔记标题或内容...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),

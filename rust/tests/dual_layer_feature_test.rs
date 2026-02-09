@@ -4,10 +4,14 @@
 //!
 //! 测试命名: `it_should_[behavior]_when_[condition]()`
 
-use cardmind_rust::models::card::Card;
+use cardmind_rust::models::card::{Card, OwnerType};
 use cardmind_rust::models::error::Result;
 use cardmind_rust::store::sqlite_store::SqliteStore;
 use cardmind_rust::utils::uuid_v7::generate_uuid_v7;
+
+fn default_peer_id() -> String {
+    "12D3KooWTestPeerId".to_string()
+}
 
 // ==== Requirement: Write Layer - Loro CRDT ====
 
@@ -20,6 +24,9 @@ fn it_should_write_to_loro_first() -> Result<()> {
         card_id.clone(),
         "测试卡片".to_string(),
         "测试内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     )?;
 
     // When: 保存修改
@@ -34,7 +41,14 @@ fn it_should_write_to_loro_first() -> Result<()> {
 /// Scenario: Loro document structure for Card
 fn it_should_have_correct_card_structure() -> Result<()> {
     // Given: 创建卡片
-    let card = Card::new(generate_uuid_v7(), "标题".to_string(), "内容".to_string())?;
+    let card = Card::new(
+        generate_uuid_v7(),
+        "标题".to_string(),
+        "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
+    )?;
 
     // When: 检查卡片结构
     // Then: 应包含所有必需字段

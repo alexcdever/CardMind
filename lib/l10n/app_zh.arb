@@ -258,13 +258,13 @@
     }
   },
 
-  "noteEditorFullscreenLastEditDevice": "最后编辑设备: {device}",
+  "noteEditorFullscreenLastEditDevice": "最后编辑节点: {device}",
   "@noteEditorFullscreenLastEditDevice": {
-    "description": "Fullscreen editor: last edit device label",
+    "description": "Fullscreen editor: last edit peer label",
     "placeholders": {
       "device": {
         "type": "String",
-        "example": "iPhone 13"
+        "example": "12D3KooWxxxx"
       }
     }
   }

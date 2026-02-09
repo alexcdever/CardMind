@@ -57,11 +57,11 @@ pub enum ValidationError {
     #[error("标题长度不能超过200字符")]
     TitleTooLong,
 
-    #[error("标签不能为空")]
-    TagEmpty,
+    #[error("内容不能为空")]
+    ContentEmpty,
 
-    #[error("标签长度不能超过50字符")]
-    TagTooLong,
+    #[error("PeerId 格式无效")]
+    PeerIdInvalid,
 
     #[error("设备名称不能为空")]
     DeviceNameEmpty,
@@ -71,6 +71,9 @@ pub enum ValidationError {
 
     #[error("数据池 ID 不能为空")]
     PoolIdEmpty,
+
+    #[error("数据池 ID 与所有权不匹配")]
+    PoolIdInvalid,
 
     #[error("设备 ID 格式无效")]
     DeviceIdInvalid,
@@ -192,10 +195,10 @@ mod tests {
 
     #[test]
     fn it_should_convert_validation_error_to_cardmind_error() {
-        let err: CardMindError = ValidationError::TagEmpty.into();
+        let err: CardMindError = ValidationError::ContentEmpty.into();
         assert!(matches!(
             err,
-            CardMindError::Validation(ValidationError::TagEmpty)
+            CardMindError::Validation(ValidationError::ContentEmpty)
         ));
     }
 }

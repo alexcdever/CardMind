@@ -42,9 +42,10 @@
 
 用户功能详细规格：
 
-- [卡片功能](features/card/) - 卡片增删改查、标签、搜索过滤
+- [功能总览](features/README.md) - 三大功能模块概览
+- [卡片功能](features/card/) - 卡片增删改查与搜索过滤
 - [数据池功能](features/pool/) - 池创建/加入/退出、成员、同步、发现
-- [设置功能](features/settings/) - 外观、设备、本地数据管理、应用信息
+- [设置功能](features/settings/) - 外观与应用信息
 
 （共 3 个功能模块）
 

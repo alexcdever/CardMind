@@ -17,7 +17,7 @@ import '../../helpers/test_helpers.dart';
 void main() {
   group('SP-UI-007: Note Card Component', () {
     late bridge.Card testCard;
-    const currentDevice = 'test-device';
+    const currentPeerId = '12D3KooWCurrentPeerId1234567890';
 
     setUp(() {
       testCard = bridge.Card(
@@ -27,8 +27,9 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: ['tag1', 'tag2'],
-        lastEditDevice: currentDevice,
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: currentPeerId,
       );
     });
 
@@ -77,28 +78,6 @@ void main() {
 
         // Then: 应该显示内容预览
         expect(find.text('Test Content'), findsOneWidget);
-      });
-
-      testWidgets('it_should_display_tags', (WidgetTester tester) async {
-        // Given: 创建带标签的 NoteCard
-        await tester.pumpWidget(
-          createTestWidget(
-            NoteCard(
-              card: testCard,
-              // currentDevice removed from API
-              onEdit: (_) {},
-              onDelete: (_) {},
-            ),
-          ),
-        );
-
-        // When: Widget 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 标签不在卡片上显示（在详情对话框中显示）
-        // 新设计中标签只在详情对话框中显示，不在卡片预览中显示
-        expect(find.text('tag1'), findsNothing);
-        expect(find.text('tag2'), findsNothing);
       });
 
       testWidgets('it_should_display_metadata', (WidgetTester tester) async {
@@ -173,76 +152,6 @@ void main() {
         await tester.pumpAndSettle();
 
         // Then: 卡片应该正常渲染
-        expect(find.byType(NoteCard), findsOneWidget);
-      });
-    });
-
-    // ========================================
-    // 任务组 3: Tag Management Tests
-    // ========================================
-
-    group('Tag Management', () {
-      testWidgets('it_should_display_all_tags', (WidgetTester tester) async {
-        // Given: 创建带多个标签的卡片
-        final cardWithTags = bridge.Card(
-          id: 'test-id',
-          title: 'Test',
-          content: 'Content',
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-          updatedAt: DateTime.now().millisecondsSinceEpoch,
-          deleted: false,
-          tags: ['tag1', 'tag2', 'tag3'],
-          lastEditDevice: currentDevice,
-        );
-
-        await tester.pumpWidget(
-          createTestWidget(
-            NoteCard(
-              card: cardWithTags,
-              // currentDevice removed from API
-              onEdit: (_) {},
-              onDelete: (_) {},
-            ),
-          ),
-        );
-
-        // When: Widget 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 标签不在卡片上显示（在详情对话框中显示）
-        expect(find.text('tag1'), findsNothing);
-        expect(find.text('tag2'), findsNothing);
-        expect(find.text('tag3'), findsNothing);
-      });
-
-      testWidgets('it_should_handle_empty_tags', (WidgetTester tester) async {
-        // Given: 创建没有标签的卡片
-        final cardWithoutTags = bridge.Card(
-          id: 'test-id',
-          title: 'Test',
-          content: 'Content',
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-          updatedAt: DateTime.now().millisecondsSinceEpoch,
-          deleted: false,
-          tags: [],
-          lastEditDevice: currentDevice,
-        );
-
-        await tester.pumpWidget(
-          createTestWidget(
-            NoteCard(
-              card: cardWithoutTags,
-              // currentDevice removed from API
-              onEdit: (_) {},
-              onDelete: (_) {},
-            ),
-          ),
-        );
-
-        // When: Widget 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 应该正常渲染（不显示标签区域）
         expect(find.byType(NoteCard), findsOneWidget);
       });
     });
@@ -349,8 +258,9 @@ void main() {
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
-          lastEditDevice: 'other-device',
+          ownerType: bridge.OwnerType.pool,
+          poolId: 'pool-001',
+          lastEditPeer: '12D3KooWOtherPeerId1234567890',
         );
 
         await tester.pumpWidget(
@@ -387,8 +297,9 @@ void main() {
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
-          lastEditDevice: currentDevice,
+          ownerType: bridge.OwnerType.local,
+          poolId: null,
+          lastEditPeer: currentPeerId,
         );
 
         await tester.pumpWidget(
@@ -418,8 +329,9 @@ void main() {
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
-          lastEditDevice: currentDevice,
+          ownerType: bridge.OwnerType.local,
+          poolId: null,
+          lastEditPeer: currentPeerId,
         );
 
         await tester.pumpWidget(
@@ -451,8 +363,9 @@ void main() {
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
-          lastEditDevice: currentDevice,
+          ownerType: bridge.OwnerType.local,
+          poolId: null,
+          lastEditPeer: currentPeerId,
         );
 
         await tester.pumpWidget(

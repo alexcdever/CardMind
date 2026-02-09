@@ -14,8 +14,9 @@ bridge.Card _createCard() {
     createdAt: now,
     updatedAt: now,
     deleted: false,
-    tags: const [],
-    lastEditDevice: null,
+    ownerType: bridge.OwnerType.local,
+    poolId: null,
+    lastEditPeer: '12D3KooWTestPeerId1234567890',
   );
 }
 

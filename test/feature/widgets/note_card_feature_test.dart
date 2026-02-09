@@ -17,8 +17,9 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: ['tag1', 'tag2'],
-        lastEditDevice: 'test-device',
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
     });
 
@@ -47,8 +48,9 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: [],
-        lastEditDevice: null,
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       await tester.pumpWidget(
@@ -72,8 +74,9 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: [],
-        lastEditDevice: null,
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       await tester.pumpWidget(
@@ -242,7 +245,9 @@ void main() {
         createdAt: pastTime.millisecondsSinceEpoch,
         updatedAt: pastTime.millisecondsSinceEpoch,
         deleted: false,
-        tags: [],
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       await tester.pumpWidget(
@@ -328,8 +333,9 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: [],
-        lastEditDevice: null,
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
       final cardWithoutContent = NoteCard(
         card: emptyCard,
@@ -359,8 +365,9 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: [],
-        lastEditDevice: null,
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
       final card = NoteCard(card: recentCard, onTap: () {}, onDelete: (_) {});
 

@@ -18,8 +18,9 @@ class FakeCardService extends CardService {
       createdAt: 0,
       updatedAt: 0,
       deleted: deleted,
-      tags: const [],
-      lastEditDevice: null,
+      ownerType: OwnerType.local,
+      poolId: null,
+      lastEditPeer: '12D3KooWTestPeerId1234567890',
     );
   }
 
@@ -80,8 +81,9 @@ void main() {
           createdAt: 0,
           updatedAt: 0,
           deleted: false,
-          tags: [],
-          lastEditDevice: null,
+          ownerType: OwnerType.local,
+          poolId: null,
+          lastEditPeer: '12D3KooWTestPeerId1234567890',
         ),
       ],
     );
@@ -129,8 +131,9 @@ void main() {
           createdAt: 0,
           updatedAt: 0,
           deleted: false,
-          tags: [],
-          lastEditDevice: null,
+          ownerType: OwnerType.local,
+          poolId: null,
+          lastEditPeer: '12D3KooWTestPeerId1234567890',
         ),
       ],
     );
@@ -152,8 +155,9 @@ void main() {
           createdAt: 0,
           updatedAt: 0,
           deleted: false,
-          tags: [],
-          lastEditDevice: null,
+          ownerType: OwnerType.local,
+          poolId: null,
+          lastEditPeer: '12D3KooWTestPeerId1234567890',
         ),
         const Card(
           id: 'card-2',
@@ -162,8 +166,9 @@ void main() {
           createdAt: 0,
           updatedAt: 0,
           deleted: true,
-          tags: [],
-          lastEditDevice: null,
+          ownerType: OwnerType.local,
+          poolId: null,
+          lastEditPeer: '12D3KooWTestPeerId1234567890',
         ),
       ],
     );

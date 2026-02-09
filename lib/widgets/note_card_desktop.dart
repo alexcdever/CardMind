@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/bridge/models/pool.dart' as pool;
+import 'package:cardmind/models/device.dart';
 import 'package:cardmind/utils/text_truncator.dart';
 import 'package:cardmind/utils/time_formatter.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +21,8 @@ class NoteCardDesktop extends StatefulWidget {
   const NoteCardDesktop({
     super.key,
     required this.card,
+    this.currentPeerId,
+    this.poolMembers,
     this.onTap,
     this.onEdit,
     required this.onDelete,
@@ -28,6 +32,12 @@ class NoteCardDesktop extends StatefulWidget {
 
   /// The card data to display
   final bridge.Card card;
+
+  /// 当前节点 PeerId（用于协作指示）
+  final String? currentPeerId;
+
+  /// 数据池成员列表（用于解析节点昵称）
+  final List<pool.Device>? poolMembers;
 
   /// Callback when the card is tapped
   /// Opens modal edit dialog
@@ -428,8 +438,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
   void _showDetailsDialog(BuildContext context) {
     final createdTime = TimeFormatter.formatTime(widget.card.createdAt);
     final updatedTime = TimeFormatter.formatTime(widget.card.updatedAt);
-    final tags = widget.card.tags.isEmpty ? '无' : widget.card.tags.join(', ');
-    final lastEditDevice = widget.card.lastEditDevice ?? '未知';
+    final lastEditPeerName = _resolvePeerName(widget.card.lastEditPeer);
 
     showDialog<void>(
       context: context,
@@ -447,8 +456,7 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
               ),
               _buildDetailRow('创建时间', createdTime),
               _buildDetailRow('更新时间', updatedTime),
-              _buildDetailRow('最后编辑设备', lastEditDevice),
-              _buildDetailRow('标签', tags),
+              _buildDetailRow('最后编辑节点', lastEditPeerName),
               _buildDetailRow('内容长度', '${widget.card.content.length} 字符'),
               _buildDetailRow('是否已删除', widget.card.deleted ? '是' : '否'),
             ],
@@ -481,5 +489,18 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
         ],
       ),
     );
+  }
+
+  String _resolvePeerName(String peerId) {
+    if (peerId.trim().isEmpty) {
+      return '未知';
+    }
+    final members = widget.poolMembers ?? const <pool.Device>[];
+    for (final member in members) {
+      if (member.deviceId == peerId) {
+        return member.deviceName;
+      }
+    }
+    return PeerIdValidator.format(peerId);
   }
 }

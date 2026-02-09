@@ -258,13 +258,13 @@
     }
   },
 
-  "noteEditorFullscreenLastEditDevice": "Last edited on: {device}",
+  "noteEditorFullscreenLastEditDevice": "Last edited by: {device}",
   "@noteEditorFullscreenLastEditDevice": {
-    "description": "Fullscreen editor: last edit device label",
+    "description": "Fullscreen editor: last edit peer label",
     "placeholders": {
       "device": {
         "type": "String",
-        "example": "iPhone 13"
+        "example": "12D3KooWxxxx"
       }
     }
   }

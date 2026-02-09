@@ -1,4 +1,5 @@
 import 'package:cardmind/bridge/models/card.dart' as bridge;
+import 'package:cardmind/bridge/models/pool.dart' as pool;
 import 'package:cardmind/widgets/note_card_enhanced.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,9 +12,23 @@ const int kSecondaryMouseButton = 2; // Right mouse button
 void main() {
   group('NoteCard Enhanced Widget Tests', () {
     late bridge.Card testCard;
-    const currentDevice = 'test-device';
+    const currentPeerId = '12D3KooWCurrentPeerId1234567890';
+    const otherPeerId = '12D3KooWOtherPeerId1234567890';
+    late List<pool.Device> poolMembers;
 
     setUp(() {
+      poolMembers = const [
+        pool.Device(
+          deviceId: currentPeerId,
+          deviceName: '本机设备',
+          joinedAt: 0,
+        ),
+        pool.Device(
+          deviceId: otherPeerId,
+          deviceName: '协作设备',
+          joinedAt: 0,
+        ),
+      ];
       testCard = bridge.Card(
         id: 'test-id',
         title: 'Test Title',
@@ -24,8 +39,9 @@ void main() {
         updatedAt:
             DateTime.now().millisecondsSinceEpoch - 1800000, // 30 minutes ago
         deleted: false,
-        tags: ['tag1', 'tag2'],
-        lastEditDevice: currentDevice,
+        ownerType: bridge.OwnerType.pool,
+        poolId: 'pool-001',
+        lastEditPeer: currentPeerId,
       );
     });
 
@@ -38,12 +54,15 @@ void main() {
       VoidCallback? onShare,
       void Function(bridge.Card)? onUpdate,
       void Function(String)? onDelete,
+      String? peerId,
+      List<pool.Device>? members,
     }) {
       return MaterialApp(
         home: Scaffold(
           body: NoteCard(
             card: card ?? testCard,
-            currentDevice: currentDevice,
+            currentPeerId: peerId ?? currentPeerId,
+            poolMembers: members ?? poolMembers,
             onTap: onTap,
             onEdit: onEdit,
             onViewDetails: onViewDetails,
@@ -67,8 +86,6 @@ void main() {
 
       expect(find.text('Test Title'), findsOneWidget);
       expect(find.textContaining('Test content'), findsOneWidget);
-      expect(find.textContaining('tag1'), findsOneWidget);
-      expect(find.textContaining('tag2'), findsOneWidget);
     });
 
     testWidgets('it_should_display_empty_title_placeholder', (
@@ -158,7 +175,7 @@ void main() {
     testWidgets('it_should_show_collaboration_indicator_for_other_device', (
       WidgetTester tester,
     ) async {
-      final otherDeviceCard = testCard.copyWith(lastEditDevice: 'other-device');
+      final otherDeviceCard = testCard.copyWith(lastEditPeer: otherPeerId);
       await tester.pumpWidget(createTestWidget(card: otherDeviceCard));
 
       expect(find.byIcon(Icons.people), findsOneWidget);
@@ -241,42 +258,12 @@ void main() {
       expect(gestureDetector.onTap, isNotNull);
     });
 
-    testWidgets('it_should_display_tags_properly', (WidgetTester tester) async {
-      await tester.pumpWidget(createTestWidget());
-
-      // Should show both tags
-      expect(find.text('tag1'), findsOneWidget);
-      expect(find.text('tag2'), findsOneWidget);
-    });
-
-    testWidgets('it_should_limit_visible_tags', (WidgetTester tester) async {
-      final manyTagsCard = testCard.copyWith(
-        tags: ['tag1', 'tag2', 'tag3', 'tag4', 'tag5'],
-      );
-      await tester.pumpWidget(createTestWidget(card: manyTagsCard));
-
-      // Should only show first 2 tags when there are many
-      expect(find.text('tag1'), findsOneWidget);
-      expect(find.text('tag2'), findsOneWidget);
-      expect(find.text('tag3'), findsNothing);
-    });
-
-    testWidgets('it_should_handle_empty_tags', (WidgetTester tester) async {
-      final noTagsCard = testCard.copyWith(tags: []);
-      await tester.pumpWidget(createTestWidget(card: noTagsCard));
-
-      // Should not show any tag-related UI
-      expect(find.text('tag1'), findsNothing);
-      expect(find.text('tag2'), findsNothing);
-    });
-
     testWidgets('it_should_show_absolute_time_for_old_cards', (
       WidgetTester tester,
     ) async {
       final oldCard = testCard.copyWith(
         updatedAt:
             DateTime.now().millisecondsSinceEpoch - 86400000 * 2, // 2 days ago
-        tags: [], // Remove tags to make time text easier to find
       );
       await tester.pumpWidget(createTestWidget(card: oldCard));
 
@@ -453,7 +440,6 @@ void main() {
       final recentCard = testCard.copyWith(
         updatedAt:
             DateTime.now().millisecondsSinceEpoch - 900000, // 15 minutes ago
-        tags: [], // Remove tags to make time text easier to find
       );
       await tester.pumpWidget(createTestWidget(card: recentCard));
 
@@ -472,7 +458,6 @@ void main() {
       final recentCard = testCard.copyWith(
         updatedAt:
             DateTime.now().millisecondsSinceEpoch - 7200000, // 2 hours ago
-        tags: [], // Remove tags to make time text easier to find
       );
       await tester.pumpWidget(createTestWidget(card: recentCard));
 
@@ -490,7 +475,6 @@ void main() {
     ) async {
       final oldCard = testCard.copyWith(
         updatedAt: DateTime(2024, 1, 15, 10, 30).millisecondsSinceEpoch,
-        tags: [], // Remove tags to make time text easier to find
       );
       await tester.pumpWidget(createTestWidget(card: oldCard));
 
@@ -514,7 +498,6 @@ void main() {
     ) async {
       final invalidCard = testCard.copyWith(
         updatedAt: DateTime(1969, 12, 31).millisecondsSinceEpoch,
-        tags: [], // Remove tags to make time text easier to find
       );
       await tester.pumpWidget(createTestWidget(card: invalidCard));
 
@@ -531,7 +514,6 @@ void main() {
       final futureCard = testCard.copyWith(
         updatedAt:
             DateTime.now().millisecondsSinceEpoch + 3600000, // 1 hour in future
-        tags: [], // Remove tags to make time text easier to find
       );
       await tester.pumpWidget(createTestWidget(card: futureCard));
 

@@ -19,6 +19,7 @@ void main() {
     // Test Data
     // ========================================
 
+    const currentPeerId = '12D3KooWCurrentPeerId1234567890';
     final testCard = bridge.Card(
       id: 'test-card-1',
       title: 'Test Card',
@@ -26,7 +27,9 @@ void main() {
       createdAt: DateTime.now().millisecondsSinceEpoch,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: false,
-      tags: ['tag1', 'tag2'],
+      ownerType: bridge.OwnerType.local,
+      poolId: null,
+      lastEditPeer: currentPeerId,
     );
 
     // ========================================
@@ -34,14 +37,14 @@ void main() {
     // ========================================
     Widget createFullscreenEditor({
       bridge.Card? card,
-      String? currentDevice,
+      String? currentPeerId,
       void Function(bridge.Card)? onSave,
       VoidCallback? onCancel,
     }) {
       return MaterialApp(
         home: FullscreenEditor(
           card: card ?? testCard,
-          currentDevice: currentDevice ?? 'Test Device',
+          currentPeerId: currentPeerId ?? '12D3KooWTestPeerId1234567890',
           onSave: onSave ?? (_) {},
           onCancel: onCancel ?? () {},
         ),
@@ -117,19 +120,6 @@ void main() {
 
         // Then: 显示内容输入框
         expect(find.text('Test Content'), findsOneWidget);
-      });
-
-      testWidgets('it_should_display_tags_section', (
-        WidgetTester tester,
-      ) async {
-        // Given: 全屏编辑器加载
-        await tester.pumpWidget(createFullscreenEditor());
-
-        // When: 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 显示标签区域
-        expect(find.text('标签'), findsOneWidget);
       });
 
       testWidgets('it_should_display_metadata_section', (
@@ -234,7 +224,9 @@ void main() {
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
+          ownerType: bridge.OwnerType.local,
+          poolId: null,
+          lastEditPeer: currentPeerId,
         );
 
         await tester.pumpWidget(createFullscreenEditor(card: emptyCard));
@@ -260,7 +252,9 @@ void main() {
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
+          ownerType: bridge.OwnerType.local,
+          poolId: null,
+          lastEditPeer: currentPeerId,
         );
 
         await tester.pumpWidget(createFullscreenEditor(card: emptyCard));
@@ -289,192 +283,6 @@ void main() {
           find.byType(TextField).at(1),
         );
         expect(contentField.maxLines, isNull);
-      });
-    });
-
-    // ========================================
-    // Tag Management Tests
-    // ========================================
-
-    group('Tag Management Tests', () {
-      testWidgets('it_should_display_existing_tags', (
-        WidgetTester tester,
-      ) async {
-        // Given: 卡片有标签
-        await tester.pumpWidget(createFullscreenEditor());
-
-        // When: 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 显示所有标签
-        expect(find.text('tag1'), findsOneWidget);
-        expect(find.text('tag2'), findsOneWidget);
-      });
-
-      testWidgets('it_should_display_tags_as_chips', (
-        WidgetTester tester,
-      ) async {
-        // Given: 卡片有标签
-        await tester.pumpWidget(createFullscreenEditor());
-
-        // When: 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 标签显示为 Chip
-        expect(find.byType(Chip), findsNWidgets(2));
-      });
-
-      testWidgets('it_should_display_delete_icon_on_tags', (
-        WidgetTester tester,
-      ) async {
-        // Given: 卡片有标签
-        await tester.pumpWidget(createFullscreenEditor());
-
-        // When: 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 每个标签有删除图标
-        final chips = tester.widgetList<Chip>(find.byType(Chip));
-        for (final chip in chips) {
-          expect(chip.deleteIcon, isNotNull);
-        }
-      });
-
-      testWidgets('it_should_display_add_tag_input_field', (
-        WidgetTester tester,
-      ) async {
-        // Given: 全屏编辑器加载
-        await tester.pumpWidget(createFullscreenEditor());
-
-        // When: 渲染完成
-        await tester.pumpAndSettle();
-
-        // Then: 显示添加标签输入框
-        expect(find.text('添加标签'), findsOneWidget);
-      });
-
-      testWidgets('it_should_add_tag_when_add_button_tapped', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户输入新标签
-        // ignore: unused_local_variable
-        bridge.Card? savedCard;
-        await tester.pumpWidget(
-          createFullscreenEditor(
-            onSave: (card) {
-              savedCard = card;
-            },
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // When: 用户输入标签并点击添加
-        final tagInputs = find.byType(TextField);
-        await tester.enterText(tagInputs.last, 'newtag');
-        await tester.tap(find.byIcon(Icons.add));
-        await tester.pumpAndSettle();
-
-        // Then: 标签被添加
-        expect(find.text('newtag'), findsOneWidget);
-      });
-
-      testWidgets('it_should_add_tag_when_enter_pressed', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户输入新标签
-        await tester.pumpWidget(createFullscreenEditor());
-        await tester.pumpAndSettle();
-
-        // When: 用户输入标签并按回车
-        final tagInputs = find.byType(TextField);
-        await tester.enterText(tagInputs.last, 'newtag');
-        await tester.testTextInput.receiveAction(TextInputAction.done);
-        await tester.pumpAndSettle();
-
-        // Then: 标签被添加
-        expect(find.text('newtag'), findsOneWidget);
-      });
-
-      testWidgets('it_should_not_add_empty_tag', (WidgetTester tester) async {
-        // Given: 用户输入空标签
-        await tester.pumpWidget(createFullscreenEditor());
-        await tester.pumpAndSettle();
-
-        final initialChipCount = tester
-            .widgetList<Chip>(find.byType(Chip))
-            .length;
-
-        // When: 用户输入空格并点击添加
-        final tagInputs = find.byType(TextField);
-        await tester.enterText(tagInputs.last, '   ');
-        await tester.tap(find.byIcon(Icons.add));
-        await tester.pumpAndSettle();
-
-        // Then: 标签不被添加
-        final finalChipCount = tester
-            .widgetList<Chip>(find.byType(Chip))
-            .length;
-        expect(finalChipCount, equals(initialChipCount));
-      });
-
-      testWidgets('it_should_not_add_duplicate_tag', (
-        WidgetTester tester,
-      ) async {
-        // Given: 卡片已有标签 "tag1"
-        await tester.pumpWidget(createFullscreenEditor());
-        await tester.pumpAndSettle();
-
-        final initialChipCount = tester
-            .widgetList<Chip>(find.byType(Chip))
-            .length;
-
-        // When: 用户尝试添加重复标签
-        final tagInputs = find.byType(TextField);
-        await tester.enterText(tagInputs.last, 'tag1');
-        await tester.tap(find.byIcon(Icons.add));
-        await tester.pumpAndSettle();
-
-        // Then: 标签不被添加
-        final finalChipCount = tester
-            .widgetList<Chip>(find.byType(Chip))
-            .length;
-        expect(finalChipCount, equals(initialChipCount));
-      });
-
-      testWidgets('it_should_remove_tag_when_delete_icon_tapped', (
-        WidgetTester tester,
-      ) async {
-        // Given: 卡片有标签
-        await tester.pumpWidget(createFullscreenEditor());
-        await tester.pumpAndSettle();
-
-        expect(find.text('tag1'), findsOneWidget);
-
-        // When: 用户点击删除图标
-        final deleteIcons = find.byIcon(Icons.close);
-        await tester.tap(deleteIcons.first);
-        await tester.pumpAndSettle();
-
-        // Then: 标签被移除
-        expect(find.text('tag1'), findsNothing);
-      });
-
-      testWidgets('it_should_clear_tag_input_after_adding', (
-        WidgetTester tester,
-      ) async {
-        // Given: 用户输入新标签
-        await tester.pumpWidget(createFullscreenEditor());
-        await tester.pumpAndSettle();
-
-        // When: 用户添加标签
-        final tagInputs = find.byType(TextField);
-        await tester.enterText(tagInputs.last, 'newtag');
-        await tester.tap(find.byIcon(Icons.add));
-        await tester.pumpAndSettle();
-
-        // Then: 输入框被清空
-        final tagField = tester.widget<TextField>(tagInputs.last);
-        expect(tagField.controller?.text, isEmpty);
       });
     });
 
@@ -601,41 +409,14 @@ void main() {
         expect(savedCard?.content, equals('Updated Content'));
       });
 
-      testWidgets('it_should_include_updated_tags_in_saved_card', (
+      testWidgets('it_should_update_lastEditPeer_in_saved_card', (
         WidgetTester tester,
       ) async {
-        // Given: 用户添加了标签
+        // Given: 当前节点 PeerId
         bridge.Card? savedCard;
         await tester.pumpWidget(
           createFullscreenEditor(
-            onSave: (card) {
-              savedCard = card;
-            },
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // When: 用户添加标签并保存
-        final tagInputs = find.byType(TextField);
-        await tester.enterText(tagInputs.last, 'newtag');
-        await tester.tap(find.byIcon(Icons.add));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('保存'));
-        await tester.pumpAndSettle();
-
-        // Then: 保存的卡片包含新标签
-        expect(savedCard?.tags, contains('newtag'));
-      });
-
-      testWidgets('it_should_update_lastEditDevice_in_saved_card', (
-        WidgetTester tester,
-      ) async {
-        // Given: 当前设备名称
-        bridge.Card? savedCard;
-        await tester.pumpWidget(
-          createFullscreenEditor(
-            currentDevice: 'My iPhone',
+            currentPeerId: '12D3KooWMyPeerId1234567890',
             onSave: (card) {
               savedCard = card;
             },
@@ -647,8 +428,11 @@ void main() {
         await tester.tap(find.text('保存'));
         await tester.pumpAndSettle();
 
-        // Then: lastEditDevice 被更新
-        expect(savedCard?.lastEditDevice, equals('My iPhone'));
+        // Then: lastEditPeer 被更新
+        expect(
+          savedCard?.lastEditPeer,
+          equals('12D3KooWMyPeerId1234567890'),
+        );
       });
 
       testWidgets('it_should_call_onCancel_when_close_button_tapped', (
@@ -698,29 +482,30 @@ void main() {
         expect(find.textContaining('创建时间:'), findsOneWidget);
       });
 
-      testWidgets('it_should_display_last_edit_device_if_available', (
+      testWidgets('it_should_display_last_edit_peer_if_available', (
         WidgetTester tester,
       ) async {
-        // Given: 卡片有最后编辑设备
-        final cardWithDevice = bridge.Card(
+        // Given: 卡片有最后编辑节点
+        final cardWithPeer = bridge.Card(
           id: 'test',
           title: 'Test',
           content: 'Content',
           createdAt: DateTime.now().millisecondsSinceEpoch,
           updatedAt: DateTime.now().millisecondsSinceEpoch,
           deleted: false,
-          tags: [],
-          lastEditDevice: 'MacBook Pro',
+          ownerType: bridge.OwnerType.local,
+          poolId: null,
+          lastEditPeer: '12D3KooWMacPeerId1234567890',
         );
 
-        await tester.pumpWidget(createFullscreenEditor(card: cardWithDevice));
+        await tester.pumpWidget(createFullscreenEditor(card: cardWithPeer));
 
         // When: 渲染完成
         await tester.pumpAndSettle();
 
-        // Then: 显示最后编辑设备
-        expect(find.textContaining('最后编辑设备:'), findsOneWidget);
-        expect(find.textContaining('MacBook Pro'), findsOneWidget);
+        // Then: 显示最后编辑节点
+        expect(find.textContaining('最后编辑节点:'), findsOneWidget);
+        expect(find.textContaining('12D3KooWMacPeerId1234567890'), findsOneWidget);
       });
 
       testWidgets('it_should_format_creation_time_correctly', (

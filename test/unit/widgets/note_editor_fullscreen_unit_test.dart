@@ -149,8 +149,9 @@ void main() {
         createdAt: 1234567890,
         updatedAt: 1234567890,
         deleted: false,
-        tags: [],
-        lastEditDevice: 'test-device',
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       onSave(testCard);

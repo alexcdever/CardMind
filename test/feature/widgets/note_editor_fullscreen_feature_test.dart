@@ -48,8 +48,9 @@ void main() {
         createdAt: 1737878400000,
         updatedAt: 1737878400000,
         deleted: false,
-        tags: [],
-        lastEditDevice: 'test-device',
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       await tester.pumpWidget(
@@ -75,7 +76,7 @@ void main() {
       // 验证元数据区域
       expect(find.textContaining('创建时间:'), findsOneWidget);
       expect(find.textContaining('更新时间:'), findsOneWidget);
-      expect(find.textContaining('最后编辑设备:'), findsOneWidget);
+      expect(find.textContaining('最后编辑节点:'), findsOneWidget);
     });
 
     testWidgets('it_should_WT-003: 测试工具栏渲染', (tester) async {
@@ -170,8 +171,9 @@ void main() {
         createdAt: 1737878400000,
         updatedAt: 1737878400000,
         deleted: false,
-        tags: [],
-        lastEditDevice: 'test-device',
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       await tester.pumpWidget(
@@ -314,8 +316,9 @@ void main() {
         createdAt: 1737878400000, // 2025-01-26 08:00:00
         updatedAt: 1737964800000, // 2025-01-27 08:00:00
         deleted: false,
-        tags: [],
-        lastEditDevice: 'test-device',
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       await tester.pumpWidget(
@@ -516,8 +519,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -561,8 +565,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -611,8 +616,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -663,8 +669,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -894,8 +901,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -1047,8 +1055,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -1255,8 +1264,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -1353,8 +1363,9 @@ void main() {
         createdAt: 1737878400000,
         updatedAt: 1737878400000,
         deleted: false,
-        tags: [],
-        lastEditDevice: 'test-device',
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '12D3KooWTestPeerId1234567890',
       );
 
       await tester.pumpWidget(
@@ -1476,8 +1487,9 @@ void main() {
                 createdAt: 1737878400000,
                 updatedAt: 1737878400000,
                 deleted: false,
-                tags: [],
-                lastEditDevice: 'test-device',
+                ownerType: bridge.OwnerType.local,
+                poolId: null,
+                lastEditPeer: '12D3KooWTestPeerId1234567890',
               ),
               currentDevice: 'test-device',
               isOpen: true,
@@ -1519,8 +1531,9 @@ void main() {
         createdAt: 1737878400000,
         updatedAt: 1737878400000,
         deleted: false,
-        tags: [],
-        lastEditDevice: null, // 缺失字段
+        ownerType: bridge.OwnerType.local,
+        poolId: null,
+        lastEditPeer: '', // 缺失字段
       );
 
       await tester.pumpWidget(

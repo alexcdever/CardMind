@@ -4,13 +4,24 @@
 //!
 //! 测试命名: `it_should_[behavior]_when_[condition]()`
 
-use cardmind_rust::models::card::Card;
+use cardmind_rust::models::card::{Card, OwnerType};
 use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::utils::uuid_v7::generate_uuid_v7;
 
+fn default_peer_id() -> String {
+    "12D3KooWTestPeerId".to_string()
+}
+
 /// 测试辅助函数：创建测试卡片
 fn create_test_card(id: &str, title: &str, content: &str) -> Result<Card, CardMindError> {
-    Card::new(id.to_string(), title.to_string(), content.to_string())
+    Card::new(
+        id.to_string(),
+        title.to_string(),
+        content.to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
+    )
 }
 
 /// 测试辅助函数：模拟版本追踪
@@ -136,10 +147,18 @@ fn it_should_merge_concurrent_edits_automatically() -> Result<(), CardMindError>
     let mut card_b = create_test_card(&card_id, "原标题", "原内容")?;
 
     // 设备 A 修改标题
-    card_a.update(Some("设备 A 的标题".to_string()), None)?;
+    card_a.update(
+        Some("设备 A 的标题".to_string()),
+        None,
+        default_peer_id(),
+    )?;
 
     // 设备 B 修改内容
-    card_b.update(None, Some("设备 B 的内容".to_string()))?;
+    card_b.update(
+        None,
+        Some("设备 B 的内容".to_string()),
+        default_peer_id(),
+    )?;
 
     // When: 两个设备同步它们的变更
     // 模拟 CRDT 合并：使用 LWW (Last-Write-Wins) 规则
@@ -148,7 +167,14 @@ fn it_should_merge_concurrent_edits_automatically() -> Result<(), CardMindError>
     let merged_title = card_a.title; // card_a 的标题更新
     let merged_content = card_b.content; // card_b 的内容更新（后发生的）
 
-    let merged_card = Card::new(card_a.id.clone(), merged_title, merged_content)?;
+    let merged_card = Card::new(
+        card_a.id.clone(),
+        merged_title,
+        merged_content,
+        OwnerType::Local,
+        None,
+        default_peer_id(),
+    )?;
 
     // Then: 系统应使用 CRDT 规则合并两个编辑
     assert_eq!(merged_card.title, "设备 A 的标题");
@@ -174,7 +200,7 @@ fn it_should_apply_last_write_wins_for_simple_fields() -> Result<(), CardMindErr
     // 设备 B 在时间 T2 将标题设置为 "B"（T2 > T1）
     let mut card_b = create_test_card(&card_id, "A", "内容")?;
     std::thread::sleep(std::time::Duration::from_millis(10));
-    card_b.update(Some("B".to_string()), None)?;
+    card_b.update(Some("B".to_string()), None, default_peer_id())?;
     let t2 = card_b.updated_at;
 
     assert!(t2 > t1);
@@ -359,37 +385,6 @@ fn it_should_fail_and_rollback() {
     // And: 同步状态应保持在先前版本
     assert_eq!(device_a_state.last_synced_version, Some(original_version));
     assert_ne!(device_a_state.last_synced_version, Some("V101".to_string()));
-}
-
-// ==== Requirement: 无冲突标签合并 ====
-
-#[test]
-/// Scenario: Tags are merged using set union
-fn it_should_merge_tags_using_set_union() -> Result<(), CardMindError> {
-    // Given: 设备 A 为卡片添加标签 "work"
-    let card_id = generate_uuid_v7();
-    let mut card_a = create_test_card(&card_id, "标题", "内容")?;
-    card_a.add_tag("work".to_string())?;
-
-    // 设备 B 为同一张卡片添加标签 "urgent"
-    let mut card_b = create_test_card(&card_id, "标题", "内容")?;
-    card_b.add_tag("urgent".to_string())?;
-
-    // When: 两个设备同步
-    // 模拟集合并集合并（CRDT OR-Merge 行为）
-    let mut merged_tags: std::collections::HashSet<String> = std::collections::HashSet::new();
-    merged_tags.extend(card_a.tags.iter().cloned());
-    merged_tags.extend(card_b.tags.iter().cloned());
-
-    // Then: 卡片应具有两个标签：["work", "urgent"]
-    assert_eq!(merged_tags.len(), 2);
-    assert!(merged_tags.contains("work"));
-    assert!(merged_tags.contains("urgent"));
-
-    // And: 不应丢失任何标签
-    assert!(merged_tags.contains("work"), "work 标签不应丢失");
-    assert!(merged_tags.contains("urgent"), "urgent 标签不应丢失");
-    Ok(())
 }
 
 // ==== 集成测试 ====

@@ -31,12 +31,6 @@
 - **并且**: 实时更新显示
 - **并且**: 匹配文本应高亮显示
 
-### 场景：按标签过滤
-
-- **前置条件**: 卡片列表已显示
-- **操作**: 用户选择标签过滤器
-- **预期结果**: 系统应只显示具有选定标签的卡片
-
 ### 场景：空状态
 
 - **前置条件**: 用户没有卡片
@@ -118,7 +112,6 @@
 - `it_should_display_card_list()` - 显示卡片列表
 - `it_should_show_card_metadata()` - 显示元数据
 - `it_should_search_cards()` - 搜索功能
-- `it_should_filter_by_tags()` - 标签过滤
 - `it_should_show_empty_state()` - 空状态
 - `it_should_create_card_inline()` - 内联创建
 - `it_should_open_card_in_side_panel()` - 在面板中打开
@@ -130,7 +123,7 @@
 
 **验收标准**:
 - [ ] 所有屏幕测试通过
-- [ ] 搜索和过滤正常工作
+- [ ] 搜索正常工作
 - [ ] 多列布局适应窗口大小
 - [ ] 内联编辑流畅
 - [ ] 上下文菜单和键盘快捷键工作正常

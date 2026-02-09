@@ -10,6 +10,7 @@
 /// 3. 多设备同步协调
 /// 4. 同步状态跟踪
 use cardmind_rust::models::device_config::DeviceConfig;
+use cardmind_rust::models::card::OwnerType;
 use cardmind_rust::models::pool::Pool;
 use cardmind_rust::p2p::P2PSyncService;
 use cardmind_rust::store::card_store::CardStore;
@@ -17,6 +18,10 @@ use cardmind_rust::store::pool_store::PoolStore;
 use serial_test::serial;
 use std::sync::{Arc, Mutex};
 use tempfile::TempDir;
+
+fn default_peer_id() -> String {
+    "12D3KooWTestPeerId".to_string()
+}
 
 fn new_pool_store() -> (Arc<Mutex<PoolStore>>, TempDir) {
     let temp_dir = tempfile::tempdir().unwrap();
@@ -199,7 +204,13 @@ async fn it_should_pool_sync_between_services() {
     let card_id = {
         let mut store = card_store_a.lock().unwrap();
         let card = store
-            .create_card("Title A".to_string(), "Content A".to_string())
+            .create_card(
+                "Title A".to_string(),
+                "Content A".to_string(),
+                OwnerType::Pool,
+                Some("pool-001".to_string()),
+                default_peer_id(),
+            )
             .unwrap();
         store.add_card_to_pool(&card.id, "pool-001").unwrap();
         card.id
@@ -213,8 +224,7 @@ async fn it_should_pool_sync_between_services() {
     pool_store_b.lock().unwrap().create_pool(&pool_b).unwrap();
 
     let service_a =
-        P2PSyncService::new_with_mock_network(card_store_a, pool_store_a, device_config_a)
-            .unwrap();
+        P2PSyncService::new_with_mock_network(card_store_a, pool_store_a, device_config_a).unwrap();
     let mut service_b =
         P2PSyncService::new_with_mock_network(card_store_b.clone(), pool_store_b, device_config_b)
             .unwrap();

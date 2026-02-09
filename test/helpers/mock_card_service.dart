@@ -7,6 +7,7 @@ import 'package:cardmind/services/card_service.dart';
 class MockCardService extends CardService {
   final List<Card> _cards = [];
   int _nextId = 1;
+  static const String _defaultPeerId = '12D3KooWTestPeerId1234567890';
 
   bool shouldThrowError = false;
   String? errorMessage;
@@ -39,7 +40,9 @@ class MockCardService extends CardService {
           createdAt: now,
           updatedAt: now,
           deleted: false,
-          tags: [],
+          ownerType: OwnerType.local,
+          poolId: null,
+          lastEditPeer: _defaultPeerId,
         ),
       );
     }
@@ -98,7 +101,9 @@ class MockCardService extends CardService {
       createdAt: now,
       updatedAt: now,
       deleted: false,
-      tags: [],
+      ownerType: OwnerType.local,
+      poolId: null,
+      lastEditPeer: _defaultPeerId,
     );
 
     _cards.add(card);
@@ -179,8 +184,9 @@ class MockCardService extends CardService {
       createdAt: oldCard.createdAt,
       updatedAt: now,
       deleted: oldCard.deleted,
-      tags: oldCard.tags,
-      lastEditDevice: oldCard.lastEditDevice,
+      ownerType: oldCard.ownerType,
+      poolId: oldCard.poolId,
+      lastEditPeer: oldCard.lastEditPeer,
     );
   }
 
@@ -210,8 +216,9 @@ class MockCardService extends CardService {
       createdAt: oldCard.createdAt,
       updatedAt: now,
       deleted: true,
-      tags: oldCard.tags,
-      lastEditDevice: oldCard.lastEditDevice,
+      ownerType: oldCard.ownerType,
+      poolId: oldCard.poolId,
+      lastEditPeer: oldCard.lastEditPeer,
     );
   }
 

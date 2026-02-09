@@ -11,7 +11,7 @@
 /// - 基础CRUD操作
 ///
 /// 注意: 所有测试使用内存数据库，不创建实际文件
-use cardmind_rust::models::card::Card;
+use cardmind_rust::models::card::{Card, OwnerType};
 use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::utils::uuid_v7::generate_uuid_v7;
 use rusqlite::{Connection, Result as SqliteResult};
@@ -20,6 +20,16 @@ const fn require_card(
     result: std::result::Result<Card, CardMindError>,
 ) -> std::result::Result<Card, CardMindError> {
     result
+}
+
+fn default_peer_id() -> String {
+    "12D3KooWTestPeerId".to_string()
+}
+
+fn parse_owner_type(value: String) -> SqliteResult<OwnerType> {
+    OwnerType::try_from(value.as_str()).map_err(|err| {
+        rusqlite::Error::FromSqlConversionFailure(6, rusqlite::types::Type::Text, Box::new(err))
+    })
 }
 
 // ==================== 1. 表创建测试 ====================
@@ -88,8 +98,8 @@ fn it_should_table_schema_validation() {
         .collect::<SqliteResult<Vec<_>>>()
         .unwrap();
 
-    // Then: 应该有 6 个字段，包含所有必需字段，且 id 为主键
-    assert_eq!(columns.len(), 6, "应该有6个字段");
+    // Then: 应该有 9 个字段，包含所有必需字段，且 id 为主键
+    assert_eq!(columns.len(), 9, "应该有9个字段");
 
     let field_names: Vec<String> = columns.iter().map(|c| c.1.clone()).collect();
     assert!(field_names.contains(&"id".to_string()));
@@ -98,6 +108,9 @@ fn it_should_table_schema_validation() {
     assert!(field_names.contains(&"created_at".to_string()));
     assert!(field_names.contains(&"updated_at".to_string()));
     assert!(field_names.contains(&"deleted".to_string()));
+    assert!(field_names.contains(&"owner_type".to_string()));
+    assert!(field_names.contains(&"pool_id".to_string()));
+    assert!(field_names.contains(&"last_edit_peer".to_string()));
 
     let id_column = columns.iter().find(|c| c.1 == "id").unwrap();
     assert_eq!(id_column.5, 1, "id应该是主键");
@@ -177,6 +190,9 @@ fn it_should_insert_card() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "测试标题".to_string(),
         "测试内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
 
     // When: 插入卡片
@@ -201,11 +217,17 @@ fn it_should_select_all_cards() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题1".to_string(),
         "内容1".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     let card2 = require_card(Card::new(
         generate_uuid_v7(),
         "标题2".to_string(),
         "内容2".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     insert_card(&conn, &card1)?;
     insert_card(&conn, &card2)?;
@@ -227,6 +249,9 @@ fn it_should_select_card_by_id() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     let card_id = card.id.clone();
     insert_card(&conn, &card)?;
@@ -271,11 +296,18 @@ fn it_should_update_card() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "旧标题".to_string(),
         "旧内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     insert_card(&conn, &card)?;
 
     // When: 更新卡片的标题和内容
-    card.update(Some("新标题".to_string()), Some("新内容".to_string()))?;
+    card.update(
+        Some("新标题".to_string()),
+        Some("新内容".to_string()),
+        "12D3KooWUpdatedPeer".to_string(),
+    )?;
     let result = update_card(&conn, &card);
 
     // Then: 更新应该成功，且数据已更新
@@ -296,11 +328,14 @@ fn it_should_soft_delete_card() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     insert_card(&conn, &card)?;
 
     // When: 软删除卡片
-    card.mark_deleted()?;
+    card.mark_deleted("12D3KooWDeletePeer".to_string())?;
     let result = update_card(&conn, &card);
 
     // Then: 软删除应该成功，且 deleted 标记为 true
@@ -320,6 +355,9 @@ fn it_should_hard_delete_card() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     let card_id = card.id.clone();
     insert_card(&conn, &card)?;
@@ -344,18 +382,24 @@ fn it_should_select_excludes_deleted_cards() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题1".to_string(),
         "内容1".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     let card2 = require_card(Card::new(
         generate_uuid_v7(),
         "标题2".to_string(),
         "内容2".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
 
     // When: 软删除其中一张卡片，然后查询所有未删除的卡片
     insert_card(&conn, &card1)?;
     insert_card(&conn, &card2)?;
 
-    card1.mark_deleted()?;
+    card1.mark_deleted("12D3KooWDeletePeer".to_string())?;
     update_card(&conn, &card1)?;
 
     let cards = select_active_cards(&conn)?;
@@ -385,7 +429,10 @@ fn create_cards_table(conn: &Connection) -> Result<(), CardMindError> {
             content TEXT NOT NULL,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL,
-            deleted INTEGER NOT NULL DEFAULT 0
+            deleted INTEGER NOT NULL DEFAULT 0,
+            owner_type TEXT NOT NULL,
+            pool_id TEXT,
+            last_edit_peer TEXT NOT NULL
         )",
         [],
     )?;
@@ -418,8 +465,8 @@ fn optimize_sqlite(conn: &Connection) -> Result<(), CardMindError> {
 /// `插入卡片到SQLite`
 fn insert_card(conn: &Connection, card: &Card) -> Result<(), CardMindError> {
     conn.execute(
-        "INSERT INTO cards (id, title, content, created_at, updated_at, deleted)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT INTO cards (id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         rusqlite::params![
             &card.id,
             &card.title,
@@ -427,6 +474,9 @@ fn insert_card(conn: &Connection, card: &Card) -> Result<(), CardMindError> {
             card.created_at,
             card.updated_at,
             card.deleted,
+            card.owner_type.as_str(),
+            &card.pool_id,
+            &card.last_edit_peer,
         ],
     )?;
     Ok(())
@@ -434,8 +484,9 @@ fn insert_card(conn: &Connection, card: &Card) -> Result<(), CardMindError> {
 
 /// 查询所有卡片（包括已删除）
 fn select_all_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
-    let mut stmt =
-        conn.prepare("SELECT id, title, content, created_at, updated_at, deleted FROM cards")?;
+    let mut stmt = conn.prepare(
+        "SELECT id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer FROM cards",
+    )?;
 
     let cards = stmt
         .query_map([], |row| {
@@ -446,8 +497,9 @@ fn select_all_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
-                tags: Vec::new(),
-                last_edit_device: None,
+                owner_type: parse_owner_type(row.get::<_, String>(6)?)?,
+                pool_id: row.get(7)?,
+                last_edit_peer: row.get(8)?,
             })
         })?
         .collect::<SqliteResult<Vec<_>>>()?;
@@ -458,7 +510,7 @@ fn select_all_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
 /// 查询所有未删除的卡片
 fn select_active_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
     let mut stmt = conn.prepare(
-        "SELECT id, title, content, created_at, updated_at, deleted
+        "SELECT id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer
          FROM cards
          WHERE deleted = 0
          ORDER BY created_at DESC",
@@ -473,8 +525,9 @@ fn select_active_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
                 created_at: row.get(3)?,
                 updated_at: row.get(4)?,
                 deleted: row.get(5)?,
-                tags: Vec::new(),
-                last_edit_device: None,
+                owner_type: parse_owner_type(row.get::<_, String>(6)?)?,
+                pool_id: row.get(7)?,
+                last_edit_peer: row.get(8)?,
             })
         })?
         .collect::<SqliteResult<Vec<_>>>()?;
@@ -485,7 +538,7 @@ fn select_active_cards(conn: &Connection) -> Result<Vec<Card>, CardMindError> {
 /// 按ID查询卡片
 fn select_card_by_id(conn: &Connection, id: &str) -> Result<Card, CardMindError> {
     let mut stmt = conn.prepare(
-        "SELECT id, title, content, created_at, updated_at, deleted
+        "SELECT id, title, content, created_at, updated_at, deleted, owner_type, pool_id, last_edit_peer
          FROM cards
          WHERE id = ?1",
     )?;
@@ -498,8 +551,9 @@ fn select_card_by_id(conn: &Connection, id: &str) -> Result<Card, CardMindError>
             created_at: row.get(3)?,
             updated_at: row.get(4)?,
             deleted: row.get(5)?,
-            tags: Vec::new(),
-            last_edit_device: None,
+            owner_type: parse_owner_type(row.get::<_, String>(6)?)?,
+            pool_id: row.get(7)?,
+            last_edit_peer: row.get(8)?,
         })
     });
 
@@ -516,13 +570,16 @@ fn select_card_by_id(conn: &Connection, id: &str) -> Result<Card, CardMindError>
 fn update_card(conn: &Connection, card: &Card) -> Result<(), CardMindError> {
     let rows_affected = conn.execute(
         "UPDATE cards
-         SET title = ?1, content = ?2, updated_at = ?3, deleted = ?4
-         WHERE id = ?5",
+         SET title = ?1, content = ?2, updated_at = ?3, deleted = ?4, owner_type = ?5, pool_id = ?6, last_edit_peer = ?7
+         WHERE id = ?8",
         rusqlite::params![
             &card.title,
             &card.content,
             card.updated_at,
             card.deleted,
+            card.owner_type.as_str(),
+            &card.pool_id,
+            &card.last_edit_peer,
             &card.id,
         ],
     )?;

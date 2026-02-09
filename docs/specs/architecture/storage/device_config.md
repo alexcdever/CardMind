@@ -1,288 +1,31 @@
 # DeviceConfig 存储架构规格
+- 相关文档:
+  - [数据池领域模型](../../domain/pool.md)
+  - [同步服务](../sync/service.md)
+- 测试覆盖:
+  - `rust/tests/device_config_feature_test.rs`
+  - `test/unit/providers/device_manager_provider_unit_test.dart`
 
 ## 概述
 
-本规格定义了单池架构中设备配置的结构和管理方法。系统使用 JSON 格式将设备配置持久化到本地文件系统，确保设备身份（peer_id）和池成员资格在应用重启后保持一致。
+DeviceConfig 用于持久化本地设备身份与当前池状态，确保重启后保持一致。核心字段为 `peer_id` 与可选 `pool_id`。
 
-**技术栈**:
-- **serde_json** = "1.0" - JSON 序列化/反序列化
-- **tokio::fs** - 异步文件操作
+## 关键约束
 
-**核心特性**:
-- **单池约束**: 每个设备最多只能加入一个池
-- **自动持久化**: 配置变更自动保存到磁盘
-- **peer_id 作为设备标识**: 来源于持久化密钥对
-- **零配置**: 首次启动自动创建配置
+- `peer_id` 在首次启动生成并持久化，后续保持不变
+- `pool_id` 可选，加入池时写入，退出池时清空
+- 配置变更需立即持久化到本地
 
----
+## 关键场景
 
-## 需求：设备配置结构
+### 场景：首次启动创建配置
 
-系统应提供包含 peer_id、设备名称和可选池 ID 的设备配置结构。
-该结构应仅保留单一的 `pool_id`，并且不应包含 `joined_pools`、`resident_pools` 或 `last_selected_pool` 等旧字段。
+- **GIVEN** 本地无配置文件
+- **WHEN** 应用启动
+- **THEN** 生成并持久化 `peer_id`，`pool_id = None`
 
-### 场景：定义设备配置结构
+### 场景：加入与退出更新配置
 
-- **前置条件**: 系统需要持久化设备身份信息
-- **操作**: 定义 DeviceConfig 数据结构
-- **预期结果**: 包含 peer_id、device_name、pool_id、updated_at
-- **并且**: pool_id 为可选单值
-
-**数据结构**:
-
-
----
-
-## 需求：加载或创建设备配置
-
-系统应提供加载现有配置或首次启动时创建新配置的方法。
-
-### 场景：首次启动创建新配置
-
-- **前置条件**: 应用首次启动，无配置文件
-- **操作**: 调用 load_or_create()
-- **预期结果**: 应创建新配置，pool_id = None
-- **并且**: 配置文件应被保存到 ~/.cardmind/config/device_config.json
-
-### 场景：后续启动加载现有配置
-
-- **前置条件**: 存在上次会话的配置文件
-- **操作**: 调用 load_or_create()
-- **预期结果**: 应加载现有配置
-- **并且**: peer_id（若存在）应保持不变
-
----
-
-## 需求：加入池（单池约束）
-
-系统应强制要求设备最多只能加入一个池。
-
-### 场景：成功加入第一个池
-
-- **前置条件**: 设备未加入任何池
-- **操作**: 加入 pool_A
-- **预期结果**: pool_id 应被设置为 pool_A
-- **并且**: 配置应被持久化
-
-### 场景：拒绝加入第二个池
-
-- **前置条件**: 设备已加入 pool_A
-- **操作**: 尝试加入 pool_B
-- **预期结果**: 操作应失败并返回 ALREADY_JOINED_POOL
-- **并且**: pool_id 应保持为 pool_A
-
-### 场景：加入失败时保持配置不变
-
-- **前置条件**: 设备已加入 pool_A
-- **操作**: 尝试非法操作（加入 pool_B）
-- **预期结果**: 配置应保持不变
-- **并且**: 持久化文件也应保持不变
-
----
-
-## 需求：退出池并清理
-
-系统应提供退出当前池并清理所有本地数据的方法。
-
-### 场景：退出时清空 pool_id
-
-- **前置条件**: 设备已加入池
-- **操作**: 退出池
-- **预期结果**: pool_id 应被设置为 None
-- **并且**: 配置应被持久化
-
-### 场景：未加入时退出应失败
-
-- **前置条件**: 设备未加入任何池
-- **操作**: 尝试退出
-- **预期结果**: 操作应失败并返回 NOT_JOINED_POOL 错误
-
-### 场景：退出时清理本地数据
-
-- **前置条件**: 设备已加入池并有数据
-- **操作**: 退出池
-- **预期结果**: 所有本地卡片应被删除
-- **并且**: 所有本地池元数据应被删除
-
----
-
-## 需求：查询方法
-
-系统应提供查询当前池 ID 和加入状态的方法。
-
-### 场景：未加入时获取池 ID
-
-- **前置条件**: 新设备未加入任何池
-- **操作**: 调用 get_pool_id()
-- **预期结果**: 应返回 None
-
-### 场景：已加入时获取池 ID
-
-- **前置条件**: 设备已加入 pool_A
-- **操作**: 调用 get_pool_id()
-- **预期结果**: 应返回 Some("pool_A")
-
-### 场景：检查加入状态
-
-- **前置条件**: 各种设备状态
-- **操作**: 调用 is_joined()
-- **预期结果**: 应返回正确的布尔值
-
----
-
-## 需求：设备名称管理
-
-系统应提供获取和设置设备名称的方法。
-
-### 场景：生成默认设备名称
-
-- **前置条件**: 新设备配置
-- **操作**: 检查设备名称
-- **预期结果**: 应自动生成默认名称（格式：<主机名>-<随机后缀>）
-
-### 场景：允许设置自定义设备名称
-
-- **前置条件**: 设备配置
-- **操作**: 设置自定义名称
-- **预期结果**: 名称应被保存
-- **并且**: 配置应被持久化
-
-### 场景：设备名称验证
-
-- **前置条件**: 尝试设置设备名称
-- **操作**: 提供空名称或过长名称
-- **预期结果**: 应返回验证错误
-
----
-
-## 需求：配置持久化
-
-系统应以 JSON 格式将设备配置持久化到 ~/.cardmind/config/device_config.json。
-
-### 场景：持久化设备配置文件
-
-- **前置条件**: 配置发生变更
-- **操作**: 保存配置到磁盘
-- **预期结果**: 配置文件应按 JSON 格式写入
-- **并且**: 写入应使用原子替换
-
-**文件路径**: `~/.cardmind/config/device_config.json`
-
-**格式**:
-
----
-
-## 需求：与 CardStore 集成
-
-系统应与 CardStore 集成，自动将创建的卡片关联到当前池。
-
-### 场景：创建卡片时自动添加到当前池
-
-- **前置条件**: 设备已加入 pool_A
-- **操作**: 创建卡片
-- **预期结果**: 卡片应自动添加到 pool_A
-
-### 场景：未加入池时创建卡片应失败
-
-- **前置条件**: 设备未加入任何池
-- **操作**: 尝试创建卡片
-- **预期结果**: 应返回 NOT_JOINED_POOL 错误
-
----
-
-## 需求：与 P2P 同步集成
-
-系统应与同步服务集成，根据 pool_id 过滤同步操作。
-
-### 场景：同步前验证池成员资格
-
-- **前置条件**: 设备尝试同步
-- **操作**: 检查设备是否已加入池
-- **预期结果**: 未加入池时应拒绝同步
-
-### 场景：仅同步当前池数据
-
-- **前置条件**: 设备已加入 pool_A
-- **操作**: 与对等点同步
-- **预期结果**: 仅应同步 pool_A 的数据
-
----
-
-## 补充说明
-
-**技术栈**:
-- **serde_json** = "1.0" - JSON 序列化/反序列化
-- **tokio::fs** - 异步文件操作
-- **std::path::PathBuf** - 跨平台路径处理
-
-**设计模式**:
-- **单例模式**: DeviceConfig 在应用生命周期内保持单例
-- **延迟初始化**: 首次访问时加载或创建配置
-- **原子写入**: 使用临时文件+重命名确保配置完整性
-
-**性能考虑**:
-- **内存缓存**: 配置加载后缓存在内存中
-- **原子操作**: 文件写入使用原子重命名
-- **最小 I/O**: 仅在配置变更时写入磁盘
-
-**错误处理**:
-- **配置损坏**: 自动备份并重新创建
-- **磁盘满**: 返回明确错误，不破坏现有配置
-- **权限问题**: 提示用户检查文件权限
-
----
-
-## 相关文档
-
-**领域规格**:
-- [../../domain/pool.md](../../domain/pool.md) - 池领域模型
-
-**相关架构规格**:
-- [./card_store.md](./card_store.md) - CardStore 实现
-- [./pool_store.md](./pool_store.md) - PoolStore 实现
-
-**架构决策记录**:
-- ADR-0001: 单池约束 - 每设备单池设计决策
-- ADR-0002: 双层架构 - Loro + SQLite 架构
-
----
-
-## 测试覆盖
-
-**测试文件**: `rust/tests/device_config_feature_test.rs`
-
-**单元测试**:
-- `it_creates_new_config_on_first_launch()` - 首次启动创建配置
-- `it_loads_existing_config_on_subsequent_launch()` - 加载现有配置
-- `it_should_allow_joining_first_pool_successfully()` - 加入第一个池
-- `it_should_reject_joining_second_pool()` - 拒绝第二个池
-- `it_should_preserve_config_when_join_fails()` - 失败时保持配置
-- `it_should_clear_pool_id_on_leave()` - 退出时清空 pool_id
-- `it_should_fail_when_leaving_without_joining()` - 未加入时退出失败
-- `it_should_cleanup_local_data_on_leave()` - 退出时清理数据
-- `get_pool_id_should_return_none_when_not_joined()` - 未加入时查询
-- `get_pool_id_should_return_some_when_joined()` - 已加入时查询
-- `is_joined_should_return_false_for_new_device()` - 检查加入状态
-- `it_should_generate_default_device_name()` - 生成默认名称
-- `it_should_allow_setting_custom_device_name()` - 设置自定义名称
-- `it_should_validate_device_name_length()` - 验证名称长度
-- `it_should_reject_empty_device_name()` - 拒绝空名称
-- `it_should_persist_config_atomically()` - 原子持久化
-- `it_should_handle_corrupted_config_file()` - 处理损坏配置
-
-**功能测试**:
-- `test_first_launch_flow()` - 首次启动流程
-- `test_join_pool_flow()` - 加入池流程
-- `test_leave_pool_flow()` - 退出池流程
-- `test_config_persistence_across_restarts()` - 重启后配置持久性
-- `test_single_pool_constraint_enforcement()` - 单池约束强制执行
-- `test_card_creation_integration()` - 卡片创建集成
-- `test_sync_integration()` - 同步集成
-
-**验收标准**:
-- [x] 所有单元测试通过
-- [x] 功能测试通过
-- [x] 单池约束正确执行
-- [x] 配置持久化可靠
-- [x] 代码审查通过
-- [x] 文档已更新
+- **GIVEN** 设备加入或退出数据池
+- **WHEN** 更新配置
+- **THEN** `pool_id` 被设置或清空并持久化

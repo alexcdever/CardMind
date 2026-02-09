@@ -22,7 +22,7 @@
 //!    → 更新版本记录 → 支持下次增量同步
 //! ```
 
-use crate::models::card::Card;
+use crate::models::card::{Card, OwnerType};
 use crate::models::error::{CardMindError, Result};
 use crate::store::card_store::CardStore;
 use loro::{ExportMode, LoroDoc};
@@ -289,6 +289,31 @@ impl SyncManager {
             .and_then(|v| v.as_bool().copied())
             .unwrap_or(false);
 
+        let owner_type = map
+            .get("owner_type")
+            .and_then(|v| v.into_value().ok())
+            .and_then(|v| v.as_string().map(|s| s.to_string()))
+            .and_then(|value| OwnerType::try_from(value.as_str()).ok())
+            .unwrap_or(OwnerType::Local);
+
+        let pool_id = map
+            .get("pool_id")
+            .and_then(|v| v.into_value().ok())
+            .and_then(|v| v.as_string().map(|s| s.to_string()))
+            .and_then(|value| {
+                if value.trim().is_empty() {
+                    None
+                } else {
+                    Some(value)
+                }
+            });
+
+        let last_edit_peer = map
+            .get("last_edit_peer")
+            .and_then(|v| v.into_value().ok())
+            .and_then(|v| v.as_string().map(|s| s.to_string()))
+            .unwrap_or_else(|| "unknown".to_string());
+
         Ok(Card {
             id,
             title,
@@ -296,8 +321,9 @@ impl SyncManager {
             created_at,
             updated_at,
             deleted,
-            tags: Vec::new(),
-            last_edit_device: None,
+            owner_type,
+            pool_id,
+            last_edit_peer,
         })
     }
 

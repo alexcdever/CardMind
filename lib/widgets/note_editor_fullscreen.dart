@@ -16,17 +16,22 @@ class NoteEditorFullscreen extends StatefulWidget {
   const NoteEditorFullscreen({
     super.key,
     this.card,
-    required this.currentDevice,
+    String? currentPeerId,
+    @Deprecated('use currentPeerId') String? currentDevice,
+    this.currentPoolId,
     required this.isOpen,
     required this.onClose,
     required this.onSave,
-  });
+  }) : currentPeerId = currentPeerId ?? currentDevice ?? '';
 
   /// 卡片数据，null 表示新建模式，非 null 表示编辑模式
   final bridge.Card? card;
 
   /// 当前设备标识
-  final String currentDevice;
+  final String currentPeerId;
+
+  /// 当前数据池 ID（未加入则为 null）
+  final String? currentPoolId;
 
   /// 是否打开编辑器
   final bool isOpen;
@@ -208,13 +213,17 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
         createdAt: widget.card!.createdAt,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: widget.card!.deleted,
-        tags: widget.card!.tags,
-        lastEditDevice: widget.currentDevice,
+        ownerType: widget.card!.ownerType,
+        poolId: widget.card!.poolId,
+        lastEditPeer: widget.currentPeerId,
       );
       widget.onSave(updatedCard);
     } else {
       // 新建模式：创建新卡片
       // 注意：这里需要生成 UUID，实际实现中应该调用 Rust 层的 API
+      final poolId = widget.currentPoolId;
+      final ownerType =
+          poolId == null ? bridge.OwnerType.local : bridge.OwnerType.pool;
       final newCard = bridge.Card(
         id: DateTime.now().millisecondsSinceEpoch.toString(), // 临时 ID
         title: finalTitle,
@@ -222,8 +231,9 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
         createdAt: DateTime.now().millisecondsSinceEpoch,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: false,
-        tags: [],
-        lastEditDevice: widget.currentDevice,
+        ownerType: ownerType,
+        poolId: poolId,
+        lastEditPeer: widget.currentPeerId,
       );
       widget.onSave(newCard);
     }
@@ -528,15 +538,13 @@ class _NoteEditorFullscreenState extends State<NoteEditorFullscreen>
               color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
             ),
           ),
-          if (card.lastEditDevice != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '最后编辑设备: ${card.lastEditDevice}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
-              ),
+          const SizedBox(height: 4),
+          Text(
+            '最后编辑节点: ${card.lastEditPeer}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
             ),
-          ],
+          ),
         ],
       ),
     );

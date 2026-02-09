@@ -21,7 +21,6 @@
 - **前置条件**: 用户从列表中选择卡片
 - **操作**: 编辑器打开现有卡片
 - **预期结果**: 系统应在编辑器面板中预填充标题和内容字段
-- **并且**: 加载现有标签
 - **并且**: 保持卡片列表可见
 
 ### 场景：创建新卡片
@@ -68,24 +67,6 @@
 
 ---
 
-## 需求：编辑器内标签管理
-
-系统应在编辑器内提供标签管理。
-
-### 场景：编辑时添加标签
-
-- **前置条件**: 用户正在编辑卡片
-- **操作**: 用户添加标签
-- **预期结果**: 保存卡片时应包含该标签
-
-### 场景：编辑时移除标签
-
-- **前置条件**: 卡片有标签
-- **操作**: 用户移除标签
-- **预期结果**: 保存卡片时应排除该标签
-
----
-
 ## 需求：显示字符计数（可选）
 
 系统应可选地显示字符或单词计数。
@@ -104,7 +85,6 @@
 
 **组件测试**:
 - `it_should_prepopulate_existing_card()` - 预填充现有卡片
-- `it_should_load_existing_tags()` - 加载现有标签
 - `it_should_keep_card_list_visible()` - 保持列表可见
 - `it_should_display_empty_fields_for_new_card()` - 新卡片空字段
 - `it_should_autofocus_title_field()` - 自动聚焦标题
@@ -113,8 +93,6 @@
 - `it_should_save_with_ctrl_s()` - 使用 Ctrl+S 保存
 - `it_should_keep_editor_open_after_save()` - 保存后保持编辑器打开
 - `it_should_show_confirmation_on_discard()` - 确认对话框
-- `it_should_add_tags()` - 添加标签
-- `it_should_remove_tags()` - 移除标签
 - `it_should_display_character_count()` - 显示计数（可选）
 - `it_should_support_keyboard_shortcuts()` - 键盘快捷键
 

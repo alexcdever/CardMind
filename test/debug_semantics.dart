@@ -14,7 +14,9 @@ void main() {
       createdAt: DateTime.now().millisecondsSinceEpoch,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: false,
-      tags: [],
+      ownerType: bridge.OwnerType.local,
+      poolId: null,
+      lastEditPeer: '12D3KooWTestPeerId1234567890',
     );
 
     await tester.pumpWidget(

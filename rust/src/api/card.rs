@@ -3,7 +3,8 @@
 //! This module contains all flutter_rust_bridge-exposed functions
 //! for card operations.
 
-use crate::models::card::Card;
+use crate::api::{device_config, identity};
+use crate::models::card::{Card, OwnerType};
 use crate::models::error::Result;
 use crate::store::card_store::CardStore;
 use std::sync::{Arc, Mutex};
@@ -85,8 +86,18 @@ pub fn create_card(title: String, content: String) -> Result<Card> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
 
+    let config = device_config::get_device_config()?;
+    let pool_id = config.pool_id.clone();
+    let owner_type = if pool_id.is_some() {
+        OwnerType::Pool
+    } else {
+        OwnerType::Local
+    };
+    let last_edit_peer = identity::get_peer_id()
+        .map_err(|e| crate::models::error::CardMindError::DatabaseError(e))?;
+
     // Create the card
-    let card = store.create_card(title, content)?;
+    let card = store.create_card(title, content, owner_type, pool_id, last_edit_peer)?;
 
     Ok(card)
 }
@@ -170,7 +181,9 @@ pub fn get_card_by_id(id: String) -> Result<Card> {
 pub fn update_card(id: String, title: Option<String>, content: Option<String>) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
-    store.update_card(&id, title, content)
+    let last_edit_peer = identity::get_peer_id()
+        .map_err(|e| crate::models::error::CardMindError::DatabaseError(e))?;
+    store.update_card(&id, title, content, last_edit_peer)
 }
 
 /// Delete a card (soft delete)
@@ -188,7 +201,9 @@ pub fn update_card(id: String, title: Option<String>, content: Option<String>) -
 pub fn delete_card(id: String) -> Result<()> {
     let store = get_store()?;
     let mut store = store.lock().unwrap();
-    store.delete_card(&id)
+    let last_edit_peer = identity::get_peer_id()
+        .map_err(|e| crate::models::error::CardMindError::DatabaseError(e))?;
+    store.delete_card(&id, last_edit_peer)
 }
 
 /// Get card count statistics
@@ -345,7 +360,9 @@ mod tests {
     fn init_test_store() -> TempDir {
         let temp_dir = TempDir::new().unwrap();
         let path = temp_dir.path().to_str().unwrap().to_string();
-        init_card_store(path).unwrap();
+        init_card_store(path.clone()).unwrap();
+        device_config::init_device_config(path.clone()).unwrap();
+        identity::init_identity_manager(path).unwrap();
         temp_dir
     }
 

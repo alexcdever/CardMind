@@ -4,7 +4,7 @@
 //!
 //! 测试命名: `it_should_[behavior]_when_[condition]()`
 
-use cardmind_rust::models::card::Card;
+use cardmind_rust::models::card::{Card, OwnerType};
 use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::models::pool::Pool;
 use uuid::Uuid;
@@ -18,6 +18,10 @@ fn generate_uuid_v7() -> String {
 /// 测试辅助函数：验证 UUID v7 格式
 fn is_valid_uuid_v7(s: &str) -> bool {
     Uuid::parse_str(s).is_ok()
+}
+
+fn default_peer_id() -> String {
+    "12D3KooWTestPeerId".to_string()
 }
 
 /// 测试辅助函数：验证时间戳范围
@@ -318,6 +322,9 @@ fn it_should_enforce_created_before_updated() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
 
     // When: 验证时间戳一致性
@@ -330,7 +337,7 @@ fn it_should_enforce_created_before_updated() -> Result<(), CardMindError> {
     // When: 更新卡片
     let mut updated_card = card.clone();
     std::thread::sleep(std::time::Duration::from_millis(10));
-    updated_card.update(Some("新标题".to_string()), None)?;
+    updated_card.update(Some("新标题".to_string()), None, default_peer_id())?;
 
     // Then: updated_at 应自动更新
     assert!(
@@ -352,12 +359,15 @@ fn it_should_automatically_update_updated_at() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     let old_updated_at = card.updated_at;
 
     // When: 修改实体
     std::thread::sleep(std::time::Duration::from_millis(10));
-    card.update(Some("新标题".to_string()), None)?;
+    card.update(Some("新标题".to_string()), None, default_peer_id())?;
 
     // Then: updated_at 必须自动更新
     assert!(card.updated_at > old_updated_at, "updated_at 应自动更新");
@@ -409,11 +419,14 @@ fn it_should_exclude_soft_deleted_cards_from_default_queries() -> Result<(), Car
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
     assert!(!card.deleted, "初始状态应未删除");
 
     // When: 软删除卡片
-    card.mark_deleted()?;
+    card.mark_deleted(default_peer_id())?;
 
     // Then: 卡片不应出现在默认查询中
     assert!(card.deleted, "卡片应标记为删除");
@@ -435,8 +448,11 @@ fn it_should_allow_recovering_soft_deleted_cards() -> Result<(), CardMindError> 
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
-    card.mark_deleted()?;
+    card.mark_deleted(default_peer_id())?;
     assert!(card.deleted, "卡片应标记为删除");
 
     // When: 恢复卡片（设置 deleted = false）
@@ -462,6 +478,9 @@ fn it_should_validate_all_type_constraints() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "标题".to_string(),
         "内容".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
 
     // When: 验证所有类型约束
@@ -504,6 +523,9 @@ fn it_should_integrate_types_with_domain_models() -> Result<(), CardMindError> {
         generate_uuid_v7(),
         "测试标题".to_string(),
         "# 测试内容\n\n**粗体**文本".to_string(),
+        OwnerType::Local,
+        None,
+        default_peer_id(),
     ))?;
 
     // When: 将卡片添加到池

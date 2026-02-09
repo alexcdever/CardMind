@@ -13,7 +13,8 @@ class NoteEditorDialog extends StatefulWidget {
   const NoteEditorDialog({
     super.key,
     this.card,
-    required this.currentDevice,
+    required this.currentPeerId,
+    required this.currentPoolId,
     required this.onSave,
     required this.onCancel,
   });
@@ -22,7 +23,10 @@ class NoteEditorDialog extends StatefulWidget {
   final bridge.Card? card;
 
   /// 当前设备标识
-  final String currentDevice;
+  final String currentPeerId;
+
+  /// 当前数据池 ID（未加入则为 null）
+  final String? currentPoolId;
 
   /// 保存回调
   final void Function(bridge.Card card) onSave;
@@ -132,8 +136,9 @@ class _NoteEditorDialogState extends State<NoteEditorDialog> {
         createdAt: widget.card!.createdAt,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
         deleted: widget.card!.deleted,
-        tags: widget.card!.tags,
-        lastEditDevice: widget.currentDevice,
+        ownerType: widget.card!.ownerType,
+        poolId: widget.card!.poolId,
+        lastEditPeer: widget.currentPeerId,
       );
 
       // 调用保存回调
@@ -141,6 +146,9 @@ class _NoteEditorDialogState extends State<NoteEditorDialog> {
     } else {
       // 新建模式：创建新卡片
       final now = DateTime.now().millisecondsSinceEpoch;
+      final poolId = widget.currentPoolId;
+      final ownerType =
+          poolId == null ? bridge.OwnerType.local : bridge.OwnerType.pool;
       final newCard = bridge.Card(
         id: now.toString(), // 临时 ID，实际应该由后端生成
         title: finalTitle,
@@ -148,8 +156,9 @@ class _NoteEditorDialogState extends State<NoteEditorDialog> {
         createdAt: now,
         updatedAt: now,
         deleted: false,
-        tags: [],
-        lastEditDevice: widget.currentDevice,
+        ownerType: ownerType,
+        poolId: poolId,
+        lastEditPeer: widget.currentPeerId,
       );
 
       // 调用保存回调

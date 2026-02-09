@@ -6,6 +6,7 @@ import 'card_api_interface.dart';
 /// 用于测试的 Mock Card API 实现
 /// 可以配置返回值和模拟错误
 class MockCardApi implements CardApiInterface {
+  static const String _defaultPeerId = '12D3KooWTestPeerId1234567890';
   /// 是否模拟网络错误
   bool shouldThrowNetworkError = false;
 
@@ -85,8 +86,9 @@ class MockCardApi implements CardApiInterface {
       createdAt: DateTime.now().millisecondsSinceEpoch,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: false,
-      tags: [],
-      lastEditDevice: null,
+      ownerType: OwnerType.local,
+      poolId: null,
+      lastEditPeer: _defaultPeerId,
     );
 
     _cards.add(card);
@@ -118,8 +120,9 @@ class MockCardApi implements CardApiInterface {
       createdAt: oldCard.createdAt,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: oldCard.deleted,
-      tags: oldCard.tags,
-      lastEditDevice: oldCard.lastEditDevice,
+      ownerType: oldCard.ownerType,
+      poolId: oldCard.poolId,
+      lastEditPeer: oldCard.lastEditPeer,
     );
 
     _cards[index] = updatedCard;
@@ -144,8 +147,9 @@ class MockCardApi implements CardApiInterface {
       createdAt: oldCard.createdAt,
       updatedAt: DateTime.now().millisecondsSinceEpoch,
       deleted: true,
-      tags: oldCard.tags,
-      lastEditDevice: oldCard.lastEditDevice,
+      ownerType: oldCard.ownerType,
+      poolId: oldCard.poolId,
+      lastEditPeer: oldCard.lastEditPeer,
     );
 
     _cards[index] = deletedCard;

@@ -1,100 +1,39 @@
 # secretkey 管理架构规格（临时方案）
+- 相关文档:
+  - [数据池领域模型](../../domain/pool.md)
+  - [池加入](../../features/pool/joining.md)
+  - [池同步](../../features/pool/sync.md)
+- 测试覆盖:
+  - `rust/tests/security_password_feature_test.rs`
+  - 暂无（Flutter）
 
 ## 概述
 
-当前阶段仅定义最小可用的 secretkey 处理规则。secretkey 明文保存在数据池元数据中；加入与同步只做 SHA-256 哈希校验，不提供强度、时间戳或内存安全等能力。
+当前阶段仅定义最小可用的 secretkey 处理规则。secretkey 明文保存在数据池元数据中；加入时校验 secretkey 哈希，同步时仅校验 pool_id 哈希。
 
-**技术栈**:
-- sha2 = "0.10" - SHA-256 哈希
-- hex = "0.4" - 哈希十六进制编码
+## 规则与约束
 
----
+- 哈希算法：SHA-256 + 十六进制编码
+- secretkey 必须非空
+- secretkey 明文保存在池元数据并同步到所有节点
+- 不提供强度校验、重放防护、内存清零或 Keyring 存储
 
-## 需求：明文保存 secretkey
+## GIVEN-WHEN-THEN 场景
 
-系统在创建数据池时应保存用户提供的 secretkey 明文到数据池元数据。
+### 场景：计算 secretkey 哈希
 
-### 场景：创建数据池时保存 secretkey
+- **GIVEN** 用户提供明文 secretkey
+- **WHEN** 计算哈希
+- **THEN** 返回 64 字符十六进制字符串
 
-- **前置条件**: 用户提供 secretkey
-- **操作**: 保存到数据池元数据
-- **预期结果**: 元数据中保存明文 secretkey
-- **并且**: 不进行强度检查或其他安全处理
+### 场景：加入时校验 secretkey 哈希
 
----
+- **GIVEN** 加入请求携带 `pool_id` 哈希与 `secretkey` 哈希
+- **WHEN** 目标节点校验
+- **THEN** 哈希一致则允许加入
 
-## 需求：secretkey 哈希
+### 场景：同步时仅校验 pool_id 哈希
 
-系统应提供对数据池密钥的 SHA-256 哈希能力。
-
-### 场景：计算密钥哈希
-
-- **前置条件**: 用户提供明文密钥字符串
-- **操作**: 调用密钥哈希函数
-- **预期结果**: 返回 64 字符十六进制哈希字符串
-
----
-
-## 需求：加入时携带 secretkey 哈希
-
-系统在加入数据池请求中携带 secretkey 的 SHA-256 哈希值，用于与目标数据池的 secretkey 校验匹配。
-
-### 场景：加入数据池时发送哈希
-
-- **前置条件**: 用户输入 secretkey，目标数据池已保存 secretkey
-- **操作**: 发送 secretkey 的 SHA-256 哈希
-- **预期结果**: 目标设备使用一致的哈希方式进行匹配
-- **并且**: 哈希仅用于匹配，不作为安全防护
-
----
-
-## 需求：同步请求携带 secretkey 哈希
-
-每次同步请求必须携带 `pool_id` 与 secretkey 的 SHA-256 哈希，用于同步前校验。
-
-### 场景：同步请求校验
-
-- **前置条件**: 设备已加入数据池
-- **操作**: 发起同步请求
-- **预期结果**: 请求携带 `pool_id` 与 secretkey 哈希
-- **并且**: 校验不通过时拒绝同步
-
----
-
-## 需求：不提供安全性能力
-
-系统不提供 secretkey 强度、时间戳防重放、内存清零、Keyring 安全存储等能力，待安全性功能完成后再完善。
-
-### 场景：当前阶段安全能力缺失
-
-- **前置条件**: 系统处于临时方案阶段
-- **操作**: 使用明文 secretkey 与简化匹配流程
-- **预期结果**: 不包含强度、时间戳、防重放等能力
-- **并且**: 后续安全功能完成后再补充
-
----
-
-## 相关文档
-
-**相关规格**:
-- [../../domain/pool.md](../../domain/pool.md) - 数据池领域模型
-- [../sync/peer_discovery.md](../sync/peer_discovery.md) - mDNS 设备发现
-
-**架构决策记录**:
-
----
-
-## 测试覆盖
-
-**测试文件**: `rust/tests/security_password_feature_test.rs`
-
-**单元测试**:
-- `it_should_hash_secretkey_with_sha256()` - 测试密钥哈希
-- `it_should_verify_secretkey_hash_successfully()` - 测试校验成功
-- `it_should_verify_secretkey_hash_failure()` - 测试校验失败
-
-**验收标准**:
-- [x] 所有单元测试通过
-- [x] 哈希结果为 64 字符十六进制字符串
-- [x] 校验返回布尔值
-- [x] 文档已更新
+- **GIVEN** 同步请求携带 `pool_id` 哈希
+- **WHEN** 目标节点校验
+- **THEN** 哈希一致则允许同步
