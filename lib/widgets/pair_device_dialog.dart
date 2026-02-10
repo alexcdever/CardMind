@@ -3,16 +3,14 @@ import 'dart:io';
 import 'package:cardmind/models/device.dart';
 import 'package:cardmind/services/qr_code_generator.dart';
 import 'package:cardmind/services/qr_code_parser.dart';
-import 'package:cardmind/services/verification_code_service.dart';
 import 'package:cardmind/widgets/qr_code_scanner_tab.dart';
 import 'package:cardmind/widgets/qr_code_upload_tab.dart';
-import 'package:cardmind/widgets/verification_code_dialog.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-/// 配对设备对话框
+/// 加入数据池对话框
 ///
-/// 提供两种配对方式：
+/// 提供两种加入方式：
 /// 1. 显示二维码：让其他设备扫描
 /// 2. 扫描二维码：移动端使用相机扫描，桌面端上传文件
 class PairDeviceDialog extends StatefulWidget {
@@ -29,9 +27,8 @@ class PairDeviceDialog extends StatefulWidget {
   /// 数据池 ID
   final String poolId;
 
-  /// 配对设备回调
-  final Future<bool> Function(String deviceId, String verificationCode)
-  onPairDevice;
+  /// 加入数据池回调
+  final Future<bool> Function(String poolId, String secretkey) onPairDevice;
 
   @override
   State<PairDeviceDialog> createState() => _PairDeviceDialogState();
@@ -106,7 +103,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
         children: [
           const Icon(Icons.devices, size: 28),
           const SizedBox(width: 12),
-          Text('配对新设备', style: Theme.of(context).textTheme.titleLarge),
+          Text('加入数据池', style: Theme.of(context).textTheme.titleLarge),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.close),
@@ -126,7 +123,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
         children: [
           // 说明文字
           Text(
-            '让其他设备扫描此二维码进行配对',
+            '让其他设备扫描此二维码加入数据池',
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
@@ -147,9 +144,6 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
               ],
             ),
             child: QRCodeGenerator.buildQRCodeWidget(
-              peerId: widget.currentDevice.id,
-              deviceName: widget.currentDevice.name,
-              deviceType: widget.currentDevice.type.name,
               multiaddrs: widget.currentDevice.multiaddrs,
               poolId: widget.poolId,
               size: 300,
@@ -179,7 +173,7 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    '二维码有效期为 10 分钟',
+                    '二维码包含 poolId 与地址信息',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                     ),
@@ -210,57 +204,86 @@ class _PairDeviceDialogState extends State<PairDeviceDialog>
   /// 处理扫描到的二维码
   Future<void> _handleQRCodeScanned(QRCodeData qrData) async {
     try {
-      // 创建验证码会话
-      final session = VerificationCodeManager.instance.createSession(
-        remotePeerId: qrData.peerId,
-        remoteDeviceName: qrData.deviceName,
+      final secretkey = await _promptSecretkey(context, qrData.poolId);
+      if (!mounted || secretkey == null || secretkey.trim().isEmpty) {
+        return;
+      }
+
+      final joinSuccess = await widget.onPairDevice(
+        qrData.poolId,
+        secretkey.trim(),
       );
 
-      // 显示验证码对话框
       if (!mounted) return;
 
-      final displayResult = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => VerificationCodeDialog(
-          session: session,
-          onVerified: () {
-            _showSuccessMessage(
-              context,
-              '配对成功',
-              '设备 ${qrData.deviceName} 已成功配对',
-            );
-          },
-          onTimeout: () {
-            _showErrorMessage(context, '验证超时', '验证码已过期，请重新扫描二维码');
-          },
-        ),
-      );
-
-      // 如果验证成功，调用配对回调
-      if (displayResult == true) {
-        try {
-          final pairSuccess = await widget.onPairDevice(
-            qrData.peerId,
-            session.code,
-          );
-
-          if (!mounted) return;
-
-          if (pairSuccess) {
-            Navigator.of(context).pop(true);
-          } else {
-            _showErrorMessage(context, '配对失败', '无法完成设备配对，请重试');
-          }
-        } on Exception catch (e) {
-          if (!mounted) return;
-          _showErrorMessage(context, '配对错误', '配对过程中发生错误: $e');
-        }
+      if (joinSuccess) {
+        _showSuccessMessage(context, '加入成功', '已加入数据池 ${qrData.poolId}');
+        Navigator.of(context).pop(true);
+      } else {
+        _showErrorMessage(context, '加入失败', '无法加入数据池，请检查密钥');
       }
     } on Exception catch (e) {
       if (!mounted) return;
       _showErrorMessage(context, '处理失败', '二维码处理失败: $e');
     }
+  }
+
+  Future<String?> _promptSecretkey(BuildContext context, String poolId) async {
+    final controller = TextEditingController();
+    bool obscure = true;
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('输入 secretkey'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('池 ID: $poolId'),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: controller,
+                    obscureText: obscure,
+                    decoration: InputDecoration(
+                      labelText: 'secretkey',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscure
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() => obscure = !obscure);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () =>
+                      Navigator.of(context).pop(controller.text),
+                  child: const Text('确认'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
+    return result;
   }
 
   /// 构建设备信息

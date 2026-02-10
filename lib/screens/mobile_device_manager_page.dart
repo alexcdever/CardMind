@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 /// 移动端设备管理页面
 ///
 /// 专为移动端设计的设备管理界面，优化触摸交互。
-/// 支持查看设备列表、配对新设备、编辑当前设备名称。
+/// 支持查看设备列表、邀请设备加入、编辑当前设备名称。
 class MobileDeviceManagerPage extends StatefulWidget {
   const MobileDeviceManagerPage({
     super.key,
@@ -26,7 +26,7 @@ class MobileDeviceManagerPage extends StatefulWidget {
   /// 当前设备信息
   final Device currentDevice;
 
-  /// 已配对设备列表
+  /// 已加入设备列表
   final List<Device> pairedDevices;
 
   /// 数据池 ID
@@ -35,9 +35,8 @@ class MobileDeviceManagerPage extends StatefulWidget {
   /// 编辑设备名称回调
   final void Function(String newName) onDeviceNameChange;
 
-  /// 配对新设备回调
-  final Future<bool> Function(String deviceId, String verificationCode)
-  onPairDevice;
+  /// 邀请设备加入回调
+  final Future<bool> Function(String poolId, String secretkey) onPairDevice;
 
   @override
   State<MobileDeviceManagerPage> createState() =>
@@ -70,11 +69,11 @@ class _MobileDeviceManagerPageState extends State<MobileDeviceManagerPage> {
         ),
         const SizedBox(height: 16),
 
-        // 设备列表标题和配对按钮
+        // 设备列表标题和邀请按钮
         _buildDeviceListHeader(context),
         const SizedBox(height: 12),
 
-        // 已配对设备列表或空状态
+        // 已加入设备列表或空状态
         if (sortedDevices.isEmpty)
           _buildEmptyState(context)
         else
@@ -88,7 +87,7 @@ class _MobileDeviceManagerPageState extends State<MobileDeviceManagerPage> {
     );
   }
 
-  /// 构建设备列表标题和配对按钮
+  /// 构建设备列表标题和邀请按钮
   Widget _buildDeviceListHeader(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -96,18 +95,18 @@ class _MobileDeviceManagerPageState extends State<MobileDeviceManagerPage> {
       children: [
         // 列表标题
         Text(
-          '已配对设备 (${widget.pairedDevices.length})',
+          '已加入设备 (${widget.pairedDevices.length})',
           style: theme.textTheme.titleSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
         ),
         const Spacer(),
 
-        // 配对设备按钮
+        // 邀请设备加入按钮
         ElevatedButton.icon(
           onPressed: () => _showPairDeviceDialog(context),
           icon: const Icon(Icons.add, size: 16),
-          label: const Text('配对设备'),
+          label: const Text('邀请设备加入'),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             minimumSize: const Size(0, 36),
@@ -133,14 +132,14 @@ class _MobileDeviceManagerPageState extends State<MobileDeviceManagerPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '暂无配对设备',
+            '暂无加入设备',
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            '点击上方按钮配对新设备',
+            '点击上方按钮邀请设备加入',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.outline,
             ),
@@ -183,7 +182,7 @@ class _MobileDeviceManagerPageState extends State<MobileDeviceManagerPage> {
     );
   }
 
-  /// 显示配对设备对话框
+  /// 显示加入数据池对话框
   void _showPairDeviceDialog(BuildContext context) {
     showDialog<void>(
       context: context,

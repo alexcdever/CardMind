@@ -9,9 +9,8 @@ import 'package:flutter/services.dart';
 /// 设备名称修改回调
 typedef OnDeviceNameChange = void Function(String newName);
 
-/// 配对设备回调
-typedef OnPairDevice =
-    Future<bool> Function(String deviceId, String verificationCode);
+/// 加入数据池回调
+typedef OnPairDevice = Future<bool> Function(String poolId, String secretkey);
 
 /// 移除设备回调
 typedef OnRemoveDevice = Future<void> Function(String peerId);
@@ -37,7 +36,7 @@ class DeviceManagerPage extends StatefulWidget {
   /// 当前设备信息
   final Device currentDevice;
 
-  /// 已配对设备列表
+  /// 已加入设备列表
   final List<Device> pairedDevices;
 
   /// 数据池 ID
@@ -46,7 +45,7 @@ class DeviceManagerPage extends StatefulWidget {
   /// 编辑设备名称回调
   final OnDeviceNameChange onDeviceNameChange;
 
-  /// 配对新设备回调
+  /// 邀请设备加入回调
   final OnPairDevice onPairDevice;
 
   /// 移除设备回调
@@ -86,7 +85,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
       return KeyEventResult.handled;
     }
 
-    // Ctrl+N: 配对新设备
+    // Ctrl+N: 邀请设备加入
     if (event.logicalKey == LogicalKeyboardKey.keyN &&
         (HardwareKeyboard.instance.isControlPressed ||
             HardwareKeyboard.instance.isMetaPressed)) {
@@ -152,7 +151,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
               Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: Tooltip(
-                  message: '快捷键：Ctrl+E 编辑设备名称，Ctrl+N 配对新设备',
+                  message: '快捷键：Ctrl+E 编辑设备名称，Ctrl+N 邀请设备加入',
                   child: Icon(
                     Icons.keyboard,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -210,11 +209,11 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
             ),
             SizedBox(height: itemSpacing),
 
-            // 配对新设备按钮
+            // 邀请设备加入按钮
             _buildPairDeviceButton(context),
             SizedBox(height: itemSpacing),
 
-            // 已配对设备列表
+            // 已加入设备列表
             _buildPairedDevicesList(context, itemSpacing),
           ],
         ),
@@ -222,14 +221,14 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     );
   }
 
-  /// 构建配对新设备按钮
+  /// 构建邀请设备加入按钮
   Widget _buildPairDeviceButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: () => _showPairDeviceDialog(context),
         icon: const Icon(Icons.add),
-        label: const Text('配对新设备'),
+        label: const Text('邀请设备加入'),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
@@ -237,7 +236,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     );
   }
 
-  /// 构建已配对设备列表
+  /// 构建已加入设备列表
   Widget _buildPairedDevicesList(BuildContext context, double itemSpacing) {
     final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -250,7 +249,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
         Row(
           children: [
             Text(
-              '已配对设备',
+              '已加入设备',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -309,14 +308,14 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
           Icon(Icons.wifi_off, size: 64, color: theme.colorScheme.outline),
           const SizedBox(height: 16),
           Text(
-            '暂无配对设备',
+            '暂无加入设备',
             style: theme.textTheme.titleMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '配对新设备开始同步数据',
+            '邀请设备加入后开始同步数据',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.outline,
             ),
@@ -376,7 +375,7 @@ class _DeviceManagerPageState extends State<DeviceManagerPage> {
     );
   }
 
-  /// 显示配对设备对话框
+  /// 显示加入数据池对话框
   void _showPairDeviceDialog(BuildContext context) {
     showDialog<void>(
       context: context,

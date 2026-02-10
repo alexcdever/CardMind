@@ -9,30 +9,21 @@ import 'package:zxing_lib/zxing.dart';
 
 /// 二维码生成服务
 class QRCodeGenerator {
-  /// 生成设备配对二维码
+  /// 生成加入数据池二维码
   ///
   /// 参数:
-  /// - [peerId]: 设备的 libp2p PeerId
-  /// - [deviceName]: 设备名称
-  /// - [deviceType]: 设备类型 (phone/laptop/tablet)
   /// - [multiaddrs]: 设备的 Multiaddr 地址列表
   /// - [poolId]: 数据池 ID
   /// - [size]: 二维码尺寸（默认 240x240）
   ///
   /// 返回: PNG 格式的二维码图片字节数据
   static Future<Uint8List> generatePairingQRCode({
-    required String peerId,
-    required String deviceName,
-    required String deviceType,
     required List<String> multiaddrs,
     required String poolId,
     int size = 240,
   }) async {
     // 生成 JSON 数据
     final qrDataJson = QRCodeParser.generateQRData(
-      peerId: peerId,
-      deviceName: deviceName,
-      deviceType: deviceType,
       multiaddrs: multiaddrs,
       poolId: poolId,
     );
@@ -75,18 +66,12 @@ class QRCodeGenerator {
   ///
   /// 返回: 显示二维码的 Widget
   static Widget buildQRCodeWidget({
-    required String peerId,
-    required String deviceName,
-    required String deviceType,
     required List<String> multiaddrs,
     required String poolId,
     int size = 240,
   }) {
     return FutureBuilder<Uint8List>(
       future: generatePairingQRCode(
-        peerId: peerId,
-        deviceName: deviceName,
-        deviceType: deviceType,
         multiaddrs: multiaddrs,
         poolId: poolId,
         size: size,
@@ -133,17 +118,11 @@ class QRCodeGenerator {
 
   /// 生成二维码并保存为 Image 对象（用于分享等场景）
   static Future<ui.Image> generateQRCodeImage({
-    required String peerId,
-    required String deviceName,
-    required String deviceType,
     required List<String> multiaddrs,
     required String poolId,
     int size = 240,
   }) async {
     final bytes = await generatePairingQRCode(
-      peerId: peerId,
-      deviceName: deviceName,
-      deviceType: deviceType,
       multiaddrs: multiaddrs,
       poolId: poolId,
       size: size,

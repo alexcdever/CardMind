@@ -11,7 +11,7 @@ enum CameraPermissionStatus { notRequested, granted, denied, permanentlyDenied }
 
 /// 二维码扫描标签页
 ///
-/// 使用相机扫描二维码进行设备配对。
+/// 使用相机扫描二维码加入数据池。
 class QRCodeScannerTab extends StatefulWidget {
   const QRCodeScannerTab({super.key, required this.onQRCodeScanned});
 

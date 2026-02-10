@@ -10,11 +10,7 @@ class QRCodeData {
   QRCodeData({
     required this.version,
     required this.type,
-    required this.peerId,
-    required this.deviceName,
-    required this.deviceType,
     required this.multiaddrs,
-    required this.timestamp,
     required this.poolId,
   });
 
@@ -22,32 +18,20 @@ class QRCodeData {
     return QRCodeData(
       version: json['version'] as String,
       type: json['type'] as String,
-      peerId: json['peerId'] as String,
-      deviceName: json['deviceName'] as String,
-      deviceType: json['deviceType'] as String,
       multiaddrs: (json['multiaddrs'] as List).cast<String>(),
-      timestamp: json['timestamp'] as int,
       poolId: json['poolId'] as String,
     );
   }
   final String version;
   final String type;
-  final String peerId;
-  final String deviceName;
-  final String deviceType;
   final List<String> multiaddrs;
-  final int timestamp;
   final String poolId;
 
   Map<String, dynamic> toJson() {
     return {
       'version': version,
       'type': type,
-      'peerId': peerId,
-      'deviceName': deviceName,
-      'deviceType': deviceType,
       'multiaddrs': multiaddrs,
-      'timestamp': timestamp,
       'poolId': poolId,
     };
   }
@@ -128,41 +112,13 @@ class QRCodeParser {
     }
 
     // 验证类型
-    if (data.type != 'pairing') {
+    if (data.type != 'pool_join') {
       throw Exception('无效的二维码类型: ${data.type}');
-    }
-
-    // 验证 PeerId
-    if (data.peerId.isEmpty) {
-      throw Exception('PeerId 不能为空');
-    }
-
-    // 验证设备名称
-    if (data.deviceName.isEmpty) {
-      throw Exception('设备名称不能为空');
-    }
-
-    // 验证设备类型
-    if (!['phone', 'laptop', 'tablet'].contains(data.deviceType)) {
-      throw Exception('无效的设备类型: ${data.deviceType}');
     }
 
     // 验证 Multiaddrs
     if (data.multiaddrs.isEmpty) {
       throw Exception('Multiaddrs 不能为空');
-    }
-
-    // 验证时间戳（10 分钟有效期）
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    final age = now - data.timestamp;
-
-    if (age < 0) {
-      throw Exception('二维码时间戳无效（未来时间）');
-    }
-
-    if (age > 600) {
-      // 10 分钟 = 600 秒
-      throw Exception('二维码已过期（超过 10 分钟）');
     }
 
     // 验证 PoolId
@@ -173,20 +129,13 @@ class QRCodeParser {
 
   /// 生成二维码数据（用于测试）
   static String generateQRData({
-    required String peerId,
-    required String deviceName,
-    required String deviceType,
     required List<String> multiaddrs,
     required String poolId,
   }) {
     final data = QRCodeData(
       version: '1.0',
-      type: 'pairing',
-      peerId: peerId,
-      deviceName: deviceName,
-      deviceType: deviceType,
+      type: 'pool_join',
       multiaddrs: multiaddrs,
-      timestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       poolId: poolId,
     );
 

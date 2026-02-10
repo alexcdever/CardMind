@@ -10,9 +10,6 @@ import 'package:zxing_lib/zxing.dart';
 void main() async {
   // 生成测试用的二维码数据
   final qrDataJson = QRCodeParser.generateQRData(
-    peerId: '12D3KooWTest123456789',
-    deviceName: 'Test Device',
-    deviceType: 'laptop',
     multiaddrs: ['/ip4/192.168.1.100/tcp/4001'],
     poolId: 'test-pool-id-123',
   );
@@ -59,9 +56,8 @@ void main() async {
   try {
     final decoded = await QRCodeParser.parseFromFile(file);
     print('Decode successful!');
-    print('PeerId: ${decoded.peerId}');
-    print('Device Name: ${decoded.deviceName}');
-    print('Device Type: ${decoded.deviceType}');
+    print('PoolId: ${decoded.poolId}');
+    print('Multiaddrs: ${decoded.multiaddrs}');
   } catch (e) {
     print('Decode failed: $e');
   }

@@ -175,7 +175,7 @@ class _QRCodeUploadTabState extends State<QRCodeUploadTab> {
       // 解析二维码
       _logInfo('开始解析二维码: ${file.path}');
       final qrData = await QRCodeParser.parseFromFile(file);
-      _logInfo('二维码解析成功: PeerId=${qrData.peerId}');
+      _logInfo('二维码解析成功: PoolId=${qrData.poolId}');
 
       // 调用回调
       await widget.onQRCodeScanned(qrData);
