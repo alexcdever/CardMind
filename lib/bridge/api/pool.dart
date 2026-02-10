@@ -5,8 +5,10 @@
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-import '../../../frb_generated.dart';
-import '../../../models/pool.dart';
+import '../frb_generated.dart';
+import '../models/pool.dart';
+
+// These functions are ignored because they are not marked as `pub`: `with_pool_store`
 
 /// Initialize the PoolStore with the given storage path
 ///
@@ -22,8 +24,7 @@ import '../../../models/pool.dart';
 /// ```dart
 /// await initPoolStore(path: '/path/to/storage');
 /// ```
-Future<void> initPoolStore({required String path}) =>
-    RustLib.instance.api.cardmindRustApiPoolInitPoolStore(path: path);
+Future<void> initPoolStore({required String path}) => RustLib.instance.api.crateApiPoolInitPoolStore(path: path);
 
 /// Create a new data pool
 ///
@@ -42,10 +43,7 @@ Future<void> initPoolStore({required String path}) =>
 /// final pool = await createPool(name: '工作笔记', secretkey: 'mysecretkey');
 /// ```
 Future<Pool> createPool({required String name, required String secretkey}) =>
-    RustLib.instance.api.cardmindRustApiPoolCreatePool(
-      name: name,
-      secretkey: secretkey,
-    );
+    RustLib.instance.api.crateApiPoolCreatePool(name: name, secretkey: secretkey);
 
 /// Get all pools
 ///
@@ -58,8 +56,7 @@ Future<Pool> createPool({required String name, required String secretkey}) =>
 /// ```dart
 /// final pools = await getAllPools();
 /// ```
-Future<List<Pool>> getAllPools() =>
-    RustLib.instance.api.cardmindRustApiPoolGetAllPools();
+Future<List<Pool>> getAllPools() => RustLib.instance.api.crateApiPoolGetAllPools();
 
 /// Get a pool by ID
 ///
@@ -80,8 +77,7 @@ Future<List<Pool>> getAllPools() =>
 /// ```dart
 /// final pool = await getPoolById(poolId: poolId);
 /// ```
-Future<Pool> getPoolById({required String poolId}) =>
-    RustLib.instance.api.cardmindRustApiPoolGetPoolById(poolId: poolId);
+Future<Pool> getPoolById({required String poolId}) => RustLib.instance.api.crateApiPoolGetPoolById(poolId: poolId);
 
 /// Update a pool's name
 ///
@@ -96,10 +92,7 @@ Future<Pool> getPoolById({required String poolId}) =>
 /// await updatePool(poolId: poolId, name: 'New Name');
 /// ```
 Future<void> updatePool({required String poolId, required String name}) =>
-    RustLib.instance.api.cardmindRustApiPoolUpdatePool(
-      poolId: poolId,
-      name: name,
-    );
+    RustLib.instance.api.crateApiPoolUpdatePool(poolId: poolId, name: name);
 
 /// Delete a pool (soft delete)
 ///
@@ -112,74 +105,54 @@ Future<void> updatePool({required String poolId, required String name}) =>
 /// ```dart
 /// await deletePool(poolId: poolId);
 /// ```
-Future<void> deletePool({required String poolId}) =>
-    RustLib.instance.api.cardmindRustApiPoolDeletePool(poolId: poolId);
+Future<void> deletePool({required String poolId}) => RustLib.instance.api.crateApiPoolDeletePool(poolId: poolId);
 
 /// Add a member to a pool
 ///
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `device_id` - Device ID
-/// * `device_name` - Device nickname in this pool
+/// * `peer_id` - libp2p PeerId
+/// * `device_os` - Device OS
 ///
 /// # Example (Dart)
 ///
 /// ```dart
-/// await addPoolMember(poolId: poolId, deviceId: deviceId, deviceName: 'My iPhone');
+/// await addPoolMember(poolId: poolId, peerId: peerId, deviceOs: 'macOS');
 /// ```
-Future<void> addPoolMember({
-  required String poolId,
-  required String deviceId,
-  required String deviceName,
-}) => RustLib.instance.api.cardmindRustApiPoolAddPoolMember(
-  poolId: poolId,
-  deviceId: deviceId,
-  deviceName: deviceName,
-);
+Future<void> addPoolMember({required String poolId, required String peerId, required String deviceOs}) =>
+    RustLib.instance.api.crateApiPoolAddPoolMember(poolId: poolId, peerId: peerId, deviceOs: deviceOs);
 
 /// Remove a member from a pool
 ///
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `device_id` - Device ID to remove
+/// * `peer_id` - PeerId to remove
 ///
 /// # Example (Dart)
 ///
 /// ```dart
-/// await removePoolMember(poolId: poolId, deviceId: deviceId);
+/// await removePoolMember(poolId: poolId, peerId: peerId);
 /// ```
-Future<void> removePoolMember({
-  required String poolId,
-  required String deviceId,
-}) => RustLib.instance.api.cardmindRustApiPoolRemovePoolMember(
-  poolId: poolId,
-  deviceId: deviceId,
-);
+Future<void> removePoolMember({required String poolId, required String peerId}) =>
+    RustLib.instance.api.crateApiPoolRemovePoolMember(poolId: poolId, peerId: peerId);
 
 /// Update a member's nickname in a pool
 ///
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `device_id` - Device ID
+/// * `peer_id` - PeerId
 /// * `new_name` - New nickname
 ///
 /// # Example (Dart)
 ///
 /// ```dart
-/// await updateMemberName(poolId: poolId, deviceId: deviceId, newName: '工作手机');
+/// await updateMemberName(poolId: poolId, peerId: peerId, newName: '工作手机');
 /// ```
-Future<void> updateMemberName({
-  required String poolId,
-  required String deviceId,
-  required String newName,
-}) => RustLib.instance.api.cardmindRustApiPoolUpdateMemberName(
-  poolId: poolId,
-  deviceId: deviceId,
-  newName: newName,
-);
+Future<void> updateMemberName({required String poolId, required String peerId, required String newName}) =>
+    RustLib.instance.api.crateApiPoolUpdateMemberName(poolId: poolId, peerId: peerId, newName: newName);
 
 /// Verify a pool secretkey hash
 ///
@@ -199,13 +172,8 @@ Future<void> updateMemberName({
 /// ```dart
 /// final isValid = await verifyPoolSecretkeyHash(poolId: poolId, secretkeyHash: hash);
 /// ```
-Future<bool> verifyPoolSecretkeyHash({
-  required String poolId,
-  required String secretkeyHash,
-}) => RustLib.instance.api.cardmindRustApiPoolVerifyPoolSecretkeyHash(
-  poolId: poolId,
-  secretkeyHash: secretkeyHash,
-);
+Future<bool> verifyPoolSecretkeyHash({required String poolId, required String secretkeyHash}) =>
+    RustLib.instance.api.crateApiPoolVerifyPoolSecretkeyHash(poolId: poolId, secretkeyHash: secretkeyHash);
 
 /// Hash pool secretkey (SHA-256 hex)
 ///
@@ -218,7 +186,5 @@ Future<bool> verifyPoolSecretkeyHash({
 /// ```dart
 /// final hash = await hashPoolSecretkey(secretkey: 'mysecretkey');
 /// ```
-Future<String> hashPoolSecretkey({required String secretkey}) => RustLib
-    .instance
-    .api
-    .cardmindRustApiPoolHashPoolSecretkey(secretkey: secretkey);
+Future<String> hashPoolSecretkey({required String secretkey}) =>
+    RustLib.instance.api.crateApiPoolHashPoolSecretkey(secretkey: secretkey);

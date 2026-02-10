@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../bridge/api/loro_export.dart';
-import '../bridge/third_party/cardmind_rust/api/loro_export.dart';
 
 /// Loro 文件操作服务
 class LoroFileService {

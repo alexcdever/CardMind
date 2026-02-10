@@ -5,7 +5,7 @@
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-import '../../../frb_generated.dart';
+import '../frb_generated.dart';
 
 /// 初始化身份管理器
 ///
@@ -18,8 +18,8 @@ import '../../../frb_generated.dart';
 /// ```dart
 /// await initIdentityManager(basePath: '/path/to/app/data');
 /// ```
-void initIdentityManager({required String basePath}) => RustLib.instance.api
-    .cardmindRustApiIdentityInitIdentityManager(basePath: basePath);
+void initIdentityManager({required String basePath}) =>
+    RustLib.instance.api.crateApiIdentityInitIdentityManager(basePath: basePath);
 
 /// 获取设备的 PeerId
 ///
@@ -40,7 +40,7 @@ void initIdentityManager({required String basePath}) => RustLib.instance.api
 /// final peerId = await getPeerId();
 /// print('Device Peer ID: $peerId');
 /// ```
-String getPeerId() => RustLib.instance.api.cardmindRustApiIdentityGetPeerId();
+String getPeerId() => RustLib.instance.api.crateApiIdentityGetPeerId();
 
 /// 检查密钥对文件是否存在
 ///
@@ -60,8 +60,7 @@ String getPeerId() => RustLib.instance.api.cardmindRustApiIdentityGetPeerId();
 ///   print('首次启动，将生成新密钥对');
 /// }
 /// ```
-bool keypairExists() =>
-    RustLib.instance.api.cardmindRustApiIdentityKeypairExists();
+bool keypairExists() => RustLib.instance.api.crateApiIdentityKeypairExists();
 
 /// 删除密钥对文件
 ///
@@ -79,8 +78,7 @@ bool keypairExists() =>
 /// await deleteKeypair();
 /// print('密钥对已删除，下次启动将生成新 PeerId');
 /// ```
-void deleteKeypair() =>
-    RustLib.instance.api.cardmindRustApiIdentityDeleteKeypair();
+void deleteKeypair() => RustLib.instance.api.crateApiIdentityDeleteKeypair();
 
 /// 获取密钥对文件路径
 ///
@@ -98,5 +96,4 @@ void deleteKeypair() =>
 /// final path = await getKeypairPath();
 /// print('密钥对存储路径: $path');
 /// ```
-String getKeypairPath() =>
-    RustLib.instance.api.cardmindRustApiIdentityGetKeypairPath();
+String getKeypairPath() => RustLib.instance.api.crateApiIdentityGetKeypairPath();

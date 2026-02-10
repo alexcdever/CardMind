@@ -4,7 +4,7 @@ import 'package:cardmind/adaptive/layouts/three_column_layout.dart';
 import 'package:cardmind/adaptive/platform_detector.dart';
 import 'package:cardmind/adaptive/widgets/adaptive_fab.dart';
 import 'package:cardmind/bridge/models/card.dart' as bridge;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
+import 'package:cardmind/bridge/api/identity.dart'
     as identity_api;
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/providers/card_provider.dart';

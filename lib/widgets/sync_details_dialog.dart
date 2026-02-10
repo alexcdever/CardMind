@@ -14,8 +14,6 @@ library;
 import 'dart:async';
 
 import 'package:cardmind/bridge/api/sync.dart' as api;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
-    as sync_api;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -162,7 +160,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
     _statusSubscription?.cancel();
 
     try {
-      final stream = sync_api.getSyncStatusStream();
+      final stream = api.getSyncStatusStream();
       _statusSubscription = stream.listen(
         (status) {
           if (!mounted) return;
@@ -195,7 +193,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
   /// 加载设备列表
   Future<void> _loadDeviceList() async {
     try {
-      final devices = await sync_api.getDeviceList();
+      final devices = await api.getDeviceList();
       if (mounted) {
         setState(() {
           _devices = devices;
@@ -217,7 +215,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
   /// 加载统计信息
   Future<void> _loadStatistics() async {
     try {
-      final statistics = await sync_api.getSyncStatistics();
+      final statistics = await api.getSyncStatistics();
       if (mounted) {
         setState(() {
           _statistics = statistics;
@@ -239,7 +237,7 @@ class _SyncDetailsDialogState extends State<SyncDetailsDialog>
   /// 加载同步历史
   Future<void> _loadHistory() async {
     try {
-      final history = await sync_api.getSyncHistory();
+      final history = await api.getSyncHistory();
       if (mounted) {
         setState(() {
           _history = history;

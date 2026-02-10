@@ -19,13 +19,15 @@ void main() {
     setUp(() {
       poolMembers = const [
         pool.Device(
-          deviceId: currentPeerId,
-          deviceName: '本机设备',
+          peerId: currentPeerId,
+          nickname: '本机设备',
+          deviceOs: 'macOS',
           joinedAt: 0,
         ),
         pool.Device(
-          deviceId: otherPeerId,
-          deviceName: '协作设备',
+          peerId: otherPeerId,
+          nickname: '协作设备',
+          deviceOs: 'iOS',
           joinedAt: 0,
         ),
       ];

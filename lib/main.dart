@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:cardmind/bridge/frb_generated.dart';
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart'
+import 'package:cardmind/bridge/api/device_config.dart'
     as device_config_api;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
+import 'package:cardmind/bridge/api/identity.dart'
     as identity_api;
 import 'package:cardmind/providers/app_info_provider.dart';
 import 'package:cardmind/providers/card_provider.dart';

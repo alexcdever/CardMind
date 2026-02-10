@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/mdns_discovery.dart'
+import 'package:cardmind/bridge/api/mdns_discovery.dart'
     as mdns_api;
 import 'package:cardmind/models/device.dart';
 

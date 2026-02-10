@@ -1,5 +1,5 @@
 import '../bridge/models/card.dart';
-import '../bridge/third_party/cardmind_rust/api/card.dart' as card_api;
+import '../bridge/api/card.dart' as card_api;
 import 'card_api_interface.dart';
 
 /// Real Card API Implementation

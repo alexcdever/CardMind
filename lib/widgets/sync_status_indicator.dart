@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:cardmind/bridge/frb_generated.dart';
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
+import 'package:cardmind/bridge/api/sync.dart'
     as sync_api;
 import 'package:cardmind/models/sync_status.dart';
 import 'package:cardmind/widgets/sync_details_dialog.dart';

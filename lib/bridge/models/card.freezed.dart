@@ -35,8 +35,7 @@ mixin _$Card {
 
 /// @nodoc
 abstract class $CardCopyWith<$Res> {
-  factory $CardCopyWith(Card value, $Res Function(Card) then) =
-      _$CardCopyWithImpl<$Res, Card>;
+  factory $CardCopyWith(Card value, $Res Function(Card) then) = _$CardCopyWithImpl<$Res, Card>;
   @useResult
   $Res call({
     String id,
@@ -52,8 +51,7 @@ abstract class $CardCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$CardCopyWithImpl<$Res, $Val extends Card>
-    implements $CardCopyWith<$Res> {
+class _$CardCopyWithImpl<$Res, $Val extends Card> implements $CardCopyWith<$Res> {
   _$CardCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -122,10 +120,7 @@ class _$CardCopyWithImpl<$Res, $Val extends Card>
 
 /// @nodoc
 abstract class _$$CardImplCopyWith<$Res> implements $CardCopyWith<$Res> {
-  factory _$$CardImplCopyWith(
-    _$CardImpl value,
-    $Res Function(_$CardImpl) then,
-  ) = __$$CardImplCopyWithImpl<$Res>;
+  factory _$$CardImplCopyWith(_$CardImpl value, $Res Function(_$CardImpl) then) = __$$CardImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({
@@ -142,11 +137,8 @@ abstract class _$$CardImplCopyWith<$Res> implements $CardCopyWith<$Res> {
 }
 
 /// @nodoc
-class __$$CardImplCopyWithImpl<$Res>
-    extends _$CardCopyWithImpl<$Res, _$CardImpl>
-    implements _$$CardImplCopyWith<$Res> {
-  __$$CardImplCopyWithImpl(_$CardImpl _value, $Res Function(_$CardImpl) _then)
-    : super(_value, _then);
+class __$$CardImplCopyWithImpl<$Res> extends _$CardCopyWithImpl<$Res, _$CardImpl> implements _$$CardImplCopyWith<$Res> {
+  __$$CardImplCopyWithImpl(_$CardImpl _value, $Res Function(_$CardImpl) _then) : super(_value, _then);
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.
@@ -253,39 +245,24 @@ class _$CardImpl implements _Card {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.content, content) || other.content == content) &&
-            (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt) &&
-            (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt) &&
+            (identical(other.createdAt, createdAt) || other.createdAt == createdAt) &&
+            (identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt) &&
             (identical(other.deleted, deleted) || other.deleted == deleted) &&
-            (identical(other.ownerType, ownerType) ||
-                other.ownerType == ownerType) &&
+            (identical(other.ownerType, ownerType) || other.ownerType == ownerType) &&
             (identical(other.poolId, poolId) || other.poolId == poolId) &&
-            (identical(other.lastEditPeer, lastEditPeer) ||
-                other.lastEditPeer == lastEditPeer));
+            (identical(other.lastEditPeer, lastEditPeer) || other.lastEditPeer == lastEditPeer));
   }
 
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    title,
-    content,
-    createdAt,
-    updatedAt,
-    deleted,
-    ownerType,
-    poolId,
-    lastEditPeer,
-  );
+  int get hashCode =>
+      Object.hash(runtimeType, id, title, content, createdAt, updatedAt, deleted, ownerType, poolId, lastEditPeer);
 
   /// Create a copy of Card
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$CardImplCopyWith<_$CardImpl> get copyWith =>
-      __$$CardImplCopyWithImpl<_$CardImpl>(this, _$identity);
+  _$$CardImplCopyWith<_$CardImpl> get copyWith => __$$CardImplCopyWithImpl<_$CardImpl>(this, _$identity);
 }
 
 abstract class _Card implements Card {
@@ -324,6 +301,5 @@ abstract class _Card implements Card {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CardImplCopyWith<_$CardImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$CardImplCopyWith<_$CardImpl> get copyWith => throw _privateConstructorUsedError;
 }

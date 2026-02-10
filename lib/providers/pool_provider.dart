@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:cardmind/bridge/models/pool.dart';
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/device_config.dart'
+import 'package:cardmind/bridge/api/device_config.dart'
     as device_api;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/identity.dart'
+import 'package:cardmind/bridge/api/identity.dart'
     as identity_api;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/pool.dart'
+import 'package:cardmind/bridge/api/pool.dart'
     as pool_api;
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/sync.dart'
+import 'package:cardmind/bridge/api/sync.dart'
     as sync_api;
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -115,10 +115,11 @@ class PoolProvider extends ChangeNotifier {
 
       if (success) {
         final peerId = identity_api.getPeerId();
+        final deviceOs = _resolveDeviceOs();
         await pool_api.addPoolMember(
           poolId: poolId,
-          deviceId: peerId,
-          deviceName: 'My Device',
+          peerId: peerId,
+          deviceOs: deviceOs,
         );
         await loadPools();
         await _startSyncService();
@@ -138,7 +139,7 @@ class PoolProvider extends ChangeNotifier {
     try {
       _clearError();
       final peerId = identity_api.getPeerId();
-      await pool_api.removePoolMember(poolId: poolId, deviceId: peerId);
+      await pool_api.removePoolMember(poolId: poolId, peerId: peerId);
       await loadPools();
       // Clear current pool after leaving
       if (_currentPool?.poolId == poolId) {
@@ -286,6 +287,28 @@ class PoolProvider extends ChangeNotifier {
       _setError(e.toString());
       return false;
     }
+  }
+
+  String _resolveDeviceOs() {
+    if (kIsWeb) {
+      return 'Web';
+    }
+    if (Platform.isMacOS) {
+      return 'macOS';
+    }
+    if (Platform.isWindows) {
+      return 'Windows';
+    }
+    if (Platform.isLinux) {
+      return 'Linux';
+    }
+    if (Platform.isAndroid) {
+      return 'Android';
+    }
+    if (Platform.isIOS) {
+      return 'iOS';
+    }
+    return 'Unknown';
   }
 
   void _setLoading(bool loading) {

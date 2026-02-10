@@ -26,10 +26,8 @@ Future<void> main() async {
 
   final result = await Process.run('flutter_rust_bridge_codegen', [
     'generate',
-    '--rust-input',
-    'rust/src/api/mod.rs',
-    '--dart-output',
-    'lib/bridge_generated.dart',
+    '--config-file',
+    'flutter_rust_bridge.yaml',
     '--rust-output',
     'rust/src/frb_generated.rs',
   ], runInShell: true);

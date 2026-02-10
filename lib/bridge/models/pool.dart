@@ -11,8 +11,9 @@ import '../frb_generated.dart';
 ///
 /// # 字段说明
 ///
-/// - `device_id`: 设备唯一标识（UUID v7）
-/// - `device_name`: 设备在此数据池中的昵称（可修改，最大 64 字符）
+/// - `peer_id`: libp2p PeerId
+/// - `nickname`: 设备在此数据池中的昵称（可修改）
+/// - `device_os`: 设备系统类型
 /// - `joined_at`: 加入数据池的时间（毫秒级时间戳）
 ///
 /// # 示例
@@ -21,40 +22,38 @@ import '../frb_generated.dart';
 /// use cardmind_rust::models::pool::Device;
 ///
 /// let device = Device {
-///     device_id: "device-001".to_string(),
-///     device_name: "iPhone-018c8".to_string(),
+///     peer_id: "12D3KooWDevice001".to_string(),
+///     nickname: "12D3KmacOS".to_string(),
+///     device_os: "macOS".to_string(),
 ///     joined_at: 1704067200000,
 /// };
 /// ```
 class Device {
-  const Device({
-    required this.deviceId,
-    required this.deviceName,
-    required this.joinedAt,
-  });
+  const Device({required this.peerId, required this.nickname, required this.deviceOs, required this.joinedAt});
 
-  /// 设备唯一标识
-  final String deviceId;
+  /// libp2p PeerId
+  final String peerId;
 
   /// 设备昵称（数据池特定，可修改）
-  ///
-  /// 注意：同一设备在不同数据池中可以有不同昵称
-  final String deviceName;
+  final String nickname;
+
+  /// 设备系统类型
+  final String deviceOs;
 
   /// 加入数据池的时间（Unix 毫秒时间戳）
   final PlatformInt64 joinedAt;
 
   @override
-  int get hashCode =>
-      deviceId.hashCode ^ deviceName.hashCode ^ joinedAt.hashCode;
+  int get hashCode => peerId.hashCode ^ nickname.hashCode ^ deviceOs.hashCode ^ joinedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is Device &&
           runtimeType == other.runtimeType &&
-          deviceId == other.deviceId &&
-          deviceName == other.deviceName &&
+          peerId == other.peerId &&
+          nickname == other.nickname &&
+          deviceOs == other.deviceOs &&
           joinedAt == other.joinedAt;
 }
 
@@ -76,7 +75,7 @@ class Device {
 /// use cardmind_rust::models::pool::{Pool, Device};
 ///
 /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-/// let device = Device::new("device-001", "My iPhone");
+/// let device = Device::new("12D3KooWDevice001", "macOS");
 /// pool.add_member(device);
 /// pool.add_card("card-001");
 ///

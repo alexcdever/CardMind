@@ -1,5 +1,5 @@
 import 'package:cardmind/bridge/models/card.dart';
-import 'package:cardmind/bridge/third_party/cardmind_rust/api/card.dart' as api;
+import 'package:cardmind/bridge/api/card.dart' as api;
 
 /// CardService wraps the Rust API for card operations
 class CardService {

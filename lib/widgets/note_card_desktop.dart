@@ -497,8 +497,8 @@ class _NoteCardDesktopState extends State<NoteCardDesktop>
     }
     final members = widget.poolMembers ?? const <pool.Device>[];
     for (final member in members) {
-      if (member.deviceId == peerId) {
-        return member.deviceName;
+      if (member.peerId == peerId) {
+        return member.nickname;
       }
     }
     return PeerIdValidator.format(peerId);
