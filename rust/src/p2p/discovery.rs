@@ -4,17 +4,7 @@
 //!
 //! # 隐私保护
 //!
-//! 根据 `docs/architecture/sync_mechanism.md` 2.2 节的设计：
-//! - **仅暴露数据池 ID**：不暴露 `pool_name` 等敏感信息
-//! - **使用默认设备昵称**：格式为 "{设备型号}-{UUID前5位}"
-//! - **secretkey 验证后获取详情**：新设备需输入 secretkey 才能获取数据池完整信息
-//!
-//! # 广播内容
-//!
-//! mDNS 广播包含的非敏感信息：
-//! - `device_id`: 设备唯一标识
-//! - `device_name`: 默认设备昵称（不使用数据池中的用户自定义昵称）
-//! - `pool_ids`: 数据池 ID 列表（仅 UUID，不包含名称）
+//! 仅使用 libp2p 默认 mDNS 广播，不携带任何自定义字段。
 
 use libp2p::{
     core::upgrade,
@@ -23,60 +13,10 @@ use libp2p::{
     swarm::{NetworkBehaviour, SwarmEvent},
     tcp, yamux, Multiaddr, PeerId, Swarm, Transport,
 };
-use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-/// mDNS 广播的设备信息
-///
-/// # 隐私设计
-///
-/// 此结构体仅包含非敏感信息，用于 mDNS 广播。
-/// 敏感信息（`pool_name`、secretkey、成员列表等）不会在广播中暴露。
-///
-/// # 示例
-///
-/// ```
-/// use cardmind_rust::p2p::discovery::{DeviceInfo, PoolInfo};
-///
-/// let device_info = DeviceInfo {
-///     device_id: "device-001".to_string(),
-///     device_name: "MacBook-018c8".to_string(),
-///     pools: vec![
-///         PoolInfo {
-///             pool_id: "pool-abc".to_string(),
-///         }
-///     ],
-/// };
-///
-/// // 序列化为 JSON 用于 mDNS 广播
-/// let json = serde_json::to_string(&device_info).unwrap();
-/// println!("{}", json);
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DeviceInfo {
-    /// 设备唯一标识（UUID v7）
-    pub device_id: String,
-
-    /// 默认设备昵称
-    ///
-    /// 格式: "{设备型号}-{UUID前5位}"
-    /// 例如: "iPhone-018c8", "MacBook-7a3e1"
-    pub device_name: String,
-
-    /// 该设备加入的数据池列表
-    pub pools: Vec<PoolInfo>,
-}
-
-/// 数据池信息（仅包含 ID）
-///
-/// # 隐私保护
-///
-/// 仅暴露 `pool_id`，不暴露 `pool_name`、成员列表、卡片数量等敏感信息。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PoolInfo {
-    /// 数据池 ID（UUID v7）
-    pub pool_id: String,
-}
+/// 是否启用自定义 mDNS 广播负载
+pub const CUSTOM_MDNS_PAYLOAD_ENABLED: bool = false;
 
 /// mDNS 网络行为
 #[derive(NetworkBehaviour)]
@@ -257,98 +197,12 @@ impl MdnsDiscovery {
         Ok(())
     }
 
-    /// 生成默认设备昵称
-    ///
-    /// # 格式
-    ///
-    /// "{设备型号}-{UUID前5位}"
-    ///
-    /// # 示例
-    ///
-    /// ```
-    /// use cardmind_rust::p2p::MdnsDiscovery;
-    ///
-    /// let device_name = MdnsDiscovery::generate_device_name("018c8a1b2c3d4e5f");
-    /// assert_eq!(device_name, "Unknown-018c8");
-    /// ```
-    #[must_use]
-    pub fn generate_device_name(device_id: &str) -> String {
-        let short_id = &device_id[..5.min(device_id.len())];
-        format!("Unknown-{short_id}")
-    }
-
-    /// 创建设备信息用于 mDNS 广播
-    ///
-    /// # 参数
-    ///
-    /// - `device_id`: 设备 UUID
-    /// - `pool_ids`: 数据池 ID 列表
-    ///
-    /// # 示例
-    ///
-    /// ```
-    /// use cardmind_rust::p2p::MdnsDiscovery;
-    ///
-    /// let device_info = MdnsDiscovery::create_device_info(
-    ///     "device-001",
-    ///     vec!["pool-abc", "pool-def"],
-    /// );
-    ///
-    /// assert_eq!(device_info.device_id, "device-001");
-    /// assert_eq!(device_info.pools.len(), 2);
-    /// ```
-    #[must_use]
-    pub fn create_device_info(device_id: &str, pool_ids: Vec<&str>) -> DeviceInfo {
-        DeviceInfo {
-            device_id: device_id.to_string(),
-            device_name: Self::generate_device_name(device_id),
-            pools: pool_ids
-                .into_iter()
-                .map(|id| PoolInfo {
-                    pool_id: id.to_string(),
-                })
-                .collect(),
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::error::Error;
-
-    /// 测试默认设备昵称生成
-    #[test]
-    fn it_should_generate_device_name() {
-        let device_id = "018c8a1b2c3d4e5f";
-        let device_name = MdnsDiscovery::generate_device_name(device_id);
-        assert_eq!(device_name, "Unknown-018c8");
-    }
-
-    /// 测试设备信息创建
-    #[test]
-    fn it_should_create_device_info() {
-        let device_info =
-            MdnsDiscovery::create_device_info("device-001", vec!["pool-abc", "pool-def"]);
-
-        assert_eq!(device_info.device_id, "device-001");
-        assert_eq!(device_info.device_name, "Unknown-devic");
-        assert_eq!(device_info.pools.len(), 2);
-        assert_eq!(device_info.pools[0].pool_id, "pool-abc");
-        assert_eq!(device_info.pools[1].pool_id, "pool-def");
-    }
-
-    /// 测试设备信息序列化
-    #[test]
-    fn it_should_device_info_serialization() {
-        let device_info =
-            MdnsDiscovery::create_device_info("device-001", vec!["pool-abc", "pool-def"]);
-
-        let json = serde_json::to_string(&device_info).unwrap();
-        assert!(json.contains("device-001"));
-        assert!(json.contains("pool-abc"));
-        assert!(!json.contains("pool_name"), "不应包含 pool_name");
-    }
 
     /// 测试 mDNS 发现初始化
     #[tokio::test]
