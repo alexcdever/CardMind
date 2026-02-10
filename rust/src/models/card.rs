@@ -287,11 +287,7 @@ mod tests {
         let old_updated_at = card.updated_at;
         std::thread::sleep(std::time::Duration::from_millis(10));
 
-        card.update(
-            Some("New Title".to_string()),
-            None,
-            "12D3KooWNewPeer".to_string(),
-        )?;
+        card.update(Some("New Title".to_string()), None, "12D3KooWNewPeer".to_string())?;
 
         assert_eq!(card.title, "New Title");
         assert_eq!(card.content, "Old Content");
