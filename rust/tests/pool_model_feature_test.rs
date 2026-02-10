@@ -180,9 +180,9 @@ fn it_should_manage_pool_members_correctly() {
     let mut pool = create_test_pool("pool_A", "工作笔记");
 
     // When: 添加多个成员
-    let device1 = Device::new("device-001", "iPhone");
-    let device2 = Device::new("device-002", "MacBook");
-    let device3 = Device::new("device-003", "iPad");
+    let device1 = Device::new("12D3KooWDevice001", "iOS");
+    let device2 = Device::new("12D3KooWDevice002", "macOS");
+    let device3 = Device::new("12D3KooWDevice003", "iPadOS");
 
     pool.add_member(device1);
     pool.add_member(device2);
@@ -192,25 +192,28 @@ fn it_should_manage_pool_members_correctly() {
     assert_eq!(pool.members.len(), 3);
 
     // When: 移除一个成员
-    pool.remove_member("device-002");
+    pool.remove_member("12D3KooWDevice002");
 
     // Then: 成员列表应正确更新
     assert_eq!(pool.members.len(), 2);
-    assert!(pool.members.iter().any(|d| d.device_id == "device-001"));
-    assert!(pool.members.iter().any(|d| d.device_id == "device-003"));
-    assert!(!pool.members.iter().any(|d| d.device_id == "device-002"));
+    assert!(pool.members.iter().any(|d| d.peer_id == "12D3KooWDevice001"));
+    assert!(pool.members.iter().any(|d| d.peer_id == "12D3KooWDevice003"));
+    assert!(!pool
+        .members
+        .iter()
+        .any(|d| d.peer_id == "12D3KooWDevice002"));
 
     // When: 更新成员昵称
-    let result = pool.update_member_name("device-001", "工作手机");
+    let result = pool.update_member_name("12D3KooWDevice001", "工作手机");
 
     // Then: 昵称应更新成功
     assert!(result.is_ok());
     assert_eq!(
         pool.members
             .iter()
-            .find(|d| d.device_id == "device-001")
+            .find(|d| d.peer_id == "12D3KooWDevice001")
             .unwrap()
-            .device_name,
+            .nickname,
         "工作手机"
     );
 }

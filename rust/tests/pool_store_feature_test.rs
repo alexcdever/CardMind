@@ -37,10 +37,11 @@ fn it_should_load_pool_from_disk() {
 /// Scenario: Device joins first pool successfully
 fn it_should_allow_joining_first_pool_successfully() {
     let pool = Pool::new("pool-003", "工作笔记", "secretkey");
-    let device = Device::new("device-001", "我的手机");
+    let device = Device::new("12D3KooWDevice001", "iOS");
 
-    assert_eq!(device.device_id, "device-001");
-    assert_eq!(device.device_name, "我的手机");
+    assert_eq!(device.peer_id, "12D3KooWDevice001");
+    assert_eq!(device.device_os, "iOS");
+    assert_eq!(device.nickname, "12D3KiOS");
 }
 
 #[test]
@@ -66,10 +67,11 @@ fn it_should_preserve_config_when_join_fails() {
 /// Scenario: Device leaves pool
 fn it_should_leave_pool_with_cleanup() {
     let pool = Pool::new("pool-007", "工作笔记", "secretkey");
-    let device = Device::new("device-001", "我的手机");
+    let device = Device::new("12D3KooWDevice001", "iOS");
 
-    assert_eq!(device.device_id, "device-001");
-    assert_eq!(device.device_name, "我的手机");
+    assert_eq!(device.peer_id, "12D3KooWDevice001");
+    assert_eq!(device.device_os, "iOS");
+    assert_eq!(device.nickname, "12D3KiOS");
 }
 
 #[test]

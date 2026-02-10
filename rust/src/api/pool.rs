@@ -173,19 +173,19 @@ pub fn delete_pool(pool_id: String) -> Result<()> {
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `device_id` - Device ID
-/// * `device_name` - Device nickname in this pool
+/// * `peer_id` - libp2p PeerId
+/// * `device_os` - Device OS
 ///
 /// # Example (Dart)
 ///
 /// ```dart
-/// await addPoolMember(poolId: poolId, deviceId: deviceId, deviceName: 'My iPhone');
+/// await addPoolMember(poolId: poolId, peerId: peerId, deviceOs: 'macOS');
 /// ```
 #[flutter_rust_bridge::frb]
-pub fn add_pool_member(pool_id: String, device_id: String, device_name: String) -> Result<()> {
+pub fn add_pool_member(pool_id: String, peer_id: String, device_os: String) -> Result<()> {
     use crate::models::pool::Device;
 
-    let device = Device::new(&device_id, &device_name);
+    let device = Device::new(&peer_id, &device_os);
     with_pool_store(|store| store.add_member(&pool_id, device))
 }
 
@@ -194,16 +194,16 @@ pub fn add_pool_member(pool_id: String, device_id: String, device_name: String) 
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `device_id` - Device ID to remove
+/// * `peer_id` - PeerId to remove
 ///
 /// # Example (Dart)
 ///
 /// ```dart
-/// await removePoolMember(poolId: poolId, deviceId: deviceId);
+/// await removePoolMember(poolId: poolId, peerId: peerId);
 /// ```
 #[flutter_rust_bridge::frb]
-pub fn remove_pool_member(pool_id: String, device_id: String) -> Result<()> {
-    with_pool_store(|store| store.remove_member(&pool_id, &device_id))
+pub fn remove_pool_member(pool_id: String, peer_id: String) -> Result<()> {
+    with_pool_store(|store| store.remove_member(&pool_id, &peer_id))
 }
 
 /// Update a member's nickname in a pool
@@ -211,17 +211,17 @@ pub fn remove_pool_member(pool_id: String, device_id: String) -> Result<()> {
 /// # Arguments
 ///
 /// * `pool_id` - Pool ID
-/// * `device_id` - Device ID
+/// * `peer_id` - PeerId
 /// * `new_name` - New nickname
 ///
 /// # Example (Dart)
 ///
 /// ```dart
-/// await updateMemberName(poolId: poolId, deviceId: deviceId, newName: '工作手机');
+/// await updateMemberName(poolId: poolId, peerId: peerId, newName: '工作手机');
 /// ```
 #[flutter_rust_bridge::frb]
-pub fn update_member_name(pool_id: String, device_id: String, new_name: String) -> Result<()> {
-    with_pool_store(|store| store.update_member_name(&pool_id, &device_id, &new_name))
+pub fn update_member_name(pool_id: String, peer_id: String, new_name: String) -> Result<()> {
+    with_pool_store(|store| store.update_member_name(&pool_id, &peer_id, &new_name))
 }
 
 // ==================== Pool Secretkey APIs ====================
@@ -391,28 +391,28 @@ mod tests {
         // Add member
         add_pool_member(
             pool.pool_id.clone(),
-            "device-001".to_string(),
-            "My iPhone".to_string(),
+            "12D3KooWDevice001".to_string(),
+            "macOS".to_string(),
         )
         .expect("Failed to add pool member");
 
         let updated = get_pool_by_id(pool.pool_id.clone()).expect("Failed to get pool by ID");
         assert_eq!(updated.members.len(), 1);
-        assert_eq!(updated.members[0].device_id, "device-001");
+        assert_eq!(updated.members[0].peer_id, "12D3KooWDevice001");
 
         // Update member name
         update_member_name(
             pool.pool_id.clone(),
-            "device-001".to_string(),
+            "12D3KooWDevice001".to_string(),
             "Work Phone".to_string(),
         )
         .expect("Failed to update member name");
 
         let updated = get_pool_by_id(pool.pool_id.clone()).expect("Failed to get pool by ID");
-        assert_eq!(updated.members[0].device_name, "Work Phone");
+        assert_eq!(updated.members[0].nickname, "Work Phone");
 
         // Remove member
-        remove_pool_member(pool.pool_id.clone(), "device-001".to_string())
+        remove_pool_member(pool.pool_id.clone(), "12D3KooWDevice001".to_string())
             .expect("Failed to remove pool member");
 
         let updated = get_pool_by_id(pool.pool_id).unwrap();

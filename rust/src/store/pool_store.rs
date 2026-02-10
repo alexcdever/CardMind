@@ -293,8 +293,9 @@ impl PoolStore {
         let members_list = map.insert_container("members", LoroList::new())?;
         for device in &pool.members {
             let device_map = members_list.insert_container(members_list.len(), LoroMap::new())?;
-            device_map.insert("device_id", device.device_id.clone())?;
-            device_map.insert("device_name", device.device_name.clone())?;
+            device_map.insert("peer_id", device.peer_id.clone())?;
+            device_map.insert("nickname", device.nickname.clone())?;
+            device_map.insert("device_os", device.device_os.clone())?;
             device_map.insert("joined_at", device.joined_at)?;
         }
 
@@ -345,13 +346,18 @@ impl PoolStore {
                         if let Some(device_value) = members_loro_list.get(i) {
                             if let Ok(device_container) = device_value.into_container() {
                                 if let Ok(device_map) = device_container.into_map() {
-                                    let device_id = device_map
-                                        .get("device_id")
+                                    let peer_id = device_map
+                                        .get("peer_id")
                                         .and_then(|v| v.into_value().ok())
                                         .and_then(|v| v.as_string().map(|s| s.to_string()));
 
-                                    let device_name = device_map
-                                        .get("device_name")
+                                    let nickname = device_map
+                                        .get("nickname")
+                                        .and_then(|v| v.into_value().ok())
+                                        .and_then(|v| v.as_string().map(|s| s.to_string()));
+
+                                    let device_os = device_map
+                                        .get("device_os")
                                         .and_then(|v| v.into_value().ok())
                                         .and_then(|v| v.as_string().map(|s| s.to_string()));
 
@@ -360,12 +366,13 @@ impl PoolStore {
                                         .and_then(|v| v.into_value().ok())
                                         .and_then(|v| v.as_i64().copied());
 
-                                    if let (Some(device_id), Some(device_name), Some(joined_at)) =
-                                        (device_id, device_name, joined_at)
+                                    if let (Some(peer_id), Some(nickname), Some(device_os), Some(joined_at)) =
+                                        (peer_id, nickname, device_os, joined_at)
                                     {
                                         members.push(Device {
-                                            device_id,
-                                            device_name,
+                                            peer_id,
+                                            nickname,
+                                            device_os,
                                             joined_at,
                                         });
                                     }
@@ -627,14 +634,14 @@ impl PoolStore {
     /// # 参数
     ///
     /// - `pool_id`: 数据池 ID
-    /// - `device_id`: 设备 ID
+    /// - `peer_id`: 设备 PeerId
     ///
     /// # Errors
     ///
     /// 如果操作失败，返回错误
-    pub fn remove_member(&self, pool_id: &str, device_id: &str) -> Result<(), CardMindError> {
+    pub fn remove_member(&self, pool_id: &str, peer_id: &str) -> Result<(), CardMindError> {
         let mut pool = self.get_pool_by_id(pool_id)?;
-        pool.remove_member(device_id);
+        pool.remove_member(peer_id);
         self.update_pool(&pool)
     }
 
@@ -643,7 +650,7 @@ impl PoolStore {
     /// # 参数
     ///
     /// - `pool_id`: 数据池 ID
-    /// - `device_id`: 设备 ID
+    /// - `peer_id`: 设备 PeerId
     /// - `new_name`: 新昵称
     ///
     /// # Errors
@@ -652,11 +659,11 @@ impl PoolStore {
     pub fn update_member_name(
         &self,
         pool_id: &str,
-        device_id: &str,
+        peer_id: &str,
         new_name: &str,
     ) -> Result<(), CardMindError> {
         let mut pool = self.get_pool_by_id(pool_id)?;
-        pool.update_member_name(device_id, new_name)
+        pool.update_member_name(peer_id, new_name)
             .map_err(|e| CardMindError::Unknown(e.to_string()))?;
         self.update_pool(&pool)
     }
@@ -745,13 +752,13 @@ mod tests {
         store.create_pool(&pool).unwrap();
 
         // 添加成员
-        let device = Device::new("device-001", "我的手机");
+        let device = Device::new("12D3KooWDevice001", "iOS");
         store.add_member("pool-001", device).unwrap();
 
         // 验证成员已添加
         let pool = store.get_pool_by_id("pool-001").unwrap();
         assert_eq!(pool.members.len(), 1);
-        assert_eq!(pool.members[0].device_id, "device-001");
+        assert_eq!(pool.members[0].peer_id, "12D3KooWDevice001");
     }
 
     #[test]
@@ -759,11 +766,13 @@ mod tests {
         let store = PoolStore::new_in_memory().unwrap();
 
         let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-        pool.add_member(Device::new("device-001", "我的手机"));
+        pool.add_member(Device::new("12D3KooWDevice001", "iOS"));
         store.create_pool(&pool).unwrap();
 
         // 移除成员
-        store.remove_member("pool-001", "device-001").unwrap();
+        store
+            .remove_member("pool-001", "12D3KooWDevice001")
+            .unwrap();
 
         // 验证成员已移除
         let pool = store.get_pool_by_id("pool-001").unwrap();
@@ -775,17 +784,17 @@ mod tests {
         let store = PoolStore::new_in_memory().unwrap();
 
         let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-        pool.add_member(Device::new("device-001", "我的手机"));
+        pool.add_member(Device::new("12D3KooWDevice001", "iOS"));
         store.create_pool(&pool).unwrap();
 
         // 更新成员昵称
         store
-            .update_member_name("pool-001", "device-001", "工作手机")
+            .update_member_name("pool-001", "12D3KooWDevice001", "工作手机")
             .unwrap();
 
         // 验证昵称已更新
         let pool = store.get_pool_by_id("pool-001").unwrap();
-        assert_eq!(pool.members[0].device_name, "工作手机");
+        assert_eq!(pool.members[0].nickname, "工作手机");
     }
 
     #[test]
@@ -794,8 +803,8 @@ mod tests {
 
         // 创建包含成员的数据池
         let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-        pool.add_member(Device::new("device-001", "手机"));
-        pool.add_member(Device::new("device-002", "电脑"));
+        pool.add_member(Device::new("12D3KooWDevice001", "iOS"));
+        pool.add_member(Device::new("12D3KooWDevice002", "macOS"));
 
         // 序列化到 Loro
         let doc = LoroDoc::new();
@@ -807,8 +816,8 @@ mod tests {
         assert_eq!(deserialized.pool_id, pool.pool_id);
         assert_eq!(deserialized.name, pool.name);
         assert_eq!(deserialized.members.len(), 2);
-        assert_eq!(deserialized.members[0].device_id, "device-001");
-        assert_eq!(deserialized.members[1].device_id, "device-002");
+        assert_eq!(deserialized.members[0].peer_id, "12D3KooWDevice001");
+        assert_eq!(deserialized.members[1].peer_id, "12D3KooWDevice002");
     }
 
     #[test]

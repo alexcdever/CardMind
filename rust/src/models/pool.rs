@@ -46,8 +46,9 @@ pub enum PoolError {
 ///
 /// # 字段说明
 ///
-/// - `device_id`: 设备唯一标识（UUID v7）
-/// - `device_name`: 设备在此数据池中的昵称（可修改，最大 64 字符）
+/// - `peer_id`: libp2p PeerId
+/// - `nickname`: 设备在此数据池中的昵称（可修改）
+/// - `device_os`: 设备系统类型
 /// - `joined_at`: 加入数据池的时间（毫秒级时间戳）
 ///
 /// # 示例
@@ -56,21 +57,23 @@ pub enum PoolError {
 /// use cardmind_rust::models::pool::Device;
 ///
 /// let device = Device {
-///     device_id: "device-001".to_string(),
-///     device_name: "iPhone-018c8".to_string(),
+///     peer_id: "12D3KooWDevice001".to_string(),
+///     nickname: "12D3KmacOS".to_string(),
+///     device_os: "macOS".to_string(),
 ///     joined_at: 1704067200000,
 /// };
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[allow(clippy::struct_field_names)]
 pub struct Device {
-    /// 设备唯一标识
-    pub device_id: String,
+    /// libp2p PeerId
+    pub peer_id: String,
 
     /// 设备昵称（数据池特定，可修改）
-    ///
-    /// 注意：同一设备在不同数据池中可以有不同昵称
-    pub device_name: String,
+    pub nickname: String,
+
+    /// 设备系统类型
+    pub device_os: String,
 
     /// 加入数据池的时间（Unix 毫秒时间戳）
     pub joined_at: i64,
@@ -81,23 +84,26 @@ impl Device {
     ///
     /// # 参数
     ///
-    /// - `device_id`: 设备 UUID
-    /// - `device_name`: 设备昵称
+    /// - `peer_id`: libp2p PeerId
+    /// - `device_os`: 设备系统类型
     ///
     /// # 示例
     ///
     /// ```
     /// use cardmind_rust::models::pool::Device;
     ///
-    /// let device = Device::new("device-001", "My iPhone");
-    /// assert_eq!(device.device_id, "device-001");
-    /// assert_eq!(device.device_name, "My iPhone");
+    /// let device = Device::new("12D3KooWDevice001", "macOS");
+    /// assert_eq!(device.peer_id, "12D3KooWDevice001");
+    /// assert_eq!(device.device_os, "macOS");
+    /// assert_eq!(device.nickname, "12D3KmacOS");
     /// ```
     #[must_use]
-    pub fn new(device_id: &str, device_name: &str) -> Self {
+    pub fn new(peer_id: &str, device_os: &str) -> Self {
+        let nickname = Self::generate_default_nickname(peer_id, device_os);
         Self {
-            device_id: device_id.to_string(),
-            device_name: device_name.to_string(),
+            peer_id: peer_id.to_string(),
+            nickname,
+            device_os: device_os.to_string(),
             joined_at: Utc::now().timestamp_millis(),
         }
     }
@@ -106,21 +112,21 @@ impl Device {
     ///
     /// # 格式
     ///
-    /// `{设备型号}-{UUID前5位}`
+    /// `{PeerId前5位}{device_os}`
     ///
     /// # 示例
     ///
     /// ```
     /// use cardmind_rust::models::pool::Device;
     ///
-    /// let device_id = "018c8a1b2c3d4e5f";
-    /// let name = Device::generate_default_name(device_id);
-    /// assert_eq!(name, "Unknown-018c8");
+    /// let peer_id = "12D3KooWABCDE";
+    /// let nickname = Device::generate_default_nickname(peer_id, "Windows");
+    /// assert_eq!(nickname, "12D3KWindows");
     /// ```
     #[must_use]
-    pub fn generate_default_name(device_id: &str) -> String {
-        let short_id = &device_id[..5.min(device_id.len())];
-        format!("Unknown-{short_id}")
+    pub fn generate_default_nickname(peer_id: &str, device_os: &str) -> String {
+        let short_id = &peer_id[..5.min(peer_id.len())];
+        format!("{short_id}{device_os}")
     }
 }
 
@@ -142,7 +148,7 @@ impl Device {
 /// use cardmind_rust::models::pool::{Pool, Device};
 ///
 /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-/// let device = Device::new("device-001", "My iPhone");
+/// let device = Device::new("12D3KooWDevice001", "macOS");
 /// pool.add_member(device);
 /// pool.add_card("card-001");
 ///
@@ -222,13 +228,13 @@ impl Pool {
     /// use cardmind_rust::models::pool::{Pool, Device};
     ///
     /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-    /// let device = Device::new("device-001", "My iPhone");
+    /// let device = Device::new("12D3KooWDevice001", "macOS");
     /// pool.add_member(device);
     ///
     /// assert_eq!(pool.members.len(), 1);
     /// ```
     pub fn add_member(&mut self, device: Device) {
-        if !self.members.iter().any(|d| d.device_id == device.device_id) {
+        if !self.members.iter().any(|d| d.peer_id == device.peer_id) {
             self.members.push(device);
             self.updated_at = Utc::now().timestamp_millis();
         }
@@ -238,7 +244,7 @@ impl Pool {
     ///
     /// # 参数
     ///
-    /// - `device_id`: 设备 ID
+    /// - `peer_id`: 设备 PeerId
     ///
     /// # Returns
     ///
@@ -250,16 +256,16 @@ impl Pool {
     /// use cardmind_rust::models::pool::{Pool, Device};
     ///
     /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-    /// let device = Device::new("device-001", "My iPhone");
+    /// let device = Device::new("12D3KooWDevice001", "macOS");
     /// pool.add_member(device);
     ///
-    /// let removed = pool.remove_member("device-001");
+    /// let removed = pool.remove_member("12D3KooWDevice001");
     /// assert!(removed);
     /// assert_eq!(pool.members.len(), 0);
     /// ```
-    pub fn remove_member(&mut self, device_id: &str) -> bool {
+    pub fn remove_member(&mut self, peer_id: &str) -> bool {
         let original_len = self.members.len();
-        self.members.retain(|d| d.device_id != device_id);
+        self.members.retain(|d| d.peer_id != peer_id);
 
         if self.members.len() < original_len {
             self.updated_at = Utc::now().timestamp_millis();
@@ -273,7 +279,7 @@ impl Pool {
     ///
     /// # 参数
     ///
-    /// - `device_id`: 设备 ID
+    /// - `peer_id`: 设备 PeerId
     /// - `new_name`: 新昵称
     ///
     /// # Returns
@@ -286,19 +292,19 @@ impl Pool {
     /// use cardmind_rust::models::pool::{Pool, Device};
     ///
     /// let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-    /// let device = Device::new("device-001", "My iPhone");
+    /// let device = Device::new("12D3KooWDevice001", "macOS");
     /// pool.add_member(device);
     ///
-    /// pool.update_member_name("device-001", "工作手机").unwrap();
-    /// assert_eq!(pool.members[0].device_name, "工作手机");
+    /// pool.update_member_name("12D3KooWDevice001", "工作手机").unwrap();
+    /// assert_eq!(pool.members[0].nickname, "工作手机");
     /// ```
-    pub fn update_member_name(&mut self, device_id: &str, new_name: &str) -> Result<(), PoolError> {
-        if let Some(device) = self.members.iter_mut().find(|d| d.device_id == device_id) {
-            device.device_name = new_name.to_string();
+    pub fn update_member_name(&mut self, peer_id: &str, new_name: &str) -> Result<(), PoolError> {
+        if let Some(device) = self.members.iter_mut().find(|d| d.peer_id == peer_id) {
+            device.nickname = new_name.to_string();
             self.updated_at = Utc::now().timestamp_millis();
             Ok(())
         } else {
-            Err(PoolError::DeviceNotFound(device_id.to_string()))
+            Err(PoolError::DeviceNotFound(peer_id.to_string()))
         }
     }
 
@@ -430,17 +436,18 @@ mod tests {
 
     #[test]
     fn it_should_device_creation() {
-        let device = Device::new("device-001", "My iPhone");
-        assert_eq!(device.device_id, "device-001");
-        assert_eq!(device.device_name, "My iPhone");
+        let device = Device::new("12D3KooWDevice001", "macOS");
+        assert_eq!(device.peer_id, "12D3KooWDevice001");
+        assert_eq!(device.device_os, "macOS");
+        assert_eq!(device.nickname, "12D3KmacOS");
         assert!(device.joined_at > 0);
     }
 
     #[test]
     fn it_should_device_default_name_generation() {
-        let device_id = "018c8a1b2c3d4e5f";
-        let name = Device::generate_default_name(device_id);
-        assert_eq!(name, "Unknown-018c8");
+        let peer_id = "12D3KooWABCDE";
+        let nickname = Device::generate_default_nickname(peer_id, "Windows");
+        assert_eq!(nickname, "12D3KWindows");
     }
 
     #[test]
@@ -457,8 +464,8 @@ mod tests {
     #[test]
     fn it_should_add_member() {
         let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-        let device1 = Device::new("device-001", "iPhone");
-        let device2 = Device::new("device-002", "MacBook");
+        let device1 = Device::new("12D3KooWDevice001", "iOS");
+        let device2 = Device::new("12D3KooWDevice002", "macOS");
 
         pool.add_member(device1.clone());
         assert_eq!(pool.members.len(), 1);
@@ -474,30 +481,30 @@ mod tests {
     #[test]
     fn it_should_remove_member() {
         let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-        let device = Device::new("device-001", "iPhone");
+        let device = Device::new("12D3KooWDevice001", "iOS");
         pool.add_member(device);
 
-        let removed = pool.remove_member("device-001");
+        let removed = pool.remove_member("12D3KooWDevice001");
         assert!(removed);
         assert_eq!(pool.members.len(), 0);
 
         // 移除不存在的设备应该返回 false
-        let removed = pool.remove_member("device-999");
+        let removed = pool.remove_member("12D3KooWDevice999");
         assert!(!removed);
     }
 
     #[test]
     fn it_should_update_member_name() {
         let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-        let device = Device::new("device-001", "My iPhone");
+        let device = Device::new("12D3KooWDevice001", "iOS");
         pool.add_member(device);
 
-        let result = pool.update_member_name("device-001", "工作手机");
+        let result = pool.update_member_name("12D3KooWDevice001", "工作手机");
         assert!(result.is_ok());
-        assert_eq!(pool.members[0].device_name, "工作手机");
+        assert_eq!(pool.members[0].nickname, "工作手机");
 
         // 更新不存在的设备应该返回错误
-        let result = pool.update_member_name("device-999", "新昵称");
+        let result = pool.update_member_name("12D3KooWDevice999", "新昵称");
         assert!(result.is_err());
     }
 
@@ -522,7 +529,7 @@ mod tests {
     #[test]
     fn it_should_pool_serialization() {
         let mut pool = Pool::new("pool-001", "工作笔记", "secretkey");
-        let device = Device::new("device-001", "iPhone");
+        let device = Device::new("12D3KooWDevice001", "iOS");
         pool.add_member(device);
 
         // 序列化
