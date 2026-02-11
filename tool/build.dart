@@ -328,15 +328,7 @@ Future<bool> generateBridge() async {
     return false;
   }
 
-  final args = [
-    'generate',
-    '--rust-input',
-    'cardmind_rust::api',
-    '--dart-output',
-    'lib/bridge/',
-    '--c-output',
-    'rust/src/bridge_generated.h',
-  ];
+  final args = buildCodegenArgs();
 
   printInfo('运行: $codegenPath ${args.join(' ')}');
   final generated = await runCommand(
@@ -348,6 +340,18 @@ Future<bool> generateBridge() async {
     return false;
   }
   return suppressGeneratedRustWarnings();
+}
+
+List<String> buildCodegenArgs() {
+  return [
+    'generate',
+    '--rust-input',
+    'crate::api',
+    '--dart-output',
+    'lib/bridge/',
+    '--c-output',
+    'rust/src/bridge_generated.h',
+  ];
 }
 
 Future<bool> suppressGeneratedRustWarnings() async {
@@ -1052,7 +1056,7 @@ bool addLineToObjectList(
 
 int findObjectStart(List<String> lines, String objectId) {
   for (var i = 0; i < lines.length; i++) {
-    if (lines[i].contains('$objectId /*') && lines[i].contains('= {')) {
+    if (lines[i].trimLeft().startsWith('$objectId = {')) {
       return i;
     }
   }
@@ -1069,18 +1073,13 @@ int findObjectEnd(List<String> lines, int startIndex) {
 }
 
 String? findFrameworksGroupId(List<String> lines) {
-  final regex = RegExp(r'^\\s*([A-F0-9]{24})');
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].contains('/* Frameworks */ = {')) {
-      final match = regex.firstMatch(lines[i]);
-      if (match == null) {
-        continue;
-      }
-      for (var j = i + 1; j < i + 6 && j < lines.length; j++) {
-        if (lines[j].contains('isa = PBXGroup;')) {
-          return match.group(1);
-        }
-      }
+  for (final line in lines) {
+    final match = RegExp(r'^\s*([A-F0-9]{24})').firstMatch(line);
+    if (match == null) {
+      continue;
+    }
+    if (line.contains('/* Frameworks */')) {
+      return match.group(1);
     }
   }
   return null;
@@ -1102,7 +1101,7 @@ String? findRunnerBuildPhaseId(List<String> lines, String phaseComment) {
   if (targetRange == null) {
     return null;
   }
-  final regex = RegExp(r'^\\s*([A-F0-9]{24})');
+  final regex = RegExp(r'^\s*([A-F0-9]{24})');
   for (var i = targetRange.$1; i <= targetRange.$2; i++) {
     if (lines[i].contains('/* $phaseComment */')) {
       final match = regex.firstMatch(lines[i]);
@@ -1178,7 +1177,7 @@ List<String> findBuildConfigIds(List<String> lines, String configListId) {
     return [];
   }
 
-  final regex = RegExp(r'^\\s*([A-F0-9]{24})');
+  final regex = RegExp(r'^\s*([A-F0-9]{24})');
   final ids = <String>[];
   for (var i = listStart + 1; i <= endIndex; i++) {
     if (lines[i].trim() == ');') {
