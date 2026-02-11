@@ -35,6 +35,7 @@
 - [secretkey 管理](architecture/security/password.md) - SHA-256 明文校验
 - [隐私保护](architecture/security/privacy.md) - 隐私保护策略
 
+- [构建工具](architecture/build_tool.md) - 构建与准备脚本规范
 
 - [API 文档](../../doc/api/) - Rust API 参考文档
 
