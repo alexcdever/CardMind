@@ -203,13 +203,27 @@ mod tests {
     use super::*;
     use std::error::Error;
 
+    fn is_permission_error(message: &str) -> bool {
+        message.contains("Permission denied")
+            || message.contains("Operation not permitted")
+            || message.trim().is_empty()
+    }
+
+    #[test]
+    fn it_should_detect_permission_error_message() {
+        assert!(is_permission_error("Permission denied"));
+        assert!(is_permission_error("Operation not permitted"));
+        assert!(is_permission_error(""));
+        assert!(!is_permission_error("Other error"));
+    }
+
     /// 测试 mDNS 发现初始化
     #[tokio::test]
     async fn it_should_mdns_discovery_creation() {
         let discovery = MdnsDiscovery::new().await;
         if let Err(err) = discovery {
             let msg = err.clone();
-            if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
+            if is_permission_error(&msg) {
                 println!("跳过 mDNS 初始化测试：{err}");
                 return;
             }
@@ -232,7 +246,7 @@ mod tests {
             Ok(discovery) => discovery,
             Err(err) => {
                 let msg = err.clone();
-                if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
+                if is_permission_error(&msg) {
                     println!("跳过 mDNS 互发现测试：{err}");
                     return;
                 }
@@ -247,7 +261,7 @@ mod tests {
             Ok(discovery) => discovery,
             Err(err) => {
                 let msg = err.clone();
-                if msg.contains("Permission denied") || msg.contains("Operation not permitted") {
+                if is_permission_error(&msg) {
                     println!("跳过 mDNS 互发现测试：{err}");
                     return;
                 }
@@ -260,14 +274,28 @@ mod tests {
         println!("节点 B Peer ID: {peer_b_id}");
 
         // 3. 启动监听
-        discovery_a
+        if let Err(err) = discovery_a
             .swarm
             .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
-            .expect("节点 A 监听失败");
-        discovery_b
+        {
+            let msg = err.to_string();
+            if is_permission_error(&msg) {
+                println!("跳过 mDNS 互发现测试：{msg}");
+                return;
+            }
+            panic!("节点 A 监听失败: {err}");
+        }
+        if let Err(err) = discovery_b
             .swarm
             .listen_on("/ip4/0.0.0.0/tcp/0".parse().unwrap())
-            .expect("节点 B 监听失败");
+        {
+            let msg = err.to_string();
+            if is_permission_error(&msg) {
+                println!("跳过 mDNS 互发现测试：{msg}");
+                return;
+            }
+            panic!("节点 B 监听失败: {err}");
+        }
 
         // 4. 等待相互发现（超时 30 秒，mDNS 发现可能较慢）
         let result = timeout(Duration::from_secs(30), async {

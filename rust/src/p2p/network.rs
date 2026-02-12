@@ -402,6 +402,19 @@ impl P2PNetwork {
 mod tests {
     use super::*;
 
+    fn is_permission_error(message: &str) -> bool {
+        message.contains("Permission denied")
+            || message.contains("Operation not permitted")
+            || message.trim().is_empty()
+    }
+
+    #[test]
+    fn it_should_detect_permission_error_message() {
+        assert!(is_permission_error("Permission denied"));
+        assert!(is_permission_error("Operation not permitted"));
+        assert!(!is_permission_error("Other error"));
+    }
+
     /// 测试网络初始化（不启用 mDNS）
     #[test]
     fn it_should_network_creation() {
@@ -440,21 +453,17 @@ mod tests {
         let mut network_a = P2PNetwork::new(false).expect("节点 A 初始化失败");
         let peer_a_id = *network_a.local_peer_id();
 
-        let listen_addr = network_a
-            .listen_on("/ip4/127.0.0.1/tcp/0")
-            .await
-            .unwrap_or_else(|err| {
+        let listen_addr = match network_a.listen_on("/ip4/127.0.0.1/tcp/0").await {
+            Ok(addr) => addr,
+            Err(err) => {
                 let msg = err.to_string();
-                if msg.contains("Permission denied")
-                    || msg.contains("Operation not permitted")
-                    || msg.is_empty()
-                {
+                if is_permission_error(&msg) {
                     println!("跳过网络连接测试：{msg}");
-                    "/ip4/127.0.0.1/tcp/0".parse().unwrap()
-                } else {
-                    panic!("节点 A 监听失败: {err}");
+                    return;
                 }
-            });
+                panic!("节点 A 监听失败: {err}");
+            }
+        };
 
         println!("节点 A 监听地址: {listen_addr}");
         println!("节点 A Peer ID: {peer_a_id}");
