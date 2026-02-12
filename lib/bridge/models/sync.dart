@@ -34,7 +34,11 @@ import '../frb_generated.dart';
 /// assert_eq!(sync_state.last_sync, 1704067200000);
 /// ```
 class SyncState {
-  const SyncState({required this.deviceId, required this.lastSync, required this.versionVector});
+  const SyncState({
+    required this.deviceId,
+    required this.lastSync,
+    required this.versionVector,
+  });
 
   /// 设备唯一标识
   final String deviceId;
@@ -49,7 +53,8 @@ class SyncState {
   final Map<String, BigInt> versionVector;
 
   @override
-  int get hashCode => deviceId.hashCode ^ lastSync.hashCode ^ versionVector.hashCode;
+  int get hashCode =>
+      deviceId.hashCode ^ lastSync.hashCode ^ versionVector.hashCode;
 
   @override
   bool operator ==(Object other) =>

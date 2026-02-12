@@ -26,17 +26,22 @@ part 'mdns_discovery.freezed.dart';
 ///
 /// 成功返回 Ok(())，失败返回错误信息
 void startMdnsDiscovery({String? trustListDbPath, String? poolId}) =>
-    RustLib.instance.api.crateApiMdnsDiscoveryStartMdnsDiscovery(trustListDbPath: trustListDbPath, poolId: poolId);
+    RustLib.instance.api.crateApiMdnsDiscoveryStartMdnsDiscovery(
+      trustListDbPath: trustListDbPath,
+      poolId: poolId,
+    );
 
 /// 停止 mDNS 设备发现
-void stopMdnsDiscovery() => RustLib.instance.api.crateApiMdnsDiscoveryStopMdnsDiscovery();
+void stopMdnsDiscovery() =>
+    RustLib.instance.api.crateApiMdnsDiscoveryStopMdnsDiscovery();
 
 /// 获取发现的设备列表
 ///
 /// # 返回
 ///
 /// 返回当前在线的设备列表
-List<DiscoveredDevice> getDiscoveredDevices() => RustLib.instance.api.crateApiMdnsDiscoveryGetDiscoveredDevices();
+List<DiscoveredDevice> getDiscoveredDevices() =>
+    RustLib.instance.api.crateApiMdnsDiscoveryGetDiscoveredDevices();
 
 /// 发现的设备信息
 @freezed

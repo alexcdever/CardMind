@@ -8,14 +8,23 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import '../frb_generated.dart';
 
 class DeviceConfig {
-  const DeviceConfig({this.peerId, required this.deviceName, this.poolId, required this.updatedAt});
+  const DeviceConfig({
+    this.peerId,
+    required this.deviceName,
+    this.poolId,
+    required this.updatedAt,
+  });
   final String? peerId;
   final String deviceName;
   final String? poolId;
   final PlatformInt64 updatedAt;
 
   @override
-  int get hashCode => peerId.hashCode ^ deviceName.hashCode ^ poolId.hashCode ^ updatedAt.hashCode;
+  int get hashCode =>
+      peerId.hashCode ^
+      deviceName.hashCode ^
+      poolId.hashCode ^
+      updatedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>

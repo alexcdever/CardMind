@@ -23,7 +23,8 @@ import '../frb_generated.dart';
 /// final json = await loroExportSnapshot();
 /// // Save json to file
 /// ```
-Future<String> loroExportSnapshot() => RustLib.instance.api.crateApiLoroExportLoroExportSnapshot();
+Future<String> loroExportSnapshot() =>
+    RustLib.instance.api.crateApiLoroExportLoroExportSnapshot();
 
 /// Parse a backup file and return preview information
 ///
@@ -70,7 +71,11 @@ Future<BigInt> loroImportMerge({required String data}) =>
 
 /// File preview information
 class FilePreview {
-  const FilePreview({required this.cardCount, required this.formatVersion, required this.fileSize});
+  const FilePreview({
+    required this.cardCount,
+    required this.formatVersion,
+    required this.fileSize,
+  });
 
   /// Number of cards in the file
   final BigInt cardCount;
@@ -82,7 +87,8 @@ class FilePreview {
   final BigInt fileSize;
 
   @override
-  int get hashCode => cardCount.hashCode ^ formatVersion.hashCode ^ fileSize.hashCode;
+  int get hashCode =>
+      cardCount.hashCode ^ formatVersion.hashCode ^ fileSize.hashCode;
 
   @override
   bool operator ==(Object other) =>

@@ -23,7 +23,8 @@ import '../models/card.dart';
 /// ```dart
 /// await initCardStore(path: '/path/to/storage');
 /// ```
-Future<void> initCardStore({required String path}) => RustLib.instance.api.crateApiCardInitCardStore(path: path);
+Future<void> initCardStore({required String path}) =>
+    RustLib.instance.api.crateApiCardInitCardStore(path: path);
 
 /// Create a new card
 ///
@@ -59,7 +60,8 @@ Future<Card> createCard({required String title, required String content}) =>
 /// ```dart
 /// final cards = await getAllCards();
 /// ```
-Future<List<Card>> getAllCards() => RustLib.instance.api.crateApiCardGetAllCards();
+Future<List<Card>> getAllCards() =>
+    RustLib.instance.api.crateApiCardGetAllCards();
 
 /// Get all active cards (excluding deleted ones)
 ///
@@ -72,7 +74,8 @@ Future<List<Card>> getAllCards() => RustLib.instance.api.crateApiCardGetAllCards
 /// ```dart
 /// final cards = await getActiveCards();
 /// ```
-Future<List<Card>> getActiveCards() => RustLib.instance.api.crateApiCardGetActiveCards();
+Future<List<Card>> getActiveCards() =>
+    RustLib.instance.api.crateApiCardGetActiveCards();
 
 /// Get a card by ID
 ///
@@ -93,7 +96,8 @@ Future<List<Card>> getActiveCards() => RustLib.instance.api.crateApiCardGetActiv
 /// ```dart
 /// final card = await getCardById(id: cardId);
 /// ```
-Future<Card> getCardById({required String id}) => RustLib.instance.api.crateApiCardGetCardById(id: id);
+Future<Card> getCardById({required String id}) =>
+    RustLib.instance.api.crateApiCardGetCardById(id: id);
 
 /// Update a card
 ///
@@ -109,7 +113,11 @@ Future<Card> getCardById({required String id}) => RustLib.instance.api.crateApiC
 /// await updateCard(id: cardId, title: 'New Title', content: null);
 /// ```
 Future<void> updateCard({required String id, String? title, String? content}) =>
-    RustLib.instance.api.crateApiCardUpdateCard(id: id, title: title, content: content);
+    RustLib.instance.api.crateApiCardUpdateCard(
+      id: id,
+      title: title,
+      content: content,
+    );
 
 /// Delete a card (soft delete)
 ///
@@ -122,7 +130,8 @@ Future<void> updateCard({required String id, String? title, String? content}) =>
 /// ```dart
 /// await deleteCard(id: cardId);
 /// ```
-Future<void> deleteCard({required String id}) => RustLib.instance.api.crateApiCardDeleteCard(id: id);
+Future<void> deleteCard({required String id}) =>
+    RustLib.instance.api.crateApiCardDeleteCard(id: id);
 
 /// Get card count statistics
 ///
@@ -135,7 +144,8 @@ Future<void> deleteCard({required String id}) => RustLib.instance.api.crateApiCa
 /// ```dart
 /// final (total, active, deleted) = await getCardCount();
 /// ```
-Future<(PlatformInt64, PlatformInt64, PlatformInt64)> getCardCount() => RustLib.instance.api.crateApiCardGetCardCount();
+Future<(PlatformInt64, PlatformInt64, PlatformInt64)> getCardCount() =>
+    RustLib.instance.api.crateApiCardGetCardCount();
 
 /// Add card to a data pool
 ///
@@ -217,4 +227,5 @@ Future<List<Card>> getCardsInPools({required List<String> poolIds}) =>
 String helloCardmind() => RustLib.instance.api.crateApiCardHelloCardmind();
 
 /// Add two numbers (simple test)
-int addNumbers({required int a, required int b}) => RustLib.instance.api.crateApiCardAddNumbers(a: a, b: b);
+int addNumbers({required int a, required int b}) =>
+    RustLib.instance.api.crateApiCardAddNumbers(a: a, b: b);

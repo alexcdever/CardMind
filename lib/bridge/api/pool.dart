@@ -24,7 +24,8 @@ import '../models/pool.dart';
 /// ```dart
 /// await initPoolStore(path: '/path/to/storage');
 /// ```
-Future<void> initPoolStore({required String path}) => RustLib.instance.api.crateApiPoolInitPoolStore(path: path);
+Future<void> initPoolStore({required String path}) =>
+    RustLib.instance.api.crateApiPoolInitPoolStore(path: path);
 
 /// Create a new data pool
 ///
@@ -43,7 +44,10 @@ Future<void> initPoolStore({required String path}) => RustLib.instance.api.crate
 /// final pool = await createPool(name: '工作笔记', secretkey: 'mysecretkey');
 /// ```
 Future<Pool> createPool({required String name, required String secretkey}) =>
-    RustLib.instance.api.crateApiPoolCreatePool(name: name, secretkey: secretkey);
+    RustLib.instance.api.crateApiPoolCreatePool(
+      name: name,
+      secretkey: secretkey,
+    );
 
 /// Get all pools
 ///
@@ -56,7 +60,8 @@ Future<Pool> createPool({required String name, required String secretkey}) =>
 /// ```dart
 /// final pools = await getAllPools();
 /// ```
-Future<List<Pool>> getAllPools() => RustLib.instance.api.crateApiPoolGetAllPools();
+Future<List<Pool>> getAllPools() =>
+    RustLib.instance.api.crateApiPoolGetAllPools();
 
 /// Get a pool by ID
 ///
@@ -77,7 +82,8 @@ Future<List<Pool>> getAllPools() => RustLib.instance.api.crateApiPoolGetAllPools
 /// ```dart
 /// final pool = await getPoolById(poolId: poolId);
 /// ```
-Future<Pool> getPoolById({required String poolId}) => RustLib.instance.api.crateApiPoolGetPoolById(poolId: poolId);
+Future<Pool> getPoolById({required String poolId}) =>
+    RustLib.instance.api.crateApiPoolGetPoolById(poolId: poolId);
 
 /// Update a pool's name
 ///
@@ -105,7 +111,8 @@ Future<void> updatePool({required String poolId, required String name}) =>
 /// ```dart
 /// await deletePool(poolId: poolId);
 /// ```
-Future<void> deletePool({required String poolId}) => RustLib.instance.api.crateApiPoolDeletePool(poolId: poolId);
+Future<void> deletePool({required String poolId}) =>
+    RustLib.instance.api.crateApiPoolDeletePool(poolId: poolId);
 
 /// Add a member to a pool
 ///
@@ -120,8 +127,15 @@ Future<void> deletePool({required String poolId}) => RustLib.instance.api.crateA
 /// ```dart
 /// await addPoolMember(poolId: poolId, peerId: peerId, deviceOs: 'macOS');
 /// ```
-Future<void> addPoolMember({required String poolId, required String peerId, required String deviceOs}) =>
-    RustLib.instance.api.crateApiPoolAddPoolMember(poolId: poolId, peerId: peerId, deviceOs: deviceOs);
+Future<void> addPoolMember({
+  required String poolId,
+  required String peerId,
+  required String deviceOs,
+}) => RustLib.instance.api.crateApiPoolAddPoolMember(
+  poolId: poolId,
+  peerId: peerId,
+  deviceOs: deviceOs,
+);
 
 /// Remove a member from a pool
 ///
@@ -135,8 +149,13 @@ Future<void> addPoolMember({required String poolId, required String peerId, requ
 /// ```dart
 /// await removePoolMember(poolId: poolId, peerId: peerId);
 /// ```
-Future<void> removePoolMember({required String poolId, required String peerId}) =>
-    RustLib.instance.api.crateApiPoolRemovePoolMember(poolId: poolId, peerId: peerId);
+Future<void> removePoolMember({
+  required String poolId,
+  required String peerId,
+}) => RustLib.instance.api.crateApiPoolRemovePoolMember(
+  poolId: poolId,
+  peerId: peerId,
+);
 
 /// Update a member's nickname in a pool
 ///
@@ -151,8 +170,15 @@ Future<void> removePoolMember({required String poolId, required String peerId}) 
 /// ```dart
 /// await updateMemberName(poolId: poolId, peerId: peerId, newName: '工作手机');
 /// ```
-Future<void> updateMemberName({required String poolId, required String peerId, required String newName}) =>
-    RustLib.instance.api.crateApiPoolUpdateMemberName(poolId: poolId, peerId: peerId, newName: newName);
+Future<void> updateMemberName({
+  required String poolId,
+  required String peerId,
+  required String newName,
+}) => RustLib.instance.api.crateApiPoolUpdateMemberName(
+  poolId: poolId,
+  peerId: peerId,
+  newName: newName,
+);
 
 /// Verify a pool secretkey hash
 ///
@@ -172,8 +198,13 @@ Future<void> updateMemberName({required String poolId, required String peerId, r
 /// ```dart
 /// final isValid = await verifyPoolSecretkeyHash(poolId: poolId, secretkeyHash: hash);
 /// ```
-Future<bool> verifyPoolSecretkeyHash({required String poolId, required String secretkeyHash}) =>
-    RustLib.instance.api.crateApiPoolVerifyPoolSecretkeyHash(poolId: poolId, secretkeyHash: secretkeyHash);
+Future<bool> verifyPoolSecretkeyHash({
+  required String poolId,
+  required String secretkeyHash,
+}) => RustLib.instance.api.crateApiPoolVerifyPoolSecretkeyHash(
+  poolId: poolId,
+  secretkeyHash: secretkeyHash,
+);
 
 /// Hash pool secretkey (SHA-256 hex)
 ///

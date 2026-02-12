@@ -147,18 +147,10 @@ fn it_should_merge_concurrent_edits_automatically() -> Result<(), CardMindError>
     let mut card_b = create_test_card(&card_id, "原标题", "原内容")?;
 
     // 设备 A 修改标题
-    card_a.update(
-        Some("设备 A 的标题".to_string()),
-        None,
-        default_peer_id(),
-    )?;
+    card_a.update(Some("设备 A 的标题".to_string()), None, default_peer_id())?;
 
     // 设备 B 修改内容
-    card_b.update(
-        None,
-        Some("设备 B 的内容".to_string()),
-        default_peer_id(),
-    )?;
+    card_b.update(None, Some("设备 B 的内容".to_string()), default_peer_id())?;
 
     // When: 两个设备同步它们的变更
     // 模拟 CRDT 合并：使用 LWW (Last-Write-Wins) 规则

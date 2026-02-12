@@ -86,7 +86,8 @@ void removeTrustedDevice({required String peerId}) =>
 /// final devicesJson = await getAllTrustedDevices();
 /// final devices = jsonDecode(devicesJson) as List;
 /// ```
-String getAllTrustedDevices() => RustLib.instance.api.crateApiTrustListGetAllTrustedDevices();
+String getAllTrustedDevices() =>
+    RustLib.instance.api.crateApiTrustListGetAllTrustedDevices();
 
 /// 检查设备是否在信任列表中
 ///
@@ -102,7 +103,8 @@ String getAllTrustedDevices() => RustLib.instance.api.crateApiTrustListGetAllTru
 ///   print('设备已信任');
 /// }
 /// ```
-bool isTrustedDevice({required String peerId}) => RustLib.instance.api.crateApiTrustListIsTrustedDevice(peerId: peerId);
+bool isTrustedDevice({required String peerId}) =>
+    RustLib.instance.api.crateApiTrustListIsTrustedDevice(peerId: peerId);
 
 /// 获取单个信任设备信息
 ///
@@ -138,8 +140,13 @@ String getTrustedDevice({required String peerId}) =>
 ///   lastSeen: DateTime.now().millisecondsSinceEpoch,
 /// );
 /// ```
-void updateDeviceLastSeen({required String peerId, required PlatformInt64 lastSeen}) =>
-    RustLib.instance.api.crateApiTrustListUpdateDeviceLastSeen(peerId: peerId, lastSeen: lastSeen);
+void updateDeviceLastSeen({
+  required String peerId,
+  required PlatformInt64 lastSeen,
+}) => RustLib.instance.api.crateApiTrustListUpdateDeviceLastSeen(
+  peerId: peerId,
+  lastSeen: lastSeen,
+);
 
 /// 获取信任设备数量
 ///
@@ -149,4 +156,5 @@ void updateDeviceLastSeen({required String peerId, required PlatformInt64 lastSe
 /// final count = await getTrustedDeviceCount();
 /// print('已配对 $count 个设备');
 /// ```
-int getTrustedDeviceCount() => RustLib.instance.api.crateApiTrustListGetTrustedDeviceCount();
+int getTrustedDeviceCount() =>
+    RustLib.instance.api.crateApiTrustListGetTrustedDeviceCount();

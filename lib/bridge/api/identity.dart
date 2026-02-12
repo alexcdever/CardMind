@@ -18,8 +18,8 @@ import '../frb_generated.dart';
 /// ```dart
 /// await initIdentityManager(basePath: '/path/to/app/data');
 /// ```
-void initIdentityManager({required String basePath}) =>
-    RustLib.instance.api.crateApiIdentityInitIdentityManager(basePath: basePath);
+void initIdentityManager({required String basePath}) => RustLib.instance.api
+    .crateApiIdentityInitIdentityManager(basePath: basePath);
 
 /// 获取设备的 PeerId
 ///
@@ -96,4 +96,5 @@ void deleteKeypair() => RustLib.instance.api.crateApiIdentityDeleteKeypair();
 /// final path = await getKeypairPath();
 /// print('密钥对存储路径: $path');
 /// ```
-String getKeypairPath() => RustLib.instance.api.crateApiIdentityGetKeypairPath();
+String getKeypairPath() =>
+    RustLib.instance.api.crateApiIdentityGetKeypairPath();

@@ -311,7 +311,12 @@ fn it_should_update_card_title_only() {
 
     // When: 只更新卡片的标题
     store
-        .update_card(&card_id, Some("新标题".to_string()), None, default_peer_id())
+        .update_card(
+            &card_id,
+            Some("新标题".to_string()),
+            None,
+            default_peer_id(),
+        )
         .unwrap();
 
     // Then: 标题应该更新，内容应该保持不变
@@ -428,7 +433,12 @@ fn it_should_loro_sqlite_sync_on_update() {
 
     // When: 更新卡片标题
     store
-        .update_card(&card_id, Some("新标题".to_string()), None, default_peer_id())
+        .update_card(
+            &card_id,
+            Some("新标题".to_string()),
+            None,
+            default_peer_id(),
+        )
         .unwrap();
 
     // Then: 从 SQLite 查询应该能获取到更新后的数据（验证 Loro→SQLite 同步）
@@ -528,7 +538,12 @@ fn it_should_card_store_persistence_after_updates() {
             .update_card(&card_id, Some("更新2".to_string()), None, default_peer_id())
             .unwrap();
         store
-            .update_card(&card_id, Some("最终标题".to_string()), None, default_peer_id())
+            .update_card(
+                &card_id,
+                Some("最终标题".to_string()),
+                None,
+                default_peer_id(),
+            )
             .unwrap();
     }
 

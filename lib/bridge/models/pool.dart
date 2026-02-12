@@ -29,7 +29,12 @@ import '../frb_generated.dart';
 /// };
 /// ```
 class Device {
-  const Device({required this.peerId, required this.nickname, required this.deviceOs, required this.joinedAt});
+  const Device({
+    required this.peerId,
+    required this.nickname,
+    required this.deviceOs,
+    required this.joinedAt,
+  });
 
   /// libp2p PeerId
   final String peerId;
@@ -44,7 +49,11 @@ class Device {
   final PlatformInt64 joinedAt;
 
   @override
-  int get hashCode => peerId.hashCode ^ nickname.hashCode ^ deviceOs.hashCode ^ joinedAt.hashCode;
+  int get hashCode =>
+      peerId.hashCode ^
+      nickname.hashCode ^
+      deviceOs.hashCode ^
+      joinedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>

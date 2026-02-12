@@ -1,5 +1,6 @@
 #![allow(clippy::significant_drop_tightening)]
 
+use cardmind_rust::models::card::OwnerType;
 /// P2P 同步服务集成测试
 ///
 /// 这个测试文件验证 P2P 同步服务的端到端功能。
@@ -10,7 +11,6 @@
 /// 3. 多设备同步协调
 /// 4. 同步状态跟踪
 use cardmind_rust::models::device_config::DeviceConfig;
-use cardmind_rust::models::card::OwnerType;
 use cardmind_rust::models::pool::Pool;
 use cardmind_rust::p2p::P2PSyncService;
 use cardmind_rust::store::card_store::CardStore;

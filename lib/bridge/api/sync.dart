@@ -29,8 +29,13 @@ import '../frb_generated.dart';
 /// # 错误
 ///
 /// 如果服务已初始化或初始化失败，返回错误
-Future<String> initSyncService({required String storagePath, required String listenAddr}) =>
-    RustLib.instance.api.crateApiSyncInitSyncService(storagePath: storagePath, listenAddr: listenAddr);
+Future<String> initSyncService({
+  required String storagePath,
+  required String listenAddr,
+}) => RustLib.instance.api.crateApiSyncInitSyncService(
+  storagePath: storagePath,
+  listenAddr: listenAddr,
+);
 
 /// 手动同步数据池
 ///
@@ -47,7 +52,8 @@ Future<String> initSyncService({required String storagePath, required String lis
 /// # 错误
 ///
 /// 如果服务未初始化或同步失败，返回错误
-Future<int> syncPool({required String poolId}) => RustLib.instance.api.crateApiSyncSyncPool(poolId: poolId);
+Future<int> syncPool({required String poolId}) =>
+    RustLib.instance.api.crateApiSyncSyncPool(poolId: poolId);
 
 /// 获取同步状态
 ///
@@ -65,7 +71,8 @@ Future<int> syncPool({required String poolId}) => RustLib.instance.api.crateApiS
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<SyncStatus> getSyncStatus() => RustLib.instance.api.crateApiSyncGetSyncStatus();
+Future<SyncStatus> getSyncStatus() =>
+    RustLib.instance.api.crateApiSyncGetSyncStatus();
 
 /// 获取本地 Peer ID
 ///
@@ -83,7 +90,8 @@ Future<SyncStatus> getSyncStatus() => RustLib.instance.api.crateApiSyncGetSyncSt
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<String> getLocalPeerId() => RustLib.instance.api.crateApiSyncGetLocalPeerId();
+Future<String> getLocalPeerId() =>
+    RustLib.instance.api.crateApiSyncGetLocalPeerId();
 
 /// 清理同步服务
 ///
@@ -92,7 +100,8 @@ Future<String> getLocalPeerId() => RustLib.instance.api.crateApiSyncGetLocalPeer
 /// # 注意
 ///
 /// 这个函数主要用于测试，生产环境中通常不需要手动调用
-Future<void> cleanupSyncService() => RustLib.instance.api.crateApiSyncCleanupSyncService();
+Future<void> cleanupSyncService() =>
+    RustLib.instance.api.crateApiSyncCleanupSyncService();
 
 /// 重试同步
 ///
@@ -129,7 +138,8 @@ Future<void> retrySync() => RustLib.instance.api.crateApiSyncRetrySync();
 /// # 返回
 ///
 /// 返回一个 Result，订阅后会立即收到当前状态，然后接收后续的状态更新
-Stream<SyncStatus> getSyncStatusStream() => RustLib.instance.api.crateApiSyncGetSyncStatusStream();
+Stream<SyncStatus> getSyncStatusStream() =>
+    RustLib.instance.api.crateApiSyncGetSyncStatusStream();
 
 /// 获取设备列表
 ///
@@ -149,7 +159,8 @@ Stream<SyncStatus> getSyncStatusStream() => RustLib.instance.api.crateApiSyncGet
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<List<DeviceInfo>> getDeviceList() => RustLib.instance.api.crateApiSyncGetDeviceList();
+Future<List<DeviceInfo>> getDeviceList() =>
+    RustLib.instance.api.crateApiSyncGetDeviceList();
 
 /// 获取同步统计信息
 ///
@@ -168,7 +179,8 @@ Future<List<DeviceInfo>> getDeviceList() => RustLib.instance.api.crateApiSyncGet
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<SyncStatistics> getSyncStatistics() => RustLib.instance.api.crateApiSyncGetSyncStatistics();
+Future<SyncStatistics> getSyncStatistics() =>
+    RustLib.instance.api.crateApiSyncGetSyncStatistics();
 
 /// 获取同步历史
 ///
@@ -188,7 +200,8 @@ Future<SyncStatistics> getSyncStatistics() => RustLib.instance.api.crateApiSyncG
 /// # 错误
 ///
 /// 如果服务未初始化，返回错误
-Future<List<SyncHistoryEvent>> getSyncHistory() => RustLib.instance.api.crateApiSyncGetSyncHistory();
+Future<List<SyncHistoryEvent>> getSyncHistory() =>
+    RustLib.instance.api.crateApiSyncGetSyncHistory();
 
 /// 设备连接状态枚举
 enum DeviceConnectionStatus {
@@ -206,7 +219,12 @@ enum DeviceConnectionStatus {
 ///
 /// 表示一个已发现的对等设备
 class DeviceInfo {
-  const DeviceInfo({required this.deviceId, required this.deviceName, required this.status, required this.lastSeen});
+  const DeviceInfo({
+    required this.deviceId,
+    required this.deviceName,
+    required this.status,
+    required this.lastSeen,
+  });
 
   /// 设备 ID (Peer ID)
   final String deviceId;
@@ -221,7 +239,11 @@ class DeviceInfo {
   final PlatformInt64 lastSeen;
 
   @override
-  int get hashCode => deviceId.hashCode ^ deviceName.hashCode ^ status.hashCode ^ lastSeen.hashCode;
+  int get hashCode =>
+      deviceId.hashCode ^
+      deviceName.hashCode ^
+      status.hashCode ^
+      lastSeen.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -364,18 +386,24 @@ class SyncStatus {
   final int offlineDevices;
 
   /// 创建 failed 状态
-  static Future<SyncStatus> failed({required String errorMessage}) =>
-      RustLib.instance.api.crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
+  static Future<SyncStatus> failed({required String errorMessage}) => RustLib
+      .instance
+      .api
+      .crateApiSyncSyncStatusFailed(errorMessage: errorMessage);
 
   /// 创建 notYetSynced 状态
-  static Future<SyncStatus> notYetSynced() => RustLib.instance.api.crateApiSyncSyncStatusNotYetSynced();
+  static Future<SyncStatus> notYetSynced() =>
+      RustLib.instance.api.crateApiSyncSyncStatusNotYetSynced();
 
   /// 创建 synced 状态
   static Future<SyncStatus> synced({required PlatformInt64 lastSyncTime}) =>
-      RustLib.instance.api.crateApiSyncSyncStatusSynced(lastSyncTime: lastSyncTime);
+      RustLib.instance.api.crateApiSyncSyncStatusSynced(
+        lastSyncTime: lastSyncTime,
+      );
 
   /// 创建 syncing 状态
-  static Future<SyncStatus> syncing() => RustLib.instance.api.crateApiSyncSyncStatusSyncing();
+  static Future<SyncStatus> syncing() =>
+      RustLib.instance.api.crateApiSyncSyncStatusSyncing();
 
   @override
   int get hashCode =>

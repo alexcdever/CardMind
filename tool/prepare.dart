@@ -101,6 +101,10 @@ Future<void> main(List<String> args) async {
     if (!await ensureXcode(context)) {
       exit(1);
     }
+    printSection('准备 Apple Rust 目标');
+    if (!await ensureAppleRustTargets(context, platforms)) {
+      exit(1);
+    }
   }
 
   if (!await writeShellEnv(context)) {
@@ -255,16 +259,56 @@ Future<bool> prepareAndroidEnvironment(PrepareContext context) async {
   context.setEnv('ANDROID_SDK_ROOT', sdkRoot, exportToShell: true);
   context.setEnv('ANDROID_HOME', sdkRoot, exportToShell: true);
 
-  Directory? ndkDir;
-  final ndkHome = context.env['ANDROID_NDK_HOME'];
-  if (ndkHome != null && ndkHome.isNotEmpty) {
-    final candidate = Directory(ndkHome);
-    if (candidate.existsSync()) {
-      ndkDir = candidate;
-    }
+  if (!await ensureJava(context)) {
+    return false;
   }
 
-  ndkDir ??= selectHighestNdk(Directory('$sdkRoot/ndk'));
+  Directory? ndkDir;
+  final flutterSdkRoot = resolveFlutterSdkRoot(context.env);
+  final requiredNdkVersion = flutterSdkRoot == null
+      ? null
+      : resolveFlutterNdkVersion(flutterSdkRoot);
+  if (requiredNdkVersion != null && requiredNdkVersion.isNotEmpty) {
+    final requiredDir = Directory('$sdkRoot/ndk/$requiredNdkVersion');
+    if (!requiredDir.existsSync() ||
+        !hasNdkSourceProperties(requiredDir)) {
+      printWarning('未找到 Flutter 要求的 NDK $requiredNdkVersion，尝试安装...');
+      final sdkmanager = findSdkManager(sdkRoot);
+      if (sdkmanager == null) {
+        printError('无法自动安装 NDK，请在 Android Studio 中安装');
+        return false;
+      }
+      if (!await runCommand(
+        sdkmanager,
+        ['--install', 'ndk;$requiredNdkVersion'],
+        env: context.env,
+        description: 'Install Android NDK',
+      )) {
+        printError('Android NDK 安装失败');
+        return false;
+      }
+    }
+    if (!requiredDir.existsSync() ||
+        !hasNdkSourceProperties(requiredDir)) {
+      printError('Flutter 需要的 NDK 版本不可用: $requiredNdkVersion');
+      return false;
+    }
+    ndkDir = requiredDir;
+  } else {
+    final ndkHome = context.env['ANDROID_NDK_HOME'];
+    if (ndkHome != null && ndkHome.isNotEmpty) {
+      final candidate = Directory(ndkHome);
+      if (candidate.existsSync()) {
+        if (hasNdkSourceProperties(candidate)) {
+          ndkDir = candidate;
+        } else {
+          printWarning('ANDROID_NDK_HOME 指向的 NDK 缺少 source.properties，已忽略');
+        }
+      }
+    }
+
+    ndkDir ??= selectHighestNdk(Directory('$sdkRoot/ndk'));
+  }
   if (ndkDir == null) {
     printWarning('未找到 Android NDK，尝试安装...');
     final sdkmanager = findSdkManager(sdkRoot);
@@ -288,7 +332,7 @@ Future<bool> prepareAndroidEnvironment(PrepareContext context) async {
   }
 
   if (ndkDir == null) {
-    printError('无法找到 Android NDK');
+    printError('无法找到有效的 Android NDK（缺少 source.properties）');
     return false;
   }
 
@@ -391,6 +435,129 @@ Future<bool> ensureXcode(PrepareContext context) async {
   return true;
 }
 
+Future<bool> ensureJava(PrepareContext context) async {
+  if (await runCommand(
+    'java',
+    ['-version'],
+    env: context.env,
+    quiet: true,
+  )) {
+    return true;
+  }
+
+  printWarning('Java 未安装，尝试安装...');
+  final package = javaPackageName(context.host);
+  if (package == null) {
+    printError('当前系统无法自动安装 Java');
+    return false;
+  }
+  if (!await installPackage(context, package)) {
+    printError('Java 安装失败');
+    return false;
+  }
+
+  final javaHome = await resolveJavaHome(context.host);
+  if (javaHome != null) {
+    context.setEnv('JAVA_HOME', javaHome, exportToShell: true);
+    context.addPath('$javaHome/bin');
+  }
+
+  if (!await runCommand(
+    'java',
+    ['-version'],
+    env: context.env,
+    quiet: true,
+  )) {
+    printError('Java 安装后仍不可用');
+    return false;
+  }
+
+  return true;
+}
+
+String? javaPackageName(HostPlatform host) {
+  switch (host) {
+    case HostPlatform.macos:
+    case HostPlatform.linux:
+      return 'openjdk@17';
+    case HostPlatform.windows:
+      return 'openjdk17';
+    case HostPlatform.other:
+      return null;
+  }
+}
+
+Future<String?> resolveJavaHome(HostPlatform host) async {
+  switch (host) {
+    case HostPlatform.macos:
+      final brewResult = await Process.run(
+        'brew',
+        ['--prefix', 'openjdk@17'],
+      );
+      if (brewResult.exitCode == 0) {
+        final prefix = brewResult.stdout.toString().trim();
+        if (prefix.isNotEmpty) {
+          final homeCandidate =
+              '$prefix/libexec/openjdk.jdk/Contents/Home';
+          if (Directory(homeCandidate).existsSync()) {
+            return homeCandidate;
+          }
+          if (Directory(prefix).existsSync()) {
+            return prefix;
+          }
+        }
+      }
+      final result = await Process.run('/usr/libexec/java_home', ['-v', '17']);
+      if (result.exitCode != 0) {
+        return null;
+      }
+      return parseJavaHomeOutput(result.stdout.toString());
+    case HostPlatform.linux:
+    case HostPlatform.windows:
+    case HostPlatform.other:
+      return null;
+  }
+}
+
+String? parseJavaHomeOutput(String output) {
+  final trimmed = output.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed.split('\n').first.trim();
+}
+
+Future<bool> ensureAppleRustTargets(
+  PrepareContext context,
+  Set<BuildPlatform> platforms,
+) async {
+  final targets = resolveAppleRustTargets(platforms);
+  if (targets.isEmpty) {
+    return true;
+  }
+  if (!await runCommand(
+    'rustup',
+    ['target', 'add', ...targets],
+    env: context.env,
+    description: 'Install Rust Apple targets',
+  )) {
+    printError('Rust Apple 目标安装失败');
+    return false;
+  }
+  return true;
+}
+
+List<String> resolveAppleRustTargets(Set<BuildPlatform> platforms) {
+  final targets = <String>[];
+  if (platforms.contains(BuildPlatform.ios)) {
+    targets.addAll(['aarch64-apple-ios', 'x86_64-apple-ios']);
+  }
+  if (platforms.contains(BuildPlatform.macos)) {
+    targets.addAll(['aarch64-apple-darwin', 'x86_64-apple-darwin']);
+  }
+  return targets;
+}
+
 String? resolveAndroidSdkRoot(Map<String, String> env, HostPlatform host) {
   final sdkRoot = env['ANDROID_SDK_ROOT'];
   if (sdkRoot != null && sdkRoot.isNotEmpty) {
@@ -446,6 +613,7 @@ Directory? selectHighestNdk(Directory ndkRoot) {
   final dirs = ndkRoot
       .listSync()
       .whereType<Directory>()
+      .where(hasNdkSourceProperties)
       .toList();
   if (dirs.isEmpty) {
     return null;
@@ -456,6 +624,10 @@ Directory? selectHighestNdk(Directory ndkRoot) {
     return _compareVersion(aName, bName);
   });
   return dirs.last;
+}
+
+bool hasNdkSourceProperties(Directory ndkDir) {
+  return File('${ndkDir.path}/source.properties').existsSync();
 }
 
 Directory? selectPrebuiltDir(Directory ndkDir, HostPlatform host) {
@@ -498,6 +670,50 @@ String? findSdkManager(String sdkRoot) {
     }
   }
   return null;
+}
+
+String? resolveFlutterSdkRoot(
+  Map<String, String> env, {
+  String localPropertiesPath = 'android/local.properties',
+}) {
+  final flutterRoot = env['FLUTTER_ROOT'];
+  if (flutterRoot != null && flutterRoot.isNotEmpty) {
+    return flutterRoot;
+  }
+  final file = File(localPropertiesPath);
+  if (!file.existsSync()) {
+    return null;
+  }
+  for (final line in file.readAsLinesSync()) {
+    final trimmed = line.trim();
+    if (trimmed.isEmpty || trimmed.startsWith('#')) {
+      continue;
+    }
+    final index = trimmed.indexOf('=');
+    if (index == -1) {
+      continue;
+    }
+    final key = trimmed.substring(0, index).trim();
+    final value = trimmed.substring(index + 1).trim();
+    if (key == 'flutter.sdk' && value.isNotEmpty) {
+      return value;
+    }
+  }
+  return null;
+}
+
+String? resolveFlutterNdkVersion(String flutterSdkRoot) {
+  final file = File(
+    '$flutterSdkRoot/packages/flutter_tools/gradle/src/main/kotlin/FlutterExtension.kt',
+  );
+  if (!file.existsSync()) {
+    return null;
+  }
+  final content = file.readAsStringSync();
+  final match = RegExp(
+    r'ndkVersion:\s*String\s*=\s*"([0-9.]+)"',
+  ).firstMatch(content);
+  return match?.group(1);
 }
 
 Future<String?> resolveLatestNdkVersion(

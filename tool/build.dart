@@ -16,6 +16,27 @@ const String cyan = '\x1B[36m';
 const String bold = '\x1B[1m';
 const String buildMode = 'release';
 
+List<String> macosRustTargets() {
+  return ['aarch64-apple-darwin', 'x86_64-apple-darwin'];
+}
+
+List<String> macosLibraryPaths() {
+  return macosRustTargets()
+      .map((target) => 'rust/target/$target/$buildMode/libcardmind_rust.a')
+      .toList();
+}
+
+bool shouldEmbedFrameworks(String? embedPhaseName) {
+  if (embedPhaseName == null) {
+    return false;
+  }
+  return embedPhaseName.trim().isNotEmpty;
+}
+
+bool shouldInsertXcframework(String contents) {
+  return !contents.contains('cardmind_rust.xcframework');
+}
+
 String? _cargoBinPath;
 Map<String, String> _prepareEnv = {};
 
@@ -551,14 +572,18 @@ Future<bool> buildRustLibraries(BuildConfig config) async {
         break;
 
       case BuildPlatform.macos:
-        if (!await runCommand(
-          'cargo',
-          ['build', '--release'],
-          workingDirectory: 'rust',
-          description: 'Build Rust for macOS',
-        )) {
-          printError('macOS Rust 库构建失败');
-          return false;
+        final targets = macosRustTargets();
+        for (final target in targets) {
+          printInfo('  构建 $target...');
+          if (!await runCommand(
+            'cargo',
+            ['build', '--release', '--target', target],
+            workingDirectory: 'rust',
+            description: 'Build Rust for $target',
+          )) {
+            printError('$target 构建失败');
+            return false;
+          }
         }
         printSuccess('macOS Rust 库构建成功');
         break;
@@ -731,14 +756,28 @@ Future<bool> createXcframeworkIfNeeded(BuildConfig config) async {
     return false;
   }
 
+  final tempDir = await Directory.systemTemp.createTemp(
+    'cardmind_xcframework_',
+  );
   final args = <String>['-create-xcframework'];
   if (includeMacos) {
-    final macosLib = 'rust/target/$buildMode/libcardmind_rust.a';
-    if (!File(macosLib).existsSync()) {
-      printError('未找到 macOS 静态库: $macosLib');
+    final macosLibs = macosLibraryPaths();
+    for (final macosLib in macosLibs) {
+      if (!File(macosLib).existsSync()) {
+        printError('未找到 macOS 静态库: $macosLib');
+        return false;
+      }
+    }
+    final universalLib = '${tempDir.path}/libcardmind_rust_macos.a';
+    if (!await runCommand(
+      'lipo',
+      ['-create', ...macosLibs, '-output', universalLib],
+      description: 'Create macOS universal library',
+    )) {
+      printError('macOS 通用静态库生成失败');
       return false;
     }
-    args.addAll(['-library', macosLib, '-headers', 'rust/src']);
+    args.addAll(['-library', universalLib, '-headers', 'rust/src']);
   }
 
   if (includeIos) {
@@ -758,9 +797,6 @@ Future<bool> createXcframeworkIfNeeded(BuildConfig config) async {
     args.addAll(['-library', iosSimLib, '-headers', 'rust/src']);
   }
 
-  final tempDir = await Directory.systemTemp.createTemp(
-    'cardmind_xcframework_',
-  );
   final outputPath = '${tempDir.path}/cardmind_rust.xcframework';
   args.addAll(['-output', outputPath]);
 
@@ -779,6 +815,7 @@ Future<bool> createXcframeworkIfNeeded(BuildConfig config) async {
       'macos/Runner.xcodeproj/project.pbxproj',
       'Runner/Frameworks/cardmind_rust.xcframework',
       embedPhaseName: 'Bundle Framework',
+      embedFrameworks: false,
     )) {
       return false;
     }
@@ -829,7 +866,8 @@ Future<void> copyDirectory(Directory source, Directory destination) async {
 Future<bool> patchXcodeProject(
   String projectPath,
   String frameworkPath, {
-  required String embedPhaseName,
+  required String? embedPhaseName,
+  bool embedFrameworks = true,
 }) async {
   final file = File(projectPath);
   if (!file.existsSync()) {
@@ -838,68 +876,85 @@ Future<bool> patchXcodeProject(
   }
 
   var contents = await file.readAsString();
-  if (contents.contains('cardmind_rust.xcframework')) {
+  final shouldInsert = shouldInsertXcframework(contents);
+  if (!shouldInsert) {
     printInfo('Xcode 工程已包含 cardmind_rust.xcframework: $projectPath');
-    return true;
   }
-
-  final fileRefId = generatePbxId();
-  final frameworkBuildId = generatePbxId();
-  final embedBuildId = generatePbxId();
-
-  final fileRefLine =
-      '\t\t$fileRefId /* cardmind_rust.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = cardmind_rust.xcframework; path = ${_quote(frameworkPath)}; sourceTree = \"<group>\"; };';
-  final frameworkBuildLine =
-      '\t\t$frameworkBuildId /* cardmind_rust.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = $fileRefId /* cardmind_rust.xcframework */; };';
-  final embedBuildLine =
-      '\t\t$embedBuildId /* cardmind_rust.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = $fileRefId /* cardmind_rust.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };';
 
   final lines = contents.split('\n');
-  if (!insertBeforeSectionEnd(lines, 'PBXFileReference', fileRefLine)) {
-    printError('无法写入 PBXFileReference section');
-    return false;
-  }
-  if (!insertBeforeSectionEnd(lines, 'PBXBuildFile', frameworkBuildLine)) {
-    printError('无法写入 PBXBuildFile section');
-    return false;
-  }
-  insertBeforeSectionEnd(lines, 'PBXBuildFile', embedBuildLine);
+  String? embedBuildId;
+  if (shouldInsert) {
+    final fileRefId = generatePbxId();
+    final frameworkBuildId = generatePbxId();
+    embedBuildId = generatePbxId();
 
-  final frameworksGroupId =
-      findFrameworksGroupId(lines) ?? findMainGroupId(lines);
-  if (frameworksGroupId == null ||
-      !addLineToObjectList(
-        lines,
-        frameworksGroupId,
-        'children',
-        '\t\t\t\t$fileRefId /* cardmind_rust.xcframework */,',
-      )) {
-    printError('无法将 xcframework 添加到 Frameworks 组');
-    return false;
+    final fileRefLine =
+        '\t\t$fileRefId /* cardmind_rust.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = cardmind_rust.xcframework; path = ${_quote(frameworkPath)}; sourceTree = \"<group>\"; };';
+    final frameworkBuildLine =
+        '\t\t$frameworkBuildId /* cardmind_rust.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = $fileRefId /* cardmind_rust.xcframework */; };';
+    final embedBuildLine =
+        '\t\t$embedBuildId /* cardmind_rust.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = $fileRefId /* cardmind_rust.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };';
+
+    if (!insertBeforeSectionEnd(lines, 'PBXFileReference', fileRefLine)) {
+      printError('无法写入 PBXFileReference section');
+      return false;
+    }
+    if (!insertBeforeSectionEnd(lines, 'PBXBuildFile', frameworkBuildLine)) {
+      printError('无法写入 PBXBuildFile section');
+      return false;
+    }
+    insertBeforeSectionEnd(lines, 'PBXBuildFile', embedBuildLine);
+
+    final frameworksGroupId =
+        findFrameworksGroupId(lines) ?? findMainGroupId(lines);
+    if (frameworksGroupId == null ||
+        !addLineToObjectList(
+          lines,
+          frameworksGroupId,
+          'children',
+          '\t\t\t\t$fileRefId /* cardmind_rust.xcframework */,',
+        )) {
+      printError('无法将 xcframework 添加到 Frameworks 组');
+      return false;
+    }
+
+    final frameworksPhaseId = findRunnerBuildPhaseId(lines, 'Frameworks') ?? '';
+    if (frameworksPhaseId.isEmpty ||
+        !addLineToObjectList(
+          lines,
+          frameworksPhaseId,
+          'files',
+          '\t\t\t\t$frameworkBuildId /* cardmind_rust.xcframework in Frameworks */,',
+        )) {
+      printError('无法将 xcframework 添加到 Frameworks build phase');
+      return false;
+    }
   }
 
-  final frameworksPhaseId = findRunnerBuildPhaseId(lines, 'Frameworks') ?? '';
-  if (frameworksPhaseId.isEmpty ||
-      !addLineToObjectList(
+  if (embedFrameworks && shouldEmbedFrameworks(embedPhaseName)) {
+    final embedPhaseId = findRunnerBuildPhaseId(lines, embedPhaseName!);
+    if (embedPhaseId != null) {
+      if (embedBuildId != null) {
+        addLineToObjectList(
+          lines,
+          embedPhaseId,
+          'files',
+          '\t\t\t\t$embedBuildId /* cardmind_rust.xcframework in Embed Frameworks */,',
+        );
+      }
+    } else {
+      printWarning('未找到 $embedPhaseName build phase，跳过嵌入设置');
+    }
+  } else if (!embedFrameworks && shouldEmbedFrameworks(embedPhaseName)) {
+    final embedPhaseId = findRunnerBuildPhaseId(lines, embedPhaseName!);
+    if (embedPhaseId != null) {
+      removeLineFromObjectList(
         lines,
-        frameworksPhaseId,
+        embedPhaseId,
         'files',
-        '\t\t\t\t$frameworkBuildId /* cardmind_rust.xcframework in Frameworks */,',
-      )) {
-    printError('无法将 xcframework 添加到 Frameworks build phase');
-    return false;
-  }
-
-  final embedPhaseId = findRunnerBuildPhaseId(lines, embedPhaseName);
-  if (embedPhaseId != null) {
-    addLineToObjectList(
-      lines,
-      embedPhaseId,
-      'files',
-      '\t\t\t\t$embedBuildId /* cardmind_rust.xcframework in Embed Frameworks */,',
-    );
-  } else {
-    printWarning('未找到 $embedPhaseName build phase，跳过嵌入设置');
+        'cardmind_rust.xcframework',
+      );
+    }
   }
 
   ensureFrameworkSearchPaths(lines);
@@ -967,9 +1022,51 @@ bool addLineToObjectList(
   return false;
 }
 
+bool removeLineFromObjectList(
+  List<String> lines,
+  String objectId,
+  String listKey,
+  String containsText,
+) {
+  final startIndex = findObjectStart(lines, objectId);
+  if (startIndex == -1) {
+    return false;
+  }
+  final endIndex = findObjectEnd(lines, startIndex);
+  if (endIndex == -1) {
+    return false;
+  }
+
+  var listStart = -1;
+  for (var i = startIndex; i <= endIndex; i++) {
+    if (lines[i].contains('$listKey = (')) {
+      listStart = i;
+      break;
+    }
+  }
+  if (listStart == -1) {
+    return false;
+  }
+
+  var removed = false;
+  for (var i = listStart + 1; i <= endIndex; i++) {
+    if (lines[i].trim() == ');') {
+      break;
+    }
+    if (lines[i].contains(containsText)) {
+      lines.removeAt(i);
+      removed = true;
+      break;
+    }
+  }
+  return removed;
+}
+
 int findObjectStart(List<String> lines, String objectId) {
+  final pattern =
+      RegExp(r'^\s*' + objectId + r'(\s*/\*.*\*/)?\s*=\s*\{');
   for (var i = 0; i < lines.length; i++) {
-    if (lines[i].trimLeft().startsWith('$objectId = {')) {
+    if (pattern.hasMatch(lines[i])) {
       return i;
     }
   }
@@ -986,12 +1083,24 @@ int findObjectEnd(List<String> lines, int startIndex) {
 }
 
 String? findFrameworksGroupId(List<String> lines) {
-  for (final line in lines) {
-    final match = RegExp(r'^\s*([A-F0-9]{24})').firstMatch(line);
-    if (match == null) {
+  final startIndex =
+      lines.indexWhere((line) => line.contains('/* Begin PBXGroup section */'));
+  if (startIndex == -1) {
+    return null;
+  }
+  final endIndex =
+      lines.indexWhere((line) => line.contains('/* End PBXGroup section */'));
+  if (endIndex == -1 || endIndex <= startIndex) {
+    return null;
+  }
+
+  final regex = RegExp(r'^\s*([A-F0-9]{24})');
+  for (var i = startIndex + 1; i < endIndex; i++) {
+    if (!lines[i].contains('/* Frameworks */')) {
       continue;
     }
-    if (line.contains('/* Frameworks */')) {
+    final match = regex.firstMatch(lines[i]);
+    if (match != null) {
       return match.group(1);
     }
   }

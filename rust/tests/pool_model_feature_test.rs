@@ -196,8 +196,14 @@ fn it_should_manage_pool_members_correctly() {
 
     // Then: 成员列表应正确更新
     assert_eq!(pool.members.len(), 2);
-    assert!(pool.members.iter().any(|d| d.peer_id == "12D3KooWDevice001"));
-    assert!(pool.members.iter().any(|d| d.peer_id == "12D3KooWDevice003"));
+    assert!(pool
+        .members
+        .iter()
+        .any(|d| d.peer_id == "12D3KooWDevice001"));
+    assert!(pool
+        .members
+        .iter()
+        .any(|d| d.peer_id == "12D3KooWDevice003"));
     assert!(!pool
         .members
         .iter()
