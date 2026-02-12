@@ -100,3 +100,6 @@ specs/*
 # Project Guardian
 .project-guardian/failures.log
 .project-guardian/*.tmp
+
+# Build prepare env
+tool/.prepare_env.json

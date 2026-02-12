@@ -3,6 +3,9 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'platforms.dart';
+import 'prepare.dart' show readPrepareEnv;
+
 const String reset = '\x1B[0m';
 const String red = '\x1B[31m';
 const String green = '\x1B[32m';
@@ -14,8 +17,7 @@ const String bold = '\x1B[1m';
 const String buildMode = 'release';
 
 String? _cargoBinPath;
-
-enum BuildPlatform { android, linux, windows, macos, ios }
+Map<String, String> _prepareEnv = {};
 
 class BuildConfig {
   final Set<BuildPlatform> platforms;
@@ -38,11 +40,14 @@ Future<void> main(List<String> arguments) async {
   }
 
   final platformArgs = arguments.sublist(1);
-  final platforms = parsePlatforms(platformArgs);
+  final host = detectHostPlatform();
+  final platforms = parsePlatforms(platformArgs, host);
   if (platforms == null) {
     printUsage(error: '平台参数无效: ${platformArgs.join(' ')}');
     exit(2);
   }
+
+  _prepareEnv = await runPrepare(platformArgs);
 
   final config = BuildConfig(platforms: platforms);
 
@@ -54,55 +59,24 @@ Future<void> main(List<String> arguments) async {
   await runApp(config);
 }
 
-Set<BuildPlatform>? parsePlatforms(List<String> args) {
-  final platforms = <BuildPlatform>{};
-
-  for (final arg in args) {
-    switch (arg) {
-      case '--android':
-        platforms.add(BuildPlatform.android);
-        break;
-      case '--linux':
-        platforms.add(BuildPlatform.linux);
-        break;
-      case '--windows':
-        platforms.add(BuildPlatform.windows);
-        break;
-      case '--macos':
-        platforms.add(BuildPlatform.macos);
-        break;
-      case '--ios':
-        platforms.add(BuildPlatform.ios);
-        break;
-      default:
-        return null;
-    }
+Future<Map<String, String>> runPrepare(List<String> args) async {
+  final result = await Process.run('dart', ['tool/prepare.dart', ...args]);
+  stdout.write(result.stdout);
+  stderr.write(result.stderr);
+  if (result.exitCode != 0) {
+    exit(result.exitCode);
   }
 
-  if (platforms.isEmpty) {
-    if (Platform.isLinux) {
-      platforms.addAll([BuildPlatform.android, BuildPlatform.linux]);
-    } else if (Platform.isWindows) {
-      platforms.addAll([BuildPlatform.android, BuildPlatform.windows]);
-    } else if (Platform.isMacOS) {
-      platforms.addAll([
-        BuildPlatform.android,
-        BuildPlatform.ios,
-        BuildPlatform.macos,
-      ]);
-    }
+  final envFile = File('tool/.prepare_env.json');
+  if (!envFile.existsSync()) {
+    printError('未找到 tool/.prepare_env.json，请确认 prepare 执行成功');
+    exit(1);
   }
 
-  return platforms;
+  return readPrepareEnv(envFile);
 }
 
 Future<bool> prepareBridge(BuildConfig config) async {
-  printSection('📋 检查构建环境');
-  if (!await checkEnvironment(config)) {
-    printError('环境检查失败，无法继续');
-    return false;
-  }
-
   printSection('🔧 生成桥接代码');
   if (!await generateBridge()) {
     printError('桥接代码生成失败');
@@ -519,64 +493,6 @@ Future<bool> checkPlatformEnvironment(BuildPlatform platform) async {
   }
 }
 
-Map<String, String> getAndroidEnvironment() {
-  final env = Map<String, String>.from(Platform.environment);
-
-  final ndkHome = env['ANDROID_NDK_HOME'];
-  if (ndkHome == null || ndkHome.isEmpty) {
-    printWarning('ANDROID_NDK_HOME 未设置，尝试自动检测...');
-    final possiblePaths = [
-      '${env['HOME']}/android-sdk/ndk/28.2.13676358',
-      '${env['HOME']}/android-sdk/ndk/26.1.10909125',
-      '${env['HOME']}/Android/Sdk/ndk/28.2.13676358',
-      '${env['HOME']}/Android/Sdk/ndk/26.1.10909125',
-    ];
-
-    for (final path in possiblePaths) {
-      if (Directory(path).existsSync()) {
-        env['ANDROID_NDK_HOME'] = path;
-        printInfo('自动检测到 NDK: $path');
-        break;
-      }
-    }
-  }
-
-  final resolvedNdk = env['ANDROID_NDK_HOME'];
-  if (resolvedNdk == null) {
-    printError('无法找到 Android NDK，请设置 ANDROID_NDK_HOME 环境变量');
-    return env;
-  }
-
-  final toolchainPath =
-      '$resolvedNdk/toolchains/llvm/prebuilt/linux-x86_64/bin';
-  env['PATH'] = '${env['PATH']}:$toolchainPath';
-
-  env['CC_aarch64_linux_android'] = 'aarch64-linux-android21-clang';
-  env['CXX_aarch64_linux_android'] = 'aarch64-linux-android21-clang++';
-  env['AR_aarch64_linux_android'] = 'llvm-ar';
-  env['CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER'] =
-      'aarch64-linux-android21-clang';
-
-  env['CC_armv7_linux_androideabi'] = 'armv7a-linux-androideabi21-clang';
-  env['CXX_armv7_linux_androideabi'] = 'armv7a-linux-androideabi21-clang++';
-  env['AR_armv7_linux_androideabi'] = 'llvm-ar';
-  env['CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER'] =
-      'armv7a-linux-androideabi21-clang';
-
-  env['CC_i686_linux_android'] = 'i686-linux-android21-clang';
-  env['CXX_i686_linux_android'] = 'i686-linux-android21-clang++';
-  env['AR_i686_linux_android'] = 'llvm-ar';
-  env['CARGO_TARGET_I686_LINUX_ANDROID_LINKER'] = 'i686-linux-android21-clang';
-
-  env['CC_x86_64_linux_android'] = 'x86_64-linux-android21-clang';
-  env['CXX_x86_64_linux_android'] = 'x86_64-linux-android21-clang++';
-  env['AR_x86_64_linux_android'] = 'llvm-ar';
-  env['CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER'] =
-      'x86_64-linux-android21-clang';
-
-  return env;
-}
-
 Future<bool> buildRustLibraries(BuildConfig config) async {
   for (final platform in config.platforms) {
     printStep('构建 ${platform.name} Rust 库...');
@@ -589,15 +505,12 @@ Future<bool> buildRustLibraries(BuildConfig config) async {
           'x86_64-linux-android',
           'i686-linux-android',
         ];
-        final androidEnv = getAndroidEnvironment();
-
         for (final target in targets) {
           printInfo('  构建 $target...');
           if (!await runCommand(
             'cargo',
             ['build', '--release', '--target', target],
             workingDirectory: 'rust',
-            environment: androidEnv,
             description: 'Build Rust for $target',
           )) {
             printError('$target 构建失败');
@@ -1269,6 +1182,12 @@ Future<bool> runCommand(
   String? description,
 }) async {
   final workDir = workingDirectory ?? '.';
+  final mergedEnv = <String, String>{};
+  mergedEnv.addAll(Platform.environment);
+  mergedEnv.addAll(_prepareEnv);
+  if (environment != null) {
+    mergedEnv.addAll(environment);
+  }
 
   if (!quiet && description != null) {
     printInfo('  → $description');
@@ -1279,7 +1198,7 @@ Future<bool> runCommand(
       executable,
       arguments,
       workingDirectory: workDir,
-      environment: environment,
+      environment: mergedEnv,
       runInShell: Platform.isWindows,
     );
 
