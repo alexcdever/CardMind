@@ -1,0 +1,11 @@
+CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO
+FRAMEWORK_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/device_info_plus" "${PODS_CONFIGURATION_BUILD_DIR}/file_selector_macos" "${PODS_CONFIGURATION_BUILD_DIR}/flutter_secure_storage_macos" "${PODS_CONFIGURATION_BUILD_DIR}/mobile_scanner" "${PODS_CONFIGURATION_BUILD_DIR}/nsd_macos" "${PODS_CONFIGURATION_BUILD_DIR}/path_provider_foundation" "${PODS_CONFIGURATION_BUILD_DIR}/share_plus" "${PODS_CONFIGURATION_BUILD_DIR}/sqflite_darwin" "${PODS_CONFIGURATION_BUILD_DIR}/sqlite3" "${PODS_CONFIGURATION_BUILD_DIR}/sqlite3_flutter_libs"
+GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
+HEADER_SEARCH_PATHS = $(inherited) "${PODS_CONFIGURATION_BUILD_DIR}/device_info_plus/device_info_plus.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/file_selector_macos/file_selector_macos.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/flutter_secure_storage_macos/flutter_secure_storage_macos.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/mobile_scanner/mobile_scanner.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/nsd_macos/nsd_macos.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/path_provider_foundation/path_provider_foundation.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/share_plus/share_plus.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/sqflite_darwin/sqflite_darwin.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/sqlite3/sqlite3.framework/Headers" "${PODS_CONFIGURATION_BUILD_DIR}/sqlite3_flutter_libs/sqlite3_flutter_libs.framework/Headers"
+OTHER_LDFLAGS = $(inherited) -framework "device_info_plus" -framework "file_selector_macos" -framework "flutter_secure_storage_macos" -framework "mobile_scanner" -framework "nsd_macos" -framework "path_provider_foundation" -framework "share_plus" -framework "sqflite_darwin" -framework "sqlite3" -framework "sqlite3_flutter_libs"
+PODS_BUILD_DIR = ${BUILD_DIR}
+PODS_CONFIGURATION_BUILD_DIR = ${PODS_BUILD_DIR}/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)
+PODS_PODFILE_DIR_PATH = ${SRCROOT}/.
+PODS_ROOT = ${SRCROOT}/Pods
+PODS_XCFRAMEWORKS_BUILD_DIR = $(PODS_CONFIGURATION_BUILD_DIR)/XCFrameworkIntermediates
+USE_RECURSIVE_SCRIPT_INPUTS_IN_SCRIPT_PHASES = YES
