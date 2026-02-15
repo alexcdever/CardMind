@@ -20,8 +20,6 @@ ios/.symlinks/
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
 ios/Runner.xcworkspace/
-ios/Runner/Frameworks/cardmind_rust.xcframework/macos-arm64_x86_64/libcardmind_rust_macos.a
-macos/Runner/Frameworks/cardmind_rust.xcframework/macos-arm64_x86_64/libcardmind_rust_macos.a
 
 # Rust
 rust/target/
