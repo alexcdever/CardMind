@@ -1,8 +1,0 @@
-# flutter_rust_bridge configuration
-rust_input: crate::api
-rust_root: rust/
-dart_output: lib/bridge/
-c_output: rust/src/bridge_generated.h
-
-# Use new naming style
-dart_format_line_length: 120
