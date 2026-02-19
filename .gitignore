@@ -35,6 +35,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Rust build artifacts
+rust/target/
+
 # Symbolication related
 app.*.symbols
 
