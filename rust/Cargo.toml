@@ -1,0 +1,15 @@
+[package]
+name = "cardmind_rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+uuid = { version = "1", features = ["v7", "serde", "fast-rng"] }
+thiserror = "1"
+loro = "0.10"
+rusqlite = { version = "0.31", features = ["bundled"] }
+base64 = "0.22"
+
+[dev-dependencies]
+tempfile = "3"
