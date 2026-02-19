@@ -57,7 +57,7 @@ Run: `cargo new rust --lib --name cardmind_rust`
 serde = { version = "1", features = ["derive"] }
 uuid = { version = "1", features = ["v7", "serde", "fast-rng"] }
 thiserror = "1"
-loro = "0.10"
+loro = "1.10.3"
 rusqlite = { version = "0.31", features = ["bundled"] }
 base64 = "0.22"
 
