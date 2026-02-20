@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// 数据池元数据
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pool {
     pub pool_id: Uuid,
@@ -9,6 +10,7 @@ pub struct Pool {
     pub card_ids: Vec<Uuid>,
 }
 
+/// 数据池成员信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoolMember {
     pub peer_id: String,
