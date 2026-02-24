@@ -170,54 +170,54 @@ impl SqliteStore {
     }
 
     /// 写入或更新数据池元数据
-    pub fn upsert_pool(&mut self, pool: &Pool) -> Result<(), CardMindError> {
-        let tx = self
-            .conn
-            .transaction()
-            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
-        tx.execute(
-            "INSERT OR REPLACE INTO pools (pool_id, pool_key) VALUES (?1, ?2);",
-            params![pool.pool_id.to_string(), pool.pool_key],
-        )
-        .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
-        tx.execute(
-            "DELETE FROM pool_members WHERE pool_id = ?1;",
-            params![pool.pool_id.to_string()],
-        )
-        .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
-        tx.execute(
-            "DELETE FROM pool_cards WHERE pool_id = ?1;",
-            params![pool.pool_id.to_string()],
-        )
-        .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
-
-        for member in &pool.members {
-            tx.execute(
-                "INSERT OR REPLACE INTO pool_members
-                (pool_id, peer_id, public_key, multiaddr, os, hostname, is_admin)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
-                params![
-                    pool.pool_id.to_string(),
-                    member.peer_id,
-                    member.public_key,
-                    member.multiaddr,
-                    member.os,
-                    member.hostname,
-                    if member.is_admin { 1 } else { 0 }
-                ],
+    pub fn upsert_pool(&self, pool: &Pool) -> Result<(), CardMindError> {
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO pools (pool_id, pool_key) VALUES (?1, ?2);",
+                params![pool.pool_id.to_string(), pool.pool_key],
             )
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        self.conn
+            .execute(
+                "DELETE FROM pool_members WHERE pool_id = ?1;",
+                params![pool.pool_id.to_string()],
+            )
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        self.conn
+            .execute(
+                "DELETE FROM pool_cards WHERE pool_id = ?1;",
+                params![pool.pool_id.to_string()],
+            )
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+
+        for member in &pool.members {
+            self.conn
+                .execute(
+                    "INSERT OR REPLACE INTO pool_members
+                    (pool_id, peer_id, public_key, multiaddr, os, hostname, is_admin)
+                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
+                    params![
+                        pool.pool_id.to_string(),
+                        member.peer_id,
+                        member.public_key,
+                        member.multiaddr,
+                        member.os,
+                        member.hostname,
+                        if member.is_admin { 1 } else { 0 }
+                    ],
+                )
+                .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         }
 
         for card_id in &pool.card_ids {
-            tx.execute(
-                "INSERT OR REPLACE INTO pool_cards (pool_id, card_id) VALUES (?1, ?2);",
-                params![pool.pool_id.to_string(), card_id.to_string()],
-            )
-            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+            self.conn
+                .execute(
+                    "INSERT OR REPLACE INTO pool_cards (pool_id, card_id) VALUES (?1, ?2);",
+                    params![pool.pool_id.to_string(), card_id.to_string()],
+                )
+                .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         }
 
-        tx.commit().map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         Ok(())
     }
 

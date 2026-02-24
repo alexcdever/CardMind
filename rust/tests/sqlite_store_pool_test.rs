@@ -7,7 +7,7 @@ use uuid::Uuid;
 fn it_should_upsert_and_get_pool() -> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
     let path = dir.path().join("cardmind.sqlite");
-    let mut store = SqliteStore::new(&path)?;
+    let store = SqliteStore::new(&path)?;
     let pool = Pool {
         pool_id: Uuid::now_v7(),
         pool_key: "k".to_string(),
