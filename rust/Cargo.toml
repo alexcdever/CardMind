@@ -3,6 +3,9 @@ name = "cardmind_rust"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 uuid = { version = "1", features = ["v7", "serde", "fast-rng"] }
@@ -10,6 +13,7 @@ thiserror = "1"
 loro = "1.10.3"
 rusqlite = { version = "0.31", features = ["bundled"] }
 base64 = "0.22"
+flutter_rust_bridge = { version = "2.11.1", features = ["uuid"] }
 
 [dev-dependencies]
 tempfile = "3"

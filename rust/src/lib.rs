@@ -4,3 +4,5 @@ pub mod models;
 pub mod store;
 /// 通用工具模块
 pub mod utils;
+/// FRB 接口层
+pub mod api;
