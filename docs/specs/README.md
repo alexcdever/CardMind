@@ -7,6 +7,7 @@
 
 ## 架构
 - [双层架构](architecture/storage/dual_layer.md)
+- [FRB API](architecture/bridge/frb_api.md)
 
 GIVEN 需要查找规格入口
 WHEN 打开本索引

@@ -2,5 +2,5 @@
 
 ## 行为
 GIVEN 任何写操作
-WHEN Loro commit 完成
-THEN 订阅回调更新 SQLite 缓存
+WHEN Loro commit 并导出 Snapshot
+THEN 写入 Loro 文件并更新 SQLite 缓存
