@@ -1,8 +1,10 @@
 /// 卡片存储
 pub mod card_store;
-/// Loro 存储路径工具
+/// loro 存储
 pub mod loro_store;
-/// 卡片池存储
+/// 数据池存储
 pub mod pool_store;
-/// SQLite 缓存层
+/// sqlite 存储
 pub mod sqlite_store;
+/// 路径解析
+pub mod path_resolver;
