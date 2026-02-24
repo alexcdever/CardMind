@@ -1,6 +1,8 @@
-/// 领域模型定义
+/// 卡片模型
 pub mod card;
-/// 错误类型定义
-pub mod error;
-/// 数据池模型定义
+/// 数据池模型
 pub mod pool;
+/// 统一错误类型
+pub mod error;
+/// API 错误
+pub mod api_error;
