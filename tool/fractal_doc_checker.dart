@@ -47,8 +47,12 @@ class FractalDocChecker {
 
   bool _isAbsolutePath(String path) {
     if (path.startsWith('/')) return true;
-    return RegExp(r'^[A-Za-z]:[\\/]')
-        .hasMatch(path);
+    if (path.startsWith('\\')) return true;
+    if (RegExp(r'^[A-Za-z]:[\\/]')
+        .hasMatch(path)) return true;
+    final uri = Uri.tryParse(path);
+    if (uri != null && uri.hasScheme) return true;
+    return false;
   }
 
   bool _looksLikeHeader(List<String> lines) {
