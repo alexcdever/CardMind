@@ -114,6 +114,18 @@ void main() {
     expect(content.split('\n').first, contains('input:'));
   });
 
+  test('bootstrap creates DIR.md for ancestor directories', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final file = File('${root.path}/lib/feature/sub/foo.dart')
+      ..createSync(recursive: true);
+    file.writeAsStringSync('void main() {}');
+
+    await bootstrapFractalDocs(rootPath: root.path);
+
+    expect(File('${root.path}/lib/feature/DIR.md').existsSync(), isTrue);
+  });
+
   test('fractal doc CLI reports missing --base value', () async {
     var runCalled = false;
     Future<ProcessResult> fakeRun(

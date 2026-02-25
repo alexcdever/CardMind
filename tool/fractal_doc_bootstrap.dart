@@ -52,7 +52,11 @@ Future<void> bootstrapFractalDocs({required String rootPath}) async {
       if (entity is! File) continue;
       if (relativePath.isEmpty) continue;
       if (isExcludedPath(relativePath)) continue;
-      dirsWithFiles.add(entity.parent.path);
+      _recordDirAndAncestors(
+        normalizedRoot: normalizedRoot,
+        dir: entity.parent,
+        dirsWithFiles: dirsWithFiles,
+      );
       if (_isDirFile(relativePath)) continue;
       if (!_isSourceFile(relativePath)) continue;
       filesToUpdate.add(entity);
@@ -71,6 +75,31 @@ Future<void> bootstrapFractalDocs({required String rootPath}) async {
   for (final file in filesToUpdate) {
     await _ensureHeader(file);
   }
+}
+
+void _recordDirAndAncestors({
+  required String normalizedRoot,
+  required Directory dir,
+  required Set<String> dirsWithFiles,
+}) {
+  var current = dir;
+  while (_isWithinRoot(normalizedRoot, current.path)) {
+    final relativePath = _relativePath(normalizedRoot, current.path);
+    if (relativePath.isEmpty || !isExcludedPath('$relativePath/')) {
+      dirsWithFiles.add(current.path);
+    }
+    final parent = current.parent;
+    if (parent.path == current.path) {
+      break;
+    }
+    current = parent;
+  }
+}
+
+bool _isWithinRoot(String normalizedRoot, String path) {
+  final normalizedPath = path.replaceAll('\\', '/');
+  if (normalizedPath == normalizedRoot) return true;
+  return normalizedPath.startsWith('$normalizedRoot/');
 }
 
 String _normalizeRoot(String path) {
