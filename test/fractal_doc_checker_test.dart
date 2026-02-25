@@ -67,4 +67,19 @@ void main() {
     expect(result.isOk, isFalse);
     expect(result.errors.single, contains('DIR.md missing entry'));
   });
+
+  test('accepts markdown link entry in DIR.md', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final dirFile = File('${root.path}/lib/DIR.md')
+      ..createSync(recursive: true);
+    dirFile.writeAsStringSync('- [foo.dart](lib/foo.dart)\n');
+    final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
+    file.writeAsStringSync('// input: none\n// output: none\n// pos: none\n');
+
+    final checker = FractalDocChecker(rootPath: root.path);
+    final result = await checker.check(changedFiles: ['lib/foo.dart']);
+    expect(result.isOk, isTrue);
+    expect(result.errors, isEmpty);
+  });
 }

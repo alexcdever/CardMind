@@ -72,7 +72,20 @@ class FractalDocChecker {
     final lines = dirFile.readAsLinesSync();
     final tokenStripper =
         RegExp(r'^[`*\-~\[\](){}<>.,:;!?]+|[`*\-~\[\](){}<>.,:;!?]+$');
+    final markdownLink = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
     for (final line in lines) {
+      for (final match in markdownLink.allMatches(line)) {
+        final label = match.group(1);
+        final target = match.group(2);
+        if (label != null) {
+          final labelToken = label.replaceAll(tokenStripper, '');
+          if (labelToken == fileName) return true;
+        }
+        if (target != null) {
+          final targetFileName = _linkTargetFileName(target);
+          if (targetFileName == fileName) return true;
+        }
+      }
       final tokens = line.split(RegExp(r'\s+'));
       for (final rawToken in tokens) {
         final token = rawToken.replaceAll(tokenStripper, '');
@@ -80,5 +93,20 @@ class FractalDocChecker {
       }
     }
     return false;
+  }
+
+  String _linkTargetFileName(String target) {
+    final withoutQuery = target.split('?').first;
+    final withoutFragment = withoutQuery.split('#').first;
+    var trimmed = withoutFragment.trim();
+    if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+      trimmed = trimmed.substring(1, trimmed.length - 1);
+    }
+    final normalized = trimmed.replaceAll('\\', '/');
+    final parts = normalized.split('/');
+    for (var i = parts.length - 1; i >= 0; i--) {
+      if (parts[i].isNotEmpty) return parts[i];
+    }
+    return normalized;
   }
 }
