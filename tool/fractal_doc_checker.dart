@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 class FractalDocCheckResult {
@@ -18,14 +19,26 @@ class FractalDocChecker {
   }) async {
     final errors = <String>[];
     for (final relativePath in changedFiles) {
-      final file = File('$rootPath/$relativePath');
+      final file = File.fromUri(Uri.directory(rootPath).resolve(relativePath));
       if (!file.existsSync()) continue;
-      final lines = file.readAsLinesSync();
-      if (lines.length < 3 || !_looksLikeHeader(lines.take(3).toList())) {
+      final lines = await _readFirstLines(file, 3);
+      if (lines.length < 3 || !_looksLikeHeader(lines)) {
         errors.add('missing header: $relativePath');
       }
     }
     return FractalDocCheckResult(errors);
+  }
+
+  Future<List<String>> _readFirstLines(File file, int count) async {
+    final lines = <String>[];
+    await for (final line in file
+        .openRead()
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())) {
+      lines.add(line);
+      if (lines.length >= count) break;
+    }
+    return lines;
   }
 
   bool _looksLikeHeader(List<String> lines) {

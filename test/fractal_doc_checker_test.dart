@@ -5,6 +5,7 @@ import '../tool/fractal_doc_checker.dart';
 void main() {
   test('fails when changed file lacks header', () async {
     final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
     final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
     file.writeAsStringSync('void main() {}');
 
