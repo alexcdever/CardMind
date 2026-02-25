@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'fractal_doc_checker.dart';
 
-const _usage = 'Usage: dart tool/fractal_doc_check.dart [--base <git-ref>]';
+const _usage = 'Usage: dart run tool/fractal_doc_check.dart [--base <git-ref>]';
 
 typedef ProcessRunner = Future<ProcessResult> Function(
   String executable,
@@ -29,10 +29,19 @@ Future<int> runFractalDocCheck(
     base = args[valueIndex];
   }
 
-  final diff = await runProcess(
-    'git',
-    ['diff', '--name-only', '--diff-filter=ACMR', base],
-  );
+  ProcessResult diff;
+  try {
+    diff = await runProcess(
+      'git',
+      ['diff', '--name-only', '--diff-filter=ACMR', base],
+    );
+  } on ProcessException catch (error) {
+    writeError(_formatRunProcessError(error));
+    return 1;
+  } on FileSystemException catch (error) {
+    writeError(_formatRunProcessError(error));
+    return 1;
+  }
   if (diff.exitCode != 0) {
     final stderrText = _processOutputToString(diff.stderr);
     if (stderrText.trim().isEmpty) {
@@ -40,7 +49,7 @@ Future<int> runFractalDocCheck(
     } else {
       writeError(stderrText);
     }
-    return diff.exitCode == 0 ? 1 : diff.exitCode;
+    return diff.exitCode;
   }
 
   final files = _processOutputToString(diff.stdout)
@@ -66,4 +75,22 @@ String _processOutputToString(Object? output) {
   if (output is String) return output;
   if (output is List<int>) return utf8.decode(output);
   return output.toString();
+}
+
+String _formatRunProcessError(Object error) {
+  if (error is ProcessException) {
+    final message = error.message;
+    if (message.isNotEmpty) {
+      return 'Failed to run git diff: $message';
+    }
+    return 'Failed to run git diff: $error';
+  }
+  if (error is FileSystemException) {
+    final message = error.message;
+    if (message.isNotEmpty) {
+      return 'Failed to run git diff: $message';
+    }
+    return 'Failed to run git diff: $error';
+  }
+  return 'Failed to run git diff: $error';
 }

@@ -141,4 +141,23 @@ void main() {
     expect(exit, isNot(0));
     expect(errors.single, contains('diff failed'));
   });
+
+  test('fractal doc CLI reports process exception', () async {
+    Future<ProcessResult> fakeRun(
+      String executable,
+      List<String> arguments,
+    ) async {
+      throw ProcessException('git', ['diff'], 'no git');
+    }
+
+    final errors = <String>[];
+    final exit = await runFractalDocCheck(
+      [],
+      runProcess: fakeRun,
+      writeError: errors.add,
+    );
+    expect(exit, isNot(0));
+    expect(errors.single, contains('git diff'));
+    expect(errors.single, contains('no git'));
+  });
 }
