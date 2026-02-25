@@ -6,6 +6,9 @@ void main() {
   test('fails when changed file lacks header', () async {
     final root = Directory.systemTemp.createTempSync('fractal-doc-test');
     addTearDown(() => root.deleteSync(recursive: true));
+    final dirFile = File('${root.path}/lib/DIR.md')
+      ..createSync(recursive: true);
+    dirFile.writeAsStringSync('foo.dart\n');
     final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
     file.writeAsStringSync('void main() {}');
 
@@ -35,5 +38,18 @@ void main() {
         contains('absolute path not allowed: \\\\server\\share\\file.txt'));
     expect(result.errors,
         contains('absolute path not allowed: file:///etc/passwd'));
+  });
+
+  test('fails when DIR.md not updated for changed file', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+    File('${root.path}/lib/DIR.md').createSync(recursive: true);
+    final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
+    file.writeAsStringSync('// input: none\n// output: none\n// pos: none\n');
+
+    final checker = FractalDocChecker(rootPath: root.path);
+    final result = await checker.check(changedFiles: ['lib/foo.dart']);
+    expect(result.isOk, isFalse);
+    expect(result.errors.single, contains('DIR.md missing entry'));
   });
 }

@@ -29,6 +29,11 @@ class FractalDocChecker {
       if (lines.length < 3 || !_looksLikeHeader(lines)) {
         errors.add('missing header: $relativePath');
       }
+      final fileName = File(relativePath).uri.pathSegments.last;
+      final dirPath = file.parent.path;
+      if (!_dirHasEntry(dirPath, fileName)) {
+        errors.add('DIR.md missing entry: $relativePath');
+      }
     }
     return FractalDocCheckResult(errors);
   }
@@ -59,5 +64,12 @@ class FractalDocChecker {
     return lines[0].contains('input:') &&
         lines[1].contains('output:') &&
         lines[2].contains('pos:');
+  }
+
+  bool _dirHasEntry(String dirPath, String fileName) {
+    final dirFile = File('$dirPath/DIR.md');
+    if (!dirFile.existsSync()) return false;
+    final content = dirFile.readAsStringSync();
+    return content.contains(fileName);
   }
 }
