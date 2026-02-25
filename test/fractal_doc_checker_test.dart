@@ -14,4 +14,14 @@ void main() {
     expect(result.isOk, isFalse);
     expect(result.errors.single, contains('missing header'));
   });
+
+  test('rejects absolute path', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+
+    final checker = FractalDocChecker(rootPath: root.path);
+    final result = await checker.check(changedFiles: ['/etc/passwd']);
+    expect(result.isOk, isFalse);
+    expect(result.errors.single, contains('absolute path not allowed'));
+  });
 }

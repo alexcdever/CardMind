@@ -19,6 +19,10 @@ class FractalDocChecker {
   }) async {
     final errors = <String>[];
     for (final relativePath in changedFiles) {
+      if (_isAbsolutePath(relativePath)) {
+        errors.add('absolute path not allowed: $relativePath');
+        continue;
+      }
       final file = File.fromUri(Uri.directory(rootPath).resolve(relativePath));
       if (!file.existsSync()) continue;
       final lines = await _readFirstLines(file, 3);
@@ -39,6 +43,12 @@ class FractalDocChecker {
       if (lines.length >= count) break;
     }
     return lines;
+  }
+
+  bool _isAbsolutePath(String path) {
+    if (path.startsWith('/')) return true;
+    return RegExp(r'^[A-Za-z]:[\\/]')
+        .hasMatch(path);
   }
 
   bool _looksLikeHeader(List<String> lines) {
