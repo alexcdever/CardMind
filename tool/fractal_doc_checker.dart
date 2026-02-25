@@ -1,6 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+const _excludedPrefixes = [
+  'build/',
+  'rust/target/',
+  'ios/Pods/',
+  'android/.gradle/',
+  'linux/build/',
+  'macos/Build/',
+  'windows/build/',
+];
+const _excludedExact = ['pubspec.lock'];
+
 class FractalDocCheckResult {
   FractalDocCheckResult(this.errors);
 
@@ -23,6 +34,9 @@ class FractalDocChecker {
         errors.add('absolute path not allowed: $relativePath');
         continue;
       }
+      if (_isExcluded(relativePath)) {
+        continue;
+      }
       final file = File.fromUri(Uri.directory(rootPath).resolve(relativePath));
       if (!file.existsSync()) continue;
       final lines = await _readFirstLines(file, 3);
@@ -36,6 +50,18 @@ class FractalDocChecker {
       }
     }
     return FractalDocCheckResult(errors);
+  }
+
+  bool _isExcluded(String relativePath) {
+    if (_excludedExact.contains(relativePath)) return true;
+    for (final prefix in _excludedPrefixes) {
+      if (relativePath.startsWith(prefix)) return true;
+    }
+    if (relativePath.endsWith('.g.dart') ||
+        relativePath.endsWith('.freezed.dart')) {
+      return true;
+    }
+    return false;
   }
 
   Future<List<String>> _readFirstLines(File file, int count) async {

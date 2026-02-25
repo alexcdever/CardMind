@@ -82,4 +82,15 @@ void main() {
     expect(result.isOk, isTrue);
     expect(result.errors, isEmpty);
   });
+
+  test('ignores excluded paths', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final file = File('${root.path}/build/foo.dart')..createSync(recursive: true);
+    file.writeAsStringSync('void main() {}');
+
+    final checker = FractalDocChecker(rootPath: root.path);
+    final result = await checker.check(changedFiles: ['build/foo.dart']);
+    expect(result.isOk, isTrue);
+  });
 }
