@@ -114,6 +114,27 @@ void main() {
     expect(content.split('\n').first, contains('input:'));
   });
 
+  test('bootstrap adds headers only to dart and rs files', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final dartFile =
+        File('${root.path}/lib/foo.dart')..createSync(recursive: true);
+    dartFile.writeAsStringSync('void main() {}');
+    final rsFile = File('${root.path}/lib/foo.rs')..createSync(recursive: true);
+    rsFile.writeAsStringSync('fn main() {}');
+    final jsFile = File('${root.path}/lib/foo.js')..createSync(recursive: true);
+    jsFile.writeAsStringSync('console.log("x");');
+
+    await bootstrapFractalDocs(rootPath: root.path);
+
+    final dartContent = dartFile.readAsStringSync();
+    final rsContent = rsFile.readAsStringSync();
+    final jsContent = jsFile.readAsStringSync();
+    expect(dartContent.split('\n').first, contains('input:'));
+    expect(rsContent.split('\n').first, contains('input:'));
+    expect(jsContent.split('\n').first, 'console.log("x");');
+  });
+
   test('bootstrap creates DIR.md for ancestor directories', () async {
     final root = Directory.systemTemp.createTempSync('fractal-doc-test');
     addTearDown(() => root.deleteSync(recursive: true));

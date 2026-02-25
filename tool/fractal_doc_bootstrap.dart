@@ -10,25 +10,8 @@ const _headerLines = [
 ];
 
 const _sourceExtensions = {
-  '.c',
-  '.cc',
-  '.cpp',
-  '.cs',
   '.dart',
-  '.go',
-  '.h',
-  '.hpp',
-  '.java',
-  '.js',
-  '.jsx',
-  '.kt',
-  '.kts',
-  '.m',
-  '.mm',
   '.rs',
-  '.swift',
-  '.ts',
-  '.tsx',
 };
 
 Future<void> bootstrapFractalDocs({required String rootPath}) async {
