@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import '../tool/fractal_doc_checker.dart';
+import '../tool/fractal_doc_check.dart';
 
 void main() {
   test('fails when changed file lacks header', () async {
@@ -88,9 +89,56 @@ void main() {
     addTearDown(() => root.deleteSync(recursive: true));
     final file = File('${root.path}/build/foo.dart')..createSync(recursive: true);
     file.writeAsStringSync('void main() {}');
+    final backslashFile =
+        File('${root.path}/build\\foo.dart')..createSync(recursive: true);
+    backslashFile.writeAsStringSync('void main() {}');
 
     final checker = FractalDocChecker(rootPath: root.path);
-    final result = await checker.check(changedFiles: ['build/foo.dart']);
+    final result =
+        await checker.check(changedFiles: ['build/foo.dart', 'build\\foo.dart']);
     expect(result.isOk, isTrue);
+    expect(result.errors, isEmpty);
+  });
+
+  test('fractal doc CLI reports missing --base value', () async {
+    var runCalled = false;
+    Future<ProcessResult> fakeRun(
+      String executable,
+      List<String> arguments,
+    ) async {
+      runCalled = true;
+      return ProcessResult(0, 0, '', '');
+    }
+
+    final errors = <String>[];
+    final exit = await runFractalDocCheck(
+      ['--base'],
+      runProcess: fakeRun,
+      writeError: errors.add,
+    );
+    expect(runCalled, isFalse);
+    expect(exit, isNot(0));
+    expect(errors.single, contains('Usage:'));
+  });
+
+  test('fractal doc CLI reports git diff failure', () async {
+    var runCalled = false;
+    Future<ProcessResult> fakeRun(
+      String executable,
+      List<String> arguments,
+    ) async {
+      runCalled = true;
+      return ProcessResult(0, 1, '', 'diff failed');
+    }
+
+    final errors = <String>[];
+    final exit = await runFractalDocCheck(
+      [],
+      runProcess: fakeRun,
+      writeError: errors.add,
+    );
+    expect(runCalled, isTrue);
+    expect(exit, isNot(0));
+    expect(errors.single, contains('diff failed'));
   });
 }

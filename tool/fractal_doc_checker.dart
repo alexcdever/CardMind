@@ -53,12 +53,13 @@ class FractalDocChecker {
   }
 
   bool _isExcluded(String relativePath) {
-    if (_excludedExact.contains(relativePath)) return true;
+    final normalizedPath = relativePath.replaceAll('\\', '/');
+    if (_excludedExact.contains(normalizedPath)) return true;
     for (final prefix in _excludedPrefixes) {
-      if (relativePath.startsWith(prefix)) return true;
+      if (normalizedPath.startsWith(prefix)) return true;
     }
-    if (relativePath.endsWith('.g.dart') ||
-        relativePath.endsWith('.freezed.dart')) {
+    if (normalizedPath.endsWith('.g.dart') ||
+        normalizedPath.endsWith('.freezed.dart')) {
       return true;
     }
     return false;
