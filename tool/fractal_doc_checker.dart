@@ -69,7 +69,16 @@ class FractalDocChecker {
   bool _dirHasEntry(String dirPath, String fileName) {
     final dirFile = File('$dirPath/DIR.md');
     if (!dirFile.existsSync()) return false;
-    final content = dirFile.readAsStringSync();
-    return content.contains(fileName);
+    final lines = dirFile.readAsLinesSync();
+    final tokenStripper =
+        RegExp(r'^[`*\-~\[\](){}<>.,:;!?]+|[`*\-~\[\](){}<>.,:;!?]+$');
+    for (final line in lines) {
+      final tokens = line.split(RegExp(r'\s+'));
+      for (final rawToken in tokens) {
+        final token = rawToken.replaceAll(tokenStripper, '');
+        if (token == fileName) return true;
+      }
+    }
+    return false;
   }
 }

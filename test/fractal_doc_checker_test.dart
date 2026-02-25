@@ -52,4 +52,19 @@ void main() {
     expect(result.isOk, isFalse);
     expect(result.errors.single, contains('DIR.md missing entry'));
   });
+
+  test('does not match DIR.md substring entries', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final dirFile = File('${root.path}/lib/DIR.md')
+      ..createSync(recursive: true);
+    dirFile.writeAsStringSync('foo.dart.bak\n');
+    final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
+    file.writeAsStringSync('// input: none\n// output: none\n// pos: none\n');
+
+    final checker = FractalDocChecker(rootPath: root.path);
+    final result = await checker.check(changedFiles: ['lib/foo.dart']);
+    expect(result.isOk, isFalse);
+    expect(result.errors.single, contains('DIR.md missing entry'));
+  });
 }
