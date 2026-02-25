@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import '../tool/fractal_doc_bootstrap.dart';
 import '../tool/fractal_doc_checker.dart';
 import '../tool/fractal_doc_check.dart';
 
@@ -98,6 +99,19 @@ void main() {
         await checker.check(changedFiles: ['build/foo.dart', 'build\\foo.dart']);
     expect(result.isOk, isTrue);
     expect(result.errors, isEmpty);
+  });
+
+  test('bootstrap creates DIR.md and headers', () async {
+    final root = Directory.systemTemp.createTempSync('fractal-doc-test');
+    addTearDown(() => root.deleteSync(recursive: true));
+    final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
+    file.writeAsStringSync('void main() {}');
+
+    await bootstrapFractalDocs(rootPath: root.path);
+
+    expect(File('${root.path}/lib/DIR.md').existsSync(), isTrue);
+    final content = file.readAsStringSync();
+    expect(content.split('\n').first, contains('input:'));
   });
 
   test('fractal doc CLI reports missing --base value', () async {

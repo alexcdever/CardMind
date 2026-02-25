@@ -12,6 +12,19 @@ const _excludedPrefixes = [
 ];
 const _excludedExact = ['pubspec.lock'];
 
+bool isExcludedPath(String relativePath) {
+  final normalizedPath = relativePath.replaceAll('\\', '/');
+  if (_excludedExact.contains(normalizedPath)) return true;
+  for (final prefix in _excludedPrefixes) {
+    if (normalizedPath.startsWith(prefix)) return true;
+  }
+  if (normalizedPath.endsWith('.g.dart') ||
+      normalizedPath.endsWith('.freezed.dart')) {
+    return true;
+  }
+  return false;
+}
+
 class FractalDocCheckResult {
   FractalDocCheckResult(this.errors);
 
@@ -34,7 +47,7 @@ class FractalDocChecker {
         errors.add('absolute path not allowed: $relativePath');
         continue;
       }
-      if (_isExcluded(relativePath)) {
+      if (isExcludedPath(relativePath)) {
         continue;
       }
       final file = File.fromUri(Uri.directory(rootPath).resolve(relativePath));
@@ -50,19 +63,6 @@ class FractalDocChecker {
       }
     }
     return FractalDocCheckResult(errors);
-  }
-
-  bool _isExcluded(String relativePath) {
-    final normalizedPath = relativePath.replaceAll('\\', '/');
-    if (_excludedExact.contains(normalizedPath)) return true;
-    for (final prefix in _excludedPrefixes) {
-      if (normalizedPath.startsWith(prefix)) return true;
-    }
-    if (normalizedPath.endsWith('.g.dart') ||
-        normalizedPath.endsWith('.freezed.dart')) {
-      return true;
-    }
-    return false;
   }
 
   Future<List<String>> _readFirstLines(File file, int count) async {
