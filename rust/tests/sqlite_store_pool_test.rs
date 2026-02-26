@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: 临时 SQLite 数据库与 Pool 数据
+// output: SQLite 数据池读写校验
+// pos: SQLite 数据池测试（修改本文件需同步更新文件头与所属 DIR.md）
 use cardmind_rust::models::pool::{Pool, PoolMember};
 use cardmind_rust::store::sqlite_store::SqliteStore;
 use tempfile::tempdir;
@@ -15,11 +15,9 @@ fn it_should_upsert_and_get_pool() -> Result<(), Box<dyn std::error::Error>> {
         pool_id: Uuid::now_v7(),
         pool_key: "k".to_string(),
         members: vec![PoolMember {
-            peer_id: "p".to_string(),
-            public_key: "pk".to_string(),
-            multiaddr: "addr".to_string(),
+            endpoint_id: "p".to_string(),
+            nickname: "n".to_string(),
             os: "os".to_string(),
-            hostname: "h".to_string(),
             is_admin: true,
         }],
         card_ids: vec![Uuid::now_v7()],

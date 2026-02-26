@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: SQLite 文件路径与持久化数据
+// output: 卡片与数据池的 SQLite 读写
+// pos: SQLite 缓存存储实现（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
@@ -31,15 +31,14 @@ impl SqliteStore {
                 pool_id TEXT PRIMARY KEY,
                 pool_key TEXT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS pool_members (
+            DROP TABLE IF EXISTS pool_members;
+            CREATE TABLE pool_members (
                 pool_id TEXT NOT NULL,
-                peer_id TEXT NOT NULL,
-                public_key TEXT NOT NULL,
-                multiaddr TEXT NOT NULL,
+                endpoint_id TEXT NOT NULL,
+                nickname TEXT NOT NULL,
                 os TEXT NOT NULL,
-                hostname TEXT NOT NULL,
                 is_admin INTEGER NOT NULL,
-                PRIMARY KEY (pool_id, peer_id)
+                PRIMARY KEY (pool_id, endpoint_id)
             );
             CREATE TABLE IF NOT EXISTS pool_cards (
                 pool_id TEXT NOT NULL,
@@ -197,15 +196,13 @@ impl SqliteStore {
             self.conn
                 .execute(
                     "INSERT OR REPLACE INTO pool_members
-                    (pool_id, peer_id, public_key, multiaddr, os, hostname, is_admin)
-                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
+                    (pool_id, endpoint_id, nickname, os, is_admin)
+                    VALUES (?1, ?2, ?3, ?4, ?5);",
                     params![
                         pool.pool_id.to_string(),
-                        member.peer_id,
-                        member.public_key,
-                        member.multiaddr,
+                        member.endpoint_id,
+                        member.nickname,
                         member.os,
-                        member.hostname,
                         if member.is_admin { 1 } else { 0 }
                     ],
                 )
@@ -254,19 +251,17 @@ impl SqliteStore {
         let mut member_stmt = self
             .conn
             .prepare(
-                "SELECT peer_id, public_key, multiaddr, os, hostname, is_admin
+                "SELECT endpoint_id, nickname, os, is_admin
                  FROM pool_members WHERE pool_id = ?1;",
             )
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         let member_rows = member_stmt
             .query_map(params![pool_id.to_string()], |row| {
                 Ok(PoolMember {
-                    peer_id: row.get(0)?,
-                    public_key: row.get(1)?,
-                    multiaddr: row.get(2)?,
-                    os: row.get(3)?,
-                    hostname: row.get(4)?,
-                    is_admin: row.get::<_, i64>(5)? != 0,
+                    endpoint_id: row.get(0)?,
+                    nickname: row.get(1)?,
+                    os: row.get(2)?,
+                    is_admin: row.get::<_, i64>(3)? != 0,
                 })
             })
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
