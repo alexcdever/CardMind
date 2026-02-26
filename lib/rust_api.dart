@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 import 'bridge_generated/frb_generated.dart';
 
 class RustApi {

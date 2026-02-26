@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 use thiserror::Error;
 
 /// CardMind 统一错误类型

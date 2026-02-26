@@ -1,8 +1,14 @@
+// input: 
+// output: 
+// pos: 
 import 'dart:convert';
 import 'dart:io';
 
 import 'fractal_doc_checker.dart';
-
+// tool/fractal_doc_bootstrap.dart 顶部 import 后新增
+  Future<void> main(List<String> args) async {
+    await bootstrapFractalDocs(rootPath: Directory.current.path);
+  }
 const _headerLines = [
   '// input: ',
   '// output: ',

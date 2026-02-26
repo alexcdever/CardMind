@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 /// 卡片模型
 pub mod card;
 /// 数据池模型

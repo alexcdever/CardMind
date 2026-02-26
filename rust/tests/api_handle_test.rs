@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 use cardmind_rust::api::{close_card_store, init_card_store};
 
 #[test]

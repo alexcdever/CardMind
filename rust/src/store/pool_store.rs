@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
 use crate::store::loro_store::{load_loro_doc, pool_doc_path, save_loro_doc};

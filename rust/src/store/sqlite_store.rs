@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};

@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 use cardmind_rust::store::card_store::CardStore;
 use tempfile::tempdir;
 

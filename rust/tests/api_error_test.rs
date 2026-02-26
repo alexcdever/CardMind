@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 use cardmind_rust::models::api_error::{ApiError, ApiErrorCode};
 
 #[test]

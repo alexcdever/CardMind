@@ -1,3 +1,6 @@
+// input: 
+// output: 
+// pos: 
 use cardmind_rust::store::path_resolver::DataPaths;
 
 #[test]
