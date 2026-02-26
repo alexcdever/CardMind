@@ -14,3 +14,4 @@
 2026-02-25-fractal-documentation-implementation-plan.md - 实现计划 - 文档规范实施
 2026-02-26-iroh-migration-design.md - 设计草案 - iroh 成员字段调整设计
 2026-02-26-iroh-migration-implementation-plan.md - 实现计划 - iroh 成员字段调整实施
+2026-02-26-pool-network-sync-design.md - 设计草案 - 数据池组网与同步设计
