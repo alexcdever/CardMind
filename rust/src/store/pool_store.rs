@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: 数据池基础信息与成员数据
+// output: 读取/写入本地 Loro + SQLite 数据池
+// pos: 本地数据池存储实现（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
 use crate::store::loro_store::{load_loro_doc, pool_doc_path, save_loro_doc};
@@ -30,11 +30,9 @@ impl PoolStore {
     pub fn create_pool(
         &self,
         pool_key: &str,
-        peer_id: &str,
-        public_key: &str,
-        multiaddr: &str,
+        endpoint_id: &str,
+        nickname: &str,
         os: &str,
-        hostname: &str,
     ) -> Result<Pool, CardMindError> {
         if pool_key.trim().is_empty() {
             return Err(CardMindError::InvalidArgument(
@@ -45,11 +43,9 @@ impl PoolStore {
             pool_id: new_uuid_v7(),
             pool_key: pool_key.to_string(),
             members: vec![PoolMember {
-                peer_id: peer_id.to_string(),
-                public_key: public_key.to_string(),
-                multiaddr: multiaddr.to_string(),
+                endpoint_id: endpoint_id.to_string(),
+                nickname: nickname.to_string(),
                 os: os.to_string(),
-                hostname: hostname.to_string(),
                 is_admin: true,
             }],
             card_ids: Vec::new(),
@@ -74,7 +70,7 @@ impl PoolStore {
         if !updated
             .members
             .iter()
-            .any(|member| member.peer_id == new_member.peer_id)
+            .any(|member| member.endpoint_id == new_member.endpoint_id)
         {
             updated.members.push(new_member);
         }
@@ -88,9 +84,10 @@ impl PoolStore {
     }
 
     /// 离开数据池
-    pub fn leave_pool(&self, pool_id: &Uuid, peer_id: &str) -> Result<Pool, CardMindError> {
+    pub fn leave_pool(&self, pool_id: &Uuid, endpoint_id: &str) -> Result<Pool, CardMindError> {
         let mut pool = self.sqlite.get_pool(pool_id)?;
-        pool.members.retain(|member| member.peer_id != peer_id);
+        pool.members
+            .retain(|member| member.endpoint_id != endpoint_id);
         self.persist_pool(&pool)?;
         Ok(pool)
     }
@@ -112,11 +109,9 @@ impl PoolStore {
         }
         for member in &pool.members {
             let values = vec![
-                LoroValue::from(member.peer_id.as_str()),
-                LoroValue::from(member.public_key.as_str()),
-                LoroValue::from(member.multiaddr.as_str()),
+                LoroValue::from(member.endpoint_id.as_str()),
+                LoroValue::from(member.nickname.as_str()),
                 LoroValue::from(member.os.as_str()),
-                LoroValue::from(member.hostname.as_str()),
                 LoroValue::from(member.is_admin),
             ];
             members_list

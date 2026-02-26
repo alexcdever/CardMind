@@ -1,0 +1,19 @@
+目录变更需更新本文件。
+Rust 测试目录，覆盖核心模型与存储逻辑。
+新增/更新测试需同步登记。
+
+api_error_test.rs - 测试 - API 错误结构测试
+api_handle_test.rs - 测试 - API 句柄初始化测试
+card_model_test.rs - 测试 - 卡片模型测试
+card_store_persist_test.rs - 测试 - 卡片存储持久化测试
+card_store_test.rs - 测试 - 卡片存储基础测试
+loro_persist_test.rs - 测试 - Loro 持久化测试
+loro_store_test.rs - 测试 - Loro 存储读写测试
+path_resolver_test.rs - 测试 - 路径解析测试
+pool_store_persist_test.rs - 测试 - 数据池持久化测试
+pool_store_test.rs - 测试 - 数据池存储测试
+smoke_test.rs - 测试 - 构建烟雾测试
+sqlite_store_cards_test.rs - 测试 - SQLite 卡片持久化测试
+sqlite_store_pool_test.rs - 测试 - SQLite 数据池持久化测试
+sqlite_store_test.rs - 测试 - SQLite 初始化测试
+uuid_v7_test.rs - 测试 - UUID v7 生成测试
