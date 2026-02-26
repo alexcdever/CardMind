@@ -559,11 +559,9 @@ fn it_should_upsert_and_get_pool() -> Result<(), Box<dyn std::error::Error>> {
         pool_id: Uuid::now_v7(),
         pool_key: "k".to_string(),
         members: vec![PoolMember {
-            peer_id: "p".to_string(),
-            public_key: "pk".to_string(),
-            multiaddr: "addr".to_string(),
+            endpoint_id: "p".to_string(),
+            nickname: "n".to_string(),
             os: "os".to_string(),
-            hostname: "h".to_string(),
             is_admin: true,
         }],
         card_ids: vec![Uuid::now_v7()],
@@ -683,7 +681,7 @@ use tempfile::tempdir;
 fn it_should_create_and_read_pool() -> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
     let store = PoolStore::new(dir.path().to_string_lossy().as_ref())?;
-    let pool = store.create_pool("key", "peer", "pk", "addr", "os", "host")?;
+    let pool = store.create_pool("key", "endpoint", "nickname", "os")?;
     let loaded = store.get_pool(&pool.pool_id)?;
     assert_eq!(loaded.pool_key, "key");
     Ok(())
@@ -701,10 +699,10 @@ pub struct PoolStore {
 
 impl PoolStore {
     pub fn new(base_path: &str) -> Result<Self, CardMindError> { ... }
-    pub fn create_pool(&self, pool_key: &str, peer_id: &str, public_key: &str, multiaddr: &str, os: &str, hostname: &str) -> Result<Pool, CardMindError> { ... }
+    pub fn create_pool(&self, pool_key: &str, endpoint_id: &str, nickname: &str, os: &str) -> Result<Pool, CardMindError> { ... }
     pub fn get_pool(&self, pool_id: &Uuid) -> Result<Pool, CardMindError> { ... }
     pub fn join_pool(&self, pool: &Pool, new_member: PoolMember, local_card_ids: Vec<Uuid>) -> Result<Pool, CardMindError> { ... }
-    pub fn leave_pool(&self, pool_id: &Uuid, peer_id: &str) -> Result<Pool, CardMindError> { ... }
+    pub fn leave_pool(&self, pool_id: &Uuid, endpoint_id: &str) -> Result<Pool, CardMindError> { ... }
 }
 ```
 

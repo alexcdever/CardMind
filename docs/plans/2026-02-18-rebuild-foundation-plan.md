@@ -440,6 +440,6 @@ git commit -m "feat(rust): add local card store skeleton"
 
 ## 执行说明
 该计划仅覆盖“本地数据层与规格骨架”。完成后再继续规划：
-- libp2p + mDNS 加入/审批流程
+- iroh + discovery 加入/审批流程
 - Flutter 双端 UI 与交互
 - FRB API 暴露与状态管理

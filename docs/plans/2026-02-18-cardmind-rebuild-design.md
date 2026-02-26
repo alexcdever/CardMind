@@ -5,7 +5,7 @@
 - 离线优先：所有写入进入 Loro，所有读取来自 SQLite
 - 数据池可选：未加入池也可使用完整笔记功能
 - 单池模式：同一时间仅允许加入一个数据池
-- 池内同步：仅在加入池后启用 libp2p + mDNS
+- 池内同步：仅在加入池后启用 iroh + discovery
 
 ## 非目标
 - 不做多池并行
@@ -17,19 +17,17 @@
   - 写入：Loro CRDT（真相源）
   - 读取：SQLite（查询缓存）
   - 数据流：`loro_doc.commit()` → 订阅回调 → SQLite 更新
-- 池外不启动任何 libp2p 组件
-- 池内启动 libp2p，mDNS 仅用于发现
+- 池外不启动任何 iroh 组件
+- 池内启动 iroh，discovery 仅用于发现
 
 ## 数据模型
 ### 数据池元数据（LoroDoc）
 - `pool_id`: UUID v7
 - `pool_key`: 32 字节随机数（Base64）
 - `members[]`:
-  - `peer_id`
-  - `public_key`
-  - `multiaddr`
+  - `endpoint_id`
+  - `nickname`
   - `os`
-  - `hostname`
   - `is_admin`
 - `card_ids[]`: UUID v7 列表
 
@@ -55,24 +53,22 @@
 ### 创建池
 1. 生成 `pool_id`（UUID v7）与 `pool_key`（Base64）
 2. 创建池元数据 LoroDoc，并写入 `members`（创建者 `is_admin = true`）
-3. 启动 libp2p + mDNS
+3. 启动 iroh + discovery
 
 ### 未加入池的笔记
 - 允许完整笔记功能
-- 不启动 libp2p
+- 不启动 iroh
 - 不创建池元数据
 
 ### 加入池（二维码 + 审批）
 - 任一成员可生成二维码，包含：
   - `pool_id_hash`
   - `pool_key_hash`
-  - 生成者 `peer_id`
-  - 生成者 `multiaddr`
+  - 生成者 `endpoint_id`
 - 申请方扫码后发送加入请求，包含：
-  - 自身 `peer_id`
-  - 自身 `multiaddr`
+  - 自身 `endpoint_id`
+  - `nickname`
   - `os`
-  - `hostname`
 - 若接收者是管理员：弹窗审批
 - 若接收者不是管理员：转发给在线管理员
 - 审批通过后，管理员返回完整池元数据（包含明文 `pool_key`）
@@ -80,14 +76,14 @@
 - 加入时将本地已有卡片 `id` 全部写入 `card_ids`
 
 ### 池内同步
-- 基于 `members` 中的 `peer_id + public_key + multiaddr` 直连同步
-- mDNS 仅用于发现在线节点
+- 基于 `members` 中的 `endpoint_id` 直连同步
+- discovery 仅用于发现在线节点
 
 ### 退出池
 1. 读取池元数据 `card_ids`
 2. 物理删除这些卡片：删除 Loro 文件 + SQLite 记录
 3. 删除本地池元数据 LoroDoc
-4. 关闭 libp2p + mDNS
+4. 关闭 iroh + discovery
 
 ## 错误码（加入池）
 - `POOL_NOT_FOUND`
