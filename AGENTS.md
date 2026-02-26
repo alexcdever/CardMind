@@ -1,5 +1,8 @@
 # Repository Guidelines
 
+## Documentation Standard
+- [Fractal Documentation Standard](docs/standards/documentation.md)
+
 ## Project Structure & Module Organization
 - `lib/`：Flutter 业务与界面代码。
 - `test/`：Flutter 单元/组件测试。

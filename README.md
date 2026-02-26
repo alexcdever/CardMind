@@ -2,6 +2,10 @@
 
 A new Flutter project.
 
+## Documentation Standard
+
+- [Fractal Documentation Standard](docs/standards/documentation.md)
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
