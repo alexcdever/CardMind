@@ -1,5 +1,6 @@
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
+import 'package:cardmind/features/onboarding/onboarding_page.dart';
 import 'package:flutter/material.dart';
 
 class CardMindApp extends StatelessWidget {
@@ -10,10 +11,7 @@ class CardMindApp extends StatelessWidget {
     return MaterialApp(
       title: 'CardMind',
       theme: ThemeData(useMaterial3: true),
-      home: const AdaptiveShell(
-        section: AppSection.cards,
-        child: Center(child: Text('卡片')),
-      ),
+      home: const OnboardingPage(),
     );
   }
 }
