@@ -2,10 +2,16 @@ import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';
 
 class AdaptiveShell extends StatelessWidget {
-  const AdaptiveShell({super.key, required this.child, required this.section});
+  const AdaptiveShell({
+    super.key,
+    required this.child,
+    required this.section,
+    required this.onSectionChanged,
+  });
 
   final Widget child;
   final AppSection section;
+  final ValueChanged<AppSection> onSectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +45,9 @@ class AdaptiveShell extends StatelessWidget {
               ),
             ],
             selectedIndex: section.index,
+            onDestinationSelected: (index) {
+              onSectionChanged(AppSection.values[index]);
+            },
           ),
           Expanded(child: child),
         ],
@@ -49,6 +58,9 @@ class AdaptiveShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: section.index,
+        onTap: (index) {
+          onSectionChanged(AppSection.values[index]);
+        },
         items: destinations
             .map(
               (item) =>
