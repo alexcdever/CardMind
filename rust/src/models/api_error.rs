@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: CardMind 错误码枚举
+// output: 面向外部 API 的错误码字符串
+// pos: API 错误码定义（修改本文件需同步更新文件头与所属 DIR.md）
 use serde::{Deserialize, Serialize};
 
 /// 对外 API 错误码
@@ -30,6 +30,8 @@ pub enum ApiErrorCode {
     RejectedByAdmin,
     /// 已是成员
     AlreadyMember,
+    /// 非成员
+    NotMember,
     /// 内部错误
     Internal,
 }
@@ -50,6 +52,7 @@ impl ApiErrorCode {
             ApiErrorCode::RequestTimeout => "REQUEST_TIMEOUT",
             ApiErrorCode::RejectedByAdmin => "REJECTED_BY_ADMIN",
             ApiErrorCode::AlreadyMember => "ALREADY_MEMBER",
+            ApiErrorCode::NotMember => "NOT_MEMBER",
             ApiErrorCode::Internal => "INTERNAL",
         }
     }

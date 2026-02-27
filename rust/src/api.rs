@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: CardMind 统一错误类型与存储句柄
+// output: 对外 API 错误与句柄管理
+// pos: FRB API 入口（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::store::card_store::CardStore;
@@ -20,6 +20,7 @@ fn map_err(err: CardMindError) -> ApiError {
         CardMindError::InvalidArgument(msg) => ApiError::new(ApiErrorCode::InvalidArgument, &msg),
         CardMindError::NotFound(msg) => ApiError::new(ApiErrorCode::NotFound, &msg),
         CardMindError::NotImplemented(msg) => ApiError::new(ApiErrorCode::NotImplemented, &msg),
+        CardMindError::NotMember(msg) => ApiError::new(ApiErrorCode::NotMember, &msg),
         CardMindError::Io(msg) => ApiError::new(ApiErrorCode::IoError, &msg),
         CardMindError::Sqlite(msg) => ApiError::new(ApiErrorCode::SqliteError, &msg),
         _ => ApiError::new(ApiErrorCode::Internal, "internal error"),

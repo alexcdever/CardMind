@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: CardMind 错误定义
+// output: 统一错误类型枚举
+// pos: CardMind 统一错误类型（修改本文件需同步更新文件头与所属 DIR.md）
 use thiserror::Error;
 
 /// CardMind 统一错误类型
@@ -24,6 +24,9 @@ pub enum CardMindError {
     /// 未实现
     #[error("not implemented: {0}")]
     NotImplemented(String),
+    /// 非成员
+    #[error("not member: {0}")]
+    NotMember(String),
     /// 内部错误
     #[error("internal error: {0}")]
     Internal(String),
