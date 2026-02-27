@@ -1,5 +1,10 @@
+// input: 编辑交互（输入、快捷键保存、返回）
+// output: 可编辑卡片界面、保存反馈与离开保护决策
+// pos: 卡片编辑页面；修改本文件需同步更新文件头与所属 DIR.md
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:cardmind/features/editor/editor_controller.dart';
 
 class EditorPage extends StatefulWidget {
   const EditorPage({super.key});
@@ -9,8 +14,7 @@ class EditorPage extends StatefulWidget {
 }
 
 class _EditorPageState extends State<EditorPage> {
-  bool _dirty = false;
-  bool _saved = false;
+  final EditorController _controller = EditorController();
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +28,7 @@ class _EditorPageState extends State<EditorPage> {
           _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) {
               setState(() {
-                _saved = true;
+                _controller.saveLocal();
               });
               return null;
             },
@@ -32,15 +36,28 @@ class _EditorPageState extends State<EditorPage> {
         },
         child: Focus(
           autofocus: true,
-          child: WillPopScope(
-            onWillPop: () async {
+          child: PopScope<void>(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) async {
+              if (didPop) {
+                return;
+              }
               await _onBack();
-              return false;
             },
             child: Scaffold(
               appBar: AppBar(
                 leading: BackButton(onPressed: _onBack),
                 title: const Text('编辑卡片'),
+                actions: [
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _controller.saveLocal();
+                      });
+                    },
+                    icon: const Icon(Icons.save_outlined),
+                  ),
+                ],
               ),
               body: Padding(
                 padding: const EdgeInsets.all(16),
@@ -49,7 +66,7 @@ class _EditorPageState extends State<EditorPage> {
                     TextField(
                       decoration: const InputDecoration(labelText: '标题'),
                       onChanged: (_) => setState(() {
-                        _dirty = true;
+                        _controller.onContentChanged();
                       }),
                     ),
                     const SizedBox(height: 12),
@@ -65,11 +82,11 @@ class _EditorPageState extends State<EditorPage> {
                           hintText: '输入卡片内容',
                         ),
                         onChanged: (_) => setState(() {
-                          _dirty = true;
+                          _controller.onContentChanged();
                         }),
                       ),
                     ),
-                    if (_saved)
+                    if (_controller.saved)
                       const Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: Text('本地已保存'),
@@ -85,7 +102,7 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Future<void> _onBack() async {
-    if (!_dirty) {
+    if (!_controller.dirty) {
       if (mounted) Navigator.of(context).maybePop();
       return;
     }
@@ -99,11 +116,15 @@ class _EditorPageState extends State<EditorPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(_ExitDecision.save),
-              child: const Text('保存并退出'),
+              child: const Text('保存并离开'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(_ExitDecision.discard),
               child: const Text('放弃更改'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(_ExitDecision.cancel),
+              child: const Text('取消'),
             ),
           ],
         );
@@ -114,9 +135,13 @@ class _EditorPageState extends State<EditorPage> {
       return;
     }
 
+    if (decision == _ExitDecision.cancel) {
+      return;
+    }
+
     if (decision == _ExitDecision.save) {
       setState(() {
-        _saved = true;
+        _controller.saveLocal();
       });
     }
 
@@ -128,4 +153,4 @@ class _SaveIntent extends Intent {
   const _SaveIntent();
 }
 
-enum _ExitDecision { save, discard }
+enum _ExitDecision { save, discard, cancel }

@@ -7,6 +7,8 @@
 ## 2. 必跑校验命令
 - `flutter analyze`
 - `flutter test`
+- `flutter test test/ui_interaction_governance_docs_test.dart`
+- `flutter test test/interaction_guard_test.dart`
 - `dart run tool/fractal_doc_check.dart --base <commit>`
 
 ## 3. 拒绝条件

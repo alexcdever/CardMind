@@ -34,8 +34,11 @@ class AdaptiveShellForTest extends StatelessWidget {
       data: MediaQueryData(size: Size(width, 844)),
       child: const AdaptiveShell(
         section: AppSection.cards,
+        onSectionChanged: _noopSectionChanged,
         child: SizedBox.shrink(),
       ),
     );
   }
+
+  static void _noopSectionChanged(AppSection _) {}
 }

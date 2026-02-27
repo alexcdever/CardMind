@@ -1,15 +1,45 @@
+// input: 初始池状态与页面内用户动作
+// output: 池加入/已加入/异常/恢复态的可见反馈与界面流转
+// pos: 数据池流程页面；修改本文件需同步更新文件头与所属 DIR.md
+import 'dart:async';
+
+import 'package:cardmind/features/pool/pool_controller.dart';
+import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/sync/sync_banner.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
-class PoolPage extends StatelessWidget {
+class PoolPage extends StatefulWidget {
   const PoolPage({super.key, required this.state});
 
   final PoolState state;
 
   @override
+  State<PoolPage> createState() => _PoolPageState();
+}
+
+class _PoolPageState extends State<PoolPage> {
+  late final PoolController _controller = PoolController(
+    initialState: widget.state,
+  )..addListener(_onStateChanged);
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onStateChanged);
+    super.dispose();
+  }
+
+  void _onStateChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = _controller.state;
+
     if (state is PoolNotJoined) {
       return Scaffold(
         body: SafeArea(
@@ -22,7 +52,7 @@ class PoolPage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ElevatedButton(
-                        onPressed: () => _enterJoined(context),
+                        onPressed: _controller.createPool,
                         child: const Text('创建池'),
                       ),
                       const SizedBox(height: 12),
@@ -66,6 +96,41 @@ class PoolPage extends StatelessWidget {
                   child: const Text('退出池'),
                 ),
               ),
+              if (state.pending.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Text('待审批请求'),
+                ),
+              for (final request in state.pending)
+                ListTile(
+                  title: Text(request.displayName),
+                  subtitle: request.error == null ? null : Text(request.error!),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextButton(
+                        onPressed: () => _controller.approve(request.id),
+                        child: const Text('通过'),
+                      ),
+                      TextButton(
+                        onPressed: () => _controller.reject(request.id),
+                        child: const Text('拒绝'),
+                      ),
+                    ],
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextButton(
+                  onPressed: _controller.simulateRejectFailurePending,
+                  child: const Text('模拟失败请求'),
+                ),
+              ),
+              if (state.approvalMessage != null)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(state.approvalMessage!),
+                ),
             ],
           ),
         ),
@@ -73,7 +138,8 @@ class PoolPage extends StatelessWidget {
     }
 
     if (state is PoolError) {
-      final errorCode = (state as PoolError).code;
+      final errorCode = state.code;
+      final mapped = mapJoinError(errorCode);
       return Scaffold(
         body: SafeArea(
           child: Column(
@@ -88,18 +154,29 @@ class PoolPage extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('加入失败: $errorCode'),
+                child: Text('加入失败: ${mapped.message}'),
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          const PoolPage(state: PoolState.notJoined()),
-                    ),
-                  );
+                  _controller.setState(const PoolState.notJoined());
                 },
-                child: const Text('重试加入'),
+                child: Text(mapped.primaryActionLabel),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (state is PoolExitPartialCleanup) {
+      return Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              const Padding(padding: EdgeInsets.all(16), child: Text('部分清理失败')),
+              ElevatedButton(
+                onPressed: _controller.retryCleanup,
+                child: const Text('重试清理'),
               ),
             ],
           ),
@@ -110,16 +187,7 @@ class PoolPage extends StatelessWidget {
     return const Scaffold(body: SizedBox.shrink());
   }
 
-  void _enterJoined(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => const PoolPage(state: PoolState.joined()),
-      ),
-    );
-  }
-
   Future<void> _scanAndJoin(BuildContext context) async {
-    final navigator = Navigator.of(context);
     final code = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
@@ -147,11 +215,7 @@ class PoolPage extends StatelessWidget {
     if (code == null) return;
 
     if (code == 'ok') {
-      navigator.pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => const PoolPage(state: PoolState.joined()),
-        ),
-      );
+      _controller.setState(const PoolState.joined());
       return;
     }
 
@@ -159,15 +223,10 @@ class PoolPage extends StatelessWidget {
         ? 'ADMIN_OFFLINE'
         : 'REQUEST_TIMEOUT';
 
-    navigator.pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => PoolPage(state: PoolState.error(errorCode)),
-      ),
-    );
+    _controller.setState(PoolState.error(errorCode));
   }
 
   Future<void> _confirmLeavePool(BuildContext context) async {
-    final navigator = Navigator.of(context);
     final shouldLeave = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -189,10 +248,10 @@ class PoolPage extends StatelessWidget {
 
     if (shouldLeave != true) return;
 
-    navigator.pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => const PoolPage(state: PoolState.notJoined()),
-      ),
+    unawaited(
+      Future<void>(() {
+        _controller.confirmExit();
+      }),
     );
   }
 }

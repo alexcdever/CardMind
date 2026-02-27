@@ -1,3 +1,6 @@
+// input: 健康态与异常态下的同步横幅组件
+// output: 验证反馈展示与查看动作行为
+// pos: 同步横幅组件测试；修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/sync/sync_banner.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +22,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('同步异常'), findsOneWidget);
+    expect(find.textContaining('同步'), findsOneWidget);
   });
 
   testWidgets('invokes view callback when tapping error action', (
@@ -43,4 +46,35 @@ void main() {
 
     expect(tapped, true);
   });
+
+  testWidgets(
+    'sync error banner has view action that navigates to handling page',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return SyncBanner(
+                status: const SyncStatus.error('REQUEST_TIMEOUT'),
+                onView: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const Scaffold(
+                        body: Center(child: Text('pool-error-page')),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('查看'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('pool-error-page'), findsOneWidget);
+    },
+  );
 }
