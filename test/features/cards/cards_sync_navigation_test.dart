@@ -1,6 +1,6 @@
-// input: cards page with sync error status
-// output: verifies error handling navigation and editor non-blocking flow
-// pos: cards sync interaction test; 修改本文件需同步更新文件头与所属 DIR.md
+// input: 带同步异常状态的卡片页
+// output: 验证异常处理跳转与编辑流程不阻断
+// pos: 卡片同步交互测试；修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';

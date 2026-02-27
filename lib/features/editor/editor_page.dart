@@ -1,6 +1,6 @@
-// input: editor interactions (typing, shortcut save, back navigation)
-// output: editable note UI with save feedback and leave guard decisions
-// pos: card editor page; 修改本文件需同步更新文件头与所属 DIR.md
+// input: 编辑交互（输入、快捷键保存、返回）
+// output: 可编辑卡片界面、保存反馈与离开保护决策
+// pos: 卡片编辑页面；修改本文件需同步更新文件头与所属 DIR.md
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

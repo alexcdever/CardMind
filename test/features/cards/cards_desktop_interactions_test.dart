@@ -1,6 +1,6 @@
-// input: cards page widget in desktop-like pointer interaction
-// output: asserts secondary click opens context menu item
-// pos: cards desktop interaction regression test; 修改本文件需同步更新文件头与所属 DIR.md
+// input: 桌面指针场景下的卡片页组件
+// output: 断言右键交互可打开上下文菜单项
+// pos: 卡片桌面交互回归测试；修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';

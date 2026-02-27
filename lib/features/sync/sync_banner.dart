@@ -1,6 +1,6 @@
-// input: sync status and optional view callback
-// output: healthy label or actionable sync error banner
-// pos: global sync feedback widget; 修改本文件需同步更新文件头与所属 DIR.md
+// input: 同步状态与可选查看回调
+// output: 健康提示或可操作的同步异常横幅
+// pos: 全局同步反馈组件；修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 

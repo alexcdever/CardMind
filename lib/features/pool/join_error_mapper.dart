@@ -1,6 +1,6 @@
-// input: backend join error code
-// output: readable join error message with next-step action metadata
-// pos: pool join error mapping; 修改本文件需同步更新文件头与所属 DIR.md
+// input: 后端返回的加入池错误码
+// output: 可理解错误文案与下一步动作模型
+// pos: 加入池错误映射；修改本文件需同步更新文件头与所属 DIR.md
 enum JoinAction {
   retryWithNewInfo,
   rescan,

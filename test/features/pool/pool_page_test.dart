@@ -1,6 +1,6 @@
-// input: pool page rendered under not-joined/joined/error/recovery states
-// output: verifies S3 join/approve/exit/retry flows and observable outcomes
-// pos: pool page workflow regression tests; 修改本文件需同步更新文件头与所属 DIR.md
+// input: 未加入/已加入/异常/恢复态下的数据池页面
+// output: 验证 S3 加入/审批/退出/重试流程与可观察结果
+// pos: 数据池页面流程回归测试；修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';

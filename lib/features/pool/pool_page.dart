@@ -1,6 +1,6 @@
-// input: initial pool state and in-page user actions
-// output: pool join/joined/error/recovery UI transitions with visible feedback
-// pos: pool workflow page; 修改本文件需同步更新文件头与所属 DIR.md
+// input: 初始池状态与页面内用户动作
+// output: 池加入/已加入/异常/恢复态的可见反馈与界面流转
+// pos: 数据池流程页面；修改本文件需同步更新文件头与所属 DIR.md
 import 'dart:async';
 
 import 'package:cardmind/features/pool/pool_controller.dart';
