@@ -24,3 +24,7 @@
 2026-02-27-build-cli-design.md - 设计草案 - 多平台构建 CLI 设计
 2026-02-27-build-cli-implementation-plan.md - 实现计划 - CardMind 多平台构建 CLI 实施步骤
 2026-02-27-build-cli-implementation-plan.md - 实施状态 - 按 Task 1-6 执行并采用逐任务 TDD+汇报
+2026-02-27-ui-interaction-governance-design.md - 设计草案 - UI 交互治理（单人探索版，双轨验收）
+2026-02-27-ui-interaction-governance-implementation-plan.md - 实现计划 - UI 交互治理文档与守卫测试实施
+2026-02-27-ui-interaction-acceptance-matrix.md - 验收矩阵 - 五大场景双轨验收映射与门禁
+2026-02-27-ui-interaction-release-gate.md - 发布门禁 - 双轨达标前禁止合并与发布
