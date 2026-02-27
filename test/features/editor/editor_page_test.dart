@@ -10,8 +10,9 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    expect(find.text('保存并退出'), findsOneWidget);
+    expect(find.text('保存并离开'), findsOneWidget);
     expect(find.text('放弃更改'), findsOneWidget);
+    expect(find.text('取消'), findsOneWidget);
   });
 
   testWidgets('has title and content editors', (tester) async {

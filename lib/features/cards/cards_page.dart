@@ -6,14 +6,24 @@ import 'package:cardmind/features/sync/sync_banner.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
-class CardsPage extends StatelessWidget {
+class CardsPage extends StatefulWidget {
   const CardsPage({super.key, this.syncStatus = const SyncStatus.healthy()});
 
   final SyncStatus syncStatus;
 
   @override
+  State<CardsPage> createState() => _CardsPageState();
+}
+
+class _CardsPageState extends State<CardsPage> {
+  final List<_CardNote> _notes = <_CardNote>[
+    const _CardNote(title: '示例卡片A', deleted: false),
+  ];
+
+  @override
   Widget build(BuildContext context) {
     final interactions = const CardsDesktopInteractions();
+    final note = _notes.first;
 
     return Scaffold(
       body: GestureDetector(
@@ -24,7 +34,7 @@ class CardsPage extends StatelessWidget {
         child: Column(
           children: [
             SyncBanner(
-              status: syncStatus,
+              status: widget.syncStatus,
               onView: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -36,6 +46,21 @@ class CardsPage extends StatelessWidget {
               },
             ),
             const TextField(decoration: InputDecoration(hintText: '搜索卡片')),
+            ListTile(
+              title: Text(note.title),
+              subtitle: note.deleted ? const Text('已删除') : null,
+              trailing: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _notes[0] = _CardNote(
+                      title: note.title,
+                      deleted: !note.deleted,
+                    );
+                  });
+                },
+                child: Text(note.deleted ? '恢复' : '删除'),
+              ),
+            ),
           ],
         ),
       ),
@@ -49,4 +74,11 @@ class CardsPage extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CardNote {
+  const _CardNote({required this.title, required this.deleted});
+
+  final String title;
+  final bool deleted;
 }
