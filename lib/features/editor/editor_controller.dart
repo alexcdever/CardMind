@@ -1,0 +1,3 @@
+class EditorController {
+  const EditorController();
+}
