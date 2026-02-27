@@ -7,6 +7,7 @@ use crate::net::endpoint::{build_endpoint, PoolEndpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::store::card_store::CardStore;
 use crate::store::pool_store::PoolStore;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
@@ -36,6 +37,11 @@ fn map_err(err: CardMindError) -> ApiError {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncStatusDto {
+    pub state: String,
+}
+
 /// 初始化 CardStore
 pub fn init_card_store(base_path: String) -> Result<u64, ApiError> {
     let store = CardStore::new(&base_path).map_err(map_err)?;
@@ -53,7 +59,10 @@ pub fn close_card_store(store_id: u64) -> Result<(), ApiError> {
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
     if map.remove(&store_id).is_none() {
-        return Err(ApiError::new(ApiErrorCode::NotFound, "card store not found"));
+        return Err(ApiError::new(
+            ApiErrorCode::NotFound,
+            "card store not found",
+        ));
     }
     Ok(())
 }
@@ -88,4 +97,19 @@ pub fn close_pool_network(network_id: u64) -> Result<(), ApiError> {
         ));
     }
     Ok(())
+}
+
+pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    if !map.contains_key(&network_id) {
+        return Err(ApiError::new(
+            ApiErrorCode::InvalidHandle,
+            "pool network handle invalid",
+        ));
+    }
+    Ok(SyncStatusDto {
+        state: "idle".to_string(),
+    })
 }

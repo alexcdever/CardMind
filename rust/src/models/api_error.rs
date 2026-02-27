@@ -32,6 +32,12 @@ pub enum ApiErrorCode {
     AlreadyMember,
     /// 非成员
     NotMember,
+    /// 网络不可用
+    NetworkUnavailable,
+    /// 同步超时
+    SyncTimeout,
+    /// 句柄无效
+    InvalidHandle,
     /// 内部错误
     Internal,
 }
@@ -53,6 +59,9 @@ impl ApiErrorCode {
             ApiErrorCode::RejectedByAdmin => "REJECTED_BY_ADMIN",
             ApiErrorCode::AlreadyMember => "ALREADY_MEMBER",
             ApiErrorCode::NotMember => "NOT_MEMBER",
+            ApiErrorCode::NetworkUnavailable => "NETWORK_UNAVAILABLE",
+            ApiErrorCode::SyncTimeout => "SYNC_TIMEOUT",
+            ApiErrorCode::InvalidHandle => "INVALID_HANDLE",
             ApiErrorCode::Internal => "INTERNAL",
         }
     }
