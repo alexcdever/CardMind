@@ -4,3 +4,4 @@
 pub mod codec;
 pub mod endpoint;
 pub mod messages;
+pub mod session;
