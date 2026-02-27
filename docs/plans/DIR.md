@@ -19,3 +19,5 @@
 2026-02-27-mobile-desktop-ui-interaction-design.md - 设计草案 - 移动端与桌面端 UI 交互设计
 2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 实现计划 - 移动端与桌面端 UI 交互实施
 2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 实施状态 - 按 Task 1-9 执行并采用逐任务 TDD+提交
+2026-02-27-build-cli-implementation-plan.md - 实现计划 - CardMind 多平台构建 CLI 实施步骤
+2026-02-27-build-cli-implementation-plan.md - 实施状态 - 按 Task 1-6 执行并采用逐任务 TDD+汇报
