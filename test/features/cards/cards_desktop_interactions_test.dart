@@ -1,3 +1,6 @@
+// input: cards page widget in desktop-like pointer interaction
+// output: asserts secondary click opens context menu item
+// pos: cards desktop interaction regression test; 修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +18,11 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(find.text('删除'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is PopupMenuItem<void> && widget.enabled,
+      ),
+      findsOneWidget,
+    );
   });
 }

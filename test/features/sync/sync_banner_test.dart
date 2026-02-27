@@ -1,3 +1,6 @@
+// input: sync banner in healthy and error statuses
+// output: verifies visible feedback and view action behavior
+// pos: sync banner widget tests; 修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/sync/sync_banner.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';

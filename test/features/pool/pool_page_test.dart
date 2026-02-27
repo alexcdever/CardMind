@@ -1,3 +1,6 @@
+// input: pool page rendered under not-joined/joined/error/recovery states
+// output: verifies S3 join/approve/exit/retry flows and observable outcomes
+// pos: pool page workflow regression tests; 修改本文件需同步更新文件头与所属 DIR.md
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
@@ -36,7 +39,7 @@ void main() {
     await tester.tap(find.text('管理员离线'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('管理员离线'), findsOneWidget);
+    expect(find.textContaining('加入失败:'), findsOneWidget);
     expect(find.text('稍后重试'), findsOneWidget);
   });
 

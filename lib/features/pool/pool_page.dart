@@ -1,3 +1,6 @@
+// input: initial pool state and in-page user actions
+// output: pool join/joined/error/recovery UI transitions with visible feedback
+// pos: pool workflow page; 修改本文件需同步更新文件头与所属 DIR.md
 import 'dart:async';
 
 import 'package:cardmind/features/pool/pool_controller.dart';
@@ -135,7 +138,7 @@ class _PoolPageState extends State<PoolPage> {
     }
 
     if (state is PoolError) {
-      final errorCode = (state as PoolError).code;
+      final errorCode = state.code;
       final mapped = mapJoinError(errorCode);
       return Scaffold(
         body: SafeArea(

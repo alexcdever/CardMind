@@ -1,3 +1,6 @@
+// input: editor interactions (typing, shortcut save, back navigation)
+// output: editable note UI with save feedback and leave guard decisions
+// pos: card editor page; 修改本文件需同步更新文件头与所属 DIR.md
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -33,10 +36,13 @@ class _EditorPageState extends State<EditorPage> {
         },
         child: Focus(
           autofocus: true,
-          child: WillPopScope(
-            onWillPop: () async {
+          child: PopScope<void>(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, _) async {
+              if (didPop) {
+                return;
+              }
               await _onBack();
-              return false;
             },
             child: Scaffold(
               appBar: AppBar(
