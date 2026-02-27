@@ -8,6 +8,7 @@ import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `card_store_map`, `map_err`, `pool_network_map`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
 
 /// 初始化 CardStore
 Future<BigInt> initCardStore({required String basePath}) =>
@@ -24,3 +25,61 @@ Future<BigInt> initPoolNetwork({required String basePath}) =>
 /// 关闭 PoolNetwork
 Future<void> closePoolNetwork({required BigInt networkId}) =>
     RustLib.instance.api.crateApiClosePoolNetwork(networkId: networkId);
+
+Future<SyncStatusDto> syncStatus({required BigInt networkId}) =>
+    RustLib.instance.api.crateApiSyncStatus(networkId: networkId);
+
+Future<void> syncConnect({required BigInt networkId, required String target}) =>
+    RustLib.instance.api.crateApiSyncConnect(
+      networkId: networkId,
+      target: target,
+    );
+
+Future<void> syncDisconnect({required BigInt networkId}) =>
+    RustLib.instance.api.crateApiSyncDisconnect(networkId: networkId);
+
+Future<void> syncJoinPool({
+  required BigInt networkId,
+  required String poolId,
+}) => RustLib.instance.api.crateApiSyncJoinPool(
+  networkId: networkId,
+  poolId: poolId,
+);
+
+Future<SyncResultDto> syncPush({required BigInt networkId}) =>
+    RustLib.instance.api.crateApiSyncPush(networkId: networkId);
+
+Future<SyncResultDto> syncPull({required BigInt networkId}) =>
+    RustLib.instance.api.crateApiSyncPull(networkId: networkId);
+
+class SyncResultDto {
+  final String state;
+
+  const SyncResultDto({required this.state});
+
+  @override
+  int get hashCode => state.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncResultDto &&
+          runtimeType == other.runtimeType &&
+          state == other.state;
+}
+
+class SyncStatusDto {
+  final String state;
+
+  const SyncStatusDto({required this.state});
+
+  @override
+  int get hashCode => state.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncStatusDto &&
+          runtimeType == other.runtimeType &&
+          state == other.state;
+}

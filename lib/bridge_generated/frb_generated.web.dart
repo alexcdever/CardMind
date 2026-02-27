@@ -31,6 +31,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  SyncResultDto dco_decode_sync_result_dto(dynamic raw);
+
+  @protected
+  SyncStatusDto dco_decode_sync_status_dto(dynamic raw);
+
+  @protected
   BigInt dco_decode_u_64(dynamic raw);
 
   @protected
@@ -47,6 +53,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  SyncResultDto sse_decode_sync_result_dto(SseDeserializer deserializer);
+
+  @protected
+  SyncStatusDto sse_decode_sync_status_dto(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer);
@@ -74,6 +86,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     Uint8List self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_sync_result_dto(SyncResultDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sync_status_dto(SyncStatusDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer);

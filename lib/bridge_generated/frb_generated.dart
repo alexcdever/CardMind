@@ -65,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -203987318;
+  int get rustContentHash => 719113134;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -83,6 +83,24 @@ abstract class RustLibApi extends BaseApi {
   Future<BigInt> crateApiInitCardStore({required String basePath});
 
   Future<BigInt> crateApiInitPoolNetwork({required String basePath});
+
+  Future<void> crateApiSyncConnect({
+    required BigInt networkId,
+    required String target,
+  });
+
+  Future<void> crateApiSyncDisconnect({required BigInt networkId});
+
+  Future<void> crateApiSyncJoinPool({
+    required BigInt networkId,
+    required String poolId,
+  });
+
+  Future<SyncResultDto> crateApiSyncPull({required BigInt networkId});
+
+  Future<SyncResultDto> crateApiSyncPush({required BigInt networkId});
+
+  Future<SyncStatusDto> crateApiSyncStatus({required BigInt networkId});
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -209,6 +227,188 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     argNames: ["basePath"],
   );
 
+  @override
+  Future<void> crateApiSyncConnect({
+    required BigInt networkId,
+    required String target,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(networkId, serializer);
+          sse_encode_String(target, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiSyncConnectConstMeta,
+        argValues: [networkId, target],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncConnectConstMeta => const TaskConstMeta(
+    debugName: "sync_connect",
+    argNames: ["networkId", "target"],
+  );
+
+  @override
+  Future<void> crateApiSyncDisconnect({required BigInt networkId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(networkId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiSyncDisconnectConstMeta,
+        argValues: [networkId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncDisconnectConstMeta => const TaskConstMeta(
+    debugName: "sync_disconnect",
+    argNames: ["networkId"],
+  );
+
+  @override
+  Future<void> crateApiSyncJoinPool({
+    required BigInt networkId,
+    required String poolId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(networkId, serializer);
+          sse_encode_String(poolId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiSyncJoinPoolConstMeta,
+        argValues: [networkId, poolId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncJoinPoolConstMeta => const TaskConstMeta(
+    debugName: "sync_join_pool",
+    argNames: ["networkId", "poolId"],
+  );
+
+  @override
+  Future<SyncResultDto> crateApiSyncPull({required BigInt networkId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(networkId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_sync_result_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiSyncPullConstMeta,
+        argValues: [networkId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncPullConstMeta =>
+      const TaskConstMeta(debugName: "sync_pull", argNames: ["networkId"]);
+
+  @override
+  Future<SyncResultDto> crateApiSyncPush({required BigInt networkId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(networkId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_sync_result_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiSyncPushConstMeta,
+        argValues: [networkId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncPushConstMeta =>
+      const TaskConstMeta(debugName: "sync_push", argNames: ["networkId"]);
+
+  @override
+  Future<SyncStatusDto> crateApiSyncStatus({required BigInt networkId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(networkId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_sync_status_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiSyncStatusConstMeta,
+        argValues: [networkId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSyncStatusConstMeta =>
+      const TaskConstMeta(debugName: "sync_status", argNames: ["networkId"]);
+
   @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -231,6 +431,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  SyncResultDto dco_decode_sync_result_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return SyncResultDto(state: dco_decode_String(arr[0]));
+  }
+
+  @protected
+  SyncStatusDto dco_decode_sync_status_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return SyncStatusDto(state: dco_decode_String(arr[0]));
   }
 
   @protected
@@ -271,6 +489,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  SyncResultDto sse_decode_sync_result_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_state = sse_decode_String(deserializer);
+    return SyncResultDto(state: var_state);
+  }
+
+  @protected
+  SyncStatusDto sse_decode_sync_status_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_state = sse_decode_String(deserializer);
+    return SyncStatusDto(state: var_state);
   }
 
   @protected
@@ -323,6 +555,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_sync_result_dto(
+    SyncResultDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.state, serializer);
+  }
+
+  @protected
+  void sse_encode_sync_status_dto(
+    SyncStatusDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.state, serializer);
   }
 
   @protected
