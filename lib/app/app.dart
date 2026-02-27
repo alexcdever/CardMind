@@ -1,5 +1,3 @@
-import 'package:cardmind/app/layout/adaptive_shell.dart';
-import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/onboarding/onboarding_page.dart';
 import 'package:flutter/material.dart';
 

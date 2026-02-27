@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input:
+// output:
+// pos:
 import 'dart:convert';
 import 'dart:io';
 
@@ -70,10 +70,11 @@ class FractalDocChecker {
 
   Future<List<String>> _readFirstLines(File file, int count) async {
     final lines = <String>[];
-    await for (final line in file
-        .openRead()
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())) {
+    await for (final line
+        in file
+            .openRead()
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())) {
       lines.add(line);
       if (lines.length >= count) break;
     }
@@ -83,8 +84,9 @@ class FractalDocChecker {
   bool _isAbsolutePath(String path) {
     if (path.startsWith('/')) return true;
     if (path.startsWith('\\')) return true;
-    if (RegExp(r'^[A-Za-z]:[\\/]')
-        .hasMatch(path)) return true;
+    if (RegExp(r'^[A-Za-z]:[\\/]').hasMatch(path)) {
+      return true;
+    }
     final uri = Uri.tryParse(path);
     if (uri != null && uri.hasScheme) return true;
     return false;
@@ -100,8 +102,9 @@ class FractalDocChecker {
     final dirFile = File('$dirPath/DIR.md');
     if (!dirFile.existsSync()) return false;
     final lines = dirFile.readAsLinesSync();
-    final tokenStripper =
-        RegExp(r'^[`*\-~\[\](){}<>.,:;!?]+|[`*\-~\[\](){}<>.,:;!?]+$');
+    final tokenStripper = RegExp(
+      r'^[`*\-~\[\](){}<>.,:;!?]+|[`*\-~\[\](){}<>.,:;!?]+$',
+    );
     final markdownLink = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
     for (final line in lines) {
       for (final match in markdownLink.allMatches(line)) {
