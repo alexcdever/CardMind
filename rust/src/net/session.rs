@@ -6,6 +6,50 @@ use crate::models::pool::PoolMember;
 use std::collections::HashSet;
 use uuid::Uuid;
 
+#[derive(Clone)]
+pub enum SyncPhase {
+    Idle,
+    Connected,
+}
+
+#[derive(Clone)]
+pub struct SyncSession {
+    phase: SyncPhase,
+    target: Option<String>,
+}
+
+impl SyncSession {
+    pub fn new() -> Self {
+        Self {
+            phase: SyncPhase::Idle,
+            target: None,
+        }
+    }
+
+    pub fn connect(&mut self, target: String) -> Result<(), CardMindError> {
+        if target.trim().is_empty() {
+            return Err(CardMindError::InvalidArgument(
+                "target is empty".to_string(),
+            ));
+        }
+        self.phase = SyncPhase::Connected;
+        self.target = Some(target);
+        Ok(())
+    }
+
+    pub fn disconnect(&mut self) {
+        self.phase = SyncPhase::Idle;
+        self.target = None;
+    }
+
+    pub fn state(&self) -> &'static str {
+        match self.phase {
+            SyncPhase::Idle => "idle",
+            SyncPhase::Connected => "connected",
+        }
+    }
+}
+
 pub struct PoolSession {
     pool_id: Uuid,
     members: HashSet<String>,

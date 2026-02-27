@@ -7,6 +7,7 @@ use crate::models::pool::{Pool, PoolMember};
 use crate::net::codec::{decode_message, encode_message};
 use crate::net::endpoint::PoolEndpoint;
 use crate::net::messages::PoolMessage;
+use crate::net::session::SyncSession;
 use crate::net::sync::{export_snapshot, import_updates};
 use crate::store::card_store::CardStore;
 use crate::store::loro_store::{load_loro_doc, note_doc_path, pool_doc_path, save_loro_doc};
@@ -26,6 +27,7 @@ pub struct PoolNetwork {
     base_path: String,
     pool_store: PoolStore,
     card_store: CardStore,
+    sync_session: SyncSession,
 }
 
 impl PoolNetwork {
@@ -40,6 +42,7 @@ impl PoolNetwork {
             base_path,
             pool_store,
             card_store,
+            sync_session: SyncSession::new(),
         }
     }
 
@@ -143,6 +146,42 @@ impl PoolNetwork {
             Err(CardMindError::NotFound(_)) => Ok(false),
             Err(err) => Err(err),
         }
+    }
+
+    pub fn sync_connect(&mut self, target: String) -> Result<(), CardMindError> {
+        self.sync_session.connect(target)
+    }
+
+    pub fn sync_disconnect(&mut self) {
+        self.sync_session.disconnect();
+    }
+
+    pub fn sync_state(&self) -> &'static str {
+        self.sync_session.state()
+    }
+
+    pub fn sync_join_pool(&self, pool_id: &str) -> Result<(), CardMindError> {
+        if pool_id.trim().is_empty() {
+            return Err(CardMindError::InvalidArgument("pool_id is empty".to_string()));
+        }
+        if self.sync_session.state() != "connected" {
+            return Err(CardMindError::InvalidArgument("sync not connected".to_string()));
+        }
+        Ok(())
+    }
+
+    pub fn sync_push(&self) -> Result<(), CardMindError> {
+        if self.sync_session.state() != "connected" {
+            return Err(CardMindError::InvalidArgument("sync not connected".to_string()));
+        }
+        Ok(())
+    }
+
+    pub fn sync_pull(&self) -> Result<(), CardMindError> {
+        if self.sync_session.state() != "connected" {
+            return Err(CardMindError::InvalidArgument("sync not connected".to_string()));
+        }
+        Ok(())
     }
 }
 

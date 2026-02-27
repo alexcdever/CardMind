@@ -42,6 +42,11 @@ pub struct SyncStatusDto {
     pub state: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncResultDto {
+    pub state: String,
+}
+
 /// 初始化 CardStore
 pub fn init_card_store(base_path: String) -> Result<u64, ApiError> {
     let store = CardStore::new(&base_path).map_err(map_err)?;
@@ -103,13 +108,67 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
     let map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    if !map.contains_key(&network_id) {
-        return Err(ApiError::new(
-            ApiErrorCode::InvalidHandle,
-            "pool network handle invalid",
-        ));
-    }
+    let network = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
     Ok(SyncStatusDto {
-        state: "idle".to_string(),
+        state: network.sync_state().to_string(),
+    })
+}
+
+pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
+    let mut map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let network = map
+        .get_mut(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    network.sync_connect(target).map_err(map_err)
+}
+
+pub fn sync_disconnect(network_id: u64) -> Result<(), ApiError> {
+    let mut map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let network = map
+        .get_mut(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    network.sync_disconnect();
+    Ok(())
+}
+
+pub fn sync_join_pool(network_id: u64, pool_id: String) -> Result<(), ApiError> {
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let network = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    network.sync_join_pool(&pool_id).map_err(map_err)
+}
+
+pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let network = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    network.sync_push().map_err(map_err)?;
+    Ok(SyncResultDto {
+        state: "ok".to_string(),
+    })
+}
+
+pub fn sync_pull(network_id: u64) -> Result<SyncResultDto, ApiError> {
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let network = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    network.sync_pull().map_err(map_err)?;
+    Ok(SyncResultDto {
+        state: "ok".to_string(),
     })
 }
