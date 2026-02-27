@@ -1,4 +1,7 @@
-目录变更需更新本文件。
+input: 计划文档目录结构变更与文件登记需求
+output: docs/plans 中文档索引与职责说明
+pos: 计划文档目录说明与维护入口
+新增或删除计划文件后请同步更新下方索引。
 计划文档目录，记录设计草案与实现计划。
 新增或更新计划文件需同步登记。
 
@@ -28,3 +31,5 @@
 2026-02-27-ui-interaction-governance-implementation-plan.md - 实现计划 - UI 交互治理文档与守卫测试实施
 2026-02-27-ui-interaction-acceptance-matrix.md - 验收矩阵 - 五大场景双轨验收映射与门禁
 2026-02-27-ui-interaction-release-gate.md - 发布门禁 - 双轨达标前禁止合并与发布
+2026-02-28-ui-interaction-full-alignment-design.md - 设计草案 - S1-S5 一次性全量对齐设计（含 S2/S3 CRUD 与 S4 Tab 可达定义）
+2026-02-28-ui-interaction-full-alignment-implementation-plan.md - 实现计划 - S1-S5 全量对齐任务化实施与门禁验证步骤

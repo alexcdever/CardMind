@@ -1,3 +1,6 @@
+// input: 同步状态与卡片列表交互动作
+// output: 卡片页 CRUD 行为与异常可处理反馈
+// pos: 卡片主工作区页面；修改需同步对应测试与 DIR.md
 import 'package:cardmind/features/cards/cards_desktop_interactions.dart';
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';

@@ -1,6 +1,6 @@
-// input: docs/plans governance markdown files
-// output: fast fail when required governance docs are missing
-// pos: test guard for ui governance docs; 修改本文件需同步更新文件头与所属 DIR.md
+// input: UI 交互治理三件套文档内容
+// output: 验证文档存在性、关键约束与场景覆盖
+// pos: UI 交互治理文档守卫测试；修改需同步 test/DIR.md
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

@@ -1,3 +1,6 @@
+// input: 卡片页组件与用户交互动作
+// output: 验证卡片 CRUD 关键路径的可观察结果
+// pos: 卡片页行为测试；修改需同步所属 DIR.md
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

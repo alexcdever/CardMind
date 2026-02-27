@@ -1,3 +1,6 @@
+// input: 当前导航分区、子页面内容与分区切换回调
+// output: 移动端底栏或桌面侧栏的自适应导航壳层
+// pos: 应用壳层布局；修改需同步对应测试与 DIR.md
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';
 

@@ -1,3 +1,6 @@
+// input: 加入池错误码
+// output: 断言错误码映射为可理解文案与动作
+// pos: 加入错误映射测试；修改需同步所属 DIR.md
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:flutter_test/flutter_test.dart';
 

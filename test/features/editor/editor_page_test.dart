@@ -1,3 +1,6 @@
+// input: 编辑页组件与返回/保存交互
+// output: 验证离开保护与编辑器核心行为
+// pos: 编辑页交互测试；修改需同步 test/features/editor/DIR.md
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

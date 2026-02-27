@@ -1,3 +1,6 @@
+input: 已批准的 S1-S5 全量对齐设计与治理约束
+output: 可执行的任务化实施步骤与验证命令
+pos: UI 交互全量对齐实施计划（修改需同步 DIR.md）
 # UI Interaction Full Alignment Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

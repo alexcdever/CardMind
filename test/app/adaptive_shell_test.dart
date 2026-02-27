@@ -1,3 +1,6 @@
+// input: 指定宽度下的应用壳层组件
+// output: 断言移动端/桌面端导航容器渲染正确
+// pos: 应用壳层响应式测试；修改需同步 test/DIR.md
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';

@@ -1,3 +1,6 @@
+// input: 设置页组件与导航交互
+// output: 验证设置入口与 Tab 切换可达性
+// pos: 设置页交互测试；修改需同步所属 DIR.md
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/settings/settings_page.dart';

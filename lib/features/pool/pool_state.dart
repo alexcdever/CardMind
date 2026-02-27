@@ -1,3 +1,6 @@
+// input: 池流程运行态与待审批请求数据
+// output: 池页面渲染所需状态模型与实体
+// pos: 池域状态定义；修改需同步控制器、页面与测试
 sealed class PoolState {
   const PoolState();
 

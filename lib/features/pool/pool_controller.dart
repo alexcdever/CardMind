@@ -1,3 +1,6 @@
+// input: 池域操作事件（创建、审批、退出、重试）
+// output: 池页面状态机转换结果
+// pos: 池域控制器；修改需同步状态模型、页面与测试
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/foundation.dart';
 
