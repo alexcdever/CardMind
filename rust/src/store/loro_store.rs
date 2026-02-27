@@ -1,10 +1,10 @@
-// input: 
-// output: 
-// pos: 
+// input: Loro 文档与文件路径
+// output: 文档读写与快照/增量导出
+// pos: Loro 存储与同步辅助（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::error::CardMindError;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use loro::{ExportMode, LoroDoc};
+use loro::{ExportMode, ImportStatus, LoroDoc, VersionVector};
 use std::fs;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -43,4 +43,25 @@ pub fn save_loro_doc(path: &Path, doc: &LoroDoc) -> Result<(), CardMindError> {
         .map_err(|e| CardMindError::Loro(e.to_string()))?;
     fs::write(path, bytes).map_err(|e| CardMindError::Io(e.to_string()))?;
     Ok(())
+}
+
+/// 导出 Loro 快照
+pub fn export_snapshot(doc: &LoroDoc) -> Result<Vec<u8>, CardMindError> {
+    doc.export(ExportMode::Snapshot)
+        .map_err(|e| CardMindError::Loro(e.to_string()))
+}
+
+/// 导出增量更新
+pub fn export_updates(
+    doc: &LoroDoc,
+    from: &VersionVector,
+) -> Result<Vec<u8>, CardMindError> {
+    doc.export(ExportMode::updates(from))
+        .map_err(|e| CardMindError::Loro(e.to_string()))
+}
+
+/// 导入更新
+pub fn import_updates(doc: &LoroDoc, bytes: &[u8]) -> Result<ImportStatus, CardMindError> {
+    doc.import(bytes)
+        .map_err(|e| CardMindError::Loro(e.to_string()))
 }
