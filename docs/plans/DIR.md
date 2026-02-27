@@ -33,3 +33,5 @@ pos: 计划文档目录说明与维护入口
 2026-02-27-ui-interaction-release-gate.md - 发布门禁 - 双轨达标前禁止合并与发布
 2026-02-28-ui-interaction-full-alignment-design.md - 设计草案 - S1-S5 一次性全量对齐设计（含 S2/S3 CRUD 与 S4 Tab 可达定义）
 2026-02-28-ui-interaction-full-alignment-implementation-plan.md - 实现计划 - S1-S5 全量对齐任务化实施与门禁验证步骤
+2026-02-28-flutter-rust-sync-integration-design.md - 设计草案 - Flutter 与 Rust 同步网络生产级对接设计
+2026-02-28-flutter-rust-sync-integration-implementation-plan.md - 实现计划 - Flutter 与 Rust 同步网络对接任务化实施
