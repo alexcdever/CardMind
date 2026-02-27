@@ -32,22 +32,50 @@ class _EditorPageState extends State<EditorPage> {
         },
         child: Focus(
           autofocus: true,
-          child: Scaffold(
-            appBar: AppBar(
-              leading: BackButton(onPressed: _onBack),
-              title: const Text('编辑卡片'),
-            ),
-            body: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  TextField(
-                    onChanged: (_) => setState(() {
-                      _dirty = true;
-                    }),
-                  ),
-                  if (_saved) const Text('本地已保存'),
-                ],
+          child: WillPopScope(
+            onWillPop: () async {
+              await _onBack();
+              return false;
+            },
+            child: Scaffold(
+              appBar: AppBar(
+                leading: BackButton(onPressed: _onBack),
+                title: const Text('编辑卡片'),
+              ),
+              body: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextField(
+                      decoration: const InputDecoration(labelText: '标题'),
+                      onChanged: (_) => setState(() {
+                        _dirty = true;
+                      }),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: TextField(
+                        expands: true,
+                        maxLines: null,
+                        textAlignVertical: TextAlignVertical.top,
+                        decoration: const InputDecoration(
+                          alignLabelWithHint: true,
+                          border: OutlineInputBorder(),
+                          labelText: '内容',
+                          hintText: '输入卡片内容',
+                        ),
+                        onChanged: (_) => setState(() {
+                          _dirty = true;
+                        }),
+                      ),
+                    ),
+                    if (_saved)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        child: Text('本地已保存'),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -62,26 +90,42 @@ class _EditorPageState extends State<EditorPage> {
       return;
     }
 
-    await showDialog<void>(
+    final decision = await showDialog<_ExitDecision>(
       context: context,
       builder: (context) {
         return AlertDialog(
+          title: const Text('离开编辑？'),
+          content: const Text('你有未保存的更改。'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('保存并离开'),
+              onPressed: () => Navigator.of(context).pop(_ExitDecision.save),
+              child: const Text('保存并退出'),
             ),
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(context).pop(_ExitDecision.discard),
               child: const Text('放弃更改'),
             ),
           ],
         );
       },
     );
+
+    if (!mounted || decision == null) {
+      return;
+    }
+
+    if (decision == _ExitDecision.save) {
+      setState(() {
+        _saved = true;
+      });
+    }
+
+    Navigator.of(context).pop();
   }
 }
 
 class _SaveIntent extends Intent {
   const _SaveIntent();
 }
+
+enum _ExitDecision { save, discard }
