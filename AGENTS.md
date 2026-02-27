@@ -29,6 +29,15 @@
 - Rust 集成测试放在 `rust/tests/`，覆盖 FFI 入口与边界条件。
 - 新增功能需补充对应测试，覆盖成功与失败路径。
 
+## UI Interaction Governance Guard
+- UI 交互变更必须同步更新治理文档三件套：
+  - `docs/plans/2026-02-27-ui-interaction-governance-design.md`
+  - `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
+  - `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- 治理守卫测试必须通过：`flutter test test/ui_interaction_governance_docs_test.dart`。
+- 交互守卫测试必须通过：`flutter test test/interaction_guard_test.dart`，禁止空交互（如 `onPressed: () {}`、`onTap: () {}`）与无说明禁用交互（如 `onPressed: null`）。
+- 发布前按门禁文档执行：`docs/plans/2026-02-27-ui-interaction-release-gate.md`。
+
 ## Commit & Pull Request Guidelines
 - 提交信息使用 `feat(scope):`、`fix(scope):`、`docs:` 等前缀。
 - PR 需说明变更、关联问题，涉及 UI 变化请附截图。
