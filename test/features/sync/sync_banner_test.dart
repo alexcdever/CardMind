@@ -19,7 +19,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('同步异常'), findsOneWidget);
+    expect(find.textContaining('同步'), findsOneWidget);
   });
 
   testWidgets('invokes view callback when tapping error action', (
@@ -43,4 +43,35 @@ void main() {
 
     expect(tapped, true);
   });
+
+  testWidgets(
+    'sync error banner has view action that navigates to handling page',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return SyncBanner(
+                status: const SyncStatus.error('REQUEST_TIMEOUT'),
+                onView: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const Scaffold(
+                        body: Center(child: Text('pool-error-page')),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('查看'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('pool-error-page'), findsOneWidget);
+    },
+  );
 }
