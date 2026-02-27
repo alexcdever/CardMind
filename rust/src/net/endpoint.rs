@@ -1,0 +1,75 @@
+// input: iroh Endpoint 配置
+// output: PoolEndpoint 与基础端点构建
+// pos: 组网端点管理（修改本文件需同步更新文件头与所属 DIR.md）
+use crate::models::error::CardMindError;
+use iroh::address_lookup::mdns::MdnsAddressLookup;
+use iroh::endpoint::Connection;
+use iroh::{Endpoint, EndpointAddr, EndpointId, Watcher};
+use std::time::Duration;
+use tokio::time::sleep;
+
+pub const POOL_ALPN: &[u8] = b"cardmind/pool/1";
+
+#[derive(Debug)]
+pub struct PoolEndpoint {
+    endpoint: Endpoint,
+}
+
+impl PoolEndpoint {
+    pub fn new(endpoint: Endpoint) -> Self {
+        Self { endpoint }
+    }
+
+    pub fn endpoint_id(&self) -> EndpointId {
+        self.endpoint.id()
+    }
+
+    pub fn endpoint_addr(&self) -> EndpointAddr {
+        self.endpoint.addr()
+    }
+
+    pub async fn connect(&self, peer: EndpointAddr) -> Result<Connection, CardMindError> {
+        self.endpoint
+            .connect(peer, POOL_ALPN)
+            .await
+            .map_err(|e| CardMindError::Internal(e.to_string()))
+    }
+
+    pub fn inner(&self) -> &Endpoint {
+        &self.endpoint
+    }
+
+    pub async fn wait_for_addr(
+        &self,
+        timeout: Duration,
+    ) -> Result<EndpointAddr, CardMindError> {
+        let mut watcher = self.endpoint.watch_addr();
+        let start = tokio::time::Instant::now();
+        loop {
+            let addr = watcher.get();
+            if !addr.is_empty() {
+                return Ok(addr);
+            }
+            if tokio::time::Instant::now().duration_since(start) >= timeout {
+                return Err(CardMindError::Internal("endpoint addr timeout".to_string()));
+            }
+            sleep(Duration::from_millis(200)).await;
+        }
+    }
+}
+
+pub async fn build_endpoint() -> Result<Endpoint, CardMindError> {
+    let mdns = MdnsAddressLookup::builder();
+    Endpoint::builder()
+        .alpns(vec![POOL_ALPN.to_vec()])
+        .address_lookup(mdns)
+        .bind()
+        .await
+        .map_err(|e| CardMindError::Internal(e.to_string()))
+}
+
+pub async fn build_test_endpoints() -> Result<(PoolEndpoint, PoolEndpoint), CardMindError> {
+    let a = build_endpoint().await?;
+    let b = build_endpoint().await?;
+    Ok((PoolEndpoint::new(a), PoolEndpoint::new(b)))
+}

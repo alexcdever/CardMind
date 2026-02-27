@@ -3,5 +3,6 @@
 变更协议需同步更新。
 
 codec.rs - 组网 - 消息编码/解码
+endpoint.rs - 组网 - 端点构建与连接
 messages.rs - 组网 - 组网消息定义
 mod.rs - 模块 - net 模块导出
