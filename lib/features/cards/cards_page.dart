@@ -1,3 +1,5 @@
+import 'package:cardmind/features/sync/sync_banner.dart';
+import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
 class CardsPage extends StatelessWidget {
@@ -8,6 +10,7 @@ class CardsPage extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: const [
+          SyncBanner(status: SyncStatus.healthy()),
           TextField(decoration: InputDecoration(hintText: '搜索卡片')),
         ],
       ),
