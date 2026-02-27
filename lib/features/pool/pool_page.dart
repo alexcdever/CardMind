@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cardmind/features/pool/pool_controller.dart';
+import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/sync/sync_banner.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
@@ -135,6 +136,7 @@ class _PoolPageState extends State<PoolPage> {
 
     if (state is PoolError) {
       final errorCode = (state as PoolError).code;
+      final mapped = mapJoinError(errorCode);
       return Scaffold(
         body: SafeArea(
           child: Column(
@@ -149,18 +151,13 @@ class _PoolPageState extends State<PoolPage> {
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('加入失败: $errorCode'),
+                child: Text('加入失败: ${mapped.message}'),
               ),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute<void>(
-                      builder: (_) =>
-                          const PoolPage(state: PoolState.notJoined()),
-                    ),
-                  );
+                  _controller.setState(const PoolState.notJoined());
                 },
-                child: const Text('重试加入'),
+                child: Text(mapped.primaryActionLabel),
               ),
             ],
           ),

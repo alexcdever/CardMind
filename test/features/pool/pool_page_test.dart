@@ -1,5 +1,6 @@
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
+import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -35,8 +36,8 @@ void main() {
     await tester.tap(find.text('管理员离线'));
     await tester.pumpAndSettle();
 
-    expect(find.text('加入失败: ADMIN_OFFLINE'), findsOneWidget);
-    expect(find.text('重试加入'), findsOneWidget);
+    expect(find.textContaining('管理员离线'), findsOneWidget);
+    expect(find.text('稍后重试'), findsOneWidget);
   });
 
   testWidgets('leave pool confirmation returns to not joined', (tester) async {
@@ -98,5 +99,19 @@ void main() {
 
     expect(find.text('创建池'), findsOneWidget);
     expect(find.text('扫码加入'), findsOneWidget);
+  });
+
+  testWidgets('join error state shows mapped primary action label', (
+    tester,
+  ) async {
+    final mapped = mapJoinError('REQUEST_TIMEOUT');
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: PoolPage(state: PoolState.error('REQUEST_TIMEOUT')),
+      ),
+    );
+
+    expect(find.text(mapped.primaryActionLabel), findsOneWidget);
   });
 }
