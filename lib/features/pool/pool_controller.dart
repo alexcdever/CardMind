@@ -2,18 +2,29 @@
 // output: 池页面状态机转换结果
 // pos: 池域控制器；修改需同步状态模型、页面与测试
 import 'package:cardmind/features/pool/pool_state.dart';
+import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/foundation.dart';
 
 class PoolController extends ChangeNotifier {
-  PoolController({PoolState initialState = const PoolState.notJoined()})
-    : _state = initialState;
+  PoolController({
+    PoolState initialState = const PoolState.notJoined(),
+    SyncStatus initialSyncStatus = const SyncStatus.connected(),
+  }) : _state = initialState,
+       _syncStatus = initialSyncStatus;
 
   PoolState _state;
+  SyncStatus _syncStatus;
 
   PoolState get state => _state;
+  SyncStatus get syncStatus => _syncStatus;
 
   void setState(PoolState state) {
     _state = state;
+    notifyListeners();
+  }
+
+  void setSyncStatus(SyncStatus status) {
+    _syncStatus = status;
     notifyListeners();
   }
 
@@ -88,6 +99,18 @@ class PoolController extends ChangeNotifier {
 
   void retryCleanup() {
     _state = const PoolState.notJoined();
+    notifyListeners();
+  }
+
+  Future<void> retrySync() async {
+    _syncStatus = const SyncStatus.connected();
+    notifyListeners();
+  }
+
+  Future<void> reconnectSync() async {
+    _syncStatus = const SyncStatus.connecting();
+    notifyListeners();
+    _syncStatus = const SyncStatus.connected();
     notifyListeners();
   }
 }

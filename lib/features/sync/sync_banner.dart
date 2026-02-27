@@ -5,17 +5,36 @@ import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
 class SyncBanner extends StatelessWidget {
-  const SyncBanner({super.key, required this.status, this.onView});
+  const SyncBanner({
+    super.key,
+    required this.status,
+    this.onView,
+    this.onRetry,
+    this.onReconnect,
+  });
 
   final SyncStatus status;
   final VoidCallback? onView;
+  final VoidCallback? onRetry;
+  final VoidCallback? onReconnect;
 
   @override
   Widget build(BuildContext context) {
     if (status.kind == SyncStatusKind.error) {
       return MaterialBanner(
         content: Text(_messageFor(status.code)),
-        actions: [TextButton(onPressed: onView, child: const Text('查看'))],
+        actions: [
+          TextButton(onPressed: onRetry, child: const Text('重试同步')),
+          TextButton(onPressed: onReconnect, child: const Text('重新连接')),
+          TextButton(onPressed: onView, child: const Text('查看')),
+        ],
+      );
+    }
+
+    if (status.kind == SyncStatusKind.degraded) {
+      return const MaterialBanner(
+        content: Text('同步状态降级：可继续本地操作'),
+        actions: <Widget>[],
       );
     }
 

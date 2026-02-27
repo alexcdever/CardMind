@@ -7,6 +7,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('sync error should show retry and reconnect actions', (
+    tester,
+  ) async {
+    var retryTapped = false;
+    var reconnectTapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SyncBanner(
+          status: const SyncStatus.error('REQUEST_TIMEOUT'),
+          onRetry: () {
+            retryTapped = true;
+          },
+          onReconnect: () {
+            reconnectTapped = true;
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('重试同步'), findsOneWidget);
+    expect(find.text('重新连接'), findsOneWidget);
+
+    await tester.tap(find.text('重试同步'));
+    await tester.pump();
+    await tester.tap(find.text('重新连接'));
+    await tester.pump();
+
+    expect(retryTapped, isTrue);
+    expect(reconnectTapped, isTrue);
+  });
+
   testWidgets('shows subtle label in healthy status', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: SyncBanner(status: SyncStatus.healthy())),
@@ -22,7 +54,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('同步'), findsOneWidget);
+    expect(find.text('同步请求超时，请查看并处理'), findsOneWidget);
   });
 
   testWidgets('invokes view callback when tapping error action', (

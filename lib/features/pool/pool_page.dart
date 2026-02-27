@@ -11,18 +11,19 @@ import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
 class PoolPage extends StatefulWidget {
-  const PoolPage({super.key, required this.state});
+  const PoolPage({super.key, required this.state, this.controller});
 
   final PoolState state;
+  final PoolController? controller;
 
   @override
   State<PoolPage> createState() => _PoolPageState();
 }
 
 class _PoolPageState extends State<PoolPage> {
-  late final PoolController _controller = PoolController(
-    initialState: widget.state,
-  )..addListener(_onStateChanged);
+  late final PoolController _controller =
+      (widget.controller ?? PoolController(initialState: widget.state))
+        ..addListener(_onStateChanged);
 
   @override
   void dispose() {
@@ -45,7 +46,7 @@ class _PoolPageState extends State<PoolPage> {
         body: SafeArea(
           child: Column(
             children: [
-              const SyncBanner(status: SyncStatus.healthy()),
+              SyncBanner(status: _controller.syncStatus),
               Expanded(
                 child: Center(
                   child: Column(
@@ -76,7 +77,7 @@ class _PoolPageState extends State<PoolPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SyncBanner(status: SyncStatus.healthy()),
+              SyncBanner(status: _controller.syncStatus),
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('我的身份: owner@this-device'),
@@ -146,6 +147,8 @@ class _PoolPageState extends State<PoolPage> {
             children: [
               SyncBanner(
                 status: SyncStatus.error(errorCode),
+                onRetry: _controller.retrySync,
+                onReconnect: _controller.reconnectSync,
                 onView: () {
                   ScaffoldMessenger.of(
                     context,
