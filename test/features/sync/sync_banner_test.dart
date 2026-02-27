@@ -21,4 +21,26 @@ void main() {
 
     expect(find.textContaining('同步异常'), findsOneWidget);
   });
+
+  testWidgets('invokes view callback when tapping error action', (
+    tester,
+  ) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SyncBanner(
+          status: const SyncStatus.error('REQUEST_TIMEOUT'),
+          onView: () {
+            tapped = true;
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('查看'));
+    await tester.pump();
+
+    expect(tapped, true);
+  });
 }

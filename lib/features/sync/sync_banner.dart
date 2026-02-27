@@ -2,16 +2,17 @@ import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
 class SyncBanner extends StatelessWidget {
-  const SyncBanner({super.key, required this.status});
+  const SyncBanner({super.key, required this.status, this.onView});
 
   final SyncStatus status;
+  final VoidCallback? onView;
 
   @override
   Widget build(BuildContext context) {
     if (status.kind == SyncStatusKind.error) {
       return MaterialBanner(
         content: const Text('同步异常，请前往池页面处理'),
-        actions: [TextButton(onPressed: () {}, child: const Text('查看'))],
+        actions: [TextButton(onPressed: onView, child: const Text('查看'))],
       );
     }
 

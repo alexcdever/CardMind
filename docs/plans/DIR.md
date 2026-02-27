@@ -17,7 +17,9 @@
 2026-02-26-pool-network-sync-design.md - 设计草案 - 数据池组网与同步设计
 2026-02-26-pool-network-sync-implementation-plan.md - 实现计划 - 数据池组网与同步实施
 2026-02-27-mobile-desktop-ui-interaction-design.md - 设计草案 - 移动端与桌面端 UI 交互设计
+2026-02-27-mobile-desktop-ui-interaction-design.md - 测试基线 - 明确 UI/交互入口必须有对应 Widget 行为测试与空交互守卫
 2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 实现计划 - 移动端与桌面端 UI 交互实施
+2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 测试策略 - 增加交互守卫测试并将空回调禁止纳入验收
 2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 实施状态 - 按 Task 1-9 执行并采用逐任务 TDD+提交
 2026-02-27-build-cli-design.md - 设计草案 - 多平台构建 CLI 设计
 2026-02-27-build-cli-implementation-plan.md - 实现计划 - CardMind 多平台构建 CLI 实施步骤

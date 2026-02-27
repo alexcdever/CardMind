@@ -4,7 +4,7 @@
 
 **Goal:** 将已批准的页面级交互设计落地为 Flutter 首版 UI，覆盖首次启动分流、卡片/池/设置三大主导航、跨端触摸与键鼠交互差异。
 
-**Architecture:** 采用单一 Flutter UI 架构，通过 `NavigationRail`（桌面）与 `BottomNavigationBar`（移动）做同构信息架构映射。页面状态先用本地内存 ViewModel 驱动，按“离线优先 + 同步异常不阻断编辑”原则实现状态分层与错误反馈。测试以 Widget Test 为主，先写失败测试，再补最小实现。
+**Architecture:** 采用单一 Flutter UI 架构，通过 `NavigationRail`（桌面）与 `BottomNavigationBar`（移动）做同构信息架构映射。页面状态先用本地内存 ViewModel 驱动，按“离线优先 + 同步异常不阻断编辑”原则实现状态分层与错误反馈。测试以 Widget Test 为主，先写失败测试，再补最小实现。所有可触发 UI 交互必须具备对应行为测试，禁止空回调与未说明禁用态。
 
 **Tech Stack:** Flutter, Dart, flutter_test, Material 3
 
@@ -508,6 +508,7 @@ git commit -m "feat(ui): add desktop context menu and keyboard save shortcut"
 
 **Files:**
 - Modify: `test/widget_test.dart`
+- Create: `test/interaction_guard_test.dart`
 - Modify: `lib/DIR.md`
 - Modify: `docs/plans/DIR.md`
 
@@ -523,20 +524,29 @@ testWidgets('app boots into onboarding or cards flow', (tester) async {
 **Step 2: Run full Flutter tests and verify failures first**
 
 Run: `flutter test`
-Expected: FAIL（旧计数器测试与新结构不一致）
+Expected: FAIL（新增交互行为断言与空回调守卫尚未通过）
 
-**Step 3: Update smoke tests and directory docs minimally**
+**Step 3: Add interaction guard test**
+
+```dart
+test('lib has no empty or disabled primary interaction handlers', () {
+  // scan lib/**/*.dart for onPressed: () {} / onTap: () {} / onPressed: null
+  // fail with offending file paths
+});
+```
+
+**Step 4: Update smoke tests and directory docs minimally**
 
 ```text
 DIR.md 中登记 app/layout/navigation/features 目录与职责。
 ```
 
-**Step 4: Run verification suite**
+**Step 5: Run verification suite**
 
 Run: `flutter analyze && flutter test`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 6: Commit**
 
 ```bash
 git add test/widget_test.dart lib/DIR.md docs/plans/DIR.md
