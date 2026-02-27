@@ -1,4 +1,4 @@
-// input: 数据池基础信息与成员数据
+// input: 数据池基础信息与成员数据（不含 pool_key）
 // output: 读取/写入本地 Loro + SQLite 数据池
 // pos: 本地数据池存储实现（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::error::CardMindError;
@@ -29,19 +29,12 @@ impl PoolStore {
     /// 创建数据池
     pub fn create_pool(
         &self,
-        pool_key: &str,
         endpoint_id: &str,
         nickname: &str,
         os: &str,
     ) -> Result<Pool, CardMindError> {
-        if pool_key.trim().is_empty() {
-            return Err(CardMindError::InvalidArgument(
-                "pool_key empty".to_string(),
-            ));
-        }
         let pool = Pool {
             pool_id: new_uuid_v7(),
-            pool_key: pool_key.to_string(),
             members: vec![PoolMember {
                 endpoint_id: endpoint_id.to_string(),
                 nickname: nickname.to_string(),
@@ -97,8 +90,6 @@ impl PoolStore {
         let doc = load_loro_doc(&path)?;
         let map = doc.get_map("pool");
         map.insert("pool_id", pool.pool_id.to_string())
-            .map_err(|e| CardMindError::Loro(e.to_string()))?;
-        map.insert("pool_key", pool.pool_key.as_str())
             .map_err(|e| CardMindError::Loro(e.to_string()))?;
 
         let members_list = doc.get_list("members");

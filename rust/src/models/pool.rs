@@ -1,4 +1,4 @@
-// input: 数据池与成员字段定义
+// input: 数据池与成员字段定义（不含 pool_key）
 // output: Pool/PoolMember 数据结构
 // pos: 数据池模型定义（修改本文件需同步更新文件头与所属 DIR.md）
 use serde::{Deserialize, Serialize};
@@ -9,8 +9,6 @@ use uuid::Uuid;
 pub struct Pool {
     /// 数据池 ID（UUID v7）
     pub pool_id: Uuid,
-    /// 数据池密钥（Base64）
-    pub pool_key: String,
     /// 成员列表
     pub members: Vec<PoolMember>,
     /// 关联卡片 ID 列表

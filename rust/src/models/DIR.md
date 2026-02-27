@@ -6,4 +6,4 @@ api_error.rs - 模型 - API 错误结构
 card.rs - 模型 - 卡片数据结构
 error.rs - 模型 - 统一错误类型
 mod.rs - 模块 - models 模块导出
-pool.rs - 模型 - 数据池与成员结构
+pool.rs - 模型 - 数据池与成员结构（不含 pool_key）

@@ -1,5 +1,5 @@
 // input: SQLite 文件路径与持久化数据
-// output: 卡片与数据池的 SQLite 读写
+// output: 卡片与数据池的 SQLite 读写（不含 pool_key）
 // pos: SQLite 缓存存储实现（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
@@ -28,8 +28,7 @@ impl SqliteStore {
                 deleted INTEGER NOT NULL
             );
             CREATE TABLE IF NOT EXISTS pools (
-                pool_id TEXT PRIMARY KEY,
-                pool_key TEXT NOT NULL
+                pool_id TEXT PRIMARY KEY
             );
             DROP TABLE IF EXISTS pool_members;
             CREATE TABLE pool_members (
@@ -175,8 +174,8 @@ impl SqliteStore {
     pub fn upsert_pool(&self, pool: &Pool) -> Result<(), CardMindError> {
         self.conn
             .execute(
-                "INSERT OR REPLACE INTO pools (pool_id, pool_key) VALUES (?1, ?2);",
-                params![pool.pool_id.to_string(), pool.pool_key],
+                "INSERT OR REPLACE INTO pools (pool_id) VALUES (?1);",
+                params![pool.pool_id.to_string()],
             )
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         self.conn
@@ -225,7 +224,7 @@ impl SqliteStore {
     pub fn get_pool(&self, id: &Uuid) -> Result<Pool, CardMindError> {
         let id_str = id.to_string();
         let pool_row = self.conn.query_row(
-            "SELECT pool_id, pool_key FROM pools WHERE pool_id = ?1;",
+            "SELECT pool_id FROM pools WHERE pool_id = ?1;",
             params![id_str],
             |row| {
                 let pool_id: String = row.get(0)?;
@@ -236,11 +235,10 @@ impl SqliteStore {
                         Box::new(std::fmt::Error),
                     )
                 })?;
-                let pool_key: String = row.get(1)?;
-                Ok((pool_id, pool_key))
+                Ok(pool_id)
             },
         );
-        let (pool_id, pool_key) = match pool_row {
+        let pool_id = match pool_row {
             Ok(row) => row,
             Err(rusqlite::Error::QueryReturnedNoRows) => {
                 return Err(CardMindError::NotFound("pool not found".to_string()))
@@ -294,7 +292,6 @@ impl SqliteStore {
 
         Ok(Pool {
             pool_id,
-            pool_key,
             members,
             card_ids,
         })
