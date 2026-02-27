@@ -73,6 +73,59 @@ void main() {
     expect(exit, 1);
     expect(logs.join('\n'), contains('Unsupported platform'));
   });
+
+  test('returns error for unknown subcommand', () async {
+    final logs = <String>[];
+    final exit = await runBuildCli(
+      const ['unknown'],
+      runProcess: _noProcessExpected,
+      logError: logs.add,
+    );
+    expect(exit, 1);
+    expect(
+      logs.join('\n'),
+      contains('Usage: dart run tool/build.dart <app|lib> [options]'),
+    );
+  });
+
+  test('prints usage for --help', () async {
+    final logs = <String>[];
+    final exit = await runBuildCli(
+      const ['--help'],
+      runProcess: _noProcessExpected,
+      log: logs.add,
+      logError: logs.add,
+    );
+    expect(exit, 0);
+    expect(
+      logs.join('\n'),
+      contains('Usage: dart run tool/build.dart <app|lib> [options]'),
+    );
+    expect(logs.join('\n'), contains('Commands:'));
+    expect(logs.join('\n'), contains('app    Build Flutter app'));
+    expect(logs.join('\n'), contains('lib    Build Rust dynamic library'));
+    expect(logs.join('\n'), contains('Examples:'));
+  });
+
+  test('prints usage for -h', () async {
+    final logs = <String>[];
+    final exit = await runBuildCli(
+      const ['-h'],
+      runProcess: _noProcessExpected,
+      log: logs.add,
+      logError: logs.add,
+    );
+    expect(exit, 0);
+    expect(
+      logs.join('\n'),
+      contains('Usage: dart run tool/build.dart <app|lib> [options]'),
+    );
+    expect(logs.join('\n'), contains('Default behavior:'));
+    expect(
+      logs.join('\n'),
+      contains('app runs: lib -> codegen -> flutter build'),
+    );
+  });
 }
 
 Future<ProcessResult> _noProcessExpected(

@@ -22,7 +22,28 @@ samples, guidance on mobile development, and a full API reference.
 
 ## Build CLI
 
-- Rust 动态库：`dart run tool/build.dart lib [--target <triple>]`
-- App：`dart run tool/build.dart app [--platform <platform>]`
-- `app` 固定顺序：`lib -> flutter_rust_bridge_codegen generate -> flutter build`
-- 不传 `--platform` 时默认构建当前系统可执行平台（macos/linux/windows）
+Usage: `dart run tool/build.dart <app|lib> [options]`
+
+Commands:
+
+- `app` Build Flutter app
+- `lib` Build Rust dynamic library
+
+Options:
+
+- `-h, --help` Show help message
+- `app --platform <p>` Set Flutter build platform (`macos|linux|windows`)
+- `lib --target <t>` Set Rust target triple for cargo build
+
+Default behavior:
+
+- `app` runs: `lib -> flutter_rust_bridge_codegen generate -> flutter build`
+- `app` default platform: current host executable platform (`macos/linux/windows`)
+- `lib` default mode: `cargo build --release`
+
+Examples:
+
+- `dart run tool/build.dart app`
+- `dart run tool/build.dart app --platform macos`
+- `dart run tool/build.dart lib`
+- `dart run tool/build.dart lib --target aarch64-apple-darwin`

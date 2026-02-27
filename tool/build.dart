@@ -7,6 +7,30 @@ typedef Runner =
       String? workingDirectory,
     });
 
+const _usage = 'Usage: dart run tool/build.dart <app|lib> [options]';
+const _help = '''Usage: dart run tool/build.dart <app|lib> [options]
+
+Commands:
+  app    Build Flutter app
+  lib    Build Rust dynamic library
+
+Options:
+  -h, --help          Show this help message
+  app --platform <p>  Set Flutter build platform (macos|linux|windows)
+  lib --target <t>    Set Rust target triple for cargo build
+
+Default behavior:
+  app runs: lib -> codegen -> flutter build
+  app default platform: current host executable platform (macos/linux/windows)
+  lib default mode: cargo build --release
+
+Examples:
+  dart run tool/build.dart app
+  dart run tool/build.dart app --platform macos
+  dart run tool/build.dart lib
+  dart run tool/build.dart lib --target aarch64-apple-darwin
+''';
+
 enum HostPlatform { macos, linux, windows, android, ios }
 
 extension HostPlatformDetect on HostPlatform {
@@ -38,8 +62,12 @@ Future<int> runBuildCli(
   void Function(String) logError = _stderr,
   HostPlatform? platformOverride,
 }) async {
+  if (args.contains('--help') || args.contains('-h')) {
+    log(_help);
+    return 0;
+  }
   if (args.isEmpty) {
-    logError('Usage: dart run tool/build.dart <app|lib> [options]');
+    logError(_usage);
     return 1;
   }
   if (args.first == 'lib') {
@@ -59,7 +87,8 @@ Future<int> runBuildCli(
       platformOverride: platformOverride,
     );
   }
-  return 0;
+  logError(_usage);
+  return 1;
 }
 
 Future<int> _runApp(
