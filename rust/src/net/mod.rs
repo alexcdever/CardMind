@@ -4,5 +4,6 @@
 pub mod codec;
 pub mod endpoint;
 pub mod messages;
+pub mod pool_network;
 pub mod session;
 pub mod sync;

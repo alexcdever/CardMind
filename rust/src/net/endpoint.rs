@@ -28,9 +28,12 @@ impl PoolEndpoint {
         self.endpoint.addr()
     }
 
-    pub async fn connect(&self, peer: EndpointAddr) -> Result<Connection, CardMindError> {
+    pub async fn connect(
+        &self,
+        peer: impl Into<EndpointAddr>,
+    ) -> Result<Connection, CardMindError> {
         self.endpoint
-            .connect(peer, POOL_ALPN)
+            .connect(peer.into(), POOL_ALPN)
             .await
             .map_err(|e| CardMindError::Internal(e.to_string()))
     }

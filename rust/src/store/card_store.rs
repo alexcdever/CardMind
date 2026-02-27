@@ -1,12 +1,13 @@
-// input: 
-// output: 
-// pos: 
+// input: 本地卡片数据与存储路径
+// output: 卡片读写与持久化
+// pos: 本地卡片存储实现（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::store::loro_store::{load_loro_doc, note_doc_path, save_loro_doc};
 use crate::store::path_resolver::DataPaths;
 use crate::store::sqlite_store::SqliteStore;
 use crate::utils::uuid_v7::new_uuid_v7;
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
@@ -22,6 +23,11 @@ impl CardStore {
         let paths = DataPaths::new(base_path)?;
         let sqlite = SqliteStore::new(&paths.sqlite_path)?;
         Ok(Self { paths, sqlite })
+    }
+
+    /// 获取存储根路径
+    pub fn base_path(&self) -> &Path {
+        &self.paths.base_path
     }
 
     /// 创建卡片

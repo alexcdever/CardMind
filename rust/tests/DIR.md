@@ -10,6 +10,11 @@ card_store_test.rs - 测试 - 卡片存储基础测试
 loro_persist_test.rs - 测试 - Loro 持久化测试
 loro_store_test.rs - 测试 - Loro 存储读写测试
 path_resolver_test.rs - 测试 - 路径解析测试
+pool_net_codec_test.rs - 测试 - 组网消息编解码测试
+pool_net_endpoint_test.rs - 测试 - 组网端点测试
+pool_net_session_test.rs - 测试 - 组网会话测试
+pool_network_flow_test.rs - 测试 - 组网同步流程测试
+pool_sync_test.rs - 测试 - 组网同步辅助测试
 pool_store_persist_test.rs - 测试 - 数据池持久化测试
 pool_store_test.rs - 测试 - 数据池存储测试
 smoke_test.rs - 测试 - 构建烟雾测试

@@ -1,5 +1,5 @@
 // input: 数据池基础信息与成员数据（不含 pool_key）
-// output: 读取/写入本地 Loro + SQLite 数据池
+// output: 读取/写入本地 Loro + SQLite 数据池与池列表
 // pos: 本地数据池存储实现（修改本文件需同步更新文件头与所属 DIR.md）
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
@@ -9,6 +9,7 @@ use crate::store::sqlite_store::SqliteStore;
 use crate::utils::uuid_v7::new_uuid_v7;
 use loro::LoroValue;
 use std::collections::HashSet;
+use std::path::Path;
 use uuid::Uuid;
 
 /// 本地卡片池存储
@@ -24,6 +25,11 @@ impl PoolStore {
         let paths = DataPaths::new(base_path)?;
         let sqlite = SqliteStore::new(&paths.sqlite_path)?;
         Ok(Self { paths, sqlite })
+    }
+
+    /// 获取存储根路径
+    pub fn base_path(&self) -> &Path {
+        &self.paths.base_path
     }
 
     /// 创建数据池
@@ -50,6 +56,15 @@ impl PoolStore {
     /// 获取数据池
     pub fn get_pool(&self, pool_id: &Uuid) -> Result<Pool, CardMindError> {
         self.sqlite.get_pool(pool_id)
+    }
+
+    /// 获取任意一个数据池（默认第一个）
+    pub fn get_any_pool(&self) -> Result<Pool, CardMindError> {
+        let ids = self.sqlite.list_pool_ids()?;
+        let pool_id = ids
+            .first()
+            .ok_or_else(|| CardMindError::NotFound("pool not found".to_string()))?;
+        self.get_pool(pool_id)
     }
 
     /// 加入数据池

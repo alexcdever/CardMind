@@ -296,4 +296,30 @@ impl SqliteStore {
             card_ids,
         })
     }
+
+    /// 列出数据池 ID
+    pub fn list_pool_ids(&self) -> Result<Vec<Uuid>, CardMindError> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT pool_id FROM pools ORDER BY pool_id;")
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        let rows = stmt
+            .query_map([], |row| {
+                let pool_id: String = row.get(0)?;
+                let pool_id = Uuid::parse_str(&pool_id).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::fmt::Error),
+                    )
+                })?;
+                Ok(pool_id)
+            })
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        let mut ids = Vec::new();
+        for row in rows {
+            ids.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
+        }
+        Ok(ids)
+    }
 }

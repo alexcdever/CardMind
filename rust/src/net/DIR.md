@@ -6,5 +6,6 @@ codec.rs - 组网 - 消息编码/解码
 endpoint.rs - 组网 - 端点构建与连接
 messages.rs - 组网 - 组网消息定义
 mod.rs - 模块 - net 模块导出
+pool_network.rs - 组网 - 同步主流程
 session.rs - 组网 - 会话成员校验
 sync.rs - 组网 - 同步导出/导入辅助
