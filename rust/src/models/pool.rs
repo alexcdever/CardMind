@@ -16,7 +16,7 @@ pub struct Pool {
 }
 
 /// 数据池成员信息
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PoolMember {
     /// 成员应用 endpoint id
     pub endpoint_id: String,

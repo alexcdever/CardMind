@@ -204,6 +204,7 @@ dependencies = [
  "base64",
  "flutter_rust_bridge",
  "loro",
+ "postcard",
  "rusqlite",
  "serde",
  "tempfile",

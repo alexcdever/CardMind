@@ -6,5 +6,6 @@ api.rs - 接口 - FRB 暴露 API
 frb_generated.rs - 生成 - FRB 绑定代码
 lib.rs - 入口 - Rust crate 入口
 models/ - 目录 - 数据模型定义
+net/ - 目录 - 组网与同步模块
 store/ - 目录 - 本地存储实现
 utils/ - 目录 - 工具函数
