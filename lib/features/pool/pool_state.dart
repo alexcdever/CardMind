@@ -9,6 +9,8 @@ sealed class PoolState {
   const factory PoolState.joined({
     List<PoolPendingRequest> pending,
     bool exitShouldFail,
+    String poolName,
+    bool isOwner,
     String? approvalMessage,
   }) = PoolJoined;
   const factory PoolState.error(String code) = PoolError;
@@ -31,12 +33,32 @@ class PoolJoined extends PoolState {
   const PoolJoined({
     this.pending = const <PoolPendingRequest>[],
     this.exitShouldFail = false,
+    this.poolName = '默认数据池',
+    this.isOwner = true,
     this.approvalMessage,
   });
 
   final List<PoolPendingRequest> pending;
   final bool exitShouldFail;
+  final String poolName;
+  final bool isOwner;
   final String? approvalMessage;
+
+  PoolJoined copyWith({
+    List<PoolPendingRequest>? pending,
+    bool? exitShouldFail,
+    String? poolName,
+    bool? isOwner,
+    String? approvalMessage,
+  }) {
+    return PoolJoined(
+      pending: pending ?? this.pending,
+      exitShouldFail: exitShouldFail ?? this.exitShouldFail,
+      poolName: poolName ?? this.poolName,
+      isOwner: isOwner ?? this.isOwner,
+      approvalMessage: approvalMessage ?? this.approvalMessage,
+    );
+  }
 }
 
 class PoolError extends PoolState {

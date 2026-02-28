@@ -117,4 +117,26 @@ void main() {
 
     expect(find.text(mapped.primaryActionLabel), findsOneWidget);
   });
+
+  testWidgets('owner can edit pool info and dissolve pool', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: PoolPage(state: PoolState.joined())),
+    );
+
+    await tester.tap(find.text('编辑池信息'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'New Pool Name');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New Pool Name'), findsOneWidget);
+
+    await tester.tap(find.text('解散池'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认解散'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('创建池'), findsOneWidget);
+  });
 }

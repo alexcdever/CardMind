@@ -16,6 +16,8 @@ class PoolController extends ChangeNotifier {
   PoolState _state;
   SyncStatus _syncStatus;
 
+  static const String _ownerPoolName = '我的数据池';
+
   PoolState get state => _state;
   SyncStatus get syncStatus => _syncStatus;
 
@@ -30,7 +32,19 @@ class PoolController extends ChangeNotifier {
   }
 
   void createPool() {
-    _state = const PoolState.joined();
+    _state = const PoolState.joined(poolName: _ownerPoolName, isOwner: true);
+    notifyListeners();
+  }
+
+  void editPoolInfo(String newName) {
+    final joined = _state;
+    if (joined is! PoolJoined) return;
+    _state = joined.copyWith(poolName: newName.trim());
+    notifyListeners();
+  }
+
+  void dissolvePool() {
+    _state = const PoolState.notJoined();
     notifyListeners();
   }
 
@@ -42,11 +56,7 @@ class PoolController extends ChangeNotifier {
         .where((item) => item.id != requestId)
         .toList(growable: false);
 
-    _state = PoolState.joined(
-      pending: updated,
-      exitShouldFail: joined.exitShouldFail,
-      approvalMessage: '审批已通过',
-    );
+    _state = joined.copyWith(pending: updated, approvalMessage: '审批已通过');
     notifyListeners();
   }
 
@@ -65,11 +75,7 @@ class PoolController extends ChangeNotifier {
         .whereType<PoolPendingRequest>()
         .toList(growable: false);
 
-    _state = PoolState.joined(
-      pending: updated,
-      exitShouldFail: joined.exitShouldFail,
-      approvalMessage: joined.approvalMessage,
-    );
+    _state = joined.copyWith(pending: updated);
     notifyListeners();
   }
 

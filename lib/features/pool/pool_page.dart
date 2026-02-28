@@ -87,10 +87,31 @@ class _PoolPageState extends State<PoolPage> {
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Text('成员列表'),
               ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(state.poolName),
+              ),
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('1. owner@this-device'),
               ),
+              if (state.isOwner)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 12,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => _showEditPoolDialog(context),
+                        child: const Text('编辑池信息'),
+                      ),
+                      OutlinedButton(
+                        onPressed: () => _confirmDissolvePool(context),
+                        child: const Text('解散池'),
+                      ),
+                    ],
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: OutlinedButton(
@@ -257,5 +278,80 @@ class _PoolPageState extends State<PoolPage> {
         _controller.confirmExit();
       }),
     );
+  }
+
+  Future<bool> _showConfirmationDialog({
+    required BuildContext context,
+    required String content,
+    required String confirmLabel,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          content: Text(content),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed == true;
+  }
+
+  Future<void> _showEditPoolDialog(BuildContext context) async {
+    final state = _controller.state;
+    if (state is! PoolJoined) return;
+
+    var draftName = state.poolName;
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('编辑池信息'),
+          content: TextFormField(
+            initialValue: state.poolName,
+            onChanged: (value) {
+              draftName = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(draftName),
+              child: const Text('保存'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (name == null || name.trim().isEmpty) {
+      return;
+    }
+
+    _controller.editPoolInfo(name.trim());
+  }
+
+  Future<void> _confirmDissolvePool(BuildContext context) async {
+    final confirmed = await _showConfirmationDialog(
+      context: context,
+      content: '确认解散该数据池？',
+      confirmLabel: '确认解散',
+    );
+
+    if (confirmed) {
+      _controller.dissolvePool();
+    }
   }
 }
