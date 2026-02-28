@@ -45,4 +45,27 @@ void main() {
       expect(data, Uint8List.fromList([1, 2, 3, 4, 5]));
     },
   );
+
+  test(
+    'when update file > 4MB, compacts into snapshot then clears update',
+    () async {
+      final root = Directory.systemTemp.createTempSync('loro-doc-store');
+      final paths = LoroDocPath.forEntity(
+        kind: 'pool-meta',
+        id: '019-compact',
+        basePath: '${root.path}/data/loro',
+      );
+      final store = LoroDocStore(paths);
+
+      await store.ensureCreated();
+      paths.snapshot.writeAsBytesSync(Uint8List.fromList([1, 2]));
+      await store.appendUpdate(Uint8List(4 * 1024 * 1024 + 1));
+
+      final loaded = await store.load();
+
+      expect(loaded.length, 4 * 1024 * 1024 + 3);
+      expect(paths.snapshot.lengthSync(), 4 * 1024 * 1024 + 3);
+      expect(paths.update.lengthSync(), 0);
+    },
+  );
 }

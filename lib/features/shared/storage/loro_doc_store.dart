@@ -9,6 +9,8 @@ import 'package:cardmind/features/shared/storage/loro_doc_path.dart';
 class LoroDocStore {
   LoroDocStore(this.paths);
 
+  static const int _compactThresholdBytes = 4 * 1024 * 1024;
+
   final LoroDocPath paths;
 
   Future<void> ensureCreated() async {
@@ -21,15 +23,13 @@ class LoroDocStore {
 
   Future<Uint8List> load() async {
     await ensureCreated();
+    await _compactIfNeeded();
     final snapshot = await paths.snapshot.readAsBytes();
     final update = await paths.update.readAsBytes();
     if (update.isEmpty) {
       return Uint8List.fromList(snapshot);
     }
-    final combined = Uint8List(snapshot.length + update.length);
-    combined.setAll(0, snapshot);
-    combined.setAll(snapshot.length, update);
-    return combined;
+    return _mergeBytes(snapshot, update);
   }
 
   Future<void> appendUpdate(Uint8List updateBytes) async {
@@ -46,5 +46,26 @@ class LoroDocStore {
     if (!file.existsSync()) {
       file.createSync(recursive: true);
     }
+  }
+
+  Future<void> _compactIfNeeded() async {
+    final updateLength = await paths.update.length();
+    if (updateLength <= _compactThresholdBytes) {
+      return;
+    }
+
+    final snapshotBytes = await paths.snapshot.readAsBytes();
+    final updateBytes = await paths.update.readAsBytes();
+    final compacted = _mergeBytes(snapshotBytes, updateBytes);
+
+    await paths.snapshot.writeAsBytes(compacted, flush: true);
+    await paths.update.writeAsBytes(const <int>[], flush: true);
+  }
+
+  Uint8List _mergeBytes(List<int> first, List<int> second) {
+    final merged = Uint8List(first.length + second.length);
+    merged.setAll(0, first);
+    merged.setAll(first.length, second);
+    return merged;
   }
 }
