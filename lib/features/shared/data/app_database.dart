@@ -18,21 +18,17 @@ class AppDatabase {
     String query, {
     bool includeDeleted = false,
   }) async {
-    final lowered = query.trim().toLowerCase();
-    final rows =
-        _cardRows.values
-            .where((row) {
-              if (!includeDeleted && row.deleted) {
-                return false;
-              }
-              if (lowered.isEmpty) {
-                return true;
-              }
-              return row.title.toLowerCase().contains(lowered) ||
-                  row.body.toLowerCase().contains(lowered);
-            })
-            .toList(growable: false)
-          ..sort((a, b) => b.updatedAtMicros.compareTo(a.updatedAtMicros));
+    final lowered = _normalizeQuery(query);
+    final rows = _cardRows.values
+        .where(
+          (row) => _matchesCard(
+            row,
+            normalizedQuery: lowered,
+            includeDeleted: includeDeleted,
+          ),
+        )
+        .toList(growable: false);
+    _sortByUpdatedDesc(rows, (item) => item.updatedAtMicros);
     return rows;
   }
 
@@ -44,20 +40,55 @@ class AppDatabase {
     String query = '',
     bool includeDissolved = false,
   }) async {
-    final lowered = query.trim().toLowerCase();
-    final rows =
-        _poolRows.values
-            .where((pool) {
-              if (!includeDissolved && pool.dissolved) {
-                return false;
-              }
-              if (lowered.isEmpty) {
-                return true;
-              }
-              return pool.name.toLowerCase().contains(lowered);
-            })
-            .toList(growable: false)
-          ..sort((a, b) => b.updatedAtMicros.compareTo(a.updatedAtMicros));
+    final lowered = _normalizeQuery(query);
+    final rows = _poolRows.values
+        .where(
+          (pool) => _matchesPool(
+            pool,
+            normalizedQuery: lowered,
+            includeDissolved: includeDissolved,
+          ),
+        )
+        .toList(growable: false);
+    _sortByUpdatedDesc(rows, (item) => item.updatedAtMicros);
     return rows;
+  }
+
+  String _normalizeQuery(String query) => query.trim().toLowerCase();
+
+  bool _matchesCard(
+    CardNoteProjection row, {
+    required String normalizedQuery,
+    required bool includeDeleted,
+  }) {
+    if (!includeDeleted && row.deleted) {
+      return false;
+    }
+    if (normalizedQuery.isEmpty) {
+      return true;
+    }
+    return row.title.toLowerCase().contains(normalizedQuery) ||
+        row.body.toLowerCase().contains(normalizedQuery);
+  }
+
+  bool _matchesPool(
+    PoolEntity pool, {
+    required String normalizedQuery,
+    required bool includeDissolved,
+  }) {
+    if (!includeDissolved && pool.dissolved) {
+      return false;
+    }
+    if (normalizedQuery.isEmpty) {
+      return true;
+    }
+    return pool.name.toLowerCase().contains(normalizedQuery);
+  }
+
+  void _sortByUpdatedDesc<T>(
+    List<T> rows,
+    int Function(T item) updatedAtMicros,
+  ) {
+    rows.sort((a, b) => updatedAtMicros(b).compareTo(updatedAtMicros(a)));
   }
 }

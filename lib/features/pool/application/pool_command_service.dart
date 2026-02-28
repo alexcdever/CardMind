@@ -46,12 +46,7 @@ class PoolCommandService {
       return;
     }
     await _writeRepository.upsertPool(
-      PoolEntity(
-        poolId: existing.poolId,
-        name: name,
-        dissolved: existing.dissolved,
-        updatedAtMicros: _nowMicros(),
-      ),
+      existing.copyWith(name: name, updatedAtMicros: _nowMicros()),
     );
   }
 
@@ -76,8 +71,7 @@ class PoolCommandService {
     required String poolId,
     required String requestId,
   }) async {
-    final requests = await _writeRepository.listRequests(poolId);
-    final request = requests.where((r) => r.requestId == requestId).firstOrNull;
+    final request = await _findRequest(poolId, requestId);
     if (request == null) {
       return;
     }
@@ -107,13 +101,13 @@ class PoolCommandService {
       return;
     }
     await _writeRepository.upsertPool(
-      PoolEntity(
-        poolId: existing.poolId,
-        name: existing.name,
-        dissolved: true,
-        updatedAtMicros: _nowMicros(),
-      ),
+      existing.copyWith(dissolved: true, updatedAtMicros: _nowMicros()),
     );
+  }
+
+  Future<PoolRequest?> _findRequest(String poolId, String requestId) async {
+    final requests = await _writeRepository.listRequests(poolId);
+    return requests.where((r) => r.requestId == requestId).firstOrNull;
   }
 
   int _nowMicros() => DateTime.now().microsecondsSinceEpoch;

@@ -28,11 +28,9 @@ class CardsCommandService {
       return;
     }
     await _writeRepository.upsert(
-      CardNote(
-        id: existing.id,
+      existing.copyWith(
         title: title,
         body: body,
-        deleted: existing.deleted,
         updatedAtMicros: _nowMicros(),
       ),
     );
@@ -44,13 +42,7 @@ class CardsCommandService {
       return;
     }
     await _writeRepository.upsert(
-      CardNote(
-        id: existing.id,
-        title: existing.title,
-        body: existing.body,
-        deleted: true,
-        updatedAtMicros: _nowMicros(),
-      ),
+      existing.copyWith(deleted: true, updatedAtMicros: _nowMicros()),
     );
   }
 
@@ -60,13 +52,7 @@ class CardsCommandService {
       return;
     }
     await _writeRepository.upsert(
-      CardNote(
-        id: existing.id,
-        title: existing.title,
-        body: existing.body,
-        deleted: false,
-        updatedAtMicros: _nowMicros(),
-      ),
+      existing.copyWith(deleted: false, updatedAtMicros: _nowMicros()),
     );
   }
 

@@ -16,4 +16,20 @@ class CardNote {
   final String body;
   final bool deleted;
   final int updatedAtMicros;
+
+  CardNote copyWith({
+    String? id,
+    String? title,
+    String? body,
+    bool? deleted,
+    int? updatedAtMicros,
+  }) {
+    return CardNote(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      deleted: deleted ?? this.deleted,
+      updatedAtMicros: updatedAtMicros ?? this.updatedAtMicros,
+    );
+  }
 }

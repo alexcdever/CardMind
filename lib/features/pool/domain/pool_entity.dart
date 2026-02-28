@@ -14,4 +14,18 @@ class PoolEntity {
   final String name;
   final bool dissolved;
   final int updatedAtMicros;
+
+  PoolEntity copyWith({
+    String? poolId,
+    String? name,
+    bool? dissolved,
+    int? updatedAtMicros,
+  }) {
+    return PoolEntity(
+      poolId: poolId ?? this.poolId,
+      name: name ?? this.name,
+      dissolved: dissolved ?? this.dissolved,
+      updatedAtMicros: updatedAtMicros ?? this.updatedAtMicros,
+    );
+  }
 }

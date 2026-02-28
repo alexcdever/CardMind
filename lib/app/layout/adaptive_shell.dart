@@ -21,33 +21,24 @@ class AdaptiveShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 900;
-    final destinations = const <NavigationDestination>[
-      NavigationDestination(icon: Icon(Icons.style_outlined), label: '卡片'),
-      NavigationDestination(
-        icon: Icon(Icons.group_work_outlined),
-        label: '数据池',
-      ),
-      NavigationDestination(icon: Icon(Icons.settings_outlined), label: '设置'),
+    const destinations = <_ShellDestination>[
+      _ShellDestination(icon: Icons.style_outlined, label: '卡片'),
+      _ShellDestination(icon: Icons.group_work_outlined, label: '数据池'),
+      _ShellDestination(icon: Icons.settings_outlined, label: '设置'),
     ];
 
     if (desktop) {
       return Row(
         children: [
           NavigationRail(
-            destinations: const <NavigationRailDestination>[
-              NavigationRailDestination(
-                icon: Icon(Icons.style_outlined),
-                label: Text('卡片'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.group_work_outlined),
-                label: Text('数据池'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                label: Text('设置'),
-              ),
-            ],
+            destinations: destinations
+                .map(
+                  (item) => NavigationRailDestination(
+                    icon: Icon(item.icon),
+                    label: Text(item.label),
+                  ),
+                )
+                .toList(growable: false),
             selectedIndex: section.index,
             onDestinationSelected: (index) {
               onSectionChanged(AppSection.values[index]);
@@ -67,11 +58,20 @@ class AdaptiveShell extends StatelessWidget {
         },
         items: destinations
             .map(
-              (item) =>
-                  BottomNavigationBarItem(icon: item.icon, label: item.label),
+              (item) => BottomNavigationBarItem(
+                icon: Icon(item.icon),
+                label: item.label,
+              ),
             )
-            .toList(),
+            .toList(growable: false),
       ),
     );
   }
+}
+
+class _ShellDestination {
+  const _ShellDestination({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
 }
