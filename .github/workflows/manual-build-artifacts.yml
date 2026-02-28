@@ -72,6 +72,9 @@ jobs:
           cargo ndk -o ../android/app/src/main/jniLibs -t armeabi-v7a -t arm64-v8a -t x86_64 build --release
         working-directory: rust
 
+      - name: Remove docs from Android resources
+        run: find android/app/src/main/res -type f -name DIR.md -delete
+
       - name: Build APK
         run: flutter build apk --release
 
