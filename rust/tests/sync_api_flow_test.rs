@@ -1,7 +1,6 @@
-// input: rust/tests/sync_api_flow_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 临时目录初始化的 network handle 与 connect/join/push/pull/disconnect 调用序列。
+// output: 断言同步状态按 idle->connected->idle 转换且 push/pull 返回 ok。
+// pos: 覆盖同步 API 端到端状态流转场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::*;
 use tempfile::tempdir;
 

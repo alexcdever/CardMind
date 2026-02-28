@@ -1,7 +1,6 @@
-// input: rust/tests/card_store_persist_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 临时目录、CardStore 实例与创建后卡片 id 查询参数。
+// output: 断言卡片可从 SQLite 持久化层读取且字段值正确。
+// pos: 覆盖卡片存储创建后持久化读取场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::store::card_store::CardStore;
 use tempfile::tempdir;
 

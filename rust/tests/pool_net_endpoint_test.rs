@@ -1,7 +1,6 @@
-// input: rust/tests/pool_net_endpoint_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: build_test_endpoints 创建的双端点、监听地址与连接时序任务。
+// output: 断言一端可成功连接另一端并完成 accept 握手流程。
+// pos: 覆盖组网端点互连握手流程场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::net::endpoint::build_test_endpoints;
 use std::error::Error;
 use std::time::Duration;

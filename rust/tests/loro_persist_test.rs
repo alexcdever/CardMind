@@ -1,7 +1,6 @@
-// input: rust/tests/loro_persist_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 临时文件路径、写入标题字段后的 LoroDoc 与保存/加载调用。
+// output: 断言文档持久化后可恢复且标题字段类型和值正确。
+// pos: 覆盖 Loro 文档持久化读写链路场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::store::loro_store::{load_loro_doc, save_loro_doc};
 use loro::{LoroDoc, LoroValue};
 use tempfile::tempdir;

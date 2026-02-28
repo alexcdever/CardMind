@@ -1,7 +1,6 @@
-// input: rust/tests/pool_net_codec_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 构造的 PoolMessage::Hello 消息对象与编解码函数调用。
+// output: 断言消息经二进制编码后解码可无损还原原始内容。
+// pos: 覆盖组网消息编解码一致性场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::net::codec::{decode_message, encode_message};
 use cardmind_rust::net::messages::PoolMessage;
 use uuid::Uuid;

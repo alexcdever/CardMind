@@ -1,7 +1,6 @@
-// input: rust/tests/card_store_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 临时目录环境与 CardStore::create_card 的标题/内容参数。
+// output: 断言卡片创建成功且返回对象包含预期标题字段。
+// pos: 覆盖卡片存储基础创建流程场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::store::card_store::CardStore;
 use tempfile::tempdir;
 
