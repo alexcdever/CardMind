@@ -1,6 +1,7 @@
-// input: 本地卡片数据与存储路径
-// output: 卡片读写与持久化
-// pos: 本地卡片存储实现（修改本文件需同步更新文件头与所属 DIR.md）
+// input: rust/src/store/card_store.rs 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Rust 存储模块，负责本地数据读写与持久化。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Rust 存储模块，负责本地数据读写与持久化。
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::store::loro_store::{load_loro_doc, note_doc_path, save_loro_doc};

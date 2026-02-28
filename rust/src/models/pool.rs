@@ -1,6 +1,7 @@
-// input: 数据池与成员字段定义（不含 pool_key）
-// output: Pool/PoolMember 数据结构
-// pos: 数据池模型定义（修改本文件需同步更新文件头与所属 DIR.md）
+// input: rust/src/models/pool.rs 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Rust 数据模型模块，定义跨层共享的数据结构。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Rust 数据模型模块，定义跨层共享的数据结构。
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

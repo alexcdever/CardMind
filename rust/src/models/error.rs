@@ -1,6 +1,7 @@
-// input: CardMind 错误定义
-// output: 统一错误类型枚举
-// pos: CardMind 统一错误类型（修改本文件需同步更新文件头与所属 DIR.md）
+// input: rust/src/models/error.rs 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Rust 数据模型模块，定义跨层共享的数据结构。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Rust 数据模型模块，定义跨层共享的数据结构。
 use thiserror::Error;
 
 /// CardMind 统一错误类型

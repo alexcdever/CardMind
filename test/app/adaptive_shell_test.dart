@@ -1,6 +1,7 @@
-// input: 指定宽度下的应用壳层组件
-// output: 断言移动端/桌面端导航容器渲染正确
-// pos: 应用壳层响应式测试；修改需同步 test/DIR.md
+// input: test/app/adaptive_shell_test.dart 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';

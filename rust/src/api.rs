@@ -1,6 +1,7 @@
-// input: CardMind 统一错误类型与存储句柄
-// output: 对外 API 错误与句柄管理
-// pos: FRB API 入口（修改本文件需同步更新文件头与所属 DIR.md）
+// input: rust/src/api.rs 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Rust 核心入口模块，承接 FFI 与业务编排。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Rust 核心入口模块，承接 FFI 与业务编排。
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::net::endpoint::{build_endpoint, PoolEndpoint};

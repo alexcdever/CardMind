@@ -1,6 +1,7 @@
-// input: 池流程运行态与待审批请求数据
-// output: 池页面渲染所需状态模型与实体
-// pos: 池域状态定义；修改需同步控制器、页面与测试
+// input: lib/features/pool/pool_state.dart 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 sealed class PoolState {
   const PoolState();
 

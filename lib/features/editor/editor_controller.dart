@@ -1,6 +1,7 @@
-// input: 编辑器内容变更与保存触发事件
-// output: dirty/saved 可观察状态更新
-// pos: 编辑页状态控制器；修改需同步对应测试与 DIR.md
+// input: lib/features/editor/editor_controller.dart 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:flutter/foundation.dart';
 
 class EditorController extends ChangeNotifier {

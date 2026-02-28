@@ -1,6 +1,7 @@
-// input: CardMind 错误码枚举
-// output: 面向外部 API 的错误码字符串
-// pos: API 错误码定义（修改本文件需同步更新文件头与所属 DIR.md）
+// input: rust/src/models/api_error.rs 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Rust 数据模型模块，定义跨层共享的数据结构。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Rust 数据模型模块，定义跨层共享的数据结构。
 use serde::{Deserialize, Serialize};
 
 /// 对外 API 错误码

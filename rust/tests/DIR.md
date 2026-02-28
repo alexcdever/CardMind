@@ -1,3 +1,6 @@
+input: rust/tests/DIR.md 目录结构与文件职责输入。
+output: 目录索引与维护约束说明。
+pos: 目录说明文件（修改本目录文件需同步更新本文件）。
 目录变更需更新本文件。
 Rust 测试目录，覆盖核心模型与存储逻辑。
 新增/更新测试需同步登记。
@@ -22,3 +25,6 @@ sqlite_store_cards_test.rs - 测试 - SQLite 卡片持久化测试
 sqlite_store_pool_test.rs - 测试 - SQLite 数据池持久化测试
 sqlite_store_test.rs - 测试 - SQLite 初始化测试
 uuid_v7_test.rs - 测试 - UUID v7 生成测试
+sync_api_contract_test.rs - 文件 - 见同目录实现
+sync_api_flow_test.rs - 文件 - 见同目录实现
+DIR.md - 本目录说明与文件职责索引

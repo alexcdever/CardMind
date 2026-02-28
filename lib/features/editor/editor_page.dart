@@ -1,6 +1,7 @@
-// input: 编辑交互（输入、快捷键保存、返回）
-// output: 可编辑卡片界面、保存反馈与离开保护决策
-// pos: 卡片编辑页面；修改本文件需同步更新文件头与所属 DIR.md
+// input: lib/features/editor/editor_page.dart 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

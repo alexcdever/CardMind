@@ -1,6 +1,7 @@
-// input: 同步状态与可选查看回调
-// output: 健康提示或可操作的同步异常横幅
-// pos: 全局同步反馈组件；修改本文件需同步更新文件头与所属 DIR.md
+// input: lib/features/sync/sync_banner.dart 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 

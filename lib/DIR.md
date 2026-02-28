@@ -1,3 +1,6 @@
+input: lib/DIR.md 目录结构与文件职责输入。
+output: 目录索引与维护约束说明。
+pos: 目录说明文件（修改本目录文件需同步更新本文件）。
 目录变更需更新本文件。
 UI 壳层与业务页面目录说明：
 
@@ -10,3 +13,5 @@ features/editor/ - 卡片编辑页、离开保护与快捷键保存
 features/pool/ - 数据池三态页面、错误映射与池状态模型
 features/settings/ - 设置页与池入口回流
 features/sync/ - 同步状态模型与弱提示/异常高亮组件
+main.dart - 文件 - 见同目录实现
+DIR.md - 本目录说明与文件职责索引

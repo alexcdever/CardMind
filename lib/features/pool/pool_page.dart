@@ -1,6 +1,7 @@
-// input: 初始池状态与页面内用户动作
-// output: 池加入/已加入/异常/恢复态的可见反馈与界面流转
-// pos: 数据池流程页面；修改本文件需同步更新文件头与所属 DIR.md
+// input: lib/features/pool/pool_page.dart 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'dart:async';
 
 import 'package:cardmind/features/pool/pool_controller.dart';

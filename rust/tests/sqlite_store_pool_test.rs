@@ -1,6 +1,7 @@
-// input: 临时 SQLite 数据库与 Pool 数据（不含 pool_key）
-// output: SQLite 数据池读写校验
-// pos: SQLite 数据池测试（修改本文件需同步更新文件头与所属 DIR.md）
+// input: rust/tests/sqlite_store_pool_test.rs 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
 use cardmind_rust::models::pool::{Pool, PoolMember};
 use cardmind_rust::store::sqlite_store::SqliteStore;
 use tempfile::tempdir;

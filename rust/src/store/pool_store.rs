@@ -1,6 +1,7 @@
-// input: 数据池基础信息与成员数据（不含 pool_key）
-// output: 读取/写入本地 Loro + SQLite 数据池与池列表
-// pos: 本地数据池存储实现（修改本文件需同步更新文件头与所属 DIR.md）
+// input: rust/src/store/pool_store.rs 上游输入（用户操作、外部参数或依赖返回）。
+// output: 对外状态更新、返回结果或副作用（保持行为不变）。
+// pos: Rust 存储模块，负责本地数据读写与持久化。 修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Rust 存储模块，负责本地数据读写与持久化。
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
 use crate::store::loro_store::{load_loro_doc, pool_doc_path, save_loro_doc};
