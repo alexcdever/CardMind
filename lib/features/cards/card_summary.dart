@@ -3,7 +3,13 @@
 // pos: 卡片摘要数据模型，负责承载卡片标题信息。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 class CardSummary {
-  const CardSummary({required this.title});
+  const CardSummary({
+    required this.id,
+    required this.title,
+    required this.deleted,
+  });
 
+  final String id;
   final String title;
+  final bool deleted;
 }

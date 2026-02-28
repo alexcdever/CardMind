@@ -4,11 +4,14 @@
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:cardmind/features/editor/editor_controller.dart';
 
 class EditorPage extends StatefulWidget {
-  const EditorPage({super.key});
+  const EditorPage({super.key, this.onSaved});
+
+  final ValueChanged<EditorDraft>? onSaved;
 
   @override
   State<EditorPage> createState() => _EditorPageState();
@@ -16,6 +19,7 @@ class EditorPage extends StatefulWidget {
 
 class _EditorPageState extends State<EditorPage> {
   final EditorController _controller = EditorController();
+  static const Uuid _uuid = Uuid();
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +59,8 @@ class _EditorPageState extends State<EditorPage> {
                       setState(() {
                         _controller.saveLocal();
                       });
+                      widget.onSaved?.call(_controller.draft());
+                      Navigator.of(context).pop();
                     },
                     icon: const Icon(Icons.save_outlined),
                   ),
@@ -66,8 +72,8 @@ class _EditorPageState extends State<EditorPage> {
                   children: [
                     TextField(
                       decoration: const InputDecoration(labelText: '标题'),
-                      onChanged: (_) => setState(() {
-                        _controller.onContentChanged();
+                      onChanged: (value) => setState(() {
+                        _controller.setTitle(value);
                       }),
                     ),
                     const SizedBox(height: 12),
@@ -82,8 +88,8 @@ class _EditorPageState extends State<EditorPage> {
                           labelText: '内容',
                           hintText: '输入卡片内容',
                         ),
-                        onChanged: (_) => setState(() {
-                          _controller.onContentChanged();
+                        onChanged: (value) => setState(() {
+                          _controller.setBody(value);
                         }),
                       ),
                     ),
@@ -144,6 +150,7 @@ class _EditorPageState extends State<EditorPage> {
       setState(() {
         _controller.saveLocal();
       });
+      widget.onSaved?.call(_controller.draft());
     }
 
     Navigator.of(context).pop();
@@ -153,5 +160,7 @@ class _EditorPageState extends State<EditorPage> {
 class _SaveIntent extends Intent {
   const _SaveIntent();
 }
+
+String generateNoteId() => _EditorPageState._uuid.v4();
 
 enum _ExitDecision { save, discard, cancel }

@@ -22,7 +22,7 @@ void main() {
     expect(find.text('编辑卡片'), findsOneWidget);
   });
 
-  testWidgets('create note opens editor and save feedback is visible', (
+  testWidgets('create-edit-save appears in cards list through read model', (
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: CardsPage()));
@@ -30,15 +30,17 @@ void main() {
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).first, 'new note');
+    await tester.enterText(find.byType(TextField).first, 'Title 1');
     await tester.tap(find.byIcon(Icons.save_outlined));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('本地已保存'), findsOneWidget);
+    expect(find.text('编辑卡片'), findsNothing);
+    expect(find.text('Title 1'), findsOneWidget);
   });
 
   testWidgets('delete or restore action changes list state', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpAndSettle();
 
     expect(find.text('示例卡片A'), findsOneWidget);
     expect(find.text('已删除'), findsNothing);
