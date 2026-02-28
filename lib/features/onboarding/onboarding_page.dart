@@ -2,7 +2,7 @@
 // output: 触发页面导航，进入 CardsPage 或 PoolPage。
 // pos: 首次引导页面，负责用户进入本地模式或数据池流程。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
-import 'package:cardmind/features/cards/cards_page.dart';
+import 'package:cardmind/app/navigation/app_shell_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +21,9 @@ class OnboardingPage extends StatelessWidget {
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute<void>(builder: (_) => const CardsPage()),
+                    MaterialPageRoute<void>(
+                      builder: (_) => const AppShellPage(),
+                    ),
                   );
                 },
                 child: const Text('先本地使用'),

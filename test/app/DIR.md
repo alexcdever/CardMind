@@ -6,3 +6,4 @@ pos: 应用测试目录说明与维护入口
 
 DIR.md - 本目录说明与文件职责索引
 adaptive_shell_test.dart - 自适应壳层在移动/桌面宽度下的导航渲染测试
+app_shell_navigation_test.dart - onboarding 本地入口进入主壳层并渲染底栏导航测试

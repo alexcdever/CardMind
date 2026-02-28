@@ -6,3 +6,5 @@ lib/app/navigation/ 目录说明。
 修改本目录文件时请同步维护本清单。
 
 app_section.dart - 文件 - 见同目录实现
+app_shell_controller.dart - 文件 - 见同目录实现
+app_shell_page.dart - 文件 - 见同目录实现
