@@ -1,0 +1,163 @@
+name: Manual Build Artifacts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-apk:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Prepare Flutter dependencies
+        run: flutter pub get
+
+      - name: Install flutter_rust_bridge codegen
+        run: |
+          dart pub global activate flutter_rust_bridge_codegen 2.11.1
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Generate FRB bindings
+        run: flutter_rust_bridge_codegen generate
+
+      - name: Install Android Rust targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Build Rust Android libraries
+        run: |
+          mkdir -p ../android/app/src/main/jniLibs
+          cargo ndk -o ../android/app/src/main/jniLibs -t armeabi-v7a -t arm64-v8a -t x86_64 build --release
+        working-directory: rust
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-android-apk-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/*.apk
+
+  macos-app:
+    name: macOS App
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Prepare Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Rust library
+        run: cargo build --release
+        working-directory: rust
+
+      - name: Install flutter_rust_bridge codegen
+        run: |
+          dart pub global activate flutter_rust_bridge_codegen 2.11.1
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Generate FRB bindings
+        run: flutter_rust_bridge_codegen generate
+
+      - name: Build macOS app
+        run: flutter build macos --release
+
+      - name: Pack macOS app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/cardmind.app cardmind-macos-release.zip
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-macos-app-${{ github.run_number }}
+          path: cardmind-macos-release.zip
+
+  windows-app:
+    name: Windows App
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Prepare Flutter dependencies
+        run: flutter pub get
+
+      - name: Build Rust library
+        run: cargo build --release
+        working-directory: rust
+
+      - name: Install flutter_rust_bridge codegen
+        shell: pwsh
+        run: |
+          dart pub global activate flutter_rust_bridge_codegen 2.11.1
+          "$env:USERPROFILE\AppData\Local\Pub\Cache\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Generate FRB bindings
+        run: flutter_rust_bridge_codegen generate
+
+      - name: Build Windows app
+        run: flutter build windows --release
+
+      - name: Pack Windows app
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath cardmind-windows-release.zip -Force
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardmind-windows-app-${{ github.run_number }}
+          path: cardmind-windows-release.zip
