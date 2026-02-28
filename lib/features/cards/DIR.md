@@ -9,3 +9,4 @@ cards_page.dart - 卡片主页面，提供搜索、新建与删除恢复交互
 cards_controller.dart - 卡片域状态控制器
 card_summary.dart - 卡片列表项摘要模型
 cards_desktop_interactions.dart - 桌面端右键菜单与快捷交互
+domain/ - 目录 - 卡片写模型与读模型投影定义

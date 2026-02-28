@@ -8,3 +8,4 @@ DIR.md - 本目录说明与文件职责索引
 cards_page_test.dart - 卡片页基础渲染与 CRUD 可观察行为测试
 cards_sync_navigation_test.dart - 同步异常下跳转处理与编辑不阻断测试
 cards_desktop_interactions_test.dart - 桌面右键菜单交互测试
+domain/ - 目录 - 卡片领域模型与投影语义测试
