@@ -1,7 +1,6 @@
-// input: test/features/editor/editor_shortcuts_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 在编辑页发送 Ctrl/Cmd+S 键盘快捷键事件。
+// output: 触发保存并显示“本地已保存”反馈文案。
+// pos: 覆盖编辑器快捷键保存链路，防止桌面效率入口失效。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

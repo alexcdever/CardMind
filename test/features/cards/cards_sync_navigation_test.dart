@@ -1,7 +1,6 @@
-// input: test/features/cards/cards_sync_navigation_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 以同步错误状态进入卡片页并触发“查看”与“新增”操作。
+// output: 可跳转到池错误处理页且不阻断进入编辑页。
+// pos: 覆盖同步异常下的导航与可编辑性保障，防止降级阻塞。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';

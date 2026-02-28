@@ -1,7 +1,6 @@
-// input: test/features/pool/pool_sync_interaction_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 在池页同步错误态点击“重试同步”和“重新连接”操作。
+// output: 控制器 retrySync 与 reconnectSync 调用计数递增。
+// pos: 覆盖池页与同步控制器动作连线，防止错误恢复按钮失灵。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';

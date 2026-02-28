@@ -1,7 +1,6 @@
-// input: test/interaction_guard_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 遍历 lib 目录下全部 Dart 文件并匹配交互处理器模式。
+// output: 发现空处理器或禁用主交互时输出违规文件并失败。
+// pos: 覆盖交互守卫静态扫描规则，防止空交互进入主干。修改本文件需同步更新文件头与所属 DIR.md。
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

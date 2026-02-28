@@ -1,7 +1,6 @@
-// input: test/fractal_doc_checker_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 构造临时仓库文件、变更列表与 fractal doc CLI 参数。
+// output: 文档检查/引导返回通过或失败并给出对应错误信息。
+// pos: 覆盖分形文档门禁、引导与 CLI 异常分支，防止规范失效。修改本文件需同步更新文件头与所属 DIR.md。
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import '../tool/fractal_doc_bootstrap.dart';
@@ -29,21 +28,29 @@ void main() {
     addTearDown(() => root.deleteSync(recursive: true));
 
     final checker = FractalDocChecker(rootPath: root.path);
-    final result = await checker.check(changedFiles: [
-      '/etc/passwd',
-      'C:\\Windows\\system32',
-      '\\\\server\\share\\file.txt',
-      'file:///etc/passwd',
-    ]);
+    final result = await checker.check(
+      changedFiles: [
+        '/etc/passwd',
+        'C:\\Windows\\system32',
+        '\\\\server\\share\\file.txt',
+        'file:///etc/passwd',
+      ],
+    );
     expect(result.isOk, isFalse);
     expect(result.errors, hasLength(4));
     expect(result.errors, contains('absolute path not allowed: /etc/passwd'));
-    expect(result.errors,
-        contains('absolute path not allowed: C:\\Windows\\system32'));
-    expect(result.errors,
-        contains('absolute path not allowed: \\\\server\\share\\file.txt'));
-    expect(result.errors,
-        contains('absolute path not allowed: file:///etc/passwd'));
+    expect(
+      result.errors,
+      contains('absolute path not allowed: C:\\Windows\\system32'),
+    );
+    expect(
+      result.errors,
+      contains('absolute path not allowed: \\\\server\\share\\file.txt'),
+    );
+    expect(
+      result.errors,
+      contains('absolute path not allowed: file:///etc/passwd'),
+    );
   });
 
   test('fails when DIR.md not updated for changed file', () async {
@@ -92,15 +99,17 @@ void main() {
   test('ignores excluded paths', () async {
     final root = Directory.systemTemp.createTempSync('fractal-doc-test');
     addTearDown(() => root.deleteSync(recursive: true));
-    final file = File('${root.path}/build/foo.dart')..createSync(recursive: true);
+    final file = File('${root.path}/build/foo.dart')
+      ..createSync(recursive: true);
     file.writeAsStringSync('void main() {}');
-    final backslashFile =
-        File('${root.path}/build\\foo.dart')..createSync(recursive: true);
+    final backslashFile = File('${root.path}/build\\foo.dart')
+      ..createSync(recursive: true);
     backslashFile.writeAsStringSync('void main() {}');
 
     final checker = FractalDocChecker(rootPath: root.path);
-    final result =
-        await checker.check(changedFiles: ['build/foo.dart', 'build\\foo.dart']);
+    final result = await checker.check(
+      changedFiles: ['build/foo.dart', 'build\\foo.dart'],
+    );
     expect(result.isOk, isTrue);
     expect(result.errors, isEmpty);
   });
@@ -121,8 +130,8 @@ void main() {
   test('bootstrap adds headers only to dart and rs files', () async {
     final root = Directory.systemTemp.createTempSync('fractal-doc-test');
     addTearDown(() => root.deleteSync(recursive: true));
-    final dartFile =
-        File('${root.path}/lib/foo.dart')..createSync(recursive: true);
+    final dartFile = File('${root.path}/lib/foo.dart')
+      ..createSync(recursive: true);
     dartFile.writeAsStringSync('void main() {}');
     final rsFile = File('${root.path}/lib/foo.rs')..createSync(recursive: true);
     rsFile.writeAsStringSync('fn main() {}');

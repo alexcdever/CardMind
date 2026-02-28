@@ -1,7 +1,6 @@
-// input: test/features/settings/settings_page_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 在设置页触发数据池入口与底部 Tab 切换操作。
+// output: 可进入池页并一步切换到卡片页或池页目标分区。
+// pos: 覆盖设置页跨分区导航通路，防止一跳切换退化。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/settings/settings_page.dart';

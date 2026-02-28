@@ -1,7 +1,6 @@
-// input: test/build_cli_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 向 build CLI 传入子命令、平台参数与帮助参数。
+// output: 返回码、提示文案与进程调用顺序符合约定。
+// pos: 覆盖构建脚本分支与参数校验，防止错误构建路径。修改本文件需同步更新文件头与所属 DIR.md。
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
