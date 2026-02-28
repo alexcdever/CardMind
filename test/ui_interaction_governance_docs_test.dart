@@ -55,10 +55,19 @@ void main() {
       'docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md',
     ).readAsStringSync();
 
+    const poolLifecycleKeywords = <String>[
+      '增删改查 + 创建/加入/审批',
+      '退出',
+      '编辑池信息',
+      '解散池',
+    ];
+
     expect(content, contains('S2 卡片笔记管理'));
     expect(content, contains('增删改查'));
     expect(content, contains('S3 池管理'));
-    expect(content, contains('增删改查 + 创建/加入/审批/退出'));
+    for (final keyword in poolLifecycleKeywords) {
+      expect(content, contains(keyword));
+    }
     expect(content, contains('S4 设置'));
     expect(content, contains('Tab 可一步切换至卡片页和池页'));
   });
