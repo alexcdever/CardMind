@@ -1,6 +1,6 @@
-// input: lib/app/layout/adaptive_shell.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 应用壳层模块，负责导航与跨端布局。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: child、section、onSectionChanged 与当前屏幕宽度。
+// output: 根据宽度返回 NavigationRail 或 BottomNavigationBar 容器。
+// pos: 自适应导航壳组件，负责桌面与移动端导航布局切换。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 应用壳层模块，负责导航与跨端布局。
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';

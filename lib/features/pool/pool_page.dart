@@ -1,6 +1,6 @@
-// input: lib/features/pool/pool_page.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: 接收初始 PoolState/可选控制器，并处理扫码、审批、退出等用户交互。
+// output: 按当前 PoolState 渲染不同页面分支，并调用控制器推进状态转换。
+// pos: 数据池页面，负责入池、成员审批、错误处理与退池流程展示。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'dart:async';
 

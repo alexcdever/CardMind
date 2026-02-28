@@ -1,6 +1,6 @@
-// input: lib/main.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 客户端入口模块，负责应用启动与依赖接线。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: Dart 运行时调用 main() 启动应用进程。
+// output: 执行 runApp(const CardMindApp()) 挂载根组件。
+// pos: Flutter 应用入口文件，负责触发根组件启动。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 客户端入口模块，负责应用启动与依赖接线。
 import 'package:cardmind/app/app.dart';
 import 'package:flutter/material.dart';

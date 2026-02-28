@@ -1,6 +1,6 @@
-// input: lib/features/pool/pool_controller.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: 接收池状态操作（创建、审批、拒绝、退出）与同步状态更新请求。
+// output: 更新 PoolState/SyncStatus 并通过 notifyListeners() 触发界面刷新。
+// pos: 数据池状态控制器，负责池成员流转与同步状态编排。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/sync/sync_status.dart';

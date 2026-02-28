@@ -1,6 +1,6 @@
-// input: lib/features/cards/cards_desktop_interactions.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: showContextMenu 接收 BuildContext 与全局点击坐标 position。
+// output: 调用 showMenu 弹出桌面右键菜单并返回其 Future。
+// pos: 卡片桌面交互封装，负责右键上下文菜单展示。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:flutter/material.dart';
 
