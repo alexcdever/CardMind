@@ -1,5 +1,5 @@
 // input: SQLite 文件路径、Card/Pool 结构数据与查询参数（id/分页/关键字）。
-// output: cards/pools 表的增删改查结果、解析后的领域模型与数据库错误映射。
+// output: cards/pools 表的写入与查询结果、解析后的领域模型与数据库错误映射。
 // pos: SQLite 存储实现文件，负责结构化缓存表管理与模型序列化落库。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：本文件实现 SQLite 读写与模型映射。
 use crate::models::card::Card;
