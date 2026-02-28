@@ -13,5 +13,6 @@ features/editor/ - 卡片编辑页、离开保护与快捷键保存
 features/pool/ - 数据池三态页面、错误映射与池状态模型
 features/settings/ - 设置页与池入口回流
 features/sync/ - 同步状态模型与弱提示/异常高亮组件
+features/shared/ - 跨域共享数据基础设施（读模型数据库等）
 main.dart - 文件 - 见同目录实现
 DIR.md - 本目录说明与文件职责索引
