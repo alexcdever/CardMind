@@ -22,12 +22,17 @@ class SyncBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (status.kind == SyncStatusKind.error) {
+      final viewAction = onView;
       return MaterialBanner(
         content: Text(_messageFor(status.code)),
         actions: [
-          TextButton(onPressed: onRetry, child: const Text('重试同步')),
-          TextButton(onPressed: onReconnect, child: const Text('重新连接')),
-          TextButton(onPressed: onView, child: const Text('查看')),
+          TextButton(onPressed: onRetry ?? () {}, child: const Text('重试同步')),
+          TextButton(
+            onPressed: onReconnect ?? () {},
+            child: const Text('重新连接'),
+          ),
+          if (viewAction != null)
+            TextButton(onPressed: viewAction, child: const Text('查看')),
         ],
       );
     }

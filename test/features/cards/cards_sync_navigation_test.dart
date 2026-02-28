@@ -37,4 +37,31 @@ void main() {
 
     expect(find.text('编辑卡片'), findsOneWidget);
   });
+
+  testWidgets(
+    'sync error banner action navigates to pool handling without blocking note creation',
+    (tester) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: navigatorKey,
+          home: const CardsPage(
+            syncStatus: SyncStatus.error('REQUEST_TIMEOUT'),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('查看'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('加入失败:'), findsOneWidget);
+
+      navigatorKey.currentState!.pop();
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      expect(find.text('编辑卡片'), findsOneWidget);
+    },
+  );
 }

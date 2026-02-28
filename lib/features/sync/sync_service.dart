@@ -100,6 +100,18 @@ class SyncService {
     }
   }
 
+  Future<SyncStatus> reconnect(String target) async {
+    try {
+      await gateway.syncDisconnect(networkId: networkId);
+      await gateway.syncConnect(networkId: networkId, target: target);
+      return status();
+    } on ApiError catch (error) {
+      return SyncStatus.error(error.code);
+    } catch (_) {
+      return const SyncStatus.error('INTERNAL');
+    }
+  }
+
   SyncStatus _mapState(String state) {
     switch (state) {
       case 'idle':

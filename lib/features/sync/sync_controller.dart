@@ -18,16 +18,21 @@ class SyncController extends ChangeNotifier {
   SyncStatus get status => _status;
 
   Future<void> connect(String target) async {
-    _status = const SyncStatus.connecting();
-    notifyListeners();
-    _status = await service.connect(target);
-    notifyListeners();
+    await _runWithConnecting(() => service.connect(target));
   }
 
   Future<void> retry() async {
+    await _runWithConnecting(() => service.retry());
+  }
+
+  Future<void> reconnect(String target) async {
+    await _runWithConnecting(() => service.reconnect(target));
+  }
+
+  Future<void> _runWithConnecting(Future<SyncStatus> Function() action) async {
     _status = const SyncStatus.connecting();
     notifyListeners();
-    _status = await service.retry();
+    _status = await action();
     notifyListeners();
   }
 
