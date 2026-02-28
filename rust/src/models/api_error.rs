@@ -1,7 +1,7 @@
-// input: rust/src/models/api_error.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 数据模型模块，定义跨层共享的数据结构。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 数据模型模块，定义跨层共享的数据结构。
+// input: API 边界处的错误分类需求与底层 CardMindError 映射目标。
+// output: 稳定字符串错误码 ApiErrorCode 与可序列化 ApiError 结构。
+// pos: API 错误模型定义文件，负责对外错误协议的码值与消息封装。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件定义 API 错误码及错误对象。
 use serde::{Deserialize, Serialize};
 
 /// 对外 API 错误码

@@ -1,7 +1,7 @@
-// input: rust/src/net/messages.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 网络与同步模块，负责连接、会话与消息流转。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 网络与同步模块，负责连接、会话与消息流转。
+// input: 同步协议需要交换的池、成员、卡片快照与增量字段定义。
+// output: 可序列化 PoolMessage 枚举，统一点对点消息载荷类型。
+// pos: 同步消息模型文件，负责声明网络层可传输消息协议。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件定义网络消息枚举。
 use crate::models::pool::PoolMember;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

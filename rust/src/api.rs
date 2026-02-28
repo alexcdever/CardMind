@@ -1,7 +1,7 @@
-// input: rust/src/api.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 核心入口模块，承接 FFI 与业务编排。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 核心入口模块，承接 FFI 与业务编排。
+// input: 来自 FRB/上层的句柄与字符串参数，以及 store/network 操作返回的领域错误。
+// output: 初始化与关闭句柄结果、同步状态 DTO 与统一 ApiError 映射。
+// pos: Rust API 门面模块，负责句柄生命周期管理与跨层错误转换。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件承接对外 API 并做错误码映射。
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::net::endpoint::{build_endpoint, PoolEndpoint};

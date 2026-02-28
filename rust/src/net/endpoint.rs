@@ -1,7 +1,7 @@
-// input: rust/src/net/endpoint.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 网络与同步模块，负责连接、会话与消息流转。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 网络与同步模块，负责连接、会话与消息流转。
+// input: iroh 端点构建参数、目标 EndpointAddr 与地址观察超时配置。
+// output: PoolEndpoint 包装器、连接结果与可用端点地址等待能力。
+// pos: 底层端点适配文件，负责封装 iroh Endpoint 的创建与连接接口。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件封装 iroh 端点构建与连接。
 use crate::models::error::CardMindError;
 use iroh::address_lookup::mdns::MdnsAddressLookup;
 use iroh::endpoint::Connection;

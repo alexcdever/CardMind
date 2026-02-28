@@ -1,7 +1,7 @@
-// input: rust/src/net/codec.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 网络与同步模块，负责连接、会话与消息流转。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 网络与同步模块，负责连接、会话与消息流转。
+// input: PoolMessage 结构体与网络字节流（长度前缀 + postcard 二进制体）。
+// output: 编码后的消息字节或解码后的 PoolMessage，并返回格式校验错误。
+// pos: 网络编解码文件，负责消息序列化协议与长度一致性校验。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件实现消息编码与解码。
 use crate::models::error::CardMindError;
 use crate::net::messages::PoolMessage;
 

@@ -1,7 +1,7 @@
-// input: rust/src/models/card.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 数据模型模块，定义跨层共享的数据结构。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 数据模型模块，定义跨层共享的数据结构。
+// input: 来自存储层与序列化流程的卡片字段值（id/title/content/timestamp/deleted）。
+// output: 可序列化的 Card 结构体，供 API/存储/同步模块共享使用。
+// pos: 卡片领域模型定义文件，负责约束单张卡片的数据形状。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件仅定义 Card 数据结构。
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

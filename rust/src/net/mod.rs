@@ -1,7 +1,7 @@
-// input: rust/src/net/mod.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 网络与同步模块，负责连接、会话与消息流转。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 网络与同步模块，负责连接、会话与消息流转。
+// input: 编译期网络子模块装配声明（codec/endpoint/messages/pool_network/session/sync）。
+// output: 对外导出网络与同步子模块命名空间供上层引用。
+// pos: net 聚合模块，负责组织连接、消息与同步能力入口。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件维护 net 子模块导出清单。
 pub mod codec;
 pub mod endpoint;
 pub mod messages;

@@ -1,7 +1,7 @@
-// input: rust/src/store/sqlite_store.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 存储模块，负责本地数据读写与持久化。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 存储模块，负责本地数据读写与持久化。
+// input: SQLite 文件路径、Card/Pool 结构数据与查询参数（id/分页/关键字）。
+// output: cards/pools 表的增删改查结果、解析后的领域模型与数据库错误映射。
+// pos: SQLite 存储实现文件，负责结构化缓存表管理与模型序列化落库。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件实现 SQLite 读写与模型映射。
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
