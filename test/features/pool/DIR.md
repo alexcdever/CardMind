@@ -10,3 +10,4 @@ join_error_mapper_test.dart - 加入错误码文案与动作映射测试
 pool_sync_interaction_test.dart - 文件 - 见同目录实现
 domain/ - 目录 - 池领域实体与生命周期建模测试
 data/ - 目录 - 池数据层 SQLite 读仓行为测试
+application/ - 目录 - 池写侧生命周期命令测试

@@ -7,3 +7,5 @@ pos: 池数据层目录说明与维护入口
 DIR.md - 本目录说明与文件职责索引
 pool_read_repository.dart - 池读仓接口定义
 sqlite_pool_read_repository.dart - 池 SQLite 读仓实现
+pool_write_repository.dart - 池写仓接口定义
+loro_pool_write_repository.dart - 池 Loro 写仓实现

@@ -7,3 +7,5 @@ pos: 卡片数据层目录说明与维护入口
 DIR.md - 本目录说明与文件职责索引
 cards_read_repository.dart - 卡片读仓接口定义
 sqlite_cards_read_repository.dart - 卡片 SQLite 读仓实现
+cards_write_repository.dart - 卡片写仓接口定义
+loro_cards_write_repository.dart - 卡片 Loro 写仓实现
