@@ -123,9 +123,4 @@
 - `test/widget_test.dart:2`：`// output: 对外状态更新、返回结果或副作用（保持行为不变）。`
 - `tool/fractal_doc_check.dart:1`：`// input: tool/fractal_doc_check.dart 上游输入（用户操作、外部参数或依赖返回）。`
 
-## 排除项
-- `rust/src/frb_generated.rs`
-- `lib/**.g.dart`
-- `lib/**.freezed.dart`
-- `build/**`
-- `rust/target/**`
+排除项：rust/src/frb_generated.rs、lib/**.g.dart、lib/**.freezed.dart、build/**、rust/target/**
