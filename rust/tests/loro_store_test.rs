@@ -1,7 +1,6 @@
-// input: rust/tests/loro_store_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 随机生成的 Uuid 与 note_doc_path/pool_doc_path 路径构造调用。
+// output: 断言生成路径后缀与 base64 编码后的预期目录结构一致。
+// pos: 覆盖 Loro 文档路径生成规则场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use cardmind_rust::store::loro_store::{note_doc_path, pool_doc_path};

@@ -1,7 +1,6 @@
-// input: rust/tests/api_error_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: ApiError/ApiErrorCode 构造参数与错误码枚举值。
+// output: 断言错误码字符串与错误消息字段满足 API 约定。
+// pos: 覆盖 API 错误结构与编码映射场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::models::api_error::{ApiError, ApiErrorCode};
 
 #[test]

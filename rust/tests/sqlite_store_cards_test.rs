@@ -1,7 +1,6 @@
-// input: rust/tests/sqlite_store_cards_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 构造的 Card 实体与 SQLite upsert/get_card 调用参数。
+// output: 断言卡片写入数据库后可按 id 读取且标题字段一致。
+// pos: 覆盖 SQLite 卡片持久化写入读取场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::models::card::Card;
 use cardmind_rust::store::sqlite_store::SqliteStore;
 use tempfile::tempdir;

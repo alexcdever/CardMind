@@ -1,6 +1,6 @@
-// input: lib/features/sync/sync_status.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: 通过具名构造创建各同步阶段，degraded/error 可携带错误码 code。
+// output: 生成 SyncStatusKind 与 code 组合的不可变同步状态对象。
+// pos: 同步状态模型定义，负责统一表示连接与错误状态。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 enum SyncStatusKind { idle, connecting, connected, syncing, degraded, error }
 

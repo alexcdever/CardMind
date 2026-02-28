@@ -1,7 +1,6 @@
-// input: test/features/onboarding/onboarding_page_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 在引导页点击“先本地使用”或“创建或加入数据池”按钮。
+// output: 仅展示双主行动作并分别进入卡片页或池页。
+// pos: 覆盖引导分流入口与去向正确性，防止首次路径偏航。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/onboarding/onboarding_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

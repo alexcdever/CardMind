@@ -1,6 +1,6 @@
-// input: lib/features/pool/join_error_mapper.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: mapJoinError 接收加入失败错误码 code。
+// output: 返回包含提示文案与主操作的 JoinErrorUiModel。
+// pos: 入池错误映射模块，负责将错误码转换为可展示 UI 语义。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 enum JoinAction {
   retryWithNewInfo,

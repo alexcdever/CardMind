@@ -1,7 +1,6 @@
-// input: rust/tests/smoke_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 测试框架触发 smoke 用例的执行请求。
+// output: 断言占位 smoke 断言（assert!(true)）可执行通过。
+// pos: 覆盖基础构建冒烟场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 #[test]
 fn it_should_build_crate() {
     assert!(true);

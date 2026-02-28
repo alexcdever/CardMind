@@ -1,7 +1,6 @@
-// input: test/features/editor/editor_page_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 在编辑页输入内容并触发返回、放弃等离开流程操作。
+// output: 展示未保存确认弹窗，并覆盖放弃更改后退出编辑页路径。
+// pos: 覆盖编辑页离开保护与基础编辑控件可见性，防止误退丢稿。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

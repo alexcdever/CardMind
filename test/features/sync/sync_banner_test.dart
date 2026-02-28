@@ -1,7 +1,6 @@
-// input: test/features/sync/sync_banner_test.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 测试模块，验证 UI、交互守卫与文档门禁行为。
+// input: 以健康/错误同步状态渲染横幅并点击重试、重连、查看动作。
+// output: 展示对应文案并触发回调或导航到错误处理页。
+// pos: 覆盖同步横幅状态呈现与动作触发，防止异常处置入口缺失。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/sync/sync_banner.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';

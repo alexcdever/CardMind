@@ -1,7 +1,7 @@
-// input: rust/src/store/card_store.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 存储模块，负责本地数据读写与持久化。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 存储模块，负责本地数据读写与持久化。
+// input: 卡片增删改查参数、当前时间戳、Loro 文档读写与 SQLite 查询结果。
+// output: Card 创建/更新结果、软删除状态持久化与卡片列表检索结果。
+// pos: 卡片存储实现文件，负责卡片在 Loro 与 SQLite 之间的一致性写入。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件实现卡片本地存储读写。
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::store::loro_store::{load_loro_doc, note_doc_path, save_loro_doc};

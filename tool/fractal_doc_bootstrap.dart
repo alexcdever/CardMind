@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: 仓库根路径与目录树中现有的 .dart/.rs 文件及 DIR.md 状态。
+// output: 为缺失 DIR.md 的目录补齐索引文件，并为缺少三行头的源码文件前置 input/output/pos。
+// pos: 初始化分形文档基线，确保源码与目录索引满足文档治理最小要求。修改本文件需同步更新文件头与所属 DIR.md。
 import 'dart:convert';
 import 'dart:io';
 

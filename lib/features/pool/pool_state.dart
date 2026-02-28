@@ -1,6 +1,6 @@
-// input: lib/features/pool/pool_state.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: 业务通过工厂构造传入 pending、error code、exit 标记等状态数据。
+// output: 提供 PoolState 各分支类型与 PoolPendingRequest 数据结构。
+// pos: 数据池状态模型定义，负责描述入池流程全部状态形态。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 sealed class PoolState {
   const PoolState();

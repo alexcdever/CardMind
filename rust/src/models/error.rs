@@ -1,7 +1,7 @@
-// input: rust/src/models/error.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 数据模型模块，定义跨层共享的数据结构。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 数据模型模块，定义跨层共享的数据结构。
+// input: IO/SQLite/Loro/参数校验等子系统在业务流程中产生的错误上下文字符串。
+// output: 统一 CardMindError 枚举，供各层传播并在 API 层映射。
+// pos: 领域错误模型定义文件，负责收敛 Rust 侧通用错误语义。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件定义统一业务错误类型。
 use thiserror::Error;
 
 /// CardMind 统一错误类型

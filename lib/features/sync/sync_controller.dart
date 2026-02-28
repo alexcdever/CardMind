@@ -1,6 +1,6 @@
-// input: lib/features/sync/sync_controller.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: 接收 connect/retry/refresh 调用并依赖 SyncService 返回结果。
+// output: 更新内部 SyncStatus 并 notifyListeners() 广播状态变化。
+// pos: 同步流程控制器，负责调用服务层并驱动同步状态机。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';

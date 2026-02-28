@@ -1,7 +1,7 @@
-// input: rust/src/net/session.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 网络与同步模块，负责连接、会话与消息流转。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 网络与同步模块，负责连接、会话与消息流转。
+// input: 同步目标地址字符串、pool 成员列表与待校验 peer endpoint_id。
+// output: SyncSession 连接状态变更与 PoolSession 成员校验结果。
+// pos: 同步会话状态文件，负责连接阶段与池成员权限的本地校验。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件管理同步状态与成员校验。
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
 use std::collections::HashSet;

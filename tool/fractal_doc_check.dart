@@ -1,6 +1,6 @@
-// input: 
-// output: 
-// pos: 
+// input: CLI 参数（可选 --base <git-ref>）与 git diff 输出的变更文件列表。
+// output: 执行分形文档检查并返回进程退出码，失败时向 stderr 输出违规明细。
+// pos: 提供分形文档门禁命令入口，约束变更文件满足头注释与 DIR.md 索引要求。修改本文件需同步更新文件头与所属 DIR.md。
 import 'dart:convert';
 import 'dart:io';
 import 'fractal_doc_checker.dart';

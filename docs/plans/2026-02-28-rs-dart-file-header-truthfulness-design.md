@@ -1,3 +1,6 @@
+input: 头注释真实性清查需求、范围约束与验收口径。
+output: 全仓 rs/dart 文件头治理设计与完成证据。
+pos: 设计文档，定义执行策略与完成标准。
 # CardMind 全仓 rs/dart 文件头真实性清查设计（2026-02-28）
 
 ## 1. 目标与边界
@@ -41,6 +44,7 @@
 - 规范校验：运行 `dart run tool/fractal_doc_check.dart --base <commit>`。
 - 治理回归：运行 `flutter test test/ui_interaction_governance_docs_test.dart`。
 - 交付物：
+  - 基线清查清单与证据文档：`docs/plans/2026-02-28-rs-dart-file-header-truthfulness-filelist.md`
   - 已修复文件清单
   - 自动生成文件例外清单
   - 二次确认文件清单（如有）
@@ -49,3 +53,9 @@
 - 全仓可维护 `.rs/.dart` 中“已有文件头”的文件均完成逐文件语义修正。
 - 不存在可被任意文件复用的空泛模板句。
 - 文档治理与交互治理相关校验通过。
+
+## 8. 完成证据（Task 7 收口）
+- 模板短语终态扫描：`rg -n "用户操作、外部参数或依赖返回|保持行为不变|Rust 测试模块，验证关键行为、边界条件与错误路径" rust lib test tool --glob "*.rs" --glob "*.dart"`，输出为空（0 命中）。
+- 目录级抽样复核：`rust/src` 3/22、`rust/tests` 3/22、`lib` 3/23、`test` 3/19、`tool` 2/3，样本全部通过。
+- 交付清单已落地到 `docs/plans/2026-02-28-rs-dart-file-header-truthfulness-filelist.md`，包含“已修复 / 例外（自动生成）/ 二次确认”最终列表。
+- 自动生成例外明确保留：`rust/src/frb_generated.rs`。

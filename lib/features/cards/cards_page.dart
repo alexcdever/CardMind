@@ -1,6 +1,6 @@
-// input: lib/features/cards/cards_page.dart 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Flutter 功能模块，负责状态编排、交互反馈与页面渲染。 修改本文件需同步更新文件头与所属 DIR.md。
+// input: 页面接收 syncStatus，并处理右键菜单、删除/恢复点击与页面跳转交互。
+// output: 渲染卡片列表与同步横幅，并在删除/恢复操作后更新本地 _notes 状态。
+// pos: 卡片页主界面，负责卡片展示、删除/恢复与编辑入口。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:cardmind/features/cards/cards_desktop_interactions.dart';
 import 'package:cardmind/features/editor/editor_page.dart';

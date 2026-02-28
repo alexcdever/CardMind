@@ -1,7 +1,7 @@
-// input: rust/src/store/path_resolver.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 存储模块，负责本地数据读写与持久化。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 存储模块，负责本地数据读写与持久化。
+// input: 上层传入 base_path 字符串与文件系统目录创建结果。
+// output: DataPaths 路径集合（loro note/pool 与 sqlite 路径）及初始化错误。
+// pos: 存储路径解析文件，负责标准化数据目录结构并确保目录存在。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件解析并创建数据目录路径。
 use crate::models::error::CardMindError;
 use std::fs;
 use std::path::{Path, PathBuf};

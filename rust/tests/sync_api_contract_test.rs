@@ -1,7 +1,6 @@
-// input: rust/tests/sync_api_contract_test.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 测试模块，验证关键行为、边界条件与错误路径。
+// input: 无效 network handle 传入 sync_status API 的调用请求。
+// output: 断言 API 返回结构化错误且 code/message 字段非空。
+// pos: 覆盖同步 API 错误契约一致性场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::*;
 
 #[test]

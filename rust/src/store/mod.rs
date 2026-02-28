@@ -1,7 +1,7 @@
-// input: rust/src/store/mod.rs 上游输入（用户操作、外部参数或依赖返回）。
-// output: 对外状态更新、返回结果或副作用（保持行为不变）。
-// pos: Rust 存储模块，负责本地数据读写与持久化。 修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Rust 存储模块，负责本地数据读写与持久化。
+// input: 编译期存储子模块装配声明（card/pool/loro/sqlite/path_resolver）。
+// output: 对外导出存储层统一命名空间供业务与网络层依赖。
+// pos: store 聚合模块，负责组织本地持久化相关子模块入口。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件维护 store 子模块导出清单。
 /// 卡片存储
 pub mod card_store;
 /// loro 存储
