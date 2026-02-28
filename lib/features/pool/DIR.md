@@ -12,3 +12,4 @@ join_error_mapper.dart - 加入失败错误码到可操作文案/动作映射
 domain/ - 目录 - 池、成员与请求领域实体定义
 data/ - 目录 - 池读仓抽象与 SQLite 读侧实现
 application/ - 目录 - 池写侧生命周期命令服务
+projection/ - 目录 - 池写侧事件投影到读侧处理器

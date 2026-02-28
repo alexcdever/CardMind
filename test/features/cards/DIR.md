@@ -11,3 +11,4 @@ cards_desktop_interactions_test.dart - 桌面右键菜单交互测试
 domain/ - 目录 - 卡片领域模型与投影语义测试
 data/ - 目录 - 卡片数据层 SQLite 读仓行为测试
 application/ - 目录 - 卡片写侧命令服务测试
+projection/ - 目录 - 卡片投影处理器测试

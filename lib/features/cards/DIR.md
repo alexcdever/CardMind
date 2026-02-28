@@ -12,3 +12,4 @@ cards_desktop_interactions.dart - 桌面端右键菜单与快捷交互
 domain/ - 目录 - 卡片写模型与读模型投影定义
 data/ - 目录 - 卡片读仓抽象与 SQLite 读侧实现
 application/ - 目录 - 卡片写侧命令服务
+projection/ - 目录 - 卡片写侧事件投影到读侧处理器
