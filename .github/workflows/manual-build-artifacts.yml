@@ -3,6 +3,10 @@ name: Manual Build Artifacts
 on:
   workflow_dispatch:
 
+concurrency:
+  group: manual-build-artifacts-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -19,11 +23,13 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -33,11 +39,20 @@ jobs:
         with:
           workspaces: rust
 
+      - name: Cache cargo installed tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-bin-v1-frb-2.11.1-cargo-ndk
+
       - name: Prepare Flutter dependencies
         run: flutter pub get
 
       - name: Install flutter_rust_bridge codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+        run: |
+          if ! command -v flutter_rust_bridge_codegen >/dev/null 2>&1; then
+            cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+          fi
 
       - name: Generate FRB bindings
         run: flutter_rust_bridge_codegen generate
@@ -46,7 +61,10 @@ jobs:
         run: rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 
       - name: Install cargo-ndk
-        run: cargo install cargo-ndk --locked
+        run: |
+          if ! command -v cargo-ndk >/dev/null 2>&1; then
+            cargo install cargo-ndk --locked
+          fi
 
       - name: Build Rust Android libraries
         run: |
@@ -74,6 +92,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -83,6 +102,12 @@ jobs:
         with:
           workspaces: rust
 
+      - name: Cache cargo installed tools
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-bin-v1-frb-2.11.1
+
       - name: Prepare Flutter dependencies
         run: flutter pub get
 
@@ -91,7 +116,10 @@ jobs:
         working-directory: rust
 
       - name: Install flutter_rust_bridge codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+        run: |
+          if ! command -v flutter_rust_bridge_codegen >/dev/null 2>&1; then
+            cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+          fi
 
       - name: Generate FRB bindings
         run: flutter_rust_bridge_codegen generate
@@ -120,6 +148,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -129,6 +158,12 @@ jobs:
         with:
           workspaces: rust
 
+      - name: Cache cargo installed tools
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\cargo\bin
+          key: ${{ runner.os }}-cargo-bin-v1-frb-2.11.1
+
       - name: Prepare Flutter dependencies
         run: flutter pub get
 
@@ -137,7 +172,11 @@ jobs:
         working-directory: rust
 
       - name: Install flutter_rust_bridge codegen
-        run: cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+        shell: pwsh
+        run: |
+          if (-not (Get-Command flutter_rust_bridge_codegen -ErrorAction SilentlyContinue)) {
+            cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+          }
 
       - name: Generate FRB bindings
         run: flutter_rust_bridge_codegen generate
