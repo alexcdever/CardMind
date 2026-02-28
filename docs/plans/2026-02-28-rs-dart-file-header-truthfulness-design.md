@@ -50,3 +50,9 @@
 - 全仓可维护 `.rs/.dart` 中“已有文件头”的文件均完成逐文件语义修正。
 - 不存在可被任意文件复用的空泛模板句。
 - 文档治理与交互治理相关校验通过。
+
+## 8. 完成证据（Task 7 收口）
+- 模板短语终态扫描：`rg -n "用户操作、外部参数或依赖返回|保持行为不变|Rust 测试模块，验证关键行为、边界条件与错误路径" rust lib test tool --glob "*.rs" --glob "*.dart"`，输出为空（0 命中）。
+- 目录级抽样复核：`rust/src` 3/22、`rust/tests` 3/22、`lib` 3/23、`test` 3/19、`tool` 2/3，样本全部通过。
+- 交付清单已落地到 `docs/plans/2026-02-28-rs-dart-file-header-truthfulness-filelist.md`，包含“已修复 / 例外（自动生成）/ 二次确认”最终列表。
+- 自动生成例外明确保留：`rust/src/frb_generated.rs`。

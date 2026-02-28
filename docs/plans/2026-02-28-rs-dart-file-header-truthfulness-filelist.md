@@ -6,6 +6,15 @@
 - 文件头判定：包含行 `// input:`
 - 扫描命令：`rg -n --files-with-matches "^// input:" rust/src rust/tests lib test tool --glob "*.rs" --glob "*.dart" --glob "!lib/**/*.g.dart" --glob "!lib/**/*.freezed.dart"`
 
+## 抽样复核记录（目录级）
+- 复核方式：每个目录随机抽样并复读文件头三行（`input/output/pos`）与正文职责是否一致。
+- `rust/src`：抽样 3/22（`api.rs`、`net/session.rs`、`store/sqlite_store.rs`），结果：通过。
+- `rust/tests`：抽样 3/22（`smoke_test.rs`、`pool_sync_test.rs`、`path_resolver_test.rs`），结果：通过。
+- `lib`：抽样 3/23（`main.dart`、`features/pool/pool_controller.dart`、`features/sync/sync_service.dart`），结果：通过。
+- `test`：抽样 3/19（`widget_test.dart`、`features/pool/pool_page_test.dart`、`features/cards/cards_page_test.dart`），结果：通过。
+- `tool`：抽样 2/3（`fractal_doc_check.dart`、`fractal_doc_checker.dart`），结果：通过。
+- 抽样结论：14 个样本均通过，未发现模板化回流或职责失真描述。
+
 ## rust/src（22）
 - `rust/src/api.rs`
 - `rust/src/lib.rs`
@@ -105,22 +114,24 @@
 - `tool/fractal_doc_check.dart`
 - `tool/fractal_doc_checker.dart`
 
-## 基线问题证据（模板化语句）
+## 完成证据（模板短语清零）
 
-### 扫描命令
+### 终态扫描命令
 - `rg -n "用户操作、外部参数或依赖返回|保持行为不变|Rust 测试模块，验证关键行为、边界条件与错误路径" rust lib test tool --glob "*.rs" --glob "*.dart"`
 
-### 命中统计
-- `用户操作、外部参数或依赖返回`：86 处
-- `保持行为不变`：86 处
-- `Rust 测试模块，验证关键行为、边界条件与错误路径`：44 处
+### 终态扫描结果
+- 输出为空（0 命中）。
 
-### 命中示例
-- `rust/src/lib.rs:1`：`// input: rust/src/lib.rs 上游输入（用户操作、外部参数或依赖返回）。`
-- `rust/src/lib.rs:2`：`// output: 对外状态更新、返回结果或副作用（保持行为不变）。`
-- `rust/tests/smoke_test.rs:3`：`// pos: Rust 测试模块，验证关键行为、边界条件与错误路径。 修改本文件需同步更新文件头与所属 DIR.md。`
-- `lib/main.dart:1`：`// input: lib/main.dart 上游输入（用户操作、外部参数或依赖返回）。`
-- `test/widget_test.dart:2`：`// output: 对外状态更新、返回结果或副作用（保持行为不变）。`
-- `tool/fractal_doc_check.dart:1`：`// input: tool/fractal_doc_check.dart 上游输入（用户操作、外部参数或依赖返回）。`
+## 最终清单
 
-排除项：rust/src/frb_generated.rs、lib/**.g.dart、lib/**.freezed.dart、build/**、rust/target/**
+### 已修复
+- 已修复范围：本文件列出的全部带文件头源码（`rust/src` 22、`rust/tests` 22、`lib` 23、`test` 19、`tool` 3；合计 89）。
+- 修复结果：`input/output/pos` 均改为可验证、可区分的真实职责描述。
+
+### 例外（自动生成）
+- `rust/src/frb_generated.rs`
+
+### 二次确认
+- 无。
+
+排除项：`rust/src/frb_generated.rs`、`lib/**.g.dart`、`lib/**.freezed.dart`、`build/**`、`rust/target/**`
