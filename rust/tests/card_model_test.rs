@@ -1,5 +1,5 @@
 // input: 手工构造的 Card 字段值（id/title/content/时间戳/删除标记）。
-// output: 断言 Card 模型字段赋值与读取结果保持一致。
+// output: 断言 Card 的 title/content 字段赋值与读取结果保持一致。
 // pos: 覆盖卡片领域模型基础数据结构场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::models::card::Card;
 use uuid::Uuid;
