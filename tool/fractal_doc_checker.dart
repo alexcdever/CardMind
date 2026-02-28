@@ -1,6 +1,6 @@
-// input:
-// output:
-// pos:
+// input: 仓库根路径与待检查的相对文件路径列表（通常来自 git diff）。
+// output: 返回 FractalDocCheckResult，包含缺失头注释、绝对路径或 DIR.md 缺项错误。
+// pos: 实现分形文档规则校验核心，统一判定文件头与目录索引一致性。修改本文件需同步更新文件头与所属 DIR.md。
 import 'dart:convert';
 import 'dart:io';
 
