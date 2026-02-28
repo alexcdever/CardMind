@@ -41,6 +41,7 @@
 - 规范校验：运行 `dart run tool/fractal_doc_check.dart --base <commit>`。
 - 治理回归：运行 `flutter test test/ui_interaction_governance_docs_test.dart`。
 - 交付物：
+  - 基线清查清单与证据文档：`docs/plans/2026-02-28-rs-dart-file-header-truthfulness-filelist.md`
   - 已修复文件清单
   - 自动生成文件例外清单
   - 二次确认文件清单（如有）
