@@ -1,5 +1,5 @@
-// input: 页面接收 syncStatus，并响应点击、右键与文本输入等交互事件。
-// output: 渲染卡片列表、同步横幅与编辑跳转，并在交互后更新本地 _notes 状态。
+// input: 页面接收 syncStatus，并处理右键菜单、删除/恢复点击与页面跳转交互。
+// output: 渲染卡片列表与同步横幅，并在删除/恢复操作后更新本地 _notes 状态。
 // pos: 卡片页主界面，负责卡片展示、删除/恢复与编辑入口。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:cardmind/features/cards/cards_desktop_interactions.dart';
