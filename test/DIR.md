@@ -19,3 +19,4 @@ interaction_guard_test.dart - 交互处理器空实现/禁用守卫测试
 widget_test.dart - 应用启动与基础冒烟测试
 fractal_doc_checker_test.dart - 文档规范检查工具测试
 build_cli_test.dart - 构建 CLI 参数与行为测试
+plan_tdd_blue_guard_test.dart - 计划文档 TDD 红绿蓝完整流程守卫测试

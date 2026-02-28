@@ -1,3 +1,6 @@
+input: Agents/Claude 文档目标、结构与实施任务
+output: 可执行的文档编写与验证步骤
+pos: Agents/Claude 文档实施计划（修改需同步 DIR.md）
 # Agents/Claude 文档 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 仅新增/更新文本文档，不改动代码或配置；内容完全基于仓库现有结构与工具链。
 
 **Tech Stack:** Markdown, Flutter, Rust, flutter_rust_bridge
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

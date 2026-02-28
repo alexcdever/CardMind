@@ -1,3 +1,6 @@
+input: UI 交互治理目标、架构与实施任务
+output: 可执行的治理文档与守卫测试步骤
+pos: UI 交互治理实施计划（修改需同步 DIR.md）
 # UI Interaction Governance Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 采用“文档三件套 + 自动化守卫测试”架构。`design` 负责原则与场景定义，`acceptance-matrix` 负责双轨量化条目，`release-gate` 负责发布门禁。测试侧新增治理文档校验与矩阵完整性校验，形成“改交互必须改规范”闭环。
 
 **Tech Stack:** Markdown, Flutter test (dart:io 文档校验), Dart
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

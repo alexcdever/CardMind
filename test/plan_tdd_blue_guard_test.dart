@@ -23,7 +23,7 @@ void main() {
     'docs/plans/2026-02-28-ui-interaction-full-alignment-implementation-plan.md',
   };
 
-  test('every docs/plans/*plan*.md includes red-green-blue rule', () {
+  test('new plan docs enforce complete Red-Green-Blue-Commit workflow', () {
     final planFiles = _listPlanFiles();
 
     expect(
@@ -36,7 +36,7 @@ void main() {
 
     for (final file in planFiles) {
       if (_requiresTddRule(file, legacyPlanFilesWithoutBlueRule) &&
-          !_hasRedGreenBlueRule(file.readAsStringSync())) {
+          !_hasCompleteTddWorkflow(file.readAsStringSync())) {
         missingFiles.add(file.path);
       }
     }
@@ -45,7 +45,30 @@ void main() {
       missingFiles,
       isEmpty,
       reason:
-          'Missing mandatory Red-Green-Blue-before-Commit rule: ${missingFiles.join(', ')}',
+          'Missing mandatory complete TDD workflow: ${missingFiles.join(', ')}',
+    );
+  });
+
+  test('plan guard validates all current plan files', () {
+    final planFiles = _listPlanFiles();
+    expect(
+      planFiles.length,
+      14,
+      reason: 'Unexpected docs/plans/*plan*.md file count',
+    );
+
+    final missingFiles = <String>[];
+    for (final file in planFiles) {
+      if (!_hasCompleteTddWorkflow(file.readAsStringSync())) {
+        missingFiles.add(file.path);
+      }
+    }
+
+    expect(
+      missingFiles,
+      isEmpty,
+      reason:
+          'Plans missing complete TDD workflow block: ${missingFiles.join(', ')}',
     );
   });
 }
@@ -64,12 +87,37 @@ bool _requiresTddRule(File file, Set<String> legacyPlanFilesWithoutBlueRule) {
   return !legacyPlanFilesWithoutBlueRule.contains(file.path);
 }
 
-bool _hasRedGreenBlueRule(String content) {
-  final hasRed = content.contains('Red');
-  final hasGreen = content.contains('Green');
-  final hasBlue = content.contains('Blue');
-  final hasBlueBeforeCommit =
+bool _hasCompleteTddWorkflow(String content) {
+  final hasRed = content.contains('Red') || content.contains('红');
+  final hasGreen = content.contains('Green') || content.contains('绿');
+  final hasBlue = content.contains('Blue') || content.contains('蓝');
+  final hasRedGreenBlueCommitFlow =
       content.contains('Red -> Green -> Blue -> Commit') ||
-      content.contains('Red→Green→Blue→Commit');
-  return hasRed && hasGreen && hasBlue && hasBlueBeforeCommit;
+      content.contains('Red→Green→Blue→Commit') ||
+      content.contains('红 -> 绿 -> 蓝 -> 提交') ||
+      content.contains('红→绿→蓝→提交');
+  final hasFailingTestStep =
+      content.contains('failing test') ||
+      content.contains('verify it fails') ||
+      content.contains('Expected: FAIL') ||
+      content.contains('失败测试') ||
+      content.contains('按预期失败');
+  final hasPassingTestStep =
+      content.contains('verify it passes') ||
+      content.contains('Expected: PASS') ||
+      content.contains('确认通过') ||
+      content.contains('按预期通过');
+  final hasRefactorStep =
+      content.contains('Blue refactor') || content.contains('重构');
+  final hasCommitStep =
+      content.contains('Step 6: Commit') || content.contains('提交');
+
+  return hasRed &&
+      hasGreen &&
+      hasBlue &&
+      hasRedGreenBlueCommitFlow &&
+      hasFailingTestStep &&
+      hasPassingTestStep &&
+      hasRefactorStep &&
+      hasCommitStep;
 }

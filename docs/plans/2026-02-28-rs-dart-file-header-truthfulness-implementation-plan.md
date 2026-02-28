@@ -1,3 +1,6 @@
+input: rs/dart 文件头真实性治理目标与实施任务
+output: 可执行的清查与修正步骤
+pos: rs/dart 文件头真实性实施计划（修改需同步 DIR.md）
 # Rs/Dart File Header Truthfulness Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 采用逐文件深读、逐文件改写的单文件闭环策略（read -> rewrite header -> self-check）。按目录分批提交，先 Rust 源码与测试，再 Flutter 业务与测试，最后工具脚本，避免大批量改动难以审阅。每批次完成后执行最小回归与治理校验，确保仅注释变化且无行为回归。
 
 **Tech Stack:** Rust、Dart/Flutter、cargo test、flutter test、ripgrep、Fractal 文档校验脚本。
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

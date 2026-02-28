@@ -1,3 +1,6 @@
+input: Rust/Flutter 中文注释补齐目标与实施任务
+output: 可执行的注释补齐步骤与验证命令
+pos: Rust/Flutter 中文注释补齐实施计划（修改需同步 DIR.md）
 # Rust/Flutter 中文注释补齐 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 本次只做文档性增强，不改业务行为。按目录分批执行：先 Rust（src/tests），再 Flutter（lib/test），每批完成后立即运行守卫测试与文档校验，保证改动可回归、可回滚。注释策略统一为“关键点注释”：解释职责、边界、状态流和错误处理原因，避免逐行翻译。
 
 **Tech Stack:** Dart/Flutter、Rust、flutter_test、cargo test、Fractal 文档校验脚本。
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

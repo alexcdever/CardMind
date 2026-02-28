@@ -1,3 +1,6 @@
+input: Flutter-Rust 同步网络对接目标、架构与实施任务
+output: 可执行的对接步骤与验证命令
+pos: Flutter-Rust 同步网络对接实施计划（修改需同步 DIR.md）
 # Flutter-Rust 同步网络对接 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -5,6 +8,14 @@
 **Goal:** 以同步网络优先方式完成 Flutter 与 Rust 的生产级对接，确保全平台下功能可用、错误可恢复、测试可维护。  
 **Architecture:** Rust 在 `rust/src/net/*` 提供网络能力并由 `rust/src/api.rs` 统一对外；FRB 作为唯一跨语言边界；Flutter 通过 `SyncService`（facade 职责）+ `SyncController` + `SyncState` 驱动 UI，避免页面直接依赖 FRB。  
 **Tech Stack:** Flutter、Dart、Rust、flutter_rust_bridge、tokio、flutter test、cargo test。
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

@@ -1,3 +1,6 @@
+input: 分形文档规范目标、架构与实施任务
+output: 可执行的规范落地步骤与验证命令
+pos: 分形文档规范实施计划（修改需同步 DIR.md）
 # Fractal Documentation Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 使用 Dart CLI 工具实现校验与初始化生成，核心逻辑可被 `flutter test` 覆盖；规范文档集中在 `docs/standards/documentation.md`，并从 `README.md` 与 `AGENTS.md` 进行链接。
 
 **Tech Stack:** Flutter/Dart、`flutter test`、Git。
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

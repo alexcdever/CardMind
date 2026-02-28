@@ -1,3 +1,6 @@
+input: FRB API 与持久化目标、架构与实施任务
+output: 可执行的 FRB/Loro/SQLite 落地步骤与验证命令
+pos: FRB API 与持久化实施计划（修改需同步 DIR.md）
 # FRB API 与持久化 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -5,6 +8,14 @@
 **Goal:** 接入 FRB API（句柄式生命周期）并落地 Loro+SQLite 持久化，使卡片与数据池元数据可读写。  
 **Architecture:** Flutter 仅负责调用 FRB；Rust 负责路径校验、Loro 写入与 SQLite 缓存更新；所有读操作走 SQLite；池外不启用 P2P。  
 **Tech Stack:** Flutter、flutter_rust_bridge、Rust、Loro、rusqlite。
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

@@ -1,3 +1,6 @@
+input: iroh 成员字段调整目标、架构与实施任务
+output: 可执行的数据模型与持久化更新步骤
+pos: iroh 成员字段调整实施计划（修改需同步 DIR.md）
 # iroh 数据池成员字段调整 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 仅修改数据模型与本地持久化（Loro + SQLite），不引入网络实现；成员唯一标识为 `endpoint_id`；SQLite 使用新 schema（不做迁移，允许丢失旧成员数据）。
 
 **Tech Stack:** Rust, Loro, rusqlite, Flutter Rust Bridge
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

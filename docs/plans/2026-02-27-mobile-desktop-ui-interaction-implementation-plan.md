@@ -1,3 +1,6 @@
+input: 移动端与桌面端 UI 交互目标、架构与实施任务
+output: 可执行的 UI 交互落地步骤与验证命令
+pos: 移动端与桌面端 UI 交互实施计划（修改需同步 DIR.md）
 # CardMind 移动端与桌面端 UI 交互 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 采用单一 Flutter UI 架构，通过 `NavigationRail`（桌面）与 `BottomNavigationBar`（移动）做同构信息架构映射。页面状态先用本地内存 ViewModel 驱动，按“离线优先 + 同步异常不阻断编辑”原则实现状态分层与错误反馈。测试以 Widget Test 为主，先写失败测试，再补最小实现。所有可触发 UI 交互必须具备对应行为测试，禁止空回调与未说明禁用态。
 
 **Tech Stack:** Flutter, Dart, flutter_test, Material 3
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

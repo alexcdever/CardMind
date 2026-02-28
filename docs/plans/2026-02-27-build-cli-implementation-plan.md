@@ -1,3 +1,6 @@
+input: 多平台构建 CLI 目标、架构与实施任务
+output: 可执行的 CLI 构建步骤与验证命令
+pos: 多平台构建 CLI 实施计划（修改需同步 DIR.md）
 # CardMind 多平台构建 CLI Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** 在 `tool/build.dart` 实现轻量命令解析与流程编排，核心逻辑拆为可测试函数，并通过可注入 `Process.run` 封装实现无副作用单元测试。`app` 默认按宿主系统推断 Flutter 桌面平台，可被 `--platform` 覆盖；`lib` 聚焦 Rust 动态库构建，`--target` 可选透传。
 
 **Tech Stack:** Dart CLI (`dart:io`), Flutter toolchain, Cargo, flutter_rust_bridge_codegen, flutter_test
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

@@ -1,3 +1,6 @@
+input: CardMind 基础重建目标、架构与实施任务
+output: 可执行的基础重建步骤与验证命令
+pos: CardMind 基础重建实施计划（修改需同步 DIR.md）
 # CardMind 基础重建 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -5,6 +8,14 @@
 **Goal:** 重建 CardMind 的最小工程骨架与本地数据层，为后续同步与 UI 打基础。  
 **Architecture:** Flutter 负责 UI，Rust 负责数据层（Loro 真相源 + SQLite 缓存）；池外不启用 P2P。  
 **Tech Stack:** Flutter、Rust、flutter_rust_bridge、Loro、SQLite（rusqlite）。
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

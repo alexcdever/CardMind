@@ -1,3 +1,6 @@
+input: 数据池组网与同步目标、架构与实施任务
+output: 可执行的组网同步步骤与验证命令
+pos: 数据池组网与同步实施计划（修改需同步 DIR.md）
 # 数据池组网与同步 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -7,6 +10,14 @@
 **Architecture:** Rust 侧新增 iroh 连接层与同步协调器，负责加入/审批消息与 Loro 快照/增量同步；FRB 暴露薄层 API 给 Flutter。同步以 Loro 文档为真相源，先快照后增量，断线重连补漏。
 
 **Tech Stack:** Rust, iroh, tokio, Loro, SQLite, flutter_rust_bridge, serde, postcard
+
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
 
 ---
 

@@ -11,6 +11,14 @@ pos: UI 交互全量对齐实施计划（修改需同步 DIR.md）
 
 **Tech Stack:** Flutter (Material 3), Dart, flutter_test, existing governance/doc gate scripts
 
+## 强制执行规则（TDD 红-绿-蓝）
+
+- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
+- Red：先编写或调整失败测试，并运行确认按预期失败。
+- Green：以最小实现使测试通过，并运行确认通过。
+- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当 Blue 阶段验证通过后才允许提交。
+
 ---
 
 ### Task 1: Baseline S1~S5 and gate gaps

@@ -38,3 +38,4 @@ pos: 计划文档目录说明与维护入口
 2026-02-28-rs-dart-file-header-truthfulness-design.md - 设计草案 - 全仓 rs/dart 文件头真实性清查设计
 2026-02-28-rs-dart-file-header-truthfulness-filelist.md - 清查清单 - 文件头治理基线证据与最终交付列表
 2026-02-28-rs-dart-file-header-truthfulness-implementation-plan.md - 实现计划 - 文件头真实性清查任务化实施步骤
+2026-02-28-rust-flutter-chinese-comments-implementation-plan.md - 实现计划 - Rust/Flutter 中文注释补齐任务化实施步骤
