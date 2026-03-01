@@ -33,6 +33,10 @@ pos: 计划文档目录说明与维护入口
 2026-02-27-ui-interaction-release-gate.md - 发布门禁 - 双轨达标前禁止合并与发布
 2026-02-28-ui-interaction-full-alignment-design.md - 设计草案 - S1-S5 一次性全量对齐设计（含 S2/S3 CRUD 与 S4 Tab 可达定义）
 2026-02-28-ui-interaction-full-alignment-implementation-plan.md - 实现计划 - S1-S5 全量对齐任务化实施与门禁验证步骤
+2026-02-28-usable-app-readwrite-split-design.md - 设计草案 - 可用化一体设计（Loro 写模型 + SQLite 读模型 + FRB 同步）
+2026-02-28-usable-app-readwrite-split-implementation-plan.md - 实现计划 - 可用化一体落地（读写分离、全功能 UI、门禁全绿）
+2026-02-28-plan-governance-and-loro-storage-hardening-design.md - 设计草案 - 计划文档红绿蓝治理与 Loro 文件化存储硬化
+2026-02-28-plan-governance-and-loro-storage-hardening-implementation-plan.md - 实现计划 - 计划治理补齐与 Loro 文件存储硬化任务化实施
 2026-02-28-flutter-rust-sync-integration-design.md - 设计草案 - Flutter 与 Rust 同步网络生产级对接设计
 2026-02-28-flutter-rust-sync-integration-implementation-plan.md - 实现计划 - Flutter 与 Rust 同步网络对接任务化实施
 2026-02-28-rs-dart-file-header-truthfulness-design.md - 设计草案 - 全仓 rs/dart 文件头真实性清查设计
