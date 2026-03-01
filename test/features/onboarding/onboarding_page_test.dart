@@ -32,4 +32,18 @@ void main() {
     expect(find.text('创建池'), findsOneWidget);
     expect(find.text('扫码加入'), findsOneWidget);
   });
+
+  testWidgets('pool path can return to onboarding via system back', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: OnboardingPage()));
+
+    await tester.tap(find.text('创建或加入数据池'));
+    await tester.pumpAndSettle();
+    expect(find.text('创建池'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('创建或加入数据池'), findsOneWidget);
+  });
 }
