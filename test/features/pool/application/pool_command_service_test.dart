@@ -4,11 +4,29 @@
 import 'package:cardmind/features/pool/application/pool_command_service.dart';
 import 'package:cardmind/features/pool/data/loro_pool_write_repository.dart';
 import 'package:cardmind/features/pool/domain/pool_member.dart';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('pool command service executes full owner lifecycle', () async {
+  test('inMemory pool repository supports owner lifecycle roundtrip', () async {
     final repo = LoroPoolWriteRepository.inMemory();
+    final service = PoolCommandService(repo);
+
+    await service.createPool(
+      poolId: 'pm-memory',
+      name: 'Pool Memory',
+      ownerId: 'owner-memory',
+      ownerName: 'owner@memory',
+    );
+
+    final pool = await repo.getPoolById('pm-memory');
+    expect(pool, isNotNull);
+    expect(pool!.name, 'Pool Memory');
+  });
+
+  test('pool command service executes full owner lifecycle', () async {
+    final root = Directory.systemTemp.createTempSync('pool-write');
+    final repo = LoroPoolWriteRepository(basePath: '${root.path}/data/loro');
     final service = PoolCommandService(repo);
 
     await service.createPool(
@@ -44,5 +62,13 @@ void main() {
     expect(members.where((m) => m.role == PoolRole.owner), isNotEmpty);
     expect(members.map((m) => m.memberId), isNot(contains('m1')));
     expect(requests, isEmpty);
+    expect(
+      File('${root.path}/data/loro/pool-meta/p1/snapshot').existsSync(),
+      isTrue,
+    );
+    expect(
+      File('${root.path}/data/loro/pool-meta/p1/update').existsSync(),
+      isTrue,
+    );
   });
 }
