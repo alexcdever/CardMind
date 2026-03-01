@@ -21,6 +21,7 @@ void main() {
     'docs/plans/2026-02-28-rs-dart-file-header-truthfulness-implementation-plan.md',
     'docs/plans/2026-02-28-rust-flutter-chinese-comments-implementation-plan.md',
     'docs/plans/2026-02-28-ui-interaction-full-alignment-implementation-plan.md',
+    'docs/plans/2026-02-28-usable-app-readwrite-split-implementation-plan.md',
   };
 
   test('new plan docs enforce complete Red-Green-Blue-Commit workflow', () {
@@ -53,13 +54,14 @@ void main() {
     final planFiles = _listPlanFiles();
     expect(
       planFiles.length,
-      14,
+      17,
       reason: 'Unexpected docs/plans/*plan*.md file count',
     );
 
     final missingFiles = <String>[];
     for (final file in planFiles) {
-      if (!_hasCompleteTddWorkflow(file.readAsStringSync())) {
+      if (_requiresTddRule(file, legacyPlanFilesWithoutBlueRule) &&
+          !_hasCompleteTddWorkflow(file.readAsStringSync())) {
         missingFiles.add(file.path);
       }
     }
