@@ -10,6 +10,7 @@ import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppShellPage extends StatefulWidget {
   const AppShellPage({super.key, this.controller});
@@ -39,11 +40,28 @@ class _AppShellPageState extends State<AppShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveShell(
-      section: _controller.section,
-      onSectionChanged: _controller.setSection,
-      child: _buildSection(_controller.section),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        _handleBackIntent(didPop);
+      },
+      child: AdaptiveShell(
+        section: _controller.section,
+        onSectionChanged: _controller.setSection,
+        child: _buildSection(_controller.section),
+      ),
     );
+  }
+
+  void _handleBackIntent(bool didPop) {
+    if (didPop) {
+      return;
+    }
+    if (_controller.section != AppSection.cards) {
+      _controller.setSection(AppSection.cards);
+      return;
+    }
+    SystemNavigator.pop();
   }
 
   Widget _buildSection(AppSection section) {

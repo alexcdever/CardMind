@@ -2,6 +2,9 @@
 // output: 断言进入主工作台后展示底部导航与三个导航标签。
 // pos: 应用壳层导航测试，覆盖 onboarding 到 shell 的主路径。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/app/app.dart';
+import 'package:cardmind/app/navigation/app_section.dart';
+import 'package:cardmind/app/navigation/app_shell_controller.dart';
+import 'package:cardmind/app/navigation/app_shell_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,4 +22,16 @@ void main() {
       expect(find.text('设置'), findsWidgets);
     },
   );
+
+  testWidgets('back on non-cards tab switches to cards first', (tester) async {
+    final controller = AppShellController(initialSection: AppSection.pool);
+    await tester.pumpWidget(
+      MaterialApp(home: AppShellPage(controller: controller)),
+    );
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(controller.section, AppSection.cards);
+  });
 }
