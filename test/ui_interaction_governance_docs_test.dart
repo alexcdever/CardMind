@@ -35,6 +35,14 @@ void main() {
     }
   });
 
+  test('governance docs include shell two-step back and exit confirmation', () {
+    final design = File(
+      'docs/plans/2026-02-27-ui-interaction-governance-design.md',
+    ).readAsStringSync();
+    expect(design, contains('主壳双段返回'));
+    expect(design, contains('是否退出应用'));
+  });
+
   test(
     'acceptance matrix has both dev and experience tracks for all scenarios',
     () {
