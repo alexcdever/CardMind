@@ -34,4 +34,35 @@ void main() {
 
     expect(controller.section, AppSection.cards);
   });
+
+  testWidgets('back on cards shows exit confirmation dialog', (tester) async {
+    final controller = AppShellController(initialSection: AppSection.cards);
+    await tester.pumpWidget(
+      MaterialApp(home: AppShellPage(controller: controller)),
+    );
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('是否退出应用？'), findsOneWidget);
+    expect(find.text('是'), findsOneWidget);
+    expect(find.text('否'), findsOneWidget);
+  });
+
+  testWidgets('selecting 否 closes confirmation and stays on cards', (
+    tester,
+  ) async {
+    final controller = AppShellController(initialSection: AppSection.cards);
+    await tester.pumpWidget(
+      MaterialApp(home: AppShellPage(controller: controller)),
+    );
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('否'));
+    await tester.pumpAndSettle();
+
+    expect(controller.section, AppSection.cards);
+    expect(find.text('是否退出应用？'), findsNothing);
+  });
 }

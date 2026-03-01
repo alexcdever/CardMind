@@ -24,6 +24,7 @@ class AppShellPage extends StatefulWidget {
 class _AppShellPageState extends State<AppShellPage> {
   late final AppShellController _controller =
       (widget.controller ?? AppShellController())..addListener(_onChanged);
+  bool _isExitDialogShowing = false;
 
   @override
   void dispose() {
@@ -61,7 +62,36 @@ class _AppShellPageState extends State<AppShellPage> {
       _controller.setSection(AppSection.cards);
       return;
     }
-    SystemNavigator.pop();
+    _showExitConfirmDialog();
+  }
+
+  Future<void> _showExitConfirmDialog() async {
+    if (_isExitDialogShowing) {
+      return;
+    }
+    _isExitDialogShowing = true;
+
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        content: const Text('是否退出应用？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('否'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('是'),
+          ),
+        ],
+      ),
+    );
+
+    _isExitDialogShowing = false;
+    if (shouldExit == true) {
+      SystemNavigator.pop();
+    }
   }
 
   Widget _buildSection(AppSection section) {
