@@ -1,4 +1,4 @@
-# Testing Standard
+# TDD Standard
 
 - 开发方法采用完整 TDD 红-绿-蓝循环：
   - 红（Red）：先写失败测试并确认失败原因正确。
