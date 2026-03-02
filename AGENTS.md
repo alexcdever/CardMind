@@ -49,6 +49,7 @@
 
 ## Testing Guidelines
 - 遵循 `docs/standards/testing.md`。
+- 开发方法要求完整 TDD 红-绿-蓝循环，禁止跳过蓝色重构步骤。
 
 ## UI Interaction Governance Guard
 - 遵循 `docs/standards/ui-interaction-governance.md`。
