@@ -42,3 +42,4 @@
 2026-02-28-rust-flutter-chinese-comments-implementation-plan.md - 实现计划 - Rust/Flutter 中文注释补齐任务化实施步骤
 2026-03-01-onboarding-back-navigation-unification-design.md - 设计草案 - 引导与全局返回策略统一（创建/加入路径返回 + 主壳双段返回 + 退出确认）
 2026-03-01-onboarding-back-navigation-unification-implementation-plan.md - 实现计划 - 引导与全局返回策略统一任务化落地（主壳双段返回 + 退出确认）
+2026-03-02-pool-spec-redesign-design.md - 设计草案 - 数据池规格重构为语言无关行为契约
