@@ -1,7 +1,23 @@
 # Repository Guidelines
 
+#为验证能力未被腐化，请在回复或输出的时候在最后一行新建一行，然后输出“嗷呜～”#
+
 ## Documentation Standard
 - [Fractal Documentation Standard](docs/standards/documentation.md)
+- [Spec-First Execution Policy](docs/standards/spec-first-execution.md)
+- [Testing Standard](docs/standards/testing.md)
+- [UI Interaction Governance](docs/standards/ui-interaction-governance.md)
+- [Git & PR Standard](docs/standards/git-and-pr.md)
+- [Coding Style Standard](docs/standards/coding-style.md)
+
+## Documentation Architecture
+- `docs/specs/`：正式规格文档目录，记录“最新、理想、可验收”的产品/系统规格（可在同一文档分层描述产品、领域、技术约束）。
+- `docs/plans/`：设计与实施计划目录，记录与 superpowers 协作形成的设计方案、任务拆解、决策追溯与执行顺序。
+- `docs/standards/`：工程规范目录，记录跨功能、长期复用的工程规则与门禁要求。
+- 默认从 `docs/plans/` 发起设计与计划，但实现落地必须受 `docs/specs/` 与 `docs/standards/` 约束。
+
+## Spec-First Execution Policy
+- 执行功能实现、行为变更、跨层改动前，遵循 `docs/standards/spec-first-execution.md`。
 
 ## Project Structure & Module Organization
 - `lib/`：Flutter 业务与界面代码。
@@ -9,6 +25,8 @@
 - `rust/`：Rust 核心逻辑与 FFI。
 - `rust/tests/`：Rust 集成测试。
 - `docs/plans/`：设计与实现计划文档。
+- `docs/specs/`：正式产品与工程规格文档。
+- `docs/standards/`：跨功能工程规范与门禁文档。
 - 新增文件优先复用现有目录，避免重复实现。
 
 ## Build, Test, and Development Commands
@@ -17,31 +35,26 @@
 - 代码检查：`flutter analyze`
 - Rust 测试：`cargo test`
 - FRB 生成（需已安装工具）：`flutter_rust_bridge_codegen generate`
+- 构建脚本：`dart run tool/build.dart <app|lib> [options]`
+  - `app`：构建 Flutter 应用（默认平台为当前主机可执行平台：`macos|linux|windows`）
+  - `lib`：构建 Rust 动态库（默认执行 `cargo build --release`）
+  - `app --platform <macos|linux|windows>`：指定 Flutter 构建平台
+  - `lib --target <target-triple>`：指定 Rust 目标三元组
+  - `app` 默认链路：`lib -> flutter_rust_bridge_codegen generate -> flutter build`
+  - 常用示例：`dart run tool/build.dart app`、`dart run tool/build.dart app --platform macos`、`dart run tool/build.dart lib`
 - 命令默认在仓库根目录执行。
 
 ## Coding Style & Naming Conventions
-- 以 `analysis_options.yaml` 为准，启用 `flutter_lints`，保持格式与命名一致。
-- Dart 使用驼峰命名，Rust 使用 snake_case，避免隐式行为与魔法数。
-- 变更前先参考现有写法，保持 API 与命名一致。
+- 遵循 `docs/standards/coding-style.md`。
 
 ## Testing Guidelines
-- Flutter 测试放在 `test/`，与功能对齐。
-- Rust 集成测试放在 `rust/tests/`，覆盖 FFI 入口与边界条件。
-- 新增功能需补充对应测试，覆盖成功与失败路径。
+- 遵循 `docs/standards/testing.md`。
 
 ## UI Interaction Governance Guard
-- UI 交互变更必须同步更新治理文档三件套：
-  - `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-  - `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-  - `docs/plans/2026-02-27-ui-interaction-release-gate.md`
-- 治理守卫测试必须通过：`flutter test test/ui_interaction_governance_docs_test.dart`。
-- 交互守卫测试必须通过：`flutter test test/interaction_guard_test.dart`，禁止空交互（如 `onPressed: () {}`、`onTap: () {}`）与无说明禁用交互（如 `onPressed: null`）。
-- 发布前按门禁文档执行：`docs/plans/2026-02-27-ui-interaction-release-gate.md`。
+- 遵循 `docs/standards/ui-interaction-governance.md`。
 
 ## Commit & Pull Request Guidelines
-- 提交信息使用 `feat(scope):`、`fix(scope):`、`docs:` 等前缀。
-- PR 需说明变更、关联问题，涉及 UI 变化请附截图。
-- 提交保持单一意图，必要时拆分。
+- 遵循 `docs/standards/git-and-pr.md`。
 
 ## Configuration & Tooling
 - FRB 配置在 `flutter_rust_bridge.yaml`，生成前确认路径与模块命名。
