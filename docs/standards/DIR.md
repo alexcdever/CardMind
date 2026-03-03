@@ -8,3 +8,4 @@ tdd.md - 开发测试规范 - TDD 红绿蓝循环与 Flutter/Rust 测试要求
 ui-interaction-governance.md - 交互规范 - UI 交互治理三件套、守卫测试与发布门禁
 git-and-pr.md - 协作规范 - 提交消息、PR 描述与提交粒度要求
 coding-style.md - 编码规范 - 命名、lint 与代码风格一致性要求
+tech-stack-baseline.md - 技术栈规范 - Flutter/Rust/FRB 基线、核心依赖清单与版本治理规则
