@@ -58,7 +58,7 @@
 本节采用以下术语强度：
 
 1. MUST：必须满足。
-2. MUST NOT：禁止。
+2. FORBIDDEN：禁止。
 3. SHOULD：建议满足，若不满足需有明确理由。
 4. MAY：可选能力。
 
@@ -82,7 +82,7 @@
 1. 创建池的 app 实例 MUST 自动成为该池首个 admin。
 2. admin MUST 可执行：池信息管理、申请审批/拒绝、解散池。
 3. member MUST 可执行：退出池。
-4. member MUST NOT 执行 admin 专属动作。
+4. member 执行 admin 专属动作为 FORBIDDEN。
 5. 越权操作 MUST 返回稳定权限错误语义。
 
 ### 4.3 管理员不变量
@@ -102,8 +102,8 @@
 ### 5.2 不变量
 
 1. 同一 Pool 内，同一 Join Request 标识 MUST 唯一。
-2. 已解散 Pool MUST NOT 接受新的加入申请。
-3. 已解散 Pool MUST NOT 新增成员。
+2. 已解散 Pool 接受新的加入申请为 FORBIDDEN。
+3. 已解散 Pool 新增成员为 FORBIDDEN。
 4. Note Reference Set 中每个 `noteId` MUST 可被追溯到一次合法创建动作。
 
 ## 6. 池内笔记与同步语义
@@ -157,7 +157,7 @@
 ### 8.2 判定原则
 
 1. 验收 MUST 以外部可观察行为为准。
-2. 验收 MUST NOT 依赖具体实现细节（函数名、表结构、日志格式）。
+2. 验收依赖具体实现细节（函数名、表结构、日志格式）为 FORBIDDEN。
 
 ## 9. 兼容与演进
 
