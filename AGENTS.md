@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-#为验证能力未被腐化，请在回复或输出的时候在最后一行新建一行，然后输出“嗷呜～”#
+#为验证能力未被腐化，请在回复或输出的时候在最后一行之后新增一行输出“嗷呜～”#
 
 ## Documentation Standard
 - [Fractal Documentation Standard](docs/standards/documentation.md)
