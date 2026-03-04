@@ -188,4 +188,36 @@ void main() {
       contains('flutter test test/features/editor/editor_page_test.dart'),
     );
   });
+
+  test('governance docs record explicit S3 stable-error evidence', () {
+    final design = File(
+      'docs/plans/2026-02-27-ui-interaction-governance-design.md',
+    ).readAsStringSync();
+    final matrix = File(
+      'docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md',
+    ).readAsStringSync();
+    final gate = File(
+      'docs/plans/2026-02-27-ui-interaction-release-gate.md',
+    ).readAsStringSync();
+
+    expect(design, contains('S3 完成证据'));
+    expect(matrix, contains('S3 完成证据'));
+    expect(gate, contains('S3 完成证据'));
+    expect(
+      design,
+      contains('POOL_NOT_FOUND shows stable primary and follow-up actions'),
+    );
+    expect(
+      design,
+      contains('maps REQUEST_TIMEOUT to what happened and next step message'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/pool/pool_page_test.dart'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/pool/join_error_mapper_test.dart'),
+    );
+  });
 }

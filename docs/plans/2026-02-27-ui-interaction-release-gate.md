@@ -50,3 +50,12 @@ pos: UI 交互发布门禁文档（修改需同步验收矩阵）
 - 关键命令：`flutter test test/features/cards/cards_page_test.dart`
 - 关键命令：`flutter test test/features/editor/editor_page_test.dart`
 - 关键命令：`flutter test test/features/cards/data/sqlite_cards_read_repository_test.dart`
+
+## 7. S3 完成证据
+- 关键测试：`join error state shows mapped primary action label`
+- 关键测试：`POOL_NOT_FOUND shows stable primary and follow-up actions`
+- 关键测试：`maps REQUEST_TIMEOUT to what happened and next step message`
+- 关键测试：`retry action in partial cleanup keeps recovery visible`
+- 关键命令：`flutter test test/features/pool/pool_page_test.dart`
+- 关键命令：`flutter test test/features/pool/pool_sync_interaction_test.dart`
+- 关键命令：`flutter test test/features/pool/join_error_mapper_test.dart`

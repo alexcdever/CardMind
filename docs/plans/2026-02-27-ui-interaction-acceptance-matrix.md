@@ -28,6 +28,13 @@ pos: UI 交互验收基线文档（修改需同步治理与发布门禁）
 | save failure keeps editor open with retry hint | `flutter test test/features/editor/editor_page_test.dart` | 保存失败提示“保存失败，请重试”并保持可恢复 |
 | search is case-insensitive across title and body for active notes | `flutter test test/features/cards/cards_page_test.dart test/features/cards/data/sqlite_cards_read_repository_test.dart` | 仅匹配 Active Note，标题与内容大小写不敏感 |
 
+| S3 完成证据 | 测试/命令 | 结果 |
+| --- | --- | --- |
+| join error state shows mapped primary action label | `flutter test test/features/pool/pool_page_test.dart` | 失败文案包含“发生了什么 + 可以做什么” |
+| POOL_NOT_FOUND shows stable primary and follow-up actions | `flutter test test/features/pool/pool_page_test.dart` | 稳定错误码包含主动作与后续动作 |
+| maps REQUEST_TIMEOUT to what happened and next step message | `flutter test test/features/pool/join_error_mapper_test.dart` | 错误映射文案可理解且可行动 |
+| retry action in partial cleanup keeps recovery visible | `flutter test test/features/pool/pool_sync_interaction_test.dart` | 清理失败后可重试并恢复未加入态 |
+
 | 计划任务映射 | 对应任务 | 状态 |
 | --- | --- | --- |
 | S1 | Task 2-3 | 待执行 |

@@ -53,6 +53,13 @@
 - 覆盖创建池、加入池、审批、退出池。
 - 加入失败需有错误映射与下一步动作，不允许仅暴露技术错误码。
 
+#### S3 完成证据
+- 测试用例：`join error state shows mapped primary action label`，断言失败态文案包含“发生了什么 + 可以做什么”。
+- 测试用例：`POOL_NOT_FOUND shows stable primary and follow-up actions`，断言稳定错误码具备主动作与后续动作。
+- 测试用例：`maps REQUEST_TIMEOUT to what happened and next step message`，断言错误码映射文案可理解。
+- 测试用例：`retry action in partial cleanup keeps recovery visible`，断言退出局部清理失败可重试并可恢复。
+- 验证命令：`flutter test test/features/pool/pool_page_test.dart test/features/pool/pool_sync_interaction_test.dart test/features/pool/join_error_mapper_test.dart`。
+
 ### S4 设置
 - 覆盖设置项配置与基础信息展示。
 - 保证从设置页可一步回到主任务路径（卡片管理），并保持池相关入口可达。
