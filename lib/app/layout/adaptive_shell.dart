@@ -4,6 +4,7 @@
 // 中文注释：Flutter 应用壳层模块，负责导航与跨端布局。
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AdaptiveShell extends StatelessWidget {
   const AdaptiveShell({
@@ -28,24 +29,46 @@ class AdaptiveShell extends StatelessWidget {
     ];
 
     if (desktop) {
-      return Row(
-        children: [
-          NavigationRail(
-            destinations: destinations
-                .map(
-                  (item) => NavigationRailDestination(
-                    icon: Icon(item.icon),
-                    label: Text(item.label),
-                  ),
-                )
-                .toList(growable: false),
-            selectedIndex: section.index,
-            onDestinationSelected: (index) {
-              onSectionChanged(AppSection.values[index]);
-            },
-          ),
-          Expanded(child: child),
-        ],
+      return Focus(
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is! KeyDownEvent) {
+            return KeyEventResult.ignored;
+          }
+          switch (event.logicalKey) {
+            case LogicalKeyboardKey.digit1:
+              onSectionChanged(AppSection.cards);
+              return KeyEventResult.handled;
+            case LogicalKeyboardKey.digit2:
+              onSectionChanged(AppSection.pool);
+              return KeyEventResult.handled;
+            case LogicalKeyboardKey.digit3:
+              onSectionChanged(AppSection.settings);
+              return KeyEventResult.handled;
+            default:
+              return KeyEventResult.ignored;
+          }
+        },
+        child: Row(
+          children: [
+            NavigationRail(
+              destinations: destinations
+                  .map(
+                    (item) => NavigationRailDestination(
+                      icon: Icon(item.icon),
+                      label: Text(item.label),
+                    ),
+                  )
+                  .toList(growable: false),
+              selectedIndex: section.index,
+              useIndicator: true,
+              onDestinationSelected: (index) {
+                onSectionChanged(AppSection.values[index]);
+              },
+            ),
+            Expanded(child: child),
+          ],
+        ),
       );
     }
 

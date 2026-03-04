@@ -4,6 +4,7 @@
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -23,6 +24,30 @@ void main() {
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(BottomNavigationBar), findsNothing);
+  });
+
+  testWidgets('desktop shell supports keyboard section switching', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: _DesktopShellHarness()));
+
+    expect(find.text('cards-marker'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
+    await tester.pumpAndSettle();
+
+    expect(find.text('pool-marker'), findsOneWidget);
+  });
+
+  testWidgets('desktop rail keeps a visible interaction indicator', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: AdaptiveShellForTest(width: 1200)),
+    );
+
+    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    expect(rail.useIndicator, isTrue);
   });
 }
 
@@ -44,4 +69,35 @@ class AdaptiveShellForTest extends StatelessWidget {
   }
 
   static void _noopSectionChanged(AppSection _) {}
+}
+
+class _DesktopShellHarness extends StatefulWidget {
+  const _DesktopShellHarness();
+
+  @override
+  State<_DesktopShellHarness> createState() => _DesktopShellHarnessState();
+}
+
+class _DesktopShellHarnessState extends State<_DesktopShellHarness> {
+  AppSection _section = AppSection.cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaQuery(
+      data: const MediaQueryData(size: Size(1200, 900)),
+      child: AdaptiveShell(
+        section: _section,
+        onSectionChanged: (section) {
+          setState(() {
+            _section = section;
+          });
+        },
+        child: switch (_section) {
+          AppSection.cards => const Center(child: Text('cards-marker')),
+          AppSection.pool => const Center(child: Text('pool-marker')),
+          AppSection.settings => const Center(child: Text('settings-marker')),
+        },
+      ),
+    );
+  }
 }
