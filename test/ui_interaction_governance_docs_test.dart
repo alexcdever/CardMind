@@ -117,4 +117,23 @@ void main() {
     expect(content, contains('flutter test'));
     expect(content, contains('dart run tool/fractal_doc_check.dart --base'));
   });
+
+  test('acceptance matrix and release gate include S1-S5 plan mapping', () {
+    final matrix = File(
+      'docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md',
+    ).readAsStringSync();
+    final gate = File(
+      'docs/plans/2026-02-27-ui-interaction-release-gate.md',
+    ).readAsStringSync();
+
+    const planFile =
+        'docs/plans/2026-03-05-ui-interaction-full-s1-s5-implementation-plan.md';
+
+    expect(matrix, contains(planFile));
+    expect(gate, contains(planFile));
+    for (final marker in const ['S1', 'S2', 'S3', 'S4', 'S5']) {
+      expect(matrix, contains('| $marker '));
+      expect(gate, contains('| $marker '));
+    }
+  });
 }
