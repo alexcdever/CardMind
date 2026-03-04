@@ -220,4 +220,33 @@ void main() {
       contains('flutter test test/features/pool/join_error_mapper_test.dart'),
     );
   });
+
+  test('governance docs record explicit S4 reachability evidence', () {
+    final design = File(
+      'docs/plans/2026-02-27-ui-interaction-governance-design.md',
+    ).readAsStringSync();
+    final matrix = File(
+      'docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md',
+    ).readAsStringSync();
+    final gate = File(
+      'docs/plans/2026-02-27-ui-interaction-release-gate.md',
+    ).readAsStringSync();
+
+    expect(design, contains('S4 完成证据'));
+    expect(matrix, contains('S4 完成证据'));
+    expect(gate, contains('S4 完成证据'));
+    expect(
+      design,
+      contains('from settings, tab switches to cards in one action'),
+    );
+    expect(
+      design,
+      contains('from settings, tab switches to pool in one action'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/settings/settings_page_test.dart'),
+    );
+    expect(gate, contains('flutter test test/app/adaptive_shell_test.dart'));
+  });
 }

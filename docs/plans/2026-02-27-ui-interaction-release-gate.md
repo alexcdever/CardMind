@@ -59,3 +59,11 @@ pos: UI 交互发布门禁文档（修改需同步验收矩阵）
 - 关键命令：`flutter test test/features/pool/pool_page_test.dart`
 - 关键命令：`flutter test test/features/pool/pool_sync_interaction_test.dart`
 - 关键命令：`flutter test test/features/pool/join_error_mapper_test.dart`
+
+## 8. S4 完成证据
+- 关键测试：`from settings, tab switches to cards in one action`
+- 关键测试：`from settings, tab switches to pool in one action`
+- 关键测试：`settings pool entry can one-step open joined pool root`
+- 关键测试：`mobile shell shows one-step tab targets from settings section`
+- 关键命令：`flutter test test/features/settings/settings_page_test.dart`
+- 关键命令：`flutter test test/app/adaptive_shell_test.dart`

@@ -35,6 +35,13 @@ pos: UI 交互验收基线文档（修改需同步治理与发布门禁）
 | maps REQUEST_TIMEOUT to what happened and next step message | `flutter test test/features/pool/join_error_mapper_test.dart` | 错误映射文案可理解且可行动 |
 | retry action in partial cleanup keeps recovery visible | `flutter test test/features/pool/pool_sync_interaction_test.dart` | 清理失败后可重试并恢复未加入态 |
 
+| S4 完成证据 | 测试/命令 | 结果 |
+| --- | --- | --- |
+| from settings, tab switches to cards in one action | `flutter test test/features/settings/settings_page_test.dart` | 从设置页一跳到卡片 |
+| from settings, tab switches to pool in one action | `flutter test test/features/settings/settings_page_test.dart` | 从设置页一跳到池 |
+| settings pool entry can one-step open joined pool root | `flutter test test/features/settings/settings_page_test.dart` | 设置入口直达池主态 |
+| mobile shell shows one-step tab targets from settings section | `flutter test test/app/adaptive_shell_test.dart` | 移动端标签目标可见且一跳可达 |
+
 | 计划任务映射 | 对应任务 | 状态 |
 | --- | --- | --- |
 | S1 | Task 2-3 | 待执行 |

@@ -64,6 +64,13 @@
 - 覆盖设置项配置与基础信息展示。
 - 保证从设置页可一步回到主任务路径（卡片管理），并保持池相关入口可达。
 
+#### S4 完成证据
+- 测试用例：`from settings, tab switches to cards in one action`，断言从设置页单次操作可到卡片。
+- 测试用例：`from settings, tab switches to pool in one action`，断言从设置页单次操作可到池。
+- 测试用例：`settings pool entry can one-step open joined pool root`，断言设置入口可直达池主态。
+- 测试用例：`mobile shell shows one-step tab targets from settings section`，断言移动端标签目标可见且一跳可达。
+- 验证命令：`flutter test test/features/settings/settings_page_test.dart test/app/adaptive_shell_test.dart`。
+
 ### S5 全局同步异常
 - 覆盖同步异常提示分级（弱提示/高亮提示）与可操作入口。
 - 原则是“异常不阻断本地编辑”，仅影响同步反馈与后续处理路径。
