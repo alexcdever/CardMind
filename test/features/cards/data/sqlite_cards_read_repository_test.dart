@@ -60,6 +60,48 @@ void main() {
   );
 
   test(
+    'search matches title and body case-insensitively for active notes',
+    () async {
+      final repo = SqliteCardsReadRepository.inMemory();
+
+      await repo.upsertProjection(
+        const CardNoteProjection(
+          id: 'active-title',
+          title: 'Alpha KEYWORD',
+          body: 'other body',
+          deleted: false,
+          updatedAtMicros: 30,
+        ),
+      );
+      await repo.upsertProjection(
+        const CardNoteProjection(
+          id: 'active-body',
+          title: 'beta title',
+          body: 'contains KeyWord in body',
+          deleted: false,
+          updatedAtMicros: 20,
+        ),
+      );
+      await repo.upsertProjection(
+        const CardNoteProjection(
+          id: 'deleted-match',
+          title: 'keyword deleted',
+          body: 'keyword',
+          deleted: true,
+          updatedAtMicros: 10,
+        ),
+      );
+
+      final rows = await repo.search('keyword');
+      final ids = rows.map((e) => e.id).toSet();
+
+      expect(ids, contains('active-title'));
+      expect(ids, contains('active-body'));
+      expect(ids, isNot(contains('deleted-match')));
+    },
+  );
+
+  test(
     'card create persists to loro files and query returns from sqlite projection',
     () async {
       final root = Directory.systemTemp.createTempSync('cards-loro');

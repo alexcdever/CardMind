@@ -23,7 +23,10 @@ class CardsController extends ChangeNotifier {
   List<CardSummary> get items => _items;
 
   Future<void> load({String query = ''}) async {
-    final rows = await _readRepository.search(query, includeDeleted: true);
+    final rows = await _readRepository.search(
+      query,
+      includeDeleted: query.isEmpty,
+    );
     _items = rows
         .map(
           (row) =>

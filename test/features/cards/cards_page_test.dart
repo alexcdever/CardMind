@@ -75,6 +75,42 @@ void main() {
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
   });
+
+  testWidgets(
+    'search is case-insensitive across title and body for active notes',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Alpha KEYWORD');
+      await tester.tap(find.byIcon(Icons.save_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Body host');
+      await tester.enterText(_editorBodyField(), 'contains KeyWord in body');
+      await tester.tap(find.byIcon(Icons.save_outlined));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'keyword deleted');
+      await tester.tap(find.byIcon(Icons.save_outlined));
+      await tester.pumpAndSettle();
+      await tester.tap(_actionTextForTitle('keyword deleted', '删除'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'keyword');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alpha KEYWORD'), findsOneWidget);
+      expect(find.text('Body host'), findsOneWidget);
+      expect(find.text('keyword deleted'), findsNothing);
+    },
+  );
 }
 
 Future<void> _pumpUntilFound(
@@ -93,6 +129,12 @@ Future<void> _pumpUntilFound(
 Finder _editorTitleField() {
   return find.byWidgetPredicate(
     (widget) => widget is TextField && widget.decoration?.labelText == '标题',
+  );
+}
+
+Finder _editorBodyField() {
+  return find.byWidgetPredicate(
+    (widget) => widget is TextField && widget.decoration?.labelText == '内容',
   );
 }
 
