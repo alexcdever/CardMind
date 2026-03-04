@@ -5,4 +5,4 @@ pos: 目录说明文件（修改本目录文件需同步更新本文件）。
 lib/app/ 目录说明。
 修改本目录文件时请同步维护本清单。
 
-app.dart - 文件 - 见同目录实现
+app.dart - Flutter 根应用配置（首屏直达 AppShellPage）
