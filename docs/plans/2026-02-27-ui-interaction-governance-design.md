@@ -28,7 +28,14 @@
 - 定义首次启动默认进入卡片主流程，创建/加入池入口仅保留在池页未加入态。
 - 要求不阻断本地可用态，用户可一步切换至池页继续池流程。
 - 主壳双段返回：系统返回在主壳内执行“非卡片先回卡片，卡片再二次确认退出”。
-- 卡片列表根页返回弹出“是否退出应用？”确认框，提供“是/否”动作。
+- 卡片列表根页返回弹出“是否退出应用？”确认框，提供“是/取消”动作。
+
+#### S1 完成证据
+- 测试用例：`app cold start shows shell bottom nav on mobile`，断言冷启动进入卡片根页并可见 `搜索卡片`。
+- 测试用例：`back on non-cards tab switches to cards first`，断言从非卡片页返回会先切回卡片页。
+- 测试用例：`back on cards shows exit confirmation dialog`，断言在卡片根页返回弹出“是否退出应用？”并展示“是/取消”。
+- 测试用例：`cancel on dialog stays in cards root`（对应测试名 `selecting 取消 closes confirmation and stays on cards`），断言取消后仍停留卡片根页。
+- 验证命令：`flutter test test/app/app_shell_navigation_test.dart test/interaction_guard_test.dart`。
 
 ### S2 卡片管理
 - 覆盖卡片增删改查与检索相关交互。

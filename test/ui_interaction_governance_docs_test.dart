@@ -136,4 +136,27 @@ void main() {
       expect(gate, contains('| $marker '));
     }
   });
+
+  test('governance docs record explicit S1 completion evidence', () {
+    final design = File(
+      'docs/plans/2026-02-27-ui-interaction-governance-design.md',
+    ).readAsStringSync();
+    final matrix = File(
+      'docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md',
+    ).readAsStringSync();
+    final gate = File(
+      'docs/plans/2026-02-27-ui-interaction-release-gate.md',
+    ).readAsStringSync();
+
+    expect(design, contains('S1 完成证据'));
+    expect(matrix, contains('S1 完成证据'));
+    expect(gate, contains('S1 完成证据'));
+    expect(design, contains('app cold start shows shell bottom nav on mobile'));
+    expect(design, contains('back on cards shows exit confirmation dialog'));
+    expect(design, contains('cancel on dialog stays in cards root'));
+    expect(
+      gate,
+      contains('flutter test test/app/app_shell_navigation_test.dart'),
+    );
+  });
 }

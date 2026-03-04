@@ -33,3 +33,10 @@ pos: UI 交互发布门禁文档（修改需同步验收矩阵）
 | S3 | Task 7-9 | 未签核 |
 | S4 | Task 10-11 | 未签核 |
 | S5 | Task 12-13 | 未签核 |
+
+## 5. S1 完成证据
+- 关键测试：`app cold start shows shell bottom nav on mobile`
+- 关键测试：`back on non-cards tab switches to cards first`
+- 关键测试：`back on cards shows exit confirmation dialog`
+- 关键测试：`cancel on dialog stays in cards root`
+- 关键命令：`flutter test test/app/app_shell_navigation_test.dart`

@@ -13,6 +13,13 @@ pos: UI 交互验收基线文档（修改需同步治理与发布门禁）
 | S4 设置 | Tab 可一步切换至卡片页和池页 | 设置页可访问且可到池入口 | 从设置返回主任务路径可一步完成 | 必过 |
 | S5 全局同步异常 | Banner/提示动作 | 异常提示可见且包含 retry/reconnect；degraded 可见且不阻断本地操作 | 同步异常不阻断本地任务，反馈时延在阈值内 | 必过 |
 
+| S1 完成证据 | 测试/命令 | 结果 |
+| --- | --- | --- |
+| app cold start shows shell bottom nav on mobile | `flutter test test/app/app_shell_navigation_test.dart` | 冷启动卡片根页可见 `搜索卡片` |
+| back on non-cards tab switches to cards first | `flutter test test/app/app_shell_navigation_test.dart` | 非卡片返回先回卡片 |
+| back on cards shows exit confirmation dialog | `flutter test test/app/app_shell_navigation_test.dart` | 显示“是否退出应用？”与“是/取消” |
+| cancel on dialog stays in cards root | `flutter test test/app/app_shell_navigation_test.dart` | 取消后仍在卡片根页 |
+
 | 计划任务映射 | 对应任务 | 状态 |
 | --- | --- | --- |
 | S1 | Task 2-3 | 待执行 |
