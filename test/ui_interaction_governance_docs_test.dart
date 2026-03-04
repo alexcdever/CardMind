@@ -283,4 +283,45 @@ void main() {
       ),
     );
   });
+
+  test('release gate includes final S1-S5 signoff rows and command set', () {
+    final gate = File(
+      'docs/plans/2026-02-27-ui-interaction-release-gate.md',
+    ).readAsStringSync();
+
+    expect(gate, contains('最终签核清单（S1-S5）'));
+    for (final marker in const [
+      '| S1 |',
+      '| S2 |',
+      '| S3 |',
+      '| S4 |',
+      '| S5 |',
+    ]) {
+      expect(gate, contains(marker));
+    }
+    expect(
+      gate,
+      contains('flutter test test/app/app_shell_navigation_test.dart'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/cards/cards_page_test.dart'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/editor/editor_page_test.dart'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/pool/pool_page_test.dart'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/settings/settings_page_test.dart'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/sync/sync_banner_test.dart'),
+    );
+  });
 }

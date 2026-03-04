@@ -76,3 +76,22 @@ pos: UI 交互发布门禁文档（修改需同步验收矩阵）
 - 关键命令：`flutter test test/features/sync/sync_banner_test.dart`
 - 关键命令：`flutter test test/features/cards/cards_sync_navigation_test.dart`
 - 关键命令：`flutter test test/features/sync/sync_controller_test.dart`
+
+## 10. 最终签核清单（S1-S5）
+| 场景 | 签核项 | 状态 |
+| --- | --- | --- |
+| S1 | 首屏默认卡片与双段返回 | 待签核 |
+| S2 | 卡片 CRUD、离开保护与检索语义 | 待签核 |
+| S3 | 池流程失败恢复与稳定错误码覆盖 | 待签核 |
+| S4 | 设置页一跳到卡片/池 | 待签核 |
+| S5 | 同步降级非阻断与恢复动作 | 待签核 |
+
+### 最终回归命令
+- `flutter test test/ui_interaction_governance_docs_test.dart`
+- `flutter test test/interaction_guard_test.dart`
+- `flutter test test/app/app_shell_navigation_test.dart`
+- `flutter test test/features/cards/cards_page_test.dart`
+- `flutter test test/features/editor/editor_page_test.dart`
+- `flutter test test/features/pool/pool_page_test.dart`
+- `flutter test test/features/settings/settings_page_test.dart`
+- `flutter test test/features/sync/sync_banner_test.dart`
