@@ -48,3 +48,5 @@
 2026-03-02-ui-interaction-spec-design.md - 设计草案 - UI 设计与交互规格设计
 2026-03-04-ui-interaction-spec-hardening-design.md - 设计草案 - UI 交互规格补强设计（A11y/性能预算/i18n）
 2026-03-04-ui-interaction-spec-hardening-implementation-plan.md - 实现计划 - UI 交互规格补强任务化实施计划
+2026-03-04-ui-spec-guided-implementation-design.md - 设计草案 - UI 规格驱动实施设计（分阶段 + 受控补规格）
+2026-03-04-ui-spec-guided-implementation-plan.md - 实现计划 - UI 规格驱动实施计划（P1:S1+S2, P2:S3, P3:S4+S5）
