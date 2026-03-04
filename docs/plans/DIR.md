@@ -52,3 +52,4 @@
 2026-03-04-ui-spec-guided-implementation-plan.md - 实现计划 - UI 规格驱动实施计划（P1:S1+S2, P2:S3, P3:S4+S5）
 2026-03-04-desktop-pool-to-cards-navigation-design.md - 设计草案 - 桌面端池成功态到卡片列表的导航闭环修复
 2026-03-04-desktop-pool-to-cards-navigation-implementation-plan.md - 实现计划 - 桌面端池成功态到卡片列表导航闭环任务化实施
+2026-03-05-remove-onboarding-direct-cards-entry-design.md - 设计草案 - 移除引导页并改为卡片列表直达，池入口收敛到 Pool tab
