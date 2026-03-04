@@ -25,7 +25,7 @@ void main() {
     ).readAsStringSync();
 
     for (final scenario in [
-      'S1 引导分流',
+      'S1 首屏直达卡片',
       'S2 卡片管理',
       'S3 池管理',
       'S4 设置',
@@ -42,6 +42,16 @@ void main() {
     expect(design, contains('主壳双段返回'));
     expect(design, contains('是否退出应用'));
   });
+
+  test(
+    'design doc uses direct cards entry wording instead of onboarding split',
+    () {
+      final content = File('docs/specs/ui-interaction.md').readAsStringSync();
+
+      expect(content, contains('首屏默认卡片'));
+      expect(content.contains('首屏 MUST 显示两个主动作：`先本地使用`、`创建/加入池`'), isFalse);
+    },
+  );
 
   test(
     'acceptance matrix has both dev and experience tracks for all scenarios',
