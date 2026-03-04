@@ -17,6 +17,16 @@ void main() {
     expect(find.text('扫码加入'), findsOneWidget);
   });
 
+  testWidgets('pool unjoined state shows create/join guidance copy', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+    );
+
+    expect(find.textContaining('在这里创建或加入数据池'), findsOneWidget);
+  });
+
   testWidgets('create pool enters joined state', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: PoolPage(state: PoolState.notJoined())),

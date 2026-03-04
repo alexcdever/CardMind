@@ -59,6 +59,10 @@ class _PoolPageState extends State<PoolPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: Text('在这里创建或加入数据池'),
+                      ),
                       ElevatedButton(
                         onPressed: _controller.joining
                             ? null
