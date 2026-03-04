@@ -40,3 +40,13 @@ pos: UI 交互发布门禁文档（修改需同步验收矩阵）
 - 关键测试：`back on cards shows exit confirmation dialog`
 - 关键测试：`cancel on dialog stays in cards root`
 - 关键命令：`flutter test test/app/app_shell_navigation_test.dart`
+
+## 6. S2 完成证据
+- 关键测试：`create-edit-save appears in cards list through read model`
+- 关键测试：`save-and-leave closes editor and keeps context recoverable`
+- 关键测试：`cancel on leave dialog keeps editing context visible`
+- 关键测试：`save failure keeps editor open with retry hint`
+- 关键测试：`search is case-insensitive across title and body for active notes`
+- 关键命令：`flutter test test/features/cards/cards_page_test.dart`
+- 关键命令：`flutter test test/features/editor/editor_page_test.dart`
+- 关键命令：`flutter test test/features/cards/data/sqlite_cards_read_repository_test.dart`

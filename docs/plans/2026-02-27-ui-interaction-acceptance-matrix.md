@@ -20,6 +20,14 @@ pos: UI 交互验收基线文档（修改需同步治理与发布门禁）
 | back on cards shows exit confirmation dialog | `flutter test test/app/app_shell_navigation_test.dart` | 显示“是否退出应用？”与“是/取消” |
 | cancel on dialog stays in cards root | `flutter test test/app/app_shell_navigation_test.dart` | 取消后仍在卡片根页 |
 
+| S2 完成证据 | 测试/命令 | 结果 |
+| --- | --- | --- |
+| create-edit-save appears in cards list through read model | `flutter test test/features/cards/cards_page_test.dart` | 保存反馈可见，列表出现新卡片 |
+| save-and-leave closes editor and keeps context recoverable | `flutter test test/features/editor/editor_page_test.dart` | 选择“保存并离开”后退出编辑 |
+| cancel on leave dialog keeps editing context visible | `flutter test test/features/editor/editor_page_test.dart` | 取消离开后保留编辑上下文 |
+| save failure keeps editor open with retry hint | `flutter test test/features/editor/editor_page_test.dart` | 保存失败提示“保存失败，请重试”并保持可恢复 |
+| search is case-insensitive across title and body for active notes | `flutter test test/features/cards/cards_page_test.dart test/features/cards/data/sqlite_cards_read_repository_test.dart` | 仅匹配 Active Note，标题与内容大小写不敏感 |
+
 | 计划任务映射 | 对应任务 | 状态 |
 | --- | --- | --- |
 | S1 | Task 2-3 | 待执行 |

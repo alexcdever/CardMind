@@ -41,6 +41,14 @@
 - 覆盖卡片增删改查与检索相关交互。
 - 强制包含编辑保存反馈、离开保护、失败可重试路径。
 
+#### S2 完成证据
+- 测试用例：`create-edit-save appears in cards list through read model`，断言保存后列表可见新卡片并有保存反馈。
+- 测试用例：`save-and-leave closes editor and keeps context recoverable`，断言离开决策“保存并离开”可完成退出。
+- 测试用例：`cancel on leave dialog keeps editing context visible`，断言取消离开后编辑上下文仍可见。
+- 测试用例：`save failure keeps editor open with retry hint`，断言保存中断时显示“保存失败，请重试”且不丢编辑内容。
+- 测试用例：`search is case-insensitive across title and body for active notes`，断言大小写不敏感且仅匹配 Active Note。
+- 验证命令：`flutter test test/features/cards/cards_page_test.dart test/features/editor/editor_page_test.dart test/features/cards/data/sqlite_cards_read_repository_test.dart`。
+
 ### S3 池管理
 - 覆盖创建池、加入池、审批、退出池。
 - 加入失败需有错误映射与下一步动作，不允许仅暴露技术错误码。

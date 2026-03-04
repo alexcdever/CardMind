@@ -159,4 +159,33 @@ void main() {
       contains('flutter test test/app/app_shell_navigation_test.dart'),
     );
   });
+
+  test('governance docs record explicit S2 acceptance and gate evidence', () {
+    final design = File(
+      'docs/plans/2026-02-27-ui-interaction-governance-design.md',
+    ).readAsStringSync();
+    final matrix = File(
+      'docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md',
+    ).readAsStringSync();
+    final gate = File(
+      'docs/plans/2026-02-27-ui-interaction-release-gate.md',
+    ).readAsStringSync();
+
+    expect(design, contains('S2 完成证据'));
+    expect(matrix, contains('S2 完成证据'));
+    expect(gate, contains('S2 完成证据'));
+    expect(
+      design,
+      contains('create-edit-save appears in cards list through read model'),
+    );
+    expect(design, contains('save failure keeps editor open with retry hint'));
+    expect(
+      gate,
+      contains('flutter test test/features/cards/cards_page_test.dart'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/editor/editor_page_test.dart'),
+    );
+  });
 }
