@@ -56,4 +56,4 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-04-desktop-pool-to-cards-navigation-design.md - 设计草案 - 桌面端池成功态到卡片列表的导航闭环修复
 2026-03-04-desktop-pool-to-cards-navigation-implementation-plan.md - 实现计划 - 桌面端池成功态到卡片列表导航闭环任务化实施
 2026-03-05-remove-onboarding-direct-cards-entry-design.md - 设计草案 - 移除引导页并改为卡片列表直达，池入口收敛到 Pool tab
-2026-03-05-remove-onboarding-direct-cards-entry-implementation-plan.md - 实现计划 - 移除引导页并改为卡片列表直达，按 TDD 红绿蓝逐任务实施
+2026-03-05-remove-onboarding-direct-cards-entry-implementation-plan.md - 实现计划 - 移除引导页并改为卡片列表直达的任务化实施步骤
