@@ -64,6 +64,16 @@ void main() {
     expect(_deletedBadgeForTitle('待删除卡片'), findsNothing);
     expect(_actionTextForTitle('待删除卡片', '删除'), findsOneWidget);
   });
+
+  testWidgets('primary actions remain reachable with long labels', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byIcon(Icons.add), findsOneWidget);
+  });
 }
 
 Future<void> _pumpUntilFound(
