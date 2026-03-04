@@ -54,14 +54,23 @@ class _PoolPageState extends State<PoolPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ElevatedButton(
-                        onPressed: _controller.createPool,
+                        onPressed: _controller.joining
+                            ? null
+                            : _controller.createPool,
                         child: const Text('创建池'),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton(
-                        onPressed: () => _scanAndJoin(context),
+                        onPressed: _controller.joining
+                            ? null
+                            : () => _scanAndJoin(context),
                         child: const Text('扫码加入'),
                       ),
+                      if (_controller.joining)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text('请求处理中...'),
+                        ),
                     ],
                   ),
                 ),
@@ -238,17 +247,7 @@ class _PoolPageState extends State<PoolPage> {
     );
 
     if (code == null) return;
-
-    if (code == 'ok') {
-      _controller.setState(const PoolState.joined());
-      return;
-    }
-
-    final errorCode = code == 'admin-offline'
-        ? 'ADMIN_OFFLINE'
-        : 'REQUEST_TIMEOUT';
-
-    _controller.setState(PoolState.error(errorCode));
+    unawaited(_controller.joinByCode(code));
   }
 
   Future<void> _confirmLeavePool(BuildContext context) async {

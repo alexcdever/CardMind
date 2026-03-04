@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
+import 'dart:async';
 
 import 'package:cardmind/features/editor/editor_controller.dart';
 
@@ -22,6 +23,24 @@ class _EditorPageState extends State<EditorPage> {
   static const Uuid _uuid = Uuid();
 
   @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
@@ -32,9 +51,7 @@ class _EditorPageState extends State<EditorPage> {
         actions: <Type, Action<Intent>>{
           _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) {
-              setState(() {
-                _controller.saveLocal();
-              });
+              unawaited(_controller.saveLocal());
               return null;
             },
           ),
@@ -55,10 +72,9 @@ class _EditorPageState extends State<EditorPage> {
                 title: const Text('编辑卡片'),
                 actions: [
                   IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _controller.saveLocal();
-                      });
+                    onPressed: () async {
+                      await _controller.saveLocal();
+                      if (!context.mounted) return;
                       widget.onSaved?.call(_controller.draft());
                       Navigator.of(context).pop();
                     },
@@ -72,9 +88,7 @@ class _EditorPageState extends State<EditorPage> {
                   children: [
                     TextField(
                       decoration: const InputDecoration(labelText: '标题'),
-                      onChanged: (value) => setState(() {
-                        _controller.setTitle(value);
-                      }),
+                      onChanged: _controller.setTitle,
                     ),
                     const SizedBox(height: 12),
                     Expanded(
@@ -88,11 +102,14 @@ class _EditorPageState extends State<EditorPage> {
                           labelText: '内容',
                           hintText: '输入卡片内容',
                         ),
-                        onChanged: (value) => setState(() {
-                          _controller.setBody(value);
-                        }),
+                        onChanged: _controller.setBody,
                       ),
                     ),
+                    if (_controller.saving)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        child: Text('保存中...'),
+                      ),
                     if (_controller.saved)
                       const Padding(
                         padding: EdgeInsets.only(top: 12),
@@ -147,9 +164,8 @@ class _EditorPageState extends State<EditorPage> {
     }
 
     if (decision == _ExitDecision.save) {
-      setState(() {
-        _controller.saveLocal();
-      });
+      await _controller.saveLocal();
+      if (!mounted) return;
       widget.onSaved?.call(_controller.draft());
     }
 

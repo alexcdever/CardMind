@@ -14,6 +14,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('本地已保存'), findsOneWidget);
   });

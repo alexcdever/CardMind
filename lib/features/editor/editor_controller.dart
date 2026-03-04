@@ -14,11 +14,13 @@ class EditorDraft {
 class EditorController extends ChangeNotifier {
   bool _dirty = false;
   bool _saved = false;
+  bool _saving = false;
   String _title = '';
   String _body = '';
 
   bool get dirty => _dirty;
   bool get saved => _saved;
+  bool get saving => _saving;
 
   void setTitle(String value) {
     _title = value;
@@ -38,7 +40,13 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void saveLocal() {
+  Future<void> saveLocal() async {
+    if (_saving) return;
+    _saving = true;
+    _saved = false;
+    notifyListeners();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    _saving = false;
     _dirty = false;
     _saved = true;
     notifyListeners();

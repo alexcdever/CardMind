@@ -3,6 +3,7 @@
 // pos: 覆盖编辑页离开保护与基础编辑控件可见性，防止误退丢稿。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -62,5 +63,24 @@ void main() {
 
     expect(find.text('编辑卡片'), findsNothing);
     expect(find.text('open'), findsOneWidget);
+  });
+
+  testWidgets('save action shows in-progress feedback before completion', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: EditorPage()));
+
+    await tester.enterText(find.byType(TextField).first, 'new title');
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyS);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyS);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(find.text('保存中...'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('本地已保存'), findsOneWidget);
   });
 }

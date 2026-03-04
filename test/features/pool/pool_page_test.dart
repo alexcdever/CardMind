@@ -43,6 +43,24 @@ void main() {
     expect(find.text('稍后重试'), findsOneWidget);
   });
 
+  testWidgets('join flow shows visible pending feedback before result', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+    );
+
+    await tester.tap(find.text('扫码加入'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('模拟成功'));
+    await tester.pump();
+
+    expect(find.text('请求处理中...'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('成员列表'), findsOneWidget);
+  });
+
   testWidgets('leave pool confirmation returns to not joined', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: PoolPage(state: PoolState.joined())),

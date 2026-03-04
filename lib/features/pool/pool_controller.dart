@@ -15,11 +15,13 @@ class PoolController extends ChangeNotifier {
 
   PoolState _state;
   SyncStatus _syncStatus;
+  bool _joining = false;
 
   static const String _ownerPoolName = '我的数据池';
 
   PoolState get state => _state;
   SyncStatus get syncStatus => _syncStatus;
+  bool get joining => _joining;
 
   void setState(PoolState state) {
     _state = state;
@@ -106,6 +108,26 @@ class PoolController extends ChangeNotifier {
 
   void retryCleanup() {
     _state = const PoolState.notJoined();
+    notifyListeners();
+  }
+
+  Future<void> joinByCode(String code) async {
+    _joining = true;
+    notifyListeners();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    if (code == 'ok') {
+      _state = const PoolState.joined();
+      _joining = false;
+      notifyListeners();
+      return;
+    }
+
+    final errorCode = code == 'admin-offline'
+        ? 'ADMIN_OFFLINE'
+        : 'REQUEST_TIMEOUT';
+    _state = PoolState.error(errorCode);
+    _joining = false;
     notifyListeners();
   }
 
