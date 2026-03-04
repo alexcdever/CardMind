@@ -29,45 +29,66 @@ class AdaptiveShell extends StatelessWidget {
     ];
 
     if (desktop) {
-      return Focus(
-        autofocus: true,
-        onKeyEvent: (node, event) {
-          if (event is! KeyDownEvent) {
-            return KeyEventResult.ignored;
-          }
-          switch (event.logicalKey) {
-            case LogicalKeyboardKey.digit1:
-              onSectionChanged(AppSection.cards);
-              return KeyEventResult.handled;
-            case LogicalKeyboardKey.digit2:
-              onSectionChanged(AppSection.pool);
-              return KeyEventResult.handled;
-            case LogicalKeyboardKey.digit3:
-              onSectionChanged(AppSection.settings);
-              return KeyEventResult.handled;
-            default:
+      return FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
+        child: Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is! KeyDownEvent) {
               return KeyEventResult.ignored;
-          }
-        },
-        child: Row(
-          children: [
-            NavigationRail(
-              destinations: destinations
-                  .map(
-                    (item) => NavigationRailDestination(
-                      icon: Icon(item.icon),
-                      label: Text(item.label),
-                    ),
-                  )
-                  .toList(growable: false),
-              selectedIndex: section.index,
-              useIndicator: true,
-              onDestinationSelected: (index) {
-                onSectionChanged(AppSection.values[index]);
-              },
-            ),
-            Expanded(child: child),
-          ],
+            }
+            switch (event.logicalKey) {
+              case LogicalKeyboardKey.digit1:
+                onSectionChanged(AppSection.cards);
+                return KeyEventResult.handled;
+              case LogicalKeyboardKey.digit2:
+                onSectionChanged(AppSection.pool);
+                return KeyEventResult.handled;
+              case LogicalKeyboardKey.digit3:
+                onSectionChanged(AppSection.settings);
+                return KeyEventResult.handled;
+              case LogicalKeyboardKey.arrowLeft:
+              case LogicalKeyboardKey.arrowUp:
+                onSectionChanged(
+                  AppSection.values[(section.index - 1) %
+                      AppSection.values.length],
+                );
+                return KeyEventResult.handled;
+              case LogicalKeyboardKey.arrowRight:
+              case LogicalKeyboardKey.arrowDown:
+                onSectionChanged(
+                  AppSection.values[(section.index + 1) %
+                      AppSection.values.length],
+                );
+                return KeyEventResult.handled;
+              case LogicalKeyboardKey.enter:
+              case LogicalKeyboardKey.space:
+                onSectionChanged(section);
+                return KeyEventResult.handled;
+              default:
+                return KeyEventResult.ignored;
+            }
+          },
+          child: Row(
+            children: [
+              NavigationRail(
+                destinations: destinations
+                    .map(
+                      (item) => NavigationRailDestination(
+                        icon: Icon(item.icon),
+                        label: Text(item.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                selectedIndex: section.index,
+                useIndicator: true,
+                onDestinationSelected: (index) {
+                  onSectionChanged(AppSection.values[index]);
+                },
+              ),
+              Expanded(child: child),
+            ],
+          ),
         ),
       );
     }

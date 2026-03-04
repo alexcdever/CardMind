@@ -39,6 +39,38 @@ void main() {
     expect(find.text('pool-marker'), findsOneWidget);
   });
 
+  testWidgets('desktop shell supports arrow key switching', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: _DesktopShellHarness()));
+
+    expect(find.text('cards-marker'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(find.text('pool-marker'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    expect(find.text('cards-marker'), findsOneWidget);
+  });
+
+  testWidgets('desktop shell supports enter and space activation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: _DesktopShellHarness()));
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+    await tester.pumpAndSettle();
+    expect(find.text('settings-marker'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(find.text('settings-marker'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(find.text('settings-marker'), findsOneWidget);
+  });
+
   testWidgets('desktop rail keeps a visible interaction indicator', (
     tester,
   ) async {
