@@ -7,7 +7,6 @@ UI 壳层与业务页面目录说明：
 app/app.dart - 应用入口组件（MaterialApp 与首屏直达 AppShell）
 app/layout/adaptive_shell.dart - 跨端自适应壳层（移动底栏/桌面侧栏）
 app/navigation/app_section.dart - 三主导航分区枚举
-features/onboarding/ - 兼容保留目录（待移除的旧引导模块）
 features/cards/ - 卡片列表页、桌面交互与列表视图模型
 features/editor/ - 卡片编辑页、离开保护与快捷键保存
 features/pool/ - 数据池三态页面、错误映射与池状态模型
