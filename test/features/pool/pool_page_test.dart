@@ -29,6 +29,26 @@ void main() {
     expect(find.textContaining('我的身份'), findsOneWidget);
   });
 
+  testWidgets('joined pool state exposes one-step go-to-cards action', (
+    tester,
+  ) async {
+    var tapped = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: PoolState.joined(),
+          onGoToCards: () {
+            tapped = true;
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('去卡片'), findsOneWidget);
+    await tester.tap(find.text('去卡片'));
+    expect(tapped, isTrue);
+  });
+
   testWidgets('scan join can lead to error state', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: PoolPage(state: PoolState.notJoined())),

@@ -99,7 +99,12 @@ class _AppShellPageState extends State<AppShellPage> {
       case AppSection.cards:
         return const CardsPage();
       case AppSection.pool:
-        return const PoolPage(state: PoolState.notJoined());
+        return PoolPage(
+          state: const PoolState.notJoined(),
+          onGoToCards: () {
+            _controller.setSection(AppSection.cards);
+          },
+        );
       case AppSection.settings:
         return const SettingsPage();
     }
