@@ -54,7 +54,7 @@ void main() {
     final planFiles = _listPlanFiles();
     expect(
       planFiles.length,
-      19,
+      20,
       reason: 'Unexpected docs/plans/*plan*.md file count',
     );
 

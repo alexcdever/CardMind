@@ -50,3 +50,5 @@
 2026-03-04-ui-interaction-spec-hardening-implementation-plan.md - 实现计划 - UI 交互规格补强任务化实施计划
 2026-03-04-ui-spec-guided-implementation-design.md - 设计草案 - UI 规格驱动实施设计（分阶段 + 受控补规格）
 2026-03-04-ui-spec-guided-implementation-plan.md - 实现计划 - UI 规格驱动实施计划（P1:S1+S2, P2:S3, P3:S4+S5）
+2026-03-04-desktop-pool-to-cards-navigation-design.md - 设计草案 - 桌面端池成功态到卡片列表的导航闭环修复
+2026-03-04-desktop-pool-to-cards-navigation-implementation-plan.md - 实现计划 - 桌面端池成功态到卡片列表导航闭环任务化实施
