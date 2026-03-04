@@ -21,6 +21,7 @@ class EditorPage extends StatefulWidget {
 class _EditorPageState extends State<EditorPage> {
   final EditorController _controller = EditorController();
   static const Uuid _uuid = Uuid();
+  String? _saveErrorMessage;
 
   @override
   void initState() {
@@ -73,9 +74,10 @@ class _EditorPageState extends State<EditorPage> {
                 actions: [
                   IconButton(
                     onPressed: () async {
-                      await _controller.saveLocal();
-                      if (!context.mounted) return;
-                      widget.onSaved?.call(_controller.draft());
+                      final shouldClose = await _saveAndRunCallback();
+                      if (!context.mounted || !shouldClose) {
+                        return;
+                      }
                       Navigator.of(context).pop();
                     },
                     icon: const Icon(Icons.save_outlined),
@@ -114,6 +116,11 @@ class _EditorPageState extends State<EditorPage> {
                       const Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: Text('本地已保存'),
+                      ),
+                    if (_saveErrorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(_saveErrorMessage!),
                       ),
                   ],
                 ),
@@ -164,12 +171,32 @@ class _EditorPageState extends State<EditorPage> {
     }
 
     if (decision == _ExitDecision.save) {
-      await _controller.saveLocal();
-      if (!mounted) return;
-      widget.onSaved?.call(_controller.draft());
+      final shouldClose = await _saveAndRunCallback();
+      if (!mounted || !shouldClose) {
+        return;
+      }
     }
 
     Navigator.of(context).pop();
+  }
+
+  Future<bool> _saveAndRunCallback() async {
+    await _controller.saveLocal();
+    if (!mounted) {
+      return false;
+    }
+    try {
+      widget.onSaved?.call(_controller.draft());
+      setState(() {
+        _saveErrorMessage = null;
+      });
+      return true;
+    } catch (_) {
+      setState(() {
+        _saveErrorMessage = '保存失败，请重试';
+      });
+      return false;
+    }
   }
 }
 

@@ -65,6 +65,86 @@ void main() {
     expect(find.text('open'), findsOneWidget);
   });
 
+  testWidgets('save-and-leave closes editor and keeps context recoverable', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const EditorPage(),
+                      ),
+                    );
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'recoverable title');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('保存并离开'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑卡片'), findsNothing);
+    expect(find.text('open'), findsOneWidget);
+    expect(find.text('recoverable title'), findsNothing);
+  });
+
+  testWidgets('cancel on leave dialog keeps editing context visible', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: EditorPage()));
+
+    await tester.enterText(find.byType(TextField).first, 'keep editing');
+    await tester.enterText(find.byType(TextField).last, 'body in progress');
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.text('keep editing'), findsOneWidget);
+    expect(find.text('body in progress'), findsOneWidget);
+  });
+
+  testWidgets('save failure keeps editor open with retry hint', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EditorPage(
+          onSaved: (_) {
+            throw Exception('save interrupted');
+          },
+        ),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'unstable save');
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.text('保存失败，请重试'), findsOneWidget);
+    expect(find.text('unstable save'), findsOneWidget);
+  });
+
   testWidgets('save action shows in-progress feedback before completion', (
     tester,
   ) async {

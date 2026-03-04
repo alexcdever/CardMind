@@ -24,17 +24,17 @@ class EditorController extends ChangeNotifier {
 
   void setTitle(String value) {
     _title = value;
-    onContentChanged();
+    _onContentChanged();
   }
 
   void setBody(String value) {
     _body = value;
-    onContentChanged();
+    _onContentChanged();
   }
 
   EditorDraft draft() => EditorDraft(title: _title.trim(), body: _body.trim());
 
-  void onContentChanged() {
+  void _onContentChanged() {
     _dirty = true;
     _saved = false;
     notifyListeners();

@@ -37,6 +37,7 @@ void main() {
 
     expect(find.text('编辑卡片'), findsNothing);
     expect(find.text('Title 1'), findsOneWidget);
+    expect(find.text('本地已保存'), findsOneWidget);
   });
 
   testWidgets('delete or restore action changes list state', (tester) async {
