@@ -175,6 +175,21 @@ void main() {
     expect(find.textContaining('可以做什么'), findsOneWidget);
   });
 
+  testWidgets('POOL_NOT_FOUND shows stable primary and follow-up actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: PoolPage(state: PoolState.error('POOL_NOT_FOUND')),
+      ),
+    );
+
+    expect(find.text('重新获取池信息'), findsOneWidget);
+    expect(find.text('查看排查建议'), findsOneWidget);
+    expect(find.text('重试同步'), findsOneWidget);
+    expect(find.text('重新连接'), findsOneWidget);
+  });
+
   testWidgets('owner can edit pool info and dissolve pool', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: PoolPage(state: PoolState.joined())),

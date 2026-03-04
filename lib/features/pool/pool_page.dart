@@ -219,6 +219,14 @@ class _PoolPageState extends State<PoolPage> {
                 },
                 child: Text(mapped.primaryActionLabel),
               ),
+              TextButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('查看排查建议: $errorCode')));
+                },
+                child: const Text('查看排查建议'),
+              ),
             ],
           ),
         ),

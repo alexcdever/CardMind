@@ -32,4 +32,10 @@ void main() {
     expect(mapped.message, contains('可以做什么'));
     expect(mapped.primaryActionLabel, '立即重试');
   });
+
+  test('maps POOL_NOT_FOUND to stable recovery action label', () {
+    final mapped = mapJoinError('POOL_NOT_FOUND');
+
+    expect(mapped.primaryActionLabel, '重新获取池信息');
+  });
 }
