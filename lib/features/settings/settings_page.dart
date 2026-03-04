@@ -7,7 +7,12 @@ import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({
+    super.key,
+    this.poolEntryState = const PoolState.notJoined(),
+  });
+
+  final PoolState poolEntryState;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +25,7 @@ class SettingsPage extends StatelessWidget {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => const PoolPage(state: PoolState.notJoined()),
+                  builder: (_) => PoolPage(state: poolEntryState),
                 ),
               );
             },

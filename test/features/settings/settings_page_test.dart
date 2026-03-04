@@ -4,6 +4,7 @@
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
+import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,6 +53,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('pool-marker'), findsOneWidget);
+  });
+
+  testWidgets('settings pool entry can one-step open joined pool root', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: SettingsPage(poolEntryState: PoolState.joined())),
+    );
+
+    await tester.tap(find.text('创建或加入数据池'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('成员列表'), findsOneWidget);
   });
 }
 

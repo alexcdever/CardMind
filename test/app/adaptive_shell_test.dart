@@ -81,6 +81,26 @@ void main() {
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     expect(rail.useIndicator, isTrue);
   });
+
+  testWidgets('mobile shell shows one-step tab targets from settings section', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(390, 844)),
+          child: AdaptiveShell(
+            section: AppSection.settings,
+            onSectionChanged: AdaptiveShellForTest._noopSectionChanged,
+            child: SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('卡片'), findsWidgets);
+    expect(find.text('数据池'), findsWidgets);
+  });
 }
 
 class AdaptiveShellForTest extends StatelessWidget {
