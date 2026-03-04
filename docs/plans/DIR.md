@@ -46,3 +46,5 @@
 2026-03-02-shared-domain-contract-design.md - 设计草案 - 领域共享契约规格设计
 2026-03-02-card-note-spec-design.md - 设计草案 - 卡片笔记规格设计
 2026-03-02-ui-interaction-spec-design.md - 设计草案 - UI 设计与交互规格设计
+2026-03-04-ui-interaction-spec-hardening-design.md - 设计草案 - UI 交互规格补强设计（A11y/性能预算/i18n）
+2026-03-04-ui-interaction-spec-hardening-implementation-plan.md - 实现计划 - UI 交互规格补强任务化实施计划
