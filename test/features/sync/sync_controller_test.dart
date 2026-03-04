@@ -76,4 +76,19 @@ void main() {
       containsAllInOrder([SyncStatusKind.connecting, SyncStatusKind.connected]),
     );
   });
+
+  test('retry from degraded keeps recovery actions available', () async {
+    final service = _FakeSyncService(
+      gateway: _NoopGateway(),
+      networkId: BigInt.one,
+    );
+    final controller = SyncController(
+      service: service,
+      initial: const SyncStatus.degraded('REQUEST_TIMEOUT'),
+    );
+
+    await controller.retry();
+
+    expect(controller.status.kind, SyncStatusKind.error);
+  });
 }

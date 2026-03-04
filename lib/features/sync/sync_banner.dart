@@ -38,9 +38,15 @@ class SyncBanner extends StatelessWidget {
     }
 
     if (status.kind == SyncStatusKind.degraded) {
-      return const MaterialBanner(
-        content: Text('同步状态降级：可继续本地操作'),
-        actions: <Widget>[],
+      return MaterialBanner(
+        content: const Text('同步状态降级：可继续本地操作'),
+        actions: [
+          TextButton(onPressed: onRetry ?? () {}, child: const Text('重试同步')),
+          TextButton(
+            onPressed: onReconnect ?? () {},
+            child: const Text('重新连接'),
+          ),
+        ],
       );
     }
 

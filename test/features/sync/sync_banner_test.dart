@@ -57,6 +57,44 @@ void main() {
     expect(find.text('同步请求超时，请查看并处理'), findsOneWidget);
   });
 
+  testWidgets('degraded banner offers retry or reconnect and stays non-modal', (
+    tester,
+  ) async {
+    var retryTapped = false;
+    var reconnectTapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Stack(
+          children: [
+            const Center(child: Text('cards-content')),
+            SyncBanner(
+              status: const SyncStatus.degraded('REQUEST_TIMEOUT'),
+              onRetry: () {
+                retryTapped = true;
+              },
+              onReconnect: () {
+                reconnectTapped = true;
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.text('cards-content'), findsOneWidget);
+    expect(find.text('重试同步'), findsOneWidget);
+    expect(find.text('重新连接'), findsOneWidget);
+
+    await tester.tap(find.text('重试同步'));
+    await tester.pump();
+    await tester.tap(find.text('重新连接'));
+    await tester.pump();
+
+    expect(retryTapped, isTrue);
+    expect(reconnectTapped, isTrue);
+  });
+
   testWidgets('invokes view callback when tapping error action', (
     tester,
   ) async {

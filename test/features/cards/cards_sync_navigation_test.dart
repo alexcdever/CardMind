@@ -38,6 +38,30 @@ void main() {
     expect(find.text('编辑卡片'), findsOneWidget);
   });
 
+  testWidgets('degraded sync remains non-blocking for local save flow', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: CardsPage(syncStatus: SyncStatus.degraded('REQUEST_TIMEOUT')),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byWidgetPredicate(
+        (widget) => widget is TextField && widget.decoration?.labelText == '标题',
+      ),
+      'degraded local save',
+    );
+    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('degraded local save'), findsOneWidget);
+  });
+
   testWidgets(
     'sync error banner action navigates to pool handling without blocking note creation',
     (tester) async {
