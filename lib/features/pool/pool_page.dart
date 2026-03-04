@@ -166,6 +166,11 @@ class _PoolPageState extends State<PoolPage> {
                         onPressed: () => _controller.reject(request.id),
                         child: const Text('拒绝'),
                       ),
+                      if (request.error != null)
+                        TextButton(
+                          onPressed: () => _controller.reject(request.id),
+                          child: const Text('重试拒绝'),
+                        ),
                     ],
                   ),
                 ),

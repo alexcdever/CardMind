@@ -52,7 +52,7 @@ JoinErrorUiModel mapJoinError(String code) {
       );
     case 'REQUEST_TIMEOUT':
       return const JoinErrorUiModel(
-        message: '请求超时，可立即重试或继续本地使用。',
+        message: '发生了什么：请求超时。可以做什么：立即重试或继续本地使用。',
         primaryActionLabel: '立即重试',
         action: JoinAction.retryNowOrUseLocal,
       );

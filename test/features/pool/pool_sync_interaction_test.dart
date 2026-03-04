@@ -55,4 +55,32 @@ void main() {
     expect(controller.retryCalls, 1);
     expect(controller.reconnectCalls, 1);
   });
+
+  testWidgets('retry action in partial cleanup keeps recovery visible', (
+    tester,
+  ) async {
+    final controller = PoolController(
+      initialState: const PoolState.joined(exitShouldFail: true),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(state: controller.state, controller: controller),
+      ),
+    );
+
+    await tester.tap(find.text('退出池'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认退出'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('部分清理失败'), findsOneWidget);
+    expect(find.text('重试清理'), findsOneWidget);
+
+    await tester.tap(find.text('重试清理'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('创建池'), findsOneWidget);
+    expect(find.text('扫码加入'), findsOneWidget);
+  });
 }

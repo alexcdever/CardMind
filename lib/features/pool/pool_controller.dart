@@ -70,6 +70,9 @@ class PoolController extends ChangeNotifier {
         .map((item) {
           if (item.id != requestId) return item;
           if (item.rejectShouldFail) {
+            if (item.error != null) {
+              return null;
+            }
             return item.copyWith(error: '拒绝失败：网络异常');
           }
           return null;
@@ -77,7 +80,10 @@ class PoolController extends ChangeNotifier {
         .whereType<PoolPendingRequest>()
         .toList(growable: false);
 
-    _state = joined.copyWith(pending: updated);
+    _state = joined.copyWith(
+      pending: updated,
+      approvalMessage: updated.length == joined.pending.length ? null : '拒绝已完成',
+    );
     notifyListeners();
   }
 

@@ -128,6 +128,13 @@ void main() {
 
     expect(find.text('bob@pending-fail'), findsOneWidget);
     expect(find.textContaining('拒绝失败'), findsOneWidget);
+    expect(find.text('重试拒绝'), findsOneWidget);
+
+    await tester.tap(find.text('重试拒绝'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('bob@pending-fail'), findsNothing);
+    expect(find.text('拒绝已完成'), findsOneWidget);
   });
 
   testWidgets('exit pool partial cleanup shows retry action', (tester) async {
@@ -164,6 +171,8 @@ void main() {
     );
 
     expect(find.text(mapped.primaryActionLabel), findsOneWidget);
+    expect(find.textContaining('发生了什么'), findsOneWidget);
+    expect(find.textContaining('可以做什么'), findsOneWidget);
   });
 
   testWidgets('owner can edit pool info and dissolve pool', (tester) async {

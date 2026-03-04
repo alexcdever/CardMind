@@ -24,4 +24,12 @@ void main() {
   test('maps ADMIN_OFFLINE to retry message', () {
     expect(mapJoinError('ADMIN_OFFLINE').message, contains('稍后重试'));
   });
+
+  test('maps REQUEST_TIMEOUT to what happened and next step message', () {
+    final mapped = mapJoinError('REQUEST_TIMEOUT');
+
+    expect(mapped.message, contains('发生了什么'));
+    expect(mapped.message, contains('可以做什么'));
+    expect(mapped.primaryActionLabel, '立即重试');
+  });
 }
