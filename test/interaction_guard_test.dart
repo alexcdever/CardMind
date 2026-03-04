@@ -31,4 +31,14 @@ void main() {
       reason: 'Found empty/disabled interactions in: ${violations.join(', ')}',
     );
   });
+
+  test('exit confirmation actions are not empty handlers', () {
+    final shell = File(
+      'lib/app/navigation/app_shell_page.dart',
+    ).readAsStringSync();
+
+    expect(shell, contains("child: const Text('是')"));
+    expect(shell, contains("child: const Text('取消')"));
+    expect(shell, isNot(contains("onPressed: () {}")));
+  });
 }

@@ -78,7 +78,7 @@ class _AppShellPageState extends State<AppShellPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('否'),
+            child: const Text('取消'),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),

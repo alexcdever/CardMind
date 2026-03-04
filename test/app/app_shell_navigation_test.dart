@@ -16,6 +16,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(BottomNavigationBar), findsOneWidget);
+    expect(find.text('搜索卡片'), findsOneWidget);
     expect(find.text('卡片'), findsWidgets);
     expect(find.text('数据池'), findsWidgets);
     expect(find.text('设置'), findsWidgets);
@@ -64,10 +65,10 @@ void main() {
 
     expect(find.text('是否退出应用？'), findsOneWidget);
     expect(find.text('是'), findsOneWidget);
-    expect(find.text('否'), findsOneWidget);
+    expect(find.text('取消'), findsOneWidget);
   });
 
-  testWidgets('selecting 否 closes confirmation and stays on cards', (
+  testWidgets('selecting 取消 closes confirmation and stays on cards', (
     tester,
   ) async {
     final controller = AppShellController(initialSection: AppSection.cards);
@@ -77,7 +78,7 @@ void main() {
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tester.tap(find.text('否'));
+    await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
 
     expect(controller.section, AppSection.cards);
