@@ -67,3 +67,12 @@ pos: UI 交互发布门禁文档（修改需同步验收矩阵）
 - 关键测试：`mobile shell shows one-step tab targets from settings section`
 - 关键命令：`flutter test test/features/settings/settings_page_test.dart`
 - 关键命令：`flutter test test/app/adaptive_shell_test.dart`
+
+## 9. S5 完成证据
+- 关键测试：`degraded banner offers retry or reconnect and stays non-modal`
+- 关键测试：`degraded sync remains non-blocking for local save flow`
+- 关键测试：`sync error should show retry and reconnect actions`
+- 关键测试：`error banner view action routes to pool error page`
+- 关键命令：`flutter test test/features/sync/sync_banner_test.dart`
+- 关键命令：`flutter test test/features/cards/cards_sync_navigation_test.dart`
+- 关键命令：`flutter test test/features/sync/sync_controller_test.dart`

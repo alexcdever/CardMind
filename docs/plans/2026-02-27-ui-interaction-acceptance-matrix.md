@@ -42,6 +42,13 @@ pos: UI 交互验收基线文档（修改需同步治理与发布门禁）
 | settings pool entry can one-step open joined pool root | `flutter test test/features/settings/settings_page_test.dart` | 设置入口直达池主态 |
 | mobile shell shows one-step tab targets from settings section | `flutter test test/app/adaptive_shell_test.dart` | 移动端标签目标可见且一跳可达 |
 
+| S5 完成证据 | 测试/命令 | 结果 |
+| --- | --- | --- |
+| degraded banner offers retry or reconnect and stays non-modal | `flutter test test/features/sync/sync_banner_test.dart` | 降级提示非阻断且含恢复动作 |
+| degraded sync remains non-blocking for local save flow | `flutter test test/features/cards/cards_sync_navigation_test.dart` | 降级状态下本地保存链路可达 |
+| sync error should show retry and reconnect actions | `flutter test test/features/sync/sync_banner_test.dart` | 异常态可执行恢复动作 |
+| error banner view action routes to pool error page | `flutter test test/features/cards/cards_sync_navigation_test.dart` | 查看动作可到错误处理页 |
+
 | 计划任务映射 | 对应任务 | 状态 |
 | --- | --- | --- |
 | S1 | Task 2-3 | 待执行 |

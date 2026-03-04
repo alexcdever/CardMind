@@ -249,4 +249,38 @@ void main() {
     );
     expect(gate, contains('flutter test test/app/adaptive_shell_test.dart'));
   });
+
+  test('governance docs record explicit S5 degraded evidence', () {
+    final design = File(
+      'docs/plans/2026-02-27-ui-interaction-governance-design.md',
+    ).readAsStringSync();
+    final matrix = File(
+      'docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md',
+    ).readAsStringSync();
+    final gate = File(
+      'docs/plans/2026-02-27-ui-interaction-release-gate.md',
+    ).readAsStringSync();
+
+    expect(design, contains('S5 完成证据'));
+    expect(matrix, contains('S5 完成证据'));
+    expect(gate, contains('S5 完成证据'));
+    expect(
+      design,
+      contains('degraded sync remains non-blocking for local save flow'),
+    );
+    expect(
+      design,
+      contains('degraded banner offers retry or reconnect and stays non-modal'),
+    );
+    expect(
+      gate,
+      contains('flutter test test/features/sync/sync_banner_test.dart'),
+    );
+    expect(
+      gate,
+      contains(
+        'flutter test test/features/cards/cards_sync_navigation_test.dart',
+      ),
+    );
+  });
 }

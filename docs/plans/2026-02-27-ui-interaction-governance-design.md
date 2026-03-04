@@ -77,6 +77,13 @@
 - 同步错误态必须提供 `retry` / `reconnect` 两类恢复动作。
 - `degraded` 状态仅做提示，不阻断本地操作。
 
+#### S5 完成证据
+- 测试用例：`degraded banner offers retry or reconnect and stays non-modal`，断言降级提示非阻断且提供恢复动作。
+- 测试用例：`degraded sync remains non-blocking for local save flow`，断言降级状态不阻断本地新增与保存。
+- 测试用例：`sync error should show retry and reconnect actions`，断言异常态恢复动作可触发。
+- 测试用例：`error banner view action routes to pool error page`，断言“查看”可进入处理页。
+- 验证命令：`flutter test test/features/sync/sync_banner_test.dart test/features/cards/cards_sync_navigation_test.dart test/features/sync/sync_controller_test.dart`。
+
 ## 4. 双轨验收标准（量化）
 
 ### 4.1 研发轨（自动化）
