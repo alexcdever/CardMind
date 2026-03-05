@@ -11,7 +11,7 @@
 
 - Source of truth: `docs/specs/ui-interaction.md`.
 - Process baseline: `docs/standards/spec-first-execution.md`.
-- UI governance baseline: `docs/standards/ui-interaction-governance.md`.
+- UI governance baseline: `docs/specs/ui-interaction.md`.
 - Hard constraints:
   - Do not merge an `S` iteration that does not pass governance gates.
   - Keep mobile/desktop as independent UIs while preserving semantic parity.
@@ -113,7 +113,7 @@
     - `docs/specs/ui-interaction.md`
     - `docs/specs/ui-interaction.md`
   - gate tests:
-    - `flutter test docs/standards/ui-interaction-governance.md`
+    - `flutter test test/interaction_guard_test.dart`
     - `flutter test test/interaction_guard_test.dart`
 - Minimum scenario test coverage per `S`:
   - at least one success-path test,

@@ -55,3 +55,4 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-05-remove-onboarding-direct-cards-entry-design.md - 设计草案 - 移除引导页并改为卡片列表直达，池入口收敛到 Pool tab
 2026-03-05-remove-onboarding-direct-cards-entry-implementation-plan.md - 实现计划 - 移除引导页并改为卡片列表直达的任务化实施步骤
 2026-03-05-doc-governance-refactor-design.md - 设计草案 - 文档治理重构（移除门禁脚本/测试，规则内化为标准）
+2026-03-05-doc-governance-refactor-implementation-plan.md - 实现计划 - 文档治理重构实施（移除自动门禁并迁移为标准驱动）

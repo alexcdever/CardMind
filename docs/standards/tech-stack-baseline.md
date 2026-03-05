@@ -71,11 +71,11 @@
 - 依赖升级采用最小必要原则；避免为“可升级而升级”。
 - FRB 升级必须双端同步（Dart/Rust 同步变更）并完成端到端编译验证。
 - 新增或替换核心技术栈（语言、框架、存储、同步、桥接）前，必须先在 `docs/plans/` 形成设计记录，再更新本文档。
-- 任何会改变构建、测试、发布门禁的技术栈变更，需同步更新对应标准文档（如 TDD、UI 治理、Git/PR 规范）。
+- 任何会改变构建、测试、发布门禁的技术栈变更，需同步更新对应标准文档（如 TDD、Git/PR 规范）。
 
 ## 5. 与其他规范的关系
 
 - 文档维护要求遵循 `docs/standards/documentation.md`。
 - 功能实现与行为变更遵循 `docs/standards/spec-first-execution.md`。
-- 测试与质量门禁遵循 `docs/standards/tdd.md` 与 `docs/standards/ui-interaction-governance.md`。
+- 测试与质量门禁遵循 `docs/standards/tdd.md`。
 - 提交与协作流程遵循 `docs/standards/git-and-pr.md`。

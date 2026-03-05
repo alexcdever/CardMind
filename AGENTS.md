@@ -6,7 +6,6 @@
 - [Fractal Documentation Standard](docs/standards/documentation.md)
 - [Spec-First Execution Policy](docs/standards/spec-first-execution.md)
 - [TDD Standard](docs/standards/tdd.md)
-- [UI Interaction Governance](docs/standards/ui-interaction-governance.md)
 - [Git & PR Standard](docs/standards/git-and-pr.md)
 - [Coding Style Standard](docs/standards/coding-style.md)
 
@@ -50,9 +49,6 @@
 ## Testing Guidelines
 - 遵循 `docs/standards/tdd.md`。
 - 开发方法要求完整 TDD 红-绿-蓝循环，禁止跳过蓝色重构步骤。
-
-## UI Interaction Governance Guard
-- 遵循 `docs/standards/ui-interaction-governance.md`。
 
 ## Commit & Pull Request Guidelines
 - 遵循 `docs/standards/git-and-pr.md`。

@@ -47,7 +47,7 @@ pos: 设计草案，指导后续实施计划拆解
 1. 每条关键 MUST 至少有 1 条行为断言（Widget/集成测试）。
 2. 每类 FORBIDDEN 至少有 1 条守卫断言（防回归）。
 3. 每阶段结束必须通过：
-   - `flutter test docs/standards/ui-interaction-governance.md`
+   - `flutter test test/interaction_guard_test.dart`
    - `flutter test test/interaction_guard_test.dart`
    - `flutter analyze`
 4. 阶段总验收以 `docs/specs/ui-interaction.md` 第 7 章 Given/When/Then 为基准。

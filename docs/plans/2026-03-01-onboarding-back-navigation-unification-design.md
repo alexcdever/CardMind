@@ -113,7 +113,7 @@
   - `docs/specs/ui-interaction.md`
 - 执行守卫测试：
   - `flutter test test/interaction_guard_test.dart`
-  - `flutter test docs/standards/ui-interaction-governance.md`
+  - `flutter test test/interaction_guard_test.dart`
 
 ## 9. 实施原则
 

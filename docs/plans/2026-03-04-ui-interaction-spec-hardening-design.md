@@ -46,7 +46,7 @@ pos: UI 交互规格补强设计文档（修改需同步 DIR.md）
 
 ## 6. 验证策略
 
-1. 运行 `flutter test docs/standards/ui-interaction-governance.md`，确保治理文档守卫仍通过。
+1. 运行 `flutter test test/interaction_guard_test.dart`，确保治理文档守卫仍通过。
 2. 运行 `flutter analyze`，确保仓库无新增静态检查问题。
 
 ## 7. 交付与影响

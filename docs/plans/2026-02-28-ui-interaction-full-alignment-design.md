@@ -122,7 +122,7 @@ pos: UI 交互全量对齐设计文档（修改需同步实施计划与治理文
 ### 8.2 必跑命令
 - `flutter analyze`
 - `flutter test`
-- `flutter test docs/standards/ui-interaction-governance.md`
+- `flutter test test/interaction_guard_test.dart`
 - `flutter test test/interaction_guard_test.dart`
 - `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 

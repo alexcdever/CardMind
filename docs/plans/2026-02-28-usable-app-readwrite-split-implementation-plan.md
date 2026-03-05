@@ -468,7 +468,7 @@ git commit -m "feat(sync): integrate actionable non-blocking sync feedback acros
 - Modify: `docs/plans/2026-02-27-mobile-desktop-ui-interaction-design.md`
 - Modify: `docs/plans/2026-02-28-ui-interaction-full-alignment-design.md`
 - Modify: `docs/plans/DIR.md`
-- Modify: `docs/standards/ui-interaction-governance.md`
+- Modify: `docs/specs/ui-interaction.md`
 - Modify: `test/interaction_guard_test.dart`
 
 **Step 1: Write the failing test**
@@ -483,7 +483,7 @@ test('governance docs include pool edit and dissolve lifecycle coverage', () {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: FAIL with missing lifecycle language in governance docs
 
 **Step 3: Write minimal implementation**
@@ -494,12 +494,12 @@ Expected: FAIL with missing lifecycle language in governance docs
 
 **Step 4: Run full verification suite**
 
-Run: `flutter analyze && flutter test && flutter test docs/standards/ui-interaction-governance.md && flutter test test/interaction_guard_test.dart && 遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
+Run: `flutter analyze && flutter test && flutter test test/interaction_guard_test.dart && flutter test test/interaction_guard_test.dart && 遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 Expected: PASS all checks
 
 **Step 5: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/plans/2026-02-27-mobile-desktop-ui-interaction-design.md docs/plans/2026-02-28-ui-interaction-full-alignment-design.md docs/plans/DIR.md docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/plans/2026-02-27-mobile-desktop-ui-interaction-design.md docs/plans/2026-02-28-ui-interaction-full-alignment-design.md docs/plans/DIR.md docs/specs/ui-interaction.md test/interaction_guard_test.dart
 git commit -m "chore(gate): align governance and clear full usable-app gates"
 ```

@@ -29,7 +29,7 @@ Every task MUST follow `Red -> Green -> Blue -> Commit`:
 **Files:**
 - Modify: `docs/specs/ui-interaction.md`
 - Modify (if referenced wording requires sync): `docs/specs/ui-interaction.md`
-- Test: `docs/standards/ui-interaction-governance.md`
+- Test: `docs/specs/ui-interaction.md`
 
 **Step 1: Write failing governance doc test updates**
 
@@ -43,7 +43,7 @@ test('design doc uses direct cards entry wording instead of onboarding split', (
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: FAIL because spec still contains onboarding-first clauses
 
 **Step 3: Apply minimal spec edits**
@@ -55,18 +55,18 @@ Expected: FAIL because spec still contains onboarding-first clauses
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: PASS
 
 **Step 5: Blue refactor verification**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: PASS after wording cleanup/refactor
 
 **Step 6: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md docs/specs/ui-interaction.md
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(ui-spec): switch first-screen contract to direct cards entry"
 ```
 
@@ -234,7 +234,7 @@ Expected: PASS
 
 **Step 2: Run focused tests**
 
-Run: `flutter test test/widget_test.dart test/app/app_shell_navigation_test.dart test/features/pool/pool_page_test.dart docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/widget_test.dart test/app/app_shell_navigation_test.dart test/features/pool/pool_page_test.dart docs/specs/ui-interaction.md -r compact`
 Expected: PASS
 
 **Step 3: Run full checks**

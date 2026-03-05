@@ -109,7 +109,7 @@ pos: 清查报告文档，记录证据、例外与收口状态。
 - `test/features/sync/sync_controller_test.dart`
 - `docs/standards/documentation.md`
 - `test/interaction_guard_test.dart`
-- `docs/standards/ui-interaction-governance.md`
+- `docs/specs/ui-interaction.md`
 - `test/widget_test.dart`
 
 ## tool（3）

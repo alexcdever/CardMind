@@ -293,7 +293,7 @@ git commit -m "feat(sync-ui): wire sync states and recovery interactions"
 
 **Step 3: 跑文档治理测试**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md`  
+Run: `flutter test test/interaction_guard_test.dart`  
 Expected: PASS
 
 **Step 4: 跑全量门禁**

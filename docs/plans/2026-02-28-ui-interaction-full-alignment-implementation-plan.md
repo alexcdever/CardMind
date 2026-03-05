@@ -26,7 +26,7 @@ pos: UI 交互全量对齐实施计划（修改需同步 DIR.md）
 **Files:**
 - Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/specs/ui-interaction.md`
-- Test: `docs/standards/ui-interaction-governance.md`
+- Test: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test update for clarified S2/S3/S4 wording**
 
@@ -41,7 +41,7 @@ test('acceptance matrix reflects card-note CRUD and pool CRUD scope', () {
 
 **Step 2: Run doc governance test to verify it fails first**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: FAIL with missing/old wording assertions
 
 **Step 3: Apply minimal doc edits to reflect approved design language**
@@ -54,13 +54,13 @@ Expected: FAIL with missing/old wording assertions
 
 **Step 4: Re-run doc governance test**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): align S2-S4 acceptance wording with approved design"
 ```
 
@@ -384,7 +384,7 @@ Expected: PASS
 
 **Step 3: Run governance docs and interaction guards explicitly**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md && flutter test test/interaction_guard_test.dart`
+Run: `flutter test test/interaction_guard_test.dart && flutter test test/interaction_guard_test.dart`
 Expected: PASS
 
 **Step 4: Run fractal doc check**

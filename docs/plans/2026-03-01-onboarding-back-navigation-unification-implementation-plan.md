@@ -225,7 +225,7 @@ git commit -m "feat(navigation): confirm app exit on cards root back"
 - Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/specs/ui-interaction.md`
-- Test: `docs/standards/ui-interaction-governance.md`
+- Test: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test update**
 
@@ -239,7 +239,7 @@ test('governance docs include shell two-step back and exit confirmation', () {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: FAIL with missing navigation policy wording
 
 **Step 3: Write minimal implementation**
@@ -251,7 +251,7 @@ Expected: FAIL with missing navigation policy wording
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
+Run: `flutter test test/interaction_guard_test.dart -r compact`
 Expected: PASS
 
 **Step 5: Blue refactor**
@@ -261,7 +261,7 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): codify shell back policy and exit confirmation"
 ```
 
@@ -315,7 +315,7 @@ git commit -m "docs(plans): add onboarding back-navigation implementation plan"
 Run in order:
 
 1. `flutter test test/features/onboarding/onboarding_page_test.dart test/app/app_shell_navigation_test.dart -r compact`
-2. `flutter test test/interaction_guard_test.dart docs/standards/ui-interaction-governance.md -r compact`
+2. `flutter test test/interaction_guard_test.dart docs/specs/ui-interaction.md -r compact`
 3. `flutter test test/plan_tdd_blue_guard_test.dart -r compact`
 4. `flutter analyze`
 

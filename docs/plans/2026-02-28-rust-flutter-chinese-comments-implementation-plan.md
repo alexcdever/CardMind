@@ -304,7 +304,7 @@ git commit -m "docs(flutter): add chinese key comments for app and features"
 - Modify: `test/widget_test.dart`
 - Modify: `test/build_cli_test.dart`
 - Modify: `test/interaction_guard_test.dart`
-- Modify: `docs/standards/ui-interaction-governance.md`
+- Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/standards/documentation.md`
 - Modify: `test/bridge/sync_bridge_api_smoke_test.dart`
 - Modify: `test/app/adaptive_shell_test.dart`
@@ -395,7 +395,7 @@ Expected: PASS
 
 **Step 3: 跑治理门禁测试**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md`  
+Run: `flutter test test/interaction_guard_test.dart`  
 Expected: PASS
 
 **Step 4: 跑交互守卫测试**

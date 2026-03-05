@@ -14,7 +14,7 @@
 
 ## 3. 校验结果
 - `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`：PASS。
-- `flutter test docs/standards/ui-interaction-governance.md`：PASS。
+- `flutter test test/interaction_guard_test.dart`：PASS。
 - `flutter test test/interaction_guard_test.dart`：PASS。
 - `flutter analyze`：PASS（No issues found）。
 - `flutter test`：PASS。

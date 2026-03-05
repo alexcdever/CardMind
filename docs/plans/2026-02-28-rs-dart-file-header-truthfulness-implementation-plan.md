@@ -231,7 +231,7 @@ git commit -m "docs(flutter): rewrite lib file headers with concrete responsibil
 - Modify: `test/build_cli_test.dart`
 - Modify: `docs/standards/documentation.md`
 - Modify: `test/interaction_guard_test.dart`
-- Modify: `docs/standards/ui-interaction-governance.md`
+- Modify: `docs/specs/ui-interaction.md`
 - Modify: `test/app/adaptive_shell_test.dart`
 - Modify: `test/bridge/sync_bridge_api_smoke_test.dart`
 - Modify: `test/features/cards/cards_desktop_interactions_test.dart`
@@ -262,7 +262,7 @@ Expected: 无输出
 
 **Step 3: 运行治理守卫测试**
 
-Run: `flutter test docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart`
+Run: `flutter test test/interaction_guard_test.dart test/interaction_guard_test.dart`
 Expected: PASS
 
 **Step 4: Commit**
