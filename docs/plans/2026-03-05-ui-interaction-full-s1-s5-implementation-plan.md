@@ -522,6 +522,13 @@ git commit -m "docs(plans): add execution notes for S1-S5 rollout"
 
 ## Final Execution Notes (Completed)
 
+### TDD Workflow Rule
+- Mandatory flow: `Red -> Green -> Blue -> Commit`.
+- Red: write a `failing test`, then `verify it fails` with the target command.
+- Green: implement minimum change, then `verify it passes`.
+- Blue: run `Blue refactor` only after green is stable.
+- Step 6: Commit.
+
 ### Command Summary
 - Governance/doc guard:
   - `flutter test test/ui_interaction_governance_docs_test.dart`
