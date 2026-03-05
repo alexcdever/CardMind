@@ -27,10 +27,7 @@ pos: 实现计划与设计草案目录说明入口
 2026-02-27-build-cli-design.md - 设计草案 - 多平台构建 CLI 设计
 2026-02-27-build-cli-implementation-plan.md - 实现计划 - CardMind 多平台构建 CLI 实施步骤
 2026-02-27-build-cli-implementation-plan.md - 实施状态 - 按 Task 1-6 执行并采用逐任务 TDD+汇报
-2026-02-27-ui-interaction-governance-design.md - 设计草案 - UI 交互治理（单人探索版，双轨验收）
 2026-02-27-ui-interaction-governance-implementation-plan.md - 实现计划 - UI 交互治理文档与守卫测试实施
-2026-02-27-ui-interaction-acceptance-matrix.md - 验收矩阵 - 五大场景双轨验收映射与门禁
-2026-02-27-ui-interaction-release-gate.md - 发布门禁 - 双轨达标前禁止合并与发布
 2026-02-28-ui-interaction-full-alignment-design.md - 设计草案 - S1-S5 一次性全量对齐设计（含 S2/S3 CRUD 与 S4 Tab 可达定义）
 2026-02-28-ui-interaction-full-alignment-implementation-plan.md - 实现计划 - S1-S5 全量对齐任务化实施与门禁验证步骤
 2026-02-28-usable-app-readwrite-split-design.md - 设计草案 - 可用化一体设计（Loro 写模型 + SQLite 读模型 + FRB 同步）
