@@ -24,13 +24,11 @@ pub fn decode_message(bytes: &[u8]) -> Result<PoolMessage, CardMindError> {
         ));
     }
     let (len_bytes, body) = bytes.split_at(LENGTH_BYTES);
-    let len = u32::from_be_bytes([len_bytes[0], len_bytes[1], len_bytes[2], len_bytes[3]])
-        as usize;
+    let len = u32::from_be_bytes([len_bytes[0], len_bytes[1], len_bytes[2], len_bytes[3]]) as usize;
     if body.len() != len {
         return Err(CardMindError::InvalidArgument(
             "message length mismatch".to_string(),
         ));
     }
-    postcard::from_bytes(body)
-        .map_err(|e| CardMindError::InvalidArgument(e.to_string()))
+    postcard::from_bytes(body).map_err(|e| CardMindError::InvalidArgument(e.to_string()))
 }

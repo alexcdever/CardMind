@@ -17,18 +17,13 @@ fn it_should_save_and_load_loro_doc() -> Result<(), Box<dyn std::error::Error>> 
     save_loro_doc(&path, &doc)?;
 
     let loaded = load_loro_doc(&path)?;
-    let value = loaded.get_map("card").get("title").ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::Other, "missing title")
-    })?;
+    let value = loaded
+        .get_map("card")
+        .get("title")
+        .ok_or_else(|| std::io::Error::other("missing title"))?;
     match value.get_deep_value() {
         LoroValue::String(text) => assert_eq!(text.as_str(), "t"),
-        _ => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "title not string",
-            )
-            .into())
-        }
+        _ => return Err(std::io::Error::other("title not string").into()),
     }
     Ok(())
 }

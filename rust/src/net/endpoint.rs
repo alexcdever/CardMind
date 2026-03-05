@@ -43,10 +43,7 @@ impl PoolEndpoint {
         &self.endpoint
     }
 
-    pub async fn wait_for_addr(
-        &self,
-        timeout: Duration,
-    ) -> Result<EndpointAddr, CardMindError> {
+    pub async fn wait_for_addr(&self, timeout: Duration) -> Result<EndpointAddr, CardMindError> {
         let mut watcher = self.endpoint.watch_addr();
         let start = tokio::time::Instant::now();
         loop {

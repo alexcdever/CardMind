@@ -51,6 +51,12 @@ impl SyncSession {
     }
 }
 
+impl Default for SyncSession {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct PoolSession {
     pool_id: Uuid,
     members: HashSet<String>,

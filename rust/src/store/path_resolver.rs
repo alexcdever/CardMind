@@ -22,7 +22,9 @@ impl DataPaths {
     /// 解析并确保目录存在
     pub fn new(base_path: &str) -> Result<Self, CardMindError> {
         if base_path.trim().is_empty() {
-            return Err(CardMindError::InvalidArgument("base_path empty".to_string()));
+            return Err(CardMindError::InvalidArgument(
+                "base_path empty".to_string(),
+            ));
         }
         let base = Path::new(base_path).to_path_buf();
         let loro_note_dir = base.join("data").join("loro").join("note");
@@ -30,12 +32,9 @@ impl DataPaths {
         let sqlite_dir = base.join("data").join("sqlite");
         let sqlite_path = sqlite_dir.join("cardmind.sqlite");
 
-        fs::create_dir_all(&loro_note_dir)
-            .map_err(|e| CardMindError::Io(e.to_string()))?;
-        fs::create_dir_all(&loro_pool_dir)
-            .map_err(|e| CardMindError::Io(e.to_string()))?;
-        fs::create_dir_all(&sqlite_dir)
-            .map_err(|e| CardMindError::Io(e.to_string()))?;
+        fs::create_dir_all(&loro_note_dir).map_err(|e| CardMindError::Io(e.to_string()))?;
+        fs::create_dir_all(&loro_pool_dir).map_err(|e| CardMindError::Io(e.to_string()))?;
+        fs::create_dir_all(&sqlite_dir).map_err(|e| CardMindError::Io(e.to_string()))?;
 
         Ok(Self {
             base_path: base,

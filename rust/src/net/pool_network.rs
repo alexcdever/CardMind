@@ -15,10 +15,10 @@ use crate::store::loro_store::{load_loro_doc, note_doc_path, pool_doc_path, save
 use crate::store::path_resolver::DataPaths;
 use crate::store::pool_store::PoolStore;
 use crate::store::sqlite_store::SqliteStore;
-use iroh::{endpoint::Connection, EndpointAddr};
+use iroh::{EndpointAddr, endpoint::Connection};
 use loro::{LoroDoc, LoroMap, LoroValue};
 use std::collections::HashSet;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 use uuid::Uuid;
 
 const MESSAGE_LIMIT: usize = 10_000_000;
@@ -55,10 +55,7 @@ impl PoolNetwork {
         self.endpoint.endpoint_addr()
     }
 
-    pub async fn wait_for_addr(
-        &self,
-        timeout: Duration,
-    ) -> Result<EndpointAddr, CardMindError> {
+    pub async fn wait_for_addr(&self, timeout: Duration) -> Result<EndpointAddr, CardMindError> {
         self.endpoint.wait_for_addr(timeout).await
     }
 
@@ -163,33 +160,38 @@ impl PoolNetwork {
 
     pub fn sync_join_pool(&self, pool_id: &str) -> Result<(), CardMindError> {
         if pool_id.trim().is_empty() {
-            return Err(CardMindError::InvalidArgument("pool_id is empty".to_string()));
+            return Err(CardMindError::InvalidArgument(
+                "pool_id is empty".to_string(),
+            ));
         }
         if self.sync_session.state() != "connected" {
-            return Err(CardMindError::InvalidArgument("sync not connected".to_string()));
+            return Err(CardMindError::InvalidArgument(
+                "sync not connected".to_string(),
+            ));
         }
         Ok(())
     }
 
     pub fn sync_push(&self) -> Result<(), CardMindError> {
         if self.sync_session.state() != "connected" {
-            return Err(CardMindError::InvalidArgument("sync not connected".to_string()));
+            return Err(CardMindError::InvalidArgument(
+                "sync not connected".to_string(),
+            ));
         }
         Ok(())
     }
 
     pub fn sync_pull(&self) -> Result<(), CardMindError> {
         if self.sync_session.state() != "connected" {
-            return Err(CardMindError::InvalidArgument("sync not connected".to_string()));
+            return Err(CardMindError::InvalidArgument(
+                "sync not connected".to_string(),
+            ));
         }
         Ok(())
     }
 }
 
-async fn handle_connection(
-    conn: Connection,
-    base_path: String,
-) -> Result<(), CardMindError> {
+async fn handle_connection(conn: Connection, base_path: String) -> Result<(), CardMindError> {
     let mut hello: Option<(Uuid, String)> = None;
     let mut pool_snapshot: Option<(Uuid, Vec<u8>, Vec<Uuid>)> = None;
     let mut card_snapshots: Vec<(Uuid, Vec<u8>)> = Vec::new();
@@ -216,14 +218,13 @@ async fn handle_connection(
                 ..
             } => {
                 hello = Some((pool_id, endpoint_id.clone()));
-                if let Some(pool) = load_pool_if_exists(&base_path, &pool_id)? {
-                    if !pool
+                if let Some(pool) = load_pool_if_exists(&base_path, &pool_id)?
+                    && !pool
                         .members
                         .iter()
                         .any(|member| member.endpoint_id == endpoint_id)
-                    {
-                        return Err(CardMindError::NotMember("not member".to_string()));
-                    }
+                {
+                    return Err(CardMindError::NotMember("not member".to_string()));
                 }
             }
             PoolMessage::PoolSnapshot { pool_id, bytes } => {
@@ -243,13 +244,14 @@ async fn handle_connection(
             _ => {}
         }
 
-        if let Some(expected) = &expected_cards {
-            if !expected.is_empty() && card_snapshots.len() >= expected.len() {
-                break;
-            }
+        if let Some(expected) = &expected_cards
+            && !expected.is_empty()
+            && card_snapshots.len() >= expected.len()
+        {
+            break;
         }
 
-        if pool_snapshot.is_some() && expected_cards.as_ref().map_or(true, |set| set.is_empty()) {
+        if pool_snapshot.is_some() && expected_cards.as_ref().is_none_or(|set| set.is_empty()) {
             break;
         }
     }
@@ -308,8 +310,7 @@ fn apply_pool_snapshot(
     pool_id: &Uuid,
     bytes: &[u8],
 ) -> Result<Pool, CardMindError> {
-    let doc = LoroDoc::from_snapshot(bytes)
-        .map_err(|e| CardMindError::Loro(e.to_string()))?;
+    let doc = LoroDoc::from_snapshot(bytes).map_err(|e| CardMindError::Loro(e.to_string()))?;
     let paths = DataPaths::new(base_path)?;
     let path = paths.base_path.join(pool_doc_path(pool_id));
     save_loro_doc(&path, &doc)?;
@@ -341,8 +342,7 @@ fn apply_card_snapshot(
     card_id: &Uuid,
     bytes: &[u8],
 ) -> Result<Card, CardMindError> {
-    let doc = LoroDoc::from_snapshot(bytes)
-        .map_err(|e| CardMindError::Loro(e.to_string()))?;
+    let doc = LoroDoc::from_snapshot(bytes).map_err(|e| CardMindError::Loro(e.to_string()))?;
     let paths = DataPaths::new(base_path)?;
     let path = paths.base_path.join(note_doc_path(card_id));
     save_loro_doc(&path, &doc)?;
@@ -379,8 +379,7 @@ fn load_pool_if_exists(base_path: &str, pool_id: &Uuid) -> Result<Option<Pool>, 
 }
 
 fn pool_from_snapshot(bytes: &[u8]) -> Result<Pool, CardMindError> {
-    let doc = LoroDoc::from_snapshot(bytes)
-        .map_err(|e| CardMindError::Loro(e.to_string()))?;
+    let doc = LoroDoc::from_snapshot(bytes).map_err(|e| CardMindError::Loro(e.to_string()))?;
     pool_from_doc(&doc)
 }
 
@@ -424,17 +423,13 @@ fn parse_members(value: LoroValue) -> Result<Vec<PoolMember>, CardMindError> {
         _ => {
             return Err(CardMindError::InvalidArgument(
                 "members invalid".to_string(),
-            ))
+            ));
         }
     };
     for item in list.iter() {
         let member_list = match item {
             LoroValue::List(list) => list,
-            _ => {
-                return Err(CardMindError::InvalidArgument(
-                    "member invalid".to_string(),
-                ))
-            }
+            _ => return Err(CardMindError::InvalidArgument("member invalid".to_string())),
         };
         if member_list.len() != 4 {
             return Err(CardMindError::InvalidArgument(
@@ -463,7 +458,7 @@ fn parse_card_ids(value: LoroValue) -> Result<Vec<Uuid>, CardMindError> {
         _ => {
             return Err(CardMindError::InvalidArgument(
                 "card_ids invalid".to_string(),
-            ))
+            ));
         }
     };
     for item in list.iter() {
@@ -496,10 +491,7 @@ fn parse_i64(map: &LoroMap, key: &str) -> Result<i64, CardMindError> {
         .get_deep_value();
     match value {
         LoroValue::I64(v) => Ok(v),
-        _ => Err(CardMindError::InvalidArgument(format!(
-            "{} invalid",
-            key
-        ))),
+        _ => Err(CardMindError::InvalidArgument(format!("{} invalid", key))),
     }
 }
 
@@ -513,8 +505,7 @@ fn parse_bool(map: &LoroMap, key: &str) -> Result<bool, CardMindError> {
 
 fn parse_uuid_value(value: &LoroValue, key: &str) -> Result<Uuid, CardMindError> {
     let text = parse_string_value(value, key)?;
-    Uuid::parse_str(&text)
-        .map_err(|_| CardMindError::InvalidArgument(format!("{} invalid", key)))
+    Uuid::parse_str(&text).map_err(|_| CardMindError::InvalidArgument(format!("{} invalid", key)))
 }
 
 fn parse_string_value(value: &LoroValue, key: &str) -> Result<String, CardMindError> {

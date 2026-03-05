@@ -4,7 +4,7 @@
 // 中文注释：本文件承接对外 API 并做错误码映射。
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
-use crate::net::endpoint::{build_endpoint, PoolEndpoint};
+use crate::net::endpoint::{PoolEndpoint, build_endpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::store::card_store::CardStore;
 use crate::store::pool_store::PoolStore;

@@ -3,8 +3,8 @@
 // pos: Loro 存储工具文件，负责文档路径编码与 CRDT 数据序列化持久化。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：本文件封装 Loro 文档与快照读写。
 use crate::models::error::CardMindError;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use loro::{ExportMode, ImportStatus, LoroDoc, VersionVector};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -53,10 +53,7 @@ pub fn export_snapshot(doc: &LoroDoc) -> Result<Vec<u8>, CardMindError> {
 }
 
 /// 导出增量更新
-pub fn export_updates(
-    doc: &LoroDoc,
-    from: &VersionVector,
-) -> Result<Vec<u8>, CardMindError> {
+pub fn export_updates(doc: &LoroDoc, from: &VersionVector) -> Result<Vec<u8>, CardMindError> {
     doc.export(ExportMode::updates(from))
         .map_err(|e| CardMindError::Loro(e.to_string()))
 }

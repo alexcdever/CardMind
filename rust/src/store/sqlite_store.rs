@@ -5,7 +5,7 @@
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::path::Path;
 use uuid::Uuid;
 
@@ -82,8 +82,13 @@ impl SqliteStore {
             params![id_str],
             |row| {
                 let id_str: String = row.get(0)?;
-                let id = Uuid::parse_str(&id_str)
-                    .map_err(|_| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(std::fmt::Error)))?;
+                let id = Uuid::parse_str(&id_str).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::fmt::Error),
+                    )
+                })?;
                 Ok(Card {
                     id,
                     title: row.get(1)?,
@@ -114,8 +119,13 @@ impl SqliteStore {
         let rows = stmt
             .query_map(params![limit, offset], |row| {
                 let id_str: String = row.get(0)?;
-                let id = Uuid::parse_str(&id_str)
-                    .map_err(|_| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(std::fmt::Error)))?;
+                let id = Uuid::parse_str(&id_str).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::fmt::Error),
+                    )
+                })?;
                 Ok(Card {
                     id,
                     title: row.get(1)?,
@@ -152,8 +162,13 @@ impl SqliteStore {
         let rows = stmt
             .query_map(params![like, limit, offset], |row| {
                 let id_str: String = row.get(0)?;
-                let id = Uuid::parse_str(&id_str)
-                    .map_err(|_| rusqlite::Error::FromSqlConversionFailure(0, rusqlite::types::Type::Text, Box::new(std::fmt::Error)))?;
+                let id = Uuid::parse_str(&id_str).map_err(|_| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        0,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::fmt::Error),
+                    )
+                })?;
                 Ok(Card {
                     id,
                     title: row.get(1)?,
@@ -242,7 +257,7 @@ impl SqliteStore {
         let pool_id = match pool_row {
             Ok(row) => row,
             Err(rusqlite::Error::QueryReturnedNoRows) => {
-                return Err(CardMindError::NotFound("pool not found".to_string()))
+                return Err(CardMindError::NotFound("pool not found".to_string()));
             }
             Err(err) => return Err(CardMindError::Sqlite(err.to_string())),
         };

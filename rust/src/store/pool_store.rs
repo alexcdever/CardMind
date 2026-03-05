@@ -109,7 +109,7 @@ impl PoolStore {
             .map_err(|e| CardMindError::Loro(e.to_string()))?;
 
         let members_list = doc.get_list("members");
-        if members_list.len() > 0 {
+        if !members_list.is_empty() {
             members_list
                 .delete(0, members_list.len())
                 .map_err(|e| CardMindError::Loro(e.to_string()))?;
@@ -127,7 +127,7 @@ impl PoolStore {
         }
 
         let card_list = doc.get_list("card_ids");
-        if card_list.len() > 0 {
+        if !card_list.is_empty() {
             card_list
                 .delete(0, card_list.len())
                 .map_err(|e| CardMindError::Loro(e.to_string()))?;

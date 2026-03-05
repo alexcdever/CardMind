@@ -33,6 +33,11 @@
 - Flutter 测试：`flutter test`
 - 代码检查：`flutter analyze`
 - Rust 测试：`cargo test`
+- 质量检查脚本：`dart run tool/quality.dart <flutter|rust|all>`
+  - `flutter`：执行 `flutter analyze -> flutter test`
+  - `rust`：执行 `cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test`
+  - `all`：顺序执行 `flutter -> rust`
+  - 常用示例：`dart run tool/quality.dart flutter`、`dart run tool/quality.dart rust`、`dart run tool/quality.dart all`
 - FRB 生成（需已安装工具）：`flutter_rust_bridge_codegen generate`
 - 构建脚本：`dart run tool/build.dart <app|lib> [options]`
   - `app`：构建 Flutter 应用（默认平台为当前主机可执行平台：`macos|linux|windows`）
