@@ -107,19 +107,28 @@ class _CardsPageState extends State<CardsPage> {
                 unawaited(_controller.load(query: value));
               },
             ),
-            for (final note in notes)
-              ListTile(
-                title: Text(note.title),
-                subtitle: note.deleted ? const Text('已删除') : null,
-                trailing: TextButton(
-                  onPressed: () {
-                    unawaited(
-                      _onDeleteOrRestore(id: note.id, deleted: note.deleted),
-                    );
-                  },
-                  child: Text(note.deleted ? '恢复' : '删除'),
-                ),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final note in notes)
+                    ListTile(
+                      title: Text(note.title),
+                      subtitle: note.deleted ? const Text('已删除') : null,
+                      trailing: TextButton(
+                        onPressed: () {
+                          unawaited(
+                            _onDeleteOrRestore(
+                              id: note.id,
+                              deleted: note.deleted,
+                            ),
+                          );
+                        },
+                        child: Text(note.deleted ? '恢复' : '删除'),
+                      ),
+                    ),
+                ],
               ),
+            ),
           ],
         ),
       ),
