@@ -1,16 +1,20 @@
 # TDD Standard
 
-- 开发方法采用完整 TDD 红-绿-蓝循环：
-  - 红（Red）：先写失败测试并确认失败原因正确。
-  - 绿（Green）：实现最小可行改动使测试通过。
-  - 蓝（Refactor）：在测试保持通过的前提下重构代码与命名，消除重复并提升可维护性。
+## Normative Process
 
-- 禁止跳过蓝色重构步骤；完成标准为“测试通过 + 已完成必要重构”，而非仅“测试通过”。
+- Engineering changes MUST follow the complete cycle: `Red -> Green -> Blue -> Commit`.
+- `Red` MUST introduce or adjust a check first, then confirm the expected failing state.
+- `Green` MUST apply the minimal implementation change required to satisfy the check.
+- `Blue` MUST refactor naming/structure/duplication while preserving passing verification.
+- `Commit` MUST happen only after required verification commands pass.
 
-- Flutter 测试放在 `test/`，与功能对齐。
+## Test Placement and Coverage
 
-- Rust 集成测试放在 `rust/tests/`，覆盖 FFI 入口与边界条件。
+- Flutter tests MUST reside in `test/` and align with the behavior they verify.
+- Rust integration tests MUST reside in `rust/tests/` and cover FFI entry points plus boundary conditions.
+- New features and bug fixes MUST include tests for both success and failure paths.
 
-- 新增功能需补充对应测试，覆盖成功与失败路径。
+## Verification Commands
 
-- 常用验证命令：`flutter test`、`cargo test`、`flutter analyze`。
+- Recommended verification commands SHOULD include `flutter test`, `cargo test`, and `flutter analyze` according to change scope.
+- Teams MAY add focused command subsets for faster iteration, but release-ready validation MUST still cover full affected scope.
