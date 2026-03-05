@@ -168,7 +168,7 @@ git commit -m "feat(ui-i18n): harden layouts for long localized content"
 ### Task 4: 守卫测试与全量门禁收敛
 
 **Files:**
-- Modify: `test/ui_interaction_governance_docs_test.dart` (only if needed for new clause assertions)
+- Modify: `docs/standards/ui-interaction-governance.md` (only if needed for new clause assertions)
 - Modify: `test/interaction_guard_test.dart` (only if needed)
 
 **Step 1: Add/adjust failing guard tests for new spec clauses (if missing)**
@@ -181,7 +181,7 @@ test('ui-interaction spec includes A11y/performance/i18n acceptance clauses', ()
 
 **Step 2: Run guard tests first**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart test/interaction_guard_test.dart -r compact`
+Run: `flutter test docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart -r compact`
 Expected: PASS (or FAIL then fix minimal gaps)
 
 **Step 3: Run full verification suite**
@@ -195,6 +195,6 @@ Expected: PASS
 **Step 4: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart test/interaction_guard_test.dart
+git add docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart
 git commit -m "test(ui-governance): enforce hardened ui spec guard coverage"
 ```

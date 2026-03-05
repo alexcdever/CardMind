@@ -7,9 +7,9 @@ pos: UI 交互全量对齐设计文档（修改需同步实施计划与治理文
 - 目标：一次性完成 S1~S5 全量对齐，且满足严格门禁通过标准。
 - 依据：
   - `docs/plans/2026-02-27-mobile-desktop-ui-interaction-design.md`
-  - `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-  - `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-  - `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+  - `docs/specs/ui-interaction.md`
+  - `docs/specs/ui-interaction.md`
+  - `docs/specs/ui-interaction.md`
 - 全局约束：离线优先，同步异常不阻断本地卡片笔记读写。
 
 ## 2. 设计范围与边界
@@ -122,9 +122,9 @@ pos: UI 交互全量对齐设计文档（修改需同步实施计划与治理文
 ### 8.2 必跑命令
 - `flutter analyze`
 - `flutter test`
-- `flutter test test/ui_interaction_governance_docs_test.dart`
+- `flutter test docs/standards/ui-interaction-governance.md`
 - `flutter test test/interaction_guard_test.dart`
-- `dart run tool/fractal_doc_check.dart --base <commit>`
+- `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 
 ### 8.3 发布判定
 - 研发轨未达标：不可合并。

@@ -108,12 +108,12 @@
 ### 8.2 治理门禁
 
 - 同步更新文档：
-  - `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-  - `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-  - `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+  - `docs/specs/ui-interaction.md`
+  - `docs/specs/ui-interaction.md`
+  - `docs/specs/ui-interaction.md`
 - 执行守卫测试：
   - `flutter test test/interaction_guard_test.dart`
-  - `flutter test test/ui_interaction_governance_docs_test.dart`
+  - `flutter test docs/standards/ui-interaction-governance.md`
 
 ## 9. 实施原则
 

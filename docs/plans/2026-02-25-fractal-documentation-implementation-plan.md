@@ -24,15 +24,15 @@ pos: 分形文档规范实施计划（修改需同步 DIR.md）
 ### Task 1: 构建可测试的校验核心
 
 **Files:**
-- Create: `tool/fractal_doc_checker.dart`
-- Test: `test/fractal_doc_checker_test.dart`
+- Create: `docs/standards/documentation.md`
+- Test: `docs/standards/documentation.md`
 
 **Step 1: Write the failing test**
 
 ```dart
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import '../tool/fractal_doc_checker.dart';
+import '../docs/standards/documentation.md';
 
 void main() {
   test('fails when changed file lacks header', () async {
@@ -50,7 +50,7 @@ void main() {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: FAIL with missing `FractalDocChecker` or missing error message
 
 **Step 3: Write minimal implementation**
@@ -89,13 +89,13 @@ class FractalDocChecker {
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add tool/fractal_doc_checker.dart test/fractal_doc_checker_test.dart
+git add docs/standards/documentation.md docs/standards/documentation.md
 git commit -m "feat(docs): add fractal doc checker core"
 ```
 
@@ -104,8 +104,8 @@ git commit -m "feat(docs): add fractal doc checker core"
 ### Task 2: 增强校验规则（DIR.md 与排除项）
 
 **Files:**
-- Modify: `tool/fractal_doc_checker.dart`
-- Modify: `test/fractal_doc_checker_test.dart`
+- Modify: `docs/standards/documentation.md`
+- Modify: `docs/standards/documentation.md`
 
 **Step 1: Write the failing test**
 
@@ -126,7 +126,7 @@ test('fails when DIR.md not updated for changed file', () async {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: FAIL with DIR rule not implemented
 
 **Step 3: Write minimal implementation**
@@ -149,13 +149,13 @@ if (!_dirHasEntry(dirPath, fileName)) {
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add tool/fractal_doc_checker.dart test/fractal_doc_checker_test.dart
+git add docs/standards/documentation.md docs/standards/documentation.md
 git commit -m "feat(docs): enforce DIR.md entries"
 ```
 
@@ -164,9 +164,9 @@ git commit -m "feat(docs): enforce DIR.md entries"
 ### Task 3: 增加 CLI 包装与 Git diff 支持
 
 **Files:**
-- Create: `tool/fractal_doc_check.dart`
-- Modify: `tool/fractal_doc_checker.dart`
-- Test: `test/fractal_doc_checker_test.dart`
+- Create: `docs/standards/documentation.md`
+- Modify: `docs/standards/documentation.md`
+- Test: `docs/standards/documentation.md`
 
 **Step 1: Write the failing test**
 
@@ -184,7 +184,7 @@ test('ignores excluded paths', () async {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: FAIL with excluded paths not supported
 
 **Step 3: Write minimal implementation**
@@ -218,14 +218,14 @@ if (_isExcluded(relativePath)) continue;
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: PASS
 
 **Step 5: Add CLI wrapper**
 
 ```dart
 import 'dart:io';
-import 'fractal_doc_checker.dart';
+import '../docs/standards/documentation.md';
 
 Future<void> main(List<String> args) async {
   final base = args.contains('--base')
@@ -249,7 +249,7 @@ Future<void> main(List<String> args) async {
 **Step 6: Commit**
 
 ```bash
-git add tool/fractal_doc_check.dart tool/fractal_doc_checker.dart test/fractal_doc_checker_test.dart
+git add docs/standards/documentation.md docs/standards/documentation.md docs/standards/documentation.md
 git commit -m "feat(docs): add fractal doc check CLI"
 ```
 
@@ -258,9 +258,9 @@ git commit -m "feat(docs): add fractal doc check CLI"
 ### Task 4: 生成初始化脚手架（DIR.md 与头注释）
 
 **Files:**
-- Create: `tool/fractal_doc_bootstrap.dart`
-- Modify: `tool/fractal_doc_checker.dart`
-- Test: `test/fractal_doc_checker_test.dart`
+- Create: `docs/standards/documentation.md`
+- Modify: `docs/standards/documentation.md`
+- Test: `docs/standards/documentation.md`
 
 **Step 1: Write the failing test**
 
@@ -280,7 +280,7 @@ test('bootstrap creates DIR.md and headers', () async {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: FAIL with missing bootstrap function
 
 **Step 3: Write minimal implementation**
@@ -294,13 +294,13 @@ Future<void> bootstrapFractalDocs({required String rootPath}) async {
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add tool/fractal_doc_bootstrap.dart tool/fractal_doc_checker.dart test/fractal_doc_checker_test.dart
+git add docs/standards/documentation.md docs/standards/documentation.md docs/standards/documentation.md
 git commit -m "feat(docs): add fractal doc bootstrap"
 ```
 
@@ -326,7 +326,7 @@ git commit -m "feat(docs): add fractal doc bootstrap"
 
 排除项：构建物与第三方依赖（见列表）。
 
-校验：运行 `dart run tool/fractal_doc_check.dart --base <commit>`。
+校验：运行 `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`。
 ```
 
 **Step 2: Link from README and AGENTS**
@@ -350,7 +350,7 @@ git commit -m "docs: add fractal documentation standard"
 
 **Step 1: Run bootstrap**
 
-Run: `dart run tool/fractal_doc_bootstrap.dart`
+Run: `dart run docs/standards/documentation.md`
 Expected: 生成所有缺失的 `DIR.md` 与文件头注释
 
 **Step 2: Spot-check**
@@ -379,7 +379,7 @@ Expected: PASS
 
 **Step 2: Run checker**
 
-Run: `dart run tool/fractal_doc_check.dart --base HEAD`
+Run: `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 Expected: exit code 0, no errors
 
 **Step 3: Commit any fixes**

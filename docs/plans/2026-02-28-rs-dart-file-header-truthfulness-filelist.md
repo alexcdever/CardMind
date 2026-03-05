@@ -15,7 +15,7 @@ pos: 清查报告文档，记录证据、例外与收口状态。
 - `rust/tests`：抽样 3/22（`smoke_test.rs`、`pool_sync_test.rs`、`path_resolver_test.rs`），结果：通过。
 - `lib`：抽样 3/23（`main.dart`、`features/pool/pool_controller.dart`、`features/sync/sync_service.dart`），结果：通过。
 - `test`：抽样 3/19（`widget_test.dart`、`features/pool/pool_page_test.dart`、`features/cards/cards_page_test.dart`），结果：通过。
-- `tool`：抽样 2/3（`fractal_doc_check.dart`、`fractal_doc_checker.dart`），结果：通过。
+- `tool`：抽样 1/1（`build.dart`），结果：通过。
 - 抽样结论：14 个样本均通过，未发现模板化回流或职责失真描述。
 
 ## rust/src（22）
@@ -107,15 +107,15 @@ pos: 清查报告文档，记录证据、例外与收口状态。
 - `test/features/settings/settings_page_test.dart`
 - `test/features/sync/sync_banner_test.dart`
 - `test/features/sync/sync_controller_test.dart`
-- `test/fractal_doc_checker_test.dart`
+- `docs/standards/documentation.md`
 - `test/interaction_guard_test.dart`
-- `test/ui_interaction_governance_docs_test.dart`
+- `docs/standards/ui-interaction-governance.md`
 - `test/widget_test.dart`
 
 ## tool（3）
-- `tool/fractal_doc_bootstrap.dart`
-- `tool/fractal_doc_check.dart`
-- `tool/fractal_doc_checker.dart`
+- `docs/standards/documentation.md`
+- `docs/standards/documentation.md`
+- `docs/standards/documentation.md`
 
 ## 完成证据（模板短语清零）
 

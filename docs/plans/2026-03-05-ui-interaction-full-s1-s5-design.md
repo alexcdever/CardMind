@@ -109,11 +109,11 @@
 
 - Mandatory per iteration:
   - governance docs updates:
-    - `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-    - `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-    - `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+    - `docs/specs/ui-interaction.md`
+    - `docs/specs/ui-interaction.md`
+    - `docs/specs/ui-interaction.md`
   - gate tests:
-    - `flutter test test/ui_interaction_governance_docs_test.dart`
+    - `flutter test docs/standards/ui-interaction-governance.md`
     - `flutter test test/interaction_guard_test.dart`
 - Minimum scenario test coverage per `S`:
   - at least one success-path test,

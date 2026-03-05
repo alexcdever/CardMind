@@ -26,7 +26,7 @@ pos: Rust/Flutter 中文注释补齐实施计划（修改需同步 DIR.md）
 **Files:**
 - Modify: `docs/plans/2026-02-28-rust-flutter-chinese-comments-design.md`
 - Create: `docs/plans/2026-02-28-rust-flutter-chinese-comments-filelist.md`
-- Test: `test/fractal_doc_checker_test.dart`
+- Test: `docs/standards/documentation.md`
 
 **Step 1: 写失败检查清单（先记录“未覆盖文件”）**
 
@@ -48,7 +48,7 @@ pos: Rust/Flutter 中文注释补齐实施计划（修改需同步 DIR.md）
 
 **Step 2: 运行文档校验确认当前存在未补齐项**
 
-Run: `dart run tool/fractal_doc_check.dart --base HEAD~1`  
+Run: `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`  
 Expected: FAIL 或存在需修正提示（用于建立基线）
 
 **Step 3: 固化本次排除项说明（生成文件/构建产物）**
@@ -59,7 +59,7 @@ Expected: FAIL 或存在需修正提示（用于建立基线）
 
 **Step 4: 再跑守卫测试确认工具链可用**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`  
+Run: `flutter test docs/standards/documentation.md`  
 Expected: PASS
 
 **Step 5: Commit**
@@ -304,8 +304,8 @@ git commit -m "docs(flutter): add chinese key comments for app and features"
 - Modify: `test/widget_test.dart`
 - Modify: `test/build_cli_test.dart`
 - Modify: `test/interaction_guard_test.dart`
-- Modify: `test/ui_interaction_governance_docs_test.dart`
-- Modify: `test/fractal_doc_checker_test.dart`
+- Modify: `docs/standards/ui-interaction-governance.md`
+- Modify: `docs/standards/documentation.md`
 - Modify: `test/bridge/sync_bridge_api_smoke_test.dart`
 - Modify: `test/app/adaptive_shell_test.dart`
 - Modify: `test/features/onboarding/onboarding_page_test.dart`
@@ -390,12 +390,12 @@ git commit -m "docs(flutter-test): add chinese scenario comments"
 
 **Step 2: 逐项核对 DIR.md 文件索引与实际文件一致**
 
-Run: `dart run tool/fractal_doc_check.dart --base HEAD~1`  
+Run: `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`  
 Expected: PASS
 
 **Step 3: 跑治理门禁测试**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`  
+Run: `flutter test docs/standards/ui-interaction-governance.md`  
 Expected: PASS
 
 **Step 4: 跑交互守卫测试**
@@ -427,8 +427,8 @@ git commit -m "docs(governance): align chinese comments and dir metadata"
 
 ```markdown
 ## 校验结果
-- fractal_doc_check: PASS
-- ui_interaction_governance_docs_test: PASS
+- 文档标准遵循检查: PASS
+- UI 规格一致性检查: PASS
 - interaction_guard_test: PASS
 - flutter analyze / flutter test / cargo test: PASS
 ```

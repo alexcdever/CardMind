@@ -22,7 +22,7 @@
 
 **Files:**
 - Create: `test/plan_tdd_blue_guard_test.dart`
-- Modify: `test/ui_interaction_governance_docs_test.dart`
+- Modify: `docs/standards/ui-interaction-governance.md`
 
 **Step 1: Write the failing test**
 
@@ -54,13 +54,13 @@ Expected: PASS
 
 **Step 5: Blue refactor and verify**
 
-Run: `flutter test test/plan_tdd_blue_guard_test.dart test/ui_interaction_governance_docs_test.dart -r compact`
+Run: `flutter test test/plan_tdd_blue_guard_test.dart docs/standards/ui-interaction-governance.md -r compact`
 Expected: PASS after extracting shared scan/match helpers and cleanup
 
 **Step 6: Commit**
 
 ```bash
-git add test/plan_tdd_blue_guard_test.dart test/ui_interaction_governance_docs_test.dart
+git add test/plan_tdd_blue_guard_test.dart docs/standards/ui-interaction-governance.md
 git commit -m "test(governance): enforce red-green-blue in all plan docs"
 ```
 
@@ -100,7 +100,7 @@ Expected: PASS
 
 **Step 5: Blue refactor and verify**
 
-Run: `flutter test test/plan_tdd_blue_guard_test.dart && dart run tool/fractal_doc_check.dart --base HEAD~1`
+Run: `flutter test test/plan_tdd_blue_guard_test.dart && 遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 Expected: PASS after wording normalization and duplicate-section cleanup
 
 **Step 6: Commit**
@@ -333,12 +333,12 @@ Expected: PASS
 
 **Step 3: Run governance tests**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart && flutter test test/plan_tdd_blue_guard_test.dart && flutter test test/interaction_guard_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md && flutter test test/plan_tdd_blue_guard_test.dart && flutter test test/interaction_guard_test.dart`
 Expected: PASS
 
 **Step 4: Run fractal doc check**
 
-Run: `dart run tool/fractal_doc_check.dart --base HEAD~1`
+Run: `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 Expected: PASS
 
 **Step 5: Blue cleanup and commit**

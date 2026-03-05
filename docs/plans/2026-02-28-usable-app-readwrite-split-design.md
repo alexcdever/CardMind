@@ -89,9 +89,9 @@
 - 必跑门禁：
   - `flutter analyze`
   - `flutter test`
-  - `flutter test test/ui_interaction_governance_docs_test.dart`
+  - `flutter test docs/standards/ui-interaction-governance.md`
   - `flutter test test/interaction_guard_test.dart`
-  - `dart run tool/fractal_doc_check.dart --base <commit>`
+  - `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 
 ## 8. 实施切片建议
 1. 先接通主壳导航与页面可达（移动/桌面统一语义）。

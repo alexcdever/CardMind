@@ -119,7 +119,7 @@ git commit -m "test(desktop-nav): enforce shell-level one-step pool-to-cards rea
 
 **Files:**
 - Modify (if needed): `docs/specs/ui-interaction.md` (only if unavoidable ambiguity discovered)
-- Test: `test/ui_interaction_governance_docs_test.dart`
+- Test: `docs/standards/ui-interaction-governance.md`
 - Test: `test/interaction_guard_test.dart`
 
 **Step 1: Add failing guard assertion only if new clause added**
@@ -132,7 +132,7 @@ test('ui-interaction spec contains pool-joined to cards one-step reachability cl
 
 **Step 2: Run guard tests**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart test/interaction_guard_test.dart -r compact`
+Run: `flutter test docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart -r compact`
 Expected: PASS
 
 **Step 3: Run analyzer and full tests**
@@ -146,6 +146,6 @@ Expected: PASS
 **Step 4: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md test/ui_interaction_governance_docs_test.dart test/interaction_guard_test.dart
+git add docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart
 git commit -m "test(governance): keep desktop pool-to-cards navigation closure green"
 ```

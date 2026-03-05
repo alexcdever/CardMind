@@ -24,9 +24,9 @@ pos: UI 交互全量对齐实施计划（修改需同步 DIR.md）
 ### Task 1: Baseline S1~S5 and gate gaps
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
-- Test: `test/ui_interaction_governance_docs_test.dart`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Test: `docs/standards/ui-interaction-governance.md`
 
 **Step 1: Write the failing test update for clarified S2/S3/S4 wording**
 
@@ -41,7 +41,7 @@ test('acceptance matrix reflects card-note CRUD and pool CRUD scope', () {
 
 **Step 2: Run doc governance test to verify it fails first**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart -r compact`
+Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
 Expected: FAIL with missing/old wording assertions
 
 **Step 3: Apply minimal doc edits to reflect approved design language**
@@ -54,13 +54,13 @@ Expected: FAIL with missing/old wording assertions
 
 **Step 4: Re-run doc governance test**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart -r compact`
+Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md test/ui_interaction_governance_docs_test.dart
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md
 git commit -m "docs(governance): align S2-S4 acceptance wording with approved design"
 ```
 
@@ -384,12 +384,12 @@ Expected: PASS
 
 **Step 3: Run governance docs and interaction guards explicitly**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart && flutter test test/interaction_guard_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md && flutter test test/interaction_guard_test.dart`
 Expected: PASS
 
 **Step 4: Run fractal doc check**
 
-Run: `dart run tool/fractal_doc_check.dart --base HEAD~1`
+Run: `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 Expected: PASS
 
 **Step 5: Final commit (if fixes were required in this task)**

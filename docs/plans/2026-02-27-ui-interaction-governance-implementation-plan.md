@@ -24,22 +24,22 @@ pos: UI 交互治理实施计划（修改需同步 DIR.md）
 ### Task 1: 建立治理三件套文档
 
 **Files:**
-- Create: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Create: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
+- Create: `docs/specs/ui-interaction.md`
+- Create: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
 ```dart
 test('governance companion docs exist', () {
-  expect(File('docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md').existsSync(), isTrue);
-  expect(File('docs/plans/2026-02-27-ui-interaction-release-gate.md').existsSync(), isTrue);
+  expect(File('docs/specs/ui-interaction.md').existsSync(), isTrue);
+  expect(File('docs/specs/ui-interaction.md').existsSync(), isTrue);
 });
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart --plain-name "governance companion docs exist"`
+Run: `flutter test docs/standards/ui-interaction-governance.md --plain-name "governance companion docs exist"`
 Expected: FAIL（两份 companion 文档尚未创建）
 
 **Step 3: Write minimal implementation**
@@ -61,13 +61,13 @@ Expected: FAIL（两份 companion 文档尚未创建）
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart --plain-name "governance companion docs exist"`
+Run: `flutter test docs/standards/ui-interaction-governance.md --plain-name "governance companion docs exist"`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): add interaction acceptance matrix and release gate"
 ```
 
@@ -76,13 +76,13 @@ git commit -m "docs(governance): add interaction acceptance matrix and release g
 ### Task 2: 新增治理文档自动化守卫测试
 
 **Files:**
-- Create: `test/ui_interaction_governance_docs_test.dart`
+- Create: `docs/standards/ui-interaction-governance.md`
 
 **Step 1: Write the failing test**
 
 ```dart
 test('design doc includes required scenarios', () {
-  final content = File('docs/plans/2026-02-27-ui-interaction-governance-design.md').readAsStringSync();
+  final content = File('docs/specs/ui-interaction.md').readAsStringSync();
   for (final scenario in ['S1 引导分流', 'S2 卡片管理', 'S3 池管理', 'S4 设置', 'S5 全局同步异常']) {
     expect(content, contains(scenario));
   }
@@ -91,7 +91,7 @@ test('design doc includes required scenarios', () {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart --plain-name "design doc includes required scenarios"`
+Run: `flutter test docs/standards/ui-interaction-governance.md --plain-name "design doc includes required scenarios"`
 Expected: FAIL（测试文件尚不存在）
 
 **Step 3: Write minimal implementation**
@@ -111,13 +111,13 @@ void main() {
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart
+git add docs/standards/ui-interaction-governance.md
 git commit -m "test(governance): add ui interaction governance doc guards"
 ```
 
@@ -126,14 +126,14 @@ git commit -m "test(governance): add ui interaction governance doc guards"
 ### Task 3: 强化验收矩阵完整性校验（双轨必填）
 
 **Files:**
-- Modify: `test/ui_interaction_governance_docs_test.dart`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
+- Modify: `docs/standards/ui-interaction-governance.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
 ```dart
 test('acceptance matrix has both dev and experience tracks for all scenarios', () {
-  final content = File('docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md').readAsStringSync();
+  final content = File('docs/specs/ui-interaction.md').readAsStringSync();
   for (final scenario in ['S1', 'S2', 'S3', 'S4', 'S5']) {
     expect(content, contains('$scenario '));
   }
@@ -144,7 +144,7 @@ test('acceptance matrix has both dev and experience tracks for all scenarios', (
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart --plain-name "acceptance matrix has both dev and experience tracks for all scenarios"`
+Run: `flutter test docs/standards/ui-interaction-governance.md --plain-name "acceptance matrix has both dev and experience tracks for all scenarios"`
 Expected: FAIL（矩阵初始内容不完整）
 
 **Step 3: Write minimal implementation**
@@ -161,13 +161,13 @@ Expected: FAIL（矩阵初始内容不完整）
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md test/ui_interaction_governance_docs_test.dart
+git add docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md
 git commit -m "docs(governance): complete dual-track acceptance matrix coverage"
 ```
 
@@ -183,16 +183,16 @@ git commit -m "docs(governance): complete dual-track acceptance matrix coverage"
 ```dart
 test('plans DIR includes governance plan and companion docs', () {
   final dirContent = File('docs/plans/DIR.md').readAsStringSync();
-  expect(dirContent, contains('2026-02-27-ui-interaction-governance-design.md'));
+  expect(dirContent, contains('docs/specs/ui-interaction.md'));
   expect(dirContent, contains('2026-02-27-ui-interaction-governance-implementation-plan.md'));
-  expect(dirContent, contains('2026-02-27-ui-interaction-acceptance-matrix.md'));
-  expect(dirContent, contains('2026-02-27-ui-interaction-release-gate.md'));
+  expect(dirContent, contains('2026-02-27-ui-interaction-governance-implementation-plan.md'));
+  expect(dirContent, contains('2026-03-02-ui-interaction-spec-design.md'));
 });
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart --plain-name "plans DIR includes governance plan and companion docs"`
+Run: `flutter test docs/standards/ui-interaction-governance.md --plain-name "plans DIR includes governance plan and companion docs"`
 Expected: FAIL（DIR.md 尚未登记完整）
 
 **Step 3: Write minimal implementation**
@@ -203,7 +203,7 @@ Expected: FAIL（DIR.md 尚未登记完整）
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS
 
 **Step 5: Commit**
@@ -218,22 +218,22 @@ git commit -m "docs(plans): register ui interaction governance documentation set
 ### Task 5: 执行全量验证并确认门禁可用
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
 ```dart
 test('release gate doc references required verification commands', () {
-  final content = File('docs/plans/2026-02-27-ui-interaction-release-gate.md').readAsStringSync();
+  final content = File('docs/specs/ui-interaction.md').readAsStringSync();
   expect(content, contains('flutter analyze'));
   expect(content, contains('flutter test'));
-  expect(content, contains('dart run tool/fractal_doc_check.dart --base'));
+  expect(content, contains('dart run docs/standards/documentation.md --base'));
 });
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart --plain-name "release gate doc references required verification commands"`
+Run: `flutter test docs/standards/ui-interaction-governance.md --plain-name "release gate doc references required verification commands"`
 Expected: FAIL（发布门禁命令未完整声明）
 
 **Step 3: Write minimal implementation**
@@ -242,12 +242,12 @@ Expected: FAIL（发布门禁命令未完整声明）
 ## 必跑校验命令
 - flutter analyze
 - flutter test
-- dart run tool/fractal_doc_check.dart --base <commit>
+- 遵循 docs/standards/documentation.md 与 docs/standards/tdd.md
 ```
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS
 
 **Step 5: Run full verification suite**
@@ -258,6 +258,6 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add docs/plans/2026-02-27-ui-interaction-release-gate.md test/ui_interaction_governance_docs_test.dart
+git add docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md
 git commit -m "test(governance): enforce release gate verification commands"
 ```

@@ -272,9 +272,9 @@ git commit -m "feat(sync-ui): wire sync states and recovery interactions"
 ### Task 6: 文档治理对齐与全量门禁验证
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/plans/DIR.md`
 
 **Step 1: 更新治理文档三件套（同步交互新增项）**
@@ -293,7 +293,7 @@ git commit -m "feat(sync-ui): wire sync states and recovery interactions"
 
 **Step 3: 跑文档治理测试**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`  
+Run: `flutter test docs/standards/ui-interaction-governance.md`  
 Expected: PASS
 
 **Step 4: 跑全量门禁**
@@ -304,6 +304,6 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md docs/plans/DIR.md
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/plans/DIR.md
 git commit -m "docs(governance): align sync integration interaction gates"
 ```

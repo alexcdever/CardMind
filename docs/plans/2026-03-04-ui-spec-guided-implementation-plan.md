@@ -9,7 +9,7 @@ pos: UI 规格驱动实施计划（修改需同步 DIR.md）
 
 **Architecture:** Reuse existing app shell + feature page/controller boundaries and enforce spec clauses through behavior-level tests first. Each task maps MUST/FORBIDDEN requirements to observable UI outcomes (route, feedback, dialog, action availability). Spec gaps are patched minimally in `docs/specs/ui-interaction.md` only when implementation cannot be decided from current text.
 
-**Tech Stack:** Flutter (Dart), flutter_test, existing governance guards (`test/ui_interaction_governance_docs_test.dart`, `test/interaction_guard_test.dart`)
+**Tech Stack:** Flutter (Dart), flutter_test, existing governance guards (`docs/standards/ui-interaction-governance.md`, `test/interaction_guard_test.dart`)
 
 ---
 
@@ -231,7 +231,7 @@ Expected: PASS after Blue refactor
 - Modify (if needed): `docs/specs/ui-interaction.md`
 - Modify (if needed): `docs/specs/DIR.md`
 - Modify (if needed): `docs/DIR.md`
-- Test: `test/ui_interaction_governance_docs_test.dart`
+- Test: `docs/standards/ui-interaction-governance.md`
 - Test: `test/interaction_guard_test.dart`
 
 **Step 1: Add failing guard test only if new spec clauses were added**
@@ -242,7 +242,7 @@ test('governance docs include new minimal clause', ...);
 
 **Step 2: Run governance guards**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart test/interaction_guard_test.dart -r compact`
+Run: `flutter test docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart -r compact`
 Expected: PASS
 
 **Step 3: Run global verification**
@@ -256,6 +256,6 @@ Expected: PASS
 **Step 4: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/DIR.md docs/DIR.md test/ui_interaction_governance_docs_test.dart test/interaction_guard_test.dart
+git add docs/specs/ui-interaction.md docs/specs/DIR.md docs/DIR.md docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart
 git commit -m "test(governance): enforce ui-spec guided implementation gates"
 ```

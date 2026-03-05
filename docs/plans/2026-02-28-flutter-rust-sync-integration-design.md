@@ -104,7 +104,7 @@
 - `flutter test`
 - `cargo test`
 - `flutter test test/interaction_guard_test.dart`
-- `flutter test test/ui_interaction_governance_docs_test.dart`
+- `flutter test docs/standards/ui-interaction-governance.md`
 
 ## 8. 验收标准（DoD）
 - 同步主链路可用：connect/join/push/pull/recover。

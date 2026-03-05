@@ -13,17 +13,17 @@
 ### Task 1: Baseline spec mapping scaffold
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
-- Test: `test/ui_interaction_governance_docs_test.dart`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Test: `docs/standards/ui-interaction-governance.md`
 
 **Step 1: Write the failing test**
 
-Add a failing assertion in `test/ui_interaction_governance_docs_test.dart` that requires S1-S5 entries to exist in acceptance matrix/release gate for this plan cycle.
+Add a failing assertion in `docs/standards/ui-interaction-governance.md` that requires S1-S5 entries to exist in acceptance matrix/release gate for this plan cycle.
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: FAIL with missing S1-S5 mapping markers.
 
 **Step 3: Write minimal implementation**
@@ -32,13 +32,13 @@ Update the two governance docs with explicit S1-S5 checklist rows/sections and p
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md
+git add docs/standards/ui-interaction-governance.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "test(governance): require S1-S5 matrix and gate mapping"
 ```
 
@@ -82,9 +82,9 @@ git commit -m "test(shell): lock S1 cards-entry and two-stage back semantics"
 ### Task 3: S1 governance sync for scenario closure
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
@@ -92,7 +92,7 @@ Extend governance doc test to require explicit S1 completion evidence (test name
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: FAIL with S1 evidence missing.
 
 **Step 3: Write minimal implementation**
@@ -101,13 +101,13 @@ Add S1 evidence entries into governance docs, including command lines and result
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md
+git add docs/standards/ui-interaction-governance.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): record S1 completion evidence"
 ```
 
@@ -182,9 +182,9 @@ git commit -m "feat(cards-search): align S2 Active Note substring matching seman
 ### Task 6: S2 governance sync and gates
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
@@ -192,7 +192,7 @@ Require S2 success/failure mapping rows in governance docs test.
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: FAIL for missing S2 mapping evidence.
 
 **Step 3: Write minimal implementation**
@@ -201,13 +201,13 @@ Add S2 mapping entries and gate checklist references.
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md
+git add docs/standards/ui-interaction-governance.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): record S2 acceptance and gate evidence"
 ```
 
@@ -281,9 +281,9 @@ git commit -m "test(pool): enforce stable error-code recovery coverage for S3"
 ### Task 9: S3 governance sync and gates
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
@@ -291,7 +291,7 @@ Update governance docs test to require S3 stable-error evidence references.
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: FAIL with missing S3 evidence.
 
 **Step 3: Write minimal implementation**
@@ -300,13 +300,13 @@ Append S3 evidence rows and gate commands to governance docs.
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md
+git add docs/standards/ui-interaction-governance.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): add S3 gate evidence and error-code coverage"
 ```
 
@@ -344,9 +344,9 @@ git commit -m "feat(settings): enforce S4 one-step reachability to cards and poo
 ### Task 11: S4 governance sync and gates
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
@@ -354,7 +354,7 @@ Add S4-specific evidence requirement to governance docs guard test.
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: FAIL with missing S4 references.
 
 **Step 3: Write minimal implementation**
@@ -363,13 +363,13 @@ Record S4 scenario checks and pass criteria in governance docs.
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md
+git add docs/standards/ui-interaction-governance.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): add S4 reachability evidence"
 ```
 
@@ -411,9 +411,9 @@ git commit -m "feat(sync): enforce S5 degraded non-blocking behavior and recover
 ### Task 13: S5 governance sync and gates
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
@@ -421,7 +421,7 @@ Update governance docs guard test to require S5 degraded/non-blocking evidence.
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: FAIL for missing S5 record.
 
 **Step 3: Write minimal implementation**
@@ -430,20 +430,20 @@ Add S5 evidence and gate checks to governance docs.
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: PASS.
 
 **Step 5: Commit**
 
 ```bash
-git add test/ui_interaction_governance_docs_test.dart docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md
+git add docs/standards/ui-interaction-governance.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md
 git commit -m "docs(governance): add S5 degraded recovery evidence"
 ```
 
 ### Task 14: Cross-scenario gate run and regression safety
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
+- Modify: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing test**
 
@@ -451,7 +451,7 @@ Add/adjust release gate checks so final gate requires all S1-S5 markers and guar
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md`
 Expected: FAIL before final gate entries are complete.
 
 **Step 3: Write minimal implementation**
@@ -461,7 +461,7 @@ Finalize release-gate checklist with S1-S5 signoff rows and exact command list.
 **Step 4: Run test to verify it passes**
 
 Run:
-- `flutter test test/ui_interaction_governance_docs_test.dart`
+- `flutter test docs/standards/ui-interaction-governance.md`
 - `flutter test test/interaction_guard_test.dart`
 - `flutter test test/app/app_shell_navigation_test.dart`
 - `flutter test test/features/cards/cards_page_test.dart`
@@ -475,7 +475,7 @@ Expected: PASS across suite.
 **Step 5: Commit**
 
 ```bash
-git add docs/plans/2026-02-27-ui-interaction-release-gate.md test/ui_interaction_governance_docs_test.dart
+git add docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md
 git commit -m "docs(release-gate): finalize S1-S5 mandatory gate checklist"
 ```
 
@@ -499,7 +499,7 @@ Add final execution notes (completed command outputs summary and remaining risk 
 **Step 4: Run test to verify it passes**
 
 Run:
-- `flutter test test/ui_interaction_governance_docs_test.dart`
+- `flutter test docs/standards/ui-interaction-governance.md`
 - `flutter test test/interaction_guard_test.dart`
 - `flutter test`
 
@@ -531,7 +531,7 @@ git commit -m "docs(plans): add execution notes for S1-S5 rollout"
 
 ### Command Summary
 - Governance/doc guard:
-  - `flutter test test/ui_interaction_governance_docs_test.dart`
+  - `flutter test docs/standards/ui-interaction-governance.md`
   - `flutter test test/interaction_guard_test.dart`
 - Scenario regression slices:
   - `flutter test test/app/app_shell_navigation_test.dart`
@@ -545,7 +545,7 @@ git commit -m "docs(plans): add execution notes for S1-S5 rollout"
 ### Result Snapshot
 - S1-S5 task chain completed in strict order with per-task commit.
 - Required governance guards passed repeatedly after each task:
-  - `test/ui_interaction_governance_docs_test.dart`
+  - `docs/standards/ui-interaction-governance.md`
   - `test/interaction_guard_test.dart`
 - Cross-scenario gate suite in Task 14 passed for all listed commands.
 

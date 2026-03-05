@@ -24,8 +24,8 @@ pos: DIR.md 校验实施计划（修改需同步 DIR.md）
 ### Task 1: 增强 DIR.md 条目校验
 
 **Files:**
-- Modify: `tool/fractal_doc_checker.dart`
-- Modify: `test/fractal_doc_checker_test.dart`
+- Modify: `docs/standards/documentation.md`
+- Modify: `docs/standards/documentation.md`
 
 **Step 1: Write the failing test**
 
@@ -46,7 +46,7 @@ test('fails when DIR.md not updated for changed file', () async {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: FAIL with DIR rule not implemented
 
 **Step 3: Write minimal implementation**
@@ -69,12 +69,12 @@ if (!_dirHasEntry(dirPath, fileName)) {
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add tool/fractal_doc_checker.dart test/fractal_doc_checker_test.dart
+git add docs/standards/documentation.md docs/standards/documentation.md
 git commit -m "feat(docs): enforce DIR.md entries"
 ```

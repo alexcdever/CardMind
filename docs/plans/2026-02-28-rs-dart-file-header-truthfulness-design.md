@@ -41,8 +41,8 @@ pos: 设计文档，定义执行策略与完成标准。
 ## 6. 验收与交付
 - 验收标准：文件头需满足“可区分、可验证、可维护”，且可直接映射当前文件真实职责。
 - 质量检查：目录级抽样复读，确认无模板化残留、无跨文件同质描述。
-- 规范校验：运行 `dart run tool/fractal_doc_check.dart --base <commit>`。
-- 治理回归：运行 `flutter test test/ui_interaction_governance_docs_test.dart`。
+- 规范校验：运行 `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`。
+- 治理回归：运行 `flutter test docs/standards/ui-interaction-governance.md`。
 - 交付物：
   - 基线清查清单与证据文档：`docs/plans/2026-02-28-rs-dart-file-header-truthfulness-filelist.md`
   - 已修复文件清单

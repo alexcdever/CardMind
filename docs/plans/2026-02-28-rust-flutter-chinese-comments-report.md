@@ -13,8 +13,8 @@
 - 对本次变更涉及目录同步补齐 `DIR.md` 索引项，满足 Fractal 文档守卫要求。
 
 ## 3. 校验结果
-- `dart run tool/fractal_doc_check.dart --base HEAD`：PASS。
-- `flutter test test/ui_interaction_governance_docs_test.dart`：PASS。
+- `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`：PASS。
+- `flutter test docs/standards/ui-interaction-governance.md`：PASS。
 - `flutter test test/interaction_guard_test.dart`：PASS。
 - `flutter analyze`：PASS（No issues found）。
 - `flutter test`：PASS。

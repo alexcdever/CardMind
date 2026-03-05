@@ -26,7 +26,7 @@ pos: rs/dart 文件头真实性实施计划（修改需同步 DIR.md）
 **Files:**
 - Create: `docs/plans/2026-02-28-rs-dart-file-header-truthfulness-filelist.md`
 - Modify: `docs/plans/2026-02-28-rs-dart-file-header-truthfulness-design.md`
-- Test: `tool/fractal_doc_check.dart`
+- Test: `docs/standards/documentation.md`
 
 **Step 1: 记录当前待修复文件清单（初稿）**
 
@@ -229,9 +229,9 @@ git commit -m "docs(flutter): rewrite lib file headers with concrete responsibil
 **Files:**
 - Modify: `test/widget_test.dart`
 - Modify: `test/build_cli_test.dart`
-- Modify: `test/fractal_doc_checker_test.dart`
+- Modify: `docs/standards/documentation.md`
 - Modify: `test/interaction_guard_test.dart`
-- Modify: `test/ui_interaction_governance_docs_test.dart`
+- Modify: `docs/standards/ui-interaction-governance.md`
 - Modify: `test/app/adaptive_shell_test.dart`
 - Modify: `test/bridge/sync_bridge_api_smoke_test.dart`
 - Modify: `test/features/cards/cards_desktop_interactions_test.dart`
@@ -262,7 +262,7 @@ Expected: 无输出
 
 **Step 3: 运行治理守卫测试**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart test/interaction_guard_test.dart`
+Run: `flutter test docs/standards/ui-interaction-governance.md test/interaction_guard_test.dart`
 Expected: PASS
 
 **Step 4: Commit**
@@ -277,10 +277,10 @@ git commit -m "docs(flutter-test): rewrite test file headers by scenario intent"
 ### Task 6: 修正 `tool` 脚本文件头并做全仓校验
 
 **Files:**
-- Modify: `tool/fractal_doc_bootstrap.dart`
-- Modify: `tool/fractal_doc_check.dart`
-- Modify: `tool/fractal_doc_checker.dart`
-- Test: `test/fractal_doc_checker_test.dart`
+- Modify: `docs/standards/documentation.md`
+- Modify: `docs/standards/documentation.md`
+- Modify: `docs/standards/documentation.md`
+- Test: `docs/standards/documentation.md`
 
 **Step 1: 深读三个工具脚本并重写文件头（禁止空 input）**
 
@@ -292,12 +292,12 @@ git commit -m "docs(flutter-test): rewrite test file headers by scenario intent"
 
 **Step 2: 运行工具链测试**
 
-Run: `flutter test test/fractal_doc_checker_test.dart`
+Run: `flutter test docs/standards/documentation.md`
 Expected: PASS
 
 **Step 3: 运行 Fractal 校验（以当前变更基线）**
 
-Run: `dart run tool/fractal_doc_check.dart --base HEAD~1`
+Run: `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`
 Expected: PASS
 
 **Step 4: Commit**

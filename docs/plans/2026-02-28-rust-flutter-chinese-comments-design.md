@@ -64,8 +64,8 @@
 5. 运行门禁与回归测试，确保变更不影响行为。
 
 ## 8. 测试与校验门禁
-- 文档校验：`dart run tool/fractal_doc_check.dart --base <commit>`。
-- 交互治理文档门禁：`flutter test test/ui_interaction_governance_docs_test.dart`。
+- 文档校验：`遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`。
+- 交互治理文档门禁：`flutter test docs/standards/ui-interaction-governance.md`。
 - 交互守卫门禁：`flutter test test/interaction_guard_test.dart`。
 - 回归建议：`flutter analyze`、`flutter test`、`cargo test`。
 

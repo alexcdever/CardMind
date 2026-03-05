@@ -222,16 +222,16 @@ git commit -m "feat(navigation): confirm app exit on cards root back"
 ### Task 4: Sync governance docs for global back policy change
 
 **Files:**
-- Modify: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
-- Modify: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
-- Test: `test/ui_interaction_governance_docs_test.dart`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Modify: `docs/specs/ui-interaction.md`
+- Test: `docs/standards/ui-interaction-governance.md`
 
 **Step 1: Write the failing test update**
 
 ```dart
 test('governance docs include shell two-step back and exit confirmation', () {
-  final design = File('docs/plans/2026-02-27-ui-interaction-governance-design.md').readAsStringSync();
+  final design = File('docs/specs/ui-interaction.md').readAsStringSync();
   expect(design, contains('主壳双段返回'));
   expect(design, contains('是否退出应用'));
 });
@@ -239,7 +239,7 @@ test('governance docs include shell two-step back and exit confirmation', () {
 
 **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart -r compact`
+Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
 Expected: FAIL with missing navigation policy wording
 
 **Step 3: Write minimal implementation**
@@ -251,7 +251,7 @@ Expected: FAIL with missing navigation policy wording
 
 **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui_interaction_governance_docs_test.dart -r compact`
+Run: `flutter test docs/standards/ui-interaction-governance.md -r compact`
 Expected: PASS
 
 **Step 5: Blue refactor**
@@ -261,7 +261,7 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add docs/plans/2026-02-27-ui-interaction-governance-design.md docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md docs/plans/2026-02-27-ui-interaction-release-gate.md test/ui_interaction_governance_docs_test.dart
+git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/standards/ui-interaction-governance.md
 git commit -m "docs(governance): codify shell back policy and exit confirmation"
 ```
 
@@ -315,7 +315,7 @@ git commit -m "docs(plans): add onboarding back-navigation implementation plan"
 Run in order:
 
 1. `flutter test test/features/onboarding/onboarding_page_test.dart test/app/app_shell_navigation_test.dart -r compact`
-2. `flutter test test/interaction_guard_test.dart test/ui_interaction_governance_docs_test.dart -r compact`
+2. `flutter test test/interaction_guard_test.dart docs/standards/ui-interaction-governance.md -r compact`
 3. `flutter test test/plan_tdd_blue_guard_test.dart -r compact`
 4. `flutter analyze`
 
