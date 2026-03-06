@@ -56,3 +56,5 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-05-remove-onboarding-direct-cards-entry-implementation-plan.md - 实现计划 - 移除引导页并改为卡片列表直达的任务化实施步骤
 2026-03-05-doc-governance-refactor-design.md - 设计草案 - 文档治理重构（移除门禁脚本/测试，规则内化为标准）
 2026-03-05-doc-governance-refactor-implementation-plan.md - 实现计划 - 文档治理重构实施（移除自动门禁并迁移为标准驱动）
+2026-03-06-flutter-rust-deps-conservative-upgrade-design.md - 设计草案 - Flutter 与 Rust 依赖保守升级设计（仅补丁/次版本）
+2026-03-06-flutter-rust-deps-conservative-upgrade-implementation-plan.md - 实现计划 - Flutter 与 Rust 依赖保守升级任务化实施
