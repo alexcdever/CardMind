@@ -46,6 +46,7 @@ void main() {
 
     expect(find.text('重试同步'), findsOneWidget);
     expect(find.text('重新连接'), findsOneWidget);
+    expect(find.byType(MaterialBanner), findsNothing);
 
     await tester.tap(find.text('重试同步'));
     await tester.pump();
@@ -54,6 +55,26 @@ void main() {
 
     expect(controller.retryCalls, 1);
     expect(controller.reconnectCalls, 1);
+  });
+
+  testWidgets('pool degraded feedback stays local without material banner', (
+    tester,
+  ) async {
+    final controller = PoolController(
+      initialState: const PoolState.joined(),
+      initialSyncStatus: const SyncStatus.degraded('REQUEST_TIMEOUT'),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(state: controller.state, controller: controller),
+      ),
+    );
+
+    expect(find.text('同步状态降级：可继续本地操作'), findsOneWidget);
+    expect(find.text('重试同步'), findsOneWidget);
+    expect(find.text('重新连接'), findsOneWidget);
+    expect(find.byType(MaterialBanner), findsNothing);
   });
 
   testWidgets('retry action in partial cleanup keeps recovery visible', (

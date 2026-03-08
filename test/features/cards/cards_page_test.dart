@@ -112,6 +112,63 @@ void main() {
       expect(find.text('keyword deleted'), findsNothing);
     },
   );
+
+  testWidgets('desktop cards page shows list and editor panes together', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(1200, 900)),
+          child: CardsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('搜索卡片'), findsOneWidget);
+    expect(find.text('选择卡片或新建卡片'), findsOneWidget);
+  });
+
+  testWidgets(
+    'desktop dirty editor blocks selecting another card until resolved',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(size: Size(1200, 900)),
+            child: CardsPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Desktop Draft');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+      await _pumpUntilFound(tester, find.text('Desktop Draft'));
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Unsaved Draft');
+
+      await tester.tap(find.text('Desktop Draft').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('离开编辑？'), findsOneWidget);
+      expect(find.text('保存并离开'), findsOneWidget);
+      expect(find.text('放弃更改'), findsOneWidget);
+      expect(find.text('取消'), findsOneWidget);
+
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unsaved Draft'), findsOneWidget);
+      expect(find.text('离开编辑？'), findsNothing);
+    },
+  );
 }
 
 Future<void> _pumpUntilFound(

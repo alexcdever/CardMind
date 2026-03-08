@@ -7,7 +7,6 @@ import 'dart:async';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
-import 'package:cardmind/features/sync/sync_banner.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
@@ -57,13 +56,17 @@ class _PoolPageState extends State<PoolPage> {
     final state = _controller.state;
     final canShowReturnToPool =
         widget.onReturnToPoolTab != null || Navigator.of(context).canPop();
+    final syncFeedback = _buildLocalSyncFeedback(
+      context,
+      _controller.syncStatus,
+    );
 
     if (state is PoolNotJoined) {
       return Scaffold(
         body: SafeArea(
           child: Column(
             children: [
-              SyncBanner(status: _controller.syncStatus),
+              syncFeedback ?? const SizedBox.shrink(),
               Expanded(
                 child: Center(
                   child: Column(
@@ -107,7 +110,7 @@ class _PoolPageState extends State<PoolPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SyncBanner(status: _controller.syncStatus),
+              syncFeedback ?? const SizedBox.shrink(),
               if (canShowReturnToPool)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -210,16 +213,8 @@ class _PoolPageState extends State<PoolPage> {
         body: SafeArea(
           child: Column(
             children: [
-              SyncBanner(
-                status: SyncStatus.error(errorCode),
-                onRetry: _controller.retrySync,
-                onReconnect: _controller.reconnectSync,
-                onView: () {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('错误详情: $errorCode')));
-                },
-              ),
+              _buildLocalSyncFeedback(context, SyncStatus.error(errorCode)) ??
+                  const SizedBox.shrink(),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text('加入失败: ${mapped.message}'),
@@ -393,6 +388,69 @@ class _PoolPageState extends State<PoolPage> {
 
     if (confirmed) {
       _controller.dissolvePool();
+    }
+  }
+
+  Widget? _buildLocalSyncFeedback(BuildContext context, SyncStatus status) {
+    if (status.kind != SyncStatusKind.error &&
+        status.kind != SyncStatusKind.degraded) {
+      return null;
+    }
+
+    final isError = status.kind == SyncStatusKind.error;
+    final tone = isError
+        ? Theme.of(context).colorScheme.errorContainer
+        : Theme.of(context).colorScheme.secondaryContainer;
+    final message = isError ? _syncErrorMessage(status.code) : '同步状态降级：可继续本地操作';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tone,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton(
+                onPressed: _controller.retrySync,
+                child: const Text('重试同步'),
+              ),
+              TextButton(
+                onPressed: _controller.reconnectSync,
+                child: const Text('重新连接'),
+              ),
+              if (isError)
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('错误详情: ${status.code}')),
+                    );
+                  },
+                  child: const Text('查看'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _syncErrorMessage(String? code) {
+    switch (code) {
+      case 'REQUEST_TIMEOUT':
+        return '同步请求超时，请查看并处理';
+      case 'ADMIN_OFFLINE':
+        return '管理员离线，请查看并处理';
+      default:
+        return '同步异常，请在数据池列表页处理';
     }
   }
 }

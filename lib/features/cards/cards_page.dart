@@ -4,6 +4,7 @@
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'dart:async';
 
+import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/cards/cards_desktop_interactions.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
@@ -28,6 +29,7 @@ class _CardsPageState extends State<CardsPage> {
     readRepository: SqliteCardsReadRepository(database: _database),
     writeRepository: LoroCardsWriteRepository.inMemory(),
   )..addListener(_onChanged);
+  _DesktopEditorSession? _desktopSession;
 
   @override
   void initState() {
@@ -57,6 +59,13 @@ class _CardsPageState extends State<CardsPage> {
   }
 
   void _openEditor(BuildContext context) {
+    final desktop = MediaQuery.sizeOf(context).width >= 900;
+    if (desktop) {
+      setState(() {
+        _desktopSession = _DesktopEditorSession();
+      });
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => EditorPage(
@@ -77,6 +86,7 @@ class _CardsPageState extends State<CardsPage> {
   Widget build(BuildContext context) {
     final interactions = const CardsDesktopInteractions();
     final notes = _controller.items;
+    final desktop = MediaQuery.sizeOf(context).width >= 900;
 
     return Scaffold(
       body: GestureDetector(
@@ -84,38 +94,7 @@ class _CardsPageState extends State<CardsPage> {
         onSecondaryTapDown: (details) {
           interactions.showContextMenu(context, details.globalPosition);
         },
-        child: Column(
-          children: [
-            TextField(
-              decoration: const InputDecoration(hintText: '搜索卡片'),
-              onChanged: (value) {
-                unawaited(_controller.load(query: value));
-              },
-            ),
-            Expanded(
-              child: ListView(
-                children: [
-                  for (final note in notes)
-                    ListTile(
-                      title: Text(note.title),
-                      subtitle: note.deleted ? const Text('已删除') : null,
-                      trailing: TextButton(
-                        onPressed: () {
-                          unawaited(
-                            _onDeleteOrRestore(
-                              id: note.id,
-                              deleted: note.deleted,
-                            ),
-                          );
-                        },
-                        child: Text(note.deleted ? '恢复' : '删除'),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        child: desktop ? _buildDesktopLayout(notes) : _buildMobileLayout(notes),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -125,4 +104,206 @@ class _CardsPageState extends State<CardsPage> {
       ),
     );
   }
+
+  Widget _buildMobileLayout(List<CardSummary> notes) {
+    return Column(
+      children: [
+        _buildSearchField(),
+        Expanded(child: _buildNotesList(notes)),
+      ],
+    );
+  }
+
+  Widget _buildDesktopLayout(List<CardSummary> notes) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              _buildSearchField(),
+              Expanded(child: _buildNotesList(notes, desktop: true)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(left: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: _buildDesktopEditorPanel(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      decoration: const InputDecoration(hintText: '搜索卡片'),
+      onChanged: (value) {
+        unawaited(_controller.load(query: value));
+      },
+    );
+  }
+
+  Widget _buildNotesList(List<CardSummary> notes, {bool desktop = false}) {
+    return ListView(
+      children: [
+        for (final note in notes)
+          ListTile(
+            selected: _desktopSession?.selectedId == note.id,
+            title: Text(note.title),
+            subtitle: note.deleted ? const Text('已删除') : null,
+            onTap: desktop ? () => _handleDesktopSelection(note) : null,
+            trailing: TextButton(
+              onPressed: () {
+                unawaited(
+                  _onDeleteOrRestore(id: note.id, deleted: note.deleted),
+                );
+              },
+              child: Text(note.deleted ? '恢复' : '删除'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopEditorPanel() {
+    final session = _desktopSession;
+    if (session == null) {
+      return const Center(child: Text('选择卡片或新建卡片'));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('编辑卡片'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: session.titleController,
+          decoration: const InputDecoration(labelText: '标题'),
+          onChanged: (_) {
+            setState(() {
+              session.dirty = true;
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: TextField(
+            controller: session.bodyController,
+            expands: true,
+            maxLines: null,
+            textAlignVertical: TextAlignVertical.top,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: '内容',
+            ),
+            onChanged: (_) {
+              setState(() {
+                session.dirty = true;
+              });
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton(onPressed: _saveDesktopSession, child: const Text('保存')),
+      ],
+    );
+  }
+
+  Future<void> _handleDesktopSelection(CardSummary note) async {
+    final session = _desktopSession;
+    if (session != null && session.dirty && session.selectedId != note.id) {
+      final decision = await _showDesktopLeaveGuard();
+      if (!mounted || decision == null || decision == _ExitDecision.cancel) {
+        return;
+      }
+      if (decision == _ExitDecision.save) {
+        await _saveDesktopSession();
+      }
+    }
+    setState(() {
+      _desktopSession = _DesktopEditorSession.forSelection(note.id, note.title);
+    });
+  }
+
+  Future<_ExitDecision?> _showDesktopLeaveGuard() {
+    return showDialog<_ExitDecision>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('离开编辑？'),
+          content: const Text('你有未保存的更改。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(_ExitDecision.save),
+              child: const Text('保存并离开'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(_ExitDecision.discard),
+              child: const Text('放弃更改'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(_ExitDecision.cancel),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _saveDesktopSession() async {
+    final session = _desktopSession;
+    if (session == null) {
+      return;
+    }
+    final title = session.titleController.text.trim();
+    if (title.isEmpty) {
+      return;
+    }
+    await _controller.create(
+      session.selectedId ?? generateNoteId(),
+      title,
+      session.bodyController.text,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _desktopSession = _DesktopEditorSession.forSelection(
+        session.selectedId,
+        title,
+        body: session.bodyController.text,
+      );
+    });
+  }
 }
+
+class _DesktopEditorSession {
+  _DesktopEditorSession({this.selectedId, String title = '', String body = ''})
+    : titleController = TextEditingController(text: title),
+      bodyController = TextEditingController(text: body);
+
+  factory _DesktopEditorSession.forSelection(
+    String? selectedId,
+    String title, {
+    String body = '',
+  }) {
+    return _DesktopEditorSession(
+      selectedId: selectedId,
+      title: title,
+      body: body,
+    );
+  }
+
+  final String? selectedId;
+  final TextEditingController titleController;
+  final TextEditingController bodyController;
+  bool dirty = false;
+}
+
+enum _ExitDecision { save, discard, cancel }
