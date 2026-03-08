@@ -20,7 +20,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const _SettingsShellHarness(section: AppSection.settings),
+      const _SettingsHomepageHarness(section: AppSection.settings),
     );
 
     expect(find.byType(SettingsPage), findsOneWidget);
@@ -35,7 +35,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const _SettingsShellHarness(section: AppSection.settings),
+      const _SettingsHomepageHarness(section: AppSection.settings),
     );
 
     expect(find.byType(SettingsPage), findsOneWidget);
@@ -47,16 +47,17 @@ void main() {
   });
 }
 
-class _SettingsShellHarness extends StatefulWidget {
-  const _SettingsShellHarness({required this.section});
+class _SettingsHomepageHarness extends StatefulWidget {
+  const _SettingsHomepageHarness({required this.section});
 
   final AppSection section;
 
   @override
-  State<_SettingsShellHarness> createState() => _SettingsShellHarnessState();
+  State<_SettingsHomepageHarness> createState() =>
+      _SettingsHomepageHarnessState();
 }
 
-class _SettingsShellHarnessState extends State<_SettingsShellHarness> {
+class _SettingsHomepageHarnessState extends State<_SettingsHomepageHarness> {
   late AppSection _section = widget.section;
 
   @override

@@ -32,13 +32,41 @@ void main() {
     );
   });
 
-  test('exit confirmation actions are not empty handlers', () {
-    final shell = File(
+  test('homepage exit confirmation actions are not empty handlers', () {
+    final homepage = File(
       'lib/app/navigation/app_homepage_page.dart',
     ).readAsStringSync();
 
-    expect(shell, contains("child: const Text('是')"));
-    expect(shell, contains("child: const Text('取消')"));
-    expect(shell, isNot(contains("onPressed: () {}")));
+    expect(homepage, contains("child: const Text('是')"));
+    expect(homepage, contains("child: const Text('取消')"));
+    expect(homepage, isNot(contains("onPressed: () {}")));
+  });
+
+  test('app and test files no longer use shell terminology', () {
+    final root = Directory.current;
+    final targets = <String>[
+      'lib/app/app.dart',
+      'lib/app/layout/adaptive_homepage_scaffold.dart',
+      'lib/app/navigation/app_homepage_controller.dart',
+      'lib/app/navigation/app_homepage_page.dart',
+      'test/app/adaptive_homepage_scaffold_test.dart',
+      'test/app/app_homepage_navigation_test.dart',
+      'test/features/settings/settings_page_test.dart',
+      'test/widget_test.dart',
+    ];
+
+    final violations = <String>[];
+    for (final relativePath in targets) {
+      final content = File('${root.path}/$relativePath').readAsStringSync();
+      if (RegExp(r'\bshell\b|\bShell\b').hasMatch(content)) {
+        violations.add(relativePath);
+      }
+    }
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'Found shell terminology in: ${violations.join(', ')}',
+    );
   });
 }

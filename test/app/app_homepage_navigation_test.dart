@@ -1,6 +1,6 @@
 // input: 在 CardMindApp 冷启动后观察主壳导航与返回行为。
 // output: 断言首屏即进入主工作台并展示底部导航与三个导航标签。
-// pos: 应用壳层导航测试，覆盖首屏直达 shell 的主路径。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 应用主页导航测试，覆盖首屏直达主页的主路径。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/app/app.dart';
 import 'package:cardmind/app/navigation/app_homepage_controller.dart';
 import 'package:cardmind/app/navigation/app_homepage_page.dart';

@@ -73,7 +73,7 @@ void main() {
   testWidgets('desktop homepage scaffold supports keyboard section switching', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopShellHarness()));
+    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
 
     expect(find.text('cards-marker'), findsOneWidget);
 
@@ -86,7 +86,7 @@ void main() {
   testWidgets('desktop homepage scaffold supports arrow key switching', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopShellHarness()));
+    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
 
     expect(find.text('cards-marker'), findsOneWidget);
 
@@ -102,7 +102,7 @@ void main() {
   testWidgets('desktop homepage scaffold supports enter and space activation', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopShellHarness()));
+    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
 
     await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
     await tester.pumpAndSettle();
@@ -171,14 +171,15 @@ class AdaptiveHomepageScaffoldForTest extends StatelessWidget {
   static void _noopSectionChanged(AppSection _) {}
 }
 
-class _DesktopShellHarness extends StatefulWidget {
-  const _DesktopShellHarness();
+class _DesktopHomepageHarness extends StatefulWidget {
+  const _DesktopHomepageHarness();
 
   @override
-  State<_DesktopShellHarness> createState() => _DesktopShellHarnessState();
+  State<_DesktopHomepageHarness> createState() =>
+      _DesktopHomepageHarnessState();
 }
 
-class _DesktopShellHarnessState extends State<_DesktopShellHarness> {
+class _DesktopHomepageHarnessState extends State<_DesktopHomepageHarness> {
   AppSection _section = AppSection.cards;
 
   @override
