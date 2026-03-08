@@ -99,12 +99,7 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
       case AppSection.cards:
         return const CardsPage();
       case AppSection.pool:
-        return PoolPage(
-          state: const PoolState.notJoined(),
-          onGoToCards: () {
-            _controller.setSection(AppSection.cards);
-          },
-        );
+        return PoolPage(state: const PoolState.notJoined());
       case AppSection.settings:
         return const SettingsPage();
     }

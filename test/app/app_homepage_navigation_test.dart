@@ -34,25 +34,19 @@ void main() {
     expect(controller.section, AppSection.cards);
   });
 
-  testWidgets(
-    'after pool joined, go-to-cards action switches homepage section to cards',
-    (tester) async {
-      final controller = AppHomepageController(initialSection: AppSection.pool);
-      await tester.pumpWidget(
-        MaterialApp(home: AppHomepagePage(controller: controller)),
-      );
+  testWidgets('after pool joined, user remains in pool domain', (tester) async {
+    final controller = AppHomepageController(initialSection: AppSection.pool);
+    await tester.pumpWidget(
+      MaterialApp(home: AppHomepagePage(controller: controller)),
+    );
 
-      await tester.tap(find.text('创建池'));
-      await tester.pumpAndSettle();
-      expect(find.text('去卡片'), findsOneWidget);
+    await tester.tap(find.text('创建池'));
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.text('去卡片'));
-      await tester.pumpAndSettle();
-
-      expect(controller.section, AppSection.cards);
-      expect(find.text('搜索卡片'), findsOneWidget);
-    },
-  );
+    expect(controller.section, AppSection.pool);
+    expect(find.text('去卡片'), findsNothing);
+    expect(find.text('成员列表'), findsOneWidget);
+  });
 
   testWidgets('back on cards shows exit confirmation dialog', (tester) async {
     final controller = AppHomepageController(initialSection: AppSection.cards);
