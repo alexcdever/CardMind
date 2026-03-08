@@ -1,13 +1,13 @@
 // input: child、section、onSectionChanged 与当前屏幕宽度。
 // output: 根据宽度返回 NavigationRail 或 BottomNavigationBar 容器。
-// pos: 自适应导航壳组件，负责桌面与移动端导航布局切换。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 应用壳层模块，负责导航与跨端布局。
+// pos: 自适应主页脚手架组件，负责桌面与移动端导航布局切换。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 应用主页模块，负责导航与跨端布局。
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class AdaptiveShell extends StatelessWidget {
-  const AdaptiveShell({
+class AdaptiveHomepageScaffold extends StatelessWidget {
+  const AdaptiveHomepageScaffold({
     super.key,
     required this.child,
     required this.section,
@@ -22,10 +22,10 @@ class AdaptiveShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 900;
-    const destinations = <_ShellDestination>[
-      _ShellDestination(icon: Icons.style_outlined, label: '卡片'),
-      _ShellDestination(icon: Icons.group_work_outlined, label: '数据池'),
-      _ShellDestination(icon: Icons.settings_outlined, label: '设置'),
+    const destinations = <_HomepageDestination>[
+      _HomepageDestination(icon: Icons.style_outlined, label: '卡片'),
+      _HomepageDestination(icon: Icons.group_work_outlined, label: '数据池'),
+      _HomepageDestination(icon: Icons.settings_outlined, label: '设置'),
     ];
 
     if (desktop) {
@@ -113,8 +113,8 @@ class AdaptiveShell extends StatelessWidget {
   }
 }
 
-class _ShellDestination {
-  const _ShellDestination({required this.icon, required this.label});
+class _HomepageDestination {
+  const _HomepageDestination({required this.icon, required this.label});
 
   final IconData icon;
   final String label;

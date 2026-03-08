@@ -7,7 +7,7 @@ import 'dart:io';
 import 'package:cardmind/app/app.dart';
 
 void main() {
-  testWidgets('app boots directly into shell cards section', (tester) async {
+  testWidgets('app boots directly into homepage cards section', (tester) async {
     await tester.pumpWidget(const CardMindApp());
 
     expect(find.text('搜索卡片'), findsOneWidget);

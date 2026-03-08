@@ -11,6 +11,7 @@ void main() {
 
     expect(find.byType(TextField), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
+    expect(find.byType(MaterialBanner), findsNothing);
   });
 
   testWidgets('navigates to editor when tapping create action', (tester) async {
@@ -37,7 +38,7 @@ void main() {
 
     expect(find.text('编辑卡片'), findsNothing);
     expect(find.text('Title 1'), findsOneWidget);
-    expect(find.text('本地已保存'), findsOneWidget);
+    expect(find.byType(MaterialBanner), findsNothing);
   });
 
   testWidgets('delete or restore action changes list state', (tester) async {

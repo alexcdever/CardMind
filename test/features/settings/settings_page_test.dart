@@ -1,7 +1,7 @@
 // input: 在设置页观察空白占位并执行底部 Tab 切换操作。
 // output: 设置页不展示额外内容，且可一步切换到卡片页或池页目标分区。
 // pos: 覆盖设置页跨分区导航通路，防止一跳切换退化。修改本文件需同步更新文件头与所属 DIR.md。
-import 'package:cardmind/app/layout/adaptive_shell.dart';
+import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +20,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const _SettingsShellHarness(section: AppSection.settings),
+      const _SettingsHomepageHarness(section: AppSection.settings),
     );
 
     expect(find.byType(SettingsPage), findsOneWidget);
@@ -35,7 +35,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const _SettingsShellHarness(section: AppSection.settings),
+      const _SettingsHomepageHarness(section: AppSection.settings),
     );
 
     expect(find.byType(SettingsPage), findsOneWidget);
@@ -47,16 +47,17 @@ void main() {
   });
 }
 
-class _SettingsShellHarness extends StatefulWidget {
-  const _SettingsShellHarness({required this.section});
+class _SettingsHomepageHarness extends StatefulWidget {
+  const _SettingsHomepageHarness({required this.section});
 
   final AppSection section;
 
   @override
-  State<_SettingsShellHarness> createState() => _SettingsShellHarnessState();
+  State<_SettingsHomepageHarness> createState() =>
+      _SettingsHomepageHarnessState();
 }
 
-class _SettingsShellHarnessState extends State<_SettingsShellHarness> {
+class _SettingsHomepageHarnessState extends State<_SettingsHomepageHarness> {
   late AppSection _section = widget.section;
 
   @override
@@ -64,7 +65,7 @@ class _SettingsShellHarnessState extends State<_SettingsShellHarness> {
     return MaterialApp(
       home: MediaQuery(
         data: const MediaQueryData(size: Size(390, 844)),
-        child: AdaptiveShell(
+        child: AdaptiveHomepageScaffold(
           section: _section,
           onSectionChanged: (section) {
             setState(() {

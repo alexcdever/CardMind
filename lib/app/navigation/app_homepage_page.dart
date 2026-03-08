@@ -1,10 +1,10 @@
-// input: 使用 AppShellController 当前分区状态驱动子页面与导航切换。
-// output: 通过 AdaptiveShell 渲染 cards/pool/settings 三个主工作区页面。
-// pos: 应用主工作台页面，负责跨功能导航壳与分区内容编排。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 应用壳层模块，负责导航与跨端布局。
-import 'package:cardmind/app/layout/adaptive_shell.dart';
+// input: 使用 AppHomepageController 当前分区状态驱动子页面与导航切换。
+// output: 通过 AdaptiveHomepageScaffold 渲染 cards/pool/settings 三个主工作区页面。
+// pos: 应用主页页面，负责跨功能导航与分区内容编排。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：Flutter 应用主页模块，负责导航与跨端布局。
+import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
-import 'package:cardmind/app/navigation/app_shell_controller.dart';
+import 'package:cardmind/app/navigation/app_homepage_controller.dart';
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
@@ -12,18 +12,18 @@ import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class AppShellPage extends StatefulWidget {
-  const AppShellPage({super.key, this.controller});
+class AppHomepagePage extends StatefulWidget {
+  const AppHomepagePage({super.key, this.controller});
 
-  final AppShellController? controller;
+  final AppHomepageController? controller;
 
   @override
-  State<AppShellPage> createState() => _AppShellPageState();
+  State<AppHomepagePage> createState() => _AppHomepagePageState();
 }
 
-class _AppShellPageState extends State<AppShellPage> {
-  late final AppShellController _controller =
-      (widget.controller ?? AppShellController())..addListener(_onChanged);
+class _AppHomepagePageState extends State<AppHomepagePage> {
+  late final AppHomepageController _controller =
+      (widget.controller ?? AppHomepageController())..addListener(_onChanged);
   bool _isExitDialogShowing = false;
 
   @override
@@ -46,7 +46,7 @@ class _AppShellPageState extends State<AppShellPage> {
       onPopInvokedWithResult: (didPop, _) {
         _handleBackIntent(didPop);
       },
-      child: AdaptiveShell(
+      child: AdaptiveHomepageScaffold(
         section: _controller.section,
         onSectionChanged: _controller.setSection,
         child: _buildSection(_controller.section),
@@ -99,12 +99,7 @@ class _AppShellPageState extends State<AppShellPage> {
       case AppSection.cards:
         return const CardsPage();
       case AppSection.pool:
-        return PoolPage(
-          state: const PoolState.notJoined(),
-          onGoToCards: () {
-            _controller.setSection(AppSection.cards);
-          },
-        );
+        return PoolPage(state: const PoolState.notJoined());
       case AppSection.settings:
         return const SettingsPage();
     }

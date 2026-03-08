@@ -16,13 +16,11 @@ class PoolPage extends StatefulWidget {
     super.key,
     required this.state,
     this.controller,
-    this.onGoToCards,
     this.onReturnToPoolTab,
   });
 
   final PoolState state;
   final PoolController? controller;
-  final VoidCallback? onGoToCards;
   final VoidCallback? onReturnToPoolTab;
 
   @override
@@ -159,14 +157,6 @@ class _PoolPageState extends State<PoolPage> {
                   child: const Text('退出池'),
                 ),
               ),
-              if (widget.onGoToCards != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: ElevatedButton(
-                    onPressed: widget.onGoToCards,
-                    child: const Text('去卡片'),
-                  ),
-                ),
               if (state.pending.isNotEmpty)
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 16, 16, 4),

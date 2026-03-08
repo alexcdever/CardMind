@@ -1,13 +1,13 @@
-// input: 以同步错误状态进入卡片页并触发“查看”与“新增”操作。
-// output: 可跳转到池错误处理页且不阻断进入编辑页。
-// pos: 覆盖同步异常下的导航与可编辑性保障，防止降级阻塞。修改本文件需同步更新文件头与所属 DIR.md。
+// input: 以同步异常状态进入卡片页并触发新增、保存等本地操作。
+// output: 卡片页不展示全局同步横幅，且本地编辑保存不被阻断。
+// pos: 覆盖主页重设计下卡片域去全局同步反馈后的本地可用性。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('error banner view action routes to pool error page', (
+  testWidgets('cards page does not show sync banner in homepage redesign', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -16,11 +16,8 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('查看'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('加入失败:'), findsOneWidget);
-    expect(find.text('立即重试'), findsOneWidget);
+    expect(find.byType(MaterialBanner), findsNothing);
+    expect(find.text('查看'), findsNothing);
   });
 
   testWidgets('sync error does not block creating/editing note', (
@@ -61,31 +58,4 @@ void main() {
 
     expect(find.text('degraded local save'), findsOneWidget);
   });
-
-  testWidgets(
-    'sync error banner action navigates to pool handling without blocking note creation',
-    (tester) async {
-      final navigatorKey = GlobalKey<NavigatorState>();
-      await tester.pumpWidget(
-        MaterialApp(
-          navigatorKey: navigatorKey,
-          home: const CardsPage(
-            syncStatus: SyncStatus.error('REQUEST_TIMEOUT'),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('查看'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('加入失败:'), findsOneWidget);
-
-      navigatorKey.currentState!.pop();
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.add));
-      await tester.pumpAndSettle();
-
-      expect(find.text('编辑卡片'), findsOneWidget);
-    },
-  );
 }
