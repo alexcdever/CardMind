@@ -34,7 +34,7 @@ void main() {
 
   test('exit confirmation actions are not empty handlers', () {
     final shell = File(
-      'lib/app/navigation/app_shell_page.dart',
+      'lib/app/navigation/app_homepage_page.dart',
     ).readAsStringSync();
 
     expect(shell, contains("child: const Text('是')"));
