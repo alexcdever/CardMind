@@ -17,11 +17,13 @@ class PoolPage extends StatefulWidget {
     required this.state,
     this.controller,
     this.onGoToCards,
+    this.onReturnToPoolTab,
   });
 
   final PoolState state;
   final PoolController? controller;
   final VoidCallback? onGoToCards;
+  final VoidCallback? onReturnToPoolTab;
 
   @override
   State<PoolPage> createState() => _PoolPageState();
@@ -44,9 +46,19 @@ class _PoolPageState extends State<PoolPage> {
     }
   }
 
+  void _returnToPoolTab() {
+    widget.onReturnToPoolTab?.call();
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = _controller.state;
+    final canShowReturnToPool =
+        widget.onReturnToPoolTab != null || Navigator.of(context).canPop();
 
     if (state is PoolNotJoined) {
       return Scaffold(
@@ -98,6 +110,15 @@ class _PoolPageState extends State<PoolPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SyncBanner(status: _controller.syncStatus),
+              if (canShowReturnToPool)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: TextButton.icon(
+                    onPressed: _returnToPoolTab,
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('返回数据池Tab'),
+                  ),
+                ),
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('我的身份: owner@this-device'),

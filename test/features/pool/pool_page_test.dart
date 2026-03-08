@@ -59,6 +59,47 @@ void main() {
     expect(tapped, isTrue);
   });
 
+  testWidgets('joined page can return to pool tab route', (tester) async {
+    var returnedToPoolTab = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            return Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => PoolPage(
+                          state: PoolState.joined(),
+                          onReturnToPoolTab: () {
+                            returnedToPoolTab = true;
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('open-pool-route'),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open-pool-route'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('返回数据池Tab'), findsOneWidget);
+    await tester.tap(find.text('返回数据池Tab'));
+    await tester.pumpAndSettle();
+
+    expect(returnedToPoolTab, isTrue);
+    expect(find.text('open-pool-route'), findsOneWidget);
+  });
+
   testWidgets('scan join can lead to error state', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: PoolPage(state: PoolState.notJoined())),

@@ -1,28 +1,19 @@
-// input: 在设置页触发数据池入口与底部 Tab 切换操作。
-// output: 可进入池页并一步切换到卡片页或池页目标分区。
+// input: 在设置页观察空白占位并执行底部 Tab 切换操作。
+// output: 设置页不展示额外内容，且可一步切换到卡片页或池页目标分区。
 // pos: 覆盖设置页跨分区导航通路，防止一跳切换退化。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/app/layout/adaptive_shell.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
-import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('exposes pool entry from settings', (tester) async {
+  testWidgets('settings page stays blank in current version', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
 
-    expect(find.text('创建或加入数据池'), findsOneWidget);
-  });
-
-  testWidgets('navigates to pool page from settings entry', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
-
-    await tester.tap(find.text('创建或加入数据池'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('创建池'), findsOneWidget);
-    expect(find.text('扫码加入'), findsOneWidget);
+    expect(find.byType(ListTile), findsNothing);
+    expect(find.text('设备信息'), findsNothing);
+    expect(find.text('创建或加入数据池'), findsNothing);
   });
 
   testWidgets('from settings, tab switches to cards in one action', (
@@ -32,7 +23,7 @@ void main() {
       const _SettingsShellHarness(section: AppSection.settings),
     );
 
-    expect(find.text('设备信息'), findsOneWidget);
+    expect(find.byType(SettingsPage), findsOneWidget);
 
     await tester.tap(find.text('卡片'));
     await tester.pumpAndSettle();
@@ -47,25 +38,12 @@ void main() {
       const _SettingsShellHarness(section: AppSection.settings),
     );
 
-    expect(find.text('设备信息'), findsOneWidget);
+    expect(find.byType(SettingsPage), findsOneWidget);
 
     await tester.tap(find.text('数据池'));
     await tester.pumpAndSettle();
 
     expect(find.text('pool-marker'), findsOneWidget);
-  });
-
-  testWidgets('settings pool entry can one-step open joined pool root', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: SettingsPage(poolEntryState: PoolState.joined())),
-    );
-
-    await tester.tap(find.text('创建或加入数据池'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('成员列表'), findsOneWidget);
   });
 }
 
