@@ -15,6 +15,7 @@ void main() {
 
     expect(find.byType(BottomNavigationBar), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(Scaffold), findsOneWidget);
   });
 
   testWidgets('uses navigation rail on desktop width', (tester) async {
@@ -24,6 +25,49 @@ void main() {
 
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(BottomNavigationBar), findsNothing);
+    expect(find.byType(Row), findsOneWidget);
+  });
+
+  testWidgets('mobile homepage keeps top area content and bottom tabs', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(390, 844)),
+          child: AdaptiveHomepageScaffold(
+            section: AppSection.cards,
+            onSectionChanged:
+                AdaptiveHomepageScaffoldForTest._noopSectionChanged,
+            child: Text('mobile-content'),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('mobile-content'), findsOneWidget);
+    expect(find.byType(BottomNavigationBar), findsOneWidget);
+  });
+
+  testWidgets('desktop homepage uses left navigation plus work area', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(1200, 900)),
+          child: AdaptiveHomepageScaffold(
+            section: AppSection.cards,
+            onSectionChanged:
+                AdaptiveHomepageScaffoldForTest._noopSectionChanged,
+            child: Text('desktop-work-area'),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('desktop-work-area'), findsOneWidget);
   });
 
   testWidgets('desktop homepage scaffold supports keyboard section switching', (
