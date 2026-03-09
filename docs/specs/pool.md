@@ -140,7 +140,7 @@
 
 ### 8.1 最小验收集
 
-1. Given 无池上下文，When 创建池，Then 创建方实例成为 admin 且池处于未解散可运营状态。
+1. Given 无池上下文，When 创建池，Then 创建方成为 admin 且池处于未解散可运营状态。
 2. Given 存在目标池，When 提交加入申请，Then 申请进入待处理状态。
 3. Given 存在待处理申请，When admin 审批通过，Then 申请转为通过且申请人成为 member。
 4. Given 存在待处理申请，When admin 拒绝，Then 申请不再待处理且结果可审计。
