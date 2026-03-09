@@ -29,8 +29,7 @@
 
 1. 卡片笔记（card-note）。
 2. 数据池（pool）。
-3. 本地设置（local-settings）。
-4. UI 设计与交互（ui-interaction）。
+3. UI 设计与交互（ui-interaction）。
 
 本规格不覆盖：
 
