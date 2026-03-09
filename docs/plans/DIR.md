@@ -58,6 +58,7 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-05-doc-governance-refactor-implementation-plan.md - 实现计划 - 文档治理重构实施（移除自动门禁并迁移为标准驱动）
 2026-03-06-flutter-rust-deps-conservative-upgrade-design.md - 设计草案 - Flutter 与 Rust 依赖保守升级设计（仅补丁/次版本）
 2026-03-06-flutter-rust-deps-conservative-upgrade-implementation-plan.md - 实现计划 - Flutter 与 Rust 依赖保守升级任务化实施
+2026-03-09-architecture-spec-design.md - 设计草案 - 项目级架构规格设计（新增 architecture 规格并明确与设计/计划分层）
 2026-03-09-flutter-rust-backend-frontend-design.md - 设计草案 - Flutter 作为前端、Rust 作为后端的嵌入式前后端分层设计
 2026-03-09-ui-redesign-design.md - 设计草案 - UI 重设计（信息架构、主页语义、跨端布局与视觉约束）
 2026-03-09-ui-redesign-implementation-plan.md - 实现计划 - UI 重设计任务化实施（spec-first、主页命名、局部同步反馈、本地 TDD）
