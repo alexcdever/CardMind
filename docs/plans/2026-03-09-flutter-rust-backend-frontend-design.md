@@ -1,185 +1,185 @@
-# 2026-03-09 Flutter Rust Backend Frontend Design
+# 2026-03-09 Flutter Rust 前后端分层设计
 
-## 1. Background and Goal
+## 1. 背景与目标
 
-- This design turns CardMind into an embedded frontend-backend architecture: Flutter acts as the frontend, Rust acts as the backend, and `flutter_rust_bridge` acts as the in-process RPC boundary.
-- The immediate goal is to implement the behaviors already defined in `docs/specs/pool.md` and `docs/specs/card-note.md`, with Rust as the single source of business truth.
-- The first-phase observable closed loop is: create pool, join pool, create card note, edit card note, auto-attach note references into pool metadata, and make synchronized results eventually visible to members.
-- Delivery priority is business outcome first, sync control second, while still requiring explicit sync APIs and recoverable sync feedback.
+- 本设计将 CardMind 收敛为一套内嵌式前后端架构：Flutter 充当前端，Rust 充当后端，`flutter_rust_bridge` 充当进程内 RPC 边界。
+- 当前目标是落实 `docs/specs/pool.md` 与 `docs/specs/card-note.md` 已定义的可观察行为，并由 Rust 作为唯一业务真源。
+- 第一阶段要打通的可观察闭环包括：创建池、加入池、创建卡片笔记、编辑卡片笔记、自动把 `noteId` 挂接到池元数据，以及让同步收敛后的结果最终对成员可见。
+- 交付优先级为业务结果优先、同步控制其次，但仍要求具备显式同步 API 和可恢复的同步反馈。
 
-## 2. Locked Decisions
+## 2. 已锁定决策
 
-- `Flutter` is the frontend only: UI composition, interaction flow, page state, API invocation, and user-facing recovery actions.
-- `Rust` is the backend only: domain rules, persistence, pool-note association, synchronization flow, stable error semantics, and DTO production.
-- `FRB` is a thin boundary layer and must not become a second business layer.
-- Flutter must not remain a business write truth source.
-- Phase 1 uses explicit sync triggering after key business actions instead of background-first automatic sync.
-- Long-term compatibility layers are not allowed. If a short-term compatibility path is unavoidable, the code must include explicit Chinese comments stating that it is temporary compatibility code, what old path it is bridging, what new path replaces it, and that it must be removed later.
+- `Flutter` 只承担前端职责：UI 组合、交互流程、页面状态、API 调用、面向用户的恢复动作。
+- `Rust` 只承担后端职责：领域规则、持久化、池与笔记关联、同步流程、稳定错误语义、DTO 产出。
+- `FRB` 是薄边界层，不能演变成第二套业务层。
+- Flutter 不能继续作为业务写入真源。
+- 第一阶段在关键业务动作之后采用显式触发同步，而不是后台优先自动同步。
+- 不允许长期兼容层。如果某段短期兼容路径确实不可避免，相关代码必须带明确中文注释，说明它是临时兼容代码、正在兼容哪条旧路径、将由哪条新路径替代、后续必须删除。
 
-## 3. Alternatives Considered
+## 3. 备选方案比较
 
-### 3.1 Option A (Selected): Rust source of truth with use-case APIs
+### 3.1 方案 A（选定）：Rust 真源 + 面向用例 API
 
-- Flutter invokes use-case-oriented Rust APIs such as create pool, join pool, create card note, update card note, and run sync.
-- Pros:
-  - best match for the desired frontend-backend split,
-  - keeps domain rules concentrated in Rust,
-  - makes spec enforcement and cross-platform consistency easier,
-  - makes failure diagnosis clearer because the call chain is explicit.
-- Cons:
-  - requires broader Rust API and DTO design,
-  - requires removing or bypassing existing Flutter-side write paths.
+- Flutter 调用面向用例的 Rust API，例如创建池、加入池、创建笔记、编辑笔记、执行同步。
+- 优点：
+  - 最符合目标中的前后端分工；
+  - 领域规则集中在 Rust；
+  - 更容易保证规格约束和跨平台一致性；
+  - 调用链显式，失败定位更清楚。
+- 缺点：
+  - 需要补齐更完整的 Rust API 与 DTO 设计；
+  - 需要移除或绕开现有 Flutter 侧写路径。
 
-### 3.2 Option B: Rust resource APIs with Flutter-side orchestration
+### 3.2 方案 B：Rust 资源 API + Flutter 侧编排
 
-- Rust exposes finer-grained CRUD-like resources while Flutter assembles business workflows.
-- Pros:
-  - reusable API surface,
-  - flexible for many pages.
-- Cons:
-  - business rules can drift back into Flutter,
-  - less aligned with the chosen backend ownership model.
+- Rust 暴露更细粒度的 CRUD 风格资源接口，由 Flutter 组合成业务流程。
+- 优点：
+  - API 复用度高；
+  - 页面组合更灵活。
+- 缺点：
+  - 业务规则容易回流到 Flutter；
+  - 与选定的后端归属模型不够一致。
 
-### 3.3 Option C: Incremental coexistence with existing Flutter write paths
+### 3.3 方案 C：与现有 Flutter 写路径渐进共存
 
-- Keep current Flutter write logic for now and gradually migrate selected flows to Rust.
-- Pros:
-  - lowest short-term migration pressure.
-- Cons:
-  - creates dual sources of truth,
-  - directly conflicts with the chosen architecture,
-  - high long-term maintenance risk.
+- 暂时保留 Flutter 当前写逻辑，再逐步迁移部分流程到 Rust。
+- 优点：
+  - 短期迁移压力最小。
+- 缺点：
+  - 会形成双真源；
+  - 与当前架构目标直接冲突；
+  - 长期维护风险高。
 
-## 4. Architecture and Responsibility Boundaries
+## 4. 架构与职责边界
 
-### 4.1 Top-level architecture
+### 4.1 顶层架构
 
-- `UI -> PageController -> ApiClient -> FRB -> Rust backend -> store + sync -> DTO/error -> Flutter state -> UI`
+- `UI -> PageController -> ApiClient -> FRB -> Rust 后端 -> store + sync -> DTO/error -> Flutter state -> UI`
 
-### 4.2 Flutter responsibilities
+### 4.2 Flutter 职责
 
-- Build and render UI components.
-- Handle routing and page-level interaction flow.
-- Hold view state for loading, success, empty, degraded, and error cases.
-- Invoke backend APIs through thin Dart clients.
-- Convert stable error codes into user-facing messages and recovery actions.
+- 构建并渲染 UI 组件。
+- 处理路由与页面级交互流程。
+- 持有 loading、success、empty、degraded、error 等展示状态。
+- 通过轻量 Dart 客户端调用后端 API。
+- 把稳定错误码转换为用户提示和恢复动作。
 
-### 4.3 Rust responsibilities
+### 4.3 Rust 职责
 
-- Enforce domain rules from the pool and card-note specs.
-- Own all business writes and business invariants.
-- Persist data and manage synchronization execution.
-- Maintain pool metadata, including note reference attachment rules.
-- Return stable DTOs and stable error codes.
+- 落实 pool 与 card-note 规格中的领域规则。
+- 掌管所有业务写入和业务不变量。
+- 负责持久化与同步执行。
+- 维护池元数据，包括 `noteId` 挂接规则。
+- 返回稳定 DTO 和稳定错误码。
 
-### 4.4 FRB responsibilities
+### 4.4 FRB 职责
 
-- Carry request and response data across the language boundary.
-- Expose generated callable APIs to Flutter.
-- Avoid domain branching, rule duplication, or long-lived translation logic beyond transport needs.
+- 在语言边界上传递请求与响应数据。
+- 向 Flutter 暴露生成后的可调用 API。
+- 除传输需要外，不承载领域分支、规则复制或长期翻译逻辑。
 
-## 5. Frontend Naming Model
+## 5. 前端命名模型
 
-- Replace abstract names such as `Feature Facade` with direct frontend terms.
-- Recommended Flutter naming model:
-  - `ApiClient`: Dart-side wrapper for Rust APIs, such as `PoolApiClient`, `CardApiClient`, `SyncApiClient`.
-  - `PageController`: page action orchestration, such as `PoolPageController`, `CardsPageController`.
-  - `ViewState`: render-oriented page state, such as `PoolPageState`, `CardsPageState`.
-  - `UI`: widgets and pages.
-- This keeps the Flutter side understandable as a frontend stack rather than a partial backend.
+- 用更直接的前端术语替代抽象名称，例如不再使用 `Feature Facade`。
+- 推荐的 Flutter 命名模型：
+  - `ApiClient`：Dart 侧 Rust API 封装，例如 `PoolApiClient`、`CardApiClient`、`SyncApiClient`。
+  - `PageController`：页面动作编排层，例如 `PoolPageController`、`CardsPageController`。
+  - `ViewState`：面向渲染的页面状态，例如 `PoolPageState`、`CardsPageState`。
+  - `UI`：页面与组件本身。
+- 这样能让 Flutter 侧保持“前端栈”语义，而不是继续像半套后端。
 
-## 6. Backend API Surface
+## 6. 后端 API 面设计
 
-### 6.1 Session/App APIs
+### 6.1 Session/App API
 
-- Initialize backend runtime context.
-- Open local data directory or equivalent app backend session.
-- Initialize network handle(s) needed for sync.
-- Query backend readiness and current runtime status.
+- 初始化后端运行时上下文。
+- 打开本地数据目录或等价的应用后端会话。
+- 初始化同步所需的网络句柄。
+- 查询后端是否就绪及当前运行状态。
 
-### 6.2 Pool APIs
+### 6.2 Pool API
 
 - `createPool`
-- `joinPool` or `requestJoinPool` depending on current product semantics
+- `joinPool` 或 `requestJoinPool`，具体取决于当前产品语义
 - `listPools`
 - `getPoolDetail`
-- Pool APIs must own membership rules, role semantics, and pool metadata changes.
-- Joining a pool must automatically attach the user's existing note references inside the same backend use case.
+- Pool API 必须掌管成员规则、角色语义和池元数据修改。
+- 加入池时，必须在同一个后端用例里自动挂接当前用户已有笔记引用。
 
-### 6.3 Card APIs
+### 6.3 Card API
 
 - `createCardNote`
 - `updateCardNote`
 - `listCardNotes`
 - `getCardNoteDetail`
-- When card creation happens inside a pool context, Rust must attach the new `noteId` into pool metadata in the same backend flow.
-- Updating or deleting an already attached note must not create duplicate note references.
+- 当在池上下文中创建笔记时，Rust 必须在同一后端流程内把新的 `noteId` 写入池元数据。
+- 对已挂接笔记执行更新或删除时，不能创建重复引用。
 
-### 6.4 Sync APIs
+### 6.4 Sync API
 
 - `connectSyncTarget`
 - `runSyncNow`
 - `getSyncStatus`
 - `disconnectSync`
-- Phase 1 uses explicit sync invocation from Flutter after key successful business actions.
+- 第一阶段由 Flutter 在关键业务成功后显式调用同步。
 
-## 7. Data Flow and Closed Loops
+## 7. 数据流与关键闭环
 
-### 7.1 Create pool
+### 7.1 创建池
 
-- Flutter triggers `createPool` through `PoolPageController` and `PoolApiClient`.
-- Rust creates the pool, assigns the creator as the first admin, persists the result, and returns `PoolDto`.
-- Flutter refreshes pool queries and may explicitly trigger sync if the environment is connected.
+- Flutter 通过 `PoolPageController` 和 `PoolApiClient` 触发 `createPool`。
+- Rust 创建池、把创建者设为首个 admin、持久化结果，并返回 `PoolDto`。
+- Flutter 刷新池查询结果；如果当前环境已联机，可继续显式触发同步。
 
-### 7.2 Join pool
+### 7.2 加入池
 
-- Flutter triggers `joinPool`.
-- Rust completes join semantics and auto-attaches all existing note references required by the card-note spec.
-- Flutter must not add a second client-side attachment step.
-- Flutter then explicitly triggers sync and reloads pool and note views.
+- Flutter 触发 `joinPool`。
+- Rust 完成加入流程，并自动挂接 card-note 规格要求的全部已有笔记引用。
+- Flutter 不能再额外补一段客户端挂接逻辑。
+- 之后由 Flutter 显式触发同步，并刷新池和笔记视图。
 
-### 7.3 Create card note
+### 7.3 创建卡片笔记
 
-- Flutter triggers `createCardNote`.
-- Rust persists the note and, when pool context exists, adds the pool metadata note reference in the same backend transaction or equivalent atomic flow.
-- Flutter explicitly triggers sync and reloads list/detail views.
+- Flutter 触发 `createCardNote`。
+- Rust 持久化笔记；如果当前处于池上下文，则在同一后端事务或等价原子流程内完成池元数据引用写入。
+- Flutter 显式触发同步，再刷新列表和详情视图。
 
-### 7.4 Update card note
+### 7.4 编辑卡片笔记
 
-- Flutter triggers `updateCardNote`.
-- Rust persists the updated content while preserving the no-duplicate-reference rule.
-- Flutter explicitly triggers sync and reloads current views.
+- Flutter 触发 `updateCardNote`。
+- Rust 持久化更新后的内容，同时保证不新增重复引用。
+- Flutter 显式触发同步，再刷新当前视图。
 
-### 7.5 Business success versus sync failure
+### 7.5 业务成功与同步失败的分离表达
 
-- Business write success and sync failure must be represented separately.
-- Flutter must be able to show: data saved successfully, sync not completed yet, retry available.
-- Sync failure must never falsely rewrite a successful business write as a business failure.
+- 业务写入成功与同步失败必须被分开表达。
+- Flutter 必须能展示：数据已保存、同步尚未完成、可重试。
+- 不能因为同步失败，就把一次成功的业务写入伪装成业务失败。
 
-## 8. DTO and Error Contracts
+## 8. DTO 与错误契约
 
-### 8.1 DTO principles
+### 8.1 DTO 原则
 
-- Rust must return stable, view-friendly DTOs instead of leaking internal storage or sync model details.
-- DTOs should expose only fields needed by the current UI and acceptance scope.
-- Over-broad future-proofing is forbidden under YAGNI.
+- Rust 必须返回稳定、面向视图的 DTO，而不是把内部存储或同步模型细节泄露给 Flutter。
+- DTO 只暴露当前 UI 与验收范围真正需要的字段。
+- 禁止为了未来假设场景而过度扩展，遵循 YAGNI。
 
-### 8.2 Core DTOs
+### 8.2 核心 DTO
 
-- `PoolDto`: pool id, name, dissolved state, current user role, member summary, basic sync summary.
-- `PoolDetailDto`: pool basics, note reference summary, member list, pending join state if applicable.
-- `CardNoteDto`: note id, title, content, timestamps, pool summary, delete state.
-- `SyncStatusDto`: current sync state, last result, retryability, recommended recovery action.
-- `SyncResultDto`: success or degraded result, error code when applicable, next-step hint.
+- `PoolDto`：池 id、名称、解散状态、当前用户角色、成员摘要、基础同步摘要。
+- `PoolDetailDto`：池基础信息、笔记引用摘要、成员列表、待处理加入状态（如果适用）。
+- `CardNoteDto`：笔记 id、标题、内容、时间戳、所属池摘要、删除状态。
+- `SyncStatusDto`：当前同步状态、最近一次结果、是否可重试、推荐恢复动作。
+- `SyncResultDto`：本次同步成功或退化结果、错误码（如适用）、下一步提示。
 
-### 8.3 Error contract
+### 8.3 错误契约
 
-- Rust returns a unified `ApiError` shape.
-- Flutter branches only on stable `error.code`.
-- `error.message` is user-facing text.
-- `error.details` is diagnostic only and must not drive product logic.
+- Rust 返回统一形态的 `ApiError`。
+- Flutter 只基于稳定的 `error.code` 做分支。
+- `error.message` 用于用户展示。
+- `error.details` 只用于诊断，不能驱动产品逻辑。
 
-### 8.4 Error categories
+### 8.4 错误分类
 
 - `VALIDATION_*`
 - `PERMISSION_*`
@@ -189,71 +189,71 @@
 - `TRANSPORT_*`
 - `INTERNAL`
 
-### 8.5 Recovery mapping principles
+### 8.5 恢复动作映射原则
 
-- Validation errors ask the user to fix input.
-- Permission errors stop retry and explain denial.
-- Conflict errors refresh or re-query current state.
-- Sync errors offer retry sync or reconnect actions.
-- Transport errors offer retry or backend reinitialization.
-- Internal errors fall back to generic retry and diagnostics.
+- Validation 错误引导用户修正输入。
+- Permission 错误停止重试并说明拒绝原因。
+- Conflict 错误通过刷新或重新查询当前状态恢复。
+- Sync 错误提供重试同步或重连动作。
+- Transport 错误提供重试或重新初始化后端动作。
+- Internal 错误回退为通用重试和诊断路径。
 
-## 9. Migration Strategy
+## 9. 迁移策略
 
-### 9.1 Migration goal
+### 9.1 迁移目标
 
-- Remove Flutter-side business write truth from the main path.
-- Converge frontend code into `UI + PageController + ViewState + ApiClient`.
-- Move overlapping business logic and persistence control into Rust.
+- 把 Flutter 侧业务写入真源移出主路径。
+- 把前端代码收敛到 `UI + PageController + ViewState + ApiClient`。
+- 把重叠的业务逻辑与持久化控制迁入 Rust。
 
-### 9.2 Migration order
+### 9.2 迁移顺序
 
-- Build the new Rust use-case APIs first.
-- Rewire Flutter pages to the new `ApiClient` path.
-- Stop page main flows from calling Flutter-side business write layers.
-- Delete obsolete Flutter-side write/storage/application code after the new path is proven.
+- 先建立新的 Rust 用例 API。
+- 再把 Flutter 页面改接到新的 `ApiClient` 路径。
+- 停止页面主流程调用 Flutter 侧业务写层。
+- 待新路径验证稳定后，删除过时的 Flutter 写层、存储层、application 层代码。
 
-### 9.3 Legacy code handling
+### 9.3 遗留代码处理
 
 - `lib/features/pool/data/*`
 - `lib/features/cards/data/*`
 - `lib/features/shared/storage/*`
 - `lib/features/*/application/*`
-- Any code in these areas that acts as direct business write logic, persistence truth, or sync control must leave the main path and be removed in phases.
-- If temporary compatibility code is unavoidable, it must carry explicit Chinese comments documenting its temporary nature and removal intent.
+- 这些区域中凡是直接承担业务写逻辑、持久化真源或同步控制职责的代码，都必须退出主路径，并按阶段删除。
+- 如果临时兼容代码确实不可避免，必须带明确中文注释，说明其临时性质和删除意图。
 
-## 10. Testing Strategy
+## 10. 测试策略
 
-### 10.1 Rust domain and application tests
+### 10.1 Rust 领域与应用测试
 
-- Verify create pool, join pool, create card note, update card note, auto-attachment, idempotency, and stable error semantics.
+- 验证创建池、加入池、创建笔记、编辑笔记、自动挂接、幂等性和稳定错误语义。
 
-### 10.2 Rust sync tests
+### 10.2 Rust 同步测试
 
-- Verify explicit sync flow, sync state transitions, degraded or failed sync semantics, and separation between business success and sync failure.
+- 验证显式同步流程、同步状态迁移、同步退化或失败语义，以及业务成功与同步失败的分离表达。
 
-### 10.3 Flutter frontend orchestration tests
+### 10.3 Flutter 前端编排测试
 
-- Verify page action flows such as `createCard -> runSyncNow -> reloadCards`.
-- Do not duplicate Rust business rule assertions here.
+- 验证页面动作流程，例如 `createCard -> runSyncNow -> reloadCards`。
+- 这里不重复断言 Rust 业务规则。
 
-### 10.4 Cross-language smoke tests
+### 10.4 跨语言烟测
 
-- Use real FRB for a small number of critical end-to-end bridge checks.
-- Confirm request and response DTOs, plus error propagation, work through the real boundary.
+- 用真实 FRB 跑少量关键端到端桥接用例。
+- 确认请求与响应 DTO，以及错误传播，能穿过真实边界正常工作。
 
-## 11. Acceptance Focus for Phase 1
+## 11. 第一阶段验收重点
 
-- Given no pool, when creating a pool, then the creator becomes admin.
-- Given existing notes, when joining a pool, then pool metadata includes those existing `noteId` references.
-- Given pool context, when creating a note, then pool metadata includes the new `noteId`.
-- Given an attached note, when editing it, then no duplicate `noteId` is created in pool metadata.
-- Given member changes and explicit sync, when another member refreshes after convergence, then the result is eventually consistent.
-- Given business write success but sync failure, when the page renders the outcome, then the user sees saved-but-not-synced feedback and a recovery action.
+- Given 无池上下文，When 创建池，Then 创建者成为 admin。
+- Given 已有若干笔记，When 加入池，Then 池元数据包含这些已有 `noteId` 引用。
+- Given 当前处于池上下文，When 创建笔记，Then 池元数据包含新的 `noteId`。
+- Given 已挂接笔记，When 编辑笔记，Then 池元数据中不会新增重复 `noteId`。
+- Given 成员完成变更并显式同步，When 另一成员在收敛后刷新，Then 结果最终一致。
+- Given 业务写入成功但同步失败，When 页面展示结果，Then 用户看到“已保存但未同步”的反馈和恢复动作。
 
-## 12. Out of Scope for Phase 1
+## 12. 第一阶段范围外
 
-- Multi-pool concurrent sync control panels.
-- Full background-first automatic sync strategy.
-- Over-generalized public API surfaces for hypothetical future domains.
-- Long-term coexistence of Flutter and Rust as dual business write authorities.
+- 多池并发同步控制台。
+- 完整的后台优先自动同步策略。
+- 为假想未来分域预埋的过度通用 API 面。
+- Flutter 与 Rust 长期共存为双业务写入真源。
