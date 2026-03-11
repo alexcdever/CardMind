@@ -1,7 +1,7 @@
 // input: 建池/入池/离池参数、成员与卡片集合、Loro 文档与 SQLite 读写返回。
-// output: Pool 数据更新结果及其在 Loro 文档和 SQLite 缓存中的持久化状态。
-// pos: 数据池存储实现文件，负责池成员与卡片关联关系的本地维护。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：本文件实现数据池本地存储读写。
+// output: Pool 数据更新结果及其在 Loro 写模型和 SQLite 读模型中的持久化状态。
+// pos: 数据池存储实现文件，负责池成员与卡片关联关系的本地维护，并遵守先写 Loro、再投影到 SQLite 的约束。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件实现数据池本地读写分离存储。
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
 use crate::store::loro_store::{load_loro_doc, pool_doc_path, save_loro_doc};
@@ -102,6 +102,12 @@ impl PoolStore {
     }
 
     fn persist_pool(&self, pool: &Pool) -> Result<(), CardMindError> {
+        self.write_pool_to_loro(pool)?;
+        self.project_pool_to_sqlite(pool)?;
+        Ok(())
+    }
+
+    fn write_pool_to_loro(&self, pool: &Pool) -> Result<(), CardMindError> {
         let path = self.paths.base_path.join(pool_doc_path(&pool.pool_id));
         let doc = load_loro_doc(&path)?;
         let map = doc.get_map("pool");
@@ -139,8 +145,10 @@ impl PoolStore {
         }
 
         doc.commit();
-        save_loro_doc(&path, &doc)?;
-        self.sqlite.upsert_pool(pool)?;
-        Ok(())
+        save_loro_doc(&path, &doc)
+    }
+
+    fn project_pool_to_sqlite(&self, pool: &Pool) -> Result<(), CardMindError> {
+        self.sqlite.upsert_pool(pool)
     }
 }

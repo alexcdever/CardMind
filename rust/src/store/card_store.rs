@@ -1,7 +1,7 @@
 // input: 卡片增删改查参数、当前时间戳、Loro 文档读写与 SQLite 查询结果。
-// output: Card 创建/更新结果、软删除状态持久化与卡片列表检索结果。
-// pos: 卡片存储实现文件，负责卡片在 Loro 与 SQLite 之间的一致性写入。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：本文件实现卡片本地存储读写。
+// output: Card 创建/更新结果、软删除状态持久化与基于 SQLite 读模型的检索结果。
+// pos: 卡片存储实现文件，负责先写 Loro 写模型，再更新 SQLite 读模型。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件实现卡片本地读写分离存储。
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::store::loro_store::{load_loro_doc, note_doc_path, save_loro_doc};
@@ -91,6 +91,12 @@ impl CardStore {
     }
 
     fn persist_card(&self, card: &Card) -> Result<(), CardMindError> {
+        self.write_card_to_loro(card)?;
+        self.project_card_to_sqlite(card)?;
+        Ok(())
+    }
+
+    fn write_card_to_loro(&self, card: &Card) -> Result<(), CardMindError> {
         let path = self.paths.base_path.join(note_doc_path(&card.id));
         let doc = load_loro_doc(&path)?;
         let map = doc.get_map("card");
@@ -107,9 +113,11 @@ impl CardStore {
         map.insert("deleted", card.deleted)
             .map_err(|e| CardMindError::Loro(e.to_string()))?;
         doc.commit();
-        save_loro_doc(&path, &doc)?;
-        self.sqlite.upsert_card(card)?;
-        Ok(())
+        save_loro_doc(&path, &doc)
+    }
+
+    fn project_card_to_sqlite(&self, card: &Card) -> Result<(), CardMindError> {
+        self.sqlite.upsert_card(card)
     }
 }
 

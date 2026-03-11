@@ -1,22 +1,22 @@
 // input: SQLite 文件路径、Card/Pool 结构数据与查询参数（id/分页/关键字）。
-// output: cards/pools 表的写入与查询结果、解析后的领域模型与数据库错误映射。
-// pos: SQLite 存储实现文件，负责结构化缓存表管理与模型序列化落库。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：本文件实现 SQLite 读写与模型映射。
+// output: cards/pools 读模型表的投影写入与查询结果、解析后的领域模型与数据库错误映射。
+// pos: SQLite 存储实现文件，负责结构化读模型表管理与模型序列化落库。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：本文件实现 SQLite 读模型读写与模型映射。
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::path::Path;
 use uuid::Uuid;
 
-/// SQLite 缓存存储
+/// SQLite 读模型存储
 pub struct SqliteStore {
     conn: Connection,
     ready: bool,
 }
 
 impl SqliteStore {
-    /// 创建并初始化缓存 schema
+    /// 创建并初始化读模型 schema
     pub fn new(path: &Path) -> Result<Self, CardMindError> {
         let conn = Connection::open(path).map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         conn.execute_batch(
