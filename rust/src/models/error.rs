@@ -22,6 +22,13 @@ pub enum CardMindError {
     /// 未找到
     #[error("not found: {0}")]
     NotFound(String),
+    /// 投影未收敛
+    #[error("projection not converged: {entity}:{entity_id}, retry via {retry_action}")]
+    ProjectionNotConverged {
+        entity: String,
+        entity_id: String,
+        retry_action: String,
+    },
     /// 未实现
     #[error("not implemented: {0}")]
     NotImplemented(String),

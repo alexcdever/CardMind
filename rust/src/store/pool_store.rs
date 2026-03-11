@@ -13,19 +13,45 @@ use std::collections::HashSet;
 use std::path::Path;
 use uuid::Uuid;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProjectionMode {
+    Normal,
+    FailWrites,
+}
+
 /// 本地卡片池存储
 pub struct PoolStore {
     paths: DataPaths,
     sqlite: SqliteStore,
+    projection_mode: ProjectionMode,
 }
 
 /// 本地卡片池存储实现
 impl PoolStore {
+    const POOL_ENTITY: &'static str = "pool";
+    const RETRY_PROJECTION: &'static str = "retry_projection";
+
     /// 创建数据池存储
     pub fn new(base_path: &str) -> Result<Self, CardMindError> {
+        Self::new_with_projection_mode(base_path, ProjectionMode::Normal)
+    }
+
+    /// 创建一个注入投影失败的数据池存储（测试用）
+    pub fn new_with_projection_failure(base_path: &str) -> Result<Self, CardMindError> {
+        Self::new_with_projection_mode(base_path, ProjectionMode::FailWrites)
+    }
+
+    fn new_with_projection_mode(
+        base_path: &str,
+        projection_mode: ProjectionMode,
+    ) -> Result<Self, CardMindError> {
         let paths = DataPaths::new(base_path)?;
         let sqlite = SqliteStore::new(&paths.sqlite_path)?;
-        Ok(Self { paths, sqlite })
+        Ok(Self {
+            paths,
+            sqlite,
+            projection_mode,
+        })
     }
 
     /// 获取存储根路径
@@ -56,7 +82,16 @@ impl PoolStore {
 
     /// 获取数据池
     pub fn get_pool(&self, pool_id: &Uuid) -> Result<Pool, CardMindError> {
-        self.sqlite.get_pool(pool_id)
+        match self.sqlite.get_pool(pool_id) {
+            Ok(pool) => Ok(pool),
+            Err(CardMindError::NotFound(_)) => {
+                if let Some(error) = self.projection_not_converged_for(pool_id)? {
+                    return Err(error);
+                }
+                Err(CardMindError::NotFound("pool not found".to_string()))
+            }
+            Err(err) => Err(err),
+        }
     }
 
     /// 获取任意一个数据池（默认第一个）
@@ -149,6 +184,38 @@ impl PoolStore {
     }
 
     fn project_pool_to_sqlite(&self, pool: &Pool) -> Result<(), CardMindError> {
-        self.sqlite.upsert_pool(pool)
+        if self.projection_mode == ProjectionMode::FailWrites {
+            self.sqlite.record_projection_failure(
+                Self::POOL_ENTITY,
+                &pool.pool_id.to_string(),
+                Self::RETRY_PROJECTION,
+            )?;
+            return Err(Self::build_projection_error(
+                pool.pool_id,
+                Self::RETRY_PROJECTION.to_string(),
+            ));
+        }
+        self.sqlite.upsert_pool(pool)?;
+        self.sqlite
+            .clear_projection_failure(Self::POOL_ENTITY, &pool.pool_id.to_string())?;
+        Ok(())
+    }
+
+    fn projection_not_converged_for(
+        &self,
+        pool_id: &Uuid,
+    ) -> Result<Option<CardMindError>, CardMindError> {
+        Ok(self
+            .sqlite
+            .get_projection_retry_action(Self::POOL_ENTITY, &pool_id.to_string())?
+            .map(|retry_action| Self::build_projection_error(*pool_id, retry_action)))
+    }
+
+    fn build_projection_error(pool_id: Uuid, retry_action: String) -> CardMindError {
+        CardMindError::ProjectionNotConverged {
+            entity: Self::POOL_ENTITY.to_string(),
+            entity_id: pool_id.to_string(),
+            retry_action,
+        }
     }
 }

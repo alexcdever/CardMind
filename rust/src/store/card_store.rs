@@ -12,18 +12,44 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProjectionMode {
+    Normal,
+    FailWrites,
+}
+
 /// 本地卡片存储
 pub struct CardStore {
     paths: DataPaths,
     sqlite: SqliteStore,
+    projection_mode: ProjectionMode,
 }
 
 impl CardStore {
+    const CARD_ENTITY: &'static str = "card";
+    const RETRY_PROJECTION: &'static str = "retry_projection";
+
     /// 创建卡片存储
     pub fn new(base_path: &str) -> Result<Self, CardMindError> {
+        Self::new_with_projection_mode(base_path, ProjectionMode::Normal)
+    }
+
+    /// 创建一个注入投影失败的卡片存储（测试用）
+    pub fn new_with_projection_failure(base_path: &str) -> Result<Self, CardMindError> {
+        Self::new_with_projection_mode(base_path, ProjectionMode::FailWrites)
+    }
+
+    fn new_with_projection_mode(
+        base_path: &str,
+        projection_mode: ProjectionMode,
+    ) -> Result<Self, CardMindError> {
         let paths = DataPaths::new(base_path)?;
         let sqlite = SqliteStore::new(&paths.sqlite_path)?;
-        Ok(Self { paths, sqlite })
+        Ok(Self {
+            paths,
+            sqlite,
+            projection_mode,
+        })
     }
 
     /// 获取存储根路径
@@ -72,7 +98,16 @@ impl CardStore {
 
     /// 获取卡片
     pub fn get_card(&self, id: &Uuid) -> Result<Card, CardMindError> {
-        self.sqlite.get_card(id)
+        match self.sqlite.get_card(id) {
+            Ok(card) => Ok(card),
+            Err(CardMindError::NotFound(_)) => {
+                if let Some(error) = self.projection_not_converged_for(id)? {
+                    return Err(error);
+                }
+                Err(CardMindError::NotFound("card not found".to_string()))
+            }
+            Err(err) => Err(err),
+        }
     }
 
     /// 列出卡片
@@ -117,7 +152,39 @@ impl CardStore {
     }
 
     fn project_card_to_sqlite(&self, card: &Card) -> Result<(), CardMindError> {
-        self.sqlite.upsert_card(card)
+        if self.projection_mode == ProjectionMode::FailWrites {
+            self.sqlite.record_projection_failure(
+                Self::CARD_ENTITY,
+                &card.id.to_string(),
+                Self::RETRY_PROJECTION,
+            )?;
+            return Err(Self::build_projection_error(
+                card.id,
+                Self::RETRY_PROJECTION.to_string(),
+            ));
+        }
+        self.sqlite.upsert_card(card)?;
+        self.sqlite
+            .clear_projection_failure(Self::CARD_ENTITY, &card.id.to_string())?;
+        Ok(())
+    }
+
+    fn projection_not_converged_for(
+        &self,
+        id: &Uuid,
+    ) -> Result<Option<CardMindError>, CardMindError> {
+        Ok(self
+            .sqlite
+            .get_projection_retry_action(Self::CARD_ENTITY, &id.to_string())?
+            .map(|retry_action| Self::build_projection_error(*id, retry_action)))
+    }
+
+    fn build_projection_error(id: Uuid, retry_action: String) -> CardMindError {
+        CardMindError::ProjectionNotConverged {
+            entity: Self::CARD_ENTITY.to_string(),
+            entity_id: id.to_string(),
+            retry_action,
+        }
     }
 }
 

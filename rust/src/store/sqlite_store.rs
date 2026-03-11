@@ -40,11 +40,17 @@ impl SqliteStore {
                 is_admin INTEGER NOT NULL,
                 PRIMARY KEY (pool_id, endpoint_id)
             );
-            CREATE TABLE IF NOT EXISTS pool_cards (
-                pool_id TEXT NOT NULL,
-                card_id TEXT NOT NULL,
-                PRIMARY KEY (pool_id, card_id)
-            );",
+             CREATE TABLE IF NOT EXISTS pool_cards (
+                 pool_id TEXT NOT NULL,
+                 card_id TEXT NOT NULL,
+                 PRIMARY KEY (pool_id, card_id)
+             );
+             CREATE TABLE IF NOT EXISTS projection_failures (
+                 entity_type TEXT NOT NULL,
+                 entity_id TEXT NOT NULL,
+                 retry_action TEXT NOT NULL,
+                 PRIMARY KEY (entity_type, entity_id)
+             );",
         )
         .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         Ok(Self { conn, ready: true })
@@ -234,6 +240,56 @@ impl SqliteStore {
         }
 
         Ok(())
+    }
+
+    /// 记录投影失败语义
+    pub fn record_projection_failure(
+        &self,
+        entity_type: &str,
+        entity_id: &str,
+        retry_action: &str,
+    ) -> Result<(), CardMindError> {
+        self.conn
+            .execute(
+                "INSERT OR REPLACE INTO projection_failures (entity_type, entity_id, retry_action)
+                 VALUES (?1, ?2, ?3);",
+                params![entity_type, entity_id, retry_action],
+            )
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        Ok(())
+    }
+
+    /// 清理投影失败语义
+    pub fn clear_projection_failure(
+        &self,
+        entity_type: &str,
+        entity_id: &str,
+    ) -> Result<(), CardMindError> {
+        self.conn
+            .execute(
+                "DELETE FROM projection_failures WHERE entity_type = ?1 AND entity_id = ?2;",
+                params![entity_type, entity_id],
+            )
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        Ok(())
+    }
+
+    /// 获取投影失败的恢复动作
+    pub fn get_projection_retry_action(
+        &self,
+        entity_type: &str,
+        entity_id: &str,
+    ) -> Result<Option<String>, CardMindError> {
+        let row = self.conn.query_row(
+            "SELECT retry_action FROM projection_failures WHERE entity_type = ?1 AND entity_id = ?2;",
+            params![entity_type, entity_id],
+            |row| row.get(0),
+        );
+        match row {
+            Ok(retry_action) => Ok(Some(retry_action)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(err) => Err(CardMindError::Sqlite(err.to_string())),
+        }
     }
 
     /// 获取数据池元数据
