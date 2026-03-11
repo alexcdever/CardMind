@@ -12,6 +12,12 @@
 - `Flutter` 只承担前端职责：UI 组合、交互流程、页面状态、API 调用、面向用户的恢复动作。
 - `Rust` 只承担后端职责：领域规则、持久化、池与笔记关联、同步流程、稳定错误语义、DTO 产出。
 - `FRB` 是薄边界层，不能演变成第二套业务层。
+- `LoroDoc` 是卡片笔记与池元数据的唯一真实信源。
+- `SQLite` 只作为查询侧读模型，不作为业务真源。
+- 所有业务写入必须先经 Rust 落入 `LoroDoc`。
+- 面向产品行为的查询必须走 `SQLite`，不能把 `LoroDoc` 作为产品查询主路径。
+- `LoroDoc` 变更必须通过订阅机制、投影流程或等价链路更新到 `SQLite`。
+- 外部同步结果必须先进入 `LoroDoc`，再驱动 `SQLite` 收敛。
 - Flutter 不能继续作为业务写入真源。
 - 第一阶段在关键业务动作之后采用显式触发同步，而不是后台优先自动同步。
 - 不允许长期兼容层。如果某段短期兼容路径确实不可避免，相关代码必须带明确中文注释，说明它是临时兼容代码、正在兼容哪条旧路径、将由哪条新路径替代、后续必须删除。
@@ -54,7 +60,8 @@
 
 ### 4.1 顶层架构
 
-- `UI -> PageController -> ApiClient -> FRB -> Rust 后端 -> store + sync -> DTO/error -> Flutter state -> UI`
+- `UI -> PageController -> ApiClient -> FRB -> Rust 后端 -> LoroDoc -> Projection -> SQLite -> Flutter 查询状态 -> UI`
+- 同步链路与本地链路并行收敛：`Rust Sync <-> LoroDoc -> Projection -> SQLite`
 
 ### 4.2 Flutter 职责
 
@@ -68,7 +75,7 @@
 
 - 落实 pool 与 card-note 规格中的领域规则。
 - 掌管所有业务写入和业务不变量。
-- 负责持久化与同步执行。
+- 负责 `LoroDoc` 写入、投影驱动、`SQLite` 收敛与同步执行。
 - 维护池元数据，包括 `noteId` 挂接规则。
 - 返回稳定 DTO 和稳定错误码。
 
@@ -96,6 +103,14 @@
 - 打开本地数据目录或等价的应用后端会话。
 - 初始化同步所需的网络句柄。
 - 查询后端是否就绪及当前运行状态。
+
+### 6.1.1 后端内部读写分离约束
+
+- 写模型真源为 `LoroDoc`。
+- 读模型为 `SQLite`。
+- Rust 对 Flutter 暴露的查询 API 必须以 `SQLite` 结果为准。
+- Rust 对 Flutter 暴露的业务写 API 必须先写入 `LoroDoc`，再通过投影驱动 `SQLite` 更新。
+- 投影失败与同步失败都不能伪装成业务写失败。
 
 ### 6.2 Pool API
 
@@ -128,33 +143,37 @@
 ### 7.1 创建池
 
 - Flutter 通过 `PoolPageController` 和 `PoolApiClient` 触发 `createPool`。
-- Rust 创建池、把创建者设为首个 admin、持久化结果，并返回 `PoolDto`。
-- Flutter 刷新池查询结果；如果当前环境已联机，可继续显式触发同步。
+- Rust 创建池、把创建者设为首个 admin，并先把业务事实写入 `LoroDoc`。
+- `LoroDoc` 变更驱动投影更新 `SQLite`，查询侧收敛后返回或刷新 `PoolDto`。
+- Flutter 刷新池查询结果时，应以 `SQLite` 查询结果为准；如果当前环境已联机，可继续显式触发同步。
 
 ### 7.2 加入池
 
 - Flutter 触发 `joinPool`。
-- Rust 完成加入流程，并自动挂接 card-note 规格要求的全部已有笔记引用。
+- Rust 完成加入流程，并在 `LoroDoc` 中自动挂接 card-note 规格要求的全部已有笔记引用。
 - Flutter 不能再额外补一段客户端挂接逻辑。
-- 之后由 Flutter 显式触发同步，并刷新池和笔记视图。
+- 之后由投影更新 `SQLite`，再由 Flutter 显式触发同步，并刷新池和笔记视图。
 
 ### 7.3 创建卡片笔记
 
 - Flutter 触发 `createCardNote`。
-- Rust 持久化笔记；如果当前处于池上下文，则在同一后端事务或等价原子流程内完成池元数据引用写入。
-- Flutter 显式触发同步，再刷新列表和详情视图。
+- Rust 先把笔记写入 `LoroDoc`；如果当前处于池上下文，则在同一后端事务或等价原子流程内完成池元数据引用写入。
+- `LoroDoc` 变更通过投影流程更新 `SQLite`。
+- Flutter 显式触发同步，再通过 `SQLite` 查询刷新列表和详情视图。
 
 ### 7.4 编辑卡片笔记
 
 - Flutter 触发 `updateCardNote`。
-- Rust 持久化更新后的内容，同时保证不新增重复引用。
-- Flutter 显式触发同步，再刷新当前视图。
+- Rust 先把更新后的内容写入 `LoroDoc`，同时保证不新增重复引用。
+- 投影链路更新 `SQLite` 查询结果。
+- Flutter 显式触发同步，再通过 `SQLite` 刷新当前视图。
 
 ### 7.5 业务成功与同步失败的分离表达
 
-- 业务写入成功与同步失败必须被分开表达。
+- 业务写入成功、投影未收敛、同步失败必须被分开表达。
 - Flutter 必须能展示：数据已保存、同步尚未完成、可重试。
 - 不能因为同步失败，就把一次成功的业务写入伪装成业务失败。
+- 不能因为 `SQLite` 投影暂未完成，就把一次成功的 `LoroDoc` 写入伪装成业务失败。
 
 ## 8. DTO 与错误契约
 
@@ -171,6 +190,12 @@
 - `CardNoteDto`：笔记 id、标题、内容、时间戳、所属池摘要、删除状态。
 - `SyncStatusDto`：当前同步状态、最近一次结果、是否可重试、推荐恢复动作。
 - `SyncResultDto`：本次同步成功或退化结果、错误码（如适用）、下一步提示。
+
+### 8.2.1 DTO 来源约束
+
+- 业务写结果以 Rust 对 `LoroDoc` 的写入结果为准。
+- 面向产品展示的查询 DTO 以 `SQLite` 查询结果为准。
+- Flutter 不直接读取 `LoroDoc` 组装页面 DTO。
 
 ### 8.3 错误契约
 
@@ -194,6 +219,7 @@
 - Validation 错误引导用户修正输入。
 - Permission 错误停止重试并说明拒绝原因。
 - Conflict 错误通过刷新或重新查询当前状态恢复。
+- Projection 未收敛时提供重试查询、等待重试或触发投影恢复动作。
 - Sync 错误提供重试同步或重连动作。
 - Transport 错误提供重试或重新初始化后端动作。
 - Internal 错误回退为通用重试和诊断路径。
@@ -204,11 +230,12 @@
 
 - 把 Flutter 侧业务写入真源移出主路径。
 - 把前端代码收敛到 `UI + PageController + ViewState + ApiClient`。
-- 把重叠的业务逻辑与持久化控制迁入 Rust。
+- 把重叠的业务逻辑与持久化控制迁入 Rust，并收敛为 `LoroDoc` 写模型 + `SQLite` 读模型。
 
 ### 9.2 迁移顺序
 
 - 先建立新的 Rust 用例 API。
+- 再把 Rust 查询路径收敛到 `SQLite` 读模型。
 - 再把 Flutter 页面改接到新的 `ApiClient` 路径。
 - 停止页面主流程调用 Flutter 侧业务写层。
 - 待新路径验证稳定后，删除过时的 Flutter 写层、存储层、application 层代码。
@@ -227,14 +254,16 @@
 ### 10.1 Rust 领域与应用测试
 
 - 验证创建池、加入池、创建笔记、编辑笔记、自动挂接、幂等性和稳定错误语义。
+- 验证业务写入先进入 `LoroDoc`，再驱动 `SQLite` 投影更新。
 
 ### 10.2 Rust 同步测试
 
-- 验证显式同步流程、同步状态迁移、同步退化或失败语义，以及业务成功与同步失败的分离表达。
+- 验证显式同步流程、同步状态迁移、同步退化或失败语义，以及业务成功、投影未收敛、同步失败三者的分离表达。
 
 ### 10.3 Flutter 前端编排测试
 
 - 验证页面动作流程，例如 `createCard -> runSyncNow -> reloadCards`。
+- 验证页面查询结果来自 Rust 暴露的 `SQLite` 查询链路，而不是直接读取 `LoroDoc`。
 - 这里不重复断言 Rust 业务规则。
 
 ### 10.4 跨语言烟测
@@ -248,6 +277,7 @@
 - Given 已有若干笔记，When 加入池，Then 池元数据包含这些已有 `noteId` 引用。
 - Given 当前处于池上下文，When 创建笔记，Then 池元数据包含新的 `noteId`。
 - Given 已挂接笔记，When 编辑笔记，Then 池元数据中不会新增重复 `noteId`。
+- Given 一次业务写入成功但查询侧暂未收敛，When 用户稍后重新查询，Then 结果最终通过 `SQLite` 可见。
 - Given 成员完成变更并显式同步，When 另一成员在收敛后刷新，Then 结果最终一致。
 - Given 业务写入成功但同步失败，When 页面展示结果，Then 用户看到“已保存但未同步”的反馈和恢复动作。
 
