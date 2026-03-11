@@ -17,6 +17,8 @@ pub enum ApiErrorCode {
     IoError,
     /// SQLite 错误
     SqliteError,
+    /// 投影未收敛
+    ProjectionNotConverged,
     /// 数据池不存在
     PoolNotFound,
     /// 数据池哈希非法
@@ -52,6 +54,7 @@ impl ApiErrorCode {
             ApiErrorCode::NotImplemented => "NOT_IMPLEMENTED",
             ApiErrorCode::IoError => "IO_ERROR",
             ApiErrorCode::SqliteError => "SQLITE_ERROR",
+            ApiErrorCode::ProjectionNotConverged => "PROJECTION_NOT_CONVERGED",
             ApiErrorCode::PoolNotFound => "POOL_NOT_FOUND",
             ApiErrorCode::InvalidPoolHash => "INVALID_POOL_HASH",
             ApiErrorCode::InvalidKeyHash => "INVALID_KEY_HASH",
