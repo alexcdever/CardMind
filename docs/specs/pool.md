@@ -115,6 +115,7 @@
 1. Pool 元数据 MUST 维护池内卡片笔记 `noteId` 引用集合。
 2. 仅“创建卡片笔记”动作 MUST 触发 Pool 元数据新增 `noteId` 引用。
 3. 卡片笔记后续修改与删除在 Pool 侧 MUST 视为“引用对象状态变化”，而非 Pool 元数据新增/删除语义。
+4. 对已挂接笔记执行软删除、恢复或内容修改时，既有 `noteId` 引用 MUST 保留，不得因这些动作被移除或重复新增。
 
 ### 6.2 成员间同步
 
@@ -148,7 +149,7 @@
 6. Given 池内仅剩 1 个 admin，When 执行会导致 `admin=0` 的操作，Then 操作被拒绝并返回稳定错误语义。
 7. Given Pool 已解散，When 提交加入申请或新增成员，Then 系统拒绝该操作。
 8. Given 池内笔记被创建，When 观察 Pool 元数据，Then 可见新增 `noteId` 引用。
-9. Given 池内成员修改或删除既有笔记，When 观察 Pool 元数据，Then 不新增新的 `noteId` 引用。
+9. Given 池内成员修改或删除既有笔记，When 观察 Pool 元数据，Then 既有 `noteId` 引用保持存在，且不新增新的 `noteId` 引用。
 10. Given 任一成员修改池内笔记内容，When 同步收敛完成，Then 其他成员可见一致结果。
 
 ### 8.2 判定原则
