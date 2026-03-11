@@ -830,6 +830,17 @@ impl SseDecode for Vec<u8> {
     }
 }
 
+impl SseDecode for Option<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<String>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for crate::api::PoolDetailDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -890,7 +901,17 @@ impl SseDecode for crate::api::SyncResultDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_state = <String>::sse_decode(deserializer);
-        return crate::api::SyncResultDto { state: var_state };
+        let mut var_writeState = <String>::sse_decode(deserializer);
+        let mut var_projectionState = <String>::sse_decode(deserializer);
+        let mut var_syncState = <String>::sse_decode(deserializer);
+        let mut var_code = <Option<String>>::sse_decode(deserializer);
+        return crate::api::SyncResultDto {
+            state: var_state,
+            write_state: var_writeState,
+            projection_state: var_projectionState,
+            sync_state: var_syncState,
+            code: var_code,
+        };
     }
 }
 
@@ -898,7 +919,17 @@ impl SseDecode for crate::api::SyncStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_state = <String>::sse_decode(deserializer);
-        return crate::api::SyncStatusDto { state: var_state };
+        let mut var_writeState = <String>::sse_decode(deserializer);
+        let mut var_projectionState = <String>::sse_decode(deserializer);
+        let mut var_syncState = <String>::sse_decode(deserializer);
+        let mut var_code = <Option<String>>::sse_decode(deserializer);
+        return crate::api::SyncStatusDto {
+            state: var_state,
+            write_state: var_writeState,
+            projection_state: var_projectionState,
+            sync_state: var_syncState,
+            code: var_code,
+        };
     }
 }
 
@@ -1083,7 +1114,14 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::PoolMemberDto> for crate::api
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::SyncResultDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [self.state.into_into_dart().into_dart()].into_dart()
+        [
+            self.state.into_into_dart().into_dart(),
+            self.write_state.into_into_dart().into_dart(),
+            self.projection_state.into_into_dart().into_dart(),
+            self.sync_state.into_into_dart().into_dart(),
+            self.code.into_into_dart().into_dart(),
+        ]
+        .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::SyncResultDto {}
@@ -1095,7 +1133,14 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::SyncResultDto> for crate::api
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::SyncStatusDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [self.state.into_into_dart().into_dart()].into_dart()
+        [
+            self.state.into_into_dart().into_dart(),
+            self.write_state.into_into_dart().into_dart(),
+            self.projection_state.into_into_dart().into_dart(),
+            self.sync_state.into_into_dart().into_dart(),
+            self.code.into_into_dart().into_dart(),
+        ]
+        .into_dart()
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::SyncStatusDto {}
@@ -1196,6 +1241,16 @@ impl SseEncode for Vec<u8> {
     }
 }
 
+impl SseEncode for Option<String> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <String>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for crate::api::PoolDetailDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1234,6 +1289,10 @@ impl SseEncode for crate::api::SyncResultDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.state, serializer);
+        <String>::sse_encode(self.write_state, serializer);
+        <String>::sse_encode(self.projection_state, serializer);
+        <String>::sse_encode(self.sync_state, serializer);
+        <Option<String>>::sse_encode(self.code, serializer);
     }
 }
 
@@ -1241,6 +1300,10 @@ impl SseEncode for crate::api::SyncStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.state, serializer);
+        <String>::sse_encode(self.write_state, serializer);
+        <String>::sse_encode(self.projection_state, serializer);
+        <String>::sse_encode(self.sync_state, serializer);
+        <Option<String>>::sse_encode(self.code, serializer);
     }
 }
 

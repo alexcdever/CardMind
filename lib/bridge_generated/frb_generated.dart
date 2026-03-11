@@ -850,6 +850,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  String? dco_decode_opt_String(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
   PoolDetailDto dco_decode_pool_detail_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -899,18 +905,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SyncResultDto dco_decode_sync_result_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 1)
-      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return SyncResultDto(state: dco_decode_String(arr[0]));
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return SyncResultDto(
+      state: dco_decode_String(arr[0]),
+      writeState: dco_decode_String(arr[1]),
+      projectionState: dco_decode_String(arr[2]),
+      syncState: dco_decode_String(arr[3]),
+      code: dco_decode_opt_String(arr[4]),
+    );
   }
 
   @protected
   SyncStatusDto dco_decode_sync_status_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 1)
-      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return SyncStatusDto(state: dco_decode_String(arr[0]));
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return SyncStatusDto(
+      state: dco_decode_String(arr[0]),
+      writeState: dco_decode_String(arr[1]),
+      projectionState: dco_decode_String(arr[2]),
+      syncState: dco_decode_String(arr[3]),
+      code: dco_decode_opt_String(arr[4]),
+    );
   }
 
   @protected
@@ -1043,6 +1061,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  String? sse_decode_opt_String(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   PoolDetailDto sse_decode_pool_detail_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_String(deserializer);
@@ -1099,14 +1128,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SyncResultDto sse_decode_sync_result_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_state = sse_decode_String(deserializer);
-    return SyncResultDto(state: var_state);
+    var var_writeState = sse_decode_String(deserializer);
+    var var_projectionState = sse_decode_String(deserializer);
+    var var_syncState = sse_decode_String(deserializer);
+    var var_code = sse_decode_opt_String(deserializer);
+    return SyncResultDto(
+      state: var_state,
+      writeState: var_writeState,
+      projectionState: var_projectionState,
+      syncState: var_syncState,
+      code: var_code,
+    );
   }
 
   @protected
   SyncStatusDto sse_decode_sync_status_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_state = sse_decode_String(deserializer);
-    return SyncStatusDto(state: var_state);
+    var var_writeState = sse_decode_String(deserializer);
+    var var_projectionState = sse_decode_String(deserializer);
+    var var_syncState = sse_decode_String(deserializer);
+    var var_code = sse_decode_opt_String(deserializer);
+    return SyncStatusDto(
+      state: var_state,
+      writeState: var_writeState,
+      projectionState: var_projectionState,
+      syncState: var_syncState,
+      code: var_code,
+    );
   }
 
   @protected
@@ -1227,6 +1276,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_String(String? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_String(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_pool_detail_dto(
     PoolDetailDto self,
     SseSerializer serializer,
@@ -1270,6 +1329,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.state, serializer);
+    sse_encode_String(self.writeState, serializer);
+    sse_encode_String(self.projectionState, serializer);
+    sse_encode_String(self.syncState, serializer);
+    sse_encode_opt_String(self.code, serializer);
   }
 
   @protected
@@ -1279,6 +1342,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.state, serializer);
+    sse_encode_String(self.writeState, serializer);
+    sse_encode_String(self.projectionState, serializer);
+    sse_encode_String(self.syncState, serializer);
+    sse_encode_opt_String(self.code, serializer);
   }
 
   @protected

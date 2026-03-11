@@ -50,7 +50,13 @@ class _NoopGateway implements SyncGateway {
 
   @override
   Future<frb.SyncStatusDto> syncStatus({required BigInt networkId}) async {
-    return const frb.SyncStatusDto(state: 'idle');
+    return const frb.SyncStatusDto(
+      state: 'idle',
+      writeState: 'write_saved',
+      projectionState: 'ready',
+      syncState: 'idle',
+      code: null,
+    );
   }
 }
 

@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `card_store_map`, `current_user_role`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_card_store`, `with_pool_store`
+// These functions are ignored because they are not marked as `pub`: `build_sync_result_dto`, `build_sync_status_dto`, `card_store_map`, `current_user_role`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_card_store`, `with_pool_store`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 初始化 CardStore
@@ -281,32 +281,70 @@ class PoolMemberDto {
 
 class SyncResultDto {
   final String state;
+  final String writeState;
+  final String projectionState;
+  final String syncState;
+  final String? code;
 
-  const SyncResultDto({required this.state});
+  const SyncResultDto({
+    required this.state,
+    required this.writeState,
+    required this.projectionState,
+    required this.syncState,
+    this.code,
+  });
 
   @override
-  int get hashCode => state.hashCode;
+  int get hashCode =>
+      state.hashCode ^
+      writeState.hashCode ^
+      projectionState.hashCode ^
+      syncState.hashCode ^
+      code.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SyncResultDto &&
           runtimeType == other.runtimeType &&
-          state == other.state;
+          state == other.state &&
+          writeState == other.writeState &&
+          projectionState == other.projectionState &&
+          syncState == other.syncState &&
+          code == other.code;
 }
 
 class SyncStatusDto {
   final String state;
+  final String writeState;
+  final String projectionState;
+  final String syncState;
+  final String? code;
 
-  const SyncStatusDto({required this.state});
+  const SyncStatusDto({
+    required this.state,
+    required this.writeState,
+    required this.projectionState,
+    required this.syncState,
+    this.code,
+  });
 
   @override
-  int get hashCode => state.hashCode;
+  int get hashCode =>
+      state.hashCode ^
+      writeState.hashCode ^
+      projectionState.hashCode ^
+      syncState.hashCode ^
+      code.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SyncStatusDto &&
           runtimeType == other.runtimeType &&
-          state == other.state;
+          state == other.state &&
+          writeState == other.writeState &&
+          projectionState == other.projectionState &&
+          syncState == other.syncState &&
+          code == other.code;
 }

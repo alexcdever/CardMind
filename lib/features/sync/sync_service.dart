@@ -70,7 +70,7 @@ class SyncService {
   Future<SyncStatus> status() async {
     try {
       final dto = await gateway.syncStatus(networkId: networkId);
-      return _mapState(dto.state);
+      return _mapDtoToStatus(dto);
     } on ApiError catch (error) {
       return SyncStatus.error(error.code);
     } catch (_) {
@@ -94,7 +94,7 @@ class SyncService {
       await gateway.syncPull(networkId: networkId);
       return status();
     } on ApiError catch (error) {
-      return SyncStatus.error(error.code);
+      return SyncStatus.error(error.code, isWriteSaved: false);
     } catch (_) {
       return const SyncStatus.error('INTERNAL');
     }
@@ -112,16 +112,30 @@ class SyncService {
     }
   }
 
-  SyncStatus _mapState(String state) {
-    switch (state) {
+  SyncStatus _mapStatus(frb.SyncStatusDto status) {
+    return _mapDtoToStatus(status);
+  }
+
+  SyncStatus _mapDtoToStatus(frb.SyncStatusDto dto) {
+    final writeSaved = dto.writeState == 'write_saved';
+    if (dto.projectionState == 'pending') {
+      return SyncStatus.projectionPending(dto.code);
+    }
+
+    switch (dto.syncState) {
       case 'idle':
         return const SyncStatus.idle();
       case 'connected':
-        return const SyncStatus.connected();
+        return SyncStatus.connected(isWriteSaved: writeSaved);
       case 'syncing':
-        return const SyncStatus.syncing();
+        return SyncStatus.syncing(isWriteSaved: writeSaved);
       case 'degraded':
-        return const SyncStatus.degraded();
+        return SyncStatus.degraded(dto.code, writeSaved);
+      case 'failed':
+        return SyncStatus.error(
+          dto.code ?? 'SYNC_FAILED',
+          isWriteSaved: writeSaved,
+        );
       default:
         return const SyncStatus.error('UNKNOWN_SYNC_STATE');
     }

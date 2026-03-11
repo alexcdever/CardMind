@@ -85,11 +85,39 @@ pub struct CardNoteDto {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncStatusDto {
     pub state: String,
+    pub write_state: String,
+    pub projection_state: String,
+    pub sync_state: String,
+    pub code: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncResultDto {
     pub state: String,
+    pub write_state: String,
+    pub projection_state: String,
+    pub sync_state: String,
+    pub code: Option<String>,
+}
+
+fn build_sync_status_dto(state: &str) -> SyncStatusDto {
+    SyncStatusDto {
+        state: state.to_string(),
+        write_state: "write_saved".to_string(),
+        projection_state: "ready".to_string(),
+        sync_state: state.to_string(),
+        code: None,
+    }
+}
+
+fn build_sync_result_dto(sync_state: &str) -> SyncResultDto {
+    SyncResultDto {
+        state: "ok".to_string(),
+        write_state: "write_saved".to_string(),
+        projection_state: "ready".to_string(),
+        sync_state: sync_state.to_string(),
+        code: None,
+    }
 }
 
 fn parse_uuid(raw: &str, field: &str) -> Result<Uuid, ApiError> {
@@ -386,9 +414,7 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
     let network = map
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    Ok(SyncStatusDto {
-        state: network.sync_state().to_string(),
-    })
+    Ok(build_sync_status_dto(network.sync_state()))
 }
 
 pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
@@ -429,10 +455,13 @@ pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let network = map
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    network.sync_push().map_err(map_err)?;
-    Ok(SyncResultDto {
-        state: "ok".to_string(),
-    })
+    network.sync_push().map_err(|err| match err {
+        CardMindError::InvalidArgument(msg) if msg == "sync not connected" => {
+            ApiError::new(ApiErrorCode::RequestTimeout, "sync not connected")
+        }
+        other => map_err(other),
+    })?;
+    Ok(build_sync_result_dto("connected"))
 }
 
 pub fn sync_pull(network_id: u64) -> Result<SyncResultDto, ApiError> {
@@ -442,8 +471,11 @@ pub fn sync_pull(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let network = map
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    network.sync_pull().map_err(map_err)?;
-    Ok(SyncResultDto {
-        state: "ok".to_string(),
-    })
+    network.sync_pull().map_err(|err| match err {
+        CardMindError::InvalidArgument(msg) if msg == "sync not connected" => {
+            ApiError::new(ApiErrorCode::RequestTimeout, "sync not connected")
+        }
+        other => map_err(other),
+    })?;
+    Ok(build_sync_result_dto("connected"))
 }
