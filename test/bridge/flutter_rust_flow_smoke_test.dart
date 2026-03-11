@@ -1,0 +1,80 @@
+// input: 真实 FRB 初始化参数，以及创建池、创建卡片、查询与同步调用序列。
+// output: 断言 Flutter 可经由 Rust 后端完成最小 pool-card-sync 烟测主链路。
+// pos: 覆盖跨语言主链路烟测，防止 FRB 接口虽生成但无法贯通真实后端。修改本文件需同步更新文件头与所属 DIR.md。
+import 'dart:io';
+
+import 'package:cardmind/bridge_generated/api.dart' as frb;
+import 'package:cardmind/bridge_generated/frb_generated.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+String _releaseDylibPath() {
+  return File('rust/target/release/libcardmind_rust.dylib').absolute.path;
+}
+
+void main() {
+  test(
+    'flutter should complete pool-card-sync smoke flow through frb',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      final root = await Directory.systemTemp.createTemp('cardmind-frb-flow-');
+      final basePath = root.path;
+      final dylibPath = _releaseDylibPath();
+
+      await RustLib.init(externalLibrary: ExternalLibrary.open(dylibPath));
+
+      final storeId = await frb.initCardStore(basePath: basePath);
+      final networkId = await frb.initPoolNetwork(basePath: basePath);
+
+      try {
+        final pool = await frb.createPool(
+          storeId: storeId,
+          endpointId: 'endpoint-a',
+          nickname: 'nick-a',
+          os: 'macos',
+        );
+        final card = await frb.createCardNoteInPool(
+          storeId: storeId,
+          poolId: pool.id,
+          title: 'smoke-title',
+          content: 'smoke-body',
+        );
+
+        final listedCards = await frb.listCardNotes(storeId: storeId);
+        final poolDetail = await frb.getPoolDetail(
+          storeId: storeId,
+          poolId: pool.id,
+        );
+        final initialSync = await frb.syncStatus(networkId: networkId);
+
+        expect(pool.id, isNotEmpty);
+        expect(card.id, isNotEmpty);
+        expect(listedCards.map((item) => item.id), contains(card.id));
+        expect(poolDetail.noteIds, contains(card.id));
+        expect(initialSync.state, 'idle');
+        expect(initialSync.writeState, 'write_saved');
+
+        await frb.syncConnect(networkId: networkId, target: 'local://peer');
+        await frb.syncJoinPool(networkId: networkId, poolId: pool.id);
+        final push = await frb.syncPush(networkId: networkId);
+        final pull = await frb.syncPull(networkId: networkId);
+        final connectedSync = await frb.syncStatus(networkId: networkId);
+
+        expect(push.state, 'ok');
+        expect(push.syncState, 'connected');
+        expect(pull.state, 'ok');
+        expect(connectedSync.state, 'connected');
+        expect(connectedSync.syncState, 'connected');
+
+        await frb.syncDisconnect(networkId: networkId);
+        final finalSync = await frb.syncStatus(networkId: networkId);
+        expect(finalSync.state, 'idle');
+      } finally {
+        await frb.closePoolNetwork(networkId: networkId);
+        await frb.closeCardStore(storeId: storeId);
+        await root.delete(recursive: true);
+        RustLib.dispose();
+      }
+    },
+  );
+}
