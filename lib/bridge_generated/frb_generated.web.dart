@@ -28,7 +28,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApiError dco_decode_api_error(dynamic raw);
 
   @protected
+  bool dco_decode_bool(dynamic raw);
+
+  @protected
+  CardNoteDto dco_decode_card_note_dto(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<CardNoteDto> dco_decode_list_card_note_dto(dynamic raw);
+
+  @protected
+  List<PoolDto> dco_decode_list_pool_dto(dynamic raw);
+
+  @protected
+  List<PoolMemberDto> dco_decode_list_pool_member_dto(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  PoolDetailDto dco_decode_pool_detail_dto(dynamic raw);
+
+  @protected
+  PoolDto dco_decode_pool_dto(dynamic raw);
+
+  @protected
+  PoolMemberDto dco_decode_pool_member_dto(dynamic raw);
 
   @protected
   SyncResultDto dco_decode_sync_result_dto(dynamic raw);
@@ -46,13 +76,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void dco_decode_unit(dynamic raw);
 
   @protected
+  BigInt dco_decode_usize(dynamic raw);
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
   ApiError sse_decode_api_error(SseDeserializer deserializer);
 
   @protected
+  bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  CardNoteDto sse_decode_card_note_dto(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<CardNoteDto> sse_decode_list_card_note_dto(SseDeserializer deserializer);
+
+  @protected
+  List<PoolDto> sse_decode_list_pool_dto(SseDeserializer deserializer);
+
+  @protected
+  List<PoolMemberDto> sse_decode_list_pool_member_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  PoolDetailDto sse_decode_pool_detail_dto(SseDeserializer deserializer);
+
+  @protected
+  PoolDto sse_decode_pool_dto(SseDeserializer deserializer);
+
+  @protected
+  PoolMemberDto sse_decode_pool_member_dto(SseDeserializer deserializer);
 
   @protected
   SyncResultDto sse_decode_sync_result_dto(SseDeserializer deserializer);
@@ -70,10 +135,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
+  BigInt sse_decode_usize(SseDeserializer deserializer);
 
   @protected
-  bool sse_decode_bool(SseDeserializer deserializer);
+  int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
@@ -82,10 +147,46 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_api_error(ApiError self, SseSerializer serializer);
 
   @protected
+  void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_card_note_dto(CardNoteDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_card_note_dto(
+    List<CardNoteDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_pool_dto(List<PoolDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_pool_member_dto(
+    List<PoolMemberDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_pool_detail_dto(PoolDetailDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pool_dto(PoolDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pool_member_dto(PoolMemberDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_sync_result_dto(SyncResultDto self, SseSerializer serializer);
@@ -103,10 +204,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_unit(void self, SseSerializer serializer);
 
   @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
+  void sse_encode_usize(BigInt self, SseSerializer serializer);
 
   @protected
-  void sse_encode_bool(bool self, SseSerializer serializer);
+  void sse_encode_i_32(int self, SseSerializer serializer);
 }
 
 // Section: wire_class

@@ -7,8 +7,8 @@ import 'frb_generated.dart';
 import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `card_store_map`, `map_err`, `pool_network_map`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `card_store_map`, `current_user_role`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_card_store`, `with_pool_store`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 初始化 CardStore
 Future<BigInt> initCardStore({required String basePath}) =>
@@ -17,6 +17,88 @@ Future<BigInt> initCardStore({required String basePath}) =>
 /// 关闭 CardStore
 Future<void> closeCardStore({required BigInt storeId}) =>
     RustLib.instance.api.crateApiCloseCardStore(storeId: storeId);
+
+Future<PoolDto> createPool({
+  required BigInt storeId,
+  required String endpointId,
+  required String nickname,
+  required String os,
+}) => RustLib.instance.api.crateApiCreatePool(
+  storeId: storeId,
+  endpointId: endpointId,
+  nickname: nickname,
+  os: os,
+);
+
+Future<PoolDto> joinPool({
+  required BigInt storeId,
+  required String poolId,
+  required String endpointId,
+  required String nickname,
+  required String os,
+}) => RustLib.instance.api.crateApiJoinPool(
+  storeId: storeId,
+  poolId: poolId,
+  endpointId: endpointId,
+  nickname: nickname,
+  os: os,
+);
+
+Future<List<PoolDto>> listPools({required BigInt storeId}) =>
+    RustLib.instance.api.crateApiListPools(storeId: storeId);
+
+Future<PoolDetailDto> getPoolDetail({
+  required BigInt storeId,
+  required String poolId,
+}) => RustLib.instance.api.crateApiGetPoolDetail(
+  storeId: storeId,
+  poolId: poolId,
+);
+
+Future<CardNoteDto> createCardNote({
+  required BigInt storeId,
+  required String title,
+  required String content,
+}) => RustLib.instance.api.crateApiCreateCardNote(
+  storeId: storeId,
+  title: title,
+  content: content,
+);
+
+Future<CardNoteDto> createCardNoteInPool({
+  required BigInt storeId,
+  required String poolId,
+  required String title,
+  required String content,
+}) => RustLib.instance.api.crateApiCreateCardNoteInPool(
+  storeId: storeId,
+  poolId: poolId,
+  title: title,
+  content: content,
+);
+
+Future<CardNoteDto> updateCardNote({
+  required BigInt storeId,
+  required String cardId,
+  required String title,
+  required String content,
+}) => RustLib.instance.api.crateApiUpdateCardNote(
+  storeId: storeId,
+  cardId: cardId,
+  title: title,
+  content: content,
+);
+
+Future<List<CardNoteDto>> listCardNotes({required BigInt storeId}) =>
+    RustLib.instance.api.crateApiListCardNotes(storeId: storeId);
+
+Future<CardNoteDto> getCardNoteDetail({
+  required BigInt storeId,
+  required String cardId,
+}) => RustLib.instance.api.crateApiGetCardNoteDetail(
+  storeId: storeId,
+  cardId: cardId,
+);
 
 /// 初始化 PoolNetwork
 Future<BigInt> initPoolNetwork({required String basePath}) =>
@@ -51,6 +133,151 @@ Future<SyncResultDto> syncPush({required BigInt networkId}) =>
 
 Future<SyncResultDto> syncPull({required BigInt networkId}) =>
     RustLib.instance.api.crateApiSyncPull(networkId: networkId);
+
+class CardNoteDto {
+  final String id;
+  final String title;
+  final String content;
+  final PlatformInt64 createdAt;
+  final PlatformInt64 updatedAt;
+  final bool deleted;
+
+  const CardNoteDto({
+    required this.id,
+    required this.title,
+    required this.content,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.deleted,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      content.hashCode ^
+      createdAt.hashCode ^
+      updatedAt.hashCode ^
+      deleted.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CardNoteDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          content == other.content &&
+          createdAt == other.createdAt &&
+          updatedAt == other.updatedAt &&
+          deleted == other.deleted;
+}
+
+class PoolDetailDto {
+  final String id;
+  final String name;
+  final bool isDissolved;
+  final String currentUserRole;
+  final BigInt memberCount;
+  final List<String> noteIds;
+  final List<PoolMemberDto> members;
+
+  const PoolDetailDto({
+    required this.id,
+    required this.name,
+    required this.isDissolved,
+    required this.currentUserRole,
+    required this.memberCount,
+    required this.noteIds,
+    required this.members,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      isDissolved.hashCode ^
+      currentUserRole.hashCode ^
+      memberCount.hashCode ^
+      noteIds.hashCode ^
+      members.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolDetailDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          isDissolved == other.isDissolved &&
+          currentUserRole == other.currentUserRole &&
+          memberCount == other.memberCount &&
+          noteIds == other.noteIds &&
+          members == other.members;
+}
+
+class PoolDto {
+  final String id;
+  final String name;
+  final bool isDissolved;
+  final String currentUserRole;
+  final BigInt memberCount;
+
+  const PoolDto({
+    required this.id,
+    required this.name,
+    required this.isDissolved,
+    required this.currentUserRole,
+    required this.memberCount,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      name.hashCode ^
+      isDissolved.hashCode ^
+      currentUserRole.hashCode ^
+      memberCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          name == other.name &&
+          isDissolved == other.isDissolved &&
+          currentUserRole == other.currentUserRole &&
+          memberCount == other.memberCount;
+}
+
+class PoolMemberDto {
+  final String endpointId;
+  final String nickname;
+  final String os;
+  final String role;
+
+  const PoolMemberDto({
+    required this.endpointId,
+    required this.nickname,
+    required this.os,
+    required this.role,
+  });
+
+  @override
+  int get hashCode =>
+      endpointId.hashCode ^ nickname.hashCode ^ os.hashCode ^ role.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolMemberDto &&
+          runtimeType == other.runtimeType &&
+          endpointId == other.endpointId &&
+          nickname == other.nickname &&
+          os == other.os &&
+          role == other.role;
+}
 
 class SyncResultDto {
   final String state;
