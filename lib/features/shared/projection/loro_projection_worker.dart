@@ -2,14 +2,28 @@
 // output: 触发卡片或池读模型投影写入，完成写侧变更到 SQLite 同步。
 // pos: 投影分发工作器，负责承接 Loro 订阅事件并驱动读模型更新。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+import 'package:cardmind/features/cards/data/sqlite_cards_read_repository.dart';
 import 'package:cardmind/features/cards/projection/cards_projection_handler.dart';
 import 'package:cardmind/features/cards/domain/card_note.dart';
+import 'package:cardmind/features/pool/data/sqlite_pool_read_repository.dart';
 import 'package:cardmind/features/pool/domain/pool_entity.dart';
 import 'package:cardmind/features/pool/projection/pool_projection_handler.dart';
+import 'package:cardmind/features/shared/data/app_database.dart';
 import 'package:cardmind/features/shared/projection/loro_projection_event.dart';
 
 class LoroProjectionWorker {
   const LoroProjectionWorker({this.cardsHandler, this.poolHandler});
+
+  factory LoroProjectionWorker.forDatabase(AppDatabase database) {
+    return LoroProjectionWorker(
+      cardsHandler: CardsProjectionHandler(
+        SqliteCardsReadRepository(database: database),
+      ),
+      poolHandler: PoolProjectionHandler(
+        SqlitePoolReadRepository(database: database),
+      ),
+    );
+  }
 
   final CardsProjectionHandler? cardsHandler;
   final PoolProjectionHandler? poolHandler;

@@ -1,6 +1,6 @@
 // input: 接收卡片与池投影写入参数，并根据查询条件读取读模型列表。
-// output: 提供内存 SQLite 读模型抽象，支持 upsert 与按更新时间倒序检索。
-// pos: 读模型数据库抽象层，负责统一管理 cards/pool 投影表数据。修改本文件需同步更新文件头与所属 DIR.md。
+// output: 提供内存 SQLite 读模型抽象，支持投影写入与按更新时间倒序查询。
+// pos: 读模型数据库抽象层，负责统一管理 cards/pool 投影表数据并作为 Flutter 查询事实来源。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 import 'package:cardmind/features/pool/domain/pool_entity.dart';
@@ -14,6 +14,7 @@ class AppDatabase {
     _cardRows[row.id] = row;
   }
 
+  /// 卡片查询只读取投影后的 SQLite 读模型行。
   Future<List<CardNoteProjection>> searchCards(
     String query, {
     bool includeDeleted = false,
@@ -36,6 +37,7 @@ class AppDatabase {
     _poolRows[pool.poolId] = pool;
   }
 
+  /// 池查询只读取投影后的 SQLite 读模型行。
   Future<List<PoolEntity>> listPools({
     String query = '',
     bool includeDissolved = false,
