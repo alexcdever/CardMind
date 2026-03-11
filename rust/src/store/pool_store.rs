@@ -103,6 +103,18 @@ impl PoolStore {
         self.get_pool(pool_id)
     }
 
+    /// 将 note 引用挂接到池元数据，已存在则去重保留
+    pub fn attach_note_references(
+        &self,
+        pool_id: &Uuid,
+        note_ids: Vec<Uuid>,
+    ) -> Result<Pool, CardMindError> {
+        let mut pool = self.get_pool(pool_id)?;
+        pool.card_ids = merge_note_references(&pool.card_ids, note_ids);
+        self.persist_pool(&pool)?;
+        Ok(pool)
+    }
+
     /// 加入数据池
     pub fn join_pool(
         &self,
@@ -118,11 +130,7 @@ impl PoolStore {
         {
             updated.members.push(new_member);
         }
-        let mut card_set: HashSet<Uuid> = updated.card_ids.iter().cloned().collect();
-        for card_id in local_card_ids {
-            card_set.insert(card_id);
-        }
-        updated.card_ids = card_set.into_iter().collect();
+        updated.card_ids = merge_note_references(&updated.card_ids, local_card_ids);
         self.persist_pool(&updated)?;
         Ok(updated)
     }
@@ -218,4 +226,12 @@ impl PoolStore {
             retry_action,
         }
     }
+}
+
+fn merge_note_references(existing: &[Uuid], incoming: Vec<Uuid>) -> Vec<Uuid> {
+    let mut card_set: HashSet<Uuid> = existing.iter().cloned().collect();
+    for card_id in incoming {
+        card_set.insert(card_id);
+    }
+    card_set.into_iter().collect()
 }

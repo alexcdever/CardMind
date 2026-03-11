@@ -121,6 +121,11 @@ fn with_pool_store<T>(
     })
 }
 
+fn list_all_card_ids(card_store: &CardStore) -> Result<Vec<Uuid>, ApiError> {
+    let cards = card_store.list_cards(10_000, 0).map_err(map_err)?;
+    Ok(cards.into_iter().map(|card| card.id).collect())
+}
+
 fn parse_pool_id(pool_id: &str) -> Result<Uuid, ApiError> {
     parse_uuid(pool_id, "pool_id")
 }
@@ -239,8 +244,11 @@ pub fn join_pool(
     nickname: String,
     os: String,
 ) -> Result<PoolDto, ApiError> {
-    with_pool_store(store_id, |pool_store| {
+    with_card_store(store_id, |card_store| {
         let pool_id = parse_pool_id(&pool_id)?;
+        let local_card_ids = list_all_card_ids(card_store)?;
+        let base_path = card_store.base_path().to_string_lossy().to_string();
+        let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
         let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
         let updated = pool_store
             .join_pool(
@@ -251,7 +259,7 @@ pub fn join_pool(
                     os,
                     is_admin: false,
                 },
-                Vec::new(),
+                local_card_ids,
             )
             .map_err(map_err)?;
         Ok(to_pool_dto(&updated))
@@ -287,6 +295,24 @@ pub fn create_card_note(
 ) -> Result<CardNoteDto, ApiError> {
     with_card_store(store_id, |card_store| {
         let card = card_store.create_card(&title, &content).map_err(map_err)?;
+        Ok(to_card_note_dto(&card))
+    })
+}
+
+pub fn create_card_note_in_pool(
+    store_id: u64,
+    pool_id: String,
+    title: String,
+    content: String,
+) -> Result<CardNoteDto, ApiError> {
+    with_card_store(store_id, |card_store| {
+        let pool_id = parse_pool_id(&pool_id)?;
+        let card = card_store.create_card(&title, &content).map_err(map_err)?;
+        let base_path = card_store.base_path().to_string_lossy().to_string();
+        let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
+        pool_store
+            .attach_note_references(&pool_id, vec![card.id])
+            .map_err(map_err)?;
         Ok(to_card_note_dto(&card))
     })
 }
