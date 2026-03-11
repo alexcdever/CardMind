@@ -4,6 +4,7 @@
 // 中文注释：本文件定义卡片 ApiClient，并保留短期兼容实现。
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/features/cards/data/cards_read_repository.dart';
+import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
 import 'package:cardmind/features/cards/data/cards_write_repository.dart';
 import 'package:cardmind/features/cards/domain/card_note.dart';
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';
@@ -53,6 +54,16 @@ class LegacyCardApiClient implements CardApiClient {
     required CardsWriteRepository writeRepository,
   }) : _readRepository = readRepository,
        _writeRepository = writeRepository;
+
+  factory LegacyCardApiClient.inMemory({
+    required CardsReadRepository readRepository,
+  }) {
+    // 中文注释：这是短期兼容路径，主页面不再直接装配旧写仓；后续将由 FRB 客户端替换并删除。
+    return LegacyCardApiClient(
+      readRepository: readRepository,
+      writeRepository: LoroCardsWriteRepository.inMemory(),
+    );
+  }
 
   final CardsReadRepository _readRepository;
   final CardsWriteRepository _writeRepository;

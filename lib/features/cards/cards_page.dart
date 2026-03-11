@@ -8,7 +8,6 @@ import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/cards_desktop_interactions.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
-import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
 import 'package:cardmind/features/cards/data/sqlite_cards_read_repository.dart';
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:cardmind/features/shared/data/app_database.dart';
@@ -30,10 +29,7 @@ class _CardsPageState extends State<CardsPage> {
       SqliteCardsReadRepository(database: _database);
   late final CardsController _controller = CardsController(
     readRepository: _readRepository,
-    apiClient: LegacyCardApiClient(
-      readRepository: _readRepository,
-      writeRepository: LoroCardsWriteRepository.inMemory(),
-    ),
+    apiClient: LegacyCardApiClient.inMemory(readRepository: _readRepository),
   )..addListener(_onChanged);
   _DesktopEditorSession? _desktopSession;
 

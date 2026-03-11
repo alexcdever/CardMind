@@ -1,7 +1,7 @@
 // input: 接收池生命周期命令参数并调用池写仓更新写模型真源。
 // output: 在 Loro 写侧执行创建、编辑、申请、审批、拒绝、退出、解散命令。
-// pos: 池命令服务，负责封装池全生命周期写侧操作。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+// pos: 池命令服务，仅保留给旧测试与迁移过渡使用；主页面流不得再直接依赖它。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：临时兼容服务，待 Flutter 主流程完全切换到 Rust 后端后删除。
 import 'package:cardmind/features/pool/data/pool_write_repository.dart';
 import 'package:cardmind/features/pool/domain/pool_entity.dart';
 import 'package:cardmind/features/pool/domain/pool_member.dart';

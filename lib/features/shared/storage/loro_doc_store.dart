@@ -1,6 +1,7 @@
 // input: Loro 文档路径与更新字节序列。
 // output: 负责 snapshot/update 文件的创建、读取与追加。
-// pos: Loro 文档文件化存储实现。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: Loro 文档文件化存储实现，当前仅保留给旧写侧测试与兼容路径使用；主页面流不得再直接依赖它。修改本文件需同步更新文件头与所属 DIR.md。
+// 中文注释：临时兼容存储，待 Flutter 主流程完全切换到 Rust 后端后删除。
 import 'dart:io';
 import 'dart:typed_data';
 
