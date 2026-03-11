@@ -2,6 +2,7 @@
 // output: 更新 PoolState/SyncStatus 并通过 notifyListeners() 触发界面刷新。
 // pos: 数据池状态控制器，负责池成员流转与同步状态编排。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/foundation.dart';
@@ -10,14 +11,15 @@ class PoolController extends ChangeNotifier {
   PoolController({
     PoolState initialState = const PoolState.notJoined(),
     SyncStatus initialSyncStatus = const SyncStatus.connected(),
+    PoolApiClient? apiClient,
   }) : _state = initialState,
-       _syncStatus = initialSyncStatus;
+       _syncStatus = initialSyncStatus,
+       _apiClient = apiClient ?? LocalPoolApiClient();
 
   PoolState _state;
   SyncStatus _syncStatus;
   bool _joining = false;
-
-  static const String _ownerPoolName = '我的数据池';
+  final PoolApiClient _apiClient;
 
   PoolState get state => _state;
   SyncStatus get syncStatus => _syncStatus;
@@ -33,8 +35,12 @@ class PoolController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void createPool() {
-    _state = const PoolState.joined(poolName: _ownerPoolName, isOwner: true);
+  Future<void> createPool() async {
+    final result = await _apiClient.createPool();
+    _state = PoolState.joined(
+      poolName: result.poolName,
+      isOwner: result.isOwner,
+    );
     notifyListeners();
   }
 
@@ -120,20 +126,11 @@ class PoolController extends ChangeNotifier {
   Future<void> joinByCode(String code) async {
     _joining = true;
     notifyListeners();
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-
-    if (code == 'ok') {
-      _state = const PoolState.joined();
-      _joining = false;
-      notifyListeners();
-      return;
-    }
-
-    final errorCode = code == 'admin-offline'
-        ? 'ADMIN_OFFLINE'
-        : 'REQUEST_TIMEOUT';
-    _state = PoolState.error(errorCode);
+    final result = await _apiClient.joinByCode(code);
     _joining = false;
+    _state = result.isSuccess
+        ? PoolState.joined(poolName: result.poolName ?? '默认数据池')
+        : PoolState.error(result.errorCode ?? 'REQUEST_TIMEOUT');
     notifyListeners();
   }
 

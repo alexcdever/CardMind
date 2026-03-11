@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:cardmind/features/cards/card_summary.dart';
+import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/cards_desktop_interactions.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
@@ -25,9 +26,14 @@ class CardsPage extends StatefulWidget {
 
 class _CardsPageState extends State<CardsPage> {
   late final AppDatabase _database = AppDatabase();
+  late final SqliteCardsReadRepository _readRepository =
+      SqliteCardsReadRepository(database: _database);
   late final CardsController _controller = CardsController(
-    readRepository: SqliteCardsReadRepository(database: _database),
-    writeRepository: LoroCardsWriteRepository.inMemory(),
+    readRepository: _readRepository,
+    apiClient: LegacyCardApiClient(
+      readRepository: _readRepository,
+      writeRepository: LoroCardsWriteRepository.inMemory(),
+    ),
   )..addListener(_onChanged);
   _DesktopEditorSession? _desktopSession;
 
