@@ -40,12 +40,24 @@ class _NoopGateway implements SyncGateway {
 
   @override
   Future<frb.SyncResultDto> syncPull({required BigInt networkId}) async {
-    return const frb.SyncResultDto(state: 'ok');
+    return const frb.SyncResultDto(
+      state: 'ok',
+      writeState: 'write_saved',
+      projectionState: 'ready',
+      syncState: 'connected',
+      code: null,
+    );
   }
 
   @override
   Future<frb.SyncResultDto> syncPush({required BigInt networkId}) async {
-    return const frb.SyncResultDto(state: 'ok');
+    return const frb.SyncResultDto(
+      state: 'ok',
+      writeState: 'write_saved',
+      projectionState: 'ready',
+      syncState: 'connected',
+      code: null,
+    );
   }
 
   @override

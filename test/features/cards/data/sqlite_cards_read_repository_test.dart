@@ -1,9 +1,10 @@
 // input: 写入两条不同 updatedAtMicros 的卡片投影并执行 search 查询。
 // output: 返回结果按 updatedAtMicros 倒序，且默认过滤 deleted 条目。
 // pos: 卡片 SQLite 读仓测试，保障查询排序与软删除过滤行为。修改本文件需同步更新文件头与所属 DIR.md。
-import 'package:cardmind/features/cards/data/sqlite_cards_read_repository.dart';
+import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
+import 'package:cardmind/features/cards/data/sqlite_cards_read_repository.dart';
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 import 'package:cardmind/features/shared/data/app_database.dart';
 import 'dart:io';
@@ -112,7 +113,10 @@ void main() {
       );
       final controller = CardsController(
         readRepository: readRepo,
-        writeRepository: writeRepo,
+        apiClient: LegacyCardApiClient(
+          readRepository: readRepo,
+          writeRepository: writeRepo,
+        ),
       );
 
       const noteId = '019-card-test';
@@ -136,7 +140,10 @@ void main() {
       final database = AppDatabase();
       final controller = CardsController(
         readRepository: SqliteCardsReadRepository(database: database),
-        writeRepository: LoroCardsWriteRepository.inMemory(),
+        apiClient: LegacyCardApiClient(
+          readRepository: SqliteCardsReadRepository(database: database),
+          writeRepository: LoroCardsWriteRepository.inMemory(),
+        ),
       );
 
       await controller.create('in-memory-id', 'InMemoryTitle', 'Body');

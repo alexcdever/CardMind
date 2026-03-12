@@ -5,8 +5,8 @@ use cardmind_rust::store::card_store::CardStore;
 use tempfile::tempdir;
 
 #[test]
-fn create_card_should_be_observable_via_sqlite_query_after_projection(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn create_card_should_be_observable_via_sqlite_query_after_projection()
+-> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
     let store = CardStore::new(dir.path().to_string_lossy().as_ref())?;
 
@@ -19,8 +19,8 @@ fn create_card_should_be_observable_via_sqlite_query_after_projection(
 }
 
 #[test]
-fn update_card_should_write_business_fact_before_query_refresh(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn update_card_should_write_business_fact_before_query_refresh()
+-> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
     let store = CardStore::new(dir.path().to_string_lossy().as_ref())?;
 

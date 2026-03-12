@@ -5,7 +5,7 @@
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::path::Path;
 use uuid::Uuid;
 

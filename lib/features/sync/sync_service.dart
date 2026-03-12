@@ -112,10 +112,6 @@ class SyncService {
     }
   }
 
-  SyncStatus _mapStatus(frb.SyncStatusDto status) {
-    return _mapDtoToStatus(status);
-  }
-
   SyncStatus _mapDtoToStatus(frb.SyncStatusDto dto) {
     final writeSaved = dto.writeState == 'write_saved';
     if (dto.projectionState == 'pending') {

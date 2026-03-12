@@ -6,7 +6,7 @@ use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use crate::net::endpoint::{build_endpoint, PoolEndpoint};
+use crate::net::endpoint::{PoolEndpoint, build_endpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::store::card_store::CardStore;
 use crate::store::pool_store::PoolStore;

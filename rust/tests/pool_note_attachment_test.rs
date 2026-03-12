@@ -8,8 +8,8 @@ use cardmind_rust::api::{
 use tempfile::tempdir;
 
 #[test]
-fn join_pool_should_attach_existing_notes_including_soft_deleted(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn join_pool_should_attach_existing_notes_including_soft_deleted()
+-> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
     let store_id = init_card_store(dir.path().to_string_lossy().to_string())?;
 
