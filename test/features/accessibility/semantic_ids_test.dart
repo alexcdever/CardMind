@@ -95,6 +95,101 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets(
+    'pool dialogs and sync actions expose stable identifiers and keys',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('pool.join_scan_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('模拟成功加入'), findsWidgets);
+      expect(find.bySemanticsLabel('管理员离线加入码'), findsWidgets);
+      expect(find.bySemanticsLabel('请求超时加入码'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('pool.scan_dialog.success')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pool.scan_dialog.admin_offline')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pool.scan_dialog.timeout')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('pool.scan_dialog.success')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('pool.edit_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('池名称输入框'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('pool.edit_dialog.name_input')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pool.edit_dialog.save')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pool.edit_dialog.cancel')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('pool.edit_dialog.cancel')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('pool.dissolve_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('确认解散数据池'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('pool.dissolve_dialog.confirm')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('pool.dissolve_dialog.cancel')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('editor leave dialog exposes stable identifiers and keys', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: EditorPage()));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('editor.title_input')),
+      'draft',
+    );
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('保存并离开'), findsWidgets);
+    expect(find.bySemanticsLabel('放弃更改'), findsWidgets);
+    expect(find.bySemanticsLabel('取消'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('editor.leave_dialog.save')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('editor.leave_dialog.discard')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('editor.leave_dialog.cancel')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('desktop cards page exposes stable semantics for editor fields', (
     tester,
   ) async {

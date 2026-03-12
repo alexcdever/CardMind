@@ -329,17 +329,42 @@ class _PoolPageState extends State<PoolPage> {
           title: const Text('扫码加入'),
           content: const Text('使用模拟加入码：ok / admin-offline / timeout'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop('ok'),
-              child: const Text('模拟成功'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.poolScanDialogSuccess,
+              label: '模拟成功加入',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('pool.scan_dialog.success'),
+                onPressed: () => Navigator.of(dialogContext).pop('ok'),
+                child: const Text('模拟成功'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop('admin-offline'),
-              child: const Text('管理员离线'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.poolScanDialogAdminOffline,
+              label: '管理员离线加入码',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('pool.scan_dialog.admin_offline'),
+                onPressed: () =>
+                    Navigator.of(dialogContext).pop('admin-offline'),
+                child: const Text('管理员离线'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop('timeout'),
-              child: const Text('请求超时'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.poolScanDialogTimeout,
+              label: '请求超时加入码',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('pool.scan_dialog.timeout'),
+                onPressed: () => Navigator.of(dialogContext).pop('timeout'),
+                child: const Text('请求超时'),
+              ),
             ),
           ],
         );
@@ -406,13 +431,41 @@ class _PoolPageState extends State<PoolPage> {
         return AlertDialog(
           content: Text(content),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: confirmLabel == '确认解散'
+                  ? SemanticIds.poolDissolveDialogCancel
+                  : SemanticIds.poolLeaveDialogCancel,
+              label: confirmLabel == '确认解散' ? '取消解散数据池' : '取消',
+              button: true,
+              child: TextButton(
+                key: ValueKey(
+                  confirmLabel == '确认解散'
+                      ? 'pool.dissolve_dialog.cancel'
+                      : 'pool.confirm_dialog.cancel',
+                ),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('取消'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(confirmLabel),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: confirmLabel == '确认解散'
+                  ? SemanticIds.poolDissolveDialogConfirm
+                  : SemanticIds.poolLeaveDialogConfirm,
+              label: confirmLabel == '确认解散' ? '确认解散数据池' : confirmLabel,
+              button: true,
+              child: TextButton(
+                key: ValueKey(
+                  confirmLabel == '确认解散'
+                      ? 'pool.dissolve_dialog.confirm'
+                      : 'pool.confirm_dialog.confirm',
+                ),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(confirmLabel),
+              ),
             ),
           ],
         );
@@ -431,20 +484,44 @@ class _PoolPageState extends State<PoolPage> {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('编辑池信息'),
-          content: TextFormField(
-            initialValue: state.poolName,
-            onChanged: (value) {
-              draftName = value;
-            },
+          content: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            identifier: SemanticIds.poolEditDialogNameInput,
+            label: '池名称输入框',
+            textField: true,
+            child: TextFormField(
+              key: const ValueKey('pool.edit_dialog.name_input'),
+              initialValue: state.poolName,
+              onChanged: (value) {
+                draftName = value;
+              },
+            ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.poolEditDialogCancel,
+              label: '取消编辑池信息',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('pool.edit_dialog.cancel'),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('取消'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(draftName),
-              child: const Text('保存'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.poolEditDialogSave,
+              label: '保存池信息',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('pool.edit_dialog.save'),
+                onPressed: () => Navigator.of(dialogContext).pop(draftName),
+                child: const Text('保存'),
+              ),
             ),
           ],
         );
@@ -499,15 +576,18 @@ class _PoolPageState extends State<PoolPage> {
             spacing: 8,
             children: [
               TextButton(
+                key: const ValueKey('pool.sync.retry'),
                 onPressed: _controller.retrySync,
                 child: const Text('重试同步'),
               ),
               TextButton(
+                key: const ValueKey('pool.sync.reconnect'),
                 onPressed: _controller.reconnectSync,
                 child: const Text('重新连接'),
               ),
               if (isError)
                 TextButton(
+                  key: const ValueKey('pool.sync.view_error'),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('错误详情: ${status.code}')),

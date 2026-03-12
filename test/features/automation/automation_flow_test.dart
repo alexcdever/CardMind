@@ -73,4 +73,59 @@ void main() {
       expect(find.text('成员列表'), findsOneWidget);
     },
   );
+
+  testWidgets('pool automation anchors support scan and edit dialog flow', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('pool.join_scan_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('pool.scan_dialog.success')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('pool.edit_button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('pool.edit_dialog.name_input')),
+      'Edited Pool Name',
+    );
+    await tester.tap(find.byKey(const ValueKey('pool.edit_dialog.save')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edited Pool Name'), findsOneWidget);
+  });
+
+  testWidgets('editor automation anchors support leave dialog flow', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('editor.title_input')),
+      'Unsaved automation draft',
+    );
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('editor.leave_dialog.save')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('editor.leave_dialog.discard')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('editor.leave_dialog.cancel')),
+      findsOneWidget,
+    );
+  });
 }

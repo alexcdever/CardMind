@@ -170,17 +170,43 @@ class _EditorPageState extends State<EditorPage> {
           title: const Text('离开编辑？'),
           content: const Text('你有未保存的更改。'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(_ExitDecision.save),
-              child: const Text('保存并离开'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.editorLeaveDialogSave,
+              label: '保存并离开',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('editor.leave_dialog.save'),
+                onPressed: () => Navigator.of(context).pop(_ExitDecision.save),
+                child: const Text('保存并离开'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(_ExitDecision.discard),
-              child: const Text('放弃更改'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.editorLeaveDialogDiscard,
+              label: '放弃更改',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('editor.leave_dialog.discard'),
+                onPressed: () =>
+                    Navigator.of(context).pop(_ExitDecision.discard),
+                child: const Text('放弃更改'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(_ExitDecision.cancel),
-              child: const Text('取消'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.editorLeaveDialogCancel,
+              label: '取消',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('editor.leave_dialog.cancel'),
+                onPressed: () =>
+                    Navigator.of(context).pop(_ExitDecision.cancel),
+                child: const Text('取消'),
+              ),
             ),
           ],
         );

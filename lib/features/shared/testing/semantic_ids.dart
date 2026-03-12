@@ -19,6 +19,9 @@ class SemanticIds {
   static const editorTitleInput = 'editor.title_input';
   static const editorBodyInput = 'editor.body_input';
   static const editorSaveButton = 'editor.save_button';
+  static const editorLeaveDialogSave = 'editor.leave_dialog.save';
+  static const editorLeaveDialogDiscard = 'editor.leave_dialog.discard';
+  static const editorLeaveDialogCancel = 'editor.leave_dialog.cancel';
 
   static const poolCreateButton = 'pool.create_button';
   static const poolJoinScanButton = 'pool.join_scan_button';
@@ -30,4 +33,15 @@ class SemanticIds {
   static const poolLeaveDialogConfirm = 'pool.leave_dialog.confirm';
   static const poolLeaveDialogCancel = 'pool.leave_dialog.cancel';
   static const poolErrorPrimaryAction = 'pool.error.primary_action';
+  static const poolScanDialogSuccess = 'pool.scan_dialog.success';
+  static const poolScanDialogAdminOffline = 'pool.scan_dialog.admin_offline';
+  static const poolScanDialogTimeout = 'pool.scan_dialog.timeout';
+  static const poolEditDialogNameInput = 'pool.edit_dialog.name_input';
+  static const poolEditDialogSave = 'pool.edit_dialog.save';
+  static const poolEditDialogCancel = 'pool.edit_dialog.cancel';
+  static const poolDissolveDialogConfirm = 'pool.dissolve_dialog.confirm';
+  static const poolDissolveDialogCancel = 'pool.dissolve_dialog.cancel';
+  static const poolSyncRetry = 'pool.sync.retry';
+  static const poolSyncReconnect = 'pool.sync.reconnect';
+  static const poolSyncViewError = 'pool.sync.view_error';
 }
