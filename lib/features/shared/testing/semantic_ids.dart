@@ -44,4 +44,12 @@ class SemanticIds {
   static const poolSyncRetry = 'pool.sync.retry';
   static const poolSyncReconnect = 'pool.sync.reconnect';
   static const poolSyncViewError = 'pool.sync.view_error';
+
+  static const navCards = 'nav.cards';
+  static const navPool = 'nav.pool';
+  static const navSettings = 'nav.settings';
+
+  static const settingsPage = 'settings.page';
+
+  static const cardsContextMenuDelete = 'cards.context_menu.delete';
 }

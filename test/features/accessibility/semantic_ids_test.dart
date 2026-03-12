@@ -6,6 +6,9 @@ import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
+import 'package:cardmind/features/settings/settings_page.dart';
+import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
+import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -222,4 +225,32 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'settings page and app navigation expose stable identifiers and keys',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(390, 844)),
+            child: AdaptiveHomepageScaffold(
+              section: AppSection.settings,
+              onSectionChanged: (_) {},
+              child: const SettingsPage(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('设置页'), findsWidgets);
+      expect(find.byKey(const ValueKey('settings.page')), findsOneWidget);
+      expect(find.bySemanticsLabel('卡片导航'), findsWidgets);
+      expect(find.bySemanticsLabel('数据池导航'), findsWidgets);
+      expect(find.bySemanticsLabel('设置导航'), findsWidgets);
+      expect(find.byKey(const ValueKey('nav.cards')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav.pool')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav.settings')), findsOneWidget);
+    },
+  );
 }

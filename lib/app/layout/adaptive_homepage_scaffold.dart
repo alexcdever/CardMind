@@ -3,6 +3,7 @@
 // pos: 自适应主页脚手架组件，负责桌面与移动端导航布局切换。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 应用主页模块，负责导航与跨端布局。
 import 'package:cardmind/app/navigation/app_section.dart';
+import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,9 +24,24 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 900;
     const destinations = <_HomepageDestination>[
-      _HomepageDestination(icon: Icons.style_outlined, label: '卡片'),
-      _HomepageDestination(icon: Icons.group_work_outlined, label: '数据池'),
-      _HomepageDestination(icon: Icons.settings_outlined, label: '设置'),
+      _HomepageDestination(
+        icon: Icons.style_outlined,
+        label: '卡片',
+        identifier: SemanticIds.navCards,
+        semanticLabel: '卡片导航',
+      ),
+      _HomepageDestination(
+        icon: Icons.group_work_outlined,
+        label: '数据池',
+        identifier: SemanticIds.navPool,
+        semanticLabel: '数据池导航',
+      ),
+      _HomepageDestination(
+        icon: Icons.settings_outlined,
+        label: '设置',
+        identifier: SemanticIds.navSettings,
+        semanticLabel: '设置导航',
+      ),
     ];
 
     if (desktop) {
@@ -75,7 +91,16 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
                 destinations: destinations
                     .map(
                       (item) => NavigationRailDestination(
-                        icon: Icon(item.icon),
+                        icon: Semantics(
+                          container: true,
+                          explicitChildNodes: true,
+                          identifier: item.identifier,
+                          label: item.semanticLabel,
+                          child: Icon(
+                            item.icon,
+                            key: ValueKey(item.identifier),
+                          ),
+                        ),
                         label: Text(item.label),
                       ),
                     )
@@ -103,7 +128,13 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
         items: destinations
             .map(
               (item) => BottomNavigationBarItem(
-                icon: Icon(item.icon),
+                icon: Semantics(
+                  container: true,
+                  explicitChildNodes: true,
+                  identifier: item.identifier,
+                  label: item.semanticLabel,
+                  child: Icon(item.icon, key: ValueKey(item.identifier)),
+                ),
                 label: item.label,
               ),
             )
@@ -114,8 +145,15 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
 }
 
 class _HomepageDestination {
-  const _HomepageDestination({required this.icon, required this.label});
+  const _HomepageDestination({
+    required this.icon,
+    required this.label,
+    required this.identifier,
+    required this.semanticLabel,
+  });
 
   final IconData icon;
   final String label;
+  final String identifier;
+  final String semanticLabel;
 }
