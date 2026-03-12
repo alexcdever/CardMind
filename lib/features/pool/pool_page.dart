@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
+import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
@@ -76,18 +77,34 @@ class _PoolPageState extends State<PoolPage> {
                         padding: EdgeInsets.only(bottom: 12),
                         child: Text('在这里创建或加入数据池'),
                       ),
-                      ElevatedButton(
-                        onPressed: _controller.joining
-                            ? null
-                            : _controller.createPool,
-                        child: const Text('创建池'),
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolCreateButton,
+                        label: '创建池',
+                        button: true,
+                        child: ElevatedButton(
+                          key: const ValueKey('pool.create_button'),
+                          onPressed: _controller.joining
+                              ? null
+                              : _controller.createPool,
+                          child: const Text('创建池'),
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: _controller.joining
-                            ? null
-                            : () => _scanAndJoin(context),
-                        child: const Text('扫码加入'),
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolJoinScanButton,
+                        label: '扫码加入',
+                        button: true,
+                        child: OutlinedButton(
+                          key: const ValueKey('pool.join_scan_button'),
+                          onPressed: _controller.joining
+                              ? null
+                              : () => _scanAndJoin(context),
+                          child: const Text('扫码加入'),
+                        ),
                       ),
                       if (_controller.joining)
                         const Padding(
@@ -142,22 +159,46 @@ class _PoolPageState extends State<PoolPage> {
                   child: Wrap(
                     spacing: 12,
                     children: [
-                      OutlinedButton(
-                        onPressed: () => _showEditPoolDialog(context),
-                        child: const Text('编辑池信息'),
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolEditButton,
+                        label: '编辑池信息',
+                        button: true,
+                        child: OutlinedButton(
+                          key: const ValueKey('pool.edit_button'),
+                          onPressed: () => _showEditPoolDialog(context),
+                          child: const Text('编辑池信息'),
+                        ),
                       ),
-                      OutlinedButton(
-                        onPressed: () => _confirmDissolvePool(context),
-                        child: const Text('解散池'),
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolDissolveButton,
+                        label: '解散池',
+                        button: true,
+                        child: OutlinedButton(
+                          key: const ValueKey('pool.dissolve_button'),
+                          onPressed: () => _confirmDissolvePool(context),
+                          child: const Text('解散池'),
+                        ),
                       ),
                     ],
                   ),
                 ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: OutlinedButton(
-                  onPressed: () => _confirmLeavePool(context),
-                  child: const Text('退出池'),
+                child: Semantics(
+                  container: true,
+                  explicitChildNodes: true,
+                  identifier: SemanticIds.poolLeaveButton,
+                  label: '退出池',
+                  button: true,
+                  child: OutlinedButton(
+                    key: const ValueKey('pool.leave_button'),
+                    onPressed: () => _confirmLeavePool(context),
+                    child: const Text('退出池'),
+                  ),
                 ),
               ),
               if (state.pending.isNotEmpty)
@@ -172,13 +213,27 @@ class _PoolPageState extends State<PoolPage> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextButton(
-                        onPressed: () => _controller.approve(request.id),
-                        child: const Text('通过'),
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolPendingApprove,
+                        label: '通过审批',
+                        button: true,
+                        child: TextButton(
+                          onPressed: () => _controller.approve(request.id),
+                          child: const Text('通过'),
+                        ),
                       ),
-                      TextButton(
-                        onPressed: () => _controller.reject(request.id),
-                        child: const Text('拒绝'),
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolPendingReject,
+                        label: '拒绝审批',
+                        button: true,
+                        child: TextButton(
+                          onPressed: () => _controller.reject(request.id),
+                          child: const Text('拒绝'),
+                        ),
                       ),
                       if (request.error != null)
                         TextButton(
@@ -219,11 +274,19 @@ class _PoolPageState extends State<PoolPage> {
                 padding: const EdgeInsets.all(16),
                 child: Text('加入失败: ${mapped.message}'),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  _controller.setState(const PoolState.notJoined());
-                },
-                child: Text(mapped.primaryActionLabel),
+              Semantics(
+                container: true,
+                explicitChildNodes: true,
+                identifier: SemanticIds.poolErrorPrimaryAction,
+                label: mapped.primaryActionLabel,
+                button: true,
+                child: ElevatedButton(
+                  key: const ValueKey('pool.error.primary_action'),
+                  onPressed: () {
+                    _controller.setState(const PoolState.notJoined());
+                  },
+                  child: Text(mapped.primaryActionLabel),
+                ),
               ),
               TextButton(
                 onPressed: () {
@@ -294,13 +357,29 @@ class _PoolPageState extends State<PoolPage> {
         return AlertDialog(
           content: const Text('退出后会移除池关联数据，确认退出吗？'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('取消'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.poolLeaveDialogCancel,
+              label: '取消退出数据池',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('pool.leave_dialog.cancel'),
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('取消'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('确认退出'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.poolLeaveDialogConfirm,
+              label: '确认退出数据池',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('pool.leave_dialog.confirm'),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('确认退出'),
+              ),
             ),
           ],
         );

@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:async';
 
 import 'package:cardmind/features/editor/editor_controller.dart';
+import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 
 class EditorPage extends StatefulWidget {
   const EditorPage({super.key, this.onSaved});
@@ -72,15 +73,23 @@ class _EditorPageState extends State<EditorPage> {
                 leading: BackButton(onPressed: _onBack),
                 title: const Text('编辑卡片'),
                 actions: [
-                  IconButton(
-                    onPressed: () async {
-                      final shouldClose = await _saveAndRunCallback();
-                      if (!context.mounted || !shouldClose) {
-                        return;
-                      }
-                      Navigator.of(context).pop();
-                    },
-                    icon: const Icon(Icons.save_outlined),
+                  Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    identifier: SemanticIds.editorSaveButton,
+                    label: '保存卡片',
+                    button: true,
+                    child: IconButton(
+                      key: const ValueKey('editor.save_button'),
+                      onPressed: () async {
+                        final shouldClose = await _saveAndRunCallback();
+                        if (!context.mounted || !shouldClose) {
+                          return;
+                        }
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.save_outlined),
+                    ),
                   ),
                 ],
               ),
@@ -88,23 +97,39 @@ class _EditorPageState extends State<EditorPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    TextField(
-                      decoration: const InputDecoration(labelText: '标题'),
-                      onChanged: _controller.setTitle,
+                    Semantics(
+                      container: true,
+                      explicitChildNodes: true,
+                      identifier: SemanticIds.editorTitleInput,
+                      label: '标题输入框',
+                      textField: true,
+                      child: TextField(
+                        key: const ValueKey('editor.title_input'),
+                        decoration: const InputDecoration(labelText: '标题'),
+                        onChanged: _controller.setTitle,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: TextField(
-                        expands: true,
-                        maxLines: null,
-                        textAlignVertical: TextAlignVertical.top,
-                        decoration: const InputDecoration(
-                          alignLabelWithHint: true,
-                          border: OutlineInputBorder(),
-                          labelText: '内容',
-                          hintText: '输入卡片内容',
+                      child: Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.editorBodyInput,
+                        label: '内容输入框',
+                        textField: true,
+                        child: TextField(
+                          key: const ValueKey('editor.body_input'),
+                          expands: true,
+                          maxLines: null,
+                          textAlignVertical: TextAlignVertical.top,
+                          decoration: const InputDecoration(
+                            alignLabelWithHint: true,
+                            border: OutlineInputBorder(),
+                            labelText: '内容',
+                            hintText: '输入卡片内容',
+                          ),
+                          onChanged: _controller.setBody,
                         ),
-                        onChanged: _controller.setBody,
                       ),
                     ),
                     if (_controller.saving)

@@ -11,6 +11,7 @@ import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/data/sqlite_cards_read_repository.dart';
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:cardmind/features/shared/data/app_database.dart';
+import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
@@ -98,11 +99,19 @@ class _CardsPageState extends State<CardsPage> {
         },
         child: desktop ? _buildDesktopLayout(notes) : _buildMobileLayout(notes),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _openEditor(context);
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Semantics(
+        container: true,
+        explicitChildNodes: true,
+        identifier: SemanticIds.cardsCreateFab,
+        label: '新建卡片',
+        button: true,
+        child: FloatingActionButton(
+          key: const ValueKey('cards.create_fab'),
+          onPressed: () {
+            _openEditor(context);
+          },
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -141,33 +150,49 @@ class _CardsPageState extends State<CardsPage> {
   }
 
   Widget _buildSearchField() {
-    return TextField(
-      decoration: const InputDecoration(hintText: '搜索卡片'),
-      onChanged: (value) {
-        unawaited(_controller.load(query: value));
-      },
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      identifier: SemanticIds.cardsSearchInput,
+      label: '搜索卡片',
+      textField: true,
+      child: TextField(
+        key: const ValueKey('cards.search_input'),
+        decoration: const InputDecoration(hintText: '搜索卡片'),
+        onChanged: (value) {
+          unawaited(_controller.load(query: value));
+        },
+      ),
     );
   }
 
   Widget _buildNotesList(List<CardSummary> notes, {bool desktop = false}) {
-    return ListView(
-      children: [
-        for (final note in notes)
-          ListTile(
-            selected: _desktopSession?.selectedId == note.id,
-            title: Text(note.title),
-            subtitle: note.deleted ? const Text('已删除') : null,
-            onTap: desktop ? () => _handleDesktopSelection(note) : null,
-            trailing: TextButton(
-              onPressed: () {
-                unawaited(
-                  _onDeleteOrRestore(id: note.id, deleted: note.deleted),
-                );
-              },
-              child: Text(note.deleted ? '恢复' : '删除'),
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      identifier: SemanticIds.cardsList,
+      label: '卡片列表',
+      child: ListView(
+        children: [
+          for (final note in notes)
+            ListTile(
+              key: ValueKey('cards.item.${note.id}'),
+              selected: _desktopSession?.selectedId == note.id,
+              title: Text(note.title),
+              subtitle: note.deleted ? const Text('已删除') : null,
+              onTap: desktop ? () => _handleDesktopSelection(note) : null,
+              trailing: TextButton(
+                key: ValueKey('cards.item.${note.id}.toggle_delete'),
+                onPressed: () {
+                  unawaited(
+                    _onDeleteOrRestore(id: note.id, deleted: note.deleted),
+                  );
+                },
+                child: Text(note.deleted ? '恢复' : '删除'),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -182,26 +207,16 @@ class _CardsPageState extends State<CardsPage> {
       children: [
         const Text('编辑卡片'),
         const SizedBox(height: 12),
-        TextField(
-          controller: session.titleController,
-          decoration: const InputDecoration(labelText: '标题'),
-          onChanged: (_) {
-            setState(() {
-              session.dirty = true;
-            });
-          },
-        ),
-        const SizedBox(height: 12),
-        Expanded(
+        Semantics(
+          container: true,
+          explicitChildNodes: true,
+          identifier: SemanticIds.cardsDesktopEditorTitleInput,
+          label: '桌面编辑标题输入框',
+          textField: true,
           child: TextField(
-            controller: session.bodyController,
-            expands: true,
-            maxLines: null,
-            textAlignVertical: TextAlignVertical.top,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: '内容',
-            ),
+            key: const ValueKey('cards.desktop_editor.title_input'),
+            controller: session.titleController,
+            decoration: const InputDecoration(labelText: '标题'),
             onChanged: (_) {
               setState(() {
                 session.dirty = true;
@@ -210,7 +225,44 @@ class _CardsPageState extends State<CardsPage> {
           ),
         ),
         const SizedBox(height: 12),
-        FilledButton(onPressed: _saveDesktopSession, child: const Text('保存')),
+        Expanded(
+          child: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            identifier: SemanticIds.cardsDesktopEditorBodyInput,
+            label: '桌面编辑内容输入框',
+            textField: true,
+            child: TextField(
+              key: const ValueKey('cards.desktop_editor.body_input'),
+              controller: session.bodyController,
+              expands: true,
+              maxLines: null,
+              textAlignVertical: TextAlignVertical.top,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: '内容',
+              ),
+              onChanged: (_) {
+                setState(() {
+                  session.dirty = true;
+                });
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Semantics(
+          container: true,
+          explicitChildNodes: true,
+          identifier: SemanticIds.cardsDesktopEditorSaveButton,
+          label: '保存桌面编辑卡片',
+          button: true,
+          child: FilledButton(
+            key: const ValueKey('cards.desktop_editor.save_button'),
+            onPressed: _saveDesktopSession,
+            child: const Text('保存'),
+          ),
+        ),
       ],
     );
   }
@@ -240,17 +292,43 @@ class _CardsPageState extends State<CardsPage> {
           title: const Text('离开编辑？'),
           content: const Text('你有未保存的更改。'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(_ExitDecision.save),
-              child: const Text('保存并离开'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.cardsLeaveDialogSave,
+              label: '保存并离开',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('cards.leave_dialog.save'),
+                onPressed: () => Navigator.of(context).pop(_ExitDecision.save),
+                child: const Text('保存并离开'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(_ExitDecision.discard),
-              child: const Text('放弃更改'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.cardsLeaveDialogDiscard,
+              label: '放弃更改',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('cards.leave_dialog.discard'),
+                onPressed: () =>
+                    Navigator.of(context).pop(_ExitDecision.discard),
+                child: const Text('放弃更改'),
+              ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(_ExitDecision.cancel),
-              child: const Text('取消'),
+            Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.cardsLeaveDialogCancel,
+              label: '取消',
+              button: true,
+              child: TextButton(
+                key: const ValueKey('cards.leave_dialog.cancel'),
+                onPressed: () =>
+                    Navigator.of(context).pop(_ExitDecision.cancel),
+                child: const Text('取消'),
+              ),
             ),
           ],
         );
