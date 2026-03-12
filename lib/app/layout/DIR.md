@@ -5,4 +5,4 @@ pos: 应用布局目录说明与维护入口
 应用布局目录，定义跨端主页导航脚手架。
 
 DIR.md - 本目录说明与文件职责索引
-adaptive_homepage_scaffold.dart - 自适应主页脚手架，负责底栏与侧栏导航切换
+adaptive_homepage_scaffold.dart - 自适应主页脚手架，负责底栏与侧栏导航切换，并暴露导航自动化锚点
