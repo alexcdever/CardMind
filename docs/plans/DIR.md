@@ -62,5 +62,6 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-09-architecture-spec-implementation-plan.md - 实现计划 - 项目级架构规格实施（新增 architecture 规格并对齐相关 specs）
 2026-03-09-flutter-rust-backend-frontend-design.md - 设计草案 - Flutter 作为前端、Rust 作为后端的嵌入式前后端分层设计
 2026-03-09-flutter-rust-embedded-backend-implementation-plan.md - 实现计划 - Flutter/Rust 前后端打通并落实 LoroDoc/SQLite 读写分离的任务化实施
+2026-03-13-flutter-rust-mainpath-repair-design.md - 设计草案 - Flutter/Rust 主路径修补设计（生产完全切到 FRB/Rust，移除生产兼容层）
 2026-03-09-ui-redesign-design.md - 设计草案 - UI 重设计（信息架构、主页语义、跨端布局与视觉约束）
 2026-03-09-ui-redesign-implementation-plan.md - 实现计划 - UI 重设计任务化实施（spec-first、主页命名、局部同步反馈、本地 TDD）
