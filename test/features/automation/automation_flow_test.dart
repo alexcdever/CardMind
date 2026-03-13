@@ -4,7 +4,6 @@
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
-import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
