@@ -1,6 +1,6 @@
-// input: 来自 FRB/上层的句柄与字符串参数，以及 store/network 操作返回的领域错误。
-// output: 初始化与关闭句柄结果、后端用例 DTO、同步状态 DTO 与统一 ApiError 映射。
-// pos: Rust API 门面模块，负责句柄生命周期管理、后端用例编排与跨层错误转换。修改本文件需同步更新文件头与所属 DIR.md。
+// input: 来自 FRB/上层的应用配置、网络句柄与字符串参数，以及 store/network 操作返回的领域错误。
+// output: 应用配置结果、网络初始化与关闭结果、后端用例 DTO、同步状态 DTO 与统一 ApiError 映射。
+// pos: Rust API 门面模块，负责应用级运行配置、网络句柄生命周期管理、后端用例编排与跨层错误转换。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：本文件承接对外 API、组装稳定 DTO 并做错误码映射。
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::card::Card;
@@ -8,7 +8,7 @@ use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
 use crate::net::endpoint::{PoolEndpoint, build_endpoint};
 use crate::net::pool_network::PoolNetwork;
-use crate::store::card_store::CardStore;
+use crate::store::card_store::CardNoteRepository;
 use crate::store::pool_store::PoolStore;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -16,17 +16,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use uuid::Uuid;
 
-static CARD_STORE_SEQ: AtomicU64 = AtomicU64::new(1);
-static CARD_STORES: OnceLock<Mutex<HashMap<u64, CardStore>>> = OnceLock::new();
+static APP_CONFIG_DIR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 static POOL_NETWORK_SEQ: AtomicU64 = AtomicU64::new(1);
 static POOL_NETWORKS: OnceLock<Mutex<HashMap<u64, PoolNetwork>>> = OnceLock::new();
 
-fn card_store_map() -> &'static Mutex<HashMap<u64, CardStore>> {
-    CARD_STORES.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
 fn pool_network_map() -> &'static Mutex<HashMap<u64, PoolNetwork>> {
     POOL_NETWORKS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+fn app_config_dir() -> &'static Mutex<Option<String>> {
+    APP_CONFIG_DIR.get_or_init(|| Mutex::new(None))
 }
 
 fn map_err(err: CardMindError) -> ApiError {
@@ -125,32 +124,36 @@ fn parse_uuid(raw: &str, field: &str) -> Result<Uuid, ApiError> {
         .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, &format!("invalid {field}")))
 }
 
-fn with_card_store<T>(
-    store_id: u64,
-    f: impl FnOnce(&CardStore) -> Result<T, ApiError>,
-) -> Result<T, ApiError> {
-    let map = card_store_map()
+fn configured_app_data_dir() -> Result<String, ApiError> {
+    let app_config = app_config_dir()
         .lock()
-        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    let store = map
-        .get(&store_id)
-        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "card store handle invalid"))?;
-    f(store)
-}
-
-fn with_pool_store<T>(
-    store_id: u64,
-    f: impl FnOnce(&PoolStore) -> Result<T, ApiError>,
-) -> Result<T, ApiError> {
-    with_card_store(store_id, |card_store| {
-        let base_path = card_store.base_path().to_string_lossy().to_string();
-        let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
-        f(&pool_store)
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app config lock poisoned"))?;
+    app_config.clone().ok_or_else(|| {
+        ApiError::new(
+            ApiErrorCode::AppConfigNotInitialized,
+            "app config not initialized",
+        )
     })
 }
 
-fn list_all_card_ids(card_store: &CardStore) -> Result<Vec<Uuid>, ApiError> {
-    let cards = card_store.list_cards(10_000, 0).map_err(map_err)?;
+fn with_configured_card_store<T>(
+    f: impl FnOnce(&CardNoteRepository) -> Result<T, ApiError>,
+) -> Result<T, ApiError> {
+    let app_data_dir = configured_app_data_dir()?;
+    let card_repository = CardNoteRepository::new(&app_data_dir).map_err(map_err)?;
+    f(&card_repository)
+}
+
+fn with_configured_pool_store<T>(
+    f: impl FnOnce(&PoolStore) -> Result<T, ApiError>,
+) -> Result<T, ApiError> {
+    let app_data_dir = configured_app_data_dir()?;
+    let pool_store = PoolStore::new(&app_data_dir).map_err(map_err)?;
+    f(&pool_store)
+}
+
+fn list_all_card_ids(card_repository: &CardNoteRepository) -> Result<Vec<Uuid>, ApiError> {
+    let cards = card_repository.list_cards(10_000, 0).map_err(map_err)?;
     Ok(cards.into_iter().map(|card| card.id).collect())
 }
 
@@ -226,38 +229,36 @@ fn to_card_note_dto(card: &Card) -> CardNoteDto {
     }
 }
 
-/// 初始化 CardStore
-pub fn init_card_store(base_path: String) -> Result<u64, ApiError> {
-    let store = CardStore::new(&base_path).map_err(map_err)?;
-    let store_id = CARD_STORE_SEQ.fetch_add(1, Ordering::SeqCst);
-    let mut map = card_store_map()
+/// 初始化应用级配置
+pub fn init_app_config(app_data_dir: String) -> Result<(), ApiError> {
+    let mut config = app_config_dir()
         .lock()
-        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    map.insert(store_id, store);
-    Ok(store_id)
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app config lock poisoned"))?;
+    match config.as_ref() {
+        None => {
+            CardNoteRepository::new(&app_data_dir).map_err(map_err)?;
+            *config = Some(app_data_dir);
+            Ok(())
+        }
+        Some(current) if current == &app_data_dir => Ok(()),
+        Some(_) => Err(ApiError::new(
+            ApiErrorCode::AppConfigConflict,
+            "app config already initialized with different directory",
+        )),
+    }
 }
 
-/// 关闭 CardStore
-pub fn close_card_store(store_id: u64) -> Result<(), ApiError> {
-    let mut map = card_store_map()
+#[doc(hidden)]
+pub fn reset_app_config_for_tests() -> Result<(), ApiError> {
+    let mut config = app_config_dir()
         .lock()
-        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    if map.remove(&store_id).is_none() {
-        return Err(ApiError::new(
-            ApiErrorCode::NotFound,
-            "card store not found",
-        ));
-    }
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app config lock poisoned"))?;
+    *config = None;
     Ok(())
 }
 
-pub fn create_pool(
-    store_id: u64,
-    endpoint_id: String,
-    nickname: String,
-    os: String,
-) -> Result<PoolDto, ApiError> {
-    with_pool_store(store_id, |pool_store| {
+pub fn create_pool(endpoint_id: String, nickname: String, os: String) -> Result<PoolDto, ApiError> {
+    with_configured_pool_store(|pool_store| {
         let pool = pool_store
             .create_pool(&endpoint_id, &nickname, &os)
             .map_err(map_err)?;
@@ -266,16 +267,15 @@ pub fn create_pool(
 }
 
 pub fn join_pool(
-    store_id: u64,
     pool_id: String,
     endpoint_id: String,
     nickname: String,
     os: String,
 ) -> Result<PoolDto, ApiError> {
-    with_card_store(store_id, |card_store| {
+    with_configured_card_store(|card_repository| {
         let pool_id = parse_pool_id(&pool_id)?;
-        let local_card_ids = list_all_card_ids(card_store)?;
-        let base_path = card_store.base_path().to_string_lossy().to_string();
+        let local_card_ids = list_all_card_ids(card_repository)?;
+        let base_path = card_repository.base_path().to_string_lossy().to_string();
         let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
         let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
         let updated = pool_store
@@ -294,8 +294,8 @@ pub fn join_pool(
     })
 }
 
-pub fn list_pools(store_id: u64) -> Result<Vec<PoolDto>, ApiError> {
-    with_pool_store(store_id, |pool_store| {
+pub fn list_pools() -> Result<Vec<PoolDto>, ApiError> {
+    with_configured_pool_store(|pool_store| {
         let pools = pool_store
             .get_any_pool()
             .map(|pool| vec![pool])
@@ -308,35 +308,34 @@ pub fn list_pools(store_id: u64) -> Result<Vec<PoolDto>, ApiError> {
     })
 }
 
-pub fn get_pool_detail(store_id: u64, pool_id: String) -> Result<PoolDetailDto, ApiError> {
-    with_pool_store(store_id, |pool_store| {
+pub fn get_pool_detail(pool_id: String) -> Result<PoolDetailDto, ApiError> {
+    with_configured_pool_store(|pool_store| {
         let pool_id = parse_pool_id(&pool_id)?;
         let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
         Ok(to_pool_detail_dto(&pool))
     })
 }
 
-pub fn create_card_note(
-    store_id: u64,
-    title: String,
-    content: String,
-) -> Result<CardNoteDto, ApiError> {
-    with_card_store(store_id, |card_store| {
-        let card = card_store.create_card(&title, &content).map_err(map_err)?;
+pub fn create_card_note(title: String, content: String) -> Result<CardNoteDto, ApiError> {
+    with_configured_card_store(|card_repository| {
+        let card = card_repository
+            .create_card(&title, &content)
+            .map_err(map_err)?;
         Ok(to_card_note_dto(&card))
     })
 }
 
 pub fn create_card_note_in_pool(
-    store_id: u64,
     pool_id: String,
     title: String,
     content: String,
 ) -> Result<CardNoteDto, ApiError> {
-    with_card_store(store_id, |card_store| {
+    with_configured_card_store(|card_repository| {
         let pool_id = parse_pool_id(&pool_id)?;
-        let card = card_store.create_card(&title, &content).map_err(map_err)?;
-        let base_path = card_store.base_path().to_string_lossy().to_string();
+        let card = card_repository
+            .create_card(&title, &content)
+            .map_err(map_err)?;
+        let base_path = card_repository.base_path().to_string_lossy().to_string();
         let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
         pool_store
             .attach_note_references(&pool_id, vec![card.id])
@@ -346,31 +345,30 @@ pub fn create_card_note_in_pool(
 }
 
 pub fn update_card_note(
-    store_id: u64,
     card_id: String,
     title: String,
     content: String,
 ) -> Result<CardNoteDto, ApiError> {
-    with_card_store(store_id, |card_store| {
+    with_configured_card_store(|card_repository| {
         let card_id = parse_card_id(&card_id)?;
-        let card = card_store
+        let card = card_repository
             .update_card(&card_id, &title, &content)
             .map_err(map_err)?;
         Ok(to_card_note_dto(&card))
     })
 }
 
-pub fn list_card_notes(store_id: u64) -> Result<Vec<CardNoteDto>, ApiError> {
-    with_card_store(store_id, |card_store| {
-        let cards = card_store.list_cards(10_000, 0).map_err(map_err)?;
+pub fn list_card_notes() -> Result<Vec<CardNoteDto>, ApiError> {
+    with_configured_card_store(|card_repository| {
+        let cards = card_repository.list_cards(10_000, 0).map_err(map_err)?;
         Ok(cards.iter().map(to_card_note_dto).collect())
     })
 }
 
-pub fn get_card_note_detail(store_id: u64, card_id: String) -> Result<CardNoteDto, ApiError> {
-    with_card_store(store_id, |card_store| {
+pub fn get_card_note_detail(card_id: String) -> Result<CardNoteDto, ApiError> {
+    with_configured_card_store(|card_repository| {
         let card_id = parse_card_id(&card_id)?;
-        let card = card_store.get_card(&card_id).map_err(map_err)?;
+        let card = card_repository.get_card(&card_id).map_err(map_err)?;
         Ok(to_card_note_dto(&card))
     })
 }
@@ -383,8 +381,8 @@ pub fn init_pool_network(base_path: String) -> Result<u64, ApiError> {
         .map_err(|e| ApiError::new(ApiErrorCode::Internal, &e.to_string()))?;
     let endpoint = runtime.block_on(build_endpoint()).map_err(map_err)?;
     let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
-    let card_store = CardStore::new(&base_path).map_err(map_err)?;
-    let network = PoolNetwork::new(PoolEndpoint::new(endpoint), pool_store, card_store);
+    let card_repository = CardNoteRepository::new(&base_path).map_err(map_err)?;
+    let network = PoolNetwork::new(PoolEndpoint::new(endpoint), pool_store, card_repository);
     let network_id = POOL_NETWORK_SEQ.fetch_add(1, Ordering::SeqCst);
     let mut map = pool_network_map()
         .lock()

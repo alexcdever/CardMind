@@ -16,9 +16,14 @@ import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
 class CardsPage extends StatefulWidget {
-  const CardsPage({super.key, this.syncStatus = const SyncStatus.healthy()});
+  const CardsPage({
+    super.key,
+    this.syncStatus = const SyncStatus.healthy(),
+    this.controller,
+  });
 
   final SyncStatus syncStatus;
+  final CardsController? controller;
 
   @override
   State<CardsPage> createState() => _CardsPageState();
@@ -30,19 +35,22 @@ class _CardsPageState extends State<CardsPage> {
       SqliteCardsReadRepository(database: _database);
   late final CardsController _controller = CardsController(
     readRepository: _readRepository,
-    apiClient: LegacyCardApiClient.inMemory(readRepository: _readRepository),
+    apiClient: FrbCardApiClient(),
   )..addListener(_onChanged);
+  late final CardsController _effectiveController =
+      widget.controller ?? _controller;
   _DesktopEditorSession? _desktopSession;
 
   @override
   void initState() {
     super.initState();
+    _effectiveController.addListener(_onChanged);
     unawaited(_seedAndLoad());
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onChanged);
+    _effectiveController.removeListener(_onChanged);
     super.dispose();
   }
 
@@ -54,11 +62,17 @@ class _CardsPageState extends State<CardsPage> {
   }
 
   Future<void> _seedAndLoad() async {
-    await _controller.create('seed-note', '示例卡片A', 'seed');
+    try {
+      await _effectiveController.create('seed-note', '示例卡片A', 'seed');
+    } on StateError {
+      // 中文注释：widget test 若未初始化 FRB，则跳过生产默认种子，改由测试显式注入控制器或数据。
+    }
   }
 
   Future<void> _onDeleteOrRestore({required String id, required bool deleted}) {
-    return deleted ? _controller.restore(id) : _controller.delete(id);
+    return deleted
+        ? _effectiveController.restore(id)
+        : _effectiveController.delete(id);
   }
 
   void _openEditor(BuildContext context) {
@@ -77,7 +91,11 @@ class _CardsPageState extends State<CardsPage> {
               return;
             }
             unawaited(
-              _controller.create(generateNoteId(), draft.title, draft.body),
+              _effectiveController.create(
+                generateNoteId(),
+                draft.title,
+                draft.body,
+              ),
             );
           },
         ),
@@ -88,7 +106,7 @@ class _CardsPageState extends State<CardsPage> {
   @override
   Widget build(BuildContext context) {
     final interactions = const CardsDesktopInteractions();
-    final notes = _controller.items;
+    final notes = _effectiveController.items;
     final desktop = MediaQuery.sizeOf(context).width >= 900;
 
     return Scaffold(
@@ -160,7 +178,7 @@ class _CardsPageState extends State<CardsPage> {
         key: const ValueKey('cards.search_input'),
         decoration: const InputDecoration(hintText: '搜索卡片'),
         onChanged: (value) {
-          unawaited(_controller.load(query: value));
+          unawaited(_effectiveController.load(query: value));
         },
       ),
     );
@@ -345,7 +363,7 @@ class _CardsPageState extends State<CardsPage> {
     if (title.isEmpty) {
       return;
     }
-    await _controller.create(
+    await _effectiveController.create(
       session.selectedId ?? generateNoteId(),
       title,
       session.bodyController.text,

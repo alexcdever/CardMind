@@ -10,7 +10,7 @@ use crate::net::endpoint::PoolEndpoint;
 use crate::net::messages::PoolMessage;
 use crate::net::session::SyncSession;
 use crate::net::sync::{export_snapshot, import_updates};
-use crate::store::card_store::CardStore;
+use crate::store::card_store::CardNoteRepository;
 use crate::store::loro_store::{load_loro_doc, note_doc_path, pool_doc_path, save_loro_doc};
 use crate::store::path_resolver::DataPaths;
 use crate::store::pool_store::PoolStore;
@@ -27,14 +27,18 @@ pub struct PoolNetwork {
     endpoint: PoolEndpoint,
     base_path: String,
     pool_store: PoolStore,
-    card_store: CardStore,
+    card_repository: CardNoteRepository,
     sync_session: SyncSession,
 }
 
 impl PoolNetwork {
-    pub fn new(endpoint: PoolEndpoint, pool_store: PoolStore, card_store: CardStore) -> Self {
+    pub fn new(
+        endpoint: PoolEndpoint,
+        pool_store: PoolStore,
+        card_repository: CardNoteRepository,
+    ) -> Self {
         let base_path = pool_store.base_path().to_string_lossy().to_string();
-        let card_base = card_store.base_path();
+        let card_base = card_repository.base_path();
         if card_base != pool_store.base_path() {
             // 保底使用 pool_store 路径，避免潜在路径不一致
         }
@@ -42,7 +46,7 @@ impl PoolNetwork {
             endpoint,
             base_path,
             pool_store,
-            card_store,
+            card_repository,
             sync_session: SyncSession::new(),
         }
     }
@@ -139,7 +143,7 @@ impl PoolNetwork {
     }
 
     pub fn has_card(&self, card_id: &Uuid) -> Result<bool, CardMindError> {
-        match self.card_store.get_card(card_id) {
+        match self.card_repository.get_card(card_id) {
             Ok(_) => Ok(true),
             Err(CardMindError::NotFound(_)) => Ok(false),
             Err(err) => Err(err),

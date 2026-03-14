@@ -52,13 +52,11 @@ class LocalPoolApiClient implements PoolApiClient {
 
 class FrbPoolApiClient implements PoolApiClient {
   FrbPoolApiClient({
-    required this.storeId,
     required this.endpointId,
     required this.nickname,
     required this.os,
   });
 
-  final BigInt storeId;
   final String endpointId;
   final String nickname;
   final String os;
@@ -66,7 +64,6 @@ class FrbPoolApiClient implements PoolApiClient {
   @override
   Future<PoolCreateResult> createPool() async {
     final dto = await frb.createPool(
-      storeId: storeId,
       endpointId: endpointId,
       nickname: nickname,
       os: os,

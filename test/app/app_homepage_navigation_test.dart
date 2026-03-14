@@ -5,14 +5,109 @@ import 'package:cardmind/app/app.dart';
 import 'package:cardmind/app/navigation/app_homepage_controller.dart';
 import 'package:cardmind/app/navigation/app_homepage_page.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
+import 'package:cardmind/features/cards/cards_page.dart';
+import 'package:cardmind/features/cards/cards_controller.dart';
+import 'package:cardmind/features/cards/card_api_client.dart';
+import 'package:cardmind/features/cards/data/cards_read_repository.dart';
+import 'package:cardmind/features/cards/domain/card_note_projection.dart';
+import 'package:cardmind/features/pool/pool_api_client.dart';
+import 'package:cardmind/features/pool/pool_controller.dart';
+import 'package:cardmind/features/pool/pool_page.dart';
+import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeCardsReadRepository implements CardsReadRepository {
+  final Map<String, CardNoteProjection> _rows = <String, CardNoteProjection>{};
+
+  @override
+  Future<List<CardNoteProjection>> search(
+    String query, {
+    bool includeDeleted = false,
+  }) async {
+    final lowered = query.toLowerCase();
+    return _rows.values
+        .where((row) {
+          if (!includeDeleted && row.deleted) return false;
+          if (lowered.isEmpty) return true;
+          return row.title.toLowerCase().contains(lowered) ||
+              row.body.toLowerCase().contains(lowered);
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> upsertProjection(CardNoteProjection row) async {
+    _rows[row.id] = row;
+  }
+}
+
+class _FakeCardApiClient implements CardApiClient {
+  _FakeCardApiClient(this._readRepository);
+
+  final _FakeCardsReadRepository _readRepository;
+
+  @override
+  Future<void> createCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    await _readRepository.upsertProjection(
+      CardNoteProjection(
+        id: id,
+        title: title,
+        body: body,
+        deleted: false,
+        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteCardNote({required String id}) async {}
+
+  @override
+  Future<void> restoreCardNote({required String id}) async {}
+}
+
+class _FakePoolApiClient implements PoolApiClient {
+  @override
+  Future<PoolCreateResult> createPool() async {
+    return const PoolCreateResult(poolName: 'Server Pool', isOwner: true);
+  }
+
+  @override
+  Future<PoolJoinResult> joinByCode(String code) async {
+    if (code == 'ok') {
+      return const PoolJoinResult.joined(poolName: 'Joined Pool');
+    }
+    return const PoolJoinResult.error('ADMIN_OFFLINE');
+  }
+}
+
+CardsPage _buildTestCardsPage() {
+  final readRepository = _FakeCardsReadRepository();
+  return CardsPage(
+    controller: CardsController(
+      readRepository: readRepository,
+      apiClient: _FakeCardApiClient(readRepository),
+    ),
+  );
+}
+
+PoolPage _buildTestPoolPage() {
+  return PoolPage(
+    state: const PoolState.notJoined(),
+    controller: PoolController(apiClient: _FakePoolApiClient()),
+  );
+}
 
 void main() {
   testWidgets('app cold start shows homepage bottom nav on mobile', (
     tester,
   ) async {
-    await tester.pumpWidget(const CardMindApp());
+    await tester.pumpWidget(const CardMindApp(appDataDir: 'test-app-dir'));
     await tester.pumpAndSettle();
 
     expect(find.byType(BottomNavigationBar), findsOneWidget);
@@ -37,7 +132,13 @@ void main() {
   testWidgets('after pool joined, user remains in pool domain', (tester) async {
     final controller = AppHomepageController(initialSection: AppSection.pool);
     await tester.pumpWidget(
-      MaterialApp(home: AppHomepagePage(controller: controller)),
+      MaterialApp(
+        home: AppHomepagePage(
+          controller: controller,
+          cardsPageBuilder: (_) => _buildTestCardsPage(),
+          poolPageBuilder: (_) => _buildTestPoolPage(),
+        ),
+      ),
     );
 
     await tester.tap(find.text('创建池'));

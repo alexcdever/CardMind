@@ -2,15 +2,55 @@
 // output: 页面状态、提示文案与待审批列表按流程更新。
 // pos: 覆盖池管理全流程交互与异常分支，防止成员协作链路回归。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/pool/pool_page.dart';
+import 'package:cardmind/features/pool/pool_api_client.dart';
+import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _FakePoolApiClient implements PoolApiClient {
+  @override
+  Future<PoolCreateResult> createPool() async {
+    return const PoolCreateResult(poolName: 'Server Pool', isOwner: true);
+  }
+
+  @override
+  Future<PoolJoinResult> joinByCode(String code) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (code == 'ok') {
+      return const PoolJoinResult.joined(poolName: 'Joined Pool');
+    }
+    return const PoolJoinResult.error('ADMIN_OFFLINE');
+  }
+}
+
+PoolController _buildTestPoolController({
+  PoolState state = const PoolState.notJoined(),
+}) {
+  return PoolController(initialState: state, apiClient: _FakePoolApiClient());
+}
+
 void main() {
+  testWidgets(
+    'pool page production composition should use handle-free FRB client',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      );
+
+      expect(find.byType(PoolPage), findsOneWidget);
+    },
+  );
+
   testWidgets('shows join actions when not joined', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+        ),
+      ),
     );
 
     expect(find.text('创建池'), findsOneWidget);
@@ -21,7 +61,12 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+        ),
+      ),
     );
 
     expect(find.textContaining('在这里创建或加入数据池'), findsOneWidget);
@@ -29,7 +74,12 @@ void main() {
 
   testWidgets('create pool enters joined state', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+        ),
+      ),
     );
 
     await tester.tap(find.text('创建池'));
@@ -92,7 +142,12 @@ void main() {
 
   testWidgets('scan join can lead to error state', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+        ),
+      ),
     );
 
     await tester.tap(find.text('扫码加入'));
@@ -108,7 +163,12 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+        ),
+      ),
     );
 
     await tester.tap(find.text('扫码加入'));

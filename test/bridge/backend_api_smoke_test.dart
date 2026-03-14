@@ -1,13 +1,17 @@
 // input: 加载 FRB 生成的 bridge API 顶层后端用例函数符号。
-// output: createPool、createCardNote、listCardNotes 均可访问。
-// pos: 覆盖桥接 API 后端用例可用性，防止新增接口生成缺失。修改本文件需同步更新文件头与所属 DIR.md。
+// output: initAppConfig 与无句柄资源 API 可访问。
+// pos: 覆盖桥接 API 主路径契约，防止产品路径重新暴露 store handle。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('generated bridge should expose backend use case apis', () {
-    expect(frb.createPool, isNotNull);
-    expect(frb.createCardNote, isNotNull);
-    expect(frb.listCardNotes, isNotNull);
-  });
+  test(
+    'generated bridge should expose initAppConfig and handle-free backend apis',
+    () {
+      expect(frb.initAppConfig, isNotNull);
+      expect(frb.createPool, isNotNull);
+      expect(frb.createCardNote, isNotNull);
+      expect(frb.listCardNotes, isNotNull);
+    },
+  );
 }

@@ -4,7 +4,7 @@
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::net::endpoint::build_test_endpoints;
 use cardmind_rust::net::pool_network::PoolNetwork;
-use cardmind_rust::store::card_store::CardStore;
+use cardmind_rust::store::card_store::CardNoteRepository;
 use cardmind_rust::store::pool_store::PoolStore;
 use std::time::Duration;
 use tempfile::tempdir;
@@ -16,9 +16,9 @@ async fn it_should_sync_pool_and_cards() -> Result<(), Box<dyn std::error::Error
     let dir_b = tempdir()?;
 
     let pool_store_a = PoolStore::new(dir_a.path().to_string_lossy().as_ref())?;
-    let card_store_a = CardStore::new(dir_a.path().to_string_lossy().as_ref())?;
+    let card_store_a = CardNoteRepository::new(dir_a.path().to_string_lossy().as_ref())?;
     let pool_store_b = PoolStore::new(dir_b.path().to_string_lossy().as_ref())?;
-    let card_store_b = CardStore::new(dir_b.path().to_string_lossy().as_ref())?;
+    let card_store_b = CardNoteRepository::new(dir_b.path().to_string_lossy().as_ref())?;
 
     let endpoint_id_a = endpoint_a.endpoint_id().to_string();
     let endpoint_id_b = endpoint_b.endpoint_id().to_string();

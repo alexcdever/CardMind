@@ -26,7 +26,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -550321973;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -309484233;
 
 // Section: executor
 
@@ -45,39 +45,6 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
-fn wire__crate__api__close_card_store_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "close_card_store",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| {
-                transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::close_card_store(api_store_id)?;
-                    Ok(output_ok)
-                })())
-            }
-        },
-    )
-}
 fn wire__crate__api__close_pool_network_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -133,14 +100,12 @@ fn wire__crate__api__create_card_note_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             let api_title = <String>::sse_decode(&mut deserializer);
             let api_content = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok =
-                        crate::api::create_card_note(api_store_id, api_title, api_content)?;
+                    let output_ok = crate::api::create_card_note(api_title, api_content)?;
                     Ok(output_ok)
                 })())
             }
@@ -169,19 +134,14 @@ fn wire__crate__api__create_card_note_in_pool_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             let api_pool_id = <String>::sse_decode(&mut deserializer);
             let api_title = <String>::sse_decode(&mut deserializer);
             let api_content = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::create_card_note_in_pool(
-                        api_store_id,
-                        api_pool_id,
-                        api_title,
-                        api_content,
-                    )?;
+                    let output_ok =
+                        crate::api::create_card_note_in_pool(api_pool_id, api_title, api_content)?;
                     Ok(output_ok)
                 })())
             }
@@ -210,19 +170,13 @@ fn wire__crate__api__create_pool_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             let api_endpoint_id = <String>::sse_decode(&mut deserializer);
             let api_nickname = <String>::sse_decode(&mut deserializer);
             let api_os = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::create_pool(
-                        api_store_id,
-                        api_endpoint_id,
-                        api_nickname,
-                        api_os,
-                    )?;
+                    let output_ok = crate::api::create_pool(api_endpoint_id, api_nickname, api_os)?;
                     Ok(output_ok)
                 })())
             }
@@ -251,12 +205,11 @@ fn wire__crate__api__get_card_note_detail_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             let api_card_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::get_card_note_detail(api_store_id, api_card_id)?;
+                    let output_ok = crate::api::get_card_note_detail(api_card_id)?;
                     Ok(output_ok)
                 })())
             }
@@ -285,19 +238,18 @@ fn wire__crate__api__get_pool_detail_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             let api_pool_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::get_pool_detail(api_store_id, api_pool_id)?;
+                    let output_ok = crate::api::get_pool_detail(api_pool_id)?;
                     Ok(output_ok)
                 })())
             }
         },
     )
 }
-fn wire__crate__api__init_card_store_impl(
+fn wire__crate__api__init_app_config_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -305,7 +257,7 @@ fn wire__crate__api__init_card_store_impl(
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "init_card_store",
+            debug_name: "init_app_config",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
@@ -319,11 +271,11 @@ fn wire__crate__api__init_card_store_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_base_path = <String>::sse_decode(&mut deserializer);
+            let api_app_data_dir = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::init_card_store(api_base_path)?;
+                    let output_ok = crate::api::init_app_config(api_app_data_dir)?;
                     Ok(output_ok)
                 })())
             }
@@ -385,7 +337,6 @@ fn wire__crate__api__join_pool_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             let api_pool_id = <String>::sse_decode(&mut deserializer);
             let api_endpoint_id = <String>::sse_decode(&mut deserializer);
             let api_nickname = <String>::sse_decode(&mut deserializer);
@@ -393,13 +344,8 @@ fn wire__crate__api__join_pool_impl(
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::join_pool(
-                        api_store_id,
-                        api_pool_id,
-                        api_endpoint_id,
-                        api_nickname,
-                        api_os,
-                    )?;
+                    let output_ok =
+                        crate::api::join_pool(api_pool_id, api_endpoint_id, api_nickname, api_os)?;
                     Ok(output_ok)
                 })())
             }
@@ -428,11 +374,10 @@ fn wire__crate__api__list_card_notes_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::list_card_notes(api_store_id)?;
+                    let output_ok = crate::api::list_card_notes()?;
                     Ok(output_ok)
                 })())
             }
@@ -461,11 +406,42 @@ fn wire__crate__api__list_pools_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::list_pools(api_store_id)?;
+                    let output_ok = crate::api::list_pools()?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__reset_app_config_for_tests_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "reset_app_config_for_tests",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
+                    let output_ok = crate::api::reset_app_config_for_tests()?;
                     Ok(output_ok)
                 })())
             }
@@ -694,19 +670,14 @@ fn wire__crate__api__update_card_note_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_store_id = <u64>::sse_decode(&mut deserializer);
             let api_card_id = <String>::sse_decode(&mut deserializer);
             let api_title = <String>::sse_decode(&mut deserializer);
             let api_content = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::update_card_note(
-                        api_store_id,
-                        api_card_id,
-                        api_title,
-                        api_content,
-                    )?;
+                    let output_ok =
+                        crate::api::update_card_note(api_card_id, api_title, api_content)?;
                     Ok(output_ok)
                 })())
             }
@@ -975,18 +946,18 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__close_card_store_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__close_pool_network_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__create_card_note_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__create_card_note_in_pool_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__create_pool_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__get_card_note_detail_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__get_pool_detail_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__init_card_store_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__init_pool_network_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__join_pool_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__list_card_notes_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__list_pools_impl(port, ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__close_pool_network_impl(port, ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__create_card_note_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__create_card_note_in_pool_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__create_pool_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__get_card_note_detail_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__get_pool_detail_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__init_app_config_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__init_pool_network_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__join_pool_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__list_card_notes_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__list_pools_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__reset_app_config_for_tests_impl(port, ptr, rust_vec_len, data_len),
         13 => wire__crate__api__sync_connect_impl(port, ptr, rust_vec_len, data_len),
         14 => wire__crate__api__sync_disconnect_impl(port, ptr, rust_vec_len, data_len),
         15 => wire__crate__api__sync_join_pool_impl(port, ptr, rust_vec_len, data_len),
@@ -1354,7 +1325,7 @@ mod io {
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -1378,7 +1349,7 @@ mod web {
     };
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate

@@ -8,6 +8,7 @@ import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
+import '../../support/test_page_controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -15,7 +16,9 @@ void main() {
   testWidgets('cards page exposes stable semantics for core actions', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: buildTestCardsController())),
+    );
     await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('搜索卡片'), findsWidgets);
@@ -44,7 +47,12 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: buildTestPoolController(),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -58,7 +66,14 @@ void main() {
     'joined pool page exposes stable semantics for management actions',
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: PoolPage(state: PoolState.joinedWithPending())),
+        MaterialApp(
+          home: PoolPage(
+            state: PoolState.joinedWithPending(),
+            controller: buildTestPoolController(
+              initialState: PoolState.joinedWithPending(),
+            ),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -80,7 +95,14 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.joined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(),
+          controller: buildTestPoolController(
+            initialState: const PoolState.joined(),
+          ),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -101,7 +123,12 @@ void main() {
     'pool dialogs and sync actions expose stable identifiers and keys',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+        MaterialApp(
+          home: PoolPage(
+            state: const PoolState.notJoined(),
+            controller: buildTestPoolController(),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -196,10 +223,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: MediaQuery(
           data: MediaQueryData(size: Size(1200, 900)),
-          child: CardsPage(),
+          child: CardsPage(controller: buildTestCardsController()),
         ),
       ),
     );

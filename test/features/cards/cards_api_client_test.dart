@@ -54,6 +54,12 @@ class _FakeCardApiClient implements CardApiClient {
 }
 
 void main() {
+  test('frb card api client should not require storeId constructor state', () {
+    final client = FrbCardApiClient();
+
+    expect(client, isA<CardApiClient>());
+  });
+
   test(
     'cards controller should create through api client then reload query',
     () async {

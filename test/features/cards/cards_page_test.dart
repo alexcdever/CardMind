@@ -2,12 +2,221 @@
 // output: 编辑页导航、保存反馈与列表状态按预期变化。
 // pos: 覆盖卡片页核心 CRUD 交互路径，防止主流程回归。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/cards/cards_page.dart';
+import 'package:cardmind/features/cards/cards_controller.dart';
+import 'package:cardmind/features/cards/card_api_client.dart';
+import 'package:cardmind/bridge_generated/api.dart';
+import 'package:cardmind/bridge_generated/frb_generated.dart';
+import 'package:cardmind/features/cards/data/cards_read_repository.dart';
+import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _FakeCardsReadRepository implements CardsReadRepository {
+  final Map<String, CardNoteProjection> _rows = <String, CardNoteProjection>{};
+
+  @override
+  Future<List<CardNoteProjection>> search(
+    String query, {
+    bool includeDeleted = false,
+  }) async {
+    final lowered = query.toLowerCase();
+    final rows =
+        _rows.values
+            .where((row) {
+              if (!includeDeleted && row.deleted) return false;
+              if (lowered.isEmpty) return true;
+              return row.title.toLowerCase().contains(lowered) ||
+                  row.body.toLowerCase().contains(lowered);
+            })
+            .toList(growable: false)
+          ..sort((a, b) => b.updatedAtMicros.compareTo(a.updatedAtMicros));
+    return rows;
+  }
+
+  @override
+  Future<void> upsertProjection(CardNoteProjection row) async {
+    _rows[row.id] = row;
+  }
+}
+
+class _FakeCardApiClient implements CardApiClient {
+  _FakeCardApiClient(this._readRepository);
+
+  final _FakeCardsReadRepository _readRepository;
+
+  @override
+  Future<void> createCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    await _readRepository.upsertProjection(
+      CardNoteProjection(
+        id: id,
+        title: title,
+        body: body,
+        deleted: false,
+        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteCardNote({required String id}) async {
+    final rows = await _readRepository.search('', includeDeleted: true);
+    final row = rows.firstWhere((item) => item.id == id);
+    await _readRepository.upsertProjection(
+      CardNoteProjection(
+        id: row.id,
+        title: row.title,
+        body: row.body,
+        deleted: true,
+        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
+      ),
+    );
+  }
+
+  @override
+  Future<void> restoreCardNote({required String id}) async {
+    final rows = await _readRepository.search('', includeDeleted: true);
+    final row = rows.firstWhere((item) => item.id == id);
+    await _readRepository.upsertProjection(
+      CardNoteProjection(
+        id: row.id,
+        title: row.title,
+        body: row.body,
+        deleted: false,
+        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+CardsController _buildTestCardsController() {
+  final readRepository = _FakeCardsReadRepository();
+  return CardsController(
+    readRepository: readRepository,
+    apiClient: _FakeCardApiClient(readRepository),
+  );
+}
+
+class _MockRustLibApi extends RustLibApi {
+  @override
+  Future<void> crateApiClosePoolNetwork({required BigInt networkId}) async {}
+
+  @override
+  Future<CardNoteDto> crateApiCreateCardNote({
+    required String title,
+    required String content,
+  }) async {
+    return CardNoteDto(
+      id: 'seed-id',
+      title: title,
+      content: content,
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: false,
+    );
+  }
+
+  @override
+  Future<CardNoteDto> crateApiCreateCardNoteInPool({
+    required String poolId,
+    required String title,
+    required String content,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<PoolDto> crateApiCreatePool({
+    required String endpointId,
+    required String nickname,
+    required String os,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<CardNoteDto> crateApiGetCardNoteDetail({required String cardId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<PoolDetailDto> crateApiGetPoolDetail({required String poolId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> crateApiInitAppConfig({required String appDataDir}) async {}
+
+  @override
+  Future<BigInt> crateApiInitPoolNetwork({required String basePath}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<PoolDto> crateApiJoinPool({
+    required String poolId,
+    required String endpointId,
+    required String nickname,
+    required String os,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<List<CardNoteDto>> crateApiListCardNotes() async =>
+      const <CardNoteDto>[];
+
+  @override
+  Future<List<PoolDto>> crateApiListPools() async => const <PoolDto>[];
+
+  @override
+  Future<void> crateApiResetAppConfigForTests() async {}
+
+  @override
+  Future<void> crateApiSyncConnect({
+    required BigInt networkId,
+    required String target,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> crateApiSyncDisconnect({required BigInt networkId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> crateApiSyncJoinPool({
+    required BigInt networkId,
+    required String poolId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<SyncResultDto> crateApiSyncPull({required BigInt networkId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<SyncResultDto> crateApiSyncPush({required BigInt networkId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<SyncStatusDto> crateApiSyncStatus({required BigInt networkId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<CardNoteDto> crateApiUpdateCardNote({
+    required String cardId,
+    required String title,
+    required String content,
+  }) => throw UnimplementedError();
+}
+
 void main() {
+  testWidgets(
+    'cards page production composition should use handle-free FRB client',
+    (tester) async {
+      RustLib.initMock(api: _MockRustLibApi());
+      await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+
+      expect(find.byType(CardsPage), findsOneWidget);
+    },
+  );
+
   testWidgets('renders search, list, and create action', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+    );
 
     expect(find.byType(TextField), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
@@ -15,7 +224,9 @@ void main() {
   });
 
   testWidgets('navigates to editor when tapping create action', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+    );
 
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
@@ -26,7 +237,9 @@ void main() {
   testWidgets('create-edit-save appears in cards list through read model', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+    );
 
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
@@ -42,7 +255,9 @@ void main() {
   });
 
   testWidgets('delete or restore action changes list state', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
@@ -70,7 +285,9 @@ void main() {
   testWidgets('primary actions remain reachable with long labels', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(FloatingActionButton), findsOneWidget);
@@ -80,7 +297,9 @@ void main() {
   testWidgets(
     'search is case-insensitive across title and body for active notes',
     (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+      await tester.pumpWidget(
+        MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.byIcon(Icons.add));
@@ -117,10 +336,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: MediaQuery(
           data: MediaQueryData(size: Size(1200, 900)),
-          child: CardsPage(),
+          child: CardsPage(controller: _buildTestCardsController()),
         ),
       ),
     );
@@ -134,10 +353,10 @@ void main() {
     'desktop dirty editor blocks selecting another card until resolved',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: MediaQuery(
             data: MediaQueryData(size: Size(1200, 900)),
-            child: CardsPage(),
+            child: CardsPage(controller: _buildTestCardsController()),
           ),
         ),
       );

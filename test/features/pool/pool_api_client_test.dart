@@ -27,6 +27,16 @@ class _FakePoolApiClient implements PoolApiClient {
 }
 
 void main() {
+  test('frb pool api client should not require storeId constructor state', () {
+    final client = FrbPoolApiClient(
+      endpointId: 'endpoint-a',
+      nickname: 'nick-a',
+      os: 'macos',
+    );
+
+    expect(client, isA<PoolApiClient>());
+  });
+
   test('pool controller should create through api client', () async {
     final apiClient = _FakePoolApiClient();
     final controller = PoolController(apiClient: apiClient);

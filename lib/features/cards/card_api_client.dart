@@ -22,9 +22,7 @@ abstract class CardApiClient {
 }
 
 class FrbCardApiClient implements CardApiClient {
-  FrbCardApiClient({required this.storeId});
-
-  final BigInt storeId;
+  FrbCardApiClient();
 
   @override
   Future<void> createCardNote({
@@ -34,7 +32,7 @@ class FrbCardApiClient implements CardApiClient {
   }) async {
     // 中文注释：当前 Flutter 页面仍会先生成本地 id；Rust 已改为后端生成稳定 id，
     // 这里暂时忽略传入 id，待页面与查询链路完全切到后端返回值后删除该兼容入参。
-    await frb.createCardNote(storeId: storeId, title: title, content: body);
+    await frb.createCardNote(title: title, content: body);
   }
 
   @override

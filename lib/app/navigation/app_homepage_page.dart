@@ -13,9 +13,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class AppHomepagePage extends StatefulWidget {
-  const AppHomepagePage({super.key, this.controller});
+  const AppHomepagePage({
+    super.key,
+    this.controller,
+    this.cardsPageBuilder,
+    this.poolPageBuilder,
+  });
 
   final AppHomepageController? controller;
+  final WidgetBuilder? cardsPageBuilder;
+  final WidgetBuilder? poolPageBuilder;
 
   @override
   State<AppHomepagePage> createState() => _AppHomepagePageState();
@@ -97,9 +104,10 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
   Widget _buildSection(AppSection section) {
     switch (section) {
       case AppSection.cards:
-        return const CardsPage();
+        return widget.cardsPageBuilder?.call(context) ?? const CardsPage();
       case AppSection.pool:
-        return PoolPage(state: const PoolState.notJoined());
+        return widget.poolPageBuilder?.call(context) ??
+            PoolPage(state: const PoolState.notJoined());
       case AppSection.settings:
         return const SettingsPage();
     }

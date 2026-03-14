@@ -18,14 +18,14 @@ enum ProjectionMode {
     FailWrites,
 }
 
-/// 本地卡片存储
-pub struct CardStore {
+/// 本地卡片笔记存储组件
+pub struct CardNoteRepository {
     paths: DataPaths,
     sqlite: SqliteStore,
     projection_mode: ProjectionMode,
 }
 
-impl CardStore {
+impl CardNoteRepository {
     const CARD_ENTITY: &'static str = "card";
     const RETRY_PROJECTION: &'static str = "retry_projection";
 

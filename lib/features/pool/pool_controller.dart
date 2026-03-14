@@ -14,7 +14,13 @@ class PoolController extends ChangeNotifier {
     PoolApiClient? apiClient,
   }) : _state = initialState,
        _syncStatus = initialSyncStatus,
-       _apiClient = apiClient ?? LocalPoolApiClient();
+       _apiClient =
+           apiClient ??
+           FrbPoolApiClient(
+             endpointId: 'owner@this-device',
+             nickname: 'owner',
+             os: defaultTargetPlatform.name,
+           );
 
   PoolState _state;
   SyncStatus _syncStatus;

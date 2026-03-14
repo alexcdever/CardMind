@@ -64,5 +64,7 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-09-flutter-rust-embedded-backend-implementation-plan.md - 实现计划 - Flutter/Rust 前后端打通并落实 LoroDoc/SQLite 读写分离的任务化实施
 2026-03-13-flutter-rust-mainpath-repair-design.md - 设计草案 - Flutter/Rust 主路径修补设计（生产完全切到 FRB/Rust，移除生产兼容层）
 2026-03-13-flutter-rust-mainpath-repair-implementation-plan.md - 实现计划 - Flutter/Rust 主路径修补实施（生产切到 FRB/Rust，删除生产兼容接线）
+2026-03-15-remove-cardstore-handle-design.md - 设计草案 - 移除 CardStore/storeId 暴露并改为 initAppConfig + 无句柄资源 API
+2026-03-15-remove-cardstore-handle-implementation-plan.md - 实现计划 - 移除 CardStore/storeId 暴露并切换到 initAppConfig + 无句柄资源 API 的任务化实施
 2026-03-09-ui-redesign-design.md - 设计草案 - UI 重设计（信息架构、主页语义、跨端布局与视觉约束）
 2026-03-09-ui-redesign-implementation-plan.md - 实现计划 - UI 重设计任务化实施（spec-first、主页命名、局部同步反馈、本地 TDD）

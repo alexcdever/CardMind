@@ -7,98 +7,74 @@ import 'frb_generated.dart';
 import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_sync_result_dto`, `build_sync_status_dto`, `card_store_map`, `current_user_role`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_card_store`, `with_pool_store`
+// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `build_sync_result_dto`, `build_sync_status_dto`, `configured_app_data_dir`, `current_user_role`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_configured_card_store`, `with_configured_pool_store`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
-/// 初始化 CardStore
-Future<BigInt> initCardStore({required String basePath}) =>
-    RustLib.instance.api.crateApiInitCardStore(basePath: basePath);
+/// 初始化应用级配置
+Future<void> initAppConfig({required String appDataDir}) =>
+    RustLib.instance.api.crateApiInitAppConfig(appDataDir: appDataDir);
 
-/// 关闭 CardStore
-Future<void> closeCardStore({required BigInt storeId}) =>
-    RustLib.instance.api.crateApiCloseCardStore(storeId: storeId);
+Future<void> resetAppConfigForTests() =>
+    RustLib.instance.api.crateApiResetAppConfigForTests();
 
 Future<PoolDto> createPool({
-  required BigInt storeId,
   required String endpointId,
   required String nickname,
   required String os,
 }) => RustLib.instance.api.crateApiCreatePool(
-  storeId: storeId,
   endpointId: endpointId,
   nickname: nickname,
   os: os,
 );
 
 Future<PoolDto> joinPool({
-  required BigInt storeId,
   required String poolId,
   required String endpointId,
   required String nickname,
   required String os,
 }) => RustLib.instance.api.crateApiJoinPool(
-  storeId: storeId,
   poolId: poolId,
   endpointId: endpointId,
   nickname: nickname,
   os: os,
 );
 
-Future<List<PoolDto>> listPools({required BigInt storeId}) =>
-    RustLib.instance.api.crateApiListPools(storeId: storeId);
+Future<List<PoolDto>> listPools() => RustLib.instance.api.crateApiListPools();
 
-Future<PoolDetailDto> getPoolDetail({
-  required BigInt storeId,
-  required String poolId,
-}) => RustLib.instance.api.crateApiGetPoolDetail(
-  storeId: storeId,
-  poolId: poolId,
-);
+Future<PoolDetailDto> getPoolDetail({required String poolId}) =>
+    RustLib.instance.api.crateApiGetPoolDetail(poolId: poolId);
 
 Future<CardNoteDto> createCardNote({
-  required BigInt storeId,
   required String title,
   required String content,
-}) => RustLib.instance.api.crateApiCreateCardNote(
-  storeId: storeId,
-  title: title,
-  content: content,
-);
+}) =>
+    RustLib.instance.api.crateApiCreateCardNote(title: title, content: content);
 
 Future<CardNoteDto> createCardNoteInPool({
-  required BigInt storeId,
   required String poolId,
   required String title,
   required String content,
 }) => RustLib.instance.api.crateApiCreateCardNoteInPool(
-  storeId: storeId,
   poolId: poolId,
   title: title,
   content: content,
 );
 
 Future<CardNoteDto> updateCardNote({
-  required BigInt storeId,
   required String cardId,
   required String title,
   required String content,
 }) => RustLib.instance.api.crateApiUpdateCardNote(
-  storeId: storeId,
   cardId: cardId,
   title: title,
   content: content,
 );
 
-Future<List<CardNoteDto>> listCardNotes({required BigInt storeId}) =>
-    RustLib.instance.api.crateApiListCardNotes(storeId: storeId);
+Future<List<CardNoteDto>> listCardNotes() =>
+    RustLib.instance.api.crateApiListCardNotes();
 
-Future<CardNoteDto> getCardNoteDetail({
-  required BigInt storeId,
-  required String cardId,
-}) => RustLib.instance.api.crateApiGetCardNoteDetail(
-  storeId: storeId,
-  cardId: cardId,
-);
+Future<CardNoteDto> getCardNoteDetail({required String cardId}) =>
+    RustLib.instance.api.crateApiGetCardNoteDetail(cardId: cardId);
 
 /// 初始化 PoolNetwork
 Future<BigInt> initPoolNetwork({required String basePath}) =>

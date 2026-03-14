@@ -3,6 +3,7 @@
 // pos: 覆盖主页重设计下卡片域去全局同步反馈后的本地可用性。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
+import '../../support/test_page_controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,8 +12,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: CardsPage(syncStatus: SyncStatus.error('REQUEST_TIMEOUT')),
+      MaterialApp(
+        home: CardsPage(
+          controller: buildTestCardsController(),
+          syncStatus: const SyncStatus.error('REQUEST_TIMEOUT'),
+        ),
       ),
     );
 
@@ -24,8 +28,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: CardsPage(syncStatus: SyncStatus.error('REQUEST_TIMEOUT')),
+      MaterialApp(
+        home: CardsPage(
+          controller: buildTestCardsController(),
+          syncStatus: const SyncStatus.error('REQUEST_TIMEOUT'),
+        ),
       ),
     );
 
@@ -39,8 +46,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: CardsPage(syncStatus: SyncStatus.degraded('REQUEST_TIMEOUT')),
+      MaterialApp(
+        home: CardsPage(
+          controller: buildTestCardsController(),
+          syncStatus: const SyncStatus.degraded('REQUEST_TIMEOUT'),
+        ),
       ),
     );
 

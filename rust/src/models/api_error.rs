@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 /// 对外 API 错误码
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ApiErrorCode {
+    /// 应用配置未初始化
+    AppConfigNotInitialized,
+    /// 应用配置目录冲突
+    AppConfigConflict,
     /// 参数不合法
     InvalidArgument,
     /// 资源不存在
@@ -49,6 +53,8 @@ impl ApiErrorCode {
     /// 转换为稳定字符串
     pub fn as_str(&self) -> &'static str {
         match self {
+            ApiErrorCode::AppConfigNotInitialized => "APP_CONFIG_NOT_INITIALIZED",
+            ApiErrorCode::AppConfigConflict => "APP_CONFIG_CONFLICT",
             ApiErrorCode::InvalidArgument => "INVALID_ARGUMENT",
             ApiErrorCode::NotFound => "NOT_FOUND",
             ApiErrorCode::NotImplemented => "NOT_IMPLEMENTED",

@@ -7,6 +7,7 @@ import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
+import '../../support/test_page_controllers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,7 +15,9 @@ void main() {
   testWidgets(
     'cards automation anchors support create and delete restore flow',
     (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+      await tester.pumpWidget(
+        MaterialApp(home: CardsPage(controller: buildTestCardsController())),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
@@ -53,7 +56,12 @@ void main() {
     'pool automation anchors support create and leave confirmation flow',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+        MaterialApp(
+          home: PoolPage(
+            state: const PoolState.notJoined(),
+            controller: buildTestPoolController(),
+          ),
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -80,7 +88,12 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.notJoined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: buildTestPoolController(),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -105,7 +118,9 @@ void main() {
   testWidgets('editor automation anchors support leave dialog flow', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: buildTestCardsController())),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('cards.create_fab')));

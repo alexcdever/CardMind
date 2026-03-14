@@ -4,11 +4,13 @@
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'dart:async';
 
+import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class PoolPage extends StatefulWidget {
@@ -29,7 +31,15 @@ class PoolPage extends StatefulWidget {
 
 class _PoolPageState extends State<PoolPage> {
   late final PoolController _controller =
-      (widget.controller ?? PoolController(initialState: widget.state))
+      (widget.controller ??
+            PoolController(
+              initialState: widget.state,
+              apiClient: FrbPoolApiClient(
+                endpointId: 'owner@this-device',
+                nickname: 'owner',
+                os: defaultTargetPlatform.name,
+              ),
+            ))
         ..addListener(_onStateChanged);
 
   @override

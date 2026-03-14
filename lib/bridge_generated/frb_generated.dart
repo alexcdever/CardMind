@@ -65,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -550321973;
+  int get rustContentHash => -309484233;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -76,55 +76,45 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<void> crateApiCloseCardStore({required BigInt storeId});
-
   Future<void> crateApiClosePoolNetwork({required BigInt networkId});
 
   Future<CardNoteDto> crateApiCreateCardNote({
-    required BigInt storeId,
     required String title,
     required String content,
   });
 
   Future<CardNoteDto> crateApiCreateCardNoteInPool({
-    required BigInt storeId,
     required String poolId,
     required String title,
     required String content,
   });
 
   Future<PoolDto> crateApiCreatePool({
-    required BigInt storeId,
     required String endpointId,
     required String nickname,
     required String os,
   });
 
-  Future<CardNoteDto> crateApiGetCardNoteDetail({
-    required BigInt storeId,
-    required String cardId,
-  });
+  Future<CardNoteDto> crateApiGetCardNoteDetail({required String cardId});
 
-  Future<PoolDetailDto> crateApiGetPoolDetail({
-    required BigInt storeId,
-    required String poolId,
-  });
+  Future<PoolDetailDto> crateApiGetPoolDetail({required String poolId});
 
-  Future<BigInt> crateApiInitCardStore({required String basePath});
+  Future<void> crateApiInitAppConfig({required String appDataDir});
 
   Future<BigInt> crateApiInitPoolNetwork({required String basePath});
 
   Future<PoolDto> crateApiJoinPool({
-    required BigInt storeId,
     required String poolId,
     required String endpointId,
     required String nickname,
     required String os,
   });
 
-  Future<List<CardNoteDto>> crateApiListCardNotes({required BigInt storeId});
+  Future<List<CardNoteDto>> crateApiListCardNotes();
 
-  Future<List<PoolDto>> crateApiListPools({required BigInt storeId});
+  Future<List<PoolDto>> crateApiListPools();
+
+  Future<void> crateApiResetAppConfigForTests();
 
   Future<void> crateApiSyncConnect({
     required BigInt networkId,
@@ -145,7 +135,6 @@ abstract class RustLibApi extends BaseApi {
   Future<SyncStatusDto> crateApiSyncStatus({required BigInt networkId});
 
   Future<CardNoteDto> crateApiUpdateCardNote({
-    required BigInt storeId,
     required String cardId,
     required String title,
     required String content,
@@ -161,34 +150,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<void> crateApiCloseCardStore({required BigInt storeId}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 1,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_api_error,
-        ),
-        constMeta: kCrateApiCloseCardStoreConstMeta,
-        argValues: [storeId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiCloseCardStoreConstMeta =>
-      const TaskConstMeta(debugName: "close_card_store", argNames: ["storeId"]);
-
-  @override
   Future<void> crateApiClosePoolNetwork({required BigInt networkId}) {
     return handler.executeNormal(
       NormalTask(
@@ -198,7 +159,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 1,
             port: port_,
           );
         },
@@ -220,7 +181,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<CardNoteDto> crateApiCreateCardNote({
-    required BigInt storeId,
     required String title,
     required String content,
   }) {
@@ -228,7 +188,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
+          sse_encode_String(title, serializer);
+          sse_encode_String(content, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_card_note_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiCreateCardNoteConstMeta,
+        argValues: [title, content],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCreateCardNoteConstMeta => const TaskConstMeta(
+    debugName: "create_card_note",
+    argNames: ["title", "content"],
+  );
+
+  @override
+  Future<CardNoteDto> crateApiCreateCardNoteInPool({
+    required String poolId,
+    required String title,
+    required String content,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
           sse_encode_String(title, serializer);
           sse_encode_String(content, serializer);
           pdeCallFfi(
@@ -242,46 +237,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_card_note_dto,
           decodeErrorData: sse_decode_api_error,
         ),
-        constMeta: kCrateApiCreateCardNoteConstMeta,
-        argValues: [storeId, title, content],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiCreateCardNoteConstMeta => const TaskConstMeta(
-    debugName: "create_card_note",
-    argNames: ["storeId", "title", "content"],
-  );
-
-  @override
-  Future<CardNoteDto> crateApiCreateCardNoteInPool({
-    required BigInt storeId,
-    required String poolId,
-    required String title,
-    required String content,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
-          sse_encode_String(poolId, serializer);
-          sse_encode_String(title, serializer);
-          sse_encode_String(content, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 4,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_card_note_dto,
-          decodeErrorData: sse_decode_api_error,
-        ),
         constMeta: kCrateApiCreateCardNoteInPoolConstMeta,
-        argValues: [storeId, poolId, title, content],
+        argValues: [poolId, title, content],
         apiImpl: this,
       ),
     );
@@ -290,12 +247,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiCreateCardNoteInPoolConstMeta =>
       const TaskConstMeta(
         debugName: "create_card_note_in_pool",
-        argNames: ["storeId", "poolId", "title", "content"],
+        argNames: ["poolId", "title", "content"],
       );
 
   @override
   Future<PoolDto> crateApiCreatePool({
-    required BigInt storeId,
     required String endpointId,
     required String nickname,
     required String os,
@@ -304,14 +260,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
           sse_encode_String(endpointId, serializer);
           sse_encode_String(nickname, serializer);
           sse_encode_String(os, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 4,
             port: port_,
           );
         },
@@ -320,7 +275,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiCreatePoolConstMeta,
-        argValues: [storeId, endpointId, nickname, os],
+        argValues: [endpointId, nickname, os],
         apiImpl: this,
       ),
     );
@@ -328,24 +283,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiCreatePoolConstMeta => const TaskConstMeta(
     debugName: "create_pool",
-    argNames: ["storeId", "endpointId", "nickname", "os"],
+    argNames: ["endpointId", "nickname", "os"],
   );
 
   @override
-  Future<CardNoteDto> crateApiGetCardNoteDetail({
-    required BigInt storeId,
-    required String cardId,
-  }) {
+  Future<CardNoteDto> crateApiGetCardNoteDetail({required String cardId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
           sse_encode_String(cardId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 5,
             port: port_,
           );
         },
@@ -354,7 +305,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiGetCardNoteDetailConstMeta,
-        argValues: [storeId, cardId],
+        argValues: [cardId],
         apiImpl: this,
       ),
     );
@@ -362,24 +313,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiGetCardNoteDetailConstMeta => const TaskConstMeta(
     debugName: "get_card_note_detail",
-    argNames: ["storeId", "cardId"],
+    argNames: ["cardId"],
   );
 
   @override
-  Future<PoolDetailDto> crateApiGetPoolDetail({
-    required BigInt storeId,
-    required String poolId,
-  }) {
+  Future<PoolDetailDto> crateApiGetPoolDetail({required String poolId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
           sse_encode_String(poolId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 6,
             port: port_,
           );
         },
@@ -388,44 +335,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiGetPoolDetailConstMeta,
-        argValues: [storeId, poolId],
+        argValues: [poolId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiGetPoolDetailConstMeta => const TaskConstMeta(
-    debugName: "get_pool_detail",
-    argNames: ["storeId", "poolId"],
-  );
+  TaskConstMeta get kCrateApiGetPoolDetailConstMeta =>
+      const TaskConstMeta(debugName: "get_pool_detail", argNames: ["poolId"]);
 
   @override
-  Future<BigInt> crateApiInitCardStore({required String basePath}) {
+  Future<void> crateApiInitAppConfig({required String appDataDir}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(basePath, serializer);
+          sse_encode_String(appDataDir, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 7,
             port: port_,
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_u_64,
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_api_error,
         ),
-        constMeta: kCrateApiInitCardStoreConstMeta,
-        argValues: [basePath],
+        constMeta: kCrateApiInitAppConfigConstMeta,
+        argValues: [appDataDir],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiInitCardStoreConstMeta =>
-      const TaskConstMeta(debugName: "init_card_store", argNames: ["basePath"]);
+  TaskConstMeta get kCrateApiInitAppConfigConstMeta => const TaskConstMeta(
+    debugName: "init_app_config",
+    argNames: ["appDataDir"],
+  );
 
   @override
   Future<BigInt> crateApiInitPoolNetwork({required String basePath}) {
@@ -437,7 +384,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 8,
             port: port_,
           );
         },
@@ -459,7 +406,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<PoolDto> crateApiJoinPool({
-    required BigInt storeId,
     required String poolId,
     required String endpointId,
     required String nickname,
@@ -469,7 +415,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
           sse_encode_String(poolId, serializer);
           sse_encode_String(endpointId, serializer);
           sse_encode_String(nickname, serializer);
@@ -477,7 +422,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 9,
             port: port_,
           );
         },
@@ -486,7 +431,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiJoinPoolConstMeta,
-        argValues: [storeId, poolId, endpointId, nickname, os],
+        argValues: [poolId, endpointId, nickname, os],
         apiImpl: this,
       ),
     );
@@ -494,20 +439,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiJoinPoolConstMeta => const TaskConstMeta(
     debugName: "join_pool",
-    argNames: ["storeId", "poolId", "endpointId", "nickname", "os"],
+    argNames: ["poolId", "endpointId", "nickname", "os"],
   );
 
   @override
-  Future<List<CardNoteDto>> crateApiListCardNotes({required BigInt storeId}) {
+  Future<List<CardNoteDto>> crateApiListCardNotes() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 10,
             port: port_,
           );
         },
@@ -516,26 +460,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiListCardNotesConstMeta,
-        argValues: [storeId],
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiListCardNotesConstMeta =>
-      const TaskConstMeta(debugName: "list_card_notes", argNames: ["storeId"]);
+      const TaskConstMeta(debugName: "list_card_notes", argNames: []);
 
   @override
-  Future<List<PoolDto>> crateApiListPools({required BigInt storeId}) {
+  Future<List<PoolDto>> crateApiListPools() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 11,
             port: port_,
           );
         },
@@ -544,14 +487,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiListPoolsConstMeta,
-        argValues: [storeId],
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiListPoolsConstMeta =>
-      const TaskConstMeta(debugName: "list_pools", argNames: ["storeId"]);
+      const TaskConstMeta(debugName: "list_pools", argNames: []);
+
+  @override
+  Future<void> crateApiResetAppConfigForTests() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiResetAppConfigForTestsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiResetAppConfigForTestsConstMeta =>
+      const TaskConstMeta(
+        debugName: "reset_app_config_for_tests",
+        argNames: [],
+      );
 
   @override
   Future<void> crateApiSyncConnect({
@@ -737,7 +710,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<CardNoteDto> crateApiUpdateCardNote({
-    required BigInt storeId,
     required String cardId,
     required String title,
     required String content,
@@ -746,7 +718,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_64(storeId, serializer);
           sse_encode_String(cardId, serializer);
           sse_encode_String(title, serializer);
           sse_encode_String(content, serializer);
@@ -762,7 +733,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiUpdateCardNoteConstMeta,
-        argValues: [storeId, cardId, title, content],
+        argValues: [cardId, title, content],
         apiImpl: this,
       ),
     );
@@ -770,7 +741,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiUpdateCardNoteConstMeta => const TaskConstMeta(
     debugName: "update_card_note",
-    argNames: ["storeId", "cardId", "title", "content"],
+    argNames: ["cardId", "title", "content"],
   );
 
   @protected
