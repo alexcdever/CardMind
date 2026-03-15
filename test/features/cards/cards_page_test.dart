@@ -4,24 +4,23 @@
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';
+import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/bridge_generated/api.dart';
 import 'package:cardmind/bridge_generated/frb_generated.dart';
-import 'package:cardmind/features/cards/data/cards_read_repository.dart';
-import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeCardsReadRepository implements CardsReadRepository {
-  final Map<String, CardNoteProjection> _rows = <String, CardNoteProjection>{};
+class _FakeCardApiClient implements CardApiClient {
+  final Map<String, _FakeCardRecord> _records = <String, _FakeCardRecord>{};
 
   @override
-  Future<List<CardNoteProjection>> search(
-    String query, {
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
     bool includeDeleted = false,
   }) async {
     final lowered = query.toLowerCase();
     final rows =
-        _rows.values
+        _records.values
             .where((row) {
               if (!includeDeleted && row.deleted) return false;
               if (lowered.isEmpty) return true;
@@ -30,19 +29,13 @@ class _FakeCardsReadRepository implements CardsReadRepository {
             })
             .toList(growable: false)
           ..sort((a, b) => b.updatedAtMicros.compareTo(a.updatedAtMicros));
-    return rows;
+    return rows
+        .map(
+          (row) =>
+              CardSummary(id: row.id, title: row.title, deleted: row.deleted),
+        )
+        .toList(growable: false);
   }
-
-  @override
-  Future<void> upsertProjection(CardNoteProjection row) async {
-    _rows[row.id] = row;
-  }
-}
-
-class _FakeCardApiClient implements CardApiClient {
-  _FakeCardApiClient(this._readRepository);
-
-  final _FakeCardsReadRepository _readRepository;
 
   @override
   Future<void> createCardNote({
@@ -50,54 +43,59 @@ class _FakeCardApiClient implements CardApiClient {
     required String title,
     required String body,
   }) async {
-    await _readRepository.upsertProjection(
-      CardNoteProjection(
-        id: id,
-        title: title,
-        body: body,
-        deleted: false,
-        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
-      ),
+    _records[id] = _FakeCardRecord(
+      id: id,
+      title: title,
+      body: body,
+      deleted: false,
+      updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }
 
   @override
   Future<void> deleteCardNote({required String id}) async {
-    final rows = await _readRepository.search('', includeDeleted: true);
-    final row = rows.firstWhere((item) => item.id == id);
-    await _readRepository.upsertProjection(
-      CardNoteProjection(
-        id: row.id,
-        title: row.title,
-        body: row.body,
-        deleted: true,
-        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
-      ),
+    final row = _records[id]!;
+    _records[id] = _FakeCardRecord(
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      deleted: true,
+      updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }
 
   @override
   Future<void> restoreCardNote({required String id}) async {
-    final rows = await _readRepository.search('', includeDeleted: true);
-    final row = rows.firstWhere((item) => item.id == id);
-    await _readRepository.upsertProjection(
-      CardNoteProjection(
-        id: row.id,
-        title: row.title,
-        body: row.body,
-        deleted: false,
-        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
-      ),
+    final row = _records[id]!;
+    _records[id] = _FakeCardRecord(
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      deleted: false,
+      updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }
 }
 
 CardsController _buildTestCardsController() {
-  final readRepository = _FakeCardsReadRepository();
-  return CardsController(
-    readRepository: readRepository,
-    apiClient: _FakeCardApiClient(readRepository),
-  );
+  final apiClient = _FakeCardApiClient();
+  return CardsController(apiClient: apiClient);
+}
+
+class _FakeCardRecord {
+  const _FakeCardRecord({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.deleted,
+    required this.updatedAtMicros,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final bool deleted;
+  final int updatedAtMicros;
 }
 
 class _MockRustLibApi extends RustLibApi {
@@ -157,8 +155,40 @@ class _MockRustLibApi extends RustLibApi {
   }) => throw UnimplementedError();
 
   @override
+  Future<PoolDto> crateApiJoinByCode({
+    required String code,
+    required String endpointId,
+    required String nickname,
+    required String os,
+  }) => throw UnimplementedError();
+
+  @override
   Future<List<CardNoteDto>> crateApiListCardNotes() async =>
       const <CardNoteDto>[];
+
+  @override
+  Future<CardNoteDto> crateApiDeleteCardNote({required String cardId}) async {
+    return CardNoteDto(
+      id: cardId,
+      title: 'seed-title',
+      content: 'seed-content',
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: true,
+    );
+  }
+
+  @override
+  Future<CardNoteDto> crateApiRestoreCardNote({required String cardId}) async {
+    return CardNoteDto(
+      id: cardId,
+      title: 'seed-title',
+      content: 'seed-content',
+      createdAt: 0,
+      updatedAt: 0,
+      deleted: false,
+    );
+  }
 
   @override
   Future<List<PoolDto>> crateApiListPools() async => const <PoolDto>[];
@@ -202,11 +232,32 @@ class _MockRustLibApi extends RustLibApi {
   }) => throw UnimplementedError();
 }
 
+bool _mockRustInitialized = false;
+
+void _ensureMockRustLib() {
+  if (_mockRustInitialized) {
+    return;
+  }
+  RustLib.initMock(api: _MockRustLibApi());
+  _mockRustInitialized = true;
+}
+
 void main() {
   testWidgets(
     'cards page production composition should use handle-free FRB client',
     (tester) async {
-      RustLib.initMock(api: _MockRustLibApi());
+      _ensureMockRustLib();
+      await tester.pumpWidget(const MaterialApp(home: CardsPage()));
+
+      expect(find.byType(CardsPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'cards page production composition should not create AppDatabase for product query path',
+    (tester) async {
+      _ensureMockRustLib();
+
       await tester.pumpWidget(const MaterialApp(home: CardsPage()));
 
       expect(find.byType(CardsPage), findsOneWidget);

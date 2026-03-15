@@ -8,6 +8,7 @@ import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
 import 'package:cardmind/features/cards/data/cards_write_repository.dart';
 import 'package:cardmind/features/cards/domain/card_note.dart';
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';
+import 'package:cardmind/features/cards/card_summary.dart';
 
 abstract class CardApiClient {
   Future<void> createCardNote({
@@ -19,6 +20,11 @@ abstract class CardApiClient {
   Future<void> deleteCardNote({required String id});
 
   Future<void> restoreCardNote({required String id});
+
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    bool includeDeleted = false,
+  });
 }
 
 class FrbCardApiClient implements CardApiClient {
@@ -36,13 +42,42 @@ class FrbCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<void> deleteCardNote({required String id}) {
-    throw UnimplementedError('FRB deleteCardNote is not available yet');
+  Future<void> deleteCardNote({required String id}) async {
+    await frb.deleteCardNote(cardId: id);
   }
 
   @override
-  Future<void> restoreCardNote({required String id}) {
-    throw UnimplementedError('FRB restoreCardNote is not available yet');
+  Future<void> restoreCardNote({required String id}) async {
+    await frb.restoreCardNote(cardId: id);
+  }
+
+  @override
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    bool includeDeleted = false,
+  }) async {
+    final notes = await frb.listCardNotes();
+    final lowered = query.toLowerCase();
+    final summaries = notes
+        .where((note) {
+          if (!includeDeleted && note.deleted) {
+            return false;
+          }
+          if (lowered.isEmpty) {
+            return true;
+          }
+          return note.title.toLowerCase().contains(lowered) ||
+              note.content.toLowerCase().contains(lowered);
+        })
+        .map(
+          (note) => CardSummary(
+            id: note.id,
+            title: note.title,
+            deleted: note.deleted,
+          ),
+        )
+        .toList(growable: false);
+    return summaries;
   }
 }
 
@@ -98,6 +133,23 @@ class LegacyCardApiClient implements CardApiClient {
     await _persistToWriteAndProjection(
       existing.copyWith(deleted: false, updatedAtMicros: _nowMicros()),
     );
+  }
+
+  @override
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    bool includeDeleted = false,
+  }) async {
+    final rows = await _readRepository.search(
+      query,
+      includeDeleted: includeDeleted,
+    );
+    return rows
+        .map(
+          (row) =>
+              CardSummary(id: row.id, title: row.title, deleted: row.deleted),
+        )
+        .toList(growable: false);
   }
 
   Future<void> _persistToWriteAndProjection(CardNote note) async {

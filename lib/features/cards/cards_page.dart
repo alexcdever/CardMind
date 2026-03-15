@@ -8,9 +8,7 @@ import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/cards_desktop_interactions.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
-import 'package:cardmind/features/cards/data/sqlite_cards_read_repository.dart';
 import 'package:cardmind/features/editor/editor_page.dart';
-import 'package:cardmind/features/shared/data/app_database.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
@@ -30,11 +28,7 @@ class CardsPage extends StatefulWidget {
 }
 
 class _CardsPageState extends State<CardsPage> {
-  late final AppDatabase _database = AppDatabase();
-  late final SqliteCardsReadRepository _readRepository =
-      SqliteCardsReadRepository(database: _database);
   late final CardsController _controller = CardsController(
-    readRepository: _readRepository,
     apiClient: FrbCardApiClient(),
   )..addListener(_onChanged);
   late final CardsController _effectiveController =

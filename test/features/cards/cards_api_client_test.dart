@@ -1,10 +1,16 @@
 // input: 卡片控制器接收 fake ApiClient 与 fake 读仓后执行 create/delete/restore 动作。
 // output: 断言控制器只通过 ApiClient 调后端，并在动作后刷新查询结果。
 // pos: 覆盖卡片控制器改接 ApiClient 主路径，防止回退到直接写仓。修改本文件需同步更新文件头与所属 DIR.md。
+import 'dart:io';
+
+import 'package:cardmind/bridge_generated/api.dart' as frb;
+import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';
+import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 import 'package:cardmind/features/cards/data/cards_read_repository.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCardsReadRepository implements CardsReadRepository {
@@ -27,6 +33,9 @@ class _FakeCardsReadRepository implements CardsReadRepository {
 }
 
 class _FakeCardApiClient implements CardApiClient {
+  _FakeCardApiClient(this.readRepository);
+
+  final _FakeCardsReadRepository readRepository;
   int createCalls = 0;
   int deleteCalls = 0;
   int restoreCalls = 0;
@@ -51,14 +60,68 @@ class _FakeCardApiClient implements CardApiClient {
   Future<void> restoreCardNote({required String id}) async {
     restoreCalls += 1;
   }
+
+  @override
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    bool includeDeleted = false,
+  }) async {
+    final rows = await readRepository.search(
+      query,
+      includeDeleted: includeDeleted,
+    );
+    return rows
+        .map(
+          (row) =>
+              CardSummary(id: row.id, title: row.title, deleted: row.deleted),
+        )
+        .toList(growable: false);
+  }
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('frb card api client should not require storeId constructor state', () {
     final client = FrbCardApiClient();
 
     expect(client, isA<CardApiClient>());
   });
+
+  test(
+    'frb card api client supports delete and restore without handle state',
+    () async {
+      final root = await Directory.systemTemp.createTemp('cardmind-card-api-');
+      final dylib = File(
+        'rust/target/release/libcardmind_rust.dylib',
+      ).absolute.path;
+
+      await RustLib.init(externalLibrary: ExternalLibrary.open(dylib));
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        final created = await frb.createCardNote(
+          title: 'title',
+          content: 'body',
+        );
+        final client = FrbCardApiClient();
+
+        await client.deleteCardNote(id: created.id);
+        final deleted = await frb.getCardNoteDetail(cardId: created.id);
+
+        await client.restoreCardNote(id: created.id);
+        final restored = await frb.getCardNoteDetail(cardId: created.id);
+
+        expect(deleted.deleted, isTrue);
+        expect(restored.deleted, isFalse);
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+        RustLib.dispose();
+      }
+    },
+  );
 
   test(
     'cards controller should create through api client then reload query',
@@ -73,11 +136,8 @@ void main() {
             updatedAtMicros: 1,
           ),
         ];
-      final apiClient = _FakeCardApiClient();
-      final controller = CardsController(
-        readRepository: readRepository,
-        apiClient: apiClient,
-      );
+      final apiClient = _FakeCardApiClient(readRepository);
+      final controller = CardsController(apiClient: apiClient);
 
       await controller.create('local-id', 'Title', 'Body');
 

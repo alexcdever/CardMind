@@ -8,8 +8,7 @@ import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';
-import 'package:cardmind/features/cards/data/cards_read_repository.dart';
-import 'package:cardmind/features/cards/domain/card_note_projection.dart';
+import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
@@ -17,12 +16,12 @@ import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakeCardsReadRepository implements CardsReadRepository {
-  final Map<String, CardNoteProjection> _rows = <String, CardNoteProjection>{};
+class _FakeCardApiClient implements CardApiClient {
+  final Map<String, _FakeCardRecord> _rows = <String, _FakeCardRecord>{};
 
   @override
-  Future<List<CardNoteProjection>> search(
-    String query, {
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
     bool includeDeleted = false,
   }) async {
     final lowered = query.toLowerCase();
@@ -33,19 +32,12 @@ class _FakeCardsReadRepository implements CardsReadRepository {
           return row.title.toLowerCase().contains(lowered) ||
               row.body.toLowerCase().contains(lowered);
         })
+        .map(
+          (row) =>
+              CardSummary(id: row.id, title: row.title, deleted: row.deleted),
+        )
         .toList(growable: false);
   }
-
-  @override
-  Future<void> upsertProjection(CardNoteProjection row) async {
-    _rows[row.id] = row;
-  }
-}
-
-class _FakeCardApiClient implements CardApiClient {
-  _FakeCardApiClient(this._readRepository);
-
-  final _FakeCardsReadRepository _readRepository;
 
   @override
   Future<void> createCardNote({
@@ -53,14 +45,12 @@ class _FakeCardApiClient implements CardApiClient {
     required String title,
     required String body,
   }) async {
-    await _readRepository.upsertProjection(
-      CardNoteProjection(
-        id: id,
-        title: title,
-        body: body,
-        deleted: false,
-        updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
-      ),
+    _rows[id] = _FakeCardRecord(
+      id: id,
+      title: title,
+      body: body,
+      deleted: false,
+      updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }
 
@@ -84,15 +74,16 @@ class _FakePoolApiClient implements PoolApiClient {
     }
     return const PoolJoinResult.error('ADMIN_OFFLINE');
   }
+
+  @override
+  Future<PoolViewData?> getJoinedPoolView() async {
+    return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
+  }
 }
 
 CardsPage _buildTestCardsPage() {
-  final readRepository = _FakeCardsReadRepository();
   return CardsPage(
-    controller: CardsController(
-      readRepository: readRepository,
-      apiClient: _FakeCardApiClient(readRepository),
-    ),
+    controller: CardsController(apiClient: _FakeCardApiClient()),
   );
 }
 
@@ -101,6 +92,22 @@ PoolPage _buildTestPoolPage() {
     state: const PoolState.notJoined(),
     controller: PoolController(apiClient: _FakePoolApiClient()),
   );
+}
+
+class _FakeCardRecord {
+  const _FakeCardRecord({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.deleted,
+    required this.updatedAtMicros,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final bool deleted;
+  final int updatedAtMicros;
 }
 
 void main() {
