@@ -94,7 +94,7 @@ class SyncService {
       await gateway.syncPull(networkId: networkId);
       return status();
     } on ApiError catch (error) {
-      return SyncStatus.error(error.code, isWriteSaved: false);
+      return SyncStatus.error(error.code, isWriteSaved: true);
     } catch (_) {
       return const SyncStatus.error('INTERNAL');
     }
@@ -114,7 +114,7 @@ class SyncService {
 
   SyncStatus _mapDtoToStatus(frb.SyncStatusDto dto) {
     final writeSaved = dto.writeState == 'write_saved';
-    if (dto.projectionState == 'pending') {
+    if (dto.projectionState == 'projection_pending') {
       return SyncStatus.projectionPending(dto.code);
     }
 
@@ -127,7 +127,7 @@ class SyncService {
         return SyncStatus.syncing(isWriteSaved: writeSaved);
       case 'degraded':
         return SyncStatus.degraded(dto.code, writeSaved);
-      case 'failed':
+      case 'sync_failed':
         return SyncStatus.error(
           dto.code ?? 'SYNC_FAILED',
           isWriteSaved: writeSaved,

@@ -1,51 +1,83 @@
-// input: 通过投影 worker 写入卡片/池事件，再通过 SQLite 读仓执行查询。
-// output: 断言 Flutter 查询只消费读模型结果，而不是依赖写侧仓的直读路径。
-// pos: 覆盖读模型查询主路径，防止主流程绕过 SQLite 投影。修改本文件需同步更新文件头与所属 DIR.md。
-import 'package:cardmind/features/cards/data/sqlite_cards_read_repository.dart';
-import 'package:cardmind/features/cards/domain/card_note.dart';
-import 'package:cardmind/features/pool/data/sqlite_pool_read_repository.dart';
-import 'package:cardmind/features/pool/domain/pool_entity.dart';
-import 'package:cardmind/features/shared/data/app_database.dart';
-import 'package:cardmind/features/shared/projection/loro_projection_event.dart';
-import 'package:cardmind/features/shared/projection/loro_projection_worker.dart';
+// input: 读取生产页面、控制器与 FRB client 源码文本，检查查询主路径是否仍回退到 Flutter 本地查询装配。
+// output: 断言 Flutter 刷新只通过 FRB -> Rust Query API，不再直接接线 AppDatabase 或 SQLite 读仓。
+// pos: 覆盖主路径查询边界，防止生产代码重新依赖 Flutter 本地 SQLite 查询。修改本文件需同步更新文件头与所属 DIR.md。
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+
+String _readSource(String path) => File(path).readAsStringSync();
+
+Map<String, String> _productionSources() {
+  return <String, String>{
+    'CardsPage': _readSource('lib/features/cards/cards_page.dart'),
+    'PoolPage': _readSource('lib/features/pool/pool_page.dart'),
+    'CardsController': _readSource('lib/features/cards/cards_controller.dart'),
+    'PoolController': _readSource('lib/features/pool/pool_controller.dart'),
+  };
+}
+
+void expectNoLocalQueryWiring(
+  String source,
+  String token, {
+  required String fileLabel,
+}) {
+  expect(
+    source.contains(token),
+    isFalse,
+    reason:
+        '$fileLabel must not wire Flutter-local query dependency token `$token` into the production refresh path.',
+  );
+}
 
 void main() {
   test(
-    'card and pool queries should be served from sqlite read model only',
-    () async {
-      final database = AppDatabase();
-      final worker = LoroProjectionWorker.forDatabase(database);
-      final cardReadRepository = SqliteCardsReadRepository(database: database);
-      final poolReadRepository = SqlitePoolReadRepository(database: database);
-
-      await worker.handle(
-        LoroProjectionEvent.cardUpsert(
-          const CardNote(
-            id: 'card-1',
-            title: 'Projected card',
-            body: 'from projection',
-            deleted: false,
-            updatedAtMicros: 10,
-          ),
-        ),
-      );
-      await worker.handle(
-        LoroProjectionEvent.poolUpsert(
-          const PoolEntity(
-            poolId: 'pool-1',
-            name: 'Projected pool',
-            dissolved: false,
-            updatedAtMicros: 20,
-          ),
-        ),
+    'cards controller refresh should depend on api client query methods',
+    () {
+      final sources = _productionSources();
+      final cardsController = sources['CardsController']!;
+      final cardApiClient = _readSource(
+        'lib/features/cards/card_api_client.dart',
       );
 
-      final cards = await cardReadRepository.search('Projected');
-      final pools = await poolReadRepository.listPools(query: 'Projected');
+      expect(cardsController.contains('_apiClient.listCardSummaries('), isTrue);
+      expect(cardsController.contains('_readRepository.search('), isFalse);
+      expect(
+        cardApiClient.contains('Future<List<CardSummary>> listCardSummaries('),
+        isTrue,
+      );
+    },
+  );
 
-      expect(cards.map((row) => row.id), contains('card-1'));
-      expect(pools.map((row) => row.poolId), contains('pool-1'));
+  test(
+    'flutter production query path should not directly wire local sqlite read dependencies',
+    () {
+      final sources = _productionSources();
+
+      expectNoLocalQueryWiring(
+        sources['CardsPage']!,
+        'AppDatabase(',
+        fileLabel: 'CardsPage',
+      );
+      expectNoLocalQueryWiring(
+        sources['CardsPage']!,
+        'SqliteCardsReadRepository',
+        fileLabel: 'CardsPage',
+      );
+      expectNoLocalQueryWiring(
+        sources['PoolPage']!,
+        'SqlitePoolReadRepository',
+        fileLabel: 'PoolPage',
+      );
+      expectNoLocalQueryWiring(
+        sources['CardsController']!,
+        'CardsReadRepository',
+        fileLabel: 'CardsController',
+      );
+      expectNoLocalQueryWiring(
+        sources['PoolController']!,
+        'PoolReadRepository',
+        fileLabel: 'PoolController',
+      );
     },
   );
 }

@@ -58,15 +58,15 @@ class _SemanticsGateway implements SyncGateway {
 
 void main() {
   test(
-    'frontend should distinguish write success projection pending and sync failure',
+    'frontend should map real backend write projection and sync states',
     () async {
       final projectionPendingService = SyncService(
         gateway: _SemanticsGateway(
           statusDto: const frb.SyncStatusDto(
-            state: 'connected',
+            state: 'degraded',
             writeState: 'write_saved',
-            projectionState: 'pending',
-            syncState: 'idle',
+            projectionState: 'projection_pending',
+            syncState: 'connected',
             code: 'PROJECTION_NOT_CONVERGED',
           ),
         ),
@@ -75,10 +75,10 @@ void main() {
       final syncFailureService = SyncService(
         gateway: _SemanticsGateway(
           statusDto: const frb.SyncStatusDto(
-            state: 'connected',
+            state: 'degraded',
             writeState: 'write_saved',
-            projectionState: 'ready',
-            syncState: 'failed',
+            projectionState: 'projection_ready',
+            syncState: 'sync_failed',
             code: 'REQUEST_TIMEOUT',
           ),
           pullError: const ApiError(
@@ -98,7 +98,7 @@ void main() {
 
       expect(syncFailure.kind, SyncStatusKind.error);
       expect(syncFailure.code, 'REQUEST_TIMEOUT');
-      expect(syncFailure.isWriteSaved, isFalse);
+      expect(syncFailure.isWriteSaved, isTrue);
     },
   );
 }

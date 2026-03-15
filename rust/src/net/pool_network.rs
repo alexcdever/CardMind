@@ -29,6 +29,7 @@ pub struct PoolNetwork {
     pool_store: PoolStore,
     card_repository: CardNoteRepository,
     sync_session: SyncSession,
+    last_sync_error: Option<String>,
 }
 
 impl PoolNetwork {
@@ -48,6 +49,7 @@ impl PoolNetwork {
             pool_store,
             card_repository,
             sync_session: SyncSession::new(),
+            last_sync_error: None,
         }
     }
 
@@ -57,6 +59,10 @@ impl PoolNetwork {
 
     pub fn endpoint_addr(&self) -> EndpointAddr {
         self.endpoint.endpoint_addr()
+    }
+
+    pub fn base_path(&self) -> &str {
+        &self.base_path
     }
 
     pub async fn wait_for_addr(&self, timeout: Duration) -> Result<EndpointAddr, CardMindError> {
@@ -151,15 +157,25 @@ impl PoolNetwork {
     }
 
     pub fn sync_connect(&mut self, target: String) -> Result<(), CardMindError> {
+        self.last_sync_error = None;
         self.sync_session.connect(target)
     }
 
     pub fn sync_disconnect(&mut self) {
         self.sync_session.disconnect();
+        self.last_sync_error = None;
     }
 
     pub fn sync_state(&self) -> &'static str {
-        self.sync_session.state()
+        if self.last_sync_error.is_some() {
+            "sync_failed"
+        } else {
+            self.sync_session.state()
+        }
+    }
+
+    pub fn last_sync_error_code(&self) -> Option<&str> {
+        self.last_sync_error.as_deref()
     }
 
     pub fn sync_join_pool(&self, pool_id: &str) -> Result<(), CardMindError> {
@@ -176,21 +192,25 @@ impl PoolNetwork {
         Ok(())
     }
 
-    pub fn sync_push(&self) -> Result<(), CardMindError> {
+    pub fn sync_push(&mut self) -> Result<(), CardMindError> {
         if self.sync_session.state() != "connected" {
+            self.last_sync_error = Some("REQUEST_TIMEOUT".to_string());
             return Err(CardMindError::InvalidArgument(
                 "sync not connected".to_string(),
             ));
         }
+        self.last_sync_error = None;
         Ok(())
     }
 
-    pub fn sync_pull(&self) -> Result<(), CardMindError> {
+    pub fn sync_pull(&mut self) -> Result<(), CardMindError> {
         if self.sync_session.state() != "connected" {
+            self.last_sync_error = Some("REQUEST_TIMEOUT".to_string());
             return Err(CardMindError::InvalidArgument(
                 "sync not connected".to_string(),
             ));
         }
+        self.last_sync_error = None;
         Ok(())
     }
 }

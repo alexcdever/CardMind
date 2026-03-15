@@ -39,6 +39,18 @@ Future<PoolDto> joinPool({
   os: os,
 );
 
+Future<PoolDto> joinByCode({
+  required String code,
+  required String endpointId,
+  required String nickname,
+  required String os,
+}) => RustLib.instance.api.crateApiJoinByCode(
+  code: code,
+  endpointId: endpointId,
+  nickname: nickname,
+  os: os,
+);
+
 Future<List<PoolDto>> listPools() => RustLib.instance.api.crateApiListPools();
 
 Future<PoolDetailDto> getPoolDetail({required String poolId}) =>
@@ -69,6 +81,12 @@ Future<CardNoteDto> updateCardNote({
   title: title,
   content: content,
 );
+
+Future<CardNoteDto> deleteCardNote({required String cardId}) =>
+    RustLib.instance.api.crateApiDeleteCardNote(cardId: cardId);
+
+Future<CardNoteDto> restoreCardNote({required String cardId}) =>
+    RustLib.instance.api.crateApiRestoreCardNote(cardId: cardId);
 
 Future<List<CardNoteDto>> listCardNotes() =>
     RustLib.instance.api.crateApiListCardNotes();

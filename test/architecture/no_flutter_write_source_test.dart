@@ -7,16 +7,30 @@ import 'package:flutter_test/flutter_test.dart';
 
 String _readSource(String path) => File(path).readAsStringSync();
 
-void expectNoHandleLeak(
+void expectSourceOmits(
   String source,
   String token, {
   required String fileLabel,
+  required String violationLabel,
 }) {
   expect(
     source.contains(token),
     isFalse,
     reason:
-        '$fileLabel must not leak store handle token `$token` in production path.',
+        '$fileLabel must not $violationLabel token `$token` in production path.',
+  );
+}
+
+void expectNoHandleLeak(
+  String source,
+  String token, {
+  required String fileLabel,
+}) {
+  expectSourceOmits(
+    source,
+    token,
+    fileLabel: fileLabel,
+    violationLabel: 'leak store handle',
   );
 }
 
@@ -117,6 +131,51 @@ void main() {
         poolApiClient,
         'storeId',
         fileLabel: 'FrbPoolApiClient',
+      );
+    },
+  );
+
+  test(
+    'production pages and controllers should not wire local sqlite query dependencies',
+    () {
+      final cardsPage = _readSource('lib/features/cards/cards_page.dart');
+      final poolPage = _readSource('lib/features/pool/pool_page.dart');
+      final cardsController = _readSource(
+        'lib/features/cards/cards_controller.dart',
+      );
+      final poolController = _readSource(
+        'lib/features/pool/pool_controller.dart',
+      );
+
+      expectSourceOmits(
+        cardsPage,
+        'AppDatabase(',
+        fileLabel: 'CardsPage',
+        violationLabel: 'wire local sqlite query dependency',
+      );
+      expectSourceOmits(
+        cardsPage,
+        'SqliteCardsReadRepository',
+        fileLabel: 'CardsPage',
+        violationLabel: 'wire local sqlite query dependency',
+      );
+      expectSourceOmits(
+        poolPage,
+        'SqlitePoolReadRepository',
+        fileLabel: 'PoolPage',
+        violationLabel: 'wire local sqlite query dependency',
+      );
+      expectSourceOmits(
+        cardsController,
+        'CardsReadRepository',
+        fileLabel: 'CardsController',
+        violationLabel: 'depend on flutter-local query repository',
+      );
+      expectSourceOmits(
+        poolController,
+        'PoolReadRepository',
+        fileLabel: 'PoolController',
+        violationLabel: 'depend on flutter-local query repository',
       );
     },
   );

@@ -112,7 +112,6 @@ void main() {
         basePath: '${root.path}/data/loro',
       );
       final controller = CardsController(
-        readRepository: readRepo,
         apiClient: LegacyCardApiClient(
           readRepository: readRepo,
           writeRepository: writeRepo,
@@ -139,7 +138,6 @@ void main() {
     () async {
       final database = AppDatabase();
       final controller = CardsController(
-        readRepository: SqliteCardsReadRepository(database: database),
         apiClient: LegacyCardApiClient(
           readRepository: SqliteCardsReadRepository(database: database),
           writeRepository: LoroCardsWriteRepository.inMemory(),

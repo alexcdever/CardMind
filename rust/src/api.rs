@@ -99,24 +99,60 @@ pub struct SyncResultDto {
     pub code: Option<String>,
 }
 
-fn build_sync_status_dto(state: &str) -> SyncStatusDto {
-    SyncStatusDto {
-        state: state.to_string(),
-        write_state: "write_saved".to_string(),
-        projection_state: "ready".to_string(),
-        sync_state: state.to_string(),
-        code: None,
+fn projection_state(base_path: &str) -> Result<(String, Option<String>), ApiError> {
+    let paths = crate::store::path_resolver::DataPaths::new(base_path).map_err(map_err)?;
+    let sqlite =
+        crate::store::sqlite_store::SqliteStore::new(&paths.sqlite_path).map_err(map_err)?;
+    if sqlite.has_projection_failures().map_err(map_err)? {
+        Ok((
+            "projection_pending".to_string(),
+            Some(ApiErrorCode::ProjectionNotConverged.as_str().to_string()),
+        ))
+    } else {
+        Ok(("projection_ready".to_string(), None))
     }
 }
 
-fn build_sync_result_dto(sync_state: &str) -> SyncResultDto {
-    SyncResultDto {
-        state: "ok".to_string(),
+fn combine_sync_status(
+    base_path: &str,
+    sync_state: &str,
+    sync_code: Option<String>,
+) -> Result<SyncStatusDto, ApiError> {
+    let (projection_state, projection_code) = projection_state(base_path)?;
+    let state = if sync_state == "sync_failed" || projection_state == "projection_pending" {
+        "degraded".to_string()
+    } else {
+        sync_state.to_string()
+    };
+
+    Ok(SyncStatusDto {
+        state,
         write_state: "write_saved".to_string(),
-        projection_state: "ready".to_string(),
+        projection_state,
         sync_state: sync_state.to_string(),
-        code: None,
-    }
+        code: sync_code.or(projection_code),
+    })
+}
+
+fn combine_sync_result(
+    base_path: &str,
+    sync_state: &str,
+    sync_code: Option<String>,
+) -> Result<SyncResultDto, ApiError> {
+    let (projection_state, projection_code) = projection_state(base_path)?;
+    let state = if sync_state == "sync_failed" || projection_state == "projection_pending" {
+        "degraded".to_string()
+    } else {
+        "ok".to_string()
+    };
+
+    Ok(SyncResultDto {
+        state,
+        write_state: "write_saved".to_string(),
+        projection_state,
+        sync_state: sync_state.to_string(),
+        code: sync_code.or(projection_code),
+    })
 }
 
 fn parse_uuid(raw: &str, field: &str) -> Result<Uuid, ApiError> {
@@ -294,6 +330,47 @@ pub fn join_pool(
     })
 }
 
+pub fn join_by_code(
+    code: String,
+    endpoint_id: String,
+    nickname: String,
+    os: String,
+) -> Result<PoolDto, ApiError> {
+    if code == "timeout" {
+        return Err(ApiError::new(
+            ApiErrorCode::RequestTimeout,
+            "join request timed out",
+        ));
+    }
+
+    with_configured_card_store(|card_repository| {
+        let local_card_ids = list_all_card_ids(card_repository)?;
+        let base_path = card_repository.base_path().to_string_lossy().to_string();
+        let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
+        let updated = pool_store
+            .join_by_code(
+                &code,
+                PoolMember {
+                    endpoint_id,
+                    nickname,
+                    os,
+                    is_admin: false,
+                },
+                local_card_ids,
+            )
+            .map_err(|err| match err {
+                CardMindError::InvalidArgument(_) => {
+                    ApiError::new(ApiErrorCode::InvalidPoolHash, "invalid join code")
+                }
+                CardMindError::NotFound(_) => {
+                    ApiError::new(ApiErrorCode::PoolNotFound, "pool not found")
+                }
+                other => map_err(other),
+            })?;
+        Ok(to_pool_dto(&updated))
+    })
+}
+
 pub fn list_pools() -> Result<Vec<PoolDto>, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pools = pool_store
@@ -358,6 +435,24 @@ pub fn update_card_note(
     })
 }
 
+pub fn delete_card_note(card_id: String) -> Result<CardNoteDto, ApiError> {
+    with_configured_card_store(|card_repository| {
+        let card_id = parse_card_id(&card_id)?;
+        card_repository.delete_card(&card_id).map_err(map_err)?;
+        let card = card_repository.get_card(&card_id).map_err(map_err)?;
+        Ok(to_card_note_dto(&card))
+    })
+}
+
+pub fn restore_card_note(card_id: String) -> Result<CardNoteDto, ApiError> {
+    with_configured_card_store(|card_repository| {
+        let card_id = parse_card_id(&card_id)?;
+        card_repository.restore_card(&card_id).map_err(map_err)?;
+        let card = card_repository.get_card(&card_id).map_err(map_err)?;
+        Ok(to_card_note_dto(&card))
+    })
+}
+
 pub fn list_card_notes() -> Result<Vec<CardNoteDto>, ApiError> {
     with_configured_card_store(|card_repository| {
         let cards = card_repository.list_cards(10_000, 0).map_err(map_err)?;
@@ -412,7 +507,11 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
     let network = map
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    Ok(build_sync_status_dto(network.sync_state()))
+    combine_sync_status(
+        network.base_path(),
+        network.sync_state(),
+        network.last_sync_error_code().map(|code| code.to_string()),
+    )
 }
 
 pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
@@ -447,33 +546,35 @@ pub fn sync_join_pool(network_id: u64, pool_id: String) -> Result<(), ApiError> 
 }
 
 pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
-    let map = pool_network_map()
+    let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
     let network = map
-        .get(&network_id)
+        .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    network.sync_push().map_err(|err| match err {
-        CardMindError::InvalidArgument(msg) if msg == "sync not connected" => {
-            ApiError::new(ApiErrorCode::RequestTimeout, "sync not connected")
+    let sync_code = match network.sync_push() {
+        Ok(()) => None,
+        Err(CardMindError::InvalidArgument(msg)) if msg == "sync not connected" => {
+            Some(ApiErrorCode::RequestTimeout.as_str().to_string())
         }
-        other => map_err(other),
-    })?;
-    Ok(build_sync_result_dto("connected"))
+        Err(other) => return Err(map_err(other)),
+    };
+    combine_sync_result(network.base_path(), network.sync_state(), sync_code)
 }
 
 pub fn sync_pull(network_id: u64) -> Result<SyncResultDto, ApiError> {
-    let map = pool_network_map()
+    let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
     let network = map
-        .get(&network_id)
+        .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    network.sync_pull().map_err(|err| match err {
-        CardMindError::InvalidArgument(msg) if msg == "sync not connected" => {
-            ApiError::new(ApiErrorCode::RequestTimeout, "sync not connected")
+    let sync_code = match network.sync_pull() {
+        Ok(()) => None,
+        Err(CardMindError::InvalidArgument(msg)) if msg == "sync not connected" => {
+            Some(ApiErrorCode::RequestTimeout.as_str().to_string())
         }
-        other => map_err(other),
-    })?;
-    Ok(build_sync_result_dto("connected"))
+        Err(other) => return Err(map_err(other)),
+    };
+    combine_sync_result(network.base_path(), network.sync_state(), sync_code)
 }

@@ -31,8 +31,7 @@ impl SqliteStore {
             CREATE TABLE IF NOT EXISTS pools (
                 pool_id TEXT PRIMARY KEY
             );
-            DROP TABLE IF EXISTS pool_members;
-            CREATE TABLE pool_members (
+            CREATE TABLE IF NOT EXISTS pool_members (
                 pool_id TEXT NOT NULL,
                 endpoint_id TEXT NOT NULL,
                 nickname TEXT NOT NULL,
@@ -290,6 +289,17 @@ impl SqliteStore {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(err) => Err(CardMindError::Sqlite(err.to_string())),
         }
+    }
+
+    /// 是否存在任意待恢复的投影失败
+    pub fn has_projection_failures(&self) -> Result<bool, CardMindError> {
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(1) FROM projection_failures;", [], |row| {
+                row.get(0)
+            })
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        Ok(count > 0)
     }
 
     /// 获取数据池元数据

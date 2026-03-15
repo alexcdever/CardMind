@@ -96,6 +96,15 @@ impl CardNoteRepository {
         Ok(())
     }
 
+    /// 恢复卡片
+    pub fn restore_card(&self, id: &Uuid) -> Result<(), CardMindError> {
+        let mut card = self.sqlite.get_card(id)?;
+        card.deleted = false;
+        card.updated_at = current_timestamp();
+        self.persist_card(&card)?;
+        Ok(())
+    }
+
     /// 获取卡片
     pub fn get_card(&self, id: &Uuid) -> Result<Card, CardMindError> {
         match self.sqlite.get_card(id) {

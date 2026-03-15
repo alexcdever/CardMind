@@ -2,6 +2,8 @@
 // output: 断言同步状态按 idle->connected->idle 转换且 push/pull 返回 ok。
 // pos: 覆盖同步 API 端到端状态流转场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::*;
+use cardmind_rust::store::path_resolver::DataPaths;
+use cardmind_rust::store::sqlite_store::SqliteStore;
 use tempfile::tempdir;
 
 #[test]
@@ -35,17 +37,28 @@ fn sync_status_should_separate_write_projection_and_sync_states()
 -> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
+    let paths = DataPaths::new(dir.path().to_string_lossy().as_ref())?;
+    let sqlite = SqliteStore::new(&paths.sqlite_path)?;
+    sqlite.record_projection_failure("card", "card-1", "retry_projection")?;
 
     let status = sync_status(network_id)?;
-    assert_eq!(status.state, "idle");
+    assert_eq!(status.state, "degraded");
     assert_eq!(status.write_state, "write_saved");
-    assert_eq!(status.projection_state, "ready");
+    assert_eq!(status.projection_state, "projection_pending");
     assert_eq!(status.sync_state, "idle");
-    assert_eq!(status.code, None);
+    assert_eq!(status.code.as_deref(), Some("PROJECTION_NOT_CONVERGED"));
 
-    let push = sync_push(network_id);
-    let error = push.expect_err("push without connect should fail");
-    assert_eq!(error.code, "REQUEST_TIMEOUT");
+    let push = sync_push(network_id)?;
+    assert_eq!(push.state, "degraded");
+    assert_eq!(push.write_state, "write_saved");
+    assert_eq!(push.projection_state, "projection_pending");
+    assert_eq!(push.sync_state, "sync_failed");
+    assert_eq!(push.code.as_deref(), Some("REQUEST_TIMEOUT"));
+
+    let failed_status = sync_status(network_id)?;
+    assert_eq!(failed_status.state, "degraded");
+    assert_eq!(failed_status.sync_state, "sync_failed");
+    assert_eq!(failed_status.code.as_deref(), Some("REQUEST_TIMEOUT"));
 
     close_pool_network(network_id)?;
     Ok(())

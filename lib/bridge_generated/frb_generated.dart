@@ -65,7 +65,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -309484233;
+  int get rustContentHash => 1785982332;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -95,6 +95,8 @@ abstract class RustLibApi extends BaseApi {
     required String os,
   });
 
+  Future<CardNoteDto> crateApiDeleteCardNote({required String cardId});
+
   Future<CardNoteDto> crateApiGetCardNoteDetail({required String cardId});
 
   Future<PoolDetailDto> crateApiGetPoolDetail({required String poolId});
@@ -102,6 +104,13 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiInitAppConfig({required String appDataDir});
 
   Future<BigInt> crateApiInitPoolNetwork({required String basePath});
+
+  Future<PoolDto> crateApiJoinByCode({
+    required String code,
+    required String endpointId,
+    required String nickname,
+    required String os,
+  });
 
   Future<PoolDto> crateApiJoinPool({
     required String poolId,
@@ -115,6 +124,8 @@ abstract class RustLibApi extends BaseApi {
   Future<List<PoolDto>> crateApiListPools();
 
   Future<void> crateApiResetAppConfigForTests();
+
+  Future<CardNoteDto> crateApiRestoreCardNote({required String cardId});
 
   Future<void> crateApiSyncConnect({
     required BigInt networkId,
@@ -287,7 +298,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<CardNoteDto> crateApiGetCardNoteDetail({required String cardId}) {
+  Future<CardNoteDto> crateApiDeleteCardNote({required String cardId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -297,6 +308,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             generalizedFrbRustBinding,
             serializer,
             funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_card_note_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiDeleteCardNoteConstMeta,
+        argValues: [cardId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeleteCardNoteConstMeta =>
+      const TaskConstMeta(debugName: "delete_card_note", argNames: ["cardId"]);
+
+  @override
+  Future<CardNoteDto> crateApiGetCardNoteDetail({required String cardId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(cardId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
             port: port_,
           );
         },
@@ -326,7 +365,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 7,
             port: port_,
           );
         },
@@ -354,7 +393,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -384,7 +423,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 9,
             port: port_,
           );
         },
@@ -405,6 +444,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<PoolDto> crateApiJoinByCode({
+    required String code,
+    required String endpointId,
+    required String nickname,
+    required String os,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(code, serializer);
+          sse_encode_String(endpointId, serializer);
+          sse_encode_String(nickname, serializer);
+          sse_encode_String(os, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiJoinByCodeConstMeta,
+        argValues: [code, endpointId, nickname, os],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiJoinByCodeConstMeta => const TaskConstMeta(
+    debugName: "join_by_code",
+    argNames: ["code", "endpointId", "nickname", "os"],
+  );
+
+  @override
   Future<PoolDto> crateApiJoinPool({
     required String poolId,
     required String endpointId,
@@ -422,7 +499,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 11,
             port: port_,
           );
         },
@@ -451,7 +528,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 12,
             port: port_,
           );
         },
@@ -478,7 +555,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 13,
             port: port_,
           );
         },
@@ -505,7 +582,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 14,
             port: port_,
           );
         },
@@ -527,6 +604,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<CardNoteDto> crateApiRestoreCardNote({required String cardId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(cardId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_card_note_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiRestoreCardNoteConstMeta,
+        argValues: [cardId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRestoreCardNoteConstMeta =>
+      const TaskConstMeta(debugName: "restore_card_note", argNames: ["cardId"]);
+
+  @override
   Future<void> crateApiSyncConnect({
     required BigInt networkId,
     required String target,
@@ -540,7 +645,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 16,
             port: port_,
           );
         },
@@ -570,7 +675,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 17,
             port: port_,
           );
         },
@@ -604,7 +709,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 18,
             port: port_,
           );
         },
@@ -634,7 +739,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 19,
             port: port_,
           );
         },
@@ -662,7 +767,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 20,
             port: port_,
           );
         },
@@ -690,7 +795,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 21,
             port: port_,
           );
         },
@@ -724,7 +829,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 22,
             port: port_,
           );
         },

@@ -135,6 +135,19 @@ impl PoolStore {
         Ok(updated)
     }
 
+    /// 通过加入码加入数据池
+    pub fn join_by_code(
+        &self,
+        code: &str,
+        new_member: PoolMember,
+        local_card_ids: Vec<Uuid>,
+    ) -> Result<Pool, CardMindError> {
+        let pool_id = Uuid::parse_str(code)
+            .map_err(|_| CardMindError::InvalidArgument("invalid join code".to_string()))?;
+        let pool = self.get_pool(&pool_id)?;
+        self.join_pool(&pool, new_member, local_card_ids)
+    }
+
     /// 离开数据池
     pub fn leave_pool(&self, pool_id: &Uuid, endpoint_id: &str) -> Result<Pool, CardMindError> {
         let mut pool = self.sqlite.get_pool(pool_id)?;
