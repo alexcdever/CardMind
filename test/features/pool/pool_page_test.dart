@@ -23,6 +23,11 @@ class _FakePoolApiClient implements PoolApiClient {
     }
     return const PoolJoinResult.error('ADMIN_OFFLINE');
   }
+
+  @override
+  Future<PoolViewData?> getJoinedPoolView() async {
+    return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
+  }
 }
 
 PoolController _buildTestPoolController({

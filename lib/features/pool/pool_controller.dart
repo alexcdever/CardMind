@@ -134,9 +134,15 @@ class PoolController extends ChangeNotifier {
     notifyListeners();
     final result = await _apiClient.joinByCode(code);
     _joining = false;
-    _state = result.isSuccess
-        ? PoolState.joined(poolName: result.poolName ?? '默认数据池')
-        : PoolState.error(result.errorCode ?? 'REQUEST_TIMEOUT');
+    if (result.isSuccess) {
+      final joined = await _apiClient.getJoinedPoolView();
+      _state = PoolState.joined(
+        poolName: joined?.poolName ?? result.poolName ?? '默认数据池',
+        isOwner: joined?.isOwner ?? false,
+      );
+    } else {
+      _state = PoolState.error(result.errorCode ?? 'REQUEST_TIMEOUT');
+    }
     notifyListeners();
   }
 

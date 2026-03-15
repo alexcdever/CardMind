@@ -5,9 +5,17 @@
 import 'dart:async';
 
 import 'package:cardmind/bridge_generated/api.dart' as frb;
+import 'package:cardmind/bridge_generated/models/api_error.dart';
 
 class PoolCreateResult {
   const PoolCreateResult({required this.poolName, required this.isOwner});
+
+  final String poolName;
+  final bool isOwner;
+}
+
+class PoolViewData {
+  const PoolViewData({required this.poolName, required this.isOwner});
 
   final String poolName;
   final bool isOwner;
@@ -28,6 +36,8 @@ abstract class PoolApiClient {
   Future<PoolCreateResult> createPool();
 
   Future<PoolJoinResult> joinByCode(String code);
+
+  Future<PoolViewData?> getJoinedPoolView();
 }
 
 class LocalPoolApiClient implements PoolApiClient {
@@ -47,6 +57,11 @@ class LocalPoolApiClient implements PoolApiClient {
     return PoolJoinResult.error(
       code == 'admin-offline' ? 'ADMIN_OFFLINE' : 'REQUEST_TIMEOUT',
     );
+  }
+
+  @override
+  Future<PoolViewData?> getJoinedPoolView() async {
+    return const PoolViewData(poolName: ownerPoolName, isOwner: true);
   }
 }
 
@@ -75,7 +90,31 @@ class FrbPoolApiClient implements PoolApiClient {
   }
 
   @override
-  Future<PoolJoinResult> joinByCode(String code) {
-    throw UnimplementedError('FRB joinByCode mapping is not available yet');
+  Future<PoolJoinResult> joinByCode(String code) async {
+    try {
+      final dto = await frb.joinByCode(
+        code: code,
+        endpointId: endpointId,
+        nickname: nickname,
+        os: os,
+      );
+      return PoolJoinResult.joined(poolName: dto.name);
+    } on ApiError catch (error) {
+      return PoolJoinResult.error(error.code);
+    }
+  }
+
+  @override
+  Future<PoolViewData?> getJoinedPoolView() async {
+    final pools = await frb.listPools();
+    if (pools.isEmpty) {
+      return null;
+    }
+
+    final dto = pools.first;
+    return PoolViewData(
+      poolName: dto.name,
+      isOwner: dto.currentUserRole == 'admin',
+    );
   }
 }
