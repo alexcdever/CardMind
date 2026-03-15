@@ -72,19 +72,11 @@ class FrbCardApiClient implements CardApiClient {
     String query = '',
     bool includeDeleted = false,
   }) async {
-    final notes = await frb.listCardNotes();
-    final lowered = query.toLowerCase();
+    final notes = await frb.queryCardNotes(
+      query: query,
+      includeDeleted: includeDeleted,
+    );
     final summaries = notes
-        .where((note) {
-          if (!includeDeleted && note.deleted) {
-            return false;
-          }
-          if (lowered.isEmpty) {
-            return true;
-          }
-          return note.title.toLowerCase().contains(lowered) ||
-              note.content.toLowerCase().contains(lowered);
-        })
         .map(
           (note) => CardSummary(
             id: note.id,

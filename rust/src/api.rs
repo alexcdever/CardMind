@@ -482,6 +482,18 @@ pub fn list_card_notes() -> Result<Vec<CardNoteDto>, ApiError> {
     })
 }
 
+pub fn query_card_notes(
+    query: String,
+    include_deleted: bool,
+) -> Result<Vec<CardNoteDto>, ApiError> {
+    with_configured_card_store(|card_repository| {
+        let cards = card_repository
+            .query_cards(&query, include_deleted, 10_000, 0)
+            .map_err(map_err)?;
+        Ok(cards.iter().map(to_card_note_dto).collect())
+    })
+}
+
 pub fn get_card_note_detail(card_id: String) -> Result<CardNoteDto, ApiError> {
     with_configured_card_store(|card_repository| {
         let card_id = parse_card_id(&card_id)?;

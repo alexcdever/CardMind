@@ -5,7 +5,7 @@
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection, Row};
 use std::path::Path;
 use uuid::Uuid;
 
@@ -58,6 +58,25 @@ impl SqliteStore {
     /// 判断缓存层是否可用
     pub fn is_ready(&self) -> bool {
         self.ready
+    }
+
+    fn map_card(row: &Row<'_>) -> rusqlite::Result<Card> {
+        let id_str: String = row.get(0)?;
+        let id = Uuid::parse_str(&id_str).map_err(|_| {
+            rusqlite::Error::FromSqlConversionFailure(
+                0,
+                rusqlite::types::Type::Text,
+                Box::new(std::fmt::Error),
+            )
+        })?;
+        Ok(Card {
+            id,
+            title: row.get(1)?,
+            content: row.get(2)?,
+            created_at: row.get(3)?,
+            updated_at: row.get(4)?,
+            deleted: row.get::<_, i64>(5)? != 0,
+        })
     }
 
     /// 写入或更新卡片
@@ -122,24 +141,7 @@ impl SqliteStore {
             )
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         let rows = stmt
-            .query_map(params![limit, offset], |row| {
-                let id_str: String = row.get(0)?;
-                let id = Uuid::parse_str(&id_str).map_err(|_| {
-                    rusqlite::Error::FromSqlConversionFailure(
-                        0,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::fmt::Error),
-                    )
-                })?;
-                Ok(Card {
-                    id,
-                    title: row.get(1)?,
-                    content: row.get(2)?,
-                    created_at: row.get(3)?,
-                    updated_at: row.get(4)?,
-                    deleted: row.get::<_, i64>(5)? != 0,
-                })
-            })
+            .query_map(params![limit, offset], Self::map_card)
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         let mut cards = Vec::new();
         for row in rows {
@@ -165,28 +167,60 @@ impl SqliteStore {
             )
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         let rows = stmt
-            .query_map(params![like, limit, offset], |row| {
-                let id_str: String = row.get(0)?;
-                let id = Uuid::parse_str(&id_str).map_err(|_| {
-                    rusqlite::Error::FromSqlConversionFailure(
-                        0,
-                        rusqlite::types::Type::Text,
-                        Box::new(std::fmt::Error),
-                    )
-                })?;
-                Ok(Card {
-                    id,
-                    title: row.get(1)?,
-                    content: row.get(2)?,
-                    created_at: row.get(3)?,
-                    updated_at: row.get(4)?,
-                    deleted: row.get::<_, i64>(5)? != 0,
-                })
-            })
+            .query_map(params![like, limit, offset], Self::map_card)
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         let mut cards = Vec::new();
         for row in rows {
             cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
+        }
+        Ok(cards)
+    }
+
+    /// 按产品语义查询卡片
+    pub fn query_cards(
+        &self,
+        keyword: &str,
+        include_deleted: bool,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Card>, CardMindError> {
+        let normalized = keyword.trim().to_lowercase();
+        let like = format!("%{}%", normalized);
+        let sql = if normalized.is_empty() {
+            "SELECT id, title, content, created_at, updated_at, deleted FROM cards
+             WHERE (?1 = 1 OR deleted = 0)
+             ORDER BY updated_at DESC, created_at DESC, id ASC
+             LIMIT ?2 OFFSET ?3;"
+        } else {
+            "SELECT id, title, content, created_at, updated_at, deleted FROM cards
+             WHERE (?1 = 1 OR deleted = 0)
+               AND (LOWER(title) LIKE ?2 OR LOWER(content) LIKE ?2)
+             ORDER BY updated_at DESC, created_at DESC, id ASC
+             LIMIT ?3 OFFSET ?4;"
+        };
+        let mut stmt = self
+            .conn
+            .prepare(sql)
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+        let include_deleted_flag = if include_deleted { 1 } else { 0 };
+        let mut cards = Vec::new();
+        if normalized.is_empty() {
+            let rows = stmt
+                .query_map(params![include_deleted_flag, limit, offset], Self::map_card)
+                .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+            for row in rows {
+                cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
+            }
+        } else {
+            let rows = stmt
+                .query_map(
+                    params![include_deleted_flag, like, limit, offset],
+                    Self::map_card,
+                )
+                .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+            for row in rows {
+                cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
+            }
         }
         Ok(cards)
     }

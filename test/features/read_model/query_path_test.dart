@@ -45,6 +45,10 @@ void main() {
         cardApiClient.contains('Future<List<CardSummary>> listCardSummaries('),
         isTrue,
       );
+      expect(cardApiClient.contains('frb.queryCardNotes('), isTrue);
+      expect(cardApiClient.contains('frb.listCardNotes('), isFalse);
+      expect(cardApiClient.contains('.where((note)'), isFalse);
+      expect(cardApiClient.contains('includeDeleted && note.deleted'), isFalse);
     },
   );
 

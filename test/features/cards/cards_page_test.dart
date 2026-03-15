@@ -209,6 +209,12 @@ class _MockRustLibApi extends RustLibApi {
       const <CardNoteDto>[];
 
   @override
+  Future<List<CardNoteDto>> crateApiQueryCardNotes({
+    required String query,
+    required bool includeDeleted,
+  }) async => const <CardNoteDto>[];
+
+  @override
   Future<CardNoteDto> crateApiDeleteCardNote({required String cardId}) async {
     return CardNoteDto(
       id: cardId,

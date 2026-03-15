@@ -92,6 +92,20 @@ class _FakeCardApiClient implements CardApiClient {
   }
 }
 
+bool _rustLibInitialized = false;
+
+Future<void> _ensureRustLibInitialized() async {
+  if (_rustLibInitialized) {
+    return;
+  }
+
+  final dylib = File(
+    'rust/target/release/libcardmind_rust.dylib',
+  ).absolute.path;
+  await RustLib.init(externalLibrary: ExternalLibrary.open(dylib));
+  _rustLibInitialized = true;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -105,11 +119,7 @@ void main() {
     'frb card api client supports delete and restore without handle state',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-card-api-');
-      final dylib = File(
-        'rust/target/release/libcardmind_rust.dylib',
-      ).absolute.path;
-
-      await RustLib.init(externalLibrary: ExternalLibrary.open(dylib));
+      await _ensureRustLibInitialized();
       await frb.resetAppConfigForTests();
       await frb.initAppConfig(appDataDir: root.path);
 
@@ -131,7 +141,48 @@ void main() {
       } finally {
         await frb.resetAppConfigForTests();
         await root.delete(recursive: true);
-        RustLib.dispose();
+      }
+    },
+  );
+
+  test(
+    'flutter should consume backend-filtered card summaries instead of local filtering',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-card-query-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        final alpha = await frb.createCardNote(
+          title: 'Alpha KEYWORD',
+          content: 'body',
+        );
+        await frb.createCardNote(
+          title: 'Body host',
+          content: 'contains keyword',
+        );
+        final deleted = await frb.createCardNote(
+          title: 'keyword deleted',
+          content: 'body',
+        );
+        await frb.deleteCardNote(cardId: deleted.id);
+
+        final client = FrbCardApiClient();
+        final active = await client.listCardSummaries(query: 'keyword');
+        final withDeleted = await client.listCardSummaries(
+          query: 'keyword',
+          includeDeleted: true,
+        );
+
+        expect(active.map((item) => item.id), contains(alpha.id));
+        expect(active.map((item) => item.id), isNot(contains(deleted.id)));
+        expect(withDeleted.map((item) => item.id), contains(deleted.id));
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
       }
     },
   );

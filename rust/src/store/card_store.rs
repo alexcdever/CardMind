@@ -134,6 +134,18 @@ impl CardNoteRepository {
         self.sqlite.search_cards(keyword, limit, offset)
     }
 
+    /// 按产品语义查询卡片
+    pub fn query_cards(
+        &self,
+        keyword: &str,
+        include_deleted: bool,
+        limit: i64,
+        offset: i64,
+    ) -> Result<Vec<Card>, CardMindError> {
+        self.sqlite
+            .query_cards(keyword, include_deleted, limit, offset)
+    }
+
     fn persist_card(&self, card: &Card) -> Result<(), CardMindError> {
         self.write_card_to_loro(card)?;
         self.project_card_to_sqlite(card)?;
