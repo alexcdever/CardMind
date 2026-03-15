@@ -16,8 +16,8 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn joined_pool_view_should_return_current_user_role_for_calling_endpoint(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn joined_pool_view_should_return_current_user_role_for_calling_endpoint()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;

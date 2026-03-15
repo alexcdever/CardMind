@@ -33,7 +33,7 @@ class TestCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<void> createCardNote({
+  Future<String> createCardNote({
     required String id,
     required String title,
     required String body,
@@ -43,6 +43,26 @@ class TestCardApiClient implements CardApiClient {
       title: title,
       body: body,
       deleted: false,
+      updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
+    );
+    return id;
+  }
+
+  @override
+  Future<void> updateCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    final row = _rows[id];
+    if (row == null) {
+      throw StateError('missing existing card $id');
+    }
+    _rows[id] = _TestCardRecord(
+      id: row.id,
+      title: title,
+      body: body,
+      deleted: row.deleted,
       updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }

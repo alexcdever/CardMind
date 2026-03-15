@@ -19,8 +19,8 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn card_query_api_should_apply_search_and_deleted_filters_in_backend(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn card_query_api_should_apply_search_and_deleted_filters_in_backend()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -40,9 +40,11 @@ fn card_query_api_should_apply_search_and_deleted_filters_in_backend(
     assert!(active_only.iter().all(|card| card.id != deleted.id));
 
     assert_eq!(with_deleted.len(), 3);
-    assert!(with_deleted
-        .iter()
-        .any(|card| card.id == deleted.id && card.deleted));
+    assert!(
+        with_deleted
+            .iter()
+            .any(|card| card.id == deleted.id && card.deleted)
+    );
 
     reset_app_config()?;
     Ok(())
