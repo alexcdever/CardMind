@@ -4,6 +4,7 @@
 // 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
+import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/foundation.dart';
 
@@ -12,6 +13,8 @@ class PoolController extends ChangeNotifier {
     PoolState initialState = const PoolState.notJoined(),
     SyncStatus initialSyncStatus = const SyncStatus.connected(),
     PoolApiClient? apiClient,
+    SyncService? syncService,
+    String reconnectTarget = 'owner@this-device',
   }) : _state = initialState,
        _syncStatus = initialSyncStatus,
        _apiClient =
@@ -20,12 +23,16 @@ class PoolController extends ChangeNotifier {
              endpointId: 'owner@this-device',
              nickname: 'owner',
              os: defaultTargetPlatform.name,
-           );
+           ),
+       _syncService = syncService,
+       _reconnectTarget = reconnectTarget;
 
   PoolState _state;
   SyncStatus _syncStatus;
   bool _joining = false;
   final PoolApiClient _apiClient;
+  final SyncService? _syncService;
+  final String _reconnectTarget;
 
   PoolState get state => _state;
   SyncStatus get syncStatus => _syncStatus;
@@ -147,14 +154,27 @@ class PoolController extends ChangeNotifier {
   }
 
   Future<void> retrySync() async {
-    _syncStatus = const SyncStatus.connected();
-    notifyListeners();
+    await _runSyncRecovery((service) => service.retry());
   }
 
   Future<void> reconnectSync() async {
+    final syncService = _syncService;
+    if (syncService == null) {
+      return;
+    }
     _syncStatus = const SyncStatus.connecting();
     notifyListeners();
-    _syncStatus = const SyncStatus.connected();
+    await _runSyncRecovery((service) => service.reconnect(_reconnectTarget));
+  }
+
+  Future<void> _runSyncRecovery(
+    Future<SyncStatus> Function(SyncService service) action,
+  ) async {
+    final syncService = _syncService;
+    if (syncService == null) {
+      return;
+    }
+    _syncStatus = await action(syncService);
     notifyListeners();
   }
 }

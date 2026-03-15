@@ -6,6 +6,9 @@ import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
+import 'package:cardmind/bridge_generated/api.dart' as frb;
+import 'package:cardmind/features/sync/sync_service.dart';
+import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,6 +37,60 @@ PoolController _buildTestPoolController({
   PoolState state = const PoolState.notJoined(),
 }) {
   return PoolController(initialState: state, apiClient: _FakePoolApiClient());
+}
+
+class _FakeSyncGateway implements SyncGateway {
+  int statusCalls = 0;
+  int pullCalls = 0;
+  int connectCalls = 0;
+  int disconnectCalls = 0;
+
+  @override
+  Future<void> syncConnect({
+    required BigInt networkId,
+    required String target,
+  }) async {
+    connectCalls += 1;
+  }
+
+  @override
+  Future<void> syncDisconnect({required BigInt networkId}) async {
+    disconnectCalls += 1;
+  }
+
+  @override
+  Future<void> syncJoinPool({
+    required BigInt networkId,
+    required String poolId,
+  }) async {}
+
+  @override
+  Future<frb.SyncResultDto> syncPull({required BigInt networkId}) async {
+    pullCalls += 1;
+    return const frb.SyncResultDto(
+      state: 'ok',
+      writeState: 'write_saved',
+      projectionState: 'projection_ready',
+      syncState: 'connected',
+      code: null,
+    );
+  }
+
+  @override
+  Future<frb.SyncResultDto> syncPush({required BigInt networkId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<frb.SyncStatusDto> syncStatus({required BigInt networkId}) async {
+    statusCalls += 1;
+    return const frb.SyncStatusDto(
+      state: 'connected',
+      writeState: 'write_saved',
+      projectionState: 'projection_ready',
+      syncState: 'connected',
+      code: null,
+    );
+  }
 }
 
 void main() {
@@ -307,4 +364,65 @@ void main() {
 
     expect(find.text('创建池'), findsOneWidget);
   });
+
+  testWidgets(
+    'retry sync should invoke backend retry action and refresh status',
+    (tester) async {
+      final gateway = _FakeSyncGateway();
+      final controller = PoolController(
+        initialState: const PoolState.error('REQUEST_TIMEOUT'),
+        initialSyncStatus: const SyncStatus.error('REQUEST_TIMEOUT'),
+        apiClient: _FakePoolApiClient(),
+        syncService: SyncService(gateway: gateway, networkId: BigInt.one),
+        reconnectTarget: 'peer-1',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PoolPage(
+            state: const PoolState.error('REQUEST_TIMEOUT'),
+            controller: controller,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('重试同步'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.pullCalls, 1);
+      expect(gateway.statusCalls, 1);
+      expect(controller.syncStatus.kind, SyncStatusKind.connected);
+    },
+  );
+
+  testWidgets(
+    'reconnect sync should invoke backend reconnect action and refresh status',
+    (tester) async {
+      final gateway = _FakeSyncGateway();
+      final controller = PoolController(
+        initialState: const PoolState.error('REQUEST_TIMEOUT'),
+        initialSyncStatus: const SyncStatus.error('REQUEST_TIMEOUT'),
+        apiClient: _FakePoolApiClient(),
+        syncService: SyncService(gateway: gateway, networkId: BigInt.two),
+        reconnectTarget: 'peer-1',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PoolPage(
+            state: const PoolState.error('REQUEST_TIMEOUT'),
+            controller: controller,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('重新连接'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.disconnectCalls, 1);
+      expect(gateway.connectCalls, 1);
+      expect(gateway.statusCalls, 1);
+      expect(controller.syncStatus.kind, SyncStatusKind.connected);
+    },
+  );
 }

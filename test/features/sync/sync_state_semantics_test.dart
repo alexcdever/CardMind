@@ -12,15 +12,22 @@ class _SemanticsGateway implements SyncGateway {
 
   final frb.SyncStatusDto statusDto;
   final ApiError? pullError;
+  int pullCalls = 0;
+  int connectCalls = 0;
+  int disconnectCalls = 0;
 
   @override
   Future<void> syncConnect({
     required BigInt networkId,
     required String target,
-  }) async {}
+  }) async {
+    connectCalls += 1;
+  }
 
   @override
-  Future<void> syncDisconnect({required BigInt networkId}) async {}
+  Future<void> syncDisconnect({required BigInt networkId}) async {
+    disconnectCalls += 1;
+  }
 
   @override
   Future<void> syncJoinPool({
@@ -30,6 +37,7 @@ class _SemanticsGateway implements SyncGateway {
 
   @override
   Future<frb.SyncResultDto> syncPull({required BigInt networkId}) async {
+    pullCalls += 1;
     if (pullError != null) throw pullError!;
     return const frb.SyncResultDto(
       state: 'ok',
@@ -99,6 +107,51 @@ void main() {
       expect(syncFailure.kind, SyncStatusKind.error);
       expect(syncFailure.code, 'REQUEST_TIMEOUT');
       expect(syncFailure.isWriteSaved, isTrue);
+    },
+  );
+
+  test(
+    'retrySync should invoke backend retry action and refresh from backend status',
+    () async {
+      final gateway = _SemanticsGateway(
+        statusDto: const frb.SyncStatusDto(
+          state: 'connected',
+          writeState: 'write_saved',
+          projectionState: 'projection_ready',
+          syncState: 'connected',
+          code: null,
+        ),
+      );
+      final service = SyncService(gateway: gateway, networkId: BigInt.one);
+
+      final status = await service.retry();
+
+      expect(gateway.pullCalls, 1);
+      expect(status.kind, SyncStatusKind.connected);
+      expect(status.isWriteSaved, isTrue);
+    },
+  );
+
+  test(
+    'reconnectSync should invoke backend reconnect action and refresh from backend status',
+    () async {
+      final gateway = _SemanticsGateway(
+        statusDto: const frb.SyncStatusDto(
+          state: 'connected',
+          writeState: 'write_saved',
+          projectionState: 'projection_ready',
+          syncState: 'connected',
+          code: null,
+        ),
+      );
+      final service = SyncService(gateway: gateway, networkId: BigInt.two);
+
+      final status = await service.reconnect('peer-1');
+
+      expect(gateway.disconnectCalls, 1);
+      expect(gateway.connectCalls, 1);
+      expect(status.kind, SyncStatusKind.connected);
+      expect(status.isWriteSaved, isTrue);
     },
   );
 }
