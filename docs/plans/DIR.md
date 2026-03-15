@@ -68,5 +68,6 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-15-remove-cardstore-handle-implementation-plan.md - 实现计划 - 移除 CardStore/storeId 暴露并切换到 initAppConfig + 无句柄资源 API 的任务化实施
 2026-03-15-flutter-rust-mainpath-repair-revised-implementation-plan.md - 实现计划 - 基于无句柄 FRB 新基线继续完成 Flutter/Rust 主路径修补
 2026-03-15-flutter-rust-followup-truthfulness-design.md - 设计草案 - Flutter/Rust 真实性修补设计（身份、保存分流、sync 动作、query 后端化）
+2026-03-15-flutter-rust-followup-truthfulness-implementation-plan.md - 实现计划 - Flutter/Rust 真实性修补实施（身份真实、save 分流、sync 真动作、query 后端化）
 2026-03-09-ui-redesign-design.md - 设计草案 - UI 重设计（信息架构、主页语义、跨端布局与视觉约束）
 2026-03-09-ui-redesign-implementation-plan.md - 实现计划 - UI 重设计任务化实施（spec-first、主页命名、局部同步反馈、本地 TDD）
