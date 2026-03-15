@@ -37,18 +37,31 @@ class _FakeCardApiClient implements CardApiClient {
 
   final _FakeCardsReadRepository readRepository;
   int createCalls = 0;
+  int updateCalls = 0;
   int deleteCalls = 0;
   int restoreCalls = 0;
   String? lastCreatedId;
+  String? lastUpdatedId;
 
   @override
-  Future<void> createCardNote({
+  Future<String> createCardNote({
     required String id,
     required String title,
     required String body,
   }) async {
     createCalls += 1;
     lastCreatedId = id;
+    return id;
+  }
+
+  @override
+  Future<void> updateCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    updateCalls += 1;
+    lastUpdatedId = id;
   }
 
   @override
@@ -139,12 +152,38 @@ void main() {
       final apiClient = _FakeCardApiClient(readRepository);
       final controller = CardsController(apiClient: apiClient);
 
-      await controller.create('local-id', 'Title', 'Body');
+      await controller.createDraft('local-id', 'Title', 'Body');
 
       expect(apiClient.createCalls, 1);
       expect(apiClient.lastCreatedId, 'local-id');
       expect(readRepository.searchCalls, 1);
       expect(controller.items.single.id, 'server-id');
+    },
+  );
+
+  test(
+    'saving an existing selected card should call update not create',
+    () async {
+      final readRepository = _FakeCardsReadRepository()
+        ..rows = const <CardNoteProjection>[
+          CardNoteProjection(
+            id: 'existing-id',
+            title: 'Updated from sqlite',
+            body: 'body',
+            deleted: false,
+            updatedAtMicros: 1,
+          ),
+        ];
+      final apiClient = _FakeCardApiClient(readRepository);
+      final controller = CardsController(apiClient: apiClient);
+
+      await controller.save('existing-id', 'Updated title', 'Updated body');
+
+      expect(apiClient.updateCalls, 1);
+      expect(apiClient.lastUpdatedId, 'existing-id');
+      expect(apiClient.createCalls, 0);
+      expect(readRepository.searchCalls, 1);
+      expect(controller.items.single.id, 'existing-id');
     },
   );
 }

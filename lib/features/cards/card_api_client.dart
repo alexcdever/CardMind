@@ -11,7 +11,13 @@ import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 import 'package:cardmind/features/cards/card_summary.dart';
 
 abstract class CardApiClient {
-  Future<void> createCardNote({
+  Future<String> createCardNote({
+    required String id,
+    required String title,
+    required String body,
+  });
+
+  Future<void> updateCardNote({
     required String id,
     required String title,
     required String body,
@@ -31,14 +37,24 @@ class FrbCardApiClient implements CardApiClient {
   FrbCardApiClient();
 
   @override
-  Future<void> createCardNote({
+  Future<String> createCardNote({
     required String id,
     required String title,
     required String body,
   }) async {
     // 中文注释：当前 Flutter 页面仍会先生成本地 id；Rust 已改为后端生成稳定 id，
     // 这里暂时忽略传入 id，待页面与查询链路完全切到后端返回值后删除该兼容入参。
-    await frb.createCardNote(title: title, content: body);
+    final dto = await frb.createCardNote(title: title, content: body);
+    return dto.id;
+  }
+
+  @override
+  Future<void> updateCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    await frb.updateCardNote(cardId: id, title: title, content: body);
   }
 
   @override
@@ -102,7 +118,7 @@ class LegacyCardApiClient implements CardApiClient {
   final CardsWriteRepository _writeRepository;
 
   @override
-  Future<void> createCardNote({
+  Future<String> createCardNote({
     required String id,
     required String title,
     required String body,
@@ -115,6 +131,26 @@ class LegacyCardApiClient implements CardApiClient {
       updatedAtMicros: _nowMicros(),
     );
     await _persistToWriteAndProjection(note);
+    return id;
+  }
+
+  @override
+  Future<void> updateCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    final existing = await _writeRepository.getById(id);
+    if (existing == null) {
+      throw StateError('cannot update missing card $id');
+    }
+    await _persistToWriteAndProjection(
+      existing.copyWith(
+        title: title,
+        body: body,
+        updatedAtMicros: _nowMicros(),
+      ),
+    );
   }
 
   @override

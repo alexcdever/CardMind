@@ -119,7 +119,7 @@ void main() {
       );
 
       const noteId = '019-card-test';
-      await controller.create(noteId, 'Title', 'Body');
+      await controller.createDraft(noteId, 'Title', 'Body');
 
       final snapshot = File(
         '${root.path}/data/loro/card-note/$noteId/snapshot',
@@ -144,7 +144,7 @@ void main() {
         ),
       );
 
-      await controller.create('in-memory-id', 'InMemoryTitle', 'Body');
+      await controller.createDraft('in-memory-id', 'InMemoryTitle', 'Body');
 
       final rows = await database.searchCards(
         'InMemoryTitle',

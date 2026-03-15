@@ -57,7 +57,7 @@ class _CardsPageState extends State<CardsPage> {
 
   Future<void> _seedAndLoad() async {
     try {
-      await _effectiveController.create('seed-note', '示例卡片A', 'seed');
+      await _effectiveController.createDraft('seed-note', '示例卡片A', 'seed');
     } on StateError {
       // 中文注释：widget test 若未初始化 FRB，则跳过生产默认种子，改由测试显式注入控制器或数据。
     }
@@ -85,7 +85,7 @@ class _CardsPageState extends State<CardsPage> {
               return;
             }
             unawaited(
-              _effectiveController.create(
+              _effectiveController.createDraft(
                 generateNoteId(),
                 draft.title,
                 draft.body,
@@ -357,17 +357,26 @@ class _CardsPageState extends State<CardsPage> {
     if (title.isEmpty) {
       return;
     }
-    await _effectiveController.create(
-      session.selectedId ?? generateNoteId(),
-      title,
-      session.bodyController.text,
-    );
+    String? savedId = session.selectedId;
+    if (session.selectedId == null) {
+      savedId = await _effectiveController.createDraft(
+        generateNoteId(),
+        title,
+        session.bodyController.text,
+      );
+    } else {
+      await _effectiveController.save(
+        session.selectedId,
+        title,
+        session.bodyController.text,
+      );
+    }
     if (!mounted) {
       return;
     }
     setState(() {
       _desktopSession = _DesktopEditorSession.forSelection(
-        session.selectedId,
+        savedId,
         title,
         body: session.bodyController.text,
       );

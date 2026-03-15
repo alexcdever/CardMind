@@ -12,6 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCardApiClient implements CardApiClient {
   final Map<String, _FakeCardRecord> _records = <String, _FakeCardRecord>{};
+  int createCalls = 0;
+  int updateCalls = 0;
+  String? lastCreatedId;
+  String? lastUpdatedId;
 
   @override
   Future<List<CardSummary>> listCardSummaries({
@@ -38,16 +42,40 @@ class _FakeCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<void> createCardNote({
+  Future<String> createCardNote({
     required String id,
     required String title,
     required String body,
   }) async {
+    createCalls += 1;
+    lastCreatedId = id;
     _records[id] = _FakeCardRecord(
       id: id,
       title: title,
       body: body,
       deleted: false,
+      updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
+    );
+    return id;
+  }
+
+  @override
+  Future<void> updateCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    updateCalls += 1;
+    lastUpdatedId = id;
+    final existing = _records[id];
+    if (existing == null) {
+      throw StateError('missing existing card');
+    }
+    _records[id] = _FakeCardRecord(
+      id: id,
+      title: title,
+      body: body,
+      deleted: existing.deleted,
       updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }
@@ -80,6 +108,15 @@ class _FakeCardApiClient implements CardApiClient {
 CardsController _buildTestCardsController() {
   final apiClient = _FakeCardApiClient();
   return CardsController(apiClient: apiClient);
+}
+
+({CardsController controller, _FakeCardApiClient apiClient})
+_buildInspectableTestCardsController() {
+  final apiClient = _FakeCardApiClient();
+  return (
+    controller: CardsController(apiClient: apiClient),
+    apiClient: apiClient,
+  );
 }
 
 class _FakeCardRecord {
@@ -138,6 +175,11 @@ class _MockRustLibApi extends RustLibApi {
   @override
   Future<PoolDetailDto> crateApiGetPoolDetail({required String poolId}) =>
       throw UnimplementedError();
+
+  @override
+  Future<PoolDetailDto> crateApiGetJoinedPoolView({
+    required String endpointId,
+  }) => throw UnimplementedError();
 
   @override
   Future<void> crateApiInitAppConfig({required String appDataDir}) async {}
@@ -437,6 +479,48 @@ void main() {
 
       expect(find.text('Unsaved Draft'), findsOneWidget);
       expect(find.text('离开编辑？'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'saving an existing selected card should call update not create',
+    (tester) async {
+      final harness = _buildInspectableTestCardsController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(size: Size(1200, 900)),
+            child: CardsPage(controller: harness.controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Existing Title');
+      await tester.enterText(_editorBodyField(), 'Initial Body');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+      await _pumpUntilFound(tester, find.text('Existing Title'));
+
+      final createdId = harness.apiClient.lastCreatedId;
+      expect(createdId, isNotNull);
+      final createCallsAfterFirstSave = harness.apiClient.createCalls;
+
+      await tester.tap(find.text('Existing Title').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Existing Title Updated');
+      await tester.enterText(_editorBodyField(), 'Updated Body');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      expect(harness.apiClient.updateCalls, 1);
+      expect(harness.apiClient.lastUpdatedId, createdId);
+      expect(harness.apiClient.createCalls, createCallsAfterFirstSave);
+      expect(find.byKey(ValueKey('cards.item.$createdId')), findsOneWidget);
+      expect(_tileForTitle('Existing Title Updated'), findsOneWidget);
     },
   );
 }
