@@ -6,7 +6,7 @@ use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use crate::net::endpoint::{PoolEndpoint, build_endpoint};
+use crate::net::endpoint::{build_endpoint, PoolEndpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::store::card_store::CardNoteRepository;
 use crate::store::pool_store::PoolStore;
@@ -216,29 +216,41 @@ fn member_role(member: &PoolMember) -> String {
     }
 }
 
-fn current_user_role(pool: &Pool) -> String {
+fn current_member_for_endpoint<'a>(pool: &'a Pool, endpoint_id: &str) -> Option<&'a PoolMember> {
     pool.members
-        .first()
+        .iter()
+        .find(|member| member.endpoint_id == endpoint_id)
+}
+
+fn current_user_role_for_endpoint(pool: &Pool, endpoint_id: &str) -> String {
+    current_member_for_endpoint(pool, endpoint_id)
         .map(member_role)
         .unwrap_or_else(|| "member".to_string())
 }
 
-fn to_pool_dto(pool: &Pool) -> PoolDto {
+fn fallback_endpoint_id(pool: &Pool) -> &str {
+    pool.members
+        .first()
+        .map(|member| member.endpoint_id.as_str())
+        .unwrap_or("")
+}
+
+fn to_pool_dto(pool: &Pool, endpoint_id: &str) -> PoolDto {
     PoolDto {
         id: pool.pool_id.to_string(),
         name: pool_name(pool),
         is_dissolved: false,
-        current_user_role: current_user_role(pool),
+        current_user_role: current_user_role_for_endpoint(pool, endpoint_id),
         member_count: pool.members.len(),
     }
 }
 
-fn to_pool_detail_dto(pool: &Pool) -> PoolDetailDto {
+fn to_pool_detail_dto(pool: &Pool, endpoint_id: &str) -> PoolDetailDto {
     PoolDetailDto {
         id: pool.pool_id.to_string(),
         name: pool_name(pool),
         is_dissolved: false,
-        current_user_role: current_user_role(pool),
+        current_user_role: current_user_role_for_endpoint(pool, endpoint_id),
         member_count: pool.members.len(),
         note_ids: pool.card_ids.iter().map(Uuid::to_string).collect(),
         members: pool
@@ -298,7 +310,7 @@ pub fn create_pool(endpoint_id: String, nickname: String, os: String) -> Result<
         let pool = pool_store
             .create_pool(&endpoint_id, &nickname, &os)
             .map_err(map_err)?;
-        Ok(to_pool_dto(&pool))
+        Ok(to_pool_dto(&pool, &endpoint_id))
     })
 }
 
@@ -318,7 +330,7 @@ pub fn join_pool(
             .join_pool(
                 &pool,
                 PoolMember {
-                    endpoint_id,
+                    endpoint_id: endpoint_id.clone(),
                     nickname,
                     os,
                     is_admin: false,
@@ -326,7 +338,7 @@ pub fn join_pool(
                 local_card_ids,
             )
             .map_err(map_err)?;
-        Ok(to_pool_dto(&updated))
+        Ok(to_pool_dto(&updated, &endpoint_id))
     })
 }
 
@@ -351,7 +363,7 @@ pub fn join_by_code(
             .join_by_code(
                 &code,
                 PoolMember {
-                    endpoint_id,
+                    endpoint_id: endpoint_id.clone(),
                     nickname,
                     os,
                     is_admin: false,
@@ -367,7 +379,7 @@ pub fn join_by_code(
                 }
                 other => map_err(other),
             })?;
-        Ok(to_pool_dto(&updated))
+        Ok(to_pool_dto(&updated, &endpoint_id))
     })
 }
 
@@ -381,7 +393,10 @@ pub fn list_pools() -> Result<Vec<PoolDto>, ApiError> {
                 other => Err(other),
             })
             .map_err(map_err)?;
-        Ok(pools.iter().map(to_pool_dto).collect())
+        Ok(pools
+            .iter()
+            .map(|pool| to_pool_dto(pool, fallback_endpoint_id(pool)))
+            .collect())
     })
 }
 
@@ -389,7 +404,14 @@ pub fn get_pool_detail(pool_id: String) -> Result<PoolDetailDto, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pool_id = parse_pool_id(&pool_id)?;
         let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
-        Ok(to_pool_detail_dto(&pool))
+        Ok(to_pool_detail_dto(&pool, fallback_endpoint_id(&pool)))
+    })
+}
+
+pub fn get_joined_pool_view(endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
+    with_configured_pool_store(|pool_store| {
+        let pool = pool_store.get_any_pool().map_err(map_err)?;
+        Ok(to_pool_detail_dto(&pool, &endpoint_id))
     })
 }
 

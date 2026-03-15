@@ -36,6 +36,20 @@ class _FakePoolApiClient implements PoolApiClient {
   }
 }
 
+bool _rustLibInitialized = false;
+
+Future<void> _ensureRustLibInitialized() async {
+  if (_rustLibInitialized) {
+    return;
+  }
+
+  final dylib = File(
+    'rust/target/release/libcardmind_rust.dylib',
+  ).absolute.path;
+  await RustLib.init(externalLibrary: ExternalLibrary.open(dylib));
+  _rustLibInitialized = true;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -53,11 +67,7 @@ void main() {
     'frb pool api client maps joinByCode to backend result without handle state',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-pool-api-');
-      final dylib = File(
-        'rust/target/release/libcardmind_rust.dylib',
-      ).absolute.path;
-
-      await RustLib.init(externalLibrary: ExternalLibrary.open(dylib));
+      await _ensureRustLibInitialized();
       await frb.resetAppConfigForTests();
       await frb.initAppConfig(appDataDir: root.path);
 
@@ -86,7 +96,6 @@ void main() {
       } finally {
         await frb.resetAppConfigForTests();
         await root.delete(recursive: true);
-        RustLib.dispose();
       }
     },
   );
@@ -114,6 +123,47 @@ void main() {
       expect(apiClient.joinCalls, 1);
       final state = controller.state as PoolJoined;
       expect(state.poolName, 'Joined Pool');
+    },
+  );
+
+  test(
+    'joined pool view should use backend current-user role instead of first member',
+    () async {
+      final root = await Directory.systemTemp.createTemp('cardmind-pool-view-');
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        final pool = await frb.createPool(
+          endpointId: 'owner-endpoint',
+          nickname: 'owner',
+          os: 'macos',
+        );
+        await frb.joinByCode(
+          code: pool.id,
+          endpointId: 'joiner-endpoint',
+          nickname: 'joiner',
+          os: 'ios',
+        );
+        final client = FrbPoolApiClient(
+          endpointId: 'joiner-endpoint',
+          nickname: 'joiner',
+          os: 'ios',
+        );
+        final controller = PoolController(apiClient: client);
+
+        final view = await client.getJoinedPoolView();
+        await controller.joinByCode(pool.id);
+
+        expect(view, isNotNull);
+        expect(view!.isOwner, isFalse);
+        final state = controller.state as PoolJoined;
+        expect(state.isOwner, isFalse);
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
     },
   );
 }

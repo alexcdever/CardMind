@@ -106,12 +106,10 @@ class FrbPoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
-    final pools = await frb.listPools();
-    if (pools.isEmpty) {
+    final dto = await frb.getJoinedPoolView(endpointId: endpointId);
+    if (dto.id.isEmpty) {
       return null;
     }
-
-    final dto = pools.first;
     return PoolViewData(
       poolName: dto.name,
       isOwner: dto.currentUserRole == 'admin',

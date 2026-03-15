@@ -7,7 +7,7 @@ import 'frb_generated.dart';
 import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `build_sync_result_dto`, `build_sync_status_dto`, `configured_app_data_dir`, `current_user_role`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_configured_card_store`, `with_configured_pool_store`
+// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `current_user_role_for_endpoint`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `projection_state`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_configured_card_store`, `with_configured_pool_store`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 初始化应用级配置
@@ -55,6 +55,9 @@ Future<List<PoolDto>> listPools() => RustLib.instance.api.crateApiListPools();
 
 Future<PoolDetailDto> getPoolDetail({required String poolId}) =>
     RustLib.instance.api.crateApiGetPoolDetail(poolId: poolId);
+
+Future<PoolDetailDto> getJoinedPoolView({required String endpointId}) =>
+    RustLib.instance.api.crateApiGetJoinedPoolView(endpointId: endpointId);
 
 Future<CardNoteDto> createCardNote({
   required String title,
