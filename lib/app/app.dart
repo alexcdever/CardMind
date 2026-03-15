@@ -6,16 +6,17 @@ import 'package:cardmind/app/navigation/app_homepage_page.dart';
 import 'package:flutter/material.dart';
 
 class CardMindApp extends StatelessWidget {
-  const CardMindApp({super.key, this.appDataDir = ''});
+  const CardMindApp({super.key, this.appDataDir = '', this.poolNetworkId});
 
   final String appDataDir;
+  final BigInt? poolNetworkId;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CardMind',
       theme: ThemeData(useMaterial3: true),
-      home: const AppHomepagePage(),
+      home: AppHomepagePage(poolNetworkId: poolNetworkId),
     );
   }
 }

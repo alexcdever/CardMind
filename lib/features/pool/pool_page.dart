@@ -9,6 +9,7 @@ import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
+import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -17,11 +18,13 @@ class PoolPage extends StatefulWidget {
   const PoolPage({
     super.key,
     required this.state,
+    this.networkId,
     this.controller,
     this.onReturnToPoolTab,
   });
 
   final PoolState state;
+  final BigInt? networkId;
   final PoolController? controller;
   final VoidCallback? onReturnToPoolTab;
 
@@ -39,6 +42,13 @@ class _PoolPageState extends State<PoolPage> {
                 nickname: 'owner',
                 os: defaultTargetPlatform.name,
               ),
+              syncService: widget.networkId == null
+                  ? null
+                  : SyncService(
+                      gateway: FrbSyncGateway(),
+                      networkId: widget.networkId!,
+                    ),
+              reconnectTarget: 'owner@this-device',
             ))
         ..addListener(_onStateChanged);
 

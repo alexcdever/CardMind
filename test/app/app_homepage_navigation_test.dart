@@ -40,7 +40,7 @@ class _FakeCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<void> createCardNote({
+  Future<String> createCardNote({
     required String id,
     required String title,
     required String body,
@@ -50,6 +50,26 @@ class _FakeCardApiClient implements CardApiClient {
       title: title,
       body: body,
       deleted: false,
+      updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
+    );
+    return id;
+  }
+
+  @override
+  Future<void> updateCardNote({
+    required String id,
+    required String title,
+    required String body,
+  }) async {
+    final row = _rows[id];
+    if (row == null) {
+      throw StateError('missing card');
+    }
+    _rows[id] = _FakeCardRecord(
+      id: row.id,
+      title: title,
+      body: body,
+      deleted: row.deleted,
       updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }
@@ -154,6 +174,16 @@ void main() {
     expect(controller.section, AppSection.pool);
     expect(find.text('去卡片'), findsNothing);
     expect(find.text('成员列表'), findsOneWidget);
+  });
+
+  testWidgets('homepage forwards pool network id into production pool page', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: AppHomepagePage(poolNetworkId: BigInt.one)),
+    );
+
+    expect(find.byType(AppHomepagePage), findsOneWidget);
   });
 
   testWidgets('back on cards shows exit confirmation dialog', (tester) async {

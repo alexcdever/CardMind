@@ -18,11 +18,13 @@ class AppHomepagePage extends StatefulWidget {
     this.controller,
     this.cardsPageBuilder,
     this.poolPageBuilder,
+    this.poolNetworkId,
   });
 
   final AppHomepageController? controller;
   final WidgetBuilder? cardsPageBuilder;
   final WidgetBuilder? poolPageBuilder;
+  final BigInt? poolNetworkId;
 
   @override
   State<AppHomepagePage> createState() => _AppHomepagePageState();
@@ -107,7 +109,10 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
         return widget.cardsPageBuilder?.call(context) ?? const CardsPage();
       case AppSection.pool:
         return widget.poolPageBuilder?.call(context) ??
-            PoolPage(state: const PoolState.notJoined());
+            PoolPage(
+              state: const PoolState.notJoined(),
+              networkId: widget.poolNetworkId,
+            );
       case AppSection.settings:
         return const SettingsPage();
     }

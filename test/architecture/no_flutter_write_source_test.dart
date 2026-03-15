@@ -1,25 +1,8 @@
 // input: 读取主流程页面、控制器与 API client 源码文本，检查是否仍依赖旧写入主路径或 store handle 组合。
 // output: 断言生产路径不再直接引用 Flutter 侧写真源，也不再暴露 storeId/initCardStore 组合。
 // pos: 覆盖前端不再作为写真源且不再泄露 handle 的架构约束，防止主流程回退。修改本文件需同步更新文件头与所属 DIR.md。
-import 'dart:io';
-
 import 'package:flutter_test/flutter_test.dart';
-
-String _readSource(String path) => File(path).readAsStringSync();
-
-void expectSourceOmits(
-  String source,
-  String token, {
-  required String fileLabel,
-  required String violationLabel,
-}) {
-  expect(
-    source.contains(token),
-    isFalse,
-    reason:
-        '$fileLabel must not $violationLabel token `$token` in production path.',
-  );
-}
+import '../support/source_guard.dart';
 
 void expectNoHandleLeak(
   String source,
@@ -36,15 +19,13 @@ void expectNoHandleLeak(
 
 void main() {
   test('main page flows should not depend on flutter-side business write source', () {
-    final cardsPage = _readSource('lib/features/cards/cards_page.dart');
-    final cardsController = _readSource(
+    final cardsPage = readSource('lib/features/cards/cards_page.dart');
+    final cardsController = readSource(
       'lib/features/cards/cards_controller.dart',
     );
-    final poolPage = _readSource('lib/features/pool/pool_page.dart');
-    final poolController = _readSource(
-      'lib/features/pool/pool_controller.dart',
-    );
-    final legacyCardClient = _readSource(
+    final poolPage = readSource('lib/features/pool/pool_page.dart');
+    final poolController = readSource('lib/features/pool/pool_controller.dart');
+    final legacyCardClient = readSource(
       'lib/features/cards/card_api_client.dart',
     );
 
@@ -111,12 +92,12 @@ void main() {
   test(
     'production sources should not depend on storeId handle composition',
     () {
-      final cardsPage = _readSource('lib/features/cards/cards_page.dart');
-      final poolPage = _readSource('lib/features/pool/pool_page.dart');
-      final cardApiClient = _readSource(
+      final cardsPage = readSource('lib/features/cards/cards_page.dart');
+      final poolPage = readSource('lib/features/pool/pool_page.dart');
+      final cardApiClient = readSource(
         'lib/features/cards/card_api_client.dart',
       );
-      final poolApiClient = _readSource(
+      final poolApiClient = readSource(
         'lib/features/pool/pool_api_client.dart',
       );
 
@@ -132,18 +113,24 @@ void main() {
         'storeId',
         fileLabel: 'FrbPoolApiClient',
       );
+      expectSourceContains(
+        cardApiClient,
+        'frb.createCardNote(',
+        fileLabel: 'FrbCardApiClient',
+        requirementLabel: 'call FRB create api directly',
+      );
     },
   );
 
   test(
     'production pages and controllers should not wire local sqlite query dependencies',
     () {
-      final cardsPage = _readSource('lib/features/cards/cards_page.dart');
-      final poolPage = _readSource('lib/features/pool/pool_page.dart');
-      final cardsController = _readSource(
+      final cardsPage = readSource('lib/features/cards/cards_page.dart');
+      final poolPage = readSource('lib/features/pool/pool_page.dart');
+      final cardsController = readSource(
         'lib/features/cards/cards_controller.dart',
       );
-      final poolController = _readSource(
+      final poolController = readSource(
         'lib/features/pool/pool_controller.dart',
       );
 
