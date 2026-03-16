@@ -74,21 +74,17 @@ void main() {
   );
 
   test(
-    'flutter card query should call rust default list/search APIs without deleted policy flags',
+    'flutter card query should call rust default list/search APIs with poolId but without exposing deleted policy to flutter',
     () {
       final cardApiClient = readSource(
         'lib/features/cards/card_api_client.dart',
       );
 
       expect(
-        cardApiClient.contains('frb.queryCardNotes(query: query)'),
-        isTrue,
-      );
-      expect(
         cardApiClient.contains(
-          'frb.queryCardNotes(query: query, includeDeleted: false)',
+          'frb.queryCardNotes(query: query, poolId: poolId, includeDeleted: false)',
         ),
-        isFalse,
+        isTrue,
       );
     },
   );

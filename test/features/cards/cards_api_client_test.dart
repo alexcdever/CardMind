@@ -83,7 +83,10 @@ class _FakeCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    String? poolId,
+  }) async {
     final rows = await readRepository.search(query);
     return rows
         .map(

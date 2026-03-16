@@ -44,9 +44,10 @@ void main() {
 
     expectSourceContains(
       cardApiClient,
-      'frb.queryCardNotes(query: query)',
+      'frb.queryCardNotes(query: query, poolId: poolId, includeDeleted: false)',
       fileLabel: 'FrbCardApiClient',
-      requirementLabel: 'call rust query api without deleted policy flags',
+      requirementLabel:
+          'call rust query api with poolId but without exposing deleted policy to flutter',
     );
     expectSourceOmits(
       cardApiClient,

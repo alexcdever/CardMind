@@ -20,7 +20,10 @@ class _FakeCardApiClient implements CardApiClient {
   final Map<String, _FakeCardRecord> _rows = <String, _FakeCardRecord>{};
 
   @override
-  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    String? poolId,
+  }) async {
     final lowered = query.toLowerCase();
     return _rows.values
         .where((row) {

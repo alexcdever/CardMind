@@ -7,6 +7,8 @@ import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/bridge_generated/api.dart';
 import 'package:cardmind/bridge_generated/frb_generated.dart';
+import 'package:cardmind/bridge_generated/runtime/config.dart';
+import 'package:cardmind/bridge_generated/runtime/entry_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,13 +22,13 @@ class _FakeCardApiClient implements CardApiClient {
   @override
   Future<List<CardSummary>> listCardSummaries({
     String query = '',
-    bool includeDeleted = false,
+    String? poolId,
   }) async {
     final lowered = query.toLowerCase();
     final rows =
         _records.values
             .where((row) {
-              if (!includeDeleted && row.deleted) return false;
+              if (row.deleted) return false;
               if (lowered.isEmpty) return true;
               return row.title.toLowerCase().contains(lowered) ||
                   row.body.toLowerCase().contains(lowered);
@@ -227,6 +229,8 @@ class _MockRustLibApi extends RustLibApi {
   @override
   Future<List<CardNoteDto>> crateApiQueryCardNotes({
     required String query,
+    String? poolId,
+    bool? includeDeleted,
   }) async => const <CardNoteDto>[];
 
   @override
@@ -294,6 +298,37 @@ class _MockRustLibApi extends RustLibApi {
     required String title,
     required String content,
   }) => throw UnimplementedError();
+
+  @override
+  Future<BackendConfigDto> crateApiGetBackendConfig() async {
+    return const BackendConfigDto(
+      httpEnabled: false,
+      mcpEnabled: false,
+      cliEnabled: false,
+    );
+  }
+
+  @override
+  Future<RuntimeEntryStatusDto> crateApiGetRuntimeEntryStatus() async {
+    return const RuntimeEntryStatusDto(
+      httpActive: false,
+      mcpActive: false,
+      cliActive: false,
+    );
+  }
+
+  @override
+  Future<BackendConfigDto> crateApiUpdateBackendConfig({
+    required bool httpEnabled,
+    required bool mcpEnabled,
+    required bool cliEnabled,
+  }) async {
+    return BackendConfigDto(
+      httpEnabled: httpEnabled,
+      mcpEnabled: mcpEnabled,
+      cliEnabled: cliEnabled,
+    );
+  }
 }
 
 bool _mockRustInitialized = false;

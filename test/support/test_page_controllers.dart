@@ -9,7 +9,10 @@ class TestCardApiClient implements CardApiClient {
   final Map<String, _TestCardRecord> _rows = <String, _TestCardRecord>{};
 
   @override
-  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    String? poolId,
+  }) async {
     final lowered = query.toLowerCase();
     final rows =
         _rows.values

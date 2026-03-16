@@ -4,7 +4,6 @@
 
 import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/card_summary.dart';
-import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCardApiClientWithPools implements CardApiClient {
