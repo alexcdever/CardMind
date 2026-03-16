@@ -19,7 +19,10 @@ class _FakeCardApiClientWithPools implements CardApiClient {
   }
 
   @override
-  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    String? poolId,
+  }) async {
     final lowered = query.toLowerCase();
     return _records.values
         .where((row) {

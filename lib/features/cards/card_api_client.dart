@@ -29,7 +29,10 @@ abstract class CardApiClient {
 
   Future<CardDetailData> getCardDetail({required String id});
 
-  Future<List<CardSummary>> listCardSummaries({String query = ''});
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    String? poolId,
+  });
 }
 
 class CardDetailData {
@@ -92,8 +95,15 @@ class FrbCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
-    final notes = await frb.queryCardNotes(query: query);
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    String? poolId,
+  }) async {
+    final notes = await frb.queryCardNotes(
+      query: query,
+      poolId: poolId,
+      includeDeleted: false,
+    );
     final summaries = notes
         .map(
           (note) => CardSummary(
@@ -196,8 +206,12 @@ class LegacyCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+  Future<List<CardSummary>> listCardSummaries({
+    String query = '',
+    String? poolId,
+  }) async {
     final rows = await _readRepository.search(query);
+    // Legacy implementation does not support pool filtering
     return rows
         .map(
           (row) =>
