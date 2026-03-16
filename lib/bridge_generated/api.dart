@@ -6,9 +6,28 @@
 import 'frb_generated.dart';
 import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'runtime/config.dart';
+import 'runtime/entry_manager.dart';
 
 // These functions are ignored because they are not marked as `pub`: `app_config_dir`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `current_member_for_endpoint`, `current_member_role_for_endpoint`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `projection_state`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_configured_card_store`, `with_configured_pool_store`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+
+Future<BackendConfigDto> getBackendConfig() =>
+    RustLib.instance.api.crateApiGetBackendConfig();
+
+Future<BackendConfigDto> updateBackendConfig({
+  required bool httpEnabled,
+  required bool mcpEnabled,
+  required bool cliEnabled,
+}) => RustLib.instance.api.crateApiUpdateBackendConfig(
+  httpEnabled: httpEnabled,
+  mcpEnabled: mcpEnabled,
+  cliEnabled: cliEnabled,
+);
+
+/// 获取运行时入口状态
+Future<RuntimeEntryStatusDto> getRuntimeEntryStatus() =>
+    RustLib.instance.api.crateApiGetRuntimeEntryStatus();
 
 /// 初始化应用级配置
 Future<void> initAppConfig({required String appDataDir}) =>
@@ -100,8 +119,15 @@ Future<CardNoteDto> restoreCardNote({required String cardId}) =>
 Future<List<CardNoteDto>> listCardNotes() =>
     RustLib.instance.api.crateApiListCardNotes();
 
-Future<List<CardNoteDto>> queryCardNotes({required String query}) =>
-    RustLib.instance.api.crateApiQueryCardNotes(query: query);
+Future<List<CardNoteDto>> queryCardNotes({
+  required String query,
+  String? poolId,
+  bool? includeDeleted,
+}) => RustLib.instance.api.crateApiQueryCardNotes(
+  query: query,
+  poolId: poolId,
+  includeDeleted: includeDeleted,
+);
 
 Future<CardNoteDto> getCardNoteDetail({required String cardId}) =>
     RustLib.instance.api.crateApiGetCardNoteDetail(cardId: cardId);

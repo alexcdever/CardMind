@@ -57,32 +57,32 @@ fn query_card_notes_should_filter_by_pool_id() -> Result<(), Box<dyn std::error:
         "Body B1".to_string(),
     )?;
 
-    // 测试：筛选 pool_a（使用临时辅助函数，将在 Task 1.2 Step 3 替换为实际 API）
-    let pool_a_cards = query_card_notes_filtered(&pool_a.id)?;
+    // 测试：筛选 pool_a
+    let pool_a_cards = query_card_notes("".to_string(), Some(pool_a.id.clone()), Some(false))?;
     assert_eq!(pool_a_cards.len(), 2);
     assert!(pool_a_cards.iter().any(|c| c.id == card_a1.id));
     assert!(pool_a_cards.iter().any(|c| c.id == card_a2.id));
     assert!(!pool_a_cards.iter().any(|c| c.id == card_b1.id));
 
     // 测试：筛选 pool_b
-    let pool_b_cards = query_card_notes_filtered(&pool_b.id)?;
+    let pool_b_cards = query_card_notes("".to_string(), Some(pool_b.id.clone()), Some(false))?;
     assert_eq!(pool_b_cards.len(), 1);
     assert!(pool_b_cards.iter().any(|c| c.id == card_b1.id));
 
-    // 测试：不筛选（全部）- 使用现有 API（向后兼容，不传 pool_id）
-    // 注意：Task 1.2 完成后，应统一改为 query_card_notes("".to_string(), None)
-    let all_cards = query_card_notes("".to_string())?;
+    // 测试：不筛选（全部）
+    let all_cards = query_card_notes("".to_string(), None, Some(false))?;
     assert_eq!(all_cards.len(), 3);
 
     // 测试：软删除卡片筛选
     // 软删除 pool_a 的一张卡片
     delete_card_note(card_a1.id.clone())?;
     // 默认查询（不含软删除）应只返回 1 张
-    let pool_a_active = query_card_notes_filtered(&pool_a.id)?;
+    let pool_a_active = query_card_notes("".to_string(), Some(pool_a.id.clone()), Some(false))?;
     assert_eq!(pool_a_active.len(), 1);
     assert!(!pool_a_active.iter().any(|c| c.id == card_a1.id));
     // 包含软删除的查询应返回 2 张
-    let pool_a_with_deleted = query_card_notes_filtered_with_deleted(&pool_a.id)?;
+    let pool_a_with_deleted =
+        query_card_notes("".to_string(), Some(pool_a.id.clone()), Some(true))?;
     assert_eq!(pool_a_with_deleted.len(), 2);
 
     reset_app_config()?;

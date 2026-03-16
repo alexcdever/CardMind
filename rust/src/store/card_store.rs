@@ -134,14 +134,15 @@ impl CardNoteRepository {
         self.sqlite.search_cards(keyword, limit, offset)
     }
 
-    /// 按产品语义查询卡片（固定仅返回未删除卡片）
+    /// 按产品语义查询卡片（支持池筛选和软删除选项）
     pub fn query_cards(
         &self,
         keyword: &str,
-        limit: i64,
-        offset: i64,
+        pool_id: Option<&str>,
+        include_deleted: bool,
     ) -> Result<Vec<Card>, CardMindError> {
-        self.sqlite.query_cards(keyword, limit, offset)
+        self.sqlite
+            .query_cards(keyword, pool_id, include_deleted, 10_000, 0)
     }
 
     fn persist_card(&self, card: &Card) -> Result<(), CardMindError> {

@@ -510,10 +510,14 @@ pub fn list_card_notes() -> Result<Vec<CardNoteDto>, ApiError> {
     })
 }
 
-pub fn query_card_notes(query: String) -> Result<Vec<CardNoteDto>, ApiError> {
+pub fn query_card_notes(
+    query: String,
+    pool_id: Option<String>,
+    include_deleted: Option<bool>,
+) -> Result<Vec<CardNoteDto>, ApiError> {
     with_configured_card_store(|card_repository| {
         let cards = card_repository
-            .query_cards(&query, 10_000, 0)
+            .query_cards(&query, pool_id.as_deref(), include_deleted.unwrap_or(false))
             .map_err(map_err)?;
         Ok(cards.iter().map(to_card_note_dto).collect())
     })

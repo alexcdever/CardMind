@@ -19,8 +19,8 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags()
--> Result<(), Box<dyn std::error::Error>> {
+fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -31,8 +31,8 @@ fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags()
     let deleted = create_card_note("Keyword deleted".to_string(), "body".to_string())?;
     delete_card_note(deleted.id.clone())?;
 
-    let default_list = query_card_notes("".to_string())?;
-    let active_only = query_card_notes("keyword".to_string())?;
+    let default_list = query_card_notes("".to_string(), None, None)?;
+    let active_only = query_card_notes("keyword".to_string(), None, None)?;
 
     assert_eq!(default_list.len(), 2);
     assert!(default_list.iter().all(|card| !card.deleted));

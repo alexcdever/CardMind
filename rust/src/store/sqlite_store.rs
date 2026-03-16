@@ -5,7 +5,7 @@
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{Connection, Row, params};
+use rusqlite::{params, Connection, Row};
 use std::path::Path;
 use uuid::Uuid;
 
@@ -176,46 +176,74 @@ impl SqliteStore {
         Ok(cards)
     }
 
-    /// 按产品语义查询卡片（固定仅返回未删除卡片）
+    /// 按产品语义查询卡片（支持池筛选和软删除选项）
     pub fn query_cards(
         &self,
         keyword: &str,
+        pool_id: Option<&str>,
+        include_deleted: bool,
         limit: i64,
         offset: i64,
     ) -> Result<Vec<Card>, CardMindError> {
         let normalized = keyword.trim().to_lowercase();
         let like = format!("%{}%", normalized);
-        let sql = if normalized.is_empty() {
-            "SELECT id, title, content, created_at, updated_at, deleted FROM cards
-             WHERE deleted = 0
-             ORDER BY updated_at DESC, created_at DESC, id ASC
-             LIMIT ?1 OFFSET ?2;"
-        } else {
-            "SELECT id, title, content, created_at, updated_at, deleted FROM cards
-             WHERE deleted = 0
-               AND (LOWER(title) LIKE ?1 OR LOWER(content) LIKE ?1)
-             ORDER BY updated_at DESC, created_at DESC, id ASC
-             LIMIT ?2 OFFSET ?3;"
-        };
+
+        // 构建基础 SQL
+        let mut sql = String::from(
+            "SELECT c.id, c.title, c.content, c.created_at, c.updated_at, c.deleted
+             FROM cards c",
+        );
+
+        // 如果指定了 pool_id，JOIN pool_cards 表
+        if pool_id.is_some() {
+            sql.push_str(" JOIN pool_cards pc ON c.id = pc.card_id");
+        }
+
+        sql.push_str(" WHERE 1=1");
+
+        // 添加 pool_id 筛选
+        if pool_id.is_some() {
+            sql.push_str(" AND pc.pool_id = ?");
+        }
+
+        // 添加软删除筛选
+        if !include_deleted {
+            sql.push_str(" AND c.deleted = 0");
+        }
+
+        // 添加关键字筛选
+        if !normalized.is_empty() {
+            sql.push_str(" AND (LOWER(c.title) LIKE ? OR LOWER(c.content) LIKE ?)");
+        }
+
+        sql.push_str(" ORDER BY c.updated_at DESC, c.created_at DESC, c.id ASC");
+        sql.push_str(" LIMIT ? OFFSET ?");
+
+        // 执行查询
         let mut stmt = self
             .conn
-            .prepare(sql)
+            .prepare(&sql)
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+
+        // 构建参数列表，按 SQL 中出现的顺序
+        let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+        if pool_id.is_some() {
+            params.push(&pool_id);
+        }
+        if !normalized.is_empty() {
+            params.push(&like);
+            params.push(&like);
+        }
+        params.push(&limit);
+        params.push(&offset);
+
+        let rows = stmt
+            .query_map(params.as_slice(), Self::map_card)
+            .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
+
         let mut cards = Vec::new();
-        if normalized.is_empty() {
-            let rows = stmt
-                .query_map(params![limit, offset], Self::map_card)
-                .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
-            for row in rows {
-                cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
-            }
-        } else {
-            let rows = stmt
-                .query_map(params![like, limit, offset], Self::map_card)
-                .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
-            for row in rows {
-                cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
-            }
+        for row in rows {
+            cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
         }
         Ok(cards)
     }

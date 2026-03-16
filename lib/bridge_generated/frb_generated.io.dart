@@ -10,6 +10,8 @@ import 'dart:ffi' as ffi;
 import 'frb_generated.dart';
 import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
+import 'runtime/config.dart';
+import 'runtime/entry_manager.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -26,7 +28,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApiError dco_decode_api_error(dynamic raw);
 
   @protected
+  BackendConfigDto dco_decode_backend_config_dto(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
+
+  @protected
+  bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
   CardNoteDto dco_decode_card_note_dto(dynamic raw);
@@ -53,6 +61,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
+
+  @protected
   PoolDetailDto dco_decode_pool_detail_dto(dynamic raw);
 
   @protected
@@ -60,6 +71,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PoolMemberDto dco_decode_pool_member_dto(dynamic raw);
+
+  @protected
+  RuntimeEntryStatusDto dco_decode_runtime_entry_status_dto(dynamic raw);
 
   @protected
   SyncResultDto dco_decode_sync_result_dto(dynamic raw);
@@ -86,7 +100,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApiError sse_decode_api_error(SseDeserializer deserializer);
 
   @protected
+  BackendConfigDto sse_decode_backend_config_dto(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
   CardNoteDto sse_decode_card_note_dto(SseDeserializer deserializer);
@@ -115,6 +135,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
   PoolDetailDto sse_decode_pool_detail_dto(SseDeserializer deserializer);
 
   @protected
@@ -122,6 +145,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PoolMemberDto sse_decode_pool_member_dto(SseDeserializer deserializer);
+
+  @protected
+  RuntimeEntryStatusDto sse_decode_runtime_entry_status_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   SyncResultDto sse_decode_sync_result_dto(SseDeserializer deserializer);
@@ -151,7 +179,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_api_error(ApiError self, SseSerializer serializer);
 
   @protected
+  void sse_encode_backend_config_dto(
+    BackendConfigDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
   void sse_encode_card_note_dto(CardNoteDto self, SseSerializer serializer);
@@ -187,6 +224,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_pool_detail_dto(PoolDetailDto self, SseSerializer serializer);
 
   @protected
@@ -194,6 +234,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_pool_member_dto(PoolMemberDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_runtime_entry_status_dto(
+    RuntimeEntryStatusDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_sync_result_dto(SyncResultDto self, SseSerializer serializer);
