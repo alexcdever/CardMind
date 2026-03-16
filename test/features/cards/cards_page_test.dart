@@ -240,7 +240,8 @@ class _MockRustLibApi extends RustLibApi {
   }
 
   @override
-  Future<List<PoolDto>> crateApiListPools() async => const <PoolDto>[];
+  Future<List<PoolDto>> crateApiListPools({required String endpointId}) async =>
+      const <PoolDto>[];
 
   @override
   Future<void> crateApiResetAppConfigForTests() async {}
