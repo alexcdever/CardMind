@@ -52,6 +52,8 @@
   - `app` 默认链路：`lib -> flutter_rust_bridge_codegen generate -> flutter build`
   - 常用示例：`dart run tool/build.dart app`、`dart run tool/build.dart app --platform macos`、`dart run tool/build.dart lib`
 - 命令默认在仓库根目录执行。
+- rust代码在每次修改后，都要重新构建动态库，才能在flutter中调用。
+- rust项目的根目录为 `rust/`。
 
 ## Coding Style & Naming Conventions
 
