@@ -1,5 +1,5 @@
 // input: 编译期模块装配需求与 flutter_rust_bridge 生成模块声明。
-// output: 对外暴露 models/net/store/utils/api 子模块供上层调用。
+// output: 对外暴露 models/net/store/utils/api/runtime 子模块供上层调用。
 // pos: Rust crate 根模块，负责组织源码入口与公共模块边界。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：本文件仅定义 crate 级模块结构。
 /// FRB 接口层
@@ -13,3 +13,5 @@ pub mod net;
 pub mod store;
 /// 通用工具模块
 pub mod utils;
+/// 运行时与配置管理
+pub mod runtime;

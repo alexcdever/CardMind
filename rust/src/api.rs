@@ -6,12 +6,14 @@ use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use crate::net::endpoint::{PoolEndpoint, build_endpoint};
+use crate::net::endpoint::{build_endpoint, PoolEndpoint};
 use crate::net::pool_network::PoolNetwork;
+use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::store::card_store::CardNoteRepository;
 use crate::store::pool_store::PoolStore;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use uuid::Uuid;
@@ -97,6 +99,30 @@ pub struct SyncResultDto {
     pub projection_state: String,
     pub sync_state: String,
     pub code: Option<String>,
+}
+
+pub fn get_backend_config() -> Result<BackendConfigDto, ApiError> {
+    let app_data_dir = configured_app_data_dir()?;
+    let store = BackendConfigStore::new(Path::new(&app_data_dir));
+    store.load().map_err(map_err)
+}
+
+pub fn update_backend_config(
+    http_enabled: bool,
+    mcp_enabled: bool,
+    cli_enabled: bool,
+) -> Result<BackendConfigDto, ApiError> {
+    let app_data_dir = configured_app_data_dir()?;
+    let store = BackendConfigStore::new(Path::new(&app_data_dir));
+
+    let config = BackendConfigDto {
+        http_enabled,
+        mcp_enabled,
+        cli_enabled,
+    };
+
+    store.save(&config).map_err(map_err)?;
+    Ok(config)
 }
 
 fn projection_state(base_path: &str) -> Result<(String, Option<String>), ApiError> {
