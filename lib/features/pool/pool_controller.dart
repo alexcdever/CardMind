@@ -53,6 +53,8 @@ class PoolController extends ChangeNotifier {
     _state = PoolState.joined(
       poolName: result.poolName,
       isOwner: result.isOwner,
+      currentIdentityLabel: result.currentIdentityLabel,
+      memberLabels: result.memberLabels,
     );
     notifyListeners();
   }
@@ -146,6 +148,8 @@ class PoolController extends ChangeNotifier {
       _state = PoolState.joined(
         poolName: joined?.poolName ?? result.poolName ?? '默认数据池',
         isOwner: joined?.isOwner ?? false,
+        currentIdentityLabel: joined?.currentIdentityLabel ?? _reconnectTarget,
+        memberLabels: joined?.memberLabels ?? <String>[_reconnectTarget],
       );
     } else {
       _state = PoolState.error(result.errorCode ?? 'REQUEST_TIMEOUT');

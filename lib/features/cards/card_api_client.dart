@@ -27,7 +27,23 @@ abstract class CardApiClient {
 
   Future<void> restoreCardNote({required String id});
 
+  Future<CardDetailData> getCardDetail({required String id});
+
   Future<List<CardSummary>> listCardSummaries({String query = ''});
+}
+
+class CardDetailData {
+  const CardDetailData({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.deleted,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final bool deleted;
 }
 
 class FrbCardApiClient implements CardApiClient {
@@ -62,6 +78,17 @@ class FrbCardApiClient implements CardApiClient {
   @override
   Future<void> restoreCardNote({required String id}) async {
     await frb.restoreCardNote(cardId: id);
+  }
+
+  @override
+  Future<CardDetailData> getCardDetail({required String id}) async {
+    final dto = await frb.getCardNoteDetail(cardId: id);
+    return CardDetailData(
+      id: dto.id,
+      title: dto.title,
+      body: dto.content,
+      deleted: dto.deleted,
+    );
   }
 
   @override
@@ -151,6 +178,20 @@ class LegacyCardApiClient implements CardApiClient {
     if (existing == null) return;
     await _persistToWriteAndProjection(
       existing.copyWith(deleted: false, updatedAtMicros: _nowMicros()),
+    );
+  }
+
+  @override
+  Future<CardDetailData> getCardDetail({required String id}) async {
+    final existing = await _writeRepository.getById(id);
+    if (existing == null) {
+      throw StateError('cannot load missing card $id');
+    }
+    return CardDetailData(
+      id: existing.id,
+      title: existing.title,
+      body: existing.body,
+      deleted: existing.deleted,
     );
   }
 

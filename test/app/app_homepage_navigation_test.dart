@@ -76,12 +76,31 @@ class _FakeCardApiClient implements CardApiClient {
 
   @override
   Future<void> restoreCardNote({required String id}) async {}
+
+  @override
+  Future<CardDetailData> getCardDetail({required String id}) async {
+    final row = _rows[id];
+    if (row == null) {
+      throw StateError('missing card');
+    }
+    return CardDetailData(
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      deleted: row.deleted,
+    );
+  }
 }
 
 class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<PoolCreateResult> createPool() async {
-    return const PoolCreateResult(poolName: 'Server Pool', isOwner: true);
+    return const PoolCreateResult(
+      poolName: 'Server Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 
   @override
@@ -94,12 +113,22 @@ class _FakePoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
-    return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
+    return const PoolViewData(
+      poolName: 'Joined Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
-    return const PoolDetailData(poolName: 'Joined Pool', isOwner: true);
+    return const PoolDetailData(
+      poolName: 'Joined Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 }
 

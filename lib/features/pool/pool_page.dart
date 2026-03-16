@@ -38,8 +38,8 @@ class _PoolPageState extends State<PoolPage> {
             PoolController(
               initialState: widget.state,
               apiClient: FrbPoolApiClient(
-                endpointId: 'owner@this-device',
-                nickname: 'owner',
+                endpointId: '${defaultTargetPlatform.name}@local-device',
+                nickname: '${defaultTargetPlatform.name}-user',
                 os: defaultTargetPlatform.name,
               ),
               syncService: widget.networkId == null
@@ -48,7 +48,7 @@ class _PoolPageState extends State<PoolPage> {
                       gateway: FrbSyncGateway(),
                       networkId: widget.networkId!,
                     ),
-              reconnectTarget: 'owner@this-device',
+              reconnectTarget: '${defaultTargetPlatform.name}@local-device',
             ))
         ..addListener(_onStateChanged);
 
@@ -157,9 +157,9 @@ class _PoolPageState extends State<PoolPage> {
                     label: const Text('返回数据池Tab'),
                   ),
                 ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('我的身份: owner@this-device'),
+                child: Text('我的身份: ${state.currentIdentityLabel}'),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
@@ -169,10 +169,11 @@ class _PoolPageState extends State<PoolPage> {
                 padding: const EdgeInsets.all(16),
                 child: Text(state.poolName),
               ),
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('1. owner@this-device'),
-              ),
+              for (var i = 0; i < state.memberLabels.length; i++)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('${i + 1}. ${state.memberLabels[i]}'),
+                ),
               if (state.isOwner)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),

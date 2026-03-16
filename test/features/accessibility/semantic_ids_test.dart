@@ -24,11 +24,7 @@ void main() {
     expect(find.bySemanticsLabel('搜索卡片'), findsWidgets);
     expect(find.bySemanticsLabel('新建卡片'), findsWidgets);
     expect(find.bySemanticsLabel('卡片列表'), findsWidgets);
-    expect(find.byKey(const ValueKey('cards.item.seed-note')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('cards.item.seed-note.toggle_delete')),
-      findsOneWidget,
-    );
+    expect(find.byType(ListTile), findsNothing);
   });
 
   testWidgets(

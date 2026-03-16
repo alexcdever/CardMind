@@ -11,6 +11,8 @@ sealed class PoolState {
     bool exitShouldFail,
     String poolName,
     bool isOwner,
+    String currentIdentityLabel,
+    List<String> memberLabels,
     String? approvalMessage,
   }) = PoolJoined;
   const factory PoolState.error(String code) = PoolError;
@@ -35,6 +37,8 @@ class PoolJoined extends PoolState {
     this.exitShouldFail = false,
     this.poolName = '默认数据池',
     this.isOwner = true,
+    this.currentIdentityLabel = '未知身份',
+    this.memberLabels = const <String>[],
     this.approvalMessage,
   });
 
@@ -42,6 +46,8 @@ class PoolJoined extends PoolState {
   final bool exitShouldFail;
   final String poolName;
   final bool isOwner;
+  final String currentIdentityLabel;
+  final List<String> memberLabels;
   final String? approvalMessage;
 
   PoolJoined copyWith({
@@ -49,6 +55,8 @@ class PoolJoined extends PoolState {
     bool? exitShouldFail,
     String? poolName,
     bool? isOwner,
+    String? currentIdentityLabel,
+    List<String>? memberLabels,
     String? approvalMessage,
   }) {
     return PoolJoined(
@@ -56,6 +64,8 @@ class PoolJoined extends PoolState {
       exitShouldFail: exitShouldFail ?? this.exitShouldFail,
       poolName: poolName ?? this.poolName,
       isOwner: isOwner ?? this.isOwner,
+      currentIdentityLabel: currentIdentityLabel ?? this.currentIdentityLabel,
+      memberLabels: memberLabels ?? this.memberLabels,
       approvalMessage: approvalMessage ?? this.approvalMessage,
     );
   }

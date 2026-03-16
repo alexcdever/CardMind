@@ -103,6 +103,20 @@ class _FakeCardApiClient implements CardApiClient {
       updatedAtMicros: DateTime.now().microsecondsSinceEpoch,
     );
   }
+
+  @override
+  Future<CardDetailData> getCardDetail({required String id}) async {
+    final existing = _records[id];
+    if (existing == null) {
+      throw StateError('missing existing card');
+    }
+    return CardDetailData(
+      id: existing.id,
+      title: existing.title,
+      body: existing.body,
+      deleted: existing.deleted,
+    );
+  }
 }
 
 CardsController _buildTestCardsController() {
@@ -523,6 +537,44 @@ void main() {
       expect(harness.apiClient.createCalls, createCallsAfterFirstSave);
       expect(find.byKey(ValueKey('cards.item.$createdId')), findsOneWidget);
       expect(_tileForTitle('Existing Title Updated'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'selecting existing card hydrates body before save and does not wipe content',
+    (tester) async {
+      final harness = _buildInspectableTestCardsController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: MediaQueryData(size: Size(1200, 900)),
+            child: CardsPage(controller: harness.controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Body Keep');
+      await tester.enterText(_editorBodyField(), 'Original Body');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+      await _pumpUntilFound(tester, find.text('Body Keep'));
+
+      await tester.tap(find.text('Body Keep').last);
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextField, 'Original Body'), findsOneWidget);
+
+      await tester.enterText(_editorTitleField(), 'Body Keep Updated');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+
+      final createdId = harness.apiClient.lastCreatedId!;
+      final detail = await harness.apiClient.getCardDetail(id: createdId);
+      expect(detail.body, 'Original Body');
+      expect(detail.title, 'Body Keep Updated');
     },
   );
 }

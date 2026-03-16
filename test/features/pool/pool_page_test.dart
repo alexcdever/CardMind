@@ -15,7 +15,12 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<PoolCreateResult> createPool() async {
-    return const PoolCreateResult(poolName: 'Server Pool', isOwner: true);
+    return const PoolCreateResult(
+      poolName: 'Server Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 
   @override
@@ -29,12 +34,22 @@ class _FakePoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
-    return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
+    return const PoolViewData(
+      poolName: 'Joined Pool',
+      isOwner: true,
+      currentIdentityLabel: 'joiner@test',
+      memberLabels: <String>['owner@test', 'joiner@test'],
+    );
   }
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
-    return const PoolDetailData(poolName: 'Joined Pool', isOwner: true);
+    return const PoolDetailData(
+      poolName: 'Joined Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 }
 
@@ -153,7 +168,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('成员列表'), findsOneWidget);
-    expect(find.textContaining('我的身份'), findsOneWidget);
+    expect(find.text('我的身份: owner@test'), findsOneWidget);
+    expect(find.text('1. owner@test'), findsOneWidget);
   });
 
   testWidgets('joined pool state does not expose one-step go-to-cards action', (
@@ -247,6 +263,9 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 350));
     expect(find.text('成员列表'), findsOneWidget);
+    expect(find.text('我的身份: joiner@test'), findsOneWidget);
+    expect(find.text('1. owner@test'), findsOneWidget);
+    expect(find.text('2. joiner@test'), findsOneWidget);
   });
 
   testWidgets('leave pool confirmation returns to not joined', (tester) async {

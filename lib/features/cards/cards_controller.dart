@@ -48,4 +48,8 @@ class CardsController extends ChangeNotifier {
     await _apiClient.restoreCardNote(id: id);
     await load();
   }
+
+  Future<CardDetailData> getCardDetail(String id) {
+    return _apiClient.getCardDetail(id: id);
+  }
 }

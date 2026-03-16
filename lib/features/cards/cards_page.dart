@@ -39,7 +39,7 @@ class _CardsPageState extends State<CardsPage> {
   void initState() {
     super.initState();
     _effectiveController.addListener(_onChanged);
-    unawaited(_seedAndLoad());
+    unawaited(_loadInitialCards());
   }
 
   @override
@@ -55,11 +55,11 @@ class _CardsPageState extends State<CardsPage> {
     setState(() {});
   }
 
-  Future<void> _seedAndLoad() async {
+  Future<void> _loadInitialCards() async {
     try {
-      await _effectiveController.createDraft('seed-note', '示例卡片A', 'seed');
+      await _effectiveController.load();
     } on StateError {
-      // 中文注释：widget test 若未初始化 FRB，则跳过生产默认种子，改由测试显式注入控制器或数据。
+      // 中文注释：widget test 若未初始化 FRB，则跳过默认加载，改由测试显式注入控制器或数据。
     }
   }
 
@@ -290,8 +290,16 @@ class _CardsPageState extends State<CardsPage> {
         await _saveDesktopSession();
       }
     }
+    final detail = await _effectiveController.getCardDetail(note.id);
+    if (!mounted) {
+      return;
+    }
     setState(() {
-      _desktopSession = _DesktopEditorSession.forSelection(note.id, note.title);
+      _desktopSession = _DesktopEditorSession.forSelection(
+        detail.id,
+        detail.title,
+        body: detail.body,
+      );
     });
   }
 

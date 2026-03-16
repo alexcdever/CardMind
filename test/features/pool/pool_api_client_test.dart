@@ -19,7 +19,12 @@ class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<PoolCreateResult> createPool() async {
     createCalls += 1;
-    return const PoolCreateResult(poolName: 'Server Pool', isOwner: true);
+    return const PoolCreateResult(
+      poolName: 'Server Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 
   @override
@@ -33,12 +38,22 @@ class _FakePoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
-    return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
+    return const PoolViewData(
+      poolName: 'Joined Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
-    return const PoolDetailData(poolName: 'Joined Pool', isOwner: true);
+    return const PoolDetailData(
+      poolName: 'Joined Pool',
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+    );
   }
 }
 

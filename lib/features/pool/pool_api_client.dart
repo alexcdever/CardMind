@@ -8,24 +8,45 @@ import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 
 class PoolCreateResult {
-  const PoolCreateResult({required this.poolName, required this.isOwner});
+  const PoolCreateResult({
+    required this.poolName,
+    required this.isOwner,
+    required this.currentIdentityLabel,
+    required this.memberLabels,
+  });
 
   final String poolName;
   final bool isOwner;
+  final String currentIdentityLabel;
+  final List<String> memberLabels;
 }
 
 class PoolViewData {
-  const PoolViewData({required this.poolName, required this.isOwner});
+  const PoolViewData({
+    required this.poolName,
+    required this.isOwner,
+    required this.currentIdentityLabel,
+    required this.memberLabels,
+  });
 
   final String poolName;
   final bool isOwner;
+  final String currentIdentityLabel;
+  final List<String> memberLabels;
 }
 
 class PoolDetailData {
-  const PoolDetailData({required this.poolName, required this.isOwner});
+  const PoolDetailData({
+    required this.poolName,
+    required this.isOwner,
+    required this.currentIdentityLabel,
+    required this.memberLabels,
+  });
 
   final String poolName;
   final bool isOwner;
+  final String currentIdentityLabel;
+  final List<String> memberLabels;
 }
 
 class PoolJoinResult {
@@ -54,7 +75,12 @@ class LocalPoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolCreateResult> createPool() async {
-    return const PoolCreateResult(poolName: ownerPoolName, isOwner: true);
+    return const PoolCreateResult(
+      poolName: ownerPoolName,
+      isOwner: true,
+      currentIdentityLabel: 'owner@local',
+      memberLabels: <String>['owner@local'],
+    );
   }
 
   @override
@@ -70,12 +96,22 @@ class LocalPoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
-    return const PoolViewData(poolName: ownerPoolName, isOwner: true);
+    return const PoolViewData(
+      poolName: ownerPoolName,
+      isOwner: true,
+      currentIdentityLabel: 'owner@local',
+      memberLabels: <String>['owner@local'],
+    );
   }
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
-    return const PoolDetailData(poolName: ownerPoolName, isOwner: true);
+    return const PoolDetailData(
+      poolName: ownerPoolName,
+      isOwner: true,
+      currentIdentityLabel: 'owner@local',
+      memberLabels: <String>['owner@local'],
+    );
   }
 }
 
@@ -90,6 +126,19 @@ class FrbPoolApiClient implements PoolApiClient {
   final String nickname;
   final String os;
 
+  String _identityLabelFromMembers(List<frb.PoolMemberDto> members) {
+    for (final member in members) {
+      if (member.endpointId == endpointId) {
+        return member.endpointId;
+      }
+    }
+    return endpointId;
+  }
+
+  List<String> _memberLabels(List<frb.PoolMemberDto> members) {
+    return members.map((member) => member.endpointId).toList(growable: false);
+  }
+
   @override
   Future<PoolCreateResult> createPool() async {
     final dto = await frb.createPool(
@@ -97,9 +146,15 @@ class FrbPoolApiClient implements PoolApiClient {
       nickname: nickname,
       os: os,
     );
+    final detail = await frb.getPoolDetail(
+      poolId: dto.id,
+      endpointId: endpointId,
+    );
     return PoolCreateResult(
       poolName: dto.name,
       isOwner: dto.currentUserRole == 'admin',
+      currentIdentityLabel: _identityLabelFromMembers(detail.members),
+      memberLabels: _memberLabels(detail.members),
     );
   }
 
@@ -127,6 +182,8 @@ class FrbPoolApiClient implements PoolApiClient {
     return PoolViewData(
       poolName: dto.name,
       isOwner: dto.currentUserRole == 'admin',
+      currentIdentityLabel: _identityLabelFromMembers(dto.members),
+      memberLabels: _memberLabels(dto.members),
     );
   }
 
@@ -136,6 +193,8 @@ class FrbPoolApiClient implements PoolApiClient {
     return PoolDetailData(
       poolName: dto.name,
       isOwner: dto.currentUserRole == 'admin',
+      currentIdentityLabel: _identityLabelFromMembers(dto.members),
+      memberLabels: _memberLabels(dto.members),
     );
   }
 }

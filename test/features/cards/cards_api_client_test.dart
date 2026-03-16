@@ -72,6 +72,17 @@ class _FakeCardApiClient implements CardApiClient {
   }
 
   @override
+  Future<CardDetailData> getCardDetail({required String id}) async {
+    final row = readRepository.rows.firstWhere((item) => item.id == id);
+    return CardDetailData(
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      deleted: row.deleted,
+    );
+  }
+
+  @override
   Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
     final rows = await readRepository.search(query);
     return rows
