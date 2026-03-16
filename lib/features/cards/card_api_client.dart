@@ -27,10 +27,7 @@ abstract class CardApiClient {
 
   Future<void> restoreCardNote({required String id});
 
-  Future<List<CardSummary>> listCardSummaries({
-    String query = '',
-    bool includeDeleted = false,
-  });
+  Future<List<CardSummary>> listCardSummaries({String query = ''});
 }
 
 class FrbCardApiClient implements CardApiClient {
@@ -68,14 +65,8 @@ class FrbCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<List<CardSummary>> listCardSummaries({
-    String query = '',
-    bool includeDeleted = false,
-  }) async {
-    final notes = await frb.queryCardNotes(
-      query: query,
-      includeDeleted: includeDeleted,
-    );
+  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+    final notes = await frb.queryCardNotes(query: query);
     final summaries = notes
         .map(
           (note) => CardSummary(
@@ -164,14 +155,8 @@ class LegacyCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<List<CardSummary>> listCardSummaries({
-    String query = '',
-    bool includeDeleted = false,
-  }) async {
-    final rows = await _readRepository.search(
-      query,
-      includeDeleted: includeDeleted,
-    );
+  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+    final rows = await _readRepository.search(query, includeDeleted: false);
     return rows
         .map(
           (row) =>

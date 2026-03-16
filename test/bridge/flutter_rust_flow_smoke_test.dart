@@ -39,7 +39,10 @@ void main() {
         );
 
         final listedCards = await frb.listCardNotes();
-        final poolDetail = await frb.getPoolDetail(poolId: pool.id);
+        final poolDetail = await frb.getPoolDetail(
+          poolId: pool.id,
+          endpointId: 'endpoint-a',
+        );
         final initialSync = await frb.syncStatus(networkId: networkId);
 
         expect(pool.id, isNotEmpty);

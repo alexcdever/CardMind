@@ -21,6 +21,13 @@ class PoolViewData {
   final bool isOwner;
 }
 
+class PoolDetailData {
+  const PoolDetailData({required this.poolName, required this.isOwner});
+
+  final String poolName;
+  final bool isOwner;
+}
+
 class PoolJoinResult {
   const PoolJoinResult.joined({required this.poolName}) : errorCode = null;
 
@@ -38,6 +45,8 @@ abstract class PoolApiClient {
   Future<PoolJoinResult> joinByCode(String code);
 
   Future<PoolViewData?> getJoinedPoolView();
+
+  Future<PoolDetailData> getPoolDetail(String poolId);
 }
 
 class LocalPoolApiClient implements PoolApiClient {
@@ -62,6 +71,11 @@ class LocalPoolApiClient implements PoolApiClient {
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
     return const PoolViewData(poolName: ownerPoolName, isOwner: true);
+  }
+
+  @override
+  Future<PoolDetailData> getPoolDetail(String poolId) async {
+    return const PoolDetailData(poolName: ownerPoolName, isOwner: true);
   }
 }
 
@@ -111,6 +125,15 @@ class FrbPoolApiClient implements PoolApiClient {
       return null;
     }
     return PoolViewData(
+      poolName: dto.name,
+      isOwner: dto.currentUserRole == 'admin',
+    );
+  }
+
+  @override
+  Future<PoolDetailData> getPoolDetail(String poolId) async {
+    final dto = await frb.getPoolDetail(poolId: poolId, endpointId: endpointId);
+    return PoolDetailData(
       poolName: dto.name,
       isOwner: dto.currentUserRole == 'admin',
     );

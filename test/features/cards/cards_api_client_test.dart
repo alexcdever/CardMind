@@ -75,14 +75,8 @@ class _FakeCardApiClient implements CardApiClient {
   }
 
   @override
-  Future<List<CardSummary>> listCardSummaries({
-    String query = '',
-    bool includeDeleted = false,
-  }) async {
-    final rows = await readRepository.search(
-      query,
-      includeDeleted: includeDeleted,
-    );
+  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
+    final rows = await readRepository.search(query, includeDeleted: false);
     return rows
         .map(
           (row) =>
@@ -172,14 +166,9 @@ void main() {
 
         final client = FrbCardApiClient();
         final active = await client.listCardSummaries(query: 'keyword');
-        final withDeleted = await client.listCardSummaries(
-          query: 'keyword',
-          includeDeleted: true,
-        );
-
         expect(active.map((item) => item.id), contains(alpha.id));
         expect(active.map((item) => item.id), isNot(contains(deleted.id)));
-        expect(withDeleted.map((item) => item.id), contains(deleted.id));
+        expect(active.map((item) => item.id), isNot(contains(deleted.id)));
       } finally {
         await frb.resetAppConfigForTests();
         await root.delete(recursive: true);

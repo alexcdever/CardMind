@@ -21,6 +21,12 @@ void main() {
       fileLabel: 'rust/src/api.rs',
       violationLabel: 'derive current role from member ordering',
     );
+    expectSourceOmits(
+      rustApi,
+      'unwrap_or_else(|| "member".to_string())',
+      fileLabel: 'rust/src/api.rs',
+      violationLabel: 'fabricate member role on caller lookup miss',
+    );
   });
 
   test('save path must not route existing card saves through create', () {
@@ -95,6 +101,9 @@ void main() {
 
   test('card query semantics must stay in rust query api', () {
     final cardApiClient = readSource('lib/features/cards/card_api_client.dart');
+    final cardsController = readSource(
+      'lib/features/cards/cards_controller.dart',
+    );
 
     expectSourceContains(
       cardApiClient,
@@ -113,6 +122,19 @@ void main() {
       '.where((note)',
       fileLabel: 'FrbCardApiClient',
       violationLabel: 'apply product query filtering in dart',
+    );
+    expectSourceOmits(
+      cardApiClient,
+      'bool includeDeleted',
+      fileLabel: 'FrbCardApiClient',
+      violationLabel:
+          'reintroduce deleted-policy parameter into production api surface',
+    );
+    expectSourceOmits(
+      cardsController,
+      'includeDeleted:',
+      fileLabel: 'CardsController',
+      violationLabel: 'pass deleted-policy flag from flutter controller',
     );
   });
 }

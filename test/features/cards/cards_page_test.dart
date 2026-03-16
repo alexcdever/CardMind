@@ -173,8 +173,10 @@ class _MockRustLibApi extends RustLibApi {
       throw UnimplementedError();
 
   @override
-  Future<PoolDetailDto> crateApiGetPoolDetail({required String poolId}) =>
-      throw UnimplementedError();
+  Future<PoolDetailDto> crateApiGetPoolDetail({
+    required String poolId,
+    required String endpointId,
+  }) => throw UnimplementedError();
 
   @override
   Future<PoolDetailDto> crateApiGetJoinedPoolView({
@@ -211,7 +213,6 @@ class _MockRustLibApi extends RustLibApi {
   @override
   Future<List<CardNoteDto>> crateApiQueryCardNotes({
     required String query,
-    required bool includeDeleted,
   }) async => const <CardNoteDto>[];
 
   @override
@@ -369,16 +370,10 @@ void main() {
     expect(find.text('已删除'), findsNothing);
 
     await tester.tap(_actionTextForTitle('待删除卡片', '删除'));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(_deletedBadgeForTitle('待删除卡片'), findsOneWidget);
-    expect(_actionTextForTitle('待删除卡片', '恢复'), findsOneWidget);
-
-    await tester.tap(_actionTextForTitle('待删除卡片', '恢复'));
-    await tester.pump();
-
-    expect(_deletedBadgeForTitle('待删除卡片'), findsNothing);
-    expect(_actionTextForTitle('待删除卡片', '删除'), findsOneWidget);
+    expect(find.text('待删除卡片'), findsNothing);
+    expect(find.text('已删除'), findsNothing);
   });
 
   testWidgets('primary actions remain reachable with long labels', (
@@ -562,8 +557,4 @@ Finder _tileForTitle(String title) {
 
 Finder _actionTextForTitle(String title, String action) {
   return find.descendant(of: _tileForTitle(title), matching: find.text(action));
-}
-
-Finder _deletedBadgeForTitle(String title) {
-  return find.descendant(of: _tileForTitle(title), matching: find.text('已删除'));
 }

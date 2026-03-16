@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/frb_generated.dart';
+import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
@@ -33,6 +34,11 @@ class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
     return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
+  }
+
+  @override
+  Future<PoolDetailData> getPoolDetail(String poolId) async {
+    return const PoolDetailData(poolName: 'Joined Pool', isOwner: true);
   }
 }
 
@@ -85,7 +91,10 @@ void main() {
         );
 
         final joined = await client.joinByCode(pool.id);
-        final detail = await frb.getPoolDetail(poolId: pool.id);
+        final detail = await frb.getPoolDetail(
+          poolId: pool.id,
+          endpointId: 'endpoint-b',
+        );
         final timeout = await client.joinByCode('timeout');
 
         expect(joined.isSuccess, isTrue);
@@ -160,6 +169,70 @@ void main() {
         expect(view!.isOwner, isFalse);
         final state = controller.state as PoolJoined;
         expect(state.isOwner, isFalse);
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'frb pool api client should surface explicit not-member error for unknown caller',
+    () async {
+      final root = await Directory.systemTemp.createTemp('cardmind-pool-miss-');
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        await frb.createPool(
+          endpointId: 'owner-endpoint',
+          nickname: 'owner',
+          os: 'macos',
+        );
+        final client = FrbPoolApiClient(
+          endpointId: 'unknown-endpoint',
+          nickname: 'outsider',
+          os: 'ios',
+        );
+
+        await expectLater(client.getJoinedPoolView(), throwsA(isA<ApiError>()));
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'pool detail api should pass endpoint identity for current_user_role semantics',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-pool-detail-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        final pool = await frb.createPool(
+          endpointId: 'owner-endpoint',
+          nickname: 'owner',
+          os: 'macos',
+        );
+        await frb.joinByCode(
+          code: pool.id,
+          endpointId: 'joiner-endpoint',
+          nickname: 'joiner',
+          os: 'ios',
+        );
+
+        final detail = await frb.getPoolDetail(
+          poolId: pool.id,
+          endpointId: 'joiner-endpoint',
+        );
+
+        expect(detail.currentUserRole, 'member');
       } finally {
         await frb.resetAppConfigForTests();
         await root.delete(recursive: true);

@@ -305,10 +305,11 @@ fn wire__crate__api__get_pool_detail_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_pool_id = <String>::sse_decode(&mut deserializer);
+            let api_endpoint_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::get_pool_detail(api_pool_id)?;
+                    let output_ok = crate::api::get_pool_detail(api_pool_id, api_endpoint_id)?;
                     Ok(output_ok)
                 })())
             }
@@ -542,11 +543,10 @@ fn wire__crate__api__query_card_notes_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_query = <String>::sse_decode(&mut deserializer);
-            let api_include_deleted = <bool>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::query_card_notes(api_query, api_include_deleted)?;
+                    let output_ok = crate::api::query_card_notes(api_query)?;
                     Ok(output_ok)
                 })())
             }

@@ -1,7 +1,9 @@
 // input: 应用级配置初始化参数、建池/入池 API 调用参数，以及当前调用者视角的 joined pool 查询请求。
 // output: 断言 joined pool 视图中的 current_user_role 以后端当前调用者身份为准，而不是成员顺序近似。
 // pos: 覆盖 joined pool 当前用户角色真实性的后端契约测试。修改本文件需同步更新文件头与所属 DIR.md。
-use cardmind_rust::api::{create_pool, init_app_config, join_by_code, reset_app_config_for_tests};
+use cardmind_rust::api::{
+    create_pool, get_joined_pool_view, init_app_config, join_by_code, reset_app_config_for_tests,
+};
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -18,7 +20,9 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn joined_pool_view_should_return_current_user_role_for_calling_endpoint()
 -> Result<(), Box<dyn std::error::Error>> {
-    let _guard = app_config_test_guard().lock().unwrap();
+    let _guard = app_config_test_guard()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
@@ -37,6 +41,31 @@ fn joined_pool_view_should_return_current_user_role_for_calling_endpoint()
     )?;
 
     assert_eq!(joined.current_user_role, "member");
+
+    reset_app_config()?;
+    Ok(())
+}
+
+#[test]
+fn joined_pool_view_should_fail_when_endpoint_is_not_a_member()
+-> Result<(), Box<dyn std::error::Error>> {
+    let _guard = app_config_test_guard()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    reset_app_config()?;
+    let dir = tempdir()?;
+    init_app_config(dir.path().to_string_lossy().to_string())?;
+
+    create_pool(
+        "owner-endpoint".to_string(),
+        "owner".to_string(),
+        "macos".to_string(),
+    )?;
+
+    let error = get_joined_pool_view("unknown-endpoint".to_string())
+        .expect_err("expected NOT_MEMBER for unknown caller");
+
+    assert_eq!(error.code, "NOT_MEMBER");
 
     reset_app_config()?;
     Ok(())

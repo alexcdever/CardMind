@@ -45,7 +45,7 @@ fn join_pool_should_attach_existing_notes_including_soft_deleted()
         "nick-b".to_string(),
         "ios".to_string(),
     )?;
-    let detail = get_pool_detail(pool.id.clone())?;
+    let detail = get_pool_detail(pool.id.clone(), "endpoint-a".to_string())?;
 
     assert_eq!(detail.note_ids.len(), 2);
     assert!(detail.note_ids.contains(&active.id));
@@ -75,7 +75,7 @@ fn update_card_should_not_create_duplicate_note_reference() -> Result<(), Box<dy
         "title-2".to_string(),
         "body-2".to_string(),
     )?;
-    let detail = get_pool_detail(pool.id.clone())?;
+    let detail = get_pool_detail(pool.id.clone(), "endpoint-a".to_string())?;
 
     assert_eq!(detail.note_ids, vec![created.id]);
 

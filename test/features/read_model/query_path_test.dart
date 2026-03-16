@@ -46,6 +46,50 @@ void main() {
       expect(cardApiClient.contains('frb.listCardNotes('), isFalse);
       expect(cardApiClient.contains('.where((note)'), isFalse);
       expect(cardApiClient.contains('includeDeleted && note.deleted'), isFalse);
+      expect(cardApiClient.contains('bool includeDeleted = false'), isFalse);
+      expect(cardsController.contains('includeDeleted:'), isFalse);
+    },
+  );
+
+  test(
+    'card query path should not expose includeDeleted in production flutter api',
+    () {
+      final cardApiClient = readSource(
+        'lib/features/cards/card_api_client.dart',
+      );
+      final cardsController = readSource(
+        'lib/features/cards/cards_controller.dart',
+      );
+
+      expect(cardApiClient.contains('bool includeDeleted'), isFalse);
+      expect(
+        cardApiClient.contains(
+              'Future<List<CardSummary>> listCardSummaries({',
+            ) &&
+            cardApiClient.contains('bool includeDeleted'),
+        isFalse,
+      );
+      expect(cardsController.contains('includeDeleted:'), isFalse);
+    },
+  );
+
+  test(
+    'flutter card query should call rust default list/search APIs without deleted policy flags',
+    () {
+      final cardApiClient = readSource(
+        'lib/features/cards/card_api_client.dart',
+      );
+
+      expect(
+        cardApiClient.contains('frb.queryCardNotes(query: query)'),
+        isTrue,
+      );
+      expect(
+        cardApiClient.contains(
+          'frb.queryCardNotes(query: query, includeDeleted: false)',
+        ),
+        isFalse,
+      );
     },
   );
 

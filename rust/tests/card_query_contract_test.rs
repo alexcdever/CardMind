@@ -1,5 +1,5 @@
-// input: 应用级配置、卡片创建/删除/恢复写入，以及后端 query API 的关键字和 include_deleted 参数。
-// output: 断言产品级搜索、删除态过滤与排序语义由 Rust query API 统一定义并返回。
+// input: 应用级配置、卡片创建/删除写入，以及后端默认列表/搜索 API 的查询关键字。
+// output: 断言默认列表与搜索都固定只返回未删除卡片，且产品语义完全由 Rust 定义。
 // pos: 覆盖 card query 产品语义回收至 Rust API 的后端契约测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::{
     create_card_note, delete_card_note, init_app_config, query_card_notes,
@@ -19,7 +19,7 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn card_query_api_should_apply_search_and_deleted_filters_in_backend()
+fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags()
 -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
@@ -31,20 +31,16 @@ fn card_query_api_should_apply_search_and_deleted_filters_in_backend()
     let deleted = create_card_note("Keyword deleted".to_string(), "body".to_string())?;
     delete_card_note(deleted.id.clone())?;
 
-    let active_only = query_card_notes("keyword".to_string(), false)?;
-    let with_deleted = query_card_notes("keyword".to_string(), true)?;
+    let default_list = query_card_notes("".to_string())?;
+    let active_only = query_card_notes("keyword".to_string())?;
 
+    assert_eq!(default_list.len(), 2);
+    assert!(default_list.iter().all(|card| !card.deleted));
+    assert!(default_list.iter().all(|card| card.id != deleted.id));
     assert_eq!(active_only.len(), 2);
     assert!(active_only.iter().all(|card| !card.deleted));
     assert!(active_only.iter().any(|card| card.id == alpha.id));
     assert!(active_only.iter().all(|card| card.id != deleted.id));
-
-    assert_eq!(with_deleted.len(), 3);
-    assert!(
-        with_deleted
-            .iter()
-            .any(|card| card.id == deleted.id && card.deleted)
-    );
 
     reset_app_config()?;
     Ok(())

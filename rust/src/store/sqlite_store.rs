@@ -176,11 +176,10 @@ impl SqliteStore {
         Ok(cards)
     }
 
-    /// 按产品语义查询卡片
+    /// 按产品语义查询卡片（固定仅返回未删除卡片）
     pub fn query_cards(
         &self,
         keyword: &str,
-        include_deleted: bool,
         limit: i64,
         offset: i64,
     ) -> Result<Vec<Card>, CardMindError> {
@@ -188,35 +187,31 @@ impl SqliteStore {
         let like = format!("%{}%", normalized);
         let sql = if normalized.is_empty() {
             "SELECT id, title, content, created_at, updated_at, deleted FROM cards
-             WHERE (?1 = 1 OR deleted = 0)
+             WHERE deleted = 0
              ORDER BY updated_at DESC, created_at DESC, id ASC
-             LIMIT ?2 OFFSET ?3;"
+             LIMIT ?1 OFFSET ?2;"
         } else {
             "SELECT id, title, content, created_at, updated_at, deleted FROM cards
-             WHERE (?1 = 1 OR deleted = 0)
-               AND (LOWER(title) LIKE ?2 OR LOWER(content) LIKE ?2)
+             WHERE deleted = 0
+               AND (LOWER(title) LIKE ?1 OR LOWER(content) LIKE ?1)
              ORDER BY updated_at DESC, created_at DESC, id ASC
-             LIMIT ?3 OFFSET ?4;"
+             LIMIT ?2 OFFSET ?3;"
         };
         let mut stmt = self
             .conn
             .prepare(sql)
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
-        let include_deleted_flag = if include_deleted { 1 } else { 0 };
         let mut cards = Vec::new();
         if normalized.is_empty() {
             let rows = stmt
-                .query_map(params![include_deleted_flag, limit, offset], Self::map_card)
+                .query_map(params![limit, offset], Self::map_card)
                 .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
             for row in rows {
                 cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);
             }
         } else {
             let rows = stmt
-                .query_map(
-                    params![include_deleted_flag, like, limit, offset],
-                    Self::map_card,
-                )
+                .query_map(params![like, limit, offset], Self::map_card)
                 .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
             for row in rows {
                 cards.push(row.map_err(|e| CardMindError::Sqlite(e.to_string()))?);

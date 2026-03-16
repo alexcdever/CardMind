@@ -39,7 +39,7 @@ fn join_by_code_should_return_backend_result_and_attach_existing_notes()
         "nick-b".to_string(),
         "ios".to_string(),
     )?;
-    let detail = get_pool_detail(pool.id.clone())?;
+    let detail = get_pool_detail(pool.id.clone(), "endpoint-a".to_string())?;
 
     assert_eq!(joined.id, pool.id);
     assert_eq!(joined.member_count, 2);

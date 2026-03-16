@@ -9,15 +9,12 @@ class TestCardApiClient implements CardApiClient {
   final Map<String, _TestCardRecord> _rows = <String, _TestCardRecord>{};
 
   @override
-  Future<List<CardSummary>> listCardSummaries({
-    String query = '',
-    bool includeDeleted = false,
-  }) async {
+  Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
     final lowered = query.toLowerCase();
     final rows =
         _rows.values
             .where((row) {
-              if (!includeDeleted && row.deleted) return false;
+              if (row.deleted) return false;
               if (lowered.isEmpty) return true;
               return row.title.toLowerCase().contains(lowered) ||
                   row.body.toLowerCase().contains(lowered);
@@ -114,6 +111,11 @@ class TestPoolApiClient implements PoolApiClient {
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
     return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
+  }
+
+  @override
+  Future<PoolDetailData> getPoolDetail(String poolId) async {
+    return const PoolDetailData(poolName: 'Joined Pool', isOwner: true);
   }
 }
 

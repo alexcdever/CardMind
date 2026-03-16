@@ -43,11 +43,7 @@ void main() {
       await tester.tap(deleteButton);
       await tester.pumpAndSettle();
 
-      expect(find.text('已删除'), findsOneWidget);
-
-      await tester.tap(deleteButton);
-      await tester.pumpAndSettle();
-
+      expect(find.text('Automation Card'), findsNothing);
       expect(find.text('已删除'), findsNothing);
     },
   );

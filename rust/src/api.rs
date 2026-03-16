@@ -222,10 +222,10 @@ fn current_member_for_endpoint<'a>(pool: &'a Pool, endpoint_id: &str) -> Option<
         .find(|member| member.endpoint_id == endpoint_id)
 }
 
-fn current_user_role_for_endpoint(pool: &Pool, endpoint_id: &str) -> String {
+fn current_member_role_for_endpoint(pool: &Pool, endpoint_id: &str) -> Result<String, ApiError> {
     current_member_for_endpoint(pool, endpoint_id)
         .map(member_role)
-        .unwrap_or_else(|| "member".to_string())
+        .ok_or_else(|| ApiError::new(ApiErrorCode::NotMember, "caller is not a pool member"))
 }
 
 fn fallback_endpoint_id(pool: &Pool) -> &str {
@@ -235,22 +235,22 @@ fn fallback_endpoint_id(pool: &Pool) -> &str {
         .unwrap_or("")
 }
 
-fn to_pool_dto(pool: &Pool, endpoint_id: &str) -> PoolDto {
-    PoolDto {
+fn to_pool_dto(pool: &Pool, endpoint_id: &str) -> Result<PoolDto, ApiError> {
+    Ok(PoolDto {
         id: pool.pool_id.to_string(),
         name: pool_name(pool),
         is_dissolved: false,
-        current_user_role: current_user_role_for_endpoint(pool, endpoint_id),
+        current_user_role: current_member_role_for_endpoint(pool, endpoint_id)?,
         member_count: pool.members.len(),
-    }
+    })
 }
 
-fn to_pool_detail_dto(pool: &Pool, endpoint_id: &str) -> PoolDetailDto {
-    PoolDetailDto {
+fn to_pool_detail_dto(pool: &Pool, endpoint_id: &str) -> Result<PoolDetailDto, ApiError> {
+    Ok(PoolDetailDto {
         id: pool.pool_id.to_string(),
         name: pool_name(pool),
         is_dissolved: false,
-        current_user_role: current_user_role_for_endpoint(pool, endpoint_id),
+        current_user_role: current_member_role_for_endpoint(pool, endpoint_id)?,
         member_count: pool.members.len(),
         note_ids: pool.card_ids.iter().map(Uuid::to_string).collect(),
         members: pool
@@ -263,7 +263,7 @@ fn to_pool_detail_dto(pool: &Pool, endpoint_id: &str) -> PoolDetailDto {
                 role: member_role(member),
             })
             .collect(),
-    }
+    })
 }
 
 fn to_card_note_dto(card: &Card) -> CardNoteDto {
@@ -310,7 +310,7 @@ pub fn create_pool(endpoint_id: String, nickname: String, os: String) -> Result<
         let pool = pool_store
             .create_pool(&endpoint_id, &nickname, &os)
             .map_err(map_err)?;
-        Ok(to_pool_dto(&pool, &endpoint_id))
+        to_pool_dto(&pool, &endpoint_id)
     })
 }
 
@@ -338,7 +338,7 @@ pub fn join_pool(
                 local_card_ids,
             )
             .map_err(map_err)?;
-        Ok(to_pool_dto(&updated, &endpoint_id))
+        to_pool_dto(&updated, &endpoint_id)
     })
 }
 
@@ -379,7 +379,7 @@ pub fn join_by_code(
                 }
                 other => map_err(other),
             })?;
-        Ok(to_pool_dto(&updated, &endpoint_id))
+        to_pool_dto(&updated, &endpoint_id)
     })
 }
 
@@ -393,25 +393,25 @@ pub fn list_pools() -> Result<Vec<PoolDto>, ApiError> {
                 other => Err(other),
             })
             .map_err(map_err)?;
-        Ok(pools
+        pools
             .iter()
             .map(|pool| to_pool_dto(pool, fallback_endpoint_id(pool)))
-            .collect())
+            .collect::<Result<Vec<_>, _>>()
     })
 }
 
-pub fn get_pool_detail(pool_id: String) -> Result<PoolDetailDto, ApiError> {
+pub fn get_pool_detail(pool_id: String, endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pool_id = parse_pool_id(&pool_id)?;
         let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
-        Ok(to_pool_detail_dto(&pool, fallback_endpoint_id(&pool)))
+        to_pool_detail_dto(&pool, &endpoint_id)
     })
 }
 
 pub fn get_joined_pool_view(endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pool = pool_store.get_any_pool().map_err(map_err)?;
-        Ok(to_pool_detail_dto(&pool, &endpoint_id))
+        to_pool_detail_dto(&pool, &endpoint_id)
     })
 }
 
@@ -482,13 +482,10 @@ pub fn list_card_notes() -> Result<Vec<CardNoteDto>, ApiError> {
     })
 }
 
-pub fn query_card_notes(
-    query: String,
-    include_deleted: bool,
-) -> Result<Vec<CardNoteDto>, ApiError> {
+pub fn query_card_notes(query: String) -> Result<Vec<CardNoteDto>, ApiError> {
     with_configured_card_store(|card_repository| {
         let cards = card_repository
-            .query_cards(&query, include_deleted, 10_000, 0)
+            .query_cards(&query, 10_000, 0)
             .map_err(map_err)?;
         Ok(cards.iter().map(to_card_note_dto).collect())
     })

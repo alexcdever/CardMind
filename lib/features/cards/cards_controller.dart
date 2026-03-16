@@ -15,10 +15,7 @@ class CardsController extends ChangeNotifier {
   List<CardSummary> get items => _items;
 
   Future<void> load({String query = ''}) async {
-    _items = await _apiClient.listCardSummaries(
-      query: query,
-      includeDeleted: query.isEmpty,
-    );
+    _items = await _apiClient.listCardSummaries(query: query);
     notifyListeners();
   }
 

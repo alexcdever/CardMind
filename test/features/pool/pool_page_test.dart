@@ -31,6 +31,11 @@ class _FakePoolApiClient implements PoolApiClient {
   Future<PoolViewData?> getJoinedPoolView() async {
     return const PoolViewData(poolName: 'Joined Pool', isOwner: true);
   }
+
+  @override
+  Future<PoolDetailData> getPoolDetail(String poolId) async {
+    return const PoolDetailData(poolName: 'Joined Pool', isOwner: true);
+  }
 }
 
 PoolController _buildTestPoolController({
