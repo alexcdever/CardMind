@@ -12,5 +12,10 @@ models/ - 目录 - 数据模型定义
 net/ - 目录 - 组网与同步模块
 store/ - 目录 - 本地存储实现
 utils/ - 目录 - 工具函数
+runtime/ - 目录 - 运行时与配置管理
+application/ - 目录 - 应用服务层
+http/ - 目录 - HTTP 入口适配器
+mcp/ - 目录 - MCP 入口适配器
+cli/ - 目录 - CLI 入口适配器
 DIR.md - 目录说明与文件索引
 utils/DIR.md - 工具子目录说明
