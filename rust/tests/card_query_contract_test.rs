@@ -19,8 +19,8 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;

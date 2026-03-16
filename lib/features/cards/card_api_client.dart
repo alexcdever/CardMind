@@ -99,11 +99,7 @@ class FrbCardApiClient implements CardApiClient {
     String query = '',
     String? poolId,
   }) async {
-    final notes = await frb.queryCardNotes(
-      query: query,
-      poolId: poolId,
-      includeDeleted: false,
-    );
+    final notes = await frb.queryCardNotes(query: query, poolId: poolId, includeDeleted: false);
     final summaries = notes
         .map(
           (note) => CardSummary(

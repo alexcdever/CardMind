@@ -4,22 +4,22 @@
 // 中文注释：本文件仅定义 crate 级模块结构。
 /// FRB 接口层
 pub mod api;
-mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */
-/// 领域模型与错误类型
-pub mod models;
-/// 组网与同步模块
-pub mod net;
-/// 存储与缓存层
-pub mod store;
-/// 通用工具模块
-pub mod utils;
-/// 运行时与配置管理
-pub mod runtime;
 /// 应用服务层
 pub mod application;
+/// CLI 入口适配器
+pub mod cli;
+mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */
 /// HTTP 入口适配器
 pub mod http;
 /// MCP 入口适配器
 pub mod mcp;
-/// CLI 入口适配器
-pub mod cli;
+/// 领域模型与错误类型
+pub mod models;
+/// 组网与同步模块
+pub mod net;
+/// 运行时与配置管理
+pub mod runtime;
+/// 存储与缓存层
+pub mod store;
+/// 通用工具模块
+pub mod utils;

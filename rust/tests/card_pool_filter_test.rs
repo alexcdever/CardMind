@@ -91,6 +91,7 @@ fn query_card_notes_should_filter_by_pool_id() -> Result<(), Box<dyn std::error:
 
 // 临时辅助函数桩，返回空 Vec 使测试可编译
 // 将在 Task 1.2 Step 3 替换为实际 API: query_card_notes("...", Some(pool_id), Some(false))
+#[allow(dead_code)]
 fn query_card_notes_filtered(
     _pool_id: &str,
 ) -> Result<Vec<cardmind_rust::api::CardNoteDto>, Box<dyn std::error::Error>> {
@@ -98,6 +99,7 @@ fn query_card_notes_filtered(
 }
 
 // 临时辅助函数桩（含软删除），将在 Task 1.2 Step 3 替换为实际 API: query_card_notes("...", Some(pool_id), Some(true))
+#[allow(dead_code)]
 fn query_card_notes_filtered_with_deleted(
     _pool_id: &str,
 ) -> Result<Vec<cardmind_rust::api::CardNoteDto>, Box<dyn std::error::Error>> {
