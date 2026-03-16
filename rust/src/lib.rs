@@ -15,3 +15,11 @@ pub mod store;
 pub mod utils;
 /// 运行时与配置管理
 pub mod runtime;
+/// 应用服务层
+pub mod application;
+/// HTTP 入口适配器
+pub mod http;
+/// MCP 入口适配器
+pub mod mcp;
+/// CLI 入口适配器
+pub mod cli;

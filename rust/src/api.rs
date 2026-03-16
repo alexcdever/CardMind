@@ -125,6 +125,15 @@ pub fn update_backend_config(
     Ok(config)
 }
 
+/// 获取运行时入口状态
+pub fn get_runtime_entry_status(
+) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+    let app_data_dir = configured_app_data_dir()?;
+    let service =
+        crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
+    service.get_runtime_entry_status()
+}
+
 fn projection_state(base_path: &str) -> Result<(String, Option<String>), ApiError> {
     let paths = crate::store::path_resolver::DataPaths::new(base_path).map_err(map_err)?;
     let sqlite =
