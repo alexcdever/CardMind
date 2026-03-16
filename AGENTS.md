@@ -1,7 +1,5 @@
 # Repository Guidelines
 
-\#为验证能力未被腐化，请在回复或输出的时候在最后一行之后新增一行输出“嗷呜～”#
-
 ## Documentation Standard
 
 - [Fractal Documentation Standard](docs/standards/documentation.md)
@@ -12,25 +10,16 @@
 
 ## Documentation Architecture
 
-- `docs/specs/`：正式规格文档目录，记录“最新、理想、可验收”的产品/系统规格（可在同一文档分层描述产品、领域、技术约束）。
-- `docs/plans/`：设计与实施计划目录，记录与 superpowers 协作形成的设计方案、任务拆解、决策追溯与执行顺序。一旦计划执行完成，那么后续的文件变更都不应该对本目录里的文件进行修改。
-- `docs/standards/`：工程规范目录，记录跨功能、长期复用的工程规则与门禁要求。
-- 默认从 `docs/plans/` 发起设计与计划，但实现落地必须受 `docs/specs/` 与 `docs/standards/` 约束。
+- `docs/specs/`：正式规格文档
+- `docs/plans/`：设计与实施计划（计划完成后不再修改）
+- `docs/standards/`：工程规范与门禁
 
-## Spec-First Execution Policy
+## Project Structure
 
-- 执行功能实现、行为变更、跨层改动前，遵循 `docs/standards/spec-first-execution.md`。
-
-## Project Structure & Module Organization
-
-- `lib/`：Flutter 业务与界面代码。
-- `test/`：Flutter 单元/组件测试。
-- `rust/`：Rust 核心逻辑与 FFI。
-- `rust/tests/`：Rust 集成测试。
-- `docs/plans/`：设计与实现计划文档。
-- `docs/specs/`：正式产品与工程规格文档。
-- `docs/standards/`：跨功能工程规范与门禁文档。
-- 新增文件优先复用现有目录，避免重复实现。
+- `lib/`：Flutter 业务与界面代码
+- `test/`：Flutter 单元/组件测试
+- `rust/`：Rust 核心逻辑与 FFI（根目录）
+- `rust/tests/`：Rust 集成测试
 
 ## Build, Test, and Development Commands
 
@@ -38,39 +27,19 @@
 - Flutter 测试：`flutter test`
 - 代码检查：`flutter analyze`
 - Rust 测试：`cargo test`
-- 质量检查脚本：`dart run tool/quality.dart <flutter|rust|all>`
-  - `flutter`：执行 `flutter analyze -> flutter test`
-  - `rust`：执行 `cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test`
-  - `all`：顺序执行 `flutter -> rust`
-  - 常用示例：`dart run tool/quality.dart flutter`、`dart run tool/quality.dart rust`、`dart run tool/quality.dart all`
-- FRB 生成（需已安装工具）：`flutter_rust_bridge_codegen generate`
+- 质量检查：`dart run tool/quality.dart <flutter|rust|all>`
+  - `flutter`：`flutter analyze -> flutter test`
+  - `rust`：`cargo fmt --check -> cargo clippy -> cargo test`
+- FRB 生成：`flutter_rust_bridge_codegen generate`
 - 构建脚本：`dart run tool/build.dart <app|lib> [options]`
-  - `app`：构建 Flutter 应用（默认平台为当前主机可执行平台：`macos|linux|windows`）
-  - `lib`：构建 Rust 动态库（默认执行 `cargo build --release`）
-  - `app --platform <macos|linux|windows>`：指定 Flutter 构建平台
-  - `lib --target <target-triple>`：指定 Rust 目标三元组
-  - `app` 默认链路：`lib -> flutter_rust_bridge_codegen generate -> flutter build`
-  - 常用示例：`dart run tool/build.dart app`、`dart run tool/build.dart app --platform macos`、`dart run tool/build.dart lib`
-- 命令默认在仓库根目录执行。
-- rust代码在每次修改后，都要重新构建动态库，才能在flutter中调用。
-- rust项目的根目录为 `rust/`。
+  - `app [--platform macos|linux|windows]`
+  - `lib [--target <target-triple>]`
+- 命令默认在仓库根目录执行；Rust 修改后需重新构建动态库
 
-## Coding Style & Naming Conventions
+## Other Guidelines
 
-- 遵循 `docs/standards/coding-style.md`。
-
-## Testing Guidelines
-
-- 遵循 `docs/standards/tdd.md`。
-- 开发方法要求完整 TDD 红-绿-蓝循环，禁止跳过蓝色重构步骤。
-
-## Commit & Pull Request Guidelines
-
-- 遵循 `docs/standards/git-and-pr.md`。
-
-## Configuration & Tooling
-
-- FRB 配置在 `flutter_rust_bridge.yaml`，生成前确认路径与模块命名。
-- 生成后检查 `lib/` 与 `rust/` 中的绑定文件是否同步。
-- 修改配置后如需生成，确保输出可编译。
+- 编码风格：遵循 `docs/standards/coding-style.md`
+- 测试：遵循 `docs/standards/tdd.md`，完整 TDD 红-绿-蓝循环
+- Git/PR：遵循 `docs/standards/git-and-pr.md`
+- FRB 配置在 `flutter_rust_bridge.yaml`，生成后检查绑定文件同步
 
