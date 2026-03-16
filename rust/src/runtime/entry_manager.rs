@@ -5,21 +5,11 @@ use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
 /// 运行时入口状态 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RuntimeEntryStatusDto {
     pub http_active: bool,
     pub mcp_active: bool,
     pub cli_active: bool,
-}
-
-impl Default for RuntimeEntryStatusDto {
-    fn default() -> Self {
-        Self {
-            http_active: false,
-            mcp_active: false,
-            cli_active: false,
-        }
-    }
 }
 
 /// 运行时入口管理器

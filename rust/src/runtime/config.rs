@@ -6,21 +6,11 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 /// 后端配置 DTO
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct BackendConfigDto {
     pub http_enabled: bool,
     pub mcp_enabled: bool,
     pub cli_enabled: bool,
-}
-
-impl Default for BackendConfigDto {
-    fn default() -> Self {
-        Self {
-            http_enabled: false,
-            mcp_enabled: false,
-            cli_enabled: false,
-        }
-    }
 }
 
 /// 后端配置存储
