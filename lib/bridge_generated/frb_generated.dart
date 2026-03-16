@@ -126,7 +126,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<List<CardNoteDto>> crateApiListCardNotes();
 
-  Future<List<PoolDto>> crateApiListPools();
+  Future<List<PoolDto>> crateApiListPools({required String endpointId});
 
   Future<List<CardNoteDto>> crateApiQueryCardNotes({required String query});
 
@@ -592,11 +592,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "list_card_notes", argNames: []);
 
   @override
-  Future<List<PoolDto>> crateApiListPools() {
+  Future<List<PoolDto>> crateApiListPools({required String endpointId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(endpointId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -609,14 +610,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiListPoolsConstMeta,
-        argValues: [],
+        argValues: [endpointId],
         apiImpl: this,
       ),
     );
   }
 
   TaskConstMeta get kCrateApiListPoolsConstMeta =>
-      const TaskConstMeta(debugName: "list_pools", argNames: []);
+      const TaskConstMeta(debugName: "list_pools", argNames: ["endpointId"]);
 
   @override
   Future<List<CardNoteDto>> crateApiQueryCardNotes({required String query}) {

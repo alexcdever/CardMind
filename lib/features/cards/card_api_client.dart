@@ -156,7 +156,7 @@ class LegacyCardApiClient implements CardApiClient {
 
   @override
   Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
-    final rows = await _readRepository.search(query, includeDeleted: false);
+    final rows = await _readRepository.search(query);
     return rows
         .map(
           (row) =>

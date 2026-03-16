@@ -228,13 +228,6 @@ fn current_member_role_for_endpoint(pool: &Pool, endpoint_id: &str) -> Result<St
         .ok_or_else(|| ApiError::new(ApiErrorCode::NotMember, "caller is not a pool member"))
 }
 
-fn fallback_endpoint_id(pool: &Pool) -> &str {
-    pool.members
-        .first()
-        .map(|member| member.endpoint_id.as_str())
-        .unwrap_or("")
-}
-
 fn to_pool_dto(pool: &Pool, endpoint_id: &str) -> Result<PoolDto, ApiError> {
     Ok(PoolDto {
         id: pool.pool_id.to_string(),
@@ -383,7 +376,7 @@ pub fn join_by_code(
     })
 }
 
-pub fn list_pools() -> Result<Vec<PoolDto>, ApiError> {
+pub fn list_pools(endpoint_id: String) -> Result<Vec<PoolDto>, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pools = pool_store
             .get_any_pool()
@@ -395,7 +388,7 @@ pub fn list_pools() -> Result<Vec<PoolDto>, ApiError> {
             .map_err(map_err)?;
         pools
             .iter()
-            .map(|pool| to_pool_dto(pool, fallback_endpoint_id(pool)))
+            .map(|pool| to_pool_dto(pool, &endpoint_id))
             .collect::<Result<Vec<_>, _>>()
     })
 }

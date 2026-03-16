@@ -510,10 +510,11 @@ fn wire__crate__api__list_pools_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_endpoint_id = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
-                    let output_ok = crate::api::list_pools()?;
+                    let output_ok = crate::api::list_pools(api_endpoint_id)?;
                     Ok(output_ok)
                 })())
             }

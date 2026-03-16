@@ -5,10 +5,7 @@
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 
 abstract class CardsReadRepository {
-  Future<List<CardNoteProjection>> search(
-    String query, {
-    bool includeDeleted = false,
-  });
+  Future<List<CardNoteProjection>> search(String query);
 
   Future<void> upsertProjection(CardNoteProjection row);
 }

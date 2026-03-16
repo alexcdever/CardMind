@@ -28,6 +28,12 @@ void main() {
       fileLabel: 'rust/src/api.rs',
       violationLabel: 'compute pool detail role from first member ordering',
     );
+    expectSourceOmits(
+      rustApi,
+      'to_pool_dto(pool, fallback_endpoint_id(pool))',
+      fileLabel: 'rust/src/api.rs',
+      violationLabel: 'compute pool list role from first member ordering',
+    );
   });
 
   test('flutter must not reintroduce includeDeleted query switches', () {

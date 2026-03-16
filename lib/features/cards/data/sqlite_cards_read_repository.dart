@@ -18,11 +18,8 @@ class SqliteCardsReadRepository implements CardsReadRepository {
 
   /// Flutter 卡片查询统一走 SQLite 读模型。
   @override
-  Future<List<CardNoteProjection>> search(
-    String query, {
-    bool includeDeleted = false,
-  }) {
-    return _database.searchCards(query, includeDeleted: includeDeleted);
+  Future<List<CardNoteProjection>> search(String query) {
+    return _database.searchCards(query);
   }
 
   /// 投影 worker 负责把写侧变化投递到读模型。

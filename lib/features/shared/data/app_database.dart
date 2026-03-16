@@ -15,19 +15,10 @@ class AppDatabase {
   }
 
   /// 卡片查询只读取投影后的 SQLite 读模型行。
-  Future<List<CardNoteProjection>> searchCards(
-    String query, {
-    bool includeDeleted = false,
-  }) async {
+  Future<List<CardNoteProjection>> searchCards(String query) async {
     final lowered = _normalizeQuery(query);
     final rows = _cardRows.values
-        .where(
-          (row) => _matchesCard(
-            row,
-            normalizedQuery: lowered,
-            includeDeleted: includeDeleted,
-          ),
-        )
+        .where((row) => _matchesCard(row, normalizedQuery: lowered))
         .toList(growable: false);
     _sortByUpdatedDesc(rows, (item) => item.updatedAtMicros);
     return rows;
@@ -58,12 +49,8 @@ class AppDatabase {
 
   String _normalizeQuery(String query) => query.trim().toLowerCase();
 
-  bool _matchesCard(
-    CardNoteProjection row, {
-    required String normalizedQuery,
-    required bool includeDeleted,
-  }) {
-    if (!includeDeleted && row.deleted) {
+  bool _matchesCard(CardNoteProjection row, {required String normalizedQuery}) {
+    if (row.deleted) {
       return false;
     }
     if (normalizedQuery.isEmpty) {

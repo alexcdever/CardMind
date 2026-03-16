@@ -31,7 +31,7 @@ fn create_pool_should_return_stable_pool_dto_without_store_handle()
         "nick-a".to_string(),
         "macos".to_string(),
     )?;
-    let listed = list_pools()?;
+    let listed = list_pools("endpoint-a".to_string())?;
     let detail = get_pool_detail(created.id.clone(), "endpoint-a".to_string())?;
 
     assert_eq!(created.name, "nick-a's pool");

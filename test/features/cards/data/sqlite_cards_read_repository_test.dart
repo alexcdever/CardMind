@@ -37,28 +37,22 @@ void main() {
     expect(rows.first.id, 'newer');
   });
 
-  test(
-    'search excludes deleted by default and includes when requested',
-    () async {
-      final repo = SqliteCardsReadRepository.inMemory();
+  test('search excludes deleted by default', () async {
+    final repo = SqliteCardsReadRepository.inMemory();
 
-      await repo.upsertProjection(
-        const CardNoteProjection(
-          id: 'd1',
-          title: 'Deleted',
-          body: 'x',
-          deleted: true,
-          updatedAtMicros: 10,
-        ),
-      );
+    await repo.upsertProjection(
+      const CardNoteProjection(
+        id: 'd1',
+        title: 'Deleted',
+        body: 'x',
+        deleted: true,
+        updatedAtMicros: 10,
+      ),
+    );
 
-      final visible = await repo.search('');
-      expect(visible, isEmpty);
-
-      final all = await repo.search('', includeDeleted: true);
-      expect(all.map((e) => e.id), contains('d1'));
-    },
-  );
+    final visible = await repo.search('');
+    expect(visible, isEmpty);
+  });
 
   test(
     'search matches title and body case-insensitively for active notes',
@@ -146,10 +140,7 @@ void main() {
 
       await controller.createDraft('in-memory-id', 'InMemoryTitle', 'Body');
 
-      final rows = await database.searchCards(
-        'InMemoryTitle',
-        includeDeleted: true,
-      );
+      final rows = await database.searchCards('InMemoryTitle');
       expect(rows.map((e) => e.id), contains('in-memory-id'));
     },
   );

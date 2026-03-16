@@ -18,10 +18,7 @@ class _FakeCardsReadRepository implements CardsReadRepository {
   List<CardNoteProjection> rows = const <CardNoteProjection>[];
 
   @override
-  Future<List<CardNoteProjection>> search(
-    String query, {
-    bool includeDeleted = false,
-  }) async {
+  Future<List<CardNoteProjection>> search(String query) async {
     searchCalls += 1;
     return rows;
   }
@@ -76,7 +73,7 @@ class _FakeCardApiClient implements CardApiClient {
 
   @override
   Future<List<CardSummary>> listCardSummaries({String query = ''}) async {
-    final rows = await readRepository.search(query, includeDeleted: false);
+    final rows = await readRepository.search(query);
     return rows
         .map(
           (row) =>
