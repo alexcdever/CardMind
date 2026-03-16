@@ -34,6 +34,7 @@ class _CardsPageState extends State<CardsPage> {
   late final CardsController _effectiveController =
       widget.controller ?? _controller;
   _DesktopEditorSession? _desktopSession;
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -45,6 +46,7 @@ class _CardsPageState extends State<CardsPage> {
   @override
   void dispose() {
     _effectiveController.removeListener(_onChanged);
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -122,6 +124,7 @@ class _CardsPageState extends State<CardsPage> {
           onPressed: () {
             _openEditor(context);
           },
+          tooltip: '新建卡片',
           child: const Icon(Icons.add),
         ),
       ),
@@ -171,6 +174,7 @@ class _CardsPageState extends State<CardsPage> {
       child: TextField(
         key: const ValueKey('cards.search_input'),
         decoration: const InputDecoration(hintText: '搜索卡片'),
+        focusNode: _searchFocusNode,
         onChanged: (value) {
           unawaited(_effectiveController.load(query: value));
         },
