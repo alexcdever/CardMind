@@ -49,8 +49,8 @@ void main() {
       'lib/app/layout/adaptive_homepage_scaffold.dart',
       'lib/app/navigation/app_homepage_controller.dart',
       'lib/app/navigation/app_homepage_page.dart',
-      'test/app/adaptive_homepage_scaffold_test.dart',
-      'test/app/app_homepage_navigation_test.dart',
+      'test/widget/pages/adaptive_homepage_test.dart',
+      'test/widget/pages/app_homepage_test.dart',
       'test/features/settings/settings_page_test.dart',
       'test/widget_test.dart',
     ];

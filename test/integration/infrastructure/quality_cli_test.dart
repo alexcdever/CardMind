@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../tool/quality.dart';
+import '../../../tool/quality.dart';
 
 void main() {
   test('prints usage when subcommand is missing', () async {
