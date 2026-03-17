@@ -234,6 +234,37 @@ class _MockRustLibApi extends RustLibApi {
   }) async => const <CardNoteDto>[];
 
   @override
+  Future<BackendConfigDto> crateApiGetBackendConfig() async {
+    return const BackendConfigDto(
+      httpEnabled: false,
+      mcpEnabled: false,
+      cliEnabled: false,
+    );
+  }
+
+  @override
+  Future<RuntimeEntryStatusDto> crateApiGetRuntimeEntryStatus() async {
+    return const RuntimeEntryStatusDto(
+      httpActive: false,
+      mcpActive: false,
+      cliActive: false,
+    );
+  }
+
+  @override
+  Future<BackendConfigDto> crateApiUpdateBackendConfig({
+    required bool httpEnabled,
+    required bool mcpEnabled,
+    required bool cliEnabled,
+  }) async {
+    return BackendConfigDto(
+      httpEnabled: httpEnabled,
+      mcpEnabled: mcpEnabled,
+      cliEnabled: cliEnabled,
+    );
+  }
+
+  @override
   Future<CardNoteDto> crateApiDeleteCardNote({required String cardId}) async {
     return CardNoteDto(
       id: cardId,
@@ -298,37 +329,6 @@ class _MockRustLibApi extends RustLibApi {
     required String title,
     required String content,
   }) => throw UnimplementedError();
-
-  @override
-  Future<BackendConfigDto> crateApiGetBackendConfig() async {
-    return const BackendConfigDto(
-      httpEnabled: false,
-      mcpEnabled: false,
-      cliEnabled: false,
-    );
-  }
-
-  @override
-  Future<RuntimeEntryStatusDto> crateApiGetRuntimeEntryStatus() async {
-    return const RuntimeEntryStatusDto(
-      httpActive: false,
-      mcpActive: false,
-      cliActive: false,
-    );
-  }
-
-  @override
-  Future<BackendConfigDto> crateApiUpdateBackendConfig({
-    required bool httpEnabled,
-    required bool mcpEnabled,
-    required bool cliEnabled,
-  }) async {
-    return BackendConfigDto(
-      httpEnabled: httpEnabled,
-      mcpEnabled: mcpEnabled,
-      cliEnabled: cliEnabled,
-    );
-  }
 }
 
 bool _mockRustInitialized = false;

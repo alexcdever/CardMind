@@ -23,6 +23,7 @@ class _FakeCardApiClient implements CardApiClient {
   Future<List<CardSummary>> listCardSummaries({
     String query = '',
     String? poolId,
+    bool? includeDeleted,
   }) async {
     final lowered = query.toLowerCase();
     return _rows.values
