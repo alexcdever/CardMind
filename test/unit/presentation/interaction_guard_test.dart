@@ -51,7 +51,7 @@ void main() {
       'lib/app/navigation/app_homepage_page.dart',
       'test/widget/pages/adaptive_homepage_test.dart',
       'test/widget/pages/app_homepage_test.dart',
-      'test/features/settings/settings_page_test.dart',
+      'test/widget/pages/settings_page_test.dart',
       'test/widget_test.dart',
     ];
 

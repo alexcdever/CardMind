@@ -19,7 +19,7 @@ void main() {
     expect(exit, 1);
     expect(
       logs.join('\n'),
-      contains('Usage: dart run tool/build.dart <app|lib>'),
+      contains('Usage: dart run tool/build.dart <app|lib|run>'),
     );
   });
 
@@ -87,7 +87,7 @@ void main() {
     expect(exit, 1);
     expect(
       logs.join('\n'),
-      contains('Usage: dart run tool/build.dart <app|lib> [options]'),
+      contains('Usage: dart run tool/build.dart <app|lib|run>'),
     );
   });
 
@@ -102,11 +102,12 @@ void main() {
     expect(exit, 0);
     expect(
       logs.join('\n'),
-      contains('Usage: dart run tool/build.dart <app|lib> [options]'),
+      contains('Usage: dart run tool/build.dart <app|lib|run>'),
     );
     expect(logs.join('\n'), contains('Commands:'));
     expect(logs.join('\n'), contains('app    Build Flutter app'));
     expect(logs.join('\n'), contains('lib    Build Rust dynamic library'));
+    expect(logs.join('\n'), contains('run    Build and run Flutter app (macOS only)'));
     expect(logs.join('\n'), contains('Examples:'));
   });
 
@@ -121,7 +122,7 @@ void main() {
     expect(exit, 0);
     expect(
       logs.join('\n'),
-      contains('Usage: dart run tool/build.dart <app|lib> [options]'),
+      contains('Usage: dart run tool/build.dart <app|lib|run>'),
     );
     expect(logs.join('\n'), contains('Default behavior:'));
     expect(
