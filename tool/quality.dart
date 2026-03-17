@@ -11,7 +11,7 @@ const _usage = 'Usage: dart run tool/quality.dart <flutter|rust|all> [options]';
 const _help = '''Usage: dart run tool/quality.dart <flutter|rust|all> [options]
 
 Commands:
-  flutter  Run Flutter lint and tests
+  flutter  Run Flutter lint, tests, and boundary scan
   rust     Run Rust lint and tests
   all      Run Flutter then Rust quality checks
 
@@ -19,7 +19,7 @@ Options:
   -h, --help  Show this help message
 
 Default behavior:
-  flutter runs: flutter analyze -> flutter test
+  flutter runs: flutter analyze -> flutter test -> test boundary scan
   rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test
   all runs: flutter -> rust
 
@@ -101,6 +101,21 @@ Future<int> _runFlutterQuality({
     return test.exitCode;
   }
   log('[flutter:test] done');
+
+  // 运行测试边界扫描
+  log('[flutter:test-boundary-scan] scanning...');
+  final boundaryScan = await runProcess('dart', [
+    'tool/test_boundary_scanner.dart',
+  ]);
+  if (boundaryScan.exitCode != 0) {
+    logError(
+      '[flutter:test-boundary-scan] High priority boundaries not covered',
+    );
+    log('See report: /tmp/cardmind_test_boundary_report.md');
+    // 不返回错误，只作为警告
+  } else {
+    log('[flutter:test-boundary-scan] done');
+  }
   return 0;
 }
 
