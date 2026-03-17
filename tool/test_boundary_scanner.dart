@@ -275,6 +275,97 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   }
 }
 
+/// 测试覆盖分析器
+class TestCoverageAnalyzer {
+  final List<String> testPaths;
+
+  TestCoverageAnalyzer(this.testPaths);
+
+  Future<Set<String>> findCoveredBoundaries() async {
+    final covered = <String>{};
+
+    for (final testPath in testPaths) {
+      final dir = Directory(testPath);
+      if (!dir.existsSync()) continue;
+
+      await for (final entity in dir.list(recursive: true)) {
+        if (entity is! File) continue;
+        if (!entity.path.endsWith('_test.dart')) continue;
+
+        try {
+          final content = await entity.readAsString();
+
+          // 提取测试函数名 - 使用简单的字符串匹配
+          final lines = content.split('\n');
+          for (final line in lines) {
+            final trimmed = line.trim();
+            if (trimmed.startsWith("test('") || trimmed.startsWith('test("')) {
+              // 手动提取测试名
+              String? testName;
+              if (trimmed.startsWith("test('")) {
+                final start = 6;
+                final endQuote = trimmed.indexOf("',", start);
+                if (endQuote > start) {
+                  testName = trimmed.substring(start, endQuote);
+                }
+              } else if (trimmed.startsWith('test("')) {
+                final start = 6;
+                final endQuote = trimmed.indexOf('",', start);
+                if (endQuote > start) {
+                  testName = trimmed.substring(start, endQuote);
+                }
+              }
+              if (testName != null && testName.isNotEmpty) {
+                covered.add(_normalizeTestName(testName));
+              }
+            }
+          }
+        } catch (e) {
+          stderr.writeln('Warning: Failed to read ${entity.path}: $e');
+        }
+      }
+    }
+
+    return covered;
+  }
+
+  String _normalizeTestName(String name) {
+    // 将测试名转换为小写并移除特殊字符
+    return name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  bool isBoundaryCovered(Boundary boundary, Set<String> coveredTests) {
+    final normalizedCode = _normalizeTestName(boundary.codeSnippet);
+    final typeKeywords = _getTypeKeywords(boundary.type);
+
+    for (final test in coveredTests) {
+      // 检查测试名是否包含边界相关的关键词
+      if (typeKeywords.any((kw) => test.contains(kw))) {
+        return true;
+      }
+      // 检查代码片段是否被引用
+      if (test.contains(normalizedCode)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  List<String> _getTypeKeywords(BoundaryType type) {
+    return switch (type) {
+      BoundaryType.condition => ['if', 'else', 'condition', 'branch'],
+      BoundaryType.null_ => ['null', 'empty', 'none'],
+      BoundaryType.exception => ['error', 'exception', 'catch', 'fail'],
+      BoundaryType.input => ['input', 'field', 'enter', 'type'],
+      BoundaryType.async => ['async', 'await', 'future', 'promise'],
+      BoundaryType.collection => ['empty', 'list', 'array', 'collection'],
+      BoundaryType.lifecycle => ['init', 'dispose', 'create', 'destroy'],
+      BoundaryType.interaction => ['focus', 'key', 'click', 'tap'],
+    };
+  }
+}
+
 /// 主扫描器类
 class TestBoundaryScanner {
   final ScannerConfig config;
@@ -308,12 +399,26 @@ class TestBoundaryScanner {
       }
     }
 
-    // TODO: 对比测试覆盖情况
+    // 扫描测试覆盖
+    final analyzer = TestCoverageAnalyzer(['test/', 'rust/tests/']);
+    final coveredTests = await analyzer.findCoveredBoundaries();
+
+    // 对比覆盖情况
+    final covered = <Boundary>[];
+    final uncovered = <Boundary>[];
+
+    for (final boundary in boundaries) {
+      if (analyzer.isBoundaryCovered(boundary, coveredTests)) {
+        covered.add(boundary);
+      } else {
+        uncovered.add(boundary);
+      }
+    }
 
     return ScanResult(
       boundaries: boundaries,
-      coveredBoundaries: [],
-      uncoveredBoundaries: boundaries,
+      coveredBoundaries: covered,
+      uncoveredBoundaries: uncovered,
     );
   }
 
@@ -345,5 +450,7 @@ void main(List<String> args) async {
   final result = await scanner.scan();
 
   print('Found ${result.boundaries.length} boundaries');
+  print('Covered: ${result.coveredBoundaries.length}');
+  print('Uncovered: ${result.uncoveredBoundaries.length}');
   print('Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%');
 }
