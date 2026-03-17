@@ -1,0 +1,27 @@
+scanner:
+  # 扫描目录
+  include:
+    - lib/
+    - rust/src/
+  
+  exclude:
+    - lib/bridge_generated/
+    - test/
+    - rust/tests/
+  
+  # 边界类型权重（影响优先级）
+  weights:
+    condition: 1.0      # 条件分支
+    null: 1.0           # 空值
+    exception: 1.0      # 异常
+    input: 1.0          # 输入
+    async: 0.7          # 异步
+    collection: 0.7     # 集合
+    lifecycle: 0.7      # 生命周期
+    interaction: 1.0    # UI 交互
+  
+  # 忽略模式
+  ignore_patterns:
+    - "test/"
+    - ".g.dart$"
+    - ".freezed.dart$"
