@@ -7,6 +7,7 @@
 import 'dart:io';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:yaml/yaml.dart';
 
 /// 边界类型枚举
@@ -109,6 +110,171 @@ class ScannerConfig {
   }
 }
 
+/// AST 边界访问者
+class BoundaryVisitor extends RecursiveAstVisitor<void> {
+  final String filePath;
+  final List<Boundary> boundaries = [];
+  int _lineOffset = 0;
+
+  BoundaryVisitor(this.filePath, {int lineOffset = 0})
+    : _lineOffset = lineOffset;
+
+  @override
+  void visitIfStatement(IfStatement node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'If statement condition',
+    );
+    super.visitIfStatement(node);
+  }
+
+  @override
+  void visitConditionalExpression(ConditionalExpression node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'Ternary operator condition',
+    );
+    super.visitConditionalExpression(node);
+  }
+
+  @override
+  void visitSwitchStatement(SwitchStatement node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'Switch statement',
+    );
+    super.visitSwitchStatement(node);
+  }
+
+  @override
+  void visitTryStatement(TryStatement node) {
+    _addBoundary(
+      BoundaryType.exception,
+      node.offset,
+      node.toSource(),
+      'Try-catch block',
+    );
+    super.visitTryStatement(node);
+  }
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    final methodName = node.methodName.name;
+
+    // 检查输入相关方法
+    if (methodName == 'onChanged' ||
+        methodName == 'onSubmitted' ||
+        methodName == 'onTap') {
+      _addBoundary(
+        BoundaryType.input,
+        node.offset,
+        node.toSource(),
+        'Input field callback',
+      );
+    }
+
+    // 检查异步相关方法
+    if (methodName == 'then' ||
+        methodName == 'catchError' ||
+        methodName == 'whenComplete') {
+      _addBoundary(
+        BoundaryType.async,
+        node.offset,
+        node.toSource(),
+        'Async operation callback',
+      );
+    }
+
+    super.visitMethodInvocation(node);
+  }
+
+  @override
+  void visitFunctionExpression(FunctionExpression node) {
+    // 检查 async 函数
+    if (node.parameters?.toSource().contains('async') ?? false) {
+      _addBoundary(
+        BoundaryType.async,
+        node.offset,
+        node.toSource(),
+        'Async function',
+      );
+    }
+    super.visitFunctionExpression(node);
+  }
+
+  @override
+  void visitBinaryExpression(BinaryExpression node) {
+    // 检查 null 检查
+    if (node.operator.type.toString() == 'EQ_EQ' ||
+        node.operator.type.toString() == 'BANG_EQ') {
+      final left = node.leftOperand.toSource();
+      final right = node.rightOperand.toSource();
+      if (left == 'null' || right == 'null') {
+        _addBoundary(
+          BoundaryType.null_,
+          node.offset,
+          node.toSource(),
+          'Null check',
+        );
+      }
+    }
+    super.visitBinaryExpression(node);
+  }
+
+  @override
+  void visitPrefixExpression(PrefixExpression node) {
+    // 检查空值传播
+    if (node.operator.type.toString() == 'QUESTION_PERIOD') {
+      _addBoundary(
+        BoundaryType.null_,
+        node.offset,
+        node.toSource(),
+        'Null-aware access',
+      );
+    }
+    super.visitPrefixExpression(node);
+  }
+
+  @override
+  void visitMethodDeclaration(MethodDeclaration node) {
+    // 检查生命周期方法
+    final methodName = node.name.lexeme;
+    if (methodName == 'initState' ||
+        methodName == 'dispose' ||
+        methodName == 'didUpdateWidget' ||
+        methodName == 'didChangeDependencies') {
+      _addBoundary(
+        BoundaryType.lifecycle,
+        node.offset,
+        node.toSource(),
+        'Widget lifecycle method: $methodName',
+      );
+    }
+    super.visitMethodDeclaration(node);
+  }
+
+  void _addBoundary(BoundaryType type, int offset, String code, String desc) {
+    // 截断代码片段
+    final snippet = code.length > 50 ? '${code.substring(0, 50)}...' : code;
+
+    boundaries.add(
+      Boundary(
+        type: type,
+        filePath: filePath,
+        lineNumber: _lineOffset, // 简化：使用偏移量代替实际行号
+        codeSnippet: snippet,
+        description: desc,
+      ),
+    );
+  }
+}
+
 /// 主扫描器类
 class TestBoundaryScanner {
   final ScannerConfig config;
@@ -118,13 +284,47 @@ class TestBoundaryScanner {
   Future<ScanResult> scan() async {
     final boundaries = <Boundary>[];
 
-    // TODO: 实现扫描逻辑
+    // 遍历 include 路径
+    for (final includePath in config.includePaths) {
+      final dir = Directory(includePath);
+      if (!dir.existsSync()) continue;
+
+      await for (final entity in dir.list(recursive: true)) {
+        if (entity is! File) continue;
+        if (!entity.path.endsWith('.dart')) continue;
+        if (_shouldIgnore(entity.path)) continue;
+
+        try {
+          final content = await entity.readAsString();
+          final result = parseString(content: content);
+
+          final visitor = BoundaryVisitor(entity.path);
+          result.unit.visitChildren(visitor);
+
+          boundaries.addAll(visitor.boundaries);
+        } catch (e) {
+          stderr.writeln('Warning: Failed to parse ${entity.path}: $e');
+        }
+      }
+    }
+
+    // TODO: 对比测试覆盖情况
 
     return ScanResult(
       boundaries: boundaries,
       coveredBoundaries: [],
       uncoveredBoundaries: boundaries,
     );
+  }
+
+  bool _shouldIgnore(String path) {
+    for (final pattern in config.ignorePatterns) {
+      if (RegExp(pattern).hasMatch(path)) return true;
+    }
+    for (final exclude in config.excludePaths) {
+      if (path.startsWith(exclude)) return true;
+    }
+    return false;
   }
 }
 
