@@ -286,20 +286,3 @@ Future<int> _runAndOpen(
 
   return 0;
 }
-
-void _copyDirectory(Directory source, Directory destination) {
-  if (!destination.existsSync()) {
-    destination.createSync(recursive: true);
-  }
-
-  for (final entity in source.listSync()) {
-    final name = entity.path.split('/').last;
-    final destPath = '${destination.path}/$name';
-
-    if (entity is File) {
-      entity.copySync(destPath);
-    } else if (entity is Directory) {
-      _copyDirectory(entity, Directory(destPath));
-    }
-  }
-}
