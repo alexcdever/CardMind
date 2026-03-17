@@ -433,6 +433,111 @@ class TestBoundaryScanner {
   }
 }
 
+/// 报告生成器
+class ReportGenerator {
+  final ScannerConfig config;
+
+  ReportGenerator(this.config);
+
+  String generate(ScanResult result) {
+    final buffer = StringBuffer();
+    final now = DateTime.now();
+
+    buffer.writeln('# 测试边界覆盖报告');
+    buffer.writeln('');
+    buffer.writeln('生成时间: ${now.toIso8601String()}');
+    buffer.writeln('');
+
+    // 统计
+    buffer.writeln('## 统计');
+    buffer.writeln('- 总边界数: ${result.boundaries.length}');
+    buffer.writeln(
+      '- 已覆盖: ${result.coveredBoundaries.length} (${(result.coverageRatio * 100).toStringAsFixed(1)}%)',
+    );
+    buffer.writeln(
+      '- 未覆盖: ${result.uncoveredBoundaries.length} (${((1 - result.coverageRatio) * 100).toStringAsFixed(1)}%)',
+    );
+    buffer.writeln('');
+
+    // 按优先级分组未覆盖边界
+    final prioritized = _prioritizeBoundaries(result.uncoveredBoundaries);
+
+    if (prioritized.high.isNotEmpty) {
+      buffer.writeln('## 🔴 高优先级未覆盖边界');
+      buffer.writeln('');
+      for (var i = 0; i < prioritized.high.length; i++) {
+        _writeBoundary(buffer, i + 1, prioritized.high[i]);
+      }
+    }
+
+    if (prioritized.medium.isNotEmpty) {
+      buffer.writeln('## 🟡 中优先级未覆盖边界');
+      buffer.writeln('');
+      for (var i = 0; i < prioritized.medium.length; i++) {
+        _writeBoundary(buffer, i + 1, prioritized.medium[i]);
+      }
+    }
+
+    if (prioritized.low.isNotEmpty) {
+      buffer.writeln('## 🟢 低优先级未覆盖边界');
+      buffer.writeln('');
+      for (var i = 0; i < prioritized.low.length; i++) {
+        _writeBoundary(buffer, i + 1, prioritized.low[i]);
+      }
+    }
+
+    if (result.coveredBoundaries.isNotEmpty) {
+      buffer.writeln('## ✅ 已覆盖边界');
+      buffer.writeln('');
+      buffer.writeln('共 ${result.coveredBoundaries.length} 个边界已被测试覆盖。');
+    }
+
+    return buffer.toString();
+  }
+
+  void _writeBoundary(StringBuffer buffer, int index, Boundary boundary) {
+    buffer.writeln(
+      '$index. **${boundary.type.name}** - `${boundary.filePath}`',
+    );
+    buffer.writeln('   - 代码: `${boundary.codeSnippet}`');
+    if (boundary.description != null) {
+      buffer.writeln('   - 描述: ${boundary.description}');
+    }
+    buffer.writeln('');
+  }
+
+  PrioritizedBoundaries _prioritizeBoundaries(List<Boundary> boundaries) {
+    final high = <Boundary>[];
+    final medium = <Boundary>[];
+    final low = <Boundary>[];
+
+    for (final boundary in boundaries) {
+      final weight = config.weights[boundary.type] ?? 0.5;
+      if (weight >= 1.0) {
+        high.add(boundary);
+      } else if (weight >= 0.7) {
+        medium.add(boundary);
+      } else {
+        low.add(boundary);
+      }
+    }
+
+    return PrioritizedBoundaries(high: high, medium: medium, low: low);
+  }
+}
+
+class PrioritizedBoundaries {
+  final List<Boundary> high;
+  final List<Boundary> medium;
+  final List<Boundary> low;
+
+  PrioritizedBoundaries({
+    required this.high,
+    required this.medium,
+    required this.low,
+  });
+}
+
 void main(List<String> args) async {
   // 加载配置
   final configFile = File('tool/test_boundary_config.yaml');
@@ -449,8 +554,27 @@ void main(List<String> args) async {
   print('Scanning for test boundaries...');
   final result = await scanner.scan();
 
+  // 生成报告
+  final generator = ReportGenerator(config);
+  final report = generator.generate(result);
+
+  // 保存到 /tmp
+  final reportFile = File('/tmp/cardmind_test_boundary_report.md');
+  await reportFile.writeAsString(report);
+
+  print('');
   print('Found ${result.boundaries.length} boundaries');
   print('Covered: ${result.coveredBoundaries.length}');
   print('Uncovered: ${result.uncoveredBoundaries.length}');
   print('Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%');
+  print('');
+  print('Report saved to: ${reportFile.path}');
+
+  // 如果有高优先级未覆盖边界，返回非零退出码
+  final hasHighPriorityUncovered = result.uncoveredBoundaries.any(
+    (b) => (config.weights[b.type] ?? 0.5) >= 1.0,
+  );
+  if (hasHighPriorityUncovered) {
+    exit(1);
+  }
 }
