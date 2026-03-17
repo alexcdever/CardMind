@@ -91,7 +91,7 @@
 - 代码检查：`flutter analyze`
 - Rust 测试：`cargo test`
 - 质量检查：`dart run tool/quality.dart <flutter|rust|all>`
-  - `flutter`：`flutter analyze -> flutter test`
+  - `flutter`：`flutter analyze -> flutter test -> test boundary scan`
   - `rust`：`cargo fmt --check -> cargo clippy -> cargo test`
 - FRB 生成：`flutter_rust_bridge_codegen generate`
 - 构建脚本：`dart run tool/build.dart <app|lib> [options]`
@@ -99,10 +99,106 @@
   - `lib [--target <target-triple>]`
 - 命令默认在仓库根目录执行；Rust 修改后需重新构建动态库
 
+## Development Workflow
+
+这是一个完整的开发-测试-存档循环，适用于所有功能开发。本项目是 **Flutter（客户端）+ Rust（服务端）** 的混合架构，通过 FFI 桥接。
+
+### 1. 理解需求
+
+- 阅读相关 spec 文档（`docs/specs/`）
+- 确认变更范围：仅 Rust / 仅 Flutter / 两端都需要
+- 识别 FFI 边界（API 签名变更需同步更新两端）
+- 识别可能的边界条件
+
+### 2. 编写实现代码
+
+**仅 Rust 层变更**：
+- 在 `rust/` 目录下修改
+- 遵循 `docs/standards/coding-style.md` 中的 Rust 规范
+
+**仅 Flutter 层变更**：
+- 在 `lib/` 目录下修改
+- 遵循 `docs/standards/coding-style.md` 中的 Dart 规范
+
+**两端都需要变更**：
+- 先实现 Rust 层 API
+- 运行 `flutter_rust_bridge_codegen generate` 生成绑定代码
+- 再实现 Flutter 层调用
+
+### 3. 运行质量检查
+
+```bash
+# 仅 Flutter 变更
+dart run tool/quality.dart flutter
+
+# 仅 Rust 变更
+dart run tool/quality.dart rust
+
+# 两端都变更
+dart run tool/quality.dart all
+```
+
+quality.dart 会自动：
+- 运行代码分析和测试
+- **执行边界扫描**（新增）
+- 生成报告到 `/tmp/cardmind_test_boundary_report.md`
+
+### 4. 分析边界覆盖
+
+读取 `/tmp/cardmind_test_boundary_report.md`，检查：
+- 是否有高优先级边界未覆盖
+- 是否需要补充测试
+- 低优先级边界是否记录到待办
+
+**边界检查清单**：
+
+| 层级 | 边界类型 | 检查项 |
+|------|---------|--------|
+| Flutter | 空值/空输入 | 空字符串、空列表 |
+| Flutter | 异常处理 | try/catch、错误回调 |
+| Flutter | 焦点管理 | 输入框焦点与快捷键冲突 |
+| Flutter | 异步状态 | loading/error/success |
+| Flutter | 集合边界 | 空列表、越界 |
+| Flutter | UI 响应式 | 布局断点（900px） |
+| Rust | FFI 边界 | 参数验证、错误转换 |
+| Rust | 并发安全 | Arc/Mutex、数据竞争 |
+| Rust | 错误处理 | Result/Option 处理 |
+| Rust | 资源管理 | Drop、内存泄漏 |
+| Rust | 异步边界 | async/await、Tokio |
+| 跨层 | 序列化边界 | JSON/Protobuf 解析 |
+| 跨层 | 类型边界 | FFI 类型转换 |
+
+### 5. 执行存档（/checkpoint）
+
+更新 `docs/memory/YYYY-MM-DD.md`：
+```markdown
+## 完成事项
+- [功能名]：简述实现内容
+- 测试覆盖：Rust (X/Y 边界) / Flutter (X/Y 边界)
+- FFI 变更：是/否
+
+## 决策
+- [关键边界]：已补充测试 / 记录待办
+```
+
+### 6. 提交代码
+
+```bash
+# 如果修改了 Rust，先构建动态库
+dart run tool/build.dart lib
+
+# 提交
+git add .
+git commit -m "描述"
+```
+
+---
+
 ## Other Guidelines
 
 - 编码风格：遵循 `docs/standards/coding-style.md`
-- 测试：遵循 `docs/standards/tdd.md`，完整 TDD 红-绿-蓝循环
+- 开发方法：遵循 `docs/standards/tdd.md`，完整 TDD 红-绿-蓝循环
+- 测试边界：遵循 `docs/standards/test-boundary-checklist.md`，确保关键边界被覆盖
 - Git/PR：遵循 `docs/standards/git-and-pr.md`
 - FRB 配置在 `flutter_rust_bridge.yaml`，生成后检查绑定文件同步
 
