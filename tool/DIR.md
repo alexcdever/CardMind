@@ -11,3 +11,6 @@ tool/ 目录存放项目维护脚本与构建入口。
 - quality.dart - 质量检查脚本，运行 flutter analyze、flutter test、cargo test 等质量门禁
 - test_boundary_scanner.dart - 测试边界扫描器，自动识别代码边界条件并生成覆盖报告
 - test_boundary_config.yaml - 测试边界扫描器配置文件，定义扫描路径、边界类型权重和忽略模式
+
+test/tool/ 目录：
+- test_boundary_scanner_test.dart - 测试边界扫描器单元测试
