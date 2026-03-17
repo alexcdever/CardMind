@@ -40,3 +40,24 @@ post_install do |installer|
     flutter_additional_macos_build_settings(target)
   end
 end
+
+# Copy Rust framework to app bundle after build
+post_integrate do |installer|
+  target = installer.pods_project.targets.find { |t| t.name == 'Runner' }
+  if target
+    phase = target.new_shell_script_build_phase('Copy Rust Framework')
+    phase.shell_script = <<-SCRIPT
+      FRAMEWORK_NAME="cardmind_rust.framework"
+      SOURCE_FRAMEWORK="${PROJECT_DIR}/../rust/target/release/${FRAMEWORK_NAME}"
+      DEST_FRAMEWORK="${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/${FRAMEWORK_NAME}"
+      
+      if [ -d "$SOURCE_FRAMEWORK" ]; then
+        rm -rf "$DEST_FRAMEWORK"
+        cp -R "$SOURCE_FRAMEWORK" "$DEST_FRAMEWORK"
+        echo "Copied Rust framework to app bundle"
+      else
+        echo "Warning: Rust framework not found at $SOURCE_FRAMEWORK"
+      fi
+    SCRIPT
+  end
+end

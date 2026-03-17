@@ -7,12 +7,13 @@ typedef Runner =
       String? workingDirectory,
     });
 
-const _usage = 'Usage: dart run tool/build.dart <app|lib> [options]';
-const _help = '''Usage: dart run tool/build.dart <app|lib> [options]
+const _usage = 'Usage: dart run tool/build.dart <app|lib|run> [options]';
+const _help = '''Usage: dart run tool/build.dart <app|lib|run> [options]
 
 Commands:
   app    Build Flutter app
   lib    Build Rust dynamic library
+  run    Build and run Flutter app (macOS only)
 
 Options:
   -h, --help          Show this help message
@@ -21,6 +22,7 @@ Options:
 
 Default behavior:
   app runs: lib -> codegen -> flutter build
+  run runs: lib -> flutter build -> copy framework -> open app
   app default platform: current host executable platform (macos/linux/windows)
   lib default mode: cargo build --release
 
@@ -29,6 +31,7 @@ Examples:
   dart run tool/build.dart app --platform macos
   dart run tool/build.dart lib
   dart run tool/build.dart lib --target aarch64-apple-darwin
+  dart run tool/build.dart run
 ''';
 
 enum HostPlatform { macos, linux, windows, android, ios }
@@ -85,6 +88,14 @@ Future<int> runBuildCli(
       log: log,
       logError: logError,
       platformOverride: platformOverride,
+    );
+  }
+  if (args.first == 'run') {
+    return _runAndOpen(
+      args.skip(1).toList(),
+      runProcess: runProcess,
+      log: log,
+      logError: logError,
     );
   }
   logError(_usage);
@@ -179,6 +190,10 @@ Future<int> _runLib(
     logError(_processError(result));
     return result.exitCode;
   }
+
+  // For macOS, we just need the dylib - we'll copy it to the app bundle after build
+  log('[lib] Rust library built successfully');
+
   log('[lib] done');
   return 0;
 }
@@ -209,3 +224,82 @@ Future<ProcessResult> _run(
 void _stdout(String message) => stdout.writeln(message);
 
 void _stderr(String message) => stderr.writeln(message);
+
+Future<int> _runAndOpen(
+  List<String> args, {
+  required Runner runProcess,
+  required void Function(String) log,
+  required void Function(String) logError,
+}) async {
+  if (!Platform.isMacOS) {
+    logError('run command is only supported on macOS');
+    return 1;
+  }
+
+  // Step 1: Build Rust library (which also creates framework)
+  final libExit = await _runLib(
+    args,
+    runProcess: runProcess,
+    log: log,
+    logError: logError,
+  );
+  if (libExit != 0) {
+    return libExit;
+  }
+
+  // Step 2: Build Flutter app
+  final build = await runProcess('flutter', ['build', 'macos', '--debug']);
+  if (build.exitCode != 0) {
+    logError(_processError(build));
+    return build.exitCode;
+  }
+  log('[build:macos] done');
+
+  // Step 3: Copy dylib to app bundle's Frameworks directory
+  final dylibSource = File(
+    '${Directory.current.path}/rust/target/release/libcardmind_rust.dylib',
+  );
+  final appBundle = Directory(
+    '${Directory.current.path}/build/macos/Build/Products/Debug/cardmind.app',
+  );
+  final frameworksDir = Directory('${appBundle.path}/Contents/Frameworks');
+  final dylibDest = File('${frameworksDir.path}/libcardmind_rust.dylib');
+
+  if (!frameworksDir.existsSync()) {
+    frameworksDir.createSync(recursive: true);
+  }
+
+  if (dylibDest.existsSync()) {
+    dylibDest.deleteSync();
+  }
+
+  dylibSource.copySync(dylibDest.path);
+  log('[dylib] copied to app bundle');
+
+  // Step 4: Open the app
+  final openResult = await runProcess('open', [appBundle.path]);
+  if (openResult.exitCode != 0) {
+    logError('Failed to open app: ${openResult.stderr}');
+    return openResult.exitCode;
+  }
+  log('[run] app launched');
+
+  return 0;
+}
+
+void _copyDirectory(Directory source, Directory destination) {
+  if (!destination.existsSync()) {
+    destination.createSync(recursive: true);
+  }
+
+  for (final entity in source.listSync()) {
+    final name = entity.path.split('/').last;
+    final destPath = '${destination.path}/$name';
+
+    if (entity is File) {
+      entity.copySync(destPath);
+    } else if (entity is Directory) {
+      _copyDirectory(entity, Directory(destPath));
+    }
+  }
+}
