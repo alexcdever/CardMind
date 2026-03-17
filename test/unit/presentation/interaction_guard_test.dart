@@ -52,7 +52,7 @@ void main() {
       'test/widget/pages/adaptive_homepage_test.dart',
       'test/widget/pages/app_homepage_test.dart',
       'test/widget/pages/settings_page_test.dart',
-      'test/widget_test.dart',
+      'test/widget/widget_test.dart',
     ];
 
     final violations = <String>[];
