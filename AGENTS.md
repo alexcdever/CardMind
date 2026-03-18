@@ -65,7 +65,7 @@
 
 ## Documentation Standard
 
-- [分形文档规范](docs/standards/分形文档规范.md)
+- [分形文档规范](docs/standards/fractal-doc-standard.md)
 - [Spec-First Execution Policy](docs/standards/spec-first-execution.md)
 - [TDD Standard](docs/standards/tdd.md)
 - [Git & PR Standard](docs/standards/git-and-pr.md)
