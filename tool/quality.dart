@@ -95,12 +95,13 @@ Future<int> _runFlutterQuality({
   }
   log('[flutter:analyze] done');
 
-  final test = await runProcess('flutter', ['test']);
+  // 运行测试并生成覆盖率（边界扫描需要）
+  final test = await runProcess('flutter', ['test', '--coverage']);
   if (test.exitCode != 0) {
     logError(_processError(test));
     return test.exitCode;
   }
-  log('[flutter:test] done');
+  log('[flutter:test] done (with coverage)');
 
   // 运行测试边界扫描
   log('[flutter:test-boundary-scan] scanning...');
