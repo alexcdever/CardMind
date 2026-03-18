@@ -1,0 +1,15 @@
+[package]
+name = "boundary_scanner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+syn = { version = "2.0", features = ["full", "visit"] }
+proc-macro2 = { version = "1.0", features = ["span-locations"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+walkdir = "2.0"
+
+[[bin]]
+name = "boundary_scanner"
+path = "src/main.rs"

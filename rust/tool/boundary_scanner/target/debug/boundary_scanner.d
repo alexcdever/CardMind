@@ -1,0 +1,1 @@
+/Users/alexc/Projects/CardMind/.worktrees/test-boundary-guard/rust/tool/boundary_scanner/target/debug/boundary_scanner: /Users/alexc/Projects/CardMind/.worktrees/test-boundary-guard/rust/tool/boundary_scanner/src/main.rs

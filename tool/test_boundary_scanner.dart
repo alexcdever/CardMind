@@ -4,6 +4,7 @@
 // pos: tool/test_boundary_scanner.dart - 测试边界扫描器主程序，修改本文件需同步更新文件头和所属 DIR.md
 // 中文注释: 测试边界扫描器，自动识别代码边界条件并生成覆盖报告
 
+import 'dart:convert';
 import 'dart:io';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
@@ -502,7 +503,10 @@ class TestBoundaryScanner {
   Future<List<Boundary>> _scanBoundaries() async {
     final boundaries = <Boundary>[];
 
+    // 扫描 Dart 文件
     for (final includePath in config.includePaths) {
+      if (includePath.contains('rust/')) continue; // 跳过 Rust 目录
+
       final dir = Directory(includePath);
       if (!dir.existsSync()) continue;
 
@@ -525,7 +529,64 @@ class TestBoundaryScanner {
       }
     }
 
+    // 扫描 Rust 文件
+    final rustBoundaries = await _scanRustBoundaries();
+    boundaries.addAll(rustBoundaries);
+
     return boundaries;
+  }
+
+  Future<List<Boundary>> _scanRustBoundaries() async {
+    final rustSrc = Directory('rust/src');
+    if (!rustSrc.existsSync()) {
+      return [];
+    }
+
+    stderr.writeln('  Scanning Rust boundaries...');
+
+    try {
+      final result = await Process.run('cargo', [
+        'run',
+        '--manifest-path',
+        'rust/tool/boundary_scanner/Cargo.toml',
+      ], runInShell: true);
+
+      if (result.exitCode != 0) {
+        stderr.writeln('  Warning: Rust scanner failed: ${result.stderr}');
+        return [];
+      }
+
+      // 解析 JSON 输出
+      final jsonList = jsonDecode(result.stdout) as List;
+      return jsonList
+          .map(
+            (json) => Boundary(
+              type: _parseBoundaryType(json['boundary_type'] as String),
+              filePath: json['file_path'] as String,
+              lineNumber: json['line_number'] as int,
+              codeSnippet: json['code_snippet'] as String,
+              description: json['description'] as String,
+            ),
+          )
+          .toList();
+    } catch (e) {
+      stderr.writeln('  Warning: Failed to scan Rust boundaries: $e');
+      return [];
+    }
+  }
+
+  BoundaryType _parseBoundaryType(String type) {
+    return switch (type) {
+      'condition' => BoundaryType.condition,
+      'null' => BoundaryType.null_,
+      'exception' => BoundaryType.exception,
+      'input' => BoundaryType.input,
+      'async' => BoundaryType.async,
+      'collection' => BoundaryType.collection,
+      'lifecycle' => BoundaryType.lifecycle,
+      'interaction' => BoundaryType.interaction,
+      _ => BoundaryType.condition, // 默认
+    };
   }
 
   Future<void> _collectCoverageData() async {
@@ -585,7 +646,7 @@ class ReportGenerator {
     buffer.writeln('');
     buffer.writeln('生成时间: ${now.toIso8601String()}');
     buffer.writeln('');
-    buffer.writeln('**注意**: 当前仅扫描 Dart/Flutter 代码。Rust 代码边界扫描待实现。');
+    buffer.writeln('**范围**: Dart/Flutter + Rust 代码');
     buffer.writeln('');
 
     // 统计
