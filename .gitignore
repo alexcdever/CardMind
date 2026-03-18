@@ -49,3 +49,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 macos/Podfile.lock
+rust/tool/boundary_scanner/target/
