@@ -29,6 +29,8 @@ class Boundary {
   final int lineNumber;
   final String codeSnippet;
   final String? description;
+  bool isCovered;
+  int? executionCount; // 执行次数（来自 LCOV）
 
   Boundary({
     required this.type,
@@ -36,6 +38,8 @@ class Boundary {
     required this.lineNumber,
     required this.codeSnippet,
     this.description,
+    this.isCovered = false,
+    this.executionCount,
   });
 }
 
@@ -114,10 +118,9 @@ class ScannerConfig {
 class BoundaryVisitor extends RecursiveAstVisitor<void> {
   final String filePath;
   final List<Boundary> boundaries = [];
-  int _lineOffset = 0;
+  final dynamic lineInfo; // LineInfo from analyzer
 
-  BoundaryVisitor(this.filePath, {int lineOffset = 0})
-    : _lineOffset = lineOffset;
+  BoundaryVisitor(this.filePath, [this.lineInfo]);
 
   @override
   void visitIfStatement(IfStatement node) {
@@ -263,11 +266,22 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
     // 截断代码片段
     final snippet = code.length > 50 ? '${code.substring(0, 50)}...' : code;
 
+    // 计算准确的行号
+    int lineNumber = 0;
+    if (lineInfo != null) {
+      try {
+        lineNumber = lineInfo.getLocation(offset).lineNumber;
+      } catch (e) {
+        // 如果获取失败，使用 0
+        lineNumber = 0;
+      }
+    }
+
     boundaries.add(
       Boundary(
         type: type,
         filePath: filePath,
-        lineNumber: _lineOffset, // 简化：使用偏移量代替实际行号
+        lineNumber: lineNumber,
         codeSnippet: snippet,
         description: desc,
       ),
@@ -275,7 +289,75 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   }
 }
 
-/// 测试覆盖分析器
+/// LCOV 文件解析器
+class LcovParser {
+  final Map<String, FileCoverage> fileCoverages = {};
+
+  void parse(String lcovContent) {
+    final lines = lcovContent.split('\n');
+    String? currentFile;
+
+    for (final line in lines) {
+      if (line.startsWith('SF:')) {
+        // SF:<file path>
+        currentFile = line.substring(3);
+        fileCoverages[currentFile] = FileCoverage(path: currentFile);
+      } else if (line.startsWith('DA:') && currentFile != null) {
+        // DA:<line number>,<execution count>[,<checksum>]
+        final parts = line.substring(3).split(',');
+        if (parts.length >= 2) {
+          final lineNum = int.tryParse(parts[0]);
+          final count = int.tryParse(parts[1]);
+          if (lineNum != null && count != null) {
+            fileCoverages[currentFile]!.lineHits[lineNum] = count;
+          }
+        }
+      } else if (line == 'end_of_record') {
+        currentFile = null;
+      }
+    }
+  }
+
+  /// 获取特定文件特定行的执行次数
+  /// 返回 null 表示该行没有覆盖信息
+  int? getLineCoverage(String filePath, int lineNumber) {
+    final coverage = fileCoverages[filePath];
+    if (coverage == null) return null;
+    return coverage.lineHits[lineNumber];
+  }
+
+  /// 获取文件的总体覆盖率统计
+  CoverageStats getFileStats(String filePath) {
+    final coverage = fileCoverages[filePath];
+    if (coverage == null) {
+      return CoverageStats(totalLines: 0, coveredLines: 0);
+    }
+
+    final total = coverage.lineHits.length;
+    final covered = coverage.lineHits.values.where((c) => c > 0).length;
+
+    return CoverageStats(totalLines: total, coveredLines: covered);
+  }
+}
+
+class FileCoverage {
+  final String path;
+  final Map<int, int> lineHits = {}; // 行号 -> 执行次数
+
+  FileCoverage({required this.path});
+}
+
+class CoverageStats {
+  final int totalLines;
+  final int coveredLines;
+
+  CoverageStats({required this.totalLines, required this.coveredLines});
+
+  double get percentage =>
+      totalLines == 0 ? 0.0 : (coveredLines / totalLines) * 100;
+}
+
+/// 测试覆盖分析器（保留用于兼容性，但不再使用启发式匹配）
 class TestCoverageAnalyzer {
   final List<String> testPaths;
 
@@ -373,9 +455,53 @@ class TestBoundaryScanner {
   TestBoundaryScanner(this.config);
 
   Future<ScanResult> scan() async {
+    // 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）
+    stderr.writeln('Step 1: Collecting code coverage...');
+    await _collectCoverageData();
+
+    // 步骤 2: 解析 LCOV 文件
+    stderr.writeln('Step 2: Parsing LCOV data...');
+    final lcovParser = LcovParser();
+    final lcovFile = File('coverage/lcov.info');
+    if (lcovFile.existsSync()) {
+      lcovParser.parse(await lcovFile.readAsString());
+    } else {
+      stderr.writeln('Warning: coverage/lcov.info not found');
+    }
+
+    // 步骤 3: 扫描代码边界
+    stderr.writeln('Step 3: Scanning code boundaries...');
+    final boundaries = await _scanBoundaries();
+
+    // 步骤 4: 精确匹配边界与覆盖率
+    stderr.writeln('Step 4: Matching boundaries with coverage...');
+    for (final boundary in boundaries) {
+      final relativePath = boundary.filePath.startsWith(Directory.current.path)
+          ? boundary.filePath.substring(Directory.current.path.length + 1)
+          : boundary.filePath;
+
+      final coverage = lcovParser.getLineCoverage(
+        relativePath,
+        boundary.lineNumber,
+      );
+      boundary.isCovered = coverage != null && coverage > 0;
+      boundary.executionCount = coverage;
+    }
+
+    // 步骤 5: 分类边界
+    final covered = boundaries.where((b) => b.isCovered).toList();
+    final uncovered = boundaries.where((b) => !b.isCovered).toList();
+
+    return ScanResult(
+      boundaries: boundaries,
+      coveredBoundaries: covered,
+      uncoveredBoundaries: uncovered,
+    );
+  }
+
+  Future<List<Boundary>> _scanBoundaries() async {
     final boundaries = <Boundary>[];
 
-    // 遍历 include 路径
     for (final includePath in config.includePaths) {
       final dir = Directory(includePath);
       if (!dir.existsSync()) continue;
@@ -389,7 +515,7 @@ class TestBoundaryScanner {
           final content = await entity.readAsString();
           final result = parseString(content: content);
 
-          final visitor = BoundaryVisitor(entity.path);
+          final visitor = BoundaryVisitor(entity.path, result.lineInfo);
           result.unit.visitChildren(visitor);
 
           boundaries.addAll(visitor.boundaries);
@@ -399,27 +525,39 @@ class TestBoundaryScanner {
       }
     }
 
-    // 扫描测试覆盖
-    final analyzer = TestCoverageAnalyzer(['test/', 'rust/tests/']);
-    final coveredTests = await analyzer.findCoveredBoundaries();
+    return boundaries;
+  }
 
-    // 对比覆盖情况
-    final covered = <Boundary>[];
-    final uncovered = <Boundary>[];
+  Future<void> _collectCoverageData() async {
+    final lcovFile = File('coverage/lcov.info');
 
-    for (final boundary in boundaries) {
-      if (analyzer.isBoundaryCovered(boundary, coveredTests)) {
-        covered.add(boundary);
-      } else {
-        uncovered.add(boundary);
+    // 检查是否已有有效的 LCOV 文件（1 小时内）
+    if (lcovFile.existsSync()) {
+      final lastModified = await lcovFile.lastModified();
+      final age = DateTime.now().difference(lastModified);
+      if (age.inHours < 1) {
+        stderr.writeln(
+          '  Using existing coverage data (modified ${age.inMinutes} minutes ago)',
+        );
+        return;
       }
     }
 
-    return ScanResult(
-      boundaries: boundaries,
-      coveredBoundaries: covered,
-      uncoveredBoundaries: uncovered,
-    );
+    // 运行 flutter test --coverage
+    stderr.writeln('  Running: flutter test --coverage');
+    stderr.writeln('  (This may take a few minutes...)');
+    final result = await Process.run('flutter', [
+      'test',
+      '--coverage',
+    ], runInShell: true);
+
+    if (result.exitCode != 0) {
+      stderr.writeln(
+        '  Warning: Test execution failed, coverage data may be incomplete',
+      );
+    } else {
+      stderr.writeln('  Coverage data collected successfully');
+    }
   }
 
   bool _shouldIgnore(String path) {
@@ -497,11 +635,14 @@ class ReportGenerator {
 
   void _writeBoundary(StringBuffer buffer, int index, Boundary boundary) {
     buffer.writeln(
-      '$index. **${boundary.type.name}** - `${boundary.filePath}`',
+      '$index. **${boundary.type.name}** - `${boundary.filePath}:${boundary.lineNumber}`',
     );
     buffer.writeln('   - 代码: `${boundary.codeSnippet}`');
     if (boundary.description != null) {
       buffer.writeln('   - 描述: ${boundary.description}');
+    }
+    if (boundary.executionCount != null) {
+      buffer.writeln('   - 执行次数: ${boundary.executionCount}');
     }
     buffer.writeln('');
   }
