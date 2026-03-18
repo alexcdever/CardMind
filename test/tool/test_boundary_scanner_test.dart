@@ -132,37 +132,69 @@ scanner:
     });
   });
 
-  group('TestCoverageAnalyzer', () {
-    late TestCoverageAnalyzer analyzer;
+  group('LcovParser', () {
+    test('should parse LCOV format correctly', () {
+      final lcovContent = '''
+SF:lib/test.dart
+DA:1,1
+DA:2,0
+DA:3,5
+end_of_record
+SF:lib/other.dart
+DA:10,1
+end_of_record
+''';
 
-    setUp(() {
-      analyzer = TestCoverageAnalyzer(['test/']);
+      final parser = LcovParser();
+      parser.parse(lcovContent);
+
+      expect(parser.getLineCoverage('lib/test.dart', 1), equals(1));
+      expect(parser.getLineCoverage('lib/test.dart', 2), equals(0));
+      expect(parser.getLineCoverage('lib/test.dart', 3), equals(5));
+      expect(parser.getLineCoverage('lib/test.dart', 4), isNull);
+      expect(parser.getLineCoverage('lib/other.dart', 10), equals(1));
+      expect(parser.getLineCoverage('nonexistent.dart', 1), isNull);
     });
 
-    test('should detect covered boundary by keywords', () {
+    test('should handle empty LCOV', () {
+      final parser = LcovParser();
+      parser.parse('');
+
+      expect(parser.fileCoverages, isEmpty);
+    });
+
+    test('should calculate file stats', () {
+      final lcovContent = '''
+SF:lib/test.dart
+DA:1,1
+DA:2,0
+DA:3,5
+end_of_record
+''';
+
+      final parser = LcovParser();
+      parser.parse(lcovContent);
+
+      final stats = parser.getFileStats('lib/test.dart');
+      expect(stats.totalLines, equals(3));
+      expect(stats.coveredLines, equals(2));
+      expect(stats.percentage, closeTo(66.67, 0.01));
+    });
+  });
+
+  group('Boundary with coverage', () {
+    test('should track coverage status', () {
       final boundary = Boundary(
         type: BoundaryType.condition,
-        filePath: 'test.dart',
-        lineNumber: 1,
+        filePath: 'lib/test.dart',
+        lineNumber: 10,
         codeSnippet: 'if (x)',
+        isCovered: true,
+        executionCount: 5,
       );
 
-      final coveredTests = {'test_if_condition'};
-
-      expect(analyzer.isBoundaryCovered(boundary, coveredTests), isTrue);
-    });
-
-    test('should detect uncovered boundary', () {
-      final boundary = Boundary(
-        type: BoundaryType.input,
-        filePath: 'test.dart',
-        lineNumber: 1,
-        codeSnippet: 'onChanged',
-      );
-
-      final coveredTests = {'test_something_else'};
-
-      expect(analyzer.isBoundaryCovered(boundary, coveredTests), isFalse);
+      expect(boundary.isCovered, isTrue);
+      expect(boundary.executionCount, equals(5));
     });
   });
 
