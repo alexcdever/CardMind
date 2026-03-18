@@ -23,20 +23,26 @@ void main() {
     );
   });
 
-  test('flutter runs analyze then test in order', () async {
-    final calls = <_ProcCall>[];
-    final exit = await runQualityCli(const [
-      'flutter',
-    ], runProcess: _fakeRunner(calls));
-    expect(exit, 0);
-    expect(calls.length, 2);
-    expect(calls[0].executable, 'flutter');
-    expect(calls[0].arguments, ['analyze']);
-    expect(calls[1].executable, 'flutter');
-    expect(calls[1].arguments, ['test']);
-    expect(calls[0].workingDirectory, isNull);
-    expect(calls[1].workingDirectory, isNull);
-  });
+  test(
+    'flutter runs analyze then test with coverage then boundary scan in order',
+    () async {
+      final calls = <_ProcCall>[];
+      final exit = await runQualityCli(const [
+        'flutter',
+      ], runProcess: _fakeRunner(calls));
+      expect(exit, 0);
+      expect(calls.length, 3);
+      expect(calls[0].executable, 'flutter');
+      expect(calls[0].arguments, ['analyze']);
+      expect(calls[1].executable, 'flutter');
+      expect(calls[1].arguments, ['test', '--coverage']);
+      expect(calls[2].executable, 'dart');
+      expect(calls[2].arguments, ['tool/test_boundary_scanner.dart']);
+      expect(calls[0].workingDirectory, isNull);
+      expect(calls[1].workingDirectory, isNull);
+      expect(calls[2].workingDirectory, isNull);
+    },
+  );
 
   test('rust runs fmt then clippy then test in rust directory', () async {
     final calls = <_ProcCall>[];
@@ -69,15 +75,19 @@ void main() {
       'all',
     ], runProcess: _fakeRunner(calls));
     expect(exit, 0);
-    expect(calls.length, 5);
+    expect(calls.length, 6);
+    // Flutter checks
     expect(calls[0].executable, 'flutter');
     expect(calls[0].arguments, ['analyze']);
     expect(calls[1].executable, 'flutter');
-    expect(calls[1].arguments, ['test']);
-    expect(calls[2].executable, 'cargo');
-    expect(calls[2].arguments, ['fmt', '--all', '--', '--check']);
+    expect(calls[1].arguments, ['test', '--coverage']);
+    expect(calls[2].executable, 'dart');
+    expect(calls[2].arguments, ['tool/test_boundary_scanner.dart']);
+    // Rust checks
     expect(calls[3].executable, 'cargo');
-    expect(calls[3].arguments, [
+    expect(calls[3].arguments, ['fmt', '--all', '--', '--check']);
+    expect(calls[4].executable, 'cargo');
+    expect(calls[4].arguments, [
       'clippy',
       '--all-targets',
       '--all-features',
@@ -85,8 +95,8 @@ void main() {
       '-D',
       'warnings',
     ]);
-    expect(calls[4].executable, 'cargo');
-    expect(calls[4].arguments, ['test']);
+    expect(calls[5].executable, 'cargo');
+    expect(calls[5].arguments, ['test']);
   });
 
   test('returns command exit code on flutter analyze failure', () async {
@@ -140,7 +150,10 @@ void main() {
       ),
     );
     expect(logs.join('\n'), contains('Commands:'));
-    expect(logs.join('\n'), contains('flutter  Run Flutter lint and tests'));
+    expect(
+      logs.join('\n'),
+      contains('flutter  Run Flutter lint, tests, and boundary scan'),
+    );
     expect(logs.join('\n'), contains('rust     Run Rust lint and tests'));
     expect(
       logs.join('\n'),

@@ -793,7 +793,7 @@ void main(List<String> args) async {
   final config = ScannerConfig.fromYaml(configFile.readAsStringSync());
   final scanner = TestBoundaryScanner(config);
 
-  print('Scanning for test boundaries...');
+  stdout.writeln('Scanning for test boundaries...');
   final result = await scanner.scan();
 
   // 生成报告
@@ -804,13 +804,15 @@ void main(List<String> args) async {
   final reportFile = File('/tmp/cardmind_test_boundary_report.md');
   await reportFile.writeAsString(report);
 
-  print('');
-  print('Found ${result.boundaries.length} boundaries');
-  print('Covered: ${result.coveredBoundaries.length}');
-  print('Uncovered: ${result.uncoveredBoundaries.length}');
-  print('Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%');
-  print('');
-  print('Report saved to: ${reportFile.path}');
+  stdout.writeln('');
+  stdout.writeln('Found ${result.boundaries.length} boundaries');
+  stdout.writeln('Covered: ${result.coveredBoundaries.length}');
+  stdout.writeln('Uncovered: ${result.uncoveredBoundaries.length}');
+  stdout.writeln(
+    'Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%',
+  );
+  stdout.writeln('');
+  stdout.writeln('Report saved to: ${reportFile.path}');
 
   // 如果有高优先级未覆盖边界，返回非零退出码
   final hasHighPriorityUncovered = result.uncoveredBoundaries.any(
