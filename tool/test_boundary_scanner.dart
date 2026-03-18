@@ -642,6 +642,20 @@ class ReportGenerator {
     final buffer = StringBuffer();
     final now = DateTime.now();
 
+    // 分离 Dart 和 Rust 边界
+    final dartBoundaries = result.boundaries
+        .where((b) => b.filePath.startsWith('lib/'))
+        .toList();
+    final rustBoundaries = result.boundaries
+        .where((b) => b.filePath.startsWith('rust/'))
+        .toList();
+
+    final dartCovered = dartBoundaries.where((b) => b.isCovered).toList();
+    final rustCovered = rustBoundaries.where((b) => b.isCovered).toList();
+
+    final dartUncovered = dartBoundaries.where((b) => !b.isCovered).toList();
+    final rustUncovered = rustBoundaries.where((b) => !b.isCovered).toList();
+
     buffer.writeln('# 测试边界覆盖报告');
     buffer.writeln('');
     buffer.writeln('生成时间: ${now.toIso8601String()}');
@@ -649,8 +663,8 @@ class ReportGenerator {
     buffer.writeln('**范围**: Dart/Flutter + Rust 代码');
     buffer.writeln('');
 
-    // 统计
-    buffer.writeln('## 统计');
+    // 总体统计
+    buffer.writeln('## 总体统计');
     buffer.writeln('- 总边界数: ${result.boundaries.length}');
     buffer.writeln(
       '- 已覆盖: ${result.coveredBoundaries.length} (${(result.coverageRatio * 100).toStringAsFixed(1)}%)',
@@ -658,6 +672,30 @@ class ReportGenerator {
     buffer.writeln(
       '- 未覆盖: ${result.uncoveredBoundaries.length} (${((1 - result.coverageRatio) * 100).toStringAsFixed(1)}%)',
     );
+    buffer.writeln('');
+
+    // Flutter/Dart 统计
+    final dartCoverage = dartBoundaries.isEmpty
+        ? 0.0
+        : dartCovered.length / dartBoundaries.length;
+    buffer.writeln('## Flutter/Dart 统计');
+    buffer.writeln('- 边界数: ${dartBoundaries.length}');
+    buffer.writeln(
+      '- 已覆盖: ${dartCovered.length} (${(dartCoverage * 100).toStringAsFixed(1)}%)',
+    );
+    buffer.writeln('- 未覆盖: ${dartUncovered.length}');
+    buffer.writeln('');
+
+    // Rust 统计
+    final rustCoverage = rustBoundaries.isEmpty
+        ? 0.0
+        : rustCovered.length / rustBoundaries.length;
+    buffer.writeln('## Rust 统计');
+    buffer.writeln('- 边界数: ${rustBoundaries.length}');
+    buffer.writeln(
+      '- 已覆盖: ${rustCovered.length} (${(rustCoverage * 100).toStringAsFixed(1)}%)',
+    );
+    buffer.writeln('- 未覆盖: ${rustUncovered.length}');
     buffer.writeln('');
 
     // 按优先级分组未覆盖边界
