@@ -66,10 +66,11 @@
 ## Documentation Standard
 
 - [分形文档规范](docs/standards/fractal-doc-standard.md)
-- [Spec-First Execution Policy](docs/standards/spec-first-execution.md)
-- [TDD Standard](docs/standards/tdd.md)
-- [Git & PR Standard](docs/standards/git-and-pr.md)
-- [Coding Style Standard](docs/standards/coding-style.md)
+- [规范优先执行策略](docs/standards/spec-first-execution.md)
+- [TDD 规范](docs/standards/tdd.md)
+- [测试规范](docs/standards/testing.md)
+- [Git 与 PR 规范](docs/standards/git-and-pr.md)
+- [代码风格规范](docs/standards/coding-style.md)
 
 ## Documentation Architecture
 
@@ -93,6 +94,9 @@
 - 质量检查：`dart run tool/quality.dart <flutter|rust|all>`
   - `flutter`：`flutter analyze -> flutter test -> test boundary scan`
   - `rust`：`cargo fmt --check -> cargo clippy -> cargo test`
+- 边界扫描：`dart run tool/test_boundary_scanner.dart`
+  - 配置文件：`tool/test_boundary_config.yaml`
+  - 生成报告：`/tmp/cardmind_test_boundary_report.md`
 - FRB 生成：`flutter_rust_bridge_codegen generate`
 - 构建脚本：`dart run tool/build.dart <app|lib> [options]`
   - `app [--platform macos|linux|windows]`
@@ -140,8 +144,14 @@ dart run tool/quality.dart all
 
 quality.dart 会自动：
 - 运行代码分析和测试
-- **执行边界扫描**（新增）
+- **执行边界扫描**（调用 `tool/test_boundary_scanner.dart`）
 - 生成报告到 `/tmp/cardmind_test_boundary_report.md`
+
+**边界扫描器说明**：
+- `tool/test_boundary_scanner.dart` 自动识别代码中的边界条件（if/else、null 检查、异常处理等）
+- 通过 LCOV 覆盖率数据精确匹配边界与测试覆盖情况
+- 支持 Dart/Flutter 和 Rust 双端代码扫描
+- 配置文件：`tool/test_boundary_config.yaml`
 
 ### 4. 分析边界覆盖
 
@@ -198,7 +208,7 @@ git commit -m "描述"
 
 - 编码风格：遵循 `docs/standards/coding-style.md`
 - 开发方法：遵循 `docs/standards/tdd.md`，完整 TDD 红-绿-蓝循环
-- 测试边界：遵循 `docs/standards/test-boundary-checklist.md`，确保关键边界被覆盖
+- 测试边界：遵循 `docs/standards/testing.md`，确保关键边界被覆盖
 - Git/PR：遵循 `docs/standards/git-and-pr.md`
 - FRB 配置在 `flutter_rust_bridge.yaml`，生成后检查绑定文件同步
 

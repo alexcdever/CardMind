@@ -448,5 +448,5 @@ mod ffi_contract_tests {
 ## 9. 相关文档
 
 - `docs/standards/tdd.md` - TDD 开发规范
-- `docs/standards/test-boundary-checklist.md` - 边界检查清单
+- `docs/standards/testing.md` - 本文件（包含边界检查清单）
 - `AGENTS.md` - AI 开发流程（包含测试边界检查）
