@@ -585,6 +585,8 @@ class ReportGenerator {
     buffer.writeln('');
     buffer.writeln('生成时间: ${now.toIso8601String()}');
     buffer.writeln('');
+    buffer.writeln('**注意**: 当前仅扫描 Dart/Flutter 代码。Rust 代码边界扫描待实现。');
+    buffer.writeln('');
 
     // 统计
     buffer.writeln('## 统计');

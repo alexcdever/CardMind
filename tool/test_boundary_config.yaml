@@ -2,7 +2,7 @@ scanner:
   # 扫描目录
   include:
     - lib/
-    - rust/src/
+    # TODO: rust/src/ 需要单独的 Rust 边界扫描器（使用 syn 库或 cargo-llvm-cov）
   
   exclude:
     - lib/bridge_generated/
