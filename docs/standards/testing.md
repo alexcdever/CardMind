@@ -205,6 +205,226 @@ void main() {
 }
 ```
 
+### 7.3 Rust 单元测试模板
+
+```rust
+// rust/tests/unit/card_model_test.rs
+use cardmind::domain::Card;
+
+#[cfg(test)]
+mod card_model_tests {
+    use super::*;
+    
+    // 使用 setup 函数初始化测试数据
+    fn create_test_card() -> Card {
+        Card::new(
+            "test-id".to_string(),
+            "Test Title".to_string(),
+            "Test Content".to_string(),
+        )
+    }
+    
+    #[test]
+    fn new_with_valid_data_creates_card() {
+        // Arrange & Act
+        let card = create_test_card();
+        
+        // Assert
+        assert_eq!(card.title(), "Test Title");
+        assert_eq!(card.content(), "Test Content");
+        assert!(!card.is_deleted());
+    }
+    
+    #[test]
+    fn update_title_with_empty_string_returns_error() {
+        // Arrange
+        let mut card = create_test_card();
+        
+        // Act
+        let result = card.update_title("".to_string());
+        
+        // Assert
+        assert!(result.is_err());
+        assert_eq!(card.title(), "Test Title"); // 未改变
+    }
+    
+    #[test]
+    fn delete_marked_card_as_deleted() {
+        // Arrange
+        let mut card = create_test_card();
+        assert!(!card.is_deleted());
+        
+        // Act
+        card.delete();
+        
+        // Assert
+        assert!(card.is_deleted());
+    }
+    
+    #[test]
+    fn restore_given_deleted_card_restores_it() {
+        // Arrange
+        let mut card = create_test_card();
+        card.delete();
+        assert!(card.is_deleted());
+        
+        // Act
+        card.restore();
+        
+        // Assert
+        assert!(!card.is_deleted());
+    }
+}
+```
+
+### 7.4 Rust 集成测试模板
+
+```rust
+// rust/tests/integration/pool_sync_flow_test.rs
+use cardmind::application::{PoolService, SyncCommand};
+use cardmind::infrastructure::InMemoryPoolRepository;
+
+#[cfg(test)]
+mod pool_sync_tests {
+    use super::*;
+    
+    // 集成测试需要设置完整的依赖
+    async fn setup_test_environment() -> (PoolService, InMemoryPoolRepository) {
+        let repo = InMemoryPoolRepository::new();
+        let service = PoolService::new(repo.clone());
+        (service, repo)
+    }
+    
+    #[tokio::test]
+    async fn sync_pool_with_valid_data_updates_local_state() {
+        // Arrange
+        let (service, repo) = setup_test_environment().await;
+        let pool_id = "pool-123".to_string();
+        
+        // Act
+        let result = service
+            .execute(SyncCommand::SyncPool { pool_id: pool_id.clone() })
+            .await;
+        
+        // Assert
+        assert!(result.is_ok());
+        let pool = repo.find_by_id(&pool_id).await.unwrap();
+        assert_eq!(pool.id(), &pool_id);
+    }
+    
+    #[tokio::test]
+    async fn sync_pool_with_network_error_returns_error() {
+        // Arrange
+        let (service, _repo) = setup_test_environment().await;
+        let pool_id = "invalid-pool".to_string();
+        
+        // Act
+        let result = service
+            .execute(SyncCommand::SyncPool { pool_id })
+            .await;
+        
+        // Assert
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("network"));
+    }
+    
+    #[tokio::test]
+    async fn concurrent_sync_requests_handle_race_condition() {
+        // Arrange
+        let (service, repo) = setup_test_environment().await;
+        let pool_id = "pool-456".to_string();
+        
+        // Act - 并发两个同步请求
+        let handle1 = tokio::spawn({
+            let svc = service.clone();
+            let id = pool_id.clone();
+            async move {
+                svc.execute(SyncCommand::SyncPool { pool_id: id }).await
+            }
+        });
+        
+        let handle2 = tokio::spawn({
+            let svc = service.clone();
+            let id = pool_id.clone();
+            async move {
+                svc.execute(SyncCommand::SyncPool { pool_id: id }).await
+            }
+        });
+        
+        // Assert - 两个请求都应该成功（或一个成功一个被跳过）
+        let result1 = handle1.await.unwrap();
+        let result2 = handle2.await.unwrap();
+        
+        assert!(result1.is_ok() || result2.is_ok());
+        
+        // 验证最终状态一致
+        let pool = repo.find_by_id(&pool_id).await.unwrap();
+        assert!(!pool.is_syncing());
+    }
+}
+```
+
+### 7.5 Rust FFI 契约测试模板
+
+```rust
+// rust/tests/contract/ffi_api_contract_test.rs
+use cardmind::api::*;
+
+#[cfg(test)]
+mod ffi_contract_tests {
+    use super::*;
+    
+    #[test]
+    fn frb_api_create_card_returns_valid_id() {
+        // Arrange
+        let title = "Test Card".to_string();
+        let content = "Test Content".to_string();
+        
+        // Act - 调用 FFI 接口
+        let result = frb_create_card(title, content);
+        
+        // Assert
+        assert!(result.is_ok());
+        let card_id = result.unwrap();
+        assert!(!card_id.is_empty());
+        assert!(card_id.starts_with("card_"));
+    }
+    
+    #[test]
+    fn frb_api_delete_card_given_valid_id_succeeds() {
+        // Arrange
+        let card_id = frb_create_card(
+            "To Delete".to_string(),
+            "Content".to_string(),
+        ).unwrap();
+        
+        // Act
+        let result = frb_delete_card(card_id.clone());
+        
+        // Assert
+        assert!(result.is_ok());
+        
+        // 验证删除后查询失败
+        let find_result = frb_get_card(card_id);
+        assert!(find_result.is_err());
+    }
+    
+    #[test]
+    fn frb_api_handles_null_input_gracefully() {
+        // Arrange - FFI 边界测试
+        let empty_title = "".to_string();
+        let empty_content = "".to_string();
+        
+        // Act
+        let result = frb_create_card(empty_title, empty_content);
+        
+        // Assert - 应该返回验证错误，而不是 panic
+        assert!(result.is_err());
+    }
+}
+```
+
 ## 8. 最佳实践
 
 ### 8.1 测试独立性
