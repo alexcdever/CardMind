@@ -125,12 +125,49 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitIfStatement(IfStatement node) {
-    _addBoundary(
-      BoundaryType.condition,
-      node.offset,
-      node.toSource(),
-      'If statement condition',
-    );
+    // 检测 then 分支（条件为 true 的情况）
+    final thenStatement = node.thenStatement;
+    if (thenStatement is Block && thenStatement.statements.isNotEmpty) {
+      final firstThenStatement = thenStatement.statements.first;
+      _addBoundary(
+        BoundaryType.condition,
+        firstThenStatement.offset,
+        'if (condition) { ... }',
+        'If statement true branch',
+      );
+    } else if (thenStatement is! Block) {
+      // 单行 if 语句没有大括号
+      _addBoundary(
+        BoundaryType.condition,
+        thenStatement.offset,
+        'if (condition) statement;',
+        'If statement true branch',
+      );
+    }
+
+    // 检测 else 分支（条件为 false 的情况）
+    final elseStatement = node.elseStatement;
+    if (elseStatement != null) {
+      if (elseStatement is Block && elseStatement.statements.isNotEmpty) {
+        final firstElseStatement = elseStatement.statements.first;
+        _addBoundary(
+          BoundaryType.condition,
+          firstElseStatement.offset,
+          'else { ... }',
+          'If statement false branch',
+        );
+      } else if (elseStatement is! Block && elseStatement is! IfStatement) {
+        // else 单行语句（非 else-if）
+        _addBoundary(
+          BoundaryType.condition,
+          elseStatement.offset,
+          'else statement;',
+          'If statement false branch',
+        );
+      }
+      // 如果是 else-if，会在递归访问时被单独处理
+    }
+
     super.visitIfStatement(node);
   }
 
@@ -214,9 +251,10 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitBinaryExpression(BinaryExpression node) {
+    final op = node.operator.type.toString();
+
     // 检查 null 检查
-    if (node.operator.type.toString() == 'EQ_EQ' ||
-        node.operator.type.toString() == 'BANG_EQ') {
+    if (op == 'EQ_EQ' || op == 'BANG_EQ') {
       final left = node.leftOperand.toSource();
       final right = node.rightOperand.toSource();
       if (left == 'null' || right == 'null') {
@@ -228,6 +266,47 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
         );
       }
     }
+
+    // 检查逻辑运算 (&&, ||)
+    if (op == 'AMPERSAND_AMPERSAND' || op == 'BAR_BAR') {
+      _addBoundary(
+        BoundaryType.condition,
+        node.offset,
+        node.toSource(),
+        'Logical expression (${op == 'AMPERSAND_AMPERSAND' ? '&&' : '||'})',
+      );
+    }
+
+    // 检查空值合并运算符 (??)
+    if (op == 'QUESTION_QUESTION') {
+      _addBoundary(
+        BoundaryType.null_,
+        node.offset,
+        node.toSource(),
+        'Null-aware coalescing (??)',
+      );
+    }
+
+    // 检查算术运算边界
+    if (op == 'SLASH' || op == 'SLASH_SLASH' || op == 'PERCENT') {
+      _addBoundary(
+        BoundaryType.condition,
+        node.offset,
+        node.toSource(),
+        'Arithmetic operation - potential divide by zero',
+      );
+    }
+
+    // 检查比较运算
+    if (op == 'LT' || op == 'GT' || op == 'LT_EQ' || op == 'GT_EQ') {
+      _addBoundary(
+        BoundaryType.condition,
+        node.offset,
+        node.toSource(),
+        'Comparison expression',
+      );
+    }
+
     super.visitBinaryExpression(node);
   }
 
@@ -261,6 +340,326 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       );
     }
     super.visitMethodDeclaration(node);
+  }
+
+  @override
+  void visitForStatement(ForStatement node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'For loop',
+    );
+    super.visitForStatement(node);
+  }
+
+  @override
+  void visitWhileStatement(WhileStatement node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'While loop',
+    );
+    super.visitWhileStatement(node);
+  }
+
+  @override
+  void visitForEachPartsWithDeclaration(ForEachPartsWithDeclaration node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'For-each loop',
+    );
+    super.visitForEachPartsWithDeclaration(node);
+  }
+
+  @override
+  void visitIndexExpression(IndexExpression node) {
+    _addBoundary(
+      BoundaryType.collection,
+      node.offset,
+      node.toSource(),
+      'Index access',
+    );
+    super.visitIndexExpression(node);
+  }
+
+  @override
+  void visitPropertyAccess(PropertyAccess node) {
+    final propertyName = node.propertyName.name;
+    if (propertyName == 'isEmpty' || propertyName == 'isNotEmpty') {
+      _addBoundary(
+        BoundaryType.collection,
+        node.offset,
+        node.toSource(),
+        'Collection boundary check: $propertyName',
+      );
+    }
+    super.visitPropertyAccess(node);
+  }
+
+  @override
+  void visitAssignmentExpression(AssignmentExpression node) {
+    _addBoundary(
+      BoundaryType.input,
+      node.offset,
+      node.toSource(),
+      'Variable assignment',
+    );
+    super.visitAssignmentExpression(node);
+  }
+
+  @override
+  void visitReturnStatement(ReturnStatement node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'Return statement',
+    );
+    super.visitReturnStatement(node);
+  }
+
+  @override
+  void visitAsExpression(AsExpression node) {
+    _addBoundary(
+      BoundaryType.null_,
+      node.offset,
+      node.toSource(),
+      'Type cast (as)',
+    );
+    super.visitAsExpression(node);
+  }
+
+  @override
+  void visitIsExpression(IsExpression node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'Type check (is)',
+    );
+    super.visitIsExpression(node);
+  }
+
+  @override
+  void visitAssertStatement(AssertStatement node) {
+    _addBoundary(
+      BoundaryType.exception,
+      node.offset,
+      node.toSource(),
+      'Assert statement',
+    );
+    super.visitAssertStatement(node);
+  }
+
+  @override
+  void visitThrowExpression(ThrowExpression node) {
+    _addBoundary(
+      BoundaryType.exception,
+      node.offset,
+      node.toSource(),
+      'Throw expression',
+    );
+    super.visitThrowExpression(node);
+  }
+
+  @override
+  void visitSpreadElement(SpreadElement node) {
+    _addBoundary(
+      BoundaryType.collection,
+      node.offset,
+      node.toSource(),
+      'Spread operator (...)',
+    );
+    super.visitSpreadElement(node);
+  }
+
+  @override
+  void visitCascadeExpression(CascadeExpression node) {
+    _addBoundary(
+      BoundaryType.interaction,
+      node.offset,
+      node.toSource(),
+      'Cascade expression (..)',
+    );
+    super.visitCascadeExpression(node);
+  }
+
+  @override
+  void visitFunctionExpressionInvocation(FunctionExpressionInvocation node) {
+    _addBoundary(
+      BoundaryType.async,
+      node.offset,
+      node.toSource(),
+      'Function invocation',
+    );
+    super.visitFunctionExpressionInvocation(node);
+  }
+
+  @override
+  void visitClassDeclaration(ClassDeclaration node) {
+    // 检测构造函数
+    for (final member in node.members) {
+      if (member is ConstructorDeclaration) {
+        _addBoundary(
+          BoundaryType.lifecycle,
+          member.offset,
+          member.toSource(),
+          'Constructor',
+        );
+      }
+    }
+    super.visitClassDeclaration(node);
+  }
+
+  @override
+  void visitInstanceCreationExpression(InstanceCreationExpression node) {
+    _addBoundary(
+      BoundaryType.lifecycle,
+      node.offset,
+      node.toSource(),
+      'Instance creation',
+    );
+    super.visitInstanceCreationExpression(node);
+  }
+
+  @override
+  void visitListLiteral(ListLiteral node) {
+    final isEmpty = node.elements.isEmpty;
+    _addBoundary(
+      BoundaryType.collection,
+      node.offset,
+      node.toSource(),
+      isEmpty ? 'Empty list literal' : 'Non-empty list literal',
+    );
+    super.visitListLiteral(node);
+  }
+
+  @override
+  void visitSetOrMapLiteral(SetOrMapLiteral node) {
+    final isEmpty = node.elements.isEmpty;
+    _addBoundary(
+      BoundaryType.collection,
+      node.offset,
+      node.toSource(),
+      isEmpty ? 'Empty set/map literal' : 'Non-empty set/map literal',
+    );
+    super.visitSetOrMapLiteral(node);
+  }
+
+  @override
+  void visitVariableDeclaration(VariableDeclaration node) {
+    final isLate = node.parent?.toSource().contains('late') ?? false;
+    final isFinal = node.parent?.toSource().contains('final') ?? false;
+    final isNullable = node.parent?.toSource().contains('?') ?? false;
+
+    if (isLate) {
+      _addBoundary(
+        BoundaryType.null_,
+        node.offset,
+        node.toSource(),
+        'Late variable declaration',
+      );
+    } else if (isNullable) {
+      _addBoundary(
+        BoundaryType.null_,
+        node.offset,
+        node.toSource(),
+        'Nullable variable declaration',
+      );
+    } else if (!isFinal && node.initializer == null) {
+      _addBoundary(
+        BoundaryType.null_,
+        node.offset,
+        node.toSource(),
+        'Uninitialized variable declaration',
+      );
+    }
+    super.visitVariableDeclaration(node);
+  }
+
+  @override
+  void visitFieldDeclaration(FieldDeclaration node) {
+    for (final variable in node.fields.variables) {
+      if (variable.initializer == null) {
+        _addBoundary(
+          BoundaryType.null_,
+          variable.offset,
+          variable.toSource(),
+          'Field without initializer',
+        );
+      }
+    }
+    super.visitFieldDeclaration(node);
+  }
+
+  @override
+  void visitFunctionDeclaration(FunctionDeclaration node) {
+    _addBoundary(
+      BoundaryType.lifecycle,
+      node.offset,
+      node.toSource(),
+      'Top-level function declaration',
+    );
+    super.visitFunctionDeclaration(node);
+  }
+
+  @override
+  void visitEnumDeclaration(EnumDeclaration node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'Enum declaration',
+    );
+    super.visitEnumDeclaration(node);
+  }
+
+  @override
+  void visitExtensionDeclaration(ExtensionDeclaration node) {
+    _addBoundary(
+      BoundaryType.lifecycle,
+      node.offset,
+      node.toSource(),
+      'Extension declaration',
+    );
+    super.visitExtensionDeclaration(node);
+  }
+
+  @override
+  void visitNamedExpression(NamedExpression node) {
+    _addBoundary(
+      BoundaryType.input,
+      node.offset,
+      node.toSource(),
+      'Named argument',
+    );
+    super.visitNamedExpression(node);
+  }
+
+  @override
+  void visitSuperExpression(SuperExpression node) {
+    _addBoundary(
+      BoundaryType.lifecycle,
+      node.offset,
+      node.toSource(),
+      'Super expression',
+    );
+    super.visitSuperExpression(node);
+  }
+
+  @override
+  void visitThisExpression(ThisExpression node) {
+    _addBoundary(
+      BoundaryType.condition,
+      node.offset,
+      node.toSource(),
+      'This expression',
+    );
+    super.visitThisExpression(node);
   }
 
   void _addBoundary(BoundaryType type, int offset, String code, String desc) {
@@ -590,21 +989,7 @@ class TestBoundaryScanner {
   }
 
   Future<void> _collectCoverageData() async {
-    final lcovFile = File('coverage/lcov.info');
-
-    // 检查是否已有有效的 LCOV 文件（1 小时内）
-    if (lcovFile.existsSync()) {
-      final lastModified = await lcovFile.lastModified();
-      final age = DateTime.now().difference(lastModified);
-      if (age.inHours < 1) {
-        stderr.writeln(
-          '  Using existing coverage data (modified ${age.inMinutes} minutes ago)',
-        );
-        return;
-      }
-    }
-
-    // 运行 flutter test --coverage
+    // 运行 flutter test --coverage 以获取最新覆盖率数据
     stderr.writeln('  Running: flutter test --coverage');
     stderr.writeln('  (This may take a few minutes...)');
     final result = await Process.run('flutter', [
@@ -729,6 +1114,11 @@ class ReportGenerator {
       buffer.writeln('## ✅ 已覆盖边界');
       buffer.writeln('');
       buffer.writeln('共 ${result.coveredBoundaries.length} 个边界已被测试覆盖。');
+      buffer.writeln('');
+      var index = 1;
+      for (final boundary in result.coveredBoundaries) {
+        _writeBoundary(buffer, index++, boundary);
+      }
     }
 
     return buffer.toString();

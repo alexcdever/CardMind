@@ -7,36 +7,111 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('inMemory repository supports create and read roundtrip', () async {
-    final writeRepo = LoroCardsWriteRepository.inMemory();
-    final service = CardsCommandService(writeRepo);
+  group('CardsCommandService', () {
+    group('createNote', () {
+      test('inMemory repository supports create and read roundtrip', () async {
+        final writeRepo = LoroCardsWriteRepository.inMemory();
+        final service = CardsCommandService(writeRepo);
 
-    await service.createNote('memory-note', 'M', 'body');
+        await service.createNote('memory-note', 'M', 'body');
 
-    final note = await writeRepo.getById('memory-note');
-    expect(note, isNotNull);
-    expect(note!.title, 'M');
-  });
+        final note = await writeRepo.getById('memory-note');
+        expect(note, isNotNull);
+        expect(note!.title, 'M');
+      });
+    });
 
-  test('delete then restore card toggles deleted flag in write side', () async {
-    final root = Directory.systemTemp.createTempSync('cards-write');
-    final writeRepo = LoroCardsWriteRepository(
-      basePath: '${root.path}/data/loro',
-    );
-    final service = CardsCommandService(writeRepo);
+    group('deleteNote', () {
+      test(
+        'delete then restore card toggles deleted flag in write side',
+        () async {
+          final root = Directory.systemTemp.createTempSync('cards-write');
+          final writeRepo = LoroCardsWriteRepository(
+            basePath: '${root.path}/data/loro',
+          );
+          final service = CardsCommandService(writeRepo);
 
-    await service.createNote('n1', 'A', 'body');
-    await service.deleteNote('n1');
-    await service.restoreNote('n1');
+          await service.createNote('n1', 'A', 'body');
+          await service.deleteNote('n1');
+          await service.restoreNote('n1');
 
-    expect((await writeRepo.getById('n1'))!.deleted, isFalse);
-    expect(
-      File('${root.path}/data/loro/card-note/n1/snapshot').existsSync(),
-      isTrue,
-    );
-    expect(
-      File('${root.path}/data/loro/card-note/n1/update').existsSync(),
-      isTrue,
-    );
+          expect((await writeRepo.getById('n1'))!.deleted, isFalse);
+          expect(
+            File('${root.path}/data/loro/card-note/n1/snapshot').existsSync(),
+            isTrue,
+          );
+          expect(
+            File('${root.path}/data/loro/card-note/n1/update').existsSync(),
+            isTrue,
+          );
+        },
+      );
+
+      test('gracefully handles non-existent card id', () async {
+        final writeRepo = LoroCardsWriteRepository.inMemory();
+        final service = CardsCommandService(writeRepo);
+
+        // Should not throw when deleting non-existent card
+        await service.deleteNote('non-existent-id');
+
+        final note = await writeRepo.getById('non-existent-id');
+        expect(note, isNull);
+      });
+    });
+
+    group('updateNote', () {
+      test('gracefully handles non-existent card id', () async {
+        final writeRepo = LoroCardsWriteRepository.inMemory();
+        final service = CardsCommandService(writeRepo);
+
+        // Should not throw when updating non-existent card
+        await service.updateNote('non-existent-id', 'New Title', 'New Body');
+
+        final note = await writeRepo.getById('non-existent-id');
+        expect(note, isNull);
+      });
+
+      test('updates existing card', () async {
+        final writeRepo = LoroCardsWriteRepository.inMemory();
+        final service = CardsCommandService(writeRepo);
+
+        await service.createNote('test-id', 'Original Title', 'Original Body');
+        await service.updateNote('test-id', 'Updated Title', 'Updated Body');
+
+        final note = await writeRepo.getById('test-id');
+        expect(note, isNotNull);
+        expect(note!.title, 'Updated Title');
+        expect(note.body, 'Updated Body');
+      });
+    });
+
+    group('restoreNote', () {
+      test('gracefully handles non-existent card id', () async {
+        final writeRepo = LoroCardsWriteRepository.inMemory();
+        final service = CardsCommandService(writeRepo);
+
+        // Should not throw when restoring non-existent card
+        await service.restoreNote('non-existent-id');
+
+        final note = await writeRepo.getById('non-existent-id');
+        expect(note, isNull);
+      });
+
+      test('restores previously deleted card', () async {
+        final writeRepo = LoroCardsWriteRepository.inMemory();
+        final service = CardsCommandService(writeRepo);
+
+        await service.createNote('test-id', 'Title', 'Body');
+        await service.deleteNote('test-id');
+
+        var note = await writeRepo.getById('test-id');
+        expect(note!.deleted, isTrue);
+
+        await service.restoreNote('test-id');
+
+        note = await writeRepo.getById('test-id');
+        expect(note!.deleted, isFalse);
+      });
+    });
   });
 }
