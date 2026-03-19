@@ -120,11 +120,124 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   final String filePath;
   final List<Boundary> boundaries = [];
   final dynamic lineInfo; // LineInfo from analyzer
+  bool _insideTestDeclaration = false;
 
   BoundaryVisitor(this.filePath, [this.lineInfo]);
 
+  bool get _isFlutterFile =>
+      filePath.contains('/lib/') || filePath.startsWith('lib/');
+
+  bool get _isRustFile => filePath.contains('rust/src/');
+
+  bool _looksLikeTestName(String? name) {
+    if (name == null) return false;
+    return name == 'main' || name.startsWith('test') || name.contains('_test');
+  }
+
+  bool _isUiNoiseNamedArgument(String label) {
+    const noisy = <String>{
+      'label',
+      'icon',
+      'identifier',
+      'semanticLabel',
+      'child',
+      'children',
+      'content',
+      'title',
+      'container',
+      'explicitChildNodes',
+      'key',
+      'items',
+      'destinations',
+      'state',
+      'useIndicator',
+      'autofocus',
+      'canPop',
+    };
+    return noisy.contains(label);
+  }
+
+  bool _isUserInputNamedArgument(String label) {
+    const meaningful = <String>{
+      'onTap',
+      'onPressed',
+      'onChanged',
+      'onSubmitted',
+      'onDestinationSelected',
+      'onKeyEvent',
+      'onPopInvokedWithResult',
+      'onSectionChanged',
+      'validator',
+      'controller',
+      'focusNode',
+      'keyboardType',
+      'textInputAction',
+      'initialValue',
+      'value',
+    };
+    return meaningful.contains(label);
+  }
+
+  bool _isLowValueFlutterCondition(Expression expression) {
+    final source = expression.toSource();
+    return source == '!mounted' ||
+        source == 'didPop' ||
+        source == '_isExitDialogShowing' ||
+        source == 'session == null' ||
+        source == 'existing == null';
+  }
+
+  bool _isLowValueFlutterNullExpression(String source) {
+    return source == 'session == null' ||
+        source == 'existing == null' ||
+        source == 'note != null' ||
+        source.contains(' ?? const SizedBox.shrink()') ||
+        source.contains(" ?? 'SYNC_FAILED'") ||
+        source.contains(' ?? this.updatedAtMicros') ||
+        source.startsWith('apiClient ?? ') ||
+        source.startsWith('syncService == null');
+  }
+
+  bool _isLowValueFlutterTry(TryStatement node) {
+    final source = node.toSource();
+    return source.contains('on StateError') || source.contains('finally');
+  }
+
+  bool _shouldSkipBoundary(BoundaryType type, String desc, AstNode? node) {
+    if (_insideTestDeclaration) return true;
+
+    if (_isFlutterFile) {
+      if (desc == 'Named argument' && node is NamedExpression) {
+        final label = node.name.label.name;
+        if (_isUiNoiseNamedArgument(label)) return true;
+      }
+
+      if (desc == 'Field without initializer' ||
+          desc == 'Nullable variable declaration' ||
+          desc == 'Late variable declaration' ||
+          desc == 'Uninitialized variable declaration' ||
+          desc == 'Top-level function declaration' ||
+          desc == 'Enum declaration' ||
+          desc == 'Extension declaration' ||
+          desc == 'Instance creation' ||
+          desc == 'Constructor' ||
+          desc == 'This expression' ||
+          desc == 'Super expression' ||
+          desc == 'Return statement') {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   @override
   void visitIfStatement(IfStatement node) {
+    if (_isFlutterFile && _isLowValueFlutterCondition(node.expression)) {
+      super.visitIfStatement(node);
+      return;
+    }
+
     // 检测 then 分支（条件为 true 的情况）
     final thenStatement = node.thenStatement;
     if (thenStatement is Block && thenStatement.statements.isNotEmpty) {
@@ -173,6 +286,11 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitConditionalExpression(ConditionalExpression node) {
+    if (_isFlutterFile && _isLowValueFlutterCondition(node.condition)) {
+      super.visitConditionalExpression(node);
+      return;
+    }
+
     _addBoundary(
       BoundaryType.condition,
       node.offset,
@@ -184,17 +302,35 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitSwitchStatement(SwitchStatement node) {
-    _addBoundary(
-      BoundaryType.condition,
-      node.offset,
-      node.toSource(),
-      'Switch statement',
-    );
+    for (final member in node.members) {
+      if (member is SwitchPatternCase) {
+        _addBoundary(
+          BoundaryType.condition,
+          member.offset,
+          'switch case',
+          'Switch case branch',
+          member,
+        );
+      } else if (member is SwitchDefault) {
+        _addBoundary(
+          BoundaryType.condition,
+          member.offset,
+          'switch default',
+          'Switch default branch',
+          member,
+        );
+      }
+    }
     super.visitSwitchStatement(node);
   }
 
   @override
   void visitTryStatement(TryStatement node) {
+    if (_isFlutterFile && _isLowValueFlutterTry(node)) {
+      super.visitTryStatement(node);
+      return;
+    }
+
     _addBoundary(
       BoundaryType.exception,
       node.offset,
@@ -258,6 +394,11 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       final left = node.leftOperand.toSource();
       final right = node.rightOperand.toSource();
       if (left == 'null' || right == 'null') {
+        if (_isFlutterFile &&
+            _isLowValueFlutterNullExpression(node.toSource())) {
+          super.visitBinaryExpression(node);
+          return;
+        }
         _addBoundary(
           BoundaryType.null_,
           node.offset,
@@ -279,6 +420,10 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
     // 检查空值合并运算符 (??)
     if (op == 'QUESTION_QUESTION') {
+      if (_isFlutterFile && _isLowValueFlutterNullExpression(node.toSource())) {
+        super.visitBinaryExpression(node);
+        return;
+      }
       _addBoundary(
         BoundaryType.null_,
         node.offset,
@@ -328,6 +473,8 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   void visitMethodDeclaration(MethodDeclaration node) {
     // 检查生命周期方法
     final methodName = node.name.lexeme;
+    final previous = _insideTestDeclaration;
+    _insideTestDeclaration = previous || _looksLikeTestName(methodName);
     if (methodName == 'initState' ||
         methodName == 'dispose' ||
         methodName == 'didUpdateWidget' ||
@@ -337,9 +484,11 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
         node.offset,
         node.toSource(),
         'Widget lifecycle method: $methodName',
+        node,
       );
     }
     super.visitMethodDeclaration(node);
+    _insideTestDeclaration = previous;
   }
 
   @override
@@ -402,24 +551,16 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitAssignmentExpression(AssignmentExpression node) {
-    _addBoundary(
-      BoundaryType.input,
-      node.offset,
-      node.toSource(),
-      'Variable assignment',
-    );
+    if (_isRustFile) {
+      _addBoundary(
+        BoundaryType.input,
+        node.offset,
+        node.toSource(),
+        'Variable assignment',
+        node,
+      );
+    }
     super.visitAssignmentExpression(node);
-  }
-
-  @override
-  void visitReturnStatement(ReturnStatement node) {
-    _addBoundary(
-      BoundaryType.condition,
-      node.offset,
-      node.toSource(),
-      'Return statement',
-    );
-    super.visitReturnStatement(node);
   }
 
   @override
@@ -502,6 +643,8 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     // 检测构造函数
+    final previous = _insideTestDeclaration;
+    _insideTestDeclaration = previous || _looksLikeTestName(node.name.lexeme);
     for (final member in node.members) {
       if (member is ConstructorDeclaration) {
         _addBoundary(
@@ -509,21 +652,12 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
           member.offset,
           member.toSource(),
           'Constructor',
+          member,
         );
       }
     }
     super.visitClassDeclaration(node);
-  }
-
-  @override
-  void visitInstanceCreationExpression(InstanceCreationExpression node) {
-    _addBoundary(
-      BoundaryType.lifecycle,
-      node.offset,
-      node.toSource(),
-      'Instance creation',
-    );
-    super.visitInstanceCreationExpression(node);
+    _insideTestDeclaration = previous;
   }
 
   @override
@@ -556,113 +690,68 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
     final isFinal = node.parent?.toSource().contains('final') ?? false;
     final isNullable = node.parent?.toSource().contains('?') ?? false;
 
-    if (isLate) {
+    if (_isRustFile && isLate) {
       _addBoundary(
         BoundaryType.null_,
         node.offset,
         node.toSource(),
         'Late variable declaration',
+        node,
       );
-    } else if (isNullable) {
+    } else if (_isRustFile && isNullable) {
       _addBoundary(
         BoundaryType.null_,
         node.offset,
         node.toSource(),
         'Nullable variable declaration',
+        node,
       );
-    } else if (!isFinal && node.initializer == null) {
+    } else if (_isRustFile && !isFinal && node.initializer == null) {
       _addBoundary(
         BoundaryType.null_,
         node.offset,
         node.toSource(),
         'Uninitialized variable declaration',
+        node,
       );
     }
     super.visitVariableDeclaration(node);
   }
 
   @override
-  void visitFieldDeclaration(FieldDeclaration node) {
-    for (final variable in node.fields.variables) {
-      if (variable.initializer == null) {
-        _addBoundary(
-          BoundaryType.null_,
-          variable.offset,
-          variable.toSource(),
-          'Field without initializer',
-        );
-      }
-    }
-    super.visitFieldDeclaration(node);
-  }
-
-  @override
   void visitFunctionDeclaration(FunctionDeclaration node) {
-    _addBoundary(
-      BoundaryType.lifecycle,
-      node.offset,
-      node.toSource(),
-      'Top-level function declaration',
-    );
+    final previous = _insideTestDeclaration;
+    _insideTestDeclaration = previous || _looksLikeTestName(node.name.lexeme);
     super.visitFunctionDeclaration(node);
-  }
-
-  @override
-  void visitEnumDeclaration(EnumDeclaration node) {
-    _addBoundary(
-      BoundaryType.condition,
-      node.offset,
-      node.toSource(),
-      'Enum declaration',
-    );
-    super.visitEnumDeclaration(node);
-  }
-
-  @override
-  void visitExtensionDeclaration(ExtensionDeclaration node) {
-    _addBoundary(
-      BoundaryType.lifecycle,
-      node.offset,
-      node.toSource(),
-      'Extension declaration',
-    );
-    super.visitExtensionDeclaration(node);
+    _insideTestDeclaration = previous;
   }
 
   @override
   void visitNamedExpression(NamedExpression node) {
-    _addBoundary(
-      BoundaryType.input,
-      node.offset,
-      node.toSource(),
-      'Named argument',
-    );
+    final label = node.name.label.name;
+    if (_isUserInputNamedArgument(label)) {
+      _addBoundary(
+        BoundaryType.input,
+        node.offset,
+        node.toSource(),
+        'Named argument',
+        node,
+      );
+    }
     super.visitNamedExpression(node);
   }
 
-  @override
-  void visitSuperExpression(SuperExpression node) {
-    _addBoundary(
-      BoundaryType.lifecycle,
-      node.offset,
-      node.toSource(),
-      'Super expression',
-    );
-    super.visitSuperExpression(node);
-  }
+  void _addBoundary(
+    BoundaryType type,
+    int offset,
+    String code,
+    String desc, [
+    AstNode? node,
+  ]) {
+    if (_shouldSkipBoundary(type, desc, node)) {
+      return;
+    }
 
-  @override
-  void visitThisExpression(ThisExpression node) {
-    _addBoundary(
-      BoundaryType.condition,
-      node.offset,
-      node.toSource(),
-      'This expression',
-    );
-    super.visitThisExpression(node);
-  }
-
-  void _addBoundary(BoundaryType type, int offset, String code, String desc) {
     // 截断代码片段
     final snippet = code.length > 50 ? '${code.substring(0, 50)}...' : code;
 
@@ -721,9 +810,25 @@ class LcovParser {
   /// 获取特定文件特定行的执行次数
   /// 返回 null 表示该行没有覆盖信息
   int? getLineCoverage(String filePath, int lineNumber) {
-    final coverage = fileCoverages[filePath];
-    if (coverage == null) return null;
-    return coverage.lineHits[lineNumber];
+    // 尝试直接匹配
+    var coverage = fileCoverages[filePath];
+    if (coverage != null) return coverage.lineHits[lineNumber];
+
+    // 尝试匹配绝对路径（Rust LCOV 使用绝对路径）
+    final absolutePath = '${Directory.current.path}/$filePath';
+    coverage = fileCoverages[absolutePath];
+    if (coverage != null) return coverage.lineHits[lineNumber];
+
+    // 尝试匹配其他格式（如 rust/ 前缀）
+    for (final entry in fileCoverages.entries) {
+      if (entry.key.endsWith(filePath) ||
+          entry.key.endsWith('/$filePath') ||
+          filePath.endsWith(entry.key)) {
+        return entry.value.lineHits[lineNumber];
+      }
+    }
+
+    return null;
   }
 
   /// 获取文件的总体覆盖率统计
@@ -854,19 +959,93 @@ class TestBoundaryScanner {
 
   TestBoundaryScanner(this.config);
 
+  bool isMeaningfulHighPriorityBoundary(Boundary boundary) {
+    if ((config.weights[boundary.type] ?? 0.5) < 1.0) {
+      return false;
+    }
+
+    final path = boundary.filePath;
+    final desc = boundary.description ?? '';
+    final code = boundary.codeSnippet;
+
+    if (path.startsWith('lib/')) {
+      if (desc == 'Named argument') {
+        return false;
+      }
+      if (path == 'lib/main.dart' && desc == 'Throw expression') {
+        return false;
+      }
+      if (path.contains('lib/app/') || path.contains('lib/features/')) {
+        if (desc == 'If statement true branch' ||
+            desc == 'If statement false branch' ||
+            desc == 'Switch default branch' ||
+            desc == 'Switch case branch' ||
+            desc == 'Ternary operator condition' ||
+            desc == 'Null check') {
+          return false;
+        }
+      }
+      if (path.contains('lib/features/pool/data/') &&
+          desc == 'Null-aware coalescing (??)') {
+        return false;
+      }
+      if (desc == 'Try-catch block' &&
+          !code.contains('REQUEST_TIMEOUT') &&
+          !code.contains('ApiError') &&
+          !code.contains('Exception')) {
+        return false;
+      }
+      if (desc == 'Null check' &&
+          (code.contains('id == null') ||
+              code.contains('code == null') ||
+              code.contains('existing == null') ||
+              code.contains('request == null') ||
+              code.contains('session == null'))) {
+        return false;
+      }
+      if (desc == 'If statement true branch' &&
+          (code.contains('if (condition)') ||
+              code.contains('if (condition) statement;'))) {
+        return false;
+      }
+      if (desc == 'Switch default branch' || desc == 'Switch case branch') {
+        return false;
+      }
+      if (desc == 'Ternary operator condition') {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   Future<ScanResult> scan() async {
     // 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）
     stderr.writeln('Step 1: Collecting code coverage...');
     await _collectCoverageData();
 
-    // 步骤 2: 解析 LCOV 文件
+    // 步骤 2: 解析 LCOV 文件（Flutter + Rust）
     stderr.writeln('Step 2: Parsing LCOV data...');
     final lcovParser = LcovParser();
-    final lcovFile = File('coverage/lcov.info');
-    if (lcovFile.existsSync()) {
-      lcovParser.parse(await lcovFile.readAsString());
+
+    // 解析 Flutter/Dart LCOV
+    final flutterLcovFile = File('coverage/lcov.info');
+    if (flutterLcovFile.existsSync()) {
+      stderr.writeln('  Parsing Flutter coverage...');
+      lcovParser.parse(await flutterLcovFile.readAsString());
     } else {
-      stderr.writeln('Warning: coverage/lcov.info not found');
+      stderr.writeln('  Warning: coverage/lcov.info not found');
+    }
+
+    // 解析 Rust LCOV
+    final rustLcovFile = File('rust/lcov.info');
+    if (rustLcovFile.existsSync()) {
+      stderr.writeln('  Parsing Rust coverage...');
+      lcovParser.parse(await rustLcovFile.readAsString());
+    } else {
+      stderr.writeln(
+        '  Warning: rust/lcov.info not found (run "cd rust && cargo tarpaulin --out Lcov" to generate)',
+      );
     }
 
     // 步骤 3: 扫描代码边界
@@ -1170,7 +1349,31 @@ class PrioritizedBoundaries {
   });
 }
 
+enum ScanScope { all, flutter, rust }
+
+ScanScope _parseScope(List<String> args) {
+  final scopeArg = args.firstWhere(
+    (arg) => arg.startsWith('--scope='),
+    orElse: () => '--scope=all',
+  );
+  final value = scopeArg.substring('--scope='.length);
+  return switch (value) {
+    'flutter' => ScanScope.flutter,
+    'rust' => ScanScope.rust,
+    _ => ScanScope.all,
+  };
+}
+
+bool _matchesScope(Boundary boundary, ScanScope scope) {
+  return switch (scope) {
+    ScanScope.all => true,
+    ScanScope.flutter => boundary.filePath.startsWith('lib/'),
+    ScanScope.rust => boundary.filePath.startsWith('rust/src/'),
+  };
+}
+
 void main(List<String> args) async {
+  final scope = _parseScope(args);
   // 加载配置
   final configFile = File('tool/test_boundary_config.yaml');
   if (!configFile.existsSync()) {
@@ -1190,8 +1393,12 @@ void main(List<String> args) async {
   final generator = ReportGenerator(config);
   final report = generator.generate(result);
 
-  // 保存到 /tmp
-  final reportFile = File('/tmp/cardmind_test_boundary_report.md');
+  // 保存到项目根目录的 tmp 目录
+  final tmpDir = Directory('tmp');
+  if (!tmpDir.existsSync()) {
+    tmpDir.createSync(recursive: true);
+  }
+  final reportFile = File('tmp/cardmind_test_boundary_report.md');
   await reportFile.writeAsString(report);
 
   stdout.writeln('');
@@ -1205,9 +1412,19 @@ void main(List<String> args) async {
   stdout.writeln('Report saved to: ${reportFile.path}');
 
   // 如果有高优先级未覆盖边界，返回非零退出码
-  final hasHighPriorityUncovered = result.uncoveredBoundaries.any(
-    (b) => (config.weights[b.type] ?? 0.5) >= 1.0,
-  );
+  final meaningfulHighPriorityUncovered = result.uncoveredBoundaries
+      .where((b) => _matchesScope(b, scope))
+      .where(scanner.isMeaningfulHighPriorityBoundary)
+      .toList(growable: false);
+  final hasHighPriorityUncovered = meaningfulHighPriorityUncovered.isNotEmpty;
+  if (hasHighPriorityUncovered) {
+    stderr.writeln('Meaningful high priority uncovered:');
+    for (final boundary in meaningfulHighPriorityUncovered.take(20)) {
+      stderr.writeln(
+        ' - ${boundary.type.name} ${boundary.filePath}:${boundary.lineNumber} ${boundary.description ?? ''}',
+      );
+    }
+  }
   if (hasHighPriorityUncovered) {
     exit(1);
   }

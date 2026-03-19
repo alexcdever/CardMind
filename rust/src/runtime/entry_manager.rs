@@ -64,6 +64,8 @@ impl Default for RuntimeEntryManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
+    use std::thread;
 
     #[test]
     fn entry_manager_reports_default_disabled_entries() {
@@ -84,5 +86,45 @@ mod tests {
         assert!(status.http_active);
         assert!(!status.mcp_active);
         assert!(status.cli_active);
+    }
+
+    #[test]
+    fn entry_manager_apply_config_returns_internal_error_when_poisoned() {
+        let manager = Arc::new(RuntimeEntryManager::new());
+        let cloned = Arc::clone(&manager);
+        let _ = thread::spawn(move || {
+            let _guard = cloned.state.lock().unwrap();
+            panic!("poison mutex");
+        })
+        .join();
+
+        let result = manager.apply_config(true, true, true).unwrap_err();
+
+        match result {
+            crate::models::error::CardMindError::Internal(msg) => {
+                assert!(msg.contains("lock poisoned"));
+            }
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn entry_manager_status_returns_internal_error_when_poisoned() {
+        let manager = Arc::new(RuntimeEntryManager::new());
+        let cloned = Arc::clone(&manager);
+        let _ = thread::spawn(move || {
+            let _guard = cloned.state.lock().unwrap();
+            panic!("poison mutex");
+        })
+        .join();
+
+        let result = manager.status().unwrap_err();
+
+        match result {
+            crate::models::error::CardMindError::Internal(msg) => {
+                assert!(msg.contains("lock poisoned"));
+            }
+            other => panic!("unexpected error: {:?}", other),
+        }
     }
 }

@@ -85,6 +85,36 @@ void main() {
   });
 
   test(
+    'frb pool api client createPool returns owner scoped detail data',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-pool-create-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        final client = FrbPoolApiClient(
+          endpointId: 'endpoint-a',
+          nickname: 'nick-a',
+          os: 'macos',
+        );
+
+        final created = await client.createPool();
+
+        expect(created.poolName, contains('nick-a'));
+        expect(created.isOwner, isTrue);
+        expect(created.currentIdentityLabel, 'endpoint-a');
+        expect(created.memberLabels, contains('endpoint-a'));
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'frb pool api client maps joinByCode to backend result without handle state',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-pool-api-');
@@ -248,6 +278,50 @@ void main() {
         );
 
         expect(detail.currentUserRole, 'member');
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'frb pool api client getPoolDetail maps backend member labels',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-pool-detail-client-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        final pool = await frb.createPool(
+          endpointId: 'owner-endpoint',
+          nickname: 'owner',
+          os: 'macos',
+        );
+        await frb.joinByCode(
+          code: pool.id,
+          endpointId: 'joiner-endpoint',
+          nickname: 'joiner',
+          os: 'ios',
+        );
+        final client = FrbPoolApiClient(
+          endpointId: 'joiner-endpoint',
+          nickname: 'joiner',
+          os: 'ios',
+        );
+
+        final detail = await client.getPoolDetail(pool.id);
+
+        expect(detail.poolName, isNotEmpty);
+        expect(detail.isOwner, isFalse);
+        expect(detail.currentIdentityLabel, 'joiner-endpoint');
+        expect(
+          detail.memberLabels,
+          containsAll(<String>['owner-endpoint', 'joiner-endpoint']),
+        );
       } finally {
         await frb.resetAppConfigForTests();
         await root.delete(recursive: true);

@@ -214,3 +214,29 @@ fn current_timestamp() -> i64 {
         Err(_) => 0,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn create_repo() -> (CardNoteRepository, TempDir) {
+        let temp = TempDir::new().unwrap();
+        let repo = CardNoteRepository::new(temp.path().to_str().unwrap()).unwrap();
+        (repo, temp)
+    }
+
+    #[test]
+    fn get_card_propagates_sqlite_errors() {
+        let (repo, _temp) = create_repo();
+        let conn = rusqlite::Connection::open(&repo.paths.sqlite_path).unwrap();
+        conn.execute("DROP TABLE cards", []).unwrap();
+
+        let result = repo.get_card(&Uuid::new_v4()).unwrap_err();
+
+        match result {
+            CardMindError::Sqlite(_) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+}

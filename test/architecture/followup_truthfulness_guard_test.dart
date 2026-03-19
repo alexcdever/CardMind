@@ -7,7 +7,7 @@ import '../support/source_guard.dart';
 void main() {
   test('frontend must not infer joined pool role from member ordering', () {
     final poolApiClient = readSource('lib/features/pool/pool_api_client.dart');
-    final rustApi = readSource('rust/src/api.rs');
+    final rustApi = readSource('rust/src/api/mod.rs');
 
     expectSourceContains(
       poolApiClient,
@@ -18,13 +18,13 @@ void main() {
     expectSourceOmits(
       rustApi,
       'members.first()\n        .map(member_role)',
-      fileLabel: 'rust/src/api.rs',
+      fileLabel: 'rust/src/api/mod.rs',
       violationLabel: 'derive current role from member ordering',
     );
     expectSourceOmits(
       rustApi,
       'unwrap_or_else(|| "member".to_string())',
-      fileLabel: 'rust/src/api.rs',
+      fileLabel: 'rust/src/api/mod.rs',
       violationLabel: 'fabricate member role on caller lookup miss',
     );
   });

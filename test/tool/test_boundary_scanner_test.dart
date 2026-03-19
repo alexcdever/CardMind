@@ -3,6 +3,9 @@
 // pos: test/tool/test_boundary_scanner_test.dart - 边界扫描器单元测试，修改本文件需同步更新文件头和所属 DIR.md
 // 中文注释: 测试边界扫描器的单元测试
 
+import 'dart:io';
+
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../../tool/test_boundary_scanner.dart';
 
@@ -80,6 +83,266 @@ scanner:
       expect(boundary.lineNumber, equals(10));
       expect(boundary.codeSnippet, equals('if (x)'));
       expect(boundary.description, equals('Test condition'));
+    });
+  });
+
+  group('BoundaryVisitor filtering', () {
+    test('should ignore noisy Flutter named arguments', () {
+      final result = parseString(
+        content: '''
+import 'package:flutter/material.dart';
+
+Widget buildCard() {
+  return TextButton(
+    onPressed: () {},
+    child: const Text('保存'),
+  );
+}
+''',
+      );
+
+      final visitor = BoundaryVisitor('lib/sample.dart', result.lineInfo);
+      result.unit.visitChildren(visitor);
+
+      expect(
+        visitor.boundaries
+            .where((b) => b.description == 'Named argument')
+            .length,
+        equals(1),
+      );
+      expect(visitor.boundaries.single.codeSnippet, contains('onPressed'));
+    });
+
+    test('should ignore Flutter field declarations and return statements', () {
+      final result = parseString(
+        content: '''
+class Sample {
+  final String label;
+
+  const Sample(this.label);
+
+  String text() {
+    return label;
+  }
+}
+''',
+      );
+
+      final visitor = BoundaryVisitor('lib/sample.dart', result.lineInfo);
+      result.unit.visitChildren(visitor);
+
+      expect(
+        visitor.boundaries.where(
+          (b) => b.description == 'Field without initializer',
+        ),
+        isEmpty,
+      );
+      expect(
+        visitor.boundaries.where((b) => b.description == 'Return statement'),
+        isEmpty,
+      );
+    });
+
+    test('should emit switch branches instead of switch statement', () {
+      final result = parseString(
+        content: '''
+enum Section { a, b }
+
+String mapSection(Section section) {
+  switch (section) {
+    case Section.a:
+      return 'a';
+    case Section.b:
+      return 'b';
+  }
+}
+''',
+      );
+
+      final visitor = BoundaryVisitor('lib/sample.dart', result.lineInfo);
+      result.unit.visitChildren(visitor);
+
+      expect(
+        visitor.boundaries
+            .where((b) => b.description == 'Switch case branch')
+            .length,
+        2,
+      );
+      expect(
+        visitor.boundaries.where((b) => b.description == 'Switch statement'),
+        isEmpty,
+      );
+    });
+
+    test('should ignore low value flutter mounted and null guards', () {
+      final result = parseString(
+        content: '''
+import 'package:flutter/widgets.dart';
+
+class SampleState extends State<StatefulWidget> {
+  Object? session;
+
+  void onChanged() {
+    if (!mounted) {
+      return;
+    }
+    if (session == null) {
+      return;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+''',
+      );
+
+      final visitor = BoundaryVisitor('lib/sample.dart', result.lineInfo);
+      result.unit.visitChildren(visitor);
+
+      expect(
+        visitor.boundaries.where(
+          (b) =>
+              b.description == 'If statement true branch' && b.lineNumber == 7,
+        ),
+        isEmpty,
+      );
+      expect(
+        visitor.boundaries.where((b) => b.description == 'Null check').length,
+        lessThanOrEqualTo(1),
+      );
+    });
+
+    test('should ignore low value flutter try and null coalescing noise', () {
+      final result = parseString(
+        content: '''
+import 'package:flutter/widgets.dart';
+
+Future<void> load() async {
+  try {
+    throw StateError('missing');
+  } on StateError {
+    // ignore
+  }
+}
+
+Widget buildFeedback(Widget? child, String? code) {
+  return child ?? const SizedBox.shrink();
+}
+''',
+      );
+
+      final visitor = BoundaryVisitor('lib/sample.dart', result.lineInfo);
+      result.unit.visitChildren(visitor);
+
+      expect(
+        visitor.boundaries.where((b) => b.description == 'Try-catch block'),
+        isEmpty,
+      );
+      expect(
+        visitor.boundaries.where(
+          (b) => b.description == 'Null-aware coalescing (??)',
+        ),
+        isEmpty,
+      );
+    });
+  });
+
+  group('High priority boundary gate', () {
+    test(
+      'should ignore low value flutter high priority boundaries at exit gate',
+      () {
+        final config = ScannerConfig(
+          includePaths: const <String>['lib/'],
+          excludePaths: const <String>[],
+          weights: const <BoundaryType, double>{
+            BoundaryType.condition: 1,
+            BoundaryType.null_: 1,
+            BoundaryType.exception: 1,
+            BoundaryType.input: 1,
+          },
+          ignorePatterns: const <String>[],
+        );
+        final scanner = TestBoundaryScanner(config);
+
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.input,
+              filePath: 'lib/features/pool/pool_page.dart',
+              lineNumber: 1,
+              codeSnippet: 'onPressed: () => Navigator.pop()',
+              description: 'Named argument',
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.condition,
+              filePath: 'lib/app/navigation/app_homepage_page.dart',
+              lineNumber: 2,
+              codeSnippet: 'if (condition) { ... }',
+              description: 'If statement true branch',
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.null_,
+              filePath: 'lib/features/cards/cards_controller.dart',
+              lineNumber: 33,
+              codeSnippet: 'id == null',
+              description: 'Null check',
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.null_,
+              filePath:
+                  'lib/features/pool/data/loro_pool_write_repository.dart',
+              lineNumber: 94,
+              codeSnippet: 'cached ?? const _PoolAggregate()',
+              description: 'Null-aware coalescing (??)',
+            ),
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('should keep rust high priority boundaries meaningful', () {
+      final config = ScannerConfig(
+        includePaths: const <String>['lib/', 'rust/src/'],
+        excludePaths: const <String>[],
+        weights: const <BoundaryType, double>{
+          BoundaryType.condition: 1,
+          BoundaryType.null_: 1,
+          BoundaryType.exception: 1,
+          BoundaryType.input: 1,
+        },
+        ignorePatterns: const <String>[],
+      );
+      final scanner = TestBoundaryScanner(config);
+
+      expect(
+        scanner.isMeaningfulHighPriorityBoundary(
+          Boundary(
+            type: BoundaryType.exception,
+            filePath: 'rust/src/api/mod.rs',
+            lineNumber: 10,
+            codeSnippet: 'map_err(|_| ApiError::new(...))',
+            description: 'Try-catch block',
+          ),
+        ),
+        isTrue,
+      );
     });
   });
 
@@ -179,6 +442,18 @@ end_of_record
       expect(stats.totalLines, equals(3));
       expect(stats.coveredLines, equals(2));
       expect(stats.percentage, closeTo(66.67, 0.01));
+    });
+
+    test('should match absolute Rust paths with relative query path', () {
+      final parser = LcovParser();
+      final cwd = Directory.current.path;
+      parser.parse('''
+SF:$cwd/rust/src/api/mod.rs
+DA:10,3
+end_of_record
+''');
+
+      expect(parser.getLineCoverage('rust/src/api/mod.rs', 10), equals(3));
     });
   });
 

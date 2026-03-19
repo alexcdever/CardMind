@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use syn::spanned::Spanned;
 use syn::visit::Visit;
-use syn::{parse_file, BinOp, Expr, File, Item, Local, ReturnType, Stmt, Type};
+use syn::{parse_file, BinOp, Expr, File, Item, ReturnType, Stmt, Type};
 use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +42,10 @@ impl BoundaryVisitor {
             description: desc.to_string(),
         });
     }
+
+    fn is_test_file(&self) -> bool {
+        self.file_path.contains("/tests/") || self.file_path.ends_with("_test.rs")
+    }
 }
 
 impl<'ast> Visit<'ast> for BoundaryVisitor {
@@ -54,8 +58,10 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
             }
             // match 表达式
             Expr::Match(expr_match) => {
-                let line = expr_match.match_token.span.start().line;
-                self.add_boundary("condition", line, "match", "Match expression");
+                for arm in &expr_match.arms {
+                    let line = arm.span().start().line;
+                    self.add_boundary("condition", line, "match arm", "Match arm branch");
+                }
             }
             // ? 操作符 (Try)
             Expr::Try(expr_try) => {
@@ -89,13 +95,14 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
                             &format!("Potential panic: {}", method_name),
                         );
                     }
-                    "clone" | "to_string" | "to_owned" => {
+                    "clone" | "to_string" | "to_owned" => {}
+                    "map" | "and_then" | "or_else" => {
                         let line = expr_call.method.span().start().line;
                         self.add_boundary(
-                            "lifecycle",
+                            "condition",
                             line,
                             &method_name,
-                            &format!("Ownership operation: {}", method_name),
+                            &format!("Branching combinator: {}", method_name),
                         );
                     }
                     "push" | "pop" | "insert" | "remove" | "extend" | "append" | "clear" => {
@@ -116,7 +123,7 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
                             &format!("Collection access: {}", method_name),
                         );
                     }
-                    "await" | "then" | "map" | "and_then" | "or_else" => {
+                    "await" | "then" => {
                         let line = expr_call.method.span().start().line;
                         self.add_boundary(
                             "async",
@@ -223,15 +230,9 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
                 self.add_boundary("collection", line, "()", "Tuple literal");
             }
             // 字段访问
-            Expr::Field(expr_field) => {
-                let line = expr_field.span().start().line;
-                self.add_boundary("collection", line, ".", "Field access");
-            }
+            Expr::Field(_) => {}
             // 函数调用
-            Expr::Call(expr_call) => {
-                let line = expr_call.span().start().line;
-                self.add_boundary("lifecycle", line, "fn()", "Function call");
-            }
+            Expr::Call(_) => {}
             // 赋值操作
             Expr::Assign(expr_assign) => {
                 let line = expr_assign.span().start().line;
@@ -255,15 +256,9 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
                 }
             }
             // 字面量
-            Expr::Lit(expr_lit) => {
-                let line = expr_lit.span().start().line;
-                self.add_boundary("input", line, "literal", "Literal value");
-            }
+            Expr::Lit(_) => {}
             // 路径表达式 (变量、常量等)
-            Expr::Path(expr_path) => {
-                let line = expr_path.span().start().line;
-                self.add_boundary("input", line, "path", "Path expression");
-            }
+            Expr::Path(_) => {}
             // 数组重复 [x; n]
             Expr::Repeat(expr_repeat) => {
                 let line = expr_repeat.span().start().line;
@@ -305,10 +300,7 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
                 self.add_boundary("null", line, "let", "Let expression");
             }
             // 宏调用
-            Expr::Macro(expr_macro) => {
-                let line = expr_macro.span().start().line;
-                self.add_boundary("lifecycle", line, "macro!", "Macro invocation");
-            }
+            Expr::Macro(_) => {}
             // try 块（实验性特性）
             Expr::TryBlock(expr_try_block) => {
                 let line = expr_try_block.span().start().line;
@@ -320,20 +312,11 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
                 self.add_boundary("lifecycle", line, "&raw", "Raw address-of operator");
             }
             // 推断的 const 泛型参数
-            Expr::Infer(expr_infer) => {
-                let line = expr_infer.span().start().line;
-                self.add_boundary("input", line, "_", "Inferred const generic");
-            }
+            Expr::Infer(_) => {}
             // 分组表达式
-            Expr::Group(expr_group) => {
-                let line = expr_group.span().start().line;
-                self.add_boundary("lifecycle", line, "{}", "Expression grouping");
-            }
+            Expr::Group(_) => {}
             // return 表达式
-            Expr::Return(expr_return) => {
-                let line = expr_return.span().start().line;
-                self.add_boundary("condition", line, "return", "Return expression");
-            }
+            Expr::Return(_) => {}
             // 原始 token 流
             Expr::Verbatim(_) => {
                 // 无法获取准确 span，跳过
@@ -351,84 +334,16 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
         match stmt {
             Stmt::Local(local) => {
                 // 变量绑定
-                let line = local.span().start().line;
-                self.add_boundary("input", line, "let", "Variable binding");
+                if let Some(_init) = &local.init {
+                    let line = local.span().start().line;
+                    self.add_boundary("input", line, "let =", "Variable binding with initializer");
+                }
             }
             Stmt::Item(item) => {
-                // 处理内嵌的 item
-                match item {
-                    Item::Fn(item_fn) => {
-                        let line = item_fn.sig.fn_token.span.start().line;
-                        self.add_boundary("lifecycle", line, "fn", "Function definition");
-                    }
-                    Item::Struct(item_struct) => {
-                        let line = item_struct.span().start().line;
-                        self.add_boundary("lifecycle", line, "struct", "Struct definition");
-                    }
-                    Item::Enum(item_enum) => {
-                        let line = item_enum.span().start().line;
-                        self.add_boundary("lifecycle", line, "enum", "Enum definition");
-                    }
-                    Item::Impl(item_impl) => {
-                        let line = item_impl.span().start().line;
-                        self.add_boundary("lifecycle", line, "impl", "Implementation block");
-                    }
-                    Item::Trait(item_trait) => {
-                        let line = item_trait.span().start().line;
-                        self.add_boundary("lifecycle", line, "trait", "Trait definition");
-                    }
-                    Item::Const(item_const) => {
-                        let line = item_const.span().start().line;
-                        self.add_boundary("lifecycle", line, "const", "Constant definition");
-                    }
-                    Item::Static(item_static) => {
-                        let line = item_static.span().start().line;
-                        self.add_boundary("lifecycle", line, "static", "Static definition");
-                    }
-                    Item::Type(item_type) => {
-                        let line = item_type.span().start().line;
-                        self.add_boundary("lifecycle", line, "type", "Type alias");
-                    }
-                    Item::Mod(item_mod) => {
-                        let line = item_mod.span().start().line;
-                        self.add_boundary("lifecycle", line, "mod", "Module definition");
-                    }
-                    Item::Use(item_use) => {
-                        let line = item_use.span().start().line;
-                        self.add_boundary("lifecycle", line, "use", "Use declaration");
-                    }
-                    Item::ExternCrate(item_extern) => {
-                        let line = item_extern.span().start().line;
-                        self.add_boundary("lifecycle", line, "extern crate", "External crate");
-                    }
-                    Item::Macro(item_macro) => {
-                        let line = item_macro.span().start().line;
-                        self.add_boundary("lifecycle", line, "macro_rules!", "Macro definition");
-                    }
-                    Item::ForeignMod(item_foreign) => {
-                        let line = item_foreign.span().start().line;
-                        self.add_boundary("lifecycle", line, "extern {}", "Foreign module block");
-                    }
-                    Item::TraitAlias(item_trait_alias) => {
-                        let line = item_trait_alias.span().start().line;
-                        self.add_boundary("lifecycle", line, "trait", "Trait alias");
-                    }
-                    Item::Union(item_union) => {
-                        let line = item_union.span().start().line;
-                        self.add_boundary("lifecycle", line, "union", "Union definition");
-                    }
-                    Item::Verbatim(_) => {
-                        // 无法获取准确 span，跳过
-                    }
-                    _ => {}
-                }
+                let _ = item;
             }
             Stmt::Expr(expr, _) => {
-                // 表达式语句
-                if matches!(expr, Expr::Return(_)) {
-                    let line = expr.span().start().line;
-                    self.add_boundary("condition", line, "return", "Return statement");
-                }
+                let _ = expr;
             }
             _ => {}
         }
@@ -460,6 +375,9 @@ fn scan_file(file_path: &str) -> Vec<Boundary> {
     };
 
     let mut visitor = BoundaryVisitor::new(file_path.to_string());
+    if visitor.is_test_file() {
+        return Vec::new();
+    }
     visitor.visit_file(&syntax_tree);
 
     // 额外扫描：检查函数参数中的 Result/Option 类型

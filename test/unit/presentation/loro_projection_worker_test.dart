@@ -8,11 +8,30 @@ import 'package:cardmind/features/cards/projection/cards_projection_handler.dart
 import 'package:cardmind/features/pool/data/pool_read_repository.dart';
 import 'package:cardmind/features/pool/domain/pool_entity.dart';
 import 'package:cardmind/features/pool/projection/pool_projection_handler.dart';
+import 'package:cardmind/features/shared/data/app_database.dart';
 import 'package:cardmind/features/shared/projection/loro_projection_event.dart';
 import 'package:cardmind/features/shared/projection/loro_projection_worker.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('worker_withoutHandlers_isNoop', () async {
+    const worker = LoroProjectionWorker();
+
+    await worker.handle(
+      LoroProjectionEvent.cardUpsert(
+        const CardNote(
+          id: 'noop',
+          title: 'A',
+          body: 'B',
+          deleted: false,
+          updatedAtMicros: 1,
+        ),
+      ),
+    );
+
+    expect(true, isTrue);
+  });
+
   test('on card-updated event, projection worker upserts sqlite row', () async {
     final readRepo = _FakeCardsReadRepository();
     final worker = LoroProjectionWorker(
@@ -52,6 +71,39 @@ void main() {
     );
 
     expect(readRepo.upsertedPoolIds, contains('pool-1'));
+  });
+
+  test('forDatabase_handlesCardAndPoolEvents', () async {
+    final database = AppDatabase();
+    final worker = LoroProjectionWorker.forDatabase(database);
+
+    await worker.handle(
+      LoroProjectionEvent.cardUpsert(
+        const CardNote(
+          id: 'card-db',
+          title: 'Title',
+          body: 'Body',
+          deleted: false,
+          updatedAtMicros: 2,
+        ),
+      ),
+    );
+    await worker.handle(
+      LoroProjectionEvent.poolUpsert(
+        const PoolEntity(
+          poolId: 'pool-db',
+          name: 'Pool',
+          dissolved: false,
+          updatedAtMicros: 3,
+        ),
+      ),
+    );
+
+    final cards = await database.searchCards('Title');
+    final pools = await database.listPools(query: 'Pool');
+
+    expect(cards.single.id, 'card-db');
+    expect(pools.single.poolId, 'pool-db');
   });
 }
 

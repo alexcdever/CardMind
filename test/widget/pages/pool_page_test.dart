@@ -242,6 +242,27 @@ void main() {
     expect(find.text('稍后重试'), findsOneWidget);
   });
 
+  testWidgets('closing scan dialog without code keeps unjoined state', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('扫码加入'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    expect(find.text('创建池'), findsOneWidget);
+    expect(find.text('扫码加入'), findsOneWidget);
+  });
+
   testWidgets('join flow shows visible pending feedback before result', (
     tester,
   ) async {
@@ -387,6 +408,59 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('创建池'), findsOneWidget);
+  });
+
+  testWidgets('editing pool info with blank name keeps original value', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: PoolPage(state: PoolState.joined())),
+    );
+
+    await tester.tap(find.text('编辑池信息'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '   ');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('默认数据池'), findsOneWidget);
+  });
+
+  testWidgets('dismissing edit dialog keeps existing pool name', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: PoolPage(state: PoolState.joined())),
+    );
+
+    await tester.tap(find.text('编辑池信息'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('默认数据池'), findsOneWidget);
+  });
+
+  testWidgets('degraded sync feedback hides when status becomes healthy', (
+    tester,
+  ) async {
+    final controller = PoolController(
+      initialState: const PoolState.joined(),
+      initialSyncStatus: const SyncStatus.degraded('REQUEST_TIMEOUT'),
+      apiClient: _FakePoolApiClient(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(state: controller.state, controller: controller),
+      ),
+    );
+    expect(find.text('同步状态降级：可继续本地操作'), findsOneWidget);
+
+    controller.setSyncStatus(const SyncStatus.connected());
+    await tester.pumpAndSettle();
+
+    expect(find.text('同步状态降级：可继续本地操作'), findsNothing);
   });
 
   testWidgets(

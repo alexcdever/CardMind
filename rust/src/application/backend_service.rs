@@ -111,4 +111,20 @@ mod tests {
         assert!(config.cli_enabled);
         assert!(runtime.cli_active);
     }
+
+    #[test]
+    fn backend_service_map_err_maps_io_to_io_error() {
+        let err = map_err(CardMindError::Io("disk failed".to_string()));
+
+        assert_eq!(err.code, ApiErrorCode::IoError.as_str());
+        assert!(err.message.contains("disk failed"));
+    }
+
+    #[test]
+    fn backend_service_map_err_maps_non_io_to_internal() {
+        let err = map_err(CardMindError::NotFound("missing".to_string()));
+
+        assert_eq!(err.code, ApiErrorCode::Internal.as_str());
+        assert_eq!(err.message, "internal error");
+    }
 }

@@ -107,12 +107,13 @@ Future<int> _runFlutterQuality({
   log('[flutter:test-boundary-scan] scanning...');
   final boundaryScan = await runProcess('dart', [
     'tool/test_boundary_scanner.dart',
+    '--scope=flutter',
   ]);
   if (boundaryScan.exitCode != 0) {
     logError(
       '[flutter:test-boundary-scan] High priority boundaries not covered',
     );
-    log('See report: /tmp/cardmind_test_boundary_report.md');
+    log('See report: tmp/cardmind_test_boundary_report.md');
     // 不返回错误，只作为警告
   } else {
     log('[flutter:test-boundary-scan] done');
@@ -153,12 +154,51 @@ Future<int> _runRustQuality({
   }
   log('[rust:clippy] done');
 
-  final test = await runProcess('cargo', ['test'], workingDirectory: rustDir);
+  final test = await runProcess('cargo', [
+    'test',
+    '--',
+    '--test-threads=1',
+  ], workingDirectory: rustDir);
   if (test.exitCode != 0) {
     logError(_processError(test));
     return test.exitCode;
   }
   log('[rust:test] done');
+
+  // 生成 Rust LCOV 覆盖率报告
+  log('[rust:coverage] generating LCOV report...');
+  final coverage = await runProcess('cargo', [
+    'tarpaulin',
+    '--out',
+    'Lcov',
+    '--output-dir',
+    '.',
+    '--exclude-files',
+    'src/frb_generated.rs',
+    '--exclude-files',
+    'tool/**',
+  ], workingDirectory: rustDir);
+  if (coverage.exitCode != 0) {
+    logError(
+      '[rust:coverage] failed to generate LCOV (cargo-tarpaulin may not be installed)',
+    );
+    // 不返回错误，因为这只是覆盖率数据
+  } else {
+    log('[rust:coverage] LCOV report generated: rust/lcov.info');
+  }
+
+  log('[rust:test-boundary-scan] scanning...');
+  final boundaryScan = await runProcess('dart', [
+    'tool/test_boundary_scanner.dart',
+    '--scope=rust',
+  ]);
+  if (boundaryScan.exitCode != 0) {
+    logError('[rust:test-boundary-scan] High priority boundaries not covered');
+    log('See report: tmp/cardmind_test_boundary_report.md');
+  } else {
+    log('[rust:test-boundary-scan] done');
+  }
+
   return 0;
 }
 

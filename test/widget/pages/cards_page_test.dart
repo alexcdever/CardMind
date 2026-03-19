@@ -534,6 +534,86 @@ void main() {
   );
 
   testWidgets(
+    'desktop leave guard save branch persists draft before switching note',
+    (tester) async {
+      final harness = _buildInspectableTestCardsController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1200, 900)),
+            child: CardsPage(controller: harness.controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Saved First');
+      await tester.enterText(_editorBodyField(), 'Saved Body');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+      await _pumpUntilFound(tester, find.text('Saved First'));
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Unsaved Draft');
+      await tester.enterText(_editorBodyField(), 'Unsaved Body');
+
+      await tester.tap(find.text('Saved First').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存并离开'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('离开编辑？'), findsNothing);
+      expect(_tileForTitle('Unsaved Draft'), findsOneWidget);
+      expect(harness.apiClient.createCalls, greaterThanOrEqualTo(2));
+    },
+  );
+
+  testWidgets(
+    'desktop leave guard discard branch switches selection without saving draft',
+    (tester) async {
+      final harness = _buildInspectableTestCardsController();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1200, 900)),
+            child: CardsPage(controller: harness.controller),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Stable Note');
+      await tester.enterText(_editorBodyField(), 'Stable Body');
+      await tester.tap(find.text('保存'));
+      await tester.pumpAndSettle();
+      await _pumpUntilFound(tester, find.text('Stable Note'));
+
+      final createCallsBeforeDraft = harness.apiClient.createCalls;
+
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.enterText(_editorTitleField(), 'Draft To Drop');
+
+      await tester.tap(find.text('Stable Note').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('放弃更改'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('离开编辑？'), findsNothing);
+      expect(find.widgetWithText(TextField, 'Stable Note'), findsOneWidget);
+      expect(harness.apiClient.createCalls, createCallsBeforeDraft);
+      expect(_tileForTitle('Draft To Drop'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'saving an existing selected card should call update not create',
     (tester) async {
       final harness = _buildInspectableTestCardsController();

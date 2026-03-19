@@ -26,12 +26,56 @@ test/
 
 ### 1.2 Rust 测试 (`rust/tests/`)
 
+**重要：Cargo 测试发现机制**
+
+Cargo 只自动发现 `tests/` 根目录下的 `.rs` 文件。为了支持子目录分类，需要创建入口文件：
+
 ```
 rust/tests/
-├── unit/              # 单元测试：纯函数和结构体
-├── integration/       # 集成测试：模块间协作
-├── contract/          # 契约测试：FFI 接口契约
-└── performance/       # 性能测试：基准测试
+├── unit.rs                    # 单元测试入口（必需）
+├── integration.rs             # 集成测试入口（必需）
+├── contract.rs                # 契约测试入口（必需）
+├── unit/                      # 单元测试子目录
+│   ├── store/                 # 存储层测试
+│   │   ├── card_store_business_test.rs
+│   │   └── pool_store_business_test.rs
+│   ├── models/                # 模型层测试
+│   │   └── api_error_test.rs
+│   └── net/                   # 网络层测试
+│       └── codec_test.rs
+├── integration/               # 集成测试子目录
+│   └── ...
+├── contract/                  # 契约测试子目录
+│   └── ...
+└── performance/               # 性能测试子目录
+    └── ...
+```
+
+**入口文件示例 (`tests/unit.rs`)：**
+
+```rust
+// 使用 #[path] 属性指定子目录测试文件位置
+#[path = "unit/store/card_store_business_test.rs"]
+mod card_store_business_test;
+
+#[path = "unit/models/api_error_test.rs"]
+mod api_error_test;
+
+#[path = "unit/net/codec_test.rs"]
+mod codec_test;
+```
+
+**运行测试：**
+
+```bash
+# 运行所有单元测试
+cargo test --test unit
+
+# 运行特定模块的测试
+cargo test --test unit card_store
+
+# 运行所有测试
+cargo test
 ```
 
 ## 2. 文件命名规范
@@ -51,11 +95,17 @@ rust/tests/
 
 **格式**: `{被测对象}_{测试类型}_test.rs`
 
+**子目录组织**:
+- 入口文件: `tests/unit.rs`, `tests/integration.rs`, `tests/contract.rs`
+- 子目录测试: `tests/unit/store/card_store_business_test.rs`
+
 **示例**:
-- `card_model_test.rs` - 模型单元测试
-- `pool_network_flow_test.rs` - 流程集成测试
-- `sync_api_contract_test.rs` - API 契约测试
-- `card_store_benchmark_test.rs` - 性能测试
+- `tests/unit.rs` - 单元测试入口
+- `tests/unit/store/card_store_business_test.rs` - 存储层业务逻辑测试
+- `tests/unit/models/card_model_test.rs` - 模型单元测试
+- `tests/integration/pool_network_flow_test.rs` - 流程集成测试
+- `tests/contract/sync_api_contract_test.rs` - API 契约测试
+- `tests/performance/card_store_benchmark_test.rs` - 性能测试
 
 ## 3. 测试函数命名
 
@@ -207,73 +257,57 @@ void main() {
 
 ### 7.3 Rust 单元测试模板
 
-```rust
-// rust/tests/unit/card_model_test.rs
-use cardmind::domain::Card;
+**入口文件 (`tests/unit.rs`):**
 
-#[cfg(test)]
-mod card_model_tests {
-    use super::*;
+```rust
+// tests/unit.rs
+// 单元测试入口，引入所有子目录测试
+
+#[path = "unit/store/card_store_business_test.rs"]
+mod card_store_business_test;
+
+#[path = "unit/models/card_model_test.rs"]
+mod card_model_test;
+```
+
+**子目录测试文件 (`tests/unit/store/card_store_business_test.rs`):**
+
+```rust
+// tests/unit/store/card_store_business_test.rs
+// input: CardNoteRepository API 与业务场景边界条件。
+// output: 卡片存储业务逻辑的全覆盖测试。
+// pos: CardNoteRepository 单元测试文件。
+
+use cardmind_rust::models::error::CardMindError;
+use cardmind_rust::store::card_store::CardNoteRepository;
+use tempfile::TempDir;
+use uuid::Uuid;
+
+fn setup_repo() -> (CardNoteRepository, TempDir) {
+    let temp_dir = TempDir::new().unwrap();
+    let repo = CardNoteRepository::new(temp_dir.path().to_str().unwrap()).unwrap();
+    (repo, temp_dir)
+}
+
+#[test]
+fn create_card_with_valid_data_returns_card() {
+    let (repo, _temp) = setup_repo();
     
-    // 使用 setup 函数初始化测试数据
-    fn create_test_card() -> Card {
-        Card::new(
-            "test-id".to_string(),
-            "Test Title".to_string(),
-            "Test Content".to_string(),
-        )
-    }
+    let card = repo.create_card("Test Title", "Test Content").unwrap();
     
-    #[test]
-    fn new_with_valid_data_creates_card() {
-        // Arrange & Act
-        let card = create_test_card();
-        
-        // Assert
-        assert_eq!(card.title(), "Test Title");
-        assert_eq!(card.content(), "Test Content");
-        assert!(!card.is_deleted());
-    }
+    assert_eq!(card.title, "Test Title");
+    assert_eq!(card.content, "Test Content");
+    assert!(!card.deleted);
+}
+
+#[test]
+fn get_card_with_nonexistent_id_returns_not_found() {
+    let (repo, _temp) = setup_repo();
+    let fake_id = Uuid::new_v4();
     
-    #[test]
-    fn update_title_with_empty_string_returns_error() {
-        // Arrange
-        let mut card = create_test_card();
-        
-        // Act
-        let result = card.update_title("".to_string());
-        
-        // Assert
-        assert!(result.is_err());
-        assert_eq!(card.title(), "Test Title"); // 未改变
-    }
+    let result = repo.get_card(&fake_id);
     
-    #[test]
-    fn delete_marked_card_as_deleted() {
-        // Arrange
-        let mut card = create_test_card();
-        assert!(!card.is_deleted());
-        
-        // Act
-        card.delete();
-        
-        // Assert
-        assert!(card.is_deleted());
-    }
-    
-    #[test]
-    fn restore_given_deleted_card_restores_it() {
-        // Arrange
-        let mut card = create_test_card();
-        card.delete();
-        assert!(card.is_deleted());
-        
-        // Act
-        card.restore();
-        
-        // Assert
-        assert!(!card.is_deleted());
-    }
+    assert!(matches!(result, Err(CardMindError::NotFound(_))));
 }
 ```
 

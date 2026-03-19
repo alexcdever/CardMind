@@ -121,6 +121,36 @@ void main() {
   });
 
   test(
+    'frb card api client create and detail roundtrip through backend',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-card-create-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+
+      try {
+        final client = FrbCardApiClient();
+        final id = await client.createCardNote(
+          id: 'ignored-local-id',
+          title: 'created-title',
+          body: 'created-body',
+        );
+        final detail = await client.getCardDetail(id: id);
+
+        expect(id, isNotEmpty);
+        expect(detail.title, 'created-title');
+        expect(detail.body, 'created-body');
+        expect(detail.deleted, isFalse);
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'frb card api client supports delete and restore without handle state',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-card-api-');
@@ -186,6 +216,34 @@ void main() {
       }
     },
   );
+
+  test('frb card api client updateCardNote persists changes', () async {
+    final root = await Directory.systemTemp.createTemp('cardmind-card-update-');
+    await _ensureRustLibInitialized();
+    await frb.resetAppConfigForTests();
+    await frb.initAppConfig(appDataDir: root.path);
+
+    try {
+      final created = await frb.createCardNote(
+        title: 'before',
+        content: 'body',
+      );
+      final client = FrbCardApiClient();
+
+      await client.updateCardNote(
+        id: created.id,
+        title: 'after',
+        body: 'changed',
+      );
+      final detail = await client.getCardDetail(id: created.id);
+
+      expect(detail.title, 'after');
+      expect(detail.body, 'changed');
+    } finally {
+      await frb.resetAppConfigForTests();
+      await root.delete(recursive: true);
+    }
+  });
 
   test(
     'cards controller should create through api client then reload query',

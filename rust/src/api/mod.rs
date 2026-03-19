@@ -1,11 +1,10 @@
 // input: 来自 FRB/上层的应用配置、网络句柄与字符串参数，以及 store/network 操作返回的领域错误。
 // output: 应用配置结果、网络初始化与关闭结果、后端用例 DTO、同步状态 DTO 与统一 ApiError 映射。
-// pos: Rust API 门面模块，负责应用级运行配置、网络句柄生命周期管理、后端用例编排与跨层错误转换。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: Rust API 门面模块，负责应用级运行配置、网络句柄生命周期管理、后端用例编排与跨层错误转换。修改本文件需同步更新所属 DIR.md。
 // 中文注释：本文件承接对外 API、组装稳定 DTO 并做错误码映射。
 use crate::models::api_error::{ApiError, ApiErrorCode};
-use crate::models::card::Card;
 use crate::models::error::CardMindError;
-use crate::models::pool::{Pool, PoolMember};
+use crate::models::pool::PoolMember;
 use crate::net::endpoint::{PoolEndpoint, build_endpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
@@ -18,6 +17,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use uuid::Uuid;
 
+/// 纯函数工具模块
+pub mod utils;
+
+// 从 utils 模块重新导出常用函数
+pub use utils::{
+    current_member_for_endpoint, current_member_role_for_endpoint, map_err, member_role,
+    parse_uuid, pool_name, to_card_note_dto, to_pool_detail_dto, to_pool_dto,
+};
+
 static APP_CONFIG_DIR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 static POOL_NETWORK_SEQ: AtomicU64 = AtomicU64::new(1);
 static POOL_NETWORKS: OnceLock<Mutex<HashMap<u64, PoolNetwork>>> = OnceLock::new();
@@ -28,21 +36,6 @@ fn pool_network_map() -> &'static Mutex<HashMap<u64, PoolNetwork>> {
 
 fn app_config_dir() -> &'static Mutex<Option<String>> {
     APP_CONFIG_DIR.get_or_init(|| Mutex::new(None))
-}
-
-fn map_err(err: CardMindError) -> ApiError {
-    match err {
-        CardMindError::InvalidArgument(msg) => ApiError::new(ApiErrorCode::InvalidArgument, &msg),
-        CardMindError::NotFound(msg) => ApiError::new(ApiErrorCode::NotFound, &msg),
-        CardMindError::ProjectionNotConverged { retry_action, .. } => {
-            ApiError::new(ApiErrorCode::ProjectionNotConverged, &retry_action)
-        }
-        CardMindError::NotImplemented(msg) => ApiError::new(ApiErrorCode::NotImplemented, &msg),
-        CardMindError::NotMember(msg) => ApiError::new(ApiErrorCode::NotMember, &msg),
-        CardMindError::Io(msg) => ApiError::new(ApiErrorCode::IoError, &msg),
-        CardMindError::Sqlite(msg) => ApiError::new(ApiErrorCode::SqliteError, &msg),
-        _ => ApiError::new(ApiErrorCode::Internal, "internal error"),
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,11 +183,6 @@ fn combine_sync_result(
     })
 }
 
-fn parse_uuid(raw: &str, field: &str) -> Result<Uuid, ApiError> {
-    Uuid::parse_str(raw)
-        .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, &format!("invalid {field}")))
-}
-
 fn configured_app_data_dir() -> Result<String, ApiError> {
     let app_config = app_config_dir()
         .lock()
@@ -234,75 +222,6 @@ fn parse_pool_id(pool_id: &str) -> Result<Uuid, ApiError> {
 
 fn parse_card_id(card_id: &str) -> Result<Uuid, ApiError> {
     parse_uuid(card_id, "card_id")
-}
-
-fn pool_name(pool: &Pool) -> String {
-    pool.members
-        .first()
-        .map(|member| format!("{}'s pool", member.nickname))
-        .unwrap_or_else(|| "pool".to_string())
-}
-
-fn member_role(member: &PoolMember) -> String {
-    if member.is_admin {
-        "admin".to_string()
-    } else {
-        "member".to_string()
-    }
-}
-
-fn current_member_for_endpoint<'a>(pool: &'a Pool, endpoint_id: &str) -> Option<&'a PoolMember> {
-    pool.members
-        .iter()
-        .find(|member| member.endpoint_id == endpoint_id)
-}
-
-fn current_member_role_for_endpoint(pool: &Pool, endpoint_id: &str) -> Result<String, ApiError> {
-    current_member_for_endpoint(pool, endpoint_id)
-        .map(member_role)
-        .ok_or_else(|| ApiError::new(ApiErrorCode::NotMember, "caller is not a pool member"))
-}
-
-fn to_pool_dto(pool: &Pool, endpoint_id: &str) -> Result<PoolDto, ApiError> {
-    Ok(PoolDto {
-        id: pool.pool_id.to_string(),
-        name: pool_name(pool),
-        is_dissolved: false,
-        current_user_role: current_member_role_for_endpoint(pool, endpoint_id)?,
-        member_count: pool.members.len(),
-    })
-}
-
-fn to_pool_detail_dto(pool: &Pool, endpoint_id: &str) -> Result<PoolDetailDto, ApiError> {
-    Ok(PoolDetailDto {
-        id: pool.pool_id.to_string(),
-        name: pool_name(pool),
-        is_dissolved: false,
-        current_user_role: current_member_role_for_endpoint(pool, endpoint_id)?,
-        member_count: pool.members.len(),
-        note_ids: pool.card_ids.iter().map(Uuid::to_string).collect(),
-        members: pool
-            .members
-            .iter()
-            .map(|member| PoolMemberDto {
-                endpoint_id: member.endpoint_id.clone(),
-                nickname: member.nickname.clone(),
-                os: member.os.clone(),
-                role: member_role(member),
-            })
-            .collect(),
-    })
-}
-
-fn to_card_note_dto(card: &Card) -> CardNoteDto {
-    CardNoteDto {
-        id: card.id.to_string(),
-        title: card.title.clone(),
-        content: card.content.clone(),
-        created_at: card.created_at,
-        updated_at: card.updated_at,
-        deleted: card.deleted,
-    }
 }
 
 /// 初始化应用级配置

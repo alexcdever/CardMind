@@ -83,6 +83,20 @@ void main() {
         expect(note!.title, 'Updated Title');
         expect(note.body, 'Updated Body');
       });
+
+      test('update preserves deleted flag on existing card', () async {
+        final writeRepo = LoroCardsWriteRepository.inMemory();
+        final service = CardsCommandService(writeRepo);
+
+        await service.createNote('test-id', 'Original Title', 'Original Body');
+        await service.deleteNote('test-id');
+        await service.updateNote('test-id', 'Updated Title', 'Updated Body');
+
+        final note = await writeRepo.getById('test-id');
+        expect(note, isNotNull);
+        expect(note!.deleted, isTrue);
+        expect(note.title, 'Updated Title');
+      });
     });
 
     group('restoreNote', () {

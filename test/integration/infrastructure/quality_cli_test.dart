@@ -37,7 +37,10 @@ void main() {
       expect(calls[1].executable, 'flutter');
       expect(calls[1].arguments, ['test', '--coverage']);
       expect(calls[2].executable, 'dart');
-      expect(calls[2].arguments, ['tool/test_boundary_scanner.dart']);
+      expect(calls[2].arguments, [
+        'tool/test_boundary_scanner.dart',
+        '--scope=flutter',
+      ]);
       expect(calls[0].workingDirectory, isNull);
       expect(calls[1].workingDirectory, isNull);
       expect(calls[2].workingDirectory, isNull);
@@ -50,7 +53,7 @@ void main() {
       'rust',
     ], runProcess: _fakeRunner(calls));
     expect(exit, 0);
-    expect(calls.length, 3);
+    expect(calls.length, 5);
     expect(calls[0].executable, 'cargo');
     expect(calls[0].arguments, ['fmt', '--all', '--', '--check']);
     expect(calls[1].executable, 'cargo');
@@ -63,10 +66,29 @@ void main() {
       'warnings',
     ]);
     expect(calls[2].executable, 'cargo');
-    expect(calls[2].arguments, ['test']);
+    expect(calls[2].arguments, ['test', '--', '--test-threads=1']);
+    expect(calls[3].executable, 'cargo');
+    expect(calls[3].arguments, [
+      'tarpaulin',
+      '--out',
+      'Lcov',
+      '--output-dir',
+      '.',
+      '--exclude-files',
+      'src/frb_generated.rs',
+      '--exclude-files',
+      'tool/**',
+    ]);
+    expect(calls[4].executable, 'dart');
+    expect(calls[4].arguments, [
+      'tool/test_boundary_scanner.dart',
+      '--scope=rust',
+    ]);
     expect(calls[0].workingDirectory, endsWith('/rust'));
     expect(calls[1].workingDirectory, endsWith('/rust'));
     expect(calls[2].workingDirectory, endsWith('/rust'));
+    expect(calls[3].workingDirectory, endsWith('/rust'));
+    expect(calls[4].workingDirectory, isNull);
   });
 
   test('all runs flutter checks then rust checks in order', () async {
@@ -75,14 +97,17 @@ void main() {
       'all',
     ], runProcess: _fakeRunner(calls));
     expect(exit, 0);
-    expect(calls.length, 6);
+    expect(calls.length, 8);
     // Flutter checks
     expect(calls[0].executable, 'flutter');
     expect(calls[0].arguments, ['analyze']);
     expect(calls[1].executable, 'flutter');
     expect(calls[1].arguments, ['test', '--coverage']);
     expect(calls[2].executable, 'dart');
-    expect(calls[2].arguments, ['tool/test_boundary_scanner.dart']);
+    expect(calls[2].arguments, [
+      'tool/test_boundary_scanner.dart',
+      '--scope=flutter',
+    ]);
     // Rust checks
     expect(calls[3].executable, 'cargo');
     expect(calls[3].arguments, ['fmt', '--all', '--', '--check']);
@@ -96,7 +121,24 @@ void main() {
       'warnings',
     ]);
     expect(calls[5].executable, 'cargo');
-    expect(calls[5].arguments, ['test']);
+    expect(calls[5].arguments, ['test', '--', '--test-threads=1']);
+    expect(calls[6].executable, 'cargo');
+    expect(calls[6].arguments, [
+      'tarpaulin',
+      '--out',
+      'Lcov',
+      '--output-dir',
+      '.',
+      '--exclude-files',
+      'src/frb_generated.rs',
+      '--exclude-files',
+      'tool/**',
+    ]);
+    expect(calls[7].executable, 'dart');
+    expect(calls[7].arguments, [
+      'tool/test_boundary_scanner.dart',
+      '--scope=rust',
+    ]);
   });
 
   test('returns command exit code on flutter analyze failure', () async {

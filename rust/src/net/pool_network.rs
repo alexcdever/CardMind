@@ -545,3 +545,163 @@ fn parse_bool_value(value: &LoroValue, key: &str) -> Result<bool, CardMindError>
         _ => Err(CardMindError::InvalidArgument(format!("{} invalid", key))),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::net::sync::{export_snapshot, export_updates};
+    use crate::store::card_store::CardNoteRepository;
+    use crate::store::loro_store::{load_loro_doc, note_doc_path, pool_doc_path};
+    use crate::store::pool_store::PoolStore;
+    use tempfile::TempDir;
+
+    #[test]
+    fn parse_members_accepts_null() {
+        let members = parse_members(LoroValue::Null).unwrap();
+        assert!(members.is_empty());
+    }
+
+    #[test]
+    fn parse_members_rejects_non_list() {
+        let err = parse_members(LoroValue::I64(1)).unwrap_err();
+        match err {
+            CardMindError::InvalidArgument(msg) => assert!(msg.contains("members invalid")),
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parse_members_rejects_invalid_member_length() {
+        let value = LoroValue::List(
+            vec![LoroValue::List(
+                vec![LoroValue::String("only-one".into())].into(),
+            )]
+            .into(),
+        );
+
+        let err = parse_members(value).unwrap_err();
+
+        match err {
+            CardMindError::InvalidArgument(msg) => {
+                assert!(msg.contains("member length invalid"))
+            }
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parse_card_ids_accepts_null() {
+        let ids = parse_card_ids(LoroValue::Null).unwrap();
+        assert!(ids.is_empty());
+    }
+
+    #[test]
+    fn parse_card_ids_rejects_non_list() {
+        let err = parse_card_ids(LoroValue::Bool(true)).unwrap_err();
+        match err {
+            CardMindError::InvalidArgument(msg) => assert!(msg.contains("card_ids invalid")),
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn load_pool_if_exists_returns_none_for_missing_pool() {
+        let temp_dir = TempDir::new().unwrap();
+        let pool_id = Uuid::new_v4();
+
+        let pool = load_pool_if_exists(temp_dir.path().to_str().unwrap(), &pool_id).unwrap();
+
+        assert!(pool.is_none());
+    }
+
+    #[test]
+    fn apply_pool_snapshot_persists_pool_to_sqlite() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+        let source_base = source_dir.path().to_str().unwrap();
+        let target_base = target_dir.path().to_str().unwrap();
+        let source_store = PoolStore::new(source_base).unwrap();
+        let pool = source_store.create_pool("ep1", "alice", "macOS").unwrap();
+        let snapshot = build_pool_snapshot(source_base, &pool.pool_id).unwrap();
+
+        let applied = apply_pool_snapshot(target_base, &pool.pool_id, &snapshot).unwrap();
+        let target_store = PoolStore::new(target_base).unwrap();
+        let persisted = target_store.get_pool(&pool.pool_id).unwrap();
+
+        assert_eq!(applied.pool_id, pool.pool_id);
+        assert_eq!(persisted.members[0].nickname, "alice");
+    }
+
+    #[test]
+    fn apply_card_snapshot_persists_card_to_sqlite() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+        let source_base = source_dir.path().to_str().unwrap();
+        let target_base = target_dir.path().to_str().unwrap();
+        let source_repo = CardNoteRepository::new(source_base).unwrap();
+        let card = source_repo.create_card("hello", "world").unwrap();
+        let snapshot = build_card_snapshot(source_base, &card.id).unwrap();
+
+        let applied = apply_card_snapshot(target_base, &card.id, &snapshot).unwrap();
+        let target_repo = CardNoteRepository::new(target_base).unwrap();
+        let persisted = target_repo.get_card(&card.id).unwrap();
+
+        assert_eq!(applied.id, card.id);
+        assert_eq!(persisted.title, "hello");
+        assert_eq!(persisted.content, "world");
+    }
+
+    #[test]
+    fn apply_pool_updates_imports_incremental_changes() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+        let source_base = source_dir.path().to_str().unwrap();
+        let target_base = target_dir.path().to_str().unwrap();
+        let source_store = PoolStore::new(source_base).unwrap();
+        let pool = source_store.create_pool("ep1", "alice", "macOS").unwrap();
+        let card_id = Uuid::new_v4();
+
+        let source_paths = DataPaths::new(source_base).unwrap();
+        let source_doc_path = source_paths.base_path.join(pool_doc_path(&pool.pool_id));
+        let initial_doc = load_loro_doc(&source_doc_path).unwrap();
+        let initial_snapshot = export_snapshot(&initial_doc).unwrap();
+        apply_pool_snapshot(target_base, &pool.pool_id, &initial_snapshot).unwrap();
+
+        source_store
+            .attach_note_references(&pool.pool_id, vec![card_id])
+            .unwrap();
+        let updated_doc = load_loro_doc(&source_doc_path).unwrap();
+        let updates = export_updates(&updated_doc, &initial_doc.oplog_vv()).unwrap();
+
+        let updated = apply_pool_updates(target_base, &pool.pool_id, &updates).unwrap();
+
+        assert_eq!(updated.card_ids, vec![card_id]);
+    }
+
+    #[test]
+    fn apply_card_updates_imports_incremental_changes() {
+        let source_dir = TempDir::new().unwrap();
+        let target_dir = TempDir::new().unwrap();
+        let source_base = source_dir.path().to_str().unwrap();
+        let target_base = target_dir.path().to_str().unwrap();
+        let source_repo = CardNoteRepository::new(source_base).unwrap();
+        let card = source_repo.create_card("before", "content").unwrap();
+
+        let source_paths = DataPaths::new(source_base).unwrap();
+        let source_doc_path = source_paths.base_path.join(note_doc_path(&card.id));
+        let initial_doc = load_loro_doc(&source_doc_path).unwrap();
+        let initial_snapshot = export_snapshot(&initial_doc).unwrap();
+        apply_card_snapshot(target_base, &card.id, &initial_snapshot).unwrap();
+
+        source_repo
+            .update_card(&card.id, "after", "changed")
+            .unwrap();
+        let updated_doc = load_loro_doc(&source_doc_path).unwrap();
+        let updates = export_updates(&updated_doc, &initial_doc.oplog_vv()).unwrap();
+
+        let updated = apply_card_updates(target_base, &card.id, &updates).unwrap();
+
+        assert_eq!(updated.title, "after");
+        assert_eq!(updated.content, "changed");
+    }
+}

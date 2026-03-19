@@ -14,6 +14,7 @@ import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeCardApiClient implements CardApiClient {
@@ -191,6 +192,22 @@ void main() {
     expect(controller.section, AppSection.cards);
   });
 
+  testWidgets('setting same section does not notify homepage listeners twice', (
+    tester,
+  ) async {
+    final controller = AppHomepageController();
+    var notifications = 0;
+    controller.addListener(() {
+      notifications += 1;
+    });
+
+    controller.setSection(AppSection.cards);
+    controller.setSection(AppSection.pool);
+
+    expect(notifications, 1);
+    expect(controller.section, AppSection.pool);
+  });
+
   testWidgets('after pool joined, user remains in pool domain', (tester) async {
     final controller = AppHomepageController(initialSection: AppSection.pool);
     await tester.pumpWidget(
@@ -250,5 +267,46 @@ void main() {
 
     expect(controller.section, AppSection.cards);
     expect(find.text('是否退出应用？'), findsNothing);
+  });
+
+  testWidgets('selecting 是 requests platform exit', (tester) async {
+    final controller = AppHomepageController(initialSection: AppSection.cards);
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(home: AppHomepagePage(controller: controller)),
+    );
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('是'));
+    await tester.pumpAndSettle();
+
+    expect(calls.any((call) => call.method == 'SystemNavigator.pop'), isTrue);
+  });
+
+  testWidgets('homepage renders settings section when selected', (
+    tester,
+  ) async {
+    final controller = AppHomepageController(
+      initialSection: AppSection.settings,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: AppHomepagePage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppHomepagePage), findsOneWidget);
+    expect(find.text('设置'), findsWidgets);
   });
 }

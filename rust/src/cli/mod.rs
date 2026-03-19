@@ -40,21 +40,13 @@ impl DebugConsole {
         match cmd {
             "get_backend_config" => {
                 let config = self.service.get_backend_config()?;
-                serde_json::to_string(&config).map_err(|e| {
-                    ApiError::new(
-                        crate::models::api_error::ApiErrorCode::Internal,
-                        &format!("Serialization error: {}", e),
-                    )
-                })
+                Ok(serde_json::to_string(&config)
+                    .expect("backend config DTO serialization should not fail"))
             }
             "get_runtime_entry_status" => {
                 let status = self.service.get_runtime_entry_status()?;
-                serde_json::to_string(&status).map_err(|e| {
-                    ApiError::new(
-                        crate::models::api_error::ApiErrorCode::Internal,
-                        &format!("Serialization error: {}", e),
-                    )
-                })
+                Ok(serde_json::to_string(&status)
+                    .expect("runtime status DTO serialization should not fail"))
             }
             _ => Err(ApiError::new(
                 crate::models::api_error::ApiErrorCode::InvalidArgument,
@@ -80,5 +72,63 @@ mod tests {
             .unwrap();
 
         assert!(result.contains("http_enabled"));
+    }
+
+    #[test]
+    fn cli_debug_console_returns_runtime_status() {
+        let dir = TempDir::new().unwrap();
+        let service = Arc::new(BackendService::new(dir.path().to_str().unwrap()).unwrap());
+        let console = DebugConsole::new(service);
+
+        let result = console
+            .run_json(r#"{"command":"get_runtime_entry_status"}"#)
+            .unwrap();
+
+        assert!(result.contains("http_active"));
+    }
+
+    #[test]
+    fn cli_debug_console_rejects_invalid_json() {
+        let dir = TempDir::new().unwrap();
+        let service = Arc::new(BackendService::new(dir.path().to_str().unwrap()).unwrap());
+        let console = DebugConsole::new(service);
+
+        let err = console.run_json("not-json").unwrap_err();
+
+        assert_eq!(
+            err.code,
+            crate::models::api_error::ApiErrorCode::InvalidArgument.as_str()
+        );
+        assert!(err.message.contains("Invalid JSON"));
+    }
+
+    #[test]
+    fn cli_debug_console_rejects_missing_command() {
+        let dir = TempDir::new().unwrap();
+        let service = Arc::new(BackendService::new(dir.path().to_str().unwrap()).unwrap());
+        let console = DebugConsole::new(service);
+
+        let err = console.run_json(r#"{"foo":"bar"}"#).unwrap_err();
+
+        assert_eq!(
+            err.code,
+            crate::models::api_error::ApiErrorCode::InvalidArgument.as_str()
+        );
+        assert!(err.message.contains("Missing 'command' field"));
+    }
+
+    #[test]
+    fn cli_debug_console_rejects_unknown_command() {
+        let dir = TempDir::new().unwrap();
+        let service = Arc::new(BackendService::new(dir.path().to_str().unwrap()).unwrap());
+        let console = DebugConsole::new(service);
+
+        let err = console.run_json(r#"{"command":"unknown"}"#).unwrap_err();
+
+        assert_eq!(
+            err.code,
+            crate::models::api_error::ApiErrorCode::InvalidArgument.as_str()
+        );
+        assert!(err.message.contains("Unknown command"));
     }
 }

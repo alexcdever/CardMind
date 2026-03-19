@@ -462,3 +462,86 @@ impl SqliteStore {
         Ok(ids)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn create_store() -> (SqliteStore, TempDir, std::path::PathBuf) {
+        let temp = TempDir::new().unwrap();
+        let db = temp.path().join("test.db");
+        let store = SqliteStore::new(&db).unwrap();
+        (store, temp, db)
+    }
+
+    #[test]
+    fn map_card_returns_sqlite_error_for_invalid_uuid_text() {
+        let (_store, _temp, db) = create_store();
+        let conn = Connection::open(&db).unwrap();
+        conn.execute(
+            "INSERT INTO cards (id, title, content, created_at, updated_at, deleted) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params!["not-a-uuid", "t", "c", 1_i64, 1_i64, 0_i64],
+        )
+        .unwrap();
+        let mut stmt = conn
+            .prepare("SELECT id, title, content, created_at, updated_at, deleted FROM cards")
+            .unwrap();
+        let err = stmt
+            .query_row([], SqliteStore::map_card)
+            .expect_err("expected invalid uuid conversion failure");
+
+        match err {
+            rusqlite::Error::FromSqlConversionFailure(..) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn get_pool_returns_sqlite_error_for_invalid_pool_uuid_text() {
+        let (_store, _temp, db) = create_store();
+        let conn = Connection::open(&db).unwrap();
+        conn.execute("INSERT INTO pools (pool_id) VALUES ('bad-pool-id')", [])
+            .unwrap();
+        let store = SqliteStore::new(&db).unwrap();
+
+        let result = store.get_pool(&Uuid::new_v4()).unwrap_err();
+
+        match result {
+            CardMindError::Sqlite(_) | CardMindError::NotFound(_) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn list_pool_ids_returns_sqlite_error_for_invalid_uuid_text() {
+        let (_store, _temp, db) = create_store();
+        let conn = Connection::open(&db).unwrap();
+        conn.execute("INSERT INTO pools (pool_id) VALUES ('bad-pool-id')", [])
+            .unwrap();
+        let store = SqliteStore::new(&db).unwrap();
+
+        let result = store.list_pool_ids().unwrap_err();
+
+        match result {
+            CardMindError::Sqlite(_) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+
+    #[test]
+    fn get_projection_retry_action_returns_sqlite_error_when_table_missing() {
+        let (store, _temp, _db) = create_store();
+        store
+            .conn
+            .execute("DROP TABLE projection_failures", [])
+            .unwrap();
+
+        let result = store.get_projection_retry_action("card", "id").unwrap_err();
+
+        match result {
+            CardMindError::Sqlite(_) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+}

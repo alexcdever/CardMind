@@ -8,6 +8,7 @@ scanner:
     - lib/bridge_generated/
     - test/
     - rust/tests/
+    - rust/src/frb_generated.rs
   
   # 边界类型权重（影响优先级）
   weights:
@@ -23,5 +24,6 @@ scanner:
   # 忽略模式
   ignore_patterns:
     - "test/"
+    - "frb_generated.rs$"
     - ".g.dart$"
     - ".freezed.dart$"

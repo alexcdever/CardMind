@@ -248,3 +248,29 @@ fn merge_note_references(existing: &[Uuid], incoming: Vec<Uuid>) -> Vec<Uuid> {
     }
     card_set.into_iter().collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    fn create_store() -> (PoolStore, TempDir) {
+        let temp = TempDir::new().unwrap();
+        let store = PoolStore::new(temp.path().to_str().unwrap()).unwrap();
+        (store, temp)
+    }
+
+    #[test]
+    fn get_pool_propagates_sqlite_errors() {
+        let (store, _temp) = create_store();
+        let conn = rusqlite::Connection::open(&store.paths.sqlite_path).unwrap();
+        conn.execute("DROP TABLE pools", []).unwrap();
+
+        let result = store.get_pool(&Uuid::new_v4()).unwrap_err();
+
+        match result {
+            CardMindError::Sqlite(_) => {}
+            other => panic!("unexpected error: {:?}", other),
+        }
+    }
+}

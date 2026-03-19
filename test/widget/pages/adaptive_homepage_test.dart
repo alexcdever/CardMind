@@ -3,6 +3,7 @@
 // pos: 覆盖自适应导航断点行为，防止端形态切换退化。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
+import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -126,6 +127,36 @@ void main() {
 
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     expect(rail.useIndicator, isTrue);
+  });
+
+  testWidgets('desktop homepage rail tap changes section through callback', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+
+    await tester.tap(find.byKey(const ValueKey(SemanticIds.navPool)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('pool-marker'), findsOneWidget);
+  });
+
+  testWidgets('desktop homepage ignores key up events', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit2);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit2);
+    await tester.pumpAndSettle();
+
+    expect(find.text('pool-marker'), findsOneWidget);
+  });
+
+  testWidgets('desktop homepage ignores unsupported key input', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
+    await tester.pumpAndSettle();
+
+    expect(find.text('cards-marker'), findsOneWidget);
   });
 
   testWidgets(

@@ -7,31 +7,31 @@ import '../support/source_guard.dart';
 
 void main() {
   test('pool role contracts must not fall back to first-member ordering', () {
-    final rustApi = readSource('rust/src/api.rs');
+    final rustApi = readSource('rust/src/api/utils.rs');
 
     expectSourceContains(
       rustApi,
       'ApiErrorCode::NotMember',
-      fileLabel: 'rust/src/api.rs',
+      fileLabel: 'rust/src/api/utils.rs',
       requirementLabel:
           'return stable not-member error for caller-scoped lookup miss',
     );
     expectSourceOmits(
       rustApi,
       'unwrap_or_else(|| "member".to_string())',
-      fileLabel: 'rust/src/api.rs',
+      fileLabel: 'rust/src/api/utils.rs',
       violationLabel: 'fall back to fabricated member role on lookup miss',
     );
     expectSourceOmits(
       rustApi,
       'to_pool_detail_dto(&pool, fallback_endpoint_id(&pool))',
-      fileLabel: 'rust/src/api.rs',
+      fileLabel: 'rust/src/api/utils.rs',
       violationLabel: 'compute pool detail role from first member ordering',
     );
     expectSourceOmits(
       rustApi,
       'to_pool_dto(pool, fallback_endpoint_id(pool))',
-      fileLabel: 'rust/src/api.rs',
+      fileLabel: 'rust/src/api/utils.rs',
       violationLabel: 'compute pool list role from first member ordering',
     );
   });

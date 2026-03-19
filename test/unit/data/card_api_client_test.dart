@@ -2,7 +2,6 @@
 // output: 验证边界条件处理正确（抛出异常或正常执行）。
 // pos: 覆盖卡片 API 客户端边界条件，防止空值导致未定义行为。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/cards/card_api_client.dart';
-import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/cards/data/cards_read_repository.dart';
 import 'package:cardmind/features/cards/data/cards_write_repository.dart';
 import 'package:cardmind/features/cards/domain/card_note.dart';
@@ -42,7 +41,6 @@ class _FakeCardsWriteRepository implements CardsWriteRepository {
     _notes[note.id] = note;
   }
 
-  @override
   Future<void> delete(String id) async {
     _notes.remove(id);
   }
