@@ -7,7 +7,7 @@
 
 <!-- 列出当前正在进行的任务，最多3个 -->
 
-1. 无（测试覆盖率提升已完成）
+1. 无（Rust / Flutter 测试覆盖率与质量门禁已完成）
 
 ## 待办事项
 
@@ -27,6 +27,8 @@
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-03-18 | 边界扫描器按语言范围 gate | Flutter 与 Rust 质量门禁应分别校验，避免互相阻塞 |
+| 2026-03-18 | 停止跟踪 boundary scanner 构建产物 | 避免 target/debug 生成物持续污染工作区 |
 | 2026-03-18 | Test Boundary Guardian 系统已合并到 main | 功能开发完成，质量检查通过 |
 | 2026-03-18 | 新增网络层单元测试 54 个 | endpoint.rs 和 pool_network.rs 纯函数全覆盖 |
 
@@ -37,7 +39,8 @@
 - [测试边界扫描器规格](docs/standards/testing.md)
 - [质量检查工具](tool/quality.dart)
 - [测试边界扫描器](tool/test_boundary_scanner.dart)
+- [今日工作日志](docs/memory/2026-03-18.md)
 
 ---
 
-*最后更新：2026-03-18*
+*最后更新：2026-03-19*
