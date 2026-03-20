@@ -3,6 +3,7 @@
 新增或更新规格文件需同步登记。
 
 _template.md - 模板 - 领域规格统一模板（AI 友好导读 + 语言无关行为约束结构）
+2024-03-18-test-boundary-guard-design.md - 已迁移 - 设计文档已迁移至 `docs/plans/2024-03-18-test-boundary-guard-design.md`
 architecture.md - 功能规格 - 项目级架构约束（前后端分层、读写分离、真源与查询链路、多入口后端约束）
 card-note.md - 功能规格 - 卡片笔记领域行为契约（生命周期、可见性、搜索排序、池关联与验收）
 shared-domain-contract.md - 功能规格 - 分域共享行为契约总则（术语、一致性、权限、错误与验收）
