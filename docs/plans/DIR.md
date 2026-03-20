@@ -1,9 +1,6 @@
-input: docs/plans 目录结构变更与计划索引维护需求
-output: 计划文档目录索引与职责说明
-pos: 实现计划与设计草案目录说明入口
 新增或删除计划文件后请同步更新下方索引。
-计划文档目录，记录设计草案与实现计划。
-新增或更新计划文件需同步登记。
+计划文档目录，记录设计草案、实现计划与相关审计/清单文档。
+索引按“一文件一行”维护；过程状态、测试策略等说明应写入对应计划正文。
 
 2026-02-18-cardmind-rebuild-design.md - 设计草案 - CardMind 重启总体设计（已移除密钥字段并补充同步状态）
 2026-02-18-rebuild-foundation-plan.md - 实现计划 - 重启基础实现步骤
@@ -19,14 +16,10 @@ pos: 实现计划与设计草案目录说明入口
 2026-02-26-iroh-migration-implementation-plan.md - 实现计划 - iroh 成员字段调整实施
 2026-02-26-pool-network-sync-design.md - 设计草案 - 数据池组网与同步设计
 2026-02-26-pool-network-sync-implementation-plan.md - 实现计划 - 数据池组网与同步实施
-2026-02-27-mobile-desktop-ui-interaction-design.md - 设计草案 - 移动端与桌面端 UI 交互设计
-2026-02-27-mobile-desktop-ui-interaction-design.md - 测试基线 - 明确 UI/交互入口必须有对应 Widget 行为测试与空交互守卫
-2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 实现计划 - 移动端与桌面端 UI 交互实施
-2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 测试策略 - 增加交互守卫测试并将空回调禁止纳入验收
-2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 实施状态 - 按 Task 1-9 执行并采用逐任务 TDD+提交
+2026-02-27-mobile-desktop-ui-interaction-design.md - 设计草案 - 移动端与桌面端 UI 交互设计（含对应 Widget 行为测试与空交互守卫基线）
+2026-02-27-mobile-desktop-ui-interaction-implementation-plan.md - 实现计划 - 移动端与桌面端 UI 交互实施（含交互守卫测试验收约束）
 2026-02-27-build-cli-design.md - 设计草案 - 多平台构建 CLI 设计
 2026-02-27-build-cli-implementation-plan.md - 实现计划 - CardMind 多平台构建 CLI 实施步骤
-2026-02-27-build-cli-implementation-plan.md - 实施状态 - 按 Task 1-6 执行并采用逐任务 TDD+汇报
 2026-02-27-ui-interaction-governance-implementation-plan.md - 实现计划 - UI 交互治理文档与守卫测试实施
 2026-02-28-ui-interaction-full-alignment-design.md - 设计草案 - S1-S5 一次性全量对齐设计（含 S2/S3 CRUD 与 S4 Tab 可达定义）
 2026-02-28-ui-interaction-full-alignment-implementation-plan.md - 实现计划 - S1-S5 全量对齐任务化实施与门禁验证步骤
@@ -76,4 +69,6 @@ pos: 实现计划与设计草案目录说明入口
 2026-03-19-cardmind-product-audit-design.md - 设计草案 - CardMind 产品级深度审计设计（产品/体验/工程/AI 适配）
 2026-03-19-cardmind-product-audit.md - 审计文档 - CardMind 产品深度审计（产品/体验/工程/AI 适配结论）
 2026-03-19-product-truth-source-implementation-plan.md - 实现计划 - 产品级真相源文档与公开入口文档对齐
+
+历史迁移：
 2024-03-18-test-boundary-guard-design.md - 设计草案 - 测试边界守护者设计文档（历史文档，从 specs 迁移）
