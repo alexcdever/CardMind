@@ -54,3 +54,6 @@ rust/lcov.info
 
 # Test boundary scanner reports
 tmp/
+
+# Local agent private context
+AGENT.local.md
