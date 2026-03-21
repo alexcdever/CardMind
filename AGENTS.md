@@ -54,7 +54,7 @@
 
 ### 跨项目一致性
 
-如需在多个项目间共享规则，可在 `~/.agents/AGENTS.md` 创建全局 AGENTS.md，包含：
+如需在多个项目间共享规则，可在 OpenCode 当前默认读取的全局位置 `~/.config/opencode/AGENTS.md` 创建全局 AGENTS.md，包含：
 - 文档格式规范
 - 命名规则
 - 通用的工作流命令定义
@@ -211,4 +211,3 @@ git commit -m "描述"
 - 测试边界：遵循 `docs/standards/testing.md`，确保关键边界被覆盖
 - Git/PR：遵循 `docs/standards/git-and-pr.md`
 - FRB 配置在 `flutter_rust_bridge.yaml`，生成后检查绑定文件同步
-

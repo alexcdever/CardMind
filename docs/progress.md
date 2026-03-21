@@ -7,19 +7,21 @@
 
 <!-- 列出当前正在进行的任务，最多3个 -->
 
-1. 无（Rust / Flutter 测试覆盖率与质量门禁已完成）
+1. 基于 `docs/specs/product.md` 规划下一阶段高优先级工作 - 进度 0%
 
 ## 待办事项
 
 <!-- 待处理但尚未开始的任务 -->
 
-- [ ] 待定
+- [ ] 规划“用户旅程真相源”或等价产品体验真相源文档
+- [ ] 判断设置页应收缩入口还是补实最小可用内容
+- [ ] 基于新的产品级真相源继续整理后续 roadmap / plans
 
 ## 阻塞/卡点
 
 <!-- 当前遇到的阻碍 -->
 
-- 无
+- 当前无工程阻塞；后续主要是产品规划优先级判断
 
 ## 最近的决策
 
@@ -31,16 +33,19 @@
 | 2026-03-18 | 停止跟踪 boundary scanner 构建产物 | 避免 target/debug 生成物持续污染工作区 |
 | 2026-03-18 | Test Boundary Guardian 系统已合并到 main | 功能开发完成，质量检查通过 |
 | 2026-03-18 | 新增网络层单元测试 54 个 | endpoint.rs 和 pool_network.rs 纯函数全覆盖 |
+| 2026-03-20 | 新增 `docs/specs/product.md` 作为产品级真相源 | 统一终极目标、阶段目标、目标用户和能力边界，减少 AI 与文档漂移 |
+| 2026-03-20 | 私人背景转入本地 `AGENT.local.md` 而非公开仓库 | 信息对 AI 有价值，但不适合开源暴露 |
+| 2026-03-20 | 产品相关 design/plan 文档继续统一放在 `docs/plans/` | 遵循当前仓库的文档分层规范 |
 
 ## 相关文档链接
 
 <!-- 链接到相关的 specs 和 plans -->
 
-- [测试边界扫描器规格](docs/standards/testing.md)
-- [质量检查工具](tool/quality.dart)
-- [测试边界扫描器](tool/test_boundary_scanner.dart)
-- [今日工作日志](docs/memory/2026-03-18.md)
+- [产品级真相源规格](docs/specs/product.md)
+- [产品深度审计](docs/plans/2026-03-19-cardmind-product-audit.md)
+- [产品真相源实施计划](docs/plans/2026-03-19-product-truth-source-implementation-plan.md)
+- [今日工作日志](docs/memory/2026-03-20.md)
 
 ---
 
-*最后更新：2026-03-19*
+*最后更新：2026-03-20*
