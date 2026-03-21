@@ -32,7 +32,9 @@
 2026-02-28-rs-dart-file-header-truthfulness-design.md - 设计草案 - 全仓 rs/dart 文件头真实性清查设计
 2026-02-28-rs-dart-file-header-truthfulness-filelist.md - 清查清单 - 文件头治理基线证据与最终交付列表
 2026-02-28-rs-dart-file-header-truthfulness-implementation-plan.md - 实现计划 - 文件头真实性清查任务化实施步骤
+2026-02-28-rust-flutter-chinese-comments-design.md - 设计草案 - Rust/Flutter 中文注释补齐设计
 2026-02-28-rust-flutter-chinese-comments-implementation-plan.md - 实现计划 - Rust/Flutter 中文注释补齐任务化实施步骤
+2026-02-28-rust-flutter-chinese-comments-report.md - 审计报告 - Rust/Flutter 中文注释补齐结果与验收记录
 2026-03-01-onboarding-back-navigation-unification-design.md - 设计草案 - 引导与全局返回策略统一（创建/加入路径返回 + 主壳双段返回 + 退出确认）
 2026-03-01-onboarding-back-navigation-unification-implementation-plan.md - 实现计划 - 引导与全局返回策略统一任务化落地（主壳双段返回 + 退出确认）
 2026-03-02-pool-spec-redesign-design.md - 设计草案 - 数据池规格重构为语言无关行为契约
@@ -47,6 +49,8 @@
 2026-03-04-desktop-pool-to-cards-navigation-implementation-plan.md - 实现计划 - 桌面端池成功态到卡片列表导航闭环任务化实施
 2026-03-05-remove-onboarding-direct-cards-entry-design.md - 设计草案 - 移除引导页并改为卡片列表直达，池入口收敛到 Pool tab
 2026-03-05-remove-onboarding-direct-cards-entry-implementation-plan.md - 实现计划 - 移除引导页并改为卡片列表直达的任务化实施步骤
+2026-03-05-ui-interaction-full-s1-s5-design.md - 设计草案 - UI 交互全量 S1-S5 对齐设计
+2026-03-05-ui-interaction-full-s1-s5-implementation-plan.md - 实现计划 - UI 交互全量 S1-S5 对齐实施
 2026-03-05-doc-governance-refactor-design.md - 设计草案 - 文档治理重构（移除门禁脚本/测试，规则内化为标准）
 2026-03-05-doc-governance-refactor-implementation-plan.md - 实现计划 - 文档治理重构实施（移除自动门禁并迁移为标准驱动）
 2026-03-06-flutter-rust-deps-conservative-upgrade-design.md - 设计草案 - Flutter 与 Rust 依赖保守升级设计（仅补丁/次版本）
@@ -64,12 +68,18 @@
 2026-03-15-flutter-rust-followup-truthfulness-implementation-plan.md - 实现计划 - Flutter/Rust 真实性修补实施（身份真实、save 分流、sync 真动作、query 后端化）
 2026-03-15-flutter-rust-final-contract-cleanup-design.md - 设计草案 - Flutter/Rust 最终契约收尾设计（caller-scoped role 与 query 语义彻底后端化）
 2026-03-15-flutter-rust-final-contract-cleanup-implementation-plan.md - 实现计划 - Flutter/Rust 最终契约收尾实施（caller-scoped role 与默认 query 语义彻底后端化）
+2026-03-16-rust-multi-entry-backend-design.md - 设计草案 - Rust 多入口后端设计
+2026-03-16-rust-multi-entry-backend-implementation-plan.md - 实现计划 - Rust 多入口后端任务化实施
 2026-03-09-ui-redesign-design.md - 设计草案 - UI 重设计（信息架构、主页语义、跨端布局与视觉约束）
 2026-03-09-ui-redesign-implementation-plan.md - 实现计划 - UI 重设计任务化实施（spec-first、主页命名、局部同步反馈、本地 TDD）
 2026-03-19-cardmind-product-audit-design.md - 设计草案 - CardMind 产品级深度审计设计（产品/体验/工程/AI 适配）
 2026-03-19-cardmind-product-audit.md - 审计文档 - CardMind 产品深度审计（产品/体验/工程/AI 适配结论）
 2026-03-19-product-truth-source-implementation-plan.md - 实现计划 - 产品级真相源文档与公开入口文档对齐
+2026-03-20-user-journeys-truth-source-design.md - 设计草案 - 用户旅程真相源设计（个人多设备主路径）
 2026-03-20-user-journeys-truth-source-implementation-plan.md - 实现计划 - 用户旅程真相源规格实施（个人多设备主路径）
+
+专题文档：
+rust-boundary-scanner.md - 专题说明 - Rust 边界扫描器设计与实现说明
 
 历史迁移：
 2024-03-18-test-boundary-guard-design.md - 设计草案 - 测试边界守护者设计文档（历史文档，从 specs 迁移）
