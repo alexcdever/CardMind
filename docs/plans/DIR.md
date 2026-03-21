@@ -59,6 +59,8 @@
 2026-03-09-architecture-spec-implementation-plan.md - 实现计划 - 项目级架构规格实施（新增 architecture 规格并对齐相关 specs）
 2026-03-09-flutter-rust-backend-frontend-design.md - 设计草案 - Flutter 作为前端、Rust 作为后端的嵌入式前后端分层设计
 2026-03-09-flutter-rust-embedded-backend-implementation-plan.md - 实现计划 - Flutter/Rust 前后端打通并落实 LoroDoc/SQLite 读写分离的任务化实施
+2026-03-09-ui-redesign-design.md - 设计草案 - UI 重设计（信息架构、主页语义、跨端布局与视觉约束）
+2026-03-09-ui-redesign-implementation-plan.md - 实现计划 - UI 重设计任务化实施（spec-first、主页命名、局部同步反馈、本地 TDD）
 2026-03-13-flutter-rust-mainpath-repair-design.md - 设计草案 - Flutter/Rust 主路径修补设计（生产完全切到 FRB/Rust，移除生产兼容层）
 2026-03-13-flutter-rust-mainpath-repair-implementation-plan.md - 实现计划 - Flutter/Rust 主路径修补实施（生产切到 FRB/Rust，删除生产兼容接线）
 2026-03-15-remove-cardstore-handle-design.md - 设计草案 - 移除 CardStore/storeId 暴露并改为 initAppConfig + 无句柄资源 API
@@ -68,8 +70,6 @@
 2026-03-15-flutter-rust-followup-truthfulness-implementation-plan.md - 实现计划 - Flutter/Rust 真实性修补实施（身份真实、save 分流、sync 真动作、query 后端化）
 2026-03-15-flutter-rust-final-contract-cleanup-design.md - 设计草案 - Flutter/Rust 最终契约收尾设计（caller-scoped role 与 query 语义彻底后端化）
 2026-03-15-flutter-rust-final-contract-cleanup-implementation-plan.md - 实现计划 - Flutter/Rust 最终契约收尾实施（caller-scoped role 与默认 query 语义彻底后端化）
-2026-03-09-ui-redesign-design.md - 设计草案 - UI 重设计（信息架构、主页语义、跨端布局与视觉约束）
-2026-03-09-ui-redesign-implementation-plan.md - 实现计划 - UI 重设计任务化实施（spec-first、主页命名、局部同步反馈、本地 TDD）
 2026-03-16-rust-multi-entry-backend-design.md - 设计草案 - Rust 多入口后端设计
 2026-03-16-rust-multi-entry-backend-implementation-plan.md - 实现计划 - Rust 多入口后端任务化实施
 2026-03-19-cardmind-product-audit-design.md - 设计草案 - CardMind 产品级深度审计设计（产品/体验/工程/AI 适配）
