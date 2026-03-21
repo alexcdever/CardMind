@@ -69,6 +69,7 @@
 2026-03-19-cardmind-product-audit-design.md - 设计草案 - CardMind 产品级深度审计设计（产品/体验/工程/AI 适配）
 2026-03-19-cardmind-product-audit.md - 审计文档 - CardMind 产品深度审计（产品/体验/工程/AI 适配结论）
 2026-03-19-product-truth-source-implementation-plan.md - 实现计划 - 产品级真相源文档与公开入口文档对齐
+2026-03-20-user-journeys-truth-source-implementation-plan.md - 实现计划 - 用户旅程真相源规格实施（个人多设备主路径）
 
 历史迁移：
 2024-03-18-test-boundary-guard-design.md - 设计草案 - 测试边界守护者设计文档（历史文档，从 specs 迁移）
