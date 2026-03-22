@@ -249,14 +249,14 @@ void main() {
   });
 
   testWidgets(
-    'settings page and app navigation expose stable identifiers and keys',
+    'settings page and public navigation expose stable identifiers and keys',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: MediaQuery(
             data: const MediaQueryData(size: Size(390, 844)),
             child: AdaptiveHomepageScaffold(
-              section: AppSection.settings,
+              section: AppSection.cards,
               onSectionChanged: (_) {},
               child: const SettingsPage(),
             ),
@@ -269,10 +269,10 @@ void main() {
       expect(find.byKey(const ValueKey('settings.page')), findsOneWidget);
       expect(find.bySemanticsLabel('卡片导航'), findsWidgets);
       expect(find.bySemanticsLabel('数据池导航'), findsWidgets);
-      expect(find.bySemanticsLabel('设置导航'), findsWidgets);
+      expect(find.bySemanticsLabel('设置导航'), findsNothing);
       expect(find.byKey(const ValueKey('nav.cards')), findsOneWidget);
       expect(find.byKey(const ValueKey('nav.pool')), findsOneWidget);
-      expect(find.byKey(const ValueKey('nav.settings')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav.settings')), findsNothing);
     },
   );
 }

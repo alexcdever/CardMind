@@ -4,7 +4,6 @@
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
-import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import '../../support/test_page_controllers.dart';
@@ -142,43 +141,45 @@ void main() {
     );
   });
 
-  testWidgets('navigation automation anchors support switching from settings', (
-    tester,
-  ) async {
-    AppSection current = AppSection.settings;
+  testWidgets(
+    'navigation automation anchors support cards and pool switching',
+    (tester) async {
+      AppSection current = AppSection.cards;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: StatefulBuilder(
-          builder: (context, setState) {
-            return MediaQuery(
-              data: const MediaQueryData(size: Size(390, 844)),
-              child: AdaptiveHomepageScaffold(
-                section: current,
-                onSectionChanged: (section) {
-                  setState(() {
-                    current = section;
-                  });
-                },
-                child: switch (current) {
-                  AppSection.cards => const Center(child: Text('cards-marker')),
-                  AppSection.pool => const Center(child: Text('pool-marker')),
-                  AppSection.settings => const SettingsPage(),
-                },
-              ),
-            );
-          },
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              return MediaQuery(
+                data: const MediaQueryData(size: Size(390, 844)),
+                child: AdaptiveHomepageScaffold(
+                  section: current,
+                  onSectionChanged: (section) {
+                    setState(() {
+                      current = section;
+                    });
+                  },
+                  child: switch (current) {
+                    AppSection.cards => const Center(
+                      child: Text('cards-marker'),
+                    ),
+                    AppSection.pool => const Center(child: Text('pool-marker')),
+                  },
+                ),
+              );
+            },
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('nav.cards')));
-    await tester.pumpAndSettle();
-    expect(find.text('cards-marker'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('nav.pool')));
+      await tester.pumpAndSettle();
+      expect(find.text('pool-marker'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('nav.pool')));
-    await tester.pumpAndSettle();
-    expect(find.text('pool-marker'), findsOneWidget);
-  });
+      await tester.tap(find.byKey(const ValueKey('nav.cards')));
+      await tester.pumpAndSettle();
+      expect(find.text('cards-marker'), findsOneWidget);
+    },
+  );
 }

@@ -17,6 +17,9 @@ void main() {
     expect(find.byType(BottomNavigationBar), findsOneWidget);
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.text('卡片'), findsWidgets);
+    expect(find.text('数据池'), findsWidgets);
+    expect(find.text('设置'), findsNothing);
   });
 
   testWidgets('uses navigation rail on desktop width', (tester) async {
@@ -27,6 +30,9 @@ void main() {
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(BottomNavigationBar), findsNothing);
     expect(find.byType(Row), findsOneWidget);
+    expect(find.text('卡片'), findsOneWidget);
+    expect(find.text('数据池'), findsOneWidget);
+    expect(find.text('设置'), findsNothing);
   });
 
   testWidgets('mobile homepage keeps top area content and bottom tabs', (
@@ -105,17 +111,17 @@ void main() {
   ) async {
     await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.digit3);
+    await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
     await tester.pumpAndSettle();
-    expect(find.text('settings-marker'), findsOneWidget);
+    expect(find.text('pool-marker'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
-    expect(find.text('settings-marker'), findsOneWidget);
+    expect(find.text('pool-marker'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pumpAndSettle();
-    expect(find.text('settings-marker'), findsOneWidget);
+    expect(find.text('pool-marker'), findsOneWidget);
   });
 
   testWidgets('desktop homepage rail keeps a visible interaction indicator', (
@@ -159,27 +165,27 @@ void main() {
     expect(find.text('cards-marker'), findsOneWidget);
   });
 
-  testWidgets(
-    'mobile homepage shows one-step tab targets from settings section',
-    (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: MediaQuery(
-            data: MediaQueryData(size: Size(390, 844)),
-            child: AdaptiveHomepageScaffold(
-              section: AppSection.settings,
-              onSectionChanged:
-                  AdaptiveHomepageScaffoldForTest._noopSectionChanged,
-              child: SizedBox.shrink(),
-            ),
+  testWidgets('mobile homepage shows only two public tab targets', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(size: Size(390, 844)),
+          child: AdaptiveHomepageScaffold(
+            section: AppSection.cards,
+            onSectionChanged:
+                AdaptiveHomepageScaffoldForTest._noopSectionChanged,
+            child: SizedBox.shrink(),
           ),
         ),
-      );
+      ),
+    );
 
-      expect(find.text('卡片'), findsWidgets);
-      expect(find.text('数据池'), findsWidgets);
-    },
-  );
+    expect(find.text('卡片'), findsWidgets);
+    expect(find.text('数据池'), findsWidgets);
+    expect(find.text('设置'), findsNothing);
+  });
 }
 
 class AdaptiveHomepageScaffoldForTest extends StatelessWidget {
@@ -227,7 +233,6 @@ class _DesktopHomepageHarnessState extends State<_DesktopHomepageHarness> {
         child: switch (_section) {
           AppSection.cards => const Center(child: Text('cards-marker')),
           AppSection.pool => const Center(child: Text('pool-marker')),
-          AppSection.settings => const Center(child: Text('settings-marker')),
         },
       ),
     );

@@ -36,12 +36,6 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
         identifier: SemanticIds.navPool,
         semanticLabel: '数据池导航',
       ),
-      _HomepageDestination(
-        icon: Icons.settings_outlined,
-        label: '设置',
-        identifier: SemanticIds.navSettings,
-        semanticLabel: '设置导航',
-      ),
     ];
 
     if (desktop) {
@@ -59,9 +53,6 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
                 return KeyEventResult.handled;
               case LogicalKeyboardKey.digit2:
                 onSectionChanged(AppSection.pool);
-                return KeyEventResult.handled;
-              case LogicalKeyboardKey.digit3:
-                onSectionChanged(AppSection.settings);
                 return KeyEventResult.handled;
               case LogicalKeyboardKey.arrowLeft:
               case LogicalKeyboardKey.arrowUp:

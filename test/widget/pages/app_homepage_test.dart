@@ -1,5 +1,5 @@
 // input: 在 CardMindApp 冷启动后观察主页导航与返回行为。
-// output: 断言首屏即进入主页并展示底部导航与三个导航标签。
+// output: 断言首屏即进入主页并展示底部导航与两个公开导航标签。
 // pos: 应用主页导航测试，覆盖首屏直达主页的主路径。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/app/app.dart';
 import 'package:cardmind/app/navigation/app_homepage_controller.dart';
@@ -177,7 +177,15 @@ void main() {
     expect(find.text('搜索卡片'), findsOneWidget);
     expect(find.text('卡片'), findsWidgets);
     expect(find.text('数据池'), findsWidgets);
-    expect(find.text('设置'), findsWidgets);
+    expect(find.text('设置'), findsNothing);
+  });
+
+  testWidgets('app cold start lands on cards by default', (tester) async {
+    await tester.pumpWidget(const CardMindApp(appDataDir: 'test-app-dir'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CardsPage), findsOneWidget);
+    expect(find.byType(PoolPage), findsNothing);
   });
 
   testWidgets('back on non-cards tab switches to cards first', (tester) async {
@@ -226,6 +234,32 @@ void main() {
     expect(controller.section, AppSection.pool);
     expect(find.text('去卡片'), findsNothing);
     expect(find.text('成员列表'), findsOneWidget);
+  });
+
+  testWidgets('homepage switches between cards and pool in one action', (
+    tester,
+  ) async {
+    final controller = AppHomepageController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppHomepagePage(
+          controller: controller,
+          cardsPageBuilder: (_) => const Center(child: Text('cards-marker')),
+          poolPageBuilder: (_) => const Center(child: Text('pool-marker')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('cards-marker'), findsOneWidget);
+
+    await tester.tap(find.text('数据池'));
+    await tester.pumpAndSettle();
+    expect(find.text('pool-marker'), findsOneWidget);
+
+    await tester.tap(find.text('卡片'));
+    await tester.pumpAndSettle();
+    expect(find.text('cards-marker'), findsOneWidget);
   });
 
   testWidgets('homepage forwards pool network id into production pool page', (
@@ -292,21 +326,5 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(calls.any((call) => call.method == 'SystemNavigator.pop'), isTrue);
-  });
-
-  testWidgets('homepage renders settings section when selected', (
-    tester,
-  ) async {
-    final controller = AppHomepageController(
-      initialSection: AppSection.settings,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(home: AppHomepagePage(controller: controller)),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byType(AppHomepagePage), findsOneWidget);
-    expect(find.text('设置'), findsWidgets);
   });
 }

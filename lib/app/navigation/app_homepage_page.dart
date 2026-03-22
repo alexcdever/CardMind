@@ -1,5 +1,5 @@
 // input: 使用 AppHomepageController 当前分区状态驱动子页面与导航切换。
-// output: 通过 AdaptiveHomepageScaffold 渲染 cards/pool/settings 三个主工作区页面。
+// output: 通过 AdaptiveHomepageScaffold 渲染 cards/pool 两个主工作区页面。
 // pos: 应用主页页面，负责跨功能导航与分区内容编排。修改本文件需同步更新文件头与所属 DIR.md。
 // 中文注释：Flutter 应用主页模块，负责导航与跨端布局。
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
@@ -8,7 +8,6 @@ import 'package:cardmind/app/navigation/app_homepage_controller.dart';
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
-import 'package:cardmind/features/settings/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -113,8 +112,6 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
               state: const PoolState.notJoined(),
               networkId: widget.poolNetworkId,
             );
-      case AppSection.settings:
-        return const SettingsPage();
     }
   }
 }

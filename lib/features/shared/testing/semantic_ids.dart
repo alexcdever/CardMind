@@ -47,7 +47,6 @@ class SemanticIds {
 
   static const navCards = 'nav.cards';
   static const navPool = 'nav.pool';
-  static const navSettings = 'nav.settings';
 
   static const settingsPage = 'settings.page';
 
