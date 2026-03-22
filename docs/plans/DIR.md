@@ -77,6 +77,8 @@
 2026-03-19-product-truth-source-implementation-plan.md - 实现计划 - 产品级真相源文档与公开入口文档对齐
 2026-03-20-user-journeys-truth-source-design.md - 设计草案 - 用户旅程真相源设计（个人多设备主路径）
 2026-03-20-user-journeys-truth-source-implementation-plan.md - 实现计划 - 用户旅程真相源规格实施（个人多设备主路径）
+2026-03-20-remove-settings-primary-entry-design.md - 设计草案 - 移除设置一级入口设计
+2026-03-20-remove-settings-primary-entry-implementation-plan.md - 实现计划 - 移除设置一级入口并收紧主导航语义
 
 专题文档：
 rust-boundary-scanner.md - 专题说明 - Rust 边界扫描器设计与实现说明
