@@ -42,8 +42,11 @@ class _SemanticsGateway implements SyncGateway {
     return const frb.SyncResultDto(
       state: 'ok',
       writeState: 'write_saved',
-      projectionState: 'ready',
+      projectionState: 'projection_ready',
       syncState: 'connected',
+      continuityState: 'same_path',
+      contentState: 'content_safe',
+      nextAction: 'none',
       code: null,
     );
   }
@@ -53,8 +56,11 @@ class _SemanticsGateway implements SyncGateway {
     return const frb.SyncResultDto(
       state: 'ok',
       writeState: 'write_saved',
-      projectionState: 'ready',
+      projectionState: 'projection_ready',
       syncState: 'connected',
+      continuityState: 'same_path',
+      contentState: 'content_safe',
+      nextAction: 'none',
       code: null,
     );
   }
@@ -75,6 +81,9 @@ void main() {
             writeState: 'write_saved',
             projectionState: 'projection_pending',
             syncState: 'connected',
+            continuityState: 'same_path',
+            contentState: 'content_safe_local_only',
+            nextAction: 'check_status',
             code: 'PROJECTION_NOT_CONVERGED',
           ),
         ),
@@ -87,6 +96,9 @@ void main() {
             writeState: 'write_saved',
             projectionState: 'projection_ready',
             syncState: 'sync_failed',
+            continuityState: 'same_path',
+            contentState: 'content_safe_local_only',
+            nextAction: 'reconnect',
             code: 'REQUEST_TIMEOUT',
           ),
           pullError: const ApiError(
@@ -119,6 +131,9 @@ void main() {
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'connected',
+          continuityState: 'same_path',
+          contentState: 'content_safe',
+          nextAction: 'none',
           code: null,
         ),
       );
@@ -141,6 +156,9 @@ void main() {
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'connected',
+          continuityState: 'same_path',
+          contentState: 'content_safe',
+          nextAction: 'none',
           code: null,
         ),
       );
@@ -151,6 +169,35 @@ void main() {
       expect(gateway.disconnectCalls, 1);
       expect(gateway.connectCalls, 1);
       expect(status.kind, SyncStatusKind.connected);
+      expect(status.isWriteSaved, isTrue);
+    },
+  );
+
+  test(
+    'frontend should preserve rust continuity semantics without inventing new business rules',
+    () async {
+      final degradedService = SyncService(
+        gateway: _SemanticsGateway(
+          statusDto: const frb.SyncStatusDto(
+            state: 'degraded',
+            writeState: 'write_saved',
+            projectionState: 'projection_ready',
+            syncState: 'sync_failed',
+            continuityState: 'same_path',
+            contentState: 'content_safe_local_only',
+            nextAction: 'reconnect',
+            code: 'REQUEST_TIMEOUT',
+          ),
+        ),
+        networkId: BigInt.from(3),
+      );
+
+      final status = await degradedService.status();
+
+      expect(status.kind, SyncStatusKind.degraded);
+      expect(status.continuityState, 'same_path');
+      expect(status.contentState, 'content_safe_local_only');
+      expect(status.nextAction, 'reconnect');
       expect(status.isWriteSaved, isTrue);
     },
   );

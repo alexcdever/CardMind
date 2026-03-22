@@ -410,6 +410,45 @@ async fn test_sync_state_priority_over_session_state() {
     assert_eq!(network.sync_state(), "sync_failed");
 }
 
+#[tokio::test]
+async fn test_sync_failure_keeps_same_data_path_semantics() {
+    let (mut network, _temp) = create_test_pool_network().await;
+
+    let _ = network.sync_push();
+
+    assert_eq!(network.sync_state(), "sync_failed");
+    assert_eq!(network.last_sync_error_code(), Some("REQUEST_TIMEOUT"));
+}
+
+#[tokio::test]
+async fn test_sync_success_restores_safe_continuity_semantics() {
+    let (mut network, _temp) = create_test_pool_network().await;
+
+    let _ = network.sync_push();
+    assert_eq!(network.last_sync_error_code(), Some("REQUEST_TIMEOUT"));
+
+    network.sync_connect("target".to_string()).unwrap();
+    let result = network.sync_push();
+
+    assert!(result.is_ok());
+    assert_eq!(network.sync_state(), "connected");
+    assert_eq!(network.last_sync_error_code(), None);
+}
+
+#[tokio::test]
+async fn test_sync_reconnect_clears_failure_before_next_action_changes() {
+    let (mut network, _temp) = create_test_pool_network().await;
+
+    let _ = network.sync_push();
+    assert_eq!(network.sync_state(), "sync_failed");
+    assert_eq!(network.last_sync_error_code(), Some("REQUEST_TIMEOUT"));
+
+    network.sync_connect("target".to_string()).unwrap();
+
+    assert_eq!(network.sync_state(), "connected");
+    assert_eq!(network.last_sync_error_code(), None);
+}
+
 // ==================== 实际同步流程测试 ====================
 
 #[tokio::test]

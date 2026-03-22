@@ -7,6 +7,51 @@ import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const _samePath = 'same_path';
+const _contentSafe = 'content_safe';
+const _contentSafeLocalOnly = 'content_safe_local_only';
+const _nextActionNone = 'none';
+
+frb.SyncStatusDto _statusDto({
+  required String state,
+  required String writeState,
+  required String projectionState,
+  required String syncState,
+  String continuityState = _samePath,
+  String contentState = _contentSafe,
+  String nextAction = _nextActionNone,
+  String? code,
+}) => frb.SyncStatusDto(
+  state: state,
+  writeState: writeState,
+  projectionState: projectionState,
+  syncState: syncState,
+  continuityState: continuityState,
+  contentState: contentState,
+  nextAction: nextAction,
+  code: code,
+);
+
+frb.SyncResultDto _resultDto({
+  required String state,
+  required String writeState,
+  required String projectionState,
+  required String syncState,
+  String continuityState = _samePath,
+  String contentState = _contentSafe,
+  String nextAction = _nextActionNone,
+  String? code,
+}) => frb.SyncResultDto(
+  state: state,
+  writeState: writeState,
+  projectionState: projectionState,
+  syncState: syncState,
+  continuityState: continuityState,
+  contentState: contentState,
+  nextAction: nextAction,
+  code: code,
+);
+
 class _FakeGateway implements SyncGateway {
   _FakeGateway({
     this.statusDto,
@@ -55,23 +100,21 @@ class _FakeGateway implements SyncGateway {
   Future<frb.SyncResultDto> syncPull({required BigInt networkId}) async {
     pullCalls += 1;
     if (pullException != null) throw pullException!;
-    return const frb.SyncResultDto(
+    return _resultDto(
       state: 'ok',
       writeState: 'write_saved',
       projectionState: 'projection_ready',
       syncState: 'connected',
-      code: null,
     );
   }
 
   @override
   Future<frb.SyncResultDto> syncPush({required BigInt networkId}) async {
-    return const frb.SyncResultDto(
+    return _resultDto(
       state: 'ok',
       writeState: 'write_saved',
       projectionState: 'projection_ready',
       syncState: 'connected',
-      code: null,
     );
   }
 
@@ -90,12 +133,11 @@ void main() {
   test('status_withIdleSyncState_returnsIdle', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'idle',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'idle',
-          code: null,
         ),
       ),
     ).status();
@@ -106,12 +148,13 @@ void main() {
   test('status_withSyncingSyncState_returnsSyncing', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'syncing',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'syncing',
-          code: null,
+          contentState: _contentSafeLocalOnly,
+          nextAction: 'check_status',
         ),
       ),
     ).status();
@@ -123,11 +166,13 @@ void main() {
   test('status_withDegradedSyncState_returnsDegraded', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'degraded',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'degraded',
+          contentState: _contentSafeLocalOnly,
+          nextAction: 'reconnect',
           code: 'REQUEST_TIMEOUT',
         ),
       ),
@@ -140,12 +185,11 @@ void main() {
   test('status_withUnknownSyncState_returnsInternalError', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'weird',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'weird',
-          code: null,
         ),
       ),
     ).status();
@@ -176,12 +220,11 @@ void main() {
 
   test('connect_success_refreshesStatus', () async {
     final gateway = _FakeGateway(
-      statusDto: const frb.SyncStatusDto(
+      statusDto: _statusDto(
         state: 'connected',
         writeState: 'write_saved',
         projectionState: 'projection_ready',
         syncState: 'connected',
-        code: null,
       ),
     );
 
@@ -194,12 +237,11 @@ void main() {
   test('connect_withApiError_returnsMappedError', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'idle',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'idle',
-          code: null,
         ),
         connectError: const ApiError(
           code: 'REQUEST_TIMEOUT',
@@ -215,12 +257,11 @@ void main() {
   test('connect_withUnknownException_returnsInternal', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'idle',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'idle',
-          code: null,
         ),
         connectException: StateError('boom'),
       ),
@@ -233,12 +274,11 @@ void main() {
   test('retry_withUnknownException_returnsInternal', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'idle',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'idle',
-          code: null,
         ),
         pullException: StateError('boom'),
       ),
@@ -251,12 +291,11 @@ void main() {
   test('reconnect_withApiError_returnsMappedError', () async {
     final status = await _service(
       _FakeGateway(
-        statusDto: const frb.SyncStatusDto(
+        statusDto: _statusDto(
           state: 'idle',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'idle',
-          code: null,
         ),
         disconnectError: const ApiError(
           code: 'REQUEST_TIMEOUT',

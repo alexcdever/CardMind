@@ -43,8 +43,11 @@ class _NoopGateway implements SyncGateway {
     return const frb.SyncResultDto(
       state: 'ok',
       writeState: 'write_saved',
-      projectionState: 'ready',
+      projectionState: 'projection_ready',
       syncState: 'connected',
+      continuityState: 'same_path',
+      contentState: 'content_safe',
+      nextAction: 'none',
       code: null,
     );
   }
@@ -54,8 +57,11 @@ class _NoopGateway implements SyncGateway {
     return const frb.SyncResultDto(
       state: 'ok',
       writeState: 'write_saved',
-      projectionState: 'ready',
+      projectionState: 'projection_ready',
       syncState: 'connected',
+      continuityState: 'same_path',
+      contentState: 'content_safe',
+      nextAction: 'none',
       code: null,
     );
   }
@@ -65,8 +71,11 @@ class _NoopGateway implements SyncGateway {
     return const frb.SyncStatusDto(
       state: 'idle',
       writeState: 'write_saved',
-      projectionState: 'ready',
+      projectionState: 'projection_ready',
       syncState: 'idle',
+      continuityState: 'same_path',
+      contentState: 'content_safe',
+      nextAction: 'none',
       code: null,
     );
   }

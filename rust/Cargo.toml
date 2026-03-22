@@ -21,3 +21,4 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "test-
 
 [dev-dependencies]
 tempfile = "3"
+serial_test = "3"

@@ -62,7 +62,13 @@ void main() {
   ) async {
     final controller = PoolController(
       initialState: const PoolState.joined(),
-      initialSyncStatus: const SyncStatus.degraded('REQUEST_TIMEOUT'),
+      initialSyncStatus: const SyncStatus.degraded(
+        'REQUEST_TIMEOUT',
+        true,
+        'same_path',
+        'content_safe_local_only',
+        'reconnect',
+      ),
     );
 
     await tester.pumpWidget(
@@ -71,7 +77,9 @@ void main() {
       ),
     );
 
-    expect(find.text('同步状态降级：可继续本地操作'), findsOneWidget);
+    expect(find.text('同步状态降级：仍在同一条延续路径'), findsOneWidget);
+    expect(find.text('当前内容安全，可继续本地操作。'), findsOneWidget);
+    expect(find.text('建议下一步：重新连接'), findsOneWidget);
     expect(find.text('重试同步'), findsOneWidget);
     expect(find.text('重新连接'), findsOneWidget);
     expect(find.byType(MaterialBanner), findsNothing);

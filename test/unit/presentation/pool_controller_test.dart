@@ -65,6 +65,9 @@ class _NoopGateway implements SyncGateway {
         writeState: 'write_saved',
         projectionState: 'projection_ready',
         syncState: 'connected',
+        continuityState: 'same_path',
+        contentState: 'content_safe',
+        nextAction: 'none',
         code: null,
       );
 
@@ -75,6 +78,9 @@ class _NoopGateway implements SyncGateway {
         writeState: 'write_saved',
         projectionState: 'projection_ready',
         syncState: 'connected',
+        continuityState: 'same_path',
+        contentState: 'content_safe',
+        nextAction: 'none',
         code: null,
       );
 
@@ -85,6 +91,9 @@ class _NoopGateway implements SyncGateway {
         writeState: 'write_saved',
         projectionState: 'projection_ready',
         syncState: 'connected',
+        continuityState: 'same_path',
+        contentState: 'content_safe',
+        nextAction: 'none',
         code: null,
       );
 }

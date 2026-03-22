@@ -92,6 +92,9 @@ class _FakeSyncGateway implements SyncGateway {
       writeState: 'write_saved',
       projectionState: 'projection_ready',
       syncState: 'connected',
+      continuityState: 'same_path',
+      contentState: 'content_safe',
+      nextAction: 'none',
       code: null,
     );
   }
@@ -108,6 +111,9 @@ class _FakeSyncGateway implements SyncGateway {
       writeState: 'write_saved',
       projectionState: 'projection_ready',
       syncState: 'connected',
+      continuityState: 'same_path',
+      contentState: 'content_safe',
+      nextAction: 'none',
       code: null,
     );
   }
@@ -455,12 +461,12 @@ void main() {
         home: PoolPage(state: controller.state, controller: controller),
       ),
     );
-    expect(find.text('同步状态降级：可继续本地操作'), findsOneWidget);
+    expect(find.text('同步状态降级：仍在同一条延续路径'), findsOneWidget);
 
     controller.setSyncStatus(const SyncStatus.connected());
     await tester.pumpAndSettle();
 
-    expect(find.text('同步状态降级：可继续本地操作'), findsNothing);
+    expect(find.text('同步状态降级：仍在同一条延续路径'), findsNothing);
   });
 
   testWidgets(

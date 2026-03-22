@@ -4,6 +4,7 @@
 // 中文注释：本文件测试 API 门面层的基础功能。
 
 use cardmind_rust::api::*;
+use serial_test::serial;
 use tempfile::TempDir;
 
 fn setup_test_env() -> TempDir {
@@ -19,6 +20,7 @@ fn setup_test_env() -> TempDir {
 // ============================================================================
 
 #[test]
+#[serial]
 fn api_init_app_config_creates_directories() {
     let temp_dir = TempDir::new().unwrap();
     let _ = reset_app_config_for_tests();
@@ -31,6 +33,7 @@ fn api_init_app_config_creates_directories() {
 }
 
 #[test]
+#[serial]
 fn api_requires_app_config_before_store_operations() {
     reset_app_config_for_tests().unwrap();
 
@@ -40,6 +43,7 @@ fn api_requires_app_config_before_store_operations() {
 }
 
 #[test]
+#[serial]
 fn api_init_app_config_same_dir_is_idempotent() {
     let temp_dir = TempDir::new().unwrap();
     let path = temp_dir.path().to_str().unwrap().to_string();
@@ -50,6 +54,7 @@ fn api_init_app_config_same_dir_is_idempotent() {
 }
 
 #[test]
+#[serial]
 fn api_init_app_config_different_dir_returns_conflict() {
     let temp_a = TempDir::new().unwrap();
     let temp_b = TempDir::new().unwrap();
@@ -62,6 +67,7 @@ fn api_init_app_config_different_dir_returns_conflict() {
 }
 
 #[test]
+#[serial]
 fn api_reset_app_config_clears_state() {
     let _temp = setup_test_env();
 
@@ -75,6 +81,7 @@ fn api_reset_app_config_clears_state() {
 // ============================================================================
 
 #[test]
+#[serial]
 fn api_get_card_not_found() {
     let _temp = setup_test_env();
 
@@ -85,6 +92,7 @@ fn api_get_card_not_found() {
 }
 
 #[test]
+#[serial]
 fn api_invalid_uuid_format() {
     let _temp = setup_test_env();
 
@@ -95,6 +103,7 @@ fn api_invalid_uuid_format() {
 }
 
 #[test]
+#[serial]
 fn api_get_nonexistent_pool() {
     let _temp = setup_test_env();
 
@@ -106,6 +115,7 @@ fn api_get_nonexistent_pool() {
 }
 
 #[test]
+#[serial]
 fn api_join_nonexistent_pool() {
     let _temp = setup_test_env();
 
@@ -119,6 +129,7 @@ fn api_join_nonexistent_pool() {
 }
 
 #[test]
+#[serial]
 fn api_join_by_code_invalid() {
     let _temp = setup_test_env();
 
@@ -132,6 +143,7 @@ fn api_join_by_code_invalid() {
 }
 
 #[test]
+#[serial]
 fn api_update_nonexistent_card() {
     let _temp = setup_test_env();
 
@@ -144,6 +156,7 @@ fn api_update_nonexistent_card() {
 }
 
 #[test]
+#[serial]
 fn api_delete_nonexistent_card() {
     let _temp = setup_test_env();
 
@@ -152,6 +165,7 @@ fn api_delete_nonexistent_card() {
 }
 
 #[test]
+#[serial]
 fn api_get_joined_pool_view_empty() {
     let _temp = setup_test_env();
 
@@ -161,6 +175,7 @@ fn api_get_joined_pool_view_empty() {
 }
 
 #[test]
+#[serial]
 fn api_backend_config_roundtrip() {
     let _temp = setup_test_env();
 
@@ -181,6 +196,7 @@ fn api_backend_config_roundtrip() {
 }
 
 #[test]
+#[serial]
 fn api_runtime_entry_status_reflects_default_config() {
     let _temp = setup_test_env();
 
@@ -192,6 +208,7 @@ fn api_runtime_entry_status_reflects_default_config() {
 }
 
 #[test]
+#[serial]
 fn api_pool_crud_flow() {
     let _temp = setup_test_env();
 
@@ -216,6 +233,7 @@ fn api_pool_crud_flow() {
 }
 
 #[test]
+#[serial]
 fn api_join_pool_success() {
     let _temp = setup_test_env();
 
@@ -240,6 +258,7 @@ fn api_join_pool_success() {
 }
 
 #[test]
+#[serial]
 fn api_join_by_code_timeout_returns_request_timeout() {
     let _temp = setup_test_env();
 
@@ -255,6 +274,7 @@ fn api_join_by_code_timeout_returns_request_timeout() {
 }
 
 #[test]
+#[serial]
 fn api_join_by_code_valid_uuid_not_found_returns_pool_not_found() {
     let _temp = setup_test_env();
 
@@ -270,6 +290,7 @@ fn api_join_by_code_valid_uuid_not_found_returns_pool_not_found() {
 }
 
 #[test]
+#[serial]
 fn api_list_pools_returns_empty_when_no_pool_exists() {
     let _temp = setup_test_env();
 
@@ -279,6 +300,7 @@ fn api_list_pools_returns_empty_when_no_pool_exists() {
 }
 
 #[test]
+#[serial]
 fn api_card_note_crud_flow() {
     let _temp = setup_test_env();
 
@@ -318,6 +340,7 @@ fn api_card_note_crud_flow() {
 }
 
 #[test]
+#[serial]
 fn api_create_card_note_in_pool_attaches_card_to_pool() {
     let _temp = setup_test_env();
 
@@ -339,6 +362,7 @@ fn api_create_card_note_in_pool_attaches_card_to_pool() {
 }
 
 #[test]
+#[serial]
 fn api_query_card_notes_filters_by_pool_id() {
     let _temp = setup_test_env();
 
@@ -363,6 +387,7 @@ fn api_query_card_notes_filters_by_pool_id() {
 }
 
 #[test]
+#[serial]
 fn api_sync_functions_validate_invalid_handle() {
     let _temp = setup_test_env();
 
@@ -382,6 +407,7 @@ fn api_sync_functions_validate_invalid_handle() {
 }
 
 #[test]
+#[serial]
 fn api_pool_network_lifecycle_and_sync_state() {
     let temp = setup_test_env();
     let network_id = init_pool_network(temp.path().to_str().unwrap().to_string()).unwrap();
@@ -389,6 +415,9 @@ fn api_pool_network_lifecycle_and_sync_state() {
     let status = sync_status(network_id).unwrap();
     assert_eq!(status.state, "idle");
     assert_eq!(status.projection_state, "projection_ready");
+    assert_eq!(status.continuity_state, "same_path");
+    assert_eq!(status.content_state, "content_safe");
+    assert_eq!(status.next_action, "none");
 
     let connect_err = sync_connect(network_id, "".to_string()).unwrap_err();
     assert_eq!(connect_err.code, "INVALID_ARGUMENT");
@@ -397,16 +426,23 @@ fn api_pool_network_lifecycle_and_sync_state() {
     assert_eq!(push.state, "degraded");
     assert_eq!(push.sync_state, "sync_failed");
     assert_eq!(push.code.as_deref(), Some("REQUEST_TIMEOUT"));
+    assert_eq!(push.continuity_state, "same_path");
+    assert_eq!(push.content_state, "content_safe_local_only");
+    assert_eq!(push.next_action, "reconnect");
 
     let pull = sync_pull(network_id).unwrap();
     assert_eq!(pull.state, "degraded");
     assert_eq!(pull.sync_state, "sync_failed");
     assert_eq!(pull.code.as_deref(), Some("REQUEST_TIMEOUT"));
+    assert_eq!(pull.continuity_state, "same_path");
+    assert_eq!(pull.content_state, "content_safe_local_only");
+    assert_eq!(pull.next_action, "reconnect");
 
     close_pool_network(network_id).unwrap();
 }
 
 #[test]
+#[serial]
 fn api_sync_push_returns_ok_when_connected() {
     let temp = setup_test_env();
     let network_id = init_pool_network(temp.path().to_str().unwrap().to_string()).unwrap();
@@ -418,11 +454,15 @@ fn api_sync_push_returns_ok_when_connected() {
     assert_eq!(result.sync_state, "connected");
     assert_eq!(result.projection_state, "projection_ready");
     assert_eq!(result.code, None);
+    assert_eq!(result.continuity_state, "same_path");
+    assert_eq!(result.content_state, "content_safe");
+    assert_eq!(result.next_action, "none");
 
     close_pool_network(network_id).unwrap();
 }
 
 #[test]
+#[serial]
 fn api_sync_status_returns_degraded_when_projection_pending() {
     let temp = setup_test_env();
     let base = temp.path().to_str().unwrap();
@@ -437,6 +477,9 @@ fn api_sync_status_returns_degraded_when_projection_pending() {
     assert_eq!(status.state, "degraded");
     assert_eq!(status.projection_state, "projection_pending");
     assert_eq!(status.code.as_deref(), Some("PROJECTION_NOT_CONVERGED"));
+    assert_eq!(status.continuity_state, "same_path");
+    assert_eq!(status.content_state, "content_safe_local_only");
+    assert_eq!(status.next_action, "check_status");
 
     close_pool_network(network_id).unwrap();
 }

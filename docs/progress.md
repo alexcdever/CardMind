@@ -7,21 +7,23 @@
 
 <!-- 列出当前正在进行的任务，最多3个 -->
 
-1. 基于 `docs/specs/product.md` 规划下一阶段高优先级工作 - 进度 0%
+1. 整理 `Phase 1` Rust-first 落地改动并准备提交 - 进度 90%
+2. 评估是否继续推进更深一层的 Rust 同步语义或转入下一阶段规划 - 进度 10%
 
 ## 待办事项
 
 <!-- 待处理但尚未开始的任务 -->
 
-- [ ] 规划“用户旅程真相源”或等价产品体验真相源文档
-- [ ] 判断设置页应收缩入口还是补实最小可用内容
-- [ ] 基于新的产品级真相源继续整理后续 roadmap / plans
+- [ ] 创建本次 Phase 1 Rust-first 落地的 git commit
+- [ ] 判断是否继续扩展 Rust 同步契约，还是收口到当前 Phase 1 基线
+- [ ] 评估何时进入 `Phase 2` 的系统性恢复能力设计
 
 ## 阻塞/卡点
 
 <!-- 当前遇到的阻碍 -->
 
-- 当前无工程阻塞；后续主要是产品规划优先级判断
+- 当前无工程阻塞；已完成 Rust / Flutter 全量测试与 release 动态库构建
+- 当前主要待决策项是：此轮是否直接提交收口，还是继续扩展同步语义
 
 ## 最近的决策
 
@@ -36,16 +38,20 @@
 | 2026-03-20 | 新增 `docs/specs/product.md` 作为产品级真相源 | 统一终极目标、阶段目标、目标用户和能力边界，减少 AI 与文档漂移 |
 | 2026-03-20 | 私人背景转入本地 `AGENT.local.md` 而非公开仓库 | 信息对 AI 有价值，但不适合开源暴露 |
 | 2026-03-20 | 产品相关 design/plan 文档继续统一放在 `docs/plans/` | 遵循当前仓库的文档分层规范 |
+| 2026-03-23 | `Phase 1` 实施改为 Rust-first | 同步、恢复与连续性语义应由 Rust 契约定义，Flutter 只负责消费与展示 |
+| 2026-03-23 | API integration tests 串行化 | 避免 `app_config` 全局状态在全量 Rust 测试时互相污染 |
+| 2026-03-23 | FRB 生成链补齐 `freezed_annotation` / `freezed` / `build_runner` | 新 DTO 字段进入边界层后需要重新生成 Rust/Dart 绑定 |
 
 ## 相关文档链接
 
 <!-- 链接到相关的 specs 和 plans -->
 
 - [产品级真相源规格](docs/specs/product.md)
-- [产品深度审计](docs/plans/2026-03-19-cardmind-product-audit.md)
-- [产品真相源实施计划](docs/plans/2026-03-19-product-truth-source-implementation-plan.md)
-- [今日工作日志](docs/memory/2026-03-20.md)
+- [用户旅程规格](docs/specs/user-journeys.md)
+- [roadmap design](docs/plans/2026-03-23-next-phase-roadmap-design.md)
+- [roadmap implementation plan](docs/plans/2026-03-23-next-phase-roadmap-implementation-plan.md)
+- [今日工作日志](docs/memory/2026-03-23.md)
 
 ---
 
-*最后更新：2026-03-20*
+*最后更新：2026-03-23*

@@ -4,13 +4,18 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'api/utils.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
     if (dart.library.js_interop) 'frb_generated.web.dart';
 import 'models/api_error.dart';
+import 'models/card.dart';
+import 'models/error.dart';
+import 'models/pool.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:uuid/uuid.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
 
@@ -67,7 +72,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1450856872;
+  int get rustContentHash => 765401060;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -95,6 +100,11 @@ abstract class RustLibApi extends BaseApi {
     required String endpointId,
     required String nickname,
     required String os,
+  });
+
+  Future<String> crateApiUtilsCurrentMemberRoleForEndpoint({
+    required Pool pool,
+    required String endpointId,
   });
 
   Future<CardNoteDto> crateApiDeleteCardNote({required String cardId});
@@ -134,6 +144,17 @@ abstract class RustLibApi extends BaseApi {
 
   Future<List<PoolDto>> crateApiListPools({required String endpointId});
 
+  Future<ApiError> crateApiUtilsMapErr({required CardMindError err});
+
+  Future<String> crateApiUtilsMemberRole({required PoolMember member});
+
+  Future<UuidValue> crateApiUtilsParseUuid({
+    required String raw,
+    required String field,
+  });
+
+  Future<String> crateApiUtilsPoolName({required Pool pool});
+
   Future<List<CardNoteDto>> crateApiQueryCardNotes({
     required String query,
     String? poolId,
@@ -161,6 +182,18 @@ abstract class RustLibApi extends BaseApi {
   Future<SyncResultDto> crateApiSyncPush({required BigInt networkId});
 
   Future<SyncStatusDto> crateApiSyncStatus({required BigInt networkId});
+
+  Future<CardNoteDto> crateApiUtilsToCardNoteDto({required Card card});
+
+  Future<PoolDetailDto> crateApiUtilsToPoolDetailDto({
+    required Pool pool,
+    required String endpointId,
+  });
+
+  Future<PoolDto> crateApiUtilsToPoolDto({
+    required Pool pool,
+    required String endpointId,
+  });
 
   Future<BackendConfigDto> crateApiUpdateBackendConfig({
     required bool httpEnabled,
@@ -321,6 +354,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<String> crateApiUtilsCurrentMemberRoleForEndpoint({
+    required Pool pool,
+    required String endpointId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool(pool, serializer);
+          sse_encode_String(endpointId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiUtilsCurrentMemberRoleForEndpointConstMeta,
+        argValues: [pool, endpointId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsCurrentMemberRoleForEndpointConstMeta =>
+      const TaskConstMeta(
+        debugName: "current_member_role_for_endpoint",
+        argNames: ["pool", "endpointId"],
+      );
+
+  @override
   Future<CardNoteDto> crateApiDeleteCardNote({required String cardId}) {
     return handler.executeNormal(
       NormalTask(
@@ -330,7 +398,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 6,
             port: port_,
           );
         },
@@ -357,7 +425,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 7,
             port: port_,
           );
         },
@@ -385,7 +453,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -417,7 +485,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 9,
             port: port_,
           );
         },
@@ -451,7 +519,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 10,
             port: port_,
           );
         },
@@ -480,7 +548,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 11,
             port: port_,
           );
         },
@@ -508,7 +576,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 12,
             port: port_,
           );
         },
@@ -538,7 +606,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 13,
             port: port_,
           );
         },
@@ -576,7 +644,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 14,
             port: port_,
           );
         },
@@ -614,7 +682,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 15,
             port: port_,
           );
         },
@@ -643,7 +711,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 16,
             port: port_,
           );
         },
@@ -671,7 +739,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 17,
             port: port_,
           );
         },
@@ -690,6 +758,122 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "list_pools", argNames: ["endpointId"]);
 
   @override
+  Future<ApiError> crateApiUtilsMapErr({required CardMindError err}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_card_mind_error(err, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 18,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_api_error,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUtilsMapErrConstMeta,
+        argValues: [err],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsMapErrConstMeta =>
+      const TaskConstMeta(debugName: "map_err", argNames: ["err"]);
+
+  @override
+  Future<String> crateApiUtilsMemberRole({required PoolMember member}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool_member(member, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUtilsMemberRoleConstMeta,
+        argValues: [member],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsMemberRoleConstMeta =>
+      const TaskConstMeta(debugName: "member_role", argNames: ["member"]);
+
+  @override
+  Future<UuidValue> crateApiUtilsParseUuid({
+    required String raw,
+    required String field,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(raw, serializer);
+          sse_encode_String(field, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_Uuid,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiUtilsParseUuidConstMeta,
+        argValues: [raw, field],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsParseUuidConstMeta =>
+      const TaskConstMeta(debugName: "parse_uuid", argNames: ["raw", "field"]);
+
+  @override
+  Future<String> crateApiUtilsPoolName({required Pool pool}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool(pool, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 21,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUtilsPoolNameConstMeta,
+        argValues: [pool],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsPoolNameConstMeta =>
+      const TaskConstMeta(debugName: "pool_name", argNames: ["pool"]);
+
+  @override
   Future<List<CardNoteDto>> crateApiQueryCardNotes({
     required String query,
     String? poolId,
@@ -705,7 +889,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 22,
             port: port_,
           );
         },
@@ -734,7 +918,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 23,
             port: port_,
           );
         },
@@ -765,7 +949,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 24,
             port: port_,
           );
         },
@@ -797,7 +981,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 25,
             port: port_,
           );
         },
@@ -827,7 +1011,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 26,
             port: port_,
           );
         },
@@ -861,7 +1045,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 27,
             port: port_,
           );
         },
@@ -891,7 +1075,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 28,
             port: port_,
           );
         },
@@ -919,7 +1103,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 29,
             port: port_,
           );
         },
@@ -947,7 +1131,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 30,
             port: port_,
           );
         },
@@ -966,6 +1150,103 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "sync_status", argNames: ["networkId"]);
 
   @override
+  Future<CardNoteDto> crateApiUtilsToCardNoteDto({required Card card}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_card(card, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_card_note_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUtilsToCardNoteDtoConstMeta,
+        argValues: [card],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsToCardNoteDtoConstMeta =>
+      const TaskConstMeta(debugName: "to_card_note_dto", argNames: ["card"]);
+
+  @override
+  Future<PoolDetailDto> crateApiUtilsToPoolDetailDto({
+    required Pool pool,
+    required String endpointId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool(pool, serializer);
+          sse_encode_String(endpointId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_detail_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiUtilsToPoolDetailDtoConstMeta,
+        argValues: [pool, endpointId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsToPoolDetailDtoConstMeta =>
+      const TaskConstMeta(
+        debugName: "to_pool_detail_dto",
+        argNames: ["pool", "endpointId"],
+      );
+
+  @override
+  Future<PoolDto> crateApiUtilsToPoolDto({
+    required Pool pool,
+    required String endpointId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool(pool, serializer);
+          sse_encode_String(endpointId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiUtilsToPoolDtoConstMeta,
+        argValues: [pool, endpointId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUtilsToPoolDtoConstMeta => const TaskConstMeta(
+    debugName: "to_pool_dto",
+    argNames: ["pool", "endpointId"],
+  );
+
+  @override
   Future<BackendConfigDto> crateApiUpdateBackendConfig({
     required bool httpEnabled,
     required bool mcpEnabled,
@@ -981,7 +1262,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1018,7 +1299,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1042,6 +1323,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as String;
+  }
+
+  @protected
+  UuidValue dco_decode_Uuid(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return UuidValue.fromByteList(dco_decode_list_prim_u_8_strict(raw));
   }
 
   @protected
@@ -1082,6 +1369,77 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Card dco_decode_box_autoadd_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_card(raw);
+  }
+
+  @protected
+  CardMindError dco_decode_box_autoadd_card_mind_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_card_mind_error(raw);
+  }
+
+  @protected
+  Pool dco_decode_box_autoadd_pool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pool(raw);
+  }
+
+  @protected
+  PoolMember dco_decode_box_autoadd_pool_member(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pool_member(raw);
+  }
+
+  @protected
+  Card dco_decode_card(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return Card(
+      id: dco_decode_Uuid(arr[0]),
+      title: dco_decode_String(arr[1]),
+      content: dco_decode_String(arr[2]),
+      createdAt: dco_decode_i_64(arr[3]),
+      updatedAt: dco_decode_i_64(arr[4]),
+      deleted: dco_decode_bool(arr[5]),
+    );
+  }
+
+  @protected
+  CardMindError dco_decode_card_mind_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return CardMindError_Io(dco_decode_String(raw[1]));
+      case 1:
+        return CardMindError_Sqlite(dco_decode_String(raw[1]));
+      case 2:
+        return CardMindError_Loro(dco_decode_String(raw[1]));
+      case 3:
+        return CardMindError_InvalidArgument(dco_decode_String(raw[1]));
+      case 4:
+        return CardMindError_NotFound(dco_decode_String(raw[1]));
+      case 5:
+        return CardMindError_ProjectionNotConverged(
+          entity: dco_decode_String(raw[1]),
+          entityId: dco_decode_String(raw[2]),
+          retryAction: dco_decode_String(raw[3]),
+        );
+      case 6:
+        return CardMindError_NotImplemented(dco_decode_String(raw[1]));
+      case 7:
+        return CardMindError_NotMember(dco_decode_String(raw[1]));
+      case 8:
+        return CardMindError_Internal(dco_decode_String(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   CardNoteDto dco_decode_card_note_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1110,6 +1468,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<UuidValue> dco_decode_list_Uuid(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    const kUuidSizeInBytes = 16;
+    final bytes = dco_decode_list_prim_u_8_strict(raw);
+    return List.generate(
+      bytes.lengthInBytes ~/ kUuidSizeInBytes,
+      (i) => UuidValue.fromByteList(
+        Uint8List.view(bytes.buffer, i * kUuidSizeInBytes, kUuidSizeInBytes),
+      ),
+      growable: false,
+    );
+  }
+
+  @protected
   List<CardNoteDto> dco_decode_list_card_note_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_card_note_dto).toList();
@@ -1119,6 +1491,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<PoolDto> dco_decode_list_pool_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_pool_dto).toList();
+  }
+
+  @protected
+  List<PoolMember> dco_decode_list_pool_member(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_pool_member).toList();
   }
 
   @protected
@@ -1143,6 +1521,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_bool(raw);
+  }
+
+  @protected
+  Pool dco_decode_pool(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return Pool(
+      poolId: dco_decode_Uuid(arr[0]),
+      members: dco_decode_list_pool_member(arr[1]),
+      cardIds: dco_decode_list_Uuid(arr[2]),
+    );
   }
 
   @protected
@@ -1178,6 +1569,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PoolMember dco_decode_pool_member(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return PoolMember(
+      endpointId: dco_decode_String(arr[0]),
+      nickname: dco_decode_String(arr[1]),
+      os: dco_decode_String(arr[2]),
+      isAdmin: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
   PoolMemberDto dco_decode_pool_member_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1208,14 +1613,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SyncResultDto dco_decode_sync_result_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return SyncResultDto(
       state: dco_decode_String(arr[0]),
       writeState: dco_decode_String(arr[1]),
       projectionState: dco_decode_String(arr[2]),
       syncState: dco_decode_String(arr[3]),
-      code: dco_decode_opt_String(arr[4]),
+      continuityState: dco_decode_String(arr[4]),
+      contentState: dco_decode_String(arr[5]),
+      nextAction: dco_decode_String(arr[6]),
+      code: dco_decode_opt_String(arr[7]),
     );
   }
 
@@ -1223,14 +1631,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   SyncStatusDto dco_decode_sync_status_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return SyncStatusDto(
       state: dco_decode_String(arr[0]),
       writeState: dco_decode_String(arr[1]),
       projectionState: dco_decode_String(arr[2]),
       syncState: dco_decode_String(arr[3]),
-      code: dco_decode_opt_String(arr[4]),
+      continuityState: dco_decode_String(arr[4]),
+      contentState: dco_decode_String(arr[5]),
+      nextAction: dco_decode_String(arr[6]),
+      code: dco_decode_opt_String(arr[7]),
     );
   }
 
@@ -1266,6 +1677,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  UuidValue sse_decode_Uuid(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_list_prim_u_8_strict(deserializer);
+    return UuidValue.fromByteList(inner);
+  }
+
+  @protected
   ApiError sse_decode_api_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_code = sse_decode_String(deserializer);
@@ -1296,6 +1714,95 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bool(deserializer));
+  }
+
+  @protected
+  Card sse_decode_box_autoadd_card(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_card(deserializer));
+  }
+
+  @protected
+  CardMindError sse_decode_box_autoadd_card_mind_error(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_card_mind_error(deserializer));
+  }
+
+  @protected
+  Pool sse_decode_box_autoadd_pool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pool(deserializer));
+  }
+
+  @protected
+  PoolMember sse_decode_box_autoadd_pool_member(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pool_member(deserializer));
+  }
+
+  @protected
+  Card sse_decode_card(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_Uuid(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_content = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_i_64(deserializer);
+    var var_updatedAt = sse_decode_i_64(deserializer);
+    var var_deleted = sse_decode_bool(deserializer);
+    return Card(
+      id: var_id,
+      title: var_title,
+      content: var_content,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+      deleted: var_deleted,
+    );
+  }
+
+  @protected
+  CardMindError sse_decode_card_mind_error(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_Io(var_field0);
+      case 1:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_Sqlite(var_field0);
+      case 2:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_Loro(var_field0);
+      case 3:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_InvalidArgument(var_field0);
+      case 4:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_NotFound(var_field0);
+      case 5:
+        var var_entity = sse_decode_String(deserializer);
+        var var_entityId = sse_decode_String(deserializer);
+        var var_retryAction = sse_decode_String(deserializer);
+        return CardMindError_ProjectionNotConverged(
+          entity: var_entity,
+          entityId: var_entityId,
+          retryAction: var_retryAction,
+        );
+      case 6:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_NotImplemented(var_field0);
+      case 7:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_NotMember(var_field0);
+      case 8:
+        var var_field0 = sse_decode_String(deserializer);
+        return CardMindError_Internal(var_field0);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -1336,6 +1843,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<UuidValue> sse_decode_list_Uuid(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <UuidValue>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_Uuid(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<CardNoteDto> sse_decode_list_card_note_dto(
     SseDeserializer deserializer,
   ) {
@@ -1357,6 +1876,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <PoolDto>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_pool_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PoolMember> sse_decode_list_pool_member(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PoolMember>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pool_member(deserializer));
     }
     return ans_;
   }
@@ -1405,6 +1936,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  Pool sse_decode_pool(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_poolId = sse_decode_Uuid(deserializer);
+    var var_members = sse_decode_list_pool_member(deserializer);
+    var var_cardIds = sse_decode_list_Uuid(deserializer);
+    return Pool(poolId: var_poolId, members: var_members, cardIds: var_cardIds);
+  }
+
+  @protected
   PoolDetailDto sse_decode_pool_detail_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_String(deserializer);
@@ -1439,6 +1979,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       isDissolved: var_isDissolved,
       currentUserRole: var_currentUserRole,
       memberCount: var_memberCount,
+    );
+  }
+
+  @protected
+  PoolMember sse_decode_pool_member(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_endpointId = sse_decode_String(deserializer);
+    var var_nickname = sse_decode_String(deserializer);
+    var var_os = sse_decode_String(deserializer);
+    var var_isAdmin = sse_decode_bool(deserializer);
+    return PoolMember(
+      endpointId: var_endpointId,
+      nickname: var_nickname,
+      os: var_os,
+      isAdmin: var_isAdmin,
     );
   }
 
@@ -1479,12 +2034,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_writeState = sse_decode_String(deserializer);
     var var_projectionState = sse_decode_String(deserializer);
     var var_syncState = sse_decode_String(deserializer);
+    var var_continuityState = sse_decode_String(deserializer);
+    var var_contentState = sse_decode_String(deserializer);
+    var var_nextAction = sse_decode_String(deserializer);
     var var_code = sse_decode_opt_String(deserializer);
     return SyncResultDto(
       state: var_state,
       writeState: var_writeState,
       projectionState: var_projectionState,
       syncState: var_syncState,
+      continuityState: var_continuityState,
+      contentState: var_contentState,
+      nextAction: var_nextAction,
       code: var_code,
     );
   }
@@ -1496,12 +2057,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_writeState = sse_decode_String(deserializer);
     var var_projectionState = sse_decode_String(deserializer);
     var var_syncState = sse_decode_String(deserializer);
+    var var_continuityState = sse_decode_String(deserializer);
+    var var_contentState = sse_decode_String(deserializer);
+    var var_nextAction = sse_decode_String(deserializer);
     var var_code = sse_decode_opt_String(deserializer);
     return SyncStatusDto(
       state: var_state,
       writeState: var_writeState,
       projectionState: var_projectionState,
       syncState: var_syncState,
+      continuityState: var_continuityState,
+      contentState: var_contentState,
+      nextAction: var_nextAction,
       code: var_code,
     );
   }
@@ -1542,6 +2109,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_Uuid(UuidValue self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_prim_u_8_strict(self.toBytes(), serializer);
+  }
+
+  @protected
   void sse_encode_api_error(ApiError self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.code, serializer);
@@ -1572,6 +2145,90 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_card(Card self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_card(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_card_mind_error(
+    CardMindError self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_card_mind_error(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pool(Pool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pool(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pool_member(
+    PoolMember self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pool_member(self, serializer);
+  }
+
+  @protected
+  void sse_encode_card(Card self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_Uuid(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.content, serializer);
+    sse_encode_i_64(self.createdAt, serializer);
+    sse_encode_i_64(self.updatedAt, serializer);
+    sse_encode_bool(self.deleted, serializer);
+  }
+
+  @protected
+  void sse_encode_card_mind_error(
+    CardMindError self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case CardMindError_Io(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(field0, serializer);
+      case CardMindError_Sqlite(field0: final field0):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(field0, serializer);
+      case CardMindError_Loro(field0: final field0):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(field0, serializer);
+      case CardMindError_InvalidArgument(field0: final field0):
+        sse_encode_i_32(3, serializer);
+        sse_encode_String(field0, serializer);
+      case CardMindError_NotFound(field0: final field0):
+        sse_encode_i_32(4, serializer);
+        sse_encode_String(field0, serializer);
+      case CardMindError_ProjectionNotConverged(
+        entity: final entity,
+        entityId: final entityId,
+        retryAction: final retryAction,
+      ):
+        sse_encode_i_32(5, serializer);
+        sse_encode_String(entity, serializer);
+        sse_encode_String(entityId, serializer);
+        sse_encode_String(retryAction, serializer);
+      case CardMindError_NotImplemented(field0: final field0):
+        sse_encode_i_32(6, serializer);
+        sse_encode_String(field0, serializer);
+      case CardMindError_NotMember(field0: final field0):
+        sse_encode_i_32(7, serializer);
+        sse_encode_String(field0, serializer);
+      case CardMindError_Internal(field0: final field0):
+        sse_encode_i_32(8, serializer);
+        sse_encode_String(field0, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_card_note_dto(CardNoteDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.id, serializer);
@@ -1598,6 +2255,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_Uuid(List<UuidValue> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_Uuid(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_card_note_dto(
     List<CardNoteDto> self,
     SseSerializer serializer,
@@ -1615,6 +2281,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_pool_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_pool_member(
+    List<PoolMember> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pool_member(item, serializer);
     }
   }
 
@@ -1661,6 +2339,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_pool(Pool self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_Uuid(self.poolId, serializer);
+    sse_encode_list_pool_member(self.members, serializer);
+    sse_encode_list_Uuid(self.cardIds, serializer);
+  }
+
+  @protected
   void sse_encode_pool_detail_dto(
     PoolDetailDto self,
     SseSerializer serializer,
@@ -1683,6 +2369,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.isDissolved, serializer);
     sse_encode_String(self.currentUserRole, serializer);
     sse_encode_usize(self.memberCount, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_member(PoolMember self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.endpointId, serializer);
+    sse_encode_String(self.nickname, serializer);
+    sse_encode_String(self.os, serializer);
+    sse_encode_bool(self.isAdmin, serializer);
   }
 
   @protected
@@ -1718,6 +2413,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.writeState, serializer);
     sse_encode_String(self.projectionState, serializer);
     sse_encode_String(self.syncState, serializer);
+    sse_encode_String(self.continuityState, serializer);
+    sse_encode_String(self.contentState, serializer);
+    sse_encode_String(self.nextAction, serializer);
     sse_encode_opt_String(self.code, serializer);
   }
 
@@ -1731,6 +2429,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.writeState, serializer);
     sse_encode_String(self.projectionState, serializer);
     sse_encode_String(self.syncState, serializer);
+    sse_encode_String(self.continuityState, serializer);
+    sse_encode_String(self.contentState, serializer);
+    sse_encode_String(self.nextAction, serializer);
     sse_encode_opt_String(self.code, serializer);
   }
 

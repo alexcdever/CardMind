@@ -4,12 +4,17 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api.dart';
+import 'api/utils.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'frb_generated.dart';
 import 'models/api_error.dart';
+import 'models/card.dart';
+import 'models/error.dart';
+import 'models/pool.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
+import 'package:uuid/uuid.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
 
@@ -25,6 +30,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  UuidValue dco_decode_Uuid(dynamic raw);
+
+  @protected
   ApiError dco_decode_api_error(dynamic raw);
 
   @protected
@@ -37,6 +45,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
+  Card dco_decode_box_autoadd_card(dynamic raw);
+
+  @protected
+  CardMindError dco_decode_box_autoadd_card_mind_error(dynamic raw);
+
+  @protected
+  Pool dco_decode_box_autoadd_pool(dynamic raw);
+
+  @protected
+  PoolMember dco_decode_box_autoadd_pool_member(dynamic raw);
+
+  @protected
+  Card dco_decode_card(dynamic raw);
+
+  @protected
+  CardMindError dco_decode_card_mind_error(dynamic raw);
+
+  @protected
   CardNoteDto dco_decode_card_note_dto(dynamic raw);
 
   @protected
@@ -46,10 +72,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<UuidValue> dco_decode_list_Uuid(dynamic raw);
+
+  @protected
   List<CardNoteDto> dco_decode_list_card_note_dto(dynamic raw);
 
   @protected
   List<PoolDto> dco_decode_list_pool_dto(dynamic raw);
+
+  @protected
+  List<PoolMember> dco_decode_list_pool_member(dynamic raw);
 
   @protected
   List<PoolMemberDto> dco_decode_list_pool_member_dto(dynamic raw);
@@ -64,10 +96,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
+  Pool dco_decode_pool(dynamic raw);
+
+  @protected
   PoolDetailDto dco_decode_pool_detail_dto(dynamic raw);
 
   @protected
   PoolDto dco_decode_pool_dto(dynamic raw);
+
+  @protected
+  PoolMember dco_decode_pool_member(dynamic raw);
 
   @protected
   PoolMemberDto dco_decode_pool_member_dto(dynamic raw);
@@ -97,6 +135,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  UuidValue sse_decode_Uuid(SseDeserializer deserializer);
+
+  @protected
   ApiError sse_decode_api_error(SseDeserializer deserializer);
 
   @protected
@@ -109,6 +150,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  Card sse_decode_box_autoadd_card(SseDeserializer deserializer);
+
+  @protected
+  CardMindError sse_decode_box_autoadd_card_mind_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Pool sse_decode_box_autoadd_pool(SseDeserializer deserializer);
+
+  @protected
+  PoolMember sse_decode_box_autoadd_pool_member(SseDeserializer deserializer);
+
+  @protected
+  Card sse_decode_card(SseDeserializer deserializer);
+
+  @protected
+  CardMindError sse_decode_card_mind_error(SseDeserializer deserializer);
+
+  @protected
   CardNoteDto sse_decode_card_note_dto(SseDeserializer deserializer);
 
   @protected
@@ -118,10 +179,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<UuidValue> sse_decode_list_Uuid(SseDeserializer deserializer);
+
+  @protected
   List<CardNoteDto> sse_decode_list_card_note_dto(SseDeserializer deserializer);
 
   @protected
   List<PoolDto> sse_decode_list_pool_dto(SseDeserializer deserializer);
+
+  @protected
+  List<PoolMember> sse_decode_list_pool_member(SseDeserializer deserializer);
 
   @protected
   List<PoolMemberDto> sse_decode_list_pool_member_dto(
@@ -138,10 +205,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  Pool sse_decode_pool(SseDeserializer deserializer);
+
+  @protected
   PoolDetailDto sse_decode_pool_detail_dto(SseDeserializer deserializer);
 
   @protected
   PoolDto sse_decode_pool_dto(SseDeserializer deserializer);
+
+  @protected
+  PoolMember sse_decode_pool_member(SseDeserializer deserializer);
 
   @protected
   PoolMemberDto sse_decode_pool_member_dto(SseDeserializer deserializer);
@@ -176,6 +249,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
+  void sse_encode_Uuid(UuidValue self, SseSerializer serializer);
+
+  @protected
   void sse_encode_api_error(ApiError self, SseSerializer serializer);
 
   @protected
@@ -191,6 +267,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_card(Card self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_card_mind_error(
+    CardMindError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pool(Pool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_pool_member(
+    PoolMember self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_card(Card self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_card_mind_error(CardMindError self, SseSerializer serializer);
+
+  @protected
   void sse_encode_card_note_dto(CardNoteDto self, SseSerializer serializer);
 
   @protected
@@ -200,6 +300,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_Uuid(List<UuidValue> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_card_note_dto(
     List<CardNoteDto> self,
     SseSerializer serializer,
@@ -207,6 +310,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_pool_dto(List<PoolDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_pool_member(
+    List<PoolMember> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_pool_member_dto(
@@ -227,10 +336,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_pool(Pool self, SseSerializer serializer);
+
+  @protected
   void sse_encode_pool_detail_dto(PoolDetailDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_pool_dto(PoolDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pool_member(PoolMember self, SseSerializer serializer);
 
   @protected
   void sse_encode_pool_member_dto(PoolMemberDto self, SseSerializer serializer);

@@ -6,11 +6,16 @@ import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/bridge_generated/api.dart';
+import 'package:cardmind/bridge_generated/models/card.dart' as frb_models;
+import 'package:cardmind/bridge_generated/models/api_error.dart';
+import 'package:cardmind/bridge_generated/models/error.dart';
+import 'package:cardmind/bridge_generated/models/pool.dart';
 import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:cardmind/bridge_generated/runtime/config.dart';
 import 'package:cardmind/bridge_generated/runtime/entry_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uuid/uuid.dart';
 
 class _FakeCardApiClient implements CardApiClient {
   final Map<String, _FakeCardRecord> _records = <String, _FakeCardRecord>{};
@@ -152,6 +157,8 @@ class _FakeCardRecord {
 }
 
 class _MockRustLibApi extends RustLibApi {
+  final _uuid = const Uuid();
+
   @override
   Future<void> crateApiClosePoolNetwork({required BigInt networkId}) async {}
 
@@ -183,6 +190,12 @@ class _MockRustLibApi extends RustLibApi {
     required String nickname,
     required String os,
   }) => throw UnimplementedError();
+
+  @override
+  Future<String> crateApiUtilsCurrentMemberRoleForEndpoint({
+    required Pool pool,
+    required String endpointId,
+  }) async => 'admin';
 
   @override
   Future<CardNoteDto> crateApiGetCardNoteDetail({required String cardId}) =>
@@ -293,6 +306,24 @@ class _MockRustLibApi extends RustLibApi {
       const <PoolDto>[];
 
   @override
+  Future<ApiError> crateApiUtilsMapErr({required CardMindError err}) async =>
+      const ApiError(code: 'INTERNAL', message: 'mock');
+
+  @override
+  Future<String> crateApiUtilsMemberRole({required PoolMember member}) async =>
+      member.isAdmin ? 'admin' : 'member';
+
+  @override
+  Future<UuidValue> crateApiUtilsParseUuid({
+    required String raw,
+    required String field,
+  }) async => UuidValue.fromString(raw);
+
+  @override
+  Future<String> crateApiUtilsPoolName({required Pool pool}) async =>
+      pool.poolId.toString();
+
+  @override
   Future<void> crateApiResetAppConfigForTests() async {}
 
   @override
@@ -322,6 +353,59 @@ class _MockRustLibApi extends RustLibApi {
   @override
   Future<SyncStatusDto> crateApiSyncStatus({required BigInt networkId}) =>
       throw UnimplementedError();
+
+  @override
+  Future<CardNoteDto> crateApiUtilsToCardNoteDto({
+    required frb_models.Card card,
+  }) async {
+    return CardNoteDto(
+      id: card.id.toString(),
+      title: card.title,
+      content: card.content,
+      createdAt: card.createdAt,
+      updatedAt: card.updatedAt,
+      deleted: card.deleted,
+    );
+  }
+
+  @override
+  Future<PoolDetailDto> crateApiUtilsToPoolDetailDto({
+    required Pool pool,
+    required String endpointId,
+  }) async {
+    return PoolDetailDto(
+      id: pool.poolId.toString(),
+      name: pool.poolId.toString(),
+      isDissolved: false,
+      currentUserRole: 'admin',
+      memberCount: BigInt.from(pool.members.length),
+      noteIds: pool.cardIds.map((id) => id.toString()).toList(growable: false),
+      members: pool.members
+          .map(
+            (member) => PoolMemberDto(
+              endpointId: member.endpointId,
+              nickname: member.nickname,
+              os: member.os,
+              role: member.isAdmin ? 'admin' : 'member',
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  @override
+  Future<PoolDto> crateApiUtilsToPoolDto({
+    required Pool pool,
+    required String endpointId,
+  }) async {
+    return PoolDto(
+      id: pool.poolId.toString(),
+      name: pool.poolId.toString(),
+      isDissolved: false,
+      currentUserRole: 'admin',
+      memberCount: BigInt.from(pool.members.length),
+    );
+  }
 
   @override
   Future<CardNoteDto> crateApiUpdateCardNote({

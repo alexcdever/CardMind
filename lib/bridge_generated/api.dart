@@ -9,7 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
 
-// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `current_member_for_endpoint`, `current_member_role_for_endpoint`, `list_all_card_ids`, `map_err`, `member_role`, `parse_card_id`, `parse_pool_id`, `parse_uuid`, `pool_name`, `pool_network_map`, `projection_state`, `to_card_note_dto`, `to_pool_detail_dto`, `to_pool_dto`, `with_configured_card_store`, `with_configured_pool_store`
+// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `content_state`, `continuity_state`, `list_all_card_ids`, `next_action`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `with_configured_card_store`, `with_configured_pool_store`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 Future<BackendConfigDto> getBackendConfig() =>
@@ -316,6 +316,9 @@ class SyncResultDto {
   final String writeState;
   final String projectionState;
   final String syncState;
+  final String continuityState;
+  final String contentState;
+  final String nextAction;
   final String? code;
 
   const SyncResultDto({
@@ -323,6 +326,9 @@ class SyncResultDto {
     required this.writeState,
     required this.projectionState,
     required this.syncState,
+    required this.continuityState,
+    required this.contentState,
+    required this.nextAction,
     this.code,
   });
 
@@ -332,6 +338,9 @@ class SyncResultDto {
       writeState.hashCode ^
       projectionState.hashCode ^
       syncState.hashCode ^
+      continuityState.hashCode ^
+      contentState.hashCode ^
+      nextAction.hashCode ^
       code.hashCode;
 
   @override
@@ -343,6 +352,9 @@ class SyncResultDto {
           writeState == other.writeState &&
           projectionState == other.projectionState &&
           syncState == other.syncState &&
+          continuityState == other.continuityState &&
+          contentState == other.contentState &&
+          nextAction == other.nextAction &&
           code == other.code;
 }
 
@@ -351,6 +363,9 @@ class SyncStatusDto {
   final String writeState;
   final String projectionState;
   final String syncState;
+  final String continuityState;
+  final String contentState;
+  final String nextAction;
   final String? code;
 
   const SyncStatusDto({
@@ -358,6 +373,9 @@ class SyncStatusDto {
     required this.writeState,
     required this.projectionState,
     required this.syncState,
+    required this.continuityState,
+    required this.contentState,
+    required this.nextAction,
     this.code,
   });
 
@@ -367,6 +385,9 @@ class SyncStatusDto {
       writeState.hashCode ^
       projectionState.hashCode ^
       syncState.hashCode ^
+      continuityState.hashCode ^
+      contentState.hashCode ^
+      nextAction.hashCode ^
       code.hashCode;
 
   @override
@@ -378,5 +399,8 @@ class SyncStatusDto {
           writeState == other.writeState &&
           projectionState == other.projectionState &&
           syncState == other.syncState &&
+          continuityState == other.continuityState &&
+          contentState == other.contentState &&
+          nextAction == other.nextAction &&
           code == other.code;
 }

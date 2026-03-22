@@ -16,37 +16,71 @@ class SyncStatus {
   const SyncStatus.idle()
     : kind = SyncStatusKind.idle,
       code = null,
-      isWriteSaved = false;
+      isWriteSaved = false,
+      continuityState = 'same_path',
+      contentState = 'content_safe',
+      nextAction = 'none';
 
   const SyncStatus.connecting()
     : kind = SyncStatusKind.connecting,
       code = null,
-      isWriteSaved = false;
+      isWriteSaved = false,
+      continuityState = 'same_path',
+      contentState = 'content_safe_local_only',
+      nextAction = 'check_status';
 
-  const SyncStatus.connected({this.isWriteSaved = false})
-    : kind = SyncStatusKind.connected,
-      code = null;
+  const SyncStatus.connected({
+    this.isWriteSaved = false,
+    this.continuityState = 'same_path',
+    this.contentState = 'content_safe',
+    this.nextAction = 'none',
+  }) : kind = SyncStatusKind.connected,
+       code = null;
 
-  const SyncStatus.syncing({this.isWriteSaved = false})
-    : kind = SyncStatusKind.syncing,
-      code = null;
+  const SyncStatus.syncing({
+    this.isWriteSaved = false,
+    this.continuityState = 'same_path',
+    this.contentState = 'content_safe_local_only',
+    this.nextAction = 'check_status',
+  }) : kind = SyncStatusKind.syncing,
+       code = null;
 
-  const SyncStatus.projectionPending(this.code)
-    : kind = SyncStatusKind.projectionPending,
-      isWriteSaved = true;
+  const SyncStatus.projectionPending(
+    this.code, {
+    this.continuityState = 'same_path',
+    this.contentState = 'content_safe_local_only',
+    this.nextAction = 'check_status',
+  }) : kind = SyncStatusKind.projectionPending,
+       isWriteSaved = true;
 
-  const SyncStatus.degraded([this.code, this.isWriteSaved = false])
-    : kind = SyncStatusKind.degraded;
+  const SyncStatus.degraded([
+    this.code,
+    this.isWriteSaved = false,
+    this.continuityState = 'same_path',
+    this.contentState = 'content_safe_local_only',
+    this.nextAction = 'check_status',
+  ]) : kind = SyncStatusKind.degraded;
 
-  const SyncStatus.error(this.code, {this.isWriteSaved = false})
-    : kind = SyncStatusKind.error;
+  const SyncStatus.error(
+    this.code, {
+    this.isWriteSaved = false,
+    this.continuityState = 'same_path',
+    this.contentState = 'content_safe_local_only',
+    this.nextAction = 'reconnect',
+  }) : kind = SyncStatusKind.error;
 
   const SyncStatus.healthy()
     : kind = SyncStatusKind.connected,
       code = null,
-      isWriteSaved = false;
+      isWriteSaved = false,
+      continuityState = 'same_path',
+      contentState = 'content_safe',
+      nextAction = 'none';
 
   final SyncStatusKind kind;
   final String? code;
   final bool isWriteSaved;
+  final String continuityState;
+  final String contentState;
+  final String nextAction;
 }

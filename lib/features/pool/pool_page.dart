@@ -578,7 +578,11 @@ class _PoolPageState extends State<PoolPage> {
     final tone = isError
         ? Theme.of(context).colorScheme.errorContainer
         : Theme.of(context).colorScheme.secondaryContainer;
-    final message = isError ? _syncErrorMessage(status.code) : '同步状态降级：可继续本地操作';
+    final message = isError
+        ? _syncErrorMessage(status.code)
+        : _syncContinuityMessage(status.continuityState);
+    final contentMessage = _syncContentMessage(status.contentState);
+    final actionMessage = _syncNextActionMessage(status.nextAction);
 
     return Container(
       width: double.infinity,
@@ -592,6 +596,10 @@ class _PoolPageState extends State<PoolPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(message),
+          const SizedBox(height: 4),
+          Text(contentMessage),
+          const SizedBox(height: 4),
+          Text(actionMessage),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -631,6 +639,39 @@ class _PoolPageState extends State<PoolPage> {
         return '管理员离线，请查看并处理';
       default:
         return '同步异常，请在数据池列表页处理';
+    }
+  }
+
+  String _syncContinuityMessage(String continuityState) {
+    switch (continuityState) {
+      case 'same_path':
+        return '同步状态降级：仍在同一条延续路径';
+      default:
+        return '同步状态降级：延续路径状态待确认';
+    }
+  }
+
+  String _syncContentMessage(String contentState) {
+    switch (contentState) {
+      case 'content_safe':
+        return '当前内容安全，可继续使用。';
+      case 'content_safe_local_only':
+        return '当前内容安全，可继续本地操作。';
+      default:
+        return '当前内容状态待确认，请先检查同步状态。';
+    }
+  }
+
+  String _syncNextActionMessage(String nextAction) {
+    switch (nextAction) {
+      case 'reconnect':
+        return '建议下一步：重新连接';
+      case 'check_status':
+        return '建议下一步：检查当前状态';
+      case 'retry':
+        return '建议下一步：重试同步';
+      default:
+        return '建议下一步：无需额外操作';
     }
   }
 }

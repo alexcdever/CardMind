@@ -5,7 +5,7 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{PoolEndpoint, build_endpoint};
+use crate::net::endpoint::{build_endpoint, PoolEndpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::store::card_store::CardNoteRepository;
@@ -82,6 +82,9 @@ pub struct SyncStatusDto {
     pub write_state: String,
     pub projection_state: String,
     pub sync_state: String,
+    pub continuity_state: String,
+    pub content_state: String,
+    pub next_action: String,
     pub code: Option<String>,
 }
 
@@ -91,7 +94,35 @@ pub struct SyncResultDto {
     pub write_state: String,
     pub projection_state: String,
     pub sync_state: String,
+    pub continuity_state: String,
+    pub content_state: String,
+    pub next_action: String,
     pub code: Option<String>,
+}
+
+fn continuity_state(sync_state: &str) -> String {
+    match sync_state {
+        "sync_failed" => "same_path".to_string(),
+        _ => "same_path".to_string(),
+    }
+}
+
+fn content_state(projection_state: &str, sync_state: &str) -> String {
+    if projection_state == "projection_pending" || sync_state == "sync_failed" {
+        "content_safe_local_only".to_string()
+    } else {
+        "content_safe".to_string()
+    }
+}
+
+fn next_action(projection_state: &str, sync_state: &str) -> String {
+    if sync_state == "sync_failed" {
+        "reconnect".to_string()
+    } else if projection_state == "projection_pending" {
+        "check_status".to_string()
+    } else {
+        "none".to_string()
+    }
 }
 
 pub fn get_backend_config() -> Result<BackendConfigDto, ApiError> {
@@ -119,8 +150,8 @@ pub fn update_backend_config(
 }
 
 /// 获取运行时入口状态
-pub fn get_runtime_entry_status()
--> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+pub fn get_runtime_entry_status(
+) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -147,6 +178,9 @@ fn combine_sync_status(
     sync_code: Option<String>,
 ) -> Result<SyncStatusDto, ApiError> {
     let (projection_state, projection_code) = projection_state(base_path)?;
+    let continuity_state = continuity_state(sync_state);
+    let content_state = content_state(&projection_state, sync_state);
+    let next_action = next_action(&projection_state, sync_state);
     let state = if sync_state == "sync_failed" || projection_state == "projection_pending" {
         "degraded".to_string()
     } else {
@@ -158,6 +192,9 @@ fn combine_sync_status(
         write_state: "write_saved".to_string(),
         projection_state,
         sync_state: sync_state.to_string(),
+        continuity_state,
+        content_state,
+        next_action,
         code: sync_code.or(projection_code),
     })
 }
@@ -168,6 +205,9 @@ fn combine_sync_result(
     sync_code: Option<String>,
 ) -> Result<SyncResultDto, ApiError> {
     let (projection_state, projection_code) = projection_state(base_path)?;
+    let continuity_state = continuity_state(sync_state);
+    let content_state = content_state(&projection_state, sync_state);
+    let next_action = next_action(&projection_state, sync_state);
     let state = if sync_state == "sync_failed" || projection_state == "projection_pending" {
         "degraded".to_string()
     } else {
@@ -179,6 +219,9 @@ fn combine_sync_result(
         write_state: "write_saved".to_string(),
         projection_state,
         sync_state: sync_state.to_string(),
+        continuity_state,
+        content_state,
+        next_action,
         code: sync_code.or(projection_code),
     })
 }
