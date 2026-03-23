@@ -7,14 +7,16 @@
 
 <!-- 列出当前正在进行的任务，最多3个 -->
 
-1. 整理 `Phase 1` Rust-first 落地改动并准备提交 - 进度 90%
+1. 基于 `docs/specs/product.md` 与 `docs/specs/user-journeys.md` 规划下一阶段 roadmap / phase plan - 进度 0%
 2. 评估是否继续推进更深一层的 Rust 同步语义或转入下一阶段规划 - 进度 10%
 
 ## 待办事项
 
 <!-- 待处理但尚未开始的任务 -->
 
-- [ ] 创建本次 Phase 1 Rust-first 落地的 git commit
+- [ ] 整理下一阶段 roadmap / phase plan
+- [ ] 评估未来是否需要单独立项“最小可信设置中心”
+- [ ] 继续识别当前产品结构中的主路径噪音与优先级误导点
 - [ ] 判断是否继续扩展 Rust 同步契约，还是收口到当前 Phase 1 基线
 - [ ] 评估何时进入 `Phase 2` 的系统性恢复能力设计
 
@@ -36,6 +38,8 @@
 | 2026-03-18 | Test Boundary Guardian 系统已合并到 main | 功能开发完成，质量检查通过 |
 | 2026-03-18 | 新增网络层单元测试 54 个 | endpoint.rs 和 pool_network.rs 纯函数全覆盖 |
 | 2026-03-20 | 新增 `docs/specs/product.md` 作为产品级真相源 | 统一终极目标、阶段目标、目标用户和能力边界，减少 AI 与文档漂移 |
+| 2026-03-20 | 新增 `docs/specs/user-journeys.md` 作为旅程层下游规格 | 把“产品是什么”下沉为“用户如何感知产品成立”的正式真相源 |
+| 2026-03-20 | 当前阶段移除设置一级入口，而不是补设置中心 | 设置空壳入口持续制造完成度损伤与优先级误导，应先收紧公开主导航语义 |
 | 2026-03-20 | 私人背景转入本地 `AGENT.local.md` 而非公开仓库 | 信息对 AI 有价值，但不适合开源暴露 |
 | 2026-03-20 | 产品相关 design/plan 文档继续统一放在 `docs/plans/` | 遵循当前仓库的文档分层规范 |
 | 2026-03-23 | `Phase 1` 实施改为 Rust-first | 同步、恢复与连续性语义应由 Rust 契约定义，Flutter 只负责消费与展示 |
@@ -50,6 +54,10 @@
 - [用户旅程规格](docs/specs/user-journeys.md)
 - [roadmap design](docs/plans/2026-03-23-next-phase-roadmap-design.md)
 - [roadmap implementation plan](docs/plans/2026-03-23-next-phase-roadmap-implementation-plan.md)
+- [产品深度审计](docs/plans/2026-03-19-cardmind-product-audit.md)
+- [产品真相源实施计划](docs/plans/2026-03-19-product-truth-source-implementation-plan.md)
+- [移除设置一级入口设计](docs/plans/2026-03-20-remove-settings-primary-entry-design.md)
+- [移除设置一级入口实施计划](docs/plans/2026-03-20-remove-settings-primary-entry-implementation-plan.md)
 - [今日工作日志](docs/memory/2026-03-23.md)
 
 ---
