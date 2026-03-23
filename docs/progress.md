@@ -7,25 +7,26 @@
 
 <!-- 列出当前正在进行的任务，最多3个 -->
 
-1. 基于 `docs/specs/product.md` 与 `docs/specs/user-journeys.md` 规划下一阶段 roadmap / phase plan - 进度 0%
-2. 评估是否继续推进更深一层的 Rust 同步语义或转入下一阶段规划 - 进度 10%
+1. 按 `docs/plans/2026-03-23-phase2-trust-first-recovery-implementation-plan.md` 执行 `Phase 2` 信任优先恢复实现 - 进度 0%
+2. 迁移 Flutter / FRB / 测试代码中对旧 `projectionState` 的依赖到 `queryConvergenceState` 等新契约字段 - 进度 0%
+3. 维持 Rust-first 恢复契约边界，避免 Flutter 重新承担恢复语义推断 - 进度 15%
 
 ## 待办事项
 
 <!-- 待处理但尚未开始的任务 -->
 
-- [ ] 整理下一阶段 roadmap / phase plan
-- [ ] 评估未来是否需要单独立项“最小可信设置中心”
-- [ ] 继续识别当前产品结构中的主路径噪音与优先级误导点
-- [ ] 判断是否继续扩展 Rust 同步契约，还是收口到当前 Phase 1 基线
-- [ ] 评估何时进入 `Phase 2` 的系统性恢复能力设计
+- [ ] 开始执行 `Phase 2` trust-first recovery implementation plan
+- [ ] 完成 Rust 侧 `query_convergence / sync / instance_continuity` 恢复契约落地
+- [ ] 完成 Flutter 侧 `queryConvergenceState` 契约消费与 UI 反馈迁移
+- [ ] 清理 `lib/` 与 `test/` 中遗留的 `projectionState` 引用
+- [ ] 跑完 plan 里定义的 bridge / quality / boundary scan 验证
 
 ## 阻塞/卡点
 
 <!-- 当前遇到的阻碍 -->
 
-- 当前无工程阻塞；已完成 Rust / Flutter 全量测试与 release 动态库构建
-- 当前主要待决策项是：此轮是否直接提交收口，还是继续扩展同步语义
+- 当前无工程阻塞
+- 当前主要工作不是继续做产品收敛，而是开始执行已确认的 `Phase 2` implementation plan
 
 ## 最近的决策
 
@@ -45,6 +46,10 @@
 | 2026-03-23 | `Phase 1` 实施改为 Rust-first | 同步、恢复与连续性语义应由 Rust 契约定义，Flutter 只负责消费与展示 |
 | 2026-03-23 | API integration tests 串行化 | 避免 `app_config` 全局状态在全量 Rust 测试时互相污染 |
 | 2026-03-23 | FRB 生成链补齐 `freezed_annotation` / `freezed` / `build_runner` | 新 DTO 字段进入边界层后需要重新生成 Rust/Dart 绑定 |
+| 2026-03-23 | `Phase 2` 主目标定义为“内容安全信任优先” | 异常持续存在时，首先要让用户相信本地内容仍安全 |
+| 2026-03-23 | 内部术语从“投影”改为“查询收敛” | `LoroDoc -> SQLite` 读模型收敛比“投影”更准确、也更易理解 |
+| 2026-03-23 | 用户层保留“设备”，系统层使用“app 实例” | 同时兼顾用户理解成本和契约精度 |
+| 2026-03-23 | `Phase 2` implementation plan 已完成并通过 reviewer 收口 | 可以从设计阶段切换到执行阶段 |
 
 ## 相关文档链接
 
@@ -54,6 +59,8 @@
 - [用户旅程规格](docs/specs/user-journeys.md)
 - [roadmap design](docs/plans/2026-03-23-next-phase-roadmap-design.md)
 - [roadmap implementation plan](docs/plans/2026-03-23-next-phase-roadmap-implementation-plan.md)
+- [phase2 trust-first recovery design](docs/plans/2026-03-23-phase2-trust-first-recovery-design.md)
+- [phase2 trust-first recovery implementation plan](docs/plans/2026-03-23-phase2-trust-first-recovery-implementation-plan.md)
 - [产品深度审计](docs/plans/2026-03-19-cardmind-product-audit.md)
 - [产品真相源实施计划](docs/plans/2026-03-19-product-truth-source-implementation-plan.md)
 - [移除设置一级入口设计](docs/plans/2026-03-20-remove-settings-primary-entry-design.md)

@@ -81,6 +81,8 @@
 2026-03-20-remove-settings-primary-entry-implementation-plan.md - 实现计划 - 移除设置一级入口并收紧主导航语义
 2026-03-23-next-phase-roadmap-design.md - 设计草案 - 下一阶段 roadmap 设计（跨设备延续优先，异常恢复为配套约束）
 2026-03-23-next-phase-roadmap-implementation-plan.md - 实现计划 - 下一阶段 roadmap 实施（跨设备延续成立与最低恢复能力基线）
+2026-03-23-phase2-trust-first-recovery-design.md - 设计草案 - Phase 2 信任优先恢复设计（内容安全信任优先于恢复强度）
+2026-03-23-phase2-trust-first-recovery-implementation-plan.md - 实现计划 - Phase 2 信任优先恢复实施（同步 / 查询收敛 / 实例连续性分层与信任优先恢复契约）
 
 专题文档：
 rust-boundary-scanner.md - 专题说明 - Rust 边界扫描器设计与实现说明
