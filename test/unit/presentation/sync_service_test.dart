@@ -21,6 +21,12 @@ frb.SyncStatusDto _statusDto({
   String contentState = _contentSafe,
   String nextAction = _nextActionNone,
   String? code,
+  String queryConvergenceState = 'ready',
+  String instanceContinuityState = 'ready',
+  String localContentSafety = 'safe',
+  String recoveryStage = 'stable',
+  List<String> allowedOperations = const ['view', 'continue_edit'],
+  List<String> forbiddenOperations = const [],
 }) => frb.SyncStatusDto(
   state: state,
   writeState: writeState,
@@ -30,6 +36,12 @@ frb.SyncStatusDto _statusDto({
   contentState: contentState,
   nextAction: nextAction,
   code: code,
+  queryConvergenceState: queryConvergenceState,
+  instanceContinuityState: instanceContinuityState,
+  localContentSafety: localContentSafety,
+  recoveryStage: recoveryStage,
+  allowedOperations: allowedOperations,
+  forbiddenOperations: forbiddenOperations,
 );
 
 frb.SyncResultDto _resultDto({
@@ -41,6 +53,12 @@ frb.SyncResultDto _resultDto({
   String contentState = _contentSafe,
   String nextAction = _nextActionNone,
   String? code,
+  String queryConvergenceState = 'ready',
+  String instanceContinuityState = 'ready',
+  String localContentSafety = 'safe',
+  String recoveryStage = 'stable',
+  List<String> allowedOperations = const ['view', 'continue_edit'],
+  List<String> forbiddenOperations = const [],
 }) => frb.SyncResultDto(
   state: state,
   writeState: writeState,
@@ -50,6 +68,12 @@ frb.SyncResultDto _resultDto({
   contentState: contentState,
   nextAction: nextAction,
   code: code,
+  queryConvergenceState: queryConvergenceState,
+  instanceContinuityState: instanceContinuityState,
+  localContentSafety: localContentSafety,
+  recoveryStage: recoveryStage,
+  allowedOperations: allowedOperations,
+  forbiddenOperations: forbiddenOperations,
 );
 
 class _FakeGateway implements SyncGateway {
@@ -138,6 +162,7 @@ void main() {
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'idle',
+          recoveryStage: 'stable',
         ),
       ),
     ).status();
@@ -155,12 +180,14 @@ void main() {
           syncState: 'syncing',
           contentState: _contentSafeLocalOnly,
           nextAction: 'check_status',
+          recoveryStage: 'retrying',
         ),
       ),
     ).status();
 
     expect(status.kind, SyncStatusKind.syncing);
-    expect(status.isWriteSaved, isTrue);
+    // Phase 2: SyncStatus.syncing 默认 isWriteSaved = false
+    expect(status.isWriteSaved, isFalse);
   });
 
   test('status_withDegradedSyncState_returnsDegraded', () async {
@@ -174,6 +201,7 @@ void main() {
           contentState: _contentSafeLocalOnly,
           nextAction: 'reconnect',
           code: 'REQUEST_TIMEOUT',
+          recoveryStage: 'needs_user_action',
         ),
       ),
     ).status();
@@ -190,6 +218,8 @@ void main() {
           writeState: 'write_saved',
           projectionState: 'projection_ready',
           syncState: 'weird',
+          recoveryStage: 'unsafe_unknown',
+          code: 'UNKNOWN_SYNC_STATE',
         ),
       ),
     ).status();

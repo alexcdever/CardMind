@@ -580,7 +580,7 @@ class _PoolPageState extends State<PoolPage> {
         : Theme.of(context).colorScheme.secondaryContainer;
     final message = isError
         ? _syncErrorMessage(status.code)
-        : _syncContinuityMessage(status.continuityState);
+        : _syncContinuityMessage(status.continuityState.name);
     final contentMessage = _syncContentMessage(status.contentState);
     final actionMessage = _syncNextActionMessage(status.nextAction);
 
@@ -645,7 +645,14 @@ class _PoolPageState extends State<PoolPage> {
   String _syncContinuityMessage(String continuityState) {
     switch (continuityState) {
       case 'same_path':
+      case 'samePath': // Phase 2: 支持新的枚举命名
         return '同步状态降级：仍在同一条延续路径';
+      case 'path_at_risk':
+      case 'pathAtRisk': // Phase 2: 支持新的枚举命名
+        return '同步状态降级：延续路径有风险';
+      case 'path_broken':
+      case 'pathBroken': // Phase 2: 支持新的枚举命名
+        return '同步状态降级：延续路径已断裂';
       default:
         return '同步状态降级：延续路径状态待确认';
     }

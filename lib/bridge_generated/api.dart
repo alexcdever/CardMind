@@ -9,7 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
 
-// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `content_state`, `continuity_state`, `list_all_card_ids`, `next_action`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `with_configured_card_store`, `with_configured_pool_store`
+// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `list_all_card_ids`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `with_configured_card_store`, `with_configured_pool_store`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 Future<BackendConfigDto> getBackendConfig() =>
@@ -312,95 +312,143 @@ class PoolMemberDto {
 }
 
 class SyncResultDto {
+  final String syncState;
+  final String queryConvergenceState;
+  final String instanceContinuityState;
+  final String localContentSafety;
+  final String recoveryStage;
+  final String continuityState;
+  final String nextAction;
+  final List<String> allowedOperations;
+  final List<String> forbiddenOperations;
+  final String? code;
   final String state;
   final String writeState;
   final String projectionState;
-  final String syncState;
-  final String continuityState;
   final String contentState;
-  final String nextAction;
-  final String? code;
 
   const SyncResultDto({
+    required this.syncState,
+    required this.queryConvergenceState,
+    required this.instanceContinuityState,
+    required this.localContentSafety,
+    required this.recoveryStage,
+    required this.continuityState,
+    required this.nextAction,
+    required this.allowedOperations,
+    required this.forbiddenOperations,
+    this.code,
     required this.state,
     required this.writeState,
     required this.projectionState,
-    required this.syncState,
-    required this.continuityState,
     required this.contentState,
-    required this.nextAction,
-    this.code,
   });
 
   @override
   int get hashCode =>
+      syncState.hashCode ^
+      queryConvergenceState.hashCode ^
+      instanceContinuityState.hashCode ^
+      localContentSafety.hashCode ^
+      recoveryStage.hashCode ^
+      continuityState.hashCode ^
+      nextAction.hashCode ^
+      allowedOperations.hashCode ^
+      forbiddenOperations.hashCode ^
+      code.hashCode ^
       state.hashCode ^
       writeState.hashCode ^
       projectionState.hashCode ^
-      syncState.hashCode ^
-      continuityState.hashCode ^
-      contentState.hashCode ^
-      nextAction.hashCode ^
-      code.hashCode;
+      contentState.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SyncResultDto &&
           runtimeType == other.runtimeType &&
+          syncState == other.syncState &&
+          queryConvergenceState == other.queryConvergenceState &&
+          instanceContinuityState == other.instanceContinuityState &&
+          localContentSafety == other.localContentSafety &&
+          recoveryStage == other.recoveryStage &&
+          continuityState == other.continuityState &&
+          nextAction == other.nextAction &&
+          allowedOperations == other.allowedOperations &&
+          forbiddenOperations == other.forbiddenOperations &&
+          code == other.code &&
           state == other.state &&
           writeState == other.writeState &&
           projectionState == other.projectionState &&
-          syncState == other.syncState &&
-          continuityState == other.continuityState &&
-          contentState == other.contentState &&
-          nextAction == other.nextAction &&
-          code == other.code;
+          contentState == other.contentState;
 }
 
 class SyncStatusDto {
+  final String syncState;
+  final String queryConvergenceState;
+  final String instanceContinuityState;
+  final String localContentSafety;
+  final String recoveryStage;
+  final String continuityState;
+  final String nextAction;
+  final List<String> allowedOperations;
+  final List<String> forbiddenOperations;
+  final String? code;
   final String state;
   final String writeState;
   final String projectionState;
-  final String syncState;
-  final String continuityState;
   final String contentState;
-  final String nextAction;
-  final String? code;
 
   const SyncStatusDto({
+    required this.syncState,
+    required this.queryConvergenceState,
+    required this.instanceContinuityState,
+    required this.localContentSafety,
+    required this.recoveryStage,
+    required this.continuityState,
+    required this.nextAction,
+    required this.allowedOperations,
+    required this.forbiddenOperations,
+    this.code,
     required this.state,
     required this.writeState,
     required this.projectionState,
-    required this.syncState,
-    required this.continuityState,
     required this.contentState,
-    required this.nextAction,
-    this.code,
   });
 
   @override
   int get hashCode =>
+      syncState.hashCode ^
+      queryConvergenceState.hashCode ^
+      instanceContinuityState.hashCode ^
+      localContentSafety.hashCode ^
+      recoveryStage.hashCode ^
+      continuityState.hashCode ^
+      nextAction.hashCode ^
+      allowedOperations.hashCode ^
+      forbiddenOperations.hashCode ^
+      code.hashCode ^
       state.hashCode ^
       writeState.hashCode ^
       projectionState.hashCode ^
-      syncState.hashCode ^
-      continuityState.hashCode ^
-      contentState.hashCode ^
-      nextAction.hashCode ^
-      code.hashCode;
+      contentState.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is SyncStatusDto &&
           runtimeType == other.runtimeType &&
+          syncState == other.syncState &&
+          queryConvergenceState == other.queryConvergenceState &&
+          instanceContinuityState == other.instanceContinuityState &&
+          localContentSafety == other.localContentSafety &&
+          recoveryStage == other.recoveryStage &&
+          continuityState == other.continuityState &&
+          nextAction == other.nextAction &&
+          allowedOperations == other.allowedOperations &&
+          forbiddenOperations == other.forbiddenOperations &&
+          code == other.code &&
           state == other.state &&
           writeState == other.writeState &&
           projectionState == other.projectionState &&
-          syncState == other.syncState &&
-          continuityState == other.continuityState &&
-          contentState == other.contentState &&
-          nextAction == other.nextAction &&
-          code == other.code;
+          contentState == other.contentState;
 }

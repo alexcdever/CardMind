@@ -59,10 +59,12 @@ void main() {
         final connectedSync = await frb.syncStatus(networkId: networkId);
 
         expect(push.state, 'ok');
-        expect(push.syncState, 'connected');
+        // Phase 2 契约: 'connected' 映射为 'ready'
+        expect(push.syncState, 'ready');
         expect(pull.state, 'ok');
         expect(connectedSync.state, 'connected');
-        expect(connectedSync.syncState, 'connected');
+        // Phase 2 契约: syncState 为 'ready' 表示已连接
+        expect(connectedSync.syncState, 'ready');
 
         await frb.syncDisconnect(networkId: networkId);
         final finalSync = await frb.syncStatus(networkId: networkId);

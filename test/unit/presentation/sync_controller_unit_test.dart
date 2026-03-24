@@ -34,6 +34,12 @@ class _NoopGateway2 implements SyncGateway {
         contentState: 'content_safe',
         nextAction: 'none',
         code: null,
+        queryConvergenceState: 'ready',
+        instanceContinuityState: 'ready',
+        localContentSafety: 'safe',
+        recoveryStage: 'stable',
+        allowedOperations: ['view', 'continue_edit'],
+        forbiddenOperations: [],
       );
 
   @override
@@ -47,6 +53,12 @@ class _NoopGateway2 implements SyncGateway {
         contentState: 'content_safe',
         nextAction: 'none',
         code: null,
+        queryConvergenceState: 'ready',
+        instanceContinuityState: 'ready',
+        localContentSafety: 'safe',
+        recoveryStage: 'stable',
+        allowedOperations: ['view', 'continue_edit'],
+        forbiddenOperations: [],
       );
 
   @override
@@ -60,6 +72,12 @@ class _NoopGateway2 implements SyncGateway {
         contentState: 'content_safe',
         nextAction: 'none',
         code: null,
+        queryConvergenceState: 'ready',
+        instanceContinuityState: 'ready',
+        localContentSafety: 'safe',
+        recoveryStage: 'stable',
+        allowedOperations: ['view', 'continue_edit'],
+        forbiddenOperations: [],
       );
 }
 
@@ -124,7 +142,7 @@ void main() {
 
   test('refresh_updatesStatusFromService', () async {
     final service = _FakeControllerService()
-      ..refreshStatus = const SyncStatus.projectionPending(
+      ..refreshStatus = const SyncStatus.queryConvergencePending(
         'PROJECTION_NOT_CONVERGED',
       );
     final controller = SyncController(service: service);
@@ -132,7 +150,7 @@ void main() {
     await controller.refresh();
 
     expect(service.statusCalls, 1);
-    expect(controller.status.kind, SyncStatusKind.projectionPending);
+    expect(controller.status.kind, SyncStatusKind.queryConvergencePending);
     expect(controller.status.code, 'PROJECTION_NOT_CONVERGED');
   });
 }

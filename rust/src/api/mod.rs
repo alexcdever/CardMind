@@ -5,7 +5,7 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{build_endpoint, PoolEndpoint};
+use crate::net::endpoint::{PoolEndpoint, build_endpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::store::card_store::CardNoteRepository;
@@ -16,6 +16,9 @@ use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 use uuid::Uuid;
+
+/// Phase 2 恢复契约模块
+pub mod recovery_contract;
 
 /// 纯函数工具模块
 pub mod utils;
@@ -78,52 +81,46 @@ pub struct CardNoteDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncStatusDto {
+    // Phase 2 契约字段 - 优先使用这些字段
+    pub sync_state: String,
+    pub query_convergence_state: String,
+    pub instance_continuity_state: String,
+    pub local_content_safety: String,
+    pub recovery_stage: String,
+    pub continuity_state: String,
+    pub next_action: String,
+    pub allowed_operations: Vec<String>,
+    pub forbidden_operations: Vec<String>,
+    pub code: Option<String>,
+    // 兼容性字段 - 后续将移除
     pub state: String,
     pub write_state: String,
     pub projection_state: String,
-    pub sync_state: String,
-    pub continuity_state: String,
     pub content_state: String,
-    pub next_action: String,
-    pub code: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncResultDto {
+    // Phase 2 契约字段 - 优先使用这些字段
+    pub sync_state: String,
+    pub query_convergence_state: String,
+    pub instance_continuity_state: String,
+    pub local_content_safety: String,
+    pub recovery_stage: String,
+    pub continuity_state: String,
+    pub next_action: String,
+    pub allowed_operations: Vec<String>,
+    pub forbidden_operations: Vec<String>,
+    pub code: Option<String>,
+    // 兼容性字段 - 后续将移除
     pub state: String,
     pub write_state: String,
     pub projection_state: String,
-    pub sync_state: String,
-    pub continuity_state: String,
     pub content_state: String,
-    pub next_action: String,
-    pub code: Option<String>,
 }
 
-fn continuity_state(sync_state: &str) -> String {
-    match sync_state {
-        "sync_failed" => "same_path".to_string(),
-        _ => "same_path".to_string(),
-    }
-}
-
-fn content_state(projection_state: &str, sync_state: &str) -> String {
-    if projection_state == "projection_pending" || sync_state == "sync_failed" {
-        "content_safe_local_only".to_string()
-    } else {
-        "content_safe".to_string()
-    }
-}
-
-fn next_action(projection_state: &str, sync_state: &str) -> String {
-    if sync_state == "sync_failed" {
-        "reconnect".to_string()
-    } else if projection_state == "projection_pending" {
-        "check_status".to_string()
-    } else {
-        "none".to_string()
-    }
-}
+// Phase 2: 使用 recovery_contract 进行规则归一化
+use recovery_contract::legacy_to_phase2_contract;
 
 pub fn get_backend_config() -> Result<BackendConfigDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
@@ -150,8 +147,8 @@ pub fn update_backend_config(
 }
 
 /// 获取运行时入口状态
-pub fn get_runtime_entry_status(
-) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+pub fn get_runtime_entry_status()
+-> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -178,24 +175,54 @@ fn combine_sync_status(
     sync_code: Option<String>,
 ) -> Result<SyncStatusDto, ApiError> {
     let (projection_state, projection_code) = projection_state(base_path)?;
-    let continuity_state = continuity_state(sync_state);
-    let content_state = content_state(&projection_state, sync_state);
-    let next_action = next_action(&projection_state, sync_state);
-    let state = if sync_state == "sync_failed" || projection_state == "projection_pending" {
+    let has_error = sync_state == "sync_failed" || projection_state == "projection_pending";
+
+    // Phase 2: 使用 recovery_contract 归一化规则
+    let contract = legacy_to_phase2_contract(sync_state, &projection_state, has_error);
+
+    // 验证契约约束
+    if let Err(validation_err) = contract.validate() {
+        eprintln!("Recovery contract validation error: {}", validation_err);
+    }
+
+    // 兼容性计算
+    let legacy_state = if has_error {
         "degraded".to_string()
     } else {
         sync_state.to_string()
     };
 
+    let legacy_content_state = if has_error {
+        "content_safe_local_only".to_string()
+    } else {
+        "content_safe".to_string()
+    };
+
+    let _legacy_next_action = if sync_state == "sync_failed" {
+        "reconnect".to_string()
+    } else if projection_state == "projection_pending" {
+        "check_status".to_string()
+    } else {
+        "none".to_string()
+    };
+
     Ok(SyncStatusDto {
-        state,
+        // Phase 2 契约字段
+        sync_state: contract.sync_state.as_str().to_string(),
+        query_convergence_state: contract.query_convergence_state.as_str().to_string(),
+        instance_continuity_state: contract.instance_continuity_state.as_str().to_string(),
+        local_content_safety: contract.local_content_safety.as_str().to_string(),
+        recovery_stage: contract.recovery_stage.as_str().to_string(),
+        continuity_state: contract.continuity_state.as_str().to_string(),
+        next_action: contract.next_action.as_str().to_string(),
+        allowed_operations: contract.allowed_operations,
+        forbidden_operations: contract.forbidden_operations,
+        code: sync_code.or(projection_code),
+        // 兼容性字段
+        state: legacy_state,
         write_state: "write_saved".to_string(),
         projection_state,
-        sync_state: sync_state.to_string(),
-        continuity_state,
-        content_state,
-        next_action,
-        code: sync_code.or(projection_code),
+        content_state: legacy_content_state,
     })
 }
 
@@ -205,24 +232,54 @@ fn combine_sync_result(
     sync_code: Option<String>,
 ) -> Result<SyncResultDto, ApiError> {
     let (projection_state, projection_code) = projection_state(base_path)?;
-    let continuity_state = continuity_state(sync_state);
-    let content_state = content_state(&projection_state, sync_state);
-    let next_action = next_action(&projection_state, sync_state);
-    let state = if sync_state == "sync_failed" || projection_state == "projection_pending" {
+    let has_error = sync_state == "sync_failed" || projection_state == "projection_pending";
+
+    // Phase 2: 使用 recovery_contract 归一化规则
+    let contract = legacy_to_phase2_contract(sync_state, &projection_state, has_error);
+
+    // 验证契约约束
+    if let Err(validation_err) = contract.validate() {
+        eprintln!("Recovery contract validation error: {}", validation_err);
+    }
+
+    // 兼容性计算
+    let legacy_state = if has_error {
         "degraded".to_string()
     } else {
         "ok".to_string()
     };
 
+    let legacy_content_state = if has_error {
+        "content_safe_local_only".to_string()
+    } else {
+        "content_safe".to_string()
+    };
+
+    let _legacy_next_action = if sync_state == "sync_failed" {
+        "reconnect".to_string()
+    } else if projection_state == "projection_pending" {
+        "check_status".to_string()
+    } else {
+        "none".to_string()
+    };
+
     Ok(SyncResultDto {
-        state,
+        // Phase 2 契约字段
+        sync_state: contract.sync_state.as_str().to_string(),
+        query_convergence_state: contract.query_convergence_state.as_str().to_string(),
+        instance_continuity_state: contract.instance_continuity_state.as_str().to_string(),
+        local_content_safety: contract.local_content_safety.as_str().to_string(),
+        recovery_stage: contract.recovery_stage.as_str().to_string(),
+        continuity_state: contract.continuity_state.as_str().to_string(),
+        next_action: contract.next_action.as_str().to_string(),
+        allowed_operations: contract.allowed_operations,
+        forbidden_operations: contract.forbidden_operations,
+        code: sync_code.or(projection_code),
+        // 兼容性字段
+        state: legacy_state,
         write_state: "write_saved".to_string(),
         projection_state,
-        sync_state: sync_state.to_string(),
-        continuity_state,
-        content_state,
-        next_action,
-        code: sync_code.or(projection_code),
+        content_state: legacy_content_state,
     })
 }
 

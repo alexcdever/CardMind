@@ -10,6 +10,7 @@ import 'package:cardmind/bridge_generated/models/card.dart' as frb_models;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/bridge_generated/models/error.dart';
 import 'package:cardmind/bridge_generated/models/pool.dart';
+import 'package:cardmind/bridge_generated/api/recovery_contract.dart';
 import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:cardmind/bridge_generated/runtime/config.dart';
 import 'package:cardmind/bridge_generated/runtime/entry_manager.dart';
@@ -157,7 +158,8 @@ class _FakeCardRecord {
 }
 
 class _MockRustLibApi extends RustLibApi {
-  final _uuid = const Uuid();
+  // ignore: unused_field
+  final __uuid = const Uuid();
 
   @override
   Future<void> crateApiClosePoolNetwork({required BigInt networkId}) async {}
@@ -353,6 +355,76 @@ class _MockRustLibApi extends RustLibApi {
   @override
   Future<SyncStatusDto> crateApiSyncStatus({required BigInt networkId}) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> crateApiRecoveryContractContinuityStateAsStr({
+    required ContinuityState that,
+  }) async {}
+
+  @override
+  Future<RecoveryContract> crateApiRecoveryContractLegacyToPhase2Contract({
+    required String syncState,
+    required String projectionState,
+    required bool hasError,
+  }) async {
+    return RecoveryContract(
+      localContentSafety: LocalContentSafety.safe,
+      syncState: SubState.ready,
+      queryConvergenceState: SubState.ready,
+      instanceContinuityState: SubState.ready,
+      recoveryStage: RecoveryStage.stable,
+      continuityState: ContinuityState.samePath,
+      nextAction: NextAction.none,
+      allowedOperations: const ['view', 'continue_edit'],
+      forbiddenOperations: const [],
+    );
+  }
+
+  @override
+  Future<void> crateApiRecoveryContractLocalContentSafetyAsStr({
+    required LocalContentSafety that,
+  }) async {}
+
+  @override
+  Future<void> crateApiRecoveryContractNextActionAsStr({
+    required NextAction that,
+  }) async {}
+
+  @override
+  Future<void> crateApiRecoveryContractRecoveryStageAsStr({
+    required RecoveryStage that,
+  }) async {}
+
+  @override
+  Future<void> crateApiRecoveryContractSubStateAsStr({
+    required SubState that,
+  }) async {}
+
+  @override
+  Future<void> crateApiRecoveryContractRecoveryContractValidate({
+    required RecoveryContract that,
+  }) async {}
+
+  @override
+  Future<RecoveryContract>
+  crateApiRecoveryContractRecoveryContractFromEvidence({
+    required String syncState,
+    required String queryConvergenceState,
+    required String instanceContinuityState,
+    required bool hasLocalContentRisk,
+  }) async {
+    return RecoveryContract(
+      localContentSafety: LocalContentSafety.safe,
+      syncState: SubState.ready,
+      queryConvergenceState: SubState.ready,
+      instanceContinuityState: SubState.ready,
+      recoveryStage: RecoveryStage.stable,
+      continuityState: ContinuityState.samePath,
+      nextAction: NextAction.none,
+      allowedOperations: const ['view', 'continue_edit'],
+      forbiddenOperations: const [],
+    );
+  }
 
   @override
   Future<CardNoteDto> crateApiUtilsToCardNoteDto({

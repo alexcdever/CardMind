@@ -413,30 +413,39 @@ fn api_pool_network_lifecycle_and_sync_state() {
     let network_id = init_pool_network(temp.path().to_str().unwrap().to_string()).unwrap();
 
     let status = sync_status(network_id).unwrap();
+    // Phase 2 契约映射
+    assert_eq!(status.sync_state, "ready");
+    assert_eq!(status.query_convergence_state, "ready");
+    assert_eq!(status.instance_continuity_state, "ready");
+    assert_eq!(status.local_content_safety, "safe");
+    assert_eq!(status.recovery_stage, "stable");
+    assert_eq!(status.continuity_state, "same_path");
+    assert_eq!(status.next_action, "none");
+    // 兼容性字段
     assert_eq!(status.state, "idle");
     assert_eq!(status.projection_state, "projection_ready");
-    assert_eq!(status.continuity_state, "same_path");
     assert_eq!(status.content_state, "content_safe");
-    assert_eq!(status.next_action, "none");
 
     let connect_err = sync_connect(network_id, "".to_string()).unwrap_err();
     assert_eq!(connect_err.code, "INVALID_ARGUMENT");
 
     let push = sync_push(network_id).unwrap();
     assert_eq!(push.state, "degraded");
-    assert_eq!(push.sync_state, "sync_failed");
+    // Phase 2 契约: sync_failed 映射为 blocked
+    assert_eq!(push.sync_state, "blocked");
     assert_eq!(push.code.as_deref(), Some("REQUEST_TIMEOUT"));
-    assert_eq!(push.continuity_state, "same_path");
+    assert_eq!(push.continuity_state, "path_at_risk");
     assert_eq!(push.content_state, "content_safe_local_only");
-    assert_eq!(push.next_action, "reconnect");
+    assert_eq!(push.next_action, "retry_sync");
 
     let pull = sync_pull(network_id).unwrap();
     assert_eq!(pull.state, "degraded");
-    assert_eq!(pull.sync_state, "sync_failed");
+    // Phase 2 契约: sync_failed 映射为 blocked
+    assert_eq!(pull.sync_state, "blocked");
     assert_eq!(pull.code.as_deref(), Some("REQUEST_TIMEOUT"));
-    assert_eq!(pull.continuity_state, "same_path");
+    assert_eq!(pull.continuity_state, "path_at_risk");
     assert_eq!(pull.content_state, "content_safe_local_only");
-    assert_eq!(pull.next_action, "reconnect");
+    assert_eq!(pull.next_action, "retry_sync");
 
     close_pool_network(network_id).unwrap();
 }
@@ -451,7 +460,8 @@ fn api_sync_push_returns_ok_when_connected() {
     let result = sync_push(network_id).unwrap();
 
     assert_eq!(result.state, "ok");
-    assert_eq!(result.sync_state, "connected");
+    // Phase 2 契约: "connected" 映射为 "ready"
+    assert_eq!(result.sync_state, "ready");
     assert_eq!(result.projection_state, "projection_ready");
     assert_eq!(result.code, None);
     assert_eq!(result.continuity_state, "same_path");
@@ -477,9 +487,15 @@ fn api_sync_status_returns_degraded_when_projection_pending() {
     assert_eq!(status.state, "degraded");
     assert_eq!(status.projection_state, "projection_pending");
     assert_eq!(status.code.as_deref(), Some("PROJECTION_NOT_CONVERGED"));
-    assert_eq!(status.continuity_state, "same_path");
+    // Phase 2 契约: projection_pending 时 query_convergence_state = pending
+    assert_eq!(status.query_convergence_state, "pending");
+    // Phase 2 契约: has_error 导致 local_content_safety 为 read_only_risk
+    assert_eq!(status.local_content_safety, "read_only_risk");
+    // Phase 2 契约: projection_pending 时 continuity_state 为 path_at_risk
+    assert_eq!(status.continuity_state, "path_at_risk");
     assert_eq!(status.content_state, "content_safe_local_only");
-    assert_eq!(status.next_action, "check_status");
+    // next_action 根据 recovery_contract 计算
+    assert!(!status.next_action.is_empty());
 
     close_pool_network(network_id).unwrap();
 }

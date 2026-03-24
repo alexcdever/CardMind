@@ -26,7 +26,7 @@
 // Section: imports
 
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
-use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 765401060;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2069781678;
 
 // Section: executor
 
@@ -72,6 +72,42 @@ fn wire__crate__api__close_pool_network_impl(
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
                     let output_ok = crate::api::close_pool_network(api_network_id)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__recovery_contract__continuity_state_as_str_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "continuity_state_as_str",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <crate::api::recovery_contract::ContinuityState>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::recovery_contract::ContinuityState::as_str(&api_that);
+                    })?;
                     Ok(output_ok)
                 })())
             }
@@ -557,6 +593,47 @@ fn wire__crate__api__join_pool_impl(
         },
     )
 }
+fn wire__crate__api__recovery_contract__legacy_to_phase2_contract_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "legacy_to_phase2_contract",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_sync_state = <String>::sse_decode(&mut deserializer);
+            let api_projection_state = <String>::sse_decode(&mut deserializer);
+            let api_has_error = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(
+                        crate::api::recovery_contract::legacy_to_phase2_contract(
+                            &api_sync_state,
+                            &api_projection_state,
+                            api_has_error,
+                        ),
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__list_card_notes_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -616,6 +693,42 @@ fn wire__crate__api__list_pools_impl(
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
                     let output_ok = crate::api::list_pools(api_endpoint_id)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__recovery_contract__local_content_safety_as_str_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "local_content_safety_as_str",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <crate::api::recovery_contract::LocalContentSafety>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::recovery_contract::LocalContentSafety::as_str(&api_that);
+                    })?;
                     Ok(output_ok)
                 })())
             }
@@ -683,6 +796,42 @@ fn wire__crate__api__utils__member_role_impl(
                 transform_result_sse::<_, ()>((move || {
                     let output_ok =
                         Result::<_, ()>::Ok(crate::api::utils::member_role(&api_member))?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__recovery_contract__next_action_as_str_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "next_action_as_str",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <crate::api::recovery_contract::NextAction>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::recovery_contract::NextAction::as_str(&api_that);
+                    })?;
                     Ok(output_ok)
                 })())
             }
@@ -792,6 +941,120 @@ fn wire__crate__api__query_card_notes_impl(
         },
     )
 }
+fn wire__crate__api__recovery_contract__recovery_contract_from_evidence_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "recovery_contract_from_evidence",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_sync_state = <String>::sse_decode(&mut deserializer);
+            let api_query_convergence_state = <String>::sse_decode(&mut deserializer);
+            let api_instance_continuity_state = <String>::sse_decode(&mut deserializer);
+            let api_has_local_content_risk = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(
+                        crate::api::recovery_contract::RecoveryContract::from_evidence(
+                            &api_sync_state,
+                            &api_query_convergence_state,
+                            &api_instance_continuity_state,
+                            api_has_local_content_risk,
+                        ),
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__recovery_contract__recovery_contract_validate_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "recovery_contract_validate",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <crate::api::recovery_contract::RecoveryContract>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok =
+                        crate::api::recovery_contract::RecoveryContract::validate(&api_that)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__recovery_contract__recovery_stage_as_str_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "recovery_stage_as_str",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that =
+                <crate::api::recovery_contract::RecoveryStage>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::recovery_contract::RecoveryStage::as_str(&api_that);
+                    })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__reset_app_config_for_tests_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -851,6 +1114,41 @@ fn wire__crate__api__restore_card_note_impl(
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
                     let output_ok = crate::api::restore_card_note(api_card_id)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__recovery_contract__sub_state_as_str_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "sub_state_as_str",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <crate::api::recovery_contract::SubState>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok({
+                        crate::api::recovery_contract::SubState::as_str(&api_that);
+                    })?;
                     Ok(output_ok)
                 })())
             }
@@ -1381,6 +1679,26 @@ impl SseDecode for crate::api::CardNoteDto {
     }
 }
 
+impl SseDecode for crate::api::recovery_contract::ContinuityState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::recovery_contract::ContinuityState::SamePath,
+            1 => crate::api::recovery_contract::ContinuityState::PathAtRisk,
+            2 => crate::api::recovery_contract::ContinuityState::PathBroken,
+            _ => unreachable!("Invalid variant for ContinuityState: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1469,6 +1787,35 @@ impl SseDecode for Vec<u8> {
             ans_.push(<u8>::sse_decode(deserializer));
         }
         return ans_;
+    }
+}
+
+impl SseDecode for crate::api::recovery_contract::LocalContentSafety {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::recovery_contract::LocalContentSafety::Safe,
+            1 => crate::api::recovery_contract::LocalContentSafety::ReadOnlyRisk,
+            2 => crate::api::recovery_contract::LocalContentSafety::Unknown,
+            _ => unreachable!("Invalid variant for LocalContentSafety: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::recovery_contract::NextAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::recovery_contract::NextAction::None,
+            1 => crate::api::recovery_contract::NextAction::RetrySync,
+            2 => crate::api::recovery_contract::NextAction::RetryQueryConvergence,
+            3 => crate::api::recovery_contract::NextAction::ReconnectInstance,
+            4 => crate::api::recovery_contract::NextAction::RecheckStatus,
+            5 => crate::api::recovery_contract::NextAction::ReturnToSourceInstance,
+            _ => unreachable!("Invalid variant for NextAction: {}", inner),
+        };
     }
 }
 
@@ -1580,6 +1927,53 @@ impl SseDecode for crate::api::PoolMemberDto {
     }
 }
 
+impl SseDecode for crate::api::recovery_contract::RecoveryContract {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_localContentSafety =
+            <crate::api::recovery_contract::LocalContentSafety>::sse_decode(deserializer);
+        let mut var_syncState = <crate::api::recovery_contract::SubState>::sse_decode(deserializer);
+        let mut var_queryConvergenceState =
+            <crate::api::recovery_contract::SubState>::sse_decode(deserializer);
+        let mut var_instanceContinuityState =
+            <crate::api::recovery_contract::SubState>::sse_decode(deserializer);
+        let mut var_recoveryStage =
+            <crate::api::recovery_contract::RecoveryStage>::sse_decode(deserializer);
+        let mut var_continuityState =
+            <crate::api::recovery_contract::ContinuityState>::sse_decode(deserializer);
+        let mut var_nextAction =
+            <crate::api::recovery_contract::NextAction>::sse_decode(deserializer);
+        let mut var_allowedOperations = <Vec<String>>::sse_decode(deserializer);
+        let mut var_forbiddenOperations = <Vec<String>>::sse_decode(deserializer);
+        return crate::api::recovery_contract::RecoveryContract {
+            local_content_safety: var_localContentSafety,
+            sync_state: var_syncState,
+            query_convergence_state: var_queryConvergenceState,
+            instance_continuity_state: var_instanceContinuityState,
+            recovery_stage: var_recoveryStage,
+            continuity_state: var_continuityState,
+            next_action: var_nextAction,
+            allowed_operations: var_allowedOperations,
+            forbidden_operations: var_forbiddenOperations,
+        };
+    }
+}
+
+impl SseDecode for crate::api::recovery_contract::RecoveryStage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::recovery_contract::RecoveryStage::Stable,
+            1 => crate::api::recovery_contract::RecoveryStage::Waiting,
+            2 => crate::api::recovery_contract::RecoveryStage::Retrying,
+            3 => crate::api::recovery_contract::RecoveryStage::NeedsUserAction,
+            4 => crate::api::recovery_contract::RecoveryStage::UnsafeUnknown,
+            _ => unreachable!("Invalid variant for RecoveryStage: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::runtime::entry_manager::RuntimeEntryStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1594,26 +1988,52 @@ impl SseDecode for crate::runtime::entry_manager::RuntimeEntryStatusDto {
     }
 }
 
+impl SseDecode for crate::api::recovery_contract::SubState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::recovery_contract::SubState::Ready,
+            1 => crate::api::recovery_contract::SubState::Recovering,
+            2 => crate::api::recovery_contract::SubState::Blocked,
+            3 => crate::api::recovery_contract::SubState::Pending,
+            _ => unreachable!("Invalid variant for SubState: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::api::SyncResultDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_syncState = <String>::sse_decode(deserializer);
+        let mut var_queryConvergenceState = <String>::sse_decode(deserializer);
+        let mut var_instanceContinuityState = <String>::sse_decode(deserializer);
+        let mut var_localContentSafety = <String>::sse_decode(deserializer);
+        let mut var_recoveryStage = <String>::sse_decode(deserializer);
+        let mut var_continuityState = <String>::sse_decode(deserializer);
+        let mut var_nextAction = <String>::sse_decode(deserializer);
+        let mut var_allowedOperations = <Vec<String>>::sse_decode(deserializer);
+        let mut var_forbiddenOperations = <Vec<String>>::sse_decode(deserializer);
+        let mut var_code = <Option<String>>::sse_decode(deserializer);
         let mut var_state = <String>::sse_decode(deserializer);
         let mut var_writeState = <String>::sse_decode(deserializer);
         let mut var_projectionState = <String>::sse_decode(deserializer);
-        let mut var_syncState = <String>::sse_decode(deserializer);
-        let mut var_continuityState = <String>::sse_decode(deserializer);
         let mut var_contentState = <String>::sse_decode(deserializer);
-        let mut var_nextAction = <String>::sse_decode(deserializer);
-        let mut var_code = <Option<String>>::sse_decode(deserializer);
         return crate::api::SyncResultDto {
+            sync_state: var_syncState,
+            query_convergence_state: var_queryConvergenceState,
+            instance_continuity_state: var_instanceContinuityState,
+            local_content_safety: var_localContentSafety,
+            recovery_stage: var_recoveryStage,
+            continuity_state: var_continuityState,
+            next_action: var_nextAction,
+            allowed_operations: var_allowedOperations,
+            forbidden_operations: var_forbiddenOperations,
+            code: var_code,
             state: var_state,
             write_state: var_writeState,
             projection_state: var_projectionState,
-            sync_state: var_syncState,
-            continuity_state: var_continuityState,
             content_state: var_contentState,
-            next_action: var_nextAction,
-            code: var_code,
         };
     }
 }
@@ -1621,23 +2041,35 @@ impl SseDecode for crate::api::SyncResultDto {
 impl SseDecode for crate::api::SyncStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_syncState = <String>::sse_decode(deserializer);
+        let mut var_queryConvergenceState = <String>::sse_decode(deserializer);
+        let mut var_instanceContinuityState = <String>::sse_decode(deserializer);
+        let mut var_localContentSafety = <String>::sse_decode(deserializer);
+        let mut var_recoveryStage = <String>::sse_decode(deserializer);
+        let mut var_continuityState = <String>::sse_decode(deserializer);
+        let mut var_nextAction = <String>::sse_decode(deserializer);
+        let mut var_allowedOperations = <Vec<String>>::sse_decode(deserializer);
+        let mut var_forbiddenOperations = <Vec<String>>::sse_decode(deserializer);
+        let mut var_code = <Option<String>>::sse_decode(deserializer);
         let mut var_state = <String>::sse_decode(deserializer);
         let mut var_writeState = <String>::sse_decode(deserializer);
         let mut var_projectionState = <String>::sse_decode(deserializer);
-        let mut var_syncState = <String>::sse_decode(deserializer);
-        let mut var_continuityState = <String>::sse_decode(deserializer);
         let mut var_contentState = <String>::sse_decode(deserializer);
-        let mut var_nextAction = <String>::sse_decode(deserializer);
-        let mut var_code = <Option<String>>::sse_decode(deserializer);
         return crate::api::SyncStatusDto {
+            sync_state: var_syncState,
+            query_convergence_state: var_queryConvergenceState,
+            instance_continuity_state: var_instanceContinuityState,
+            local_content_safety: var_localContentSafety,
+            recovery_stage: var_recoveryStage,
+            continuity_state: var_continuityState,
+            next_action: var_nextAction,
+            allowed_operations: var_allowedOperations,
+            forbidden_operations: var_forbiddenOperations,
+            code: var_code,
             state: var_state,
             write_state: var_writeState,
             projection_state: var_projectionState,
-            sync_state: var_syncState,
-            continuity_state: var_continuityState,
             content_state: var_contentState,
-            next_action: var_nextAction,
-            code: var_code,
         };
     }
 }
@@ -1668,13 +2100,6 @@ impl SseDecode for usize {
     }
 }
 
-impl SseDecode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -1685,45 +2110,93 @@ fn pde_ffi_dispatcher_primary_impl(
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
         1 => wire__crate__api__close_pool_network_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__create_card_note_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__create_card_note_in_pool_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__create_pool_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__utils__current_member_role_for_endpoint_impl(
+        2 => wire__crate__api__recovery_contract__continuity_state_as_str_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        6 => wire__crate__api__delete_card_note_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__get_backend_config_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__get_card_note_detail_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__get_joined_pool_view_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__get_pool_detail_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__get_runtime_entry_status_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__init_app_config_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__init_pool_network_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__join_by_code_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__join_pool_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__list_card_notes_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__list_pools_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__utils__map_err_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__utils__member_role_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__utils__parse_uuid_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__utils__pool_name_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__query_card_notes_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__reset_app_config_for_tests_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__restore_card_note_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__sync_connect_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__sync_disconnect_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__sync_join_pool_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__sync_pull_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__sync_push_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__sync_status_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__utils__to_card_note_dto_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__utils__to_pool_detail_dto_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__utils__to_pool_dto_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__update_backend_config_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__update_card_note_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__create_card_note_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__create_card_note_in_pool_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__create_pool_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__utils__current_member_role_for_endpoint_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        7 => wire__crate__api__delete_card_note_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__get_backend_config_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__get_card_note_detail_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__get_joined_pool_view_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__get_pool_detail_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__get_runtime_entry_status_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__init_app_config_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__init_pool_network_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__join_by_code_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__join_pool_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__recovery_contract__legacy_to_phase2_contract_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        18 => wire__crate__api__list_card_notes_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__list_pools_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__recovery_contract__local_content_safety_as_str_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        21 => wire__crate__api__utils__map_err_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__utils__member_role_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__recovery_contract__next_action_as_str_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        24 => wire__crate__api__utils__parse_uuid_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__utils__pool_name_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__query_card_notes_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__recovery_contract__recovery_contract_from_evidence_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        28 => wire__crate__api__recovery_contract__recovery_contract_validate_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        29 => wire__crate__api__recovery_contract__recovery_stage_as_str_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        30 => wire__crate__api__reset_app_config_for_tests_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__restore_card_note_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__recovery_contract__sub_state_as_str_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        33 => wire__crate__api__sync_connect_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__sync_disconnect_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__sync_join_pool_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__sync_pull_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__sync_push_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__sync_status_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__utils__to_card_note_dto_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__utils__to_pool_detail_dto_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__utils__to_pool_dto_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__update_backend_config_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__update_card_note_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1882,6 +2355,75 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::CardNoteDto> for crate::api::
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::recovery_contract::ContinuityState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::SamePath => 0.into_dart(),
+            Self::PathAtRisk => 1.into_dart(),
+            Self::PathBroken => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::recovery_contract::ContinuityState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::recovery_contract::ContinuityState>
+    for crate::api::recovery_contract::ContinuityState
+{
+    fn into_into_dart(self) -> crate::api::recovery_contract::ContinuityState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::recovery_contract::LocalContentSafety {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Safe => 0.into_dart(),
+            Self::ReadOnlyRisk => 1.into_dart(),
+            Self::Unknown => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::recovery_contract::LocalContentSafety
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::recovery_contract::LocalContentSafety>
+    for crate::api::recovery_contract::LocalContentSafety
+{
+    fn into_into_dart(self) -> crate::api::recovery_contract::LocalContentSafety {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::recovery_contract::NextAction {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::None => 0.into_dart(),
+            Self::RetrySync => 1.into_dart(),
+            Self::RetryQueryConvergence => 2.into_dart(),
+            Self::ReconnectInstance => 3.into_dart(),
+            Self::RecheckStatus => 4.into_dart(),
+            Self::ReturnToSourceInstance => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::recovery_contract::NextAction
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::recovery_contract::NextAction>
+    for crate::api::recovery_contract::NextAction
+{
+    fn into_into_dart(self) -> crate::api::recovery_contract::NextAction {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::pool::Pool {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -1980,6 +2522,58 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::PoolMemberDto> for crate::api
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::recovery_contract::RecoveryContract {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.local_content_safety.into_into_dart().into_dart(),
+            self.sync_state.into_into_dart().into_dart(),
+            self.query_convergence_state.into_into_dart().into_dart(),
+            self.instance_continuity_state.into_into_dart().into_dart(),
+            self.recovery_stage.into_into_dart().into_dart(),
+            self.continuity_state.into_into_dart().into_dart(),
+            self.next_action.into_into_dart().into_dart(),
+            self.allowed_operations.into_into_dart().into_dart(),
+            self.forbidden_operations.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::recovery_contract::RecoveryContract
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::recovery_contract::RecoveryContract>
+    for crate::api::recovery_contract::RecoveryContract
+{
+    fn into_into_dart(self) -> crate::api::recovery_contract::RecoveryContract {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::recovery_contract::RecoveryStage {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Stable => 0.into_dart(),
+            Self::Waiting => 1.into_dart(),
+            Self::Retrying => 2.into_dart(),
+            Self::NeedsUserAction => 3.into_dart(),
+            Self::UnsafeUnknown => 4.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::recovery_contract::RecoveryStage
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::recovery_contract::RecoveryStage>
+    for crate::api::recovery_contract::RecoveryStage
+{
+    fn into_into_dart(self) -> crate::api::recovery_contract::RecoveryStage {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::runtime::entry_manager::RuntimeEntryStatusDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -2002,17 +2596,46 @@ impl flutter_rust_bridge::IntoIntoDart<crate::runtime::entry_manager::RuntimeEnt
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::recovery_contract::SubState {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Ready => 0.into_dart(),
+            Self::Recovering => 1.into_dart(),
+            Self::Blocked => 2.into_dart(),
+            Self::Pending => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::recovery_contract::SubState
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::recovery_contract::SubState>
+    for crate::api::recovery_contract::SubState
+{
+    fn into_into_dart(self) -> crate::api::recovery_contract::SubState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::SyncResultDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.sync_state.into_into_dart().into_dart(),
+            self.query_convergence_state.into_into_dart().into_dart(),
+            self.instance_continuity_state.into_into_dart().into_dart(),
+            self.local_content_safety.into_into_dart().into_dart(),
+            self.recovery_stage.into_into_dart().into_dart(),
+            self.continuity_state.into_into_dart().into_dart(),
+            self.next_action.into_into_dart().into_dart(),
+            self.allowed_operations.into_into_dart().into_dart(),
+            self.forbidden_operations.into_into_dart().into_dart(),
+            self.code.into_into_dart().into_dart(),
             self.state.into_into_dart().into_dart(),
             self.write_state.into_into_dart().into_dart(),
             self.projection_state.into_into_dart().into_dart(),
-            self.sync_state.into_into_dart().into_dart(),
-            self.continuity_state.into_into_dart().into_dart(),
             self.content_state.into_into_dart().into_dart(),
-            self.next_action.into_into_dart().into_dart(),
-            self.code.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -2027,14 +2650,20 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::SyncResultDto> for crate::api
 impl flutter_rust_bridge::IntoDart for crate::api::SyncStatusDto {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.sync_state.into_into_dart().into_dart(),
+            self.query_convergence_state.into_into_dart().into_dart(),
+            self.instance_continuity_state.into_into_dart().into_dart(),
+            self.local_content_safety.into_into_dart().into_dart(),
+            self.recovery_stage.into_into_dart().into_dart(),
+            self.continuity_state.into_into_dart().into_dart(),
+            self.next_action.into_into_dart().into_dart(),
+            self.allowed_operations.into_into_dart().into_dart(),
+            self.forbidden_operations.into_into_dart().into_dart(),
+            self.code.into_into_dart().into_dart(),
             self.state.into_into_dart().into_dart(),
             self.write_state.into_into_dart().into_dart(),
             self.projection_state.into_into_dart().into_dart(),
-            self.sync_state.into_into_dart().into_dart(),
-            self.continuity_state.into_into_dart().into_dart(),
             self.content_state.into_into_dart().into_dart(),
-            self.next_action.into_into_dart().into_dart(),
-            self.code.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -2161,6 +2790,30 @@ impl SseEncode for crate::api::CardNoteDto {
     }
 }
 
+impl SseEncode for crate::api::recovery_contract::ContinuityState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::recovery_contract::ContinuityState::SamePath => 0,
+                crate::api::recovery_contract::ContinuityState::PathAtRisk => 1,
+                crate::api::recovery_contract::ContinuityState::PathBroken => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
+    }
+}
+
 impl SseEncode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2238,6 +2891,43 @@ impl SseEncode for Vec<u8> {
     }
 }
 
+impl SseEncode for crate::api::recovery_contract::LocalContentSafety {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::recovery_contract::LocalContentSafety::Safe => 0,
+                crate::api::recovery_contract::LocalContentSafety::ReadOnlyRisk => 1,
+                crate::api::recovery_contract::LocalContentSafety::Unknown => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::recovery_contract::NextAction {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::recovery_contract::NextAction::None => 0,
+                crate::api::recovery_contract::NextAction::RetrySync => 1,
+                crate::api::recovery_contract::NextAction::RetryQueryConvergence => 2,
+                crate::api::recovery_contract::NextAction::ReconnectInstance => 3,
+                crate::api::recovery_contract::NextAction::RecheckStatus => 4,
+                crate::api::recovery_contract::NextAction::ReturnToSourceInstance => 5,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for Option<String> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2311,6 +3001,52 @@ impl SseEncode for crate::api::PoolMemberDto {
     }
 }
 
+impl SseEncode for crate::api::recovery_contract::RecoveryContract {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::recovery_contract::LocalContentSafety>::sse_encode(
+            self.local_content_safety,
+            serializer,
+        );
+        <crate::api::recovery_contract::SubState>::sse_encode(self.sync_state, serializer);
+        <crate::api::recovery_contract::SubState>::sse_encode(
+            self.query_convergence_state,
+            serializer,
+        );
+        <crate::api::recovery_contract::SubState>::sse_encode(
+            self.instance_continuity_state,
+            serializer,
+        );
+        <crate::api::recovery_contract::RecoveryStage>::sse_encode(self.recovery_stage, serializer);
+        <crate::api::recovery_contract::ContinuityState>::sse_encode(
+            self.continuity_state,
+            serializer,
+        );
+        <crate::api::recovery_contract::NextAction>::sse_encode(self.next_action, serializer);
+        <Vec<String>>::sse_encode(self.allowed_operations, serializer);
+        <Vec<String>>::sse_encode(self.forbidden_operations, serializer);
+    }
+}
+
+impl SseEncode for crate::api::recovery_contract::RecoveryStage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::recovery_contract::RecoveryStage::Stable => 0,
+                crate::api::recovery_contract::RecoveryStage::Waiting => 1,
+                crate::api::recovery_contract::RecoveryStage::Retrying => 2,
+                crate::api::recovery_contract::RecoveryStage::NeedsUserAction => 3,
+                crate::api::recovery_contract::RecoveryStage::UnsafeUnknown => 4,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::runtime::entry_manager::RuntimeEntryStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2320,31 +3056,61 @@ impl SseEncode for crate::runtime::entry_manager::RuntimeEntryStatusDto {
     }
 }
 
+impl SseEncode for crate::api::recovery_contract::SubState {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::recovery_contract::SubState::Ready => 0,
+                crate::api::recovery_contract::SubState::Recovering => 1,
+                crate::api::recovery_contract::SubState::Blocked => 2,
+                crate::api::recovery_contract::SubState::Pending => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::api::SyncResultDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.sync_state, serializer);
+        <String>::sse_encode(self.query_convergence_state, serializer);
+        <String>::sse_encode(self.instance_continuity_state, serializer);
+        <String>::sse_encode(self.local_content_safety, serializer);
+        <String>::sse_encode(self.recovery_stage, serializer);
+        <String>::sse_encode(self.continuity_state, serializer);
+        <String>::sse_encode(self.next_action, serializer);
+        <Vec<String>>::sse_encode(self.allowed_operations, serializer);
+        <Vec<String>>::sse_encode(self.forbidden_operations, serializer);
+        <Option<String>>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.state, serializer);
         <String>::sse_encode(self.write_state, serializer);
         <String>::sse_encode(self.projection_state, serializer);
-        <String>::sse_encode(self.sync_state, serializer);
-        <String>::sse_encode(self.continuity_state, serializer);
         <String>::sse_encode(self.content_state, serializer);
-        <String>::sse_encode(self.next_action, serializer);
-        <Option<String>>::sse_encode(self.code, serializer);
     }
 }
 
 impl SseEncode for crate::api::SyncStatusDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.sync_state, serializer);
+        <String>::sse_encode(self.query_convergence_state, serializer);
+        <String>::sse_encode(self.instance_continuity_state, serializer);
+        <String>::sse_encode(self.local_content_safety, serializer);
+        <String>::sse_encode(self.recovery_stage, serializer);
+        <String>::sse_encode(self.continuity_state, serializer);
+        <String>::sse_encode(self.next_action, serializer);
+        <Vec<String>>::sse_encode(self.allowed_operations, serializer);
+        <Vec<String>>::sse_encode(self.forbidden_operations, serializer);
+        <Option<String>>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.state, serializer);
         <String>::sse_encode(self.write_state, serializer);
         <String>::sse_encode(self.projection_state, serializer);
-        <String>::sse_encode(self.sync_state, serializer);
-        <String>::sse_encode(self.continuity_state, serializer);
         <String>::sse_encode(self.content_state, serializer);
-        <String>::sse_encode(self.next_action, serializer);
-        <Option<String>>::sse_encode(self.code, serializer);
     }
 }
 
@@ -2377,13 +3143,6 @@ impl SseEncode for usize {
     }
 }
 
-impl SseEncode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
-    }
-}
-
 #[cfg(not(target_family = "wasm"))]
 mod io {
     // This file is automatically generated, so please do not edit it.
@@ -2395,7 +3154,7 @@ mod io {
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
     };
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
@@ -2419,7 +3178,7 @@ mod web {
     };
     use flutter_rust_bridge::for_generated::wasm_bindgen;
     use flutter_rust_bridge::for_generated::wasm_bindgen::prelude::*;
-    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::for_generated::{Lifetimeable, Lockable, transform_result_dco};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate

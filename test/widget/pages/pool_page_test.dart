@@ -96,6 +96,12 @@ class _FakeSyncGateway implements SyncGateway {
       contentState: 'content_safe',
       nextAction: 'none',
       code: null,
+      queryConvergenceState: 'ready',
+      instanceContinuityState: 'ready',
+      localContentSafety: 'safe',
+      recoveryStage: 'stable',
+      allowedOperations: ['view', 'continue_edit'],
+      forbiddenOperations: [],
     );
   }
 
@@ -115,6 +121,12 @@ class _FakeSyncGateway implements SyncGateway {
       contentState: 'content_safe',
       nextAction: 'none',
       code: null,
+      queryConvergenceState: 'ready',
+      instanceContinuityState: 'ready',
+      localContentSafety: 'safe',
+      recoveryStage: 'stable',
+      allowedOperations: ['view', 'continue_edit'],
+      forbiddenOperations: [],
     );
   }
 }
@@ -461,12 +473,13 @@ void main() {
         home: PoolPage(state: controller.state, controller: controller),
       ),
     );
-    expect(find.text('同步状态降级：仍在同一条延续路径'), findsOneWidget);
+    // Phase 2: SyncStatus.degraded 默认使用 pathAtRisk，显示 "延续路径有风险"
+    expect(find.text('同步状态降级：延续路径有风险'), findsOneWidget);
 
     controller.setSyncStatus(const SyncStatus.connected());
     await tester.pumpAndSettle();
 
-    expect(find.text('同步状态降级：仍在同一条延续路径'), findsNothing);
+    expect(find.text('同步状态降级：延续路径有风险'), findsNothing);
   });
 
   testWidgets(

@@ -31,9 +31,11 @@ void main() {
     expect(status.isWriteSaved, isTrue);
   });
 
-  test('projectionPending_constructor_setsCodeAndWriteSaved', () {
-    const status = SyncStatus.projectionPending('PROJECTION_NOT_CONVERGED');
-    expect(status.kind, SyncStatusKind.projectionPending);
+  test('queryConvergencePending_constructor_setsCodeAndWriteSaved', () {
+    const status = SyncStatus.queryConvergencePending(
+      'PROJECTION_NOT_CONVERGED',
+    );
+    expect(status.kind, SyncStatusKind.queryConvergencePending);
     expect(status.code, 'PROJECTION_NOT_CONVERGED');
     expect(status.isWriteSaved, isTrue);
   });

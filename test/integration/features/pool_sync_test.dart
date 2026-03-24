@@ -64,10 +64,10 @@ void main() {
       initialState: const PoolState.joined(),
       initialSyncStatus: const SyncStatus.degraded(
         'REQUEST_TIMEOUT',
-        true,
-        'same_path',
-        'content_safe_local_only',
-        'reconnect',
+        isWriteSaved: true,
+        continuityState: ContinuityState.samePath,
+        contentState: 'content_safe_local_only',
+        nextAction: 'reconnect',
       ),
     );
 

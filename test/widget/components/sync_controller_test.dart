@@ -49,6 +49,12 @@ class _NoopGateway implements SyncGateway {
       contentState: 'content_safe',
       nextAction: 'none',
       code: null,
+      queryConvergenceState: 'ready',
+      instanceContinuityState: 'ready',
+      localContentSafety: 'safe',
+      recoveryStage: 'stable',
+      allowedOperations: ['view', 'continue_edit'],
+      forbiddenOperations: [],
     );
   }
 
@@ -63,6 +69,12 @@ class _NoopGateway implements SyncGateway {
       contentState: 'content_safe',
       nextAction: 'none',
       code: null,
+      queryConvergenceState: 'ready',
+      instanceContinuityState: 'ready',
+      localContentSafety: 'safe',
+      recoveryStage: 'stable',
+      allowedOperations: ['view', 'continue_edit'],
+      forbiddenOperations: [],
     );
   }
 
@@ -77,6 +89,12 @@ class _NoopGateway implements SyncGateway {
       contentState: 'content_safe',
       nextAction: 'none',
       code: null,
+      queryConvergenceState: 'ready',
+      instanceContinuityState: 'ready',
+      localContentSafety: 'safe',
+      recoveryStage: 'stable',
+      allowedOperations: ['view', 'continue_edit'],
+      forbiddenOperations: [],
     );
   }
 }

@@ -7,6 +7,7 @@
 // ignore_for_file: argument_type_not_assignable
 
 import 'api.dart';
+import 'api/recovery_contract.dart';
 import 'api/utils.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -59,6 +60,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PoolMember dco_decode_box_autoadd_pool_member(dynamic raw);
 
   @protected
+  RecoveryContract dco_decode_box_autoadd_recovery_contract(dynamic raw);
+
+  @protected
   Card dco_decode_card(dynamic raw);
 
   @protected
@@ -66,6 +70,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CardNoteDto dco_decode_card_note_dto(dynamic raw);
+
+  @protected
+  ContinuityState dco_decode_continuity_state(dynamic raw);
+
+  @protected
+  int dco_decode_i_32(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
@@ -92,6 +102,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  LocalContentSafety dco_decode_local_content_safety(dynamic raw);
+
+  @protected
+  NextAction dco_decode_next_action(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
@@ -113,7 +129,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PoolMemberDto dco_decode_pool_member_dto(dynamic raw);
 
   @protected
+  RecoveryContract dco_decode_recovery_contract(dynamic raw);
+
+  @protected
+  RecoveryStage dco_decode_recovery_stage(dynamic raw);
+
+  @protected
   RuntimeEntryStatusDto dco_decode_runtime_entry_status_dto(dynamic raw);
+
+  @protected
+  SubState dco_decode_sub_state(dynamic raw);
 
   @protected
   SyncResultDto dco_decode_sync_result_dto(dynamic raw);
@@ -166,6 +191,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PoolMember sse_decode_box_autoadd_pool_member(SseDeserializer deserializer);
 
   @protected
+  RecoveryContract sse_decode_box_autoadd_recovery_contract(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Card sse_decode_card(SseDeserializer deserializer);
 
   @protected
@@ -173,6 +203,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CardNoteDto sse_decode_card_note_dto(SseDeserializer deserializer);
+
+  @protected
+  ContinuityState sse_decode_continuity_state(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
@@ -201,6 +237,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  LocalContentSafety sse_decode_local_content_safety(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  NextAction sse_decode_next_action(SseDeserializer deserializer);
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
@@ -222,9 +266,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PoolMemberDto sse_decode_pool_member_dto(SseDeserializer deserializer);
 
   @protected
+  RecoveryContract sse_decode_recovery_contract(SseDeserializer deserializer);
+
+  @protected
+  RecoveryStage sse_decode_recovery_stage(SseDeserializer deserializer);
+
+  @protected
   RuntimeEntryStatusDto sse_decode_runtime_entry_status_dto(
     SseDeserializer deserializer,
   );
+
+  @protected
+  SubState sse_decode_sub_state(SseDeserializer deserializer);
 
   @protected
   SyncResultDto sse_decode_sync_result_dto(SseDeserializer deserializer);
@@ -243,9 +296,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer);
-
-  @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
@@ -287,6 +337,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_recovery_contract(
+    RecoveryContract self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_card(Card self, SseSerializer serializer);
 
   @protected
@@ -294,6 +350,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_card_note_dto(CardNoteDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_continuity_state(
+    ContinuityState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
@@ -332,6 +397,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_local_content_safety(
+    LocalContentSafety self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_next_action(NextAction self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
@@ -353,10 +427,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_pool_member_dto(PoolMemberDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_recovery_contract(
+    RecoveryContract self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_recovery_stage(RecoveryStage self, SseSerializer serializer);
+
+  @protected
   void sse_encode_runtime_entry_status_dto(
     RuntimeEntryStatusDto self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_sub_state(SubState self, SseSerializer serializer);
 
   @protected
   void sse_encode_sync_result_dto(SyncResultDto self, SseSerializer serializer);
@@ -375,9 +461,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_usize(BigInt self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
 }
 
 // Section: wire_class

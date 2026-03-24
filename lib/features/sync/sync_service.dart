@@ -112,62 +112,9 @@ class SyncService {
     }
   }
 
+  /// Phase 2: 使用新的契约字段映射
   SyncStatus _mapDtoToStatus(frb.SyncStatusDto dto) {
-    final writeSaved = dto.writeState == 'write_saved';
-    if (dto.projectionState == 'projection_pending') {
-      return SyncStatus.projectionPending(
-        dto.code,
-        continuityState: dto.continuityState,
-        contentState: dto.contentState,
-        nextAction: dto.nextAction,
-      );
-    }
-
-    if (dto.state == 'degraded') {
-      return SyncStatus.degraded(
-        dto.code,
-        writeSaved,
-        dto.continuityState,
-        dto.contentState,
-        dto.nextAction,
-      );
-    }
-
-    switch (dto.syncState) {
-      case 'idle':
-        return const SyncStatus.idle();
-      case 'connected':
-        return SyncStatus.connected(
-          isWriteSaved: writeSaved,
-          continuityState: dto.continuityState,
-          contentState: dto.contentState,
-          nextAction: dto.nextAction,
-        );
-      case 'syncing':
-        return SyncStatus.syncing(
-          isWriteSaved: writeSaved,
-          continuityState: dto.continuityState,
-          contentState: dto.contentState,
-          nextAction: dto.nextAction,
-        );
-      case 'degraded':
-        return SyncStatus.degraded(
-          dto.code,
-          writeSaved,
-          dto.continuityState,
-          dto.contentState,
-          dto.nextAction,
-        );
-      case 'sync_failed':
-        return SyncStatus.error(
-          dto.code ?? 'SYNC_FAILED',
-          isWriteSaved: writeSaved,
-          continuityState: dto.continuityState,
-          contentState: dto.contentState,
-          nextAction: dto.nextAction,
-        );
-      default:
-        return const SyncStatus.error('UNKNOWN_SYNC_STATE');
-    }
+    // 使用 Phase 2 的工厂构造
+    return SyncStatus.fromDto(dto);
   }
 }

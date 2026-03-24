@@ -41,7 +41,8 @@ void main() {
 
     try {
       final initial = await gateway.syncStatus(networkId: networkId);
-      expect(initial.syncState, 'idle');
+      // Phase 2: "idle" 映射为 "ready"
+      expect(initial.syncState, 'ready');
 
       await gateway.syncConnect(networkId: networkId, target: 'peer');
       await gateway.syncJoinPool(networkId: networkId, poolId: pool.id);
@@ -50,13 +51,15 @@ void main() {
       final pulled = await gateway.syncPull(networkId: networkId);
       final connected = await gateway.syncStatus(networkId: networkId);
 
-      expect(pushed.syncState, 'connected');
-      expect(pulled.syncState, 'connected');
-      expect(connected.syncState, 'connected');
+      // Phase 2: "connected" 映射为 "ready"
+      expect(pushed.syncState, 'ready');
+      expect(pulled.syncState, 'ready');
+      expect(connected.syncState, 'ready');
 
       await gateway.syncDisconnect(networkId: networkId);
       final disconnected = await gateway.syncStatus(networkId: networkId);
-      expect(disconnected.syncState, 'idle');
+      // Phase 2: "idle" 映射为 "ready"
+      expect(disconnected.syncState, 'ready');
     } finally {
       await frb.closePoolNetwork(networkId: networkId);
       await frb.resetAppConfigForTests();

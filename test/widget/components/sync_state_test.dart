@@ -40,28 +40,44 @@ class _SemanticsGateway implements SyncGateway {
     pullCalls += 1;
     if (pullError != null) throw pullError!;
     return const frb.SyncResultDto(
+      // Phase 2 契约字段
+      syncState: 'connected',
+      queryConvergenceState: 'ready',
+      instanceContinuityState: 'ready',
+      localContentSafety: 'safe',
+      recoveryStage: 'stable',
+      continuityState: 'same_path',
+      nextAction: 'none',
+      allowedOperations: ['view', 'continue_edit'],
+      forbiddenOperations: [],
+      code: null,
+      // 兼容性字段
       state: 'ok',
       writeState: 'write_saved',
       projectionState: 'projection_ready',
-      syncState: 'connected',
-      continuityState: 'same_path',
       contentState: 'content_safe',
-      nextAction: 'none',
-      code: null,
     );
   }
 
   @override
   Future<frb.SyncResultDto> syncPush({required BigInt networkId}) async {
     return const frb.SyncResultDto(
+      // Phase 2 契约字段
+      syncState: 'connected',
+      queryConvergenceState: 'ready',
+      instanceContinuityState: 'ready',
+      localContentSafety: 'safe',
+      recoveryStage: 'stable',
+      continuityState: 'same_path',
+      nextAction: 'none',
+      allowedOperations: ['view', 'continue_edit'],
+      forbiddenOperations: [],
+      code: null,
+      // 兼容性字段
       state: 'ok',
       writeState: 'write_saved',
       projectionState: 'projection_ready',
-      syncState: 'connected',
-      continuityState: 'same_path',
       contentState: 'content_safe',
-      nextAction: 'none',
-      code: null,
     );
   }
 
@@ -77,14 +93,22 @@ void main() {
       final projectionPendingService = SyncService(
         gateway: _SemanticsGateway(
           statusDto: const frb.SyncStatusDto(
+            // Phase 2 契约字段
+            syncState: 'connected',
+            queryConvergenceState: 'pending',
+            instanceContinuityState: 'ready',
+            localContentSafety: 'safe',
+            recoveryStage: 'waiting',
+            continuityState: 'path_at_risk',
+            nextAction: 'none',
+            allowedOperations: ['view', 'continue_edit'],
+            forbiddenOperations: [],
+            code: 'PROJECTION_NOT_CONVERGED',
+            // 兼容性字段
             state: 'degraded',
             writeState: 'write_saved',
             projectionState: 'projection_pending',
-            syncState: 'connected',
-            continuityState: 'same_path',
             contentState: 'content_safe_local_only',
-            nextAction: 'check_status',
-            code: 'PROJECTION_NOT_CONVERGED',
           ),
         ),
         networkId: BigInt.one,
@@ -92,14 +116,22 @@ void main() {
       final syncFailureService = SyncService(
         gateway: _SemanticsGateway(
           statusDto: const frb.SyncStatusDto(
+            // Phase 2 契约字段
+            syncState: 'blocked',
+            queryConvergenceState: 'ready',
+            instanceContinuityState: 'ready',
+            localContentSafety: 'read_only_risk',
+            recoveryStage: 'needs_user_action',
+            continuityState: 'path_at_risk',
+            nextAction: 'retry_sync',
+            allowedOperations: ['view', 'check_status'],
+            forbiddenOperations: ['write', 'continue_edit'],
+            code: 'REQUEST_TIMEOUT',
+            // 兼容性字段
             state: 'degraded',
             writeState: 'write_saved',
             projectionState: 'projection_ready',
-            syncState: 'sync_failed',
-            continuityState: 'same_path',
             contentState: 'content_safe_local_only',
-            nextAction: 'reconnect',
-            code: 'REQUEST_TIMEOUT',
           ),
           pullError: const ApiError(
             code: 'REQUEST_TIMEOUT',
@@ -112,7 +144,7 @@ void main() {
       final projectionPending = await projectionPendingService.status();
       final syncFailure = await syncFailureService.retry();
 
-      expect(projectionPending.kind, SyncStatusKind.projectionPending);
+      expect(projectionPending.kind, SyncStatusKind.queryConvergencePending);
       expect(projectionPending.code, 'PROJECTION_NOT_CONVERGED');
       expect(projectionPending.isWriteSaved, isTrue);
 
@@ -127,14 +159,22 @@ void main() {
     () async {
       final gateway = _SemanticsGateway(
         statusDto: const frb.SyncStatusDto(
+          // Phase 2 契约字段
+          syncState: 'connected',
+          queryConvergenceState: 'ready',
+          instanceContinuityState: 'ready',
+          localContentSafety: 'safe',
+          recoveryStage: 'stable',
+          continuityState: 'same_path',
+          nextAction: 'none',
+          allowedOperations: ['view', 'continue_edit'],
+          forbiddenOperations: [],
+          code: null,
+          // 兼容性字段
           state: 'connected',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
-          syncState: 'connected',
-          continuityState: 'same_path',
           contentState: 'content_safe',
-          nextAction: 'none',
-          code: null,
         ),
       );
       final service = SyncService(gateway: gateway, networkId: BigInt.one);
@@ -152,14 +192,22 @@ void main() {
     () async {
       final gateway = _SemanticsGateway(
         statusDto: const frb.SyncStatusDto(
+          // Phase 2 契约字段
+          syncState: 'connected',
+          queryConvergenceState: 'ready',
+          instanceContinuityState: 'ready',
+          localContentSafety: 'safe',
+          recoveryStage: 'stable',
+          continuityState: 'same_path',
+          nextAction: 'none',
+          allowedOperations: ['view', 'continue_edit'],
+          forbiddenOperations: [],
+          code: null,
+          // 兼容性字段
           state: 'connected',
           writeState: 'write_saved',
           projectionState: 'projection_ready',
-          syncState: 'connected',
-          continuityState: 'same_path',
           contentState: 'content_safe',
-          nextAction: 'none',
-          code: null,
         ),
       );
       final service = SyncService(gateway: gateway, networkId: BigInt.two);
@@ -179,14 +227,22 @@ void main() {
       final degradedService = SyncService(
         gateway: _SemanticsGateway(
           statusDto: const frb.SyncStatusDto(
+            // Phase 2 契约字段
+            syncState: 'blocked',
+            queryConvergenceState: 'ready',
+            instanceContinuityState: 'ready',
+            localContentSafety: 'read_only_risk',
+            recoveryStage: 'needs_user_action',
+            continuityState: 'path_at_risk',
+            nextAction: 'retry_sync',
+            allowedOperations: ['view', 'check_status'],
+            forbiddenOperations: ['write', 'continue_edit'],
+            code: 'REQUEST_TIMEOUT',
+            // 兼容性字段
             state: 'degraded',
             writeState: 'write_saved',
             projectionState: 'projection_ready',
-            syncState: 'sync_failed',
-            continuityState: 'same_path',
             contentState: 'content_safe_local_only',
-            nextAction: 'reconnect',
-            code: 'REQUEST_TIMEOUT',
           ),
         ),
         networkId: BigInt.from(3),
@@ -195,9 +251,9 @@ void main() {
       final status = await degradedService.status();
 
       expect(status.kind, SyncStatusKind.degraded);
-      expect(status.continuityState, 'same_path');
+      expect(status.continuityState, ContinuityState.pathAtRisk);
       expect(status.contentState, 'content_safe_local_only');
-      expect(status.nextAction, 'reconnect');
+      expect(status.nextAction, 'retry_sync');
       expect(status.isWriteSaved, isTrue);
     },
   );
