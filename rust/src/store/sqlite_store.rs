@@ -1,22 +1,91 @@
-// input: SQLite 文件路径、Card/Pool 结构数据与查询参数（id/分页/关键字）。
-// output: cards/pools 读模型表的投影写入与查询结果、解析后的领域模型与数据库错误映射。
-// pos: SQLite 存储实现文件，负责结构化读模型表管理与模型序列化落库。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：本文件实现 SQLite 读模型读写与模型映射。
+//! # SqliteStore 模块
+//!
+//! SQLite 读模型存储实现，负责结构化数据表的创建、查询和维护。
+//!
+//! ## 架构说明
+//! 本模块是双引擎架构中的读模型层：
+//! - **SQLite**：作为读模型，提供高效的结构化查询能力
+//! - **数据来源**：所有数据通过投影从 Loro 写模型同步而来
+//!
+//! 数据流向：Loro 写模型 → 投影操作 → SQLite 读模型 → 业务查询
+//!
+//! ## 调用约束
+//! - 不直接接受业务写入，所有写入应通过 Loro 投影完成
+//! - 读取操作可直接调用，性能优先
+//! - 初始化时会自动创建必要的表结构
+//!
+//! ## 主要功能
+//! - 卡片（Card）的 CRUD 操作
+//! - 数据池（Pool）的元数据管理
+//! - 投影失败记录的追踪与恢复
+//! - 支持分页、搜索和筛选的卡片查询
+//!
+//! ## 数据库 Schema
+//! - `cards`：卡片主表（id, title, content, created_at, updated_at, deleted）
+//! - `pools`：数据池主表（pool_id）
+//! - `pool_members`：池成员关联表（pool_id, endpoint_id, nickname, os, is_admin）
+//! - `pool_cards`：池卡片关联表（pool_id, card_id）
+//! - `projection_failures`：投影失败记录表（entity_type, entity_id, retry_action）
+//!
+//! ## 示例
+//! ```rust,ignore
+//! use rust::store::sqlite_store::SqliteStore;
+//! use std::path::Path;
+//!
+//! // 创建存储实例（自动初始化表结构）
+//! let store = SqliteStore::new(Path::new("/path/to/data.db"))?;
+//!
+//! // 写入卡片（通常从 Loro 投影）
+//! store.upsert_card(&card)?;
+//!
+//! // 查询卡片
+//! let card = store.get_card(&card_id)?;
+//! let cards = store.list_cards(10, 0)?;
+//! ```
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{Connection, Row, params};
+use rusqlite::{params, Connection, Row};
 use std::path::Path;
 use uuid::Uuid;
 
-/// SQLite 读模型存储
+/// SQLite 读模型存储结构体
+///
+/// 封装了 rusqlite 连接，提供卡片和数据池的查询接口。
+///
+/// ## 字段说明
 pub struct SqliteStore {
+    /// SQLite 数据库连接
     conn: Connection,
+    /// 存储是否已就绪（初始化完成）
     ready: bool,
 }
 
 impl SqliteStore {
-    /// 创建并初始化读模型 schema
+    /// 创建并初始化 SQLite 存储实例
+    ///
+    /// 打开数据库连接并创建必要的表结构（如果不存在）。
+    ///
+    /// # 参数
+    /// * `path` - SQLite 数据库文件路径
+    ///
+    /// # 返回
+    /// 初始化后的 [`SqliteStore`] 实例
+    ///
+    /// # Errors
+    /// - 当数据库打开失败时返回 [`CardMindError::Sqlite`]
+    /// - 当表创建失败时返回 [`CardMindError::Sqlite`]
+    ///
+    /// # Note
+    /// 此方法会创建以下表（如果不存在）：cards, pools, pool_members, pool_cards, projection_failures
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// use std::path::Path;
+    ///
+    /// let store = SqliteStore::new(Path::new("data.db"))?;
+    /// assert!(store.is_ready());
+    /// ```
     pub fn new(path: &Path) -> Result<Self, CardMindError> {
         let conn = Connection::open(path).map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         conn.execute_batch(
@@ -55,11 +124,22 @@ impl SqliteStore {
         Ok(Self { conn, ready: true })
     }
 
-    /// 判断缓存层是否可用
+    /// 检查存储是否就绪
+    ///
+    /// # 返回
+    /// - `true` - 存储已初始化完成
+    /// - `false` - 存储未就绪
     pub fn is_ready(&self) -> bool {
         self.ready
     }
 
+    /// 将数据库行映射为 Card 结构体
+    ///
+    /// # 参数
+    /// * `row` - 数据库查询结果行
+    ///
+    /// # 返回
+    /// 解析后的 [`Card`] 实例，或转换错误
     fn map_card(row: &Row<'_>) -> rusqlite::Result<Card> {
         let id_str: String = row.get(0)?;
         let id = Uuid::parse_str(&id_str).map_err(|_| {
@@ -80,6 +160,17 @@ impl SqliteStore {
     }
 
     /// 写入或更新卡片
+    ///
+    /// 使用 INSERT OR REPLACE 语义，如果卡片已存在则更新。
+    ///
+    /// # 参数
+    /// * `card` - 要写入的卡片实例
+    ///
+    /// # 返回
+    /// 成功时返回 `()`
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn upsert_card(&self, card: &Card) -> Result<(), CardMindError> {
         self.conn
             .execute(
@@ -98,7 +189,17 @@ impl SqliteStore {
         Ok(())
     }
 
-    /// 获取卡片
+    /// 获取指定 ID 的卡片
+    ///
+    /// # 参数
+    /// * `id` - 卡片 UUID
+    ///
+    /// # 返回
+    /// 查询到的 [`Card`] 实例
+    ///
+    /// # Errors
+    /// - 当卡片不存在时返回 [`CardMindError::NotFound`]
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn get_card(&self, id: &Uuid) -> Result<Card, CardMindError> {
         let id_str = id.to_string();
         let row = self.conn.query_row(
@@ -133,6 +234,18 @@ impl SqliteStore {
     }
 
     /// 分页列出卡片
+    ///
+    /// 返回所有卡片（包括已删除的），按插入顺序。
+    ///
+    /// # 参数
+    /// * `limit` - 返回的最大卡片数量
+    /// * `offset` - 跳过的卡片数量
+    ///
+    /// # 返回
+    /// 卡片列表
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn list_cards(&self, limit: i64, offset: i64) -> Result<Vec<Card>, CardMindError> {
         let mut stmt = self
             .conn
@@ -151,6 +264,19 @@ impl SqliteStore {
     }
 
     /// 搜索卡片
+    ///
+    /// 在标题和内容中搜索包含关键字的卡片。
+    ///
+    /// # 参数
+    /// * `keyword` - 搜索关键字
+    /// * `limit` - 返回的最大卡片数量
+    /// * `offset` - 跳过的卡片数量
+    ///
+    /// # 返回
+    /// 匹配的卡片列表
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn search_cards(
         &self,
         keyword: &str,
@@ -176,7 +302,22 @@ impl SqliteStore {
         Ok(cards)
     }
 
-    /// 按产品语义查询卡片（支持池筛选和软删除选项）
+    /// 高级卡片查询
+    ///
+    /// 支持关键字搜索、数据池筛选和软删除控制。
+    ///
+    /// # 参数
+    /// * `keyword` - 搜索关键字（标题和内容）
+    /// * `pool_id` - 可选的数据池 ID 筛选
+    /// * `include_deleted` - 是否包含已删除的卡片
+    /// * `limit` - 返回的最大卡片数量
+    /// * `offset` - 跳过的卡片数量
+    ///
+    /// # 返回
+    /// 符合条件的卡片列表，按 updated_at 降序排列
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn query_cards(
         &self,
         keyword: &str,
@@ -248,7 +389,21 @@ impl SqliteStore {
         Ok(cards)
     }
 
-    /// 写入或更新数据池元数据
+    /// 写入或更新数据池
+    ///
+    /// 完整更新数据池的元数据、成员列表和关联卡片。
+    ///
+    /// # 参数
+    /// * `pool` - 要写入的数据池实例
+    ///
+    /// # 返回
+    /// 成功时返回 `()`
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
+    ///
+    /// # Note
+    /// 此操作会先清空再重建 pool_members 和 pool_cards 表的相关记录
     pub fn upsert_pool(&self, pool: &Pool) -> Result<(), CardMindError> {
         self.conn
             .execute(
@@ -298,7 +453,20 @@ impl SqliteStore {
         Ok(())
     }
 
-    /// 记录投影失败语义
+    /// 记录投影失败
+    ///
+    /// 当 Loro 到 SQLite 的投影失败时，记录失败信息以便后续恢复。
+    ///
+    /// # 参数
+    /// * `entity_type` - 实体类型（如 "pool"）
+    /// * `entity_id` - 实体 ID
+    /// * `retry_action` - 重试动作标识
+    ///
+    /// # 返回
+    /// 成功时返回 `()`
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn record_projection_failure(
         &self,
         entity_type: &str,
@@ -315,7 +483,19 @@ impl SqliteStore {
         Ok(())
     }
 
-    /// 清理投影失败语义
+    /// 清除投影失败记录
+    ///
+    /// 当投影成功完成后，清除对应的失败记录。
+    ///
+    /// # 参数
+    /// * `entity_type` - 实体类型
+    /// * `entity_id` - 实体 ID
+    ///
+    /// # 返回
+    /// 成功时返回 `()`
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn clear_projection_failure(
         &self,
         entity_type: &str,
@@ -330,7 +510,20 @@ impl SqliteStore {
         Ok(())
     }
 
-    /// 获取投影失败的恢复动作
+    /// 获取投影失败的重试动作
+    ///
+    /// 检查指定实体是否存在投影失败记录。
+    ///
+    /// # 参数
+    /// * `entity_type` - 实体类型
+    /// * `entity_id` - 实体 ID
+    ///
+    /// # 返回
+    /// - `Some(String)` - 存在失败记录，返回重试动作
+    /// - `None` - 无失败记录
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn get_projection_retry_action(
         &self,
         entity_type: &str,
@@ -348,7 +541,14 @@ impl SqliteStore {
         }
     }
 
-    /// 是否存在任意待恢复的投影失败
+    /// 检查是否存在待恢复的投影失败
+    ///
+    /// # 返回
+    /// - `true` - 存在至少一个待恢复的投影失败
+    /// - `false` - 所有投影都正常
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn has_projection_failures(&self) -> Result<bool, CardMindError> {
         let count: i64 = self
             .conn
@@ -359,7 +559,19 @@ impl SqliteStore {
         Ok(count > 0)
     }
 
-    /// 获取数据池元数据
+    /// 获取指定 ID 的数据池
+    ///
+    /// 完整读取数据池的元数据、成员列表和关联卡片。
+    ///
+    /// # 参数
+    /// * `id` - 数据池 UUID
+    ///
+    /// # 返回
+    /// 查询到的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当数据池不存在时返回 [`CardMindError::NotFound`]
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn get_pool(&self, id: &Uuid) -> Result<Pool, CardMindError> {
         let id_str = id.to_string();
         let pool_row = self.conn.query_row(
@@ -436,7 +648,13 @@ impl SqliteStore {
         })
     }
 
-    /// 列出数据池 ID
+    /// 列出所有数据池 ID
+    ///
+    /// # 返回
+    /// 数据池 UUID 列表，按 pool_id 排序
+    ///
+    /// # Errors
+    /// - 当数据库操作失败时返回 [`CardMindError::Sqlite`]
     pub fn list_pool_ids(&self) -> Result<Vec<Uuid>, CardMindError> {
         let mut stmt = self
             .conn

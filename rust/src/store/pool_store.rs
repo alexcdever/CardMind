@@ -1,7 +1,38 @@
-// input: 建池/入池/离池参数、成员与卡片集合、Loro 文档与 SQLite 读写返回。
-// output: Pool 数据更新结果及其在 Loro 写模型和 SQLite 读模型中的持久化状态。
-// pos: 数据池存储实现文件，负责池成员与卡片关联关系的本地维护，并遵守先写 Loro、再投影到 SQLite 的约束。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：本文件实现数据池本地读写分离存储。
+//! # PoolStore 模块
+//!
+//! 本地数据池存储实现，负责池成员与卡片关联关系的本地维护。
+//!
+//! ## 架构说明
+//! 本模块采用双引擎架构：
+//! - **Loro CRDT**：作为写模型，负责数据的最终一致性和协作同步
+//! - **SQLite**：作为读模型，提供高效的查询和检索能力
+//!
+//! 数据流向：业务逻辑 → Loro 写模型 → 投影到 SQLite 读模型 → 查询返回
+//!
+//! ## 调用约束
+//! - 必须先完成 Loro 写入，再执行 SQLite 投影
+//! - 投影失败时会记录重试标记，需调用方重试
+//! - 所有数据操作都通过 `PoolStore` 结构体进行
+//!
+//! ## 主要功能
+//! - 创建和管理数据池（Pool）
+//! - 池成员的加入/离开管理
+//! - 笔记引用与数据池的关联
+//! - 投影失败的检测与恢复
+//!
+//! ## 示例
+//! ```rust,ignore
+//! use rust::store::pool_store::PoolStore;
+//!
+//! // 创建存储实例
+//! let store = PoolStore::new("/path/to/data")?;
+//!
+//! // 创建数据池
+//! let pool = store.create_pool("endpoint-1", "My Device", "macOS")?;
+//!
+//! // 加入数据池
+//! let updated_pool = store.join_pool(&pool, new_member, local_cards)?;
+//! ```
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
 use crate::store::loro_store::{load_loro_doc, pool_doc_path, save_loro_doc};
@@ -13,34 +44,79 @@ use std::collections::HashSet;
 use std::path::Path;
 use uuid::Uuid;
 
+/// 投影模式枚举，用于控制数据从 Loro 到 SQLite 的投影行为
+///
+/// 主要用于测试场景模拟投影失败
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ProjectionMode {
+    /// 正常模式，正常执行投影
     Normal,
+    /// 模拟投影失败模式，用于测试错误处理
     FailWrites,
 }
 
-/// 本地卡片池存储
+/// 本地数据池存储结构体
+///
+/// 负责管理数据池的完整生命周期，包括创建、查询、成员管理以及
+/// 笔记引用的关联。采用 Loro 作为写模型，SQLite 作为读模型的架构。
+///
+/// ## 字段说明
 pub struct PoolStore {
+    /// 数据路径配置，包含 base_path、Loro 目录和 SQLite 路径
     paths: DataPaths,
+    /// SQLite 读模型存储实例
     sqlite: SqliteStore,
+    /// 投影模式，控制数据从 Loro 到 SQLite 的投影行为
     projection_mode: ProjectionMode,
 }
 
-/// 本地卡片池存储实现
 impl PoolStore {
+    /// 实体类型常量 - 数据池
     const POOL_ENTITY: &'static str = "pool";
+    /// 重试动作常量 - 重新执行投影
     const RETRY_PROJECTION: &'static str = "retry_projection";
 
-    /// 创建数据池存储
+    /// 创建数据池存储实例
+    ///
+    /// # 参数
+    /// * `base_path` - 数据存储根目录路径
+    ///
+    /// # 返回
+    /// 初始化后的 [`PoolStore`] 实例
+    ///
+    /// # Errors
+    /// - 当 `base_path` 为空时返回 [`CardMindError::InvalidArgument`]
+    /// - 当目录创建失败时返回 `CardMindError::Io`
+    /// - 当 SQLite 初始化失败时返回 [`CardMindError::Sqlite`]
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// use rust::store::pool_store::PoolStore;
+    ///
+    /// let store = PoolStore::new("/home/user/.cardmind")?;
+    /// ```
     pub fn new(base_path: &str) -> Result<Self, CardMindError> {
         Self::new_with_projection_mode(base_path, ProjectionMode::Normal)
     }
 
-    /// 创建一个注入投影失败的数据池存储（测试用）
+    /// 创建一个注入投影失败的数据池存储（仅用于测试）
+    ///
+    /// # 参数
+    /// * `base_path` - 数据存储根目录路径
+    ///
+    /// # 返回
+    /// 初始化后的 [`PoolStore`] 实例，投影操作将总是失败
+    ///
+    /// # Errors
+    /// 同 [`PoolStore::new`]
+    ///
+    /// # Note
+    /// 此方法仅用于测试错误处理逻辑，不应在生产代码中使用
     pub fn new_with_projection_failure(base_path: &str) -> Result<Self, CardMindError> {
         Self::new_with_projection_mode(base_path, ProjectionMode::FailWrites)
     }
 
+    /// 内部方法：使用指定投影模式创建存储实例
     fn new_with_projection_mode(
         base_path: &str,
         projection_mode: ProjectionMode,
@@ -55,11 +131,34 @@ impl PoolStore {
     }
 
     /// 获取存储根路径
+    ///
+    /// # 返回
+    /// 数据存储根目录的 [`Path`] 引用
     pub fn base_path(&self) -> &Path {
         &self.paths.base_path
     }
 
-    /// 创建数据池
+    /// 创建新的数据池
+    ///
+    /// 自动创建池 ID，并将调用方设置为管理员成员。
+    ///
+    /// # 参数
+    /// * `endpoint_id` - 设备端点 ID
+    /// * `nickname` - 设备昵称
+    /// * `os` - 操作系统信息
+    ///
+    /// # 返回
+    /// 创建成功的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当 Loro 写入失败时返回 [`CardMindError::Loro`]
+    /// - 当 SQLite 投影失败时返回 [`CardMindError::ProjectionNotConverged`]
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// let pool = store.create_pool("device-001", "My MacBook", "macOS")?;
+    /// println!("Created pool: {}", pool.pool_id);
+    /// ```
     pub fn create_pool(
         &self,
         endpoint_id: &str,
@@ -80,7 +179,20 @@ impl PoolStore {
         Ok(pool)
     }
 
-    /// 获取数据池
+    /// 获取指定 ID 的数据池
+    ///
+    /// 优先从 SQLite 读模型查询。如果未找到，会检查是否存在投影失败标记。
+    ///
+    /// # 参数
+    /// * `pool_id` - 数据池 UUID
+    ///
+    /// # 返回
+    /// 查询到的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当数据池不存在时返回 [`CardMindError::NotFound`]
+    /// - 当存在投影失败时返回 [`CardMindError::ProjectionNotConverged`]
+    /// - 当数据库查询失败时返回 [`CardMindError::Sqlite`]
     pub fn get_pool(&self, pool_id: &Uuid) -> Result<Pool, CardMindError> {
         match self.sqlite.get_pool(pool_id) {
             Ok(pool) => Ok(pool),
@@ -94,7 +206,16 @@ impl PoolStore {
         }
     }
 
-    /// 获取任意一个数据池（默认第一个）
+    /// 获取任意一个数据池
+    ///
+    /// 返回存储中的第一个数据池。适用于只有一个数据池的常见场景。
+    ///
+    /// # 返回
+    /// 查询到的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当没有数据池时返回 [`CardMindError::NotFound`]
+    /// - 当数据库查询失败时返回 [`CardMindError::Sqlite`]
     pub fn get_any_pool(&self) -> Result<Pool, CardMindError> {
         let ids = self.sqlite.list_pool_ids()?;
         let pool_id = ids
@@ -103,7 +224,20 @@ impl PoolStore {
         self.get_pool(pool_id)
     }
 
-    /// 将 note 引用挂接到池元数据，已存在则去重保留
+    /// 将笔记引用挂接到数据池元数据
+    ///
+    /// 将指定的笔记 ID 列表关联到数据池。已存在的引用会被保留（去重）。
+    ///
+    /// # 参数
+    /// * `pool_id` - 数据池 UUID
+    /// * `note_ids` - 要关联的笔记 ID 列表
+    ///
+    /// # 返回
+    /// 更新后的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当数据池不存在时返回 [`CardMindError::NotFound`]
+    /// - 当持久化失败时返回相应的错误类型
     pub fn attach_note_references(
         &self,
         pool_id: &Uuid,
@@ -116,6 +250,22 @@ impl PoolStore {
     }
 
     /// 加入数据池
+    ///
+    /// 将新成员添加到数据池，同时合并本地卡片引用。
+    ///
+    /// # 参数
+    /// * `pool` - 要加入的数据池
+    /// * `new_member` - 新成员信息
+    /// * `local_card_ids` - 要共享的本地卡片 ID 列表
+    ///
+    /// # 返回
+    /// 更新后的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当持久化失败时返回相应的错误类型
+    ///
+    /// # Note
+    /// 如果成员已存在（通过 endpoint_id 判断），则不会重复添加
     pub fn join_pool(
         &self,
         pool: &Pool,
@@ -136,6 +286,20 @@ impl PoolStore {
     }
 
     /// 通过加入码加入数据池
+    ///
+    /// 加入码即数据池的 UUID 字符串。
+    ///
+    /// # 参数
+    /// * `code` - 加入码（UUID 字符串）
+    /// * `new_member` - 新成员信息
+    /// * `local_card_ids` - 要共享的本地卡片 ID 列表
+    ///
+    /// # 返回
+    /// 更新后的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当加入码格式无效时返回 [`CardMindError::InvalidArgument`]
+    /// - 当数据池不存在时返回 [`CardMindError::NotFound`]
     pub fn join_by_code(
         &self,
         code: &str,
@@ -149,6 +313,19 @@ impl PoolStore {
     }
 
     /// 离开数据池
+    ///
+    /// 从数据池中移除指定端点的成员。
+    ///
+    /// # 参数
+    /// * `pool_id` - 数据池 UUID
+    /// * `endpoint_id` - 要离开的端点 ID
+    ///
+    /// # 返回
+    /// 更新后的 [`Pool`] 实例
+    ///
+    /// # Errors
+    /// - 当数据池不存在时返回 [`CardMindError::NotFound`]
+    /// - 当持久化失败时返回相应的错误类型
     pub fn leave_pool(&self, pool_id: &Uuid, endpoint_id: &str) -> Result<Pool, CardMindError> {
         let mut pool = self.sqlite.get_pool(pool_id)?;
         pool.members
@@ -157,12 +334,18 @@ impl PoolStore {
         Ok(pool)
     }
 
+    /// 持久化数据池
+    ///
+    /// 内部方法：先写入 Loro，再投影到 SQLite。
     fn persist_pool(&self, pool: &Pool) -> Result<(), CardMindError> {
         self.write_pool_to_loro(pool)?;
         self.project_pool_to_sqlite(pool)?;
         Ok(())
     }
 
+    /// 将数据池写入 Loro 文档
+    ///
+    /// 内部方法：序列化数据池到 Loro CRDT 格式。
     fn write_pool_to_loro(&self, pool: &Pool) -> Result<(), CardMindError> {
         let path = self.paths.base_path.join(pool_doc_path(&pool.pool_id));
         let doc = load_loro_doc(&path)?;
@@ -204,6 +387,9 @@ impl PoolStore {
         save_loro_doc(&path, &doc)
     }
 
+    /// 将数据池从 Loro 投影到 SQLite
+    ///
+    /// 内部方法：根据投影模式决定是否模拟失败。
     fn project_pool_to_sqlite(&self, pool: &Pool) -> Result<(), CardMindError> {
         if self.projection_mode == ProjectionMode::FailWrites {
             self.sqlite.record_projection_failure(
@@ -222,6 +408,9 @@ impl PoolStore {
         Ok(())
     }
 
+    /// 检查数据池是否存在投影失败
+    ///
+    /// 内部方法：查询 projection_failures 表。
     fn projection_not_converged_for(
         &self,
         pool_id: &Uuid,
@@ -232,6 +421,9 @@ impl PoolStore {
             .map(|retry_action| Self::build_projection_error(*pool_id, retry_action)))
     }
 
+    /// 构建投影错误
+    ///
+    /// 内部方法：创建标准化的投影失败错误。
     fn build_projection_error(pool_id: Uuid, retry_action: String) -> CardMindError {
         CardMindError::ProjectionNotConverged {
             entity: Self::POOL_ENTITY.to_string(),
@@ -241,6 +433,16 @@ impl PoolStore {
     }
 }
 
+/// 合并笔记引用
+///
+/// 将新的笔记 ID 合并到现有列表中，自动去重。
+///
+/// # 参数
+/// * `existing` - 现有的笔记 ID 列表
+/// * `incoming` - 要合并的新笔记 ID 列表
+///
+/// # 返回
+/// 合并后的笔记 ID 列表（去重）
 fn merge_note_references(existing: &[Uuid], incoming: Vec<Uuid>) -> Vec<Uuid> {
     let mut card_set: HashSet<Uuid> = existing.iter().cloned().collect();
     for card_id in incoming {

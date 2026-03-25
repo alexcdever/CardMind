@@ -1,11 +1,49 @@
-// input: 来自 FRB/上层的应用配置、网络句柄与字符串参数，以及 store/network 操作返回的领域错误。
-// output: 应用配置结果、网络初始化与关闭结果、后端用例 DTO、同步状态 DTO 与统一 ApiError 映射。
-// pos: Rust API 门面模块，负责应用级运行配置、网络句柄生命周期管理、后端用例编排与跨层错误转换。修改本文件需同步更新所属 DIR.md。
-// 中文注释：本文件承接对外 API、组装稳定 DTO 并做错误码映射。
+//! API 门面模块 - Flutter-Rust-Bridge FFI 接口实现
+//!
+//! 核心职责：
+//! - 实现所有暴露给 Flutter 前端的 Rust API 函数
+//! - 管理应用配置的全局状态（`APP_CONFIG_DIR`）
+//! - 管理网络句柄生命周期（`POOL_NETWORKS`）
+//! - 协调存储层操作与错误码映射
+//!
+//! 上下文依赖：
+//! - 使用前必须调用 `init_app_config` 初始化应用数据目录
+//! - 所有需要存储的操作依赖 `configured_app_data_dir()` 返回的有效路径
+//! - 网络操作需要独立的 Tokio 运行时（每个 `PoolNetwork` 一个）
+//!
+//! # Panics
+//! 以下情况会 panic（转换为 ApiError）：
+//! - 全局锁（`Mutex`）被 poison：返回 `ApiErrorCode::Internal`
+//! - 应用配置未初始化：返回 `ApiErrorCode::AppConfigNotInitialized`
+//!
+//! # Safety
+//! 本模块不涉及 `unsafe` 块。所有 FFI 交互由 `frb_generated` 模块处理。
+//!
+//! # Examples
+//! ```rust,ignore
+//! use cardmind_rust::api;
+//!
+//! // 1. 初始化（必须首先调用）
+//! api::init_app_config("/path/to/data".to_string()).unwrap();
+//!
+//! // 2. 创建数据池
+//! let pool = api::create_pool("device-001".to_string(),
+//!                             "Alice".to_string(),
+//!                             "macOS".to_string()).unwrap();
+//!
+//! // 3. 创建卡片
+//! let card = api::create_card_note("笔记标题".to_string(),
+//!                                  "笔记内容".to_string()).unwrap();
+//!
+//! // 4. 初始化网络并同步
+//! let network_id = api::init_pool_network("/path/to/data".to_string()).unwrap();
+//! api::sync_connect(network_id, "192.168.1.100:8080".to_string()).unwrap();
+//! ```
+
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{PoolEndpoint, build_endpoint};
+use crate::net::endpoint::{build_endpoint, PoolEndpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::store::card_store::CardNoteRepository;
@@ -122,12 +160,63 @@ pub struct SyncResultDto {
 // Phase 2: 使用 recovery_contract 进行规则归一化
 use recovery_contract::legacy_to_phase2_contract;
 
+/// 获取后端服务配置
+///
+/// 读取当前启用的后端接口（HTTP/MCP/CLI）配置状态。
+///
+/// # Returns
+/// - `Ok(BackendConfigDto)` - 当前配置，包含 http_enabled、mcp_enabled、cli_enabled 字段
+/// - `Err(ApiError)` - 配置读取失败
+///
+/// # Panics
+/// - 应用配置未初始化时返回 `ApiErrorCode::AppConfigNotInitialized`
+/// - IO 错误时返回 `ApiErrorCode::Internal`
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+/// let config = api::get_backend_config().unwrap();
+/// println!("HTTP 服务: {}", config.http_enabled);
+/// ```
 pub fn get_backend_config() -> Result<BackendConfigDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let store = BackendConfigStore::new(Path::new(&app_data_dir));
     store.load().map_err(map_err)
 }
 
+/// 更新后端服务配置
+///
+/// 更新并保存后端接口（HTTP/MCP/CLI）的启用状态配置。
+///
+/// # 参数
+/// * `http_enabled` - 是否启用 HTTP 服务接口
+/// * `mcp_enabled` - 是否启用 MCP（Model Context Protocol）服务接口
+/// * `cli_enabled` - 是否启用 CLI 命令行接口
+///
+/// # 返回
+/// - `Ok(BackendConfigDto)` - 更新后的配置
+/// - `Err(ApiError)` - 配置保存失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::IoError` - 配置文件读写失败
+/// - `ApiErrorCode::Internal` - 内部错误（锁被 poison）
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// // 启用 HTTP 和 MCP，禁用 CLI
+/// let config = api::update_backend_config(true, true, false).unwrap();
+/// assert!(config.http_enabled);
+/// assert!(config.mcp_enabled);
+/// assert!(!config.cli_enabled);
+/// ```
 pub fn update_backend_config(
     http_enabled: bool,
     mcp_enabled: bool,
@@ -147,8 +236,32 @@ pub fn update_backend_config(
 }
 
 /// 获取运行时入口状态
-pub fn get_runtime_entry_status()
--> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+///
+/// 查询当前后端服务的运行时入口状态，包括各接口（HTTP/MCP/CLI）的启动状态、
+/// 监听地址、连接数等信息。
+///
+/// # 返回
+/// - `Ok(RuntimeEntryStatusDto)` - 运行时入口状态详情
+/// - `Err(ApiError)` - 查询失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let status = api::get_runtime_entry_status().unwrap();
+/// println!("HTTP 监听: {:?}", status.http_bind_addr);
+/// println!("MCP 监听: {:?}", status.mcp_bind_addr);
+/// println!("CLI 启用: {}", status.cli_enabled);
+/// ```
+pub fn get_runtime_entry_status(
+) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -325,6 +438,36 @@ fn parse_card_id(card_id: &str) -> Result<Uuid, ApiError> {
 }
 
 /// 初始化应用级配置
+///
+/// 必须在调用任何其他 API 之前执行。设置全局应用数据目录，初始化存储目录结构。
+///
+/// # Arguments
+/// * `app_data_dir` - 应用数据根目录的绝对路径（如 `/Users/xxx/Library/Application Support/com.example.app`）
+///
+/// # Returns
+/// - `Ok(())` - 初始化成功
+/// - `Err(ApiError)` - 目录创建失败或已被其他路径初始化
+///
+/// # Panics
+/// - 锁 poison 时返回 `ApiErrorCode::Internal`
+/// - 已用不同路径初始化时返回 `ApiErrorCode::AppConfigConflict`
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// // 首次初始化
+/// let result = api::init_app_config("/path/to/data".to_string());
+/// assert!(result.is_ok());
+///
+/// // 重复初始化相同路径（幂等）
+/// let result = api::init_app_config("/path/to/data".to_string());
+/// assert!(result.is_ok()); // 不会报错
+///
+/// // 用不同路径初始化（报错）
+/// let result = api::init_app_config("/different/path".to_string());
+/// assert!(result.is_err()); // AppConfigConflict
+/// ```
 pub fn init_app_config(app_data_dir: String) -> Result<(), ApiError> {
     let mut config = app_config_dir()
         .lock()
@@ -352,6 +495,37 @@ pub fn reset_app_config_for_tests() -> Result<(), ApiError> {
     Ok(())
 }
 
+/// 创建新的数据池
+///
+/// 创建一个新的 Pool（数据池），当前设备作为管理员加入。
+///
+/// # Arguments
+/// * `endpoint_id` - 当前设备的唯一标识符（建议使用设备 UUID）
+/// * `nickname` - 成员在池中的显示名称
+/// * `os` - 操作系统标识（如 "macOS", "Windows", "Linux"）
+///
+/// # Returns
+/// - `Ok(PoolDto)` - 创建成功的池信息，包含池 ID、名称、成员数等
+/// - `Err(ApiError)` - 创建失败，可能原因：存储错误、参数无效
+///
+/// # Panics
+/// - 应用配置未初始化时返回 `ApiErrorCode::AppConfigNotInitialized`
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let pool = api::create_pool(
+///     "device-uuid-123".to_string(),
+///     "我的工作池".to_string(),
+///     "macOS".to_string(),
+/// ).unwrap();
+///
+/// println!("池 ID: {}", pool.id);
+/// println!("我的角色: {}", pool.current_user_role); // "admin"
+/// ```
 pub fn create_pool(endpoint_id: String, nickname: String, os: String) -> Result<PoolDto, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pool = pool_store
@@ -361,6 +535,45 @@ pub fn create_pool(endpoint_id: String, nickname: String, os: String) -> Result<
     })
 }
 
+/// 加入数据池
+///
+/// 作为新成员加入指定的数据池。加入后将同步池中已有的卡片引用。
+///
+/// # 参数
+/// * `pool_id` - 要加入的数据池 ID（UUID 字符串）
+/// * `endpoint_id` - 当前设备的唯一标识符
+/// * `nickname` - 成员在池中的显示名称
+/// * `os` - 操作系统标识（如 "macOS", "Windows", "Linux"）
+///
+/// # 返回
+/// - `Ok(PoolDto)` - 加入成功后的池信息
+/// - `Err(ApiError)` - 加入失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidArgument` - 无效的 pool_id 格式
+/// - `ApiErrorCode::PoolNotFound` - 指定的池不存在
+/// - `ApiErrorCode::AlreadyMember` - 已经是该池的成员
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// // 加入现有池
+/// let pool = api::join_pool(
+///     "pool-uuid-123".to_string(),
+///     "device-uuid-456".to_string(),
+///     "Bob".to_string(),
+///     "Windows".to_string(),
+/// ).unwrap();
+///
+/// println!("已加入池: {}", pool.name);
+/// println!("我的角色: {}", pool.current_user_role);
+/// ```
 pub fn join_pool(
     pool_id: String,
     endpoint_id: String,
@@ -389,6 +602,45 @@ pub fn join_pool(
     })
 }
 
+/// 通过加入码加入数据池
+///
+/// 使用加入码（Join Code）加入数据池。加入码通常由池管理员生成并分享。
+///
+/// # 参数
+/// * `code` - 加入码字符串
+/// * `endpoint_id` - 当前设备的唯一标识符
+/// * `nickname` - 成员在池中的显示名称
+/// * `os` - 操作系统标识
+///
+/// # 返回
+/// - `Ok(PoolDto)` - 加入成功后的池信息
+/// - `Err(ApiError)` - 加入失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidPoolHash` - 无效的加入码
+/// - `ApiErrorCode::PoolNotFound` - 加入码对应的池不存在
+/// - `ApiErrorCode::RequestTimeout` - 加入请求超时
+/// - `ApiErrorCode::AlreadyMember` - 已经是该池的成员
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// // 通过加入码加入
+/// let pool = api::join_by_code(
+///     "ABC123XYZ".to_string(),
+///     "device-uuid-789".to_string(),
+///     "Charlie".to_string(),
+///     "Linux".to_string(),
+/// ).unwrap();
+///
+/// println!("成功加入池: {}", pool.name);
+/// ```
 pub fn join_by_code(
     code: String,
     endpoint_id: String,
@@ -430,6 +682,33 @@ pub fn join_by_code(
     })
 }
 
+/// 列出所有数据池
+///
+/// 获取当前设备关联的所有数据池列表。目前实现返回单个池或空列表。
+///
+/// # 参数
+/// * `endpoint_id` - 当前设备的唯一标识符
+///
+/// # 返回
+/// - `Ok(Vec<PoolDto>)` - 数据池列表（可能为空）
+/// - `Err(ApiError)` - 查询失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let pools = api::list_pools("device-uuid-001".to_string()).unwrap();
+/// for pool in pools {
+///     println!("池: {} (角色: {})", pool.name, pool.current_user_role);
+/// }
+/// ```
 pub fn list_pools(endpoint_id: String) -> Result<Vec<PoolDto>, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pools = pool_store
@@ -447,6 +726,40 @@ pub fn list_pools(endpoint_id: String) -> Result<Vec<PoolDto>, ApiError> {
     })
 }
 
+/// 获取数据池详情
+///
+/// 获取指定数据池的详细信息，包括成员列表、卡片 ID 列表等。
+///
+/// # 参数
+/// * `pool_id` - 数据池 ID（UUID 字符串）
+/// * `endpoint_id` - 当前设备的唯一标识符
+///
+/// # 返回
+/// - `Ok(PoolDetailDto)` - 数据池详细信息
+/// - `Err(ApiError)` - 查询失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidArgument` - 无效的 pool_id 格式
+/// - `ApiErrorCode::PoolNotFound` - 指定的池不存在
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let detail = api::get_pool_detail(
+///     "pool-uuid-123".to_string(),
+///     "device-uuid-001".to_string(),
+/// ).unwrap();
+///
+/// println!("池名称: {}", detail.name);
+/// println!("成员数: {}", detail.member_count);
+/// println!("卡片数: {}", detail.note_ids.len());
+/// ```
 pub fn get_pool_detail(pool_id: String, endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pool_id = parse_pool_id(&pool_id)?;
@@ -455,6 +768,34 @@ pub fn get_pool_detail(pool_id: String, endpoint_id: String) -> Result<PoolDetai
     })
 }
 
+/// 获取已加入的数据池视图
+///
+/// 获取当前设备已加入的数据池的详细信息。如果设备未加入任何池则返回错误。
+///
+/// # 参数
+/// * `endpoint_id` - 当前设备的唯一标识符
+///
+/// # 返回
+/// - `Ok(PoolDetailDto)` - 已加入池的详细信息
+/// - `Err(ApiError)` - 查询失败（未加入任何池）
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::NotFound` - 当前设备未加入任何数据池
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// match api::get_joined_pool_view("device-uuid-001".to_string()) {
+///     Ok(detail) => println!("已加入池: {}", detail.name),
+///     Err(e) => println!("未加入任何池: {:?}", e),
+/// }
+/// ```
 pub fn get_joined_pool_view(endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
     with_configured_pool_store(|pool_store| {
         let pool = pool_store.get_any_pool().map_err(map_err)?;
@@ -462,6 +803,38 @@ pub fn get_joined_pool_view(endpoint_id: String) -> Result<PoolDetailDto, ApiErr
     })
 }
 
+/// 创建卡片笔记
+///
+/// 创建一个新的卡片笔记，包含标题和内容。
+///
+/// # 参数
+/// * `title` - 卡片标题
+/// * `content` - 卡片内容（支持 Markdown 格式）
+///
+/// # 返回
+/// - `Ok(CardNoteDto)` - 创建成功的卡片信息
+/// - `Err(ApiError)` - 创建失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let card = api::create_card_note(
+///     "Rust 所有权".to_string(),
+///     "所有权是 Rust 的核心特性...".to_string(),
+/// ).unwrap();
+///
+/// println!("创建卡片 ID: {}", card.id);
+/// println!("创建时间: {}", card.created_at);
+/// ```
 pub fn create_card_note(title: String, content: String) -> Result<CardNoteDto, ApiError> {
     with_configured_card_store(|card_repository| {
         let card = card_repository
@@ -471,6 +844,41 @@ pub fn create_card_note(title: String, content: String) -> Result<CardNoteDto, A
     })
 }
 
+/// 在指定池中创建卡片
+///
+/// 创建卡片笔记并将其关联到指定的数据池。
+///
+/// # 参数
+/// * `pool_id` - 数据池 ID（UUID 字符串）
+/// * `title` - 卡片标题
+/// * `content` - 卡片内容
+///
+/// # 返回
+/// - `Ok(CardNoteDto)` - 创建成功的卡片信息
+/// - `Err(ApiError)` - 创建失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidArgument` - 无效的 pool_id 格式
+/// - `ApiErrorCode::PoolNotFound` - 指定的池不存在
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let card = api::create_card_note_in_pool(
+///     "pool-uuid-123".to_string(),
+///     "会议记录".to_string(),
+///     "今天讨论了...".to_string(),
+/// ).unwrap();
+///
+/// println!("在池中创建卡片: {}", card.title);
+/// ```
 pub fn create_card_note_in_pool(
     pool_id: String,
     title: String,
@@ -490,6 +898,41 @@ pub fn create_card_note_in_pool(
     })
 }
 
+/// 更新卡片笔记
+///
+/// 更新指定卡片的标题和内容。
+///
+/// # 参数
+/// * `card_id` - 卡片 ID（UUID 字符串）
+/// * `title` - 新的卡片标题
+/// * `content` - 新的卡片内容
+///
+/// # 返回
+/// - `Ok(CardNoteDto)` - 更新后的卡片信息
+/// - `Err(ApiError)` - 更新失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidArgument` - 无效的 card_id 格式
+/// - `ApiErrorCode::NotFound` - 指定的卡片不存在
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let updated = api::update_card_note(
+///     "card-uuid-456".to_string(),
+///     "更新后的标题".to_string(),
+///     "更新后的内容...".to_string(),
+/// ).unwrap();
+///
+/// println!("更新时间: {}", updated.updated_at);
+/// ```
 pub fn update_card_note(
     card_id: String,
     title: String,
@@ -504,6 +947,39 @@ pub fn update_card_note(
     })
 }
 
+/// 删除卡片笔记（软删除）
+///
+/// 将指定卡片标记为已删除（软删除），卡片数据仍然保留但不再显示在列表中。
+/// 可以使用 [`restore_card_note`] 恢复已删除的卡片。
+///
+/// # 参数
+/// * `card_id` - 要删除的卡片 ID（UUID 字符串）
+///
+/// # 返回
+/// - `Ok(CardNoteDto)` - 删除后的卡片信息（deleted 字段为 true）
+/// - `Err(ApiError)` - 删除失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidArgument` - 无效的 card_id 格式
+/// - `ApiErrorCode::NotFound` - 指定的卡片不存在
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let deleted = api::delete_card_note("card-uuid-456".to_string()).unwrap();
+/// assert!(deleted.deleted);
+///
+/// // 稍后可以通过 restore_card_note 恢复
+/// let restored = api::restore_card_note("card-uuid-456".to_string()).unwrap();
+/// assert!(!restored.deleted);
+/// ```
 pub fn delete_card_note(card_id: String) -> Result<CardNoteDto, ApiError> {
     with_configured_card_store(|card_repository| {
         let card_id = parse_card_id(&card_id)?;
@@ -513,6 +989,38 @@ pub fn delete_card_note(card_id: String) -> Result<CardNoteDto, ApiError> {
     })
 }
 
+/// 恢复已删除的卡片
+///
+/// 恢复被软删除的卡片，使其重新在列表中显示。
+///
+/// # 参数
+/// * `card_id` - 要恢复的卡片 ID（UUID 字符串）
+///
+/// # 返回
+/// - `Ok(CardNoteDto)` - 恢复后的卡片信息（deleted 字段为 false）
+/// - `Err(ApiError)` - 恢复失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidArgument` - 无效的 card_id 格式
+/// - `ApiErrorCode::NotFound` - 指定的卡片不存在
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// // 先删除再恢复
+/// let _ = api::delete_card_note("card-uuid-456".to_string()).unwrap();
+/// let restored = api::restore_card_note("card-uuid-456".to_string()).unwrap();
+///
+/// assert!(!restored.deleted);
+/// println!("卡片已恢复: {}", restored.title);
+/// ```
 pub fn restore_card_note(card_id: String) -> Result<CardNoteDto, ApiError> {
     with_configured_card_store(|card_repository| {
         let card_id = parse_card_id(&card_id)?;
@@ -522,6 +1030,33 @@ pub fn restore_card_note(card_id: String) -> Result<CardNoteDto, ApiError> {
     })
 }
 
+/// 列出所有卡片
+///
+/// 获取所有卡片的列表（不包括已删除的卡片）。
+///
+/// # 返回
+/// - `Ok(Vec<CardNoteDto>)` - 卡片列表
+/// - `Err(ApiError)` - 查询失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let cards = api::list_card_notes().unwrap();
+/// println!("共有 {} 张卡片", cards.len());
+///
+/// for card in cards {
+///     println!("- {}: {}", card.id, card.title);
+/// }
+/// ```
 pub fn list_card_notes() -> Result<Vec<CardNoteDto>, ApiError> {
     with_configured_card_store(|card_repository| {
         let cards = card_repository.list_cards(10_000, 0).map_err(map_err)?;
@@ -529,6 +1064,45 @@ pub fn list_card_notes() -> Result<Vec<CardNoteDto>, ApiError> {
     })
 }
 
+/// 查询卡片
+///
+/// 根据查询条件搜索卡片，支持全文搜索标题和内容。
+///
+/// # 参数
+/// * `query` - 搜索关键词（在标题和内容中搜索）
+/// * `pool_id` - 可选，限制在指定池中搜索
+/// * `include_deleted` - 可选，是否包含已删除的卡片（默认 false）
+///
+/// # 返回
+/// - `Ok(Vec<CardNoteDto>)` - 匹配的卡片列表
+/// - `Err(ApiError)` - 查询失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// // 搜索包含 "Rust" 的卡片
+/// let results = api::query_card_notes(
+///     "Rust".to_string(),
+///     None,
+///     Some(false),
+/// ).unwrap();
+///
+/// // 在特定池中搜索
+/// let pool_results = api::query_card_notes(
+///     "会议".to_string(),
+///     Some("pool-uuid-123".to_string()),
+///     None,
+/// ).unwrap();
+/// ```
 pub fn query_card_notes(
     query: String,
     pool_id: Option<String>,
@@ -542,6 +1116,36 @@ pub fn query_card_notes(
     })
 }
 
+/// 获取卡片详情
+///
+/// 获取指定卡片的完整信息。
+///
+/// # 参数
+/// * `card_id` - 卡片 ID（UUID 字符串）
+///
+/// # 返回
+/// - `Ok(CardNoteDto)` - 卡片详细信息
+/// - `Err(ApiError)` - 查询失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
+/// - `ApiErrorCode::InvalidArgument` - 无效的 card_id 格式
+/// - `ApiErrorCode::NotFound` - 指定的卡片不存在
+/// - `ApiErrorCode::SqliteError` - 数据库操作失败
+/// - `ApiErrorCode::Internal` - 内部错误
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// let card = api::get_card_note_detail("card-uuid-456".to_string()).unwrap();
+/// println!("标题: {}", card.title);
+/// println!("内容: {}", card.content);
+/// println!("创建时间: {}", card.created_at);
+/// ```
 pub fn get_card_note_detail(card_id: String) -> Result<CardNoteDto, ApiError> {
     with_configured_card_store(|card_repository| {
         let card_id = parse_card_id(&card_id)?;
@@ -550,7 +1154,43 @@ pub fn get_card_note_detail(card_id: String) -> Result<CardNoteDto, ApiError> {
     })
 }
 
-/// 初始化 PoolNetwork
+/// 初始化 PoolNetwork 网络层
+///
+/// 创建一个新的 P2P 网络实例，包含独立的 Tokio 运行时、QUIC 端点与存储句柄。
+/// 每个网络实例通过递增的 `network_id` 唯一标识。
+///
+/// # Arguments
+/// * `base_path` - 数据存储根目录路径（应与应用配置路径一致）
+///
+/// # Returns
+/// - `Ok(u64)` - 网络实例的唯一标识符，用于后续网络操作
+/// - `Err(ApiError)` - 初始化失败，可能原因：端口占用、存储错误
+///
+/// # Safety
+/// - 每个 PoolNetwork 拥有独立的 Tokio 运行时（`new_current_thread` 模式）
+/// - 运行时在线程内创建，与 FFI 调用线程绑定
+/// - 不跨线程共享运行时，避免 `Send` 约束问题
+///
+/// # Panics
+/// - Tokio 运行时创建失败时返回 `ApiErrorCode::Internal`
+/// - 存储初始化失败时返回相应的存储错误码
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// // 初始化网络和存储
+/// api::init_app_config("/data".to_string()).unwrap();
+///
+/// // 创建网络实例
+/// let network_id = api::init_pool_network("/data".to_string()).unwrap();
+///
+/// // 连接到其他设备
+/// api::sync_connect(network_id, "192.168.1.100:8080".to_string()).unwrap();
+///
+/// // 关闭网络
+/// api::close_pool_network(network_id).unwrap();
+/// ```
 pub fn init_pool_network(base_path: String) -> Result<u64, ApiError> {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -568,7 +1208,36 @@ pub fn init_pool_network(base_path: String) -> Result<u64, ApiError> {
     Ok(network_id)
 }
 
-/// 关闭 PoolNetwork
+/// 关闭 PoolNetwork 网络实例
+///
+/// 停止指定网络实例，释放相关资源（连接、运行时等）。
+/// 关闭后该 `network_id` 将失效，不能再用于其他网络操作。
+///
+/// # Arguments
+/// * `network_id` - 要关闭的网络实例 ID（由 [`init_pool_network`] 返回）
+///
+/// # Returns
+/// - `Ok(())` - 关闭成功
+/// - `Err(ApiError)` - 网络实例不存在（`ApiErrorCode::NotFound`）
+///
+/// # Panics
+/// - 锁 poison 时返回 `ApiErrorCode::Internal`
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// let network_id = api::init_pool_network("/data".to_string()).unwrap();
+///
+/// // ... 进行网络操作 ...
+///
+/// // 关闭网络
+/// api::close_pool_network(network_id).unwrap();
+///
+/// // 再次关闭会报错
+/// let result = api::close_pool_network(network_id);
+/// assert!(result.is_err()); // NotFound
+/// ```
 pub fn close_pool_network(network_id: u64) -> Result<(), ApiError> {
     let mut map = pool_network_map()
         .lock()
@@ -582,6 +1251,35 @@ pub fn close_pool_network(network_id: u64) -> Result<(), ApiError> {
     Ok(())
 }
 
+/// 获取同步状态
+///
+/// 查询指定网络实例的当前同步状态，包括连接状态、数据一致性状态等。
+///
+/// # 参数
+/// * `network_id` - 网络实例 ID（由 [`init_pool_network`] 返回）
+///
+/// # 返回
+/// - `Ok(SyncStatusDto)` - 详细的同步状态信息
+/// - `Err(ApiError)` - 查询失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::Internal` - 内部错误（锁被 poison）
+/// - `ApiErrorCode::InvalidHandle` - 无效的网络实例 ID
+/// - `ApiErrorCode::ProjectionNotConverged` - 投影尚未收敛
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+/// let network_id = api::init_pool_network("/data".to_string()).unwrap();
+///
+/// let status = api::sync_status(network_id).unwrap();
+/// println!("同步状态: {}", status.sync_state);
+/// println!("查询收敛: {}", status.query_convergence_state);
+/// println!("允许的操作: {:?}", status.allowed_operations);
+/// ```
 pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
     let map = pool_network_map()
         .lock()
@@ -606,6 +1304,34 @@ pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
     network.sync_connect(target).map_err(map_err)
 }
 
+/// 断开同步连接
+///
+/// 断开指定网络实例的同步连接，停止与其他设备的同步。
+///
+/// # 参数
+/// * `network_id` - 网络实例 ID（由 [`init_pool_network`] 返回）
+///
+/// # 返回
+/// - `Ok(())` - 断开成功
+/// - `Err(ApiError)` - 断开失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::Internal` - 内部错误（锁被 poison）
+/// - `ApiErrorCode::InvalidHandle` - 无效的网络实例 ID
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+/// let network_id = api::init_pool_network("/data".to_string()).unwrap();
+///
+/// // 连接后断开
+/// api::sync_connect(network_id, "192.168.1.100:8080".to_string()).unwrap();
+/// api::sync_disconnect(network_id).unwrap();
+/// println!("同步已断开");
+/// ```
 pub fn sync_disconnect(network_id: u64) -> Result<(), ApiError> {
     let mut map = pool_network_map()
         .lock()
@@ -617,6 +1343,36 @@ pub fn sync_disconnect(network_id: u64) -> Result<(), ApiError> {
     Ok(())
 }
 
+/// 在同步会话中加入池
+///
+/// 在指定的网络同步会话中加入数据池，建立池级别的同步上下文。
+///
+/// # 参数
+/// * `network_id` - 网络实例 ID（由 [`init_pool_network`] 返回）
+/// * `pool_id` - 要加入的数据池 ID（UUID 字符串）
+///
+/// # 返回
+/// - `Ok(())` - 加入成功
+/// - `Err(ApiError)` - 加入失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::Internal` - 内部错误（锁被 poison）
+/// - `ApiErrorCode::InvalidHandle` - 无效的网络实例 ID
+/// - `ApiErrorCode::InvalidArgument` - 无效的 pool_id 格式
+/// - `ApiErrorCode::PoolNotFound` - 指定的池不存在
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+/// let network_id = api::init_pool_network("/data".to_string()).unwrap();
+///
+/// // 在同步会话中加入池
+/// api::sync_join_pool(network_id, "pool-uuid-123".to_string()).unwrap();
+/// println!("已在同步会话中加入池");
+/// ```
 pub fn sync_join_pool(network_id: u64, pool_id: String) -> Result<(), ApiError> {
     let map = pool_network_map()
         .lock()
@@ -627,6 +1383,37 @@ pub fn sync_join_pool(network_id: u64, pool_id: String) -> Result<(), ApiError> 
     network.sync_join_pool(&pool_id).map_err(map_err)
 }
 
+/// 推送同步数据
+///
+/// 将本地数据推送到同步网络，与其他设备同步。
+///
+/// # 参数
+/// * `network_id` - 网络实例 ID（由 [`init_pool_network`] 返回）
+///
+/// # 返回
+/// - `Ok(SyncResultDto)` - 同步操作结果
+/// - `Err(ApiError)` - 同步失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::Internal` - 内部错误（锁被 poison）
+/// - `ApiErrorCode::InvalidHandle` - 无效的网络实例 ID
+/// - `ApiErrorCode::RequestTimeout` - 同步未连接或超时
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+/// let network_id = api::init_pool_network("/data".to_string()).unwrap();
+///
+/// // 连接并推送
+/// api::sync_connect(network_id, "192.168.1.100:8080".to_string()).unwrap();
+/// let result = api::sync_push(network_id).unwrap();
+///
+/// println!("同步状态: {}", result.sync_state);
+/// println!("下一步操作: {}", result.next_action);
+/// ```
 pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let mut map = pool_network_map()
         .lock()
@@ -644,6 +1431,37 @@ pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
     combine_sync_result(network.base_path(), network.sync_state(), sync_code)
 }
 
+/// 拉取同步数据
+///
+/// 从同步网络拉取其他设备的更新数据到本地。
+///
+/// # 参数
+/// * `network_id` - 网络实例 ID（由 [`init_pool_network`] 返回）
+///
+/// # 返回
+/// - `Ok(SyncResultDto)` - 同步操作结果
+/// - `Err(ApiError)` - 同步失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::Internal` - 内部错误（锁被 poison）
+/// - `ApiErrorCode::InvalidHandle` - 无效的网络实例 ID
+/// - `ApiErrorCode::RequestTimeout` - 同步未连接或超时
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// api::init_app_config("/data".to_string()).unwrap();
+/// let network_id = api::init_pool_network("/data".to_string()).unwrap();
+///
+/// // 连接并拉取
+/// api::sync_connect(network_id, "192.168.1.100:8080".to_string()).unwrap();
+/// let result = api::sync_pull(network_id).unwrap();
+///
+/// println!("同步状态: {}", result.sync_state);
+/// println!("实例连续性: {}", result.instance_continuity_state);
+/// ```
 pub fn sync_pull(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let mut map = pool_network_map()
         .lock()

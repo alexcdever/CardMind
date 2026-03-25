@@ -1,7 +1,17 @@
-// input: API 边界处的错误分类需求与底层 CardMindError 映射目标。
-// output: 稳定字符串错误码 ApiErrorCode 与可序列化 ApiError 结构。
-// pos: API 错误模型定义文件，负责对外错误协议的码值与消息封装。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：本文件定义 API 错误码及错误对象。
+//! # API 错误模块
+//!
+//! 定义对外 API 的错误码和错误结构。
+//!
+//! ## 错误分类
+//! - 配置错误：`AppConfigNotInitialized`, `AppConfigConflict`
+//! - 参数错误：`InvalidArgument`, `InvalidPoolHash`, `InvalidKeyHash`, `InvalidHandle`
+//! - 资源错误：`NotFound`, `PoolNotFound`
+//! - 网络错误：`NetworkUnavailable`, `RequestTimeout`, `AdminOffline`
+//! - 同步错误：`SyncTimeout`, `ProjectionNotConverged`
+//! - 权限错误：`NotMember`, `AlreadyMember`, `RejectedByAdmin`
+//! - 系统错误：`IoError`, `SqliteError`, `Internal`
+//! - 未实现：`NotImplemented`
+
 use serde::{Deserialize, Serialize};
 
 /// 对外 API 错误码
@@ -50,7 +60,18 @@ pub enum ApiErrorCode {
 }
 
 impl ApiErrorCode {
-    /// 转换为稳定字符串
+    /// 将错误码转换为稳定字符串表示。
+    ///
+    /// # 返回
+    /// 错误码的大写字符串形式，如 `"APP_CONFIG_NOT_INITIALIZED"`。
+    ///
+    /// # Examples
+    /// ```
+    /// use cardmind_rust::models::api_error::ApiErrorCode;
+    ///
+    /// assert_eq!(ApiErrorCode::NotFound.as_str(), "NOT_FOUND");
+    /// assert_eq!(ApiErrorCode::InvalidArgument.as_str(), "INVALID_ARGUMENT");
+    /// ```
     pub fn as_str(&self) -> &'static str {
         match self {
             ApiErrorCode::AppConfigNotInitialized => "APP_CONFIG_NOT_INITIALIZED",
@@ -95,7 +116,23 @@ impl std::fmt::Display for ApiError {
 impl std::error::Error for ApiError {}
 
 impl ApiError {
-    /// 创建 ApiError
+    /// 创建新的 API 错误实例。
+    ///
+    /// # 参数
+    /// * `code` - 错误码，决定错误的分类。
+    /// * `message` - 人类可读的错误描述。
+    ///
+    /// # 返回
+    /// 包含错误码和消息的 `ApiError` 实例。
+    ///
+    /// # Examples
+    /// ```
+    /// use cardmind_rust::models::api_error::{ApiError, ApiErrorCode};
+    ///
+    /// let err = ApiError::new(ApiErrorCode::NotFound, "card not found");
+    /// assert_eq!(err.code, "NOT_FOUND");
+    /// assert_eq!(err.message, "card not found");
+    /// ```
     pub fn new(code: ApiErrorCode, message: &str) -> Self {
         Self {
             code: code.as_str().to_string(),

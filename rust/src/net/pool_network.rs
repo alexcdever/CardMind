@@ -1,7 +1,35 @@
-// input: PoolEndpoint 连接事件、PoolMessage 载荷、store 路径与本地池/卡片快照数据。
-// output: 点对点同步收发、快照/增量落盘与 sqlite 回写、同步状态接口结果。
-// pos: 网络同步编排文件，负责连接处理、消息分发与池卡数据合并持久化。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：本文件实现池网络同步主流程。
+//! # 池网络同步模块
+//!
+//! 实现 CardMind 的池（Pool）网络同步主流程，负责池成员之间的点对点数据同步。
+//!
+//! ## 架构说明
+//!
+//! 该模块是网络层的核心编排组件，协调以下功能：
+//!
+//! - **连接处理**: 通过 `PoolEndpoint` 建立和管理点对点连接
+//! - **消息分发**: 处理 `PoolMessage` 类型的各类同步消息
+//! - **数据合并**: 将接收到的快照和增量更新合并到本地存储
+//! - **持久化**: 将同步后的数据写入 Loro 文档和 SQLite 数据库
+//!
+//! ## 同步流程
+//!
+//! 1. **主动同步** (`connect_and_sync`):
+//!    - 连接到目标端点
+//!    - 发送 Hello 消息进行身份验证
+//!    - 发送池快照和所有卡片快照
+//!
+//! 2. **被动接收** (`handle_connection`):
+//!    - 接受传入连接
+//!    - 处理 Hello 消息验证成员身份
+//!    - 接收并应用池和卡片快照
+//!    - 接收并应用增量更新
+//!
+//! ## 数据格式
+//!
+//! 所有数据使用 Loro CRDT 格式存储，支持：
+//! - 完整快照 (`build_pool_snapshot`, `build_card_snapshot`)
+//! - 增量更新 (`apply_pool_updates`, `apply_card_updates`)
+
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};

@@ -7,9 +7,14 @@
 
 <!-- 列出当前正在进行的任务，最多3个 -->
 
-1. 按 `docs/plans/2026-03-23-phase2-trust-first-recovery-implementation-plan.md` 执行 `Phase 2` 信任优先恢复实现 - 进度 100% (Task 1-7 全部完成) ✅
-2. 迁移 Flutter / FRB / 测试代码中对旧 `projectionState` 的依赖到 `queryConvergenceState` 等新契约字段 - 进度 100% ✅
-3. 维持 Rust-first 恢复契约边界，避免 Flutter 重新承担恢复语义推断 - 进度 100% ✅
+1. ✅ **已完成** - Rust 代码注释规范化（2026-03-24）
+   - 为 32 个文件添加/改进标准 Rust 文档注释
+   - 修复所有未解析链接（80+ 处）
+   - 修复所有文档测试
+   - 通过 `cargo check` / `cargo clippy` / `cargo test --doc` / `cargo doc`
+
+2. ~~按 `docs/plans/2026-03-23-phase2-trust-first-recovery-implementation-plan.md` 执行 `Phase 2` 信任优先恢复实现 - 进度 100% (Task 1-7 全部完成) ✅~~
+3. ~~迁移 Flutter / FRB / 测试代码中对旧 `projectionState` 的依赖到 `queryConvergenceState` 等新契约字段 - 进度 100% ✅~~
 
 ## 待办事项
 
@@ -60,6 +65,10 @@
 | 2026-03-23 | `SyncStatus.fromDto` 优先根据 `recoveryStage` 判断状态类型 | 符合 Phase 2 契约语义，状态判断更精确 |
 | 2026-03-24 | 移除未使用的 helper 方法调用，添加 `// ignore: unused_element` 注释 | 消除 flutter analyze 警告，通过质量门禁 |
 | 2026-03-24 | Phase 2 实施计划全部完成 | Task 1-7 全部通过，质量门禁全绿，准备提交 |
+| 2026-03-24 | Rust 代码注释规范化完成 | 为 32 个文件添加标准 Rust 文档注释，修复 80+ 处链接，通过所有质量门禁 |
+| 2026-03-24 | 将 crate 名称统一为 `cardmind_rust` | 修复文档测试失败，与 Cargo.toml 保持一致 |
+| 2026-03-24 | 使用普通文本或代码格式替代 `[Type]` 链接 | 避免未解析链接警告，私有项不应在公开文档中链接 |
+| 2026-03-24 | 文档测试标记需要文件系统的示例为 `ignore` | 文档测试不应依赖外部文件系统状态 |
 
 ## 相关文档链接
 
@@ -75,8 +84,9 @@
 - [产品真相源实施计划](docs/plans/2026-03-19-product-truth-source-implementation-plan.md)
 - [移除设置一级入口设计](docs/plans/2026-03-20-remove-settings-primary-entry-design.md)
 - [移除设置一级入口实施计划](docs/plans/2026-03-20-remove-settings-primary-entry-implementation-plan.md)
-- [今日工作日志](docs/memory/2026-03-23.md)
+- [今日工作日志](docs/memory/2026-03-24.md)
+- [昨日工作日志](docs/memory/2026-03-23.md)
 
 ---
 
-*最后更新：2026-03-23*
+*最后更新：2026-03-24*

@@ -1,17 +1,41 @@
-// input: 同步状态、查询收敛状态、实例连续性状态、错误码、持久化结果等底层证据。
-// output: Phase 2 恢复契约的归一化判断：本地内容安全、恢复阶段、连续性状态、允许/禁止操作。
-// pos: Rust 恢复契约层，负责产出稳定的恢复语义真相。修改本文件需同步更新所属 DIR.md。
-// 中文注释：本文件是 Phase 2 规则归一化中心，所有恢复语义判断必须在此完成，不允许 Flutter 二次推断。
+//! # Phase 2 恢复契约模块
+//!
+//! 负责同步状态、查询收敛状态、实例连续性状态等底层证据的归一化判断。
+//!
+//! ## 核心职责
+//! 产出稳定的恢复语义真相，包括：
+//! - 本地内容安全状态
+//! - 恢复阶段判断
+//! - 连续性状态
+//! - 允许/禁止操作列表
+//!
+//! ## 架构原则
+//! 所有恢复语义判断必须在此完成，**不允许 Flutter 层二次推断**。
+//! 这是 Phase 2 规则归一化中心，确保跨平台恢复行为一致。
+//!
+//! ## 修改注意
+//! 修改本文件需同步更新所属 DIR.md。
 
-/// Phase 2 本地内容安全状态
+/// Phase 2 本地内容安全状态。
+///
+/// 表示本地数据的安全等级，决定允许的操作范围。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LocalContentSafety {
+    /// 数据安全，允许正常读写操作。
     Safe,
+    /// 只读风险，建议暂停写入操作。
     ReadOnlyRisk,
+    /// 状态未知，需保守处理。
     Unknown,
 }
 
 impl LocalContentSafety {
+    /// 将枚举转换为字符串表示。
+    ///
+    /// # 返回
+    /// - `"safe"` - 安全状态
+    /// - `"read_only_risk"` - 只读风险
+    /// - `"unknown"` - 未知状态
     pub fn as_str(&self) -> &'static str {
         match self {
             LocalContentSafety::Safe => "safe",
@@ -22,6 +46,9 @@ impl LocalContentSafety {
 }
 
 impl From<&str> for LocalContentSafety {
+    /// 从字符串解析安全状态。
+    ///
+    /// 未知字符串默认为 `Unknown`（保守策略）。
     fn from(s: &str) -> Self {
         match s {
             "safe" => LocalContentSafety::Safe,
@@ -32,16 +59,23 @@ impl From<&str> for LocalContentSafety {
     }
 }
 
-/// 子状态统一枚举
+/// 子状态统一枚举。
+///
+/// 用于表示各种恢复子状态的通用状态机。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SubState {
+    /// 就绪状态，可以进行正常操作。
     Ready,
+    /// 恢复中，正在处理之前的故障。
     Recovering,
+    /// 被阻塞，需要用户介入或等待外部条件。
     Blocked,
-    Pending, // 仅用于 query_convergence_state
+    /// 待处理，仅用于 `query_convergence_state`。
+    Pending,
 }
 
 impl SubState {
+    /// 将枚举转换为字符串表示。
     pub fn as_str(&self) -> &'static str {
         match self {
             SubState::Ready => "ready",
@@ -53,6 +87,9 @@ impl SubState {
 }
 
 impl From<&str> for SubState {
+    /// 从字符串解析子状态。
+    ///
+    /// 未知字符串默认为 `Blocked`（保守策略）。
     fn from(s: &str) -> Self {
         match s {
             "ready" => SubState::Ready,
@@ -64,17 +101,25 @@ impl From<&str> for SubState {
     }
 }
 
-/// 恢复阶段
+/// 恢复阶段。
+///
+/// 表示当前系统所处的恢复阶段，用于决策下一步动作。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RecoveryStage {
+    /// 稳定状态，无需恢复操作。
     Stable,
+    /// 等待中，正在观察或等待条件满足。
     Waiting,
+    /// 重试中，正在自动重试之前的失败操作。
     Retrying,
+    /// 需要用户操作，无法自动恢复。
     NeedsUserAction,
+    /// 不安全未知状态，可能存在数据风险。
     UnsafeUnknown,
 }
 
 impl RecoveryStage {
+    /// 将枚举转换为字符串表示。
     pub fn as_str(&self) -> &'static str {
         match self {
             RecoveryStage::Stable => "stable",
@@ -86,15 +131,21 @@ impl RecoveryStage {
     }
 }
 
-/// 连续性状态
+/// 连续性状态。
+///
+/// 表示数据连续性是否受损。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ContinuityState {
+    /// 路径一致，数据连续性完好。
     SamePath,
+    /// 路径有风险，但尚未断裂。
     PathAtRisk,
+    /// 路径已断裂，数据连续性受损。
     PathBroken,
 }
 
 impl ContinuityState {
+    /// 将枚举转换为字符串表示。
     pub fn as_str(&self) -> &'static str {
         match self {
             ContinuityState::SamePath => "same_path",
@@ -104,18 +155,27 @@ impl ContinuityState {
     }
 }
 
-/// 下一步动作
+/// 下一步动作。
+///
+/// 表示系统建议的下一步恢复动作。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NextAction {
+    /// 无需动作，继续当前状态。
     None,
+    /// 重试同步操作。
     RetrySync,
+    /// 重试查询收敛状态。
     RetryQueryConvergence,
+    /// 重新连接实例。
     ReconnectInstance,
+    /// 重新检查当前状态。
     RecheckStatus,
+    /// 返回源实例。
     ReturnToSourceInstance,
 }
 
 impl NextAction {
+    /// 将枚举转换为字符串表示。
     pub fn as_str(&self) -> &'static str {
         match self {
             NextAction::None => "none",
@@ -128,28 +188,58 @@ impl NextAction {
     }
 }
 
-/// Phase 2 恢复契约 - 包含所有归一化判断
+/// Phase 2 恢复契约。
+///
+/// 包含所有归一化判断结果，是恢复决策的唯一真相来源。
 #[derive(Debug, Clone)]
 pub struct RecoveryContract {
+    /// 本地内容安全状态。
     pub local_content_safety: LocalContentSafety,
+    /// 同步子状态。
     pub sync_state: SubState,
+    /// 查询收敛子状态。
     pub query_convergence_state: SubState,
+    /// 实例连续性子状态。
     pub instance_continuity_state: SubState,
+    /// 当前恢复阶段。
     pub recovery_stage: RecoveryStage,
+    /// 连续性状态。
     pub continuity_state: ContinuityState,
+    /// 建议的下一步动作。
     pub next_action: NextAction,
+    /// 允许的操作列表。
     pub allowed_operations: Vec<String>,
+    /// 禁止的操作列表。
     pub forbidden_operations: Vec<String>,
 }
 
 impl RecoveryContract {
-    /// 从底层证据构建契约
+    /// 从底层证据构建契约。
+    ///
+    /// 根据各种子状态和风险证据计算完整的恢复契约。
     ///
     /// # 参数
-    /// - `sync_state`: 同步子状态字符串 ("ready" | "recovering" | "blocked")
-    /// - `query_convergence_state`: 查询收敛子状态字符串 ("ready" | "pending" | "blocked")
-    /// - `instance_continuity_state`: 实例连续性子状态字符串 ("ready" | "recovering" | "blocked")
-    /// - `has_local_content_risk`: 是否有本地内容风险证据
+    /// * `sync_state` - 同步子状态字符串（"ready" | "recovering" | "blocked"）
+    /// * `query_convergence_state` - 查询收敛子状态字符串（"ready" | "pending" | "blocked"）
+    /// * `instance_continuity_state` - 实例连续性子状态字符串（"ready" | "recovering" | "blocked"）
+    /// * `has_local_content_risk` - 是否有本地内容风险证据
+    ///
+    /// # 返回
+    /// 完整的 `RecoveryContract` 实例。
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// use cardmind_rust::api::recovery_contract::RecoveryContract;
+    ///
+    /// let contract = RecoveryContract::from_evidence(
+    ///     "ready",      // sync_state
+    ///     "ready",      // query_convergence_state
+    ///     "ready",      // instance_continuity_state
+    ///     false,        // has_local_content_risk
+    /// );
+    ///
+    /// assert!(contract.validate().is_ok());
+    /// ```
     pub fn from_evidence(
         sync_state: &str,
         query_convergence_state: &str,
@@ -208,7 +298,15 @@ impl RecoveryContract {
         }
     }
 
-    /// 计算恢复阶段
+    /// 计算恢复阶段。
+    ///
+    /// 根据子状态和安全状态推断当前恢复阶段。
+    ///
+    /// # 规则
+    /// - 规则 8.2.3: `local_content_safety = unknown` 时必须是 `unsafe_unknown`
+    /// - 规则 8.2.6: 任一子状态为 `blocked` 时只能是 `needs_user_action` 或 `unsafe_unknown`
+    /// - 规则 8.2.7: 三个子状态都为 `ready` 时必须是 `stable`
+    /// - 规则 8.2.2: 至少一个子状态为 `recovering/pending` 且没有 `blocked` → `waiting`
     fn compute_recovery_stage(
         sync: &SubState,
         query: &SubState,
@@ -248,7 +346,10 @@ impl RecoveryContract {
         }
     }
 
-    /// 计算连续性状态
+    /// 计算连续性状态。
+    ///
+    /// # 规则
+    /// - 规则 8.3: `safe` 但子状态非 `ready` = `path_at_risk`
     fn compute_continuity_state(
         local_safety: LocalContentSafety,
         sync: &SubState,
@@ -265,7 +366,11 @@ impl RecoveryContract {
                 let all_ready = *sync == SubState::Ready
                     && *query == SubState::Ready
                     && *instance == SubState::Ready;
-                if all_ready { SamePath } else { PathAtRisk }
+                if all_ready {
+                    SamePath
+                } else {
+                    PathAtRisk
+                }
             }
             ReadOnlyRisk => PathAtRisk,
             Unknown => {
@@ -280,7 +385,10 @@ impl RecoveryContract {
         }
     }
 
-    /// 计算下一步动作
+    /// 计算下一步动作。
+    ///
+    /// # 规则
+    /// - 规则 8.2.4: `needs_user_action` 时 `next_action` 不能是 `none`
     fn compute_next_action(
         local_safety: LocalContentSafety,
         recovery_stage: RecoveryStage,
@@ -315,7 +423,7 @@ impl RecoveryContract {
         None
     }
 
-    /// 计算允许和禁止的操作
+    /// 计算允许和禁止的操作。
     fn compute_operations(
         local_safety: LocalContentSafety,
         _recovery_stage: RecoveryStage,
@@ -363,9 +471,19 @@ impl RecoveryContract {
         (allowed, forbidden)
     }
 
-    /// 验证契约约束
+    /// 验证契约约束。
     ///
-    /// 返回 Ok(()) 如果所有约束满足，否则返回错误描述
+    /// 检查契约中的各种组合是否违反规则。
+    ///
+    /// # 返回
+    /// - `Ok(())` - 所有约束满足。
+    /// - `Err(String)` - 发现非法组合，返回错误描述。
+    ///
+    /// # 验证规则
+    /// - 规则 8.2.1: `safe` 时 `continuity_state` 不能是 `path_broken`
+    /// - 规则 8.2.4: `needs_user_action` 时 `next_action` 不能是 `none`
+    /// - 规则 8.2.5: `next_action=none` 时 `recovery_stage` 只能是 `stable/waiting/retrying`
+    /// - 规则 8.2.8: `path_broken` 时必须有明确断裂证据
     pub fn validate(&self) -> Result<(), String> {
         // 规则 8.2.1: safe 时 continuity_state 不能是 path_broken
         if self.local_content_safety == LocalContentSafety::Safe
@@ -408,9 +526,30 @@ impl RecoveryContract {
     }
 }
 
-/// 从旧版状态转换到 Phase 2 契约
+/// 从旧版状态转换到 Phase 2 契约。
 ///
-/// 这是兼容层，用于逐步迁移
+/// 这是兼容层，用于逐步迁移旧系统的状态表示。
+///
+/// # 参数
+/// * `sync_state` - 旧版同步状态字符串。
+/// * `projection_state` - 旧版投影状态字符串。
+/// * `has_error` - 是否有错误标志。
+///
+/// # 返回
+/// 转换后的 `RecoveryContract` 实例。
+///
+/// # 映射规则
+/// - `"idle"` / `"connected"` → `"ready"`
+/// - `"sync_failed"` / `has_error=true` → `"blocked"`
+/// - 其他 → `"recovering"`
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api::recovery_contract::legacy_to_phase2_contract;
+///
+/// let contract = legacy_to_phase2_contract("idle", "projection_ready", false);
+/// assert_eq!(contract.sync_state.as_str(), "ready");
+/// ```
 pub fn legacy_to_phase2_contract(
     sync_state: &str,
     projection_state: &str,

@@ -1,5 +1,19 @@
-// 应用服务层
-// 提供统一的后端业务接口
+//! # 后端应用服务模块
+//!
+//! 提供统一的后端业务接口，协调配置管理与运行时状态。
+//!
+//! ## 职责范围
+//! - 后端配置（HTTP/MCP/CLI 启用状态）的持久化管理
+//! - 运行时入口（HTTP/MCP/CLI）的生命周期管理
+//! - 配置变更的同步应用
+//!
+//! ## 架构说明
+//! 本层作为应用服务层，介于 API 层和运行时层之间：
+//! - 向上：为 API 层提供业务接口
+//! - 向下：管理 `BackendConfigStore` 和 `RuntimeEntryManager`
+//!
+//! ## 修改注意
+//! 修改本文件需同步更新所属 DIR.md。
 
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
@@ -8,14 +22,32 @@ use crate::runtime::entry_manager::{RuntimeEntryManager, RuntimeEntryStatusDto};
 use std::path::Path;
 use std::sync::Arc;
 
-/// 后端应用服务
+/// 后端应用服务。
+///
+/// 管理后端配置和运行时入口的统一服务。
 pub struct BackendService {
     config_store: BackendConfigStore,
     runtime_manager: Arc<RuntimeEntryManager>,
 }
 
 impl BackendService {
-    /// 创建新的后端服务实例
+    /// 创建新的后端服务实例。
+    ///
+    /// 初始化时会加载配置文件并应用到运行时管理器。
+    ///
+    /// # 参数
+    /// * `app_data_dir` - 应用数据目录路径，用于存储配置文件。
+    ///
+    /// # 返回
+    /// - `Ok(BackendService)` - 服务实例创建成功。
+    /// - `Err(CardMindError)` - 配置加载或运行时初始化失败。
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// use cardmind_rust::application::backend_service::BackendService;
+    ///
+    /// let service = BackendService::new("/path/to/app_data").unwrap();
+    /// ```
     pub fn new(app_data_dir: &str) -> Result<Self, CardMindError> {
         let config_store = BackendConfigStore::new(Path::new(app_data_dir));
         let runtime_manager = Arc::new(RuntimeEntryManager::new());
@@ -34,12 +66,46 @@ impl BackendService {
         })
     }
 
-    /// 获取后端配置
+    /// 获取后端配置。
+    ///
+    /// 从配置存储中加载当前配置。
+    ///
+    /// # 返回
+    /// - `Ok(BackendConfigDto)` - 当前配置。
+    /// - `Err(ApiError)` - 配置读取失败。
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// use cardmind_rust::application::backend_service::BackendService;
+    ///
+    /// // let service = BackendService::new(...).unwrap();
+    /// // let config = service.get_backend_config().unwrap();
+    /// // println!("HTTP enabled: {}", config.http_enabled);
+    /// ```
     pub fn get_backend_config(&self) -> Result<BackendConfigDto, ApiError> {
         self.config_store.load().map_err(map_err)
     }
 
-    /// 更新后端配置
+    /// 更新后端配置。
+    ///
+    /// 保存新配置到持久化存储，并同步更新运行时状态。
+    ///
+    /// # 参数
+    /// * `http_enabled` - 是否启用 HTTP 入口。
+    /// * `mcp_enabled` - 是否启用 MCP 入口。
+    /// * `cli_enabled` - 是否启用 CLI 入口。
+    ///
+    /// # 返回
+    /// - `Ok(BackendConfigDto)` - 更新后的配置。
+    /// - `Err(ApiError)` - 保存或应用失败。
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// use cardmind_rust::application::backend_service::BackendService;
+    ///
+    /// // let service = BackendService::new(...).unwrap();
+    /// // let config = service.update_backend_config(true, false, true).unwrap();
+    /// ```
     pub fn update_backend_config(
         &self,
         http_enabled: bool,
@@ -62,12 +128,34 @@ impl BackendService {
         Ok(config)
     }
 
-    /// 获取运行时入口状态
+    /// 获取运行时入口状态。
+    ///
+    /// 查询当前运行时各入口的激活状态。
+    ///
+    /// # 返回
+    /// - `Ok(RuntimeEntryStatusDto)` - 运行时状态。
+    /// - `Err(ApiError)` - 状态查询失败。
+    ///
+    /// # Examples
+    /// ```rust,ignore
+    /// use cardmind_rust::application::backend_service::BackendService;
+    ///
+    /// // let service = BackendService::new(...).unwrap();
+    /// // let status = service.get_runtime_entry_status().unwrap();
+    /// // assert!(!status.http_active); // 默认未激活
+    /// ```
     pub fn get_runtime_entry_status(&self) -> Result<RuntimeEntryStatusDto, ApiError> {
         self.runtime_manager.status().map_err(map_err)
     }
 }
 
+/// 将 `CardMindError` 映射为 `ApiError`。
+///
+/// 专用于后端服务层的错误转换。
+///
+/// # 映射规则
+/// - `Io` → `IoError`
+/// - 其他 → `Internal`
 fn map_err(err: CardMindError) -> ApiError {
     match err {
         CardMindError::Io(msg) => ApiError::new(ApiErrorCode::IoError, &msg),
