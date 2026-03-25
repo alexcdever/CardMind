@@ -1,11 +1,20 @@
-// input: 业务通过工厂构造传入 pending、error code、exit 标记等状态数据。
-// output: 提供 PoolState 各分支类型与 PoolPendingRequest 数据结构。
-// pos: 数据池状态模型定义，负责描述入池流程全部状态形态。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+/// # 数据池状态模型
+///
+/// 定义数据池相关的所有状态类型和数据结构。
+/// 使用密封类模式描述入池流程的全部状态形态。
+library pool_state;
+
+/// 数据池状态的密封基类。
+///
+/// 提供工厂构造方法创建不同类型的状态实例。
 sealed class PoolState {
+  /// 创建基础状态。
   const PoolState();
 
+  /// 创建未加入池状态。
   const factory PoolState.notJoined() = PoolNotJoined;
+
+  /// 创建已加入池状态。
   const factory PoolState.joined({
     List<PoolPendingRequest> pending,
     bool exitShouldFail,
@@ -15,9 +24,14 @@ sealed class PoolState {
     List<String> memberLabels,
     String? approvalMessage,
   }) = PoolJoined;
+
+  /// 创建错误状态。
   const factory PoolState.error(String code) = PoolError;
+
+  /// 创建退出部分清理状态。
   const factory PoolState.exitPartialCleanup() = PoolExitPartialCleanup;
 
+  /// 创建带有待处理请求的已加入状态。
   static PoolState joinedWithPending() {
     return const PoolState.joined(
       pending: <PoolPendingRequest>[
@@ -27,11 +41,15 @@ sealed class PoolState {
   }
 }
 
+/// 未加入任何数据池的状态。
 class PoolNotJoined extends PoolState {
+  /// 创建未加入状态实例。
   const PoolNotJoined();
 }
 
+/// 已加入数据池的状态。
 class PoolJoined extends PoolState {
+  /// 创建已加入池状态实例。
   const PoolJoined({
     this.pending = const <PoolPendingRequest>[],
     this.exitShouldFail = false,
@@ -42,14 +60,28 @@ class PoolJoined extends PoolState {
     this.approvalMessage,
   });
 
+  /// 待处理的加入请求列表。
   final List<PoolPendingRequest> pending;
+
+  /// 退出操作是否应该失败（用于测试）。
   final bool exitShouldFail;
+
+  /// 数据池名称。
   final String poolName;
+
+  /// 当前用户是否为池所有者。
   final bool isOwner;
+
+  /// 当前用户身份标识标签。
   final String currentIdentityLabel;
+
+  /// 成员标识标签列表。
   final List<String> memberLabels;
+
+  /// 审批操作后的消息提示。
   final String? approvalMessage;
 
+  /// 创建状态的副本，允许更新部分字段。
   PoolJoined copyWith({
     List<PoolPendingRequest>? pending,
     bool? exitShouldFail,
@@ -71,17 +103,24 @@ class PoolJoined extends PoolState {
   }
 }
 
+/// 发生错误时的池状态。
 class PoolError extends PoolState {
+  /// 创建错误状态实例。
   const PoolError(this.code);
 
+  /// 错误码。
   final String code;
 }
 
+/// 退出操作部分清理失败的状态。
 class PoolExitPartialCleanup extends PoolState {
+  /// 创建部分清理状态实例。
   const PoolExitPartialCleanup();
 }
 
+/// 待处理的加入请求数据。
 class PoolPendingRequest {
+  /// 创建待处理请求实例。
   const PoolPendingRequest({
     required this.id,
     required this.displayName,
@@ -89,11 +128,19 @@ class PoolPendingRequest {
     this.error,
   });
 
+  /// 请求唯一标识。
   final String id;
+
+  /// 显示名称。
   final String displayName;
+
+  /// 拒绝操作是否应该失败（用于测试）。
   final bool rejectShouldFail;
+
+  /// 错误信息。
   final String? error;
 
+  /// 创建请求的副本，允许更新错误信息。
   PoolPendingRequest copyWith({String? error}) {
     return PoolPendingRequest(
       id: id,

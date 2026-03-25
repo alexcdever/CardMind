@@ -3,6 +3,12 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+/// # API 桥接层
+///
+/// 提供 Flutter 与 Rust 后端之间的 FFI 桥接 API。
+/// 包含卡片、数据池、同步等核心功能的 Dart 侧接口。
+library bridge_api;
+
 import 'frb_generated.dart';
 import 'models/api_error.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -12,9 +18,11 @@ import 'runtime/entry_manager.dart';
 // These functions are ignored because they are not marked as `pub`: `app_config_dir`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `list_all_card_ids`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `with_configured_card_store`, `with_configured_pool_store`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
+/// 获取后端配置
 Future<BackendConfigDto> getBackendConfig() =>
     RustLib.instance.api.crateApiGetBackendConfig();
 
+/// 更新后端配置
 Future<BackendConfigDto> updateBackendConfig({
   required bool httpEnabled,
   required bool mcpEnabled,
@@ -33,9 +41,11 @@ Future<RuntimeEntryStatusDto> getRuntimeEntryStatus() =>
 Future<void> initAppConfig({required String appDataDir}) =>
     RustLib.instance.api.crateApiInitAppConfig(appDataDir: appDataDir);
 
+/// 重置应用配置（仅用于测试）
 Future<void> resetAppConfigForTests() =>
     RustLib.instance.api.crateApiResetAppConfigForTests();
 
+/// 创建数据池
 Future<PoolDto> createPool({
   required String endpointId,
   required String nickname,
@@ -46,6 +56,7 @@ Future<PoolDto> createPool({
   os: os,
 );
 
+/// 加入数据池
 Future<PoolDto> joinPool({
   required String poolId,
   required String endpointId,
@@ -58,6 +69,7 @@ Future<PoolDto> joinPool({
   os: os,
 );
 
+/// 通过邀请码加入数据池
 Future<PoolDto> joinByCode({
   required String code,
   required String endpointId,
@@ -70,9 +82,11 @@ Future<PoolDto> joinByCode({
   os: os,
 );
 
+/// 列出指定端点加入的所有数据池
 Future<List<PoolDto>> listPools({required String endpointId}) =>
     RustLib.instance.api.crateApiListPools(endpointId: endpointId);
 
+/// 获取数据池详情
 Future<PoolDetailDto> getPoolDetail({
   required String poolId,
   required String endpointId,
@@ -81,15 +95,18 @@ Future<PoolDetailDto> getPoolDetail({
   endpointId: endpointId,
 );
 
+/// 获取已加入数据池的视图
 Future<PoolDetailDto> getJoinedPoolView({required String endpointId}) =>
     RustLib.instance.api.crateApiGetJoinedPoolView(endpointId: endpointId);
 
+/// 创建卡片笔记
 Future<CardNoteDto> createCardNote({
   required String title,
   required String content,
 }) =>
     RustLib.instance.api.crateApiCreateCardNote(title: title, content: content);
 
+/// 在指定数据池中创建卡片笔记
 Future<CardNoteDto> createCardNoteInPool({
   required String poolId,
   required String title,
@@ -100,6 +117,7 @@ Future<CardNoteDto> createCardNoteInPool({
   content: content,
 );
 
+/// 更新卡片笔记
 Future<CardNoteDto> updateCardNote({
   required String cardId,
   required String title,
@@ -110,15 +128,19 @@ Future<CardNoteDto> updateCardNote({
   content: content,
 );
 
+/// 软删除卡片笔记
 Future<CardNoteDto> deleteCardNote({required String cardId}) =>
     RustLib.instance.api.crateApiDeleteCardNote(cardId: cardId);
 
+/// 恢复已删除的卡片笔记
 Future<CardNoteDto> restoreCardNote({required String cardId}) =>
     RustLib.instance.api.crateApiRestoreCardNote(cardId: cardId);
 
+/// 列出所有卡片笔记
 Future<List<CardNoteDto>> listCardNotes() =>
     RustLib.instance.api.crateApiListCardNotes();
 
+/// 搜索卡片笔记
 Future<List<CardNoteDto>> queryCardNotes({
   required String query,
   String? poolId,
@@ -129,6 +151,7 @@ Future<List<CardNoteDto>> queryCardNotes({
   includeDeleted: includeDeleted,
 );
 
+/// 获取卡片笔记详情
 Future<CardNoteDto> getCardNoteDetail({required String cardId}) =>
     RustLib.instance.api.crateApiGetCardNoteDetail(cardId: cardId);
 
@@ -140,18 +163,22 @@ Future<BigInt> initPoolNetwork({required String basePath}) =>
 Future<void> closePoolNetwork({required BigInt networkId}) =>
     RustLib.instance.api.crateApiClosePoolNetwork(networkId: networkId);
 
+/// 获取同步状态
 Future<SyncStatusDto> syncStatus({required BigInt networkId}) =>
     RustLib.instance.api.crateApiSyncStatus(networkId: networkId);
 
+/// 建立同步连接
 Future<void> syncConnect({required BigInt networkId, required String target}) =>
     RustLib.instance.api.crateApiSyncConnect(
       networkId: networkId,
       target: target,
     );
 
+/// 断开同步连接
 Future<void> syncDisconnect({required BigInt networkId}) =>
     RustLib.instance.api.crateApiSyncDisconnect(networkId: networkId);
 
+/// 加入同步池
 Future<void> syncJoinPool({
   required BigInt networkId,
   required String poolId,
@@ -160,20 +187,35 @@ Future<void> syncJoinPool({
   poolId: poolId,
 );
 
+/// 推送同步数据
 Future<SyncResultDto> syncPush({required BigInt networkId}) =>
     RustLib.instance.api.crateApiSyncPush(networkId: networkId);
 
+/// 拉取同步数据
 Future<SyncResultDto> syncPull({required BigInt networkId}) =>
     RustLib.instance.api.crateApiSyncPull(networkId: networkId);
 
+/// 卡片笔记数据传输对象
 class CardNoteDto {
+  /// 卡片 ID
   final String id;
+
+  /// 卡片标题
   final String title;
+
+  /// 卡片内容
   final String content;
+
+  /// 创建时间戳
   final PlatformInt64 createdAt;
+
+  /// 更新时间戳
   final PlatformInt64 updatedAt;
+
+  /// 是否已删除
   final bool deleted;
 
+  /// 创建 CardNoteDto 实例
   const CardNoteDto({
     required this.id,
     required this.title,
@@ -205,15 +247,30 @@ class CardNoteDto {
           deleted == other.deleted;
 }
 
+/// 数据池详情数据传输对象
 class PoolDetailDto {
+  /// 数据池 ID
   final String id;
+
+  /// 数据池名称
   final String name;
+
+  /// 是否已解散
   final bool isDissolved;
+
+  /// 当前用户角色
   final String currentUserRole;
+
+  /// 成员数量
   final BigInt memberCount;
+
+  /// 笔记 ID 列表
   final List<String> noteIds;
+
+  /// 成员列表
   final List<PoolMemberDto> members;
 
+  /// 创建 PoolDetailDto 实例
   const PoolDetailDto({
     required this.id,
     required this.name,
@@ -248,13 +305,24 @@ class PoolDetailDto {
           members == other.members;
 }
 
+/// 数据池数据传输对象
 class PoolDto {
+  /// 数据池 ID
   final String id;
+
+  /// 数据池名称
   final String name;
+
+  /// 是否已解散
   final bool isDissolved;
+
+  /// 当前用户角色
   final String currentUserRole;
+
+  /// 成员数量
   final BigInt memberCount;
 
+  /// 创建 PoolDto 实例
   const PoolDto({
     required this.id,
     required this.name,
@@ -283,12 +351,21 @@ class PoolDto {
           memberCount == other.memberCount;
 }
 
+/// 数据池成员数据传输对象
 class PoolMemberDto {
+  /// 端点 ID
   final String endpointId;
+
+  /// 昵称
   final String nickname;
+
+  /// 操作系统
   final String os;
+
+  /// 角色
   final String role;
 
+  /// 创建 PoolMemberDto 实例
   const PoolMemberDto({
     required this.endpointId,
     required this.nickname,
@@ -311,22 +388,51 @@ class PoolMemberDto {
           role == other.role;
 }
 
+/// 同步结果数据传输对象
 class SyncResultDto {
+  /// 同步状态
   final String syncState;
+
+  /// 查询收敛状态
   final String queryConvergenceState;
+
+  /// 实例连续性状态
   final String instanceContinuityState;
+
+  /// 本地内容安全状态
   final String localContentSafety;
+
+  /// 恢复阶段
   final String recoveryStage;
+
+  /// 连续性状态
   final String continuityState;
+
+  /// 下一步动作
   final String nextAction;
+
+  /// 允许的操作列表
   final List<String> allowedOperations;
+
+  /// 禁止的操作列表
   final List<String> forbiddenOperations;
+
+  /// 恢复码
   final String? code;
+
+  /// 状态
   final String state;
+
+  /// 写入状态
   final String writeState;
+
+  /// 投影状态
   final String projectionState;
+
+  /// 内容状态
   final String contentState;
 
+  /// 创建 SyncResultDto 实例
   const SyncResultDto({
     required this.syncState,
     required this.queryConvergenceState,
@@ -382,22 +488,51 @@ class SyncResultDto {
           contentState == other.contentState;
 }
 
+/// 同步状态数据传输对象
 class SyncStatusDto {
+  /// 同步状态
   final String syncState;
+
+  /// 查询收敛状态
   final String queryConvergenceState;
+
+  /// 实例连续性状态
   final String instanceContinuityState;
+
+  /// 本地内容安全状态
   final String localContentSafety;
+
+  /// 恢复阶段
   final String recoveryStage;
+
+  /// 连续性状态
   final String continuityState;
+
+  /// 下一步动作
   final String nextAction;
+
+  /// 允许的操作列表
   final List<String> allowedOperations;
+
+  /// 禁止的操作列表
   final List<String> forbiddenOperations;
+
+  /// 恢复码
   final String? code;
+
+  /// 状态
   final String state;
+
+  /// 写入状态
   final String writeState;
+
+  /// 投影状态
   final String projectionState;
+
+  /// 内容状态
   final String contentState;
 
+  /// 创建 SyncStatusDto 实例
   const SyncStatusDto({
     required this.syncState,
     required this.queryConvergenceState,

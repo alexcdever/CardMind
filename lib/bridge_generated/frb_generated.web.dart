@@ -6,6 +6,12 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
+/// # FRB Web 平台生成代码
+///
+/// flutter_rust_bridge 为 Web 平台自动生成的 Dart 代码。
+/// 包含 WASM 绑定和 Web 平台特定的编解码实现。
+library frb_generated_web;
+
 import 'api.dart';
 import 'api/recovery_contract.dart';
 import 'api/utils.dart';

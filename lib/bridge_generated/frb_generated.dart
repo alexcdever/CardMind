@@ -3,6 +3,12 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+/// # FRB 生成代码主文件
+///
+/// flutter_rust_bridge 自动生成的 Dart 代码。
+/// 包含 Rust API 的主要入口点和编解码逻辑。
+library frb_generated;
+
 import 'api.dart';
 import 'api/recovery_contract.dart';
 import 'api/utils.dart';

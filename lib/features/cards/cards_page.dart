@@ -1,7 +1,15 @@
-// input: 页面接收 syncStatus，并通过 CardsController 处理卡片 CRUD 与检索。
-// output: 渲染读模型列表，支持进入编辑页保存后回写列表。
-// pos: 卡片页主界面，负责卡片读写交互与编辑入口编排。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+/// # 卡片页面
+///
+/// 卡片列表的主界面，负责卡片读写交互、搜索过滤和编辑入口编排。
+///
+/// ## 关联路由
+/// - 跳转至此页面需使用 `Navigator.pushNamed(context, '/cards')`。
+///
+/// ## 外部依赖
+/// - 依赖 [CardsController] 提供卡片数据管理。
+/// - 依赖 [FrbCardApiClient] 与后端通信。
+library cards_page;
+
 import 'dart:async';
 
 import 'package:cardmind/features/cards/card_summary.dart';
@@ -13,14 +21,25 @@ import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 
+/// 卡片页面的主 Widget。
+///
+/// 负责卡片列表的展示、搜索、新建和编辑功能。
+/// 支持桌面端和移动端两种不同的布局模式。
 class CardsPage extends StatefulWidget {
+  /// 创建卡片页面。
+  ///
+  /// [syncStatus] 同步状态，默认为健康状态。
+  /// [controller] 可选的控制器，用于测试注入。
   const CardsPage({
     super.key,
     this.syncStatus = const SyncStatus.healthy(),
     this.controller,
   });
 
+  /// 同步状态。
   final SyncStatus syncStatus;
+
+  /// 卡片控制器，用于测试注入。
   final CardsController? controller;
 
   @override
@@ -57,20 +76,31 @@ class _CardsPageState extends State<CardsPage> {
     setState(() {});
   }
 
+  /// 加载初始卡片列表。
+  ///
+  /// 如果 FRB 未初始化（widget test 场景），则跳过默认加载。
   Future<void> _loadInitialCards() async {
     try {
       await _effectiveController.load();
     } on StateError {
-      // 中文注释：widget test 若未初始化 FRB，则跳过默认加载，改由测试显式注入控制器或数据。
+      // widget test 若未初始化 FRB，则跳过默认加载，改由测试显式注入控制器或数据。
     }
   }
 
+  /// 删除或恢复卡片。
+  ///
+  /// [id] 卡片 ID。
+  /// [deleted] 当前删除状态，true 表示已删除，false 表示未删除。
   Future<void> _onDeleteOrRestore({required String id, required bool deleted}) {
     return deleted
         ? _effectiveController.restore(id)
         : _effectiveController.delete(id);
   }
 
+  /// 打开编辑器。
+  ///
+  /// 在桌面端显示右侧面板，在移动端导航到新页面。
+  /// [context] BuildContext。
   void _openEditor(BuildContext context) {
     final desktop = MediaQuery.sizeOf(context).width >= 900;
     if (desktop) {
@@ -131,6 +161,9 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
+  /// 构建移动端布局。
+  ///
+  /// [notes] 要显示的卡片列表。
   Widget _buildMobileLayout(List<CardSummary> notes) {
     return Column(
       children: [
@@ -140,6 +173,9 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
+  /// 构建桌面端布局。
+  ///
+  /// [notes] 要显示的卡片列表。
   Widget _buildDesktopLayout(List<CardSummary> notes) {
     return Row(
       children: [
@@ -164,6 +200,7 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
+  /// 构建搜索输入框。
   Widget _buildSearchField() {
     return Semantics(
       container: true,
@@ -182,6 +219,10 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
+  /// 构建卡片列表。
+  ///
+  /// [notes] 要显示的卡片列表。
+  /// [desktop] 是否为桌面端布局，默认为 false。
   Widget _buildNotesList(List<CardSummary> notes, {bool desktop = false}) {
     return Semantics(
       container: true,
@@ -212,6 +253,7 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
+  /// 构建桌面端编辑器面板。
   Widget _buildDesktopEditorPanel() {
     final session = _desktopSession;
     if (session == null) {
@@ -283,6 +325,9 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
+  /// 处理桌面端卡片选择。
+  ///
+  /// [note] 被选中的卡片摘要。
   Future<void> _handleDesktopSelection(CardSummary note) async {
     final session = _desktopSession;
     if (session != null && session.dirty && session.selectedId != note.id) {
@@ -307,6 +352,9 @@ class _CardsPageState extends State<CardsPage> {
     });
   }
 
+  /// 显示离开编辑器确认对话框。
+  ///
+  /// 当用户有未保存的更改时，提示保存、放弃或取消。
   Future<_ExitDecision?> _showDesktopLeaveGuard() {
     return showDialog<_ExitDecision>(
       context: context,
@@ -360,6 +408,7 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
+  /// 保存桌面端编辑会话。
   Future<void> _saveDesktopSession() async {
     final session = _desktopSession;
     if (session == null) {
@@ -396,11 +445,24 @@ class _CardsPageState extends State<CardsPage> {
   }
 }
 
+/// 桌面端编辑器会话状态。
+///
+/// 管理桌面端编辑器的标题、内容和编辑状态。
 class _DesktopEditorSession {
+  /// 创建新的编辑器会话。
+  ///
+  /// [selectedId] 当前选中卡片的 ID，为 null 表示新建卡片。
+  /// [title] 初始标题，默认为空字符串。
+  /// [body] 初始内容，默认为空字符串。
   _DesktopEditorSession({this.selectedId, String title = '', String body = ''})
     : titleController = TextEditingController(text: title),
       bodyController = TextEditingController(text: body);
 
+  /// 为已有卡片创建编辑器会话。
+  ///
+  /// [selectedId] 卡片 ID。
+  /// [title] 卡片标题。
+  /// [body] 卡片内容，默认为空字符串。
   factory _DesktopEditorSession.forSelection(
     String? selectedId,
     String title, {
@@ -413,10 +475,27 @@ class _DesktopEditorSession {
     );
   }
 
+  /// 当前选中卡片的 ID，为 null 表示新建卡片。
   final String? selectedId;
+
+  /// 标题输入控制器。
   final TextEditingController titleController;
+
+  /// 内容输入控制器。
   final TextEditingController bodyController;
+
+  /// 是否有未保存的更改。
   bool dirty = false;
 }
 
-enum _ExitDecision { save, discard, cancel }
+/// 离开编辑器的决策选项。
+enum _ExitDecision {
+  /// 保存并离开。
+  save,
+
+  /// 放弃更改并离开。
+  discard,
+
+  /// 取消离开操作。
+  cancel,
+}

@@ -3,6 +3,12 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+/// # FRB IO 平台生成代码
+///
+/// flutter_rust_bridge 为 IO 平台（桌面/移动端）自动生成的 Dart 代码。
+/// 包含 FFI 绑定和平台特定的编解码实现。
+library frb_generated_io;
+
 import 'api.dart';
 import 'api/recovery_contract.dart';
 import 'api/utils.dart';

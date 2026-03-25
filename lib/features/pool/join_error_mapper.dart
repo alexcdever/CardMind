@@ -1,29 +1,59 @@
-// input: mapJoinError 接收加入失败错误码 code。
-// output: 返回包含提示文案与主操作的 JoinErrorUiModel。
-// pos: 入池错误映射模块，负责将错误码转换为可展示 UI 语义。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+/// # 加入错误映射器
+///
+/// 负责将加入数据池失败的错误码转换为可展示的 UI 语义。
+/// 提供用户友好的错误提示和对应的操作指引。
+library join_error_mapper;
+
+/// 加入操作的用户交互动作类型。
 enum JoinAction {
+  /// 使用新信息重试。
   retryWithNewInfo,
+
+  /// 重新扫码。
   rescan,
+
+  /// 重试加入。
   retryJoin,
+
+  /// 稍后重试。
   retryLater,
+
+  /// 立即重试或使用本地。
   retryNowOrUseLocal,
+
+  /// 重新申请。
   reapply,
+
+  /// 前往池详情。
   goToPoolDetails,
 }
 
+/// 加入错误 UI 模型。
+///
+/// 包含展示给用户的错误信息和建议操作。
 class JoinErrorUiModel {
+  /// 创建加入错误 UI 模型。
   const JoinErrorUiModel({
     required this.message,
     required this.primaryActionLabel,
     required this.action,
   });
 
+  /// 展示给用户的错误消息。
   final String message;
+
+  /// 主操作按钮的标签。
   final String primaryActionLabel;
+
+  /// 建议的用户操作。
   final JoinAction action;
 }
 
+/// 将错误码映射为 UI 模型。
+///
+/// [code] - 后端返回的错误码。
+///
+/// 返回包含用户友好提示和操作指引的 UI 模型。
 JoinErrorUiModel mapJoinError(String code) {
   switch (code) {
     case 'POOL_NOT_FOUND':

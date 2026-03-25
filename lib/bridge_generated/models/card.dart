@@ -3,6 +3,12 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+/// # 卡片模型
+///
+/// 定义 CardMind 中的卡片实体数据结构。
+/// 包含卡片的基本属性：ID、标题、内容、时间戳和删除标记。
+library card;
+
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
@@ -27,6 +33,7 @@ class Card {
   /// 软删除标记
   final bool deleted;
 
+  /// 创建 Card 实例
   const Card({
     required this.id,
     required this.title,

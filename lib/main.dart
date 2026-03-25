@@ -1,7 +1,12 @@
-// input: Dart 运行时调用 main() 启动应用进程。
-// output: 初始化 FRB 与 app config 后，再执行 runApp(CardMindApp(...)) 挂载根组件。
-// pos: Flutter 应用入口文件，负责应用启动与 Rust 运行环境初始化。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 客户端入口模块，负责应用启动与依赖接线。
+/// # 应用入口模块
+///
+/// Flutter 客户端入口模块，负责应用启动与 Rust 运行环境初始化。
+///
+/// ## 外部依赖
+/// - 依赖 [flutter_rust_bridge] 提供与 Rust 层的 FFI 桥接。
+/// - 依赖 [path_provider] 获取应用数据目录。
+library main;
+
 import 'dart:io';
 
 import 'package:cardmind/app/app.dart';
@@ -11,10 +16,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 import 'package:path_provider/path_provider.dart';
 
+/// 应用主入口函数。
+///
+/// Dart 运行时调用 main() 启动应用进程。本函数完成以下初始化：
+/// 1. 初始化 Flutter 框架绑定
+/// 2. 加载 Rust 动态库并初始化 FRB
+/// 3. 获取应用数据目录
+/// 4. 初始化应用配置和 Pool 网络
+/// 5. 挂载根组件
+///
+/// [appDataDir] 和 [poolNetworkId] 将通过 [CardMindApp] 传递给子组件。
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Determine the correct library path based on platform
   final libPath = _getRustLibraryPath();
   final externalLib = ExternalLibrary.open(libPath);
   await RustLib.init(externalLibrary: externalLib);
@@ -24,9 +38,18 @@ Future<void> main() async {
   runApp(CardMindApp(appDataDir: appDataDir, poolNetworkId: poolNetworkId));
 }
 
+/// 获取 Rust 动态库路径。
+///
+/// 根据当前平台返回对应的动态库文件路径。
+///
+/// 目前支持：
+/// - macOS: 优先查找应用包中的 dylib，回退到开发路径
+///
+/// 如果未找到库文件，将抛出 [UnsupportedError] 异常。
+///
+/// 返回 Rust 动态库的完整文件路径。
 String _getRustLibraryPath() {
   if (Platform.isMacOS) {
-    // For macOS, the dylib should be in the app bundle's Frameworks directory
     final dylibPath =
         '${Platform.resolvedExecutable}/../Frameworks/libcardmind_rust.dylib';
 
@@ -34,18 +57,15 @@ String _getRustLibraryPath() {
       return dylibPath;
     }
 
-    // Fallback to development path if not found in app bundle
     final devPath =
         '/Users/alexc/Projects/CardMind/rust/target/release/libcardmind_rust.dylib';
     if (File(devPath).existsSync()) {
       return devPath;
     }
 
-    // Return dylib path anyway and let it fail with a clear error
     return dylibPath;
   }
 
-  // For other platforms, use default FRB behavior
   throw UnsupportedError(
     'Platform ${Platform.operatingSystem} not yet supported',
   );

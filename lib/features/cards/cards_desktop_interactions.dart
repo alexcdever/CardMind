@@ -1,12 +1,27 @@
-// input: showContextMenu 接收 BuildContext 与全局点击坐标 position。
-// output: 调用 showMenu 弹出桌面右键菜单并返回其 Future。
-// pos: 卡片桌面交互封装，负责右键上下文菜单展示。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+/// # 卡片桌面交互
+///
+/// 封装卡片在桌面端的交互行为，包括右键菜单等功能。
+///
+/// ## 用途
+/// - 提供桌面端特有的交互体验。
+/// - 解耦交互逻辑与 UI 组件。
+library cards_desktop_interactions;
+
 import 'package:flutter/material.dart';
 
+/// 卡片桌面交互封装类。
+///
+/// 提供桌面端卡片相关的交互功能，如右键上下文菜单。
 class CardsDesktopInteractions {
+  /// 创建桌面交互实例。
   const CardsDesktopInteractions();
 
+  /// 显示上下文菜单。
+  ///
+  /// [context] BuildContext。
+  /// [position] 菜单显示位置的全局坐标。
+  ///
+  /// 返回菜单关闭的 Future。
   Future<void> showContextMenu(BuildContext context, Offset position) {
     return showMenu<void>(
       context: context,

@@ -3,11 +3,19 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+/// # 错误类型定义
+///
+/// 定义 CardMind 应用中的错误类型。
+/// 使用 Freezed 生成不可变的联合类型。
+library error;
+
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+
 part 'error.freezed.dart';
 
+/// CardMind 错误类型
 @freezed
 sealed class CardMindError with _$CardMindError {
   const CardMindError._();

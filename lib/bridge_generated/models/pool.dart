@@ -3,6 +3,12 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+/// # 数据池模型
+///
+/// 定义 CardMind 中的数据池（Pool）相关数据结构。
+/// 包含数据池元数据和成员信息。
+library pool;
+
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
@@ -18,6 +24,7 @@ class Pool {
   /// 关联卡片 ID 列表
   final List<UuidValue> cardIds;
 
+  /// 创建 Pool 实例
   const Pool({
     required this.poolId,
     required this.members,
@@ -51,6 +58,7 @@ class PoolMember {
   /// 是否管理员
   final bool isAdmin;
 
+  /// 创建 PoolMember 实例
   const PoolMember({
     required this.endpointId,
     required this.nickname,

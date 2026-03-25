@@ -1,33 +1,50 @@
-// input: 通过具名构造创建各同步阶段，degraded/error 可携带错误码 code。
-// output: 生成 SyncStatusKind 与 code 组合的不可变同步状态对象。
-// pos: 同步状态模型定义，负责统一表示连接与错误状态。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+/// # 同步状态模型
+///
+/// 定义同步相关的所有状态类型和数据结构。
+/// 统一表示连接状态与各种错误状态。
+library sync_status;
 
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 
-/// Phase 2 同步状态类型
+/// 同步状态类型枚举。
 enum SyncStatusKind {
+  /// 空闲状态。
   idle,
+
+  /// 连接中。
   connecting,
+
+  /// 已连接。
   connected,
+
+  /// 同步中。
   syncing,
-  queryConvergencePending, // Phase 2: 替换 projectionPending
+
+  /// 查询收敛等待中（Phase 2）。
+  queryConvergencePending,
+
+  /// 降级状态。
   degraded,
+
+  /// 错误状态。
   error,
 }
 
-/// Phase 2 本地内容安全状态
+/// 本地内容安全状态枚举。
 enum LocalContentSafety { safe, readOnlyRisk, unknown }
 
-/// Phase 2 连续性状态
+/// 连续性状态枚举（Phase 2）。
 enum ContinuityState { samePath, pathAtRisk, pathBroken }
 
+/// 同步状态类。
+///
+/// 通过具名构造方法创建各同步阶段的状态实例。
 class SyncStatus {
+  /// 空闲状态。
   const SyncStatus.idle()
     : kind = SyncStatusKind.idle,
       code = null,
       isWriteSaved = false,
-      // Phase 2 契约字段
       syncState = 'ready',
       queryConvergenceState = 'ready',
       instanceContinuityState = 'ready',
@@ -37,9 +54,9 @@ class SyncStatus {
       nextAction = 'none',
       allowedOperations = const ['view', 'continue_edit', 'wait', 'retry'],
       forbiddenOperations = const ['content_lost_expression'],
-      // 兼容性字段
       contentState = 'content_safe';
 
+  /// 连接中状态。
   const SyncStatus.connecting()
     : kind = SyncStatusKind.connecting,
       code = null,
@@ -55,9 +72,9 @@ class SyncStatus {
       forbiddenOperations = const [],
       contentState = 'content_safe_local_only';
 
+  /// 已连接状态。
   const SyncStatus.connected({
     this.isWriteSaved = false,
-    // Phase 2 契约字段
     this.syncState = 'ready',
     this.queryConvergenceState = 'ready',
     this.instanceContinuityState = 'ready',
@@ -67,11 +84,11 @@ class SyncStatus {
     this.nextAction = 'none',
     this.allowedOperations = const ['view', 'continue_edit', 'wait', 'retry'],
     this.forbiddenOperations = const ['content_lost_expression'],
-    // 兼容性字段
     this.contentState = 'content_safe',
   }) : kind = SyncStatusKind.connected,
        code = null;
 
+  /// 同步中状态。
   const SyncStatus.syncing({
     this.isWriteSaved = false,
     this.syncState = 'recovering',
@@ -87,7 +104,7 @@ class SyncStatus {
   }) : kind = SyncStatusKind.syncing,
        code = null;
 
-  /// Phase 2: 查询收敛 pending 状态
+  /// 查询收敛等待中状态（Phase 2）。
   const SyncStatus.queryConvergencePending(
     this.code, {
     this.syncState = 'ready',
@@ -103,7 +120,7 @@ class SyncStatus {
   }) : kind = SyncStatusKind.queryConvergencePending,
        isWriteSaved = true;
 
-  /// Phase 2: 降级状态
+  /// 降级状态（Phase 2）。
   const SyncStatus.degraded(
     this.code, {
     this.isWriteSaved = false,
@@ -123,7 +140,7 @@ class SyncStatus {
     this.contentState = 'content_safe_local_only',
   }) : kind = SyncStatusKind.degraded;
 
-  /// Phase 2: 错误状态
+  /// 错误状态（Phase 2）。
   const SyncStatus.error(
     this.code, {
     this.isWriteSaved = false,
@@ -144,6 +161,7 @@ class SyncStatus {
     this.contentState = 'content_safe_local_only',
   }) : kind = SyncStatusKind.error;
 
+  /// 健康状态。
   const SyncStatus.healthy()
     : kind = SyncStatusKind.connected,
       code = null,
@@ -159,13 +177,11 @@ class SyncStatus {
       forbiddenOperations = const ['content_lost_expression'],
       contentState = 'content_safe';
 
-  // 工厂构造：从 DTO 创建
+  /// 从 DTO 创建同步状态（工厂构造）。
   factory SyncStatus.fromDto(frb.SyncStatusDto dto) {
-    // 根据 Phase 2 契约字段映射（FRB 生成驼峰命名）
     final recoveryStage = dto.recoveryStage;
 
     // 首先根据 syncState 判断是否 idle
-    // Phase 2: "idle" 映射为 "ready"
     if ((dto.syncState == 'ready' || dto.syncState == 'idle') &&
         dto.queryConvergenceState == 'ready' &&
         dto.instanceContinuityState == 'ready' &&
@@ -228,31 +244,60 @@ class SyncStatus {
     }
   }
 
+  /// 同步状态类型。
   final SyncStatusKind kind;
+
+  /// 错误码，仅在错误状态下有效。
   final String? code;
+
+  /// 写入是否已保存。
   final bool isWriteSaved;
 
-  // Phase 2 契约字段
+  /// 同步状态（Phase 2 契约字段）。
   final String syncState;
+
+  /// 查询收敛状态（Phase 2 契约字段）。
   final String queryConvergenceState;
+
+  /// 实例连续性状态（Phase 2 契约字段）。
   final String instanceContinuityState;
+
+  /// 本地内容安全状态（Phase 2 契约字段）。
   final LocalContentSafety localContentSafety;
+
+  /// 恢复阶段（Phase 2 契约字段）。
   final String recoveryStage;
+
+  /// 连续性状态（Phase 2 契约字段）。
   final ContinuityState continuityState;
+
+  /// 下一步建议操作（Phase 2 契约字段）。
   final String nextAction;
+
+  /// 允许的操作列表（Phase 2 契约字段）。
   final List<String> allowedOperations;
+
+  /// 禁止的操作列表（Phase 2 契约字段）。
   final List<String> forbiddenOperations;
 
-  // 兼容性字段
+  /// 内容状态（兼容性字段）。
   final String contentState;
 
-  // 便捷属性
+  /// 内容是否安全。
   bool get isContentSafe => localContentSafety == LocalContentSafety.safe;
+
+  /// 路径是否有风险。
   bool get isPathAtRisk => continuityState == ContinuityState.pathAtRisk;
+
+  /// 路径是否已断裂。
   bool get isPathBroken => continuityState == ContinuityState.pathBroken;
+
+  /// 是否可以写入。
   bool get canWrite =>
       localContentSafety == LocalContentSafety.safe &&
       !forbiddenOperations.contains('write');
+
+  /// 是否可以继续编辑。
   bool get canContinueEdit =>
       localContentSafety == LocalContentSafety.safe &&
       allowedOperations.contains('continue_edit');

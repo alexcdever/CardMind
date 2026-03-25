@@ -1,11 +1,24 @@
-// input: 用户进入设置分区。
-// output: 渲染空白设置页占位（当前版本无配置项）。
-// pos: 设置页面，当前仅提供空白占位。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+/// # 设置页面
+///
+/// 应用设置模块的主界面，当前为占位实现。
+/// 未来版本将在此页面提供应用配置选项。
+///
+/// ## 关联路由
+/// - 跳转至此页面需使用 `Navigator.pushNamed(context, '/settings')`。
+///
+/// ## 外部依赖
+/// - 依赖 [SemanticIds] 提供语义标识符支持无障碍测试。
+library settings_page;
+
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:flutter/material.dart';
 
+/// 设置页面的 StatelessWidget。
+///
+/// 当前为空白占位页，仅显示一个可扩展的空白区域。
+/// 后续版本将在此添加各类设置选项。
 class SettingsPage extends StatelessWidget {
+  /// 创建设置页面实例。
   const SettingsPage({super.key});
 
   @override

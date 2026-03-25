@@ -1,7 +1,13 @@
-// input: 接收初始 PoolState/可选控制器，并处理扫码、审批、退出等用户交互。
-// output: 按当前 PoolState 渲染不同页面分支，并调用控制器推进状态转换。
-// pos: 数据池页面，负责入池、成员审批、错误处理与退池流程展示。修改本文件需同步更新文件头与所属 DIR.md。
-// 中文注释：Flutter 功能模块，负责状态编排、交互反馈与页面渲染。
+/// # 数据池页面
+///
+/// 负责数据池的界面展示与用户交互处理。
+/// 支持创建池、扫码加入、成员审批、退出池等功能。
+///
+/// ## 外部依赖
+/// - 依赖 [PoolController] 提供状态管理和业务逻辑。
+/// - 依赖 [SyncService] 提供同步状态管理。
+library pool_page;
+
 import 'dart:async';
 
 import 'package:cardmind/features/pool/pool_api_client.dart';
@@ -14,7 +20,17 @@ import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+/// 数据池页面组件。
+///
+/// 根据当前状态渲染不同的页面分支，处理扫码加入、成员审批、
+/// 错误处理与退池流程展示。
 class PoolPage extends StatefulWidget {
+  /// 创建数据池页面。
+  ///
+  /// [state] - 初始池状态。
+  /// [networkId] - 可选的网络ID。
+  /// [controller] - 可选的控制器，用于依赖注入测试。
+  /// [onReturnToPoolTab] - 返回数据池Tab的回调。
   const PoolPage({
     super.key,
     required this.state,
@@ -23,9 +39,16 @@ class PoolPage extends StatefulWidget {
     this.onReturnToPoolTab,
   });
 
+  /// 当前池状态。
   final PoolState state;
+
+  /// 网络ID，用于同步服务。
   final BigInt? networkId;
+
+  /// 可选的控制器实例。
   final PoolController? controller;
+
+  /// 返回数据池Tab的回调函数。
   final VoidCallback? onReturnToPoolTab;
 
   @override
