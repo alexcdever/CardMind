@@ -3,6 +3,7 @@ output: 工程规范目录索引，记录跨功能、长期复用的规则与门
 pos: docs/standards/DIR.md - 规范目录说明，修改本文件需同步更新文件头
 中文注释: 工程规范目录，新增或更新规范文件需同步登记
 
+ai-collaboration.md - AI 协作规范 - AI 驱动开发的双代理对抗模式、TDD 阶段执行标准与质量门禁
 fractal-doc-standard.md - 分形文档规范 - 分形文档结构、文件头规则、排除项
 spec-first-execution.md - 执行规范 - 规格优先执行策略与 specs/plans 约束关系
 tdd.md - 开发测试规范 - TDD 红绿蓝循环与 Flutter/Rust 测试要求
