@@ -163,468 +163,241 @@
 
 本设计文档是阶段3的**评估与整体策略设计**，确定了哪些能力进入设计、执行顺序和验收标准。
 
-每个周期开始前，将编写**详细设计文档**，补充以下内容：
-- 详细的行为契约（前置条件、成功结果、失败结果、可恢复路径）
-- 具体的接口定义和数据结构
-- 详细的错误处理策略
-- 与现有代码的集成点
+详细的行为契约（前置条件、成功结果、失败结果、可恢复路径）将在各功能的具体设计阶段完成。所有领域对象定义引用 `docs/specs/pool.md` 的规格。
 
-这遵循 `docs/specs/pool.md` 第80行的指引。本设计文档一次性完成全部详细设计，确保评估决策有技术可行性支撑。
-
-### 4.3 详细设计
-
-本章节包含3个功能的完整详细设计，包括接口定义、数据结构、行为契约和错误处理。
+**引用规格定义**：
+- **Pool**：包含池标识、池名称、解散状态等基础属性（见 pool.md 5.1）
+- **Member**：包含成员标识、角色、加入状态等成员属性（见 pool.md 5.1）
+- **Join Request**：请求加入指定 Pool 的待处理记录（见 pool.md 2.1）
+- **Note Reference**：Pool 元数据中对卡片笔记的引用（见 pool.md 2.1）
 
 ---
 
+### 4.3 详细设计
+
 #### 4.3.1 功能一：加入申请审批流程
 
-##### 4.3.1.1 功能概述
+##### 业务目标
 
 完善数据池加入流程，实现完整的申请-审批机制。用户在设备B加入设备A创建的池时，需要池管理员审批后方可加入。
 
-##### 4.3.1.2 数据结构设计
+##### 核心流程
 
-**JoinRequest 结构（新增）**
-```rust
-pub struct JoinRequest {
-    pub request_id: Uuid,           // 申请唯一标识
-    pub pool_id: Uuid,              // 目标池ID
-    pub applicant_device_id: String, // 申请人设备标识
-    pub applicant_public_key: String, // 申请人公钥（用于后续同步）
-    pub request_time: DateTime,     // 申请时间
-    pub status: JoinRequestStatus,  // 申请状态
-    pub processed_by: Option<Uuid>, // 处理人（admin）
-    pub processed_time: Option<DateTime>, // 处理时间
-}
+**提交申请阶段**：
+1. 用户在设备B发现设备A创建的池
+2. 用户发起加入申请，系统创建待处理的申请记录
+3. 申请记录包含：目标池标识、申请人设备标识、申请时间、当前状态
+4. 系统校验：目标池存在且未解散、申请人不是该池成员、申请人没有该池的待处理申请
+5. 申请成功创建后，广播给池内所有成员
 
-pub enum JoinRequestStatus {
-    Pending,   // 待处理
-    Approved,  // 已通过
-    Rejected,  // 已拒绝
-    Expired,   // 已过期（超过72小时）
-}
-```
+**审批处理阶段**：
+1. 池管理员（设备A）收到加入申请通知
+2. 管理员可以选择：批准申请 或 拒绝申请
+3. 批准后：申请人自动成为池的成员，状态为普通成员
+4. 拒绝后：申请状态标记为已拒绝，申请人收到通知
 
-**Pool 结构扩展**
-```rust
-pub struct Pool {
-    pub pool_id: Uuid,
-    pub name: String,
-    pub dissolved: bool,
-    pub members: Vec<PoolMember>,
-    pub card_ids: Vec<Uuid>,
-    pub join_requests: Vec<JoinRequest>, // 新增：申请列表
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
-}
-```
+**状态流转**：
+- 申请创建后进入"待处理"状态
+- 管理员审批后变为"已通过"或"已拒绝"
+- 申请人在审批前可以主动取消申请
+- 超过72小时未处理的申请自动过期
 
-##### 4.3.1.3 接口定义
+##### 关键约束
 
-**Rust API（FRB暴露）**
+**前置条件**（提交申请）：
+- 目标池存在且未解散
+- 申请人不在该池的成员列表中
+- 申请人没有该池的待处理申请
 
-```rust
-/// 提交加入申请
-/// 
-/// 前置条件：
-/// - 目标池存在且未解散
-/// - 申请人不在该池的成员列表中
-/// - 申请人没有该池的待处理申请
-/// 
-/// 成功结果：返回完整的申请信息（包含申请ID），状态为 Pending
-/// 失败结果：PoolNotFound / PoolDissolved / AlreadyMember / DuplicateRequest
-pub fn submit_join_request(
-    pool_id: Uuid,
-    applicant_device_id: String,
-    applicant_public_key: String,
-) -> Result<JoinRequestDto, ApiError>
+**前置条件**（审批申请）：
+- 调用者是池的管理员
+- 申请存在且状态为待处理
+- 目标池未解散
 
-/// 审批加入申请
-/// 
-/// 前置条件：
-/// - 调用者是池的 admin
-/// - 申请存在且状态为 Pending
-/// - 目标池未解散
-/// 
-/// 成功结果：申请状态变为 Approved，申请人成为 member
-/// 失败结果：PoolNotFound / NotAdmin / RequestNotFound / InvalidStatus
-pub fn approve_join_request(
-    pool_id: Uuid,
-    request_id: Uuid,
-) -> Result<JoinRequestDto, ApiError>
+**错误处理**：
+- 重复提交申请 → 返回错误提示"您已有待处理的申请"
+- 非管理员尝试审批 → 返回权限错误
+- 申请已过期 → 提示"申请已过期，请重新申请"
 
-/// 拒绝加入申请
-/// 
-/// 前置条件：
-/// - 调用者是池的 admin
-/// - 申请存在且状态为 Pending
-/// 
-/// 成功结果：申请状态变为 Rejected
-/// 失败结果：PoolNotFound / NotAdmin / RequestNotFound / InvalidStatus
-pub fn reject_join_request(
-    pool_id: Uuid,
-    request_id: Uuid,
-) -> Result<JoinRequestDto, ApiError>
+##### 与现有系统的集成
 
-/// 查询池的加入申请列表
-/// 
-/// 前置条件：
-/// - 调用者是池的 admin 或 member
-/// 
-/// 成功结果：返回申请列表（admin看到全部，member只看到Approved的）
-/// 失败结果：PoolNotFound / NotMember
-pub fn list_join_requests(
-    pool_id: Uuid,
-    status_filter: Option<JoinRequestStatus>,
-) -> Result<Vec<JoinRequestDto>, ApiError>
-
-/// 取消自己的加入申请
-/// 
-/// 前置条件：
-/// - 申请存在且状态为 Pending
-/// - 调用者是申请人本人
-/// 
-/// 成功结果：申请被删除
-/// 失败结果：RequestNotFound / NotApplicant / InvalidStatus
-pub fn cancel_join_request(
-    pool_id: Uuid,
-    request_id: Uuid,
-) -> Result<(), ApiError>
-```
-
-##### 4.3.1.4 状态机
-
-```
-Pending ──[approve]──→ Approved ──[成为member]──→ 结束
-   │
-   ├──[reject]──→ Rejected ──[结束]
-   │
-   ├──[cancel]──→ 删除
-   │
-   └──[72小时过期]──→ Expired ──[可重新申请]
-```
-
-##### 4.3.1.5 错误码定义
-
-| 错误码 | 场景 | 用户提示 |
-|-------|------|---------|
-| JOIN_REQUEST_NOT_FOUND | 申请ID不存在 | "申请不存在或已处理" |
-| DUPLICATE_JOIN_REQUEST | 重复提交申请 | "您已有待处理的申请" |
-| JOIN_REQUEST_EXPIRED | 申请已过期 | "申请已过期，请重新申请" |
-| INVALID_JOIN_STATUS | 操作与当前状态不符 | "申请状态已变更，请刷新" |
-| NOT_APPLICANT | 非本人取消申请 | "只能取消自己的申请" |
-
-##### 4.3.1.6 网络层集成
-
-**消息类型（已存在，需完善处理）**
-```rust
-pub enum PoolMessage {
-    // ... 现有消息
-    JoinRequest { request: JoinRequest },
-    JoinDecision { request_id: Uuid, approved: bool, processed_by: Uuid },
-}
-```
-
-**流程**：
-1. 设备B提交申请 → 本地存储 + 广播给池内所有成员
-2. Admin（设备A）审批 → 本地更新 + 广播决策
-3. 所有设备收到决策 → 更新本地状态，Approved时添加member
-
-##### 4.3.1.7 测试要点
-
-- 正常申请-审批流程
-- 重复申请被拒绝
-- 非admin尝试审批被拒绝
-- 过期申请自动清理
-- 并发申请处理
-- 网络中断后恢复
+- 复用现有的 `JoinRequest` 和 `JoinDecision` 消息类型
+- 在 Pool 的元数据中维护申请列表
+- 审批通过后自动触发成员添加流程
+- 集成到现有的 P2P 同步网络，确保所有成员状态一致
 
 ---
 
 #### 4.3.2 功能二：池解散功能
 
-##### 4.3.2.1 功能概述
+##### 业务目标
 
-实现数据池解散功能，允许管理员解散不再需要的数据池。解散后池进入只读状态，不再接受新成员和编辑。
+实现数据池解散功能，允许管理员解散不再需要的数据池。解散后池进入终态，不再接受新成员和编辑，但保留读取能力。
 
-##### 4.3.2.2 数据结构设计
+##### 核心流程
 
-**Pool 结构（复用 dissolved 字段）**
-```rust
-pub struct Pool {
-    pub pool_id: Uuid,
-    pub name: String,
-    pub dissolved: bool,              // true = 已解散
-    pub dissolved_at: Option<DateTime>, // 新增：解散时间
-    pub dissolved_by: Option<Uuid>,     // 新增：解散人
-    pub members: Vec<PoolMember>,
-    pub card_ids: Vec<Uuid>,
-    pub join_requests: Vec<JoinRequest>,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
-}
-```
+**解散触发**：
+1. 池管理员发起解散操作
+2. 系统校验：调用者是管理员、池未解散、池内没有其他成员（或所有成员已退出）
+3. 系统记录解散信息：解散时间、解散人
+4. 更新池状态为"已解散"
+5. 广播解散消息给池内所有成员
 
-##### 4.3.2.3 接口定义
+**解散后行为**：
+- 已解散池**禁止**的操作：接受新的加入申请、新增成员、编辑池内笔记、新增笔记到池
+- 已解散池**允许**的操作：读取现有笔记、查看池历史、导出个人数据
 
-```rust
-/// 解散数据池
-/// 
-/// 前置条件：
-/// - 调用者是池的 admin
-/// - 池未解散
-/// - 池内只有自己一个成员（简化：单人可直接解散，多人需其他成员先退出）
-/// 
-/// 成功结果：池状态变为 dissolved，记录解散信息
-/// 失败结果：PoolNotFound / NotAdmin / PoolDissolved / HasOtherMembers
-/// 
-/// 可恢复路径：
-/// - 如果 HasOtherMembers：提示"请先移除其他成员"
-/// - 其他错误：显示具体原因
-/// 
-/// 【未来扩展】当前设计限制为"只有自己一个成员时才能解散"。
-/// 未来可考虑支持"强制解散"（admin移除所有成员后解散），
-/// 但当前阶段保持简化，避免引入成员移除的复杂性。
-pub fn dissolve_pool(pool_id: Uuid) -> Result<PoolDto, ApiError>
+##### 关键约束
 
-/// 查询池是否已解散
-pub fn is_pool_dissolved(pool_id: Uuid) -> Result<bool, ApiError>
-```
+**前置条件**（解散池）：
+- 调用者是池的管理员
+- 池未解散
+- 池内只有自己一个成员（简化策略：多人池需其他成员先退出）
 
-##### 4.3.2.4 解散后行为约束
+**可恢复路径**：
+- 如果池内还有其他成员，提示"请先移除其他成员后再解散"
 
-**已解散池的限制**（规格 5.2.2-5.2.3）：
-- ❌ 接受新的加入申请
-- ❌ 新增成员
-- ❌ 编辑池内笔记（但可读取）
-- ❌ 新增笔记到池
-- ✅ 读取现有笔记
-- ✅ 查看池历史
+**错误处理**：
+- 池已解散 → 提示"该数据池已解散"
+- 非管理员尝试解散 → 返回权限错误
+- 池内还有其他成员 → 提示"请先移除其他成员"
 
-**实现方式**：
-```rust
-impl Pool {
-    pub fn can_accept_join_request(&self) -> bool {
-        !self.dissolved
-    }
-    
-    pub fn can_add_member(&self) -> bool {
-        !self.dissolved
-    }
-    
-    pub fn can_edit_notes(&self) -> bool {
-        !self.dissolved
-    }
-}
-```
+##### 与现有系统的集成
 
-##### 4.3.2.5 错误码定义
+- 复用 Pool 的 `dissolved` 状态字段
+- 新增解散时间和解散人记录
+- 在所有修改池的操作前增加"是否已解散"校验
+- 解散消息通过 P2P 网络广播给所有成员
 
-| 错误码 | 场景 | 用户提示 |
-|-------|------|---------|
-| POOL_ALREADY_DISSOLVED | 池已解散 | "该数据池已解散" |
-| HAS_OTHER_MEMBERS | 解散时还有其他成员 | "请先移除其他成员后再解散" |
-| CANNOT_MODIFY_DISSOLVED_POOL | 尝试修改已解散池 | "数据池已解散，无法执行此操作" |
+##### 需要澄清的产品问题
 
-##### 4.3.2.6 网络层集成
-
-**消息类型**
-```rust
-pub enum PoolMessage {
-    // ... 现有消息
-    PoolDissolved { pool_id: Uuid, dissolved_by: Uuid, dissolved_at: DateTime },
-}
-```
-
-**流程**：
-1. Admin 调用 dissolve_pool
-2. 本地更新 Pool 状态
-3. 广播 PoolDissolved 消息给所有成员
-4. 所有成员收到后更新本地状态
-
-##### 4.3.2.7 UI展示
-
-已解散池的展示：
-- 池列表中显示"已解散"标签
-- 池详情页显示解散时间和解散人
-- 禁用所有编辑操作
-- 保留读取和导出功能
-
-##### 4.3.2.8 测试要点
-
-- 正常解散流程
-- 非admin尝试解散被拒绝
-- 已解散池的操作限制
-- 解散消息广播
-- 解散后数据完整性
+1. **解散后笔记访问权限**：已解散池中的笔记，成员是否永久可读？还是有过期时间？
+2. **数据导出**：解散前是否强制要求成员导出数据？
+3. **解散可逆性**：是否支持"恢复解散"？还是永久解散？
 
 ---
 
 #### 4.3.3 功能三：管理员不变量校验
 
-##### 4.3.3.1 功能概述
+##### 业务目标
 
-实现"未解散池必须至少有1个admin"的不变量校验，防止因误操作导致池无法管理。
+实现"未解散池必须至少有1个管理员"的不变量校验，防止因误操作导致池无法管理。
 
-##### 4.3.3.2 不变量规则
+##### 核心规则
 
-**规格 4.3**：
-1. 未解散池 MUST 至少有 1 个 admin
-2. 任何会导致未解散池 `admin=0` 的操作 MUST 被拒绝
+根据 `docs/specs/pool.md` 4.3 管理员不变量：
+- 未解散池必须至少有1个管理员
+- 任何会导致未解散池管理员数量为0的操作必须被拒绝
 
-**触发场景**：
-- 成员退出池（leave_pool）
-- 修改成员角色（如降级admin为member）
-- 移除成员（如实现此功能）
+##### 触发场景
 
-##### 4.3.3.3 接口定义
+**场景一：成员退出池**
+当管理员尝试退出池时，系统检查：如果该管理员是唯一的管理员，则拒绝退出操作。
 
-```rust
-/// 退出数据池
-/// 
-/// 前置条件：
-/// - 调用者是池的 member
-/// - 如果调用者是唯一的 admin，拒绝操作
-/// 
-/// 成功结果：成员关系被移除
-/// 失败结果：PoolNotFound / NotMember / LastAdminCannotLeave
-/// 
-/// 可恢复路径：
-/// - 如果 LastAdminCannotLeave：提示"请先指定新的管理员"
-pub fn leave_pool(pool_id: Uuid) -> Result<(), ApiError>
+**场景二：角色变更**（预留，当前阶段不实现）
+当尝试将管理员降级为普通成员时，检查：降级后是否还有至少1个管理员。如果是唯一的管理员，拒绝降级。
 
-/// 修改成员角色（【未来扩展】当前阶段不实现，仅预留接口定义）
-/// 
-/// 【说明】当前阶段只实现"退出池时的不变量校验"，不实现主动变更角色功能。
-/// 此接口预留用于未来阶段，当需要支持"转让管理员"等场景时实现。
-/// 
-/// 前置条件（未来实现时）：
-/// - 调用者是 admin
-/// - 修改后至少还有1个admin
-/// 
-/// 成功结果：角色变更
-/// 失败结果：PoolNotFound / NotAdmin / TargetNotMember / LastAdminCannotDemote
-pub fn change_member_role(
-    pool_id: Uuid,
-    member_id: Uuid,
-    new_role: MemberRole,
-) -> Result<PoolMemberDto, ApiError>
-```
+**场景三：移除成员**（预留，当前阶段不实现）
+当管理员移除另一个管理员时，检查：移除后是否还有至少1个管理员。
 
-##### 4.3.3.4 校验逻辑
+##### 关键约束
 
-```rust
-impl Pool {
-    /// 检查是否会导致 admin=0
-    pub fn would_leave_zero_admins(&self, leaving_member_id: Uuid) -> bool {
-        if self.dissolved {
-            return false; // 已解散池不检查
-        }
-        
-        let is_leaving_admin = self.members
-            .iter()
-            .any(|m| m.member_id == leaving_member_id && m.is_admin);
-        
-        if !is_leaving_admin {
-            return false; // 退出的不是admin，不影响
-        }
-        
-        let admin_count = self.members
-            .iter()
-            .filter(|m| m.is_admin && m.member_id != leaving_member_id)
-            .count();
-        
-        admin_count == 0
-    }
-    
-    /// 获取当前admin数量
-    pub fn admin_count(&self) -> usize {
-        self.members.iter().filter(|m| m.is_admin).count()
-    }
-}
-```
+**校验逻辑**：
+- 计算当前池中的管理员数量
+- 如果将要执行的操作会导致管理员数量降为0，拒绝该操作
+- 已解散池不检查此不变量
 
-##### 4.3.3.5 错误码定义
+**错误处理**：
+- 唯一管理员尝试退出 → 提示"您是唯一的管理员，请先指定新的管理员"
+- 尝试降级唯一管理员 → 提示"不能降级唯一的管理员"
 
-| 错误码 | 场景 | 用户提示 |
-|-------|------|---------|
-| LAST_ADMIN_CANNOT_LEAVE | 唯一admin尝试退出 | "您是唯一的管理员，请先指定新的管理员" |
-| LAST_ADMIN_CANNOT_DEMOTE | 尝试降级唯一的admin | "不能降级唯一的管理员" |
-| INSUFFICIENT_ADMINS | admin数量不足（预留） | "管理员数量不足" |
+##### 与现有系统的集成
 
-##### 4.3.3.6 与现有代码的集成
-
-**现有 leave_pool 需要修改**：
-```rust
-// 在 leave_pool 实现中添加校验
-pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
-    let pool = pool_store.get(pool_id)?;
-    
-    // 新增：检查不变量
-    if pool.would_leave_zero_admins(member_id) {
-        return Err(Error::LastAdminCannotLeave);
-    }
-    
-    // 原有逻辑...
-}
-```
-
-##### 4.3.3.7 测试要点
-
-- 普通member正常退出
-- 唯一admin尝试退出被拒绝
-- 多admin场景下admin正常退出
-- 边界情况：空池（理论上不应发生）
+- 在 `leave_pool` 操作执行前增加不变量校验
+- 在校验失败时返回明确的错误语义
+- 不变量校验逻辑集中管理，便于后续扩展（如角色变更时的校验）
 
 ---
 
 #### 4.3.4 功能间依赖关系
 
-```
-加入申请审批流程 ─┬──→ 依赖：Pool基础结构（已存在）
-                  └──→ 被依赖：池解散（需要知道成员关系）
+**依赖分析**：
 
-池解散功能 ───────┬──→ 依赖：Pool结构、成员管理
-                  ├──→ 依赖：管理员不变量（确保解散时合规）
-                  └──→ 独立功能，但被其他功能依赖
-
-管理员不变量校验 ─┬──→ 依赖：Pool成员结构
-                  └──→ 被依赖：加入审批（添加新member时）、池解散
-```
+1. **管理员不变量校验**是基础保障，需要在其他功能之前或同时实现
+2. **池解散功能**依赖成员管理，解散前需要处理成员关系
+3. **加入申请审批流程**依赖成员管理，审批通过后需要添加成员
 
 **实现顺序建议**：
 1. 管理员不变量校验（基础保障）
 2. 池解散功能（生命周期闭环）
 3. 加入申请审批流程（体验增强）
 
-但实际开发中可以部分并行，只要保证不变量校验尽早实施。
+实际开发中可以部分并行，只要保证不变量校验尽早实施。
 
 ---
 
-### 4.4 执行顺序
+### 4.4 需要澄清的关键问题
+
+在执行详细设计和实现之前，需要澄清以下产品问题：
+
+#### 问题一：笔记归属与退出池
+
+**当前规格缺失**：`docs/specs/pool.md` 未明确用户退出数据池后，其在池中创建的笔记如何处理。
+
+**需要决策**：
+1. 用户退出后，其在池中创建的笔记是否仍然留在池中？
+2. 如果留在池中，其他成员是否能看到这些笔记？
+3. 如果笔记跟着用户走，是否从池中移除引用？
+4. 用户退出后重新加入，是否恢复对旧笔记的访问？
+
+**建议方案**（供讨论）：
+- 笔记归属：笔记属于创建者，但留在池中供其他成员查看
+- 退出后访问：退出成员不能再访问池中任何笔记（包括自己创建的）
+- 重新加入：重新加入后恢复对所有池内笔记的访问（包括退出期间其他成员创建的）
+
+#### 问题二：解散后的数据保留
+
+**需要决策**：
+1. 池解散后，数据保留多长时间？
+2. 成员是否需要在解散前导出数据？
+3. 是否提供"恢复解散"功能？
+
+#### 问题三：加入申请的有效期
+
+**当前设计**：申请超过72小时自动过期。
+
+**需要确认**：
+1. 72小时是否合适？
+2. 过期后申请人是否可以立即重新申请？
+3. 管理员是否可以手动延长申请有效期？
+
+---
+
+### 4.5 执行顺序
 
 阶段3将分为**3个独立的设计-实现周期**：
 
-#### 周期1：加入申请审批流程
-1. 编写详细设计文档
-2. 编写实现计划
-3. 实现审批流程（JoinRequest/JoinDecision 处理逻辑）
-4. 验证：池加入流程完整可用
-
-#### 周期2：池解散功能
-1. 编写详细设计文档
-2. 编写实现计划
-3. 实现池解散（dissolved 状态、解散操作、解散后限制）
-4. 验证：生命周期闭环完整
-
-#### 周期3：管理员不变量校验
-1. 编写详细设计文档
-2. 编写实现计划
-3. 实现不变量校验（leave_pool、成员变更时校验）
+#### 周期1：管理员不变量校验（基础保障）
+1. 澄清笔记归属问题（产品决策）
+2. 实现不变量校验逻辑
+3. 更新 leave_pool 操作，增加校验
 4. 验证：规格要求满足
 
-### 4.5 验收标准
+#### 周期2：池解散功能（生命周期闭环）
+1. 澄清解散后的数据保留策略（产品决策）
+2. 实现池解散功能
+3. 实现解散后操作限制
+4. 验证：生命周期闭环完整
+
+#### 周期3：加入申请审批流程（体验增强）
+1. 确认申请有效期策略
+2. 实现申请提交和审批流程
+3. 集成到现有网络层
+4. 验证：池加入流程完整可用
+
+---
+
+### 4.6 验收标准
 
 每个周期完成后必须满足：
 
@@ -634,7 +407,7 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 4. **测试覆盖**: 新增功能有完整的单元测试和集成测试
 5. **质量门禁**: `dart run tool/quality.dart all` 通过
 
-### 4.6 中止条件
+### 4.7 中止条件
 
 任一周期执行过程中，如果出现以下情况，应中止并重新评估：
 
@@ -647,7 +420,13 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 
 ## 5. 风险与缓解
 
-### 5.1 风险：协作能力逐步扩张
+### 5.1 风险：笔记归属问题未明确
+
+**风险**: 如果用户退出池后笔记归属不明确，可能导致数据丢失或权限混乱。
+
+**缓解**: 在周期1开始前明确产品决策，必要时更新 `docs/specs/pool.md` 规格。
+
+### 5.2 风险：协作能力逐步扩张
 
 **风险**: 虽然单个能力都通过测试，但累积起来可能让数据池变得过于复杂。
 
@@ -656,7 +435,7 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 - 每个周期独立评估，随时可中止
 - 保持 defer 清单，明确不进入近期范围的能力
 
-### 5.2 风险：用户期望更强的协作
+### 5.3 风险：用户期望更强的协作
 
 **风险**: 用户可能期望多成员实时协作等高级功能。
 
@@ -665,7 +444,7 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 - 在适当时机沟通产品边界
 - 记录用户需求，用于未来阶段评估
 
-### 5.3 风险：技术债务累积
+### 5.4 风险：技术债务累积
 
 **风险**: 加入审批、池解散等能力缺失确实会造成技术债务。
 
@@ -681,7 +460,10 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 
 执行过程中可能需要更新以下规格：
 
-- `docs/specs/pool.md`: 补充审批流程、解散、不变量校验的行为约束
+- `docs/specs/pool.md`: 
+  - 补充审批流程、解散、不变量校验的行为约束
+  - 明确笔记归属规则（针对退出池场景）
+  - 明确解散后的数据保留策略
 - `docs/specs/ui-interaction.md`: 补充相关交互反馈语义
 - `docs/specs/architecture.md`: 如有架构边界调整（预计无）
 
@@ -692,6 +474,7 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 - `docs/specs/product.md`: 产品目标、阶段目标、能力边界
 - `docs/specs/user-journeys.md`: 用户旅程约束
 - `docs/specs/architecture.md`: 架构约束（Rust 后端、LoroDoc 真源、SQLite 读模型）
+- `docs/specs/pool.md`: 数据池领域行为契约
 
 ---
 
@@ -714,11 +497,13 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 
 ### 7.2 下一步动作
 
-1. 审查并批准本设计文档
-2. 启动**周期1**：编写加入申请审批流程的详细设计
-3. 按顺序执行3个周期
-4. 每个周期结束后验证主路径未受损
-5. 全部完成后更新阶段状态
+1. **审查并批准本设计文档**
+2. **澄清关键产品问题**：
+   - 笔记归属与退出池（最优先）
+   - 解散后的数据保留策略
+   - 加入申请有效期
+3. **必要时更新规格文档**（特别是 pool.md）
+4. **启动周期1**：管理员不变量校验的设计与实现
 
 ### 7.3 成功标准
 
@@ -729,6 +514,7 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 3. 数据池仍然是服务主路径的扩展能力，没有反客为主
 4. 所有新增能力都有完整测试覆盖
 5. 质量门禁全绿通过
+6. 笔记归属等关键产品问题得到明确解答
 
 ---
 
@@ -749,9 +535,11 @@ pub fn leave_pool(pool_id: Uuid, member_id: Uuid) -> Result<(), Error> {
 - **反客为主**: 扩展能力变成独立主目标，压过原主路径
 - **Defer**: 延后，暂时不进入近期实施范围
 - **生命周期闭环**: 功能从创建到销毁的完整流程
+- **不变量**: 系统必须始终满足的约束条件
 
 ### 8.3 变更记录
 
 | 日期 | 版本 | 变更 | 作者 |
 |-----|------|------|------|
 | 2026-03-27 | v1.0 | 初始版本 | OpenCode |
+| 2026-03-27 | v1.1 | 重写详细设计章节，移除代码/伪代码，改用自然语言描述；增加需要澄清的关键问题章节 | OpenCode |
