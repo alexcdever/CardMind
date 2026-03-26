@@ -47,7 +47,6 @@
 ## 相关文档链接
 
 - [今日工作日志](docs/memory/2026-03-25.md)
-- [Rust 注释缺失报告](docs/missing_comments_report.md)
 - [昨日工作日志](docs/memory/2026-03-24.md)
 - [产品级真相源规格](docs/specs/product.md)
 

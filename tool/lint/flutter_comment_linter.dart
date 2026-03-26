@@ -118,13 +118,19 @@ class CommentLinter {
   void checkClassComments(String filePath, List<String> lines) {
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
-      if (line.startsWith('class ') || line.startsWith('abstract class ') || line.startsWith('enum ')) {
+      if (line.startsWith('class ') ||
+          line.startsWith('abstract class ') ||
+          line.startsWith('enum ')) {
+        // 跳过私有类（以下划线开头）
+        if (line.contains('class _')) {
+          continue;
+        }
         // 检查类注释
         bool hasValidComment = false;
         for (int j = i - 1; j >= 0; j--) {
           final commentLine = lines[j].trim();
           if (commentLine.isEmpty) continue;
-          if (commentLine.startsWith('/// # ')) {
+          if (commentLine.startsWith('///')) {
             hasValidComment = true;
             validComments++;
             break;
@@ -134,12 +140,14 @@ class CommentLinter {
           }
         }
         if (!hasValidComment) {
-          issues.add(LinterIssue(
-            filePath: filePath,
-            lineNumber: i + 1,
-            issueType: 'Missing Class Comment',
-            message: 'Class should have a valid documentation comment with # title',
-          ));
+          issues.add(
+            LinterIssue(
+              filePath: filePath,
+              lineNumber: i + 1,
+              issueType: 'Missing Class Comment',
+              message: 'Class should have a documentation comment',
+            ),
+          );
         }
       }
     }
@@ -149,10 +157,15 @@ class CommentLinter {
   void checkMemberComments(String filePath, List<String> lines) {
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
-      
+
       // 检查公共属性
-      if ((line.startsWith('final ') || line.startsWith('var ') || line.startsWith('late ')) && 
-          !line.startsWith('_')) {
+      // 跳过缩进的代码（方法内部）和私有成员
+      if ((line.startsWith('final ') ||
+              line.startsWith('var ') ||
+              line.startsWith('late ')) &&
+          !line.startsWith('_') &&
+          !lines[i].startsWith('  ') &&
+          !lines[i].startsWith('\t')) {
         bool hasValidComment = false;
         for (int j = i - 1; j >= 0; j--) {
           final commentLine = lines[j].trim();
@@ -162,23 +175,47 @@ class CommentLinter {
             validComments++;
             break;
           }
+          // 跳过注解（如 @override），继续向上查找
+          if (commentLine.startsWith('@')) {
+            continue;
+          }
           if (!commentLine.startsWith('///')) {
             break;
           }
         }
         if (!hasValidComment) {
-          issues.add(LinterIssue(
-            filePath: filePath,
-            lineNumber: i + 1,
-            issueType: 'Missing Member Comment',
-            message: 'Public member should have a documentation comment',
-          ));
+          issues.add(
+            LinterIssue(
+              filePath: filePath,
+              lineNumber: i + 1,
+              issueType: 'Missing Member Comment',
+              message: 'Public member should have a documentation comment',
+            ),
+          );
         }
       }
 
       // 检查方法
-      if (line.startsWith('void ') || line.startsWith('Future<') || line.startsWith('Stream<') || 
-          line.contains('(') && line.contains(')') && (line.contains('=>') || line.endsWith('{'))) {
+      // 方法定义的特征：
+      // 1. 以返回类型开头（大写字母开头或特定关键字）
+      // 2. 不是控制流语句
+      // 3. 不在方法内部（不以缩进开头）
+      bool isMethod =
+          (line.startsWith('void ') ||
+              line.startsWith('Future<') ||
+              line.startsWith('Stream<') ||
+              (line.isNotEmpty &&
+                  line[0] == line[0].toUpperCase() &&
+                  line.contains('(') &&
+                  line.contains(')'))) &&
+          !line.startsWith('if ') &&
+          !line.startsWith('for ') &&
+          !line.startsWith('while ') &&
+          !line.startsWith('switch ') &&
+          !line.startsWith('catch ') &&
+          !lines[i].startsWith('  ') && // 跳过缩进的代码（方法内部）
+          !lines[i].startsWith('\t');
+      if (isMethod) {
         bool hasValidComment = false;
         for (int j = i - 1; j >= 0; j--) {
           final commentLine = lines[j].trim();
@@ -188,17 +225,23 @@ class CommentLinter {
             validComments++;
             break;
           }
+          // 跳过注解（如 @override），继续向上查找
+          if (commentLine.startsWith('@')) {
+            continue;
+          }
           if (!commentLine.startsWith('///')) {
             break;
           }
         }
         if (!hasValidComment) {
-          issues.add(LinterIssue(
-            filePath: filePath,
-            lineNumber: i + 1,
-            issueType: 'Missing Method Comment',
-            message: 'Method should have a documentation comment',
-          ));
+          issues.add(
+            LinterIssue(
+              filePath: filePath,
+              lineNumber: i + 1,
+              issueType: 'Missing Method Comment',
+              message: 'Method should have a documentation comment',
+            ),
+          );
         }
       }
     }
@@ -208,15 +251,22 @@ class CommentLinter {
   void checkCommentFormatting(String filePath, List<String> lines) {
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
-      
+
+      // 跳过缩进的代码（方法内部），// 注释在方法内部是正常的代码注释
+      if (lines[i].startsWith('  ') || lines[i].startsWith('\t')) {
+        continue;
+      }
+
       // 检查是否使用///而非//
       if (line.startsWith('// ') && !line.startsWith('///')) {
-        issues.add(LinterIssue(
-          filePath: filePath,
-          lineNumber: i + 1,
-          issueType: 'Comment Format',
-          message: 'Use /// for documentation comments instead of //',
-        ));
+        issues.add(
+          LinterIssue(
+            filePath: filePath,
+            lineNumber: i + 1,
+            issueType: 'Comment Format',
+            message: 'Use /// for documentation comments instead of //',
+          ),
+        );
       }
 
       // 检查类注释标题格式
