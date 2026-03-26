@@ -4,6 +4,7 @@
 use cardmind_rust::api::{
     create_pool, get_pool_detail, init_app_config, join_by_code, reset_app_config_for_tests,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -18,8 +19,9 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn pool_detail_should_compute_current_user_role_from_calling_endpoint()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn pool_detail_should_compute_current_user_role_from_calling_endpoint(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());

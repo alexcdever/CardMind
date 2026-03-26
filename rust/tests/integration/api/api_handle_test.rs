@@ -4,6 +4,7 @@
 use cardmind_rust::api::{
     close_pool_network, init_app_config, init_pool_network, reset_app_config_for_tests,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -13,6 +14,7 @@ fn app_config_test_guard() -> &'static Mutex<()> {
 }
 
 #[test]
+#[serial]
 fn app_config_should_replace_card_store_handle_lifecycle() -> Result<(), Box<dyn std::error::Error>>
 {
     let _guard = app_config_test_guard().lock().unwrap();
@@ -28,6 +30,7 @@ fn app_config_should_replace_card_store_handle_lifecycle() -> Result<(), Box<dyn
 }
 
 #[test]
+#[serial]
 fn it_should_init_and_close_pool_network() -> Result<(), Box<dyn std::error::Error>> {
     let id = init_pool_network("/tmp/cardmind".to_string())?;
     close_pool_network(id)?;

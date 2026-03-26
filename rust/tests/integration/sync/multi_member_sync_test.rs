@@ -6,6 +6,7 @@ use cardmind_rust::api::{
     create_card_note_in_pool, create_pool, init_app_config, join_by_code, query_card_notes,
     reset_app_config_for_tests,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use std::thread;
 use std::time::Duration;
@@ -22,6 +23,7 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
+#[serial]
 fn member_a_create_should_be_visible_to_member_b() -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;

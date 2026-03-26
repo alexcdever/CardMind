@@ -5,6 +5,7 @@ use cardmind_rust::api::{
     create_pool, get_joined_pool_view, init_app_config, join_by_code, list_pools,
     reset_app_config_for_tests,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -19,8 +20,9 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn joined_pool_view_should_return_current_user_role_for_calling_endpoint()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn joined_pool_view_should_return_current_user_role_for_calling_endpoint(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -48,8 +50,9 @@ fn joined_pool_view_should_return_current_user_role_for_calling_endpoint()
 }
 
 #[test]
-fn joined_pool_view_should_fail_when_endpoint_is_not_a_member()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn joined_pool_view_should_fail_when_endpoint_is_not_a_member(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -73,8 +76,9 @@ fn joined_pool_view_should_fail_when_endpoint_is_not_a_member()
 }
 
 #[test]
-fn list_pools_should_return_current_user_role_for_calling_endpoint()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn list_pools_should_return_current_user_role_for_calling_endpoint(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());

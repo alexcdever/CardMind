@@ -2,6 +2,7 @@
 // output: 断言客户端A创建池、客户端B加入、数据同步等核心流程。
 // pos: 覆盖多客户端数据池协作的核心场景，确保后端逻辑正确。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::*;
+use serial_test::serial;
 use tempfile::tempdir;
 
 fn setup_test(test_name: &str) -> String {
@@ -28,6 +29,7 @@ fn setup_test(test_name: &str) -> String {
 /// 3. 客户端A创建卡片
 /// 4. 验证客户端B能看到同步的数据
 #[test]
+#[serial]
 fn test_two_clients_pool_collaboration() {
     let _app_data_dir = setup_test("collaboration");
 
@@ -83,6 +85,7 @@ fn test_two_clients_pool_collaboration() {
 
 /// 测试加入不存在的池会失败
 #[test]
+#[serial]
 fn test_join_nonexistent_pool_fails() {
     let _app_data_dir = setup_test("nonexistent");
 
@@ -112,6 +115,7 @@ fn test_join_nonexistent_pool_fails() {
 
 /// 测试创建池和加入池的完整流程
 #[test]
+#[serial]
 fn test_create_and_join_pool() {
     let _app_data_dir = setup_test("create_join");
 

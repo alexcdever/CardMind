@@ -5,6 +5,7 @@ use cardmind_rust::api::{
     create_card_note, delete_card_note, get_card_note_detail, init_app_config, list_card_notes,
     reset_app_config_for_tests, restore_card_note,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -19,8 +20,9 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn delete_and_restore_card_should_roundtrip_through_backend_api()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn delete_and_restore_card_should_roundtrip_through_backend_api(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -37,17 +39,13 @@ fn delete_and_restore_card_should_roundtrip_through_backend_api()
     let restored_list = list_card_notes()?;
 
     assert!(deleted_detail.deleted);
-    assert!(
-        deleted_list
-            .iter()
-            .any(|item| item.id == created.id && item.deleted)
-    );
+    assert!(deleted_list
+        .iter()
+        .any(|item| item.id == created.id && item.deleted));
     assert!(!restored_detail.deleted);
-    assert!(
-        restored_list
-            .iter()
-            .any(|item| item.id == created.id && !item.deleted)
-    );
+    assert!(restored_list
+        .iter()
+        .any(|item| item.id == created.id && !item.deleted));
 
     reset_app_config()?;
     Ok(())

@@ -6,6 +6,7 @@ use cardmind_rust::api::{
     create_card_note_in_pool, create_pool, get_pool_detail, init_app_config, join_by_code,
     reset_app_config_for_tests, update_card_note,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -20,6 +21,7 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
+#[serial]
 fn duplicate_join_should_not_create_duplicate_member() -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
@@ -64,6 +66,7 @@ fn duplicate_join_should_not_create_duplicate_member() -> Result<(), Box<dyn std
 }
 
 #[test]
+#[serial]
 fn concurrent_card_update_should_converge() -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;

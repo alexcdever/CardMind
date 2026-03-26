@@ -5,6 +5,7 @@ use cardmind_rust::api::{
     create_card_note, create_card_note_in_pool, create_pool, get_pool_detail, init_app_config,
     join_pool, reset_app_config_for_tests, update_card_note,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -19,8 +20,9 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn join_pool_should_attach_existing_notes_including_soft_deleted()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn join_pool_should_attach_existing_notes_including_soft_deleted(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -56,6 +58,7 @@ fn join_pool_should_attach_existing_notes_including_soft_deleted()
 }
 
 #[test]
+#[serial]
 fn update_card_should_not_create_duplicate_note_reference() -> Result<(), Box<dyn std::error::Error>>
 {
     let _guard = app_config_test_guard().lock().unwrap();

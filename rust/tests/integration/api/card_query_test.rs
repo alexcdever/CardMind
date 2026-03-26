@@ -5,6 +5,7 @@ use cardmind_rust::api::{
     create_card_note, delete_card_note, init_app_config, query_card_notes,
     reset_app_config_for_tests,
 };
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -19,8 +20,9 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn card_query_api_should_default_to_non_deleted_cards_without_flutter_flags(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
