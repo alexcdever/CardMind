@@ -4,7 +4,6 @@
 
 本项目的目标是构建一款面向具备多款设备的个人用户的笔记应用，不同设备上的app实例可以组建一个数据池实现低感知低延迟的笔记同步。
 
-
 ## Documentation Structure
 
 - `docs/specs/`：正式规格文档
@@ -17,6 +16,8 @@
 - `test/`：Flutter 单元/组件测试
 - `rust/`：Rust 核心逻辑与 FFI（根目录）
 - `rust/tests/`：Rust 集成测试
+- `tool/`：工具脚本
+- `tmp/`：用于存放检测报告之类的具有时效性产物的mu lu
 
 ## Build, Test, and Development Commands
 
@@ -40,30 +41,47 @@
 
 这是一个完整的开发-测试-存档循环，适用于所有功能开发。本项目是 **Flutter（客户端）+ Rust（服务端）** 的混合架构，通过 FFI 桥接。
 
-### 1. 理解需求
+### 1. 修改规格文档
 
-- 阅读相关 spec 文档（`docs/specs/`）
+- 根据需求变更更新 spec 文档（`docs/specs/`）
+- 规格文档是编写代码的**最终目标**
 - 确认变更范围：仅 Rust / 仅 Flutter / 两端都需要
 - 识别 FFI 边界（API 签名变更需同步更新两端）
 - 识别可能的边界条件
 
-### 2. 编写实现代码
+### 2. 编写逻辑代码（TDD 三阶段）
+
+**以规格文档为目标，严格遵循 TDD 红-绿-蓝循环：**
+
+**阶段一：红（编写失败测试）**
+- 先编写一个**注定会失败的测试用例**
+- 这个测试用例暴露所需要的业务逻辑缺口
+- 运行测试确认失败（验证测试有效）
+
+**阶段二：绿（编写实现代码）**
+- 编写最简单的实现代码使测试通过
+- 目标是让测试变绿，不必追求完美
+- 运行测试确认通过
+
+**阶段三：蓝（重构）**
+- 以更合理、符合**开闭原则**且可读性更高的方式重构代码
+- 保持所有测试通过的前提下优化设计
+- 消除重复、改善命名、简化逻辑
+
+**层特定流程：**
 
 **仅 Rust 层变更**：
-
-- 在 `rust/` 目录下修改
+- 在 `rust/` 目录下按 TDD 三阶段开发
 - 遵循 `docs/standards/coding-style.md` 中的 Rust 规范
 
 **仅 Flutter 层变更**：
-
-- 在 `lib/` 目录下修改
+- 在 `lib/` 目录下按 TDD 三阶段开发
 - 遵循 `docs/standards/coding-style.md` 中的 Dart 规范
 
 **两端都需要变更**：
-
-- 先实现 Rust 层 API
+- 先按 TDD 三阶段实现 Rust 层 API
 - 运行 `flutter_rust_bridge_codegen generate` 生成绑定代码
-- 再实现 Flutter 层调用
+- 再按 TDD 三阶段实现 Flutter 层调用
 
 ### 3. 运行质量检查
 
@@ -124,3 +142,4 @@ quality.dart 会自动：
 - 测试边界：遵循 `docs/standards/testing.md`，确保关键边界被覆盖
 - Git/PR：遵循 `docs/standards/git-and-pr.md`
 - FRB 配置在 `flutter_rust_bridge.yaml`，生成后检查绑定文件同步
+
