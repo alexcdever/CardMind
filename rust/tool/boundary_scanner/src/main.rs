@@ -1,3 +1,8 @@
+//! # Rust 边界扫描器
+//!
+//! 扫描 Rust 代码中的边界条件（if/else、match、错误处理等），
+//! 用于测试覆盖分析。
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use syn::spanned::Spanned;
@@ -5,6 +10,7 @@ use syn::visit::Visit;
 use syn::{parse_file, BinOp, Expr, File, Item, ReturnType, Stmt, Type};
 use walkdir::WalkDir;
 
+/// 边界条件信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Boundary {
     boundary_type: String,
@@ -14,12 +20,14 @@ struct Boundary {
     description: String,
 }
 
+/// 边界访问器，遍历 AST 收集边界条件。
 struct BoundaryVisitor {
     boundaries: Vec<Boundary>,
     file_path: String,
 }
 
 impl BoundaryVisitor {
+    /// 创建新的边界访问器。
     fn new(file_path: String) -> Self {
         BoundaryVisitor {
             boundaries: Vec::new(),
@@ -27,6 +35,7 @@ impl BoundaryVisitor {
         }
     }
 
+    /// 添加边界条件记录。
     fn add_boundary(&mut self, boundary_type: &str, line: usize, code: &str, desc: &str) {
         let snippet = if code.len() > 50 {
             format!("{}...", &code[..50])
@@ -43,6 +52,7 @@ impl BoundaryVisitor {
         });
     }
 
+    /// 检查是否为测试文件。
     fn is_test_file(&self) -> bool {
         self.file_path.contains("/tests/") || self.file_path.ends_with("_test.rs")
     }
@@ -426,6 +436,9 @@ fn scan_items_for_types(file: &File, visitor: &mut BoundaryVisitor) {
     }
 }
 
+/// 程序入口点。
+///
+/// 扫描指定目录下的 Rust 代码，收集所有边界条件。
 fn main() {
     // 获取项目根目录
     // 如果在 cargo 运行环境中，从 manifest 目录开始找

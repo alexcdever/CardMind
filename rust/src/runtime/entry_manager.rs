@@ -126,6 +126,7 @@ impl RuntimeEntryManager {
 }
 
 impl Default for RuntimeEntryManager {
+    /// 创建默认的运行时入口管理器实例。
     fn default() -> Self {
         Self::new()
     }

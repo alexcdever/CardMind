@@ -1,0 +1,9 @@
+{
+  "checkClassComments": true,
+  "checkMemberComments": true,
+  "checkFormatting": true,
+  "autoFix": false,
+  "excludePaths": [
+    "bridge_generated"
+  ]
+}

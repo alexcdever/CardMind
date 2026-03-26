@@ -458,12 +458,14 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
+    /// 创建临时仓库用于测试
     fn create_repo() -> (CardNoteRepository, TempDir) {
         let temp = TempDir::new().unwrap();
         let repo = CardNoteRepository::new(temp.path().to_str().unwrap()).unwrap();
         (repo, temp)
     }
 
+    /// 测试获取卡片时 SQLite 错误是否正确传播
     #[test]
     fn get_card_propagates_sqlite_errors() {
         let (repo, _temp) = create_repo();

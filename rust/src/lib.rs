@@ -1,4 +1,6 @@
-//! CardMind Rust 核心库 - 分布式卡片笔记系统的后端引擎
+//! # CardMind Rust 核心库
+//!
+//! 分布式卡片笔记系统的后端引擎
 //!
 //! 核心职责：
 //! - 提供跨平台 FFI 接口（通过 flutter_rust_bridge）供 Flutter 前端调用

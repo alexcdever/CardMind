@@ -314,6 +314,7 @@ impl Pool {
 }
 
 impl Default for Pool {
+    /// 返回 Pool 的默认值（空池）
     fn default() -> Self {
         Self::new()
     }

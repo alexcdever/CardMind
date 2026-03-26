@@ -1,4 +1,6 @@
-//! API 门面模块 - Flutter-Rust-Bridge FFI 接口实现
+//! # API 门面模块
+//!
+//! Flutter-Rust-Bridge FFI 接口实现
 //!
 //! 核心职责：
 //! - 实现所有暴露给 Flutter 前端的 Rust API 函数
@@ -71,14 +73,19 @@ static APP_CONFIG_DIR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 static POOL_NETWORK_SEQ: AtomicU64 = AtomicU64::new(1);
 static POOL_NETWORKS: OnceLock<Mutex<HashMap<u64, PoolNetwork>>> = OnceLock::new();
 
+/// 获取池网络映射（内部函数）
 fn pool_network_map() -> &'static Mutex<HashMap<u64, PoolNetwork>> {
     POOL_NETWORKS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
+/// 获取应用配置目录（内部函数）
 fn app_config_dir() -> &'static Mutex<Option<String>> {
     APP_CONFIG_DIR.get_or_init(|| Mutex::new(None))
 }
 
+/// 数据池信息 DTO。
+///
+/// 用于前后端数据传输，展示池的基本信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoolDto {
     pub id: String,
@@ -88,6 +95,9 @@ pub struct PoolDto {
     pub member_count: usize,
 }
 
+/// 池成员信息 DTO。
+///
+/// 描述数据池中的成员基本信息。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoolMemberDto {
     pub endpoint_id: String,
@@ -96,6 +106,9 @@ pub struct PoolMemberDto {
     pub role: String,
 }
 
+/// 数据池详细信息 DTO。
+///
+/// 包含池的完整信息，包括成员列表和笔记 ID 列表。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoolDetailDto {
     pub id: String,
@@ -107,6 +120,9 @@ pub struct PoolDetailDto {
     pub members: Vec<PoolMemberDto>,
 }
 
+/// 卡片笔记 DTO。
+///
+/// 用于前后端数据传输，包含笔记的完整内容。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CardNoteDto {
     pub id: String,
@@ -117,6 +133,9 @@ pub struct CardNoteDto {
     pub deleted: bool,
 }
 
+/// 同步状态 DTO。
+///
+/// 描述当前同步状态，遵循 Phase 2 恢复契约。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncStatusDto {
     // Phase 2 契约字段 - 优先使用这些字段
@@ -137,6 +156,9 @@ pub struct SyncStatusDto {
     pub content_state: String,
 }
 
+/// 同步操作结果 DTO。
+///
+/// 描述同步操作的结果状态。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncResultDto {
     // Phase 2 契约字段 - 优先使用这些字段
@@ -268,6 +290,16 @@ pub fn get_runtime_entry_status(
     service.get_runtime_entry_status()
 }
 
+/// 查询投影状态（兼容函数）
+///
+/// 检查 SQLite 存储是否存在投影失败记录，用于兼容性状态计算。
+///
+/// # Arguments
+/// * `base_path` - 数据存储根目录路径
+///
+/// # Returns
+/// - `Ok((projection_state, error_code))` - 投影状态（"projection_ready" 或 "projection_pending"）和可选的错误码
+/// - `Err(ApiError)` - 查询失败
 fn projection_state(base_path: &str) -> Result<(String, Option<String>), ApiError> {
     let paths = crate::store::path_resolver::DataPaths::new(base_path).map_err(map_err)?;
     let sqlite =
@@ -396,6 +428,17 @@ fn combine_sync_result(
     })
 }
 
+/// 获取配置的应用数据目录
+///
+/// 检查应用配置是否已初始化，返回有效的应用数据目录路径。
+///
+/// # Returns
+/// - `Ok(String)` - 应用数据目录的绝对路径
+/// - `Err(ApiError)` - 应用配置未初始化
+///
+/// # Errors
+/// - `ApiErrorCode::Internal` - 锁被 poison
+/// - `ApiErrorCode::AppConfigNotInitialized` - 应用配置未初始化
 fn configured_app_data_dir() -> Result<String, ApiError> {
     let app_config = app_config_dir()
         .lock()
@@ -424,15 +467,18 @@ fn with_configured_pool_store<T>(
     f(&pool_store)
 }
 
+/// 列出所有卡片 ID。
 fn list_all_card_ids(card_repository: &CardNoteRepository) -> Result<Vec<Uuid>, ApiError> {
     let cards = card_repository.list_cards(10_000, 0).map_err(map_err)?;
     Ok(cards.into_iter().map(|card| card.id).collect())
 }
 
+/// 解析池 ID。
 fn parse_pool_id(pool_id: &str) -> Result<Uuid, ApiError> {
     parse_uuid(pool_id, "pool_id")
 }
 
+/// 解析卡片 ID。
 fn parse_card_id(card_id: &str) -> Result<Uuid, ApiError> {
     parse_uuid(card_id, "card_id")
 }
@@ -486,6 +532,17 @@ pub fn init_app_config(app_data_dir: String) -> Result<(), ApiError> {
     }
 }
 
+/// 重置应用配置（测试用）
+///
+/// 清除已初始化的应用配置，将全局配置状态重置为未初始化。
+/// 仅用于测试场景，生产代码不应调用此函数。
+///
+/// # Returns
+/// - `Ok(())` - 重置成功
+/// - `Err(ApiError)` - 重置失败
+///
+/// # Errors
+/// - `ApiErrorCode::Internal` - 锁被 poison
 #[doc(hidden)]
 pub fn reset_app_config_for_tests() -> Result<(), ApiError> {
     let mut config = app_config_dir()
@@ -1294,6 +1351,30 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
     )
 }
 
+/// 建立同步连接。
+///
+/// 连接到目标节点以开始数据同步。
+///
+/// # 参数
+/// * `network_id` - 网络实例 ID（由 [`init_pool_network`] 返回）
+/// * `target` - 目标节点地址
+///
+/// # 返回
+/// - `Ok(())` - 连接成功
+/// - `Err(ApiError)` - 连接失败
+///
+/// # Errors
+/// 可能返回的错误码：
+/// - `ApiErrorCode::Internal` - 内部错误（锁被 poison）
+/// - `ApiErrorCode::InvalidHandle` - 无效的网络实例 ID
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api;
+///
+/// let network_id = api::init_pool_network("owner".to_string(), "Owner".to_string(), "macOS".to_string()).unwrap();
+/// api::sync_connect(network_id, "peer-address".to_string()).unwrap();
+/// ```
 pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
     let mut map = pool_network_map()
         .lock()

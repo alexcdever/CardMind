@@ -456,12 +456,14 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
+    /// 创建临时存储用于测试
     fn create_store() -> (PoolStore, TempDir) {
         let temp = TempDir::new().unwrap();
         let store = PoolStore::new(temp.path().to_str().unwrap()).unwrap();
         (store, temp)
     }
 
+    /// 测试获取池时 SQLite 错误是否正确传播
     #[test]
     fn get_pool_propagates_sqlite_errors() {
         let (store, _temp) = create_store();

@@ -117,6 +117,7 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
+    /// 测试 MCP 工具目录是否正确暴露了核心用例工具。
     #[test]
     fn mcp_tool_catalog_exposes_core_use_cases() {
         let dir = TempDir::new().unwrap();

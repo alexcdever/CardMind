@@ -1,0 +1,12 @@
+{
+  "checkModuleComments": true,
+  "checkStructComments": true,
+  "checkFunctionComments": true,
+  "checkFormatting": true,
+  "excludePaths": [
+    "frb_generated.rs",
+    "target/",
+    "tests/",
+    "tool/"
+  ]
+}

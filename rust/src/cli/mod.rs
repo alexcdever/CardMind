@@ -145,6 +145,7 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
+    /// 测试调试控制台能否正确分发后端命令。
     #[test]
     fn cli_debug_console_dispatches_backend_commands() {
         let dir = TempDir::new().unwrap();
@@ -158,6 +159,7 @@ mod tests {
         assert!(result.contains("http_enabled"));
     }
 
+    /// 测试调试控制台能否正确返回运行时状态。
     #[test]
     fn cli_debug_console_returns_runtime_status() {
         let dir = TempDir::new().unwrap();
@@ -171,6 +173,7 @@ mod tests {
         assert!(result.contains("http_active"));
     }
 
+    /// 测试调试控制台能否正确拒绝无效的 JSON 输入。
     #[test]
     fn cli_debug_console_rejects_invalid_json() {
         let dir = TempDir::new().unwrap();
@@ -186,6 +189,7 @@ mod tests {
         assert!(err.message.contains("Invalid JSON"));
     }
 
+    /// 测试调试控制台能否正确拒绝缺少 command 字段的请求。
     #[test]
     fn cli_debug_console_rejects_missing_command() {
         let dir = TempDir::new().unwrap();
@@ -201,6 +205,7 @@ mod tests {
         assert!(err.message.contains("Missing 'command' field"));
     }
 
+    /// 测试调试控制台能否正确拒绝未知的命令。
     #[test]
     fn cli_debug_console_rejects_unknown_command() {
         let dir = TempDir::new().unwrap();

@@ -301,6 +301,16 @@ impl RecoveryContract {
     /// 计算恢复阶段。
     ///
     /// 根据子状态和安全状态推断当前恢复阶段。
+    /// 这是 Phase 2 恢复契约的核心计算逻辑，决定系统当前处于哪个恢复阶段。
+    ///
+    /// # 参数
+    /// * `sync` - 同步子状态
+    /// * `query` - 查询收敛子状态
+    /// * `instance` - 实例连续性子状态
+    /// * `local_safety` - 本地内容安全状态
+    ///
+    /// # 返回
+    /// 推断出的恢复阶段。
     ///
     /// # 规则
     /// - 规则 8.2.3: `local_content_safety = unknown` 时必须是 `unsafe_unknown`
@@ -348,6 +358,19 @@ impl RecoveryContract {
 
     /// 计算连续性状态。
     ///
+    /// 根据本地内容安全状态和各个子状态判断数据连续性是否受损。
+    /// 这是 Phase 2 恢复契约的核心计算逻辑，用于确定数据路径的完整性。
+    ///
+    /// # 参数
+    /// * `local_safety` - 本地内容安全状态
+    /// * `sync` - 同步子状态
+    /// * `query` - 查询收敛子状态
+    /// * `instance` - 实例连续性子状态
+    /// * `recovery_stage` - 当前恢复阶段
+    ///
+    /// # 返回
+    /// 推断出的连续性状态。
+    ///
     /// # 规则
     /// - 规则 8.3: `safe` 但子状态非 `ready` = `path_at_risk`
     fn compute_continuity_state(
@@ -387,6 +410,19 @@ impl RecoveryContract {
 
     /// 计算下一步动作。
     ///
+    /// 根据本地内容安全状态、恢复阶段和各子状态决定系统应该采取的下一步动作。
+    /// 这是 Phase 2 恢复契约的核心计算逻辑，为上层提供明确的恢复指引。
+    ///
+    /// # 参数
+    /// * `local_safety` - 本地内容安全状态
+    /// * `recovery_stage` - 当前恢复阶段
+    /// * `sync` - 同步子状态
+    /// * `query` - 查询收敛子状态
+    /// * `instance` - 实例连续性子状态
+    ///
+    /// # 返回
+    /// 建议的下一步动作。
+    ///
     /// # 规则
     /// - 规则 8.2.4: `needs_user_action` 时 `next_action` 不能是 `none`
     fn compute_next_action(
@@ -424,6 +460,23 @@ impl RecoveryContract {
     }
 
     /// 计算允许和禁止的操作。
+    ///
+    /// 根据本地内容安全状态、恢复阶段和连续性状态，确定当前允许和禁止的操作列表。
+    /// 这是 Phase 2 恢复契约的核心计算逻辑，为上层的 UI 层提供操作权限控制依据。
+    ///
+    /// # 参数
+    /// * `local_safety` - 本地内容安全状态
+    /// * `_recovery_stage` - 当前恢复阶段（保留参数，供未来扩展）
+    /// * `continuity_state` - 连续性状态
+    ///
+    /// # 返回
+    /// 元组 `(允许的操作列表, 禁止的操作列表)`。
+    ///
+    /// # 操作说明
+    /// - Safe: 允许查看、继续编辑、等待、重试；禁止内容丢失表达
+    /// - ReadOnlyRisk: 允许查看、检查状态、恢复操作；禁止写入、继续编辑、常规路径写入
+    /// - Unknown: 允许查看状态、恢复操作；禁止写入、继续编辑、内容安全承诺、高风险写入
+    /// - PathBroken: 额外禁止常规主路径操作
     fn compute_operations(
         local_safety: LocalContentSafety,
         _recovery_stage: RecoveryStage,

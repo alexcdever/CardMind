@@ -108,6 +108,9 @@ pub struct ApiError {
 }
 
 impl std::fmt::Display for ApiError {
+    /// 格式化 API 错误为字符串表示
+    ///
+    /// 用于将错误信息格式化为 "code: message" 的字符串形式
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: {}", self.code, self.message)
     }

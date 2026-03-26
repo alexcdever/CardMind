@@ -45,7 +45,7 @@
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{params, Connection, Row};
+use rusqlite::{Connection, Row, params};
 use std::path::Path;
 use uuid::Uuid;
 
@@ -686,6 +686,7 @@ mod tests {
     use super::*;
     use tempfile::TempDir;
 
+    /// 创建临时 SQLite 存储用于测试
     fn create_store() -> (SqliteStore, TempDir, std::path::PathBuf) {
         let temp = TempDir::new().unwrap();
         let db = temp.path().join("test.db");
@@ -693,6 +694,7 @@ mod tests {
         (store, temp, db)
     }
 
+    /// 测试无效的 UUID 文本是否返回 SQLite 错误
     #[test]
     fn map_card_returns_sqlite_error_for_invalid_uuid_text() {
         let (_store, _temp, db) = create_store();
@@ -715,6 +717,7 @@ mod tests {
         }
     }
 
+    /// 测试无效的池 UUID 文本是否返回 SQLite 错误
     #[test]
     fn get_pool_returns_sqlite_error_for_invalid_pool_uuid_text() {
         let (_store, _temp, db) = create_store();
@@ -731,6 +734,7 @@ mod tests {
         }
     }
 
+    /// 测试列出池 ID 时无效的 UUID 文本是否返回 SQLite 错误
     #[test]
     fn list_pool_ids_returns_sqlite_error_for_invalid_uuid_text() {
         let (_store, _temp, db) = create_store();
@@ -747,6 +751,7 @@ mod tests {
         }
     }
 
+    /// 测试投影重试操作在表不存在时返回 SQLite 错误
     #[test]
     fn get_projection_retry_action_returns_sqlite_error_when_table_missing() {
         let (store, _temp, _db) = create_store();

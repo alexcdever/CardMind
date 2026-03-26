@@ -49,8 +49,8 @@
 //! save_loro_doc(&path, &doc)?;
 //! ```
 use crate::models::error::CardMindError;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use loro::{ExportMode, ImportStatus, LoroDoc, VersionVector};
 use std::fs;
 use std::path::{Path, PathBuf};

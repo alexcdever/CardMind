@@ -51,6 +51,10 @@ use uuid::Uuid;
 
 const MESSAGE_LIMIT: usize = 10_000_000;
 
+/// 池网络管理器。
+///
+/// 负责管理池成员之间的点对点网络连接，处理同步消息的分发和数据交换。
+/// 协调连接建立、消息处理和数据同步的完整生命周期。
 pub struct PoolNetwork {
     endpoint: PoolEndpoint,
     base_path: String,
@@ -81,14 +85,17 @@ impl PoolNetwork {
         }
     }
 
+    /// 获取端点 ID。
     pub fn endpoint_id(&self) -> iroh::EndpointId {
         self.endpoint.endpoint_id()
     }
 
+    /// 获取端点地址。
     pub fn endpoint_addr(&self) -> EndpointAddr {
         self.endpoint.endpoint_addr()
     }
 
+    /// 获取基础路径。
     pub fn base_path(&self) -> &str {
         &self.base_path
     }
@@ -176,6 +183,15 @@ impl PoolNetwork {
         Ok(())
     }
 
+    /// 检查卡片是否存在。
+    ///
+    /// # Arguments
+    /// - `card_id` - 卡片 ID
+    ///
+    /// # Returns
+    /// - `Ok(true)` - 卡片存在
+    /// - `Ok(false)` - 卡片不存在
+    /// - `Err(CardMindError)` - 查询失败
     pub fn has_card(&self, card_id: &Uuid) -> Result<bool, CardMindError> {
         match self.card_repository.get_card(card_id) {
             Ok(_) => Ok(true),
@@ -184,16 +200,31 @@ impl PoolNetwork {
         }
     }
 
+    /// 建立同步连接。
+    ///
+    /// # Arguments
+    /// - `target` - 目标节点地址
+    ///
+    /// # Returns
+    /// - `Ok(())` - 连接成功
+    /// - `Err(CardMindError)` - 连接失败
     pub fn sync_connect(&mut self, target: String) -> Result<(), CardMindError> {
         self.last_sync_error = None;
         self.sync_session.connect(target)
     }
 
+    /// 断开同步连接。
     pub fn sync_disconnect(&mut self) {
         self.sync_session.disconnect();
         self.last_sync_error = None;
     }
 
+    /// 获取同步状态。
+    ///
+    /// # Returns
+    /// - `"sync_failed"` - 上次同步失败
+    /// - `"connected"` - 已连接
+    /// - `"disconnected"` - 已断开
     pub fn sync_state(&self) -> &'static str {
         if self.last_sync_error.is_some() {
             "sync_failed"
@@ -202,10 +233,23 @@ impl PoolNetwork {
         }
     }
 
+    /// 获取上次同步错误码。
+    ///
+    /// # Returns
+    /// - `Some(error_code)` - 上次同步失败的错误码
+    /// - `None` - 没有错误
     pub fn last_sync_error_code(&self) -> Option<&str> {
         self.last_sync_error.as_deref()
     }
 
+    /// 加入同步池。
+    ///
+    /// # Arguments
+    /// - `pool_id` - 池 ID
+    ///
+    /// # Returns
+    /// - `Ok(())` - 验证通过
+    /// - `Err(CardMindError)` - 验证失败（pool_id 为空或同步未连接）
     pub fn sync_join_pool(&self, pool_id: &str) -> Result<(), CardMindError> {
         if pool_id.trim().is_empty() {
             return Err(CardMindError::InvalidArgument(
@@ -220,6 +264,11 @@ impl PoolNetwork {
         Ok(())
     }
 
+    /// 推送同步数据。
+    ///
+    /// # Returns
+    /// - `Ok(())` - 推送请求已发送
+    /// - `Err(CardMindError)` - 同步未连接
     pub fn sync_push(&mut self) -> Result<(), CardMindError> {
         if self.sync_session.state() != "connected" {
             self.last_sync_error = Some("REQUEST_TIMEOUT".to_string());
@@ -231,6 +280,11 @@ impl PoolNetwork {
         Ok(())
     }
 
+    /// 拉取同步数据。
+    ///
+    /// # Returns
+    /// - `Ok(())` - 拉取请求已发送
+    /// - `Err(CardMindError)` - 同步未连接
     pub fn sync_pull(&mut self) -> Result<(), CardMindError> {
         if self.sync_session.state() != "connected" {
             self.last_sync_error = Some("REQUEST_TIMEOUT".to_string());
@@ -243,6 +297,21 @@ impl PoolNetwork {
     }
 }
 
+/// 处理传入的同步连接。
+///
+/// 处理完整的同步会话生命周期：
+/// - 接收并验证 Hello 消息
+/// - 接收并应用池快照
+/// - 接收并应用卡片快照
+/// - 接收并应用增量更新
+///
+/// # Arguments
+/// - `conn` - iroh 点对点连接
+/// - `base_path` - 数据存储基础路径
+///
+/// # Returns
+/// - `Ok(())` - 连接处理完成
+/// - `Err(CardMindError)` - 处理失败
 async fn handle_connection(conn: Connection, base_path: String) -> Result<(), CardMindError> {
     let mut hello: Option<(Uuid, String)> = None;
     let mut pool_snapshot: Option<(Uuid, Vec<u8>, Vec<Uuid>)> = None;
@@ -343,6 +412,15 @@ async fn send_message(conn: &Connection, msg: &PoolMessage) -> Result<(), CardMi
     Ok(())
 }
 
+/// 构建池的快照数据。
+///
+/// # Arguments
+/// - `base_path` - 数据存储基础路径
+/// - `pool_id` - 池 ID
+///
+/// # Returns
+/// - `Ok(Vec<u8>)` - 快照字节数据
+/// - `Err(CardMindError)` - 构建失败
 fn build_pool_snapshot(base_path: &str, pool_id: &Uuid) -> Result<Vec<u8>, CardMindError> {
     let paths = DataPaths::new(base_path)?;
     let path = paths.base_path.join(pool_doc_path(pool_id));
@@ -350,6 +428,15 @@ fn build_pool_snapshot(base_path: &str, pool_id: &Uuid) -> Result<Vec<u8>, CardM
     export_snapshot(&doc)
 }
 
+/// 构建卡片的快照数据。
+///
+/// # Arguments
+/// - `base_path` - 数据存储基础路径
+/// - `card_id` - 卡片 ID
+///
+/// # Returns
+/// - `Ok(Vec<u8>)` - 快照字节数据
+/// - `Err(CardMindError)` - 构建失败
 fn build_card_snapshot(base_path: &str, card_id: &Uuid) -> Result<Vec<u8>, CardMindError> {
     let paths = DataPaths::new(base_path)?;
     let path = paths.base_path.join(note_doc_path(card_id));
@@ -357,6 +444,16 @@ fn build_card_snapshot(base_path: &str, card_id: &Uuid) -> Result<Vec<u8>, CardM
     export_snapshot(&doc)
 }
 
+/// 应用池的快照数据并持久化。
+///
+/// # Arguments
+/// - `base_path` - 数据存储基础路径
+/// - `pool_id` - 池 ID
+/// - `bytes` - 快照字节数据
+///
+/// # Returns
+/// - `Ok(Pool)` - 应用成功，返回池对象
+/// - `Err(CardMindError)` - 应用失败
 fn apply_pool_snapshot(
     base_path: &str,
     pool_id: &Uuid,
@@ -372,6 +469,16 @@ fn apply_pool_snapshot(
     Ok(pool)
 }
 
+/// 应用池的增量更新并持久化。
+///
+/// # Arguments
+/// - `base_path` - 数据存储基础路径
+/// - `pool_id` - 池 ID
+/// - `bytes` - 增量更新字节数据
+///
+/// # Returns
+/// - `Ok(Pool)` - 应用成功，返回池对象
+/// - `Err(CardMindError)` - 应用失败
 fn apply_pool_updates(
     base_path: &str,
     pool_id: &Uuid,
@@ -389,6 +496,16 @@ fn apply_pool_updates(
     Ok(pool)
 }
 
+/// 应用卡片的快照数据并持久化。
+///
+/// # Arguments
+/// - `base_path` - 数据存储基础路径
+/// - `card_id` - 卡片 ID
+/// - `bytes` - 快照字节数据
+///
+/// # Returns
+/// - `Ok(Card)` - 应用成功，返回卡片对象
+/// - `Err(CardMindError)` - 应用失败
 fn apply_card_snapshot(
     base_path: &str,
     card_id: &Uuid,
@@ -404,6 +521,16 @@ fn apply_card_snapshot(
     Ok(card)
 }
 
+/// 应用卡片的增量更新并持久化。
+///
+/// # Arguments
+/// - `base_path` - 数据存储基础路径
+/// - `card_id` - 卡片 ID
+/// - `bytes` - 增量更新字节数据
+///
+/// # Returns
+/// - `Ok(Card)` - 应用成功，返回卡片对象
+/// - `Err(CardMindError)` - 应用失败
 fn apply_card_updates(
     base_path: &str,
     card_id: &Uuid,
@@ -421,6 +548,7 @@ fn apply_card_updates(
     Ok(card)
 }
 
+/// 加载池（如果不存在则返回 None）。
 fn load_pool_if_exists(base_path: &str, pool_id: &Uuid) -> Result<Option<Pool>, CardMindError> {
     let store = PoolStore::new(base_path)?;
     match store.get_pool(pool_id) {
@@ -430,11 +558,13 @@ fn load_pool_if_exists(base_path: &str, pool_id: &Uuid) -> Result<Option<Pool>, 
     }
 }
 
+/// 从快照字节创建 Pool。
 fn pool_from_snapshot(bytes: &[u8]) -> Result<Pool, CardMindError> {
     let doc = LoroDoc::from_snapshot(bytes).map_err(|e| CardMindError::Loro(e.to_string()))?;
     pool_from_doc(&doc)
 }
 
+/// 从 Loro 文档解析 Pool。
 fn pool_from_doc(doc: &LoroDoc) -> Result<Pool, CardMindError> {
     let map = doc.get_map("pool");
     let pool_id = parse_uuid(&map, "pool_id")?;
@@ -449,6 +579,7 @@ fn pool_from_doc(doc: &LoroDoc) -> Result<Pool, CardMindError> {
     })
 }
 
+/// 从 Loro 文档解析 Card。
 fn card_from_doc(doc: &LoroDoc) -> Result<Card, CardMindError> {
     let map = doc.get_map("card");
     let id = parse_uuid(&map, "id")?;
@@ -467,6 +598,7 @@ fn card_from_doc(doc: &LoroDoc) -> Result<Card, CardMindError> {
     })
 }
 
+/// 解析成员列表。
 fn parse_members(value: LoroValue) -> Result<Vec<PoolMember>, CardMindError> {
     let mut members = Vec::new();
     let list = match value {
@@ -502,6 +634,7 @@ fn parse_members(value: LoroValue) -> Result<Vec<PoolMember>, CardMindError> {
     Ok(members)
 }
 
+/// 解析卡片 ID 列表。
 fn parse_card_ids(value: LoroValue) -> Result<Vec<Uuid>, CardMindError> {
     let mut ids = Vec::new();
     let list = match value {
@@ -520,6 +653,7 @@ fn parse_card_ids(value: LoroValue) -> Result<Vec<Uuid>, CardMindError> {
     Ok(ids)
 }
 
+/// 从 LoroMap 解析 UUID。
 fn parse_uuid(map: &LoroMap, key: &str) -> Result<Uuid, CardMindError> {
     let value = map
         .get(key)
@@ -528,6 +662,7 @@ fn parse_uuid(map: &LoroMap, key: &str) -> Result<Uuid, CardMindError> {
     parse_uuid_value(&value, key)
 }
 
+/// 从 LoroMap 解析字符串。
 fn parse_string(map: &LoroMap, key: &str) -> Result<String, CardMindError> {
     let value = map
         .get(key)
@@ -536,6 +671,7 @@ fn parse_string(map: &LoroMap, key: &str) -> Result<String, CardMindError> {
     parse_string_value(&value, key)
 }
 
+/// 从 LoroMap 解析 i64。
 fn parse_i64(map: &LoroMap, key: &str) -> Result<i64, CardMindError> {
     let value = map
         .get(key)
@@ -547,6 +683,7 @@ fn parse_i64(map: &LoroMap, key: &str) -> Result<i64, CardMindError> {
     }
 }
 
+/// 从 LoroMap 解析布尔值。
 fn parse_bool(map: &LoroMap, key: &str) -> Result<bool, CardMindError> {
     let value = map
         .get(key)
@@ -555,11 +692,13 @@ fn parse_bool(map: &LoroMap, key: &str) -> Result<bool, CardMindError> {
     parse_bool_value(&value, key)
 }
 
+/// 从 LoroValue 解析 UUID。
 fn parse_uuid_value(value: &LoroValue, key: &str) -> Result<Uuid, CardMindError> {
     let text = parse_string_value(value, key)?;
     Uuid::parse_str(&text).map_err(|_| CardMindError::InvalidArgument(format!("{} invalid", key)))
 }
 
+/// 从 LoroValue 解析字符串。
 fn parse_string_value(value: &LoroValue, key: &str) -> Result<String, CardMindError> {
     match value {
         LoroValue::String(v) => Ok(v.as_ref().to_string()),
@@ -567,6 +706,7 @@ fn parse_string_value(value: &LoroValue, key: &str) -> Result<String, CardMindEr
     }
 }
 
+/// 从 LoroValue 解析布尔值。
 fn parse_bool_value(value: &LoroValue, key: &str) -> Result<bool, CardMindError> {
     match value {
         LoroValue::Bool(v) => Ok(*v),

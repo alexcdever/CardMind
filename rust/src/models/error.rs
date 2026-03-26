@@ -300,6 +300,7 @@ impl CardMindError {
 mod tests {
     use super::*;
 
+    /// 测试错误类型的字符串显示格式
     #[test]
     fn test_error_display() {
         let err = CardMindError::io("test error");
@@ -309,6 +310,7 @@ mod tests {
         assert_eq!(format!("{}", err), "not found: card 123");
     }
 
+    /// 测试投影未收敛错误的格式化输出
     #[test]
     fn test_projection_not_converged() {
         let err = CardMindError::projection_not_converged("Card", "abc", "retry");
@@ -318,6 +320,7 @@ mod tests {
         assert!(display.contains("abc"));
     }
 
+    /// 测试错误变体辅助构造函数的创建结果
     #[test]
     fn test_error_variant_helpers() {
         assert!(matches!(CardMindError::io("test"), CardMindError::Io(_)));
