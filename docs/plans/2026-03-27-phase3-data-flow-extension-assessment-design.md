@@ -232,7 +232,7 @@ pub struct Pool {
 /// - 申请人不在该池的成员列表中
 /// - 申请人没有该池的待处理申请
 /// 
-/// 成功结果：返回申请ID，状态为 Pending
+/// 成功结果：返回完整的申请信息（包含申请ID），状态为 Pending
 /// 失败结果：PoolNotFound / PoolDissolved / AlreadyMember / DuplicateRequest
 pub fn submit_join_request(
     pool_id: Uuid,
@@ -382,6 +382,10 @@ pub struct Pool {
 /// 可恢复路径：
 /// - 如果 HasOtherMembers：提示"请先移除其他成员"
 /// - 其他错误：显示具体原因
+/// 
+/// 【未来扩展】当前设计限制为"只有自己一个成员时才能解散"。
+/// 未来可考虑支持"强制解散"（admin移除所有成员后解散），
+/// 但当前阶段保持简化，避免引入成员移除的复杂性。
 pub fn dissolve_pool(pool_id: Uuid) -> Result<PoolDto, ApiError>
 
 /// 查询池是否已解散
@@ -490,9 +494,12 @@ pub enum PoolMessage {
 /// - 如果 LastAdminCannotLeave：提示"请先指定新的管理员"
 pub fn leave_pool(pool_id: Uuid) -> Result<(), ApiError>
 
-/// 修改成员角色（预留，当前阶段可能不需要完整实现）
+/// 修改成员角色（【未来扩展】当前阶段不实现，仅预留接口定义）
 /// 
-/// 前置条件：
+/// 【说明】当前阶段只实现"退出池时的不变量校验"，不实现主动变更角色功能。
+/// 此接口预留用于未来阶段，当需要支持"转让管理员"等场景时实现。
+/// 
+/// 前置条件（未来实现时）：
 /// - 调用者是 admin
 /// - 修改后至少还有1个admin
 /// 
