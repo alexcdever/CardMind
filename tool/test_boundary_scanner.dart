@@ -1,8 +1,9 @@
 #!/usr/bin/env dart
-// input: 需要自动识别代码中的边界条件并检查测试覆盖情况
-// output: 扫描代码生成边界覆盖报告，识别已覆盖和未覆盖的边界
-// pos: tool/test_boundary_scanner.dart - 测试边界扫描器主程序，修改本文件需同步更新文件头和所属 DIR.md
-// 中文注释: 测试边界扫描器，自动识别代码边界条件并生成覆盖报告
+
+/// input: 需要自动识别代码中的边界条件并检查测试覆盖情况
+/// output: 扫描代码生成边界覆盖报告，识别已覆盖和未覆盖的边界
+/// pos: tool/test_boundary_scanner.dart - 测试边界扫描器主程序，修改本文件需同步更新文件头和所属 DIR.md
+/// 中文注释: 测试边界扫描器，自动识别代码边界条件并生成覆盖报告
 
 import 'dart:convert';
 import 'dart:io';
@@ -31,7 +32,9 @@ class Boundary {
   final String codeSnippet;
   final String? description;
   bool isCovered;
-  int? executionCount; // 执行次数（来自 LCOV）
+
+  /// 执行次数（来自 LCOV）
+  int? executionCount;
 
   Boundary({
     required this.type,
@@ -119,7 +122,7 @@ class ScannerConfig {
 class BoundaryVisitor extends RecursiveAstVisitor<void> {
   final String filePath;
   final List<Boundary> boundaries = [];
-  final dynamic lineInfo; // LineInfo from analyzer
+  final dynamic lineInfo; // 分析器提供的行信息
   bool _insideTestDeclaration = false;
 
   BoundaryVisitor(this.filePath, [this.lineInfo]);
@@ -238,7 +241,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       return;
     }
 
-    // 检测 then 分支（条件为 true 的情况）
+    /// 检测 then 分支（条件为 true 的情况）
     final thenStatement = node.thenStatement;
     if (thenStatement is Block && thenStatement.statements.isNotEmpty) {
       final firstThenStatement = thenStatement.statements.first;
@@ -249,7 +252,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
         'If statement true branch',
       );
     } else if (thenStatement is! Block) {
-      // 单行 if 语句没有大括号
+      /// 单行 if 语句没有大括号
       _addBoundary(
         BoundaryType.condition,
         thenStatement.offset,
@@ -258,7 +261,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       );
     }
 
-    // 检测 else 分支（条件为 false 的情况）
+    /// 检测 else 分支（条件为 false 的情况）
     final elseStatement = node.elseStatement;
     if (elseStatement != null) {
       if (elseStatement is Block && elseStatement.statements.isNotEmpty) {
@@ -270,7 +273,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
           'If statement false branch',
         );
       } else if (elseStatement is! Block && elseStatement is! IfStatement) {
-        // else 单行语句（非 else-if）
+        /// else 单行语句（非 else-if）
         _addBoundary(
           BoundaryType.condition,
           elseStatement.offset,
@@ -278,7 +281,8 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
           'If statement false branch',
         );
       }
-      // 如果是 else-if，会在递归访问时被单独处理
+
+      /// 如果是 else-if，会在递归访问时被单独处理
     }
 
     super.visitIfStatement(node);
@@ -344,7 +348,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   void visitMethodInvocation(MethodInvocation node) {
     final methodName = node.methodName.name;
 
-    // 检查输入相关方法
+    /// 检查输入相关方法
     if (methodName == 'onChanged' ||
         methodName == 'onSubmitted' ||
         methodName == 'onTap') {
@@ -356,7 +360,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       );
     }
 
-    // 检查异步相关方法
+    /// 检查异步相关方法
     if (methodName == 'then' ||
         methodName == 'catchError' ||
         methodName == 'whenComplete') {
@@ -373,7 +377,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitFunctionExpression(FunctionExpression node) {
-    // 检查 async 函数
+    /// 检查 async 函数
     if (node.parameters?.toSource().contains('async') ?? false) {
       _addBoundary(
         BoundaryType.async,
@@ -389,7 +393,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   void visitBinaryExpression(BinaryExpression node) {
     final op = node.operator.type.toString();
 
-    // 检查 null 检查
+    /// 检查 null 检查
     if (op == 'EQ_EQ' || op == 'BANG_EQ') {
       final left = node.leftOperand.toSource();
       final right = node.rightOperand.toSource();
@@ -408,7 +412,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       }
     }
 
-    // 检查逻辑运算 (&&, ||)
+    /// 检查逻辑运算 (&&, ||)
     if (op == 'AMPERSAND_AMPERSAND' || op == 'BAR_BAR') {
       _addBoundary(
         BoundaryType.condition,
@@ -418,7 +422,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       );
     }
 
-    // 检查空值合并运算符 (??)
+    /// 检查空值合并运算符 (??)
     if (op == 'QUESTION_QUESTION') {
       if (_isFlutterFile && _isLowValueFlutterNullExpression(node.toSource())) {
         super.visitBinaryExpression(node);
@@ -432,7 +436,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       );
     }
 
-    // 检查算术运算边界
+    /// 检查算术运算边界
     if (op == 'SLASH' || op == 'SLASH_SLASH' || op == 'PERCENT') {
       _addBoundary(
         BoundaryType.condition,
@@ -442,7 +446,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
       );
     }
 
-    // 检查比较运算
+    /// 检查比较运算
     if (op == 'LT' || op == 'GT' || op == 'LT_EQ' || op == 'GT_EQ') {
       _addBoundary(
         BoundaryType.condition,
@@ -457,7 +461,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitPrefixExpression(PrefixExpression node) {
-    // 检查空值传播
+    /// 检查空值传播
     if (node.operator.type.toString() == 'QUESTION_PERIOD') {
       _addBoundary(
         BoundaryType.null_,
@@ -471,7 +475,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
-    // 检查生命周期方法
+    /// 检查生命周期方法
     final methodName = node.name.lexeme;
     final previous = _insideTestDeclaration;
     _insideTestDeclaration = previous || _looksLikeTestName(methodName);
@@ -642,7 +646,7 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
-    // 检测构造函数
+    /// 检测构造函数
     final previous = _insideTestDeclaration;
     _insideTestDeclaration = previous || _looksLikeTestName(node.name.lexeme);
     for (final member in node.members) {
@@ -788,11 +792,11 @@ class LcovParser {
 
     for (final line in lines) {
       if (line.startsWith('SF:')) {
-        // SF:<file path>
+        /// SF:<file path>
         currentFile = line.substring(3);
         fileCoverages[currentFile] = FileCoverage(path: currentFile);
       } else if (line.startsWith('DA:') && currentFile != null) {
-        // DA:<line number>,<execution count>[,<checksum>]
+        /// DA:<line number>,<execution count>[,<checksum>]
         final parts = line.substring(3).split(',');
         if (parts.length >= 2) {
           final lineNum = int.tryParse(parts[0]);
@@ -845,13 +849,17 @@ class LcovParser {
   }
 }
 
+/// 文件覆盖率数据
 class FileCoverage {
   final String path;
-  final Map<int, int> lineHits = {}; // 行号 -> 执行次数
+
+  /// 行号 -> 执行次数
+  final Map<int, int> lineHits = {};
 
   FileCoverage({required this.path});
 }
 
+/// 覆盖率统计
 class CoverageStats {
   final int totalLines;
   final int coveredLines;
@@ -882,12 +890,12 @@ class TestCoverageAnalyzer {
         try {
           final content = await entity.readAsString();
 
-          // 提取测试函数名 - 使用简单的字符串匹配
+          /// 提取测试函数名 - 使用简单的字符串匹配
           final lines = content.split('\n');
           for (final line in lines) {
             final trimmed = line.trim();
             if (trimmed.startsWith("test('") || trimmed.startsWith('test("')) {
-              // 手动提取测试名
+              /// 手动提取测试名
               String? testName;
               if (trimmed.startsWith("test('")) {
                 final start = 6;
@@ -917,7 +925,7 @@ class TestCoverageAnalyzer {
   }
 
   String _normalizeTestName(String name) {
-    // 将测试名转换为小写并移除特殊字符
+    /// 将测试名转换为小写并移除特殊字符
     return name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
@@ -926,11 +934,12 @@ class TestCoverageAnalyzer {
     final typeKeywords = _getTypeKeywords(boundary.type);
 
     for (final test in coveredTests) {
-      // 检查测试名是否包含边界相关的关键词
+      /// 检查测试名是否包含边界相关的关键词
       if (typeKeywords.any((kw) => test.contains(kw))) {
         return true;
       }
-      // 检查代码片段是否被引用
+
+      /// 检查代码片段是否被引用
       if (test.contains(normalizedCode)) {
         return true;
       }
@@ -1020,15 +1029,15 @@ class TestBoundaryScanner {
   }
 
   Future<ScanResult> scan() async {
-    // 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）
+    /// 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）
     stderr.writeln('Step 1: Collecting code coverage...');
     await _collectCoverageData();
 
-    // 步骤 2: 解析 LCOV 文件（Flutter + Rust）
+    /// 步骤 2: 解析 LCOV 文件（Flutter + Rust）
     stderr.writeln('Step 2: Parsing LCOV data...');
     final lcovParser = LcovParser();
 
-    // 解析 Flutter/Dart LCOV
+    /// 解析 Flutter/Dart LCOV
     final flutterLcovFile = File('coverage/lcov.info');
     if (flutterLcovFile.existsSync()) {
       stderr.writeln('  Parsing Flutter coverage...');
@@ -1037,7 +1046,7 @@ class TestBoundaryScanner {
       stderr.writeln('  Warning: coverage/lcov.info not found');
     }
 
-    // 解析 Rust LCOV
+    /// 解析 Rust LCOV
     final rustLcovFile = File('rust/lcov.info');
     if (rustLcovFile.existsSync()) {
       stderr.writeln('  Parsing Rust coverage...');
@@ -1048,11 +1057,11 @@ class TestBoundaryScanner {
       );
     }
 
-    // 步骤 3: 扫描代码边界
+    /// 步骤 3: 扫描代码边界
     stderr.writeln('Step 3: Scanning code boundaries...');
     final boundaries = await _scanBoundaries();
 
-    // 步骤 4: 精确匹配边界与覆盖率
+    /// 步骤 4: 精确匹配边界与覆盖率
     stderr.writeln('Step 4: Matching boundaries with coverage...');
     for (final boundary in boundaries) {
       final relativePath = boundary.filePath.startsWith(Directory.current.path)
@@ -1067,7 +1076,7 @@ class TestBoundaryScanner {
       boundary.executionCount = coverage;
     }
 
-    // 步骤 5: 分类边界
+    /// 步骤 5: 分类边界
     final covered = boundaries.where((b) => b.isCovered).toList();
     final uncovered = boundaries.where((b) => !b.isCovered).toList();
 
@@ -1081,9 +1090,11 @@ class TestBoundaryScanner {
   Future<List<Boundary>> _scanBoundaries() async {
     final boundaries = <Boundary>[];
 
-    // 扫描 Dart 文件
+    /// 扫描 Dart 文件
     for (final includePath in config.includePaths) {
-      if (includePath.contains('rust/')) continue; // 跳过 Rust 目录
+      if (includePath.contains('rust/')) continue;
+
+      /// 跳过 Rust 目录
 
       final dir = Directory(includePath);
       if (!dir.existsSync()) continue;
@@ -1107,7 +1118,7 @@ class TestBoundaryScanner {
       }
     }
 
-    // 扫描 Rust 文件
+    /// 扫描 Rust 文件
     final rustBoundaries = await _scanRustBoundaries();
     boundaries.addAll(rustBoundaries);
 
@@ -1134,7 +1145,7 @@ class TestBoundaryScanner {
         return [];
       }
 
-      // 解析 JSON 输出
+      /// 解析 JSON 输出
       final jsonList = jsonDecode(result.stdout) as List;
       return jsonList
           .map(
@@ -1168,7 +1179,7 @@ class TestBoundaryScanner {
   }
 
   Future<void> _collectCoverageData() async {
-    // 运行 flutter test --coverage 以获取最新覆盖率数据
+    /// 运行 flutter test --coverage 以获取最新覆盖率数据
     stderr.writeln('  Running: flutter test --coverage');
     stderr.writeln('  (This may take a few minutes...)');
     final result = await Process.run('flutter', [
@@ -1206,7 +1217,7 @@ class ReportGenerator {
     final buffer = StringBuffer();
     final now = DateTime.now();
 
-    // 分离 Dart 和 Rust 边界
+    /// 分离 Dart 和 Rust 边界
     final dartBoundaries = result.boundaries
         .where((b) => b.filePath.startsWith('lib/'))
         .toList();
@@ -1227,7 +1238,7 @@ class ReportGenerator {
     buffer.writeln('**范围**: Dart/Flutter + Rust 代码');
     buffer.writeln('');
 
-    // 总体统计
+    /// 总体统计
     buffer.writeln('## 总体统计');
     buffer.writeln('- 总边界数: ${result.boundaries.length}');
     buffer.writeln(
@@ -1238,7 +1249,7 @@ class ReportGenerator {
     );
     buffer.writeln('');
 
-    // Flutter/Dart 统计
+    /// Flutter/Dart 统计
     final dartCoverage = dartBoundaries.isEmpty
         ? 0.0
         : dartCovered.length / dartBoundaries.length;
@@ -1250,7 +1261,7 @@ class ReportGenerator {
     buffer.writeln('- 未覆盖: ${dartUncovered.length}');
     buffer.writeln('');
 
-    // Rust 统计
+    /// Rust 统计
     final rustCoverage = rustBoundaries.isEmpty
         ? 0.0
         : rustCovered.length / rustBoundaries.length;
@@ -1262,7 +1273,7 @@ class ReportGenerator {
     buffer.writeln('- 未覆盖: ${rustUncovered.length}');
     buffer.writeln('');
 
-    // 按优先级分组未覆盖边界
+    /// 按优先级分组未覆盖边界
     final prioritized = _prioritizeBoundaries(result.uncoveredBoundaries);
 
     if (prioritized.high.isNotEmpty) {
@@ -1337,6 +1348,7 @@ class ReportGenerator {
   }
 }
 
+/// 优先级分组
 class PrioritizedBoundaries {
   final List<Boundary> high;
   final List<Boundary> medium;
@@ -1349,8 +1361,10 @@ class PrioritizedBoundaries {
   });
 }
 
+/// 扫描范围
 enum ScanScope { all, flutter, rust }
 
+/// 解析命令行参数中的扫描范围
 ScanScope _parseScope(List<String> args) {
   final scopeArg = args.firstWhere(
     (arg) => arg.startsWith('--scope='),
@@ -1364,6 +1378,7 @@ ScanScope _parseScope(List<String> args) {
   };
 }
 
+/// 检查边界是否匹配指定范围
 bool _matchesScope(Boundary boundary, ScanScope scope) {
   return switch (scope) {
     ScanScope.all => true,
@@ -1372,6 +1387,7 @@ bool _matchesScope(Boundary boundary, ScanScope scope) {
   };
 }
 
+/// 主函数
 void main(List<String> args) async {
   final scope = _parseScope(args);
   // 加载配置
@@ -1389,11 +1405,11 @@ void main(List<String> args) async {
   stdout.writeln('Scanning for test boundaries...');
   final result = await scanner.scan();
 
-  // 生成报告
+  /// 生成报告
   final generator = ReportGenerator(config);
   final report = generator.generate(result);
 
-  // 保存到项目根目录的 tmp 目录
+  /// 保存到项目根目录的 tmp 目录
   final tmpDir = Directory('tmp');
   if (!tmpDir.existsSync()) {
     tmpDir.createSync(recursive: true);
@@ -1411,7 +1427,7 @@ void main(List<String> args) async {
   stdout.writeln('');
   stdout.writeln('Report saved to: ${reportFile.path}');
 
-  // 如果有高优先级未覆盖边界，返回非零退出码
+  /// 如果有高优先级未覆盖边界，返回非零退出码
   final meaningfulHighPriorityUncovered = result.uncoveredBoundaries
       .where((b) => _matchesScope(b, scope))
       .where(scanner.isMeaningfulHighPriorityBoundary)

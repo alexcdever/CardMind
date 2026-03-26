@@ -1,36 +1,36 @@
 input: DIR.md 校验目标、架构与实施任务
 output: 可执行的 DIR.md 守卫测试与实现步骤
 pos: DIR.md 校验实施计划（修改需同步 DIR.md）
-# Fractal Doc DIR.md Check Implementation Plan
+# 分形文档 DIR.md 检查实施计划
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **致 Claude：** 必需子技能：使用 superpowers:executing-plans 逐步实施此计划。
 
-**Goal:** 为变更文件增加同目录 `DIR.md` 条目校验，不存在或缺失条目时报错。
+**目标：** 为变更文件增加同目录 `DIR.md` 条目校验，不存在或缺失条目时报错。
 
-**Architecture:** 在 `FractalDocChecker.check()` 中对每个变更文件计算目录与文件名，读取 `DIR.md` 内容并用 `contains` 判断条目。失败时追加错误到结果列表。
+**架构：** 在 `FractalDocChecker.check()` 中对每个变更文件计算目录与文件名，读取 `DIR.md` 内容并用 `contains` 判断条目。失败时追加错误到结果列表。
 
-**Tech Stack:** Dart, Flutter test.
+**技术栈：** Dart, Flutter test。
 
 ## 强制执行规则（TDD 红-绿-蓝）
 
-- 本计划每个任务必须按 **Red -> Green -> Blue -> Commit** 执行。
-- Red：先编写或调整失败测试，并运行确认按预期失败。
-- Green：以最小实现使测试通过，并运行确认通过。
-- Blue：在不改变行为前提下重构，复跑同一批测试后再继续。
-- 仅当 Blue 阶段验证通过后才允许提交。
+- 本计划每个任务必须按 **红阶段 -> 绿阶段 -> 蓝阶段 -> 提交** 执行。
+- 红阶段：先编写或调整失败测试，并运行确认按预期失败。
+- 绿阶段：以最小实现使测试通过，并运行确认通过。
+- 蓝阶段：在不改变行为前提下重构，复跑同一批测试后再继续。
+- 仅当蓝阶段验证通过后才允许提交。
 
 ---
 
-### Task 1: 增强 DIR.md 条目校验
+### 任务 1：增强 DIR.md 条目校验
 
-**Files:**
-- Modify: `docs/standards/documentation.md`
-- Modify: `docs/standards/documentation.md`
+**文件：**
+- 修改：`docs/standards/documentation.md`
+- 修改：`docs/standards/documentation.md`
 
-**Step 1: Write the failing test**
+**步骤 1：编写失败测试**
 
 ```dart
-test('fails when DIR.md not updated for changed file', () async {
+test('当变更文件未更新 DIR.md 时应失败', () async {
   final root = Directory.systemTemp.createTempSync('fractal-doc-test');
   File('${root.path}/lib/DIR.md')
       .createSync(recursive: true);
@@ -44,12 +44,12 @@ test('fails when DIR.md not updated for changed file', () async {
 });
 ```
 
-**Step 2: Run test to verify it fails**
+**步骤 2：运行测试确认失败**
 
-Run: `flutter test docs/standards/documentation.md`
-Expected: FAIL with DIR rule not implemented
+运行：`flutter test docs/standards/documentation.md`
+预期：失败，DIR 规则未实现
 
-**Step 3: Write minimal implementation**
+**步骤 3：编写最小实现**
 
 ```dart
 bool _dirHasEntry(String dirPath, String fileName) {
@@ -67,12 +67,12 @@ if (!_dirHasEntry(dirPath, fileName)) {
 }
 ```
 
-**Step 4: Run test to verify it passes**
+**步骤 4：运行测试确认通过**
 
-Run: `flutter test docs/standards/documentation.md`
-Expected: PASS
+运行：`flutter test docs/standards/documentation.md`
+预期：通过
 
-**Step 5: Commit**
+**步骤 5：提交**
 
 ```bash
 git add docs/standards/documentation.md docs/standards/documentation.md

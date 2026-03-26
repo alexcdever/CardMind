@@ -29,10 +29,12 @@ Examples:
   dart run tool/quality.dart all
 ''';
 
+/// 主函数
 Future<void> main(List<String> args) async {
   exitCode = await runQualityCli(args);
 }
 
+/// 质量检查命令行入口
 Future<int> runQualityCli(
   List<String> args, {
   Runner runProcess = _run,
@@ -83,6 +85,7 @@ Future<int> runQualityCli(
   return 1;
 }
 
+/// 运行Flutter质量检查
 Future<int> _runFlutterQuality({
   required Runner runProcess,
   required void Function(String) log,
@@ -95,7 +98,7 @@ Future<int> _runFlutterQuality({
   }
   log('[flutter:analyze] done');
 
-  // 运行测试并生成覆盖率（边界扫描需要）
+  /// 运行测试并生成覆盖率（边界扫描需要）
   final test = await runProcess('flutter', ['test', '--coverage']);
   if (test.exitCode != 0) {
     logError(_processError(test));
@@ -103,7 +106,7 @@ Future<int> _runFlutterQuality({
   }
   log('[flutter:test] done (with coverage)');
 
-  // 运行测试边界扫描
+  /// 运行测试边界扫描
   log('[flutter:test-boundary-scan] scanning...');
   final boundaryScan = await runProcess('dart', [
     'tool/test_boundary_scanner.dart',
@@ -114,13 +117,15 @@ Future<int> _runFlutterQuality({
       '[flutter:test-boundary-scan] High priority boundaries not covered',
     );
     log('See report: tmp/cardmind_test_boundary_report.md');
-    // 不返回错误，只作为警告
+
+    /// 不返回错误，只作为警告
   } else {
     log('[flutter:test-boundary-scan] done');
   }
   return 0;
 }
 
+/// 运行Rust质量检查
 Future<int> _runRustQuality({
   required Runner runProcess,
   required void Function(String) log,
@@ -165,7 +170,7 @@ Future<int> _runRustQuality({
   }
   log('[rust:test] done');
 
-  // 生成 Rust LCOV 覆盖率报告
+  /// 生成 Rust LCOV 覆盖率报告
   log('[rust:coverage] generating LCOV report...');
   final coverage = await runProcess('cargo', [
     'tarpaulin',
@@ -182,7 +187,8 @@ Future<int> _runRustQuality({
     logError(
       '[rust:coverage] failed to generate LCOV (cargo-tarpaulin may not be installed)',
     );
-    // 不返回错误，因为这只是覆盖率数据
+
+    /// 不返回错误，因为这只是覆盖率数据
   } else {
     log('[rust:coverage] LCOV report generated: rust/lcov.info');
   }
@@ -202,6 +208,7 @@ Future<int> _runRustQuality({
   return 0;
 }
 
+/// 格式化进程错误信息
 String _processError(ProcessResult result) {
   final stderrText = result.stderr.toString().trim();
   final stdoutText = result.stdout.toString().trim();
@@ -209,6 +216,7 @@ String _processError(ProcessResult result) {
   return 'Process failed with exit code ${result.exitCode}: $output';
 }
 
+/// 运行外部命令
 Future<ProcessResult> _run(
   String executable,
   List<String> arguments, {
@@ -217,6 +225,8 @@ Future<ProcessResult> _run(
   return Process.run(executable, arguments, workingDirectory: workingDirectory);
 }
 
+/// 输出到stdout
 void _stdout(String message) => stdout.writeln(message);
 
+/// 输出到stderr
 void _stderr(String message) => stderr.writeln(message);

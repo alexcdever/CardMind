@@ -34,9 +34,11 @@ Examples:
   dart run tool/build.dart run
 ''';
 
+/// 构建目标平台枚举
 enum HostPlatform { macos, linux, windows, android, ios }
 
 extension HostPlatformDetect on HostPlatform {
+  /// 检测当前主机平台
   static HostPlatform detect() {
     if (Platform.isMacOS) {
       return HostPlatform.macos;
@@ -54,10 +56,12 @@ extension HostPlatformDetect on HostPlatform {
   }
 }
 
+/// 主函数
 Future<void> main(List<String> args) async {
   exitCode = await runBuildCli(args);
 }
 
+/// 构建命令行入口
 Future<int> runBuildCli(
   List<String> args, {
   Runner runProcess = _run,
@@ -102,6 +106,35 @@ Future<int> runBuildCli(
   return 1;
 }
 
+const Set<String> _supportedPlatforms = {'macos', 'linux', 'windows'};
+
+/// 解析目标平台参数
+String _resolvePlatform(List<String> args, {HostPlatform? platformOverride}) {
+  final explicit = _readOption(args, '--platform');
+  if (explicit != null) {
+    if (!_supportedPlatforms.contains(explicit)) {
+      throw const FormatException('Unsupported platform');
+    }
+    return explicit;
+  }
+
+  final host = platformOverride ?? HostPlatformDetect.detect();
+  switch (host) {
+    case HostPlatform.macos:
+      return 'macos';
+    case HostPlatform.linux:
+      return 'linux';
+    case HostPlatform.windows:
+      return 'windows';
+    case HostPlatform.android:
+    case HostPlatform.ios:
+      throw const FormatException(
+        'Current host has no default executable app target',
+      );
+  }
+}
+
+/// 构建Flutter应用
 Future<int> _runApp(
   List<String> args, {
   required Runner runProcess,
@@ -143,33 +176,7 @@ Future<int> _runApp(
   return 0;
 }
 
-const Set<String> _supportedPlatforms = {'macos', 'linux', 'windows'};
-
-String _resolvePlatform(List<String> args, {HostPlatform? platformOverride}) {
-  final explicit = _readOption(args, '--platform');
-  if (explicit != null) {
-    if (!_supportedPlatforms.contains(explicit)) {
-      throw const FormatException('Unsupported platform');
-    }
-    return explicit;
-  }
-
-  final host = platformOverride ?? HostPlatformDetect.detect();
-  switch (host) {
-    case HostPlatform.macos:
-      return 'macos';
-    case HostPlatform.linux:
-      return 'linux';
-    case HostPlatform.windows:
-      return 'windows';
-    case HostPlatform.android:
-    case HostPlatform.ios:
-      throw const FormatException(
-        'Current host has no default executable app target',
-      );
-  }
-}
-
+/// 构建Rust库
 Future<int> _runLib(
   List<String> args, {
   required Runner runProcess,
@@ -191,13 +198,14 @@ Future<int> _runLib(
     return result.exitCode;
   }
 
-  // For macOS, we just need the dylib - we'll copy it to the app bundle after build
+  /// For macOS, we just need the dylib - we'll copy it to the app bundle after build
   log('[lib] Rust library built successfully');
 
   log('[lib] done');
   return 0;
 }
 
+/// 读取命令行选项
 String? _readOption(List<String> args, String key) {
   final i = args.indexOf(key);
   if (i == -1) {
@@ -209,10 +217,12 @@ String? _readOption(List<String> args, String key) {
   return args[i + 1];
 }
 
+/// 格式化进程错误信息
 String _processError(ProcessResult result) {
   return 'Process failed with exit code ${result.exitCode}: ${result.stderr}';
 }
 
+/// 运行外部命令
 Future<ProcessResult> _run(
   String executable,
   List<String> arguments, {
@@ -221,10 +231,13 @@ Future<ProcessResult> _run(
   return Process.run(executable, arguments, workingDirectory: workingDirectory);
 }
 
+/// 输出到stdout
 void _stdout(String message) => stdout.writeln(message);
 
+/// 输出到stderr
 void _stderr(String message) => stderr.writeln(message);
 
+/// 构建并打开应用（macOS）
 Future<int> _runAndOpen(
   List<String> args, {
   required Runner runProcess,
@@ -236,7 +249,7 @@ Future<int> _runAndOpen(
     return 1;
   }
 
-  // Step 1: Build Rust library (which also creates framework)
+  /// Step 1: Build Rust library (which also creates framework)
   final libExit = await _runLib(
     args,
     runProcess: runProcess,
@@ -247,7 +260,7 @@ Future<int> _runAndOpen(
     return libExit;
   }
 
-  // Step 2: Build Flutter app
+  /// Step 2: Build Flutter app
   final build = await runProcess('flutter', ['build', 'macos', '--debug']);
   if (build.exitCode != 0) {
     logError(_processError(build));
@@ -255,7 +268,7 @@ Future<int> _runAndOpen(
   }
   log('[build:macos] done');
 
-  // Step 3: Copy dylib to app bundle's Frameworks directory
+  /// Step 3: Copy dylib to app bundle's Frameworks directory
   final dylibSource = File(
     '${Directory.current.path}/rust/target/release/libcardmind_rust.dylib',
   );
@@ -276,7 +289,7 @@ Future<int> _runAndOpen(
   dylibSource.copySync(dylibDest.path);
   log('[dylib] copied to app bundle');
 
-  // Step 4: Open the app
+  /// Step 4: Open the app
   final openResult = await runProcess('open', [appBundle.path]);
   if (openResult.exitCode != 0) {
     logError('Failed to open app: ${openResult.stderr}');
