@@ -3,6 +3,7 @@
 // pos: 覆盖 app config 生命周期替代旧 handle 机制的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::{
     close_pool_network, init_app_config, init_pool_network, reset_app_config_for_tests,
+    setup_app_lock, verify_app_lock_with_pin,
 };
 use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
@@ -29,10 +30,22 @@ fn app_config_should_replace_card_store_handle_lifecycle() -> Result<(), Box<dyn
     Ok(())
 }
 
+fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
+    setup_app_lock("1234".to_string(), true)?;
+    verify_app_lock_with_pin("1234".to_string())?;
+    Ok(())
+}
+
 #[test]
 #[serial]
 fn it_should_init_and_close_pool_network() -> Result<(), Box<dyn std::error::Error>> {
-    let id = init_pool_network("/tmp/cardmind".to_string())?;
+    let _guard = app_config_test_guard().lock().unwrap();
+    reset_app_config_for_tests()?;
+    let dir = tempdir()?;
+    let app_data_dir = dir.path().to_string_lossy().to_string();
+    init_app_config(app_data_dir.clone())?;
+    unlock_app_lock()?;
+    let id = init_pool_network(app_data_dir)?;
     close_pool_network(id)?;
     Ok(())
 }

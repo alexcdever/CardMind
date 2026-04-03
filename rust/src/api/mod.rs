@@ -45,9 +45,10 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{build_endpoint, PoolEndpoint};
+use crate::net::endpoint::{PoolEndpoint, build_endpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
+use crate::security::app_lock::AppLock;
 use crate::store::card_store::CardNoteRepository;
 use crate::store::pool_store::PoolStore;
 use serde::{Deserialize, Serialize};
@@ -70,6 +71,7 @@ pub use utils::{
 };
 
 static APP_CONFIG_DIR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+static APP_LOCK: OnceLock<Mutex<AppLock>> = OnceLock::new();
 static POOL_NETWORK_SEQ: AtomicU64 = AtomicU64::new(1);
 static POOL_NETWORKS: OnceLock<Mutex<HashMap<u64, PoolNetwork>>> = OnceLock::new();
 
@@ -81,6 +83,10 @@ fn pool_network_map() -> &'static Mutex<HashMap<u64, PoolNetwork>> {
 /// 获取应用配置目录（内部函数）
 fn app_config_dir() -> &'static Mutex<Option<String>> {
     APP_CONFIG_DIR.get_or_init(|| Mutex::new(None))
+}
+
+fn app_lock_state() -> &'static Mutex<AppLock> {
+    APP_LOCK.get_or_init(|| Mutex::new(AppLock::new()))
 }
 
 /// 数据池信息 DTO。
@@ -282,8 +288,8 @@ pub fn update_backend_config(
 /// println!("MCP 监听: {:?}", status.mcp_bind_addr);
 /// println!("CLI 启用: {}", status.cli_enabled);
 /// ```
-pub fn get_runtime_entry_status(
-) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+pub fn get_runtime_entry_status()
+-> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -467,6 +473,25 @@ fn with_configured_pool_store<T>(
     f(&pool_store)
 }
 
+fn require_app_lock_unlocked() -> Result<(), ApiError> {
+    let app_lock = app_lock_state()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app lock state poisoned"))?;
+
+    if !app_lock.state().is_configured() {
+        return Err(ApiError::new(
+            ApiErrorCode::AppLockRequired,
+            "app lock must be configured",
+        ));
+    }
+
+    if app_lock.state().is_locked() {
+        return Err(ApiError::new(ApiErrorCode::AppLocked, "app lock is locked"));
+    }
+
+    Ok(())
+}
+
 /// 列出所有卡片 ID。
 fn list_all_card_ids(card_repository: &CardNoteRepository) -> Result<Vec<Uuid>, ApiError> {
     let cards = card_repository.list_cards(10_000, 0).map_err(map_err)?;
@@ -549,7 +574,66 @@ pub fn reset_app_config_for_tests() -> Result<(), ApiError> {
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app config lock poisoned"))?;
     *config = None;
+    let mut app_lock = app_lock_state()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app lock state poisoned"))?;
+    *app_lock = AppLock::new();
     Ok(())
+}
+
+pub fn app_lock_status() -> Result<(bool, bool), ApiError> {
+    let app_lock = app_lock_state()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app lock state poisoned"))?;
+    Ok((
+        app_lock.state().is_configured(),
+        !app_lock.state().is_locked(),
+    ))
+}
+
+pub fn setup_app_lock(pin: String, allow_biometric: bool) -> Result<(), ApiError> {
+    let mut app_lock = app_lock_state()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app lock state poisoned"))?;
+    app_lock
+        .set_pin(&pin, allow_biometric)
+        .map_err(|err| ApiError::new(ApiErrorCode::InvalidArgument, &err.to_string()))
+}
+
+pub fn verify_app_lock_with_pin(pin: String) -> Result<(), ApiError> {
+    let mut app_lock = app_lock_state()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app lock state poisoned"))?;
+    app_lock.verify_pin(&pin).map_err(|err| match err {
+        crate::security::app_lock::AppLockError::Locked => {
+            ApiError::new(ApiErrorCode::AppLocked, "app lock is locked")
+        }
+        crate::security::app_lock::AppLockError::NotConfigured => {
+            ApiError::new(ApiErrorCode::AppLockRequired, "app lock must be configured")
+        }
+        _ => ApiError::new(ApiErrorCode::InvalidArgument, &err.to_string()),
+    })
+}
+
+pub fn mark_biometric_success() -> Result<(), ApiError> {
+    let mut app_lock = app_lock_state()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app lock state poisoned"))?;
+    app_lock.mark_biometric_success().map_err(|err| match err {
+        crate::security::app_lock::AppLockError::NotConfigured => {
+            ApiError::new(ApiErrorCode::AppLockRequired, "app lock must be configured")
+        }
+        _ => ApiError::new(ApiErrorCode::Internal, &err.to_string()),
+    })
+}
+
+pub fn reset_app_lock_for_tests() -> Result<(), ApiError> {
+    let mut app_lock = app_lock_state()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "app lock state poisoned"))?;
+    app_lock
+        .reset_with_token(&crate::security::app_lock::ResetToken::privileged())
+        .map_err(|err| ApiError::new(ApiErrorCode::Internal, &err.to_string()))
 }
 
 /// 创建新的数据池
@@ -584,6 +668,7 @@ pub fn reset_app_config_for_tests() -> Result<(), ApiError> {
 /// println!("我的角色: {}", pool.current_user_role); // "admin"
 /// ```
 pub fn create_pool(endpoint_id: String, nickname: String, os: String) -> Result<PoolDto, ApiError> {
+    require_app_lock_unlocked()?;
     with_configured_pool_store(|pool_store| {
         let pool = pool_store
             .create_pool(&endpoint_id, &nickname, &os)
@@ -637,6 +722,7 @@ pub fn join_pool(
     nickname: String,
     os: String,
 ) -> Result<PoolDto, ApiError> {
+    require_app_lock_unlocked()?;
     with_configured_card_store(|card_repository| {
         let pool_id = parse_pool_id(&pool_id)?;
         let local_card_ids = list_all_card_ids(card_repository)?;
@@ -704,6 +790,7 @@ pub fn join_by_code(
     nickname: String,
     os: String,
 ) -> Result<PoolDto, ApiError> {
+    require_app_lock_unlocked()?;
     if code == "timeout" {
         return Err(ApiError::new(
             ApiErrorCode::RequestTimeout,
@@ -767,6 +854,7 @@ pub fn join_by_code(
 /// }
 /// ```
 pub fn list_pools(endpoint_id: String) -> Result<Vec<PoolDto>, ApiError> {
+    require_app_lock_unlocked()?;
     with_configured_pool_store(|pool_store| {
         let pools = pool_store
             .get_any_pool()
@@ -818,6 +906,7 @@ pub fn list_pools(endpoint_id: String) -> Result<Vec<PoolDto>, ApiError> {
 /// println!("卡片数: {}", detail.note_ids.len());
 /// ```
 pub fn get_pool_detail(pool_id: String, endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
+    require_app_lock_unlocked()?;
     with_configured_pool_store(|pool_store| {
         let pool_id = parse_pool_id(&pool_id)?;
         let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
@@ -854,6 +943,7 @@ pub fn get_pool_detail(pool_id: String, endpoint_id: String) -> Result<PoolDetai
 /// }
 /// ```
 pub fn get_joined_pool_view(endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
+    require_app_lock_unlocked()?;
     with_configured_pool_store(|pool_store| {
         let pool = pool_store.get_any_pool().map_err(map_err)?;
         to_pool_detail_dto(&pool, &endpoint_id)
@@ -941,6 +1031,7 @@ pub fn create_card_note_in_pool(
     title: String,
     content: String,
 ) -> Result<CardNoteDto, ApiError> {
+    require_app_lock_unlocked()?;
     with_configured_card_store(|card_repository| {
         let pool_id = parse_pool_id(&pool_id)?;
         let card = card_repository
@@ -1249,6 +1340,7 @@ pub fn get_card_note_detail(card_id: String) -> Result<CardNoteDto, ApiError> {
 /// api::close_pool_network(network_id).unwrap();
 /// ```
 pub fn init_pool_network(base_path: String) -> Result<u64, ApiError> {
+    require_app_lock_unlocked()?;
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -1338,6 +1430,7 @@ pub fn close_pool_network(network_id: u64) -> Result<(), ApiError> {
 /// println!("允许的操作: {:?}", status.allowed_operations);
 /// ```
 pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
+    require_app_lock_unlocked()?;
     let map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
@@ -1376,6 +1469,7 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
 /// api::sync_connect(network_id, "peer-address".to_string()).unwrap();
 /// ```
 pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
+    require_app_lock_unlocked()?;
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
@@ -1455,6 +1549,7 @@ pub fn sync_disconnect(network_id: u64) -> Result<(), ApiError> {
 /// println!("已在同步会话中加入池");
 /// ```
 pub fn sync_join_pool(network_id: u64, pool_id: String) -> Result<(), ApiError> {
+    require_app_lock_unlocked()?;
     let map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
@@ -1496,6 +1591,7 @@ pub fn sync_join_pool(network_id: u64, pool_id: String) -> Result<(), ApiError> 
 /// println!("下一步操作: {}", result.next_action);
 /// ```
 pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
+    require_app_lock_unlocked()?;
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
@@ -1544,6 +1640,7 @@ pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
 /// println!("实例连续性: {}", result.instance_continuity_state);
 /// ```
 pub fn sync_pull(network_id: u64) -> Result<SyncResultDto, ApiError> {
+    require_app_lock_unlocked()?;
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;

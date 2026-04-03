@@ -20,6 +20,11 @@ Future<void> _ensureRustLibInitialized() async {
   _rustLibInitialized = true;
 }
 
+Future<void> _unlockAppLock() async {
+  await frb.setupAppLock(pin: '1234', allowBiometric: true);
+  await frb.verifyAppLockWithPin(pin: '1234');
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -30,6 +35,7 @@ void main() {
     await _ensureRustLibInitialized();
     await frb.resetAppConfigForTests();
     await frb.initAppConfig(appDataDir: root.path);
+    await _unlockAppLock();
 
     final gateway = FrbSyncGateway();
     final networkId = await frb.initPoolNetwork(basePath: root.path);

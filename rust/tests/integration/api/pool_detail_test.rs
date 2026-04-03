@@ -3,6 +3,7 @@
 // pos: 覆盖 pool detail caller-scoped 契约的后端测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::{
     create_pool, get_pool_detail, init_app_config, join_by_code, reset_app_config_for_tests,
+    setup_app_lock, verify_app_lock_with_pin,
 };
 use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
@@ -18,6 +19,12 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
+    setup_app_lock("1234".to_string(), true)?;
+    verify_app_lock_with_pin("1234".to_string())?;
+    Ok(())
+}
+
 #[test]
 #[serial]
 fn pool_detail_should_compute_current_user_role_from_calling_endpoint(
@@ -28,6 +35,7 @@ fn pool_detail_should_compute_current_user_role_from_calling_endpoint(
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
 
     let pool = create_pool(
         "owner-endpoint".to_string(),

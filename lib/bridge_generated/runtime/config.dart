@@ -3,27 +3,22 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # 运行时配置
-///
-/// 定义后端运行时配置的数据结构。
-/// 用于管理 HTTP、MCP、CLI 等服务的启用状态。
-library runtime_config;
-
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-/// 后端配置 DTO
+/// 后端配置 DTO。
+///
+/// 表示各可选入口的启用状态。
 class BackendConfigDto {
-  /// HTTP 服务是否启用
+  /// 是否启用 HTTP 入口。
   final bool httpEnabled;
 
-  /// MCP 服务是否启用
+  /// 是否启用 MCP 入口。
   final bool mcpEnabled;
 
-  /// CLI 服务是否启用
+  /// 是否启用 CLI 入口。
   final bool cliEnabled;
 
-  /// 创建 BackendConfigDto 实例
   const BackendConfigDto({
     required this.httpEnabled,
     required this.mcpEnabled,

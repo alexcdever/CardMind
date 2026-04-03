@@ -16,6 +16,8 @@ fn setup_test(test_name: &str) -> String {
     let app_data_dir = test_path.to_string_lossy().to_string();
 
     init_app_config(app_data_dir.clone()).expect("Failed to init app config");
+    setup_app_lock("1234".to_string(), true).expect("Failed to setup app lock");
+    verify_app_lock_with_pin("1234".to_string()).expect("Failed to unlock app lock");
     init_pool_network(app_data_dir.clone()).expect("Failed to init pool network");
 
     app_data_dir

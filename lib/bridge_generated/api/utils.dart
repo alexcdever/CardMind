@@ -3,12 +3,6 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # API 工具函数
-///
-/// 提供 CardMind 核心 API 的辅助工具函数。
-/// 包含错误映射、UUID 解析、数据转换等功能。
-library api_utils;
-
 import '../api.dart';
 import '../frb_generated.dart';
 import '../models/api_error.dart';
@@ -20,23 +14,134 @@ import 'package:uuid/uuid.dart';
 
 // These functions are ignored because they have generic arguments: `current_member_for_endpoint`
 
-/// 将 CardMindError 映射为 ApiError
+/// 将 `CardMindError` 映射为 `ApiError`。
+///
+/// 根据错误类型转换为对应的 API 错误码，便于前端统一处理。
+///
+/// # 参数
+/// * `err` - 内部错误类型。
+///
+/// # 返回
+/// 对应的 `ApiError` 实例。
+///
+/// # 错误映射规则
+/// - `InvalidArgument` → `InvalidArgument`
+/// - `NotFound` → `NotFound`
+/// - `ProjectionNotConverged` → `ProjectionNotConverged`
+/// - `NotImplemented` → `NotImplemented`
+/// - `NotMember` → `NotMember`
+/// - `Io` → `IoError`
+/// - `Loro` → `Internal`（带前缀信息）
+/// - 其他 → `Internal`
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::models::error::CardMindError;
+/// use cardmind_rust::api::utils::map_err;
+///
+/// let err = CardMindError::NotFound("card not found".to_string());
+/// let api_err = map_err(err);
+/// assert_eq!(api_err.code, "not_found");
+/// ```
 Future<ApiError> mapErr({required CardMindError err}) =>
     RustLib.instance.api.crateApiUtilsMapErr(err: err);
 
-/// 解析 UUID 字符串
+/// 解析 UUID 字符串。
+///
+/// 将字符串解析为 `Uuid` 类型，失败时返回格式化的错误信息。
+///
+/// # 参数
+/// * `raw` - UUID 字符串。
+/// * `field` - 字段名称，用于错误信息。
+///
+/// # 返回
+/// - `Ok(Uuid)` - 解析成功。
+/// - `Err(ApiError)` - 解析失败，`code` 为 `invalid_argument`。
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api::utils::parse_uuid;
+///
+/// let uuid_str = "550e8400-e29b-41d4-a716-446655440000";
+/// let result = parse_uuid(uuid_str, "card_id");
+/// assert!(result.is_ok());
+///
+/// let bad_uuid = parse_uuid("not-a-uuid", "card_id");
+/// assert!(bad_uuid.is_err());
+/// ```
 Future<UuidValue> parseUuid({required String raw, required String field}) =>
     RustLib.instance.api.crateApiUtilsParseUuid(raw: raw, field: field);
 
-/// 根据 pool 成员生成 pool 名称
+/// 根据 Pool 成员生成 Pool 名称。
+///
+/// 使用第一个成员的昵称生成人性化名称，如无成员则返回默认名称。
+///
+/// # 参数
+/// * `pool` - Pool 实例。
+///
+/// # 返回
+/// Pool 的显示名称。
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::models::pool::{Pool, PoolMember};
+/// use cardmind_rust::api::utils::pool_name;
+///
+/// // 示例用法
+/// // let pool = Pool { ... };
+/// // let name = pool_name(&pool);
+/// ```
 Future<String> poolName({required Pool pool}) =>
     RustLib.instance.api.crateApiUtilsPoolName(pool: pool);
 
-/// 根据成员角色返回角色字符串
+/// 根据成员角色返回角色字符串。
+///
+/// # 参数
+/// * `member` - Pool 成员实例。
+///
+/// # 返回
+/// - `"admin"` - 管理员角色。
+/// - `"member"` - 普通成员角色。
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::models::pool::PoolMember;
+/// use cardmind_rust::api::utils::member_role;
+///
+/// let admin = PoolMember {
+///     endpoint_id: "ep1".to_string(),
+///     nickname: "Alice".to_string(),
+///     os: "macOS".to_string(),
+///     is_admin: true,
+/// };
+/// assert_eq!(member_role(&admin), "admin");
+/// ```
 Future<String> memberRole({required PoolMember member}) =>
     RustLib.instance.api.crateApiUtilsMemberRole(member: member);
 
-/// 获取指定 endpoint_id 在当前 pool 中的角色
+/// 获取指定 `endpoint_id` 在当前 Pool 中的角色。
+///
+/// 如果端点不是 Pool 成员，返回错误。
+///
+/// # 参数
+/// * `pool` - Pool 实例。
+/// * `endpoint_id` - 端点标识符。
+///
+/// # 返回
+/// - `Ok(String)` - 角色字符串（"admin" 或 "member"）。
+/// - `Err(ApiError)` - 端点不是成员，`code` 为 `not_member`。
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::models::pool::Pool;
+/// use cardmind_rust::api::utils::current_member_role_for_endpoint;
+///
+/// // let pool = Pool { ... };
+/// // match current_member_role_for_endpoint(&pool, "ep1") {
+/// //     Ok(role) => println!("Role: {}", role),
+/// //     Err(e) => println!("Not a member: {}", e.message),
+/// // }
+/// ```
 Future<String> currentMemberRoleForEndpoint({
   required Pool pool,
   required String endpointId,
@@ -45,18 +150,73 @@ Future<String> currentMemberRoleForEndpoint({
   endpointId: endpointId,
 );
 
-/// 将 Card 转换为 CardNoteDto
+/// 将 `Card` 转换为 `CardNoteDto`。
+///
+/// 用于 API 响应中的卡片数据序列化。
+///
+/// # 参数
+/// * `card` - 卡片实例。
+///
+/// # 返回
+/// `CardNoteDto` 实例，包含卡片的所有可序列化字段。
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::models::card::Card;
+/// use cardmind_rust::api::utils::to_card_note_dto;
+///
+/// // let card = Card { ... };
+/// // let dto = to_card_note_dto(&card);
+/// ```
 Future<CardNoteDto> toCardNoteDto({required Card card}) =>
     RustLib.instance.api.crateApiUtilsToCardNoteDto(card: card);
 
-/// 将 Pool 转换为 PoolDto
+/// 将 `Pool` 转换为 `PoolDto`。
+///
+/// 用于 API 响应中的 Pool 列表展示。
+///
+/// # 参数
+/// * `pool` - Pool 实例。
+/// * `endpoint_id` - 当前用户端点 ID，用于确定用户角色。
+///
+/// # 返回
+/// - `Ok(PoolDto)` - 转换成功。
+/// - `Err(ApiError)` - 用户不是 Pool 成员。
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::models::pool::Pool;
+/// use cardmind_rust::api::utils::to_pool_dto;
+///
+/// // let pool = Pool { ... };
+/// // let dto = to_pool_dto(&pool, "current_endpoint_id")?;
+/// ```
 Future<PoolDto> toPoolDto({required Pool pool, required String endpointId}) =>
     RustLib.instance.api.crateApiUtilsToPoolDto(
       pool: pool,
       endpointId: endpointId,
     );
 
-/// 将 Pool 转换为 PoolDetailDto
+/// 将 `Pool` 转换为 `PoolDetailDto`。
+///
+/// 用于 API 响应中的 Pool 详情展示，包含完整成员列表和卡片 ID。
+///
+/// # 参数
+/// * `pool` - Pool 实例。
+/// * `endpoint_id` - 当前用户端点 ID，用于确定用户角色。
+///
+/// # 返回
+/// - `Ok(PoolDetailDto)` - 转换成功。
+/// - `Err(ApiError)` - 用户不是 Pool 成员。
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::models::pool::Pool;
+/// use cardmind_rust::api::utils::to_pool_detail_dto;
+///
+/// // let pool = Pool { ... };
+/// // let dto = to_pool_detail_dto(&pool, "current_endpoint_id")?;
+/// ```
 Future<PoolDetailDto> toPoolDetailDto({
   required Pool pool,
   required String endpointId,

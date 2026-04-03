@@ -263,8 +263,28 @@ class _MockRustLibApi extends RustLibApi {
       httpActive: false,
       mcpActive: false,
       cliActive: false,
+      appLockEnabled: false,
+      appLockUnlocked: true,
     );
   }
+
+  @override
+  Future<(bool, bool)> crateApiAppLockStatus() async => (false, true);
+
+  @override
+  Future<void> crateApiSetupAppLock({
+    required String pin,
+    required bool allowBiometric,
+  }) async {}
+
+  @override
+  Future<void> crateApiVerifyAppLockWithPin({required String pin}) async {}
+
+  @override
+  Future<void> crateApiMarkBiometricSuccess() async {}
+
+  @override
+  Future<void> crateApiResetAppLockForTests() async {}
 
   @override
   Future<BackendConfigDto> crateApiUpdateBackendConfig({

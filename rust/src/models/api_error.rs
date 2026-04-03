@@ -10,6 +10,7 @@
 //! - 同步错误：`SyncTimeout`, `ProjectionNotConverged`
 //! - 权限错误：`NotMember`, `AlreadyMember`, `RejectedByAdmin`
 //! - 系统错误：`IoError`, `SqliteError`, `Internal`
+//! - 应用锁错误：`AppLockRequired`, `AppLocked`
 //! - 未实现：`NotImplemented`
 
 use serde::{Deserialize, Serialize};
@@ -55,6 +56,10 @@ pub enum ApiErrorCode {
     SyncTimeout,
     /// 句柄无效
     InvalidHandle,
+    /// 应用锁未设置，数据池功能不可用
+    AppLockRequired,
+    /// 应用当前处于锁定状态
+    AppLocked,
     /// 内部错误
     Internal,
 }
@@ -93,6 +98,8 @@ impl ApiErrorCode {
             ApiErrorCode::NetworkUnavailable => "NETWORK_UNAVAILABLE",
             ApiErrorCode::SyncTimeout => "SYNC_TIMEOUT",
             ApiErrorCode::InvalidHandle => "INVALID_HANDLE",
+            ApiErrorCode::AppLockRequired => "APP_LOCK_REQUIRED",
+            ApiErrorCode::AppLocked => "APP_LOCKED",
             ApiErrorCode::Internal => "INTERNAL",
         }
     }

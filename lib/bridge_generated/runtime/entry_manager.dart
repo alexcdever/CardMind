@@ -3,36 +3,43 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # 运行时入口管理
-///
-/// 定义运行时入口状态的数据结构。
-/// 用于管理 HTTP、MCP、CLI 等服务的入口状态。
-library runtime_entry_manager;
-
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-/// 运行时入口状态 DTO
+/// 运行时入口状态 DTO。
+///
+/// 表示各可选入口的当前激活状态。
 class RuntimeEntryStatusDto {
-  /// HTTP 服务是否活跃
+  /// HTTP 入口是否激活。
   final bool httpActive;
 
-  /// MCP 服务是否活跃
+  /// MCP 入口是否激活。
   final bool mcpActive;
 
-  /// CLI 服务是否活跃
+  /// CLI 入口是否激活。
   final bool cliActive;
 
-  /// 创建 RuntimeEntryStatusDto 实例
+  /// 应用锁是否已设置。
+  final bool appLockEnabled;
+
+  /// 应用锁当前是否已解锁。
+  final bool appLockUnlocked;
+
   const RuntimeEntryStatusDto({
     required this.httpActive,
     required this.mcpActive,
     required this.cliActive,
+    required this.appLockEnabled,
+    required this.appLockUnlocked,
   });
 
   @override
   int get hashCode =>
-      httpActive.hashCode ^ mcpActive.hashCode ^ cliActive.hashCode;
+      httpActive.hashCode ^
+      mcpActive.hashCode ^
+      cliActive.hashCode ^
+      appLockEnabled.hashCode ^
+      appLockUnlocked.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -41,5 +48,7 @@ class RuntimeEntryStatusDto {
           runtimeType == other.runtimeType &&
           httpActive == other.httpActive &&
           mcpActive == other.mcpActive &&
-          cliActive == other.cliActive;
+          cliActive == other.cliActive &&
+          appLockEnabled == other.appLockEnabled &&
+          appLockUnlocked == other.appLockUnlocked;
 }

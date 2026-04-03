@@ -4,7 +4,7 @@
 
 use cardmind_rust::api::{
     create_card_note_in_pool, create_pool, init_app_config, join_by_code, query_card_notes,
-    reset_app_config_for_tests,
+    reset_app_config_for_tests, setup_app_lock, verify_app_lock_with_pin,
 };
 use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
@@ -22,6 +22,12 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
+    setup_app_lock("1234".to_string(), true)?;
+    verify_app_lock_with_pin("1234".to_string())?;
+    Ok(())
+}
+
 #[test]
 #[serial]
 fn member_a_create_should_be_visible_to_member_b() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,6 +35,7 @@ fn member_a_create_should_be_visible_to_member_b() -> Result<(), Box<dyn std::er
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
 
     // 成员 A 创建池
     let pool = create_pool(

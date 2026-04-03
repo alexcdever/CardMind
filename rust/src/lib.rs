@@ -93,6 +93,7 @@ pub mod net;
 /// println!("HTTP 服务启用: {}", status.http_enabled);
 /// ```
 pub mod runtime;
+pub mod security;
 /// 存储与缓存层 - 本地持久化与缓存策略
 ///
 /// 提供双存储引擎架构：

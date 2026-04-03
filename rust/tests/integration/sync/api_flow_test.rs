@@ -6,9 +6,18 @@ use cardmind_rust::store::path_resolver::DataPaths;
 use cardmind_rust::store::sqlite_store::SqliteStore;
 use tempfile::tempdir;
 
+fn setup_locked_network_env(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = reset_app_config_for_tests();
+    init_app_config(dir.to_string_lossy().to_string())?;
+    setup_app_lock("1234".to_string(), true)?;
+    verify_app_lock_with_pin("1234".to_string())?;
+    Ok(())
+}
+
 #[test]
 fn sync_flow_should_move_to_connected_and_back_to_idle() -> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
+    setup_locked_network_env(dir.path())?;
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
 
     let initial = sync_status(network_id)?;
@@ -33,9 +42,10 @@ fn sync_flow_should_move_to_connected_and_back_to_idle() -> Result<(), Box<dyn s
 }
 
 #[test]
-fn sync_status_should_separate_write_projection_and_sync_states()
--> Result<(), Box<dyn std::error::Error>> {
+fn sync_status_should_separate_write_projection_and_sync_states(
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = tempdir()?;
+    setup_locked_network_env(dir.path())?;
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
     let paths = DataPaths::new(dir.path().to_string_lossy().as_ref())?;
     let sqlite = SqliteStore::new(&paths.sqlite_path)?;

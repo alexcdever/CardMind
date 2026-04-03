@@ -3,12 +3,6 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
-/// # FRB IO 平台生成代码
-///
-/// flutter_rust_bridge 为 IO 平台（桌面/移动端）自动生成的 Dart 代码。
-/// 包含 FFI 绑定和平台特定的编解码实现。
-library frb_generated_io;
-
 import 'api.dart';
 import 'api/recovery_contract.dart';
 import 'api/utils.dart';
@@ -131,6 +125,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PoolMemberDto dco_decode_pool_member_dto(dynamic raw);
+
+  @protected
+  (bool, bool) dco_decode_record_bool_bool(dynamic raw);
 
   @protected
   RecoveryContract dco_decode_recovery_contract(dynamic raw);
@@ -268,6 +265,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PoolMemberDto sse_decode_pool_member_dto(SseDeserializer deserializer);
+
+  @protected
+  (bool, bool) sse_decode_record_bool_bool(SseDeserializer deserializer);
 
   @protected
   RecoveryContract sse_decode_recovery_contract(SseDeserializer deserializer);
@@ -429,6 +429,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_pool_member_dto(PoolMemberDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_record_bool_bool((bool, bool) self, SseSerializer serializer);
 
   @protected
   void sse_encode_recovery_contract(

@@ -184,6 +184,8 @@ fn runtime_entry_status_dto_default() {
     assert!(!status.http_active);
     assert!(!status.mcp_active);
     assert!(!status.cli_active);
+    assert!(!status.app_lock_enabled);
+    assert!(!status.app_lock_unlocked);
 }
 
 #[test]
@@ -192,12 +194,16 @@ fn runtime_entry_status_dto_clone() {
         http_active: true,
         mcp_active: false,
         cli_active: true,
+        app_lock_enabled: true,
+        app_lock_unlocked: false,
     };
     let status2 = status1.clone();
 
     assert_eq!(status1.http_active, status2.http_active);
     assert_eq!(status1.mcp_active, status2.mcp_active);
     assert_eq!(status1.cli_active, status2.cli_active);
+    assert_eq!(status1.app_lock_enabled, status2.app_lock_enabled);
+    assert_eq!(status1.app_lock_unlocked, status2.app_lock_unlocked);
 }
 
 #[test]
@@ -206,6 +212,8 @@ fn runtime_entry_status_dto_debug() {
         http_active: true,
         mcp_active: false,
         cli_active: true,
+        app_lock_enabled: true,
+        app_lock_unlocked: false,
     };
     let debug_str = format!("{:?}", status);
 

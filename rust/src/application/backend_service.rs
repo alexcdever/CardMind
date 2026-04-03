@@ -19,6 +19,7 @@ use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::runtime::entry_manager::{RuntimeEntryManager, RuntimeEntryStatusDto};
+use crate::security::app_lock::AppLock;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -28,6 +29,7 @@ use std::sync::Arc;
 pub struct BackendService {
     config_store: BackendConfigStore,
     runtime_manager: Arc<RuntimeEntryManager>,
+    app_lock: AppLock,
 }
 
 impl BackendService {
@@ -51,6 +53,7 @@ impl BackendService {
     pub fn new(app_data_dir: &str) -> Result<Self, CardMindError> {
         let config_store = BackendConfigStore::new(Path::new(app_data_dir));
         let runtime_manager = Arc::new(RuntimeEntryManager::new());
+        let app_lock = AppLock::new();
 
         // 加载配置并应用到运行时
         let config = config_store.load()?;
@@ -59,10 +62,15 @@ impl BackendService {
             config.mcp_enabled,
             config.cli_enabled,
         )?;
+        runtime_manager.set_app_lock_state(
+            app_lock.state().is_configured(),
+            !app_lock.state().is_configured() || !app_lock.state().is_locked(),
+        )?;
 
         Ok(Self {
             config_store,
             runtime_manager,
+            app_lock,
         })
     }
 
@@ -147,6 +155,51 @@ impl BackendService {
     pub fn get_runtime_entry_status(&self) -> Result<RuntimeEntryStatusDto, ApiError> {
         self.runtime_manager.status().map_err(map_err)
     }
+
+    pub fn app_lock_status(&self) -> Result<(bool, bool), ApiError> {
+        Ok((
+            self.app_lock.state().is_configured(),
+            !self.app_lock.state().is_locked(),
+        ))
+    }
+
+    pub fn setup_app_lock(&mut self, pin: &str, allow_biometric: bool) -> Result<(), ApiError> {
+        self.app_lock
+            .set_pin(pin, allow_biometric)
+            .map_err(map_app_lock_err)?;
+        self.runtime_manager
+            .set_app_lock_state(true, true)
+            .map_err(map_err)
+    }
+
+    pub fn verify_app_lock_with_pin(&mut self, pin: &str) -> Result<(), ApiError> {
+        self.app_lock.verify_pin(pin).map_err(map_app_lock_err)?;
+        self.runtime_manager
+            .set_app_lock_state(true, true)
+            .map_err(map_err)
+    }
+
+    pub fn mark_biometric_success(&mut self) -> Result<(), ApiError> {
+        self.app_lock
+            .mark_biometric_success()
+            .map_err(map_app_lock_err)?;
+        self.runtime_manager
+            .set_app_lock_state(true, true)
+            .map_err(map_err)
+    }
+
+    pub fn reset_app_lock(&mut self) -> Result<(), ApiError> {
+        self.app_lock
+            .reset_with_token(&crate::security::app_lock::ResetToken::privileged())
+            .map_err(map_app_lock_err)?;
+        self.runtime_manager
+            .set_app_lock_state(false, false)
+            .map_err(map_err)
+    }
+
+    pub fn require_app_lock_unlocked(&self) -> Result<(), ApiError> {
+        self.runtime_manager.require_unlocked().map_err(map_err)
+    }
 }
 
 /// 将 `CardMindError` 映射为 `ApiError`。
@@ -159,7 +212,31 @@ impl BackendService {
 fn map_err(err: CardMindError) -> ApiError {
     match err {
         CardMindError::Io(msg) => ApiError::new(ApiErrorCode::IoError, &msg),
+        CardMindError::InvalidArgument(msg) if msg == "app lock required" => {
+            ApiError::new(ApiErrorCode::AppLockRequired, "app lock must be configured")
+        }
+        CardMindError::InvalidArgument(msg) if msg == "app lock locked" => {
+            ApiError::new(ApiErrorCode::AppLocked, "app lock is locked")
+        }
         _ => ApiError::new(ApiErrorCode::Internal, "internal error"),
+    }
+}
+
+fn map_app_lock_err(err: crate::security::app_lock::AppLockError) -> ApiError {
+    match err {
+        crate::security::app_lock::AppLockError::NotConfigured => {
+            ApiError::new(ApiErrorCode::AppLockRequired, "app lock must be configured")
+        }
+        crate::security::app_lock::AppLockError::Locked => {
+            ApiError::new(ApiErrorCode::AppLocked, "app lock is locked")
+        }
+        crate::security::app_lock::AppLockError::InvalidPin => {
+            ApiError::new(ApiErrorCode::InvalidArgument, "invalid app lock pin")
+        }
+        crate::security::app_lock::AppLockError::InvalidResetToken => ApiError::new(
+            ApiErrorCode::InvalidArgument,
+            "invalid app lock reset token",
+        ),
     }
 }
 

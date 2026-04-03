@@ -3,37 +3,58 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # 卡片模型
-///
-/// 定义 CardMind 中的卡片实体数据结构。
-/// 包含卡片的基本属性：ID、标题、内容、时间戳和删除标记。
-library card;
-
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
 /// 卡片实体
+///
+/// 表示用户创建的单张卡片，包含标题、内容、时间戳和删除标记。
+/// 支持序列化和反序列化，用于存储和 API 传输。
+///
+/// # 字段说明
+///
+/// - `id`: 卡片唯一标识符（UUID v7）
+/// - `title`: 卡片标题，用户可编辑
+/// - `content`: 卡片正文内容，支持 Markdown 格式
+/// - `created_at`: 创建时间戳（Unix 秒）
+/// - `updated_at`: 最后更新时间戳（Unix 秒）
+/// - `deleted`: 软删除标记，`true` 表示已删除但未物理清除
 class Card {
   /// 卡片 ID（UUID v7）
+  ///
+  /// 使用 UUID v7 生成，保证全局唯一性和大致有序性，
+  /// 便于数据库索引和时间范围查询。
   final UuidValue id;
 
   /// 卡片标题
+  ///
+  /// 用户为卡片指定的简短标题，用于列表展示和搜索。
+  /// 长度限制由上层业务逻辑控制。
   final String title;
 
   /// 卡片正文（Markdown）
+  ///
+  /// 支持 Markdown 格式的富文本内容，可包含代码块、
+  /// 列表、链接等元素。内容由用户在编辑器中编写。
   final String content;
 
   /// 创建时间（秒）
+  ///
+  /// Unix 时间戳，精确到秒。创建后不可修改。
   final PlatformInt64 createdAt;
 
   /// 更新时间（秒）
+  ///
+  /// Unix 时间戳，精确到秒。每次内容修改时自动更新。
   final PlatformInt64 updatedAt;
 
   /// 软删除标记
+  ///
+  /// `true` 表示卡片已被用户删除，但数据仍保留在存储中。
+  /// 支持数据恢复和同步冲突处理。
   final bool deleted;
 
-  /// 创建 Card 实例
   const Card({
     required this.id,
     required this.title,

@@ -216,7 +216,9 @@ void main() {
     expect(controller.section, AppSection.pool);
   });
 
-  testWidgets('after pool joined, user remains in pool domain', (tester) async {
+  testWidgets('pool section is guarded by app lock before joined flow', (
+    tester,
+  ) async {
     final controller = AppHomepageController(initialSection: AppSection.pool);
     await tester.pumpWidget(
       MaterialApp(
@@ -228,12 +230,17 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('创建池'));
     await tester.pumpAndSettle();
 
     expect(controller.section, AppSection.pool);
-    expect(find.text('去卡片'), findsNothing);
-    expect(find.text('成员列表'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('app_lock.submit_button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('app_lock.submit_button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('homepage switches between cards and pool in one action', (
@@ -255,7 +262,13 @@ void main() {
 
     await tester.tap(find.text('数据池'));
     await tester.pumpAndSettle();
-    expect(find.text('pool-marker'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('app_lock.pin_field')),
+      '1234',
+    );
+    await tester.tap(find.byKey(const ValueKey('app_lock.submit_button')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppHomepagePage), findsOneWidget);
 
     await tester.tap(find.text('卡片'));
     await tester.pumpAndSettle();

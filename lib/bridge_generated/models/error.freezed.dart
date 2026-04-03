@@ -1160,10 +1160,15 @@ class _$CardMindError_ProjectionNotConvergedImpl
     required this.retryAction,
   }) : super._();
 
+  /// 实体类型
   @override
   final String entity;
+
+  /// 实体 ID
   @override
   final String entityId;
+
+  /// 重试操作建议
   @override
   final String retryAction;
 
@@ -1323,8 +1328,13 @@ abstract class CardMindError_ProjectionNotConverged extends CardMindError {
   }) = _$CardMindError_ProjectionNotConvergedImpl;
   const CardMindError_ProjectionNotConverged._() : super._();
 
+  /// 实体类型
   String get entity;
+
+  /// 实体 ID
   String get entityId;
+
+  /// 重试操作建议
   String get retryAction;
   @JsonKey(ignore: true)
   _$$CardMindError_ProjectionNotConvergedImplCopyWith<

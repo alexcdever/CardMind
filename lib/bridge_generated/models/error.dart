@@ -3,54 +3,84 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # 错误类型定义
-///
-/// 定义 CardMind 应用中的错误类型。
-/// 使用 Freezed 生成不可变的联合类型。
-library error;
-
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
-
 part 'error.freezed.dart';
 
-/// CardMind 错误类型
 @freezed
 sealed class CardMindError with _$CardMindError {
   const CardMindError._();
 
   /// IO 错误
+  ///
+  /// 文件系统、网络或其他 IO 操作失败时返回。
+  /// 包含原始错误信息的字符串描述。
   const factory CardMindError.io(String field0) = CardMindError_Io;
 
   /// SQLite 错误
+  ///
+  /// 数据库查询、事务或连接失败时返回。
+  /// 通常由 `rusqlite` 错误转换而来。
   const factory CardMindError.sqlite(String field0) = CardMindError_Sqlite;
 
   /// Loro 错误
+  ///
+  /// Loro CRDT 文档操作失败时返回。
+  /// 包括文档导入/导出、更新应用等错误。
   const factory CardMindError.loro(String field0) = CardMindError_Loro;
 
   /// 参数非法
+  ///
+  /// 输入参数未通过验证时返回。
+  /// 例如：空字符串、无效 UUID 格式、越界值等。
   const factory CardMindError.invalidArgument(String field0) =
       CardMindError_InvalidArgument;
 
   /// 未找到
+  ///
+  /// 按 ID 或条件查询的资源不存在时返回。
+  /// 例如：卡片不存在、数据池不存在等。
   const factory CardMindError.notFound(String field0) = CardMindError_NotFound;
 
   /// 投影未收敛
+  ///
+  /// 事件溯源投影尚未完成时返回。
+  /// 这通常是一个临时状态，客户端应稍后重试。
+  ///
+  /// # 字段
+  ///
+  /// - `entity`: 实体类型名称（如 "Card", "Pool"）
+  /// - `entity_id`: 实体标识符
+  /// - `retry_action`: 建议的重试操作描述
   const factory CardMindError.projectionNotConverged({
+    /// 实体类型
     required String entity,
+
+    /// 实体 ID
     required String entityId,
+
+    /// 重试操作建议
     required String retryAction,
   }) = CardMindError_ProjectionNotConverged;
 
   /// 未实现
+  ///
+  /// 调用了尚未实现的功能时返回。
+  /// 通常在开发中的功能占位使用。
   const factory CardMindError.notImplemented(String field0) =
       CardMindError_NotImplemented;
 
   /// 非成员
+  ///
+  /// 执行需要数据池成员权限的操作，但当前设备不是成员时返回。
+  /// 例如：尝试同步非成员池的数据。
   const factory CardMindError.notMember(String field0) =
       CardMindError_NotMember;
 
   /// 内部错误
+  ///
+  /// 不应发生的内部逻辑错误或意外状态。
+  /// 此类错误通常表示代码缺陷，需要开发者关注。
   const factory CardMindError.internal(String field0) = CardMindError_Internal;
 }

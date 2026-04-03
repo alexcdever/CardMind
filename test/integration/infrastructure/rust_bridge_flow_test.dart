@@ -24,6 +24,8 @@ void main() {
       await RustLib.init(externalLibrary: ExternalLibrary.open(dylibPath));
 
       await frb.initAppConfig(appDataDir: basePath);
+      await frb.setupAppLock(pin: '1234', allowBiometric: true);
+      await frb.verifyAppLockWithPin(pin: '1234');
       final networkId = await frb.initPoolNetwork(basePath: basePath);
 
       try {

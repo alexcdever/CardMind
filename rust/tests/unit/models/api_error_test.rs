@@ -43,6 +43,8 @@ fn test_api_error_code_as_str() {
     );
     assert_eq!(ApiErrorCode::SyncTimeout.as_str(), "SYNC_TIMEOUT");
     assert_eq!(ApiErrorCode::InvalidHandle.as_str(), "INVALID_HANDLE");
+    assert_eq!(ApiErrorCode::AppLockRequired.as_str(), "APP_LOCK_REQUIRED");
+    assert_eq!(ApiErrorCode::AppLocked.as_str(), "APP_LOCKED");
     assert_eq!(ApiErrorCode::Internal.as_str(), "INTERNAL");
 }
 

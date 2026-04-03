@@ -3,7 +3,8 @@
 // pos: 覆盖无句柄池笔记挂接规则场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::{
     create_card_note, create_card_note_in_pool, create_pool, get_pool_detail, init_app_config,
-    join_pool, reset_app_config_for_tests, update_card_note,
+    join_pool, reset_app_config_for_tests, setup_app_lock, update_card_note,
+    verify_app_lock_with_pin,
 };
 use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
@@ -19,6 +20,12 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
+    setup_app_lock("1234".to_string(), true)?;
+    verify_app_lock_with_pin("1234".to_string())?;
+    Ok(())
+}
+
 #[test]
 #[serial]
 fn join_pool_should_attach_existing_notes_including_soft_deleted(
@@ -27,6 +34,7 @@ fn join_pool_should_attach_existing_notes_including_soft_deleted(
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
 
     let active = create_card_note("active".to_string(), "body".to_string())?;
     let deleted = create_card_note("deleted".to_string(), "body".to_string())?;
@@ -65,6 +73,7 @@ fn update_card_should_not_create_duplicate_note_reference() -> Result<(), Box<dy
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
 
     let pool = create_pool(
         "endpoint-a".to_string(),

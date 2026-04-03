@@ -3,12 +3,6 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # API 错误定义
-///
-/// 定义对外 API 的错误结构。
-/// 用于 FFI 边界错误传递。
-library api_error;
-
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -20,7 +14,6 @@ class ApiError implements FrbException {
   /// 错误信息
   final String message;
 
-  /// 创建 ApiError 实例
   const ApiError({required this.code, required this.message});
 
   @override

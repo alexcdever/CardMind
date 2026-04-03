@@ -6,12 +6,6 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
-/// # FRB Web 平台生成代码
-///
-/// flutter_rust_bridge 为 Web 平台自动生成的 Dart 代码。
-/// 包含 WASM 绑定和 Web 平台特定的编解码实现。
-library frb_generated_web;
-
 import 'api.dart';
 import 'api/recovery_contract.dart';
 import 'api/utils.dart';
@@ -133,6 +127,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PoolMemberDto dco_decode_pool_member_dto(dynamic raw);
+
+  @protected
+  (bool, bool) dco_decode_record_bool_bool(dynamic raw);
 
   @protected
   RecoveryContract dco_decode_recovery_contract(dynamic raw);
@@ -270,6 +267,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PoolMemberDto sse_decode_pool_member_dto(SseDeserializer deserializer);
+
+  @protected
+  (bool, bool) sse_decode_record_bool_bool(SseDeserializer deserializer);
 
   @protected
   RecoveryContract sse_decode_recovery_contract(SseDeserializer deserializer);
@@ -431,6 +431,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_pool_member_dto(PoolMemberDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_record_bool_bool((bool, bool) self, SseSerializer serializer);
 
   @protected
   void sse_encode_recovery_contract(

@@ -3,28 +3,40 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # 数据池模型
-///
-/// 定义 CardMind 中的数据池（Pool）相关数据结构。
-/// 包含数据池元数据和成员信息。
-library pool;
-
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
 /// 数据池元数据
+///
+/// 表示一个协作数据池，包含池的唯一标识、成员列表和关联的卡片 ID。
+/// 数据池是 CardMind 多设备同步的基本单元。
+///
+/// # 字段说明
+///
+/// - `pool_id`: 数据池唯一标识符（UUID v7）
+/// - `members`: 池成员列表，包含所有加入该池的设备信息
+/// - `card_ids`: 池内卡片 ID 列表，表示该池包含哪些卡片
 class Pool {
   /// 数据池 ID（UUID v7）
+  ///
+  /// 全局唯一标识符，用于在网络中识别特定的数据池。
+  /// 使用 UUID v7 生成，便于按时间排序。
   final UuidValue poolId;
 
   /// 成员列表
+  ///
+  /// 包含所有加入此数据池的设备成员信息。
+  /// 每个成员通过 `endpoint_id` 唯一标识。
+  /// 列表中必须至少有一个管理员成员。
   final List<PoolMember> members;
 
   /// 关联卡片 ID 列表
+  ///
+  /// 该数据池包含的所有卡片 ID 集合。
+  /// 卡片本身存储在单独的存储中，此处仅保存引用关系。
   final List<UuidValue> cardIds;
 
-  /// 创建 Pool 实例
   const Pool({
     required this.poolId,
     required this.members,
@@ -45,20 +57,45 @@ class Pool {
 }
 
 /// 数据池成员信息
+///
+/// 表示加入数据池的一个设备成员，包含设备标识、用户昵称、
+/// 操作系统信息和权限角色。
+///
+/// # 字段说明
+///
+/// - `endpoint_id`: 成员设备的唯一端点标识
+/// - `nickname`: 用户设置的设备昵称，便于识别
+/// - `os`: 操作系统名称（如 "macOS", "Windows", "iOS"）
+/// - `is_admin`: 管理员权限标记
 class PoolMember {
   /// 成员应用 endpoint id
+  ///
+  /// 设备的唯一标识符，通常由应用实例在首次启动时生成并持久化。
+  /// 用于在同步过程中识别特定的设备实例。
   final String endpointId;
 
   /// 成员昵称
+  ///
+  /// 用户为设备设置的友好名称，用于在成员列表中展示。
+  /// 默认为设备型号或主机名，用户可随时修改。
   final String nickname;
 
   /// 操作系统平台名称
+  ///
+  /// 成员设备的操作系统类型，如 "macOS", "Windows", "Linux", "iOS", "Android"。
+  /// 用于跨平台兼容性提示和 UI 适配。
   final String os;
 
   /// 是否管理员
+  ///
+  /// `true` 表示该成员拥有管理员权限，可以：
+  /// - 批准新成员加入请求
+  /// - 移除其他成员
+  /// - 修改池配置
+  ///
+  /// 每个数据池必须至少保留一个管理员。
   final bool isAdmin;
 
-  /// 创建 PoolMember 实例
   const PoolMember({
     required this.endpointId,
     required this.nickname,

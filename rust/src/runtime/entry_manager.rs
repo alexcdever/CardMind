@@ -31,6 +31,10 @@ pub struct RuntimeEntryStatusDto {
     pub mcp_active: bool,
     /// CLI 入口是否激活。
     pub cli_active: bool,
+    /// 应用锁是否已设置。
+    pub app_lock_enabled: bool,
+    /// 应用锁当前是否已解锁。
+    pub app_lock_unlocked: bool,
 }
 
 /// 运行时入口管理器。
@@ -98,7 +102,43 @@ impl RuntimeEntryManager {
             http_active: http,
             mcp_active: mcp,
             cli_active: cli,
+            app_lock_enabled: state.app_lock_enabled,
+            app_lock_unlocked: state.app_lock_unlocked,
         };
+
+        Ok(())
+    }
+
+    pub fn set_app_lock_state(
+        &self,
+        enabled: bool,
+        unlocked: bool,
+    ) -> Result<(), crate::models::error::CardMindError> {
+        let mut state = self.state.lock().map_err(|_| {
+            crate::models::error::CardMindError::Internal("Runtime state lock poisoned".to_string())
+        })?;
+
+        state.app_lock_enabled = enabled;
+        state.app_lock_unlocked = unlocked;
+        Ok(())
+    }
+
+    pub fn require_unlocked(&self) -> Result<(), crate::models::error::CardMindError> {
+        let state = self.state.lock().map_err(|_| {
+            crate::models::error::CardMindError::Internal("Runtime state lock poisoned".to_string())
+        })?;
+
+        if !state.app_lock_enabled {
+            return Err(crate::models::error::CardMindError::InvalidArgument(
+                "app lock required".to_string(),
+            ));
+        }
+
+        if !state.app_lock_unlocked {
+            return Err(crate::models::error::CardMindError::InvalidArgument(
+                "app lock locked".to_string(),
+            ));
+        }
 
         Ok(())
     }

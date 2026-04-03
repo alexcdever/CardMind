@@ -69,3 +69,7 @@ mod backend_service_test;
 // Runtime 模块测试
 #[path = "unit/runtime/entry_manager_test.rs"]
 mod entry_manager_test;
+
+// Security 模块测试
+#[path = "unit/security/app_lock_test.rs"]
+mod security_app_lock_test;

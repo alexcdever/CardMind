@@ -3,7 +3,7 @@
 // pos: 覆盖 joined pool 当前用户角色真实性的后端契约测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::{
     create_pool, get_joined_pool_view, init_app_config, join_by_code, list_pools,
-    reset_app_config_for_tests,
+    reset_app_config_for_tests, setup_app_lock, verify_app_lock_with_pin,
 };
 use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
@@ -19,6 +19,12 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
+    setup_app_lock("1234".to_string(), true)?;
+    verify_app_lock_with_pin("1234".to_string())?;
+    Ok(())
+}
+
 #[test]
 #[serial]
 fn joined_pool_view_should_return_current_user_role_for_calling_endpoint(
@@ -29,6 +35,7 @@ fn joined_pool_view_should_return_current_user_role_for_calling_endpoint(
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
 
     let pool = create_pool(
         "owner-endpoint".to_string(),
@@ -59,6 +66,7 @@ fn joined_pool_view_should_fail_when_endpoint_is_not_a_member(
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
 
     create_pool(
         "owner-endpoint".to_string(),
@@ -85,6 +93,7 @@ fn list_pools_should_return_current_user_role_for_calling_endpoint(
     reset_app_config()?;
     let dir = tempdir()?;
     init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
 
     let pool = create_pool(
         "owner-endpoint".to_string(),

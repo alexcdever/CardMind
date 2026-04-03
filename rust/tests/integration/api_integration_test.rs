@@ -15,6 +15,11 @@ fn setup_test_env() -> TempDir {
     temp_dir
 }
 
+fn unlock_app_lock_for_pool_apis() {
+    let _ = setup_app_lock("1234".to_string(), true);
+    let _ = verify_app_lock_with_pin("1234".to_string());
+}
+
 // ============================================================================
 // App Config Tests
 // ============================================================================
@@ -106,6 +111,7 @@ fn api_invalid_uuid_format() {
 #[serial]
 fn api_get_nonexistent_pool() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let result = get_pool_detail(
         "550e8400-e29b-41d4-a716-446655440000".to_string(),
@@ -118,6 +124,7 @@ fn api_get_nonexistent_pool() {
 #[serial]
 fn api_join_nonexistent_pool() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let result = join_pool(
         "550e8400-e29b-41d4-a716-446655440000".to_string(),
@@ -132,6 +139,7 @@ fn api_join_nonexistent_pool() {
 #[serial]
 fn api_join_by_code_invalid() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let result = join_by_code(
         "invalid-code".to_string(),
@@ -168,6 +176,7 @@ fn api_delete_nonexistent_card() {
 #[serial]
 fn api_get_joined_pool_view_empty() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     // 没有加入任何数据池时应该返回错误
     let result = get_joined_pool_view("device1".to_string());
@@ -197,6 +206,89 @@ fn api_backend_config_roundtrip() {
 
 #[test]
 #[serial]
+fn api_pool_endpoints_require_app_lock_before_use() {
+    let _temp = setup_test_env();
+
+    let err = create_pool(
+        "device1".to_string(),
+        "Alice".to_string(),
+        "macOS".to_string(),
+    )
+    .unwrap_err();
+
+    assert_eq!(err.code, "APP_LOCK_REQUIRED");
+}
+
+#[test]
+#[serial]
+fn api_pool_endpoints_work_after_app_lock_setup_and_unlock() {
+    let _temp = setup_test_env();
+
+    setup_app_lock("1234".to_string(), true).unwrap();
+    verify_app_lock_with_pin("1234".to_string()).unwrap();
+
+    let pool = create_pool(
+        "device1".to_string(),
+        "Alice".to_string(),
+        "macOS".to_string(),
+    )
+    .unwrap();
+
+    assert_eq!(pool.current_user_role, "admin");
+}
+
+#[test]
+#[serial]
+fn api_pool_endpoints_return_locked_when_pin_threshold_reached() {
+    let _temp = setup_test_env();
+
+    setup_app_lock("1234".to_string(), false).unwrap();
+    for _ in 0..5 {
+        let _ = verify_app_lock_with_pin("0000".to_string());
+    }
+
+    let err = list_pools("device1".to_string()).unwrap_err();
+    assert_eq!(err.code, "APP_LOCKED");
+}
+
+#[test]
+#[serial]
+fn api_app_lock_status_and_reset_roundtrip() {
+    let _temp = setup_test_env();
+    reset_app_lock_for_tests().unwrap();
+
+    let initial = app_lock_status().unwrap();
+    assert_eq!(initial, (false, true));
+
+    setup_app_lock("1234".to_string(), true).unwrap();
+    let configured = app_lock_status().unwrap();
+    assert_eq!(configured, (true, true));
+
+    reset_app_lock_for_tests().unwrap();
+    let reset = app_lock_status().unwrap();
+    assert_eq!(reset, (false, true));
+}
+
+#[test]
+#[serial]
+fn api_mark_biometric_success_unlocks_after_failed_attempts() {
+    let _temp = setup_test_env();
+
+    setup_app_lock("1234".to_string(), true).unwrap();
+    for _ in 0..5 {
+        let _ = verify_app_lock_with_pin("0000".to_string());
+    }
+
+    let locked = list_pools("device1".to_string()).unwrap_err();
+    assert_eq!(locked.code, "APP_LOCKED");
+
+    mark_biometric_success().unwrap();
+    let unlocked = app_lock_status().unwrap();
+    assert_eq!(unlocked, (true, true));
+}
+
+#[test]
+#[serial]
 fn api_runtime_entry_status_reflects_default_config() {
     let _temp = setup_test_env();
 
@@ -211,6 +303,7 @@ fn api_runtime_entry_status_reflects_default_config() {
 #[serial]
 fn api_pool_crud_flow() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let pool = create_pool(
         "device1".to_string(),
@@ -236,6 +329,7 @@ fn api_pool_crud_flow() {
 #[serial]
 fn api_join_pool_success() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let pool = create_pool(
         "admin-device".to_string(),
@@ -261,6 +355,7 @@ fn api_join_pool_success() {
 #[serial]
 fn api_join_by_code_timeout_returns_request_timeout() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let err = join_by_code(
         "timeout".to_string(),
@@ -277,6 +372,7 @@ fn api_join_by_code_timeout_returns_request_timeout() {
 #[serial]
 fn api_join_by_code_valid_uuid_not_found_returns_pool_not_found() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let err = join_by_code(
         uuid::Uuid::new_v4().to_string(),
@@ -293,6 +389,7 @@ fn api_join_by_code_valid_uuid_not_found_returns_pool_not_found() {
 #[serial]
 fn api_list_pools_returns_empty_when_no_pool_exists() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let pools = list_pools("device1".to_string()).unwrap();
 
@@ -343,6 +440,7 @@ fn api_card_note_crud_flow() {
 #[serial]
 fn api_create_card_note_in_pool_attaches_card_to_pool() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let pool = create_pool(
         "device1".to_string(),
@@ -365,6 +463,7 @@ fn api_create_card_note_in_pool_attaches_card_to_pool() {
 #[serial]
 fn api_query_card_notes_filters_by_pool_id() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     let pool = create_pool(
         "device1".to_string(),
@@ -390,6 +489,7 @@ fn api_query_card_notes_filters_by_pool_id() {
 #[serial]
 fn api_sync_functions_validate_invalid_handle() {
     let _temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
 
     assert_eq!(sync_status(99999).unwrap_err().code, "INVALID_HANDLE");
     assert_eq!(
@@ -410,6 +510,7 @@ fn api_sync_functions_validate_invalid_handle() {
 #[serial]
 fn api_pool_network_lifecycle_and_sync_state() {
     let temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
     let network_id = init_pool_network(temp.path().to_str().unwrap().to_string()).unwrap();
 
     let status = sync_status(network_id).unwrap();
@@ -454,6 +555,7 @@ fn api_pool_network_lifecycle_and_sync_state() {
 #[serial]
 fn api_sync_push_returns_ok_when_connected() {
     let temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
     let network_id = init_pool_network(temp.path().to_str().unwrap().to_string()).unwrap();
 
     sync_connect(network_id, "target".to_string()).unwrap();
@@ -475,6 +577,7 @@ fn api_sync_push_returns_ok_when_connected() {
 #[serial]
 fn api_sync_status_returns_degraded_when_projection_pending() {
     let temp = setup_test_env();
+    unlock_app_lock_for_pool_apis();
     let base = temp.path().to_str().unwrap();
     let failing_repo =
         cardmind_rust::store::card_store::CardNoteRepository::new_with_projection_failure(base)
