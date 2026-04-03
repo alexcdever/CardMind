@@ -6,8 +6,6 @@
 /// ## 外部依赖
 /// - 依赖 [SyncService] 提供同步业务逻辑。
 /// - 依赖 [SyncStatus] 提供同步状态模型。
-library sync_controller;
-
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/foundation.dart';

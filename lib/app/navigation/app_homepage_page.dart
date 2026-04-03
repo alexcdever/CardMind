@@ -15,8 +15,6 @@
 /// - 依赖 [AppHomepageController] 管理分区导航状态
 /// - 依赖 [AdaptiveHomepageScaffold] 提供自适应布局
 /// - 依赖 [CardsPage] 和 [PoolPage] 作为内容子页面
-library app_homepage_page;
-
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/app/navigation/app_homepage_controller.dart';

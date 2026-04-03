@@ -1,5 +1,3 @@
-library app_lock_service;
-
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_state.dart';

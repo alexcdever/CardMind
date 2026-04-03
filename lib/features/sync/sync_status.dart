@@ -2,8 +2,6 @@
 ///
 /// 定义同步相关的所有状态类型和数据结构。
 /// 统一表示连接状态与各种错误状态。
-library sync_status;
-
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 
 /// 同步状态类型枚举。

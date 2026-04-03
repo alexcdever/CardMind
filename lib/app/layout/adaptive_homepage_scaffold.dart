@@ -18,8 +18,6 @@
 /// ## 外部依赖
 /// - 依赖 [AppSection] 枚举定义导航分区
 /// - 依赖 [SemanticIds] 提供无障碍标识
-library adaptive_homepage_scaffold;
-
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:flutter/material.dart';

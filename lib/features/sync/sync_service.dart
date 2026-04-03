@@ -6,8 +6,6 @@
 /// ## 外部依赖
 /// - 依赖 [SyncGateway] 提供底层同步网关接口。
 /// - 依赖 [SyncStatus] 提供同步状态模型。
-library sync_service;
-
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/sync/sync_status.dart';

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-import 'package:path/path.dart' as path;
 
 /// Rust代码注释检查配置类
 class RustLinterConfig {
@@ -71,7 +70,7 @@ class RustCommentLinter {
   void scanDirectory(String directoryPath) {
     final directory = Directory(directoryPath);
     if (!directory.existsSync()) {
-      print('Directory not found: $directoryPath');
+      stderr.writeln('Directory not found: $directoryPath');
       return;
     }
 
@@ -130,7 +129,7 @@ class RustCommentLinter {
         validComments++;
         break;
       }
-      if (!line.startsWith('//!') && !line.isEmpty) {
+      if (!line.startsWith('//!') && line.isNotEmpty) {
         break;
       }
     }
@@ -263,18 +262,18 @@ class RustCommentLinter {
 
   /// 输出报告
   void printReport() {
-    print('\n=== Rust Comment Linter Report ===');
-    print('Valid comments found: $validComments');
-    print('Issues found: ${issues.length}');
-    print('==================================');
+    stdout.writeln('\n=== Rust Comment Linter Report ===');
+    stdout.writeln('Valid comments found: $validComments');
+    stdout.writeln('Issues found: ${issues.length}');
+    stdout.writeln('==================================');
 
     if (issues.isNotEmpty) {
-      print('\nIssues:');
+      stdout.writeln('\nIssues:');
       for (final issue in issues) {
-        print(issue);
+        stdout.writeln(issue);
       }
     } else {
-      print('\nNo issues found! All comments are properly formatted.');
+      stdout.writeln('\nNo issues found! All comments are properly formatted.');
     }
   }
 }

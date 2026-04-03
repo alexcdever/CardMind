@@ -5,8 +5,6 @@
 /// ## 外部依赖
 /// - 依赖 [flutter_rust_bridge] 提供与 Rust 层的 FFI 桥接。
 /// - 依赖 [path_provider] 获取应用数据目录。
-library main;
-
 import 'dart:io';
 
 import 'package:cardmind/app/app.dart';

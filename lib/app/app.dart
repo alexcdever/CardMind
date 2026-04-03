@@ -9,8 +9,6 @@
 ///
 /// ## 外部依赖
 /// - 依赖 [AppHomepagePage] 提供首页内容。
-library app;
-
 import 'package:cardmind/app/navigation/app_homepage_page.dart';
 import 'package:flutter/material.dart';
 

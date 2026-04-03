@@ -27,8 +27,8 @@ fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 #[serial]
-fn joined_pool_view_should_return_current_user_role_for_calling_endpoint(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn joined_pool_view_should_return_current_user_role_for_calling_endpoint()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -58,8 +58,8 @@ fn joined_pool_view_should_return_current_user_role_for_calling_endpoint(
 
 #[test]
 #[serial]
-fn joined_pool_view_should_fail_when_endpoint_is_not_a_member(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn joined_pool_view_should_fail_when_endpoint_is_not_a_member()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -85,8 +85,8 @@ fn joined_pool_view_should_fail_when_endpoint_is_not_a_member(
 
 #[test]
 #[serial]
-fn list_pools_should_return_current_user_role_for_calling_endpoint(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn list_pools_should_return_current_user_role_for_calling_endpoint()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());

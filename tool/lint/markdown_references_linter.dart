@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:path/path.dart' as path;
 
 /// Markdown引用信息类
@@ -103,15 +102,15 @@ List<String> verifyReferences(
 
 /// 输出缺失的引用
 void printMissingReferences(List<String> missingReferences) {
-  print('Missing Markdown references:');
-  print('-----------------------------');
+  stdout.writeln('Missing Markdown references:');
+  stdout.writeln('-----------------------------');
 
   if (missingReferences.isEmpty) {
-    print('All references are valid!');
+    stdout.writeln('All references are valid!');
   } else {
-    for (final path in missingReferences) {
-      print('- ${path}');
+    for (final missingPath in missingReferences) {
+      stdout.writeln('- $missingPath');
     }
   }
-  print('-----------------------------');
+  stdout.writeln('-----------------------------');
 }

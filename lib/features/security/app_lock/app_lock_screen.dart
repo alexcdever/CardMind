@@ -1,5 +1,3 @@
-library app_lock_screen;
-
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_state.dart';
 import 'package:flutter/material.dart';

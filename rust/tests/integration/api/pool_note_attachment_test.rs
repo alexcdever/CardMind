@@ -28,8 +28,8 @@ fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 #[serial]
-fn join_pool_should_attach_existing_notes_including_soft_deleted(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn join_pool_should_attach_existing_notes_including_soft_deleted()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;

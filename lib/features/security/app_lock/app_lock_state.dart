@@ -1,5 +1,3 @@
-library app_lock_state;
-
 enum AppLockPhase { unconfigured, locked, unlocked, loading, error }
 
 class AppLockState {

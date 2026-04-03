@@ -8,8 +8,6 @@
 ///
 /// ## 外部依赖
 /// - 依赖 [SemanticIds] 提供语义标识符支持无障碍测试。
-library settings_page;
-
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:flutter/material.dart';
 

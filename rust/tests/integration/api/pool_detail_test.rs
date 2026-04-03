@@ -27,8 +27,8 @@ fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 #[serial]
-fn pool_detail_should_compute_current_user_role_from_calling_endpoint(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn pool_detail_should_compute_current_user_role_from_calling_endpoint()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());

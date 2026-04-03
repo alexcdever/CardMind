@@ -2,8 +2,6 @@
 ///
 /// 定义同步相关的 API 客户端抽象和 FRB 实现。
 /// 提供状态查询、连接管理、数据推送拉取等操作的接口。
-library sync_api_client;
-
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 
 /// 同步 API 客户端抽象接口。

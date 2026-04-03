@@ -18,8 +18,6 @@
 ///
 /// ## 外部依赖
 /// - 依赖 [AppSection] 枚举定义可用的导航分区
-library app_homepage_controller;
-
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:flutter/foundation.dart';
 
