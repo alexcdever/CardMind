@@ -14,7 +14,7 @@
 
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::card::Card;
-use crate::models::pool::{Pool, PoolMember};
+use crate::models::pool::{JoinRequestStatus, Pool, PoolMember};
 use uuid::Uuid;
 
 /// 将 `CardMindError` 映射为 `ApiError`。
@@ -261,7 +261,7 @@ pub fn to_pool_dto(pool: &Pool, endpoint_id: &str) -> Result<crate::api::PoolDto
     Ok(crate::api::PoolDto {
         id: pool.pool_id.to_string(),
         name: pool_name(pool),
-        is_dissolved: false,
+        is_dissolved: pool.is_dissolved,
         current_user_role: current_member_role_for_endpoint(pool, endpoint_id)?,
         member_count: pool.members.len(),
     })
@@ -294,7 +294,7 @@ pub fn to_pool_detail_dto(
     Ok(crate::api::PoolDetailDto {
         id: pool.pool_id.to_string(),
         name: pool_name(pool),
-        is_dissolved: false,
+        is_dissolved: pool.is_dissolved,
         current_user_role: current_member_role_for_endpoint(pool, endpoint_id)?,
         member_count: pool.members.len(),
         note_ids: pool.card_ids.iter().map(Uuid::to_string).collect(),
@@ -306,6 +306,22 @@ pub fn to_pool_detail_dto(
                 nickname: member.nickname.clone(),
                 os: member.os.clone(),
                 role: member_role(member),
+            })
+            .collect(),
+        join_requests: pool
+            .join_requests
+            .iter()
+            .map(|request| crate::api::JoinRequestDto {
+                request_id: request.request_id.to_string(),
+                applicant_endpoint_id: request.applicant.endpoint_id.clone(),
+                applicant_nickname: request.applicant.nickname.clone(),
+                applicant_os: request.applicant.os.clone(),
+                status: match request.status {
+                    JoinRequestStatus::Pending => "pending".to_string(),
+                    JoinRequestStatus::Approved => "approved".to_string(),
+                    JoinRequestStatus::Rejected => "rejected".to_string(),
+                    JoinRequestStatus::Cancelled => "cancelled".to_string(),
+                },
             })
             .collect(),
     })

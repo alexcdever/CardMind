@@ -192,12 +192,17 @@ class _PoolPageState extends State<PoolPage> {
                 padding: const EdgeInsets.all(16),
                 child: Text(state.poolName),
               ),
+              if (state.isDissolved)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('该数据池已解散，当前为只读状态'),
+                ),
               for (var i = 0; i < state.memberLabels.length; i++)
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text('${i + 1}. ${state.memberLabels[i]}'),
                 ),
-              if (state.isOwner)
+              if (state.isOwner && !state.isDissolved)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Wrap(
@@ -240,7 +245,9 @@ class _PoolPageState extends State<PoolPage> {
                   button: true,
                   child: OutlinedButton(
                     key: const ValueKey('pool.leave_button'),
-                    onPressed: () => _confirmLeavePool(context),
+                    onPressed: state.isDissolved
+                        ? null
+                        : () => _confirmLeavePool(context),
                     child: const Text('退出池'),
                   ),
                 ),

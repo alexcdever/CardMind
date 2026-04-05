@@ -2,6 +2,7 @@
 // output: 断言 PoolController 的创建、加入、审批、拒绝与同步恢复分支正确。
 // pos: PoolController 单元测试。修改本文件需同步更新所属 DIR.md。
 import 'package:cardmind/bridge_generated/api.dart' as frb;
+import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
@@ -12,15 +13,23 @@ import 'package:flutter_test/flutter_test.dart';
 class _FakePoolApiClient implements PoolApiClient {
   PoolJoinResult joinResult = const PoolJoinResult.joined(poolName: 'Joined');
   PoolViewData? joinedView = const PoolViewData(
+    poolId: 'pool-joined',
     poolName: 'Joined',
+    isDissolved: false,
     isOwner: false,
     currentIdentityLabel: 'joiner@test',
     memberLabels: <String>['owner@test', 'joiner@test'],
   );
+  Object? leaveError;
+  String? leftPoolId;
+  bool dissolveCalled = false;
+  List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
 
   @override
   Future<PoolCreateResult> createPool() async => const PoolCreateResult(
+    poolId: 'pool-created',
     poolName: 'Created',
+    isDissolved: false,
     isOwner: true,
     currentIdentityLabel: 'owner@test',
     memberLabels: <String>['owner@test'],
@@ -29,7 +38,9 @@ class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async =>
       const PoolDetailData(
+        poolId: 'pool-detail',
         poolName: 'Detail',
+        isDissolved: false,
         isOwner: true,
         currentIdentityLabel: 'owner@test',
         memberLabels: <String>['owner@test'],
@@ -40,6 +51,50 @@ class _FakePoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolJoinResult> joinByCode(String code) async => joinResult;
+
+  @override
+  Future<void> leavePool(String poolId) async {
+    leftPoolId = poolId;
+    if (leaveError != null) {
+      throw leaveError!;
+    }
+  }
+
+  @override
+  Future<PoolDetailData> dissolvePool(String poolId) async {
+    dissolveCalled = true;
+    return const PoolDetailData(
+      poolId: 'pool-joined',
+      poolName: 'Joined',
+      isDissolved: true,
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+      joinRequests: <JoinRequestData>[],
+    );
+  }
+
+  @override
+  Future<List<JoinRequestData>> submitJoinRequest(String poolId) async =>
+      joinRequestResults;
+
+  @override
+  Future<List<JoinRequestData>> approveJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => joinRequestResults;
+
+  @override
+  Future<List<JoinRequestData>> rejectJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => joinRequestResults;
+
+  @override
+  Future<List<JoinRequestData>> cancelJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => joinRequestResults;
 }
 
 class _NoopGateway implements SyncGateway {
@@ -162,6 +217,7 @@ void main() {
 
     final joined = controller.state as PoolJoined;
     expect(joined.poolName, 'Fallback Pool');
+    expect(joined.poolId, 'default-pool');
     expect(joined.currentIdentityLabel, 'peer-x');
     expect(joined.memberLabels, <String>['peer-x']);
   });
@@ -192,6 +248,114 @@ void main() {
     controller.approve('request');
 
     expect(controller.state, const PoolState.notJoined());
+  });
+
+  test('confirmExit_keepsJoinedStateWhenLastAdminCannotLeave', () async {
+    final client = _FakePoolApiClient()
+      ..leaveError = ApiError(
+        code: 'INVALID_ARGUMENT',
+        message: 'last admin cannot leave pool',
+      );
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'pool-joined',
+        poolName: 'Joined',
+        isOwner: true,
+        currentIdentityLabel: 'owner@test',
+        memberLabels: <String>['owner@test', 'member@test'],
+      ),
+    );
+
+    await controller.confirmExit();
+
+    final joined = controller.state as PoolJoined;
+    expect(joined.poolId, 'pool-joined');
+    expect(joined.approvalMessage, contains('唯一的管理员'));
+    expect(client.leftPoolId, 'pool-joined');
+  });
+
+  test('dissolvePool_marksJoinedStateAsReadOnly', () async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'pool-joined',
+        poolName: 'Joined',
+        isOwner: true,
+        isDissolved: false,
+        currentIdentityLabel: 'owner@test',
+        memberLabels: <String>['owner@test'],
+      ),
+    );
+
+    await controller.dissolvePool();
+
+    final joined = controller.state as PoolJoined;
+    expect(client.dissolveCalled, isTrue);
+    expect(joined.isDissolved, isTrue);
+    expect(joined.approvalMessage, contains('只读状态'));
+  });
+
+  test('submitJoinRequest_updatesPendingRequestsFromApi', () async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[
+        JoinRequestData(
+          requestId: 'req-1',
+          displayName: 'member@test',
+          status: 'pending',
+        ),
+      ];
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(poolId: 'pool-joined'),
+    );
+
+    await controller.submitJoinRequest();
+
+    final joined = controller.state as PoolJoined;
+    expect(joined.pending.single.id, 'req-1');
+    expect(joined.approvalMessage, contains('等待管理员审批'));
+  });
+
+  test('approve_usesApiResultToRefreshPendingList', () async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[];
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'pool-joined',
+        pending: <PoolPendingRequest>[
+          PoolPendingRequest(id: 'req-1', displayName: 'member@test'),
+        ],
+      ),
+    );
+
+    await controller.approve('req-1');
+
+    final joined = controller.state as PoolJoined;
+    expect(joined.pending, isEmpty);
+    expect(joined.approvalMessage, '审批已通过');
+  });
+
+  test('cancelJoinRequest_usesApiResultToRefreshPendingList', () async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[];
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'pool-joined',
+        pending: <PoolPendingRequest>[
+          PoolPendingRequest(id: 'req-1', displayName: 'member@test'),
+        ],
+      ),
+    );
+
+    await controller.cancelJoinRequest('req-1');
+
+    final joined = controller.state as PoolJoined;
+    expect(joined.pending, isEmpty);
+    expect(joined.approvalMessage, '加入申请已取消');
   });
 
   test('reject_marksFirstFailureAndRemovesAfterRetry', () {

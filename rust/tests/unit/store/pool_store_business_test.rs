@@ -4,7 +4,7 @@
 // 中文注释：本文件测试数据池业务逻辑。
 
 use cardmind_rust::models::error::CardMindError;
-use cardmind_rust::models::pool::PoolMember;
+use cardmind_rust::models::pool::{JoinRequestStatus, PoolMember};
 use cardmind_rust::store::pool_store::PoolStore;
 use tempfile::TempDir;
 use uuid::Uuid;
@@ -255,10 +255,129 @@ fn test_leave_pool_last_member() {
     let (store, _temp) = setup_pool_store();
     let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
 
+    let result = store.leave_pool(&pool.pool_id, "ep1");
+
+    assert!(matches!(result, Err(CardMindError::InvalidArgument(_))));
+}
+
+#[test]
+fn test_leave_pool_last_admin_rejected() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+
+    let new_member = PoolMember {
+        endpoint_id: "ep2".to_string(),
+        nickname: "Member".to_string(),
+        os: "Windows".to_string(),
+        is_admin: false,
+    };
+    let pool = store.join_pool(&pool, new_member, vec![]).unwrap();
+
+    let result = store.leave_pool(&pool.pool_id, "ep1");
+
+    assert!(matches!(result, Err(CardMindError::InvalidArgument(_))));
+}
+
+#[test]
+fn test_leave_pool_when_other_admin_exists() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+
+    let admin2 = PoolMember {
+        endpoint_id: "ep2".to_string(),
+        nickname: "Admin2".to_string(),
+        os: "Windows".to_string(),
+        is_admin: true,
+    };
+    let pool = store.join_pool(&pool, admin2, vec![]).unwrap();
+
     let updated = store.leave_pool(&pool.pool_id, "ep1").unwrap();
 
-    // Pool exists but has no members
-    assert!(updated.members.is_empty());
+    assert_eq!(updated.members.len(), 1);
+    assert_eq!(updated.members[0].endpoint_id, "ep2");
+    assert!(updated.members[0].is_admin);
+}
+
+#[test]
+fn test_dissolve_pool_single_admin_success() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+
+    let dissolved = store.dissolve_pool(&pool.pool_id, "ep1").unwrap();
+
+    assert!(dissolved.is_dissolved);
+}
+
+#[test]
+fn test_dissolve_pool_rejects_non_admin() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+    let pool = store
+        .join_pool(
+            &pool,
+            PoolMember {
+                endpoint_id: "ep2".to_string(),
+                nickname: "Member".to_string(),
+                os: "Windows".to_string(),
+                is_admin: false,
+            },
+            vec![],
+        )
+        .unwrap();
+
+    let result = store.dissolve_pool(&pool.pool_id, "ep2");
+
+    assert!(matches!(result, Err(CardMindError::InvalidArgument(_))));
+}
+
+#[test]
+fn test_dissolve_pool_rejects_when_other_members_exist() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+    let pool = store
+        .join_pool(
+            &pool,
+            PoolMember {
+                endpoint_id: "ep2".to_string(),
+                nickname: "Member".to_string(),
+                os: "Windows".to_string(),
+                is_admin: false,
+            },
+            vec![],
+        )
+        .unwrap();
+
+    let result = store.dissolve_pool(&pool.pool_id, "ep1");
+
+    assert!(matches!(result, Err(CardMindError::InvalidArgument(_))));
+}
+
+#[test]
+fn test_dissolved_pool_rejects_modification() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+    let dissolved = store.dissolve_pool(&pool.pool_id, "ep1").unwrap();
+
+    let join_result = store.join_pool(
+        &dissolved,
+        PoolMember {
+            endpoint_id: "ep2".to_string(),
+            nickname: "Member".to_string(),
+            os: "Windows".to_string(),
+            is_admin: false,
+        },
+        vec![],
+    );
+    let attach_result = store.attach_note_references(&dissolved.pool_id, vec![Uuid::new_v4()]);
+
+    assert!(matches!(
+        join_result,
+        Err(CardMindError::InvalidArgument(_))
+    ));
+    assert!(matches!(
+        attach_result,
+        Err(CardMindError::InvalidArgument(_))
+    ));
 }
 
 // ============================================================================
@@ -468,6 +587,104 @@ fn test_leave_nonexistent_member() {
 
     // Pool unchanged
     assert_eq!(updated.members.len(), 1);
+}
+
+#[test]
+fn test_submit_join_request_creates_pending_request() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+
+    let updated = store
+        .submit_join_request(
+            &pool.pool_id,
+            PoolMember {
+                endpoint_id: "ep2".to_string(),
+                nickname: "Applicant".to_string(),
+                os: "Windows".to_string(),
+                is_admin: false,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(updated.join_requests.len(), 1);
+    assert_eq!(updated.join_requests[0].status, JoinRequestStatus::Pending);
+}
+
+#[test]
+fn test_approve_join_request_adds_member() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+    let pool = store
+        .submit_join_request(
+            &pool.pool_id,
+            PoolMember {
+                endpoint_id: "ep2".to_string(),
+                nickname: "Applicant".to_string(),
+                os: "Windows".to_string(),
+                is_admin: false,
+            },
+        )
+        .unwrap();
+    let request_id = pool.join_requests[0].request_id;
+
+    let updated = store
+        .approve_join_request(&pool.pool_id, &request_id, "ep1", vec![])
+        .unwrap();
+
+    assert_eq!(updated.members.len(), 2);
+    assert_eq!(updated.join_requests[0].status, JoinRequestStatus::Approved);
+}
+
+#[test]
+fn test_reject_join_request_marks_rejected() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+    let pool = store
+        .submit_join_request(
+            &pool.pool_id,
+            PoolMember {
+                endpoint_id: "ep2".to_string(),
+                nickname: "Applicant".to_string(),
+                os: "Windows".to_string(),
+                is_admin: false,
+            },
+        )
+        .unwrap();
+    let request_id = pool.join_requests[0].request_id;
+
+    let updated = store
+        .reject_join_request(&pool.pool_id, &request_id, "ep1")
+        .unwrap();
+
+    assert_eq!(updated.join_requests[0].status, JoinRequestStatus::Rejected);
+    assert_eq!(updated.members.len(), 1);
+}
+
+#[test]
+fn test_cancel_join_request_marks_cancelled() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+    let pool = store
+        .submit_join_request(
+            &pool.pool_id,
+            PoolMember {
+                endpoint_id: "ep2".to_string(),
+                nickname: "Applicant".to_string(),
+                os: "Windows".to_string(),
+                is_admin: false,
+            },
+        )
+        .unwrap();
+    let request_id = pool.join_requests[0].request_id;
+
+    let updated = store
+        .cancel_join_request(&pool.pool_id, &request_id, "ep2")
+        .unwrap();
+
+    assert_eq!(
+        updated.join_requests[0].status,
+        JoinRequestStatus::Cancelled
+    );
 }
 
 // ============================================================================

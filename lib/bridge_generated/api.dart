@@ -9,8 +9,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
 
-// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `app_lock_state`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `list_all_card_ids`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `require_app_lock_unlocked`, `with_configured_card_store`, `with_configured_pool_store`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `app_lock_state`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `list_all_card_ids`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `require_app_lock_unlocked`, `to_join_request_dtos`, `with_configured_card_store`, `with_configured_pool_store`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 获取后端服务配置
 ///
@@ -313,6 +313,68 @@ Future<PoolDto> joinByCode({
   endpointId: endpointId,
   nickname: nickname,
   os: os,
+);
+
+/// 离开数据池
+///
+/// 从指定数据池中移除当前 endpoint 对应的成员关系。
+Future<PoolDto> leavePool({
+  required String poolId,
+  required String endpointId,
+}) => RustLib.instance.api.crateApiLeavePool(
+  poolId: poolId,
+  endpointId: endpointId,
+);
+
+/// 解散数据池
+Future<PoolDto> dissolvePool({
+  required String poolId,
+  required String endpointId,
+}) => RustLib.instance.api.crateApiDissolvePool(
+  poolId: poolId,
+  endpointId: endpointId,
+);
+
+Future<List<JoinRequestDto>> submitJoinRequest({
+  required String poolId,
+  required String endpointId,
+  required String nickname,
+  required String os,
+}) => RustLib.instance.api.crateApiSubmitJoinRequest(
+  poolId: poolId,
+  endpointId: endpointId,
+  nickname: nickname,
+  os: os,
+);
+
+Future<List<JoinRequestDto>> approveJoinRequest({
+  required String poolId,
+  required String requestId,
+  required String approverEndpointId,
+}) => RustLib.instance.api.crateApiApproveJoinRequest(
+  poolId: poolId,
+  requestId: requestId,
+  approverEndpointId: approverEndpointId,
+);
+
+Future<List<JoinRequestDto>> rejectJoinRequest({
+  required String poolId,
+  required String requestId,
+  required String approverEndpointId,
+}) => RustLib.instance.api.crateApiRejectJoinRequest(
+  poolId: poolId,
+  requestId: requestId,
+  approverEndpointId: approverEndpointId,
+);
+
+Future<List<JoinRequestDto>> cancelJoinRequest({
+  required String poolId,
+  required String requestId,
+  required String applicantEndpointId,
+}) => RustLib.instance.api.crateApiCancelJoinRequest(
+  poolId: poolId,
+  requestId: requestId,
+  applicantEndpointId: applicantEndpointId,
 );
 
 /// 列出所有数据池
@@ -1043,6 +1105,41 @@ class CardNoteDto {
           deleted == other.deleted;
 }
 
+class JoinRequestDto {
+  final String requestId;
+  final String applicantEndpointId;
+  final String applicantNickname;
+  final String applicantOs;
+  final String status;
+
+  const JoinRequestDto({
+    required this.requestId,
+    required this.applicantEndpointId,
+    required this.applicantNickname,
+    required this.applicantOs,
+    required this.status,
+  });
+
+  @override
+  int get hashCode =>
+      requestId.hashCode ^
+      applicantEndpointId.hashCode ^
+      applicantNickname.hashCode ^
+      applicantOs.hashCode ^
+      status.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is JoinRequestDto &&
+          runtimeType == other.runtimeType &&
+          requestId == other.requestId &&
+          applicantEndpointId == other.applicantEndpointId &&
+          applicantNickname == other.applicantNickname &&
+          applicantOs == other.applicantOs &&
+          status == other.status;
+}
+
 /// 数据池详细信息 DTO。
 ///
 /// 包含池的完整信息，包括成员列表和笔记 ID 列表。
@@ -1054,6 +1151,7 @@ class PoolDetailDto {
   final BigInt memberCount;
   final List<String> noteIds;
   final List<PoolMemberDto> members;
+  final List<JoinRequestDto> joinRequests;
 
   const PoolDetailDto({
     required this.id,
@@ -1063,6 +1161,7 @@ class PoolDetailDto {
     required this.memberCount,
     required this.noteIds,
     required this.members,
+    required this.joinRequests,
   });
 
   @override
@@ -1073,7 +1172,8 @@ class PoolDetailDto {
       currentUserRole.hashCode ^
       memberCount.hashCode ^
       noteIds.hashCode ^
-      members.hashCode;
+      members.hashCode ^
+      joinRequests.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -1086,7 +1186,8 @@ class PoolDetailDto {
           currentUserRole == other.currentUserRole &&
           memberCount == other.memberCount &&
           noteIds == other.noteIds &&
-          members == other.members;
+          members == other.members &&
+          joinRequests == other.joinRequests;
 }
 
 /// 数据池信息 DTO。

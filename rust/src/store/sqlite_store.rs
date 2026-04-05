@@ -23,6 +23,7 @@
 //! ## 数据库 Schema
 //! - `cards`：卡片主表（id, title, content, created_at, updated_at, deleted）
 //! - `pools`：数据池主表（pool_id）
+//! - `pools`：数据池主表（pool_id, is_dissolved）
 //! - `pool_members`：池成员关联表（pool_id, endpoint_id, nickname, os, is_admin）
 //! - `pool_cards`：池卡片关联表（pool_id, card_id）
 //! - `projection_failures`：投影失败记录表（entity_type, entity_id, retry_action）
@@ -45,7 +46,7 @@
 use crate::models::card::Card;
 use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
-use rusqlite::{Connection, Row, params};
+use rusqlite::{params, Connection, Row};
 use std::path::Path;
 use uuid::Uuid;
 
@@ -98,7 +99,8 @@ impl SqliteStore {
                 deleted INTEGER NOT NULL
             );
             CREATE TABLE IF NOT EXISTS pools (
-                pool_id TEXT PRIMARY KEY
+                pool_id TEXT PRIMARY KEY,
+                is_dissolved INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS pool_members (
                 pool_id TEXT NOT NULL,
@@ -407,8 +409,11 @@ impl SqliteStore {
     pub fn upsert_pool(&self, pool: &Pool) -> Result<(), CardMindError> {
         self.conn
             .execute(
-                "INSERT OR REPLACE INTO pools (pool_id) VALUES (?1);",
-                params![pool.pool_id.to_string()],
+                "INSERT OR REPLACE INTO pools (pool_id, is_dissolved) VALUES (?1, ?2);",
+                params![
+                    pool.pool_id.to_string(),
+                    if pool.is_dissolved { 1 } else { 0 }
+                ],
             )
             .map_err(|e| CardMindError::Sqlite(e.to_string()))?;
         self.conn
@@ -575,7 +580,7 @@ impl SqliteStore {
     pub fn get_pool(&self, id: &Uuid) -> Result<Pool, CardMindError> {
         let id_str = id.to_string();
         let pool_row = self.conn.query_row(
-            "SELECT pool_id FROM pools WHERE pool_id = ?1;",
+            "SELECT pool_id, is_dissolved FROM pools WHERE pool_id = ?1;",
             params![id_str],
             |row| {
                 let pool_id: String = row.get(0)?;
@@ -586,10 +591,11 @@ impl SqliteStore {
                         Box::new(std::fmt::Error),
                     )
                 })?;
-                Ok(pool_id)
+                let is_dissolved = row.get::<_, i64>(1)? != 0;
+                Ok((pool_id, is_dissolved))
             },
         );
-        let pool_id = match pool_row {
+        let (pool_id, is_dissolved) = match pool_row {
             Ok(row) => row,
             Err(rusqlite::Error::QueryReturnedNoRows) => {
                 return Err(CardMindError::NotFound("pool not found".to_string()));
@@ -645,6 +651,8 @@ impl SqliteStore {
             pool_id,
             members,
             card_ids,
+            is_dissolved,
+            join_requests: Vec::new(),
         })
     }
 

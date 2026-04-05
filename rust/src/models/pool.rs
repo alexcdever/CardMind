@@ -40,6 +40,8 @@
 //!     pool_id: Uuid::now_v7(),
 //!     members: vec![member],
 //!     card_ids: vec![],
+//!     is_dissolved: false,
+//!     join_requests: vec![],
 //! };
 //! ```
 
@@ -56,6 +58,8 @@ use uuid::Uuid;
 /// - `pool_id`: 数据池唯一标识符（UUID v7）
 /// - `members`: 池成员列表，包含所有加入该池的设备信息
 /// - `card_ids`: 池内卡片 ID 列表，表示该池包含哪些卡片
+/// - `is_dissolved`: 池是否已解散，解散后只能读取不可修改
+/// - `join_requests`: 待处理或历史加入申请列表
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pool {
     /// 数据池 ID（UUID v7）
@@ -76,6 +80,27 @@ pub struct Pool {
     /// 该数据池包含的所有卡片 ID 集合。
     /// 卡片本身存储在单独的存储中，此处仅保存引用关系。
     pub card_ids: Vec<Uuid>,
+
+    /// 是否已解散。
+    pub is_dissolved: bool,
+
+    /// 加入申请列表。
+    pub join_requests: Vec<JoinRequest>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct JoinRequest {
+    pub request_id: Uuid,
+    pub applicant: PoolMember,
+    pub status: JoinRequestStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum JoinRequestStatus {
+    Pending,
+    Approved,
+    Rejected,
+    Cancelled,
 }
 
 /// 数据池成员信息
@@ -89,7 +114,7 @@ pub struct Pool {
 /// - `nickname`: 用户设置的设备昵称，便于识别
 /// - `os`: 操作系统名称（如 "macOS", "Windows", "iOS"）
 /// - `is_admin`: 管理员权限标记
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PoolMember {
     /// 成员应用 endpoint id
     ///
@@ -144,6 +169,8 @@ impl Pool {
             pool_id: Uuid::now_v7(),
             members: Vec::new(),
             card_ids: Vec::new(),
+            is_dissolved: false,
+            join_requests: Vec::new(),
         }
     }
 

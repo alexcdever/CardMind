@@ -3,21 +3,36 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
-/// # 恢复契约模块
-///
-/// 定义同步恢复状态的契约和状态机。
-/// 包含连续性状态、恢复阶段、本地内容安全等核心概念。
-library recovery_contract;
-
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `compute_continuity_state`, `compute_next_action`, `compute_operations`, `compute_recovery_stage`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `hash`, `hash`, `hash`, `hash`, `hash`
 
-/// 从旧版状态转换到 Phase 2 契约
+/// 从旧版状态转换到 Phase 2 契约。
 ///
-/// 这是兼容层，用于逐步迁移
+/// 这是兼容层，用于逐步迁移旧系统的状态表示。
+///
+/// # 参数
+/// * `sync_state` - 旧版同步状态字符串。
+/// * `projection_state` - 旧版投影状态字符串。
+/// * `has_error` - 是否有错误标志。
+///
+/// # 返回
+/// 转换后的 `RecoveryContract` 实例。
+///
+/// # 映射规则
+/// - `"idle"` / `"connected"` → `"ready"`
+/// - `"sync_failed"` / `has_error=true` → `"blocked"`
+/// - 其他 → `"recovering"`
+///
+/// # Examples
+/// ```rust,ignore
+/// use cardmind_rust::api::recovery_contract::legacy_to_phase2_contract;
+///
+/// let contract = legacy_to_phase2_contract("idle", "projection_ready", false);
+/// assert_eq!(contract.sync_state.as_str(), "ready");
+/// ```
 Future<RecoveryContract> legacyToPhase2Contract({
   required String syncState,
   required String projectionState,
@@ -28,95 +43,105 @@ Future<RecoveryContract> legacyToPhase2Contract({
   hasError: hasError,
 );
 
-/// 连续性状态枚举
+/// 连续性状态。
+///
+/// 表示数据连续性是否受损。
 enum ContinuityState {
-  /// 同一路径
+  /// 路径一致，数据连续性完好。
   samePath,
 
-  /// 路径存在风险
+  /// 路径有风险，但尚未断裂。
   pathAtRisk,
 
-  /// 路径已断开
+  /// 路径已断裂，数据连续性受损。
   pathBroken;
 
-  /// 将枚举值转换为字符串
+  /// 将枚举转换为字符串表示。
   Future<void> asStr() => RustLib.instance.api
       .crateApiRecoveryContractContinuityStateAsStr(that: this);
 }
 
-/// Phase 2 本地内容安全状态枚举
+/// Phase 2 本地内容安全状态。
+///
+/// 表示本地数据的安全等级，决定允许的操作范围。
 enum LocalContentSafety {
-  /// 安全
+  /// 数据安全，允许正常读写操作。
   safe,
 
-  /// 只读风险
+  /// 只读风险，建议暂停写入操作。
   readOnlyRisk,
 
-  /// 未知
+  /// 状态未知，需保守处理。
   unknown;
 
-  /// 将枚举值转换为字符串
+  /// 将枚举转换为字符串表示。
+  ///
+  /// # 返回
+  /// - `"safe"` - 安全状态
+  /// - `"read_only_risk"` - 只读风险
+  /// - `"unknown"` - 未知状态
   Future<void> asStr() => RustLib.instance.api
       .crateApiRecoveryContractLocalContentSafetyAsStr(that: this);
 }
 
-/// 下一步动作枚举
+/// 下一步动作。
+///
+/// 表示系统建议的下一步恢复动作。
 enum NextAction {
-  /// 无
+  /// 无需动作，继续当前状态。
   none,
 
-  /// 重试同步
+  /// 重试同步操作。
   retrySync,
 
-  /// 重试查询收敛
+  /// 重试查询收敛状态。
   retryQueryConvergence,
 
-  /// 重新连接实例
+  /// 重新连接实例。
   reconnectInstance,
 
-  /// 重新检查状态
+  /// 重新检查当前状态。
   recheckStatus,
 
-  /// 返回源实例
+  /// 返回源实例。
   returnToSourceInstance;
 
-  /// 将枚举值转换为字符串
+  /// 将枚举转换为字符串表示。
   Future<void> asStr() =>
       RustLib.instance.api.crateApiRecoveryContractNextActionAsStr(that: this);
 }
 
-/// Phase 2 恢复契约
+/// Phase 2 恢复契约。
 ///
-/// 包含所有归一化判断和恢复策略。
+/// 包含所有归一化判断结果，是恢复决策的唯一真相来源。
 class RecoveryContract {
-  /// 本地内容安全状态
+  /// 本地内容安全状态。
   final LocalContentSafety localContentSafety;
 
-  /// 同步子状态
+  /// 同步子状态。
   final SubState syncState;
 
-  /// 查询收敛子状态
+  /// 查询收敛子状态。
   final SubState queryConvergenceState;
 
-  /// 实例连续性子状态
+  /// 实例连续性子状态。
   final SubState instanceContinuityState;
 
-  /// 恢复阶段
+  /// 当前恢复阶段。
   final RecoveryStage recoveryStage;
 
-  /// 连续性状态
+  /// 连续性状态。
   final ContinuityState continuityState;
 
-  /// 下一步动作
+  /// 建议的下一步动作。
   final NextAction nextAction;
 
-  /// 允许的操作列表
+  /// 允许的操作列表。
   final List<String> allowedOperations;
 
-  /// 禁止的操作列表
+  /// 禁止的操作列表。
   final List<String> forbiddenOperations;
 
-  /// 创建 RecoveryContract 实例
   const RecoveryContract({
     required this.localContentSafety,
     required this.syncState,
@@ -129,13 +154,32 @@ class RecoveryContract {
     required this.forbiddenOperations,
   });
 
-  /// 从底层证据构建契约
+  /// 从底层证据构建契约。
+  ///
+  /// 根据各种子状态和风险证据计算完整的恢复契约。
   ///
   /// # 参数
-  /// - `syncState`: 同步子状态字符串 ("ready" | "recovering" | "blocked")
-  /// - `queryConvergenceState`: 查询收敛子状态字符串 ("ready" | "pending" | "blocked")
-  /// - `instanceContinuityState`: 实例连续性子状态字符串 ("ready" | "recovering" | "blocked")
-  /// - `hasLocalContentRisk`: 是否有本地内容风险证据
+  /// * `sync_state` - 同步子状态字符串（"ready" | "recovering" | "blocked"）
+  /// * `query_convergence_state` - 查询收敛子状态字符串（"ready" | "pending" | "blocked"）
+  /// * `instance_continuity_state` - 实例连续性子状态字符串（"ready" | "recovering" | "blocked"）
+  /// * `has_local_content_risk` - 是否有本地内容风险证据
+  ///
+  /// # 返回
+  /// 完整的 `RecoveryContract` 实例。
+  ///
+  /// # Examples
+  /// ```rust,ignore
+  /// use cardmind_rust::api::recovery_contract::RecoveryContract;
+  ///
+  /// let contract = RecoveryContract::from_evidence(
+  ///     "ready",      // sync_state
+  ///     "ready",      // query_convergence_state
+  ///     "ready",      // instance_continuity_state
+  ///     false,        // has_local_content_risk
+  /// );
+  ///
+  /// assert!(contract.validate().is_ok());
+  /// ```
   static Future<RecoveryContract> fromEvidence({
     required String syncState,
     required String queryConvergenceState,
@@ -149,9 +193,19 @@ class RecoveryContract {
         hasLocalContentRisk: hasLocalContentRisk,
       );
 
-  /// 验证契约约束
+  /// 验证契约约束。
   ///
-  /// 返回 Ok(()) 如果所有约束满足，否则返回错误描述
+  /// 检查契约中的各种组合是否违反规则。
+  ///
+  /// # 返回
+  /// - `Ok(())` - 所有约束满足。
+  /// - `Err(String)` - 发现非法组合，返回错误描述。
+  ///
+  /// # 验证规则
+  /// - 规则 8.2.1: `safe` 时 `continuity_state` 不能是 `path_broken`
+  /// - 规则 8.2.4: `needs_user_action` 时 `next_action` 不能是 `none`
+  /// - 规则 8.2.5: `next_action=none` 时 `recovery_stage` 只能是 `stable/waiting/retrying`
+  /// - 规则 8.2.8: `path_broken` 时必须有明确断裂证据
   Future<void> validate() => RustLib.instance.api
       .crateApiRecoveryContractRecoveryContractValidate(that: this);
 
@@ -183,43 +237,47 @@ class RecoveryContract {
           forbiddenOperations == other.forbiddenOperations;
 }
 
-/// 恢复阶段枚举
+/// 恢复阶段。
+///
+/// 表示当前系统所处的恢复阶段，用于决策下一步动作。
 enum RecoveryStage {
-  /// 稳定状态
+  /// 稳定状态，无需恢复操作。
   stable,
 
-  /// 等待状态
+  /// 等待中，正在观察或等待条件满足。
   waiting,
 
-  /// 重试状态
+  /// 重试中，正在自动重试之前的失败操作。
   retrying,
 
-  /// 需要用户操作
+  /// 需要用户操作，无法自动恢复。
   needsUserAction,
 
-  /// 未知不安全状态
+  /// 不安全未知状态，可能存在数据风险。
   unsafeUnknown;
 
-  /// 将枚举值转换为字符串
+  /// 将枚举转换为字符串表示。
   Future<void> asStr() => RustLib.instance.api
       .crateApiRecoveryContractRecoveryStageAsStr(that: this);
 }
 
-/// 子状态统一枚举
+/// 子状态统一枚举。
+///
+/// 用于表示各种恢复子状态的通用状态机。
 enum SubState {
-  /// 就绪
+  /// 就绪状态，可以进行正常操作。
   ready,
 
-  /// 恢复中
+  /// 恢复中，正在处理之前的故障。
   recovering,
 
-  /// 已阻塞
+  /// 被阻塞，需要用户介入或等待外部条件。
   blocked,
 
-  /// 等待中
+  /// 待处理，仅用于 `query_convergence_state`。
   pending;
 
-  /// 将枚举值转换为字符串
+  /// 将枚举转换为字符串表示。
   Future<void> asStr() =>
       RustLib.instance.api.crateApiRecoveryContractSubStateAsStr(that: this);
 }

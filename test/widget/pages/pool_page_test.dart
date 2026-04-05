@@ -7,16 +7,24 @@ import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/bridge_generated/api.dart' as frb;
+import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakePoolApiClient implements PoolApiClient {
+  Object? leaveError;
+  String? leftPoolId;
+  bool dissolveCalled = false;
+  List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
+
   @override
   Future<PoolCreateResult> createPool() async {
     return const PoolCreateResult(
+      poolId: 'server-pool',
       poolName: 'Server Pool',
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@test',
       memberLabels: <String>['owner@test'],
@@ -35,22 +43,72 @@ class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
     return const PoolViewData(
+      poolId: 'joined-pool',
       poolName: 'Joined Pool',
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'joiner@test',
       memberLabels: <String>['owner@test', 'joiner@test'],
+      joinRequests: <JoinRequestData>[],
     );
   }
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
     return const PoolDetailData(
+      poolId: 'joined-pool',
       poolName: 'Joined Pool',
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@test',
       memberLabels: <String>['owner@test'],
+      joinRequests: <JoinRequestData>[],
     );
   }
+
+  @override
+  Future<void> leavePool(String poolId) async {
+    leftPoolId = poolId;
+    if (leaveError != null) {
+      throw leaveError!;
+    }
+  }
+
+  @override
+  Future<PoolDetailData> dissolvePool(String poolId) async {
+    dissolveCalled = true;
+    return const PoolDetailData(
+      poolId: 'joined-pool',
+      poolName: 'Joined Pool',
+      isDissolved: true,
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+      joinRequests: <JoinRequestData>[],
+    );
+  }
+
+  @override
+  Future<List<JoinRequestData>> submitJoinRequest(String poolId) async =>
+      joinRequestResults;
+
+  @override
+  Future<List<JoinRequestData>> approveJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => joinRequestResults;
+
+  @override
+  Future<List<JoinRequestData>> rejectJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => joinRequestResults;
+
+  @override
+  Future<List<JoinRequestData>> cancelJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => joinRequestResults;
 }
 
 PoolController _buildTestPoolController({
@@ -153,7 +211,7 @@ void main() {
       ),
     );
 
-    expect(find.text('创建池'), findsOneWidget);
+    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
     expect(find.text('扫码加入'), findsOneWidget);
   });
 
@@ -277,7 +335,7 @@ void main() {
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
-    expect(find.text('创建池'), findsOneWidget);
+    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
     expect(find.text('扫码加入'), findsOneWidget);
   });
 
@@ -309,7 +367,14 @@ void main() {
 
   testWidgets('leave pool confirmation returns to not joined', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.joined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(poolId: 'joined-pool'),
+          controller: _buildTestPoolController(
+            state: const PoolState.joined(poolId: 'joined-pool'),
+          ),
+        ),
+      ),
     );
 
     await tester.tap(find.text('退出池'));
@@ -317,15 +382,37 @@ void main() {
     await tester.tap(find.text('确认退出'));
     await tester.pumpAndSettle();
 
-    expect(find.text('创建池'), findsOneWidget);
+    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
     expect(find.text('扫码加入'), findsOneWidget);
   });
 
   testWidgets('approve/reject updates pending list with observable result', (
     tester,
   ) async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[];
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'joined-pool',
+        pending: <PoolPendingRequest>[
+          PoolPendingRequest(id: 'alice', displayName: 'alice@pending'),
+        ],
+      ),
+    );
+
     await tester.pumpWidget(
-      MaterialApp(home: PoolPage(state: PoolState.joinedWithPending())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(
+            poolId: 'joined-pool',
+            pending: <PoolPendingRequest>[
+              PoolPendingRequest(id: 'alice', displayName: 'alice@pending'),
+            ],
+          ),
+          controller: controller,
+        ),
+      ),
     );
 
     expect(find.text('待审批请求'), findsOneWidget);
@@ -351,6 +438,69 @@ void main() {
 
     expect(find.text('bob@pending-fail'), findsNothing);
     expect(find.text('拒绝已完成'), findsOneWidget);
+  });
+
+  testWidgets('approve pending request uses API result to refresh list', (
+    tester,
+  ) async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[];
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'joined-pool',
+        pending: <PoolPendingRequest>[
+          PoolPendingRequest(id: 'req-1', displayName: 'alice@pending'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(
+            poolId: 'joined-pool',
+            pending: <PoolPendingRequest>[
+              PoolPendingRequest(id: 'req-1', displayName: 'alice@pending'),
+            ],
+          ),
+          controller: controller,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('通过'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('alice@pending'), findsNothing);
+    expect(find.text('审批已通过'), findsOneWidget);
+  });
+
+  testWidgets('cancel join request uses API result to refresh list', (
+    tester,
+  ) async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[];
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'joined-pool',
+        pending: <PoolPendingRequest>[
+          PoolPendingRequest(id: 'req-1', displayName: 'alice@pending'),
+        ],
+      ),
+    );
+
+    await controller.cancelJoinRequest('req-1');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(state: controller.state, controller: controller),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('alice@pending'), findsNothing);
+    expect(find.text('加入申请已取消'), findsOneWidget);
   });
 
   testWidgets('exit pool partial cleanup shows retry action', (tester) async {
@@ -407,8 +557,32 @@ void main() {
   });
 
   testWidgets('owner can edit pool info and dissolve pool', (tester) async {
+    final controller = PoolController(
+      apiClient: _FakePoolApiClient(),
+      initialState: const PoolState.joined(
+        poolId: 'joined-pool',
+        poolName: '默认数据池',
+        isOwner: true,
+        isDissolved: false,
+        currentIdentityLabel: '未知身份',
+        memberLabels: <String>[],
+      ),
+    );
+
     await tester.pumpWidget(
-      const MaterialApp(home: PoolPage(state: PoolState.joined())),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(
+            poolId: 'joined-pool',
+            poolName: '默认数据池',
+            isOwner: true,
+            isDissolved: false,
+            currentIdentityLabel: '未知身份',
+            memberLabels: <String>[],
+          ),
+          controller: controller,
+        ),
+      ),
     );
 
     await tester.tap(find.text('编辑池信息'));
@@ -425,7 +599,94 @@ void main() {
     await tester.tap(find.text('确认解散'));
     await tester.pumpAndSettle();
 
-    expect(find.text('创建池'), findsOneWidget);
+    expect(find.textContaining('已解散'), findsWidgets);
+    expect(find.textContaining('只读状态'), findsWidgets);
+    expect(find.text('编辑池信息'), findsNothing);
+  });
+
+  testWidgets('dissolved pool enters read-only state', (tester) async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'joined-pool',
+        poolName: 'Joined Pool',
+        isOwner: true,
+        isDissolved: false,
+        currentIdentityLabel: 'owner@test',
+        memberLabels: <String>['owner@test'],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(
+            poolId: 'joined-pool',
+            poolName: 'Joined Pool',
+            isOwner: true,
+            isDissolved: false,
+            currentIdentityLabel: 'owner@test',
+            memberLabels: <String>['owner@test'],
+          ),
+          controller: controller,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('解散池'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认解散'));
+    await tester.pumpAndSettle();
+
+    expect(client.dissolveCalled, isTrue);
+    expect(find.textContaining('已解散'), findsWidgets);
+    expect(find.textContaining('只读状态'), findsWidgets);
+    expect(find.text('编辑池信息'), findsNothing);
+  });
+
+  testWidgets('last admin leave failure shows blocking message', (
+    tester,
+  ) async {
+    final client = _FakePoolApiClient()
+      ..leaveError = ApiError(
+        code: 'INVALID_ARGUMENT',
+        message: 'last admin cannot leave pool',
+      );
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(
+        poolId: 'joined-pool',
+        poolName: 'Joined Pool',
+        isOwner: true,
+        currentIdentityLabel: 'owner@test',
+        memberLabels: <String>['owner@test', 'member@test'],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(
+            poolId: 'joined-pool',
+            poolName: 'Joined Pool',
+            isOwner: true,
+            currentIdentityLabel: 'owner@test',
+            memberLabels: <String>['owner@test', 'member@test'],
+          ),
+          controller: controller,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('退出池'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认退出'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('唯一的管理员'), findsOneWidget);
+    expect(client.leftPoolId, 'joined-pool');
+    expect(find.text('成员列表'), findsOneWidget);
   });
 
   testWidgets('editing pool info with blank name keeps original value', (

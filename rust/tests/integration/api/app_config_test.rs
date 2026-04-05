@@ -2,6 +2,7 @@
 // output: 断言 init_app_config 满足幂等/冲突语义，且未初始化前资源 API 返回稳定错误。
 // pos: 覆盖 app config 初始化契约与无句柄 API 前置条件。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::{init_app_config, list_card_notes, reset_app_config_for_tests};
+use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
 
@@ -16,8 +17,9 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn init_app_config_should_be_idempotent_for_same_directory()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn init_app_config_should_be_idempotent_for_same_directory(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -31,8 +33,9 @@ fn init_app_config_should_be_idempotent_for_same_directory()
 }
 
 #[test]
-fn init_app_config_should_fail_for_different_directory_after_configured()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn init_app_config_should_fail_for_different_directory_after_configured(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir_a = tempdir()?;
@@ -48,8 +51,9 @@ fn init_app_config_should_fail_for_different_directory_after_configured()
 }
 
 #[test]
-fn product_api_should_fail_before_app_config_is_initialized()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn product_api_should_fail_before_app_config_is_initialized(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let error = list_card_notes().unwrap_err();

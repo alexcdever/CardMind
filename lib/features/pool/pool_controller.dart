@@ -1,18 +1,22 @@
-/// # 数据池控制器
-///
-/// 负责数据池的状态管理和业务逻辑编排。
-/// 处理池的创建、审批、拒绝、退出等操作，以及同步状态更新。
-///
-/// ## 外部依赖
-/// - 依赖 [PoolApiClient] 提供数据池 API 调用。
-/// - 依赖 [SyncService] 提供同步服务。
-library pool_controller;
-
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
+import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:flutter/foundation.dart';
+
+List<PoolPendingRequest> _pendingFromApi(List<JoinRequestData> requests) {
+  return requests
+      .where((request) => request.status == 'pending')
+      .map(
+        (request) => PoolPendingRequest(
+          id: request.requestId,
+          displayName: request.displayName,
+          status: request.status,
+        ),
+      )
+      .toList(growable: false);
+}
 
 /// 数据池状态控制器。
 ///
@@ -87,6 +91,8 @@ class PoolController extends ChangeNotifier {
   Future<void> createPool() async {
     final result = await _apiClient.createPool();
     _state = PoolState.joined(
+      poolId: result.poolId,
+      isDissolved: result.isDissolved,
       poolName: result.poolName,
       isOwner: result.isOwner,
       currentIdentityLabel: result.currentIdentityLabel,
@@ -104,47 +110,130 @@ class PoolController extends ChangeNotifier {
   }
 
   /// 解散数据池。
-  void dissolvePool() {
-    _state = const PoolState.notJoined();
+  Future<void> dissolvePool() async {
+    final joined = _state;
+    if (joined is! PoolJoined) {
+      return;
+    }
+
+    try {
+      final detail = await _apiClient.dissolvePool(joined.poolId);
+      _state = joined.copyWith(
+        isDissolved: detail.isDissolved,
+        approvalMessage: '数据池已解散，当前为只读状态',
+      );
+    } on ApiError {
+      _state = joined.copyWith(approvalMessage: '解散失败，请稍后重试');
+    } catch (_) {
+      _state = joined.copyWith(approvalMessage: '解散失败，请稍后重试');
+    }
     notifyListeners();
   }
 
   /// 批准加入请求。
-  void approve(String requestId) {
+  Future<void> approve(String requestId) async {
     final joined = _state;
     if (joined is! PoolJoined) return;
 
-    final updated = joined.pending
-        .where((item) => item.id != requestId)
-        .toList(growable: false);
-
-    _state = joined.copyWith(pending: updated, approvalMessage: '审批已通过');
+    try {
+      final requests = await _apiClient.approveJoinRequest(
+        joined.poolId,
+        requestId,
+      );
+      _state = joined.copyWith(
+        pending: _pendingFromApi(requests),
+        approvalMessage: '审批已通过',
+      );
+    } on ApiError {
+      _state = joined.copyWith(approvalMessage: '审批失败，请稍后重试');
+    } catch (_) {
+      _state = joined.copyWith(approvalMessage: '审批失败，请稍后重试');
+    }
     notifyListeners();
   }
 
   /// 拒绝加入请求。
-  void reject(String requestId) {
+  Future<void> reject(String requestId) async {
     final joined = _state;
     if (joined is! PoolJoined) return;
 
-    final updated = joined.pending
-        .map((item) {
-          if (item.id != requestId) return item;
-          if (item.rejectShouldFail) {
+    if (joined.pending.any(
+      (item) => item.id == requestId && item.rejectShouldFail,
+    )) {
+      final updated = joined.pending
+          .map((item) {
+            if (item.id != requestId) return item;
             if (item.error != null) {
               return null;
             }
             return item.copyWith(error: '拒绝失败：网络异常');
-          }
-          return null;
-        })
-        .whereType<PoolPendingRequest>()
-        .toList(growable: false);
+          })
+          .whereType<PoolPendingRequest>()
+          .toList(growable: false);
 
-    _state = joined.copyWith(
-      pending: updated,
-      approvalMessage: updated.length == joined.pending.length ? null : '拒绝已完成',
-    );
+      _state = joined.copyWith(
+        pending: updated,
+        approvalMessage: updated.length == joined.pending.length
+            ? null
+            : '拒绝已完成',
+      );
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final requests = await _apiClient.rejectJoinRequest(
+        joined.poolId,
+        requestId,
+      );
+      _state = joined.copyWith(
+        pending: _pendingFromApi(requests),
+        approvalMessage: '拒绝已完成',
+      );
+    } on ApiError {
+      _state = joined.copyWith(approvalMessage: '拒绝失败，请稍后重试');
+    } catch (_) {
+      _state = joined.copyWith(approvalMessage: '拒绝失败，请稍后重试');
+    }
+    notifyListeners();
+  }
+
+  Future<void> submitJoinRequest() async {
+    final joined = _state;
+    if (joined is! PoolJoined) return;
+
+    try {
+      final requests = await _apiClient.submitJoinRequest(joined.poolId);
+      _state = joined.copyWith(
+        pending: _pendingFromApi(requests),
+        approvalMessage: '加入申请已提交，等待管理员审批',
+      );
+    } on ApiError {
+      _state = joined.copyWith(approvalMessage: '加入申请提交失败，请稍后重试');
+    } catch (_) {
+      _state = joined.copyWith(approvalMessage: '加入申请提交失败，请稍后重试');
+    }
+    notifyListeners();
+  }
+
+  Future<void> cancelJoinRequest(String requestId) async {
+    final joined = _state;
+    if (joined is! PoolJoined) return;
+
+    try {
+      final requests = await _apiClient.cancelJoinRequest(
+        joined.poolId,
+        requestId,
+      );
+      _state = joined.copyWith(
+        pending: _pendingFromApi(requests),
+        approvalMessage: '加入申请已取消',
+      );
+    } on ApiError {
+      _state = joined.copyWith(approvalMessage: '取消申请失败，请稍后重试');
+    } catch (_) {
+      _state = joined.copyWith(approvalMessage: '取消申请失败，请稍后重试');
+    }
     notifyListeners();
   }
 
@@ -163,15 +252,31 @@ class PoolController extends ChangeNotifier {
   }
 
   /// 确认退出数据池。
-  void confirmExit() {
+  Future<void> confirmExit() async {
     final joined = _state;
-    if (joined is PoolJoined && joined.exitShouldFail) {
+    if (joined is! PoolJoined) {
+      return;
+    }
+
+    if (joined.exitShouldFail) {
       _state = const PoolState.exitPartialCleanup();
       notifyListeners();
       return;
     }
 
-    _state = const PoolState.notJoined();
+    try {
+      await _apiClient.leavePool(joined.poolId);
+      _state = const PoolState.notJoined();
+    } on ApiError catch (error) {
+      final message = error.message;
+      if (message.contains('last admin')) {
+        _state = joined.copyWith(approvalMessage: '您是唯一的管理员，请先指定新的管理员');
+      } else {
+        _state = joined.copyWith(approvalMessage: '退出失败，请稍后重试');
+      }
+    } catch (_) {
+      _state = joined.copyWith(approvalMessage: '退出失败，请稍后重试');
+    }
     notifyListeners();
   }
 
@@ -190,6 +295,8 @@ class PoolController extends ChangeNotifier {
     if (result.isSuccess) {
       final joined = await _apiClient.getJoinedPoolView();
       _state = PoolState.joined(
+        poolId: joined?.poolId ?? 'default-pool',
+        isDissolved: joined?.isDissolved ?? false,
         poolName: joined?.poolName ?? result.poolName ?? '默认数据池',
         isOwner: joined?.isOwner ?? false,
         currentIdentityLabel: joined?.currentIdentityLabel ?? _reconnectTarget,

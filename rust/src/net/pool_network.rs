@@ -568,6 +568,16 @@ fn pool_from_snapshot(bytes: &[u8]) -> Result<Pool, CardMindError> {
 fn pool_from_doc(doc: &LoroDoc) -> Result<Pool, CardMindError> {
     let map = doc.get_map("pool");
     let pool_id = parse_uuid(&map, "pool_id")?;
+    let is_dissolved = match map.get_deep_value().as_map() {
+        Some(pool_map) => pool_map
+            .get("is_dissolved")
+            .and_then(|value| match value {
+                LoroValue::Bool(flag) => Some(*flag),
+                _ => None,
+            })
+            .unwrap_or(false),
+        None => false,
+    };
     let members_value = doc.get_list("members").get_deep_value();
     let card_ids_value = doc.get_list("card_ids").get_deep_value();
     let members = parse_members(members_value)?;
@@ -576,6 +586,8 @@ fn pool_from_doc(doc: &LoroDoc) -> Result<Pool, CardMindError> {
         pool_id,
         members,
         card_ids,
+        is_dissolved,
+        join_requests: Vec::new(),
     })
 }
 

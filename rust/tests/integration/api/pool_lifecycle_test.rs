@@ -158,3 +158,78 @@ fn test_create_and_join_pool() {
 
     println!("✅ Create and join pool test passed!");
 }
+
+/// 测试最后一个管理员退出会被拒绝
+#[test]
+#[serial]
+fn test_last_admin_leave_pool_fails() {
+    let _app_data_dir = setup_test("last_admin_leave");
+
+    let pool = create_pool(
+        "endpoint-admin".to_string(),
+        "Admin".to_string(),
+        "macos".to_string(),
+    )
+    .expect("Failed to create pool");
+
+    let _joined = join_by_code(
+        pool.id.clone(),
+        "endpoint-member".to_string(),
+        "Member".to_string(),
+        "ios".to_string(),
+    )
+    .expect("Failed to join pool");
+
+    let err = leave_pool(pool.id, "endpoint-admin".to_string())
+        .expect_err("last admin leave should fail");
+
+    assert_eq!(err.code, "INVALID_ARGUMENT");
+    assert!(err.message.contains("last admin"));
+}
+
+#[test]
+#[serial]
+fn test_dissolve_pool_marks_pool_as_dissolved() {
+    let _app_data_dir = setup_test("dissolve_pool_success");
+
+    let pool = create_pool(
+        "endpoint-admin".to_string(),
+        "Admin".to_string(),
+        "macos".to_string(),
+    )
+    .expect("Failed to create pool");
+
+    let dissolved = dissolve_pool(pool.id.clone(), "endpoint-admin".to_string())
+        .expect("Failed to dissolve pool");
+    let detail = get_pool_detail(pool.id, "endpoint-admin".to_string())
+        .expect("Failed to fetch dissolved pool detail");
+
+    assert!(dissolved.is_dissolved);
+    assert!(detail.is_dissolved);
+}
+
+#[test]
+#[serial]
+fn test_dissolved_pool_rejects_join() {
+    let _app_data_dir = setup_test("dissolved_pool_rejects_join");
+
+    let pool = create_pool(
+        "endpoint-admin".to_string(),
+        "Admin".to_string(),
+        "macos".to_string(),
+    )
+    .expect("Failed to create pool");
+
+    dissolve_pool(pool.id.clone(), "endpoint-admin".to_string()).expect("Failed to dissolve pool");
+
+    let err = join_by_code(
+        pool.id,
+        "endpoint-member".to_string(),
+        "Member".to_string(),
+        "ios".to_string(),
+    )
+    .expect_err("joining dissolved pool should fail");
+
+    assert_eq!(err.code, "INVALID_ARGUMENT");
+    assert!(err.message.contains("dissolved"));
+}

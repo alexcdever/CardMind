@@ -39,6 +39,8 @@ fn pool_name_with_first_member() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let name = pool_name(&pool);
@@ -51,6 +53,8 @@ fn pool_name_empty_members() {
         pool_id: uuid::Uuid::new_v4(),
         members: vec![],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let name = pool_name(&pool);
@@ -68,6 +72,8 @@ fn pool_name_with_unicode_nickname() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let name = pool_name(&pool);
@@ -117,6 +123,8 @@ fn current_member_for_endpoint_found() {
             },
         ],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let member = current_member_for_endpoint(&pool, "ep2");

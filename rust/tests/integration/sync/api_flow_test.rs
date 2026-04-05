@@ -4,7 +4,14 @@
 use cardmind_rust::api::*;
 use cardmind_rust::store::path_resolver::DataPaths;
 use cardmind_rust::store::sqlite_store::SqliteStore;
+use serial_test::serial;
+use std::sync::{Mutex, OnceLock};
 use tempfile::tempdir;
+
+fn app_config_test_guard() -> &'static Mutex<()> {
+    static GUARD: OnceLock<Mutex<()>> = OnceLock::new();
+    GUARD.get_or_init(|| Mutex::new(()))
+}
 
 fn setup_locked_network_env(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
     let _ = reset_app_config_for_tests();
@@ -15,7 +22,9 @@ fn setup_locked_network_env(dir: &std::path::Path) -> Result<(), Box<dyn std::er
 }
 
 #[test]
+#[serial]
 fn sync_flow_should_move_to_connected_and_back_to_idle() -> Result<(), Box<dyn std::error::Error>> {
+    let _guard = app_config_test_guard().lock().unwrap();
     let dir = tempdir()?;
     setup_locked_network_env(dir.path())?;
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
@@ -42,8 +51,10 @@ fn sync_flow_should_move_to_connected_and_back_to_idle() -> Result<(), Box<dyn s
 }
 
 #[test]
-fn sync_status_should_separate_write_projection_and_sync_states()
--> Result<(), Box<dyn std::error::Error>> {
+#[serial]
+fn sync_status_should_separate_write_projection_and_sync_states(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let _guard = app_config_test_guard().lock().unwrap();
     let dir = tempdir()?;
     setup_locked_network_env(dir.path())?;
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;

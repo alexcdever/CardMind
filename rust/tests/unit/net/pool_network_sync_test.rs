@@ -628,6 +628,8 @@ async fn test_connect_and_sync_rejects_sender_not_in_existing_receiver_pool() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
     receiver_store
         .join_pool(&foreign_pool, foreign_pool.members[0].clone(), vec![])

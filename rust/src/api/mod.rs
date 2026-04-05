@@ -45,7 +45,7 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{PoolEndpoint, build_endpoint};
+use crate::net::endpoint::{build_endpoint, PoolEndpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::security::app_lock::AppLock;
@@ -124,6 +124,34 @@ pub struct PoolDetailDto {
     pub member_count: usize,
     pub note_ids: Vec<String>,
     pub members: Vec<PoolMemberDto>,
+    pub join_requests: Vec<JoinRequestDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JoinRequestDto {
+    pub request_id: String,
+    pub applicant_endpoint_id: String,
+    pub applicant_nickname: String,
+    pub applicant_os: String,
+    pub status: String,
+}
+
+fn to_join_request_dtos(pool: &crate::models::pool::Pool) -> Vec<JoinRequestDto> {
+    pool.join_requests
+        .iter()
+        .map(|request| JoinRequestDto {
+            request_id: request.request_id.to_string(),
+            applicant_endpoint_id: request.applicant.endpoint_id.clone(),
+            applicant_nickname: request.applicant.nickname.clone(),
+            applicant_os: request.applicant.os.clone(),
+            status: match request.status {
+                crate::models::pool::JoinRequestStatus::Pending => "pending".to_string(),
+                crate::models::pool::JoinRequestStatus::Approved => "approved".to_string(),
+                crate::models::pool::JoinRequestStatus::Rejected => "rejected".to_string(),
+                crate::models::pool::JoinRequestStatus::Cancelled => "cancelled".to_string(),
+            },
+        })
+        .collect()
 }
 
 /// 卡片笔记 DTO。
@@ -288,8 +316,8 @@ pub fn update_backend_config(
 /// println!("MCP 监听: {:?}", status.mcp_bind_addr);
 /// println!("CLI 启用: {}", status.cli_enabled);
 /// ```
-pub fn get_runtime_entry_status()
--> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+pub fn get_runtime_entry_status(
+) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -814,6 +842,11 @@ pub fn join_by_code(
                 local_card_ids,
             )
             .map_err(|err| match err {
+                CardMindError::InvalidArgument(msg)
+                    if msg == "dissolved pool cannot be modified" =>
+                {
+                    ApiError::new(ApiErrorCode::InvalidArgument, "pool is dissolved")
+                }
                 CardMindError::InvalidArgument(_) => {
                     ApiError::new(ApiErrorCode::InvalidPoolHash, "invalid join code")
                 }
@@ -823,6 +856,107 @@ pub fn join_by_code(
                 other => map_err(other),
             })?;
         to_pool_dto(&updated, &endpoint_id)
+    })
+}
+
+/// 离开数据池
+///
+/// 从指定数据池中移除当前 endpoint 对应的成员关系。
+pub fn leave_pool(pool_id: String, endpoint_id: String) -> Result<PoolDto, ApiError> {
+    require_app_lock_unlocked()?;
+    with_configured_pool_store(|pool_store| {
+        let pool_id = parse_pool_id(&pool_id)?;
+        let updated = pool_store
+            .leave_pool(&pool_id, &endpoint_id)
+            .map_err(map_err)?;
+        to_pool_dto(&updated, &endpoint_id)
+    })
+}
+
+/// 解散数据池
+pub fn dissolve_pool(pool_id: String, endpoint_id: String) -> Result<PoolDto, ApiError> {
+    require_app_lock_unlocked()?;
+    with_configured_pool_store(|pool_store| {
+        let pool_id = parse_pool_id(&pool_id)?;
+        let updated = pool_store
+            .dissolve_pool(&pool_id, &endpoint_id)
+            .map_err(map_err)?;
+        to_pool_dto(&updated, &endpoint_id)
+    })
+}
+
+pub fn submit_join_request(
+    pool_id: String,
+    endpoint_id: String,
+    nickname: String,
+    os: String,
+) -> Result<Vec<JoinRequestDto>, ApiError> {
+    require_app_lock_unlocked()?;
+    with_configured_pool_store(|pool_store| {
+        let pool_id = parse_pool_id(&pool_id)?;
+        let updated = pool_store
+            .submit_join_request(
+                &pool_id,
+                PoolMember {
+                    endpoint_id: endpoint_id.clone(),
+                    nickname,
+                    os,
+                    is_admin: false,
+                },
+            )
+            .map_err(map_err)?;
+        Ok(to_join_request_dtos(&updated))
+    })
+}
+
+pub fn approve_join_request(
+    pool_id: String,
+    request_id: String,
+    approver_endpoint_id: String,
+) -> Result<Vec<JoinRequestDto>, ApiError> {
+    require_app_lock_unlocked()?;
+    with_configured_card_store(|card_repository| {
+        let pool_id = parse_pool_id(&pool_id)?;
+        let request_id = parse_uuid(&request_id, "request_id")?;
+        let local_card_ids = list_all_card_ids(card_repository)?;
+        let base_path = card_repository.base_path().to_string_lossy().to_string();
+        let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
+        let updated = pool_store
+            .approve_join_request(&pool_id, &request_id, &approver_endpoint_id, local_card_ids)
+            .map_err(map_err)?;
+        Ok(to_join_request_dtos(&updated))
+    })
+}
+
+pub fn reject_join_request(
+    pool_id: String,
+    request_id: String,
+    approver_endpoint_id: String,
+) -> Result<Vec<JoinRequestDto>, ApiError> {
+    require_app_lock_unlocked()?;
+    with_configured_pool_store(|pool_store| {
+        let pool_id = parse_pool_id(&pool_id)?;
+        let request_id = parse_uuid(&request_id, "request_id")?;
+        let updated = pool_store
+            .reject_join_request(&pool_id, &request_id, &approver_endpoint_id)
+            .map_err(map_err)?;
+        Ok(to_join_request_dtos(&updated))
+    })
+}
+
+pub fn cancel_join_request(
+    pool_id: String,
+    request_id: String,
+    applicant_endpoint_id: String,
+) -> Result<Vec<JoinRequestDto>, ApiError> {
+    require_app_lock_unlocked()?;
+    with_configured_pool_store(|pool_store| {
+        let pool_id = parse_pool_id(&pool_id)?;
+        let request_id = parse_uuid(&request_id, "request_id")?;
+        let updated = pool_store
+            .cancel_join_request(&pool_id, &request_id, &applicant_endpoint_id)
+            .map_err(map_err)?;
+        Ok(to_join_request_dtos(&updated))
     })
 }
 

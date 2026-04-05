@@ -34,7 +34,7 @@
 //! let updated_pool = store.join_pool(&pool, new_member, local_cards)?;
 //! ```
 use crate::models::error::CardMindError;
-use crate::models::pool::{Pool, PoolMember};
+use crate::models::pool::{JoinRequest, JoinRequestStatus, Pool, PoolMember};
 use crate::store::loro_store::{load_loro_doc, pool_doc_path, save_loro_doc};
 use crate::store::path_resolver::DataPaths;
 use crate::store::sqlite_store::SqliteStore;
@@ -174,6 +174,8 @@ impl PoolStore {
                 is_admin: true,
             }],
             card_ids: Vec::new(),
+            is_dissolved: false,
+            join_requests: Vec::new(),
         };
         self.persist_pool(&pool)?;
         Ok(pool)
@@ -195,7 +197,10 @@ impl PoolStore {
     /// - 当数据库查询失败时返回 [`CardMindError::Sqlite`]
     pub fn get_pool(&self, pool_id: &Uuid) -> Result<Pool, CardMindError> {
         match self.sqlite.get_pool(pool_id) {
-            Ok(pool) => Ok(pool),
+            Ok(mut pool) => {
+                pool.join_requests = self.load_join_requests_from_loro(pool_id)?;
+                Ok(pool)
+            }
             Err(CardMindError::NotFound(_)) => {
                 if let Some(error) = self.projection_not_converged_for(pool_id)? {
                     return Err(error);
@@ -244,6 +249,11 @@ impl PoolStore {
         note_ids: Vec<Uuid>,
     ) -> Result<Pool, CardMindError> {
         let mut pool = self.get_pool(pool_id)?;
+        if pool.is_dissolved {
+            return Err(CardMindError::InvalidArgument(
+                "dissolved pool cannot be modified".to_string(),
+            ));
+        }
         pool.card_ids = merge_note_references(&pool.card_ids, note_ids);
         self.persist_pool(&pool)?;
         Ok(pool)
@@ -272,6 +282,11 @@ impl PoolStore {
         new_member: PoolMember,
         local_card_ids: Vec<Uuid>,
     ) -> Result<Pool, CardMindError> {
+        if pool.is_dissolved {
+            return Err(CardMindError::InvalidArgument(
+                "dissolved pool cannot be modified".to_string(),
+            ));
+        }
         let mut updated = pool.clone();
         if !updated
             .members
@@ -328,8 +343,226 @@ impl PoolStore {
     /// - 当持久化失败时返回相应的错误类型
     pub fn leave_pool(&self, pool_id: &Uuid, endpoint_id: &str) -> Result<Pool, CardMindError> {
         let mut pool = self.sqlite.get_pool(pool_id)?;
+
+        if pool.is_dissolved {
+            return Err(CardMindError::InvalidArgument(
+                "dissolved pool cannot be modified".to_string(),
+            ));
+        }
+
+        if let Some(leaving_member) = pool
+            .members
+            .iter()
+            .find(|member| member.endpoint_id == endpoint_id)
+        {
+            if leaving_member.is_admin {
+                let remaining_admins = pool
+                    .members
+                    .iter()
+                    .filter(|member| member.endpoint_id != endpoint_id && member.is_admin)
+                    .count();
+
+                if remaining_admins == 0 {
+                    return Err(CardMindError::InvalidArgument(
+                        "last admin cannot leave pool".to_string(),
+                    ));
+                }
+            }
+        }
+
         pool.members
             .retain(|member| member.endpoint_id != endpoint_id);
+        self.persist_pool(&pool)?;
+        Ok(pool)
+    }
+
+    pub fn dissolve_pool(&self, pool_id: &Uuid, endpoint_id: &str) -> Result<Pool, CardMindError> {
+        let mut pool = self.get_pool(pool_id)?;
+
+        if pool.is_dissolved {
+            return Err(CardMindError::InvalidArgument(
+                "pool already dissolved".to_string(),
+            ));
+        }
+
+        let acting_member = pool
+            .members
+            .iter()
+            .find(|member| member.endpoint_id == endpoint_id)
+            .ok_or_else(|| CardMindError::NotFound("member not found".to_string()))?;
+
+        if !acting_member.is_admin {
+            return Err(CardMindError::InvalidArgument(
+                "only admin can dissolve pool".to_string(),
+            ));
+        }
+
+        if pool.members.len() > 1 {
+            return Err(CardMindError::InvalidArgument(
+                "pool still has other members".to_string(),
+            ));
+        }
+
+        pool.is_dissolved = true;
+        self.persist_pool(&pool)?;
+        Ok(pool)
+    }
+
+    pub fn submit_join_request(
+        &self,
+        pool_id: &Uuid,
+        applicant: PoolMember,
+    ) -> Result<Pool, CardMindError> {
+        let mut pool = self.get_pool(pool_id)?;
+
+        if pool.is_dissolved {
+            return Err(CardMindError::InvalidArgument(
+                "dissolved pool cannot be modified".to_string(),
+            ));
+        }
+
+        if pool
+            .members
+            .iter()
+            .any(|member| member.endpoint_id == applicant.endpoint_id)
+        {
+            return Err(CardMindError::InvalidArgument(
+                "applicant is already a member".to_string(),
+            ));
+        }
+
+        if pool.join_requests.iter().any(|request| {
+            request.applicant.endpoint_id == applicant.endpoint_id
+                && request.status == JoinRequestStatus::Pending
+        }) {
+            return Err(CardMindError::InvalidArgument(
+                "duplicate pending join request".to_string(),
+            ));
+        }
+
+        pool.join_requests.push(JoinRequest {
+            request_id: new_uuid_v7(),
+            applicant,
+            status: JoinRequestStatus::Pending,
+        });
+        self.persist_pool(&pool)?;
+        Ok(pool)
+    }
+
+    pub fn approve_join_request(
+        &self,
+        pool_id: &Uuid,
+        request_id: &Uuid,
+        approver_endpoint_id: &str,
+        local_card_ids: Vec<Uuid>,
+    ) -> Result<Pool, CardMindError> {
+        let mut pool = self.get_pool(pool_id)?;
+
+        if pool.is_dissolved {
+            return Err(CardMindError::InvalidArgument(
+                "dissolved pool cannot be modified".to_string(),
+            ));
+        }
+
+        let approver = pool
+            .members
+            .iter()
+            .find(|member| member.endpoint_id == approver_endpoint_id)
+            .ok_or_else(|| CardMindError::NotFound("member not found".to_string()))?;
+        if !approver.is_admin {
+            return Err(CardMindError::InvalidArgument(
+                "only admin can approve join request".to_string(),
+            ));
+        }
+
+        let request = pool
+            .join_requests
+            .iter_mut()
+            .find(|request| request.request_id == *request_id)
+            .ok_or_else(|| CardMindError::NotFound("join request not found".to_string()))?;
+
+        if request.status != JoinRequestStatus::Pending {
+            return Err(CardMindError::InvalidArgument(
+                "join request is not pending".to_string(),
+            ));
+        }
+
+        request.status = JoinRequestStatus::Approved;
+        if !pool
+            .members
+            .iter()
+            .any(|member| member.endpoint_id == request.applicant.endpoint_id)
+        {
+            pool.members.push(request.applicant.clone());
+        }
+        pool.card_ids = merge_note_references(&pool.card_ids, local_card_ids);
+        self.persist_pool(&pool)?;
+        Ok(pool)
+    }
+
+    pub fn reject_join_request(
+        &self,
+        pool_id: &Uuid,
+        request_id: &Uuid,
+        approver_endpoint_id: &str,
+    ) -> Result<Pool, CardMindError> {
+        let mut pool = self.get_pool(pool_id)?;
+
+        let approver = pool
+            .members
+            .iter()
+            .find(|member| member.endpoint_id == approver_endpoint_id)
+            .ok_or_else(|| CardMindError::NotFound("member not found".to_string()))?;
+        if !approver.is_admin {
+            return Err(CardMindError::InvalidArgument(
+                "only admin can reject join request".to_string(),
+            ));
+        }
+
+        let request = pool
+            .join_requests
+            .iter_mut()
+            .find(|request| request.request_id == *request_id)
+            .ok_or_else(|| CardMindError::NotFound("join request not found".to_string()))?;
+
+        if request.status != JoinRequestStatus::Pending {
+            return Err(CardMindError::InvalidArgument(
+                "join request is not pending".to_string(),
+            ));
+        }
+
+        request.status = JoinRequestStatus::Rejected;
+        self.persist_pool(&pool)?;
+        Ok(pool)
+    }
+
+    pub fn cancel_join_request(
+        &self,
+        pool_id: &Uuid,
+        request_id: &Uuid,
+        applicant_endpoint_id: &str,
+    ) -> Result<Pool, CardMindError> {
+        let mut pool = self.get_pool(pool_id)?;
+
+        let request = pool
+            .join_requests
+            .iter_mut()
+            .find(|request| request.request_id == *request_id)
+            .ok_or_else(|| CardMindError::NotFound("join request not found".to_string()))?;
+
+        if request.applicant.endpoint_id != applicant_endpoint_id {
+            return Err(CardMindError::InvalidArgument(
+                "only applicant can cancel join request".to_string(),
+            ));
+        }
+
+        if request.status != JoinRequestStatus::Pending {
+            return Err(CardMindError::InvalidArgument(
+                "join request is not pending".to_string(),
+            ));
+        }
+
+        request.status = JoinRequestStatus::Cancelled;
         self.persist_pool(&pool)?;
         Ok(pool)
     }
@@ -351,6 +584,8 @@ impl PoolStore {
         let doc = load_loro_doc(&path)?;
         let map = doc.get_map("pool");
         map.insert("pool_id", pool.pool_id.to_string())
+            .map_err(|e| CardMindError::Loro(e.to_string()))?;
+        map.insert("is_dissolved", pool.is_dissolved)
             .map_err(|e| CardMindError::Loro(e.to_string()))?;
 
         let members_list = doc.get_list("members");
@@ -383,8 +618,44 @@ impl PoolStore {
                 .map_err(|e| CardMindError::Loro(e.to_string()))?;
         }
 
+        let request_list = doc.get_list("join_requests");
+        if !request_list.is_empty() {
+            request_list
+                .delete(0, request_list.len())
+                .map_err(|e| CardMindError::Loro(e.to_string()))?;
+        }
+        for request in &pool.join_requests {
+            let status = match request.status {
+                JoinRequestStatus::Pending => "pending",
+                JoinRequestStatus::Approved => "approved",
+                JoinRequestStatus::Rejected => "rejected",
+                JoinRequestStatus::Cancelled => "cancelled",
+            };
+            let values = vec![
+                LoroValue::from(request.request_id.to_string()),
+                LoroValue::from(request.applicant.endpoint_id.as_str()),
+                LoroValue::from(request.applicant.nickname.as_str()),
+                LoroValue::from(request.applicant.os.as_str()),
+                LoroValue::from(request.applicant.is_admin),
+                LoroValue::from(status),
+            ];
+            request_list
+                .push(LoroValue::from(values))
+                .map_err(|e| CardMindError::Loro(e.to_string()))?;
+        }
+
         doc.commit();
         save_loro_doc(&path, &doc)
+    }
+
+    fn load_join_requests_from_loro(
+        &self,
+        pool_id: &Uuid,
+    ) -> Result<Vec<JoinRequest>, CardMindError> {
+        let path = self.paths.base_path.join(pool_doc_path(pool_id));
+        let doc = load_loro_doc(&path)?;
+        let requests_value = doc.get_list("join_requests").get_deep_value();
+        parse_join_requests(requests_value)
     }
 
     /// 将数据池从 Loro 投影到 SQLite
@@ -449,6 +720,108 @@ fn merge_note_references(existing: &[Uuid], incoming: Vec<Uuid>) -> Vec<Uuid> {
         card_set.insert(card_id);
     }
     card_set.into_iter().collect()
+}
+
+fn parse_join_requests(value: LoroValue) -> Result<Vec<JoinRequest>, CardMindError> {
+    let list = match value {
+        LoroValue::List(list) => list,
+        LoroValue::Null => return Ok(Vec::new()),
+        _ => {
+            return Err(CardMindError::InvalidArgument(
+                "join_requests invalid".to_string(),
+            ));
+        }
+    };
+
+    let mut requests = Vec::new();
+    for item in list.iter() {
+        let values = match item {
+            LoroValue::List(values) => values,
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "join_request invalid".to_string(),
+                ));
+            }
+        };
+        if values.len() != 6 {
+            return Err(CardMindError::InvalidArgument(
+                "join_request length invalid".to_string(),
+            ));
+        }
+
+        let request_id = match &values[0] {
+            LoroValue::String(text) => Uuid::parse_str(text).map_err(|_| {
+                CardMindError::InvalidArgument("join_request id invalid".to_string())
+            })?,
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "join_request id invalid".to_string(),
+                ));
+            }
+        };
+        let endpoint_id = match &values[1] {
+            LoroValue::String(text) => text.to_string(),
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "join_request endpoint invalid".to_string(),
+                ));
+            }
+        };
+        let nickname = match &values[2] {
+            LoroValue::String(text) => text.to_string(),
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "join_request nickname invalid".to_string(),
+                ));
+            }
+        };
+        let os = match &values[3] {
+            LoroValue::String(text) => text.to_string(),
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "join_request os invalid".to_string(),
+                ));
+            }
+        };
+        let is_admin = match &values[4] {
+            LoroValue::Bool(flag) => *flag,
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "join_request admin invalid".to_string(),
+                ));
+            }
+        };
+        let status = match &values[5] {
+            LoroValue::String(text) if text.to_string() == "pending" => JoinRequestStatus::Pending,
+            LoroValue::String(text) if text.to_string() == "approved" => {
+                JoinRequestStatus::Approved
+            }
+            LoroValue::String(text) if text.to_string() == "rejected" => {
+                JoinRequestStatus::Rejected
+            }
+            LoroValue::String(text) if text.to_string() == "cancelled" => {
+                JoinRequestStatus::Cancelled
+            }
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "join_request status invalid".to_string(),
+                ));
+            }
+        };
+
+        requests.push(JoinRequest {
+            request_id,
+            applicant: PoolMember {
+                endpoint_id,
+                nickname,
+                os,
+                is_admin,
+            },
+            status,
+        });
+    }
+
+    Ok(requests)
 }
 
 #[cfg(test)]

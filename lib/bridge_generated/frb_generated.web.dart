@@ -81,6 +81,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
+  JoinRequest dco_decode_join_request(dynamic raw);
+
+  @protected
+  JoinRequestDto dco_decode_join_request_dto(dynamic raw);
+
+  @protected
+  JoinRequestStatus dco_decode_join_request_status(dynamic raw);
+
+  @protected
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
@@ -88,6 +97,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<CardNoteDto> dco_decode_list_card_note_dto(dynamic raw);
+
+  @protected
+  List<JoinRequest> dco_decode_list_join_request(dynamic raw);
+
+  @protected
+  List<JoinRequestDto> dco_decode_list_join_request_dto(dynamic raw);
 
   @protected
   List<PoolDto> dco_decode_list_pool_dto(dynamic raw);
@@ -217,6 +232,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
+  JoinRequest sse_decode_join_request(SseDeserializer deserializer);
+
+  @protected
+  JoinRequestDto sse_decode_join_request_dto(SseDeserializer deserializer);
+
+  @protected
+  JoinRequestStatus sse_decode_join_request_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
@@ -224,6 +250,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<CardNoteDto> sse_decode_list_card_note_dto(SseDeserializer deserializer);
+
+  @protected
+  List<JoinRequest> sse_decode_list_join_request(SseDeserializer deserializer);
+
+  @protected
+  List<JoinRequestDto> sse_decode_list_join_request_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<PoolDto> sse_decode_list_pool_dto(SseDeserializer deserializer);
@@ -370,6 +404,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
+  void sse_encode_join_request(JoinRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_join_request_dto(
+    JoinRequestDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_join_request_status(
+    JoinRequestStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
@@ -378,6 +427,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_card_note_dto(
     List<CardNoteDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_join_request(
+    List<JoinRequest> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_join_request_dto(
+    List<JoinRequestDto> self,
     SseSerializer serializer,
   );
 

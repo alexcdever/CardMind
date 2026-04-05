@@ -7,6 +7,32 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
+class JoinRequest {
+  final UuidValue requestId;
+  final PoolMember applicant;
+  final JoinRequestStatus status;
+
+  const JoinRequest({
+    required this.requestId,
+    required this.applicant,
+    required this.status,
+  });
+
+  @override
+  int get hashCode => requestId.hashCode ^ applicant.hashCode ^ status.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is JoinRequest &&
+          runtimeType == other.runtimeType &&
+          requestId == other.requestId &&
+          applicant == other.applicant &&
+          status == other.status;
+}
+
+enum JoinRequestStatus { pending, approved, rejected, cancelled }
+
 /// 数据池元数据
 ///
 /// 表示一个协作数据池，包含池的唯一标识、成员列表和关联的卡片 ID。
@@ -17,6 +43,8 @@ import 'package:uuid/uuid.dart';
 /// - `pool_id`: 数据池唯一标识符（UUID v7）
 /// - `members`: 池成员列表，包含所有加入该池的设备信息
 /// - `card_ids`: 池内卡片 ID 列表，表示该池包含哪些卡片
+/// - `is_dissolved`: 池是否已解散，解散后只能读取不可修改
+/// - `join_requests`: 待处理或历史加入申请列表
 class Pool {
   /// 数据池 ID（UUID v7）
   ///
@@ -37,14 +65,27 @@ class Pool {
   /// 卡片本身存储在单独的存储中，此处仅保存引用关系。
   final List<UuidValue> cardIds;
 
+  /// 是否已解散。
+  final bool isDissolved;
+
+  /// 加入申请列表。
+  final List<JoinRequest> joinRequests;
+
   const Pool({
     required this.poolId,
     required this.members,
     required this.cardIds,
+    required this.isDissolved,
+    required this.joinRequests,
   });
 
   @override
-  int get hashCode => poolId.hashCode ^ members.hashCode ^ cardIds.hashCode;
+  int get hashCode =>
+      poolId.hashCode ^
+      members.hashCode ^
+      cardIds.hashCode ^
+      isDissolved.hashCode ^
+      joinRequests.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -53,7 +94,9 @@ class Pool {
           runtimeType == other.runtimeType &&
           poolId == other.poolId &&
           members == other.members &&
-          cardIds == other.cardIds;
+          cardIds == other.cardIds &&
+          isDissolved == other.isDissolved &&
+          joinRequests == other.joinRequests;
 }
 
 /// 数据池成员信息

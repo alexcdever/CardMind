@@ -116,6 +116,8 @@ fn query_cards_with_pool_id_filter() {
         pool_id,
         members: vec![],
         card_ids: vec![card_id],
+        is_dissolved: false,
+        join_requests: vec![],
     };
     store.upsert_pool(&pool).unwrap();
 
@@ -161,6 +163,8 @@ fn query_cards_with_empty_keyword_and_pool_id() {
         pool_id,
         members: vec![],
         card_ids: vec![card_id],
+        is_dissolved: false,
+        join_requests: vec![],
     };
     store.upsert_pool(&pool).unwrap();
 
@@ -228,11 +232,15 @@ fn list_pool_ids_returns_all_pools() {
         pool_id: pool1_id,
         members: vec![],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
     let pool2 = Pool {
         pool_id: pool2_id,
         members: vec![],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     store.upsert_pool(&pool1).unwrap();
@@ -258,6 +266,8 @@ fn upsert_pool_replaces_existing() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
     store.upsert_pool(&pool1).unwrap();
 
@@ -271,6 +281,8 @@ fn upsert_pool_replaces_existing() {
             is_admin: false,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
     store.upsert_pool(&pool2).unwrap();
 
@@ -295,6 +307,8 @@ fn query_cards_with_keyword_and_pool_id() {
         pool_id,
         members: vec![],
         card_ids: vec![card_id],
+        is_dissolved: false,
+        join_requests: vec![],
     };
     store.upsert_pool(&pool).unwrap();
 

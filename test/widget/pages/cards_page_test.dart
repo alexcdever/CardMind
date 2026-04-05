@@ -215,6 +215,47 @@ class _MockRustLibApi extends RustLibApi {
   }) => throw UnimplementedError();
 
   @override
+  Future<PoolDto> crateApiLeavePool({
+    required String poolId,
+    required String endpointId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<PoolDto> crateApiDissolvePool({
+    required String poolId,
+    required String endpointId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<List<JoinRequestDto>> crateApiSubmitJoinRequest({
+    required String poolId,
+    required String endpointId,
+    required String nickname,
+    required String os,
+  }) async => const <JoinRequestDto>[];
+
+  @override
+  Future<List<JoinRequestDto>> crateApiApproveJoinRequest({
+    required String poolId,
+    required String requestId,
+    required String approverEndpointId,
+  }) async => const <JoinRequestDto>[];
+
+  @override
+  Future<List<JoinRequestDto>> crateApiRejectJoinRequest({
+    required String poolId,
+    required String requestId,
+    required String approverEndpointId,
+  }) async => const <JoinRequestDto>[];
+
+  @override
+  Future<List<JoinRequestDto>> crateApiCancelJoinRequest({
+    required String poolId,
+    required String requestId,
+    required String applicantEndpointId,
+  }) async => const <JoinRequestDto>[];
+
+  @override
   Future<void> crateApiInitAppConfig({required String appDataDir}) async {}
 
   @override
@@ -482,6 +523,7 @@ class _MockRustLibApi extends RustLibApi {
             ),
           )
           .toList(growable: false),
+      joinRequests: const <JoinRequestDto>[],
     );
   }
 

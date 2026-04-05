@@ -13,18 +13,36 @@ import 'dart:async';
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 
+class JoinRequestData {
+  const JoinRequestData({
+    required this.requestId,
+    required this.displayName,
+    required this.status,
+  });
+
+  final String requestId;
+  final String displayName;
+  final String status;
+}
+
 /// 创建池操作的结果数据。
 class PoolCreateResult {
   /// 创建池结果。
   const PoolCreateResult({
+    required this.poolId,
     required this.poolName,
+    required this.isDissolved,
     required this.isOwner,
     required this.currentIdentityLabel,
     required this.memberLabels,
   });
 
+  final String poolId;
+
   /// 池名称。
   final String poolName;
+
+  final bool isDissolved;
 
   /// 当前用户是否为池所有者。
   final bool isOwner;
@@ -40,14 +58,21 @@ class PoolCreateResult {
 class PoolViewData {
   /// 创建池视图数据。
   const PoolViewData({
+    required this.poolId,
     required this.poolName,
+    required this.isDissolved,
     required this.isOwner,
     required this.currentIdentityLabel,
     required this.memberLabels,
+    this.joinRequests = const <JoinRequestData>[],
   });
+
+  final String poolId;
 
   /// 池名称。
   final String poolName;
+
+  final bool isDissolved;
 
   /// 当前用户是否为池所有者。
   final bool isOwner;
@@ -57,20 +82,29 @@ class PoolViewData {
 
   /// 成员标识列表。
   final List<String> memberLabels;
+
+  final List<JoinRequestData> joinRequests;
 }
 
 /// 池详情数据。
 class PoolDetailData {
   /// 创建池详情数据。
   const PoolDetailData({
+    required this.poolId,
     required this.poolName,
+    required this.isDissolved,
     required this.isOwner,
     required this.currentIdentityLabel,
     required this.memberLabels,
+    this.joinRequests = const <JoinRequestData>[],
   });
+
+  final String poolId;
 
   /// 池名称。
   final String poolName;
+
+  final bool isDissolved;
 
   /// 当前用户是否为池所有者。
   final bool isOwner;
@@ -80,6 +114,8 @@ class PoolDetailData {
 
   /// 成员标识列表。
   final List<String> memberLabels;
+
+  final List<JoinRequestData> joinRequests;
 }
 
 /// 加入池操作的结果。
@@ -113,6 +149,29 @@ abstract class PoolApiClient {
 
   /// 获取指定池的详细信息。
   Future<PoolDetailData> getPoolDetail(String poolId);
+
+  /// 退出指定数据池。
+  Future<void> leavePool(String poolId);
+
+  /// 解散指定数据池。
+  Future<PoolDetailData> dissolvePool(String poolId);
+
+  Future<List<JoinRequestData>> submitJoinRequest(String poolId);
+
+  Future<List<JoinRequestData>> approveJoinRequest(
+    String poolId,
+    String requestId,
+  );
+
+  Future<List<JoinRequestData>> rejectJoinRequest(
+    String poolId,
+    String requestId,
+  );
+
+  Future<List<JoinRequestData>> cancelJoinRequest(
+    String poolId,
+    String requestId,
+  );
 }
 
 /// 本地模拟实现的数据池 API 客户端。
@@ -125,7 +184,9 @@ class LocalPoolApiClient implements PoolApiClient {
   @override
   Future<PoolCreateResult> createPool() async {
     return const PoolCreateResult(
+      poolId: 'local-pool',
       poolName: ownerPoolName,
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@local',
       memberLabels: <String>['owner@local'],
@@ -146,22 +207,66 @@ class LocalPoolApiClient implements PoolApiClient {
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
     return const PoolViewData(
+      poolId: 'local-pool',
       poolName: ownerPoolName,
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@local',
       memberLabels: <String>['owner@local'],
+      joinRequests: <JoinRequestData>[],
     );
   }
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
     return const PoolDetailData(
+      poolId: 'local-pool',
       poolName: ownerPoolName,
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@local',
       memberLabels: <String>['owner@local'],
+      joinRequests: <JoinRequestData>[],
     );
   }
+
+  @override
+  Future<void> leavePool(String poolId) async {}
+
+  @override
+  Future<PoolDetailData> dissolvePool(String poolId) async {
+    return const PoolDetailData(
+      poolId: 'local-pool',
+      poolName: ownerPoolName,
+      isDissolved: true,
+      isOwner: true,
+      currentIdentityLabel: 'owner@local',
+      memberLabels: <String>['owner@local'],
+      joinRequests: <JoinRequestData>[],
+    );
+  }
+
+  @override
+  Future<List<JoinRequestData>> submitJoinRequest(String poolId) async =>
+      const <JoinRequestData>[];
+
+  @override
+  Future<List<JoinRequestData>> approveJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => const <JoinRequestData>[];
+
+  @override
+  Future<List<JoinRequestData>> rejectJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => const <JoinRequestData>[];
+
+  @override
+  Future<List<JoinRequestData>> cancelJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => const <JoinRequestData>[];
 }
 
 /// 基于 FRB 的数据池 API 客户端实现。
@@ -197,6 +302,18 @@ class FrbPoolApiClient implements PoolApiClient {
     return members.map((member) => member.endpointId).toList(growable: false);
   }
 
+  List<JoinRequestData> _joinRequests(List<frb.JoinRequestDto> requests) {
+    return requests
+        .map(
+          (request) => JoinRequestData(
+            requestId: request.requestId,
+            displayName: request.applicantEndpointId,
+            status: request.status,
+          ),
+        )
+        .toList(growable: false);
+  }
+
   @override
   Future<PoolCreateResult> createPool() async {
     final dto = await frb.createPool(
@@ -209,7 +326,9 @@ class FrbPoolApiClient implements PoolApiClient {
       endpointId: endpointId,
     );
     return PoolCreateResult(
+      poolId: dto.id,
       poolName: dto.name,
+      isDissolved: dto.isDissolved,
       isOwner: dto.currentUserRole == 'admin',
       currentIdentityLabel: _identityLabelFromMembers(detail.members),
       memberLabels: _memberLabels(detail.members),
@@ -238,10 +357,13 @@ class FrbPoolApiClient implements PoolApiClient {
       return null;
     }
     return PoolViewData(
+      poolId: dto.id,
       poolName: dto.name,
+      isDissolved: dto.isDissolved,
       isOwner: dto.currentUserRole == 'admin',
       currentIdentityLabel: _identityLabelFromMembers(dto.members),
       memberLabels: _memberLabels(dto.members),
+      joinRequests: _joinRequests(dto.joinRequests),
     );
   }
 
@@ -249,10 +371,86 @@ class FrbPoolApiClient implements PoolApiClient {
   Future<PoolDetailData> getPoolDetail(String poolId) async {
     final dto = await frb.getPoolDetail(poolId: poolId, endpointId: endpointId);
     return PoolDetailData(
+      poolId: dto.id,
       poolName: dto.name,
+      isDissolved: dto.isDissolved,
       isOwner: dto.currentUserRole == 'admin',
       currentIdentityLabel: _identityLabelFromMembers(dto.members),
       memberLabels: _memberLabels(dto.members),
+      joinRequests: _joinRequests(dto.joinRequests),
     );
+  }
+
+  @override
+  Future<void> leavePool(String poolId) async {
+    await frb.leavePool(poolId: poolId, endpointId: endpointId);
+  }
+
+  @override
+  Future<PoolDetailData> dissolvePool(String poolId) async {
+    final dto = await frb.dissolvePool(poolId: poolId, endpointId: endpointId);
+    final detail = await frb.getPoolDetail(
+      poolId: dto.id,
+      endpointId: endpointId,
+    );
+    return PoolDetailData(
+      poolId: dto.id,
+      poolName: dto.name,
+      isDissolved: dto.isDissolved,
+      isOwner: dto.currentUserRole == 'admin',
+      currentIdentityLabel: _identityLabelFromMembers(detail.members),
+      memberLabels: _memberLabels(detail.members),
+      joinRequests: _joinRequests(detail.joinRequests),
+    );
+  }
+
+  @override
+  Future<List<JoinRequestData>> submitJoinRequest(String poolId) async {
+    final requests = await frb.submitJoinRequest(
+      poolId: poolId,
+      endpointId: endpointId,
+      nickname: nickname,
+      os: os,
+    );
+    return _joinRequests(requests);
+  }
+
+  @override
+  Future<List<JoinRequestData>> approveJoinRequest(
+    String poolId,
+    String requestId,
+  ) async {
+    final requests = await frb.approveJoinRequest(
+      poolId: poolId,
+      requestId: requestId,
+      approverEndpointId: endpointId,
+    );
+    return _joinRequests(requests);
+  }
+
+  @override
+  Future<List<JoinRequestData>> rejectJoinRequest(
+    String poolId,
+    String requestId,
+  ) async {
+    final requests = await frb.rejectJoinRequest(
+      poolId: poolId,
+      requestId: requestId,
+      approverEndpointId: endpointId,
+    );
+    return _joinRequests(requests);
+  }
+
+  @override
+  Future<List<JoinRequestData>> cancelJoinRequest(
+    String poolId,
+    String requestId,
+  ) async {
+    final requests = await frb.cancelJoinRequest(
+      poolId: poolId,
+      requestId: requestId,
+      applicantEndpointId: endpointId,
+    );
+    return _joinRequests(requests);
   }
 }

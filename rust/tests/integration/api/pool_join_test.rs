@@ -2,8 +2,9 @@
 // output: 断言 join_by_code 返回真实后端结果，并自动挂接已有 noteId 与稳定错误语义。
 // pos: 覆盖 joinByCode 无句柄后端主路径的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
 use cardmind_rust::api::{
-    create_card_note, create_pool, get_pool_detail, init_app_config, join_by_code,
-    reset_app_config_for_tests, setup_app_lock, verify_app_lock_with_pin,
+    approve_join_request, cancel_join_request, create_card_note, create_pool, get_pool_detail,
+    init_app_config, join_by_code, reject_join_request, reset_app_config_for_tests, setup_app_lock,
+    submit_join_request, verify_app_lock_with_pin,
 };
 use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
@@ -27,8 +28,8 @@ fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 #[serial]
-fn join_by_code_should_return_backend_result_and_attach_existing_notes()
--> Result<(), Box<dyn std::error::Error>> {
+fn join_by_code_should_return_backend_result_and_attach_existing_notes(
+) -> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -62,6 +63,105 @@ fn join_by_code_should_return_backend_result_and_attach_existing_notes()
     )
     .unwrap_err();
     assert_eq!(timeout.code, "REQUEST_TIMEOUT");
+
+    reset_app_config()?;
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn submit_and_approve_join_request_should_update_pool_detail(
+) -> Result<(), Box<dyn std::error::Error>> {
+    let _guard = app_config_test_guard().lock().unwrap();
+    reset_app_config()?;
+    let dir = tempdir()?;
+    init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
+
+    let pool = create_pool(
+        "endpoint-a".to_string(),
+        "nick-a".to_string(),
+        "macos".to_string(),
+    )?;
+
+    let pending = submit_join_request(
+        pool.id.clone(),
+        "endpoint-b".to_string(),
+        "nick-b".to_string(),
+        "ios".to_string(),
+    )?;
+    assert_eq!(pending.len(), 1);
+    let request_id = pending[0].request_id.clone();
+
+    let approved = approve_join_request(pool.id.clone(), request_id, "endpoint-a".to_string())?;
+    assert_eq!(approved[0].status, "approved");
+
+    let detail = get_pool_detail(pool.id, "endpoint-a".to_string())?;
+    assert_eq!(detail.member_count, 2);
+
+    reset_app_config()?;
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn submit_and_cancel_join_request_should_mark_cancelled() -> Result<(), Box<dyn std::error::Error>>
+{
+    let _guard = app_config_test_guard().lock().unwrap();
+    reset_app_config()?;
+    let dir = tempdir()?;
+    init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
+
+    let pool = create_pool(
+        "endpoint-a".to_string(),
+        "nick-a".to_string(),
+        "macos".to_string(),
+    )?;
+
+    let pending = submit_join_request(
+        pool.id.clone(),
+        "endpoint-b".to_string(),
+        "nick-b".to_string(),
+        "ios".to_string(),
+    )?;
+    let request_id = pending[0].request_id.clone();
+
+    let cancelled = cancel_join_request(pool.id, request_id, "endpoint-b".to_string())?;
+    assert_eq!(cancelled[0].status, "cancelled");
+
+    reset_app_config()?;
+    Ok(())
+}
+
+#[test]
+#[serial]
+fn submit_and_reject_join_request_should_mark_rejected() -> Result<(), Box<dyn std::error::Error>> {
+    let _guard = app_config_test_guard().lock().unwrap();
+    reset_app_config()?;
+    let dir = tempdir()?;
+    init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
+
+    let pool = create_pool(
+        "endpoint-a".to_string(),
+        "nick-a".to_string(),
+        "macos".to_string(),
+    )?;
+
+    let pending = submit_join_request(
+        pool.id.clone(),
+        "endpoint-b".to_string(),
+        "nick-b".to_string(),
+        "ios".to_string(),
+    )?;
+    let request_id = pending[0].request_id.clone();
+
+    let rejected = reject_join_request(pool.id.clone(), request_id, "endpoint-a".to_string())?;
+    assert_eq!(rejected[0].status, "rejected");
+
+    let detail = get_pool_detail(pool.id, "endpoint-a".to_string())?;
+    assert_eq!(detail.member_count, 1);
 
     reset_app_config()?;
     Ok(())

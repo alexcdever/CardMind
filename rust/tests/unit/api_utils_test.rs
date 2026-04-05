@@ -139,6 +139,8 @@ fn test_pool_name_with_first_member() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     assert_eq!(pool_name(&pool), "Alice's pool");
@@ -150,6 +152,8 @@ fn test_pool_name_empty_members() {
         pool_id: uuid::Uuid::new_v4(),
         members: vec![],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     assert_eq!(pool_name(&pool), "pool");
@@ -166,6 +170,8 @@ fn test_pool_name_unicode() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     assert_eq!(pool_name(&pool), "张三's pool");
@@ -222,6 +228,8 @@ fn test_current_member_for_endpoint_found() {
             },
         ],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let member = current_member_for_endpoint(&pool, "ep2");
@@ -240,6 +248,8 @@ fn test_current_member_for_endpoint_not_found() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let member = current_member_for_endpoint(&pool, "ep999");
@@ -252,6 +262,8 @@ fn test_current_member_for_endpoint_empty_pool() {
         pool_id: uuid::Uuid::new_v4(),
         members: vec![],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let member = current_member_for_endpoint(&pool, "ep1");
@@ -273,6 +285,8 @@ fn test_current_member_role_for_endpoint_success() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let role = current_member_role_for_endpoint(&pool, "ep1");
@@ -291,6 +305,8 @@ fn test_current_member_role_for_endpoint_not_member() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let result = current_member_role_for_endpoint(&pool, "ep2");
@@ -352,6 +368,8 @@ fn test_to_pool_dto_success() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let dto = to_pool_dto(&pool, "ep1").unwrap();
@@ -373,6 +391,8 @@ fn test_to_pool_dto_not_member() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let result = to_pool_dto(&pool, "ep2");
@@ -402,6 +422,8 @@ fn test_to_pool_detail_dto_success() {
             },
         ],
         card_ids: vec![uuid::Uuid::new_v4(), uuid::Uuid::new_v4()],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let dto = to_pool_detail_dto(&pool, "ep1").unwrap();
@@ -425,6 +447,8 @@ fn test_to_pool_detail_dto_not_member() {
             is_admin: true,
         }],
         card_ids: vec![],
+        is_dissolved: false,
+        join_requests: vec![],
     };
 
     let result = to_pool_detail_dto(&pool, "ep2");

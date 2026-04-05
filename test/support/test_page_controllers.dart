@@ -114,7 +114,9 @@ class TestPoolApiClient implements PoolApiClient {
   @override
   Future<PoolCreateResult> createPool() async {
     return const PoolCreateResult(
+      poolId: 'pool-created',
       poolName: 'Server Pool',
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@test',
       memberLabels: <String>['owner@test'],
@@ -133,22 +135,66 @@ class TestPoolApiClient implements PoolApiClient {
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
     return const PoolViewData(
+      poolId: 'pool-joined',
       poolName: 'Joined Pool',
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@test',
       memberLabels: <String>['owner@test'],
+      joinRequests: <JoinRequestData>[],
     );
   }
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
     return const PoolDetailData(
+      poolId: 'pool-detail',
       poolName: 'Joined Pool',
+      isDissolved: false,
       isOwner: true,
       currentIdentityLabel: 'owner@test',
       memberLabels: <String>['owner@test'],
+      joinRequests: <JoinRequestData>[],
     );
   }
+
+  @override
+  Future<void> leavePool(String poolId) async {}
+
+  @override
+  Future<PoolDetailData> dissolvePool(String poolId) async {
+    return const PoolDetailData(
+      poolId: 'pool-detail',
+      poolName: 'Joined Pool',
+      isDissolved: true,
+      isOwner: true,
+      currentIdentityLabel: 'owner@test',
+      memberLabels: <String>['owner@test'],
+      joinRequests: <JoinRequestData>[],
+    );
+  }
+
+  @override
+  Future<List<JoinRequestData>> submitJoinRequest(String poolId) async =>
+      const <JoinRequestData>[];
+
+  @override
+  Future<List<JoinRequestData>> approveJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => const <JoinRequestData>[];
+
+  @override
+  Future<List<JoinRequestData>> rejectJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => const <JoinRequestData>[];
+
+  @override
+  Future<List<JoinRequestData>> cancelJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => const <JoinRequestData>[];
 }
 
 PoolController buildTestPoolController({
