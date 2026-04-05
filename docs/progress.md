@@ -5,44 +5,34 @@
 
 ## 当前进行中的工作
 
-无 - 所有任务已完成
+无 - 当前实现阶段任务已完成，等待用户决定如何集成 `feature/phase3-app-lock` 分支。
 
 ## 最近完成的工作
 
-1. ~~工具脚本中文注释规范化~~ ✅ **已完成**（2026-03-26 晚间）
-   - 扩展 flutter_comment_linter 扫描 tool/ 目录
-   - 为 6 个工具脚本添加完整中文文档注释
-   - 修复 rust_comment_linter.dart 编码错误
-   - 翻译 2 个英文计划文档为中文
+1. ~~Phase 3 数据池治理与安全基线~~ ✅ **已完成**（2026-04-05）
+   - 应用锁（Rust 状态机 + Flutter guard/UI）
+   - 数据池 API 应用锁 gating
+   - 最后管理员不能退出
+   - 池解散与已解散只读态
+   - 加入申请提交 / 审批 / 拒绝 / 取消
+   - Rust / Flutter / FRB / contract / integration / widget 测试链路打通
 
-2. ~~重构开发流程并创建AI协作规范~~ ✅ **已完成**（2026-03-26）
-   - AGENTS.md 改为3阶段11步完整流程
-   - 创建 docs/standards/ai-collaboration.md
-   - 引入双代理对抗式TDD开发模式
-   - 明确各步骤主语（用户/AI职责边界）
+2. ~~质量门禁基线清理~~ ✅ **已完成**（2026-04-05）
+   - `flutter analyze` 通过
+   - `cargo fmt --check` 通过
+   - `cargo clippy` 通过
+   - `dart run tool/quality.dart all` 通过
 
-2. ~~修复 Rust 和 Flutter 测试执行问题~~ ✅ **已完成**（2026-03-26 下午）
-   - 更新 integration.rs 和 integration_exact.rs 包含所有测试模块
-   - 为 14 个集成测试添加 `#[serial]` 属性
-   - 修复 card_api_client.dart 代码格式
-   - 测试统计：882 个测试全部通过（Rust 602 + Flutter 280）
-
-2. ~~Rust 代码注释补全~~ ✅ **已完成**（2026-03-25 下午）
-   - 修复 Linter Bug，新增 316 行 Rust 文档注释
-   - 7 个结构体、2 个模块格式、60+ 函数
-   - Linter 检测：0 issues
-
-3. ~~Flutter 代码注释规范化~~ ✅ **已完成**（2026-03-25 上午）
-   - 为 59 个 Dart 文件添加/更新标准 Dartdoc 注释
-   - 统一 library 命名格式
-   - 通过 flutter analyze
+3. ~~应用锁前置能力~~ ✅ **已完成**（2026-04-05）
+   - Rust 安全状态机与存储抽象
+   - Flutter 应用锁服务、界面与 guard
+   - 池相关 API 必须在解锁后访问
 
 ## 待办事项
 
-- [x] 修复 Rust 集成测试未被执行问题
-- [x] 修复 Rust 集成测试并行执行冲突
-- [x] 修复 Flutter 测试失败
-- [x] 验证所有测试通过
+- [ ] 根据用户决策执行后续集成动作（PR / 合并 / 推送）
+- [ ] 如需继续优化，补 `tmp/cardmind_test_boundary_report.md` 中高优先级边界测试
+- [ ] 如需主分支归档，回写主工作树的 memory / progress 文档
 
 ## 阻塞/卡点
 
@@ -52,26 +42,21 @@
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
-| 2026-03-26 | 工作流改为3阶段11步结构 | 明确区分人机协作与AI自动执行阶段 |
-| 2026-03-26 | 引入双代理对抗式TDD开发模式 | 通过实现者+审查者对抗循环提升代码质量 |
-| 2026-03-26 | 所有步骤明确主语（用户/AI） | 消除人称代词，明确职责边界 |
-| 2026-03-26 | AGENTS.md 开发流程采用 TDD 三阶段描述 | 明确红-绿-蓝循环，强调规格文档是最终目标 |
-| 2026-03-26 | 使用 `#[serial]` 属性解决测试状态隔离问题 | 避免并行冲突导致的 APP_CONFIG_CONFLICT 错误 |
-| 2026-03-26 | Flutter 代码格式需匹配测试断言的单行格式 | 测试使用字符串匹配检查代码内容 |
-| 2026-03-25 | Linter 应忽略测试函数的注释检查 | 测试函数通常不需要文档注释，减少噪音 |
-| 2026-03-25 | Rust 注释使用中文 | 保持与 Flutter 代码的一致性 |
-| 2026-03-25 | Flutter 注释统一使用 Dartdoc (///) 格式 | 符合 Dart 最佳实践 |
+| 2026-04-05 | 应用锁作为数据池功能前置安全基线 | 离线设备数据无法强制删除，需要先保证本地访问受控 |
+| 2026-04-05 | 应用锁采用 Rust 负责状态与存储、Flutter 负责 UI 与生物识别调度 | 保持 Rust-first 业务真相源，同时复用设备原生交互能力 |
+| 2026-04-05 | 数据池相关 API 统一增加应用锁 gating | 避免在未解锁状态下访问池治理与同步能力 |
+| 2026-04-05 | 解散池后保持 joined 视图并进入只读态 | 更符合“已解散但仍可读取历史数据”的规格语义 |
+| 2026-04-05 | 加入审批 API 返回 JoinRequestDto 列表而非 PoolDetailDto | 申请人尚未成为成员，返回 PoolDetail 会触发 NOT_MEMBER 语义冲突 |
+| 2026-04-05 | 通过 test root 入口文件修复 `cargo fmt --check` 与 `rustfmt` 上下文差异 | `#[path]` 嵌套测试文件需要入口上下文才能稳定格式化 |
 
 ## 相关文档链接
 
-- [今日工作日志](docs/memory/2026-03-26.md)
-- [昨日工作日志](docs/memory/2026-03-25.md)
-- [产品级真相源规格](docs/specs/product.md)
+- [今日工作日志](docs/memory/2026-04-05.md)
+- [Phase 3 设计文档](docs/plans/2026-03-27-phase3-data-flow-extension-assessment-design.md)
+- [Phase 3 实施计划](docs/superpowers/plans/2026-03-27-phase3-implementation-plan.md)
+- [数据池规格](docs/specs/pool.md)
+- [边界扫描报告](tmp/cardmind_test_boundary_report.md)
 
 ---
 
-*最后更新：2026-03-26*
-
-## 当前进行中的工作
-
-无 - 所有任务已完成
+*最后更新：2026-04-05*
