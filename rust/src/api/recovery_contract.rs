@@ -389,11 +389,7 @@ impl RecoveryContract {
                 let all_ready = *sync == SubState::Ready
                     && *query == SubState::Ready
                     && *instance == SubState::Ready;
-                if all_ready {
-                    SamePath
-                } else {
-                    PathAtRisk
-                }
+                if all_ready { SamePath } else { PathAtRisk }
             }
             ReadOnlyRisk => PathAtRisk,
             Unknown => {

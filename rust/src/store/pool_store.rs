@@ -354,19 +354,18 @@ impl PoolStore {
             .members
             .iter()
             .find(|member| member.endpoint_id == endpoint_id)
+            && leaving_member.is_admin
         {
-            if leaving_member.is_admin {
-                let remaining_admins = pool
-                    .members
-                    .iter()
-                    .filter(|member| member.endpoint_id != endpoint_id && member.is_admin)
-                    .count();
+            let remaining_admins = pool
+                .members
+                .iter()
+                .filter(|member| member.endpoint_id != endpoint_id && member.is_admin)
+                .count();
 
-                if remaining_admins == 0 {
-                    return Err(CardMindError::InvalidArgument(
-                        "last admin cannot leave pool".to_string(),
-                    ));
-                }
+            if remaining_admins == 0 {
+                return Err(CardMindError::InvalidArgument(
+                    "last admin cannot leave pool".to_string(),
+                ));
             }
         }
 
@@ -454,7 +453,6 @@ impl PoolStore {
         pool_id: &Uuid,
         request_id: &Uuid,
         approver_endpoint_id: &str,
-        local_card_ids: Vec<Uuid>,
     ) -> Result<Pool, CardMindError> {
         let mut pool = self.get_pool(pool_id)?;
 
@@ -495,7 +493,6 @@ impl PoolStore {
         {
             pool.members.push(request.applicant.clone());
         }
-        pool.card_ids = merge_note_references(&pool.card_ids, local_card_ids);
         self.persist_pool(&pool)?;
         Ok(pool)
     }

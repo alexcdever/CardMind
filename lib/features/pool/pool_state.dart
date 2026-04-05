@@ -37,6 +37,7 @@ sealed class PoolState {
   static PoolState joinedWithPending() {
     return const PoolState.joined(
       poolId: 'default-pool',
+      isOwner: true,
       pending: <PoolPendingRequest>[
         PoolPendingRequest(id: 'alice', displayName: 'alice@pending'),
       ],

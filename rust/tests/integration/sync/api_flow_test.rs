@@ -52,8 +52,8 @@ fn sync_flow_should_move_to_connected_and_back_to_idle() -> Result<(), Box<dyn s
 
 #[test]
 #[serial]
-fn sync_status_should_separate_write_projection_and_sync_states(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn sync_status_should_separate_write_projection_and_sync_states()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     let dir = tempdir()?;
     setup_locked_network_env(dir.path())?;

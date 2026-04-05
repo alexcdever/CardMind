@@ -149,6 +149,16 @@ class _PoolPageState extends State<PoolPage> {
                           child: const Text('扫码加入'),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        key: const ValueKey('pool.submit_join_request_button'),
+                        onPressed: _controller.joining
+                            ? null
+                            : () {
+                                unawaited(_controller.submitJoinRequest());
+                              },
+                        child: const Text('提交加入申请'),
+                      ),
                       if (_controller.joining)
                         const Padding(
                           padding: EdgeInsets.only(top: 12),
@@ -264,28 +274,39 @@ class _PoolPageState extends State<PoolPage> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Semantics(
-                        container: true,
-                        explicitChildNodes: true,
-                        identifier: SemanticIds.poolPendingApprove,
-                        label: '通过审批',
-                        button: true,
-                        child: TextButton(
-                          onPressed: () => _controller.approve(request.id),
-                          child: const Text('通过'),
+                      if (state.isOwner) ...[
+                        Semantics(
+                          container: true,
+                          explicitChildNodes: true,
+                          identifier: SemanticIds.poolPendingApprove,
+                          label: '通过审批',
+                          button: true,
+                          child: TextButton(
+                            onPressed: () => _controller.approve(request.id),
+                            child: const Text('通过'),
+                          ),
                         ),
-                      ),
-                      Semantics(
-                        container: true,
-                        explicitChildNodes: true,
-                        identifier: SemanticIds.poolPendingReject,
-                        label: '拒绝审批',
-                        button: true,
-                        child: TextButton(
-                          onPressed: () => _controller.reject(request.id),
-                          child: const Text('拒绝'),
+                        Semantics(
+                          container: true,
+                          explicitChildNodes: true,
+                          identifier: SemanticIds.poolPendingReject,
+                          label: '拒绝审批',
+                          button: true,
+                          child: TextButton(
+                            onPressed: () => _controller.reject(request.id),
+                            child: const Text('拒绝'),
+                          ),
                         ),
-                      ),
+                      ] else ...[
+                        TextButton(
+                          key: const ValueKey(
+                            'pool.cancel_join_request_button',
+                          ),
+                          onPressed: () =>
+                              _controller.cancelJoinRequest(request.id),
+                          child: const Text('取消申请'),
+                        ),
+                      ],
                       if (request.error != null)
                         TextButton(
                           onPressed: () => _controller.reject(request.id),
@@ -294,13 +315,14 @@ class _PoolPageState extends State<PoolPage> {
                     ],
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextButton(
-                  onPressed: _controller.simulateRejectFailurePending,
-                  child: const Text('模拟失败请求'),
+              if (kDebugMode)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextButton(
+                    onPressed: _controller.simulateRejectFailurePending,
+                    child: const Text('模拟失败请求'),
+                  ),
                 ),
-              ),
               if (state.approvalMessage != null)
                 Padding(
                   padding: const EdgeInsets.all(16),

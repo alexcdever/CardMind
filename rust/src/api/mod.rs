@@ -45,7 +45,7 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{build_endpoint, PoolEndpoint};
+use crate::net::endpoint::{PoolEndpoint, build_endpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::security::app_lock::AppLock;
@@ -316,8 +316,8 @@ pub fn update_backend_config(
 /// println!("MCP 监听: {:?}", status.mcp_bind_addr);
 /// println!("CLI 启用: {}", status.cli_enabled);
 /// ```
-pub fn get_runtime_entry_status(
-) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+pub fn get_runtime_entry_status()
+-> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -915,14 +915,11 @@ pub fn approve_join_request(
     approver_endpoint_id: String,
 ) -> Result<Vec<JoinRequestDto>, ApiError> {
     require_app_lock_unlocked()?;
-    with_configured_card_store(|card_repository| {
+    with_configured_pool_store(|pool_store| {
         let pool_id = parse_pool_id(&pool_id)?;
         let request_id = parse_uuid(&request_id, "request_id")?;
-        let local_card_ids = list_all_card_ids(card_repository)?;
-        let base_path = card_repository.base_path().to_string_lossy().to_string();
-        let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
         let updated = pool_store
-            .approve_join_request(&pool_id, &request_id, &approver_endpoint_id, local_card_ids)
+            .approve_join_request(&pool_id, &request_id, &approver_endpoint_id)
             .map_err(map_err)?;
         Ok(to_join_request_dtos(&updated))
     })

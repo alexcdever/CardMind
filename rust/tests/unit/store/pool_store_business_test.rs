@@ -628,7 +628,7 @@ fn test_approve_join_request_adds_member() {
     let request_id = pool.join_requests[0].request_id;
 
     let updated = store
-        .approve_join_request(&pool.pool_id, &request_id, "ep1", vec![])
+        .approve_join_request(&pool.pool_id, &request_id, "ep1")
         .unwrap();
 
     assert_eq!(updated.members.len(), 2);

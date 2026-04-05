@@ -18,8 +18,8 @@ fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 #[serial]
-fn init_app_config_should_be_idempotent_for_same_directory(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn init_app_config_should_be_idempotent_for_same_directory()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -34,8 +34,8 @@ fn init_app_config_should_be_idempotent_for_same_directory(
 
 #[test]
 #[serial]
-fn init_app_config_should_fail_for_different_directory_after_configured(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn init_app_config_should_fail_for_different_directory_after_configured()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir_a = tempdir()?;
@@ -52,8 +52,8 @@ fn init_app_config_should_fail_for_different_directory_after_configured(
 
 #[test]
 #[serial]
-fn product_api_should_fail_before_app_config_is_initialized(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn product_api_should_fail_before_app_config_is_initialized()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let error = list_card_notes().unwrap_err();

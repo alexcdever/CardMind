@@ -503,6 +503,42 @@ void main() {
     expect(find.text('加入申请已取消'), findsOneWidget);
   });
 
+  testWidgets('applicant can submit join request from not joined state', (
+    tester,
+  ) async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[
+        JoinRequestData(
+          requestId: 'req-1',
+          displayName: 'applicant@test',
+          status: 'pending',
+        ),
+      ];
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.notJoined(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: controller,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('pool.submit_join_request_button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('待审批请求'), findsOneWidget);
+    expect(find.text('applicant@test'), findsOneWidget);
+    expect(find.text('取消申请'), findsOneWidget);
+    expect(find.textContaining('等待管理员审批'), findsOneWidget);
+  });
+
   testWidgets('exit pool partial cleanup shows retry action', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

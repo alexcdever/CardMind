@@ -314,6 +314,7 @@ void main() {
     await controller.submitJoinRequest();
 
     final joined = controller.state as PoolJoined;
+    expect(joined.isOwner, isFalse);
     expect(joined.pending.single.id, 'req-1');
     expect(joined.approvalMessage, contains('等待管理员审批'));
   });

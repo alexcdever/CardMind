@@ -28,8 +28,8 @@ fn unlock_app_lock() -> Result<(), Box<dyn std::error::Error>> {
 
 #[test]
 #[serial]
-fn join_by_code_should_return_backend_result_and_attach_existing_notes(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn join_by_code_should_return_backend_result_and_attach_existing_notes()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -70,8 +70,8 @@ fn join_by_code_should_return_backend_result_and_attach_existing_notes(
 
 #[test]
 #[serial]
-fn submit_and_approve_join_request_should_update_pool_detail(
-) -> Result<(), Box<dyn std::error::Error>> {
+fn submit_and_approve_join_request_should_update_pool_detail()
+-> Result<(), Box<dyn std::error::Error>> {
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;

@@ -199,13 +199,21 @@ class PoolController extends ChangeNotifier {
   }
 
   Future<void> submitJoinRequest() async {
-    final joined = _state;
-    if (joined is! PoolJoined) return;
+    final joined = _state is PoolJoined
+        ? _state as PoolJoined
+        : const PoolJoined(
+            poolId: 'pending-request-pool',
+            poolName: '待加入数据池',
+            isOwner: false,
+            currentIdentityLabel: '申请人',
+            memberLabels: <String>[],
+          );
 
     try {
       final requests = await _apiClient.submitJoinRequest(joined.poolId);
       _state = joined.copyWith(
         pending: _pendingFromApi(requests),
+        isOwner: false,
         approvalMessage: '加入申请已提交，等待管理员审批',
       );
     } on ApiError {
