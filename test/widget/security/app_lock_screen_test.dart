@@ -76,4 +76,30 @@ void main() {
     expect(unlocked, isTrue);
     expect(service.state.phase, AppLockPhase.unlocked);
   });
+
+  testWidgets('biometric button unlocks when allowBiometric is true', (
+    tester,
+  ) async {
+    final gateway = _ScreenGateway()..status = (true, false);
+    final service = AppLockService(gateway: gateway);
+    await service.refresh();
+
+    var unlocked = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockScreen(
+          service: service,
+          onUnlocked: () {
+            unlocked = true;
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('app_lock.biometric_button')));
+    await tester.pumpAndSettle();
+
+    expect(unlocked, isTrue);
+    expect(service.state.phase, AppLockPhase.unlocked);
+  });
 }
