@@ -5,11 +5,23 @@
 
 ## 当前进行中的工作
 
-无 - 当前实现阶段任务已完成，等待用户决定如何集成 `feature/phase3-app-lock` 分支。
+1. 正在判断前端页面/交互层是否已成为下一批高风险负资产。
 
 ## 最近完成的工作
 
-1. ~~Phase 3 数据池治理与安全基线~~ ✅ **已完成**（2026-04-05）
+1. ~~文档权威边界收紧~~ ✅ **已完成**（2026-04-07）
+   - 明确 `docs/standards/` 与 `docs/specs/` 是当前实现依据
+   - 将 `docs/plans/` 降权为历史设计/计划/审计记录目录
+   - 收紧 `spec-first-execution`，禁止把未确认项直接写成正式规格
+
+2. ~~Phase 3 数据池规格定版~~ ✅ **已完成**（2026-04-07）
+   - 应用锁前置条件
+   - 加入申请取消
+   - 解散后只读态
+   - 退出/重新加入后的访问边界
+   - 黑盒验收标准补齐
+
+3. ~~Phase 3 数据池治理与安全基线~~ ✅ **已完成**（2026-04-05）
    - 应用锁（Rust 状态机 + Flutter guard/UI）
    - 数据池 API 应用锁 gating
    - 最后管理员不能退出
@@ -17,46 +29,49 @@
    - 加入申请提交 / 审批 / 拒绝 / 取消
    - Rust / Flutter / FRB / contract / integration / widget 测试链路打通
 
-2. ~~质量门禁基线清理~~ ✅ **已完成**（2026-04-05）
+4. ~~质量门禁基线清理~~ ✅ **已完成**（2026-04-05）
    - `flutter analyze` 通过
    - `cargo fmt --check` 通过
    - `cargo clippy` 通过
    - `dart run tool/quality.dart all` 通过
 
-3. ~~应用锁前置能力~~ ✅ **已完成**（2026-04-05）
+5. ~~应用锁前置能力~~ ✅ **已完成**（2026-04-05）
    - Rust 安全状态机与存储抽象
    - Flutter 应用锁服务、界面与 guard
    - 池相关 API 必须在解锁后访问
 
 ## 待办事项
 
-- [ ] 根据用户决策执行后续集成动作（PR / 合并 / 推送）
+- [ ] 继续判断前端页面/交互层是否需要局部重建或进一步收口
+- [ ] 根据用户决策执行后续集成动作（推送 / 归档 / 继续整理）
 - [ ] 如需继续优化，补 `tmp/cardmind_test_boundary_report.md` 中高优先级边界测试
-- [ ] 如需主分支归档，回写主工作树的 memory / progress 文档
 
 ## 阻塞/卡点
 
-- 当前无工程阻塞
+- 当前无工程阻塞，主要问题转为信息架构与历史资产收口
 
 ## 最近的决策
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-04-07 | `docs/plans/` 默认不作为当前实现依据，仅保留历史记录与 ADR 参考价值 | 避免历史设计/计划文档继续误导当前实现与 AI 判断 |
+| 2026-04-07 | 当前实现依据收敛为 `docs/standards/` 与 `docs/specs/` | 需要明确真相源，降低文档层混乱与跑偏风险 |
+| 2026-04-07 | 采用“持续开发 + 关键停顿点”的协作理解 | 比硬阶段切分更符合个人开发节奏和 superpowers 的使用方式 |
 | 2026-04-05 | 应用锁作为数据池功能前置安全基线 | 离线设备数据无法强制删除，需要先保证本地访问受控 |
 | 2026-04-05 | 应用锁采用 Rust 负责状态与存储、Flutter 负责 UI 与生物识别调度 | 保持 Rust-first 业务真相源，同时复用设备原生交互能力 |
 | 2026-04-05 | 数据池相关 API 统一增加应用锁 gating | 避免在未解锁状态下访问池治理与同步能力 |
-| 2026-04-05 | 解散池后保持 joined 视图并进入只读态 | 更符合“已解散但仍可读取历史数据”的规格语义 |
-| 2026-04-05 | 加入审批 API 返回 JoinRequestDto 列表而非 PoolDetailDto | 申请人尚未成为成员，返回 PoolDetail 会触发 NOT_MEMBER 语义冲突 |
-| 2026-04-05 | 通过 test root 入口文件修复 `cargo fmt --check` 与 `rustfmt` 上下文差异 | `#[path]` 嵌套测试文件需要入口上下文才能稳定格式化 |
 
 ## 相关文档链接
 
-- [今日工作日志](docs/memory/2026-04-05.md)
+- [今日工作日志](docs/memory/2026-04-07.md)
+- [文档总入口](docs/DIR.md)
+- [计划目录说明](docs/plans/DIR.md)
+- [规格目录说明](docs/specs/DIR.md)
+- [规格优先执行规范](docs/standards/spec-first-execution.md)
 - [Phase 3 设计文档](docs/plans/2026-03-27-phase3-data-flow-extension-assessment-design.md)
-- [Phase 3 实施计划](docs/superpowers/plans/2026-03-27-phase3-implementation-plan.md)
 - [数据池规格](docs/specs/pool.md)
 - [边界扫描报告](tmp/cardmind_test_boundary_report.md)
 
 ---
 
-*最后更新：2026-04-05*
+*最后更新：2026-04-07*
