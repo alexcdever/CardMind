@@ -18,7 +18,6 @@ sealed class PoolState {
   const factory PoolState.joined({
     String poolId,
     List<PoolPendingRequest> pending,
-    bool exitShouldFail,
     bool isDissolved,
     String poolName,
     bool isOwner,
@@ -56,7 +55,6 @@ class PoolJoined extends PoolState {
   const PoolJoined({
     this.poolId = 'default-pool',
     this.pending = const <PoolPendingRequest>[],
-    this.exitShouldFail = false,
     this.isDissolved = false,
     this.poolName = '默认数据池',
     this.isOwner = true,
@@ -69,9 +67,6 @@ class PoolJoined extends PoolState {
 
   /// 待处理的加入请求列表。
   final List<PoolPendingRequest> pending;
-
-  /// 退出操作是否应该失败（用于测试）。
-  final bool exitShouldFail;
 
   /// 数据池是否已解散。
   final bool isDissolved;
@@ -92,7 +87,6 @@ class PoolJoined extends PoolState {
   PoolJoined copyWith({
     String? poolId,
     List<PoolPendingRequest>? pending,
-    bool? exitShouldFail,
     bool? isDissolved,
     String? poolName,
     bool? isOwner,
@@ -102,7 +96,6 @@ class PoolJoined extends PoolState {
     return PoolJoined(
       pending: pending ?? this.pending,
       poolId: poolId ?? this.poolId,
-      exitShouldFail: exitShouldFail ?? this.exitShouldFail,
       isDissolved: isDissolved ?? this.isDissolved,
       poolName: poolName ?? this.poolName,
       isOwner: isOwner ?? this.isOwner,
@@ -134,7 +127,6 @@ class PoolPendingRequest {
     required this.id,
     required this.displayName,
     this.status = 'pending',
-    this.rejectShouldFail = false,
     this.error,
   });
 
@@ -147,9 +139,6 @@ class PoolPendingRequest {
   /// 请求状态。
   final String status;
 
-  /// 拒绝操作是否应该失败（用于测试）。
-  final bool rejectShouldFail;
-
   /// 错误信息。
   final String? error;
 
@@ -159,7 +148,6 @@ class PoolPendingRequest {
       id: id,
       displayName: displayName,
       status: status,
-      rejectShouldFail: rejectShouldFail,
       error: error,
     );
   }

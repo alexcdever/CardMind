@@ -15,9 +15,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _FakePoolApiClient implements PoolApiClient {
   Object? leaveError;
+  Object? leavePartialCleanupError;
   String? leftPoolId;
   bool dissolveCalled = false;
   List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
+  final Set<String> rejectFailOnceRequestIds = <String>{};
 
   @override
   Future<PoolCreateResult> createPool() async {
@@ -69,6 +71,9 @@ class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<void> leavePool(String poolId) async {
     leftPoolId = poolId;
+    if (leavePartialCleanupError != null) {
+      throw leavePartialCleanupError!;
+    }
     if (leaveError != null) {
       throw leaveError!;
     }
@@ -102,7 +107,12 @@ class _FakePoolApiClient implements PoolApiClient {
   Future<List<JoinRequestData>> rejectJoinRequest(
     String poolId,
     String requestId,
-  ) async => joinRequestResults;
+  ) async {
+    if (rejectFailOnceRequestIds.remove(requestId)) {
+      throw ApiError(code: 'UNAVAILABLE', message: 'temporary reject failure');
+    }
+    return joinRequestResults;
+  }
 
   @override
   Future<List<JoinRequestData>> cancelJoinRequest(
@@ -390,7 +400,8 @@ void main() {
     tester,
   ) async {
     final client = _FakePoolApiClient()
-      ..joinRequestResults = const <JoinRequestData>[];
+      ..joinRequestResults = const <JoinRequestData>[]
+      ..rejectFailOnceRequestIds.add('bob');
     final controller = PoolController(
       apiClient: client,
       initialState: const PoolState.joined(
@@ -428,11 +439,7 @@ void main() {
       const PoolState.joined(
         poolId: 'joined-pool',
         pending: <PoolPendingRequest>[
-          PoolPendingRequest(
-            id: 'bob',
-            displayName: 'bob@pending-fail',
-            rejectShouldFail: true,
-          ),
+          PoolPendingRequest(id: 'bob', displayName: 'bob@pending-fail'),
         ],
       ),
     );
@@ -441,7 +448,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('bob@pending-fail'), findsOneWidget);
-    expect(find.textContaining('拒绝失败'), findsOneWidget);
+    expect(find.text('拒绝失败：网络异常'), findsOneWidget);
+    expect(find.text('拒绝失败，请稍后重试'), findsOneWidget);
     expect(find.text('重试拒绝'), findsOneWidget);
 
     await tester.tap(find.text('重试拒绝'));
@@ -551,9 +559,20 @@ void main() {
   });
 
   testWidgets('exit pool partial cleanup shows retry action', (tester) async {
+    final client = _FakePoolApiClient()
+      ..leavePartialCleanupError = ApiError(
+        code: 'PARTIAL_CLEANUP',
+        message: 'partial cleanup required',
+      );
     await tester.pumpWidget(
-      const MaterialApp(
-        home: PoolPage(state: PoolState.joined(exitShouldFail: true)),
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(),
+          controller: PoolController(
+            apiClient: client,
+            initialState: const PoolState.joined(),
+          ),
+        ),
       ),
     );
 

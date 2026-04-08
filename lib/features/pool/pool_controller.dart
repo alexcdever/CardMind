@@ -23,6 +23,10 @@ bool _isLastAdminLeaveError(ApiError error) {
       error.message.contains('last admin');
 }
 
+bool _isPartialCleanupError(ApiError error) {
+  return error.code == 'PARTIAL_CLEANUP';
+}
+
 /// 数据池状态控制器。
 ///
 /// 管理池成员流转与同步状态编排，通过 [ChangeNotifier] 模式
@@ -170,26 +174,6 @@ class PoolController extends ChangeNotifier {
     final joined = _state;
     if (joined is! PoolJoined) return;
 
-    if (joined.pending.any(
-      (item) => item.id == requestId && item.rejectShouldFail,
-    )) {
-      final updated = joined.pending
-          .map((item) {
-            if (item.id != requestId) return item;
-            if (item.error != null) {
-              return null;
-            }
-            return item.copyWith(error: '拒绝失败：网络异常');
-          })
-          .whereType<PoolPendingRequest>()
-          .toList(growable: false);
-
-      _noticeMessage = updated.length == joined.pending.length ? null : '拒绝已完成';
-      _state = joined.copyWith(pending: updated);
-      notifyListeners();
-      return;
-    }
-
     try {
       final requests = await _apiClient.rejectJoinRequest(
         joined.poolId,
@@ -198,8 +182,14 @@ class PoolController extends ChangeNotifier {
       _noticeMessage = '拒绝已完成';
       _state = joined.copyWith(pending: _pendingFromApi(requests));
     } on ApiError {
+      final updated = joined.pending
+          .map((item) {
+            if (item.id != requestId) return item;
+            return item.copyWith(error: '拒绝失败：网络异常');
+          })
+          .toList(growable: false);
       _noticeMessage = '拒绝失败，请稍后重试';
-      _state = joined;
+      _state = joined.copyWith(pending: updated);
     } catch (_) {
       _noticeMessage = '拒绝失败，请稍后重试';
       _state = joined;
@@ -263,13 +253,6 @@ class PoolController extends ChangeNotifier {
       return;
     }
 
-    if (joined.exitShouldFail) {
-      _noticeMessage = null;
-      _state = const PoolState.exitPartialCleanup();
-      notifyListeners();
-      return;
-    }
-
     try {
       await _apiClient.leavePool(joined.poolId);
       _noticeMessage = null;
@@ -278,6 +261,9 @@ class PoolController extends ChangeNotifier {
       if (_isLastAdminLeaveError(error)) {
         _noticeMessage = '您是唯一的管理员，请先指定新的管理员';
         _state = joined;
+      } else if (_isPartialCleanupError(error)) {
+        _noticeMessage = null;
+        _state = const PoolState.exitPartialCleanup();
       } else {
         _noticeMessage = '退出失败，请稍后重试';
         _state = joined;

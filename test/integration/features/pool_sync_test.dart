@@ -2,8 +2,11 @@
 // output: 控制器 retrySync 与 reconnectSync 调用计数递增。
 // pos: 覆盖池页与同步控制器动作连线，防止错误恢复按钮失灵。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/pool/pool_controller.dart';
+import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
+import 'package:cardmind/bridge_generated/api.dart' as frb;
+import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,6 +30,56 @@ class _SpyPoolController extends PoolController {
   Future<void> reconnectSync() async {
     reconnectCalls += 1;
   }
+}
+
+class _PartialCleanupPoolApiClient implements PoolApiClient {
+  @override
+  Future<PoolCreateResult> createPool() async => throw UnimplementedError();
+
+  @override
+  Future<PoolDetailData> getPoolDetail(String poolId) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<PoolViewData?> getJoinedPoolView() async => throw UnimplementedError();
+
+  @override
+  Future<PoolJoinResult> joinByCode(String code) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> leavePool(String poolId) async {
+    throw ApiError(
+      code: 'PARTIAL_CLEANUP',
+      message: 'partial cleanup required',
+    );
+  }
+
+  @override
+  Future<PoolDetailData> dissolvePool(String poolId) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<JoinRequestData>> submitJoinRequest(String poolId) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<JoinRequestData>> approveJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => throw UnimplementedError();
+
+  @override
+  Future<List<JoinRequestData>> rejectJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => throw UnimplementedError();
+
+  @override
+  Future<List<JoinRequestData>> cancelJoinRequest(
+    String poolId,
+    String requestId,
+  ) async => throw UnimplementedError();
 }
 
 void main() {
@@ -89,7 +142,8 @@ void main() {
     tester,
   ) async {
     final controller = PoolController(
-      initialState: const PoolState.joined(exitShouldFail: true),
+      initialState: const PoolState.joined(),
+      apiClient: _PartialCleanupPoolApiClient(),
     );
 
     await tester.pumpWidget(

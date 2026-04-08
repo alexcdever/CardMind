@@ -21,9 +21,11 @@ class _FakePoolApiClient implements PoolApiClient {
     memberLabels: <String>['owner@test', 'joiner@test'],
   );
   Object? leaveError;
+  Object? leavePartialCleanupError;
   String? leftPoolId;
   bool dissolveCalled = false;
   List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
+  final Set<String> rejectFailOnceRequestIds = <String>{};
 
   @override
   Future<PoolCreateResult> createPool() async => const PoolCreateResult(
@@ -55,6 +57,9 @@ class _FakePoolApiClient implements PoolApiClient {
   @override
   Future<void> leavePool(String poolId) async {
     leftPoolId = poolId;
+    if (leavePartialCleanupError != null) {
+      throw leavePartialCleanupError!;
+    }
     if (leaveError != null) {
       throw leaveError!;
     }
@@ -88,7 +93,12 @@ class _FakePoolApiClient implements PoolApiClient {
   Future<List<JoinRequestData>> rejectJoinRequest(
     String poolId,
     String requestId,
-  ) async => joinRequestResults;
+  ) async {
+    if (rejectFailOnceRequestIds.remove(requestId)) {
+      throw ApiError(code: 'UNAVAILABLE', message: 'temporary reject failure');
+    }
+    return joinRequestResults;
+  }
 
   @override
   Future<List<JoinRequestData>> cancelJoinRequest(
@@ -359,26 +369,25 @@ void main() {
     expect(controller.noticeMessage, '加入申请已取消');
   });
 
-  test('reject_marksFirstFailureAndRemovesAfterRetry', () {
+  test('reject_marksFirstFailureAndRemovesAfterRetry', () async {
+    final client = _FakePoolApiClient()
+      ..joinRequestResults = const <JoinRequestData>[]
+      ..rejectFailOnceRequestIds.add('req');
     final controller = PoolController(
-      apiClient: _FakePoolApiClient(),
+      apiClient: client,
       initialState: const PoolState.joined(
         pending: <PoolPendingRequest>[
-          PoolPendingRequest(
-            id: 'req',
-            displayName: 'req@test',
-            rejectShouldFail: true,
-          ),
+          PoolPendingRequest(id: 'req', displayName: 'req@test'),
         ],
       ),
     );
 
-    controller.reject('req');
+    await controller.reject('req');
     var joined = controller.state as PoolJoined;
     expect(joined.pending.single.error, contains('拒绝失败'));
-    expect(controller.noticeMessage, isNull);
+    expect(controller.noticeMessage, contains('拒绝失败'));
 
-    controller.reject('req');
+    await controller.reject('req');
     joined = controller.state as PoolJoined;
     expect(joined.pending, isEmpty);
     expect(controller.noticeMessage, '拒绝已完成');
