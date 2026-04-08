@@ -424,7 +424,18 @@ void main() {
     expect(find.text('alice@pending'), findsNothing);
     expect(find.text('审批已通过'), findsOneWidget);
 
-    await tester.tap(find.text('模拟失败请求'));
+    controller.setState(
+      const PoolState.joined(
+        poolId: 'joined-pool',
+        pending: <PoolPendingRequest>[
+          PoolPendingRequest(
+            id: 'bob',
+            displayName: 'bob@pending-fail',
+            rejectShouldFail: true,
+          ),
+        ],
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('拒绝'));
     await tester.pumpAndSettle();

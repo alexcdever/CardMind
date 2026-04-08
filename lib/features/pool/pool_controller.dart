@@ -245,20 +245,6 @@ class PoolController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 模拟拒绝失败的待处理请求。
-  void simulateRejectFailurePending() {
-    _state = const PoolState.joined(
-      pending: <PoolPendingRequest>[
-        PoolPendingRequest(
-          id: 'bob',
-          displayName: 'bob@pending-fail',
-          rejectShouldFail: true,
-        ),
-      ],
-    );
-    notifyListeners();
-  }
-
   /// 确认退出数据池。
   Future<void> confirmExit() async {
     final joined = _state;
