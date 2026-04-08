@@ -1,4 +1,4 @@
-import 'package:cardmind/features/security/app_lock/app_lock_guard.dart';
+import 'package:cardmind/features/security/app_lock/app_lock_gate.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,10 +41,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: AppLockGuard(
-          service: service,
-          child: const Text('guarded-child'),
-        ),
+        home: AppLockGate(service: service, child: const Text('guarded-child')),
       ),
     );
     await tester.pumpAndSettle();
