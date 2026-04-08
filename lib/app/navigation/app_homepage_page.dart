@@ -19,10 +19,7 @@ import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/app/navigation/app_homepage_controller.dart';
 import 'package:cardmind/features/cards/cards_page.dart';
-import 'package:cardmind/features/pool/pool_page.dart';
-import 'package:cardmind/features/pool/pool_state.dart';
-import 'package:cardmind/features/security/app_lock/app_lock_gate.dart';
-import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
+import 'package:cardmind/features/pool/pool_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -81,8 +78,6 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
   ///
   /// 用于防止同时显示多个退出确认对话框。
   bool _isExitDialogShowing = false;
-  late final AppLockService _appLockService = AppLockService();
-
   @override
   void dispose() {
     _controller.removeListener(_onChanged);
@@ -176,14 +171,9 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
       case AppSection.cards:
         return widget.cardsPageBuilder?.call(context) ?? const CardsPage();
       case AppSection.pool:
-        return AppLockGate(
-          service: _appLockService,
-          child:
-              widget.poolPageBuilder?.call(context) ??
-              PoolPage(
-                state: const PoolState.notJoined(),
-                networkId: widget.poolNetworkId,
-              ),
+        return PoolShell(
+          networkId: widget.poolNetworkId,
+          child: widget.poolPageBuilder?.call(context),
         );
     }
   }

@@ -12,6 +12,7 @@ import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
+import 'package:cardmind/features/pool/pool_shell.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -329,6 +330,7 @@ void main() {
     );
 
     expect(find.byType(AppHomepagePage), findsOneWidget);
+    expect(find.byType(PoolShell), findsNothing);
   });
 
   testWidgets('back on cards shows exit confirmation dialog', (tester) async {
