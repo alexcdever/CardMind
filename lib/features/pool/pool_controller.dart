@@ -18,6 +18,11 @@ List<PoolPendingRequest> _pendingFromApi(List<JoinRequestData> requests) {
       .toList(growable: false);
 }
 
+bool _isLastAdminLeaveError(ApiError error) {
+  return error.code == 'INVALID_ARGUMENT' &&
+      error.message.contains('last admin');
+}
+
 /// 数据池状态控制器。
 ///
 /// 管理池成员流转与同步状态编排，通过 [ChangeNotifier] 模式
@@ -262,8 +267,7 @@ class PoolController extends ChangeNotifier {
       await _apiClient.leavePool(joined.poolId);
       _state = const PoolState.notJoined();
     } on ApiError catch (error) {
-      final message = error.message;
-      if (message.contains('last admin')) {
+      if (_isLastAdminLeaveError(error)) {
         _state = joined.copyWith(approvalMessage: '您是唯一的管理员，请先指定新的管理员');
       } else {
         _state = joined.copyWith(approvalMessage: '退出失败，请稍后重试');
