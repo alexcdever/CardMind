@@ -9,13 +9,13 @@ import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../test_utils/rust_library_test_helper.dart';
+
 bool _rustLibInitialized = false;
 
 Future<void> _ensureRustLibInitialized() async {
   if (_rustLibInitialized) return;
-  final dylib = File(
-    'rust/target/release/libcardmind_rust.dylib',
-  ).absolute.path;
+  final dylib = resolveRustLibraryPathForTests();
   await RustLib.init(externalLibrary: ExternalLibrary.open(dylib));
   _rustLibInitialized = true;
 }

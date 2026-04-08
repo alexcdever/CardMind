@@ -12,6 +12,8 @@ import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../test_utils/rust_library_test_helper.dart';
+
 class _FakePoolApiClient implements PoolApiClient {
   int createCalls = 0;
   int joinCalls = 0;
@@ -110,9 +112,7 @@ Future<void> _ensureRustLibInitialized() async {
     return;
   }
 
-  final dylib = File(
-    'rust/target/release/libcardmind_rust.dylib',
-  ).absolute.path;
+  final dylib = resolveRustLibraryPathForTests();
   await RustLib.init(externalLibrary: ExternalLibrary.open(dylib));
   _rustLibInitialized = true;
 }

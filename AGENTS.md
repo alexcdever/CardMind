@@ -36,6 +36,10 @@
   - `app [--platform macos|linux|windows]`
   - `lib [--target <target-triple>]`
 - 命令默认在仓库根目录执行；Rust 修改后需重新构建动态库
+- 当前 macOS 动态库路径职责：
+  - `rust/target/release/libcardmind_rust.dylib` 是 Cargo 编译缓存源，不作为运行态真相源
+  - `build/native/macos/libcardmind_rust.dylib` 是官方运行态 dylib，测试、运行与 app bundle 都依赖该路径
+  - 若官方运行态 dylib 缺失，执行 `dart run tool/build.dart lib` 恢复
 
 ## Development Workflow
 
@@ -136,4 +140,3 @@ quality.dart 会自动：
 - 测试边界：遵循 `docs/standards/testing.md`，确保关键边界被覆盖
 - Git/PR：遵循 `docs/standards/git-and-pr.md`
 - FRB 配置在 `flutter_rust_bridge.yaml`，生成后检查绑定文件同步
-
