@@ -330,7 +330,28 @@ void main() {
     );
 
     expect(find.byType(AppHomepagePage), findsOneWidget);
-    expect(find.byType(PoolShell), findsNothing);
+  });
+
+  testWidgets('homepage delegates pool section composition to PoolShell', (
+    tester,
+  ) async {
+    final controller = AppHomepageController(initialSection: AppSection.pool);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppHomepagePage(
+          controller: controller,
+          cardsPageBuilder: (_) => _buildTestCardsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PoolShell), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('app_lock.submit_button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('back on cards shows exit confirmation dialog', (tester) async {
