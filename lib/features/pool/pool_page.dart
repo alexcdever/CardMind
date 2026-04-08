@@ -118,6 +118,7 @@ class _PoolPageState extends State<PoolPage> {
         state: state,
         controller: _controller,
         syncStatus: _controller.syncStatus,
+        noticeMessage: _controller.noticeMessage,
         canShowReturnToPool: canShowReturnToPool,
         onReturnToPool: _returnToPoolTab,
         onEditPool: () => _showEditPoolDialog(context),

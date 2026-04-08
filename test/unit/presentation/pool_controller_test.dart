@@ -271,7 +271,7 @@ void main() {
 
     final joined = controller.state as PoolJoined;
     expect(joined.poolId, 'pool-joined');
-    expect(joined.approvalMessage, contains('唯一的管理员'));
+    expect(controller.noticeMessage, contains('唯一的管理员'));
     expect(client.leftPoolId, 'pool-joined');
   });
 
@@ -294,7 +294,7 @@ void main() {
     final joined = controller.state as PoolJoined;
     expect(client.dissolveCalled, isTrue);
     expect(joined.isDissolved, isTrue);
-    expect(joined.approvalMessage, contains('只读状态'));
+    expect(controller.noticeMessage, contains('只读状态'));
   });
 
   test('submitJoinRequest_updatesPendingRequestsFromApi', () async {
@@ -316,7 +316,7 @@ void main() {
     final joined = controller.state as PoolJoined;
     expect(joined.isOwner, isFalse);
     expect(joined.pending.single.id, 'req-1');
-    expect(joined.approvalMessage, contains('等待管理员审批'));
+    expect(controller.noticeMessage, contains('等待管理员审批'));
   });
 
   test('approve_usesApiResultToRefreshPendingList', () async {
@@ -336,7 +336,7 @@ void main() {
 
     final joined = controller.state as PoolJoined;
     expect(joined.pending, isEmpty);
-    expect(joined.approvalMessage, '审批已通过');
+    expect(controller.noticeMessage, '审批已通过');
   });
 
   test('cancelJoinRequest_usesApiResultToRefreshPendingList', () async {
@@ -356,7 +356,7 @@ void main() {
 
     final joined = controller.state as PoolJoined;
     expect(joined.pending, isEmpty);
-    expect(joined.approvalMessage, '加入申请已取消');
+    expect(controller.noticeMessage, '加入申请已取消');
   });
 
   test('reject_marksFirstFailureAndRemovesAfterRetry', () {
@@ -376,12 +376,12 @@ void main() {
     controller.reject('req');
     var joined = controller.state as PoolJoined;
     expect(joined.pending.single.error, contains('拒绝失败'));
-    expect(joined.approvalMessage, isNull);
+    expect(controller.noticeMessage, isNull);
 
     controller.reject('req');
     joined = controller.state as PoolJoined;
     expect(joined.pending, isEmpty);
-    expect(joined.approvalMessage, '拒绝已完成');
+    expect(controller.noticeMessage, '拒绝已完成');
   });
 
   test('retrySync_ignoresMissingSyncService', () async {

@@ -92,6 +92,7 @@ class _PoolJoinedView extends StatelessWidget {
     required this.state,
     required this.controller,
     required this.syncStatus,
+    required this.noticeMessage,
     required this.canShowReturnToPool,
     required this.onReturnToPool,
     required this.onEditPool,
@@ -102,6 +103,7 @@ class _PoolJoinedView extends StatelessWidget {
   final PoolJoined state;
   final PoolController controller;
   final SyncStatus syncStatus;
+  final String? noticeMessage;
   final bool canShowReturnToPool;
   final VoidCallback onReturnToPool;
   final VoidCallback onEditPool;
@@ -253,10 +255,10 @@ class _PoolJoinedView extends StatelessWidget {
                   ],
                 ),
               ),
-            if (state.approvalMessage != null)
+            if (noticeMessage != null)
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(state.approvalMessage!),
+                child: Text(noticeMessage!),
               ),
           ],
         ),
