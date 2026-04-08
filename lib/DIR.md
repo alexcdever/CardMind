@@ -15,8 +15,9 @@ features/sync/ - 同步状态模型与弱提示/异常高亮组件
 features/shared/ - 跨域共享数据基础设施（读模型数据库等）
 features/cards/application/ - 卡片写侧命令服务目录
 features/cards/projection/ - 卡片事件投影处理目录
-features/pool/application/ - 池写侧命令服务目录
-features/pool/projection/ - 池事件投影处理目录
-features/shared/projection/ - 共享投影事件与分发目录
-main.dart - 文件 - 见同目录实现
-DIR.md - 本目录说明与文件职责索引
+ features/pool/application/ - 池写侧命令服务目录
+ features/pool/projection/ - 池事件投影处理目录
+ features/shared/projection/ - 共享投影事件与分发目录
+features/shared/runtime/ - Rust 官方运行态 dylib 定位入口，供应用启动与真库测试复用
+ main.dart - 文件 - 见同目录实现
+ DIR.md - 本目录说明与文件职责索引

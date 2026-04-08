@@ -68,7 +68,9 @@ Future<int> runBuildCli(
   void Function(String) log = _stdout,
   void Function(String) logError = _stderr,
   HostPlatform? platformOverride,
+  String? currentDirectory,
 }) async {
+  final rootDir = currentDirectory ?? Directory.current.path;
   if (args.contains('--help') || args.contains('-h')) {
     log(_help);
     return 0;
@@ -83,6 +85,7 @@ Future<int> runBuildCli(
       runProcess: runProcess,
       log: log,
       logError: logError,
+      rootDir: rootDir,
     );
   }
   if (args.first == 'app') {
@@ -92,6 +95,7 @@ Future<int> runBuildCli(
       log: log,
       logError: logError,
       platformOverride: platformOverride,
+      rootDir: rootDir,
     );
   }
   if (args.first == 'run') {
@@ -100,6 +104,7 @@ Future<int> runBuildCli(
       runProcess: runProcess,
       log: log,
       logError: logError,
+      rootDir: rootDir,
     );
   }
   logError(_usage);
@@ -141,6 +146,7 @@ Future<int> _runApp(
   required void Function(String) log,
   required void Function(String) logError,
   HostPlatform? platformOverride,
+  required String rootDir,
 }) async {
   late final String platform;
   try {
@@ -155,6 +161,7 @@ Future<int> _runApp(
     runProcess: runProcess,
     log: log,
     logError: logError,
+    rootDir: rootDir,
   );
   if (libExit != 0) {
     return libExit;
@@ -182,6 +189,7 @@ Future<int> _runLib(
   required Runner runProcess,
   required void Function(String) log,
   required void Function(String) logError,
+  required String rootDir,
 }) async {
   final target = _readOption(args, '--target');
   final cargoArgs = <String>['build', '--release'];
@@ -191,18 +199,53 @@ Future<int> _runLib(
   final result = await runProcess(
     'cargo',
     cargoArgs,
-    workingDirectory: '${Directory.current.path}/rust',
+    workingDirectory: '$rootDir/rust',
   );
   if (result.exitCode != 0) {
     logError(_processError(result));
     return result.exitCode;
   }
 
-  /// For macOS, we just need the dylib - we'll copy it to the app bundle after build
+  final runtimeDylib = _runtimeDylibPath(rootDir);
+  final runtimeFile = File(runtimeDylib);
+  if (runtimeFile.existsSync()) {
+    runtimeFile.deleteSync();
+  }
+
+  final sourceDylib = _cargoDylibPath(rootDir, target: target);
+  final sourceFile = File(sourceDylib);
+  if (!sourceFile.existsSync()) {
+    logError('Runtime dylib sync failed: source not found at $sourceDylib');
+    return 1;
+  }
+
+  try {
+    runtimeFile.parent.createSync(recursive: true);
+    sourceFile.copySync(runtimeDylib);
+  } on FileSystemException catch (e) {
+    if (runtimeFile.existsSync()) {
+      runtimeFile.deleteSync();
+    }
+    logError('Runtime dylib sync failed: ${e.message}');
+    return 1;
+  }
+
   log('[lib] Rust library built successfully');
+  log('[lib] runtime dylib: ${runtimeFile.absolute.path}');
 
   log('[lib] done');
   return 0;
+}
+
+String _cargoDylibPath(String rootDir, {String? target}) {
+  final targetDir = target == null
+      ? 'target/release'
+      : 'target/$target/release';
+  return '$rootDir/rust/$targetDir/libcardmind_rust.dylib';
+}
+
+String _runtimeDylibPath(String rootDir) {
+  return '$rootDir/build/native/macos/libcardmind_rust.dylib';
 }
 
 /// 读取命令行选项
@@ -243,6 +286,7 @@ Future<int> _runAndOpen(
   required Runner runProcess,
   required void Function(String) log,
   required void Function(String) logError,
+  required String rootDir,
 }) async {
   if (!Platform.isMacOS) {
     logError('run command is only supported on macOS');
@@ -255,6 +299,7 @@ Future<int> _runAndOpen(
     runProcess: runProcess,
     log: log,
     logError: logError,
+    rootDir: rootDir,
   );
   if (libExit != 0) {
     return libExit;
@@ -269,14 +314,17 @@ Future<int> _runAndOpen(
   log('[build:macos] done');
 
   /// Step 3: Copy dylib to app bundle's Frameworks directory
-  final dylibSource = File(
-    '${Directory.current.path}/rust/target/release/libcardmind_rust.dylib',
-  );
+  final dylibSource = File(_runtimeDylibPath(rootDir));
   final appBundle = Directory(
-    '${Directory.current.path}/build/macos/Build/Products/Debug/cardmind.app',
+    '$rootDir/build/macos/Build/Products/Debug/cardmind.app',
   );
   final frameworksDir = Directory('${appBundle.path}/Contents/Frameworks');
   final dylibDest = File('${frameworksDir.path}/libcardmind_rust.dylib');
+
+  if (!dylibSource.existsSync()) {
+    logError('Runtime dylib missing for app bundle copy: ${dylibSource.path}');
+    return 1;
+  }
 
   if (!frameworksDir.existsSync()) {
     frameworksDir.createSync(recursive: true);
@@ -287,7 +335,7 @@ Future<int> _runAndOpen(
   }
 
   dylibSource.copySync(dylibDest.path);
-  log('[dylib] copied to app bundle');
+  log('[dylib] copied to app bundle from ${dylibSource.path}');
 
   /// Step 4: Open the app
   final openResult = await runProcess('open', [appBundle.path]);

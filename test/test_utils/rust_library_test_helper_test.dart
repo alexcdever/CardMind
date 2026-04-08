@@ -1,0 +1,25 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+import 'rust_library_test_helper.dart';
+
+void main() {
+  test(
+    'test helper resolves runtime dylib through shared runtime entry',
+    () async {
+      final tempRoot = await Directory.systemTemp.createTemp(
+        'cardmind-test-runtime-',
+      );
+      File('${tempRoot.path}/build/native/macos/libcardmind_rust.dylib')
+        ..createSync(recursive: true);
+
+      final path = resolveRustLibraryPathForTests(
+        operatingSystem: 'macos',
+        currentDirectory: tempRoot.path,
+      );
+
+      expect(path, endsWith('build/native/macos/libcardmind_rust.dylib'));
+    },
+  );
+}

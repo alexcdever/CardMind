@@ -8,9 +8,7 @@ import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-String _releaseDylibPath() {
-  return File('rust/target/release/libcardmind_rust.dylib').absolute.path;
-}
+import '../../test_utils/rust_library_test_helper.dart';
 
 void main() {
   test(
@@ -19,7 +17,7 @@ void main() {
       TestWidgetsFlutterBinding.ensureInitialized();
       final root = await Directory.systemTemp.createTemp('cardmind-frb-flow-');
       final basePath = root.path;
-      final dylibPath = _releaseDylibPath();
+      final dylibPath = resolveRustLibraryPathForTests();
 
       await RustLib.init(externalLibrary: ExternalLibrary.open(dylibPath));
 
