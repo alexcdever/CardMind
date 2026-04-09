@@ -1,14 +1,12 @@
-input: 新增或删除规范文件后请同步更新下方索引。
-output: 工程规范目录索引，记录跨功能、长期复用的规则与门禁要求
-pos: docs/standards/DIR.md - 规范目录说明，修改本文件需同步更新文件头
-中文注释: 工程规范目录，新增或更新规范文件需同步登记
+新增或删除规范文件后请同步更新下方索引。
+工程标准目录，记录跨任务、长期复用、可执行的规则与门禁要求。
 
-ai-collaboration.md - AI 协作规范 - AI 驱动开发的双代理对抗模式、TDD 阶段执行标准与质量门禁
-fractal-doc-standard.md - 分形文档规范 - 分形文档结构、文件头规则、排除项
-spec-first-execution.md - 执行规范 - 规格优先执行策略与 specs/plans 约束关系
-tdd.md - 开发测试规范 - TDD 红绿蓝循环与 Flutter/Rust 测试要求
-testing.md - 测试规范 - 测试分类体系、文件命名、函数命名与边界测试要求
-git-and-pr.md - 协作规范 - 提交消息、PR 描述与提交粒度要求
-coding-style.md - 编码规范 - 命名、lint 与代码风格一致性要求
-tech-stack-baseline.md - 技术栈规范 - Flutter/Rust/FRB 基线、核心依赖清单与版本治理规则
-flutter-automation-anchors.md - 自动化锚点规范 - Flutter 交互控件的 identifier、ValueKey 与可访问性 label 约定
+ai-collaboration.md - AI 协作规范 - 按任务复杂度分级的协作与交付协议
+coding-style.md - 编码规范 - 项目级命名、显式性、抽象与注释偏好
+flutter-automation-anchors.md - 自动化锚点规范 - Flutter 关键交互控件的稳定自动化标识约定
+fractal-doc-standard.md - 轻量文档索引说明 - 关键目录索引维护建议，不再作为高强度治理机制
+git-and-pr.md - Git/PR 规范 - 提交、PR 描述、验证证据与合并前检查要求
+spec-lifecycle.md - Spec 生命周期规范 - spec、plan、standard 的边界与规格更新触发规则
+tdd.md - TDD 规范 - 红绿蓝验证循环与适用范围
+tech-stack-baseline.md - 技术栈规范 - Flutter、Rust、FRB、构建与测试链路基线
+testing.md - 测试规范 - 测试目录、命名与边界优先级规则

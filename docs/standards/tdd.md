@@ -1,20 +1,43 @@
-# TDD Standard
+# TDD 规范
 
-## Normative Process
+## 核心循环
 
-- Engineering changes MUST follow the complete cycle: `Red -> Green -> Blue -> Commit`.
-- `Red` MUST introduce or adjust a check first, then confirm the expected failing state.
-- `Green` MUST apply the minimal implementation change required to satisfy the check.
-- `Blue` MUST refactor naming/structure/duplication while preserving passing verification.
-- `Commit` MUST happen only after required verification commands pass.
+- 代码变更优先采用 `Red -> Green -> Blue -> Verify` 循环
+- `Red`：先新增或调整检查，并确认其按预期失败
+- `Green`：用满足检查的最小实现让验证通过
+- `Blue`：在验证持续通过的前提下改善命名、结构与重复
+- `Verify`：运行与改动范围匹配的最终验证后再交付或提交
 
-## Test Placement and Coverage
+## 适用范围
 
-- Flutter tests MUST reside in `test/` and align with the behavior they verify.
-- Rust integration tests MUST reside in `rust/tests/` and cover FFI entry points plus boundary conditions.
-- New features and bug fixes MUST include tests for both success and failure paths.
+必须完整执行 TDD 的场景：
 
-## Verification Commands
+- 新功能
+- bugfix
+- 任何改变生产代码行为的改动
+- Flutter、Rust、FRB、存储、同步等跨层契约改动
 
-- Recommended verification commands SHOULD include `flutter test`, `cargo test`, and `flutter analyze` according to change scope.
-- Teams MAY add focused command subsets for faster iteration, but release-ready validation MUST still cover full affected scope.
+可以不执行完整 TDD 的场景：
+
+- 文档-only 改动
+- 纯索引维护
+- 纯格式化
+- 不影响行为的机械性脚本或配置修正
+
+如任务看似机械，但实际改变了行为或验证边界，应立即切回完整 TDD。
+
+## 测试与验证要求
+
+- 新功能和 bugfix 必须覆盖成功路径与失败路径
+- Flutter 测试放在 `test/`
+- Rust 集成测试放在 `rust/tests/`
+- 最终验证命令应覆盖受影响范围，常见命令包括：`flutter test`、`flutter analyze`、`cargo test`、`dart run tool/quality.dart <scope>`
+
+## 验证范围映射
+
+- 文档改动：至少执行文档一致性检查与仓库级引用搜索
+- Flutter 改动：至少执行 `flutter test`，必要时加 `flutter analyze`
+- Rust 改动：至少执行 `cargo test`，必要时加 `cargo fmt --check` 与 `cargo clippy`
+- Flutter + Rust 联动改动：优先执行 `dart run tool/quality.dart all`
+
+验证不足时，不得宣称改动已经完成。

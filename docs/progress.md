@@ -46,7 +46,7 @@
 6. ~~文档权威边界收紧~~ ✅ **已完成**（2026-04-07）
    - 明确 `docs/standards/` 与 `docs/specs/` 是当前实现依据
    - 将 `docs/plans/` 降权为历史设计/计划/审计记录目录
-   - 收紧 `spec-first-execution`，禁止把未确认项直接写成正式规格
+   - 收紧 spec 生命周期规则，禁止把未确认项直接写成正式规格
 
 7. ~~Phase 3 数据池规格定版~~ ✅ **已完成**（2026-04-07）
    - 应用锁前置条件
@@ -113,7 +113,7 @@
 - [文档总入口](docs/DIR.md)
 - [计划目录说明](docs/plans/DIR.md)
 - [规格目录说明](docs/specs/DIR.md)
-- [规格优先执行规范](docs/standards/spec-first-execution.md)
+- [Spec 生命周期规范](docs/standards/spec-lifecycle.md)
 - [动态库路径统一设计](docs/plans/2026-04-08-rust-dylib-runtime-path-unification-design.md)
 - [动态库路径统一实施计划](docs/plans/2026-04-08-rust-dylib-runtime-path-unification-implementation-plan.md)
 - [Phase 3 设计文档](docs/plans/2026-03-27-phase3-data-flow-extension-assessment-design.md)
