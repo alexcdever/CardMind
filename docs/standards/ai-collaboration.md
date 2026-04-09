@@ -58,7 +58,7 @@
 执行顺序：
 
 1. 澄清目标、范围、验收标准
-2. 按需更新 `docs/specs/`
+2. 先按 `docs/standards/spec-lifecycle.md` 判断是否发生正式行为变更；仅在发生时更新 `docs/specs/`
 3. 编写并确认 `docs/plans/`
 4. 实现
 5. 审查

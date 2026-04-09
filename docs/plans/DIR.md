@@ -3,6 +3,7 @@
 本目录默认不作为当前长期实现依据；当前实现应以 `docs/standards/` 与 `docs/specs/` 为准。
 本目录文档可用于回看历史方案、实施过程与 ADR 决策参考。
 索引按“一文件一行”维护；过程状态、测试策略等说明应写入对应计划正文。
+历史计划文档中若出现已退役文件名或旧规则表述（如 `spec-first-execution.md`、`documentation.md`），应按当前 `AGENTS.md` 与 `docs/standards/` 的现行规则理解，不再视为当前规范入口。
 
 2026-02-18-cardmind-rebuild-design.md - 设计草案 - CardMind 重启总体设计（已移除密钥字段并补充同步状态）
 2026-02-18-rebuild-foundation-plan.md - 实现计划 - 重启基础实现步骤
@@ -85,6 +86,7 @@
 2026-03-23-next-phase-roadmap-implementation-plan.md - 实现计划 - 下一阶段 roadmap 实施（跨设备延续成立与最低恢复能力基线）
 2026-03-23-phase2-trust-first-recovery-design.md - 设计草案 - Phase 2 信任优先恢复设计（内容安全信任优先于恢复强度）
 2026-03-23-phase2-trust-first-recovery-implementation-plan.md - 实现计划 - Phase 2 信任优先恢复实施（同步 / 查询收敛 / 实例连续性分层与信任优先恢复契约）
+2026-04-09-documentation-structure-refactor-implementation-plan.md - 实现计划 - 文档体系结构性重构实施计划（重定义 spec/plan/standard/agents 边界与 spec 生命周期）
 
 专题文档：
 rust-boundary-scanner.md - 专题说明 - Rust 边界扫描器设计与实现说明
