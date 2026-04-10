@@ -8,9 +8,11 @@
 - `Blue`：在验证持续通过的前提下改善命名、结构与重复
 - `Verify`：运行与改动范围匹配的最终验证后再交付或提交
 
+若当前任务不适合严格按完整 TDD 顺序推进，必须说明原因，并补足与风险相称的验证证据。
+
 ## 适用范围
 
-必须完整执行 TDD 的场景：
+默认优先采用 TDD 的场景：
 
 - 新功能
 - bugfix
@@ -32,6 +34,7 @@
 - Flutter 测试放在 `test/`
 - Rust 集成测试放在 `rust/tests/`
 - 最终验证命令应覆盖受影响范围，常见命令包括：`flutter test`、`flutter analyze`、`cargo test`、`dart run tool/quality.dart <scope>`
+- 若未采用严格的 `Red -> Green -> Blue` 顺序，最终交付时应明确说明原因、补充的验证手段以及仍然存在的风险
 
 ## 验证范围映射
 
