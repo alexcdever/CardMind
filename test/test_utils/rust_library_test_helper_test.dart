@@ -11,8 +11,10 @@ void main() {
       final tempRoot = await Directory.systemTemp.createTemp(
         'cardmind-test-runtime-',
       );
-      File('${tempRoot.path}/build/native/macos/libcardmind_rust.dylib')
-        ..createSync(recursive: true);
+      final dylibFile = File(
+        '${tempRoot.path}/build/native/macos/libcardmind_rust.dylib',
+      );
+      dylibFile.createSync(recursive: true);
 
       final path = resolveRustLibraryPathForTests(
         operatingSystem: 'macos',

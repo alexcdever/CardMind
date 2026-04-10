@@ -20,14 +20,15 @@
 - Flutter 测试：`flutter test`
 - Flutter 静态检查：`flutter analyze`
 - Rust 测试：`cargo test`
-- 质量检查：`dart run tool/quality.dart <flutter|rust|all>`
+- 质量检查：`dart run tool/quality.dart <flutter|rust|docs|all>`
 - 边界扫描：`dart run tool/test_boundary_scanner.dart`
 - FRB 生成：`flutter_rust_bridge_codegen generate`
 - 构建脚本：`dart run tool/build.dart <app|lib> [options]`
 
 质量检查链路：
 
-- `flutter`：`flutter analyze -> flutter test -> test boundary scan`
+- `docs`：`markdown references lint`
+- `flutter`：`markdown references lint -> flutter analyze -> flutter test -> test boundary scan`
 - `rust`：`cargo fmt --check -> cargo clippy -> cargo test`
 
 边界扫描补充：

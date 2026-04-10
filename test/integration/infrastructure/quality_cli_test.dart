@@ -19,25 +19,27 @@ void main() {
     expect(exit, 1);
     expect(
       logs.join('\n'),
-      contains('Usage: dart run tool/quality.dart <flutter|rust|all>'),
+      contains('Usage: dart run tool/quality.dart <flutter|rust|docs|all>'),
     );
   });
 
   test(
-    'flutter runs analyze then test with coverage then boundary scan in order',
+    'flutter runs markdown lint then analyze then test with coverage then boundary scan in order',
     () async {
       final calls = <_ProcCall>[];
       final exit = await runQualityCli(const [
         'flutter',
       ], runProcess: _fakeRunner(calls));
       expect(exit, 0);
-      expect(calls.length, 3);
-      expect(calls[0].executable, 'flutter');
-      expect(calls[0].arguments, ['analyze']);
+      expect(calls.length, 4);
+      expect(calls[0].executable, 'dart');
+      expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
       expect(calls[1].executable, 'flutter');
-      expect(calls[1].arguments, ['test', '--coverage']);
-      expect(calls[2].executable, 'dart');
-      expect(calls[2].arguments, [
+      expect(calls[1].arguments, ['analyze']);
+      expect(calls[2].executable, 'flutter');
+      expect(calls[2].arguments, ['test', '--coverage']);
+      expect(calls[3].executable, 'dart');
+      expect(calls[3].arguments, [
         'tool/test_boundary_scanner.dart',
         '--scope=flutter',
       ]);
@@ -91,28 +93,42 @@ void main() {
     expect(calls[4].workingDirectory, isNull);
   });
 
+  test('docs runs markdown references lint only', () async {
+    final calls = <_ProcCall>[];
+    final exit = await runQualityCli(const [
+      'docs',
+    ], runProcess: _fakeRunner(calls));
+    expect(exit, 0);
+    expect(calls.length, 1);
+    expect(calls[0].executable, 'dart');
+    expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
+    expect(calls[0].workingDirectory, isNull);
+  });
+
   test('all runs flutter checks then rust checks in order', () async {
     final calls = <_ProcCall>[];
     final exit = await runQualityCli(const [
       'all',
     ], runProcess: _fakeRunner(calls));
     expect(exit, 0);
-    expect(calls.length, 8);
+    expect(calls.length, 9);
     // Flutter checks
-    expect(calls[0].executable, 'flutter');
-    expect(calls[0].arguments, ['analyze']);
+    expect(calls[0].executable, 'dart');
+    expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
     expect(calls[1].executable, 'flutter');
-    expect(calls[1].arguments, ['test', '--coverage']);
-    expect(calls[2].executable, 'dart');
-    expect(calls[2].arguments, [
+    expect(calls[1].arguments, ['analyze']);
+    expect(calls[2].executable, 'flutter');
+    expect(calls[2].arguments, ['test', '--coverage']);
+    expect(calls[3].executable, 'dart');
+    expect(calls[3].arguments, [
       'tool/test_boundary_scanner.dart',
       '--scope=flutter',
     ]);
     // Rust checks
-    expect(calls[3].executable, 'cargo');
-    expect(calls[3].arguments, ['fmt', '--all', '--', '--check']);
     expect(calls[4].executable, 'cargo');
-    expect(calls[4].arguments, [
+    expect(calls[4].arguments, ['fmt', '--all', '--', '--check']);
+    expect(calls[5].executable, 'cargo');
+    expect(calls[5].arguments, [
       'clippy',
       '--all-targets',
       '--all-features',
@@ -120,10 +136,10 @@ void main() {
       '-D',
       'warnings',
     ]);
-    expect(calls[5].executable, 'cargo');
-    expect(calls[5].arguments, ['test', '--', '--test-threads=1']);
     expect(calls[6].executable, 'cargo');
-    expect(calls[6].arguments, [
+    expect(calls[6].arguments, ['test', '--', '--test-threads=1']);
+    expect(calls[7].executable, 'cargo');
+    expect(calls[7].arguments, [
       'tarpaulin',
       '--out',
       'Lcov',
@@ -134,8 +150,8 @@ void main() {
       '--exclude-files',
       'tool/**',
     ]);
-    expect(calls[7].executable, 'dart');
-    expect(calls[7].arguments, [
+    expect(calls[8].executable, 'dart');
+    expect(calls[8].arguments, [
       'tool/test_boundary_scanner.dart',
       '--scope=rust',
     ]);
@@ -148,6 +164,32 @@ void main() {
     );
     expect(exit, 42);
   });
+
+  test(
+    'flutter quality passes when markdown lint analyze and tests pass',
+    () async {
+      final calls = <_ProcCall>[];
+      final exit = await runQualityCli(
+        const ['flutter'],
+        runProcess: _scriptedRunnerWithCapture(calls, [
+          ProcessResult(1, 0, '', ''),
+          ProcessResult(2, 0, '', ''),
+          ProcessResult(3, 0, '', ''),
+          ProcessResult(4, 0, '', ''),
+        ]),
+      );
+
+      expect(exit, 0);
+      expect(calls.length, 4);
+      expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
+      expect(calls[1].arguments, ['analyze']);
+      expect(calls[2].arguments, ['test', '--coverage']);
+      expect(calls[3].arguments, [
+        'tool/test_boundary_scanner.dart',
+        '--scope=flutter',
+      ]);
+    },
+  );
 
   test('returns command exit code on rust clippy failure', () async {
     final exit = await runQualityCli(
@@ -171,7 +213,7 @@ void main() {
     expect(
       logs.join('\n'),
       contains(
-        'Usage: dart run tool/quality.dart <flutter|rust|all> [options]',
+        'Usage: dart run tool/quality.dart <flutter|rust|docs|all> [options]',
       ),
     );
   });
@@ -188,15 +230,18 @@ void main() {
     expect(
       logs.join('\n'),
       contains(
-        'Usage: dart run tool/quality.dart <flutter|rust|all> [options]',
+        'Usage: dart run tool/quality.dart <flutter|rust|docs|all> [options]',
       ),
     );
     expect(logs.join('\n'), contains('Commands:'));
     expect(
       logs.join('\n'),
-      contains('flutter  Run Flutter lint, tests, and boundary scan'),
+      contains(
+        'flutter  Run Markdown lint, Flutter lint, tests, and boundary scan',
+      ),
     );
     expect(logs.join('\n'), contains('rust     Run Rust lint and tests'));
+    expect(logs.join('\n'), contains('docs     Run Markdown references lint'));
     expect(
       logs.join('\n'),
       contains('all      Run Flutter then Rust quality checks'),
@@ -236,6 +281,32 @@ Runner _scriptedRunner(List<ProcessResult> results) {
     List<String> arguments, {
     String? workingDirectory,
   }) async {
+    if (i >= results.length) {
+      throw StateError('No scripted result left for $executable');
+    }
+    final result = results[i];
+    i += 1;
+    return result;
+  };
+}
+
+Runner _scriptedRunnerWithCapture(
+  List<_ProcCall> calls,
+  List<ProcessResult> results,
+) {
+  var i = 0;
+  return (
+    String executable,
+    List<String> arguments, {
+    String? workingDirectory,
+  }) async {
+    calls.add(
+      _ProcCall(
+        executable: executable,
+        arguments: List<String>.from(arguments),
+        workingDirectory: workingDirectory,
+      ),
+    );
     if (i >= results.length) {
       throw StateError('No scripted result left for $executable');
     }

@@ -7,20 +7,24 @@ typedef Runner =
       String? workingDirectory,
     });
 
-const _usage = 'Usage: dart run tool/quality.dart <flutter|rust|all> [options]';
-const _help = '''Usage: dart run tool/quality.dart <flutter|rust|all> [options]
+const _usage =
+    'Usage: dart run tool/quality.dart <flutter|rust|docs|all> [options]';
+const _help =
+    '''Usage: dart run tool/quality.dart <flutter|rust|docs|all> [options]
 
 Commands:
-  flutter  Run Flutter lint, tests, and boundary scan
+  flutter  Run Markdown lint, Flutter lint, tests, and boundary scan
   rust     Run Rust lint and tests
+  docs     Run Markdown references lint
   all      Run Flutter then Rust quality checks
 
 Options:
   -h, --help  Show this help message
 
 Default behavior:
-  flutter runs: flutter analyze -> flutter test -> test boundary scan
+  flutter runs: markdown references lint -> flutter analyze -> flutter test -> test boundary scan
   rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test
+  docs runs: markdown references lint
   all runs: flutter -> rust
 
 Examples:
@@ -65,6 +69,13 @@ Future<int> runQualityCli(
       logError: logError,
     );
   }
+  if (args.first == 'docs') {
+    return _runDocsQuality(
+      runProcess: runProcess,
+      log: log,
+      logError: logError,
+    );
+  }
   if (args.first == 'all') {
     final flutterExit = await _runFlutterQuality(
       runProcess: runProcess,
@@ -91,6 +102,15 @@ Future<int> _runFlutterQuality({
   required void Function(String) log,
   required void Function(String) logError,
 }) async {
+  final docsExit = await _runDocsQuality(
+    runProcess: runProcess,
+    log: log,
+    logError: logError,
+  );
+  if (docsExit != 0) {
+    return docsExit;
+  }
+
   final analyze = await runProcess('flutter', ['analyze']);
   if (analyze.exitCode != 0) {
     logError(_processError(analyze));
@@ -122,6 +142,22 @@ Future<int> _runFlutterQuality({
   } else {
     log('[flutter:test-boundary-scan] done');
   }
+  return 0;
+}
+
+Future<int> _runDocsQuality({
+  required Runner runProcess,
+  required void Function(String) log,
+  required void Function(String) logError,
+}) async {
+  final markdownLint = await runProcess('dart', [
+    'tool/lint/markdown_references_linter.dart',
+  ]);
+  if (markdownLint.exitCode != 0) {
+    logError(_processError(markdownLint));
+    return markdownLint.exitCode;
+  }
+  log('[docs:markdown-lint] done');
   return 0;
 }
 
