@@ -24,7 +24,10 @@ void main() {
 
   testWidgets('uses navigation rail on desktop width', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: AdaptiveHomepageScaffoldForTest(width: 1200)),
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const AdaptiveHomepageScaffoldForTest(width: 1200),
+      ),
     );
 
     expect(find.byType(NavigationRail), findsOneWidget);
@@ -60,7 +63,8 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
         home: MediaQuery(
           data: MediaQueryData(size: Size(1200, 900)),
           child: AdaptiveHomepageScaffold(
@@ -77,10 +81,27 @@ void main() {
     expect(find.text('desktop-work-area'), findsOneWidget);
   });
 
+  testWidgets('macOS keeps navigation rail in narrow window', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const AdaptiveHomepageScaffoldForTest(width: 800),
+      ),
+    );
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(BottomNavigationBar), findsNothing);
+  });
+
   testWidgets('desktop homepage scaffold supports keyboard section switching', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const _DesktopHomepageHarness(),
+      ),
+    );
 
     expect(find.text('cards-marker'), findsOneWidget);
 
@@ -93,7 +114,12 @@ void main() {
   testWidgets('desktop homepage scaffold supports arrow key switching', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const _DesktopHomepageHarness(),
+      ),
+    );
 
     expect(find.text('cards-marker'), findsOneWidget);
 
@@ -109,7 +135,12 @@ void main() {
   testWidgets('desktop homepage scaffold supports enter and space activation', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const _DesktopHomepageHarness(),
+      ),
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.digit2);
     await tester.pumpAndSettle();
@@ -128,7 +159,10 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const MaterialApp(home: AdaptiveHomepageScaffoldForTest(width: 1200)),
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const AdaptiveHomepageScaffoldForTest(width: 1200),
+      ),
     );
 
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
@@ -138,7 +172,12 @@ void main() {
   testWidgets('desktop homepage rail tap changes section through callback', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const _DesktopHomepageHarness(),
+      ),
+    );
 
     await tester.tap(find.byKey(const ValueKey(SemanticIds.navPool)));
     await tester.pumpAndSettle();
@@ -147,7 +186,12 @@ void main() {
   });
 
   testWidgets('desktop homepage ignores key up events', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const _DesktopHomepageHarness(),
+      ),
+    );
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.digit2);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.digit2);
@@ -157,7 +201,12 @@ void main() {
   });
 
   testWidgets('desktop homepage ignores unsupported key input', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: _DesktopHomepageHarness()));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const _DesktopHomepageHarness(),
+      ),
+    );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyQ);
     await tester.pumpAndSettle();

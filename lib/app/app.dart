@@ -21,20 +21,13 @@ class CardMindApp extends StatelessWidget {
   ///
   /// [key] 用于 Widget 树中的标识。
   /// [appDataDir] 应用数据目录路径，默认为空字符串。
-  /// [poolNetworkId] Pool 网络 ID，可选参数。
-  const CardMindApp({super.key, this.appDataDir = '', this.poolNetworkId});
+  const CardMindApp({super.key, this.appDataDir = ''});
 
   /// 应用数据目录路径。
   ///
   /// 用于存储应用持久化数据，由 main() 函数初始化时通过
   /// [path_provider] 获取并传递给本组件。
   final String appDataDir;
-
-  /// Pool 网络 ID。
-  ///
-  /// 用于标识当前连接的 Pool 网络，由 Rust 层初始化后返回。
-  /// 可选参数，可能为 null。
-  final BigInt? poolNetworkId;
 
   /// 构建应用 Widget 树。
   ///
@@ -49,7 +42,7 @@ class CardMindApp extends StatelessWidget {
     return MaterialApp(
       title: 'CardMind',
       theme: ThemeData(useMaterial3: true),
-      home: AppHomepagePage(poolNetworkId: poolNetworkId),
+      home: AppHomepagePage(appDataDir: appDataDir),
     );
   }
 }

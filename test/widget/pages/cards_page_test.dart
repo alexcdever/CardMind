@@ -699,6 +699,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
         home: MediaQuery(
           data: MediaQueryData(size: Size(1200, 900)),
           child: CardsPage(controller: _buildTestCardsController()),
@@ -711,11 +712,44 @@ void main() {
     expect(find.text('选择卡片或新建卡片'), findsOneWidget);
   });
 
+  testWidgets('macOS uses desktop cards layout even in narrow window', (
+    tester,
+  ) async {
+    final harness = _buildInspectableTestCardsController();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(800, 900)),
+          child: CardsPage(controller: harness.controller),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.enterText(_editorTitleField(), 'mac note');
+    await tester.enterText(_editorBodyField(), 'mac body');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    await _pumpUntilFound(tester, find.text('mac note'));
+
+    expect(find.text('编辑卡片'), findsOneWidget);
+
+    await tester.tap(find.text('mac note').last);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextField, 'mac body'), findsOneWidget);
+  });
+
   testWidgets(
     'desktop dirty editor blocks selecting another card until resolved',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
           home: MediaQuery(
             data: MediaQueryData(size: Size(1200, 900)),
             child: CardsPage(controller: _buildTestCardsController()),
@@ -758,6 +792,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
           home: MediaQuery(
             data: const MediaQueryData(size: Size(1200, 900)),
             child: CardsPage(controller: harness.controller),
@@ -797,6 +832,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
           home: MediaQuery(
             data: const MediaQueryData(size: Size(1200, 900)),
             child: CardsPage(controller: harness.controller),
@@ -838,6 +874,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
           home: MediaQuery(
             data: MediaQueryData(size: Size(1200, 900)),
             child: CardsPage(controller: harness.controller),
@@ -880,6 +917,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
           home: MediaQuery(
             data: MediaQueryData(size: Size(1200, 900)),
             child: CardsPage(controller: harness.controller),

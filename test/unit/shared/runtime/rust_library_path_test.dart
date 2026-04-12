@@ -20,6 +20,26 @@ void main() {
     expect(path, dylib.absolute.path);
   });
 
+  test(
+    'prefers app bundle frameworks dylib when launched from macOS app',
+    () async {
+      final tempRoot = await Directory.systemTemp.createTemp(
+        'cardmind-app-bundle-runtime-',
+      );
+      final dylib = File(
+        '${tempRoot.path}/cardmind.app/Contents/Frameworks/libcardmind_rust.dylib',
+      )..createSync(recursive: true);
+
+      final path = resolveRustLibraryPath(
+        operatingSystem: 'macos',
+        currentDirectory: '${tempRoot.path}/container/data',
+        executablePath: '${tempRoot.path}/cardmind.app/Contents/MacOS/cardmind',
+      );
+
+      expect(path, dylib.absolute.path);
+    },
+  );
+
   test('throws actionable error when runtime dylib is missing', () {
     expect(
       () => resolveRustLibraryPath(

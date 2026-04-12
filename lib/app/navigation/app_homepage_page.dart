@@ -36,11 +36,17 @@ class AppHomepagePage extends StatefulWidget {
   /// [poolNetworkId] - 数据池网络 ID，用于初始化 PoolPage
   const AppHomepagePage({
     super.key,
+    this.appDataDir = '',
     this.controller,
     this.cardsPageBuilder,
     this.poolPageBuilder,
     this.poolNetworkId,
   });
+
+  /// 应用数据目录路径。
+  ///
+  /// 用于数据池解锁后初始化运行态网络实例。
+  final String appDataDir;
 
   /// 可选的外部控制器，用于管理导航状态。
   ///
@@ -172,6 +178,7 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
         return widget.cardsPageBuilder?.call(context) ?? const CardsPage();
       case AppSection.pool:
         return PoolShell(
+          appDataDir: widget.appDataDir,
           networkId: widget.poolNetworkId,
           child: widget.poolPageBuilder?.call(context),
         );

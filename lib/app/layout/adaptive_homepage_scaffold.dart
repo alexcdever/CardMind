@@ -61,8 +61,14 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final desktop = width >= 900;
+    final desktop = switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.fuchsia => false,
+    };
     const destinations = <_HomepageDestination>[
       _HomepageDestination(
         icon: Icons.style_outlined,

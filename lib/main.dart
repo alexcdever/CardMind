@@ -14,6 +14,5 @@ Future<void> main() async {
   await RustLib.init(externalLibrary: externalLib);
   final appDataDir = (await getApplicationSupportDirectory()).path;
   await frb.initAppConfig(appDataDir: appDataDir);
-  final poolNetworkId = await frb.initPoolNetwork(basePath: appDataDir);
-  runApp(CardMindApp(appDataDir: appDataDir, poolNetworkId: poolNetworkId));
+  runApp(CardMindApp(appDataDir: appDataDir));
 }

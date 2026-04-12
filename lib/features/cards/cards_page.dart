@@ -97,12 +97,23 @@ class _CardsPageState extends State<CardsPage> {
         : _effectiveController.delete(id);
   }
 
+  bool _useDesktopLayout(BuildContext context) {
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.fuchsia => false,
+    };
+  }
+
   /// 打开编辑器。
   ///
   /// 在桌面端显示右侧面板，在移动端导航到新页面。
   /// [context] BuildContext。
   void _openEditor(BuildContext context) {
-    final desktop = MediaQuery.sizeOf(context).width >= 900;
+    final desktop = _useDesktopLayout(context);
     if (desktop) {
       setState(() {
         _desktopSession = _DesktopEditorSession();
@@ -133,7 +144,7 @@ class _CardsPageState extends State<CardsPage> {
   Widget build(BuildContext context) {
     final interactions = const CardsDesktopInteractions();
     final notes = _effectiveController.items;
-    final desktop = MediaQuery.sizeOf(context).width >= 900;
+    final desktop = _useDesktopLayout(context);
 
     return Scaffold(
       body: GestureDetector(
