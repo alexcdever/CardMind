@@ -59,19 +59,12 @@ void main() {
     );
   });
 
-  test('throws unsupported error on non-macOS platforms', () {
-    expect(
-      () => resolveRustLibraryPath(
-        operatingSystem: 'linux',
-        currentDirectory: '/tmp/cardmind',
-      ),
-      throwsA(
-        isA<UnsupportedError>().having(
-          (error) => error.message,
-          'message',
-          contains('当前仅支持 macOS'),
-        ),
-      ),
+  test('returns null on non-macOS platforms', () {
+    final path = resolveRustLibraryPath(
+      operatingSystem: 'linux',
+      currentDirectory: '/tmp/cardmind',
     );
+
+    expect(path, isNull);
   });
 }

@@ -1,13 +1,13 @@
 import 'dart:io';
 
-String resolveRustLibraryPath({
+String? resolveRustLibraryPath({
   String? operatingSystem,
   String? currentDirectory,
   String? executablePath,
 }) {
   final os = operatingSystem ?? Platform.operatingSystem;
   if (os != 'macos') {
-    throw UnsupportedError('当前仅支持 macOS 运行态动态库路径解析');
+    return null;
   }
 
   final executable = File(
