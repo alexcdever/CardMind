@@ -40,3 +40,59 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
   end
 end
+
+post_integrate do |installer|
+  project = Xcodeproj::Project.open(File.join(__dir__, 'Runner.xcodeproj'))
+  target = project.targets.find { |t| t.name == 'Runner' }
+  if target
+    existing = target.shell_script_build_phases.find { |phase| phase.name == 'Copy Rust Framework' }
+    existing&.remove_from_project
+    phase = target.new_shell_script_build_phase('Copy Rust Framework')
+    phase.shell_script = <<-SCRIPT
+      FRAMEWORK_NAME="cardmind_rust.framework"
+      FRAMEWORK_BINARY="cardmind_rust"
+      ROOT_DIR="${PROJECT_DIR}/.."
+      if [[ "$SDK_NAME" == *"simulator"* ]]; then
+        SOURCE_DYLIB="${ROOT_DIR}/rust/target/aarch64-apple-ios-sim/release/libcardmind_rust.dylib"
+      else
+        SOURCE_DYLIB="${ROOT_DIR}/rust/target/aarch64-apple-ios/release/libcardmind_rust.dylib"
+      fi
+      DEST_FRAMEWORK="${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/${FRAMEWORK_NAME}"
+      DEST_BINARY="${DEST_FRAMEWORK}/${FRAMEWORK_BINARY}"
+      DEST_INFO_PLIST="${DEST_FRAMEWORK}/Info.plist"
+
+      if [ -f "$SOURCE_DYLIB" ]; then
+        mkdir -p "$DEST_FRAMEWORK"
+        cp "$SOURCE_DYLIB" "$DEST_BINARY"
+        cat > "$DEST_INFO_PLIST" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>cardmind_rust</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.example.cardmind.cardmind-rust</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>cardmind_rust</string>
+  <key>CFBundlePackageType</key>
+  <string>FMWK</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+</dict>
+</plist>
+EOF
+        echo "Copied Rust framework binary to app bundle"
+      else
+        echo "Warning: Rust dylib not found at $SOURCE_DYLIB"
+      fi
+    SCRIPT
+    project.save
+  end
+end

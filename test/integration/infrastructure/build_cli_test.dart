@@ -342,6 +342,43 @@ void main() {
     },
   );
 
+  test('run forwards dart-defines to flutter build', () async {
+    final calls = <_ProcCall>[];
+    final tempRoot = await _createWorkspaceWithCargoDylib();
+    File('${tempRoot.path}/build/native/macos/libcardmind_rust.dylib')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('cargo dylib');
+    Directory(
+      '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind.app/Contents/Frameworks',
+    ).createSync(recursive: true);
+
+    final exit = await runBuildCli(
+      const [
+        'run',
+        '--dart-define',
+        'CARDMIND_DEBUG_START_IN_POOL=true',
+        '--dart-define',
+        'CARDMIND_DEBUG_PIN=1234',
+      ],
+      runProcess: _fakeRunner(calls),
+      currentDirectory: tempRoot.path,
+      platformOverride: HostPlatform.macos,
+    );
+
+    final flutterCall = calls.firstWhere(
+      (call) => call.executable == 'flutter',
+    );
+    expect(exit, 0);
+    expect(
+      flutterCall.arguments,
+      contains('--dart-define=CARDMIND_DEBUG_START_IN_POOL=true'),
+    );
+    expect(
+      flutterCall.arguments,
+      contains('--dart-define=CARDMIND_DEBUG_PIN=1234'),
+    );
+  });
+
   test(
     'run reports official runtime dylib path when bundle copy input disappears after lib step',
     () async {

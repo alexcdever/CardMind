@@ -40,6 +40,28 @@ void main() {
     },
   );
 
+  test(
+    'falls back to workspace build dylib near app bundle when current directory is sandboxed',
+    () async {
+      final tempRoot = await Directory.systemTemp.createTemp(
+        'cardmind-app-bundle-workspace-runtime-',
+      );
+      final dylib = File(
+        '${tempRoot.path}/build/native/macos/libcardmind_rust.dylib',
+      )..createSync(recursive: true);
+
+      final path = resolveRustLibraryPath(
+        operatingSystem: 'macos',
+        currentDirectory:
+            '/Users/test/Library/Containers/com.example.cardmind/Data',
+        executablePath:
+            '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind.app/Contents/MacOS/cardmind',
+      );
+
+      expect(path, dylib.absolute.path);
+    },
+  );
+
   test('throws actionable error when runtime dylib is missing', () {
     expect(
       () => resolveRustLibraryPath(

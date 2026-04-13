@@ -3,6 +3,9 @@ import 'package:cardmind/features/pool/pool_shell.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+
+import 'dart:io';
 
 class _UnlockedGateway implements AppLockGateway {
   @override
@@ -25,10 +28,7 @@ class _UnlockedGateway implements AppLockGateway {
 }
 
 class _ConfigurableGateway implements AppLockGateway {
-  _ConfigurableGateway({
-    required this.configured,
-    required this.unlocked,
-  });
+  _ConfigurableGateway({required this.configured, required this.unlocked});
 
   bool configured;
   bool unlocked;
@@ -117,5 +117,37 @@ void main() {
     expect(loaderCalls, 1);
     final poolPage = tester.widget<PoolPage>(find.byType(PoolPage));
     expect(poolPage.networkId, BigInt.from(9));
+  });
+
+  testWidgets('pool shell can export debug status milestones to file', (
+    tester,
+  ) async {
+    final service = AppLockService(gateway: _UnlockedGateway());
+    final tempDir = await Directory.systemTemp.createTemp(
+      'cardmind-pool-shell-status-',
+    );
+    final statusPath = p.join(tempDir.path, 'status.log');
+
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PoolShell(
+            service: service,
+            appDataDir: 'test-app-dir',
+            debugStatusExportPath: statusPath,
+            poolNetworkLoader: (appDataDir) async => BigInt.from(11),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final status = await File(statusPath).readAsString();
+      expect(status, contains('app_lock:unlocked'));
+      expect(status, contains('network_ready:11'));
+    } finally {
+      await tempDir.delete(recursive: true);
+    }
   });
 }

@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:cardmind/bridge_generated/models/api_error.dart';
+import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
@@ -122,6 +123,53 @@ Future<void> _unlockAppLock() async {
   await frb.verifyAppLockWithPin(pin: '1234');
 }
 
+Future<void> _switchAppConfig(String appDataDir) async {
+  await frb.resetAppConfigForTests();
+  await frb.initAppConfig(appDataDir: appDataDir);
+  await _unlockAppLock();
+}
+
+Future<CardDetailData> _waitForCardDetail({
+  required String appDataDir,
+  required String cardId,
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  Object? lastError;
+  while (DateTime.now().isBefore(deadline)) {
+    await _switchAppConfig(appDataDir);
+    try {
+      return await FrbCardApiClient().getCardDetail(id: cardId);
+    } catch (error) {
+      lastError = error;
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  }
+  throw StateError('timed out waiting for card $cardId: $lastError');
+}
+
+Future<frb.CardNoteDto> _waitForRawCard({
+  required String appDataDir,
+  required String cardId,
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  String? lastError;
+  while (DateTime.now().isBefore(deadline)) {
+    await _switchAppConfig(appDataDir);
+    try {
+      return await frb.getCardNoteDetail(cardId: cardId);
+    } on ApiError catch (error) {
+      lastError = '${error.code} ${error.message}';
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    } catch (error) {
+      lastError = error.toString();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  }
+  throw StateError('timed out waiting for raw card $cardId: $lastError');
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -200,6 +248,92 @@ void main() {
   );
 
   test(
+    'frb pool api client should reuse injected networkId for invite join flow',
+    () async {
+      final ownerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-client-owner-',
+      );
+      final joinerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-client-joiner-',
+      );
+      await _ensureRustLibInitialized();
+
+      BigInt? ownerNetworkId;
+      BigInt? joinerNetworkId;
+
+      try {
+        await _switchAppConfig(ownerRoot.path);
+        ownerNetworkId = await frb.initPoolNetwork(basePath: ownerRoot.path);
+        final ownerClient = FrbPoolApiClient(
+          nickname: 'owner',
+          os: 'macos',
+          appDataDir: ownerRoot.path,
+          networkId: ownerNetworkId,
+        );
+        final ownerTarget = await frb.getPoolNetworkSyncTarget(
+          networkId: ownerNetworkId,
+        );
+        final created = await ownerClient.createPool();
+
+        await _switchAppConfig(joinerRoot.path);
+        joinerNetworkId = await frb.initPoolNetwork(basePath: joinerRoot.path);
+        final joinerClient = FrbPoolApiClient(
+          nickname: 'joiner',
+          os: 'android',
+          appDataDir: joinerRoot.path,
+          networkId: joinerNetworkId,
+        );
+        final joinerTarget = await frb.getPoolNetworkSyncTarget(
+          networkId: joinerNetworkId,
+        );
+        final joined = await joinerClient.joinByCode(created.inviteCode!);
+
+        expect(
+          joined.isSuccess,
+          isTrue,
+          reason: 'join error: ${joined.errorCode}',
+        );
+
+        await _switchAppConfig(ownerRoot.path);
+        await frb.syncConnect(networkId: ownerNetworkId, target: joinerTarget);
+        await frb.syncJoinPool(
+          networkId: ownerNetworkId,
+          poolId: created.poolId,
+        );
+        final createdCard = await frb.createCardNoteInPool(
+          poolId: created.poolId,
+          title: 'shared-title',
+          content: 'shared-body',
+        );
+        await frb.syncPush(networkId: ownerNetworkId);
+
+        await _switchAppConfig(joinerRoot.path);
+        await frb.syncConnect(networkId: joinerNetworkId, target: ownerTarget);
+        await frb.syncJoinPool(
+          networkId: joinerNetworkId,
+          poolId: created.poolId,
+        );
+        final synced = await _waitForRawCard(
+          appDataDir: joinerRoot.path,
+          cardId: createdCard.id,
+        );
+
+        expect(synced.id, createdCard.id);
+      } finally {
+        if (ownerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: ownerNetworkId);
+        }
+        if (joinerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: joinerNetworkId);
+        }
+        await frb.resetAppConfigForTests();
+        await ownerRoot.delete(recursive: true);
+        await joinerRoot.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'frb pool api client maps joinByCode to backend result without handle state',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-pool-api-');
@@ -255,7 +389,9 @@ void main() {
       await _unlockAppLock();
 
       try {
-        final ownerNetworkId = await frb.initPoolNetwork(basePath: ownerRoot.path);
+        final ownerNetworkId = await frb.initPoolNetwork(
+          basePath: ownerRoot.path,
+        );
         final ownerEndpointId = await frb.getPoolNetworkEndpointId(
           networkId: ownerNetworkId,
         );
@@ -276,7 +412,11 @@ void main() {
         );
 
         final joined = await client.joinByCode(invite);
-        expect(joined.isSuccess, isTrue, reason: 'join error: ${joined.errorCode}');
+        expect(
+          joined.isSuccess,
+          isTrue,
+          reason: 'join error: ${joined.errorCode}',
+        );
         await frb.resetAppConfigForTests();
         await frb.initAppConfig(appDataDir: joinerRoot.path);
         await _unlockAppLock();
@@ -287,6 +427,133 @@ void main() {
         expect(view.isOwner, isFalse);
         expect(view.memberLabels, contains(view.currentIdentityLabel));
       } finally {
+        await frb.resetAppConfigForTests();
+        await ownerRoot.delete(recursive: true);
+        await joinerRoot.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'invite-linked dual app instances should sync pool note CRUD across app data dirs',
+    () async {
+      final ownerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-sync-owner-',
+      );
+      final joinerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-sync-joiner-',
+      );
+      await _ensureRustLibInitialized();
+      await _switchAppConfig(ownerRoot.path);
+
+      BigInt? ownerNetworkId;
+      BigInt? joinerNetworkId;
+
+      try {
+        ownerNetworkId = await frb.initPoolNetwork(basePath: ownerRoot.path);
+        final ownerSyncTarget = await frb.getPoolNetworkSyncTarget(
+          networkId: ownerNetworkId,
+        );
+        final ownerClient = FrbPoolApiClient(
+          nickname: 'owner',
+          os: 'macos',
+          appDataDir: ownerRoot.path,
+          networkId: ownerNetworkId,
+        );
+        final created = await ownerClient.createPool();
+
+        await _switchAppConfig(joinerRoot.path);
+        joinerNetworkId = await frb.initPoolNetwork(basePath: joinerRoot.path);
+        final joinerSyncTarget = await frb.getPoolNetworkSyncTarget(
+          networkId: joinerNetworkId,
+        );
+        final joinerClient = FrbPoolApiClient(
+          nickname: 'joiner',
+          os: 'android',
+          appDataDir: joinerRoot.path,
+          networkId: joinerNetworkId,
+        );
+        final joined = await joinerClient.joinByCode(created.inviteCode!);
+
+        expect(
+          joined.isSuccess,
+          isTrue,
+          reason: 'join error: ${joined.errorCode}',
+        );
+        final joinerViewAfterJoin = await joinerClient.getJoinedPoolView();
+        expect(joinerViewAfterJoin, isNotNull);
+        expect(joinerViewAfterJoin!.poolId, created.poolId);
+
+        await _switchAppConfig(ownerRoot.path);
+        await frb.syncConnect(
+          networkId: ownerNetworkId,
+          target: joinerSyncTarget,
+        );
+        await frb.syncJoinPool(
+          networkId: ownerNetworkId,
+          poolId: created.poolId,
+        );
+
+        await _switchAppConfig(joinerRoot.path);
+        final joinerViewAfterSwitchBack = await joinerClient
+            .getJoinedPoolView();
+        expect(joinerViewAfterSwitchBack, isNotNull);
+        expect(joinerViewAfterSwitchBack!.poolId, created.poolId);
+        await frb.syncConnect(
+          networkId: joinerNetworkId,
+          target: ownerSyncTarget,
+        );
+        await frb.syncJoinPool(
+          networkId: joinerNetworkId,
+          poolId: created.poolId,
+        );
+
+        await _switchAppConfig(ownerRoot.path);
+        final createdCard = await frb.createCardNoteInPool(
+          poolId: created.poolId,
+          title: 'owner-title',
+          content: 'owner-body',
+        );
+        final ownerPush = await frb.syncPush(networkId: ownerNetworkId);
+
+        await _switchAppConfig(joinerRoot.path);
+        final joinerSyncStatus = await frb.syncStatus(
+          networkId: joinerNetworkId,
+        );
+        final joinerDetail = await joinerClient.getPoolDetail(created.poolId);
+        final joinerRawCard = await _waitForRawCard(
+          appDataDir: joinerRoot.path,
+          cardId: createdCard.id,
+        );
+        final joinerCardDetail = await _waitForCardDetail(
+          appDataDir: joinerRoot.path,
+          cardId: createdCard.id,
+        );
+        await _switchAppConfig(joinerRoot.path);
+        final joinerCards = await frb.listCardNotes();
+        final joinerPoolCards = await frb.queryCardNotes(
+          query: '',
+          poolId: created.poolId,
+          includeDeleted: false,
+        );
+
+        expect(ownerPush.state, 'ok');
+        expect(joinerSyncStatus.state, anyOf('connected', 'idle'));
+        expect(joinerDetail.poolId, created.poolId);
+        expect(joinerRawCard.id, createdCard.id);
+        expect(joinerCardDetail.id, createdCard.id);
+        expect(joinerCards.map((card) => card.id), contains(createdCard.id));
+        expect(
+          joinerPoolCards.map((card) => card.id),
+          contains(createdCard.id),
+        );
+      } finally {
+        if (ownerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: ownerNetworkId);
+        }
+        if (joinerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: joinerNetworkId);
+        }
         await frb.resetAppConfigForTests();
         await ownerRoot.delete(recursive: true);
         await joinerRoot.delete(recursive: true);

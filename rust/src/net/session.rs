@@ -144,6 +144,11 @@ impl SyncSession {
             SyncPhase::Connected => "connected",
         }
     }
+
+    /// 获取当前连接目标。
+    pub fn target(&self) -> Option<&str> {
+        self.target.as_deref()
+    }
 }
 
 impl Default for SyncSession {

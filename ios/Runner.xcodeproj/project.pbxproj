@@ -201,6 +201,7 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				4B2A74898EE2D882070F62D4 /* Copy Rust Framework */,
 			);
 			buildRules = (
 			);
@@ -309,6 +310,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
+		};
+		4B2A74898EE2D882070F62D4 /* Copy Rust Framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Rust Framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "      FRAMEWORK_NAME=\"cardmind_rust.framework\"\n      FRAMEWORK_BINARY=\"cardmind_rust\"\n      ROOT_DIR=\"${PROJECT_DIR}/..\"\n      if [[ \"$SDK_NAME\" == *\"simulator\"* ]]; then\n        SOURCE_DYLIB=\"${ROOT_DIR}/rust/target/aarch64-apple-ios-sim/release/libcardmind_rust.dylib\"\n      else\n        SOURCE_DYLIB=\"${ROOT_DIR}/rust/target/aarch64-apple-ios/release/libcardmind_rust.dylib\"\n      fi\n      DEST_FRAMEWORK=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/${FRAMEWORK_NAME}\"\n      DEST_BINARY=\"${DEST_FRAMEWORK}/${FRAMEWORK_BINARY}\"\n      DEST_INFO_PLIST=\"${DEST_FRAMEWORK}/Info.plist\"\n\n      if [ -f \"$SOURCE_DYLIB\" ]; then\n        mkdir -p \"$DEST_FRAMEWORK\"\n        cp \"$SOURCE_DYLIB\" \"$DEST_BINARY\"\n        cat > \"$DEST_INFO_PLIST\" <<'EOF'\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>CFBundleDevelopmentRegion</key>\n  <string>en</string>\n  <key>CFBundleExecutable</key>\n  <string>cardmind_rust</string>\n  <key>CFBundleIdentifier</key>\n  <string>com.example.cardmind.cardmind-rust</string>\n  <key>CFBundleInfoDictionaryVersion</key>\n  <string>6.0</string>\n  <key>CFBundleName</key>\n  <string>cardmind_rust</string>\n  <key>CFBundlePackageType</key>\n  <string>FMWK</string>\n  <key>CFBundleShortVersionString</key>\n  <string>1.0</string>\n  <key>CFBundleVersion</key>\n  <string>1</string>\n</dict>\n</plist>\nEOF\n        echo \"Copied Rust framework binary to app bundle\"\n      else\n        echo \"Warning: Rust dylib not found at $SOURCE_DYLIB\"\n      fi\n";
 		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -458,13 +477,13 @@
 				DEVELOPMENT_TEAM = 4P3B37R3W3;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				SDKROOT = iphoneos;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.cardmind;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -640,13 +659,13 @@
 				DEVELOPMENT_TEAM = 4P3B37R3W3;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				SDKROOT = iphoneos;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.cardmind;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -665,13 +684,13 @@
 				DEVELOPMENT_TEAM = 4P3B37R3W3;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				SDKROOT = iphoneos;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.cardmind;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

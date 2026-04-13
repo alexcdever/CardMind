@@ -5,10 +5,10 @@
 
 ## 当前进行中的工作
 
-1. 数据池 invite 入池链路已打通到 Flutter/UI：Rust 侧已支持 invite create/join，Flutter owner 页面已显示 invite string；下一步是补完真实双实例联机验证最后一段 GUI 操作。
-2. `FrbPoolApiClient` 已基本收口 runtime handle 暴露面，业务层可只靠 `appDataDir` 完成 invite 入池；下一步如继续推进，可继续评估 `PoolShell` / `SyncService` 装配面是否还需进一步隐藏 `network_id`。
-3. 文档治理第二轮收口已完成：`AGENTS.md` 已回到仓库入口提示词定位，`docs/standards/ai-collaboration.md` 已收敛为唯一协作流程正文，并新增 `Agent` 授权边界；后续只需按需输出职责地图并处理少量高频历史噪音。
-4. 质量门禁已恢复可用；本轮相关 Rust / Flutter 回归已通过，后续如继续推进，可单独补真实多实例联机后的自动化护栏。
+1. 真实双实例联机验证已推进到最后一段：`macOS owner` 真实启动、自动建池、invite 导出已通过，`iOS simulator joiner` 真实启动、自动解锁、网络初始化与自动 join 触发已通过；当前卡点已收敛为 iOS join 返回 `join_error:INTERNAL`，下一步优先补 message 级观测或切换到 `iOS owner -> macOS joiner` 反向角色路径。
+2. `FrbPoolApiClient` 已基本收口 runtime handle 暴露面，业务层可只靠 `appDataDir` 完成 invite 入池；本轮已确认若显式注入 `networkId`，真实同步链路可稳定打通，后续如继续推进，可继续评估 `PoolShell` / `SyncService` 装配面是否还需进一步隐藏 `network_id`。
+3. iOS 模拟器集成已补到可真实启动：新增最小合法 `cardmind_rust.framework` 注入与 Podfile build phase；后续如继续保留 iOS 路径，应评估是否把当前最小注入方案升级为稳定的 framework/xcframework 产物流程。
+4. 文档治理第二轮收口已完成，质量门禁保持可用；本轮新增的 Rust / Flutter 合同、路径与构建相关回归均已通过。
 
 ## 最近完成的工作
 
@@ -106,20 +106,24 @@
 
 ## 待办事项
 
-- [ ] 完成真实双实例联机验证：owner 创建池、读取 invite、Android 端自动加入、笔记 CRUD 同步确认
-- [ ] 如需降低真实联机验证阻力，补一个稳定的调试入口用于自动触发创建池或导出 invite
+- [ ] 继续完成真实双实例联机验证：补出 iOS `join_error:INTERNAL` 的具体 message，并确认是否属于 iOS simulator 环境差异
+- [ ] 优先尝试 `iOS owner -> macOS joiner` 反向角色路径，验证是否比 `macOS owner -> iOS joiner` 更稳定
+- [ ] 如需降低真实联机验证阻力，固化 owner invite / 状态导出调试入口，并补容器读取说明
 - [ ] 如继续收口架构，评估 `PoolShell` / `SyncService` 装配面对 `network_id` 的剩余暴露
 - [ ] 如继续优化文档治理，输出一页职责地图，明确核心文档负责什么、不再负责什么
 - [ ] 如需继续提升多 worktree 开发体验，评估是否引入共享 Cargo 编译缓存策略
 
 ## 阻塞/卡点
 
-- 真实双实例联机验证仍卡在 macOS 桌面端 GUI 自动化最后一段：当前窗口可稳定启动到数据池页，但“创建池”按钮未稳定暴露为可点击 AX 控件，导致 owner 端创建池与 invite 提取尚未自动跑穿
+- 真实双实例联机验证的主要阻塞已从 GUI 自动化切换为真实运行时差异：`iOS simulator joiner` 已能真实启动并触发 auto join，但最终返回 `join_error:INTERNAL`；当前尚未拿到 message 级错误上下文
 
 ## 最近的决策
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-04-13 | 真实双实例验证先通过调试导出路径打通 owner 自动建池、invite 导出与 joiner 状态回读 | 先让真实链路可观测，再定位最后一段运行时差异，比继续依赖 GUI 自动化更稳妥 |
+| 2026-04-13 | iOS 端采用最小合法 `cardmind_rust.framework` 注入而不先做完整 xcframework | 目标是尽快跑通模拟器 joiner 真实启动，避免过早扩张到完整 iOS 分发策略 |
+| 2026-04-13 | Android 模拟器不再作为当前 `iroh` 真实联机主验证环境 | 模拟器底层网络能力被 SELinux 限制，继续深挖收益低 |
 | 2026-04-13 | owner 侧 invite 先以字符串形式直接暴露到页面，不先做二维码 | 先满足真实组网验证最短路径，避免表现层过早扩张 |
 | 2026-04-13 | `network_id` 背后改为持久 runtime，而不是每次 API 调用临时建 Tokio runtime | iroh endpoint 跨 runtime 复用会触发 `Internal consistency error`，必须从根上收口生命周期 |
 | 2026-04-13 | `network_id` 继续保留为 Rust FFI 内部句柄，不上升为业务概念 | 用户约束是一实例一节点一数据池，业务层不应承担 Rust 运行时对象编排 |

@@ -105,6 +105,11 @@ impl PoolNetwork {
         self.endpoint.endpoint_addr()
     }
 
+    /// 获取当前同步目标地址。
+    pub fn sync_target(&self) -> Option<&str> {
+        self.sync_session.target()
+    }
+
     /// 获取基础路径。
     pub fn base_path(&self) -> &str {
         &self.base_path

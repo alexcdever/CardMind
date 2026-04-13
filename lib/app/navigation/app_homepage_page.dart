@@ -44,6 +44,9 @@ class AppHomepagePage extends StatefulWidget {
     this.debugStartInPool = false,
     this.debugAutoPin,
     this.debugAutoJoinCode,
+    this.debugAutoCreatePool = false,
+    this.debugExportInvitePath,
+    this.debugStatusExportPath,
   });
 
   /// 应用数据目录路径。
@@ -73,6 +76,9 @@ class AppHomepagePage extends StatefulWidget {
   final bool debugStartInPool;
   final String? debugAutoPin;
   final String? debugAutoJoinCode;
+  final bool debugAutoCreatePool;
+  final String? debugExportInvitePath;
+  final String? debugStatusExportPath;
 
   @override
   State<AppHomepagePage> createState() => _AppHomepagePageState();
@@ -194,6 +200,9 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
           networkId: widget.poolNetworkId,
           debugAutoPin: widget.debugAutoPin,
           debugAutoJoinCode: widget.debugAutoJoinCode,
+          debugAutoCreatePool: widget.debugAutoCreatePool,
+          debugExportInvitePath: widget.debugExportInvitePath,
+          debugStatusExportPath: widget.debugStatusExportPath,
           child: widget.poolPageBuilder?.call(context),
         );
     }

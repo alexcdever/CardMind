@@ -20,6 +20,21 @@ String? resolveRustLibraryPath({
     return frameworksDylib.path;
   }
 
+  Directory? cursor = executable.parent;
+  while (cursor != null) {
+    final candidate = File(
+      '${cursor.path}/build/native/macos/libcardmind_rust.dylib',
+    ).absolute;
+    if (candidate.existsSync()) {
+      return candidate.path;
+    }
+    final parent = cursor.parent;
+    if (parent.path == cursor.path) {
+      break;
+    }
+    cursor = parent;
+  }
+
   final rootDir = currentDirectory ?? Directory.current.path;
   final dylib = File(
     '$rootDir/build/native/macos/libcardmind_rust.dylib',

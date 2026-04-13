@@ -9,6 +9,7 @@
 library pool_page;
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
@@ -43,6 +44,9 @@ class PoolPage extends StatefulWidget {
     this.controller,
     this.onReturnToPoolTab,
     this.autoJoinCode,
+    this.autoCreatePool = false,
+    this.debugExportInvitePath,
+    this.debugStatusExportPath,
   });
 
   /// 当前池状态。
@@ -62,6 +66,15 @@ class PoolPage extends StatefulWidget {
 
   /// 调试用自动加入码，仅在显式注入时使用。
   final String? autoJoinCode;
+
+  /// 调试用自动创建池开关，仅在显式注入时使用。
+  final bool autoCreatePool;
+
+  /// 调试用 invite 导出路径，仅在显式注入时使用。
+  final String? debugExportInvitePath;
+
+  /// 调试用状态导出路径，仅在显式注入时使用。
+  final String? debugStatusExportPath;
 
   @override
   State<PoolPage> createState() => _PoolPageState();
@@ -88,11 +101,15 @@ class _PoolPageState extends State<PoolPage> {
             ))
         ..addListener(_onStateChanged);
   bool _autoJoinTriggered = false;
+  bool _autoCreateTriggered = false;
+  bool _inviteExportTriggered = false;
+  String? _lastDebugStateMarker;
 
   @override
   void initState() {
     super.initState();
     _maybeAutoJoin();
+    _maybeExportInvite();
   }
 
   @override
@@ -106,9 +123,12 @@ class _PoolPageState extends State<PoolPage> {
       setState(() {});
     }
     _maybeAutoJoin();
+    _maybeExportInvite();
+    _maybeExportState();
   }
 
   void _maybeAutoJoin() {
+    _maybeAutoCreatePool();
     final code = widget.autoJoinCode?.trim();
     if (_autoJoinTriggered || code == null || code.isEmpty) {
       return;
@@ -117,12 +137,91 @@ class _PoolPageState extends State<PoolPage> {
       return;
     }
     _autoJoinTriggered = true;
+    unawaited(_appendDebugStatus('auto_join_triggered'));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
       unawaited(_controller.joinByCode(code));
     });
+  }
+
+  void _maybeAutoCreatePool() {
+    if (_autoCreateTriggered || !widget.autoCreatePool) {
+      return;
+    }
+    if (_controller.state is! PoolNotJoined || _controller.joining) {
+      return;
+    }
+    _autoCreateTriggered = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_controller.createPool());
+    });
+  }
+
+  void _maybeExportState() {
+    final state = _controller.state;
+    final marker = switch (state) {
+      PoolJoined joined => 'joined:${joined.poolId}',
+      PoolError error =>
+        'join_error:${error.code}:${_controller.noticeMessage ?? ''}',
+      PoolNotJoined() => 'not_joined',
+      PoolExitPartialCleanup() => 'exit_partial_cleanup',
+    };
+    if (_lastDebugStateMarker == marker) {
+      return;
+    }
+    _lastDebugStateMarker = marker;
+    unawaited(_appendDebugStatus(marker));
+  }
+
+  void _maybeExportInvite() {
+    if (_inviteExportTriggered) {
+      return;
+    }
+    final exportPath = widget.debugExportInvitePath?.trim();
+    final state = _controller.state;
+    if (exportPath == null || exportPath.isEmpty || state is! PoolJoined) {
+      return;
+    }
+    final inviteCode = state.inviteCode?.trim();
+    if (inviteCode == null || inviteCode.isEmpty) {
+      return;
+    }
+    _inviteExportTriggered = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_writeInvite(exportPath, inviteCode));
+    });
+  }
+
+  Future<void> _writeInvite(String exportPath, String inviteCode) async {
+    try {
+      final file = File(exportPath);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(inviteCode);
+    } catch (_) {
+      // 调试导出失败不应影响页面主流程。
+    }
+  }
+
+  Future<void> _appendDebugStatus(String line) async {
+    final path = widget.debugStatusExportPath?.trim();
+    if (path == null || path.isEmpty) {
+      return;
+    }
+    try {
+      final file = File(path);
+      await file.parent.create(recursive: true);
+      await file.writeAsString('$line\n', mode: FileMode.append);
+    } catch (_) {
+      // 调试状态导出失败不应影响页面主流程。
+    }
   }
 
   void _returnToPoolTab() {

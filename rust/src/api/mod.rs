@@ -45,7 +45,7 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{PoolEndpoint, build_endpoint};
+use crate::net::endpoint::{build_endpoint, PoolEndpoint};
 use crate::net::pool_network::PoolNetwork;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::security::app_lock::AppLock;
@@ -323,8 +323,8 @@ pub fn update_backend_config(
 /// println!("MCP 监听: {:?}", status.mcp_bind_addr);
 /// println!("CLI 启用: {}", status.cli_enabled);
 /// ```
-pub fn get_runtime_entry_status()
--> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+pub fn get_runtime_entry_status(
+) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -1516,6 +1516,23 @@ pub fn get_pool_network_endpoint_id(network_id: u64) -> Result<String, ApiError>
     Ok(managed.network.endpoint_id().to_string())
 }
 
+/// 获取网络实例当前可连接的同步目标地址。
+pub fn get_pool_network_sync_target(network_id: u64) -> Result<String, ApiError> {
+    require_app_lock_unlocked()?;
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let managed = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    let target = managed
+        .runtime
+        .block_on(managed.network.wait_for_addr(Duration::from_secs(10)))
+        .map_err(map_err)?;
+    serde_json::to_string(&target)
+        .map_err(|err| ApiError::new(ApiErrorCode::Internal, &err.to_string()))
+}
+
 /// 为指定池生成可分享的邀请字符串。
 pub fn create_pool_invite(network_id: u64, pool_id: String) -> Result<String, ApiError> {
     require_app_lock_unlocked()?;
@@ -1530,7 +1547,10 @@ pub fn create_pool_invite(network_id: u64, pool_id: String) -> Result<String, Ap
         .runtime
         .block_on(managed.network.wait_for_addr(Duration::from_secs(10)))
         .map_err(map_err)?;
-    managed.network.create_invite_code(&pool_id).map_err(map_err)
+    managed
+        .network
+        .create_invite_code(&pool_id)
+        .map_err(map_err)
 }
 
 /// 通过邀请字符串加入池并拉取完整快照。
@@ -1638,7 +1658,10 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
     combine_sync_status(
         managed.network.base_path(),
         managed.network.sync_state(),
-        managed.network.last_sync_error_code().map(|code| code.to_string()),
+        managed
+            .network
+            .last_sync_error_code()
+            .map(|code| code.to_string()),
     )
 }
 
@@ -1668,6 +1691,8 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
 /// ```
 pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
     require_app_lock_unlocked()?;
+    let _: iroh::EndpointAddr = serde_json::from_str(&target)
+        .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, "sync target invalid"))?;
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
@@ -1796,6 +1821,14 @@ pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    if let Some(target) = managed.network.sync_target() {
+        let target: iroh::EndpointAddr = serde_json::from_str(target)
+            .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, "sync target invalid"))?;
+        managed
+            .runtime
+            .block_on(managed.network.connect_and_sync(target))
+            .map_err(map_err)?;
+    }
     let sync_code = match managed.network.sync_push() {
         Ok(()) => None,
         Err(CardMindError::InvalidArgument(msg)) if msg == "sync not connected" => {

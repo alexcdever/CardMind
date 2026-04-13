@@ -12,17 +12,22 @@ import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+
+import 'dart:io';
 
 class _FakePoolApiClient implements PoolApiClient {
   Object? leaveError;
   Object? leavePartialCleanupError;
   String? leftPoolId;
   bool dissolveCalled = false;
+  int createCalls = 0;
   List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
   final Set<String> rejectFailOnceRequestIds = <String>{};
 
   @override
   Future<PoolCreateResult> createPool() async {
+    createCalls += 1;
     return const PoolCreateResult(
       poolId: 'server-pool',
       poolName: 'Server Pool',
@@ -386,7 +391,9 @@ void main() {
     expect(find.text('2. joiner@test'), findsOneWidget);
   });
 
-  testWidgets('auto join code should join once on first render', (tester) async {
+  testWidgets('auto join code should join once on first render', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: PoolPage(
@@ -403,6 +410,82 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     expect(find.text('成员列表'), findsOneWidget);
     expect(find.text('我的身份: joiner@test'), findsOneWidget);
+  });
+
+  testWidgets('auto create pool should create once on first render', (
+    tester,
+  ) async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(
+      initialState: const PoolState.notJoined(),
+      apiClient: client,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: controller,
+          autoCreatePool: true,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(client.createCalls, 1);
+    expect(find.text('成员列表'), findsOneWidget);
+    expect(find.byKey(const ValueKey('pool.invite_code')), findsOneWidget);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: controller.state,
+          controller: controller,
+          autoCreatePool: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(client.createCalls, 1);
+  });
+
+  testWidgets('auto create pool can export invite code to file', (
+    tester,
+  ) async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(
+      initialState: const PoolState.notJoined(),
+      apiClient: client,
+    );
+    final tempDir = await Directory.systemTemp.createTemp(
+      'cardmind-pool-page-invite-',
+    );
+    final invitePath = p.join(tempDir.path, 'invite.txt');
+
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PoolPage(
+            state: const PoolState.notJoined(),
+            controller: controller,
+            autoCreatePool: true,
+            debugExportInvitePath: invitePath,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final exported = await File(invitePath).readAsString();
+      expect(exported, 'invite://server-pool');
+    } finally {
+      await tempDir.delete(recursive: true);
+    }
   });
 
   testWidgets('leave pool confirmation returns to not joined', (tester) async {

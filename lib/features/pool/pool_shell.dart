@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
@@ -20,6 +21,9 @@ class PoolShell extends StatefulWidget {
     this.poolNetworkLoader,
     this.debugAutoPin,
     this.debugAutoJoinCode,
+    this.debugAutoCreatePool = false,
+    this.debugExportInvitePath,
+    this.debugStatusExportPath,
   });
 
   final Widget? child;
@@ -29,6 +33,9 @@ class PoolShell extends StatefulWidget {
   final PoolNetworkLoader? poolNetworkLoader;
   final String? debugAutoPin;
   final String? debugAutoJoinCode;
+  final bool debugAutoCreatePool;
+  final String? debugExportInvitePath;
+  final String? debugStatusExportPath;
 
   @override
   State<PoolShell> createState() => _PoolShellState();
@@ -49,6 +56,7 @@ class _PoolShellState extends State<PoolShell> {
     super.initState();
     _service.addListener(_onServiceChanged);
     _resolvedNetworkId = widget.networkId;
+    unawaited(_appendDebugStatus('app_lock:${_service.state.phase.name}'));
     _tryInitPoolNetwork();
   }
 
@@ -59,6 +67,7 @@ class _PoolShellState extends State<PoolShell> {
   }
 
   void _onServiceChanged() {
+    unawaited(_appendDebugStatus('app_lock:${_service.state.phase.name}'));
     _maybeAutoUnlockForDebug();
     _tryInitPoolNetwork();
   }
@@ -75,7 +84,8 @@ class _PoolShellState extends State<PoolShell> {
       return;
     }
     final state = _service.state;
-    if (state.phase == AppLockPhase.loading || state.phase == AppLockPhase.error) {
+    if (state.phase == AppLockPhase.loading ||
+        state.phase == AppLockPhase.error) {
       return;
     }
     _debugPinAttempted = true;
@@ -109,6 +119,7 @@ class _PoolShellState extends State<PoolShell> {
             _resolvedNetworkId = networkId;
             _loadingNetwork = false;
           });
+          unawaited(_appendDebugStatus('network_ready:$networkId'));
         })
         .catchError((_) {
           if (!mounted) {
@@ -117,7 +128,22 @@ class _PoolShellState extends State<PoolShell> {
           setState(() {
             _loadingNetwork = false;
           });
+          unawaited(_appendDebugStatus('network_error'));
         });
+  }
+
+  Future<void> _appendDebugStatus(String line) async {
+    final path = widget.debugStatusExportPath?.trim();
+    if (path == null || path.isEmpty) {
+      return;
+    }
+    try {
+      final file = File(path);
+      await file.parent.create(recursive: true);
+      await file.writeAsString('$line\n', mode: FileMode.append);
+    } catch (_) {
+      // 调试状态导出失败不应影响主流程。
+    }
   }
 
   @override
@@ -132,6 +158,9 @@ class _PoolShellState extends State<PoolShell> {
                   appDataDir: widget.appDataDir ?? '',
                   networkId: _resolvedNetworkId,
                   autoJoinCode: widget.debugAutoJoinCode,
+                  autoCreatePool: widget.debugAutoCreatePool,
+                  debugExportInvitePath: widget.debugExportInvitePath,
+                  debugStatusExportPath: widget.debugStatusExportPath,
                 ),
     );
   }

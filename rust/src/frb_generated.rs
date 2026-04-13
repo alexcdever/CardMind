@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1233018187;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 570037538;
 
 // Section: executor
 
@@ -626,6 +626,39 @@ fn wire__crate__api__get_pool_network_endpoint_id_impl(
             move |context| {
                 transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
                     let output_ok = crate::api::get_pool_network_endpoint_id(api_network_id)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__get_pool_network_sync_target_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "get_pool_network_sync_target",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_network_id = <u64>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::models::api_error::ApiError>((move || {
+                    let output_ok = crate::api::get_pool_network_sync_target(api_network_id)?;
                     Ok(output_ok)
                 })())
             }
@@ -2725,81 +2758,84 @@ fn pde_ffi_dispatcher_primary_impl(
         17 => {
             wire__crate__api__get_pool_network_endpoint_id_impl(port, ptr, rust_vec_len, data_len)
         }
-        18 => wire__crate__api__get_runtime_entry_status_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__init_app_config_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__init_pool_network_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__join_by_code_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__join_pool_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__join_pool_by_invite_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__leave_pool_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__recovery_contract__legacy_to_phase2_contract_impl(
+        18 => {
+            wire__crate__api__get_pool_network_sync_target_impl(port, ptr, rust_vec_len, data_len)
+        }
+        19 => wire__crate__api__get_runtime_entry_status_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__init_app_config_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__init_pool_network_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__join_by_code_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__join_pool_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__join_pool_by_invite_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__leave_pool_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__recovery_contract__legacy_to_phase2_contract_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__list_card_notes_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__list_pools_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__recovery_contract__local_content_safety_as_str_impl(
+        27 => wire__crate__api__list_card_notes_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__list_pools_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__recovery_contract__local_content_safety_as_str_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__utils__map_err_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__mark_biometric_success_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__utils__member_role_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__recovery_contract__next_action_as_str_impl(
+        30 => wire__crate__api__utils__map_err_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__mark_biometric_success_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__utils__member_role_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__recovery_contract__next_action_as_str_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__utils__parse_uuid_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__utils__pool_name_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__query_card_notes_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__recovery_contract__recovery_contract_from_evidence_impl(
+        34 => wire__crate__api__utils__parse_uuid_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__utils__pool_name_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__query_card_notes_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__recovery_contract__recovery_contract_from_evidence_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__recovery_contract__recovery_contract_validate_impl(
+        38 => wire__crate__api__recovery_contract__recovery_contract_validate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__recovery_contract__recovery_stage_as_str_impl(
+        39 => wire__crate__api__recovery_contract__recovery_stage_as_str_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__reject_join_request_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__reset_app_config_for_tests_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__reset_app_lock_for_tests_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__restore_card_note_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__setup_app_lock_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__recovery_contract__sub_state_as_str_impl(
+        40 => wire__crate__api__reject_join_request_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__reset_app_config_for_tests_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__reset_app_lock_for_tests_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__restore_card_note_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__setup_app_lock_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__recovery_contract__sub_state_as_str_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__submit_join_request_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__sync_connect_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__sync_disconnect_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__sync_join_pool_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__sync_pull_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__api__sync_push_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__sync_status_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__utils__to_card_note_dto_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__api__utils__to_pool_detail_dto_impl(port, ptr, rust_vec_len, data_len),
-        54 => wire__crate__api__utils__to_pool_dto_impl(port, ptr, rust_vec_len, data_len),
-        55 => wire__crate__api__update_backend_config_impl(port, ptr, rust_vec_len, data_len),
-        56 => wire__crate__api__update_card_note_impl(port, ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__verify_app_lock_with_pin_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__submit_join_request_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__sync_connect_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__sync_disconnect_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__sync_join_pool_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__sync_pull_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__sync_push_impl(port, ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__sync_status_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__utils__to_card_note_dto_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__utils__to_pool_detail_dto_impl(port, ptr, rust_vec_len, data_len),
+        55 => wire__crate__api__utils__to_pool_dto_impl(port, ptr, rust_vec_len, data_len),
+        56 => wire__crate__api__update_backend_config_impl(port, ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__update_card_note_impl(port, ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__verify_app_lock_with_pin_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

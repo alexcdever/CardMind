@@ -836,6 +836,10 @@ Future<BigInt> initPoolNetwork({required String basePath}) =>
 Future<String> getPoolNetworkEndpointId({required BigInt networkId}) =>
     RustLib.instance.api.crateApiGetPoolNetworkEndpointId(networkId: networkId);
 
+/// 获取网络实例当前可连接的同步目标地址。
+Future<String> getPoolNetworkSyncTarget({required BigInt networkId}) =>
+    RustLib.instance.api.crateApiGetPoolNetworkSyncTarget(networkId: networkId);
+
 /// 为指定池生成可分享的邀请字符串。
 Future<String> createPoolInvite({
   required BigInt networkId,

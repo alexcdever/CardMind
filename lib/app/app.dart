@@ -27,6 +27,9 @@ class CardMindApp extends StatelessWidget {
     this.debugStartInPool = false,
     this.debugAutoPin,
     this.debugAutoJoinCode,
+    this.debugAutoCreatePool = false,
+    this.debugExportInvitePath,
+    this.debugStatusExportPath,
   });
 
   /// 应用数据目录路径。
@@ -37,6 +40,9 @@ class CardMindApp extends StatelessWidget {
   final bool debugStartInPool;
   final String? debugAutoPin;
   final String? debugAutoJoinCode;
+  final bool debugAutoCreatePool;
+  final String? debugExportInvitePath;
+  final String? debugStatusExportPath;
 
   /// 构建应用 Widget 树。
   ///
@@ -56,6 +62,9 @@ class CardMindApp extends StatelessWidget {
         debugStartInPool: debugStartInPool,
         debugAutoPin: debugAutoPin,
         debugAutoJoinCode: debugAutoJoinCode,
+        debugAutoCreatePool: debugAutoCreatePool,
+        debugExportInvitePath: debugExportInvitePath,
+        debugStatusExportPath: debugStatusExportPath,
       ),
     );
   }

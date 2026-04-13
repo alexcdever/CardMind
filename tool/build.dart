@@ -306,7 +306,12 @@ Future<int> _runAndOpen(
   }
 
   /// Step 2: Build Flutter app
-  final build = await runProcess('flutter', ['build', 'macos', '--debug']);
+  final dartDefines = _readMultiOption(args, '--dart-define');
+  final buildArgs = <String>['build', 'macos', '--debug'];
+  for (final dartDefine in dartDefines) {
+    buildArgs.add('--dart-define=$dartDefine');
+  }
+  final build = await runProcess('flutter', buildArgs);
   if (build.exitCode != 0) {
     logError(_processError(build));
     return build.exitCode;
@@ -346,4 +351,19 @@ Future<int> _runAndOpen(
   log('[run] app launched');
 
   return 0;
+}
+
+List<String> _readMultiOption(List<String> args, String name) {
+  final values = <String>[];
+  for (var i = 0; i < args.length; i += 1) {
+    if (args[i] != name) {
+      continue;
+    }
+    if (i + 1 >= args.length) {
+      continue;
+    }
+    values.add(args[i + 1]);
+    i += 1;
+  }
+  return values;
 }
