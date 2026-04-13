@@ -30,13 +30,14 @@ class _FakePoolApiClient implements PoolApiClient {
       isOwner: true,
       currentIdentityLabel: 'owner@test',
       memberLabels: <String>['owner@test'],
+      inviteCode: 'invite://server-pool',
     );
   }
 
   @override
   Future<PoolJoinResult> joinByCode(String code) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
-    if (code == 'ok') {
+    if (code == 'joined-pool-code') {
       return const PoolJoinResult.joined(poolName: 'Joined Pool');
     }
     return const PoolJoinResult.error('ADMIN_OFFLINE');
@@ -256,6 +257,8 @@ void main() {
     expect(find.text('成员列表'), findsOneWidget);
     expect(find.text('我的身份: owner@test'), findsOneWidget);
     expect(find.text('1. owner@test'), findsOneWidget);
+    expect(find.text('邀请字符串'), findsOneWidget);
+    expect(find.text('invite://server-pool'), findsOneWidget);
   });
 
   testWidgets('joined pool state does not expose one-step go-to-cards action', (
@@ -321,7 +324,11 @@ void main() {
 
     await tester.tap(find.text('扫码加入'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('管理员离线'));
+    await tester.enterText(
+      find.byKey(const ValueKey('pool.join_dialog.code_input')),
+      'bad-pool-code',
+    );
+    await tester.tap(find.byKey(const ValueKey('pool.join_dialog.confirm')));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('加入失败:'), findsOneWidget);
@@ -363,7 +370,11 @@ void main() {
 
     await tester.tap(find.text('扫码加入'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('模拟成功'));
+    await tester.enterText(
+      find.byKey(const ValueKey('pool.join_dialog.code_input')),
+      'joined-pool-code',
+    );
+    await tester.tap(find.byKey(const ValueKey('pool.join_dialog.confirm')));
     await tester.pump();
 
     expect(find.text('请求处理中...'), findsOneWidget);
@@ -373,6 +384,25 @@ void main() {
     expect(find.text('我的身份: joiner@test'), findsOneWidget);
     expect(find.text('1. owner@test'), findsOneWidget);
     expect(find.text('2. joiner@test'), findsOneWidget);
+  });
+
+  testWidgets('auto join code should join once on first render', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+          autoJoinCode: 'joined-pool-code',
+        ),
+      ),
+    );
+
+    await tester.pump();
+    expect(find.text('请求处理中...'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.text('成员列表'), findsOneWidget);
+    expect(find.text('我的身份: joiner@test'), findsOneWidget);
   });
 
   testWidgets('leave pool confirmation returns to not joined', (tester) async {

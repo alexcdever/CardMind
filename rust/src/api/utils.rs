@@ -58,10 +58,10 @@ pub fn map_err(err: crate::models::error::CardMindError) -> ApiError {
         CardMindError::NotMember(msg) => ApiError::new(ApiErrorCode::NotMember, &msg),
         CardMindError::Io(msg) => ApiError::new(ApiErrorCode::IoError, &msg),
         CardMindError::Sqlite(msg) => ApiError::new(ApiErrorCode::SqliteError, &msg),
+        CardMindError::Internal(msg) => ApiError::new(ApiErrorCode::Internal, &msg),
         CardMindError::Loro(msg) => {
             ApiError::new(ApiErrorCode::Internal, &format!("loro: {}", msg))
         }
-        _ => ApiError::new(ApiErrorCode::Internal, "internal error"),
     }
 }
 

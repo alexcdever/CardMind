@@ -10,6 +10,7 @@ import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
 
 // These functions are ignored because they are not marked as `pub`: `app_config_dir`, `app_lock_state`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `list_all_card_ids`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `require_app_lock_unlocked`, `to_join_request_dtos`, `with_configured_card_store`, `with_configured_pool_store`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ManagedPoolNetwork`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 获取后端服务配置
@@ -830,6 +831,32 @@ Future<CardNoteDto> getCardNoteDetail({required String cardId}) =>
 /// ```
 Future<BigInt> initPoolNetwork({required String basePath}) =>
     RustLib.instance.api.crateApiInitPoolNetwork(basePath: basePath);
+
+/// 获取网络实例当前的 iroh 端点 ID。
+Future<String> getPoolNetworkEndpointId({required BigInt networkId}) =>
+    RustLib.instance.api.crateApiGetPoolNetworkEndpointId(networkId: networkId);
+
+/// 为指定池生成可分享的邀请字符串。
+Future<String> createPoolInvite({
+  required BigInt networkId,
+  required String poolId,
+}) => RustLib.instance.api.crateApiCreatePoolInvite(
+  networkId: networkId,
+  poolId: poolId,
+);
+
+/// 通过邀请字符串加入池并拉取完整快照。
+Future<PoolDto> joinPoolByInvite({
+  required BigInt networkId,
+  required String code,
+  required String nickname,
+  required String os,
+}) => RustLib.instance.api.crateApiJoinPoolByInvite(
+  networkId: networkId,
+  code: code,
+  nickname: nickname,
+  os: os,
+);
 
 /// 关闭 PoolNetwork 网络实例
 ///

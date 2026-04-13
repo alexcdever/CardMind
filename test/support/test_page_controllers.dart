@@ -126,7 +126,7 @@ class TestPoolApiClient implements PoolApiClient {
   @override
   Future<PoolJoinResult> joinByCode(String code) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
-    if (code == 'ok') {
+    if (code == 'joined-pool-code' || code == 'test-pool-code') {
       return const PoolJoinResult.joined(poolName: 'Joined Pool');
     }
     return const PoolJoinResult.error('ADMIN_OFFLINE');

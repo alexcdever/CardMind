@@ -5,53 +5,60 @@
 
 ## 当前进行中的工作
 
-1. 文档治理第二轮收口已完成：`AGENTS.md` 已回到仓库入口提示词定位，`docs/standards/ai-collaboration.md` 已收敛为唯一协作流程正文，并新增 `Agent` 授权边界；下一步如继续推进，只需按需输出职责地图并处理少量高频历史噪音。
-2. `Pool` 前端已完成一轮实质减负并先停住；首页壳层已完成第一步约束落地（`PoolShell` 下沉 gate）并补齐测试护栏，下一步可继续评估返回键/退出确认职责是否需要进一步固化。
-3. Rust macOS 动态库运行态路径统一已完成并合并到 `main`；如需继续提升工程体验，下一步可评估 worktree 间共享 Cargo 编译缓存。
-4. 质量门禁已新增 `docs` 子命令与 Markdown 引用检查，主工作区 `docs` 门禁和 `flutter` 质量链都已恢复可用；下一步如继续推进，可单独补 Flutter 高优先级边界测试。
+1. 数据池 invite 入池链路已打通到 Flutter/UI：Rust 侧已支持 invite create/join，Flutter owner 页面已显示 invite string；下一步是补完真实双实例联机验证最后一段 GUI 操作。
+2. `FrbPoolApiClient` 已基本收口 runtime handle 暴露面，业务层可只靠 `appDataDir` 完成 invite 入池；下一步如继续推进，可继续评估 `PoolShell` / `SyncService` 装配面是否还需进一步隐藏 `network_id`。
+3. 文档治理第二轮收口已完成：`AGENTS.md` 已回到仓库入口提示词定位，`docs/standards/ai-collaboration.md` 已收敛为唯一协作流程正文，并新增 `Agent` 授权边界；后续只需按需输出职责地图并处理少量高频历史噪音。
+4. 质量门禁已恢复可用；本轮相关 Rust / Flutter 回归已通过，后续如继续推进，可单独补真实多实例联机后的自动化护栏。
 
 ## 最近完成的工作
 
-1. ~~文档治理第二轮收口（B+授权）~~ ✅ **已完成**（2026-04-10）
+1. ~~数据池 invite 串入池与业务层 handle 收口~~ ✅ **已完成**（2026-04-13）
+   - Rust FFI 新增 `create_pool_invite` / `join_pool_by_invite` / `get_pool_network_endpoint_id`
+   - `network_id` 背后改为持久 runtime，修复 iroh endpoint 跨 runtime 触发的 `Internal consistency error`
+   - `FrbPoolApiClient` 支持仅靠 `appDataDir` 懒加载 runtime，业务层不再需要显式传入 runtime handle
+   - `Pool` owner 页面已显示 invite string，真实组网验证路径已具备最小 UI 支撑
+   - Rust / Flutter 相关合同、单元、组件、自动化测试均已通过
+
+2. ~~文档治理第二轮收口（B+授权）~~ ✅ **已完成**（2026-04-10）
    - `AGENTS.md` 收敛为仓库入口提示词，不再展开协作流程正文
    - `docs/standards/ai-collaboration.md` 成为唯一协作流程正文，并新增 `Agent` 授权边界
    - `docs/standards/spec-lifecycle.md` 收敛为纯边界判断文档
    - `docs/standards/tdd.md` 改为“默认优先采用 TDD，例外时说明原因并补足验证”
    - 审查 `git-and-pr.md` 与 `testing.md`，确认当前无需调整
 
-2. ~~质量门禁补强：Markdown 引用检查与 docs 子命令~~ ✅ **已完成**（2026-04-10）
+3. ~~质量门禁补强：Markdown 引用检查与 docs 子命令~~ ✅ **已完成**（2026-04-10）
    - `tool/lint/markdown_references_linter.dart` 支持锚点、title 文本、URL 编码空格，并在失效时返回非零退出码
    - `tool/quality.dart` 新增 `docs` 子命令，`flutter` 质量链改为先跑文档引用检查
    - 修正主工作区 `docs/` 历史相对引用，并让 linter 默认忽略 `.worktrees/`
    - `README.md` 与 `AGENTS.md` 已同步新增 `dart run tool/quality.dart docs` 说明
    - `dart run tool/quality.dart docs` 与 `dart run tool/quality.dart flutter` 已恢复可用
 
-3. ~~文档体系结构性重构第一轮收口~~ ✅ **已完成**（2026-04-09）
+4. ~~文档体系结构性重构第一轮收口~~ ✅ **已完成**（2026-04-09）
    - 明确 `AGENTS.md`、`docs/specs/`、`docs/plans/`、`docs/standards/` 的职责边界
    - 明确 spec 由“正式行为确认变更”触发更新，而不是由“开始实现”触发更新
    - 新增文档体系结构性重构实施计划
    - 删除 `docs/` 之外的全部 `DIR.md`
    - `fractal-doc-standard.md` 重命名并收口为 `docs-dir-indexing.md`
 
-4. ~~首页壳层测试护栏补齐~~ ✅ **已完成**（2026-04-08）
+5. ~~首页壳层测试护栏补齐~~ ✅ **已完成**（2026-04-08）
    - 首页测试明确 `pool` 分域装配经由 `PoolShell`
    - 修正与当前壳层分层方向冲突的旧断言
    - 首页壳层边界开始具备测试级防回退能力
 
-5. ~~首页壳层第一步约束落地~~ ✅ **已完成**（2026-04-08）
+6. ~~首页壳层第一步约束落地~~ ✅ **已完成**（2026-04-08）
    - 新增 `PoolShell`
    - `AppLockGate` 从 `AppHomepagePage` 下沉到 `PoolShell`
    - 首页壳层不再直接承接 pool 分域入口 gate
    - 首页相关测试通过
 
-6. ~~Rust macOS 动态库运行态路径统一~~ ✅ **已完成**（2026-04-08）
+7. ~~Rust macOS 动态库运行态路径统一~~ ✅ **已完成**（2026-04-08）
    - 官方运行态 dylib 收口到 `build/native/macos/libcardmind_rust.dylib`
    - `tool/build.dart lib` 改为构建后自动同步官方运行态 dylib
    - `tool/build.dart run` 改为从官方运行态目录复制到 app bundle
    - `main.dart` 与 FRB 真库测试统一改走共享 dylib 路径入口
    - `README.md`、`AGENTS.md`、`tool/DIR.md`、`lib/DIR.md` 已同步更新路径职责说明
 
-7. ~~Pool 前端一轮实质减负~~ ✅ **已完成**（2026-04-07）
+8. ~~Pool 前端一轮实质减负~~ ✅ **已完成**（2026-04-07）
    - `PoolPage` 主文件收成状态分发入口
    - 特殊错误判断从散写逻辑收成控制器私有守卫
    - `approvalMessage` 从 `PoolState` 中移出，改为 `PoolController.noticeMessage`
@@ -59,26 +66,26 @@
    - 测试改为通过 fake API client 制造失败路径
    - 相关 unit / widget / integration 测试通过
 
-8. ~~Pool 前端第一轮结构收口~~ ✅ **已完成**（2026-04-07）
+9. ~~Pool 前端第一轮结构收口~~ ✅ **已完成**（2026-04-07）
    - `PoolPage` 主文件收成状态分发入口
    - 对话框逻辑拆到 `pool_page_dialogs.dart`
    - 页面块拆到 `pool_page_sections.dart`
    - 同步反馈拆到 `pool_sync_feedback.dart`
    - 相关 widget 测试通过
 
-9. ~~文档权威边界收紧~~ ✅ **已完成**（2026-04-07）
+10. ~~文档权威边界收紧~~ ✅ **已完成**（2026-04-07）
    - 明确 `docs/standards/` 与 `docs/specs/` 是当前实现依据
    - 将 `docs/plans/` 降权为历史设计/计划/审计记录目录
    - 收紧 spec 生命周期规则，禁止把未确认项直接写成正式规格
 
-10. ~~Phase 3 数据池规格定版~~ ✅ **已完成**（2026-04-07）
+11. ~~Phase 3 数据池规格定版~~ ✅ **已完成**（2026-04-07）
    - 应用锁前置条件
    - 加入申请取消
    - 解散后只读态
    - 退出/重新加入后的访问边界
    - 黑盒验收标准补齐
 
-11. ~~Phase 3 数据池治理与安全基线~~ ✅ **已完成**（2026-04-05）
+12. ~~Phase 3 数据池治理与安全基线~~ ✅ **已完成**（2026-04-05）
    - 应用锁（Rust 状态机 + Flutter guard/UI）
    - 数据池 API 应用锁 gating
    - 最后管理员不能退出
@@ -86,32 +93,36 @@
    - 加入申请提交 / 审批 / 拒绝 / 取消
    - Rust / Flutter / FRB / contract / integration / widget 测试链路打通
 
-12. ~~质量门禁基线清理~~ ✅ **已完成**（2026-04-05）
+13. ~~质量门禁基线清理~~ ✅ **已完成**（2026-04-05）
    - `flutter analyze` 通过
    - `cargo fmt --check` 通过
    - `cargo clippy` 通过
    - `dart run tool/quality.dart all` 通过
 
-13. ~~应用锁前置能力~~ ✅ **已完成**（2026-04-05）
+14. ~~应用锁前置能力~~ ✅ **已完成**（2026-04-05）
    - Rust 安全状态机与存储抽象
    - Flutter 应用锁服务、界面与 guard
    - 池相关 API 必须在解锁后访问
 
 ## 待办事项
 
+- [ ] 完成真实双实例联机验证：owner 创建池、读取 invite、Android 端自动加入、笔记 CRUD 同步确认
+- [ ] 如需降低真实联机验证阻力，补一个稳定的调试入口用于自动触发创建池或导出 invite
+- [ ] 如继续收口架构，评估 `PoolShell` / `SyncService` 装配面对 `network_id` 的剩余暴露
 - [ ] 如继续优化文档治理，输出一页职责地图，明确核心文档负责什么、不再负责什么
-- [ ] 如要继续降低搜索噪音，仅清理少量高频历史计划文档中的旧规则引用，不做全仓历史正文重写
-- [ ] 如继续处理首页壳层，将禁止继续注入 `AppHomepagePage` 的职责清单落到规则或存档入口
-- [ ] 如继续处理首页壳层，评估返回键/退出确认职责是否需要进一步固化为规则或测试护栏
 - [ ] 如需继续提升多 worktree 开发体验，评估是否引入共享 Cargo 编译缓存策略
-- [ ] 如需继续优化，按已定位顺序补 `tmp/cardmind_test_boundary_report.md` 中 Flutter 高优先级边界测试
 
 ## 阻塞/卡点
 
-- 当前无工程阻塞；主要剩余问题是历史计划文档中的旧治理语义仍会在全仓搜索时形成噪音、核心文档职责地图尚未单独沉淀，以及 Flutter 高优先级边界测试仍待补齐
+- 真实双实例联机验证仍卡在 macOS 桌面端 GUI 自动化最后一段：当前窗口可稳定启动到数据池页，但“创建池”按钮未稳定暴露为可点击 AX 控件，导致 owner 端创建池与 invite 提取尚未自动跑穿
 
 ## 最近的决策
 
+| 日期 | 决策内容 | 原因 |
+|------|----------|------|
+| 2026-04-13 | owner 侧 invite 先以字符串形式直接暴露到页面，不先做二维码 | 先满足真实组网验证最短路径，避免表现层过早扩张 |
+| 2026-04-13 | `network_id` 背后改为持久 runtime，而不是每次 API 调用临时建 Tokio runtime | iroh endpoint 跨 runtime 复用会触发 `Internal consistency error`，必须从根上收口生命周期 |
+| 2026-04-13 | `network_id` 继续保留为 Rust FFI 内部句柄，不上升为业务概念 | 用户约束是一实例一节点一数据池，业务层不应承担 Rust 运行时对象编排 |
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
 | 2026-04-10 | 采用 `B+授权` 重构文档治理 | 先消除入口层与执行层职责重叠，再以最小成本补上 agent 授权边界 |
@@ -139,6 +150,7 @@
 
 ## 相关文档链接
 
+- [今日工作日志（2026-04-13）](./memory/2026-04-13.md)
 - [今日工作日志（2026-04-10）](./memory/2026-04-10.md)
 - [今日工作日志（2026-04-09）](./memory/2026-04-09.md)
 - [今日工作日志（2026-04-08）](./memory/2026-04-08.md)
@@ -157,4 +169,4 @@
 
 ---
 
-*最后更新：2026-04-10*
+*最后更新：2026-04-13*

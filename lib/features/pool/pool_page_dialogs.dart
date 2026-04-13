@@ -2,48 +2,54 @@ part of 'pool_page.dart';
 
 extension _PoolPageDialogs on _PoolPageState {
   Future<void> _scanAndJoin(BuildContext context) async {
+    var draftCode = '';
     final code = await showDialog<String>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('扫码加入'),
-          content: const Text('使用模拟加入码：ok / admin-offline / timeout'),
+          content: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            identifier: SemanticIds.poolJoinDialogCodeInput,
+            label: '加入码输入框',
+            textField: true,
+            child: TextFormField(
+              key: const ValueKey('pool.join_dialog.code_input'),
+              autofocus: true,
+              onChanged: (value) {
+                draftCode = value;
+              },
+              decoration: const InputDecoration(
+                labelText: '加入码',
+                hintText: '输入池 ID 或加入字符串',
+              ),
+            ),
+          ),
           actions: [
             Semantics(
               container: true,
               explicitChildNodes: true,
-              identifier: SemanticIds.poolScanDialogSuccess,
-              label: '模拟成功加入',
+              identifier: SemanticIds.poolJoinDialogCancel,
+              label: '取消加入数据池',
               button: true,
               child: TextButton(
-                key: const ValueKey('pool.scan_dialog.success'),
-                onPressed: () => Navigator.of(dialogContext).pop('ok'),
-                child: const Text('模拟成功'),
+                key: const ValueKey('pool.join_dialog.cancel'),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('取消'),
               ),
             ),
             Semantics(
               container: true,
               explicitChildNodes: true,
-              identifier: SemanticIds.poolScanDialogAdminOffline,
-              label: '管理员离线加入码',
+              identifier: SemanticIds.poolJoinDialogConfirm,
+              label: '确认加入数据池',
               button: true,
               child: TextButton(
-                key: const ValueKey('pool.scan_dialog.admin_offline'),
+                key: const ValueKey('pool.join_dialog.confirm'),
                 onPressed: () =>
-                    Navigator.of(dialogContext).pop('admin-offline'),
-                child: const Text('管理员离线'),
-              ),
-            ),
-            Semantics(
-              container: true,
-              explicitChildNodes: true,
-              identifier: SemanticIds.poolScanDialogTimeout,
-              label: '请求超时加入码',
-              button: true,
-              child: TextButton(
-                key: const ValueKey('pool.scan_dialog.timeout'),
-                onPressed: () => Navigator.of(dialogContext).pop('timeout'),
-                child: const Text('请求超时'),
+                    Navigator.of(dialogContext).pop(draftCode.trim()),
+                child: const Text('确认加入'),
               ),
             ),
           ],
@@ -51,7 +57,7 @@ extension _PoolPageDialogs on _PoolPageState {
       },
     );
 
-    if (code == null) return;
+    if (code == null || code.trim().isEmpty) return;
     unawaited(_controller.joinByCode(code));
   }
 

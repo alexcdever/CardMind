@@ -113,6 +113,7 @@ class PoolController extends ChangeNotifier {
       isOwner: result.isOwner,
       currentIdentityLabel: result.currentIdentityLabel,
       memberLabels: result.memberLabels,
+      inviteCode: result.inviteCode,
     );
     notifyListeners();
   }

@@ -146,6 +146,21 @@ class _PoolJoinedView extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Text(state.poolName),
             ),
+            if (state.isOwner && state.inviteCode != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('邀请字符串'),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      state.inviteCode!,
+                      key: const ValueKey('pool.invite_code'),
+                    ),
+                  ],
+                ),
+              ),
             if (state.isDissolved)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),

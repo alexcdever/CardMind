@@ -43,13 +43,23 @@ use crate::store::loro_store::{load_loro_doc, note_doc_path, pool_doc_path, save
 use crate::store::path_resolver::DataPaths;
 use crate::store::pool_store::PoolStore;
 use crate::store::sqlite_store::SqliteStore;
+use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use iroh::{EndpointAddr, endpoint::Connection};
 use loro::{LoroDoc, LoroMap, LoroValue};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tokio::time::{Duration, timeout};
 use uuid::Uuid;
 
 const MESSAGE_LIMIT: usize = 10_000_000;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct PoolInviteCode {
+    version: u8,
+    pool_id: Uuid,
+    target: EndpointAddr,
+}
 
 /// 池网络管理器。
 ///
@@ -108,26 +118,20 @@ impl PoolNetwork {
         let endpoint = self.endpoint.inner().clone();
         let base_path = self.base_path.clone();
         tokio::spawn(async move {
-            loop {
-                let incoming = match endpoint.accept().await {
-                    Some(incoming) => incoming,
-                    None => break,
-                };
-                let accepting = match incoming.accept() {
-                    Ok(accepting) => accepting,
-                    Err(_) => continue,
-                };
-                let conn = match accepting.await {
-                    Ok(conn) => conn,
-                    Err(_) => continue,
-                };
-                let base_path = base_path.clone();
-                tokio::spawn(async move {
-                    let _ = handle_connection(conn, base_path).await;
-                });
-            }
+            run_listener_loop(endpoint, base_path).await;
         });
         Ok(())
+    }
+
+    pub fn spawn_listener_on(
+        &self,
+        handle: &tokio::runtime::Handle,
+    ) -> tokio::task::JoinHandle<()> {
+        let endpoint = self.endpoint.inner().clone();
+        let base_path = self.base_path.clone();
+        handle.spawn(async move {
+            run_listener_loop(endpoint, base_path).await;
+        })
     }
 
     pub async fn connect_and_sync(
@@ -183,6 +187,111 @@ impl PoolNetwork {
         Ok(())
     }
 
+    pub fn create_invite_code(&self, pool_id: &Uuid) -> Result<String, CardMindError> {
+        let _ = self.pool_store.get_pool(pool_id)?;
+        let invite = PoolInviteCode {
+            version: 1,
+            pool_id: *pool_id,
+            target: self.endpoint_addr(),
+        };
+        let encoded = serde_json::to_vec(&invite)
+            .map_err(|e| CardMindError::Internal(format!("invite encode failed: {}", e)))?;
+        Ok(URL_SAFE_NO_PAD.encode(encoded))
+    }
+
+    pub async fn request_join_and_sync(
+        &self,
+        invite_code: &str,
+        nickname: &str,
+        os: &str,
+    ) -> Result<Pool, CardMindError> {
+        let invite = decode_invite_code(invite_code)?;
+        let applicant = PoolMember {
+            endpoint_id: self.endpoint_id().to_string(),
+            nickname: nickname.to_string(),
+            os: os.to_string(),
+            is_admin: false,
+        };
+        let applicant_addr = self.wait_for_addr(Duration::from_secs(10)).await?;
+        let conn = self
+            .endpoint
+            .connect(invite.target.clone())
+            .await
+            .map_err(|e| CardMindError::Internal(format!("connect failed: {}", e)))?;
+        send_message(
+            &conn,
+            &PoolMessage::JoinRequest {
+                pool_id: invite.pool_id,
+                applicant,
+                applicant_addr,
+            },
+        )
+        .await?;
+
+        let mut approved = false;
+        let mut pool_snapshot: Option<(Uuid, Vec<u8>, Vec<Uuid>)> = None;
+        let mut card_snapshots: Vec<(Uuid, Vec<u8>)> = Vec::new();
+        let mut expected_cards: Option<HashSet<Uuid>> = None;
+
+        loop {
+            let stream = conn.accept_bi().await;
+            let (mut send, mut recv) = match stream {
+                Ok(stream) => stream,
+                Err(_) => break,
+            };
+            let bytes = recv
+                .read_to_end(MESSAGE_LIMIT)
+                .await
+                .map_err(|e| CardMindError::Internal(format!("read failed: {}", e)))?;
+            let _ = send.finish();
+            let msg = decode_message(&bytes)?;
+            match msg {
+                PoolMessage::JoinDecision {
+                    approved: true, ..
+                } => {
+                    approved = true;
+                }
+                PoolMessage::JoinDecision {
+                    approved: false,
+                    reason,
+                    ..
+                } => {
+                    return Err(CardMindError::InvalidArgument(
+                        reason.unwrap_or_else(|| "join rejected".to_string()),
+                    ));
+                }
+                PoolMessage::PoolSnapshot { pool_id, bytes } => {
+                    let pool = pool_from_snapshot(&bytes)?;
+                    expected_cards = Some(pool.card_ids.iter().cloned().collect());
+                    pool_snapshot = Some((pool_id, bytes, pool.card_ids));
+                }
+                PoolMessage::CardSnapshot { card_id, bytes } => {
+                    card_snapshots.push((card_id, bytes));
+                }
+                _ => {}
+            }
+
+            if approved
+                && pool_snapshot.is_some()
+                && expected_cards
+                    .as_ref()
+                    .is_none_or(|expected| expected.is_empty() || card_snapshots.len() >= expected.len())
+            {
+                break;
+            }
+        }
+
+        let (pool_id, bytes, _) = pool_snapshot.ok_or_else(|| {
+            CardMindError::Internal("pool snapshot missing after join".to_string())
+        })?;
+        let pool = apply_pool_snapshot(&self.base_path, &pool_id, &bytes)?;
+        for (card_id, bytes) in card_snapshots {
+            let _ = apply_card_snapshot(&self.base_path, &card_id, &bytes)?;
+        }
+        let _ = timeout(Duration::from_secs(5), conn.closed()).await;
+        Ok(pool)
+    }
+
     /// 检查卡片是否存在。
     ///
     /// # Arguments
@@ -198,6 +307,31 @@ impl PoolNetwork {
             Err(CardMindError::NotFound(_)) => Ok(false),
             Err(err) => Err(err),
         }
+    }
+
+    /// 获取卡片详情。
+    pub fn get_card(&self, card_id: &Uuid) -> Result<Card, CardMindError> {
+        self.card_repository.get_card(card_id)
+    }
+
+    /// 更新卡片内容。
+    pub fn update_card(
+        &self,
+        card_id: &Uuid,
+        title: &str,
+        content: &str,
+    ) -> Result<Card, CardMindError> {
+        self.card_repository.update_card(card_id, title, content)
+    }
+
+    /// 软删除卡片。
+    pub fn delete_card(&self, card_id: &Uuid) -> Result<(), CardMindError> {
+        self.card_repository.delete_card(card_id)
+    }
+
+    /// 恢复已软删除卡片。
+    pub fn restore_card(&self, card_id: &Uuid) -> Result<(), CardMindError> {
+        self.card_repository.restore_card(card_id)
     }
 
     /// 建立同步连接。
@@ -297,6 +431,26 @@ impl PoolNetwork {
     }
 }
 
+async fn run_listener_loop(endpoint: iroh::Endpoint, base_path: String) {
+    loop {
+        let Some(incoming) = endpoint.accept().await else {
+            break;
+        };
+        let accepting = match incoming.accept() {
+            Ok(accepting) => accepting,
+            Err(_) => continue,
+        };
+        let conn = match accepting.await {
+            Ok(conn) => conn,
+            Err(_) => continue,
+        };
+        let base_path = base_path.clone();
+        tokio::spawn(async move {
+            let _ = handle_connection(conn, base_path).await;
+        });
+    }
+}
+
 /// 处理传入的同步连接。
 ///
 /// 处理完整的同步会话生命周期：
@@ -333,6 +487,55 @@ async fn handle_connection(conn: Connection, base_path: String) -> Result<(), Ca
         let _ = send.finish();
         let msg = decode_message(&bytes)?;
         match msg {
+            PoolMessage::JoinRequest {
+                pool_id,
+                applicant,
+                ..
+            } => {
+                let pool_store = PoolStore::new(&base_path)?;
+                let pool = pool_store.get_pool(&pool_id)?;
+                let updated_pool = if pool
+                    .members
+                    .iter()
+                    .any(|member| member.endpoint_id == applicant.endpoint_id)
+                {
+                    pool
+                } else {
+                    pool_store.join_pool(&pool, applicant, Vec::new())?
+                };
+                send_message(
+                    &conn,
+                    &PoolMessage::JoinDecision {
+                        pool_id,
+                        approved: true,
+                        reason: None,
+                    },
+                )
+                .await?;
+                let pool_snapshot = build_pool_snapshot(&base_path, &updated_pool.pool_id)?;
+                send_message(
+                    &conn,
+                    &PoolMessage::PoolSnapshot {
+                        pool_id: updated_pool.pool_id,
+                        bytes: pool_snapshot,
+                    },
+                )
+                .await?;
+                for card_id in &updated_pool.card_ids {
+                    let bytes = build_card_snapshot(&base_path, card_id)?;
+                    send_message(
+                        &conn,
+                        &PoolMessage::CardSnapshot {
+                            card_id: *card_id,
+                            bytes,
+                        },
+                    )
+                    .await?;
+                }
+                // 给对端留出时间接收管理员侧新开的响应流，避免连接提前析构。
+                tokio::time::sleep(Duration::from_millis(200)).await;
+                return Ok(());
+            }
             PoolMessage::Hello {
                 pool_id,
                 endpoint_id,
@@ -410,6 +613,25 @@ async fn send_message(conn: &Connection, msg: &PoolMessage) -> Result<(), CardMi
     send.finish()
         .map_err(|e| CardMindError::Internal(e.to_string()))?;
     Ok(())
+}
+
+fn decode_invite_code(invite_code: &str) -> Result<PoolInviteCode, CardMindError> {
+    let decoded = URL_SAFE_NO_PAD
+        .decode(invite_code)
+        .map_err(|_| CardMindError::InvalidArgument("invalid invite code".to_string()))?;
+    let invite: PoolInviteCode = serde_json::from_slice(&decoded)
+        .map_err(|_| CardMindError::InvalidArgument("invalid invite code".to_string()))?;
+    if invite.version != 1 {
+        return Err(CardMindError::InvalidArgument(
+            "invite code version invalid".to_string(),
+        ));
+    }
+    if invite.target.is_empty() {
+        return Err(CardMindError::InvalidArgument(
+            "invite target missing".to_string(),
+        ));
+    }
+    Ok(invite)
 }
 
 /// 构建池的快照数据。

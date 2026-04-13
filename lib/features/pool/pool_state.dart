@@ -23,6 +23,7 @@ sealed class PoolState {
     bool isOwner,
     String currentIdentityLabel,
     List<String> memberLabels,
+    String? inviteCode,
   }) = PoolJoined;
 
   /// 创建错误状态。
@@ -60,6 +61,7 @@ class PoolJoined extends PoolState {
     this.isOwner = true,
     this.currentIdentityLabel = '未知身份',
     this.memberLabels = const <String>[],
+    this.inviteCode,
   });
 
   /// 数据池标识。
@@ -83,6 +85,9 @@ class PoolJoined extends PoolState {
   /// 成员标识标签列表。
   final List<String> memberLabels;
 
+  /// 仅 owner 侧展示的邀请码字符串。
+  final String? inviteCode;
+
   /// 创建状态的副本，允许更新部分字段。
   PoolJoined copyWith({
     String? poolId,
@@ -92,6 +97,7 @@ class PoolJoined extends PoolState {
     bool? isOwner,
     String? currentIdentityLabel,
     List<String>? memberLabels,
+    String? inviteCode,
   }) {
     return PoolJoined(
       pending: pending ?? this.pending,
@@ -101,6 +107,7 @@ class PoolJoined extends PoolState {
       isOwner: isOwner ?? this.isOwner,
       currentIdentityLabel: currentIdentityLabel ?? this.currentIdentityLabel,
       memberLabels: memberLabels ?? this.memberLabels,
+      inviteCode: inviteCode ?? this.inviteCode,
     );
   }
 }

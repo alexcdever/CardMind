@@ -45,6 +45,7 @@
 //! ```
 
 use crate::models::pool::PoolMember;
+use iroh::EndpointAddr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -92,6 +93,8 @@ pub enum PoolMessage {
         pool_id: Uuid,
         /// 申请加入的成员信息。
         applicant: PoolMember,
+        /// 申请方的 iroh 端点地址。
+        applicant_addr: EndpointAddr,
     },
 
     /// 转发加入请求。

@@ -38,13 +38,18 @@ class PoolPage extends StatefulWidget {
   const PoolPage({
     super.key,
     required this.state,
+    this.appDataDir = '',
     this.networkId,
     this.controller,
     this.onReturnToPoolTab,
+    this.autoJoinCode,
   });
 
   /// 当前池状态。
   final PoolState state;
+
+  /// 应用数据目录，用于懒初始化运行态网络与端点身份。
+  final String appDataDir;
 
   /// 网络ID，用于同步服务。
   final BigInt? networkId;
@@ -54,6 +59,9 @@ class PoolPage extends StatefulWidget {
 
   /// 返回数据池Tab的回调函数。
   final VoidCallback? onReturnToPoolTab;
+
+  /// 调试用自动加入码，仅在显式注入时使用。
+  final String? autoJoinCode;
 
   @override
   State<PoolPage> createState() => _PoolPageState();
@@ -65,9 +73,10 @@ class _PoolPageState extends State<PoolPage> {
             PoolController(
               initialState: widget.state,
               apiClient: FrbPoolApiClient(
-                endpointId: '${defaultTargetPlatform.name}@local-device',
                 nickname: '${defaultTargetPlatform.name}-user',
                 os: defaultTargetPlatform.name,
+                appDataDir: widget.appDataDir,
+                networkId: widget.networkId,
               ),
               syncService: widget.networkId == null
                   ? null
@@ -78,6 +87,13 @@ class _PoolPageState extends State<PoolPage> {
               reconnectTarget: '${defaultTargetPlatform.name}@local-device',
             ))
         ..addListener(_onStateChanged);
+  bool _autoJoinTriggered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeAutoJoin();
+  }
 
   @override
   void dispose() {
@@ -89,6 +105,24 @@ class _PoolPageState extends State<PoolPage> {
     if (mounted) {
       setState(() {});
     }
+    _maybeAutoJoin();
+  }
+
+  void _maybeAutoJoin() {
+    final code = widget.autoJoinCode?.trim();
+    if (_autoJoinTriggered || code == null || code.isEmpty) {
+      return;
+    }
+    if (_controller.state is! PoolNotJoined || _controller.joining) {
+      return;
+    }
+    _autoJoinTriggered = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_controller.joinByCode(code));
+    });
   }
 
   void _returnToPoolTab() {

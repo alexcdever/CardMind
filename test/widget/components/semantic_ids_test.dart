@@ -131,23 +131,27 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('pool.join_scan_button')));
       await tester.pumpAndSettle();
 
-      expect(find.bySemanticsLabel('模拟成功加入'), findsWidgets);
-      expect(find.bySemanticsLabel('管理员离线加入码'), findsWidgets);
-      expect(find.bySemanticsLabel('请求超时加入码'), findsWidgets);
+      expect(find.bySemanticsLabel('加入码输入框'), findsWidgets);
+      expect(find.bySemanticsLabel('确认加入数据池'), findsWidgets);
+      expect(find.bySemanticsLabel('取消加入数据池'), findsWidgets);
       expect(
-        find.byKey(const ValueKey('pool.scan_dialog.success')),
+        find.byKey(const ValueKey('pool.join_dialog.code_input')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('pool.scan_dialog.admin_offline')),
+        find.byKey(const ValueKey('pool.join_dialog.confirm')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('pool.scan_dialog.timeout')),
+        find.byKey(const ValueKey('pool.join_dialog.cancel')),
         findsOneWidget,
       );
 
-      await tester.tap(find.byKey(const ValueKey('pool.scan_dialog.success')));
+      await tester.enterText(
+        find.byKey(const ValueKey('pool.join_dialog.code_input')),
+        'test-pool-code',
+      );
+      await tester.tap(find.byKey(const ValueKey('pool.join_dialog.confirm')));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('pool.edit_button')));

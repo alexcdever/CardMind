@@ -101,6 +101,15 @@ class SemanticIds {
   /// 扫码对话框超时状态。
   static const poolScanDialogTimeout = 'pool.scan_dialog.timeout';
 
+  /// 加入对话框加入码输入框。
+  static const poolJoinDialogCodeInput = 'pool.join_dialog.code_input';
+
+  /// 加入对话框确认按钮。
+  static const poolJoinDialogConfirm = 'pool.join_dialog.confirm';
+
+  /// 加入对话框取消按钮。
+  static const poolJoinDialogCancel = 'pool.join_dialog.cancel';
+
   /// 编辑对话框名称输入框。
   static const poolEditDialogNameInput = 'pool.edit_dialog.name_input';
 

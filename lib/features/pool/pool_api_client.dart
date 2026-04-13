@@ -35,6 +35,7 @@ class PoolCreateResult {
     required this.isOwner,
     required this.currentIdentityLabel,
     required this.memberLabels,
+    this.inviteCode,
   });
 
   final String poolId;
@@ -52,6 +53,9 @@ class PoolCreateResult {
 
   /// 成员标识列表。
   final List<String> memberLabels;
+
+  /// 可分享的邀请码字符串。当前运行态不可生成时为空。
+  final String? inviteCode;
 }
 
 /// 池视图数据。
@@ -190,6 +194,7 @@ class LocalPoolApiClient implements PoolApiClient {
       isOwner: true,
       currentIdentityLabel: 'owner@local',
       memberLabels: <String>['owner@local'],
+      inviteCode: 'local-pool',
     );
   }
 
@@ -275,13 +280,15 @@ class LocalPoolApiClient implements PoolApiClient {
 class FrbPoolApiClient implements PoolApiClient {
   /// 创建 FRB 池 API 客户端。
   FrbPoolApiClient({
-    required this.endpointId,
     required this.nickname,
     required this.os,
+    this.endpointId,
+    this.appDataDir,
+    this.networkId,
   });
 
   /// 端点标识。
-  final String endpointId;
+  final String? endpointId;
 
   /// 用户昵称。
   final String nickname;
@@ -289,13 +296,62 @@ class FrbPoolApiClient implements PoolApiClient {
   /// 操作系统名称。
   final String os;
 
-  String _identityLabelFromMembers(List<frb.PoolMemberDto> members) {
+  /// 应用数据目录。未显式注入 network handle 时，用它懒加载本机运行态网络。
+  final String? appDataDir;
+
+  /// 运行态网络实例 ID。存在时优先走真实邀请串入池链路。
+  final BigInt? networkId;
+  BigInt? _cachedRuntimeNetworkId;
+  String? _cachedRuntimeEndpointId;
+
+  Future<BigInt?> _ensureNetworkId() async {
+    final direct = networkId;
+    if (direct != null) {
+      return direct;
+    }
+    final cached = _cachedRuntimeNetworkId;
+    if (cached != null) {
+      return cached;
+    }
+    final basePath = appDataDir?.trim();
+    if (basePath == null || basePath.isEmpty) {
+      return null;
+    }
+    final resolved = await frb.initPoolNetwork(basePath: basePath);
+    _cachedRuntimeNetworkId = resolved;
+    return resolved;
+  }
+
+  Future<String> _effectiveEndpointId() async {
+    final direct = endpointId?.trim();
+    if (direct != null && direct.isNotEmpty) {
+      return direct;
+    }
+    final cached = _cachedRuntimeEndpointId?.trim();
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+    final resolvedNetworkId = await _ensureNetworkId();
+    if (resolvedNetworkId == null) {
+      throw StateError('pool runtime requires endpointId or appDataDir');
+    }
+    final resolved = await frb.getPoolNetworkEndpointId(
+      networkId: resolvedNetworkId,
+    );
+    _cachedRuntimeEndpointId = resolved;
+    return resolved;
+  }
+
+  String _identityLabelFromMembers(
+    List<frb.PoolMemberDto> members,
+    String currentEndpointId,
+  ) {
     for (final member in members) {
-      if (member.endpointId == endpointId) {
+      if (member.endpointId == currentEndpointId) {
         return member.endpointId;
       }
     }
-    return endpointId;
+    return currentEndpointId;
   }
 
   List<String> _memberLabels(List<frb.PoolMemberDto> members) {
@@ -316,34 +372,55 @@ class FrbPoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolCreateResult> createPool() async {
+    final effectiveEndpointId = await _effectiveEndpointId();
+    final runtimeNetworkId = await _ensureNetworkId();
     final dto = await frb.createPool(
-      endpointId: endpointId,
+      endpointId: effectiveEndpointId,
       nickname: nickname,
       os: os,
     );
     final detail = await frb.getPoolDetail(
       poolId: dto.id,
-      endpointId: endpointId,
+      endpointId: effectiveEndpointId,
     );
+    final inviteCode = runtimeNetworkId == null
+        ? null
+        : await frb.createPoolInvite(
+            networkId: runtimeNetworkId,
+            poolId: dto.id,
+          );
     return PoolCreateResult(
       poolId: dto.id,
       poolName: dto.name,
       isDissolved: dto.isDissolved,
       isOwner: dto.currentUserRole == 'admin',
-      currentIdentityLabel: _identityLabelFromMembers(detail.members),
+      currentIdentityLabel: _identityLabelFromMembers(
+        detail.members,
+        effectiveEndpointId,
+      ),
       memberLabels: _memberLabels(detail.members),
+      inviteCode: inviteCode,
     );
   }
 
   @override
   Future<PoolJoinResult> joinByCode(String code) async {
     try {
-      final dto = await frb.joinByCode(
-        code: code,
-        endpointId: endpointId,
-        nickname: nickname,
-        os: os,
-      );
+      final trimmed = code.trim();
+      final runtimeNetworkId = await _ensureNetworkId();
+      final dto = runtimeNetworkId != null && !_looksLikeUuid(trimmed)
+          ? await frb.joinPoolByInvite(
+              networkId: runtimeNetworkId,
+              code: trimmed,
+              nickname: nickname,
+              os: os,
+            )
+          : await frb.joinByCode(
+              code: trimmed,
+              endpointId: await _effectiveEndpointId(),
+              nickname: nickname,
+              os: os,
+            );
       return PoolJoinResult.joined(poolName: dto.name);
     } on ApiError catch (error) {
       return PoolJoinResult.error(error.code);
@@ -352,7 +429,10 @@ class FrbPoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
-    final dto = await frb.getJoinedPoolView(endpointId: endpointId);
+    final effectiveEndpointId = await _effectiveEndpointId();
+    final dto = await frb.getJoinedPoolView(
+      endpointId: effectiveEndpointId,
+    );
     if (dto.id.isEmpty) {
       return null;
     }
@@ -361,7 +441,10 @@ class FrbPoolApiClient implements PoolApiClient {
       poolName: dto.name,
       isDissolved: dto.isDissolved,
       isOwner: dto.currentUserRole == 'admin',
-      currentIdentityLabel: _identityLabelFromMembers(dto.members),
+      currentIdentityLabel: _identityLabelFromMembers(
+        dto.members,
+        effectiveEndpointId,
+      ),
       memberLabels: _memberLabels(dto.members),
       joinRequests: _joinRequests(dto.joinRequests),
     );
@@ -369,13 +452,20 @@ class FrbPoolApiClient implements PoolApiClient {
 
   @override
   Future<PoolDetailData> getPoolDetail(String poolId) async {
-    final dto = await frb.getPoolDetail(poolId: poolId, endpointId: endpointId);
+    final effectiveEndpointId = await _effectiveEndpointId();
+    final dto = await frb.getPoolDetail(
+      poolId: poolId,
+      endpointId: effectiveEndpointId,
+    );
     return PoolDetailData(
       poolId: dto.id,
       poolName: dto.name,
       isDissolved: dto.isDissolved,
       isOwner: dto.currentUserRole == 'admin',
-      currentIdentityLabel: _identityLabelFromMembers(dto.members),
+      currentIdentityLabel: _identityLabelFromMembers(
+        dto.members,
+        effectiveEndpointId,
+      ),
       memberLabels: _memberLabels(dto.members),
       joinRequests: _joinRequests(dto.joinRequests),
     );
@@ -383,22 +473,32 @@ class FrbPoolApiClient implements PoolApiClient {
 
   @override
   Future<void> leavePool(String poolId) async {
-    await frb.leavePool(poolId: poolId, endpointId: endpointId);
+    await frb.leavePool(
+      poolId: poolId,
+      endpointId: await _effectiveEndpointId(),
+    );
   }
 
   @override
   Future<PoolDetailData> dissolvePool(String poolId) async {
-    final dto = await frb.dissolvePool(poolId: poolId, endpointId: endpointId);
+    final effectiveEndpointId = await _effectiveEndpointId();
+    final dto = await frb.dissolvePool(
+      poolId: poolId,
+      endpointId: effectiveEndpointId,
+    );
     final detail = await frb.getPoolDetail(
       poolId: dto.id,
-      endpointId: endpointId,
+      endpointId: effectiveEndpointId,
     );
     return PoolDetailData(
       poolId: dto.id,
       poolName: dto.name,
       isDissolved: dto.isDissolved,
       isOwner: dto.currentUserRole == 'admin',
-      currentIdentityLabel: _identityLabelFromMembers(detail.members),
+      currentIdentityLabel: _identityLabelFromMembers(
+        detail.members,
+        effectiveEndpointId,
+      ),
       memberLabels: _memberLabels(detail.members),
       joinRequests: _joinRequests(detail.joinRequests),
     );
@@ -406,9 +506,10 @@ class FrbPoolApiClient implements PoolApiClient {
 
   @override
   Future<List<JoinRequestData>> submitJoinRequest(String poolId) async {
+    final effectiveEndpointId = await _effectiveEndpointId();
     final requests = await frb.submitJoinRequest(
       poolId: poolId,
-      endpointId: endpointId,
+      endpointId: effectiveEndpointId,
       nickname: nickname,
       os: os,
     );
@@ -420,10 +521,11 @@ class FrbPoolApiClient implements PoolApiClient {
     String poolId,
     String requestId,
   ) async {
+    final effectiveEndpointId = await _effectiveEndpointId();
     final requests = await frb.approveJoinRequest(
       poolId: poolId,
       requestId: requestId,
-      approverEndpointId: endpointId,
+      approverEndpointId: effectiveEndpointId,
     );
     return _joinRequests(requests);
   }
@@ -433,10 +535,11 @@ class FrbPoolApiClient implements PoolApiClient {
     String poolId,
     String requestId,
   ) async {
+    final effectiveEndpointId = await _effectiveEndpointId();
     final requests = await frb.rejectJoinRequest(
       poolId: poolId,
       requestId: requestId,
-      approverEndpointId: endpointId,
+      approverEndpointId: effectiveEndpointId,
     );
     return _joinRequests(requests);
   }
@@ -446,11 +549,19 @@ class FrbPoolApiClient implements PoolApiClient {
     String poolId,
     String requestId,
   ) async {
+    final effectiveEndpointId = await _effectiveEndpointId();
     final requests = await frb.cancelJoinRequest(
       poolId: poolId,
       requestId: requestId,
-      applicantEndpointId: endpointId,
+      applicantEndpointId: effectiveEndpointId,
     );
     return _joinRequests(requests);
+  }
+
+  bool _looksLikeUuid(String value) {
+    final uuidPattern = RegExp(
+      r'^[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}$',
+    );
+    return uuidPattern.hasMatch(value);
   }
 }

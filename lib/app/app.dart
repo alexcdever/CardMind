@@ -21,13 +21,22 @@ class CardMindApp extends StatelessWidget {
   ///
   /// [key] 用于 Widget 树中的标识。
   /// [appDataDir] 应用数据目录路径，默认为空字符串。
-  const CardMindApp({super.key, this.appDataDir = ''});
+  const CardMindApp({
+    super.key,
+    this.appDataDir = '',
+    this.debugStartInPool = false,
+    this.debugAutoPin,
+    this.debugAutoJoinCode,
+  });
 
   /// 应用数据目录路径。
   ///
   /// 用于存储应用持久化数据，由 main() 函数初始化时通过
   /// [path_provider] 获取并传递给本组件。
   final String appDataDir;
+  final bool debugStartInPool;
+  final String? debugAutoPin;
+  final String? debugAutoJoinCode;
 
   /// 构建应用 Widget 树。
   ///
@@ -42,7 +51,12 @@ class CardMindApp extends StatelessWidget {
     return MaterialApp(
       title: 'CardMind',
       theme: ThemeData(useMaterial3: true),
-      home: AppHomepagePage(appDataDir: appDataDir),
+      home: AppHomepagePage(
+        appDataDir: appDataDir,
+        debugStartInPool: debugStartInPool,
+        debugAutoPin: debugAutoPin,
+        debugAutoJoinCode: debugAutoJoinCode,
+      ),
     );
   }
 }

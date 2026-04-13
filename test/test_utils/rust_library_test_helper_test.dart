@@ -24,4 +24,20 @@ void main() {
       expect(path, endsWith('build/native/macos/libcardmind_rust.dylib'));
     },
   );
+
+  test('test helper throws actionable error on non-macOS platforms', () {
+    expect(
+      () => resolveRustLibraryPathForTests(
+        operatingSystem: 'linux',
+        currentDirectory: '/tmp/cardmind',
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('仅支持 macOS'),
+        ),
+      ),
+    );
+  });
 }

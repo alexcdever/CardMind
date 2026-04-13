@@ -94,7 +94,11 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('pool.join_scan_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('pool.scan_dialog.success')));
+    await tester.enterText(
+      find.byKey(const ValueKey('pool.join_dialog.code_input')),
+      'joined-pool-code',
+    );
+    await tester.tap(find.byKey(const ValueKey('pool.join_dialog.confirm')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('pool.edit_button')));

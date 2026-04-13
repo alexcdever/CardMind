@@ -7,6 +7,7 @@ use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::net::codec::{decode_message, encode_message};
 use cardmind_rust::net::messages::PoolMessage;
+use iroh::{EndpointAddr, SecretKey};
 use uuid::Uuid;
 
 fn create_test_member() -> PoolMember {
@@ -16,6 +17,11 @@ fn create_test_member() -> PoolMember {
         os: "macOS".to_string(),
         is_admin: false,
     }
+}
+
+fn create_test_addr() -> EndpointAddr {
+    let secret = SecretKey::from_bytes(&[7u8; 32]);
+    EndpointAddr::new(secret.public())
 }
 
 // ============================================================================
@@ -54,6 +60,7 @@ fn test_encode_different_message_types() {
     let join_request = PoolMessage::JoinRequest {
         pool_id,
         applicant: create_test_member(),
+        applicant_addr: create_test_addr(),
     };
 
     let hello_bytes = encode_message(&hello).unwrap();
@@ -104,6 +111,7 @@ fn test_encode_decode_roundtrip_join_request() {
     let original = PoolMessage::JoinRequest {
         pool_id,
         applicant: member.clone(),
+        applicant_addr: create_test_addr(),
     };
 
     let encoded = encode_message(&original).unwrap();
@@ -113,12 +121,14 @@ fn test_encode_decode_roundtrip_join_request() {
         PoolMessage::JoinRequest {
             pool_id: decoded_pool_id,
             applicant,
+            applicant_addr,
         } => {
             assert_eq!(decoded_pool_id, pool_id);
             assert_eq!(applicant.endpoint_id, member.endpoint_id);
             assert_eq!(applicant.nickname, member.nickname);
             assert_eq!(applicant.os, member.os);
             assert_eq!(applicant.is_admin, member.is_admin);
+            assert!(!applicant_addr.id.to_string().is_empty());
         }
         _ => panic!("Expected JoinRequest message"),
     }

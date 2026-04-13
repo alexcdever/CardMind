@@ -56,6 +56,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
+use std::time::Duration;
 use uuid::Uuid;
 
 /// Phase 2 恢复契约模块
@@ -73,10 +74,16 @@ pub use utils::{
 static APP_CONFIG_DIR: OnceLock<Mutex<Option<String>>> = OnceLock::new();
 static APP_LOCK: OnceLock<Mutex<AppLock>> = OnceLock::new();
 static POOL_NETWORK_SEQ: AtomicU64 = AtomicU64::new(1);
-static POOL_NETWORKS: OnceLock<Mutex<HashMap<u64, PoolNetwork>>> = OnceLock::new();
+static POOL_NETWORKS: OnceLock<Mutex<HashMap<u64, ManagedPoolNetwork>>> = OnceLock::new();
+
+struct ManagedPoolNetwork {
+    runtime: tokio::runtime::Runtime,
+    network: PoolNetwork,
+    listener: tokio::task::JoinHandle<()>,
+}
 
 /// 获取池网络映射（内部函数）
-fn pool_network_map() -> &'static Mutex<HashMap<u64, PoolNetwork>> {
+fn pool_network_map() -> &'static Mutex<HashMap<u64, ManagedPoolNetwork>> {
     POOL_NETWORKS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
@@ -1472,7 +1479,8 @@ pub fn get_card_note_detail(card_id: String) -> Result<CardNoteDto, ApiError> {
 /// ```
 pub fn init_pool_network(base_path: String) -> Result<u64, ApiError> {
     require_app_lock_unlocked()?;
-    let runtime = tokio::runtime::Builder::new_current_thread()
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(1)
         .enable_all()
         .build()
         .map_err(|e| ApiError::new(ApiErrorCode::Internal, &e.to_string()))?;
@@ -1480,12 +1488,70 @@ pub fn init_pool_network(base_path: String) -> Result<u64, ApiError> {
     let pool_store = PoolStore::new(&base_path).map_err(map_err)?;
     let card_repository = CardNoteRepository::new(&base_path).map_err(map_err)?;
     let network = PoolNetwork::new(PoolEndpoint::new(endpoint), pool_store, card_repository);
+    let listener = network.spawn_listener_on(runtime.handle());
     let network_id = POOL_NETWORK_SEQ.fetch_add(1, Ordering::SeqCst);
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    map.insert(network_id, network);
+    map.insert(
+        network_id,
+        ManagedPoolNetwork {
+            runtime,
+            network,
+            listener,
+        },
+    );
     Ok(network_id)
+}
+
+/// 获取网络实例当前的 iroh 端点 ID。
+pub fn get_pool_network_endpoint_id(network_id: u64) -> Result<String, ApiError> {
+    require_app_lock_unlocked()?;
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let managed = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    Ok(managed.network.endpoint_id().to_string())
+}
+
+/// 为指定池生成可分享的邀请字符串。
+pub fn create_pool_invite(network_id: u64, pool_id: String) -> Result<String, ApiError> {
+    require_app_lock_unlocked()?;
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let managed = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    let pool_id = parse_pool_id(&pool_id)?;
+    managed
+        .runtime
+        .block_on(managed.network.wait_for_addr(Duration::from_secs(10)))
+        .map_err(map_err)?;
+    managed.network.create_invite_code(&pool_id).map_err(map_err)
+}
+
+/// 通过邀请字符串加入池并拉取完整快照。
+pub fn join_pool_by_invite(
+    network_id: u64,
+    code: String,
+    nickname: String,
+    os: String,
+) -> Result<PoolDto, ApiError> {
+    require_app_lock_unlocked()?;
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    let managed = map
+        .get(&network_id)
+        .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    let pool = managed
+        .runtime
+        .block_on(managed.network.request_join_and_sync(&code, &nickname, &os))
+        .map_err(map_err)?;
+    to_pool_dto(&pool, &managed.network.endpoint_id().to_string())
 }
 
 /// 关闭 PoolNetwork 网络实例
@@ -1522,12 +1588,13 @@ pub fn close_pool_network(network_id: u64) -> Result<(), ApiError> {
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    if map.remove(&network_id).is_none() {
+    let Some(managed) = map.remove(&network_id) else {
         return Err(ApiError::new(
             ApiErrorCode::NotFound,
             "pool network not found",
         ));
-    }
+    };
+    managed.listener.abort();
     Ok(())
 }
 
@@ -1565,13 +1632,13 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
     let map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    let network = map
+    let managed = map
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
     combine_sync_status(
-        network.base_path(),
-        network.sync_state(),
-        network.last_sync_error_code().map(|code| code.to_string()),
+        managed.network.base_path(),
+        managed.network.sync_state(),
+        managed.network.last_sync_error_code().map(|code| code.to_string()),
     )
 }
 
@@ -1604,10 +1671,10 @@ pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    let network = map
+    let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    network.sync_connect(target).map_err(map_err)
+    managed.network.sync_connect(target).map_err(map_err)
 }
 
 /// 断开同步连接
@@ -1642,10 +1709,10 @@ pub fn sync_disconnect(network_id: u64) -> Result<(), ApiError> {
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    let network = map
+    let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    network.sync_disconnect();
+    managed.network.sync_disconnect();
     Ok(())
 }
 
@@ -1684,10 +1751,10 @@ pub fn sync_join_pool(network_id: u64, pool_id: String) -> Result<(), ApiError> 
     let map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    let network = map
+    let managed = map
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    network.sync_join_pool(&pool_id).map_err(map_err)
+    managed.network.sync_join_pool(&pool_id).map_err(map_err)
 }
 
 /// 推送同步数据
@@ -1726,17 +1793,21 @@ pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    let network = map
+    let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    let sync_code = match network.sync_push() {
+    let sync_code = match managed.network.sync_push() {
         Ok(()) => None,
         Err(CardMindError::InvalidArgument(msg)) if msg == "sync not connected" => {
             Some(ApiErrorCode::RequestTimeout.as_str().to_string())
         }
         Err(other) => return Err(map_err(other)),
     };
-    combine_sync_result(network.base_path(), network.sync_state(), sync_code)
+    combine_sync_result(
+        managed.network.base_path(),
+        managed.network.sync_state(),
+        sync_code,
+    )
 }
 
 /// 拉取同步数据
@@ -1775,15 +1846,19 @@ pub fn sync_pull(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
-    let network = map
+    let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    let sync_code = match network.sync_pull() {
+    let sync_code = match managed.network.sync_pull() {
         Ok(()) => None,
         Err(CardMindError::InvalidArgument(msg)) if msg == "sync not connected" => {
             Some(ApiErrorCode::RequestTimeout.as_str().to_string())
         }
         Err(other) => return Err(map_err(other)),
     };
-    combine_sync_result(network.base_path(), network.sync_state(), sync_code)
+    combine_sync_result(
+        managed.network.base_path(),
+        managed.network.sync_state(),
+        sync_code,
+    )
 }

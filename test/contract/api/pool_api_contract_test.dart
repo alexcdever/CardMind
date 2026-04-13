@@ -167,6 +167,39 @@ void main() {
   );
 
   test(
+    'frb pool api client createPool can surface invite without explicit runtime handles',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-pool-create-invite-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+      await _unlockAppLock();
+
+      try {
+        final client = FrbPoolApiClient(
+          nickname: 'nick-a',
+          os: 'macos',
+          appDataDir: root.path,
+        );
+
+        final created = await client.createPool();
+
+        expect(created.poolName, contains('nick-a'));
+        expect(created.isOwner, isTrue);
+        expect(created.currentIdentityLabel, isNotEmpty);
+        expect(created.memberLabels, contains(created.currentIdentityLabel));
+        expect(created.inviteCode, isNotNull);
+        expect(created.inviteCode, isNotEmpty);
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'frb pool api client maps joinByCode to backend result without handle state',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-pool-api-');
@@ -203,6 +236,60 @@ void main() {
       } finally {
         await frb.resetAppConfigForTests();
         await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'frb pool api client can join by invite without explicit runtime handles',
+    () async {
+      final ownerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-owner-',
+      );
+      final joinerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-joiner-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: ownerRoot.path);
+      await _unlockAppLock();
+
+      try {
+        final ownerNetworkId = await frb.initPoolNetwork(basePath: ownerRoot.path);
+        final ownerEndpointId = await frb.getPoolNetworkEndpointId(
+          networkId: ownerNetworkId,
+        );
+        final pool = await frb.createPool(
+          endpointId: ownerEndpointId,
+          nickname: 'owner',
+          os: 'macos',
+        );
+        final invite = await frb.createPoolInvite(
+          networkId: ownerNetworkId,
+          poolId: pool.id,
+        );
+
+        final client = FrbPoolApiClient(
+          nickname: 'joiner',
+          os: 'ios',
+          appDataDir: joinerRoot.path,
+        );
+
+        final joined = await client.joinByCode(invite);
+        expect(joined.isSuccess, isTrue, reason: 'join error: ${joined.errorCode}');
+        await frb.resetAppConfigForTests();
+        await frb.initAppConfig(appDataDir: joinerRoot.path);
+        await _unlockAppLock();
+        final view = await client.getJoinedPoolView();
+
+        expect(view, isNotNull);
+        expect(view!.poolId, pool.id);
+        expect(view.isOwner, isFalse);
+        expect(view.memberLabels, contains(view.currentIdentityLabel));
+      } finally {
+        await frb.resetAppConfigForTests();
+        await ownerRoot.delete(recursive: true);
+        await joinerRoot.delete(recursive: true);
       }
     },
   );

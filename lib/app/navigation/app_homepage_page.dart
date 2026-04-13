@@ -41,6 +41,9 @@ class AppHomepagePage extends StatefulWidget {
     this.cardsPageBuilder,
     this.poolPageBuilder,
     this.poolNetworkId,
+    this.debugStartInPool = false,
+    this.debugAutoPin,
+    this.debugAutoJoinCode,
   });
 
   /// 应用数据目录路径。
@@ -67,6 +70,9 @@ class AppHomepagePage extends StatefulWidget {
   ///
   /// 用于初始化 PoolPage 时的网络标识。
   final BigInt? poolNetworkId;
+  final bool debugStartInPool;
+  final String? debugAutoPin;
+  final String? debugAutoJoinCode;
 
   @override
   State<AppHomepagePage> createState() => _AppHomepagePageState();
@@ -78,7 +84,13 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
   /// 优先使用 widget.controller，如果为 null 则创建默认实例。
   /// 添加监听器以响应状态变化。
   late final AppHomepageController _controller =
-      (widget.controller ?? AppHomepageController())..addListener(_onChanged);
+      (widget.controller ??
+            AppHomepageController(
+              initialSection: widget.debugStartInPool
+                  ? AppSection.pool
+                  : AppSection.cards,
+            ))
+        ..addListener(_onChanged);
 
   /// 退出确认对话框显示状态标记。
   ///
@@ -180,6 +192,8 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
         return PoolShell(
           appDataDir: widget.appDataDir,
           networkId: widget.poolNetworkId,
+          debugAutoPin: widget.debugAutoPin,
+          debugAutoJoinCode: widget.debugAutoJoinCode,
           child: widget.poolPageBuilder?.call(context),
         );
     }

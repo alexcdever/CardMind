@@ -35,6 +35,7 @@ class _FakePoolApiClient implements PoolApiClient {
     isOwner: true,
     currentIdentityLabel: 'owner@test',
     memberLabels: <String>['owner@test'],
+    inviteCode: 'invite://created',
   );
 
   @override
@@ -212,6 +213,7 @@ void main() {
 
     expect(controller.state, isA<PoolJoined>());
     expect((controller.state as PoolJoined).poolName, 'Created');
+    expect((controller.state as PoolJoined).inviteCode, 'invite://created');
   });
 
   test('joinByCode_successWithoutJoinedView_usesFallbacks', () async {

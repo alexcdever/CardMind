@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/features/security/app_lock/app_lock_gate.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
+import 'package:cardmind/features/security/app_lock/app_lock_state.dart';
 import 'package:flutter/material.dart';
 
 typedef PoolNetworkLoader = Future<BigInt> Function(String appDataDir);
@@ -15,6 +18,8 @@ class PoolShell extends StatefulWidget {
     this.service,
     this.appDataDir,
     this.poolNetworkLoader,
+    this.debugAutoPin,
+    this.debugAutoJoinCode,
   });
 
   final Widget? child;
@@ -22,6 +27,8 @@ class PoolShell extends StatefulWidget {
   final AppLockService? service;
   final String? appDataDir;
   final PoolNetworkLoader? poolNetworkLoader;
+  final String? debugAutoPin;
+  final String? debugAutoJoinCode;
 
   @override
   State<PoolShell> createState() => _PoolShellState();
@@ -31,6 +38,7 @@ class _PoolShellState extends State<PoolShell> {
   late final AppLockService _service = widget.service ?? AppLockService();
   BigInt? _resolvedNetworkId;
   bool _loadingNetwork = false;
+  bool _debugPinAttempted = false;
 
   PoolNetworkLoader get _poolNetworkLoader =>
       widget.poolNetworkLoader ??
@@ -51,7 +59,33 @@ class _PoolShellState extends State<PoolShell> {
   }
 
   void _onServiceChanged() {
+    _maybeAutoUnlockForDebug();
     _tryInitPoolNetwork();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _maybeAutoUnlockForDebug();
+  }
+
+  void _maybeAutoUnlockForDebug() {
+    final pin = widget.debugAutoPin?.trim();
+    if (_debugPinAttempted || pin == null || pin.isEmpty) {
+      return;
+    }
+    final state = _service.state;
+    if (state.phase == AppLockPhase.loading || state.phase == AppLockPhase.error) {
+      return;
+    }
+    _debugPinAttempted = true;
+    if (state.requiresSetup) {
+      unawaited(_service.setupPin(pin));
+      return;
+    }
+    if (state.isLocked) {
+      unawaited(_service.unlockWithPin(pin));
+    }
   }
 
   void _tryInitPoolNetwork() {
@@ -95,7 +129,9 @@ class _PoolShellState extends State<PoolShell> {
           : widget.child ??
                 PoolPage(
                   state: const PoolState.notJoined(),
+                  appDataDir: widget.appDataDir ?? '',
                   networkId: _resolvedNetworkId,
+                  autoJoinCode: widget.debugAutoJoinCode,
                 ),
     );
   }

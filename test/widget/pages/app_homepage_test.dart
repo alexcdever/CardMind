@@ -354,6 +354,26 @@ void main() {
     );
   });
 
+  testWidgets('homepage can start in pool section for local verification', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: AppHomepagePage(
+          appDataDir: 'test-app-dir',
+          debugStartInPool: true,
+          debugAutoPin: '1234',
+          debugAutoJoinCode: 'pool-code',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final shell = tester.widget<PoolShell>(find.byType(PoolShell));
+    expect(shell.debugAutoPin, '1234');
+    expect(shell.debugAutoJoinCode, 'pool-code');
+  });
+
   testWidgets('back on cards shows exit confirmation dialog', (tester) async {
     final controller = AppHomepageController(initialSection: AppSection.cards);
     await tester.pumpWidget(
