@@ -110,6 +110,7 @@
 - [ ] 评估是否为 app 内置最小网络自检模块，输出 endpoint 可达性 / 地址可见性 / 连接尝试结果
 - [ ] 评估是否改为直接从 Flutter debug 会话或 VM Service 获取 invite / 状态，而不是继续依赖文件导出
 - [ ] 固化 owner invite / join trace 调试入口，并补容器读取说明
+- [ ] 恢复会话时先复核 `docs/plans/2026-04-14-network-diagnostic-debug-plan.md` 与 `docs/plans/2026-04-14-network-debug-trace-implementation.md` 是否仍为最新方案，并确认代码尚未真正完成这些需求
 - [ ] 如继续收口架构，评估 `PoolShell` / `SyncService` 装配面对 `network_id` 的剩余暴露
 - [ ] 如继续优化文档治理，输出一页职责地图，明确核心文档负责什么、不再负责什么
 - [ ] 如需继续提升多 worktree 开发体验，评估是否引入共享 Cargo 编译缓存策略
@@ -162,6 +163,8 @@
 
 ## 相关文档链接
 
+- [最小网络互通调试方案](./plans/2026-04-14-network-diagnostic-debug-plan.md)
+- [网络调试实现计划](./plans/2026-04-14-network-debug-trace-implementation.md)
 - [今日工作日志（2026-04-13）](./memory/2026-04-13.md)
 - [今日工作日志（2026-04-14）](./memory/2026-04-14.md)
 - [今日工作日志（2026-04-13）](./memory/2026-04-13.md)
