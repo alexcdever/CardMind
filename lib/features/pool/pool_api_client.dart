@@ -125,16 +125,22 @@ class PoolDetailData {
 /// 加入池操作的结果。
 class PoolJoinResult {
   /// 成功加入池的结果。
-  const PoolJoinResult.joined({required this.poolName}) : errorCode = null;
+  const PoolJoinResult.joined({required this.poolName})
+    : errorCode = null,
+      errorMessage = null;
 
   /// 加入失败的结果。
-  const PoolJoinResult.error(this.errorCode) : poolName = null;
+  const PoolJoinResult.error(this.errorCode, {this.errorMessage})
+    : poolName = null;
 
   /// 池名称，仅在成功时有效。
   final String? poolName;
 
   /// 错误码，仅在失败时有效。
   final String? errorCode;
+
+  /// 错误消息，仅在失败时有效。
+  final String? errorMessage;
 
   /// 是否成功加入。
   bool get isSuccess => errorCode == null;
@@ -423,16 +429,14 @@ class FrbPoolApiClient implements PoolApiClient {
             );
       return PoolJoinResult.joined(poolName: dto.name);
     } on ApiError catch (error) {
-      return PoolJoinResult.error(error.code);
+      return PoolJoinResult.error(error.code, errorMessage: error.message);
     }
   }
 
   @override
   Future<PoolViewData?> getJoinedPoolView() async {
     final effectiveEndpointId = await _effectiveEndpointId();
-    final dto = await frb.getJoinedPoolView(
-      endpointId: effectiveEndpointId,
-    );
+    final dto = await frb.getJoinedPoolView(endpointId: effectiveEndpointId);
     if (dto.id.isEmpty) {
       return null;
     }

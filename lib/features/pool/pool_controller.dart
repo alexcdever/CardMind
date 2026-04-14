@@ -301,6 +301,7 @@ class PoolController extends ChangeNotifier {
         memberLabels: joined?.memberLabels ?? <String>[_reconnectTarget],
       );
     } else {
+      _noticeMessage = result.errorMessage;
       _state = PoolState.error(result.errorCode ?? 'REQUEST_TIMEOUT');
     }
     notifyListeners();

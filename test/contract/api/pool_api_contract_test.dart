@@ -588,6 +588,36 @@ void main() {
   );
 
   test(
+    'frb pool api client joinByCode preserves backend error message',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-pool-join-error-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+      await _unlockAppLock();
+
+      try {
+        final client = FrbPoolApiClient(
+          endpointId: 'joiner-endpoint',
+          nickname: 'joiner',
+          os: 'ios',
+        );
+
+        final result = await client.joinByCode('missing-pool-id');
+
+        expect(result.isSuccess, isFalse);
+        expect(result.errorCode, 'INVALID_POOL_HASH');
+        expect(result.errorMessage, isNotEmpty);
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'joined pool view should use backend current-user role instead of first member',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-pool-view-');

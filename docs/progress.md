@@ -5,7 +5,7 @@
 
 ## 当前进行中的工作
 
-1. 真实双实例联机验证已推进到最后一段：`macOS owner` 真实启动、自动建池、invite 导出已通过，`iOS simulator joiner` 真实启动、自动解锁、网络初始化与自动 join 触发已通过；当前卡点已收敛为 iOS join 返回 `join_error:INTERNAL`，下一步优先补 message 级观测或切换到 `iOS owner -> macOS joiner` 反向角色路径。
+1. 真实双实例联机验证已推进到连接阶段定位：`macOS owner -> iOS simulator joiner` 与 `iOS simulator owner -> macOS joiner` 两条真实路径都已跑通启动、自动解锁、网络初始化与自动 join 触发；当前卡点已收敛为双向 join 都返回 `join_error:INTERNAL:connect failed: internal error: timed out`。
 2. `FrbPoolApiClient` 已基本收口 runtime handle 暴露面，业务层可只靠 `appDataDir` 完成 invite 入池；本轮已确认若显式注入 `networkId`，真实同步链路可稳定打通，后续如继续推进，可继续评估 `PoolShell` / `SyncService` 装配面是否还需进一步隐藏 `network_id`。
 3. iOS 模拟器集成已补到可真实启动：新增最小合法 `cardmind_rust.framework` 注入与 Podfile build phase；后续如继续保留 iOS 路径，应评估是否把当前最小注入方案升级为稳定的 framework/xcframework 产物流程。
 4. 文档治理第二轮收口已完成，质量门禁保持可用；本轮新增的 Rust / Flutter 合同、路径与构建相关回归均已通过。
@@ -106,21 +106,25 @@
 
 ## 待办事项
 
-- [ ] 继续完成真实双实例联机验证：补出 iOS `join_error:INTERNAL` 的具体 message，并确认是否属于 iOS simulator 环境差异
-- [ ] 优先尝试 `iOS owner -> macOS joiner` 反向角色路径，验证是否比 `macOS owner -> iOS joiner` 更稳定
-- [ ] 如需降低真实联机验证阻力，固化 owner invite / 状态导出调试入口，并补容器读取说明
+- [ ] 先判断两个真实 app 实例的网络是否具备基础互通能力，再决定是否继续深挖 `iroh` 连接建立阶段超时
+- [ ] 评估是否为 app 内置最小网络自检模块，输出 endpoint 可达性 / 地址可见性 / 连接尝试结果
+- [ ] 评估是否改为直接从 Flutter debug 会话或 VM Service 获取 invite / 状态，而不是继续依赖文件导出
+- [ ] 固化 owner invite / 状态导出调试入口，并补容器读取说明
 - [ ] 如继续收口架构，评估 `PoolShell` / `SyncService` 装配面对 `network_id` 的剩余暴露
 - [ ] 如继续优化文档治理，输出一页职责地图，明确核心文档负责什么、不再负责什么
 - [ ] 如需继续提升多 worktree 开发体验，评估是否引入共享 Cargo 编译缓存策略
 
 ## 阻塞/卡点
 
-- 真实双实例联机验证的主要阻塞已从 GUI 自动化切换为真实运行时差异：`iOS simulator joiner` 已能真实启动并触发 auto join，但最终返回 `join_error:INTERNAL`；当前尚未拿到 message 级错误上下文
+- 真实双实例联机验证的主要阻塞已从 GUI 自动化切换为真实连接建立阶段超时：双向真实路径都能完成启动、自动解锁与网络初始化，但最终都返回 `connect failed: internal error: timed out`
 
 ## 最近的决策
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-04-14 | 真实联机验证阶段优先从 app 容器目录读取 `debug_status.log` / `debug_invite.txt` | macOS app 对仓库路径写入受沙盒影响，容器目录更稳定可观测 |
+| 2026-04-14 | 先补 join 错误 message 透传链路，再继续真实联机验证 | 需要把 `INTERNAL` 泛化错误收敛为可定位的具体 message |
+| 2026-04-14 | 将下一阶段定位重点从“角色方向差异”切换为“连接建立阶段网络互通与可观测性” | 双向角色路径都复现 `connect failed: internal error: timed out`，已不再像单侧平台问题 |
 | 2026-04-13 | 真实双实例验证先通过调试导出路径打通 owner 自动建池、invite 导出与 joiner 状态回读 | 先让真实链路可观测，再定位最后一段运行时差异，比继续依赖 GUI 自动化更稳妥 |
 | 2026-04-13 | iOS 端采用最小合法 `cardmind_rust.framework` 注入而不先做完整 xcframework | 目标是尽快跑通模拟器 joiner 真实启动，避免过早扩张到完整 iOS 分发策略 |
 | 2026-04-13 | Android 模拟器不再作为当前 `iroh` 真实联机主验证环境 | 模拟器底层网络能力被 SELinux 限制，继续深挖收益低 |
@@ -155,6 +159,8 @@
 ## 相关文档链接
 
 - [今日工作日志（2026-04-13）](./memory/2026-04-13.md)
+- [今日工作日志（2026-04-14）](./memory/2026-04-14.md)
+- [今日工作日志（2026-04-13）](./memory/2026-04-13.md)
 - [今日工作日志（2026-04-10）](./memory/2026-04-10.md)
 - [今日工作日志（2026-04-09）](./memory/2026-04-09.md)
 - [今日工作日志（2026-04-08）](./memory/2026-04-08.md)
@@ -173,4 +179,4 @@
 
 ---
 
-*最后更新：2026-04-13*
+*最后更新：2026-04-14*

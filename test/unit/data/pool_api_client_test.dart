@@ -65,10 +65,14 @@ void main() {
   });
 
   test('poolJoinResult error reports failed state', () {
-    const result = PoolJoinResult.error('REQUEST_TIMEOUT');
+    const result = PoolJoinResult.error(
+      'REQUEST_TIMEOUT',
+      errorMessage: 'request timed out',
+    );
 
     expect(result.isSuccess, isFalse);
     expect(result.poolName, isNull);
     expect(result.errorCode, 'REQUEST_TIMEOUT');
+    expect(result.errorMessage, 'request timed out');
   });
 }

@@ -246,6 +246,21 @@ void main() {
     expect(controller.joining, isFalse);
   });
 
+  test('joinByCode_failure_preservesBackendMessageInNotice', () async {
+    final client = _FakePoolApiClient()
+      ..joinResult = const PoolJoinResult.error(
+        'INTERNAL',
+        errorMessage: 'iroh join failed: endpoint closed',
+      );
+    final controller = PoolController(apiClient: client);
+
+    await controller.joinByCode('bad');
+
+    expect(controller.state, isA<PoolError>());
+    expect((controller.state as PoolError).code, 'INTERNAL');
+    expect(controller.noticeMessage, 'iroh join failed: endpoint closed');
+  });
+
   test('editPoolInfo_ignoresNonJoinedState', () {
     final controller = PoolController(apiClient: _FakePoolApiClient());
 
