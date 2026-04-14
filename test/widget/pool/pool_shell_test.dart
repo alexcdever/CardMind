@@ -119,6 +119,28 @@ void main() {
     expect(poolPage.networkId, BigInt.from(9));
   });
 
+  testWidgets('pool shell forwards debug flags into pool page', (tester) async {
+    final service = AppLockService(gateway: _UnlockedGateway());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolShell(
+          service: service,
+          appDataDir: 'test-app-dir',
+          debugPrintInvite: true,
+          debugJoinTrace: true,
+          poolNetworkLoader: (appDataDir) async => BigInt.from(13),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    final poolPage = tester.widget<PoolPage>(find.byType(PoolPage));
+    expect(poolPage.debugPrintInvite, isTrue);
+    expect(poolPage.debugJoinTrace, isTrue);
+  });
+
   testWidgets('pool shell can export debug status milestones to file', (
     tester,
   ) async {

@@ -488,6 +488,33 @@ void main() {
     }
   });
 
+  testWidgets('auto create pool prints invite in debug mode', (tester) async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(
+      initialState: const PoolState.notJoined(),
+      apiClient: client,
+    );
+    final logs = <String>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: controller,
+          autoCreatePool: true,
+          debugPrintInvite: true,
+          debugLogSink: logs.add,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(logs, contains('pool_debug.invite:invite://server-pool'));
+  });
+
   testWidgets('leave pool confirmation returns to not joined', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

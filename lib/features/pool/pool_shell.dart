@@ -24,6 +24,8 @@ class PoolShell extends StatefulWidget {
     this.debugAutoCreatePool = false,
     this.debugExportInvitePath,
     this.debugStatusExportPath,
+    this.debugPrintInvite = false,
+    this.debugJoinTrace = false,
   });
 
   final Widget? child;
@@ -36,6 +38,8 @@ class PoolShell extends StatefulWidget {
   final bool debugAutoCreatePool;
   final String? debugExportInvitePath;
   final String? debugStatusExportPath;
+  final bool debugPrintInvite;
+  final bool debugJoinTrace;
 
   @override
   State<PoolShell> createState() => _PoolShellState();
@@ -161,6 +165,8 @@ class _PoolShellState extends State<PoolShell> {
                   autoCreatePool: widget.debugAutoCreatePool,
                   debugExportInvitePath: widget.debugExportInvitePath,
                   debugStatusExportPath: widget.debugStatusExportPath,
+                  debugPrintInvite: widget.debugPrintInvite,
+                  debugJoinTrace: widget.debugJoinTrace,
                 ),
     );
   }

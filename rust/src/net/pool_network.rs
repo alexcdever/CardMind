@@ -49,6 +49,7 @@ use iroh::{EndpointAddr, endpoint::Connection};
 use loro::{LoroDoc, LoroMap, LoroValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::time::Instant;
 use tokio::time::{Duration, timeout};
 use uuid::Uuid;
 
@@ -59,6 +60,22 @@ struct PoolInviteCode {
     version: u8,
     pool_id: Uuid,
     target: EndpointAddr,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct JoinTrace {
+    lines: Vec<String>,
+}
+
+impl JoinTrace {
+    pub fn push(&mut self, stage: &str, detail: impl Into<String>) {
+        self.lines
+            .push(format!("pool_debug.join.{}:{}", stage, detail.into()));
+    }
+
+    pub fn into_lines(self) -> Vec<String> {
+        self.lines
+    }
 }
 
 /// 池网络管理器。
@@ -210,7 +227,28 @@ impl PoolNetwork {
         nickname: &str,
         os: &str,
     ) -> Result<Pool, CardMindError> {
+        self.request_join_and_sync_with_trace(invite_code, nickname, os, None)
+            .await
+    }
+
+    pub async fn request_join_and_sync_with_trace(
+        &self,
+        invite_code: &str,
+        nickname: &str,
+        os: &str,
+        mut trace: Option<&mut JoinTrace>,
+    ) -> Result<Pool, CardMindError> {
         let invite = decode_invite_code(invite_code)?;
+        push_join_trace(
+            &mut trace,
+            "invite_parsed",
+            format!("pool_id={}", invite.pool_id),
+        );
+        push_join_trace(
+            &mut trace,
+            "target_addrs",
+            endpoint_addr_to_json(&invite.target),
+        );
         let applicant = PoolMember {
             endpoint_id: self.endpoint_id().to_string(),
             nickname: nickname.to_string(),
@@ -218,11 +256,39 @@ impl PoolNetwork {
             is_admin: false,
         };
         let applicant_addr = self.wait_for_addr(Duration::from_secs(10)).await?;
-        let conn = self
-            .endpoint
-            .connect(invite.target.clone())
-            .await
-            .map_err(|e| CardMindError::Internal(format!("connect failed: {}", e)))?;
+        push_join_trace(
+            &mut trace,
+            "attempt_start",
+            endpoint_addr_to_json(&invite.target),
+        );
+        let attempt_started_at = Instant::now();
+        let conn = match self.endpoint.connect(invite.target.clone()).await {
+            Ok(conn) => {
+                push_join_trace(
+                    &mut trace,
+                    "attempt_end",
+                    format!(
+                        "status=ok duration_ms={}",
+                        attempt_started_at.elapsed().as_millis()
+                    ),
+                );
+                conn
+            }
+            Err(err) => {
+                let detail = format!(
+                    "status=error duration_ms={} message={}",
+                    attempt_started_at.elapsed().as_millis(),
+                    err
+                );
+                push_join_trace(&mut trace, "attempt_end", detail);
+                push_join_trace(
+                    &mut trace,
+                    "final",
+                    format!("result=error message=connect failed: {}", err),
+                );
+                return Err(CardMindError::Internal(format!("connect failed: {}", err)));
+            }
+        };
         send_message(
             &conn,
             &PoolMessage::JoinRequest {
@@ -251,9 +317,7 @@ impl PoolNetwork {
             let _ = send.finish();
             let msg = decode_message(&bytes)?;
             match msg {
-                PoolMessage::JoinDecision {
-                    approved: true, ..
-                } => {
+                PoolMessage::JoinDecision { approved: true, .. } => {
                     approved = true;
                 }
                 PoolMessage::JoinDecision {
@@ -261,9 +325,13 @@ impl PoolNetwork {
                     reason,
                     ..
                 } => {
-                    return Err(CardMindError::InvalidArgument(
-                        reason.unwrap_or_else(|| "join rejected".to_string()),
-                    ));
+                    let message = reason.unwrap_or_else(|| "join rejected".to_string());
+                    push_join_trace(
+                        &mut trace,
+                        "final",
+                        format!("result=error message={}", message),
+                    );
+                    return Err(CardMindError::InvalidArgument(message));
                 }
                 PoolMessage::PoolSnapshot { pool_id, bytes } => {
                     let pool = pool_from_snapshot(&bytes)?;
@@ -278,9 +346,9 @@ impl PoolNetwork {
 
             if approved
                 && pool_snapshot.is_some()
-                && expected_cards
-                    .as_ref()
-                    .is_none_or(|expected| expected.is_empty() || card_snapshots.len() >= expected.len())
+                && expected_cards.as_ref().is_none_or(|expected| {
+                    expected.is_empty() || card_snapshots.len() >= expected.len()
+                })
             {
                 break;
             }
@@ -294,6 +362,11 @@ impl PoolNetwork {
             let _ = apply_card_snapshot(&self.base_path, &card_id, &bytes)?;
         }
         let _ = timeout(Duration::from_secs(5), conn.closed()).await;
+        push_join_trace(
+            &mut trace,
+            "final",
+            format!("result=ok pool_id={}", pool.pool_id),
+        );
         Ok(pool)
     }
 
@@ -436,6 +509,16 @@ impl PoolNetwork {
     }
 }
 
+fn push_join_trace(trace: &mut Option<&mut JoinTrace>, stage: &str, detail: impl Into<String>) {
+    if let Some(trace) = trace.as_deref_mut() {
+        trace.push(stage, detail);
+    }
+}
+
+fn endpoint_addr_to_json(target: &EndpointAddr) -> String {
+    serde_json::to_string(target).unwrap_or_else(|_| "<endpoint_addr_serialize_failed>".to_string())
+}
+
 async fn run_listener_loop(endpoint: iroh::Endpoint, base_path: String) {
     loop {
         let Some(incoming) = endpoint.accept().await else {
@@ -493,9 +576,7 @@ async fn handle_connection(conn: Connection, base_path: String) -> Result<(), Ca
         let msg = decode_message(&bytes)?;
         match msg {
             PoolMessage::JoinRequest {
-                pool_id,
-                applicant,
-                ..
+                pool_id, applicant, ..
             } => {
                 let pool_store = PoolStore::new(&base_path)?;
                 let pool = pool_store.get_pool(&pool_id)?;

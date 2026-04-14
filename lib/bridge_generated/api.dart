@@ -855,11 +855,13 @@ Future<PoolDto> joinPoolByInvite({
   required String code,
   required String nickname,
   required String os,
+  required bool debugTrace,
 }) => RustLib.instance.api.crateApiJoinPoolByInvite(
   networkId: networkId,
   code: code,
   nickname: nickname,
   os: os,
+  debugTrace: debugTrace,
 );
 
 /// 关闭 PoolNetwork 网络实例

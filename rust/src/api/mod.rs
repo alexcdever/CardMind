@@ -45,8 +45,8 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
-use crate::net::endpoint::{build_endpoint, PoolEndpoint};
-use crate::net::pool_network::PoolNetwork;
+use crate::net::endpoint::{PoolEndpoint, build_endpoint};
+use crate::net::pool_network::{JoinTrace, PoolNetwork};
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::security::app_lock::AppLock;
 use crate::store::card_store::CardNoteRepository;
@@ -323,8 +323,8 @@ pub fn update_backend_config(
 /// println!("MCP 监听: {:?}", status.mcp_bind_addr);
 /// println!("CLI 启用: {}", status.cli_enabled);
 /// ```
-pub fn get_runtime_entry_status(
-) -> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
+pub fn get_runtime_entry_status()
+-> Result<crate::runtime::entry_manager::RuntimeEntryStatusDto, ApiError> {
     let app_data_dir = configured_app_data_dir()?;
     let service =
         crate::application::backend_service::BackendService::new(&app_data_dir).map_err(map_err)?;
@@ -1083,7 +1083,9 @@ pub fn get_pool_detail(pool_id: String, endpoint_id: String) -> Result<PoolDetai
 pub fn get_joined_pool_view(endpoint_id: String) -> Result<PoolDetailDto, ApiError> {
     require_app_lock_unlocked()?;
     with_configured_pool_store(|pool_store| {
-        let pool = pool_store.get_any_pool().map_err(map_err)?;
+        let pool = pool_store
+            .get_pool_for_endpoint(&endpoint_id)
+            .map_err(map_err)?;
         to_pool_detail_dto(&pool, &endpoint_id)
     })
 }
@@ -1559,6 +1561,7 @@ pub fn join_pool_by_invite(
     code: String,
     nickname: String,
     os: String,
+    debug_trace: bool,
 ) -> Result<PoolDto, ApiError> {
     require_app_lock_unlocked()?;
     let map = pool_network_map()
@@ -1567,10 +1570,32 @@ pub fn join_pool_by_invite(
     let managed = map
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    let pool = managed
+    let mut trace = debug_trace.then(JoinTrace::default);
+    let join_result = managed
         .runtime
-        .block_on(managed.network.request_join_and_sync(&code, &nickname, &os))
-        .map_err(map_err)?;
+        .block_on(managed.network.request_join_and_sync_with_trace(
+            &code,
+            &nickname,
+            &os,
+            trace.as_mut(),
+        ));
+    let pool = match join_result {
+        Ok(pool) => pool,
+        Err(err) => {
+            let mut api_error = map_err(err);
+            if let Some(trace) = trace {
+                let trace_text = trace.into_lines().join("\n");
+                if !trace_text.is_empty() {
+                    api_error.message = if api_error.message.is_empty() {
+                        trace_text
+                    } else {
+                        format!("{}\n{}", api_error.message, trace_text)
+                    };
+                }
+            }
+            return Err(api_error);
+        }
+    };
     to_pool_dto(&pool, &managed.network.endpoint_id().to_string())
 }
 

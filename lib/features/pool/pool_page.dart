@@ -25,6 +25,8 @@ part 'pool_page_dialogs.dart';
 part 'pool_page_sections.dart';
 part 'pool_sync_feedback.dart';
 
+typedef PoolDebugLogSink = void Function(String line);
+
 /// 数据池页面组件。
 ///
 /// 根据当前状态渲染不同的页面分支，处理扫码加入、成员审批、
@@ -47,6 +49,9 @@ class PoolPage extends StatefulWidget {
     this.autoCreatePool = false,
     this.debugExportInvitePath,
     this.debugStatusExportPath,
+    this.debugPrintInvite = false,
+    this.debugJoinTrace = false,
+    this.debugLogSink,
   });
 
   /// 当前池状态。
@@ -76,6 +81,15 @@ class PoolPage extends StatefulWidget {
   /// 调试用状态导出路径，仅在显式注入时使用。
   final String? debugStatusExportPath;
 
+  /// 调试用 invite 控制台输出开关，仅在显式注入时使用。
+  final bool debugPrintInvite;
+
+  /// 调试用 join trace 控制台输出开关，仅在显式注入时使用。
+  final bool debugJoinTrace;
+
+  /// 调试日志输出目标，未注入时回退到 debugPrint。
+  final PoolDebugLogSink? debugLogSink;
+
   @override
   State<PoolPage> createState() => _PoolPageState();
 }
@@ -90,6 +104,8 @@ class _PoolPageState extends State<PoolPage> {
                 os: defaultTargetPlatform.name,
                 appDataDir: widget.appDataDir,
                 networkId: widget.networkId,
+                debugJoinTrace: widget.debugJoinTrace,
+                debugLogSink: widget.debugLogSink,
               ),
               syncService: widget.networkId == null
                   ? null
@@ -103,12 +119,14 @@ class _PoolPageState extends State<PoolPage> {
   bool _autoJoinTriggered = false;
   bool _autoCreateTriggered = false;
   bool _inviteExportTriggered = false;
+  bool _inviteDebugPrinted = false;
   String? _lastDebugStateMarker;
 
   @override
   void initState() {
     super.initState();
     _maybeAutoJoin();
+    _maybePrintInviteDebug();
     _maybeExportInvite();
   }
 
@@ -123,6 +141,7 @@ class _PoolPageState extends State<PoolPage> {
       setState(() {});
     }
     _maybeAutoJoin();
+    _maybePrintInviteDebug();
     _maybeExportInvite();
     _maybeExportState();
   }
@@ -200,6 +219,22 @@ class _PoolPageState extends State<PoolPage> {
     });
   }
 
+  void _maybePrintInviteDebug() {
+    if (_inviteDebugPrinted || !widget.debugPrintInvite) {
+      return;
+    }
+    final state = _controller.state;
+    if (state is! PoolJoined) {
+      return;
+    }
+    final inviteCode = state.inviteCode?.trim();
+    if (inviteCode == null || inviteCode.isEmpty) {
+      return;
+    }
+    _inviteDebugPrinted = true;
+    _emitDebugLog('pool_debug.invite:$inviteCode');
+  }
+
   Future<void> _writeInvite(String exportPath, String inviteCode) async {
     try {
       final file = File(exportPath);
@@ -222,6 +257,15 @@ class _PoolPageState extends State<PoolPage> {
     } catch (_) {
       // 调试状态导出失败不应影响页面主流程。
     }
+  }
+
+  void _emitDebugLog(String line) {
+    final sink = widget.debugLogSink;
+    if (sink != null) {
+      sink(line);
+      return;
+    }
+    debugPrint(line);
   }
 
   void _returnToPoolTab() {

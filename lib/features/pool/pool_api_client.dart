@@ -291,6 +291,8 @@ class FrbPoolApiClient implements PoolApiClient {
     this.endpointId,
     this.appDataDir,
     this.networkId,
+    this.debugJoinTrace = false,
+    this.debugLogSink,
   });
 
   /// 端点标识。
@@ -307,6 +309,8 @@ class FrbPoolApiClient implements PoolApiClient {
 
   /// 运行态网络实例 ID。存在时优先走真实邀请串入池链路。
   final BigInt? networkId;
+  final bool debugJoinTrace;
+  final void Function(String line)? debugLogSink;
   BigInt? _cachedRuntimeNetworkId;
   String? _cachedRuntimeEndpointId;
 
@@ -420,6 +424,7 @@ class FrbPoolApiClient implements PoolApiClient {
               code: trimmed,
               nickname: nickname,
               os: os,
+              debugTrace: debugJoinTrace,
             )
           : await frb.joinByCode(
               code: trimmed,
@@ -429,7 +434,25 @@ class FrbPoolApiClient implements PoolApiClient {
             );
       return PoolJoinResult.joined(poolName: dto.name);
     } on ApiError catch (error) {
+      if (debugJoinTrace) {
+        _emitJoinTrace(error.message);
+      }
       return PoolJoinResult.error(error.code, errorMessage: error.message);
+    }
+  }
+
+  void _emitJoinTrace(String message) {
+    final sink = debugLogSink;
+    for (final rawLine in message.split('\n')) {
+      final line = rawLine.trim();
+      if (!line.startsWith('pool_debug.join.')) {
+        continue;
+      }
+      if (sink != null) {
+        sink(line);
+      } else {
+        Zone.root.run(() => print(line));
+      }
     }
   }
 

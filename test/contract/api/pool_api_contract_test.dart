@@ -334,6 +334,133 @@ void main() {
   );
 
   test(
+    'frb pool api client using same appDataDir for owner and joiner still reads joined view in single process',
+    () async {
+      final sharedRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-client-shared-',
+      );
+      await _ensureRustLibInitialized();
+
+      BigInt? ownerNetworkId;
+      BigInt? joinerNetworkId;
+
+      try {
+        await _switchAppConfig(sharedRoot.path);
+        ownerNetworkId = await frb.initPoolNetwork(basePath: sharedRoot.path);
+        final ownerClient = FrbPoolApiClient(
+          nickname: 'owner',
+          os: 'macos',
+          appDataDir: sharedRoot.path,
+          networkId: ownerNetworkId,
+        );
+        final created = await ownerClient.createPool();
+
+        joinerNetworkId = await frb.initPoolNetwork(basePath: sharedRoot.path);
+        final joinerClient = FrbPoolApiClient(
+          nickname: 'joiner',
+          os: 'android',
+          appDataDir: sharedRoot.path,
+          networkId: joinerNetworkId,
+        );
+        final joined = await joinerClient.joinByCode(created.inviteCode!);
+
+        expect(joined.isSuccess, isTrue, reason: 'join should succeed first');
+
+        final joinedView = await joinerClient.getJoinedPoolView();
+        expect(joinedView, isNotNull);
+        expect(joinedView!.poolId, created.poolId);
+      } finally {
+        if (ownerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: ownerNetworkId);
+        }
+        if (joinerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: joinerNetworkId);
+        }
+        await frb.resetAppConfigForTests();
+        await sharedRoot.delete(recursive: true);
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
+
+  test(
+    'frb pool api client prints join trace when debug enabled',
+    () async {
+      final ownerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-trace-owner-',
+      );
+      final joinerRoot = await Directory.systemTemp.createTemp(
+        'cardmind-pool-trace-joiner-',
+      );
+      await _ensureRustLibInitialized();
+
+      BigInt? ownerNetworkId;
+      BigInt? joinerNetworkId;
+
+      try {
+        await _switchAppConfig(ownerRoot.path);
+        ownerNetworkId = await frb.initPoolNetwork(basePath: ownerRoot.path);
+        final ownerClient = FrbPoolApiClient(
+          nickname: 'owner',
+          os: 'macos',
+          appDataDir: ownerRoot.path,
+          networkId: ownerNetworkId,
+        );
+        final created = await ownerClient.createPool();
+        await frb.closePoolNetwork(networkId: ownerNetworkId);
+        ownerNetworkId = null;
+
+        final logs = <String>[];
+        await _switchAppConfig(joinerRoot.path);
+        joinerNetworkId = await frb.initPoolNetwork(basePath: joinerRoot.path);
+        final joinerClient = FrbPoolApiClient(
+          nickname: 'joiner',
+          os: 'android',
+          appDataDir: joinerRoot.path,
+          networkId: joinerNetworkId,
+          debugJoinTrace: true,
+          debugLogSink: logs.add,
+        );
+
+        final joined = await joinerClient.joinByCode(created.inviteCode!);
+
+        expect(joined.isSuccess, isFalse);
+        expect(
+          logs.any((line) => line.startsWith('pool_debug.join.invite_parsed:')),
+          isTrue,
+        );
+        expect(
+          logs.any((line) => line.startsWith('pool_debug.join.target_addrs:')),
+          isTrue,
+        );
+        expect(
+          logs.any((line) => line.startsWith('pool_debug.join.attempt_start:')),
+          isTrue,
+        );
+        expect(
+          logs.any((line) => line.startsWith('pool_debug.join.attempt_end:')),
+          isTrue,
+        );
+        expect(
+          logs.any((line) => line.startsWith('pool_debug.join.final:')),
+          isTrue,
+        );
+      } finally {
+        if (ownerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: ownerNetworkId);
+        }
+        if (joinerNetworkId != null) {
+          await frb.closePoolNetwork(networkId: joinerNetworkId);
+        }
+        await frb.resetAppConfigForTests();
+        await ownerRoot.delete(recursive: true);
+        await joinerRoot.delete(recursive: true);
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
+
+  test(
     'frb pool api client maps joinByCode to backend result without handle state',
     () async {
       final root = await Directory.systemTemp.createTemp('cardmind-pool-api-');

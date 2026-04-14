@@ -22,6 +22,7 @@ class _FakePoolApiClient implements PoolApiClient {
   );
   Object? leaveError;
   Object? leavePartialCleanupError;
+  Object? joinedViewError;
   String? leftPoolId;
   bool dissolveCalled = false;
   List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
@@ -50,7 +51,12 @@ class _FakePoolApiClient implements PoolApiClient {
       );
 
   @override
-  Future<PoolViewData?> getJoinedPoolView() async => joinedView;
+  Future<PoolViewData?> getJoinedPoolView() async {
+    if (joinedViewError != null) {
+      throw joinedViewError!;
+    }
+    return joinedView;
+  }
 
   @override
   Future<PoolJoinResult> joinByCode(String code) async => joinResult;
@@ -259,6 +265,26 @@ void main() {
     expect(controller.state, isA<PoolError>());
     expect((controller.state as PoolError).code, 'INTERNAL');
     expect(controller.noticeMessage, 'iroh join failed: endpoint closed');
+  });
+
+  test('joinByCode_joinedViewApiError_transitionsToErrorState', () async {
+    final client = _FakePoolApiClient()
+      ..joinResult = const PoolJoinResult.joined(poolName: 'Joined')
+      ..joinedViewError = ApiError(
+        code: 'PROJECTION_NOT_CONVERGED',
+        message: 'retry_get_joined_pool_view',
+      );
+    final controller = PoolController(apiClient: client);
+
+    await controller.joinByCode('ok');
+
+    expect(controller.state, isA<PoolError>());
+    expect(
+      (controller.state as PoolError).code,
+      'PROJECTION_NOT_CONVERGED',
+    );
+    expect(controller.noticeMessage, 'retry_get_joined_pool_view');
+    expect(controller.joining, isFalse);
   });
 
   test('editPoolInfo_ignoresNonJoinedState', () {

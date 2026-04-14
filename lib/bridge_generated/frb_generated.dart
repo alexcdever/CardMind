@@ -178,6 +178,7 @@ abstract class RustLibApi extends BaseApi {
     required String code,
     required String nickname,
     required String os,
+    required bool debugTrace,
   });
 
   Future<PoolDto> crateApiLeavePool({
@@ -1071,6 +1072,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     required String code,
     required String nickname,
     required String os,
+    required bool debugTrace,
   }) {
     return handler.executeNormal(
       NormalTask(
@@ -1080,6 +1082,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(code, serializer);
           sse_encode_String(nickname, serializer);
           sse_encode_String(os, serializer);
+          sse_encode_bool(debugTrace, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1092,7 +1095,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiJoinPoolByInviteConstMeta,
-        argValues: [networkId, code, nickname, os],
+        argValues: [networkId, code, nickname, os, debugTrace],
         apiImpl: this,
       ),
     );
@@ -1100,7 +1103,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiJoinPoolByInviteConstMeta => const TaskConstMeta(
     debugName: "join_pool_by_invite",
-    argNames: ["networkId", "code", "nickname", "os"],
+    argNames: ["networkId", "code", "nickname", "os", "debugTrace"],
   );
 
   @override

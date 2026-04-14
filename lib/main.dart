@@ -24,6 +24,12 @@ const String _debugExportInvitePath = String.fromEnvironment(
 const String _debugStatusExportPath = String.fromEnvironment(
   'CARDMIND_DEBUG_STATUS_EXPORT_PATH',
 );
+const bool _debugPrintInvite = bool.fromEnvironment(
+  'CARDMIND_DEBUG_PRINT_INVITE',
+);
+const bool _debugJoinTrace = bool.fromEnvironment(
+  'CARDMIND_DEBUG_JOIN_TRACE',
+);
 
 String? _resolvedDebugInvitePath = _debugExportInvitePath.isEmpty
     ? null
@@ -61,6 +67,8 @@ Future<void> main() async {
       debugAutoJoinCode: _debugAutoJoinCode.isEmpty ? null : _debugAutoJoinCode,
       debugExportInvitePath: _resolvedDebugInvitePath,
       debugStatusExportPath: _resolvedDebugStatusPath,
+      debugPrintInvite: _debugPrintInvite,
+      debugJoinTrace: _debugJoinTrace,
     ),
   );
 }

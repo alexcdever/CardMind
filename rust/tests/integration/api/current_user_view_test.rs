@@ -119,3 +119,43 @@ fn list_pools_should_return_current_user_role_for_calling_endpoint()
     reset_app_config()?;
     Ok(())
 }
+
+#[test]
+#[serial]
+fn joined_pool_view_should_select_pool_owned_by_current_endpoint_when_multiple_pools_exist()
+-> Result<(), Box<dyn std::error::Error>> {
+    let _guard = app_config_test_guard()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    reset_app_config()?;
+    let dir = tempdir()?;
+    init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
+
+    create_pool(
+        "stale-endpoint".to_string(),
+        "stale".to_string(),
+        "ios".to_string(),
+    )?;
+
+    let active_pool = create_pool(
+        "owner-endpoint".to_string(),
+        "owner".to_string(),
+        "macos".to_string(),
+    )?;
+
+    join_by_code(
+        active_pool.id.clone(),
+        "current-endpoint".to_string(),
+        "joiner".to_string(),
+        "ios".to_string(),
+    )?;
+
+    let joined = get_joined_pool_view("current-endpoint".to_string())?;
+
+    assert_eq!(joined.id, active_pool.id);
+    assert_eq!(joined.current_user_role, "member");
+
+    reset_app_config()?;
+    Ok(())
+}

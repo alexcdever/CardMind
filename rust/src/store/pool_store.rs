@@ -229,6 +229,32 @@ impl PoolStore {
         self.get_pool(pool_id)
     }
 
+    /// 获取指定端点当前所属的数据池。
+    ///
+    /// 当本地存在多个数据池时，必须按成员归属选择正确的池，
+    /// 不能退化为任意取一个池，否则会把旧池误当成当前池。
+    pub fn get_pool_for_endpoint(&self, endpoint_id: &str) -> Result<Pool, CardMindError> {
+        let ids = self.sqlite.list_pool_ids()?;
+        if ids.is_empty() {
+            return Err(CardMindError::NotFound("pool not found".to_string()));
+        }
+
+        for pool_id in &ids {
+            let pool = self.get_pool(pool_id)?;
+            if pool
+                .members
+                .iter()
+                .any(|member| member.endpoint_id == endpoint_id)
+            {
+                return Ok(pool);
+            }
+        }
+
+        Err(CardMindError::NotMember(
+            "caller is not a pool member".to_string(),
+        ))
+    }
+
     /// 将笔记引用挂接到数据池元数据
     ///
     /// 将指定的笔记 ID 列表关联到数据池。已存在的引用会被保留（去重）。
