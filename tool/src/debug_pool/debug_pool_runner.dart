@@ -115,10 +115,10 @@ class DebugPoolRunner {
     } finally {
       if (!keepRunning) {
         if (joinerSession != null) {
-          await joinerSession.stop();
+          await _safeStopSession(joinerSession);
         }
         if (ownerSession != null) {
-          await ownerSession.stop();
+          await _safeStopSession(ownerSession);
         }
       }
     }
@@ -142,7 +142,7 @@ class DebugPoolRunner {
     try {
       return await _waitForInvite(session);
     } finally {
-      await session.stop();
+      await _safeStopSession(session);
     }
   }
 
@@ -184,6 +184,14 @@ class DebugPoolRunner {
       diagnostics: <String>['status_path: $statusPath'],
       recentLogs: _readFileTailLines(statusPath),
     );
+  }
+}
+
+Future<void> _safeStopSession(DebugSession session) async {
+  try {
+    await session.stop();
+  } catch (_) {
+    // 清理异常不应覆盖主失败。
   }
 }
 

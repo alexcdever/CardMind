@@ -98,22 +98,13 @@ class MacosBuildRunSession implements DebugSession {
         return line;
       }
     }
-
-    final deadline = DateTime.now().add(timeout);
-    while (DateTime.now().isBefore(deadline)) {
-      final invite = await _readInviteLine();
-      if (invite != null && predicate(invite)) {
-        return invite;
-      }
-
-      final status = await _readStatusLine();
-      if (status != null && predicate(status)) {
-        return status;
-      }
-
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-    }
-    return null;
+    final streamFuture = _lineController.stream
+        .firstWhere(predicate)
+        .then<String?>((line) => line)
+        .timeout(timeout, onTimeout: () => null)
+        .catchError((_) => null);
+    final fileFuture = _pollFilesForLine(predicate, timeout: timeout);
+    return Future.any(<Future<String?>>[streamFuture, fileFuture]);
   }
 
   Future<String?> _readInviteLine() async {
@@ -151,6 +142,27 @@ class MacosBuildRunSession implements DebugSession {
       return null;
     }
     return lines.last;
+  }
+
+  Future<String?> _pollFilesForLine(
+    bool Function(String line) predicate, {
+    required Duration timeout,
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final invite = await _readInviteLine();
+      if (invite != null && predicate(invite)) {
+        return invite;
+      }
+
+      final status = await _readStatusLine();
+      if (status != null && predicate(status)) {
+        return status;
+      }
+
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+    return null;
   }
 
   Future<void> _pipeLines(Stream<List<int>> source) async {

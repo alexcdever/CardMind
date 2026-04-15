@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -97,6 +98,31 @@ void main() {
     ]);
   });
 
+  test('macos build-run session can observe future stdout lines', () async {
+    final stdoutController = StreamController<List<int>>();
+    final session = MacosBuildRunSession(
+      executable: 'dart',
+      dartDefines: const {},
+      processStarter:
+          (
+            String executable,
+            List<String> arguments, {
+            String? workingDirectory,
+          }) async => _StreamingFakeProcess(stdoutController.stream),
+      workingDirectory: '/repo',
+    );
+
+    await session.start();
+    final waitFuture = session.waitForLine(
+      (line) => line.contains('pool_debug.join.started'),
+      timeout: const Duration(seconds: 1),
+    );
+    stdoutController.add('pool_debug.join.started\n'.codeUnits);
+
+    expect(await waitFuture, 'pool_debug.join.started');
+    await stdoutController.close();
+  });
+
   test(
     'captures first owner invite from macos exported invite session',
     () async {
@@ -114,6 +140,27 @@ void main() {
       ).captureOwnerInvite(deviceId: 'macos', pin: '1234');
 
       expect(result, 'invite-123');
+    },
+  );
+
+  test(
+    'capture owner invite keeps original failure when stop also throws',
+    () async {
+      final session = _ThrowOnStopDebugSession(lines: const <String>[]);
+
+      expect(
+        () => DebugPoolRunner(
+          runner: _noRunnerExpected,
+          ownerSessionFactory: (_) async => session,
+        ).captureOwnerInvite(deviceId: 'macos', pin: '1234'),
+        throwsA(
+          isA<DebugPoolRunFailure>().having(
+            (error) => error.stage,
+            'stage',
+            'owner_invite',
+          ),
+        ),
+      );
     },
   );
 
@@ -251,6 +298,15 @@ class _FakeProcess implements Process {
   bool kill([ProcessSignal signal = ProcessSignal.sigterm]) => true;
 }
 
+class _StreamingFakeProcess extends _FakeProcess {
+  _StreamingFakeProcess(this._stdout);
+
+  final Stream<List<int>> _stdout;
+
+  @override
+  Stream<List<int>> get stdout => _stdout;
+}
+
 class _FakeDebugSession implements DebugSession {
   _FakeDebugSession({required List<String> lines}) : _lines = lines;
 
@@ -282,6 +338,15 @@ class _FakeDebugSession implements DebugSession {
       }
     }
     return null;
+  }
+}
+
+class _ThrowOnStopDebugSession extends _FakeDebugSession {
+  _ThrowOnStopDebugSession({required super.lines});
+
+  @override
+  Future<void> stop() async {
+    throw StateError('stop failed');
   }
 }
 

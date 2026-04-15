@@ -379,6 +379,21 @@ void main() {
     );
   });
 
+  test('run rejects invalid app copy name', () async {
+    final logs = <String>[];
+
+    final exit = await runBuildCli(
+      const ['run', '--app-copy-name', '../cardmind-owner.app'],
+      runProcess: _noProcessExpected,
+      currentDirectory: '/repo',
+      platformOverride: HostPlatform.macos,
+      logError: logs.add,
+    );
+
+    expect(exit, 1);
+    expect(logs.join('\n'), contains('invalid --app-copy-name'));
+  });
+
   test('run can launch an isolated app copy with overridden bundle id', () async {
     final calls = <_ProcCall>[];
     final tempRoot = await _createWorkspaceWithCargoDylib();
@@ -407,7 +422,29 @@ void main() {
         '--app-bundle-id',
         'com.example.cardmind.owner',
       ],
-      runProcess: _fakeRunner(calls),
+      runProcess: _fakeRunner(
+        calls,
+        afterCall: (call) {
+          if (call.executable == 'plutil') {
+            final infoFile = File(call.arguments.last);
+            infoFile.writeAsStringSync('''
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.example.cardmind.owner</string>
+</dict>
+</plist>
+''');
+          }
+          if (call.executable == 'codesign') {
+            final dylib = File(
+              '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app/Contents/Frameworks/libcardmind_rust.dylib',
+            );
+            expect(dylib.readAsStringSync(), 'cargo dylib');
+          }
+        },
+      ),
       currentDirectory: tempRoot.path,
       platformOverride: HostPlatform.macos,
     );
@@ -418,6 +455,7 @@ void main() {
     final copiedDylib = File(
       '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app/Contents/Frameworks/libcardmind_rust.dylib',
     );
+    final plutilCall = calls.firstWhere((call) => call.executable == 'plutil');
     final codesignCall = calls.firstWhere(
       (call) => call.executable == 'codesign',
     );
@@ -432,6 +470,13 @@ void main() {
     expect(openCall.arguments, <String>[
       '-n',
       '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app',
+    ]);
+    expect(plutilCall.arguments, <String>[
+      '-replace',
+      'CFBundleIdentifier',
+      '-string',
+      'com.example.cardmind.owner',
+      '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app/Contents/Info.plist',
     ]);
     expect(codesignCall.arguments, <String>[
       '--force',

@@ -300,6 +300,11 @@ Future<int> _runAndOpen(
     logError('--app-bundle-id requires --app-copy-name');
     return 1;
   }
+  final appCopyNameError = _validateAppCopyName(appCopyName);
+  if (appCopyNameError != null) {
+    logError(appCopyNameError);
+    return 1;
+  }
 
   /// Step 1: Build Rust library (which also creates framework)
   final libExit = await _runLib(
@@ -332,7 +337,6 @@ Future<int> _runAndOpen(
     '$rootDir/build/macos/Build/Products/Debug/cardmind.app',
   );
   final appBundle = _resolveLaunchAppBundle(
-    rootDir: rootDir,
     baseAppBundle: baseAppBundle,
     appCopyName: appCopyName,
   );
@@ -343,26 +347,19 @@ Future<int> _runAndOpen(
     }
     _replaceDirectory(appBundle, baseAppBundle);
     if (appBundleId != null && appBundleId.isNotEmpty) {
-      _rewriteAppBundleIdentifier(appBundle, appBundleId);
+      final plistExit = await _rewriteAppBundleIdentifier(
+        appBundle,
+        appBundleId,
+        runProcess: runProcess,
+        logError: logError,
+      );
+      if (plistExit != 0) {
+        return plistExit;
+      }
       log('[app] isolated bundle prepared: $appCopyName ($appBundleId)');
     } else {
       log('[app] isolated bundle prepared: $appCopyName');
     }
-  }
-
-  if (appCopyName != null && appCopyName.isNotEmpty) {
-    final codesignResult = await runProcess('codesign', <String>[
-      '--force',
-      '--deep',
-      '--sign',
-      '-',
-      appBundle.path,
-    ]);
-    if (codesignResult.exitCode != 0) {
-      logError('Failed to codesign isolated app: ${codesignResult.stderr}');
-      return codesignResult.exitCode;
-    }
-    log('[app] isolated bundle re-signed');
   }
   final frameworksDir = Directory('${appBundle.path}/Contents/Frameworks');
   final dylibDest = File('${frameworksDir.path}/libcardmind_rust.dylib');
@@ -382,6 +379,21 @@ Future<int> _runAndOpen(
 
   dylibSource.copySync(dylibDest.path);
   log('[dylib] copied to app bundle from ${dylibSource.path}');
+
+  if (appCopyName != null && appCopyName.isNotEmpty) {
+    final codesignResult = await runProcess('codesign', <String>[
+      '--force',
+      '--deep',
+      '--sign',
+      '-',
+      appBundle.path,
+    ]);
+    if (codesignResult.exitCode != 0) {
+      logError('Failed to codesign isolated app: ${codesignResult.stderr}');
+      return codesignResult.exitCode;
+    }
+    log('[app] isolated bundle re-signed');
+  }
 
   /// Step 4: Open the app
   final openArgs = appCopyName == null || appCopyName.isEmpty
@@ -413,7 +425,6 @@ List<String> _readMultiOption(List<String> args, String name) {
 }
 
 Directory _resolveLaunchAppBundle({
-  required String rootDir,
   required Directory baseAppBundle,
   required String? appCopyName,
 }) {
@@ -448,21 +459,46 @@ void _replaceDirectory(Directory destination, Directory source) {
   }
 }
 
-void _rewriteAppBundleIdentifier(Directory appBundle, String bundleId) {
+Future<int> _rewriteAppBundleIdentifier(
+  Directory appBundle,
+  String bundleId, {
+  required Runner runProcess,
+  required void Function(String) logError,
+}) async {
   final infoPlist = File('${appBundle.path}/Contents/Info.plist');
   if (!infoPlist.existsSync()) {
-    throw StateError('App Info.plist not found at ${infoPlist.path}');
+    logError('App Info.plist not found at ${infoPlist.path}');
+    return 1;
   }
-  final content = infoPlist.readAsStringSync();
-  final updated = content.replaceFirstMapped(
-    RegExp(
-      r'(<key>CFBundleIdentifier</key>\s*<string>)([^<]*)(</string>)',
-      dotAll: true,
-    ),
-    (match) => '${match.group(1)}$bundleId${match.group(3)}',
-  );
-  if (updated == content) {
-    throw StateError('CFBundleIdentifier not found in ${infoPlist.path}');
+  final result = await runProcess('plutil', <String>[
+    '-replace',
+    'CFBundleIdentifier',
+    '-string',
+    bundleId,
+    infoPlist.path,
+  ]);
+  if (result.exitCode != 0) {
+    logError('Failed to rewrite isolated app bundle id: ${result.stderr}');
+    return result.exitCode;
   }
-  infoPlist.writeAsStringSync(updated);
+  return 0;
+}
+
+String? _validateAppCopyName(String? appCopyName) {
+  final copyName = appCopyName?.trim();
+  if (copyName == null || copyName.isEmpty) {
+    return null;
+  }
+  if (!copyName.endsWith('.app')) {
+    return 'invalid --app-copy-name: must end with .app';
+  }
+  if (copyName.contains('/') ||
+      copyName.contains(r'\') ||
+      copyName.contains('..')) {
+    return 'invalid --app-copy-name: must be a single app bundle name';
+  }
+  if (copyName == '.' || copyName == '..') {
+    return 'invalid --app-copy-name: must be a single app bundle name';
+  }
+  return null;
 }
