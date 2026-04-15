@@ -19,6 +19,8 @@ Options:
   -h, --help          Show this help message
   app --platform <p>  Set Flutter build platform (macos|linux|windows)
   lib --target <t>    Set Rust target triple for cargo build
+  run --app-copy-name <name>  Launch an isolated macOS app bundle copy
+  run --app-bundle-id <id>    Override bundle id for the isolated app copy
 
 Default behavior:
   app runs: lib -> codegen -> flutter build
@@ -288,8 +290,14 @@ Future<int> _runAndOpen(
   required void Function(String) logError,
   required String rootDir,
 }) async {
+  final appCopyName = _readOption(args, '--app-copy-name');
+  final appBundleId = _readOption(args, '--app-bundle-id');
   if (!Platform.isMacOS) {
     logError('run command is only supported on macOS');
+    return 1;
+  }
+  if (appBundleId != null && (appCopyName == null || appCopyName.isEmpty)) {
+    logError('--app-bundle-id requires --app-copy-name');
     return 1;
   }
 
@@ -320,9 +328,42 @@ Future<int> _runAndOpen(
 
   /// Step 3: Copy dylib to app bundle's Frameworks directory
   final dylibSource = File(_runtimeDylibPath(rootDir));
-  final appBundle = Directory(
+  final baseAppBundle = Directory(
     '$rootDir/build/macos/Build/Products/Debug/cardmind.app',
   );
+  final appBundle = _resolveLaunchAppBundle(
+    rootDir: rootDir,
+    baseAppBundle: baseAppBundle,
+    appCopyName: appCopyName,
+  );
+  if (appCopyName != null && appCopyName.isNotEmpty) {
+    if (!baseAppBundle.existsSync()) {
+      logError('Base app bundle missing: ${baseAppBundle.path}');
+      return 1;
+    }
+    _replaceDirectory(appBundle, baseAppBundle);
+    if (appBundleId != null && appBundleId.isNotEmpty) {
+      _rewriteAppBundleIdentifier(appBundle, appBundleId);
+      log('[app] isolated bundle prepared: $appCopyName ($appBundleId)');
+    } else {
+      log('[app] isolated bundle prepared: $appCopyName');
+    }
+  }
+
+  if (appCopyName != null && appCopyName.isNotEmpty) {
+    final codesignResult = await runProcess('codesign', <String>[
+      '--force',
+      '--deep',
+      '--sign',
+      '-',
+      appBundle.path,
+    ]);
+    if (codesignResult.exitCode != 0) {
+      logError('Failed to codesign isolated app: ${codesignResult.stderr}');
+      return codesignResult.exitCode;
+    }
+    log('[app] isolated bundle re-signed');
+  }
   final frameworksDir = Directory('${appBundle.path}/Contents/Frameworks');
   final dylibDest = File('${frameworksDir.path}/libcardmind_rust.dylib');
 
@@ -343,7 +384,10 @@ Future<int> _runAndOpen(
   log('[dylib] copied to app bundle from ${dylibSource.path}');
 
   /// Step 4: Open the app
-  final openResult = await runProcess('open', [appBundle.path]);
+  final openArgs = appCopyName == null || appCopyName.isEmpty
+      ? <String>[appBundle.path]
+      : <String>['-n', appBundle.path];
+  final openResult = await runProcess('open', openArgs);
   if (openResult.exitCode != 0) {
     logError('Failed to open app: ${openResult.stderr}');
     return openResult.exitCode;
@@ -366,4 +410,59 @@ List<String> _readMultiOption(List<String> args, String name) {
     i += 1;
   }
   return values;
+}
+
+Directory _resolveLaunchAppBundle({
+  required String rootDir,
+  required Directory baseAppBundle,
+  required String? appCopyName,
+}) {
+  final copyName = appCopyName?.trim();
+  if (copyName == null || copyName.isEmpty) {
+    return baseAppBundle;
+  }
+  return Directory('${Directory(baseAppBundle.parent.path).path}/$copyName');
+}
+
+void _replaceDirectory(Directory destination, Directory source) {
+  if (destination.existsSync()) {
+    destination.deleteSync(recursive: true);
+  }
+  destination.createSync(recursive: true);
+  for (final entity in source.listSync(recursive: true, followLinks: false)) {
+    final relativePath = entity.path.substring(source.path.length + 1);
+    final targetPath = '${destination.path}/$relativePath';
+    if (entity is Directory) {
+      Directory(targetPath).createSync(recursive: true);
+      continue;
+    }
+    if (entity is File) {
+      File(targetPath).parent.createSync(recursive: true);
+      entity.copySync(targetPath);
+      continue;
+    }
+    if (entity is Link) {
+      Link(targetPath).parent.createSync(recursive: true);
+      Link(targetPath).createSync(entity.targetSync(), recursive: true);
+    }
+  }
+}
+
+void _rewriteAppBundleIdentifier(Directory appBundle, String bundleId) {
+  final infoPlist = File('${appBundle.path}/Contents/Info.plist');
+  if (!infoPlist.existsSync()) {
+    throw StateError('App Info.plist not found at ${infoPlist.path}');
+  }
+  final content = infoPlist.readAsStringSync();
+  final updated = content.replaceFirstMapped(
+    RegExp(
+      r'(<key>CFBundleIdentifier</key>\s*<string>)([^<]*)(</string>)',
+      dotAll: true,
+    ),
+    (match) => '${match.group(1)}$bundleId${match.group(3)}',
+  );
+  if (updated == content) {
+    throw StateError('CFBundleIdentifier not found in ${infoPlist.path}');
+  }
+  infoPlist.writeAsStringSync(updated);
 }

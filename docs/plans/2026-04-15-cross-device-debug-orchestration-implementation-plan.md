@@ -4,7 +4,7 @@
 
 **Goal:** 新增一个本地开发专用的 `dart run tool/debug_pool.dart` 入口，自动完成 `macOS owner -> macOS|iOS simulator joiner` 的真实调试编排、invite 抓取、join 结果采集与终端汇总。
 
-**Architecture:** 保持现有 Flutter/Rust 调试锚点不变，只在工具层新增一个独立 Dart 编排入口。CLI 入口负责参数解析和结果打印，编排器负责 owner/joiner 启动与状态汇总，平台相关的 iOS simulator 容器查询隔离到单独模块，`flutter run` 子进程控制封装为独立 session 组件。
+**Architecture:** 保持现有 Flutter/Rust 调试锚点不变，只在工具层新增一个独立 Dart 编排入口。CLI 入口负责参数解析和结果打印，编排器负责 owner/joiner 启动与状态汇总；`macOS` 统一复用已验证通过的 `dart run tool/build.dart run` 路径，并通过显式注入的 invite/status 文件读取结果，`iOS simulator` 继续走 `flutter run` + `simctl` 容器读取。
 
 **Tech Stack:** Dart, `dart run`, Flutter CLI, `xcrun simctl`, `flutter_test`, `Process`
 
@@ -20,6 +20,8 @@
   - owner/joiner 编排主流程、invite 抓取、结果汇总
 - `tool/src/debug_pool/flutter_run_session.dart`
   - `flutter run` 子进程封装、日志读取、日志锚点等待、会话结束
+- `tool/src/debug_pool/macos_build_run_session.dart`
+  - `dart run tool/build.dart run` 子进程封装、macOS invite/status 文件路径管理
 - `tool/src/debug_pool/simctl_support.dart`
   - iOS simulator 设备选择、app container 查询、`debug_status.log` 读取
 - `test/integration/infrastructure/debug_pool_cli_test.dart`
@@ -140,7 +142,7 @@ git commit -m "feat(debug): validate debug pool cli args"
 
 ---
 
-## Chunk 2: `flutter run` 会话封装与 owner invite 抓取
+## Chunk 2: 会话封装与 macOS owner invite 抓取
 
 ### Task 3: 封装 `flutter run` 子进程会话
 
@@ -206,21 +208,19 @@ git commit -m "feat(debug): add flutter run session helper"
 
 **Files:**
 - Modify: `tool/src/debug_pool/debug_pool_runner.dart`
+- Create: `tool/src/debug_pool/macos_build_run_session.dart`
 - Modify: `test/integration/infrastructure/debug_pool_cli_test.dart`
 
-- [ ] **Step 1: 写一个失败测试，锁定 owner 会话能抓到第一条 invite**
+- [ ] **Step 1: 写一个失败测试，锁定 `owner=macos` 会走 `dart run tool/build.dart run` 并从导出文件读取 invite**
 
 ```dart
-test('captures first owner invite from session logs', () async {
-  final session = _fakeSession(lines: const [
-    'booting...',
-    'flutter: pool_debug.invite:invite-123',
-    'flutter: pool_debug.invite:invite-456',
-  ]);
+test('captures owner invite from exported file in macos mode', () async {
+  final session = _fakeMacosBuildRunSession(
+    invite: 'invite-123',
+  );
 
   final result = await DebugPoolRunner(
     ownerFactory: (_) async => session,
-    joinerFactory: (_) async => throw UnimplementedError(),
   ).captureOwnerInvite();
 
   expect(result, 'invite-123');
@@ -236,8 +236,8 @@ Expected: FAIL
 
 约束：
 
-- 只认 `pool_debug.invite:`
-- 取第一条即可
+- `owner=macos` 走 `dart run tool/build.dart run`
+- 通过工具主动注入的 `CARDMIND_DEBUG_EXPORT_INVITE_PATH` 读取 invite
 - 超时后返回可读错误，并带最近日志片段
 
 - [ ] **Step 4: 运行测试，确认通过**
@@ -254,7 +254,7 @@ git commit -m "feat(debug): capture owner invite automatically"
 
 ---
 
-## Chunk 3: iOS simulator 支持与 join 结果汇总
+## Chunk 3: iOS simulator 支持与结果汇总
 
 ### Task 5: 增加 iOS simulator 查询与容器读取
 
@@ -312,7 +312,7 @@ git commit -m "feat(debug): add ios simulator support"
 - Modify: `tool/debug_pool.dart`
 - Modify: `test/integration/infrastructure/debug_pool_cli_test.dart`
 
-- [ ] **Step 1: 写一个失败测试，锁定 joiner 结果会优先汇总 `joined:` 或 `join_error:`**
+- [ ] **Step 1: 写一个失败测试，锁定 joiner 结果会优先汇总导出文件/容器中的 `joined:` 或 `join_error:`**
 
 ```dart
 test('prints joined result after owner and joiner complete', () async {

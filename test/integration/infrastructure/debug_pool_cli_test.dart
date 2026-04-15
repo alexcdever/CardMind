@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../tool/debug_pool.dart';
 import '../../../tool/src/debug_pool/debug_pool_runner.dart';
 import '../../../tool/src/debug_pool/flutter_run_session.dart';
+import '../../../tool/src/debug_pool/macos_build_run_session.dart';
 import '../../../tool/src/debug_pool/simctl_support.dart';
 
 void main() {
@@ -63,22 +64,58 @@ void main() {
     );
   });
 
-  test('captures first owner invite from session logs', () async {
-    final session = _FakeFlutterRunSession(
-      lines: const [
-        'booting...',
-        'flutter: pool_debug.invite:invite-123',
-        'flutter: pool_debug.invite:invite-456',
-      ],
+  test('builds macos build-run command with dart-define pairs', () async {
+    final calls = <_ProcCall>[];
+    final session = MacosBuildRunSession(
+      executable: 'dart',
+      dartDefines: const {
+        'CARDMIND_DEBUG_START_IN_POOL': 'true',
+        'CARDMIND_DEBUG_PIN': '1234',
+      },
+      processStarter: _fakeStarter(calls),
+      workingDirectory: '/repo',
+      appCopyName: 'cardmind-owner.app',
+      appBundleId: 'com.example.cardmind.owner',
     );
 
-    final result = await DebugPoolRunner(
-      runner: _noRunnerExpected,
-      ownerSessionFactory: (_) async => session,
-    ).captureOwnerInvite(deviceId: 'macos', pin: '1234');
+    await session.start();
 
-    expect(result, 'invite-123');
+    expect(calls.single.executable, 'dart');
+    expect(calls.single.workingDirectory, '/repo');
+    expect(calls.single.arguments, <String>[
+      'run',
+      'tool/build.dart',
+      'run',
+      '--app-copy-name',
+      'cardmind-owner.app',
+      '--app-bundle-id',
+      'com.example.cardmind.owner',
+      '--dart-define',
+      'CARDMIND_DEBUG_START_IN_POOL=true',
+      '--dart-define',
+      'CARDMIND_DEBUG_PIN=1234',
+    ]);
   });
+
+  test(
+    'captures first owner invite from macos exported invite session',
+    () async {
+      final session = _FakeDebugSession(
+        lines: const [
+          'booting...',
+          'pool_debug.invite:invite-123',
+          'pool_debug.invite:invite-456',
+        ],
+      );
+
+      final result = await DebugPoolRunner(
+        runner: _noRunnerExpected,
+        ownerSessionFactory: (_) async => session,
+      ).captureOwnerInvite(deviceId: 'macos', pin: '1234');
+
+      expect(result, 'invite-123');
+    },
+  );
 
   test('uses booted ios simulator when ios-device is omitted', () async {
     final calls = <_ProcCall>[];
@@ -185,34 +222,38 @@ class _FakeProcess implements Process {
   bool kill([ProcessSignal signal = ProcessSignal.sigterm]) => true;
 }
 
-class _FakeFlutterRunSession extends FlutterRunSession {
-  _FakeFlutterRunSession({required List<String> lines})
-    : _lines = lines,
-      super(
-        executable: 'flutter',
-        deviceId: 'macos',
-        dartDefines: const {},
-        processStarter: _unusedStarter,
-      );
+class _FakeDebugSession implements DebugSession {
+  _FakeDebugSession({required List<String> lines}) : _lines = lines;
 
   final List<String> _lines;
 
   @override
-  Stream<String> get stdoutLines => Stream<String>.fromIterable(_lines);
+  List<String> get recentLines => List<String>.unmodifiable(_lines);
 
   @override
   Stream<String> get stderrLines => const Stream<String>.empty();
 
   @override
-  Future<void> start() async {}
-}
+  Stream<String> get stdoutLines => Stream<String>.fromIterable(_lines);
 
-Never _unusedStarter(
-  String executable,
-  List<String> arguments, {
-  String? workingDirectory,
-}) {
-  throw StateError('No process expected: $executable ${arguments.join(' ')}');
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> stop() async {}
+
+  @override
+  Future<String?> waitForLine(
+    bool Function(String line) predicate, {
+    Duration timeout = const Duration(seconds: 30),
+  }) async {
+    for (final line in _lines) {
+      if (predicate(line)) {
+        return line;
+      }
+    }
+    return null;
+  }
 }
 
 SimctlRunner _fakeProcessResultRunner(
@@ -232,12 +273,7 @@ SimctlRunner _fakeProcessResultRunner(
       ),
     );
     final key = '$executable ${arguments.join(' ')}';
-    return ProcessResult(
-      1,
-      0,
-      stdoutForCommand[key] ?? '',
-      '',
-    );
+    return ProcessResult(1, 0, stdoutForCommand[key] ?? '', '');
   };
 }
 

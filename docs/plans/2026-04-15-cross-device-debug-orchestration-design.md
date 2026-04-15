@@ -106,7 +106,7 @@
 - `--joiner macos|ios-sim`
 - `--pin <pin>`，默认 `1234`
 - `--ios-device <udid>`，仅当 `--joiner ios-sim` 时可选；未传时自动选择当前 booted iPhone simulator
-- `--keep-running`，默认关闭；关闭时在拿到最终结论后结束两个 `flutter run` 会话
+- `--keep-running`，默认关闭；关闭时在拿到最终结论后结束启动的调试进程
 - `--verbose`，默认关闭；关闭时仅输出关键节点
 
 ## 执行流程
@@ -118,36 +118,54 @@
 
 ### 2. 启动 owner
 
+`owner=macos` 时不直接走 `flutter run -d macos`，而是走：
+
+- `dart run tool/build.dart run --dart-define=...`
+
 固定注入：
 
 - `CARDMIND_DEBUG_START_IN_POOL=true`
 - `CARDMIND_DEBUG_AUTO_CREATE_POOL=true`
-- `CARDMIND_DEBUG_PRINT_INVITE=true`
 - `CARDMIND_DEBUG_PIN=<pin>`
+- `CARDMIND_DEBUG_EXPORT_INVITE_PATH=<tool-managed-path>`
+- `CARDMIND_DEBUG_STATUS_EXPORT_PATH=<tool-managed-path>`
 
 ### 3. 抓取 invite
 
-从 owner 控制台输出中抓取第一条：
+优先从工具主动注入的 invite 导出文件中读取 invite。
 
-- `pool_debug.invite:<invite>`
+原因：
 
-若在超时时间内拿不到 invite，命令直接失败，并输出 owner 最近日志片段。
+- `macOS` 在 worktree 场景下直接走 `flutter run -d macos` 会再次命中文件沙盒与运行态 dylib 路径问题
+- `tool/build.dart run` 已是当前仓库验证通过的稳定路径
+
+若在超时时间内拿不到 invite，命令直接失败，并输出 owner 最近日志片段与导出文件状态。
 
 ### 4. 启动 joiner
 
-固定注入：
+`joiner=macos` 时同样走：
+
+- `dart run tool/build.dart run --dart-define=...`
+
+并主动注入：
 
 - `CARDMIND_DEBUG_START_IN_POOL=true`
 - `CARDMIND_DEBUG_PIN=<pin>`
 - `CARDMIND_DEBUG_JOIN_CODE=<invite>`
 - `CARDMIND_DEBUG_JOIN_TRACE=true`
+- `CARDMIND_DEBUG_STATUS_EXPORT_PATH=<tool-managed-path>`
+
+`joiner=ios-sim` 时继续走：
+
+- `flutter run -d <udid> --dart-define=...`
 
 ### 5. 收集 join 结果
 
-joiner 侧同时收集：
+joiner 侧收集策略分平台：
 
-- 控制台中的 `pool_debug.join.*`
-- app 容器内 `debug_status.log` 的最终状态
+- `joiner=macos`：优先读取工具主动注入的 `debug_status.log`
+- `joiner=ios-sim`：读取 app 容器内 `debug_status.log`
+- `pool_debug.join.*` 仍作为辅助观测点，而不再是唯一真相源
 
 优先判定最终状态：
 
@@ -166,7 +184,7 @@ joiner 侧同时收集：
 
 ### 7. 清理策略
 
-- 默认发送 `q` 结束两个 `flutter run` 会话
+- 默认结束 owner/joiner 启动的调试进程
 - 若启用 `--keep-running`，则保留现有会话供人工继续观察
 
 ## 模块拆分
@@ -193,6 +211,12 @@ joiner 侧同时收集：
 - 等待目标日志锚点
 - 结束会话
 
+### `tool/src/debug_pool/macos_build_run_session.dart`
+
+- 封装 `dart run tool/build.dart run`
+- 管理 macOS owner/joiner 的文件导出路径
+- 在 `build.dart run` 日志与导出文件之间提供统一会话接口
+
 ### `tool/src/debug_pool/simctl_support.dart`
 
 - 只处理 iOS simulator 能力
@@ -204,7 +228,7 @@ joiner 侧同时收集：
 
 首版至少覆盖以下错误：
 
-- owner 未能在超时内打印 invite
+- owner 未能在超时内导出 invite
 - joiner 未能在超时内启动到可观测状态
 - iOS simulator 不存在或未 boot
 - 无法读取 app container
@@ -244,12 +268,13 @@ joiner 侧同时收集：
 
 ## 风险与取舍
 
-### 风险 1：对 `flutter run` 控制台格式存在依赖
+### 风险 1：macOS 运行路径与 `flutter run -d macos` 不一致
 
 应对：
 
-- 只依赖当前已稳定的调试锚点：`pool_debug.invite:`、`pool_debug.join.*`
-- 最终状态仍以 `debug_status.log` 作为兜底真相源
+- `macOS` 统一复用已经验证通过的 `tool/build.dart run`
+- `macOS` invite 与最终状态统一从工具主动注入的文件读取
+- `pool_debug.join.*` 仅作为辅助观测点
 
 ### 风险 2：iOS simulator 容器读取受平台环境影响
 

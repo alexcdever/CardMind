@@ -379,6 +379,69 @@ void main() {
     );
   });
 
+  test('run can launch an isolated app copy with overridden bundle id', () async {
+    final calls = <_ProcCall>[];
+    final tempRoot = await _createWorkspaceWithCargoDylib();
+    File('${tempRoot.path}/build/native/macos/libcardmind_rust.dylib')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('cargo dylib');
+    final appRoot = Directory(
+      '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind.app/Contents',
+    )..createSync(recursive: true);
+    File('${appRoot.path}/Info.plist').writeAsStringSync('''
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.example.cardmind</string>
+</dict>
+</plist>
+''');
+    Directory('${appRoot.path}/Frameworks').createSync(recursive: true);
+
+    final exit = await runBuildCli(
+      const [
+        'run',
+        '--app-copy-name',
+        'cardmind-owner.app',
+        '--app-bundle-id',
+        'com.example.cardmind.owner',
+      ],
+      runProcess: _fakeRunner(calls),
+      currentDirectory: tempRoot.path,
+      platformOverride: HostPlatform.macos,
+    );
+
+    final copiedInfo = File(
+      '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app/Contents/Info.plist',
+    );
+    final copiedDylib = File(
+      '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app/Contents/Frameworks/libcardmind_rust.dylib',
+    );
+    final codesignCall = calls.firstWhere(
+      (call) => call.executable == 'codesign',
+    );
+    final openCall = calls.lastWhere((call) => call.executable == 'open');
+    expect(exit, 0);
+    expect(copiedInfo.existsSync(), isTrue);
+    expect(copiedDylib.readAsStringSync(), 'cargo dylib');
+    expect(
+      copiedInfo.readAsStringSync(),
+      contains('com.example.cardmind.owner'),
+    );
+    expect(openCall.arguments, <String>[
+      '-n',
+      '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app',
+    ]);
+    expect(codesignCall.arguments, <String>[
+      '--force',
+      '--deep',
+      '--sign',
+      '-',
+      '${tempRoot.path}/build/macos/Build/Products/Debug/cardmind-owner.app',
+    ]);
+  });
+
   test(
     'run reports official runtime dylib path when bundle copy input disappears after lib step',
     () async {

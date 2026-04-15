@@ -201,7 +201,7 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
-				A696E1F45E334612FBA99567 /* Copy Rust Framework */,
+				3A51202BDFCC5686005132E6 /* Copy Rust Framework */,
 			);
 			buildRules = (
 			);
@@ -295,6 +295,24 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		3A51202BDFCC5686005132E6 /* Copy Rust Framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Rust Framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "      FRAMEWORK_NAME=\"cardmind_rust.framework\"\n      FRAMEWORK_BINARY=\"cardmind_rust\"\n      ROOT_DIR=\"${PROJECT_DIR}/..\"\n      if [[ \"$SDK_NAME\" == *\"simulator\"* ]]; then\n        RUST_TARGET=\"aarch64-apple-ios-sim\"\n        SOURCE_DYLIB=\"${ROOT_DIR}/rust/target/aarch64-apple-ios-sim/release/libcardmind_rust.dylib\"\n      else\n        RUST_TARGET=\"aarch64-apple-ios\"\n        SOURCE_DYLIB=\"${ROOT_DIR}/rust/target/aarch64-apple-ios/release/libcardmind_rust.dylib\"\n      fi\n      DEST_FRAMEWORK=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/${FRAMEWORK_NAME}\"\n      DEST_BINARY=\"${DEST_FRAMEWORK}/${FRAMEWORK_BINARY}\"\n      DEST_INFO_PLIST=\"${DEST_FRAMEWORK}/Info.plist\"\n\n      (\n        cd \"${ROOT_DIR}/rust\" &&\n        cargo build --release --target \"$RUST_TARGET\"\n      ) || exit 1\n\n      if [ -f \"$SOURCE_DYLIB\" ]; then\n        mkdir -p \"$DEST_FRAMEWORK\"\n        cp \"$SOURCE_DYLIB\" \"$DEST_BINARY\"\n        cat > \"$DEST_INFO_PLIST\" <<'EOF'\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>CFBundleDevelopmentRegion</key>\n  <string>en</string>\n  <key>CFBundleExecutable</key>\n  <string>cardmind_rust</string>\n  <key>CFBundleIdentifier</key>\n  <string>com.example.cardmind.cardmind-rust</string>\n  <key>CFBundleInfoDictionaryVersion</key>\n  <string>6.0</string>\n  <key>CFBundleName</key>\n  <string>cardmind_rust</string>\n  <key>CFBundlePackageType</key>\n  <string>FMWK</string>\n  <key>CFBundleShortVersionString</key>\n  <string>1.0</string>\n  <key>CFBundleVersion</key>\n  <string>1</string>\n</dict>\n</plist>\nEOF\n        echo \"Copied Rust framework binary to app bundle\"\n      else\n        echo \"Warning: Rust dylib not found at $SOURCE_DYLIB\"\n      fi\n";
+		};
 		3B06AD1E1E4923F5004D2608 /* Thin Binary */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -325,24 +343,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
-		};
-		A696E1F45E334612FBA99567 /* Copy Rust Framework */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Copy Rust Framework";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "      FRAMEWORK_NAME=\"cardmind_rust.framework\"\n      FRAMEWORK_BINARY=\"cardmind_rust\"\n      ROOT_DIR=\"${PROJECT_DIR}/..\"\n      if [[ \"$SDK_NAME\" == *\"simulator\"* ]]; then\n        RUST_TARGET=\"aarch64-apple-ios-sim\"\n        SOURCE_DYLIB=\"${ROOT_DIR}/rust/target/aarch64-apple-ios-sim/release/libcardmind_rust.dylib\"\n      else\n        RUST_TARGET=\"aarch64-apple-ios\"\n        SOURCE_DYLIB=\"${ROOT_DIR}/rust/target/aarch64-apple-ios/release/libcardmind_rust.dylib\"\n      fi\n      DEST_FRAMEWORK=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/${FRAMEWORK_NAME}\"\n      DEST_BINARY=\"${DEST_FRAMEWORK}/${FRAMEWORK_BINARY}\"\n      DEST_INFO_PLIST=\"${DEST_FRAMEWORK}/Info.plist\"\n\n      (\n        cd \"${ROOT_DIR}/rust\" &&\n        cargo build --release --target \"$RUST_TARGET\"\n      ) || exit 1\n\n      if [ -f \"$SOURCE_DYLIB\" ]; then\n        mkdir -p \"$DEST_FRAMEWORK\"\n        cp \"$SOURCE_DYLIB\" \"$DEST_BINARY\"\n        cat > \"$DEST_INFO_PLIST\" <<'EOF'\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n  <key>CFBundleDevelopmentRegion</key>\n  <string>en</string>\n  <key>CFBundleExecutable</key>\n  <string>cardmind_rust</string>\n  <key>CFBundleIdentifier</key>\n  <string>com.example.cardmind.cardmind-rust</string>\n  <key>CFBundleInfoDictionaryVersion</key>\n  <string>6.0</string>\n  <key>CFBundleName</key>\n  <string>cardmind_rust</string>\n  <key>CFBundlePackageType</key>\n  <string>FMWK</string>\n  <key>CFBundleShortVersionString</key>\n  <string>1.0</string>\n  <key>CFBundleVersion</key>\n  <string>1</string>\n</dict>\n</plist>\nEOF\n        echo \"Copied Rust framework binary to app bundle\"\n      else\n        echo \"Warning: Rust dylib not found at $SOURCE_DYLIB\"\n      fi\n";
 		};
 		F4433CECE55CD2C9A34B0803 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
