@@ -3,7 +3,7 @@ import 'dart:io';
 import 'src/debug_pool/debug_pool_runner.dart';
 
 typedef Runner =
-    Future<ProcessResult> Function(
+    Future<Process> Function(
       String executable,
       List<String> arguments, {
       String? workingDirectory,
@@ -67,12 +67,16 @@ String? _readOption(List<String> args, String key) {
   return args[index + 1];
 }
 
-Future<ProcessResult> _run(
+Future<Process> _run(
   String executable,
   List<String> arguments, {
   String? workingDirectory,
 }) {
-  return Process.run(executable, arguments, workingDirectory: workingDirectory);
+  return Process.start(
+    executable,
+    arguments,
+    workingDirectory: workingDirectory,
+  );
 }
 
 void _stdout(String message) => stdout.writeln(message);
