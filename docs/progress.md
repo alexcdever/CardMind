@@ -5,60 +5,67 @@
 
 ## 当前进行中的工作
 
-1. 真实双实例联机验证已完成关键闭环：`macOS owner -> macOS joiner` 在独立 bundle id / 独立 `appDataDir` 条件下已真实成功；`macOS owner -> iOS simulator joiner` 也已真实跑通。iOS 路径新增收敛出的根因是：`get_joined_pool_view()` 过去误用 `get_any_pool()`，在模拟器容器残留旧池时会先拿到旧池，再用当前 runtime endpoint 校验成员身份，稳定触发 `NOT_MEMBER`。现已改为按当前 `endpoint_id` 选择所属池，代码回归与真实复验均已通过。Flutter 前端仍保留该路径的 `ApiError` 兜底，避免未来再因未捕获异常直接崩溃。
+1. 真实双实例联机验证已完成关键闭环：`macOS owner -> macOS joiner` 在独立 bundle id / 独立 `appDataDir` 条件下已真实成功；`macOS owner -> iOS simulator joiner` 也已在“iOS build phase 自动重建 Rust dylib”的前提下再次真实跑通。iOS 路径新增收敛出的两类根因都已闭环：`get_joined_pool_view()` 过去误用 `get_any_pool()` 会在容器残留旧池时触发 `NOT_MEMBER`；`Copy Rust Framework` 过去只复制旧 dylib，会让 FRB 在 `join_pool_by_invite(debug_trace)` 上因运行态签名落后而解码 panic。两者现均已通过代码修复与真实复验确认。
 2. `FrbPoolApiClient` 已基本收口 runtime handle 暴露面，业务层可只靠 `appDataDir` 完成 invite 入池；本轮已确认若显式注入 `networkId`，真实同步链路可稳定打通，后续如继续推进，可继续评估 `PoolShell` / `SyncService` 装配面是否还需进一步隐藏 `network_id`。
-3. iOS 模拟器集成已补到可真实启动：新增最小合法 `cardmind_rust.framework` 注入与 Podfile build phase；后续如继续保留 iOS 路径，应评估是否把当前最小注入方案升级为稳定的 framework/xcframework 产物流程。
+3. iOS 模拟器集成已补到可真实启动且能自动跟进 Rust 签名变化：新增最小合法 `cardmind_rust.framework` 注入，并将 Podfile / 当前生效 Xcode build phase 收口为“按 `SDK_NAME` 自动重建对应 iOS Rust dylib 再复制到 app bundle”。后续如继续保留 iOS 路径，应评估是否把当前最小注入方案升级为稳定的 framework/xcframework 产物流程。
 4. 文档治理第二轮收口已完成，质量门禁保持可用；本轮新增的 Rust / Flutter 合同、路径与构建相关回归均已通过。
 
 ## 最近完成的工作
 
-1. ~~数据池 invite 串入池与业务层 handle 收口~~ ✅ **已完成**（2026-04-13）
+1. ~~iOS Rust framework 自动重建与真实联机复验~~ ✅ **已完成**（2026-04-15）
+   - 定位 iOS `join_pool_by_invite(debug_trace)` 新增 FRB panic 的根因是运行态 framework 二进制陈旧，而非网络超时
+   - `ios/Podfile` 的 `Copy Rust Framework` build phase 已改为按 `SDK_NAME` 自动执行 `cargo build --release --target <ios-target>`
+   - 当前生效的 `ios/Runner.xcodeproj/project.pbxproj` 已同步更新同样逻辑，避免依赖手工再次 `pod install`
+   - 新增 `test/integration/infrastructure/ios_podfile_test.dart` 防回退
+   - 在不手工预构建 iOS Rust dylib 的前提下，`macOS owner -> iOS simulator joiner` 已再次真实成功 joined
+
+2. ~~数据池 invite 串入池与业务层 handle 收口~~ ✅ **已完成**（2026-04-13）
    - Rust FFI 新增 `create_pool_invite` / `join_pool_by_invite` / `get_pool_network_endpoint_id`
    - `network_id` 背后改为持久 runtime，修复 iroh endpoint 跨 runtime 触发的 `Internal consistency error`
    - `FrbPoolApiClient` 支持仅靠 `appDataDir` 懒加载 runtime，业务层不再需要显式传入 runtime handle
    - `Pool` owner 页面已显示 invite string，真实组网验证路径已具备最小 UI 支撑
    - Rust / Flutter 相关合同、单元、组件、自动化测试均已通过
 
-2. ~~文档治理第二轮收口（B+授权）~~ ✅ **已完成**（2026-04-10）
+3. ~~文档治理第二轮收口（B+授权）~~ ✅ **已完成**（2026-04-10）
    - `AGENTS.md` 收敛为仓库入口提示词，不再展开协作流程正文
    - `docs/standards/ai-collaboration.md` 成为唯一协作流程正文，并新增 `Agent` 授权边界
    - `docs/standards/spec-lifecycle.md` 收敛为纯边界判断文档
    - `docs/standards/tdd.md` 改为“默认优先采用 TDD，例外时说明原因并补足验证”
    - 审查 `git-and-pr.md` 与 `testing.md`，确认当前无需调整
 
-3. ~~质量门禁补强：Markdown 引用检查与 docs 子命令~~ ✅ **已完成**（2026-04-10）
+4. ~~质量门禁补强：Markdown 引用检查与 docs 子命令~~ ✅ **已完成**（2026-04-10）
    - `tool/lint/markdown_references_linter.dart` 支持锚点、title 文本、URL 编码空格，并在失效时返回非零退出码
    - `tool/quality.dart` 新增 `docs` 子命令，`flutter` 质量链改为先跑文档引用检查
    - 修正主工作区 `docs/` 历史相对引用，并让 linter 默认忽略 `.worktrees/`
    - `README.md` 与 `AGENTS.md` 已同步新增 `dart run tool/quality.dart docs` 说明
    - `dart run tool/quality.dart docs` 与 `dart run tool/quality.dart flutter` 已恢复可用
 
-4. ~~文档体系结构性重构第一轮收口~~ ✅ **已完成**（2026-04-09）
+5. ~~文档体系结构性重构第一轮收口~~ ✅ **已完成**（2026-04-09）
    - 明确 `AGENTS.md`、`docs/specs/`、`docs/plans/`、`docs/standards/` 的职责边界
    - 明确 spec 由“正式行为确认变更”触发更新，而不是由“开始实现”触发更新
    - 新增文档体系结构性重构实施计划
    - 删除 `docs/` 之外的全部 `DIR.md`
    - `fractal-doc-standard.md` 重命名并收口为 `docs-dir-indexing.md`
 
-5. ~~首页壳层测试护栏补齐~~ ✅ **已完成**（2026-04-08）
+6. ~~首页壳层测试护栏补齐~~ ✅ **已完成**（2026-04-08）
    - 首页测试明确 `pool` 分域装配经由 `PoolShell`
    - 修正与当前壳层分层方向冲突的旧断言
    - 首页壳层边界开始具备测试级防回退能力
 
-6. ~~首页壳层第一步约束落地~~ ✅ **已完成**（2026-04-08）
+7. ~~首页壳层第一步约束落地~~ ✅ **已完成**（2026-04-08）
    - 新增 `PoolShell`
    - `AppLockGate` 从 `AppHomepagePage` 下沉到 `PoolShell`
    - 首页壳层不再直接承接 pool 分域入口 gate
    - 首页相关测试通过
 
-7. ~~Rust macOS 动态库运行态路径统一~~ ✅ **已完成**（2026-04-08）
+8. ~~Rust macOS 动态库运行态路径统一~~ ✅ **已完成**（2026-04-08）
    - 官方运行态 dylib 收口到 `build/native/macos/libcardmind_rust.dylib`
    - `tool/build.dart lib` 改为构建后自动同步官方运行态 dylib
    - `tool/build.dart run` 改为从官方运行态目录复制到 app bundle
    - `main.dart` 与 FRB 真库测试统一改走共享 dylib 路径入口
    - `README.md`、`AGENTS.md`、`tool/DIR.md`、`lib/DIR.md` 已同步更新路径职责说明
 
-8. ~~Pool 前端一轮实质减负~~ ✅ **已完成**（2026-04-07）
+9. ~~Pool 前端一轮实质减负~~ ✅ **已完成**（2026-04-07）
    - `PoolPage` 主文件收成状态分发入口
    - 特殊错误判断从散写逻辑收成控制器私有守卫
    - `approvalMessage` 从 `PoolState` 中移出，改为 `PoolController.noticeMessage`
@@ -66,26 +73,26 @@
    - 测试改为通过 fake API client 制造失败路径
    - 相关 unit / widget / integration 测试通过
 
-9. ~~Pool 前端第一轮结构收口~~ ✅ **已完成**（2026-04-07）
+10. ~~Pool 前端第一轮结构收口~~ ✅ **已完成**（2026-04-07）
    - `PoolPage` 主文件收成状态分发入口
    - 对话框逻辑拆到 `pool_page_dialogs.dart`
    - 页面块拆到 `pool_page_sections.dart`
    - 同步反馈拆到 `pool_sync_feedback.dart`
    - 相关 widget 测试通过
 
-10. ~~文档权威边界收紧~~ ✅ **已完成**（2026-04-07）
+11. ~~文档权威边界收紧~~ ✅ **已完成**（2026-04-07）
    - 明确 `docs/standards/` 与 `docs/specs/` 是当前实现依据
    - 将 `docs/plans/` 降权为历史设计/计划/审计记录目录
    - 收紧 spec 生命周期规则，禁止把未确认项直接写成正式规格
 
-11. ~~Phase 3 数据池规格定版~~ ✅ **已完成**（2026-04-07）
+12. ~~Phase 3 数据池规格定版~~ ✅ **已完成**（2026-04-07）
    - 应用锁前置条件
    - 加入申请取消
    - 解散后只读态
    - 退出/重新加入后的访问边界
    - 黑盒验收标准补齐
 
-12. ~~Phase 3 数据池治理与安全基线~~ ✅ **已完成**（2026-04-05）
+13. ~~Phase 3 数据池治理与安全基线~~ ✅ **已完成**（2026-04-05）
    - 应用锁（Rust 状态机 + Flutter guard/UI）
    - 数据池 API 应用锁 gating
    - 最后管理员不能退出
@@ -93,24 +100,24 @@
    - 加入申请提交 / 审批 / 拒绝 / 取消
    - Rust / Flutter / FRB / contract / integration / widget 测试链路打通
 
-13. ~~质量门禁基线清理~~ ✅ **已完成**（2026-04-05）
+14. ~~质量门禁基线清理~~ ✅ **已完成**（2026-04-05）
    - `flutter analyze` 通过
    - `cargo fmt --check` 通过
    - `cargo clippy` 通过
    - `dart run tool/quality.dart all` 通过
 
-14. ~~应用锁前置能力~~ ✅ **已完成**（2026-04-05）
+15. ~~应用锁前置能力~~ ✅ **已完成**（2026-04-05）
    - Rust 安全状态机与存储抽象
    - Flutter 应用锁服务、界面与 guard
    - 池相关 API 必须在解锁后访问
 
 ## 待办事项
 
-- [ ] 先判断两个真实 app 实例的网络是否具备基础互通能力，再决定是否继续深挖 `iroh` 连接建立阶段超时
+- [ ] 评估是否把当前跨端真实调试流程进一步收口为单条脚本或工具命令，减少 owner/joiner 手工启动步骤
 - [ ] 评估是否为 app 内置最小网络自检模块，输出 endpoint 可达性 / 地址可见性 / 连接尝试结果
 - [ ] 评估是否改为直接从 Flutter debug 会话或 VM Service 获取 invite / 状态，而不是继续依赖文件导出
 - [ ] 固化 owner invite / join trace 调试入口，并补容器读取说明
-- [ ] 恢复会话时先复核 `docs/plans/2026-04-14-network-diagnostic-debug-plan.md` 与 `docs/plans/2026-04-14-network-debug-trace-implementation.md` 是否仍为最新方案，并确认代码尚未真正完成这些需求
+- [ ] 评估 `Copy Rust Framework` 最小方案是否需要升级为更稳定的 xcframework/统一产物流程
 - [ ] 如继续收口架构，评估 `PoolShell` / `SyncService` 装配面对 `network_id` 的剩余暴露
 - [ ] 如继续优化文档治理，输出一页职责地图，明确核心文档负责什么、不再负责什么
 - [ ] 如需继续提升多 worktree 开发体验，评估是否引入共享 Cargo 编译缓存策略
@@ -123,6 +130,8 @@
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-04-15 | iOS `Copy Rust Framework` build phase 必须在复制前自动重建对应 Rust dylib | 手工先跑 `cargo build --target aarch64-apple-ios-sim` 依赖人工记忆，无法从根上避免运行态 framework 二进制陈旧导致的 FRB 签名错位 |
+| 2026-04-15 | iOS 新出现的 `join_pool_by_invite(debug_trace)` panic 优先按运行态签名不一致处理，而不是继续深挖网络 | 真实错误已稳定收敛为 FRB 解码长度不一致，继续查网络会偏离根因 |
 | 2026-04-14 | 真实联机验证阶段优先从 app 容器目录读取 `debug_status.log` / `debug_invite.txt` | macOS app 对仓库路径写入受沙盒影响，容器目录更稳定可观测 |
 | 2026-04-14 | macOS `.worktrees/...` 下真实运行优先从 app bundle `Frameworks/` 目录加载 dylib | 直接读取 worktree 外部 `build/native/macos` 会触发 app 文件沙盒拦截，复制进 bundle 后真实 `flutter run` 验证恢复可用 |
 | 2026-04-14 | macOS Runner entitlements 补齐 `com.apple.security.network.client` | DebugProfile 只有 `network.server` 不足以支撑主动 join 连接；补齐后真实 join 已不再停在原 connect 超时 |
@@ -165,6 +174,7 @@
 
 - [最小网络互通调试方案](./plans/2026-04-14-network-diagnostic-debug-plan.md)
 - [网络调试实现计划](./plans/2026-04-14-network-debug-trace-implementation.md)
+- [今日工作日志（2026-04-15）](./memory/2026-04-15.md)
 - [今日工作日志（2026-04-13）](./memory/2026-04-13.md)
 - [今日工作日志（2026-04-14）](./memory/2026-04-14.md)
 - [今日工作日志（2026-04-13）](./memory/2026-04-13.md)
@@ -186,4 +196,4 @@
 
 ---
 
-*最后更新：2026-04-14*
+*最后更新：2026-04-15*

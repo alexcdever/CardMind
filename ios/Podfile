@@ -53,13 +53,20 @@ post_integrate do |installer|
       FRAMEWORK_BINARY="cardmind_rust"
       ROOT_DIR="${PROJECT_DIR}/.."
       if [[ "$SDK_NAME" == *"simulator"* ]]; then
+        RUST_TARGET="aarch64-apple-ios-sim"
         SOURCE_DYLIB="${ROOT_DIR}/rust/target/aarch64-apple-ios-sim/release/libcardmind_rust.dylib"
       else
+        RUST_TARGET="aarch64-apple-ios"
         SOURCE_DYLIB="${ROOT_DIR}/rust/target/aarch64-apple-ios/release/libcardmind_rust.dylib"
       fi
       DEST_FRAMEWORK="${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/${FRAMEWORK_NAME}"
       DEST_BINARY="${DEST_FRAMEWORK}/${FRAMEWORK_BINARY}"
       DEST_INFO_PLIST="${DEST_FRAMEWORK}/Info.plist"
+
+      (
+        cd "${ROOT_DIR}/rust" &&
+        cargo build --release --target "$RUST_TARGET"
+      ) || exit 1
 
       if [ -f "$SOURCE_DYLIB" ]; then
         mkdir -p "$DEST_FRAMEWORK"
