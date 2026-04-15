@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../tool/debug_pool.dart';
 import '../../../tool/src/debug_pool/debug_pool_runner.dart';
 import '../../../tool/src/debug_pool/flutter_run_session.dart';
+import '../../../tool/src/debug_pool/simctl_support.dart';
 
 void main() {
   test('prints usage when owner or joiner is missing', () async {
@@ -77,6 +78,53 @@ void main() {
     ).captureOwnerInvite(deviceId: 'macos', pin: '1234');
 
     expect(result, 'invite-123');
+  });
+
+  test('uses booted ios simulator when ios-device is omitted', () async {
+    final calls = <_ProcCall>[];
+
+    final deviceId = await resolveJoinerDeviceId(
+      joiner: 'ios-sim',
+      explicitDeviceId: null,
+      runner: _fakeProcessResultRunner(
+        calls,
+        stdoutForCommand: <String, String>{
+          'xcrun simctl list devices booted':
+              '== Devices ==\n-- iOS 18.4 --\n    iPhone 16 Pro (C2A658D0-C55F-4010-A373-B3D2F4F62633) (Booted)\n',
+        },
+      ),
+    );
+
+    expect(deviceId, 'C2A658D0-C55F-4010-A373-B3D2F4F62633');
+    expect(calls.single.arguments, <String>[
+      'simctl',
+      'list',
+      'devices',
+      'booted',
+    ]);
+  });
+
+  test('prints joined result after owner and joiner complete', () async {
+    final logs = <String>[];
+
+    final exit = await runDebugPoolCli(
+      const ['--owner', 'macos', '--joiner', 'ios-sim'],
+      log: logs.add,
+      logError: logs.add,
+      orchestrator: _FakeDebugPoolRunner(
+        result: const DebugPoolRunResult(
+          ownerTarget: 'macos',
+          joinerTarget: 'ios-sim',
+          invite: 'invite-123',
+          joinTraceSeen: true,
+          finalStatus: 'joined:pool-123',
+        ),
+      ),
+    );
+
+    expect(exit, 0);
+    expect(logs.join('\n'), contains('joined:pool-123'));
+    expect(logs.join('\n'), contains('invite captured'));
   });
 }
 
@@ -165,4 +213,51 @@ Never _unusedStarter(
   String? workingDirectory,
 }) {
   throw StateError('No process expected: $executable ${arguments.join(' ')}');
+}
+
+SimctlRunner _fakeProcessResultRunner(
+  List<_ProcCall> calls, {
+  required Map<String, String> stdoutForCommand,
+}) {
+  return (
+    String executable,
+    List<String> arguments, {
+    String? workingDirectory,
+  }) async {
+    calls.add(
+      _ProcCall(
+        executable: executable,
+        arguments: List<String>.from(arguments),
+        workingDirectory: workingDirectory,
+      ),
+    );
+    final key = '$executable ${arguments.join(' ')}';
+    return ProcessResult(
+      1,
+      0,
+      stdoutForCommand[key] ?? '',
+      '',
+    );
+  };
+}
+
+class _FakeDebugPoolRunner extends DebugPoolRunner {
+  _FakeDebugPoolRunner({required this.result})
+    : super(runner: _noRunnerExpected);
+
+  final DebugPoolRunResult result;
+
+  @override
+  Future<DebugPoolRunResult> run({
+    required String owner,
+    required String joiner,
+    required String pin,
+    required String? iosDeviceId,
+    required bool keepRunning,
+    required bool verbose,
+    required void Function(String) log,
+    required void Function(String) logError,
+  }) async {
+    return result;
+  }
 }

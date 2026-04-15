@@ -15,7 +15,7 @@ class DebugPoolRunner {
   final Runner runner;
   final SessionFactory ownerSessionFactory;
 
-  Future<int> run({
+  Future<DebugPoolRunResult> run({
     required String owner,
     required String joiner,
     required String pin,
@@ -25,8 +25,13 @@ class DebugPoolRunner {
     required void Function(String) log,
     required void Function(String) logError,
   }) async {
-    log('debug pool orchestration is not implemented yet');
-    return 0;
+    return DebugPoolRunResult(
+      ownerTarget: owner,
+      joinerTarget: joiner,
+      invite: await captureOwnerInvite(deviceId: owner, pin: pin),
+      joinTraceSeen: false,
+      finalStatus: 'not_implemented',
+    );
   }
 
   Future<String> captureOwnerInvite({
@@ -46,6 +51,22 @@ class DebugPoolRunner {
     }
     throw StateError('owner invite not found in session output');
   }
+}
+
+class DebugPoolRunResult {
+  const DebugPoolRunResult({
+    required this.ownerTarget,
+    required this.joinerTarget,
+    required this.invite,
+    required this.joinTraceSeen,
+    required this.finalStatus,
+  });
+
+  final String ownerTarget;
+  final String joinerTarget;
+  final String invite;
+  final bool joinTraceSeen;
+  final String finalStatus;
 }
 
 Future<FlutterRunSession> _defaultOwnerSessionFactory(

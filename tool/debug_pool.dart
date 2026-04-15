@@ -47,7 +47,7 @@ Future<int> runDebugPoolCli(
   }
 
   final effectiveOrchestrator = orchestrator ?? DebugPoolRunner(runner: runner);
-  return effectiveOrchestrator.run(
+  final result = await effectiveOrchestrator.run(
     owner: owner,
     joiner: joiner,
     pin: _readOption(args, '--pin') ?? '1234',
@@ -57,6 +57,12 @@ Future<int> runDebugPoolCli(
     log: log,
     logError: logError,
   );
+  log('owner: ${result.ownerTarget}');
+  log('joiner: ${result.joinerTarget}');
+  log('invite captured: ${result.invite.isNotEmpty}');
+  log('join trace seen: ${result.joinTraceSeen}');
+  log('final status: ${result.finalStatus}');
+  return 0;
 }
 
 String? _readOption(List<String> args, String key) {
