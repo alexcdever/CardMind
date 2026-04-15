@@ -9,7 +9,8 @@ typedef Runner =
       String? workingDirectory,
     });
 
-const _usage = 'Usage: dart run tool/debug_pool.dart --owner macos --joiner <macos|ios-sim> [options]';
+const _usage =
+    'Usage: dart run tool/debug_pool.dart --owner macos --joiner <macos|ios-sim> [options]';
 
 Future<void> main(List<String> args) async {
   exitCode = await runDebugPoolCli(args);
@@ -47,7 +48,8 @@ Future<int> runDebugPoolCli(
   }
 
   final effectiveOrchestrator = orchestrator ?? DebugPoolRunner(runner: runner);
-  final result = await effectiveOrchestrator.run(
+  final result = await _runOrReportFailure(
+    effectiveOrchestrator,
     owner: owner,
     joiner: joiner,
     pin: _readOption(args, '--pin') ?? '1234',
@@ -57,6 +59,9 @@ Future<int> runDebugPoolCli(
     log: log,
     logError: logError,
   );
+  if (result == null) {
+    return 1;
+  }
   log('owner: ${result.ownerTarget}');
   log('joiner: ${result.joinerTarget}');
   log('invite captured: ${result.invite.isNotEmpty}');
@@ -83,6 +88,44 @@ Future<Process> _run(
     arguments,
     workingDirectory: workingDirectory,
   );
+}
+
+Future<DebugPoolRunResult?> _runOrReportFailure(
+  DebugPoolRunner orchestrator, {
+  required String owner,
+  required String joiner,
+  required String pin,
+  required String? iosDeviceId,
+  required bool keepRunning,
+  required bool verbose,
+  required void Function(String) log,
+  required void Function(String) logError,
+}) async {
+  try {
+    return await orchestrator.run(
+      owner: owner,
+      joiner: joiner,
+      pin: pin,
+      iosDeviceId: iosDeviceId,
+      keepRunning: keepRunning,
+      verbose: verbose,
+      log: log,
+      logError: logError,
+    );
+  } on DebugPoolRunFailure catch (error) {
+    logError('[debug_pool] failed at stage: ${error.stage}');
+    logError('[debug_pool] ${error.summary}');
+    for (final line in error.diagnostics) {
+      logError('[debug_pool] $line');
+    }
+    if (error.recentLogs.isNotEmpty) {
+      logError('[debug_pool] recent logs:');
+      for (final line in error.recentLogs) {
+        logError('[debug_pool]   $line');
+      }
+    }
+    return null;
+  }
 }
 
 void _stdout(String message) => stdout.writeln(message);

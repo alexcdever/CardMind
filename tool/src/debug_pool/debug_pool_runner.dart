@@ -39,6 +39,7 @@ class DebugPoolRunner {
     DebugSession? ownerSession;
     DebugSession? joinerSession;
     try {
+      log('[debug_pool] starting owner session');
       ownerSession = await ownerSessionFactory(
         DebugSessionConfig(
           deviceId: owner,
@@ -51,12 +52,15 @@ class DebugPoolRunner {
       );
       await ownerSession.start();
       final invite = await _waitForInvite(ownerSession);
+      log('[debug_pool] invite captured');
 
+      log('[debug_pool] resolving joiner target');
       final resolvedJoinerTarget = await resolveJoinerDeviceId(
         joiner: joiner,
         explicitDeviceId: iosDeviceId,
         runner: simctlRunner,
       );
+      log('[debug_pool] starting joiner session');
       final joinerBundleId = joiner == 'macos'
           ? 'com.example.cardmind.joiner'
           : null;
@@ -77,10 +81,12 @@ class DebugPoolRunner {
       );
       await joinerSession.start();
 
+      log('[debug_pool] waiting for join trace');
       final traceLine = await joinerSession.waitForLine(
         (line) => line.contains('pool_debug.join.'),
         timeout: const Duration(seconds: 10),
       );
+      log('[debug_pool] collecting final status');
       final finalStatus = joiner == 'ios-sim'
           ? await readIosSimulatorFinalStatus(
               deviceId: resolvedJoinerTarget,
@@ -94,6 +100,17 @@ class DebugPoolRunner {
         invite: invite,
         joinTraceSeen: traceLine != null,
         finalStatus: finalStatus,
+      );
+    } on DebugPoolRunFailure {
+      rethrow;
+    } catch (error) {
+      throw DebugPoolRunFailure(
+        stage: 'orchestration',
+        summary: error.toString(),
+        recentLogs: <String>[
+          ...?joinerSession?.recentLines.takeLast(10),
+          ...?ownerSession?.recentLines.takeLast(10),
+        ],
       );
     } finally {
       if (!keepRunning) {
@@ -136,7 +153,11 @@ class DebugPoolRunner {
           normalized.startsWith('pool_debug.invite:');
     }, timeout: const Duration(seconds: 60));
     if (line == null) {
-      throw StateError('owner invite not found in session output');
+      throw DebugPoolRunFailure(
+        stage: 'owner_invite',
+        summary: 'owner invite not found',
+        recentLogs: session.recentLines.takeLast(10),
+      );
     }
     final normalized = line.trim();
     if (normalized.startsWith('flutter: pool_debug.invite:')) {
@@ -157,8 +178,27 @@ class DebugPoolRunner {
       }
       await Future<void>.delayed(const Duration(seconds: 1));
     }
-    throw StateError('timed out waiting for macOS join result');
+    throw DebugPoolRunFailure(
+      stage: 'join_result',
+      summary: 'timed out waiting for macOS join result',
+      diagnostics: <String>['status_path: $statusPath'],
+      recentLogs: _readFileTailLines(statusPath),
+    );
   }
+}
+
+class DebugPoolRunFailure implements Exception {
+  const DebugPoolRunFailure({
+    required this.stage,
+    required this.summary,
+    this.diagnostics = const <String>[],
+    this.recentLogs = const <String>[],
+  });
+
+  final String stage;
+  final String summary;
+  final List<String> diagnostics;
+  final List<String> recentLogs;
 }
 
 class DebugPoolRunResult {
@@ -297,4 +337,29 @@ String _macosDebugInvitePath(String bundleId) {
 
 String _macosDebugStatusPath(String bundleId) {
   return '${_macosAppSupportDir(bundleId)}/debug_status.log';
+}
+
+List<String> _readFileTailLines(String path, {int maxLines = 10}) {
+  final file = File(path);
+  if (!file.existsSync()) {
+    return const <String>[];
+  }
+  final lines = file
+      .readAsLinesSync()
+      .map((line) => line.trim())
+      .where((line) => line.isNotEmpty)
+      .toList(growable: false);
+  if (lines.length <= maxLines) {
+    return lines;
+  }
+  return lines.sublist(lines.length - maxLines);
+}
+
+extension on List<String> {
+  List<String> takeLast(int count) {
+    if (length <= count) {
+      return List<String>.from(this);
+    }
+    return sublist(length - count);
+  }
 }

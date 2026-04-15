@@ -160,8 +160,37 @@ void main() {
     );
 
     expect(exit, 0);
+    expect(logs.join('\n'), contains('[debug_pool] starting owner session'));
+    expect(logs.join('\n'), contains('[debug_pool] invite captured'));
+    expect(logs.join('\n'), contains('[debug_pool] starting joiner session'));
     expect(logs.join('\n'), contains('joined:pool-123'));
     expect(logs.join('\n'), contains('invite captured'));
+  });
+
+  test('prints stage and recent logs when orchestration fails', () async {
+    final logs = <String>[];
+
+    final exit = await runDebugPoolCli(
+      const ['--owner', 'macos', '--joiner', 'ios-sim'],
+      log: logs.add,
+      logError: logs.add,
+      orchestrator: _ThrowingDebugPoolRunner(
+        failure: const DebugPoolRunFailure(
+          stage: 'owner_invite',
+          summary: 'owner invite not found',
+          recentLogs: <String>['booting...', 'network_ready:1'],
+        ),
+      ),
+    );
+
+    expect(exit, 1);
+    expect(
+      logs.join('\n'),
+      contains('[debug_pool] failed at stage: owner_invite'),
+    );
+    expect(logs.join('\n'), contains('owner invite not found'));
+    expect(logs.join('\n'), contains('booting...'));
+    expect(logs.join('\n'), contains('network_ready:1'));
   });
 }
 
@@ -294,6 +323,30 @@ class _FakeDebugPoolRunner extends DebugPoolRunner {
     required void Function(String) log,
     required void Function(String) logError,
   }) async {
+    log('[debug_pool] starting owner session');
+    log('[debug_pool] invite captured');
+    log('[debug_pool] starting joiner session');
     return result;
+  }
+}
+
+class _ThrowingDebugPoolRunner extends DebugPoolRunner {
+  _ThrowingDebugPoolRunner({required this.failure})
+    : super(runner: _noRunnerExpected);
+
+  final DebugPoolRunFailure failure;
+
+  @override
+  Future<DebugPoolRunResult> run({
+    required String owner,
+    required String joiner,
+    required String pin,
+    required String? iosDeviceId,
+    required bool keepRunning,
+    required bool verbose,
+    required void Function(String) log,
+    required void Function(String) logError,
+  }) async {
+    throw failure;
   }
 }
