@@ -145,7 +145,7 @@ void main() {
     tester,
   ) async {
     final service = AppLockService(gateway: _UnlockedGateway());
-    final tempDir = await Directory.systemTemp.createTemp(
+    final tempDir = Directory.systemTemp.createTempSync(
       'cardmind-pool-shell-status-',
     );
     final statusPath = p.join(tempDir.path, 'status.log');
@@ -165,11 +165,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pump(const Duration(milliseconds: 50));
 
-      final status = await File(statusPath).readAsString();
+      final status = File(statusPath).readAsStringSync();
       expect(status, contains('app_lock:unlocked'));
       expect(status, contains('network_ready:11'));
     } finally {
-      await tempDir.delete(recursive: true);
+      tempDir.deleteSync(recursive: true);
     }
   });
 }

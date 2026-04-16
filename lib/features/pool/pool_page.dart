@@ -185,6 +185,7 @@ class _PoolPageState extends State<PoolPage> {
     final state = _controller.state;
     final marker = switch (state) {
       PoolJoined joined => 'joined:${joined.poolId}',
+      PoolJoinPending pending => 'join_pending:${pending.poolId}:${pending.requestId}',
       PoolError error =>
         'join_error:${error.code}:${_controller.noticeMessage ?? ''}',
       PoolNotJoined() => 'not_joined',
@@ -238,8 +239,8 @@ class _PoolPageState extends State<PoolPage> {
   Future<void> _writeInvite(String exportPath, String inviteCode) async {
     try {
       final file = File(exportPath);
-      await file.parent.create(recursive: true);
-      await file.writeAsString(inviteCode);
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync(inviteCode);
     } catch (_) {
       // 调试导出失败不应影响页面主流程。
     }
@@ -252,8 +253,8 @@ class _PoolPageState extends State<PoolPage> {
     }
     try {
       final file = File(path);
-      await file.parent.create(recursive: true);
-      await file.writeAsString('$line\n', mode: FileMode.append);
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync('$line\n', mode: FileMode.append);
     } catch (_) {
       // 调试状态导出失败不应影响页面主流程。
     }
@@ -287,6 +288,7 @@ class _PoolPageState extends State<PoolPage> {
         controller: _controller,
         syncStatus: _controller.syncStatus,
         onScanJoin: () => _scanAndJoin(context),
+        noticeMessage: _controller.noticeMessage,
       );
     }
 
@@ -301,6 +303,16 @@ class _PoolPageState extends State<PoolPage> {
         onEditPool: () => _showEditPoolDialog(context),
         onConfirmDissolve: () => _confirmDissolvePool(context),
         onConfirmLeave: () => _confirmLeavePool(context),
+      );
+    }
+
+    if (state is PoolJoinPending) {
+      return _PoolJoinPendingView(
+        state: state,
+        controller: _controller,
+        syncStatus: _controller.syncStatus,
+        noticeMessage: _controller.noticeMessage,
+        onCancelJoinRequest: () => _controller.cancelJoinRequest(state.requestId),
       );
     }
 

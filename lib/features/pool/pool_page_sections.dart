@@ -5,11 +5,13 @@ class _PoolNotJoinedView extends StatelessWidget {
     required this.controller,
     required this.syncStatus,
     required this.onScanJoin,
+    required this.noticeMessage,
   });
 
   final PoolController controller;
   final SyncStatus syncStatus;
   final VoidCallback onScanJoin;
+  final String? noticeMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +77,11 @@ class _PoolNotJoinedView extends StatelessWidget {
                       const Padding(
                         padding: EdgeInsets.only(top: 12),
                         child: Text('请求处理中...'),
+                      ),
+                    if (noticeMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Text(noticeMessage!),
                       ),
                   ],
                 ),
@@ -275,6 +282,69 @@ class _PoolJoinedView extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Text(noticeMessage!),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PoolJoinPendingView extends StatelessWidget {
+  const _PoolJoinPendingView({
+    required this.state,
+    required this.controller,
+    required this.syncStatus,
+    required this.noticeMessage,
+    required this.onCancelJoinRequest,
+  });
+
+  final PoolJoinPending state;
+  final PoolController controller;
+  final SyncStatus syncStatus;
+  final String? noticeMessage;
+  final Future<void> Function() onCancelJoinRequest;
+
+  @override
+  Widget build(BuildContext context) {
+    final syncFeedback = buildPoolSyncFeedback(
+      context: context,
+      status: syncStatus,
+      onRetrySync: controller.retrySync,
+      onReconnectSync: controller.reconnectSync,
+    );
+
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            syncFeedback ?? const SizedBox.shrink(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(state.poolName),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text('加入申请处理中'),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(state.applicantIdentityLabel),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: OutlinedButton(
+                key: const ValueKey('pool.cancel_join_request_button'),
+                onPressed: onCancelJoinRequest,
+                child: const Text('取消申请'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                noticeMessage ?? '加入申请已提交，等待管理员审批',
+              ),
+            ),
           ],
         ),
       ),

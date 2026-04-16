@@ -143,8 +143,8 @@ class _PoolShellState extends State<PoolShell> {
     }
     try {
       final file = File(path);
-      await file.parent.create(recursive: true);
-      await file.writeAsString('$line\n', mode: FileMode.append);
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync('$line\n', mode: FileMode.append);
     } catch (_) {
       // 调试状态导出失败不应影响主流程。
     }

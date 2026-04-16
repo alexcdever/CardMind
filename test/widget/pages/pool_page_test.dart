@@ -460,7 +460,7 @@ void main() {
       initialState: const PoolState.notJoined(),
       apiClient: client,
     );
-    final tempDir = await Directory.systemTemp.createTemp(
+    final tempDir = Directory.systemTemp.createTempSync(
       'cardmind-pool-page-invite-',
     );
     final invitePath = p.join(tempDir.path, 'invite.txt');
@@ -481,10 +481,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pump(const Duration(milliseconds: 50));
 
-      final exported = await File(invitePath).readAsString();
+      final exported = File(invitePath).readAsStringSync();
       expect(exported, 'invite://server-pool');
     } finally {
-      await tempDir.delete(recursive: true);
+      tempDir.deleteSync(recursive: true);
     }
   });
 
@@ -642,11 +642,12 @@ void main() {
       ..joinRequestResults = const <JoinRequestData>[];
     final controller = PoolController(
       apiClient: client,
-      initialState: const PoolState.joined(
+      initialState: const PoolState.joinPending(
         poolId: 'joined-pool',
-        pending: <PoolPendingRequest>[
-          PoolPendingRequest(id: 'req-1', displayName: 'alice@pending'),
-        ],
+        poolName: '待加入数据池',
+        requestId: 'req-1',
+        applicantIdentityLabel: 'alice@pending',
+        pendingSinceLabel: '刚刚提交',
       ),
     );
 
@@ -658,11 +659,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('alice@pending'), findsNothing);
+    expect(find.text('待加入数据池'), findsNothing);
+    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
     expect(find.text('加入申请已取消'), findsOneWidget);
   });
 
-  testWidgets('applicant can submit join request from not joined state', (
+  testWidgets('applicant can submit join request into dedicated pending view', (
     tester,
   ) async {
     final client = _FakePoolApiClient()
@@ -692,7 +694,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('待审批请求'), findsOneWidget);
+    expect(find.text('待加入数据池'), findsOneWidget);
+    expect(find.text('成员列表'), findsNothing);
     expect(find.text('applicant@test'), findsOneWidget);
     expect(find.text('取消申请'), findsOneWidget);
     expect(find.textContaining('等待管理员审批'), findsOneWidget);
@@ -1006,6 +1009,48 @@ void main() {
       expect(gateway.disconnectCalls, 1);
       expect(gateway.connectCalls, 1);
       expect(gateway.statusCalls, 1);
+      expect(controller.syncStatus.kind, SyncStatusKind.connected);
+    },
+  );
+
+  testWidgets(
+    'pending view sync actions should invoke backend recovery operations',
+    (tester) async {
+      final gateway = _FakeSyncGateway();
+      final controller = PoolController(
+        initialState: const PoolState.joinPending(
+          poolId: 'joined-pool',
+          poolName: '待加入数据池',
+          requestId: 'req-1',
+          applicantIdentityLabel: 'applicant@test',
+        ),
+        initialSyncStatus: const SyncStatus.error('REQUEST_TIMEOUT'),
+        apiClient: _FakePoolApiClient(),
+        syncService: SyncService(gateway: gateway, networkId: BigInt.from(3)),
+        reconnectTarget: 'peer-1',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PoolPage(state: controller.state, controller: controller),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('pool.sync.retry')));
+      await tester.pumpAndSettle();
+
+      expect(gateway.pullCalls, 1);
+      expect(gateway.statusCalls, 1);
+
+      controller.setSyncStatus(const SyncStatus.error('REQUEST_TIMEOUT'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('pool.sync.reconnect')));
+      await tester.pumpAndSettle();
+
+      expect(gateway.disconnectCalls, 1);
+      expect(gateway.connectCalls, 1);
+      expect(gateway.statusCalls, 2);
       expect(controller.syncStatus.kind, SyncStatusKind.connected);
     },
   );

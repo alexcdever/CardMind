@@ -26,6 +26,15 @@ sealed class PoolState {
     String? inviteCode,
   }) = PoolJoined;
 
+  /// 创建已提交加入申请、等待审批的状态。
+  const factory PoolState.joinPending({
+    String poolId,
+    String poolName,
+    String requestId,
+    String applicantIdentityLabel,
+    String? pendingSinceLabel,
+  }) = PoolJoinPending;
+
   /// 创建错误状态。
   const factory PoolState.error(String code) = PoolError;
 
@@ -110,6 +119,33 @@ class PoolJoined extends PoolState {
       inviteCode: inviteCode ?? this.inviteCode,
     );
   }
+}
+
+/// 已提交加入申请、等待审批的状态。
+class PoolJoinPending extends PoolState {
+  /// 创建等待审批状态实例。
+  const PoolJoinPending({
+    this.poolId = 'pending-request-pool',
+    this.poolName = '待加入数据池',
+    this.requestId = 'pending-request',
+    this.applicantIdentityLabel = '申请人',
+    this.pendingSinceLabel,
+  });
+
+  /// 目标数据池标识。
+  final String poolId;
+
+  /// 目标数据池名称。
+  final String poolName;
+
+  /// 当前加入申请 ID。
+  final String requestId;
+
+  /// 当前申请人身份标签。
+  final String applicantIdentityLabel;
+
+  /// 等待中的时间描述。
+  final String? pendingSinceLabel;
 }
 
 /// 发生错误时的池状态。

@@ -199,50 +199,53 @@ class PoolController extends ChangeNotifier {
   }
 
   Future<void> submitJoinRequest() async {
-    final joined = _state is PoolJoined
-        ? _state as PoolJoined
-        : const PoolJoined(
-            poolId: 'pending-request-pool',
-            poolName: '待加入数据池',
-            isOwner: false,
-            currentIdentityLabel: '申请人',
-            memberLabels: <String>[],
-          );
+    final pendingBase = switch (_state) {
+      PoolJoinPending pending => pending,
+      _ => const PoolJoinPending(),
+    };
 
     try {
-      final requests = await _apiClient.submitJoinRequest(joined.poolId);
+      final requests = await _apiClient.submitJoinRequest(pendingBase.poolId);
+      final firstPending = requests.firstWhere(
+        (request) => request.status == 'pending',
+        orElse: () => const JoinRequestData(
+          requestId: 'pending-request',
+          displayName: '申请人',
+          status: 'pending',
+        ),
+      );
       _noticeMessage = '加入申请已提交，等待管理员审批';
-      _state = joined.copyWith(
-        pending: _pendingFromApi(requests),
-        isOwner: false,
+      _state = PoolState.joinPending(
+        poolId: pendingBase.poolId,
+        poolName: pendingBase.poolName,
+        requestId: firstPending.requestId,
+        applicantIdentityLabel: firstPending.displayName,
+        pendingSinceLabel: '刚刚提交',
       );
     } on ApiError {
       _noticeMessage = '加入申请提交失败，请稍后重试';
-      _state = joined;
+      _state = pendingBase;
     } catch (_) {
       _noticeMessage = '加入申请提交失败，请稍后重试';
-      _state = joined;
+      _state = pendingBase;
     }
     notifyListeners();
   }
 
   Future<void> cancelJoinRequest(String requestId) async {
-    final joined = _state;
-    if (joined is! PoolJoined) return;
+    final pending = _state;
+    if (pending is! PoolJoinPending) return;
 
     try {
-      final requests = await _apiClient.cancelJoinRequest(
-        joined.poolId,
-        requestId,
-      );
+      await _apiClient.cancelJoinRequest(pending.poolId, requestId);
       _noticeMessage = '加入申请已取消';
-      _state = joined.copyWith(pending: _pendingFromApi(requests));
+      _state = const PoolState.notJoined();
     } on ApiError {
       _noticeMessage = '取消申请失败，请稍后重试';
-      _state = joined;
+      _state = pending;
     } catch (_) {
       _noticeMessage = '取消申请失败，请稍后重试';
-      _state = joined;
+      _state = pending;
     }
     notifyListeners();
   }
