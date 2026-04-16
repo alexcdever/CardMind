@@ -5,7 +5,7 @@
 
 ## 当前进行中的工作
 
-1. 数据池 pending 语义与 Pencil 复现收尾：Pencil 已覆盖主要桌面/移动 UI，数据池页已按用户反馈移除“我的身份”、增强成员列表标签信息，并将“申请中”与“已加入”在代码和展示上彻底拆开。当前仅剩提交与推送收尾。
+1. 数据池 pending 语义与 Pencil 复现已收口：Pencil 已覆盖主要桌面/移动 UI，数据池页已按用户反馈移除“我的身份”、增强成员列表标签信息，并将“申请中”与“已加入”在代码和展示上彻底拆开；代码、验证、存档、提交与推送均已完成。
 1. 跨端真实调试工具第一版已落地：`dart run tool/debug_pool.dart` 现已能自动编排 `macOS owner -> macOS joiner` 与 `macOS owner -> iOS simulator joiner` 两条真实调试链路，自动抓取 invite、拉起 joiner 并汇总最终 `joined:` 结果。macOS 路径已收口为“复制隔离 app 副本 -> 改 bundle id -> ad-hoc 重签 -> 读取对应 `Application Support/<bundleId>` 调试文件”的稳定方案，避免再次复用同一个 `cardmind.app`。
 2. 真实双实例联机验证已完成关键闭环：`macOS owner -> macOS joiner` 在独立 bundle id / 独立 `appDataDir` 条件下已真实成功；`macOS owner -> iOS simulator joiner` 也已在“iOS build phase 自动重建 Rust dylib”的前提下再次真实跑通。iOS 路径新增收敛出的两类根因都已闭环：`get_joined_pool_view()` 过去误用 `get_any_pool()` 会在容器残留旧池时触发 `NOT_MEMBER`；`Copy Rust Framework` 过去只复制旧 dylib，会让 FRB 在 `join_pool_by_invite(debug_trace)` 上因运行态签名落后而解码 panic。两者现均已通过代码修复与真实复验确认。
 3. `FrbPoolApiClient` 已基本收口 runtime handle 暴露面，业务层可只靠 `appDataDir` 完成 invite 入池；本轮已确认若显式注入 `networkId`，真实同步链路可稳定打通，后续如继续推进，可继续评估 `PoolShell` / `SyncService` 装配面是否还需进一步隐藏 `network_id`。
