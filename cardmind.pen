@@ -1,0 +1,1553 @@
+{
+  "version": "2.11",
+  "children": [
+    {
+      "type": "text",
+      "id": "n6TG8",
+      "x": 11820,
+      "y": -3020,
+      "name": "Stitch Mobile Label",
+      "fill": "$--foreground",
+      "content": "Stitch / Mobile",
+      "fontFamily": "JetBrains Mono",
+      "fontSize": 32,
+      "fontWeight": "700"
+    },
+    {
+      "type": "text",
+      "id": "gxif0",
+      "x": 13640,
+      "y": -3020,
+      "name": "Stitch Desktop Label",
+      "fill": "$--foreground",
+      "content": "Stitch / Desktop",
+      "fontFamily": "JetBrains Mono",
+      "fontSize": 32,
+      "fontWeight": "700"
+    },
+    {
+      "type": "frame",
+      "id": "uSQsc",
+      "x": 11820,
+      "y": -2960,
+      "name": "Stitch / Mobile / Note List",
+      "clip": true,
+      "width": 360,
+      "height": 1694,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 24,
+      "padding": [
+        20,
+        16,
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "3TPQQ",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "referenceOverlay",
+          "width": 360,
+          "height": 1694,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "./tmp/stitch_import/note_list_mobile.png",
+            "mode": "stretch"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "holp2",
+      "x": 12240,
+      "y": -2960,
+      "name": "Stitch / Mobile / Note Editor",
+      "clip": true,
+      "width": 360,
+      "height": 1193,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 22,
+      "padding": [
+        20,
+        16,
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "xF8PO",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "referenceOverlay",
+          "width": 360,
+          "height": 1193,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "./tmp/stitch_import/note_editor_mobile.png",
+            "mode": "stretch"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vL8LH",
+      "x": 11820,
+      "y": -1100,
+      "name": "Stitch / Mobile / Data Pool Setup",
+      "clip": true,
+      "width": 360,
+      "height": 1218,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 28,
+      "padding": [
+        20,
+        16,
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "yNZeh",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "referenceOverlay",
+          "width": 360,
+          "height": 1218,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "./tmp/stitch_import/data_pool_setup_mobile.png",
+            "mode": "stretch"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "Nqefk",
+      "x": 12240,
+      "y": -1100,
+      "name": "Stitch / Mobile / Data Pool Members",
+      "clip": true,
+      "width": 360,
+      "height": 1455,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 22,
+      "padding": [
+        20,
+        16,
+        24,
+        16
+      ],
+      "children": [
+        {
+          "type": "frame",
+          "id": "c1Rfd",
+          "layoutPosition": "absolute",
+          "x": 0,
+          "y": 0,
+          "name": "referenceOverlay",
+          "width": 360,
+          "height": 1455,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "./tmp/stitch_import/data_pool_members_mobile.png",
+            "mode": "stretch"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "rn0XJ",
+      "x": 13640,
+      "y": -2960,
+      "name": "Stitch / Desktop / Note List",
+      "clip": true,
+      "width": 960,
+      "height": 768,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "pFSxN",
+          "x": 0,
+          "y": 0,
+          "name": "referenceOverlay",
+          "width": 960,
+          "height": 768,
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "./tmp/stitch_import/note_list_desktop.png",
+            "mode": "stretch"
+          }
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "0r2BW",
+      "x": 14660,
+      "y": -2960,
+      "name": "Stitch / Desktop / Note Editor",
+      "width": 960,
+      "height": 768,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "./tmp/stitch_import/note_editor_desktop.png",
+        "mode": "stretch"
+      },
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "etyss",
+      "x": 13640,
+      "y": -2060,
+      "name": "Stitch / Desktop / Data Pool Setup",
+      "width": 960,
+      "height": 867,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "./tmp/stitch_import/data_pool_setup_desktop.png",
+        "mode": "stretch"
+      },
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "moDkf",
+      "x": 14660,
+      "y": -2060,
+      "name": "Stitch / Desktop / Data Pool Members",
+      "width": 960,
+      "height": 841,
+      "fill": {
+        "type": "image",
+        "enabled": true,
+        "url": "./tmp/stitch_import/data_pool_members_desktop.png",
+        "mode": "stretch"
+      },
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      }
+    },
+    {
+      "type": "frame",
+      "id": "I7NZc",
+      "x": 13590,
+      "y": -3020,
+      "name": "Stitch / Desktop / Flow Links",
+      "width": 2070,
+      "height": 1840,
+      "layout": "none",
+      "children": [
+        {
+          "type": "text",
+          "id": "hMmkf",
+          "x": 760,
+          "y": 0,
+          "name": "desktopTitle",
+          "fill": "#0F172A",
+          "content": "Desktop Flow",
+          "fontFamily": "Inter",
+          "fontSize": 24,
+          "fontWeight": "700"
+        },
+        {
+          "type": "line",
+          "id": "zUhe9",
+          "x": 1006,
+          "y": 425,
+          "name": "desktopArrow1",
+          "width": 36,
+          "height": 1,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "39aEC",
+          "x": 1036,
+          "y": 418,
+          "name": "desktopArrow1Head",
+          "geometry": "M0 0l14 7-14 7z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "fdmfn",
+          "x": 900,
+          "y": 388,
+          "name": "desktopLabel1",
+          "fill": "#CCFBF1",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "8hFSD",
+              "name": "desktopLabel1Text",
+              "fill": "#115E59",
+              "content": "打开/新建笔记",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "line",
+          "id": "pqhkV",
+          "x": 521,
+          "y": 822,
+          "name": "desktopArrow2",
+          "width": 1,
+          "height": 92,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "24kbO",
+          "x": 514,
+          "y": 904,
+          "name": "desktopArrow2Head",
+          "geometry": "M0 0l14 0-7 14z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "zzP7U",
+          "x": 546,
+          "y": 846,
+          "name": "desktopLabel2",
+          "fill": "#DBEAFE",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "3xFqr",
+              "name": "desktopLabel2Text",
+              "fill": "#1D4ED8",
+              "content": "进入 Data Pool",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "line",
+          "id": "s318f",
+          "x": 1006,
+          "y": 1362,
+          "name": "desktopArrow3",
+          "width": 36,
+          "height": 1,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "4boL1",
+          "x": 1036,
+          "y": 1355,
+          "name": "desktopArrow3Head",
+          "geometry": "M0 0l14 7-14 7z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "CCCCD",
+          "x": 878,
+          "y": 1324,
+          "name": "desktopLabel3",
+          "fill": "#DCFCE7",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "0bIMD",
+              "name": "desktopLabel3Text",
+              "fill": "#166534",
+              "content": "创建/加入成功",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "VerGS",
+      "x": 11760,
+      "y": -3020,
+      "name": "Stitch / Mobile / Flow Links",
+      "width": 870,
+      "height": 3420,
+      "layout": "none",
+      "children": [
+        {
+          "type": "text",
+          "id": "3v9v4",
+          "x": 280,
+          "y": 0,
+          "name": "mobileTitle",
+          "fill": "#0F172A",
+          "content": "Mobile Flow",
+          "fontFamily": "Inter",
+          "fontSize": 24,
+          "fontWeight": "700"
+        },
+        {
+          "type": "line",
+          "id": "iHK86",
+          "x": 423,
+          "y": 598,
+          "name": "mobileArrow1",
+          "width": 46,
+          "height": 1,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "gOm6h",
+          "x": 460,
+          "y": 591,
+          "name": "mobileArrow1Head",
+          "geometry": "M0 0l14 7-14 7z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "Jfj6r",
+          "x": 372,
+          "y": 558,
+          "name": "mobileLabel1",
+          "fill": "#CCFBF1",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "UBnKp",
+              "name": "mobileLabel1Text",
+              "fill": "#115E59",
+              "content": "打开笔记",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "line",
+          "id": "LRhGP",
+          "x": 180,
+          "y": 1737,
+          "name": "mobileArrow2",
+          "width": 1,
+          "height": 120,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "j5voZ",
+          "x": 173,
+          "y": 1848,
+          "name": "mobileArrow2Head",
+          "geometry": "M0 0l14 0-7 14z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "RrqTv",
+          "x": 205,
+          "y": 1774,
+          "name": "mobileLabel2",
+          "fill": "#DBEAFE",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "QUgqo",
+              "name": "mobileLabel2Text",
+              "fill": "#1D4ED8",
+              "content": "底部切到 Data Pool",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "line",
+          "id": "L37D5",
+          "x": 423,
+          "y": 2370,
+          "name": "mobileArrow3",
+          "width": 46,
+          "height": 1,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "iatmC",
+          "x": 460,
+          "y": 2363,
+          "name": "mobileArrow3Head",
+          "geometry": "M0 0l14 7-14 7z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "CYFlA",
+          "x": 338,
+          "y": 2330,
+          "name": "mobileLabel3",
+          "fill": "#DCFCE7",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "Epyi0",
+              "name": "mobileLabel3Text",
+              "fill": "#166534",
+              "content": "创建/加入成功",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "h4l6Z",
+      "x": 15680,
+      "y": -2960,
+      "name": "Stitch / Desktop / Interaction Notes",
+      "width": 360,
+      "height": 1750,
+      "layout": "vertical",
+      "gap": 16,
+      "children": [
+        {
+          "type": "text",
+          "id": "ugbO5",
+          "name": "desktopNotesTitle",
+          "fill": "#0F172A",
+          "content": "Desktop Interaction Notes",
+          "fontFamily": "Inter",
+          "fontSize": 24,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "SHNue",
+          "name": "dCard1",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "FOlpz",
+              "name": "dCard1Title",
+              "fill": "#0F172A",
+              "content": "Note List",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "NhUbZ",
+              "name": "dCard1Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "New Note -> Desktop / Note Editor\n任意笔记卡片 -> Desktop / Note Editor\n左侧 Data Pool -> Desktop / Data Pool Setup",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "1w5sb",
+          "name": "dCard2",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "L89Pj",
+              "name": "dCard2Title",
+              "fill": "#0F172A",
+              "content": "Note Editor",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "q07vj",
+              "name": "dCard2Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "左侧 Notes -> Desktop / Note List\n左侧 Data Pool -> Desktop / Data Pool Setup\n当前画面主要承担查看与编辑，不再继续分叉",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "dAQe8",
+          "name": "dCard3",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "9YMiW",
+              "name": "dCard3Title",
+              "fill": "#0F172A",
+              "content": "Data Pool Setup",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "iNQjY",
+              "name": "dCard3Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Create Data Pool -> Desktop / Data Pool Members\nJoin Data Pool -> Desktop / Data Pool Members\n左侧 Notes -> Desktop / Note List",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "MzNM7",
+          "name": "dCard4",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "59QQu",
+              "name": "dCard4Title",
+              "fill": "#0F172A",
+              "content": "Data Pool Members",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "P8ynF",
+              "name": "dCard4Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "左侧 Notes -> Desktop / Note List\n左侧 Data Pool 为当前页，不跳转\n本页当前展示网络成员与状态，不再继续分叉",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "7bzj6",
+      "x": 12680,
+      "y": -2960,
+      "name": "Stitch / Mobile / Interaction Notes",
+      "width": 360,
+      "height": 3360,
+      "layout": "vertical",
+      "gap": 16,
+      "children": [
+        {
+          "type": "text",
+          "id": "6KFCb",
+          "name": "mobileNotesTitle",
+          "fill": "#0F172A",
+          "content": "Mobile Interaction Notes",
+          "fontFamily": "Inter",
+          "fontSize": 24,
+          "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "tU8sy",
+          "name": "mCard1",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "s6FiN",
+              "name": "mCard1Title",
+              "fill": "#0F172A",
+              "content": "Note List",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "2GPUf",
+              "name": "mCard1Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "点击任意笔记卡片 -> Mobile / Note Editor\n右下 FAB New Thought Fragment -> Mobile / Note Editor\n底部 Data Pool -> Mobile / Data Pool Setup",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VCtuF",
+          "name": "mCard2",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "rFn7N",
+              "name": "mCard2Title",
+              "fill": "#0F172A",
+              "content": "Note Editor",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "gSXY4",
+              "name": "mCard2Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "顶部 Done / 返回语义 -> Mobile / Note List\n底部 Notes -> Mobile / Note List\n底部 Data Pool -> Mobile / Data Pool Setup",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "JKcrs",
+          "name": "mCard3",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "VWehC",
+              "name": "mCard3Title",
+              "fill": "#0F172A",
+              "content": "Data Pool Setup",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "hzqW2",
+              "name": "mCard3Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Create Data Pool -> Mobile / Data Pool Members\nJoin Data Pool -> Mobile / Data Pool Members\n底部 Notes -> Mobile / Note List",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "R2xcY",
+          "name": "mCard4",
+          "width": "fill_container",
+          "fill": "#F8FAFC",
+          "cornerRadius": 18,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#CBD5E1"
+          },
+          "layout": "vertical",
+          "gap": 10,
+          "padding": 16,
+          "children": [
+            {
+              "type": "text",
+              "id": "pPqez",
+              "name": "mCard4Title",
+              "fill": "#0F172A",
+              "content": "Data Pool Members",
+              "fontFamily": "Inter",
+              "fontSize": 16,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "tWRai",
+              "name": "mCard4Body",
+              "fill": "#334155",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "底部 Notes -> Mobile / Note List\n底部 Data Pool 为当前页，不跳转\n成员卡当前以状态查看为主，不再继续分叉",
+              "lineHeight": 1.45,
+              "fontFamily": "Inter",
+              "fontSize": 13
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "themes": {
+    "Mode": [
+      "Light",
+      "Dark"
+    ]
+  },
+  "variables": {
+    "--sidebar": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E7E8E5"
+        },
+        {
+          "value": "#18181b",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#666666"
+        },
+        {
+          "value": "#fafafa",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-primary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#18181b"
+        },
+        {
+          "value": "#18181b",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-primary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#fafafa"
+        },
+        {
+          "value": "#fafafa",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-border": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#ffffff1a",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-accent": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#2a2a30",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-accent-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#18181b"
+        },
+        {
+          "value": "#fafafa",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--sidebar-ring": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#71717a"
+        },
+        {
+          "value": "#71717a",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--background": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F2F3F0"
+        },
+        {
+          "value": "#111111",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--card": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FFFFFF"
+        },
+        {
+          "value": "#1A1A1A",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--card-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--popover": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FFFFFF"
+        },
+        {
+          "value": "#1A1A1A",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--popover-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--primary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#FF8400"
+        },
+        {
+          "value": "#FF8400",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--primary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#111111",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--secondary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E7E8E5"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--secondary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#FFFFFF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--muted": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F2F3F0"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--muted-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#666666"
+        },
+        {
+          "value": "#B8B9B6",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--accent": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#F2F3F0"
+        },
+        {
+          "value": "#111111",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--accent-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#111111"
+        },
+        {
+          "value": "#F2F3F0",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--destructive": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#D93C15"
+        },
+        {
+          "value": "#FF5C33",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--border": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--input": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#CBCCC9"
+        },
+        {
+          "value": "#2E2E2E",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--ring": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#666666"
+        },
+        {
+          "value": "#666666",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--white": {
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    "--black": {
+      "type": "color",
+      "value": "#000000"
+    },
+    "--font-primary": {
+      "type": "string",
+      "value": "JetBrains Mono"
+    },
+    "--font-secondary": {
+      "type": "string",
+      "value": "Geist"
+    },
+    "--radius-none": {
+      "type": "number",
+      "value": 0
+    },
+    "--radius-pill": {
+      "type": "number",
+      "value": 999
+    },
+    "--color-success": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#DFE6E1"
+        },
+        {
+          "value": "#222924",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-success-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#004D1A"
+        },
+        {
+          "value": "#B6FFCE",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-warning": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E9E3D8"
+        },
+        {
+          "value": "#291C0F",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-warning-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#804200"
+        },
+        {
+          "value": "#FF8400",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-error": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#E5DCDA"
+        },
+        {
+          "value": "#24100B",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-error-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#8C1C00"
+        },
+        {
+          "value": "#FF5C33",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-info": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#DFDFE6"
+        },
+        {
+          "value": "#222229",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--color-info-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#000066"
+        },
+        {
+          "value": "#B2B2FF",
+          "theme": {
+            "Mode": "Dark"
+          }
+        }
+      ]
+    },
+    "--radius-m": {
+      "type": "number",
+      "value": 16
+    }
+  }
+}

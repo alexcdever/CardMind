@@ -10,4 +10,5 @@ standards/ - 标准目录 - 长期复用的工程与协作规则
 - `AGENTS.md` 是仓库入口文档，负责引导读取顺序与执行入口规则
 - `plans/` 用于记录变更背景、设计取舍与执行顺序，不替代 `specs/`
 - `standards/` 只保留稳定、跨任务适用的规则
+- UI 风格等长期视觉规范，属于 `docs/standards/`
 - 历史 `plans/` 文档中如引用已退役标准文件名，应以当前 `AGENTS.md` 与 `docs/standards/` 的现行定义为准

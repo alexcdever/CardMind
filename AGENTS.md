@@ -97,5 +97,6 @@
 - 测试规则：`docs/standards/testing.md`
 - Git 与 PR：`docs/standards/git-and-pr.md`
 - 编码风格：`docs/standards/coding-style.md`
+- UI 风格规范：`docs/standards/ui-style-guide.md`
 - 技术栈基线：`docs/standards/tech-stack-baseline.md`
 - Flutter 自动化锚点：`docs/standards/flutter-automation-anchors.md`
