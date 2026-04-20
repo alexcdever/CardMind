@@ -49,6 +49,8 @@ use iroh::{EndpointAddr, endpoint::Connection};
 use loro::{LoroDoc, LoroMap, LoroValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::time::Instant;
 use tokio::time::{Duration, timeout};
 use uuid::Uuid;
@@ -89,6 +91,13 @@ pub struct PoolNetwork {
     card_repository: CardNoteRepository,
     sync_session: SyncSession,
     last_sync_error: Option<String>,
+    runtime_signals: Mutex<RuntimeSignals>,
+}
+
+#[derive(Debug, Default)]
+struct RuntimeSignals {
+    last_active_at: Option<i64>,
+    is_syncing: bool,
 }
 
 impl PoolNetwork {
@@ -109,6 +118,7 @@ impl PoolNetwork {
             card_repository,
             sync_session: SyncSession::new(),
             last_sync_error: None,
+            runtime_signals: Mutex::new(RuntimeSignals::default()),
         }
     }
 
@@ -130,6 +140,24 @@ impl PoolNetwork {
     /// 获取基础路径。
     pub fn base_path(&self) -> &str {
         &self.base_path
+    }
+
+    pub fn last_active_at(&self) -> Option<i64> {
+        self.runtime_signals
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .last_active_at
+    }
+
+    pub fn is_syncing(&self) -> bool {
+        self.runtime_signals
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_syncing
+    }
+
+    pub fn has_live_connection(&self) -> bool {
+        self.sync_session.state() == "connected"
     }
 
     pub async fn wait_for_addr(&self, timeout: Duration) -> Result<EndpointAddr, CardMindError> {
@@ -160,53 +188,62 @@ impl PoolNetwork {
         &self,
         peer: impl Into<EndpointAddr>,
     ) -> Result<(), CardMindError> {
-        let pool = self.pool_store.get_any_pool()?;
-        let endpoint_id = self.endpoint_id().to_string();
-        let local_member = pool
-            .members
-            .iter()
-            .find(|member| member.endpoint_id == endpoint_id)
-            .cloned()
-            .or_else(|| pool.members.first().cloned())
-            .ok_or_else(|| CardMindError::NotFound("member not found".to_string()))?;
+        self.set_syncing(true);
+        let result = async {
+            let pool = self.pool_store.get_any_pool()?;
+            let endpoint_id = self.endpoint_id().to_string();
+            let local_member = pool
+                .members
+                .iter()
+                .find(|member| member.endpoint_id == endpoint_id)
+                .cloned()
+                .or_else(|| pool.members.first().cloned())
+                .ok_or_else(|| CardMindError::NotFound("member not found".to_string()))?;
 
-        let conn = self
-            .endpoint
-            .connect(peer)
-            .await
-            .map_err(|e| CardMindError::Internal(format!("connect failed: {}", e)))?;
-        let hello = PoolMessage::Hello {
-            pool_id: pool.pool_id,
-            endpoint_id,
-            nickname: local_member.nickname.clone(),
-            os: local_member.os.clone(),
-        };
-        send_message(&conn, &hello).await?;
-
-        let pool_snapshot = build_pool_snapshot(&self.base_path, &pool.pool_id)?;
-        send_message(
-            &conn,
-            &PoolMessage::PoolSnapshot {
+            let conn = self
+                .endpoint
+                .connect(peer)
+                .await
+                .map_err(|e| CardMindError::Internal(format!("connect failed: {}", e)))?;
+            let hello = PoolMessage::Hello {
                 pool_id: pool.pool_id,
-                bytes: pool_snapshot,
-            },
-        )
-        .await?;
+                endpoint_id,
+                nickname: local_member.nickname.clone(),
+                os: local_member.os.clone(),
+            };
+            send_message(&conn, &hello).await?;
 
-        for card_id in &pool.card_ids {
-            let bytes = build_card_snapshot(&self.base_path, card_id)?;
+            let pool_snapshot = build_pool_snapshot(&self.base_path, &pool.pool_id)?;
             send_message(
                 &conn,
-                &PoolMessage::CardSnapshot {
-                    card_id: *card_id,
-                    bytes,
+                &PoolMessage::PoolSnapshot {
+                    pool_id: pool.pool_id,
+                    bytes: pool_snapshot,
                 },
             )
             .await?;
-        }
 
-        let _ = timeout(Duration::from_secs(5), conn.closed()).await;
-        Ok(())
+            for card_id in &pool.card_ids {
+                let bytes = build_card_snapshot(&self.base_path, card_id)?;
+                send_message(
+                    &conn,
+                    &PoolMessage::CardSnapshot {
+                        card_id: *card_id,
+                        bytes,
+                    },
+                )
+                .await?;
+            }
+
+            let _ = timeout(Duration::from_secs(5), conn.closed()).await;
+            Ok(())
+        }
+        .await;
+        if result.is_ok() {
+            self.mark_active_now()?;
+        }
+        self.set_syncing(false);
+        result
     }
 
     pub fn create_invite_code(&self, pool_id: &Uuid) -> Result<String, CardMindError> {
@@ -238,136 +275,145 @@ impl PoolNetwork {
         os: &str,
         mut trace: Option<&mut JoinTrace>,
     ) -> Result<Pool, CardMindError> {
-        let invite = decode_invite_code(invite_code)?;
-        push_join_trace(
-            &mut trace,
-            "invite_parsed",
-            format!("pool_id={}", invite.pool_id),
-        );
-        push_join_trace(
-            &mut trace,
-            "target_addrs",
-            endpoint_addr_to_json(&invite.target),
-        );
-        let applicant = PoolMember {
-            endpoint_id: self.endpoint_id().to_string(),
-            nickname: nickname.to_string(),
-            os: os.to_string(),
-            is_admin: false,
-        };
-        let applicant_addr = self.wait_for_addr(Duration::from_secs(10)).await?;
-        push_join_trace(
-            &mut trace,
-            "attempt_start",
-            endpoint_addr_to_json(&invite.target),
-        );
-        let attempt_started_at = Instant::now();
-        let conn = match self.endpoint.connect(invite.target.clone()).await {
-            Ok(conn) => {
-                push_join_trace(
-                    &mut trace,
-                    "attempt_end",
-                    format!(
-                        "status=ok duration_ms={}",
-                        attempt_started_at.elapsed().as_millis()
-                    ),
-                );
-                conn
-            }
-            Err(err) => {
-                let detail = format!(
-                    "status=error duration_ms={} message={}",
-                    attempt_started_at.elapsed().as_millis(),
-                    err
-                );
-                push_join_trace(&mut trace, "attempt_end", detail);
-                push_join_trace(
-                    &mut trace,
-                    "final",
-                    format!("result=error message=connect failed: {}", err),
-                );
-                return Err(CardMindError::Internal(format!("connect failed: {}", err)));
-            }
-        };
-        send_message(
-            &conn,
-            &PoolMessage::JoinRequest {
-                pool_id: invite.pool_id,
-                applicant,
-                applicant_addr,
-            },
-        )
-        .await?;
-
-        let mut approved = false;
-        let mut pool_snapshot: Option<(Uuid, Vec<u8>, Vec<Uuid>)> = None;
-        let mut card_snapshots: Vec<(Uuid, Vec<u8>)> = Vec::new();
-        let mut expected_cards: Option<HashSet<Uuid>> = None;
-
-        loop {
-            let stream = conn.accept_bi().await;
-            let (mut send, mut recv) = match stream {
-                Ok(stream) => stream,
-                Err(_) => break,
+        self.set_syncing(true);
+        let result = async {
+            let invite = decode_invite_code(invite_code)?;
+            push_join_trace(
+                &mut trace,
+                "invite_parsed",
+                format!("pool_id={}", invite.pool_id),
+            );
+            push_join_trace(
+                &mut trace,
+                "target_addrs",
+                endpoint_addr_to_json(&invite.target),
+            );
+            let applicant = PoolMember {
+                endpoint_id: self.endpoint_id().to_string(),
+                nickname: nickname.to_string(),
+                os: os.to_string(),
+                is_admin: false,
             };
-            let bytes = recv
-                .read_to_end(MESSAGE_LIMIT)
-                .await
-                .map_err(|e| CardMindError::Internal(format!("read failed: {}", e)))?;
-            let _ = send.finish();
-            let msg = decode_message(&bytes)?;
-            match msg {
-                PoolMessage::JoinDecision { approved: true, .. } => {
-                    approved = true;
+            let applicant_addr = self.wait_for_addr(Duration::from_secs(10)).await?;
+            push_join_trace(
+                &mut trace,
+                "attempt_start",
+                endpoint_addr_to_json(&invite.target),
+            );
+            let attempt_started_at = Instant::now();
+            let conn = match self.endpoint.connect(invite.target.clone()).await {
+                Ok(conn) => {
+                    push_join_trace(
+                        &mut trace,
+                        "attempt_end",
+                        format!(
+                            "status=ok duration_ms={}",
+                            attempt_started_at.elapsed().as_millis()
+                        ),
+                    );
+                    conn
                 }
-                PoolMessage::JoinDecision {
-                    approved: false,
-                    reason,
-                    ..
-                } => {
-                    let message = reason.unwrap_or_else(|| "join rejected".to_string());
+                Err(err) => {
+                    let detail = format!(
+                        "status=error duration_ms={} message={}",
+                        attempt_started_at.elapsed().as_millis(),
+                        err
+                    );
+                    push_join_trace(&mut trace, "attempt_end", detail);
                     push_join_trace(
                         &mut trace,
                         "final",
-                        format!("result=error message={}", message),
+                        format!("result=error message=connect failed: {}", err),
                     );
-                    return Err(CardMindError::InvalidArgument(message));
+                    return Err(CardMindError::Internal(format!("connect failed: {}", err)));
                 }
-                PoolMessage::PoolSnapshot { pool_id, bytes } => {
-                    let pool = pool_from_snapshot(&bytes)?;
-                    expected_cards = Some(pool.card_ids.iter().cloned().collect());
-                    pool_snapshot = Some((pool_id, bytes, pool.card_ids));
+            };
+            send_message(
+                &conn,
+                &PoolMessage::JoinRequest {
+                    pool_id: invite.pool_id,
+                    applicant,
+                    applicant_addr,
+                },
+            )
+            .await?;
+
+            let mut approved = false;
+            let mut pool_snapshot: Option<(Uuid, Vec<u8>, Vec<Uuid>)> = None;
+            let mut card_snapshots: Vec<(Uuid, Vec<u8>)> = Vec::new();
+            let mut expected_cards: Option<HashSet<Uuid>> = None;
+
+            loop {
+                let stream = conn.accept_bi().await;
+                let (mut send, mut recv) = match stream {
+                    Ok(stream) => stream,
+                    Err(_) => break,
+                };
+                let bytes = recv
+                    .read_to_end(MESSAGE_LIMIT)
+                    .await
+                    .map_err(|e| CardMindError::Internal(format!("read failed: {}", e)))?;
+                let _ = send.finish();
+                let msg = decode_message(&bytes)?;
+                match msg {
+                    PoolMessage::JoinDecision { approved: true, .. } => {
+                        approved = true;
+                    }
+                    PoolMessage::JoinDecision {
+                        approved: false,
+                        reason,
+                        ..
+                    } => {
+                        let message = reason.unwrap_or_else(|| "join rejected".to_string());
+                        push_join_trace(
+                            &mut trace,
+                            "final",
+                            format!("result=error message={}", message),
+                        );
+                        return Err(CardMindError::InvalidArgument(message));
+                    }
+                    PoolMessage::PoolSnapshot { pool_id, bytes } => {
+                        let pool = pool_from_snapshot(&bytes)?;
+                        expected_cards = Some(pool.card_ids.iter().cloned().collect());
+                        pool_snapshot = Some((pool_id, bytes, pool.card_ids));
+                    }
+                    PoolMessage::CardSnapshot { card_id, bytes } => {
+                        card_snapshots.push((card_id, bytes));
+                    }
+                    _ => {}
                 }
-                PoolMessage::CardSnapshot { card_id, bytes } => {
-                    card_snapshots.push((card_id, bytes));
+
+                if approved
+                    && pool_snapshot.is_some()
+                    && expected_cards.as_ref().is_none_or(|expected| {
+                        expected.is_empty() || card_snapshots.len() >= expected.len()
+                    })
+                {
+                    break;
                 }
-                _ => {}
             }
 
-            if approved
-                && pool_snapshot.is_some()
-                && expected_cards.as_ref().is_none_or(|expected| {
-                    expected.is_empty() || card_snapshots.len() >= expected.len()
-                })
-            {
-                break;
+            let (pool_id, bytes, _) = pool_snapshot.ok_or_else(|| {
+                CardMindError::Internal("pool snapshot missing after join".to_string())
+            })?;
+            let pool = apply_pool_snapshot(&self.base_path, &pool_id, &bytes)?;
+            for (card_id, bytes) in card_snapshots {
+                let _ = apply_card_snapshot(&self.base_path, &card_id, &bytes)?;
             }
+            let _ = timeout(Duration::from_secs(5), conn.closed()).await;
+            push_join_trace(
+                &mut trace,
+                "final",
+                format!("result=ok pool_id={}", pool.pool_id),
+            );
+            Ok(pool)
         }
-
-        let (pool_id, bytes, _) = pool_snapshot.ok_or_else(|| {
-            CardMindError::Internal("pool snapshot missing after join".to_string())
-        })?;
-        let pool = apply_pool_snapshot(&self.base_path, &pool_id, &bytes)?;
-        for (card_id, bytes) in card_snapshots {
-            let _ = apply_card_snapshot(&self.base_path, &card_id, &bytes)?;
+        .await;
+        if result.is_ok() {
+            self.mark_active_now()?;
         }
-        let _ = timeout(Duration::from_secs(5), conn.closed()).await;
-        push_join_trace(
-            &mut trace,
-            "final",
-            format!("result=ok pool_id={}", pool.pool_id),
-        );
-        Ok(pool)
+        self.set_syncing(false);
+        result
     }
 
     /// 检查卡片是否存在。
@@ -489,6 +535,7 @@ impl PoolNetwork {
             ));
         }
         self.last_sync_error = None;
+        self.mark_active_now()?;
         Ok(())
     }
 
@@ -505,6 +552,25 @@ impl PoolNetwork {
             ));
         }
         self.last_sync_error = None;
+        self.mark_active_now()?;
+        Ok(())
+    }
+
+    fn set_syncing(&self, is_syncing: bool) {
+        let mut signals = self
+            .runtime_signals
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        signals.is_syncing = is_syncing;
+    }
+
+    fn mark_active_now(&self) -> Result<(), CardMindError> {
+        let timestamp = current_timestamp_secs()?;
+        let mut signals = self
+            .runtime_signals
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        signals.last_active_at = Some(timestamp);
         Ok(())
     }
 }
@@ -517,6 +583,14 @@ fn push_join_trace(trace: &mut Option<&mut JoinTrace>, stage: &str, detail: impl
 
 fn endpoint_addr_to_json(target: &EndpointAddr) -> String {
     serde_json::to_string(target).unwrap_or_else(|_| "<endpoint_addr_serialize_failed>".to_string())
+}
+
+fn current_timestamp_secs() -> Result<i64, CardMindError> {
+    let duration = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| CardMindError::Internal(format!("system time invalid: {}", e)))?;
+    i64::try_from(duration.as_secs())
+        .map_err(|_| CardMindError::Internal("timestamp overflow".to_string()))
 }
 
 async fn run_listener_loop(endpoint: iroh::Endpoint, base_path: String) {

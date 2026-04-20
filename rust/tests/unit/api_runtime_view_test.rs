@@ -1,5 +1,14 @@
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::models::pool_runtime::{MemberRuntimeStatus, PoolMemberRuntime};
+use cardmind_rust::net::endpoint::build_test_endpoints;
+use cardmind_rust::net::pool_network::PoolNetwork;
+use cardmind_rust::store::card_store::CardNoteRepository;
+use cardmind_rust::store::pool_store::PoolStore;
+use std::future::{Future, poll_fn};
+use std::pin::Pin;
+use std::task::Poll;
+use tempfile::TempDir;
+use tokio::time::Duration;
 
 #[test]
 fn member_runtime_status_should_render_connected_syncing_offline() {
@@ -43,4 +52,82 @@ fn current_device_flag_should_be_true_only_for_matching_endpoint() {
     assert!(!other.is_current_device);
     assert_eq!(current.role, "admin");
     assert_eq!(other.role, "admin");
+}
+
+fn create_network_with_endpoint(
+    base_path: &str,
+    endpoint: cardmind_rust::net::endpoint::PoolEndpoint,
+) -> PoolNetwork {
+    let pool_store = PoolStore::new(base_path).unwrap();
+    let card_repo = CardNoteRepository::new(base_path).unwrap();
+    PoolNetwork::new(endpoint, pool_store, card_repo)
+}
+
+#[tokio::test]
+async fn pool_network_should_report_syncing_state_during_active_sync() {
+    let (network_a, network_b) = build_test_endpoints().await.unwrap();
+    let sender_temp = TempDir::new().unwrap();
+    let receiver_temp = TempDir::new().unwrap();
+    let sender_base = sender_temp.path().to_str().unwrap();
+    let receiver_base = receiver_temp.path().to_str().unwrap();
+
+    let sender = create_network_with_endpoint(sender_base, network_a);
+    let receiver = create_network_with_endpoint(receiver_base, network_b);
+
+    let sender_store = PoolStore::new(sender_base).unwrap();
+    sender_store
+        .create_pool(&sender.endpoint_id().to_string(), "sender", "macOS")
+        .unwrap();
+
+    receiver.start().await.unwrap();
+    let receiver_addr = receiver.wait_for_addr(Duration::from_secs(5)).await.unwrap();
+
+    let sync_future = sender.connect_and_sync(receiver_addr);
+    tokio::pin!(sync_future);
+
+    poll_once_until_pending(sync_future.as_mut()).await;
+
+    assert!(sender.is_syncing());
+
+    sync_future.await.unwrap();
+
+    assert!(!sender.is_syncing());
+}
+
+#[tokio::test]
+async fn pool_network_should_expose_last_active_timestamp_after_sync_event() {
+    let (network_a, network_b) = build_test_endpoints().await.unwrap();
+    let sender_temp = TempDir::new().unwrap();
+    let receiver_temp = TempDir::new().unwrap();
+    let sender_base = sender_temp.path().to_str().unwrap();
+    let receiver_base = receiver_temp.path().to_str().unwrap();
+
+    let sender = create_network_with_endpoint(sender_base, network_a);
+    let receiver = create_network_with_endpoint(receiver_base, network_b);
+
+    let sender_store = PoolStore::new(sender_base).unwrap();
+    sender_store
+        .create_pool(&sender.endpoint_id().to_string(), "sender", "macOS")
+        .unwrap();
+
+    receiver.start().await.unwrap();
+    let receiver_addr = receiver.wait_for_addr(Duration::from_secs(5)).await.unwrap();
+
+    assert_eq!(sender.last_active_at(), None);
+
+    sender.connect_and_sync(receiver_addr).await.unwrap();
+
+    assert!(sender.last_active_at().is_some());
+}
+
+async fn poll_once_until_pending<F>(future: Pin<&mut F>)
+where
+    F: Future,
+{
+    let mut future = future;
+    poll_fn(move |cx| match future.as_mut().poll(cx) {
+        Poll::Pending => Poll::Ready(()),
+        Poll::Ready(_) => Poll::Ready(()),
+    })
+    .await;
 }
