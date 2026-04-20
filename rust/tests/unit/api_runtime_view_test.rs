@@ -1,9 +1,13 @@
+use cardmind_rust::api::{
+    PoolInviteDto, PoolInvitesViewDto, PoolMemberRuntimeDto, PoolMembersRuntimeViewDto,
+    PoolRuntimeSummaryDto,
+};
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::models::pool_runtime::{MemberRuntimeStatus, PoolMemberRuntime};
 use cardmind_rust::net::endpoint::build_test_endpoints;
 use cardmind_rust::net::pool_network::PoolNetwork;
 use cardmind_rust::store::card_store::CardNoteRepository;
-use cardmind_rust::store::pool_store::PoolStore;
+use cardmind_rust::store::pool_store::{PoolInviteRecord, PoolStore};
 use std::future::{Future, poll_fn};
 use std::pin::Pin;
 use std::task::Poll;
@@ -130,4 +134,57 @@ where
         Poll::Ready(_) => Poll::Ready(()),
     })
     .await;
+}
+
+#[test]
+fn runtime_view_dto_should_mark_current_device() {
+    let runtime = PoolMemberRuntime {
+        endpoint_id: "owner-endpoint".to_string(),
+        nickname: "Owner".to_string(),
+        os: "macOS".to_string(),
+        role: "admin".to_string(),
+        status: MemberRuntimeStatus::Connected,
+        last_active_at: Some(1_713_700_000),
+        is_current_device: true,
+    };
+
+    let row = PoolMemberRuntimeDto::from_runtime(&runtime);
+    let view = PoolMembersRuntimeViewDto::new(vec![row.clone()]);
+
+    assert!(row.is_current_device);
+    assert_eq!(row.status, "connected");
+    assert_eq!(view.rows.len(), 1);
+    assert!(view.rows[0].is_current_device);
+}
+
+#[test]
+fn summary_dto_should_return_expected_text_fields() {
+    let summary = PoolRuntimeSummaryDto::from_counts(3, 1, 1, 1);
+
+    assert_eq!(summary.member_count_text, "3 members");
+    assert_eq!(summary.runtime_status_text, "1 connected, 1 syncing, 1 offline");
+}
+
+#[test]
+fn invite_view_dto_should_exclude_revoked_invites() {
+    let active = PoolInviteRecord {
+        invite_id: uuid::Uuid::now_v7(),
+        invite_code: "active-code".to_string(),
+        created_by_endpoint_id: "owner-endpoint".to_string(),
+        created_at: 1_713_700_000,
+        revoked_at: None,
+    };
+    let revoked = PoolInviteRecord {
+        invite_id: uuid::Uuid::now_v7(),
+        invite_code: "revoked-code".to_string(),
+        created_by_endpoint_id: "owner-endpoint".to_string(),
+        created_at: 1_713_700_001,
+        revoked_at: Some(1_713_700_100),
+    };
+
+    let dto = PoolInvitesViewDto::from_records(vec![active.clone(), revoked]);
+
+    assert_eq!(dto.invites.len(), 1);
+    assert_eq!(dto.active_count, 1);
+    assert_eq!(dto.invites[0], PoolInviteDto::from_record(&active));
 }
