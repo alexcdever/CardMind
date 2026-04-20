@@ -58,6 +58,9 @@ mod api_functions_test;
 #[path = "unit/api_utils_test.rs"]
 mod api_utils_test;
 
+#[path = "unit/api_runtime_view_test.rs"]
+mod api_runtime_view_test;
+
 // CLI 模块测试
 #[path = "unit/cli/debug_console_test.rs"]
 mod debug_console_test;
