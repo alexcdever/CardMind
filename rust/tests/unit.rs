@@ -10,6 +10,9 @@ mod card_store_business_test;
 #[path = "unit/store/pool_store_business_test.rs"]
 mod pool_store_business_test;
 
+#[path = "unit/pool_invite_store_test.rs"]
+mod pool_invite_store_test;
+
 #[path = "unit/store/path_resolver_test.rs"]
 mod path_resolver_test;
 
