@@ -36,7 +36,11 @@ fn get_pool_members_runtime_view_returns_member_runtime_rows()
 
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
     let endpoint_id = get_pool_network_endpoint_id(network_id)?;
-    let pool = create_pool(endpoint_id.clone(), "owner".to_string(), "macOS".to_string())?;
+    let pool = create_pool(
+        endpoint_id.clone(),
+        "owner".to_string(),
+        "macOS".to_string(),
+    )?;
     cardmind_rust::api::join_by_code(
         pool.id.clone(),
         "joiner-endpoint".to_string(),
@@ -48,9 +52,20 @@ fn get_pool_members_runtime_view_returns_member_runtime_rows()
     let view = get_pool_members_runtime_view(pool.id, endpoint_id)?;
 
     assert_eq!(view.rows.len(), 2);
-    assert_eq!(view.rows.iter().filter(|row| row.is_current_device).count(), 1);
-    assert!(view.rows.iter().any(|row| row.is_current_device && row.status == "connected"));
-    assert!(view.rows.iter().any(|row| !row.is_current_device && row.status == "offline"));
+    assert_eq!(
+        view.rows.iter().filter(|row| row.is_current_device).count(),
+        1
+    );
+    assert!(
+        view.rows
+            .iter()
+            .any(|row| row.is_current_device && row.status == "connected")
+    );
+    assert!(
+        view.rows
+            .iter()
+            .any(|row| !row.is_current_device && row.status == "offline")
+    );
 
     reset_app_config()?;
     Ok(())
@@ -58,8 +73,8 @@ fn get_pool_members_runtime_view_returns_member_runtime_rows()
 
 #[test]
 #[serial]
-fn get_pool_runtime_summary_returns_pool_summary_fields()
--> Result<(), Box<dyn std::error::Error>> {
+fn get_pool_runtime_summary_returns_pool_summary_fields() -> Result<(), Box<dyn std::error::Error>>
+{
     let _guard = app_config_test_guard().lock().unwrap();
     reset_app_config()?;
     let dir = tempdir()?;
@@ -68,7 +83,11 @@ fn get_pool_runtime_summary_returns_pool_summary_fields()
 
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
     let endpoint_id = get_pool_network_endpoint_id(network_id)?;
-    let pool = create_pool(endpoint_id.clone(), "owner".to_string(), "macOS".to_string())?;
+    let pool = create_pool(
+        endpoint_id.clone(),
+        "owner".to_string(),
+        "macOS".to_string(),
+    )?;
     cardmind_rust::api::join_by_code(
         pool.id.clone(),
         "joiner-endpoint".to_string(),
@@ -84,7 +103,10 @@ fn get_pool_runtime_summary_returns_pool_summary_fields()
     assert_eq!(summary.syncing_count, 0);
     assert_eq!(summary.offline_count, 1);
     assert_eq!(summary.member_count_text, "2 members");
-    assert_eq!(summary.runtime_status_text, "1 connected, 0 syncing, 1 offline");
+    assert_eq!(
+        summary.runtime_status_text,
+        "1 connected, 0 syncing, 1 offline"
+    );
 
     reset_app_config()?;
     Ok(())

@@ -1815,7 +1815,9 @@ pub fn get_pool_members_runtime_view(
         let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
         let rows = build_pool_runtime_rows(&pool, &endpoint_id)?;
         Ok(PoolMembersRuntimeViewDto::new(
-            rows.iter().map(PoolMemberRuntimeDto::from_runtime).collect(),
+            rows.iter()
+                .map(PoolMemberRuntimeDto::from_runtime)
+                .collect(),
         ))
     })
 }
@@ -1843,10 +1845,7 @@ pub fn list_active_invites(pool_id: String) -> Result<PoolInvitesViewDto, ApiErr
     })
 }
 
-pub fn revoke_invite(
-    pool_id: String,
-    invite_id: String,
-) -> Result<PoolInvitesViewDto, ApiError> {
+pub fn revoke_invite(pool_id: String, invite_id: String) -> Result<PoolInvitesViewDto, ApiError> {
     require_app_lock_unlocked()?;
     let pool_id = parse_pool_id(&pool_id)?;
     let invite_id = parse_invite_id(&invite_id)?;

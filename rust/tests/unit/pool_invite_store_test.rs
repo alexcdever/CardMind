@@ -10,7 +10,9 @@ fn setup_pool_store() -> (PoolStore, TempDir) {
 #[test]
 fn active_invites_should_include_newly_created_invite() {
     let (store, _temp) = setup_pool_store();
-    let pool = store.create_pool("owner-endpoint", "Owner", "macOS").unwrap();
+    let pool = store
+        .create_pool("owner-endpoint", "Owner", "macOS")
+        .unwrap();
 
     let invite = store
         .record_invite(&pool.pool_id, "invite-code-1", "owner-endpoint")
@@ -27,12 +29,16 @@ fn active_invites_should_include_newly_created_invite() {
 #[test]
 fn revoked_invite_should_not_appear_in_active_invites() {
     let (store, _temp) = setup_pool_store();
-    let pool = store.create_pool("owner-endpoint", "Owner", "macOS").unwrap();
+    let pool = store
+        .create_pool("owner-endpoint", "Owner", "macOS")
+        .unwrap();
 
     let invite = store
         .record_invite(&pool.pool_id, "invite-code-1", "owner-endpoint")
         .unwrap();
-    store.revoke_invite(&pool.pool_id, &invite.invite_id).unwrap();
+    store
+        .revoke_invite(&pool.pool_id, &invite.invite_id)
+        .unwrap();
 
     let invites = store.list_active_invites(&pool.pool_id).unwrap();
 

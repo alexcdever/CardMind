@@ -774,7 +774,10 @@ impl PoolStore {
         save_loro_doc(&path, &doc)
     }
 
-    fn load_invites_from_loro(&self, pool_id: &Uuid) -> Result<Vec<PoolInviteRecord>, CardMindError> {
+    fn load_invites_from_loro(
+        &self,
+        pool_id: &Uuid,
+    ) -> Result<Vec<PoolInviteRecord>, CardMindError> {
         let path = self.paths.base_path.join(pool_doc_path(pool_id));
         let doc = load_loro_doc(&path)?;
         let invites_value = doc.get_list("invites").get_deep_value();
@@ -963,9 +966,7 @@ fn parse_invites(value: LoroValue) -> Result<Vec<PoolInviteRecord>, CardMindErro
         let invite_list = match item {
             LoroValue::List(list) => list,
             _ => {
-                return Err(CardMindError::InvalidArgument(
-                    "invite invalid".to_string(),
-                ));
+                return Err(CardMindError::InvalidArgument("invite invalid".to_string()));
             }
         };
         if invite_list.len() != 5 {

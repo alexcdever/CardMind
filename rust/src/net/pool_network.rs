@@ -50,8 +50,8 @@ use loro::{LoroDoc, LoroMap, LoroValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::Mutex;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::time::Instant;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::time::{Duration, timeout};
 use uuid::Uuid;
 

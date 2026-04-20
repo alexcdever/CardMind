@@ -84,7 +84,10 @@ async fn pool_network_should_report_syncing_state_during_active_sync() {
         .unwrap();
 
     receiver.start().await.unwrap();
-    let receiver_addr = receiver.wait_for_addr(Duration::from_secs(5)).await.unwrap();
+    let receiver_addr = receiver
+        .wait_for_addr(Duration::from_secs(5))
+        .await
+        .unwrap();
 
     let sync_future = sender.connect_and_sync(receiver_addr);
     tokio::pin!(sync_future);
@@ -115,7 +118,10 @@ async fn pool_network_should_expose_last_active_timestamp_after_sync_event() {
         .unwrap();
 
     receiver.start().await.unwrap();
-    let receiver_addr = receiver.wait_for_addr(Duration::from_secs(5)).await.unwrap();
+    let receiver_addr = receiver
+        .wait_for_addr(Duration::from_secs(5))
+        .await
+        .unwrap();
 
     assert_eq!(sender.last_active_at(), None);
 
@@ -162,7 +168,10 @@ fn summary_dto_should_return_expected_text_fields() {
     let summary = PoolRuntimeSummaryDto::from_counts(3, 1, 1, 1);
 
     assert_eq!(summary.member_count_text, "3 members");
-    assert_eq!(summary.runtime_status_text, "1 connected, 1 syncing, 1 offline");
+    assert_eq!(
+        summary.runtime_status_text,
+        "1 connected, 1 syncing, 1 offline"
+    );
 }
 
 #[test]
