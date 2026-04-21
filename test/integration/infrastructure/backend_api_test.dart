@@ -12,6 +12,10 @@ void main() {
       expect(frb.createPool, isNotNull);
       expect(frb.createCardNote, isNotNull);
       expect(frb.listCardNotes, isNotNull);
+      expect(frb.getPoolMembersRuntimeView, isNotNull);
+      expect(frb.getPoolRuntimeSummary, isNotNull);
+      expect(frb.listActiveInvites, isNotNull);
+      expect(frb.revokeInvite, isNotNull);
     },
   );
 }

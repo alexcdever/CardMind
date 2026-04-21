@@ -22,8 +22,20 @@ void main() {
     final result = await client.joinByCode('ok');
 
     expect(result.isSuccess, isTrue);
+    expect(result.isJoined, isTrue);
     expect(result.poolName, LocalPoolApiClient.ownerPoolName);
     expect(result.errorCode, isNull);
+  });
+
+  test('local joinByCode with pending returns pending result', () async {
+    final client = LocalPoolApiClient();
+
+    final result = await client.joinByCode('pending');
+
+    expect(result.isSuccess, isTrue);
+    expect(result.isPending, isTrue);
+    expect(result.poolId, 'pending-request-pool');
+    expect(result.requestId, 'pending-request');
   });
 
   test('local joinByCode with admin-offline returns explicit error', () async {

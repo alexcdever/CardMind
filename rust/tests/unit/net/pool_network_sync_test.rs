@@ -70,6 +70,21 @@ async fn test_sync_state_connected() {
     assert_eq!(network.sync_state(), "connected");
 }
 
+#[tokio::test]
+async fn test_has_live_connection_tracks_connected_sync_session() {
+    let (mut network, _temp) = create_test_pool_network().await;
+
+    assert!(!network.has_live_connection());
+
+    network.sync_connect("test-target".to_string()).unwrap();
+
+    assert!(network.has_live_connection());
+
+    network.sync_disconnect();
+
+    assert!(!network.has_live_connection());
+}
+
 // ==================== last_sync_error_code 测试 ====================
 
 #[tokio::test]

@@ -293,7 +293,17 @@ class PoolController extends ChangeNotifier {
     notifyListeners();
     final result = await _apiClient.joinByCode(code);
     _joining = false;
-    if (result.isSuccess) {
+    if (result.isPending) {
+      _noticeMessage = '加入申请已提交，等待管理员审批';
+      _state = PoolState.joinPending(
+        poolId: result.poolId ?? 'pending-request-pool',
+        poolName: result.poolName ?? '待加入数据池',
+        requestId: result.requestId ?? 'pending-request',
+        applicantIdentityLabel:
+            result.applicantIdentityLabel ?? _reconnectTarget,
+        pendingSinceLabel: '刚刚提交',
+      );
+    } else if (result.isSuccess) {
       try {
         final joined = await _apiClient.getJoinedPoolView();
         _state = PoolState.joined(

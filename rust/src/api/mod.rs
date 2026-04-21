@@ -45,12 +45,13 @@
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
+use crate::models::pool_runtime::{PoolMemberRuntime, PoolRuntimeSummary};
 use crate::net::endpoint::{PoolEndpoint, build_endpoint};
-use crate::net::pool_network::{JoinTrace, PoolNetwork};
+use crate::net::pool_network::{InviteJoinResult, JoinTrace, PoolNetwork};
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::security::app_lock::AppLock;
 use crate::store::card_store::CardNoteRepository;
-use crate::store::pool_store::PoolStore;
+use crate::store::pool_store::{PoolInviteRecord, PoolStore};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -141,6 +142,134 @@ pub struct JoinRequestDto {
     pub applicant_nickname: String,
     pub applicant_os: String,
     pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JoinByInviteResultDto {
+    pub status: String,
+    pub pool_id: String,
+    pub pool_name: String,
+    pub request_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PoolMemberRuntimeDto {
+    pub endpoint_id: String,
+    pub nickname: String,
+    pub os: String,
+    pub role: String,
+    pub status: String,
+    pub last_active_at: Option<i64>,
+    pub is_current_device: bool,
+}
+
+impl PoolMemberRuntimeDto {
+    pub fn from_runtime(runtime: &PoolMemberRuntime) -> Self {
+        Self {
+            endpoint_id: runtime.endpoint_id.clone(),
+            nickname: runtime.nickname.clone(),
+            os: runtime.os.clone(),
+            role: runtime.role.clone(),
+            status: runtime.status.as_str().to_string(),
+            last_active_at: runtime.last_active_at,
+            is_current_device: runtime.is_current_device,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PoolMembersRuntimeViewDto {
+    pub rows: Vec<PoolMemberRuntimeDto>,
+}
+
+impl PoolMembersRuntimeViewDto {
+    pub fn new(rows: Vec<PoolMemberRuntimeDto>) -> Self {
+        Self { rows }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PoolRuntimeSummaryDto {
+    pub member_count: usize,
+    pub connected_count: usize,
+    pub syncing_count: usize,
+    pub offline_count: usize,
+    pub member_count_text: String,
+    pub runtime_status_text: String,
+}
+
+impl PoolRuntimeSummaryDto {
+    pub fn from_counts(
+        member_count: usize,
+        connected_count: usize,
+        syncing_count: usize,
+        offline_count: usize,
+    ) -> Self {
+        Self::from_summary(&PoolRuntimeSummary {
+            member_count,
+            connected_count,
+            syncing_count,
+            offline_count,
+        })
+    }
+
+    pub fn from_summary(summary: &PoolRuntimeSummary) -> Self {
+        let member_suffix = if summary.member_count == 1 {
+            "member"
+        } else {
+            "members"
+        };
+        Self {
+            member_count: summary.member_count,
+            connected_count: summary.connected_count,
+            syncing_count: summary.syncing_count,
+            offline_count: summary.offline_count,
+            member_count_text: format!("{} {}", summary.member_count, member_suffix),
+            runtime_status_text: format!(
+                "{} connected, {} syncing, {} offline",
+                summary.connected_count, summary.syncing_count, summary.offline_count
+            ),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PoolInviteDto {
+    pub invite_id: String,
+    pub invite_code: String,
+    pub created_by_endpoint_id: String,
+    pub created_at: i64,
+}
+
+impl PoolInviteDto {
+    pub fn from_record(record: &PoolInviteRecord) -> Self {
+        Self {
+            invite_id: record.invite_id.to_string(),
+            invite_code: record.invite_code.clone(),
+            created_by_endpoint_id: record.created_by_endpoint_id.clone(),
+            created_at: record.created_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PoolInvitesViewDto {
+    pub invites: Vec<PoolInviteDto>,
+    pub active_count: usize,
+}
+
+impl PoolInvitesViewDto {
+    pub fn from_records(records: Vec<PoolInviteRecord>) -> Self {
+        let invites: Vec<PoolInviteDto> = records
+            .into_iter()
+            .filter(|record| record.revoked_at.is_none())
+            .map(|record| PoolInviteDto::from_record(&record))
+            .collect();
+        Self {
+            active_count: invites.len(),
+            invites,
+        }
+    }
 }
 
 fn to_join_request_dtos(pool: &crate::models::pool::Pool) -> Vec<JoinRequestDto> {
@@ -541,6 +670,83 @@ fn parse_pool_id(pool_id: &str) -> Result<Uuid, ApiError> {
 /// 解析卡片 ID。
 fn parse_card_id(card_id: &str) -> Result<Uuid, ApiError> {
     parse_uuid(card_id, "card_id")
+}
+
+fn parse_invite_id(invite_id: &str) -> Result<Uuid, ApiError> {
+    parse_uuid(invite_id, "invite_id")
+}
+
+fn parse_sync_target(target: &str) -> Result<iroh::EndpointAddr, ApiError> {
+    serde_json::from_str(target)
+        .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, "invalid sync target"))
+}
+
+fn network_runtime_signals_for_pool_member(
+    pool_id: &Uuid,
+    endpoint_id: &str,
+) -> Result<Option<(bool, bool, Option<i64>)>, ApiError> {
+    let map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    Ok(map.values().find_map(|managed| {
+        let managed_endpoint_id = managed.network.endpoint_id().to_string();
+        if managed_endpoint_id == endpoint_id {
+            let pool_store = PoolStore::new(managed.network.base_path()).ok()?;
+            let current_pool = pool_store.get_pool_for_endpoint(endpoint_id).ok()?;
+            (current_pool.pool_id == *pool_id).then_some((
+                managed.network.has_live_connection(),
+                managed.network.is_syncing(),
+                managed.network.last_active_at(),
+            ))
+        } else {
+            None
+        }
+    }))
+}
+
+fn build_pool_runtime_rows(
+    pool: &crate::models::pool::Pool,
+    current_endpoint_id: &str,
+) -> Result<Vec<PoolMemberRuntime>, ApiError> {
+    current_member_role_for_endpoint(pool, current_endpoint_id)?;
+    pool.members
+        .iter()
+        .map(|member| {
+            let (is_connected, is_syncing, last_active_at) =
+                network_runtime_signals_for_pool_member(&pool.pool_id, &member.endpoint_id)?
+                    .unwrap_or((false, false, None));
+            Ok(PoolMemberRuntime::from_member(
+                member,
+                current_endpoint_id,
+                crate::models::pool_runtime::MemberRuntimeStatus::from_signals(
+                    is_connected,
+                    is_syncing,
+                ),
+                last_active_at,
+            ))
+        })
+        .collect()
+}
+
+fn build_pool_runtime_summary(rows: &[PoolMemberRuntime]) -> PoolRuntimeSummary {
+    let connected_count = rows
+        .iter()
+        .filter(|row| row.status == crate::models::pool_runtime::MemberRuntimeStatus::Connected)
+        .count();
+    let syncing_count = rows
+        .iter()
+        .filter(|row| row.status == crate::models::pool_runtime::MemberRuntimeStatus::Syncing)
+        .count();
+    let offline_count = rows
+        .iter()
+        .filter(|row| row.status == crate::models::pool_runtime::MemberRuntimeStatus::Offline)
+        .count();
+    PoolRuntimeSummary {
+        member_count: rows.len(),
+        connected_count,
+        syncing_count,
+        offline_count,
+    }
 }
 
 /// 初始化应用级配置
@@ -1545,6 +1751,11 @@ pub fn create_pool_invite(network_id: u64, pool_id: String) -> Result<String, Ap
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
     let pool_id = parse_pool_id(&pool_id)?;
+    let pool_store = PoolStore::new(managed.network.base_path()).map_err(map_err)?;
+    current_member_role_for_endpoint(
+        &pool_store.get_pool(&pool_id).map_err(map_err)?,
+        &managed.network.endpoint_id().to_string(),
+    )?;
     managed
         .runtime
         .block_on(managed.network.wait_for_addr(Duration::from_secs(10)))
@@ -1553,6 +1764,17 @@ pub fn create_pool_invite(network_id: u64, pool_id: String) -> Result<String, Ap
         .network
         .create_invite_code(&pool_id)
         .map_err(map_err)
+        .and_then(|(invite_id, invite_code)| {
+            pool_store
+                .record_invite(
+                    &pool_id,
+                    invite_id,
+                    &invite_code,
+                    &managed.network.endpoint_id().to_string(),
+                )
+                .map_err(map_err)?;
+            Ok(invite_code)
+        })
 }
 
 /// 通过邀请字符串加入池并拉取完整快照。
@@ -1562,7 +1784,7 @@ pub fn join_pool_by_invite(
     nickname: String,
     os: String,
     debug_trace: bool,
-) -> Result<PoolDto, ApiError> {
+) -> Result<JoinByInviteResultDto, ApiError> {
     require_app_lock_unlocked()?;
     let map = pool_network_map()
         .lock()
@@ -1579,8 +1801,8 @@ pub fn join_pool_by_invite(
             &os,
             trace.as_mut(),
         ));
-    let pool = match join_result {
-        Ok(pool) => pool,
+    let join_result = match join_result {
+        Ok(join_result) => join_result,
         Err(err) => {
             let mut api_error = map_err(err);
             if let Some(trace) = trace {
@@ -1596,7 +1818,92 @@ pub fn join_pool_by_invite(
             return Err(api_error);
         }
     };
-    to_pool_dto(&pool, &managed.network.endpoint_id().to_string())
+    match join_result {
+        InviteJoinResult::Joined(pool) => Ok(JoinByInviteResultDto {
+            status: "joined".to_string(),
+            pool_id: pool.pool_id.to_string(),
+            pool_name: pool_name(&pool),
+            request_id: None,
+        }),
+        InviteJoinResult::Pending {
+            pool_id,
+            pool_name,
+            request_id,
+        } => Ok(JoinByInviteResultDto {
+            status: "pending".to_string(),
+            pool_id: pool_id.to_string(),
+            pool_name,
+            request_id: Some(request_id.to_string()),
+        }),
+    }
+}
+
+pub fn get_pool_members_runtime_view(
+    pool_id: String,
+    endpoint_id: String,
+) -> Result<PoolMembersRuntimeViewDto, ApiError> {
+    require_app_lock_unlocked()?;
+    let pool_id = parse_pool_id(&pool_id)?;
+    with_configured_pool_store(|pool_store| {
+        let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
+        let rows = build_pool_runtime_rows(&pool, &endpoint_id)?;
+        Ok(PoolMembersRuntimeViewDto::new(
+            rows.iter()
+                .map(PoolMemberRuntimeDto::from_runtime)
+                .collect(),
+        ))
+    })
+}
+
+pub fn get_pool_runtime_summary(
+    pool_id: String,
+    endpoint_id: String,
+) -> Result<PoolRuntimeSummaryDto, ApiError> {
+    require_app_lock_unlocked()?;
+    let pool_id = parse_pool_id(&pool_id)?;
+    with_configured_pool_store(|pool_store| {
+        let pool = pool_store.get_pool(&pool_id).map_err(map_err)?;
+        let rows = build_pool_runtime_rows(&pool, &endpoint_id)?;
+        let summary = build_pool_runtime_summary(&rows);
+        Ok(PoolRuntimeSummaryDto::from_summary(&summary))
+    })
+}
+
+pub fn list_active_invites(
+    pool_id: String,
+    endpoint_id: String,
+) -> Result<PoolInvitesViewDto, ApiError> {
+    require_app_lock_unlocked()?;
+    let pool_id = parse_pool_id(&pool_id)?;
+    with_configured_pool_store(|pool_store| {
+        current_member_role_for_endpoint(
+            &pool_store.get_pool(&pool_id).map_err(map_err)?,
+            &endpoint_id,
+        )?;
+        let invites = pool_store.list_active_invites(&pool_id).map_err(map_err)?;
+        Ok(PoolInvitesViewDto::from_records(invites))
+    })
+}
+
+pub fn revoke_invite(
+    pool_id: String,
+    invite_id: String,
+    endpoint_id: String,
+) -> Result<PoolInvitesViewDto, ApiError> {
+    require_app_lock_unlocked()?;
+    let pool_id = parse_pool_id(&pool_id)?;
+    let invite_id = parse_invite_id(&invite_id)?;
+    with_configured_pool_store(|pool_store| {
+        current_member_role_for_endpoint(
+            &pool_store.get_pool(&pool_id).map_err(map_err)?,
+            &endpoint_id,
+        )?;
+        pool_store
+            .revoke_invite(&pool_id, &invite_id)
+            .map_err(map_err)?;
+        let invites = pool_store.list_active_invites(&pool_id).map_err(map_err)?;
+        Ok(PoolInvitesViewDto::from_records(invites))
+    })
 }
 
 /// 关闭 PoolNetwork 网络实例
@@ -1716,14 +2023,13 @@ pub fn sync_status(network_id: u64) -> Result<SyncStatusDto, ApiError> {
 /// ```
 pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
     require_app_lock_unlocked()?;
-    let _: iroh::EndpointAddr = serde_json::from_str(&target)
-        .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, "sync target invalid"))?;
     let mut map = pool_network_map()
         .lock()
         .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
     let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    parse_sync_target(&target)?;
     managed.network.sync_connect(target).map_err(map_err)
 }
 
@@ -1847,8 +2153,7 @@ pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
     if let Some(target) = managed.network.sync_target() {
-        let target: iroh::EndpointAddr = serde_json::from_str(target)
-            .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, "sync target invalid"))?;
+        let target = parse_sync_target(target)?;
         managed
             .runtime
             .block_on(managed.network.connect_and_sync(target))

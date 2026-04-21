@@ -10,6 +10,9 @@ mod card_store_business_test;
 #[path = "unit/store/pool_store_business_test.rs"]
 mod pool_store_business_test;
 
+#[path = "unit/pool_invite_store_test.rs"]
+mod pool_invite_store_test;
+
 #[path = "unit/store/path_resolver_test.rs"]
 mod path_resolver_test;
 
@@ -57,6 +60,9 @@ mod api_functions_test;
 
 #[path = "unit/api_utils_test.rs"]
 mod api_utils_test;
+
+#[path = "unit/api_runtime_view_test.rs"]
+mod api_runtime_view_test;
 
 // CLI 模块测试
 #[path = "unit/cli/debug_console_test.rs"]

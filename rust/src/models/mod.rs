@@ -38,3 +38,5 @@ pub mod card;
 pub mod error;
 /// 数据池模型 - Pool 与成员管理
 pub mod pool;
+/// 数据池运行态模型 - 成员连接/同步展示状态
+pub mod pool_runtime;

@@ -216,6 +216,41 @@ fn test_join_by_code_not_found() {
     assert!(matches!(result, Err(CardMindError::NotFound(_))));
 }
 
+#[test]
+fn test_create_pool_rejects_endpoint_already_joined_in_other_pool() {
+    let (store, _temp) = setup_pool_store();
+    let _pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+
+    let result = store.create_pool("ep1", "Another Admin", "iOS");
+
+    assert!(matches!(result, Err(CardMindError::InvalidArgument(_))));
+}
+
+#[test]
+fn test_join_pool_rejects_endpoint_already_joined_in_other_pool() {
+    let (store, _temp) = setup_pool_store();
+    let first_pool = store.create_pool("ep1", "Admin", "macOS").unwrap();
+    let second_pool = store.create_pool("ep2", "Other Admin", "Windows").unwrap();
+    let existing_member = PoolMember {
+        endpoint_id: "ep1".to_string(),
+        nickname: "Admin".to_string(),
+        os: "macOS".to_string(),
+        is_admin: false,
+    };
+
+    let result = store.join_pool(&second_pool, existing_member, vec![]);
+
+    assert!(matches!(result, Err(CardMindError::InvalidArgument(_))));
+    assert_eq!(
+        store.get_pool(&first_pool.pool_id).unwrap().members.len(),
+        1
+    );
+    assert_eq!(
+        store.get_pool(&second_pool.pool_id).unwrap().members.len(),
+        1
+    );
+}
+
 // ============================================================================
 // Leave Pool Tests
 // ============================================================================
@@ -633,6 +668,58 @@ fn test_approve_join_request_adds_member() {
 
     assert_eq!(updated.members.len(), 2);
     assert_eq!(updated.join_requests[0].status, JoinRequestStatus::Approved);
+}
+
+#[test]
+fn test_submit_join_request_rejects_endpoint_already_in_other_pool() {
+    let (store, _temp) = setup_pool_store();
+    let _other_pool = store.create_pool("ep-existing", "OwnerA", "macOS").unwrap();
+    let pool = store.create_pool("ep-admin", "OwnerB", "macOS").unwrap();
+
+    let result = store.submit_join_request(
+        &pool.pool_id,
+        PoolMember {
+            endpoint_id: "ep-existing".to_string(),
+            nickname: "Applicant".to_string(),
+            os: "Windows".to_string(),
+            is_admin: false,
+        },
+    );
+
+    match result {
+        Err(CardMindError::InvalidArgument(msg)) => {
+            assert!(msg.contains("another pool"));
+        }
+        _ => panic!("Expected InvalidArgument error"),
+    }
+}
+
+#[test]
+fn test_approve_join_request_rejects_endpoint_joined_elsewhere_after_submit() {
+    let (store, _temp) = setup_pool_store();
+    let pool = store.create_pool("ep-admin", "OwnerA", "macOS").unwrap();
+    let pool = store
+        .submit_join_request(
+            &pool.pool_id,
+            PoolMember {
+                endpoint_id: "ep-applicant".to_string(),
+                nickname: "Applicant".to_string(),
+                os: "Windows".to_string(),
+                is_admin: false,
+            },
+        )
+        .unwrap();
+    let request_id = pool.join_requests[0].request_id;
+    let _other_pool = store.create_pool("ep-applicant", "OwnerB", "iOS").unwrap();
+
+    let result = store.approve_join_request(&pool.pool_id, &request_id, "ep-admin");
+
+    match result {
+        Err(CardMindError::InvalidArgument(msg)) => {
+            assert!(msg.contains("another pool"));
+        }
+        _ => panic!("Expected InvalidArgument error"),
+    }
 }
 
 #[test]

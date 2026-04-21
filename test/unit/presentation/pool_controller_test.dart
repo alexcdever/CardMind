@@ -240,6 +240,26 @@ void main() {
     expect(joined.memberLabels, <String>['peer-x']);
   });
 
+  test('joinByCode_pending_transitionsToJoinPendingState', () async {
+    final client = _FakePoolApiClient()
+      ..joinResult = const PoolJoinResult.pending(
+        poolId: 'pool-pending',
+        poolName: 'Pending Pool',
+        requestId: 'req-1',
+        applicantIdentityLabel: 'joiner@test',
+      );
+    final controller = PoolController(apiClient: client);
+
+    await controller.joinByCode('invite');
+
+    final pending = controller.state as PoolJoinPending;
+    expect(pending.poolId, 'pool-pending');
+    expect(pending.poolName, 'Pending Pool');
+    expect(pending.requestId, 'req-1');
+    expect(controller.noticeMessage, '加入申请已提交，等待管理员审批');
+    expect(controller.joining, isFalse);
+  });
+
   test('joinByCode_failure_transitionsToErrorState', () async {
     final client = _FakePoolApiClient()
       ..joinResult = const PoolJoinResult.error('ADMIN_OFFLINE');
@@ -279,10 +299,7 @@ void main() {
     await controller.joinByCode('ok');
 
     expect(controller.state, isA<PoolError>());
-    expect(
-      (controller.state as PoolError).code,
-      'PROJECTION_NOT_CONVERGED',
-    );
+    expect((controller.state as PoolError).code, 'PROJECTION_NOT_CONVERGED');
     expect(controller.noticeMessage, 'retry_get_joined_pool_view');
     expect(controller.joining, isFalse);
   });
@@ -366,9 +383,10 @@ void main() {
 
     await controller.submitJoinRequest();
 
-    final joined = controller.state as PoolJoined;
-    expect(joined.isOwner, isFalse);
-    expect(joined.pending.single.id, 'req-1');
+    final pending = controller.state as PoolJoinPending;
+    expect(pending.poolId, 'pending-request-pool');
+    expect(pending.requestId, 'req-1');
+    expect(pending.applicantIdentityLabel, 'member@test');
     expect(controller.noticeMessage, contains('等待管理员审批'));
   });
 
@@ -397,18 +415,17 @@ void main() {
       ..joinRequestResults = const <JoinRequestData>[];
     final controller = PoolController(
       apiClient: client,
-      initialState: const PoolState.joined(
+      initialState: const PoolState.joinPending(
         poolId: 'pool-joined',
-        pending: <PoolPendingRequest>[
-          PoolPendingRequest(id: 'req-1', displayName: 'member@test'),
-        ],
+        poolName: 'Joined',
+        requestId: 'req-1',
+        applicantIdentityLabel: 'member@test',
       ),
     );
 
     await controller.cancelJoinRequest('req-1');
 
-    final joined = controller.state as PoolJoined;
-    expect(joined.pending, isEmpty);
+    expect(controller.state, isA<PoolNotJoined>());
     expect(controller.noticeMessage, '加入申请已取消');
   });
 

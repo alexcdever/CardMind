@@ -37,6 +37,9 @@ mod pool_lifecycle_test;
 #[path = "integration/api/pool_note_attachment_test.rs"]
 mod pool_note_attachment_test;
 
+#[path = "integration/api_runtime_view_integration_test.rs"]
+mod api_runtime_view_integration_test;
+
 // Sync 测试
 #[path = "integration/sync/api_flow_test.rs"]
 mod api_flow_test;

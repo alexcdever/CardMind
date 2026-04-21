@@ -14,10 +14,12 @@ import 'models/api_error.dart';
 import 'models/card.dart';
 import 'models/error.dart';
 import 'models/pool.dart';
+import 'models/pool_runtime.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 import 'package:uuid/uuid.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
+import 'store/pool_store.dart';
 
 abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RustLibApiImplPlatform({
@@ -52,10 +54,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CardMindError dco_decode_box_autoadd_card_mind_error(dynamic raw);
 
   @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
+
+  @protected
   Pool dco_decode_box_autoadd_pool(dynamic raw);
 
   @protected
+  PoolInviteRecord dco_decode_box_autoadd_pool_invite_record(dynamic raw);
+
+  @protected
   PoolMember dco_decode_box_autoadd_pool_member(dynamic raw);
+
+  @protected
+  PoolMemberRuntime dco_decode_box_autoadd_pool_member_runtime(dynamic raw);
+
+  @protected
+  PoolRuntimeSummary dco_decode_box_autoadd_pool_runtime_summary(dynamic raw);
 
   @protected
   RecoveryContract dco_decode_box_autoadd_recovery_contract(dynamic raw);
@@ -77,6 +91,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  JoinByInviteResultDto dco_decode_join_by_invite_result_dto(dynamic raw);
 
   @protected
   JoinRequest dco_decode_join_request(dynamic raw);
@@ -106,16 +123,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<PoolDto> dco_decode_list_pool_dto(dynamic raw);
 
   @protected
+  List<PoolInviteDto> dco_decode_list_pool_invite_dto(dynamic raw);
+
+  @protected
+  List<PoolInviteRecord> dco_decode_list_pool_invite_record(dynamic raw);
+
+  @protected
   List<PoolMember> dco_decode_list_pool_member(dynamic raw);
 
   @protected
   List<PoolMemberDto> dco_decode_list_pool_member_dto(dynamic raw);
 
   @protected
+  List<PoolMemberRuntimeDto> dco_decode_list_pool_member_runtime_dto(
+    dynamic raw,
+  );
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
   LocalContentSafety dco_decode_local_content_safety(dynamic raw);
+
+  @protected
+  MemberRuntimeStatus dco_decode_member_runtime_status(dynamic raw);
 
   @protected
   NextAction dco_decode_next_action(dynamic raw);
@@ -127,6 +158,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
   Pool dco_decode_pool(dynamic raw);
 
   @protected
@@ -136,10 +170,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PoolDto dco_decode_pool_dto(dynamic raw);
 
   @protected
+  PoolInviteDto dco_decode_pool_invite_dto(dynamic raw);
+
+  @protected
+  PoolInviteRecord dco_decode_pool_invite_record(dynamic raw);
+
+  @protected
+  PoolInvitesViewDto dco_decode_pool_invites_view_dto(dynamic raw);
+
+  @protected
   PoolMember dco_decode_pool_member(dynamic raw);
 
   @protected
   PoolMemberDto dco_decode_pool_member_dto(dynamic raw);
+
+  @protected
+  PoolMemberRuntime dco_decode_pool_member_runtime(dynamic raw);
+
+  @protected
+  PoolMemberRuntimeDto dco_decode_pool_member_runtime_dto(dynamic raw);
+
+  @protected
+  PoolMembersRuntimeViewDto dco_decode_pool_members_runtime_view_dto(
+    dynamic raw,
+  );
+
+  @protected
+  PoolRuntimeSummary dco_decode_pool_runtime_summary(dynamic raw);
+
+  @protected
+  PoolRuntimeSummaryDto dco_decode_pool_runtime_summary_dto(dynamic raw);
 
   @protected
   (bool, bool) dco_decode_record_bool_bool(dynamic raw);
@@ -201,10 +261,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   Pool sse_decode_box_autoadd_pool(SseDeserializer deserializer);
 
   @protected
+  PoolInviteRecord sse_decode_box_autoadd_pool_invite_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PoolMember sse_decode_box_autoadd_pool_member(SseDeserializer deserializer);
+
+  @protected
+  PoolMemberRuntime sse_decode_box_autoadd_pool_member_runtime(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PoolRuntimeSummary sse_decode_box_autoadd_pool_runtime_summary(
+    SseDeserializer deserializer,
+  );
 
   @protected
   RecoveryContract sse_decode_box_autoadd_recovery_contract(
@@ -228,6 +306,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  JoinByInviteResultDto sse_decode_join_by_invite_result_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   JoinRequest sse_decode_join_request(SseDeserializer deserializer);
@@ -261,6 +344,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<PoolDto> sse_decode_list_pool_dto(SseDeserializer deserializer);
 
   @protected
+  List<PoolInviteDto> sse_decode_list_pool_invite_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<PoolInviteRecord> sse_decode_list_pool_invite_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<PoolMember> sse_decode_list_pool_member(SseDeserializer deserializer);
 
   @protected
@@ -269,10 +362,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<PoolMemberRuntimeDto> sse_decode_list_pool_member_runtime_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
   LocalContentSafety sse_decode_local_content_safety(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  MemberRuntimeStatus sse_decode_member_runtime_status(
     SseDeserializer deserializer,
   );
 
@@ -286,6 +389,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   Pool sse_decode_pool(SseDeserializer deserializer);
 
   @protected
@@ -295,10 +401,46 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PoolDto sse_decode_pool_dto(SseDeserializer deserializer);
 
   @protected
+  PoolInviteDto sse_decode_pool_invite_dto(SseDeserializer deserializer);
+
+  @protected
+  PoolInviteRecord sse_decode_pool_invite_record(SseDeserializer deserializer);
+
+  @protected
+  PoolInvitesViewDto sse_decode_pool_invites_view_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PoolMember sse_decode_pool_member(SseDeserializer deserializer);
 
   @protected
   PoolMemberDto sse_decode_pool_member_dto(SseDeserializer deserializer);
+
+  @protected
+  PoolMemberRuntime sse_decode_pool_member_runtime(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PoolMemberRuntimeDto sse_decode_pool_member_runtime_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PoolMembersRuntimeViewDto sse_decode_pool_members_runtime_view_dto(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PoolRuntimeSummary sse_decode_pool_runtime_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PoolRuntimeSummaryDto sse_decode_pool_runtime_summary_dto(
+    SseDeserializer deserializer,
+  );
 
   @protected
   (bool, bool) sse_decode_record_bool_bool(SseDeserializer deserializer);
@@ -366,11 +508,35 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_pool(Pool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_pool_invite_record(
+    PoolInviteRecord self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_pool_member(
     PoolMember self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pool_member_runtime(
+    PoolMemberRuntime self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pool_runtime_summary(
+    PoolRuntimeSummary self,
     SseSerializer serializer,
   );
 
@@ -400,6 +566,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_join_by_invite_result_dto(
+    JoinByInviteResultDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_join_request(JoinRequest self, SseSerializer serializer);
@@ -444,6 +616,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_pool_dto(List<PoolDto> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_pool_invite_dto(
+    List<PoolInviteDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_pool_invite_record(
+    List<PoolInviteRecord> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_pool_member(
     List<PoolMember> self,
     SseSerializer serializer,
@@ -452,6 +636,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_pool_member_dto(
     List<PoolMemberDto> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_pool_member_runtime_dto(
+    List<PoolMemberRuntimeDto> self,
     SseSerializer serializer,
   );
 
@@ -468,6 +658,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_member_runtime_status(
+    MemberRuntimeStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_next_action(NextAction self, SseSerializer serializer);
 
   @protected
@@ -475,6 +671,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_pool(Pool self, SseSerializer serializer);
@@ -486,10 +688,55 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_pool_dto(PoolDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_pool_invite_dto(PoolInviteDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pool_invite_record(
+    PoolInviteRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pool_invites_view_dto(
+    PoolInvitesViewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_pool_member(PoolMember self, SseSerializer serializer);
 
   @protected
   void sse_encode_pool_member_dto(PoolMemberDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pool_member_runtime(
+    PoolMemberRuntime self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pool_member_runtime_dto(
+    PoolMemberRuntimeDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pool_members_runtime_view_dto(
+    PoolMembersRuntimeViewDto self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pool_runtime_summary(
+    PoolRuntimeSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pool_runtime_summary_dto(
+    PoolRuntimeSummaryDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_record_bool_bool((bool, bool) self, SseSerializer serializer);

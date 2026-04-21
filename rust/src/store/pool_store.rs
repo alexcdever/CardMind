@@ -42,6 +42,7 @@ use crate::utils::uuid_v7::new_uuid_v7;
 use loro::LoroValue;
 use std::collections::HashSet;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 use uuid::Uuid;
 
 /// 投影模式枚举，用于控制数据从 Loro 到 SQLite 的投影行为
@@ -68,6 +69,15 @@ pub struct PoolStore {
     sqlite: SqliteStore,
     /// 投影模式，控制数据从 Loro 到 SQLite 的投影行为
     projection_mode: ProjectionMode,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PoolInviteRecord {
+    pub invite_id: Uuid,
+    pub invite_code: String,
+    pub created_by_endpoint_id: String,
+    pub created_at: i64,
+    pub revoked_at: Option<i64>,
 }
 
 impl PoolStore {
@@ -165,6 +175,7 @@ impl PoolStore {
         nickname: &str,
         os: &str,
     ) -> Result<Pool, CardMindError> {
+        self.ensure_endpoint_available(endpoint_id, None)?;
         let pool = Pool {
             pool_id: new_uuid_v7(),
             members: vec![PoolMember {
@@ -313,6 +324,7 @@ impl PoolStore {
                 "dissolved pool cannot be modified".to_string(),
             ));
         }
+        self.ensure_endpoint_available(&new_member.endpoint_id, Some(pool.pool_id))?;
         let mut updated = pool.clone();
         if !updated
             .members
@@ -456,6 +468,8 @@ impl PoolStore {
             ));
         }
 
+        self.ensure_endpoint_available(&applicant.endpoint_id, Some(*pool_id))?;
+
         if pool.join_requests.iter().any(|request| {
             request.applicant.endpoint_id == applicant.endpoint_id
                 && request.status == JoinRequestStatus::Pending
@@ -510,6 +524,8 @@ impl PoolStore {
                 "join request is not pending".to_string(),
             ));
         }
+
+        self.ensure_endpoint_available(&request.applicant.endpoint_id, Some(*pool_id))?;
 
         request.status = JoinRequestStatus::Approved;
         if !pool
@@ -588,6 +604,70 @@ impl PoolStore {
         request.status = JoinRequestStatus::Cancelled;
         self.persist_pool(&pool)?;
         Ok(pool)
+    }
+
+    pub fn record_invite(
+        &self,
+        pool_id: &Uuid,
+        invite_id: Uuid,
+        invite_code: &str,
+        created_by_endpoint_id: &str,
+    ) -> Result<PoolInviteRecord, CardMindError> {
+        let _ = self.get_pool(pool_id)?;
+        let mut invites = self.load_invites_from_loro(pool_id)?;
+        let invite = PoolInviteRecord {
+            invite_id,
+            invite_code: invite_code.to_string(),
+            created_by_endpoint_id: created_by_endpoint_id.to_string(),
+            created_at: current_timestamp_secs()?,
+            revoked_at: None,
+        };
+        invites.push(invite.clone());
+        self.write_invites_to_loro(pool_id, &invites)?;
+        Ok(invite)
+    }
+
+    pub fn list_active_invites(
+        &self,
+        pool_id: &Uuid,
+    ) -> Result<Vec<PoolInviteRecord>, CardMindError> {
+        let _ = self.get_pool(pool_id)?;
+        Ok(self
+            .load_invites_from_loro(pool_id)?
+            .into_iter()
+            .filter(|invite| invite.revoked_at.is_none())
+            .collect())
+    }
+
+    pub fn has_active_invite_code(
+        &self,
+        pool_id: &Uuid,
+        invite_code: &str,
+    ) -> Result<bool, CardMindError> {
+        let _ = self.get_pool(pool_id)?;
+        Ok(self
+            .load_invites_from_loro(pool_id)?
+            .into_iter()
+            .any(|invite| invite.revoked_at.is_none() && invite.invite_code == invite_code))
+    }
+
+    pub fn revoke_invite(
+        &self,
+        pool_id: &Uuid,
+        invite_id: &Uuid,
+    ) -> Result<PoolInviteRecord, CardMindError> {
+        let _ = self.get_pool(pool_id)?;
+        let mut invites = self.load_invites_from_loro(pool_id)?;
+        let invite = invites
+            .iter_mut()
+            .find(|invite| invite.invite_id == *invite_id)
+            .ok_or_else(|| CardMindError::NotFound("invite not found".to_string()))?;
+        if invite.revoked_at.is_none() {
+            invite.revoked_at = Some(current_timestamp_secs()?);
+        }
+        let updated = invite.clone();
+        self.write_invites_to_loro(pool_id, &invites)?;
+        Ok(updated)
     }
 
     /// 持久化数据池
@@ -679,6 +759,72 @@ impl PoolStore {
         let doc = load_loro_doc(&path)?;
         let requests_value = doc.get_list("join_requests").get_deep_value();
         parse_join_requests(requests_value)
+    }
+
+    fn write_invites_to_loro(
+        &self,
+        pool_id: &Uuid,
+        invites: &[PoolInviteRecord],
+    ) -> Result<(), CardMindError> {
+        let path = self.paths.base_path.join(pool_doc_path(pool_id));
+        let doc = load_loro_doc(&path)?;
+        let invite_list = doc.get_list("invites");
+        if !invite_list.is_empty() {
+            invite_list
+                .delete(0, invite_list.len())
+                .map_err(|e| CardMindError::Loro(e.to_string()))?;
+        }
+        for invite in invites {
+            let mut values = vec![
+                LoroValue::from(invite.invite_id.to_string()),
+                LoroValue::from(invite.invite_code.as_str()),
+                LoroValue::from(invite.created_by_endpoint_id.as_str()),
+                LoroValue::from(invite.created_at),
+            ];
+            match invite.revoked_at {
+                Some(revoked_at) => values.push(LoroValue::from(revoked_at)),
+                None => values.push(LoroValue::Null),
+            }
+            invite_list
+                .push(LoroValue::from(values))
+                .map_err(|e| CardMindError::Loro(e.to_string()))?;
+        }
+        doc.commit();
+        save_loro_doc(&path, &doc)
+    }
+
+    fn load_invites_from_loro(
+        &self,
+        pool_id: &Uuid,
+    ) -> Result<Vec<PoolInviteRecord>, CardMindError> {
+        let path = self.paths.base_path.join(pool_doc_path(pool_id));
+        let doc = load_loro_doc(&path)?;
+        let invites_value = doc.get_list("invites").get_deep_value();
+        parse_invites(invites_value)
+    }
+
+    fn ensure_endpoint_available(
+        &self,
+        endpoint_id: &str,
+        allowed_pool_id: Option<Uuid>,
+    ) -> Result<(), CardMindError> {
+        let ids = self.sqlite.list_pool_ids()?;
+        for pool_id in ids {
+            if allowed_pool_id == Some(pool_id) {
+                continue;
+            }
+            let pool = self.get_pool(&pool_id)?;
+            if pool
+                .members
+                .iter()
+                .any(|member| member.endpoint_id == endpoint_id)
+            {
+                return Err(CardMindError::InvalidArgument(
+                    "endpoint already belongs to another pool".to_string(),
+                ));
+            }
+        }
+        Ok(())
     }
 
     /// 将数据池从 Loro 投影到 SQLite
@@ -845,6 +991,94 @@ fn parse_join_requests(value: LoroValue) -> Result<Vec<JoinRequest>, CardMindErr
     }
 
     Ok(requests)
+}
+
+fn parse_invites(value: LoroValue) -> Result<Vec<PoolInviteRecord>, CardMindError> {
+    let list = match value {
+        LoroValue::List(list) => list,
+        LoroValue::Null => return Ok(Vec::new()),
+        _ => {
+            return Err(CardMindError::InvalidArgument(
+                "invites invalid".to_string(),
+            ));
+        }
+    };
+
+    let mut invites = Vec::new();
+    for item in list.iter() {
+        let invite_list = match item {
+            LoroValue::List(list) => list,
+            _ => {
+                return Err(CardMindError::InvalidArgument("invite invalid".to_string()));
+            }
+        };
+        if invite_list.len() != 5 {
+            return Err(CardMindError::InvalidArgument(
+                "invite length invalid".to_string(),
+            ));
+        }
+
+        let invite_id = match &invite_list[0] {
+            LoroValue::String(value) => Uuid::parse_str(value.as_ref())
+                .map_err(|_| CardMindError::InvalidArgument("invite id invalid".to_string()))?,
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "invite id invalid".to_string(),
+                ));
+            }
+        };
+        let invite_code = match &invite_list[1] {
+            LoroValue::String(value) => value.as_ref().to_string(),
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "invite code invalid".to_string(),
+                ));
+            }
+        };
+        let created_by_endpoint_id = match &invite_list[2] {
+            LoroValue::String(value) => value.as_ref().to_string(),
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "invite creator invalid".to_string(),
+                ));
+            }
+        };
+        let created_at = match &invite_list[3] {
+            LoroValue::I64(value) => *value,
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "invite created_at invalid".to_string(),
+                ));
+            }
+        };
+        let revoked_at = match &invite_list[4] {
+            LoroValue::Null => None,
+            LoroValue::I64(value) => Some(*value),
+            _ => {
+                return Err(CardMindError::InvalidArgument(
+                    "invite revoked_at invalid".to_string(),
+                ));
+            }
+        };
+
+        invites.push(PoolInviteRecord {
+            invite_id,
+            invite_code,
+            created_by_endpoint_id,
+            created_at,
+            revoked_at,
+        });
+    }
+
+    Ok(invites)
+}
+
+fn current_timestamp_secs() -> Result<i64, CardMindError> {
+    let duration = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| CardMindError::Internal(format!("system time invalid: {}", e)))?;
+    i64::try_from(duration.as_secs())
+        .map_err(|_| CardMindError::Internal("timestamp overflow".to_string()))
 }
 
 #[cfg(test)]

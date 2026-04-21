@@ -264,6 +264,9 @@ void main() {
       try {
         await _switchAppConfig(ownerRoot.path);
         ownerNetworkId = await frb.initPoolNetwork(basePath: ownerRoot.path);
+        final ownerEndpointId = await frb.getPoolNetworkEndpointId(
+          networkId: ownerNetworkId,
+        );
         final ownerClient = FrbPoolApiClient(
           nickname: 'owner',
           os: 'macos',
@@ -293,8 +296,14 @@ void main() {
           isTrue,
           reason: 'join error: ${joined.errorCode}',
         );
-
+        expect(joined.isPending, isTrue);
         await _switchAppConfig(ownerRoot.path);
+        await frb.approveJoinRequest(
+          poolId: created.poolId,
+          requestId: joined.requestId!,
+          approverEndpointId: ownerEndpointId,
+        );
+
         await frb.syncConnect(networkId: ownerNetworkId, target: joinerTarget);
         await frb.syncJoinPool(
           networkId: ownerNetworkId,
@@ -365,6 +374,15 @@ void main() {
         final joined = await joinerClient.joinByCode(created.inviteCode!);
 
         expect(joined.isSuccess, isTrue, reason: 'join should succeed first');
+        expect(joined.isPending, isTrue);
+        final ownerEndpointId = await frb.getPoolNetworkEndpointId(
+          networkId: ownerNetworkId,
+        );
+        await frb.approveJoinRequest(
+          poolId: created.poolId,
+          requestId: joined.requestId!,
+          approverEndpointId: ownerEndpointId,
+        );
 
         final joinedView = await joinerClient.getJoinedPoolView();
         expect(joinedView, isNotNull);
@@ -544,15 +562,17 @@ void main() {
           isTrue,
           reason: 'join error: ${joined.errorCode}',
         );
+        expect(joined.isPending, isTrue);
+        await frb.approveJoinRequest(
+          poolId: pool.id,
+          requestId: joined.requestId!,
+          approverEndpointId: ownerEndpointId,
+        );
+
         await frb.resetAppConfigForTests();
         await frb.initAppConfig(appDataDir: joinerRoot.path);
         await _unlockAppLock();
-        final view = await client.getJoinedPoolView();
-
-        expect(view, isNotNull);
-        expect(view!.poolId, pool.id);
-        expect(view.isOwner, isFalse);
-        expect(view.memberLabels, contains(view.currentIdentityLabel));
+        await expectLater(client.getJoinedPoolView(), throwsA(isA<ApiError>()));
       } finally {
         await frb.resetAppConfigForTests();
         await ownerRoot.delete(recursive: true);
@@ -607,9 +627,17 @@ void main() {
           isTrue,
           reason: 'join error: ${joined.errorCode}',
         );
-        final joinerViewAfterJoin = await joinerClient.getJoinedPoolView();
-        expect(joinerViewAfterJoin, isNotNull);
-        expect(joinerViewAfterJoin!.poolId, created.poolId);
+        expect(joined.isPending, isTrue);
+        final ownerEndpointId = await frb.getPoolNetworkEndpointId(
+          networkId: ownerNetworkId,
+        );
+        await _switchAppConfig(ownerRoot.path);
+        await frb.approveJoinRequest(
+          poolId: created.poolId,
+          requestId: joined.requestId!,
+          approverEndpointId: ownerEndpointId,
+        );
+        await _switchAppConfig(joinerRoot.path);
 
         await _switchAppConfig(ownerRoot.path);
         await frb.syncConnect(
@@ -622,10 +650,6 @@ void main() {
         );
 
         await _switchAppConfig(joinerRoot.path);
-        final joinerViewAfterSwitchBack = await joinerClient
-            .getJoinedPoolView();
-        expect(joinerViewAfterSwitchBack, isNotNull);
-        expect(joinerViewAfterSwitchBack!.poolId, created.poolId);
         await frb.syncConnect(
           networkId: joinerNetworkId,
           target: ownerSyncTarget,
