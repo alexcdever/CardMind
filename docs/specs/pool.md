@@ -48,9 +48,11 @@
 
 1. Pool：协作容器，承载成员关系、入池请求与池级元数据。
 2. Join Request：请求加入指定 Pool 的待处理记录。
-3. Note Reference：Pool 元数据中对卡片笔记的引用（以 `noteId` 集合或等价形式表示）。
-4. Dissolved：Pool 终态标记，表示该池已解散且不再接受新增协作活动。
-5. App Lock：数据池相关能力的本地安全前置条件；未满足时不得进入池相关受保护能力。
+3. Invite Code：由池内成员生成、可用于发起加入流程的邀请凭证；其是否仍然有效属于 Pool 领域规则的一部分。
+4. Endpoint：一个具体设备上的 app 实例身份标识；在同一 Pool 内可视为一个成员实例的唯一身份。
+5. Note Reference：Pool 元数据中对卡片笔记的引用（以 `noteId` 集合或等价形式表示）。
+6. Dissolved：Pool 终态标记，表示该池已解散且不再接受新增协作活动。
+7. App Lock：数据池相关能力的本地安全前置条件；未满足时不得进入池相关受保护能力。
 
 ### 2.2 角色
 
@@ -86,9 +88,11 @@
 
 1. 创建池的一方 MUST 自动成为该池首个 admin。
 2. admin MUST 可执行：池信息管理、申请审批/拒绝、解散池。
-3. member MUST 可执行：退出池。
-4. member 执行 admin 专属动作为 FORBIDDEN。
-5. 越权操作 MUST 返回稳定权限错误语义。
+3. 任一池内成员 MUST 可创建 Invite Code。
+4. 任一池内成员 MUST 可查看当前仍有效的 Invite Code 列表，并可撤销任一仍有效的 Invite Code。
+5. member MUST 可执行：退出池。
+6. member 执行 admin 专属动作为 FORBIDDEN。
+7. 越权操作 MUST 返回稳定权限错误语义。
 
 ### 4.3 管理员不变量
 
@@ -114,10 +118,12 @@
 ### 5.2 不变量
 
 1. 同一 Pool 内，同一 Join Request 标识 MUST 唯一。
-2. 已解散 Pool 接受新的加入申请为 FORBIDDEN。
-3. 已解散 Pool 新增成员为 FORBIDDEN。
-4. 已解散 Pool 新增 `noteId` 引用为 FORBIDDEN。
-5. Note Reference Set 中每个 `noteId` MUST 可被追溯到一次合法创建动作。
+2. 同一时刻，同一 Endpoint MUST NOT 同时属于多个未解散 Pool。
+3. 已撤销的 Invite Code MUST NOT 再被用于成功加入 Pool。
+4. 已解散 Pool 接受新的加入申请为 FORBIDDEN。
+5. 已解散 Pool 新增成员为 FORBIDDEN。
+6. 已解散 Pool 新增 `noteId` 引用为 FORBIDDEN。
+7. Note Reference Set 中每个 `noteId` MUST 可被追溯到一次合法创建动作。
 
 ## 6. 池内笔记与同步语义
 
@@ -176,16 +182,20 @@
 5. Given 存在待处理申请，When admin 审批通过，Then 申请转为通过且申请人成为 member。
 6. Given 存在待处理申请，When admin 拒绝，Then 申请不再待处理且结果可审计。
 7. Given 申请仍处于待处理状态，When 申请人主动取消，Then 该申请不再待处理，且申请人可重新发起申请。
-8. Given member 在池内，When member 退出，Then 该成员关系被移除，且其不再可访问池内笔记。
-9. Given 成员曾退出池，When 其之后重新加入同一池，Then 其恢复对当前池内笔记的访问权限。
-10. Given 池内仅剩 1 个 admin，When 执行会导致 `admin=0` 的操作，Then 操作被拒绝并返回稳定错误语义。
-11. Given Pool 已解散，When 提交加入申请或新增成员，Then 系统拒绝该操作。
-12. Given Pool 已解散且成员仍在池内，When 读取池历史笔记，Then 系统允许读取；When 编辑既有笔记或新增池内笔记，Then 系统拒绝该操作。
-13. Given 池内笔记被创建，When 观察 Pool 元数据，Then 可见新增 `noteId` 引用。
-14. Given 池内成员修改、软删除或恢复既有笔记，When 观察 Pool 元数据，Then 既有 `noteId` 引用保持存在，且不新增新的 `noteId` 引用。
-15. Given 任一成员修改池内笔记内容，When 同步收敛完成，Then 其他成员可见一致结果。
-16. Given 成员在另一台设备上继续使用池内笔记，When 观察当前状态，Then 能判断自己看到的仍是同一份数据或同一条延续路径，而不是重新开始。
-17. Given 同步处于轻度波动、状态短暂不明或单步延续受阻，When 观察恢复反馈，Then 成员可同时知道内容是否安全与下一步动作（等待、重试、重新连接或返回确认）。
+8. Given 任一池内成员，When 创建 Invite Code，Then 系统允许创建且该 Invite Code 可被后续加入流程使用。
+9. Given 任一池内成员，When 查看或撤销仍有效的 Invite Code，Then 系统允许该操作。
+10. Given 某 Invite Code 已被撤销，When 之后再使用该 Invite Code 发起加入，Then 系统拒绝加入。
+11. Given 某 Endpoint 已属于一个未解散 Pool，When 其尝试创建或加入另一个未解散 Pool，Then 系统拒绝该操作。
+12. Given member 在池内，When member 退出，Then 该成员关系被移除，且其不再可访问池内笔记。
+13. Given 成员曾退出池，When 其之后重新加入同一池，Then 其恢复对当前池内笔记的访问权限。
+14. Given 池内仅剩 1 个 admin，When 执行会导致 `admin=0` 的操作，Then 操作被拒绝并返回稳定错误语义。
+15. Given Pool 已解散，When 提交加入申请或新增成员，Then 系统拒绝该操作。
+16. Given Pool 已解散且成员仍在池内，When 读取池历史笔记，Then 系统允许读取；When 编辑既有笔记或新增池内笔记，Then 系统拒绝该操作。
+17. Given 池内笔记被创建，When 观察 Pool 元数据，Then 可见新增 `noteId` 引用。
+18. Given 池内成员修改、软删除或恢复既有笔记，When 观察 Pool 元数据，Then 既有 `noteId` 引用保持存在，且不新增新的 `noteId` 引用。
+19. Given 任一成员修改池内笔记内容，When 同步收敛完成，Then 其他成员可见一致结果。
+20. Given 成员在另一台设备上继续使用池内笔记，When 观察当前状态，Then 能判断自己看到的仍是同一份数据或同一条延续路径，而不是重新开始。
+21. Given 同步处于轻度波动、状态短暂不明或单步延续受阻，When 观察恢复反馈，Then 成员可同时知道内容是否安全与下一步动作（等待、重试、重新连接或返回确认）。
 
 ### 8.2 判定原则
 

@@ -673,367 +673,139 @@
     },
     {
       "type": "frame",
-      "id": "h4l6Z",
-      "x": 15680,
-      "y": -2960,
-      "name": "Stitch / Desktop / Interaction Notes",
-      "width": 360,
-      "height": 1750,
+      "id": "5Pe3q",
+      "x": 15720,
+      "y": -3020,
+      "name": "Stitch / Desktop / Final Notes",
+      "width": 460,
+      "fill": "#FFFFFF",
+      "cornerRadius": 20,
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#CBD5E1"
+      },
       "layout": "vertical",
-      "gap": 16,
+      "gap": 14,
+      "padding": 18,
       "children": [
         {
           "type": "text",
-          "id": "ugbO5",
-          "name": "desktopNotesTitle",
+          "id": "8Ecc5",
+          "name": "desktopFinalTitle",
           "fill": "#0F172A",
-          "content": "Desktop Interaction Notes",
+          "content": "Desktop Prototype Summary",
           "fontFamily": "Inter",
-          "fontSize": 24,
+          "fontSize": 22,
           "fontWeight": "700"
         },
         {
-          "type": "frame",
-          "id": "SHNue",
-          "name": "dCard1",
+          "type": "text",
+          "id": "hdobZ",
+          "name": "desktopFinalFlow",
+          "fill": "#334155",
+          "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "FOlpz",
-              "name": "dCard1Title",
-              "fill": "#0F172A",
-              "content": "Note List",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "NhUbZ",
-              "name": "dCard1Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "New Note -> Desktop / Note Editor\n任意笔记卡片 -> Desktop / Note Editor\n左侧 Data Pool -> Desktop / Data Pool Setup",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
+          "content": "主路径\n1. Note List -> Note Editor\n2. Note List -> Data Pool Setup\n3. Data Pool Setup -> Data Pool Members",
+          "lineHeight": 1.5,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
         },
         {
-          "type": "frame",
-          "id": "1w5sb",
-          "name": "dCard2",
+          "type": "text",
+          "id": "epVRy",
+          "name": "desktopFinalControls",
+          "fill": "#334155",
+          "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "L89Pj",
-              "name": "dCard2Title",
-              "fill": "#0F172A",
-              "content": "Note Editor",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "q07vj",
-              "name": "dCard2Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "左侧 Notes -> Desktop / Note List\n左侧 Data Pool -> Desktop / Data Pool Setup\n当前画面主要承担查看与编辑，不再继续分叉",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
+          "content": "关键控件\n- New Note / 笔记卡片 -> Note Editor\n- 左侧 Data Pool -> Data Pool Setup\n- Create / Join Data Pool -> Data Pool Members\n- Members 页侧边导航可回 Note List",
+          "lineHeight": 1.5,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
         },
         {
-          "type": "frame",
-          "id": "dAQe8",
-          "name": "dCard3",
+          "type": "text",
+          "id": "2SPXT",
+          "name": "desktopFinalNote",
+          "fill": "#64748B",
+          "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "9YMiW",
-              "name": "dCard3Title",
-              "fill": "#0F172A",
-              "content": "Data Pool Setup",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "iNQjY",
-              "name": "dCard3Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "Create Data Pool -> Desktop / Data Pool Members\nJoin Data Pool -> Desktop / Data Pool Members\n左侧 Notes -> Desktop / Note List",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "MzNM7",
-          "name": "dCard4",
-          "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "59QQu",
-              "name": "dCard4Title",
-              "fill": "#0F172A",
-              "content": "Data Pool Members",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "P8ynF",
-              "name": "dCard4Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "左侧 Notes -> Desktop / Note List\n左侧 Data Pool 为当前页，不跳转\n本页当前展示网络成员与状态，不再继续分叉",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
+          "content": "未定义额外交互：编辑器顶部工具按钮、成员页信息卡目前只承担展示语义。",
+          "lineHeight": 1.45,
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "normal"
         }
       ]
     },
     {
       "type": "frame",
-      "id": "7bzj6",
-      "x": 12680,
-      "y": -2960,
-      "name": "Stitch / Mobile / Interaction Notes",
-      "width": 360,
-      "height": 3360,
+      "id": "Rg4Bo",
+      "x": 12690,
+      "y": -3020,
+      "name": "Stitch / Mobile / Final Notes",
+      "width": 460,
+      "fill": "#FFFFFF",
+      "cornerRadius": 20,
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#CBD5E1"
+      },
       "layout": "vertical",
-      "gap": 16,
+      "gap": 14,
+      "padding": 18,
       "children": [
         {
           "type": "text",
-          "id": "6KFCb",
-          "name": "mobileNotesTitle",
+          "id": "PHxQL",
+          "name": "mobileFinalTitle",
           "fill": "#0F172A",
-          "content": "Mobile Interaction Notes",
+          "content": "Mobile Prototype Summary",
           "fontFamily": "Inter",
-          "fontSize": 24,
+          "fontSize": 22,
           "fontWeight": "700"
         },
         {
-          "type": "frame",
-          "id": "tU8sy",
-          "name": "mCard1",
+          "type": "text",
+          "id": "TrNLA",
+          "name": "mobileFinalFlow",
+          "fill": "#334155",
+          "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "s6FiN",
-              "name": "mCard1Title",
-              "fill": "#0F172A",
-              "content": "Note List",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "2GPUf",
-              "name": "mCard1Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "点击任意笔记卡片 -> Mobile / Note Editor\n右下 FAB New Thought Fragment -> Mobile / Note Editor\n底部 Data Pool -> Mobile / Data Pool Setup",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
+          "content": "主路径\n1. Note List -> Note Editor\n2. 底部 Data Pool -> Data Pool Setup\n3. Create / Join Data Pool -> Data Pool Members",
+          "lineHeight": 1.5,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
         },
         {
-          "type": "frame",
-          "id": "VCtuF",
-          "name": "mCard2",
+          "type": "text",
+          "id": "JK3ms",
+          "name": "mobileFinalControls",
+          "fill": "#334155",
+          "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "rFn7N",
-              "name": "mCard2Title",
-              "fill": "#0F172A",
-              "content": "Note Editor",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "gSXY4",
-              "name": "mCard2Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "顶部 Done / 返回语义 -> Mobile / Note List\n底部 Notes -> Mobile / Note List\n底部 Data Pool -> Mobile / Data Pool Setup",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
+          "content": "关键控件\n- 笔记卡片 / FAB -> Note Editor\n- Done / 底部 Notes -> Note List\n- 底部 Data Pool -> Data Pool Setup\n- Data Pool Setup 的 Create / Join -> Members",
+          "lineHeight": 1.5,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
         },
         {
-          "type": "frame",
-          "id": "JKcrs",
-          "name": "mCard3",
+          "type": "text",
+          "id": "37Tho",
+          "name": "mobileFinalNote",
+          "fill": "#64748B",
+          "textGrowth": "fixed-width",
           "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "VWehC",
-              "name": "mCard3Title",
-              "fill": "#0F172A",
-              "content": "Data Pool Setup",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "hzqW2",
-              "name": "mCard3Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "Create Data Pool -> Mobile / Data Pool Members\nJoin Data Pool -> Mobile / Data Pool Members\n底部 Notes -> Mobile / Note List",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
-        },
-        {
-          "type": "frame",
-          "id": "R2xcY",
-          "name": "mCard4",
-          "width": "fill_container",
-          "fill": "#F8FAFC",
-          "cornerRadius": 18,
-          "stroke": {
-            "align": "inside",
-            "thickness": 1,
-            "fill": "#CBD5E1"
-          },
-          "layout": "vertical",
-          "gap": 10,
-          "padding": 16,
-          "children": [
-            {
-              "type": "text",
-              "id": "pPqez",
-              "name": "mCard4Title",
-              "fill": "#0F172A",
-              "content": "Data Pool Members",
-              "fontFamily": "Inter",
-              "fontSize": 16,
-              "fontWeight": "700"
-            },
-            {
-              "type": "text",
-              "id": "tWRai",
-              "name": "mCard4Body",
-              "fill": "#334155",
-              "textGrowth": "fixed-width",
-              "width": "fill_container",
-              "content": "底部 Notes -> Mobile / Note List\n底部 Data Pool 为当前页，不跳转\n成员卡当前以状态查看为主，不再继续分叉",
-              "lineHeight": 1.45,
-              "fontFamily": "Inter",
-              "fontSize": 13
-            }
-          ]
+          "content": "未定义额外交互：Invite Others、成员卡、状态卡当前只承担展示语义。",
+          "lineHeight": 1.45,
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "normal"
         }
       ]
     }
