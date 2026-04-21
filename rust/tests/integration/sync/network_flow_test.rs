@@ -4,7 +4,7 @@
 use cardmind_rust::api;
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::net::endpoint::build_test_endpoints;
-use cardmind_rust::net::pool_network::PoolNetwork;
+use cardmind_rust::net::pool_network::{InviteJoinResult, PoolNetwork};
 use cardmind_rust::store::card_store::CardNoteRepository;
 use cardmind_rust::store::pool_store::PoolStore;
 use serial_test::serial;
@@ -132,15 +132,30 @@ async fn it_should_join_by_invite_code_and_sync_card_crud() -> Result<(), Box<dy
 
     let addr_b = net_b.wait_for_addr(Duration::from_secs(10)).await?;
     let _addr_a = net_a.wait_for_addr(Duration::from_secs(10)).await?;
-    let invite_code = net_a.create_invite_code(&pool.pool_id)?;
+    let (invite_id, invite_code) = net_a.create_invite_code(&pool.pool_id)?;
+    let owner_store = PoolStore::new(dir_a.path().to_string_lossy().as_ref())?;
+    let _invite_record =
+        owner_store.record_invite(&pool.pool_id, invite_id, &invite_code, &endpoint_id_a)?;
 
-    let joined_on_b = net_b
+    let join_result_on_b = net_b
         .request_join_and_sync(&invite_code, "nick_b", "os_b")
         .await?;
-    assert_eq!(joined_on_b.pool_id, pool.pool_id);
-    assert_eq!(joined_on_b.members.len(), 2);
+    let request_id = match join_result_on_b {
+        InviteJoinResult::Pending {
+            pool_id,
+            request_id,
+            ..
+        } => {
+            assert_eq!(pool_id, pool.pool_id);
+            request_id
+        }
+        InviteJoinResult::Joined(_) => panic!("invite join should stay pending before approval"),
+    };
+    let approved_pool =
+        owner_store.approve_join_request(&pool.pool_id, &request_id, &endpoint_id_a)?;
+    assert_eq!(approved_pool.members.len(), 2);
     assert!(
-        joined_on_b
+        approved_pool
             .members
             .iter()
             .any(|member| member.endpoint_id == net_b.endpoint_id().to_string())
@@ -195,12 +210,26 @@ async fn it_should_sync_card_created_via_store_after_invite_join()
     net_b.start().await?;
 
     let addr_b = net_b.wait_for_addr(Duration::from_secs(10)).await?;
-    let invite_code = net_a.create_invite_code(&pool.pool_id)?;
+    let (invite_id, invite_code) = net_a.create_invite_code(&pool.pool_id)?;
+    let owner_store = PoolStore::new(dir_a.path().to_string_lossy().as_ref())?;
+    let _invite_record =
+        owner_store.record_invite(&pool.pool_id, invite_id, &invite_code, &endpoint_id_a)?;
 
-    let joined_on_b = net_b
+    let join_result_on_b = net_b
         .request_join_and_sync(&invite_code, "nick_b", "os_b")
         .await?;
-    assert_eq!(joined_on_b.pool_id, pool.pool_id);
+    let request_id = match join_result_on_b {
+        InviteJoinResult::Pending {
+            pool_id,
+            request_id,
+            ..
+        } => {
+            assert_eq!(pool_id, pool.pool_id);
+            request_id
+        }
+        InviteJoinResult::Joined(_) => panic!("invite join should stay pending before approval"),
+    };
+    let _approved = owner_store.approve_join_request(&pool.pool_id, &request_id, &endpoint_id_a)?;
 
     let fresh_card_store_a = CardNoteRepository::new(dir_a.path().to_string_lossy().as_ref())?;
     let fresh_pool_store_a = PoolStore::new(dir_a.path().to_string_lossy().as_ref())?;
@@ -297,12 +326,17 @@ fn it_should_sync_card_via_api_across_switched_app_configs()
         "android".to_string(),
         false,
     )?;
-    assert_eq!(joined.id, pool.id);
+    assert_eq!(joined.status, "pending");
+    assert_eq!(joined.pool_id, pool.id);
+    let request_id = joined
+        .request_id
+        .expect("pending join should have request id");
 
     api::reset_app_config_for_tests()?;
     api::init_app_config(owner_dir.path().to_string_lossy().to_string())?;
     api::setup_app_lock("1234".to_string(), true)?;
     api::verify_app_lock_with_pin("1234".to_string())?;
+    let _approved = api::approve_join_request(pool.id.clone(), request_id, owner_endpoint.clone())?;
     api::sync_connect(owner_network, owner_target)?;
     api::sync_join_pool(owner_network, pool.id.clone())?;
     let created = api::create_card_note_in_pool(

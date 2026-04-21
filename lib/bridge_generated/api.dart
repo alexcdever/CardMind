@@ -5,13 +5,16 @@
 
 import 'frb_generated.dart';
 import 'models/api_error.dart';
+import 'models/pool_runtime.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:uuid/uuid.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
+import 'store/pool_store.dart';
 
-// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `app_lock_state`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `list_all_card_ids`, `parse_card_id`, `parse_pool_id`, `pool_network_map`, `projection_state`, `require_app_lock_unlocked`, `to_join_request_dtos`, `with_configured_card_store`, `with_configured_pool_store`
+// These functions are ignored because they are not marked as `pub`: `app_config_dir`, `app_lock_state`, `build_pool_runtime_rows`, `build_pool_runtime_summary`, `combine_sync_result`, `combine_sync_status`, `configured_app_data_dir`, `list_all_card_ids`, `network_runtime_signals_for_pool_member`, `parse_card_id`, `parse_invite_id`, `parse_pool_id`, `parse_sync_target`, `pool_network_map`, `projection_state`, `require_app_lock_unlocked`, `to_join_request_dtos`, `with_configured_card_store`, `with_configured_pool_store`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ManagedPoolNetwork`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `assert_receiver_is_total_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// 获取后端服务配置
 ///
@@ -850,7 +853,7 @@ Future<String> createPoolInvite({
 );
 
 /// 通过邀请字符串加入池并拉取完整快照。
-Future<PoolDto> joinPoolByInvite({
+Future<JoinByInviteResultDto> joinPoolByInvite({
   required BigInt networkId,
   required String code,
   required String nickname,
@@ -862,6 +865,40 @@ Future<PoolDto> joinPoolByInvite({
   nickname: nickname,
   os: os,
   debugTrace: debugTrace,
+);
+
+Future<PoolMembersRuntimeViewDto> getPoolMembersRuntimeView({
+  required String poolId,
+  required String endpointId,
+}) => RustLib.instance.api.crateApiGetPoolMembersRuntimeView(
+  poolId: poolId,
+  endpointId: endpointId,
+);
+
+Future<PoolRuntimeSummaryDto> getPoolRuntimeSummary({
+  required String poolId,
+  required String endpointId,
+}) => RustLib.instance.api.crateApiGetPoolRuntimeSummary(
+  poolId: poolId,
+  endpointId: endpointId,
+);
+
+Future<PoolInvitesViewDto> listActiveInvites({
+  required String poolId,
+  required String endpointId,
+}) => RustLib.instance.api.crateApiListActiveInvites(
+  poolId: poolId,
+  endpointId: endpointId,
+);
+
+Future<PoolInvitesViewDto> revokeInvite({
+  required String poolId,
+  required String inviteId,
+  required String endpointId,
+}) => RustLib.instance.api.crateApiRevokeInvite(
+  poolId: poolId,
+  inviteId: inviteId,
+  endpointId: endpointId,
 );
 
 /// 关闭 PoolNetwork 网络实例
@@ -1138,6 +1175,37 @@ class CardNoteDto {
           deleted == other.deleted;
 }
 
+class JoinByInviteResultDto {
+  final String status;
+  final String poolId;
+  final String poolName;
+  final String? requestId;
+
+  const JoinByInviteResultDto({
+    required this.status,
+    required this.poolId,
+    required this.poolName,
+    this.requestId,
+  });
+
+  @override
+  int get hashCode =>
+      status.hashCode ^
+      poolId.hashCode ^
+      poolName.hashCode ^
+      requestId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is JoinByInviteResultDto &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          poolId == other.poolId &&
+          poolName == other.poolName &&
+          requestId == other.requestId;
+}
+
 class JoinRequestDto {
   final String requestId;
   final String applicantEndpointId;
@@ -1261,6 +1329,64 @@ class PoolDto {
           memberCount == other.memberCount;
 }
 
+class PoolInviteDto {
+  final String inviteId;
+  final String inviteCode;
+  final String createdByEndpointId;
+  final PlatformInt64 createdAt;
+
+  const PoolInviteDto({
+    required this.inviteId,
+    required this.inviteCode,
+    required this.createdByEndpointId,
+    required this.createdAt,
+  });
+
+  static Future<PoolInviteDto> fromRecord({required PoolInviteRecord record}) =>
+      RustLib.instance.api.crateApiPoolInviteDtoFromRecord(record: record);
+
+  @override
+  int get hashCode =>
+      inviteId.hashCode ^
+      inviteCode.hashCode ^
+      createdByEndpointId.hashCode ^
+      createdAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolInviteDto &&
+          runtimeType == other.runtimeType &&
+          inviteId == other.inviteId &&
+          inviteCode == other.inviteCode &&
+          createdByEndpointId == other.createdByEndpointId &&
+          createdAt == other.createdAt;
+}
+
+class PoolInvitesViewDto {
+  final List<PoolInviteDto> invites;
+  final BigInt activeCount;
+
+  const PoolInvitesViewDto({required this.invites, required this.activeCount});
+
+  static Future<PoolInvitesViewDto> fromRecords({
+    required List<PoolInviteRecord> records,
+  }) => RustLib.instance.api.crateApiPoolInvitesViewDtoFromRecords(
+    records: records,
+  );
+
+  @override
+  int get hashCode => invites.hashCode ^ activeCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolInvitesViewDto &&
+          runtimeType == other.runtimeType &&
+          invites == other.invites &&
+          activeCount == other.activeCount;
+}
+
 /// 池成员信息 DTO。
 ///
 /// 描述数据池中的成员基本信息。
@@ -1290,6 +1416,133 @@ class PoolMemberDto {
           nickname == other.nickname &&
           os == other.os &&
           role == other.role;
+}
+
+class PoolMemberRuntimeDto {
+  final String endpointId;
+  final String nickname;
+  final String os;
+  final String role;
+  final String status;
+  final PlatformInt64? lastActiveAt;
+  final bool isCurrentDevice;
+
+  const PoolMemberRuntimeDto({
+    required this.endpointId,
+    required this.nickname,
+    required this.os,
+    required this.role,
+    required this.status,
+    this.lastActiveAt,
+    required this.isCurrentDevice,
+  });
+
+  static Future<PoolMemberRuntimeDto> fromRuntime({
+    required PoolMemberRuntime runtime,
+  }) => RustLib.instance.api.crateApiPoolMemberRuntimeDtoFromRuntime(
+    runtime: runtime,
+  );
+
+  @override
+  int get hashCode =>
+      endpointId.hashCode ^
+      nickname.hashCode ^
+      os.hashCode ^
+      role.hashCode ^
+      status.hashCode ^
+      lastActiveAt.hashCode ^
+      isCurrentDevice.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolMemberRuntimeDto &&
+          runtimeType == other.runtimeType &&
+          endpointId == other.endpointId &&
+          nickname == other.nickname &&
+          os == other.os &&
+          role == other.role &&
+          status == other.status &&
+          lastActiveAt == other.lastActiveAt &&
+          isCurrentDevice == other.isCurrentDevice;
+}
+
+class PoolMembersRuntimeViewDto {
+  final List<PoolMemberRuntimeDto> rows;
+
+  const PoolMembersRuntimeViewDto({required this.rows});
+
+  // HINT: Make it `#[frb(sync)]` to let it become the default constructor of Dart class.
+  static Future<PoolMembersRuntimeViewDto> newInstance({
+    required List<PoolMemberRuntimeDto> rows,
+  }) => RustLib.instance.api.crateApiPoolMembersRuntimeViewDtoNew(rows: rows);
+
+  @override
+  int get hashCode => rows.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolMembersRuntimeViewDto &&
+          runtimeType == other.runtimeType &&
+          rows == other.rows;
+}
+
+class PoolRuntimeSummaryDto {
+  final BigInt memberCount;
+  final BigInt connectedCount;
+  final BigInt syncingCount;
+  final BigInt offlineCount;
+  final String memberCountText;
+  final String runtimeStatusText;
+
+  const PoolRuntimeSummaryDto({
+    required this.memberCount,
+    required this.connectedCount,
+    required this.syncingCount,
+    required this.offlineCount,
+    required this.memberCountText,
+    required this.runtimeStatusText,
+  });
+
+  static Future<PoolRuntimeSummaryDto> fromCounts({
+    required BigInt memberCount,
+    required BigInt connectedCount,
+    required BigInt syncingCount,
+    required BigInt offlineCount,
+  }) => RustLib.instance.api.crateApiPoolRuntimeSummaryDtoFromCounts(
+    memberCount: memberCount,
+    connectedCount: connectedCount,
+    syncingCount: syncingCount,
+    offlineCount: offlineCount,
+  );
+
+  static Future<PoolRuntimeSummaryDto> fromSummary({
+    required PoolRuntimeSummary summary,
+  }) => RustLib.instance.api.crateApiPoolRuntimeSummaryDtoFromSummary(
+    summary: summary,
+  );
+
+  @override
+  int get hashCode =>
+      memberCount.hashCode ^
+      connectedCount.hashCode ^
+      syncingCount.hashCode ^
+      offlineCount.hashCode ^
+      memberCountText.hashCode ^
+      runtimeStatusText.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoolRuntimeSummaryDto &&
+          runtimeType == other.runtimeType &&
+          memberCount == other.memberCount &&
+          connectedCount == other.connectedCount &&
+          syncingCount == other.syncingCount &&
+          offlineCount == other.offlineCount &&
+          memberCountText == other.memberCountText &&
+          runtimeStatusText == other.runtimeStatusText;
 }
 
 /// 同步操作结果 DTO。

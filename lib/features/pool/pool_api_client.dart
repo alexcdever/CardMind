@@ -126,15 +126,41 @@ class PoolDetailData {
 class PoolJoinResult {
   /// 成功加入池的结果。
   const PoolJoinResult.joined({required this.poolName})
-    : errorCode = null,
+    : status = 'joined',
+      poolId = null,
+      requestId = null,
+      applicantIdentityLabel = null,
+      errorCode = null,
       errorMessage = null;
+
+  /// 已提交加入申请、等待审批的结果。
+  const PoolJoinResult.pending({
+    required this.poolId,
+    required this.poolName,
+    required this.requestId,
+    required this.applicantIdentityLabel,
+  }) : status = 'pending',
+       errorCode = null,
+       errorMessage = null;
 
   /// 加入失败的结果。
   const PoolJoinResult.error(this.errorCode, {this.errorMessage})
-    : poolName = null;
+    : status = 'error',
+      poolId = null,
+      poolName = null,
+      requestId = null,
+      applicantIdentityLabel = null;
+
+  final String status;
+
+  final String? poolId;
 
   /// 池名称，仅在成功时有效。
   final String? poolName;
+
+  final String? requestId;
+
+  final String? applicantIdentityLabel;
 
   /// 错误码，仅在失败时有效。
   final String? errorCode;
@@ -144,6 +170,10 @@ class PoolJoinResult {
 
   /// 是否成功加入。
   bool get isSuccess => errorCode == null;
+
+  bool get isJoined => status == 'joined';
+
+  bool get isPending => status == 'pending';
 }
 
 /// 数据池 API 客户端抽象接口。
@@ -209,6 +239,14 @@ class LocalPoolApiClient implements PoolApiClient {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     if (code == 'ok') {
       return const PoolJoinResult.joined(poolName: ownerPoolName);
+    }
+    if (code == 'pending') {
+      return const PoolJoinResult.pending(
+        poolId: 'pending-request-pool',
+        poolName: ownerPoolName,
+        requestId: 'pending-request',
+        applicantIdentityLabel: 'owner@local',
+      );
     }
     return PoolJoinResult.error(
       code == 'admin-offline' ? 'ADMIN_OFFLINE' : 'REQUEST_TIMEOUT',
@@ -418,20 +456,30 @@ class FrbPoolApiClient implements PoolApiClient {
     try {
       final trimmed = code.trim();
       final runtimeNetworkId = await _ensureNetworkId();
-      final dto = runtimeNetworkId != null && !_looksLikeUuid(trimmed)
-          ? await frb.joinPoolByInvite(
-              networkId: runtimeNetworkId,
-              code: trimmed,
-              nickname: nickname,
-              os: os,
-              debugTrace: debugJoinTrace,
-            )
-          : await frb.joinByCode(
-              code: trimmed,
-              endpointId: await _effectiveEndpointId(),
-              nickname: nickname,
-              os: os,
-            );
+      if (runtimeNetworkId != null && !_looksLikeUuid(trimmed)) {
+        final dto = await frb.joinPoolByInvite(
+          networkId: runtimeNetworkId,
+          code: trimmed,
+          nickname: nickname,
+          os: os,
+          debugTrace: debugJoinTrace,
+        );
+        if (dto.status == 'pending') {
+          return PoolJoinResult.pending(
+            poolId: dto.poolId,
+            poolName: dto.poolName,
+            requestId: dto.requestId ?? 'pending-request',
+            applicantIdentityLabel: await _effectiveEndpointId(),
+          );
+        }
+        return PoolJoinResult.joined(poolName: dto.poolName);
+      }
+      final dto = await frb.joinByCode(
+        code: trimmed,
+        endpointId: await _effectiveEndpointId(),
+        nickname: nickname,
+        os: os,
+      );
       return PoolJoinResult.joined(poolName: dto.name);
     } on ApiError catch (error) {
       if (debugJoinTrace) {

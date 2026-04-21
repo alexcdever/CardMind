@@ -6,7 +6,7 @@
 use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::net::codec::{decode_message, encode_message};
-use cardmind_rust::net::messages::PoolMessage;
+use cardmind_rust::net::messages::{JoinDecisionStatus, PoolMessage};
 use iroh::{EndpointAddr, SecretKey};
 use uuid::Uuid;
 
@@ -59,6 +59,7 @@ fn test_encode_different_message_types() {
 
     let join_request = PoolMessage::JoinRequest {
         pool_id,
+        invite_code: "invite-code".to_string(),
         applicant: create_test_member(),
         applicant_addr: create_test_addr(),
     };
@@ -110,6 +111,7 @@ fn test_encode_decode_roundtrip_join_request() {
     let member = create_test_member();
     let original = PoolMessage::JoinRequest {
         pool_id,
+        invite_code: "invite-code".to_string(),
         applicant: member.clone(),
         applicant_addr: create_test_addr(),
     };
@@ -120,10 +122,12 @@ fn test_encode_decode_roundtrip_join_request() {
     match decoded {
         PoolMessage::JoinRequest {
             pool_id: decoded_pool_id,
+            invite_code,
             applicant,
             applicant_addr,
         } => {
             assert_eq!(decoded_pool_id, pool_id);
+            assert_eq!(invite_code, "invite-code");
             assert_eq!(applicant.endpoint_id, member.endpoint_id);
             assert_eq!(applicant.nickname, member.nickname);
             assert_eq!(applicant.os, member.os);
@@ -139,8 +143,10 @@ fn test_encode_decode_join_decision() {
     let pool_id = Uuid::new_v4();
     let original = PoolMessage::JoinDecision {
         pool_id,
-        approved: true,
+        status: JoinDecisionStatus::Approved,
         reason: Some("Welcome!".to_string()),
+        request_id: None,
+        pool_name: None,
     };
 
     let encoded = encode_message(&original).unwrap();
@@ -149,12 +155,16 @@ fn test_encode_decode_join_decision() {
     match decoded {
         PoolMessage::JoinDecision {
             pool_id: decoded_pool_id,
-            approved,
+            status,
             reason,
+            request_id,
+            pool_name,
         } => {
             assert_eq!(decoded_pool_id, pool_id);
-            assert!(approved);
+            assert_eq!(status, JoinDecisionStatus::Approved);
             assert_eq!(reason, Some("Welcome!".to_string()));
+            assert_eq!(request_id, None);
+            assert_eq!(pool_name, None);
         }
         _ => panic!("Expected JoinDecision message"),
     }
@@ -165,18 +175,18 @@ fn test_encode_decode_join_decision_rejected() {
     let pool_id = Uuid::new_v4();
     let original = PoolMessage::JoinDecision {
         pool_id,
-        approved: false,
+        status: JoinDecisionStatus::Rejected,
         reason: Some("Pool is full".to_string()),
+        request_id: None,
+        pool_name: None,
     };
 
     let encoded = encode_message(&original).unwrap();
     let decoded = decode_message(&encoded).unwrap();
 
     match decoded {
-        PoolMessage::JoinDecision {
-            approved, reason, ..
-        } => {
-            assert!(!approved);
+        PoolMessage::JoinDecision { status, reason, .. } => {
+            assert_eq!(status, JoinDecisionStatus::Rejected);
             assert_eq!(reason, Some("Pool is full".to_string()));
         }
         _ => panic!("Expected JoinDecision message"),
@@ -188,16 +198,27 @@ fn test_encode_decode_join_decision_no_reason() {
     let pool_id = Uuid::new_v4();
     let original = PoolMessage::JoinDecision {
         pool_id,
-        approved: true,
+        status: JoinDecisionStatus::Pending,
         reason: None,
+        request_id: Some(Uuid::new_v4()),
+        pool_name: Some("Pool".to_string()),
     };
 
     let encoded = encode_message(&original).unwrap();
     let decoded = decode_message(&encoded).unwrap();
 
     match decoded {
-        PoolMessage::JoinDecision { reason, .. } => {
+        PoolMessage::JoinDecision {
+            status,
+            reason,
+            request_id,
+            pool_name,
+            ..
+        } => {
+            assert_eq!(status, JoinDecisionStatus::Pending);
             assert_eq!(reason, None);
+            assert!(request_id.is_some());
+            assert_eq!(pool_name, Some("Pool".to_string()));
         }
         _ => panic!("Expected JoinDecision message"),
     }

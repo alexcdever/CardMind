@@ -35,7 +35,7 @@ use crate::models::error::CardMindError;
 use crate::models::pool::{Pool, PoolMember};
 use crate::net::codec::{decode_message, encode_message};
 use crate::net::endpoint::PoolEndpoint;
-use crate::net::messages::PoolMessage;
+use crate::net::messages::{JoinDecisionStatus, PoolMessage};
 use crate::net::session::SyncSession;
 use crate::net::sync::{export_snapshot, import_updates};
 use crate::store::card_store::CardNoteRepository;
@@ -60,6 +60,7 @@ const MESSAGE_LIMIT: usize = 10_000_000;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct PoolInviteCode {
     version: u8,
+    invite_id: Uuid,
     pool_id: Uuid,
     target: EndpointAddr,
 }
@@ -67,6 +68,15 @@ struct PoolInviteCode {
 #[derive(Debug, Default, Clone)]
 pub struct JoinTrace {
     lines: Vec<String>,
+}
+
+pub enum InviteJoinResult {
+    Pending {
+        pool_id: Uuid,
+        pool_name: String,
+        request_id: Uuid,
+    },
+    Joined(Pool),
 }
 
 impl JoinTrace {
@@ -98,6 +108,7 @@ pub struct PoolNetwork {
 struct RuntimeSignals {
     last_active_at: Option<i64>,
     is_syncing: bool,
+    has_live_connection: bool,
 }
 
 impl PoolNetwork {
@@ -157,7 +168,12 @@ impl PoolNetwork {
     }
 
     pub fn has_live_connection(&self) -> bool {
-        self.sync_session.state() == "connected"
+        let runtime_live_connection = self
+            .runtime_signals
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .has_live_connection;
+        runtime_live_connection || self.sync_session.state() == "connected"
     }
 
     pub async fn wait_for_addr(&self, timeout: Duration) -> Result<EndpointAddr, CardMindError> {
@@ -189,6 +205,7 @@ impl PoolNetwork {
         peer: impl Into<EndpointAddr>,
     ) -> Result<(), CardMindError> {
         self.set_syncing(true);
+        self.set_live_connection(false);
         let result = async {
             let pool = self.pool_store.get_any_pool()?;
             let endpoint_id = self.endpoint_id().to_string();
@@ -205,6 +222,7 @@ impl PoolNetwork {
                 .connect(peer)
                 .await
                 .map_err(|e| CardMindError::Internal(format!("connect failed: {}", e)))?;
+            self.set_live_connection(true);
             let hello = PoolMessage::Hello {
                 pool_id: pool.pool_id,
                 endpoint_id,
@@ -242,20 +260,23 @@ impl PoolNetwork {
         if result.is_ok() {
             self.mark_active_now()?;
         }
+        self.set_live_connection(false);
         self.set_syncing(false);
         result
     }
 
-    pub fn create_invite_code(&self, pool_id: &Uuid) -> Result<String, CardMindError> {
+    pub fn create_invite_code(&self, pool_id: &Uuid) -> Result<(Uuid, String), CardMindError> {
         let _ = self.pool_store.get_pool(pool_id)?;
+        let invite_id = Uuid::new_v4();
         let invite = PoolInviteCode {
             version: 1,
+            invite_id,
             pool_id: *pool_id,
             target: self.endpoint_addr(),
         };
         let encoded = serde_json::to_vec(&invite)
             .map_err(|e| CardMindError::Internal(format!("invite encode failed: {}", e)))?;
-        Ok(URL_SAFE_NO_PAD.encode(encoded))
+        Ok((invite_id, URL_SAFE_NO_PAD.encode(encoded)))
     }
 
     pub async fn request_join_and_sync(
@@ -263,7 +284,7 @@ impl PoolNetwork {
         invite_code: &str,
         nickname: &str,
         os: &str,
-    ) -> Result<Pool, CardMindError> {
+    ) -> Result<InviteJoinResult, CardMindError> {
         self.request_join_and_sync_with_trace(invite_code, nickname, os, None)
             .await
     }
@@ -274,7 +295,7 @@ impl PoolNetwork {
         nickname: &str,
         os: &str,
         mut trace: Option<&mut JoinTrace>,
-    ) -> Result<Pool, CardMindError> {
+    ) -> Result<InviteJoinResult, CardMindError> {
         self.set_syncing(true);
         let result = async {
             let invite = decode_invite_code(invite_code)?;
@@ -332,6 +353,7 @@ impl PoolNetwork {
                 &conn,
                 &PoolMessage::JoinRequest {
                     pool_id: invite.pool_id,
+                    invite_code: invite_code.to_string(),
                     applicant,
                     applicant_addr,
                 },
@@ -356,11 +378,44 @@ impl PoolNetwork {
                 let _ = send.finish();
                 let msg = decode_message(&bytes)?;
                 match msg {
-                    PoolMessage::JoinDecision { approved: true, .. } => {
+                    PoolMessage::JoinDecision {
+                        status: JoinDecisionStatus::Approved,
+                        ..
+                    } => {
                         approved = true;
                     }
                     PoolMessage::JoinDecision {
-                        approved: false,
+                        status: JoinDecisionStatus::Pending,
+                        request_id,
+                        pool_name,
+                        ..
+                    } => {
+                        let request_id = request_id.ok_or_else(|| {
+                            CardMindError::Internal(
+                                "pending join decision missing request id".to_string(),
+                            )
+                        })?;
+                        let pool_name = pool_name.ok_or_else(|| {
+                            CardMindError::Internal(
+                                "pending join decision missing pool name".to_string(),
+                            )
+                        })?;
+                        push_join_trace(
+                            &mut trace,
+                            "final",
+                            format!(
+                                "result=pending pool_id={} request_id={}",
+                                invite.pool_id, request_id
+                            ),
+                        );
+                        return Ok(InviteJoinResult::Pending {
+                            pool_id: invite.pool_id,
+                            pool_name,
+                            request_id,
+                        });
+                    }
+                    PoolMessage::JoinDecision {
+                        status: JoinDecisionStatus::Rejected,
                         reason,
                         ..
                     } => {
@@ -406,7 +461,7 @@ impl PoolNetwork {
                 "final",
                 format!("result=ok pool_id={}", pool.pool_id),
             );
-            Ok(pool)
+            Ok(InviteJoinResult::Joined(pool))
         }
         .await;
         if result.is_ok() {
@@ -468,6 +523,7 @@ impl PoolNetwork {
     /// - `Err(CardMindError)` - 连接失败
     pub fn sync_connect(&mut self, target: String) -> Result<(), CardMindError> {
         self.last_sync_error = None;
+        self.set_live_connection(false);
         self.sync_session.connect(target)
     }
 
@@ -475,6 +531,7 @@ impl PoolNetwork {
     pub fn sync_disconnect(&mut self) {
         self.sync_session.disconnect();
         self.last_sync_error = None;
+        self.set_live_connection(false);
     }
 
     /// 获取同步状态。
@@ -564,6 +621,14 @@ impl PoolNetwork {
         signals.is_syncing = is_syncing;
     }
 
+    fn set_live_connection(&self, has_live_connection: bool) {
+        let mut signals = self
+            .runtime_signals
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        signals.has_live_connection = has_live_connection;
+    }
+
     fn mark_active_now(&self) -> Result<(), CardMindError> {
         let timestamp = current_timestamp_secs()?;
         let mut signals = self
@@ -650,48 +715,78 @@ async fn handle_connection(conn: Connection, base_path: String) -> Result<(), Ca
         let msg = decode_message(&bytes)?;
         match msg {
             PoolMessage::JoinRequest {
-                pool_id, applicant, ..
+                pool_id,
+                invite_code,
+                applicant,
+                ..
             } => {
                 let pool_store = PoolStore::new(&base_path)?;
                 let pool = pool_store.get_pool(&pool_id)?;
-                let updated_pool = if pool
+                if !pool_store.has_active_invite_code(&pool_id, &invite_code)? {
+                    send_message(
+                        &conn,
+                        &PoolMessage::JoinDecision {
+                            pool_id,
+                            status: JoinDecisionStatus::Rejected,
+                            reason: Some("invite revoked or not found".to_string()),
+                            request_id: None,
+                            pool_name: None,
+                        },
+                    )
+                    .await?;
+                    tokio::time::sleep(Duration::from_millis(200)).await;
+                    return Ok(());
+                }
+                if pool
                     .members
                     .iter()
                     .any(|member| member.endpoint_id == applicant.endpoint_id)
                 {
-                    pool
-                } else {
-                    pool_store.join_pool(&pool, applicant, Vec::new())?
-                };
+                    send_message(
+                        &conn,
+                        &PoolMessage::JoinDecision {
+                            pool_id,
+                            status: JoinDecisionStatus::Rejected,
+                            reason: Some("applicant is already a member".to_string()),
+                            request_id: None,
+                            pool_name: None,
+                        },
+                    )
+                    .await?;
+                    tokio::time::sleep(Duration::from_millis(200)).await;
+                    return Ok(());
+                }
+                let updated_pool = pool_store.submit_join_request(&pool_id, applicant)?;
+                let request_id = updated_pool
+                    .join_requests
+                    .iter()
+                    .rev()
+                    .find(|request| {
+                        request.status == crate::models::pool::JoinRequestStatus::Pending
+                    })
+                    .map(|request| request.request_id)
+                    .ok_or_else(|| {
+                        CardMindError::Internal(
+                            "pending join request missing after invite submit".to_string(),
+                        )
+                    })?;
                 send_message(
                     &conn,
                     &PoolMessage::JoinDecision {
                         pool_id,
-                        approved: true,
+                        status: JoinDecisionStatus::Pending,
                         reason: None,
+                        request_id: Some(request_id),
+                        pool_name: Some(
+                            updated_pool
+                                .members
+                                .first()
+                                .map(|member| format!("{}'s pool", member.nickname))
+                                .unwrap_or_else(|| "pool".to_string()),
+                        ),
                     },
                 )
                 .await?;
-                let pool_snapshot = build_pool_snapshot(&base_path, &updated_pool.pool_id)?;
-                send_message(
-                    &conn,
-                    &PoolMessage::PoolSnapshot {
-                        pool_id: updated_pool.pool_id,
-                        bytes: pool_snapshot,
-                    },
-                )
-                .await?;
-                for card_id in &updated_pool.card_ids {
-                    let bytes = build_card_snapshot(&base_path, card_id)?;
-                    send_message(
-                        &conn,
-                        &PoolMessage::CardSnapshot {
-                            card_id: *card_id,
-                            bytes,
-                        },
-                    )
-                    .await?;
-                }
                 // 给对端留出时间接收管理员侧新开的响应流，避免连接提前析构。
                 tokio::time::sleep(Duration::from_millis(200)).await;
                 return Ok(());

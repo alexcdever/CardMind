@@ -47,7 +47,7 @@ use crate::models::error::CardMindError;
 use crate::models::pool::PoolMember;
 use crate::models::pool_runtime::{PoolMemberRuntime, PoolRuntimeSummary};
 use crate::net::endpoint::{PoolEndpoint, build_endpoint};
-use crate::net::pool_network::{JoinTrace, PoolNetwork};
+use crate::net::pool_network::{InviteJoinResult, JoinTrace, PoolNetwork};
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};
 use crate::security::app_lock::AppLock;
 use crate::store::card_store::CardNoteRepository;
@@ -142,6 +142,14 @@ pub struct JoinRequestDto {
     pub applicant_nickname: String,
     pub applicant_os: String,
     pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JoinByInviteResultDto {
+    pub status: String,
+    pub pool_id: String,
+    pub pool_name: String,
+    pub request_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -668,7 +676,13 @@ fn parse_invite_id(invite_id: &str) -> Result<Uuid, ApiError> {
     parse_uuid(invite_id, "invite_id")
 }
 
-fn current_network_runtime_signals(
+fn parse_sync_target(target: &str) -> Result<iroh::EndpointAddr, ApiError> {
+    serde_json::from_str(target)
+        .map_err(|_| ApiError::new(ApiErrorCode::InvalidArgument, "invalid sync target"))
+}
+
+fn network_runtime_signals_for_pool_member(
+    pool_id: &Uuid,
     endpoint_id: &str,
 ) -> Result<Option<(bool, bool, Option<i64>)>, ApiError> {
     let map = pool_network_map()
@@ -677,7 +691,9 @@ fn current_network_runtime_signals(
     Ok(map.values().find_map(|managed| {
         let managed_endpoint_id = managed.network.endpoint_id().to_string();
         if managed_endpoint_id == endpoint_id {
-            Some((
+            let pool_store = PoolStore::new(managed.network.base_path()).ok()?;
+            let current_pool = pool_store.get_pool_for_endpoint(endpoint_id).ok()?;
+            (current_pool.pool_id == *pool_id).then_some((
                 managed.network.has_live_connection(),
                 managed.network.is_syncing(),
                 managed.network.last_active_at(),
@@ -693,18 +709,13 @@ fn build_pool_runtime_rows(
     current_endpoint_id: &str,
 ) -> Result<Vec<PoolMemberRuntime>, ApiError> {
     current_member_role_for_endpoint(pool, current_endpoint_id)?;
-    let current_signals = current_network_runtime_signals(current_endpoint_id)?;
-    Ok(pool
-        .members
+    pool.members
         .iter()
         .map(|member| {
             let (is_connected, is_syncing, last_active_at) =
-                if member.endpoint_id == current_endpoint_id {
-                    current_signals.unwrap_or((false, false, None))
-                } else {
-                    (false, false, None)
-                };
-            PoolMemberRuntime::from_member(
+                network_runtime_signals_for_pool_member(&pool.pool_id, &member.endpoint_id)?
+                    .unwrap_or((false, false, None));
+            Ok(PoolMemberRuntime::from_member(
                 member,
                 current_endpoint_id,
                 crate::models::pool_runtime::MemberRuntimeStatus::from_signals(
@@ -712,9 +723,9 @@ fn build_pool_runtime_rows(
                     is_syncing,
                 ),
                 last_active_at,
-            )
+            ))
         })
-        .collect())
+        .collect()
 }
 
 fn build_pool_runtime_summary(rows: &[PoolMemberRuntime]) -> PoolRuntimeSummary {
@@ -1740,6 +1751,11 @@ pub fn create_pool_invite(network_id: u64, pool_id: String) -> Result<String, Ap
         .get(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
     let pool_id = parse_pool_id(&pool_id)?;
+    let pool_store = PoolStore::new(managed.network.base_path()).map_err(map_err)?;
+    current_member_role_for_endpoint(
+        &pool_store.get_pool(&pool_id).map_err(map_err)?,
+        &managed.network.endpoint_id().to_string(),
+    )?;
     managed
         .runtime
         .block_on(managed.network.wait_for_addr(Duration::from_secs(10)))
@@ -1748,11 +1764,11 @@ pub fn create_pool_invite(network_id: u64, pool_id: String) -> Result<String, Ap
         .network
         .create_invite_code(&pool_id)
         .map_err(map_err)
-        .and_then(|invite_code| {
-            let pool_store = PoolStore::new(managed.network.base_path()).map_err(map_err)?;
+        .and_then(|(invite_id, invite_code)| {
             pool_store
                 .record_invite(
                     &pool_id,
+                    invite_id,
                     &invite_code,
                     &managed.network.endpoint_id().to_string(),
                 )
@@ -1768,7 +1784,7 @@ pub fn join_pool_by_invite(
     nickname: String,
     os: String,
     debug_trace: bool,
-) -> Result<PoolDto, ApiError> {
+) -> Result<JoinByInviteResultDto, ApiError> {
     require_app_lock_unlocked()?;
     let map = pool_network_map()
         .lock()
@@ -1785,8 +1801,8 @@ pub fn join_pool_by_invite(
             &os,
             trace.as_mut(),
         ));
-    let pool = match join_result {
-        Ok(pool) => pool,
+    let join_result = match join_result {
+        Ok(join_result) => join_result,
         Err(err) => {
             let mut api_error = map_err(err);
             if let Some(trace) = trace {
@@ -1802,7 +1818,24 @@ pub fn join_pool_by_invite(
             return Err(api_error);
         }
     };
-    to_pool_dto(&pool, &managed.network.endpoint_id().to_string())
+    match join_result {
+        InviteJoinResult::Joined(pool) => Ok(JoinByInviteResultDto {
+            status: "joined".to_string(),
+            pool_id: pool.pool_id.to_string(),
+            pool_name: pool_name(&pool),
+            request_id: None,
+        }),
+        InviteJoinResult::Pending {
+            pool_id,
+            pool_name,
+            request_id,
+        } => Ok(JoinByInviteResultDto {
+            status: "pending".to_string(),
+            pool_id: pool_id.to_string(),
+            pool_name,
+            request_id: Some(request_id.to_string()),
+        }),
+    }
 }
 
 pub fn get_pool_members_runtime_view(
@@ -1836,20 +1869,35 @@ pub fn get_pool_runtime_summary(
     })
 }
 
-pub fn list_active_invites(pool_id: String) -> Result<PoolInvitesViewDto, ApiError> {
+pub fn list_active_invites(
+    pool_id: String,
+    endpoint_id: String,
+) -> Result<PoolInvitesViewDto, ApiError> {
     require_app_lock_unlocked()?;
     let pool_id = parse_pool_id(&pool_id)?;
     with_configured_pool_store(|pool_store| {
+        current_member_role_for_endpoint(
+            &pool_store.get_pool(&pool_id).map_err(map_err)?,
+            &endpoint_id,
+        )?;
         let invites = pool_store.list_active_invites(&pool_id).map_err(map_err)?;
         Ok(PoolInvitesViewDto::from_records(invites))
     })
 }
 
-pub fn revoke_invite(pool_id: String, invite_id: String) -> Result<PoolInvitesViewDto, ApiError> {
+pub fn revoke_invite(
+    pool_id: String,
+    invite_id: String,
+    endpoint_id: String,
+) -> Result<PoolInvitesViewDto, ApiError> {
     require_app_lock_unlocked()?;
     let pool_id = parse_pool_id(&pool_id)?;
     let invite_id = parse_invite_id(&invite_id)?;
     with_configured_pool_store(|pool_store| {
+        current_member_role_for_endpoint(
+            &pool_store.get_pool(&pool_id).map_err(map_err)?,
+            &endpoint_id,
+        )?;
         pool_store
             .revoke_invite(&pool_id, &invite_id)
             .map_err(map_err)?;
@@ -1981,6 +2029,7 @@ pub fn sync_connect(network_id: u64, target: String) -> Result<(), ApiError> {
     let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
+    parse_sync_target(&target)?;
     managed.network.sync_connect(target).map_err(map_err)
 }
 
@@ -2103,9 +2152,8 @@ pub fn sync_push(network_id: u64) -> Result<SyncResultDto, ApiError> {
     let managed = map
         .get_mut(&network_id)
         .ok_or_else(|| ApiError::new(ApiErrorCode::InvalidHandle, "pool network handle invalid"))?;
-    if let Some(target) = managed.network.sync_target()
-        && let Ok(target) = serde_json::from_str::<iroh::EndpointAddr>(target)
-    {
+    if let Some(target) = managed.network.sync_target() {
+        let target = parse_sync_target(target)?;
         managed
             .runtime
             .block_on(managed.network.connect_and_sync(target))

@@ -99,6 +99,7 @@ async fn pool_network_should_report_syncing_state_during_active_sync() {
     sync_future.await.unwrap();
 
     assert!(!sender.is_syncing());
+    assert!(!sender.has_live_connection());
 }
 
 #[tokio::test]
@@ -127,6 +128,36 @@ async fn pool_network_should_expose_last_active_timestamp_after_sync_event() {
 
     sender.connect_and_sync(receiver_addr).await.unwrap();
 
+    assert!(sender.last_active_at().is_some());
+}
+
+#[tokio::test]
+async fn pool_network_should_clear_live_connection_after_sync_finishes() {
+    let (network_a, network_b) = build_test_endpoints().await.unwrap();
+    let sender_temp = TempDir::new().unwrap();
+    let receiver_temp = TempDir::new().unwrap();
+    let sender_base = sender_temp.path().to_str().unwrap();
+    let receiver_base = receiver_temp.path().to_str().unwrap();
+
+    let sender = create_network_with_endpoint(sender_base, network_a);
+    let receiver = create_network_with_endpoint(receiver_base, network_b);
+
+    let sender_store = PoolStore::new(sender_base).unwrap();
+    sender_store
+        .create_pool(&sender.endpoint_id().to_string(), "sender", "macOS")
+        .unwrap();
+
+    receiver.start().await.unwrap();
+    let receiver_addr = receiver
+        .wait_for_addr(Duration::from_secs(5))
+        .await
+        .unwrap();
+
+    assert!(!sender.has_live_connection());
+
+    sender.connect_and_sync(receiver_addr).await.unwrap();
+
+    assert!(!sender.has_live_connection());
     assert!(sender.last_active_at().is_some());
 }
 

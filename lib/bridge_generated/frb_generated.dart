@@ -15,10 +15,12 @@ import 'models/api_error.dart';
 import 'models/card.dart';
 import 'models/error.dart';
 import 'models/pool.dart';
+import 'models/pool_runtime.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 import 'runtime/config.dart';
 import 'runtime/entry_manager.dart';
+import 'store/pool_store.dart';
 
 /// Main entrypoint of the Rust API
 class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
@@ -73,7 +75,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 570037538;
+  int get rustContentHash => 1384260423;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -149,9 +151,19 @@ abstract class RustLibApi extends BaseApi {
     required String endpointId,
   });
 
+  Future<PoolMembersRuntimeViewDto> crateApiGetPoolMembersRuntimeView({
+    required String poolId,
+    required String endpointId,
+  });
+
   Future<String> crateApiGetPoolNetworkEndpointId({required BigInt networkId});
 
   Future<String> crateApiGetPoolNetworkSyncTarget({required BigInt networkId});
+
+  Future<PoolRuntimeSummaryDto> crateApiGetPoolRuntimeSummary({
+    required String poolId,
+    required String endpointId,
+  });
 
   Future<RuntimeEntryStatusDto> crateApiGetRuntimeEntryStatus();
 
@@ -173,7 +185,7 @@ abstract class RustLibApi extends BaseApi {
     required String os,
   });
 
-  Future<PoolDto> crateApiJoinPoolByInvite({
+  Future<JoinByInviteResultDto> crateApiJoinPoolByInvite({
     required BigInt networkId,
     required String code,
     required String nickname,
@@ -190,6 +202,11 @@ abstract class RustLibApi extends BaseApi {
     required String syncState,
     required String projectionState,
     required bool hasError,
+  });
+
+  Future<PoolInvitesViewDto> crateApiListActiveInvites({
+    required String poolId,
+    required String endpointId,
   });
 
   Future<List<CardNoteDto>> crateApiListCardNotes();
@@ -215,7 +232,34 @@ abstract class RustLibApi extends BaseApi {
     required String field,
   });
 
+  Future<PoolInviteDto> crateApiPoolInviteDtoFromRecord({
+    required PoolInviteRecord record,
+  });
+
+  Future<PoolInvitesViewDto> crateApiPoolInvitesViewDtoFromRecords({
+    required List<PoolInviteRecord> records,
+  });
+
+  Future<PoolMemberRuntimeDto> crateApiPoolMemberRuntimeDtoFromRuntime({
+    required PoolMemberRuntime runtime,
+  });
+
+  Future<PoolMembersRuntimeViewDto> crateApiPoolMembersRuntimeViewDtoNew({
+    required List<PoolMemberRuntimeDto> rows,
+  });
+
   Future<String> crateApiUtilsPoolName({required Pool pool});
+
+  Future<PoolRuntimeSummaryDto> crateApiPoolRuntimeSummaryDtoFromCounts({
+    required BigInt memberCount,
+    required BigInt connectedCount,
+    required BigInt syncingCount,
+    required BigInt offlineCount,
+  });
+
+  Future<PoolRuntimeSummaryDto> crateApiPoolRuntimeSummaryDtoFromSummary({
+    required PoolRuntimeSummary summary,
+  });
 
   Future<List<CardNoteDto>> crateApiQueryCardNotes({
     required String query,
@@ -250,6 +294,12 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiResetAppLockForTests();
 
   Future<CardNoteDto> crateApiRestoreCardNote({required String cardId});
+
+  Future<PoolInvitesViewDto> crateApiRevokeInvite({
+    required String poolId,
+    required String inviteId,
+    required String endpointId,
+  });
 
   Future<void> crateApiSetupAppLock({
     required String pin,
@@ -842,6 +892,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<PoolMembersRuntimeViewDto> crateApiGetPoolMembersRuntimeView({
+    required String poolId,
+    required String endpointId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(endpointId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_members_runtime_view_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiGetPoolMembersRuntimeViewConstMeta,
+        argValues: [poolId, endpointId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetPoolMembersRuntimeViewConstMeta =>
+      const TaskConstMeta(
+        debugName: "get_pool_members_runtime_view",
+        argNames: ["poolId", "endpointId"],
+      );
+
+  @override
   Future<String> crateApiGetPoolNetworkEndpointId({required BigInt networkId}) {
     return handler.executeNormal(
       NormalTask(
@@ -851,7 +936,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 18,
             port: port_,
           );
         },
@@ -882,7 +967,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 19,
             port: port_,
           );
         },
@@ -904,6 +989,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<PoolRuntimeSummaryDto> crateApiGetPoolRuntimeSummary({
+    required String poolId,
+    required String endpointId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(endpointId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_runtime_summary_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiGetPoolRuntimeSummaryConstMeta,
+        argValues: [poolId, endpointId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetPoolRuntimeSummaryConstMeta =>
+      const TaskConstMeta(
+        debugName: "get_pool_runtime_summary",
+        argNames: ["poolId", "endpointId"],
+      );
+
+  @override
   Future<RuntimeEntryStatusDto> crateApiGetRuntimeEntryStatus() {
     return handler.executeNormal(
       NormalTask(
@@ -912,7 +1032,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 21,
             port: port_,
           );
         },
@@ -940,7 +1060,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 22,
             port: port_,
           );
         },
@@ -970,7 +1090,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1008,7 +1128,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1046,7 +1166,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 25,
             port: port_,
           );
         },
@@ -1067,7 +1187,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<PoolDto> crateApiJoinPoolByInvite({
+  Future<JoinByInviteResultDto> crateApiJoinPoolByInvite({
     required BigInt networkId,
     required String code,
     required String nickname,
@@ -1086,12 +1206,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 26,
             port: port_,
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_pool_dto,
+          decodeSuccessData: sse_decode_join_by_invite_result_dto,
           decodeErrorData: sse_decode_api_error,
         ),
         constMeta: kCrateApiJoinPoolByInviteConstMeta,
@@ -1120,7 +1240,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1156,7 +1276,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1178,6 +1298,40 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<PoolInvitesViewDto> crateApiListActiveInvites({
+    required String poolId,
+    required String endpointId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(endpointId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 29,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_invites_view_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiListActiveInvitesConstMeta,
+        argValues: [poolId, endpointId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiListActiveInvitesConstMeta => const TaskConstMeta(
+    debugName: "list_active_invites",
+    argNames: ["poolId", "endpointId"],
+  );
+
+  @override
   Future<List<CardNoteDto>> crateApiListCardNotes() {
     return handler.executeNormal(
       NormalTask(
@@ -1186,7 +1340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 30,
             port: port_,
           );
         },
@@ -1214,7 +1368,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1244,7 +1398,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 32,
             port: port_,
           );
         },
@@ -1275,7 +1429,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1302,7 +1456,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1330,7 +1484,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1360,7 +1514,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1392,7 +1546,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1411,6 +1565,138 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "parse_uuid", argNames: ["raw", "field"]);
 
   @override
+  Future<PoolInviteDto> crateApiPoolInviteDtoFromRecord({
+    required PoolInviteRecord record,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool_invite_record(record, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 38,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_invite_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPoolInviteDtoFromRecordConstMeta,
+        argValues: [record],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolInviteDtoFromRecordConstMeta =>
+      const TaskConstMeta(
+        debugName: "pool_invite_dto_from_record",
+        argNames: ["record"],
+      );
+
+  @override
+  Future<PoolInvitesViewDto> crateApiPoolInvitesViewDtoFromRecords({
+    required List<PoolInviteRecord> records,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_pool_invite_record(records, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 39,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_invites_view_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPoolInvitesViewDtoFromRecordsConstMeta,
+        argValues: [records],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolInvitesViewDtoFromRecordsConstMeta =>
+      const TaskConstMeta(
+        debugName: "pool_invites_view_dto_from_records",
+        argNames: ["records"],
+      );
+
+  @override
+  Future<PoolMemberRuntimeDto> crateApiPoolMemberRuntimeDtoFromRuntime({
+    required PoolMemberRuntime runtime,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool_member_runtime(runtime, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 40,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_member_runtime_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPoolMemberRuntimeDtoFromRuntimeConstMeta,
+        argValues: [runtime],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolMemberRuntimeDtoFromRuntimeConstMeta =>
+      const TaskConstMeta(
+        debugName: "pool_member_runtime_dto_from_runtime",
+        argNames: ["runtime"],
+      );
+
+  @override
+  Future<PoolMembersRuntimeViewDto> crateApiPoolMembersRuntimeViewDtoNew({
+    required List<PoolMemberRuntimeDto> rows,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_pool_member_runtime_dto(rows, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 41,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_members_runtime_view_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPoolMembersRuntimeViewDtoNewConstMeta,
+        argValues: [rows],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolMembersRuntimeViewDtoNewConstMeta =>
+      const TaskConstMeta(
+        debugName: "pool_members_runtime_view_dto_new",
+        argNames: ["rows"],
+      );
+
+  @override
   Future<String> crateApiUtilsPoolName({required Pool pool}) {
     return handler.executeNormal(
       NormalTask(
@@ -1420,7 +1706,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1439,6 +1725,83 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "pool_name", argNames: ["pool"]);
 
   @override
+  Future<PoolRuntimeSummaryDto> crateApiPoolRuntimeSummaryDtoFromCounts({
+    required BigInt memberCount,
+    required BigInt connectedCount,
+    required BigInt syncingCount,
+    required BigInt offlineCount,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_usize(memberCount, serializer);
+          sse_encode_usize(connectedCount, serializer);
+          sse_encode_usize(syncingCount, serializer);
+          sse_encode_usize(offlineCount, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 43,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_runtime_summary_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPoolRuntimeSummaryDtoFromCountsConstMeta,
+        argValues: [memberCount, connectedCount, syncingCount, offlineCount],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolRuntimeSummaryDtoFromCountsConstMeta =>
+      const TaskConstMeta(
+        debugName: "pool_runtime_summary_dto_from_counts",
+        argNames: [
+          "memberCount",
+          "connectedCount",
+          "syncingCount",
+          "offlineCount",
+        ],
+      );
+
+  @override
+  Future<PoolRuntimeSummaryDto> crateApiPoolRuntimeSummaryDtoFromSummary({
+    required PoolRuntimeSummary summary,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_pool_runtime_summary(summary, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 44,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_runtime_summary_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiPoolRuntimeSummaryDtoFromSummaryConstMeta,
+        argValues: [summary],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPoolRuntimeSummaryDtoFromSummaryConstMeta =>
+      const TaskConstMeta(
+        debugName: "pool_runtime_summary_dto_from_summary",
+        argNames: ["summary"],
+      );
+
+  @override
   Future<List<CardNoteDto>> crateApiQueryCardNotes({
     required String query,
     String? poolId,
@@ -1454,7 +1817,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1493,7 +1856,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1538,7 +1901,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1572,7 +1935,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 48,
             port: port_,
           );
         },
@@ -1609,7 +1972,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 49,
             port: port_,
           );
         },
@@ -1638,7 +2001,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 50,
             port: port_,
           );
         },
@@ -1668,7 +2031,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 51,
             port: port_,
           );
         },
@@ -1696,7 +2059,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 52,
             port: port_,
           );
         },
@@ -1715,6 +2078,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "restore_card_note", argNames: ["cardId"]);
 
   @override
+  Future<PoolInvitesViewDto> crateApiRevokeInvite({
+    required String poolId,
+    required String inviteId,
+    required String endpointId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(poolId, serializer);
+          sse_encode_String(inviteId, serializer);
+          sse_encode_String(endpointId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 53,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_pool_invites_view_dto,
+          decodeErrorData: sse_decode_api_error,
+        ),
+        constMeta: kCrateApiRevokeInviteConstMeta,
+        argValues: [poolId, inviteId, endpointId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiRevokeInviteConstMeta => const TaskConstMeta(
+    debugName: "revoke_invite",
+    argNames: ["poolId", "inviteId", "endpointId"],
+  );
+
+  @override
   Future<void> crateApiSetupAppLock({
     required String pin,
     required bool allowBiometric,
@@ -1728,7 +2127,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 54,
             port: port_,
           );
         },
@@ -1758,7 +2157,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 55,
             port: port_,
           );
         },
@@ -1794,7 +2193,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 56,
             port: port_,
           );
         },
@@ -1828,7 +2227,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 57,
             port: port_,
           );
         },
@@ -1858,7 +2257,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 58,
             port: port_,
           );
         },
@@ -1892,7 +2291,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 59,
             port: port_,
           );
         },
@@ -1922,7 +2321,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 60,
             port: port_,
           );
         },
@@ -1950,7 +2349,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 61,
             port: port_,
           );
         },
@@ -1978,7 +2377,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 62,
             port: port_,
           );
         },
@@ -2006,7 +2405,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 63,
             port: port_,
           );
         },
@@ -2038,7 +2437,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 64,
             port: port_,
           );
         },
@@ -2073,7 +2472,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 65,
             port: port_,
           );
         },
@@ -2109,7 +2508,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 66,
             port: port_,
           );
         },
@@ -2146,7 +2545,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 67,
             port: port_,
           );
         },
@@ -2176,7 +2575,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 68,
             port: port_,
           );
         },
@@ -2259,15 +2658,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_i_64(raw);
+  }
+
+  @protected
   Pool dco_decode_box_autoadd_pool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_pool(raw);
   }
 
   @protected
+  PoolInviteRecord dco_decode_box_autoadd_pool_invite_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pool_invite_record(raw);
+  }
+
+  @protected
   PoolMember dco_decode_box_autoadd_pool_member(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_pool_member(raw);
+  }
+
+  @protected
+  PoolMemberRuntime dco_decode_box_autoadd_pool_member_runtime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pool_member_runtime(raw);
+  }
+
+  @protected
+  PoolRuntimeSummary dco_decode_box_autoadd_pool_runtime_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_pool_runtime_summary(raw);
   }
 
   @protected
@@ -2358,6 +2781,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  JoinByInviteResultDto dco_decode_join_by_invite_result_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return JoinByInviteResultDto(
+      status: dco_decode_String(arr[0]),
+      poolId: dco_decode_String(arr[1]),
+      poolName: dco_decode_String(arr[2]),
+      requestId: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
   JoinRequest dco_decode_join_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2436,6 +2873,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<PoolInviteDto> dco_decode_list_pool_invite_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_pool_invite_dto).toList();
+  }
+
+  @protected
+  List<PoolInviteRecord> dco_decode_list_pool_invite_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_pool_invite_record).toList();
+  }
+
+  @protected
   List<PoolMember> dco_decode_list_pool_member(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_pool_member).toList();
@@ -2448,6 +2897,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<PoolMemberRuntimeDto> dco_decode_list_pool_member_runtime_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_pool_member_runtime_dto)
+        .toList();
+  }
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
@@ -2457,6 +2916,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   LocalContentSafety dco_decode_local_content_safety(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return LocalContentSafety.values[raw as int];
+  }
+
+  @protected
+  MemberRuntimeStatus dco_decode_member_runtime_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MemberRuntimeStatus.values[raw as int];
   }
 
   @protected
@@ -2475,6 +2940,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_bool(raw);
+  }
+
+  @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_i_64(raw);
   }
 
   @protected
@@ -2526,6 +2997,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PoolInviteDto dco_decode_pool_invite_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return PoolInviteDto(
+      inviteId: dco_decode_String(arr[0]),
+      inviteCode: dco_decode_String(arr[1]),
+      createdByEndpointId: dco_decode_String(arr[2]),
+      createdAt: dco_decode_i_64(arr[3]),
+    );
+  }
+
+  @protected
+  PoolInviteRecord dco_decode_pool_invite_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return PoolInviteRecord(
+      inviteId: dco_decode_Uuid(arr[0]),
+      inviteCode: dco_decode_String(arr[1]),
+      createdByEndpointId: dco_decode_String(arr[2]),
+      createdAt: dco_decode_i_64(arr[3]),
+      revokedAt: dco_decode_opt_box_autoadd_i_64(arr[4]),
+    );
+  }
+
+  @protected
+  PoolInvitesViewDto dco_decode_pool_invites_view_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PoolInvitesViewDto(
+      invites: dco_decode_list_pool_invite_dto(arr[0]),
+      activeCount: dco_decode_usize(arr[1]),
+    );
+  }
+
+  @protected
   PoolMember dco_decode_pool_member(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2550,6 +3062,83 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       nickname: dco_decode_String(arr[1]),
       os: dco_decode_String(arr[2]),
       role: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  PoolMemberRuntime dco_decode_pool_member_runtime(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return PoolMemberRuntime(
+      endpointId: dco_decode_String(arr[0]),
+      nickname: dco_decode_String(arr[1]),
+      os: dco_decode_String(arr[2]),
+      role: dco_decode_String(arr[3]),
+      status: dco_decode_member_runtime_status(arr[4]),
+      lastActiveAt: dco_decode_opt_box_autoadd_i_64(arr[5]),
+      isCurrentDevice: dco_decode_bool(arr[6]),
+    );
+  }
+
+  @protected
+  PoolMemberRuntimeDto dco_decode_pool_member_runtime_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return PoolMemberRuntimeDto(
+      endpointId: dco_decode_String(arr[0]),
+      nickname: dco_decode_String(arr[1]),
+      os: dco_decode_String(arr[2]),
+      role: dco_decode_String(arr[3]),
+      status: dco_decode_String(arr[4]),
+      lastActiveAt: dco_decode_opt_box_autoadd_i_64(arr[5]),
+      isCurrentDevice: dco_decode_bool(arr[6]),
+    );
+  }
+
+  @protected
+  PoolMembersRuntimeViewDto dco_decode_pool_members_runtime_view_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return PoolMembersRuntimeViewDto(
+      rows: dco_decode_list_pool_member_runtime_dto(arr[0]),
+    );
+  }
+
+  @protected
+  PoolRuntimeSummary dco_decode_pool_runtime_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return PoolRuntimeSummary(
+      memberCount: dco_decode_usize(arr[0]),
+      connectedCount: dco_decode_usize(arr[1]),
+      syncingCount: dco_decode_usize(arr[2]),
+      offlineCount: dco_decode_usize(arr[3]),
+    );
+  }
+
+  @protected
+  PoolRuntimeSummaryDto dco_decode_pool_runtime_summary_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return PoolRuntimeSummaryDto(
+      memberCount: dco_decode_usize(arr[0]),
+      connectedCount: dco_decode_usize(arr[1]),
+      syncingCount: dco_decode_usize(arr[2]),
+      offlineCount: dco_decode_usize(arr[3]),
+      memberCountText: dco_decode_String(arr[4]),
+      runtimeStatusText: dco_decode_String(arr[5]),
     );
   }
 
@@ -2743,15 +3332,45 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_64(deserializer));
+  }
+
+  @protected
   Pool sse_decode_box_autoadd_pool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_pool(deserializer));
   }
 
   @protected
+  PoolInviteRecord sse_decode_box_autoadd_pool_invite_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pool_invite_record(deserializer));
+  }
+
+  @protected
   PoolMember sse_decode_box_autoadd_pool_member(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_pool_member(deserializer));
+  }
+
+  @protected
+  PoolMemberRuntime sse_decode_box_autoadd_pool_member_runtime(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pool_member_runtime(deserializer));
+  }
+
+  @protected
+  PoolRuntimeSummary sse_decode_box_autoadd_pool_runtime_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_pool_runtime_summary(deserializer));
   }
 
   @protected
@@ -2861,6 +3480,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  JoinByInviteResultDto sse_decode_join_by_invite_result_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_status = sse_decode_String(deserializer);
+    var var_poolId = sse_decode_String(deserializer);
+    var var_poolName = sse_decode_String(deserializer);
+    var var_requestId = sse_decode_opt_String(deserializer);
+    return JoinByInviteResultDto(
+      status: var_status,
+      poolId: var_poolId,
+      poolName: var_poolName,
+      requestId: var_requestId,
+    );
   }
 
   @protected
@@ -2979,6 +3615,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<PoolInviteDto> sse_decode_list_pool_invite_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PoolInviteDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pool_invite_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PoolInviteRecord> sse_decode_list_pool_invite_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PoolInviteRecord>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pool_invite_record(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<PoolMember> sse_decode_list_pool_member(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -3005,6 +3669,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<PoolMemberRuntimeDto> sse_decode_list_pool_member_runtime_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PoolMemberRuntimeDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pool_member_runtime_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -3018,6 +3696,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return LocalContentSafety.values[inner];
+  }
+
+  @protected
+  MemberRuntimeStatus sse_decode_member_runtime_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return MemberRuntimeStatus.values[inner];
   }
 
   @protected
@@ -3044,6 +3731,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_bool(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_64(deserializer));
     } else {
       return null;
     }
@@ -3107,6 +3805,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PoolInviteDto sse_decode_pool_invite_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_inviteId = sse_decode_String(deserializer);
+    var var_inviteCode = sse_decode_String(deserializer);
+    var var_createdByEndpointId = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_i_64(deserializer);
+    return PoolInviteDto(
+      inviteId: var_inviteId,
+      inviteCode: var_inviteCode,
+      createdByEndpointId: var_createdByEndpointId,
+      createdAt: var_createdAt,
+    );
+  }
+
+  @protected
+  PoolInviteRecord sse_decode_pool_invite_record(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_inviteId = sse_decode_Uuid(deserializer);
+    var var_inviteCode = sse_decode_String(deserializer);
+    var var_createdByEndpointId = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_i_64(deserializer);
+    var var_revokedAt = sse_decode_opt_box_autoadd_i_64(deserializer);
+    return PoolInviteRecord(
+      inviteId: var_inviteId,
+      inviteCode: var_inviteCode,
+      createdByEndpointId: var_createdByEndpointId,
+      createdAt: var_createdAt,
+      revokedAt: var_revokedAt,
+    );
+  }
+
+  @protected
+  PoolInvitesViewDto sse_decode_pool_invites_view_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_invites = sse_decode_list_pool_invite_dto(deserializer);
+    var var_activeCount = sse_decode_usize(deserializer);
+    return PoolInvitesViewDto(
+      invites: var_invites,
+      activeCount: var_activeCount,
+    );
+  }
+
+  @protected
   PoolMember sse_decode_pool_member(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_endpointId = sse_decode_String(deserializer);
@@ -3133,6 +3876,99 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       nickname: var_nickname,
       os: var_os,
       role: var_role,
+    );
+  }
+
+  @protected
+  PoolMemberRuntime sse_decode_pool_member_runtime(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_endpointId = sse_decode_String(deserializer);
+    var var_nickname = sse_decode_String(deserializer);
+    var var_os = sse_decode_String(deserializer);
+    var var_role = sse_decode_String(deserializer);
+    var var_status = sse_decode_member_runtime_status(deserializer);
+    var var_lastActiveAt = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_isCurrentDevice = sse_decode_bool(deserializer);
+    return PoolMemberRuntime(
+      endpointId: var_endpointId,
+      nickname: var_nickname,
+      os: var_os,
+      role: var_role,
+      status: var_status,
+      lastActiveAt: var_lastActiveAt,
+      isCurrentDevice: var_isCurrentDevice,
+    );
+  }
+
+  @protected
+  PoolMemberRuntimeDto sse_decode_pool_member_runtime_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_endpointId = sse_decode_String(deserializer);
+    var var_nickname = sse_decode_String(deserializer);
+    var var_os = sse_decode_String(deserializer);
+    var var_role = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_lastActiveAt = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_isCurrentDevice = sse_decode_bool(deserializer);
+    return PoolMemberRuntimeDto(
+      endpointId: var_endpointId,
+      nickname: var_nickname,
+      os: var_os,
+      role: var_role,
+      status: var_status,
+      lastActiveAt: var_lastActiveAt,
+      isCurrentDevice: var_isCurrentDevice,
+    );
+  }
+
+  @protected
+  PoolMembersRuntimeViewDto sse_decode_pool_members_runtime_view_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_rows = sse_decode_list_pool_member_runtime_dto(deserializer);
+    return PoolMembersRuntimeViewDto(rows: var_rows);
+  }
+
+  @protected
+  PoolRuntimeSummary sse_decode_pool_runtime_summary(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_memberCount = sse_decode_usize(deserializer);
+    var var_connectedCount = sse_decode_usize(deserializer);
+    var var_syncingCount = sse_decode_usize(deserializer);
+    var var_offlineCount = sse_decode_usize(deserializer);
+    return PoolRuntimeSummary(
+      memberCount: var_memberCount,
+      connectedCount: var_connectedCount,
+      syncingCount: var_syncingCount,
+      offlineCount: var_offlineCount,
+    );
+  }
+
+  @protected
+  PoolRuntimeSummaryDto sse_decode_pool_runtime_summary_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_memberCount = sse_decode_usize(deserializer);
+    var var_connectedCount = sse_decode_usize(deserializer);
+    var var_syncingCount = sse_decode_usize(deserializer);
+    var var_offlineCount = sse_decode_usize(deserializer);
+    var var_memberCountText = sse_decode_String(deserializer);
+    var var_runtimeStatusText = sse_decode_String(deserializer);
+    return PoolRuntimeSummaryDto(
+      memberCount: var_memberCount,
+      connectedCount: var_connectedCount,
+      syncingCount: var_syncingCount,
+      offlineCount: var_offlineCount,
+      memberCountText: var_memberCountText,
+      runtimeStatusText: var_runtimeStatusText,
     );
   }
 
@@ -3353,9 +4189,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_pool(Pool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_pool(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pool_invite_record(
+    PoolInviteRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pool_invite_record(self, serializer);
   }
 
   @protected
@@ -3365,6 +4219,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_pool_member(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pool_member_runtime(
+    PoolMemberRuntime self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pool_member_runtime(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_pool_runtime_summary(
+    PoolRuntimeSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_pool_runtime_summary(self, serializer);
   }
 
   @protected
@@ -3463,6 +4335,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_join_by_invite_result_dto(
+    JoinByInviteResultDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.status, serializer);
+    sse_encode_String(self.poolId, serializer);
+    sse_encode_String(self.poolName, serializer);
+    sse_encode_opt_String(self.requestId, serializer);
+  }
+
+  @protected
   void sse_encode_join_request(JoinRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_Uuid(self.requestId, serializer);
@@ -3556,6 +4440,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_pool_invite_dto(
+    List<PoolInviteDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pool_invite_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_pool_invite_record(
+    List<PoolInviteRecord> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pool_invite_record(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_pool_member(
     List<PoolMember> self,
     SseSerializer serializer,
@@ -3580,6 +4488,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_pool_member_runtime_dto(
+    List<PoolMemberRuntimeDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pool_member_runtime_dto(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
     SseSerializer serializer,
@@ -3592,6 +4512,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_local_content_safety(
     LocalContentSafety self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_member_runtime_status(
+    MemberRuntimeStatus self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -3621,6 +4550,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_bool(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_64(self, serializer);
     }
   }
 
@@ -3661,6 +4603,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_pool_invite_dto(
+    PoolInviteDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.inviteId, serializer);
+    sse_encode_String(self.inviteCode, serializer);
+    sse_encode_String(self.createdByEndpointId, serializer);
+    sse_encode_i_64(self.createdAt, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_invite_record(
+    PoolInviteRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_Uuid(self.inviteId, serializer);
+    sse_encode_String(self.inviteCode, serializer);
+    sse_encode_String(self.createdByEndpointId, serializer);
+    sse_encode_i_64(self.createdAt, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.revokedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_invites_view_dto(
+    PoolInvitesViewDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_pool_invite_dto(self.invites, serializer);
+    sse_encode_usize(self.activeCount, serializer);
+  }
+
+  @protected
   void sse_encode_pool_member(PoolMember self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.endpointId, serializer);
@@ -3679,6 +4656,71 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.nickname, serializer);
     sse_encode_String(self.os, serializer);
     sse_encode_String(self.role, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_member_runtime(
+    PoolMemberRuntime self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.endpointId, serializer);
+    sse_encode_String(self.nickname, serializer);
+    sse_encode_String(self.os, serializer);
+    sse_encode_String(self.role, serializer);
+    sse_encode_member_runtime_status(self.status, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.lastActiveAt, serializer);
+    sse_encode_bool(self.isCurrentDevice, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_member_runtime_dto(
+    PoolMemberRuntimeDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.endpointId, serializer);
+    sse_encode_String(self.nickname, serializer);
+    sse_encode_String(self.os, serializer);
+    sse_encode_String(self.role, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.lastActiveAt, serializer);
+    sse_encode_bool(self.isCurrentDevice, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_members_runtime_view_dto(
+    PoolMembersRuntimeViewDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_pool_member_runtime_dto(self.rows, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_runtime_summary(
+    PoolRuntimeSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(self.memberCount, serializer);
+    sse_encode_usize(self.connectedCount, serializer);
+    sse_encode_usize(self.syncingCount, serializer);
+    sse_encode_usize(self.offlineCount, serializer);
+  }
+
+  @protected
+  void sse_encode_pool_runtime_summary_dto(
+    PoolRuntimeSummaryDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(self.memberCount, serializer);
+    sse_encode_usize(self.connectedCount, serializer);
+    sse_encode_usize(self.syncingCount, serializer);
+    sse_encode_usize(self.offlineCount, serializer);
+    sse_encode_String(self.memberCountText, serializer);
+    sse_encode_String(self.runtimeStatusText, serializer);
   }
 
   @protected

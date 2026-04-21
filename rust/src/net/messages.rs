@@ -49,6 +49,13 @@ use iroh::EndpointAddr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub enum JoinDecisionStatus {
+    Pending,
+    Approved,
+    Rejected,
+}
+
 /// 池网络消息枚举。
 ///
 /// 定义池成员之间同步时交换的所有消息类型。
@@ -91,6 +98,8 @@ pub enum PoolMessage {
     JoinRequest {
         /// 目标池 ID。
         pool_id: Uuid,
+        /// 发起加入时使用的邀请码原文。
+        invite_code: String,
         /// 申请加入的成员信息。
         applicant: PoolMember,
         /// 申请方的 iroh 端点地址。
@@ -113,10 +122,14 @@ pub enum PoolMessage {
     JoinDecision {
         /// 目标池 ID。
         pool_id: Uuid,
-        /// 是否批准加入。
-        approved: bool,
+        /// 审批状态。
+        status: JoinDecisionStatus,
         /// 拒绝原因（如果被拒绝）。
         reason: Option<String>,
+        /// 已提交的申请 ID，仅在待审批时存在。
+        request_id: Option<Uuid>,
+        /// 目标池名称，仅在待审批时存在。
+        pool_name: Option<String>,
     },
 
     /// 池快照。

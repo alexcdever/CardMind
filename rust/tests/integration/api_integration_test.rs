@@ -557,8 +557,25 @@ fn api_sync_push_returns_ok_when_connected() {
     let temp = setup_test_env();
     unlock_app_lock_for_pool_apis();
     let network_id = init_pool_network(temp.path().to_str().unwrap().to_string()).unwrap();
+    let peer_network_id = init_pool_network(temp.path().to_str().unwrap().to_string()).unwrap();
+    let endpoint_id = get_pool_network_endpoint_id(network_id).unwrap();
+    let peer_endpoint_id = get_pool_network_endpoint_id(peer_network_id).unwrap();
+    let pool = create_pool(
+        endpoint_id.clone(),
+        "owner".to_string(),
+        "macOS".to_string(),
+    )
+    .unwrap();
+    join_by_code(
+        pool.id.clone(),
+        peer_endpoint_id,
+        "peer".to_string(),
+        "iOS".to_string(),
+    )
+    .unwrap();
 
-    sync_connect(network_id, "target".to_string()).unwrap();
+    let target = get_pool_network_sync_target(peer_network_id).unwrap();
+    sync_connect(network_id, target).unwrap();
     let result = sync_push(network_id).unwrap();
 
     assert_eq!(result.state, "ok");

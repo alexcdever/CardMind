@@ -28,15 +28,30 @@ fn sync_flow_should_move_to_connected_and_back_to_idle() -> Result<(), Box<dyn s
     let dir = tempdir()?;
     setup_locked_network_env(dir.path())?;
     let network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
+    let peer_network_id = init_pool_network(dir.path().to_string_lossy().to_string())?;
+    let endpoint_id = get_pool_network_endpoint_id(network_id)?;
+    let peer_endpoint_id = get_pool_network_endpoint_id(peer_network_id)?;
+    let pool = create_pool(
+        endpoint_id.clone(),
+        "owner".to_string(),
+        "macOS".to_string(),
+    )?;
+    join_by_code(
+        pool.id.clone(),
+        peer_endpoint_id,
+        "peer".to_string(),
+        "iOS".to_string(),
+    )?;
+    let target = get_pool_network_sync_target(peer_network_id)?;
 
     let initial = sync_status(network_id)?;
     assert_eq!(initial.state, "idle");
 
-    sync_connect(network_id, "local://peer".to_string())?;
+    sync_connect(network_id, target)?;
     let connected = sync_status(network_id)?;
     assert_eq!(connected.state, "connected");
 
-    sync_join_pool(network_id, "pool-1".to_string())?;
+    sync_join_pool(network_id, pool.id.clone())?;
     let push = sync_push(network_id)?;
     assert_eq!(push.state, "ok");
     let pull = sync_pull(network_id)?;

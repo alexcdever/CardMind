@@ -166,3 +166,46 @@ fn submit_and_reject_join_request_should_mark_rejected() -> Result<(), Box<dyn s
     reset_app_config()?;
     Ok(())
 }
+
+#[test]
+#[serial]
+fn approve_join_request_should_reject_endpoint_already_joined_elsewhere()
+-> Result<(), Box<dyn std::error::Error>> {
+    let _guard = app_config_test_guard().lock().unwrap();
+    reset_app_config()?;
+    let dir = tempdir()?;
+    init_app_config(dir.path().to_string_lossy().to_string())?;
+    unlock_app_lock()?;
+
+    let pool_a = create_pool(
+        "endpoint-a".to_string(),
+        "nick-a".to_string(),
+        "macos".to_string(),
+    )?;
+    let _pool_b = create_pool(
+        "endpoint-b".to_string(),
+        "nick-b".to_string(),
+        "ios".to_string(),
+    )?;
+
+    let pending = submit_join_request(
+        pool_a.id.clone(),
+        "endpoint-c".to_string(),
+        "nick-c".to_string(),
+        "android".to_string(),
+    )?;
+    let request_id = pending[0].request_id.clone();
+
+    let _other_pool = create_pool(
+        "endpoint-c".to_string(),
+        "nick-c".to_string(),
+        "android".to_string(),
+    )?;
+
+    let err = approve_join_request(pool_a.id, request_id, "endpoint-a".to_string()).unwrap_err();
+    assert_eq!(err.code, "INVALID_ARGUMENT");
+    assert!(err.message.contains("another pool"));
+
+    reset_app_config()?;
+    Ok(())
+}
