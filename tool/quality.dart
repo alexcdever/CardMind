@@ -7,6 +7,9 @@ typedef Runner =
       String? workingDirectory,
     });
 
+const _flutterTestConcurrency = '4';
+const _rustTestJobs = '1';
+
 const _usage =
     'Usage: dart run tool/quality.dart <flutter|rust|docs|all> [options]';
 const _help =
@@ -23,7 +26,7 @@ Options:
 
 Default behavior:
   flutter runs: markdown references lint -> flutter analyze -> flutter test -> test boundary scan
-  rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test
+  rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test --jobs 1
   docs runs: markdown references lint
   all runs: flutter -> rust
 
@@ -119,7 +122,12 @@ Future<int> _runFlutterQuality({
   log('[flutter:analyze] done');
 
   /// 运行测试并生成覆盖率（边界扫描需要）
-  final test = await runProcess('flutter', ['test', '--coverage']);
+  final test = await runProcess('flutter', [
+    'test',
+    '--coverage',
+    '-j',
+    _flutterTestConcurrency,
+  ]);
   if (test.exitCode != 0) {
     logError(_processError(test));
     return test.exitCode;
@@ -195,10 +203,12 @@ Future<int> _runRustQuality({
   }
   log('[rust:clippy] done');
 
+  // Rust 集成测试会生成多个 test target；这里显式串行化 target 进程，
+  // 避免 iroh/netmon 相关全局资源在不同测试二进制间并发初始化。
   final test = await runProcess('cargo', [
     'test',
-    '--',
-    '--test-threads=1',
+    '--jobs',
+    _rustTestJobs,
   ], workingDirectory: rustDir);
   if (test.exitCode != 0) {
     logError(_processError(test));

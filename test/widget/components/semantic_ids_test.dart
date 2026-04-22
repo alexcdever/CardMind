@@ -224,6 +224,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
         home: MediaQuery(
           data: MediaQueryData(size: Size(1200, 900)),
           child: CardsPage(controller: buildTestCardsController()),

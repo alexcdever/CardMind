@@ -10,6 +10,7 @@ use tempfile::TempDir;
 fn setup_test_env() -> TempDir {
     let temp_dir = TempDir::new().unwrap();
     // 重置配置确保干净状态
+    let _ = close_all_pool_networks_for_tests();
     let _ = reset_app_config_for_tests();
     let _ = init_app_config(temp_dir.path().to_str().unwrap().to_string());
     temp_dir
@@ -588,6 +589,7 @@ fn api_sync_push_returns_ok_when_connected() {
     assert_eq!(result.next_action, "none");
 
     close_pool_network(network_id).unwrap();
+    close_pool_network(peer_network_id).unwrap();
 }
 
 #[test]

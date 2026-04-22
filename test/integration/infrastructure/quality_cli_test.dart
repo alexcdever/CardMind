@@ -37,7 +37,7 @@ void main() {
       expect(calls[1].executable, 'flutter');
       expect(calls[1].arguments, ['analyze']);
       expect(calls[2].executable, 'flutter');
-      expect(calls[2].arguments, ['test', '--coverage']);
+      expect(calls[2].arguments, ['test', '--coverage', '-j', '4']);
       expect(calls[3].executable, 'dart');
       expect(calls[3].arguments, [
         'tool/test_boundary_scanner.dart',
@@ -68,7 +68,7 @@ void main() {
       'warnings',
     ]);
     expect(calls[2].executable, 'cargo');
-    expect(calls[2].arguments, ['test', '--', '--test-threads=1']);
+    expect(calls[2].arguments, ['test', '--jobs', '1']);
     expect(calls[3].executable, 'cargo');
     expect(calls[3].arguments, [
       'tarpaulin',
@@ -118,7 +118,7 @@ void main() {
     expect(calls[1].executable, 'flutter');
     expect(calls[1].arguments, ['analyze']);
     expect(calls[2].executable, 'flutter');
-    expect(calls[2].arguments, ['test', '--coverage']);
+    expect(calls[2].arguments, ['test', '--coverage', '-j', '4']);
     expect(calls[3].executable, 'dart');
     expect(calls[3].arguments, [
       'tool/test_boundary_scanner.dart',
@@ -137,7 +137,7 @@ void main() {
       'warnings',
     ]);
     expect(calls[6].executable, 'cargo');
-    expect(calls[6].arguments, ['test', '--', '--test-threads=1']);
+    expect(calls[6].arguments, ['test', '--jobs', '1']);
     expect(calls[7].executable, 'cargo');
     expect(calls[7].arguments, [
       'tarpaulin',
@@ -183,7 +183,7 @@ void main() {
       expect(calls.length, 4);
       expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
       expect(calls[1].arguments, ['analyze']);
-      expect(calls[2].arguments, ['test', '--coverage']);
+      expect(calls[2].arguments, ['test', '--coverage', '-j', '4']);
       expect(calls[3].arguments, [
         'tool/test_boundary_scanner.dart',
         '--scope=flutter',

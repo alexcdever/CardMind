@@ -1,8 +1,9 @@
 use cardmind_rust::api::{
-    create_pool, create_pool_invite, get_pool_members_runtime_view, get_pool_network_endpoint_id,
-    get_pool_network_sync_target, get_pool_runtime_summary, init_app_config, init_pool_network,
-    join_pool_by_invite, list_active_invites, reset_app_config_for_tests, revoke_invite,
-    setup_app_lock, sync_connect, sync_push, verify_app_lock_with_pin,
+    close_all_pool_networks_for_tests, create_pool, create_pool_invite,
+    get_pool_members_runtime_view, get_pool_network_endpoint_id, get_pool_network_sync_target,
+    get_pool_runtime_summary, init_app_config, init_pool_network, join_pool_by_invite,
+    list_active_invites, reset_app_config_for_tests, revoke_invite, setup_app_lock, sync_connect,
+    sync_push, verify_app_lock_with_pin,
 };
 use serial_test::serial;
 use std::sync::{Mutex, OnceLock};
@@ -14,6 +15,7 @@ fn app_config_test_guard() -> &'static Mutex<()> {
 }
 
 fn reset_app_config() -> Result<(), Box<dyn std::error::Error>> {
+    close_all_pool_networks_for_tests()?;
     reset_app_config_for_tests()?;
     Ok(())
 }

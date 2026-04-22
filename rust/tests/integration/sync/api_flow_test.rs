@@ -14,6 +14,7 @@ fn app_config_test_guard() -> &'static Mutex<()> {
 }
 
 fn setup_locked_network_env(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    let _ = close_all_pool_networks_for_tests();
     let _ = reset_app_config_for_tests();
     init_app_config(dir.to_string_lossy().to_string())?;
     setup_app_lock("1234".to_string(), true)?;
@@ -62,6 +63,7 @@ fn sync_flow_should_move_to_connected_and_back_to_idle() -> Result<(), Box<dyn s
     assert_eq!(final_status.state, "idle");
 
     close_pool_network(network_id)?;
+    close_pool_network(peer_network_id)?;
     Ok(())
 }
 

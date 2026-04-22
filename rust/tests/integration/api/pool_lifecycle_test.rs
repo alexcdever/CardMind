@@ -7,6 +7,7 @@ use tempfile::tempdir;
 
 fn setup_test(test_name: &str) -> String {
     // 每次测试前重置全局状态
+    let _ = close_all_pool_networks_for_tests();
     let _ = reset_app_config_for_tests();
 
     let dir = tempdir().expect("Failed to create temp dir");

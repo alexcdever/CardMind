@@ -39,6 +39,10 @@ void main() {
 
     final gateway = FrbSyncGateway();
     final networkId = await frb.initPoolNetwork(basePath: root.path);
+    final peerNetworkId = await frb.initPoolNetwork(basePath: root.path);
+    final peerTarget = await frb.getPoolNetworkSyncTarget(
+      networkId: peerNetworkId,
+    );
     final pool = await frb.createPool(
       endpointId: 'endpoint-a',
       nickname: 'owner',
@@ -50,7 +54,7 @@ void main() {
       // Phase 2: "idle" 映射为 "ready"
       expect(initial.syncState, 'ready');
 
-      await gateway.syncConnect(networkId: networkId, target: 'peer');
+      await gateway.syncConnect(networkId: networkId, target: peerTarget);
       await gateway.syncJoinPool(networkId: networkId, poolId: pool.id);
 
       final pushed = await gateway.syncPush(networkId: networkId);
@@ -67,6 +71,7 @@ void main() {
       // Phase 2: "idle" 映射为 "ready"
       expect(disconnected.syncState, 'ready');
     } finally {
+      await frb.closePoolNetwork(networkId: peerNetworkId);
       await frb.closePoolNetwork(networkId: networkId);
       await frb.resetAppConfigForTests();
       await root.delete(recursive: true);

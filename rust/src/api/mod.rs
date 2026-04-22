@@ -1950,6 +1950,17 @@ pub fn close_pool_network(network_id: u64) -> Result<(), ApiError> {
     Ok(())
 }
 
+#[doc(hidden)]
+pub fn close_all_pool_networks_for_tests() -> Result<(), ApiError> {
+    let mut map = pool_network_map()
+        .lock()
+        .map_err(|_| ApiError::new(ApiErrorCode::Internal, "store lock poisoned"))?;
+    for (_, managed) in map.drain() {
+        managed.listener.abort();
+    }
+    Ok(())
+}
+
 /// 获取同步状态
 ///
 /// 查询指定网络实例的当前同步状态，包括连接状态、数据一致性状态等。

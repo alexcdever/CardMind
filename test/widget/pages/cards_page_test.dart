@@ -10,10 +10,12 @@ import 'package:cardmind/bridge_generated/models/card.dart' as frb_models;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/bridge_generated/models/error.dart';
 import 'package:cardmind/bridge_generated/models/pool.dart';
+import 'package:cardmind/bridge_generated/models/pool_runtime.dart';
 import 'package:cardmind/bridge_generated/api/recovery_contract.dart';
 import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:cardmind/bridge_generated/runtime/config.dart';
 import 'package:cardmind/bridge_generated/runtime/entry_manager.dart';
+import 'package:cardmind/bridge_generated/store/pool_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -194,6 +196,12 @@ class _MockRustLibApi extends RustLibApi {
   }) => throw UnimplementedError();
 
   @override
+  Future<String> crateApiCreatePoolInvite({
+    required BigInt networkId,
+    required String poolId,
+  }) async => 'mock-invite-code';
+
+  @override
   Future<String> crateApiUtilsCurrentMemberRoleForEndpoint({
     required Pool pool,
     required String endpointId,
@@ -213,6 +221,35 @@ class _MockRustLibApi extends RustLibApi {
   Future<PoolDetailDto> crateApiGetJoinedPoolView({
     required String endpointId,
   }) => throw UnimplementedError();
+
+  @override
+  Future<PoolMembersRuntimeViewDto> crateApiGetPoolMembersRuntimeView({
+    required String poolId,
+    required String endpointId,
+  }) async => const PoolMembersRuntimeViewDto(rows: <PoolMemberRuntimeDto>[]);
+
+  @override
+  Future<String> crateApiGetPoolNetworkEndpointId({
+    required BigInt networkId,
+  }) async => 'mock-endpoint';
+
+  @override
+  Future<String> crateApiGetPoolNetworkSyncTarget({
+    required BigInt networkId,
+  }) async => 'mock-target';
+
+  @override
+  Future<PoolRuntimeSummaryDto> crateApiGetPoolRuntimeSummary({
+    required String poolId,
+    required String endpointId,
+  }) async => PoolRuntimeSummaryDto(
+    memberCount: BigInt.zero,
+    connectedCount: BigInt.zero,
+    syncingCount: BigInt.zero,
+    offlineCount: BigInt.zero,
+    memberCountText: '0 members',
+    runtimeStatusText: '0 connected, 0 syncing, 0 offline',
+  );
 
   @override
   Future<PoolDto> crateApiLeavePool({
@@ -277,6 +314,20 @@ class _MockRustLibApi extends RustLibApi {
     required String nickname,
     required String os,
   }) => throw UnimplementedError();
+
+  @override
+  Future<JoinByInviteResultDto> crateApiJoinPoolByInvite({
+    required BigInt networkId,
+    required String code,
+    required String nickname,
+    required String os,
+    required bool debugTrace,
+  }) async => const JoinByInviteResultDto(
+    status: 'pending',
+    poolId: 'mock-pool',
+    poolName: 'Mock Pool',
+    requestId: 'mock-request',
+  );
 
   @override
   Future<List<CardNoteDto>> crateApiListCardNotes() async =>
@@ -369,6 +420,15 @@ class _MockRustLibApi extends RustLibApi {
       const <PoolDto>[];
 
   @override
+  Future<PoolInvitesViewDto> crateApiListActiveInvites({
+    required String poolId,
+    required String endpointId,
+  }) async => PoolInvitesViewDto(
+    invites: <PoolInviteDto>[],
+    activeCount: BigInt.zero,
+  );
+
+  @override
   Future<ApiError> crateApiUtilsMapErr({required CardMindError err}) async =>
       const ApiError(code: 'INTERNAL', message: 'mock');
 
@@ -383,11 +443,97 @@ class _MockRustLibApi extends RustLibApi {
   }) async => UuidValue.fromString(raw);
 
   @override
+  Future<PoolInviteDto> crateApiPoolInviteDtoFromRecord({
+    required PoolInviteRecord record,
+  }) async => PoolInviteDto(
+    inviteId: record.inviteId.toString(),
+    inviteCode: record.inviteCode,
+    createdByEndpointId: record.createdByEndpointId,
+    createdAt: record.createdAt,
+  );
+
+  @override
+  Future<PoolInvitesViewDto> crateApiPoolInvitesViewDtoFromRecords({
+    required List<PoolInviteRecord> records,
+  }) async => PoolInvitesViewDto(
+    invites: records
+        .map(
+          (record) => PoolInviteDto(
+            inviteId: record.inviteId.toString(),
+            inviteCode: record.inviteCode,
+            createdByEndpointId: record.createdByEndpointId,
+            createdAt: record.createdAt,
+          ),
+        )
+        .toList(growable: false),
+    activeCount: BigInt.from(
+      records.where((record) => record.revokedAt == null).length,
+    ),
+  );
+
+  @override
+  Future<PoolMemberRuntimeDto> crateApiPoolMemberRuntimeDtoFromRuntime({
+    required PoolMemberRuntime runtime,
+  }) async => PoolMemberRuntimeDto(
+    endpointId: runtime.endpointId,
+    nickname: runtime.nickname,
+    os: runtime.os,
+    role: runtime.role,
+    status: runtime.status.name,
+    lastActiveAt: runtime.lastActiveAt,
+    isCurrentDevice: runtime.isCurrentDevice,
+  );
+
+  @override
+  Future<PoolMembersRuntimeViewDto> crateApiPoolMembersRuntimeViewDtoNew({
+    required List<PoolMemberRuntimeDto> rows,
+  }) async => PoolMembersRuntimeViewDto(rows: rows);
+
+  @override
   Future<String> crateApiUtilsPoolName({required Pool pool}) async =>
       pool.poolId.toString();
 
   @override
+  Future<PoolRuntimeSummaryDto> crateApiPoolRuntimeSummaryDtoFromCounts({
+    required BigInt memberCount,
+    required BigInt connectedCount,
+    required BigInt syncingCount,
+    required BigInt offlineCount,
+  }) async => PoolRuntimeSummaryDto(
+    memberCount: memberCount,
+    connectedCount: connectedCount,
+    syncingCount: syncingCount,
+    offlineCount: offlineCount,
+    memberCountText: '$memberCount members',
+    runtimeStatusText:
+        '$connectedCount connected, $syncingCount syncing, $offlineCount offline',
+  );
+
+  @override
+  Future<PoolRuntimeSummaryDto> crateApiPoolRuntimeSummaryDtoFromSummary({
+    required PoolRuntimeSummary summary,
+  }) async => PoolRuntimeSummaryDto(
+    memberCount: summary.memberCount,
+    connectedCount: summary.connectedCount,
+    syncingCount: summary.syncingCount,
+    offlineCount: summary.offlineCount,
+    memberCountText: '${summary.memberCount} members',
+    runtimeStatusText:
+        '${summary.connectedCount} connected, ${summary.syncingCount} syncing, ${summary.offlineCount} offline',
+  );
+
+  @override
   Future<void> crateApiResetAppConfigForTests() async {}
+
+  @override
+  Future<PoolInvitesViewDto> crateApiRevokeInvite({
+    required String poolId,
+    required String inviteId,
+    required String endpointId,
+  }) async => PoolInvitesViewDto(
+    invites: <PoolInviteDto>[],
+    activeCount: BigInt.zero,
+  );
 
   @override
   Future<void> crateApiSyncConnect({

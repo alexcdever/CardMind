@@ -25,8 +25,12 @@ void main() {
       await frb.setupAppLock(pin: '1234', allowBiometric: true);
       await frb.verifyAppLockWithPin(pin: '1234');
       final networkId = await frb.initPoolNetwork(basePath: basePath);
+      final peerNetworkId = await frb.initPoolNetwork(basePath: basePath);
 
       try {
+        final peerTarget = await frb.getPoolNetworkSyncTarget(
+          networkId: peerNetworkId,
+        );
         final pool = await frb.createPool(
           endpointId: 'endpoint-a',
           nickname: 'nick-a',
@@ -52,7 +56,7 @@ void main() {
         expect(initialSync.state, 'idle');
         expect(initialSync.writeState, 'write_saved');
 
-        await frb.syncConnect(networkId: networkId, target: 'local://peer');
+        await frb.syncConnect(networkId: networkId, target: peerTarget);
         await frb.syncJoinPool(networkId: networkId, poolId: pool.id);
         final push = await frb.syncPush(networkId: networkId);
         final pull = await frb.syncPull(networkId: networkId);
@@ -70,6 +74,7 @@ void main() {
         final finalSync = await frb.syncStatus(networkId: networkId);
         expect(finalSync.state, 'idle');
       } finally {
+        await frb.closePoolNetwork(networkId: peerNetworkId);
         await frb.closePoolNetwork(networkId: networkId);
         await root.delete(recursive: true);
         RustLib.dispose();

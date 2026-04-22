@@ -332,7 +332,7 @@ void main() {
     expect(find.byType(AppHomepagePage), findsOneWidget);
   });
 
-  testWidgets('homepage delegates pool section composition to PoolShell', (
+  testWidgets('homepage delegates pool section composition to pool container', (
     tester,
   ) async {
     final controller = AppHomepageController(initialSection: AppSection.pool);
@@ -369,12 +369,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final shell = tester.widget<PoolShell>(find.byType(PoolShell));
-    expect(shell.debugAutoPin, '1234');
-    expect(shell.debugAutoJoinCode, 'pool-code');
+    final poolContainer = tester.widget<PoolShell>(find.byType(PoolShell));
+    expect(poolContainer.debugAutoPin, '1234');
+    expect(poolContainer.debugAutoJoinCode, 'pool-code');
   });
 
-  testWidgets('debug flags flow to pool shell', (tester) async {
+  testWidgets('debug flags flow to pool container', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: AppHomepagePage(
@@ -388,9 +388,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final shell = tester.widget<PoolShell>(find.byType(PoolShell));
-    expect(shell.debugPrintInvite, isTrue);
-    expect(shell.debugJoinTrace, isTrue);
+    final poolContainer = tester.widget<PoolShell>(find.byType(PoolShell));
+    expect(poolContainer.debugPrintInvite, isTrue);
+    expect(poolContainer.debugJoinTrace, isTrue);
   });
 
   testWidgets('back on cards shows exit confirmation dialog', (tester) async {
