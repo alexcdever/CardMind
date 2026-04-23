@@ -25,10 +25,10 @@ Options:
   -h, --help  Show this help message
 
 Default behavior:
-  flutter runs: markdown references lint -> flutter analyze -> flutter test -> test boundary scan
+  flutter runs: markdown references lint -> build rust dylib -> FRB codegen -> flutter analyze -> flutter test -> test boundary scan
   rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test --jobs 1
   docs runs: markdown references lint
-  all runs: flutter -> rust
+  all runs: flutter quality with FRB prep -> rust
 
 Examples:
   dart run tool/quality.dart flutter
@@ -114,6 +114,15 @@ Future<int> _runFlutterQuality({
     return docsExit;
   }
 
+  final frbPrepExit = await _prepareFlutterFrbArtifacts(
+    runProcess: runProcess,
+    log: log,
+    logError: logError,
+  );
+  if (frbPrepExit != 0) {
+    return frbPrepExit;
+  }
+
   final analyze = await runProcess('flutter', ['analyze']);
   if (analyze.exitCode != 0) {
     logError(_processError(analyze));
@@ -150,6 +159,28 @@ Future<int> _runFlutterQuality({
   } else {
     log('[flutter:test-boundary-scan] done');
   }
+  return 0;
+}
+
+Future<int> _prepareFlutterFrbArtifacts({
+  required Runner runProcess,
+  required void Function(String) log,
+  required void Function(String) logError,
+}) async {
+  final buildLib = await runProcess('dart', ['tool/build.dart', 'lib']);
+  if (buildLib.exitCode != 0) {
+    logError(_processError(buildLib));
+    return buildLib.exitCode;
+  }
+  log('[flutter:frb-lib] done');
+
+  final codegen = await runProcess('flutter_rust_bridge_codegen', ['generate']);
+  if (codegen.exitCode != 0) {
+    logError(_processError(codegen));
+    return codegen.exitCode;
+  }
+  log('[flutter:frb-codegen] done');
+
   return 0;
 }
 

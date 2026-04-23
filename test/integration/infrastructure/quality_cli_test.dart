@@ -24,28 +24,34 @@ void main() {
   });
 
   test(
-    'flutter runs markdown lint then analyze then test with coverage then boundary scan in order',
+    'flutter runs docs lint then FRB prep then analyze test and boundary scan in order',
     () async {
       final calls = <_ProcCall>[];
       final exit = await runQualityCli(const [
         'flutter',
       ], runProcess: _fakeRunner(calls));
       expect(exit, 0);
-      expect(calls.length, 4);
+      expect(calls.length, 6);
       expect(calls[0].executable, 'dart');
       expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
-      expect(calls[1].executable, 'flutter');
-      expect(calls[1].arguments, ['analyze']);
-      expect(calls[2].executable, 'flutter');
-      expect(calls[2].arguments, ['test', '--coverage', '-j', '4']);
-      expect(calls[3].executable, 'dart');
-      expect(calls[3].arguments, [
+      expect(calls[1].executable, 'dart');
+      expect(calls[1].arguments, ['tool/build.dart', 'lib']);
+      expect(calls[1].workingDirectory, isNull);
+      expect(calls[2].executable, 'flutter_rust_bridge_codegen');
+      expect(calls[2].arguments, ['generate']);
+      expect(calls[3].executable, 'flutter');
+      expect(calls[3].arguments, ['analyze']);
+      expect(calls[4].executable, 'flutter');
+      expect(calls[4].arguments, ['test', '--coverage', '-j', '4']);
+      expect(calls[5].executable, 'dart');
+      expect(calls[5].arguments, [
         'tool/test_boundary_scanner.dart',
         '--scope=flutter',
       ]);
       expect(calls[0].workingDirectory, isNull);
-      expect(calls[1].workingDirectory, isNull);
       expect(calls[2].workingDirectory, isNull);
+      expect(calls[3].workingDirectory, isNull);
+      expect(calls[4].workingDirectory, isNull);
     },
   );
 
@@ -111,24 +117,28 @@ void main() {
       'all',
     ], runProcess: _fakeRunner(calls));
     expect(exit, 0);
-    expect(calls.length, 9);
+    expect(calls.length, 11);
     // Flutter checks
     expect(calls[0].executable, 'dart');
     expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
-    expect(calls[1].executable, 'flutter');
-    expect(calls[1].arguments, ['analyze']);
-    expect(calls[2].executable, 'flutter');
-    expect(calls[2].arguments, ['test', '--coverage', '-j', '4']);
-    expect(calls[3].executable, 'dart');
-    expect(calls[3].arguments, [
+    expect(calls[1].executable, 'dart');
+    expect(calls[1].arguments, ['tool/build.dart', 'lib']);
+    expect(calls[2].executable, 'flutter_rust_bridge_codegen');
+    expect(calls[2].arguments, ['generate']);
+    expect(calls[3].executable, 'flutter');
+    expect(calls[3].arguments, ['analyze']);
+    expect(calls[4].executable, 'flutter');
+    expect(calls[4].arguments, ['test', '--coverage', '-j', '4']);
+    expect(calls[5].executable, 'dart');
+    expect(calls[5].arguments, [
       'tool/test_boundary_scanner.dart',
       '--scope=flutter',
     ]);
     // Rust checks
-    expect(calls[4].executable, 'cargo');
-    expect(calls[4].arguments, ['fmt', '--all', '--', '--check']);
-    expect(calls[5].executable, 'cargo');
-    expect(calls[5].arguments, [
+    expect(calls[6].executable, 'cargo');
+    expect(calls[6].arguments, ['fmt', '--all', '--', '--check']);
+    expect(calls[7].executable, 'cargo');
+    expect(calls[7].arguments, [
       'clippy',
       '--all-targets',
       '--all-features',
@@ -136,10 +146,10 @@ void main() {
       '-D',
       'warnings',
     ]);
-    expect(calls[6].executable, 'cargo');
-    expect(calls[6].arguments, ['test', '--jobs', '1']);
-    expect(calls[7].executable, 'cargo');
-    expect(calls[7].arguments, [
+    expect(calls[8].executable, 'cargo');
+    expect(calls[8].arguments, ['test', '--jobs', '1']);
+    expect(calls[9].executable, 'cargo');
+    expect(calls[9].arguments, [
       'tarpaulin',
       '--out',
       'Lcov',
@@ -150,8 +160,8 @@ void main() {
       '--exclude-files',
       'tool/**',
     ]);
-    expect(calls[8].executable, 'dart');
-    expect(calls[8].arguments, [
+    expect(calls[10].executable, 'dart');
+    expect(calls[10].arguments, [
       'tool/test_boundary_scanner.dart',
       '--scope=rust',
     ]);
@@ -176,18 +186,36 @@ void main() {
           ProcessResult(2, 0, '', ''),
           ProcessResult(3, 0, '', ''),
           ProcessResult(4, 0, '', ''),
+          ProcessResult(5, 0, '', ''),
+          ProcessResult(6, 0, '', ''),
         ]),
       );
 
       expect(exit, 0);
-      expect(calls.length, 4);
+      expect(calls.length, 6);
       expect(calls[0].arguments, ['tool/lint/markdown_references_linter.dart']);
-      expect(calls[1].arguments, ['analyze']);
-      expect(calls[2].arguments, ['test', '--coverage', '-j', '4']);
-      expect(calls[3].arguments, [
+      expect(calls[1].arguments, ['tool/build.dart', 'lib']);
+      expect(calls[2].arguments, ['generate']);
+      expect(calls[3].arguments, ['analyze']);
+      expect(calls[4].arguments, ['test', '--coverage', '-j', '4']);
+      expect(calls[5].arguments, [
         'tool/test_boundary_scanner.dart',
         '--scope=flutter',
       ]);
+    },
+  );
+
+  test(
+    'returns command exit code on FRB dylib build failure before flutter analyze',
+    () async {
+      final exit = await runQualityCli(
+        const ['flutter'],
+        runProcess: _scriptedRunner([
+          ProcessResult(1, 0, '', ''),
+          ProcessResult(2, 9, '', 'cargo build failed'),
+        ]),
+      );
+      expect(exit, 9);
     },
   );
 

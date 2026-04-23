@@ -52,4 +52,38 @@ void main() {
     expect(status.kind, SyncStatusKind.connected);
     expect(status.code, isNull);
   });
+
+  test('degraded state blocks write and continue edit', () {
+    const status = SyncStatus.degraded('REQUEST_TIMEOUT');
+
+    expect(status.canWrite, isFalse);
+    expect(status.canContinueEdit, isFalse);
+  });
+
+  test(
+    'connected state allows write and continue edit when content is safe',
+    () {
+      const status = SyncStatus.connected();
+
+      expect(status.canWrite, isTrue);
+      expect(status.canContinueEdit, isTrue);
+    },
+  );
+
+  test('connected state blocks write when write is forbidden', () {
+    const status = SyncStatus.connected(forbiddenOperations: <String>['write']);
+
+    expect(status.canWrite, isFalse);
+  });
+
+  test(
+    'connected state blocks continue edit when operation is not allowed',
+    () {
+      const status = SyncStatus.connected(
+        allowedOperations: <String>['view', 'wait'],
+      );
+
+      expect(status.canContinueEdit, isFalse);
+    },
+  );
 }

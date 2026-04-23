@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cardmind/app/app.dart';
+import 'package:cardmind/app/debug_startup_support.dart';
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:cardmind/features/shared/runtime/rust_library_path.dart';
@@ -27,9 +28,7 @@ const String _debugStatusExportPath = String.fromEnvironment(
 const bool _debugPrintInvite = bool.fromEnvironment(
   'CARDMIND_DEBUG_PRINT_INVITE',
 );
-const bool _debugJoinTrace = bool.fromEnvironment(
-  'CARDMIND_DEBUG_JOIN_TRACE',
-);
+const bool _debugJoinTrace = bool.fromEnvironment('CARDMIND_DEBUG_JOIN_TRACE');
 
 String? _resolvedDebugInvitePath = _debugExportInvitePath.isEmpty
     ? null
@@ -42,21 +41,37 @@ String? _resolvedDebugStatusPath = _debugStatusExportPath.isEmpty
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await _writeStartupDebugStatus('main_started');
+  await writeStartupDebugStatus(_resolvedDebugStatusPath, 'main_started');
 
   final libPath = resolveRustLibraryPath();
-  await _writeStartupDebugStatus('lib_path:${libPath ?? 'default'}');
+  await writeStartupDebugStatus(
+    _resolvedDebugStatusPath,
+    'lib_path:${libPath ?? 'default'}',
+  );
   await RustLib.init(
     externalLibrary: libPath == null ? null : ExternalLibrary.open(libPath),
   );
   final appDataDir = (await getApplicationSupportDirectory()).path;
-  _resolvedDebugInvitePath ??= _shouldEnableDefaultInviteExport()
+  _resolvedDebugInvitePath ??=
+      shouldEnableDefaultInviteExport(
+        debugStartInPool: _debugStartInPool,
+        debugAutoCreatePool: _debugAutoCreatePool,
+      )
       ? '$appDataDir/debug_invite.txt'
       : null;
-  _resolvedDebugStatusPath ??= _shouldEnableDefaultDebugStatusExport()
+  _resolvedDebugStatusPath ??=
+      shouldEnableDefaultDebugStatusExport(
+        debugStartInPool: _debugStartInPool,
+        debugAutoCreatePool: _debugAutoCreatePool,
+        debugAutoPin: _debugAutoPin,
+        debugAutoJoinCode: _debugAutoJoinCode,
+      )
       ? '$appDataDir/debug_status.log'
       : null;
-  await _writeStartupDebugStatus('app_data_dir:$appDataDir');
+  await writeStartupDebugStatus(
+    _resolvedDebugStatusPath,
+    'app_data_dir:$appDataDir',
+  );
   await frb.initAppConfig(appDataDir: appDataDir);
   runApp(
     CardMindApp(
@@ -71,29 +86,4 @@ Future<void> main() async {
       debugJoinTrace: _debugJoinTrace,
     ),
   );
-}
-
-Future<void> _writeStartupDebugStatus(String line) async {
-  final path = _resolvedDebugStatusPath;
-  if (path == null || path.isEmpty) {
-    return;
-  }
-  try {
-    final file = File(path);
-    await file.parent.create(recursive: true);
-    await file.writeAsString('$line\n', mode: FileMode.append);
-  } catch (_) {
-    // 调试状态导出失败不应影响启动流程。
-  }
-}
-
-bool _shouldEnableDefaultDebugStatusExport() {
-  return _debugStartInPool ||
-      _debugAutoCreatePool ||
-      _debugAutoPin.isNotEmpty ||
-      _debugAutoJoinCode.isNotEmpty;
-}
-
-bool _shouldEnableDefaultInviteExport() {
-  return _debugStartInPool && _debugAutoCreatePool;
 }

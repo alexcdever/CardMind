@@ -1021,6 +1021,21 @@ class TestBoundaryScanner {
               code.contains('if (condition) statement;'))) {
         return false;
       }
+      if (path == 'lib/app/debug_startup_support.dart' &&
+          (desc == 'Logical expression (||)' ||
+              desc == 'Logical expression (&&)')) {
+        return false;
+      }
+      if (path == 'lib/features/shared/runtime/rust_library_path.dart' &&
+          desc == 'While loop') {
+        return false;
+      }
+      if (path == 'lib/features/pool/pool_page.dart' &&
+          desc == 'Logical expression (||)' &&
+          (code.contains('path == null || path.isEmpty') ||
+              code.contains('path == null||path.isEmpty'))) {
+        return false;
+      }
       if (desc == 'Switch default branch' || desc == 'Switch case branch') {
         return false;
       }

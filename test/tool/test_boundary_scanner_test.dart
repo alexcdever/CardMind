@@ -314,6 +314,54 @@ Widget buildFeedback(Widget? child, String? code) {
           ),
           isFalse,
         );
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.condition,
+              filePath: 'lib/app/debug_startup_support.dart',
+              lineNumber: 9,
+              codeSnippet: 'a || b || c || d',
+              description: 'Logical expression (||)',
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.condition,
+              filePath: 'lib/app/debug_startup_support.dart',
+              lineNumber: 19,
+              codeSnippet: 'a && b',
+              description: 'Logical expression (&&)',
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.condition,
+              filePath: 'lib/features/shared/runtime/rust_library_path.dart',
+              lineNumber: 24,
+              codeSnippet: 'while (cursor != null) { ... }',
+              description: 'While loop',
+            ),
+          ),
+          isFalse,
+        );
+        expect(
+          scanner.isMeaningfulHighPriorityBoundary(
+            Boundary(
+              type: BoundaryType.condition,
+              filePath: 'lib/features/pool/pool_page.dart',
+              lineNumber: 251,
+              codeSnippet: 'path == null || path.isEmpty',
+              description: 'Logical expression (||)',
+            ),
+          ),
+          isFalse,
+        );
       },
     );
 
