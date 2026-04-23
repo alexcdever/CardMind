@@ -648,16 +648,20 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   void visitClassDeclaration(ClassDeclaration node) {
     /// 检测构造函数
     final previous = _insideTestDeclaration;
-    _insideTestDeclaration = previous || _looksLikeTestName(node.name.lexeme);
-    for (final member in node.members) {
-      if (member is ConstructorDeclaration) {
-        _addBoundary(
-          BoundaryType.lifecycle,
-          member.offset,
-          member.toSource(),
-          'Constructor',
-          member,
-        );
+    _insideTestDeclaration =
+        previous || _looksLikeTestName(node.namePart.typeName.lexeme);
+    final body = node.body;
+    if (body is BlockClassBody) {
+      for (final member in body.members) {
+        if (member is ConstructorDeclaration) {
+          _addBoundary(
+            BoundaryType.lifecycle,
+            member.offset,
+            member.toSource(),
+            'Constructor',
+            member,
+          );
+        }
       }
     }
     super.visitClassDeclaration(node);

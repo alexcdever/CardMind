@@ -1,8 +1,7 @@
 use argon2::{
     Argon2,
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
 };
-use rand_core::OsRng;
 use std::sync::{Arc, Mutex};
 
 const MAX_FAILED_ATTEMPTS: u32 = 5;

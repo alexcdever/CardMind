@@ -164,6 +164,9 @@ class _MockRustLibApi extends RustLibApi {
   final __uuid = const Uuid();
 
   @override
+  Future<void> crateApiCloseAllPoolNetworksForTests() async {}
+
+  @override
   Future<void> crateApiClosePoolNetwork({required BigInt networkId}) async {}
 
   @override

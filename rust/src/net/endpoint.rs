@@ -32,7 +32,7 @@
 
 use crate::models::error::CardMindError;
 use iroh::address_lookup::mdns::MdnsAddressLookup;
-use iroh::endpoint::Connection;
+use iroh::endpoint::{Connection, presets};
 use iroh::{Endpoint, EndpointAddr, EndpointId, Watcher};
 use std::time::Duration;
 use tokio::time::sleep;
@@ -181,7 +181,7 @@ impl PoolEndpoint {
 /// ```
 pub async fn build_endpoint() -> Result<Endpoint, CardMindError> {
     let mdns = MdnsAddressLookup::builder();
-    Endpoint::builder()
+    Endpoint::builder(presets::Minimal)
         .alpns(vec![POOL_ALPN.to_vec()])
         .address_lookup(mdns)
         .bind()

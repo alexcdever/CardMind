@@ -15,7 +15,7 @@
 ### 2.2 跨语言桥接
 
 - Flutter Rust Bridge 是唯一 Flutter-Rust FFI 通道。
-- Dart 与 Rust 侧 `flutter_rust_bridge` 必须同版本锁步维护，当前为 `2.11.1`。
+- Dart 与 Rust 侧 `flutter_rust_bridge` 必须同版本锁步维护，当前为 `2.12.0`。
 - FRB 配置源为 `flutter_rust_bridge.yaml`，修改后必须验证生成产物可编译。
 
 ### 2.3 数据与同步内核
@@ -45,7 +45,7 @@
 
 | 依赖 | 版本 | 角色 |
 | --- | --- | --- |
-| flutter_rust_bridge | 2.11.1 | Flutter 与 Rust 互操作桥接 |
+| flutter_rust_bridge | 2.12.0 | Flutter 与 Rust 互操作桥接 |
 | uuid | ^4.5.3 | 标识生成 |
 | cupertino_icons | ^1.0.8 | iOS 风格图标 |
 | flutter_lints（dev） | ^6.0.0 | Dart/Flutter lint 基线 |
@@ -54,17 +54,17 @@
 
 | 依赖 | 版本 | 角色 |
 | --- | --- | --- |
-| flutter_rust_bridge | =2.11.1 | Rust 侧 FRB 绑定 |
+| flutter_rust_bridge | =2.12.0 | Rust 侧 FRB 绑定 |
 | serde | 1 | 序列化/反序列化 |
 | uuid | 1 | UUID（含 v7/serde/fast-rng） |
-| thiserror | 1 | 错误类型定义 |
-| loro | 1.10.3 | CRDT 数据内核 |
-| rusqlite | 0.31 | 本地 SQLite 读模型（bundled） |
+| thiserror | 2 | 错误类型定义 |
+| loro | 1.11.1 | CRDT 数据内核 |
+| rusqlite | 0.39 | 本地 SQLite 读模型（bundled） |
 | postcard | 1 | 二进制序列化 |
 | base64 | 0.22 | 编解码 |
-| iroh | 0.96.1 | P2P 网络同步 |
+| iroh | 0.98.1 | P2P 网络同步 |
 | tokio | 1 | 异步运行时 |
-| tempfile（dev） | 3 | 测试临时文件支持 |
+| tempfile（dev） | 3.27.0 | 测试临时文件支持 |
 
 ## 4. 版本治理与变更规则
 
