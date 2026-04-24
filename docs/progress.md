@@ -5,27 +5,34 @@
 
 ## 当前进行中的工作
 
-1. Pencil 中数据池 UI 对应的 Flutter 实现已完成，Rust 端已准备好的运行态 API 已通过 `PoolRuntimeApiClient` 串入页面状态。
-2. 数据池已加入态页面已展示 `Network Nodes`、运行态概览、成员运行态与 active invite，并支持生成 / 撤销 invite 后刷新视图。
-3. 用户要求的 GitNexus 清理已完成：`AGENTS.md` 中 GitNexus agent 指引已移除，`.claude/`、`.gitnexus/` 产物已删除，本地 `gitnexus` 程序已卸载并验证不可用。
-4. 当前正在执行存档与提交保存；功能验证已通过 `flutter analyze`、`flutter test`、`dart run tool/quality.dart flutter` 与 `git diff --check`。
+1. Pencil 数据池原型已补齐应用锁前置流程：桌面端和移动端均包含 App Lock Setup 与 App Lock Unlock。
+2. App Lock 页面已插入原有流程链路：Data Pool 入口 -> 应用锁设置 / 解锁 -> Data Pool Setup -> Data Pool Members。
+3. Pencil 画布排版已调整，避免新增解锁页面覆盖既有数据池页面；`snapshot_layout(problemsOnly: true)` 已确认无布局问题。
+4. 当前正在执行存档与提交保存；本轮 Pencil 改动已通过截图复核与 `git diff --check`。
 
 ## 最近完成的工作
 
-1. ~~数据池运行态 UI 与 Rust API 串接~~ ✅ **已完成**（2026-04-24）
+1. ~~Pencil 数据池应用锁前置流程补齐~~ ✅ **已完成**（2026-04-24）
+   - 新增桌面端 App Lock Setup / App Lock Unlock 原型页
+   - 新增移动端 App Lock Setup / App Lock Unlock 原型页
+   - 将应用锁页面插入原有数据池流程链路，而不是作为孤立补充页
+   - 同步调整流程箭头与说明：进入 Data Pool 先设置 / 解锁，验证通过后进入 Data Pool Setup
+   - Pencil 截图复核通过，`snapshot_layout(problemsOnly: true)` 返回无布局问题
+
+2. ~~数据池运行态 UI 与 Rust API 串接~~ ✅ **已完成**（2026-04-24）
    - `PoolRuntimeApiClient` 聚合运行态 summary、members runtime view 与 active invites
    - `PoolController` 新增 runtime view 状态、加载状态、create invite 与 revoke invite 动作
    - `PoolPage` 已加入态按 poolId 懒加载 runtime view
    - 数据池页面重做为贴近 Pencil 的 setup / network nodes 展示，同时保留既有测试依赖的关键文案与操作入口
    - 单元测试与组件测试已覆盖运行态加载、invite 撤销刷新与已加入页面 runtime 信息展示
 
-2. ~~GitNexus 清理与本地卸载~~ ✅ **已完成**（2026-04-24）
+3. ~~GitNexus 清理与本地卸载~~ ✅ **已完成**（2026-04-24）
    - `AGENTS.md` 已移除 GitNexus agent 指引块
    - 仓库根部 `.claude/`、`.gitnexus/` 产物已删除
    - 本地 pnpm 全局 `gitnexus` 已卸载，残留包目录与 bin 链接已清理
    - 已验证 `command -v gitnexus` 无结果，agent 文档无 GitNexus 内容，仓库根部无 GitNexus 产物目录
 
-3. ~~GitNexus 与 AI 正确性适配评估~~ ✅ **已完成**（2026-04-24）
+4. ~~GitNexus 与 AI 正确性适配评估~~ ✅ **已完成**（2026-04-24）
    - 将评估目标收敛为“是否提升 AI 改代码正确性”，重点关注少漏改影响点与跨模块/跨语言关系理解
    - 基于当前仓库结构梳理出 CardMind 中 AI 最容易漏改的 8 类影响链，覆盖 Rust API -> FRB -> Dart 调用方 -> 测试、Pool/Sync 状态链路、运行态构建链与 `docs/specs/` 真相源
    - 结论收敛为：`GitNexus` 对本项目“可以关注，但暂不优先”，暂不投入接入成本
@@ -177,6 +184,7 @@
 
 ## 待办事项
 
+- [ ] 如继续实现 Flutter UI，可把 Pencil 中的应用锁前置流程映射到当前 `AppLockScreen` 的视觉与交互细节
 - [ ] 如继续推进数据池能力，优先做真实双端联机验证或新的定向 code review
 - [ ] 如继续提升 UI 验证质量，可补一轮不同窗口尺寸下的数据池页面人工/自动截图检查
 - [ ] 如后续重新评估 AI 协作基础设施，优先验证 FRB 新鲜度门禁和按改动范围提升质量门禁，而不是先引入新的索引型工具
@@ -201,6 +209,8 @@
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-04-24 | Pencil 中应用锁页面必须接入数据池流程链路，而不是独立摆放 | 数据池应用锁是进入数据池前的强制前置条件，原型应表达完整路径而非孤立页面 |
+| 2026-04-24 | App Lock 同时展示 Setup 与 Unlock 两种状态 | 首次使用需要设置 PIN / 生物识别；后续会话只需要解锁，两者都是数据池前置路径的一部分 |
 | 2026-04-24 | 数据池 UI 本轮只落实现有 Pencil 目标和 Rust 已有 API，不扩展新的产品语义 | 用户目标是把已有 UI/API 串起来，避免在未确认情况下扩张数据池业务范围 |
 | 2026-04-24 | 运行态 invite 操作统一在 API client 层聚合刷新后的 runtime view | Flutter 控制器只关心页面状态，避免把多 Rust API 调用顺序散落到 UI 层 |
 | 2026-04-24 | GitNexus 不再作为当前仓库 agent 执行前置要求 | 用户明确要求删除 GitNexus 产物、移除 agent 文档内容并卸载本地程序 |

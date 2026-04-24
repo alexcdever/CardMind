@@ -61,7 +61,7 @@
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "./tmp/stitch_import/note_list_mobile.png",
+            "url": "tmp/stitch_import/note_list_mobile.png",
             "mode": "stretch"
           }
         }
@@ -103,7 +103,7 @@
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "./tmp/stitch_import/note_editor_mobile.png",
+            "url": "tmp/stitch_import/note_editor_mobile.png",
             "mode": "stretch"
           }
         }
@@ -113,7 +113,7 @@
       "type": "frame",
       "id": "vL8LH",
       "x": 11820,
-      "y": -1100,
+      "y": -120,
       "name": "Stitch / Mobile / Data Pool Setup",
       "clip": true,
       "width": 360,
@@ -145,7 +145,7 @@
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "./tmp/stitch_import/data_pool_setup_mobile.png",
+            "url": "tmp/stitch_import/data_pool_setup_mobile.png",
             "mode": "stretch"
           }
         }
@@ -155,7 +155,7 @@
       "type": "frame",
       "id": "Nqefk",
       "x": 12240,
-      "y": -1100,
+      "y": -120,
       "name": "Stitch / Mobile / Data Pool Members",
       "clip": true,
       "width": 360,
@@ -187,7 +187,7 @@
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "./tmp/stitch_import/data_pool_members_mobile.png",
+            "url": "tmp/stitch_import/data_pool_members_mobile.png",
             "mode": "stretch"
           }
         }
@@ -221,7 +221,7 @@
           "fill": {
             "type": "image",
             "enabled": true,
-            "url": "./tmp/stitch_import/note_list_desktop.png",
+            "url": "tmp/stitch_import/note_list_desktop.png",
             "mode": "stretch"
           }
         }
@@ -238,7 +238,7 @@
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "./tmp/stitch_import/note_editor_desktop.png",
+        "url": "tmp/stitch_import/note_editor_desktop.png",
         "mode": "stretch"
       },
       "stroke": {
@@ -251,14 +251,14 @@
       "type": "frame",
       "id": "etyss",
       "x": 13640,
-      "y": -2060,
+      "y": -1120,
       "name": "Stitch / Desktop / Data Pool Setup",
       "width": 960,
       "height": 867,
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "./tmp/stitch_import/data_pool_setup_desktop.png",
+        "url": "tmp/stitch_import/data_pool_setup_desktop.png",
         "mode": "stretch"
       },
       "stroke": {
@@ -271,14 +271,14 @@
       "type": "frame",
       "id": "moDkf",
       "x": 14660,
-      "y": -2060,
+      "y": -1120,
       "name": "Stitch / Desktop / Data Pool Members",
       "width": 960,
       "height": 841,
       "fill": {
         "type": "image",
         "enabled": true,
-        "url": "./tmp/stitch_import/data_pool_members_desktop.png",
+        "url": "tmp/stitch_import/data_pool_members_desktop.png",
         "mode": "stretch"
       },
       "stroke": {
@@ -294,7 +294,7 @@
       "y": -3020,
       "name": "Stitch / Desktop / Flow Links",
       "width": 2070,
-      "height": 1840,
+      "height": 2860,
       "layout": "none",
       "children": [
         {
@@ -372,7 +372,7 @@
           "y": 822,
           "name": "desktopArrow2",
           "width": 1,
-          "height": 92,
+          "height": 190,
           "stroke": {
             "align": "center",
             "thickness": 4,
@@ -383,7 +383,7 @@
           "type": "path",
           "id": "24kbO",
           "x": 514,
-          "y": 904,
+          "y": 1003,
           "name": "desktopArrow2Head",
           "geometry": "M0 0l14 0-7 14z",
           "viewBox": [
@@ -400,7 +400,7 @@
           "type": "frame",
           "id": "zzP7U",
           "x": 546,
-          "y": 846,
+          "y": 920,
           "name": "desktopLabel2",
           "fill": "#DBEAFE",
           "cornerRadius": 999,
@@ -414,7 +414,7 @@
               "id": "3xFqr",
               "name": "desktopLabel2Text",
               "fill": "#1D4ED8",
-              "content": "进入 Data Pool",
+              "content": "进入 Data Pool：先设置/解锁",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "600"
@@ -425,7 +425,7 @@
           "type": "line",
           "id": "s318f",
           "x": 1006,
-          "y": 1362,
+          "y": 2334,
           "name": "desktopArrow3",
           "width": 36,
           "height": 1,
@@ -439,7 +439,7 @@
           "type": "path",
           "id": "4boL1",
           "x": 1036,
-          "y": 1355,
+          "y": 2327,
           "name": "desktopArrow3Head",
           "geometry": "M0 0l14 7-14 7z",
           "viewBox": [
@@ -456,7 +456,7 @@
           "type": "frame",
           "id": "CCCCD",
           "x": 878,
-          "y": 1324,
+          "y": 2294,
           "name": "desktopLabel3",
           "fill": "#DCFCE7",
           "cornerRadius": 999,
@@ -476,6 +476,62 @@
               "fontWeight": "600"
             }
           ]
+        },
+        {
+          "type": "line",
+          "id": "DU0Ow",
+          "x": 521,
+          "y": 1762,
+          "name": "dAppToPoolLine",
+          "width": 1,
+          "height": 132,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "xFCuV",
+          "x": 514,
+          "y": 1886,
+          "name": "dAppToPoolHead",
+          "geometry": "M0 0l14 0-7 14z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "iCcuo",
+          "x": 546,
+          "y": 1815,
+          "name": "dAppToPoolLabel",
+          "fill": "#DBEAFE",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "AcZb1",
+              "name": "dAppToPoolLabelText",
+              "fill": "#1D4ED8",
+              "content": "验证通过后进入 Setup",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
         }
       ]
     },
@@ -486,7 +542,7 @@
       "y": -3020,
       "name": "Stitch / Mobile / Flow Links",
       "width": 870,
-      "height": 3420,
+      "height": 5000,
       "layout": "none",
       "children": [
         {
@@ -564,7 +620,7 @@
           "y": 1737,
           "name": "mobileArrow2",
           "width": 1,
-          "height": 120,
+          "height": 235,
           "stroke": {
             "align": "center",
             "thickness": 4,
@@ -575,7 +631,7 @@
           "type": "path",
           "id": "j5voZ",
           "x": 173,
-          "y": 1848,
+          "y": 1963,
           "name": "mobileArrow2Head",
           "geometry": "M0 0l14 0-7 14z",
           "viewBox": [
@@ -592,7 +648,7 @@
           "type": "frame",
           "id": "RrqTv",
           "x": 205,
-          "y": 1774,
+          "y": 1848,
           "name": "mobileLabel2",
           "fill": "#DBEAFE",
           "cornerRadius": 999,
@@ -606,7 +662,7 @@
               "id": "QUgqo",
               "name": "mobileLabel2Text",
               "fill": "#1D4ED8",
-              "content": "底部切到 Data Pool",
+              "content": "底部 Data Pool：先设置/解锁",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "600"
@@ -617,7 +673,7 @@
           "type": "line",
           "id": "L37D5",
           "x": 423,
-          "y": 2370,
+          "y": 3394,
           "name": "mobileArrow3",
           "width": 46,
           "height": 1,
@@ -631,7 +687,7 @@
           "type": "path",
           "id": "iatmC",
           "x": 460,
-          "y": 2363,
+          "y": 3387,
           "name": "mobileArrow3Head",
           "geometry": "M0 0l14 7-14 7z",
           "viewBox": [
@@ -648,7 +704,7 @@
           "type": "frame",
           "id": "CYFlA",
           "x": 338,
-          "y": 2330,
+          "y": 3354,
           "name": "mobileLabel3",
           "fill": "#DCFCE7",
           "cornerRadius": 999,
@@ -663,6 +719,62 @@
               "name": "mobileLabel3Text",
               "fill": "#166534",
               "content": "创建/加入成功",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "line",
+          "id": "UERPC",
+          "x": 180,
+          "y": 2798,
+          "name": "mAppToPoolLine",
+          "width": 1,
+          "height": 96,
+          "stroke": {
+            "align": "center",
+            "thickness": 4,
+            "fill": "#0F766E"
+          }
+        },
+        {
+          "type": "path",
+          "id": "SvBPi",
+          "x": 173,
+          "y": 2885,
+          "name": "mAppToPoolHead",
+          "geometry": "M0 0l14 0-7 14z",
+          "viewBox": [
+            0,
+            0,
+            14,
+            14
+          ],
+          "fill": "#0F766E",
+          "width": 14,
+          "height": 14
+        },
+        {
+          "type": "frame",
+          "id": "gqByZ",
+          "x": 205,
+          "y": 2830,
+          "name": "mAppToPoolLabel",
+          "fill": "#DBEAFE",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "B63SU",
+              "name": "mAppToPoolLabelText",
+              "fill": "#1D4ED8",
+              "content": "验证通过后进入 Setup",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "600"
@@ -706,7 +818,7 @@
           "fill": "#334155",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "主路径\n1. Note List -> Note Editor\n2. Note List -> Data Pool Setup\n3. Data Pool Setup -> Data Pool Members",
+          "content": "主路径\n1. Note List -> Note Editor\n2. Note List -> App Lock Setup / Unlock\n3. App Lock -> Data Pool Setup\n4. Data Pool Setup -> Data Pool Members",
           "lineHeight": 1.5,
           "fontFamily": "Inter",
           "fontSize": 13,
@@ -719,7 +831,7 @@
           "fill": "#334155",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "关键控件\n- New Note / 笔记卡片 -> Note Editor\n- 左侧 Data Pool -> Data Pool Setup\n- Create / Join Data Pool -> Data Pool Members\n- Members 页侧边导航可回 Note List",
+          "content": "关键控件\n- New Note / 笔记卡片 -> Note Editor\n- 左侧 Data Pool -> App Lock 前置页\n- 设置 PIN / 生物识别或解锁后 -> Data Pool Setup\n- Create / Join Data Pool -> Data Pool Members",
           "lineHeight": 1.5,
           "fontFamily": "Inter",
           "fontSize": 13,
@@ -775,7 +887,7 @@
           "fill": "#334155",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "主路径\n1. Note List -> Note Editor\n2. 底部 Data Pool -> Data Pool Setup\n3. Create / Join Data Pool -> Data Pool Members",
+          "content": "主路径\n1. Note List -> Note Editor\n2. 底部 Data Pool -> App Lock Setup / Unlock\n3. App Lock -> Data Pool Setup\n4. Create / Join Data Pool -> Data Pool Members",
           "lineHeight": 1.5,
           "fontFamily": "Inter",
           "fontSize": 13,
@@ -788,7 +900,7 @@
           "fill": "#334155",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "关键控件\n- 笔记卡片 / FAB -> Note Editor\n- Done / 底部 Notes -> Note List\n- 底部 Data Pool -> Data Pool Setup\n- Data Pool Setup 的 Create / Join -> Members",
+          "content": "关键控件\n- 笔记卡片 / FAB -> Note Editor\n- Done / 底部 Notes -> Note List\n- 底部 Data Pool -> App Lock 前置页\n- 设置或解锁后进入 Data Pool Setup",
           "lineHeight": 1.5,
           "fontFamily": "Inter",
           "fontSize": 13,
@@ -806,6 +918,1023 @@
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "JcHy0",
+      "x": 13640,
+      "y": -2060,
+      "name": "Stitch / Desktop / App Lock Setup Label",
+      "fill": "$--foreground",
+      "content": "Stitch / Desktop / App Lock Setup",
+      "fontFamily": "JetBrains Mono",
+      "fontSize": 32,
+      "fontWeight": "700"
+    },
+    {
+      "type": "frame",
+      "id": "x22Ly",
+      "x": 13640,
+      "y": -2000,
+      "name": "Stitch / Desktop / App Lock Setup",
+      "width": 960,
+      "height": 720,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 22,
+      "padding": [
+        44,
+        52,
+        36,
+        52
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "HNM0D",
+          "name": "dSetupBrand",
+          "fill": "#0F766E",
+          "content": "The Atrium",
+          "fontFamily": "Inter",
+          "fontSize": 20,
+          "fontWeight": "800"
+        },
+        {
+          "type": "frame",
+          "id": "cBxHk",
+          "name": "dSetupBadge",
+          "fill": "#CCFBF1",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "QTnSw",
+              "name": "dSetupBadgeText",
+              "fill": "#115E59",
+              "content": "SECURITY REQUIRED",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "94Iji",
+          "name": "dSetupTitle",
+          "fill": "#0F172A",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Protect your Secure Atrium",
+          "lineHeight": 1.05,
+          "fontFamily": "Inter",
+          "fontSize": 44,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "dmW72",
+          "name": "dSetupIntro",
+          "fill": "#475569",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Before creating or joining a Data Pool, set an app lock. Pool data can remain on this device, so the pool stays hidden from anyone who can pick up the machine.",
+          "lineHeight": 1.45,
+          "fontFamily": "Inter",
+          "fontSize": 15,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "S4YnS",
+          "name": "dSetupCard",
+          "width": "fill_container",
+          "fill": "#F1F5F9",
+          "cornerRadius": 14,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#DDE7EA"
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 28,
+          "children": [
+            {
+              "type": "text",
+              "id": "adLnd",
+              "name": "dSetupCardTitle",
+              "fill": "#0F172A",
+              "content": "Create app lock",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "cOtIo",
+              "name": "dSetupPin",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#CBD5E1"
+              },
+              "layout": "vertical",
+              "gap": 6,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "E9Whj",
+                  "name": "dSetupPinLabel",
+                  "fill": "#64748B",
+                  "content": "New PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "xZgro",
+                  "name": "dSetupPinValue",
+                  "fill": "#0F172A",
+                  "content": "4-6 digits",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gOB9f",
+              "name": "dSetupConfirm",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#CBD5E1"
+              },
+              "layout": "vertical",
+              "gap": 6,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "F2zdy",
+                  "name": "dSetupConfirmLabel",
+                  "fill": "#64748B",
+                  "content": "Confirm PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "MPEq2",
+                  "name": "dSetupConfirmValue",
+                  "fill": "#0F172A",
+                  "content": "Repeat PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Wb43o",
+              "name": "dSetupBio",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#E2E8F0"
+              },
+              "gap": 14,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Vyzqt",
+                  "name": "dSetupBioText",
+                  "fill": "#0F172A",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Enable biometric unlock when available",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "QYWAw",
+                  "name": "dSetupBioSwitch",
+                  "width": 42,
+                  "height": 24,
+                  "fill": "#0F766E",
+                  "cornerRadius": 999
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "6ZtQR",
+              "name": "dSetupButton",
+              "fill": "#0F766E",
+              "cornerRadius": 8,
+              "padding": [
+                12,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "9zf97",
+                  "name": "dSetupButtonText",
+                  "fill": "#FFFFFF",
+                  "content": "Set lock and continue →",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "jYzwL",
+          "name": "dSetupFooter",
+          "fill": "#64748B",
+          "content": "Protected path: Data Pool entry → App Lock → Data Pool Setup",
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "700"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "E2Bga",
+      "x": 14660,
+      "y": -2060,
+      "name": "Stitch / Desktop / App Lock Unlock Label",
+      "fill": "$--foreground",
+      "content": "Stitch / Desktop / App Lock Unlock",
+      "fontFamily": "JetBrains Mono",
+      "fontSize": 32,
+      "fontWeight": "700"
+    },
+    {
+      "type": "frame",
+      "id": "zAuLi",
+      "x": 14660,
+      "y": -2000,
+      "name": "Stitch / Desktop / App Lock Unlock",
+      "width": 960,
+      "height": 720,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 22,
+      "padding": [
+        44,
+        52,
+        36,
+        52
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "X8Ngy",
+          "name": "dUnlockBrand",
+          "fill": "#0F766E",
+          "content": "The Atrium",
+          "fontFamily": "Inter",
+          "fontSize": 20,
+          "fontWeight": "800"
+        },
+        {
+          "type": "frame",
+          "id": "xmClD",
+          "name": "dUnlockBadge",
+          "fill": "#CCFBF1",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "2mwGQ",
+              "name": "dUnlockBadgeText",
+              "fill": "#115E59",
+              "content": "LOCKED SESSION",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "rje6Y",
+          "name": "dUnlockTitle",
+          "fill": "#0F172A",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Unlock Secure Atrium",
+          "lineHeight": 1.05,
+          "fontFamily": "Inter",
+          "fontSize": 44,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "zLbPw",
+          "name": "dUnlockIntro",
+          "fill": "#475569",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Your Data Pool pages are locked for this session. Verify yourself before opening pool setup, members, invites, or synced pool notes.",
+          "lineHeight": 1.45,
+          "fontFamily": "Inter",
+          "fontSize": 15,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "a0tA4",
+          "name": "dUnlockCard",
+          "width": "fill_container",
+          "fill": "#F1F5F9",
+          "cornerRadius": 14,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#DDE7EA"
+          },
+          "layout": "vertical",
+          "gap": 16,
+          "padding": 28,
+          "children": [
+            {
+              "type": "text",
+              "id": "ywFvZ",
+              "name": "dUnlockCardTitle",
+              "fill": "#0F172A",
+              "content": "Unlock Data Pool",
+              "fontFamily": "Inter",
+              "fontSize": 24,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "LXLd6",
+              "name": "dUnlockBio",
+              "fill": "#0F766E",
+              "cornerRadius": 8,
+              "padding": [
+                13,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "zXdGM",
+                  "name": "dUnlockBioText",
+                  "fill": "#FFFFFF",
+                  "content": "Use biometric unlock",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "H3ffs",
+              "name": "dUnlockOr",
+              "fill": "#64748B",
+              "content": "or enter PIN",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "DWPtq",
+              "name": "dUnlockPin",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#CBD5E1"
+              },
+              "layout": "vertical",
+              "gap": 6,
+              "padding": 14,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "qgxv2",
+                  "name": "dUnlockPinLabel",
+                  "fill": "#64748B",
+                  "content": "PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "Km0wP",
+                  "name": "dUnlockPinValue",
+                  "fill": "#0F172A",
+                  "content": "••••••",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "O1uLe",
+              "name": "dUnlockButton",
+              "fill": "#0F766E",
+              "cornerRadius": 8,
+              "padding": [
+                12,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "t2PKD",
+                  "name": "dUnlockButtonText",
+                  "fill": "#FFFFFF",
+                  "content": "Unlock →",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "xQE4H",
+              "name": "dUnlockHelp",
+              "fill": "#64748B",
+              "textGrowth": "fixed-width",
+              "width": "fill_container",
+              "content": "Biometric failure falls back to PIN. Pool pages stay hidden until unlock succeeds.",
+              "lineHeight": 1.4,
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "v6rKi",
+          "name": "dUnlockFooter",
+          "fill": "#64748B",
+          "content": "Protected path: Data Pool entry → App Lock → Data Pool Setup",
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "700"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "AKY9E",
+      "x": 11820,
+      "y": -1100,
+      "name": "Stitch / Mobile / App Lock Setup Label",
+      "fill": "$--foreground",
+      "content": "Stitch / Mobile / App Lock Setup",
+      "fontFamily": "JetBrains Mono",
+      "fontSize": 20,
+      "fontWeight": "700"
+    },
+    {
+      "type": "frame",
+      "id": "VGr84",
+      "x": 11820,
+      "y": -1040,
+      "name": "Stitch / Mobile / App Lock Setup",
+      "width": 360,
+      "height": 812,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 18,
+      "padding": [
+        32,
+        24,
+        28,
+        24
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "dN4go",
+          "name": "mSetupBrand",
+          "fill": "#0F766E",
+          "content": "The Atrium",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "frame",
+          "id": "xR7Fu",
+          "name": "mSetupBadge",
+          "fill": "#CCFBF1",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "8NGJb",
+              "name": "mSetupBadgeText",
+              "fill": "#115E59",
+              "content": "SECURITY REQUIRED",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "3Mc2x",
+          "name": "mSetupTitle",
+          "fill": "#0F172A",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Protect your Secure Atrium",
+          "lineHeight": 1.06,
+          "fontFamily": "Inter",
+          "fontSize": 31,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "iAoah",
+          "name": "mSetupIntro",
+          "fill": "#475569",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Before using Data Pool, protect this device with an app lock. Pool data can live locally even when the device is offline.",
+          "lineHeight": 1.45,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "Jl2dF",
+          "name": "mSetupCard",
+          "width": "fill_container",
+          "fill": "#F1F5F9",
+          "cornerRadius": 14,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#DDE7EA"
+          },
+          "layout": "vertical",
+          "gap": 13,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "r4HpP",
+              "name": "mSetupCardTitle",
+              "fill": "#0F172A",
+              "content": "Set app lock",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "gLyej",
+              "name": "mSetupPin",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#CBD5E1"
+              },
+              "layout": "vertical",
+              "gap": 5,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "MOtPh",
+                  "name": "mSetupPinLabel",
+                  "fill": "#64748B",
+                  "content": "New PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "aEzxT",
+                  "name": "mSetupPinValue",
+                  "fill": "#0F172A",
+                  "content": "4-6 digits",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "r3qJK",
+              "name": "mSetupConfirm",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#CBD5E1"
+              },
+              "layout": "vertical",
+              "gap": 5,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "81O5c",
+                  "name": "mSetupConfirmLabel",
+                  "fill": "#64748B",
+                  "content": "Confirm PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "Tzbt8",
+                  "name": "mSetupConfirmValue",
+                  "fill": "#0F172A",
+                  "content": "Repeat PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "CrGif",
+              "name": "mSetupBio",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#E2E8F0"
+              },
+              "gap": 10,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "GqGMj",
+                  "name": "mSetupBioText",
+                  "fill": "#0F172A",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "Use biometrics when available",
+                  "fontFamily": "Inter",
+                  "fontSize": 12,
+                  "fontWeight": "800"
+                },
+                {
+                  "type": "frame",
+                  "id": "s3l8q",
+                  "name": "mSetupSwitch",
+                  "width": 32,
+                  "height": 20,
+                  "fill": "#0F766E",
+                  "cornerRadius": 999
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ayYt5",
+              "name": "mSetupButton",
+              "fill": "#0F766E",
+              "cornerRadius": 8,
+              "padding": [
+                12,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "9Xyg0",
+                  "name": "mSetupButtonText",
+                  "fill": "#FFFFFF",
+                  "content": "Set and continue →",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "zDCBl",
+          "name": "mSetupFooter",
+          "fill": "#64748B",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Data Pool remains hidden until this step succeeds.",
+          "lineHeight": 1.35,
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "700"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "iOHJY",
+      "x": 12240,
+      "y": -1100,
+      "name": "Stitch / Mobile / App Lock Unlock Label",
+      "fill": "$--foreground",
+      "content": "Stitch / Mobile / App Lock Unlock",
+      "fontFamily": "JetBrains Mono",
+      "fontSize": 20,
+      "fontWeight": "700"
+    },
+    {
+      "type": "frame",
+      "id": "w5iNP",
+      "x": 12240,
+      "y": -1040,
+      "name": "Stitch / Mobile / App Lock Unlock",
+      "width": 360,
+      "height": 812,
+      "fill": "#F8FAFB",
+      "stroke": {
+        "align": "inside",
+        "thickness": 1,
+        "fill": "#D9E4E8"
+      },
+      "layout": "vertical",
+      "gap": 18,
+      "padding": [
+        32,
+        24,
+        28,
+        24
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "YXWZG",
+          "name": "mUnlockBrand",
+          "fill": "#0F766E",
+          "content": "The Atrium",
+          "fontFamily": "Inter",
+          "fontSize": 18,
+          "fontWeight": "800"
+        },
+        {
+          "type": "frame",
+          "id": "ptZdA",
+          "name": "mUnlockBadge",
+          "fill": "#CCFBF1",
+          "cornerRadius": 999,
+          "padding": [
+            6,
+            10
+          ],
+          "children": [
+            {
+              "type": "text",
+              "id": "6d2sH",
+              "name": "mUnlockBadgeText",
+              "fill": "#115E59",
+              "content": "LOCKED",
+              "fontFamily": "Inter",
+              "fontSize": 11,
+              "fontWeight": "700"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "TGStH",
+          "name": "mUnlockTitle",
+          "fill": "#0F172A",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Unlock Secure Atrium",
+          "lineHeight": 1.06,
+          "fontFamily": "Inter",
+          "fontSize": 31,
+          "fontWeight": "800"
+        },
+        {
+          "type": "text",
+          "id": "iGCKK",
+          "name": "mUnlockIntro",
+          "fill": "#475569",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Verify yourself before opening Data Pool setup, members, invites, or pool notes.",
+          "lineHeight": 1.45,
+          "fontFamily": "Inter",
+          "fontSize": 13,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "frame",
+          "id": "vix3O",
+          "name": "mUnlockCard",
+          "width": "fill_container",
+          "fill": "#F1F5F9",
+          "cornerRadius": 14,
+          "stroke": {
+            "align": "inside",
+            "thickness": 1,
+            "fill": "#DDE7EA"
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": 20,
+          "children": [
+            {
+              "type": "text",
+              "id": "OCDFE",
+              "name": "mUnlockCardTitle",
+              "fill": "#0F172A",
+              "content": "Unlock Data Pool",
+              "fontFamily": "Inter",
+              "fontSize": 22,
+              "fontWeight": "800"
+            },
+            {
+              "type": "frame",
+              "id": "POHuG",
+              "name": "mUnlockBio",
+              "fill": "#0F766E",
+              "cornerRadius": 8,
+              "padding": [
+                12,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "BEtKZ",
+                  "name": "mUnlockBioText",
+                  "fill": "#FFFFFF",
+                  "content": "Use biometric unlock",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "7m70b",
+              "name": "mUnlockOr",
+              "fill": "#64748B",
+              "content": "or enter PIN",
+              "fontFamily": "Inter",
+              "fontSize": 12,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "ZP0zg",
+              "name": "mUnlockPin",
+              "width": "fill_container",
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#CBD5E1"
+              },
+              "layout": "vertical",
+              "gap": 5,
+              "padding": 12,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Ru24N",
+                  "name": "mUnlockPinLabel",
+                  "fill": "#64748B",
+                  "content": "PIN",
+                  "fontFamily": "Inter",
+                  "fontSize": 11,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "rJmEB",
+                  "name": "mUnlockPinValue",
+                  "fill": "#0F172A",
+                  "content": "••••••",
+                  "fontFamily": "Inter",
+                  "fontSize": 15,
+                  "fontWeight": "700"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "ApUcb",
+              "name": "mUnlockButton",
+              "fill": "#0F766E",
+              "cornerRadius": 8,
+              "padding": [
+                12,
+                18
+              ],
+              "children": [
+                {
+                  "type": "text",
+                  "id": "2nLoJ",
+                  "name": "mUnlockButtonText",
+                  "fill": "#FFFFFF",
+                  "content": "Unlock →",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "YBc8k",
+          "name": "mUnlockFooter",
+          "fill": "#64748B",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "Data Pool remains hidden until this step succeeds.",
+          "lineHeight": 1.35,
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": "700"
         }
       ]
     }
