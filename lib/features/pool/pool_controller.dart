@@ -69,6 +69,9 @@ class PoolController extends ChangeNotifier {
   /// 当前页面提示信息。
   String? _noticeMessage;
 
+  PoolRuntimeViewData? _runtimeView;
+  bool _runtimeViewLoading = false;
+
   /// API 客户端实例。
   final PoolApiClient _apiClient;
 
@@ -89,6 +92,10 @@ class PoolController extends ChangeNotifier {
 
   /// 获取当前页面提示信息。
   String? get noticeMessage => _noticeMessage;
+
+  PoolRuntimeViewData? get runtimeView => _runtimeView;
+
+  bool get runtimeViewLoading => _runtimeViewLoading;
 
   /// 设置池状态并通知监听者。
   void setState(PoolState state) {
@@ -116,6 +123,7 @@ class PoolController extends ChangeNotifier {
       inviteCode: result.inviteCode,
     );
     notifyListeners();
+    await refreshRuntimeView();
   }
 
   /// 编辑池信息。
@@ -315,6 +323,9 @@ class PoolController extends ChangeNotifier {
               joined?.currentIdentityLabel ?? _reconnectTarget,
           memberLabels: joined?.memberLabels ?? <String>[_reconnectTarget],
         );
+        notifyListeners();
+        await refreshRuntimeView();
+        return;
       } on ApiError catch (error) {
         _noticeMessage = error.message;
         _state = PoolState.error(error.code);
@@ -322,6 +333,64 @@ class PoolController extends ChangeNotifier {
     } else {
       _noticeMessage = result.errorMessage;
       _state = PoolState.error(result.errorCode ?? 'REQUEST_TIMEOUT');
+    }
+    notifyListeners();
+  }
+
+  Future<void> refreshRuntimeView() async {
+    final joined = _state;
+    if (joined is! PoolJoined || _apiClient is! PoolRuntimeApiClient) {
+      return;
+    }
+    final runtimeClient = _apiClient as PoolRuntimeApiClient;
+
+    _runtimeViewLoading = true;
+    notifyListeners();
+    try {
+      _runtimeView = await runtimeClient.getPoolRuntimeView(joined.poolId);
+      _noticeMessage = null;
+    } on ApiError catch (error) {
+      _noticeMessage = error.message;
+    } catch (_) {
+      _noticeMessage = '网络节点状态加载失败，请稍后重试';
+    } finally {
+      _runtimeViewLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> createInvite() async {
+    final joined = _state;
+    if (joined is! PoolJoined || _apiClient is! PoolRuntimeApiClient) {
+      return;
+    }
+    final runtimeClient = _apiClient as PoolRuntimeApiClient;
+
+    try {
+      _runtimeView = await runtimeClient.createInvite(joined.poolId);
+      _noticeMessage = '邀请字符串已生成';
+    } on ApiError catch (error) {
+      _noticeMessage = error.message;
+    } catch (_) {
+      _noticeMessage = '邀请字符串生成失败，请稍后重试';
+    }
+    notifyListeners();
+  }
+
+  Future<void> revokeInvite(String inviteId) async {
+    final joined = _state;
+    if (joined is! PoolJoined || _apiClient is! PoolRuntimeApiClient) {
+      return;
+    }
+    final runtimeClient = _apiClient as PoolRuntimeApiClient;
+
+    try {
+      _runtimeView = await runtimeClient.revokeInvite(joined.poolId, inviteId);
+      _noticeMessage = '邀请字符串已撤销';
+    } on ApiError catch (error) {
+      _noticeMessage = error.message;
+    } catch (_) {
+      _noticeMessage = '撤销失败，请稍后重试';
     }
     notifyListeners();
   }

@@ -16,7 +16,7 @@ import 'package:path/path.dart' as p;
 
 import 'dart:io';
 
-class _FakePoolApiClient implements PoolApiClient {
+class _FakePoolApiClient implements PoolApiClient, PoolRuntimeApiClient {
   Object? leaveError;
   Object? leavePartialCleanupError;
   String? leftPoolId;
@@ -24,6 +24,41 @@ class _FakePoolApiClient implements PoolApiClient {
   int createCalls = 0;
   List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
   final Set<String> rejectFailOnceRequestIds = <String>{};
+  PoolRuntimeViewData runtimeView = const PoolRuntimeViewData(
+    summary: PoolRuntimeSummaryData(
+      memberCount: 2,
+      connectedCount: 1,
+      syncingCount: 1,
+      offlineCount: 0,
+      memberCountText: '2 nodes',
+      runtimeStatusText: '1 online / 1 syncing',
+    ),
+    members: <PoolMemberRuntimeData>[
+      PoolMemberRuntimeData(
+        endpointId: 'owner@test',
+        nickname: 'Owner Device',
+        os: 'macOS',
+        role: 'admin',
+        status: 'connected',
+        isCurrentDevice: true,
+      ),
+      PoolMemberRuntimeData(
+        endpointId: 'phone@test',
+        nickname: 'Phone',
+        os: 'iOS',
+        role: 'member',
+        status: 'syncing',
+        isCurrentDevice: false,
+      ),
+    ],
+    invites: <PoolInviteData>[
+      PoolInviteData(
+        inviteId: 'invite-1',
+        inviteCode: 'invite://server-pool',
+        createdByEndpointId: 'owner@test',
+      ),
+    ],
+  );
 
   @override
   Future<PoolCreateResult> createPool() async {
@@ -125,6 +160,53 @@ class _FakePoolApiClient implements PoolApiClient {
     String poolId,
     String requestId,
   ) async => joinRequestResults;
+
+  @override
+  Future<PoolRuntimeViewData> getPoolRuntimeView(String poolId) async {
+    return runtimeView;
+  }
+
+  @override
+  Future<PoolRuntimeViewData> createInvite(String poolId) async {
+    return runtimeView;
+  }
+
+  @override
+  Future<PoolRuntimeViewData> revokeInvite(
+    String poolId,
+    String inviteId,
+  ) async {
+    runtimeView = const PoolRuntimeViewData(
+      summary: PoolRuntimeSummaryData(
+        memberCount: 2,
+        connectedCount: 1,
+        syncingCount: 1,
+        offlineCount: 0,
+        memberCountText: '2 nodes',
+        runtimeStatusText: '1 online / 1 syncing',
+      ),
+      members: <PoolMemberRuntimeData>[
+        PoolMemberRuntimeData(
+          endpointId: 'owner@test',
+          nickname: 'Owner Device',
+          os: 'macOS',
+          role: 'admin',
+          status: 'connected',
+          isCurrentDevice: true,
+        ),
+        PoolMemberRuntimeData(
+          endpointId: 'phone@test',
+          nickname: 'Phone',
+          os: 'iOS',
+          role: 'member',
+          status: 'syncing',
+          isCurrentDevice: false,
+        ),
+      ],
+      invites: <PoolInviteData>[],
+    );
+    return runtimeView;
+  }
 }
 
 PoolController _buildTestPoolController({
@@ -274,6 +356,38 @@ void main() {
     );
 
     expect(find.text('去卡片'), findsNothing);
+  });
+
+  testWidgets('joined pool page shows runtime nodes and active invites', (
+    tester,
+  ) async {
+    final controller = _buildTestPoolController(
+      state: const PoolState.joined(
+        poolId: 'joined-pool',
+        poolName: 'Alpha Collective',
+        currentIdentityLabel: 'owner@test',
+        memberLabels: <String>['owner@test', 'phone@test'],
+        inviteCode: 'invite://server-pool',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(poolId: 'joined-pool'),
+          controller: controller,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Network Nodes'), findsOneWidget);
+    expect(find.text('2 nodes'), findsOneWidget);
+    expect(find.text('1 online / 1 syncing'), findsOneWidget);
+    expect(find.text('Owner Device'), findsOneWidget);
+    expect(find.text('Phone'), findsOneWidget);
+    expect(find.text('invite://server-pool'), findsOneWidget);
+    expect(find.text('撤销'), findsOneWidget);
   });
 
   testWidgets('joined page can return to pool tab route', (tester) async {

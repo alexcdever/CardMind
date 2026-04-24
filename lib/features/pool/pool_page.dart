@@ -121,6 +121,7 @@ class _PoolPageState extends State<PoolPage> {
   bool _inviteExportTriggered = false;
   bool _inviteDebugPrinted = false;
   String? _lastDebugStateMarker;
+  String? _runtimeLoadedPoolId;
 
   @override
   void initState() {
@@ -140,6 +141,7 @@ class _PoolPageState extends State<PoolPage> {
     if (mounted) {
       setState(() {});
     }
+    _maybeLoadRuntimeView();
     _maybeAutoJoin();
     _maybePrintInviteDebug();
     _maybeExportInvite();
@@ -185,7 +187,8 @@ class _PoolPageState extends State<PoolPage> {
     final state = _controller.state;
     final marker = switch (state) {
       PoolJoined joined => 'joined:${joined.poolId}',
-      PoolJoinPending pending => 'join_pending:${pending.poolId}:${pending.requestId}',
+      PoolJoinPending pending =>
+        'join_pending:${pending.poolId}:${pending.requestId}',
       PoolError error =>
         'join_error:${error.code}:${_controller.noticeMessage ?? ''}',
       PoolNotJoined() => 'not_joined',
@@ -196,6 +199,20 @@ class _PoolPageState extends State<PoolPage> {
     }
     _lastDebugStateMarker = marker;
     unawaited(_appendDebugStatus(marker));
+  }
+
+  void _maybeLoadRuntimeView() {
+    final state = _controller.state;
+    if (state is! PoolJoined || _runtimeLoadedPoolId == state.poolId) {
+      return;
+    }
+    _runtimeLoadedPoolId = state.poolId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_controller.refreshRuntimeView());
+    });
   }
 
   void _maybeExportInvite() {
@@ -279,6 +296,7 @@ class _PoolPageState extends State<PoolPage> {
 
   @override
   Widget build(BuildContext context) {
+    _maybeLoadRuntimeView();
     final state = _controller.state;
     final canShowReturnToPool =
         widget.onReturnToPoolTab != null || Navigator.of(context).canPop();
@@ -312,7 +330,8 @@ class _PoolPageState extends State<PoolPage> {
         controller: _controller,
         syncStatus: _controller.syncStatus,
         noticeMessage: _controller.noticeMessage,
-        onCancelJoinRequest: () => _controller.cancelJoinRequest(state.requestId),
+        onCancelJoinRequest: () =>
+            _controller.cancelJoinRequest(state.requestId),
       );
     }
 

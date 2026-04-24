@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cardmind/app/app.dart';
 import 'package:cardmind/app/debug_startup_support.dart';
 import 'package:cardmind/bridge_generated/api.dart' as frb;

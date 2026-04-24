@@ -10,7 +10,7 @@ import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _FakePoolApiClient implements PoolApiClient {
+class _FakePoolApiClient implements PoolApiClient, PoolRuntimeApiClient {
   PoolJoinResult joinResult = const PoolJoinResult.joined(poolName: 'Joined');
   PoolViewData? joinedView = const PoolViewData(
     poolId: 'pool-joined',
@@ -27,6 +27,44 @@ class _FakePoolApiClient implements PoolApiClient {
   bool dissolveCalled = false;
   List<JoinRequestData> joinRequestResults = const <JoinRequestData>[];
   final Set<String> rejectFailOnceRequestIds = <String>{};
+  PoolRuntimeViewData runtimeView = const PoolRuntimeViewData(
+    summary: PoolRuntimeSummaryData(
+      memberCount: 2,
+      connectedCount: 1,
+      syncingCount: 1,
+      offlineCount: 0,
+      memberCountText: '2 nodes',
+      runtimeStatusText: '1 online / 1 syncing',
+    ),
+    members: <PoolMemberRuntimeData>[
+      PoolMemberRuntimeData(
+        endpointId: 'owner@test',
+        nickname: 'Owner Device',
+        os: 'macOS',
+        role: 'admin',
+        status: 'connected',
+        isCurrentDevice: true,
+      ),
+      PoolMemberRuntimeData(
+        endpointId: 'phone@test',
+        nickname: 'Phone',
+        os: 'iOS',
+        role: 'member',
+        status: 'syncing',
+        isCurrentDevice: false,
+      ),
+    ],
+    invites: <PoolInviteData>[
+      PoolInviteData(
+        inviteId: 'invite-1',
+        inviteCode: 'invite://created',
+        createdByEndpointId: 'owner@test',
+      ),
+    ],
+  );
+  int runtimeViewCalls = 0;
+  int createInviteCalls = 0;
+  String? revokedInviteId;
 
   @override
   Future<PoolCreateResult> createPool() async => const PoolCreateResult(
@@ -112,6 +150,56 @@ class _FakePoolApiClient implements PoolApiClient {
     String poolId,
     String requestId,
   ) async => joinRequestResults;
+
+  @override
+  Future<PoolRuntimeViewData> getPoolRuntimeView(String poolId) async {
+    runtimeViewCalls += 1;
+    return runtimeView;
+  }
+
+  @override
+  Future<PoolRuntimeViewData> createInvite(String poolId) async {
+    createInviteCalls += 1;
+    return runtimeView;
+  }
+
+  @override
+  Future<PoolRuntimeViewData> revokeInvite(
+    String poolId,
+    String inviteId,
+  ) async {
+    revokedInviteId = inviteId;
+    runtimeView = const PoolRuntimeViewData(
+      summary: PoolRuntimeSummaryData(
+        memberCount: 2,
+        connectedCount: 1,
+        syncingCount: 1,
+        offlineCount: 0,
+        memberCountText: '2 nodes',
+        runtimeStatusText: '1 online / 1 syncing',
+      ),
+      members: <PoolMemberRuntimeData>[
+        PoolMemberRuntimeData(
+          endpointId: 'owner@test',
+          nickname: 'Owner Device',
+          os: 'macOS',
+          role: 'admin',
+          status: 'connected',
+          isCurrentDevice: true,
+        ),
+        PoolMemberRuntimeData(
+          endpointId: 'phone@test',
+          nickname: 'Phone',
+          os: 'iOS',
+          role: 'member',
+          status: 'syncing',
+          isCurrentDevice: false,
+        ),
+      ],
+      invites: <PoolInviteData>[],
+    );
+    return runtimeView;
+  }
 }
 
 class _NoopGateway implements SyncGateway {
@@ -503,5 +591,44 @@ void main() {
     expect(syncService.reconnectTarget, 'peer-y');
     expect(controller.syncStatus.kind, SyncStatusKind.error);
     expect(seen, contains(SyncStatusKind.connecting));
+  });
+
+  test(
+    'refreshRuntimeView_loadsMembersSummaryAndInvitesFromRuntimeApi',
+    () async {
+      final client = _FakePoolApiClient();
+      final controller = PoolController(
+        apiClient: client,
+        initialState: const PoolState.joined(poolId: 'pool-joined'),
+      );
+
+      await controller.refreshRuntimeView();
+
+      expect(client.runtimeViewCalls, 1);
+      expect(controller.runtimeView, isNotNull);
+      expect(controller.runtimeView!.summary.memberCountText, '2 nodes');
+      expect(controller.runtimeView!.members.map((item) => item.nickname), [
+        'Owner Device',
+        'Phone',
+      ]);
+      expect(
+        controller.runtimeView!.invites.single.inviteCode,
+        'invite://created',
+      );
+    },
+  );
+
+  test('revokeInvite_refreshesRuntimeInviteList', () async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(poolId: 'pool-joined'),
+    );
+    await controller.refreshRuntimeView();
+
+    await controller.revokeInvite('invite-1');
+
+    expect(client.revokedInviteId, 'invite-1');
+    expect(controller.runtimeView!.invites, isEmpty);
   });
 }

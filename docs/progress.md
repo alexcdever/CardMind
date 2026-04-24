@@ -5,29 +5,42 @@
 
 ## 当前进行中的工作
 
-1. 当前主线无进行中的功能开发；2026-04-23 的 Flutter / Rust 依赖升级、FRB 质量链修复与 Flutter 边界扫描收口已完成，本轮新增了 AI 协作工具与硬约束方向的评估存档，以及对应的仓库协作入口约束更新。
-2. 已完成一轮针对 `GitNexus` 的适配性分析，结论为“可以关注，但暂不优先”；当前不计划接入新的 AI 索引工具链。
-3. 已完成一轮针对脚本级硬约束的方向分析，结论为若未来需要推进，优先考虑 FRB 产物新鲜度、改动范围质量门禁与增量边界扫描，而不是立即落地更重方案。
-4. 当前代码与行为层面无业务改动；本轮仅更新了 `AGENTS.md` / `CLAUDE.md` 的 GitNexus 协作入口说明，以及 `.gitignore` 的本地索引忽略规则。
+1. Pencil 中数据池 UI 对应的 Flutter 实现已完成，Rust 端已准备好的运行态 API 已通过 `PoolRuntimeApiClient` 串入页面状态。
+2. 数据池已加入态页面已展示 `Network Nodes`、运行态概览、成员运行态与 active invite，并支持生成 / 撤销 invite 后刷新视图。
+3. 用户要求的 GitNexus 清理已完成：`AGENTS.md` 中 GitNexus agent 指引已移除，`.claude/`、`.gitnexus/` 产物已删除，本地 `gitnexus` 程序已卸载并验证不可用。
+4. 当前正在执行存档与提交保存；功能验证已通过 `flutter analyze`、`flutter test`、`dart run tool/quality.dart flutter` 与 `git diff --check`。
 
 ## 最近完成的工作
 
-1. ~~GitNexus 与 AI 正确性适配评估~~ ✅ **已完成**（2026-04-24）
+1. ~~数据池运行态 UI 与 Rust API 串接~~ ✅ **已完成**（2026-04-24）
+   - `PoolRuntimeApiClient` 聚合运行态 summary、members runtime view 与 active invites
+   - `PoolController` 新增 runtime view 状态、加载状态、create invite 与 revoke invite 动作
+   - `PoolPage` 已加入态按 poolId 懒加载 runtime view
+   - 数据池页面重做为贴近 Pencil 的 setup / network nodes 展示，同时保留既有测试依赖的关键文案与操作入口
+   - 单元测试与组件测试已覆盖运行态加载、invite 撤销刷新与已加入页面 runtime 信息展示
+
+2. ~~GitNexus 清理与本地卸载~~ ✅ **已完成**（2026-04-24）
+   - `AGENTS.md` 已移除 GitNexus agent 指引块
+   - 仓库根部 `.claude/`、`.gitnexus/` 产物已删除
+   - 本地 pnpm 全局 `gitnexus` 已卸载，残留包目录与 bin 链接已清理
+   - 已验证 `command -v gitnexus` 无结果，agent 文档无 GitNexus 内容，仓库根部无 GitNexus 产物目录
+
+3. ~~GitNexus 与 AI 正确性适配评估~~ ✅ **已完成**（2026-04-24）
    - 将评估目标收敛为“是否提升 AI 改代码正确性”，重点关注少漏改影响点与跨模块/跨语言关系理解
    - 基于当前仓库结构梳理出 CardMind 中 AI 最容易漏改的 8 类影响链，覆盖 Rust API -> FRB -> Dart 调用方 -> 测试、Pool/Sync 状态链路、运行态构建链与 `docs/specs/` 真相源
    - 结论收敛为：`GitNexus` 对本项目“可以关注，但暂不优先”，暂不投入接入成本
 
-2. ~~脚本级硬约束方向评估~~ ✅ **已完成**（2026-04-24）
+4. ~~脚本级硬约束方向评估~~ ✅ **已完成**（2026-04-24）
    - 评估了哪些问题适合通过脚本、hook、CI 强约束解决，哪些不适合硬卡
    - 收敛出最值得做的方向：FRB 生成物新鲜度检查、按改动范围提升质量门禁、把增量高优先级边界未覆盖从 warning 升级为 fail
    - 用户确认本轮不推进实现，只保留评估结论供后续参考
 
-3. ~~GitNexus 协作入口文档更新~~ ✅ **已完成**（2026-04-24）
+5. ~~GitNexus 协作入口文档更新~~ ✅ **已完成**（2026-04-24）
    - 在 `AGENTS.md` 与 `CLAUDE.md` 末尾新增 GitNexus 使用约束，补齐 impact analysis、detect changes 与高风险告警要求
    - 在 `.gitignore` 中新增 `.gitnexus`，避免本地索引目录误入版本控制
    - 本次提交范围明确排除未跟踪的外部工具/提示词目录，只保留与仓库协作入口直接相关的文件
 
-4. ~~Flutter / Rust 依赖升级与 FRB 同步~~ ✅ **已完成**（2026-04-23）
+6. ~~Flutter / Rust 依赖升级与 FRB 同步~~ ✅ **已完成**（2026-04-23）
    - Flutter 侧已升级 `flutter_rust_bridge ^2.12.0`、`freezed_annotation ^3.1.0`、`freezed ^3.2.5`、`analyzer ^10.0.1`
    - Rust 侧已升级 `flutter_rust_bridge =2.12.0`、`iroh 0.98.1`、`loro 1.11.1`、`rusqlite 0.39`、`thiserror 2`
    - `flutter_rust_bridge_codegen generate` 已重新执行，FRB 生成产物已同步
@@ -164,6 +177,8 @@
 
 ## 待办事项
 
+- [ ] 如继续推进数据池能力，优先做真实双端联机验证或新的定向 code review
+- [ ] 如继续提升 UI 验证质量，可补一轮不同窗口尺寸下的数据池页面人工/自动截图检查
 - [ ] 如后续重新评估 AI 协作基础设施，优先验证 FRB 新鲜度门禁和按改动范围提升质量门禁，而不是先引入新的索引型工具
 - [ ] 如后续希望降低 AI 漏改风险，可把本轮整理的 8 类影响链转成 AI 改动前检查清单或增量门禁脚本
 - [ ] 如需继续提升覆盖率质量，优先处理 `tmp/cardmind_test_boundary_report.md` 中现存的常规未覆盖边界
@@ -180,12 +195,15 @@
 
 ## 阻塞/卡点
 
-- 当前无业务阻塞；若继续推进，主要遗留是覆盖率提升、Rust 覆盖率链路稳定性，以及未来是否需要把 AI 漏改风险进一步转为门禁脚本，而不是立即接入新的 AI 工具链
+- 当前无业务阻塞；若继续推进，主要遗留是数据池真实双端联机复验、覆盖率提升、Rust 覆盖率链路稳定性，以及未来是否需要把 AI 漏改风险进一步转为门禁脚本
 
 ## 最近的决策
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-04-24 | 数据池 UI 本轮只落实现有 Pencil 目标和 Rust 已有 API，不扩展新的产品语义 | 用户目标是把已有 UI/API 串起来，避免在未确认情况下扩张数据池业务范围 |
+| 2026-04-24 | 运行态 invite 操作统一在 API client 层聚合刷新后的 runtime view | Flutter 控制器只关心页面状态，避免把多 Rust API 调用顺序散落到 UI 层 |
+| 2026-04-24 | GitNexus 不再作为当前仓库 agent 执行前置要求 | 用户明确要求删除 GitNexus 产物、移除 agent 文档内容并卸载本地程序 |
 | 2026-04-24 | `GitNexus` 对 CardMind 的结论定为“可以关注，但暂不优先” | 其潜在收益主要在跨 Dart/Rust/FRB 影响面分析，但当前仓库已有较强的 docs/specs/verification 治理体系，暂未证明值得接入成本 |
 | 2026-04-24 | 不推进新的脚本级硬约束实现 | 用户明确决定“还是不搞了”，本轮只保留评估结论 |
 | 2026-04-24 | 本次提交纳入 `AGENTS.md`、`CLAUDE.md`、`.gitignore` 与存档文档，不纳入未跟踪的工具目录 | 避免将与本次会话无关的噪音文件混入仓库，同时让仓库入口说明与本次评估结论保持一致 |

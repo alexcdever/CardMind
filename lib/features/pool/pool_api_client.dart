@@ -13,6 +13,66 @@ import 'dart:async';
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 
+class PoolRuntimeSummaryData {
+  const PoolRuntimeSummaryData({
+    required this.memberCount,
+    required this.connectedCount,
+    required this.syncingCount,
+    required this.offlineCount,
+    required this.memberCountText,
+    required this.runtimeStatusText,
+  });
+
+  final int memberCount;
+  final int connectedCount;
+  final int syncingCount;
+  final int offlineCount;
+  final String memberCountText;
+  final String runtimeStatusText;
+}
+
+class PoolMemberRuntimeData {
+  const PoolMemberRuntimeData({
+    required this.endpointId,
+    required this.nickname,
+    required this.os,
+    required this.role,
+    required this.status,
+    required this.isCurrentDevice,
+  });
+
+  final String endpointId;
+  final String nickname;
+  final String os;
+  final String role;
+  final String status;
+  final bool isCurrentDevice;
+}
+
+class PoolInviteData {
+  const PoolInviteData({
+    required this.inviteId,
+    required this.inviteCode,
+    required this.createdByEndpointId,
+  });
+
+  final String inviteId;
+  final String inviteCode;
+  final String createdByEndpointId;
+}
+
+class PoolRuntimeViewData {
+  const PoolRuntimeViewData({
+    required this.summary,
+    required this.members,
+    required this.invites,
+  });
+
+  final PoolRuntimeSummaryData summary;
+  final List<PoolMemberRuntimeData> members;
+  final List<PoolInviteData> invites;
+}
+
 class JoinRequestData {
   const JoinRequestData({
     required this.requestId,
@@ -214,6 +274,14 @@ abstract class PoolApiClient {
   );
 }
 
+abstract class PoolRuntimeApiClient {
+  Future<PoolRuntimeViewData> getPoolRuntimeView(String poolId);
+
+  Future<PoolRuntimeViewData> createInvite(String poolId);
+
+  Future<PoolRuntimeViewData> revokeInvite(String poolId, String inviteId);
+}
+
 /// 本地模拟实现的数据池 API 客户端。
 ///
 /// 用于开发和测试环境，提供固定的模拟数据响应。
@@ -321,7 +389,7 @@ class LocalPoolApiClient implements PoolApiClient {
 /// 基于 FRB 的数据池 API 客户端实现。
 ///
 /// 通过 Flutter Rust Bridge 调用 Rust 后端实现真实的业务逻辑。
-class FrbPoolApiClient implements PoolApiClient {
+class FrbPoolApiClient implements PoolApiClient, PoolRuntimeApiClient {
   /// 创建 FRB 池 API 客户端。
   FrbPoolApiClient({
     required this.nickname,
@@ -416,6 +484,67 @@ class FrbPoolApiClient implements PoolApiClient {
           ),
         )
         .toList(growable: false);
+  }
+
+  PoolRuntimeSummaryData _runtimeSummary(frb.PoolRuntimeSummaryDto summary) {
+    return PoolRuntimeSummaryData(
+      memberCount: summary.memberCount.toInt(),
+      connectedCount: summary.connectedCount.toInt(),
+      syncingCount: summary.syncingCount.toInt(),
+      offlineCount: summary.offlineCount.toInt(),
+      memberCountText: summary.memberCountText,
+      runtimeStatusText: summary.runtimeStatusText,
+    );
+  }
+
+  List<PoolMemberRuntimeData> _runtimeMembers(
+    List<frb.PoolMemberRuntimeDto> rows,
+  ) {
+    return rows
+        .map(
+          (row) => PoolMemberRuntimeData(
+            endpointId: row.endpointId,
+            nickname: row.nickname,
+            os: row.os,
+            role: row.role,
+            status: row.status,
+            isCurrentDevice: row.isCurrentDevice,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  List<PoolInviteData> _invites(List<frb.PoolInviteDto> invites) {
+    return invites
+        .map(
+          (invite) => PoolInviteData(
+            inviteId: invite.inviteId,
+            inviteCode: invite.inviteCode,
+            createdByEndpointId: invite.createdByEndpointId,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<PoolRuntimeViewData> _loadRuntimeView(String poolId) async {
+    final effectiveEndpointId = await _effectiveEndpointId();
+    final summary = await frb.getPoolRuntimeSummary(
+      poolId: poolId,
+      endpointId: effectiveEndpointId,
+    );
+    final members = await frb.getPoolMembersRuntimeView(
+      poolId: poolId,
+      endpointId: effectiveEndpointId,
+    );
+    final invites = await frb.listActiveInvites(
+      poolId: poolId,
+      endpointId: effectiveEndpointId,
+    );
+    return PoolRuntimeViewData(
+      summary: _runtimeSummary(summary),
+      members: _runtimeMembers(members.rows),
+      invites: _invites(invites.invites),
+    );
   }
 
   @override
@@ -631,6 +760,34 @@ class FrbPoolApiClient implements PoolApiClient {
       applicantEndpointId: effectiveEndpointId,
     );
     return _joinRequests(requests);
+  }
+
+  @override
+  Future<PoolRuntimeViewData> getPoolRuntimeView(String poolId) {
+    return _loadRuntimeView(poolId);
+  }
+
+  @override
+  Future<PoolRuntimeViewData> createInvite(String poolId) async {
+    final runtimeNetworkId = await _ensureNetworkId();
+    if (runtimeNetworkId == null) {
+      throw StateError('pool invite creation requires a runtime network');
+    }
+    await frb.createPoolInvite(networkId: runtimeNetworkId, poolId: poolId);
+    return _loadRuntimeView(poolId);
+  }
+
+  @override
+  Future<PoolRuntimeViewData> revokeInvite(
+    String poolId,
+    String inviteId,
+  ) async {
+    await frb.revokeInvite(
+      poolId: poolId,
+      inviteId: inviteId,
+      endpointId: await _effectiveEndpointId(),
+    );
+    return _loadRuntimeView(poolId);
   }
 
   bool _looksLikeUuid(String value) {
