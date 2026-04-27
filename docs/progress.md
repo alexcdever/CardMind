@@ -5,34 +5,42 @@
 
 ## 当前进行中的工作
 
-1. Pencil 数据池原型已补齐应用锁前置流程：桌面端和移动端均包含 App Lock Setup 与 App Lock Unlock。
-2. App Lock 页面已插入原有流程链路：Data Pool 入口 -> 应用锁设置 / 解锁 -> Data Pool Setup -> Data Pool Members。
-3. Pencil 画布排版已调整，避免新增解锁页面覆盖既有数据池页面；`snapshot_layout(problemsOnly: true)` 已确认无布局问题。
-4. 当前正在执行存档与提交保存；本轮 Pencil 改动已通过截图复核与 `git diff --check`。
+1. Pencil 原型已按 `Card Mind` 当前产品语义收口：中文文案、可编辑结构、数据池页面与 tab 状态已修正。
+2. 当前准备将 Pencil 设计稿变更、工作日志与状态快照提交并推送。
+3. 下一阶段是以 Pencil 设计稿为基准，评估并实施 Flutter UI 与 Rust API 串接。
+4. 规格文档是否更新需按 spec 生命周期判断；如果 Flutter/Rust 实现正式改变用户可见行为，应同步更新 `docs/specs/`。
 
 ## 最近完成的工作
 
-1. ~~Pencil 数据池应用锁前置流程补齐~~ ✅ **已完成**（2026-04-24）
+1. ~~Pencil 原型中文化与 Card Mind 语义收口~~ ✅ **已完成**（2026-04-27）
+   - 将主要 Pencil 原型从图片参考层重绘为可编辑结构
+   - 品牌文案统一为 `Card Mind`
+   - “保险库”调整为“笔记列表”
+   - 移除哈希、加密、安全、云同步、同步地图等当前未规划能力暗示
+   - 修正桌面端数据池设置页、数据池成员页左侧 tab 高亮状态
+   - 关键验证已通过：Pencil 截图抽检、Pencil 布局扫描、`cardmind.pen` JSON 解析、关键词残留检查、`git diff --check`
+
+2. ~~Pencil 数据池应用锁前置流程补齐~~ ✅ **已完成**（2026-04-24）
    - 新增桌面端 App Lock Setup / App Lock Unlock 原型页
    - 新增移动端 App Lock Setup / App Lock Unlock 原型页
    - 将应用锁页面插入原有数据池流程链路，而不是作为孤立补充页
    - 同步调整流程箭头与说明：进入 Data Pool 先设置 / 解锁，验证通过后进入 Data Pool Setup
    - Pencil 截图复核通过，`snapshot_layout(problemsOnly: true)` 返回无布局问题
 
-2. ~~数据池运行态 UI 与 Rust API 串接~~ ✅ **已完成**（2026-04-24）
+3. ~~数据池运行态 UI 与 Rust API 串接~~ ✅ **已完成**（2026-04-24）
    - `PoolRuntimeApiClient` 聚合运行态 summary、members runtime view 与 active invites
    - `PoolController` 新增 runtime view 状态、加载状态、create invite 与 revoke invite 动作
    - `PoolPage` 已加入态按 poolId 懒加载 runtime view
    - 数据池页面重做为贴近 Pencil 的 setup / network nodes 展示，同时保留既有测试依赖的关键文案与操作入口
    - 单元测试与组件测试已覆盖运行态加载、invite 撤销刷新与已加入页面 runtime 信息展示
 
-3. ~~GitNexus 清理与本地卸载~~ ✅ **已完成**（2026-04-24）
+4. ~~GitNexus 清理与本地卸载~~ ✅ **已完成**（2026-04-24）
    - `AGENTS.md` 已移除 GitNexus agent 指引块
    - 仓库根部 `.claude/`、`.gitnexus/` 产物已删除
    - 本地 pnpm 全局 `gitnexus` 已卸载，残留包目录与 bin 链接已清理
    - 已验证 `command -v gitnexus` 无结果，agent 文档无 GitNexus 内容，仓库根部无 GitNexus 产物目录
 
-4. ~~GitNexus 与 AI 正确性适配评估~~ ✅ **已完成**（2026-04-24）
+5. ~~GitNexus 与 AI 正确性适配评估~~ ✅ **已完成**（2026-04-24）
    - 将评估目标收敛为“是否提升 AI 改代码正确性”，重点关注少漏改影响点与跨模块/跨语言关系理解
    - 基于当前仓库结构梳理出 CardMind 中 AI 最容易漏改的 8 类影响链，覆盖 Rust API -> FRB -> Dart 调用方 -> 测试、Pool/Sync 状态链路、运行态构建链与 `docs/specs/` 真相源
    - 结论收敛为：`GitNexus` 对本项目“可以关注，但暂不优先”，暂不投入接入成本
@@ -184,6 +192,9 @@
 
 ## 待办事项
 
+- [ ] 以当前 `cardmind.pen` 为准，拆解 Flutter UI 落地范围
+- [ ] 对照 Rust/FRB 已有 API，确认 Pencil 页面所需数据与动作是否已具备
+- [ ] 按 spec 生命周期判断是否更新 `docs/specs/ui-interaction.md`、`docs/specs/user-journeys.md` 等正式规格
 - [ ] 如继续实现 Flutter UI，可把 Pencil 中的应用锁前置流程映射到当前 `AppLockScreen` 的视觉与交互细节
 - [ ] 如继续推进数据池能力，优先做真实双端联机验证或新的定向 code review
 - [ ] 如继续提升 UI 验证质量，可补一轮不同窗口尺寸下的数据池页面人工/自动截图检查
@@ -203,12 +214,15 @@
 
 ## 阻塞/卡点
 
-- 当前无业务阻塞；若继续推进，主要遗留是数据池真实双端联机复验、覆盖率提升、Rust 覆盖率链路稳定性，以及未来是否需要把 AI 漏改风险进一步转为门禁脚本
+- 当前无业务阻塞；下一阶段的主要风险是 Pencil 设计稿与现有 Flutter/Rust 实现之间的语义差异，需要先按规格边界收敛再实现。
 
 ## 最近的决策
 
 | 日期 | 决策内容 | 原因 |
 |------|----------|------|
+| 2026-04-27 | Pencil 品牌文案统一为 `Card Mind`，不再使用“数字中庭” | 设计稿应直接承载项目名称，避免引入未确认的产品概念 |
+| 2026-04-27 | 移除 Pencil 中加密、安全、云同步、同步地图等未规划能力暗示 | 当前规格与实现尚未确认这些能力，设计稿不能提前承诺 |
+| 2026-04-27 | 桌面数据池页面左侧导航必须高亮“数据池” | 导航状态应与右侧主内容一致，避免后续 Flutter 实现继承错误状态 |
 | 2026-04-24 | Pencil 中应用锁页面必须接入数据池流程链路，而不是独立摆放 | 数据池应用锁是进入数据池前的强制前置条件，原型应表达完整路径而非孤立页面 |
 | 2026-04-24 | App Lock 同时展示 Setup 与 Unlock 两种状态 | 首次使用需要设置 PIN / 生物识别；后续会话只需要解锁，两者都是数据池前置路径的一部分 |
 | 2026-04-24 | 数据池 UI 本轮只落实现有 Pencil 目标和 Rust 已有 API，不扩展新的产品语义 | 用户目标是把已有 UI/API 串起来，避免在未确认情况下扩张数据池业务范围 |
@@ -261,4 +275,4 @@
 
 ---
 
-*最后更新：2026-04-24*
+*最后更新：2026-04-27*
