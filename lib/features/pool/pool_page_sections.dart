@@ -23,103 +23,81 @@ class _PoolNotJoinedView extends StatelessWidget {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8F8),
+      backgroundColor: CardMindColors.bgCanvas,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+          padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               syncFeedback ?? const SizedBox.shrink(),
-              const _PoolBrandHeader(statusText: 'SYNC READY'),
+              const _PoolBrandHeader(),
               const SizedBox(height: 18),
-              const _SoftLabel(text: 'CONNECTIVITY HUB'),
+              const _SoftLabel(text: '连接中心'),
               const SizedBox(height: 10),
-              const Text(
-                '在这里创建或加入数据池',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
               Text(
-                'Your Digital Atrium Awaits.',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                '连接你的数据池',
+                style: const TextStyle(
+                  color: CardMindColors.textPrimary,
+                  fontSize: 27,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF223233),
+                  height: 1.12,
                 ),
               ),
               const SizedBox(height: 12),
               const Text(
-                '创建一个私有协作空间，或通过邀请字符串同步到已有数据池。',
-                style: TextStyle(color: Color(0xFF5F7274), height: 1.45),
+                '创建新的数据池，或加入已有数据池，让多设备笔记保持一致。',
+                style: TextStyle(
+                  color: CardMindColors.textSecondary,
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _PoolSetupCard(
+                icon: Icons.add,
+                title: '创建数据池',
+                body: '创建一个新的数据池，用于组织本设备与其他设备之间的笔记同步。',
+                actionLabel: '开始 →',
+                onPressed: controller.joining ? null : controller.createPool,
+                semanticIdentifier: SemanticIds.poolCreateButton,
+                semanticLabel: '创建数据池',
+                filled: true,
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _PrimaryActionButton(
-                      label: '创建池',
-                      semanticIdentifier: SemanticIds.poolCreateButton,
-                      buttonKey: const ValueKey('pool.create_button'),
-                      onPressed: controller.joining
-                          ? null
-                          : controller.createPool,
-                      filled: true,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _PrimaryActionButton(
-                      label: '扫码加入',
-                      semanticIdentifier: SemanticIds.poolJoinScanButton,
-                      buttonKey: const ValueKey('pool.join_scan_button'),
-                      onPressed: controller.joining ? null : onScanJoin,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                key: const ValueKey('pool.submit_join_request_button'),
-                onPressed: controller.joining
-                    ? null
-                    : () {
-                        unawaited(controller.submitJoinRequest());
-                      },
-                child: const Text('提交加入申请'),
+              _PoolSetupCard(
+                icon: Icons.link,
+                title: '加入数据池',
+                body: '使用邀请字符串加入已有数据池。',
+                actionLabel: '立即连接 →',
+                onPressed: controller.joining ? null : onScanJoin,
+                semanticIdentifier: SemanticIds.poolJoinScanButton,
+                semanticLabel: '加入数据池',
               ),
               if (controller.joining)
                 const Padding(
                   padding: EdgeInsets.only(top: 12),
-                  child: Text('请求处理中...'),
+                  child: Text(
+                    '请求处理中...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: CardMindColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               if (noticeMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Text(noticeMessage!),
+                  child: Text(
+                    noticeMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: CardMindColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
-              const SizedBox(height: 16),
-              _ActionPanel(
-                icon: Icons.add,
-                title: 'Create Data Pool',
-                body:
-                    'Start a fresh decentralized pool. You will become the first admin.',
-                actionLabel: 'Get Started',
-                semanticIdentifier: SemanticIds.poolCreateButton,
-                actionKey: const ValueKey('pool.create_button.secondary'),
-                onPressed: controller.joining ? null : controller.createPool,
-                filled: true,
-              ),
-              const SizedBox(height: 16),
-              _ActionPanel(
-                icon: Icons.link,
-                title: 'Join Data Pool',
-                body:
-                    'Connect to an existing pool using an invite string from another device.',
-                actionLabel: 'Connect Now',
-                semanticIdentifier: SemanticIds.poolJoinScanButton,
-                actionKey: const ValueKey('pool.join_scan_button.secondary'),
-                onPressed: controller.joining ? null : onScanJoin,
-              ),
             ],
           ),
         ),
@@ -163,10 +141,10 @@ class _PoolJoinedView extends StatelessWidget {
     final runtimeView = controller.runtimeView;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8F8),
+      backgroundColor: CardMindColors.bgCanvas,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+          padding: const EdgeInsets.fromLTRB(18, 20, 18, 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -180,14 +158,14 @@ class _PoolJoinedView extends StatelessWidget {
                     label: const Text('返回数据池Tab'),
                   ),
                 ),
-              const _PoolBrandHeader(statusText: 'DATA POOL'),
+              const _PoolBrandHeader(),
               const SizedBox(height: 18),
               const Text(
-                'Network Nodes',
+                '数据池成员',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF223233),
+                  color: CardMindColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
@@ -200,8 +178,11 @@ class _PoolJoinedView extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Real-time status of ${state.poolName}.',
-                style: const TextStyle(color: Color(0xFF5F7274)),
+                '查看已加入此数据池的设备与成员。',
+                style: const TextStyle(
+                  color: CardMindColors.textSecondary,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 16),
               if (noticeMessage != null)
@@ -315,62 +296,103 @@ class _PoolJoinedView extends StatelessWidget {
   }
 }
 
-class _PrimaryActionButton extends StatelessWidget {
-  const _PrimaryActionButton({
-    required this.label,
-    required this.semanticIdentifier,
-    required this.buttonKey,
+class _PoolSetupCard extends StatelessWidget {
+  const _PoolSetupCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.actionLabel,
     required this.onPressed,
-    this.filled = false,
+    this.semanticIdentifier,
+    this.semanticLabel,
+    this.filled = true,
   });
 
-  final String label;
-  final String semanticIdentifier;
-  final Key buttonKey;
+  final IconData icon;
+  final String title;
+  final String body;
+  final String actionLabel;
   final VoidCallback? onPressed;
+  final String? semanticIdentifier;
+  final String? semanticLabel;
   final bool filled;
 
   @override
   Widget build(BuildContext context) {
-    final child = filled
-        ? FilledButton(key: buttonKey, onPressed: onPressed, child: Text(label))
-        : OutlinedButton(
-            key: buttonKey,
-            onPressed: onPressed,
-            child: Text(label),
-          );
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      identifier: semanticIdentifier,
-      label: label,
-      button: true,
-      child: child,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: filled ? CardMindColors.bgSurface : CardMindColors.brandMutedBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 32, color: CardMindColors.brand),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: CardMindColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            body,
+            style: const TextStyle(
+              fontSize: 12,
+              color: CardMindColors.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Semantics(
+            container: true,
+            explicitChildNodes: true,
+            identifier: semanticIdentifier,
+            label: semanticLabel,
+            button: true,
+            child: GestureDetector(
+              onTap: onPressed,
+              child: Text(
+                actionLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: onPressed != null
+                      ? CardMindColors.brand
+                      : CardMindColors.textMuted,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _PoolBrandHeader extends StatelessWidget {
-  const _PoolBrandHeader({required this.statusText});
-
-  final String statusText;
+  const _PoolBrandHeader();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return const Row(
       children: [
-        const Icon(Icons.grid_view_rounded, size: 18, color: Color(0xFF087B78)),
-        const SizedBox(width: 8),
-        const Expanded(
-          child: Text(
-            'The Atrium',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF0A6462),
-            ),
+        Icon(Icons.grid_view_rounded, size: 14, color: CardMindColors.brand),
+        SizedBox(width: 8),
+        Text(
+          'Card Mind',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: CardMindColors.brand,
           ),
         ),
-        _SoftLabel(text: statusText),
+        Spacer(),
+        _SoftLabel(text: '数据池'),
       ],
     );
   }
@@ -385,80 +407,19 @@ class _SoftLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFD8F5EF),
+        color: CardMindColors.brandLightBg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
           text,
           style: const TextStyle(
-            color: Color(0xFF087B78),
-            fontSize: 11,
+            color: CardMindColors.brand,
+            fontSize: 10,
             fontWeight: FontWeight.w800,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ActionPanel extends StatelessWidget {
-  const _ActionPanel({
-    required this.icon,
-    required this.title,
-    required this.body,
-    required this.actionLabel,
-    required this.semanticIdentifier,
-    required this.actionKey,
-    required this.onPressed,
-    this.filled = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-  final String actionLabel;
-  final String semanticIdentifier;
-  final Key actionKey;
-  final VoidCallback? onPressed;
-  final bool filled;
-
-  @override
-  Widget build(BuildContext context) {
-    final button = filled
-        ? FilledButton(
-            key: actionKey,
-            onPressed: onPressed,
-            child: Text(actionLabel),
-          )
-        : OutlinedButton(
-            key: actionKey,
-            onPressed: onPressed,
-            child: Text(actionLabel),
-          );
-    return _InfoPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _IconBlock(icon: icon),
-          const SizedBox(height: 18),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(body, style: const TextStyle(color: Color(0xFF5F7274))),
-          const SizedBox(height: 18),
-          Semantics(
-            container: true,
-            explicitChildNodes: true,
-            identifier: semanticIdentifier,
-            label: actionLabel,
-            button: true,
-            child: button,
-          ),
-        ],
       ),
     );
   }

@@ -328,6 +328,26 @@ void main() {
     expect(find.textContaining('在这里创建或加入数据池'), findsOneWidget);
   });
 
+  testWidgets('pool page can restore joined state from API on first render', (
+    tester,
+  ) async {
+    final controller = _buildTestPoolController();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: controller,
+          autoLoadJoinedPool: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('数据池成员'), findsOneWidget);
+    expect(find.text('我的身份: joiner@test'), findsOneWidget);
+  });
+
   testWidgets('create pool enters joined state', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -381,13 +401,32 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Network Nodes'), findsOneWidget);
+    expect(find.text('数据池成员'), findsOneWidget);
     expect(find.text('2 nodes'), findsOneWidget);
     expect(find.text('1 online / 1 syncing'), findsOneWidget);
     expect(find.text('Owner Device'), findsOneWidget);
     expect(find.text('Phone'), findsOneWidget);
     expect(find.text('invite://server-pool'), findsOneWidget);
     expect(find.text('撤销'), findsOneWidget);
+  });
+
+  testWidgets('pool page does not expose outdated prototype copy', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.notJoined(),
+          controller: _buildTestPoolController(),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('Digital Atrium'), findsNothing);
+    expect(find.text('The Atrium'), findsNothing);
+    expect(find.text('Network Nodes'), findsNothing);
+    expect(find.text('Create Data Pool'), findsNothing);
+    expect(find.text('Join Data Pool'), findsNothing);
   });
 
   testWidgets('joined page can return to pool tab route', (tester) async {

@@ -35,6 +35,11 @@ class EditorDraft {
 ///
 /// 继承自 [ChangeNotifier]，状态变更时会通知监听者。
 class EditorController extends ChangeNotifier {
+  /// 创建编辑器控制器。
+  EditorController({EditorDraft? initialDraft})
+    : _title = initialDraft?.title ?? '',
+      _body = initialDraft?.body ?? '';
+
   /// 是否有未保存的更改。
   bool _dirty = false;
 
@@ -45,10 +50,10 @@ class EditorController extends ChangeNotifier {
   bool _saving = false;
 
   /// 当前标题内容。
-  String _title = '';
+  String _title;
 
   /// 当前正文内容。
-  String _body = '';
+  String _body;
 
   /// 获取是否有未保存的更改。
   bool get dirty => _dirty;

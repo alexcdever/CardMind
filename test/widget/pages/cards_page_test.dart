@@ -426,10 +426,8 @@ class _MockRustLibApi extends RustLibApi {
   Future<PoolInvitesViewDto> crateApiListActiveInvites({
     required String poolId,
     required String endpointId,
-  }) async => PoolInvitesViewDto(
-    invites: <PoolInviteDto>[],
-    activeCount: BigInt.zero,
-  );
+  }) async =>
+      PoolInvitesViewDto(invites: <PoolInviteDto>[], activeCount: BigInt.zero);
 
   @override
   Future<ApiError> crateApiUtilsMapErr({required CardMindError err}) async =>
@@ -533,10 +531,8 @@ class _MockRustLibApi extends RustLibApi {
     required String poolId,
     required String inviteId,
     required String endpointId,
-  }) async => PoolInvitesViewDto(
-    invites: <PoolInviteDto>[],
-    activeCount: BigInt.zero,
-  );
+  }) async =>
+      PoolInvitesViewDto(invites: <PoolInviteDto>[], activeCount: BigInt.zero);
 
   @override
   Future<void> crateApiSyncConnect({
@@ -740,6 +736,20 @@ void main() {
     expect(find.byType(MaterialBanner), findsNothing);
   });
 
+  testWidgets('mobile cards page uses Pencil primary structure and copy', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Card Mind'), findsOneWidget);
+    expect(find.text('笔记列表'), findsOneWidget);
+    expect(find.text('按主题整理你的卡片笔记。'), findsOneWidget);
+    expect(find.text('搜索笔记...'), findsOneWidget);
+  });
+
   testWidgets('navigates to editor when tapping create action', (tester) async {
     await tester.pumpWidget(
       MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
@@ -769,6 +779,35 @@ void main() {
     expect(find.text('编辑卡片'), findsNothing);
     expect(find.text('Title 1'), findsOneWidget);
     expect(find.byType(MaterialBanner), findsNothing);
+  });
+
+  testWidgets('mobile tapping existing note opens editor and saves update', (
+    tester,
+  ) async {
+    final harness = _buildInspectableTestCardsController();
+    await harness.controller.createDraft('mobile-existing', '移动笔记', '原始正文');
+
+    await tester.pumpWidget(
+      MaterialApp(home: CardsPage(controller: harness.controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('移动笔记'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '移动笔记'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '原始正文'), findsOneWidget);
+
+    await tester.enterText(_editorTitleField(), '移动笔记更新');
+    await tester.enterText(_editorBodyField(), '正文更新');
+    await tester.tap(find.byKey(const ValueKey('editor.save_button')));
+    await tester.pumpAndSettle();
+    await _pumpUntilFound(tester, find.text('移动笔记更新'));
+
+    expect(harness.apiClient.updateCalls, 1);
+    expect(harness.apiClient.lastUpdatedId, 'mobile-existing');
+    expect(find.text('移动笔记更新'), findsOneWidget);
   });
 
   testWidgets('delete or restore action changes list state', (tester) async {

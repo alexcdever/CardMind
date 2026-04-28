@@ -166,24 +166,30 @@
 4. 信息提示 MUST 使用 `info` 语义色。
 5. 同步降级（`degraded`）MUST 使用 `state.degraded`，且 FORBIDDEN 与致命错误色完全同态，避免误导。
 
-#### 5.1.3 明暗主题最小色盘（可落地建议）
+#### 5.1.3 明暗主题最小色盘（已落地）
 
-为降低实现漂移，系统 SHOULD 提供最小 Light/Dark 语义色盘。以下为参考值（可等价替换）：
+以下色值提取自 `cardmind.pen` 设计稿，是当前实现的参考真相源：
 
-| Token | Light 建议 | Dark 建议 |
+| Token | 用途 | 值 |
 | --- | --- | --- |
-| `color.primary` | `#3B82F6` | `#60A5FA` |
-| `color.success` | `#16A34A` | `#22C55E` |
-| `color.warning` | `#D97706` | `#F59E0B` |
-| `color.error` | `#DC2626` | `#F87171` |
-| `color.info` | `#0284C7` | `#38BDF8` |
-| `color.state.degraded` | `#EA580C` | `#FB923C` |
-| `color.bg.canvas` | `#F8FAFC` | `#0F172A` |
-| `color.bg.surface` | `#FFFFFF` | `#111827` |
-| `color.border.default` | `#E2E8F0` | `#374151` |
-| `color.text.primary` | `#0F172A` | `#F8FAFC` |
-| `color.text.secondary` | `#475569` | `#94A3B8` |
-| `color.action.danger` | `#B91C1C` | `#EF4444` |
+| `color.brand` | 品牌主色 | `#0F766E` |
+| `color.brand.lightBg` | 品牌浅底 | `#E6F4F2` |
+| `color.brand.mutedBg` | 品牌弱底 | `#EEF3F3` |
+| `color.bg.canvas` | 页面底色 | `#F8FAFB` |
+| `color.bg.surface` | 卡片/面板底 | `#FFFFFF` |
+| `color.bg.subtle` | 次层背景 | `#EEF3F3` / `#EEF5F5` |
+| `color.bg.sidebar` | 侧边栏背景 | `#EEF5F5` |
+| `color.bg.input` | 输入区背景 | `#ECF3F3` |
+| `color.text.primary` | 主文字 | `#203234` / `#223233` |
+| `color.text.secondary` | 次文字 | `#5F7274` |
+| `color.text.muted` | 弱文字 | `#8BA1A3` |
+| `color.text.brand` | 品牌文字 | `#0F766E` |
+| `color.text.onBrand` | 品牌底文字 | `#FFFFFF` |
+| `color.border.subtle` | 弱边框 | `#D9E4E8` |
+| `color.status.synced` | 已同步 | `#0F766E` |
+| `color.status.offline` | 离线 | `#8BA1A3` |
+
+> 注：当前阶段不强制 Dark 主题；若后续引入，Dark 色盘需重新从设计稿或视觉方向推导。
 
 #### 5.1.4 对比度与可读性门槛
 

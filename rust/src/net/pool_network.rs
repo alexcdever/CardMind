@@ -742,17 +742,7 @@ async fn handle_connection(conn: Connection, base_path: String) -> Result<(), Ca
                     .iter()
                     .any(|member| member.endpoint_id == applicant.endpoint_id)
                 {
-                    send_message(
-                        &conn,
-                        &PoolMessage::JoinDecision {
-                            pool_id,
-                            status: JoinDecisionStatus::Rejected,
-                            reason: Some("applicant is already a member".to_string()),
-                            request_id: None,
-                            pool_name: None,
-                        },
-                    )
-                    .await?;
+                    send_join_approval_with_snapshots(&conn, &base_path, &pool).await?;
                     tokio::time::sleep(Duration::from_millis(200)).await;
                     return Ok(());
                 }
@@ -853,6 +843,48 @@ async fn handle_connection(conn: Connection, base_path: String) -> Result<(), Ca
 
     let _ = hello;
     conn.close(0u32.into(), b"done");
+    Ok(())
+}
+
+async fn send_join_approval_with_snapshots(
+    conn: &Connection,
+    base_path: &str,
+    pool: &Pool,
+) -> Result<(), CardMindError> {
+    send_message(
+        conn,
+        &PoolMessage::JoinDecision {
+            pool_id: pool.pool_id,
+            status: JoinDecisionStatus::Approved,
+            reason: None,
+            request_id: None,
+            pool_name: None,
+        },
+    )
+    .await?;
+
+    let pool_snapshot = build_pool_snapshot(base_path, &pool.pool_id)?;
+    send_message(
+        conn,
+        &PoolMessage::PoolSnapshot {
+            pool_id: pool.pool_id,
+            bytes: pool_snapshot,
+        },
+    )
+    .await?;
+
+    for card_id in &pool.card_ids {
+        let bytes = build_card_snapshot(base_path, card_id)?;
+        send_message(
+            conn,
+            &PoolMessage::CardSnapshot {
+                card_id: *card_id,
+                bytes,
+            },
+        )
+        .await?;
+    }
+
     Ok(())
 }
 

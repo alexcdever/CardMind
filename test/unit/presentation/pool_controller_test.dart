@@ -328,6 +328,19 @@ void main() {
     expect(joined.memberLabels, <String>['peer-x']);
   });
 
+  test('loadJoinedPoolView_restoresJoinedStateFromApi', () async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(apiClient: client);
+
+    await controller.loadJoinedPoolView();
+
+    final joined = controller.state as PoolJoined;
+    expect(joined.poolId, 'pool-joined');
+    expect(joined.poolName, 'Joined');
+    expect(joined.currentIdentityLabel, 'joiner@test');
+    expect(joined.memberLabels, <String>['owner@test', 'joiner@test']);
+  });
+
   test('joinByCode_pending_transitionsToJoinPendingState', () async {
     final client = _FakePoolApiClient()
       ..joinResult = const PoolJoinResult.pending(
@@ -617,6 +630,45 @@ void main() {
       );
     },
   );
+
+  test('createInvite_ignoresNonJoinedState', () async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(apiClient: client);
+
+    await controller.createInvite();
+
+    expect(client.createInviteCalls, 0);
+    expect(controller.runtimeView, isNull);
+  });
+
+  test('createInvite_ignoresClientWithoutRuntimeApi', () async {
+    final controller = PoolController(
+      apiClient: LocalPoolApiClient(),
+      initialState: const PoolState.joined(poolId: 'pool-joined'),
+    );
+
+    await controller.createInvite();
+
+    expect(controller.state, isA<PoolJoined>());
+    expect(controller.runtimeView, isNull);
+  });
+
+  test('createInvite_refreshesRuntimeInvitesFromRuntimeApi', () async {
+    final client = _FakePoolApiClient();
+    final controller = PoolController(
+      apiClient: client,
+      initialState: const PoolState.joined(poolId: 'pool-joined'),
+    );
+
+    await controller.createInvite();
+
+    expect(client.createInviteCalls, 1);
+    expect(controller.noticeMessage, '邀请字符串已生成');
+    expect(
+      controller.runtimeView!.invites.single.inviteCode,
+      'invite://created',
+    );
+  });
 
   test('revokeInvite_refreshesRuntimeInviteList', () async {
     final client = _FakePoolApiClient();

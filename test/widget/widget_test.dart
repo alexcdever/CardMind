@@ -10,7 +10,8 @@ void main() {
   testWidgets('app boots directly into homepage cards section', (tester) async {
     await tester.pumpWidget(const CardMindApp(appDataDir: 'test-app-dir'));
 
-    expect(find.text('搜索卡片'), findsOneWidget);
+    expect(find.text('笔记列表'), findsOneWidget);
+    expect(find.text('搜索笔记...'), findsOneWidget);
     expect(find.text('先本地使用'), findsNothing);
   });
 

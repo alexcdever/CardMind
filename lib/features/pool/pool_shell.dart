@@ -163,6 +163,7 @@ class _PoolShellState extends State<PoolShell> {
                   networkId: _resolvedNetworkId,
                   autoJoinCode: widget.debugAutoJoinCode,
                   autoCreatePool: widget.debugAutoCreatePool,
+                  autoLoadJoinedPool: true,
                   debugExportInvitePath: widget.debugExportInvitePath,
                   debugStatusExportPath: widget.debugStatusExportPath,
                   debugPrintInvite: widget.debugPrintInvite,

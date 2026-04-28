@@ -221,7 +221,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(BottomNavigationBar), findsOneWidget);
-    expect(find.text('搜索卡片'), findsOneWidget);
+    expect(find.text('Card Mind'), findsOneWidget);
+    expect(find.text('笔记列表'), findsOneWidget);
+    expect(find.text('搜索笔记...'), findsOneWidget);
     expect(find.text('卡片'), findsWidgets);
     expect(find.text('数据池'), findsWidgets);
     expect(find.text('设置'), findsNothing);

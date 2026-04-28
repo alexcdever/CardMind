@@ -10,6 +10,7 @@
 /// ## 外部依赖
 /// - 依赖 [AppHomepagePage] 提供首页内容。
 import 'package:cardmind/app/navigation/app_homepage_page.dart';
+import 'package:cardmind/app/theme/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 
 /// 应用根组件。
@@ -60,7 +61,7 @@ class CardMindApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CardMind',
-      theme: ThemeData(useMaterial3: true),
+      theme: CardMindTheme.theme,
       home: AppHomepagePage(
         appDataDir: appDataDir,
         debugStartInPool: debugStartInPool,

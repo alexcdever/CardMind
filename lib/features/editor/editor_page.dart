@@ -1,14 +1,3 @@
-/// # 编辑器页面
-///
-/// 卡片编辑页面的主要界面组件，负责内容编辑、保存与离开拦截流程。
-/// 提供标题和内容输入框、保存按钮、键盘快捷键支持以及未保存确认弹窗。
-///
-/// ## 关联路由
-/// - 跳转至此页面需使用 `Navigator.pushNamed(context, '/editor')` 或通过其他导航方式。
-///
-/// ## 外部依赖
-/// - 依赖 [EditorController] 管理编辑状态。
-/// - 依赖 [SemanticIds] 提供语义标识符支持无障碍测试。
 library editor_page;
 
 import 'package:flutter/material.dart';
@@ -16,39 +5,33 @@ import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:async';
 
+import 'package:cardmind/app/theme/cardmind_colors.dart';
+import 'package:cardmind/app/theme/cardmind_theme.dart';
 import 'package:cardmind/features/editor/editor_controller.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 
-/// 编辑器页面的 StatefulWidget。
-///
-/// 负责创建编辑器页面的状态管理实例 [_EditorPageState]。
-/// 可通过 [onSaved] 回调在保存成功时通知父组件。
 class EditorPage extends StatefulWidget {
-  /// 创建编辑器页面实例。
-  ///
-  /// [onSaved] 可选回调，当用户成功保存编辑内容时触发，
-  /// 回调参数为包含当前标题和内容的 [EditorDraft]。
-  const EditorPage({super.key, this.onSaved});
+  const EditorPage({super.key, this.initialDraft, this.onSaved});
 
-  /// 保存成功时的回调函数。
-  final ValueChanged<EditorDraft>? onSaved;
+  final EditorDraft? initialDraft;
+  final FutureOr<void> Function(EditorDraft draft)? onSaved;
 
   @override
   State<EditorPage> createState() => _EditorPageState();
 }
 
-/// 编辑器页面的状态实现类。
-///
-/// 管理编辑器的业务逻辑、用户交互和状态更新。
-/// 包括：快捷键处理、返回拦截、保存逻辑和确认弹窗。
 class _EditorPageState extends State<EditorPage> {
-  /// 编辑器状态控制器实例。
-  final EditorController _controller = EditorController();
+  late final EditorController _controller = EditorController(
+    initialDraft: widget.initialDraft,
+  );
+  late final TextEditingController _titleController = TextEditingController(
+    text: widget.initialDraft?.title ?? '',
+  );
+  late final TextEditingController _bodyController = TextEditingController(
+    text: widget.initialDraft?.body ?? '',
+  );
 
-  /// UUID 生成器实例，用于生成唯一标识符。
   static const Uuid _uuid = Uuid();
-
-  /// 保存错误提示信息，为空时表示无错误。
   String? _saveErrorMessage;
 
   @override
@@ -60,17 +43,13 @@ class _EditorPageState extends State<EditorPage> {
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
+    _titleController.dispose();
+    _bodyController.dispose();
     super.dispose();
   }
 
-  /// 控制器状态变更回调。
-  ///
-  /// 当编辑器控制器的状态（如保存状态、脏标记）发生变化时触发，
-  /// 调用 setState 刷新界面。
   void _onControllerChanged() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
   @override
@@ -94,91 +73,50 @@ class _EditorPageState extends State<EditorPage> {
           child: PopScope<void>(
             canPop: false,
             onPopInvokedWithResult: (didPop, _) async {
-              if (didPop) {
-                return;
-              }
+              if (didPop) return;
               await _onBack();
             },
             child: Scaffold(
-              appBar: AppBar(
-                leading: BackButton(onPressed: _onBack),
-                title: const Text('编辑卡片'),
-                actions: [
-                  Semantics(
-                    container: true,
-                    explicitChildNodes: true,
-                    identifier: SemanticIds.editorSaveButton,
-                    label: '保存卡片',
-                    button: true,
-                    child: IconButton(
-                      key: const ValueKey('editor.save_button'),
-                      onPressed: () async {
-                        final shouldClose = await _saveAndRunCallback();
-                        if (!context.mounted || !shouldClose) {
-                          return;
-                        }
-                        Navigator.of(context).pop();
-                      },
-                      icon: const Icon(Icons.save_outlined),
-                    ),
-                  ),
-                ],
-              ),
-              body: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Semantics(
-                      container: true,
-                      explicitChildNodes: true,
-                      identifier: SemanticIds.editorTitleInput,
-                      label: '标题输入框',
-                      textField: true,
-                      child: TextField(
-                        key: const ValueKey('editor.title_input'),
-                        decoration: const InputDecoration(labelText: '标题'),
-                        onChanged: _controller.setTitle,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: Semantics(
-                        container: true,
-                        explicitChildNodes: true,
-                        identifier: SemanticIds.editorBodyInput,
-                        label: '内容输入框',
-                        textField: true,
-                        child: TextField(
-                          key: const ValueKey('editor.body_input'),
-                          expands: true,
-                          maxLines: null,
-                          textAlignVertical: TextAlignVertical.top,
-                          decoration: const InputDecoration(
-                            alignLabelWithHint: true,
-                            border: OutlineInputBorder(),
-                            labelText: '内容',
-                            hintText: '输入卡片内容',
+              backgroundColor: CardMindColors.bgCanvas,
+              body: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 18),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildMeta(),
+                              const SizedBox(height: 18),
+                              _buildToolbar(),
+                              const SizedBox(height: 18),
+                              _buildBodyField(),
+                            ],
                           ),
-                          onChanged: _controller.setBody,
                         ),
                       ),
-                    ),
-                    if (_controller.saving)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        child: Text('保存中...'),
-                      ),
-                    if (_controller.saved)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 12),
-                        child: Text('本地已保存'),
-                      ),
-                    if (_saveErrorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(_saveErrorMessage!),
-                      ),
-                  ],
+                      if (_controller.saving)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text('保存中...'),
+                        ),
+                      if (_controller.saved)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Text('本地已保存'),
+                        ),
+                      if (_saveErrorMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(_saveErrorMessage!),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -188,10 +126,163 @@ class _EditorPageState extends State<EditorPage> {
     );
   }
 
-  /// 处理返回按钮点击或系统返回手势。
-  ///
-  /// 如果有未保存的更改，显示确认弹窗让用户选择保存、放弃或取消。
-  /// 如果没有未保存的更改，直接返回上一页。
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        const Icon(Icons.grid_view_rounded, size: 14, color: CardMindColors.brand),
+        const SizedBox(width: 8),
+        const Text(
+          'Card Mind',
+          style: TextStyle(
+            color: CardMindColors.brand,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const Spacer(),
+        Semantics(
+          container: true,
+          explicitChildNodes: true,
+          identifier: SemanticIds.editorSaveButton,
+          label: '保存卡片',
+          button: true,
+          child: GestureDetector(
+            key: const ValueKey('editor.save_button'),
+            onTap: () async {
+              final shouldClose = await _saveAndRunCallback();
+              if (!context.mounted || !shouldClose) return;
+              Navigator.of(context).pop();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: CardMindColors.brand,
+                borderRadius: BorderRadius.circular(CardMindRadii.sm),
+              ),
+              child: const Text(
+                '完成',
+                style: TextStyle(
+                  color: CardMindColors.textOnBrand,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMeta() {
+    return Row(
+      children: [
+        const Text(
+          '本地优先 · 01',
+          style: TextStyle(
+            color: CardMindColors.brand,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Text(
+          '最后编辑 2 分钟前',
+          style: TextStyle(
+            color: CardMindColors.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToolbar() {
+    return Container(
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: CardMindColors.brandMutedBg,
+        borderRadius: BorderRadius.circular(CardMindRadii.sm),
+      ),
+      child: const Row(
+        children: [
+          Text(
+            'B',
+            style: TextStyle(
+              color: CardMindColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(width: 18),
+          Text(
+            'I',
+            style: TextStyle(
+              color: CardMindColors.textPrimary,
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+          SizedBox(width: 18),
+          Icon(Icons.format_quote, size: 14, color: CardMindColors.textPrimary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBodyField() {
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      identifier: SemanticIds.editorBodyInput,
+      label: '内容输入框',
+      textField: true,
+      child: TextField(
+        key: const ValueKey('editor.body_input'),
+        controller: _bodyController,
+        expands: true,
+        maxLines: null,
+        textAlignVertical: TextAlignVertical.top,
+        style: const TextStyle(
+          color: Color(0xFF344B4E),
+          fontSize: 15,
+          height: 1.6,
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: '输入卡片内容',
+        ),
+        onChanged: _controller.setBody,
+      ),
+    );
+  }
+
+  Widget _buildTitleField() {
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      identifier: SemanticIds.editorTitleInput,
+      label: '标题输入框',
+      textField: true,
+      child: TextField(
+        key: const ValueKey('editor.title_input'),
+        controller: _titleController,
+        style: const TextStyle(
+          color: CardMindColors.textPrimary,
+          fontSize: 27,
+          fontWeight: FontWeight.w800,
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: '标题',
+        ),
+        onChanged: _controller.setTitle,
+      ),
+    );
+  }
+
   Future<void> _onBack() async {
     if (!_controller.dirty) {
       if (mounted) Navigator.of(context).maybePop();
@@ -248,63 +339,35 @@ class _EditorPageState extends State<EditorPage> {
       },
     );
 
-    if (!mounted || decision == null) {
-      return;
-    }
-
-    if (decision == _ExitDecision.cancel) {
-      return;
-    }
+    if (!mounted || decision == null) return;
+    if (decision == _ExitDecision.cancel) return;
 
     if (decision == _ExitDecision.save) {
       final shouldClose = await _saveAndRunCallback();
-      if (!mounted || !shouldClose) {
-        return;
-      }
+      if (!mounted || !shouldClose) return;
     }
 
     Navigator.of(context).pop();
   }
 
-  /// 执行保存操作并触发回调。
-  ///
-  /// 保存内容到本地，并在成功时调用 [onSaved] 回调通知父组件。
-  ///
-  /// 返回值为 `true` 表示保存成功，页面可以关闭；
-  /// 返回 `false` 表示保存失败，页面应保持打开。
   Future<bool> _saveAndRunCallback() async {
     await _controller.saveLocal();
-    if (!mounted) {
-      return false;
-    }
+    if (!mounted) return false;
     try {
-      widget.onSaved?.call(_controller.draft());
-      setState(() {
-        _saveErrorMessage = null;
-      });
+      await widget.onSaved?.call(_controller.draft());
+      setState(() => _saveErrorMessage = null);
       return true;
     } catch (_) {
-      setState(() {
-        _saveErrorMessage = '保存失败，请重试';
-      });
+      setState(() => _saveErrorMessage = '保存失败，请重试');
       return false;
     }
   }
 }
 
-/// 保存意图类。
-///
-/// 用于处理键盘快捷键（Ctrl/Cmd + S）触发的保存操作。
 class _SaveIntent extends Intent {
   const _SaveIntent();
 }
 
-/// 生成唯一的笔记 ID。
-///
-/// 使用 UUID v4 生成全局唯一标识符，用于新卡片的 ID。
 String generateNoteId() => _EditorPageState._uuid.v4();
 
-/// 退出编辑决策枚举。
-///
-/// 用户在离开编辑确认弹窗中的选择。
 enum _ExitDecision { save, discard, cancel }

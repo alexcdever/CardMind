@@ -109,6 +109,38 @@ class PoolController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 从后端恢复当前端点已加入的数据池视图。
+  Future<void> loadJoinedPoolView() async {
+    if (_state is! PoolNotJoined) {
+      return;
+    }
+
+    try {
+      final view = await _apiClient.getJoinedPoolView();
+      if (view == null) {
+        return;
+      }
+      _noticeMessage = null;
+      _state = PoolState.joined(
+        poolId: view.poolId,
+        isDissolved: view.isDissolved,
+        poolName: view.poolName,
+        isOwner: view.isOwner,
+        currentIdentityLabel: view.currentIdentityLabel,
+        memberLabels: view.memberLabels,
+        pending: _pendingFromApi(view.joinRequests),
+      );
+      notifyListeners();
+      await refreshRuntimeView();
+    } on ApiError catch (error) {
+      _noticeMessage = error.message;
+      notifyListeners();
+    } catch (_) {
+      _noticeMessage = '数据池状态加载失败，请稍后重试';
+      notifyListeners();
+    }
+  }
+
   /// 创建新的数据池。
   Future<void> createPool() async {
     final result = await _apiClient.createPool();

@@ -2,6 +2,7 @@
 // output: 展示未保存确认弹窗，并覆盖放弃更改后退出编辑页路径。
 // pos: 覆盖编辑页离开保护与基础编辑控件可见性，防止误退丢稿。修改本文件需同步更新文件头与所属 DIR.md。
 import 'package:cardmind/features/editor/editor_page.dart';
+import 'package:cardmind/features/editor/editor_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,33 @@ void main() {
     expect(find.byType(TextField), findsNWidgets(2));
     expect(find.text('标题'), findsOneWidget);
     expect(find.text('内容'), findsOneWidget);
+  });
+
+  testWidgets('initial draft populates fields and save returns edited draft', (
+    tester,
+  ) async {
+    EditorDraft? saved;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EditorPage(
+          initialDraft: const EditorDraft(title: '既有标题', body: '既有正文'),
+          onSaved: (draft) {
+            saved = draft;
+          },
+        ),
+      ),
+    );
+
+    expect(find.widgetWithText(TextField, '既有标题'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '既有正文'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).first, '更新标题');
+    await tester.enterText(find.byType(TextField).last, '更新正文');
+    await tester.tap(find.byKey(const ValueKey('editor.save_button')));
+    await tester.pumpAndSettle();
+
+    expect(saved?.title, '更新标题');
+    expect(saved?.body, '更新正文');
   });
 
   testWidgets('discard exits editor page', (tester) async {

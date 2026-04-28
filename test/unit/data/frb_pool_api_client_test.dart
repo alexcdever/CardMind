@@ -19,4 +19,19 @@ void main() {
       );
     },
   );
+
+  test('frb client createInvite requires runtime network', () async {
+    final client = FrbPoolApiClient(nickname: 'tester', os: 'macos');
+
+    await expectLater(
+      client.createInvite('pool-1'),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('runtime network'),
+        ),
+      ),
+    );
+  });
 }

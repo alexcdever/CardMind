@@ -11,6 +11,7 @@ library pool_page;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cardmind/app/theme/cardmind_colors.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
@@ -47,6 +48,7 @@ class PoolPage extends StatefulWidget {
     this.onReturnToPoolTab,
     this.autoJoinCode,
     this.autoCreatePool = false,
+    this.autoLoadJoinedPool = false,
     this.debugExportInvitePath,
     this.debugStatusExportPath,
     this.debugPrintInvite = false,
@@ -74,6 +76,9 @@ class PoolPage extends StatefulWidget {
 
   /// 调试用自动创建池开关，仅在显式注入时使用。
   final bool autoCreatePool;
+
+  /// 首屏是否尝试从后端恢复当前端点已加入的数据池。
+  final bool autoLoadJoinedPool;
 
   /// 调试用 invite 导出路径，仅在显式注入时使用。
   final String? debugExportInvitePath;
@@ -126,6 +131,7 @@ class _PoolPageState extends State<PoolPage> {
   @override
   void initState() {
     super.initState();
+    _maybeLoadJoinedPool();
     _maybeAutoJoin();
     _maybePrintInviteDebug();
     _maybeExportInvite();
@@ -146,6 +152,18 @@ class _PoolPageState extends State<PoolPage> {
     _maybePrintInviteDebug();
     _maybeExportInvite();
     _maybeExportState();
+  }
+
+  void _maybeLoadJoinedPool() {
+    if (!widget.autoLoadJoinedPool) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(_controller.loadJoinedPoolView());
+    });
   }
 
   void _maybeAutoJoin() {

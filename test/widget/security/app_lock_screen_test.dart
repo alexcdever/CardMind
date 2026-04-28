@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _ScreenGateway implements AppLockGateway {
   (bool, bool) status = (false, true);
+  String? setupPinValue;
 
   @override
   Future<(bool, bool)> appLockStatus() async => status;
@@ -23,6 +24,7 @@ class _ScreenGateway implements AppLockGateway {
     required String pin,
     required bool allowBiometric,
   }) async {
+    setupPinValue = pin;
     status = (true, true);
   }
 
@@ -45,8 +47,38 @@ void main() {
       ),
     );
 
-    expect(find.text('先设置应用锁'), findsOneWidget);
+    expect(find.text('设置应用锁'), findsOneWidget);
     expect(find.text('设置并继续'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('app_lock.confirm_pin_field')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('setup requires matching pin confirmation', (tester) async {
+    final gateway = _ScreenGateway();
+    final service = AppLockService(gateway: gateway);
+    await service.refresh();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppLockScreen(service: service, onUnlocked: () {}),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('app_lock.pin_field')),
+      '1234',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('app_lock.confirm_pin_field')),
+      '5678',
+    );
+    await tester.tap(find.byKey(const ValueKey('app_lock.submit_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('两次输入的数字密码不一致'), findsOneWidget);
+    expect(gateway.setupPinValue, isNull);
   });
 
   testWidgets('submitting pin from locked state unlocks app', (tester) async {

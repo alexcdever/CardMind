@@ -190,6 +190,72 @@ async fn it_should_join_by_invite_code_and_sync_card_crud() -> Result<(), Box<dy
 }
 
 #[tokio::test]
+async fn it_should_retry_invite_after_approval_and_receive_snapshots()
+-> Result<(), Box<dyn std::error::Error>> {
+    let (endpoint_a, endpoint_b) = build_test_endpoints().await?;
+    let dir_a = tempdir()?;
+    let dir_b = tempdir()?;
+
+    let pool_store_a = PoolStore::new(dir_a.path().to_string_lossy().as_ref())?;
+    let card_store_a = CardNoteRepository::new(dir_a.path().to_string_lossy().as_ref())?;
+    let pool_store_b = PoolStore::new(dir_b.path().to_string_lossy().as_ref())?;
+    let card_store_b = CardNoteRepository::new(dir_b.path().to_string_lossy().as_ref())?;
+
+    let endpoint_id_a = endpoint_a.endpoint_id().to_string();
+    let pool = pool_store_a.create_pool(&endpoint_id_a, "nick_a", "os_a")?;
+    let card = card_store_a.create_card("approved-title", "approved-content")?;
+    let _pool = pool_store_a.attach_note_references(&pool.pool_id, vec![card.id])?;
+
+    let net_a = PoolNetwork::new(endpoint_a, pool_store_a, card_store_a);
+    let net_b = PoolNetwork::new(endpoint_b, pool_store_b, card_store_b);
+    net_a.start().await?;
+    net_b.start().await?;
+
+    let (invite_id, invite_code) = net_a.create_invite_code(&pool.pool_id)?;
+    let owner_store = PoolStore::new(dir_a.path().to_string_lossy().as_ref())?;
+    let _invite_record =
+        owner_store.record_invite(&pool.pool_id, invite_id, &invite_code, &endpoint_id_a)?;
+
+    let first_join_result = net_b
+        .request_join_and_sync(&invite_code, "nick_b", "os_b")
+        .await?;
+    let request_id = match first_join_result {
+        InviteJoinResult::Pending {
+            pool_id,
+            request_id,
+            ..
+        } => {
+            assert_eq!(pool_id, pool.pool_id);
+            request_id
+        }
+        InviteJoinResult::Joined(_) => panic!("first invite join should wait for approval"),
+    };
+    let _approved_pool =
+        owner_store.approve_join_request(&pool.pool_id, &request_id, &endpoint_id_a)?;
+
+    let second_join_result = net_b
+        .request_join_and_sync(&invite_code, "nick_b", "os_b")
+        .await?;
+
+    match second_join_result {
+        InviteJoinResult::Joined(joined_pool) => {
+            assert_eq!(joined_pool.pool_id, pool.pool_id);
+            assert!(joined_pool.card_ids.contains(&card.id));
+        }
+        InviteJoinResult::Pending { .. } => {
+            panic!("approved invite retry should return joined pool snapshot");
+        }
+    }
+
+    let synced_card = net_b.get_card(&card.id)?;
+    assert_eq!(synced_card.title, "approved-title");
+    assert_eq!(synced_card.content, "approved-content");
+    assert!(!synced_card.deleted);
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn it_should_sync_card_created_via_store_after_invite_join()
 -> Result<(), Box<dyn std::error::Error>> {
     let (endpoint_a, endpoint_b) = build_test_endpoints().await?;
