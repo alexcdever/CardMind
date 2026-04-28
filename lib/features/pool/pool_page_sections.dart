@@ -268,6 +268,13 @@ class _PoolJoinedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final desktop = switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      _ => false,
+    };
+
     final syncFeedback = buildPoolSyncFeedback(
       context: context,
       status: syncStatus,
@@ -277,6 +284,10 @@ class _PoolJoinedView extends StatelessWidget {
 
     final runtimeView = controller.runtimeView;
     final memberCount = runtimeView?.members.length ?? 0;
+
+    if (desktop) {
+      return _buildDesktop(context, syncFeedback, runtimeView, memberCount);
+    }
 
     return Scaffold(
       backgroundColor: CardMindColors.bgCanvas,
@@ -408,6 +419,193 @@ class _PoolJoinedView extends StatelessWidget {
                 const Text(
                   '待审批请求',
                   style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                for (final request in state.pending)
+                  _PendingRequestTile(
+                    request: request,
+                    isOwner: state.isOwner,
+                    controller: controller,
+                  ),
+              ],
+              if (state.isOwner)
+                _InvitePanel(
+                  stateInviteCode: state.inviteCode,
+                  runtimeView: runtimeView,
+                  onCreateInvite: () => controller.createInvite(),
+                  onRevokeInvite: (inviteId) =>
+                      controller.revokeInvite(inviteId),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktop(
+    BuildContext context,
+    Widget? syncFeedback,
+    PoolRuntimeViewData? runtimeView,
+    int memberCount,
+  ) {
+    return Scaffold(
+      backgroundColor: CardMindColors.bgCanvas,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(34, 22, 34, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              syncFeedback ?? const SizedBox.shrink(),
+              StyledSearchField(
+                hintText: '搜索成员设备...',
+                focusNode: FocusNode(),
+                semanticId: 'pool.desktop_member_search',
+                semanticLabel: '搜索成员设备',
+                onChanged: (_) {},
+              ),
+              const SizedBox(height: 18),
+              Text(
+                '数据池 / ${state.poolName}',
+                style: const TextStyle(
+                  color: CardMindColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          state.poolName,
+                          style: const TextStyle(
+                            color: CardMindColors.textPrimary,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '$memberCount 台设备已加入',
+                          style: const TextStyle(
+                            color: CardMindColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  if (state.isOwner && !state.isDissolved)
+                    Row(
+                      children: [
+                        Semantics(
+                          container: true,
+                          explicitChildNodes: true,
+                          identifier: SemanticIds.poolEditButton,
+                          label: '编辑池信息',
+                          button: true,
+                          child: OutlinedButton(
+                            key: const ValueKey('pool.edit_button'),
+                            onPressed: onEditPool,
+                            child: const Text('编辑池信息'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Semantics(
+                          container: true,
+                          explicitChildNodes: true,
+                          identifier: SemanticIds.poolDissolveButton,
+                          label: '解散池',
+                          button: true,
+                          child: OutlinedButton(
+                            key: const ValueKey('pool.dissolve_button'),
+                            onPressed: onConfirmDissolve,
+                            child: const Text('解散池'),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+              if (state.isDissolved)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    '该数据池已解散，当前为只读状态',
+                    style: TextStyle(
+                      color: CardMindColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              if (state.isDissolved)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    identifier: SemanticIds.poolLeaveButton,
+                    label: '退出池',
+                    button: true,
+                    child: OutlinedButton(
+                      key: const ValueKey('pool.leave_button'),
+                      onPressed: onConfirmLeave,
+                      child: const Text('退出池'),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 14),
+              if (noticeMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(noticeMessage!),
+                ),
+              const SizedBox(height: 6),
+              const Text(
+                '成员设备',
+                style: TextStyle(
+                  color: CardMindColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (runtimeView != null)
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: [
+                    for (final member in runtimeView.members)
+                      SizedBox(
+                        width: 280,
+                        child: _RuntimeMemberTile(member: member),
+                      ),
+                  ],
+                ),
+              if (runtimeView != null && runtimeView.members.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    '暂无成员设备',
+                    style: TextStyle(
+                      color: CardMindColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              if (state.pending.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                const Text(
+                  '待审批请求',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
                 ),
                 for (final request in state.pending)
                   _PendingRequestTile(

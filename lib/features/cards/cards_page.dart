@@ -302,81 +302,131 @@ class _CardsPageState extends State<CardsPage> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Semantics(
-          container: true,
-          explicitChildNodes: true,
-          identifier: SemanticIds.cardsDesktopEditorTitleInput,
-          label: '桌面编辑标题输入框',
-          textField: true,
-          child: TextField(
-            key: const ValueKey('cards.desktop_editor.title_input'),
-            controller: session.titleController,
-            style: const TextStyle(
-              color: CardMindColors.textPrimary,
-              fontSize: 37,
-              fontWeight: FontWeight.w800,
-            ),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              hintText: '标题',
-            ),
-            onChanged: (_) {
-              setState(() => session.dirty = true);
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          '更新于 2026.04.24',
-          style: TextStyle(
-            color: Color(0xFF6E8183),
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: Semantics(
-            container: true,
-            explicitChildNodes: true,
-            identifier: SemanticIds.cardsDesktopEditorBodyInput,
-            label: '桌面编辑内容输入框',
-            textField: true,
-            child: TextField(
-              key: const ValueKey('cards.desktop_editor.body_input'),
-              controller: session.bodyController,
-              expands: true,
-              maxLines: null,
-              textAlignVertical: TextAlignVertical.top,
-              style: const TextStyle(
-                color: Color(0xFF344B4E),
-                fontSize: 15,
-                height: 1.55,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: '输入卡片内容',
-              ),
-              onChanged: (_) {
-                setState(() => session.dirty = true);
-              },
-            ),
-          ),
-        ),
         const SizedBox(height: 12),
-        Semantics(
-          container: true,
-          explicitChildNodes: true,
-          identifier: SemanticIds.cardsDesktopEditorSaveButton,
-          label: '保存桌面编辑卡片',
-          button: true,
-          child: SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              key: const ValueKey('cards.desktop_editor.save_button'),
-              onPressed: _saveDesktopSession,
-              child: const Text('保存'),
+        Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: CardMindColors.brandMutedBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Row(
+            children: [
+              Text(
+                'B',
+                style: TextStyle(
+                  color: Color(0xFF223233),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(width: 18),
+              Text(
+                'I',
+                style: TextStyle(
+                  color: Color(0xFF223233),
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              SizedBox(width: 18),
+              Icon(
+                Icons.format_quote,
+                size: 14,
+                color: Color(0xFF223233),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: CardMindColors.bgSurface,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.fromLTRB(44, 42, 44, 34),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  container: true,
+                  explicitChildNodes: true,
+                  identifier: SemanticIds.cardsDesktopEditorTitleInput,
+                  label: '桌面编辑标题输入框',
+                  textField: true,
+                  child: TextField(
+                    key: const ValueKey('cards.desktop_editor.title_input'),
+                    controller: session.titleController,
+                    style: const TextStyle(
+                      color: CardMindColors.textPrimary,
+                      fontSize: 37,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      hintText: '标题',
+                    ),
+                    onChanged: (_) {
+                      setState(() => session.dirty = true);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '更新于 2026.04.24',
+                  style: TextStyle(
+                    color: Color(0xFF6E8183),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    identifier: SemanticIds.cardsDesktopEditorBodyInput,
+                    label: '桌面编辑内容输入框',
+                    textField: true,
+                    child: TextField(
+                      key: const ValueKey('cards.desktop_editor.body_input'),
+                      controller: session.bodyController,
+                      expands: true,
+                      maxLines: null,
+                      textAlignVertical: TextAlignVertical.top,
+                      style: const TextStyle(
+                        color: Color(0xFF344B4E),
+                        fontSize: 15,
+                        height: 1.55,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '输入卡片内容',
+                      ),
+                      onChanged: (_) {
+                        setState(() => session.dirty = true);
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Semantics(
+                  container: true,
+                  explicitChildNodes: true,
+                  identifier: SemanticIds.cardsDesktopEditorSaveButton,
+                  label: '保存桌面编辑卡片',
+                  button: true,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      key: const ValueKey('cards.desktop_editor.save_button'),
+                      onPressed: _saveDesktopSession,
+                      child: const Text('保存'),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
