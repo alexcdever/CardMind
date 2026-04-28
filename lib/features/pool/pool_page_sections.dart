@@ -15,12 +15,23 @@ class _PoolNotJoinedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final desktop = switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      _ => false,
+    };
+
     final syncFeedback = buildPoolSyncFeedback(
       context: context,
       status: syncStatus,
       onRetrySync: controller.retrySync,
       onReconnectSync: controller.reconnectSync,
     );
+
+    if (desktop) {
+      return _buildDesktop(context, syncFeedback);
+    }
 
     return Scaffold(
       backgroundColor: CardMindColors.bgCanvas,
@@ -89,6 +100,132 @@ class _PoolNotJoinedView extends StatelessWidget {
               if (noticeMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    noticeMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: CardMindColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktop(BuildContext context, Widget? syncFeedback) {
+    return Scaffold(
+      backgroundColor: CardMindColors.bgCanvas,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(34, 26, 34, 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              syncFeedback ?? const SizedBox.shrink(),
+              StyledSearchField(
+                hintText: '搜索数据池...',
+                focusNode: FocusNode(),
+                semanticId: 'pool.desktop_search',
+                semanticLabel: '搜索数据池',
+                onChanged: (_) {},
+              ),
+              const SizedBox(height: 24),
+              const _SoftLabel(text: '初始配置'),
+              const SizedBox(height: 18),
+              const Text(
+                '设置数据池',
+                style: TextStyle(
+                  color: CardMindColors.textPrimary,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '选择创建新数据池，或使用邀请加入已有数据池。',
+                style: TextStyle(
+                  color: CardMindColors.textSecondary,
+                  fontSize: 15,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _PoolSetupCard(
+                        icon: Icons.add,
+                        title: '创建数据池',
+                        body: '创建一个新的数据池，用于组织本设备与其他设备之间的笔记同步。',
+                        actionLabel: '开始 →',
+                        onPressed: controller.joining
+                            ? null
+                            : controller.createPool,
+                        semanticIdentifier: SemanticIds.poolCreateButton,
+                        semanticLabel: '创建数据池',
+                        filled: true,
+                      ),
+                    ),
+                    const SizedBox(width: 28),
+                    Expanded(
+                      child: _PoolSetupCard(
+                        icon: Icons.link,
+                        title: '加入数据池',
+                        body: '使用邀请字符串加入已有数据池。',
+                        actionLabel: '立即连接 →',
+                        onPressed: controller.joining ? null : onScanJoin,
+                        semanticIdentifier: SemanticIds.poolJoinScanButton,
+                        semanticLabel: '加入数据池',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '数据池就绪',
+                    style: TextStyle(
+                      color: CardMindColors.brand,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    '本地优先',
+                    style: TextStyle(
+                      color: CardMindColors.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (controller.joining)
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: Text(
+                    '请求处理中...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: CardMindColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              if (noticeMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
                   child: Text(
                     noticeMessage!,
                     textAlign: TextAlign.center,
