@@ -139,6 +139,7 @@ class _PoolJoinedView extends StatelessWidget {
     );
 
     final runtimeView = controller.runtimeView;
+    final memberCount = runtimeView?.members.length ?? 0;
 
     return Scaffold(
       backgroundColor: CardMindColors.bgCanvas,
@@ -158,7 +159,7 @@ class _PoolJoinedView extends StatelessWidget {
                     label: const Text('返回数据池Tab'),
                   ),
                 ),
-              const _PoolBrandHeader(),
+              const _PoolMembersHeader(),
               const SizedBox(height: 18),
               const Text(
                 '数据池成员',
@@ -168,118 +169,116 @@ class _PoolJoinedView extends StatelessWidget {
                   color: CardMindColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                state.poolName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
+              const SizedBox(height: 8),
+              const Text(
                 '查看已加入此数据池的设备与成员。',
-                style: const TextStyle(
+                style: TextStyle(
                   color: CardMindColors.textSecondary,
                   fontSize: 12,
+                  height: 1.4,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               if (noticeMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(noticeMessage!),
                 ),
-              if (state.isDissolved)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: Text('该数据池已解散，当前为只读状态'),
-                ),
-              if (state.isOwner && !state.isDissolved)
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    Semantics(
-                      container: true,
-                      explicitChildNodes: true,
-                      identifier: SemanticIds.poolEditButton,
-                      label: '编辑池信息',
-                      button: true,
-                      child: OutlinedButton(
-                        key: const ValueKey('pool.edit_button'),
-                        onPressed: onEditPool,
-                        child: const Text('编辑池信息'),
-                      ),
-                    ),
-                    Semantics(
-                      container: true,
-                      explicitChildNodes: true,
-                      identifier: SemanticIds.poolDissolveButton,
-                      label: '解散池',
-                      button: true,
-                      child: OutlinedButton(
-                        key: const ValueKey('pool.dissolve_button'),
-                        onPressed: onConfirmDissolve,
-                        child: const Text('解散池'),
-                      ),
-                    ),
-                  ],
-                ),
-              Semantics(
-                container: true,
-                explicitChildNodes: true,
-                identifier: SemanticIds.poolLeaveButton,
-                label: '退出池',
-                button: true,
-                child: OutlinedButton(
-                  key: const ValueKey('pool.leave_button'),
-                  onPressed: state.isDissolved ? null : onConfirmLeave,
-                  child: const Text('退出池'),
-                ),
+              _PoolCollectiveCard(
+                poolName: state.poolName,
+                memberCount: memberCount,
+                isDissolved: state.isDissolved,
+                isOwner: state.isOwner,
+                onLeave: onConfirmLeave,
               ),
-              if (state.pending.isNotEmpty)
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(0, 12, 0, 4),
-                  child: Text('待审批请求'),
-                ),
-              for (final request in state.pending)
-                _PendingRequestTile(
-                  request: request,
-                  isOwner: state.isOwner,
-                  controller: controller,
-                ),
-              _InfoPanel(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('我的身份: ${state.currentIdentityLabel}'),
-                    const SizedBox(height: 10),
-                    const Text(
-                      '成员列表',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 8),
-                    for (var i = 0; i < state.memberLabels.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Text('${i + 1}. ${state.memberLabels[i]}'),
-                      ),
-                  ],
-                ),
+              const SizedBox(height: 18),
+              _PoolMetricCard(
+                icon: Icons.devices_other,
+                value: '$memberCount 台',
+                label: '成员设备',
               ),
-              const SizedBox(height: 16),
-              _SummaryStrip(
-                runtimeView: runtimeView,
-                loading: controller.runtimeViewLoading,
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
+              const _MembersSectionHead(),
               if (runtimeView != null)
                 for (final member in runtimeView.members)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: _RuntimeMemberTile(member: member),
                   ),
+              if (runtimeView != null && runtimeView.members.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    '暂无成员设备',
+                    style: TextStyle(
+                      color: CardMindColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              if (state.isOwner && !state.isDissolved)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    children: [
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolEditButton,
+                        label: '编辑池信息',
+                        button: true,
+                        child: OutlinedButton(
+                          key: const ValueKey('pool.edit_button'),
+                          onPressed: onEditPool,
+                          child: const Text('编辑池信息'),
+                        ),
+                      ),
+                      Semantics(
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.poolDissolveButton,
+                        label: '解散池',
+                        button: true,
+                        child: OutlinedButton(
+                          key: const ValueKey('pool.dissolve_button'),
+                          onPressed: onConfirmDissolve,
+                          child: const Text('解散池'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (state.isDissolved)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    identifier: SemanticIds.poolLeaveButton,
+                    label: '退出池',
+                    button: true,
+                    child: OutlinedButton(
+                      key: const ValueKey('pool.leave_button'),
+                      onPressed: onConfirmLeave,
+                      child: const Text('退出池'),
+                    ),
+                  ),
+                ),
+              if (state.pending.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                const Text(
+                  '待审批请求',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                for (final request in state.pending)
+                  _PendingRequestTile(
+                    request: request,
+                    isOwner: state.isOwner,
+                    controller: controller,
+                  ),
+              ],
               if (state.isOwner)
                 _InvitePanel(
                   stateInviteCode: state.inviteCode,
@@ -289,6 +288,221 @@ class _PoolJoinedView extends StatelessWidget {
                       controller.revokeInvite(inviteId),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PoolMembersHeader extends StatelessWidget {
+  const _PoolMembersHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Icon(Icons.grid_view_rounded, size: 14, color: CardMindColors.brand),
+        SizedBox(width: 8),
+        Text(
+          'Card Mind',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 14,
+            color: CardMindColors.brand,
+          ),
+        ),
+        Spacer(),
+        Text(
+          '数据池',
+          style: TextStyle(
+            color: CardMindColors.textPrimary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PoolCollectiveCard extends StatelessWidget {
+  const _PoolCollectiveCard({
+    required this.poolName,
+    required this.memberCount,
+    required this.isDissolved,
+    required this.isOwner,
+    required this.onLeave,
+  });
+
+  final String poolName;
+  final int memberCount;
+  final bool isDissolved;
+  final bool isOwner;
+  final VoidCallback onLeave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFCFF6EE),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '数据池已创建',
+            style: TextStyle(
+              color: CardMindColors.brand,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            poolName,
+            style: const TextStyle(
+              color: CardMindColors.textPrimary,
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$memberCount 台设备已加入',
+            style: const TextStyle(
+              color: CardMindColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: CardMindColors.brand,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '离线',
+                      style: TextStyle(
+                        color: CardMindColors.textOnBrand,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Semantics(
+                  container: true,
+                  explicitChildNodes: true,
+                  identifier: SemanticIds.poolLeaveButton,
+                  label: '退出池',
+                  button: true,
+                  child: GestureDetector(
+                    onTap: isDissolved ? null : onLeave,
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: CardMindColors.bgCanvas,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        '退出池',
+                        style: TextStyle(
+                          color: CardMindColors.textPrimary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PoolMetricCard extends StatelessWidget {
+  const _PoolMetricCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(
+        color: CardMindColors.brandMutedBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 30, color: CardMindColors.brand),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: CardMindColors.textPrimary,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: CardMindColors.textSecondary,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MembersSectionHead extends StatelessWidget {
+  const _MembersSectionHead();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 4),
+      child: SizedBox(
+        height: 24,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            '成员设备',
+            style: TextStyle(
+              color: CardMindColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ),
@@ -442,97 +656,61 @@ class _InfoPanel extends StatelessWidget {
   }
 }
 
-class _IconBlock extends StatelessWidget {
-  const _IconBlock({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: const Color(0xFFBDF1E7),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(9),
-        child: Icon(icon, color: const Color(0xFF087B78)),
-      ),
-    );
-  }
-}
-
-class _SummaryStrip extends StatelessWidget {
-  const _SummaryStrip({required this.runtimeView, required this.loading});
-
-  final PoolRuntimeViewData? runtimeView;
-  final bool loading;
-
-  @override
-  Widget build(BuildContext context) {
-    final summary = runtimeView?.summary;
-    return Row(
-      children: [
-        Expanded(
-          child: _MetricTile(
-            label: 'ACTIVE NODES',
-            value: loading ? '...' : summary?.memberCountText ?? '0 nodes',
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _MetricTile(
-            label: 'SYNC STATE',
-            value: loading ? '...' : summary?.runtimeStatusText ?? 'unknown',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF5F7274),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _RuntimeMemberTile extends StatelessWidget {
   const _RuntimeMemberTile({required this.member});
 
   final PoolMemberRuntimeData member;
 
+  Color _avatarColor() {
+    return switch (member.status) {
+      'connected' || 'syncing' => const Color(0xFFE1F3F0),
+      'disconnected' => const Color(0xFFE5EAEA),
+      _ => const Color(0xFFF0F4F4),
+    };
+  }
+
+  Color _nameColor() {
+    return member.status == 'disconnected'
+        ? const Color(0xFF6E8183)
+        : CardMindColors.textPrimary;
+  }
+
+  Color _metaColor() {
+    return member.status == 'disconnected'
+        ? CardMindColors.textMuted
+        : CardMindColors.textSecondary;
+  }
+
+  Color _statusColor() {
+    return member.status == 'disconnected'
+        ? CardMindColors.textMuted
+        : CardMindColors.brand;
+  }
+
+  Color _bgColor() {
+    return member.status == 'disconnected'
+        ? CardMindColors.brandMutedBg
+        : CardMindColors.bgSurface;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _InfoPanel(
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _bgColor(),
+        borderRadius: BorderRadius.circular(10),
+      ),
       child: Row(
         children: [
-          _IconBlock(icon: Icons.devices_other),
+          Container(
+            width: 36,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _avatarColor(),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -540,20 +718,33 @@ class _RuntimeMemberTile extends StatelessWidget {
               children: [
                 Text(
                   member.nickname,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: _nameColor(),
+                  ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
-                  '${member.os} · ${member.role} · ${member.endpointId}',
-                  style: const TextStyle(
-                    color: Color(0xFF5F7274),
-                    fontSize: 12,
+                  member.isCurrentDevice
+                      ? '${member.os} · 本地设备 · 你'
+                      : '${member.os} · ${member.role}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _metaColor(),
                   ),
                 ),
               ],
             ),
           ),
-          _SoftLabel(text: member.status.toUpperCase()),
+          Text(
+            member.status.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: _statusColor(),
+            ),
+          ),
         ],
       ),
     );
