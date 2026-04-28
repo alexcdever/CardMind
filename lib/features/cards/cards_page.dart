@@ -140,7 +140,7 @@ class _CardsPageState extends State<CardsPage> {
   Widget _buildMobileLayout(List<CardSummary> notes) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -172,13 +172,13 @@ class _CardsPageState extends State<CardsPage> {
                 unawaited(_effectiveController.load(query: value));
               },
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 18),
             Expanded(child: _buildNotesList(notes)),
+            const SizedBox(height: 8),
             BottomNav(
               currentSection: 'cards',
               onSectionChanged: (_) {},
             ),
-            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -203,6 +203,7 @@ class _CardsPageState extends State<CardsPage> {
                   focusNode: _searchFocusNode,
                   semanticId: SemanticIds.cardsSearchInput,
                   semanticLabel: '搜索卡片',
+                  compact: true,
                   onChanged: (value) {
                     unawaited(_effectiveController.load(query: value));
                   },
@@ -241,6 +242,7 @@ class _CardsPageState extends State<CardsPage> {
                 title: note.title,
                 body: note.deleted ? '' : note.title,
                 selected: _desktopSession?.selectedId == note.id,
+                compact: desktop,
                 onTap: desktop
                     ? () => _handleDesktopSelection(note)
                     : () => _handleMobileSelection(note),
@@ -320,7 +322,7 @@ class _CardsPageState extends State<CardsPage> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              SizedBox(width: 18),
+              SizedBox(width: 16),
               Text(
                 'I',
                 style: TextStyle(
@@ -329,9 +331,15 @@ class _CardsPageState extends State<CardsPage> {
                   fontStyle: FontStyle.italic,
                 ),
               ),
-              SizedBox(width: 18),
+              SizedBox(width: 16),
               Icon(
                 Icons.format_quote,
+                size: 14,
+                color: Color(0xFF223233),
+              ),
+              SizedBox(width: 16),
+              Icon(
+                Icons.link,
                 size: 14,
                 color: Color(0xFF223233),
               ),

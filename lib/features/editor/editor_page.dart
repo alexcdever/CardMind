@@ -154,7 +154,9 @@ class _EditorPageState extends State<EditorPage> {
               Navigator.of(context).pop();
             },
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              width: 60,
+              height: 30,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: CardMindColors.brand,
                 borderRadius: BorderRadius.circular(CardMindRadii.sm),
@@ -211,7 +213,7 @@ class _EditorPageState extends State<EditorPage> {
           Text(
             'B',
             style: TextStyle(
-              color: CardMindColors.textPrimary,
+              color: Color(0xFF223233),
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
@@ -220,13 +222,13 @@ class _EditorPageState extends State<EditorPage> {
           Text(
             'I',
             style: TextStyle(
-              color: CardMindColors.textPrimary,
+              color: Color(0xFF223233),
               fontSize: 13,
               fontStyle: FontStyle.italic,
             ),
           ),
           SizedBox(width: 18),
-          Icon(Icons.format_quote, size: 14, color: CardMindColors.textPrimary),
+          Icon(Icons.format_quote, size: 14, color: Color(0xFF223233)),
         ],
       ),
     );

@@ -10,6 +10,7 @@ class StyledSearchField extends StatelessWidget {
     this.focusNode,
     this.semanticId,
     this.semanticLabel,
+    this.compact = false,
   });
 
   final String hintText;
@@ -17,9 +18,13 @@ class StyledSearchField extends StatelessWidget {
   final FocusNode? focusNode;
   final String? semanticId;
   final String? semanticLabel;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final fillColor = compact ? CardMindColors.bgInput : CardMindColors.bgCanvas;
+    final borderRadius = compact ? CardMindRadii.sm : CardMindRadii.md;
+
     return Semantics(
       container: true,
       explicitChildNodes: true,
@@ -31,7 +36,7 @@ class StyledSearchField extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hintText,
           filled: true,
-          fillColor: CardMindColors.bgInput,
+          fillColor: fillColor,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           prefixIcon: const Icon(
             Icons.search,
@@ -40,7 +45,7 @@ class StyledSearchField extends StatelessWidget {
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 30, minHeight: 14),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(CardMindRadii.sm),
+            borderRadius: BorderRadius.circular(borderRadius),
             borderSide: BorderSide.none,
           ),
           hintStyle: const TextStyle(

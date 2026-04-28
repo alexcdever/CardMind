@@ -55,6 +55,9 @@ rust/lcov.info
 # Test boundary scanner reports
 tmp/
 
+# Brainstorming visual companion files
+.superpowers/
+
 # Local agent private context
 AGENT.local.md
 .gitnexus

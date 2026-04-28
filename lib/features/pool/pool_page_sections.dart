@@ -84,6 +84,7 @@ class _PoolNotJoinedView extends StatelessWidget {
                 onPressed: controller.joining ? null : onScanJoin,
                 semanticIdentifier: SemanticIds.poolJoinScanButton,
                 semanticLabel: '加入数据池',
+                filled: false,
               ),
               if (controller.joining)
                 const Padding(
@@ -183,6 +184,7 @@ class _PoolNotJoinedView extends StatelessWidget {
                         onPressed: controller.joining ? null : onScanJoin,
                         semanticIdentifier: SemanticIds.poolJoinScanButton,
                         semanticLabel: '加入数据池',
+                        filled: false,
                       ),
                     ),
                   ],

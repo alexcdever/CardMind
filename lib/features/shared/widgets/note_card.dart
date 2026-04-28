@@ -11,6 +11,7 @@ class NoteCard extends StatelessWidget {
     this.selected = false,
     this.onTap,
     this.tagColor,
+    this.compact = false,
   });
 
   final String tag;
@@ -19,10 +20,13 @@ class NoteCard extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
   final Color? tagColor;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final bg = selected ? CardMindColors.bgSurface : CardMindColors.bgCanvas;
+    final unselectedBg =
+        compact ? CardMindColors.bgSubtle : CardMindColors.bgCanvas;
+    final bg = selected ? CardMindColors.bgSurface : unselectedBg;
     final border = selected
         ? const Border(
             left: BorderSide(
@@ -31,15 +35,19 @@ class NoteCard extends StatelessWidget {
             ),
           )
         : null;
+    final cardPadding = EdgeInsets.all(compact ? 14 : 16);
+    final cardRadius = compact ? CardMindRadii.md : CardMindRadii.lg;
+    final titleSize = compact ? 14.0 : 15.0;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        key: const ValueKey('note_card.container'),
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: cardPadding,
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(CardMindRadii.lg),
+          borderRadius: BorderRadius.circular(cardRadius),
           border: border,
         ),
         child: Column(
@@ -56,9 +64,9 @@ class NoteCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 color: CardMindColors.textPrimary,
-                fontSize: 15,
+                fontSize: titleSize,
                 fontWeight: FontWeight.w800,
                 height: 1.25,
               ),

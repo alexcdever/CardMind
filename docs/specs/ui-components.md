@@ -19,7 +19,6 @@
 **规则**:
 - 品牌图标固定为 `Icons.grid_view_rounded`，颜色 `brand`
 - 品牌文字固定为 "Card Mind"，14px w800，颜色 `brand`
-- Header 高度固定为 30px
 
 ### 2. DesktopSidebar（桌面侧栏）
 
@@ -35,7 +34,7 @@
 
 **状态**:
 - 活跃导航项：白色背景(`bg-surface`)，文字/图标 brand 色
-- 非活跃导航项：透明背景，文字/图标 `text-primary`
+- 非活跃导航项：透明背景，文字/图标 `text-secondary` 色
 
 **内边距**: `[26, 12, 24, 12]` (上,右,下,左)
 
@@ -46,7 +45,7 @@
 **结构**: 水平居中，高度 64px，背景 `bg-canvas`，圆角 14px
 - 「笔记」项：78×44px，notebook 图标 + 文字
 - 「数据池」项：78×44px，network 图标 + 文字
-- 两项间距 42px
+- 两项使用 spaceEvenly 水平居中分布，视觉间距约 42px
 
 **状态**:
 - 活跃项：`brand-light-bg` 背景，图标 + 文字 brand 色
@@ -62,30 +61,32 @@
 
 **结构**: 垂直布局
 1. 标签文字（10px w800，brand 色或 muted 色）
-2. 标题（15px w800，行高 1.25）
+2. 标题（移动端 15px w800 / 桌面端 14px w800，行高 1.25）
 3. 正文摘要（11px，行高 1.35，`text-secondary`）
 
 **状态**:
-| 状态 | 背景色 | 特征 |
-|---|---|---|
-| 普通(桌面) | `bg-subtle` | r10, padding 14 |
-| 选中(桌面) | `bg-surface` | r10, padding 14, 左边框 3px brand |
-| 普通(移动) | `bg-canvas` | r12, padding 16 或 vertical 10 |
-| 选中(移动) | `bg-surface` | r12, padding 16 |
+- 选中态：`bg-surface` 背景，左边框 3px brand（桌面端）
+- 非选中态：移动端 `bg-canvas` / 桌面端 `bg-subtle`
+- 圆角：r12（移动端）/ r10（桌面端）
+- 内边距：16px（移动端）/ 14px（桌面端）
+
+**参数**:
+- `compact`: `false`（移动端默认）使用移动端规格；`true`（桌面端）使用小型化规格
+- `selected`: 控制选中态样式
+- `tagColor`: 可覆盖标签颜色（默认 brand 色）
 
 **规则**:
 - 卡片内元素间距 8px
 - 标签可为 brand 色（已同步/同步中）或 muted 色（本地优先、离线）
-- 点击选中后 Navigator.push 到 EditorPage
+- 点击选中后进入编辑器
 
 ### 5. StyledSearchField（搜索输入框）
 
 **文件**: `lib/features/shared/widgets/search_field.dart`
 
 **结构**: search 图标(14px) + TextField
-- 高度 32px(桌面) 或 42px(移动)
-- 背景色 `bg-input`
-- 圆角 r10
+- 移动端（`compact: false`）：背景色 `bg-canvas`，圆角 r10，高度约 42px
+- 桌面端（`compact: true`）：背景色 `bg-input`，圆角 r8，高度约 32-34px
 - 图标 `text-muted` 色
 - 占位文字 12px
 
@@ -126,7 +127,7 @@
 
 **结构**:
 - 卡片容器：r14，背景 `#F1F5F9`，边框 `#DDE7EA`，内边距 20px
-- 卡片内标题：22px w800，`text-primary`
+- 卡片内标题：22px w800，`#0F172A`
 
 **Setup 模式元素**:
 1. PIN 输入域（白色背景，r8，边框 `#CBD5E1`，padding 14）
@@ -147,7 +148,7 @@
 
 ### 9. Pool Member Tile（池成员卡片）
 
-**当前状态**: 仅在设计稿中，Flutter 尚未按设计实现。
+**文件**: `lib/features/pool/pool_page_sections.dart`（`_RuntimeMemberTile`）
 
 **设计规格**（移动端）:
 - 水平布局，r10，内边距 12px，元素间距 12px
