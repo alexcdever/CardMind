@@ -342,37 +342,25 @@ class _EditorPageState extends State<EditorPage> {
   Widget _buildHeader() {
     return Row(
       children: [
-        IconButton(
-          key: const ValueKey('editor.back_button'),
-          tooltip: 'Back',
-          onPressed: () => unawaited(_onBack()),
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            size: 16,
-            color: CardMindColors.brand,
-          ),
-        ),
-        const Icon(
-          Icons.grid_view_rounded,
-          size: 14,
-          color: CardMindColors.brand,
-        ),
-        const SizedBox(width: 8),
-        const Text(
-          'Card Mind',
-          style: TextStyle(
-            color: CardMindColors.brand,
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(width: 10),
-        const Text(
-          '编辑卡片',
-          style: TextStyle(
-            color: CardMindColors.textMuted,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
+        GestureDetector(
+          onTap: () => unawaited(_onBack()),
+          child: const Row(
+            children: [
+              Icon(
+                Icons.grid_view_rounded,
+                size: 14,
+                color: CardMindColors.brand,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Card Mind',
+                style: TextStyle(
+                  color: CardMindColors.brand,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ),
         const Spacer(),
@@ -401,7 +389,7 @@ class _EditorPageState extends State<EditorPage> {
               child: const Text(
                 '完成',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
                 ),
@@ -461,7 +449,8 @@ class _EditorPageState extends State<EditorPage> {
             style: TextStyle(
               color: Color(0xFF223233),
               fontSize: 13,
-              fontWeight: FontWeight.w800,
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.normal,
             ),
           ),
           SizedBox(width: 18),
