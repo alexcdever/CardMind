@@ -13,15 +13,17 @@ class _PoolNotJoinedView extends StatelessWidget {
   final VoidCallback onScanJoin;
   final String? noticeMessage;
 
-  @override
-  Widget build(BuildContext context) {
-    final desktop = switch (Theme.of(context).platform) {
+  static bool _useDesktopLayout(BuildContext context) {
+    return switch (Theme.of(context).platform) {
       TargetPlatform.macOS ||
       TargetPlatform.windows ||
       TargetPlatform.linux => true,
       _ => false,
     };
+  }
 
+  @override
+  Widget build(BuildContext context) {
     final syncFeedback = buildPoolSyncFeedback(
       context: context,
       status: syncStatus,
@@ -29,7 +31,7 @@ class _PoolNotJoinedView extends StatelessWidget {
       onReconnectSync: controller.reconnectSync,
     );
 
-    if (desktop) {
+    if (_useDesktopLayout(context)) {
       return _buildDesktop(context, syncFeedback);
     }
 
@@ -118,126 +120,246 @@ class _PoolNotJoinedView extends StatelessWidget {
   }
 
   Widget _buildDesktop(BuildContext context, Widget? syncFeedback) {
-    return Scaffold(
-      backgroundColor: CardMindColors.bgCanvas,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(34, 26, 34, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              syncFeedback ?? const SizedBox.shrink(),
-              StyledSearchField(
+    return Container(
+      color: CardMindColors.bgCanvas,
+      padding: const EdgeInsets.fromLTRB(26, 34, 30, 34),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (syncFeedback != null) ...[
+              syncFeedback,
+              const SizedBox(height: 8),
+            ],
+            SizedBox(
+              width: 360,
+              child: StyledSearchField(
                 hintText: '搜索数据池...',
+                compact: true,
                 focusNode: FocusNode(),
                 semanticId: 'pool.desktop_search',
                 semanticLabel: '搜索数据池',
               ),
-              const SizedBox(height: 24),
-              const _SoftLabel(text: '初始配置'),
-              const SizedBox(height: 18),
-              const Text(
-                '设置数据池',
-                style: TextStyle(
-                  color: CardMindColors.textPrimary,
-                  fontSize: 42,
-                  fontWeight: FontWeight.w800,
-                  height: 1.1,
-                ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '初始配置',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: CardMindColors.brand,
               ),
-              const SizedBox(height: 16),
-              const Text(
-                '在这里创建或加入数据池',
-                style: TextStyle(
-                  color: CardMindColors.textSecondary,
-                  fontSize: 15,
-                  height: 1.5,
-                ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              '设置数据池',
+              style: TextStyle(
+                fontSize: 42,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF223233),
+                height: 1.1,
               ),
-              const SizedBox(height: 28),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _PoolSetupCard(
-                        icon: Icons.add,
-                        title: '创建数据池',
-                        body: '创建一个新的数据池，用于组织本设备与其他设备之间的笔记同步。',
-                        actionLabel: '创建池',
-                        onPressed: controller.joining
-                            ? null
-                            : controller.createPool,
-                        semanticIdentifier: SemanticIds.poolCreateButton,
-                        semanticLabel: '创建池',
-                        filled: true,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '选择创建新数据池，或使用邀请加入已有数据池。',
+              style: TextStyle(
+                fontSize: 15,
+                color: CardMindColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 330,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: CardMindColors.brandMutedBg,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.add_circle_outline,
+                              size: 42, color: CardMindColors.brand),
+                          const SizedBox(height: 16),
+                          const Text(
+                            '创建数据池',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF223233),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '创建一个新的数据池。你将作为首个成员，后续可以邀请其他设备加入。',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: CardMindColors.textSecondary,
+                              height: 1.45,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            '首个成员 · 可邀请设备',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF6E8183),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: controller.joining
+                                ? null
+                                : () => controller.createPool(),
+                            child: Container(
+                              height: 44,
+                              width: 210,
+                              decoration: BoxDecoration(
+                                color: CardMindColors.brand,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  '开始创建',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 28),
-                    Expanded(
-                      child: _PoolSetupCard(
-                        icon: Icons.link,
-                        title: '加入数据池',
-                        body: '使用邀请字符串加入已有数据池。',
-                        actionLabel: '扫码加入',
-                        onPressed: controller.joining ? null : onScanJoin,
-                        semanticIdentifier: SemanticIds.poolJoinScanButton,
-                        semanticLabel: '扫码加入',
-                        filled: false,
+                  ),
+                  const SizedBox(width: 28),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: CardMindColors.brandMutedBg,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      padding: const EdgeInsets.all(28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.link,
+                              size: 42, color: CardMindColors.brand),
+                          const SizedBox(height: 16),
+                          const Text(
+                            '加入数据池',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF223233),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '已经收到邀请？使用邀请链接加入已有数据池，本地笔记会按数据池规则同步。',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: CardMindColors.textSecondary,
+                              height: 1.45,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            '邀请加入 · 成员同步',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF6E8183),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: controller.joining ? null : onScanJoin,
+                            child: Container(
+                              height: 44,
+                              width: 210,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF52696D),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  '加入数据池',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(
+              height: 48,
+              child: Row(
                 children: [
                   Text(
                     '数据池就绪',
                     style: TextStyle(
-                      color: CardMindColors.brand,
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
+                      color: CardMindColors.brand,
                     ),
                   ),
                   SizedBox(width: 12),
                   Text(
                     '本地优先',
                     style: TextStyle(
-                      color: CardMindColors.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: CardMindColors.textSecondary,
                     ),
                   ),
                 ],
               ),
-              if (controller.joining)
-                const Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: Text(
-                    '请求处理中...',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: CardMindColors.textSecondary,
-                      fontSize: 13,
-                    ),
+            ),
+            if (controller.joining)
+              const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: Text(
+                  '请求处理中...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: CardMindColors.textSecondary,
+                    fontSize: 13,
                   ),
                 ),
-              if (noticeMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: Text(
-                    noticeMessage!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: CardMindColors.textSecondary,
-                      fontSize: 13,
-                    ),
+              ),
+            if (noticeMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  noticeMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: CardMindColors.textSecondary,
+                    fontSize: 13,
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
