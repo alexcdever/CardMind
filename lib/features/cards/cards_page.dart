@@ -245,22 +245,6 @@ class _CardsPageState extends State<CardsPage> {
                         },
                       ),
                     ),
-                    if (!widget.showNavigation) ...[
-                      const SizedBox(width: 12),
-                      Semantics(
-                        key: const ValueKey('cards.create_fab'),
-                        container: true,
-                        explicitChildNodes: true,
-                        identifier: SemanticIds.cardsCreateFab,
-                        label: '新建卡片',
-                        button: true,
-                        child: IconButton.filled(
-                          tooltip: '新建卡片',
-                          onPressed: () => _openEditor(context),
-                          icon: const Icon(Icons.add),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 16),
