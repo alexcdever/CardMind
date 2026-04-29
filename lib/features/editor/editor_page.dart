@@ -181,9 +181,10 @@ class _EditorPageState extends State<EditorPage> {
       children: [
         SizedBox(
           width: 330,
+          height: 32,
           child: TextField(
             decoration: InputDecoration(
-              hintText: '搜索笔记...',
+              hintText: '搜索条目...',
               filled: true,
               fillColor: const Color(0xFFEEF3F3),
               contentPadding: const EdgeInsets.symmetric(
@@ -275,12 +276,15 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Widget _buildDesktopPaperCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.fromLTRB(44, 42, 44, 34),
+    return Center(
+      child: SizedBox(
+        width: 620,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.fromLTRB(42, 44, 34, 44),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -336,10 +340,12 @@ class _EditorPageState extends State<EditorPage> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
-  Widget _buildHeader() {
+Widget _buildHeader() {
     return Row(
       children: [
         GestureDetector(
