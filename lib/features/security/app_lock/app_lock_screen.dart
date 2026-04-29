@@ -131,7 +131,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
       ),
     );
 
-    if (desktop) {
+    if (desktop && state.requiresSetup) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
