@@ -141,6 +141,13 @@ CardMind 的 UI 方向是“数字中庭（Digital Atrium）”。
 - Mobile 端优先保证垂直节奏、操作集中和底部导航清晰
 - Desktop 端优先保证工作区、导航区和辅助信息区分层明确
 
+### 桌面端多栏布局规则
+
+- 桌面端 `Row` 三栏布局（侧栏 + 内容区 + 详情区）必须设置 `crossAxisAlignment: CrossAxisAlignment.stretch`，确保各栏等高填满可用高度
+- 侧栏（`DesktopSidebar`）自身不设固定高度，由 Row 的 stretch 约束撑满
+- 内容区固定宽度（如 330px）或使用 Expanded 填充
+- 详情区使用 Expanded + Container(bg-surface) + SingleChildScrollView 包裹内容，确保白色背景铺满整个列区域
+
 ## Do / Don't
 
 ### Do
