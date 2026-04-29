@@ -26,7 +26,7 @@ import 'package:flutter/services.dart';
 /// 自适应主页脚手架。
 ///
 /// 根据屏幕尺寸自动选择合适的导航布局：
-/// - 桌面端：使用 [NavigationRail] 左侧导航栏
+/// - 桌面端：子页面自行管理导航（使用 [DesktopSidebar]）
 /// - 移动端：使用 [BottomNavigationBar] 底部导航栏
 ///
 /// 支持自定义内容和分区切换回调。
@@ -122,35 +122,7 @@ class AdaptiveHomepageScaffold extends StatelessWidget {
                 return KeyEventResult.ignored;
             }
           },
-          child: Row(
-            children: [
-              NavigationRail(
-                destinations: destinations
-                    .map(
-                      (item) => NavigationRailDestination(
-                        icon: Semantics(
-                          container: true,
-                          explicitChildNodes: true,
-                          identifier: item.identifier,
-                          label: item.semanticLabel,
-                          child: Icon(
-                            item.icon,
-                            key: ValueKey(item.identifier),
-                          ),
-                        ),
-                        label: Text(item.label),
-                      ),
-                    )
-                    .toList(growable: false),
-                selectedIndex: section.index,
-                useIndicator: true,
-                onDestinationSelected: (index) {
-                  onSectionChanged(AppSection.values[index]);
-                },
-              ),
-              Expanded(child: child),
-            ],
-          ),
+          child: child,
         ),
       );
     }
