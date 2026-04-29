@@ -118,28 +118,43 @@ class _CardsPageState extends State<CardsPage> {
     final desktop = _useDesktopLayout(context);
 
     return Scaffold(
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onSecondaryTapDown: (details) {
-          interactions.showContextMenu(context, details.globalPosition);
-        },
-        child: desktop ? _buildDesktopLayout(notes) : _buildMobileLayout(notes),
-      ),
-      floatingActionButton: desktop
-          ? null
-          : Semantics(
-              container: true,
-              explicitChildNodes: true,
-              identifier: SemanticIds.cardsCreateFab,
-              label: '新建卡片',
-              button: true,
-              child: FloatingActionButton(
-                key: const ValueKey('cards.create_fab'),
-                onPressed: () => _openEditor(context),
-                tooltip: '新建卡片',
-                child: const Icon(Icons.add),
+      body: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) {
+              interactions.showContextMenu(context, details.globalPosition);
+            },
+            child:
+                desktop ? _buildDesktopLayout(notes) : _buildMobileLayout(notes),
+          ),
+          if (!desktop)
+            Positioned(
+              bottom: 24,
+              right: 20,
+              child: Semantics(
+                container: true,
+                explicitChildNodes: true,
+                identifier: SemanticIds.cardsCreateFab,
+                label: '新建卡片',
+                button: true,
+                child: GestureDetector(
+                  key: const ValueKey('cards.create_fab'),
+                  onTap: () => _openEditor(context),
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: CardMindColors.brand,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.add, size: 18, color: Colors.white),
+                  ),
+                ),
               ),
             ),
+        ],
+      ),
     );
   }
 

@@ -382,27 +382,30 @@ class _EditorPageState extends State<EditorPage> {
           identifier: SemanticIds.editorSaveButton,
           label: '保存卡片',
           button: true,
-          child: TextButton.icon(
+          child: GestureDetector(
             key: const ValueKey('editor.save_button'),
-            onPressed: () async {
+            onTap: () async {
               final navigator = Navigator.of(context);
               final shouldClose = await _saveAndRunCallback();
               if (!mounted || !shouldClose) return;
               navigator.pop();
             },
-            style: TextButton.styleFrom(
-              foregroundColor: CardMindColors.textOnBrand,
-              backgroundColor: CardMindColors.brand,
-              minimumSize: const Size(72, 32),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(CardMindRadii.sm),
+            child: Container(
+              width: 60,
+              height: 30,
+              decoration: BoxDecoration(
+                color: CardMindColors.brand,
+                borderRadius: BorderRadius.circular(8),
               ),
-            ),
-            icon: const Icon(Icons.save_outlined, size: 14),
-            label: const Text(
-              '完成',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              alignment: Alignment.center,
+              child: const Text(
+                '完成',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ),
@@ -458,7 +461,7 @@ class _EditorPageState extends State<EditorPage> {
             style: TextStyle(
               color: Color(0xFF223233),
               fontSize: 13,
-              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w800,
             ),
           ),
           SizedBox(width: 18),

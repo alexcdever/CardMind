@@ -70,8 +70,8 @@ class _PoolNotJoinedView extends StatelessWidget {
               _PoolSetupCard(
                 icon: Icons.add,
                 title: '创建数据池',
-                body: '创建一个新的数据池，用于组织本设备与其他设备之间的笔记同步。',
-                actionLabel: '创建池',
+                body: '创建一个新的数据池...',
+                actionLabel: '开始 →',
                 onPressed: controller.joining ? null : controller.createPool,
                 semanticIdentifier: SemanticIds.poolCreateButton,
                 semanticLabel: '创建池',
@@ -81,8 +81,8 @@ class _PoolNotJoinedView extends StatelessWidget {
               _PoolSetupCard(
                 icon: Icons.link,
                 title: '加入数据池',
-                body: '使用邀请字符串加入已有数据池。',
-                actionLabel: '扫码加入',
+                body: '使用邀请链接加入已有数据池。',
+                actionLabel: '立即连接 →',
                 onPressed: controller.joining ? null : onScanJoin,
                 semanticIdentifier: SemanticIds.poolJoinScanButton,
                 semanticLabel: '扫码加入',
