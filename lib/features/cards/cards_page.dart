@@ -270,10 +270,7 @@ class _CardsPageState extends State<CardsPage> {
           ),
         ),
         Expanded(
-          child: Container(
-            color: CardMindColors.bgSurface,
-            child: _buildDesktopDetailPane(),
-          ),
+          child: _buildDesktopDetailPane(),
         ),
       ],
     );
@@ -341,9 +338,11 @@ class _CardsPageState extends State<CardsPage> {
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(32, 28, 30, 24),
-      child: Column(
+    return Container(
+      color: CardMindColors.bgSurface,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(32, 28, 30, 24),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Wrap(
@@ -392,6 +391,7 @@ class _CardsPageState extends State<CardsPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
