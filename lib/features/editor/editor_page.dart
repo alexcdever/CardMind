@@ -9,6 +9,7 @@ import 'package:cardmind/app/theme/cardmind_colors.dart';
 import 'package:cardmind/app/theme/cardmind_theme.dart';
 import 'package:cardmind/features/editor/editor_controller.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
+import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 
 class EditorPage extends StatefulWidget {
   const EditorPage({super.key, this.initialDraft, this.onSaved});
@@ -52,6 +53,15 @@ class _EditorPageState extends State<EditorPage> {
     if (mounted) setState(() {});
   }
 
+  bool _useDesktopLayout(BuildContext context) {
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      _ => false,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
@@ -76,54 +86,255 @@ class _EditorPageState extends State<EditorPage> {
               if (didPop) return;
               await _onBack();
             },
-            child: Scaffold(
-              backgroundColor: CardMindColors.bgCanvas,
-              body: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+            child: _useDesktopLayout(context)
+                ? _buildDesktopLayout()
+                : _buildMobileLayout(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Scaffold(
+      backgroundColor: CardMindColors.bgCanvas,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 20, 18, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 18),
+              Expanded(
+                child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildHeader(),
+                      _buildTitleField(),
+                      const SizedBox(height: 8),
+                      _buildMeta(),
                       const SizedBox(height: 18),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildTitleField(),
-                              const SizedBox(height: 8),
-                              _buildMeta(),
-                              const SizedBox(height: 18),
-                              _buildToolbar(),
-                              const SizedBox(height: 18),
-                              _buildBodyField(),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (_controller.saving)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text('保存中...'),
-                        ),
-                      if (_controller.saved)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text('本地已保存'),
-                        ),
-                      if (_saveErrorMessage != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(_saveErrorMessage!),
-                        ),
+                      _buildToolbar(),
+                      const SizedBox(height: 18),
+                      _buildBodyField(),
                     ],
                   ),
                 ),
               ),
+              if (_controller.saving)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text('保存中...'),
+                ),
+              if (_controller.saved)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text('本地已保存'),
+                ),
+              if (_saveErrorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(_saveErrorMessage!),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const DesktopSidebar(
+          currentSection: 'cards',
+          onSectionChanged: _noopSectionChanged,
+        ),
+        Expanded(
+          child: Container(
+            color: const Color(0xFFF8FAFB),
+            padding: const EdgeInsets.fromLTRB(20, 26, 26, 26),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildDesktopTopBar(),
+                const SizedBox(height: 14),
+                _buildDesktopStatusRow(),
+                const SizedBox(height: 18),
+                _buildDesktopToolbar(),
+                const SizedBox(height: 18),
+                Expanded(child: _buildDesktopPaperCard()),
+              ],
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  static void _noopSectionChanged(String _) {}
+
+  Widget _buildDesktopTopBar() {
+    return Row(
+      children: [
+        SizedBox(
+          width: 330,
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: '搜索笔记...',
+              filled: true,
+              fillColor: const Color(0xFFEEF3F3),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 14,
+                color: Color(0xFF8BA1A3),
+              ),
+              prefixIconConstraints: const BoxConstraints(
+                minWidth: 30,
+                minHeight: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              hintStyle: const TextStyle(
+                color: Color(0xFF8BA1A3),
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopStatusRow() {
+    return const Row(
+      children: [
+        Text(
+          '已保存',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F766E),
+          ),
+        ),
+        SizedBox(width: 12),
+        Text(
+          '最后编辑于 2 分钟前',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6E8183),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopToolbar() {
+    return Container(
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEEF3F3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Row(
+        children: [
+          Text(
+            'B',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF223233),
+            ),
+          ),
+          SizedBox(width: 16),
+          Text(
+            'I',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF223233),
+            ),
+          ),
+          SizedBox(width: 16),
+          Icon(Icons.format_quote, size: 14, color: Color(0xFF223233)),
+          SizedBox(width: 16),
+          Icon(Icons.link, size: 14, color: Color(0xFF223233)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopPaperCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.fromLTRB(44, 42, 44, 34),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _titleController,
+            style: const TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF223233),
+            ),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              hintText: '标题',
+              hintStyle: TextStyle(
+                color: Color(0xFF8BA1A3),
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            onChanged: _controller.setTitle,
+          ),
+          const SizedBox(height: 18),
+          Expanded(
+            child: TextField(
+              controller: _bodyController,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF344B4E),
+                height: 1.55,
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: '内容',
+                hintStyle: TextStyle(
+                  color: Color(0xFF8BA1A3),
+                  fontSize: 15,
+                ),
+              ),
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              onChanged: _controller.setBody,
+            ),
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            '164 字',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF8BA1A3),
+            ),
+          ),
+        ],
       ),
     );
   }
