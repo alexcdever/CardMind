@@ -59,7 +59,7 @@ class _PoolNotJoinedView extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                '在这里创建或加入数据池',
+                '创建新的数据池，或加入已有数据池，让多设备笔记保持一致。',
                 style: TextStyle(
                   color: CardMindColors.textSecondary,
                   fontSize: 13,
