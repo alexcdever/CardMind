@@ -40,6 +40,8 @@ class _FakeCardApiClient implements CardApiClient {
   int deleteCalls = 0;
   int restoreCalls = 0;
   String? lastCreatedId;
+  String? lastCreatedPoolId;
+  String? lastListPoolId;
   String? lastUpdatedId;
 
   @override
@@ -47,9 +49,11 @@ class _FakeCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     createCalls += 1;
     lastCreatedId = id;
+    lastCreatedPoolId = poolId;
     return id;
   }
 
@@ -89,6 +93,7 @@ class _FakeCardApiClient implements CardApiClient {
     String query = '',
     String? poolId,
   }) async {
+    lastListPoolId = poolId;
     final rows = await readRepository.search(query);
     return rows
         .map(
@@ -111,6 +116,11 @@ Future<void> _ensureRustLibInitialized() async {
   _rustLibInitialized = true;
 }
 
+Future<void> _unlockAppLock() async {
+  await frb.setupAppLock(pin: '1234', allowBiometric: true);
+  await frb.verifyAppLockWithPin(pin: '1234');
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -129,6 +139,7 @@ void main() {
       await _ensureRustLibInitialized();
       await frb.resetAppConfigForTests();
       await frb.initAppConfig(appDataDir: root.path);
+      await _unlockAppLock();
 
       try {
         final client = FrbCardApiClient();
@@ -143,6 +154,46 @@ void main() {
         expect(detail.title, 'created-title');
         expect(detail.body, 'created-body');
         expect(detail.deleted, isFalse);
+      } finally {
+        await frb.resetAppConfigForTests();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'frb card api client creates note inside pool when poolId is provided',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'cardmind-card-create-pool-',
+      );
+      await _ensureRustLibInitialized();
+      await frb.resetAppConfigForTests();
+      await frb.initAppConfig(appDataDir: root.path);
+      await _unlockAppLock();
+
+      try {
+        final pool = await frb.createPool(
+          endpointId: 'endpoint-a',
+          nickname: 'nick-a',
+          os: 'macOS',
+        );
+        final client = FrbCardApiClient();
+
+        final createdId = await client.createCardNote(
+          id: 'ignored-local-id',
+          title: 'pool-title',
+          body: 'pool-body',
+          poolId: pool.id,
+        );
+        final poolDetail = await frb.getPoolDetail(
+          poolId: pool.id,
+          endpointId: 'endpoint-a',
+        );
+        final poolSummaries = await client.listCardSummaries(poolId: pool.id);
+
+        expect(poolDetail.noteIds, contains(createdId));
+        expect(poolSummaries.map((item) => item.id), contains(createdId));
       } finally {
         await frb.resetAppConfigForTests();
         await root.delete(recursive: true);
@@ -266,6 +317,35 @@ void main() {
       expect(apiClient.createCalls, 1);
       expect(apiClient.lastCreatedId, 'local-id');
       expect(readRepository.searchCalls, 1);
+      expect(controller.items.single.id, 'server-id');
+    },
+  );
+
+  test(
+    'cards controller should pass poolId to create and reload same pool query',
+    () async {
+      final readRepository = _FakeCardsReadRepository()
+        ..rows = const <CardNoteProjection>[
+          CardNoteProjection(
+            id: 'server-id',
+            title: 'Pool note',
+            body: 'body',
+            deleted: false,
+            updatedAtMicros: 1,
+          ),
+        ];
+      final apiClient = _FakeCardApiClient(readRepository);
+      final controller = CardsController(apiClient: apiClient);
+
+      await controller.createDraft(
+        'local-id',
+        'Title',
+        'Body',
+        poolId: 'pool-a',
+      );
+
+      expect(apiClient.lastCreatedPoolId, 'pool-a');
+      expect(apiClient.lastListPoolId, 'pool-a');
       expect(controller.items.single.id, 'server-id');
     },
   );

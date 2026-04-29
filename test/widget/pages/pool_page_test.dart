@@ -80,6 +80,14 @@ class _FakePoolApiClient implements PoolApiClient, PoolRuntimeApiClient {
     if (code == 'joined-pool-code') {
       return const PoolJoinResult.joined(poolName: 'Joined Pool');
     }
+    if (code == 'pending-pool-code') {
+      return const PoolJoinResult.pending(
+        poolId: 'joined-pool',
+        poolName: '待加入数据池',
+        requestId: 'req-1',
+        applicantIdentityLabel: 'applicant@test',
+      );
+    }
     return const PoolJoinResult.error('ADMIN_OFFLINE');
   }
 
@@ -722,6 +730,8 @@ void main() {
     expect(find.text('待审批请求'), findsOneWidget);
     expect(find.text('alice@pending'), findsOneWidget);
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('通过'));
     await tester.pumpAndSettle();
 
@@ -781,6 +791,8 @@ void main() {
       ),
     );
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('通过'));
     await tester.pumpAndSettle();
 
@@ -842,9 +854,13 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('pool.submit_join_request_button')),
+    await tester.tap(find.text('扫码加入'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('pool.join_dialog.code_input')),
+      'pending-pool-code',
     );
+    await tester.tap(find.byKey(const ValueKey('pool.join_dialog.confirm')));
     await tester.pumpAndSettle();
 
     expect(find.text('待加入数据池'), findsOneWidget);
@@ -956,6 +972,8 @@ void main() {
 
     expect(find.text('New Pool Name'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('解散池'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('解散池'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('确认解散'));

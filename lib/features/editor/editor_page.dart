@@ -91,6 +91,8 @@ class _EditorPageState extends State<EditorPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              _buildTitleField(),
+                              const SizedBox(height: 8),
                               _buildMeta(),
                               const SizedBox(height: 18),
                               _buildToolbar(),
@@ -129,7 +131,21 @@ class _EditorPageState extends State<EditorPage> {
   Widget _buildHeader() {
     return Row(
       children: [
-        const Icon(Icons.grid_view_rounded, size: 14, color: CardMindColors.brand),
+        IconButton(
+          key: const ValueKey('editor.back_button'),
+          tooltip: 'Back',
+          onPressed: () => unawaited(_onBack()),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 16,
+            color: CardMindColors.brand,
+          ),
+        ),
+        const Icon(
+          Icons.grid_view_rounded,
+          size: 14,
+          color: CardMindColors.brand,
+        ),
         const SizedBox(width: 8),
         const Text(
           'Card Mind',
@@ -139,6 +155,15 @@ class _EditorPageState extends State<EditorPage> {
             fontWeight: FontWeight.w800,
           ),
         ),
+        const SizedBox(width: 10),
+        const Text(
+          '编辑卡片',
+          style: TextStyle(
+            color: CardMindColors.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         const Spacer(),
         Semantics(
           container: true,
@@ -146,29 +171,27 @@ class _EditorPageState extends State<EditorPage> {
           identifier: SemanticIds.editorSaveButton,
           label: '保存卡片',
           button: true,
-          child: GestureDetector(
+          child: TextButton.icon(
             key: const ValueKey('editor.save_button'),
-            onTap: () async {
+            onPressed: () async {
+              final navigator = Navigator.of(context);
               final shouldClose = await _saveAndRunCallback();
-              if (!context.mounted || !shouldClose) return;
-              Navigator.of(context).pop();
+              if (!mounted || !shouldClose) return;
+              navigator.pop();
             },
-            child: Container(
-              width: 60,
-              height: 30,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: CardMindColors.brand,
+            style: TextButton.styleFrom(
+              foregroundColor: CardMindColors.textOnBrand,
+              backgroundColor: CardMindColors.brand,
+              minimumSize: const Size(72, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(CardMindRadii.sm),
               ),
-              child: const Text(
-                '完成',
-                style: TextStyle(
-                  color: CardMindColors.textOnBrand,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+            ),
+            icon: const Icon(Icons.save_outlined, size: 14),
+            label: const Text(
+              '完成',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
             ),
           ),
         ),
@@ -244,9 +267,8 @@ class _EditorPageState extends State<EditorPage> {
       child: TextField(
         key: const ValueKey('editor.body_input'),
         controller: _bodyController,
-        expands: true,
+        minLines: 10,
         maxLines: null,
-        textAlignVertical: TextAlignVertical.top,
         style: const TextStyle(
           color: Color(0xFF344B4E),
           fontSize: 15,
@@ -254,7 +276,7 @@ class _EditorPageState extends State<EditorPage> {
         ),
         decoration: const InputDecoration(
           border: InputBorder.none,
-          hintText: '输入卡片内容',
+          hintText: '内容',
         ),
         onChanged: _controller.setBody,
       ),

@@ -40,6 +40,7 @@ class _FakeCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     createCalls += 1;
     _records[id] = _FakeCardRecord(

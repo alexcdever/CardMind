@@ -42,6 +42,7 @@ class _FakeCardApiClientWithPools implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     final actualId = id.isEmpty ? _generateId() : id;
     _records[actualId] = _FakeCardRecord(

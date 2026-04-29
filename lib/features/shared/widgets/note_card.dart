@@ -10,6 +10,9 @@ class NoteCard extends StatelessWidget {
     required this.body,
     this.selected = false,
     this.onTap,
+    this.actionLabel,
+    this.actionIcon,
+    this.onAction,
     this.tagColor,
     this.compact = false,
   });
@@ -19,21 +22,20 @@ class NoteCard extends StatelessWidget {
   final String body;
   final bool selected;
   final VoidCallback? onTap;
+  final String? actionLabel;
+  final IconData? actionIcon;
+  final VoidCallback? onAction;
   final Color? tagColor;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final unselectedBg =
-        compact ? CardMindColors.bgSubtle : CardMindColors.bgCanvas;
+    final unselectedBg = compact
+        ? CardMindColors.bgSubtle
+        : CardMindColors.bgCanvas;
     final bg = selected ? CardMindColors.bgSurface : unselectedBg;
     final border = selected
-        ? const Border(
-            left: BorderSide(
-              color: CardMindColors.brand,
-              width: 3,
-            ),
-          )
+        ? const Border(left: BorderSide(color: CardMindColors.brand, width: 3))
         : null;
     final cardPadding = EdgeInsets.all(compact ? 14 : 16);
     final cardRadius = compact ? CardMindRadii.md : CardMindRadii.lg;
@@ -71,15 +73,36 @@ class NoteCard extends StatelessWidget {
                 height: 1.25,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              body,
-              style: const TextStyle(
-                color: CardMindColors.textSecondary,
-                fontSize: 11,
-                height: 1.35,
+            if (body.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                body,
+                style: const TextStyle(
+                  color: CardMindColors.textSecondary,
+                  fontSize: 11,
+                  height: 1.35,
+                ),
               ),
-            ),
+            ],
+            if (actionLabel != null &&
+                actionIcon != null &&
+                onAction != null) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: onAction,
+                  icon: Icon(actionIcon, size: 14),
+                  label: Text(actionLabel!),
+                  style: TextButton.styleFrom(
+                    foregroundColor: CardMindColors.textSecondary,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(0, 28),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

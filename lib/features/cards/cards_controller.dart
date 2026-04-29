@@ -25,6 +25,8 @@ class CardsController extends ChangeNotifier {
 
   /// 内部存储的卡片列表。
   List<CardSummary> _items = const <CardSummary>[];
+  String _currentQuery = '';
+  String? _currentPoolId;
 
   /// 获取当前卡片列表。
   List<CardSummary> get items => _items;
@@ -32,8 +34,10 @@ class CardsController extends ChangeNotifier {
   /// 加载卡片列表。
   ///
   /// [query] 搜索关键词，默认为空字符串，表示加载所有卡片。
-  Future<void> load({String query = ''}) async {
-    _items = await _apiClient.listCardSummaries(query: query);
+  Future<void> load({String query = '', String? poolId}) async {
+    _currentQuery = query;
+    _currentPoolId = poolId;
+    _items = await _apiClient.listCardSummaries(query: query, poolId: poolId);
     notifyListeners();
   }
 
@@ -44,13 +48,19 @@ class CardsController extends ChangeNotifier {
   /// [body] 卡片内容。
   ///
   /// 返回创建的卡片 ID。
-  Future<String> createDraft(String id, String title, String body) async {
+  Future<String> createDraft(
+    String id,
+    String title,
+    String body, {
+    String? poolId,
+  }) async {
     final createdId = await _apiClient.createCardNote(
       id: id,
       title: title,
       body: body,
+      poolId: poolId,
     );
-    await load();
+    await load(poolId: poolId ?? _currentPoolId);
     return createdId;
   }
 
@@ -68,7 +78,7 @@ class CardsController extends ChangeNotifier {
       );
     }
     await _apiClient.updateCardNote(id: id, title: title, body: body);
-    await load();
+    await load(query: _currentQuery, poolId: _currentPoolId);
   }
 
   /// 删除卡片。
@@ -76,7 +86,7 @@ class CardsController extends ChangeNotifier {
   /// [id] 要删除的卡片 ID。
   Future<void> delete(String id) async {
     await _apiClient.deleteCardNote(id: id);
-    await load();
+    await load(query: _currentQuery, poolId: _currentPoolId);
   }
 
   /// 恢复已删除的卡片。
@@ -84,7 +94,7 @@ class CardsController extends ChangeNotifier {
   /// [id] 要恢复的卡片 ID。
   Future<void> restore(String id) async {
     await _apiClient.restoreCardNote(id: id);
-    await load();
+    await load(query: _currentQuery, poolId: _currentPoolId);
   }
 
   /// 获取卡片详情。

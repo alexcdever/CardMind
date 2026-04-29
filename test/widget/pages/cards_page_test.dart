@@ -16,6 +16,7 @@ import 'package:cardmind/bridge_generated/frb_generated.dart';
 import 'package:cardmind/bridge_generated/runtime/config.dart';
 import 'package:cardmind/bridge_generated/runtime/entry_manager.dart';
 import 'package:cardmind/bridge_generated/store/pool_store.dart';
+import 'package:cardmind/features/shared/widgets/note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
@@ -56,6 +57,7 @@ class _FakeCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     createCalls += 1;
     lastCreatedId = id;
@@ -896,7 +898,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('搜索卡片'), findsOneWidget);
+    expect(find.text('搜索笔记...'), findsOneWidget);
     expect(find.text('选择卡片或新建卡片'), findsOneWidget);
   });
 
@@ -1152,19 +1154,19 @@ Future<void> _pumpUntilFound(
 }
 
 Finder _editorTitleField() {
-  return find.byWidgetPredicate(
-    (widget) => widget is TextField && widget.decoration?.labelText == '标题',
-  );
+  final mobileField = find.byKey(const ValueKey('editor.title_input'));
+  if (mobileField.evaluate().isNotEmpty) return mobileField;
+  return find.byKey(const ValueKey('cards.desktop_editor.title_input'));
 }
 
 Finder _editorBodyField() {
-  return find.byWidgetPredicate(
-    (widget) => widget is TextField && widget.decoration?.labelText == '内容',
-  );
+  final mobileField = find.byKey(const ValueKey('editor.body_input'));
+  if (mobileField.evaluate().isNotEmpty) return mobileField;
+  return find.byKey(const ValueKey('cards.desktop_editor.body_input'));
 }
 
 Finder _tileForTitle(String title) {
-  return find.ancestor(of: find.text(title), matching: find.byType(ListTile));
+  return find.ancestor(of: find.text(title), matching: find.byType(NoteCard));
 }
 
 Finder _actionTextForTitle(String title, String action) {

@@ -29,6 +29,7 @@ abstract class CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   });
 
   /// 更新现有卡片。
@@ -113,10 +114,17 @@ class FrbCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     // 当前 Flutter 页面仍会先生成本地 id；Rust 已改为后端生成稳定 id，
     // 这里暂时忽略传入 id，待页面与查询链路完全切到后端返回值后删除该兼容入参。
-    final dto = await frb.createCardNote(title: title, content: body);
+    final dto = poolId == null
+        ? await frb.createCardNote(title: title, content: body)
+        : await frb.createCardNoteInPool(
+            poolId: poolId,
+            title: title,
+            content: body,
+          );
     return dto.id;
   }
 
@@ -155,7 +163,11 @@ class FrbCardApiClient implements CardApiClient {
     String query = '',
     String? poolId,
   }) async {
-    final notes = await frb.queryCardNotes(query: query, poolId: poolId, includeDeleted: false);
+    final notes = await frb.queryCardNotes(
+      query: query,
+      poolId: poolId,
+      includeDeleted: false,
+    );
     final summaries = notes
         .map(
           (note) => CardSummary(
@@ -208,6 +220,7 @@ class LegacyCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     final note = CardNote(
       id: id,

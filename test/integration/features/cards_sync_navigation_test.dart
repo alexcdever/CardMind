@@ -58,9 +58,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byWidgetPredicate(
-        (widget) => widget is TextField && widget.decoration?.labelText == '标题',
-      ),
+      find.byKey(const ValueKey('editor.title_input')),
       'degraded local save',
     );
     await tester.tap(find.byIcon(Icons.save_outlined));

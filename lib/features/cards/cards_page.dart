@@ -23,10 +23,12 @@ class CardsPage extends StatefulWidget {
     super.key,
     this.syncStatus = const SyncStatus.healthy(),
     this.controller,
+    this.showNavigation = true,
   });
 
   final SyncStatus syncStatus;
   final CardsController? controller;
+  final bool showNavigation;
 
   @override
   State<CardsPage> createState() => _CardsPageState();
@@ -63,7 +65,9 @@ class _CardsPageState extends State<CardsPage> {
   Future<void> _loadInitialCards() async {
     try {
       await _effectiveController.load();
-    } on StateError {}
+    } on StateError catch (error) {
+      debugPrint('CardsPage skipped initial load: $error');
+    }
   }
 
   Future<void> _onDeleteOrRestore({required String id, required bool deleted}) {
@@ -121,19 +125,21 @@ class _CardsPageState extends State<CardsPage> {
         },
         child: desktop ? _buildDesktopLayout(notes) : _buildMobileLayout(notes),
       ),
-      floatingActionButton: Semantics(
-        container: true,
-        explicitChildNodes: true,
-        identifier: SemanticIds.cardsCreateFab,
-        label: '新建卡片',
-        button: true,
-        child: FloatingActionButton(
-          key: const ValueKey('cards.create_fab'),
-          onPressed: () => _openEditor(context),
-          tooltip: '新建卡片',
-          child: const Icon(Icons.add),
-        ),
-      ),
+      floatingActionButton: desktop
+          ? null
+          : Semantics(
+              container: true,
+              explicitChildNodes: true,
+              identifier: SemanticIds.cardsCreateFab,
+              label: '新建卡片',
+              button: true,
+              child: FloatingActionButton(
+                key: const ValueKey('cards.create_fab'),
+                onPressed: () => _openEditor(context),
+                tooltip: '新建卡片',
+                child: const Icon(Icons.add),
+              ),
+            ),
     );
   }
 
@@ -174,11 +180,10 @@ class _CardsPageState extends State<CardsPage> {
             ),
             const SizedBox(height: 18),
             Expanded(child: _buildNotesList(notes)),
-            const SizedBox(height: 8),
-            BottomNav(
-              currentSection: 'cards',
-              onSectionChanged: (_) {},
-            ),
+            if (widget.showNavigation) ...[
+              const SizedBox(height: 8),
+              BottomNav(currentSection: 'cards', onSectionChanged: (_) {}),
+            ],
           ],
         ),
       ),
@@ -188,25 +193,49 @@ class _CardsPageState extends State<CardsPage> {
   Widget _buildDesktopLayout(List<CardSummary> notes) {
     return Row(
       children: [
-        DesktopSidebar(
-          currentSection: 'cards',
-          onSectionChanged: (_) {},
-          onNewNote: () => _openEditor(context),
-        ),
-        Expanded(
+        if (widget.showNavigation)
+          DesktopSidebar(
+            currentSection: 'cards',
+            onSectionChanged: (_) {},
+            onNewNote: () => _openEditor(context),
+          ),
+        SizedBox(
+          width: 330,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
             child: Column(
               children: [
-                StyledSearchField(
-                  hintText: '搜索笔记...',
-                  focusNode: _searchFocusNode,
-                  semanticId: SemanticIds.cardsSearchInput,
-                  semanticLabel: '搜索卡片',
-                  compact: true,
-                  onChanged: (value) {
-                    unawaited(_effectiveController.load(query: value));
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      child: StyledSearchField(
+                        hintText: '搜索笔记...',
+                        focusNode: _searchFocusNode,
+                        semanticId: SemanticIds.cardsSearchInput,
+                        semanticLabel: '搜索卡片',
+                        compact: true,
+                        onChanged: (value) {
+                          unawaited(_effectiveController.load(query: value));
+                        },
+                      ),
+                    ),
+                    if (!widget.showNavigation) ...[
+                      const SizedBox(width: 12),
+                      Semantics(
+                        key: const ValueKey('cards.create_fab'),
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.cardsCreateFab,
+                        label: '新建卡片',
+                        button: true,
+                        child: IconButton.filled(
+                          tooltip: '新建卡片',
+                          onPressed: () => _openEditor(context),
+                          icon: const Icon(Icons.add),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 16),
                 const _DesktopListHeading(),
@@ -238,11 +267,19 @@ class _CardsPageState extends State<CardsPage> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: NoteCard(
+                key: ValueKey('cards.item.${note.id}'),
                 tag: note.deleted ? '已删除' : '已同步',
                 title: note.title,
-                body: note.deleted ? '' : note.title,
+                body: '',
                 selected: _desktopSession?.selectedId == note.id,
                 compact: desktop,
+                actionLabel: note.deleted ? '恢复' : '删除',
+                actionIcon: note.deleted
+                    ? Icons.restore_outlined
+                    : Icons.delete_outline,
+                onAction: () => unawaited(
+                  _onDeleteOrRestore(id: note.id, deleted: note.deleted),
+                ),
                 onTap: desktop
                     ? () => _handleDesktopSelection(note)
                     : () => _handleMobileSelection(note),
@@ -283,6 +320,15 @@ class _CardsPageState extends State<CardsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text(
+          '编辑卡片',
+          style: TextStyle(
+            color: CardMindColors.textPrimary,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           children: const [
@@ -332,17 +378,9 @@ class _CardsPageState extends State<CardsPage> {
                 ),
               ),
               SizedBox(width: 16),
-              Icon(
-                Icons.format_quote,
-                size: 14,
-                color: Color(0xFF223233),
-              ),
+              Icon(Icons.format_quote, size: 14, color: Color(0xFF223233)),
               SizedBox(width: 16),
-              Icon(
-                Icons.link,
-                size: 14,
-                color: Color(0xFF223233),
-              ),
+              Icon(Icons.link, size: 14, color: Color(0xFF223233)),
             ],
           ),
         ),

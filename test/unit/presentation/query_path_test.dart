@@ -81,7 +81,8 @@ void main() {
       );
 
       expect(
-        cardApiClient.contains(
+        sourceContainsToken(
+          cardApiClient,
           'frb.queryCardNotes(query: query, poolId: poolId, includeDeleted: false)',
         ),
         isTrue,

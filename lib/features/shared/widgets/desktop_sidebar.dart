@@ -79,6 +79,7 @@ class _NewNoteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      key: const ValueKey('cards.create_fab'),
       onTap: onTap,
       child: Container(
         height: 42,
@@ -124,24 +125,30 @@ class _SidebarNavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 36,
+        height: active ? 36 : 34,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: active ? CardMindColors.bgSurface : Colors.transparent,
-          borderRadius: BorderRadius.circular(CardMindRadii.sm),
+          borderRadius: active
+              ? BorderRadius.circular(CardMindRadii.sm)
+              : BorderRadius.zero,
         ),
         child: Row(
           children: [
             Icon(
               icon,
               size: 14,
-              color: active ? CardMindColors.brand : CardMindColors.textSecondary,
+              color: active
+                  ? CardMindColors.brand
+                  : CardMindColors.textSecondary,
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: active ? CardMindColors.textPrimary : CardMindColors.textSecondary,
+                color: active
+                    ? CardMindColors.textPrimary
+                    : CardMindColors.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),

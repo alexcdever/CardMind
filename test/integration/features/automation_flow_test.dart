@@ -30,14 +30,7 @@ void main() {
 
       expect(find.text('Automation Card'), findsOneWidget);
 
-      final tile = find.ancestor(
-        of: find.text('Automation Card'),
-        matching: find.byType(ListTile),
-      );
-      final deleteButton = find.descendant(
-        of: tile,
-        matching: find.byType(TextButton),
-      );
+      final deleteButton = find.text('删除');
       expect(deleteButton, findsOneWidget);
       await tester.tap(deleteButton);
       await tester.pumpAndSettle();

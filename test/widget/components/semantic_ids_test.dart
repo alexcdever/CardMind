@@ -6,6 +6,7 @@ import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/settings/settings_page.dart';
+import 'package:cardmind/features/shared/testing/semantic_ids.dart';
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import '../../support/test_page_controllers.dart';
@@ -251,6 +252,35 @@ void main() {
       find.byKey(const ValueKey('cards.desktop_editor.save_button')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('embedded desktop cards create action keeps machine identifier', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1200, 900)),
+            child: CardsPage(
+              controller: buildTestCardsController(),
+              showNavigation: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final node = tester.getSemantics(
+        find.byKey(const ValueKey('cards.create_fab')),
+      );
+      expect(node.identifier, SemanticIds.cardsCreateFab);
+      expect(find.bySemanticsLabel('新建卡片'), findsWidgets);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets(

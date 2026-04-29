@@ -57,7 +57,7 @@ class _PoolNotJoinedView extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                '创建新的数据池，或加入已有数据池，让多设备笔记保持一致。',
+                '在这里创建或加入数据池',
                 style: TextStyle(
                   color: CardMindColors.textSecondary,
                   fontSize: 13,
@@ -69,10 +69,10 @@ class _PoolNotJoinedView extends StatelessWidget {
                 icon: Icons.add,
                 title: '创建数据池',
                 body: '创建一个新的数据池，用于组织本设备与其他设备之间的笔记同步。',
-                actionLabel: '开始 →',
+                actionLabel: '创建池',
                 onPressed: controller.joining ? null : controller.createPool,
                 semanticIdentifier: SemanticIds.poolCreateButton,
-                semanticLabel: '创建数据池',
+                semanticLabel: '创建池',
                 filled: true,
               ),
               const SizedBox(height: 16),
@@ -80,10 +80,10 @@ class _PoolNotJoinedView extends StatelessWidget {
                 icon: Icons.link,
                 title: '加入数据池',
                 body: '使用邀请字符串加入已有数据池。',
-                actionLabel: '立即连接 →',
+                actionLabel: '扫码加入',
                 onPressed: controller.joining ? null : onScanJoin,
                 semanticIdentifier: SemanticIds.poolJoinScanButton,
-                semanticLabel: '加入数据池',
+                semanticLabel: '扫码加入',
                 filled: false,
               ),
               if (controller.joining)
@@ -132,7 +132,6 @@ class _PoolNotJoinedView extends StatelessWidget {
                 focusNode: FocusNode(),
                 semanticId: 'pool.desktop_search',
                 semanticLabel: '搜索数据池',
-                onChanged: (_) {},
               ),
               const SizedBox(height: 24),
               const _SoftLabel(text: '初始配置'),
@@ -148,7 +147,7 @@ class _PoolNotJoinedView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                '选择创建新数据池，或使用邀请加入已有数据池。',
+                '在这里创建或加入数据池',
                 style: TextStyle(
                   color: CardMindColors.textSecondary,
                   fontSize: 15,
@@ -165,12 +164,12 @@ class _PoolNotJoinedView extends StatelessWidget {
                         icon: Icons.add,
                         title: '创建数据池',
                         body: '创建一个新的数据池，用于组织本设备与其他设备之间的笔记同步。',
-                        actionLabel: '开始 →',
+                        actionLabel: '创建池',
                         onPressed: controller.joining
                             ? null
                             : controller.createPool,
                         semanticIdentifier: SemanticIds.poolCreateButton,
-                        semanticLabel: '创建数据池',
+                        semanticLabel: '创建池',
                         filled: true,
                       ),
                     ),
@@ -180,10 +179,10 @@ class _PoolNotJoinedView extends StatelessWidget {
                         icon: Icons.link,
                         title: '加入数据池',
                         body: '使用邀请字符串加入已有数据池。',
-                        actionLabel: '立即连接 →',
+                        actionLabel: '扫码加入',
                         onPressed: controller.joining ? null : onScanJoin,
                         semanticIdentifier: SemanticIds.poolJoinScanButton,
-                        semanticLabel: '加入数据池',
+                        semanticLabel: '扫码加入',
                         filled: false,
                       ),
                     ),
@@ -285,7 +284,8 @@ class _PoolJoinedView extends StatelessWidget {
     );
 
     final runtimeView = controller.runtimeView;
-    final memberCount = runtimeView?.members.length ?? 0;
+    final memberCount =
+        runtimeView?.members.length ?? state.memberLabels.length;
 
     if (desktop) {
       return _buildDesktop(context, syncFeedback, runtimeView, memberCount);
@@ -341,6 +341,19 @@ class _PoolJoinedView extends StatelessWidget {
                 isOwner: state.isOwner,
                 onLeave: onConfirmLeave,
               ),
+              if (state.pending.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                const Text(
+                  '待审批请求',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+                for (final request in state.pending)
+                  _PendingRequestTile(
+                    request: request,
+                    isOwner: state.isOwner,
+                    controller: controller,
+                  ),
+              ],
               const SizedBox(height: 18),
               _PoolMetricCard(
                 icon: Icons.devices_other,
@@ -349,11 +362,48 @@ class _PoolJoinedView extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               const _MembersSectionHead(),
+              Text(
+                '我的身份: ${state.currentIdentityLabel}',
+                style: const TextStyle(
+                  color: CardMindColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              if (runtimeView != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  runtimeView.summary.memberCountText,
+                  style: const TextStyle(
+                    color: CardMindColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  runtimeView.summary.runtimeStatusText,
+                  style: const TextStyle(
+                    color: CardMindColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
               if (runtimeView != null)
                 for (final member in runtimeView.members)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _RuntimeMemberTile(member: member),
+                  ),
+              if (state.memberLabels.isNotEmpty)
+                for (final entry in state.memberLabels.indexed)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      '${entry.$1 + 1}. ${entry.$2}',
+                      style: const TextStyle(
+                        color: CardMindColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
               if (runtimeView != null && runtimeView.members.isEmpty)
                 const Padding(
@@ -416,19 +466,6 @@ class _PoolJoinedView extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (state.pending.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                const Text(
-                  '待审批请求',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                for (final request in state.pending)
-                  _PendingRequestTile(
-                    request: request,
-                    isOwner: state.isOwner,
-                    controller: controller,
-                  ),
-              ],
               if (state.isOwner)
                 _InvitePanel(
                   stateInviteCode: state.inviteCode,
@@ -464,7 +501,6 @@ class _PoolJoinedView extends StatelessWidget {
                 focusNode: FocusNode(),
                 semanticId: 'pool.desktop_member_search',
                 semanticLabel: '搜索成员设备',
-                onChanged: (_) {},
               ),
               const SizedBox(height: 18),
               Text(
@@ -577,6 +613,31 @@ class _PoolJoinedView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
+              Text(
+                '我的身份: ${state.currentIdentityLabel}',
+                style: const TextStyle(
+                  color: CardMindColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              if (runtimeView != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  runtimeView.summary.memberCountText,
+                  style: const TextStyle(
+                    color: CardMindColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  runtimeView.summary.runtimeStatusText,
+                  style: const TextStyle(
+                    color: CardMindColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
               if (runtimeView != null)
                 Wrap(
                   spacing: 14,
@@ -586,6 +647,24 @@ class _PoolJoinedView extends StatelessWidget {
                       SizedBox(
                         width: 280,
                         child: _RuntimeMemberTile(member: member),
+                      ),
+                  ],
+                ),
+              if (state.memberLabels.isNotEmpty)
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: [
+                    for (final entry in state.memberLabels.indexed)
+                      SizedBox(
+                        width: 280,
+                        child: Text(
+                          '${entry.$1 + 1}. ${entry.$2}',
+                          style: const TextStyle(
+                            color: CardMindColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -604,10 +683,7 @@ class _PoolJoinedView extends StatelessWidget {
                 const SizedBox(height: 18),
                 const Text(
                   '待审批请求',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                 ),
                 for (final request in state.pending)
                   _PendingRequestTile(
@@ -718,22 +794,19 @@ class _PoolCollectiveCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: CardMindColors.brand,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      '离线',
-                      style: TextStyle(
-                        color: CardMindColors.textOnBrand,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: CardMindColors.brand,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    '离线',
+                    style: TextStyle(
+                      color: CardMindColors.textOnBrand,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -747,6 +820,7 @@ class _PoolCollectiveCard extends StatelessWidget {
                   label: '退出池',
                   button: true,
                   child: GestureDetector(
+                    key: const ValueKey('pool.leave_button'),
                     onTap: isDissolved ? null : onLeave,
                     child: Container(
                       height: 48,
@@ -834,7 +908,7 @@ class _MembersSectionHead extends StatelessWidget {
         child: Align(
           alignment: Alignment.centerLeft,
           child: Text(
-            '成员设备',
+            '成员列表',
             style: TextStyle(
               color: CardMindColors.textPrimary,
               fontSize: 13,
@@ -906,6 +980,9 @@ class _PoolSetupCard extends StatelessWidget {
             label: semanticLabel,
             button: true,
             child: GestureDetector(
+              key: semanticIdentifier == null
+                  ? null
+                  : ValueKey<String>(semanticIdentifier!),
               onTap: onPressed,
               child: Text(
                 actionLabel,
@@ -1066,10 +1143,7 @@ class _RuntimeMemberTile extends StatelessWidget {
                   member.isCurrentDevice
                       ? '${member.os} · 本地设备 · 你'
                       : '${member.os} · ${member.role}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _metaColor(),
-                  ),
+                  style: TextStyle(fontSize: 11, color: _metaColor()),
                 ),
               ],
             ),

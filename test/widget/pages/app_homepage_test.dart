@@ -47,6 +47,7 @@ class _FakeCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     _rows[id] = _FakeCardRecord(
       id: id,
@@ -224,9 +225,25 @@ void main() {
     expect(find.text('Card Mind'), findsOneWidget);
     expect(find.text('笔记列表'), findsOneWidget);
     expect(find.text('搜索笔记...'), findsOneWidget);
-    expect(find.text('卡片'), findsWidgets);
-    expect(find.text('数据池'), findsWidgets);
+    expect(find.text('卡片'), findsOneWidget);
+    expect(find.text('数据池'), findsOneWidget);
+    expect(find.text('笔记'), findsNothing);
     expect(find.text('设置'), findsNothing);
+  });
+
+  testWidgets('desktop homepage does not nest two primary navigation rails', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: const AppHomepagePage(appDataDir: 'test-app-dir'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('新建笔记'), findsNothing);
   });
 
   testWidgets('app cold start lands on cards by default', (tester) async {

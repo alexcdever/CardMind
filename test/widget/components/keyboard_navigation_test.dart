@@ -6,6 +6,7 @@ import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/card_summary.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/cards_page.dart';
+import 'package:cardmind/features/shared/widgets/note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -15,6 +16,7 @@ class _FakeCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async => 'new-card-id';
 
   @override
@@ -109,12 +111,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 验证列表项存在
-    final listItems = find.byType(ListTile);
+    // 验证列表项存在且保留可读标题（用于屏幕阅读器）
+    final listItems = find.byType(NoteCard);
     expect(listItems, findsWidgets);
 
-    // 验证列表项有标题（用于屏幕阅读器）
-    final firstItem = tester.widget<ListTile>(listItems.first);
-    expect(firstItem.title, isNotNull);
+    final firstItem = tester.widget<NoteCard>(listItems.first);
+    expect(firstItem.title, isNotEmpty);
   });
 }

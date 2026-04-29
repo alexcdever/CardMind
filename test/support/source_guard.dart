@@ -7,6 +7,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 String readSource(String path) => File(path).readAsStringSync();
 
+String _normalizeWhitespace(String value) {
+  return value
+      .replaceAll(RegExp(r'\s+'), '')
+      .replaceAll(RegExp(r',(?=[)\]}])'), '');
+}
+
+bool sourceContainsToken(String source, String token) {
+  return _normalizeWhitespace(source).contains(_normalizeWhitespace(token));
+}
+
 void expectSourceContains(
   String source,
   String token, {
@@ -14,7 +24,7 @@ void expectSourceContains(
   required String requirementLabel,
 }) {
   expect(
-    source.contains(token),
+    sourceContainsToken(source, token),
     isTrue,
     reason: '$fileLabel must $requirementLabel token `$token`.',
   );
@@ -27,7 +37,7 @@ void expectSourceOmits(
   required String violationLabel,
 }) {
   expect(
-    source.contains(token),
+    sourceContainsToken(source, token),
     isFalse,
     reason: '$fileLabel must not $violationLabel token `$token`.',
   );

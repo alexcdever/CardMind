@@ -73,26 +73,29 @@ class _AppLockScreenState extends State<AppLockScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.service.state;
+    final desktop = _useDesktopLayout(context);
     return Scaffold(
       backgroundColor: CardMindColors.bgCanvas,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
+            constraints: BoxConstraints(maxWidth: desktop ? 960 : 480),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+              padding: desktop
+                  ? const EdgeInsets.fromLTRB(52, 44, 52, 36)
+                  : const EdgeInsets.fromLTRB(24, 32, 24, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildBrand(),
-                  const SizedBox(height: 18),
-                  _buildBadge(state),
+                  _buildBrand(desktop: desktop),
+                  SizedBox(height: desktop ? 22 : 18),
+                  _buildBadge(state, desktop: desktop),
                   const SizedBox(height: 10),
-                  _buildTitle(state),
+                  _buildTitle(state, desktop: desktop),
                   const SizedBox(height: 8),
-                  _buildIntro(state),
-                  const SizedBox(height: 14),
-                  _buildCard(state),
+                  _buildIntro(state, desktop: desktop),
+                  SizedBox(height: desktop ? 22 : 14),
+                  _buildCard(state, desktop: desktop),
                   const SizedBox(height: 18),
                   _buildFooter(state),
                   if (_validationMessage != null) ...[
@@ -128,52 +131,66 @@ class _AppLockScreenState extends State<AppLockScreen> {
     );
   }
 
-  Widget _buildBrand() {
-    return const Text(
+  bool _useDesktopLayout(BuildContext context) {
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.fuchsia => false,
+    };
+  }
+
+  Widget _buildBrand({required bool desktop}) {
+    return Text(
       'Card Mind',
       style: TextStyle(
         color: CardMindColors.brand,
-        fontSize: 18,
+        fontSize: desktop ? 20 : 18,
         fontWeight: FontWeight.w800,
       ),
     );
   }
 
-  Widget _buildBadge(AppLockState state) {
+  Widget _buildBadge(AppLockState state, {required bool desktop}) {
     final isSetup = state.requiresSetup;
-    return _AppLockBadge(
-      text: isSetup ? '需要身份验证' : '已锁定',
-    );
+    final lockedText = desktop ? '会话已锁定' : '已锁定';
+    return _AppLockBadge(text: isSetup ? '需要身份验证' : lockedText);
   }
 
-  Widget _buildTitle(AppLockState state) {
+  Widget _buildTitle(AppLockState state, {required bool desktop}) {
     final isSetup = state.requiresSetup;
     return Text(
       isSetup ? '设置应用锁' : '解锁应用锁',
-      style: const TextStyle(
-        color: Color(0xFF0F172A),
-        fontSize: 31,
+      style: TextStyle(
+        color: const Color(0xFF0F172A),
+        fontSize: desktop ? 44 : 31,
         fontWeight: FontWeight.w800,
-        height: 1.06,
+        height: desktop ? 1.05 : 1.06,
       ),
     );
   }
 
-  Widget _buildIntro(AppLockState state) {
+  Widget _buildIntro(AppLockState state, {required bool desktop}) {
     final isSetup = state.requiresSetup;
     return Text(
       isSetup
-          ? '使用数据池前，请先为本设备设置应用锁。即使设备离线，数据池数据也可能保留在本地。'
+          ? desktop
+                ? '创建或加入数据池前，请先设置应用锁。数据池数据可能保留在本设备上，因此即使他人拿到设备，也无法看到数据池内容。'
+                : '使用数据池前，请先为本设备设置应用锁。即使设备离线，数据池数据也可能保留在本地。'
+          : desktop
+          ? '本次会话的数据池页面已锁定。打开数据池设置、成员、邀请或同步笔记前，请先完成验证。'
           : '打开数据池设置、成员、邀请或池内笔记前，请先验证身份。',
-      style: const TextStyle(
-        color: Color(0xFF475569),
-        fontSize: 13,
+      style: TextStyle(
+        color: const Color(0xFF475569),
+        fontSize: desktop ? 15 : 13,
         height: 1.45,
       ),
     );
   }
 
-  Widget _buildCard(AppLockState state) {
+  Widget _buildCard(AppLockState state, {required bool desktop}) {
     final isSetup = state.requiresSetup;
     return Container(
       decoration: BoxDecoration(
@@ -181,15 +198,15 @@ class _AppLockScreenState extends State<AppLockScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFDDE7EA)),
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(desktop ? 28 : 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            isSetup ? '设置应用锁' : '解锁数据池',
-            style: const TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 22,
+            isSetup ? (desktop ? '创建应用锁' : '设置应用锁') : '解锁数据池',
+            style: TextStyle(
+              color: const Color(0xFF0F172A),
+              fontSize: desktop ? 24 : 22,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -198,6 +215,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             _AppLockPinField(
               label: '新数字密码',
               hint: '4-6 位数字',
+              fieldKey: const ValueKey('app_lock.pin_field'),
               controller: _pinController,
               obscureText: true,
               textInputAction: TextInputAction.next,
@@ -206,6 +224,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             _AppLockPinField(
               label: '确认数字密码',
               hint: '再次输入数字密码',
+              fieldKey: const ValueKey('app_lock.confirm_pin_field'),
               controller: _confirmPinController,
               obscureText: true,
               textInputAction: TextInputAction.done,
@@ -218,6 +237,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             ),
             const SizedBox(height: 13),
             _AppLockActionButton(
+              key: const ValueKey('app_lock.submit_button'),
               text: '设置并继续',
               onPressed: widget.service.state.phase == AppLockPhase.loading
                   ? null
@@ -225,6 +245,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             ),
           ] else ...[
             _AppLockBioButton(
+              key: const ValueKey('app_lock.biometric_button'),
               onPressed: widget.service.state.allowBiometric
                   ? () => widget.service.unlockWithBiometricSuccess()
                   : null,
@@ -244,6 +265,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             _AppLockPinField(
               label: '数字密码',
               hint: '',
+              fieldKey: const ValueKey('app_lock.pin_field'),
               controller: _pinController,
               obscureText: true,
               textInputAction: TextInputAction.done,
@@ -251,6 +273,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             ),
             const SizedBox(height: 14),
             _AppLockActionButton(
+              key: const ValueKey('app_lock.submit_button'),
               text: '解锁',
               onPressed: widget.service.state.phase == AppLockPhase.loading
                   ? null
@@ -314,6 +337,7 @@ class _AppLockPinField extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.controller,
+    this.fieldKey,
     this.obscureText = false,
     this.textInputAction,
     this.onSubmitted,
@@ -322,6 +346,7 @@ class _AppLockPinField extends StatelessWidget {
   final String label;
   final String hint;
   final TextEditingController controller;
+  final Key? fieldKey;
   final bool obscureText;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
@@ -348,6 +373,7 @@ class _AppLockPinField extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           TextField(
+            key: fieldKey,
             controller: controller,
             obscureText: obscureText,
             textInputAction: textInputAction,
@@ -376,10 +402,7 @@ class _AppLockPinField extends StatelessWidget {
 }
 
 class _AppLockBioToggle extends StatelessWidget {
-  const _AppLockBioToggle({
-    required this.value,
-    required this.onChanged,
-  });
+  const _AppLockBioToggle({required this.value, required this.onChanged});
 
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -437,6 +460,7 @@ class _AppLockBioToggle extends StatelessWidget {
 
 class _AppLockActionButton extends StatelessWidget {
   const _AppLockActionButton({
+    super.key,
     required this.text,
     required this.onPressed,
   });
@@ -472,7 +496,7 @@ class _AppLockActionButton extends StatelessWidget {
 }
 
 class _AppLockBioButton extends StatelessWidget {
-  const _AppLockBioButton({required this.onPressed});
+  const _AppLockBioButton({super.key, required this.onPressed});
 
   final VoidCallback? onPressed;
 

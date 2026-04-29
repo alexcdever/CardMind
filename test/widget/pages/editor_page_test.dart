@@ -28,6 +28,25 @@ void main() {
     expect(find.text('内容'), findsOneWidget);
   });
 
+  testWidgets('mobile editor follows Pencil title-first structure', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: EditorPage()));
+
+    final titleTop = tester
+        .getTopLeft(find.byKey(const ValueKey('editor.title_input')))
+        .dy;
+    final metaTop = tester.getTopLeft(find.text('本地优先 · 01')).dy;
+    final toolbarTop = tester.getTopLeft(find.text('B')).dy;
+    final bodyTop = tester
+        .getTopLeft(find.byKey(const ValueKey('editor.body_input')))
+        .dy;
+
+    expect(titleTop, lessThan(metaTop));
+    expect(metaTop, lessThan(toolbarTop));
+    expect(toolbarTop, lessThan(bodyTop));
+  });
+
   testWidgets('initial draft populates fields and save returns edited draft', (
     tester,
   ) async {

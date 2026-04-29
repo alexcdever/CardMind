@@ -37,6 +37,7 @@ class TestCardApiClient implements CardApiClient {
     required String id,
     required String title,
     required String body,
+    String? poolId,
   }) async {
     _rows[id] = _TestCardRecord(
       id: id,
