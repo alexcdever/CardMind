@@ -1,6 +1,7 @@
 import 'package:cardmind/app/theme/cardmind_colors.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_state.dart';
+import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 import 'package:flutter/material.dart';
 
 class AppLockScreen extends StatefulWidget {
@@ -74,7 +75,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   Widget build(BuildContext context) {
     final state = widget.service.state;
     final desktop = _useDesktopLayout(context);
-    return Scaffold(
+    final content = Scaffold(
       backgroundColor: CardMindColors.bgCanvas,
       body: SafeArea(
         child: Center(
@@ -129,7 +130,24 @@ class _AppLockScreenState extends State<AppLockScreen> {
         ),
       ),
     );
+
+    if (desktop) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DesktopSidebar(
+            currentSection: 'pool',
+            onSectionChanged: _noopSectionChanged,
+          ),
+          Expanded(child: content),
+        ],
+      );
+    }
+
+    return content;
   }
+
+  static void _noopSectionChanged(String _) {}
 
   bool _useDesktopLayout(BuildContext context) {
     return switch (Theme.of(context).platform) {
