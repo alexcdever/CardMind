@@ -145,32 +145,35 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Widget _buildDesktopLayout() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const DesktopSidebar(
-          currentSection: 'cards',
-          onSectionChanged: _noopSectionChanged,
-        ),
-        Expanded(
-          child: Container(
-            color: const Color(0xFFF8FAFB),
-            padding: const EdgeInsets.fromLTRB(20, 26, 26, 26),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildDesktopTopBar(),
-                const SizedBox(height: 14),
-                _buildDesktopStatusRow(),
-                const SizedBox(height: 18),
-                _buildDesktopToolbar(),
-                const SizedBox(height: 18),
-                Expanded(child: _buildDesktopPaperCard()),
-              ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFB),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const DesktopSidebar(
+            currentSection: 'cards',
+            onSectionChanged: _noopSectionChanged,
+          ),
+          Expanded(
+            child: Container(
+              color: const Color(0xFFF8FAFB),
+              padding: const EdgeInsets.fromLTRB(20, 26, 26, 26),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildDesktopTopBar(),
+                  const SizedBox(height: 14),
+                  _buildDesktopStatusRow(),
+                  const SizedBox(height: 18),
+                  _buildDesktopToolbar(),
+                  const SizedBox(height: 18),
+                  Expanded(child: _buildDesktopPaperCard()),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
