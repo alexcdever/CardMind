@@ -217,6 +217,7 @@ class _CardsPageState extends State<CardsPage> {
 
   Widget _buildDesktopLayout(List<CardSummary> notes) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.showNavigation)
           DesktopSidebar(
