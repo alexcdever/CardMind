@@ -88,11 +88,21 @@ class _CardsPageState extends State<CardsPage> {
   }
 
   void _openEditor(BuildContext context) {
-    final desktop = _useDesktopLayout(context);
-    if (desktop) {
-      setState(() {
-        _desktopSession = _DesktopEditorSession();
-      });
+    if (_useDesktopLayout(context)) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => EditorPage(
+            onSaved: (draft) async {
+              if (draft.title.isEmpty) return;
+              await _effectiveController.createDraft(
+                generateNoteId(),
+                draft.title,
+                draft.body,
+              );
+            },
+          ),
+        ),
+      );
       return;
     }
     Navigator.of(context).push(
@@ -253,7 +263,7 @@ class _CardsPageState extends State<CardsPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                const _DesktopListHeading(),
+                _DesktopListHeading(noteCount: notes.length),
                 Expanded(child: _buildNotesList(notes, desktop: true)),
               ],
             ),
@@ -338,18 +348,10 @@ class _CardsPageState extends State<CardsPage> {
         children: [
           Wrap(
             spacing: 8,
-            children: const [
+            children: [
               Text(
-                '技术',
-                style: TextStyle(
-                  color: CardMindColors.brand,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                '本地优先',
-                style: TextStyle(
+                '已同步',
+                style: const TextStyle(
                   color: CardMindColors.brand,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -379,27 +381,11 @@ class _CardsPageState extends State<CardsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '本地优先的卡片笔记强调用户对内容结构的直接掌控。每条笔记都可以独立存在，也可以在不同主题之间建立连接。',
-            style: TextStyle(
-              color: Color(0xFF344B4E),
-              fontSize: 15,
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '1. 本地优先一致性',
-            style: TextStyle(
-              color: Color(0xFF203234),
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '在 Card Mind 里，本地设备是主要写作入口。同步负责让设备之间逐步对齐，而不是改变用户组织内容的方式。',
-            style: TextStyle(
+          Text(
+            session.bodyController.text.isEmpty
+                ? '(空内容)'
+                : session.bodyController.text,
+            style: const TextStyle(
               color: Color(0xFF344B4E),
               fontSize: 15,
               height: 1.55,
@@ -516,16 +502,18 @@ class _CardsPageState extends State<CardsPage> {
 }
 
 class _DesktopListHeading extends StatelessWidget {
-  const _DesktopListHeading();
+  const _DesktopListHeading({this.noteCount = 0});
+
+  final int noteCount;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(bottom: 12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             '笔记列表',
             style: TextStyle(
               color: CardMindColors.textPrimary,
@@ -535,7 +523,7 @@ class _DesktopListHeading extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            '12 条笔记',
+            '$noteCount 条笔记',
             style: TextStyle(
               color: CardMindColors.textSecondary,
               fontSize: 12,
