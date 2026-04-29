@@ -217,7 +217,7 @@ class _CardsPageState extends State<CardsPage> {
         SizedBox(
           width: 330,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
             child: Column(
               children: [
                 Row(
@@ -262,8 +262,7 @@ class _CardsPageState extends State<CardsPage> {
         Expanded(
           child: Container(
             color: CardMindColors.bgSurface,
-            padding: const EdgeInsets.fromLTRB(32, 28, 30, 24),
-            child: _buildDesktopEditorPanel(),
+            child: _buildDesktopDetailPane(),
           ),
         ),
       ],
@@ -321,7 +320,7 @@ class _CardsPageState extends State<CardsPage> {
     );
   }
 
-  Widget _buildDesktopEditorPanel() {
+  Widget _buildDesktopDetailPane() {
     final session = _desktopSession;
     if (session == null) {
       return const Center(
@@ -332,166 +331,82 @@ class _CardsPageState extends State<CardsPage> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '编辑卡片',
-          style: TextStyle(
-            color: CardMindColors.textPrimary,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          children: const [
-            Text(
-              '本地优先',
-              style: TextStyle(
-                color: CardMindColors.brand,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            Text(
-              '已同步',
-              style: TextStyle(
-                color: CardMindColors.brand,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          height: 38,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: CardMindColors.brandMutedBg,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Row(
-            children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(32, 28, 30, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            children: const [
               Text(
-                'B',
+                '技术',
                 style: TextStyle(
-                  color: Color(0xFF223233),
-                  fontSize: 13,
+                  color: CardMindColors.brand,
+                  fontSize: 11,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              SizedBox(width: 16),
               Text(
-                'I',
+                '本地优先',
                 style: TextStyle(
-                  color: Color(0xFF223233),
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
+                  color: CardMindColors.brand,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              SizedBox(width: 16),
-              Icon(Icons.format_quote, size: 14, color: Color(0xFF223233)),
-              SizedBox(width: 16),
-              Icon(Icons.link, size: 14, color: Color(0xFF223233)),
             ],
           ),
-        ),
-        const SizedBox(height: 18),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: CardMindColors.bgSurface,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.fromLTRB(44, 42, 44, 34),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  container: true,
-                  explicitChildNodes: true,
-                  identifier: SemanticIds.cardsDesktopEditorTitleInput,
-                  label: '桌面编辑标题输入框',
-                  textField: true,
-                  child: TextField(
-                    key: const ValueKey('cards.desktop_editor.title_input'),
-                    controller: session.titleController,
-                    style: const TextStyle(
-                      color: CardMindColors.textPrimary,
-                      fontSize: 37,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: '标题',
-                    ),
-                    onChanged: (_) {
-                      setState(() => session.dirty = true);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '更新于 2026.04.24',
-                  style: TextStyle(
-                    color: Color(0xFF6E8183),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: Semantics(
-                    container: true,
-                    explicitChildNodes: true,
-                    identifier: SemanticIds.cardsDesktopEditorBodyInput,
-                    label: '桌面编辑内容输入框',
-                    textField: true,
-                    child: TextField(
-                      key: const ValueKey('cards.desktop_editor.body_input'),
-                      controller: session.bodyController,
-                      expands: true,
-                      maxLines: null,
-                      textAlignVertical: TextAlignVertical.top,
-                      style: const TextStyle(
-                        color: Color(0xFF344B4E),
-                        fontSize: 15,
-                        height: 1.55,
-                      ),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: '输入卡片内容',
-                      ),
-                      onChanged: (_) {
-                        setState(() => session.dirty = true);
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Semantics(
-                  container: true,
-                  explicitChildNodes: true,
-                  identifier: SemanticIds.cardsDesktopEditorSaveButton,
-                  label: '保存桌面编辑卡片',
-                  button: true,
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      key: const ValueKey('cards.desktop_editor.save_button'),
-                      onPressed: _saveDesktopSession,
-                      child: const Text('保存'),
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 16),
+          Text(
+            session.titleController.text.isEmpty
+                ? '无标题'
+                : session.titleController.text,
+            style: const TextStyle(
+              color: Color(0xFF203234),
+              fontSize: 37,
+              fontWeight: FontWeight.w800,
+              height: 1.08,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          const Text(
+            '更新于 2026.04.24',
+            style: TextStyle(
+              color: Color(0xFF6E8183),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '本地优先的卡片笔记强调用户对内容结构的直接掌控。每条笔记都可以独立存在，也可以在不同主题之间建立连接。',
+            style: TextStyle(
+              color: Color(0xFF344B4E),
+              fontSize: 15,
+              height: 1.55,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '1. 本地优先一致性',
+            style: TextStyle(
+              color: Color(0xFF203234),
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '在 Card Mind 里，本地设备是主要写作入口。同步负责让设备之间逐步对齐，而不是改变用户组织内容的方式。',
+            style: TextStyle(
+              color: Color(0xFF344B4E),
+              fontSize: 15,
+              height: 1.55,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
