@@ -1,6 +1,6 @@
 // input: CardNoteRepository API 与业务场景边界条件。
 // output: 卡片存储业务逻辑和投影失败场景的全覆盖测试。
-// pos: CardNoteRepository 单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: CardNoteRepository 单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试卡片业务逻辑和错误处理。
 
 use cardmind_rust::models::error::CardMindError;

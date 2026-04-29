@@ -1,6 +1,6 @@
 // input: Loro 文档路径构建、加载保存、导出导入的各种场景。
 // output: Loro 存储功能的全覆盖测试。
-// pos: Loro 存储单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: Loro 存储单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 Loro 文档存储操作。
 
 use cardmind_rust::store::loro_store::{

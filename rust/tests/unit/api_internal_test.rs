@@ -1,6 +1,6 @@
 // input: api.rs 中的纯函数（projection_state, combine_sync_status, combine_sync_result, parse_uuid）。
 // output: API 辅助函数的全覆盖测试。
-// pos: API 内部函数单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: API 内部函数单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 API 层的纯函数。
 
 use cardmind_rust::models::api_error::ApiErrorCode;

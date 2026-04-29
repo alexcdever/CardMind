@@ -1,6 +1,6 @@
 input: Rust/Flutter 中文注释补齐目标与实施任务
 output: 可执行的注释补齐步骤与验证命令
-pos: Rust/Flutter 中文注释补齐实施计划（修改需同步 DIR.md）
+pos: Rust/Flutter 中文注释补齐实施计划
 # Rust/Flutter 中文注释补齐 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -100,7 +100,6 @@ Expected: 如出现失败，记录失败原因并先修复基线问题。
 ```rust
 // input: 上游调用参数/依赖
 // output: 对外返回结构或副作用
-// pos: 该文件在模块中的职责与定位（修改需同步更新文件头与所属 DIR.md）
 ```
 
 **Step 3: 为关键类型与复杂函数增加中文注释（不逐行）**
@@ -199,7 +198,6 @@ git commit -m "docs(rust): annotate network and store flows in chinese"
 - Modify: `rust/tests/card_model_test.rs`
 - Modify: `rust/tests/sqlite_store_test.rs`
 - Modify: `rust/tests/uuid_v7_test.rs`
-- Test: `rust/tests/DIR.md`
 
 **Step 1: 先跑全量 Rust 测试基线**
 
@@ -274,7 +272,6 @@ Expected: PASS
 ```dart
 // input: 来自页面事件、仓储/服务返回或上游状态
 // output: 提供状态更新、界面渲染输入或副作用触发
-// pos: 位于 Flutter 业务层（修改需同步更新文件头与所属 DIR.md）
 ```
 
 **Step 3: 对 controller/service/mapper 等复杂点补中文注释**
@@ -353,33 +350,8 @@ git commit -m "docs(flutter-test): add chinese scenario comments"
 
 ---
 
-### Task 7: 同步更新 DIR.md 并执行最终门禁
 
 **Files:**
-- Modify: `DIR.md`
-- Modify: `rust/DIR.md`
-- Modify: `rust/src/DIR.md`
-- Modify: `rust/src/models/DIR.md`
-- Modify: `rust/src/net/DIR.md`
-- Modify: `rust/src/store/DIR.md`
-- Modify: `rust/src/utils/DIR.md`
-- Modify: `rust/tests/DIR.md`
-- Modify: `lib/DIR.md`
-- Modify: `lib/app/layout/DIR.md`
-- Modify: `lib/features/onboarding/DIR.md`
-- Modify: `lib/features/cards/DIR.md`
-- Modify: `lib/features/editor/DIR.md`
-- Modify: `lib/features/pool/DIR.md`
-- Modify: `lib/features/settings/DIR.md`
-- Modify: `lib/features/sync/DIR.md`
-- Modify: `test/DIR.md`
-- Modify: `test/app/DIR.md`
-- Modify: `test/features/onboarding/DIR.md`
-- Modify: `test/features/cards/DIR.md`
-- Modify: `test/features/editor/DIR.md`
-- Modify: `test/features/pool/DIR.md`
-- Modify: `test/features/settings/DIR.md`
-- Modify: `test/features/sync/DIR.md`
 
 **Step 1: 为每个受影响目录补“中文注释维护约束”说明**
 
@@ -388,7 +360,6 @@ git commit -m "docs(flutter-test): add chinese scenario comments"
 本目录代码以关键点中文注释维护：修改职责边界、状态流或错误处理时需同步更新注释。
 ```
 
-**Step 2: 逐项核对 DIR.md 文件索引与实际文件一致**
 
 Run: `遵循 docs/standards/documentation.md 与 docs/standards/tdd.md`  
 Expected: PASS
@@ -411,7 +382,6 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add DIR.md rust lib test
 git commit -m "docs(governance): align chinese comments and dir metadata"
 ```
 

@@ -1,6 +1,6 @@
 // input: PoolMessage 编解码的各种边界情况。
 // output: 编码/解码功能的全覆盖测试。
-// pos: 网络编解码单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 网络编解码单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试消息编码和解码。
 
 use cardmind_rust::models::error::CardMindError;

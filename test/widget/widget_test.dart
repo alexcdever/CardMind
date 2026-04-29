@@ -1,6 +1,6 @@
 // input: 启动 CardMindApp 并等待首屏渲染结果。
 // output: 首屏直接呈现卡片页并且不再显示引导入口。
-// pos: 覆盖应用冷启动首屏直达卡片契约，防止回退到引导分流。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖应用冷启动首屏直达卡片契约，防止回退到引导分流。修改本文件需同步更新文件头。
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:io';
 

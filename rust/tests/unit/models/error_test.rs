@@ -1,6 +1,6 @@
 // input: CardMindError 的各种变体和参数。
 // output: 错误消息格式的验证。
-// pos: 错误类型单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 错误类型单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试错误类型的消息格式。
 
 use cardmind_rust::models::error::CardMindError;

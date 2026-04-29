@@ -44,5 +44,3 @@
 ## 6. 交付与影响
 
 1. 新增 `docs/specs/card-note.md`。
-2. 更新 `docs/specs/DIR.md` 索引。
-3. 更新 `docs/plans/DIR.md` 索引。

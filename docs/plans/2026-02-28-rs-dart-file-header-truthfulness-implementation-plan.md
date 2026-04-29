@@ -1,6 +1,6 @@
 input: rs/dart 文件头真实性治理目标与实施任务
 output: 可执行的清查与修正步骤
-pos: rs/dart 文件头真实性实施计划（修改需同步 DIR.md）
+pos: rs/dart 文件头真实性实施计划
 # Rs/Dart File Header Truthfulness Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -92,7 +92,7 @@ git commit -m "docs(plan): add file header audit baseline and file list"
 ```rust
 // input: 来自上层 API 调用参数与底层依赖返回（按本文件真实来源填写）。
 // output: 对外返回值、状态推进或副作用（按本文件真实行为填写）。
-// pos: 在当前子模块中的职责边界。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 在当前子模块中的职责边界。修改本文件需同步更新文件头。
 ```
 
 **Step 2: 扫描 rust/src，确认旧模板语句已清除**
@@ -139,14 +139,13 @@ git commit -m "docs(rust): rewrite src file headers with truthful responsibiliti
 - Modify: `rust/tests/sync_api_contract_test.rs`
 - Modify: `rust/tests/sync_api_flow_test.rs`
 - Modify: `rust/tests/uuid_v7_test.rs`
-- Test: `rust/tests/DIR.md`
 
 **Step 1: 逐文件重写测试文件头，强调“构造输入 + 断言输出 + 场景定位”**
 
 ```rust
 // input: 测试构造数据、夹具环境与被测 API 参数。
 // output: 对返回值、状态变化与错误分支的断言结果。
-// pos: 覆盖 <具体场景> 的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 <具体场景> 的回归测试。修改本文件需同步更新文件头。
 ```
 
 **Step 2: 扫描 rust/tests 模板残留**
@@ -202,7 +201,7 @@ git commit -m "docs(rust-test): rewrite test file headers by concrete test inten
 ```dart
 // input: 页面交互事件、控制器调用参数与服务层返回。
 // output: UI 状态刷新、导航动作或对桥接层调用结果。
-// pos: <具体 feature> 的 <具体职责>。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: <具体 feature> 的 <具体职责>。修改本文件需同步更新文件头。
 ```
 
 **Step 2: 扫描 lib 模板残留**
@@ -252,7 +251,7 @@ git commit -m "docs(flutter): rewrite lib file headers with concrete responsibil
 ```dart
 // input: Widget 测试环境、模拟依赖与交互事件。
 // output: 对 UI 可观察结果、状态文案与导航行为的断言。
-// pos: 覆盖 <具体功能> 的交互与回归用例。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 <具体功能> 的交互与回归用例。修改本文件需同步更新文件头。
 ```
 
 **Step 2: 扫描 test 模板残留**
@@ -287,7 +286,7 @@ git commit -m "docs(flutter-test): rewrite test file headers by scenario intent"
 ```dart
 // input: CLI 参数、仓库文件系统状态与待校验路径。
 // output: 校验报告、退出码与错误提示信息。
-// pos: Fractal 文档校验工具链中的 <具体脚本职责>。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: Fractal 文档校验工具链中的 <具体脚本职责>。修改本文件需同步更新文件头。
 ```
 
 **Step 2: 运行工具链测试**

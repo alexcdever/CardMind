@@ -1,6 +1,6 @@
 // input: 实体类型与 uuidv7 标识。
 // output: 校验 Loro 文档 snapshot/update 路径规则。
-// pos: Loro 文档路径规则测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: Loro 文档路径规则测试。修改本文件需同步更新文件头。
 import 'dart:io';
 
 import 'package:cardmind/features/shared/storage/loro_doc_path.dart';

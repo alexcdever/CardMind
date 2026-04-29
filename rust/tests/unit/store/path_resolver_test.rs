@@ -1,6 +1,6 @@
 // input: DataPaths 构造与目录创建的各种场景。
 // output: 路径解析功能的全覆盖测试。
-// pos: 路径解析单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 路径解析单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试数据路径解析和目录创建。
 
 use cardmind_rust::models::error::CardMindError;

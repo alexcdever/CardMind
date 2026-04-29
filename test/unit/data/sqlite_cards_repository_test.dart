@@ -1,6 +1,6 @@
 // input: 写入两条不同 updatedAtMicros 的卡片投影并执行 search 查询。
 // output: 返回结果按 updatedAtMicros 倒序，且默认过滤 deleted 条目。
-// pos: 卡片 SQLite 读仓测试，保障查询排序与软删除过滤行为。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 卡片 SQLite 读仓测试，保障查询排序与软删除过滤行为。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';

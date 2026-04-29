@@ -1,6 +1,6 @@
 // input: RuntimeEntryManager 的各种场景包括 Mutex poisoned。
 // output: 运行时入口管理的全覆盖测试。
-// pos: RuntimeEntryManager 单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: RuntimeEntryManager 单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 RuntimeEntryManager，包括 Mutex poisoned 场景。
 
 use cardmind_rust::models::error::CardMindError;

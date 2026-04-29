@@ -1,6 +1,6 @@
 // input: fake SyncService 返回 connect/reconnect/refresh 的不同状态。
 // output: 断言 SyncController 更新状态并通知监听器。
-// pos: SyncController 单元测试。修改本文件需同步更新所属 DIR.md。
+// pos: SyncController 单元测试
 import 'package:cardmind/features/sync/sync_controller.dart';
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';

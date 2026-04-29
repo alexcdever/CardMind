@@ -1,6 +1,6 @@
 input: 2026-03-09 UI 重设计设计稿与正式规格冲突修复需求
 output: 可执行的主页重设计任务化实施计划（spec-first + TDD + 小步提交）
-pos: UI 重设计实施计划（修改需同步 DIR.md）
+pos: UI 重设计实施计划
 # UI Redesign Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -44,8 +44,6 @@ Expected: worktree created successfully; current homepage/navigation baseline te
 
 **Files:**
 - Modify: `docs/specs/ui-interaction.md`
-- Modify: `docs/specs/DIR.md` (only if file semantics/index text needs refresh)
-- Modify: `docs/DIR.md` (only if directory semantics change)
 - Test: `docs/specs/ui-interaction.md`
 
 **Step 1: Write the failing documentation guard test by identifying contradictory clauses**
@@ -113,7 +111,6 @@ Expected: PASS.
 **Step 7: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/DIR.md docs/DIR.md
 git commit -m "docs: align ui interaction spec with homepage redesign"
 ```
 

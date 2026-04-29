@@ -11,10 +11,6 @@
 //! 本层作为应用服务层，介于 API 层和运行时层之间：
 //! - 向上：为 API 层提供业务接口
 //! - 向下：管理 `BackendConfigStore` 和 `RuntimeEntryManager`
-//!
-//! ## 修改注意
-//! 修改本文件需同步更新所属 DIR.md。
-
 use crate::models::api_error::{ApiError, ApiErrorCode};
 use crate::models::error::CardMindError;
 use crate::runtime::config::{BackendConfigDto, BackendConfigStore};

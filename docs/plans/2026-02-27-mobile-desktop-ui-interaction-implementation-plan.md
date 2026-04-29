@@ -1,6 +1,6 @@
 input: 移动端与桌面端 UI 交互目标、架构与实施任务
 output: 可执行的 UI 交互落地步骤与验证命令
-pos: 移动端与桌面端 UI 交互实施计划（修改需同步 DIR.md）
+pos: 移动端与桌面端 UI 交互实施计划
 # CardMind 移动端与桌面端 UI 交互 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -520,8 +520,6 @@ git commit -m "feat(ui): add desktop context menu and keyboard save shortcut"
 **Files:**
 - Modify: `test/widget_test.dart`
 - Create: `test/interaction_guard_test.dart`
-- Modify: `lib/DIR.md`
-- Modify: `docs/plans/DIR.md`
 
 **Step 1: Write/adjust failing smoke test to target new app shell**
 
@@ -549,7 +547,6 @@ test('lib has no empty or disabled primary interaction handlers', () {
 **Step 4: Update smoke tests and directory docs minimally**
 
 ```text
-DIR.md 中登记 app/layout/navigation/features 目录与职责。
 ```
 
 **Step 5: Run verification suite**
@@ -560,6 +557,5 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add test/widget_test.dart lib/DIR.md docs/plans/DIR.md
 git commit -m "test(ui): align smoke tests and directory docs for new interaction shell"
 ```

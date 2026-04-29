@@ -70,7 +70,6 @@ git commit -m "test(governance): enforce red-green-blue in all plan docs"
 
 **Files:**
 - Modify: `docs/plans/*plan*.md` (all matched files)
-- Modify: `docs/plans/DIR.md`
 
 **Step 1: Write the failing test case list expectation**
 
@@ -318,7 +317,6 @@ git commit -m "feat(pool): persist pool meta via loro files and sqlite projectio
 ### Task 7: Final gates and doc consistency verification
 
 **Files:**
-- Modify: `docs/plans/DIR.md` (if additional plan docs added)
 - Modify: any files required to fix final gate failures
 
 **Step 1: Run analyzer**

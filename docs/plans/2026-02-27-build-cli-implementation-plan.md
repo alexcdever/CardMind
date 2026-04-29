@@ -1,6 +1,6 @@
 input: 多平台构建 CLI 目标、架构与实施任务
 output: 可执行的 CLI 构建步骤与验证命令
-pos: 多平台构建 CLI 实施计划（修改需同步 DIR.md）
+pos: 多平台构建 CLI 实施计划
 # CardMind 多平台构建 CLI Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -306,7 +306,6 @@ git commit -m "feat(tool): add app platform defaults and validation"
 
 **Files:**
 - Modify: `README.md`
-- Modify: `docs/plans/DIR.md`
 
 **Step 1: Write the failing test**
 
@@ -330,7 +329,6 @@ Expected: 无匹配
 - 不传 `--platform` 时默认构建当前系统可执行平台（macos/linux/windows）
 ```
 
-并在 `docs/plans/DIR.md` 追加本次新增设计文档与实现计划条目。
 
 **Step 4: Run check to verify it passes**
 
@@ -340,7 +338,6 @@ Expected: 输出对应行号与命令说明
 **Step 5: Commit**
 
 ```bash
-git add README.md docs/plans/DIR.md
 git commit -m "docs: add build cli usage for app and lib commands"
 ```
 
@@ -386,7 +383,6 @@ Expected: PASS（日志顺序显示 lib -> codegen -> flutter build）
 **Step 5: Commit**
 
 ```bash
-git add tool/build.dart test/build_cli_test.dart README.md docs/plans/DIR.md docs/plans/2026-02-27-build-cli-implementation-plan.md
 git commit -m "feat(tool): add cross-platform build cli for app and rust library"
 ```
 

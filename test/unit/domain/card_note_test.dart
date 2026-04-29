@@ -1,6 +1,6 @@
 // input: 构造 CardNote 并投影到 CardNoteProjection。
 // output: 断言投影保留 deleted 标记和 updatedAtMicros 排序键。
-// pos: 卡片域投影模型测试，保障写模型到读模型字段语义一致。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 卡片域投影模型测试，保障写模型到读模型字段语义一致。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/domain/card_note.dart';
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';
 import 'package:flutter_test/flutter_test.dart';

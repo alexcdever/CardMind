@@ -1,13 +1,7 @@
-input: DIR.md 校验目标、架构与实施任务
-output: 可执行的 DIR.md 守卫测试与实现步骤
-pos: DIR.md 校验实施计划（修改需同步 DIR.md）
-# 分形文档 DIR.md 检查实施计划
 
 > **致 Claude：** 必需子技能：使用 superpowers:executing-plans 逐步实施此计划。
 
-**目标：** 为变更文件增加同目录 `DIR.md` 条目校验，不存在或缺失条目时报错。
 
-**架构：** 在 `FractalDocChecker.check()` 中对每个变更文件计算目录与文件名，读取 `DIR.md` 内容并用 `contains` 判断条目。失败时追加错误到结果列表。
 
 **技术栈：** Dart, Flutter test。
 
@@ -21,7 +15,6 @@ pos: DIR.md 校验实施计划（修改需同步 DIR.md）
 
 ---
 
-### 任务 1：增强 DIR.md 条目校验
 
 **文件：**
 - 修改：`docs/standards/documentation.md`
@@ -30,9 +23,7 @@ pos: DIR.md 校验实施计划（修改需同步 DIR.md）
 **步骤 1：编写失败测试**
 
 ```dart
-test('当变更文件未更新 DIR.md 时应失败', () async {
   final root = Directory.systemTemp.createTempSync('fractal-doc-test');
-  File('${root.path}/lib/DIR.md')
       .createSync(recursive: true);
   final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
   file.writeAsStringSync('// input: none\n// output: none\n// pos: none\n');
@@ -40,7 +31,6 @@ test('当变更文件未更新 DIR.md 时应失败', () async {
   final checker = FractalDocChecker(rootPath: root.path);
   final result = await checker.check(changedFiles: ['lib/foo.dart']);
   expect(result.isOk, isFalse);
-  expect(result.errors.single, contains('DIR.md missing entry'));
 });
 ```
 
@@ -53,7 +43,6 @@ test('当变更文件未更新 DIR.md 时应失败', () async {
 
 ```dart
 bool _dirHasEntry(String dirPath, String fileName) {
-  final dirFile = File('$dirPath/DIR.md');
   if (!dirFile.existsSync()) return false;
   final content = dirFile.readAsStringSync();
   return content.contains(fileName);
@@ -63,7 +52,6 @@ bool _dirHasEntry(String dirPath, String fileName) {
 final dirPath = File('$rootPath/$relativePath').parent.path;
 final fileName = File(relativePath).uri.pathSegments.last;
 if (!_dirHasEntry(dirPath, fileName)) {
-  errors.add('DIR.md missing entry: $relativePath');
 }
 ```
 
@@ -76,5 +64,4 @@ if (!_dirHasEntry(dirPath, fileName)) {
 
 ```bash
 git add docs/standards/documentation.md docs/standards/documentation.md
-git commit -m "feat(docs): enforce DIR.md entries"
 ```

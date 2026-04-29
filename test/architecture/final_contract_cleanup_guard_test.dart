@@ -1,6 +1,6 @@
 // input: 读取最终契约收尾相关生产源码文本，检查 pool caller-scoped 与 card query 默认语义是否回退。
 // output: 断言不得回退为 first-member 角色推断、lookup miss 伪造 member，且 Flutter 不得重新引入 deleted 语义开关。
-// pos: 覆盖 flutter/rust 最终契约收尾的源码守卫测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 flutter/rust 最终契约收尾的源码守卫测试。修改本文件需同步更新文件头。
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/source_guard.dart';

@@ -1,6 +1,6 @@
 // input: 向 build CLI 传入子命令、平台参数与帮助参数。
 // output: 返回码、提示文案与进程调用顺序符合约定。
-// pos: 覆盖构建脚本分支与参数校验，防止错误构建路径。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖构建脚本分支与参数校验，防止错误构建路径。修改本文件需同步更新文件头。
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

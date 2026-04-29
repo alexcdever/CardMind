@@ -1,6 +1,6 @@
 // input: DebugConsole 的各种命令输入和错误场景。
 // output: CLI 命令解析和执行的全覆盖测试。
-// pos: CLI 单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: CLI 单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 DebugConsole 命令处理。
 
 use cardmind_rust::application::backend_service::BackendService;

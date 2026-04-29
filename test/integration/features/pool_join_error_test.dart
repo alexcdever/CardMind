@@ -1,6 +1,6 @@
 // input: 传入各类入池错误码给 join error mapper。
 // output: 产出可读错误文案与主操作按钮文案映射。
-// pos: 覆盖错误码到文案动作的映射契约，防止异常提示不可用。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖错误码到文案动作的映射契约，防止异常提示不可用。修改本文件需同步更新文件头。
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:flutter_test/flutter_test.dart';
 

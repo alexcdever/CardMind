@@ -1,6 +1,6 @@
 // input: fake PoolApiClient 与可选 SyncService 在不同池状态下执行命令。
 // output: 断言 PoolController 的创建、加入、审批、拒绝与同步恢复分支正确。
-// pos: PoolController 单元测试。修改本文件需同步更新所属 DIR.md。
+// pos: PoolController 单元测试
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';

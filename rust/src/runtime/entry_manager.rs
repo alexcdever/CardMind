@@ -13,10 +13,6 @@
 //!
 //! ## 线程安全
 //! 使用 `Mutex` 保护内部状态，支持多线程并发访问。
-//!
-//! ## 修改注意
-//! 修改本文件需同步更新所属 DIR.md。
-
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 

@@ -1,6 +1,6 @@
 input: FRB API 与持久化目标、架构与实施任务
 output: 可执行的 FRB/Loro/SQLite 落地步骤与验证命令
-pos: FRB API 与持久化实施计划（修改需同步 DIR.md）
+pos: FRB API 与持久化实施计划
 # FRB API 与持久化 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

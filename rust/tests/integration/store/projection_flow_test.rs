@@ -1,6 +1,6 @@
 // input: 可注入投影失败的 CardNoteRepository、临时目录与一次创建卡片业务动作。
 // output: 断言 Loro 写入已成功、SQLite 查询尚未收敛，并返回可恢复的投影失败语义。
-// pos: 覆盖业务写成功与投影失败分离语义的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖业务写成功与投影失败分离语义的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::store::card_store::CardNoteRepository;
 use cardmind_rust::store::loro_store::{load_loro_doc, note_doc_path};

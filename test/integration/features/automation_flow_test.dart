@@ -1,6 +1,6 @@
 // input: 使用稳定 semantics 与 ValueKey 驱动 cards/pool 关键主流程操作。
 // output: 验证自动化锚点足以支撑创建卡片、删除恢复、创建池与退出确认等交互回归。
-// pos: 覆盖基于自动化锚点的 Flutter 主流程回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖基于自动化锚点的 Flutter 主流程回归测试。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_state.dart';

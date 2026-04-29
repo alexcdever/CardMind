@@ -1,6 +1,6 @@
 // input: api.rs 中的纯函数（pool_name, member_role, to_pool_dto, to_card_note_dto 等）。
 // output: API 转换函数的全覆盖测试。
-// pos: API 纯函数单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: API 纯函数单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 API 层的纯函数和 DTO 转换。
 
 use cardmind_rust::models::card::Card;

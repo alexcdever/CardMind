@@ -1,6 +1,6 @@
 // input: 模拟两个客户端（A和B）通过数据池进行协作。
 // output: 断言客户端A创建池、客户端B加入、数据同步等核心流程。
-// pos: 覆盖多客户端数据池协作的核心场景，确保后端逻辑正确。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖多客户端数据池协作的核心场景，确保后端逻辑正确。修改本文件需同步更新文件头。
 use cardmind_rust::api::*;
 use serial_test::serial;
 use tempfile::tempdir;

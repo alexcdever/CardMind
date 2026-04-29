@@ -1,6 +1,6 @@
 // input: 在编辑页发送 Ctrl+S 键盘快捷键事件。
 // output: 触发保存并显示“本地已保存”反馈文案。
-// pos: 覆盖编辑器快捷键保存链路，防止桌面效率入口失效。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖编辑器快捷键保存链路，防止桌面效率入口失效。修改本文件需同步更新文件头。
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

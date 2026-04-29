@@ -4,7 +4,6 @@
 
 **Goal:** 新增 `docs/specs/user-journeys.md`，把个人多设备主路径正式化为旅程层下游产品规格，并对齐规格索引与相关文档引用。
 
-**Architecture:** 本计划只做文档层实现，不修改功能代码。先新增 `docs/specs/user-journeys.md`，将五阶段旅程、总原则、与 `docs/specs/product.md` 的上下位关系正式化；再更新 `docs/specs/DIR.md`、`docs/DIR.md` 和 `docs/plans/DIR.md` 等索引；必要时补充对现有上游/下游文档的轻量引用，但不扩张到 UI、roadmap 或功能实现。
 
 **Tech Stack:** Markdown 文档、git、现有 specs/plans 体系
 
@@ -14,11 +13,8 @@
 
 - Create: `docs/specs/user-journeys.md`
   - 正式旅程层下游产品规格；定义总原则、五阶段旅程、成立/断裂信号，以及与 `product.md` / 下游规格的关系。
-- Modify: `docs/specs/DIR.md`
   - 登记新的正式规格文档。
-- Modify: `docs/DIR.md`
   - 如有必要，补充 `specs/` 目录对“旅程层下游产品规格”的描述。
-- Verify: `docs/plans/DIR.md`
   - 验证本实施计划文件的索引登记状态，不重复登记已有条目。
 - Optional Modify: `docs/specs/product.md`
   - 仅在必要时补一条对 `docs/specs/user-journeys.md` 的下游引用；若现有结构已足够清楚，则不改。
@@ -170,27 +166,20 @@ git commit -m "docs: add user journeys truth source spec"
 ### Task 2: Update directory indexes
 
 **Files:**
-- Modify: `docs/specs/DIR.md`
-- Modify: `docs/DIR.md`
 - Optional Modify: `docs/specs/product.md`
 
-- [ ] **Step 1: Add `user-journeys.md` to `docs/specs/DIR.md`**
 
 Add a one-line index entry that clearly describes this file as a journey-layer downstream product spec supporting personal multi-device primary journeys.
 
 - [ ] **Step 2: Verify spec index entry**
 
-Run: `rg "user-journeys.md|旅程" docs/specs/DIR.md`
 Expected: 索引中出现新规格条目
 
-- [ ] **Step 3: Update `docs/DIR.md` only if current wording is insufficient**
 
-Only modify `docs/DIR.md` if its current `specs/` 目录描述无法涵盖“旅程层下游产品规格”这一语义。
 If its current wording already broadly covers formal product/engineering specs without conflict, it MUST remain unchanged.
 
 - [ ] **Step 4: Verify root index alignment**
 
-Run: `rg "specs/|旅程|产品" docs/DIR.md docs/specs/DIR.md`
 Expected: 根目录索引与 specs 索引的语义不冲突
 
 - [ ] **Step 5: Add minimal cross-reference to `docs/specs/product.md` only if needed**
@@ -201,8 +190,6 @@ If modification is required, add only one minimal line in `## 8. 与现有正式
 
 - [ ] **Step 6: Verify optional reference decision**
 
-Run: `rg "user-journeys.md" docs/specs/product.md docs/specs/DIR.md`
-Expected: 新规格至少在 `docs/specs/DIR.md` 中出现；若 `product.md` 被改，则该引用也应可见
 
 - [ ] **Step 7: Run final verification for chunk 2**
 
@@ -212,11 +199,9 @@ Expected: no whitespace or patch formatting issues
 - [ ] **Step 8: Commit task 2**
 
 ```bash
-git add docs/specs/DIR.md docs/DIR.md docs/specs/product.md
 git commit -m "docs: align indexes for user journeys spec"
 ```
 
-If `docs/DIR.md` or `docs/specs/product.md` were intentionally unchanged, only stage the files that actually changed.
 
 ---
 
@@ -226,17 +211,13 @@ If `docs/DIR.md` or `docs/specs/product.md` were intentionally unchanged, only s
 
 **Files:**
 - Verify: `docs/specs/user-journeys.md`
-- Verify: `docs/specs/DIR.md`
-- Verify: `docs/plans/DIR.md`
 
 - [ ] **Step 1: Verify this implementation plan is already indexed**
 
-Run: `rg "2026-03-20-user-journeys-truth-source-implementation-plan.md" docs/plans/DIR.md`
 Expected: 计划索引中已存在该条目；若不存在，停止执行并先更新计划
 
 - [ ] **Step 2: Run final repository-level verification for this plan**
 
-Run: `rg "用户旅程|多设备主路径" docs/specs/user-journeys.md docs/specs/DIR.md docs/plans/DIR.md`
 Expected: 新规格、规格索引、计划索引之间形成可追踪链路
 
 - [ ] **Step 3: Run final formatting verification**
@@ -261,7 +242,6 @@ git commit -m "docs: finalize user journeys spec handoff"
 - [ ] Run: `rg "上位产品真相源|旅程层下游规格|旅程成立信号|旅程断裂信号" docs/specs/user-journeys.md`
 Expected: 规格中能直接看到层级关系与阶段判断结构
 
-- [ ] Run: `rg "user-journeys.md" docs/specs/DIR.md`
 Expected: 新规格已登记
 
 - [ ] Run: `git status --short`
@@ -275,4 +255,3 @@ Expected: 在所有计划内提交完成后，工作区干净
 - 不要把数据池协作扩展成与个人多设备主路径并列的主线旅程。
 - 如果某一阶段的表述无法帮助判断“旅程是否成立”，应回退并重写，而不是继续堆砌描述。
 - 如果发现 `docs/specs/product.md` 与旅程规格存在语义冲突，应停下来更新计划或请人确认，而不是靠直觉改写产品目标。
-- `docs/plans/DIR.md` 中本计划条目已存在，不应重复登记。

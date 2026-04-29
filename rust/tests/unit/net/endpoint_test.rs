@@ -1,6 +1,6 @@
 // input: endpoint 模块的功能和边界条件。
 // output: PoolEndpoint 包装器和端点构建的单元测试。
-// pos: endpoint.rs 单元测试文件。修改本文件需同步更新所属 DIR.md。
+// pos: endpoint.rs 单元测试文件
 // 中文注释：本文件测试 endpoint 模块的核心功能。
 
 use cardmind_rust::net::endpoint::{POOL_ALPN, build_test_endpoints};

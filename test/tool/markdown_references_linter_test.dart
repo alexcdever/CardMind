@@ -1,6 +1,6 @@
 // input: 针对 Markdown 引用检查脚本的相对路径、锚点与 CLI 返回码行为编写测试。
 // output: 验证脚本能准确报告失效引用，并为质量门禁提供稳定返回码。
-// pos: test/tool/markdown_references_linter_test.dart - Markdown 引用检查脚本测试，修改本文件需同步更新文件头与所属 DIR.md。
+// pos: test/tool/markdown_references_linter_test.dart - Markdown 引用检查脚本测试，修改本文件需同步更新文件头。
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

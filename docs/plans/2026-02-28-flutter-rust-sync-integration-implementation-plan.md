@@ -1,6 +1,6 @@
 input: Flutter-Rust 同步网络对接目标、架构与实施任务
 output: 可执行的对接步骤与验证命令
-pos: Flutter-Rust 同步网络对接实施计划（修改需同步 DIR.md）
+pos: Flutter-Rust 同步网络对接实施计划
 # Flutter-Rust 同步网络对接 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -275,7 +275,6 @@ git commit -m "feat(sync-ui): wire sync states and recovery interactions"
 - Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/specs/ui-interaction.md`
-- Modify: `docs/plans/DIR.md`
 
 **Step 1: 更新治理文档三件套（同步交互新增项）**
 
@@ -284,7 +283,6 @@ git commit -m "feat(sync-ui): wire sync states and recovery interactions"
 - degraded 状态不阻断本地操作。
 ```
 
-**Step 2: 更新 `docs/plans/DIR.md` 索引**
 
 ```markdown
 - 2026-02-28-flutter-rust-sync-integration-design.md
@@ -304,6 +302,5 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/plans/DIR.md
 git commit -m "docs(governance): align sync integration interaction gates"
 ```

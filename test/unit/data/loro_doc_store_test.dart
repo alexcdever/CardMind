@@ -1,6 +1,6 @@
 // input: Loro 文档文件路径与更新字节序列。
 // output: 校验 snapshot/update 创建、追加与读取行为。
-// pos: Loro 文档文件化存储测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: Loro 文档文件化存储测试。修改本文件需同步更新文件头。
 import 'dart:io';
 import 'dart:typed_data';
 

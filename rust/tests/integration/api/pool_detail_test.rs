@@ -1,6 +1,6 @@
 // input: 应用级配置初始化参数、建池/入池 API 调用参数，以及带调用者身份的详情查询请求。
 // output: 断言 pool detail 的 current_user_role 必须按调用者身份计算，而不是按成员顺序兜底。
-// pos: 覆盖 pool detail caller-scoped 契约的后端测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 pool detail caller-scoped 契约的后端测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     create_pool, get_pool_detail, init_app_config, join_by_code, reset_app_config_for_tests,
     setup_app_lock, verify_app_lock_with_pin,

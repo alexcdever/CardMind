@@ -118,7 +118,6 @@
 
 ## 10. 里程碑与提交建议
 
-1. 文档设计提交：本设计文档与 `docs/plans/DIR.md`。
 2. 规格提交：`ui-interaction` 相关条款更新。
 3. 实现提交：入口切换、onboarding 删除、pool 文案更新、测试更新。
 

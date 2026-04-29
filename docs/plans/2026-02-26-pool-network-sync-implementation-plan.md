@@ -1,6 +1,6 @@
 input: 数据池组网与同步目标、架构与实施任务
 output: 可执行的组网同步步骤与验证命令
-pos: 数据池组网与同步实施计划（修改需同步 DIR.md）
+pos: 数据池组网与同步实施计划
 # 数据池组网与同步 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -29,8 +29,6 @@ pos: 数据池组网与同步实施计划（修改需同步 DIR.md）
 - Modify: `rust/src/store/sqlite_store.rs`
 - Modify: `rust/tests/sqlite_store_pool_test.rs`
 - Modify: `rust/tests/pool_store_persist_test.rs`
-- Modify: `rust/src/models/DIR.md`
-- Modify: `rust/src/store/DIR.md`
 
 **Step 1: 更新测试以移除 pool_key 字段**
 
@@ -57,7 +55,6 @@ Expected: FAIL（`pool_key` 字段仍存在 / 结构不匹配）
 - `Pool` 结构移除 `pool_key`
 - `PoolStore::create_pool` 删除 `pool_key` 参数与校验
 - SQLite `pools` 表移除 `pool_key` 字段，读写逻辑同步调整
-- 更新文件头 `input/output/pos` 与 `DIR.md`
 
 ```rust
 pub struct Pool {
@@ -77,7 +74,6 @@ Expected: PASS
 ```bash
 git add rust/src/models/pool.rs rust/src/store/pool_store.rs rust/src/store/sqlite_store.rs \
   rust/tests/sqlite_store_pool_test.rs rust/tests/pool_store_persist_test.rs \
-  rust/src/models/DIR.md rust/src/store/DIR.md
 git commit -m "feat(pool): drop pool_key from schema"
 ```
 
@@ -90,7 +86,6 @@ git commit -m "feat(pool): drop pool_key from schema"
 - Modify: `rust/src/models/error.rs`
 - Modify: `rust/src/api.rs`
 - Modify: `rust/tests/api_error_test.rs`
-- Modify: `rust/src/models/DIR.md`
 
 **Step 1: 编写失败测试，校验新增错误码**
 
@@ -140,7 +135,6 @@ Expected: PASS
 
 ```bash
 git add rust/src/models/api_error.rs rust/src/models/error.rs rust/src/api.rs \
-  rust/tests/api_error_test.rs rust/src/models/DIR.md
 git commit -m "feat(pool): add not-member error code"
 ```
 
@@ -149,12 +143,10 @@ git commit -m "feat(pool): add not-member error code"
 ### Task 3: 新增同步消息模型与编解码
 
 **Files:**
-- Create: `rust/src/net/DIR.md`
 - Create: `rust/src/net/mod.rs`
 - Create: `rust/src/net/messages.rs`
 - Create: `rust/src/net/codec.rs`
 - Modify: `rust/src/lib.rs`
-- Modify: `rust/src/DIR.md`
 - Test: `rust/tests/pool_net_codec_test.rs`
 
 **Step 1: 编写失败测试，验证消息序列化/反序列化**
@@ -200,8 +192,6 @@ Expected: PASS
 **Step 5: 提交**
 
 ```bash
-git add rust/src/net/DIR.md rust/src/net/mod.rs rust/src/net/messages.rs \
-  rust/src/net/codec.rs rust/src/lib.rs rust/src/DIR.md \
   rust/tests/pool_net_codec_test.rs
 git commit -m "feat(pool): add pool network message codec"
 ```
@@ -214,7 +204,6 @@ git commit -m "feat(pool): add pool network message codec"
 - Modify: `rust/Cargo.toml`
 - Create: `rust/src/net/endpoint.rs`
 - Modify: `rust/src/net/mod.rs`
-- Modify: `rust/src/net/DIR.md`
 - Test: `rust/tests/pool_net_endpoint_test.rs`
 
 **Step 1: 编写失败测试，验证端点可启动与互连**
@@ -269,7 +258,6 @@ Expected: PASS
 
 ```bash
 git add rust/Cargo.toml rust/src/net/endpoint.rs rust/src/net/mod.rs \
-  rust/src/net/DIR.md rust/tests/pool_net_endpoint_test.rs
 git commit -m "feat(pool): add iroh endpoint manager"
 ```
 
@@ -280,7 +268,6 @@ git commit -m "feat(pool): add iroh endpoint manager"
 **Files:**
 - Create: `rust/src/net/session.rs`
 - Modify: `rust/src/net/mod.rs`
-- Modify: `rust/src/net/DIR.md`
 - Test: `rust/tests/pool_net_session_test.rs`
 
 **Step 1: 编写失败测试，校验非成员连接被拒绝**
@@ -320,7 +307,6 @@ Expected: PASS
 **Step 5: 提交**
 
 ```bash
-git add rust/src/net/session.rs rust/src/net/mod.rs rust/src/net/DIR.md \
   rust/tests/pool_net_session_test.rs
 git commit -m "feat(pool): add session membership check"
 ```
@@ -333,7 +319,6 @@ git commit -m "feat(pool): add session membership check"
 - Modify: `rust/src/store/loro_store.rs`
 - Create: `rust/src/net/sync.rs`
 - Modify: `rust/src/net/mod.rs`
-- Modify: `rust/src/net/DIR.md`
 - Test: `rust/tests/pool_sync_test.rs`
 
 **Step 1: 编写失败测试，验证快照 + 增量导入**
@@ -382,7 +367,6 @@ Expected: PASS
 
 ```bash
 git add rust/src/store/loro_store.rs rust/src/net/sync.rs rust/src/net/mod.rs \
-  rust/src/net/DIR.md rust/tests/pool_sync_test.rs
 git commit -m "feat(pool): add Loro snapshot/update sync helpers"
 ```
 
@@ -393,7 +377,6 @@ git commit -m "feat(pool): add Loro snapshot/update sync helpers"
 **Files:**
 - Create: `rust/src/net/pool_network.rs`
 - Modify: `rust/src/net/mod.rs`
-- Modify: `rust/src/net/DIR.md`
 - Test: `rust/tests/pool_network_flow_test.rs`
 
 **Step 1: 编写失败测试，模拟两节点首次同步**
@@ -442,7 +425,6 @@ Expected: PASS
 **Step 5: 提交**
 
 ```bash
-git add rust/src/net/pool_network.rs rust/src/net/mod.rs rust/src/net/DIR.md \
   rust/tests/pool_network_flow_test.rs
 git commit -m "feat(pool): add pool network sync flow"
 ```
@@ -503,7 +485,6 @@ git commit -m "feat(pool): expose pool network api"
 ### Task 9: 文档与清单同步
 
 **Files:**
-- Modify: `docs/plans/DIR.md`
 - Modify: `docs/plans/2026-02-18-cardmind-rebuild-design.md`
 
 **Step 1: 更新文档描述**
@@ -518,6 +499,5 @@ Expected: 仅剩历史文档中不可变更内容
 **Step 3: 提交**
 
 ```bash
-git add docs/plans/DIR.md docs/plans/2026-02-18-cardmind-rebuild-design.md
 git commit -m "docs: align pool sync design"
 ```

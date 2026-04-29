@@ -1,6 +1,6 @@
 // input: 临时目录初始化的 network handle 与 connect/join/push/pull/disconnect 调用序列。
 // output: 断言同步状态按 idle->connected->idle 转换且 push/pull 返回 ok。
-// pos: 覆盖同步 API 端到端状态流转场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖同步 API 端到端状态流转场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::*;
 use cardmind_rust::store::path_resolver::DataPaths;
 use cardmind_rust::store::sqlite_store::SqliteStore;

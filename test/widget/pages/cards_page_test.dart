@@ -1,6 +1,6 @@
 // input: 在 CardsPage 执行新增、保存、删除与恢复等用户操作。
 // output: 编辑页导航、保存反馈与列表状态按预期变化。
-// pos: 覆盖卡片页核心 CRUD 交互路径，防止主流程回归。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖卡片页核心 CRUD 交互路径，防止主流程回归。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';

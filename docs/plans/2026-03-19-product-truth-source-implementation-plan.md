@@ -14,15 +14,12 @@
 
 - Create: `docs/specs/product.md`
   - 产品级上位真相源，定义终极目标、当前阶段目标、目标用户、核心价值、非目标、与 `architecture/pool/card-note/ui-interaction` 的关系。
-- Modify: `docs/specs/DIR.md`
   - 登记新的正式规格文档。
-- Modify: `docs/DIR.md`
   - 若需要，补充 `specs/` 下新增产品级真相源的目录语义。
 - Modify: `README.md`
   - 用一段简化说明对外表达产品定位，并引用 `docs/specs/product.md` 作为正式来源。
 - Modify: `docs/user-guide.md`
   - 收敛为面向当前公开能力的用户说明，删去或标注未被当前规格支持的超前描述。
-- Modify: `docs/plans/DIR.md`
   - 登记本实施计划文件。
 
 ---
@@ -33,8 +30,6 @@
 
 **Files:**
 - Create: `docs/specs/product.md`
-- Modify: `docs/specs/DIR.md`
-- Modify: `docs/DIR.md`
 - Reference: `docs/plans/2026-03-19-cardmind-product-audit.md`
 - Reference: `README.md`
 
@@ -129,22 +124,16 @@ Expected: 四类关键信号都能在新规格中找到
 - [ ] **Step 13: Update directory indexes**
 
 Update:
-- `docs/specs/DIR.md`
-- `docs/DIR.md`
 
 Required content:
-- 在 `docs/specs/DIR.md` 中新增 `product.md` 条目，说明它是产品级真相源
-- 在 `docs/DIR.md` 中让 `specs/` 的目录说明能涵盖“产品级正式规格”
 
 - [ ] **Step 14: Verify index alignment**
 
-Run: `rg "product.md|产品级" docs/specs/DIR.md docs/DIR.md`
 Expected: 两个索引文件都能反映新文档的定位
 
 - [ ] **Step 15: Commit chunk 1**
 
 ```bash
-git add docs/specs/product.md docs/specs/DIR.md docs/DIR.md
 git commit -m "docs: add product truth source spec"
 ```
 
@@ -258,9 +247,7 @@ git commit -m "docs: align user guide with current product truth"
 ### Task 4: Update plan index
 
 **Files:**
-- Modify: `docs/plans/DIR.md`
 
-- [ ] **Step 1: Add the new implementation plan to `docs/plans/DIR.md`**
 
 Add an index entry for:
 
@@ -270,7 +257,6 @@ Add an index entry for:
 
 - [ ] **Step 2: Verify plan index alignment**
 
-Run: `rg "2026-03-19-product-truth-source-implementation-plan.md" docs/plans/DIR.md`
 Expected: 计划索引中存在该计划条目
 
 - [ ] **Step 3: Run final documentation verification**
@@ -281,7 +267,6 @@ Expected: no whitespace or patch formatting issues
 - [ ] **Step 4: Commit planning handoff**
 
 ```bash
-git add docs/plans/DIR.md
 git commit -m "docs: hand off audit to product truth source plan"
 ```
 
@@ -295,7 +280,6 @@ Expected: 核心产品目标在正式规格中有明确字面表达
 - [ ] Run: `rg "多设备|个人用户|同步|流转" README.md docs/user-guide.md`
 Expected: 入口文档与用户指南都能反映产品方向，但不要求与正式规格逐字一致
 
-- [ ] Run: `rg "product.md" docs/specs/DIR.md README.md`
 Expected: formal truth source is indexed and referenced
 
 - [ ] Run: `git status --short`

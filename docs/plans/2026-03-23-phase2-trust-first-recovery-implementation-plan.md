@@ -62,7 +62,6 @@
   - 锁定 UI 只展示“内容已保存，结果仍在更新”等用户语义，不暴露“查询收敛”。
 - Test: `test/integration/features/pool_sync_test.dart`
   - 锁定池页恢复反馈的端到端呈现。
-- Modify: `docs/plans/DIR.md`
   - 添加本 implementation plan 的索引条目。
 
 ---
@@ -1208,7 +1207,6 @@ git commit -m "test(ui): lock phase2 trust-first recovery feedback"
 ### Task 7: Run full verification and update plan index
 
 **Files:**
-- Modify: `docs/plans/DIR.md`
 - Verify: `rust/tests/contract/api/sync_api_contract.rs`
 - Verify: `rust/tests/integration/api_integration_test.rs`
 - Verify: `test/contract/api/sync_api_contract_test.dart`
@@ -1220,7 +1218,6 @@ git commit -m "test(ui): lock phase2 trust-first recovery feedback"
 
 - [ ] **Step 1: Add plan index entry**
 
-Append one line to `docs/plans/DIR.md`:
 
 ```text
 2026-03-23-phase2-trust-first-recovery-implementation-plan.md - 实现计划 - Phase 2 信任优先恢复实施（同步 / 查询收敛 / 实例连续性分层与信任优先恢复契约）
@@ -1309,7 +1306,6 @@ Expected:
 - [ ] **Step 5: Commit task 7**
 
 ```bash
-git add docs/plans/DIR.md test/integration/infrastructure/sync_bridge_test.dart test/contract/api/sync_api_contract_test.dart test/unit/presentation/sync_service_test.dart test/unit/presentation/sync_status_test.dart test/widget/components/sync_state_test.dart test/integration/features/pool_sync_test.dart rust/tests/contract/api/sync_api_contract.rs rust/tests/integration/api_integration_test.rs rust/tests/unit/net/pool_network_sync_test.rs lib/features/sync/sync_service.dart lib/features/sync/sync_status.dart lib/features/sync/sync_status_mapper.dart lib/features/pool/pool_page.dart
 git commit -m "feat: align phase2 trust-first recovery verification surfaces"
 ```
 

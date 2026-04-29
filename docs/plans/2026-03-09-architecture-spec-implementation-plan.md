@@ -7,7 +7,6 @@ pos: architecture 规格文档实施计划，执行前需先读对应设计稿
 
 **Goal:** Add `docs/specs/architecture.md` as the formal project-level architecture spec, index it correctly, and align related spec references so later implementation work can rely on it as the top-level architecture constraint.
 
-**Architecture:** Keep design, spec, and plan strictly separated. Use `docs/plans/2026-03-09-architecture-spec-design.md` as decision context, write the normative architecture rules only in `docs/specs/architecture.md`, then align `docs/specs/DIR.md` and only the minimum necessary wording in related specs to make the new hierarchy explicit.
 
 **Tech Stack:** Markdown documentation, repo documentation standards in `docs/standards/`, spec files in `docs/specs/`, git
 
@@ -19,7 +18,6 @@ pos: architecture 规格文档实施计划，执行前需先读对应设计稿
 2. Every task MUST follow `Red -> Green -> Blue -> Commit`, even for documentation-only changes.
 3. Do not move normative architecture content into `docs/plans/`.
 4. Keep `docs/specs/architecture.md` at the `原则级 + 关键结构约束` level; do not turn it into an implementation blueprint.
-5. Any touched directory index file (`DIR.md`) MUST stay truthful.
 
 ## Worktree Requirement
 
@@ -44,7 +42,6 @@ Expected: worktree created successfully; no existing formal `docs/specs/architec
 
 **Files:**
 - Create: `docs/specs/architecture.md`
-- Modify: `docs/specs/DIR.md`
 - Reference: `docs/specs/_template.md`
 - Reference: `docs/specs/shared-domain-contract.md`
 - Reference: `docs/plans/2026-03-09-architecture-spec-design.md`
@@ -105,7 +102,6 @@ Create `docs/specs/architecture.md` with these required outcomes:
 - It includes black-box Given/When/Then acceptance scenarios.
 ```
 
-Update `docs/specs/DIR.md` with a truthful one-line index entry for `architecture.md`.
 
 **Step 4: Verify GREEN**
 
@@ -128,7 +124,6 @@ Expected: all core architecture constraints are found.
 Run:
 
 ```bash
-rg -n "architecture\.md" docs/specs/DIR.md
 ```
 
 Expected: one truthful index entry is found.
@@ -146,7 +141,6 @@ Expected: PASS.
 **Step 7: Commit**
 
 ```bash
-git add docs/specs/architecture.md docs/specs/DIR.md
 git commit -m "docs: add architecture spec"
 ```
 
@@ -156,7 +150,6 @@ git commit -m "docs: add architecture spec"
 
 **Files:**
 - Modify: `docs/specs/shared-domain-contract.md`
-- Modify: `docs/specs/DIR.md` (only if the index text needs wording alignment)
 - Reference: `docs/specs/architecture.md`
 
 **Step 1: Write the failing doc check**
@@ -214,7 +207,6 @@ Expected: PASS.
 **Step 7: Commit**
 
 ```bash
-git add docs/specs/shared-domain-contract.md docs/specs/DIR.md
 git commit -m "docs: align shared contract with architecture spec"
 ```
 
@@ -227,7 +219,6 @@ If no file change was needed, skip this commit and continue.
 **Files:**
 - Modify: `docs/specs/card-note.md`
 - Modify: `docs/specs/pool.md`
-- Modify: `docs/specs/DIR.md` (only if wording needs refresh)
 - Reference: `docs/specs/architecture.md`
 
 **Step 1: Write the failing doc check**
@@ -284,7 +275,6 @@ Expected: PASS.
 **Step 7: Commit**
 
 ```bash
-git add docs/specs/card-note.md docs/specs/pool.md docs/specs/DIR.md
 git commit -m "docs: align domain specs with architecture layer"
 ```
 
@@ -299,8 +289,6 @@ If no file change was needed, skip this commit and continue.
 - Verify: `docs/specs/shared-domain-contract.md`
 - Verify: `docs/specs/card-note.md`
 - Verify: `docs/specs/pool.md`
-- Verify: `docs/specs/DIR.md`
-- Verify: `docs/DIR.md`
 
 **Step 1: Write the failing verification checklist**
 
@@ -318,7 +306,6 @@ The final baseline must prove:
 Run:
 
 ```bash
-rg -n "architecture\.md" docs/specs/DIR.md docs/specs/shared-domain-contract.md docs/specs/card-note.md docs/specs/pool.md
 ```
 
 Expected: this may still be incomplete before the final pass, depending on Task 2 and Task 3 outcomes.
@@ -338,7 +325,6 @@ Required outcomes:
 Run:
 
 ```bash
-rg -n "architecture\.md" docs/specs/DIR.md docs/specs/shared-domain-contract.md docs/specs/card-note.md docs/specs/pool.md
 ```
 
 Expected: the intended references are present and no stale wording remains in touched files.
@@ -364,7 +350,6 @@ Expected: PASS.
 **Step 7: Commit**
 
 ```bash
-git add docs/specs/architecture.md docs/specs/shared-domain-contract.md docs/specs/card-note.md docs/specs/pool.md docs/specs/DIR.md docs/DIR.md
 git commit -m "docs: finalize architecture spec alignment"
 ```
 
@@ -373,6 +358,5 @@ git commit -m "docs: finalize architecture spec alignment"
 ## Expected End State
 
 1. `docs/specs/architecture.md` exists as the formal source for project-level architecture constraints.
-2. `docs/specs/DIR.md` truthfully indexes the new spec.
 3. Shared and domain specs are either explicitly aligned to the new architecture layer or deliberately left unchanged with documented rationale.
 4. Future implementation plans can cite `docs/specs/architecture.md` instead of relying on design docs as normative sources.

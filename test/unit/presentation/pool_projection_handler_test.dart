@@ -1,6 +1,6 @@
 // input: 将 PoolEntity 写模型传入 PoolProjectionHandler。
 // output: 断言 handler 调用池读仓 upsertPool 写入读模型。
-// pos: 池投影处理器测试，保障池写侧事件可正确投影到 SQLite 读侧。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 池投影处理器测试，保障池写侧事件可正确投影到 SQLite 读侧。修改本文件需同步更新文件头。
 import 'package:cardmind/features/pool/data/pool_read_repository.dart';
 import 'package:cardmind/features/pool/domain/pool_entity.dart';
 import 'package:cardmind/features/pool/projection/pool_projection_handler.dart';

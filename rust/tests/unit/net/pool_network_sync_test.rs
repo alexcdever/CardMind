@@ -1,6 +1,6 @@
 // input: PoolNetwork 结构体的同步状态管理功能。
 // output: sync_state、sync_join_pool、sync_push、sync_pull 等方法的单元测试。
-// pos: pool_network 结构体方法测试文件。修改本文件需同步更新所属 DIR.md。
+// pos: pool_network 结构体方法测试文件
 // 中文注释: 本文件测试 PoolNetwork 的同步状态管理功能。
 
 use cardmind_rust::models::error::CardMindError;

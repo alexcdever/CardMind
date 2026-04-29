@@ -1,6 +1,6 @@
 // input: CardsController 接收各种边界输入（null id、空字符串等）。
 // output: 验证边界条件处理正确（抛出异常或正常执行）。
-// pos: 覆盖卡片控制器边界条件，防止空值导致未定义行为。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖卡片控制器边界条件，防止空值导致未定义行为。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/cards_controller.dart';
 import 'package:cardmind/features/cards/card_api_client.dart';
 import 'package:cardmind/features/cards/card_summary.dart';

@@ -1,6 +1,6 @@
 input: UI 规格驱动实施设计（分阶段 + 受控补规格）
 output: 可直接执行的任务化实施计划（TDD + 门禁）
-pos: UI 规格驱动实施计划（修改需同步 DIR.md）
+pos: UI 规格驱动实施计划
 # UI Spec-Guided Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -229,8 +229,6 @@ Expected: PASS after Blue refactor
 
 **Files:**
 - Modify (if needed): `docs/specs/ui-interaction.md`
-- Modify (if needed): `docs/specs/DIR.md`
-- Modify (if needed): `docs/DIR.md`
 - Test: `docs/specs/ui-interaction.md`
 - Test: `test/interaction_guard_test.dart`
 
@@ -256,6 +254,5 @@ Expected: PASS
 **Step 4: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/DIR.md docs/DIR.md docs/specs/ui-interaction.md test/interaction_guard_test.dart
 git commit -m "test(governance): enforce ui-spec guided implementation gates"
 ```

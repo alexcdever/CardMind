@@ -1,6 +1,6 @@
 // input: 构造 PoolEntity/PoolMember/PoolRequest 领域对象。
 // output: 断言字段值与解散状态可正确表达池生命周期。
-// pos: 池域实体模型测试，保障生命周期建模字段稳定。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 池域实体模型测试，保障生命周期建模字段稳定。修改本文件需同步更新文件头。
 import 'package:cardmind/features/pool/domain/pool_entity.dart';
 import 'package:cardmind/features/pool/domain/pool_member.dart';
 import 'package:cardmind/features/pool/domain/pool_request.dart';

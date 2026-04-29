@@ -30,7 +30,6 @@
 **Files:**
 - Modify: `test/bridge/backend_api_smoke_test.dart`
 - Modify: `test/architecture/no_flutter_write_source_test.dart`
-- Modify: `docs/plans/DIR.md`（仅在文档索引需补充时）
 
 **Step 1: 写失败测试**
 
@@ -395,7 +394,6 @@ git commit -m "feat(mainpath): resume frb production composition without handles
 ### Task 7: 全量验证并收尾当前修订基线
 
 **Files:**
-- Modify: `docs/plans/DIR.md`（如需补充索引）
 - Reference: `docs/plans/2026-03-15-remove-cardstore-handle-design.md`
 
 **Step 1: 写失败检查清单**

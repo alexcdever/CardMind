@@ -1,6 +1,6 @@
 // input: 本地 pool api client 的创建、加入与查询调用。
 // output: 断言 LocalPoolApiClient 与 PoolJoinResult 语义稳定。
-// pos: PoolApiClient 单元测试。修改本文件需同步更新所属 DIR.md。
+// pos: PoolApiClient 单元测试
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 

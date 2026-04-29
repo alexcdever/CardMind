@@ -1,6 +1,6 @@
 // input: 读取 truthfulness follow-up 相关生产源码文本，检查身份、save、query、sync 恢复主路径是否回退。
 // output: 断言 Flutter 不再推断身份、不再本地过滤 query、不再把 existing save 走 create，也不再让 sync 恢复停留在本地状态切换。
-// pos: 覆盖 follow-up 真相修补的源码守卫测试，防止错误实现回流。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 follow-up 真相修补的源码守卫测试，防止错误实现回流。修改本文件需同步更新文件头。
 import 'package:flutter_test/flutter_test.dart';
 import '../support/source_guard.dart';
 

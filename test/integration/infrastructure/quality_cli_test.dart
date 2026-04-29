@@ -1,6 +1,6 @@
 // input: 向 quality CLI 传入子命令与帮助参数。
 // output: 返回码、提示文案与进程调用顺序符合约定。
-// pos: 覆盖质量脚本分支与参数校验，防止 lint/test 门禁执行缺失。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖质量脚本分支与参数校验，防止 lint/test 门禁执行缺失。修改本文件需同步更新文件头。
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

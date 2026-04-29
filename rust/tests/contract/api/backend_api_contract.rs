@@ -1,6 +1,6 @@
 // input: 应用级配置初始化参数与无句柄 create/list/get/update 用例 API 的调用参数。
 // output: 断言 pool/card 用例 API 返回稳定 DTO，且查询结果与写入结果一致。
-// pos: 覆盖无句柄后端用例 API 契约场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖无句柄后端用例 API 契约场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     create_card_note, create_pool, get_card_note_detail, get_pool_detail, init_app_config,
     list_card_notes, list_pools, reset_app_config_for_tests, update_card_note,

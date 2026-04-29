@@ -1,6 +1,6 @@
 input: 已批准的 UI 规格补强设计（A11y/性能预算/i18n）
 output: 可执行的任务化实施步骤与验证命令
-pos: UI 交互规格补强实施计划（修改需同步 DIR.md）
+pos: UI 交互规格补强实施计划
 # UI Interaction Spec Hardening Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

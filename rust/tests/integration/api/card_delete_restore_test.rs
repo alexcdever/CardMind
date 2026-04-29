@@ -1,6 +1,6 @@
 // input: 应用级配置初始化参数，以及卡片创建/删除/恢复与查询 API 的调用参数。
 // output: 断言 delete/restore 经由无句柄后端 API 往返后，查询结果真实反映 deleted 状态变化。
-// pos: 覆盖卡片删除与恢复主路径的后端回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖卡片删除与恢复主路径的后端回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     create_card_note, delete_card_note, get_card_note_detail, init_app_config, list_card_notes,
     reset_app_config_for_tests, restore_card_note,

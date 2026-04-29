@@ -1,6 +1,6 @@
 // input: 应用级配置、卡片创建/删除写入，以及后端默认列表/搜索 API 的查询关键字。
 // output: 断言默认列表与搜索都固定只返回未删除卡片，且产品语义完全由 Rust 定义。
-// pos: 覆盖 card query 产品语义回收至 Rust API 的后端契约测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 card query 产品语义回收至 Rust API 的后端契约测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     create_card_note, delete_card_note, init_app_config, query_card_notes,
     reset_app_config_for_tests,

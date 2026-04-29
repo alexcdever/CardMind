@@ -83,7 +83,3 @@
 6. 错误语义与恢复动作
 7. 验收标准（Given/When/Then）
 8. 版本边界与演进
-
-## 7. 结果
-
-本设计获批后，按以上结构重写 `docs/specs/pool.md`，并同步更新 `docs/specs/DIR.md` 与 `docs/plans/DIR.md` 索引。

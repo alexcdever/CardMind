@@ -1,6 +1,6 @@
 // input: 构造的 PoolMessage::Hello 消息对象与编解码函数调用。
 // output: 断言消息经二进制编码后解码可无损还原原始内容。
-// pos: 覆盖组网消息编解码一致性场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖组网消息编解码一致性场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::net::codec::{decode_message, encode_message};
 use cardmind_rust::net::messages::PoolMessage;
 use uuid::Uuid;

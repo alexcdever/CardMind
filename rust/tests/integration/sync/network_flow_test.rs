@@ -1,6 +1,6 @@
 // input: 双端点网络、双端临时存储、预置 pool/card 数据与同步连接请求。
 // output: 断言 connect_and_sync 后对端节点成功接收并可查询同步卡片。
-// pos: 覆盖组网跨节点池与卡片同步主流程场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖组网跨节点池与卡片同步主流程场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api;
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::net::endpoint::build_test_endpoints;

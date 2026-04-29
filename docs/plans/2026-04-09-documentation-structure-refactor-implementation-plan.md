@@ -289,7 +289,6 @@ Add one clarifying rule:
 - apply to new or touched critical interaction surfaces first;
 - do not require unrelated retrofitting across the whole repository during every UI change.
 
-### 10. `docs/standards/docs-dir-indexing.md`
 
 Action: **delete or sharply downgrade**.
 
@@ -301,13 +300,11 @@ Reason:
 
 If any part is retained, keep only a lightweight indexing recommendation for key directories.
 
-### 11. `docs/standards/DIR.md`
 
 Action: **retain only as directory index**.
 
 Do not keep it as a central governance mechanism.
 
-### 12. `docs/DIR.md`
 
 Action: **update wording to match the new role model**.
 
@@ -391,7 +388,6 @@ It should explicitly say:
 
 ### Task 3.7
 
-- Rename and retain it as a docs-only indexing note (`docs-dir-indexing.md`), or remove it if the guidance is folded elsewhere.
 
 **Exit criteria:**
 
@@ -404,7 +400,6 @@ It should explicitly say:
 
 ### Task 4.1
 
-- Update `docs/DIR.md`, `docs/plans/DIR.md`, `docs/standards/DIR.md`, and any affected `docs/specs/` index text.
 
 ### Task 4.2
 
@@ -432,7 +427,6 @@ It should explicitly say:
 4. rewrite `ai-collaboration.md`;
 5. update `tdd.md` and `testing.md`;
 6. repair `tech-stack-baseline.md`;
-7. decide the final scope of `docs-dir-indexing.md`;
 8. update all indexes and residual references.
 
 This order prevents downstream documents from being rewritten against an unstable definition.
@@ -457,7 +451,6 @@ This refactor changes documentation structure, not product behavior. Verificatio
 
 ### Optional validation aid
 
-- Run a repository-wide content search for `spec-first`, `双代理`, `DIR.md`, and similar legacy anchors after each migration batch to catch stale wording early.
 
 ---
 
@@ -469,7 +462,6 @@ This refactor is complete when all of the following are true:
 2. The spec lifecycle rule is explicit: spec updates are triggered by confirmed formal behavior changes, not by implementation start alone.
 3. `AGENTS.md` no longer encodes a blanket heavyweight workflow for all tasks.
 4. `docs/standards/` contains fewer, clearer, higher-trust rules with minimal overlap.
-5. `docs-dir-indexing.md` remains a lightweight docs-only note and no longer implies a repository-wide metadata regime.
 6. Directory indexes reflect the new structure and do not contradict the canonical role model.
 
 ---

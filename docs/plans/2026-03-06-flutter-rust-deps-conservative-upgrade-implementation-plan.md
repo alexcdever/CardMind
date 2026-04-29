@@ -144,7 +144,6 @@ git commit -m "chore(deps): upgrade flutter and rust dependencies conservatively
 ### Task 5: Produce upgrade report and completion checklist
 
 **Files:**
-- Optionally modify: `docs/plans/DIR.md`
 - Optionally add: upgrade summary note (if team requires archival)
 
 **Step 1: Red - capture final diff footprint**

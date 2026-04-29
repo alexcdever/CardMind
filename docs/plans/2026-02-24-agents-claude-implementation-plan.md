@@ -1,6 +1,6 @@
 input: Agents/Claude 文档目标、结构与实施任务
 output: 可执行的文档编写与验证步骤
-pos: Agents/Claude 文档实施计划（修改需同步 DIR.md）
+pos: Agents/Claude 文档实施计划
 # Agents/Claude 文档 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

@@ -2,7 +2,7 @@
 
 /// input: 需要自动识别代码中的边界条件并检查测试覆盖情况
 /// output: 扫描代码生成边界覆盖报告，识别已覆盖和未覆盖的边界
-/// pos: tool/test_boundary_scanner.dart - 测试边界扫描器主程序，修改本文件需同步更新文件头和所属 DIR.md
+/// pos: tool/test_boundary_scanner.dart - 测试边界扫描器主程序，修改本文件需同步更新文件头
 /// 中文注释: 测试边界扫描器，自动识别代码边界条件并生成覆盖报告
 
 import 'dart:convert';

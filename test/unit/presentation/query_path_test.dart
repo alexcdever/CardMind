@@ -1,6 +1,6 @@
 // input: 读取生产页面、控制器与 FRB client 源码文本，检查查询主路径是否仍回退到 Flutter 本地查询装配。
 // output: 断言 Flutter 刷新只通过 FRB -> Rust Query API，不再直接接线 AppDatabase 或 SQLite 读仓。
-// pos: 覆盖主路径查询边界，防止生产代码重新依赖 Flutter 本地 SQLite 查询。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖主路径查询边界，防止生产代码重新依赖 Flutter 本地 SQLite 查询。修改本文件需同步更新文件头。
 import 'package:flutter_test/flutter_test.dart';
 import '../../support/source_guard.dart';
 

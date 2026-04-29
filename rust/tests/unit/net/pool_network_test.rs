@@ -1,6 +1,6 @@
 // input: pool_network 模块的功能和边界条件。
 // output: PoolNetwork 结构体和解析函数的单元测试。
-// pos: pool_network.rs 单元测试文件。修改本文件需同步更新所属 DIR.md。
+// pos: pool_network.rs 单元测试文件
 // 中文注释：本文件测试 pool_network 模块的核心功能。
 
 use cardmind_rust::models::error::CardMindError;

@@ -1,6 +1,6 @@
 // input: 临时目录、CardNoteRepository 实例与创建/更新卡片动作。
 // output: 断言业务写先落入 Loro，再经 SQLite 查询路径观察到投影结果。
-// pos: 锁定读写分离架构契约的集成测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 锁定读写分离架构契约的集成测试。修改本文件需同步更新文件头。
 use cardmind_rust::store::card_store::CardNoteRepository;
 use tempfile::tempdir;
 

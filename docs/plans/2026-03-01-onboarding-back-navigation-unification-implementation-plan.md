@@ -1,6 +1,6 @@
 input: 已批准的引导与全局返回策略统一设计（方案 A）
 output: 可执行的任务化实施步骤，覆盖跨端 back 行为与退出确认
-pos: 引导与主壳返回策略统一实施计划（修改需同步 DIR.md）
+pos: 引导与主壳返回策略统一实施计划
 # Onboarding Back Navigation Unification Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -304,7 +304,6 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add test/plan_tdd_blue_guard_test.dart docs/plans/2026-03-01-onboarding-back-navigation-unification-implementation-plan.md docs/plans/DIR.md
 git commit -m "docs(plans): add onboarding back-navigation implementation plan"
 ```
 

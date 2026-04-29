@@ -1,6 +1,6 @@
 // input: 包含单个合法成员的会话配置与 unknown endpoint 校验请求。
 // output: 断言非成员端点会触发 CardMindError::NotMember 错误。
-// pos: 覆盖组网会话成员校验拒绝分支场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖组网会话成员校验拒绝分支场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::models::error::CardMindError;
 use cardmind_rust::models::pool::PoolMember;
 use cardmind_rust::net::session::PoolSession;

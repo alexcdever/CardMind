@@ -345,7 +345,6 @@ git commit -m "feat(sync): expose real backend status semantics"
 ### Task 6: 全量验证并确认主路径修补完成
 
 **Files:**
-- Modify: `docs/plans/DIR.md`（如需补充索引）
 - Reference: `docs/plans/2026-03-13-flutter-rust-mainpath-repair-design.md`
 - Reference: `docs/plans/2026-03-15-remove-cardstore-handle-design.md`
 

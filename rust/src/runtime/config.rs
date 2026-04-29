@@ -12,10 +12,6 @@
 //!
 //! ## 默认值
 //! 所有入口默认禁用（`false`）。
-//!
-//! ## 修改注意
-//! 修改本文件需同步更新所属 DIR.md。
-
 use crate::models::error::CardMindError;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};

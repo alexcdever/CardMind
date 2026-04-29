@@ -47,7 +47,6 @@
 缺点：
 
 1. 需要维护一份新的上位规格文档。
-2. 需要同步维护 `docs/specs/DIR.md` 与相关引用关系。
 
 ### 4.2 方案 B：并入 `shared-domain-contract`
 
@@ -159,12 +158,10 @@
 
 后续围绕 Flutter/Rust 前后端分层推进的计划文档，应遵循以下顺序：
 
-1. 先新增 `docs/specs/architecture.md` 并更新 `docs/specs/DIR.md`。
 2. 再检查 `pool.md`、`card-note.md` 等分域规格是否需要补充对架构规格的引用或对齐说明。
 3. 然后再编写实现计划，拆解规格落地、分层迁移、测试与门禁任务。
 
 ## 10. 交付物
 
 1. 新增 `docs/specs/architecture.md`。
-2. 更新 `docs/specs/DIR.md`。
 3. 新增后续实现计划文档，用于拆解规格落地任务。

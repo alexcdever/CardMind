@@ -1,6 +1,6 @@
 // input: 在不同池状态下执行创建、加入、审批、退出与重试操作。
 // output: 页面状态、提示文案与待审批列表按流程更新。
-// pos: 覆盖池管理全流程交互与异常分支，防止成员协作链路回归。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖池管理全流程交互与异常分支，防止成员协作链路回归。修改本文件需同步更新文件头。
 import 'package:cardmind/features/pool/pool_page.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_controller.dart';

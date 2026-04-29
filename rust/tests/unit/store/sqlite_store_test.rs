@@ -1,6 +1,6 @@
 // input: SqliteStore 边界场景和错误路径。
 // output: SQLite 存储边界条件的全覆盖测试。
-// pos: SqliteStore 边界测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: SqliteStore 边界测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 SQLite 存储的错误处理和边界情况。
 
 use cardmind_rust::models::card::Card;

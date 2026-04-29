@@ -1,6 +1,6 @@
 // input: 卡片控制器接收 fake ApiClient 与 fake 读仓后执行 create/delete/restore 动作。
 // output: 断言控制器只通过 ApiClient 调后端，并在动作后刷新查询结果。
-// pos: 覆盖卡片控制器改接 ApiClient 主路径，防止回退到直接写仓。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖卡片控制器改接 ApiClient 主路径，防止回退到直接写仓。修改本文件需同步更新文件头。
 import 'dart:io';
 
 import 'package:cardmind/bridge_generated/api.dart' as frb;

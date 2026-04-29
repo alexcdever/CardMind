@@ -1,6 +1,6 @@
 // input: fake SyncGateway 返回不同 dto、ApiError 与普通异常。
 // output: 断言 SyncService 正确映射同步状态与错误分支。
-// pos: 同步服务单元测试，覆盖状态映射与异常处理。修改本文件需同步更新所属 DIR.md。
+// pos: 同步服务单元测试，覆盖状态映射与异常处理
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/sync/sync_service.dart';

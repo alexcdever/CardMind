@@ -1,6 +1,6 @@
 // input: 应用级配置初始化参数、池用例 API 与卡片用例 API 的调用参数。
 // output: 断言入池自动挂接已有笔记，且池上下文更新笔记不会产生重复 note 引用。
-// pos: 覆盖无句柄池笔记挂接规则场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖无句柄池笔记挂接规则场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     create_card_note, create_card_note_in_pool, create_pool, get_pool_detail, init_app_config,
     join_pool, reset_app_config_for_tests, setup_app_lock, update_card_note,

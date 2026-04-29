@@ -1,6 +1,6 @@
 // input: 在池页同步错误态点击“重试同步”和“重新连接”操作。
 // output: 控制器 retrySync 与 reconnectSync 调用计数递增。
-// pos: 覆盖池页与同步控制器动作连线，防止错误恢复按钮失灵。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖池页与同步控制器动作连线，防止错误恢复按钮失灵。修改本文件需同步更新文件头。
 import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/pool_api_client.dart';
 import 'package:cardmind/features/pool/pool_page.dart';

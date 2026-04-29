@@ -1,6 +1,6 @@
 // input: SyncSession 和 PoolSession 的各种场景。
 // output: 会话状态管理和成员验证的全覆盖测试。
-// pos: 网络会话单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 网络会话单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试同步会话和池会话管理。
 
 use cardmind_rust::models::error::CardMindError;

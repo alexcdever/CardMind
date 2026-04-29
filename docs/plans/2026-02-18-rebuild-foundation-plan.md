@@ -1,6 +1,6 @@
 input: CardMind 基础重建目标、架构与实施任务
 output: 可执行的基础重建步骤与验证命令
-pos: CardMind 基础重建实施计划（修改需同步 DIR.md）
+pos: CardMind 基础重建实施计划
 # CardMind 基础重建 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

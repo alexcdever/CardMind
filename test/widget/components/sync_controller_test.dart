@@ -1,6 +1,6 @@
 // input: 使用假服务驱动 SyncController 连续执行两次 retry。
 // output: 状态从错误态经历 connecting 后转为 connected。
-// pos: 覆盖同步控制器重试状态机迁移，防止恢复流程卡死。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖同步控制器重试状态机迁移，防止恢复流程卡死。修改本文件需同步更新文件头。
 import 'package:cardmind/features/sync/sync_controller.dart';
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';

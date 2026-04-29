@@ -20,7 +20,6 @@ pos: Rust 动态库运行态路径统一实施计划，执行前需先读对应 
 - `lib/main.dart`
 - `README.md`
 - `AGENTS.md`
-- `tool/DIR.md`
 
 ## 执行规则
 
@@ -574,8 +573,6 @@ git commit -m "refactor(run): copy dylib from official runtime path"
 **Files:**
 - Modify: `README.md`
 - Modify: `AGENTS.md`
-- Modify: `tool/DIR.md`
-- Modify: `lib/DIR.md`
 
 - [ ] **Step 1: 写失败文档守卫检查**
 
@@ -589,7 +586,6 @@ git commit -m "refactor(run): copy dylib from official runtime path"
 
 - [ ] **Step 2: 运行检查确认 RED**
 
-Run: `rg "build/native/macos|Cargo 编译缓存|dart run tool/build.dart lib" README.md AGENTS.md tool/DIR.md lib/DIR.md`
 Expected: 至少部分缺失，说明文档尚未同步。
 
 - [ ] **Step 3: 做最小实现**
@@ -597,13 +593,10 @@ Expected: 至少部分缺失，说明文档尚未同步。
 ```text
 - README：更新构建脚本说明，新增“Cargo 编译缓存 vs 官方运行态 dylib”说明。
 - AGENTS：更新构建与运行说明，避免后续 workflow 继续误把 `rust/target/...` 当运行态来源。
-- tool/DIR.md：补充 `build.dart` 的官方运行态 dylib 同步职责。
-- lib/DIR.md：补一条共享 runtime 基础设施索引，说明统一 dylib 定位入口用途。
 ```
 
 - [ ] **Step 4: 运行检查确认 GREEN**
 
-Run: `rg "build/native/macos|Cargo 编译缓存|dart run tool/build.dart lib" README.md AGENTS.md tool/DIR.md lib/DIR.md`
 Expected: 命中文档中的新说明。
 
 - [ ] **Step 5: Blue 重构**
@@ -615,13 +608,11 @@ Expected: 命中文档中的新说明。
 
 - [ ] **Step 6: 复跑验证**
 
-Run: `rg "build/native/macos|Cargo 编译缓存|官方运行态 dylib|dart run tool/build.dart lib" README.md AGENTS.md tool/DIR.md lib/DIR.md`
 Expected: PASS（命中一致术语）
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add README.md AGENTS.md tool/DIR.md lib/DIR.md
 git commit -m "docs(runtime): clarify official dylib runtime path"
 ```
 

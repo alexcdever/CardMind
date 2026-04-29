@@ -1,6 +1,6 @@
 // input: 查询收敛处于 pending 状态的证据。
 // output: 断言 recovery_contract 正确计算 Phase 2 契约字段。
-// pos: Phase 2 recovery_contract 规则归一化单元测试。修改本文件需同步更新所属 DIR.md。
+// pos: Phase 2 recovery_contract 规则归一化单元测试
 use cardmind_rust::api::recovery_contract::*;
 
 #[test]

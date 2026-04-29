@@ -1,6 +1,6 @@
 // input: SyncStatus 各具名构造参数。
 // output: 断言状态种类、错误码与 writeSaved 标记正确。
-// pos: 同步状态值对象测试。修改本文件需同步更新所属 DIR.md。
+// pos: 同步状态值对象测试
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter_test/flutter_test.dart';
 

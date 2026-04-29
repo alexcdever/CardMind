@@ -1,6 +1,6 @@
 // input: api/utils.rs 模块的纯函数。
 // output: 错误映射、DTO 转换和辅助函数的单元测试。
-// pos: api/utils 单元测试文件。修改本文件需同步更新所属 DIR.md。
+// pos: api/utils 单元测试文件
 // 中文注释: 本文件测试 api/utils 模块的纯函数。
 
 use cardmind_rust::api::utils::*;

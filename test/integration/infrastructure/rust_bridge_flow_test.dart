@@ -1,6 +1,6 @@
 // input: 真实 FRB 初始化参数，以及应用配置、创建池、创建卡片、查询与同步调用序列。
 // output: 断言 Flutter 可经由 Rust 后端完成最小 pool-card-sync 烟测主链路。
-// pos: 覆盖跨语言无句柄主链路烟测，防止 FRB 接口虽生成但无法贯通真实后端。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖跨语言无句柄主链路烟测，防止 FRB 接口虽生成但无法贯通真实后端。修改本文件需同步更新文件头。
 import 'dart:io';
 
 import 'package:cardmind/bridge_generated/api.dart' as frb;

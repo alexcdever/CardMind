@@ -1,6 +1,6 @@
 input: iroh 成员字段调整目标、架构与实施任务
 output: 可执行的数据模型与持久化更新步骤
-pos: iroh 成员字段调整实施计划（修改需同步 DIR.md）
+pos: iroh 成员字段调整实施计划
 # iroh 数据池成员字段调整 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -27,9 +27,6 @@ pos: iroh 成员字段调整实施计划（修改需同步 DIR.md）
 - Modify: `rust/src/models/pool.rs`
 - Modify: `rust/src/store/pool_store.rs`
 - Modify: `rust/tests/pool_store_persist_test.rs`
-- Modify: `rust/src/models/DIR.md`
-- Modify: `rust/src/store/DIR.md`
-- Modify: `rust/src/DIR.md`
 
 **Step 1: 写入会失败的测试（更新池创建测试）**
 
@@ -62,7 +59,6 @@ pub struct PoolMember {
 - `members` Loro 列表写入 `[endpoint_id, nickname, os, is_admin]`
 - 删除 `public_key/multiaddr/hostname` 相关逻辑
 
-同步更新被修改 `.rs` 文件的文件头注释（`input/output/pos`）与对应 `DIR.md` 文件清单。
 
 **Step 4: 运行测试确认通过**
 
@@ -72,7 +68,6 @@ Expected: PASS
 **Step 5: 提交**
 
 ```bash
-git add rust/src/models/pool.rs rust/src/store/pool_store.rs rust/tests/pool_store_persist_test.rs rust/src/models/DIR.md rust/src/store/DIR.md rust/src/DIR.md
 git commit -m "feat(pool): switch to endpoint_id members"
 ```
 
@@ -83,7 +78,6 @@ git commit -m "feat(pool): switch to endpoint_id members"
 **Files:**
 - Modify: `rust/src/store/sqlite_store.rs`
 - Modify: `rust/tests/sqlite_store_pool_test.rs`
-- Modify: `rust/src/store/DIR.md`
 
 **Step 1: 写入会失败的测试（更新 SQLite 测试）**
 
@@ -113,7 +107,6 @@ Expected: 编译失败（字段/列不匹配）
 - `peer_id` → `endpoint_id`
 - 去掉 `public_key/multiaddr/hostname`
 
-同步更新被修改 `.rs` 文件的文件头注释与 `rust/src/store/DIR.md`。
 
 **Step 4: 运行测试确认通过**
 
@@ -123,7 +116,6 @@ Expected: PASS
 **Step 5: 提交**
 
 ```bash
-git add rust/src/store/sqlite_store.rs rust/tests/sqlite_store_pool_test.rs rust/src/store/DIR.md
 git commit -m "feat(sqlite): update pool_members schema"
 ```
 

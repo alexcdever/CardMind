@@ -1,6 +1,6 @@
 // input: PoolStore API 与数据池业务场景边界条件。
 // output: 数据池存储业务逻辑的全覆盖测试。
-// pos: PoolStore 单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: PoolStore 单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试数据池业务逻辑。
 
 use cardmind_rust::models::error::CardMindError;

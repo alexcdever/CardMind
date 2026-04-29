@@ -34,7 +34,6 @@
   - 移除“从设置切换”的自动化主路径，并以 cards/pool 两分区主路径替代。
 - Optional Modify: `lib/features/settings/settings_page.dart`
   - 仅在编译或内部引用收口需要时做最小化调整；若页面保留为未公开内部页面则不改。
-- Verify: `docs/plans/DIR.md`
   - 验证本实施计划文件索引已存在，不重复登记。
 
 ---
@@ -213,11 +212,8 @@ If `lib/features/settings/settings_page.dart` was unchanged, do not stage it.
 ### Task 4: Verify plan index and run final checks
 
 **Files:**
-- Verify: `docs/plans/DIR.md`
 
-- [ ] **Step 1: Verify this implementation plan is already indexed in `docs/plans/DIR.md`**
 
-Run: `rg "2026-03-20-remove-settings-primary-entry-implementation-plan.md" docs/plans/DIR.md`
 Expected: 已命中该计划条目；若未命中，停止执行并先补齐索引
 
 - [ ] **Step 2: Run final quality verification for docs-only changes**

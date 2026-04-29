@@ -1,6 +1,6 @@
 // input: BackendService 和错误映射的各种场景。
 // output: 后端服务层和错误映射的全覆盖测试。
-// pos: BackendService 单元测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: BackendService 单元测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 BackendService 和错误映射。
 
 use cardmind_rust::application::backend_service::BackendService;

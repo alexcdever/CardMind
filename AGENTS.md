@@ -11,7 +11,7 @@
 - `rust/`：Rust 核心逻辑与 FFI
 - `rust/tests/`：Rust 集成测试
 - `tool/`：工具脚本
-- `docs/`：仓库文档入口，详见 `docs/DIR.md`
+- `docs/`：仓库文档目录，包含正式规格、变更计划与长期标准
 - `tmp/`：临时产物目录，如边界扫描报告
 
 ## 常用命令
@@ -85,9 +85,8 @@
 适用标准的默认读取顺序：
 
 1. 先读 `AGENTS.md`
-2. 再读 `docs/DIR.md`
-3. 按任务需要读取相关 `docs/specs/` 与 `docs/standards/`
-4. 仅在需要设计背景、执行顺序或历史取舍时读取 `docs/plans/`
+2. 按任务需要读取相关 `docs/specs/` 与 `docs/standards/`
+3. 仅在需要设计背景、执行顺序或历史取舍时读取 `docs/plans/`
 
 ## 规范入口
 

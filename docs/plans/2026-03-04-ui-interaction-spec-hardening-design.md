@@ -1,6 +1,6 @@
 input: 现有 UI 规格文档与补强需求（A11y/性能预算/i18n）
 output: UI 规格补强设计与执行边界
-pos: UI 交互规格补强设计文档（修改需同步 DIR.md）
+pos: UI 交互规格补强设计文档
 # UI 交互规格补强设计（2026-03-04）
 
 - 日期：2026-03-04
@@ -53,4 +53,3 @@ pos: UI 交互规格补强设计文档（修改需同步 DIR.md）
 
 1. 新增设计文档：`docs/plans/2026-03-04-ui-interaction-spec-hardening-design.md`。
 2. 新增实施计划：`docs/plans/2026-03-04-ui-interaction-spec-hardening-implementation-plan.md`。
-3. 更新 `docs/plans/DIR.md` 索引。

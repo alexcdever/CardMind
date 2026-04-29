@@ -14,13 +14,10 @@
 - `docs/standards/documentation.md`：规范正文与排除列表。
 - `README.md`：添加指向规范的链接。
 - `AGENTS.md`：添加指向规范的链接。
-- 每个目录新增 `DIR.md`。
 - 每个文件新增三行头部注释：`input`、`output`、`pos`。
 
 ## 规范定义
-- 根规则：任何功能、架构、写法变更完成后，必须更新对应目录 `DIR.md` 与相关文件头注释。
-- 目录规则：`DIR.md` 首行声明“目录变更需更新本文件”，正文 3 行以内说明目录定位，其后列出文件清单（文件名 + 地位 + 功能）。
-- 文件规则：文件头三行注释说明 `input`、`output`、`pos`，并明确“修改本文件需同步更新文件头与所属 `DIR.md`”。
+- 文件规则：文件头三行注释说明 `input`、`output`、`pos`，并明确“修改本文件需同步更新文件头”。
 
 ## 排除项
 - 构建物与缓存目录：`build/`、`rust/target/`、`ios/Pods/`、`android/.gradle/`、`linux/build/`、`macos/Build/`、`windows/build/`。
@@ -28,13 +25,9 @@
 - 代码生成文件（如存在）：`lib/**.g.dart`、`lib/**.freezed.dart`。
 
 ## 校验策略
-- 任意文件被修改时，必须同时修改该文件头注释与所属目录 `DIR.md`。
 - 新增文件必须包含三行头部注释。
-- 删除文件必须同步移除 `DIR.md` 清单条目。
-- 新增/删除目录时，父级 `DIR.md` 必须同步更新。
 - 脚本对排除路径不做检查。
 
 ## 验收标准
-- 修改文件但未同步更新头注释或 `DIR.md` 时校验失败。
 - 新增文件缺少头注释时校验失败。
 - `docs/standards/documentation.md` 存在且可被 README/AGENTS 链接。

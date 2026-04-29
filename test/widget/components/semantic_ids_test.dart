@@ -1,6 +1,6 @@
 // input: 渲染 cards/editor 首批关键交互界面。
 // output: 断言关键控件暴露稳定语义标识，供系统自动化与 widget test 共同使用。
-// pos: 覆盖 UI 自动化语义标识契约，防止关键控件丢失可访问性锚点。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 UI 自动化语义标识契约，防止关键控件丢失可访问性锚点。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:cardmind/features/pool/pool_page.dart';

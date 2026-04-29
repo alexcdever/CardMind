@@ -1,11 +1,10 @@
 input: 分形文档规范目标、架构与实施任务
 output: 可执行的规范落地步骤与验证命令
-pos: 分形文档规范实施计划（修改需同步 DIR.md）
+pos: 分形文档规范实施计划
 # Fractal Documentation Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 在全仓落地分形文档规范，提供强制校验脚本，并生成初始 `DIR.md` 与文件头注释骨架。
 
 **Architecture:** 使用 Dart CLI 工具实现校验与初始化生成，核心逻辑可被 `flutter test` 覆盖；规范文档集中在 `docs/standards/documentation.md`，并从 `README.md` 与 `AGENTS.md` 进行链接。
 
@@ -101,7 +100,6 @@ git commit -m "feat(docs): add fractal doc checker core"
 
 ---
 
-### Task 2: 增强校验规则（DIR.md 与排除项）
 
 **Files:**
 - Modify: `docs/standards/documentation.md`
@@ -110,9 +108,7 @@ git commit -m "feat(docs): add fractal doc checker core"
 **Step 1: Write the failing test**
 
 ```dart
-test('fails when DIR.md not updated for changed file', () async {
   final root = Directory.systemTemp.createTempSync('fractal-doc-test');
-  File('${root.path}/lib/DIR.md')
       .createSync(recursive: true);
   final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
   file.writeAsStringSync('// input: none\n// output: none\n// pos: none\n');
@@ -120,7 +116,6 @@ test('fails when DIR.md not updated for changed file', () async {
   final checker = FractalDocChecker(rootPath: root.path);
   final result = await checker.check(changedFiles: ['lib/foo.dart']);
   expect(result.isOk, isFalse);
-  expect(result.errors.single, contains('DIR.md missing entry'));
 });
 ```
 
@@ -133,7 +128,6 @@ Expected: FAIL with DIR rule not implemented
 
 ```dart
 bool _dirHasEntry(String dirPath, String fileName) {
-  final dirFile = File('$dirPath/DIR.md');
   if (!dirFile.existsSync()) return false;
   final content = dirFile.readAsStringSync();
   return content.contains(fileName);
@@ -143,7 +137,6 @@ bool _dirHasEntry(String dirPath, String fileName) {
 final dirPath = File('$rootPath/$relativePath').parent.path;
 final fileName = File(relativePath).uri.pathSegments.last;
 if (!_dirHasEntry(dirPath, fileName)) {
-  errors.add('DIR.md missing entry: $relativePath');
 }
 ```
 
@@ -156,7 +149,6 @@ Expected: PASS
 
 ```bash
 git add docs/standards/documentation.md docs/standards/documentation.md
-git commit -m "feat(docs): enforce DIR.md entries"
 ```
 
 ---
@@ -255,7 +247,6 @@ git commit -m "feat(docs): add fractal doc check CLI"
 
 ---
 
-### Task 4: 生成初始化脚手架（DIR.md 与头注释）
 
 **Files:**
 - Create: `docs/standards/documentation.md`
@@ -265,14 +256,12 @@ git commit -m "feat(docs): add fractal doc check CLI"
 **Step 1: Write the failing test**
 
 ```dart
-test('bootstrap creates DIR.md and headers', () async {
   final root = Directory.systemTemp.createTempSync('fractal-doc-test');
   final file = File('${root.path}/lib/foo.dart')..createSync(recursive: true);
   file.writeAsStringSync('void main() {}');
 
   await bootstrapFractalDocs(rootPath: root.path);
 
-  expect(File('${root.path}/lib/DIR.md').existsSync(), isTrue);
   final content = file.readAsStringSync();
   expect(content.split('\n').first, contains('input:'));
 });
@@ -287,7 +276,6 @@ Expected: FAIL with missing bootstrap function
 
 ```dart
 Future<void> bootstrapFractalDocs({required String rootPath}) async {
-  // Walk directories, skip excluded, create DIR.md if missing
   // Prepend header if missing
 }
 ```
@@ -318,11 +306,9 @@ git commit -m "feat(docs): add fractal doc bootstrap"
 ```markdown
 # Fractal Documentation Standard
 
-核心规则：任何功能、架构、写法变更完成后，必须更新对应 `DIR.md` 与相关文件头注释。
 
-目录规则：每个目录必须包含 `DIR.md`，首行声明“目录变更需更新本文件”，正文 3 行以内说明定位，随后列出文件清单（文件名 + 地位 + 功能）。
 
-文件规则：文件头三行注释说明 `input`、`output`、`pos`，并明确“修改本文件需同步更新文件头与所属 `DIR.md`”。
+文件规则：文件头三行注释说明 `input`、`output`、`pos`，并明确“修改本文件需同步更新文件头”。
 
 排除项：构建物与第三方依赖（见列表）。
 
@@ -343,7 +329,6 @@ git commit -m "docs: add fractal documentation standard"
 
 ---
 
-### Task 6: 执行初始化生成并整理 DIR.md
 
 **Files:**
 - Modify: 全仓（由脚本生成）
@@ -351,11 +336,9 @@ git commit -m "docs: add fractal documentation standard"
 **Step 1: Run bootstrap**
 
 Run: `dart run docs/standards/documentation.md`
-Expected: 生成所有缺失的 `DIR.md` 与文件头注释
 
 **Step 2: Spot-check**
 
-- 检查 `DIR.md` 是否包含文件清单
 - 抽样确认文件头三行注释存在
 
 **Step 3: Commit**

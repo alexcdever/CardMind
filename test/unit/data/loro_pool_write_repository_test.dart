@@ -1,6 +1,6 @@
 // input: 池写仓的内存与文件持久化行为。
 // output: 断言 pool/member/request 的 upsert/list/remove 流程正确。
-// pos: Loro 池写仓测试。修改本文件需同步更新所属 DIR.md。
+// pos: Loro 池写仓测试
 import 'package:cardmind/features/pool/data/loro_pool_write_repository.dart';
 import 'package:cardmind/features/pool/domain/pool_entity.dart';
 import 'package:cardmind/features/pool/domain/pool_member.dart';

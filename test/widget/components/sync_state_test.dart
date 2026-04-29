@@ -1,6 +1,6 @@
 // input: fake backend 网关返回业务写成功/投影未收敛/同步失败语义。
 // output: 断言前端 SyncStatus 能区分本地保存成功、投影待收敛与同步失败。
-// pos: 覆盖同步状态语义分离场景，防止前端混淆不同恢复动作。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖同步状态语义分离场景，防止前端混淆不同恢复动作。修改本文件需同步更新文件头。
 import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/bridge_generated/models/api_error.dart';
 import 'package:cardmind/features/sync/sync_service.dart';

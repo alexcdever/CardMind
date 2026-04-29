@@ -1,6 +1,6 @@
 // input: 真实 FRB 动态库、app config 与 network handle。
 // output: 断言 FrbSyncGateway 能贯通 status/connect/join/push/pull/disconnect。
-// pos: 同步网关契约测试。修改本文件需同步更新所属 DIR.md。
+// pos: 同步网关契约测试
 import 'dart:io';
 
 import 'package:cardmind/bridge_generated/api.dart' as frb;

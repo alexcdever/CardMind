@@ -1,6 +1,6 @@
 // input: 通过命令服务依次执行 create/delete/restore 卡片写侧操作。
 // output: 断言写侧仓中 deleted 标记可被正确切换并保持最终恢复状态。
-// pos: 卡片命令服务测试，保障写侧生命周期命令语义正确。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 卡片命令服务测试，保障写侧生命周期命令语义正确。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/application/cards_command_service.dart';
 import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
 import 'dart:io';

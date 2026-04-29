@@ -95,20 +95,16 @@ git commit -m "refactor(docs-gate): remove plan and UI governance guard tests"
 - Delete: `docs/plans/2026-02-27-ui-interaction-governance-design.md`
 - Delete: `docs/plans/2026-02-27-ui-interaction-acceptance-matrix.md`
 - Delete: `docs/plans/2026-02-27-ui-interaction-release-gate.md`
-- Modify: `docs/plans/DIR.md`
 
 **Step 1: Red - verify target docs exist in index**
 
-Run: `rg "2026-02-27-ui-interaction-(governance-design|acceptance-matrix|release-gate).md" docs/plans/DIR.md`
 Expected: PASS with 3 entries.
 
 **Step 2: Green - delete docs and remove their DIR index lines**
 
-Delete three docs and remove corresponding lines from `docs/plans/DIR.md`.
 
 **Step 3: Blue - keep DIR chronological and wording consistent**
 
-Normalize nearby `docs/plans/DIR.md` descriptions if line continuity is broken.
 
 **Step 4: Verification - ensure no index residue**
 
@@ -130,7 +126,6 @@ git commit -m "docs(plans): retire UI governance gate artifacts"
 
 **Step 1: Red - identify old hard-gate wording and command references**
 
-Run: `rg "fractal_doc_check|DIR.md|Red -> Green -> Blue -> Commit|门禁|guard|硬阻断" docs/standards/documentation.md docs/standards/tdd.md`
 Expected: PASS with current wording to be updated.
 
 **Step 2: Green - update standards to policy-driven governance**
@@ -148,7 +143,6 @@ Ensure clauses are explicit and machine-followable:
 
 **Step 4: Verification - standards contain canonical policy statements**
 
-Run: `rg "MUST|Red|Green|Blue|Commit|DIR.md|input:|output:|pos:" docs/standards/documentation.md docs/standards/tdd.md`
 Expected: PASS with clear normative statements present.
 
 **Step 5: Commit**
@@ -161,7 +155,6 @@ git commit -m "docs(standards): internalize fractal and complete TDD policies"
 ### Task 5: Global reference cleanup and final verification
 
 **Files:**
-- Modify: `docs/plans/DIR.md` (if new plan entries are added)
 - Modify: any file containing stale references
 
 **Step 1: Red - locate all stale references**

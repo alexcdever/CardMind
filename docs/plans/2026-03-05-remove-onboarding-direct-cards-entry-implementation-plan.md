@@ -78,8 +78,6 @@ git commit -m "docs(ui-spec): switch first-screen contract to direct cards entry
 - Modify: `lib/app/app.dart`
 - Modify: `test/widget_test.dart`
 - Modify: `test/app/app_shell_navigation_test.dart`
-- Modify: `lib/DIR.md`
-- Modify: `lib/app/DIR.md` (only if file role text changes)
 
 **Step 1: Write failing app-entry tests**
 
@@ -103,7 +101,6 @@ Expected: FAIL because app home is still onboarding
 home: const AppShellPage();
 ```
 
-Also update file headers and `DIR.md` entries to reflect new entry semantics.
 
 **Step 4: Run test to verify it passes**
 
@@ -118,7 +115,6 @@ Expected: PASS after comment/header cleanup
 **Step 6: Commit**
 
 ```bash
-git add lib/app/app.dart lib/DIR.md lib/app/DIR.md test/widget_test.dart test/app/app_shell_navigation_test.dart
 git commit -m "feat(app-entry): boot into shell cards by default"
 ```
 
@@ -130,10 +126,7 @@ git commit -m "feat(app-entry): boot into shell cards by default"
 - Delete: `lib/features/onboarding/onboarding_page.dart`
 - Delete: `lib/features/onboarding/onboarding_controller.dart`
 - Delete: `lib/features/onboarding/onboarding_state.dart`
-- Modify/Delete: `lib/features/onboarding/DIR.md` (delete if directory removed, otherwise empty-directory handling)
 - Delete: `test/features/onboarding/onboarding_page_test.dart`
-- Modify: `lib/DIR.md`
-- Modify: `test/DIR.md`
 
 **Step 1: Write failing reference guard test**
 
@@ -153,7 +146,6 @@ Expected: FAIL before reference cleanup (or compile error after partial deletion
 
 ```text
 Delete onboarding files and onboarding widget test; fix imports/usages.
-Update DIR.md indexes to remove onboarding entries.
 ```
 
 **Step 4: Run test to verify it passes**
@@ -180,7 +172,6 @@ git commit -m "refactor(onboarding): remove obsolete onboarding flow and tests"
 **Files:**
 - Modify: `lib/features/pool/pool_page.dart`
 - Modify: `test/features/pool/pool_page_test.dart`
-- Modify: `lib/features/pool/DIR.md` (if page responsibility wording changes)
 
 **Step 1: Write failing copy test**
 
@@ -215,7 +206,6 @@ Expected: PASS after layout cleanup
 **Step 6: Commit**
 
 ```bash
-git add lib/features/pool/pool_page.dart lib/features/pool/DIR.md test/features/pool/pool_page_test.dart
 git commit -m "feat(pool-ui): clarify unjoined tab copy for create-or-join"
 ```
 
@@ -224,8 +214,6 @@ git commit -m "feat(pool-ui): clarify unjoined tab copy for create-or-join"
 ### Task 5: Full regression, docs index sync, and final verification
 
 **Files:**
-- Modify: `docs/plans/DIR.md` (ensure both new design and this plan indexed)
-- Modify: `test/DIR.md` / `lib/DIR.md` (final consistency pass)
 
 **Step 1: Run fractal doc checker**
 
@@ -248,7 +236,6 @@ Expected: PASS
 **Step 4: Commit final governance sync**
 
 ```bash
-git add docs/plans/DIR.md lib/DIR.md test/DIR.md
 git commit -m "docs(governance): sync indexes after onboarding removal"
 ```
 

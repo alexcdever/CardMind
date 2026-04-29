@@ -1,6 +1,6 @@
 // input: 构造 LoroProjectionEvent 并交给 LoroProjectionWorker 处理。
 // output: 断言 worker 将事件分发到 cards/pool 投影处理器并触发读仓 upsert。
-// pos: 投影 worker 测试，保障 Loro 订阅事件到 SQLite 投影分发链路。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 投影 worker 测试，保障 Loro 订阅事件到 SQLite 投影分发链路。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/data/cards_read_repository.dart';
 import 'package:cardmind/features/cards/domain/card_note.dart';
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';

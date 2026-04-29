@@ -1,6 +1,6 @@
 // input: 在编辑页输入内容并触发返回、放弃等离开流程操作。
 // output: 展示未保存确认弹窗，并覆盖放弃更改后退出编辑页路径。
-// pos: 覆盖编辑页离开保护与基础编辑控件可见性，防止误退丢稿。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖编辑页离开保护与基础编辑控件可见性，防止误退丢稿。修改本文件需同步更新文件头。
 import 'package:cardmind/features/editor/editor_page.dart';
 import 'package:cardmind/features/editor/editor_controller.dart';
 import 'package:flutter/material.dart';

@@ -1,6 +1,6 @@
 // input: 将 CardNote 写模型传入 CardsProjectionHandler。
 // output: 断言 handler 把写模型映射为 CardNoteProjection 并写入读仓。
-// pos: 卡片投影处理器测试，保障卡片写侧事件可正确投影到 SQLite 读侧。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 卡片投影处理器测试，保障卡片写侧事件可正确投影到 SQLite 读侧。修改本文件需同步更新文件头。
 import 'package:cardmind/features/cards/data/cards_read_repository.dart';
 import 'package:cardmind/features/cards/domain/card_note.dart';
 import 'package:cardmind/features/cards/domain/card_note_projection.dart';

@@ -1,6 +1,6 @@
 // input: ApiError/ApiErrorCode 构造参数与错误码枚举值。
 // output: 断言错误码字符串与错误消息字段满足 API 约定。
-// pos: 覆盖 API 错误结构与编码映射场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 API 错误结构与编码映射场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::models::api_error::{ApiError, ApiErrorCode};
 
 #[test]

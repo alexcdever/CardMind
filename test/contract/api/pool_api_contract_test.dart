@@ -1,6 +1,6 @@
 // input: 池控制器接收 fake ApiClient 后执行 create/join 动作。
 // output: 断言控制器通过 ApiClient 调后端，并将结果回填到状态。
-// pos: 覆盖池控制器改接 ApiClient 主路径，防止回退到本地硬编码流程。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖池控制器改接 ApiClient 主路径，防止回退到本地硬编码流程。修改本文件需同步更新文件头。
 import 'dart:io';
 
 import 'package:cardmind/bridge_generated/api.dart' as frb;

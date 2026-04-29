@@ -1,6 +1,6 @@
 // input: 写入池读模型实体并按 name 查询或按更新时间列出。
 // output: 返回结果按 updatedAtMicros 倒序，且默认过滤 dissolved 池。
-// pos: 池 SQLite 读仓测试，保障池列表排序与生命周期过滤行为。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 池 SQLite 读仓测试，保障池列表排序与生命周期过滤行为。修改本文件需同步更新文件头。
 import 'package:cardmind/features/pool/data/sqlite_pool_read_repository.dart';
 import 'package:cardmind/features/pool/application/pool_command_service.dart';
 import 'package:cardmind/features/pool/data/loro_pool_write_repository.dart';

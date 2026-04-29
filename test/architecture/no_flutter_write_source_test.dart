@@ -1,6 +1,6 @@
 // input: 读取主流程页面、控制器与 API client 源码文本，检查是否仍依赖旧写入主路径或 store handle 组合。
 // output: 断言生产路径不再直接引用 Flutter 侧写真源，也不再暴露 storeId/initCardStore 组合。
-// pos: 覆盖前端不再作为写真源且不再泄露 handle 的架构约束，防止主流程回退。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖前端不再作为写真源且不再泄露 handle 的架构约束，防止主流程回退。修改本文件需同步更新文件头。
 import 'package:flutter_test/flutter_test.dart';
 import '../support/source_guard.dart';
 

@@ -1,6 +1,6 @@
 // input: ApiError 构造器与 CardMindError 到 ApiError 的映射逻辑。
 // output: 所有错误类型和映射路径的全覆盖测试。
-// pos: API 错误模型测试文件。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: API 错误模型测试文件。修改本文件需同步更新文件头。
 // 中文注释：本文件测试 API 错误码和错误映射。
 
 use cardmind_rust::models::api_error::{ApiError, ApiErrorCode};

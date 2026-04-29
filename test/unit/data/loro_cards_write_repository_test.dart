@@ -1,6 +1,6 @@
 // input: 卡片写仓的内存与文件持久化路径。
 // output: 断言 getById/upsert 在缓存、缺失与文件回放场景行为正确。
-// pos: Loro 卡片写仓测试。修改本文件需同步更新所属 DIR.md。
+// pos: Loro 卡片写仓测试
 import 'package:cardmind/features/cards/data/loro_cards_write_repository.dart';
 import 'package:cardmind/features/cards/domain/card_note.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -1,6 +1,6 @@
 // input: 通过命令服务执行池创建、编辑、申请、审批、拒绝、退出与解散流程。
 // output: 断言写侧仓状态随命令推进并覆盖 owner/member 生命周期分支。
-// pos: 池命令服务测试，保障池全生命周期写侧命令可达且语义稳定。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 池命令服务测试，保障池全生命周期写侧命令可达且语义稳定。修改本文件需同步更新文件头。
 import 'package:cardmind/features/pool/application/pool_command_service.dart';
 import 'package:cardmind/features/pool/data/loro_pool_write_repository.dart';
 import 'package:cardmind/features/pool/domain/pool_member.dart';

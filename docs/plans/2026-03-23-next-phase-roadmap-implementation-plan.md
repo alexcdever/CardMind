@@ -40,7 +40,6 @@
   - 锁定 Flutter 对 Rust 同步 DTO 的映射展示，不复制 Rust 规则。
 - Test: `test/integration/features/pool_sync_test.dart`
   - 锁定池页 UI 对 Rust 恢复语义的呈现。
-- Verify: `docs/plans/DIR.md`
   - 确保本实施计划索引条目存在。
 
 ---
@@ -419,11 +418,9 @@ If a listed test file was unchanged, do not stage it.
 ### Task 7: Verify plan registration and Phase 1 handoff outputs
 
 **Files:**
-- Verify: `docs/plans/DIR.md`
 
 - [ ] **Step 1: Verify this plan is indexed**
 
-Run: `rg "2026-03-23-next-phase-roadmap-implementation-plan.md" docs/plans/DIR.md`
 Expected: hit the current plan entry
 
 - [ ] **Step 2: Record the implementation handoff outputs in working notes**

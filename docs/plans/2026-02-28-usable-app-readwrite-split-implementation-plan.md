@@ -467,7 +467,6 @@ git commit -m "feat(sync): integrate actionable non-blocking sync feedback acros
 - Modify: `docs/specs/ui-interaction.md`
 - Modify: `docs/plans/2026-02-27-mobile-desktop-ui-interaction-design.md`
 - Modify: `docs/plans/2026-02-28-ui-interaction-full-alignment-design.md`
-- Modify: `docs/plans/DIR.md`
 - Modify: `docs/specs/ui-interaction.md`
 - Modify: `test/interaction_guard_test.dart`
 
@@ -500,6 +499,5 @@ Expected: PASS all checks
 **Step 5: Commit**
 
 ```bash
-git add docs/specs/ui-interaction.md docs/specs/ui-interaction.md docs/plans/2026-02-27-mobile-desktop-ui-interaction-design.md docs/plans/2026-02-28-ui-interaction-full-alignment-design.md docs/plans/DIR.md docs/specs/ui-interaction.md test/interaction_guard_test.dart
 git commit -m "chore(gate): align governance and clear full usable-app gates"
 ```

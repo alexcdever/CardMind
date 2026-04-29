@@ -1,6 +1,6 @@
 // input: 需要测试测试边界扫描器的各项功能
 // output: 验证扫描器能正确识别边界、对比覆盖、生成报告
-// pos: test/tool/test_boundary_scanner_test.dart - 边界扫描器单元测试，修改本文件需同步更新文件头和所属 DIR.md
+// pos: test/tool/test_boundary_scanner_test.dart - 边界扫描器单元测试，修改本文件需同步更新文件头
 // 中文注释: 测试边界扫描器的单元测试
 
 import 'dart:io';

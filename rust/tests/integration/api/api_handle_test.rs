@@ -1,6 +1,6 @@
 // input: app config 初始化参数与网络资源初始化参数。
 // output: 断言应用配置替代 card store handle 生命周期，且网络句柄仍可初始化并关闭。
-// pos: 覆盖 app config 生命周期替代旧 handle 机制的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 app config 生命周期替代旧 handle 机制的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     close_pool_network, init_app_config, init_pool_network, reset_app_config_for_tests,
     setup_app_lock, verify_app_lock_with_pin,

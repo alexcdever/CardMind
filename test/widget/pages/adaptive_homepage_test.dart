@@ -1,6 +1,6 @@
 // input: 以移动端与桌面端宽度挂载 AdaptiveHomepageScaffold。
 // output: 分别渲染底部导航或侧边导航轨。
-// pos: 覆盖自适应导航断点行为，防止端形态切换退化。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖自适应导航断点行为，防止端形态切换退化。修改本文件需同步更新文件头。
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';

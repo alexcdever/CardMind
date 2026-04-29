@@ -1,6 +1,6 @@
 // input: 应用级配置初始化参数、建池/入池 API 调用参数，以及当前调用者视角的 joined pool 查询请求。
 // output: 断言 joined pool 视图中的 current_user_role 以后端当前调用者身份为准，而不是成员顺序近似。
-// pos: 覆盖 joined pool 当前用户角色真实性的后端契约测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 joined pool 当前用户角色真实性的后端契约测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     create_pool, get_joined_pool_view, init_app_config, join_by_code, list_pools,
     reset_app_config_for_tests, setup_app_lock, verify_app_lock_with_pin,

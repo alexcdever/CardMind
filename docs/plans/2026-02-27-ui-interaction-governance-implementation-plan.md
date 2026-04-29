@@ -1,6 +1,6 @@
 input: UI 交互治理目标、架构与实施任务
 output: 可执行的治理文档与守卫测试步骤
-pos: UI 交互治理实施计划（修改需同步 DIR.md）
+pos: UI 交互治理实施计划
 # UI Interaction Governance Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -99,7 +99,7 @@ Expected: FAIL（测试文件尚不存在）
 ```dart
 // input: docs/plans governance markdown files
 // output: fast fail when required governance sections are missing
-// pos: test guard for ui governance docs; 修改本文件需同步更新文件头与所属 DIR.md
+// pos: test guard for ui governance docs; 修改本文件需同步更新文件头
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -176,13 +176,11 @@ git commit -m "docs(governance): complete dual-track acceptance matrix coverage"
 ### Task 4: 更新计划目录索引与说明
 
 **Files:**
-- Modify: `docs/plans/DIR.md`
 
 **Step 1: Write the failing test**
 
 ```dart
 test('plans DIR includes governance plan and companion docs', () {
-  final dirContent = File('docs/plans/DIR.md').readAsStringSync();
   expect(dirContent, contains('docs/specs/ui-interaction.md'));
   expect(dirContent, contains('2026-02-27-ui-interaction-governance-implementation-plan.md'));
   expect(dirContent, contains('2026-02-27-ui-interaction-governance-implementation-plan.md'));
@@ -193,12 +191,10 @@ test('plans DIR includes governance plan and companion docs', () {
 **Step 2: Run test to verify it fails**
 
 Run: `flutter test test/interaction_guard_test.dart --plain-name "plans DIR includes governance plan and companion docs"`
-Expected: FAIL（DIR.md 尚未登记完整）
 
 **Step 3: Write minimal implementation**
 
 ```text
-在 docs/plans/DIR.md 追加四条记录：design / implementation plan / matrix / release gate。
 ```
 
 **Step 4: Run test to verify it passes**
@@ -209,7 +205,6 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add docs/plans/DIR.md
 git commit -m "docs(plans): register ui interaction governance documentation set"
 ```
 

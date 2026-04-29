@@ -39,5 +39,4 @@
 ## 6. 交付与影响
 
 1. 新增 `docs/specs/shared-domain-contract.md`。
-2. 更新 `docs/specs/DIR.md` 索引。
 3. 本文档为后续补齐 `card-note`、`local-settings`、`ui-interaction` 规格提供统一约束基线。

@@ -1,6 +1,6 @@
 // input: 应用级配置初始化参数、建池/入池 API 调用参数，以及用于入池的已有卡片数据。
 // output: 断言 join_by_code 返回真实后端结果，并自动挂接已有 noteId 与稳定错误语义。
-// pos: 覆盖 joinByCode 无句柄后端主路径的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖 joinByCode 无句柄后端主路径的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::{
     approve_join_request, cancel_join_request, create_card_note, create_pool, get_pool_detail,
     init_app_config, join_by_code, reject_join_request, reset_app_config_for_tests, setup_app_lock,

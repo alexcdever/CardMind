@@ -1,6 +1,6 @@
 // input: 无效 network handle 传入 sync_status API 的调用请求。
 // output: 断言 API 返回结构化错误且 code/message 字段非空。
-// pos: 覆盖同步 API 错误契约一致性场景的回归测试。修改本文件需同步更新文件头与所属 DIR.md。
+// pos: 覆盖同步 API 错误契约一致性场景的回归测试。修改本文件需同步更新文件头。
 use cardmind_rust::api::*;
 
 #[test]
