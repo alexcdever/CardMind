@@ -198,7 +198,17 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
     switch (section) {
       case AppSection.cards:
         return widget.cardsPageBuilder?.call(context) ??
-            const CardsPage(showNavigation: true);
+            CardsPage(
+              showNavigation: true,
+              onSectionChanged: (section) {
+                switch (section) {
+                  case 'pool':
+                    _controller.setSection(AppSection.pool);
+                  case 'cards':
+                    _controller.setSection(AppSection.cards);
+                }
+              },
+            );
       case AppSection.pool:
         return PoolShell(
           appDataDir: widget.appDataDir,

@@ -24,11 +24,13 @@ class CardsPage extends StatefulWidget {
     this.syncStatus = const SyncStatus.healthy(),
     this.controller,
     this.showNavigation = true,
+    this.onSectionChanged,
   });
 
   final SyncStatus syncStatus;
   final CardsController? controller;
   final bool showNavigation;
+  final ValueChanged<String>? onSectionChanged;
 
   @override
   State<CardsPage> createState() => _CardsPageState();
@@ -222,7 +224,7 @@ class _CardsPageState extends State<CardsPage> {
         if (widget.showNavigation)
           DesktopSidebar(
             currentSection: 'cards',
-            onSectionChanged: (_) {},
+            onSectionChanged: widget.onSectionChanged ?? (_) {},
             onNewNote: () => _openEditor(context),
           ),
         SizedBox(
