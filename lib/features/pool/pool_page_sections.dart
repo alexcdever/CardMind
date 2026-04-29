@@ -613,16 +613,20 @@ class _PoolJoinedView extends StatelessWidget {
       backgroundColor: CardMindColors.bgCanvas,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(34, 22, 34, 28),
+          padding: const EdgeInsets.fromLTRB(22, 34, 28, 34),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               syncFeedback ?? const SizedBox.shrink(),
-              StyledSearchField(
-                hintText: '搜索成员设备...',
-                focusNode: FocusNode(),
-                semanticId: 'pool.desktop_member_search',
-                semanticLabel: '搜索成员设备',
+              SizedBox(
+                width: 430,
+                child: StyledSearchField(
+                  hintText: '搜索成员...',
+                  focusNode: FocusNode(),
+                  semanticId: 'pool.desktop_member_search',
+                  semanticLabel: '搜索成员',
+                  compact: true,
+                ),
               ),
               const SizedBox(height: 18),
               Text(
@@ -1197,6 +1201,15 @@ class _RuntimeMemberTile extends StatelessWidget {
 
   final PoolMemberRuntimeData member;
 
+  String _statusLabel(String status) {
+    return switch (status) {
+      'connected' => '已连接',
+      'syncing' => '同步中',
+      'disconnected' => '离线',
+      _ => status,
+    };
+  }
+
   Color _avatarColor() {
     return switch (member.status) {
       'connected' || 'syncing' => const Color(0xFFE1F3F0),
@@ -1271,7 +1284,7 @@ class _RuntimeMemberTile extends StatelessWidget {
             ),
           ),
           Text(
-            member.status.toUpperCase(),
+            _statusLabel(member.status),
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
