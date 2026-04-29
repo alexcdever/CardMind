@@ -1,6 +1,7 @@
 import 'package:cardmind/app/theme/cardmind_colors.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_state.dart';
+import 'package:cardmind/features/shared/widgets/bottom_nav.dart';
 import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 import 'package:flutter/material.dart';
 
@@ -75,8 +76,32 @@ class _AppLockScreenState extends State<AppLockScreen> {
   Widget build(BuildContext context) {
     final state = widget.service.state;
     final desktop = _useDesktopLayout(context);
-    final content = Scaffold(
+    final form = _buildForm(state, desktop);
+
+    if (desktop && state.requiresSetup) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DesktopSidebar(
+            currentSection: 'pool',
+            onSectionChanged: _noopSectionChanged,
+          ),
+          Expanded(child: form),
+        ],
+      );
+    }
+
+    return form;
+  }
+
+  static void _noopSectionChanged(String _) {}
+
+  Widget _buildForm(AppLockState state, bool desktop) {
+    return Scaffold(
       backgroundColor: CardMindColors.bgCanvas,
+      bottomNavigationBar: !desktop && state.requiresSetup
+          ? const BottomNav(currentSection: 'pool', onSectionChanged: _noopSectionChanged)
+          : null,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -130,24 +155,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
         ),
       ),
     );
-
-    if (desktop && state.requiresSetup) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const DesktopSidebar(
-            currentSection: 'pool',
-            onSectionChanged: _noopSectionChanged,
-          ),
-          Expanded(child: content),
-        ],
-      );
-    }
-
-    return content;
   }
-
-  static void _noopSectionChanged(String _) {}
 
   bool _useDesktopLayout(BuildContext context) {
     return switch (Theme.of(context).platform) {
