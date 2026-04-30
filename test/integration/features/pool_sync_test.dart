@@ -162,7 +162,7 @@ void main() {
     await tester.tap(find.text('重试清理'));
     await tester.pumpAndSettle();
 
-    expect(find.text('创建池'), findsOneWidget);
-    expect(find.text('扫码加入'), findsOneWidget);
+    expect(find.text('开始 →'), findsOneWidget);
+    expect(find.text('立即连接 →'), findsOneWidget);
   });
 }

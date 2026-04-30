@@ -730,7 +730,7 @@ void main() {
 
   testWidgets('renders search, list, and create action', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+      _mobileCardsTestApp(controller: _buildTestCardsController()),
     );
 
     expect(find.byType(TextField), findsOneWidget);
@@ -742,7 +742,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+      _mobileCardsTestApp(controller: _buildTestCardsController()),
     );
     await tester.pumpAndSettle();
 
@@ -754,31 +754,31 @@ void main() {
 
   testWidgets('navigates to editor when tapping create action', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+      _mobileCardsTestApp(controller: _buildTestCardsController()),
     );
 
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsOneWidget);
   });
 
   testWidgets('create-edit-save appears in cards list through read model', (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+      _mobileCardsTestApp(controller: _buildTestCardsController()),
     );
 
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
     await tester.pumpAndSettle();
 
     await tester.enterText(_editorTitleField(), 'Title 1');
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.tap(find.byKey(const ValueKey('editor.save_button')));
     await tester.pumpAndSettle();
     await _pumpUntilFound(tester, find.text('Title 1'));
 
-    expect(find.text('编辑卡片'), findsNothing);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsNothing);
     expect(find.text('Title 1'), findsOneWidget);
     expect(find.byType(MaterialBanner), findsNothing);
   });
@@ -790,14 +790,14 @@ void main() {
     await harness.controller.createDraft('mobile-existing', '移动笔记', '原始正文');
 
     await tester.pumpWidget(
-      MaterialApp(home: CardsPage(controller: harness.controller)),
+      _mobileCardsTestApp(controller: harness.controller),
     );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('移动笔记'));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsOneWidget);
     expect(find.widgetWithText(TextField, '移动笔记'), findsOneWidget);
     expect(find.widgetWithText(TextField, '原始正文'), findsOneWidget);
 
@@ -814,13 +814,13 @@ void main() {
 
   testWidgets('delete or restore action changes list state', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+      _mobileCardsTestApp(controller: _buildTestCardsController()),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
     await tester.pumpAndSettle();
     await tester.enterText(_editorTitleField(), '待删除卡片');
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.tap(find.byKey(const ValueKey('editor.save_button')));
     await tester.pumpAndSettle();
     await _pumpUntilFound(tester, find.text('待删除卡片'));
 
@@ -838,11 +838,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+      _mobileCardsTestApp(controller: _buildTestCardsController()),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byKey(const ValueKey('cards.create_fab')), findsOneWidget);
     expect(find.byIcon(Icons.add), findsOneWidget);
   });
 
@@ -850,27 +850,27 @@ void main() {
     'search is case-insensitive across title and body for active notes',
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(home: CardsPage(controller: _buildTestCardsController())),
+        _mobileCardsTestApp(controller: _buildTestCardsController()),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.add));
+      await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
       await tester.pumpAndSettle();
       await tester.enterText(_editorTitleField(), 'Alpha KEYWORD');
-      await tester.tap(find.byIcon(Icons.save_outlined));
+      await tester.tap(find.byKey(const ValueKey('editor.save_button')));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.add));
+      await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
       await tester.pumpAndSettle();
       await tester.enterText(_editorTitleField(), 'Body host');
       await tester.enterText(_editorBodyField(), 'contains KeyWord in body');
-      await tester.tap(find.byIcon(Icons.save_outlined));
+      await tester.tap(find.byKey(const ValueKey('editor.save_button')));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.add));
+      await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
       await tester.pumpAndSettle();
       await tester.enterText(_editorTitleField(), 'keyword deleted');
-      await tester.tap(find.byIcon(Icons.save_outlined));
+      await tester.tap(find.byKey(const ValueKey('editor.save_button')));
       await tester.pumpAndSettle();
       await tester.tap(_actionTextForTitle('keyword deleted', '删除'));
       await tester.pumpAndSettle();
@@ -900,6 +900,56 @@ void main() {
 
     expect(find.text('搜索笔记...'), findsOneWidget);
     expect(find.text('选择卡片或新建卡片'), findsOneWidget);
+  });
+
+  testWidgets('desktop list heading reflects loaded card count', (
+    tester,
+  ) async {
+    final harness = _buildInspectableTestCardsController();
+    await harness.controller.createDraft('desktop-count-1', '第一张', '正文');
+    await harness.controller.createDraft('desktop-count-2', '第二张', '正文');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(1200, 900)),
+          child: CardsPage(controller: harness.controller),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 条笔记'), findsOneWidget);
+    expect(find.text('12 条笔记'), findsNothing);
+  });
+
+  testWidgets('desktop detail pane does not show prototype update date', (
+    tester,
+  ) async {
+    final harness = _buildInspectableTestCardsController();
+    await harness.controller.createDraft(
+      'desktop-detail-date',
+      '桌面详情卡片',
+      '桌面详情正文',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(1200, 900)),
+          child: CardsPage(controller: harness.controller),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('桌面详情卡片'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('桌面详情正文'), findsOneWidget);
+    expect(find.text('更新于 2026.04.24'), findsNothing);
   });
 
   testWidgets('macOS uses desktop cards layout even in narrow window', (
@@ -1163,6 +1213,13 @@ Finder _editorBodyField() {
   final mobileField = find.byKey(const ValueKey('editor.body_input'));
   if (mobileField.evaluate().isNotEmpty) return mobileField;
   return find.byKey(const ValueKey('cards.desktop_editor.body_input'));
+}
+
+Widget _mobileCardsTestApp({required CardsController controller}) {
+  return MaterialApp(
+    theme: ThemeData(platform: TargetPlatform.android),
+    home: CardsPage(controller: controller),
+  );
 }
 
 Finder _tileForTitle(String title) {

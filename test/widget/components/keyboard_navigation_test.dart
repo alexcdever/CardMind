@@ -52,6 +52,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
         home: MediaQuery(
           data: const MediaQueryData(size: Size(1200, 900)),
           child: CardsPage(controller: controller),
@@ -88,13 +89,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 验证 FAB 有语义标签（用于屏幕阅读器）
-    final fab = find.byType(FloatingActionButton);
-    expect(fab, findsOneWidget);
-
-    final fabWidget = tester.widget<FloatingActionButton>(fab);
-    expect(fabWidget.tooltip, isNotNull);
-    expect(fabWidget.tooltip, isNotEmpty);
+    // 验证新建入口有 tooltip（用于鼠标与屏幕阅读器）
+    final createAction = find.byTooltip('新建卡片');
+    expect(createAction, findsOneWidget);
   });
 
   testWidgets('CardsPage list items should be accessible', (tester) async {

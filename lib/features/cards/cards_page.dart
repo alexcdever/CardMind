@@ -91,20 +91,9 @@ class _CardsPageState extends State<CardsPage> {
 
   void _openEditor(BuildContext context) {
     if (_useDesktopLayout(context)) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => EditorPage(
-            onSaved: (draft) async {
-              if (draft.title.isEmpty) return;
-              await _effectiveController.createDraft(
-                generateNoteId(),
-                draft.title,
-                draft.body,
-              );
-            },
-          ),
-        ),
-      );
+      setState(() {
+        _desktopSession = _DesktopEditorSession();
+      });
       return;
     }
     Navigator.of(context).push(
@@ -137,8 +126,9 @@ class _CardsPageState extends State<CardsPage> {
             onSecondaryTapDown: (details) {
               interactions.showContextMenu(context, details.globalPosition);
             },
-            child:
-                desktop ? _buildDesktopLayout(notes) : _buildMobileLayout(notes),
+            child: desktop
+                ? _buildDesktopLayout(notes)
+                : _buildMobileLayout(notes),
           ),
           if (!desktop)
             Positioned(
@@ -150,17 +140,21 @@ class _CardsPageState extends State<CardsPage> {
                 identifier: SemanticIds.cardsCreateFab,
                 label: '新建卡片',
                 button: true,
-                child: GestureDetector(
+                child: SizedBox(
                   key: const ValueKey('cards.create_fab'),
-                  onTap: () => _openEditor(context),
-                  child: Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: CardMindColors.brand,
-                      borderRadius: BorderRadius.circular(10),
+                  width: 42,
+                  height: 42,
+                  child: IconButton.filled(
+                    tooltip: '新建卡片',
+                    style: IconButton.styleFrom(
+                      backgroundColor: CardMindColors.brand,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    child: const Icon(Icons.add, size: 18, color: Colors.white),
+                    onPressed: () => _openEditor(context),
+                    icon: const Icon(Icons.add, size: 18),
                   ),
                 ),
               ),
@@ -247,6 +241,22 @@ class _CardsPageState extends State<CardsPage> {
                         },
                       ),
                     ),
+                    if (!widget.showNavigation) ...[
+                      const SizedBox(width: 12),
+                      Semantics(
+                        key: const ValueKey('cards.create_fab'),
+                        container: true,
+                        explicitChildNodes: true,
+                        identifier: SemanticIds.cardsCreateFab,
+                        label: '新建卡片',
+                        button: true,
+                        child: IconButton.filled(
+                          tooltip: '新建卡片',
+                          onPressed: () => _openEditor(context),
+                          icon: const Icon(Icons.add),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -256,9 +266,7 @@ class _CardsPageState extends State<CardsPage> {
             ),
           ),
         ),
-        Expanded(
-          child: _buildDesktopDetailPane(),
-        ),
+        Expanded(child: _buildDesktopDetailPane()),
       ],
     );
   }
@@ -327,17 +335,33 @@ class _CardsPageState extends State<CardsPage> {
 
     return Container(
       color: CardMindColors.bgSurface,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 28, 30, 24),
-        child: Column(
+      padding: const EdgeInsets.fromLTRB(32, 28, 30, 24),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Text(
+            '编辑卡片',
+            style: TextStyle(
+              color: CardMindColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 8,
-            children: [
+            children: const [
+              Text(
+                '本地优先',
+                style: TextStyle(
+                  color: CardMindColors.brand,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               Text(
                 '已同步',
-                style: const TextStyle(
+                style: TextStyle(
                   color: CardMindColors.brand,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
@@ -345,40 +369,124 @@ class _CardsPageState extends State<CardsPage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            session.titleController.text.isEmpty
-                ? '无标题'
-                : session.titleController.text,
-            style: const TextStyle(
-              color: Color(0xFF203234),
-              fontSize: 37,
-              fontWeight: FontWeight.w800,
-              height: 1.08,
+          const SizedBox(height: 12),
+          Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: CardMindColors.brandMutedBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Text(
+                  'B',
+                  style: TextStyle(
+                    color: Color(0xFF223233),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Text(
+                  'I',
+                  style: TextStyle(
+                    color: Color(0xFF223233),
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Icon(Icons.format_quote, size: 14, color: Color(0xFF223233)),
+                SizedBox(width: 16),
+                Icon(Icons.link, size: 14, color: Color(0xFF223233)),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          const Text(
-            '更新于 2026.04.24',
-            style: TextStyle(
-              color: Color(0xFF6E8183),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            session.bodyController.text.isEmpty
-                ? '(空内容)'
-                : session.bodyController.text,
-            style: const TextStyle(
-              color: Color(0xFF344B4E),
-              fontSize: 15,
-              height: 1.55,
+          const SizedBox(height: 18),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: CardMindColors.bgSurface,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.fromLTRB(44, 42, 44, 34),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    identifier: SemanticIds.cardsDesktopEditorTitleInput,
+                    label: '桌面编辑标题输入框',
+                    textField: true,
+                    child: TextField(
+                      key: const ValueKey('cards.desktop_editor.title_input'),
+                      controller: session.titleController,
+                      style: const TextStyle(
+                        color: CardMindColors.textPrimary,
+                        fontSize: 37,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '标题',
+                      ),
+                      onChanged: (_) {
+                        setState(() => session.dirty = true);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: Semantics(
+                      container: true,
+                      explicitChildNodes: true,
+                      identifier: SemanticIds.cardsDesktopEditorBodyInput,
+                      label: '桌面编辑内容输入框',
+                      textField: true,
+                      child: TextField(
+                        key: const ValueKey('cards.desktop_editor.body_input'),
+                        controller: session.bodyController,
+                        expands: true,
+                        maxLines: null,
+                        textAlignVertical: TextAlignVertical.top,
+                        style: const TextStyle(
+                          color: Color(0xFF344B4E),
+                          fontSize: 15,
+                          height: 1.55,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: '输入卡片内容',
+                        ),
+                        onChanged: (_) {
+                          setState(() => session.dirty = true);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    identifier: SemanticIds.cardsDesktopEditorSaveButton,
+                    label: '保存桌面编辑卡片',
+                    button: true,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        key: const ValueKey('cards.desktop_editor.save_button'),
+                        onPressed: _saveDesktopSession,
+                        child: const Text('保存'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
-      ),
       ),
     );
   }

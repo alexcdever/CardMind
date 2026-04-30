@@ -124,6 +124,9 @@ void main() {
       find.byKey(const ValueKey('app_lock.confirm_pin_field')),
       '5678',
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('app_lock.submit_button')),
+    );
     await tester.tap(find.byKey(const ValueKey('app_lock.submit_button')));
     await tester.pumpAndSettle();
 

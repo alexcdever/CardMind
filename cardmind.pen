@@ -736,7 +736,7 @@
       "type": "frame",
       "id": "vL8LH",
       "x": 11820,
-      "y": -120,
+      "y": -440,
       "name": "Stitch / Mobile / Data Pool Setup",
       "clip": true,
       "width": 360,
@@ -1049,7 +1049,7 @@
       "type": "frame",
       "id": "Nqefk",
       "x": 12240,
-      "y": -120,
+      "y": -440,
       "name": "Stitch / Mobile / Data Pool Members",
       "clip": true,
       "width": 360,
@@ -4167,10 +4167,10 @@
           "type": "line",
           "id": "LRhGP",
           "x": 180,
-          "y": 1217,
+          "y": 1020,
           "name": "mobileArrow2",
           "width": 1,
-          "height": 235,
+          "height": 300,
           "stroke": {
             "align": "center",
             "thickness": 4,
@@ -4181,7 +4181,7 @@
           "type": "path",
           "id": "j5voZ",
           "x": 173,
-          "y": 1443,
+          "y": 1313,
           "name": "mobileArrow2Head",
           "geometry": "M0 0l14 0-7 14z",
           "viewBox": [
@@ -4198,7 +4198,7 @@
           "type": "frame",
           "id": "RrqTv",
           "x": 205,
-          "y": 1328,
+          "y": 1162,
           "name": "mobileLabel2",
           "fill": "#DBEAFE",
           "cornerRadius": 999,
@@ -4279,10 +4279,10 @@
           "type": "line",
           "id": "UERPC",
           "x": 180,
-          "y": 2578,
+          "y": 2280,
           "name": "mAppToPoolLine",
           "width": 1,
-          "height": 264,
+          "height": 300,
           "stroke": {
             "align": "center",
             "thickness": 4,
@@ -4293,7 +4293,7 @@
           "type": "path",
           "id": "SvBPi",
           "x": 173,
-          "y": 2843,
+          "y": 2573,
           "name": "mAppToPoolHead",
           "geometry": "M0 0l14 0-7 14z",
           "viewBox": [
@@ -4310,7 +4310,7 @@
           "type": "frame",
           "id": "gqByZ",
           "x": 205,
-          "y": 2688,
+          "y": 2422,
           "name": "mAppToPoolLabel",
           "fill": "#DBEAFE",
           "cornerRadius": 999,
@@ -4497,18 +4497,13 @@
         "thickness": 1,
         "fill": "#D9E4E8"
       },
-      "layout": "vertical",
-      "gap": 22,
-      "padding": [
-        44,
-        52,
-        36,
-        52
-      ],
+      "layout": "none",
       "children": [
         {
           "type": "text",
           "id": "HNM0D",
+          "x": 190,
+          "y": 44,
           "name": "dSetupBrand",
           "fill": "#0F766E",
           "content": "Card Mind",
@@ -4519,6 +4514,8 @@
         {
           "type": "frame",
           "id": "cBxHk",
+          "x": 190,
+          "y": 80,
           "name": "dSetupBadge",
           "fill": "#CCFBF1",
           "cornerRadius": 999,
@@ -4542,10 +4539,12 @@
         {
           "type": "text",
           "id": "94Iji",
+          "x": 190,
+          "y": 108,
           "name": "dSetupTitle",
           "fill": "#0F172A",
           "textGrowth": "fixed-width",
-          "width": "fill_container",
+          "width": 544,
           "content": "设置应用锁",
           "lineHeight": 1.05,
           "fontFamily": "Inter",
@@ -4555,10 +4554,12 @@
         {
           "type": "text",
           "id": "dmW72",
+          "x": 190,
+          "y": 166,
           "name": "dSetupIntro",
           "fill": "#475569",
           "textGrowth": "fixed-width",
-          "width": "fill_container",
+          "width": 544,
           "content": "创建或加入数据池前，请先设置应用锁。数据池数据可能保留在本设备上，因此即使他人拿到设备，也无法看到数据池内容。",
           "lineHeight": 1.45,
           "fontFamily": "Inter",
@@ -4568,8 +4569,10 @@
         {
           "type": "frame",
           "id": "S4YnS",
+          "x": 190,
+          "y": 216,
           "name": "dSetupCard",
-          "width": "fill_container",
+          "width": 544,
           "fill": "#F1F5F9",
           "cornerRadius": 14,
           "stroke": {
@@ -4709,6 +4712,7 @@
               "type": "frame",
               "id": "6ZtQR",
               "name": "dSetupButton",
+              "width": "fill_container",
               "fill": "#0F766E",
               "cornerRadius": 8,
               "padding": [
@@ -4733,12 +4737,190 @@
         {
           "type": "text",
           "id": "jYzwL",
+          "x": 190,
+          "y": 656,
           "name": "dSetupFooter",
           "fill": "#64748B",
           "content": "路径：数据池入口 → 应用锁 → 数据池设置",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "Su4uK",
+          "x": 0,
+          "y": 0,
+          "name": "sidebar",
+          "width": 190,
+          "height": "fill_container(0)",
+          "fill": "#EEF5F5",
+          "layout": "vertical",
+          "gap": 22,
+          "padding": [
+            26,
+            12,
+            24,
+            12
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "wW5Ij",
+              "name": "brand",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "JmEwc",
+                  "name": "brandIcon",
+                  "width": 24,
+                  "height": 24,
+                  "iconFontName": "layout-grid",
+                  "iconFontFamily": "lucide",
+                  "fill": "#0F766E"
+                },
+                {
+                  "type": "text",
+                  "id": "HZAsK",
+                  "name": "brandText",
+                  "fill": "#0F766E",
+                  "content": "Card Mind",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "24OPZ",
+              "name": "newNoteButton",
+              "width": "fill_container",
+              "height": 42,
+              "fill": "#0F766E",
+              "cornerRadius": 8,
+              "gap": 8,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "MKsql",
+                  "name": "newIcon",
+                  "width": 14,
+                  "height": 14,
+                  "iconFontName": "plus",
+                  "iconFontFamily": "lucide",
+                  "fill": "#FFFFFF"
+                },
+                {
+                  "type": "text",
+                  "id": "1WbAE",
+                  "name": "newText",
+                  "fill": "#FFFFFF",
+                  "content": "新建笔记",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "VWW6E",
+              "name": "nav",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "fjje6",
+                  "name": "notesNav",
+                  "width": "fill_container",
+                  "height": 34,
+                  "fill": "#EEF5F5",
+                  "cornerRadius": 8,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "kazih",
+                      "name": "notesIcon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "notebook",
+                      "iconFontFamily": "lucide",
+                      "fill": "#5F7274"
+                    },
+                    {
+                      "type": "text",
+                      "id": "7vttl",
+                      "name": "notesText",
+                      "fill": "#5F7274",
+                      "content": "笔记",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "2vi3T",
+                  "name": "poolNav",
+                  "width": "fill_container",
+                  "height": 36,
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 8,
+                  "gap": 8,
+                  "padding": [
+                    8,
+                    10
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "0HawZ",
+                      "name": "poolIcon",
+                      "width": 14,
+                      "height": 14,
+                      "iconFontName": "network",
+                      "iconFontFamily": "lucide",
+                      "fill": "#0F766E"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HttPf",
+                      "name": "poolText",
+                      "fill": "#223233",
+                      "content": "数据池",
+                      "fontFamily": "Inter",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GETLk",
+              "name": "sidebarSpacer",
+              "width": "fill_container",
+              "height": "fill_container",
+              "fill": "#EEF5F5"
+            }
+          ]
         }
       ]
     },
@@ -4866,6 +5048,7 @@
               "type": "frame",
               "id": "LXLd6",
               "name": "dUnlockBio",
+              "width": "fill_container",
               "fill": "#0F766E",
               "cornerRadius": 8,
               "padding": [
@@ -4937,6 +5120,7 @@
               "type": "frame",
               "id": "O1uLe",
               "name": "dUnlockButton",
+              "width": "fill_container",
               "fill": "#0F766E",
               "cornerRadius": 8,
               "padding": [
@@ -4987,7 +5171,7 @@
       "type": "text",
       "id": "AKY9E",
       "x": 11820,
-      "y": -1600,
+      "y": -1760,
       "name": "Stitch / Mobile / App Lock Setup Label",
       "fill": "$--foreground",
       "content": "设计稿 / 移动 / 应用锁设置",
@@ -4999,7 +5183,7 @@
       "type": "frame",
       "id": "VGr84",
       "x": 11820,
-      "y": -1540,
+      "y": -1700,
       "name": "Stitch / Mobile / App Lock Setup",
       "width": 360,
       "height": 960,
@@ -5014,7 +5198,7 @@
       "padding": [
         32,
         24,
-        28,
+        12,
         24
       ],
       "children": [
@@ -5254,6 +5438,98 @@
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "700"
+        },
+        {
+          "type": "frame",
+          "id": "03VRF",
+          "name": "setupSpacer",
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "#F8FAFB"
+        },
+        {
+          "type": "frame",
+          "id": "LZcxP",
+          "name": "bottomNav2",
+          "width": "fill_container",
+          "height": 64,
+          "fill": "#F8FAFB",
+          "cornerRadius": 14,
+          "gap": 42,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "frame",
+              "id": "zUl4e",
+              "name": "navNotes",
+              "width": 78,
+              "height": 44,
+              "fill": "#F8FAFB",
+              "cornerRadius": 10,
+              "layout": "vertical",
+              "gap": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "BqeA2",
+                  "name": "notesIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "notebook",
+                  "iconFontFamily": "lucide",
+                  "fill": "#223233"
+                },
+                {
+                  "type": "text",
+                  "id": "Ock30",
+                  "name": "notesText",
+                  "fill": "#223233",
+                  "content": "笔记",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "800"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "gFUIu",
+              "name": "navPool",
+              "width": 78,
+              "height": 44,
+              "fill": "#E6F4F2",
+              "cornerRadius": 10,
+              "layout": "vertical",
+              "gap": 4,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "I6sB5",
+                  "name": "poolIcon",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "network",
+                  "iconFontFamily": "lucide",
+                  "fill": "#0F766E"
+                },
+                {
+                  "type": "text",
+                  "id": "bBBDc",
+                  "name": "poolText",
+                  "fill": "#0F766E",
+                  "content": "数据池",
+                  "fontFamily": "Inter",
+                  "fontSize": 10,
+                  "fontWeight": "800"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -5261,7 +5537,7 @@
       "type": "text",
       "id": "iOHJY",
       "x": 12240,
-      "y": -1600,
+      "y": -1760,
       "name": "Stitch / Mobile / App Lock Unlock Label",
       "fill": "$--foreground",
       "content": "设计稿 / 移动 / 应用锁解锁",
@@ -5273,7 +5549,7 @@
       "type": "frame",
       "id": "w5iNP",
       "x": 12240,
-      "y": -1540,
+      "y": -1700,
       "name": "Stitch / Mobile / App Lock Unlock",
       "width": 360,
       "height": 960,

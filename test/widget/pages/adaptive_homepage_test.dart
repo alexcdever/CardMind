@@ -1,6 +1,6 @@
 // input: 以移动端与桌面端宽度挂载 AdaptiveHomepageScaffold。
-// output: 分别渲染底部导航或侧边导航轨。
-// pos: 覆盖自适应导航断点行为，防止端形态切换退化。修改本文件需同步更新文件头。
+// output: 移动端渲染底部导航，桌面端把导航交给子页面并保留快捷键。
+// pos: 覆盖自适应导航职责边界，防止端形态切换退化。修改本文件需同步更新文件头。
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
@@ -22,7 +22,7 @@ void main() {
     expect(find.text('设置'), findsNothing);
   });
 
-  testWidgets('uses navigation rail on desktop width', (tester) async {
+  testWidgets('delegates navigation to child on desktop width', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(platform: TargetPlatform.macOS),
@@ -30,11 +30,11 @@ void main() {
       ),
     );
 
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(BottomNavigationBar), findsNothing);
-    expect(find.byType(Row), findsOneWidget);
-    expect(find.text('卡片'), findsOneWidget);
-    expect(find.text('数据池'), findsOneWidget);
+    expect(find.byType(Row), findsNothing);
+    expect(find.text('卡片'), findsNothing);
+    expect(find.text('数据池'), findsNothing);
     expect(find.text('设置'), findsNothing);
   });
 
@@ -59,7 +59,7 @@ void main() {
     expect(find.byType(BottomNavigationBar), findsOneWidget);
   });
 
-  testWidgets('desktop homepage uses left navigation plus work area', (
+  testWidgets('desktop homepage keeps work area without duplicate navigation', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -77,11 +77,14 @@ void main() {
       ),
     );
 
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(BottomNavigationBar), findsNothing);
     expect(find.text('desktop-work-area'), findsOneWidget);
   });
 
-  testWidgets('macOS keeps navigation rail in narrow window', (tester) async {
+  testWidgets('macOS keeps desktop delegation in narrow window', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(platform: TargetPlatform.macOS),
@@ -89,7 +92,7 @@ void main() {
       ),
     );
 
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(BottomNavigationBar), findsNothing);
   });
 
@@ -155,7 +158,7 @@ void main() {
     expect(find.text('pool-marker'), findsOneWidget);
   });
 
-  testWidgets('desktop homepage rail keeps a visible interaction indicator', (
+  testWidgets('desktop homepage does not render outer navigation chrome', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -165,19 +168,16 @@ void main() {
       ),
     );
 
-    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-    expect(rail.useIndicator, isTrue);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byType(BottomNavigationBar), findsNothing);
+    expect(find.byKey(const ValueKey(SemanticIds.navCards)), findsNothing);
+    expect(find.byKey(const ValueKey(SemanticIds.navPool)), findsNothing);
   });
 
-  testWidgets('desktop homepage rail tap changes section through callback', (
+  testWidgets('mobile homepage tab tap changes section through callback', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ThemeData(platform: TargetPlatform.macOS),
-        home: const _DesktopHomepageHarness(),
-      ),
-    );
+    await tester.pumpWidget(const MaterialApp(home: _MobileHomepageHarness()));
 
     await tester.tap(find.byKey(const ValueKey(SemanticIds.navPool)));
     await tester.pumpAndSettle();
@@ -255,6 +255,36 @@ class AdaptiveHomepageScaffoldForTest extends StatelessWidget {
   }
 
   static void _noopSectionChanged(AppSection _) {}
+}
+
+class _MobileHomepageHarness extends StatefulWidget {
+  const _MobileHomepageHarness();
+
+  @override
+  State<_MobileHomepageHarness> createState() => _MobileHomepageHarnessState();
+}
+
+class _MobileHomepageHarnessState extends State<_MobileHomepageHarness> {
+  AppSection _section = AppSection.cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return MediaQuery(
+      data: const MediaQueryData(size: Size(390, 844)),
+      child: AdaptiveHomepageScaffold(
+        section: _section,
+        onSectionChanged: (section) {
+          setState(() {
+            _section = section;
+          });
+        },
+        child: switch (_section) {
+          AppSection.cards => const Center(child: Text('cards-marker')),
+          AppSection.pool => const Center(child: Text('pool-marker')),
+        },
+      ),
+    );
+  }
 }
 
 class _DesktopHomepageHarness extends StatefulWidget {

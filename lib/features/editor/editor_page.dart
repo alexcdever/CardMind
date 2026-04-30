@@ -288,88 +288,98 @@ class _EditorPageState extends State<EditorPage> {
             borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.fromLTRB(42, 44, 34, 44),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: _titleController,
-            style: const TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF223233),
-            ),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              hintText: '标题',
-              hintStyle: TextStyle(
-                color: Color(0xFF8BA1A3),
-                fontSize: 36,
-                fontWeight: FontWeight.w800,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _titleController,
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF223233),
+                ),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: '标题',
+                  hintStyle: TextStyle(
+                    color: Color(0xFF8BA1A3),
+                    fontSize: 36,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                onChanged: _controller.setTitle,
               ),
-            ),
-            onChanged: _controller.setTitle,
-          ),
-          const SizedBox(height: 18),
-          Expanded(
-            child: TextField(
-              controller: _bodyController,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Color(0xFF344B4E),
-                height: 1.55,
-              ),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: '内容',
-                hintStyle: TextStyle(
-                  color: Color(0xFF8BA1A3),
-                  fontSize: 15,
+              const SizedBox(height: 18),
+              Expanded(
+                child: TextField(
+                  controller: _bodyController,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF344B4E),
+                    height: 1.55,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    hintText: '内容',
+                    hintStyle: TextStyle(
+                      color: Color(0xFF8BA1A3),
+                      fontSize: 15,
+                    ),
+                  ),
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  onChanged: _controller.setBody,
                 ),
               ),
-              maxLines: null,
-              expands: true,
-              textAlignVertical: TextAlignVertical.top,
-              onChanged: _controller.setBody,
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            '164 字',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF8BA1A3),
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-);
-}
-
-Widget _buildHeader() {
-    return Row(
-      children: [
-        GestureDetector(
-          onTap: () => unawaited(_onBack()),
-          child: const Row(
-            children: [
-              Icon(
-                Icons.grid_view_rounded,
-                size: 14,
-                color: CardMindColors.brand,
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Card Mind',
+              const SizedBox(height: 18),
+              const Text(
+                '164 字',
                 style: TextStyle(
-                  color: CardMindColors.brand,
-                  fontSize: 14,
+                  fontSize: 10,
                   fontWeight: FontWeight.w800,
+                  color: Color(0xFF8BA1A3),
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Tooltip(
+          message: 'Back',
+          child: Semantics(
+            container: true,
+            explicitChildNodes: true,
+            label: '返回',
+            button: true,
+            child: GestureDetector(
+              key: const ValueKey('editor.back_button'),
+              onTap: () => unawaited(_onBack()),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.grid_view_rounded,
+                    size: 14,
+                    color: CardMindColors.brand,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Card Mind',
+                    style: TextStyle(
+                      color: CardMindColors.brand,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
         const Spacer(),
@@ -379,30 +389,26 @@ Widget _buildHeader() {
           identifier: SemanticIds.editorSaveButton,
           label: '保存卡片',
           button: true,
-          child: GestureDetector(
+          child: TextButton(
             key: const ValueKey('editor.save_button'),
-            onTap: () async {
+            onPressed: () async {
               final navigator = Navigator.of(context);
               final shouldClose = await _saveAndRunCallback();
               if (!mounted || !shouldClose) return;
               navigator.pop();
             },
-            child: Container(
-              width: 60,
-              height: 30,
-              decoration: BoxDecoration(
-                color: CardMindColors.brand,
+            style: TextButton.styleFrom(
+              fixedSize: const Size(60, 30),
+              padding: EdgeInsets.zero,
+              foregroundColor: Colors.white,
+              backgroundColor: CardMindColors.brand,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              alignment: Alignment.center,
-              child: const Text(
-                '完成',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
+            ),
+            child: const Text(
+              '完成',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
             ),
           ),
         ),

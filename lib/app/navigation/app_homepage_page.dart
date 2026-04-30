@@ -197,9 +197,10 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
   Widget _buildSection(AppSection section) {
     switch (section) {
       case AppSection.cards:
+        final showCardsNavigation = _useDesktopLayout(context);
         return widget.cardsPageBuilder?.call(context) ??
             CardsPage(
-              showNavigation: true,
+              showNavigation: showCardsNavigation,
               onSectionChanged: (section) {
                 switch (section) {
                   case 'pool':
@@ -223,5 +224,16 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
           child: widget.poolPageBuilder?.call(context),
         );
     }
+  }
+
+  bool _useDesktopLayout(BuildContext context) {
+    return switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux => true,
+      TargetPlatform.android ||
+      TargetPlatform.iOS ||
+      TargetPlatform.fuchsia => false,
+    };
   }
 }

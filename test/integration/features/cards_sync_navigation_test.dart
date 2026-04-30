@@ -13,6 +13,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
         home: CardsPage(
           controller: buildTestCardsController(),
           syncStatus: const SyncStatus.error('REQUEST_TIMEOUT'),
@@ -36,10 +37,10 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsOneWidget);
   });
 
   testWidgets('degraded sync remains non-blocking for local save flow', (
@@ -47,6 +48,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
         home: CardsPage(
           controller: buildTestCardsController(),
           syncStatus: const SyncStatus.degraded('REQUEST_TIMEOUT'),
@@ -54,14 +56,14 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byKey(const ValueKey('cards.create_fab')));
     await tester.pumpAndSettle();
 
     await tester.enterText(
       find.byKey(const ValueKey('editor.title_input')),
       'degraded local save',
     );
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.tap(find.byKey(const ValueKey('editor.save_button')));
     await tester.pumpAndSettle();
 
     expect(find.text('degraded local save'), findsOneWidget);

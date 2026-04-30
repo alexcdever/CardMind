@@ -100,7 +100,7 @@ void main() {
 
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).first, 'new title');
     await tester.tap(find.byTooltip('Back'));
@@ -108,7 +108,7 @@ void main() {
     await tester.tap(find.text('放弃更改'));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑卡片'), findsNothing);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsNothing);
     expect(find.text('open'), findsOneWidget);
   });
 
@@ -149,7 +149,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑卡片'), findsNothing);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsNothing);
     expect(find.text('open'), findsOneWidget);
     expect(find.text('recoverable title'), findsNothing);
   });
@@ -167,7 +167,7 @@ void main() {
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsOneWidget);
     expect(find.text('keep editing'), findsOneWidget);
     expect(find.text('body in progress'), findsOneWidget);
   });
@@ -184,10 +184,10 @@ void main() {
     );
 
     await tester.enterText(find.byType(TextField).first, 'unstable save');
-    await tester.tap(find.byIcon(Icons.save_outlined));
+    await tester.tap(find.byKey(const ValueKey('editor.save_button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('编辑卡片'), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor.title_input')), findsOneWidget);
     expect(find.text('保存失败，请重试'), findsOneWidget);
     expect(find.text('unstable save'), findsOneWidget);
   });

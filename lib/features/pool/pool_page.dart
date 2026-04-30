@@ -17,6 +17,7 @@ import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
+import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 import 'package:cardmind/features/shared/widgets/search_field.dart';
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
@@ -55,6 +56,7 @@ class PoolPage extends StatefulWidget {
     this.debugPrintInvite = false,
     this.debugJoinTrace = false,
     this.debugLogSink,
+    this.onSectionChanged,
   });
 
   /// 当前池状态。
@@ -95,6 +97,9 @@ class PoolPage extends StatefulWidget {
 
   /// 调试日志输出目标，未注入时回退到 debugPrint。
   final PoolDebugLogSink? debugLogSink;
+
+  /// 桌面侧栏分区切换回调。
+  final ValueChanged<String>? onSectionChanged;
 
   @override
   State<PoolPage> createState() => _PoolPageState();
@@ -326,6 +331,7 @@ class _PoolPageState extends State<PoolPage> {
         syncStatus: _controller.syncStatus,
         onScanJoin: () => _scanAndJoin(context),
         noticeMessage: _controller.noticeMessage,
+        onSectionChanged: widget.onSectionChanged ?? _noopSectionChanged,
       );
     }
 
@@ -340,6 +346,7 @@ class _PoolPageState extends State<PoolPage> {
         onEditPool: () => _showEditPoolDialog(context),
         onConfirmDissolve: () => _confirmDissolvePool(context),
         onConfirmLeave: () => _confirmLeavePool(context),
+        onSectionChanged: widget.onSectionChanged ?? _noopSectionChanged,
       );
     }
 
@@ -369,4 +376,6 @@ class _PoolPageState extends State<PoolPage> {
 
     return const Scaffold(body: SizedBox.shrink());
   }
+
+  static void _noopSectionChanged(String _) {}
 }

@@ -231,7 +231,7 @@ void main() {
     expect(find.text('设置'), findsNothing);
   });
 
-  testWidgets('desktop homepage does not nest two primary navigation rails', (
+  testWidgets('desktop homepage uses one Pencil sidebar navigation', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -242,8 +242,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(NavigationRail), findsOneWidget);
-    expect(find.text('新建笔记'), findsNothing);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.text('新建笔记'), findsOneWidget);
   });
 
   testWidgets('app cold start lands on cards by default', (tester) async {

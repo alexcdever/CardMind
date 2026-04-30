@@ -317,8 +317,8 @@ void main() {
       ),
     );
 
-    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
-    expect(find.text('扫码加入'), findsOneWidget);
+    expect(find.text('连接你的数据池'), findsOneWidget);
+    expect(find.text('立即连接 →'), findsOneWidget);
   });
 
   testWidgets('pool unjoined state shows create/join guidance copy', (
@@ -333,7 +333,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('在这里创建或加入数据池'), findsOneWidget);
+    expect(find.textContaining('创建新的数据池'), findsOneWidget);
   });
 
   testWidgets('pool page can restore joined state from API on first render', (
@@ -366,7 +366,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('创建池'));
+    await tester.tap(find.text('开始 →'));
     await tester.pumpAndSettle();
 
     expect(find.text('成员列表'), findsOneWidget);
@@ -416,6 +416,54 @@ void main() {
     expect(find.text('Phone'), findsOneWidget);
     expect(find.text('invite://server-pool'), findsOneWidget);
     expect(find.text('撤销'), findsOneWidget);
+  });
+
+  testWidgets('mobile joined pool follows Pencil members copy', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PoolPage(
+          state: const PoolState.joined(poolId: 'joined-pool'),
+          controller: _buildTestPoolController(
+            state: const PoolState.joined(poolId: 'joined-pool'),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('成员设备'), findsWidgets);
+    expect(find.text('成员列表'), findsNothing);
+  });
+
+  testWidgets('desktop joined pool follows Pencil members dashboard', (
+    tester,
+  ) async {
+    final controller = _buildTestPoolController(
+      state: const PoolState.joined(
+        poolId: 'joined-pool',
+        poolName: '创世池 Alpha',
+        currentIdentityLabel: 'owner@test',
+        memberLabels: <String>['owner@test', 'phone@test'],
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: PoolPage(
+          state: const PoolState.joined(poolId: 'joined-pool'),
+          controller: controller,
+        ),
+      ),
+    );
+
+    expect(find.text('新建笔记'), findsOneWidget);
+    expect(find.text('数据池成员'), findsOneWidget);
+    expect(find.text('当前有 2 台设备加入此数据池。'), findsOneWidget);
+    expect(find.text('待处理邀请'), findsOneWidget);
+    expect(find.text('本机状态'), findsOneWidget);
+    expect(find.text('已加入'), findsOneWidget);
+    expect(find.text('邀请成员'), findsOneWidget);
+    expect(find.text('搜索成员设备...'), findsOneWidget);
   });
 
   testWidgets('pool page does not expose outdated prototype copy', (
@@ -488,7 +536,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('扫码加入'));
+    await tester.tap(find.text('立即连接 →'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('pool.join_dialog.code_input')),
@@ -513,13 +561,13 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('扫码加入'));
+    await tester.tap(find.text('立即连接 →'));
     await tester.pumpAndSettle();
     await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
 
-    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
-    expect(find.text('扫码加入'), findsOneWidget);
+    expect(find.text('连接你的数据池'), findsOneWidget);
+    expect(find.text('立即连接 →'), findsOneWidget);
   });
 
   testWidgets('join flow shows visible pending feedback before result', (
@@ -534,7 +582,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('扫码加入'));
+    await tester.tap(find.text('立即连接 →'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('pool.join_dialog.code_input')),
@@ -693,8 +741,8 @@ void main() {
     await tester.tap(find.text('确认退出'));
     await tester.pumpAndSettle();
 
-    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
-    expect(find.text('扫码加入'), findsOneWidget);
+    expect(find.text('连接你的数据池'), findsOneWidget);
+    expect(find.text('立即连接 →'), findsOneWidget);
   });
 
   testWidgets('approve/reject updates pending list with observable result', (
@@ -825,7 +873,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('待加入数据池'), findsNothing);
-    expect(find.text('在这里创建或加入数据池'), findsOneWidget);
+    expect(find.text('连接你的数据池'), findsOneWidget);
     expect(find.text('加入申请已取消'), findsOneWidget);
   });
 
@@ -854,7 +902,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('扫码加入'));
+    await tester.tap(find.text('立即连接 →'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('pool.join_dialog.code_input')),
@@ -899,8 +947,8 @@ void main() {
     await tester.tap(find.text('重试清理'));
     await tester.pumpAndSettle();
 
-    expect(find.text('创建池'), findsOneWidget);
-    expect(find.text('扫码加入'), findsOneWidget);
+    expect(find.text('开始 →'), findsOneWidget);
+    expect(find.text('立即连接 →'), findsOneWidget);
   });
 
   testWidgets('join error state shows mapped primary action label', (
