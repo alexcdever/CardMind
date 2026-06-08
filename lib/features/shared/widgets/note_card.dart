@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class NoteCard extends StatelessWidget {
   const NoteCard({
     super.key,
-    required this.tag,
+    this.tag,
     required this.title,
     required this.body,
     this.selected = false,
@@ -17,7 +17,7 @@ class NoteCard extends StatelessWidget {
     this.compact = false,
   });
 
-  final String tag;
+  final String? tag;
   final String title;
   final String body;
   final bool selected;
@@ -55,15 +55,17 @@ class NoteCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              tag,
-              style: TextStyle(
-                color: tagColor ?? CardMindColors.brand,
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
+            if (tag != null) ...[
+              Text(
+                tag!,
+                style: TextStyle(
+                  color: tagColor ?? CardMindColors.brand,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
             Text(
               title,
               style: TextStyle(

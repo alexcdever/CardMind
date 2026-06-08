@@ -6,12 +6,14 @@ class _PoolNotJoinedView extends StatelessWidget {
     required this.syncStatus,
     required this.onScanJoin,
     required this.noticeMessage,
+    this.onSectionChanged,
   });
 
   final PoolController controller;
   final SyncStatus syncStatus;
   final VoidCallback onScanJoin;
   final String? noticeMessage;
+  final ValueChanged<String>? onSectionChanged;
 
   static bool _useDesktopLayout(BuildContext context) {
     return switch (Theme.of(context).platform) {
@@ -377,6 +379,7 @@ class _PoolJoinedView extends StatelessWidget {
     required this.onEditPool,
     required this.onConfirmDissolve,
     required this.onConfirmLeave,
+    this.onSectionChanged,
   });
 
   final PoolJoined state;
@@ -388,6 +391,7 @@ class _PoolJoinedView extends StatelessWidget {
   final VoidCallback onEditPool;
   final VoidCallback onConfirmDissolve;
   final VoidCallback onConfirmLeave;
+  final ValueChanged<String>? onSectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -491,6 +495,38 @@ class _PoolJoinedView extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
+              if (controller.runtimeViewLoading) ...[
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: CardMindColors.brand,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '正在获取网络节点状态…',
+                      style: TextStyle(
+                        color: CardMindColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else if (runtimeView == null) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  '节点状态将自动加载',
+                  style: TextStyle(
+                    color: CardMindColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
               if (runtimeView != null) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -746,6 +782,38 @@ class _PoolJoinedView extends StatelessWidget {
                   fontSize: 12,
                 ),
               ),
+              if (controller.runtimeViewLoading) ...[
+                const SizedBox(height: 8),
+                const Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: CardMindColors.brand,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '正在获取网络节点状态…',
+                      style: TextStyle(
+                        color: CardMindColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else if (runtimeView == null) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  '节点状态将自动加载',
+                  style: TextStyle(
+                    color: CardMindColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
               if (runtimeView != null) ...[
                 const SizedBox(height: 8),
                 Text(

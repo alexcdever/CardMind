@@ -33,6 +33,7 @@
 use crate::models::error::CardMindError;
 use iroh::address_lookup::mdns::MdnsAddressLookup;
 use iroh::endpoint::{Connection, presets};
+use iroh::RelayMode;
 use iroh::{Endpoint, EndpointAddr, EndpointId, Watcher};
 use std::time::Duration;
 use tokio::time::sleep;
@@ -184,6 +185,7 @@ pub async fn build_endpoint() -> Result<Endpoint, CardMindError> {
     Endpoint::builder(presets::Minimal)
         .alpns(vec![POOL_ALPN.to_vec()])
         .address_lookup(mdns)
+        .relay_mode(RelayMode::Disabled)
         .bind()
         .await
         .map_err(|e| CardMindError::Internal(e.to_string()))

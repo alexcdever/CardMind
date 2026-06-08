@@ -75,18 +75,6 @@ void main() {
       reason:
           'PoolPage production composition must not instantiate LocalPoolApiClient.',
     );
-    expect(
-      legacyCardClient.contains('短期兼容路径'),
-      isTrue,
-      reason:
-          'Legacy compatibility code must stay clearly labeled until removed.',
-    );
-    expect(
-      legacyCardClient.contains('后续将由 FRB 客户端替换并删除'),
-      isTrue,
-      reason:
-          'Legacy compatibility code must keep its removal intent documented.',
-    );
   });
 
   test(

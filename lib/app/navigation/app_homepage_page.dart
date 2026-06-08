@@ -18,8 +18,10 @@
 import 'package:cardmind/app/layout/adaptive_homepage_scaffold.dart';
 import 'package:cardmind/app/navigation/app_section.dart';
 import 'package:cardmind/app/navigation/app_homepage_controller.dart';
+import 'package:cardmind/app/navigation/app_startup_state.dart';
 import 'package:cardmind/features/cards/cards_page.dart';
 import 'package:cardmind/features/pool/pool_shell.dart';
+import 'package:cardmind/features/shared/widgets/startup_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -38,6 +40,7 @@ class AppHomepagePage extends StatefulWidget {
     super.key,
     this.appDataDir = '',
     this.controller,
+    this.skipStartupSequence = false,
     this.cardsPageBuilder,
     this.poolPageBuilder,
     this.poolNetworkId,
@@ -60,6 +63,12 @@ class AppHomepagePage extends StatefulWidget {
   ///
   /// 如果为 null，将自动创建默认控制器。
   final AppHomepageController? controller;
+
+  /// 是否跳过启动时序序列。
+  ///
+  /// 为 true 时，initState 不会安排模拟启动延迟，控制器直接进入 ready 阶段。
+  /// 用于测试场景，避免 Future.delayed 产生的待处理计时器干扰测试。
+  final bool skipStartupSequence;
 
   /// 可选的卡片页面构建器。
   ///
@@ -106,6 +115,37 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
   ///
   /// 用于防止同时显示多个退出确认对话框。
   bool _isExitDialogShowing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.skipStartupSequence) {
+      _controller.advanceStartup(AppStartupStage.ready);
+    } else {
+      _scheduleStartupSequence();
+    }
+  }
+
+  /// 安排启动时序序列。
+  ///
+  /// 模拟从 booting → localReady → poolProbing → ready 的启动流程。
+  /// 后续可替换为真实信号（如 Rust 层就绪回调、同步状态变化等）。
+  void _scheduleStartupSequence() {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      _controller.advanceStartup(AppStartupStage.localReady);
+    });
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      _controller.advanceStartup(AppStartupStage.poolProbing,
+          message: '同步完成后即可查看多设备笔记');
+    });
+    Future.delayed(const Duration(milliseconds: 3000), () {
+      if (!mounted) return;
+      _controller.advanceStartup(AppStartupStage.ready);
+    });
+  }
+
   @override
   void dispose() {
     _controller.removeListener(_onChanged);
@@ -129,10 +169,14 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
       onPopInvokedWithResult: (didPop, _) {
         _handleBackIntent(didPop);
       },
-      child: AdaptiveHomepageScaffold(
-        section: _controller.section,
-        onSectionChanged: _controller.setSection,
-        child: _buildSection(_controller.section),
+      child: StartupOverlay(
+        stage: _controller.startupStage,
+        message: _controller.startupMessage,
+        child: AdaptiveHomepageScaffold(
+          section: _controller.section,
+          onSectionChanged: _controller.setSection,
+          child: _buildSection(_controller.section),
+        ),
       ),
     );
   }

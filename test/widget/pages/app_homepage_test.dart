@@ -345,7 +345,12 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(home: AppHomepagePage(poolNetworkId: BigInt.one)),
+      MaterialApp(
+        home: AppHomepagePage(
+          poolNetworkId: BigInt.one,
+          skipStartupSequence: true,
+        ),
+      ),
     );
 
     expect(find.byType(AppHomepagePage), findsOneWidget);

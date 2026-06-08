@@ -14,6 +14,7 @@ import 'package:cardmind/features/shared/widgets/bottom_nav.dart';
 import 'package:cardmind/features/shared/widgets/brand_header.dart';
 import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 import 'package:cardmind/features/shared/widgets/note_card.dart';
+import 'package:cardmind/features/shared/widgets/global_sync_indicator.dart';
 import 'package:cardmind/features/shared/widgets/search_field.dart';
 import 'package:cardmind/features/sync/sync_status.dart';
 import 'package:flutter/material.dart';
@@ -172,6 +173,9 @@ class _CardsPageState extends State<CardsPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const BrandHeader(),
+            GlobalSyncIndicator(
+              syncStatus: widget.syncStatus,
+            ),
             const SizedBox(height: 18),
             const Text(
               '笔记列表',
@@ -227,6 +231,9 @@ class _CardsPageState extends State<CardsPage> {
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
             child: Column(
               children: [
+                GlobalSyncIndicator(
+                  syncStatus: widget.syncStatus,
+                ),
                 Row(
                   children: [
                     Expanded(
@@ -284,7 +291,7 @@ class _CardsPageState extends State<CardsPage> {
               padding: const EdgeInsets.only(bottom: 8),
               child: NoteCard(
                 key: ValueKey('cards.item.${note.id}'),
-                tag: note.deleted ? '已删除' : '已同步',
+                tag: note.deleted ? '已删除' : null,
                 title: note.title,
                 body: '',
                 selected: _desktopSession?.selectedId == note.id,

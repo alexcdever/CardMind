@@ -17,7 +17,6 @@ import 'package:cardmind/features/pool/pool_controller.dart';
 import 'package:cardmind/features/pool/join_error_mapper.dart';
 import 'package:cardmind/features/pool/pool_state.dart';
 import 'package:cardmind/features/shared/testing/semantic_ids.dart';
-import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 import 'package:cardmind/features/shared/widgets/search_field.dart';
 import 'package:cardmind/features/sync/sync_service.dart';
 import 'package:cardmind/features/sync/sync_status.dart';

@@ -97,5 +97,9 @@
 - Git 与 PR：`docs/standards/git-and-pr.md`
 - 编码风格：`docs/standards/coding-style.md`
 - UI 风格规范：`docs/standards/ui-style-guide.md`
+- 设计 Token：`docs/standards/design-tokens.md`
 - 技术栈基线：`docs/standards/tech-stack-baseline.md`
 - Flutter 自动化锚点：`docs/standards/flutter-automation-anchors.md`
+- 用户旅程：`docs/specs/user-journeys.md`
+- UI 组件规格：`docs/specs/ui-components.md`
+- 共享领域契约：`docs/specs/shared-domain-contract.md`

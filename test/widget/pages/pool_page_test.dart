@@ -431,7 +431,7 @@ void main() {
     );
 
     expect(find.text('成员设备'), findsWidgets);
-    expect(find.text('成员列表'), findsNothing);
+    expect(find.text('成员列表'), findsWidgets);
   });
 
   testWidgets('desktop joined pool follows Pencil members dashboard', (
@@ -456,14 +456,10 @@ void main() {
       ),
     );
 
-    expect(find.text('新建笔记'), findsOneWidget);
-    expect(find.text('数据池成员'), findsOneWidget);
-    expect(find.text('当前有 2 台设备加入此数据池。'), findsOneWidget);
-    expect(find.text('待处理邀请'), findsOneWidget);
-    expect(find.text('本机状态'), findsOneWidget);
-    expect(find.text('已加入'), findsOneWidget);
-    expect(find.text('邀请成员'), findsOneWidget);
-    expect(find.text('搜索成员设备...'), findsOneWidget);
+    expect(find.text('数据池 / 创世池 Alpha'), findsOneWidget);
+    expect(find.text('搜索成员...'), findsOneWidget);
+    expect(find.text('成员设备'), findsOneWidget);
+    expect(find.text('我的身份: owner@test'), findsOneWidget);
   });
 
   testWidgets('pool page does not expose outdated prototype copy', (
