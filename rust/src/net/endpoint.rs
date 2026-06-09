@@ -32,9 +32,11 @@
 
 use crate::models::error::CardMindError;
 use iroh::address_lookup::mdns::MdnsAddressLookup;
+use iroh::address_lookup::memory::MemoryLookup;
 use iroh::endpoint::{Connection, presets};
 use iroh::RelayMode;
-use iroh::{Endpoint, EndpointAddr, EndpointId, Watcher};
+use iroh::{Endpoint, EndpointAddr, EndpointId, TransportAddr, Watcher};
+use std::collections::BTreeSet;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -182,13 +184,25 @@ impl PoolEndpoint {
 /// ```
 pub async fn build_endpoint() -> Result<Endpoint, CardMindError> {
     let mdns = MdnsAddressLookup::builder();
-    Endpoint::builder(presets::Minimal)
+    let memory = MemoryLookup::new();
+    let ep = Endpoint::builder(presets::Minimal)
         .alpns(vec![POOL_ALPN.to_vec()])
         .address_lookup(mdns)
+        .address_lookup(memory.clone())
         .relay_mode(RelayMode::Disabled)
         .bind()
         .await
-        .map_err(|e| CardMindError::Internal(e.to_string()))
+        .map_err(|e| CardMindError::Internal(e.to_string()))?;
+
+    // Register the local bound socket as a direct address so loopback connect works
+    for addr in ep.bound_sockets() {
+        memory.add_endpoint_info(EndpointAddr {
+            id: ep.id(),
+            addrs: BTreeSet::from([TransportAddr::Ip(addr)]),
+        });
+    }
+
+    Ok(ep)
 }
 
 /// 构建两个测试端点。
