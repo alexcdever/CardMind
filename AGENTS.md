@@ -1,105 +1,113 @@
-# Repository Guidelines
+# CardMind
 
-## 项目概述
+面向多设备个人用户的笔记同步应用。Flutter 前端 + Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
 
-本项目的目标是构建一款面向具备多款设备的个人用户的笔记应用，不同设备上的 app 实例可以组建一个数据池，实现低感知、低延迟的笔记同步。
+## 技术栈
+
+| 层 | 技术 | 版本 |
+|---|------|------|
+| 前端 | Flutter | 3.44.0 (Dart 3.12) |
+| 核心逻辑 | Rust | 1.95.0 |
+| CRDT 存储 | Loro | 1.13.1 |
+| 网络层 | iroh | 0.98.1 (直连模式，禁用 relay) |
+| 查询层 | SQLite (Rust 端 rusqlite) | — |
+| 跨语言桥 | flutter_rust_bridge | 2.12.0 |
+
+## 架构
+
+```
+Flutter (UI) ←→ FRB ←→ Rust (业务后端)
+                          ├─ LoroDoc (真实信源)
+                          ├─ SQLite (读模型)
+                          └─ iroh (网络同步)
+```
+
+- **读写分离**：所有写入通过 Rust → LoroDoc，投影到 SQLite 供查询
+- **双套 UI**：移动端 (底部 2 Tab) 和桌面端 (三栏)，独立实现
+- **双域划分**：卡片笔记（个人主路径）和 数据池（跨设备同步扩展）
 
 ## 项目结构
 
-- `lib/`：Flutter 业务与界面代码
-- `test/`：Flutter 单元、组件与集成测试
-- `rust/`：Rust 核心逻辑与 FFI
-- `rust/tests/`：Rust 集成测试
-- `tool/`：工具脚本
-- `docs/`：仓库文档目录，包含正式规格、变更计划与长期标准
-- `tmp/`：临时产物目录，如边界扫描报告
+```
+lib/            Flutter UI 代码
+  app/          应用入口、导航、主题
+  features/     业务模块 (cards/pool/sync/editor/security/settings)
+  bridge_generated/  FRB 自动生成代码
+rust/           Rust 核心
+  src/
+    api/        FRB 导出 API (+ recovery_contract)
+    net/        iroh 网络端点 + 同步
+    store/      LoroDoc + SQLite 存储
+    security/   应用锁
+    models/     领域模型
+  tests/        集成测试 (unit/contract/integration)
+test/           Flutter 测试 (unit/widget/integration/contract)
+docs/
+  specs/        正式规格
+  standards/    工程规范
+  plans/        历史设计计划
+  memory/       工作日志
+tool/           工具脚本 (build/quality/lint/scanner)
+```
 
-## 常用命令
+## 关键命令
 
-- 运行应用：`flutter run`
-- Flutter 测试：`flutter test`
-- Flutter 静态检查：`flutter analyze`
-- Rust 测试：`cargo test`
-- 质量检查：`dart run tool/quality.dart <flutter|rust|docs|all>`
-- 边界扫描：`dart run tool/test_boundary_scanner.dart`
-- FRB 生成：`flutter_rust_bridge_codegen generate`
-- 构建脚本：`dart run tool/build.dart <app|lib> [options]`
+```bash
+# Flutter
+flutter pub get                       # 获取依赖（需 PUB_HOSTED_URL=https://pub.flutter-io.cn）
+flutter test                          # 跑测试
+flutter analyze                       # 代码分析
 
-质量检查链路：
+# Rust (设置 PATH: export PATH="/Users/alexc/.cargo/bin:$PATH")
+cargo test                            # 全量测试
+cargo test --test unit                # 单元测试（含网络同步测试）
+cargo test --test unit -- connect_and_sync  # 网络同步专项
+cargo build --release                 # 发布构建
 
-- `docs`：`markdown references lint`
-- `flutter`：`markdown references lint -> flutter analyze -> flutter test -> test boundary scan`
-- `rust`：`cargo fmt --check -> cargo clippy -> cargo test`
+# 构建
+dart run tool/build.dart lib          # 构建 Rust dylib 到运行态路径
+dart run tool/quality.dart all        # 全量质量检查
 
-边界扫描补充：
+# 网络测试（防火墙已关，直接用 cargo test 即可）
+bash rust/tools/test-with-net.sh --test unit -- connect_and_sync  # 签名后运行
+```
 
-- 配置文件：`tool/test_boundary_config.yaml`
-- 报告输出：`tmp/cardmind_test_boundary_report.md`
+> `flutter pub get` 需要设置 `PUB_HOSTED_URL=https://pub.flutter-io.cn`（国内镜像）。
+> Rust 命令需将 `/Users/alexc/.cargo/bin` 加入 PATH，Hermes terminal 不会加载 `.zshrc`。
 
-构建脚本补充：
+## 运行态动态库
 
-- `app [--platform macos|linux|windows]`
-- `lib [--target <target-triple>]`
+- 运行态：`build/native/macos/libcardmind_rust.dylib`
+- 编译源：`rust/target/release/libcardmind_rust.dylib`（构建后手动 cp）
+- 缺失时执行 `dart run tool/build.dart lib` 恢复
 
-命令默认在仓库根目录执行；Rust 修改后如影响运行态动态库，需重新构建动态库。
+## 当前状态（2026-06）
 
-当前 macOS 动态库路径职责：
+| 项目 | 状态 |
+|------|------|
+| Phase 2 全部完成 | ✅ 同步可信修复 + 正常流转 UI + 运行态视图 |
+| Rust 测试 | 567/567 ✅ |
+| Flutter 测试 | 383/383 ✅ |
+| 防火墙 | 已关闭，网络测试不再弹窗 |
+| 依赖 | 已更新至安全版本，iroh/pkcs8/spki 等关键包已锁定 |
 
-- `rust/target/release/libcardmind_rust.dylib` 是 Cargo 编译缓存源，不作为运行态真相源
-- `build/native/macos/libcardmind_rust.dylib` 是官方运行态 dylib，测试、运行与 app bundle 都依赖该路径
-- 若官方运行态 dylib 缺失，执行 `dart run tool/build.dart lib` 恢复
+## 文档地图
 
-## 文档角色模型
-
-仓库文档分为四类，职责必须严格区分：
-
-- `AGENTS.md`：仓库入口文档，定义项目概况、目录结构、常用命令、文档类型与 AI 执行入口规则
-- `docs/specs/`：正式规格，记录当前已确认的系统行为、业务规则、约束、验收标准与非目标
-- `docs/plans/`：变更设计与实施计划，记录上下文、设计取舍、任务拆解、风险与验证策略
-- `docs/standards/`：长期复用的工程和协作规则，只保留稳定、明确、跨变更适用的规范
-
-边界要求：
-
-- `docs/specs/` 不写实现步骤、任务顺序、临时方案比较
-- `docs/plans/` 不是长期行为真相源，计划完成后只作为历史决策与 ADR 参考
-- `docs/standards/` 不承载单次变更的任务编排
-- `AGENTS.md` 不复制标准正文，只给入口与索引
-
-## AI 执行入口规则
-
-开始实现前，AI 必须先确认：
-
-1. 目标是什么
-2. 范围边界是什么
-3. 验收标准是什么
-4. 任务是否改变了已确认的正式行为
-
-执行时遵循以下入口原则：
-
-- 是否需要更新 `docs/specs/`，按 `docs/standards/spec-lifecycle.md` 判断
-- 协作执行流程、验证与交付要求，按 `docs/standards/ai-collaboration.md` 执行
-- 交付前必须完成与改动范围匹配的验证，不得在未说明验证结果的情况下宣称完成
-
-如发现当前任务目标、范围、验收标准不清晰，且会影响正式行为判断或方案分叉，先澄清；不要把未确认内容直接写进 `docs/specs/`。
-
-适用标准的默认读取顺序：
-
-1. 先读 `AGENTS.md`
-2. 按任务需要读取相关 `docs/specs/` 与 `docs/standards/`
-3. 仅在需要设计背景、执行顺序或历史取舍时读取 `docs/plans/`
-
-## 规范入口
-
-- 协作执行：`docs/standards/ai-collaboration.md`
-- Spec 生命周期：`docs/standards/spec-lifecycle.md`
-- TDD 与验证：`docs/standards/tdd.md`
-- 测试规则：`docs/standards/testing.md`
-- Git 与 PR：`docs/standards/git-and-pr.md`
-- 编码风格：`docs/standards/coding-style.md`
-- UI 风格规范：`docs/standards/ui-style-guide.md`
-- 设计 Token：`docs/standards/design-tokens.md`
-- 技术栈基线：`docs/standards/tech-stack-baseline.md`
-- Flutter 自动化锚点：`docs/standards/flutter-automation-anchors.md`
-- 用户旅程：`docs/specs/user-journeys.md`
-- UI 组件规格：`docs/specs/ui-components.md`
-- 共享领域契约：`docs/specs/shared-domain-contract.md`
+- `docs/specs/product.md` — 产品定位
+- `docs/specs/architecture.md` — 架构规格
+- `docs/specs/card-note.md` — 卡片笔记领域
+- `docs/specs/pool.md` — 数据池领域
+- `docs/specs/ui-interaction.md` — UI 交互
+- `docs/specs/ui-components.md` — UI 组件
+- `docs/specs/user-journeys.md` — 用户旅程
+- `docs/specs/shared-domain-contract.md` — 共享契约
+- `docs/standards/ai-collaboration.md` — 协作流程
+- `docs/standards/tdd.md` — TDD 规则
+- `docs/standards/testing.md` — 测试规则
+- `docs/standards/git-and-pr.md` — Git/PR 规范
+- `docs/standards/coding-style.md` — 编码风格
+- `docs/standards/ui-style-guide.md` — UI 风格
+- `docs/standards/design-tokens.md` — 设计 Token
+- `docs/standards/tech-stack-baseline.md` — 技术栈基线
+- `docs/standards/flutter-automation-anchors.md` — Flutter 自动化
+- `docs/standards/spec-lifecycle.md` — Spec 生命周期
