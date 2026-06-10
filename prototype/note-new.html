@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 新建笔记</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .blinking-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 20px;
+    background: var(--active-teal);
+    margin-left: 1px;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  .editor-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 24px;
+    color: var(--graphite-gray);
+  }
+  .editor-body-wrapper {
+    position: relative;
+    flex: 1;
+  }
+  .no-title {
+    font-style: italic;
+    color: var(--graphite-gray);
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="notes-list.html" class="nav-item active">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="pool-setup.html" class="nav-item">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a href="sync-error.html" class="sync-status" style="text-decoration:none;">
+        <span class="material-symbols-outlined">sync</span>已同步
+      </a>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Note List -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <div class="list-header-top">
+        <h2 class="list-title">卡片</h2>
+        <button class="btn-icon"><span class="material-symbols-outlined">filter_list</span></button>
+      </div>
+      <div class="list-search">
+        <span class="material-symbols-outlined">search</span>
+        <input placeholder="搜索卡片..." type="text"/>
+      </div>
+    </div>
+    <div class="list-body no-scrollbar">
+      <!-- New note: active -->
+      <div class="note-card active">
+        <div class="note-card-header">
+          <span class="note-card-title no-title">无标题</span>
+          <span class="note-card-time">刚刚</span>
+        </div>
+        <p class="note-card-preview" style="font-style:italic;">没有内容</p>
+      </div>
+      <!-- Existing notes -->
+      <div class="note-card" onclick="location.href='note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">数字纸张哲学</span>
+          <span class="note-card-time">昨天</span>
+        </div>
+        <p class="note-card-preview">核心理念是优先考虑内容的寿命和本地优先的可靠性。界面需要保持极简，避免过度的装饰。</p>
+      </div>
+      <div class="note-card" onclick="location.href='note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">2024 Q3 OKR</span>
+          <span class="note-card-time">10月12日</span>
+        </div>
+        <p class="note-card-preview">1. 提升同步速度 50%。2. 发布 WebGL 渲染引擎实验版本...</p>
+      </div>
+      <div class="note-card" onclick="location.href='note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">系统设计会议纪要</span>
+          <span class="note-card-time">10月5日</span>
+        </div>
+        <p class="note-card-preview">讨论了关于架构重构的可能性。主要关注点在数据持久层和内存占用的优化。</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Empty Editor -->
+  <main class="editor-pane no-scrollbar">
+    <div class="editor-actions">
+      <button class="btn-icon" title="信息"><span class="material-symbols-outlined">info</span></button>
+      <button class="btn-icon" title="更多"><span class="material-symbols-outlined">more_horiz</span></button>
+    </div>
+    <div class="editor-canvas">
+      <input class="editor-title-input" type="text" placeholder="无标题"/>
+      <div class="editor-body-wrapper">
+        <div class="editor-placeholder">开始写作...<span class="blinking-cursor"></span></div>
+        <textarea class="editor-body" placeholder="" style="color:transparent;caret-color:transparent;position:relative;z-index:10;"></textarea>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const textarea = document.querySelector('.editor-body');
+  const placeholder = document.querySelector('.editor-placeholder');
+  textarea.addEventListener('input', function() {
+    if (this.value.length > 0) {
+      placeholder.style.display = 'none';
+      this.style.color = '';
+      this.style.caretColor = '';
+    } else {
+      placeholder.style.display = '';
+      this.style.color = 'transparent';
+      this.style.caretColor = 'transparent';
+    }
+  });
+  textarea.addEventListener('focus', function() {
+    if (this.value.length === 0) {
+      this.style.caretColor = 'var(--active-teal)';
+    }
+  });
+  textarea.addEventListener('blur', function() {
+    if (this.value.length === 0) {
+      this.style.caretColor = 'transparent';
+    }
+  });
+</script>
+</body>
+</html>

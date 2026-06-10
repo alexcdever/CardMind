@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 空态</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .empty-state-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+    padding: 48px 24px;
+    gap: 0;
+  }
+  .empty-illustration {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--surface-container-low);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .empty-illustration .material-symbols-outlined {
+    font-size: 56px;
+    color: var(--active-teal);
+    font-variation-settings: 'FILL' 0, 'wght' 200;
+  }
+  .empty-heading {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ink-charcoal);
+    margin-bottom: 8px;
+  }
+  .empty-desc {
+    font-size: 15px;
+    color: var(--graphite-gray);
+    max-width: 360px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+  .empty-actions {
+    display: flex;
+    gap: 12px;
+  }
+  .empty-tip {
+    margin-top: 48px;
+    font-size: 12px;
+    color: var(--graphite-gray);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .empty-tip .material-symbols-outlined {
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="empty-state-page">
+
+  <div class="empty-illustration">
+    <span class="material-symbols-outlined">stylus_note</span>
+  </div>
+
+  <h1 class="empty-heading">还没有卡片</h1>
+  <p class="empty-desc">
+    CardMind 是您的本地优先笔记空间。创建您的第一张卡片，开始记录想法、会议和灵感。
+  </p>
+
+  <div class="empty-actions">
+    <a href="note-new.html" class="btn-primary" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:10px 24px;font-size:15px;">
+      <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+      新建卡片
+    </a>
+  </div>
+
+  <div class="empty-tip">
+    <span class="material-symbols-outlined">lightbulb</span>
+    提示：使用快捷键 <code style="font-family:var(--font-mono);background:var(--surface-container-low);padding:2px 6px;border-radius:3px;font-size:11px;">⌘N</code> 快速新建卡片
+  </div>
+</div>
+</body>
+</html>

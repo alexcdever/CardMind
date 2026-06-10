@@ -258,6 +258,14 @@ class _AppHomepagePageState extends State<AppHomepagePage> {
         return PoolShell(
           appDataDir: widget.appDataDir,
           networkId: widget.poolNetworkId,
+          onSectionChanged: (section) {
+            switch (section) {
+              case 'pool':
+                _controller.setSection(AppSection.pool);
+              case 'cards':
+                _controller.setSection(AppSection.cards);
+            }
+          },
           debugAutoPin: widget.debugAutoPin,
           debugAutoJoinCode: widget.debugAutoJoinCode,
           debugAutoCreatePool: widget.debugAutoCreatePool,

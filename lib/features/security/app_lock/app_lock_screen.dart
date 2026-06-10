@@ -2,7 +2,6 @@ import 'package:cardmind/app/theme/cardmind_colors.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_state.dart';
 import 'package:cardmind/features/shared/widgets/bottom_nav.dart';
-import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 import 'package:flutter/material.dart';
 
 class AppLockScreen extends StatefulWidget {
@@ -77,19 +76,6 @@ class _AppLockScreenState extends State<AppLockScreen> {
     final state = widget.service.state;
     final desktop = _useDesktopLayout(context);
     final form = _buildForm(state, desktop);
-
-    if (desktop && state.requiresSetup) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const DesktopSidebar(
-            currentSection: 'pool',
-            onSectionChanged: _noopSectionChanged,
-          ),
-          Expanded(child: form),
-        ],
-      );
-    }
 
     return form;
   }

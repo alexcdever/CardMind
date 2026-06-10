@@ -31,7 +31,9 @@ class StyledSearchField extends StatelessWidget {
       identifier: semanticId,
       label: semanticLabel,
       textField: true,
-      child: TextField(
+      child: Material(
+        type: MaterialType.transparency,
+        child: TextField(
         focusNode: focusNode,
         decoration: InputDecoration(
           hintText: hintText,
@@ -54,6 +56,7 @@ class StyledSearchField extends StatelessWidget {
           ),
         ),
         onChanged: onChanged,
+      ),
       ),
     );
   }

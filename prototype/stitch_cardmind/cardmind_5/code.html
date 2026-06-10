@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind - 新建卡片</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-low": "#f3f4f3",
+                      "on-tertiary-fixed": "#2e1501",
+                      "surface-tint": "#3e646e",
+                      "surface-dim": "#dadad9",
+                      "secondary-container": "#e4e2e1",
+                      "primary-fixed-dim": "#a5cdd8",
+                      "on-primary-fixed": "#001f26",
+                      "on-primary-fixed-variant": "#254c55",
+                      "primary-container": "#4a707a",
+                      "ink-charcoal": "#1A1A1A",
+                      "primary": "#315861",
+                      "on-tertiary": "#ffffff",
+                      "on-background": "#1a1c1c",
+                      "on-secondary-fixed-variant": "#474747",
+                      "on-surface-variant": "#41484a",
+                      "on-secondary": "#ffffff",
+                      "on-surface": "#1a1c1c",
+                      "tertiary-fixed": "#ffdcc4",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#ffe7d8",
+                      "danger-red": "#A34F4F",
+                      "surface-container-highest": "#e2e2e2",
+                      "secondary-fixed-dim": "#c8c6c6",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-container": "#656464",
+                      "inverse-on-surface": "#f1f1f0",
+                      "outline-variant": "#c1c8ca",
+                      "on-secondary-fixed": "#1b1c1c",
+                      "on-error-container": "#93000a",
+                      "muted-border": "#E2E2E0",
+                      "tertiary-fixed-dim": "#eebd99",
+                      "surface-variant": "#e2e2e2",
+                      "outline": "#71787a",
+                      "error": "#ba1a1a",
+                      "tertiary-container": "#896244",
+                      "secondary-fixed": "#e4e2e1",
+                      "on-primary": "#ffffff",
+                      "paper-white": "#F9F9F8",
+                      "graphite-gray": "#666666",
+                      "background": "#f9f9f8",
+                      "on-tertiary-fixed-variant": "#613f24",
+                      "inverse-primary": "#a5cdd8",
+                      "surface-container-high": "#e8e8e7",
+                      "surface-bright": "#f9f9f8",
+                      "error-container": "#ffdad6",
+                      "active-teal": "#4A707A",
+                      "surface-container": "#eeeeed",
+                      "on-primary-container": "#caf2fe",
+                      "tertiary": "#6e4a2e",
+                      "inverse-surface": "#2f3130",
+                      "primary-fixed": "#c1e9f5",
+                      "secondary": "#5f5e5e",
+                      "surface": "#f9f9f8"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "unit-1": "4px",
+                      "base": "4px",
+                      "unit-4": "16px",
+                      "editor-max-width": "48rem",
+                      "unit-6": "24px",
+                      "list-width": "360px",
+                      "sidebar-width": "260px",
+                      "unit-2": "8px"
+              },
+              "fontFamily": {
+                      "status-sm": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "editor-text": [
+                              "JetBrains Mono"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "status-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "editor-text": [
+                              "14px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "15px",
+                              {
+                                      "lineHeight": "22px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        /* Base styles */
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        /* Custom scrollbar for minimalist feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.surface-dim');
+            border-radius: theme('borderRadius.full');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline-variant');
+        }
+        
+        .blinking-cursor {
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        /* Ensure input field has no outline but a custom focus border */
+        input:focus, textarea:focus {
+            outline: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex overflow-hidden font-body-md text-body-md antialiased">
+<!-- Sidebar: 260px fixed width -->
+<aside class="w-sidebar-width h-screen flex-shrink-0 bg-surface-container-low border-r border-muted-border flex flex-col justify-between py-unit-6">
+<div>
+<!-- Header -->
+<div class="px-unit-4 mb-unit-6 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden flex-shrink-0 border border-muted-border">
+<span class="material-symbols-outlined text-ink-charcoal text-[20px]" data-icon="account_circle">account_circle</span>
+</div>
+<div>
+<h1 class="text-headline-md font-headline-md font-bold text-ink-charcoal">CardMind</h1>
+<p class="text-status-sm font-status-sm text-graphite-gray">Local-first Workspace</p>
+</div>
+</div>
+<!-- New Note CTA -->
+<div class="px-unit-4 mb-unit-6">
+<button class="w-full flex items-center justify-center gap-2 py-2 bg-active-teal text-white rounded border border-transparent hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+<span class="font-medium">New Note</span>
+</button>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-1">
+<!-- Active Item -->
+<a class="flex items-center gap-3 text-active-teal border-l-2 border-active-teal font-semibold pl-4 py-2 hover:bg-surface-variant transition-colors opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="folder_open">folder_open</span>
+                    Cards
+                </a>
+<!-- Inactive Item -->
+<a class="flex items-center gap-3 text-graphite-gray pl-4 py-2 hover:bg-surface-variant transition-colors group" href="#">
+<span class="material-symbols-outlined text-[20px] group-hover:text-active-teal transition-colors" data-icon="database">database</span>
+                    Pool
+                </a>
+</nav>
+</div>
+<!-- Footer -->
+<div class="px-unit-4">
+<div class="flex items-center gap-2 text-status-sm font-status-sm text-graphite-gray">
+<span class="material-symbols-outlined text-[16px]" data-icon="sync">sync</span>
+<span>已同步</span>
+</div>
+</div>
+</aside>
+<!-- Note List Pane: 360px fixed width -->
+<section class="w-list-width h-screen flex-shrink-0 bg-surface border-r border-muted-border flex flex-col">
+<!-- List Header -->
+<div class="h-14 px-unit-4 flex items-center justify-between border-b border-muted-border shrink-0">
+<h2 class="text-headline-md font-headline-md font-bold text-ink-charcoal">所有卡片</h2>
+<div class="flex items-center gap-2 text-graphite-gray">
+<button class="hover:text-active-teal transition-colors flex items-center justify-center w-8 h-8 rounded hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="search">search</span>
+</button>
+<button class="hover:text-active-teal transition-colors flex items-center justify-center w-8 h-8 rounded hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Scrollable List -->
+<div class="flex-1 overflow-y-auto p-unit-2 flex flex-col gap-1">
+<!-- NEW NOTE: Active State -->
+<div class="p-unit-4 rounded border border-muted-border bg-surface-container-low border-l-[3px] border-l-active-teal cursor-pointer">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-medium text-ink-charcoal truncate pr-2">无标题</h3>
+<span class="text-status-sm font-status-sm text-graphite-gray shrink-0">刚刚</span>
+</div>
+<p class="text-status-sm font-status-sm text-graphite-gray line-clamp-2 italic">没有内容</p>
+<div class="mt-2 flex gap-2">
+<!-- Tags could go here -->
+</div>
+</div>
+<!-- Existing Note 1 -->
+<div class="p-unit-4 rounded border border-transparent border-b-muted-border hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-medium text-ink-charcoal group-hover:text-active-teal transition-colors truncate pr-2">Digital Paper Philosophy</h3>
+<span class="text-status-sm font-status-sm text-graphite-gray shrink-0">昨天</span>
+</div>
+<p class="text-status-sm font-status-sm text-graphite-gray line-clamp-2">核心理念是优先考虑内容的寿命和本地优先的可靠性。界面需要保持极简，避免过度的装饰。</p>
+</div>
+<!-- Existing Note 2 -->
+<div class="p-unit-4 rounded border border-transparent border-b-muted-border hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-medium text-ink-charcoal group-hover:text-active-teal transition-colors truncate pr-2">2024 Q3 OKRs</h3>
+<span class="text-status-sm font-status-sm text-graphite-gray shrink-0">10月12日</span>
+</div>
+<p class="text-status-sm font-status-sm text-graphite-gray line-clamp-2">1. 提升同步速度 50%
+2. 发布 WebGL 渲染引擎实验版本...</p>
+</div>
+<!-- Existing Note 3 -->
+<div class="p-unit-4 rounded border border-transparent border-b-muted-border hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-medium text-ink-charcoal group-hover:text-active-teal transition-colors truncate pr-2">System Design Meeting Notes</h3>
+<span class="text-status-sm font-status-sm text-graphite-gray shrink-0">10月05日</span>
+</div>
+<p class="text-status-sm font-status-sm text-graphite-gray line-clamp-2">讨论了关于架构重构的可能性。主要关注点在数据持久层和内存占用的优化。</p>
+</div>
+</div>
+</section>
+<!-- Editor Pane: Fluid -->
+<main class="flex-1 h-screen bg-surface flex flex-col overflow-y-auto relative">
+<!-- Editor Top Bar (Contextual) -->
+<header class="h-14 px-unit-4 flex items-center justify-end sticky top-0 bg-surface/80 backdrop-blur-sm z-10">
+<div class="flex items-center gap-1 text-graphite-gray">
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-surface-variant hover:text-ink-charcoal transition-colors" title="Info">
+<span class="material-symbols-outlined text-[20px]" data-icon="info">info</span>
+</button>
+<button class="flex items-center justify-center w-8 h-8 rounded hover:bg-surface-variant hover:text-ink-charcoal transition-colors" title="More options">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_horiz">more_horiz</span>
+</button>
+</div>
+</header>
+<!-- Editor Content Canvas -->
+<div class="w-full max-w-editor-max-width mx-auto px-unit-6 py-8 md:py-12 flex-1 flex flex-col">
+<!-- Title Input -->
+<div class="mb-unit-6">
+<input class="w-full bg-transparent border-0 border-b-2 border-transparent focus:border-active-teal text-display-lg font-display-lg text-ink-charcoal placeholder-outline-variant p-0 pb-2 transition-colors rounded-none font-bold" placeholder="无标题" type="text" value=""/>
+</div>
+<!-- Body Area -->
+<div class="flex-1 relative font-editor-text text-editor-text text-on-surface-variant">
+<!-- Placeholder / Start state -->
+<div class="absolute inset-0 pt-2 cursor-text">
+<span class="text-outline-variant">开始写作...</span><span class="inline-block w-2 h-5 bg-active-teal ml-[1px] translate-y-1 blinking-cursor"></span>
+</div>
+<!-- Actual textarea (hidden visually but ready for input) -->
+<textarea class="w-full h-full bg-transparent border-0 resize-none p-0 focus:ring-0 text-transparent caret-transparent z-10 relative bg-opacity-0" placeholder=""></textarea>
+</div>
+</div>
+</main>
+<script>
+        // Simple script to handle focus on the editor area
+        const textArea = document.querySelector('textarea');
+        const placeholder = document.querySelector('.absolute.inset-0');
+        
+        textArea.addEventListener('focus', () => {
+            // Keep blinking cursor active
+        });
+        
+        textArea.addEventListener('input', (e) => {
+            if(e.target.value.length > 0) {
+                placeholder.style.display = 'none';
+                textArea.classList.remove('text-transparent', 'caret-transparent');
+                textArea.classList.add('text-on-surface-variant');
+            } else {
+                placeholder.style.display = 'block';
+                textArea.classList.add('text-transparent', 'caret-transparent');
+                textArea.classList.remove('text-on-surface-variant');
+            }
+        });
+        
+        // Auto-focus title on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // document.querySelector('input[type="text"]').focus();
+        });
+    </script>
+</body></html>

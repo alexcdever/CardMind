@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 成员管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .pool-list-item {
+    padding: var(--unit-4);
+    border-bottom: 1px solid var(--muted-border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pool-list-item:hover {
+    background: var(--surface-container-low);
+  }
+  .pool-list-item.active {
+    background: var(--surface-container-low);
+    border-left: 2px solid var(--active-teal);
+  }
+  .pool-name {
+    font-weight: 600;
+    color: var(--ink-charcoal);
+    margin-bottom: 2px;
+  }
+  .pool-meta {
+    font-size: 12px;
+    color: var(--graphite-gray);
+  }
+  .member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: var(--unit-6);
+  }
+  .member-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface-container-lowest);
+    border: 1px solid var(--muted-border);
+    border-radius: var(--radius);
+  }
+  .member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface-variant);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--graphite-gray);
+  }
+  .member-info {
+    flex: 1;
+  }
+  .member-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--ink-charcoal);
+  }
+  .member-role {
+    font-size: 12px;
+    color: var(--graphite-gray);
+  }
+  .member-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .badge-admin {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(74, 112, 122, 0.1);
+    color: var(--active-teal);
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .badge-member {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--surface-container-high);
+    color: var(--graphite-gray);
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .badge-pending {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(163, 79, 79, 0.08);
+    color: var(--danger-red);
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .btn-approve {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: var(--active-teal);
+    color: var(--on-primary);
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-approve:hover {
+    background: var(--surface-tint);
+  }
+  .btn-reject {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: transparent;
+    color: var(--danger-red);
+    border: 1px solid var(--danger-red);
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-reject:hover {
+    background: rgba(163, 79, 79, 0.08);
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-charcoal);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-count {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--graphite-gray);
+  }
+  .divider {
+    border: none;
+    border-top: 1px solid var(--muted-border);
+    margin: var(--unit-6) 0;
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="notes-list.html" class="nav-item">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="pool-joined.html" class="nav-item active">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a href="sync-error.html" class="sync-status" style="text-decoration:none;">
+        <span class="material-symbols-outlined">sync</span>已同步
+      </a>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Pool List -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <div class="list-header-top">
+        <h2 class="list-title">数据池</h2>
+        <a href="pool-join.html" class="btn-icon" title="加入数据池">
+          <span class="material-symbols-outlined">group_add</span>
+        </a>
+      </div>
+      <div class="list-search">
+        <span class="material-symbols-outlined">search</span>
+        <input placeholder="搜索数据池..." type="text"/>
+      </div>
+    </div>
+    <div class="list-body" style="padding:0;gap:0;">
+      <div class="pool-list-item active">
+        <div class="pool-name">设计团队工作区</div>
+        <div class="pool-meta">3 台设备 · 最后同步 2分钟前</div>
+      </div>
+      <div class="pool-list-item">
+        <div class="pool-name">个人笔记同步</div>
+        <div class="pool-meta">2 台设备 · 最后同步 1小时前</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Member Management -->
+  <main class="editor-pane no-scrollbar">
+    <div class="editor-canvas">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--unit-4);">
+        <h1 class="display-lg">成员管理</h1>
+        <a href="pool-joined.html" class="btn-icon" title="返回数据池详情">
+          <span class="material-symbols-outlined">close</span>
+        </a>
+      </div>
+      <p style="font-size:14px;color:var(--graphite-gray);margin-bottom:var(--unit-6);line-height:1.5;">
+        管理「设计团队工作区」的成员与加入申请。
+      </p>
+
+      <!-- Active Members -->
+      <div class="section-header">
+        <div class="section-title">
+          <span class="material-symbols-outlined" style="font-size:18px;">group</span>
+          当前成员
+        </div>
+        <span class="section-count">3 人</span>
+      </div>
+      <div class="member-list">
+        <div class="member-item">
+          <div class="member-avatar" style="background:var(--active-teal);color:var(--on-primary);">张</div>
+          <div class="member-info">
+            <div class="member-name">张工</div>
+            <div class="member-role">MacBook Pro · 在线</div>
+          </div>
+          <span class="badge-admin">
+            <span class="material-symbols-outlined" style="font-size:12px;">admin_panel_settings</span>
+            管理员
+          </span>
+        </div>
+
+        <div class="member-item">
+          <div class="member-avatar">李</div>
+          <div class="member-info">
+            <div class="member-name">李工</div>
+            <div class="member-role">iMac · 在线</div>
+          </div>
+          <span class="badge-member">
+            <span class="material-symbols-outlined" style="font-size:12px;">person</span>
+            成员
+          </span>
+        </div>
+
+        <div class="member-item">
+          <div class="member-avatar">王</div>
+          <div class="member-info">
+            <div class="member-name">王工</div>
+            <div class="member-role">Pixel 8 · 离线</div>
+          </div>
+          <span class="badge-member">
+            <span class="material-symbols-outlined" style="font-size:12px;">person</span>
+            成员
+          </span>
+        </div>
+      </div>
+
+      <hr class="divider"/>
+
+      <!-- Pending Join Requests -->
+      <div class="section-header">
+        <div class="section-title">
+          <span class="material-symbols-outlined" style="font-size:18px;">pending_actions</span>
+          待审批申请
+        </div>
+        <span class="section-count">2 条申请</span>
+      </div>
+      <div class="member-list">
+        <div class="member-item">
+          <div class="member-avatar">赵</div>
+          <div class="member-info">
+            <div class="member-name">赵工</div>
+            <div class="member-role">申请于 6月10日 · 邀请码 DKF8-X9M2</div>
+          </div>
+          <div class="member-actions">
+            <button class="btn-approve" onclick="handleRequest(this, 'approve')">
+              <span class="material-symbols-outlined" style="font-size:14px;">check</span>
+              批准
+            </button>
+            <button class="btn-reject" onclick="handleRequest(this, 'reject')">
+              <span class="material-symbols-outlined" style="font-size:14px;">close</span>
+              拒绝
+            </button>
+          </div>
+        </div>
+
+        <div class="member-item">
+          <div class="member-avatar">刘</div>
+          <div class="member-info">
+            <div class="member-name">刘工</div>
+            <div class="member-role">申请于 6月9日 · 邀请码 RW7B-JK3L</div>
+          </div>
+          <div class="member-actions">
+            <button class="btn-approve" onclick="handleRequest(this, 'approve')">
+              <span class="material-symbols-outlined" style="font-size:14px;">check</span>
+              批准
+            </button>
+            <button class="btn-reject" onclick="handleRequest(this, 'reject')">
+              <span class="material-symbols-outlined" style="font-size:14px;">close</span>
+              拒绝
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function handleRequest(btn, action) {
+    const item = btn.closest('.member-item');
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(-20px)';
+    item.style.transition = 'all 0.3s';
+    setTimeout(() => {
+      item.remove();
+      // Update counts
+      const pending = document.querySelectorAll('.member-list:last-of-type .member-item').length;
+      const countEl = document.querySelector('.section-count:last-of-type');
+      if (countEl) countEl.textContent = pending + ' 条申请';
+      const sectionHeader = document.querySelector('.section-count:last-of-type')?.previousElementSibling;
+    }, 300);
+  }
+</script>
+</body>
+</html>

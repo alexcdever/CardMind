@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind - 删除确认</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-low": "#f3f4f3",
+                        "on-tertiary-fixed": "#2e1501",
+                        "surface-tint": "#3e646e",
+                        "surface-dim": "#dadad9",
+                        "secondary-container": "#e4e2e1",
+                        "primary-fixed-dim": "#a5cdd8",
+                        "on-primary-fixed": "#001f26",
+                        "on-primary-fixed-variant": "#254c55",
+                        "primary-container": "#4a707a",
+                        "ink-charcoal": "#1A1A1A",
+                        "primary": "#315861",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1a1c1c",
+                        "on-secondary-fixed-variant": "#474747",
+                        "on-surface-variant": "#41484a",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#1a1c1c",
+                        "tertiary-fixed": "#ffdcc4",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#ffe7d8",
+                        "danger-red": "#A34F4F",
+                        "surface-container-highest": "#e2e2e2",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#656464",
+                        "inverse-on-surface": "#f1f1f0",
+                        "outline-variant": "#c1c8ca",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "on-error-container": "#93000a",
+                        "muted-border": "#E2E2E0",
+                        "tertiary-fixed-dim": "#eebd99",
+                        "surface-variant": "#e2e2e2",
+                        "outline": "#71787a",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#896244",
+                        "secondary-fixed": "#e4e2e1",
+                        "on-primary": "#ffffff",
+                        "paper-white": "#F9F9F8",
+                        "graphite-gray": "#666666",
+                        "background": "#f9f9f8",
+                        "on-tertiary-fixed-variant": "#613f24",
+                        "inverse-primary": "#a5cdd8",
+                        "surface-container-high": "#e8e8e7",
+                        "surface-bright": "#f9f9f8",
+                        "error-container": "#ffdad6",
+                        "active-teal": "#4A707A",
+                        "surface-container": "#eeeeed",
+                        "on-primary-container": "#caf2fe",
+                        "tertiary": "#6e4a2e",
+                        "inverse-surface": "#2f3130",
+                        "primary-fixed": "#c1e9f5",
+                        "secondary": "#5f5e5e",
+                        "surface": "#f9f9f8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit-1": "4px",
+                        "base": "4px",
+                        "unit-4": "16px",
+                        "editor-max-width": "48rem",
+                        "unit-6": "24px",
+                        "list-width": "360px",
+                        "sidebar-width": "260px",
+                        "unit-2": "8px"
+                    },
+                    "fontFamily": {
+                        "status-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "editor-text": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-caps": ["Inter"]
+                    },
+                    "fontSize": {
+                        "status-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "display-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "editor-text": ["14px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background h-screen w-full overflow-hidden flex relative font-body-md text-body-md antialiased selection:bg-primary-fixed selection:text-on-primary-fixed">
+<aside class="hidden md:flex flex-col w-[260px] h-screen flex-shrink-0 border-r border-muted-border bg-surface-container-low justify-between py-unit-6">
+<div class="px-unit-4">
+<div class="flex items-center gap-unit-2 mb-unit-6 pl-4">
+<div class="w-8 h-8 rounded bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-ink-charcoal" data-icon="article">article</span>
+</div>
+<div>
+<h1 class="text-headline-md font-headline-md font-bold text-ink-charcoal">CardMind</h1>
+<p class="text-status-sm font-status-sm text-graphite-gray">Local-first Workspace</p>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 bg-active-teal text-paper-white py-2 px-4 rounded hover:opacity-90 transition-opacity mb-unit-6">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="font-body-md">New Note</span>
+</button>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 text-active-teal border-l-2 border-active-teal font-semibold pl-4 py-2 bg-surface-container-lowest" href="#">
+<span class="material-symbols-outlined">folder_open</span>
+<span>Cards</span>
+</a>
+<a class="flex items-center gap-3 text-graphite-gray pl-4 py-2 hover:bg-surface-variant transition-colors border-l-2 border-transparent" href="#">
+<span class="material-symbols-outlined">database</span>
+<span>Pool</span>
+</a>
+</nav>
+</div>
+<div class="px-unit-4">
+<div class="flex items-center gap-2 pl-4 py-2 text-status-sm font-status-sm text-graphite-gray">
+<span class="material-symbols-outlined text-[14px]">sync</span>
+<span>已同步</span>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex h-full">
+<section class="hidden md:flex flex-col w-[360px] h-full border-r border-muted-border bg-surface">
+<header class="h-14 border-b border-muted-border flex items-center px-unit-4">
+<h2 class="font-headline-md text-headline-md text-ink-charcoal">All Cards</h2>
+</header>
+<div class="flex-1 overflow-y-auto p-unit-4 flex flex-col gap-unit-2">
+<div class="p-unit-4 border border-muted-border bg-surface-container-lowest rounded cursor-pointer border-l-2 border-l-active-teal">
+<h3 class="font-body-md text-body-md text-ink-charcoal font-semibold mb-1">Project Apollo Architecture</h3>
+<p class="font-status-sm text-status-sm text-graphite-gray truncate">Notes on the new distributed state management approach...</p>
+</div>
+<div class="p-unit-4 border border-muted-border bg-surface-container-lowest rounded cursor-pointer hover:bg-surface-variant transition-colors">
+<h3 class="font-body-md text-body-md text-ink-charcoal font-semibold mb-1">Meeting Notes: Q3 Planning</h3>
+<p class="font-status-sm text-status-sm text-graphite-gray truncate">Discussed timeline for the upcoming major release cycle.</p>
+</div>
+</div>
+</section>
+<article class="flex-1 h-full bg-surface-container-lowest flex flex-col items-center overflow-y-auto">
+<div class="w-full max-w-[48rem] px-unit-6 py-12">
+<h1 class="font-display-lg text-display-lg text-ink-charcoal mb-unit-6">Project Apollo Architecture</h1>
+<div class="font-editor-text text-editor-text text-on-surface-variant space-y-4">
+<p>The core concept revolves around local-first data integrity. By utilizing an append-only log on the client side, we ensure that sync conflicts are minimized.</p>
+<p>Consider the following state machine transition:</p>
+<pre class="bg-surface-container-low p-unit-4 border border-muted-border rounded text-sm text-ink-charcoal">function transition(state, action) {
+  switch (action.type) {
+    case 'SYNC_START':
+      return { ...state, syncing: true };
+    // ...
+  }
+}
+                    </pre>
+</div>
+</div>
+</article>
+</main>
+<div aria-modal="true" class="absolute inset-0 z-50 flex items-center justify-center bg-ink-charcoal/20 backdrop-blur-[2px]" role="dialog">
+<div class="bg-surface-container-lowest border border-muted-border w-full max-w-md shadow-sm transform transition-all">
+<div class="p-unit-6">
+<div class="flex items-start gap-unit-4 mb-unit-4">
+<div class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-error-container/30 text-danger-red">
+<span class="material-symbols-outlined text-[24px]">warning</span>
+</div>
+<div class="pt-1">
+<h2 class="font-headline-md text-headline-md text-ink-charcoal mb-unit-2">确认删除卡片？</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">删除后此卡片将移动到回收站。</p>
+</div>
+</div>
+<div class="flex items-center justify-end gap-unit-2 mt-unit-6">
+<button class="px-unit-4 py-unit-2 font-body-md text-body-md text-graphite-gray hover:text-ink-charcoal hover:bg-surface-container transition-colors rounded">
+                        取消
+                    </button>
+<button class="px-unit-4 py-unit-2 font-body-md text-body-md bg-danger-red text-paper-white hover:opacity-90 transition-opacity rounded border border-danger-red">
+                        确认删除
+                    </button>
+</div>
+</div>
+</div>
+</div>
+</body></html>

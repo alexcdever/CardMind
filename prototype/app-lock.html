@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 应用锁设置</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .lock-setup-container {
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+  .lock-setup-icon {
+    font-size: 64px;
+  }
+  .pin-display {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin: 32px 0;
+  }
+  .pin-digit {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--muted-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--ink-charcoal);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .pin-digit.filled {
+    border-color: var(--active-teal);
+    background: var(--active-teal);
+  }
+  .pin-digit.active {
+    border-color: var(--active-teal);
+  }
+  .pin-digit.filled::after {
+    content: '●';
+    color: var(--on-primary);
+    font-size: 16px;
+  }
+  .pin-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-width: 280px;
+    margin: 0 auto;
+  }
+  .pin-key {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 1px solid var(--muted-border);
+    background: var(--surface-container-lowest);
+    font-family: var(--font-ui);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink-charcoal);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .pin-key:hover {
+    background: var(--surface-container-low);
+    border-color: var(--active-teal);
+  }
+  .pin-key:active {
+    background: var(--surface-variant);
+  }
+  .pin-key.empty {
+    border: none;
+    background: transparent;
+    cursor: default;
+  }
+  .pin-key.empty:hover {
+    background: transparent;
+    border: none;
+  }
+  .pin-key.delete {
+    font-size: 16px;
+  }
+  .pin-key .material-symbols-outlined {
+    font-size: 24px;
+    color: var(--graphite-gray);
+  }
+  .step-indicator {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted-border);
+    transition: background 0.2s;
+  }
+  .step-dot.done {
+    background: var(--active-teal);
+  }
+  .step-dot.current {
+    background: var(--active-teal);
+    box-shadow: 0 0 0 3px rgba(74,112,122,0.2);
+  }
+</style>
+</head>
+<body style="display:flex;align-items:center;justify-content:center;background:var(--paper-white);">
+<div class="lock-setup-container">
+
+  <div class="step-indicator">
+    <div class="step-dot current"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+
+  <div class="lock-setup-icon">
+    <span class="material-symbols-outlined" style="font-size:64px;color:var(--active-teal);">lock</span>
+  </div>
+
+  <h1 class="display-lg" style="margin-top:16px;margin-bottom:8px;">设置应用锁</h1>
+  <p style="font-size:14px;color:var(--graphite-gray);margin-bottom:8px;line-height:1.5;">
+    设置 6 位数字 PIN 码以保护您的数据池访问。
+  </p>
+  <p style="font-size:12px;color:var(--graphite-gray);margin-bottom:24px;">
+    数据池同步需要应用锁保护，确保您的数据安全。
+  </p>
+
+  <!-- PIN Display -->
+  <div class="pin-display" id="pin-display">
+    <div class="pin-digit active" data-index="0"></div>
+    <div class="pin-digit" data-index="1"></div>
+    <div class="pin-digit" data-index="2"></div>
+    <div class="pin-digit" data-index="3"></div>
+    <div class="pin-digit" data-index="4"></div>
+    <div class="pin-digit" data-index="5"></div>
+  </div>
+
+  <!-- PIN Pad -->
+  <div class="pin-pad">
+    <button class="pin-key" data-key="1">1</button>
+    <button class="pin-key" data-key="2">2</button>
+    <button class="pin-key" data-key="3">3</button>
+    <button class="pin-key" data-key="4">4</button>
+    <button class="pin-key" data-key="5">5</button>
+    <button class="pin-key" data-key="6">6</button>
+    <button class="pin-key" data-key="7">7</button>
+    <button class="pin-key" data-key="8">8</button>
+    <button class="pin-key" data-key="9">9</button>
+    <button class="pin-key empty"></button>
+    <button class="pin-key" data-key="0">0</button>
+    <button class="pin-key delete" data-key="delete">
+      <span class="material-symbols-outlined">backspace</span>
+    </button>
+  </div>
+
+  <div style="margin-top:24px;display:flex;gap:8px;justify-content:center;">
+    <a href="pool-setup.html" class="btn-ghost" style="text-decoration:none;">跳过</a>
+    <button class="btn-primary" id="btn-confirm" disabled style="opacity:0.5;">确认 PIN</button>
+  </div>
+</div>
+
+<script>
+  let pin = '';
+  const digits = document.querySelectorAll('.pin-digit');
+  const btnConfirm = document.getElementById('btn-confirm');
+
+  function updateDisplay() {
+    digits.forEach((d, i) => {
+      d.classList.remove('filled', 'active');
+      if (i < pin.length) {
+        d.classList.add('filled');
+      } else if (i === pin.length) {
+        d.classList.add('active');
+      }
+    });
+    btnConfirm.disabled = pin.length < 6;
+    btnConfirm.style.opacity = pin.length < 6 ? '0.5' : '1';
+  }
+
+  document.querySelectorAll('.pin-key[data-key]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const key = this.dataset.key;
+      if (key === 'delete') {
+        pin = pin.slice(0, -1);
+      } else if (pin.length < 6) {
+        pin += key;
+      }
+      updateDisplay();
+
+      if (pin.length === 6) {
+        // Auto-confirm after a short delay
+        setTimeout(() => {
+          // Show "确认 PIN" step 2 - simulate
+          pin = '';
+          updateDisplay();
+          document.querySelector('.step-dot.current').classList.remove('current');
+          document.querySelector('.step-dot.current').classList.add('done');
+          document.querySelectorAll('.step-dot')[1].classList.add('current');
+          document.querySelector('.display-lg').textContent = '确认应用锁';
+          document.querySelector('.lock-setup-container p:first-of-type').textContent = '请再次输入 6 位 PIN 码以确认。';
+        }, 500);
+      }
+    });
+  });
+
+  btnConfirm.addEventListener('click', function() {
+    if (pin.length === 6) {
+      window.location.href = 'pool-joined.html';
+    }
+  });
+</script>
+</body>
+</html>

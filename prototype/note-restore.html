@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 恢复已删除笔记</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .restore-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(163, 79, 79, 0.1);
+    color: var(--danger-red);
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .trash-info {
+    padding: var(--unit-4);
+    background: var(--surface-container-low);
+    border-bottom: 1px solid var(--muted-border);
+    font-size: 12px;
+    color: var(--graphite-gray);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-restore {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: var(--surface-container-lowest);
+    color: var(--active-teal);
+    border: 1px solid var(--active-teal);
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-restore:hover {
+    background: rgba(74, 112, 122, 0.08);
+  }
+  .note-card.deleted {
+    opacity: 0.7;
+  }
+  .note-card.deleted .note-card-title {
+    text-decoration: line-through;
+  }
+  .note-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="notes-list.html" class="nav-item active">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="pool-setup.html" class="nav-item">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a href="sync-error.html" class="sync-status" style="text-decoration:none;">
+        <span class="material-symbols-outlined">sync</span>已同步
+      </a>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Deleted Notes List -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <div class="list-header-top">
+        <h2 class="list-title">回收站</h2>
+        <a href="notes-list.html" class="btn-icon" title="返回笔记列表">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+      </div>
+    </div>
+    <div class="trash-info">
+      <span class="material-symbols-outlined" style="font-size:14px;">info</span>
+      <span>已删除的卡片将在 30 天后自动清除</span>
+    </div>
+    <div class="list-body no-scrollbar">
+      <div class="note-card deleted">
+        <div class="note-card-header">
+          <span class="note-card-title">Q3 目标草案</span>
+          <span class="restore-badge">
+            <span class="material-symbols-outlined" style="font-size:12px;">delete</span>
+            29天后清除
+          </span>
+        </div>
+        <p class="note-card-preview">1. 首次加载延迟降低 20%。2. 发布新的极简 UI。3. 数据池功能的用户测试。</p>
+        <div class="note-card-actions">
+          <button class="btn-restore" onclick="restoreNote(this)">
+            <span class="material-symbols-outlined" style="font-size:14px;">restore_from_trash</span>
+            恢复
+          </button>
+        </div>
+      </div>
+
+      <div class="note-card deleted">
+        <div class="note-card-header">
+          <span class="note-card-title">临时备忘</span>
+          <span class="restore-badge">
+            <span class="material-symbols-outlined" style="font-size:12px;">delete</span>
+            25天后清除
+          </span>
+        </div>
+        <p class="note-card-preview">记得周五前提交设计评审文档，需要包含最新的交互稿和设计令牌变更说明。</p>
+        <div class="note-card-actions">
+          <button class="btn-restore" onclick="restoreNote(this)">
+            <span class="material-symbols-outlined" style="font-size:14px;">restore_from_trash</span>
+            恢复
+          </button>
+        </div>
+      </div>
+
+      <div class="note-card deleted">
+        <div class="note-card-header">
+          <span class="note-card-title">周报草稿</span>
+          <span class="restore-badge">
+            <span class="material-symbols-outlined" style="font-size:12px;">delete</span>
+            18天后清除
+          </span>
+        </div>
+        <p class="note-card-preview">本周完成：同步引擎性能优化，延迟降低 30%。下周计划：开始 UI 组件库重构。</p>
+        <div class="note-card-actions">
+          <button class="btn-restore" onclick="restoreNote(this)">
+            <span class="material-symbols-outlined" style="font-size:14px;">restore_from_trash</span>
+            恢复
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Empty / Info -->
+  <main class="editor-pane" style="align-items:center;justify-content:center;">
+    <div class="empty-state">
+      <span class="material-symbols-outlined empty-state-icon">delete_sweep</span>
+      <div class="empty-state-title">回收站</div>
+      <p class="empty-state-desc">点击左侧列表中的「恢复」按钮即可将已删除的卡片恢复到笔记列表中。</p>
+    </div>
+  </main>
+</div>
+
+<script>
+  function restoreNote(btn) {
+    const card = btn.closest('.note-card');
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(-20px)';
+    card.style.transition = 'all 0.3s';
+    setTimeout(() => {
+      card.remove();
+      const remaining = document.querySelectorAll('.note-card.deleted').length;
+      if (remaining === 0) {
+        location.href = 'empty-state.html';
+      }
+    }, 300);
+  }
+</script>
+</body>
+</html>

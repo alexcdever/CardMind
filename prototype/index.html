@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 原型导航</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .nav-index {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 64px 24px;
+  }
+  .nav-index h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--ink-charcoal);
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+  .nav-index .subtitle {
+    font-size: 14px;
+    color: var(--graphite-gray);
+    margin-bottom: 40px;
+  }
+  .nav-index h2 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--graphite-gray);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+  .nav-index h2:first-of-type {
+    margin-top: 0;
+  }
+  .page-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 1px solid var(--muted-border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    text-decoration: none;
+    color: var(--ink-charcoal);
+    font-size: 15px;
+    font-weight: 500;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .page-link:hover {
+    background: var(--surface-container-low);
+    border-color: var(--active-teal);
+  }
+  .page-link .material-symbols-outlined {
+    font-size: 24px;
+    color: var(--active-teal);
+    flex-shrink: 0;
+  }
+  .page-link .page-info {
+    flex: 1;
+  }
+  .page-link .page-name {
+    font-weight: 600;
+  }
+  .page-link .page-desc {
+    font-size: 12px;
+    color: var(--graphite-gray);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  .page-link .tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: var(--surface-variant);
+    color: var(--graphite-gray);
+    white-space: nowrap;
+  }
+  .page-link .tag.new {
+    background: rgba(74, 112, 122, 0.1);
+    color: var(--active-teal);
+  }
+</style>
+</head>
+<body style="overflow-y: auto;">
+<div class="nav-index">
+  <h1>CardMind 高保真原型</h1>
+  <p class="subtitle">Digital Parchment 设计系统 · 纯文本笔记应用 · 桌面三栏 + 移动适配</p>
+
+  <h2>📝 卡片笔记域 — 增删改查</h2>
+
+  <a class="page-link" href="notes-list.html">
+    <span class="material-symbols-outlined">folder_open</span>
+    <div class="page-info">
+      <div class="page-name">笔记列表（主屏）</div>
+      <div class="page-desc">桌面三栏布局：侧边栏 + 笔记列表 + 编辑器，含排序和池筛选下拉</div>
+    </div>
+  </a>
+
+  <a class="page-link" href="note-new.html">
+    <span class="material-symbols-outlined">note_add</span>
+    <div class="page-info">
+      <div class="page-name">新建笔记</div>
+      <div class="page-desc">空白编辑器，带闪烁光标，列表高亮「无标题」</div>
+    </div>
+  </a>
+
+  <a class="page-link" href="note-edit.html">
+    <span class="material-symbols-outlined">edit_note</span>
+    <div class="page-info">
+      <div class="page-name">编辑笔记</div>
+      <div class="page-desc">已填充内容的编辑器，含标题、元信息和正文</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="note-search.html">
+    <span class="material-symbols-outlined">search</span>
+    <div class="page-info">
+      <div class="page-name">搜索笔记</div>
+      <div class="page-desc">搜索框激活状态，关键词高亮，显示「找到 N 条结果」</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="note-delete.html">
+    <span class="material-symbols-outlined">delete</span>
+    <div class="page-info">
+      <div class="page-name">删除确认</div>
+      <div class="page-desc">危险操作确认对话框，含取消/确认删除按钮</div>
+    </div>
+  </a>
+
+  <a class="page-link" href="note-restore.html">
+    <span class="material-symbols-outlined">restore_from_trash</span>
+    <div class="page-info">
+      <div class="page-name">恢复已删除笔记</div>
+      <div class="page-desc">回收站列表，显示已软删除的笔记及剩余天数，可恢复</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="sync-error.html">
+    <span class="material-symbols-outlined">sync_problem</span>
+    <div class="page-info">
+      <div class="page-name">同步失败</div>
+      <div class="page-desc">编辑器顶部错误 Toast，显示「同步失败，请检查网络连接」</div>
+    </div>
+  </a>
+
+  <a class="page-link" href="empty-state.html">
+    <span class="material-symbols-outlined">inbox</span>
+    <div class="page-info">
+      <div class="page-name">空态</div>
+      <div class="page-desc">无笔记时的引导状态，提示用户创建第一篇笔记</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <h2>🗄️ 数据池域 — 增删改查</h2>
+
+  <a class="page-link" href="pool-setup.html">
+    <span class="material-symbols-outlined">database</span>
+    <div class="page-info">
+      <div class="page-name">设置数据池（未加入态）</div>
+      <div class="page-desc">创建/加入数据池的选择卡片，列表显示「当前没有已加入的数据池」</div>
+    </div>
+  </a>
+
+  <a class="page-link" href="pool-join.html">
+    <span class="material-symbols-outlined">login</span>
+    <div class="page-info">
+      <div class="page-name">加入数据池</div>
+      <div class="page-desc">输入邀请码加入已有数据池的表单对话框</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="pool-joined.html">
+    <span class="material-symbols-outlined">hub</span>
+    <div class="page-info">
+      <div class="page-name">数据池管理（已加入态）</div>
+      <div class="page-desc">已加入数据池的列表和管理界面，显示池信息和设备</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="pool-leave.html">
+    <span class="material-symbols-outlined">logout</span>
+    <div class="page-info">
+      <div class="page-name">退出数据池</div>
+      <div class="page-desc">确认弹窗，说明退出后失去访问权限，本地数据保留</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="pool-disband.html">
+    <span class="material-symbols-outlined">delete_forever</span>
+    <div class="page-info">
+      <div class="page-name">解散数据池</div>
+      <div class="page-desc">管理员专属，danger-red 确认弹窗，不可撤销操作</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="pool-invite.html">
+    <span class="material-symbols-outlined">vpn_key</span>
+    <div class="page-info">
+      <div class="page-name">邀请管理</div>
+      <div class="page-desc">管理邀请码，可创建新的和撤销已有的，显示使用次数</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="pool-members.html">
+    <span class="material-symbols-outlined">group</span>
+    <div class="page-info">
+      <div class="page-name">成员管理</div>
+      <div class="page-desc">当前成员列表 + 待审批申请，管理员可批准/拒绝</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <a class="page-link" href="pool-requests.html">
+    <span class="material-symbols-outlined">pending_actions</span>
+    <div class="page-info">
+      <div class="page-name">加入申请审批列表</div>
+      <div class="page-desc">审批加入申请，含待审批/已批准/已拒绝分栏标签</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+
+  <h2>🔒 安全</h2>
+
+  <a class="page-link" href="app-lock.html">
+    <span class="material-symbols-outlined">lock</span>
+    <div class="page-info">
+      <div class="page-name">应用锁设置</div>
+      <div class="page-desc">设置 PIN 码/生物识别的应用锁，保护数据池访问</div>
+    </div>
+    <span class="tag new">新增</span>
+  </a>
+</div>
+</body>
+</html>

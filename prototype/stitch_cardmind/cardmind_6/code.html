@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind - 同步失败</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-low": "#f3f4f3",
+                        "on-tertiary-fixed": "#2e1501",
+                        "surface-tint": "#3e646e",
+                        "surface-dim": "#dadad9",
+                        "secondary-container": "#e4e2e1",
+                        "primary-fixed-dim": "#a5cdd8",
+                        "on-primary-fixed": "#001f26",
+                        "on-primary-fixed-variant": "#254c55",
+                        "primary-container": "#4a707a",
+                        "ink-charcoal": "#1A1A1A",
+                        "primary": "#315861",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1a1c1c",
+                        "on-secondary-fixed-variant": "#474747",
+                        "on-surface-variant": "#41484a",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#1a1c1c",
+                        "tertiary-fixed": "#ffdcc4",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#ffe7d8",
+                        "danger-red": "#A34F4F",
+                        "surface-container-highest": "#e2e2e2",
+                        "secondary-fixed-dim": "#c8c6c6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#656464",
+                        "inverse-on-surface": "#f1f1f0",
+                        "outline-variant": "#c1c8ca",
+                        "on-secondary-fixed": "#1b1c1c",
+                        "on-error-container": "#93000a",
+                        "muted-border": "#E2E2E0",
+                        "tertiary-fixed-dim": "#eebd99",
+                        "surface-variant": "#e2e2e2",
+                        "outline": "#71787a",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#896244",
+                        "secondary-fixed": "#e4e2e1",
+                        "on-primary": "#ffffff",
+                        "paper-white": "#F9F9F8",
+                        "graphite-gray": "#666666",
+                        "background": "#f9f9f8",
+                        "on-tertiary-fixed-variant": "#613f24",
+                        "inverse-primary": "#a5cdd8",
+                        "surface-container-high": "#e8e8e7",
+                        "surface-bright": "#f9f9f8",
+                        "error-container": "#ffdad6",
+                        "active-teal": "#4A707A",
+                        "surface-container": "#eeeeed",
+                        "on-primary-container": "#caf2fe",
+                        "tertiary": "#6e4a2e",
+                        "inverse-surface": "#2f3130",
+                        "primary-fixed": "#c1e9f5",
+                        "secondary": "#5f5e5e",
+                        "surface": "#f9f9f8"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit-1": "4px",
+                        "base": "4px",
+                        "unit-4": "16px",
+                        "editor-max-width": "48rem",
+                        "unit-6": "24px",
+                        "list-width": "360px",
+                        "sidebar-width": "260px",
+                        "unit-2": "8px"
+                    },
+                    "fontFamily": {
+                        "status-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "editor-text": ["JetBrains Mono"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-caps": ["Inter"]
+                    },
+                    "fontSize": {
+                        "status-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "display-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "editor-text": ["14px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "headline-md": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background h-screen flex overflow-hidden antialiased">
+<!-- Desktop TopAppBar (Hidden on desktop, used for structural alignment or mobile context if needed, but per prompt desktop fixed pane is preferred. Will keep hidden md:flex if required, but design says 3-pane. Suppressing TopAppBar as 3-pane desktop usually integrates headers into panes. If forced by JSON, rendering TopAppBar for mobile.) -->
+<header class="md:hidden flex items-center justify-between px-unit-4 w-full h-14 bg-surface border-b border-muted-border">
+<div class="flex items-center gap-2">
+<span class="text-headline-md font-headline-md font-black text-ink-charcoal">CardMind</span>
+</div>
+<div class="flex items-center gap-4 text-graphite-gray">
+<span class="material-symbols-outlined hover:text-active-teal transition-colors cursor-pointer" data-icon="sync">sync</span>
+<span class="material-symbols-outlined hover:text-active-teal transition-colors cursor-pointer" data-icon="settings">settings</span>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-muted-border" data-alt="A detailed, hyper-realistic, brightly lit avatar portrait of a modern professional in a minimalist setting. Soft natural light highlights the subtle textures of their clothing and face, embodying a clean, sophisticated, light-mode aesthetic suitable for a high-end web application profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoT5mDtxaUSrRecq-CLeI8B0PzgwASNlgrt9p0A_ENqLA7ReSDPb390MtTiNoUAsE2qWhzsCVHeoF2LTEmf8HdZBZJ6QS3AeQf7wuXkxlrvoNqp3SlnkM5VYDTUqpq_fTWhNV4l2R1g9dkh1LaKlhG2AybYg-FKLbkmkRNeOhIFDUX4_WAI2VEKo6XSfHfZzham705K3tkPgFHjLuHBS35huT4VbnlrK17XAnhpaJjLAxr3MiELxTaLWJ4G1rLeBUk8eZD8G76NBs"/>
+</div>
+</header>
+<!-- SideNavBar (Desktop) -->
+<aside class="hidden md:flex flex-col justify-between py-unit-6 bg-surface-container-low w-[260px] h-screen flex-shrink-0 border-r border-muted-border">
+<div>
+<!-- Header -->
+<div class="px-4 mb-8 flex items-center gap-3">
+<img alt="User Profile" class="w-10 h-10 rounded-full border border-muted-border" data-alt="A detailed, hyper-realistic, brightly lit avatar portrait of a modern professional in a minimalist setting. Soft natural light highlights the subtle textures of their clothing and face, embodying a clean, sophisticated, light-mode aesthetic suitable for a high-end web application profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlvc0Q0Ub2sQ5n_EI22X7QOnJh637RrM_yWV1D8xWDObQ1TKRroRhVnwgrPZ6siCGivXiIyP5Stjj_M7lI_MecZIoH_2sF3Fn7g1-Tw9ZvHOFJnuvWgfHTlpnrR2y7KpMM2lo-3_x0d2LfhTkQg49bqccR49rHsY75ipltwI6H8hXNeaf-C5zuS4r77ldarkunVB4WIFLh69mK9UMuaruXvoziJIoFtKGCuCt_QlTvs1tj5V2TjRvCGQ7hvwKMUPCv17oRYtSnPIk"/>
+<div>
+<h1 class="text-headline-md font-headline-md font-bold text-ink-charcoal">CardMind</h1>
+<p class="text-status-sm font-status-sm text-graphite-gray">Local-first Workspace</p>
+</div>
+</div>
+<!-- CTA -->
+<div class="px-4 mb-6">
+<button class="w-full flex items-center justify-center gap-2 bg-active-teal text-on-primary py-2 rounded-DEFAULT border border-muted-border hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+<span class="text-body-md font-body-md font-medium">New Note</span>
+</button>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-1">
+<!-- Active Item -->
+<a class="flex items-center gap-3 text-active-teal border-l-2 border-active-teal font-semibold pl-4 py-2 hover:bg-surface-variant transition-colors opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="folder_open">folder_open</span>
+<span class="text-body-md font-body-md">Cards</span>
+</a>
+<!-- Inactive Item -->
+<a class="flex items-center gap-3 text-graphite-gray pl-4 py-2 hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="database">database</span>
+<span class="text-body-md font-body-md">Pool</span>
+</a>
+</nav>
+</div>
+<!-- Footer Sync Status (Failure State) -->
+<div class="px-4">
+<div class="flex items-center gap-2 text-error pl-4 py-2 hover:bg-surface-variant transition-colors cursor-pointer rounded-DEFAULT">
+<span class="material-symbols-outlined text-sm" data-icon="sync_problem">sync_problem</span>
+<span class="text-status-sm font-status-sm">1条待同步</span>
+</div>
+</div>
+</aside>
+<!-- Note List Pane -->
+<section class="hidden md:flex flex-col w-[360px] flex-shrink-0 border-r border-muted-border bg-surface h-full">
+<!-- Search -->
+<div class="p-unit-4 border-b border-muted-border">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-graphite-gray text-sm">search</span>
+<input class="w-full pl-9 pr-4 py-2 bg-surface-container-low border border-muted-border rounded-DEFAULT focus:outline-none focus:border-active-teal text-body-md font-body-md placeholder:text-graphite-gray transition-colors" placeholder="Search cards..." type="text"/>
+</div>
+</div>
+<!-- List Items -->
+<div class="flex-1 overflow-y-auto">
+<!-- Active Card -->
+<div class="p-4 border-b border-muted-border bg-surface-variant border-l-2 border-l-active-teal cursor-pointer">
+<h3 class="text-headline-md font-headline-md text-ink-charcoal mb-1 truncate">设计系统规范更新</h3>
+<p class="text-body-md font-body-md text-graphite-gray line-clamp-2">关于数字纸张概念的具体落实，我们需要强调字体的层次和留白的重要性。避免使用过多的投影，转而使用...</p>
+<div class="mt-2 text-status-sm font-status-sm text-graphite-gray">Today, 10:42 AM</div>
+</div>
+<!-- Inactive Cards -->
+<div class="p-4 border-b border-muted-border hover:bg-surface-container-low transition-colors cursor-pointer group">
+<h3 class="text-headline-md font-headline-md text-ink-charcoal mb-1 truncate group-hover:text-active-teal transition-colors">Q3 产品路演准备</h3>
+<p class="text-body-md font-body-md text-graphite-gray line-clamp-2">确认与开发团队的进度对齐。下周二前需要完成所有的交互原型测试。重点关注移动端的导航逻辑变更...</p>
+<div class="mt-2 text-status-sm font-status-sm text-graphite-gray">Yesterday</div>
+</div>
+<div class="p-4 border-b border-muted-border hover:bg-surface-container-low transition-colors cursor-pointer group">
+<h3 class="text-headline-md font-headline-md text-ink-charcoal mb-1 truncate group-hover:text-active-teal transition-colors">会议纪要：架构重构</h3>
+<p class="text-body-md font-body-md text-graphite-gray line-clamp-2">后端迁移至新的微服务架构，预计将减少20%的延迟。前端需要配合更新API接口调用方式。注意数据一致性问题...</p>
+<div class="mt-2 text-status-sm font-status-sm text-graphite-gray">Oct 12</div>
+</div>
+</div>
+</section>
+<!-- Editor Pane (Fluid) -->
+<main class="flex-1 flex flex-col relative h-full bg-surface-bright overflow-hidden">
+<!-- Top Action Bar (Editor specific) -->
+<div class="h-14 border-b border-muted-border flex items-center justify-end px-unit-4 gap-4 bg-surface/80 backdrop-blur-sm sticky top-0 z-10">
+<button class="text-graphite-gray hover:text-active-teal transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">share</span>
+</button>
+<button class="text-graphite-gray hover:text-active-teal transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">more_horiz</span>
+</button>
+</div>
+<!-- Sync Failure Toast (Absolute positioned within Editor Canvas to meet "at the bottom or top of the editor") -->
+<div class="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center justify-between gap-4 bg-error-container text-error px-4 py-3 rounded-lg border border-error/20 shadow-sm w-max max-w-[calc(100%-2rem)]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">error</span>
+<span class="text-body-md font-body-md font-medium">同步失败，请检查网络连接。</span>
+</div>
+<button class="text-body-md font-body-md font-semibold hover:opacity-80 transition-opacity">重试</button>
+</div>
+<!-- Editor Content -->
+<div class="flex-1 overflow-y-auto w-full">
+<div class="max-w-editor-max-width mx-auto px-unit-6 py-12">
+<!-- Title Input -->
+<input class="w-full text-display-lg font-display-lg font-bold text-ink-charcoal bg-transparent border-b-2 border-transparent hover:border-muted-border focus:border-active-teal focus:outline-none pb-2 mb-8 transition-colors placeholder:text-surface-dim" placeholder="Untitled Note" type="text" value="设计系统规范更新"/>
+<!-- Editor Canvas -->
+<div class="text-editor-text font-editor-text text-on-surface-variant space-y-6">
+<p>关于数字纸张概念的具体落实，我们需要强调字体的层次和留白的重要性。避免使用过多的投影，转而使用精细的边框和背景色调的微小差异来构建界面层级。</p>
+<h2 class="text-headline-md font-headline-md font-semibold text-ink-charcoal mt-8 mb-4">核心设计原则</h2>
+<ul class="list-disc pl-6 space-y-2">
+<li><strong>极简主义：</strong> 剔除一切不必要的装饰元素。</li>
+<li><strong>功能至上：</strong> 每一个设计决策都必须服务于用户的认知效率。</li>
+<li><strong>本地优先：</strong> 界面响应应该像本地应用一样迅速，没有延迟感。</li>
+</ul>
+<p>下面是一个代码块示例，展示了如何在Tailwind中配置我们的颜色变量：</p>
+<pre class="bg-surface-container-low p-4 rounded-DEFAULT border border-muted-border overflow-x-auto text-sm text-on-surface-variant"><code>colors: {
+    "surface-container-low": "#f3f4f3",
+    "active-teal": "#4A707A",
+    "muted-border": "#E2E2E0"
+}</code></pre>
+<p>在接下来的几个冲刺阶段，我们将逐步把现有的组件迁移到新的设计系统上。请务必参考最新的Figma组件库，以确保开发出的界面与设计稿保持高度一致。</p>
+<!-- Unsynced visual indicator in text (optional, but adds context to the failure) -->
+<div class="flex items-center gap-2 text-status-sm font-status-sm text-graphite-gray mt-8 p-3 bg-surface-container-low rounded-DEFAULT border border-muted-border border-dashed">
+<span class="material-symbols-outlined text-sm text-error">cloud_off</span>
+<span>This section contains changes that have not been synced yet.</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Mobile Bottom NavBar (Visible only on mobile md:hidden) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface border-t border-muted-border flex justify-around items-center h-16 pb-safe">
+<a class="flex flex-col items-center justify-center w-full h-full text-active-teal" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="folder_open">folder_open</span>
+<span class="text-label-caps font-label-caps">Cards</span>
+</a>
+<a class="flex flex-col items-center justify-center w-full h-full text-graphite-gray hover:text-active-teal transition-colors" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="database">database</span>
+<span class="text-label-caps font-label-caps">Pool</span>
+</a>
+</nav>
+</body></html>

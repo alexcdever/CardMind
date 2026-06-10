@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 加入申请审批</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .pool-list-item {
+    padding: var(--unit-4);
+    border-bottom: 1px solid var(--muted-border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pool-list-item:hover {
+    background: var(--surface-container-low);
+  }
+  .pool-list-item.active {
+    background: var(--surface-container-low);
+    border-left: 2px solid var(--active-teal);
+  }
+  .pool-name {
+    font-weight: 600;
+    color: var(--ink-charcoal);
+    margin-bottom: 2px;
+  }
+  .pool-meta {
+    font-size: 12px;
+    color: var(--graphite-gray);
+  }
+  .request-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--unit-4);
+  }
+  .request-card {
+    background: var(--surface-container-lowest);
+    border: 1px solid var(--muted-border);
+    border-radius: var(--radius);
+    padding: var(--unit-4);
+  }
+  .request-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .request-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface-variant);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--graphite-gray);
+  }
+  .request-info {
+    flex: 1;
+  }
+  .request-name {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--ink-charcoal);
+  }
+  .request-detail {
+    font-size: 12px;
+    color: var(--graphite-gray);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .request-body {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .btn-approve {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 16px;
+    background: var(--active-teal);
+    color: var(--on-primary);
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-approve:hover {
+    background: var(--surface-tint);
+  }
+  .btn-reject {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 16px;
+    background: transparent;
+    color: var(--danger-red);
+    border: 1px solid var(--danger-red);
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-reject:hover {
+    background: rgba(163, 79, 79, 0.08);
+  }
+  .empty-requests {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--graphite-gray);
+  }
+  .empty-requests .material-symbols-outlined {
+    font-size: 48px;
+    color: var(--muted-border);
+    margin-bottom: 12px;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--muted-border);
+    margin-bottom: var(--unit-6);
+  }
+  .tab-item {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--graphite-gray);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: var(--font-ui);
+  }
+  .tab-item:hover {
+    color: var(--ink-charcoal);
+  }
+  .tab-item.active {
+    color: var(--active-teal);
+    border-bottom-color: var(--active-teal);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="notes-list.html" class="nav-item">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="pool-joined.html" class="nav-item active">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a href="sync-error.html" class="sync-status" style="text-decoration:none;">
+        <span class="material-symbols-outlined">sync</span>已同步
+      </a>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Pool List -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <div class="list-header-top">
+        <h2 class="list-title">数据池</h2>
+        <a href="pool-join.html" class="btn-icon" title="加入数据池">
+          <span class="material-symbols-outlined">group_add</span>
+        </a>
+      </div>
+      <div class="list-search">
+        <span class="material-symbols-outlined">search</span>
+        <input placeholder="搜索数据池..." type="text"/>
+      </div>
+    </div>
+    <div class="list-body" style="padding:0;gap:0;">
+      <div class="pool-list-item active">
+        <div class="pool-name">设计团队工作区</div>
+        <div class="pool-meta">3 台设备 · 最后同步 2分钟前</div>
+      </div>
+      <div class="pool-list-item">
+        <div class="pool-name">个人笔记同步</div>
+        <div class="pool-meta">2 台设备 · 最后同步 1小时前</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Join Requests -->
+  <main class="editor-pane no-scrollbar">
+    <div class="editor-canvas">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--unit-2);">
+        <h1 class="display-lg">加入申请审批</h1>
+        <a href="pool-joined.html" class="btn-icon" title="返回数据池详情">
+          <span class="material-symbols-outlined">close</span>
+        </a>
+      </div>
+      <p style="font-size:14px;color:var(--graphite-gray);margin-bottom:var(--unit-4);line-height:1.5;">
+        审核「设计团队工作区」的加入申请。仅管理员可进行审批操作。
+      </p>
+
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <button class="tab-item active">待审批 <span style="font-size:11px;color:var(--danger-red);">(2)</span></button>
+        <button class="tab-item">已批准 <span style="font-size:11px;">(5)</span></button>
+        <button class="tab-item">已拒绝 <span style="font-size:11px;">(1)</span></button>
+      </div>
+
+      <!-- Pending Requests -->
+      <div class="request-list">
+        <div class="request-card">
+          <div class="request-header">
+            <div class="request-avatar">赵</div>
+            <div class="request-info">
+              <div class="request-name">赵工</div>
+              <div class="request-detail">
+                <span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span>
+                2024年6月10日 14:32
+                <span style="margin-left:8px;display:flex;align-items:center;gap:4px;">
+                  <span class="material-symbols-outlined" style="font-size:14px;">vpn_key</span>
+                  DKF8-X9M2
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="request-body">
+            <button class="btn-reject" onclick="handleRequest(this, 'reject')">
+              <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+              拒绝
+            </button>
+            <button class="btn-approve" onclick="handleRequest(this, 'approve')">
+              <span class="material-symbols-outlined" style="font-size:16px;">check</span>
+              批准加入
+            </button>
+          </div>
+        </div>
+
+        <div class="request-card">
+          <div class="request-header">
+            <div class="request-avatar">刘</div>
+            <div class="request-info">
+              <div class="request-name">刘工</div>
+              <div class="request-detail">
+                <span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span>
+                2024年6月9日 09:15
+                <span style="margin-left:8px;display:flex;align-items:center;gap:4px;">
+                  <span class="material-symbols-outlined" style="font-size:14px;">vpn_key</span>
+                  RW7B-JK3L
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="request-body">
+            <button class="btn-reject" onclick="handleRequest(this, 'reject')">
+              <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+              拒绝
+            </button>
+            <button class="btn-approve" onclick="handleRequest(this, 'approve')">
+              <span class="material-symbols-outlined" style="font-size:16px;">check</span>
+              批准加入
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function handleRequest(btn, action) {
+    const card = btn.closest('.request-card');
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(-20px)';
+    card.style.transition = 'all 0.3s';
+    setTimeout(() => {
+      card.remove();
+      // Update pending count
+      const pending = document.querySelectorAll('.request-card').length;
+      const tabBadge = document.querySelector('.tab-item.active span');
+      if (tabBadge) tabBadge.textContent = '(' + pending + ')';
+      if (pending === 0) {
+        const list = document.querySelector('.request-list');
+        list.innerHTML = '<div class="empty-requests"><span class="material-symbols-outlined">task_alt</span><div style="font-size:15px;font-weight:500;color:var(--ink-charcoal);margin-bottom:4px;">暂无待审批申请</div><div style="font-size:13px;">所有加入申请已处理完毕</div></div>';
+      }
+    }, 300);
+  }
+</script>
+</body>
+</html>

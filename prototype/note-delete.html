@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 删除确认</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .editor-content-display {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 24px;
+    color: var(--on-surface-variant);
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="notes-list.html" class="nav-item active">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="pool-setup.html" class="nav-item">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a href="sync-error.html" class="sync-status" style="text-decoration:none;">
+        <span class="material-symbols-outlined">sync</span>已同步
+      </a>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Note List -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <div class="list-header-top">
+        <h2 class="list-title">卡片</h2>
+        <button class="btn-icon"><span class="material-symbols-outlined">filter_list</span></button>
+      </div>
+      <div class="list-search">
+        <span class="material-symbols-outlined">search</span>
+        <input placeholder="搜索卡片..." type="text"/>
+      </div>
+    </div>
+    <div class="list-body no-scrollbar">
+      <div class="note-card active">
+        <div class="note-card-header">
+          <span class="note-card-title">Q3 目标草案</span>
+          <span class="note-card-time">3天前</span>
+        </div>
+        <p class="note-card-preview">1. 首次加载延迟降低 20%。2. 发布新的极简 UI。3. 数据池功能的用户测试。</p>
+      </div>
+      <div class="note-card" onclick="location.href='note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">设计系统架构</span>
+          <span class="note-card-time">2分钟前</span>
+        </div>
+        <p class="note-card-preview">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影...</p>
+      </div>
+      <div class="note-card" onclick="location.href='note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">会议记录：项目 X</span>
+          <span class="note-card-time">2小时前</span>
+        </div>
+        <p class="note-card-preview">讨论了第二阶段的时间表。关键交付成果包括新的同步引擎和本地优先数据库迁移。</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Editor (background) -->
+  <main class="editor-pane no-scrollbar">
+    <div class="editor-actions">
+      <button class="btn-icon danger" title="删除卡片">
+        <span class="material-symbols-outlined">delete</span>
+      </button>
+    </div>
+    <div class="editor-canvas">
+      <div class="display-lg" style="margin-bottom:24px;">Q3 目标草案</div>
+      <div class="editor-meta" style="margin-bottom:16px;">
+        <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> 2024年7月1日</span>
+        <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> 3天前</span>
+      </div>
+      <div class="editor-content-display">1. 首次加载延迟降低 20%。
+2. 发布新的极简 UI。
+3. 数据池功能的用户测试。
+4. 移动端双标签导航优化。</div>
+    </div>
+  </main>
+</div>
+
+<!-- Delete Confirmation Dialog -->
+<div class="modal-overlay" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-body">
+      <div class="modal-icon-row">
+        <div class="modal-icon-circle warning">
+          <span class="material-symbols-outlined">warning</span>
+        </div>
+        <div style="padding-top:4px;">
+          <h2 class="modal-title">确认删除卡片？</h2>
+          <p class="modal-desc">删除后此卡片将移动到回收站，可在 30 天内恢复。</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <a href="notes-list.html" class="btn-ghost">取消</a>
+        <a href="empty-state.html" class="btn-danger" style="text-decoration:none;">确认删除</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

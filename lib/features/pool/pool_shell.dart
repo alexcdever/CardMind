@@ -7,6 +7,7 @@ import 'package:cardmind/bridge_generated/api.dart' as frb;
 import 'package:cardmind/features/security/app_lock/app_lock_gate.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_service.dart';
 import 'package:cardmind/features/security/app_lock/app_lock_state.dart';
+import 'package:cardmind/features/shared/widgets/desktop_sidebar.dart';
 import 'package:flutter/material.dart';
 
 typedef PoolNetworkLoader = Future<BigInt> Function(String appDataDir);
@@ -19,6 +20,7 @@ class PoolShell extends StatefulWidget {
     this.service,
     this.appDataDir,
     this.poolNetworkLoader,
+    this.onSectionChanged,
     this.debugAutoPin,
     this.debugAutoJoinCode,
     this.debugAutoCreatePool = false,
@@ -33,6 +35,7 @@ class PoolShell extends StatefulWidget {
   final AppLockService? service;
   final String? appDataDir;
   final PoolNetworkLoader? poolNetworkLoader;
+  final ValueChanged<String>? onSectionChanged;
   final String? debugAutoPin;
   final String? debugAutoJoinCode;
   final bool debugAutoCreatePool;
@@ -152,7 +155,16 @@ class _PoolShellState extends State<PoolShell> {
 
   @override
   Widget build(BuildContext context) {
-    return AppLockGate(
+    final desktop = switch (Theme.of(context).platform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows ||
+      TargetPlatform.linux =>
+        true,
+      _ => false,
+    };
+
+    final onSectionChanged = widget.onSectionChanged ?? (String _) {};
+    final child = AppLockGate(
       service: _service,
       child: _loadingNetwork
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
@@ -170,5 +182,21 @@ class _PoolShellState extends State<PoolShell> {
                   debugJoinTrace: widget.debugJoinTrace,
                 ),
     );
+
+    if (desktop) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DesktopSidebar(
+            currentSection: 'pool',
+            onSectionChanged: onSectionChanged,
+            onNewNote: null,
+          ),
+          Expanded(child: child),
+        ],
+      );
+    }
+
+    return child;
   }
 }

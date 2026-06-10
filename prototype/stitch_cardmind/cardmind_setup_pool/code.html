@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind - Pool Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary": "#ffffff",
+                    "inverse-surface": "#2f3130",
+                    "ink-charcoal": "#1A1A1A",
+                    "graphite-gray": "#666666",
+                    "on-primary-fixed": "#001f26",
+                    "primary-container": "#4a707a",
+                    "danger-red": "#A34F4F",
+                    "primary-fixed": "#c1e9f5",
+                    "secondary-fixed": "#e4e2e1",
+                    "background": "#f9f9f8",
+                    "surface-variant": "#e2e2e2",
+                    "on-secondary": "#ffffff",
+                    "surface-container": "#eeeeed",
+                    "surface": "#f9f9f8",
+                    "secondary-fixed-dim": "#c8c6c6",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#caf2fe",
+                    "surface-container-low": "#f3f4f3",
+                    "tertiary-container": "#896244",
+                    "active-teal": "#4A707A",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e2e2e2",
+                    "muted-border": "#E2E2E0",
+                    "paper-white": "#F9F9F8",
+                    "outline-variant": "#c1c8ca",
+                    "error-container": "#ffdad6",
+                    "surface-bright": "#f9f9f8",
+                    "secondary-container": "#e4e2e1",
+                    "surface-tint": "#3e646e",
+                    "on-surface-variant": "#41484a",
+                    "on-tertiary-container": "#ffe7d8",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed": "#ffdcc4",
+                    "on-surface": "#1a1c1c",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "surface-dim": "#dadad9",
+                    "secondary": "#5f5e5e",
+                    "primary": "#315861",
+                    "tertiary": "#6e4a2e",
+                    "tertiary-fixed-dim": "#eebd99",
+                    "on-tertiary-fixed": "#2e1501",
+                    "on-secondary-fixed-variant": "#474747",
+                    "surface-container-high": "#e8e8e7",
+                    "primary-fixed-dim": "#a5cdd8",
+                    "on-tertiary-fixed-variant": "#613f24",
+                    "on-secondary-container": "#656464",
+                    "inverse-on-surface": "#f1f1f0",
+                    "on-error": "#ffffff",
+                    "on-background": "#1a1c1c",
+                    "on-primary-fixed-variant": "#254c55",
+                    "outline": "#71787a",
+                    "inverse-primary": "#a5cdd8"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "unit-1": "4px",
+                    "unit-6": "24px",
+                    "base": "4px",
+                    "unit-4": "16px",
+                    "unit-2": "8px",
+                    "list-width": "360px",
+                    "editor-max-width": "48rem",
+                    "sidebar-width": "260px"
+            },
+            "fontFamily": {
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "label-caps": [
+                            "Inter"
+                    ],
+                    "editor-text": [
+                            "JetBrains Mono"
+                    ],
+                    "display-lg": [
+                            "Inter"
+                    ],
+                    "status-sm": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "body-md": [
+                            "15px",
+                            {
+                                    "lineHeight": "22px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-caps": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "editor-text": [
+                            "14px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "display-lg": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "status-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen w-screen overflow-hidden flex font-body-md text-body-md">
+<!-- Mobile Top App Bar (Hidden on md) -->
+<header class="md:hidden flex items-center justify-between px-unit-4 w-full bg-surface dark:bg-surface-dim h-14 border-b border-muted-border dark:border-outline-variant fixed top-0 z-50">
+<div class="text-headline-md font-headline-md font-black text-ink-charcoal dark:text-paper-white">CardMind</div>
+<div class="flex items-center gap-unit-4">
+<span class="material-symbols-outlined text-graphite-gray cursor-pointer hover:text-active-teal transition-colors" data-icon="search">search</span>
+<span class="material-symbols-outlined text-graphite-gray cursor-pointer hover:text-active-teal transition-colors" data-icon="sync">sync</span>
+<span class="material-symbols-outlined text-graphite-gray cursor-pointer hover:text-active-teal transition-colors" data-icon="settings">settings</span>
+</div>
+</header>
+<!-- SideNavBar (Hidden on Mobile, Visible on Desktop) -->
+<nav class="hidden md:flex flex-col justify-between py-unit-6 bg-surface-container-low dark:bg-surface-container-lowest border-r border-muted-border dark:border-outline-variant w-[260px] h-screen flex-shrink-0">
+<div>
+<!-- Header -->
+<div class="px-unit-4 mb-unit-6">
+<div class="flex items-center gap-unit-2 mb-unit-1">
+<div class="w-6 h-6 rounded bg-primary-container text-on-primary-container flex items-center justify-center text-label-caps font-label-caps font-bold">C</div>
+<h1 class="text-headline-md font-headline-md font-bold text-ink-charcoal dark:text-paper-white">CardMind</h1>
+</div>
+<p class="text-status-sm font-status-sm text-graphite-gray">Local-first Workspace</p>
+</div>
+<!-- CTA -->
+<div class="px-unit-4 mb-unit-6">
+<button class="w-full bg-active-teal text-on-primary py-2 px-4 rounded border border-muted-border hover:bg-surface-tint transition-colors text-status-sm font-status-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                    New Note
+                </button>
+</div>
+<!-- Tabs -->
+<ul class="flex flex-col gap-1">
+<li>
+<a class="flex items-center gap-3 text-graphite-gray dark:text-on-surface-variant pl-4 py-2 hover:bg-surface-variant dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="folder_open">folder_open</span>
+                        Cards
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-active-teal dark:text-primary-fixed-dim border-l-2 border-active-teal font-semibold pl-4 py-2 hover:bg-surface-variant dark:hover:bg-surface-container-highest transition-colors opacity-80 duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="database">database</span>
+                        Pool
+                    </a>
+</li>
+</ul>
+</div>
+<!-- Footer -->
+<div class="px-unit-4">
+<div class="flex items-center gap-2 text-status-sm font-status-sm text-graphite-gray py-2">
+<span class="material-symbols-outlined text-[16px]" data-icon="sync">sync</span>
+                已同步
+            </div>
+</div>
+</nav>
+<!-- Mobile Navigation (Hidden on Desktop) -->
+<nav class="md:hidden fixed bottom-0 w-full bg-surface-container-low border-t border-muted-border flex justify-around py-2 z-50">
+<a class="flex flex-col items-center gap-1 text-graphite-gray" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="folder_open">folder_open</span>
+<span class="text-label-caps font-label-caps">Cards</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-active-teal font-semibold" href="#">
+<span class="material-symbols-outlined text-[24px]" data-icon="database">database</span>
+<span class="text-label-caps font-label-caps">Pool</span>
+</a>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col md:flex-row overflow-hidden mt-14 md:mt-0 pb-14 md:pb-0">
+<!-- Middle List Pane (Hidden on very small screens, responsive width) -->
+<div class="w-full md:w-[360px] flex-shrink-0 flex flex-col border-r border-muted-border bg-surface-bright hidden sm:flex">
+<!-- Header & Search -->
+<div class="p-unit-4 border-b border-muted-border">
+<h2 class="text-headline-md font-headline-md text-ink-charcoal mb-unit-4">设置数据池</h2>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-graphite-gray text-[18px]" data-icon="search">search</span>
+<input class="w-full pl-9 pr-3 py-2 bg-surface-container rounded border-none border-b-2 border-transparent focus:border-active-teal focus:ring-0 text-body-md font-body-md placeholder:text-graphite-gray transition-colors" placeholder="搜索数据池..." type="text"/>
+</div>
+</div>
+<!-- List Content (Empty for Unjoined state) -->
+<div class="flex-1 overflow-y-auto p-unit-4 flex items-center justify-center text-graphite-gray text-status-sm font-status-sm">
+                当前没有已加入的数据池
+            </div>
+</div>
+<!-- Editor/Canvas Pane -->
+<div class="flex-1 flex flex-col overflow-y-auto bg-surface-bright relative items-center justify-center p-unit-6">
+<div class="max-w-3xl w-full flex flex-col gap-unit-6">
+<!-- Header for Mobile only since Desktop shows it in middle pane -->
+<div class="sm:hidden mb-unit-4">
+<h2 class="text-headline-md font-headline-md text-ink-charcoal mb-unit-4">设置数据池</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-unit-6 w-full">
+<!-- Card 1: Create Pool -->
+<div class="bg-surface-container-lowest border border-muted-border p-unit-6 flex flex-col items-center text-center hover:border-active-teal hover:bg-surface-container-low transition-colors duration-200 group cursor-pointer h-full justify-between gap-unit-4">
+<div class="w-16 h-16 rounded-full bg-primary-container/10 flex items-center justify-center text-active-teal mb-unit-2 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px]" data-icon="add_circle">add_circle</span>
+</div>
+<div>
+<h3 class="text-headline-md font-headline-md text-ink-charcoal mb-unit-2">创建数据池</h3>
+<p class="text-body-md font-body-md text-graphite-gray">创建一个新的本地优先数据池，与团队或多设备安全共享您的数字卡片。</p>
+</div>
+<button class="mt-unit-4 px-6 py-2 bg-active-teal text-on-primary rounded font-status-sm text-status-sm w-full border border-transparent hover:bg-surface-tint transition-colors">
+                            创建
+                        </button>
+</div>
+<!-- Card 2: Join Pool -->
+<div class="bg-surface-container-lowest border border-muted-border p-unit-6 flex flex-col items-center text-center hover:border-active-teal hover:bg-surface-container-low transition-colors duration-200 group cursor-pointer h-full justify-between gap-unit-4">
+<div class="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center text-ink-charcoal mb-unit-2 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[32px]" data-icon="login">login</span>
+</div>
+<div>
+<h3 class="text-headline-md font-headline-md text-ink-charcoal mb-unit-2">加入数据池</h3>
+<p class="text-body-md font-body-md text-graphite-gray">通过邀请码或本地网络连接加入已存在的数据池，开始同步卡片数据。</p>
+</div>
+<button class="mt-unit-4 px-6 py-2 bg-surface-container-lowest text-active-teal rounded font-status-sm text-status-sm w-full border border-active-teal hover:bg-surface-container-low transition-colors">
+                            加入
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

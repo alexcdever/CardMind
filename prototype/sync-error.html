@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 同步失败</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+<style>
+  .sync-indicator-error {
+    color: var(--error) !important;
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="notes-list.html" class="nav-item active">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="pool-setup.html" class="nav-item">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sync-status sync-indicator-error">
+        <span class="material-symbols-outlined">sync_problem</span>1条待同步
+      </div>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Note List -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <div class="list-header-top">
+        <h2 class="list-title">卡片</h2>
+        <button class="btn-icon"><span class="material-symbols-outlined">filter_list</span></button>
+      </div>
+      <div class="list-search">
+        <span class="material-symbols-outlined">search</span>
+        <input placeholder="搜索卡片..." type="text"/>
+      </div>
+    </div>
+    <div class="list-body no-scrollbar">
+      <div class="note-card active" onclick="location.href='sync-error.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">设计系统规范更新</span>
+          <span class="note-card-time">今天 10:42</span>
+        </div>
+        <p class="note-card-preview">关于数字纸张概念的具体落实，需要强调字体的层次和留白的重要性。避免使用过多的投影...</p>
+      </div>
+      <div class="note-card" onclick="location.href='note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">Q3 产品路演准备</span>
+          <span class="note-card-time">昨天</span>
+        </div>
+        <p class="note-card-preview">确认与开发团队的进度对齐。下周二前需要完成所有的交互原型测试。</p>
+      </div>
+      <div class="note-card" onclick="location.href='note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">会议纪要：架构重构</span>
+          <span class="note-card-time">10月12日</span>
+        </div>
+        <p class="note-card-preview">后端迁移至新的微服务架构，预计将减少 20% 的延迟。前端需要配合更新 API 接口。</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Editor with sync error toast -->
+  <main class="editor-pane no-scrollbar">
+    <div class="editor-actions">
+      <button class="btn-icon"><span class="material-symbols-outlined">share</span></button>
+      <button class="btn-icon"><span class="material-symbols-outlined">more_horiz</span></button>
+    </div>
+
+    <!-- Sync Error Toast -->
+    <div style="position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:50;max-width:calc(100%-2rem);">
+      <div class="toast-error">
+        <div class="toast-message">
+          <span class="material-symbols-outlined" style="font-size:20px;">error</span>
+          <span>同步失败，请检查网络连接。</span>
+        </div>
+        <button class="btn-retry" onclick="this.parentElement.parentElement.style.display='none';">重试</button>
+      </div>
+    </div>
+
+    <div class="editor-canvas" style="padding-top:80px;">
+      <input class="editor-title-input" type="text" value="设计系统规范更新"/>
+      <div class="editor-meta">
+        <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> 2024年6月10日</span>
+        <span><span class="material-symbols-outlined" style="font-size:14px;">cloud_off</span> 未同步</span>
+      </div>
+      <div class="editor-body-wrapper" style="flex:1;">
+        <textarea class="editor-body">关于数字纸张概念的具体落实，我们需要强调字体的层次和留白的重要性。避免使用过多的投影，转而使用精细的边框和背景色调的微小差异来构建界面层级。
+
+核心设计原则
+• 极简主义：剔除一切不必要的装饰元素。
+• 功能至上：每一个设计决策都必须服务于用户的认知效率。
+• 本地优先：界面响应应该像本地应用一样迅速，没有延迟感。
+
+下面是一个代码块示例，展示了设计令牌的配置：
+
+colors:
+  surface-container-low: "#f3f4f3"
+  active-teal: "#4A707A"
+  muted-border: "#E2E2E0"
+
+在接下来的几个冲刺阶段，我们将逐步把现有组件迁移到新的设计系统上。请务必参考最新的设计稿，确保开发出的界面与原型保持高度一致。</textarea>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

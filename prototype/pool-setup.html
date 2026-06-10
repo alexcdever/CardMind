@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 设置数据池</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="notes-list.html" class="nav-item">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="pool-setup.html" class="nav-item active">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a href="sync-error.html" class="sync-status" style="text-decoration:none;">
+        <span class="material-symbols-outlined">sync</span>已同步
+      </a>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Pool List (Unjoined) -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <h2 class="list-title">设置数据池</h2>
+      <div class="list-search">
+        <span class="material-symbols-outlined">search</span>
+        <input placeholder="搜索数据池..." type="text"/>
+      </div>
+    </div>
+    <div class="list-body" style="align-items:center;justify-content:center;">
+      <div style="text-align:center;color:var(--graphite-gray);font-size:12px;">
+        当前没有已加入的数据池
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Pool Setup Cards -->
+  <main class="editor-pane" style="align-items:center;justify-content:center;">
+    <div style="max-width:48rem;width:100%;display:flex;flex-direction:column;gap:24px;padding:24px;">
+      <h2 class="headline-md" style="display:none;">设置数据池</h2>
+      <div class="pool-cards-grid" style="grid-template-columns:1fr 1fr;">
+        <!-- Card 1: Create Pool -->
+        <a href="pool-joined.html" class="pool-card" style="text-decoration:none;color:inherit;">
+          <div class="pool-card-icon create">
+            <span class="material-symbols-outlined">add_circle</span>
+          </div>
+          <div>
+            <div class="pool-card-title" style="margin-bottom:8px;">创建数据池</div>
+            <div class="pool-card-desc">创建一个新的本地优先数据池，与团队或多设备安全共享您的数字卡片。</div>
+          </div>
+          <button class="btn-primary" style="width:100%;margin-top:16px;">创建</button>
+        </a>
+
+        <!-- Card 2: Join Pool -->
+        <a href="pool-join.html" class="pool-card" style="text-decoration:none;color:inherit;">
+          <div class="pool-card-icon join">
+            <span class="material-symbols-outlined">login</span>
+          </div>
+          <div>
+            <div class="pool-card-title" style="margin-bottom:8px;">加入数据池</div>
+            <div class="pool-card-desc">通过邀请码或本地网络连接加入已存在的数据池，开始同步卡片数据。</div>
+          </div>
+          <button class="btn-secondary" style="width:100%;margin-top:16px;">加入</button>
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
