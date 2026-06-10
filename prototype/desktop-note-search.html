@@ -3,37 +3,14 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>CardMind — 笔记列表</title>
+<title>CardMind — 搜索笔记</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<link href="styles.css" rel="stylesheet"/>
+<link href="desktop-styles.css" rel="stylesheet"/>
 <style>
-  .editor-content-display {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    line-height: 24px;
-    color: var(--on-surface-variant);
-    white-space: pre-wrap;
-  }
-  .editor-content-display h2 {
-    font-family: var(--font-ui);
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--ink-charcoal);
-    margin-top: 24px;
-    margin-bottom: 12px;
-  }
-  .editor-content-display ul {
-    list-style: disc;
-    padding-left: 24px;
-  }
-  .editor-content-display li {
-    margin-bottom: 8px;
-  }
   .list-filters {
     display: flex;
     gap: 8px;
-    margin-top: 0;
   }
   .select-dropdown {
     padding: 4px 8px;
@@ -57,6 +34,15 @@
   .select-dropdown:focus {
     border-color: var(--active-teal);
   }
+  .search-result-count {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--graphite-gray);
+    padding: 4px var(--unit-4);
+  }
+  .search-active-input {
+    border-bottom-color: var(--active-teal) !important;
+  }
 </style>
 </head>
 <body>
@@ -73,89 +59,72 @@
         </div>
       </div>
       <div class="sidebar-cta">
-        <a href="note-new.html" class="btn-new-note" style="text-decoration:none;">
+        <a href="desktop-note-new.html" class="btn-new-note" style="text-decoration:none;">
           <span class="material-symbols-outlined" style="font-size:18px;">add</span>
           新建卡片
         </a>
       </div>
       <ul class="sidebar-nav">
-        <li><a href="notes-list.html" class="nav-item active">
+        <li><a href="desktop-notes-list.html" class="nav-item active">
           <span class="material-symbols-outlined">folder_open</span>卡片
         </a></li>
-        <li><a href="pool-setup.html" class="nav-item">
+        <li><a href="desktop-pool-setup.html" class="nav-item">
           <span class="material-symbols-outlined">database</span>数据池
         </a></li>
       </ul>
     </div>
     <div class="sidebar-footer">
-      <a href="sync-error.html" class="sync-status" style="text-decoration:none;">
+      <a href="desktop-sync-error.html" class="sync-status" style="text-decoration:none;">
         <span class="material-symbols-outlined">sync</span>已同步
       </a>
     </div>
   </nav>
 
-  <!-- Pane 2: Note List -->
+  <!-- Pane 2: Note List (Search State) -->
   <aside class="list-pane">
     <div class="list-header">
       <div class="list-header-top">
         <h2 class="list-title">卡片</h2>
-        <button class="btn-icon"><span class="material-symbols-outlined">filter_list</span></button>
+        <button class="btn-icon" title="清除搜索" onclick="clearSearch()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
       </div>
       <div class="list-search">
         <span class="material-symbols-outlined">search</span>
-        <input placeholder="搜索卡片..." type="text"/>
+        <input class="search-active-input" placeholder="搜索卡片..." type="text" value="设计" id="searchInput" autofocus/>
       </div>
-      <div class="list-filters">
-        <span style="font-size:11px;font-weight:500;color:var(--graphite-gray);">筛选:</span>
+      <div class="list-filters" style="margin-top:8px;">
+        <span style="font-size:11px;font-weight:500;color:var(--graphite-gray);">排序:</span>
         <select class="select-dropdown">
           <option value="updated">按更新时间</option>
           <option value="created">按创建时间</option>
         </select>
-        <select class="select-dropdown" id="poolFilter" onchange="filterByPool()">
-          <option value="all">全部数据池</option>
-          <option value="pool1">设计团队工作区</option>
-          <option value="pool2">个人笔记同步</option>
-          <option value="pool3">项目 X 协作池</option>
-        </select>
+      </div>
+      <div class="search-result-count" id="resultCount">
+        找到 <strong style="color:var(--active-teal);">3</strong> 条结果
       </div>
     </div>
     <div class="list-body no-scrollbar">
-      <!-- Active note -->
-      <div class="note-card active" onclick="location.href='notes-list.html'" data-pool="pool1">
+      <div class="note-card active" onclick="location.href='desktop-notes-list.html'">
         <div class="note-card-header">
           <span class="note-card-title">设计系统架构</span>
-          <span class="note-card-time">2分钟前</span>
+          <span class="note-card-time" style="display:flex;align-items:center;gap:6px;"><span style="font-size:10px;background:var(--surface-container);padding:1px 6px;border-radius:3px;">设计团队</span>2分钟前</span>
         </div>
-        <p class="note-card-preview">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影...</p>
+        <p class="note-card-preview">构建数字<mark style="background:rgba(74,112,122,0.15);color:inherit;border-radius:2px;padding:0 2px;">设计</mark>概念的新令牌。需要确保色调层取代沉重的阴影...</p>
       </div>
-      <!-- Inactive notes -->
-      <div class="note-card" onclick="location.href=''note-edit.html'" data-pool="pool2">
+      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
         <div class="note-card-header">
-          <span class="note-card-title">会议记录：项目 X</span>
-          <span class="note-card-time">2小时前</span>
+          <span class="note-card-title">系统设计会议纪要</span>
+          <span class="note-card-time" style="display:flex;align-items:center;gap:6px;"><span style="font-size:10px;background:var(--surface-container);padding:1px 6px;border-radius:3px;">个人笔记</span>10月5日</span>
         </div>
-        <p class="note-card-preview">讨论了第二阶段的时间表。关键交付成果包括新的同步引擎和本地优先数据库迁移。</p>
+        <p class="note-card-preview">讨论了关于架构重构的可能性。主要关注点在数据持久层和内存占用的优化，以及新的<mark style="background:rgba(74,112,122,0.15);color:inherit;border-radius:2px;padding:0 2px;">设计</mark>标准的实施。</p>
       </div>
-      <div class="note-card" onclick="location.href=''note-edit.html'" data-pool="pool2">
+      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
         <div class="note-card-header">
-          <span class="note-card-title">每周日用品</span>
-          <span class="note-card-time">1天前</span>
+          <span class="note-card-title">设计规范更新</span>
+          <span class="note-card-time" style="display:flex;align-items:center;gap:6px;"><span style="font-size:10px;background:var(--surface-container);padding:1px 6px;border-radius:3px;">项目X</span>1周前</span>
         </div>
-        <p class="note-card-preview">- 杏仁奶 · 咖啡豆（中度烘焙）· 牛油果 · 酸面团面包</p>
-      </div>
-      <div class="note-card" onclick="location.href=''note-edit.html'" data-pool="pool2">
-        <div class="note-card-header">
-          <span class="note-card-title">Q3 目标草案</span>
-          <span class="note-card-time">3天前</span>
-        </div>
-        <p class="note-card-preview">1. 首次加载延迟降低 20%。2. 发布新的极简 UI。3. 数据池功能的用户测试。</p>
-      </div>
-      <div class="note-card" onclick="location.href=''note-edit.html'" data-pool="pool2">
-        <div class="note-card-header">
-          <span class="note-card-title">阅读清单</span>
-          <span class="note-card-time">1周前</span>
-        </div>
-        <p class="note-card-preview">《设计心理学》《上瘾》《重构 UI》</p>
+        <p class="note-card-preview">新的组件<mark style="background:rgba(74,112,122,0.15);color:inherit;border-radius:2px;padding:0 2px;">设计</mark>规范已发布，所有UI组件需遵循 Digital Parchment 设计系统。</p>
       </div>
     </div>
   </aside>
@@ -163,7 +132,7 @@
   <!-- Pane 3: Editor -->
   <main class="editor-pane no-scrollbar">
     <div class="editor-actions">
-      <a href="note-delete.html" class="btn-icon danger" title="删除卡片">
+      <a href="desktop-note-delete.html" class="btn-icon danger" title="删除卡片">
         <span class="material-symbols-outlined">delete</span>
       </a>
     </div>
@@ -173,7 +142,7 @@
         <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> 2023年10月24日</span>
         <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> 2分钟前</span>
       </div>
-      <div class="editor-content-display">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影。
+      <div style="font-family:var(--font-mono);font-size:14px;line-height:24px;color:var(--on-surface-variant);white-space:pre-wrap;">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影。
 
 核心原则
 1. 极简与实用：像精密工具一样运作。
@@ -191,17 +160,11 @@
     </div>
   </main>
 </div>
+
 <script>
-  function filterByPool() {
-    var pool = document.getElementById('poolFilter').value;
-    var cards = document.querySelectorAll('.note-card');
-    cards.forEach(function(card) {
-      if (pool === 'all' || card.getAttribute('data-pool') === pool) {
-        card.style.display = '';
-      } else {
-        card.style.display = 'none';
-      }
-    });
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    location.href = 'notes-list.html';
   }
 </script>
 </body>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CardMind — 笔记列表</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="desktop-styles.css" rel="stylesheet"/>
+<style>
+  .editor-content-display {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 24px;
+    color: var(--on-surface-variant);
+    white-space: pre-wrap;
+  }
+  .editor-content-display h2 {
+    font-family: var(--font-ui);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink-charcoal);
+    margin-top: 24px;
+    margin-bottom: 12px;
+  }
+  .editor-content-display ul {
+    list-style: disc;
+    padding-left: 24px;
+  }
+  .editor-content-display li {
+    margin-bottom: 8px;
+  }
+  .list-filters {
+    display: flex;
+    gap: 8px;
+    margin-top: 0;
+  }
+  .select-dropdown {
+    padding: 4px 8px;
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-charcoal);
+    background: var(--surface-container-lowest);
+    border: 1px solid var(--muted-border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 24px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+  }
+  .select-dropdown:focus {
+    border-color: var(--active-teal);
+  }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Pane 1: Sidebar -->
+  <nav class="sidebar">
+    <div>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">C</div>
+        <div>
+          <div class="sidebar-title">CardMind</div>
+          <div class="sidebar-subtitle">本地优先工作区</div>
+        </div>
+      </div>
+      <div class="sidebar-cta">
+        <a href="desktop-note-new.html" class="btn-new-note" style="text-decoration:none;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          新建卡片
+        </a>
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="desktop-notes-list.html" class="nav-item active">
+          <span class="material-symbols-outlined">folder_open</span>卡片
+        </a></li>
+        <li><a href="desktop-pool-setup.html" class="nav-item">
+          <span class="material-symbols-outlined">database</span>数据池
+        </a></li>
+      </ul>
+    </div>
+    <div class="sidebar-footer">
+      <a href="desktop-sync-error.html" class="sync-status" style="text-decoration:none;">
+        <span class="material-symbols-outlined">sync</span>已同步
+      </a>
+    </div>
+  </nav>
+
+  <!-- Pane 2: Note List -->
+  <aside class="list-pane">
+    <div class="list-header">
+      <div class="list-header-top">
+        <h2 class="list-title">卡片</h2>
+        <button class="btn-icon"><span class="material-symbols-outlined">filter_list</span></button>
+      </div>
+      <div class="list-search">
+        <span class="material-symbols-outlined">search</span>
+        <input placeholder="搜索卡片..." type="text"/>
+      </div>
+      <div class="list-filters">
+        <span style="font-size:11px;font-weight:500;color:var(--graphite-gray);">排序:</span>
+        <select class="select-dropdown">
+          <option value="updated">按更新时间</option>
+          <option value="created">按创建时间</option>
+        </select>
+      </div>
+    </div>
+    <div class="list-body no-scrollbar">
+      <!-- Active note -->
+      <div class="note-card active" onclick="location.href='desktop-notes-list.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">设计系统架构</span>
+          <span class="note-card-time">2分钟前</span>
+        </div>
+        <p class="note-card-preview">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影...</p>
+      </div>
+      <!-- Inactive notes -->
+      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">会议记录：项目 X</span>
+          <span class="note-card-time">2小时前</span>
+        </div>
+        <p class="note-card-preview">讨论了第二阶段的时间表。关键交付成果包括新的同步引擎和本地优先数据库迁移。</p>
+      </div>
+      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">每周日用品</span>
+          <span class="note-card-time">1天前</span>
+        </div>
+        <p class="note-card-preview">- 杏仁奶 · 咖啡豆（中度烘焙）· 牛油果 · 酸面团面包</p>
+      </div>
+      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">Q3 目标草案</span>
+          <span class="note-card-time">3天前</span>
+        </div>
+        <p class="note-card-preview">1. 首次加载延迟降低 20%。2. 发布新的极简 UI。3. 数据池功能的用户测试。</p>
+      </div>
+      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
+        <div class="note-card-header">
+          <span class="note-card-title">阅读清单</span>
+          <span class="note-card-time">1周前</span>
+        </div>
+        <p class="note-card-preview">《设计心理学》《上瘾》《重构 UI》</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Pane 3: Editor -->
+  <main class="editor-pane no-scrollbar">
+    <div class="editor-actions">
+      <a href="desktop-note-delete.html" class="btn-icon danger" title="删除卡片">
+        <span class="material-symbols-outlined">delete</span>
+      </a>
+    </div>
+    <div class="editor-canvas">
+      <input class="editor-title-input" type="text" value="设计系统架构" readonly/>
+      <div class="editor-meta">
+        <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> 2023年10月24日</span>
+        <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> 2分钟前</span>
+      </div>
+      <div class="editor-content-display">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影。
+
+核心原则
+1. 极简与实用：像精密工具一样运作。
+2. 本地优先的可靠性：速度是一项特性。
+3. 桌面端的固定面板模式：260px | 360px | 48rem 居中。
+
+层级
+- 层级 0：背景框架（中性）
+- 层级 1：表面（侧边栏）
+- 完全避免使用投影。使用 1px 的柔和边框（#E2E2E0）
+
+当卡片处于激活状态时，它会获得 2px 的青色左边框。
+
+记住保持 UI 简洁安静。让内容有呼吸的空间。</div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
