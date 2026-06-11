@@ -197,7 +197,7 @@
 
 - [ ] 以当前 `cardmind.pen` 为准，拆解 Flutter UI 落地范围
 - [ ] 对照 Rust/FRB 已有 API，确认 Pencil 页面所需数据与动作是否已具备
-- [ ] 按 spec 生命周期判断是否更新 `docs/specs/ui-interaction.md`、`docs/specs/user-journeys.md` 等正式规格
+- [ ] specs 目录已清理，仅保留 product.md
 - [ ] 如继续实现 Flutter UI，可把 Pencil 中的应用锁前置流程映射到当前 `AppLockScreen` 的视觉与交互细节
 - [ ] 如继续推进数据池能力，优先做真实双端联机验证或新的定向 code review
 - [ ] 如继续提升 UI 验证质量，可补一轮不同窗口尺寸下的数据池页面人工/自动截图检查

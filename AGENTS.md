@@ -60,7 +60,7 @@ prototype/       UI 原型（HTML/CSS 高保真页面）
   stitch-*.html/.png   Pencil 导出截图参考
   DESIGN.md            设计系统规格
 docs/
-  specs/        正式规格
+  product.md    产品定位
   standards/    工程规范
   plans/        历史设计计划
   memory/       工作日志
@@ -110,14 +110,7 @@ bash rust/tools/test-with-net.sh --test unit -- connect_and_sync  # 签名后运
 
 ## 文档地图
 
-- `docs/specs/product.md` — 产品定位
-- `docs/specs/architecture.md` — 架构规格
-- `docs/specs/card-note.md` — 卡片笔记领域
-- `docs/specs/pool.md` — 数据池领域
-- `docs/specs/ui-interaction.md` — UI 交互
-- `docs/specs/ui-components.md` — UI 组件
-- `docs/specs/user-journeys.md` — 用户旅程
-- `docs/specs/shared-domain-contract.md` — 共享契约
+- `docs/product.md` — 产品定位与阶段目标
 - `docs/standards/ai-collaboration.md` — 协作流程
 - `docs/standards/tdd.md` — TDD 规则
 - `docs/standards/testing.md` — 测试规则
