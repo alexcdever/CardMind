@@ -1,147 +1,141 @@
 # 设计语言令牌（Design Tokens）
 
-本文档定义 CardMind 的设计语言令牌体系，提取自 cardmind.pen 设计稿与现有 Flutter 代码，作为 UI 构建的权威参考。
+本文档定义 CardMind 的设计语言令牌体系，提取自 Digital Parchment 设计系统，作为 UI 构建的权威参考。
 
 ## 色彩体系
 
-### 品牌色
+### 语义色
 
-| Token 名 | Hex 值 | Dart 常量 | 用途 |
-|---|---|---|---|
-| brand | `#0F766E` | `CardMindColors.brand` | 主品牌色，按钮背景、链接文字、活跃态指示 |
-
-### 品牌扩展色
-
-| Token 名 | Hex 值 | Dart 常量 | 用途 |
-|---|---|---|---|
-| brand-light-bg | `#E6F4F2` | `CardMindColors.brandLightBg` | 品牌浅底，活跃标签背景（如 BottomNav 选中项） |
-| brand-muted-bg | `#EEF3F3` | `CardMindColors.brandMutedBg` | 品牌弱底，次要卡片背景（如 Join Pool 卡） |
-
-### 背景色
-
-| Token 名 | Hex 值 | Dart 常量 | 用途 |
-|---|---|---|---|
-| bg-canvas | `#F8FAFB` | `CardMindColors.bgCanvas` | 页面底层背景，Scaffold background |
-| bg-surface | `#FFFFFF` | `CardMindColors.bgSurface` | 卡片、面板前景背景（选中态卡片、详情面板） |
-| bg-subtle | `#EEF5F5` | `CardMindColors.bgSubtle` | 次级背景，侧栏底色、列表非活跃项 |
-| bg-input | `#ECF3F3` | `CardMindColors.bgInput` | 输入域/搜索栏填充色 |
-
-### 文字色
-
-| Token 名 | Hex 值 | Dart 常量 | 用途 |
-|---|---|---|---|
-| text-primary | `#203234` | `CardMindColors.textPrimary` | 正文、标题文字 |
-| text-secondary | `#5F7274` | `CardMindColors.textSecondary` | 辅助说明文字、卡片正文 |
-| text-muted | `#8BA1A3` | `CardMindColors.textMuted` | 弱化文字、占位提示、离线状态 |
-| text-brand | `#0F766E` | `CardMindColors.textBrand` | 品牌色文字（标签、链接） |
-| text-on-brand | `#FFFFFF` | `CardMindColors.textOnBrand` | 品牌底上的文字（按钮内文字） |
-
-### 边框与状态色
-
-| Token 名 | Hex 值 | Dart 常量 | 用途 |
-|---|---|---|---|
-| border-subtle | `#D9E4E8` | `CardMindColors.borderSubtle` | 默认边框色（设计稿外框、卡片分隔线） |
-| status-synced | `#0F766E` | `CardMindColors.statusSynced` | 已同步状态指示 |
-| status-offline | `#8BA1A3` | `CardMindColors.statusOffline` | 离线状态指示 |
-
-### AppLock 专用色（从 cardmind.pen 提取，暂未独立 Token 化）
-
-| 名称 | Hex 值 | 用途 |
+| Token | Hex | 用途 |
 |---|---|---|
-| app-lock-badge-bg | `#CCFBF1` | 应用锁徽章背景 |
-| app-lock-badge-text | `#115E59` | 应用锁徽章文字 |
-| app-lock-title | `#0F172A` | 应用锁标题深色 |
-| app-lock-intro | `#475569` | 应用锁说明文字 |
-| app-lock-label | `#64748B` | 应用锁字段标签 |
-| app-lock-card-bg | `#F1F5F9` | 应用锁卡片背景 |
-| app-lock-card-border | `#DDE7EA` | 应用锁卡片边框 |
-| app-lock-field-border | `#CBD5E1` | 应用锁输入域边框 |
-| app-lock-bio-border | `#E2E8F0` | 应用锁生物识别行边框 |
+| `paper-white` | `#F9F9F8` | 页面底色、画布背景 |
+| `ink-charcoal` | `#1A1A1A` | 正文、标题文字 |
+| `graphite-gray` | `#666666` | 辅助文字、元数据 |
+| `muted-border` | `#E2E2E0` | 边框、分隔线 |
+| `active-teal` | `#4A707A` | 品牌主色、主按钮、活跃态指示 |
+| `danger-red` | `#A34F4F` | 危险动作、错误提示 |
+
+### 表面色（Surface）
+
+| Token | Hex | 用途 |
+|---|---|---|
+| `surface` | `#F9F9F8` | 基础表面 |
+| `surface-dim` | `#DADAD9` | 暗表面 |
+| `surface-bright` | `#F9F9F8` | 亮表面 |
+| `surface-container-lowest` | `#FFFFFF` | 最低层容器（白色） |
+| `surface-container-low` | `#F3F4F3` | 低层容器 |
+| `surface-container` | `#EEEEED` | 中层容器 |
+| `surface-container-high` | `#E8E8E7` | 高层容器 |
+| `surface-container-highest` | `#E2E2E2` | 最高层容器 |
+| `on-surface` | `#1A1C1C` | 表面上的文字 |
+| `on-surface-variant` | `#41484A` | 表面上的变体文字 |
+| `inverse-surface` | `#2F3130` | 反向表面（Dark 模式） |
+| `inverse-on-surface` | `#F1F1F0` | 反向表面上的文字 |
+
+### 主色（Primary）
+
+| Token | Hex | 用途 |
+|---|---|---|
+| `primary` | `#315861` | 主色 |
+| `on-primary` | `#FFFFFF` | 主色上的文字 |
+| `primary-container` | `#4A707A` | 主色容器（active-teal） |
+| `on-primary-container` | `#CAF2FE` | 主色容器上的文字 |
+| `inverse-primary` | `#A5CDD8` | 反向主色 |
+| `primary-fixed` | `#C1E9F5` | 主色固定 |
+| `primary-fixed-dim` | `#A5CDD8` | 主色固定暗 |
+| `on-primary-fixed` | `#001F26` | 主色固定上的文字 |
+| `on-primary-fixed-variant` | `#254C55` | 主色固定变体上的文字 |
+
+### 次要色（Secondary）
+
+| Token | Hex | 用途 |
+|---|---|---|
+| `secondary` | `#5F5E5E` | 次要色 |
+| `on-secondary` | `#FFFFFF` | 次要色上的文字 |
+| `secondary-container` | `#E4E2E1` | 次要色容器 |
+| `on-secondary-container` | `#656464` | 次要色容器上的文字 |
+| `secondary-fixed` | `#E4E2E1` | 次要色固定 |
+| `secondary-fixed-dim` | `#C8C6C6` | 次要色固定暗 |
+
+### 第三色（Tertiary）
+
+| Token | Hex | 用途 |
+|---|---|---|
+| `tertiary` | `#6E4A2E` | 第三色 |
+| `on-tertiary` | `#FFFFFF` | 第三色上的文字 |
+| `tertiary-container` | `#896244` | 第三色容器 |
+| `on-tertiary-container` | `#FFE7D8` | 第三色容器上的文字 |
+
+### 错误色（Error）
+
+| Token | Hex | 用途 |
+|---|---|---|
+| `error` | `#BA1A1A` | 错误 |
+| `on-error` | `#FFFFFF` | 错误上的文字 |
+| `error-container` | `#FFDAD6` | 错误容器 |
+| `on-error-container` | `#93000A` | 错误容器上的文字 |
+
+### 轮廓色（Outline）
+
+| Token | Hex | 用途 |
+|---|---|---|
+| `outline` | `#71787A` | 轮廓 |
+| `outline-variant` | `#C1C8CA` | 轮廓变体 |
 
 ## 圆角
 
-| Token 名 | 值 | Flutter 常量 | 使用场景 |
-|---|---|---|---|
-| sm | 8px | `CardMindRadii.sm` | 按钮、输入框、工具栏、侧栏导航项 |
-| md | 10px | `CardMindRadii.md` | 搜索栏、成员卡片、FAB |
-| lg | 12px | `CardMindRadii.lg` | 笔记卡片、设置卡片 |
-| xl | 14px | `CardMindRadii.xl` | 应用锁卡片、BottomNav 容器 |
-| 2xl | 18px | `CardMindRadii.twoXl` | 暂无使用 |
-| pill | 999px | `CardMindRadii.pill` | 徽章、标签（胶囊形） |
+| Token | 值 | 用途 |
+|---|---|---|
+| `radius.sm` | `2px` | 小装饰元素 |
+| `radius.md` | `4px` | 卡片、按钮、输入框（标准） |
+| `radius.lg` | `6px` | 中等容器 |
+| `radius.xl` | `8px` | 搜索栏、工具栏 |
+| `radius.2xl` | `12px` | 面板、底部导航容器 |
+| `radius.pill` | `9999px` | 徽章、标签（胶囊形） |
 
 ## 间距
 
-| Token 名 | 值 | Flutter 常量 | 使用场景 |
-|---|---|---|---|
-| xs | 4px | `CardMindSpacing.xs` | 底部导航图标与文字间距 |
-| sm | 8px | `CardMindSpacing.sm` | 卡片内元素间距、标签间距 |
-| md | 10px | `CardMindSpacing.md` | 编辑器 meta 行间距 |
-| lg | 16px | `CardMindSpacing.lg` | 面板块间距 |
-| xl | 18px | `CardMindSpacing.xl` | 页面级垂直间距、内边距 |
-| 2xl | 20px | `CardMindSpacing.twoXl` | 卡片内边距 |
-| 3xl | 24px | `CardMindSpacing.threeXl` | 桌面列表区水平内边距 |
-
-## 字号
-
-| 大小 | 字重 | 行高 | 使用场景 |
-|---|---|---|---|
-| 10px | w800 | — | 卡片标签、导航文字、徽章 |
-| 11px | w600/w800 | — | 桌面笔记卡片标签、备注元信息 |
-| 12px | w400/w600/w700/w800 | 1.35–1.45 | 辅助文字、按钮文字、面包屑、脚注 |
-| 13px | w400/w800 | 1.45 | 说明文字、侧栏导航项、成员名 |
-| 14px | w800 | — | 品牌英文名、卡片内按钮 |
-| 15px | w400/w800 | 1.25–1.6 | 笔记标题(移动端)、正文 |
-| 18px | w400/w800 | — | 品牌名(大)、设置卡片标题 |
-| 20px | w800 | — | 桌面大标题 |
-| 21px | w800 | — | 集卡片标题 |
-| 22px | w800 | — | 应用锁卡片内标题 |
-| 24px | w800 | — | 页面主标题(移动端) |
-| 26px | w800 | — | 数据池成员标题(移动端) |
-| 27px | w800 | 1.12 | 页面大标题(移动端) |
-| 28px | w800 | — | 指标数值 |
-| 31px | w800 | 1.06 | 应用锁标题 |
-| 37px | w800 | 1.08 | 桌面端笔记详情标题 |
-| 42px | w800 | 1.1 | 桌面端设置页大标题 |
-| 44px | w800 | 1.05 | 桌面端应用锁标题 |
+| Token | 值 | 用途 |
+|---|---|---|
+| `space.xs` | `4px` | 图标与文字间距 |
+| `space.sm` | `8px` | 标签间距、元素内间距 |
+| `space.md` | `12px` | 紧凑列表项间距 |
+| `space.lg` | `16px` | 标准容器内边距 |
+| `space.xl` | `24px` | 大区块间距 |
+| `space.2xl` | `32px` | 页面级外间距 |
 
 ## 字体
 
-| 平台 | 字体 | 用途 |
+| 角色 | 字体 | 用途 |
 |---|---|---|
-| Flutter Mobile | 系统默认（Material Design 字体） | 全部 |
-| Flutter Desktop | 系统默认（Material Design 字体） | 全部 |
-| 设计稿 | Inter | 全部文字 |
+| UI | Inter | 导航、按钮、标题等全部 UI 元素 |
+| 编辑器 | JetBrains Mono | 笔记正文编辑区 |
+
+## 字号层级
+
+| 层级 | 字号 | 字重 | 行高 | 字距 | 用途 |
+|---|---|---|---|---|---|
+| `display-lg` | 24px | 600 | 32px | -0.02em | 页面大标题 |
+| `headline-md` | 18px | 600 | 24px | — | 区块标题 |
+| `body-md` | 15px | 400 | 22px | — | 正文 |
+| `editor-text` | 14px | 400 | 24px | — | 编辑器内容（JetBrains Mono） |
+| `label-caps` | 11px | 700 | 16px | 0.05em | 标签、状态字（全大写） |
+| `status-sm` | 12px | 500 | 16px | — | 同步状态指示文字 |
 
 ## 布局参数
 
-### 页面 Padding
-
 | 场景 | 值 | 说明 |
 |---|---|---|
-| 移动端页面 | `[18, 20]` (水平, 垂直) | 笔记列表、编辑器、Pool 设置等所有移动端页面 |
-| 移动端 AppLock | `[24, 32, 24, 28]` (左, 上, 右, 下) | 应用锁设置/解锁页面 |
-| 桌面端侧栏 | `[26, 12, 24, 12]` (上, 右, 下, 左) | 桌面侧栏内边距 |
-| 桌面端列表区 | `[24, 20]` (水平, 垂直) | 桌面端左侧笔记列表面板 |
-| 桌面端详情区 | `[28, 30, 24, 32]` (上, 右, 下, 左) | 桌面端右侧笔记详情面板 |
-
-### 组件高度
-
-| 组件 | 高度 | 说明 |
-|---|---|---|
-| 移动端 Header | 30px | 品牌行 |
-| 移动端搜索栏 | 42px | 搜索输入框 |
-| 移动端 BottomNav 容器 | 64px | 底部导航整体 |
-| 移动端 BottomNav 项 | 44px (每项) | 单个导航项 |
-| 移动端 FAB | 42×42px | 新建笔记按钮 |
-| 桌面端侧栏品牌图标 | 24px | 侧栏中的品牌图标 |
-| 桌面端新建按钮 | 42px | 侧栏「新建笔记」按钮 |
-| 桌面端侧栏导航项 | 36px | 侧栏 笔记/数据池 导航项 |
-| 工具栏(编辑器) | 42px | 移动端编辑器格式工具栏 |
-| 桌面端编辑器工具栏 | 38px | 桌面端编辑器格式工具栏 |
+| 桌面端侧栏宽 | 260px | 左侧导航栏 |
+| 桌面端列表区宽 | 360px | 中间笔记列表 |
+| 编辑器最大宽 | 48rem | 编辑区居中最大宽度 |
+| 移动端标准内边距 | 16px | 页面左右内边距 |
+| 桌面端标准内边距 | 24px | 页面左右内边距 |
 
 ## 约束规则
 
-1. **颜色使用优先用语义常量**，避免硬编码 Hex 值，除非该色仅出现在单一场景且不具跨组件复用价值。
-2. **圆角和间距**统一使用 `CardMindRadii` / `CardMindSpacing` 中的常量，不使用裸数字。
-3. **字号**尚未 Token 化，Flutter 代码中允许直接使用 `fontSize: N`，但必须与本文档中的字号级保持一致。
-4. 新增组件应先检查本文档中是否已有匹配的 Token 定义；如没有且该值在多处出现，应补充 Token。
+1. 颜色优先使用语义 Token，避免硬编码 Hex。
+2. 圆角和间距统一使用 Token，不使用裸数字。
+3. 新增组件前检查本文档是否有匹配 Token。
+
+> 本文档以 Digital Parchment 设计系统为基准。

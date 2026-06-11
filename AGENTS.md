@@ -58,7 +58,6 @@ prototype/       UI 原型（HTML/CSS 高保真页面）
   desktop-*.html       桌面端三栏布局原型
   desktop-styles.css   桌面端样式（Digital Parchment 设计系统）
   stitch-*.html/.png   Pencil 导出截图参考
-  DESIGN.md            设计系统规格
 docs/
   product.md    产品定位
   standards/    工程规范
