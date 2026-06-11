@@ -30,32 +30,51 @@
   .editor-content-display li {
     margin-bottom: 8px;
   }
-  .list-filters {
+
+  .editor-content-display br {
+    content: '';
+    display: block;
+    height: 8px;
+  }
+
+  .edit-modal {
+    max-width: 48rem;
+    max-height: 85vh;
     display: flex;
-    gap: 8px;
-    margin-top: 0;
+    flex-direction: column;
   }
-  .select-dropdown {
-    padding: 4px 8px;
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 500;
+  .edit-modal-header {
+    padding: var(--unit-4) var(--unit-6);
+    border-bottom: 1px solid var(--muted-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .edit-modal-header span:first-child {
+    font-weight: 600;
+    font-size: 16px;
     color: var(--ink-charcoal);
-    background: var(--surface-container-lowest);
-    border: 1px solid var(--muted-border);
-    border-radius: var(--radius);
-    cursor: pointer;
-    outline: none;
-    transition: border-color 0.2s;
-    appearance: none;
-    -webkit-appearance: none;
-    padding-right: 24px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 6px center;
   }
-  .select-dropdown:focus {
-    border-color: var(--active-teal);
+  .edit-modal-body {
+    padding: var(--unit-6);
+    display: flex;
+    flex-direction: column;
+    gap: var(--unit-4);
+    overflow-y: auto;
+    flex: 1;
+  }
+  .edit-modal-body .editor-body {
+    flex: 1;
+    min-height: 40vh;
+  }
+  .edit-modal-footer {
+    padding: var(--unit-4) var(--unit-6);
+    border-top: 1px solid var(--muted-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--unit-2);
+    flex-shrink: 0;
   }
 </style>
 </head>
@@ -69,14 +88,13 @@
         <div class="sidebar-logo">C</div>
         <div>
           <div class="sidebar-title">CardMind</div>
-          <div class="sidebar-subtitle">本地优先工作区</div>
         </div>
       </div>
       <div class="sidebar-cta">
-        <a href="desktop-note-new.html" class="btn-new-note" style="text-decoration:none;">
+        <button class="btn-new-note" onclick="openNewNoteModal()" style="cursor:pointer;border:none;width:100%;">
           <span class="material-symbols-outlined" style="font-size:18px;">add</span>
           新建卡片
-        </a>
+        </button>
       </div>
       <ul class="sidebar-nav">
         <li><a href="desktop-notes-list.html" class="nav-item active">
@@ -99,92 +117,237 @@
     <div class="list-header">
       <div class="list-header-top">
         <h2 class="list-title">卡片</h2>
-        <button class="btn-icon"><span class="material-symbols-outlined">filter_list</span></button>
+        <button class="btn-icon" id="sortToggle" title="按编辑时间倒序"><span class="material-symbols-outlined">sort</span></button>
       </div>
       <div class="list-search">
         <span class="material-symbols-outlined">search</span>
         <input placeholder="搜索卡片..." type="text"/>
       </div>
-      <div class="list-filters">
-        <span style="font-size:11px;font-weight:500;color:var(--graphite-gray);">排序:</span>
-        <select class="select-dropdown">
-          <option value="updated">按更新时间</option>
-          <option value="created">按创建时间</option>
-        </select>
-      </div>
+
     </div>
-    <div class="list-body no-scrollbar">
-      <!-- Active note -->
-      <div class="note-card active" onclick="location.href='desktop-notes-list.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">设计系统架构</span>
-          <span class="note-card-time">2分钟前</span>
-        </div>
-        <p class="note-card-preview">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影...</p>
-      </div>
-      <!-- Inactive notes -->
-      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">会议记录：项目 X</span>
-          <span class="note-card-time">2小时前</span>
-        </div>
-        <p class="note-card-preview">讨论了第二阶段的时间表。关键交付成果包括新的同步引擎和本地优先数据库迁移。</p>
-      </div>
-      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">每周日用品</span>
-          <span class="note-card-time">1天前</span>
-        </div>
-        <p class="note-card-preview">- 杏仁奶 · 咖啡豆（中度烘焙）· 牛油果 · 酸面团面包</p>
-      </div>
-      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">Q3 目标草案</span>
-          <span class="note-card-time">3天前</span>
-        </div>
-        <p class="note-card-preview">1. 首次加载延迟降低 20%。2. 发布新的极简 UI。3. 数据池功能的用户测试。</p>
-      </div>
-      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">阅读清单</span>
-          <span class="note-card-time">1周前</span>
-        </div>
-        <p class="note-card-preview">《设计心理学》《上瘾》《重构 UI》</p>
-      </div>
-    </div>
+    <div class="list-body no-scrollbar" id="noteListBody"></div>
   </aside>
 
   <!-- Pane 3: Editor -->
   <main class="editor-pane no-scrollbar">
-    <div class="editor-actions">
-      <a href="desktop-note-delete.html" class="btn-icon danger" title="删除卡片">
-        <span class="material-symbols-outlined">delete</span>
-      </a>
-    </div>
-    <div class="editor-canvas">
-      <input class="editor-title-input" type="text" value="设计系统架构" readonly/>
-      <div class="editor-meta">
-        <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> 2023年10月24日</span>
-        <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> 2分钟前</span>
-      </div>
-      <div class="editor-content-display">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影。
-
-核心原则
-1. 极简与实用：像精密工具一样运作。
-2. 本地优先的可靠性：速度是一项特性。
-3. 桌面端的固定面板模式：260px | 360px | 48rem 居中。
-
-层级
-- 层级 0：背景框架（中性）
-- 层级 1：表面（侧边栏）
-- 完全避免使用投影。使用 1px 的柔和边框（#E2E2E0）
-
-当卡片处于激活状态时，它会获得 2px 的青色左边框。
-
-记住保持 UI 简洁安静。让内容有呼吸的空间。</div>
+    <div class="editor-actions" id="editorActions"></div>
+    <div class="editor-canvas" id="editorCanvas">
+      <input class="editor-title-input" id="editorTitle" type="text" readonly/>
+      <div class="editor-meta" id="editorMeta"></div>
+      <div class="editor-content-display" id="editorBodyDisplay"></div>
     </div>
   </main>
 </div>
 
+<script>
+const notes = [
+  {
+    id: 1,
+    title: '设计系统架构',
+    date: '2023年10月24日',
+    time: '2分钟前',
+    preview: '构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影...',
+    body: '构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影。\n\n核心原则\n1. 极简与实用：像精密工具一样运作。\n2. 本地优先的可靠性：速度是一项特性。\n3. 桌面端的固定面板模式：260px | 360px | 48rem 居中。\n\n层级\n- 层级 0：背景框架（中性）\n- 层级 1：表面（侧边栏）\n- 完全避免使用投影。使用 1px 的柔和边框（#E2E2E0）\n\n当卡片处于激活状态时，它会获得 2px 的青色左边框。\n\n记住保持 UI 简洁安静。让内容有呼吸的空间。'
+  },
+  {
+    id: 2,
+    title: '会议记录：项目 X',
+    date: '2024年6月5日',
+    time: '2小时前',
+    preview: '讨论了第二阶段的时间表。关键交付成果包括新的同步引擎和本地优先数据库迁移。',
+    body: '讨论了第二阶段的时间表。关键交付成果包括新的同步引擎和本地优先数据库迁移。\n\n与会人员\n- 张工（前端负责人）\n- 李工（后端架构师）\n- 王工（测试主管）\n\n关键决策\n1. 同步引擎使用 iroh 直连模式，不依赖中继服务器。\n2. 数据库从 SQLite 迁移到 Loro CRDT，保证离线编辑不冲突。\n3. 前端采用三栏布局（260px + 360px + 自适应），移动端使用底部双标签导航。\n\n下一步行动\n- 张工：周四前完成 UI 原型（含删除确认对话框）\n- 李工：周五前完成 Rust 端 iroh 集成测试\n- 王工：下周一前编写同步场景测试用例\n\n下次会议时间：6月12日（周三）下午 2:00'
+  },
+  {
+    id: 3,
+    title: '每周日用品',
+    date: '2024年6月10日',
+    time: '1天前',
+    preview: '- 杏仁奶 · 咖啡豆（中度烘焙）· 牛油果 · 酸面团面包',
+    body: '- 杏仁奶\n- 咖啡豆（中度烘焙）\n- 牛油果\n- 酸面团面包\n- 鸡蛋（一打）\n- 橄榄油\n- 蜂蜜'
+  },
+  {
+    id: 4,
+    title: 'Q3 目标草案',
+    date: '2024年6月8日',
+    time: '3天前',
+    preview: '1. 首次加载延迟降低 20%。2. 发布新的极简 UI。3. 数据池功能的用户测试。',
+    body: '1. 首次加载延迟降低 20%\n2. 发布新的极简 UI\n3. 数据池功能的用户测试\n4. 完善离线编辑体验\n5. 迁移至新的同步层'
+  },
+  {
+    id: 5,
+    title: '阅读清单',
+    date: '2024年6月3日',
+    time: '1周前',
+    preview: '《设计心理学》《上瘾》《重构 UI》',
+    body: '《设计心理学》— Donald Norman\n《上瘾》— Nir Eyal\n《重构 UI》— 设计模式实践\n《CSS Secrets》— Lea Verou\n《Thinking in Systems》— Donella Meadows'
+  }
+];
+
+let activeNoteId = 1;
+let sortAscending = false;
+
+document.getElementById('sortToggle').addEventListener('click', function() {
+  sortAscending = !sortAscending;
+  this.title = sortAscending ? '按编辑时间正序' : '按编辑时间倒序';
+  renderNoteCards();
+  if (activeNoteId) selectNote(activeNoteId);
+});
+
+function renderNoteCards() {
+  const sorted = [...notes];
+  if (sortAscending) sorted.reverse();
+  const container = document.getElementById('noteListBody');
+  container.innerHTML = sorted.map(note => `
+    <div class="note-card${note.id === activeNoteId ? ' active' : ''}" data-id="${note.id}">
+      <div class="note-card-header">
+        <span class="note-card-title">${note.title}</span>
+        <span class="note-card-time">${note.time}</span>
+      </div>
+      <p class="note-card-preview">${note.preview}</p>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.note-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const id = parseInt(this.dataset.id);
+      selectNote(id);
+    });
+  });
+}
+
+function selectNote(id) {
+  activeNoteId = id;
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+
+  document.getElementById('editorTitle').value = note.title;
+  document.getElementById('editorMeta').innerHTML = `
+    <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> ${note.date}</span>
+    <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> ${note.time}</span>
+  `;
+  document.getElementById('editorBodyDisplay').textContent = note.body;
+  document.getElementById('editorActions').innerHTML = `
+    <button class="btn-icon" onclick="openEditModal(${id})" title="编辑卡片">
+      <span class="material-symbols-outlined">edit_note</span>
+    </button>
+    <button class="btn-icon danger" onclick="deleteNote(${id})" title="删除卡片">
+      <span class="material-symbols-outlined">delete</span>
+    </button>
+  `;
+
+  document.querySelectorAll('.note-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.note-card[data-id="${id}"]`)?.classList.add('active');
+}
+
+let editingNoteId = null;
+
+function openEditModal(id) {
+  editingNoteId = id;
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  document.getElementById('modalEditTitle').value = note.title;
+  document.getElementById('modalEditMeta').innerHTML = `
+    <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> ${note.date}</span>
+    <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> ${note.time}</span>
+  `;
+  document.getElementById('modalEditBody').value = note.body;
+  document.getElementById('editModal').style.display = '';
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').style.display = 'none';
+  editingNoteId = null;
+}
+
+renderNoteCards();
+selectNote(1);
+
+function deleteNote(id) {
+  const note = notes.find(n => n.id === id);
+  if (!confirm(`确定删除「${note ? note.title : '此笔记'}」？此操作不可撤销。`)) return;
+  const idx = notes.findIndex(n => n.id === id);
+  if (idx > -1) notes.splice(idx, 1);
+  if (activeNoteId === id) {
+    if (notes.length > 0) selectNote(notes[0].id);
+    else {
+      activeNoteId = null;
+      document.getElementById('editorTitle').value = '';
+      document.getElementById('editorMeta').innerHTML = '';
+      document.getElementById('editorBodyDisplay').textContent = '';
+      document.getElementById('editorActions').innerHTML = '';
+    }
+  }
+  renderNoteCards();
+}
+
+let nextNoteId = 6;
+
+function openNewNoteModal() {
+  document.getElementById('newNoteTitle').value = '';
+  document.getElementById('newNoteBody').value = '';
+  document.getElementById('newNoteModal').style.display = '';
+}
+
+function closeNewNoteModal() {
+  document.getElementById('newNoteModal').style.display = 'none';
+}
+
+function saveNewNote() {
+  const title = document.getElementById('newNoteTitle').value.trim() || '无标题';
+  const body = document.getElementById('newNoteBody').value.trim() || '';
+  const now = new Date();
+  const timeStr = now.toLocaleString('zh-CN', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  notes.push({
+    id: nextNoteId++,
+    title,
+    date: timeStr,
+    time: '刚刚',
+    preview: body.length > 60 ? body.slice(0, 60) + '...' : (body || '没有内容'),
+    body: body || '没有内容'
+  });
+  if (sortAscending) sortAscending = false;
+  document.getElementById('sortToggle').title = '按编辑时间倒序';
+  renderNoteCards();
+  selectNote(notes[notes.length - 1].id);
+  closeNewNoteModal();
+}
+</script>
+
+<!-- New Note Modal -->
+<div class="modal-overlay" id="newNoteModal" style="display:none;">
+  <div class="modal-dialog edit-modal">
+    <div class="edit-modal-header">
+      <span>新建笔记</span>
+      <button class="btn-icon" onclick="closeNewNoteModal()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="edit-modal-body">
+      <input class="editor-title-input" id="newNoteTitle" type="text" placeholder="无标题" />
+      <textarea class="editor-body" id="newNoteBody" placeholder="开始写作..." style="min-height:40vh;"></textarea>
+    </div>
+    <div class="edit-modal-footer">
+      <button class="btn-secondary" onclick="closeNewNoteModal()">取消</button>
+      <button class="btn-primary" onclick="saveNewNote()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal Overlay -->
+<div class="modal-overlay" id="editModal" style="display:none;">
+  <div class="modal-dialog edit-modal">
+    <div class="edit-modal-header">
+      <span>编辑笔记</span>
+      <button class="btn-icon" onclick="closeEditModal()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="edit-modal-body">
+      <input class="editor-title-input" id="modalEditTitle" type="text" />
+      <div class="editor-meta" id="modalEditMeta"></div>
+      <textarea class="editor-body" id="modalEditBody"></textarea>
+    </div>
+    <div class="edit-modal-footer">
+      <button class="btn-secondary" onclick="closeEditModal()">取消</button>
+      <button class="btn-primary" onclick="closeEditModal()">保存</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

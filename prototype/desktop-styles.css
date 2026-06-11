@@ -349,7 +349,7 @@ body {
 
 .list-search input {
   width: 100%;
-  padding: 8px 12px 8px 36px;
+  padding: 8px 32px 8px 36px;
   background: var(--surface-container-low);
   border: none;
   border-bottom: 2px solid var(--muted-border);

@@ -8,10 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <link href="desktop-styles.css" rel="stylesheet"/>
 <style>
-  .list-filters {
-    display: flex;
-    gap: 8px;
-  }
   .select-dropdown {
     padding: 4px 8px;
     font-family: var(--font-ui);
@@ -43,6 +39,12 @@
   .search-active-input {
     border-bottom-color: var(--active-teal) !important;
   }
+  .hl {
+    background: rgba(74,112,122,0.15);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
 </style>
 </head>
 <body>
@@ -55,7 +57,6 @@
         <div class="sidebar-logo">C</div>
         <div>
           <div class="sidebar-title">CardMind</div>
-          <div class="sidebar-subtitle">本地优先工作区</div>
         </div>
       </div>
       <div class="sidebar-cta">
@@ -85,87 +86,105 @@
     <div class="list-header">
       <div class="list-header-top">
         <h2 class="list-title">卡片</h2>
-        <button class="btn-icon" title="清除搜索" onclick="clearSearch()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+        <button class="btn-icon" id="sortToggle" title="按编辑时间倒序"><span class="material-symbols-outlined">sort</span></button>
       </div>
       <div class="list-search">
         <span class="material-symbols-outlined">search</span>
         <input class="search-active-input" placeholder="搜索卡片..." type="text" value="设计" id="searchInput" autofocus/>
-      </div>
-      <div class="list-filters" style="margin-top:8px;">
-        <span style="font-size:11px;font-weight:500;color:var(--graphite-gray);">排序:</span>
-        <select class="select-dropdown">
-          <option value="updated">按更新时间</option>
-          <option value="created">按创建时间</option>
-        </select>
+        <button class="btn-icon" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:var(--ink-charcoal);display:flex;align-items:center;padding:4px;z-index:2;" onclick="clearSearch()" title="清除搜索">
+          <span class="material-symbols-outlined" style="font-size:18px;">close</span>
+        </button>
       </div>
       <div class="search-result-count" id="resultCount">
         找到 <strong style="color:var(--active-teal);">3</strong> 条结果
       </div>
     </div>
-    <div class="list-body no-scrollbar">
-      <div class="note-card active" onclick="location.href='desktop-notes-list.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">设计系统架构</span>
-          <span class="note-card-time" style="display:flex;align-items:center;gap:6px;"><span style="font-size:10px;background:var(--surface-container);padding:1px 6px;border-radius:3px;">设计团队</span>2分钟前</span>
-        </div>
-        <p class="note-card-preview">构建数字<mark style="background:rgba(74,112,122,0.15);color:inherit;border-radius:2px;padding:0 2px;">设计</mark>概念的新令牌。需要确保色调层取代沉重的阴影...</p>
-      </div>
-      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">系统设计会议纪要</span>
-          <span class="note-card-time" style="display:flex;align-items:center;gap:6px;"><span style="font-size:10px;background:var(--surface-container);padding:1px 6px;border-radius:3px;">个人笔记</span>10月5日</span>
-        </div>
-        <p class="note-card-preview">讨论了关于架构重构的可能性。主要关注点在数据持久层和内存占用的优化，以及新的<mark style="background:rgba(74,112,122,0.15);color:inherit;border-radius:2px;padding:0 2px;">设计</mark>标准的实施。</p>
-      </div>
-      <div class="note-card" onclick="location.href='desktop-note-edit.html'">
-        <div class="note-card-header">
-          <span class="note-card-title">设计规范更新</span>
-          <span class="note-card-time" style="display:flex;align-items:center;gap:6px;"><span style="font-size:10px;background:var(--surface-container);padding:1px 6px;border-radius:3px;">项目X</span>1周前</span>
-        </div>
-        <p class="note-card-preview">新的组件<mark style="background:rgba(74,112,122,0.15);color:inherit;border-radius:2px;padding:0 2px;">设计</mark>规范已发布，所有UI组件需遵循 Digital Parchment 设计系统。</p>
-      </div>
-    </div>
+    <div class="list-body no-scrollbar" id="noteListBody"></div>
   </aside>
 
   <!-- Pane 3: Editor -->
   <main class="editor-pane no-scrollbar">
-    <div class="editor-actions">
-      <a href="desktop-note-delete.html" class="btn-icon danger" title="删除卡片">
-        <span class="material-symbols-outlined">delete</span>
-      </a>
+    <div class="editor-actions" id="editorActions">
     </div>
-    <div class="editor-canvas">
-      <input class="editor-title-input" type="text" value="设计系统架构" readonly/>
-      <div class="editor-meta">
-        <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> 2023年10月24日</span>
-        <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> 2分钟前</span>
-      </div>
-      <div style="font-family:var(--font-mono);font-size:14px;line-height:24px;color:var(--on-surface-variant);white-space:pre-wrap;">构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影。
-
-核心原则
-1. 极简与实用：像精密工具一样运作。
-2. 本地优先的可靠性：速度是一项特性。
-3. 桌面端的固定面板模式：260px | 360px | 48rem 居中。
-
-层级
-- 层级 0：背景框架（中性）
-- 层级 1：表面（侧边栏）
-- 完全避免使用投影。使用 1px 的柔和边框（#E2E2E0）
-
-当卡片处于激活状态时，它会获得 2px 的青色左边框。
-
-记住保持 UI 简洁安静。让内容有呼吸的空间。</div>
+    <div class="editor-canvas" id="editorCanvas">
+      <input class="editor-title-input" id="editorTitle" type="text" readonly/>
+      <div class="editor-meta" id="editorMeta"></div>
+      <div class="editor-content-display"></div>
     </div>
   </main>
 </div>
 
 <script>
-  function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    location.href = 'notes-list.html';
+const searchResults = [
+  {
+    id: 1,
+    title: '设计系统架构',
+    date: '2023年10月24日',
+    time: '2分钟前',
+    preview: '构建数字<span class="hl">设计</span>概念的新令牌。需要确保色调层取代沉重的阴影...',
+    body: '构建数字纸张概念的新令牌。需要确保色调层取代沉重的阴影。\n\n核心原则\n1. 极简与实用：像精密工具一样运作。\n2. 本地优先的可靠性：速度是一项特性。\n3. 桌面端的固定面板模式：260px | 360px | 48rem 居中。\n\n层级\n- 层级 0：背景框架（中性）\n- 层级 1：表面（侧边栏）\n- 完全避免使用投影。使用 1px 的柔和边框（#E2E2E0）\n\n当卡片处于激活状态时，它会获得 2px 的青色左边框。\n\n记住保持 UI 简洁安静。让内容有呼吸的空间。'
+  },
+  {
+    id: 2,
+    title: '系统设计会议纪要',
+    date: '2024年10月5日',
+    time: '10月5日',
+    preview: '讨论了关于架构重构的可能性。主要关注点在数据持久层和内存占用的优化，以及新的<span class="hl">设计</span>标准的实施。',
+    body: '讨论了关于架构重构的可能性。主要关注点在数据持久层和内存占用的优化，以及新的设计标准的实施。'
+  },
+  {
+    id: 3,
+    title: '设计规范更新',
+    date: '2024年6月3日',
+    time: '1周前',
+    preview: '新的组件<span class="hl">设计</span>规范已发布，所有UI组件需遵循 Digital Parchment 设计系统。',
+    body: '新的组件设计规范已发布，所有UI组件需遵循 Digital Parchment 设计系统。'
   }
+];
+
+let activeResultId = 1;
+let sortAscending = false;
+
+document.getElementById('sortToggle').addEventListener('click', function() {
+  sortAscending = !sortAscending;
+  this.title = sortAscending ? '按编辑时间正序' : '按编辑时间倒序';
+  renderResults();
+  if (activeResultId) selectResult(activeResultId);
+});
+
+function renderResults() {
+  const sorted = [...searchResults];
+  if (sortAscending) sorted.reverse();
+  const container = document.getElementById('noteListBody');
+  container.innerHTML = sorted.map(n => `
+    <div class="note-card${n.id === activeResultId ? ' active' : ''}" onclick="selectResult(${n.id})">
+      <div class="note-card-header">
+        <span class="note-card-title">${n.title}</span>
+        <span class="note-card-time">${n.time}</span>
+      </div>
+      <p class="note-card-preview">${n.preview}</p>
+    </div>
+  `).join('');
+}
+
+function selectResult(id) {
+  activeResultId = id;
+  renderResults();
+  const note = searchResults.find(n => n.id === id);
+  document.getElementById('editorTitle').value = note.title;
+  document.getElementById('editorMeta').innerHTML = `
+    <span><span class="material-symbols-outlined" style="font-size:14px;">calendar_today</span> ${note.date}</span>
+    <span><span class="material-symbols-outlined" style="font-size:14px;">edit</span> ${note.time}</span>
+  `;
+  document.querySelector('#editorCanvas .editor-content-display').innerHTML = note.body.replace(/\n/g, '<br>');
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  location.href = 'desktop-notes-list.html';
+}
+
+renderResults();
 </script>
 </body>
 </html>

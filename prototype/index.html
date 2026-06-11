@@ -8,244 +8,436 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <link href="desktop-styles.css" rel="stylesheet"/>
 <style>
+  body { overflow-y: auto; background: var(--paper-white); }
   .nav-index {
-    max-width: 720px;
+    max-width: 960px;
     margin: 0 auto;
-    padding: 64px 24px;
+    padding: 48px 24px 80px;
   }
-  .nav-index h1 {
+  .nav-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--muted-border);
+  }
+  .nav-header .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--active-teal);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .nav-header .logo-icon span {
+    color: #fff;
     font-size: 28px;
+  }
+  .nav-header h1 {
+    font-size: 24px;
     font-weight: 600;
     color: var(--ink-charcoal);
     letter-spacing: -0.02em;
-    margin-bottom: 8px;
+    margin-bottom: 2px;
   }
-  .nav-index .subtitle {
-    font-size: 14px;
+  .nav-header .subtitle {
+    font-size: 13px;
     color: var(--graphite-gray);
-    margin-bottom: 40px;
   }
-  .nav-index h2 {
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 13px;
     font-weight: 700;
     color: var(--graphite-gray);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    margin-bottom: 12px;
-    margin-top: 32px;
+    margin-bottom: 16px;
+    margin-top: 40px;
+    padding-left: 4px;
   }
-  .nav-index h2:first-of-type {
-    margin-top: 0;
+  .section-heading:first-of-type { margin-top: 0; }
+  .section-heading .count {
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface-variant);
+    padding: 0 8px;
+    border-radius: 9999px;
+    margin-left: 4px;
   }
-  .page-link {
+  .page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .page-card {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    flex-direction: column;
     border: 1px solid var(--muted-border);
     border-radius: var(--radius);
-    margin-bottom: 8px;
+    background: var(--surface-container-lowest);
     text-decoration: none;
-    color: var(--ink-charcoal);
-    font-size: 15px;
-    font-weight: 500;
-    transition: background 0.15s, border-color 0.15s;
+    color: inherit;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .page-link:hover {
-    background: var(--surface-container-low);
+  .page-card:hover {
     border-color: var(--active-teal);
+    box-shadow: 0 1px 4px rgba(74,112,122,0.08);
   }
-  .page-link .material-symbols-outlined {
-    font-size: 24px;
-    color: var(--active-teal);
-    flex-shrink: 0;
+  .page-card .thumb {
+    width: 100%;
+    height: 148px;
+    background: var(--surface-container);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
   }
-  .page-link .page-info {
-    flex: 1;
+  .page-card .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
-  .page-link .page-name {
-    font-weight: 600;
-  }
-  .page-link .page-desc {
-    font-size: 12px;
+  .page-card .thumb .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
     color: var(--graphite-gray);
-    font-weight: 400;
-    margin-top: 2px;
   }
-  .page-link .tag {
+  .page-card .thumb .placeholder span.material-symbols-outlined {
+    font-size: 32px;
+    opacity: 0.5;
+  }
+  .page-card .thumb .placeholder .label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--graphite-gray);
+    opacity: 0.4;
+    letter-spacing: 0.03em;
+  }
+  .page-card .card-info {
+    padding: 14px 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .page-card .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .page-card .page-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink-charcoal);
+    line-height: 1.3;
+  }
+  .page-card .tag {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     padding: 2px 8px;
     border-radius: 9999px;
     background: var(--surface-variant);
     color: var(--graphite-gray);
     white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
   }
-  .page-link .tag.new {
+  .page-card .tag.new {
     background: rgba(74, 112, 122, 0.1);
     color: var(--active-teal);
   }
+  .page-card .page-desc {
+    font-size: 12px;
+    color: var(--graphite-gray);
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .page-card .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 10px;
+    font-size: 11px;
+    color: var(--graphite-gray);
+  }
+  .page-card .card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .page-card .card-meta span .material-symbols-outlined {
+    font-size: 14px;
+  }
+
+  @media (max-width: 640px) {
+    .page-grid { grid-template-columns: 1fr; }
+    .nav-index { padding: 24px 16px 48px; }
+    .page-card .thumb { height: 120px; }
+  }
 </style>
 </head>
-<body style="overflow-y: auto;">
+<body>
 <div class="nav-index">
-  <h1>CardMind 高保真原型</h1>
-  <p class="subtitle">Digital Parchment 设计系统 · 纯文本笔记应用 · 桌面三栏 + 移动适配</p>
 
-  <h2>📝 卡片笔记域 — 增删改查</h2>
-
-  <a class="page-link" href="desktop-notes-list.html">
-    <span class="material-symbols-outlined">folder_open</span>
-    <div class="page-info">
-      <div class="page-name">笔记列表（主屏）</div>
-       <div class="page-desc">桌面三栏布局：侧边栏 + 笔记列表 + 编辑器</div>
+  <div class="nav-header">
+    <div class="logo-icon"><span class="material-symbols-outlined">psychology</span></div>
+    <div>
+      <h1>CardMind 高保真原型</h1>
+      <div class="subtitle">Digital Parchment 设计系统 · 纯文本笔记应用 · 桌面三栏 + 移动适配</div>
     </div>
-  </a>
+  </div>
 
-  <a class="page-link" href="desktop-note-new.html">
-    <span class="material-symbols-outlined">note_add</span>
-    <div class="page-info">
-      <div class="page-name">新建笔记</div>
-      <div class="page-desc">空白编辑器，带闪烁光标，列表高亮「无标题」</div>
-    </div>
-  </a>
+  <!-- ========== 卡片笔记域 ========== -->
+  <div class="section-heading">
+    <span class="material-symbols-outlined" style="font-size:18px;color:var(--active-teal);">sticky_note_2</span>
+    卡片笔记域
+    <span class="count">6</span>
+  </div>
+  <div class="page-grid">
 
-  <a class="page-link" href="desktop-note-edit.html">
-    <span class="material-symbols-outlined">edit_note</span>
-    <div class="page-info">
-      <div class="page-name">编辑笔记</div>
-      <div class="page-desc">已填充内容的编辑器，含标题、元信息和正文</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-notes-list.html">
+      <div class="thumb">
+        <img src="stitch-note-list-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">笔记列表（主屏）</div>
+          <span class="tag">核心</span>
+        </div>
+        <div class="page-desc">桌面三栏布局：侧边栏 + 笔记列表 + 编辑器。支持排序切换、单击查看详情、弹窗编辑。</div>
+        <div class="card-meta">
+          <span><span class="material-symbols-outlined">edit_note</span> 弹窗编辑</span>
+          <span><span class="material-symbols-outlined">sort</span> 排序切换</span>
+        </div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-note-search.html">
-    <span class="material-symbols-outlined">search</span>
-    <div class="page-info">
-      <div class="page-name">搜索笔记</div>
-      <div class="page-desc">搜索框激活状态，关键词高亮，显示「找到 N 条结果」</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-note-new.html">
+      <div class="thumb">
+        <img src="stitch-note-editor-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">新建笔记</div>
+        </div>
+        <div class="page-desc">空白编辑器弹窗，带占位符光标。保存后自动加入笔记列表并选中。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-note-delete.html">
-    <span class="material-symbols-outlined">delete</span>
-    <div class="page-info">
-      <div class="page-name">删除确认</div>
-      <div class="page-desc">危险操作确认对话框，含取消/确认删除按钮</div>
-    </div>
-  </a>
+    <a class="page-card" href="desktop-note-edit.html">
+      <div class="thumb">
+        <img src="stitch-note-editor-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">编辑笔记</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">已填充内容的编辑器弹窗，含标题、元信息、正文 textarea。遮罩层阻止列表切换。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-note-restore.html">
-    <span class="material-symbols-outlined">restore_from_trash</span>
-    <div class="page-info">
-      <div class="page-name">恢复已删除笔记</div>
-      <div class="page-desc">回收站列表，显示已软删除的笔记及剩余天数，可恢复</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-note-search.html">
+      <div class="thumb">
+        <img src="stitch-note-list-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">搜索笔记</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">搜索框激活状态，关键词高亮，显示匹配结果数。含空结果引导页。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-sync-error.html">
-    <span class="material-symbols-outlined">sync_problem</span>
-    <div class="page-info">
-      <div class="page-name">同步失败</div>
-      <div class="page-desc">编辑器顶部错误 Toast，显示「同步失败，请检查网络连接」</div>
-    </div>
-  </a>
+    <a class="page-card" href="desktop-sync-error.html">
+      <div class="thumb">
+        <img src="stitch-sync-network-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">同步失败</div>
+        </div>
+        <div class="page-desc">编辑器顶部错误 Toast，显示「同步失败，请检查网络连接」和重试按钮。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-empty-state.html">
-    <span class="material-symbols-outlined">inbox</span>
-    <div class="page-info">
-      <div class="page-name">空态</div>
-      <div class="page-desc">无笔记时的引导状态，提示用户创建第一篇笔记</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-empty-state.html">
+      <div class="thumb">
+        <img src="stitch-note-list-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">空态</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">无笔记时的引导状态，提示用户创建第一篇笔记。含三栏骨架。</div>
+      </div>
+    </a>
 
-  <h2>🗄️ 数据池域 — 增删改查</h2>
+  </div>
 
-  <a class="page-link" href="desktop-pool-setup.html">
-    <span class="material-symbols-outlined">database</span>
-    <div class="page-info">
-      <div class="page-name">设置数据池（未加入态）</div>
-      <div class="page-desc">创建/加入数据池的选择卡片，列表显示「当前没有已加入的数据池」</div>
-    </div>
-  </a>
+  <!-- ========== 数据池域 ========== -->
+  <div class="section-heading">
+    <span class="material-symbols-outlined" style="font-size:18px;color:var(--active-teal);">database</span>
+    数据池域
+    <span class="count">8</span>
+  </div>
+  <div class="page-grid">
 
-  <a class="page-link" href="desktop-pool-join.html">
-    <span class="material-symbols-outlined">login</span>
-    <div class="page-info">
-      <div class="page-name">加入数据池</div>
-      <div class="page-desc">输入邀请码加入已有数据池的表单对话框</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-pool-setup.html">
+      <div class="thumb">
+        <img src="stitch-pool-setup-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">设置数据池</div>
+        </div>
+        <div class="page-desc">未加入态。创建 / 加入数据池的选择卡片，双栏布局，全宽内容区。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-pool-joined.html">
-    <span class="material-symbols-outlined">hub</span>
-    <div class="page-info">
-      <div class="page-name">数据池管理（已加入态）</div>
-      <div class="page-desc">已加入数据池的列表和管理界面，显示池信息和设备</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-pool-join.html">
+      <div class="thumb">
+        <div class="placeholder">
+          <span class="material-symbols-outlined">login</span>
+          <span class="label">加入截图</span>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">加入数据池</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">输入邀请码加入已有数据池的表单。包含错误状态展示页。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-pool-leave.html">
-    <span class="material-symbols-outlined">logout</span>
-    <div class="page-info">
-      <div class="page-name">退出数据池</div>
-      <div class="page-desc">确认弹窗，说明退出后失去访问权限，本地数据保留</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-pool-joined.html">
+      <div class="thumb">
+        <img src="stitch-data-pool-admin-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">数据池管理</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">已加入态。数据池详情、设备列表、共享统计。管理员操作入口。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-pool-disband.html">
-    <span class="material-symbols-outlined">delete_forever</span>
-    <div class="page-info">
-      <div class="page-name">解散数据池</div>
-      <div class="page-desc">管理员专属，danger-red 确认弹窗，不可撤销操作</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-pool-members.html">
+      <div class="thumb">
+        <img src="stitch-pool-members-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">成员管理</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">当前成员列表。管理员可批准 / 拒绝待审批申请。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-pool-invite.html">
-    <span class="material-symbols-outlined">vpn_key</span>
-    <div class="page-info">
-      <div class="page-name">邀请管理</div>
-      <div class="page-desc">管理邀请码，可创建新的和撤销已有的，显示使用次数</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-pool-requests.html">
+      <div class="thumb">
+        <img src="stitch-members-pane-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">加入申请审批</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">审批加入申请，待审批 / 已批准 / 已拒绝三标签分栏。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-pool-members.html">
-    <span class="material-symbols-outlined">group</span>
-    <div class="page-info">
-      <div class="page-name">成员管理</div>
-      <div class="page-desc">当前成员列表 + 待审批申请，管理员可批准/拒绝</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-pool-invite.html">
+      <div class="thumb">
+        <img src="stitch-members-pane-screen.png" alt="" loading="lazy"/>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">邀请管理</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">管理邀请码，可创建新码和撤销已有码，显示使用次数。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-pool-requests.html">
-    <span class="material-symbols-outlined">pending_actions</span>
-    <div class="page-info">
-      <div class="page-name">加入申请审批列表</div>
-      <div class="page-desc">审批加入申请，含待审批/已批准/已拒绝分栏标签</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+    <a class="page-card" href="desktop-pool-leave.html">
+      <div class="thumb">
+        <div class="placeholder">
+          <span class="material-symbols-outlined">logout</span>
+          <span class="label">退出截图</span>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">退出数据池</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">确认弹窗，说明退出后失去访问权限，本地数据保留。</div>
+      </div>
+    </a>
 
-  <h2>🔒 安全</h2>
+    <a class="page-card" href="desktop-pool-disband.html">
+      <div class="thumb">
+        <div class="placeholder">
+          <span class="material-symbols-outlined">delete_forever</span>
+          <span class="label">解散截图</span>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">解散数据池</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">管理员专属。danger-red 确认弹窗，不可撤销操作。</div>
+      </div>
+    </a>
 
-  <a class="page-link" href="desktop-app-lock.html">
-    <span class="material-symbols-outlined">lock</span>
-    <div class="page-info">
-      <div class="page-name">应用锁设置</div>
-      <div class="page-desc">设置 PIN 码/生物识别的应用锁，保护数据池访问</div>
-    </div>
-    <span class="tag new">新增</span>
-  </a>
+  </div>
+
+  <!-- ========== 安全 ========== -->
+  <div class="section-heading">
+    <span class="material-symbols-outlined" style="font-size:18px;color:var(--active-teal);">lock</span>
+    安全
+    <span class="count">1</span>
+  </div>
+  <div class="page-grid">
+
+    <a class="page-card" href="desktop-app-lock.html">
+      <div class="thumb">
+        <div class="placeholder">
+          <span class="material-symbols-outlined">lock</span>
+          <span class="label">应用锁截图</span>
+        </div>
+      </div>
+      <div class="card-info">
+        <div class="card-top">
+          <div class="page-name">应用锁设置</div>
+          <span class="tag new">新增</span>
+        </div>
+        <div class="page-desc">设置 PIN 码 / 生物识别的应用锁，保护数据池访问。含解锁与错误状态。</div>
+      </div>
+    </a>
+
+  </div>
+
 </div>
 </body>
 </html>
