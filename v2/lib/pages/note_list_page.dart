@@ -14,6 +14,7 @@ class NoteListPage extends StatefulWidget {
 class _NoteListPageState extends State<NoteListPage> {
   List<Note> _notes = [];
   bool _loading = true;
+  String? _selectedTag;
 
   @override
   void initState() {
@@ -57,6 +58,61 @@ class _NoteListPageState extends State<NoteListPage> {
         .map((t) => t.trim())
         .where((t) => t.isNotEmpty)
         .toList();
+  }
+
+  List<String> _getAllTags() {
+    final tagSet = <String>{};
+    for (final note in _notes) {
+      tagSet.addAll(_parseTags(note.tags));
+    }
+    return tagSet.toList()..sort();
+  }
+
+  List<Note> get _filteredNotes {
+    if (_selectedTag == null) return _notes;
+    return _notes.where((note) {
+      final tags = _parseTags(note.tags);
+      return tags.any((t) => t.toLowerCase() == _selectedTag!.toLowerCase());
+    }).toList();
+  }
+
+  Widget _buildTagFilterBar() {
+    final allTags = _getAllTags();
+    if (allTags.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade300, width: 0.5),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: allTags.map((tag) {
+            final isSelected = _selectedTag == tag;
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: FilterChip(
+                label: Text(tag, style: const TextStyle(fontSize: 12)),
+                selected: isSelected,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onSelected: (_) {
+                  setState(() {
+                    _selectedTag = isSelected ? null : tag;
+                  });
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
@@ -147,11 +203,26 @@ class _NoteListPageState extends State<NoteListPage> {
           ? const Center(child: CircularProgressIndicator())
           : _notes.isEmpty
               ? _buildEmptyState()
-              : ListView.separated(
-                  itemCount: _notes.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) =>
-                      _buildNoteItem(_notes[index]),
+              : Column(
+                  children: [
+                    _buildTagFilterBar(),
+                    Expanded(
+                      child: _filteredNotes.isEmpty
+                          ? Center(
+                              child: Text(
+                                '没有包含"$_selectedTag"标签的笔记',
+                                style: TextStyle(color: Colors.grey[500]),
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: _filteredNotes.length,
+                              separatorBuilder: (_, _) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) =>
+                                  _buildNoteItem(_filteredNotes[index]),
+                            ),
+                    ),
+                  ],
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
