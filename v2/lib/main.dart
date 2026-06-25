@@ -1,3 +1,4 @@
+import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
@@ -26,6 +27,7 @@ class CardMindApp extends StatelessWidget {
       localizationsDelegates: const [
         DefaultMaterialLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
+        AppFlowyEditorLocalizations.delegate,
       ],
       initialRoute: '/',
       onGenerateRoute: (settings) {
