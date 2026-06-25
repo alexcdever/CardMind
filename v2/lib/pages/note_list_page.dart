@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -15,11 +17,22 @@ class _NoteListPageState extends State<NoteListPage> {
   List<Note> _notes = [];
   bool _loading = true;
   String? _selectedTag;
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _debounceTimer;
+  List<Note> _searchResults = [];
+  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
     _loadNotes();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadNotes() async {
@@ -74,6 +87,65 @@ class _NoteListPageState extends State<NoteListPage> {
       final tags = _parseTags(note.tags);
       return tags.any((t) => t.toLowerCase() == _selectedTag!.toLowerCase());
     }).toList();
+  }
+
+  List<Note> get _displayedNotes {
+    if (_isSearching) return _searchResults;
+    return _filteredNotes;
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    if (query.isEmpty) {
+      setState(() {
+        _isSearching = false;
+        _searchResults = [];
+      });
+      return;
+    }
+    setState(() {
+      _isSearching = true;
+    });
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _performSearch(query);
+    });
+  }
+
+  Future<void> _performSearch(String query) async {
+    final results = await DatabaseHelper().search(query);
+    if (mounted) {
+      setState(() {
+        _searchResults = results;
+      });
+    }
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索笔记...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _onSearchChanged('');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.grey[100],
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        onChanged: _onSearchChanged,
+      ),
+    );
   }
 
   Widget _buildTagFilterBar() {
@@ -201,25 +273,28 @@ class _NoteListPageState extends State<NoteListPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _notes.isEmpty
+          : _notes.isEmpty && !_isSearching
               ? _buildEmptyState()
               : Column(
                   children: [
-                    _buildTagFilterBar(),
+                    _buildSearchBar(),
+                    if (!_isSearching) _buildTagFilterBar(),
                     Expanded(
-                      child: _filteredNotes.isEmpty
+                      child: _displayedNotes.isEmpty
                           ? Center(
                               child: Text(
-                                '没有包含"$_selectedTag"标签的笔记',
+                                _isSearching
+                                    ? '没有找到匹配的笔记'
+                                    : '没有包含"$_selectedTag"标签的笔记',
                                 style: TextStyle(color: Colors.grey[500]),
                               ),
                             )
                           : ListView.separated(
-                              itemCount: _filteredNotes.length,
+                              itemCount: _displayedNotes.length,
                               separatorBuilder: (_, _) =>
                                   const Divider(height: 1),
                               itemBuilder: (context, index) =>
-                                  _buildNoteItem(_filteredNotes[index]),
+                                  _buildNoteItem(_displayedNotes[index]),
                             ),
                     ),
                   ],
