@@ -23,28 +23,23 @@ class _EditorPageState extends State<EditorPage> {
   @override
   void initState() {
     super.initState();
-    _initialize();
+    if (widget.noteId != null) {
+      _initializeExisting();
+    } else {
+      _editorState = EditorState.blank(withInitialText: true);
+      _loaded = true;
+    }
   }
 
-  Future<void> _initialize() async {
-    if (widget.noteId != null) {
-      final note = await DatabaseHelper().getById(widget.noteId!);
-      if (note != null && mounted) {
-        setState(() {
-          _originalNote = note;
-          _tags = _parseTags(note.tags);
-          _editorState = EditorState(
-            document: markdownToDocument(note.content),
-          );
-          _loaded = true;
-        });
-        return;
-      }
-    }
-    // New note or note not found
-    if (mounted) {
+  Future<void> _initializeExisting() async {
+    final note = await DatabaseHelper().getById(widget.noteId!);
+    if (note != null && mounted) {
       setState(() {
-        _editorState = EditorState.blank(withInitialText: true);
+        _originalNote = note;
+        _tags = _parseTags(note.tags);
+        _editorState = EditorState(
+          document: markdownToDocument(note.content),
+        );
         _loaded = true;
       });
     }
@@ -163,6 +158,7 @@ class _EditorPageState extends State<EditorPage> {
       ),
     );
     if (result == 'edit') {
+      if (!mounted) return;
       final controller = TextEditingController(text: _tags[index]);
       final newTag = await showDialog<String>(
         context: context,
