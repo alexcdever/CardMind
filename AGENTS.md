@@ -110,6 +110,7 @@ bash rust/tools/test-with-net.sh --test unit -- connect_and_sync  # 签名后运
 ## 文档地图
 
 - `docs/product.md` — 产品定位与阶段目标
+- `docs/product-definition.md` — 产品定义（面向唯一用户的交互与验收标准）
 - `docs/personas.md` — 目标用户画像与核心使用场景
 - `docs/product-decisions.md` — 产品决策日志（决策理由与替代方案追溯）
 - `docs/standards/ai-collaboration.md` — 协作流程
