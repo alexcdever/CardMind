@@ -9,3 +9,5 @@ iroh = "1"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 mdns-sd = "0.20"
+rusqlite = { version = "0.31", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
