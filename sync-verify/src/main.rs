@@ -1,70 +1,72 @@
 use anyhow::{Context, Result};
-use iroh::{
-    endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr,
-};
-
-const ALPN: &[u8] = b"cardmind-v2";
+use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("=== iroh 局域网直连验证 ===\n");
+    println!("=== mDNS 设备发现验证 ===\n");
 
-    // 设备 A
-    let key_a = SecretKey::generate();
-    let ep_a = Endpoint::builder(presets::N0)
-        .secret_key(key_a)
-        .alpns(vec![ALPN.to_vec()])
-        .relay_mode(RelayMode::Disabled)
-        .bind()
-        .await?;
-    let id_a = ep_a.id();
-    let addr_info = ep_a.addr();
-    let local_ips: Vec<TransportAddr> = addr_info
-        .ip_addrs()
-        .map(|a| TransportAddr::Ip(*a))
-        .collect();
-    println!("[设备 A] id: {}", id_a);
+    let service_type = "_cardmind._tcp.local.";
 
-    // 后台启动 A 接收
-    let a_ep = ep_a.clone();
-    let a_handle = tokio::spawn(async move {
-        let incoming = a_ep
-            .accept()
-            .await
-            .ok_or_else(|| anyhow::anyhow!("没收到连接"))?;
-        let conn = incoming.accept()?.await?;
-        let mut recv = conn.accept_uni().await?;
-        let data = recv.read_to_end(usize::MAX).await?;
-        let msg = String::from_utf8(data)?;
-        println!("[设备 A] 收到: {msg}");
-        Ok::<_, anyhow::Error>(msg)
-    });
+    // 创建 mDNS 守护进程
+    let mdns = ServiceDaemon::new().context("创建 mDNS 守护进程失败")?;
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+    // 注册本机服务（模拟设备 A 在局域网广播自己的存在）
+    let service_info = ServiceInfo::new(
+        service_type,
+        "cardmind-device-a",             // 实例名
+        "device-a.local.",               // 主机名
+        "192.168.1.100",                 // IP（实际会用本机 IP）
+        0,                               // 端口（0 = 随机）
+        None,                            // TXT 记录（可以放 NodeId）
+    )
+    .context("创建服务信息失败")?;
 
-    // 设备 B
-    let key_b = SecretKey::generate();
-    let ep_b = Endpoint::builder(presets::N0)
-        .secret_key(key_b)
-        .alpns(vec![ALPN.to_vec()])
-        .relay_mode(RelayMode::Disabled)
-        .bind()
-        .await?;
-    println!("[设备 B] id: {}", ep_b.id());
+    mdns.register(service_info).context("注册 mDNS 服务失败")?;
+    println!("[注册] 已注册服务: cardmind-device-a._cardmind._tcp.local.");
+    // 等待注册生效
+    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
-    let addr_a = EndpointAddr::from_parts(id_a, local_ips);
-    let conn = ep_b.connect(addr_a, ALPN).await?;
-    println!("[设备 B] 已连接");
+    // 浏览局域网内的同类服务
+    let receiver = mdns.browse(service_type).context("浏览服务失败")?;
+    println!("[浏览] 正在扫描局域网内的 CardMind 设备...\n");
 
-    let mut send = conn.open_uni().await?;
-    let msg = "hello from B!";
-    send.write_all(msg.as_bytes()).await?;
-    send.finish()?;
-    println!("[设备 B] 已发送: {msg}");
+    // 等待发现（最多 5 秒）
+    let timeout = tokio::time::sleep(std::time::Duration::from_secs(5));
+    tokio::pin!(timeout);
 
-    let received = a_handle.await??;
-    assert_eq!(received, msg);
+    let mut found = 0;
 
-    println!("\n✅ iroh 直连通信验证通过！");
+    loop {
+        tokio::select! {
+            event = receiver.recv_async() => {
+                match event {
+                    Ok(ServiceEvent::ServiceResolved(info)) => {
+                        found += 1;
+                        let hostname = info.get_hostname();
+                        let addresses: Vec<_> = info.get_addresses().iter().map(|a| a.to_string()).collect();
+                        println!("[发现 #{}] {}", found, info.get_fullname());
+                        println!("           主机: {}", hostname);
+                        println!("           IP:   {:?}", addresses);
+                        println!("           端口: {}", info.get_port());
+                        println!();
+                    }
+                    Ok(other) => {
+                        println!("[事件] {:?}", other);
+                    }
+                    Err(e) => {
+                        println!("[错误] {}", e);
+                        break;
+                    }
+                }
+            }
+            _ = &mut timeout => {
+                println!("[超时] 5 秒扫描结束");
+                break;
+            }
+        }
+    }
+
+    mdns.shutdown().context("关闭 mDNS 失败")?;
+    println!("\n✅ mDNS 设备发现验证通过！共发现 {} 台设备。", found);
     Ok(())
 }
