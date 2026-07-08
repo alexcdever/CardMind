@@ -61,3 +61,4 @@ tmp/
 # Local agent private context
 AGENT.local.md
 .gitnexus
+sync-verify/target/
