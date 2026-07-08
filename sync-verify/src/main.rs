@@ -1,72 +1,109 @@
 use anyhow::{Context, Result};
-use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
+use iroh::{
+    endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr,
+};
+use loro::{ExportMode, LoroDoc};
+
+const ALPN: &[u8] = b"cardmind-v2";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    println!("=== mDNS 设备发现验证 ===\n");
+    println!("=== 端到端同步验证 ===\n");
 
-    let service_type = "_cardmind._tcp.local.";
+    // ━━━ 设备 A：创建笔记，导出快照 ━━━
+    let key_a = SecretKey::generate();
+    let ep_a = Endpoint::builder(presets::N0)
+        .secret_key(key_a)
+        .alpns(vec![ALPN.to_vec()])
+        .relay_mode(RelayMode::Disabled)
+        .bind()
+        .await?;
+    let id_a = ep_a.id();
+    let ips_a: Vec<TransportAddr> = ep_a.addr().ip_addrs().map(|a| TransportAddr::Ip(*a)).collect();
 
-    // 创建 mDNS 守护进程
-    let mdns = ServiceDaemon::new().context("创建 mDNS 守护进程失败")?;
+    let doc_a = LoroDoc::new();
+    doc_a.get_text("content").insert(0, "# 第一条笔记\n\n今天天气不错。").unwrap();
+    println!("[A] 创建笔记: {}", doc_a.get_text("content").to_string().trim());
 
-    // 注册本机服务（模拟设备 A 在局域网广播自己的存在）
-    let service_info = ServiceInfo::new(
-        service_type,
-        "cardmind-device-a",             // 实例名
-        "device-a.local.",               // 主机名
-        "192.168.1.100",                 // IP（实际会用本机 IP）
-        0,                               // 端口（0 = 随机）
-        None,                            // TXT 记录（可以放 NodeId）
-    )
-    .context("创建服务信息失败")?;
+    // ━━━ 设备 B ━━━
+    let key_b = SecretKey::generate();
+    let ep_b = Endpoint::builder(presets::N0)
+        .secret_key(key_b)
+        .alpns(vec![ALPN.to_vec()])
+        .relay_mode(RelayMode::Disabled)
+        .bind()
+        .await?;
+    let id_b = ep_b.id();
+    let ips_b: Vec<TransportAddr> = ep_b.addr().ip_addrs().map(|a| TransportAddr::Ip(*a)).collect();
+    let doc_b = LoroDoc::new();
 
-    mdns.register(service_info).context("注册 mDNS 服务失败")?;
-    println!("[注册] 已注册服务: cardmind-device-a._cardmind._tcp.local.");
-    // 等待注册生效
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    // ━━━ 第一轮：B 拉取 A 的全量快照 ━━━
+    let a_ep = ep_a.clone();
+    let snapshot = doc_a.export(ExportMode::snapshot()).unwrap();
 
-    // 浏览局域网内的同类服务
-    let receiver = mdns.browse(service_type).context("浏览服务失败")?;
-    println!("[浏览] 正在扫描局域网内的 CardMind 设备...\n");
+    // A 后台：接受连接后，如果有人请求就发快照
+    let a_handle = tokio::spawn(async move {
+        let incoming = a_ep.accept().await.ok_or_else(|| anyhow::anyhow!("A 无连接"))?;
+        let conn = incoming.accept()?.await?;
+        // 等 B 打开流再发
+        let mut send = conn.open_uni().await?;
+        send.write_all(&snapshot).await?;
+        send.finish()?;
+        println!("[A→B] 发送快照 {} bytes", snapshot.len());
+        Ok::<_, anyhow::Error>(())
+    });
 
-    // 等待发现（最多 5 秒）
-    let timeout = tokio::time::sleep(std::time::Duration::from_secs(5));
-    tokio::pin!(timeout);
+    tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
-    let mut found = 0;
+    // B 连接 A，接收快照
+    let conn_b = ep_b.connect(EndpointAddr::from_parts(id_a, ips_a.clone()), ALPN).await?;
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let mut recv = conn_b.accept_uni().await?;
+    let data = recv.read_to_end(usize::MAX).await?;
+    doc_b.import(&data).unwrap();
+    println!("[B] 导入快照: {}", doc_b.get_text("content").to_string().trim());
+    a_handle.await??;
+    drop(conn_b); // 关闭第一轮连接
+    println!();
 
-    loop {
-        tokio::select! {
-            event = receiver.recv_async() => {
-                match event {
-                    Ok(ServiceEvent::ServiceResolved(info)) => {
-                        found += 1;
-                        let hostname = info.get_hostname();
-                        let addresses: Vec<_> = info.get_addresses().iter().map(|a| a.to_string()).collect();
-                        println!("[发现 #{}] {}", found, info.get_fullname());
-                        println!("           主机: {}", hostname);
-                        println!("           IP:   {:?}", addresses);
-                        println!("           端口: {}", info.get_port());
-                        println!();
-                    }
-                    Ok(other) => {
-                        println!("[事件] {:?}", other);
-                    }
-                    Err(e) => {
-                        println!("[错误] {}", e);
-                        break;
-                    }
-                }
-            }
-            _ = &mut timeout => {
-                println!("[超时] 5 秒扫描结束");
-                break;
-            }
-        }
-    }
+    // ━━━ 第二轮：B 拉取 A 的增量 ━━━
+    doc_a.get_text("content").insert(
+        doc_a.get_text("content").len_unicode(),
+        "下午开始下雨了。",
+    ).unwrap();
+    let delta = doc_a.export(ExportMode::all_updates()).unwrap();
+    println!("[A] 追加后内容: {}", doc_a.get_text("content").to_string().trim());
 
-    mdns.shutdown().context("关闭 mDNS 失败")?;
-    println!("\n✅ mDNS 设备发现验证通过！共发现 {} 台设备。", found);
+    // A 后台监听第二轮
+    let a_ep2 = ep_a.clone();
+    let delta_clone = delta.clone();
+    let a_handle2 = tokio::spawn(async move {
+        let incoming = a_ep2.accept().await.ok_or_else(|| anyhow::anyhow!("A 无连接"))?;
+        let conn = incoming.accept()?.await?;
+        let mut send = conn.open_uni().await?;
+        send.write_all(&delta_clone).await?;
+        send.finish()?;
+        println!("[A→B] 发送增量 {} bytes", delta_clone.len());
+        Ok::<_, anyhow::Error>(())
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
+    // B 再次连接 A，拉增量
+    let conn_b2 = ep_b.connect(EndpointAddr::from_parts(id_a, ips_a), ALPN).await?;
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let mut recv2 = conn_b2.accept_uni().await?;
+    let data2 = recv2.read_to_end(usize::MAX).await?;
+    doc_b.import(&data2).unwrap();
+    println!("[B] 导入增量: {}", doc_b.get_text("content").to_string().trim());
+    a_handle2.await??;
+
+    // ━━━ 验证 ━━━
+    assert_eq!(
+        doc_a.get_text("content").to_string(),
+        doc_b.get_text("content").to_string(),
+    );
+
+    println!("\n✅ 端到端：Loro + iroh = 全量 + 增量同步 全部通过！");
     Ok(())
 }
