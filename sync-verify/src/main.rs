@@ -1,60 +1,70 @@
-use loro::{ExportMode, LoroDoc, VersionVector};
+use anyhow::{Context, Result};
+use iroh::{
+    endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr,
+};
 
-fn main() {
-    println!("=== LoroDoc 基本操作验证 ===\n");
+const ALPN: &[u8] = b"cardmind-v2";
 
-    // 1. 创建文档，写入笔记内容
-    let doc = LoroDoc::new();
-    let text = doc.get_text("content");
-    text.insert(0, "# 第一条笔记\n\n今天天气不错。").unwrap();
-    println!("[创建] 写入了笔记内容");
+#[tokio::main]
+async fn main() -> Result<()> {
+    println!("=== iroh 局域网直连验证 ===\n");
 
-    // 2. 导出全量快照
-    let snapshot = doc.export(ExportMode::snapshot()).unwrap();
-    println!("[快照] 大小: {} bytes", snapshot.len());
+    // 设备 A
+    let key_a = SecretKey::generate();
+    let ep_a = Endpoint::builder(presets::N0)
+        .secret_key(key_a)
+        .alpns(vec![ALPN.to_vec()])
+        .relay_mode(RelayMode::Disabled)
+        .bind()
+        .await?;
+    let id_a = ep_a.id();
+    let addr_info = ep_a.addr();
+    let local_ips: Vec<TransportAddr> = addr_info
+        .ip_addrs()
+        .map(|a| TransportAddr::Ip(*a))
+        .collect();
+    println!("[设备 A] id: {}", id_a);
 
-    // 3. 模拟第二台设备收到快照
-    let doc2 = LoroDoc::new();
-    doc2.import(&snapshot).unwrap();
-    println!(
-        "[导入] 设备 B 内容: {}",
-        doc2.get_text("content").to_string().trim()
-    );
+    // 后台启动 A 接收
+    let a_ep = ep_a.clone();
+    let a_handle = tokio::spawn(async move {
+        let incoming = a_ep
+            .accept()
+            .await
+            .ok_or_else(|| anyhow::anyhow!("没收到连接"))?;
+        let conn = incoming.accept()?.await?;
+        let mut recv = conn.accept_uni().await?;
+        let data = recv.read_to_end(usize::MAX).await?;
+        let msg = String::from_utf8(data)?;
+        println!("[设备 A] 收到: {msg}");
+        Ok::<_, anyhow::Error>(msg)
+    });
 
-    // 4. 两台设备同时修改，导出增量变更
-    //    设备 A 追加
-    text.insert(text.len_unicode(), "下午开始下雨了。").unwrap();
-    let changes_a = doc.export(ExportMode::all_updates()).unwrap();
-    println!("[增量] 设备 A 所有变更: {} bytes", changes_a.len());
+    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
 
-    //    设备 B 追加另一行
-    let text2 = doc2.get_text("content");
-    text2.insert(text2.len_unicode(), "晚上吃了火锅。").unwrap();
-    let changes_b = doc2.export(ExportMode::all_updates()).unwrap();
-    println!("[增量] 设备 B 所有变更: {} bytes", changes_b.len());
+    // 设备 B
+    let key_b = SecretKey::generate();
+    let ep_b = Endpoint::builder(presets::N0)
+        .secret_key(key_b)
+        .alpns(vec![ALPN.to_vec()])
+        .relay_mode(RelayMode::Disabled)
+        .bind()
+        .await?;
+    println!("[设备 B] id: {}", ep_b.id());
 
-    // 5. 互相导入对方变更（CRDT 无冲突合并）
-    doc.import(&changes_b).unwrap();
-    doc2.import(&changes_a).unwrap();
-    println!("\n[合并] 互相导入对方变更后:");
+    let addr_a = EndpointAddr::from_parts(id_a, local_ips);
+    let conn = ep_b.connect(addr_a, ALPN).await?;
+    println!("[设备 B] 已连接");
 
-    let final_text = doc.get_text("content").to_string();
-    println!("设备 A: {}", final_text.trim());
-    println!("设备 B: {}", doc2.get_text("content").to_string().trim());
+    let mut send = conn.open_uni().await?;
+    let msg = "hello from B!";
+    send.write_all(msg.as_bytes()).await?;
+    send.finish()?;
+    println!("[设备 B] 已发送: {msg}");
 
-    // 6. 验证两边一致
-    assert_eq!(
-        doc.get_text("content").to_string(),
-        doc2.get_text("content").to_string(),
-        "CRDT 合并结果不一致！"
-    );
+    let received = a_handle.await??;
+    assert_eq!(received, msg);
 
-    println!("\n✅ 验证通过：LoroDoc 基本读写、快照、增量同步、无冲突合并全部正常。");
-
-    // 7. 演示增量导出：只导出"对方没有"的变更
-    let vv_a = doc.oplog_vv();
-    println!("\n[版本] 设备 A 版本向量: {:?}", vv_a);
-    // 导出从某个版本之后的增量
-    let incremental = doc.export(ExportMode::updates(&VersionVector::new())).unwrap();
-    println!("[增量导出] 从空白版本之后的变更: {} bytes", incremental.len());
+    println!("\n✅ iroh 直连通信验证通过！");
+    Ok(())
 }
