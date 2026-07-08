@@ -1,10 +1,13 @@
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
   runApp(const CardMindApp());
 }
 
