@@ -37,12 +37,21 @@ class _NoteListPageState extends State<NoteListPage> {
 
   Future<void> _loadNotes() async {
     setState(() => _loading = true);
-    final notes = await DatabaseHelper().getAll();
-    if (mounted) {
-      setState(() {
-        _notes = notes;
-        _loading = false;
-      });
+    try {
+      final notes = await DatabaseHelper().getAll();
+      if (mounted) {
+        setState(() {
+          _notes = notes;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载失败: $e')),
+        );
+      }
     }
   }
 

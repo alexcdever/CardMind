@@ -1,12 +1,19 @@
+import 'dart:io' show Platform;
+
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:sqlite3/sqlite3.dart';
+
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
+  if (Platform.isWindows || Platform.isLinux) {
+    sqlite3.openInMemory(); // force-load the DLL
+  }
   databaseFactory = databaseFactoryFfi;
   runApp(const CardMindApp());
 }

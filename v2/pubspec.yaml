@@ -37,6 +37,7 @@ dependencies:
 
   appflowy_editor: ^6.2.0
   sqflite_common_ffi: any
+  sqlite3: any
   sqlite3_flutter_libs: any
   path_provider: any
   intl: any
