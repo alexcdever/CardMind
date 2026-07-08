@@ -238,20 +238,6 @@ impl NoteCrdt {
         Ok(())
     }
 
-    /// 导出所有增量（用于首次同步）
-    #[allow(unused)]
-    pub fn export_all_updates(&self) -> Result<Vec<u8>> {
-        self.doc
-            .export(ExportMode::all_updates())
-            .map_err(|e| anyhow::anyhow!(e))
-    }
-
-    /// 导入增量变更
-    #[allow(unused)]
-    pub fn import_updates(&self, data: &[u8]) -> Result<()> {
-        self.doc.import(data).map_err(|e| anyhow::anyhow!(e))?;
-        Ok(())
-    }
 }
 
 impl Default for NoteCrdt {

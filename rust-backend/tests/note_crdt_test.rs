@@ -44,17 +44,17 @@ fn test_delta_sync() {
     let a = NoteCrdt::new();
     a.set_content("初始内容");
 
-    // 导出增量，B 导入
-    let delta1 = a.export_all_updates().unwrap();
+    // 导出快照，B 导入
+    let delta1 = a.export_snapshot().unwrap();
     let b = NoteCrdt::new();
-    b.import_updates(&delta1).unwrap();
+    b.import_snapshot(&delta1).unwrap();
     assert_eq!(a.get_content(), b.get_content());
 
     // A 修改内容
     a.set_content("修改后的内容");
 
-    // 导出全部增量，B 导入后应一致
-    let delta2 = a.export_all_updates().unwrap();
-    b.import_updates(&delta2).unwrap();
+    // 导出全量快照，B 导入后应一致
+    let delta2 = a.export_snapshot().unwrap();
+    b.import_snapshot(&delta2).unwrap();
     assert_eq!(a.get_content(), b.get_content());
 }

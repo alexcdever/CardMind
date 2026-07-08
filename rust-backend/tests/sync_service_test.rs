@@ -5,7 +5,7 @@ use cardmind_backend::sync::SyncService;
 /// 创建两个 SyncService 实例 A 和 B。
 /// A 创建一条笔记 → 导出全部 → B 导入 → 验证内容一致。
 #[test]
-fn test_push_and_accept() {
+fn test_export_import_roundtrip() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         // ━━━ 设备 A：创建笔记 ━━━
