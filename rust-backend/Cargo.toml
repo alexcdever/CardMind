@@ -3,7 +3,11 @@ name = "cardmind-backend"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+
 [dependencies]
+flutter_rust_bridge = "=2.12.0"
 loro = "1"
 iroh = "1"
 tokio = { version = "1", features = ["full"] }

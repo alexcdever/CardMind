@@ -35,6 +35,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  flutter_rust_bridge: ^2.12.0
   appflowy_editor: ^6.2.0
   sqflite_common_ffi: any
   sqlite3: any

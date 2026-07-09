@@ -1,12 +1,13 @@
 use anyhow::Result;
 use chrono::Utc;
 use rusqlite::Connection;
+use std::sync::Mutex;
 
 use crate::sync::NoteCrdt;
 
 /// SQLite 读投影 — 缓存 NoteCrdt 的扁平化视图
 pub struct NoteStore {
-    conn: Connection,
+    conn: Mutex<Connection>,
 }
 
 /// 笔记的只读行（从 SQLite 反查）
@@ -33,7 +34,9 @@ impl NoteStore {
                 updated_at TEXT NOT NULL
             );",
         )?;
-        Ok(Self { conn })
+        Ok(Self {
+            conn: Mutex::new(conn),
+        })
     }
 
     /// 同步一个 NoteCrdt 的内容到 SQLite（INSERT OR REPLACE）
@@ -41,13 +44,13 @@ impl NoteStore {
     /// 从 LoroDoc 中读取当前内容 + 标题，写入 notes 表。
     /// 创建时间首次持久化后不再覆盖。
     pub fn sync_note(&self, note_id: &str, crdt: &NoteCrdt) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
         let content = crdt.get_content();
         let title = crdt.get_title();
         let now = Utc::now().to_rfc3339();
 
         // 读取已有 created_at，若不存在则使用当前时间
-        let created_at: String = self
-            .conn
+        let created_at: String = conn
             .query_row(
                 "SELECT created_at FROM notes WHERE id = ?1",
                 [note_id],
@@ -55,7 +58,7 @@ impl NoteStore {
             )
             .unwrap_or_else(|_| now.clone());
 
-        self.conn.execute(
+        conn.execute(
             "INSERT OR REPLACE INTO notes (id, title, content, tags, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             rusqlite::params![note_id, title, content, "", created_at, now],
@@ -66,7 +69,8 @@ impl NoteStore {
 
     /// 获取所有笔记（按更新时间倒序）
     pub fn list_notes(&self) -> Result<Vec<NoteRow>> {
-        let mut stmt = self.conn.prepare(
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT id, title, content, tags, updated_at FROM notes ORDER BY updated_at DESC",
         )?;
 
@@ -91,8 +95,9 @@ impl NoteStore {
     ///
     /// `query` 中的特殊 LIKE 字符（`%`、`_`）会被原样搜索。
     pub fn search(&self, query: &str) -> Result<Vec<NoteRow>> {
+        let conn = self.conn.lock().unwrap();
         let pattern = format!("%{}%", query);
-        let mut stmt = self.conn.prepare(
+        let mut stmt = conn.prepare(
             "SELECT id, title, content, tags, updated_at FROM notes
              WHERE title LIKE ?1 OR content LIKE ?1 OR tags LIKE ?1
              ORDER BY updated_at DESC",
