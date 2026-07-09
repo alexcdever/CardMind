@@ -13,6 +13,12 @@ import 'sync.dart';
 Future<SyncService> createSyncService() =>
     RustLib.instance.api.crateApiCreateSyncService();
 
+/// 将所有 CRDT 笔记同步到 SQLite 存储
+Future<void> syncNotesToStore({
+  required SyncService svc,
+  required NoteStore store,
+}) => RustLib.instance.api.crateApiSyncNotesToStore(svc: svc, store: store);
+
 /// 创建笔记
 Future<void> noteCreate({
   required SyncService svc,
@@ -61,6 +67,10 @@ Future<void> startAdvertising({
 /// 设备发现 — 扫描对端
 Future<List<PeerInfo>> discoverPeers({required DiscoveryService disc}) =>
     RustLib.instance.api.crateApiDiscoverPeers(disc: disc);
+
+/// 创建 SQLite 存储
+Future<NoteStore> createNoteStore({required String path}) =>
+    RustLib.instance.api.crateApiCreateNoteStore(path: path);
 
 /// SQLite — 列出所有笔记
 Future<List<NoteRow>> storeList({required NoteStore store}) =>

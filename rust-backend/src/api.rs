@@ -7,6 +7,14 @@ pub async fn create_sync_service() -> anyhow::Result<SyncService> {
     SyncService::new().await
 }
 
+/// 将所有 CRDT 笔记同步到 SQLite 存储
+pub fn sync_notes_to_store(svc: &SyncService, store: &NoteStore) -> anyhow::Result<()> {
+    for (id, note) in svc.iter_notes() {
+        store.sync_note(id, note)?;
+    }
+    Ok(())
+}
+
 /// 创建笔记
 pub fn note_create(svc: &mut SyncService, id: String, content: String) {
     svc.create_note(id, &content);
@@ -53,6 +61,11 @@ pub fn start_advertising(
 /// 设备发现 — 扫描对端
 pub async fn discover_peers(disc: &DiscoveryService) -> anyhow::Result<Vec<PeerInfo>> {
     disc.discover_peers().await
+}
+
+/// 创建 SQLite 存储
+pub fn create_note_store(path: String) -> anyhow::Result<NoteStore> {
+    NoteStore::new(&path)
 }
 
 /// SQLite — 列出所有笔记

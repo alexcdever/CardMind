@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../database/database_helper.dart';
-import '../models/note.dart';
+import '../bridge/bridge_helper.dart';
+import '../src/rust/store.dart';
 
 class NoteListPage extends StatefulWidget {
   const NoteListPage({super.key});
@@ -14,12 +14,12 @@ class NoteListPage extends StatefulWidget {
 }
 
 class _NoteListPageState extends State<NoteListPage> {
-  List<Note> _notes = [];
+  List<NoteRow> _notes = [];
   bool _loading = true;
   String? _selectedTag;
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounceTimer;
-  List<Note> _searchResults = [];
+  List<NoteRow> _searchResults = [];
   bool _isSearching = false;
 
   @override
@@ -38,7 +38,7 @@ class _NoteListPageState extends State<NoteListPage> {
   Future<void> _loadNotes() async {
     setState(() => _loading = true);
     try {
-      final notes = await DatabaseHelper().getAll();
+      final notes = await BridgeHelper().listNotes();
       if (mounted) {
         setState(() {
           _notes = notes;
@@ -55,13 +55,11 @@ class _NoteListPageState extends State<NoteListPage> {
     }
   }
 
-  String _preview(Note note) {
-    final trimmed = note.content.trim();
-    if (trimmed.isEmpty) return '';
-    // Take the first line
-    final firstLine = trimmed.split('\n').first.trim();
-    if (firstLine.length <= 80) return firstLine;
-    return '${firstLine.substring(0, 80)}…';
+  String _preview(NoteRow note) {
+    final preview = note.contentPreview.trim();
+    if (preview.isEmpty) return '';
+    if (preview.length <= 80) return preview;
+    return '${preview.substring(0, 80)}…';
   }
 
   String _formatDate(String updatedAt) {
@@ -69,7 +67,12 @@ class _NoteListPageState extends State<NoteListPage> {
       final date = DateFormat('yyyy-MM-dd HH:mm:ss').parse(updatedAt);
       return DateFormat('M月d日').format(date);
     } catch (_) {
-      return updatedAt;
+      try {
+        final date = DateTime.parse(updatedAt);
+        return DateFormat('M月d日').format(date);
+      } catch (_) {
+        return updatedAt;
+      }
     }
   }
 
@@ -90,7 +93,7 @@ class _NoteListPageState extends State<NoteListPage> {
     return tagSet.toList()..sort();
   }
 
-  List<Note> get _filteredNotes {
+  List<NoteRow> get _filteredNotes {
     if (_selectedTag == null) return _notes;
     return _notes.where((note) {
       final tags = _parseTags(note.tags);
@@ -98,7 +101,7 @@ class _NoteListPageState extends State<NoteListPage> {
     }).toList();
   }
 
-  List<Note> get _displayedNotes {
+  List<NoteRow> get _displayedNotes {
     if (_isSearching) return _searchResults;
     return _filteredNotes;
   }
@@ -121,7 +124,7 @@ class _NoteListPageState extends State<NoteListPage> {
   }
 
   Future<void> _performSearch(String query) async {
-    final results = await DatabaseHelper().search(query);
+    final results = await BridgeHelper().search(query);
     if (mounted) {
       setState(() {
         _searchResults = results;
@@ -212,7 +215,7 @@ class _NoteListPageState extends State<NoteListPage> {
     );
   }
 
-  Widget _buildNoteItem(Note note) {
+  Widget _buildNoteItem(NoteRow note) {
     final preview = _preview(note);
     final formattedDate = _formatDate(note.updatedAt);
     final tags = _parseTags(note.tags);

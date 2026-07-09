@@ -1,12 +1,12 @@
+import 'dart:math' show Random;
+
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-import '../database/database_helper.dart';
-import '../models/note.dart';
+import '../bridge/bridge_helper.dart';
 
 class EditorPage extends StatefulWidget {
-  final int? noteId;
+  final String? noteId;
 
   const EditorPage({super.key, this.noteId});
 
@@ -16,7 +16,7 @@ class EditorPage extends StatefulWidget {
 
 class _EditorPageState extends State<EditorPage> {
   EditorState? _editorState;
-  Note? _originalNote;
+  String? _originalNoteId;
   bool _loaded = false;
   List<String> _tags = [];
 
@@ -32,13 +32,14 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Future<void> _initializeExisting() async {
-    final note = await DatabaseHelper().getById(widget.noteId!);
-    if (note != null && mounted) {
+    final content = await BridgeHelper().getNote(widget.noteId!);
+    if (content != null && mounted) {
       setState(() {
-        _originalNote = note;
-        _tags = _parseTags(note.tags);
+        _originalNoteId = widget.noteId;
+        _tags = BridgeHelper.parseTagsFromContent(content);
+        final clean = BridgeHelper.removeTagsFromContent(content);
         _editorState = EditorState(
-          document: markdownToDocument(note.content),
+          document: markdownToDocument(clean),
         );
         _loaded = true;
       });
@@ -46,8 +47,9 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   String _getTitle() {
-    if (_originalNote != null) {
-      return _originalNote!.title;
+    if (_editorState != null) {
+      final markdown = documentToMarkdown(_editorState!.document);
+      return _extractTitle(markdown);
     }
     return '新笔记';
   }
@@ -62,15 +64,6 @@ class _EditorPageState extends State<EditorPage> {
     // Remove leading "# " heading markers
     final title = firstLine.replaceFirst(RegExp(r'^#+\s*'), '');
     return title.isEmpty ? '无标题' : title;
-  }
-
-  List<String> _parseTags(String tags) {
-    if (tags.trim().isEmpty) return [];
-    return tags
-        .split(',')
-        .map((t) => t.trim())
-        .where((t) => t.isNotEmpty)
-        .toList();
   }
 
   void _addTag(String tag) {
@@ -193,6 +186,12 @@ class _EditorPageState extends State<EditorPage> {
     }
   }
 
+  String _generateId() {
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final rnd = Random().nextInt(99999);
+    return '$ts$rnd';
+  }
+
   Future<bool> _onWillPop() async {
     if (_editorState == null) return true;
 
@@ -204,29 +203,17 @@ class _EditorPageState extends State<EditorPage> {
       return true;
     }
 
-    final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-    final title = _extractTitle(markdown);
-    final tagsStr = _tags.join(',');
+    // Encode tags into the content before saving
+    final contentWithTags =
+        BridgeHelper.encodeContentWithTags(markdown, _tags);
 
-    if (_originalNote != null) {
-      // Update existing note
-      final updated = _originalNote!.copyWith(
-        title: title,
-        content: markdown,
-        tags: tagsStr,
-        updatedAt: now,
-      );
-      await DatabaseHelper().update(updated);
+    if (_originalNoteId != null) {
+      // Update existing note (overwrite with same id)
+      await BridgeHelper().createNote(_originalNoteId!, contentWithTags);
     } else {
       // Insert new note
-      final note = Note(
-        title: title,
-        content: markdown,
-        tags: tagsStr,
-        createdAt: now,
-        updatedAt: now,
-      );
-      await DatabaseHelper().insert(note);
+      final noteId = _generateId();
+      await BridgeHelper().createNote(noteId, contentWithTags);
     }
 
     return true;

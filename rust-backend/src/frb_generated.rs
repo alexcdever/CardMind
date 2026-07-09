@@ -41,7 +41,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 301732101;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -276060150;
 
 // Section: executor
 
@@ -98,6 +98,41 @@ fn wire__crate__api__accept_push_impl(
                         Ok(output_ok)
                     })()
                     .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__create_note_store_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "create_note_store",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_path = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let output_ok = crate::api::create_note_store(api_path)?;
+                        Ok(output_ok)
+                    })(),
                 )
             }
         },
@@ -617,6 +652,69 @@ fn wire__crate__api__store_search_impl(
         },
     )
 }
+fn wire__crate__api__sync_notes_to_store_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "sync_notes_to_store",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            let api_store = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let mut api_svc_guard = None;
+                        let mut api_store_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_svc, 0, false,
+                                    ),
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_store, 1, false,
+                                    ),
+                                ],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => api_svc_guard = Some(api_svc.lockable_decode_sync_ref()),
+                                1 => api_store_guard = Some(api_store.lockable_decode_sync_ref()),
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let api_store_guard = api_store_guard.unwrap();
+                        let output_ok =
+                            crate::api::sync_notes_to_store(&*api_svc_guard, &*api_store_guard)?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
 
 // Section: related_funcs
 
@@ -637,6 +735,16 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <String>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::anyhow::anyhow!("{}", inner);
+    }
+}
+
+impl SseDecode for NoteStore {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <RustOpaqueMoi<
+            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>,
+        >>::sse_decode(deserializer);
+        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
     }
 }
 
@@ -829,16 +937,18 @@ fn pde_ffi_dispatcher_primary_impl(
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
         1 => wire__crate__api__accept_push_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -856,6 +966,21 @@ fn pde_ffi_dispatcher_sync_impl(
 }
 
 // Section: rust2dart
+
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<NoteStore> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0)
+            .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<NoteStore> {}
+
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<NoteStore>> for NoteStore {
+    fn into_into_dart(self) -> FrbWrapper<NoteStore> {
+        self.into()
+    }
+}
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<SyncService> {
@@ -913,6 +1038,13 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(format!("{:?}", self), serializer);
+    }
+}
+
+impl SseEncode for NoteStore {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
     }
 }
 

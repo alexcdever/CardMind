@@ -42,12 +42,16 @@ impl NoteStore {
     /// 同步一个 NoteCrdt 的内容到 SQLite（INSERT OR REPLACE）
     ///
     /// 从 LoroDoc 中读取当前内容 + 标题，写入 notes 表。
+    /// 内容支持嵌入 `<!--tags:tag1,tag2-->` 标记来携带标签。
     /// 创建时间首次持久化后不再覆盖。
     pub fn sync_note(&self, note_id: &str, crdt: &NoteCrdt) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         let content = crdt.get_content();
         let title = crdt.get_title();
         let now = Utc::now().to_rfc3339();
+
+        // 从内容中提取标签
+        let tags = Self::extract_tags_from_content(&content);
 
         // 读取已有 created_at，若不存在则使用当前时间
         let created_at: String = conn
@@ -61,10 +65,21 @@ impl NoteStore {
         conn.execute(
             "INSERT OR REPLACE INTO notes (id, title, content, tags, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            rusqlite::params![note_id, title, content, "", created_at, now],
+            rusqlite::params![note_id, title, content, tags, created_at, now],
         )?;
 
         Ok(())
+    }
+
+    /// 从内容中提取 `<!--tags:...-->` 标记
+    fn extract_tags_from_content(content: &str) -> String {
+        if let Some(start) = content.find("<!--tags:") {
+            let after = &content[start + 9..];
+            if let Some(end) = after.find("-->") {
+                return after[..end].trim().to_string();
+            }
+        }
+        String::new()
     }
 
     /// 获取所有笔记（按更新时间倒序）

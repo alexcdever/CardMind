@@ -1,20 +1,15 @@
-import 'dart:io' show Platform;
-
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqlite3/sqlite3.dart';
 
+import 'bridge/bridge_helper.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
+import 'src/rust/frb_generated.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  sqfliteFfiInit();
-  if (Platform.isWindows || Platform.isLinux) {
-    sqlite3.openInMemory(); // force-load the DLL
-  }
-  databaseFactory = databaseFactoryFfi;
+  await RustLib.init();
+  await BridgeHelper().init();
   runApp(const CardMindApp());
 }
 
@@ -48,7 +43,7 @@ class CardMindApp extends StatelessWidget {
             );
           case '/editor':
             final args = settings.arguments as Map<String, dynamic>?;
-            final noteId = args?['noteId'] as int?;
+            final noteId = args?['noteId'] as String?;
             return MaterialPageRoute(
               builder: (_) => EditorPage(noteId: noteId),
             );
