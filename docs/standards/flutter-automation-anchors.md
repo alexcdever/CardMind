@@ -36,7 +36,7 @@ Semantics(
 - `identifier` 与 `ValueKey` 必须使用同一份稳定 machine id。
 - machine id 建议使用点分路径，例如 `cards.create_fab`、`pool.edit_dialog.save`、`nav.settings`。
 - `label` 必须保持用户可读，不得直接替换成 machine id。
-- 共享 machine id 应集中声明在常量文件中，例如 `lib/features/shared/testing/semantic_ids.dart`。
+- 共享 machine id 应集中声明在常量文件中，例如 `lib/bridge/semantic_ids.dart`。
 
 ## 覆盖规则
 

@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.12.2
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -30,32 +30,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_rust_bridge: ^2.12.0
-  freezed_annotation: ^3.1.0
-  path_provider: ^2.1.5
-  uuid: ^4.5.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  flutter_rust_bridge: ^2.12.0
+  appflowy_editor: ^6.2.0
+  path_provider: any
+  intl: any
+  path: any
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  build_runner: ^2.4.11
-  freezed: ^3.2.5
-  
-  # Test boundary scanner dependencies
-  analyzer: ^10.0.1
-  yaml: ^3.1.2
-  path: ^1.9.0
+  msix: ^3.16.8
+
+dependency_overrides:
+  keyboard_height_plugin: 0.3.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -98,3 +91,13 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+msix_config:
+  display_name: CardMind
+  publisher_display_name: CardMind
+  identity_name: com.cardmind.v2
+  publisher: CN=CardMind
+  msix_version: 1.0.0.0
+  capabilities: internetClient
+  languages: zh-CN, en-US
+  install_certificate: false

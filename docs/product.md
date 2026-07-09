@@ -1,6 +1,6 @@
 # 产品定义
 
-> 面向唯一用户的个人工具。上次更新：2026-06-25
+> 面向唯一用户的个人工具。上次更新：2026-07-09
 
 ---
 
@@ -44,5 +44,5 @@
 | 用途 | 方案 |
 |------|------|
 | 编辑器 | appflowy_editor（WYSIWYG，原生 Markdown 支持） |
-| 本地存储 | sqflite（SQLite） |
-| 跨平台框架 | Flutter |
+| 本地存储 | Rust 端 Loro CRDT + SQLite 读投影 |
+| 跨平台框架 | Flutter + Rust (flutter_rust_bridge) |

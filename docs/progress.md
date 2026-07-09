@@ -6,8 +6,8 @@
 ## 当前进行中的工作
 
 1. v2 Windows 端本地笔记体验已验证通过（2026-07-08）：打开即写 ✅、首行即标题 ✅、Markdown 快捷键 ✅
-2. 第二阶段：局域网同步（Loro + iroh + mDNS + 白名单）。调研文档已完成，待启动验证 1（Rust 端 LoroDoc 基本操作）。
-3. v2 已转正为当前主应用代码。旧 v1 代码（lib/、rust/）冻结为历史参考。
+2. 源码结构已重组（2026-07-09）：v2/ 上提到根目录，v1 冻结代码已删除。`rust-backend/` 为当前 Rust 核心。
+3. 第二阶段：局域网同步（Loro + iroh + mDNS + 白名单）。调研文档已完成，待启动验证 1（Rust 端 LoroDoc 基本操作）。
 
 ## 最近完成的工作
 
@@ -202,7 +202,7 @@
 
 ## 待办事项
 
-- [ ] 以当前 `cardmind.pen` 为准，拆解 Flutter UI 落地范围
+- [ ] ~~以当前 `cardmind.pen` 为准，拆解 Flutter UI 落地范围~~（cardmind.pen 已随 v1 删除）
 - [ ] 对照 Rust/FRB 已有 API，确认 Pencil 页面所需数据与动作是否已具备
 - [ ] specs 目录已清理，仅保留 product.md
 - [ ] 如继续实现 Flutter UI，可把 Pencil 中的应用锁前置流程映射到当前 `AppLockScreen` 的视觉与交互细节
@@ -284,4 +284,4 @@
 
 ---
 
-*最后更新：2026-04-29*
+*最后更新：2026-07-09*

@@ -1,0 +1,76 @@
+{
+  // Dart & Flutter配置
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [80],
+    "editor.selectionHighlight": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // Rust配置
+  "[rust]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // Rust Analyzer配置
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.extraArgs": ["--all-targets", "--all-features"],
+  "rust-analyzer.checkOnSave": true,
+  "rust-analyzer.cargo.buildScripts.enable": true,
+  "rust-analyzer.procMacro.enable": true,
+  "rust-analyzer.procMacro.attributes.enable": true,
+  "rust-analyzer.diagnostics.disabled": [],
+  "rust-analyzer.diagnostics.warningsAsHint": [],
+  "rust-analyzer.diagnostics.warningsAsInfo": [],
+
+  // 文件关联
+  "files.associations": {
+    "*.rs": "rust",
+    "Cargo.toml": "toml",
+    "*.dart": "dart"
+  },
+
+  // 排除文件
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/target": true
+  },
+
+  // 搜索排除
+  "search.exclude": {
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/target": true,
+    "**/*.freezed.dart": true,
+    "**/*.g.dart": true,
+    "**/bridge_generated.dart": true,
+    "**/frb_generated.dart": true
+  },
+
+  // 其他配置
+  "editor.formatOnPaste": true,
+  "editor.bracketPairColorization.enabled": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true
+}

@@ -1,53 +1,73 @@
 # CardMind
 
-CardMind 是一款面向多设备个人用户、用于同步和流转笔记数据的卡片笔记应用，基于 Flutter + Rust（FRB）实现。
+面向多设备个人用户的笔记同步应用。Flutter 前端 + Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
 
-数据池协作是这一目标下的扩展能力：用户可创建或加入数据池，在本地优先的前提下完成卡片笔记的同步与共享，尽量降低用户对网络与同步细节的感知成本。正式产品定位以 `docs/product.md` 为准。
+## 技术栈
+
+| 层 | 技术 |
+|---|------|
+| 前端 | Flutter 3.44 (Dart 3.12) |
+| 核心逻辑 | Rust (cardmind-backend) |
+| CRDT 存储 | Loro |
+| 网络层 | iroh (直连模式) + mDNS |
+| 查询层 | SQLite (Rust 端 rusqlite) |
+| 跨语言桥 | flutter_rust_bridge 2.12 |
+
+## 架构
+
+```
+Flutter (UI) ←→ FRB ←→ Rust (业务后端)
+                          ├─ LoroDoc (真实信源)
+                          ├─ SQLite (读模型)
+                          └─ iroh + mDNS (网络同步与设备发现)
+```
+
+- **读写分离**：所有写入通过 Rust → LoroDoc，投影到 SQLite 供查询
+- **单用户桌面优先**：Windows 为主平台，笔记编辑+列表双栏布局
+- **原型双源**：`prototype/` 是 UI 原型真源
+
+## 项目结构
+
+```
+lib/            Flutter UI (v2)
+  bridge/       Rust FFI 桥接辅助
+  models/       Dart 领域模型
+  pages/        页面
+  src/rust/     FRB 自动生成代码
+rust-backend/   Rust 核心
+  src/          api, store, sync, discovery
+  tests/        集成测试
+test/           Flutter 测试
+prototype/      UI 原型（HTML/CSS）
+docs/           文档
+tool/           工具脚本
+```
 
 ## 文档架构
 
-- `AGENTS.md`：仓库入口文档，定义读取顺序、命令与执行入口规则。
-- `docs/specs/`：产品定位规格，记录产品方向与阶段目标。
-- `docs/plans/`：设计与实施计划文档，保留变更背景、设计取舍与执行顺序。
-- `docs/standards/`：跨功能、长期复用的工程规范与质量约束。
-
-## 核心规范
-
-- [AI 协作规范](docs/standards/ai-collaboration.md)
-- [Spec 生命周期规范](docs/standards/spec-lifecycle.md)
-- [TDD Standard](docs/standards/tdd.md)
-- [Git & PR Standard](docs/standards/git-and-pr.md)
-- [Coding Style Standard](docs/standards/coding-style.md)
+- `AGENTS.md`：仓库入口文档，定义读取顺序、命令与执行入口规则
+- `docs/product.md`：产品定位
+- `docs/plans/`：历史设计计划（仅供追溯）
+- `docs/standards/`：工程规范
 
 ## 常用命令
 
-- 运行应用：`flutter run`
-- Flutter 测试：`flutter test`
-- Rust 测试：`cargo test`
-- 静态检查：`flutter analyze`
-- 文档引用检查：`dart run tool/quality.dart docs`
-- 质量检查：`dart run tool/quality.dart <flutter|rust|docs|all>`
-- FRB 生成：`flutter_rust_bridge_codegen generate`
+```bash
+# Flutter
+flutter pub get                         # 获取依赖
+flutter analyze                         # 静态分析
+flutter test                            # 测试
+flutter build windows --release         # Windows 打包
 
-## 构建脚本
+# Rust
+cd rust-backend && cargo test           # 测试
+cd rust-backend && cargo build --release # 发布构建
+```
 
-用法：`dart run tool/build.dart <app|lib> [options]`
+## 文档地图
 
-- `app`：构建 Flutter 应用（默认平台为当前主机可执行平台：`macos|linux|windows`）
-- `lib`：构建 Rust 动态库（默认执行 `cargo build --release`）
-- `app --platform <macos|linux|windows>`：指定 Flutter 构建平台
-- `lib --target <target-triple>`：指定 Rust 目标三元组
-- `app` 默认链路：`lib -> flutter_rust_bridge_codegen generate -> flutter build`
-
-当前 macOS 动态库路径职责：
-
-- `rust/target/release/libcardmind_rust.dylib`：Cargo 编译缓存源，仅作为构建产物来源。
-- `build/native/macos/libcardmind_rust.dylib`：官方运行态 dylib，Flutter 真实初始化、真库测试、以及 app bundle 复制都使用该路径。
-- 当官方运行态 dylib 缺失时，先执行 `dart run tool/build.dart lib` 恢复。
-
-示例：
-
-- `dart run tool/build.dart app`
-- `dart run tool/build.dart app --platform macos`
-- `dart run tool/build.dart lib`
-- `dart run tool/build.dart lib --target aarch64-apple-darwin`
+- `docs/product.md` — 产品定义
+- `docs/personas.md` — 目标用户画像
+- `docs/product-decisions.md` — 产品决策日志
+- `docs/progress.md` — 工作进度
+- `docs/standards/` — 工程规范（AI 协作、TDD、测试、Git/PR、编码风格、UI 风格等）

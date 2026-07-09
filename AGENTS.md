@@ -23,8 +23,7 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 ```
 
 - **读写分离**：所有写入通过 Rust → LoroDoc，投影到 SQLite 供查询
-- **双套 UI**：移动端 (底部 2 Tab) 和桌面端 (三栏)，独立实现
-- **双域划分**：卡片笔记（个人主路径）和 数据池（跨设备同步扩展）
+- **单用户桌面优先**：Windows 为主平台，笔记编辑+列表双栏布局
 - **原型双源**：`prototype/` 是 UI 原型真源，与 open-design 项目 `cardmind-prototype` 保持同步
 
 ## 原型更新规则
@@ -40,20 +39,23 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 ## 项目结构
 
 ```
-lib/            Flutter UI 代码
-  app/          应用入口、导航、主题
-  features/     业务模块 (cards/pool/sync/editor/security/settings)
-  bridge_generated/  FRB 自动生成代码
-rust/           Rust 核心
+lib/            Flutter UI 代码 (v2)
+  main.dart     应用入口
+  bridge/       Rust FFI 桥接辅助
+  database/     SQLite 数据库辅助
+  models/       Dart 领域模型
+  pages/        页面 (editor_page, note_list_page)
+  src/rust/     FRB 自动生成代码 (api, store, sync, discovery)
+rust-backend/   Rust 核心 (v2)
   src/
-    api/        FRB 导出 API (+ recovery_contract)
-    net/        iroh 网络端点 + 同步
-    store/      LoroDoc + SQLite 存储
-    security/   应用锁
-    models/     领域模型
-  tests/        集成测试 (unit/contract/integration)
-test/           Flutter 测试 (unit/widget/integration/contract)
-prototype/       UI 原型（HTML/CSS 高保真页面）
+    api.rs      FRB 导出 API
+    store.rs    LoroDoc + SQLite 存储
+    sync.rs     iroh 网络同步
+    discovery.rs mDNS 设备发现
+    lib.rs      入口
+  tests/        集成测试 (discovery, store, sync, note_crdt)
+test/           Flutter 测试 (widget/integration)
+prototype/      UI 原型（HTML/CSS 高保真页面）
   index.html           导航页（桌面端）
   desktop-*.html       桌面端三栏布局原型
   desktop-styles.css   桌面端样式（Digital Parchment 设计系统）
@@ -64,6 +66,7 @@ docs/
   plans/        历史设计计划与实施计划（仅供决策追溯，不视为当前真相源）
   memory/       工作日志
 tool/           工具脚本 (build/quality/lint/scanner)
+sync-verify/    同步验证代码
 ```
 
 ## 关键命令
@@ -75,17 +78,16 @@ flutter test                          # 跑测试
 flutter analyze                       # 代码分析
 
 # Rust (设置 PATH: export PATH="/Users/alexc/.cargo/bin:$PATH")
-cargo test                            # 全量测试
-cargo test --test unit                # 单元测试（含网络同步测试）
-cargo test --test unit -- connect_and_sync  # 网络同步专项
-cargo build --release                 # 发布构建
+cd rust-backend && cargo test              # 全量测试
+cd rust-backend && cargo test --test sync_test  # 同步专项
+cd rust-backend && cargo build --release   # 发布构建
 
 # 构建
 dart run tool/build.dart lib          # 构建 Rust dylib 到运行态路径
 dart run tool/quality.dart all        # 全量质量检查
 
 # 网络测试（防火墙已关，直接用 cargo test 即可）
-bash rust/tools/test-with-net.sh --test unit -- connect_and_sync  # 签名后运行
+cd rust-backend && cargo test --test sync_test  # 同步测试
 ```
 
 > `flutter pub get` 需要设置 `PUB_HOSTED_URL=https://pub.flutter-io.cn`（国内镜像）。
@@ -93,19 +95,18 @@ bash rust/tools/test-with-net.sh --test unit -- connect_and_sync  # 签名后运
 
 ## 运行态动态库
 
-- 运行态：`build/native/macos/libcardmind_rust.dylib`
-- 编译源：`rust/target/release/libcardmind_rust.dylib`（构建后手动 cp）
-- 缺失时执行 `dart run tool/build.dart lib` 恢复
+- 运行态：`build/windows/x64/runner/Release/cardmind_backend.dll`
+- 编译源：`rust-backend/target/release/cardmind_backend.dll`
+- Windows 构建后自动复制到运行态路径
 
-## 当前状态（2026-06）
+## 当前状态（2026-07）
 
 | 项目 | 状态 |
 |------|------|
-| Phase 2 全部完成 | ✅ 同步可信修复 + 正常流转 UI + 运行态视图 |
-| Rust 测试 | 567/567 ✅ |
-| Flutter 测试 | 383/383 ✅ |
-| 防火墙 | 已关闭，网络测试不再弹窗 |
-| 依赖 | 已更新至安全版本，iroh/pkcs8/spki 等关键包已锁定 |
+| v2 结构重组 | ✅ 源码从 v2/ 上提到根目录，v1 冻结代码已删除 |
+| Rust 后端 | Loro+iROH+mDNS+SQLite+FRB API 已完成 |
+| Flutter 前端 | 基础笔记编辑+列表，FRB 桥接就绪 |
+| 平台 | Windows 为主，Android/Linux 保留 |
 
 ## 文档地图
 

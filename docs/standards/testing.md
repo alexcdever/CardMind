@@ -9,8 +9,8 @@
 ## 目录规则
 
 - Flutter 测试位于 `test/`
-- Rust 集成测试位于 `rust/tests/`
-- Cargo 仅自动发现 `rust/tests/` 根目录入口文件；若使用子目录分类，必须保留对应入口文件进行显式挂载
+- Rust 集成测试位于 `rust-backend/tests/`
+- Cargo 仅自动发现 `rust-backend/tests/` 根目录入口文件；若使用子目录分类，必须保留对应入口文件进行显式挂载
 
 ## 命名规则
 

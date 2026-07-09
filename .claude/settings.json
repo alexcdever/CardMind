@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/tmp/check_features_specs.sh:*)"
+    ]
+  }
+}

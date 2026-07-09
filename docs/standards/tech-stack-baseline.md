@@ -9,8 +9,8 @@
 
 ### 2.1 语言与运行时
 
-- Flutter/Dart：Dart SDK `^3.11.0`，以 `pubspec.yaml` 为准。
-- Rust：Edition `2024`，以 `rust/Cargo.toml` 为准。
+- Flutter/Dart：Dart SDK `^3.12.2`，以 `pubspec.yaml` 为准。
+- Rust：Edition `2021`，以 `rust-backend/Cargo.toml` 为准。
 
 ### 2.2 跨语言桥接
 

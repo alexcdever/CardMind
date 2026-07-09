@@ -1,87 +1,58 @@
-import 'package:cardmind/app/app.dart';
-import 'package:cardmind/app/debug_startup_support.dart';
-import 'package:cardmind/bridge_generated/api.dart' as frb;
-import 'package:cardmind/bridge_generated/frb_generated.dart';
-import 'package:cardmind/features/shared/runtime/rust_library_path.dart';
+import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
-import 'package:path_provider/path_provider.dart';
 
-const bool _debugStartInPool = bool.fromEnvironment(
-  'CARDMIND_DEBUG_START_IN_POOL',
-);
-const bool _debugAutoCreatePool = bool.fromEnvironment(
-  'CARDMIND_DEBUG_AUTO_CREATE_POOL',
-);
-const String _debugAutoPin = String.fromEnvironment('CARDMIND_DEBUG_PIN');
-const String _debugAutoJoinCode = String.fromEnvironment(
-  'CARDMIND_DEBUG_JOIN_CODE',
-);
-const String _debugExportInvitePath = String.fromEnvironment(
-  'CARDMIND_DEBUG_EXPORT_INVITE_PATH',
-);
-const String _debugStatusExportPath = String.fromEnvironment(
-  'CARDMIND_DEBUG_STATUS_EXPORT_PATH',
-);
-const bool _debugPrintInvite = bool.fromEnvironment(
-  'CARDMIND_DEBUG_PRINT_INVITE',
-);
-const bool _debugJoinTrace = bool.fromEnvironment('CARDMIND_DEBUG_JOIN_TRACE');
+import 'bridge/bridge_helper.dart';
+import 'pages/note_list_page.dart';
+import 'pages/editor_page.dart';
+import 'src/rust/frb_generated.dart';
 
-String? _resolvedDebugInvitePath = _debugExportInvitePath.isEmpty
-    ? null
-    : _debugExportInvitePath;
-
-String? _resolvedDebugStatusPath = _debugStatusExportPath.isEmpty
-    ? null
-    : _debugStatusExportPath;
-
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await RustLib.init();
+  await BridgeHelper().init();
+  runApp(const CardMindApp());
+}
 
-  await writeStartupDebugStatus(_resolvedDebugStatusPath, 'main_started');
+class CardMindApp extends StatelessWidget {
+  const CardMindApp({super.key});
 
-  final libPath = resolveRustLibraryPath();
-  await writeStartupDebugStatus(
-    _resolvedDebugStatusPath,
-    'lib_path:${libPath ?? 'default'}',
-  );
-  await RustLib.init(
-    externalLibrary: libPath == null ? null : ExternalLibrary.open(libPath),
-  );
-  final appDataDir = (await getApplicationSupportDirectory()).path;
-  _resolvedDebugInvitePath ??=
-      shouldEnableDefaultInviteExport(
-        debugStartInPool: _debugStartInPool,
-        debugAutoCreatePool: _debugAutoCreatePool,
-      )
-      ? '$appDataDir/debug_invite.txt'
-      : null;
-  _resolvedDebugStatusPath ??=
-      shouldEnableDefaultDebugStatusExport(
-        debugStartInPool: _debugStartInPool,
-        debugAutoCreatePool: _debugAutoCreatePool,
-        debugAutoPin: _debugAutoPin,
-        debugAutoJoinCode: _debugAutoJoinCode,
-      )
-      ? '$appDataDir/debug_status.log'
-      : null;
-  await writeStartupDebugStatus(
-    _resolvedDebugStatusPath,
-    'app_data_dir:$appDataDir',
-  );
-  await frb.initAppConfig(appDataDir: appDataDir);
-  runApp(
-    CardMindApp(
-      appDataDir: appDataDir,
-      debugStartInPool: _debugStartInPool,
-      debugAutoCreatePool: _debugAutoCreatePool,
-      debugAutoPin: _debugAutoPin.isEmpty ? null : _debugAutoPin,
-      debugAutoJoinCode: _debugAutoJoinCode.isEmpty ? null : _debugAutoJoinCode,
-      debugExportInvitePath: _resolvedDebugInvitePath,
-      debugStatusExportPath: _resolvedDebugStatusPath,
-      debugPrintInvite: _debugPrintInvite,
-      debugJoinTrace: _debugJoinTrace,
-    ),
-  );
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'CardMind',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
+        useMaterial3: true,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      localizationsDelegates: const [
+        DefaultMaterialLocalizations.delegate,
+        DefaultWidgetsLocalizations.delegate,
+        AppFlowyEditorLocalizations.delegate,
+      ],
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(
+              builder: (_) => const NoteListPage(),
+            );
+          case '/editor':
+            final args = settings.arguments as Map<String, dynamic>?;
+            final noteId = args?['noteId'] as String?;
+            return MaterialPageRoute(
+              builder: (_) => EditorPage(noteId: noteId),
+            );
+          default:
+            return MaterialPageRoute(
+              builder: (_) => const NoteListPage(),
+            );
+        }
+      },
+    );
+  }
 }

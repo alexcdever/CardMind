@@ -50,6 +50,11 @@ impl SyncService {
         self.notes.insert(note_id, note);
     }
 
+    /// 遍历所有笔记（用于同步到 SQLite）  
+    pub fn iter_notes(&self) -> impl Iterator<Item = (&String, &NoteCrdt)> {
+        self.notes.iter()
+    }
+
     /// 更新笔记内容
     pub fn update_note(&self, note_id: &str, content: &str) -> Result<()> {
         let note = self
