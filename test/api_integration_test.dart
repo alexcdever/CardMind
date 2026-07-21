@@ -3,9 +3,17 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/src/rust/api.dart' as api;
 import 'package:cardmind/src/rust/frb_generated.dart';
+import 'package:cardmind/src/rust/store.dart';
 
 void main() {
   late Directory tempDir;
+  late List<NoteStore> openedStores;
+
+  Future<NoteStore> createTrackedStore(String path) async {
+    final store = await api.createNoteStore(path: path);
+    openedStores.add(store);
+    return store;
+  }
 
   // FRB 只在首次测试前初始化一次
   setUpAll(() async {
@@ -14,9 +22,16 @@ void main() {
 
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('cardmind_test_');
+    openedStores = <NoteStore>[];
   });
 
   tearDown(() {
+    for (final store in openedStores.reversed) {
+      if (!store.isDisposed) {
+        store.dispose();
+      }
+    }
+
     // 清理临时 SQLite 文件
     for (final entity in tempDir.listSync(recursive: true)) {
       if (entity is File) {
@@ -92,7 +107,7 @@ void main() {
     test('store list and search', () async {
       final svc = await api.createSyncService();
       final dbPath = '${tempDir.path}/test.db';
-      final store = await api.createNoteStore(path: dbPath);
+      final store = await createTrackedStore(dbPath);
 
       await api.noteCreate(svc: svc, id: 'a', content: '# Apple\n\nFruit');
       await api.noteCreate(svc: svc, id: 'b', content: '# Banana\n\nYellow');
@@ -110,7 +125,7 @@ void main() {
     test('store search across multiple fields', () async {
       final svc = await api.createSyncService();
       final dbPath = '${tempDir.path}/search.db';
-      final store = await api.createNoteStore(path: dbPath);
+      final store = await createTrackedStore(dbPath);
 
       await api.noteCreate(
         svc: svc,
@@ -141,7 +156,7 @@ void main() {
     test('empty store list returns empty', () async {
       final svc = await api.createSyncService();
       final dbPath = '${tempDir.path}/empty.db';
-      final store = await api.createNoteStore(path: dbPath);
+      final store = await createTrackedStore(dbPath);
 
       await api.syncNotesToStore(svc: svc, store: store);
 
