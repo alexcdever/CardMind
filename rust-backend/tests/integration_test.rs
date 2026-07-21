@@ -16,22 +16,20 @@ fn test_full_sync_flow() {
         let mut svc_b = SyncService::new().await.unwrap();
 
         // 2. A 创建 2 条笔记
-        svc_a.create_note("note-1".into(), "# 标题一\n\n内容A");
-        svc_a.create_note("note-2".into(), "# 标题二\n\n内容B");
+        svc_a
+            .create_note("note-1".into(), "# 标题一\n\n内容A")
+            .unwrap();
+        svc_a
+            .create_note("note-2".into(), "# 标题二\n\n内容B")
+            .unwrap();
 
         // 3. A 导出 → B 导入
         let data = svc_a.export_all().unwrap();
         svc_b.import_all(&data).unwrap();
 
         // 4. 验证 B 拿到笔记
-        assert_eq!(
-            svc_b.get_note("note-1"),
-            Some("# 标题一\n\n内容A".into())
-        );
-        assert_eq!(
-            svc_b.get_note("note-2"),
-            Some("# 标题二\n\n内容B".into())
-        );
+        assert_eq!(svc_b.get_note("note-1"), Some("# 标题一\n\n内容A".into()));
+        assert_eq!(svc_b.get_note("note-2"), Some("# 标题二\n\n内容B".into()));
 
         // 5. A 修改一条笔记
         svc_a
@@ -49,10 +47,7 @@ fn test_full_sync_flow() {
         );
 
         // 8. 数据完整性：note-2 仍然存在且内容不变
-        assert_eq!(
-            svc_b.get_note("note-2"),
-            Some("# 标题二\n\n内容B".into())
-        );
+        assert_eq!(svc_b.get_note("note-2"), Some("# 标题二\n\n内容B".into()));
     });
 }
 

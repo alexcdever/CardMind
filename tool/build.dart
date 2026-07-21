@@ -287,7 +287,7 @@ Future<int> _runLib(
   final result = await runProcess(
     'cargo',
     cargoArgs,
-    workingDirectory: '$rootDir/rust',
+    workingDirectory: '$rootDir/rust-backend',
   );
   if (result.exitCode != 0) {
     logError(_processError(result));
@@ -329,7 +329,7 @@ String _cargoDylibPath(String rootDir, {String? target}) {
   final targetDir = target == null
       ? 'target/release'
       : 'target/$target/release';
-  return '$rootDir/rust/$targetDir/libcardmind_rust.dylib';
+  return '$rootDir/rust-backend/$targetDir/libcardmind_backend.dylib';
 }
 
 String _runtimeDylibPath(String rootDir) {

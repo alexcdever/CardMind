@@ -71,6 +71,16 @@ impl NoteStore {
         Ok(())
     }
 
+    /// 返回旧 SQLite 中的完整内容，用于首次迁移到 Loro 真源。
+    pub fn legacy_notes(&self) -> Result<Vec<(String, String)>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT id, content FROM notes ORDER BY updated_at ASC")?;
+        let rows = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
     /// 从内容中提取 `<!--tags:...-->` 标记
     fn extract_tags_from_content(content: &str) -> String {
         if let Some(start) = content.find("<!--tags:") {
@@ -92,7 +102,7 @@ impl NoteStore {
         let rows = stmt
             .query_map([], |row| {
                 let content: String = row.get(2)?;
-                let preview: String = content.chars().take(80).collect();
+                let preview = Self::content_preview(&content);
                 Ok(NoteRow {
                     id: row.get(0)?,
                     title: row.get(1)?,
@@ -121,7 +131,7 @@ impl NoteStore {
         let rows = stmt
             .query_map([&pattern], |row| {
                 let content: String = row.get(2)?;
-                let preview: String = content.chars().take(80).collect();
+                let preview = Self::content_preview(&content);
                 Ok(NoteRow {
                     id: row.get(0)?,
                     title: row.get(1)?,
@@ -133,5 +143,19 @@ impl NoteStore {
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
         Ok(rows)
+    }
+
+    /// 预览只包含正文：移除标题首行及标签 marker，避免列表重复显示标题。
+    fn content_preview(content: &str) -> String {
+        content
+            .lines()
+            .skip(1)
+            .filter(|line| !line.trim_start().starts_with("<!--tags:") || !line.contains("-->"))
+            .collect::<Vec<_>>()
+            .join("\n")
+            .trim()
+            .chars()
+            .take(80)
+            .collect()
     }
 }

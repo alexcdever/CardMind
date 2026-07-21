@@ -1,5 +1,12 @@
 use cardmind_backend::sync::SyncService;
 
+fn temp_dir(label: &str) -> std::path::PathBuf {
+    let path = std::env::temp_dir().join(format!("cardmind-{label}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&path);
+    std::fs::create_dir_all(&path).unwrap();
+    path
+}
+
 /// 验证 SyncService 的序列化/反序列化逻辑
 ///
 /// 创建两个 SyncService 实例 A 和 B。
@@ -10,7 +17,9 @@ fn test_export_import_roundtrip() {
     rt.block_on(async {
         // ━━━ 设备 A：创建笔记 ━━━
         let mut service_a = SyncService::new().await.unwrap();
-        service_a.create_note("note-1".to_string(), "# 第一条笔记\n\n这是测试内容。");
+        service_a
+            .create_note("note-1".to_string(), "# 第一条笔记\n\n这是测试内容。")
+            .unwrap();
 
         // ━━━ 导出全部 → B 导入 ━━━
         let exported = service_a.export_all().unwrap();
@@ -38,9 +47,9 @@ fn test_multiple_notes_roundtrip() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut service = SyncService::new().await.unwrap();
-        service.create_note("a".to_string(), "笔记 A");
-        service.create_note("b".to_string(), "笔记 B");
-        service.create_note("c".to_string(), "笔记 C");
+        service.create_note("a".to_string(), "笔记 A").unwrap();
+        service.create_note("b".to_string(), "笔记 B").unwrap();
+        service.create_note("c".to_string(), "笔记 C").unwrap();
 
         let exported = service.export_all().unwrap();
 
@@ -67,5 +76,46 @@ fn test_empty_export_import() {
         imported.import_all(&exported).unwrap();
         // 验证没有崩溃
         assert!(imported.get_note("anything").is_none());
+    });
+}
+
+#[test]
+fn test_persistent_restart_and_envelope_validation() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("restart");
+        let mut service = SyncService::new_persistent(&dir).await.unwrap();
+        service
+            .create_note("persisted".into(), "# 标题\n\n正文 <!--tags: work -->")
+            .unwrap();
+        drop(service);
+
+        let restored = SyncService::new_persistent(&dir).await.unwrap();
+        assert_eq!(
+            restored.get_note("persisted").as_deref(),
+            Some("# 标题\n\n正文 <!--tags: work -->")
+        );
+        let bytes = std::fs::read(dir.join("cardmind.loro")).unwrap();
+        assert_eq!(&bytes[..8], b"CARDMIND");
+        assert_eq!(u32::from_le_bytes(bytes[8..12].try_into().unwrap()), 1);
+        std::fs::write(dir.join("cardmind.loro"), b"broken").unwrap();
+        assert!(SyncService::new_persistent(&dir).await.is_err());
+        let _ = std::fs::remove_dir_all(dir);
+    });
+}
+
+#[test]
+fn test_persistence_failure_rolls_back_memory() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("rollback");
+        let file_path = dir.join("notes.loro");
+        let mut service = SyncService::new_persistent(&file_path).await.unwrap();
+        service.create_note("before".into(), "before").unwrap();
+        std::fs::remove_file(&file_path).unwrap();
+        std::fs::create_dir(&file_path).unwrap();
+        assert!(service.update_note("before", "after").is_err());
+        assert_eq!(service.get_note("before").as_deref(), Some("before"));
+        let _ = std::fs::remove_dir_all(dir);
     });
 }

@@ -7,6 +7,11 @@ pub async fn create_sync_service() -> anyhow::Result<SyncService> {
     SyncService::new().await
 }
 
+/// 创建绑定数据目录的持久化同步服务。
+pub async fn create_persistent_sync_service(path: String) -> anyhow::Result<SyncService> {
+    SyncService::new_persistent(path).await
+}
+
 /// 将所有 CRDT 笔记同步到 SQLite 存储
 pub fn sync_notes_to_store(svc: &SyncService, store: &NoteStore) -> anyhow::Result<()> {
     for (id, note) in svc.iter_notes() {
@@ -16,8 +21,8 @@ pub fn sync_notes_to_store(svc: &SyncService, store: &NoteStore) -> anyhow::Resu
 }
 
 /// 创建笔记
-pub fn note_create(svc: &mut SyncService, id: String, content: String) {
-    svc.create_note(id, &content);
+pub fn note_create(svc: &mut SyncService, id: String, content: String) -> anyhow::Result<()> {
+    svc.create_note(id, &content)
 }
 
 /// 读取笔记内容

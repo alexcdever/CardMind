@@ -206,7 +206,7 @@ Future<int> _runRustQuality({
   required void Function(String) log,
   required void Function(String) logError,
 }) async {
-  final rustDir = '${Directory.current.path}/rust';
+  final rustDir = '${Directory.current.path}/rust-backend';
 
   final fmt = await runProcess('cargo', [
     'fmt',

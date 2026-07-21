@@ -1,7 +1,5 @@
 use anyhow::Context;
-use iroh::{
-    endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr,
-};
+use iroh::{endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr};
 use loro::{ExportMode, LoroDoc};
 
 const ALPN: &[u8] = b"cardmind-v2";
@@ -22,8 +20,11 @@ fn end_to_end_sync() {
             .await
             .context("A bind")?;
         let id_a = ep_a.id();
-        let ips_a: Vec<TransportAddr> =
-            ep_a.addr().ip_addrs().map(|a| TransportAddr::Ip(*a)).collect();
+        let ips_a: Vec<TransportAddr> = ep_a
+            .addr()
+            .ip_addrs()
+            .map(|a| TransportAddr::Ip(*a))
+            .collect();
 
         let doc_a = LoroDoc::new();
         doc_a
@@ -94,10 +95,10 @@ fn end_to_end_sync() {
         println!();
 
         // ━━━ 第二轮：B 拉取 A 的增量 ━━━
-        doc_a.get_text("content").insert(
-            doc_a.get_text("content").len_unicode(),
-            "下午开始下雨了。",
-        ).unwrap();
+        doc_a
+            .get_text("content")
+            .insert(doc_a.get_text("content").len_unicode(), "下午开始下雨了。")
+            .unwrap();
         let delta = doc_a.export(ExportMode::all_updates()).unwrap();
         println!(
             "[A] 追加后内容: {}",

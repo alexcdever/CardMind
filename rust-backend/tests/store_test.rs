@@ -23,7 +23,7 @@ fn test_sync_and_list() {
     // 按 updated_at DESC，所以 note-2 在前
     assert_eq!(notes[0].id, "note-2");
     assert_eq!(notes[0].title, "第二条笔记");
-    assert!(notes[0].content_preview.starts_with("# 第二条笔记"));
+    assert!(notes[0].content_preview.starts_with("更多内容"));
 
     assert_eq!(notes[1].id, "note-1");
     assert_eq!(notes[1].title, "测试笔记");
