@@ -330,7 +330,7 @@ impl NoteCrdt {
         remove_tag_marker(&content)
             .lines()
             .next()
-            .map(|line| line.trim().trim_start_matches(|c: char| c == '#').trim())
+            .map(|line| line.trim().trim_start_matches('#').trim())
             .unwrap_or_default()
             .to_string()
     }
