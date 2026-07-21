@@ -72,7 +72,7 @@ Set<String> parseRustPublicItems(String source) {
       );
       for (final RegExpMatch match in methodMatches) {
         final String methodName = match.group(2)!;
-        items.add('${currentImplType!}__${methodName}');
+        items.add('${currentImplType}__$methodName');
       }
       implBraceDepth += _braceDelta(line);
       if (implBraceDepth <= 0) {
@@ -136,7 +136,7 @@ Set<String> parseDartPublicItems(String source) {
           if (methodMatch != null) {
             final String methodName = methodMatch.group(1)!;
             if (!methodName.startsWith('_') && methodName != currentClass) {
-              items.add('${currentClass!}__${methodName}');
+              items.add('${currentClass}__$methodName');
             }
           }
         }
@@ -177,7 +177,7 @@ Set<String> parseDartPublicItems(String source) {
     if (methodMatch != null) {
       final String methodName = methodMatch.group(1)!;
       if (!methodName.startsWith('_') && methodName != currentClass) {
-        items.add('${currentClass!}__${methodName}');
+        items.add('${currentClass}__$methodName');
       }
     }
 

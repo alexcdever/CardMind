@@ -5,6 +5,8 @@
 /// pos: tool/test_boundary_scanner.dart - 测试边界扫描器主程序，修改本文件需同步更新文件头
 /// 中文注释: 测试边界扫描器，自动识别代码边界条件并生成覆盖报告
 
+library;
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:analyzer/dart/analysis/utilities.dart';
