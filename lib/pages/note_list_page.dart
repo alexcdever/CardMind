@@ -4,10 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../bridge/bridge_helper.dart';
+import '../bridge/note_repository.dart';
 import '../src/rust/store.dart';
+import '../ui/design_system/cardmind_theme.dart';
+import '../ui/design_system/cardmind_widgets.dart';
+import 'editor_page.dart';
 
 class NoteListPage extends StatefulWidget {
-  const NoteListPage({super.key});
+  const NoteListPage({super.key, this.repository});
+
+  final NoteRepository? repository;
 
   @override
   State<NoteListPage> createState() => _NoteListPageState();
@@ -17,10 +23,16 @@ class _NoteListPageState extends State<NoteListPage> {
   List<NoteRow> _notes = [];
   bool _loading = true;
   String? _selectedTag;
+  String? _selectedNoteId;
+  bool _creatingNote = false;
+  int _mobileTabIndex = 0;
+  int _draftRevision = 0;
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounceTimer;
   List<NoteRow> _searchResults = [];
   bool _isSearching = false;
+
+  NoteRepository get _repository => widget.repository ?? BridgeHelper();
 
   @override
   void initState() {
@@ -36,22 +48,26 @@ class _NoteListPageState extends State<NoteListPage> {
   }
 
   Future<void> _loadNotes() async {
-    setState(() => _loading = true);
+    if (mounted) setState(() => _loading = true);
     try {
-      final notes = await BridgeHelper().listNotes();
-      if (mounted) {
-        setState(() {
-          _notes = notes;
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('加载失败: $e')),
+      final notes = await _repository.listNotes();
+      if (!mounted) return;
+      setState(() {
+        _notes = notes;
+        _loading = false;
+        final selectedStillExists = notes.any(
+          (note) => note.id == _selectedNoteId,
         );
-      }
+        if (!selectedStillExists && !_creatingNote) {
+          _selectedNoteId = notes.isEmpty ? null : notes.first.id;
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('加载失败: $error')));
     }
   }
 
@@ -68,8 +84,7 @@ class _NoteListPageState extends State<NoteListPage> {
       return DateFormat('M月d日').format(date);
     } catch (_) {
       try {
-        final date = DateTime.parse(updatedAt);
-        return DateFormat('M月d日').format(date);
+        return DateFormat('M月d日').format(DateTime.parse(updatedAt));
       } catch (_) {
         return updatedAt;
       }
@@ -80,8 +95,8 @@ class _NoteListPageState extends State<NoteListPage> {
     if (tags.trim().isEmpty) return [];
     return tags
         .split(',')
-        .map((t) => t.trim())
-        .where((t) => t.isNotEmpty)
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
         .toList();
   }
 
@@ -97,14 +112,14 @@ class _NoteListPageState extends State<NoteListPage> {
     if (_selectedTag == null) return _notes;
     return _notes.where((note) {
       final tags = _parseTags(note.tags);
-      return tags.any((t) => t.toLowerCase() == _selectedTag!.toLowerCase());
+      return tags.any(
+        (tag) => tag.toLowerCase() == _selectedTag!.toLowerCase(),
+      );
     }).toList();
   }
 
-  List<NoteRow> get _displayedNotes {
-    if (_isSearching) return _searchResults;
-    return _filteredNotes;
-  }
+  List<NoteRow> get _displayedNotes =>
+      _isSearching ? _searchResults : _filteredNotes;
 
   void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
@@ -115,209 +130,459 @@ class _NoteListPageState extends State<NoteListPage> {
       });
       return;
     }
-    setState(() {
-      _isSearching = true;
-    });
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
-      _performSearch(query);
-    });
+    setState(() => _isSearching = true);
+    _debounceTimer = Timer(
+      const Duration(milliseconds: 300),
+      () => _performSearch(query),
+    );
   }
 
   Future<void> _performSearch(String query) async {
-    final results = await BridgeHelper().search(query);
-    if (mounted) {
-      setState(() {
-        _searchResults = results;
-      });
-    }
+    final results = await _repository.search(query);
+    if (!mounted || query != _searchController.text) return;
+    setState(() => _searchResults = results);
   }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: '搜索笔记...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    _onSearchChanged('');
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true,
-          fillColor: Colors.grey[100],
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        ),
-        onChanged: _onSearchChanged,
+  void _clearSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
+  }
+
+  void _startDesktopDraft() {
+    setState(() {
+      _creatingNote = true;
+      _selectedNoteId = null;
+      _draftRevision++;
+    });
+  }
+
+  Future<void> _openMobileEditor({String? noteId}) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            EditorPage(noteId: noteId, repository: _repository),
       ),
     );
+    await _loadNotes();
   }
 
-  Widget _buildTagFilterBar() {
+  Future<void> _handleEmbeddedSave(String noteId) async {
+    setState(() {
+      _creatingNote = false;
+      _selectedNoteId = noteId;
+    });
+    await _loadNotes();
+  }
+
+  Widget _buildTagFilterBar({
+    EdgeInsets padding = EdgeInsets.zero,
+    bool comfortable = false,
+  }) {
     final allTags = _getAllTags();
     if (allTags.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerLow,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade300, width: 0.5),
-        ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: padding,
+      child: Row(
+        children: [
+          for (final tag in allTags) ...[
+            CardMindTag(
+              label: tag,
+              selected: _selectedTag == tag,
+              comfortable: comfortable,
+              onTap: () {
+                setState(() {
+                  _selectedTag = _selectedTag == tag ? null : tag;
+                });
+              },
+            ),
+            const SizedBox(width: CardMindSpacing.sm),
+          ],
+        ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: allTags.map((tag) {
-            final isSelected = _selectedTag == tag;
-            return Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: FilterChip(
-                label: Text(tag, style: const TextStyle(fontSize: 12)),
-                selected: isSelected,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                onSelected: (_) {
-                  setState(() {
-                    _selectedTag = isSelected ? null : tag;
-                  });
-                },
+    );
+  }
+
+  Widget _buildNoteItem(
+    NoteRow note, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final tokens = context.cardMind;
+    final preview = _preview(note);
+    final tags = _parseTags(note.tags);
+    final comfortable =
+        MediaQuery.sizeOf(context).width < CardMindLayout.desktopBreakpoint;
+
+    return Material(
+      color: selected ? tokens.surfaceLow : tokens.surfaceRaised,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: BoxConstraints(minHeight: comfortable ? 112 : 96),
+          padding: EdgeInsets.fromLTRB(
+            comfortable ? 16 : 14,
+            comfortable ? 16 : 14,
+            comfortable ? 16 : 12,
+            comfortable ? 16 : 14,
+          ),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: selected ? tokens.accent : Colors.transparent,
+                width: 2,
               ),
-            );
-          }).toList(),
+              bottom: BorderSide(color: tokens.border),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      note.title.isEmpty ? '无标题' : note.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: comfortable ? 16 : 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: CardMindSpacing.sm),
+                  Text(
+                    _formatDate(note.updatedAt),
+                    style: TextStyle(
+                      color: tokens.mutedInk,
+                      fontSize: comfortable ? 12 : 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (preview.isNotEmpty) ...[
+                const SizedBox(height: CardMindSpacing.xs),
+                Text(
+                  preview,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: tokens.mutedInk,
+                    fontSize: comfortable ? 14 : 13,
+                    height: comfortable ? 21 / 14 : 18 / 13,
+                  ),
+                ),
+              ],
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: CardMindSpacing.sm),
+                Wrap(
+                  spacing: CardMindSpacing.xs,
+                  runSpacing: CardMindSpacing.xs,
+                  children: [
+                    for (final tag in tags.take(3))
+                      CardMindTag(label: tag, comfortable: comfortable),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildListBody({required bool desktop}) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_notes.isEmpty && !_isSearching) {
+      return const CardMindEmptyState(
+        icon: Icons.note_add_outlined,
+        title: '还没有笔记',
+        message: '创建第一篇笔记，内容会保存在这台设备上。',
+      );
+    }
+    if (_displayedNotes.isEmpty) {
+      return CardMindEmptyState(
+        icon: Icons.search_off,
+        title: '没有匹配结果',
+        message: _isSearching ? '试试更短的关键词。' : '当前标签下没有笔记。',
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _displayedNotes.length,
+      itemBuilder: (context, index) {
+        final note = _displayedNotes[index];
+        return _buildNoteItem(
+          note,
+          selected: desktop && note.id == _selectedNoteId,
+          onTap: () {
+            if (desktop) {
+              setState(() {
+                _creatingNote = false;
+                _selectedNoteId = note.id;
+              });
+            } else {
+              _openMobileEditor(noteId: note.id);
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileListBody() {
+    final isEmptyState =
+        _loading ||
+        (_notes.isEmpty && !_isSearching) ||
+        _displayedNotes.isEmpty;
+    if (isEmptyState) {
+      return SingleChildScrollView(child: _buildListBody(desktop: false));
+    }
+    return _buildListBody(desktop: false);
+  }
+
+  Widget _buildSidebar() {
+    final tokens = context.cardMind;
+    return Container(
+      width: CardMindLayout.sidebarWidth,
+      color: tokens.surfaceLow,
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.note_alt_outlined, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            '暂无笔记',
-            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: tokens.accent,
+                  borderRadius: BorderRadius.circular(CardMindRadii.md),
+                ),
+                child: const Icon(
+                  Icons.auto_stories_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: CardMindSpacing.md),
+              const Expanded(
+                child: Text(
+                  'CardMind',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: CardMindSpacing.xl),
+          CardMindPrimaryButton(
+            label: '新建笔记',
+            icon: Icons.add,
+            expanded: true,
+            onPressed: _startDesktopDraft,
+          ),
+          const SizedBox(height: CardMindSpacing.xl),
+          Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: tokens.accent.withValues(alpha: 0.08),
+              border: Border(left: BorderSide(color: tokens.accent, width: 2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.notes, size: 19, color: tokens.accent),
+                const SizedBox(width: CardMindSpacing.md),
+                Text(
+                  '笔记',
+                  style: TextStyle(
+                    color: tokens.accent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${_notes.length}',
+                  style: TextStyle(color: tokens.mutedInk, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: CardMindSyncStatus(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNoteItem(NoteRow note) {
-    final preview = _preview(note);
-    final formattedDate = _formatDate(note.updatedAt);
-    final tags = _parseTags(note.tags);
-
-    return ListTile(
-      title: Text(
-        note.title,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildDesktopListPane() {
+    final tokens = context.cardMind;
+    return Container(
+      width: CardMindLayout.listWidth,
+      color: tokens.paper,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (preview.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                preview,
-                style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
           Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  formattedDate,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _isSearching ? '搜索结果' : '全部笔记',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Text(
+                      '${_displayedNotes.length}',
+                      style: TextStyle(color: tokens.mutedInk, fontSize: 12),
+                    ),
+                  ],
                 ),
-                if (tags.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  ...tags.map((tag) => Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: Chip(
-                          label: Text(tag, style: const TextStyle(fontSize: 10)),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          labelPadding:
-                              const EdgeInsets.symmetric(horizontal: 6),
-                        ),
-                      )),
+                const SizedBox(height: CardMindSpacing.lg),
+                CardMindSearchField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  onClear: _clearSearch,
+                ),
+                if (!_isSearching && _getAllTags().isNotEmpty) ...[
+                  const SizedBox(height: CardMindSpacing.md),
+                  _buildTagFilterBar(),
                 ],
               ],
             ),
           ),
+          Divider(color: tokens.border),
+          Expanded(child: _buildListBody(desktop: true)),
         ],
       ),
-      onTap: () async {
-        await Navigator.pushNamed(context, '/editor',
-            arguments: {'noteId': note.id});
-        _loadNotes();
-      },
+    );
+  }
+
+  Widget _buildDesktopEditorPane() {
+    if (_creatingNote) {
+      return EditorPage(
+        key: ValueKey('draft-$_draftRevision'),
+        embedded: true,
+        repository: _repository,
+        onSaved: _handleEmbeddedSave,
+      );
+    }
+    if (_selectedNoteId != null) {
+      return EditorPage(
+        key: ValueKey(_selectedNoteId),
+        noteId: _selectedNoteId,
+        embedded: true,
+        repository: _repository,
+        onSaved: _handleEmbeddedSave,
+      );
+    }
+    return const CardMindEmptyState(
+      icon: Icons.edit_note_outlined,
+      title: '选择一篇笔记',
+      message: '在左侧列表选择笔记，或创建一篇新笔记。',
+    );
+  }
+
+  Widget _buildDesktop() {
+    final tokens = context.cardMind;
+    return Scaffold(
+      body: SafeArea(
+        child: Row(
+          children: [
+            _buildSidebar(),
+            VerticalDivider(width: 1, color: tokens.border),
+            _buildDesktopListPane(),
+            VerticalDivider(width: 1, color: tokens.border),
+            Expanded(child: _buildDesktopEditorPane()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobile() {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_mobileTabIndex == 0 ? 'CardMind' : '设备'),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: CardMindSyncStatus(label: '已就绪'),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: _mobileTabIndex == 0
+            ? Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                    child: CardMindSearchField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      onClear: _clearSearch,
+                      mobile: true,
+                    ),
+                  ),
+                  if (!_isSearching)
+                    _buildTagFilterBar(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 8, 12),
+                      comfortable: true,
+                    ),
+                  Expanded(child: _buildMobileListBody()),
+                ],
+              )
+            : const CardMindEmptyState(
+                icon: Icons.devices_outlined,
+                title: '暂无已连接设备',
+                message: '发现并连接设备后，同步状态会显示在这里。',
+              ),
+      ),
+      floatingActionButton: _mobileTabIndex == 0
+          ? FloatingActionButton(
+              tooltip: '新建笔记',
+              onPressed: () => _openMobileEditor(),
+              child: const Icon(Icons.add),
+            )
+          : null,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _mobileTabIndex,
+        onDestinationSelected: (index) {
+          setState(() => _mobileTabIndex = index);
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.notes), label: '笔记'),
+          NavigationDestination(
+            icon: Icon(Icons.devices_outlined),
+            label: '设备',
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('CardMind'),
-        centerTitle: true,
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _notes.isEmpty && !_isSearching
-              ? _buildEmptyState()
-              : Column(
-                  children: [
-                    _buildSearchBar(),
-                    if (!_isSearching) _buildTagFilterBar(),
-                    Expanded(
-                      child: _displayedNotes.isEmpty
-                          ? Center(
-                              child: Text(
-                                _isSearching
-                                    ? '没有找到匹配的笔记'
-                                    : '没有包含"$_selectedTag"标签的笔记',
-                                style: TextStyle(color: Colors.grey[500]),
-                              ),
-                            )
-                          : ListView.separated(
-                              itemCount: _displayedNotes.length,
-                              separatorBuilder: (_, _) =>
-                                  const Divider(height: 1),
-                              itemBuilder: (context, index) =>
-                                  _buildNoteItem(_displayedNotes[index]),
-                            ),
-                    ),
-                  ],
-                ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.pushNamed(context, '/editor');
-          _loadNotes();
-        },
-        child: const Icon(Icons.add),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= CardMindLayout.desktopBreakpoint) {
+          return _buildDesktop();
+        }
+        return _buildMobile();
+      },
     );
   }
 }
