@@ -25,6 +25,17 @@ fn test_title_extraction() {
 }
 
 #[test]
+fn test_title_extraction_ignores_tag_metadata() {
+    let same_line = NoteCrdt::new();
+    same_line.set_content("<!--tags:work,idea--># Tagged title\n\nBody");
+    assert_eq!(same_line.get_title(), "Tagged title");
+
+    let separate_line = NoteCrdt::new();
+    separate_line.set_content("<!--tags:work,idea-->\n# Tagged title\n\nBody");
+    assert_eq!(separate_line.get_title(), "Tagged title");
+}
+
+#[test]
 fn test_snapshot_roundtrip() {
     let note_a = NoteCrdt::new();
     note_a.set_content("快照测试内容");

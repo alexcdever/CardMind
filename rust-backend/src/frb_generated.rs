@@ -41,7 +41,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -276060150;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1818285212;
 
 // Section: executor
 
@@ -133,6 +133,43 @@ fn wire__crate__api__create_note_store_impl(
                         let output_ok = crate::api::create_note_store(api_path)?;
                         Ok(output_ok)
                     })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__create_persistent_sync_service_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "create_persistent_sync_service",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_path = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::create_persistent_sync_service(api_path).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
                 )
             }
         },
@@ -257,26 +294,27 @@ fn wire__crate__api__note_create_impl(
             let api_content = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
-                transform_result_sse::<_, ()>((move || {
-                    let mut api_svc_guard = None;
-                    let decode_indices_ =
-                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
-                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                &api_svc, 0, true,
-                            ),
-                        ]);
-                    for i in decode_indices_ {
-                        match i {
-                            0 => api_svc_guard = Some(api_svc.lockable_decode_sync_ref_mut()),
-                            _ => unreachable!(),
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let mut api_svc_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_svc, 0, true,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => api_svc_guard = Some(api_svc.lockable_decode_sync_ref_mut()),
+                                _ => unreachable!(),
+                            }
                         }
-                    }
-                    let mut api_svc_guard = api_svc_guard.unwrap();
-                    let output_ok = Result::<_, ()>::Ok({
-                        crate::api::note_create(&mut *api_svc_guard, api_id, api_content);
-                    })?;
-                    Ok(output_ok)
-                })())
+                        let mut api_svc_guard = api_svc_guard.unwrap();
+                        let output_ok =
+                            crate::api::note_create(&mut *api_svc_guard, api_id, api_content)?;
+                        Ok(output_ok)
+                    })(),
+                )
             }
         },
     )
@@ -938,17 +976,20 @@ fn pde_ffi_dispatcher_primary_impl(
     match func_id {
         1 => wire__crate__api__accept_push_impl(port, ptr, rust_vec_len, data_len),
         2 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
+        3 => {
+            wire__crate__api__create_persistent_sync_service_impl(port, ptr, rust_vec_len, data_len)
+        }
+        4 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1230,42 +1271,42 @@ mod io {
     flutter_rust_bridge::frb_generated_boilerplate_io!();
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_v2_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDiscoveryService(
+    pub extern "C" fn frbgen_cardmind_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDiscoveryService(
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DiscoveryService>>::increment_strong_count(ptr as _);
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_v2_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDiscoveryService(
+    pub extern "C" fn frbgen_cardmind_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDiscoveryService(
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DiscoveryService>>::decrement_strong_count(ptr as _);
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_v2_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNoteStore(
+    pub extern "C" fn frbgen_cardmind_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNoteStore(
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>>::increment_strong_count(ptr as _);
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_v2_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNoteStore(
+    pub extern "C" fn frbgen_cardmind_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNoteStore(
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>>::decrement_strong_count(ptr as _);
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_v2_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
+    pub extern "C" fn frbgen_cardmind_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>>::increment_strong_count(ptr as _);
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_v2_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
+    pub extern "C" fn frbgen_cardmind_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
         ptr: *const std::ffi::c_void,
     ) {
         MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>>::decrement_strong_count(ptr as _);

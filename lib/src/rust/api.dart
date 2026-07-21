@@ -13,6 +13,10 @@ import 'sync.dart';
 Future<SyncService> createSyncService() =>
     RustLib.instance.api.crateApiCreateSyncService();
 
+/// 创建绑定数据目录的持久化同步服务。
+Future<SyncService> createPersistentSyncService({required String path}) =>
+    RustLib.instance.api.crateApiCreatePersistentSyncService(path: path);
+
 /// 将所有 CRDT 笔记同步到 SQLite 存储
 Future<void> syncNotesToStore({
   required SyncService svc,

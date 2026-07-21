@@ -326,7 +326,8 @@ impl NoteCrdt {
     ///
     /// 取第一行，去除开头的 `#` 及空白字符。
     pub fn get_title(&self) -> String {
-        self.get_content()
+        let content = self.get_content();
+        remove_tag_marker(&content)
             .lines()
             .next()
             .map(|line| line.trim().trim_start_matches(|c: char| c == '#').trim())
@@ -346,6 +347,22 @@ impl NoteCrdt {
         self.doc.import(data).map_err(|e| anyhow::anyhow!(e))?;
         Ok(())
     }
+}
+
+fn remove_tag_marker(content: &str) -> String {
+    const MARKER: &str = "<!--tags:";
+    let Some(start) = content.find(MARKER) else {
+        return content.to_string();
+    };
+    let after_marker = start + MARKER.len();
+    let Some(relative_end) = content[after_marker..].find("-->") else {
+        return content.to_string();
+    };
+    let end = after_marker + relative_end + 3;
+    let mut clean = String::with_capacity(content.len() - (end - start));
+    clean.push_str(&content[..start]);
+    clean.push_str(&content[end..]);
+    clean.trim_start_matches(['\r', '\n']).to_string()
 }
 
 impl Default for NoteCrdt {
