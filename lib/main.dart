@@ -2,6 +2,7 @@ import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
 
 import 'bridge/bridge_helper.dart';
+import 'bridge/note_repository.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
 import 'src/rust/frb_generated.dart';
@@ -136,7 +137,9 @@ class _CardMindStartupScreen extends StatelessWidget {
 }
 
 class CardMindApp extends StatelessWidget {
-  const CardMindApp({super.key});
+  const CardMindApp({super.key, this.repository});
+
+  final NoteRepository? repository;
 
   @override
   Widget build(BuildContext context) {
@@ -153,15 +156,20 @@ class CardMindApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/':
-            return MaterialPageRoute(builder: (_) => const NoteListPage());
+            return MaterialPageRoute(
+              builder: (_) => NoteListPage(repository: repository),
+            );
           case '/editor':
             final args = settings.arguments as Map<String, dynamic>?;
             final noteId = args?['noteId'] as String?;
             return MaterialPageRoute(
-              builder: (_) => EditorPage(noteId: noteId),
+              builder: (_) =>
+                  EditorPage(noteId: noteId, repository: repository),
             );
           default:
-            return MaterialPageRoute(builder: (_) => const NoteListPage());
+            return MaterialPageRoute(
+              builder: (_) => NoteListPage(repository: repository),
+            );
         }
       },
     );

@@ -55,26 +55,31 @@ class CardMindIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.cardMind;
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      icon: Icon(icon, size: 19),
-      color: selected ? tokens.accent : tokens.mutedInk,
-      style: IconButton.styleFrom(
-        fixedSize: const Size(
-          CardMindLayout.mobileTouchTarget,
-          CardMindLayout.mobileTouchTarget,
-        ),
-        minimumSize: const Size(
-          CardMindLayout.mobileTouchTarget,
-          CardMindLayout.mobileTouchTarget,
-        ),
-        padding: EdgeInsets.zero,
-        backgroundColor: selected
-            ? tokens.accent.withValues(alpha: 0.10)
-            : null,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(CardMindRadii.md),
+    return Semantics(
+      button: true,
+      identifier: 'action-${tooltip.replaceAll(' ', '-')}',
+      label: tooltip,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 19),
+        color: selected ? tokens.accent : tokens.mutedInk,
+        style: IconButton.styleFrom(
+          fixedSize: const Size(
+            CardMindLayout.mobileTouchTarget,
+            CardMindLayout.mobileTouchTarget,
+          ),
+          minimumSize: const Size(
+            CardMindLayout.mobileTouchTarget,
+            CardMindLayout.mobileTouchTarget,
+          ),
+          padding: EdgeInsets.zero,
+          backgroundColor: selected
+              ? tokens.accent.withValues(alpha: 0.10)
+              : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(CardMindRadii.md),
+          ),
         ),
       ),
     );
@@ -97,33 +102,39 @@ class CardMindSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        hintText: '搜索笔记',
-        prefixIcon: const Icon(Icons.search, size: 20),
-        prefixIconConstraints: const BoxConstraints(
-          minWidth: CardMindLayout.mobileTouchTarget,
-          minHeight: CardMindLayout.mobileTouchTarget,
+    return Semantics(
+      textField: true,
+      identifier: 'note-search-field',
+      label: '搜索笔记',
+      child: TextField(
+        key: const ValueKey('note-search-input'),
+        controller: controller,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: '搜索笔记',
+          prefixIcon: const Icon(Icons.search, size: 20),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: CardMindLayout.mobileTouchTarget,
+            minHeight: CardMindLayout.mobileTouchTarget,
+          ),
+          suffixIcon: controller.text.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: '清除搜索',
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close, size: 18),
+                ),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: CardMindLayout.mobileTouchTarget,
+            minHeight: CardMindLayout.mobileTouchTarget,
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: CardMindSpacing.md,
+            vertical: mobile ? 12 : 10,
+          ),
         ),
-        suffixIcon: controller.text.isEmpty
-            ? null
-            : IconButton(
-                tooltip: '清除搜索',
-                onPressed: onClear,
-                icon: const Icon(Icons.close, size: 18),
-              ),
-        suffixIconConstraints: const BoxConstraints(
-          minWidth: CardMindLayout.mobileTouchTarget,
-          minHeight: CardMindLayout.mobileTouchTarget,
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: CardMindSpacing.md,
-          vertical: mobile ? 12 : 10,
-        ),
+        style: TextStyle(fontSize: mobile ? 16 : 15),
       ),
-      style: TextStyle(fontSize: mobile ? 16 : 15),
     );
   }
 }
@@ -166,9 +177,7 @@ class CardMindTag extends StatelessWidget {
             color: selected
                 ? tokens.accent.withValues(alpha: 0.10)
                 : tokens.surfaceLow,
-            border: Border.all(
-              color: selected ? tokens.accent : tokens.border,
-            ),
+            border: Border.all(color: selected ? tokens.accent : tokens.border),
             borderRadius: BorderRadius.circular(CardMindRadii.md),
           ),
           child: Text(

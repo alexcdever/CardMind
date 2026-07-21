@@ -31,6 +31,8 @@ class _NoteListPageState extends State<NoteListPage> {
   Timer? _debounceTimer;
   List<NoteRow> _searchResults = [];
   bool _isSearching = false;
+  String? _searchError;
+  int _searchGeneration = 0;
 
   NoteRepository get _repository => widget.repository ?? BridgeHelper();
 
@@ -72,10 +74,24 @@ class _NoteListPageState extends State<NoteListPage> {
   }
 
   String _preview(NoteRow note) {
-    final preview = note.contentPreview.trim();
+    var preview = BridgeHelper.removeTagsFromContent(
+      note.contentPreview,
+    ).trim();
+    final title = _displayTitle(note);
+    final lines = preview.split('\n');
+    if (lines.isNotEmpty) {
+      final first = lines.first.trim().replaceFirst(RegExp(r'^#+\s*'), '');
+      if (first == title) preview = lines.skip(1).join('\n').trim();
+    }
     if (preview.isEmpty) return '';
     if (preview.length <= 80) return preview;
     return '${preview.substring(0, 80)}…';
+  }
+
+  String _displayTitle(NoteRow note) {
+    var title = BridgeHelper.removeTagsFromContent(note.title).trim();
+    title = title.replaceFirst(RegExp(r'^#+\s*'), '').trim();
+    return title.isEmpty ? '无标题' : title;
   }
 
   String _formatDate(String updatedAt) {
@@ -123,24 +139,43 @@ class _NoteListPageState extends State<NoteListPage> {
 
   void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
-    if (query.isEmpty) {
+    final normalized = query.trim();
+    _searchGeneration++;
+    if (normalized.isEmpty) {
       setState(() {
         _isSearching = false;
         _searchResults = [];
+        _searchError = null;
       });
       return;
     }
-    setState(() => _isSearching = true);
+    setState(() {
+      _isSearching = true;
+      _searchError = null;
+      _searchResults = [];
+    });
+    final generation = _searchGeneration;
     _debounceTimer = Timer(
       const Duration(milliseconds: 300),
-      () => _performSearch(query),
+      () => _performSearch(normalized, generation),
     );
   }
 
-  Future<void> _performSearch(String query) async {
-    final results = await _repository.search(query);
-    if (!mounted || query != _searchController.text) return;
-    setState(() => _searchResults = results);
+  Future<void> _performSearch(String query, int generation) async {
+    try {
+      final results = await _repository.search(query);
+      if (!mounted || generation != _searchGeneration) return;
+      setState(() {
+        _searchResults = results;
+        _searchError = null;
+      });
+    } catch (error) {
+      if (!mounted || generation != _searchGeneration) return;
+      setState(() {
+        _searchResults = [];
+        _searchError = '搜索失败：$error';
+      });
+    }
   }
 
   void _clearSearch() {
@@ -188,6 +223,7 @@ class _NoteListPageState extends State<NoteListPage> {
         children: [
           for (final tag in allTags) ...[
             CardMindTag(
+              key: ValueKey('tag-filter-${tag.toLowerCase()}'),
               label: tag,
               selected: _selectedTag == tag,
               comfortable: comfortable,
@@ -215,80 +251,86 @@ class _NoteListPageState extends State<NoteListPage> {
     final comfortable =
         MediaQuery.sizeOf(context).width < CardMindLayout.desktopBreakpoint;
 
-    return Material(
-      color: selected ? tokens.surfaceLow : tokens.surfaceRaised,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: BoxConstraints(minHeight: comfortable ? 112 : 96),
-          padding: EdgeInsets.fromLTRB(
-            comfortable ? 16 : 14,
-            comfortable ? 16 : 14,
-            comfortable ? 16 : 12,
-            comfortable ? 16 : 14,
-          ),
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: selected ? tokens.accent : Colors.transparent,
-                width: 2,
-              ),
-              bottom: BorderSide(color: tokens.border),
+    return Semantics(
+      container: true,
+      identifier: 'note-${note.id}',
+      label: '笔记：${_displayTitle(note)}',
+      child: Material(
+        color: selected ? tokens.surfaceLow : tokens.surfaceRaised,
+        child: InkWell(
+          key: ValueKey('note-${note.id}'),
+          onTap: onTap,
+          child: Container(
+            constraints: BoxConstraints(minHeight: comfortable ? 112 : 96),
+            padding: EdgeInsets.fromLTRB(
+              comfortable ? 16 : 14,
+              comfortable ? 16 : 14,
+              comfortable ? 16 : 12,
+              comfortable ? 16 : 14,
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      note.title.isEmpty ? '无标题' : note.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(
+                  color: selected ? tokens.accent : Colors.transparent,
+                  width: 2,
+                ),
+                bottom: BorderSide(color: tokens.border),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _displayTitle(note),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: comfortable ? 16 : 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: CardMindSpacing.sm),
+                    Text(
+                      _formatDate(note.updatedAt),
                       style: TextStyle(
-                        fontSize: comfortable ? 16 : 15,
+                        color: tokens.mutedInk,
+                        fontSize: comfortable ? 12 : 11,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: CardMindSpacing.sm),
+                  ],
+                ),
+                if (preview.isNotEmpty) ...[
+                  const SizedBox(height: CardMindSpacing.xs),
                   Text(
-                    _formatDate(note.updatedAt),
+                    preview,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: tokens.mutedInk,
-                      fontSize: comfortable ? 12 : 11,
-                      fontWeight: FontWeight.w600,
+                      fontSize: comfortable ? 14 : 13,
+                      height: comfortable ? 21 / 14 : 18 / 13,
                     ),
                   ),
                 ],
-              ),
-              if (preview.isNotEmpty) ...[
-                const SizedBox(height: CardMindSpacing.xs),
-                Text(
-                  preview,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: tokens.mutedInk,
-                    fontSize: comfortable ? 14 : 13,
-                    height: comfortable ? 21 / 14 : 18 / 13,
+                if (tags.isNotEmpty) ...[
+                  const SizedBox(height: CardMindSpacing.sm),
+                  Wrap(
+                    spacing: CardMindSpacing.xs,
+                    runSpacing: CardMindSpacing.xs,
+                    children: [
+                      for (final tag in tags.take(3))
+                        CardMindTag(label: tag, comfortable: comfortable),
+                    ],
                   ),
-                ),
+                ],
               ],
-              if (tags.isNotEmpty) ...[
-                const SizedBox(height: CardMindSpacing.sm),
-                Wrap(
-                  spacing: CardMindSpacing.xs,
-                  runSpacing: CardMindSpacing.xs,
-                  children: [
-                    for (final tag in tags.take(3))
-                      CardMindTag(label: tag, comfortable: comfortable),
-                  ],
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -304,6 +346,14 @@ class _NoteListPageState extends State<NoteListPage> {
         icon: Icons.note_add_outlined,
         title: '还没有笔记',
         message: '创建第一篇笔记，内容会保存在这台设备上。',
+      );
+    }
+    if (_searchError != null) {
+      return CardMindEmptyState(
+        key: const ValueKey('search-error'),
+        icon: Icons.error_outline,
+        title: '搜索失败',
+        message: _searchError!,
       );
     }
     if (_displayedNotes.isEmpty) {
@@ -382,6 +432,7 @@ class _NoteListPageState extends State<NoteListPage> {
           ),
           const SizedBox(height: CardMindSpacing.xl),
           CardMindPrimaryButton(
+            key: const ValueKey('new-note'),
             label: '新建笔记',
             icon: Icons.add,
             expanded: true,
@@ -453,6 +504,7 @@ class _NoteListPageState extends State<NoteListPage> {
                 ),
                 const SizedBox(height: CardMindSpacing.lg),
                 CardMindSearchField(
+                  key: const ValueKey('note-search'),
                   controller: _searchController,
                   onChanged: _onSearchChanged,
                   onClear: _clearSearch,
@@ -531,6 +583,7 @@ class _NoteListPageState extends State<NoteListPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                     child: CardMindSearchField(
+                      key: const ValueKey('note-search'),
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       onClear: _clearSearch,
@@ -553,12 +606,14 @@ class _NoteListPageState extends State<NoteListPage> {
       ),
       floatingActionButton: _mobileTabIndex == 0
           ? FloatingActionButton(
+              key: const ValueKey('new-note'),
               tooltip: '新建笔记',
               onPressed: () => _openMobileEditor(),
               child: const Icon(Icons.add),
             )
           : null,
       bottomNavigationBar: NavigationBar(
+        key: const ValueKey('main-navigation'),
         selectedIndex: _mobileTabIndex,
         onDestinationSelected: (index) {
           setState(() => _mobileTabIndex = index);

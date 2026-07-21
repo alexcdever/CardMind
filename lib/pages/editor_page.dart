@@ -27,13 +27,66 @@ class EditorPage extends StatefulWidget {
   State<EditorPage> createState() => _EditorPageState();
 }
 
+class _TagNameDialog extends StatefulWidget {
+  const _TagNameDialog({required this.initialValue});
+
+  final String initialValue;
+
+  @override
+  State<_TagNameDialog> createState() => _TagNameDialogState();
+}
+
+class _TagNameDialogState extends State<_TagNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.initialValue.isEmpty ? '添加标签' : '编辑标签'),
+      content: TextField(
+        key: const ValueKey('tag-name-input'),
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: '标签名称'),
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('tag-dialog-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          key: const ValueKey('tag-dialog-confirm'),
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('确定'),
+        ),
+      ],
+    );
+  }
+}
+
 class _EditorPageState extends State<EditorPage> {
   EditorState? _editorState;
   String? _originalNoteId;
   bool _loaded = false;
   String? _loadError;
   bool _dirty = false;
+  bool _editorDirty = false;
   bool _saving = false;
+  String? _sourceMarkdown;
   List<String> _tags = [];
   StreamSubscription<dynamic>? _transactionSubscription;
   Timer? _autosaveTimer;
@@ -65,15 +118,15 @@ class _EditorPageState extends State<EditorPage> {
   Future<void> _initializeExisting() async {
     try {
       final content = await _repository.getNote(widget.noteId!);
+      if (content == null) {
+        throw StateError('笔记不存在');
+      }
       if (!mounted) return;
       setState(() {
         _originalNoteId = widget.noteId;
-        _tags = content == null
-            ? []
-            : BridgeHelper.parseTagsFromContent(content);
-        final clean = content == null
-            ? ''
-            : BridgeHelper.removeTagsFromContent(content);
+        _tags = BridgeHelper.parseTagsFromContent(content);
+        final clean = BridgeHelper.removeTagsFromContent(content);
+        _sourceMarkdown = clean;
         _editorState = EditorState(document: markdownToDocument(clean));
         _loaded = true;
         _loadError = null;
@@ -92,7 +145,10 @@ class _EditorPageState extends State<EditorPage> {
     _transactionSubscription?.cancel();
     _transactionSubscription = _editorState?.transactionStream.listen((_) {
       if (!mounted) return;
-      setState(() => _dirty = true);
+      setState(() {
+        _dirty = true;
+        _editorDirty = true;
+      });
       _scheduleAutosave();
     });
   }
@@ -153,31 +209,10 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Future<String?> _requestTagName({String initialValue = ''}) async {
-    final controller = TextEditingController(text: initialValue);
-    final result = await showDialog<String>(
+    return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(initialValue.isEmpty ? '添加标签' : '编辑标签'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '标签名称'),
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+      builder: (context) => _TagNameDialog(initialValue: initialValue),
     );
-    controller.dispose();
-    return result;
   }
 
   Future<void> _showAddTagDialog() async {
@@ -195,11 +230,13 @@ class _EditorPageState extends State<EditorPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ListTile(
+                    key: const ValueKey('tag-action-edit'),
                     leading: const Icon(Icons.edit_outlined),
                     title: const Text('重命名标签'),
                     onTap: () => Navigator.of(context).pop('edit'),
                   ),
                   ListTile(
+                    key: const ValueKey('tag-action-delete'),
                     leading: Icon(
                       Icons.delete_outline,
                       color: context.cardMind.danger,
@@ -244,7 +281,10 @@ class _EditorPageState extends State<EditorPage> {
     bool showFeedback = false,
   }) async {
     if (_editorState == null || _saving) return _originalNoteId;
-    final markdown = documentToMarkdown(_editorState!.document);
+    final currentMarkdown = documentToMarkdown(_editorState!.document);
+    final markdown = !_editorDirty && _sourceMarkdown != null
+        ? _sourceMarkdown!
+        : currentMarkdown;
     if (markdown.trim().isEmpty) {
       if (showFeedback && mounted) {
         ScaffoldMessenger.of(
@@ -255,14 +295,17 @@ class _EditorPageState extends State<EditorPage> {
     }
 
     final noteId = _originalNoteId ?? _generateId();
-    final content = BridgeHelper.encodeContentWithTags(markdown, _tags);
+    final savedTags = List<String>.of(_tags);
+    final content = BridgeHelper.encodeContentWithTags(markdown, savedTags);
     if (mounted) setState(() => _saving = true);
     try {
       await _repository.createNote(noteId, content);
       if (!mounted) return noteId;
       setState(() {
         _originalNoteId = noteId;
-        _dirty = documentToMarkdown(_editorState!.document) != markdown;
+        _editorDirty = documentToMarkdown(_editorState!.document) != markdown;
+        _dirty = _editorDirty || !_sameTags(_tags, savedTags);
+        _sourceMarkdown = markdown;
         _saving = false;
       });
       if (notifyParent) widget.onSaved?.call(noteId);
@@ -284,9 +327,20 @@ class _EditorPageState extends State<EditorPage> {
     }
   }
 
+  bool _sameTags(List<String> left, List<String> right) {
+    if (left.length != right.length) return false;
+    for (var i = 0; i < left.length; i++) {
+      if (left[i] != right[i]) return false;
+    }
+    return true;
+  }
+
   Future<void> _close() async {
-    await _save(notifyParent: false);
-    if (mounted) Navigator.of(context).pop();
+    final isBlank =
+        _editorState == null ||
+        documentToMarkdown(_editorState!.document).trim().isEmpty;
+    final savedId = await _save(notifyParent: false);
+    if (mounted && (isBlank || savedId != null)) Navigator.of(context).pop();
   }
 
   Future<void> _retryLoad() async {
@@ -315,6 +369,7 @@ class _EditorPageState extends State<EditorPage> {
         children: [
           if (!widget.embedded) ...[
             CardMindIconButton(
+              key: const ValueKey('editor-close'),
               icon: Icons.close,
               tooltip: '关闭编辑器',
               onPressed: _close,
@@ -345,6 +400,7 @@ class _EditorPageState extends State<EditorPage> {
             ),
           ),
           CardMindIconButton(
+            key: const ValueKey('editor-add-tag'),
             icon: Icons.sell_outlined,
             tooltip: '添加标签',
             onPressed: _showAddTagDialog,
@@ -352,12 +408,14 @@ class _EditorPageState extends State<EditorPage> {
           const SizedBox(width: CardMindSpacing.sm),
           if (compact)
             CardMindIconButton(
+              key: const ValueKey('editor-save'),
               icon: _saving ? Icons.sync : Icons.save_outlined,
               tooltip: _saving ? '保存中' : '保存',
               onPressed: _saving ? null : () => _save(showFeedback: true),
             )
           else
             CardMindPrimaryButton(
+              key: const ValueKey('editor-save'),
               label: _saving ? '保存中' : '保存',
               icon: _saving ? Icons.sync : Icons.save_outlined,
               onPressed: _saving ? null : () => _save(showFeedback: true),
@@ -389,6 +447,7 @@ class _EditorPageState extends State<EditorPage> {
         children: [
           for (final entry in _tags.asMap().entries)
             CardMindTag(
+              key: ValueKey('editor-tag-${entry.value.toLowerCase()}'),
               label: entry.value,
               comfortable: compact,
               onTap: () => _showTagMenu(entry.key),
@@ -408,34 +467,40 @@ class _EditorPageState extends State<EditorPage> {
           fontSize: compact ? 16 : 15,
           height: 24 / (compact ? 16 : 15),
         );
-        return AppFlowyEditor(
-          editorState: _editorState!,
-          autoFocus: widget.noteId == null,
-          editorStyle: compact
-              ? EditorStyle.mobile(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 24,
+        return Semantics(
+          identifier: 'note-editor',
+          textField: true,
+          label: '笔记编辑器',
+          child: AppFlowyEditor(
+            key: const ValueKey('note-editor'),
+            editorState: _editorState!,
+            autoFocus: widget.noteId == null,
+            editorStyle: compact
+                ? EditorStyle.mobile(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 24,
+                    ),
+                    cursorColor: tokens.accent,
+                    dragHandleColor: tokens.accent,
+                    selectionColor: tokens.accent.withValues(alpha: 0.20),
+                    textStyleConfiguration: TextStyleConfiguration(
+                      text: textStyle,
+                    ),
+                  )
+                : EditorStyle.desktop(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48,
+                      vertical: 56,
+                    ),
+                    maxWidth: CardMindLayout.editorMaxWidth,
+                    cursorColor: tokens.accent,
+                    selectionColor: tokens.accent.withValues(alpha: 0.20),
+                    textStyleConfiguration: TextStyleConfiguration(
+                      text: textStyle,
+                    ),
                   ),
-                  cursorColor: tokens.accent,
-                  dragHandleColor: tokens.accent,
-                  selectionColor: tokens.accent.withValues(alpha: 0.20),
-                  textStyleConfiguration: TextStyleConfiguration(
-                    text: textStyle,
-                  ),
-                )
-              : EditorStyle.desktop(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48,
-                    vertical: 56,
-                  ),
-                  maxWidth: CardMindLayout.editorMaxWidth,
-                  cursorColor: tokens.accent,
-                  selectionColor: tokens.accent.withValues(alpha: 0.20),
-                  textStyleConfiguration: TextStyleConfiguration(
-                    text: textStyle,
-                  ),
-                ),
+          ),
         );
       },
     );
