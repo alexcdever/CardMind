@@ -4,12 +4,13 @@ import 'package:path_provider/path_provider.dart';
 import '../src/rust/api.dart' as api;
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
+import 'note_repository.dart';
 
 /// Bridge between UI pages and the FRB Rust API.
 ///
 /// Manages [SyncService] (CRDT) and [NoteStore] (SQLite read cache).
 /// Tags are embedded inline in the content via `<!--tags:...-->`.
-class BridgeHelper {
+class BridgeHelper implements NoteRepository {
   static final BridgeHelper _instance = BridgeHelper._();
   factory BridgeHelper() => _instance;
   BridgeHelper._();
@@ -82,6 +83,7 @@ class BridgeHelper {
   ///
   /// [id] is a String. [content] may contain a `<!--tags:...-->` marker
   /// which the Rust [NoteStore] will parse out into the tags column.
+  @override
   Future<void> createNote(String id, String content) async {
     await api.noteCreate(svc: sync, id: id, content: content);
     // Flush CRDT → SQLite so storeList / storeSearch see the change
@@ -89,6 +91,7 @@ class BridgeHelper {
   }
 
   /// Read a note's full content by id. Returns `null` if not found.
+  @override
   Future<String?> getNote(String id) async {
     return api.noteGet(svc: sync, id: id);
   }
@@ -96,12 +99,14 @@ class BridgeHelper {
   // ━━ Listing & searching (via SQLite cache) ━━
 
   /// List all notes ordered by `updated_at DESC`.
+  @override
   Future<List<NoteRow>> listNotes() async {
     await api.syncNotesToStore(svc: sync, store: store);
     return api.storeList(store: store);
   }
 
   /// Full-text search across title, content, and tags.
+  @override
   Future<List<NoteRow>> search(String query) async {
     await api.syncNotesToStore(svc: sync, store: store);
     return api.storeSearch(store: store, query: query);
