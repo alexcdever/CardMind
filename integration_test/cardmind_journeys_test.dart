@@ -1,6 +1,5 @@
+import 'package:cardmind/main.dart';
 import 'package:cardmind/pages/editor_page.dart';
-import 'package:cardmind/pages/note_list_page.dart';
-import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -13,125 +12,178 @@ void main() {
   setUpAll(initializeFrb);
   tearDownAll(disposeFrb);
 
-  group('Journey 1: open an empty workspace', () {
-    testWidgets('shows the empty state and new-note anchor', (tester) async {
+  group('Journey 1: create and save', () {
+    testWidgets('creates through the UI and survives a persistent reopen', (
+      tester,
+    ) async {
       final harness = CardMindIntegrationHarness();
-      final repository = await harness.openRepository();
+      final dataDirectory = await harness.createDataDirectory();
+      final repository = await harness.openRepository(
+        dataDirectory: dataDirectory,
+      );
       addTearDown(() => _disposeHarness(tester, harness));
 
       await _pump(tester, repository);
 
       expect(find.text('还没有笔记'), findsOneWidget);
-      expect(find.byTooltip(kNewNoteTooltip), findsOneWidget);
+      await _createAndSave(
+        tester,
+        title: '通勤记录',
+        body: '早上的想法。',
+      );
+      expect(find.byKey(const ValueKey('note-search-input')), findsOneWidget);
+
+      await _detachApp(tester);
+      await harness.closeRepository(repository);
+      final reopened = await harness.openRepository(dataDirectory: dataDirectory);
+      await _pump(tester, reopened);
+
+      final note = (await reopened.listNotes()).single;
+      expect(note.title, '通勤记录');
+      expect(await reopened.getNote(note.id), '# 通勤记录\n\n早上的想法。');
     });
   });
 
-  group('Journey 2: create and reopen a note', () {
-    testWidgets('persists a note through the real FRB repository', (
+  group('Journey 2: list and open', () {
+    testWidgets('opens the selected persisted note through CardMindApp', (
       tester,
     ) async {
       final harness = CardMindIntegrationHarness();
       final repository = await harness.openRepository();
       addTearDown(() => _disposeHarness(tester, harness));
 
-      await repository.createNote('journey-create', '# 通勤记录\n\n早上的想法。');
       await _pump(tester, repository);
+      await _createAndSave(tester, title: '打开笔记', body: '从列表读取正文。');
 
-      expect(find.text('通勤记录'), findsOneWidget);
-      await tester.tap(find.text('通勤记录'));
+      final note = (await repository.listNotes()).single;
+      await tester.tap(find.byKey(ValueKey('note-${note.id}')));
       await tester.pumpAndSettle();
 
       expect(find.byType(EditorPage), findsOneWidget);
-      expect(find.byTooltip(kCloseEditorTooltip), findsOneWidget);
-      expect(find.text('通勤记录'), findsWidgets);
+      expect(find.byKey(const ValueKey('editor-close')), findsOneWidget);
+      expect(find.byKey(const ValueKey('note-editor')), findsOneWidget);
+      expect(await repository.getNote(note.id), '# 打开笔记\n\n从列表读取正文。');
     });
   });
 
-  group('Journey 3: search notes', () {
-    testWidgets('filters the list through SQLite full-text search', (
+  group('Journey 3: edit and desktop autosave', () {
+    testWidgets('uses the embedded desktop editor to persist the latest input', (
       tester,
     ) async {
       final harness = CardMindIntegrationHarness();
       final repository = await harness.openRepository();
       addTearDown(() => _disposeHarness(tester, harness));
 
-      await repository.createNote('journey-search-a', '# 周末采购\n牛奶');
-      await repository.createNote('journey-search-b', '# 工作计划\n会议');
       await _pump(tester, repository);
+      await _createAndSave(tester, title: '桌面续写', body: '初始内容。');
+      final note = (await repository.listNotes()).single;
 
-      final searchField = find.byType(TextField);
-      expect(searchField, findsOneWidget);
-      await tester.enterText(searchField, '采购');
+      await _pump(tester, repository, const Size(1280, 800));
+      await tester.tap(find.byKey(ValueKey('note-${note.id}')));
+      await tester.pumpAndSettle();
+      await _enterEditorText(tester, '# 桌面续写\n\n自动保存后的内容。');
+      await tester.pump(const Duration(milliseconds: 750));
+      await tester.pumpAndSettle();
+
+      expect(
+        await repository.getNote(note.id),
+        '# 桌面续写\n\n自动保存后的内容。',
+      );
+    });
+  });
+
+  group('Journey 4: Markdown round-trip', () {
+    testWidgets('accepts Markdown syntax through the editor input channel', (
+      tester,
+    ) async {
+      final harness = CardMindIntegrationHarness();
+      final repository = await harness.openRepository();
+      addTearDown(() => _disposeHarness(tester, harness));
+
+      await _pump(tester, repository);
+      const markdown = '''# Markdown 语料
+
+**粗体** 和 *斜体*
+
+- 项目一
+1. 项目二
+
+> 引用
+
+```
+final value = '中英文，标点。';
+```''';
+      await _createAndSaveMarkdown(tester, markdown);
+      final note = (await repository.listNotes()).single;
+
+      await _detachApp(tester);
+      await _pump(tester, repository);
+      await tester.tap(find.byKey(ValueKey('note-${note.id}')));
+      await tester.pumpAndSettle();
+
+      expect(await repository.getNote(note.id), markdown);
+      expect(find.byKey(const ValueKey('note-editor')), findsOneWidget);
+    });
+  });
+
+  group('Journey 5: tags and filtering', () {
+    testWidgets('adds a tag in the editor and filters the saved note', (
+      tester,
+    ) async {
+      final harness = CardMindIntegrationHarness();
+      final repository = await harness.openRepository();
+      addTearDown(() => _disposeHarness(tester, harness));
+
+      await _pump(tester, repository);
+      await tester.tap(find.byKey(const ValueKey('new-note')));
+      await tester.pumpAndSettle();
+      await _enterEditorText(tester, '# 标签笔记\n\n正文不含标签 marker。');
+      await tester.tap(find.byKey(const ValueKey('editor-add-tag')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('tag-name-input')),
+        '  工作  ',
+      );
+      await tester.tap(find.byKey(const ValueKey('tag-dialog-confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('editor-save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('editor-close')));
+      await tester.pumpAndSettle();
+
+      final note = (await repository.listNotes()).single;
+      expect(note.tags, '工作');
+      expect(note.title, '标签笔记');
+      expect(note.contentPreview, isNot(contains('<!--tags:')));
+      await tester.tap(find.byKey(const ValueKey('tag-filter-工作')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(ValueKey('note-${note.id}')), findsOneWidget);
+    });
+  });
+
+  group('Journey 6: search', () {
+    testWidgets('searches, clears, and restores the full persisted list', (
+      tester,
+    ) async {
+      final harness = CardMindIntegrationHarness();
+      final repository = await harness.openRepository();
+      addTearDown(() => _disposeHarness(tester, harness));
+
+      await _pump(tester, repository);
+      await _createAndSave(tester, title: '周末采购', body: '牛奶和面包。');
+      await _createAndSave(tester, title: '工作计划', body: '会议准备。');
+
+      final search = find.byKey(const ValueKey('note-search-input'));
+      await tester.enterText(search, '采购');
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
 
       expect(find.text('周末采购'), findsOneWidget);
       expect(find.text('工作计划'), findsNothing);
-    });
-  });
-
-  group('Journey 4: filter by tag', () {
-    testWidgets('filters notes through the tagged Semantics anchor', (
-      tester,
-    ) async {
-      final harness = CardMindIntegrationHarness();
-      final repository = await harness.openRepository();
-      addTearDown(() => _disposeHarness(tester, harness));
-
-      await repository.createNote('journey-tag-a', '<!--tags:工作--># 工作计划\n会议');
-      await repository.createNote('journey-tag-b', '<!--tags:生活--># 周末采购\n牛奶');
-      await _pump(tester, repository);
-
-      final workTag = _findTagFilter('工作');
-      expect(workTag, findsOneWidget);
-      await tester.tap(workTag);
+      await tester.enterText(search, '   ');
       await tester.pumpAndSettle();
-
+      expect(find.text('周末采购'), findsOneWidget);
       expect(find.text('工作计划'), findsOneWidget);
-      expect(find.text('周末采购'), findsNothing);
-    });
-  });
-
-  group('Journey 5: read an existing note', () {
-    testWidgets('opens content and exposes save and close anchors', (
-      tester,
-    ) async {
-      final harness = CardMindIntegrationHarness();
-      final repository = await harness.openRepository();
-      addTearDown(() => _disposeHarness(tester, harness));
-
-      await repository.createNote(
-        'journey-read',
-        '<!--tags:灵感--># 一闪而过的想法\n记录正文。',
-      );
-      await _pump(tester, repository);
-      await tester.tap(find.text('一闪而过的想法'));
-      await tester.pumpAndSettle();
-
-      expect(find.byTooltip(kSaveTooltip), findsOneWidget);
-      expect(find.byTooltip(kCloseEditorTooltip), findsOneWidget);
-      expect(find.bySemanticsLabel('灵感', skipOffstage: false), findsOneWidget);
-    });
-  });
-
-  group('Journey 6: use the desktop workspace', () {
-    testWidgets('selects a note in the shared desktop repository', (
-      tester,
-    ) async {
-      final harness = CardMindIntegrationHarness();
-      final repository = await harness.openRepository();
-      addTearDown(() => _disposeHarness(tester, harness));
-
-      await repository.createNote('journey-desktop', '# 桌面续写\n\n从手机记录继续整理。');
-      await _pump(tester, repository, const Size(1280, 800));
-
-      expect(find.text('全部笔记'), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
-      await tester.tap(find.text('桌面续写').first);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(EditorPage), findsOneWidget);
-      expect(find.text('保存'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });
@@ -143,13 +195,13 @@ Future<void> _pump(
   Size surfaceSize = const Size(390, 844),
 ]) async {
   await tester.binding.setSurfaceSize(surfaceSize);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: CardMindTheme.light,
-      home: NoteListPage(repository: repository),
-    ),
-  );
+  await tester.pumpWidget(CardMindApp(repository: repository));
   await tester.pumpAndSettle();
+}
+
+Future<void> _detachApp(WidgetTester tester) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
 }
 
 Future<void> _disposeHarness(
@@ -157,18 +209,41 @@ Future<void> _disposeHarness(
   CardMindIntegrationHarness harness,
 ) async {
   await tester.binding.setSurfaceSize(null);
-  await tester.pumpWidget(const SizedBox.shrink());
-  await tester.pump();
+  await _detachApp(tester);
   await harness.dispose();
 }
 
-Finder _findTagFilter(String label) {
-  return find.byWidgetPredicate(
-    (widget) =>
-        widget is Semantics &&
-        widget.properties.label == label &&
-        widget.properties.button == true,
-    description: 'interactive tag Semantics labeled "$label"',
-    skipOffstage: false,
+Future<void> _createAndSave(
+  WidgetTester tester, {
+  required String title,
+  required String body,
+}) async {
+  await _createAndSaveMarkdown(tester, '# $title\n\n$body');
+}
+
+Future<void> _createAndSaveMarkdown(
+  WidgetTester tester,
+  String markdown,
+) async {
+  await tester.tap(find.byKey(const ValueKey('new-note')));
+  await tester.pumpAndSettle();
+  await _enterEditorText(tester, markdown);
+  await tester.tap(find.byKey(const ValueKey('editor-save')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('editor-close')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _enterEditorText(WidgetTester tester, String text) async {
+  final editor = find.byKey(const ValueKey('note-editor'));
+  expect(editor, findsOneWidget);
+  final editableText = find.descendant(
+    of: editor,
+    matching: find.byType(EditableText),
   );
+  expect(editableText, findsWidgets);
+  await tester.tap(editableText.last);
+  await tester.pump();
+  tester.testTextInput.enterText(text);
+  await tester.pump();
 }

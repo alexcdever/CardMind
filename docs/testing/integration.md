@@ -1,9 +1,10 @@
 # Integration journeys
 
 `integration_test/cardmind_journeys_test.dart` covers six user journeys using
-the real flutter_rust_bridge API and an isolated SQLite database per test.
-The test adapter is intentionally kept under `integration_test/support/` until
-production startup exposes an injectable `NoteRepository` and database path.
+`CardMindApp(repository:)` and the production `FrbNoteRepository`. Every test
+gets an isolated temporary data directory containing the persistent Loro source
+and its SQLite read projection. The harness closes all FRB opaque handles before
+removing the directory.
 
 ## Run existing targets
 
@@ -26,10 +27,10 @@ The runner always passes `flutter test --no-pub` and forwards Flutter output.
 Android runs fail with an actionable message when no device id is supplied;
 there is no automatic SDK or emulator download.
 
-## Production adapter handoff
+## Coverage seams
 
-The test adapter currently owns `SyncService` and `NoteStore` and writes to a
-temporary directory. Production should expose the same four `NoteRepository`
-operations plus an explicit lifecycle method or provider that accepts a
-database path. Once available, the journey tests can replace the test adapter
-without changing their finders or user flows.
+The journeys interact through stable public `ValueKey` and Semantics anchors,
+then observe persistence through the same production repository used by the
+application. They cover create and reopen, list/open, desktop autosave,
+Markdown input, tag filtering, and debounced search. Windows and Android run
+the identical suite through `tool/feature_test.dart`.
