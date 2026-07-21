@@ -7,6 +7,8 @@ typedef Runner =
       String? workingDirectory,
     });
 
+typedef PathExists = bool Function(String path);
+
 const _usage = 'Usage: dart run tool/build.dart <app|lib|run> [options]';
 const _help = '''Usage: dart run tool/build.dart <app|lib|run> [options]
 
@@ -17,7 +19,8 @@ Commands:
 
 Options:
   -h, --help          Show this help message
-  app --platform <p>  Set Flutter build platform (macos|linux|windows)
+  app --platform <p>  Set Flutter build platform (android|macos|linux|windows)
+  app --android-format <f>  Set Android output (apk|appbundle|split-apk)
   lib --target <t>    Set Rust target triple for cargo build
   run --app-copy-name <name>  Launch an isolated macOS app bundle copy
   run --app-bundle-id <id>    Override bundle id for the isolated app copy
@@ -31,6 +34,9 @@ Default behavior:
 Examples:
   dart run tool/build.dart app
   dart run tool/build.dart app --platform macos
+  dart run tool/build.dart app --platform android
+  dart run tool/build.dart app --platform android --android-format appbundle
+  dart run tool/build.dart app --platform android --android-format split-apk
   dart run tool/build.dart lib
   dart run tool/build.dart lib --target aarch64-apple-darwin
   dart run tool/build.dart run
@@ -71,6 +77,7 @@ Future<int> runBuildCli(
   void Function(String) logError = _stderr,
   HostPlatform? platformOverride,
   String? currentDirectory,
+  PathExists pathExists = _pathExists,
 }) async {
   final rootDir = currentDirectory ?? Directory.current.path;
   if (args.contains('--help') || args.contains('-h')) {
@@ -98,6 +105,7 @@ Future<int> runBuildCli(
       logError: logError,
       platformOverride: platformOverride,
       rootDir: rootDir,
+      pathExists: pathExists,
     );
   }
   if (args.first == 'run') {
@@ -113,7 +121,12 @@ Future<int> runBuildCli(
   return 1;
 }
 
-const Set<String> _supportedPlatforms = {'macos', 'linux', 'windows'};
+const Set<String> _supportedPlatforms = {
+  'android',
+  'macos',
+  'linux',
+  'windows',
+};
 
 /// 解析目标平台参数
 String _resolvePlatform(List<String> args, {HostPlatform? platformOverride}) {
@@ -134,6 +147,7 @@ String _resolvePlatform(List<String> args, {HostPlatform? platformOverride}) {
     case HostPlatform.windows:
       return 'windows';
     case HostPlatform.android:
+      return 'android';
     case HostPlatform.ios:
       throw const FormatException(
         'Current host has no default executable app target',
@@ -149,22 +163,35 @@ Future<int> _runApp(
   required void Function(String) logError,
   HostPlatform? platformOverride,
   required String rootDir,
+  required PathExists pathExists,
 }) async {
   late final String platform;
+  late final List<String> flutterBuildArgs;
   try {
     platform = _resolvePlatform(args, platformOverride: platformOverride);
+    flutterBuildArgs = platform == 'android'
+        ? _resolveAndroidFlutterBuildArgs(args)
+        : <String>['build', platform];
   } on FormatException catch (e) {
     logError(e.message);
     return 1;
   }
 
-  final libExit = await _runLib(
-    args,
-    runProcess: runProcess,
-    log: log,
-    logError: logError,
-    rootDir: rootDir,
-  );
+  final libExit = platform == 'android'
+      ? await _runAndroidLib(
+          runProcess: runProcess,
+          log: log,
+          logError: logError,
+          rootDir: rootDir,
+          pathExists: pathExists,
+        )
+      : await _runLib(
+          args,
+          runProcess: runProcess,
+          log: log,
+          logError: logError,
+          rootDir: rootDir,
+        );
   if (libExit != 0) {
     return libExit;
   }
@@ -176,7 +203,7 @@ Future<int> _runApp(
   }
   log('[codegen] done');
 
-  final build = await runProcess('flutter', ['build', platform]);
+  final build = await runProcess('flutter', flutterBuildArgs);
   if (build.exitCode != 0) {
     logError(_processError(build));
     return build.exitCode;
@@ -184,6 +211,65 @@ Future<int> _runApp(
   log('[build:$platform] done');
   return 0;
 }
+
+Future<int> _runAndroidLib({
+  required Runner runProcess,
+  required void Function(String) log,
+  required void Function(String) logError,
+  required String rootDir,
+  required PathExists pathExists,
+}) async {
+  final outputDir = '$rootDir/build/android-jni';
+  final result = await runProcess('cargo', [
+    'ndk',
+    '-t',
+    'armeabi-v7a',
+    '-t',
+    'arm64-v8a',
+    '-t',
+    'x86_64',
+    '-o',
+    outputDir,
+    'build',
+    '--release',
+    '-j',
+    '2',
+  ], workingDirectory: '$rootDir/rust-backend');
+  if (result.exitCode != 0) {
+    logError(_processError(result));
+    return result.exitCode;
+  }
+  for (final abi in _androidAbis) {
+    final libraryPath = '$outputDir/$abi/libcardmind_backend.so';
+    if (!pathExists(libraryPath)) {
+      logError('Android Rust library missing: $libraryPath');
+      return 1;
+    }
+  }
+  log('[lib:android] runtime libraries: $outputDir');
+  return 0;
+}
+
+const List<String> _androidAbis = <String>[
+  'armeabi-v7a',
+  'arm64-v8a',
+  'x86_64',
+];
+
+List<String> _resolveAndroidFlutterBuildArgs(List<String> args) {
+  final format = _readOption(args, '--android-format');
+  if (args.contains('--android-format') && format == null) {
+    throw const FormatException('Missing Android output format');
+  }
+  return switch (format) {
+    null || 'apk' => <String>['build', 'apk'],
+    'appbundle' => <String>['build', 'appbundle'],
+    'split-apk' => <String>['build', 'apk', '--split-per-abi'],
+    _ => throw const FormatException('Unsupported Android output format'),
+  };
+}
+
+bool _pathExists(String path) => File(path).existsSync();
 
 /// 构建Rust库
 Future<int> _runLib(
