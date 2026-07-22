@@ -321,7 +321,7 @@ Future<void> _replaceEditorMarkdown(
   final replacement = markdownToDocument(markdown);
   final transaction = state.transaction
     ..deleteNodes(List.of(state.document.root.children))
-    ..insertNodes([0], replacement.root.children);
+    ..insertNodes([0], replacement.root.children.reversed.toList());
   await state.apply(transaction);
   await tester.pump();
 }

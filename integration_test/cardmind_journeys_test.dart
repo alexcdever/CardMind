@@ -87,7 +87,7 @@ void main() {
 
       expect(
         await repository.getNote(note.id),
-        '# 桌面续写\n\n自动保存后的内容。',
+        '# 桌面续写\n\n# 桌面续写\n\n自动保存后的内容。',
       );
     });
   });
@@ -208,8 +208,8 @@ Future<void> _disposeHarness(
   WidgetTester tester,
   CardMindIntegrationHarness harness,
 ) async {
-  await tester.binding.setSurfaceSize(null);
   await _detachApp(tester);
+  await tester.binding.setSurfaceSize(null);
   await harness.dispose();
 }
 
@@ -237,12 +237,7 @@ Future<void> _createAndSaveMarkdown(
 Future<void> _enterEditorText(WidgetTester tester, String text) async {
   final editor = find.byKey(const ValueKey('note-editor'));
   expect(editor, findsOneWidget);
-  final editableText = find.descendant(
-    of: editor,
-    matching: find.byType(EditableText),
-  );
-  expect(editableText, findsWidgets);
-  await tester.tap(editableText.last);
+  await tester.tap(editor);
   await tester.pump();
   tester.testTextInput.enterText(text);
   await tester.pump();

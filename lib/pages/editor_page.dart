@@ -161,9 +161,16 @@ class _EditorPageState extends State<EditorPage> {
     });
   }
 
+  String _documentMarkdown() {
+    return documentToMarkdown(
+      _editorState!.document,
+      lineBreak: '\n',
+    ).trimRight();
+  }
+
   String _getTitle() {
     if (_editorState == null) return '新笔记';
-    final markdown = documentToMarkdown(_editorState!.document);
+    final markdown = _documentMarkdown();
     final trimmed = markdown.trim();
     if (trimmed.isEmpty) return '无标题';
     final firstLine = trimmed.split('\n').first.trim();
@@ -255,8 +262,16 @@ class _EditorPageState extends State<EditorPage> {
             context: context,
             position: const RelativeRect.fromLTRB(24, 72, 0, 0),
             items: const [
-              PopupMenuItem(value: 'edit', child: Text('重命名')),
-              PopupMenuItem(value: 'delete', child: Text('删除')),
+              PopupMenuItem(
+                key: ValueKey('tag-action-edit'),
+                value: 'edit',
+                child: Text('重命名'),
+              ),
+              PopupMenuItem(
+                key: ValueKey('tag-action-delete'),
+                value: 'delete',
+                child: Text('删除'),
+              ),
             ],
           );
     if (!mounted) return;
@@ -281,7 +296,7 @@ class _EditorPageState extends State<EditorPage> {
     bool showFeedback = false,
   }) async {
     if (_editorState == null || _saving) return _originalNoteId;
-    final currentMarkdown = documentToMarkdown(_editorState!.document);
+    final currentMarkdown = _documentMarkdown();
     final markdown = !_editorDirty && _sourceMarkdown != null
         ? _sourceMarkdown!
         : currentMarkdown;
@@ -303,7 +318,7 @@ class _EditorPageState extends State<EditorPage> {
       if (!mounted) return noteId;
       setState(() {
         _originalNoteId = noteId;
-        _editorDirty = documentToMarkdown(_editorState!.document) != markdown;
+        _editorDirty = _documentMarkdown() != markdown;
         _dirty = _editorDirty || !_sameTags(_tags, savedTags);
         _sourceMarkdown = markdown;
         _saving = false;
@@ -338,7 +353,7 @@ class _EditorPageState extends State<EditorPage> {
   Future<void> _close() async {
     final isBlank =
         _editorState == null ||
-        documentToMarkdown(_editorState!.document).trim().isEmpty;
+        _documentMarkdown().trim().isEmpty;
     final savedId = await _save(notifyParent: false);
     if (mounted && (isBlank || savedId != null)) Navigator.of(context).pop();
   }
