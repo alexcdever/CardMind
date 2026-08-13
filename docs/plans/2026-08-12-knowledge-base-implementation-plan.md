@@ -30,12 +30,11 @@ uuid = { version = "1", features = ["v7", "serde"] }
 
 ### A2. NoteCrdt 容器 v2（rust-backend/src/sync.rs）
 
-`NoteCrdt` 内部新增 meta Map container：
+`NoteCrdt` 内部新增 meta Map container（不加 id 字段——id 存于 HashMap 键与 SQLite）：
 
 ```rust
 pub struct NoteCrdt {
     doc: LoroDoc,
-    id: String,   // UUID v7，创建时生成
 }
 ```
 
@@ -43,8 +42,7 @@ pub struct NoteCrdt {
 
 | 方法 | 行为 |
 |------|------|
-| `NoteCrdt::new()` | 生成 UUID v7 作为 id |
-| `get_id() -> &str` | 返回 id |
+| `generate_note_id() -> String` | 生成 UUID v7 字符串（`Uuid::now_v7()`） |
 | `get_tags() -> Vec<String>` | 读 `doc.get_map("meta")` 下 `tags` Loro list |
 | `set_tags(&[String])` | 整组替换 tags list |
 | `get_created_at() / set_created_at()` | meta Map 字符串字段 |
@@ -132,6 +130,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
 新增导出函数（`flutter_rust_bridge.yaml` 已指向 `crate::api`）：
 
 ```rust
+pub fn generate_note_id() -> String  // UUID v7
 pub fn note_update_metadata(svc: &mut SyncService, note_id: String, tags: Vec<String>) -> Result<()>
 pub fn get_outgoing_links(store: &NoteStore, note_id: String) -> Result<Vec<LinkRow>>
 pub fn get_backlinks(store: &NoteStore, note_id: String) -> Result<Vec<LinkRow>>
