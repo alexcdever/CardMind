@@ -18,16 +18,18 @@ void main() {
       });
 
       repository = await FrbNoteRepository.open(dataDirectory: dir.path);
+      // 正文与标签分离：正文干净存储，标签走元数据 API（meta tags）。
       await repository.createNote(
         'persistent-note',
-        '<!--tags:work,idea--># Persisted title\n\nPersistent body',
+        '# Persisted title\n\nPersistent body',
       );
+      await repository.updateMetadata('persistent-note', ['work', 'idea']);
       repository.close();
 
       repository = await FrbNoteRepository.open(dataDirectory: dir.path);
       expect(
         await repository.getNote('persistent-note'),
-        '<!--tags:work,idea--># Persisted title\n\nPersistent body',
+        '# Persisted title\n\nPersistent body',
       );
 
       final rows = await repository.listNotes();

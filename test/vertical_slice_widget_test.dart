@@ -167,7 +167,9 @@ final value = 1;
       expect(find.text('Focus'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('editor-save')));
       await tester.pumpAndSettle();
-      expect(repository.contents['tagged'], startsWith('<!--tags:Focus-->'));
+      // 标签走元数据 API：正文保持干净，标签写入 meta。
+      expect(repository.contents['tagged'], '# Tagged\n\nBody');
+      expect(repository.tagsById['tagged'], ['Focus']);
 
       await tester.tap(find.byKey(const ValueKey('editor-add-tag')));
       await tester.pumpAndSettle();
@@ -187,6 +189,7 @@ final value = 1;
       await tester.tap(find.byKey(const ValueKey('editor-save')));
       await tester.pumpAndSettle();
       expect(repository.contents['tagged'], isNot(contains('<!--tags:')));
+      expect(repository.tagsById['tagged'], isEmpty);
     });
 
     testWidgets('filters the list by tag without case sensitivity', (
@@ -363,14 +366,31 @@ class MemoryNoteRepository implements NoteRepository {
 
   final List<NoteRow> rows;
   final Map<String, String> contents;
+
+  /// 标签元数据记录（updateMetadata 写入）。
+  final Map<String, List<String>> tagsById = {};
+
+  /// 反链/出链注入数据。
+  List<LinkRow> backlinks = [];
+  List<LinkRow> outgoing = [];
+
   final Map<String, Completer<List<NoteRow>>> searchResults = {};
   Object? saveError;
   Object? searchError;
+  int _generatedIdSeq = 0;
 
   @override
   Future<void> createNote(String id, String content) async {
     if (saveError case final error?) throw error;
     contents[id] = content;
+  }
+
+  @override
+  Future<String> generateNoteId() async => 'generated-${++_generatedIdSeq}';
+
+  @override
+  Future<void> updateMetadata(String id, List<String> tags) async {
+    tagsById[id] = List.of(tags);
   }
 
   @override
@@ -380,7 +400,12 @@ class MemoryNoteRepository implements NoteRepository {
   Future<List<NoteRow>> listNotes() async => rows;
 
   @override
-  Future<List<NoteRow>> search(String query) async {
+  Future<List<NoteRow>> search(String query) => _searchImpl(query);
+
+  @override
+  Future<List<NoteRow>> searchNotes(String query) => _searchImpl(query);
+
+  Future<List<NoteRow>> _searchImpl(String query) async {
     if (searchError case final error?) throw error;
     final pending = searchResults[query];
     if (pending != null) return pending.future;
@@ -390,5 +415,48 @@ class MemoryNoteRepository implements NoteRepository {
           note.contentPreview.toLowerCase().contains(normalized) ||
           note.tags.toLowerCase().contains(normalized);
     }).toList();
+  }
+
+  @override
+  Future<List<LinkRow>> getBacklinks(String id) async => backlinks;
+
+  @override
+  Future<List<LinkRow>> getOutgoingLinks(String id) async => outgoing;
+
+  @override
+  Future<List<NoteRow>> autoCompleteLinks(String prefix) async {
+    final normalized = prefix.toLowerCase();
+    return rows
+        .where((note) => note.title.toLowerCase().startsWith(normalized))
+        .toList();
+  }
+
+  @override
+  Future<List<String>> getAllTags() async {
+    final tagSet = <String>{};
+    for (final note in rows) {
+      tagSet.addAll(_splitTags(note.tags));
+    }
+    return tagSet.toList()..sort();
+  }
+
+  @override
+  Future<List<NoteRow>> searchByTag(String tag) async {
+    return rows
+        .where(
+          (note) => _splitTags(note.tags).any(
+            (item) => item.toLowerCase() == tag.toLowerCase(),
+          ),
+        )
+        .toList();
+  }
+
+  List<String> _splitTags(String tags) {
+    if (tags.trim().isEmpty) return [];
+    return tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
   }
 }

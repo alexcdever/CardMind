@@ -244,6 +244,12 @@ class _MemoryNoteRepository implements NoteRepository {
   Future<void> createNote(String id, String content) async {}
 
   @override
+  Future<String> generateNoteId() async => 'generated-note';
+
+  @override
+  Future<void> updateMetadata(String id, List<String> tags) async {}
+
+  @override
   Future<String?> getNote(String id) async {
     requestedNoteIds.add(id);
     return switch (id) {
@@ -265,4 +271,22 @@ class _MemoryNoteRepository implements NoteRepository {
           note.tags.contains(query);
     }).toList();
   }
+
+  @override
+  Future<List<NoteRow>> searchNotes(String query) => search(query);
+
+  @override
+  Future<List<LinkRow>> getOutgoingLinks(String id) async => [];
+
+  @override
+  Future<List<LinkRow>> getBacklinks(String id) async => [];
+
+  @override
+  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
+
+  @override
+  Future<List<String>> getAllTags() async => [];
+
+  @override
+  Future<List<NoteRow>> searchByTag(String tag) async => [];
 }
