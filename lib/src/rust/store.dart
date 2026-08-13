@@ -9,6 +9,42 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>>
 abstract class NoteStore implements RustOpaqueInterface {}
 
+/// 链接行（outgoing/backlink 查询结果，FRB 可序列化）
+class LinkRow {
+  /// 对端笔记 id
+  final String id;
+
+  /// 对端实时标题（JOIN 得出，空串 = 悬空）
+  final String title;
+
+  /// 源正文里写的显示名
+  final String alias;
+
+  /// 对端笔记是否存在（false = 悬空链接）
+  final bool exists;
+
+  const LinkRow({
+    required this.id,
+    required this.title,
+    required this.alias,
+    required this.exists,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^ title.hashCode ^ alias.hashCode ^ exists.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LinkRow &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          alias == other.alias &&
+          exists == other.exists;
+}
+
 /// 笔记的只读行（从 SQLite 反查）
 class NoteRow {
   final String id;

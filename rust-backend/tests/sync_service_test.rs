@@ -97,7 +97,7 @@ fn test_persistent_restart_and_envelope_validation() {
         );
         let bytes = std::fs::read(dir.join("cardmind.loro")).unwrap();
         assert_eq!(&bytes[..8], b"CARDMIND");
-        assert_eq!(u32::from_le_bytes(bytes[8..12].try_into().unwrap()), 1);
+        assert_eq!(u32::from_le_bytes(bytes[8..12].try_into().unwrap()), 2);
         std::fs::write(dir.join("cardmind.loro"), b"broken").unwrap();
         assert!(SyncService::new_persistent(&dir).await.is_err());
         let _ = std::fs::remove_dir_all(dir);
