@@ -85,3 +85,56 @@ Future<List<NoteRow>> storeSearch({
   required NoteStore store,
   required String query,
 }) => RustLib.instance.api.crateApiStoreSearch(store: store, query: query);
+
+/// 生成新笔记 ID（UUID v7）
+Future<String> generateNoteId() =>
+    RustLib.instance.api.crateApiGenerateNoteId();
+
+/// 更新笔记元数据（meta tags）
+Future<void> noteUpdateMetadata({
+  required SyncService svc,
+  required String noteId,
+  required List<String> tags,
+}) => RustLib.instance.api.crateApiNoteUpdateMetadata(
+  svc: svc,
+  noteId: noteId,
+  tags: tags,
+);
+
+/// SQLite — 出链查询
+Future<List<LinkRow>> getOutgoingLinks({
+  required NoteStore store,
+  required String noteId,
+}) =>
+    RustLib.instance.api.crateApiGetOutgoingLinks(store: store, noteId: noteId);
+
+/// SQLite — 反链查询
+Future<List<LinkRow>> getBacklinks({
+  required NoteStore store,
+  required String noteId,
+}) => RustLib.instance.api.crateApiGetBacklinks(store: store, noteId: noteId);
+
+/// SQLite — 全文搜索（FTS5）
+Future<List<NoteRow>> searchNotes({
+  required NoteStore store,
+  required String query,
+}) => RustLib.instance.api.crateApiSearchNotes(store: store, query: query);
+
+/// SQLite — 链接自动补全（标题前缀，最近 20 条）
+Future<List<NoteRow>> autoCompleteLinks({
+  required NoteStore store,
+  required String prefix,
+}) => RustLib.instance.api.crateApiAutoCompleteLinks(
+  store: store,
+  prefix: prefix,
+);
+
+/// SQLite — 全部标签（去重排序）
+Future<List<String>> getAllTags({required NoteStore store}) =>
+    RustLib.instance.api.crateApiGetAllTags(store: store);
+
+/// SQLite — 按标签搜索
+Future<List<NoteRow>> searchByTag({
+  required NoteStore store,
+  required String tag,
+}) => RustLib.instance.api.crateApiSearchByTag(store: store, tag: tag);

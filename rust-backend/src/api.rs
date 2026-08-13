@@ -1,6 +1,6 @@
 use crate::discovery::{DiscoveryService, PeerInfo};
-use crate::store::{NoteRow, NoteStore};
-use crate::sync::SyncService;
+use crate::store::{LinkRow, NoteRow, NoteStore};
+use crate::sync::{NoteCrdt, SyncService};
 
 /// 创建同步服务
 pub async fn create_sync_service() -> anyhow::Result<SyncService> {
@@ -81,4 +81,48 @@ pub fn store_list(store: &NoteStore) -> anyhow::Result<Vec<NoteRow>> {
 /// SQLite — 搜索笔记
 pub fn store_search(store: &NoteStore, query: String) -> anyhow::Result<Vec<NoteRow>> {
     store.search(&query)
+}
+
+/// 生成新笔记 ID（UUID v7）
+pub fn generate_note_id() -> String {
+    NoteCrdt::generate_note_id()
+}
+
+/// 更新笔记元数据（meta tags）
+pub fn note_update_metadata(
+    svc: &mut SyncService,
+    note_id: String,
+    tags: Vec<String>,
+) -> anyhow::Result<()> {
+    svc.update_metadata(&note_id, &tags)
+}
+
+/// SQLite — 出链查询
+pub fn get_outgoing_links(store: &NoteStore, note_id: String) -> anyhow::Result<Vec<LinkRow>> {
+    store.outgoing_links(&note_id)
+}
+
+/// SQLite — 反链查询
+pub fn get_backlinks(store: &NoteStore, note_id: String) -> anyhow::Result<Vec<LinkRow>> {
+    store.backlinks(&note_id)
+}
+
+/// SQLite — 全文搜索（FTS5）
+pub fn search_notes(store: &NoteStore, query: String) -> anyhow::Result<Vec<NoteRow>> {
+    store.search_notes(&query)
+}
+
+/// SQLite — 链接自动补全（标题前缀，最近 20 条）
+pub fn auto_complete_links(store: &NoteStore, prefix: String) -> anyhow::Result<Vec<NoteRow>> {
+    store.auto_complete_links(&prefix)
+}
+
+/// SQLite — 全部标签（去重排序）
+pub fn get_all_tags(store: &NoteStore) -> anyhow::Result<Vec<String>> {
+    store.get_all_tags()
+}
+
+/// SQLite — 按标签搜索
+pub fn search_by_tag(store: &NoteStore, tag: String) -> anyhow::Result<Vec<NoteRow>> {
+    store.search_by_tag(&tag)
 }

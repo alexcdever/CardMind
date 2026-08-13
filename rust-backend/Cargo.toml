@@ -16,3 +16,4 @@ atomic-write-file = "0.2"
 mdns-sd = "0.20"
 rusqlite = { version = "0.31", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v7", "serde"] }

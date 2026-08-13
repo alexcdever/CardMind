@@ -4,7 +4,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use atomic_write_file::AtomicWriteFile;
 use iroh::{endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr};
-use loro::{ExportMode, LoroDoc};
+use loro::{Container, ExportMode, LoroDoc, LoroValue, ValueOrContainer};
+use uuid::Uuid;
 
 use crate::store::NoteStore;
 
@@ -18,13 +19,14 @@ pub struct SyncService {
 /// NoteCrdt — LoroDoc 笔记模型
 ///
 /// 每个笔记一个独立的 LoroDoc，支持创建/读写/快照/增量同步。
+/// 正文存于 `content` Text 容器；元数据（tags/created_at/updated_at）存于 `meta` Map 容器。
 pub struct NoteCrdt {
     doc: LoroDoc,
 }
 
 const ALPN: &[u8] = b"cardmind-v2";
 const LORO_MAGIC: &[u8; 8] = b"CARDMIND";
-const LORO_VERSION: u32 = 1;
+const LORO_VERSION: u32 = 2;
 const LORO_HEADER_LEN: usize = 8 + 4 + 8;
 
 // ━━━ SyncService ━━━
@@ -59,8 +61,42 @@ impl SyncService {
         if path.exists() {
             let bytes = std::fs::read(&path)
                 .with_context(|| format!("read Loro file {}", path.display()))?;
-            let payload = decode_envelope(&bytes)?;
+            let (version, payload) = decode_envelope(&bytes)?;
             service.import_raw(&payload)?;
+            if version == 1 {
+                // ━━━ v1 → v2 迁移 ━━━
+                // 先备份原始 v1 文件，再逐 note 迁移：
+                //   1. 提取 `<!--tags:...-->` 中的 tag 字符串 → split(',') 写入 meta tags
+                //   2. 正文去掉 `<!--tags:...-->` 行
+                //   3. meta.created_at / updated_at = 当前时间
+                let backup = path.with_extension("loro.v1.bak");
+                std::fs::copy(&path, &backup).with_context(|| {
+                    format!("backup v1 file to {}", backup.display())
+                })?;
+                let now = chrono::Utc::now().to_rfc3339();
+                let note_ids: Vec<String> = service.notes.keys().cloned().collect();
+                for note_id in note_ids {
+                    let note = &service.notes[&note_id];
+                    let content = note.get_content();
+                    let tags_str = extract_tag_marker(&content);
+                    if !tags_str.is_empty() {
+                        let tags: Vec<String> = tags_str
+                            .split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty())
+                            .collect();
+                        note.set_tags(&tags);
+                    }
+                    let clean = remove_tag_marker(&content);
+                    if clean != content {
+                        note.set_content(&clean);
+                    }
+                    note.set_created_at(&now);
+                    note.set_updated_at(&now);
+                }
+                // 迁移全部完成后再以 v2 写回
+                service.persist()?;
+            }
         } else if let Some(parent) = path.parent() {
             let legacy_db = parent.join("cardmind.db");
             if legacy_db.exists() {
@@ -116,6 +152,28 @@ impl SyncService {
         if let Err(err) = self.persist() {
             if let Some(note) = self.notes.get(note_id) {
                 note.set_content(&previous);
+            }
+            return Err(err);
+        }
+        Ok(())
+    }
+
+    /// 更新笔记元数据（meta tags）
+    ///
+    /// 更新 NoteCrdt 的 meta.tags list 并 persist；persist 失败时回滚内存态。
+    pub fn update_metadata(&mut self, note_id: &str, tags: &[String]) -> Result<()> {
+        let previous = {
+            let note = self
+                .notes
+                .get(note_id)
+                .ok_or_else(|| anyhow::anyhow!("note not found: {}", note_id))?;
+            let previous = note.get_tags();
+            note.set_tags(tags);
+            previous
+        };
+        if let Err(err) = self.persist() {
+            if let Some(note) = self.notes.get(note_id) {
+                note.set_tags(&previous);
             }
             return Err(err);
         }
@@ -280,19 +338,22 @@ fn encode_envelope(payload: &[u8]) -> Vec<u8> {
     bytes
 }
 
-fn decode_envelope(bytes: &[u8]) -> Result<Vec<u8>> {
+/// 解码信封，返回 `(version, payload)`。
+///
+/// version = 1 时返回旧 payload 供迁移（不报错）；version = 2 正常载入；其他版本报错。
+fn decode_envelope(bytes: &[u8]) -> Result<(u32, Vec<u8>)> {
     if bytes.len() < LORO_HEADER_LEN || &bytes[..8] != LORO_MAGIC {
         anyhow::bail!("invalid cardmind.loro magic or truncated header");
     }
     let version = u32::from_le_bytes(bytes[8..12].try_into().unwrap());
-    if version != LORO_VERSION {
+    if version != 1 && version != LORO_VERSION {
         anyhow::bail!("unsupported cardmind.loro version: {}", version);
     }
     let length = u64::from_le_bytes(bytes[12..20].try_into().unwrap()) as usize;
     if length != bytes.len() - LORO_HEADER_LEN {
         anyhow::bail!("invalid cardmind.loro payload length");
     }
-    Ok(bytes[LORO_HEADER_LEN..].to_vec())
+    Ok((version, bytes[LORO_HEADER_LEN..].to_vec()))
 }
 
 // ━━━ NoteCrdt ━━━
@@ -335,6 +396,74 @@ impl NoteCrdt {
             .to_string()
     }
 
+    /// 生成一个新的笔记 ID（UUID v7）
+    pub fn generate_note_id() -> String {
+        Uuid::now_v7().to_string()
+    }
+
+    /// 读取 meta tags（Loro list）为 Vec<String>
+    pub fn get_tags(&self) -> Vec<String> {
+        match self.doc.get_map("meta").get("tags") {
+            Some(ValueOrContainer::Container(Container::List(list))) => list
+                .to_vec()
+                .iter()
+                .filter_map(|v| match v {
+                    LoroValue::String(s) => Some(s.to_string()),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// 整组替换 meta tags（Loro list）
+    pub fn set_tags(&self, tags: &[String]) {
+        let map = self.doc.get_map("meta");
+        let list = match map.get("tags") {
+            Some(ValueOrContainer::Container(Container::List(list))) => list,
+            _ => map
+                .insert_container("tags", loro::LoroList::new())
+                .expect("insert tags list container"),
+        };
+        list.clear().expect("clear tags list");
+        for tag in tags {
+            list.push(tag.as_str()).expect("push tag");
+        }
+    }
+
+    /// 读取 meta.created_at
+    pub fn get_created_at(&self) -> String {
+        meta_string(&self.doc, "created_at")
+    }
+
+    /// 设置 meta.created_at
+    pub fn set_created_at(&self, value: &str) {
+        self.doc
+            .get_map("meta")
+            .insert("created_at", value)
+            .expect("set created_at");
+    }
+
+    /// 读取 meta.updated_at
+    pub fn get_updated_at(&self) -> String {
+        meta_string(&self.doc, "updated_at")
+    }
+
+    /// 设置 meta.updated_at
+    pub fn set_updated_at(&self, value: &str) {
+        self.doc
+            .get_map("meta")
+            .insert("updated_at", value)
+            .expect("set updated_at");
+    }
+
+    /// 解析正文中的 `[[target-id|alias]]` 链接 → `(target_id, alias)`
+    ///
+    /// alias 缺省时取 target_id。格式：`[[target|alias]]`，无 alias 时 `[[target]]`。
+    pub fn parse_links(&self) -> Vec<(String, String)> {
+        parse_links_from_content(&self.get_content())
+    }
+
     /// 导出全量快照
     pub fn export_snapshot(&self) -> Result<Vec<u8>> {
         self.doc
@@ -363,6 +492,52 @@ fn remove_tag_marker(content: &str) -> String {
     clean.push_str(&content[..start]);
     clean.push_str(&content[end..]);
     clean.trim_start_matches(['\r', '\n']).to_string()
+}
+
+/// 提取 `<!--tags:...-->` 中的 tag 字符串（不含前后缀）。
+fn extract_tag_marker(content: &str) -> String {
+    const MARKER: &str = "<!--tags:";
+    let Some(start) = content.find(MARKER) else {
+        return String::new();
+    };
+    let after_marker = start + MARKER.len();
+    let Some(relative_end) = content[after_marker..].find("-->") else {
+        return String::new();
+    };
+    content[after_marker..after_marker + relative_end]
+        .trim()
+        .to_string()
+}
+
+/// 解析正文中的 `[[target-id|alias]]` 链接
+fn parse_links_from_content(content: &str) -> Vec<(String, String)> {
+    let mut links = Vec::new();
+    let mut rest = content;
+    while let Some(start) = rest.find("[[") {
+        let after = &rest[start + 2..];
+        let Some(end_rel) = after.find("]]") else {
+            break;
+        };
+        let inner = &after[..end_rel];
+        let (target, alias) = match inner.split_once('|') {
+            Some((t, a)) => (t.trim(), a.trim()),
+            None => (inner.trim(), ""),
+        };
+        if !target.is_empty() {
+            let alias = if alias.is_empty() { target } else { alias };
+            links.push((target.to_string(), alias.to_string()));
+        }
+        rest = &after[end_rel + 2..];
+    }
+    links
+}
+
+/// 读取 meta Map 的字符串字段
+fn meta_string(doc: &LoroDoc, key: &str) -> String {
+    match doc.get_map("meta").get(key) {
+        Some(ValueOrContainer::Value(LoroValue::String(s))) => s.to_string(),
+        _ => String::new(),
+    }
 }
 
 impl Default for NoteCrdt {
