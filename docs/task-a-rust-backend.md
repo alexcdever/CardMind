@@ -9,10 +9,10 @@ CardMind 二期升级（任务 A）：Rust 后端实现分布式个人知识库�
 
 ## 主仓库与 worktree
 
-- 主仓库路径: `D:/Projects/CardMind`（当前分支 `codex/knowledge-base`）
-- worktree 路径: `D:/Projects/CardMind-wt-a`
-- worktree 分支: `codex/knowledge-base`
-- 注意：若该 worktree 已存在，先 `git worktree remove` 清理再重建；建完立即 `git worktree list` 验证（git-bash 下路径必须 D:/ 风格，/d/ 会建出 D:/d/ 多一层）
+- 主仓库路径: `D:/Projects/CardMind`（当前分支 `codex/knowledge-base`，保持不动）
+- worktree 路径: `D:/Projects/CardMind/.worktrees/knowledge-base-a`（必须放在主仓库**内部**，已在 .gitignore 中）
+- worktree 分支: `codex/knowledge-base-a`（从 `codex/knowledge-base` 创建的新分支，用 `git worktree add <路径> -b codex/knowledge-base-a codex/knowledge-base`）
+- 注意：若该 worktree 已存在，先 `git worktree remove` 清理再重建；建完立即 `git worktree list` 验证；**不得**移动主仓库当前检出的分支
 
 ## 改动范围
 
