@@ -1,11 +1,12 @@
 import 'dart:async';
-import 'dart:math' show Random;
 
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../bridge/bridge_helper.dart';
 import '../bridge/note_repository.dart';
+import '../src/rust/store.dart';
 import '../ui/design_system/cardmind_theme.dart';
 import '../ui/design_system/cardmind_widgets.dart';
 
@@ -15,12 +16,16 @@ class EditorPage extends StatefulWidget {
     this.noteId,
     this.embedded = false,
     this.onSaved,
+    this.onNoteOpened,
     this.repository,
   });
 
   final String? noteId;
   final bool embedded;
   final ValueChanged<String>? onSaved;
+
+  /// 嵌入式（桌面三栏）模式下，反链跳转到另一篇笔记时通知父组件切换选中。
+  final ValueChanged<String>? onNoteOpened;
   final NoteRepository? repository;
 
   @override
@@ -81,6 +86,10 @@ class _TagNameDialogState extends State<_TagNameDialog> {
 class _EditorPageState extends State<EditorPage> {
   EditorState? _editorState;
   String? _originalNoteId;
+
+  /// 当前正在编辑的笔记 id（新建保存后从 null 变为生成值；反链跳转由父组件重建）。
+  String? get _activeNoteId => _originalNoteId ?? widget.noteId;
+
   bool _loaded = false;
   String? _loadError;
   bool _dirty = false;
@@ -90,6 +99,17 @@ class _EditorPageState extends State<EditorPage> {
   List<String> _tags = [];
   StreamSubscription<dynamic>? _transactionSubscription;
   Timer? _autosaveTimer;
+  final FocusNode _keyboardFocusNode = FocusNode();
+
+  // ━━ 链接自动补全 ━━
+  List<NoteRow> _linkCandidates = [];
+  String _linkPrefix = '';
+  int _linkGen = 0;
+  OverlayEntry? _linkOverlay;
+
+  // ━━ 反链 ━━
+  List<LinkRow> _backlinks = [];
+  bool _backlinksLoaded = false;
 
   NoteRepository get _repository => widget.repository ?? BridgeHelper();
 
@@ -109,6 +129,9 @@ class _EditorPageState extends State<EditorPage> {
   void dispose() {
     _autosaveTimer?.cancel();
     _transactionSubscription?.cancel();
+    _editorState?.selectionNotifier.removeListener(_onEditorSelectionChanged);
+    _linkOverlay?.remove();
+    _keyboardFocusNode.dispose();
     if (widget.embedded && _dirty) {
       unawaited(_save(notifyParent: false));
     }
@@ -121,10 +144,11 @@ class _EditorPageState extends State<EditorPage> {
       if (content == null) {
         throw StateError('笔记不存在');
       }
+      final tags = await _loadTagsForNote(widget.noteId!);
       if (!mounted) return;
       setState(() {
         _originalNoteId = widget.noteId;
-        _tags = BridgeHelper.parseTagsFromContent(content);
+        _tags = tags;
         final clean = BridgeHelper.removeTagsFromContent(content);
         _sourceMarkdown = clean;
         _editorState = EditorState(document: markdownToDocument(clean));
@@ -132,6 +156,7 @@ class _EditorPageState extends State<EditorPage> {
         _loadError = null;
       });
       _listenToEditor();
+      _loadBacklinks();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -141,16 +166,48 @@ class _EditorPageState extends State<EditorPage> {
     }
   }
 
+  /// 标签已元数据化：从 listNotes 的投影行（tags 列）取当前笔记标签。
+  Future<List<String>> _loadTagsForNote(String id) async {
+    try {
+      final rows = await _repository.listNotes();
+      for (final row in rows) {
+        if (row.id == id) return _parseTagString(row.tags);
+      }
+    } catch (_) {
+      // 列表加载失败不影响编辑器正文，返回空标签。
+    }
+    return <String>[];
+  }
+
+  List<String> _parseTagString(String tags) {
+    if (tags.trim().isEmpty) return [];
+    return tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
+  }
+
   void _listenToEditor() {
     _transactionSubscription?.cancel();
     _transactionSubscription = _editorState?.transactionStream.listen((_) {
-      if (!mounted) return;
-      setState(() {
-        _dirty = true;
-        _editorDirty = true;
-      });
-      _scheduleAutosave();
+      _onEditorChanged();
     });
+    _editorState?.selectionNotifier.addListener(_onEditorSelectionChanged);
+  }
+
+  void _onEditorSelectionChanged() {
+    _updateLinkCompletions();
+  }
+
+  void _onEditorChanged() {
+    if (!mounted) return;
+    setState(() {
+      _dirty = true;
+      _editorDirty = true;
+    });
+    _updateLinkCompletions();
+    _scheduleAutosave();
   }
 
   void _scheduleAutosave() {
@@ -285,12 +342,6 @@ class _EditorPageState extends State<EditorPage> {
     }
   }
 
-  String _generateId() {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final random = Random().nextInt(99999);
-    return '$timestamp$random';
-  }
-
   Future<String?> _save({
     bool notifyParent = true,
     bool showFeedback = false,
@@ -309,12 +360,13 @@ class _EditorPageState extends State<EditorPage> {
       return null;
     }
 
-    final noteId = _originalNoteId ?? _generateId();
+    final noteId = _originalNoteId ?? await _repository.generateNoteId();
     final savedTags = List<String>.of(_tags);
-    final content = BridgeHelper.encodeContentWithTags(markdown, savedTags);
     if (mounted) setState(() => _saving = true);
     try {
-      await _repository.createNote(noteId, content);
+      // 正文与标签分离：正文干净存储，标签走元数据 API。
+      await _repository.createNote(noteId, markdown);
+      await _repository.updateMetadata(noteId, savedTags);
       if (!mounted) return noteId;
       setState(() {
         _originalNoteId = noteId;
@@ -366,6 +418,325 @@ class _EditorPageState extends State<EditorPage> {
     });
     await _initializeExisting();
   }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━ 链接自动补全 ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  KeyEventResult _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape &&
+        _linkOverlay != null) {
+      _hideLinkCompletions();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  /// 检测光标前最近的 `[[` + 前缀（未闭合），命中则显示补全面板。
+  void _updateLinkCompletions() {
+    final state = _editorState;
+    final selection = state?.selection;
+    if (state == null ||
+        selection == null ||
+        !selection.isCollapsed ||
+        !selection.isSingle) {
+      _hideLinkCompletions();
+      return;
+    }
+    final node = state.document.nodeAtPath(selection.start.path);
+    final delta = node?.delta;
+    if (node == null || delta == null) {
+      _hideLinkCompletions();
+      return;
+    }
+    final text = delta.toPlainText();
+    final caret = selection.start.offset;
+    if (caret < 2) {
+      _hideLinkCompletions();
+      return;
+    }
+    final before = text.substring(0, caret);
+    final openIdx = before.lastIndexOf('[[');
+    if (openIdx < 0) {
+      _hideLinkCompletions();
+      return;
+    }
+    final afterOpen = before.substring(openIdx + 2);
+    // 已闭合或跨行：不再补全
+    if (afterOpen.contains(']]') || afterOpen.contains('\n')) {
+      _hideLinkCompletions();
+      return;
+    }
+    if (afterOpen.length > 40) {
+      _hideLinkCompletions();
+      return;
+    }
+    _linkPrefix = afterOpen;
+    _showLinkOverlay();
+    unawaited(_loadLinkCandidates(_linkPrefix));
+  }
+
+  Future<void> _loadLinkCandidates(String prefix) async {
+    final gen = ++_linkGen;
+    try {
+      final candidates = await _repository.autoCompleteLinks(prefix);
+      if (!mounted || gen != _linkGen) return;
+      setState(() {
+        _linkCandidates = candidates;
+      });
+      _linkOverlay?.markNeedsBuild();
+    } catch (_) {
+      if (!mounted || gen != _linkGen) return;
+      _hideLinkCompletions();
+    }
+  }
+
+  void _showLinkOverlay() {
+    if (_linkOverlay != null) return;
+    _linkOverlay = OverlayEntry(builder: (context) => _buildLinkOverlay());
+    Overlay.of(context).insert(_linkOverlay!);
+  }
+
+  void _hideLinkCompletions() {
+    if (_linkOverlay != null) {
+      _linkOverlay!.remove();
+      _linkOverlay = null;
+    }
+    _linkCandidates = [];
+  }
+
+  /// 光标所在块的全局矩形，用于锚定补全面板。
+  Rect? _linkPanelRect() {
+    final state = _editorState;
+    if (state == null) return null;
+    try {
+      final rects = state.selectionRects();
+      if (rects.isEmpty) return null;
+      return rects.first;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildLinkOverlay() {
+    final rect = _linkPanelRect();
+    final left = rect?.left ?? 20.0;
+    final top = (rect?.bottom ?? 100.0) + 4.0;
+    return Stack(
+      children: [
+        Positioned(
+          left: left,
+          top: top,
+          child: Material(
+            key: const ValueKey('link-completion-panel'),
+            elevation: 4,
+            borderRadius: BorderRadius.circular(CardMindRadii.md),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 360),
+              child: _linkCandidates.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(CardMindSpacing.md),
+                      child: Text('无匹配笔记'),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      itemCount: _linkCandidates.length,
+                      itemBuilder: (context, index) {
+                        final note = _linkCandidates[index];
+                        return ListTile(
+                          key: ValueKey('link-completion-${note.id}'),
+                          dense: true,
+                          leading: const Icon(Icons.link, size: 18),
+                          title: Text(
+                            note.title.isEmpty ? '无标题' : note.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => _insertLinkCompletion(note),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _insertLinkCompletion(NoteRow note) {
+    final state = _editorState;
+    final selection = state?.selection;
+    if (state == null || selection == null || !selection.isCollapsed) {
+      _hideLinkCompletions();
+      return;
+    }
+    final path = selection.start.path;
+    final node = state.document.nodeAtPath(path);
+    final delta = node?.delta;
+    if (node == null || delta == null) {
+      _hideLinkCompletions();
+      return;
+    }
+    final text = delta.toPlainText();
+    final caret = selection.start.offset;
+    final before = text.substring(0, caret);
+    final openIdx = before.lastIndexOf('[[');
+    if (openIdx < 0) {
+      _hideLinkCompletions();
+      return;
+    }
+    final prefixLength = caret - openIdx - 2;
+    final transaction = state.transaction
+      ..deleteText(node, openIdx, 2 + prefixLength)
+      ..insertText(node, openIdx, '[[${note.id}|${note.title}]]');
+    unawaited(state.apply(transaction));
+    _hideLinkCompletions();
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━ 反链面板 ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Future<void> _loadBacklinks() async {
+    final id = _activeNoteId;
+    if (id == null) {
+      if (mounted) {
+        setState(() {
+          _backlinks = [];
+          _backlinksLoaded = true;
+        });
+      }
+      return;
+    }
+    try {
+      final backlinks = await _repository.getBacklinks(id);
+      if (!mounted || _activeNoteId != id) return;
+      setState(() {
+        _backlinks = backlinks;
+        _backlinksLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _backlinks = [];
+        _backlinksLoaded = true;
+      });
+    }
+  }
+
+  void _openNote(String id) {
+    if (id == _activeNoteId) return;
+    if (widget.embedded) {
+      widget.onNoteOpened?.call(id);
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (context) =>
+              EditorPage(noteId: id, repository: widget.repository),
+        ),
+      );
+    }
+  }
+
+  Widget _buildBacklinksPanel() {
+    if (!_backlinksLoaded || _backlinks.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final tokens = context.cardMind;
+    return Container(
+      key: const ValueKey('backlinks-panel'),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+      decoration: BoxDecoration(
+        color: tokens.surfaceLow,
+        border: Border(top: BorderSide(color: tokens.border)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.link, size: 15, color: tokens.accent),
+              const SizedBox(width: CardMindSpacing.xs),
+              Text(
+                '反链',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: tokens.mutedInk,
+                ),
+              ),
+              const SizedBox(width: CardMindSpacing.sm),
+              Text(
+                '${_backlinks.length}',
+                style: TextStyle(color: tokens.mutedInk, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: CardMindSpacing.sm),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 180),
+            child: ListView(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              children: [
+                for (final link in _backlinks) _buildBacklinkTile(link),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBacklinkTile(LinkRow link) {
+    final tokens = context.cardMind;
+    final label = link.title.isNotEmpty
+        ? link.title
+        : (link.alias.isNotEmpty ? link.alias : link.id);
+    final dangling = !link.exists;
+    return InkWell(
+      key: ValueKey('backlink-${link.id}'),
+      onTap: dangling ? null : () => _openNote(link.id),
+      borderRadius: BorderRadius.circular(CardMindRadii.sm),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Row(
+          children: [
+            Icon(
+              Icons.chevron_right,
+              size: 15,
+              color: dangling ? tokens.border : tokens.accent,
+            ),
+            const SizedBox(width: CardMindSpacing.xs),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: dangling ? tokens.mutedInk : tokens.ink,
+                  fontSize: 14,
+                  decoration: dangling
+                      ? null
+                      : TextDecoration.underline,
+                  decorationColor: tokens.accent,
+                ),
+              ),
+            ),
+            if (dangling) ...[
+              const SizedBox(width: CardMindSpacing.sm),
+              Text(
+                '已删除',
+                style: TextStyle(color: tokens.mutedInk, fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━ UI 构建 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   Widget _buildToolbar() {
     final tokens = context.cardMind;
@@ -566,6 +937,7 @@ class _EditorPageState extends State<EditorPage> {
           _buildToolbar(),
           _buildTagRow(),
           Expanded(child: _buildEditor()),
+          _buildBacklinksPanel(),
         ],
       ),
     );
@@ -573,13 +945,20 @@ class _EditorPageState extends State<EditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.embedded) return _buildContent();
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _close();
-      },
-      child: Scaffold(body: SafeArea(child: _buildContent())),
+    final content = widget.embedded
+        ? _buildContent()
+        : PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (!didPop) _close();
+            },
+            child: Scaffold(body: SafeArea(child: _buildContent())),
+          );
+    return KeyboardListener(
+      key: const ValueKey('editor-keyboard-listener'),
+      focusNode: _keyboardFocusNode,
+      onKeyEvent: _handleKeyEvent,
+      child: content,
     );
   }
 }

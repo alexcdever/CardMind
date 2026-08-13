@@ -41,6 +41,19 @@ final class FrbNoteRepository implements NoteRepository {
   }
 
   @override
+  Future<String> generateNoteId() async {
+    _ensureOpen();
+    return api.generateNoteId();
+  }
+
+  @override
+  Future<void> updateMetadata(String id, List<String> tags) async {
+    _ensureOpen();
+    await api.noteUpdateMetadata(svc: _sync, noteId: id, tags: tags);
+    await api.syncNotesToStore(svc: _sync, store: _store);
+  }
+
+  @override
   Future<String?> getNote(String id) async {
     _ensureOpen();
     return api.noteGet(svc: _sync, id: id);
@@ -58,6 +71,48 @@ final class FrbNoteRepository implements NoteRepository {
     _ensureOpen();
     await api.syncNotesToStore(svc: _sync, store: _store);
     return api.storeSearch(store: _store, query: query);
+  }
+
+  @override
+  Future<List<NoteRow>> searchNotes(String query) async {
+    _ensureOpen();
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return api.searchNotes(store: _store, query: query);
+  }
+
+  @override
+  Future<List<LinkRow>> getOutgoingLinks(String id) async {
+    _ensureOpen();
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return api.getOutgoingLinks(store: _store, noteId: id);
+  }
+
+  @override
+  Future<List<LinkRow>> getBacklinks(String id) async {
+    _ensureOpen();
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return api.getBacklinks(store: _store, noteId: id);
+  }
+
+  @override
+  Future<List<NoteRow>> autoCompleteLinks(String prefix) async {
+    _ensureOpen();
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return api.autoCompleteLinks(store: _store, prefix: prefix);
+  }
+
+  @override
+  Future<List<String>> getAllTags() async {
+    _ensureOpen();
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return api.getAllTags(store: _store);
+  }
+
+  @override
+  Future<List<NoteRow>> searchByTag(String tag) async {
+    _ensureOpen();
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return api.searchByTag(store: _store, tag: tag);
   }
 
   void close() {

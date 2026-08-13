@@ -73,10 +73,22 @@ class _NoteListPageState extends State<NoteListPage> {
     }
   }
 
+  /// 把 `[[id|alias]]` 渲染为显示文本（alias 缺省用 id）。
+  static String _renderLinkSyntax(String text) {
+    return text.replaceAllMapped(
+      RegExp(r'\[\[([^\]|]+)(?:\|([^\]]*))?\]\]'),
+      (match) {
+        final target = match.group(1) ?? '';
+        final alias = match.group(2);
+        return (alias == null || alias.isEmpty) ? target : alias;
+      },
+    );
+  }
+
   String _preview(NoteRow note) {
-    var preview = BridgeHelper.removeTagsFromContent(
-      note.contentPreview,
-    ).trim();
+    var preview = _renderLinkSyntax(
+      BridgeHelper.removeTagsFromContent(note.contentPreview).trim(),
+    );
     final title = _displayTitle(note);
     final lines = preview.split('\n');
     if (lines.isNotEmpty) {
@@ -163,7 +175,8 @@ class _NoteListPageState extends State<NoteListPage> {
 
   Future<void> _performSearch(String query, int generation) async {
     try {
-      final results = await _repository.search(query);
+      // FTS5 全文搜索（短查询由后端自动回退 LIKE，前端无感）。
+      final results = await _repository.searchNotes(query);
       if (!mounted || generation != _searchGeneration) return;
       setState(() {
         _searchResults = results;
@@ -207,6 +220,14 @@ class _NoteListPageState extends State<NoteListPage> {
       _selectedNoteId = noteId;
     });
     await _loadNotes();
+  }
+
+  /// 反链跳转：切换桌面三栏的选中笔记。
+  void _handleNoteOpened(String noteId) {
+    setState(() {
+      _creatingNote = false;
+      _selectedNoteId = noteId;
+    });
   }
 
   Widget _buildTagFilterBar({
@@ -530,6 +551,7 @@ class _NoteListPageState extends State<NoteListPage> {
         embedded: true,
         repository: _repository,
         onSaved: _handleEmbeddedSave,
+        onNoteOpened: _handleNoteOpened,
       );
     }
     if (_selectedNoteId != null) {
@@ -539,6 +561,7 @@ class _NoteListPageState extends State<NoteListPage> {
         embedded: true,
         repository: _repository,
         onSaved: _handleEmbeddedSave,
+        onNoteOpened: _handleNoteOpened,
       );
     }
     return const CardMindEmptyState(
