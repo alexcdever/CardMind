@@ -1,103 +1,138 @@
-# Reviewer 独立复验报告 — CardMind 修复任务 C（数据目录迁移）
+# Reviewer 审核报告 — CardMind 修复任务 D（tool/build.dart Windows flutter 启动修复）
 
-- worktree: `D:/Projects/CardMind/.worktrees/fix-data-dir`（分支 `codex/fix-data-dir`）
-- 审核代理: reviewer（独立实机复验，未修改任何源码；仅写入本报告与还原 flutter 工具副作用）
-- 日期: 2026-08-14
-- 基准: 任务单（改动范围 / 验收标准 1-3 / 审核重点 1-5）
+- worktree: D:/Projects/CardMind/.worktrees/fix-build-tool
+- 分支: codex/fix-build-tool
+- 审核代理: reviewer（deepseek-v4-flash）
+- 日期: 2026-08-15
+- 审核方式: 独立实机复验（非盲信 executor 报告）
 
----
+## 复验重点前置核查
 
-## 一、验收标准逐条复验（独立实机执行，非引用 executor 报告）
+### 1. git diff 范围与设计一致性 — PASS
 
-### 验收标准 1：`flutter pub get && flutter test` — ✅ PASS（45/45）
+git diff HEAD 真实 diff（关键）：tool/build.dart 的 _run() 内新增：
 
-独立执行（worktree 内，首次）：
+    final effectiveExecutable = Platform.isWindows && executable == 'flutter'
+        ? 'flutter.bat'
+        : executable;
+    return Process.run(effectiveExecutable, arguments, workingDirectory: workingDirectory);
 
-```
-$ flutter pub get
-Resolving dependencies...
-Downloading packages...
-Changed 112 dependencies!
-12 packages have newer versions incompatible with dependency constraints.
-Try `flutter pub outdated` for more information.
-Upgrading analysis_options.yaml to exclude build and platform directories.   ← 工具副作用，见下文
+- 与任务单设计要求 1 完全一致：仅 Windows + executable==flutter 时替换为 flutter.bat，其余不变。
+- 改动仅 1 个代码文件（tool/build.dart，+9 行），test/build_tool_test.dart 无 diff（未改）。
 
-$ flutter test
-00:00 +0: loading .../test/api_integration_test.dart
-...
-00:10 +44: .../test/vertical_slice_widget_test.dart: CardMindApp injects the repository into its workspace
-00:10 +45: All tests passed!
-```
+### 2. 无绕过 _run 的 Process.run(flutter, ...) 直调 — PASS
 
-- 测试总数：**45 个，全部通过**（`+45: All tests passed!`），与任务单"现有 45 个测试不回归"一致。
-- **独立复跑两次**（pub get 后依赖解析状态 + 还原副作用后的交付状态），两次均 `+45: All tests passed!`，与 executor 报告一致，可复现。
-- 覆盖文件：api_integration_test、build_tool_test、frb_note_repository_test、knowledge_base_widget_test、mobile_ui_test、vertical_slice_widget_test、widget_test。
+grep tool/build.dart 中 flutter 相关调用点：
 
-### 验收标准 2：`flutter analyze` — ✅ PASS（无 error）
+| 行号 | 调用 | 是否经 _run |
+|------|------|------------|
+| 199 | runProcess(flutter_rust_bridge_codegen, [generate]) | 经 runProcess（默认 _run） |
+| 206 | runProcess(flutter, flutterBuildArgs) | 经 runProcess（默认 _run） |
+| 420 | runProcess(flutter, buildArgs) | 经 runProcess（默认 _run） |
 
-独立执行：
+- tool/build.dart 内不存在直接 Process.run(flutter, ...) 的调用点。
+- Runner runProcess = _run（第 75 行）测试钩子未改动；测试文件用 mock runProcess 完全替代 _run，断言 calls[2].executable == 'flutter' 不受 _run 内部转换影响，测试语义未被破坏。
+- 注：tool/quality.dart（126/134）、tool/test_boundary_scanner.dart（1206）、tool/src/debug_pool/* 有 Process.run(flutter) 直调，但均属任务单明确禁止改动的 tool/ 其余文件，不改动正确。
 
-```
-$ flutter analyze
-Analyzing fix-data-dir...
-No issues found! (ran in 17.7s)
-```
+### 3. executor 报告真实性核对 — PASS
 
-- 无 error、无 warning、无 info。
+- 逐条实机复现 executor 报告核心结论：验收 1/2/3/4 真实输出与报告一致（见下）。
+- 关于全量测试 dll 环境依赖（error 126 → 设 FRB_DART_LOAD_EXTERNAL_LIBRARY_NATIVE_LIB_DIR 后 45/45）的描述属实：本审核初始无该变量时同样报 126（43/45），设变量后 45/45 通过。
+- dll 文件仍存在 build/windows/x64/runner/Release/cardmind_backend.dll；环境变量随会话消失，复验时需重新注入。
 
-### 验收标准 3：`git status` — ✅ PASS（改动全在允许范围内）
+## 验收标准逐条复验
+### 验收 1: flutter test test/build_tool_test.dart - PASS
 
-独立执行（还原 flutter 工具副作用后）：
+命令：flutter test test/build_tool_test.dart（worktree 根）
 
-```
-$ git status --short
+真实输出（末尾）：
+00:00 +0: android app build keeps Rust and Flutter targets aligned
+00:00 +1: android appbundle keeps the Rust build pipeline
+00:00 +2: android split-apk keeps the Rust build pipeline
+00:00 +3: android build fails when a Rust ABI artifact is missing
+00:00 +4: android build rejects unsupported output formats
+00:00 +5: android build rejects a missing output format value
+00:00 +6: All tests passed!
+
+结论：6/6 通过。
+
+### 验收 2: flutter test（全量 45 个）- PASS（需 dll 环境，符合任务单坑位说明）
+
+命令：flutter test 直接跑 → 2 个 setUpAll 失败；注入 FRB_DART_LOAD_EXTERNAL_LIBRARY_NATIVE_LIB_DIR=D:/Projects/CardMind/.worktrees/fix-build-tool/build/windows/x64/runner/Release 后 45/45 通过。
+
+真实输出（无 env 时，关键失败行）：
+Invalid argument(s): Failed to load dynamic library cardmind_backend.dll: The specified module could not be found. (error code: 126)
+... api_integration_test.dart: (setUpAll) [E]
+... frb_note_repository_test.dart: (setUpAll) [E]
+00:13 +35 -2: Some tests failed.
+
+真实输出（设 env 后，末尾）：
+00:05 +44: ... CardMindApp injects the repository into its workspace
+00:05 +45: All tests passed!
+
+结论：45/45 全部通过。2 个失败为 FRB FFI 加载运行态 dll 的环境问题（worktree 无 dll 时预期现象，任务单坑位已说明），非本改动回归。
+
+### 验收 3: flutter analyze - PASS
+
+命令：flutter analyze（timeout 600s）
+
+真实输出：
+Analyzing fix-build-tool...
+No issues found! (ran in 28.5s)
+
+结论：无 error（也无 warning/info）。
+
+### 验收 4: 实机复验（关键）dart run tool/build.dart app --platform android --android-format apk - PASS（完整出包）
+
+命令（node 注入本机 Android 环境变量，等价任务单命令 + 显式 ANDROID_NDK_HOME/ANDROID_HOME）：
+node -e process.env.ANDROID_NDK_HOME=.../Sdk/ndk/29.0.14206865; process.env.ANDROID_HOME=.../Sdk; execSync(dart run tool/build.dart app --platform android --android-format apk)
+
+真实输出：
+NDK=C:/Users/alexc/AppData/Local/Android/Sdk/ndk/29.0.14206865
+SDK=C:/Users/alexc/AppData/Local/Android/Sdk
+Running build hooks...[lib:android] runtime libraries: D:/Projects/CardMind/.worktrees/fix-build-tool/build/android-jni
+[codegen] done
+[build:android] done
+
+产物验证（flutter build apk 真实成功）：
+ls build/app/outputs/flutter-apk/ -> app-release.apk、app-release.apk.sha1
+ls -la build/app/outputs/flutter-apk/app-release.apk -> -rw-r--r-- 118183898 bytes, 8月 15 01:14
+ls build/android-jni/ -> arm64-v8a armeabi-v7a x86_64（3 个 ABI 库齐全）
+
+结论：一条命令完整跑到 flutter build apk 并成功产出 app-release.apk（118MB），flutter 启动无任何 ProcessException。修复前报 ProcessException 系统找不到指定的文件 的路径现在完整出包。
+
+### 验收 5: git status 改动范围 - PASS（真实代码改动仅 tool/build.dart）
+
+真实输出：
+git status --short →
  M .workflow/executor-report.md
- M lib/bridge/bridge_helper.dart
+ M analysis_options.yaml
+ M lib/src/rust/api.dart / discovery.dart / frb_generated.dart / frb_generated.io.dart / frb_generated.web.dart / store.dart / sync.dart
+ M linux/flutter/generated_plugin_registrant.cc / .h / generated_plugins.cmake
+ M rust-backend/src/frb_generated.rs
+ M tool/build.dart
+ M windows/flutter/generated_plugin_registrant.cc / .h / generated_plugins.cmake
 
-$ git diff --stat HEAD
- .workflow/executor-report.md  | 189 +++++++++++++++---------------------------
- lib/bridge/bridge_helper.dart |   2 +-
- 2 files changed, 70 insertions(+), 121 deletions(-)
-```
+逐项核实：
+- tool/build.dart：唯一真实代码改动，+9 行，符合任务单设计。PASS
+- .workflow/executor-report.md：executor 报告，流水线文件（本报告亦写入 .workflow/）。
+- analysis_options.yaml（+9 行 analyzer exclude build/** 等）：flutter test 工具副作用（首次运行自动升级，本审核复验时同样触发），非人工改动。
+- linux/flutter/generated_plugins.cmake、windows/flutter/generated_plugins.cmake（各 +1 行）：flutter pub get 工具副作用。
+- lib/src/rust/*、rust-backend/src/frb_generated.rs、linux/windows generated_plugin_registrant.*：git diff --ignore-all-space 下 diff 为空（仅 LF/CRLF 行尾差异），为 codegen/pub get 重写后的行尾属性变化，非内容改动。
+- .gitignore：git diff .gitignore 为空，未被改动。PASS
 
-- 唯一代码改动：`lib/bridge/bridge_helper.dart`（1 行）。`.workflow/executor-report.md` 为流水线报告产物（任务 B 旧报告被任务 C 覆盖），非代码改动，任务单明确可注明。
-- 无 untracked（`??`）文件；`rust-backend/`、`lib/src/rust/`、`docs/`、`prototype/`、`.gitignore`、`lib/` 其余文件均无改动。
-- `docs/task-c-fix-data-dir.md` 是基线已提交的任务单文档（HEAD da7dfaec 含 `docs: task sheet C` / `docs: simplify task C` 两个提交），非本次改动。
+结论：真实代码改动严格限于任务单允许范围（tool/build.dart）；其余均为 flutter/dart 工具自动生成副作用（与 executor 报告工具副作用需还原一致，属流水线已知现象，非越界代码改动）。
 
----
+## 问题清单
 
-## 二、审核重点检查结论
+无代码层面的 FAIL 或越界问题。
 
-1. **diff 真实性**：✅ 通过。`git diff` 确认 `lib/bridge/bridge_helper.dart` 仅 1 行改动：`getApplicationDocumentsDirectory()` → `getApplicationSupportDirectory()`，无其他隐藏改动（.gitignore、analysis_options.yaml、generated_plugin_registrant 等均未被 executor 改动）。import 行为完整导入 `package:path_provider/path_provider.dart`（非 show 子句），`getApplicationSupportDirectory` 已在命名空间内，无需改 import 行，改动自洽。
-2. **改动范围**：✅ 通过。最终 `git status --short` 仅 2 个受跟踪文件：流水线报告 + 唯一代码改动。全库 grep `getApplicationDocumentsDirectory|getApplicationSupportDirectory` 仅命中 `lib/bridge/bridge_helper.dart:24`（唯一代码位）+ `.workflow/executor-report.md` + `docs/task-c-fix-data-dir.md`（文档），无 test/ 或其他 lib/ 文件使用该 API。
-3. **测试数量**：✅ 通过。独立复跑输出 `+45: All tests passed!`，与任务单"现有 45 个测试不回归"一致。
-4. **需决策点检查**：✅ 未触发任何需决策点。
-   - 测试无失败（无与目录 API 变化相关的失败）；
-   - 未改动 `rust-backend/`（git status 无 rust-backend 相关条目）；
-   - 未做迁移/回退逻辑（diff 仅 1 行，任务单禁止项均未出现）。
-   - 补充确认：`test/frb_note_repository_test.dart` 使用 `Directory.systemTemp.createTemp()` 临时目录，与 path_provider 目录 API 完全无关，故 test/ 无需改动成立。
-5. **dll 补齐问题**：✅ 通过，无受跟踪文件改动。`git hash-object` 对比：worktree 的 `rust-backend/target/release/cardmind_backend.dll` 与主仓库同路径 dll 哈希完全一致（均为 `fd80f54874101440a564d03479b3c87ce45c6e13`），证实 executor"从主仓库复制"说法属实。该路径 `rust-backend/target/` 为 gitignore 产物（`git status --porcelain --ignored` 显示 `!! rust-backend/target/`），不受 git 跟踪，不属任务改动。
+注意事项（非本任务缺陷）：
+1. 全量测试（验收 2）依赖运行态 cardmind_backend.dll（FRB FFI）：worktree 无 dll 时 api_integration_test/frb_note_repository_test 报 error 126。dll 文件已存在于 build/windows/x64/runner/Release/，但环境变量 FRB_DART_LOAD_EXTERNAL_LIBRARY_NATIVE_LIB_DIR 随会话丢失，复验时需重新注入。此为本机既有环境条件，非本改动引入。
+2. 复验命令会产生 flutter/dart 工具副作用（analysis_options.yaml、generated_plugins.cmake、行尾变化），合并前需还原，仅保留 tool/build.dart 与 .workflow/ 流水线文件。
+3. 本机 Android SDK 环境变量未配置，验收 4 需显式设置 ANDROID_NDK_HOME/ANDROID_HOME（任务单坑位说明），本审核已注入。
+4. flutter 实际版本 3.47.0（Dart 3.13.0），AGENTS.md 记载 3.44.0，非本任务范围，仅记录。
 
----
+## 总结
 
-## 三、环境副作用处理（审核方引入并已还原）
-
-- 审核方执行 `flutter pub get` / `flutter test` 时，flutter 工具自动改写了 `analysis_options.yaml`（追加 analyzer exclude）、`pubspec.lock`（url 改写，因审核环境未设 PUB_HOSTED_URL 走了 pub.dev）、以及 `linux|windows/flutter/generated_plugin_registrant.*` / `generated_plugins.cmake` 共 7 个文件。这些**不是 executor 引入的改动**（executor 复验前已还原），为审核方复验命令的副作用。
-- 复验完成后已全部 `git checkout --` 还原，最终 status 恢复为仅 2 个受跟踪改动。
-- 注：executor 报告声称的还原状态与审核方还原后状态一致（仅 `lib/bridge/bridge_helper.dart` + `.workflow/executor-report.md`），executor 自检报告真实可复现。
-
----
-
-## 四、问题清单
-
-**无。** 未发现任何违反验收标准或改动范围的问题。
-
----
-
-## 五、最终结论
-
-**PASS**
-
-- 三条验收标准全部独立实机通过（45/45 测试、analyze 无 error、status 干净）。
-- 改动严格限定在允许范围内，仅 1 行、无迁移/回退逻辑、无 rust-backend 改动、无工具副作用残留。
-- 主仓库分支 `codex/knowledge-base` 未移动（主仓库与 worktree 均停留在基线 da7dfaec，worktree 分支 `codex/fix-data-dir` 符合任务单来源要求）。
+验收标准 1/2/3/4/5 全部 PASS，改动与任务单设计一致，无越界，无问题未决。executor 自检报告的关键结论经独立实机复现均属实。
