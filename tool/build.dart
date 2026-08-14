@@ -354,12 +354,19 @@ String _processError(ProcessResult result) {
 }
 
 /// 运行外部命令
+///
+/// Windows 上 flutter 无扩展名可执行文件是 bash 脚本（仅 MSYS 可解析），
+/// Windows CreateProcess 无法直接启动；必须使用 flutter.bat。
+/// dart/cargo/flutter_rust_bridge_codegen 在 Windows 上均有真实 .exe，无需处理。
 Future<ProcessResult> _run(
   String executable,
   List<String> arguments, {
   String? workingDirectory,
 }) {
-  return Process.run(executable, arguments, workingDirectory: workingDirectory);
+  final effectiveExecutable = Platform.isWindows && executable == 'flutter'
+      ? 'flutter.bat'
+      : executable;
+  return Process.run(effectiveExecutable, arguments, workingDirectory: workingDirectory);
 }
 
 /// 输出到stdout
