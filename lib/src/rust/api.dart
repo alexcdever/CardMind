@@ -18,6 +18,8 @@ Future<SyncService> createPersistentSyncService({required String path}) =>
     RustLib.instance.api.crateApiCreatePersistentSyncService(path: path);
 
 /// 将所有 CRDT 笔记同步到 SQLite 存储
+///
+/// 同时清理墓碑（Loro 中已彻底删除的笔记）对应的投影行，防止被删笔记复活。
 Future<void> syncNotesToStore({
   required SyncService svc,
   required NoteStore store,
@@ -138,3 +140,28 @@ Future<List<NoteRow>> searchByTag({
   required NoteStore store,
   required String tag,
 }) => RustLib.instance.api.crateApiSearchByTag(store: store, tag: tag);
+
+/// SQLite — 回收站列表（deleted_at 非空，按删除时间倒序）
+Future<List<NoteRow>> storeTrashList({required NoteStore store}) =>
+    RustLib.instance.api.crateApiStoreTrashList(store: store);
+
+/// 软删除：给笔记 meta 打 deleted_at 标记（进回收站）。
+/// 删除状态来自 Loro；调用后需由 repository 跟随 `sync_notes_to_store` 刷新投影。
+Future<void> noteSoftDelete({required SyncService svc, required String id}) =>
+    RustLib.instance.api.crateApiNoteSoftDelete(svc: svc, id: id);
+
+/// 恢复：清除笔记 meta 的 deleted_at 标记。
+Future<void> noteRestore({required SyncService svc, required String id}) =>
+    RustLib.instance.api.crateApiNoteRestore(svc: svc, id: id);
+
+/// 彻底删除：从 Loro notes 移除并入墓碑（删除信息随快照传播，防复活）。
+Future<void> notePurge({required SyncService svc, required String id}) =>
+    RustLib.instance.api.crateApiNotePurge(svc: svc, id: id);
+
+/// 过期清理：purge 回收站中 meta.deleted_at < cutoff 的笔记，返回清理数。
+///
+/// `cutoff` 为 RFC3339 时间字符串（Flutter 侧 `now - 30d`）。
+Future<BigInt> purgeExpiredTrash({
+  required SyncService svc,
+  required String cutoff,
+}) => RustLib.instance.api.crateApiPurgeExpiredTrash(svc: svc, cutoff: cutoff);

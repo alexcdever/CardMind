@@ -66,10 +66,10 @@ fn test_v1_to_v2_migration() {
         assert!(!migrated.get_created_at().is_empty(), "created_at 应已设置");
         assert!(!migrated.get_updated_at().is_empty(), "updated_at 应已设置");
 
-        // 4) 文件已写回 v2
+        // 4) 文件已写回 v3（v1 迁移后按最新 envelope 版本写回）
         let bytes = std::fs::read(dir.join("cardmind.loro")).unwrap();
         assert_eq!(&bytes[..8], b"CARDMIND");
-        assert_eq!(u32::from_le_bytes(bytes[8..12].try_into().unwrap()), 2);
+        assert_eq!(u32::from_le_bytes(bytes[8..12].try_into().unwrap()), 3);
 
         // 5) v1 备份存在
         assert!(

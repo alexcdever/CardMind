@@ -19,6 +19,8 @@ pub struct NoteRow {
     pub content_preview: String,
     pub tags: String,
     pub updated_at: String,
+    /// 软删时间（回收站条目展示"删除于"用；未删除 = None）
+    pub deleted_at: Option<String>,
 }
 
 /// 链接行（outgoing/backlink 查询结果，FRB 可序列化）
@@ -45,7 +47,8 @@ impl NoteStore {
                 content TEXT NOT NULL,
                 tags TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                updated_at TEXT NOT NULL,
+                deleted_at TEXT NULL
             );
             CREATE TABLE IF NOT EXISTS links (
                 source_id TEXT NOT NULL,
@@ -73,20 +76,90 @@ impl NoteStore {
                 VALUES (new.rowid, new.title, new.content, new.tags);
             END;",
         )?;
+        // 迁移已有库：旧 notes 表没有 deleted_at 列时补列（SQLite 无 IF NOT EXISTS for column）。
+        let has_deleted_at = {
+            let mut stmt = conn.prepare("PRAGMA table_info(notes)")?;
+            let columns: Vec<String> = stmt
+                .query_map([], |row| row.get(1))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            columns.iter().any(|name| name == "deleted_at")
+        };
+        if !has_deleted_at {
+            conn.execute_batch("ALTER TABLE notes ADD COLUMN deleted_at TEXT NULL;")?;
+            // 旧库的既有行不在刚创建的 notes_fts 索引中；若不重建，之后任何
+            // UPDATE notes（如软删除的 deleted_at 标记）都会触发 FTS 触发器报
+            // "Content in the virtual table is corrupt"。重建使索引与 notes 一致。
+            conn.execute_batch(
+                "INSERT INTO notes_fts(notes_fts) VALUES('rebuild');",
+            )?;
+        }
         Ok(Self {
             conn: Mutex::new(conn),
         })
     }
 
+    /// 读取笔记的 deleted_at 标记（无删除 = None，有删除 = ISO8601 时间）。
+    pub fn deleted_at(&self, note_id: &str) -> Result<Option<String>> {
+        let conn = self.conn.lock().unwrap();
+        Ok(conn
+            .query_row(
+                "SELECT deleted_at FROM notes WHERE id = ?1",
+                [note_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(None))
+    }
+
+    /// 投影清理：从 SQLite 删除笔记行并级联删除该笔记的出链 links。
+    ///
+    /// 仅由 `sync_notes_to_store` 在 Loro 墓碑（tombstones）清理时调用——
+    /// store 不再独立决定删除，删除状态全部来自 Loro。
+    pub fn purge_note(&self, note_id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM notes WHERE id = ?1", [note_id])?;
+        conn.execute("DELETE FROM links WHERE source_id = ?1", [note_id])?;
+        Ok(())
+    }
+
+    /// 回收站列表：deleted_at 非空，按删除时间倒序。
+    pub fn trash_list(&self) -> Result<Vec<NoteRow>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, title, content, tags, updated_at, deleted_at FROM notes
+             WHERE deleted_at IS NOT NULL
+             ORDER BY deleted_at DESC",
+        )?;
+
+        let rows = stmt
+            .query_map([], |row| {
+                let content: String = row.get(2)?;
+                let preview = Self::content_preview(&content);
+                Ok(NoteRow {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    content_preview: preview,
+                    tags: row.get(3)?,
+                    updated_at: row.get(4)?,
+                    deleted_at: row.get(5)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        Ok(rows)
+    }
+
     /// 同步一个 NoteCrdt 的内容到 SQLite（INSERT OR REPLACE）
     ///
-    /// 从 LoroDoc 中读取当前内容 + 标题 + meta tags，写入 notes 表。
-    /// 创建时间首次持久化后不再覆盖。末尾重建该笔记的 links 索引。
+    /// 从 LoroDoc 中读取当前内容 + 标题 + meta tags + meta.deleted_at，
+    /// 写入 notes 表（deleted_at 为读投影：软删/恢复状态来自 Loro，store 不
+    /// 独立决定删除）。创建时间首次持久化后不再覆盖。末尾重建该笔记的 links 索引。
     pub fn sync_note(&self, note_id: &str, crdt: &NoteCrdt) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         let content = crdt.get_content();
         let title = crdt.get_title();
         let now = Utc::now().to_rfc3339();
+        // 删除状态来自 Loro meta：软删 = Some(时间)，恢复 = None
+        let deleted_at = crdt.get_deleted_at();
 
         // 标签来自 NoteCrdt 的 meta tags（不再从正文提取）
         let tags = crdt.get_tags().join(",");
@@ -101,9 +174,9 @@ impl NoteStore {
             .unwrap_or_else(|_| now.clone());
 
         conn.execute(
-            "INSERT OR REPLACE INTO notes (id, title, content, tags, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            rusqlite::params![note_id, title, content, tags, created_at, now],
+            "INSERT OR REPLACE INTO notes (id, title, content, tags, created_at, updated_at, deleted_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            rusqlite::params![note_id, title, content, tags, created_at, now, deleted_at],
         )?;
 
         // 重建链接索引：先删旧链接，再插入当前解析结果
@@ -133,7 +206,9 @@ impl NoteStore {
     pub fn list_notes(&self) -> Result<Vec<NoteRow>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, title, content, tags, updated_at FROM notes ORDER BY updated_at DESC",
+            "SELECT id, title, content, tags, updated_at, deleted_at FROM notes
+             WHERE deleted_at IS NULL
+             ORDER BY updated_at DESC",
         )?;
 
         let rows = stmt
@@ -146,6 +221,7 @@ impl NoteStore {
                     content_preview: preview,
                     tags: row.get(3)?,
                     updated_at: row.get(4)?,
+                    deleted_at: row.get(5)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -160,8 +236,9 @@ impl NoteStore {
         let conn = self.conn.lock().unwrap();
         let pattern = format!("%{}%", query);
         let mut stmt = conn.prepare(
-            "SELECT id, title, content, tags, updated_at FROM notes
-             WHERE title LIKE ?1 OR content LIKE ?1 OR tags LIKE ?1
+            "SELECT id, title, content, tags, updated_at, deleted_at FROM notes
+             WHERE (title LIKE ?1 OR content LIKE ?1 OR tags LIKE ?1)
+               AND deleted_at IS NULL
              ORDER BY updated_at DESC",
         )?;
 
@@ -175,6 +252,7 @@ impl NoteStore {
                     content_preview: preview,
                     tags: row.get(3)?,
                     updated_at: row.get(4)?,
+                    deleted_at: row.get(5)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -195,11 +273,12 @@ impl NoteStore {
         let match_expr = format!("\"{}\"", escaped);
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT n.id, n.title, n.content, n.tags, n.updated_at,
+            "SELECT n.id, n.title, n.content, n.tags, n.updated_at, n.deleted_at,
                     snippet(notes_fts, 1, '', '', '…', 12)
              FROM notes_fts
              JOIN notes n ON n.rowid = notes_fts.rowid
              WHERE notes_fts MATCH ?1
+               AND n.deleted_at IS NULL
              ORDER BY bm25(notes_fts)",
         )?;
 
@@ -207,7 +286,7 @@ impl NoteStore {
             .query_map([&match_expr], |row| {
                 let content: String = row.get(2)?;
                 let fallback = Self::content_preview(&content);
-                let snippet: String = row.get(5)?;
+                let snippet: String = row.get(6)?;
                 let preview = if snippet.trim().is_empty() {
                     fallback
                 } else {
@@ -219,6 +298,7 @@ impl NoteStore {
                     content_preview: preview,
                     tags: row.get(3)?,
                     updated_at: row.get(4)?,
+                    deleted_at: row.get(5)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -287,8 +367,9 @@ impl NoteStore {
             .replace('_', "\\_");
         let pattern = format!("{}%", escaped);
         let mut stmt = conn.prepare(
-            "SELECT id, title, content, tags, updated_at FROM notes
+            "SELECT id, title, content, tags, updated_at, deleted_at FROM notes
              WHERE title LIKE ?1 ESCAPE '\\'
+               AND deleted_at IS NULL
              ORDER BY updated_at DESC
              LIMIT 20",
         )?;
@@ -303,6 +384,7 @@ impl NoteStore {
                     content_preview: preview,
                     tags: row.get(3)?,
                     updated_at: row.get(4)?,
+                    deleted_at: row.get(5)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -313,7 +395,7 @@ impl NoteStore {
     /// 解析全部笔记的 tags 列，去重并按名称排序
     pub fn get_all_tags(&self) -> Result<Vec<String>> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT tags FROM notes")?;
+        let mut stmt = conn.prepare("SELECT tags FROM notes WHERE deleted_at IS NULL")?;
         let tag_rows: Vec<String> = stmt
             .query_map([], |row| row.get(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -335,8 +417,9 @@ impl NoteStore {
         let conn = self.conn.lock().unwrap();
         let pattern = format!("%{}%", tag);
         let mut stmt = conn.prepare(
-            "SELECT id, title, content, tags, updated_at FROM notes
+            "SELECT id, title, content, tags, updated_at, deleted_at FROM notes
              WHERE tags LIKE ?1
+               AND deleted_at IS NULL
              ORDER BY updated_at DESC",
         )?;
 
@@ -350,6 +433,7 @@ impl NoteStore {
                     content_preview: preview,
                     tags: row.get(3)?,
                     updated_at: row.get(4)?,
+                    deleted_at: row.get(5)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

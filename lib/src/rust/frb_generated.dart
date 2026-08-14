@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1734816542;
+  int get rustContentHash => -1326988796;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -130,10 +130,30 @@ abstract class RustLibApi extends BaseApi {
     required List<int> data,
   });
 
+  Future<void> crateApiNotePurge({
+    required SyncService svc,
+    required String id,
+  });
+
+  Future<void> crateApiNoteRestore({
+    required SyncService svc,
+    required String id,
+  });
+
+  Future<void> crateApiNoteSoftDelete({
+    required SyncService svc,
+    required String id,
+  });
+
   Future<void> crateApiNoteUpdateMetadata({
     required SyncService svc,
     required String noteId,
     required List<String> tags,
+  });
+
+  Future<BigInt> crateApiPurgeExpiredTrash({
+    required SyncService svc,
+    required String cutoff,
   });
 
   Future<void> crateApiPushToPeer({
@@ -164,6 +184,8 @@ abstract class RustLibApi extends BaseApi {
     required NoteStore store,
     required String query,
   });
+
+  Future<List<NoteRow>> crateApiStoreTrashList({required NoteStore store});
 
   Future<void> crateApiSyncNotesToStore({
     required SyncService svc,
@@ -671,6 +693,113 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<void> crateApiNotePurge({
+    required SyncService svc,
+    required String id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
+            svc,
+            serializer,
+          );
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNotePurgeConstMeta,
+        argValues: [svc, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNotePurgeConstMeta =>
+      const TaskConstMeta(debugName: "note_purge", argNames: ["svc", "id"]);
+
+  @override
+  Future<void> crateApiNoteRestore({
+    required SyncService svc,
+    required String id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
+            svc,
+            serializer,
+          );
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 16,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNoteRestoreConstMeta,
+        argValues: [svc, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNoteRestoreConstMeta =>
+      const TaskConstMeta(debugName: "note_restore", argNames: ["svc", "id"]);
+
+  @override
+  Future<void> crateApiNoteSoftDelete({
+    required SyncService svc,
+    required String id,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
+            svc,
+            serializer,
+          );
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiNoteSoftDeleteConstMeta,
+        argValues: [svc, id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiNoteSoftDeleteConstMeta => const TaskConstMeta(
+    debugName: "note_soft_delete",
+    argNames: ["svc", "id"],
+  );
+
+  @override
   Future<void> crateApiNoteUpdateMetadata({
     required SyncService svc,
     required String noteId,
@@ -689,7 +818,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 18,
             port: port_,
           );
         },
@@ -707,6 +836,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiNoteUpdateMetadataConstMeta => const TaskConstMeta(
     debugName: "note_update_metadata",
     argNames: ["svc", "noteId", "tags"],
+  );
+
+  @override
+  Future<BigInt> crateApiPurgeExpiredTrash({
+    required SyncService svc,
+    required String cutoff,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_RefMut_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSyncService(
+            svc,
+            serializer,
+          );
+          sse_encode_String(cutoff, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_usize,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiPurgeExpiredTrashConstMeta,
+        argValues: [svc, cutoff],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPurgeExpiredTrashConstMeta => const TaskConstMeta(
+    debugName: "purge_expired_trash",
+    argNames: ["svc", "cutoff"],
   );
 
   @override
@@ -728,7 +894,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 20,
             port: port_,
           );
         },
@@ -765,7 +931,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 21,
             port: port_,
           );
         },
@@ -802,7 +968,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 22,
             port: port_,
           );
         },
@@ -841,7 +1007,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 23,
             port: port_,
           );
         },
@@ -874,7 +1040,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 24,
             port: port_,
           );
         },
@@ -909,7 +1075,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 25,
             port: port_,
           );
         },
@@ -928,6 +1094,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     debugName: "store_search",
     argNames: ["store", "query"],
   );
+
+  @override
+  Future<List<NoteRow>> crateApiStoreTrashList({required NoteStore store}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerNoteStore(
+            store,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 26,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_note_row,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiStoreTrashListConstMeta,
+        argValues: [store],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiStoreTrashListConstMeta =>
+      const TaskConstMeta(debugName: "store_trash_list", argNames: ["store"]);
 
   @override
   Future<void> crateApiSyncNotesToStore({
@@ -949,7 +1146,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1155,14 +1352,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   NoteRow dco_decode_note_row(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return NoteRow(
       id: dco_decode_String(arr[0]),
       title: dco_decode_String(arr[1]),
       contentPreview: dco_decode_String(arr[2]),
       tags: dco_decode_String(arr[3]),
       updatedAt: dco_decode_String(arr[4]),
+      deletedAt: dco_decode_opt_String(arr[5]),
     );
   }
 
@@ -1434,12 +1632,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_contentPreview = sse_decode_String(deserializer);
     var var_tags = sse_decode_String(deserializer);
     var var_updatedAt = sse_decode_String(deserializer);
+    var var_deletedAt = sse_decode_opt_String(deserializer);
     return NoteRow(
       id: var_id,
       title: var_title,
       contentPreview: var_contentPreview,
       tags: var_tags,
       updatedAt: var_updatedAt,
+      deletedAt: var_deletedAt,
     );
   }
 
@@ -1721,6 +1921,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.contentPreview, serializer);
     sse_encode_String(self.tags, serializer);
     sse_encode_String(self.updatedAt, serializer);
+    sse_encode_opt_String(self.deletedAt, serializer);
   }
 
   @protected

@@ -13,9 +13,14 @@ pub async fn create_persistent_sync_service(path: String) -> anyhow::Result<Sync
 }
 
 /// 将所有 CRDT 笔记同步到 SQLite 存储
+///
+/// 同时清理墓碑（Loro 中已彻底删除的笔记）对应的投影行，防止被删笔记复活。
 pub fn sync_notes_to_store(svc: &SyncService, store: &NoteStore) -> anyhow::Result<()> {
     for (id, note) in svc.iter_notes() {
         store.sync_note(id, note)?;
+    }
+    for id in svc.tombstones() {
+        store.purge_note(id)?;
     }
     Ok(())
 }
@@ -125,4 +130,32 @@ pub fn get_all_tags(store: &NoteStore) -> anyhow::Result<Vec<String>> {
 /// SQLite — 按标签搜索
 pub fn search_by_tag(store: &NoteStore, tag: String) -> anyhow::Result<Vec<NoteRow>> {
     store.search_by_tag(&tag)
+}
+
+/// SQLite — 回收站列表（deleted_at 非空，按删除时间倒序）
+pub fn store_trash_list(store: &NoteStore) -> anyhow::Result<Vec<NoteRow>> {
+    store.trash_list()
+}
+
+/// 软删除：给笔记 meta 打 deleted_at 标记（进回收站）。
+/// 删除状态来自 Loro；调用后需由 repository 跟随 `sync_notes_to_store` 刷新投影。
+pub fn note_soft_delete(svc: &mut SyncService, id: String) -> anyhow::Result<()> {
+    svc.soft_delete_note(&id)
+}
+
+/// 恢复：清除笔记 meta 的 deleted_at 标记。
+pub fn note_restore(svc: &mut SyncService, id: String) -> anyhow::Result<()> {
+    svc.restore_note(&id)
+}
+
+/// 彻底删除：从 Loro notes 移除并入墓碑（删除信息随快照传播，防复活）。
+pub fn note_purge(svc: &mut SyncService, id: String) -> anyhow::Result<()> {
+    svc.purge_note(&id)
+}
+
+/// 过期清理：purge 回收站中 meta.deleted_at < cutoff 的笔记，返回清理数。
+///
+/// `cutoff` 为 RFC3339 时间字符串（Flutter 侧 `now - 30d`）。
+pub fn purge_expired_trash(svc: &mut SyncService, cutoff: String) -> anyhow::Result<usize> {
+    svc.purge_expired(&cutoff)
 }

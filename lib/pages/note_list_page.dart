@@ -9,6 +9,7 @@ import '../src/rust/store.dart';
 import '../ui/design_system/cardmind_theme.dart';
 import '../ui/design_system/cardmind_widgets.dart';
 import 'editor_page.dart';
+import 'trash_page.dart';
 
 class NoteListPage extends StatefulWidget {
   const NoteListPage({super.key, this.repository});
@@ -214,6 +215,59 @@ class _NoteListPageState extends State<NoteListPage> {
     await _loadNotes();
   }
 
+  /// 打开回收站页；返回后刷新列表（恢复的笔记重新可见）。
+  Future<void> _openTrash() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => TrashPage(repository: _repository),
+      ),
+    );
+    await _loadNotes();
+  }
+
+  /// 软删除笔记（进回收站）。成功返回 true。
+  Future<bool> _deleteNote(NoteRow note) async {
+    try {
+      await _repository.softDelete(note.id);
+      return true;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('删除失败: $error')));
+      }
+      return false;
+    }
+  }
+
+  /// 桌面端右键菜单删除。
+  Future<void> _deleteViaContextMenu(
+    BuildContext context,
+    NoteRow note,
+    TapDownDetails details,
+  ) async {
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        details.globalPosition.dx,
+        details.globalPosition.dy,
+        0,
+        0,
+      ),
+      items: const [
+        PopupMenuItem(
+          key: ValueKey('note-delete-menu'),
+          value: 'delete',
+          child: Text('删除（进回收站）'),
+        ),
+      ],
+    );
+    if (action == 'delete' && mounted) {
+      final ok = await _deleteNote(note);
+      if (ok && mounted) await _loadNotes();
+    }
+  }
+
   Future<void> _handleEmbeddedSave(String noteId) async {
     setState(() {
       _creatingNote = false;
@@ -265,6 +319,7 @@ class _NoteListPageState extends State<NoteListPage> {
     NoteRow note, {
     required bool selected,
     required VoidCallback onTap,
+    GestureTapDownCallback? onSecondaryTapDown,
   }) {
     final tokens = context.cardMind;
     final preview = _preview(note);
@@ -281,6 +336,7 @@ class _NoteListPageState extends State<NoteListPage> {
         child: InkWell(
           key: ValueKey('note-${note.id}'),
           onTap: onTap,
+          onSecondaryTapDown: onSecondaryTapDown,
           child: Container(
             constraints: BoxConstraints(minHeight: comfortable ? 112 : 96),
             padding: EdgeInsets.fromLTRB(
@@ -389,7 +445,7 @@ class _NoteListPageState extends State<NoteListPage> {
       itemCount: _displayedNotes.length,
       itemBuilder: (context, index) {
         final note = _displayedNotes[index];
-        return _buildNoteItem(
+        final item = _buildNoteItem(
           note,
           selected: desktop && note.id == _selectedNoteId,
           onTap: () {
@@ -402,8 +458,40 @@ class _NoteListPageState extends State<NoteListPage> {
               _openMobileEditor(noteId: note.id);
             }
           },
+          onSecondaryTapDown: desktop
+              ? (details) => _deleteViaContextMenu(context, note, details)
+              : null,
         );
+        if (!desktop) {
+          return _buildDismissible(note, item);
+        }
+        return item;
       },
+    );
+  }
+
+  /// 移动端左滑删除（进回收站）。
+  Widget _buildDismissible(NoteRow note, Widget child) {
+    final tokens = context.cardMind;
+    return Dismissible(
+      key: ValueKey('dismiss-${note.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: tokens.danger,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      confirmDismiss: (_) => _deleteNote(note),
+      onDismissed: (_) {
+        // Dismissible 要求数据源同步移除；随后后台刷新真实状态。
+        setState(() {
+          _notes.removeWhere((n) => n.id == note.id);
+          if (_selectedNoteId == note.id) _selectedNoteId = null;
+        });
+        unawaited(_loadNotes());
+      },
+      child: child,
     );
   }
 
@@ -487,6 +575,22 @@ class _NoteListPageState extends State<NoteListPage> {
             ),
           ),
           const Spacer(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: TextButton.icon(
+              key: const ValueKey('trash-entry'),
+              onPressed: _openTrash,
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: const Text('回收站'),
+              style: TextButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+            ),
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: CardMindSyncStatus(),
@@ -592,8 +696,14 @@ class _NoteListPageState extends State<NoteListPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_mobileTabIndex == 0 ? 'CardMind' : '设备'),
-        actions: const [
-          Padding(
+        actions: [
+          IconButton(
+            key: const ValueKey('trash-entry'),
+            tooltip: '回收站',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _openTrash,
+          ),
+          const Padding(
             padding: EdgeInsets.only(right: 16),
             child: CardMindSyncStatus(label: '已就绪'),
           ),
