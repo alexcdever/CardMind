@@ -110,12 +110,18 @@ fn test_parse_links() {
     // 单链接带 alias
     let note = NoteCrdt::new();
     note.set_content("看 [[abc123|别名A]] 这里");
-    assert_eq!(note.parse_links(), vec![("abc123".to_string(), "别名A".to_string())]);
+    assert_eq!(
+        note.parse_links(),
+        vec![("abc123".to_string(), "别名A".to_string())]
+    );
 
     // 单链接缺 alias → alias 取 target_id
     let note = NoteCrdt::new();
     note.set_content("链接 [[abc123]]");
-    assert_eq!(note.parse_links(), vec![("abc123".to_string(), "abc123".to_string())]);
+    assert_eq!(
+        note.parse_links(),
+        vec![("abc123".to_string(), "abc123".to_string())]
+    );
 
     // 多链接
     let note = NoteCrdt::new();

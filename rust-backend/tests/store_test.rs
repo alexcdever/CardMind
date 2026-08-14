@@ -151,7 +151,10 @@ fn test_search_notes_fts() {
     let results = store.search_notes("所有").unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].id, "note-1");
-    assert!(results[0].content_preview.contains("所有权"), "LIKE 回退 preview 应含匹配词");
+    assert!(
+        results[0].content_preview.contains("所有权"),
+        "LIKE 回退 preview 应含匹配词"
+    );
 }
 
 #[test]

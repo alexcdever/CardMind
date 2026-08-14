@@ -3,7 +3,8 @@ use cardmind_backend::sync::{NoteCrdt, SyncService};
 const LORO_MAGIC: &[u8; 8] = b"CARDMIND";
 
 fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("cardmind-migration-{label}-{}", std::process::id()));
+    let path =
+        std::env::temp_dir().join(format!("cardmind-migration-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
     path
@@ -54,7 +55,11 @@ fn test_v1_to_v2_migration() {
 
         // 2) 正文干净（无 tag marker），标题保留
         let content = migrated.get_content();
-        assert!(!content.contains("<!--tags:"), "正文不应再含 tag marker: {}", content);
+        assert!(
+            !content.contains("<!--tags:"),
+            "正文不应再含 tag marker: {}",
+            content
+        );
         assert!(content.contains("# 迁移标题"));
 
         // 3) meta 时间戳已写入

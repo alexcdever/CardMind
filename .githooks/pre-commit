@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# CardMind pre-commit 钩子：本地质量闸门
+# 每次 git commit 自动执行 scripts/check.sh，任何检查失败阻止提交。
+# 跳过方式（谨慎使用）:
+#   SKIP_LOCAL_CHECK=1 git commit
+#   或 git commit --no-verify
+if [ "${SKIP_LOCAL_CHECK:-0}" = "1" ]; then
+  echo "[pre-commit] SKIP_LOCAL_CHECK=1，跳过本地检查"
+  exit 0
+fi
+
+# 只对 CardMind 仓库生效（防止误装到别的仓库）
+if [ ! -f "$(dirname "$0")/../pubspec.yaml" ]; then
+  exit 0
+fi
+
+"$(dirname "$0")/../scripts/check.sh"

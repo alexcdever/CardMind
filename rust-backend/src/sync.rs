@@ -70,9 +70,8 @@ impl SyncService {
                 //   2. 正文去掉 `<!--tags:...-->` 行
                 //   3. meta.created_at / updated_at = 当前时间
                 let backup = path.with_extension("loro.v1.bak");
-                std::fs::copy(&path, &backup).with_context(|| {
-                    format!("backup v1 file to {}", backup.display())
-                })?;
+                std::fs::copy(&path, &backup)
+                    .with_context(|| format!("backup v1 file to {}", backup.display()))?;
                 let now = chrono::Utc::now().to_rfc3339();
                 let note_ids: Vec<String> = service.notes.keys().cloned().collect();
                 for note_id in note_ids {
