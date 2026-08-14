@@ -20,6 +20,13 @@ final class FrbNoteRepository implements NoteRepository {
       store = await api.createNoteStore(
         path: p.join(dataDirectory, 'cardmind.db'),
       );
+      // 启动时清理回收站中删除超过 30 天的笔记（任务 E 验收：30 天自动清理）。
+      // 删除状态在 Loro（meta.deleted_at），cutoff = now - 30d。
+      final cutoff = DateTime.now()
+          .toUtc()
+          .subtract(const Duration(days: 30))
+          .toIso8601String();
+      await api.purgeExpiredTrash(svc: sync, cutoff: cutoff);
       await api.syncNotesToStore(svc: sync, store: store);
       return FrbNoteRepository._(sync: sync, store: store);
     } catch (_) {
@@ -113,6 +120,47 @@ final class FrbNoteRepository implements NoteRepository {
     _ensureOpen();
     await api.syncNotesToStore(svc: _sync, store: _store);
     return api.searchByTag(store: _store, tag: tag);
+  }
+
+  @override
+  Future<void> softDelete(String id) async {
+    _ensureOpen();
+    await api.noteSoftDelete(svc: _sync, id: id);
+    await api.syncNotesToStore(svc: _sync, store: _store);
+  }
+
+  @override
+  Future<void> restore(String id) async {
+    _ensureOpen();
+    await api.noteRestore(svc: _sync, id: id);
+    // 恢复后重新同步 Loro 内容到投影（meta.deleted_at 清除 → 投影列清空）。
+    await api.syncNotesToStore(svc: _sync, store: _store);
+  }
+
+  @override
+  Future<void> purge(String id) async {
+    _ensureOpen();
+    await api.notePurge(svc: _sync, id: id);
+    // purge 后同步投影：墓碑 id 对应的投影行由 sync_notes_to_store 清理。
+    await api.syncNotesToStore(svc: _sync, store: _store);
+  }
+
+  @override
+  Future<int> purgeExpired(DateTime cutoff) async {
+    _ensureOpen();
+    final count = await api.purgeExpiredTrash(
+      svc: _sync,
+      cutoff: cutoff.toUtc().toIso8601String(),
+    );
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return count.toInt();
+  }
+
+  @override
+  Future<List<NoteRow>> trashList() async {
+    _ensureOpen();
+    await api.syncNotesToStore(svc: _sync, store: _store);
+    return api.storeTrashList(store: _store);
   }
 
   void close() {

@@ -70,12 +70,14 @@ fn test_empty_export_import() {
     rt.block_on(async {
         let service = SyncService::new().await.unwrap();
         let exported = service.export_all().unwrap();
-        assert!(exported.is_empty(), "无笔记时应导出空数据");
+        // v3 空导出 = 墓碑 section 头（墓碑数 0）
+        assert_eq!(exported, vec![0u8, 0, 0, 0], "无笔记时导出仅含空墓碑 section");
 
         let mut imported = SyncService::new().await.unwrap();
         imported.import_all(&exported).unwrap();
         // 验证没有崩溃
         assert!(imported.get_note("anything").is_none());
+        assert!(imported.tombstones().is_empty());
     });
 }
 
@@ -97,7 +99,7 @@ fn test_persistent_restart_and_envelope_validation() {
         );
         let bytes = std::fs::read(dir.join("cardmind.loro")).unwrap();
         assert_eq!(&bytes[..8], b"CARDMIND");
-        assert_eq!(u32::from_le_bytes(bytes[8..12].try_into().unwrap()), 2);
+        assert_eq!(u32::from_le_bytes(bytes[8..12].try_into().unwrap()), 3);
         std::fs::write(dir.join("cardmind.loro"), b"broken").unwrap();
         assert!(SyncService::new_persistent(&dir).await.is_err());
         let _ = std::fs::remove_dir_all(dir);

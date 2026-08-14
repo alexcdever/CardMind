@@ -289,4 +289,19 @@ class _MemoryNoteRepository implements NoteRepository {
 
   @override
   Future<List<NoteRow>> searchByTag(String tag) async => [];
+
+  @override
+  Future<void> softDelete(String id) async {}
+
+  @override
+  Future<void> restore(String id) async {}
+
+  @override
+  Future<void> purge(String id) async {}
+
+  @override
+  Future<int> purgeExpired(DateTime cutoff) async => 0;
+
+  @override
+  Future<List<NoteRow>> trashList() async => [];
 }

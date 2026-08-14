@@ -53,12 +53,16 @@ class NoteRow {
   final String tags;
   final String updatedAt;
 
+  /// 软删时间（回收站条目展示"删除于"用；未删除 = None）
+  final String? deletedAt;
+
   const NoteRow({
     required this.id,
     required this.title,
     required this.contentPreview,
     required this.tags,
     required this.updatedAt,
+    this.deletedAt,
   });
 
   @override
@@ -67,7 +71,8 @@ class NoteRow {
       title.hashCode ^
       contentPreview.hashCode ^
       tags.hashCode ^
-      updatedAt.hashCode;
+      updatedAt.hashCode ^
+      deletedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -78,5 +83,6 @@ class NoteRow {
           title == other.title &&
           contentPreview == other.contentPreview &&
           tags == other.tags &&
-          updatedAt == other.updatedAt;
+          updatedAt == other.updatedAt &&
+          deletedAt == other.deletedAt;
 }

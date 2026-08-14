@@ -35,4 +35,19 @@ abstract interface class NoteRepository {
 
   /// 按标签搜索。
   Future<List<NoteRow>> searchByTag(String tag);
+
+  /// 软删除：把笔记移入回收站（meta.deleted_at 标记，随快照传播）。
+  Future<void> softDelete(String id);
+
+  /// 恢复回收站中的笔记（清除 meta.deleted_at）。
+  Future<void> restore(String id);
+
+  /// 彻底删除笔记（不可恢复；记入墓碑，删除信息随快照传播防复活）。
+  Future<void> purge(String id);
+
+  /// 过期清理：purge 回收站中删除时间早于 [cutoff] 的笔记，返回清理数。
+  Future<int> purgeExpired(DateTime cutoff);
+
+  /// 回收站列表（按删除时间倒序）。
+  Future<List<NoteRow>> trashList();
 }

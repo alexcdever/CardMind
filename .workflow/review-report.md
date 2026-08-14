@@ -1,138 +1,97 @@
-# Reviewer 审核报告 — CardMind 修复任务 D（tool/build.dart Windows flutter 启动修复）
+# Review Report — 任务 E 第二轮（墓碑 + envelope v3 + 删除状态迁移到 Loro）
 
-- worktree: D:/Projects/CardMind/.worktrees/fix-build-tool
-- 分支: codex/fix-build-tool
-- 审核代理: reviewer（deepseek-v4-flash）
+- worktree: `D:/Projects/CardMind/.worktrees/trash`（分支 `codex/trash`）
+- 审核人: reviewer 子代理（独立实机复验）
 - 日期: 2026-08-15
-- 审核方式: 独立实机复验（非盲信 executor 报告）
+- 审核对象: 任务单全文（设计方定稿）+ 执行子代理 `.workflow/executor-report.md`（已读，但以下结论全部为 reviewer 独立实机命令输出，非照抄）
 
-## 复验重点前置核查
+## 审核结论
 
-### 1. git diff 范围与设计一致性 — PASS
+**PASS（通过，不阻塞）**。验收标准 14 条全部实机复验通过。设计符合性 7 条全部符合。未发现实现越界；存在 3 个非阻塞问题（均为工具副作用或设计边界，详见问题清单）。
 
-git diff HEAD 真实 diff（关键）：tool/build.dart 的 _run() 内新增：
+## 逐条验收结果
 
-    final effectiveExecutable = Platform.isWindows && executable == 'flutter'
-        ? 'flutter.bat'
-        : executable;
-    return Process.run(effectiveExecutable, arguments, workingDirectory: workingDirectory);
+### Rust 集成测试（验收 1-7）
 
-- 与任务单设计要求 1 完全一致：仅 Windows + executable==flutter 时替换为 flutter.bat，其余不变。
-- 改动仅 1 个代码文件（tool/build.dart，+9 行），test/build_tool_test.dart 无 diff（未改）。
+**1. `test_purge_persists_across_sync` — PASS**
+- 实机命令: `cargo test --test trash_test`（trash_test 13 passed，0 failed）
+- 测试真实性: `rust-backend/tests/trash_test.rs:264-295`。确实走**第一轮失败场景的反转**：`create_note x2 → sync_notes_to_store → purge_note("n1") → 断言 svc.get_note("n1").is_none() 且 svc.tombstones().contains("n1") → 再次 sync_notes_to_store 重建投影 → 断言 list_notes 不含 n1、含 n2`。未绕过 sync_notes_to_store。
+- 断言有效性: 非空断言。复活场景由 `api.rs:22-24`（`for id in svc.tombstones() { store.purge_note(id)? }`）保证——墓碑行在投影重建时被清理，这是第一轮缺陷的真正修复点。
 
-### 2. 无绕过 _run 的 Process.run(flutter, ...) 直调 — PASS
+**2. `test_tombstone_survives_export_import` — PASS**
+- 实机命令同上。`trash_test.rs:299-326`：purge → export_all → 新 SyncService import_all → 断言 `b.tombstones().contains("n1")`、`iter_notes` 不含 n1、n2 正常导入。
 
-grep tool/build.dart 中 flutter 相关调用点：
+**3. `test_soft_delete_propagates_via_meta` — PASS**
+- `trash_test.rs:330-363`：软删 export/import → 对端 `get_note("n1").is_some()`（仍在 notes）、`tombstones().is_empty()`（软删不产生墓碑）→ 投影断言 list 不可见、trash_list 可见。meta.deleted_at 非空由投影间接断言（sync_note 写 deleted_at 列来源即 `crdt.get_deleted_at()`，trash 可见 ⇒ deleted_at 非空），语义等效。
 
-| 行号 | 调用 | 是否经 _run |
-|------|------|------------|
-| 199 | runProcess(flutter_rust_bridge_codegen, [generate]) | 经 runProcess（默认 _run） |
-| 206 | runProcess(flutter, flutterBuildArgs) | 经 runProcess（默认 _run） |
-| 420 | runProcess(flutter, buildArgs) | 经 runProcess（默认 _run） |
+**4. `test_restore_propagates_via_meta` — PASS**
+- `trash_test.rs:367-395`：软删→恢复 export/import → 对端投影 list 可见、trash 不可见。
 
-- tool/build.dart 内不存在直接 Process.run(flutter, ...) 的调用点。
-- Runner runProcess = _run（第 75 行）测试钩子未改动；测试文件用 mock runProcess 完全替代 _run，断言 calls[2].executable == 'flutter' 不受 _run 内部转换影响，测试语义未被破坏。
-- 注：tool/quality.dart（126/134）、tool/test_boundary_scanner.dart（1206）、tool/src/debug_pool/* 有 Process.run(flutter) 直调，但均属任务单明确禁止改动的 tool/ 其余文件，不改动正确。
+**5. `test_purge_expired_batch` — PASS**
+- `trash_test.rs:399-429`：3 篇软删（2 篇 31 天前 + 1 篇当前）→ `purge_expired(cutoff=30d)` 返回 `assert_eq!(purged, 2)`，trash_list 剩 1（n3），墓碑含 n1/n2 不含 n3。断言与验收语义完全一致。
 
-### 3. executor 报告真实性核对 — PASS
+**6. `test_v2_file_loads_without_tombstones` — PASS**
+- `trash_test.rs:433-463`：手工构造 v2 envelope（magic + version=2 + 纯记录流无墓碑 section）→ `new_persistent` → 断言 `tombstones().is_empty()`、`get_note("v2-note")` 内容完整。v2 无损升级路径 `decode_envelope`（sync.rs:510-520 接受 v1/v2/v3）+ `import_raw`（version<3 不读墓碑 section）已验证。
 
-- 逐条实机复现 executor 报告核心结论：验收 1/2/3/4 真实输出与报告一致（见下）。
-- 关于全量测试 dll 环境依赖（error 126 → 设 FRB_DART_LOAD_EXTERNAL_LIBRARY_NATIVE_LIB_DIR 后 45/45）的描述属实：本审核初始无该变量时同样报 126（43/45），设变量后 45/45 通过。
-- dll 文件仍存在 build/windows/x64/runner/Release/cardmind_backend.dll；环境变量随会话消失，复验时需重新注入。
+**7. `test_tombstoned_id_skipped_on_import` — PASS**
+- `trash_test.rs:467-495`：手工 v3 payload（墓碑 section 含 ghost + 记录流同时含 ghost 与 alive）→ `import_all` → 断言 `tombstones().contains("ghost")`、`get_note("ghost").is_none()`（不复活）、alive 正常导入。
 
-## 验收标准逐条复验
-### 验收 1: flutter test test/build_tool_test.dart - PASS
+### Flutter 测试（验收 8-9）
 
-命令：flutter test test/build_tool_test.dart（worktree 根）
+**8. `purge survives list refresh` — PASS**
+- widget 层: `test/trash_widget_test.dart:78-104`（fake repository：softDelete→purge→listNotes/trashList 刷新→断言不复活 + UI 回收站空状态）。
+- 真实 FRB 链路: `test/frb_note_repository_test.dart:83-102`（FrbNoteRepository.open → createNote → softDelete → purge → trashList/listNotes 断言均不含 purge-note）。
+- 实机: `flutter test` 全量 53 passed，0 failed。
 
-真实输出（末尾）：
-00:00 +0: android app build keeps Rust and Flutter targets aligned
-00:00 +1: android appbundle keeps the Rust build pipeline
-00:00 +2: android split-apk keeps the Rust build pipeline
-00:00 +3: android build fails when a Rust ABI artifact is missing
-00:00 +4: android build rejects unsupported output formats
-00:00 +5: android build rejects a missing output format value
-00:00 +6: All tests passed!
+**9. 第一轮 6-9 用例保留全绿 — PASS**
+- `trash_widget_test.dart` 5 个用例（delete→trash / restore / purge / purge survives list refresh / empty state）+ `frb_note_repository_test.dart`（soft delete + restore / purge / purgeExpired / reopen 持久化）全部通过。
 
-结论：6/6 通过。
+### 回归（验收 10-14）
 
-### 验收 2: flutter test（全量 45 个）- PASS（需 dll 环境，符合任务单坑位说明）
+**10. `cd rust-backend && cargo test` 全绿 — PASS**
+- 实机输出: 41 passed; 0 failed（discovery 2 + integration 2 + migration 2 + note_crdt 10 + store 6 + sync_service 5 + sync 1 + trash 13）。
 
-命令：flutter test 直接跑 → 2 个 setUpAll 失败；注入 FRB_DART_LOAD_EXTERNAL_LIBRARY_NATIVE_LIB_DIR=D:/Projects/CardMind/.worktrees/fix-build-tool/build/windows/x64/runner/Release 后 45/45 通过。
+**11. `flutter pub get && flutter test` 全绿 — PASS**
+- 实机输出: `flutter test` 53 passed; 0 failed（含 api_integration、frb_note_repository、trash_widget、vertical_slice_widget、mobile_ui 等全部）。运行态 dll `build/windows/x64/runner/Release/cardmind_backend.dll` 存在（3:26 构建）。
 
-真实输出（无 env 时，关键失败行）：
-Invalid argument(s): Failed to load dynamic library cardmind_backend.dll: The specified module could not be found. (error code: 126)
-... api_integration_test.dart: (setUpAll) [E]
-... frb_note_repository_test.dart: (setUpAll) [E]
-00:13 +35 -2: Some tests failed.
+**12. `flutter analyze` 无 error — PASS**
+- 实机输出: `No issues found! (ran in 15.4s)`。
 
-真实输出（设 env 后，末尾）：
-00:05 +44: ... CardMindApp injects the repository into its workspace
-00:05 +45: All tests passed!
+**13. `flutter_rust_bridge_codegen generate` 成功，新 API 出现 — PASS**
+- 实机命令: `flutter_rust_bridge_codegen generate` → `Done!`。
+- 产物核验: `lib/src/rust/api.dart` 含 `noteSoftDelete` / `noteRestore` / `notePurge` / `purgeExpiredTrash`（line 150-164）；`lib/src/rust/store.dart` NoteRow 含 `deletedAt`；`frb_generated.dart`/`frb_generated.rs` 对应 wire 函数齐全。
 
-结论：45/45 全部通过。2 个失败为 FRB FFI 加载运行态 dll 的环境问题（worktree 无 dll 时预期现象，任务单坑位已说明），非本改动回归。
+**14. `git status` 改动全在范围内 — PASS（含 1 处复验工具副作用，见问题清单）**
+- 范围内: lib/bridge/*、lib/pages/*、lib/src/rust/*（codegen 产物）、rust-backend/src/{api,store,sync,frb_generated}.rs、rust-backend/tests/*、test/*、pubspec.lock（任务单明确保留）。
+- 无 docs/、prototype/、.gitignore 改动。
+- 复验开始时（未跑任何工具前）: analysis_options.yaml 与 linux/windows registrant **均为干净**（说明 executor 报告"已还原"属实）。
 
-### 验收 3: flutter analyze - PASS
+## 设计符合性核验（审核要点 1）
 
-命令：flutter analyze（timeout 600s）
-
-真实输出：
-Analyzing fix-build-tool...
-No issues found! (ran in 28.5s)
-
-结论：无 error（也无 warning/info）。
-
-### 验收 4: 实机复验（关键）dart run tool/build.dart app --platform android --android-format apk - PASS（完整出包）
-
-命令（node 注入本机 Android 环境变量，等价任务单命令 + 显式 ANDROID_NDK_HOME/ANDROID_HOME）：
-node -e process.env.ANDROID_NDK_HOME=.../Sdk/ndk/29.0.14206865; process.env.ANDROID_HOME=.../Sdk; execSync(dart run tool/build.dart app --platform android --android-format apk)
-
-真实输出：
-NDK=C:/Users/alexc/AppData/Local/Android/Sdk/ndk/29.0.14206865
-SDK=C:/Users/alexc/AppData/Local/Android/Sdk
-Running build hooks...[lib:android] runtime libraries: D:/Projects/CardMind/.worktrees/fix-build-tool/build/android-jni
-[codegen] done
-[build:android] done
-
-产物验证（flutter build apk 真实成功）：
-ls build/app/outputs/flutter-apk/ -> app-release.apk、app-release.apk.sha1
-ls -la build/app/outputs/flutter-apk/app-release.apk -> -rw-r--r-- 118183898 bytes, 8月 15 01:14
-ls build/android-jni/ -> arm64-v8a armeabi-v7a x86_64（3 个 ABI 库齐全）
-
-结论：一条命令完整跑到 flutter build apk 并成功产出 app-release.apk（118MB），flutter 启动无任何 ProcessException。修复前报 ProcessException 系统找不到指定的文件 的路径现在完整出包。
-
-### 验收 5: git status 改动范围 - PASS（真实代码改动仅 tool/build.dart）
-
-真实输出：
-git status --short →
- M .workflow/executor-report.md
- M analysis_options.yaml
- M lib/src/rust/api.dart / discovery.dart / frb_generated.dart / frb_generated.io.dart / frb_generated.web.dart / store.dart / sync.dart
- M linux/flutter/generated_plugin_registrant.cc / .h / generated_plugins.cmake
- M rust-backend/src/frb_generated.rs
- M tool/build.dart
- M windows/flutter/generated_plugin_registrant.cc / .h / generated_plugins.cmake
-
-逐项核实：
-- tool/build.dart：唯一真实代码改动，+9 行，符合任务单设计。PASS
-- .workflow/executor-report.md：executor 报告，流水线文件（本报告亦写入 .workflow/）。
-- analysis_options.yaml（+9 行 analyzer exclude build/** 等）：flutter test 工具副作用（首次运行自动升级，本审核复验时同样触发），非人工改动。
-- linux/flutter/generated_plugins.cmake、windows/flutter/generated_plugins.cmake（各 +1 行）：flutter pub get 工具副作用。
-- lib/src/rust/*、rust-backend/src/frb_generated.rs、linux/windows generated_plugin_registrant.*：git diff --ignore-all-space 下 diff 为空（仅 LF/CRLF 行尾差异），为 codegen/pub get 重写后的行尾属性变化，非内容改动。
-- .gitignore：git diff .gitignore 为空，未被改动。PASS
-
-结论：真实代码改动严格限于任务单允许范围（tool/build.dart）；其余均为 flutter/dart 工具自动生成副作用（与 executor 报告工具副作用需还原一致，属流水线已知现象，非越界代码改动）。
+1. **NoteCrdt 层**: `sync.rs:626-645` — meta Map `deleted_at`，`set_deleted_at(Option<String>)`（Some 插 key / None `map.delete` 清 key）、`get_deleted_at() -> Option<String>`。✅
+2. **SyncService 层**: `tombstones: HashSet<String>`（sync.rs:18）；`soft_delete_note`/`restore_note`/`purge_note`/`purge_expired(cutoff)->Result<usize>`/`tombstones()` 全部存在且带 persist 失败回滚；`iter_notes` 遍历 notes HashMap（墓碑 id 已移除，天然跳过）；`import_raw` 不主动删本地笔记（只 insert/跳过）。✅
+3. **Envelope v3**: `LORO_VERSION=3`（sync.rs:37）；`export_all` 写墓碑 section（墓碑数 u32 LE + id_len u32 + id bytes，按 id 排序输出确定）；`import_raw` v3 读墓碑并与本地 `tombstones.extend(imported_tombstones)` union；`decode_envelope` 接受 v1/v2/v3，v2 无墓碑 section 无损升级，v1 走迁移后以 v3 写回；记录流遇墓碑 id `continue` 跳过。✅
+4. **SQLite 层**: `deleted_at` 列保留且为读投影（`sync_note` 从 `crdt.get_deleted_at()` 写，store.rs:162）；store 无独立删除方法（grep 确认无 delete_note/restore_note/cleanup_expired/store_delete* 等残留，仅 `purge_note` 注释明确"仅由 sync_notes_to_store 在 Loro 墓碑清理时调用"）；`trash_list`/`list_notes`/`search*` 过滤不变。✅
+5. **API 层**: FRB `note_soft_delete`/`note_restore`/`note_purge`/`purge_expired_trash`（api.rs:142-160）；旧 store 删除 API 全部移除；`sync_notes_to_store` 遍历 iter_notes 写投影 + 遍历 tombstones 清理墓碑投影行（api.rs:18-26）。✅
+6. **Flutter 层**: NoteRepository 接口换新 API（softDelete/restore/purge/purgeExpired）；FrbNoteRepository 调用后跟随 syncNotesToStore；TrashPage 条目显示 `note.deletedAt ?? note.updatedAt`（trash_page.dart:137）；30 天清理在 `FrbNoteRepository.open`（bridge_helper init 后，frb_note_repository.dart:25-29）。✅
+7. **第一轮问题 2 清理**: 复验开始时 analysis_options.yaml / linux registrant / windows registrant 均为干净状态（executor 已还原）；lib/src/rust/* 与 frb_generated.rs 为 codegen 新产物；pubspec.lock 保留。✅
 
 ## 问题清单
 
-无代码层面的 FAIL 或越界问题。
+1. **（非阻塞 / 工具副作用）`flutter test` 会改写 `analysis_options.yaml` 与 linux/windows `generated_plugin_registrant.*`、`generated_plugins.cmake`**
+   - 证据: 复验开始时 `git status` 无这些文件；reviewer 实机跑 `flutter test` 后出现 `analysis_options.yaml`（+9 行 analyzer.exclude）与 4 个 registrant 文件（仅 `jni` 加入 FLUTTER_FFI_PLUGIN_LIST）。`git diff` 内容为 Flutter/FRB 工具自动生成，非 executor 有意改动。
+   - 原因: `flutter pub get`/`flutter test` 自动升级 analysis_options 并重新生成插件注册文件（与 executor 报告未决问题 3 及第一轮问题 2 相同）。
+   - 处置: 不阻塞验收。合并 worktree 前需 `git checkout` 还原这 5 个文件（同第一轮做法）。reviewer 按纪律未修改。
 
-注意事项（非本任务缺陷）：
-1. 全量测试（验收 2）依赖运行态 cardmind_backend.dll（FRB FFI）：worktree 无 dll 时 api_integration_test/frb_note_repository_test 报 error 126。dll 文件已存在于 build/windows/x64/runner/Release/，但环境变量 FRB_DART_LOAD_EXTERNAL_LIBRARY_NATIVE_LIB_DIR 随会话丢失，复验时需重新注入。此为本机既有环境条件，非本改动引入。
-2. 复验命令会产生 flutter/dart 工具副作用（analysis_options.yaml、generated_plugins.cmake、行尾变化），合并前需还原，仅保留 tool/build.dart 与 .workflow/ 流水线文件。
-3. 本机 Android SDK 环境变量未配置，验收 4 需显式设置 ANDROID_NDK_HOME/ANDROID_HOME（任务单坑位说明），本审核已注入。
-4. flutter 实际版本 3.47.0（Dart 3.13.0），AGENTS.md 记载 3.44.0，非本任务范围，仅记录。
+2. **（非阻塞 / 设计边界）旧版对端（v2 协议）发送纯记录流 payload 时，`import_all` 按 v3 语义解析会读错墓碑计数**
+   - 证据: `import_all` 固定 `import_raw(LORO_VERSION=3, data)`（sync.rs:329-339），v2 对端 payload 前 4 字节会被当作墓碑数读取。
+   - 原因: 任务单设计 3 仅要求"v2 文件加载无损"（文件路径走 `decode_envelope` 按 version 解析，已验证），未要求网络路径兼容旧版对端；跨版本网络同步兼容留待网络模块任务。
+   - 处置: 不阻塞验收（验收 6 语义已覆盖且通过）。建议后续网络任务明确版本协商。
 
-## 总结
+3. **（非阻塞 / 已知限制）`purge_expired_trash` FRB 返回 `BigInt`（Rust `usize`）**
+   - 证据: `lib/src/rust/api.dart:164` `Future<BigInt> purgeExpiredTrash`；Flutter 侧 `count.toInt()`（frb_note_repository.dart:156）。
+   - 处置: 清理数在 int 范围，语义无损，不阻塞。
 
-验收标准 1/2/3/4/5 全部 PASS，改动与任务单设计一致，无越界，无问题未决。executor 自检报告的关键结论经独立实机复现均属实。
+## 阻塞与否
+
+**不阻塞**。验收标准 1-14 全部实机 PASS；设计符合性 7 条全部符合；无越界改动；执行子代理报告的真实性经独立复验成立（41+53 测试全绿、codegen 产物、范围均与其自检一致）。合并前需处理问题清单第 1 条的工具副作用还原（与 executor 未决问题 3 相同，属流水线例行操作）。

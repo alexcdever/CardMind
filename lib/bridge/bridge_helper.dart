@@ -140,4 +140,36 @@ class BridgeHelper implements NoteRepository {
   Future<List<NoteRow>> searchByTag(String tag) async {
     return _delegate.searchByTag(tag);
   }
+
+  // ━━ 回收站 ━━
+
+  /// 软删除：把笔记移入回收站（meta.deleted_at 标记，随快照传播）。
+  @override
+  Future<void> softDelete(String id) async {
+    await _delegate.softDelete(id);
+  }
+
+  /// 恢复回收站中的笔记。
+  @override
+  Future<void> restore(String id) async {
+    await _delegate.restore(id);
+  }
+
+  /// 彻底删除笔记（不可恢复；记入墓碑）。
+  @override
+  Future<void> purge(String id) async {
+    await _delegate.purge(id);
+  }
+
+  /// 过期清理：purge 回收站中删除时间早于 [cutoff] 的笔记，返回清理数。
+  @override
+  Future<int> purgeExpired(DateTime cutoff) async {
+    return _delegate.purgeExpired(cutoff);
+  }
+
+  /// 回收站列表（按删除时间倒序）。
+  @override
+  Future<List<NoteRow>> trashList() async {
+    return _delegate.trashList();
+  }
 }

@@ -339,7 +339,7 @@ Future<void> _addTag(WidgetTester tester, String tag) async {
 
 class MemoryNoteRepository implements NoteRepository {
   MemoryNoteRepository({List<NoteRow>? rows, Map<String, String>? contents})
-    : rows = rows ?? _defaultRows,
+    : rows = List.of(rows ?? _defaultRows),
       contents = Map<String, String>.of(contents ?? _defaultContents);
 
   static const _defaultRows = [
@@ -369,6 +369,9 @@ class MemoryNoteRepository implements NoteRepository {
 
   /// 标签元数据记录（updateMetadata 写入）。
   final Map<String, List<String>> tagsById = {};
+
+  /// 回收站里的笔记（deleteNote 移入，restore/purge 移出）。
+  final List<NoteRow> trashed = [];
 
   /// 反链/出链注入数据。
   List<LinkRow> backlinks = [];
@@ -450,6 +453,50 @@ class MemoryNoteRepository implements NoteRepository {
         )
         .toList();
   }
+
+  @override
+  Future<void> softDelete(String id) async {
+    final index = rows.indexWhere((note) => note.id == id);
+    if (index >= 0) {
+      final note = rows.removeAt(index);
+      trashed.add(
+        NoteRow(
+          id: note.id,
+          title: note.title,
+          contentPreview: note.contentPreview,
+          tags: note.tags,
+          updatedAt: note.updatedAt,
+          deletedAt: DateTime.now().toIso8601String(),
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<void> restore(String id) async {
+    final index = trashed.indexWhere((note) => note.id == id);
+    if (index >= 0) rows.add(trashed.removeAt(index));
+  }
+
+  @override
+  Future<void> purge(String id) async {
+    trashed.removeWhere((note) => note.id == id);
+  }
+
+  @override
+  Future<int> purgeExpired(DateTime cutoff) async {
+    final before = trashed.length;
+    trashed.removeWhere((note) {
+      final deletedAt = note.deletedAt;
+      if (deletedAt == null) return false;
+      final time = DateTime.tryParse(deletedAt);
+      return time != null && time.isBefore(cutoff);
+    });
+    return before - trashed.length;
+  }
+
+  @override
+  Future<List<NoteRow>> trashList() async => List.of(trashed);
 
   List<String> _splitTags(String tags) {
     if (tags.trim().isEmpty) return [];
