@@ -21,7 +21,7 @@ class BridgeHelper implements NoteRepository {
   ///
   /// Call once after [RustLib.init] in main.dart.
   Future<void> init() async {
-    final dir = await getApplicationDocumentsDirectory();
+    final dir = await getApplicationSupportDirectory();
     _repository?.close();
     _repository = await FrbNoteRepository.open(dataDirectory: dir.path);
   }
