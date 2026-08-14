@@ -14,4 +14,14 @@ if [ ! -f "$(dirname "$0")/../pubspec.yaml" ]; then
   exit 0
 fi
 
+# 纯文档提交跳过全量检查：本次暂存的文件全部是 .md 时不跑测试
+staged_files=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -n "$staged_files" ]; then
+  non_doc=$(printf '%s\n' "$staged_files" | grep -v '\.md$' || true)
+  if [ -z "$non_doc" ]; then
+    echo "[pre-commit] 本次提交仅含文档（.md），跳过质量检查"
+    exit 0
+  fi
+fi
+
 "$(dirname "$0")/../scripts/check.sh"
