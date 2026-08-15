@@ -196,9 +196,39 @@ class CardMindTag extends StatelessWidget {
 }
 
 class CardMindSyncStatus extends StatelessWidget {
-  const CardMindSyncStatus({super.key, this.label = '本地已就绪'});
+  const CardMindSyncStatus({
+    super.key,
+    this.label = '本地已就绪',
+    this.pendingCount = 0,
+    this.lastSyncFailedFor,
+  });
 
+  /// 静态（无动态状态时）展示的兜底文字。
   final String label;
+
+  /// 待同步笔记数（决策 16：>0 时显示"N 篇待同步"）。
+  final int pendingCount;
+
+  /// 连续同步失败累计时长（决策 18：>24h 时圆点变色提示"长时间未同步"）。
+  final Duration? lastSyncFailedFor;
+
+  /// 连续失败超时圆点颜色（灰黄，用于测试断言）。
+  static const Color staleDotColor = Color(0xFFB08D2E);
+
+  /// 连续失败是否超过 24 小时（决策 18 提示阈值）。
+  static const Duration staleThreshold = Duration(hours: 24);
+
+  bool get _stale => lastSyncFailedFor != null && lastSyncFailedFor! > staleThreshold;
+
+  String get _effectiveLabel {
+    if (_stale) {
+      return pendingCount > 0
+          ? '长时间未同步 · $pendingCount 篇待同步'
+          : '长时间未同步';
+    }
+    if (pendingCount > 0) return '$pendingCount 篇待同步';
+    return label;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -207,20 +237,21 @@ class CardMindSyncStatus extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
+          key: const ValueKey('sync-status-dot'),
           width: 7,
           height: 7,
           decoration: BoxDecoration(
-            color: tokens.accent,
+            color: _stale ? staleDotColor : tokens.accent,
             shape: BoxShape.circle,
           ),
         ),
         const SizedBox(width: CardMindSpacing.sm),
         Flexible(
           child: Text(
-            label,
+            _effectiveLabel,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: tokens.mutedInk,
+              color: _stale ? staleDotColor : tokens.mutedInk,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

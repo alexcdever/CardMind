@@ -5,16 +5,22 @@ import 'package:intl/intl.dart';
 
 import '../bridge/bridge_helper.dart';
 import '../bridge/note_repository.dart';
+import '../bridge/sync_scheduler.dart';
 import '../src/rust/store.dart';
 import '../ui/design_system/cardmind_theme.dart';
 import '../ui/design_system/cardmind_widgets.dart';
+import 'devices_page.dart';
 import 'editor_page.dart';
 import 'trash_page.dart';
 
 class NoteListPage extends StatefulWidget {
-  const NoteListPage({super.key, this.repository});
+  const NoteListPage({super.key, this.repository, this.scheduler});
 
   final NoteRepository? repository;
+
+  /// 自动同步调度器（模块 5）：提供待同步计数流与"立即同步"能力。
+  /// 生产环境缺省从 BridgeHelper 取；测试注入 fake。
+  final SyncScheduler? scheduler;
 
   @override
   State<NoteListPage> createState() => _NoteListPageState();
@@ -35,19 +41,68 @@ class _NoteListPageState extends State<NoteListPage> {
   String? _searchError;
   int _searchGeneration = 0;
 
+  /// 待同步计数（模块 5 状态指示器数据）。
+  int _pendingCount = 0;
+
+  /// 立即同步进行中（防连点禁用按钮）。
+  bool _syncNowRunning = false;
+  StreamSubscription<int>? _pendingCountSub;
+
   NoteRepository get _repository => widget.repository ?? BridgeHelper();
+
+  /// 调度器：显式注入 > 生产 BridgeHelper 单例。
+  SyncScheduler? get _scheduler =>
+      widget.scheduler ?? (widget.repository == null ? BridgeHelper().scheduler : null);
 
   @override
   void initState() {
     super.initState();
     _loadNotes();
+    _initSyncStatus();
+  }
+
+  /// 订阅调度器待同步计数流 + 首次刷新（决策 16 动态计数数据源）。
+  void _initSyncStatus() {
+    final scheduler = _scheduler;
+    if (scheduler == null) return;
+    _pendingCountSub = scheduler.pendingCountChanges.listen((count) {
+      if (mounted) setState(() => _pendingCount = count);
+    });
+    unawaited(scheduler.refreshPendingCount());
   }
 
   @override
   void dispose() {
+    _pendingCountSub?.cancel();
     _searchController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  /// 立即同步（决策 17 手动触发无视 WiFi 限制；防连点）。
+  Future<void> _syncNow() async {
+    final scheduler = _scheduler;
+    if (scheduler == null || _syncNowRunning) return;
+    setState(() => _syncNowRunning = true);
+    try {
+      await scheduler.syncNow();
+    } finally {
+      if (mounted) setState(() => _syncNowRunning = false);
+    }
+  }
+
+  /// 打开设备页（决策 15：桌面侧边栏入口 / 移动端设备 tab 共用组件）。
+  Future<void> _openDevices() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: const Text('设备')),
+          body: DevicesPage(repository: _repository),
+        ),
+      ),
+    );
+    // 返回后刷新（配对/解除可能改变状态）
+    await _loadNotes();
   }
 
   Future<void> _loadNotes() async {
@@ -591,9 +646,43 @@ class _NoteListPageState extends State<NoteListPage> {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: CardMindSyncStatus(),
+          // 决策 15：设备入口紧跟同步状态指示器
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: TextButton.icon(
+              key: const ValueKey('devices-entry'),
+              onPressed: _openDevices,
+              icon: const Icon(Icons.devices_outlined, size: 18),
+              label: const Text('设备'),
+              style: TextButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CardMindSyncStatus(
+                    pendingCount: _pendingCount,
+                    label: '本地已就绪',
+                  ),
+                ),
+                if (_pendingCount > 0)
+                  IconButton(
+                    key: const ValueKey('sync-now-button'),
+                    tooltip: '立即同步',
+                    icon: const Icon(Icons.sync, size: 18),
+                    onPressed: _syncNowRunning ? null : _syncNow,
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -703,9 +792,20 @@ class _NoteListPageState extends State<NoteListPage> {
             icon: const Icon(Icons.delete_outline),
             onPressed: _openTrash,
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: CardMindSyncStatus(label: '已就绪'),
+          // 决策 17：仅存在未同步笔记时显示"立即同步"
+          if (_pendingCount > 0)
+            IconButton(
+              key: const ValueKey('sync-now-button'),
+              tooltip: '立即同步',
+              icon: const Icon(Icons.sync),
+              onPressed: _syncNowRunning ? null : _syncNow,
+            ),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CardMindSyncStatus(
+              label: '已就绪',
+              pendingCount: _pendingCount,
+            ),
           ),
         ],
       ),
@@ -731,11 +831,7 @@ class _NoteListPageState extends State<NoteListPage> {
                   Expanded(child: _buildMobileListBody()),
                 ],
               )
-            : const CardMindEmptyState(
-                icon: Icons.devices_outlined,
-                title: '暂无已连接设备',
-                message: '发现并连接设备后，同步状态会显示在这里。',
-              ),
+            : DevicesPage(repository: _repository),
       ),
       floatingActionButton: _mobileTabIndex == 0
           ? FloatingActionButton(

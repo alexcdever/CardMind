@@ -40,6 +40,9 @@ class FakeSyncApi implements SyncApi {
   Future<int> get pollIntervalSecs async => 60;
 
   @override
+  Future<int> pendingCount() async => 0;
+
+  @override
   Future<void> setSyncAllowed(bool allowed) async {
     setSyncAllowedCalls.add(allowed);
   }
