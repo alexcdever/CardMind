@@ -1,19 +1,24 @@
 import 'package:path_provider/path_provider.dart';
 
+import 'dart:async';
+
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
 import 'frb_note_repository.dart';
 import 'note_repository.dart';
+import 'sync_scheduler.dart';
 
 /// Bridge between UI pages and the FRB Rust API.
 ///
-/// Manages [SyncService] (CRDT) and [NoteStore] (SQLite read cache).
+/// Manages [SyncService] (CRDT), [NoteStore] (SQLite read cache),
+/// and the auto-sync scheduler (任务 H：编辑保存即推送 + 周期拉取 + WiFi 条件)。
 class BridgeHelper implements NoteRepository {
   static final BridgeHelper _instance = BridgeHelper._();
   factory BridgeHelper() => _instance;
   BridgeHelper._();
 
   FrbNoteRepository? _repository;
+  SyncScheduler? _scheduler;
 
   FrbNoteRepository get _delegate =>
       _repository ?? (throw StateError('BridgeHelper not initialized'));
@@ -24,8 +29,39 @@ class BridgeHelper implements NoteRepository {
   Future<void> init() async {
     final dir = await getApplicationSupportDirectory();
     _repository?.close();
-    _repository = await FrbNoteRepository.open(dataDirectory: dir.path);
+    _scheduler?.stop();
+    _repository = await FrbNoteRepository.open(
+      dataDirectory: dir.path,
+      onLocalChange: _onLocalChange,
+    );
+    _startSyncScheduler();
   }
+
+  /// 本地写操作成功后触发调度器"编辑保存即推送"（fire-and-forget，不阻塞 UI）。
+  void _onLocalChange() {
+    _scheduler?.noteEdited();
+  }
+
+  /// 启动自动同步调度器（周期拉取 + connectivity 监听）。
+  ///
+  /// 平台不支持 connectivity（如测试环境无插件）时静默降级——桌面端恒允许。
+  void _startSyncScheduler() {
+    try {
+      _scheduler?.stop();
+      final scheduler = SyncScheduler(
+        monitor: ConnectivityPlusMonitor(),
+        api: FrbSyncApi(_delegate.sync, _delegate.store),
+      );
+      _scheduler = scheduler;
+      // fire-and-forget：周期 Timer 在 pollIntervalSecs 读取后启动
+      unawaited(scheduler.start());
+    } catch (_) {
+      _scheduler = null;
+    }
+  }
+
+  /// 当前自动同步调度器（诊断/测试用；未初始化时为 null）。
+  SyncScheduler? get scheduler => _scheduler;
 
   // ━━ Tag encoding helpers（v1 兼容；新数据走 meta tags API）━━
 

@@ -169,7 +169,7 @@ fn test_pairing_code_brute_force_limit() {
 #[test]
 fn test_pairing_persists_both_sides() {
     rt().block_on(async {
-        let confirmer = SyncService::new().await.unwrap();
+        let mut confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
         let initiator = SyncService::new().await.unwrap();
         initiator.set_device_name("New Phone");

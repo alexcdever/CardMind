@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use atomic_write_file::AtomicWriteFile;
@@ -28,6 +30,16 @@ pub struct SyncService {
     pending_pairing: Mutex<Option<PendingPairing>>,
     /// 本设备名（配对握手时发送给对端；默认取主机名）
     device_name: Mutex<String>,
+    /// 同步开关（决策 6 能力）：false 时调度器暂停推送与拉取。
+    /// 移动端由 Flutter 侧按网络类型（WiFi vs 蜂窝）设置；桌面端恒 true。
+    sync_allowed: AtomicBool,
+    /// 待同步笔记 id 集合（本地编辑成功后标记；成功推送后清空）。
+    /// 内存态：不持久化（保守正确——重启后经持久化加载重标全部待同步）。
+    pending_dirty: Mutex<HashSet<String>>,
+    /// note_id → 最后成功推送时间（模块 5 待同步计数基础；内存态不持久化）
+    last_pushed_at: Mutex<HashMap<String, DateTime<Utc>>>,
+    /// peer_id → 最近已知直连 IP 列表（配对请求/配对目标时记录；供周期推送直连优先）
+    peer_ips: Mutex<HashMap<String, Vec<String>>>,
 }
 
 /// NoteCrdt — LoroDoc 笔记模型
@@ -56,6 +68,27 @@ pub struct DevicePushResult {
     pub ok: bool,
     /// 失败原因（成功时为空）
     pub message: String,
+}
+
+// ━━━ 自动同步调度（任务 H）━━━
+
+/// 周期拉取间隔（秒）。决策 4 的实现参数：同网段约 30 秒、跨网段约 5 分钟；
+/// 本实现为可调常量，默认 60 秒（任务单定稿）。
+pub const SYNC_POLL_INTERVAL_SECS: u64 = 60;
+
+/// 周期 accept 对端 push 的等待窗口（非阻塞拉取；到点返回 None，不长期占用
+/// accept 通道——避免与配对 accept 争用）。
+pub const SYNC_ACCEPT_WINDOW: Duration = Duration::from_secs(2);
+
+/// 一次周期同步的结果（FRB 可序列化，供 Flutter 侧诊断/未来 UI 使用）
+#[derive(Debug, Clone)]
+pub struct SyncCycleResult {
+    /// 成功推送的对端设备数（0 = 本轮无成功推送）
+    pub pushed_count: u32,
+    /// 本轮是否 accept 到对端 push 并导入
+    pub accepted_push: bool,
+    /// 同步开关关闭导致整轮跳过
+    pub disabled: bool,
 }
 
 // ━━━ 配对（任务 G）━━━
@@ -153,6 +186,10 @@ impl SyncService {
             pairing_session: Mutex::new(None),
             pending_pairing: Mutex::new(None),
             device_name: Mutex::new(default_device_name()),
+            sync_allowed: AtomicBool::new(true),
+            pending_dirty: Mutex::new(HashSet::new()),
+            last_pushed_at: Mutex::new(HashMap::new()),
+            peer_ips: Mutex::new(HashMap::new()),
         })
     }
 
@@ -185,12 +222,18 @@ impl SyncService {
             pairing_session: Mutex::new(None),
             pending_pairing: Mutex::new(None),
             device_name: Mutex::new(default_device_name()),
+            sync_allowed: AtomicBool::new(true),
+            pending_dirty: Mutex::new(HashSet::new()),
+            last_pushed_at: Mutex::new(HashMap::new()),
+            peer_ips: Mutex::new(HashMap::new()),
         };
         if path.exists() {
             let bytes = std::fs::read(&path)
                 .with_context(|| format!("read Loro file {}", path.display()))?;
             let (version, payload) = decode_envelope(&bytes)?;
             service.import_raw(version, &payload)?;
+            // 重启后全部视为待同步（last_pushed_at 不持久化，保守正确——对端状态未知）
+            service.mark_all_pending();
             if version == 1 {
                 // ━━━ v1 → v2 迁移 ━━━
                 // 先备份原始 v1 文件，再逐 note 迁移：
@@ -335,30 +378,49 @@ impl SyncService {
     ///
     /// 返回请求内容；调用方随后调 `confirm_pairing` 完成配对（在存储的连接上
     /// 回复握手响应）。持有 iroh 监听能力（已有 accept_push 同机制）。
-    pub async fn accept_pairing_request(&self) -> Result<PairingRequest> {
-        let incoming = self
-            .endpoint
-            .accept()
-            .await
-            .ok_or_else(|| anyhow::anyhow!("no incoming pairing connection"))?;
-        let conn = incoming
-            .accept()?
-            .await
-            .context("accept pairing connection")?;
-        let mut recv = conn
-            .accept_uni()
-            .await
-            .context("accept pairing request stream")?;
-        let data = recv
-            .read_to_end(usize::MAX)
-            .await
-            .context("read pairing request")?;
-        let request = decode_pairing_request(&data)?;
-        *self.pending_pairing.lock().unwrap() = Some(PendingPairing {
-            request: request.clone(),
-            conn,
-        });
-        Ok(request)
+    ///
+    /// 周期同步的 accept 与配对共用同一 endpoint 通道：本方法内部轮询
+    /// `pending_pairing`（可能被统一路由 accept_incoming_routed 填充），
+    /// 并用短窗口 accept——配对请求被周期 accept 抢到时也能正确路由，不冲突。
+    ///
+    /// **推送帧不丢失**（M1 修复）：等待期间若抢到的是对端推送（非配对帧），
+    /// 立即 `import_all` 导入（而不是丢弃）——否则对端 `push_to_peer` 因连接
+    /// 被 accept 并关闭而判定成功、清空 pending，推送数据被静默吞掉。
+    /// 导入失败仅记录日志（不中断配对等待），数据由对端下个周期兜底。
+    pub async fn accept_pairing_request(&mut self) -> Result<PairingRequest> {
+        loop {
+            // 统一路由可能已把配对请求存入 pending_pairing（被周期 accept 抢到）
+            if let Some(pending) = self.pending_pairing.lock().unwrap().as_ref() {
+                return Ok(pending.request.clone());
+            }
+            // 短窗口 accept：配对帧 → 路由到 pending_pairing（下一轮返回）；
+            // 推送帧 → 导入（不丢弃），继续等待配对请求
+            let incoming =
+                match tokio::time::timeout(Duration::from_millis(500), self.endpoint.accept()).await
+                {
+                    Ok(Some(incoming)) => incoming,
+                    _ => continue,
+                };
+            match self.accept_incoming_routed(incoming).await {
+                Ok(Some(data)) => {
+                    // 配对等待期间抢到推送帧：导入数据（勿丢弃——见方法文档）
+                    if let Err(e) = self.import_all(&data) {
+                        eprintln!(
+                            "[sync] accept_pairing_request: import push failed (tolerated): {e:#}"
+                        );
+                    }
+                }
+                Ok(None) => {}
+                Err(e) => {
+                    eprintln!(
+                        "[sync] accept_pairing_request: route incoming failed (tolerated): {e:#}"
+                    );
+                }
+            }
+            if let Some(pending) = self.pending_pairing.lock().unwrap().as_ref() {
+                return Ok(pending.request.clone());
+            }
+        }
     }
 
     /// 确认方：校验配对码并完成配对。
@@ -402,6 +464,11 @@ impl SyncService {
 
         // 确认方持久化发起方
         store.upsert_paired_device(&requester.device_id, &requester.device_name)?;
+        // 记录发起方直连 IP（供后续周期推送直连优先）
+        self.peer_ips
+            .lock()
+            .unwrap()
+            .insert(requester.device_id.clone(), requester.ips.clone());
 
         // 有真实握手（待确认连接）时：回复本机身份
         let pending = self.pending_pairing.lock().unwrap().take();
@@ -518,6 +585,11 @@ impl SyncService {
 
         // 握手响应 → 发起方持久化确认方
         store.upsert_paired_device(&response.device_id, &response.device_name)?;
+        // 记录确认方直连 IP（供后续周期推送直连优先）
+        self.peer_ips
+            .lock()
+            .unwrap()
+            .insert(response.device_id.clone(), target.ips.clone());
 
         Ok(PairingResult {
             peer_id: response.device_id,
@@ -538,6 +610,8 @@ impl SyncService {
             }
             return Err(err);
         }
+        // 编辑保存即推送：标记待同步（推送由调度器异步执行，不阻塞编辑）
+        self.mark_sync_pending(&note_id);
         Ok(())
     }
 
@@ -563,6 +637,7 @@ impl SyncService {
             }
             return Err(err);
         }
+        self.mark_sync_pending(note_id);
         Ok(())
     }
 
@@ -585,6 +660,7 @@ impl SyncService {
             }
             return Err(err);
         }
+        self.mark_sync_pending(note_id);
         Ok(())
     }
 
@@ -612,6 +688,7 @@ impl SyncService {
             }
             return Err(err);
         }
+        self.mark_sync_pending(note_id);
         Ok(())
     }
 
@@ -632,6 +709,7 @@ impl SyncService {
             }
             return Err(err);
         }
+        self.mark_sync_pending(note_id);
         Ok(())
     }
 
@@ -651,6 +729,7 @@ impl SyncService {
             self.tombstones.remove(note_id);
             return Err(err);
         }
+        self.mark_sync_pending(note_id);
         Ok(())
     }
 
@@ -687,6 +766,11 @@ impl SyncService {
                 self.tombstones.remove(id);
             }
             return Err(err);
+        }
+        // 与 purge_note 一致：清理的墓碑标记待同步，随下一次全量推送传播给对端
+        // （push 是全量快照含墓碑；不标记则墓碑只在有其他变更触发的推送中捎带）。
+        for id in &expired {
+            self.mark_sync_pending(id);
         }
         Ok(expired.len())
     }
@@ -858,6 +942,9 @@ impl SyncService {
         };
 
         let data = self.export_all()?;
+        // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧，
+        // 防止墓碑数=1 时 export_all 首字节 0x01 与配对帧标记冲突）
+        let wire = encode_push_wire(&data);
 
         let conn = self
             .endpoint
@@ -865,7 +952,7 @@ impl SyncService {
             .await
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
-        send.write_all(&data).await.context("write snapshot data")?;
+        send.write_all(&wire).await.context("write snapshot data")?;
         // finish() 显式发送流结束（EOF），接收端 read_to_end 据此结束
         send.finish().context("finish uni stream")?;
         // 保持连接存活直到对端读完数据并关闭连接；避免对端未读完时本端
@@ -963,7 +1050,10 @@ impl SyncService {
             .await
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
-        send.write_all(data).await.context("write snapshot data")?;
+        // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧）
+        send.write_all(&encode_push_wire(data))
+            .await
+            .context("write snapshot data")?;
         send.finish().context("finish uni stream")?;
         // 保持连接存活直到对端读完并关闭；超时保护（push_to_paired_devices 外层也有 10s 超时）
         tokio::time::timeout(
@@ -979,20 +1069,240 @@ impl SyncService {
     ///
     /// 调用方收到数据后应调用 `import_all` 导入。
     pub async fn accept_push(&self) -> Result<Vec<u8>> {
-        let incoming = self
-            .endpoint
-            .accept()
-            .await
-            .ok_or_else(|| anyhow::anyhow!("no incoming connection"))?;
+        loop {
+            let incoming = self
+                .endpoint
+                .accept()
+                .await
+                .ok_or_else(|| anyhow::anyhow!("no incoming connection"))?;
+            // 统一路由：配对帧交给配对流程（continue 等待真正的推送），推送帧返回
+            if let Some(data) = self.accept_incoming_routed(incoming).await? {
+                return Ok(data);
+            }
+        }
+    }
+
+    /// 统一 incoming 处理：接受连接并按帧标记路由（周期 accept 与配对 accept 共用）。
+    ///
+    /// 帧标记（M2 修复——不能用单字节判定，否则推送 payload 首字节 0x01 与配对帧
+    /// 冲突）：
+    /// - 前 8 字节 == `LORO_MAGIC`（"CARDMIND"）→ 推送帧：读完整 payload，
+    ///   关闭连接通知发送端可释放，返回剥离 magic 后的 `Ok(Some(data))`
+    ///   （data 即 `export_all` 输出，`import_all` 直接消费）。
+    /// - 首字节 `PAIRING_FRAME_REQUEST (0x01)` → 配对请求帧：解析并存入
+    ///   `pending_pairing`（供 `confirm_pairing` 在同一连接上回复握手响应），
+    ///   返回 `Ok(None)`。
+    /// - 其他 → 报错（未知帧标记）。
+    async fn accept_incoming_routed(
+        &self,
+        incoming: iroh::endpoint::Incoming,
+    ) -> Result<Option<Vec<u8>>> {
         let conn = incoming.accept()?.await.context("accept connection")?;
         let mut recv = conn.accept_uni().await.context("accept uni stream")?;
-        let data = recv
-            .read_to_end(usize::MAX)
-            .await
-            .context("read push data")?;
-        // 数据已读入内存，主动关闭连接，通知发送端可释放
-        conn.close(0u32.into(), b"done");
-        Ok(data)
+        let mut marker = [0u8; LORO_MAGIC.len()];
+        recv.read_exact(&mut marker).await.context("read frame marker")?;
+        if &marker == LORO_MAGIC {
+            // 推送帧：剩余部分 = export_all 输出（[墓碑数][记录流]）
+            let data = recv
+                .read_to_end(usize::MAX)
+                .await
+                .context("read push data")?;
+            // 数据已读入内存，主动关闭连接，通知发送端可释放
+            conn.close(0u32.into(), b"done");
+            return Ok(Some(data));
+        }
+        if marker[0] == PAIRING_FRAME_REQUEST {
+            // 配对请求帧：marker(8) + 剩余 = 完整帧（从 0x01 开始）
+            let mut rest = recv
+                .read_to_end(usize::MAX)
+                .await
+                .context("read pairing request")?;
+            let mut data = Vec::with_capacity(marker.len() + rest.len());
+            data.extend_from_slice(&marker);
+            data.append(&mut rest);
+            let request = decode_pairing_request(&data)?;
+            *self.pending_pairing.lock().unwrap() = Some(PendingPairing {
+                request: request.clone(),
+                conn,
+            });
+            return Ok(None);
+        }
+        anyhow::bail!("unknown incoming frame marker: {:?}", marker);
+    }
+
+    /// 非阻塞接受对端推送（周期拉取用）：等待最多 `timeout`，超时返回 `Ok(None)`。
+    ///
+    /// 通过统一帧路由避免与配对流程争用 accept 通道；配对请求被本函数抢到时
+    /// 会被正确存入 `pending_pairing`（`confirm_pairing` 仍可完成握手）。
+    pub async fn try_accept_push(&self, timeout: Duration) -> Result<Option<Vec<u8>>> {
+        let incoming = match tokio::time::timeout(timeout, self.endpoint.accept()).await {
+            Ok(Some(incoming)) => incoming,
+            _ => return Ok(None),
+        };
+        self.accept_incoming_routed(incoming).await
+    }
+
+    // ━━━ 自动同步调度（任务 H）━━━
+
+    /// 设置同步开关（决策 6 能力）：false 时调度器暂停推送与拉取。
+    /// 移动端由 Flutter 侧按网络类型调用；桌面端默认 true。
+    pub fn set_sync_allowed(&self, allowed: bool) {
+        self.sync_allowed.store(allowed, Ordering::Relaxed);
+    }
+
+    /// 当前同步开关状态。
+    pub fn sync_allowed(&self) -> bool {
+        self.sync_allowed.load(Ordering::Relaxed)
+    }
+
+    /// 待同步笔记计数（模块 5 基础）：本地编辑后待推送的笔记数。
+    ///
+    /// 内存态不持久化：重启后经持久化加载重标全部待同步（保守正确）。
+    pub fn pending_sync_count(&self) -> u32 {
+        self.pending_dirty.lock().unwrap().len() as u32
+    }
+
+    /// note_id → 最后成功推送时间（诊断/测试用快照）。
+    pub fn last_pushed_at_snapshot(&self) -> HashMap<String, DateTime<Utc>> {
+        self.last_pushed_at.lock().unwrap().clone()
+    }
+
+    /// 编辑保存即推送：标记笔记待同步（推送由调度器异步执行，不阻塞编辑）。
+    fn mark_sync_pending(&self, note_id: &str) {
+        self.pending_dirty.lock().unwrap().insert(note_id.to_string());
+    }
+
+    /// 重启后全部视为待同步（last_pushed_at 不持久化，保守正确——对端状态未知）。
+    fn mark_all_pending(&self) {
+        let mut dirty = self.pending_dirty.lock().unwrap();
+        for id in self.notes.keys() {
+            dirty.insert(id.clone());
+        }
+        for id in &self.tombstones {
+            dirty.insert(id.clone());
+        }
+    }
+
+    /// 全量快照已成功推送给至少一台对端：清空待同步集并记录推送时间。
+    fn mark_synced_all(&self) {
+        let now = Utc::now();
+        let mut dirty = self.pending_dirty.lock().unwrap();
+        let mut pushed = self.last_pushed_at.lock().unwrap();
+        for id in dirty.iter() {
+            pushed.insert(id.clone(), now);
+        }
+        dirty.clear();
+    }
+
+    /// 从 store 读取配对设备，为每台附上最近已知直连 IP（有则直连优先，无则走
+    /// relay/地址解析）。
+    fn paired_devices_with_ips(&self, store: &NoteStore) -> Vec<(String, Option<Vec<String>>)> {
+        let peer_ips = self.peer_ips.lock().unwrap();
+        store
+            .list_paired_devices()
+            .map(|rows| {
+                rows.into_iter()
+                    .map(|d| (d.peer_id.clone(), peer_ips.get(&d.peer_id).cloned()))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// 推送待办（编辑保存即推送 / 调度器触发）。
+    ///
+    /// - 同步开关关闭时跳过推送（移动端蜂窝场景），pending 保留。
+    /// - 无配对设备时立即返回空结果。
+    /// - 至少一台对端推送成功 → 全量快照已传播 → 清 pending + 记录 last_pushed_at。
+    /// - 全部失败 → 静默（决策 18）：仅记录日志，pending 保留（下个周期兜底），
+    ///   不向调用方返回错误。
+    pub async fn push_pending(&self, store: &NoteStore) -> Vec<DevicePushResult> {
+        if !self.sync_allowed() {
+            return Vec::new();
+        }
+        let devices = self.paired_devices_with_ips(store);
+        if devices.is_empty() {
+            return Vec::new();
+        }
+        let results = self.push_to_paired_devices(&devices).await;
+        if results.iter().any(|r| r.ok) {
+            self.mark_synced_all();
+            for r in &results {
+                if r.ok {
+                    let _ = store.update_last_seen(&r.peer_id);
+                }
+            }
+        } else {
+            for r in &results {
+                eprintln!(
+                    "[sync] push to {} failed (silent): {}",
+                    r.peer_id, r.message
+                );
+            }
+        }
+        results
+    }
+
+    /// 周期同步任务体（Flutter 侧 Timer 周期调用；测试直接调用）：
+    /// 1. 同步开关关闭 → 跳过（决策 6）
+    /// 2. push 给所有配对设备（对等推拉——pull 语义用 push 协议实现：
+    ///    我方 push 即请求对端在各自周期里推回）
+    /// 3. 短窗口 accept 对端 push（非阻塞）→ import → 刷新 SQLite 投影
+    pub async fn run_sync_cycle(&mut self, store: &NoteStore) -> Result<SyncCycleResult> {
+        if !self.sync_allowed() {
+            return Ok(SyncCycleResult {
+                pushed_count: 0,
+                accepted_push: false,
+                disabled: true,
+            });
+        }
+        let devices = self.paired_devices_with_ips(store);
+        let results = if devices.is_empty() {
+            Vec::new()
+        } else {
+            self.push_to_paired_devices(&devices).await
+        };
+        let any_ok = results.iter().any(|r| r.ok);
+        if any_ok {
+            self.mark_synced_all();
+            for r in &results {
+                if r.ok {
+                    let _ = store.update_last_seen(&r.peer_id);
+                }
+            }
+        } else if !results.is_empty() {
+            for r in &results {
+                eprintln!(
+                    "[sync] periodic push to {} failed (silent): {}",
+                    r.peer_id, r.message
+                );
+            }
+        }
+        let accepted = match self.try_accept_push(SYNC_ACCEPT_WINDOW).await? {
+            Some(data) => {
+                self.import_all(&data)?;
+                self.sync_notes_to_store(store)?;
+                true
+            }
+            None => false,
+        };
+        // 成功推送的对端设备数（真实计数，非 0/1 布尔）
+        let pushed_count = results.iter().filter(|r| r.ok).count() as u32;
+        Ok(SyncCycleResult {
+            pushed_count,
+            accepted_push: accepted,
+            disabled: false,
+        })
+    }
+
+    /// 将所有 CRDT 笔记同步到 SQLite 存储（同时清理墓碑投影行，防被删笔记复活）。
+    pub fn sync_notes_to_store(&self, store: &NoteStore) -> Result<()> {
+        for (id, note) in self.iter_notes() {
+            store.sync_note(id, note)?;
+        }
+        for id in self.tombstones() {
+            store.purge_note(id)?;
+        }
+        Ok(())
     }
 }
 
@@ -1063,6 +1373,19 @@ fn encode_envelope(payload: &[u8]) -> Vec<u8> {
     bytes.extend_from_slice(&(payload.len() as u64).to_le_bytes());
     bytes.extend_from_slice(payload);
     bytes
+}
+
+/// 网络推送线格式：8 字节 CARDMIND magic + `export_all` 输出。
+///
+/// M2 修复：接收端 `accept_incoming_routed` 以 magic 识别推送帧、以 0x01 识别
+/// 配对帧。若无此前缀，`export_all` 输出首字节 = 墓碑数（u32 LE），墓碑数 = 1
+/// （或 257/513…）时首字节恰为 0x01 = PAIRING_FRAME_REQUEST，推送帧会被误判为
+/// 配对帧而数据丢失。
+fn encode_push_wire(payload: &[u8]) -> Vec<u8> {
+    let mut wire = Vec::with_capacity(LORO_MAGIC.len() + payload.len());
+    wire.extend_from_slice(LORO_MAGIC);
+    wire.extend_from_slice(payload);
+    wire
 }
 
 /// 解码信封，返回 `(version, payload)`。
