@@ -47,6 +47,10 @@ CardMind 配对集成修复（任务 J）：**mDNS 自动发现接线**。修复
 
 ## 验收标准（每条 = 一个测试用例，红绿蓝循环）
 
+**缺陷回归测试（必须在实现前先写、先跑出失败——红阶段）**：
+
+0. `test_regression_empty_device_id_user_path` — 复现实机缺陷：设备 ID 留空、discover 返回空，直接走 beginPairingConnect → **当前代码此测试必须失败**（抛 AnyhowException "invalid target endpoint id"），executor 报告必须附红阶段失败输出；修复后此测试转绿（走友好错误提示分支）
+
 **Flutter widget 测试（test/pairing_mdns_widget_test.dart，新增）**：
 
 1. `confirmer advertises while showing code` — 显示码分支开启后 start_advertising 被调用（fake）；关闭后 stop_advertising 被调用
