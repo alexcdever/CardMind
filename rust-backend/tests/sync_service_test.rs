@@ -71,7 +71,11 @@ fn test_empty_export_import() {
         let service = SyncService::new().await.unwrap();
         let exported = service.export_all().unwrap();
         // v3 空导出 = 墓碑 section 头（墓碑数 0）
-        assert_eq!(exported, vec![0u8, 0, 0, 0], "无笔记时导出仅含空墓碑 section");
+        assert_eq!(
+            exported,
+            vec![0u8, 0, 0, 0],
+            "无笔记时导出仅含空墓碑 section"
+        );
 
         let mut imported = SyncService::new().await.unwrap();
         imported.import_all(&exported).unwrap();

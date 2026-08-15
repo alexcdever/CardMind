@@ -10,8 +10,7 @@ use cardmind_backend::sync::SyncService;
 const RELAY_URL: &str = "https://relay.alexc.cn:9443";
 
 fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path =
-        std::env::temp_dir().join(format!("cardmind-relay-{label}-{}", std::process::id()));
+    let path = std::env::temp_dir().join(format!("cardmind-relay-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
     path

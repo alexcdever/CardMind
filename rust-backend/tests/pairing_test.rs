@@ -205,8 +205,7 @@ fn test_pairing_persists_both_sides() {
             (initiator, initiator_store, result)
         });
 
-        let (confirmer, confirmer_store, request, confirm_result) =
-            confirmer_handle.await.unwrap();
+        let (confirmer, confirmer_store, request, confirm_result) = confirmer_handle.await.unwrap();
         let (_initiator, initiator_store, connect_result) = initiator_handle.await.unwrap();
 
         // 确认方 store 含发起方 id（配对成功后自动 upsert）
@@ -312,13 +311,11 @@ fn test_pairing_triggers_initial_full_sync() {
 fn test_unpair_removes_device() {
     let store = NoteStore::new(":memory:").unwrap();
     store.upsert_paired_device("peer-a", "Alice").unwrap();
-    assert!(
-        store
-            .list_paired_devices()
-            .unwrap()
-            .iter()
-            .any(|d| d.peer_id == "peer-a")
-    );
+    assert!(store
+        .list_paired_devices()
+        .unwrap()
+        .iter()
+        .any(|d| d.peer_id == "peer-a"));
 
     store.remove_paired_device("peer-a").unwrap();
     assert!(
@@ -339,22 +336,30 @@ fn test_pairing_accept_with_advertising_lifecycle() {
         let confirmer = SyncService::new().await.unwrap();
 
         // 生成码并启动广播（组合 API：码 + mDNS 广播同一调用内完成）
-        let code = confirmer.begin_pairing_accept_with_advertising().await.unwrap();
+        let code = confirmer
+            .begin_pairing_accept_with_advertising()
+            .await
+            .unwrap();
         assert_eq!(code.len(), 6, "配对码应为 6 位");
         assert!(code.chars().all(|c| c.is_ascii_digit()), "配对码应全为数字");
 
         // 广播期间扫描不互相干扰（单机可能 0 台，不报错即可）
         let peers = confirmer.discover_peers().await.unwrap();
-        println!("[task-j] discovered {} peers while advertising", peers.len());
+        println!(
+            "[task-j] discovered {} peers while advertising",
+            peers.len()
+        );
 
         // 停止广播（幂等：重复停止不报错）
         confirmer.stop_pairing_advertising().await.unwrap();
         confirmer.stop_pairing_advertising().await.unwrap();
 
         // 再次组合调用：start_advertising 内部先停旧广播再注册新广播
-        let code2 = confirmer.begin_pairing_accept_with_advertising().await.unwrap();
+        let code2 = confirmer
+            .begin_pairing_accept_with_advertising()
+            .await
+            .unwrap();
         assert_eq!(code2.len(), 6, "再次生成配对码应为 6 位");
         confirmer.stop_pairing_advertising().await.unwrap();
     });
 }
-

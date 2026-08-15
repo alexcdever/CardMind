@@ -101,11 +101,7 @@ fn test_edit_triggers_push() {
             Some("# Hello\n\nbody"),
             "B 应能看到 A 编辑后的新内容"
         );
-        assert_eq!(
-            a.pending_sync_count(),
-            0,
-            "成功推送后待同步计数应归零"
-        );
+        assert_eq!(a.pending_sync_count(), 0, "成功推送后待同步计数应归零");
         drop((b, b_store, a_store));
     });
 }
@@ -169,7 +165,8 @@ fn test_sync_disabled_blocks_push() {
         assert!(!a.sync_allowed());
 
         // A 编辑：本地成功，但调度推送被跳过
-        a.create_note("n1".to_string(), "# Blocked\n\nbody").unwrap();
+        a.create_note("n1".to_string(), "# Blocked\n\nbody")
+            .unwrap();
         assert!(a.pending_sync_count() >= 1, "编辑后应有待同步笔记");
 
         let results = a.push_pending(&a_store).await;
@@ -240,7 +237,8 @@ fn test_edit_not_blocked_by_network() {
         let a_store = NoteStore::new(":memory:").unwrap();
 
         let start = Instant::now();
-        a.create_note("n1".to_string(), "# Fast\n\nlocal edit").unwrap();
+        a.create_note("n1".to_string(), "# Fast\n\nlocal edit")
+            .unwrap();
         let elapsed = start.elapsed();
         assert!(
             elapsed < Duration::from_secs(2),
@@ -320,7 +318,8 @@ fn test_push_with_tombstone_not_misrouted() {
         .await;
 
         // A：创建 2 篇 → 彻底删除 1 篇（tombstones=1 → 推送 payload 首字节 0x01）
-        a.create_note("keep-note".to_string(), "# Keep\n\nbody").unwrap();
+        a.create_note("keep-note".to_string(), "# Keep\n\nbody")
+            .unwrap();
         a.create_note("del-note".to_string(), "# Delete me\n\nbody")
             .unwrap();
         a.soft_delete_note("del-note").unwrap();
@@ -361,15 +360,8 @@ fn test_push_with_tombstone_not_misrouted() {
             None,
             "删除应传播（墓碑阻止被删笔记复活）"
         );
-        assert!(
-            b.tombstones().contains("del-note"),
-            "墓碑应传播到 B"
-        );
-        assert_eq!(
-            a.pending_sync_count(),
-            0,
-            "推送被正确消费后 pending 归零"
-        );
+        assert!(b.tombstones().contains("del-note"), "墓碑应传播到 B");
+        assert_eq!(a.pending_sync_count(), 0, "推送被正确消费后 pending 归零");
         drop((b, b_store, a_store));
     });
 }

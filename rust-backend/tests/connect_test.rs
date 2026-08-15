@@ -246,8 +246,9 @@ fn test_relay_cross_network_connect() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         // 本地 relay 服务器（loopback，离线可用）
-        let (relay_map, relay_url, _guard) =
-            iroh::test_utils::run_relay_server().await.expect("spawn local relay");
+        let (relay_map, relay_url, _guard) = iroh::test_utils::run_relay_server()
+            .await
+            .expect("spawn local relay");
 
         // 设备 B（接收端）：relay 中转可达，无直连 IP 暴露给 A
         let key_b = SecretKey::generate();
@@ -265,7 +266,11 @@ fn test_relay_cross_network_connect() {
 
         let b_handle = tokio::spawn(async move {
             let incoming = ep_b.accept().await.expect("B accept incoming");
-            let conn = incoming.accept().expect("B accept").await.expect("B accept conn");
+            let conn = incoming
+                .accept()
+                .expect("B accept")
+                .await
+                .expect("B accept conn");
             let mut recv = conn.accept_uni().await.expect("B accept uni");
             let data = recv.read_to_end(usize::MAX).await.expect("B read data");
             conn.close(0u32.into(), b"done");
@@ -294,7 +299,9 @@ fn test_relay_cross_network_connect() {
         conn.closed().await;
 
         let received = b_handle.await.expect("B task join");
-        assert_eq!(received, "hello over relay", "relay 中转后 B 应收到完整数据");
+        assert_eq!(
+            received, "hello over relay",
+            "relay 中转后 B 应收到完整数据"
+        );
     });
 }
-

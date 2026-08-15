@@ -471,12 +471,15 @@ impl SyncService {
             }
             // 短窗口 accept：配对帧 → 路由到 pending_pairing（下一轮返回）；
             // 推送帧 → 导入（不丢弃），继续等待配对请求
-            let incoming =
-                match tokio::time::timeout(Duration::from_millis(500), self.endpoint.accept()).await
-                {
-                    Ok(Some(incoming)) => incoming,
-                    _ => continue,
-                };
+            let incoming = match tokio::time::timeout(
+                Duration::from_millis(500),
+                self.endpoint.accept(),
+            )
+            .await
+            {
+                Ok(Some(incoming)) => incoming,
+                _ => continue,
+            };
             match self.accept_incoming_routed(incoming).await {
                 Ok(Some(data)) => {
                     // 配对等待期间抢到推送帧：导入数据（勿丢弃——见方法文档）
@@ -565,18 +568,18 @@ impl SyncService {
             send.finish().context("finish pairing response")?;
             // 保持连接存活直到发起方读完响应并关闭连接（与 push_to_peer 同模式）；
             // 避免本端立即 drop conn 导致响应未送达。超时保护防止对端不关闭。
-            tokio::time::timeout(
-                std::time::Duration::from_secs(10),
-                pending.conn.closed(),
-            )
-            .await
-            .ok();
+            tokio::time::timeout(std::time::Duration::from_secs(10), pending.conn.closed())
+                .await
+                .ok();
         }
 
         // 决策 8：首次配对自动全量同步（仅真实握手后推送；失败容忍——配对已成功，
         // 快照可稍后由同步层重试）
         if had_handshake {
-            if let Err(e) = self.push_to_peer(&requester.device_id, requester.ips.clone()).await {
+            if let Err(e) = self
+                .push_to_peer(&requester.device_id, requester.ips.clone())
+                .await
+            {
                 eprintln!(
                     "[pairing] initial full sync to {} failed (tolerated): {e:#}",
                     requester.device_id
@@ -642,8 +645,13 @@ impl SyncService {
 
         // 发送请求
         let payload = encode_pairing_request(&request);
-        let mut send = conn.open_uni().await.context("open pairing request stream")?;
-        send.write_all(&payload).await.context("write pairing request")?;
+        let mut send = conn
+            .open_uni()
+            .await
+            .context("open pairing request stream")?;
+        send.write_all(&payload)
+            .await
+            .context("write pairing request")?;
         send.finish().context("finish pairing request")?;
 
         // 等待确认方握手响应（同一连接新流）
@@ -1033,12 +1041,9 @@ impl SyncService {
         send.finish().context("finish uni stream")?;
         // 保持连接存活直到对端读完数据并关闭连接；避免对端未读完时本端
         // drop conn 导致连接被提前关闭（数据丢失）。超时保护防止对端不关闭。
-        tokio::time::timeout(
-            std::time::Duration::from_secs(10),
-            conn.closed(),
-        )
-        .await
-        .ok();
+        tokio::time::timeout(std::time::Duration::from_secs(10), conn.closed())
+            .await
+            .ok();
 
         Ok(())
     }
@@ -1132,12 +1137,9 @@ impl SyncService {
             .context("write snapshot data")?;
         send.finish().context("finish uni stream")?;
         // 保持连接存活直到对端读完并关闭；超时保护（push_to_paired_devices 外层也有 10s 超时）
-        tokio::time::timeout(
-            std::time::Duration::from_secs(10),
-            conn.closed(),
-        )
-        .await
-        .ok();
+        tokio::time::timeout(std::time::Duration::from_secs(10), conn.closed())
+            .await
+            .ok();
         Ok(())
     }
 
@@ -1176,7 +1178,9 @@ impl SyncService {
         let conn = incoming.accept()?.await.context("accept connection")?;
         let mut recv = conn.accept_uni().await.context("accept uni stream")?;
         let mut marker = [0u8; LORO_MAGIC.len()];
-        recv.read_exact(&mut marker).await.context("read frame marker")?;
+        recv.read_exact(&mut marker)
+            .await
+            .context("read frame marker")?;
         if &marker == LORO_MAGIC {
             // 推送帧：剩余部分 = export_all 输出（[墓碑数][记录流]）
             let data = recv
@@ -1245,7 +1249,10 @@ impl SyncService {
 
     /// 编辑保存即推送：标记笔记待同步（推送由调度器异步执行，不阻塞编辑）。
     fn mark_sync_pending(&self, note_id: &str) {
-        self.pending_dirty.lock().unwrap().insert(note_id.to_string());
+        self.pending_dirty
+            .lock()
+            .unwrap()
+            .insert(note_id.to_string());
     }
 
     /// 重启后全部视为待同步（last_pushed_at 不持久化，保守正确——对端状态未知）。
@@ -1458,7 +1465,7 @@ fn encode_hex(bytes: [u8; 32]) -> String {
 /// hex 字符串 → 字节（奇数长度或非法字符报错）
 fn decode_hex(hex: &str) -> Result<Vec<u8>> {
     let hex = hex.trim();
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         anyhow::bail!("odd hex length: {}", hex.len());
     }
     (0..hex.len())
@@ -1555,8 +1562,7 @@ fn decode_pairing_request(data: &[u8]) -> Result<PairingRequest> {
     if offset + 4 > data.len() {
         anyhow::bail!("truncated pairing request: missing ips count");
     }
-    let ips_count =
-        u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+    let ips_count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
     offset += 4;
     let mut ips = Vec::with_capacity(ips_count);
     for _ in 0..ips_count {
@@ -1729,7 +1735,8 @@ impl NoteCrdt {
         let map = self.doc.get_map("meta");
         match value {
             Some(v) => {
-                map.insert("deleted_at", v.as_str()).expect("set deleted_at");
+                map.insert("deleted_at", v.as_str())
+                    .expect("set deleted_at");
             }
             None => {
                 map.delete("deleted_at").expect("delete deleted_at");

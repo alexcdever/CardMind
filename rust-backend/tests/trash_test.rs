@@ -14,10 +14,7 @@ use std::time::Duration as StdDuration;
 
 /// 临时数据目录（测试结束清理）
 fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!(
-        "cardmind-trash2-{label}-{}",
-        std::process::id()
-    ));
+    let path = std::env::temp_dir().join(format!("cardmind-trash2-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
     path
@@ -65,7 +62,10 @@ fn test_soft_delete_marks_deleted_at() {
             "软删后投影 deleted_at 应为非空"
         );
         let notes = store.list_notes().unwrap();
-        assert!(notes.iter().all(|r| r.id != "n1"), "主列表不应包含已软删笔记");
+        assert!(
+            notes.iter().all(|r| r.id != "n1"),
+            "主列表不应包含已软删笔记"
+        );
         let trash = store.trash_list().unwrap();
         assert_eq!(trash.len(), 1, "回收站应包含该笔记");
         assert_eq!(trash[0].id, "n1");
@@ -86,7 +86,10 @@ fn test_restore_clears_deleted_at() {
 
         svc.soft_delete_note("n1").unwrap();
         sync_notes_to_store(&svc, &store).unwrap();
-        assert!(!store.trash_list().unwrap().is_empty(), "前置：软删后进回收站");
+        assert!(
+            !store.trash_list().unwrap().is_empty(),
+            "前置：软删后进回收站"
+        );
 
         svc.restore_note("n1").unwrap();
         sync_notes_to_store(&svc, &store).unwrap();
@@ -166,10 +169,7 @@ fn test_expired_trash_cleanup() {
         sync_notes_to_store(&svc, &store).unwrap();
         let trash = store.trash_list().unwrap();
         assert!(trash.iter().all(|r| r.id != "old"), "31 天前的笔记应被清理");
-        assert!(
-            trash.iter().any(|r| r.id == "fresh"),
-            "1 天前的笔记应保留"
-        );
+        assert!(trash.iter().any(|r| r.id == "fresh"), "1 天前的笔记应保留");
         let _ = std::fs::remove_dir_all(&dir);
     });
 }
@@ -196,7 +196,11 @@ fn test_trash_ordering() {
 
         let trash = store.trash_list().unwrap();
         let ids: Vec<&str> = trash.iter().map(|r| r.id.as_str()).collect();
-        assert_eq!(ids, vec!["n3", "n2", "n1"], "trash_list 应按 deleted_at 倒序");
+        assert_eq!(
+            ids,
+            vec!["n3", "n2", "n1"],
+            "trash_list 应按 deleted_at 倒序"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     });
 }
@@ -271,7 +275,11 @@ fn test_purge_persists_across_sync() {
         svc.create_note("n2".into(), "# Two\n\nBody").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         sync_notes_to_store(&svc, &store).unwrap();
-        assert_eq!(store.list_notes().unwrap().len(), 2, "前置：两篇笔记都在投影");
+        assert_eq!(
+            store.list_notes().unwrap().len(),
+            2,
+            "前置：两篇笔记都在投影"
+        );
 
         svc.purge_note("n1").unwrap();
         assert!(svc.get_note("n1").is_none(), "purge 后 Loro 中无该笔记");
@@ -311,10 +319,7 @@ fn test_tombstone_survives_export_import() {
         let mut b = SyncService::new_persistent(&dir_b).await.unwrap();
         b.import_all(&exported).unwrap();
 
-        assert!(
-            b.tombstones().contains("n1"),
-            "导入后对端墓碑应含 n1"
-        );
+        assert!(b.tombstones().contains("n1"), "导入后对端墓碑应含 n1");
         assert!(
             b.iter_notes().all(|(id, _)| id != "n1"),
             "导入后 iter_notes 不含 n1"
@@ -449,10 +454,7 @@ fn test_v2_file_loads_without_tombstones() {
         std::fs::write(&loro_file, &bytes).unwrap();
 
         let svc = SyncService::new_persistent(&dir).await.unwrap();
-        assert!(
-            svc.tombstones().is_empty(),
-            "v2 文件加载后墓碑应为空"
-        );
+        assert!(svc.tombstones().is_empty(), "v2 文件加载后墓碑应为空");
         assert_eq!(
             svc.get_note("v2-note").as_deref(),
             Some("# V2\n\n旧格式正文"),
@@ -478,10 +480,18 @@ fn test_tombstoned_id_skipped_on_import() {
         payload.extend_from_slice(ghost);
         let ghost_note = NoteCrdt::new();
         ghost_note.set_content("# Ghost\n\n旧的残留");
-        push_record(&mut payload, "ghost", &ghost_note.export_snapshot().unwrap());
+        push_record(
+            &mut payload,
+            "ghost",
+            &ghost_note.export_snapshot().unwrap(),
+        );
         let alive_note = NoteCrdt::new();
         alive_note.set_content("# Alive\n\n还在");
-        push_record(&mut payload, "alive", &alive_note.export_snapshot().unwrap());
+        push_record(
+            &mut payload,
+            "alive",
+            &alive_note.export_snapshot().unwrap(),
+        );
 
         b.import_all(&payload).unwrap();
 
