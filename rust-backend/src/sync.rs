@@ -1,11 +1,13 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use anyhow::{Context, Result};
 use atomic_write_file::AtomicWriteFile;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use iroh::{endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr};
 use loro::{Container, ExportMode, LoroDoc, LoroValue, ValueOrContainer};
+use rand::Rng;
 use uuid::Uuid;
 
 use crate::store::NoteStore;
@@ -20,6 +22,12 @@ pub struct SyncService {
     /// 构造时使用的 relay 模式（当前配置：RelayMode::Default = iroh 官方公共 relay）
     relay_mode: RelayMode,
     persistent_path: Option<PathBuf>,
+    /// 当前配对码会话（内存态；10 分钟有效，重启失效可接受——用户重新发起）
+    pairing_session: Mutex<Option<PairingSession>>,
+    /// 确认方已接收、等待用户确认的配对请求及其连接（确认时回复握手响应）
+    pending_pairing: Mutex<Option<PendingPairing>>,
+    /// 本设备名（配对握手时发送给对端；默认取主机名）
+    device_name: Mutex<String>,
 }
 
 /// NoteCrdt — LoroDoc 笔记模型
@@ -50,6 +58,80 @@ pub struct DevicePushResult {
     pub message: String,
 }
 
+// ━━━ 配对（任务 G）━━━
+
+/// 配对码会话（内存态；10 分钟有效）
+///
+/// 字段公开以便测试直接操纵状态（如拨回 created_at 验证过期）。
+#[derive(Debug, Clone)]
+pub struct PairingSession {
+    /// 6 位数字配对码
+    pub code: String,
+    /// 创建时间（10 分钟有效窗口的起点）
+    pub created_at: DateTime<Utc>,
+    /// 同一码连续错误次数（≥5 时会话失效，防暴力猜测）
+    pub failed_attempts: u32,
+}
+
+/// 发起方配对请求（含本机身份与配对码，经网络发送给确认方）
+#[derive(Debug, Clone)]
+pub struct PairingRequest {
+    /// 配对码（发起方从确认方展示处获得；请求携带以便确认方校验匹配）
+    pub code: String,
+    /// 发起方 iroh 节点 ID（device_id）
+    pub device_id: String,
+    /// 发起方设备名
+    pub device_name: String,
+    /// 发起方 relay 信息（配置的 relay URL 列表，逗号分隔）。
+    ///
+    /// 说明：N0 preset 已通过 PkarrPublisher 自动发布本端点地址（含 relay）到
+    /// n0 DNS（iroh.link），此字段仅为协议完整性保留（信息性）。
+    pub relay_info: String,
+    /// 发起方 IPv4 地址列表（"ip:port"，供确认方直连/推送加速）
+    pub ips: Vec<String>,
+}
+
+/// 配对结果（对端身份）
+#[derive(Debug, Clone)]
+pub struct PairingResult {
+    /// 对端 iroh 节点 ID
+    pub peer_id: String,
+    /// 对端设备名
+    pub peer_name: String,
+}
+
+/// 发起方要连接的确认方目标（同网段配对场景由 mDNS 发现提供 device_id + ip:port）
+#[derive(Debug, Clone)]
+pub struct PairingTarget {
+    /// 确认方 iroh 节点 ID（device_id）
+    pub device_id: String,
+    /// 确认方 IP 列表（"ip:port"）。空时经 n0 地址解析 + 公共 relay 连接
+    /// （iroh 1.x N0 preset 的 DnsAddressLookup 机制）；非空时直连优先。
+    pub ips: Vec<String>,
+}
+
+/// 确认方已接收、等待用户确认的配对请求 + 其连接（确认时在同一连接上回复握手响应）
+struct PendingPairing {
+    request: PairingRequest,
+    conn: iroh::endpoint::Connection,
+}
+
+/// 确认方握手响应（确认方 → 发起方）
+#[derive(Debug, Clone)]
+struct PairingResponse {
+    device_id: String,
+    device_name: String,
+}
+
+/// 配对码有效期（分钟）
+const PAIRING_CODE_TTL_MINUTES: i64 = 10;
+/// 同一码允许的连续错误次数（超限会话失效）
+const PAIRING_MAX_FAILED_ATTEMPTS: u32 = 5;
+
+// 配对握手线协议标记（帧内首字节）
+const PAIRING_FRAME_REQUEST: u8 = 0x01;
+const PAIRING_FRAME_RESPONSE: u8 = 0x02;
+
 impl SyncService {
     /// 创建同步服务，绑定随机的 iroh 端点（内存版：SecretKey 随机，测试用）
     pub async fn new() -> Result<Self> {
@@ -68,6 +150,9 @@ impl SyncService {
             endpoint,
             relay_mode,
             persistent_path: None,
+            pairing_session: Mutex::new(None),
+            pending_pairing: Mutex::new(None),
+            device_name: Mutex::new(default_device_name()),
         })
     }
 
@@ -97,6 +182,9 @@ impl SyncService {
             endpoint,
             relay_mode,
             persistent_path: Some(path.clone()),
+            pairing_session: Mutex::new(None),
+            pending_pairing: Mutex::new(None),
+            device_name: Mutex::new(default_device_name()),
         };
         if path.exists() {
             let bytes = std::fs::read(&path)
@@ -169,6 +257,272 @@ impl SyncService {
             .filter(|a| a.is_ipv4())
             .map(|a| a.to_string())
             .collect()
+    }
+
+    /// 本设备名（配对握手时发送给对端；默认取主机名）
+    pub fn device_name(&self) -> String {
+        self.device_name.lock().unwrap().clone()
+    }
+
+    /// 设置本设备名
+    pub fn set_device_name(&self, name: &str) {
+        *self.device_name.lock().unwrap() = name.to_string();
+    }
+
+    // ━━━ 配对码（任务 G）━━━
+
+    /// 确认方：生成 6 位数字配对码（密码学随机），10 分钟有效。返回码。
+    ///
+    /// 配对码存内存态（`pairing_session`），同一 SyncService 实例跨调用保留；
+    /// 重启失效可接受——用户重新发起。
+    pub fn begin_pairing_accept(&self) -> Result<String> {
+        let mut rng = rand::rngs::OsRng;
+        let code_num: u32 = rng.gen_range(100000..=999999);
+        let code = format!("{code_num:06}");
+        let session = PairingSession {
+            code: code.clone(),
+            created_at: Utc::now(),
+            failed_attempts: 0,
+        };
+        *self.pairing_session.lock().unwrap() = Some(session);
+        // 新码产生时清除上一次未完成的待确认请求（避免旧连接回复错码）
+        *self.pending_pairing.lock().unwrap() = None;
+        Ok(code)
+    }
+
+    /// 当前配对会话（测试/诊断用）。
+    pub fn current_pairing_session(&self) -> Option<PairingSession> {
+        self.pairing_session.lock().unwrap().clone()
+    }
+
+    /// 覆盖当前配对会话（测试用：注入过期时间等）。
+    pub fn set_current_pairing_session(&self, session: Option<PairingSession>) {
+        *self.pairing_session.lock().unwrap() = session;
+    }
+
+    /// 校验配对码：存在、未过期、未因连续错误超限。
+    ///
+    /// - 过期 → 清除会话，报 expired
+    /// - 连续错误 ≥ 5 次 → 会话失效（后续任何码都失败，需重新发起）
+    /// - 错误码 → 累计错误次数
+    fn validate_pairing_code(&self, code: &str) -> Result<()> {
+        let mut guard = self.pairing_session.lock().unwrap();
+        let Some(session) = guard.as_mut() else {
+            anyhow::bail!("no active pairing code: begin_pairing_accept first");
+        };
+        let age = Utc::now() - session.created_at;
+        if age.num_minutes() >= PAIRING_CODE_TTL_MINUTES {
+            *guard = None;
+            anyhow::bail!("pairing code expired after {PAIRING_CODE_TTL_MINUTES} minutes");
+        }
+        if session.failed_attempts >= PAIRING_MAX_FAILED_ATTEMPTS {
+            *guard = None;
+            anyhow::bail!(
+                "pairing code invalidated after {PAIRING_MAX_FAILED_ATTEMPTS} failed attempts"
+            );
+        }
+        if session.code != code {
+            session.failed_attempts += 1;
+            if session.failed_attempts >= PAIRING_MAX_FAILED_ATTEMPTS {
+                *guard = None;
+            }
+            anyhow::bail!("invalid pairing code");
+        }
+        Ok(())
+    }
+
+    /// 确认方：阻塞接收发起方的配对请求（等待发起方连接），存储待确认状态。
+    ///
+    /// 返回请求内容；调用方随后调 `confirm_pairing` 完成配对（在存储的连接上
+    /// 回复握手响应）。持有 iroh 监听能力（已有 accept_push 同机制）。
+    pub async fn accept_pairing_request(&self) -> Result<PairingRequest> {
+        let incoming = self
+            .endpoint
+            .accept()
+            .await
+            .ok_or_else(|| anyhow::anyhow!("no incoming pairing connection"))?;
+        let conn = incoming
+            .accept()?
+            .await
+            .context("accept pairing connection")?;
+        let mut recv = conn
+            .accept_uni()
+            .await
+            .context("accept pairing request stream")?;
+        let data = recv
+            .read_to_end(usize::MAX)
+            .await
+            .context("read pairing request")?;
+        let request = decode_pairing_request(&data)?;
+        *self.pending_pairing.lock().unwrap() = Some(PendingPairing {
+            request: request.clone(),
+            conn,
+        });
+        Ok(request)
+    }
+
+    /// 确认方：校验配对码并完成配对。
+    ///
+    /// 成功路径：
+    /// 1. 校验码有效未过期（错误码/过期/超限均失败）
+    /// 2. upsert 发起方到 paired_devices（确认方持久化发起方）
+    /// 3. 若存在待确认连接，在同一连接上回复本机身份（握手响应）
+    /// 4. 首次全量同步（决策 8）：立即向发起方推送全量快照（失败容忍——配对已成功）
+    /// 5. 返回发起方身份 (peer_id, peer_name)
+    pub async fn confirm_pairing(
+        &self,
+        store: &NoteStore,
+        code: &str,
+        requester: &PairingRequest,
+    ) -> Result<PairingResult> {
+        self.validate_pairing_code(code)?;
+
+        // 请求携带的码必须与当前会话一致（防错配/重放请求）
+        {
+            let guard = self.pairing_session.lock().unwrap();
+            if let Some(session) = guard.as_ref() {
+                if !requester.code.is_empty() && session.code != requester.code {
+                    anyhow::bail!("pairing code mismatch in request");
+                }
+            }
+        }
+
+        // 若存在待确认请求，校验其身份与本次确认的发起方一致（防错配连接/响应）
+        {
+            let guard = self.pending_pairing.lock().unwrap();
+            if let Some(pending) = guard.as_ref() {
+                if pending.request.device_id != requester.device_id {
+                    anyhow::bail!("pairing requester mismatch with pending request");
+                }
+            }
+        }
+
+        // 配对码单次使用：成功后即清除会话
+        *self.pairing_session.lock().unwrap() = None;
+
+        // 确认方持久化发起方
+        store.upsert_paired_device(&requester.device_id, &requester.device_name)?;
+
+        // 有真实握手（待确认连接）时：回复本机身份
+        let pending = self.pending_pairing.lock().unwrap().take();
+        let had_handshake = pending.is_some();
+        if let Some(pending) = pending {
+            let response = encode_pairing_response(&PairingResponse {
+                device_id: self.device_id(),
+                device_name: self.device_name(),
+            });
+            let mut send = pending
+                .conn
+                .open_uni()
+                .await
+                .context("open pairing response stream")?;
+            send.write_all(&response)
+                .await
+                .context("write pairing response")?;
+            send.finish().context("finish pairing response")?;
+            // 保持连接存活直到发起方读完响应并关闭连接（与 push_to_peer 同模式）；
+            // 避免本端立即 drop conn 导致响应未送达。超时保护防止对端不关闭。
+            tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                pending.conn.closed(),
+            )
+            .await
+            .ok();
+        }
+
+        // 决策 8：首次配对自动全量同步（仅真实握手后推送；失败容忍——配对已成功，
+        // 快照可稍后由同步层重试）
+        if had_handshake {
+            if let Err(e) = self.push_to_peer(&requester.device_id, requester.ips.clone()).await {
+                eprintln!(
+                    "[pairing] initial full sync to {} failed (tolerated): {e:#}",
+                    requester.device_id
+                );
+            }
+        }
+
+        Ok(PairingResult {
+            peer_id: requester.device_id.clone(),
+            peer_name: requester.device_name.clone(),
+        })
+    }
+
+    /// 发起方：连接确认方，发送配对请求，等待握手响应；成功后 upsert 确认方。
+    ///
+    /// `target` 由 mDNS 发现提供（同网段面对面配对）：device_id + ip:port 列表。
+    /// ips 非空 → 直连优先（确定性）；ips 为空 → 仅凭 node id 经 n0 地址解析 +
+    /// 公共 relay 连接（iroh 1.x N0 preset 自带 DnsAddressLookup）。
+    pub async fn begin_pairing_connect(
+        &self,
+        store: &NoteStore,
+        code: &str,
+        target: PairingTarget,
+    ) -> Result<PairingResult> {
+        let node_id: iroh::EndpointId = target
+            .device_id
+            .parse()
+            .context("invalid target endpoint id")?;
+        let addr = if target.ips.is_empty() {
+            EndpointAddr::new(node_id)
+        } else {
+            let ips: Vec<TransportAddr> = target
+                .ips
+                .iter()
+                .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
+                .map(TransportAddr::Ip)
+                .collect();
+            if ips.is_empty() {
+                anyhow::bail!("no valid target IPs provided");
+            }
+            EndpointAddr::from_parts(node_id, ips)
+        };
+
+        // 发起方请求：本机身份 + relay 信息（N0 preset 已自动发布地址到 n0 DNS）
+        let relay_urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
+        let request = PairingRequest {
+            code: code.to_string(),
+            device_id: self.device_id(),
+            device_name: self.device_name(),
+            relay_info: relay_urls
+                .iter()
+                .map(|u| u.to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+            ips: self.local_addrs(),
+        };
+
+        let conn = self
+            .endpoint
+            .connect(addr, ALPN)
+            .await
+            .context("connect to confirmer")?;
+
+        // 发送请求
+        let payload = encode_pairing_request(&request);
+        let mut send = conn.open_uni().await.context("open pairing request stream")?;
+        send.write_all(&payload).await.context("write pairing request")?;
+        send.finish().context("finish pairing request")?;
+
+        // 等待确认方握手响应（同一连接新流）
+        let mut recv = conn
+            .accept_uni()
+            .await
+            .context("accept pairing response stream")?;
+        let data = recv
+            .read_to_end(usize::MAX)
+            .await
+            .context("read pairing response")?;
+        let response = decode_pairing_response(&data)?;
+        // 数据已读入内存，主动关闭连接，通知确认方可释放（与 accept_push 同模式）
+        conn.close(0u32.into(), b"done");
+
+        // 握手响应 → 发起方持久化确认方
+        store.upsert_paired_device(&response.device_id, &response.device_name)?;
+
+        Ok(PairingResult {
+            peer_id: response.device_id,
+            peer_name: response.device_name,
+        })
     }
 
     /// 添加/创建一条笔记
@@ -729,6 +1083,109 @@ fn decode_envelope(bytes: &[u8]) -> Result<(u32, Vec<u8>)> {
         anyhow::bail!("invalid cardmind.loro payload length");
     }
     Ok((version, bytes[LORO_HEADER_LEN..].to_vec()))
+}
+
+/// 默认设备名（主机名；无环境变量时回退固定名）
+fn default_device_name() -> String {
+    std::env::var("COMPUTERNAME")
+        .or_else(|_| std::env::var("HOSTNAME"))
+        .unwrap_or_else(|_| "CardMind Device".to_string())
+}
+
+// ━━━ 配对握手线协议编解码（二进制，length-prefixed）━━━
+//
+// 帧结构（请求）：
+//   [0x01][code: u32 len + bytes][device_id: u32 len + bytes]
+//   [device_name: u32 len + bytes][relay_info: u32 len + bytes]
+//   [ips_count: u32][per ip: u32 len + bytes]
+// 帧结构（响应）：
+//   [0x02][device_id: u32 len + bytes][device_name: u32 len + bytes]
+
+fn encode_pairing_request(request: &PairingRequest) -> Vec<u8> {
+    let mut buf = Vec::new();
+    buf.push(PAIRING_FRAME_REQUEST);
+    push_str(&mut buf, &request.code);
+    push_str(&mut buf, &request.device_id);
+    push_str(&mut buf, &request.device_name);
+    push_str(&mut buf, &request.relay_info);
+    buf.extend_from_slice(&(request.ips.len() as u32).to_le_bytes());
+    for ip in &request.ips {
+        push_str(&mut buf, ip);
+    }
+    buf
+}
+
+fn decode_pairing_request(data: &[u8]) -> Result<PairingRequest> {
+    let mut offset = 0;
+    if data.is_empty() || data[0] != PAIRING_FRAME_REQUEST {
+        anyhow::bail!("invalid pairing request frame");
+    }
+    offset += 1;
+    let code = take_str(data, &mut offset, "code")?;
+    let device_id = take_str(data, &mut offset, "device_id")?;
+    let device_name = take_str(data, &mut offset, "device_name")?;
+    let relay_info = take_str(data, &mut offset, "relay_info")?;
+    if offset + 4 > data.len() {
+        anyhow::bail!("truncated pairing request: missing ips count");
+    }
+    let ips_count =
+        u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+    offset += 4;
+    let mut ips = Vec::with_capacity(ips_count);
+    for _ in 0..ips_count {
+        ips.push(take_str(data, &mut offset, "ip")?);
+    }
+    Ok(PairingRequest {
+        code,
+        device_id,
+        device_name,
+        relay_info,
+        ips,
+    })
+}
+
+fn encode_pairing_response(response: &PairingResponse) -> Vec<u8> {
+    let mut buf = Vec::new();
+    buf.push(PAIRING_FRAME_RESPONSE);
+    push_str(&mut buf, &response.device_id);
+    push_str(&mut buf, &response.device_name);
+    buf
+}
+
+fn decode_pairing_response(data: &[u8]) -> Result<PairingResponse> {
+    let mut offset = 0;
+    if data.is_empty() || data[0] != PAIRING_FRAME_RESPONSE {
+        anyhow::bail!("invalid pairing response frame");
+    }
+    offset += 1;
+    let device_id = take_str(data, &mut offset, "device_id")?;
+    let device_name = take_str(data, &mut offset, "device_name")?;
+    Ok(PairingResponse {
+        device_id,
+        device_name,
+    })
+}
+
+/// 写入 u32 长度前缀 + UTF-8 字符串
+fn push_str(buf: &mut Vec<u8>, s: &str) {
+    buf.extend_from_slice(&(s.len() as u32).to_le_bytes());
+    buf.extend_from_slice(s.as_bytes());
+}
+
+/// 读取 u32 长度前缀 + UTF-8 字符串
+fn take_str(data: &[u8], offset: &mut usize, field: &str) -> Result<String> {
+    if *offset + 4 > data.len() {
+        anyhow::bail!("truncated pairing frame: missing {field} length");
+    }
+    let len = u32::from_le_bytes(data[*offset..*offset + 4].try_into().unwrap()) as usize;
+    *offset += 4;
+    if *offset + len > data.len() {
+        anyhow::bail!("truncated pairing frame: missing {field}");
+    }
+    let s = String::from_utf8(data[*offset..*offset + len].to_vec())
+        .with_context(|| format!("invalid UTF-8 in {field}"))?;
+    *offset += len;
+    Ok(s)
 }
 
 // ━━━ NoteCrdt ━━━

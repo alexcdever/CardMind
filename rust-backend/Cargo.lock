@@ -518,6 +518,7 @@ dependencies = [
  "iroh",
  "loro",
  "mdns-sd",
+ "rand 0.8.6",
  "rusqlite",
  "tokio",
  "uuid",

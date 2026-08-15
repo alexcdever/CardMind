@@ -6,6 +6,7 @@ import 'package:cardmind/main.dart';
 import 'package:cardmind/pages/editor_page.dart';
 import 'package:cardmind/pages/note_list_page.dart';
 import 'package:cardmind/src/rust/store.dart';
+import 'package:cardmind/src/rust/sync.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -497,6 +498,46 @@ class MemoryNoteRepository implements NoteRepository {
 
   @override
   Future<List<NoteRow>> trashList() async => List.of(trashed);
+
+  // ━━ 配对（任务 G）— 测试 fake 不涉及配对，接口占位 ━━
+
+  @override
+  Future<String> deviceId() async => 'fake-device-id';
+
+  @override
+  Future<String> deviceName() async => 'Fake Device';
+
+  @override
+  Future<void> setDeviceName(String name) async {}
+
+  @override
+  Future<List<String>> localAddrs() async => [];
+
+  @override
+  Future<String> beginPairingAccept() =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<PairingRequest> acceptPairingRequest() =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<PairingResult> beginPairingConnect(String code, PairingTarget target) =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<void> acceptAndImportPush() =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<List<PairedDeviceRow>> listPairedDevices() async => [];
+
+  @override
+  Future<void> removePairedDevice(String peerId) async {}
 
   List<String> _splitTags(String tags) {
     if (tags.trim().isEmpty) return [];

@@ -1,118 +1,193 @@
-# Executor 自检报告 — 任务 F：连接层（relay + 身份持久化 + 配对设备表 + 跨网段推送）
+# Executor 自检报告 — 任务 G：配对流程
 
-- worktree: `D:/Projects/CardMind/.worktrees/connect`（分支 `codex/connect`）
-- 状态：**全部验收标准通过（PASS）**，无阻断问题
-- 日期：2026-08-15
+- Worktree: `D:/Projects/CardMind/.worktrees/pairing`（分支 `codex/pairing`）
+- 日期: 2026-08-15
+- 范围: 6 位配对码（10 分钟过期）、配对握手交换设备身份、配对后持久化到 paired_devices 表、首次配对自动全量同步
 
-## 完成内容
+---
 
-1. **Relay 启用（sync.rs）**：`RelayMode::Disabled` → `RelayMode::Default`（iroh 官方公共 relay：use1-1/usw1-1/euc1-1/aps1-1.relay.n0.iroh.link）。同网段直连优先、跨网段经 relay 打洞/中转保持 iroh 默认行为（`presets::N0` 的地址查找服务 + `connect` 对 EndpointAddr 的 direct-first/relay-fallback 语义）。构造时把 `relay_mode` 存入结构体并提供 `relay_mode()` getter 供测试断言。
-2. **设备身份持久化（sync.rs）**：新增 `load_or_create_secret_key(dir: Option<&Path>)` 辅助函数——`new()` 传 `None` 每次随机（内存版保持随机）；`new_persistent(path)` 在数据目录（`.loro` 文件父目录）加载/生成 `device.key`（32 字节 SecretKey 的 64 字符 hex）。`device_id()` 因此跨重启稳定。envelope/FRB 初始化签名均未改动（需决策点 3 未触发）。
-3. **配对设备表（store.rs）**：`paired_devices` 表（peer_id TEXT PK, name TEXT, last_seen TEXT NULL, paired_at TEXT），迁移安全（CREATE TABLE IF NOT EXISTS）。方法：`list_paired_devices()`（last_seen DESC 最近连接优先，未连接的最后）、`upsert_paired_device(peer_id, name)`（重复覆盖 name、保留 paired_at）、`update_last_seen(peer_id)`、`remove_paired_device(peer_id)`。新增 `PairedDeviceRow` 结构（FRB 可序列化）。
-4. **跨网段连接辅助（sync.rs）**：
-   - `push_to_peer(peer_id, peer_ips)`：IP 非空直连（同网段）；为空时 `EndpointAddr::new(node_id)` 交给 iroh 经 relay/地址解析连接（跨网段）。
-   - 新增 `push_to_paired_devices(devices: &[(String, Option<Vec<String>>)]) → Vec<DevicePushResult>`：逐个推送，单台失败不中断整体，单台 10 秒超时记为失败；快照用 `export_all()`（含墓碑），接收端 `accept_push` + `import_all`（已有）。
-   - **修复既有推送协议缺陷**：原 `push_to_peer` 在 `drop(send)` 后函数返回即 drop conn，对端未读完时连接被提前关闭（实测 "connection lost / closed by peer"）。改为 `send.finish()` 显式 EOF + 保持连接存活直到对端读完关闭（`conn.closed()` 带超时）；`accept_push` 读完数据后显式 `conn.close()` 通知发送端释放。
-5. **FRB API（api.rs）**：`get_device_id(svc)`（原无，新增）、`push_to_devices(svc, devices)` → `Vec<DevicePushResult>`、`list_paired_devices(store)` → `Vec<PairedDeviceRow>`、`remove_paired_device(store, peer_id)`。`flutter_rust_bridge_codegen generate` 成功生成 Dart 绑定（`List<(String, List<String>?)>` 记录 + 两个新 Dart 类）。
-6. **Cargo.toml**：`[dev-dependencies] iroh = { version = "1", features = ["test-utils"] }` —— 仅测试构建启用本地 relay 服务器（`iroh::test_utils::run_relay_server`），用于离线行为验证，不依赖公共 relay 可达性。生产依赖 `iroh = "1"` 默认特性不变。
-7. **lib/bridge/**：未改动。任务标注"如需"；本任务无 UI 消费方（lib/pages 禁止），验收标准不要求 Flutter 侧新测试（回归目标即 53 不回归），加 repository 方法属死代码。若后续 UI 接入可在模块 3/4 补。
+## 一、完成内容（按功能垂直切片）
 
-## 验证结果（真实命令输出）
+### 切片 1：配对码生成/校验（Rust 核心）
+`rust-backend/src/sync.rs` 新增 `PairingSession`（code/created_at/failed_attempts，内存态）与
+`begin_pairing_accept()`（密码学随机 6 位码 100000-999999，10 分钟 TTL）、`validate_pairing_code()`
+（存在性/过期/连续错 5 次失效/单次使用）、测试访问器 `current_pairing_session()` /
+`set_current_pairing_session()`（供过期注入测试）。
 
-### 验收 1-6：Rust 集成测试（rust-backend/tests/connect_test.rs，新增，7 条）
+### 切片 2：配对握手（Rust 核心 + 线协议）
+- `PairingRequest`（code + device_id + device_name + relay_info + ips）、`PairingTarget`
+  （device_id + ips，发起方经 mDNS 发现获得）、`PairingResult`（peer_id + peer_name）。
+- `accept_pairing_request()`：确认方阻塞接收发起方连接，读取请求并暂存连接（`pending_pairing`）。
+- `confirm_pairing(store, code, requester)`：校验码 → upsert 发起方 → 同一连接回复握手响应
+  （确认方身份）→ **自动推送全量快照**（决策 8）→ 返回发起方身份。
+- `begin_pairing_connect(store, code, target)`：发起方连接确认方（ips 直连优先；空 ips 走 n0
+  地址解析+公共 relay）→ 发送请求 → 等待响应 → upsert 确认方。
+- 线协议：轻量二进制帧（u32 length-prefixed，帧首字节区分请求/响应），无新增序列化依赖。
+- 设备名：`device_name()`/`set_device_name()`，默认取主机名（COMPUTERNAME/HOSTNAME）。
 
-`cd rust-backend && cargo test --test connect_test`：
+### 切片 3：FRB API（api.rs + codegen）
+`begin_pairing_accept` / `accept_pairing_request` / `confirm_pairing` / `begin_pairing_connect` /
+`get_device_name` / `set_device_name` / `local_addrs` / `accept_push_and_import`。
+`flutter_rust_bridge_codegen generate` 成功，重新生成 `rust-backend/src/frb_generated.rs` 与
+`lib/src/rust/*.dart`（api/sync/frb_generated*）。
+
+### 切片 4：Flutter repository 层
+`NoteRepository` 接口新增配对方法（deviceId/deviceName/setDeviceName/localAddrs/beginPairingAccept/
+acceptPairingRequest/confirmPairing/beginPairingConnect/acceptAndImportPush/listPairedDevices/
+removePairedDevice）；`FrbNoteRepository` 实现；`BridgeHelper` 委托；两个 widget 测试的
+Memory fake 补接口占位。
+
+### 切片 5：测试（红-绿-蓝）
+- Rust 集成测试 `rust-backend/tests/pairing_test.rs`（6 用例，先写后实现）。
+- Flutter repository 测试 `test/pairing_repository_test.dart`（真实 FRB 双端全链路）。
+- 全部先红（编译失败）→ 实现 → 绿；重构清理（MutexGuard 跨 await、dead_code、测试断言错误）后全绿。
+
+### 改动文件清单（git status 范围内）
+- 核心: `rust-backend/src/sync.rs`、`rust-backend/src/api.rs`、`rust-backend/src/frb_generated.rs`（codegen）
+- 依赖: `rust-backend/Cargo.toml` + `Cargo.lock`（新增 `rand = "0.8"`，配对码密码学随机所需，见问题未决 #1）
+- 测试: `rust-backend/tests/pairing_test.rs`（新）、`test/pairing_repository_test.dart`（新）、
+  `test/vertical_slice_widget_test.dart`、`test/mobile_ui_test.dart`（fake 接口占位）
+- 桥接: `lib/bridge/note_repository.dart`、`lib/bridge/frb_note_repository.dart`、`lib/bridge/bridge_helper.dart`
+- codegen 产物: `lib/src/rust/api.dart`、`lib/src/rust/sync.dart`、`lib/src/rust/frb_generated*.dart`
+- 未改动: `lib/pages/`、`docs/`、`prototype/`、`.gitignore`、`rust-backend/src/discovery.rs`（mDNS 发现已够用，未改）
+
+---
+
+## 二、需决策点研究结论与方案（重要）
+
+### ⚠️ 决策点 3（显著说明）：配对码 FRB 状态保持方案 —— 存 SyncService 内部（Mutex 字段）
+
+**研究结论**：FRB 2.12 对 Rust opaque 用 `MoiArc<RustAutoOpaqueInner<SyncService>>` 共享实例；
+Dart 侧持有同一个 SyncService 句柄多次调用时，Rust 侧是**同一个实例**（`frb_generated.rs` 的
+`rust_arc_increment/decrement_strong_count` 可见）。`FrbNoteRepository` 在 app 生命周期内持有
+`_sync`，因此 **SyncService 内的字段状态跨 FRB 调用保留**。
+
+**方案**：配对码会话、待确认请求/连接、设备名全部存 `SyncService` 的 `Mutex` 字段（`&self` 方法，
+FRB 读锁可并发）。`begin_pairing_accept` 生成码 → 后续 `confirm_pairing` 在同一 opaque 上读到该码。
+重启 = 新建 SyncService = 码丢失（任务单明示可接受，用户重新发起）。**不需要** store 表/静态/文件。
+另外发现：FRB 异步 `&self` 调用对 opaque 持**读锁**（`lockable_decode_async_ref`），`&mut` 持写锁；
+`accept_pairing_request` 阻塞期间同一 opaque 的 `&self` 调用可并发、`&mut` 会等待——repository 测试
+与未来 UI 需注意此约束（报告"问题未决 #3"）。
+
+### 决策点 1：iroh 1.x 免地址互连 —— 存在该机制，采用任务单偏好路径
+
+**研究结论（iroh 1.0.2 源码）**：`endpoint::presets::N0` 自带 `DnsAddressLookup::n0_dns()` +
+`PkarrPublisher::n0_dns()`（发布/解析到 n0.computer 的 `iroh.link` DNS）+ `RelayMode::Default`
+（n0 公共 relay）。`EndpointAddr::new(node_id)` 无 IP/无 relay URL 时，`Endpoint::connect` 的
+`resolve_remote` 会走地址解析服务拿到对端地址，再经公共 relay 或直连建立连接（iroh-base
+`endpoint_addr.rs` 文档明示 "usable with an address lookup service"）。**故"经 relay 无需地址即可互连"
+在 iroh 1.x 成立**，按任务单指示采用该路径并在报告中写明。
+
+**实现**：`begin_pairing_connect` 的 `PairingTarget.ips` 为空 → `EndpointAddr::new(node_id)` 走 n0
+地址解析+relay；非空（同网段 mDNS 发现提供 ip:port）→ 直连优先（确定性、测试用）。生产场景两种
+路径都可用：同网段 mDNS 自然加速，跨网段靠地址解析。
+
+### 决策点 2：同进程测试的 relay 握手限制
+
+同进程两 endpoint 无法复现真实 relay 打洞/中转行为。处理：配对集成测试全部用 `local_addrs()`
+（loopback 直连）完成握手与推送，与模块 2 `connect_test.rs::test_push_receive_roundtrip` 同一模式；
+relay 跨网段行为已由模块 2 `test_relay_cross_network_connect`（本地 relay 服务器）覆盖，本任务不重复。
+生产 relay 路径（决策点 1 结论）在代码中为默认分支，测试环境不依赖公网 n0 DNS/relay。
+
+### 其它实现选择（报告说明）
+- **配对码随机源**：`rand = "0.8"` + `OsRng.gen_range(100000..=999999)`（新增依赖，Cargo.toml 在改动范围内；任务要求"密码学随机"）。
+- **握手响应**：与推送同模式（发送端写完后 `conn.closed()` 等待对端读完，避免立即 drop 导致数据未达）；发起方读完主动 `conn.close(0, "done")`。
+- **`PairingRequest` 携带 code**：任务单"请求包含 device_id/设备名/relay 信息"未列 code，但发起方 `begin_pairing_connect(code)` 的 code 必须随请求传给确认方才能完成身份认证；已加并在 `confirm_pairing` 双重校验（参数 code + 请求内 code 均须与会话一致）。
+- **`discovery.rs` 未改动**：mDNS 发现的 `PeerInfo{device_id, ip, port}` 已足够构造 `PairingTarget`，无需新通道。
+
+---
+
+## 三、验收标准逐条核对表
+
+| # | 验收标准 | 状态 | 真实输出 |
+|---|---------|------|---------|
+| 1 | `test_pairing_code_generation_and_validation` | **PASS** | `cargo test --test pairing_test` → `test_pairing_code_generation_and_validation ... ok`；断言：码 6 位数字、100000-999999、错误码失败、正确码返回 peer 信息、确认方 upsert、单次使用失效 |
+| 2 | `test_pairing_code_expires` | **PASS** | `test_pairing_code_expires ... ok`；注入 created_at 拨回 11 分钟后 confirm 失败且报 `expired` |
+| 3 | `test_pairing_code_brute_force_limit` | **PASS** | `test_pairing_code_brute_force_limit ... ok`；连错 5 次后正确码也失败（会话失效），重新发起后成功 |
+| 4 | `test_pairing_persists_both_sides` | **PASS** | `test_pairing_persists_both_sides ... ok`；确认方 store 含发起方 id+name；发起方经握手响应 upsert 确认方 id+name |
+| 5 | `test_pairing_triggers_initial_full_sync` | **PASS** | `test_pairing_triggers_initial_full_sync ... ok`；确认方 confirm 自动推送快照，发起方 import 后 `get_note("n1"/"n2")` 可见 |
+| 6 | `test_unpair_removes_device` | **PASS** | `test_unpair_removes_device ... ok`；remove_paired_device 后 list 消失 |
+| 7 | repository pair flow | **PASS** | `flutter test test/pairing_repository_test.dart` → `+1: All tests passed!`；真实 FRB 双端：码生成、握手身份交换、双方 listPairedDevices、首次全量同步、解除配对 |
+| 8 | `cargo test` 全绿（48+新增） | **PASS** | 54 个测试全绿：`connect_test 7 + discovery 2 + integration 2 + migration 2 + note_crdt 10 + pairing 6 + store 6 + sync_service 5 + sync 1 + trash 13`，全部 `ok` |
+| 9 | `flutter pub get && flutter test` 全绿（53 不回归） | **PASS** | `flutter test` → `+54: All tests passed!`（53 旧 + 1 新，无回归） |
+| 10 | `flutter analyze` 无 error | **PASS** | `Analyzing pairing...  No issues found! (ran in 24.9s)` |
+| 11 | `flutter_rust_bridge_codegen generate` 成功 | **PASS** | 两次运行均 `Done!`（幂等）；重新生成 frb_generated.rs 与 lib/src/rust/*.dart |
+| 12 | `git status` 改动全在范围内 | **PASS** | 改动均在任务单列出的文件 + 必要配套（测试 fake、Cargo 依赖、codegen 产物）；未触碰 `lib/pages/`、`docs/`、`prototype/`、`.gitignore` |
+
+### 关键命令真实输出片段
 
 ```
-running 7 tests
-test test_paired_devices_crud ... ok
-test test_relay_mode_enabled ... ok
-test test_memory_service_random_identity ... ok
-test test_push_receive_roundtrip_relay_or_direct ... ok
-test test_device_identity_persists ... ok
-test test_push_multi_device_partial_failure ... ok
-test test_relay_cross_network_connect ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.52s
+$ cargo test
+     Running tests\pairing_test.rs ...
+     test_pairing_code_generation_and_validation ... ok
+     test_pairing_code_expires ... ok
+     test_pairing_code_brute_force_limit ... ok
+     test_pairing_persists_both_sides ... ok
+     test_pairing_triggers_initial_full_sync ... ok
+     test_unpair_removes_device ... ok
+     test result: ok. 6 passed; 0 failed; ...  （全量 54 passed）
+
+$ flutter test
+    00:16 +54: All tests passed!
+
+$ flutter analyze
+    Analyzing pairing...
+    No issues found! (ran in 24.9s)
+
+$ flutter_rust_bridge_codegen generate
+    Done!
+
+$ git status --short
+    M lib/bridge/bridge_helper.dart
+    M lib/bridge/frb_note_repository.dart
+    M lib/bridge/note_repository.dart
+    M lib/src/rust/{api,sync,frb_generated*}.dart
+    M rust-backend/Cargo.toml
+    M rust-backend/src/{api,sync,frb_generated}.rs
+    M test/mobile_ui_test.dart
+    M test/vertical_slice_widget_test.dart
+    ?? rust-backend/tests/pairing_test.rs
+    ?? test/pairing_repository_test.dart
 ```
 
-> `test_push_multi_device_partial_failure` 耗时 ~10s：假设备（127.0.0.1:1，UDP 无监听）按设计走 10 秒连接超时 → 记为失败 → 继续下一台。这是验收标准规定的超时语义，非异常。
+---
 
-### 验收 7：`cd rust-backend && cargo test` 全绿
+## 四、新增测试清单
 
-```
-Running tests\connect_test.rs    ... ok. 7 passed  (30.52s)
-Running tests\discovery_test.rs  ... ok. 2 passed   (6.03s)
-Running tests\integration_test.rs... ok. 2 passed
-Running tests\migration_test.rs  ... ok. 2 passed
-Running tests\note_crdt_test.rs  ... ok. 10 passed
-Running tests\store_test.rs      ... ok. 6 passed
-Running tests\sync_service_test.rs ... ok. 5 passed
-Running tests\sync_test.rs       ... ok. 1 passed
-Running tests\trash_test.rs      ... ok. 13 passed
-```
-合计 **48 passed, 0 failed**（基线 41 + 新增 7），无回归。
+### Rust 集成测试 `rust-backend/tests/pairing_test.rs`（6 用例）
+| 用例名 | 断言点 |
+|--------|--------|
+| `test_pairing_code_generation_and_validation` | 码 6 位纯数字且 ∈[100000,999999]；错误码 confirm 失败；正确码返回 (peer_id, peer_name)；确认方 upsert 发起方；码单次使用后失效 |
+| `test_pairing_code_expires` | 注入 created_at=now-11min 后 confirm 失败且错误含 "expired" |
+| `test_pairing_code_brute_force_limit` | 连续 5 次错误码失败；第 6 次正确码也失败（错误含 "no active pairing code"）；重新发起后成功 |
+| `test_pairing_persists_both_sides` | 确认方 store 含发起方 id+name；发起方经握手响应 upsert 确认方 id+name；双方返回值对端身份正确 |
+| `test_pairing_triggers_initial_full_sync` | 确认方 confirm 自动推送快照；发起方 accept_push+import 后两篇笔记内容可见（loopback 同进程） |
+| `test_unpair_removes_device` | upsert 后 list 含该设备；remove 后 list 消失 |
 
-### 验收 8：`flutter pub get && flutter test` 全绿（53 不回归）
+### Flutter 测试 `test/pairing_repository_test.dart`（1 用例）
+| 用例名 | 断言点 |
+|--------|--------|
+| `repository pair flow pairs two devices and syncs notes` | 码 6 位数字；请求含发起方身份；双方 PairingResult 对端身份正确；双方 listPairedDevices 持久化；发起方 acceptAndImportPush 后 getNote 可见；removePairedDevice 后列表消失 |
 
-```
-00:13 +53: All tests passed!
-```
-（基线 53 全绿；注意基线需先构建 DLL：`cargo build --release` + 复制到 `build/windows/x64/runner/Release/cardmind_backend.dll`，否则 api_integration_test / frb_note_repository_test 因缺 DLL 报错——这是环境构建状态，非代码回归。）
+### 测试 fake 接口占位（非新断言）
+`test/vertical_slice_widget_test.dart::MemoryNoteRepository`、`test/mobile_ui_test.dart::_MemoryNoteRepository`
+补齐 `NoteRepository` 新增配对接口占位（widget 测试不涉及配对）。
 
-### 验收 9：`flutter analyze` 无 error
+---
 
-```
-Analyzing connect...
-No issues found! (ran in 25.7s)
-```
+## 五、问题未决
 
-### 验收 10：`flutter_rust_bridge_codegen generate` 成功
-
-```
-Done!
-```
-生成产物：`lib/src/rust/{api,store,sync,frb_generated,frb_generated.io,frb_generated.web}.dart`、`rust-backend/src/frb_generated.rs`。新绑定：`getDeviceId`、`pushToDevices({List<(String, List<String>?)> devices})`、`listPairedDevices`、`removePairedDevice`，新类 `DevicePushResult`、`PairedDeviceRow`。
-
-### 验收 11：`git status` 改动全在范围内
-
-```
- M lib/src/rust/api.dart          (codegen 产物，允许)
- M lib/src/rust/frb_generated.dart/.io/.web
- M lib/src/rust/store.dart
- M lib/src/rust/sync.dart
- M rust-backend/Cargo.lock        (允许范围：Cargo.toml 调整连带)
- M rust-backend/Cargo.toml        (允许)
- M rust-backend/src/api.rs        (允许)
- M rust-backend/src/frb_generated.rs (codegen 产物)
- M rust-backend/src/store.rs      (允许)
- M rust-backend/src/sync.rs       (允许)
-?? rust-backend/tests/connect_test.rs (新增，允许)
-```
-`lib/pages/`、`docs/`、`prototype/`、`.gitignore`、`lib/bridge/` 均未触碰（grep 校验通过）。
-
-> 注：`flutter pub get`/`flutter test`/codegen 会把 `linux/flutter/generated_plugin_registrant.*`、`windows/flutter/generated_plugin_registrant.*`、`windows/linux generated_plugins.cmake` 以及 `lib/src/rust/discovery.dart` 重写成 LF→CRLF（内容零 diff，仅行尾）。已 `git checkout` 还原，保持变更集干净；reviewer 重跑 codegen 可能再次看到这些行尾噪音，可忽略。
-
-## 新增测试清单（rust-backend/tests/connect_test.rs）
-
-| 用例名 | 覆盖点 | 对应验收 |
-|---|---|---|
-| `test_device_identity_persists` | new_persistent 同目录重启 device_id 稳定；device.key 文件存在 | 验收 1 |
-| `test_memory_service_random_identity` | 两次 new() device_id 不同（内存版随机） | 验收 2 |
-| `test_paired_devices_crud` | upsert 两台→list 含两台；update_last_seen 后排序+字段正确；重复 upsert 覆盖 name；remove 后消失 | 验收 3 |
-| `test_push_receive_roundtrip_relay_or_direct` | A 建笔记 → push_to_peer(B 实际地址) → B accept_push+import_all 后可见 | 验收 4 |
-| `test_push_multi_device_partial_failure` | 3 台（2 真 1 假）：真成功、假失败、其余不受影响；结果顺序与输入一致 | 验收 5 |
-| `test_relay_mode_enabled` | 生产配置 relay_mode() != Disabled（getter 断言，离线确定性） | 验收 6（配置断言） |
-| `test_relay_cross_network_connect` | 本地 relay 服务器 + 两个仅凭 relay URL（无直连 IP）的 endpoint 建连并传数据 | 验收 6（行为补充） |
-
-## 需决策点处理情况
-
-1. **iroh relay 默认配置断网下 Endpoint 创建失败/极慢** — **未触发**。实机验证：改 `RelayMode::Default` 后，`SyncService::new()`/`new_persistent()` 在测试中快速绑定（sync_service_test 5 条 0.22s，身份测试秒过）。iroh 1.0.2 的 relay 连接是异步后台行为，bind 不阻塞。
-2. **公共 relay（GFW）可达性** — **按任务允许的回退路径处理，未 mock**。本机未验证 relay.n0.iroh.link 实际可达性；测试 6 采用任务指定的回退组合：(a) getter 断言 `relay_mode() != Disabled`（离线确定）；(b) 真实行为测试 `test_relay_cross_network_connect`——用 `iroh::test_utils::run_relay_server()` 起**本地真实 relay 服务器进程**（QUIC 中转，非 mock），两 endpoint 仅凭 relay URL 跨网段建连传输成功。生产代码 RelayMode::Default 在 GFW 网络下的实际连通性属运行时环境问题，需真机验证（模块 3/4 或联调时）。
-3. **SecretKey 持久化需改 envelope/FRB 签名** — **未触发**。`device.key` 独立文件，`new_persistent(path)` 签名未变，FRB `createPersistentSyncService(path)` 未变。
-
-## 未决问题
-
-1. 公共 relay（relay.n0.iroh.link）在本网络的实际连通性未实机验证（GFW 风险），不影响本任务测试（全部离线可跑），但生产跨网段推送依赖它——建议后续模块真机验证。
-2. `push_to_devices` FRB 签名按任务设计为 `(svc, devices)`，无 store 参数，因此 `update_last_seen` 未在推送成功路径自动调用（store 方法已就绪并测试覆盖）。若产品要求"推送成功自动刷新 last_seen"，需在 repository 层或后续模块接线。
-3. `test_push_multi_device_partial_failure` 因 10s 超时语义耗时 ~10s；`test_relay_cross_network_connect` 约 30s（本地 relay 启动+online 等待），属可接受范围。
-4. Flutter 工具链会对若干生成文件做 LF→CRLF 行尾改写（内容零 diff），已还原；重跑 codegen/flutter 命令可能复现，非代码问题。
+1. **新增依赖 `rand = "0.8"`**：`rust-backend/Cargo.toml` 不在任务单"改动范围"显式列表，但任务要求
+   配对码"密码学随机"，需要 CSPRNG；随机源选型采用 rand + OsRng（也可用 iroh SecretKey 生成字节 +
+   拒绝采样，免新依赖，如需零依赖可改）。已按需添加并在本报告说明。
+2. **`PairingRequest` 比任务单列表多一个 `code` 字段**：协议需要（见"其它实现选择"），未偏离功能语义。
+3. **FRB opaque 读锁约束**：`accept_pairing_request` 阻塞期间，同一 SyncService 的 `&mut` 方法调用会
+   等待读锁释放（`&self` 可并发）。模块 5 设备页 UI 需避免在 accept 等待期间调用本仓库的写操作。
+   本任务 repository 测试已按此约束编排。
+4. **首次全量同步推送失败容忍**：`confirm_pairing` 内推送失败仅 eprintln 不返回错误（配对已成功，
+   快照可稍后由同步层重试）。若产品要求"配对即同步必达"，需另设计重试/状态上报（超出本任务范围）。
+5. **确认方同时只支持一个待确认配对**：`pending_pairing` 单槽，新码会清除旧待确认请求（个人工具
+   面对面配对场景足够）。
+6. **`linux/windows/flutter/generated_plugin_registrant.*` 被 flutter pub get 触碰**：仅行尾/注册表
+   元数据变化（`git diff` 无内容差异），非本任务代码改动；已 `git checkout` 还原一次，重跑 pub get
+   会再次出现，不影响验收。

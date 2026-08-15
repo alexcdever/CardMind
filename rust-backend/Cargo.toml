@@ -17,6 +17,8 @@ mdns-sd = "0.20"
 rusqlite = { version = "0.31", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v7", "serde"] }
+# 配对码生成（密码学随机，OsRng；任务 G 配对安全要求）
+rand = "0.8"
 
 [dev-dependencies]
 # 仅测试构建启用：本地 relay 服务器（iroh::test_utils::run_relay_server），

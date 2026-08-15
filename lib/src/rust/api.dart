@@ -21,6 +21,56 @@ Future<SyncService> createPersistentSyncService({required String path}) =>
 Future<String> getDeviceId({required SyncService svc}) =>
     RustLib.instance.api.crateApiGetDeviceId(svc: svc);
 
+/// 获取本设备名（配对握手时发送给对端）。
+Future<String> getDeviceName({required SyncService svc}) =>
+    RustLib.instance.api.crateApiGetDeviceName(svc: svc);
+
+/// 设置本设备名。
+Future<void> setDeviceName({required SyncService svc, required String name}) =>
+    RustLib.instance.api.crateApiSetDeviceName(svc: svc, name: name);
+
+/// 本端点当前绑定的 IPv4 地址列表（"ip:port"，配对目标/mDNS 广播用）。
+Future<List<String>> localAddrs({required SyncService svc}) =>
+    RustLib.instance.api.crateApiLocalAddrs(svc: svc);
+
+/// 配对 — 确认方：生成 6 位数字配对码（密码学随机，10 分钟有效）。返回码。
+Future<String> beginPairingAccept({required SyncService svc}) =>
+    RustLib.instance.api.crateApiBeginPairingAccept(svc: svc);
+
+/// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
+Future<PairingRequest> acceptPairingRequest({required SyncService svc}) =>
+    RustLib.instance.api.crateApiAcceptPairingRequest(svc: svc);
+
+/// 配对 — 确认方：校验配对码并完成配对（upsert 发起方 + 回复握手 + 自动推送全量快照）。
+Future<PairingResult> confirmPairing({
+  required SyncService svc,
+  required NoteStore store,
+  required String code,
+  required PairingRequest requester,
+}) => RustLib.instance.api.crateApiConfirmPairing(
+  svc: svc,
+  store: store,
+  code: code,
+  requester: requester,
+);
+
+/// 配对 — 发起方：连接确认方发送配对请求，接收握手响应并 upsert 确认方。
+Future<PairingResult> beginPairingConnect({
+  required SyncService svc,
+  required NoteStore store,
+  required String code,
+  required PairingTarget target,
+}) => RustLib.instance.api.crateApiBeginPairingConnect(
+  svc: svc,
+  store: store,
+  code: code,
+  target: target,
+);
+
+/// 接受对端推送并导入（首次全量同步接收端；配对成功后发起方调用）。
+Future<void> acceptPushAndImport({required SyncService svc}) =>
+    RustLib.instance.api.crateApiAcceptPushAndImport(svc: svc);
+
 /// 将所有 CRDT 笔记同步到 SQLite 存储
 ///
 /// 同时清理墓碑（Loro 中已彻底删除的笔记）对应的投影行，防止被删笔记复活。

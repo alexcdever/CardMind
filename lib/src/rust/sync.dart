@@ -35,3 +35,96 @@ class DevicePushResult {
           ok == other.ok &&
           message == other.message;
 }
+
+/// 发起方配对请求（含本机身份与配对码，经网络发送给确认方）
+class PairingRequest {
+  /// 配对码（发起方从确认方展示处获得；请求携带以便确认方校验匹配）
+  final String code;
+
+  /// 发起方 iroh 节点 ID（device_id）
+  final String deviceId;
+
+  /// 发起方设备名
+  final String deviceName;
+
+  /// 发起方 relay 信息（配置的 relay URL 列表，逗号分隔）。
+  ///
+  /// 说明：N0 preset 已通过 PkarrPublisher 自动发布本端点地址（含 relay）到
+  /// n0 DNS（iroh.link），此字段仅为协议完整性保留（信息性）。
+  final String relayInfo;
+
+  /// 发起方 IPv4 地址列表（"ip:port"，供确认方直连/推送加速）
+  final List<String> ips;
+
+  const PairingRequest({
+    required this.code,
+    required this.deviceId,
+    required this.deviceName,
+    required this.relayInfo,
+    required this.ips,
+  });
+
+  @override
+  int get hashCode =>
+      code.hashCode ^
+      deviceId.hashCode ^
+      deviceName.hashCode ^
+      relayInfo.hashCode ^
+      ips.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PairingRequest &&
+          runtimeType == other.runtimeType &&
+          code == other.code &&
+          deviceId == other.deviceId &&
+          deviceName == other.deviceName &&
+          relayInfo == other.relayInfo &&
+          ips == other.ips;
+}
+
+/// 配对结果（对端身份）
+class PairingResult {
+  /// 对端 iroh 节点 ID
+  final String peerId;
+
+  /// 对端设备名
+  final String peerName;
+
+  const PairingResult({required this.peerId, required this.peerName});
+
+  @override
+  int get hashCode => peerId.hashCode ^ peerName.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PairingResult &&
+          runtimeType == other.runtimeType &&
+          peerId == other.peerId &&
+          peerName == other.peerName;
+}
+
+/// 发起方要连接的确认方目标（同网段配对场景由 mDNS 发现提供 device_id + ip:port）
+class PairingTarget {
+  /// 确认方 iroh 节点 ID（device_id）
+  final String deviceId;
+
+  /// 确认方 IP 列表（"ip:port"）。空时经 n0 地址解析 + 公共 relay 连接
+  /// （iroh 1.x N0 preset 的 DnsAddressLookup 机制）；非空时直连优先。
+  final List<String> ips;
+
+  const PairingTarget({required this.deviceId, required this.ips});
+
+  @override
+  int get hashCode => deviceId.hashCode ^ ips.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PairingTarget &&
+          runtimeType == other.runtimeType &&
+          deviceId == other.deviceId &&
+          ips == other.ips;
+}
