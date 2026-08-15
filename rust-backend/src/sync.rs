@@ -12,6 +12,7 @@ use loro::{Container, ExportMode, LoroDoc, LoroValue, ValueOrContainer};
 use rand::Rng;
 use uuid::Uuid;
 
+use crate::discovery::{DiscoveryService, PeerInfo};
 use crate::store::NoteStore;
 
 /// 同步服务 — 管理笔记集合并通过 iroh 与对端同步
@@ -40,6 +41,11 @@ pub struct SyncService {
     last_pushed_at: Mutex<HashMap<String, DateTime<Utc>>>,
     /// peer_id → 最近已知直连 IP 列表（配对请求/配对目标时记录；供周期推送直连优先）
     peer_ips: Mutex<HashMap<String, Vec<String>>>,
+    /// mDNS 发现服务（任务 J 惰性创建）：配对期间广播 + 发起方扫描。
+    ///
+    /// 用 tokio Mutex：`discover_peers` 需跨 await 持锁，FRB async 要求
+    /// Send future（std MutexGuard 非 Send，跨 await 编译不过）。
+    discovery: tokio::sync::Mutex<Option<DiscoveryService>>,
 }
 
 /// NoteCrdt — LoroDoc 笔记模型
@@ -190,6 +196,7 @@ impl SyncService {
             pending_dirty: Mutex::new(HashSet::new()),
             last_pushed_at: Mutex::new(HashMap::new()),
             peer_ips: Mutex::new(HashMap::new()),
+            discovery: tokio::sync::Mutex::new(None),
         })
     }
 
@@ -226,6 +233,7 @@ impl SyncService {
             pending_dirty: Mutex::new(HashSet::new()),
             last_pushed_at: Mutex::new(HashMap::new()),
             peer_ips: Mutex::new(HashMap::new()),
+            discovery: tokio::sync::Mutex::new(None),
         };
         if path.exists() {
             let bytes = std::fs::read(&path)
@@ -331,6 +339,66 @@ impl SyncService {
         // 新码产生时清除上一次未完成的待确认请求（避免旧连接回复错码）
         *self.pending_pairing.lock().unwrap() = None;
         Ok(code)
+    }
+
+    // ━━━ mDNS 自动发现接线（任务 J）━━━
+
+    /// 本端点当前监听端口（mDNS 广播用；与 `local_addrs` 同源）。
+    fn endpoint_listen_port(&self) -> u16 {
+        self.endpoint
+            .addr()
+            .ip_addrs()
+            .next()
+            .map(|a| a.port())
+            .unwrap_or(0)
+    }
+
+    /// 确认方：生成 6 位配对码并启动 mDNS 广播（组合 API，任务 J）。
+    ///
+    /// 码与广播在同一调用内完成——配对期间广播一定在，Flutter 侧无需自行
+    /// 组合两个 API。port 用本端点实际监听端口（对端直连需要）；
+    /// `start_advertising` 内部会先停旧广播再注册新广播。
+    /// 停止广播由 [`Self::stop_pairing_advertising`] 负责（弹窗关闭等）。
+    pub async fn begin_pairing_accept_with_advertising(&self) -> Result<String> {
+        let code = self.begin_pairing_accept()?;
+        let port = self.endpoint_listen_port();
+        let mut guard = self.discovery.lock().await;
+        if guard.is_none() {
+            *guard = Some(DiscoveryService::new()?);
+        }
+        guard
+            .as_mut()
+            .expect("discovery just ensured")
+            .start_advertising(&self.device_id(), port)?;
+        Ok(code)
+    }
+
+    /// 停止 mDNS 广播（弹窗关闭 / 配对完成 / 取消时调用；幂等）。
+    ///
+    /// DiscoveryService 实例保留（后续再组合调用时复用 daemon），仅注销注册。
+    pub async fn stop_pairing_advertising(&self) -> Result<()> {
+        let mut guard = self.discovery.lock().await;
+        if let Some(disc) = guard.as_mut() {
+            disc.stop_advertising()?;
+        }
+        Ok(())
+    }
+
+    /// 发起方：mDNS 扫描局域网内的 CardMind 设备（约 3 秒超时，任务 J）。
+    ///
+    /// 复用共享 DiscoveryService（惰性创建）；返回对端 device_id + ip:port，
+    /// 供 UI 在设备 ID 留空时自动填充配对目标。扫描超时或通道断开返回
+    /// 已收集的结果（可能为空），不报错。
+    pub async fn discover_peers(&self) -> Result<Vec<PeerInfo>> {
+        let mut guard = self.discovery.lock().await;
+        if guard.is_none() {
+            *guard = Some(DiscoveryService::new()?);
+        }
+        guard
+            .as_mut()
+            .expect("discovery just ensured")
+            .discover_peers()
+            .await
     }
 
     /// 当前配对会话（测试/诊断用）。

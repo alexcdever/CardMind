@@ -40,6 +40,26 @@ pub fn begin_pairing_accept(svc: &SyncService) -> anyhow::Result<String> {
     svc.begin_pairing_accept()
 }
 
+/// 配对 — 确认方：生成配对码并启动 mDNS 广播（任务 J 组合 API）。
+///
+/// 码与广播在同一调用内完成（保证配对期间广播一定在）；port 用本端点实际
+/// 监听端口。配对结束（弹窗关闭/完成/取消）时调用 [`stop_pairing_advertising`]。
+pub async fn begin_pairing_accept_with_advertising(
+    svc: &SyncService,
+) -> anyhow::Result<String> {
+    svc.begin_pairing_accept_with_advertising().await
+}
+
+/// 配对 — 停止 mDNS 广播（幂等；配对弹窗关闭/完成/取消时调用）。
+pub async fn stop_pairing_advertising(svc: &SyncService) -> anyhow::Result<()> {
+    svc.stop_pairing_advertising().await
+}
+
+/// 设备发现 — 经 SyncService 扫描对端（任务 J：发起方设备 ID 留空时自动填充）。
+pub async fn sync_discover_peers(svc: &SyncService) -> anyhow::Result<Vec<PeerInfo>> {
+    svc.discover_peers().await
+}
+
 /// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
 ///
 /// 等待期间抢到的推送帧会立即导入（不丢失），随后继续等待配对请求。

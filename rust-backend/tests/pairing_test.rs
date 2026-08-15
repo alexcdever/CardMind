@@ -330,3 +330,31 @@ fn test_unpair_removes_device() {
         "解除配对后设备应从列表消失"
     );
 }
+
+// ━━━ 验收 7（任务 J）：mDNS 自动发现接线 —— 组合 API 生命周期 ━━━
+
+#[test]
+fn test_pairing_accept_with_advertising_lifecycle() {
+    rt().block_on(async {
+        let confirmer = SyncService::new().await.unwrap();
+
+        // 生成码并启动广播（组合 API：码 + mDNS 广播同一调用内完成）
+        let code = confirmer.begin_pairing_accept_with_advertising().await.unwrap();
+        assert_eq!(code.len(), 6, "配对码应为 6 位");
+        assert!(code.chars().all(|c| c.is_ascii_digit()), "配对码应全为数字");
+
+        // 广播期间扫描不互相干扰（单机可能 0 台，不报错即可）
+        let peers = confirmer.discover_peers().await.unwrap();
+        println!("[task-j] discovered {} peers while advertising", peers.len());
+
+        // 停止广播（幂等：重复停止不报错）
+        confirmer.stop_pairing_advertising().await.unwrap();
+        confirmer.stop_pairing_advertising().await.unwrap();
+
+        // 再次组合调用：start_advertising 内部先停旧广播再注册新广播
+        let code2 = confirmer.begin_pairing_accept_with_advertising().await.unwrap();
+        assert_eq!(code2.len(), 6, "再次生成配对码应为 6 位");
+        confirmer.stop_pairing_advertising().await.unwrap();
+    });
+}
+

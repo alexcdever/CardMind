@@ -5,6 +5,7 @@ import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/main.dart';
 import 'package:cardmind/pages/editor_page.dart';
 import 'package:cardmind/pages/note_list_page.dart';
+import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/src/rust/sync.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
@@ -516,6 +517,16 @@ class MemoryNoteRepository implements NoteRepository {
   @override
   Future<String> beginPairingAccept() =>
       throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<String> beginPairingAcceptAndAdvertise() =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<void> stopPairingAdvertising() async {}
+
+  @override
+  Future<List<PeerInfo>> discoverPeers() async => [];
 
   @override
   Future<PairingRequest> acceptPairingRequest() =>

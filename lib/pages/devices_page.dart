@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../bridge/note_repository.dart';
+import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
 import '../ui/design_system/cardmind_theme.dart';
@@ -162,10 +163,14 @@ class _DevicesPageState extends State<DevicesPage> {
   }
 
   /// 确认方：展示本机配对码（等待对方输入确认）。
+  ///
+  /// 任务 J：显示码的同时启动 mDNS 广播（Rust 组合 API，码与广播同一调用
+  /// 内完成——保证配对期间广播一定在）；弹窗关闭（含取消/异常路径）后停止
+  /// 广播，避免本机在配对结束后继续被局域网发现。
   Future<void> _showMyCode() async {
     String code;
     try {
-      code = await _repository.beginPairingAccept();
+      code = await _repository.beginPairingAcceptAndAdvertise();
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -174,47 +179,64 @@ class _DevicesPageState extends State<DevicesPage> {
       }
       return;
     }
-    if (!mounted) return;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('等待对方输入此码'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('在对方设备"添加设备"中输入以下 6 位码：'),
-            const SizedBox(height: CardMindSpacing.lg),
-            Text(
-              code,
-              key: const ValueKey('pair-code-display'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: context.cardMind.accent,
-                letterSpacing: 4,
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('等待对方输入此码'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('在对方设备"添加设备"中输入以下 6 位码：'),
+              const SizedBox(height: CardMindSpacing.lg),
+              Text(
+                code,
+                key: const ValueKey('pair-code-display'),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: context.cardMind.accent,
+                  letterSpacing: 4,
+                ),
               ),
-            ),
-            const SizedBox(height: CardMindSpacing.lg),
-            Text(
-              '等待对方确认后自动完成配对…',
-              style: TextStyle(color: context.cardMind.mutedInk, fontSize: 13),
+              const SizedBox(height: CardMindSpacing.lg),
+              Text(
+                '等待对方确认后自动完成配对…',
+                style: TextStyle(
+                  color: context.cardMind.mutedInk,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('pair-dialog-close'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('关闭'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            key: const ValueKey('pair-dialog-close'),
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
+      );
+    } finally {
+      // 弹窗关闭（含异常路径）→ 停止 mDNS 广播
+      try {
+        await _repository.stopPairingAdvertising();
+      } catch (error) {
+        debugPrint('[pairing] stopPairingAdvertising failed: $error');
+      }
+    }
   }
 
   /// 发起方：输入对方配对码（及对方设备 ID，可留空自动解析）→ 连接配对。
+  ///
+  /// 任务 J：设备 ID 留空时先做 mDNS 扫描（约 3 秒），命中一台自动填充
+  /// target（device_id + ip:port 直连地址）；无结果/多台歧义时给出友好提示，
+  /// 不向用户展示裸 AnyhowException（技术细节留 debugPrint）。
   Future<void> _enterPeerCode() async {
     final codeController = TextEditingController();
     final peerIdController = TextEditingController();
     String? submitError;
+    bool discovering = false;
     final result = await showDialog<PairingResult>(
       context: context,
       barrierDismissible: false,
@@ -240,14 +262,38 @@ class _DevicesPageState extends State<DevicesPage> {
                 controller: peerIdController,
                 decoration: const InputDecoration(
                   labelText: '对方设备 ID（可选）',
-                  hintText: '留空时自动通过地址解析连接',
+                  hintText: '留空时自动通过局域网发现（mDNS）连接',
                 ),
               ),
+              if (discovering) ...[
+                const SizedBox(height: CardMindSpacing.md),
+                Row(
+                  children: [
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: CardMindSpacing.sm),
+                    Text(
+                      '正在搜索局域网设备…',
+                      style: TextStyle(
+                        color: context.cardMind.mutedInk,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (submitError != null) ...[
                 const SizedBox(height: CardMindSpacing.md),
                 Text(
                   submitError!,
-                  style: TextStyle(color: context.cardMind.danger, fontSize: 13),
+                  key: const ValueKey('pair-submit-error'),
+                  style: TextStyle(
+                    color: context.cardMind.danger,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ],
@@ -263,11 +309,55 @@ class _DevicesPageState extends State<DevicesPage> {
               onPressed: () async {
                 final code = codeController.text.trim();
                 if (code.isEmpty) return;
+                setDialogState(() {
+                  submitError = null;
+                  discovering = false;
+                });
                 try {
-                  final target = PairingTarget(
-                    deviceId: peerIdController.text.trim(),
-                    ips: const [],
-                  );
+                  final manualId = peerIdController.text.trim();
+                  PairingTarget target;
+                  if (manualId.isNotEmpty) {
+                    // 手动填写优先：跳过 mDNS 扫描
+                    target = PairingTarget(deviceId: manualId, ips: const []);
+                  } else {
+                    // mDNS 自动发现（设备 ID 留空）
+                    setDialogState(() {
+                      discovering = true;
+                    });
+                    List<PeerInfo> peers;
+                    try {
+                      peers = await _repository.discoverPeers();
+                    } catch (error) {
+                      // 扫描失败按无结果处理（友好提示）；细节留日志
+                      debugPrint('[pairing] discoverPeers failed: $error');
+                      peers = const [];
+                    }
+                    if (!dialogContext.mounted) return;
+                    setDialogState(() {
+                      discovering = false;
+                    });
+                    if (peers.isEmpty) {
+                      setDialogState(() {
+                        submitError = '未在局域网发现对方设备。请确认两台设备在同一网络，或手动填写对方设备 ID';
+                      });
+                      return;
+                    }
+                    if (peers.length > 1) {
+                      // 需决策点 1：多台设备无法区分码的持有者，不静默取第一台
+                      setDialogState(() {
+                        submitError =
+                            '在局域网发现多台 CardMind 设备，无法自动确定配对对象。请手动填写对方设备 ID';
+                      });
+                      return;
+                    }
+                    final peer = peers.single;
+                    target = PairingTarget(
+                      deviceId: peer.deviceId,
+                      ips: peer.ip.isEmpty
+                          ? const []
+                          : ['${peer.ip}:${peer.port}'],
+                    );
+                  }
                   final res = await _repository.beginPairingConnect(
                     code,
                     target,
@@ -276,21 +366,24 @@ class _DevicesPageState extends State<DevicesPage> {
                     Navigator.of(dialogContext).pop(res);
                   }
                 } catch (error) {
+                  // 错误脱敏（任务 J）：不展示裸 AnyhowException，技术细节留日志
+                  debugPrint('[pairing] beginPairingConnect failed: $error');
                   setDialogState(() {
-                    submitError = '配对失败: $error';
+                    discovering = false;
+                    submitError = '配对失败：无法连接到对方设备。请确认两台设备在同一网络后重试';
                   });
                 }
               },
-              child: const Text('确认配对'),
+              child: Text(discovering ? '正在搜索…' : '确认配对'),
             ),
           ],
         ),
       ),
     );
     if (result == null || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('配对成功：${result.peerName}')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('配对成功：${result.peerName}')));
     await _load();
   }
 
@@ -303,9 +396,7 @@ class _DevicesPageState extends State<DevicesPage> {
       );
     }
     return ListView(
-      children: [
-        for (final device in _devices) _buildDeviceItem(device),
-      ],
+      children: [for (final device in _devices) _buildDeviceItem(device)],
     );
   }
 

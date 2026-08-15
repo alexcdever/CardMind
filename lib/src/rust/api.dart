@@ -37,6 +37,21 @@ Future<List<String>> localAddrs({required SyncService svc}) =>
 Future<String> beginPairingAccept({required SyncService svc}) =>
     RustLib.instance.api.crateApiBeginPairingAccept(svc: svc);
 
+/// 配对 — 确认方：生成配对码并启动 mDNS 广播（任务 J 组合 API）。
+///
+/// 码与广播在同一调用内完成（保证配对期间广播一定在）；port 用本端点实际
+/// 监听端口。配对结束（弹窗关闭/完成/取消）时调用 [`stop_pairing_advertising`]。
+Future<String> beginPairingAcceptWithAdvertising({required SyncService svc}) =>
+    RustLib.instance.api.crateApiBeginPairingAcceptWithAdvertising(svc: svc);
+
+/// 配对 — 停止 mDNS 广播（幂等；配对弹窗关闭/完成/取消时调用）。
+Future<void> stopPairingAdvertising({required SyncService svc}) =>
+    RustLib.instance.api.crateApiStopPairingAdvertising(svc: svc);
+
+/// 设备发现 — 经 SyncService 扫描对端（任务 J：发起方设备 ID 留空时自动填充）。
+Future<List<PeerInfo>> syncDiscoverPeers({required SyncService svc}) =>
+    RustLib.instance.api.crateApiSyncDiscoverPeers(svc: svc);
+
 /// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
 ///
 /// 等待期间抢到的推送帧会立即导入（不丢失），随后继续等待配对请求。
