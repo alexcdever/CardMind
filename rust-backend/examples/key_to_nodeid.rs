@@ -10,6 +10,6 @@ fn main() {
         .collect();
     let arr: [u8; 32] = bytes.try_into().expect("32 bytes");
     let secret = iroh::SecretKey::from_bytes(&arr);
-    let node_id: iroh::EndpointId = secret.public().into();
+    let node_id: iroh::EndpointId = secret.public();
     println!("{}", node_id);
 }

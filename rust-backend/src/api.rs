@@ -44,9 +44,7 @@ pub fn begin_pairing_accept(svc: &SyncService) -> anyhow::Result<String> {
 ///
 /// 码与广播在同一调用内完成（保证配对期间广播一定在）；port 用本端点实际
 /// 监听端口。配对结束（弹窗关闭/完成/取消）时调用 [`stop_pairing_advertising`]。
-pub async fn begin_pairing_accept_with_advertising(
-    svc: &SyncService,
-) -> anyhow::Result<String> {
+pub async fn begin_pairing_accept_with_advertising(svc: &SyncService) -> anyhow::Result<String> {
     svc.begin_pairing_accept_with_advertising().await
 }
 

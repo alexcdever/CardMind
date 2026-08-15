@@ -108,9 +108,7 @@ impl NoteStore {
             // 旧库的既有行不在刚创建的 notes_fts 索引中；若不重建，之后任何
             // UPDATE notes（如软删除的 deleted_at 标记）都会触发 FTS 触发器报
             // "Content in the virtual table is corrupt"。重建使索引与 notes 一致。
-            conn.execute_batch(
-                "INSERT INTO notes_fts(notes_fts) VALUES('rebuild');",
-            )?;
+            conn.execute_batch("INSERT INTO notes_fts(notes_fts) VALUES('rebuild');")?;
         }
         Ok(Self {
             conn: Mutex::new(conn),
