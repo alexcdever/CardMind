@@ -1,164 +1,160 @@
-# 审核子代理复验报告 — 任务 K（relay 可配置化）
+# 审核子代理复验报告 — 任务 L（EndpointAddr 未附加 relay URL 跨网段连接缺陷修复）
 
 - 审核时间: 2026-08-16（本地时区 +0800）
-- worktree: `D:/Projects/CardMind/.worktrees/relay-config`（分支 `codex/relay-config`，HEAD `4732f85b`）
-- 审核方式: 独立实机复验（所有验收命令重新实跑，未照抄 executor 报告）
-- 任务单: 主代理任务单（relay 可配置化，relay.txt 可选配置，默认仅局域网）
+- 审核人: reviewer 子代理（独立复验，未修改任何代码）
+- worktree: `D:/Projects/CardMind/.worktrees/relay-connect-fix`（分支 `codex/relay-connect-fix`，HEAD `9eb1a6ba`）
+- 任务单: 任务 L（跨网段连接缺陷——EndpointAddr 未附加 relay URL）
+- 执行子代理报告: `.workflow/executor-report.md`（已逐条核对）
 
 ---
 
-## 结论：PASS
-
-全部 10 条验收标准实机复验通过；无 BLOCKER / MAJOR 问题；MINOR/NIT 见问题清单（均不阻塞）。
+## 结论：PASS（全部 8 条验收复验通过；无 BLOCKER / MAJOR；1 条复验副作用备注，非代码问题）
 
 ---
 
-## 一、验收标准逐条复验（1-10）
+## 一、验收标准逐条独立复验
 
-### 验收 1 — test_no_relay_file_disables_relay
+### 验收 0 — 缺陷回归（红阶段复现 + 修复后转绿）
 
-**命令**: cargo test --test relay_config_test -- --nocapture（rust-backend/ 下）
-**真实输出**（节选）:
+**复验方式**：reviewer 纪律禁止回退代码，无法独立重跑红阶段；改为审查 executor 报告中红阶段证据（第 45-63 行）与任务单背景的一致性，并以修复后实机转绿（验收 5）反证。
+
+**红阶段证据审查**：
+- executor 报告修复前（git stash 后）实机输出：`connect to confirmer / Caused by: 0: No addressing information available / 1: No addressing information available / 2: All address lookup services failed or produced no results / Service 'dns' failed: no calls succeeded: [Failed to resolve TXT record x7]`，且进程挂死（60s+ 不退出，timeout 200s 强杀 exit 143）。
+- 与任务单背景（Hermes 实机验证）错误链逐段一致：`No addressing information available` + `Service 'dns' failed: Failed to resolve TXT record` + 挂死现象。证据可信、时间线合理。
+- 修复后转绿：本次独立实机复验确认（见验收 5，真实输出 3.45s 全绿）。
+
+**结论：PASS**（红阶段证据与背景一致、可信；修复后转绿独立确认）
+
+### 验收 1 — `test_endpoint_addr_carries_relay_url` ✅ PASS
+
+**命令**：`cargo test --test relay_config_test`（rust-backend/ 下，worktree 内）
+**真实输出**：
 ```
-running 5 tests
+running 7 tests
 test test_invalid_relay_url_fails_fast ... ok
 test test_memory_service_never_reads_relay_file ... ok
-test test_empty_relay_file_disables ... ok
+test test_endpoint_addr_no_relay_stays_dns_only ... ok
 test test_no_relay_file_disables_relay ... ok
+test test_empty_relay_file_disables ... ok
 test test_relay_file_enables_custom_mode ... ok
-
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+test test_endpoint_addr_carries_relay_url ... ok
+test result: ok. 7 passed; 0 failed
 ```
-**断言强度核实**（实读 rust-backend/tests/relay_config_test.rs L33-47）: 临时目录（std::env::temp_dir()/cardmind-relay-no-file-<pid>）不写 relay.txt -> new_persistent(&dir) 后 assert_eq!(*svc.relay_mode(), iroh::RelayMode::Disabled)。非恒真断言（若实现错误返回 Default/其他会失败）。**PASS**
+**断言合理性核查**（读测试代码 relay_config_test.rs:116-139）：写入 `RELAY_URL` 到 relay.txt → `new_persistent`（Custom）→ `build_connect_addr(node_id, &[])` → 断言 `addr.relay_urls()` 恰好 1 个且与 relay.txt 内容一致（`trim_end_matches('/')` 容差）。真实覆盖"有 relay 时地址含 relay URL"语义。
 
-### 验收 2 — test_relay_file_enables_custom_mode
+### 验收 2 — `test_endpoint_addr_no_relay_stays_dns_only` ✅ PASS
 
-**真实输出**: test test_relay_file_enables_custom_mode ... ok
-**断言强度核实**（L51-67）: 写 https://relay.alexc.cn:9443 -> custom_urls() 提取 RelayMode::Custom(map) 的 map.urls()（实机核实 iroh-relay-1.0.2 relay_map.rs:83 pub fn urls<T>(&self) -> T），断言 len == 1 且 urls[0].trim_end_matches("/") == RELAY_URL（处理 url::Url 规范化尾部 /）。非恒真。**PASS**
+**命令**：同上（7 passed，含本用例）
+**断言合理性核查**（relay_config_test.rs:144-171）：不写 relay.txt → Disabled → 空 ips 地址 `relay_urls()` 为空（DNS-only 不变）；ips 非空直连路径同样不含 relay URL（行为不变）。真实覆盖"无 relay 时行为不变"语义。
 
-### 验收 3 — test_invalid_relay_url_fails_fast
+### 验收 3 — `live_pairing_and_sync_over_dogcloud_relay` ✅ PASS（实机，见验收 5）
 
-**真实输出**: test test_invalid_relay_url_fails_fast ... ok
-**断言强度核实**（L71-87）: 写 not-a-url -> match 分支 Ok 则 panic、Err 才继续 -> assert!(err.to_string().contains("relay"))。fail fast 语义（返回 Err 而非静默忽略/panic）被强断言。错误信息含 invalid relay URL in ...（sync.rs L1415 with_context 核实）。**PASS**
+### 验收 4 — `cd rust-backend && cargo test` 全绿 ✅ PASS
 
-### 验收 4 — test_empty_relay_file_disables
-
-**真实输出**: test test_empty_relay_file_disables ... ok
-**断言强度核实**（L91-105）: 空文件 -> assert_eq!(*svc.relay_mode(), iroh::RelayMode::Disabled)。实现 content.trim().is_empty()（sync.rs L1412）——空白内容同样视为空 -> Disabled，符合空内容 -> Disabled 语义。**PASS**
-
-### 验收 5 — test_memory_service_never_reads_relay_file
-
-**真实输出**: test test_memory_service_never_reads_relay_file ... ok
-**断言强度核实**（L109-120）: 内存版 new() -> assert_eq!(*svc.relay_mode(), iroh::RelayMode::Disabled)。实读实现: new()（sync.rs L178-181）直接 RelayMode::Disabled，**不调用 load_relay_mode、不触碰文件系统**——隔离性成立（代码路径核实，非仅靠测试名）。**PASS**
-
-### 验收 6 — cd rust-backend && cargo test 全绿（68 = 63 + 5）
-
-**命令**: cargo test（rust-backend/ 下）
-**真实输出**（各测试文件 test result 汇总）:
+**命令**：`cargo test`（rust-backend/ 下）
+**真实输出汇总**：
 ```
-lib unittests:     0 passed
-autosync_test:     8 passed
-connect_test:      7 passed   <- 含 test_relay_mode_disabled_by_default 与 test_relay_cross_network_connect
-discovery_test:    2 passed
-integration_test:  2 passed
-migration_test:    2 passed
-note_crdt_test:   10 passed
-pairing_test:      7 passed
-relay_config_test: 5 passed   <- 新增 5
-store_test:        6 passed
-sync_service_test: 5 passed
-sync_test:         1 passed
-trash_test:       13 passed
-Doc-tests:         0
------------------------------
-合计 68 passed; 0 failed
+autosync_test.rs      8 passed
+connect_test.rs       7 passed
+discovery_test.rs     2 passed
+integration_test.rs   2 passed
+live_relay_test.rs    0 passed; 1 ignored   ← #[ignore] 不参与默认
+migration_test.rs     2 passed
+note_crdt_test.rs    10 passed
+pairing_test.rs       7 passed
+relay_config_test.rs  7 passed
+store_test.rs         6 passed
+sync_service_test.rs  5 passed
+sync_test.rs          1 passed
+trash_test.rs        13 passed
 ```
-与 executor 报告（68 = 63 原 + 5 新增）一致。connect_test 7 passed 含调整后的 test_relay_mode_disabled_by_default（新契约: 内存版 == Disabled）与未动的 test_relay_cross_network_connect。**PASS**
+**合计 70 passed, 0 failed, 1 ignored**（原 68 + 新增 2；live 正确 ignore）。与 executor 声称一致。
 
-### 验收 7 — flutter pub get && flutter test 全绿（73 不回归）
+### 验收 5 — `cargo test --test live_relay_test -- --ignored --nocapture` 实机 ✅ PASS
 
-**命令**: export PUB_HOSTED_URL=https://pub.flutter-io.cn && flutter pub get 后 flutter test
-**真实输出**:
+**命令**：`cargo test --test live_relay_test -- --ignored --nocapture`（rust-backend/ 下）
+**真实输出**：
 ```
-flutter pub get: Got dependencies!
-flutter test: 00:12 +73: All tests passed!
+running 1 test
+[live] confirmer id: 3be716f27569c630d630a59246010a98cffbcd2c5cdd53da2642022b7a584e40
+[live] initiator id: b6b4c389d8af1d5fe96f27a7532fcdb72c3d509d793944650fe734a84adba306
+[live] pairing code: 777683
+[live] paired: 3be716f27569c630d630a59246010a98cffbcd2c5cdd53da2642022b7a584e40 <-> b6b4c389d8af1d5fe96f27a7532fcdb72c3d509d793944650fe734a84adba306
+[live] ✅ 配对 + 首次同步经 dogcloud relay 全链路成功
+test live_pairing_and_sync_over_dogcloud_relay ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.45s
 ```
-73/73 全绿。FRB 相关测试（api_integration / frb_note_repository / pairing_repository / sync_scheduler）正常加载 dll（rust-backend/target/release/cardmind_backend.dll 审核前已存在，22MB，executor 曾 build --release）。**PASS**
+**实机判定**：经真实 dogcloud relay（relay.alexc.cn:9443，两端各带 relay.txt）完成 配对 → 双方持久化对端 → 首次全量同步（发起方收到 n1）→ 3.45s 正常退出，无挂死。**最重要的实机复验通过**。
 
-### 验收 8 — flutter analyze 无 error
+### 验收 6 — `flutter test` 全绿（73 不回归） ✅ PASS
 
-**命令**: flutter analyze
-**真实输出**:
+**命令**：`flutter test`（worktree 根）
+**真实输出**：`00:14 +73: All tests passed!`
+未回归（73 = 任务单要求）。dll 已由 executor 的 release 构建就位，本次直接全绿。
+
+### 验收 7 — `flutter analyze` 无 error ✅ PASS
+
+**命令**：`flutter analyze`（worktree 根）
+**真实输出**：`No issues found! (ran in 18.5s)`
+
+### 验收 8 — `git status` 改动全在范围内 ✅ PASS（附复验副作用备注）
+
+**命令**：`git status --short`、`git diff --stat codex/knowledge-base`（worktree 内）
+**executor 改动（4 个文件，全在范围内）**：
 ```
-Analyzing relay-config...
-No issues found! (ran in 14.7s)
-```
-**PASS**
-
-### 验收 9 — flutter_rust_bridge_codegen generate 幂等
-
-**命令**: flutter_rust_bridge_codegen generate
-**真实输出**:
-```
-[INFO ...fvm.rs:18] Has .fvmrc but no fvm binary installation, thus skip using fvm.
-[INFO ...lifetimeable.rs:52] To handle some types, enable_lifetime: true may need to be set...
-Done!
-```
-**生成物一致性核查**: codegen 后 git status 显示 lib/src/rust/*.dart（8 个）与 rust-backend/src/frb_generated.rs 标脏，但逐一执行 git diff --ignore-cr-at-eol 检查全部生成文件（api.dart / discovery.dart / frb_generated.dart / frb_generated.io.dart / frb_generated.web.dart / store.dart / sync.dart / frb_generated.rs）——**diff 输出为空（0 增 0 删）**，仅 Windows 行尾 LF/CRLF 字节 churn，无任何内容级差异、无新 API 出现。行尾噪声文件已按任务单允许 git checkout -- 恢复。**PASS**
-
-### 验收 10 — git status 改动全在范围内
-
-**审核结束时实测 git status --porcelain=v1 --untracked-files=all**:
-```
- M .workflow/executor-report.md
+ M .workflow/executor-report.md        （任务指定报告路径）
  M rust-backend/src/sync.rs
- M rust-backend/tests/connect_test.rs
-?? rust-backend/tests/relay_config_test.rs
+ M rust-backend/tests/live_relay_test.rs
+ M rust-backend/tests/relay_config_test.rs
 ```
-全部落在任务单改动范围内（sync.rs / tests/ + 报告文件）。git diff .gitignore 为空（零改动）。未触碰 docs/、prototype/、lib/pages/、lib/bridge/（Flutter 侧零改动，符合设计 3 预研签名未变 -> 零改动）。**PASS**
+未动 `lib/`、`docs/`、`prototype/`、`.gitignore`。**范围核查 PASS**。
+
+**⚠️ 复验副作用备注（非 executor 引入，需主代理/executor 处理）**：
+本次复验执行 `flutter analyze`/`flutter test` 时触发 pub get（analyze 输出 `Changed 115 dependencies!`），在 worktree 工作区额外产生 7 个未提交改动：
+```
+ M pubspec.lock                            （pub 源 URL：pub.flutter-io.cn → pub.dev）
+ M linux/flutter/generated_plugin_registrant.cc/.h  （无内容差异，仅重新生成/CRLF）
+ M linux/flutter/generated_plugins.cmake
+ M windows/flutter/generated_plugin_registrant.cc/.h
+ M windows/flutter/generated_plugins.cmake
+```
+其中 6 个生成文件 `git diff` 无内容差异（纯重新生成/行尾），pubspec.lock 仅 URL 源替换。**这是 reviewer 复验动作的环境副作用，不属于 executor 的代码改动**（executor 报告第 147 行已声明其完成时已 `git checkout` 恢复同类文件）。reviewer 纪律禁止修改文件，无法自行恢复——请主代理安排 executor 在合并前 `git checkout` 恢复这 7 个文件。
 
 ---
 
-## 二、设计核对（设计 1-4 逐条）
+## 二、代码审查结论（sync.rs diff，对照 codex/knowledge-base）
 
-| 设计条目 | 结论 | 证据 |
-|---------|------|------|
-| 1. 配置来源: 数据目录下 relay.txt，单行 URL；无文件 = 不启用；内存版 new() 恒 Disabled | PASS | sync.rs new() L178-181 直接 RelayMode::Disabled；load_relay_mode(None) 分支 L1402-1404 也恒 Disabled；测试用系统 Temp 目录（std::env::temp_dir()/cardmind-relay-*），主仓库数据目录不生成 relay.txt（worktree 根与主仓库根均实测无 relay.txt） |
-| 2. new_persistent 读 relay.txt: 无文件/空 -> Disabled；有 URL -> Custom；解析失败 -> Err（fail fast）；relay_mode() getter 保留 | PASS | sync.rs new_persistent L222 let relay_mode = load_relay_mode(data_dir.as_deref())?; 传播 Err；load_relay_mode L1401-1419: exists 检查 -> read_to_string（with_context）-> trim 空检查 -> url_str.parse().with_context(...) -> RelayMode::custom([url])；getter L307-309 保留。数据目录 = path.parent()（与 device.key 同目录，load_or_create_secret_key(data_dir.as_deref()) 同源） |
-| 3. FRB: 不加新 API；new_persistent 签名不变 -> 无需重新 codegen | PASS | api.rs create_persistent_sync_service(path: String)（L14-16）未改动；lib/bridge/frb_note_repository.dart:37 调用 createPersistentSyncService(path: dataDirectory) 未变；验收 9 实测 codegen 幂等 |
-| 4. 测试环境 relay.txt 隔离 | PASS | 新增测试全部使用 std::env::temp_dir()/cardmind-relay-<label>-<pid> 临时目录，结束后 remove_dir_all；实测系统 Temp 残留的 cardmind-relay-* 目录均为测试临时产物，主仓库/数据目录无 relay.txt |
-
-**决策点核对**:
-1. RelayMode::custom(impl IntoIterator<Item = RelayUrl>) — 实机核实 iroh-1.0.2/src/endpoint.rs:1960 存在，无额外参数，与预研结论一致 PASS
-2. test_relay_cross_network_connect 不受影响 — 实读全函数（L238-299）: 自建 endpoint（Endpoint::builder(presets::Minimal)）+ 本地 run_relay_server，**不使用 SyncService**，未被 mock/删除/跳过，实跑 ok PASS；test_relay_mode_enabled -> test_relay_mode_disabled_by_default 调整（断言旧契约内存版 != Disabled 改为新契约内存版 == Disabled），与任务单需决策点 2 完全一致 PASS
-3. relay.txt 与现有数据文件（device.key / cardmind.loro / cardmind.db）无命名冲突 — 实读 new_persistent 数据目录文件逻辑，无冲突 PASS
+1. **核心修复正确**：新增 `SyncService::build_connect_addr(node_id, ips)`（sync.rs:604-627）：
+   - 空 ips → `EndpointAddr::new(node_id)`，有 relay 配置（Custom）时 `with_relay_url(首个 URL)`；无 relay（Disabled，`relay_map().urls()` 空）时不附加 → **行为不变**。✅
+   - ips 非空 → `EndpointAddr::from_parts` 直连路径，**原样保留**（含"无效 IP 报错"逻辑）。✅
+   - 错误消息统一为 `no valid IPs provided`（原 `no valid target/peer IPs provided`；已 grep 确认无测试断言旧消息，行为兼容）。✅
+2. **三处调用点全覆盖**（grep `EndpointAddr::new` 确认 sync.rs 中仅 helper 内部 610 行一处直接构造）：
+   - `begin_pairing_connect`（sync.rs:644，原 612）✅
+   - `push_to_peer`（sync.rs:1033，原 1015）✅
+   - `push_to_peer_once`（sync.rs:1120，原 1125，自动同步内部路径——任务单未列出但属同一缺陷第三实例，executor 一并修复合理）✅
+3. **relay_map API 形态**（需决策点 1）：未触发，且被实机证据支持——编译通过 + 单测 `test_endpoint_addr_carries_relay_url` 证明 Custom（relay.txt）下 `relay_map().urls()` 非空、`Disabled` 下为空且安全（不 panic）。executor 声称已在 iroh 1.0.2 源码核实，与其代码注释一致。
+4. **live_relay_test.rs 挂死修复核查**（验收标准 2 要求）：
+   - confirmer 侧 `accept_pairing_request`+`confirm_pairing` 用 `tokio::time::timeout(Duration::from_secs(120), ...)` 包裹，超时 panic 输出诊断（live_relay_test.rs:63-79）✅
+   - 测试结束 `remove_dir_all` 清理临时目录（live_relay_test.rs:143-144）✅
+   - `accept_push` 结果 `import_all` 导入（live_relay_test.rs:93-99）：修复测试自身逻辑缺陷（此前 `let _` 丢弃），实机全绿证明正确且必要。✅
+5. **范围核查**：`git diff --stat codex/knowledge-base` 仅 4 个任务内文件 + 报告文件，无越界改动。`cargo clippy --all-targets` 无警告（本次复验实跑确认）。
+6. **需决策点 2/3**：executor 报告称决策点 2 曾触发（配对成功但同步断言失败），根因为测试自身 `accept_push` 未 import，修复后全绿——与本次实机全绿一致；决策点 3（挂死根因）与红阶段证据吻合。未发现 mock 绕过。✅
 
 ---
 
 ## 三、问题清单
 
-### 无 BLOCKER / MAJOR 问题
+| # | 级别 | 位置 / 证据 | 说明 |
+|---|------|-------------|------|
+| 1 | INFO（复验副作用，非代码问题） | worktree 工作区：`pubspec.lock` + `linux/flutter/` x3 + `windows/flutter/` x3 | 本次复验 flutter analyze/test 触发 pub get 产生的未提交改动，非 executor 引入。reviewer 不能修改文件，请主代理/executor 合并前 `git checkout` 恢复 |
+| 2 | INFO | `build_connect_addr` 错误消息统一为 `no valid IPs provided` | 与任务单字面"行为不变"无冲突（grep 确认无测试断言旧消息）；记录供追溯 |
 
-### MINOR（不阻塞，供后续迭代参考）
-
-- **MINOR-1（配对请求 relay_info 行为变化）**: begin_pairing_connect（sync.rs L624）用 self.relay_mode.relay_map().urls() 构造 PairingRequest.relay_info。Disabled 下 relay_map() 返回 RelayMap::empty()（iroh endpoint.rs:1940 实机核实），relay_info 为空字符串——协议兼容（信息性字段），不影响配对；但 relay-only 跨网段 + Disabled 默认的客户配对时 relay_info 为空是预期的（他们需配 relay.txt）。属设计语义，非缺陷，仅提示。
-
-### NIT（非阻塞）
-
-- **NIT-1（测试名与断言微偏差）**: test_memory_service_never_reads_relay_file 名称暗示验证不读文件，但断言只检查 new() 后 Disabled（无法直接证明没读文件）。隔离性靠实现（new() 不调 load_relay_mode）成立，测试名语义可接受；若要更强可改为在带 relay.txt 的目录旁调用 new() 仍 Disabled（需改 API 或加注入点，本任务无必要）。
-- **NIT-2（测试临时目录并发残留）**: temp_dir() 用 PID 命名且测试结束时清理；但系统 Temp 中存在历史残留的 cardmind-relay-* 目录（多次运行 PID 不同导致旧目录未清）。不影响正确性（每次运行先 remove_dir_all 再建），无实际风险。
-- **NIT-3（审核副作用已还原）**: 审核人实机跑 flutter pub get / codegen 产生的 pubspec.lock URL 源变更、plugin registrant 重写、codegen 行尾 churn 等环境副作用均已 git checkout -- 还原，最终 git status 与 executor 交付状态一致（见验收 9/10）。
+**无 BLOCKER / MAJOR / MINOR 代码问题。** 全部 8 条验收标准复验通过。
 
 ---
 
-## 四、Executor 报告真实性核对
+## 四、审核方式说明
 
-逐条实机复现 executor 报告（.workflow/executor-report.md）的所有验证结论:
-- 验收 1-5: relay_config_test 5 用例实跑全绿 一致
-- 验收 6: cargo test 68 全绿、connect_test 7 passed（含 test_relay_mode_disabled_by_default 与 test_relay_cross_network_connect）一致
-- 验收 7: flutter test 73/73 一致
-- 验收 8: flutter analyze 无 issue 一致
-- 验收 9: codegen 幂等（生成文件仅行尾噪声、无实质 diff、无新 API）一致
-- 验收 10: git status 改动范围一致 一致
-- 实现要点（load_relay_mode 语义、data_dir = path 父目录、只读不写、begin_pairing_connect 兼容）均与源码实读一致
-- Executor 报告未决问题 2（URL 规范化尾部 /）——已在测试断言中正确用 trim_end_matches("/") 处理，非缺陷
+- 全部 Rust/Flutter 命令在 worktree `D:/Projects/CardMind/.worktrees/relay-connect-fix` 内独立实跑（未照抄 executor 报告）。
+- reviewer 未修改任何代码/文件（写入本报告除外）；红阶段因纪律未回退复现，采用证据审查 + 修复后转绿反证。
+- 主仓库 `D:/Projects/CardMind` 未受影响（其工作区 pre-existing 改动与本任务无关，本次审核未触碰）。

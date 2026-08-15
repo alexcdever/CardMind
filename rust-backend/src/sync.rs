@@ -593,6 +593,39 @@ impl SyncService {
         })
     }
 
+    /// 构建连接目标地址（任务 L：跨网段连接缺陷修复）。
+    ///
+    /// - `ips` 非空 → 直连优先（确定性）：解析为 `TransportAddr::Ip`，行为不变。
+    /// - `ips` 为空 → 仅凭 node id；若配置了 relay（任务 K `relay.txt` → Custom），
+    ///   附加第一个 relay URL，使 iroh 经 relay 服务器的地址映射找到对端
+    ///   （跨网段不依赖 n0 公共 DNS TXT 地址解析——中国大陆不可达）。
+    ///   无 relay 配置（Disabled，`relay_map().urls()` 为空）→ 不附加，维持原有
+    ///   DNS 地址解析路径，行为不变（局域网 mDNS/直连场景不受影响）。
+    pub fn build_connect_addr(
+        &self,
+        node_id: iroh::EndpointId,
+        ips: &[String],
+    ) -> Result<EndpointAddr> {
+        if ips.is_empty() {
+            let mut addr = EndpointAddr::new(node_id);
+            let urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
+            if let Some(u) = urls.into_iter().next() {
+                addr = addr.with_relay_url(u);
+            }
+            Ok(addr)
+        } else {
+            let ips: Vec<TransportAddr> = ips
+                .iter()
+                .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
+                .map(TransportAddr::Ip)
+                .collect();
+            if ips.is_empty() {
+                anyhow::bail!("no valid IPs provided");
+            }
+            Ok(EndpointAddr::from_parts(node_id, ips))
+        }
+    }
+
     /// 发起方：连接确认方，发送配对请求，等待握手响应；成功后 upsert 确认方。
     ///
     /// `target` 由 mDNS 发现提供（同网段面对面配对）：device_id + ip:port 列表。
@@ -608,20 +641,7 @@ impl SyncService {
             .device_id
             .parse()
             .context("invalid target endpoint id")?;
-        let addr = if target.ips.is_empty() {
-            EndpointAddr::new(node_id)
-        } else {
-            let ips: Vec<TransportAddr> = target
-                .ips
-                .iter()
-                .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
-                .map(TransportAddr::Ip)
-                .collect();
-            if ips.is_empty() {
-                anyhow::bail!("no valid target IPs provided");
-            }
-            EndpointAddr::from_parts(node_id, ips)
-        };
+        let addr = self.build_connect_addr(node_id, &target.ips)?;
 
         // 发起方请求：本机身份 + relay 信息（N0 preset 已自动发布地址到 n0 DNS）
         let relay_urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
@@ -1010,20 +1030,7 @@ impl SyncService {
     pub async fn push_to_peer(&self, peer_id: &str, peer_ips: Vec<String>) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
 
-        let addr = if peer_ips.is_empty() {
-            // 无直连地址：交给 iroh 经 relay/地址解析（EndpointAddr::new 仅有 node id）
-            EndpointAddr::new(node_id)
-        } else {
-            let ips: Vec<TransportAddr> = peer_ips
-                .iter()
-                .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
-                .map(TransportAddr::Ip)
-                .collect();
-            if ips.is_empty() {
-                anyhow::bail!("no valid peer IPs provided");
-            }
-            EndpointAddr::from_parts(node_id, ips)
-        };
+        let addr = self.build_connect_addr(node_id, &peer_ips)?;
 
         let data = self.export_all()?;
         // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧，
@@ -1110,20 +1117,7 @@ impl SyncService {
         data: &[u8],
     ) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
-        let addr = match peer_ips {
-            Some(ips) if !ips.is_empty() => {
-                let ips: Vec<TransportAddr> = ips
-                    .iter()
-                    .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
-                    .map(TransportAddr::Ip)
-                    .collect();
-                if ips.is_empty() {
-                    anyhow::bail!("no valid peer IPs provided");
-                }
-                EndpointAddr::from_parts(node_id, ips)
-            }
-            _ => EndpointAddr::new(node_id),
-        };
+        let addr = self.build_connect_addr(node_id, peer_ips.unwrap_or(&[]))?;
 
         let conn = self
             .endpoint

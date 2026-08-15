@@ -103,6 +103,73 @@ fn test_empty_relay_file_disables() {
     });
 }
 
+// ━━━ 任务 L 验收 1/2：地址构建附加 relay URL ━━━
+
+/// 从 EndpointAddr 提取 relay URL 列表（空 = 纯 node id，走 DNS 地址解析）
+fn addr_relay_urls(addr: &iroh::EndpointAddr) -> Vec<String> {
+    addr.relay_urls().map(|u| u.to_string()).collect()
+}
+
+/// 验收 1：relay.txt 存在（Custom 模式）时，空 ips 构建的连接地址必须携带 relay URL
+///（跨网段经 relay 地址映射找到对端，不依赖 n0 DNS TXT）。
+#[test]
+fn test_endpoint_addr_carries_relay_url() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("carry-relay");
+        std::fs::write(dir.join("relay.txt"), RELAY_URL).unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
+        let node_id: iroh::EndpointId = svc.device_id().parse().unwrap();
+        let addr = svc
+            .build_connect_addr(node_id, &[])
+            .expect("build connect addr (empty ips)");
+        let urls = addr_relay_urls(&addr);
+        assert_eq!(
+            urls.len(),
+            1,
+            "relay.txt 存在时空 ips 地址应恰好含 1 个 relay URL（实际: {urls:?}）"
+        );
+        assert_eq!(
+            urls[0].trim_end_matches('/'),
+            RELAY_URL,
+            "附加的 relay URL 应与 relay.txt 内容一致"
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    });
+}
+
+/// 验收 2：无 relay.txt（Disabled 模式）时地址不含 relay URL，行为不变——
+/// 仍走原有 node id + DNS 地址解析路径（局域网 mDNS/直连场景不受影响）。
+#[test]
+fn test_endpoint_addr_no_relay_stays_dns_only() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("no-relay-addr");
+        // 不写 relay.txt → Disabled
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
+        let node_id: iroh::EndpointId = svc.device_id().parse().unwrap();
+        // 空 ips：无 relay 配置 → 纯 node id（DNS-only）
+        let addr = svc
+            .build_connect_addr(node_id, &[])
+            .expect("build connect addr (empty ips)");
+        let urls = addr_relay_urls(&addr);
+        assert!(
+            urls.is_empty(),
+            "无 relay.txt 时空 ips 地址不应含 relay URL（保持 DNS-only）"
+        );
+        // ips 非空：直连路径，同样不附加 relay（行为不变）
+        let addr = svc
+            .build_connect_addr(node_id, &["127.0.0.1:5000".to_string()])
+            .expect("build connect addr (with ips)");
+        let urls = addr_relay_urls(&addr);
+        assert!(
+            urls.is_empty(),
+            "ips 非空直连路径不应附加 relay URL（行为不变）"
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    });
+}
+
 // ━━━ 验收 5：内存版 new() 永远 Disabled（隔离性）━━━
 
 #[test]
