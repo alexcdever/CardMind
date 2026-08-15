@@ -103,6 +103,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  PairingRequest dco_decode_box_autoadd_pairing_request(dynamic raw);
+
+  @protected
+  PairingTarget dco_decode_box_autoadd_pairing_target(dynamic raw);
+
+  @protected
   DevicePushResult dco_decode_device_push_result(dynamic raw);
 
   @protected
@@ -148,6 +154,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PairedDeviceRow dco_decode_paired_device_row(dynamic raw);
+
+  @protected
+  PairingRequest dco_decode_pairing_request(dynamic raw);
+
+  @protected
+  PairingResult dco_decode_pairing_result(dynamic raw);
+
+  @protected
+  PairingTarget dco_decode_pairing_target(dynamic raw);
 
   @protected
   PeerInfo dco_decode_peer_info(dynamic raw);
@@ -237,6 +252,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  PairingRequest sse_decode_box_autoadd_pairing_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PairingTarget sse_decode_box_autoadd_pairing_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DevicePushResult sse_decode_device_push_result(SseDeserializer deserializer);
 
   @protected
@@ -286,6 +311,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PairedDeviceRow sse_decode_paired_device_row(SseDeserializer deserializer);
+
+  @protected
+  PairingRequest sse_decode_pairing_request(SseDeserializer deserializer);
+
+  @protected
+  PairingResult sse_decode_pairing_result(SseDeserializer deserializer);
+
+  @protected
+  PairingTarget sse_decode_pairing_target(SseDeserializer deserializer);
 
   @protected
   PeerInfo sse_decode_peer_info(SseDeserializer deserializer);
@@ -393,6 +427,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_pairing_request(
+    PairingRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_pairing_target(
+    PairingTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_device_push_result(
     DevicePushResult self,
     SseSerializer serializer,
@@ -454,6 +500,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     PairedDeviceRow self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_pairing_request(
+    PairingRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pairing_result(PairingResult self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pairing_target(PairingTarget self, SseSerializer serializer);
 
   @protected
   void sse_encode_peer_info(PeerInfo self, SseSerializer serializer);

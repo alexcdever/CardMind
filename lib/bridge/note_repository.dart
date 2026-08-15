@@ -1,4 +1,5 @@
 import '../src/rust/store.dart';
+import '../src/rust/sync.dart';
 
 /// 笔记仓库抽象：UI 层通过它访问 Rust 后端。
 ///
@@ -50,4 +51,41 @@ abstract interface class NoteRepository {
 
   /// 回收站列表（按删除时间倒序）。
   Future<List<NoteRow>> trashList();
+
+  // ━━ 配对（任务 G）━━
+
+  /// 本设备 iroh 身份 ID（device.key 持久化，跨重启稳定）。
+  Future<String> deviceId();
+
+  /// 本设备名（配对握手时发送给对端）。
+  Future<String> deviceName();
+
+  /// 设置本设备名。
+  Future<void> setDeviceName(String name);
+
+  /// 本端点当前绑定的 IPv4 地址列表（"ip:port"，配对目标 / 直连推送用）。
+  Future<List<String>> localAddrs();
+
+  /// 确认方：生成 6 位数字配对码（密码学随机，10 分钟有效）。
+  Future<String> beginPairingAccept();
+
+  /// 确认方：阻塞接收发起方的配对请求（等待发起方连接；阻塞期间不可并发调用
+  /// 本 SyncService 的其它方法）。
+  Future<PairingRequest> acceptPairingRequest();
+
+  /// 确认方：校验配对码并完成配对——upsert 发起方、回复握手响应、
+  /// 自动向发起方推送全量快照（决策 8）。返回发起方身份。
+  Future<PairingResult> confirmPairing(String code, PairingRequest requester);
+
+  /// 发起方：连接确认方发送配对请求，接收握手响应并 upsert 确认方。返回确认方身份。
+  Future<PairingResult> beginPairingConnect(String code, PairingTarget target);
+
+  /// 发起方：接受确认方推送的全量快照并导入（首次全量同步接收端）。
+  Future<void> acceptAndImportPush();
+
+  /// 已配对设备列表（最近连接优先）。
+  Future<List<PairedDeviceRow>> listPairedDevices();
+
+  /// 解除配对（只断开连接，不删除任何笔记）。
+  Future<void> removePairedDevice(String peerId);
 }

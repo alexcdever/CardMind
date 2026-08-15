@@ -1,6 +1,8 @@
 use crate::discovery::{DiscoveryService, PeerInfo};
 use crate::store::{LinkRow, NoteRow, NoteStore, PairedDeviceRow};
-use crate::sync::{DevicePushResult, NoteCrdt, SyncService};
+use crate::sync::{
+    DevicePushResult, NoteCrdt, PairingRequest, PairingResult, PairingTarget, SyncService,
+};
 
 /// 创建同步服务
 pub async fn create_sync_service() -> anyhow::Result<SyncService> {
@@ -15,6 +17,57 @@ pub async fn create_persistent_sync_service(path: String) -> anyhow::Result<Sync
 /// 获取本设备 iroh 身份 ID（SecretKey 持久化后跨重启稳定）。
 pub fn get_device_id(svc: &SyncService) -> String {
     svc.device_id()
+}
+
+/// 获取本设备名（配对握手时发送给对端）。
+pub fn get_device_name(svc: &SyncService) -> String {
+    svc.device_name()
+}
+
+/// 设置本设备名。
+pub fn set_device_name(svc: &SyncService, name: String) {
+    svc.set_device_name(&name);
+}
+
+/// 本端点当前绑定的 IPv4 地址列表（"ip:port"，配对目标/mDNS 广播用）。
+pub fn local_addrs(svc: &SyncService) -> Vec<String> {
+    svc.local_addrs()
+}
+
+/// 配对 — 确认方：生成 6 位数字配对码（密码学随机，10 分钟有效）。返回码。
+pub fn begin_pairing_accept(svc: &SyncService) -> anyhow::Result<String> {
+    svc.begin_pairing_accept()
+}
+
+/// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
+pub async fn accept_pairing_request(svc: &SyncService) -> anyhow::Result<PairingRequest> {
+    svc.accept_pairing_request().await
+}
+
+/// 配对 — 确认方：校验配对码并完成配对（upsert 发起方 + 回复握手 + 自动推送全量快照）。
+pub async fn confirm_pairing(
+    svc: &SyncService,
+    store: &NoteStore,
+    code: String,
+    requester: PairingRequest,
+) -> anyhow::Result<PairingResult> {
+    svc.confirm_pairing(store, &code, &requester).await
+}
+
+/// 配对 — 发起方：连接确认方发送配对请求，接收握手响应并 upsert 确认方。
+pub async fn begin_pairing_connect(
+    svc: &SyncService,
+    store: &NoteStore,
+    code: String,
+    target: PairingTarget,
+) -> anyhow::Result<PairingResult> {
+    svc.begin_pairing_connect(store, &code, target).await
+}
+
+/// 接受对端推送并导入（首次全量同步接收端；配对成功后发起方调用）。
+pub async fn accept_push_and_import(svc: &mut SyncService) -> anyhow::Result<()> {
+    let data = svc.accept_push().await?;
+    svc.import_all(&data)
 }
 
 /// 将所有 CRDT 笔记同步到 SQLite 存储

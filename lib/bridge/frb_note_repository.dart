@@ -163,6 +163,90 @@ final class FrbNoteRepository implements NoteRepository {
     return api.storeTrashList(store: _store);
   }
 
+  // ━━ 配对（任务 G）━━
+
+  @override
+  Future<String> deviceId() async {
+    _ensureOpen();
+    return api.getDeviceId(svc: _sync);
+  }
+
+  @override
+  Future<String> deviceName() async {
+    _ensureOpen();
+    return api.getDeviceName(svc: _sync);
+  }
+
+  @override
+  Future<void> setDeviceName(String name) async {
+    _ensureOpen();
+    await api.setDeviceName(svc: _sync, name: name);
+  }
+
+  @override
+  Future<List<String>> localAddrs() async {
+    _ensureOpen();
+    return api.localAddrs(svc: _sync);
+  }
+
+  @override
+  Future<String> beginPairingAccept() async {
+    _ensureOpen();
+    return api.beginPairingAccept(svc: _sync);
+  }
+
+  @override
+  Future<PairingRequest> acceptPairingRequest() async {
+    _ensureOpen();
+    return api.acceptPairingRequest(svc: _sync);
+  }
+
+  @override
+  Future<PairingResult> confirmPairing(
+    String code,
+    PairingRequest requester,
+  ) async {
+    _ensureOpen();
+    final result =
+        await api.confirmPairing(svc: _sync, store: _store, code: code, requester: requester);
+    // 配对后刷新投影（确认方 upsert 发起方后，设备列表由 listPairedDevices 直接读表）
+    return result;
+  }
+
+  @override
+  Future<PairingResult> beginPairingConnect(
+    String code,
+    PairingTarget target,
+  ) async {
+    _ensureOpen();
+    return api.beginPairingConnect(
+      svc: _sync,
+      store: _store,
+      code: code,
+      target: target,
+    );
+  }
+
+  @override
+  Future<void> acceptAndImportPush() async {
+    _ensureOpen();
+    await api.acceptPushAndImport(svc: _sync);
+    // 导入后刷新 SQLite 投影（新设备首次全量同步后立即可见）
+    await api.syncNotesToStore(svc: _sync, store: _store);
+  }
+
+  @override
+  Future<List<PairedDeviceRow>> listPairedDevices() async {
+    _ensureOpen();
+    return api.listPairedDevices(store: _store);
+  }
+
+  @override
+  Future<void> removePairedDevice(String peerId) async {
+    _ensureOpen();
+    await api.removePairedDevice(store: _store, peerId: peerId);
+  }
+
   void close() {
     if (_closed) return;
     _closed = true;

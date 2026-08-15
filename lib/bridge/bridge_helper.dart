@@ -1,6 +1,7 @@
 import 'package:path_provider/path_provider.dart';
 
 import '../src/rust/store.dart';
+import '../src/rust/sync.dart';
 import 'frb_note_repository.dart';
 import 'note_repository.dart';
 
@@ -171,5 +172,79 @@ class BridgeHelper implements NoteRepository {
   @override
   Future<List<NoteRow>> trashList() async {
     return _delegate.trashList();
+  }
+
+  // ━━ 配对（任务 G）━━
+
+  /// 本设备 iroh 身份 ID。
+  @override
+  Future<String> deviceId() async {
+    return _delegate.deviceId();
+  }
+
+  /// 本设备名。
+  @override
+  Future<String> deviceName() async {
+    return _delegate.deviceName();
+  }
+
+  /// 设置本设备名。
+  @override
+  Future<void> setDeviceName(String name) async {
+    await _delegate.setDeviceName(name);
+  }
+
+  /// 本端点本地 IPv4 地址（"ip:port"）。
+  @override
+  Future<List<String>> localAddrs() async {
+    return _delegate.localAddrs();
+  }
+
+  /// 确认方：生成 6 位配对码。
+  @override
+  Future<String> beginPairingAccept() async {
+    return _delegate.beginPairingAccept();
+  }
+
+  /// 确认方：阻塞接收发起方配对请求。
+  @override
+  Future<PairingRequest> acceptPairingRequest() async {
+    return _delegate.acceptPairingRequest();
+  }
+
+  /// 确认方：校验码并完成配对（自动推送全量快照）。
+  @override
+  Future<PairingResult> confirmPairing(
+    String code,
+    PairingRequest requester,
+  ) async {
+    return _delegate.confirmPairing(code, requester);
+  }
+
+  /// 发起方：连接确认方并完成配对（upsert 确认方）。
+  @override
+  Future<PairingResult> beginPairingConnect(
+    String code,
+    PairingTarget target,
+  ) async {
+    return _delegate.beginPairingConnect(code, target);
+  }
+
+  /// 发起方：接受并导入确认方推送的全量快照。
+  @override
+  Future<void> acceptAndImportPush() async {
+    await _delegate.acceptAndImportPush();
+  }
+
+  /// 已配对设备列表。
+  @override
+  Future<List<PairedDeviceRow>> listPairedDevices() async {
+    return _delegate.listPairedDevices();
+  }
+
+  /// 解除配对。
+  @override
+  Future<void> removePairedDevice(String peerId) async {
+    await _delegate.removePairedDevice(peerId);
   }
 }
