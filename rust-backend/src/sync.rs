@@ -22,7 +22,8 @@ pub struct SyncService {
     /// `sync_notes_to_store` 从 Loro 快照重建被删笔记（复活）。
     tombstones: HashSet<String>,
     endpoint: Endpoint,
-    /// 构造时使用的 relay 模式（当前配置：RelayMode::Default = iroh 官方公共 relay）
+    /// 构造时使用的 relay 模式（任务 K 配置化：默认 Disabled 仅局域网；
+    /// 持久化版读取 `<数据目录>/relay.txt` 可配置 Custom）
     relay_mode: RelayMode,
     persistent_path: Option<PathBuf>,
     /// 当前配对码会话（内存态；10 分钟有效，重启失效可接受——用户重新发起）
@@ -172,10 +173,12 @@ const PAIRING_FRAME_REQUEST: u8 = 0x01;
 const PAIRING_FRAME_RESPONSE: u8 = 0x02;
 
 impl SyncService {
-    /// 创建同步服务，绑定随机的 iroh 端点（内存版：SecretKey 随机，测试用）
+    /// 创建同步服务，绑定随机的 iroh 端点（内存版：SecretKey 随机，测试用）。
+    ///
+    /// 内存版 relay 固定 `RelayMode::Disabled`（任务 K：不读 relay.txt，测试隔离）。
     pub async fn new() -> Result<Self> {
         let key = load_or_create_secret_key(None)?;
-        let relay_mode = RelayMode::Default;
+        let relay_mode = RelayMode::Disabled;
         let endpoint = Endpoint::builder(presets::N0)
             .secret_key(key)
             .alpns(vec![ALPN.to_vec()])
@@ -204,6 +207,10 @@ impl SyncService {
     ///
     /// 设备身份持久化：在数据目录（path 父目录）加载/生成 `device.key`（32 字节
     /// hex），使 device_id 跨重启稳定。
+    ///
+    /// relay 配置（任务 K）：读取数据目录下的 `relay.txt`（单行 relay URL）。
+    /// 无文件/空内容 → `RelayMode::Disabled`（默认仅局域网，零配置）；有 URL →
+    /// `RelayMode::Custom`；URL 无效 → 返回 Err（fail fast，配置错误显式报错）。
     pub async fn new_persistent(path: impl AsRef<Path>) -> Result<Self> {
         let path = loro_path(path.as_ref());
         let data_dir = path.parent().map(Path::to_path_buf);
@@ -212,7 +219,7 @@ impl SyncService {
                 .with_context(|| format!("create data directory {}", parent.display()))?;
         }
         let key = load_or_create_secret_key(data_dir.as_deref())?;
-        let relay_mode = RelayMode::Default;
+        let relay_mode = load_relay_mode(data_dir.as_deref())?;
         let endpoint = Endpoint::builder(presets::N0)
             .secret_key(key)
             .alpns(vec![ALPN.to_vec()])
@@ -295,7 +302,8 @@ impl SyncService {
         self.endpoint.id().to_string()
     }
 
-    /// 构造时使用的 relay 模式（RelayMode::Default = 官方公共 relay，非 Disabled）
+    /// 构造时使用的 relay 模式（任务 K：默认 `Disabled` 仅局域网；
+    /// 持久化版经 `relay.txt` 可配置 `Custom`）
     pub fn relay_mode(&self) -> &RelayMode {
         &self.relay_mode
     }
@@ -1380,6 +1388,34 @@ fn loro_path(path: &Path) -> PathBuf {
     } else {
         path.join("cardmind.loro")
     }
+}
+
+/// 从数据目录读取 relay 配置（任务 K，`relay.txt` 极简配置）：
+///
+/// - 无文件 → `RelayMode::Disabled`（默认仅局域网，零配置）
+/// - 文件存在但内容为空（trim 后）→ `RelayMode::Disabled`
+/// - 内容为 relay URL → `RelayMode::Custom([url])`
+/// - URL 解析失败 → 返回 Err（fail fast：配置错误要显式，不静默忽略）
+///
+/// `data_dir = None`（内存版）→ 恒 `Disabled`（测试隔离，不读文件）。
+fn load_relay_mode(data_dir: Option<&Path>) -> Result<RelayMode> {
+    let Some(dir) = data_dir else {
+        return Ok(RelayMode::Disabled);
+    };
+    let relay_file = dir.join("relay.txt");
+    if !relay_file.exists() {
+        return Ok(RelayMode::Disabled);
+    }
+    let content = std::fs::read_to_string(&relay_file)
+        .with_context(|| format!("read relay config {}", relay_file.display()))?;
+    let url_str = content.trim();
+    if url_str.is_empty() {
+        return Ok(RelayMode::Disabled);
+    }
+    let url: iroh::RelayUrl = url_str
+        .parse()
+        .with_context(|| format!("invalid relay URL in {}: {url_str:?}", relay_file.display()))?;
+    Ok(RelayMode::custom([url]))
 }
 
 /// 加载或创建设备身份密钥。

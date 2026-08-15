@@ -4,7 +4,7 @@
 //! 3. 配对设备表 CRUD
 //! 4. 推送/接收全链路（直连或 relay）
 //! 5. 多设备推送部分失败语义
-//! 6. relay 模式启用（配置断言 + 本地 relay 行为验证）
+//! 6. relay 模式配置（任务 K：内存版 Disabled 断言 + 本地 relay 行为验证）
 
 use std::collections::HashMap;
 
@@ -213,17 +213,20 @@ fn test_push_multi_device_partial_failure() {
     });
 }
 
-// ━━━ 验收 6：relay 模式启用 ━━━
+// ━━━ 验收 6：relay 模式配置（任务 K）━━━
 
+/// 内存版 `new()` 的 relay 模式恒为 `Disabled`（任务 K 契约：默认仅局域网，
+/// 不读 relay.txt；relay 是可选配置，由 `new_persistent` 经数据目录 `relay.txt`
+/// 启用）。详细配置行为见 `relay_config_test.rs`。
 #[test]
-fn test_relay_mode_enabled() {
+fn test_relay_mode_disabled_by_default() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let svc = SyncService::new().await.unwrap();
-        assert_ne!(
+        assert_eq!(
             *svc.relay_mode(),
             iroh::RelayMode::Disabled,
-            "生产配置 relay_mode 应为官方公共 relay（RelayMode::Default），不得为 Disabled"
+            "任务 K：内存版 new() 默认 Disabled（仅局域网），relay 需显式配置"
         );
     });
 }
@@ -231,7 +234,7 @@ fn test_relay_mode_enabled() {
 /// 验收 6 行为补充：两个"跨网段"endpoint 仅凭对端 relay URL（无直连 IP）建立连接并传输数据。
 ///
 /// 使用本地 relay 服务器（iroh::test_utils::run_relay_server），不依赖公共 relay 的网络可达性，
-/// 验证本环境下 relay 打洞/中转路径可用 —— 支撑生产 RelayMode::Default 配置的可行性。
+/// 验证 relay 打洞/中转路径可用 —— 支撑任务 K 后 `RelayMode::Custom`（用户自建 relay）配置的可行性。
 #[test]
 fn test_relay_cross_network_connect() {
     use iroh::endpoint::presets;
