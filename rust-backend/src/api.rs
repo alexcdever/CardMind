@@ -1,6 +1,6 @@
 use crate::discovery::{DiscoveryService, PeerInfo};
-use crate::store::{LinkRow, NoteRow, NoteStore};
-use crate::sync::{NoteCrdt, SyncService};
+use crate::store::{LinkRow, NoteRow, NoteStore, PairedDeviceRow};
+use crate::sync::{DevicePushResult, NoteCrdt, SyncService};
 
 /// 创建同步服务
 pub async fn create_sync_service() -> anyhow::Result<SyncService> {
@@ -10,6 +10,11 @@ pub async fn create_sync_service() -> anyhow::Result<SyncService> {
 /// 创建绑定数据目录的持久化同步服务。
 pub async fn create_persistent_sync_service(path: String) -> anyhow::Result<SyncService> {
     SyncService::new_persistent(path).await
+}
+
+/// 获取本设备 iroh 身份 ID（SecretKey 持久化后跨重启稳定）。
+pub fn get_device_id(svc: &SyncService) -> String {
+    svc.device_id()
 }
 
 /// 将所有 CRDT 笔记同步到 SQLite 存储
@@ -57,6 +62,27 @@ pub async fn push_to_peer(
 /// 接受对端推送
 pub async fn accept_push(svc: &SyncService) -> anyhow::Result<Vec<u8>> {
     svc.accept_push().await
+}
+
+/// 向多台设备逐个推送全量快照（含墓碑），返回每台设备的结果。
+///
+/// `devices`: `(peer_id, Option<IP 列表>)`；IP 缺省（None/空）时经 relay/地址解析尝试连接。
+/// 单台失败不中断整体；单台超时 10 秒记为失败。
+pub async fn push_to_devices(
+    svc: &SyncService,
+    devices: Vec<(String, Option<Vec<String>>)>,
+) -> Vec<DevicePushResult> {
+    svc.push_to_paired_devices(&devices).await
+}
+
+/// SQLite — 列出所有配对设备（最近连接优先）。
+pub fn list_paired_devices(store: &NoteStore) -> anyhow::Result<Vec<PairedDeviceRow>> {
+    store.list_paired_devices()
+}
+
+/// SQLite — 移除一台配对设备。
+pub fn remove_paired_device(store: &NoteStore, peer_id: String) -> anyhow::Result<()> {
+    store.remove_paired_device(&peer_id)
 }
 
 /// 设备发现 — 广播本设备

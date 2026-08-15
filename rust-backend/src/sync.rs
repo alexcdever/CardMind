@@ -17,6 +17,8 @@ pub struct SyncService {
     /// `sync_notes_to_store` 从 Loro 快照重建被删笔记（复活）。
     tombstones: HashSet<String>,
     endpoint: Endpoint,
+    /// 构造时使用的 relay 模式（当前配置：RelayMode::Default = iroh 官方公共 relay）
+    relay_mode: RelayMode,
     persistent_path: Option<PathBuf>,
 }
 
@@ -39,14 +41,24 @@ const LORO_HEADER_LEN: usize = 8 + 4 + 8;
 
 // ━━━ SyncService ━━━
 
+/// 单设备推送结果：peer_id + 成功/失败信息
+#[derive(Debug, Clone)]
+pub struct DevicePushResult {
+    pub peer_id: String,
+    pub ok: bool,
+    /// 失败原因（成功时为空）
+    pub message: String,
+}
+
 impl SyncService {
-    /// 创建同步服务，绑定随机的 iroh 端点
+    /// 创建同步服务，绑定随机的 iroh 端点（内存版：SecretKey 随机，测试用）
     pub async fn new() -> Result<Self> {
-        let key = SecretKey::generate();
+        let key = load_or_create_secret_key(None)?;
+        let relay_mode = RelayMode::Default;
         let endpoint = Endpoint::builder(presets::N0)
             .secret_key(key)
             .alpns(vec![ALPN.to_vec()])
-            .relay_mode(RelayMode::Disabled)
+            .relay_mode(relay_mode.clone())
             .bind()
             .await
             .context("bind iroh endpoint")?;
@@ -54,19 +66,38 @@ impl SyncService {
             notes: HashMap::new(),
             tombstones: HashSet::new(),
             endpoint,
+            relay_mode,
             persistent_path: None,
         })
     }
 
     /// 创建持久化同步服务。`path` 可以是数据目录，也可以直接是 `.loro` 文件路径。
+    ///
+    /// 设备身份持久化：在数据目录（path 父目录）加载/生成 `device.key`（32 字节
+    /// hex），使 device_id 跨重启稳定。
     pub async fn new_persistent(path: impl AsRef<Path>) -> Result<Self> {
         let path = loro_path(path.as_ref());
-        if let Some(parent) = path.parent() {
+        let data_dir = path.parent().map(Path::to_path_buf);
+        if let Some(parent) = &data_dir {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("create data directory {}", parent.display()))?;
         }
-        let mut service = Self::new().await?;
-        service.persistent_path = Some(path.clone());
+        let key = load_or_create_secret_key(data_dir.as_deref())?;
+        let relay_mode = RelayMode::Default;
+        let endpoint = Endpoint::builder(presets::N0)
+            .secret_key(key)
+            .alpns(vec![ALPN.to_vec()])
+            .relay_mode(relay_mode.clone())
+            .bind()
+            .await
+            .context("bind iroh endpoint")?;
+        let mut service = Self {
+            notes: HashMap::new(),
+            tombstones: HashSet::new(),
+            endpoint,
+            relay_mode,
+            persistent_path: Some(path.clone()),
+        };
         if path.exists() {
             let bytes = std::fs::read(&path)
                 .with_context(|| format!("read Loro file {}", path.display()))?;
@@ -123,6 +154,21 @@ impl SyncService {
     /// 获取本设备 iroh 身份 ID
     pub fn device_id(&self) -> String {
         self.endpoint.id().to_string()
+    }
+
+    /// 构造时使用的 relay 模式（RelayMode::Default = 官方公共 relay，非 Disabled）
+    pub fn relay_mode(&self) -> &RelayMode {
+        &self.relay_mode
+    }
+
+    /// 本端点当前绑定的 IPv4 地址（`"ip:port"` 格式，用于直连/mDNS 广播）
+    pub fn local_addrs(&self) -> Vec<String> {
+        self.endpoint
+            .addr()
+            .ip_addrs()
+            .filter(|a| a.is_ipv4())
+            .map(|a| a.to_string())
+            .collect()
     }
 
     /// 添加/创建一条笔记
@@ -436,21 +482,27 @@ impl SyncService {
     /// 向指定对端推送所有笔记的快照
     ///
     /// `peer_id`: iroh 节点 ID（字符串格式）
-    /// `peer_ips`: 对端 IP 地址列表（`"ip:port"` 格式）
+    /// `peer_ips`: 对端 IP 地址列表（`"ip:port"` 格式）。
+    ///   非空时直连优先（同网段）；为空时仅凭 node id 经 relay/地址解析尝试连接
+    ///   （跨网段，依赖 iroh 的 n0 DNS 地址查找或已配置 relay）。
     pub async fn push_to_peer(&self, peer_id: &str, peer_ips: Vec<String>) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
 
-        let ips: Vec<TransportAddr> = peer_ips
-            .iter()
-            .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
-            .map(TransportAddr::Ip)
-            .collect();
+        let addr = if peer_ips.is_empty() {
+            // 无直连地址：交给 iroh 经 relay/地址解析（EndpointAddr::new 仅有 node id）
+            EndpointAddr::new(node_id)
+        } else {
+            let ips: Vec<TransportAddr> = peer_ips
+                .iter()
+                .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
+                .map(TransportAddr::Ip)
+                .collect();
+            if ips.is_empty() {
+                anyhow::bail!("no valid peer IPs provided");
+            }
+            EndpointAddr::from_parts(node_id, ips)
+        };
 
-        if ips.is_empty() {
-            anyhow::bail!("no valid peer IPs provided");
-        }
-
-        let addr = EndpointAddr::from_parts(node_id, ips);
         let data = self.export_all()?;
 
         let conn = self
@@ -460,9 +512,112 @@ impl SyncService {
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
         send.write_all(&data).await.context("write snapshot data")?;
-        // Drop 发送端以发送 EOF，接收端 read_to_end 据此结束
-        drop(send);
+        // finish() 显式发送流结束（EOF），接收端 read_to_end 据此结束
+        send.finish().context("finish uni stream")?;
+        // 保持连接存活直到对端读完数据并关闭连接；避免对端未读完时本端
+        // drop conn 导致连接被提前关闭（数据丢失）。超时保护防止对端不关闭。
+        tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            conn.closed(),
+        )
+        .await
+        .ok();
 
+        Ok(())
+    }
+
+    /// 逐个向多台设备推送全量快照（含墓碑）。
+    ///
+    /// - 每台设备独立尝试，单台失败不中断整体
+    /// - 单台连接/推送超时 10 秒，超时记为失败并继续下一台
+    /// - `devices`: `(peer_id, Option<IP 列表>)`；IP 缺省（None/空）时经 relay/地址解析连接
+    pub async fn push_to_paired_devices(
+        &self,
+        devices: &[(String, Option<Vec<String>>)],
+    ) -> Vec<DevicePushResult> {
+        let data = match self.export_all() {
+            Ok(d) => d,
+            Err(e) => {
+                // 快照导出失败：所有设备都记为失败
+                return devices
+                    .iter()
+                    .map(|(peer_id, _)| DevicePushResult {
+                        peer_id: peer_id.clone(),
+                        ok: false,
+                        message: format!("export_all failed: {e}"),
+                    })
+                    .collect();
+            }
+        };
+
+        let mut results = Vec::with_capacity(devices.len());
+        for (peer_id, ips) in devices {
+            let peer_id = peer_id.clone();
+            let ips = ips.clone();
+            let outcome = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                self.push_to_peer_once(&peer_id, ips.as_deref(), &data),
+            )
+            .await;
+            match outcome {
+                Ok(Ok(())) => results.push(DevicePushResult {
+                    peer_id,
+                    ok: true,
+                    message: String::new(),
+                }),
+                Ok(Err(e)) => results.push(DevicePushResult {
+                    peer_id,
+                    ok: false,
+                    message: format!("{e:#}"),
+                }),
+                Err(_) => results.push(DevicePushResult {
+                    peer_id,
+                    ok: false,
+                    message: "push timeout after 10s".to_string(),
+                }),
+            }
+        }
+        results
+    }
+
+    /// 单台设备的连接 + 发送（复用推送逻辑，data 为预导出的快照）
+    async fn push_to_peer_once(
+        &self,
+        peer_id: &str,
+        peer_ips: Option<&[String]>,
+        data: &[u8],
+    ) -> Result<()> {
+        let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
+        let addr = match peer_ips {
+            Some(ips) if !ips.is_empty() => {
+                let ips: Vec<TransportAddr> = ips
+                    .iter()
+                    .filter_map(|ip| ip.parse::<std::net::SocketAddr>().ok())
+                    .map(TransportAddr::Ip)
+                    .collect();
+                if ips.is_empty() {
+                    anyhow::bail!("no valid peer IPs provided");
+                }
+                EndpointAddr::from_parts(node_id, ips)
+            }
+            _ => EndpointAddr::new(node_id),
+        };
+
+        let conn = self
+            .endpoint
+            .connect(addr, ALPN)
+            .await
+            .context("connect to peer")?;
+        let mut send = conn.open_uni().await.context("open uni stream")?;
+        send.write_all(data).await.context("write snapshot data")?;
+        send.finish().context("finish uni stream")?;
+        // 保持连接存活直到对端读完并关闭；超时保护（push_to_paired_devices 外层也有 10s 超时）
+        tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            conn.closed(),
+        )
+        .await
+        .ok();
         Ok(())
     }
 
@@ -481,6 +636,8 @@ impl SyncService {
             .read_to_end(usize::MAX)
             .await
             .context("read push data")?;
+        // 数据已读入内存，主动关闭连接，通知发送端可释放
+        conn.close(0u32.into(), b"done");
         Ok(data)
     }
 }
@@ -491,6 +648,58 @@ fn loro_path(path: &Path) -> PathBuf {
     } else {
         path.join("cardmind.loro")
     }
+}
+
+/// 加载或创建设备身份密钥。
+///
+/// - `dir = Some(数据目录)`：读取 `device.key`（32 字节 hex）；不存在则生成并写入，
+///   使持久化服务的 device_id 跨重启稳定。
+/// - `dir = None`（内存版）：每次生成随机密钥，测试用。
+fn load_or_create_secret_key(dir: Option<&Path>) -> Result<SecretKey> {
+    let Some(dir) = dir else {
+        return Ok(SecretKey::generate());
+    };
+    let key_path = dir.join("device.key");
+    if key_path.exists() {
+        let hex = std::fs::read_to_string(&key_path)
+            .with_context(|| format!("read device key {}", key_path.display()))?;
+        let bytes = decode_hex(hex.trim())
+            .with_context(|| format!("invalid device key in {}", key_path.display()))?;
+        let bytes: [u8; 32] = bytes
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("device key must be 32 bytes"))?;
+        Ok(SecretKey::from_bytes(&bytes))
+    } else {
+        let key = SecretKey::generate();
+        let hex = encode_hex(key.to_bytes());
+        std::fs::write(&key_path, hex)
+            .with_context(|| format!("write device key {}", key_path.display()))?;
+        Ok(key)
+    }
+}
+
+/// 32 字节 → 64 字符小写 hex
+fn encode_hex(bytes: [u8; 32]) -> String {
+    let mut s = String::with_capacity(64);
+    for b in bytes {
+        s.push_str(&format!("{:02x}", b));
+    }
+    s
+}
+
+/// hex 字符串 → 字节（奇数长度或非法字符报错）
+fn decode_hex(hex: &str) -> Result<Vec<u8>> {
+    let hex = hex.trim();
+    if hex.len() % 2 != 0 {
+        anyhow::bail!("odd hex length: {}", hex.len());
+    }
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| {
+            u8::from_str_radix(&hex[i..i + 2], 16)
+                .map_err(|_| anyhow::anyhow!("invalid hex char at {}", i))
+        })
+        .collect()
 }
 
 fn encode_envelope(payload: &[u8]) -> Vec<u8> {

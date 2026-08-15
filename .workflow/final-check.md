@@ -1,85 +1,88 @@
-# Final Check — 任务 E 第二轮（墓碑 + envelope v3 + 删除状态迁移到 Loro）
+# 主代理复检报告 — 任务 F：连接层
 
-- worktree: `D:/Projects/CardMind/.worktrees/trash`（分支 `codex/trash`）
-- 主代理复检日期: 2026-08-15
-- 复检方式: 主代理实机执行真实命令，以下输出均为本人运行结果
+- worktree: `D:/Projects/CardMind/.worktrees/connect`（分支 `codex/connect`）
+- 主代理实机复验：2026-08-15
+- 结论：**全部验收标准通过（PASS）**，executor/reviewer 双报告真实性经独立复验成立
 
-## 复检命令与真实输出
+## 逐条复检（真实命令输出）
 
-### 1. 第一轮产物验证（进入 worktree）
-`git status` → store.rs / api.rs / trash_test.rs / trash_page.dart / UI 改动全部完好，未缺失。sync.rs 基线 LORO_VERSION=2。
+### 验收 1-6：Rust 集成测试（connect_test.rs，7 条）
 
-### 2. `cd rust-backend && cargo test`（验收 10，全量）
+`export PATH="/c/Users/alexc/.cargo/bin:$PATH" && cargo test --test connect_test`：
+
 ```
-Running tests\trash_test.rs ... 13 passed; 0 failed
-Running tests\sync_service_test.rs ... 5 passed; 0 failed
-Running tests\sync_test.rs ... 1 passed; 0 failed
-Running tests\migration_test.rs ... 2 passed; 0 failed
-Running tests\note_crdt_test.rs ... 10 passed; 0 failed
-Running tests\store_test.rs ... 6 passed; 0 failed
-Running tests\discovery_test.rs ... 2 passed; 0 failed
-Running tests\integration_test.rs ... 2 passed; 0 failed
-```
-总计 41 passed; 0 failed。
-
-### 3. 验收 1-7 专项（`cargo test --test trash_test`）
-13 passed; 0 failed，含：
-- test_purge_persists_across_sync（验收 1：purge 后 sync_notes_to_store 重建投影不复活）
-- test_tombstone_survives_export_import（验收 2）
-- test_soft_delete_propagates_via_meta（验收 3）
-- test_restore_propagates_via_meta（验收 4）
-- test_purge_expired_batch（验收 5）
-- test_v2_file_loads_without_tombstones（验收 6）
-- test_tombstoned_id_skipped_on_import（验收 7）
-
-### 4. `flutter analyze`（验收 12）
-```
-Analyzing trash...
-No issues found! (ran in 26.9s)
+running 7 tests
+test test_paired_devices_crud ... ok
+test test_relay_mode_enabled ... ok
+test test_memory_service_random_identity ... ok
+test test_push_receive_roundtrip_relay_or_direct ... ok
+test test_device_identity_persists ... ok
+test test_push_multi_device_partial_failure ... ok
+test test_relay_cross_network_connect ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.50s
 ```
 
-### 5. `flutter test`（验收 11）
+### 验收 7：cargo test 全量
+
 ```
-00:04 +53: All tests passed!
+Running tests\connect_test.rs         ... ok. 7 passed
+Running tests\discovery_test.rs       ... ok. 2 passed
+Running tests\integration_test.rs     ... ok. 2 passed
+Running tests\migration_test.rs       ... ok. 2 passed
+Running tests\note_crdt_test.rs       ... ok. 10 passed
+Running tests\store_test.rs           ... ok. 6 passed
+Running tests\sync_service_test.rs    ... ok. 5 passed
+Running tests\sync_test.rs            ... ok. 1 passed
+Running tests\trash_test.rs           ... ok. 13 passed
 ```
-53 passed; 0 failed（含 trash_widget_test 与 frb_note_repository_test 的 purge survives list refresh 等）
+合计 **48 passed, 0 failed**，无回归（基线 41 + 新增 7）。
 
-### 6. codegen 产物（验收 13）
-`lib/src/rust/api.dart` grep 确认：
-- `noteSoftDelete` (L150)
-- `noteRestore` (L154)
-- `notePurge` (L158)
-- `purgeExpiredTrash` (L164)
+### 验收 8：flutter test（53 不回归）
 
-### 7. `git status` 范围（验收 14，工具副作用还原后）
+`flutter pub get && flutter test`（PUB_HOSTED_URL=https://pub.flutter-io.cn）：
 ```
- M .workflow/executor-report.md / review-report.md / final-check.md
- M lib/bridge/bridge_helper.dart, frb_note_repository.dart, note_repository.dart
- M lib/pages/note_list_page.dart
- M lib/src/rust/{api,discovery,frb_generated,frb_generated.io,frb_generated.web,store,sync}.dart  ← codegen 新产物
- M pubspec.lock  ← 任务单明确保留
- M rust-backend/src/{api,store,sync,frb_generated}.rs  ← frb_generated.rs 为 codegen 产物
- M rust-backend/tests/{migration_test,sync_service_test}.rs  ← v3 断言调整
- M test/{frb_note_repository_test,mobile_ui_test,vertical_slice_widget_test}.dart
-?? lib/pages/trash_page.dart
-?? rust-backend/tests/trash_test.rs
-?? test/trash_widget_test.dart
+00:06 +53: All tests passed!
 ```
-无 docs/、prototype/、.gitignore 改动。analysis_options.yaml 与 linux/windows registrant 已还原（工具副作用清理轮后验证不再出现）。
 
-### 8. sync.rs 实现要点抽查（grep）
-- L37 `const LORO_VERSION: u32 = 3` ✓
-- L18 `tombstones: HashSet<String>` 字段 ✓
-- L199/L219/L243/L259/L295：soft_delete_note / restore_note / purge_note / purge_expired / tombstones() ✓
-- L308-309：export_all 写墓碑 section（墓碑数 u32 + 排序 id）✓
-- L349-418：import_raw 读墓碑 union 合并、记录流遇墓碑 id 跳过（L407）✓
-- L515：decode_envelope 接受 v1/v2/v3 ✓
+### 验收 9：flutter analyze
 
-## 结论
+```
+Analyzing connect...
+No issues found! (ran in 23.5s)
+```
 
-验收标准 14 条全部实机通过。executor 自检报告与 reviewer 独立复验结论（PASS）一致，主代理复检无异议。无需决策点触发。无阻塞问题。
+### 验收 10：flutter_rust_bridge_codegen generate
 
-问题清单（非阻塞，供终审参考）：
-1. 旧版 v2 对端网络 payload 兼容（import_all 固定 v3 解析）——任务单仅要求 v2 文件加载无损，跨版本网络同步留待后续网络任务
-2. `purge_expired_trash` FRB 返回 BigInt，Flutter 侧 toInt() 无损转换
-3. `flutter pub get` 会再次改写 analysis_options.yaml（已还原），主仓库合并后注意
+```
+Done!
+```
+产物含 4 个新 API（getDeviceId/pushToDevices/listPairedDevices/removePairedDevice）+ 2 个新类（DevicePushResult/PairedDeviceRow），Dart 绑定与 Rust 签名一致。
+
+### 验收 11：git status 改动范围
+
+```
+ M lib/src/rust/api.dart / frb_generated*.dart / store.dart / sync.dart   (codegen 产物，允许)
+ M rust-backend/Cargo.lock / Cargo.toml                                    (允许)
+ M rust-backend/src/api.rs / frb_generated.rs / store.rs / sync.rs         (允许)
+ ?? rust-backend/tests/connect_test.rs                                     (新增，允许)
+```
+禁止项 `lib/pages/`、`docs/`、`prototype/`、`.gitignore`、`lib/bridge/` 均未触碰。复验后还原工具副作用噪音 9 文件（discovery.dart 行尾、linux/windows registrant/cmake 行尾、pubspec.lock 镜像替换），变更集干净。
+
+## 代码要点抽查
+
+- `sync.rs`：`RelayMode::Default`（官方公共 relay）x2（new/new_persistent）+ `relay_mode()` getter；`load_or_create_secret_key(dir: Option<&Path>)`（None 随机 / Some 持久化 device.key 32 字节 hex）；`push_to_paired_devices`（export_all 快照预导出 + 逐台 `tokio::time::timeout(10s)` + Ok/Err/Timeout 三态，单失败不中断）；`push_to_peer` IP 空回退 relay、`send.finish()` + 等对端关闭（修复丢数据缺陷）
+- `store.rs`：`paired_devices` 表 schema 与任务单一致；4 方法齐全（list/upsert/update_last_seen/remove）
+- `api.rs`：4 个 FRB API 齐全（`push_to_devices` 为 `pub async fn`）
+- iroh 实际版本 1.0.2（Cargo.lock 确认，`iroh = "1"` 生产依赖未改；dev-dependency 仅加 test-utils 特性用于本地真实 relay 测试）
+
+## 需决策点处理（复验确认合规）
+
+1. relay 断网 bind 不阻塞 — 未触发（sync_service_test 0.17s 秒过，bind 不等待 relay 上线）
+2. 公共 relay（GFW）可达性 — 未实机触达公网；按任务允许回退：`test_relay_mode_enabled` getter 断言（离线确定）+ `test_relay_cross_network_connect` 本地**真实** relay 服务器（QUIC 中转进程，非 mock）。已如实报告，未虚报通过
+3. SecretKey 持久化改 envelope/FRB 签名 — 未触发（device.key 独立文件，`new_persistent(path)` 签名未变）
+
+## 问题未决（非阻塞，已如实上报）
+
+1. 公共 relay 生产连通性待真机验证（模块 3/4 联调时）
+2. `update_last_seen` 未在推送成功路径自动接线（任务单签名无 store 参数，符合设计边界）
+3. Flutter 工具链对生成文件 LF→CRLF 行尾改写（内容零 diff），已还原，重跑可能复现

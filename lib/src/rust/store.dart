@@ -86,3 +86,39 @@ class NoteRow {
           updatedAt == other.updatedAt &&
           deletedAt == other.deletedAt;
 }
+
+/// 配对设备行（paired_devices 表，FRB 可序列化）
+class PairedDeviceRow {
+  /// 对端 iroh node id
+  final String peerId;
+
+  /// 对端设备名
+  final String name;
+
+  /// 最后成功连接/同步时间（ISO8601；尚未连接过 = None）
+  final String? lastSeen;
+
+  /// 配对时间（ISO8601）
+  final String pairedAt;
+
+  const PairedDeviceRow({
+    required this.peerId,
+    required this.name,
+    this.lastSeen,
+    required this.pairedAt,
+  });
+
+  @override
+  int get hashCode =>
+      peerId.hashCode ^ name.hashCode ^ lastSeen.hashCode ^ pairedAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PairedDeviceRow &&
+          runtimeType == other.runtimeType &&
+          peerId == other.peerId &&
+          name == other.name &&
+          lastSeen == other.lastSeen &&
+          pairedAt == other.pairedAt;
+}
