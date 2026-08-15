@@ -40,6 +40,7 @@ dependencies:
   path_provider: any
   intl: any
   path: any
+  connectivity_plus: ^6.1.0
 
 dev_dependencies:
   flutter_test:

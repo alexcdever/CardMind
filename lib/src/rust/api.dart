@@ -38,6 +38,8 @@ Future<String> beginPairingAccept({required SyncService svc}) =>
     RustLib.instance.api.crateApiBeginPairingAccept(svc: svc);
 
 /// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
+///
+/// 等待期间抢到的推送帧会立即导入（不丢失），随后继续等待配对请求。
 Future<PairingRequest> acceptPairingRequest({required SyncService svc}) =>
     RustLib.instance.api.crateApiAcceptPairingRequest(svc: svc);
 
@@ -78,6 +80,39 @@ Future<void> syncNotesToStore({
   required SyncService svc,
   required NoteStore store,
 }) => RustLib.instance.api.crateApiSyncNotesToStore(svc: svc, store: store);
+
+/// 设置同步开关（决策 6 能力）：false 时调度器暂停推送与拉取。
+/// 移动端由 Flutter 侧按网络类型（WiFi vs 蜂窝）调用；桌面端恒 true。
+Future<void> setSyncAllowed({
+  required SyncService svc,
+  required bool allowed,
+}) => RustLib.instance.api.crateApiSetSyncAllowed(svc: svc, allowed: allowed);
+
+/// 当前同步开关状态。
+Future<bool> getSyncAllowed({required SyncService svc}) =>
+    RustLib.instance.api.crateApiGetSyncAllowed(svc: svc);
+
+/// 待同步笔记计数（模块 5 基础）。
+Future<int> pendingSyncCount({required SyncService svc}) =>
+    RustLib.instance.api.crateApiPendingSyncCount(svc: svc);
+
+/// 周期拉取间隔（秒）——Flutter 侧 Timer 周期用。
+Future<int> syncPollIntervalSecs() =>
+    RustLib.instance.api.crateApiSyncPollIntervalSecs();
+
+/// 推送待办（编辑保存即推送）：向所有配对设备推全量快照。
+///
+/// 失败静默（决策 18）：返回每台设备结果，不抛错；调用方 fire-and-forget 即可。
+Future<List<DevicePushResult>> pushPending({
+  required SyncService svc,
+  required NoteStore store,
+}) => RustLib.instance.api.crateApiPushPending(svc: svc, store: store);
+
+/// 周期同步任务体：push 给所有对端 + 短窗口 accept 对端 push + 刷新 SQLite 投影。
+Future<SyncCycleResult> runSyncCycle({
+  required SyncService svc,
+  required NoteStore store,
+}) => RustLib.instance.api.crateApiRunSyncCycle(svc: svc, store: store);
 
 /// 创建笔记
 Future<void> noteCreate({

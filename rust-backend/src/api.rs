@@ -1,7 +1,8 @@
 use crate::discovery::{DiscoveryService, PeerInfo};
 use crate::store::{LinkRow, NoteRow, NoteStore, PairedDeviceRow};
 use crate::sync::{
-    DevicePushResult, NoteCrdt, PairingRequest, PairingResult, PairingTarget, SyncService,
+    DevicePushResult, NoteCrdt, PairingRequest, PairingResult, PairingTarget, SyncCycleResult,
+    SyncService, SYNC_POLL_INTERVAL_SECS,
 };
 
 /// 创建同步服务
@@ -40,7 +41,9 @@ pub fn begin_pairing_accept(svc: &SyncService) -> anyhow::Result<String> {
 }
 
 /// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
-pub async fn accept_pairing_request(svc: &SyncService) -> anyhow::Result<PairingRequest> {
+///
+/// 等待期间抢到的推送帧会立即导入（不丢失），随后继续等待配对请求。
+pub async fn accept_pairing_request(svc: &mut SyncService) -> anyhow::Result<PairingRequest> {
     svc.accept_pairing_request().await
 }
 
@@ -74,13 +77,45 @@ pub async fn accept_push_and_import(svc: &mut SyncService) -> anyhow::Result<()>
 ///
 /// 同时清理墓碑（Loro 中已彻底删除的笔记）对应的投影行，防止被删笔记复活。
 pub fn sync_notes_to_store(svc: &SyncService, store: &NoteStore) -> anyhow::Result<()> {
-    for (id, note) in svc.iter_notes() {
-        store.sync_note(id, note)?;
-    }
-    for id in svc.tombstones() {
-        store.purge_note(id)?;
-    }
-    Ok(())
+    svc.sync_notes_to_store(store)
+}
+
+// ━━━ 自动同步调度（任务 H）━━━
+
+/// 设置同步开关（决策 6 能力）：false 时调度器暂停推送与拉取。
+/// 移动端由 Flutter 侧按网络类型（WiFi vs 蜂窝）调用；桌面端恒 true。
+pub fn set_sync_allowed(svc: &SyncService, allowed: bool) {
+    svc.set_sync_allowed(allowed);
+}
+
+/// 当前同步开关状态。
+pub fn get_sync_allowed(svc: &SyncService) -> bool {
+    svc.sync_allowed()
+}
+
+/// 待同步笔记计数（模块 5 基础）。
+pub fn pending_sync_count(svc: &SyncService) -> u32 {
+    svc.pending_sync_count()
+}
+
+/// 周期拉取间隔（秒）——Flutter 侧 Timer 周期用。
+pub fn sync_poll_interval_secs() -> u32 {
+    SYNC_POLL_INTERVAL_SECS as u32
+}
+
+/// 推送待办（编辑保存即推送）：向所有配对设备推全量快照。
+///
+/// 失败静默（决策 18）：返回每台设备结果，不抛错；调用方 fire-and-forget 即可。
+pub async fn push_pending(svc: &SyncService, store: &NoteStore) -> Vec<DevicePushResult> {
+    svc.push_pending(store).await
+}
+
+/// 周期同步任务体：push 给所有对端 + 短窗口 accept 对端 push + 刷新 SQLite 投影。
+pub async fn run_sync_cycle(
+    svc: &mut SyncService,
+    store: &NoteStore,
+) -> anyhow::Result<SyncCycleResult> {
+    svc.run_sync_cycle(store).await
 }
 
 /// 创建笔记

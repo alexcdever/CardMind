@@ -128,3 +128,34 @@ class PairingTarget {
           deviceId == other.deviceId &&
           ips == other.ips;
 }
+
+/// 一次周期同步的结果（FRB 可序列化，供 Flutter 侧诊断/未来 UI 使用）
+class SyncCycleResult {
+  /// 成功推送的对端设备数（0 = 本轮无成功推送）
+  final int pushedCount;
+
+  /// 本轮是否 accept 到对端 push 并导入
+  final bool acceptedPush;
+
+  /// 同步开关关闭导致整轮跳过
+  final bool disabled;
+
+  const SyncCycleResult({
+    required this.pushedCount,
+    required this.acceptedPush,
+    required this.disabled,
+  });
+
+  @override
+  int get hashCode =>
+      pushedCount.hashCode ^ acceptedPush.hashCode ^ disabled.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SyncCycleResult &&
+          runtimeType == other.runtimeType &&
+          pushedCount == other.pushedCount &&
+          acceptedPush == other.acceptedPush &&
+          disabled == other.disabled;
+}
