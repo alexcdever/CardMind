@@ -36,6 +36,19 @@ pub struct LinkRow {
     pub exists: bool,
 }
 
+/// 配对设备行（paired_devices 表，FRB 可序列化）
+#[derive(Debug, Clone)]
+pub struct PairedDeviceRow {
+    /// 对端 iroh node id
+    pub peer_id: String,
+    /// 对端设备名
+    pub name: String,
+    /// 最后成功连接/同步时间（ISO8601；尚未连接过 = None）
+    pub last_seen: Option<String>,
+    /// 配对时间（ISO8601）
+    pub paired_at: String,
+}
+
 impl NoteStore {
     /// 创建/打开 SQLite 数据库，自动建表
     pub fn new(path: &str) -> Result<Self> {
@@ -55,6 +68,12 @@ impl NoteStore {
                 target_id TEXT NOT NULL,
                 alias     TEXT NOT NULL DEFAULT '',
                 PRIMARY KEY (source_id, target_id)
+            );
+            CREATE TABLE IF NOT EXISTS paired_devices (
+                peer_id   TEXT PRIMARY KEY,
+                name      TEXT NOT NULL,
+                last_seen TEXT NULL,
+                paired_at TEXT NOT NULL
             );
             CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
                 title, content, tags,
@@ -439,6 +458,57 @@ impl NoteStore {
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
         Ok(rows)
+    }
+
+    /// 列出所有配对设备，最近连接优先（last_seen DESC，从未连接的最后；同名按 peer_id 稳定排序）。
+    pub fn list_paired_devices(&self) -> Result<Vec<PairedDeviceRow>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT peer_id, name, last_seen, paired_at FROM paired_devices
+             ORDER BY (last_seen IS NULL), last_seen DESC, peer_id ASC",
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(PairedDeviceRow {
+                    peer_id: row.get(0)?,
+                    name: row.get(1)?,
+                    last_seen: row.get(2)?,
+                    paired_at: row.get(3)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
+    /// 添加/更新一台配对设备（重复 peer_id 覆盖 name；paired_at 保持不变）。
+    pub fn upsert_paired_device(&self, peer_id: &str, name: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT INTO paired_devices (peer_id, name, last_seen, paired_at)
+             VALUES (?1, ?2, NULL, ?3)
+             ON CONFLICT(peer_id) DO UPDATE SET name = excluded.name",
+            rusqlite::params![peer_id, name, now],
+        )?;
+        Ok(())
+    }
+
+    /// 更新配对设备的最后连接/同步时间（ISO8601 now）。
+    pub fn update_last_seen(&self, peer_id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE paired_devices SET last_seen = ?2 WHERE peer_id = ?1",
+            rusqlite::params![peer_id, now],
+        )?;
+        Ok(())
+    }
+
+    /// 移除一台配对设备。
+    pub fn remove_paired_device(&self, peer_id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM paired_devices WHERE peer_id = ?1", [peer_id])?;
+        Ok(())
     }
 
     /// 预览只包含正文：移除标题首行及标签 marker，避免列表重复显示标题。

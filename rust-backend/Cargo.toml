@@ -17,3 +17,8 @@ mdns-sd = "0.20"
 rusqlite = { version = "0.31", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1", features = ["v7", "serde"] }
+
+[dev-dependencies]
+# 仅测试构建启用：本地 relay 服务器（iroh::test_utils::run_relay_server），
+# 用于离线验证 relay 跨网段连接行为，避免依赖公共 relay 的网络可达性。
+iroh = { version = "1", features = ["test-utils"] }

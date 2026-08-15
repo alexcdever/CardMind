@@ -17,6 +17,10 @@ Future<SyncService> createSyncService() =>
 Future<SyncService> createPersistentSyncService({required String path}) =>
     RustLib.instance.api.crateApiCreatePersistentSyncService(path: path);
 
+/// 获取本设备 iroh 身份 ID（SecretKey 持久化后跨重启稳定）。
+Future<String> getDeviceId({required SyncService svc}) =>
+    RustLib.instance.api.crateApiGetDeviceId(svc: svc);
+
 /// 将所有 CRDT 笔记同步到 SQLite 存储
 ///
 /// 同时清理墓碑（Loro 中已彻底删除的笔记）对应的投影行，防止被删笔记复活。
@@ -58,6 +62,28 @@ Future<void> pushToPeer({
 /// 接受对端推送
 Future<Uint8List> acceptPush({required SyncService svc}) =>
     RustLib.instance.api.crateApiAcceptPush(svc: svc);
+
+/// 向多台设备逐个推送全量快照（含墓碑），返回每台设备的结果。
+///
+/// `devices`: `(peer_id, Option<IP 列表>)`；IP 缺省（None/空）时经 relay/地址解析尝试连接。
+/// 单台失败不中断整体；单台超时 10 秒记为失败。
+Future<List<DevicePushResult>> pushToDevices({
+  required SyncService svc,
+  required List<(String, List<String>?)> devices,
+}) => RustLib.instance.api.crateApiPushToDevices(svc: svc, devices: devices);
+
+/// SQLite — 列出所有配对设备（最近连接优先）。
+Future<List<PairedDeviceRow>> listPairedDevices({required NoteStore store}) =>
+    RustLib.instance.api.crateApiListPairedDevices(store: store);
+
+/// SQLite — 移除一台配对设备。
+Future<void> removePairedDevice({
+  required NoteStore store,
+  required String peerId,
+}) => RustLib.instance.api.crateApiRemovePairedDevice(
+  store: store,
+  peerId: peerId,
+);
 
 /// 设备发现 — 广播本设备
 Future<void> startAdvertising({

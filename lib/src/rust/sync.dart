@@ -8,3 +8,30 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>>
 abstract class SyncService implements RustOpaqueInterface {}
+
+/// 单设备推送结果：peer_id + 成功/失败信息
+class DevicePushResult {
+  final String peerId;
+  final bool ok;
+
+  /// 失败原因（成功时为空）
+  final String message;
+
+  const DevicePushResult({
+    required this.peerId,
+    required this.ok,
+    required this.message,
+  });
+
+  @override
+  int get hashCode => peerId.hashCode ^ ok.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DevicePushResult &&
+          runtimeType == other.runtimeType &&
+          peerId == other.peerId &&
+          ok == other.ok &&
+          message == other.message;
+}

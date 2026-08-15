@@ -1,226 +1,118 @@
-# Executor Report — 任务 E 第二轮（墓碑 + envelope v3 + 删除状态迁移到 Loro）
+# Executor 自检报告 — 任务 F：连接层（relay + 身份持久化 + 配对设备表 + 跨网段推送）
 
-- worktree: `D:/Projects/CardMind/.worktrees/trash`（分支 `codex/trash`）
-- 日期: 2026-08-15
-- 第一轮产物验证: `git status` 确认 `rust-backend/src/store.rs`、`api.rs`、`tests/trash_test.rs`、`lib/pages/trash_page.dart` 等改动完好后开始实现。
+- worktree: `D:/Projects/CardMind/.worktrees/connect`（分支 `codex/connect`）
+- 状态：**全部验收标准通过（PASS）**，无阻断问题
+- 日期：2026-08-15
 
 ## 完成内容
 
-### 1. NoteCrdt 层（rust-backend/src/sync.rs）
-- meta Map 新增 `deleted_at`：`set_deleted_at(Option<String>)` / `get_deleted_at() -> Option<String>`
-  - `Some(now)` 软删、`None` 恢复（`LoroMap::delete` 清 key）
+1. **Relay 启用（sync.rs）**：`RelayMode::Disabled` → `RelayMode::Default`（iroh 官方公共 relay：use1-1/usw1-1/euc1-1/aps1-1.relay.n0.iroh.link）。同网段直连优先、跨网段经 relay 打洞/中转保持 iroh 默认行为（`presets::N0` 的地址查找服务 + `connect` 对 EndpointAddr 的 direct-first/relay-fallback 语义）。构造时把 `relay_mode` 存入结构体并提供 `relay_mode()` getter 供测试断言。
+2. **设备身份持久化（sync.rs）**：新增 `load_or_create_secret_key(dir: Option<&Path>)` 辅助函数——`new()` 传 `None` 每次随机（内存版保持随机）；`new_persistent(path)` 在数据目录（`.loro` 文件父目录）加载/生成 `device.key`（32 字节 SecretKey 的 64 字符 hex）。`device_id()` 因此跨重启稳定。envelope/FRB 初始化签名均未改动（需决策点 3 未触发）。
+3. **配对设备表（store.rs）**：`paired_devices` 表（peer_id TEXT PK, name TEXT, last_seen TEXT NULL, paired_at TEXT），迁移安全（CREATE TABLE IF NOT EXISTS）。方法：`list_paired_devices()`（last_seen DESC 最近连接优先，未连接的最后）、`upsert_paired_device(peer_id, name)`（重复覆盖 name、保留 paired_at）、`update_last_seen(peer_id)`、`remove_paired_device(peer_id)`。新增 `PairedDeviceRow` 结构（FRB 可序列化）。
+4. **跨网段连接辅助（sync.rs）**：
+   - `push_to_peer(peer_id, peer_ips)`：IP 非空直连（同网段）；为空时 `EndpointAddr::new(node_id)` 交给 iroh 经 relay/地址解析连接（跨网段）。
+   - 新增 `push_to_paired_devices(devices: &[(String, Option<Vec<String>>)]) → Vec<DevicePushResult>`：逐个推送，单台失败不中断整体，单台 10 秒超时记为失败；快照用 `export_all()`（含墓碑），接收端 `accept_push` + `import_all`（已有）。
+   - **修复既有推送协议缺陷**：原 `push_to_peer` 在 `drop(send)` 后函数返回即 drop conn，对端未读完时连接被提前关闭（实测 "connection lost / closed by peer"）。改为 `send.finish()` 显式 EOF + 保持连接存活直到对端读完关闭（`conn.closed()` 带超时）；`accept_push` 读完数据后显式 `conn.close()` 通知发送端释放。
+5. **FRB API（api.rs）**：`get_device_id(svc)`（原无，新增）、`push_to_devices(svc, devices)` → `Vec<DevicePushResult>`、`list_paired_devices(store)` → `Vec<PairedDeviceRow>`、`remove_paired_device(store, peer_id)`。`flutter_rust_bridge_codegen generate` 成功生成 Dart 绑定（`List<(String, List<String>?)>` 记录 + 两个新 Dart 类）。
+6. **Cargo.toml**：`[dev-dependencies] iroh = { version = "1", features = ["test-utils"] }` —— 仅测试构建启用本地 relay 服务器（`iroh::test_utils::run_relay_server`），用于离线行为验证，不依赖公共 relay 可达性。生产依赖 `iroh = "1"` 默认特性不变。
+7. **lib/bridge/**：未改动。任务标注"如需"；本任务无 UI 消费方（lib/pages 禁止），验收标准不要求 Flutter 侧新测试（回归目标即 53 不回归），加 repository 方法属死代码。若后续 UI 接入可在模块 3/4 补。
 
-### 2. SyncService 层（rust-backend/src/sync.rs）
-- 新增字段 `tombstones: HashSet<String>`（已彻底删除的 note id 集合）
-- 新方法：
-  - `soft_delete_note(&mut self, id: &str)` — meta.deleted_at = now，persist，失败回滚
-  - `restore_note(&mut self, id: &str)` — meta.deleted_at = None，persist，失败回滚
-  - `purge_note(&mut self, id: &str)` — notes remove + tombstones insert + persist，已墓碑 id 幂等
-  - `purge_expired(&mut self, cutoff: &str) -> Result<usize>` — 遍历 meta.deleted_at < cutoff 的 note 批量 purge（一次 persist，失败整体回滚）
-  - `tombstones() -> &HashSet<String>`
-- `iter_notes` 不变（墓碑 id 已从 notes HashMap 移除，天然跳过）
+## 验证结果（真实命令输出）
 
-### 3. Envelope 格式 v2→v3（rust-backend/src/sync.rs）
-- `LORO_VERSION` = 3
-- v3 payload = `墓碑 section + 笔记记录流`；墓碑 section = `墓碑数 u32 LE + (id_len u32 + id bytes)*`
-- `export_all` 写墓碑 section 前缀（墓碑按 id 排序，输出确定）
-- `import_raw(version, data)` 读墓碑 section，导入墓碑与本地 tombstones **union** 合并；记录流中遇到墓碑 id **跳过**（不复活）
-- `decode_envelope` 接受 v1/v2/v3：v2 = 无墓碑 section（无损升级，无需迁移）；v1 走既有迁移路径后按 v2 处理，迁移完成写回 v3
-- `import_all` 按 v3 语义解析（对端快照）；持久化重启 `new_persistent` 用 `decode_envelope` 返回的 version 解析
+### 验收 1-6：Rust 集成测试（rust-backend/tests/connect_test.rs，新增，7 条）
 
-### 4. SQLite 层（rust-backend/src/store.rs）
-- `notes.deleted_at` 列保留，改为**读投影**：`sync_note` 从 `crdt.get_deleted_at()` 写入 deleted_at 列（移除第一轮的 already_deleted 提前 return 保护逻辑）
-- 删除 store 独立删除方法 `delete_note` / `restore_note` / `purge_expired`（职责迁移到 SyncService，避免两套删除入口）
-- 保留 `purge_note` 作为**投影清理**（仅由 `sync_notes_to_store` 在墓碑清理时调用）
-- `trash_list()` / `list_notes()` / `search*()` 过滤逻辑不变
-- `NoteRow` 新增 `deleted_at: Option<String>` 字段（回收站条目显示"删除于"用）
-
-### 5. API 层（rust-backend/src/api.rs）
-- 新 FRB：`note_soft_delete(svc, id)`、`note_restore(svc, id)`、`note_purge(svc, id)`、`purge_expired_trash(svc, cutoff) -> usize`
-- 移除 store 层删除 API：`store_delete_note` / `store_restore_note` / `store_purge_note` / `store_cleanup_expired`（避免两套删除入口）
-- `sync_notes_to_store` 更新：遍历 `svc.iter_notes()` 写投影 + 遍历 `svc.tombstones()` 清理墓碑投影行（purge 后重建投影不复活）
-- 锁语义：api.rs 中 SyncService 由 FRB RustOpaque 管理、每次调用独占 `&mut`（无 RwLock/Mutex 包装），新方法直接 `&mut SyncService`，无需调整锁；调用后投影刷新由 Flutter repository 负责
-
-### 6. Flutter 层（lib/ + test/）
-- `NoteRepository` 接口换用新 API：`softDelete` / `restore` / `purge` / `purgeExpired(DateTime cutoff) -> int`（替代 deleteNote/restoreNote/purgeNote）
-- `FrbNoteRepository`：softDelete/restore/purge 调用新 FRB API 后跟 `syncNotesToStore`；purgeExpired 传 RFC3339 cutoff（`cutoff.toUtc().toIso8601String()`）后刷新投影
-- **30 天清理**：`FrbNoteRepository.open`（bridge_helper init 后）调用 `purgeExpiredTrash(now - 30d)`
-- `TrashPage`：条目日期显示 `note.deletedAt ?? note.updatedAt`（修复第一轮"删除于"误用 updated_at）
-- `note_list_page.dart`：删除调用改 `softDelete`
-- codegen 重新生成 `lib/src/rust/*`、`rust-backend/src/frb_generated.rs`（新 API + NoteRow.deletedAt）
-
-### 7. 第一轮问题 2 清理
-- `git checkout` 还原工具副作用：`analysis_options.yaml`、linux/windows `generated_plugin_registrant.(cc|h|cmake)`（构建/codegen 副作用，非有意改动）
-- `lib/src/rust/*`、`rust-backend/src/frb_generated.rs`：先 checkout 还原 → 跑 codegen 重新生成（保留新产物）
-- `pubspec.lock`：保留（新增 API 依赖正常解析）
-
-## 验收标准逐条结果
-
-### Rust 集成测试（rust-backend/tests/trash_test.rs，全部 `cargo test` 实机跑通）
-
-| # | 测试用例 | 断言点 | 结果 |
-|---|---------|--------|------|
-| 1 | `test_purge_persists_across_sync` | purge_note 后 sync_notes_to_store 重建投影，list_notes 不含 id、store 无该行 | ✅ |
-| 2 | `test_tombstone_survives_export_import` | purge → export_all → 新服务 import_all：tombstones 含 id、iter_notes 不含 | ✅ |
-| 3 | `test_soft_delete_propagates_via_meta` | 软删 export/import：对端 iter_notes 可见、meta.deleted_at 非空（投影主列表不可见、trash 可见） | ✅ |
-| 4 | `test_restore_propagates_via_meta` | 恢复 export/import：对端投影主列表可见、trash 不可见 | ✅ |
-| 5 | `test_purge_expired_batch` | 3 篇软删（2 过期 1 未过期）→ purge_expired 返回 2、trash_list 剩 1 | ✅ |
-| 6 | `test_v2_file_loads_without_tombstones` | 手工 v2 envelope → new_persistent：墓碑空、数据完整 | ✅ |
-| 7 | `test_tombstoned_id_skipped_on_import` | 记录流含墓碑 id → import 后不可见 | ✅ |
-
-### Flutter widget 测试（test/trash_widget_test.dart + test/frb_note_repository_test.dart）
-
-| # | 测试用例 | 结果 |
-|---|---------|------|
-| 8 | `purge survives list refresh`（fake repository，trash_widget_test）+ `purge survives list refresh via real FRB chain`（真实 FRB 链路，frb_note_repository_test） | ✅ |
-| 9 | 第一轮 6-9 用例保留全绿（trash_widget_test 4 个：delete→trash / restore / purge / empty state；frb 软删刷新测试等） | ✅ |
-
-### 回归（实机命令输出摘要）
-
-| # | 命令 | 结果 |
-|---|------|------|
-| 10 | `cd rust-backend && cargo test` | ✅ 41 passed, 0 failed（trash_test 13、sync_service_test 5、sync_test 1、migration_test 2、note_crdt_test 10、store_test 6、discovery_test 2、integration_test 2） |
-| 11 | `flutter pub get && flutter test` | ✅ 53 passed, 0 failed（先重建 release dylib 到 build/windows/x64/runner/Release 解决 content hash 失配） |
-| 12 | `flutter analyze` | ✅ No issues found |
-| 13 | `flutter_rust_bridge_codegen generate` | ✅ Done!（lib/src/rust/api.dart 出现 noteSoftDelete/noteRestore/notePurge/purgeExpiredTrash，store.dart NoteRow 出现 deletedAt） |
-| 14 | `git status` | ✅ 改动全在范围内（详见下） |
-
-### 第 14 条 git status 范围确认（还原副作用后）
+`cd rust-backend && cargo test --test connect_test`：
 
 ```
- M lib/bridge/bridge_helper.dart          ← 范围内
- M lib/bridge/frb_note_repository.dart    ← 范围内
- M lib/bridge/note_repository.dart        ← 范围内
- M lib/pages/note_list_page.dart          ← 范围内
- M lib/src/rust/{api,discovery,frb_generated,frb_generated.io,frb_generated.web,store,sync}.dart ← codegen 新产物
- M pubspec.lock                           ← 保留（任务单明确）
- M rust-backend/src/{api,store,sync,frb_generated}.rs ← 范围内（frb_generated.rs 为 codegen 产物）
- M rust-backend/tests/{migration_test,sync_service_test}.rs ← 范围内（v3 版本断言调整）
- M test/{frb_note_repository_test,mobile_ui_test,vertical_slice_widget_test}.dart ← 范围内
-?? lib/pages/trash_page.dart              ← 第一轮产物（保留）
-?? rust-backend/tests/trash_test.rs       ← 范围内
-?? test/trash_widget_test.dart            ← 范围内
+running 7 tests
+test test_paired_devices_crud ... ok
+test test_relay_mode_enabled ... ok
+test test_memory_service_random_identity ... ok
+test test_push_receive_roundtrip_relay_or_direct ... ok
+test test_device_identity_persists ... ok
+test test_push_multi_device_partial_failure ... ok
+test test_relay_cross_network_connect ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.52s
 ```
 
-无 `docs/`、`prototype/`、`.gitignore` 改动。`analysis_options.yaml` 与 linux/windows registrant 已还原（不再出现在 status）。
+> `test_push_multi_device_partial_failure` 耗时 ~10s：假设备（127.0.0.1:1，UDP 无监听）按设计走 10 秒连接超时 → 记为失败 → 继续下一台。这是验收标准规定的超时语义，非异常。
 
-## 新增测试清单
+### 验收 7：`cd rust-backend && cargo test` 全绿
 
-### Rust（rust-backend/tests/trash_test.rs）
-- `test_purge_persists_across_sync` — 验收 1：purge 后投影重建不复活
-- `test_tombstone_survives_export_import` — 验收 2：墓碑随快照传播
-- `test_soft_delete_propagates_via_meta` — 验收 3：软删经 meta 传播
-- `test_restore_propagates_via_meta` — 验收 4：恢复经 meta 传播
-- `test_purge_expired_batch` — 验收 5：批量过期清理
-- `test_v2_file_loads_without_tombstones` — 验收 6：v2→v3 无损升级
-- `test_tombstoned_id_skipped_on_import` — 验收 7：墓碑 id 导入跳过
-- 调整（新职责）：`test_soft_delete_marks_deleted_at`、`test_restore_clears_deleted_at`、`test_purge_removes_row_and_links`、`test_expired_trash_cleanup`、`test_trash_ordering`、`test_migration_adds_deleted_at_column`（store 独立删除改为 SyncService + 投影刷新）
+```
+Running tests\connect_test.rs    ... ok. 7 passed  (30.52s)
+Running tests\discovery_test.rs  ... ok. 2 passed   (6.03s)
+Running tests\integration_test.rs... ok. 2 passed
+Running tests\migration_test.rs  ... ok. 2 passed
+Running tests\note_crdt_test.rs  ... ok. 10 passed
+Running tests\store_test.rs      ... ok. 6 passed
+Running tests\sync_service_test.rs ... ok. 5 passed
+Running tests\sync_test.rs       ... ok. 1 passed
+Running tests\trash_test.rs      ... ok. 13 passed
+```
+合计 **48 passed, 0 failed**（基线 41 + 新增 7），无回归。
 
-### Rust 既有测试配合调整
-- `sync_service_test.rs`：`test_persistent_restart_and_envelope_validation` version 断言 2→3；`test_empty_export_import` 空导出断言改为 v3 墓碑 section 头（4 字节）
-- `migration_test.rs`：`test_v1_to_v2_migration` 写回版本断言 2→3
+### 验收 8：`flutter pub get && flutter test` 全绿（53 不回归）
 
-### Flutter
-- `test/trash_widget_test.dart`：`purge survives list refresh`（验收 8，fake repository 模拟 syncNotesToStore 刷新）
-- `test/frb_note_repository_test.dart`：`purge survives list refresh via real FRB chain`（验收 8 真实链路）、`purgeExpired removes only notes older than cutoff`（repository 层语义）
+```
+00:13 +53: All tests passed!
+```
+（基线 53 全绿；注意基线需先构建 DLL：`cargo build --release` + 复制到 `build/windows/x64/runner/Release/cardmind_backend.dll`，否则 api_integration_test / frb_note_repository_test 因缺 DLL 报错——这是环境构建状态，非代码回归。）
 
-## 需决策点
+### 验收 9：`flutter analyze` 无 error
 
-无。任务单标注的两个决策点均未触发：
-- envelope v3 编码与 Loro snapshot 兼容性：snapshot 是 Loro `ExportMode::snapshot()` 输出，墓碑 section 在自定义 payload 外层，无冲突
-- 墓碑 union 合并冲突：`import_raw` 按设计指定方向处理——导入记录流遇到墓碑 id 直接跳过（远端 purge 压制本地记录），不涉及覆盖方向歧义
+```
+Analyzing connect...
+No issues found! (ran in 25.7s)
+```
+
+### 验收 10：`flutter_rust_bridge_codegen generate` 成功
+
+```
+Done!
+```
+生成产物：`lib/src/rust/{api,store,sync,frb_generated,frb_generated.io,frb_generated.web}.dart`、`rust-backend/src/frb_generated.rs`。新绑定：`getDeviceId`、`pushToDevices({List<(String, List<String>?)> devices})`、`listPairedDevices`、`removePairedDevice`，新类 `DevicePushResult`、`PairedDeviceRow`。
+
+### 验收 11：`git status` 改动全在范围内
+
+```
+ M lib/src/rust/api.dart          (codegen 产物，允许)
+ M lib/src/rust/frb_generated.dart/.io/.web
+ M lib/src/rust/store.dart
+ M lib/src/rust/sync.dart
+ M rust-backend/Cargo.lock        (允许范围：Cargo.toml 调整连带)
+ M rust-backend/Cargo.toml        (允许)
+ M rust-backend/src/api.rs        (允许)
+ M rust-backend/src/frb_generated.rs (codegen 产物)
+ M rust-backend/src/store.rs      (允许)
+ M rust-backend/src/sync.rs       (允许)
+?? rust-backend/tests/connect_test.rs (新增，允许)
+```
+`lib/pages/`、`docs/`、`prototype/`、`.gitignore`、`lib/bridge/` 均未触碰（grep 校验通过）。
+
+> 注：`flutter pub get`/`flutter test`/codegen 会把 `linux/flutter/generated_plugin_registrant.*`、`windows/flutter/generated_plugin_registrant.*`、`windows/linux generated_plugins.cmake` 以及 `lib/src/rust/discovery.dart` 重写成 LF→CRLF（内容零 diff，仅行尾）。已 `git checkout` 还原，保持变更集干净；reviewer 重跑 codegen 可能再次看到这些行尾噪音，可忽略。
+
+## 新增测试清单（rust-backend/tests/connect_test.rs）
+
+| 用例名 | 覆盖点 | 对应验收 |
+|---|---|---|
+| `test_device_identity_persists` | new_persistent 同目录重启 device_id 稳定；device.key 文件存在 | 验收 1 |
+| `test_memory_service_random_identity` | 两次 new() device_id 不同（内存版随机） | 验收 2 |
+| `test_paired_devices_crud` | upsert 两台→list 含两台；update_last_seen 后排序+字段正确；重复 upsert 覆盖 name；remove 后消失 | 验收 3 |
+| `test_push_receive_roundtrip_relay_or_direct` | A 建笔记 → push_to_peer(B 实际地址) → B accept_push+import_all 后可见 | 验收 4 |
+| `test_push_multi_device_partial_failure` | 3 台（2 真 1 假）：真成功、假失败、其余不受影响；结果顺序与输入一致 | 验收 5 |
+| `test_relay_mode_enabled` | 生产配置 relay_mode() != Disabled（getter 断言，离线确定性） | 验收 6（配置断言） |
+| `test_relay_cross_network_connect` | 本地 relay 服务器 + 两个仅凭 relay URL（无直连 IP）的 endpoint 建连并传数据 | 验收 6（行为补充） |
+
+## 需决策点处理情况
+
+1. **iroh relay 默认配置断网下 Endpoint 创建失败/极慢** — **未触发**。实机验证：改 `RelayMode::Default` 后，`SyncService::new()`/`new_persistent()` 在测试中快速绑定（sync_service_test 5 条 0.22s，身份测试秒过）。iroh 1.0.2 的 relay 连接是异步后台行为，bind 不阻塞。
+2. **公共 relay（GFW）可达性** — **按任务允许的回退路径处理，未 mock**。本机未验证 relay.n0.iroh.link 实际可达性；测试 6 采用任务指定的回退组合：(a) getter 断言 `relay_mode() != Disabled`（离线确定）；(b) 真实行为测试 `test_relay_cross_network_connect`——用 `iroh::test_utils::run_relay_server()` 起**本地真实 relay 服务器进程**（QUIC 中转，非 mock），两 endpoint 仅凭 relay URL 跨网段建连传输成功。生产代码 RelayMode::Default 在 GFW 网络下的实际连通性属运行时环境问题，需真机验证（模块 3/4 或联调时）。
+3. **SecretKey 持久化需改 envelope/FRB 签名** — **未触发**。`device.key` 独立文件，`new_persistent(path)` 签名未变，FRB `createPersistentSyncService(path)` 未变。
 
 ## 未决问题
 
-1. `purge_expired_trash` FRB 返回 `BigInt`（Rust `usize`），Flutter repository 用 `count.toInt()` 转换，语义无损。
-2. 旧版对端（v2 协议对端）发送纯记录流 payload 时，`import_all` 按 v3 语义解析会读错墓碑计数——任务单设计未要求兼容旧版对端（仅要求 v2 文件加载无损），当前行为符合设计；跨版本同步兼容留待后续网络模块任务。
-3. `flutter pub get` 会再次改写 `analysis_options.yaml`（添加 exclude），本报告收尾时已还原；主仓库侧若执行 pub get 需注意此点（与第一轮问题 2 相同）。
-
-## 第 7 条工具副作用还原（终轮）
-
-审核子代理复验实机跑 `flutter test` 后，Flutter 工具再次自动改写 7 个工具副作用文件（与第一轮问题 2 相同）。本轮已全部还原到 HEAD，未跑任何 Flutter/Rust 工具，未改任何实现代码。
-
-**还原的文件（7 个，`git checkout -- <file>`）**
-1. `analysis_options.yaml`（被添加 analyzer.exclude 块）
-2. `linux/flutter/generated_plugin_registrant.cc`
-3. `linux/flutter/generated_plugin_registrant.h`
-4. `linux/flutter/generated_plugins.cmake`
-5. `windows/flutter/generated_plugin_registrant.cc`
-6. `windows/flutter/generated_plugin_registrant.h`
-7. `windows/flutter/generated_plugins.cmake`
-   （linux/windows 四件套被添加 jni 插件注册）
-
-**还原前后实机 `git status --short` 输出**
-
-还原前（确认副作用文件在列）：
-```
- M .workflow/executor-report.md
- M .workflow/final-check.md
- M .workflow/review-report.md
- M analysis_options.yaml
- M lib/bridge/bridge_helper.dart
- M lib/bridge/frb_note_repository.dart
- M lib/bridge/note_repository.dart
- M lib/pages/note_list_page.dart
- M lib/src/rust/api.dart
- M lib/src/rust/discovery.dart
- M lib/src/rust/frb_generated.dart
- M lib/src/rust/frb_generated.io.dart
- M lib/src/rust/frb_generated.web.dart
- M lib/src/rust/store.dart
- M lib/src/rust/sync.dart
- M linux/flutter/generated_plugin_registrant.cc
- M linux/flutter/generated_plugin_registrant.h
- M linux/flutter/generated_plugins.cmake
- M pubspec.lock
- M rust-backend/src/api.rs
- M rust-backend/src/frb_generated.rs
- M rust-backend/src/store.rs
- M rust-backend/src/sync.rs
- M rust-backend/tests/migration_test.rs
- M rust-backend/tests/sync_service_test.rs
- M test/frb_note_repository_test.dart
- M test/mobile_ui_test.dart
- M test/vertical_slice_widget_test.dart
- M windows/flutter/generated_plugin_registrant.cc
- M windows/flutter/generated_plugin_registrant.h
- M windows/flutter/generated_plugins.cmake
-?? lib/pages/trash_page.dart
-?? rust-backend/tests/trash_test.rs
-?? test/trash_widget_test.dart
-```
-
-还原后（7 个副作用文件已消失；剩余改动全部在任务单范围内）：
-```
- M .workflow/executor-report.md
- M .workflow/final-check.md
- M .workflow/review-report.md
- M lib/bridge/bridge_helper.dart
- M lib/bridge/frb_note_repository.dart
- M lib/bridge/note_repository.dart
- M lib/pages/note_list_page.dart
- M lib/src/rust/api.dart
- M lib/src/rust/discovery.dart
- M lib/src/rust/frb_generated.dart
- M lib/src/rust/frb_generated.io.dart
- M lib/src/rust/frb_generated.web.dart
- M lib/src/rust/store.dart
- M lib/src/rust/sync.dart
- M pubspec.lock
- M rust-backend/src/api.rs
- M rust-backend/src/frb_generated.rs
- M rust-backend/src/store.rs
- M rust-backend/src/sync.rs
- M rust-backend/tests/migration_test.rs
- M rust-backend/tests/sync_service_test.rs
- M test/frb_note_repository_test.dart
- M test/mobile_ui_test.dart
- M test/vertical_slice_widget_test.dart
-?? lib/pages/trash_page.dart
-?? rust-backend/tests/trash_test.rs
-?? test/trash_widget_test.dart
-```
-
-**范围核对**：剩余改动全部在 `lib/bridge/*`、`lib/pages/*`、`lib/src/rust/*`（codegen 新产物）、`pubspec.lock`、`rust-backend/src/{api,store,sync,frb_generated}.rs`、`rust-backend/tests/{migration_test,sync_service_test,trash_test}.rs`、`test/*` 及 `.workflow/*` 报告文件内；无 `docs/`、`prototype/`、`.gitignore` 改动。
-
-**结论**：终轮工具副作用已还原，worktree 干净，可合并。
+1. 公共 relay（relay.n0.iroh.link）在本网络的实际连通性未实机验证（GFW 风险），不影响本任务测试（全部离线可跑），但生产跨网段推送依赖它——建议后续模块真机验证。
+2. `push_to_devices` FRB 签名按任务设计为 `(svc, devices)`，无 store 参数，因此 `update_last_seen` 未在推送成功路径自动调用（store 方法已就绪并测试覆盖）。若产品要求"推送成功自动刷新 last_seen"，需在 repository 层或后续模块接线。
+3. `test_push_multi_device_partial_failure` 因 10s 超时语义耗时 ~10s；`test_relay_cross_network_connect` 约 30s（本地 relay 启动+online 等待），属可接受范围。
+4. Flutter 工具链会对若干生成文件做 LF→CRLF 行尾改写（内容零 diff），已还原；重跑 codegen/flutter 命令可能复现，非代码问题。

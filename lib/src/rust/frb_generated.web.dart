@@ -105,16 +105,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  DevicePushResult dco_decode_device_push_result(dynamic raw);
+
+  @protected
   LinkRow dco_decode_link_row(dynamic raw);
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
+  List<DevicePushResult> dco_decode_list_device_push_result(dynamic raw);
+
+  @protected
   List<LinkRow> dco_decode_list_link_row(dynamic raw);
 
   @protected
   List<NoteRow> dco_decode_list_note_row(dynamic raw);
+
+  @protected
+  List<PairedDeviceRow> dco_decode_list_paired_device_row(dynamic raw);
 
   @protected
   List<PeerInfo> dco_decode_list_peer_info(dynamic raw);
@@ -126,13 +135,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<(String, List<String>?)> dco_decode_list_record_string_opt_list_string(
+    dynamic raw,
+  );
+
+  @protected
   NoteRow dco_decode_note_row(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  List<String>? dco_decode_opt_list_String(dynamic raw);
+
+  @protected
+  PairedDeviceRow dco_decode_paired_device_row(dynamic raw);
+
+  @protected
   PeerInfo dco_decode_peer_info(dynamic raw);
+
+  @protected
+  (String, List<String>?) dco_decode_record_string_opt_list_string(dynamic raw);
 
   @protected
   int dco_decode_u_16(dynamic raw);
@@ -216,16 +239,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  DevicePushResult sse_decode_device_push_result(SseDeserializer deserializer);
+
+  @protected
   LinkRow sse_decode_link_row(SseDeserializer deserializer);
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
+  List<DevicePushResult> sse_decode_list_device_push_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<LinkRow> sse_decode_list_link_row(SseDeserializer deserializer);
 
   @protected
   List<NoteRow> sse_decode_list_note_row(SseDeserializer deserializer);
+
+  @protected
+  List<PairedDeviceRow> sse_decode_list_paired_device_row(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<PeerInfo> sse_decode_list_peer_info(SseDeserializer deserializer);
@@ -237,13 +273,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<(String, List<String>?)> sse_decode_list_record_string_opt_list_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   NoteRow sse_decode_note_row(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
+
+  @protected
+  PairedDeviceRow sse_decode_paired_device_row(SseDeserializer deserializer);
+
+  @protected
   PeerInfo sse_decode_peer_info(SseDeserializer deserializer);
+
+  @protected
+  (String, List<String>?) sse_decode_record_string_opt_list_string(
+    SseDeserializer deserializer,
+  );
 
   @protected
   int sse_decode_u_16(SseDeserializer deserializer);
@@ -343,16 +395,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_device_push_result(
+    DevicePushResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_link_row(LinkRow self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_device_push_result(
+    List<DevicePushResult> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_link_row(List<LinkRow> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_note_row(List<NoteRow> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_paired_device_row(
+    List<PairedDeviceRow> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_peer_info(List<PeerInfo> self, SseSerializer serializer);
@@ -367,13 +437,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_record_string_opt_list_string(
+    List<(String, List<String>?)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_note_row(NoteRow self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_paired_device_row(
+    PairedDeviceRow self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_peer_info(PeerInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_record_string_opt_list_string(
+    (String, List<String>?) self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_u_16(int self, SseSerializer serializer);
