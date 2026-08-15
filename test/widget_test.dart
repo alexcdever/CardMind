@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cardmind/main.dart';
+import 'package:cardmind/pages/devices_page.dart';
 
 void main() {
   testWidgets('desktop renders the three-pane note workspace', (tester) async {
@@ -30,7 +31,9 @@ void main() {
     await tester.tap(find.text('设备'));
     await tester.pumpAndSettle();
 
-    expect(find.text('暂无已连接设备'), findsOneWidget);
+    // 模块 5：设备 tab 渲染设备页（替换空壳占位）。无 repository 注入时
+    // 设备页加载失败展示错误态而非崩溃。
+    expect(find.byType(DevicesPage), findsOneWidget);
     expect(find.byTooltip('新建笔记'), findsNothing);
   });
 }

@@ -33,6 +33,9 @@ abstract interface class SyncApi {
 
   /// 周期同步任务体：push 给所有对端 + 短窗口 accept 对端 push。
   Future<void> runSyncCycle();
+
+  /// 当前待同步笔记数（模块 5 状态指示器数据源）。
+  Future<int> pendingCount();
 }
 
 /// connectivity_plus 实现：WiFi/以太网 → true（允许），蜂窝 → false（暂停）。
@@ -91,6 +94,9 @@ class FrbSyncApi implements SyncApi {
   Future<void> runSyncCycle() async {
     await api.runSyncCycle(svc: _sync, store: _store);
   }
+
+  @override
+  Future<int> pendingCount() => api.pendingSyncCount(svc: _sync);
 }
 
 /// 自动同步调度器（任务 H）：
@@ -111,6 +117,11 @@ class SyncScheduler {
   final SyncApi api;
   Timer? _timer;
   StreamSubscription<bool>? _subscription;
+  final _pendingCountController = StreamController<int>.broadcast();
+
+  /// 待同步计数变化流（模块 5）：周期同步 / 编辑推送 / 立即同步完成后发出，
+  /// UI 监听以刷新状态指示器与"立即同步"按钮。
+  Stream<int> get pendingCountChanges => _pendingCountController.stream;
 
   /// 是否运行中（测试诊断用）。
   bool get isRunning => _timer != null;
@@ -134,20 +145,57 @@ class SyncScheduler {
     _subscription = null;
   }
 
+  /// 释放资源（关闭计数流；stop 后不再广播）。
+  void dispose() {
+    stop();
+    if (!_pendingCountController.isClosed) _pendingCountController.close();
+  }
+
   /// 编辑保存后触发（repository 保存成功调用；fire-and-forget，不阻塞编辑）。
   ///
   /// 推送失败静默（决策 18）：不抛错，下个周期拉取兜底。
+  /// 推送完成后刷新待同步计数（本地编辑会令计数上升/清零）。
   void noteEdited() {
-    unawaited(api.pushPending());
+    unawaited(() async {
+      await api.pushPending();
+      await refreshPendingCount();
+    }());
   }
 
-  /// 手动"立即同步"（模块 5 入口）：无视同步开关强制推送（决策 6）。
+  /// 手动"立即同步"（模块 5 入口）：临时打开同步开关（无视 WiFi，决策 6）
+  /// → 执行完整同步周期 → 刷新待同步计数。失败静默（决策 18）。
+  Future<void> syncNow() async {
+    try {
+      await api.setSyncAllowed(true);
+      await api.runSyncCycle();
+    } catch (_) {
+      // 失败静默（决策 18）；下个周期兜底
+    } finally {
+      await refreshPendingCount();
+    }
+  }
+
+  /// 手动"立即推送"（旧入口，保留）：仅推送待办，无视同步开关（决策 6）。
   Future<void> pushNow() async {
     try {
       await api.pushPending();
     } catch (_) {
       // 失败静默（决策 18）
+    } finally {
+      await refreshPendingCount();
     }
+  }
+
+  /// 查询并广播当前待同步数。返回当前值（失败时返回 0）。
+  Future<int> refreshPendingCount() async {
+    int count;
+    try {
+      count = await api.pendingCount();
+    } catch (_) {
+      return 0;
+    }
+    if (!_pendingCountController.isClosed) _pendingCountController.add(count);
+    return count;
   }
 
   Future<void> _runCycle() async {
@@ -155,6 +203,8 @@ class SyncScheduler {
       await api.runSyncCycle();
     } catch (_) {
       // 周期失败静默（决策 18）；下个周期重试
+    } finally {
+      await refreshPendingCount();
     }
   }
 
