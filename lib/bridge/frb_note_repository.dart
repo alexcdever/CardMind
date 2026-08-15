@@ -1,6 +1,7 @@
 import 'package:path/path.dart' as p;
 
 import '../src/rust/api.dart' as api;
+import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
 import 'note_repository.dart';
@@ -238,6 +239,24 @@ final class FrbNoteRepository implements NoteRepository {
   }
 
   @override
+  Future<String> beginPairingAcceptAndAdvertise() async {
+    _ensureOpen();
+    return api.beginPairingAcceptWithAdvertising(svc: _sync);
+  }
+
+  @override
+  Future<void> stopPairingAdvertising() async {
+    _ensureOpen();
+    await api.stopPairingAdvertising(svc: _sync);
+  }
+
+  @override
+  Future<List<PeerInfo>> discoverPeers() async {
+    _ensureOpen();
+    return api.syncDiscoverPeers(svc: _sync);
+  }
+
+  @override
   Future<PairingRequest> acceptPairingRequest() async {
     _ensureOpen();
     return api.acceptPairingRequest(svc: _sync);
@@ -249,8 +268,12 @@ final class FrbNoteRepository implements NoteRepository {
     PairingRequest requester,
   ) async {
     _ensureOpen();
-    final result =
-        await api.confirmPairing(svc: _sync, store: _store, code: code, requester: requester);
+    final result = await api.confirmPairing(
+      svc: _sync,
+      store: _store,
+      code: code,
+      requester: requester,
+    );
     // 配对后刷新投影（确认方 upsert 发起方后，设备列表由 listPairedDevices 直接读表）
     return result;
   }

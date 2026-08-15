@@ -41,7 +41,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1502576610;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -25343223;
 
 // Section: executor
 
@@ -314,6 +314,62 @@ fn wire__crate__api__begin_pairing_accept_impl(
                         let output_ok = crate::api::begin_pairing_accept(&*api_svc_guard)?;
                         Ok(output_ok)
                     })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__begin_pairing_accept_with_advertising_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "begin_pairing_accept_with_advertising",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let mut api_svc_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_svc, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_svc_guard = Some(api_svc.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let output_ok =
+                            crate::api::begin_pairing_accept_with_advertising(&*api_svc_guard)
+                                .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
                 )
             }
         },
@@ -2168,6 +2224,61 @@ fn wire__crate__api__start_advertising_impl(
         },
     )
 }
+fn wire__crate__api__stop_pairing_advertising_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "stop_pairing_advertising",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let mut api_svc_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_svc, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_svc_guard = Some(api_svc.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let output_ok =
+                            crate::api::stop_pairing_advertising(&*api_svc_guard).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__store_list_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2317,6 +2428,60 @@ fn wire__crate__api__store_trash_list_impl(
                         let output_ok = crate::api::store_trash_list(&*api_store_guard)?;
                         Ok(output_ok)
                     })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__sync_discover_peers_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "sync_discover_peers",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let mut api_svc_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_svc, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_svc_guard = Some(api_svc.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let output_ok = crate::api::sync_discover_peers(&*api_svc_guard).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
                 )
             }
         },
@@ -2822,48 +2987,56 @@ fn pde_ffi_dispatcher_primary_impl(
         3 => wire__crate__api__accept_push_and_import_impl(port, ptr, rust_vec_len, data_len),
         4 => wire__crate__api__auto_complete_links_impl(port, ptr, rust_vec_len, data_len),
         5 => wire__crate__api__begin_pairing_accept_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__begin_pairing_connect_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
-        9 => {
+        6 => wire__crate__api__begin_pairing_accept_with_advertising_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        7 => wire__crate__api__begin_pairing_connect_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
+        10 => {
             wire__crate__api__create_persistent_sync_service_impl(port, ptr, rust_vec_len, data_len)
         }
-        10 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__stop_pairing_advertising_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__sync_discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

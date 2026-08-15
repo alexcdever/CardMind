@@ -2,6 +2,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'dart:async';
 
+import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
 import 'frb_note_repository.dart';
@@ -240,6 +241,24 @@ class BridgeHelper implements NoteRepository {
   @override
   Future<String> beginPairingAccept() async {
     return _delegate.beginPairingAccept();
+  }
+
+  /// 确认方：生成配对码并启动 mDNS 广播（任务 J 组合 API）。
+  @override
+  Future<String> beginPairingAcceptAndAdvertise() async {
+    return _delegate.beginPairingAcceptAndAdvertise();
+  }
+
+  /// 停止 mDNS 广播（幂等）。
+  @override
+  Future<void> stopPairingAdvertising() async {
+    await _delegate.stopPairingAdvertising();
+  }
+
+  /// 发起方：mDNS 扫描局域网设备（约 3 秒超时）。
+  @override
+  Future<List<PeerInfo>> discoverPeers() async {
+    return _delegate.discoverPeers();
   }
 
   /// 确认方：阻塞接收发起方配对请求。

@@ -4,6 +4,7 @@ import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/bridge/sync_scheduler.dart';
 import 'package:cardmind/pages/devices_page.dart';
 import 'package:cardmind/pages/note_list_page.dart';
+import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/src/rust/sync.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
@@ -78,6 +79,10 @@ class DevicesRepository implements NoteRepository {
   PairingTarget? connectTarget;
   String connectPeerName = 'New Phone';
 
+  /// 任务 J：mDNS 广播生命周期记录（显示码开启/关闭）。
+  bool advertisingStarted = false;
+  bool advertisingStopped = false;
+
   @override
   Future<List<PairedDeviceRow>> listPairedDevices() async =>
       List.of(pairedDevices);
@@ -93,6 +98,22 @@ class DevicesRepository implements NoteRepository {
     acceptCodeCalls++;
     return acceptCodeValue;
   }
+
+  /// 组合 API（任务 J）：生成配对码并启动 mDNS 广播。
+  @override
+  Future<String> beginPairingAcceptAndAdvertise() async {
+    acceptCodeCalls++;
+    advertisingStarted = true;
+    return acceptCodeValue;
+  }
+
+  @override
+  Future<void> stopPairingAdvertising() async {
+    advertisingStopped = true;
+  }
+
+  @override
+  Future<List<PeerInfo>> discoverPeers() async => [];
 
   @override
   Future<void> removePairedDevice(String peerId) async {

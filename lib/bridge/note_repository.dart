@@ -1,3 +1,4 @@
+import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
 
@@ -68,6 +69,20 @@ abstract interface class NoteRepository {
 
   /// 确认方：生成 6 位数字配对码（密码学随机，10 分钟有效）。
   Future<String> beginPairingAccept();
+
+  /// 确认方：生成配对码并启动 mDNS 广播（任务 J 组合 API）。
+  ///
+  /// 码与广播在同一调用内完成（Rust 侧组合，保证配对期间广播一定在）；
+  /// 配对结束（弹窗关闭/完成/取消）时调用 [stopPairingAdvertising]。
+  Future<String> beginPairingAcceptAndAdvertise();
+
+  /// 停止 mDNS 广播（幂等；配对弹窗关闭/完成/取消时调用）。
+  Future<void> stopPairingAdvertising();
+
+  /// 发起方：mDNS 扫描局域网内的 CardMind 设备（约 3 秒超时）。
+  ///
+  /// 设备 ID 留空时用于自动填充配对目标；超时无结果返回空列表。
+  Future<List<PeerInfo>> discoverPeers();
 
   /// 确认方：阻塞接收发起方的配对请求（等待发起方连接；阻塞期间不可并发调用
   /// 本 SyncService 的其它方法）。
