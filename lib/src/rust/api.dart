@@ -147,6 +147,11 @@ Future<SyncCycleResult> runSyncCycle({
 ///
 /// 接收任务持有 `endpoint.clone()` + 共享 core + `store.clone()`，不占用
 /// FRB opaque 锁——接收等待期间 create/edit/push 均可并发执行。
+///
+/// 任务 P：`store` 改为借用 `&NoteStore`，避免按值跨 FRB 边界时生成绑定把
+/// Dart 侧 RustArc 视为 move/消费（`Auto_Owned` 编码），导致调用返回后
+/// `_store` 已 disposed、下一周期 `run_sync_cycle` 抛 DroppableDisposedException。
+/// 接收器内部仍持有自己的 clone（`SyncService::start_receiver` 内 clone）。
 Future<void> startReceiver({
   required SyncService svc,
   required NoteStore store,
