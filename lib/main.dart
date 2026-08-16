@@ -2,6 +2,7 @@ import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
 
 import 'bridge/bridge_helper.dart';
+import 'bridge/debug_log.dart';
 import 'bridge/note_repository.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
@@ -14,8 +15,12 @@ void main() {
 }
 
 Future<void> initializeCardMindBackend() async {
-  await RustLib.init();
-  await BridgeHelper().init();
+  // 启动事件（验收 2）：RustLib / Bridge 初始化成功或失败各有可断言事件
+  await initializeBackendWithLogging(
+    rustInit: RustLib.init,
+    bridgeInit: () => BridgeHelper().init(),
+    log: DebugLogger.instance,
+  );
 }
 
 class CardMindBootstrap extends StatefulWidget {

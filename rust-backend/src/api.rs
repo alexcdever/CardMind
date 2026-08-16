@@ -7,12 +7,38 @@ use crate::sync::{
 
 /// 创建同步服务
 pub async fn create_sync_service() -> anyhow::Result<SyncService> {
-    SyncService::new().await
+    match SyncService::new().await {
+        Ok(svc) => Ok(svc),
+        Err(e) => {
+            // 启动失败事件（全局兜底 sink；不打断主流程）
+            crate::debug_log::emit_global(
+                crate::debug_log::LogEvent::new("startup.sync_service", "sync.init")
+                    .with_field("action", "failed")
+                    .with_field("mode", "memory")
+                    .with_error(&e.to_string())
+                    .with_chain(&format!("{e:#}")),
+            );
+            Err(e)
+        }
+    }
 }
 
 /// 创建绑定数据目录的持久化同步服务。
 pub async fn create_persistent_sync_service(path: String) -> anyhow::Result<SyncService> {
-    SyncService::new_persistent(path).await
+    match SyncService::new_persistent(&path).await {
+        Ok(svc) => Ok(svc),
+        Err(e) => {
+            // 启动失败事件（全局兜底 sink；不打断主流程）
+            crate::debug_log::emit_global(
+                crate::debug_log::LogEvent::new("startup.sync_service", "sync.init")
+                    .with_field("action", "failed")
+                    .with_field("mode", "persistent")
+                    .with_error(&e.to_string())
+                    .with_chain(&format!("{e:#}")),
+            );
+            Err(e)
+        }
+    }
 }
 
 /// 获取本设备 iroh 身份 ID（SecretKey 持久化后跨重启稳定）。

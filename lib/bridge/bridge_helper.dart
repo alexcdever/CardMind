@@ -5,6 +5,7 @@ import 'dart:async';
 import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
+import 'debug_log.dart';
 import 'frb_note_repository.dart';
 import 'note_repository.dart';
 import 'sync_scheduler.dart';
@@ -28,14 +29,32 @@ class BridgeHelper implements NoteRepository {
   ///
   /// Call once after [RustLib.init] in main.dart.
   Future<void> init() async {
-    final dir = await getApplicationSupportDirectory();
-    _repository?.close();
-    _scheduler?.stop();
-    _repository = await FrbNoteRepository.open(
-      dataDirectory: dir.path,
-      onLocalChange: _onLocalChange,
-    );
-    _startSyncScheduler();
+    final log = DebugLogger.instance;
+    // 启动事件（验收 2）：SyncService 初始化
+    log.event('startup.sync_service', 'startup', fields: const {'action': 'start'});
+    try {
+      final dir = await getApplicationSupportDirectory();
+      _repository?.close();
+      _scheduler?.stop();
+      _repository = await FrbNoteRepository.open(
+        dataDirectory: dir.path,
+        onLocalChange: _onLocalChange,
+      );
+      // 本机身份（脱敏；事件 #3）
+      final id = await _delegate.deviceId();
+      log.event('identity.device_id', 'identity', deviceIds: [id]);
+      log.event('startup.sync_service', 'startup', fields: const {'action': 'success'});
+      _startSyncScheduler();
+    } catch (e) {
+      log.event(
+        'startup.sync_service',
+        'startup',
+        fields: const {'action': 'failed'},
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
+      );
+      rethrow;
+    }
   }
 
   /// 本地写操作成功后触发调度器"编辑保存即推送"（fire-and-forget，不阻塞 UI）。

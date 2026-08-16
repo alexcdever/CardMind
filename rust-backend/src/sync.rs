@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -12,6 +12,7 @@ use loro::{Container, ExportMode, LoroDoc, LoroValue, ValueOrContainer};
 use rand::Rng;
 use uuid::Uuid;
 
+use crate::debug_log::{self, LogEvent, LogSink, PlatformSink};
 use crate::discovery::{DiscoveryService, PeerInfo};
 use crate::store::NoteStore;
 
@@ -47,6 +48,10 @@ pub struct SyncService {
     /// 用 tokio Mutex：`discover_peers` 需跨 await 持锁，FRB async 要求
     /// Send future（std MutexGuard 非 Send，跨 await 编译不过）。
     discovery: tokio::sync::Mutex<Option<DiscoveryService>>,
+    /// 调试日志 sink（实例级；测试注入收集/异常 sink 断言事件）。
+    log: Arc<dyn LogSink>,
+    /// verbose 日志开关（debug 提高详细程度；默认 false 只输出常规事件）。
+    log_verbose: AtomicBool,
 }
 
 /// NoteCrdt — LoroDoc 笔记模型
@@ -177,30 +182,7 @@ impl SyncService {
     ///
     /// 内存版 relay 固定 `RelayMode::Disabled`（任务 K：不读 relay.txt，测试隔离）。
     pub async fn new() -> Result<Self> {
-        let key = load_or_create_secret_key(None)?;
-        let relay_mode = RelayMode::Disabled;
-        let endpoint = Endpoint::builder(presets::N0)
-            .secret_key(key)
-            .alpns(vec![ALPN.to_vec()])
-            .relay_mode(relay_mode.clone())
-            .bind()
-            .await
-            .context("bind iroh endpoint")?;
-        Ok(Self {
-            notes: HashMap::new(),
-            tombstones: HashSet::new(),
-            endpoint,
-            relay_mode,
-            persistent_path: None,
-            pairing_session: Mutex::new(None),
-            pending_pairing: Mutex::new(None),
-            device_name: Mutex::new(default_device_name()),
-            sync_allowed: AtomicBool::new(true),
-            pending_dirty: Mutex::new(HashSet::new()),
-            last_pushed_at: Mutex::new(HashMap::new()),
-            peer_ips: Mutex::new(HashMap::new()),
-            discovery: tokio::sync::Mutex::new(None),
-        })
+        Self::build(None, Arc::new(PlatformSink)).await
     }
 
     /// 创建持久化同步服务。`path` 可以是数据目录，也可以直接是 `.loro` 文件路径。
@@ -212,8 +194,26 @@ impl SyncService {
     /// 无文件/空内容 → `RelayMode::Disabled`（默认仅局域网，零配置）；有 URL →
     /// `RelayMode::Custom`；URL 无效 → 返回 Err（fail fast，配置错误显式报错）。
     pub async fn new_persistent(path: impl AsRef<Path>) -> Result<Self> {
-        let path = loro_path(path.as_ref());
-        let data_dir = path.parent().map(Path::to_path_buf);
+        Self::build(Some(path.as_ref()), Arc::new(PlatformSink)).await
+    }
+
+    /// 测试钩子：持久化构造并注入日志 sink（断言事件用；生产不调用）。
+    pub async fn new_persistent_with_log_sink(
+        path: impl AsRef<Path>,
+        log: Arc<dyn LogSink>,
+    ) -> Result<Self> {
+        Self::build(Some(path.as_ref()), log).await
+    }
+
+    /// 测试钩子：内存版构造并注入日志 sink（断言事件用；生产不调用）。
+    pub async fn new_with_log_sink(log: Arc<dyn LogSink>) -> Result<Self> {
+        Self::build(None, log).await
+    }
+
+    /// 统一构造：`path = None` → 内存版（隔离，不读文件）；`Some` → 持久化版。
+    async fn build(path: Option<&Path>, log: Arc<dyn LogSink>) -> Result<Self> {
+        let path = path.map(loro_path);
+        let data_dir = path.as_ref().and_then(|p| p.parent().map(Path::to_path_buf));
         if let Some(parent) = &data_dir {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("create data directory {}", parent.display()))?;
@@ -232,7 +232,7 @@ impl SyncService {
             tombstones: HashSet::new(),
             endpoint,
             relay_mode,
-            persistent_path: Some(path.clone()),
+            persistent_path: path.clone(),
             pairing_session: Mutex::new(None),
             pending_pairing: Mutex::new(None),
             device_name: Mutex::new(default_device_name()),
@@ -241,60 +241,112 @@ impl SyncService {
             last_pushed_at: Mutex::new(HashMap::new()),
             peer_ips: Mutex::new(HashMap::new()),
             discovery: tokio::sync::Mutex::new(None),
+            log,
+            log_verbose: AtomicBool::new(false),
         };
-        if path.exists() {
-            let bytes = std::fs::read(&path)
-                .with_context(|| format!("read Loro file {}", path.display()))?;
-            let (version, payload) = decode_envelope(&bytes)?;
-            service.import_raw(version, &payload)?;
-            // 重启后全部视为待同步（last_pushed_at 不持久化，保守正确——对端状态未知）
-            service.mark_all_pending();
-            if version == 1 {
-                // ━━━ v1 → v2 迁移 ━━━
-                // 先备份原始 v1 文件，再逐 note 迁移：
-                //   1. 提取 `<!--tags:...-->` 中的 tag 字符串 → split(',') 写入 meta tags
-                //   2. 正文去掉 `<!--tags:...-->` 行
-                //   3. meta.created_at / updated_at = 当前时间
-                let backup = path.with_extension("loro.v1.bak");
-                std::fs::copy(&path, &backup)
-                    .with_context(|| format!("backup v1 file to {}", backup.display()))?;
-                let now = chrono::Utc::now().to_rfc3339();
-                let note_ids: Vec<String> = service.notes.keys().cloned().collect();
-                for note_id in note_ids {
-                    let note = &service.notes[&note_id];
-                    let content = note.get_content();
-                    let tags_str = extract_tag_marker(&content);
-                    if !tags_str.is_empty() {
-                        let tags: Vec<String> = tags_str
-                            .split(',')
-                            .map(|s| s.trim().to_string())
-                            .filter(|s| !s.is_empty())
-                            .collect();
-                        note.set_tags(&tags);
+        if let Some(path) = &path {
+            if path.exists() {
+                let bytes = std::fs::read(path)
+                    .with_context(|| format!("read Loro file {}", path.display()))?;
+                let (version, payload) = decode_envelope(&bytes)?;
+                service.import_raw(version, &payload)?;
+                // 重启后全部视为待同步（last_pushed_at 不持久化，保守正确——对端状态未知）
+                service.mark_all_pending();
+                if version == 1 {
+                    // ━━━ v1 → v2 迁移 ━━━
+                    // 先备份原始 v1 文件，再逐 note 迁移：
+                    //   1. 提取 `<!--tags:...-->` 中的 tag 字符串 → split(',') 写入 meta tags
+                    //   2. 正文去掉 `<!--tags:...-->` 行
+                    //   3. meta.created_at / updated_at = 当前时间
+                    let backup = path.with_extension("loro.v1.bak");
+                    std::fs::copy(path, &backup)
+                        .with_context(|| format!("backup v1 file to {}", backup.display()))?;
+                    let now = chrono::Utc::now().to_rfc3339();
+                    let note_ids: Vec<String> = service.notes.keys().cloned().collect();
+                    for note_id in note_ids {
+                        let note = &service.notes[&note_id];
+                        let content = note.get_content();
+                        let tags_str = extract_tag_marker(&content);
+                        if !tags_str.is_empty() {
+                            let tags: Vec<String> = tags_str
+                                .split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect();
+                            note.set_tags(&tags);
+                        }
+                        let clean = remove_tag_marker(&content);
+                        if clean != content {
+                            note.set_content(&clean);
+                        }
+                        note.set_created_at(&now);
+                        note.set_updated_at(&now);
                     }
-                    let clean = remove_tag_marker(&content);
-                    if clean != content {
-                        note.set_content(&clean);
+                    // 迁移全部完成后再以 v3 写回
+                    service.persist()?;
+                }
+            } else if let Some(parent) = path.parent() {
+                let legacy_db = parent.join("cardmind.db");
+                if legacy_db.exists() {
+                    let store = NoteStore::new(&legacy_db.to_string_lossy())?;
+                    for (id, content) in store.legacy_notes()? {
+                        let note = NoteCrdt::new();
+                        note.set_content(&content);
+                        service.notes.insert(id, note);
                     }
-                    note.set_created_at(&now);
-                    note.set_updated_at(&now);
+                    service.persist()?;
                 }
-                // 迁移全部完成后再以 v3 写回
-                service.persist()?;
-            }
-        } else if let Some(parent) = path.parent() {
-            let legacy_db = parent.join("cardmind.db");
-            if legacy_db.exists() {
-                let store = NoteStore::new(&legacy_db.to_string_lossy())?;
-                for (id, content) in store.legacy_notes()? {
-                    let note = NoteCrdt::new();
-                    note.set_content(&content);
-                    service.notes.insert(id, note);
-                }
-                service.persist()?;
             }
         }
+        service.emit_startup_events();
         Ok(service)
+    }
+
+    /// 启动事件：初始化成功、relay 配置、本机身份（全部脱敏）。
+    fn emit_startup_events(&self) {
+        let device_id = self.device_id();
+        let mut startup = LogEvent::new("startup.sync_service", "sync.init")
+            .with_id(&device_id)
+            .with_field("action", "success")
+            .with_field("notes_loaded", self.notes.len().to_string());
+        let (relay_enabled, relay_host, relay_port) = relay_endpoint(&self.relay_mode);
+        if relay_enabled {
+            startup = startup
+                .with_field("relay_enabled", "true")
+                .with_field("relay_host", relay_host.clone().unwrap_or_default())
+                .with_field("relay_port", relay_port.map(|p| p.to_string()).unwrap_or_default());
+        } else {
+            startup = startup.with_field("relay_enabled", "false");
+        }
+        self.emit_log(startup);
+
+        // 独立 relay.config 事件（host/port/enabled；绝不记录凭据/完整 URL）
+        let mut relay_event = LogEvent::new("relay.config", "sync.init").with_id(&device_id);
+        if relay_enabled {
+            relay_event = relay_event
+                .with_field("enabled", "true")
+                .with_field("relay_host", relay_host.unwrap_or_default())
+                .with_field("relay_port", relay_port.map(|p| p.to_string()).unwrap_or_default());
+        } else {
+            relay_event = relay_event.with_field("enabled", "false");
+        }
+        self.emit_log(relay_event);
+
+        // 本机身份（脱敏）
+        self.emit_log(LogEvent::new("identity.device_id", "identity").with_id(&device_id));
+    }
+
+    /// 输出日志事件：verbose 开关过滤 + sink 异常兜底（绝不打断主流程）。
+    fn emit_log(&self, event: LogEvent) {
+        if event.verbose && !self.log_verbose.load(Ordering::Relaxed) {
+            return;
+        }
+        debug_log::emit_to(&self.log, event);
+    }
+
+    /// 设置 verbose 日志开关（debug 提高详细程度；默认 false）。
+    pub fn set_log_verbose(&self, verbose: bool) {
+        self.log_verbose.store(verbose, Ordering::Relaxed);
     }
 
     /// 获取本设备 iroh 身份 ID
@@ -346,6 +398,12 @@ impl SyncService {
         *self.pairing_session.lock().unwrap() = Some(session);
         // 新码产生时清除上一次未完成的待确认请求（避免旧连接回复错码）
         *self.pending_pairing.lock().unwrap() = None;
+        // 显示配对码：开始/成功（**绝不记录码本身**）
+        self.emit_log(
+            LogEvent::new("pairing.show_code", "pairing.show_code")
+                .with_id(&self.device_id())
+                .with_field("action", "success"),
+        );
         Ok(code)
     }
 
@@ -368,16 +426,41 @@ impl SyncService {
     /// `start_advertising` 内部会先停旧广播再注册新广播。
     /// 停止广播由 [`Self::stop_pairing_advertising`] 负责（弹窗关闭等）。
     pub async fn begin_pairing_accept_with_advertising(&self) -> Result<String> {
+        let started = std::time::Instant::now();
         let code = self.begin_pairing_accept()?;
         let port = self.endpoint_listen_port();
         let mut guard = self.discovery.lock().await;
         if guard.is_none() {
             *guard = Some(DiscoveryService::new()?);
         }
-        guard
+        let result = guard
             .as_mut()
             .expect("discovery just ensured")
-            .start_advertising(&self.device_id(), port)?;
+            .start_advertising(&self.device_id(), port);
+        let duration = started.elapsed();
+        match &result {
+            Ok(()) => {
+                // 广播启动（事件 #5：显示配对码：广播启动）
+                self.emit_log(
+                    LogEvent::new("pairing.advertise", "pairing.advertise")
+                        .with_id(&self.device_id())
+                        .with_field("action", "start")
+                        .with_field("port", port.to_string())
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("pairing.advertise", "pairing.advertise")
+                        .with_id(&self.device_id())
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
+        }
+        result?;
         Ok(code)
     }
 
@@ -385,11 +468,40 @@ impl SyncService {
     ///
     /// DiscoveryService 实例保留（后续再组合调用时复用 daemon），仅注销注册。
     pub async fn stop_pairing_advertising(&self) -> Result<()> {
-        let mut guard = self.discovery.lock().await;
-        if let Some(disc) = guard.as_mut() {
-            disc.stop_advertising()?;
+        let started = std::time::Instant::now();
+        let result: Result<()> = (async {
+            let mut guard = self.discovery.lock().await;
+            if let Some(disc) = guard.as_mut() {
+                disc.stop_advertising()?;
+            }
+            Ok(())
+        })
+        .await;
+        let duration = started.elapsed();
+        // 清理事件（事件 #11：mDNS/relay/socket 清理）
+        match &result {
+            Ok(()) => {
+                self.emit_log(
+                    LogEvent::new("cleanup.mdns", "cleanup")
+                        .with_id(&self.device_id())
+                        .with_field("action", "stop_advertising")
+                        .with_field("ok", "true")
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("cleanup.mdns", "cleanup")
+                        .with_id(&self.device_id())
+                        .with_field("action", "stop_advertising")
+                        .with_field("ok", "false")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
         }
-        Ok(())
+        result
     }
 
     /// 发起方：mDNS 扫描局域网内的 CardMind 设备（约 3 秒超时，任务 J）。
@@ -398,15 +510,55 @@ impl SyncService {
     /// 供 UI 在设备 ID 留空时自动填充配对目标。扫描超时或通道断开返回
     /// 已收集的结果（可能为空），不报错。
     pub async fn discover_peers(&self) -> Result<Vec<PeerInfo>> {
-        let mut guard = self.discovery.lock().await;
-        if guard.is_none() {
-            *guard = Some(DiscoveryService::new()?);
+        let started = std::time::Instant::now();
+        // 事件 #4：设备发现开始
+        self.emit_log(
+            LogEvent::new("discovery.mdns", "discovery.mdns")
+                .with_id(&self.device_id())
+                .with_field("action", "start"),
+        );
+        let result: Result<Vec<PeerInfo>> = (async {
+            let mut guard = self.discovery.lock().await;
+            if guard.is_none() {
+                *guard = Some(DiscoveryService::new()?);
+            }
+            guard
+                .as_mut()
+                .expect("discovery just ensured")
+                .discover_peers()
+                .await
+        })
+        .await;
+        let duration = started.elapsed();
+        // 事件 #4：发现数量 + 耗时；verbose 时附候选 id（脱敏）
+        match &result {
+            Ok(peers) => {
+                let mut ev = LogEvent::new("discovery.mdns", "discovery.mdns")
+                    .with_id(&self.device_id())
+                    .with_field("action", "result")
+                    .with_field("count", peers.len().to_string())
+                    .with_duration(duration);
+                if self.log_verbose.load(Ordering::Relaxed) && !peers.is_empty() {
+                    let candidates: Vec<String> = peers
+                        .iter()
+                        .map(|p| debug_log::redact_device_id(&p.device_id))
+                        .collect();
+                    ev = ev.with_field("candidates", candidates.join(",")).with_verbose();
+                }
+                self.emit_log(ev);
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("discovery.mdns", "discovery.mdns")
+                        .with_id(&self.device_id())
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
         }
-        guard
-            .as_mut()
-            .expect("discovery just ensured")
-            .discover_peers()
-            .await
+        result
     }
 
     /// 当前配对会话（测试/诊断用）。
@@ -491,6 +643,65 @@ impl SyncService {
         &mut self,
         timeout: Duration,
     ) -> Result<Option<PairingRequest>> {
+        let started = std::time::Instant::now();
+        // 事件 #5：确认方 accept loop 启动
+        self.emit_log(
+            LogEvent::new("pairing.accept", "pairing.accept")
+                .with_id(&self.device_id())
+                .with_field("action", "start")
+                .with_field("timeout_ms", timeout.as_millis().to_string()),
+        );
+        let result = self.accept_pairing_request_loop(timeout).await;
+        let duration = started.elapsed();
+        match &result {
+            Ok(Some(request)) => {
+                // 事件 #6：请求接收（脱敏对端 id）
+                self.emit_log(
+                    LogEvent::new("pairing.request", "pairing.request")
+                        .with_id(&self.device_id())
+                        .with_id(&request.device_id)
+                        .with_field("action", "received")
+                        .with_field("peer_name", request.device_name.clone())
+                        .with_duration(duration),
+                );
+                self.emit_log(
+                    LogEvent::new("pairing.accept", "pairing.accept")
+                        .with_id(&self.device_id())
+                        .with_field("action", "end")
+                        .with_field("outcome", "request_received")
+                        .with_duration(duration),
+                );
+            }
+            Ok(None) => {
+                // 事件 #5：超时
+                self.emit_log(
+                    LogEvent::new("pairing.accept", "pairing.accept")
+                        .with_id(&self.device_id())
+                        .with_field("action", "end")
+                        .with_field("outcome", "timeout")
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("pairing.accept", "pairing.accept")
+                        .with_id(&self.device_id())
+                        .with_field("action", "end")
+                        .with_field("outcome", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
+        }
+        result
+    }
+
+    /// accept 等待核心循环（有界；见 [`Self::accept_pairing_request_with_timeout`]）。
+    async fn accept_pairing_request_loop(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Option<PairingRequest>> {
         let deadline = tokio::time::Instant::now() + timeout;
         loop {
             // 统一路由可能已把配对请求存入 pending_pairing（被周期 accept 抢到）
@@ -514,15 +725,21 @@ impl SyncService {
                 Ok(Some(data)) => {
                     // 配对等待期间抢到推送帧：导入数据（勿丢弃——见方法文档）
                     if let Err(e) = self.import_all(&data) {
-                        eprintln!(
-                            "[sync] accept_pairing_request: import push failed (tolerated): {e:#}"
+                        self.emit_log(
+                            LogEvent::new("sync.import", "sync.import")
+                                .with_field("action", "failed_tolerated")
+                                .with_error(&e.to_string())
+                                .with_chain(&format!("{e:#}")),
                         );
                     }
                 }
                 Ok(None) => {}
                 Err(e) => {
-                    eprintln!(
-                        "[sync] accept_pairing_request: route incoming failed (tolerated): {e:#}"
+                    self.emit_log(
+                        LogEvent::new("sync.route", "sync.route")
+                            .with_field("action", "failed_tolerated")
+                            .with_error(&e.to_string())
+                            .with_chain(&format!("{e:#}")),
                     );
                 }
             }
@@ -541,6 +758,51 @@ impl SyncService {
     /// 4. 首次全量同步（决策 8）：立即向发起方推送全量快照（失败容忍——配对已成功）
     /// 5. 返回发起方身份 (peer_id, peer_name)
     pub async fn confirm_pairing(
+        &self,
+        store: &NoteStore,
+        code: &str,
+        requester: &PairingRequest,
+    ) -> Result<PairingResult> {
+        let started = std::time::Instant::now();
+        // 事件 #8：confirm 开始（脱敏双方 id；**绝不记录码**）
+        self.emit_log(
+            LogEvent::new("pairing.confirm", "pairing.confirm")
+                .with_id(&self.device_id())
+                .with_id(&requester.device_id)
+                .with_field("action", "start"),
+        );
+        let result = self.confirm_pairing_inner(store, code, requester).await;
+        let duration = started.elapsed();
+        match &result {
+            Ok(r) => {
+                // 事件 #8：confirm 成功
+                self.emit_log(
+                    LogEvent::new("pairing.confirm", "pairing.confirm")
+                        .with_id(&self.device_id())
+                        .with_id(&r.peer_id)
+                        .with_field("action", "success")
+                        .with_field("peer_name", r.peer_name.clone())
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                // 事件 #8：confirm 失败（错误链 + 耗时）
+                self.emit_log(
+                    LogEvent::new("pairing.confirm", "pairing.confirm")
+                        .with_id(&self.device_id())
+                        .with_id(&requester.device_id)
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
+        }
+        result
+    }
+
+    /// confirm 核心逻辑（校验/持久化/握手/首次推送）。
+    async fn confirm_pairing_inner(
         &self,
         store: &NoteStore,
         code: &str,
@@ -610,9 +872,14 @@ impl SyncService {
                 .push_to_peer(&requester.device_id, requester.ips.clone())
                 .await
             {
-                eprintln!(
-                    "[pairing] initial full sync to {} failed (tolerated): {e:#}",
-                    requester.device_id
+                self.emit_log(
+                    LogEvent::new("sync.push", "sync.initial")
+                        .with_id(&self.device_id())
+                        .with_id(&requester.device_id)
+                        .with_field("direction", "push")
+                        .with_field("action", "failed_tolerated")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}")),
                 );
             }
         }
@@ -667,11 +934,65 @@ impl SyncService {
         code: &str,
         target: PairingTarget,
     ) -> Result<PairingResult> {
+        let started = std::time::Instant::now();
+        let result = self.begin_pairing_connect_inner(store, code, target).await;
+        let duration = started.elapsed();
+        match &result {
+            Ok(r) => {
+                // 事件 #7：连接成功（transport + 耗时 + 脱敏对端 id）
+                self.emit_log(
+                    LogEvent::new("pairing.connect", "pairing.connect")
+                        .with_id(&self.device_id())
+                        .with_id(&r.peer_id)
+                        .with_field("action", "success")
+                        .with_field("transport", self.transport_label(&r.peer_id))
+                        .with_field("peer_name", r.peer_name.clone())
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                // 事件 #7：连接失败（错误链 + 耗时）
+                self.emit_log(
+                    LogEvent::new("pairing.connect", "pairing.connect")
+                        .with_id(&self.device_id())
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
+        }
+        result
+    }
+
+    /// 发起方连接核心逻辑（发送请求 + 等待握手响应 + upsert 确认方）。
+    async fn begin_pairing_connect_inner(
+        &self,
+        store: &NoteStore,
+        code: &str,
+        target: PairingTarget,
+    ) -> Result<PairingResult> {
         let node_id: iroh::EndpointId = target
             .device_id
             .parse()
             .context("invalid target endpoint id")?;
         let addr = self.build_connect_addr(node_id, &target.ips)?;
+
+        // 事件 #7：连接开始（transport 区分 direct / relay / dns）
+        let transport = if !target.ips.is_empty() {
+            "direct"
+        } else if addr.relay_urls().next().is_some() {
+            "relay"
+        } else {
+            "dns"
+        };
+        self.emit_log(
+            LogEvent::new("pairing.connect", "pairing.connect")
+                .with_id(&self.device_id())
+                .with_id(&target.device_id)
+                .with_field("action", "start")
+                .with_field("transport", transport),
+        );
 
         // 发起方请求：本机身份 + relay 信息（N0 preset 已自动发布地址到 n0 DNS）
         let relay_urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
@@ -729,6 +1050,31 @@ impl SyncService {
             peer_id: response.device_id,
             peer_name: response.device_name,
         })
+    }
+
+    /// 传输方式标签（direct/relay/dns；对端已有直连 IP 记录 → direct）。
+    fn transport_label(&self, peer_id: &str) -> String {
+        if self
+            .peer_ips
+            .lock()
+            .unwrap()
+            .get(peer_id)
+            .map(|ips| !ips.is_empty())
+            .unwrap_or(false)
+        {
+            return "direct".to_string();
+        }
+        if self
+            .relay_mode
+            .relay_map()
+            .urls::<Vec<iroh::RelayUrl>>()
+            .into_iter()
+            .next()
+            .is_some()
+        {
+            return "relay".to_string();
+        }
+        "dns".to_string()
     }
 
     /// 添加/创建一条笔记
@@ -945,6 +1291,39 @@ impl SyncService {
 
     /// 导入全量快照（v3 语义：墓碑 section + 记录流）
     pub fn import_all(&mut self, data: &[u8]) -> Result<()> {
+        let started = std::time::Instant::now();
+        let result = self.import_all_inner(data);
+        let duration = started.elapsed();
+        // 事件 #9/#10：导入只记录数量/方向/耗时，绝不记录正文
+        match &result {
+            Ok(()) => {
+                let note_count = self.notes.len() + self.tombstones.len();
+                self.emit_log(
+                    LogEvent::new("sync.import", "sync.import")
+                        .with_id(&self.device_id())
+                        .with_field("direction", "import")
+                        .with_field("action", "success")
+                        .with_field("note_count", note_count.to_string())
+                        .with_field("bytes", data.len().to_string())
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("sync.import", "sync.import")
+                        .with_id(&self.device_id())
+                        .with_field("direction", "import")
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
+        }
+        result
+    }
+
+    fn import_all_inner(&mut self, data: &[u8]) -> Result<()> {
         let previous = self.export_all()?;
         self.import_raw(LORO_VERSION, data)?;
         if let Err(err) = self.persist() {
@@ -1058,9 +1437,56 @@ impl SyncService {
     ///   非空时直连优先（同网段）；为空时仅凭 node id 经 relay/地址解析尝试连接
     ///   （跨网段，依赖 iroh 的 n0 DNS 地址查找或已配置 relay）。
     pub async fn push_to_peer(&self, peer_id: &str, peer_ips: Vec<String>) -> Result<()> {
+        let started = std::time::Instant::now();
+        let note_count = self.notes.len() + self.tombstones.len();
+        // 事件 #9：首次全量同步 push 开始（只记录数量，不记录正文）
+        self.emit_log(
+            LogEvent::new("sync.push", "sync.initial")
+                .with_id(&self.device_id())
+                .with_id(peer_id)
+                .with_field("direction", "push")
+                .with_field("action", "start")
+                .with_field("note_count", note_count.to_string()),
+        );
+        let result = self.push_to_peer_inner(peer_id, &peer_ips).await;
+        let duration = started.elapsed();
+        match &result {
+            Ok(()) => {
+                self.emit_log(
+                    LogEvent::new("sync.push", "sync.initial")
+                        .with_id(&self.device_id())
+                        .with_id(peer_id)
+                        .with_field("direction", "push")
+                        .with_field("action", "success")
+                        .with_field("note_count", note_count.to_string())
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("sync.push", "sync.initial")
+                        .with_id(&self.device_id())
+                        .with_id(peer_id)
+                        .with_field("direction", "push")
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
+        }
+        result
+    }
+
+    /// push_to_peer 核心逻辑。
+    async fn push_to_peer_inner(
+        &self,
+        peer_id: &str,
+        peer_ips: &[String],
+    ) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
 
-        let addr = self.build_connect_addr(node_id, &peer_ips)?;
+        let addr = self.build_connect_addr(node_id, peer_ips)?;
 
         let data = self.export_all()?;
         // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧，
@@ -1094,10 +1520,20 @@ impl SyncService {
         &self,
         devices: &[(String, Option<Vec<String>>)],
     ) -> Vec<DevicePushResult> {
+        let started = std::time::Instant::now();
+        let note_count = self.notes.len() + self.tombstones.len();
         let data = match self.export_all() {
             Ok(d) => d,
             Err(e) => {
                 // 快照导出失败：所有设备都记为失败
+                self.emit_log(
+                    LogEvent::new("sync.push", "sync.push")
+                        .with_id(&self.device_id())
+                        .with_field("direction", "push")
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}")),
+                );
                 return devices
                     .iter()
                     .map(|(peer_id, _)| DevicePushResult {
@@ -1119,21 +1555,59 @@ impl SyncService {
             )
             .await;
             match outcome {
-                Ok(Ok(())) => results.push(DevicePushResult {
-                    peer_id,
-                    ok: true,
-                    message: String::new(),
-                }),
-                Ok(Err(e)) => results.push(DevicePushResult {
-                    peer_id,
-                    ok: false,
-                    message: format!("{e:#}"),
-                }),
-                Err(_) => results.push(DevicePushResult {
-                    peer_id,
-                    ok: false,
-                    message: "push timeout after 10s".to_string(),
-                }),
+                Ok(Ok(())) => {
+                    // 事件 #10：后续同步单台成功（只记录数量）
+                    self.emit_log(
+                        LogEvent::new("sync.push", "sync.push")
+                            .with_id(&self.device_id())
+                            .with_id(&peer_id)
+                            .with_field("direction", "push")
+                            .with_field("action", "success")
+                            .with_field("note_count", note_count.to_string())
+                            .with_field("transport", self.transport_label(&peer_id)),
+                    );
+                    results.push(DevicePushResult {
+                        peer_id,
+                        ok: true,
+                        message: String::new(),
+                    });
+                }
+                Ok(Err(e)) => {
+                    // 事件 #10：后续同步单台失败（错误链 + 耗时；**不再打印完整 peer_id**）
+                    self.emit_log(
+                        LogEvent::new("sync.push", "sync.push")
+                            .with_id(&self.device_id())
+                            .with_id(&peer_id)
+                            .with_field("direction", "push")
+                            .with_field("action", "failed")
+                            .with_error(&e.to_string())
+                            .with_chain(&format!("{e:#}"))
+                            .with_duration(started.elapsed()),
+                    );
+                    results.push(DevicePushResult {
+                        peer_id,
+                        ok: false,
+                        message: format!("{e:#}"),
+                    });
+                }
+                Err(_) => {
+                    // 单台超时：包含耗时与"超时"错误
+                    self.emit_log(
+                        LogEvent::new("sync.push", "sync.push")
+                            .with_id(&self.device_id())
+                            .with_id(&peer_id)
+                            .with_field("direction", "push")
+                            .with_field("action", "failed")
+                            .with_error("push timeout after 10s")
+                            .with_chain("push timeout after 10s")
+                            .with_duration(started.elapsed()),
+                    );
+                    results.push(DevicePushResult {
+                        peer_id,
+                        ok: false,
+                        message: "push timeout after 10s".to_string(),
+                    });
+                }
             }
         }
         results
@@ -1171,17 +1645,46 @@ impl SyncService {
     ///
     /// 调用方收到数据后应调用 `import_all` 导入。
     pub async fn accept_push(&self) -> Result<Vec<u8>> {
-        loop {
-            let incoming = self
-                .endpoint
-                .accept()
-                .await
-                .ok_or_else(|| anyhow::anyhow!("no incoming connection"))?;
-            // 统一路由：配对帧交给配对流程（continue 等待真正的推送），推送帧返回
-            if let Some(data) = self.accept_incoming_routed(incoming).await? {
-                return Ok(data);
+        let started = std::time::Instant::now();
+        let result: Result<Vec<u8>> = (async {
+            loop {
+                let incoming = self
+                    .endpoint
+                    .accept()
+                    .await
+                    .ok_or_else(|| anyhow::anyhow!("no incoming connection"))?;
+                // 统一路由：配对帧交给配对流程（continue 等待真正的推送），推送帧返回
+                if let Some(data) = self.accept_incoming_routed(incoming).await? {
+                    return Ok(data);
+                }
+            }
+        })
+        .await;
+        // 事件 #9：首次全量同步接收（只记录字节数/耗时，不记录正文）
+        match &result {
+            Ok(data) => {
+                self.emit_log(
+                    LogEvent::new("sync.receive", "sync.initial")
+                        .with_id(&self.device_id())
+                        .with_field("direction", "receive")
+                        .with_field("action", "success")
+                        .with_field("bytes", data.len().to_string())
+                        .with_duration(started.elapsed()),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("sync.receive", "sync.initial")
+                        .with_id(&self.device_id())
+                        .with_field("direction", "receive")
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(started.elapsed()),
+                );
             }
         }
+        result
     }
 
     /// 统一 incoming 处理：接受连接并按帧标记路由（周期 accept 与配对 accept 共用）。
@@ -1323,14 +1826,33 @@ impl SyncService {
     /// - 全部失败 → 静默（决策 18）：仅记录日志，pending 保留（下个周期兜底），
     ///   不向调用方返回错误。
     pub async fn push_pending(&self, store: &NoteStore) -> Vec<DevicePushResult> {
+        let started = std::time::Instant::now();
+        let pending_count = self.pending_sync_count();
         if !self.sync_allowed() {
+            // 事件 #10：同步开关关闭 → 跳过
+            self.emit_log(
+                LogEvent::new("sync.push_pending", "sync.push_pending")
+                    .with_id(&self.device_id())
+                    .with_field("action", "skipped")
+                    .with_field("reason", "sync_disabled")
+                    .with_field("pending_count", pending_count.to_string()),
+            );
             return Vec::new();
         }
         let devices = self.paired_devices_with_ips(store);
         if devices.is_empty() {
+            // 事件 #10：无配对设备 → 跳过
+            self.emit_log(
+                LogEvent::new("sync.push_pending", "sync.push_pending")
+                    .with_id(&self.device_id())
+                    .with_field("action", "skipped")
+                    .with_field("reason", "no_devices")
+                    .with_field("pending_count", pending_count.to_string()),
+            );
             return Vec::new();
         }
         let results = self.push_to_paired_devices(&devices).await;
+        let duration = started.elapsed();
         if results.iter().any(|r| r.ok) {
             self.mark_synced_all();
             for r in &results {
@@ -1339,13 +1861,29 @@ impl SyncService {
                 }
             }
         } else {
+            // 全部失败 → 静默（决策 18）；逐台事件已在 push_to_paired_devices 内发出（脱敏）
             for r in &results {
-                eprintln!(
-                    "[sync] push to {} failed (silent): {}",
-                    r.peer_id, r.message
+                self.emit_log(
+                    LogEvent::new("sync.push_pending", "sync.push_pending")
+                        .with_id(&self.device_id())
+                        .with_id(&r.peer_id)
+                        .with_field("action", "all_failed_silent")
+                        .with_field("pending_count", pending_count.to_string())
+                        .with_duration(duration),
                 );
             }
         }
+        // 汇总事件：成功台数 + 待同步数 + 耗时
+        let ok_count = results.iter().filter(|r| r.ok).count();
+        self.emit_log(
+            LogEvent::new("sync.push_pending", "sync.push_pending")
+                .with_id(&self.device_id())
+                .with_field("action", "end")
+                .with_field("ok_count", ok_count.to_string())
+                .with_field("pending_count", pending_count.to_string())
+                .with_field("pending_after", self.pending_sync_count().to_string())
+                .with_duration(duration),
+        );
         results
     }
 
@@ -1355,12 +1893,20 @@ impl SyncService {
     ///    我方 push 即请求对端在各自周期里推回）
     /// 3. 短窗口 accept 对端 push（非阻塞）→ import → 刷新 SQLite 投影
     pub async fn run_sync_cycle(&mut self, store: &NoteStore) -> Result<SyncCycleResult> {
+        let started = std::time::Instant::now();
         if !self.sync_allowed() {
-            return Ok(SyncCycleResult {
+            let result = SyncCycleResult {
                 pushed_count: 0,
                 accepted_push: false,
                 disabled: true,
-            });
+            };
+            self.emit_log(
+                LogEvent::new("sync.cycle", "sync.cycle")
+                    .with_id(&self.device_id())
+                    .with_field("action", "end")
+                    .with_field("disabled", "true"),
+            );
+            return Ok(result);
         }
         let devices = self.paired_devices_with_ips(store);
         let results = if devices.is_empty() {
@@ -1377,10 +1923,15 @@ impl SyncService {
                 }
             }
         } else if !results.is_empty() {
+            // 逐台失败事件已在 push_to_paired_devices 内发出（脱敏）；汇总一次
             for r in &results {
-                eprintln!(
-                    "[sync] periodic push to {} failed (silent): {}",
-                    r.peer_id, r.message
+                self.emit_log(
+                    LogEvent::new("sync.cycle", "sync.cycle")
+                        .with_id(&self.device_id())
+                        .with_id(&r.peer_id)
+                        .with_field("action", "push_failed_silent")
+                        .with_field("ok", "false")
+                        .with_duration(started.elapsed()),
                 );
             }
         }
@@ -1394,6 +1945,16 @@ impl SyncService {
         };
         // 成功推送的对端设备数（真实计数，非 0/1 布尔）
         let pushed_count = results.iter().filter(|r| r.ok).count() as u32;
+        // 事件 #10：周期同步汇总（触发原因由 Flutter 调度器记录；这里记录结果）
+        self.emit_log(
+            LogEvent::new("sync.cycle", "sync.cycle")
+                .with_id(&self.device_id())
+                .with_field("action", "end")
+                .with_field("pushed_count", pushed_count.to_string())
+                .with_field("accepted_push", accepted.to_string())
+                .with_field("pending_after", self.pending_sync_count().to_string())
+                .with_duration(started.elapsed()),
+        );
         Ok(SyncCycleResult {
             pushed_count,
             accepted_push: accepted,
@@ -1421,9 +1982,17 @@ fn loro_path(path: &Path) -> PathBuf {
     }
 }
 
+/// 从 RelayMode 提取 relay 端点（host + port），用于安全日志——
+/// 只输出主机名与端口，绝不输出完整 URL 或凭据（user/password/token）。
+fn relay_endpoint(mode: &RelayMode) -> (bool, Option<String>, Option<u16>) {
+    let urls: Vec<iroh::RelayUrl> = mode.relay_map().urls();
+    let Some(url) = urls.into_iter().next() else {
+        return (false, None, None);
+    };
+    (true, url.host_str().map(str::to_string), url.port())
+}
+
 /// 从数据目录读取 relay 配置（任务 K，`relay.txt` 极简配置）：
-///
-/// - 无文件 → `RelayMode::Disabled`（默认仅局域网，零配置）
 /// - 文件存在但内容为空（trim 后）→ `RelayMode::Disabled`
 /// - 内容为 relay URL → `RelayMode::Custom([url])`
 /// - URL 解析失败 → 返回 Err（fail fast：配置错误要显式，不静默忽略）

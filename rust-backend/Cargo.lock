@@ -521,6 +521,7 @@ dependencies = [
  "rand 0.8.6",
  "rusqlite",
  "tokio",
+ "tracing",
  "uuid",
 ]
 

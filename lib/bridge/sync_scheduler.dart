@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../src/rust/api.dart' as api;
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
+import 'debug_log.dart';
 
 /// 网络类型监听抽象（测试注入 fake）。
 ///
@@ -157,31 +158,88 @@ class SyncScheduler {
   /// 推送完成后刷新待同步计数（本地编辑会令计数上升/清零）。
   void noteEdited() {
     unawaited(() async {
-      await api.pushPending();
-      await refreshPendingCount();
+      final log = DebugLogger.instance;
+      // 事件 #10：后续同步——触发原因 + 待同步数量
+      int pendingBefore = 0;
+      try {
+        pendingBefore = await api.pendingCount();
+      } catch (_) {
+        // 计数失败不影响推送主流程
+      }
+      log.event(
+        'sync.trigger',
+        'sync',
+        fields: {'reason': 'edit_save', 'pending_count': '$pendingBefore'},
+      );
+      final sw = Stopwatch()..start();
+      String? failure;
+      try {
+        await api.pushPending();
+      } catch (e) {
+        failure = '${e.runtimeType}: $e';
+      }
+      final pendingAfter = await refreshPendingCount();
+      log.event(
+        'sync.push',
+        'sync',
+        fields: {
+          'reason': 'edit_save',
+          'ok': failure == null ? 'true' : 'false',
+          'pending_after': '$pendingAfter',
+        },
+        error: failure,
+        errorChain: failure,
+        duration: sw.elapsed,
+      );
     }());
   }
 
   /// 手动"立即同步"（模块 5 入口）：临时打开同步开关（无视 WiFi，决策 6）
   /// → 执行完整同步周期 → 刷新待同步计数。失败静默（决策 18）。
   Future<void> syncNow() async {
+    final log = DebugLogger.instance;
+    log.event('sync.trigger', 'sync', fields: const {'reason': 'manual'});
+    final sw = Stopwatch()..start();
+    String? failure;
     try {
       await api.setSyncAllowed(true);
       await api.runSyncCycle();
-    } catch (_) {
+    } catch (e) {
+      failure = '${e.runtimeType}: $e';
       // 失败静默（决策 18）；下个周期兜底
     } finally {
+      log.event(
+        'sync.cycle',
+        'sync',
+        fields: {'reason': 'manual', 'ok': failure == null ? 'true' : 'false'},
+        error: failure,
+        errorChain: failure,
+        duration: sw.elapsed,
+      );
       await refreshPendingCount();
     }
   }
 
   /// 手动"立即推送"（旧入口，保留）：仅推送待办，无视同步开关（决策 6）。
   Future<void> pushNow() async {
+    final log = DebugLogger.instance;
+    log.event('sync.trigger', 'sync', fields: const {'reason': 'manual_push'});
+    final sw = Stopwatch()..start();
+    String? failure;
     try {
       await api.pushPending();
-    } catch (_) {
+    } catch (e) {
+      failure = '${e.runtimeType}: $e';
       // 失败静默（决策 18）
     } finally {
+      log.event(
+        'sync.push',
+        'sync',
+        fields: {'reason': 'manual_push', 'ok': failure == null ? 'true' : 'false'},
+        error: failure,
+        errorChain: failure,
+        duration: sw.elapsed,
+      );
       await refreshPendingCount();
     }
   }
@@ -199,11 +257,24 @@ class SyncScheduler {
   }
 
   Future<void> _runCycle() async {
+    final log = DebugLogger.instance;
+    log.event('sync.trigger', 'sync', fields: const {'reason': 'cycle'});
+    final sw = Stopwatch()..start();
+    String? failure;
     try {
       await api.runSyncCycle();
-    } catch (_) {
+    } catch (e) {
+      failure = '${e.runtimeType}: $e';
       // 周期失败静默（决策 18）；下个周期重试
     } finally {
+      log.event(
+        'sync.cycle',
+        'sync',
+        fields: {'reason': 'cycle', 'ok': failure == null ? 'true' : 'false'},
+        error: failure,
+        errorChain: failure,
+        duration: sw.elapsed,
+      );
       await refreshPendingCount();
     }
   }
