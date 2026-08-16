@@ -328,6 +328,127 @@ fn test_unpair_removes_device() {
     );
 }
 
+// ━━━ 验收 9（任务 M）：有界确认方等待 —— accept_pairing_request_with_timeout ━━━
+
+/// 超时路径：无请求时 bounded accept 应在时限内返回 None（不会永久阻塞）。
+#[test]
+fn test_accept_pairing_request_with_timeout_returns_none_on_timeout() {
+    rt().block_on(async {
+        let mut confirmer = SyncService::new().await.unwrap();
+        // 外层 tokio::time::timeout 兜底：bounded accept 必须在 5 秒内返回
+        let outcome = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            confirmer.accept_pairing_request_with_timeout(std::time::Duration::from_millis(200)),
+        )
+        .await;
+        let request = outcome.expect("bounded accept 应在外层超时前返回");
+        assert!(request.unwrap().is_none(), "无请求超时应返回 None");
+    });
+}
+
+/// 取消路径（等价语义）：0ms 时限的 accept 应立即返回 None——Flutter 侧取消
+/// 后释放 FRB opaque 的路径与超时一致，不留下永久阻塞任务。
+#[test]
+fn test_accept_pairing_request_with_timeout_zero_returns_immediately() {
+    rt().block_on(async {
+        let mut confirmer = SyncService::new().await.unwrap();
+        let start = std::time::Instant::now();
+        let request = confirmer
+            .accept_pairing_request_with_timeout(std::time::Duration::from_millis(0))
+            .await
+            .unwrap();
+        assert!(request.is_none(), "0ms 时限应立即返回 None");
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(2),
+            "0ms 时限 accept 应立刻返回，实际耗时 {:?}",
+            start.elapsed()
+        );
+    });
+}
+
+/// 成功路径：发起方连接后 bounded accept 返回 Some(request)；
+/// 确认方 confirm（回复握手）后发起方完成配对。spawn 两侧均有 timeout 保护。
+#[test]
+fn test_accept_pairing_request_with_timeout_returns_request() {
+    rt().block_on(async {
+        let mut confirmer = SyncService::new().await.unwrap();
+        confirmer.set_device_name("Trusted PC");
+        let initiator = SyncService::new().await.unwrap();
+        initiator.set_device_name("New Phone");
+        let initiator_id = initiator.device_id();
+        let confirmer_store = NoteStore::new(":memory:").unwrap();
+        let initiator_store = NoteStore::new(":memory:").unwrap();
+
+        let code = confirmer.begin_pairing_accept().unwrap();
+        let confirmer_code = code.clone();
+        let target = PairingTarget {
+            device_id: confirmer.device_id(),
+            ips: confirmer.local_addrs(),
+        };
+
+        // 确认方：bounded accept（成功路径）→ confirm（回复握手 + 自动推送）
+        let initiator_id_for_assert = initiator_id.clone();
+        let confirmer_task = tokio::spawn(async move {
+            let request = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                confirmer.accept_pairing_request_with_timeout(std::time::Duration::from_secs(10)),
+            )
+            .await
+            .expect("bounded accept 必须返回")
+            .expect("accept_with_timeout 不应 Err")
+            .expect("应收到发起方请求");
+            assert_eq!(request.device_id, initiator_id_for_assert);
+            confirmer
+                .confirm_pairing(&confirmer_store, &confirmer_code, &request)
+                .await
+                .expect("confirm 应成功");
+            request
+        });
+
+        // 发起方：连接 + 发送请求 + 等待握手响应；随后接收并导入自动推送
+        // （确认方 confirm 后 push_to_peer；不 drain 会让确认方 closed-wait 等满超时）
+        let initiator_task = tokio::spawn(async move {
+            let mut initiator = initiator;
+            let result = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                initiator.begin_pairing_connect(&initiator_store, &code, target),
+            )
+            .await
+            .expect("发起方连接必须在超时前返回")
+            .expect("连接应成功");
+            let push = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                initiator.accept_push(),
+            )
+            .await
+            .expect("发起方应在超时前收到自动推送")
+            .expect("accept_push 应成功");
+            initiator.import_all(&push).expect("导入自动推送应成功");
+            result
+        });
+
+        // spawn 两侧都要外层 timeout（测试超时铁律）
+        let accepted = tokio::time::timeout(
+            std::time::Duration::from_secs(20),
+            confirmer_task,
+        )
+        .await
+        .expect("confirmer task 挂起")
+        .expect("confirmer task panic");
+
+        let _connected = tokio::time::timeout(
+            std::time::Duration::from_secs(20),
+            initiator_task,
+        )
+        .await
+        .expect("initiator task 挂起")
+        .expect("initiator task panic");
+
+        assert_eq!(accepted.device_id, initiator_id);
+        assert_eq!(accepted.device_name, "New Phone");
+    });
+}
+
 // ━━━ 验收 7（任务 J）：mDNS 自动发现接线 —— 组合 API 生命周期 ━━━
 
 #[test]

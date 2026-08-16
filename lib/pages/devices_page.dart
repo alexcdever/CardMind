@@ -25,6 +25,11 @@ class DevicesPage extends StatefulWidget {
   /// 在线判定窗口（最近同步过 = 在线）。
   static const Duration onlineWindow = Duration(minutes: 5);
 
+  /// 确认方等待配对请求的总时限（任务 M）：显示码弹窗打开后，接收器
+  /// [NoteRepository.acceptPairingRequestWithTimeout] 只等这么长；超时结束等待、
+  /// 停止广播并显示可读错误。与配对码 10 分钟有效期对齐的保守上限。
+  static const Duration pairingAcceptTimeout = Duration(minutes: 3);
+
   @override
   State<DevicesPage> createState() => _DevicesPageState();
 }
@@ -167,6 +172,12 @@ class _DevicesPageState extends State<DevicesPage> {
   /// 任务 J：显示码的同时启动 mDNS 广播（Rust 组合 API，码与广播同一调用
   /// 内完成——保证配对期间广播一定在）；弹窗关闭（含取消/异常路径）后停止
   /// 广播，避免本机在配对结束后继续被局域网发现。
+  ///
+  /// 任务 M：显示码的同时进入确认方等待状态——[_PairingAcceptDialog] 在弹窗
+  /// 生命周期内调用 [NoteRepository.acceptPairingRequestWithTimeout]（有界等待，
+  /// 见决策点 1）启动接收器；收到请求后以显示的码调用 `confirmPairing`；
+  /// 成功则关闭弹窗并刷新设备列表，超时/异常显示可读错误并停止广播，
+  /// 取消/关闭不留下永久阻塞任务。
   Future<void> _showMyCode() async {
     String code;
     try {
@@ -181,44 +192,23 @@ class _DevicesPageState extends State<DevicesPage> {
     }
     try {
       if (!mounted) return;
-      await showDialog<void>(
+      final result = await showDialog<PairingResult>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('等待对方输入此码'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('在对方设备"添加设备"中输入以下 6 位码：'),
-              const SizedBox(height: CardMindSpacing.lg),
-              Text(
-                code,
-                key: const ValueKey('pair-code-display'),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: context.cardMind.accent,
-                  letterSpacing: 4,
-                ),
-              ),
-              const SizedBox(height: CardMindSpacing.lg),
-              Text(
-                '等待对方确认后自动完成配对…',
-                style: TextStyle(
-                  color: context.cardMind.mutedInk,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              key: const ValueKey('pair-dialog-close'),
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('关闭'),
-            ),
-          ],
+        barrierDismissible: false,
+        builder: (dialogContext) => _PairingAcceptDialog(
+          code: code,
+          repository: _repository,
+          acceptTimeout: DevicesPage.pairingAcceptTimeout,
         ),
       );
+      // 配对成功：弹窗以结果关闭 → 提示 + 刷新设备列表（对方设备立即可见）
+      if (result == null || !mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('配对成功：${result.peerName}')));
+      await _load();
     } finally {
-      // 弹窗关闭（含异常路径）→ 停止 mDNS 广播
+      // 弹窗关闭（含取消/成功/异常路径）→ 停止 mDNS 广播
       try {
         await _repository.stopPairingAdvertising();
       } catch (error) {
@@ -536,6 +526,150 @@ class _DevicesPageState extends State<DevicesPage> {
           ),
         ),
         Expanded(child: _buildDeviceList()),
+      ],
+    );
+  }
+}
+
+/// 显示码等待弹窗（任务 M）：在弹窗生命周期内运行确认方接收器。
+///
+/// 生命周期契约：
+/// - 打开：调用 [NoteRepository.acceptPairingRequestWithTimeout]（**有界**等待，
+///   超时返回 null——决策点 1 的落点，FRB opaque 上的阻塞等待必须有限界）
+/// - 收到请求：以显示的码调用 `confirmPairing(code, requester)`；成功 pop 结果
+///   关闭弹窗（页面随后刷新设备列表）
+/// - 超时/异常：停止广播（设计目标 5）并显示可读错误，等待用户关闭后重试
+/// - 取消/关闭：dispose 置 [_cancelled]；挂起的等待完成后不再 confirm，
+///   也不向已卸载 widget 调 setState（mounted 守卫）
+class _PairingAcceptDialog extends StatefulWidget {
+  const _PairingAcceptDialog({
+    required this.code,
+    required this.repository,
+    required this.acceptTimeout,
+  });
+
+  final String code;
+  final NoteRepository repository;
+  final Duration acceptTimeout;
+
+  @override
+  State<_PairingAcceptDialog> createState() => _PairingAcceptDialogState();
+}
+
+class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
+  String? _error;
+  bool _cancelled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _runAccept();
+  }
+
+  @override
+  void dispose() {
+    // 取消/关闭：标记后，挂起的等待完成时不再 confirm / setState
+    _cancelled = true;
+    super.dispose();
+  }
+
+  /// 停止 mDNS 广播（超时/异常路径立即停止；幂等——页面 finally 兜底再停一次）。
+  Future<void> _stopAdvertisingQuietly() async {
+    try {
+      await widget.repository.stopPairingAdvertising();
+    } catch (error) {
+      debugPrint('[pairing] stopPairingAdvertising failed: $error');
+    }
+  }
+
+  /// 确认方等待 + 确认流程。每个 await 之后都有 mounted/_cancelled 守卫：
+  /// 不向已卸载 widget 调 setState，取消后不 confirm。
+  Future<void> _runAccept() async {
+    PairingRequest? request;
+    try {
+      request = await widget.repository.acceptPairingRequestWithTimeout(
+        widget.acceptTimeout,
+      );
+    } catch (error) {
+      debugPrint('[pairing] acceptPairingRequest failed: $error');
+      await _stopAdvertisingQuietly();
+      if (!mounted || _cancelled) return;
+      setState(() {
+
+        _error = '等待配对请求失败，请关闭后重试';
+      });
+      return;
+    }
+    if (!mounted || _cancelled) return;
+    if (request == null) {
+      // 有界等待超时：结束等待 + 停止广播（设计目标 5）
+      await _stopAdvertisingQuietly();
+      if (!mounted || _cancelled) return;
+      setState(() {
+
+        _error = '等待配对超时，请关闭后重新发起';
+      });
+      return;
+    }
+    try {
+      final result = await widget.repository.confirmPairing(
+        widget.code,
+        request,
+      );
+      if (!mounted || _cancelled) return;
+      // 配对成功：以结果关闭弹窗（页面显示成功提示 + 刷新设备列表）
+      Navigator.of(context).pop(result);
+    } catch (error) {
+      debugPrint('[pairing] confirmPairing failed: $error');
+      await _stopAdvertisingQuietly();
+      if (!mounted || _cancelled) return;
+      setState(() {
+
+        _error = '配对失败，请关闭后重试';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('等待对方输入此码'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('在对方设备"添加设备"中输入以下 6 位码：'),
+          const SizedBox(height: CardMindSpacing.lg),
+          Text(
+            widget.code,
+            key: const ValueKey('pair-code-display'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: context.cardMind.accent,
+              letterSpacing: 4,
+            ),
+          ),
+          const SizedBox(height: CardMindSpacing.lg),
+          if (_error != null)
+            Text(
+              _error!,
+              key: const ValueKey('pair-accept-error'),
+              style: TextStyle(color: context.cardMind.danger, fontSize: 13),
+            )
+          else
+            Text(
+              '等待对方确认后自动完成配对…',
+              style: TextStyle(
+                color: context.cardMind.mutedInk,
+                fontSize: 13,
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('pair-dialog-close'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('关闭'),
+        ),
       ],
     );
   }

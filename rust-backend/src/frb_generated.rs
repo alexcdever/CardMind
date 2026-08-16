@@ -41,7 +41,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -25343223;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1975216021;
 
 // Section: executor
 
@@ -97,6 +97,66 @@ fn wire__crate__api__accept_pairing_request_impl(
                         let mut api_svc_guard = api_svc_guard.unwrap();
                         let output_ok =
                             crate::api::accept_pairing_request(&mut *api_svc_guard).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__accept_pairing_request_with_timeout_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "accept_pairing_request_with_timeout",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            let api_timeout = <chrono::Duration>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let mut api_svc_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_svc, 0, true,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_svc_guard =
+                                        Some(api_svc.lockable_decode_async_ref_mut().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let mut api_svc_guard = api_svc_guard.unwrap();
+                        let output_ok = crate::api::accept_pairing_request_with_timeout(
+                            &mut *api_svc_guard,
+                            api_timeout,
+                        )
+                        .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2625,6 +2685,14 @@ impl SseDecode for SyncService {
     }
 }
 
+impl SseDecode for chrono::Duration {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i64>::sse_decode(deserializer);
+        return chrono::Duration::microseconds(inner);
+    }
+}
+
 impl SseDecode
     for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DiscoveryService>>
 {
@@ -2681,6 +2749,13 @@ impl SseDecode for crate::sync::DevicePushResult {
             ok: var_ok,
             message: var_message,
         };
+    }
+}
+
+impl SseDecode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i64::<NativeEndian>().unwrap()
     }
 }
 
@@ -2821,6 +2896,17 @@ impl SseDecode for Option<String> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<String>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::sync::PairingRequest> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::sync::PairingRequest>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -2983,60 +3069,66 @@ fn pde_ffi_dispatcher_primary_impl(
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
         1 => wire__crate__api__accept_pairing_request_impl(port, ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__accept_push_impl(port, ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__accept_push_and_import_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__auto_complete_links_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__begin_pairing_accept_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__begin_pairing_accept_with_advertising_impl(
+        2 => wire__crate__api__accept_pairing_request_with_timeout_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        7 => wire__crate__api__begin_pairing_connect_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
-        10 => {
+        3 => wire__crate__api__accept_push_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__accept_push_and_import_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__auto_complete_links_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__begin_pairing_accept_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__begin_pairing_accept_with_advertising_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        8 => wire__crate__api__begin_pairing_connect_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
+        11 => {
             wire__crate__api__create_persistent_sync_service_impl(port, ptr, rust_vec_len, data_len)
         }
-        11 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__stop_pairing_advertising_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__sync_discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__stop_pairing_advertising_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__sync_discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3273,6 +3365,17 @@ impl SseEncode for SyncService {
     }
 }
 
+impl SseEncode for chrono::Duration {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i64>::sse_encode(
+            self.num_microseconds()
+                .expect("cannot get microseconds from time"),
+            serializer,
+        );
+    }
+}
+
 impl SseEncode
     for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<DiscoveryService>>
 {
@@ -3326,6 +3429,13 @@ impl SseEncode for crate::sync::DevicePushResult {
         <String>::sse_encode(self.peer_id, serializer);
         <bool>::sse_encode(self.ok, serializer);
         <String>::sse_encode(self.message, serializer);
+    }
+}
+
+impl SseEncode for i64 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i64::<NativeEndian>(self).unwrap();
     }
 }
 
@@ -3437,6 +3547,16 @@ impl SseEncode for Option<String> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <String>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::sync::PairingRequest> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::sync::PairingRequest>::sse_encode(value, serializer);
         }
     }
 }

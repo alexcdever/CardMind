@@ -83,4 +83,20 @@ void main() {
       isNot(contains(await repoB.deviceId())),
     );
   });
+
+  // ━━ 任务 M 验收 9：有界确认方等待经真实 FRB 桥的超时路径 ━━
+  // 验证 chrono::Duration → Dart Duration 映射 + 超时返回 null（有界、不永久阻塞）。
+  test('bounded accept times out through FRB bridge', () async {
+    final dirA = await Directory.systemTemp.createTemp('cardmind_pair_tmo_');
+    final repoA = await FrbNoteRepository.open(dataDirectory: dirA.path);
+    addTearDown(() {
+      repoA.close();
+      if (dirA.existsSync()) dirA.deleteSync(recursive: true);
+    });
+
+    final request = await repoA.acceptPairingRequestWithTimeout(
+      const Duration(milliseconds: 100),
+    );
+    expect(request, isNull, reason: '短时限内无请求应返回 null（有界等待）');
+  });
 }
