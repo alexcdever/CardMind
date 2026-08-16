@@ -2359,29 +2359,42 @@ fn wire__crate__api__start_receiver_impl(
             let api_svc = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
             >>::sse_decode(&mut deserializer);
-            let api_store = <NoteStore>::sse_decode(&mut deserializer);
+            let api_store = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>,
+            >>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let mut api_svc_guard = None;
+                        let mut api_store_guard = None;
                         let decode_indices_ =
                             flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_svc, 0, false,
-                                )],
+                                vec![
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_svc, 0, false,
+                                    ),
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_store, 1, false,
+                                    ),
+                                ],
                             );
                         for i in decode_indices_ {
                             match i {
                                 0 => {
                                     api_svc_guard = Some(api_svc.lockable_decode_async_ref().await)
                                 }
+                                1 => {
+                                    api_store_guard =
+                                        Some(api_store.lockable_decode_async_ref().await)
+                                }
                                 _ => unreachable!(),
                             }
                         }
                         let api_svc_guard = api_svc_guard.unwrap();
+                        let api_store_guard = api_store_guard.unwrap();
                         let output_ok =
-                            crate::api::start_receiver(&*api_svc_guard, api_store).await?;
+                            crate::api::start_receiver(&*api_svc_guard, &*api_store_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,

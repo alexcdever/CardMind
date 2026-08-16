@@ -1,202 +1,184 @@
-# Executor 自检报告 — 任务 O：持续 push 接收器 + 在线状态闭环
+# Executor 自检报告 — 任务 P：修复 start_receiver 消费 Store RustArc 缺陷
 
-- worktree：`D:/Projects/CardMind/.worktrees/continuous-receiver`（分支 `codex/continuous-receiver`）
+- worktree：`D:/Projects/CardMind/.worktrees/receiver-store-borrow`（分支 `codex/receiver-store-borrow`）
 - 执行时间：2026-08-16
-- 结论：**24 条验收中 23 条通过；验收 18（Windows+Android 真实联调）未执行（触发需决策点 4，明确报告，不声称通过）**
+- 结论：**21 条验收中 20 条通过；验收 18（Windows+Android 双端配对联调）未执行（环境无 TAP/ICS 测试网络、模拟器 NAT 阻断 host→emulator iroh 直连，与任务 O 相同限制，明确报告不声称通过）**
 
 ---
 
 ## 一、完成内容
 
-### 根因修复
-原 `run_sync_cycle` 顺序为"先 push 后 accept"（push 每台最多等 10s，完成后才 `try_accept_push(2s)`），两端相位错开时互相错过；`SyncScheduler` 无独立接收循环。修复引入 **Rust 内部后台接收任务（continuous receiver）**：
+### 根因与修复
+`rust-backend/src/api.rs::start_receiver(svc: &SyncService, store: NoteStore)` 的 `store` 按值跨 FRB 边界，FRB 2.12 生成绑定把 Dart `_store` 视为 move/消费（`Auto_Owned` 编码）：调用返回后 Dart 侧 RustArc 已 disposed，下一周期 `runSyncCycle(svc, store)` 抛 `DroppableDisposedException`（Windows + Android 双端复现）。
 
-1. **`SyncService` 可变核心共享化**（`sync.rs`）：`notes/tombstones/persistent_path` 提取为 `Arc<Mutex<CoreState>>`，主服务与后台接收任务共用同一信源；`pending_pairing` 同样改 `Arc` 共享（统一帧路由不丢帧）。
-2. **新增接收器**：`start_receiver(store)` / `stop_receiver()` / `receiver_running()`。接收任务持有 `endpoint.clone()` + 共享 core + `store.clone()`，**不占用 FRB opaque 锁**——接收等待期间 create/edit/push 并发可用（验收 7/8 实测）。300ms 短 accept 窗口循环；收到推送帧立即 `import_core_all` → 刷新 SQLite 投影 → `update_last_seen(sender)`；start/stop 幂等；stop 有界 3 秒（实测 170–313ms 返回）。
-3. **inbound push 发送方识别**：用 iroh `Connection::remote_id()`（TLS 证书中的 EndpointId），无需改协议——避免需决策点 3。
-4. **last_seen 即时更新**：配对握手成功（confirm_pairing / begin_pairing_connect）立即 `touch_last_seen(reason=pairing)`；成功出站 push（reason=outbound_push）；接收器收到 push（reason=inbound_push）。失败路径不刷新（验收 14）。
-5. **`NoteStore` 变 Clone**（`Arc<Mutex<Connection>>`）：接收任务与主服务共享同一 SQLite 连接。
-6. **FRB 新 API**：`start_receiver` / `stop_receiver` / `receiver_running`（api.rs + codegen 生成 Dart）。
-7. **`SyncScheduler`**（lib/bridge/sync_scheduler.dart）：`start()` 时启动接收器（失败静默）、`stop()` 时停止；`SyncApi` 接口新增两方法。
-8. **设备页后台刷新**（lib/pages/devices_page.dart）：2 秒周期 Timer 静默重读设备列表，后台 last_seen 更新后 ≤5 秒内离线→在线；dispose 取消（验收 15）；新增 `devices.online_refresh` 日志。
-9. **结构化日志**（沿用任务 N 键=值格式）：`receiver.start/stop/end`、`sync.receive success/failed + duration + bytes + sender(脱敏)`、`sync.import success/failed + note_count`、`device.last_seen reason=pairing|outbound_push|inbound_push`、`devices.online_refresh`。
+修复（仅改 API 边界，receiver 核心行为不动）：
 
-### 改动文件
+```rust
+pub async fn start_receiver(svc: &SyncService, store: &NoteStore) -> anyhow::Result<()> {
+    svc.start_receiver(store.clone()).await
+}
+```
+
+接收器内部仍持有自己的 `store.clone()`（`SyncService::start_receiver` 内 clone 进 `ReceiverContext`），语义不变。
+
+### 改动文件（git status 最终仅以下 6 项）
 | 文件 | 说明 |
 |---|---|
-| `rust-backend/src/sync.rs` | 核心状态 Arc 共享；接收器；统一路由自由函数；last_seen；日志 |
-| `rust-backend/src/api.rs` | 新增 start_receiver/stop_receiver/receiver_running |
-| `rust-backend/src/store.rs` | NoteStore Clone（Arc 共享连接） |
-| `rust-backend/src/frb_generated.rs` + `lib/src/rust/*.dart` | FRB codegen（新增 3 API） |
-| `lib/bridge/sync_scheduler.dart` | 调度器集成接收器启停 |
-| `lib/pages/devices_page.dart` | 后台状态刷新 |
-| `rust-backend/tests/receiver_continuous_test.rs` | **新增**：14 个验收测试 |
-| `rust-backend/tests/{migration,trash}_test.rs` | iter_notes 签名适配 |
-| `test/sync_scheduler_test.dart` / `test/sync_ui_widget_test.dart` | 接收器集成 + 设备页刷新测试 |
+| `rust-backend/src/api.rs` | start_receiver 参数 `NoteStore` → `&NoteStore`，内部 clone |
+| `rust-backend/src/frb_generated.rs` | FRB codegen：store 解码由 owned 改为 `lockable_decode_async_ref` |
+| `lib/src/rust/frb_generated.dart` | FRB codegen：`Auto_Owned_...NoteStore` → `Auto_Ref_...NoteStore` |
+| `lib/src/rust/api.dart` | FRB codegen：startReceiver 文档注释更新（签名不变） |
+| `test/receiver_store_borrow_test.dart` | **新增**：5 个真实 FRB 回归测试（红→绿） |
+| `integration_test/receiver_platform_test.dart` | **新增**：真实 Windows/Android 平台回归测试 |
+
+`lib/bridge/sync_scheduler.dart` **未修改**——生成 API 调用形态（Dart 侧签名 `startReceiver({svc, store})`）未变，仅编码语义从 owned 变 ref。`.gitignore`、prototype/、TAP/网络、receiver 核心行为均未触碰。
 
 ---
 
 ## 二、红阶段红输出证据（真实命令输出）
 
-红阶段先写 3 条缺陷复现测试并实机跑（此时接收器尚未实现），全部失败：
+红阶段先落盘 5 个真实 FRB 回归测试（`RustLib.init` + 真实 cardmind_backend.dll + 真实 RustArc，无 fake SyncApi），对缺陷 DLL 实机运行全部失败：
 
 ```
-$ timeout 300 cargo test --test receiver_continuous_test -- --nocapture
-thread 'red_paired_device_remains_offline_without_last_seen' panicked at tests\receiver_continuous_test.rs:139:54:
-配对成功后 last_seen 应非空（立即进入近期在线），当前实现 upsert 写 NULL → 设备页离线（红）
-
-thread 'red_receiver_absent_causes_push_timeout' panicked at tests\receiver_continuous_test.rs:91:9:
-A 的 push 应在 10 秒内被 B 接收（B 调度器运行期间持续可接收），实际耗时 10.0040109s
-结果: [DevicePushResult { peer_id: "d535c…fcb4c", ok: false, message: "push timeout after 10s" }]
-
-thread 'red_symmetric_cycles_can_miss_each_other' panicked at tests\receiver_continuous_test.rs:177:51:
-called `Result::unwrap()` on an `Err` value: accept connection
-Caused by: aborted by peer: the application or application protocol caused the connection to be closed during the handshake
-
-test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.34s
+$ timeout 180 flutter test test/receiver_store_borrow_test.dart
+Shell: [cardmind:log] ... event=receiver.start stage=receiver duration_ms=0 action=success
+00:00 +0 -1: start_receiver does not consume store RustArc [E]
+  Expected: false
+    Actual: <true>
+  startReceiver 不得消费 Store RustArc
+00:00 +0 -2: start_receiver then periodic cycle does not dispose store [E]
+  Expected: false
+    Actual: <true>
+  调度器启动接收器后 Store 不得被消费
+00:00 +0 -3: receiver stop then store reuse [E]       Expected: false / Actual: <true>
+00:00 +0 -4: receiver repeated start is idempotent and store reusable [E]  Expected: false / Actual: <true>
+00:01 +0 -5: receiver failure does not dispose store [E]  Expected: false / Actual: <true>
+00:01 +0 -5: Some tests failed.
 ```
 
-关键日志复现任务 N 缺陷：`event=sync.push error="push timeout after 10s" duration_ms=10013 direction=push action=failed`。
-
-实现后同一测试文件 3 条全部转绿（详见验收 1-3）。
+关键证据：`receiver.start action=success` 正常发出，但紧接着 `store.isDisposed == true`——Dart 侧 `_store` 已被消费，与缺陷现场日志一致（下一周期 `sync.cycle` 报 `DroppableDisposedException`）。
 
 ---
 
-## 三、验收标准 1–24 逐条核对 + 测试映射
+## 三、验收标准 1–21 逐条核对 + 测试映射
 
-| # | 验收 | 结果 | 测试用例（文件::用例名 → 断言点） |
+| # | 验收 | 结果 | 证据 |
 |---|---|---|---|
-| 1 | receiver absent causes push timeout | ✅ | `receiver_continuous_test.rs::receiver_absent_causes_push_timeout` → B start_receiver 后 A push ≤10s 成功、B 自动 import |
-| 2 | paired device remains offline without last_seen | ✅ | `receiver_continuous_test.rs::paired_device_remains_offline_without_last_seen` → 双方 last_seen 非空且在 60s 窗口内 |
-| 3 | symmetric cycles can miss each other | ✅ | `receiver_continuous_test.rs::symmetric_cycles_can_miss_each_other` → 两端 start_receiver 后周期错开（r1/r2 均成功）B 见笔记 |
-| 4 | receiver starts once and is idempotent | ✅ | `receiver_continuous_test.rs::receiver_starts_once_and_is_idempotent` → 重复 start 后单次 stop 完全停止；restart 可再运行 |
-| 5 | receiver continuously accepts push | ✅ | `receiver_continuous_test.rs::receiver_continuously_accepts_push` → 接收器空闲 900ms 后 A push ≤10s 收到 |
-| 6 | receiver stop is bounded | ✅ | `receiver_continuous_test.rs::receiver_stop_is_bounded` → stop <3s（实测 172–313ms）；停止后 push 失败、B 不导入 |
-| 7 | receiver does not block edits | ✅ | `receiver_continuous_test.rs::receiver_does_not_block_edits` → 接收等待期间 create/update <1s |
-| 8 | receiver does not block outbound push | ✅ | `receiver_continuous_test.rs::receiver_does_not_block_outbound_push` → 接收等待期间 B 主动 push 成功且 A ≤10s 收到 |
-| 9 | pairing and push routing coexist | ✅ | `receiver_continuous_test.rs::pairing_and_push_routing_coexist` → 接收器运行 + 配对等待并存：A push 被导入、C 配对成功 |
-| 10 | receiver failure is recoverable | ✅ | `receiver_continuous_test.rs::receiver_failure_is_recoverable` → 坏帧（非 magic/非配对标记）后正常 push 仍成功 |
-| 11 | pairing success updates both last_seen | ✅ | 同验收 2 测试（双方 last_seen 断言）+ live relay 日志 `reason=pairing` |
-| 12 | received push updates sender last_seen | ✅ | `receiver_continuous_test.rs::received_push_updates_sender_last_seen` → B 收 A push 后 B store 中 A last_seen 非空 |
-| 13 | successful outbound push updates peer last_seen | ✅ | `receiver_continuous_test.rs::successful_outbound_push_updates_peer_last_seen` → A 成功 push 后 A store 中 B last_seen 非空 |
-| 14 | failed push does not mark online | ✅ | `receiver_continuous_test.rs::failed_push_does_not_mark_online` → 对端离线 push 失败，last_seen 保持原值 |
-| 15 | devices page refreshes status | ✅ | `sync_ui_widget_test.dart::devices page refreshes online status in background`（离线→2s 周期→在线）；`devices page stops refreshing after dispose`（卸载后无 pending timer） |
-| 16 | two live schedulers sync independent of phase | ✅ | `receiver_continuous_test.rs::two_live_schedulers_sync_independent_of_phase` → 双向编辑后 ≤10s 同步 |
-| 17 | live relay test 真实 dogcloud relay | ✅ | `live_relay_test.rs::live_pairing_and_sync_over_dogcloud_relay`（`--ignored`）→ 真实 relay.alexc.cn:9443 配对+首次同步成功（3.56s） |
-| 18 | Windows+Android 模拟器真实联调 | ⚠️ **未执行** | 见需决策点 4；环境无任务 N 的 TAP/ICS 测试网络 |
-| 19 | cargo test 外层 180s 全绿 | ✅ | `timeout 180 cargo test` → 全部 `test result: ok`（~110s 完成） |
-| 20 | flutter test --timeout 3m 全绿 | ✅ | `flutter test --timeout 3m` → **105 个全部通过** |
-| 21 | flutter analyze 无 error | ✅ | `flutter analyze` → `No issues found!` |
-| 22 | FRB codegen 幂等 | ✅ | 二次运行 `flutter_rust_bridge_codegen generate` 后 `git status` 无新增变化 |
-| 23 | 日志脱敏 | ✅ | 日志中 device id 均为 8+8 脱敏形式；无配对码/密钥/正文（见日志示例） |
-| 24 | git status 仅任务范围 + .gitignore 无差异 | ✅ | `git diff -- .gitignore` 为空；已还原 flutter pub get 生成的插件文件 |
+| 1 | 红：start_receiver 不消费 Store（真实 FRB） | ✅ | `test/receiver_store_borrow_test.dart::start_receiver does not consume store RustArc` 红阶段真实失败为 disposed（isDisposed=true） |
+| 2 | 红：start 后周期 cycle 复现 disposed | ✅ | `test/receiver_store_borrow_test.dart::start_receiver then periodic cycle does not dispose store`（SyncScheduler + 真实 FrbSyncApi）红阶段失败 |
+| 3 | 测试用真实绑定/真实 RustArc | ✅ | 全部用例 `RustLib.init()` + 真实 dll；monitor 用 fake 仅注入网络状态，Rust API 全真实 |
+| 4 | Rust API 边界借用 `&NoteStore` + 内部 clone | ✅ | `rust-backend/src/api.rs` diff 见上；`SyncService::start_receiver` 未改（内部 clone 进 ReceiverContext） |
+| 5 | codegen 输出与借用一致 | ✅ | `frb_generated.dart` L1846 由 `sse_encode_Auto_Owned_...NoteStore` → `sse_encode_Auto_Ref_...NoteStore`；`frb_generated.rs` `api_store.lockable_decode_async_ref().await` + `crate::api::start_receiver(&*api_svc_guard, &*api_store_guard)` |
+| 6 | start 后连续 3 个 Store API 成功 | ✅ | 同用例绿阶段：`listPairedDevices` + `storeList` + `runSyncCycle` 均成功 |
+| 7 | 周期 cycle 后不抛 disposed | ✅ | 同用例绿阶段：SyncScheduler.syncNow 两次 + 断言 `sync.cycle ok=true`、无 DroppableDisposedException |
+| 8 | stop 后 Store 可查询/写入 | ✅ | `::receiver stop then store reuse`：stop 后 storeList + noteCreate + syncNotesToStore + 读回 |
+| 9 | 重复 start 幂等且 Store 可复用 | ✅ | `::receiver repeated start is idempotent and store reusable`：3 次 start，receiver_running=true，Store 全程可用 |
+| 10 | receiver 失败不 dispose Store | ✅ | `::receiver failure does not dispose store`：start→stop→cycle 生命周期各步 isDisposed=false 且可查询/写入（说明：`start_receiver` Rust 侧对合法输入无可达 Err 路径——启动只 clone store + spawn 不触 SQLite，故按借用不变式验证生命周期错误路径） |
+| 11 | receiver_continuous_test 14/14 | ✅ | `timeout 180 cargo test --test receiver_continuous_test` → `test result: ok. 14 passed; 0 failed; finished in 10.73s` |
+| 12 | cargo test 每进程 180s 全绿 | ✅ | `timeout 180 cargo test` → 全部 `test result: ok`，单进程最大 30.43s（connect_test） |
+| 13 | flutter test --timeout 3m 全绿 | ✅ | `timeout 400 flutter test --timeout 3m` → `00:18 +110: All tests passed!` |
+| 14 | flutter analyze 无 error | ✅ | `flutter analyze` → `No issues found!` |
+| 15 | FRB codegen 连续两次幂等 | ✅ | 第 2、3 次运行 `flutter_rust_bridge_codegen generate` 后 md5 对比零变化：`CODEGEN IDEMPOTENT` |
+| 16 | 真实 Windows 平台无 disposed | ✅ | `flutter test integration_test/receiver_platform_test.dart -d windows` → `02:03 +1: All tests passed!`（receiver.start success + 真实 60s 周期 Timer 两次 sync.cycle，断言 ok=true 无 disposed） |
+| 17 | 真实 Android 模拟器无 disposed | ✅ | 清除 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY 后 `flutter test integration_test/receiver_platform_test.dart -d emulator-5554` → `02:04 +1: All tests passed!`（同上） |
+| 18 | 双端配对 push/receive/last_seen/设备页在线 | ⚠️ **未执行** | 见"问题未决 1"；与任务 O 验收 18 相同限制（无 TAP/ICS 测试网络） |
+| 19 | 真实 dogcloud relay 3 分钟上限 | ✅ | `timeout 180 cargo test --test live_relay_test -- --ignored --nocapture` → `test result: ok. 1 passed; finished in 3.54s`（`[live] ✅ 配对 + 首次同步经 dogcloud relay 全链路成功`） |
+| 20 | 日志脱敏不回归 | ✅ | Rust `debug_log_test.rs` 10/10（含 `test_redact_device_id`）；Flutter `test/debug_log_test.dart` 10/10；新测试日志 id 均为 `前8…后8` 脱敏形式 |
+| 21 | git status 仅任务范围 + .gitignore 无差异 | ✅ | `git status --short` 仅 6 项（见上）；`git diff -- .gitignore` 为空 |
 
 ---
 
 ## 四、真实命令输出摘录
 
-### cargo test（验收 19，180s 硬超时）
+### 绿阶段单元/集成测试（验收 6-10）
 ```
-$ timeout 180 cargo test
-test result: ok. 8 passed; 0 failed; ...  finished in 10.30s
-test result: ok. 14 passed; 0 failed; 0 ignored; ... (receiver_continuous_test)
-... 全部 ok，0 failed ...
+$ timeout 180 flutter test test/receiver_store_borrow_test.dart
+00:10 +5: All tests passed!
 ```
 
-### live relay（验收 17，真实 dogcloud）
+### cargo test（验收 12，180s 外层兜底）
+```
+$ timeout 180 cargo test
+Running tests\autosync_test.rs ...   8 passed; finished in 10.27s
+Running tests\connect_test.rs ...    7 passed; finished in 30.43s
+Running tests\debug_log_test.rs ... 10 passed; finished in 30.18s
+Running tests\discovery_test.rs ...  2 passed; finished in 6.05s
+Running tests\integration_test.rs ... 2 passed; finished in 0.11s
+Running tests\migration_test.rs ...  2 passed; finished in 0.14s
+Running tests\note_crdt_test.rs ... 10 passed; finished in 0.01s
+Running tests\pairing_test.rs ...   10 passed; finished in 6.23s
+Running tests\receiver_continuous_test.rs ... 14 passed; finished in 10.61s
+Running tests\relay_config_test.rs ... 7 passed; finished in 0.13s
+Running tests\store_test.rs ...      6 passed; finished in 0.01s
+Running tests\sync_service_test.rs ... 5 passed; finished in 0.18s
+Running tests\sync_test.rs ...       1 passed; finished in 0.15s
+Running tests\trash_test.rs ...     13 passed; finished in 0.25s
+（全部 0 failed）
+```
+
+### 真实 Windows 平台（验收 16）
+```
+$ flutter test integration_test/receiver_platform_test.dart -d windows
+√ Built build\windows\x64\runner\Debug\cardmind.exe
+02:03 +1: All tests passed!
+```
+（测试断言：`receiver.start` 事件存在且 action=success；真实 60s 周期 Timer 触发 ≥2 次 `sync.cycle` 且 `ok=true`、无 DroppableDisposedException；`store.isDisposed=false`）
+
+### 真实 Android 模拟器（验收 17，默认 NAT，已清代理）
+```
+$ unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
+$ flutter test integration_test/receiver_platform_test.dart -d emulator-5554
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk... 3.6s
+02:04 +1: All tests passed!
+```
+
+### live relay（验收 19，真实 dogcloud）
 ```
 $ timeout 180 cargo test --test live_relay_test -- --ignored --nocapture
 [live] ✅ 配对 + 首次同步经 dogcloud relay 全链路成功
-test live_pairing_and_sync_over_dogcloud_relay ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.56s
+test result: ok. 1 passed; 0 failed; finished in 3.54s
 ```
 
-### flutter test（验收 20）
+### FRB codegen 幂等（验收 15）
 ```
-$ timeout 400 flutter test --timeout 3m
-00:09 +105: All tests passed!
-```
-
-### flutter analyze（验收 21）
-```
-Analyzing continuous-receiver...  No issues found! (ran in 15.8s)
-```
-
-### FRB codegen 幂等（验收 22）
-```
-$ flutter_rust_bridge_codegen generate && diff /tmp/before_codegen.txt /tmp/after_codegen.txt
-CODEGEN IDEMPOTENT (no new changes)
+$ flutter_rust_bridge_codegen generate && md5sum ... > before
+$ flutter_rust_bridge_codegen generate && md5sum ... > after
+$ diff before after && echo "CODEGEN IDEMPOTENT (3rd run produced zero content changes)"
 ```
 
 ---
 
-## 五、结构化日志示例（真实日志摘录，任务 N 键=值格式）
-
-```
-event=receiver.start action=success duration_ms=0
-event=sync.receive action=success bytes=304 sender=7dc874a0…32eaf874
-event=sync.import action=success note_count=1 bytes=304 duration_ms=0
-event=device.last_seen reason=outbound_push action=updated
-event=device.last_seen action=updated peer=7dc874a0…32eaf874 reason=inbound_push
-event=sync.push error="push timeout after 10s" duration_ms=10013 direction=push action=failed   ← 对端离线（验收 14 验证保留）
-event=receiver.stop duration_ms=313 action=success was_running=true
-event=receiver.end action=stopped
-event=devices.online_refresh action=background_refresh online_count=1   ← 设备页后台刷新
-```
-
-脱敏检查：所有 device_id 均为 `前8…后8`；配对码不进入日志（show_code 只记 action=success）；无密钥；sync.import 只记 note_count/bytes，无正文。
-
----
-
-## 六、需决策点
-
-1. **FRB opaque 锁无法支持接收器与编辑/推送并发** —— 未触发。实测 FRB 2.12 对 `&self`/`&mut self` 方法均独占 `arc_mutex`，故未采用 Dart 侧常驻 await；接收任务持有 `endpoint.clone()` + 共享 `Arc<Mutex<CoreState>>` + `store.clone()`，完全不经过 FRB 锁。验收 7/8 实测接收等待期间 create/edit/push 均 <1s / ≤10s 完成。
-2. **iroh Endpoint 多个 accept 消费者无法安全统一路由** —— 未触发。共享同一 `pending_pairing`（Arc）+ 同一 core；`route_incoming` 自由函数为唯一路由实现，接收器/配对轮询/周期 accept 并发调用安全（每个 `endpoint.accept()` 各取一个 incoming；配对帧→pending_pairing、推送帧→导入）。验收 9 实测并存无冲突。
-3. **无法识别 inbound push 发送方** —— 未触发。用 `Connection::remote_id()`（TLS 证书 EndpointId）识别发送方，无需改协议、不猜 peer。验收 12 实测发送方 last_seen 精确更新。
-4. **真实 Windows/Android 联调未执行** —— **已触发**。当前机器无任务 N 的 TAP 适配器/ICS 测试网络（`Get-NetAdapter` 仅蓝牙/WLAN(断)/以太网/Tailscale），无法建立验收 18 要求的双端测试网络；Android 模拟器（medium_phone AVD）存在但缺测试网络且无既有配对记录。因此**验收 18 明确报告未执行，不声称通过**。已完成的最接近替代：验收 16（两个真实 SyncService+store 双向同步）、验收 17（真实 dogcloud relay 全链路）。
-
----
-
-## 七、新增测试清单
+## 五、新增测试清单
 
 | 文件 | 用例 | 覆盖点 |
 |---|---|---|
-| `rust-backend/tests/receiver_continuous_test.rs`（14 个） | receiver_absent_causes_push_timeout | 验收 1 |
-| | paired_device_remains_offline_without_last_seen | 验收 2/11 |
-| | symmetric_cycles_can_miss_each_other | 验收 3 |
-| | receiver_starts_once_and_is_idempotent | 验收 4 |
-| | receiver_continuously_accepts_push | 验收 5 |
-| | receiver_stop_is_bounded | 验收 6 |
-| | receiver_does_not_block_edits | 验收 7 |
-| | receiver_does_not_block_outbound_push | 验收 8 |
-| | pairing_and_push_routing_coexist | 验收 9 |
-| | receiver_failure_is_recoverable | 验收 10 |
-| | received_push_updates_sender_last_seen | 验收 12 |
-| | successful_outbound_push_updates_peer_last_seen | 验收 13 |
-| | failed_push_does_not_mark_online | 验收 14 |
-| | two_live_schedulers_sync_independent_of_phase | 验收 16 |
-| `test/sync_ui_widget_test.dart`（+2） | devices page refreshes online status in background | 验收 15（离线→在线 ≤5s） |
-| | devices page stops refreshing after dispose | 验收 15（dispose 后不刷新） |
-| `test/sync_scheduler_test.dart`（+2） | scheduler starts receiver on start and stops on stop | 调度器接收器启停 |
-| | scheduler start is idempotent for receiver | 重复 start 仍安全 |
+| `test/receiver_store_borrow_test.dart` | start_receiver does not consume store RustArc | 验收 1/6：start 后连续 3 个 Store API（listPairedDevices/storeList/runSyncCycle）均成功，isDisposed=false |
+| | start_receiver then periodic cycle does not dispose store | 验收 2/7：SyncScheduler（真实 FrbSyncApi）start 后两次 syncNow，断言 sync.cycle ok=true 且无 DroppableDisposedException |
+| | receiver stop then store reuse | 验收 8：stop 后查询+写入+读回 |
+| | receiver repeated start is idempotent and store reusable | 验收 9：3 次 start 幂等，receiver_running=true，Store 全程可用 |
+| | receiver failure does not dispose store | 验收 10：start→stop→cycle 生命周期各步 isDisposed=false，Store 可查询/写入 |
+| `integration_test/receiver_platform_test.dart` | real platform: receiver.start success + at least two periodic sync.cycle without disposed | 验收 16/17：真实平台（Windows/Android）上真实 60s 周期 Timer 触发 ≥2 次 sync.cycle，receiver.start success，无 disposed |
+
+Rust 侧无新增测试：api.rs 的改动是 FRB 边界层，纯 Rust 测试无法覆盖 FRB opaque 所有权语义；边界行为由上述真实 FRB Dart 测试完整覆盖（`receiver_continuous_test.rs` 等核心行为测试 14/14 回归全绿）。
 
 ---
 
-## 八、问题未决
+## 六、需决策点 / 问题未决
 
-1. 验收 18（Windows+Android 真实联调）未执行——需在具备 TAP/ICS 测试网络的双端环境复验。
-2. `iter_notes()` 返回类型由借用迭代器改为 owned `Vec<(String, NoteCrdt)>`（因共享 core 无法返回持锁借用），`tombstones()` 改为 clone 快照——语义等价，已同步适配 migration/trash 测试。
-3. 接收器尊重同步开关（决策 6）的语义：当前接收器始终接收（不读 sync_allowed）；若移动端蜂窝暂停接收是产品要求，需在后续任务评估（任务单未明确要求接收器受开关控制）。
-4. **pre-commit hook 基线 fmt 失败**：`cargo fmt --check` 在未改动的基线文件（`src/debug_log.rs`、`tests/debug_log_test.rs`、`tests/pairing_test.rs`，rustfmt 1.8.0 版本差异）即报差异。本任务范围文件已单独 `rustfmt` 格式化干净；`cargo clippy --all-targets --all-features -- -D warnings`、`cargo test --all-features`、`flutter analyze`、`flutter test` 均实机通过。提交使用 hook 官方提供的方式 `SKIP_LOCAL_CHECK=1`（详见 commit message 说明）。
+1. **验收 18（Windows+Android 双端配对联调）未执行**——环境与任务 O 相同限制：
+   - 无任务 N 的 TAP 适配器/ICS 测试网络；
+   - Android 模拟器为默认 NAT：guest→host 出站可用，但 host→guest 无路由（10.0.2.15 不可从宿主路由），Windows→Android 的 iroh 直连 push 不可达；adb 不在 PATH，无可靠端口转发通道；
+   - 双端配对握手 + 设备页 5 秒在线刷新需真实 UI 双端同步驱动，单机环境无法可靠建立。
+   已完成的最近替代：验收 16/17（两端各自真实平台 2 周期无 disposed）、验收 11（`receiver_continuous_test` 双活调度器 last_seen/同步闭环 14/14）、验收 19（真实 dogcloud relay 全链路）。
+2. **验收 10 的说明**：`start_receiver`（Rust 侧）对合法输入无可达的 Err 路径（启动仅 clone store + spawn，不触碰 SQLite），故用例按借用不变式验证完整生命周期（start→stop→cycle→查询→写入）下 Store 永不被消费，并断言 isDisposed 恒 false。start 返回错误路径本身无法经公开 API 构造。
+3. **FRB 决策点未触发**：FRB 2.12 支持 `&NoteStore` opaque 参数生成（`Auto_Ref` 编码），无需替代方案；改用借用后实测无 disposed，且是 store 复用成功，非 svc 被消费。
+4. **平台测试基础设施说明**：Windows/Android 集成测试需将 `cardmind_backend.dll/.so` 放到运行路径（Windows：exe 同级目录；Android：`build/android-jni/<abi>`）——这是现有部署约定（AGENTS.md 运行态动态库一节），非本任务改动。
 
-## 九、提交情况
+---
 
-```
-$ git log --oneline -4
-19652eb6 fix(task-o): continuous push receiver and online status closure
-a649030d docs: task sheet O — continuous receiver and online state closure
-0fb91c2f feat: cross-platform diagnostic logging for sync flows
-fb2aff09 feat(debug): structured redacted logs for pairing, relay and sync
-```
+## 七、提交建议
 
-提交 `19652eb6` 含全部任务范围改动（14 文件，+2247/-478），工作树干净，`.gitignore` 无差异。
+建议提交信息：`fix(task-p): borrow NoteStore in start_receiver FRB boundary to stop consuming Dart RustArc`
+
+改动：4 文件修改（api.rs + frb_generated.rs + 2 个 Dart 生成文件）+ 2 个新测试文件；工作树干净，`.gitignore` 无差异。
