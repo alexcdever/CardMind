@@ -18,19 +18,20 @@ use crate::store::NoteStore;
 
 /// 同步服务 — 管理笔记集合并通过 iroh 与对端同步
 pub struct SyncService {
-    notes: HashMap<String, NoteCrdt>,
-    /// 已彻底删除的笔记 id 集合（墓碑）。删除信息随快照传播，防止
-    /// `sync_notes_to_store` 从 Loro 快照重建被删笔记（复活）。
-    tombstones: HashSet<String>,
+    /// 可变核心状态（notes/tombstones/持久化路径）。
+    ///
+    /// 以 `Arc<Mutex<...>>` 共享：后台接收任务（任务 O）与主服务都能安全访问，
+    /// 实现"收到 push 立即 import + 投影 + last_seen"，不占用 FRB opaque 锁。
+    core: Arc<Mutex<CoreState>>,
     endpoint: Endpoint,
     /// 构造时使用的 relay 模式（任务 K 配置化：默认 Disabled 仅局域网；
     /// 持久化版读取 `<数据目录>/relay.txt` 可配置 Custom）
     relay_mode: RelayMode,
-    persistent_path: Option<PathBuf>,
     /// 当前配对码会话（内存态；10 分钟有效，重启失效可接受——用户重新发起）
     pairing_session: Mutex<Option<PairingSession>>,
-    /// 确认方已接收、等待用户确认的配对请求及其连接（确认时回复握手响应）
-    pending_pairing: Mutex<Option<PendingPairing>>,
+    /// 确认方已接收、等待用户确认的配对请求及其连接（确认时回复握手响应）。
+    /// Arc 共享：后台接收任务（任务 O）与主服务路由到同一 pending_pairing。
+    pending_pairing: Arc<Mutex<Option<PendingPairing>>>,
     /// 本设备名（配对握手时发送给对端；默认取主机名）
     device_name: Mutex<String>,
     /// 同步开关（决策 6 能力）：false 时调度器暂停推送与拉取。
@@ -48,16 +49,62 @@ pub struct SyncService {
     /// 用 tokio Mutex：`discover_peers` 需跨 await 持锁，FRB async 要求
     /// Send future（std MutexGuard 非 Send，跨 await 编译不过）。
     discovery: tokio::sync::Mutex<Option<DiscoveryService>>,
+    /// 后台接收任务状态（任务 O：持续 accept 对端 push；start/stop 幂等）。
+    receiver: Mutex<ReceiverHandle>,
     /// 调试日志 sink（实例级；测试注入收集/异常 sink 断言事件）。
     log: Arc<dyn LogSink>,
     /// verbose 日志开关（debug 提高详细程度；默认 false 只输出常规事件）。
     log_verbose: AtomicBool,
 }
 
+/// 可被主服务与后台接收任务共享的可变核心状态。
+struct CoreState {
+    notes: HashMap<String, NoteCrdt>,
+    /// 已彻底删除的笔记 id 集合（墓碑）。删除信息随快照传播，防止
+    /// `sync_notes_to_store` 从 Loro 快照重建被删笔记（复活）。
+    tombstones: HashSet<String>,
+    persistent_path: Option<PathBuf>,
+}
+
+/// 后台接收任务句柄（start/stop 幂等管理）。
+#[derive(Default)]
+struct ReceiverHandle {
+    /// 停止信号（接收任务轮询；置 true 后任务在下一 accept 窗口结束前退出）
+    cancel: Option<Arc<AtomicBool>>,
+    /// 接收任务句柄（stop 时等待结束；有界 3 秒）
+    join: Option<tokio::task::JoinHandle<()>>,
+}
+
+/// 后台接收任务的独立上下文（endpoint clone + 共享 core + store clone + 日志）。
+///
+/// 不持有 `&SyncService`：接收任务生命周期独立于 FRB opaque 锁，start 时拷贝所需
+/// 全部引用（endpoint/core/log/store），停止/关闭后任务自然退出，不留下永久 task。
+struct ReceiverContext {
+    endpoint: Endpoint,
+    core: Arc<Mutex<CoreState>>,
+    /// 共享配对路由状态（与主服务同一 pending_pairing——配对帧不丢、不互抢）
+    pending_pairing: Arc<Mutex<Option<PendingPairing>>>,
+    store: NoteStore,
+    log: Arc<dyn LogSink>,
+    device_id: String,
+    log_verbose: bool,
+    cancel: Arc<AtomicBool>,
+    /// 连续空闲窗口计数（健康检查/诊断日志用）
+    idle_windows: u64,
+}
+
+/// 接收器单次 accept 窗口（任务 O：短窗口循环，与配对 accept 轮询同粒度）。
+const RECEIVER_ACCEPT_WINDOW: Duration = Duration::from_millis(300);
+/// 接收器处理单个 incoming（握手 + 读帧）的超时上限（防恶意/慢连接拖死任务）。
+const RECEIVER_PROCESS_TIMEOUT: Duration = Duration::from_secs(10);
+/// stop_receiver 等待接收任务结束的硬上限（验收：3 秒内返回）。
+const RECEIVER_STOP_TIMEOUT: Duration = Duration::from_secs(3);
+
 /// NoteCrdt — LoroDoc 笔记模型
 ///
 /// 每个笔记一个独立的 LoroDoc，支持创建/读写/快照/增量同步。
 /// 正文存于 `content` Text 容器；元数据（tags/created_at/updated_at）存于 `meta` Map 容器。
+#[derive(Clone)]
 pub struct NoteCrdt {
     doc: LoroDoc,
 }
@@ -213,7 +260,9 @@ impl SyncService {
     /// 统一构造：`path = None` → 内存版（隔离，不读文件）；`Some` → 持久化版。
     async fn build(path: Option<&Path>, log: Arc<dyn LogSink>) -> Result<Self> {
         let path = path.map(loro_path);
-        let data_dir = path.as_ref().and_then(|p| p.parent().map(Path::to_path_buf));
+        let data_dir = path
+            .as_ref()
+            .and_then(|p| p.parent().map(Path::to_path_buf));
         if let Some(parent) = &data_dir {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("create data directory {}", parent.display()))?;
@@ -228,19 +277,22 @@ impl SyncService {
             .await
             .context("bind iroh endpoint")?;
         let mut service = Self {
-            notes: HashMap::new(),
-            tombstones: HashSet::new(),
+            core: Arc::new(Mutex::new(CoreState {
+                notes: HashMap::new(),
+                tombstones: HashSet::new(),
+                persistent_path: path.clone(),
+            })),
             endpoint,
             relay_mode,
-            persistent_path: path.clone(),
             pairing_session: Mutex::new(None),
-            pending_pairing: Mutex::new(None),
+            pending_pairing: Arc::new(Mutex::new(None)),
             device_name: Mutex::new(default_device_name()),
             sync_allowed: AtomicBool::new(true),
             pending_dirty: Mutex::new(HashSet::new()),
             last_pushed_at: Mutex::new(HashMap::new()),
             peer_ips: Mutex::new(HashMap::new()),
             discovery: tokio::sync::Mutex::new(None),
+            receiver: Mutex::new(ReceiverHandle::default()),
             log,
             log_verbose: AtomicBool::new(false),
         };
@@ -262,9 +314,15 @@ impl SyncService {
                     std::fs::copy(path, &backup)
                         .with_context(|| format!("backup v1 file to {}", backup.display()))?;
                     let now = chrono::Utc::now().to_rfc3339();
-                    let note_ids: Vec<String> = service.notes.keys().cloned().collect();
+                    let note_ids: Vec<String> = {
+                        let core = service.core.lock().unwrap();
+                        core.notes.keys().cloned().collect()
+                    };
                     for note_id in note_ids {
-                        let note = &service.notes[&note_id];
+                        let core = service.core.lock().unwrap();
+                        let Some(note) = core.notes.get(&note_id) else {
+                            continue;
+                        };
                         let content = note.get_content();
                         let tags_str = extract_tag_marker(&content);
                         if !tags_str.is_empty() {
@@ -292,7 +350,7 @@ impl SyncService {
                     for (id, content) in store.legacy_notes()? {
                         let note = NoteCrdt::new();
                         note.set_content(&content);
-                        service.notes.insert(id, note);
+                        service.core.lock().unwrap().notes.insert(id, note);
                     }
                     service.persist()?;
                 }
@@ -305,16 +363,20 @@ impl SyncService {
     /// 启动事件：初始化成功、relay 配置、本机身份（全部脱敏）。
     fn emit_startup_events(&self) {
         let device_id = self.device_id();
+        let notes_loaded = self.core.lock().unwrap().notes.len();
         let mut startup = LogEvent::new("startup.sync_service", "sync.init")
             .with_id(&device_id)
             .with_field("action", "success")
-            .with_field("notes_loaded", self.notes.len().to_string());
+            .with_field("notes_loaded", notes_loaded.to_string());
         let (relay_enabled, relay_host, relay_port) = relay_endpoint(&self.relay_mode);
         if relay_enabled {
             startup = startup
                 .with_field("relay_enabled", "true")
                 .with_field("relay_host", relay_host.clone().unwrap_or_default())
-                .with_field("relay_port", relay_port.map(|p| p.to_string()).unwrap_or_default());
+                .with_field(
+                    "relay_port",
+                    relay_port.map(|p| p.to_string()).unwrap_or_default(),
+                );
         } else {
             startup = startup.with_field("relay_enabled", "false");
         }
@@ -326,7 +388,10 @@ impl SyncService {
             relay_event = relay_event
                 .with_field("enabled", "true")
                 .with_field("relay_host", relay_host.unwrap_or_default())
-                .with_field("relay_port", relay_port.map(|p| p.to_string()).unwrap_or_default());
+                .with_field(
+                    "relay_port",
+                    relay_port.map(|p| p.to_string()).unwrap_or_default(),
+                );
         } else {
             relay_event = relay_event.with_field("enabled", "false");
         }
@@ -543,7 +608,9 @@ impl SyncService {
                         .iter()
                         .map(|p| debug_log::redact_device_id(&p.device_id))
                         .collect();
-                    ev = ev.with_field("candidates", candidates.join(",")).with_verbose();
+                    ev = ev
+                        .with_field("candidates", candidates.join(","))
+                        .with_verbose();
                 }
                 self.emit_log(ev);
             }
@@ -835,6 +902,8 @@ impl SyncService {
 
         // 确认方持久化发起方
         store.upsert_paired_device(&requester.device_id, &requester.device_name)?;
+        // 配对握手成功 → 发起方立即进入"近期在线"（任务 O 验收 11：不能等下一次同步）
+        self.touch_last_seen(store, &requester.device_id, "pairing");
         // 记录发起方直连 IP（供后续周期推送直连优先）
         self.peer_ips
             .lock()
@@ -1040,6 +1109,8 @@ impl SyncService {
 
         // 握手响应 → 发起方持久化确认方
         store.upsert_paired_device(&response.device_id, &response.device_name)?;
+        // 配对握手成功 → 确认方立即进入"近期在线"（任务 O 验收 11）
+        self.touch_last_seen(store, &response.device_id, "pairing");
         // 记录确认方直连 IP（供后续周期推送直连优先）
         self.peer_ips
             .lock()
@@ -1081,41 +1152,44 @@ impl SyncService {
     pub fn create_note(&mut self, note_id: String, content: &str) -> Result<()> {
         let note = NoteCrdt::new();
         note.set_content(content);
-        let previous = self.notes.remove(&note_id);
-        self.notes.insert(note_id.clone(), note);
-        if let Err(err) = self.persist() {
-            self.notes.remove(&note_id);
+        let mut core = self.core.lock().unwrap();
+        let previous = core.notes.remove(&note_id);
+        core.notes.insert(note_id.clone(), note);
+        if let Err(err) = self.persist_locked(&core) {
+            core.notes.remove(&note_id);
             if let Some(previous) = previous {
-                self.notes.insert(note_id, previous);
+                core.notes.insert(note_id, previous);
             }
             return Err(err);
         }
+        drop(core);
         // 编辑保存即推送：标记待同步（推送由调度器异步执行，不阻塞编辑）
         self.mark_sync_pending(&note_id);
         Ok(())
     }
 
-    /// 遍历所有笔记（用于同步到 SQLite）  
-    pub fn iter_notes(&self) -> impl Iterator<Item = (&String, &NoteCrdt)> {
-        self.notes.iter()
+    /// 遍历所有笔记（用于同步到 SQLite；任务 O 后返回 owned 快照，避免持锁借用）
+    pub fn iter_notes(&self) -> Vec<(String, NoteCrdt)> {
+        let core = self.core.lock().unwrap();
+        core.notes.clone().into_iter().collect()
     }
 
     /// 更新笔记内容
     pub fn update_note(&mut self, note_id: &str, content: &str) -> Result<()> {
-        let previous = {
-            let note = self
+        {
+            let core = self.core.lock().unwrap();
+            let note = core
                 .notes
                 .get(note_id)
                 .ok_or_else(|| anyhow::anyhow!("note not found: {}", note_id))?;
             let previous = note.get_content();
             note.set_content(content);
-            previous
-        };
-        if let Err(err) = self.persist() {
-            if let Some(note) = self.notes.get(note_id) {
-                note.set_content(&previous);
+            if let Err(err) = self.persist_locked(&core) {
+                if let Some(note) = core.notes.get(note_id) {
+                    note.set_content(&previous);
+                }
+                return Err(err);
             }
-            return Err(err);
         }
         self.mark_sync_pending(note_id);
         Ok(())
@@ -1125,20 +1199,20 @@ impl SyncService {
     ///
     /// 更新 NoteCrdt 的 meta.tags list 并 persist；persist 失败时回滚内存态。
     pub fn update_metadata(&mut self, note_id: &str, tags: &[String]) -> Result<()> {
-        let previous = {
-            let note = self
+        {
+            let core = self.core.lock().unwrap();
+            let note = core
                 .notes
                 .get(note_id)
                 .ok_or_else(|| anyhow::anyhow!("note not found: {}", note_id))?;
             let previous = note.get_tags();
             note.set_tags(tags);
-            previous
-        };
-        if let Err(err) = self.persist() {
-            if let Some(note) = self.notes.get(note_id) {
-                note.set_tags(&previous);
+            if let Err(err) = self.persist_locked(&core) {
+                if let Some(note) = core.notes.get(note_id) {
+                    note.set_tags(&previous);
+                }
+                return Err(err);
             }
-            return Err(err);
         }
         self.mark_sync_pending(note_id);
         Ok(())
@@ -1146,27 +1220,28 @@ impl SyncService {
 
     /// 获取笔记内容
     pub fn get_note(&self, note_id: &str) -> Option<String> {
-        self.notes.get(note_id).map(|n| n.get_content())
+        let core = self.core.lock().unwrap();
+        core.notes.get(note_id).map(|n| n.get_content())
     }
 
     /// 软删除：给笔记 meta 打 deleted_at 标记（进回收站），随快照传播。
     ///
     /// 笔记仍在 notes HashMap 中，仅 meta 标记；persist 失败时回滚内存态。
     pub fn soft_delete_note(&mut self, note_id: &str) -> Result<()> {
-        let previous = {
-            let note = self
+        {
+            let core = self.core.lock().unwrap();
+            let note = core
                 .notes
                 .get(note_id)
                 .ok_or_else(|| anyhow::anyhow!("note not found: {}", note_id))?;
             let previous = note.get_deleted_at();
             note.set_deleted_at(Some(Utc::now().to_rfc3339()));
-            previous
-        };
-        if let Err(err) = self.persist() {
-            if let Some(note) = self.notes.get(note_id) {
-                note.set_deleted_at(previous);
+            if let Err(err) = self.persist_locked(&core) {
+                if let Some(note) = core.notes.get(note_id) {
+                    note.set_deleted_at(previous);
+                }
+                return Err(err);
             }
-            return Err(err);
         }
         self.mark_sync_pending(note_id);
         Ok(())
@@ -1174,20 +1249,20 @@ impl SyncService {
 
     /// 恢复：清除笔记 meta 的 deleted_at 标记，随快照传播。
     pub fn restore_note(&mut self, note_id: &str) -> Result<()> {
-        let previous = {
-            let note = self
+        {
+            let core = self.core.lock().unwrap();
+            let note = core
                 .notes
                 .get(note_id)
                 .ok_or_else(|| anyhow::anyhow!("note not found: {}", note_id))?;
             let previous = note.get_deleted_at();
             note.set_deleted_at(None);
-            previous
-        };
-        if let Err(err) = self.persist() {
-            if let Some(note) = self.notes.get(note_id) {
-                note.set_deleted_at(previous);
+            if let Err(err) = self.persist_locked(&core) {
+                if let Some(note) = core.notes.get(note_id) {
+                    note.set_deleted_at(previous);
+                }
+                return Err(err);
             }
-            return Err(err);
         }
         self.mark_sync_pending(note_id);
         Ok(())
@@ -1197,18 +1272,20 @@ impl SyncService {
     ///
     /// 已彻底删除的 id 幂等成功；persist 失败时回滚内存态。
     pub fn purge_note(&mut self, note_id: &str) -> Result<()> {
-        let removed = self.notes.remove(note_id);
-        if removed.is_none() && !self.tombstones.contains(note_id) {
+        let mut core = self.core.lock().unwrap();
+        let removed = core.notes.remove(note_id);
+        if removed.is_none() && !core.tombstones.contains(note_id) {
             anyhow::bail!("note not found: {}", note_id);
         }
-        self.tombstones.insert(note_id.to_string());
-        if let Err(err) = self.persist() {
+        core.tombstones.insert(note_id.to_string());
+        if let Err(err) = self.persist_locked(&core) {
             if let Some(note) = removed {
-                self.notes.insert(note_id.to_string(), note);
+                core.notes.insert(note_id.to_string(), note);
             }
-            self.tombstones.remove(note_id);
+            core.tombstones.remove(note_id);
             return Err(err);
         }
+        drop(core);
         self.mark_sync_pending(note_id);
         Ok(())
     }
@@ -1218,7 +1295,8 @@ impl SyncService {
     pub fn purge_expired(&mut self, cutoff: &str) -> Result<usize> {
         let cutoff_dt = chrono::DateTime::parse_from_rfc3339(cutoff)
             .with_context(|| format!("invalid cutoff timestamp: {}", cutoff))?;
-        let expired: Vec<String> = self
+        let mut core = self.core.lock().unwrap();
+        let expired: Vec<String> = core
             .notes
             .iter()
             .filter_map(|(id, note)| {
@@ -1233,20 +1311,21 @@ impl SyncService {
         // 一次 persist：全部移除 + 入墓碑，失败则整体回滚
         let mut removed_notes = Vec::with_capacity(expired.len());
         for id in &expired {
-            if let Some(note) = self.notes.remove(id) {
+            if let Some(note) = core.notes.remove(id) {
                 removed_notes.push((id.clone(), note));
             }
-            self.tombstones.insert(id.clone());
+            core.tombstones.insert(id.clone());
         }
-        if let Err(err) = self.persist() {
+        if let Err(err) = self.persist_locked(&core) {
             for (id, note) in removed_notes {
-                self.notes.insert(id, note);
+                core.notes.insert(id, note);
             }
             for id in &expired {
-                self.tombstones.remove(id);
+                core.tombstones.remove(id);
             }
             return Err(err);
         }
+        drop(core);
         // 与 purge_note 一致：清理的墓碑标记待同步，随下一次全量推送传播给对端
         // （push 是全量快照含墓碑；不标记则墓碑只在有其他变更触发的推送中捎带）。
         for id in &expired {
@@ -1255,9 +1334,9 @@ impl SyncService {
         Ok(expired.len())
     }
 
-    /// 墓碑集合（已彻底删除的 note id）只读引用
-    pub fn tombstones(&self) -> &HashSet<String> {
-        &self.tombstones
+    /// 墓碑集合快照（已彻底删除的 note id；任务 O 后改为 clone 快照，避免借用锁）
+    pub fn tombstones(&self) -> HashSet<String> {
+        self.core.lock().unwrap().tombstones.clone()
     }
 
     /// 导出所有笔记的全量快照（用于首次同步）
@@ -1267,37 +1346,24 @@ impl SyncService {
     /// 记录流：每条笔记连续拼接为
     ///   `(note_id_len: u32 LE, note_id, snapshot_len: u32 LE, snapshot)`
     pub fn export_all(&self) -> Result<Vec<u8>> {
-        let mut buf = Vec::new();
-        // 墓碑 section 前缀
-        buf.extend_from_slice(&(self.tombstones.len() as u32).to_le_bytes());
-        let mut sorted: Vec<&String> = self.tombstones.iter().collect();
-        sorted.sort();
-        for id in sorted {
-            let id_bytes = id.as_bytes();
-            buf.extend_from_slice(&(id_bytes.len() as u32).to_le_bytes());
-            buf.extend_from_slice(id_bytes);
-        }
-        // 笔记记录流
-        for (note_id, note) in &self.notes {
-            let snapshot = note.export_snapshot()?;
-            let id_bytes = note_id.as_bytes();
-            buf.extend_from_slice(&(id_bytes.len() as u32).to_le_bytes());
-            buf.extend_from_slice(id_bytes);
-            buf.extend_from_slice(&(snapshot.len() as u32).to_le_bytes());
-            buf.extend_from_slice(&snapshot);
-        }
-        Ok(buf)
+        let core = self.core.lock().unwrap();
+        export_core_all(&core)
     }
 
     /// 导入全量快照（v3 语义：墓碑 section + 记录流）
     pub fn import_all(&mut self, data: &[u8]) -> Result<()> {
         let started = std::time::Instant::now();
-        let result = self.import_all_inner(data);
+        let result = {
+            let mut core = self.core.lock().unwrap();
+            import_core_all(&mut core, data)
+        };
         let duration = started.elapsed();
         // 事件 #9/#10：导入只记录数量/方向/耗时，绝不记录正文
         match &result {
             Ok(()) => {
-                let note_count = self.notes.len() + self.tombstones.len();
+                let core = self.core.lock().unwrap();
+                let note_count = core.notes.len() + core.tombstones.len();
+                drop(core);
                 self.emit_log(
                     LogEvent::new("sync.import", "sync.import")
                         .with_id(&self.device_id())
@@ -1323,16 +1389,15 @@ impl SyncService {
         result
     }
 
-    fn import_all_inner(&mut self, data: &[u8]) -> Result<()> {
-        let previous = self.export_all()?;
-        self.import_raw(LORO_VERSION, data)?;
-        if let Err(err) = self.persist() {
-            self.notes.clear();
-            self.tombstones.clear();
-            self.import_raw(LORO_VERSION, &previous)?;
-            return Err(err);
-        }
-        Ok(())
+    /// 持锁 persist（任务 O：persist 直接消费已持锁的 core，避免锁内重入）。
+    fn persist_locked(&self, core: &CoreState) -> Result<()> {
+        persist_core(core)
+    }
+
+    /// 全量快照导出（已持锁 core 的纯函数，接收任务/主服务共用）。
+    fn persist(&self) -> Result<()> {
+        let core = self.core.lock().unwrap();
+        persist_core(&core)
     }
 
     /// 导入 payload。`version` 决定是否含墓碑 section：
@@ -1340,94 +1405,8 @@ impl SyncService {
     ///   记录流中遇到墓碑中的 id 跳过，不复活）
     /// - v1/v2：纯记录流（无墓碑 section，tombstones 为空，无损升级）
     fn import_raw(&mut self, version: u32, data: &[u8]) -> Result<()> {
-        let mut offset = 0;
-
-        // ━━ 墓碑 section（仅 v3）━━
-        let mut imported_tombstones: HashSet<String> = HashSet::new();
-        if version >= 3 {
-            if offset + 4 > data.len() {
-                anyhow::bail!("truncated data: missing tombstone count");
-            }
-            let tombstone_count =
-                u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-            offset += 4;
-            for _ in 0..tombstone_count {
-                if offset + 4 > data.len() {
-                    anyhow::bail!("truncated data: missing tombstone id length");
-                }
-                let id_len =
-                    u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-                offset += 4;
-                if offset + id_len > data.len() {
-                    anyhow::bail!("truncated data: missing tombstone id");
-                }
-                let id = String::from_utf8(data[offset..offset + id_len].to_vec())
-                    .context("invalid UTF-8 in tombstone id")?;
-                offset += id_len;
-                imported_tombstones.insert(id);
-            }
-        }
-
-        // ━━ 笔记记录流 ━━
-        while offset < data.len() {
-            // 读取 note_id_len (u32 LE)
-            if offset + 4 > data.len() {
-                anyhow::bail!("truncated data: missing note_id length");
-            }
-            let id_len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-            offset += 4;
-
-            // 读取 note_id
-            if offset + id_len > data.len() {
-                anyhow::bail!("truncated data: missing note_id");
-            }
-            let note_id = String::from_utf8(data[offset..offset + id_len].to_vec())
-                .context("invalid UTF-8 in note_id")?;
-            offset += id_len;
-
-            // 读取 snapshot_len (u32 LE)
-            if offset + 4 > data.len() {
-                anyhow::bail!("truncated data: missing snapshot length");
-            }
-            let snapshot_len =
-                u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
-            offset += 4;
-
-            // 读取 snapshot
-            if offset + snapshot_len > data.len() {
-                anyhow::bail!("truncated data: missing snapshot body");
-            }
-            let snapshot = data[offset..offset + snapshot_len].to_vec();
-            offset += snapshot_len;
-
-            // 墓碑中的 id：跳过该记录（不复活）
-            if imported_tombstones.contains(&note_id) || self.tombstones.contains(&note_id) {
-                continue;
-            }
-
-            // 导入笔记
-            let note = NoteCrdt::new();
-            note.import_snapshot(&snapshot)?;
-            self.notes.insert(note_id, note);
-        }
-
-        // 墓碑 union 合并
-        self.tombstones.extend(imported_tombstones);
-        Ok(())
-    }
-
-    fn persist(&self) -> Result<()> {
-        let Some(path) = &self.persistent_path else {
-            return Ok(());
-        };
-        let payload = self.export_all()?;
-        let bytes = encode_envelope(&payload);
-        let mut file = AtomicWriteFile::options()
-            .open(path)
-            .with_context(|| format!("open atomic Loro file {}", path.display()))?;
-        std::io::Write::write_all(&mut file, &bytes)?;
-        file.commit().context("commit Loro file")?;
-        Ok(())
+        let mut core = self.core.lock().unwrap();
+        import_core_raw(&mut core, version, data)
     }
 
     /// 向指定对端推送所有笔记的快照
@@ -1438,7 +1417,10 @@ impl SyncService {
     ///   （跨网段，依赖 iroh 的 n0 DNS 地址查找或已配置 relay）。
     pub async fn push_to_peer(&self, peer_id: &str, peer_ips: Vec<String>) -> Result<()> {
         let started = std::time::Instant::now();
-        let note_count = self.notes.len() + self.tombstones.len();
+        let note_count = {
+            let core = self.core.lock().unwrap();
+            core.notes.len() + core.tombstones.len()
+        };
         // 事件 #9：首次全量同步 push 开始（只记录数量，不记录正文）
         self.emit_log(
             LogEvent::new("sync.push", "sync.initial")
@@ -1479,11 +1461,7 @@ impl SyncService {
     }
 
     /// push_to_peer 核心逻辑。
-    async fn push_to_peer_inner(
-        &self,
-        peer_id: &str,
-        peer_ips: &[String],
-    ) -> Result<()> {
+    async fn push_to_peer_inner(&self, peer_id: &str, peer_ips: &[String]) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
 
         let addr = self.build_connect_addr(node_id, peer_ips)?;
@@ -1521,7 +1499,10 @@ impl SyncService {
         devices: &[(String, Option<Vec<String>>)],
     ) -> Vec<DevicePushResult> {
         let started = std::time::Instant::now();
-        let note_count = self.notes.len() + self.tombstones.len();
+        let note_count = {
+            let core = self.core.lock().unwrap();
+            core.notes.len() + core.tombstones.len()
+        };
         let data = match self.export_all() {
             Ok(d) => d,
             Err(e) => {
@@ -1702,39 +1683,10 @@ impl SyncService {
         &self,
         incoming: iroh::endpoint::Incoming,
     ) -> Result<Option<Vec<u8>>> {
-        let conn = incoming.accept()?.await.context("accept connection")?;
-        let mut recv = conn.accept_uni().await.context("accept uni stream")?;
-        let mut marker = [0u8; LORO_MAGIC.len()];
-        recv.read_exact(&mut marker)
-            .await
-            .context("read frame marker")?;
-        if &marker == LORO_MAGIC {
-            // 推送帧：剩余部分 = export_all 输出（[墓碑数][记录流]）
-            let data = recv
-                .read_to_end(usize::MAX)
-                .await
-                .context("read push data")?;
-            // 数据已读入内存，主动关闭连接，通知发送端可释放
-            conn.close(0u32.into(), b"done");
-            return Ok(Some(data));
-        }
-        if marker[0] == PAIRING_FRAME_REQUEST {
-            // 配对请求帧：marker(8) + 剩余 = 完整帧（从 0x01 开始）
-            let mut rest = recv
-                .read_to_end(usize::MAX)
-                .await
-                .context("read pairing request")?;
-            let mut data = Vec::with_capacity(marker.len() + rest.len());
-            data.extend_from_slice(&marker);
-            data.append(&mut rest);
-            let request = decode_pairing_request(&data)?;
-            *self.pending_pairing.lock().unwrap() = Some(PendingPairing {
-                request: request.clone(),
-                conn,
-            });
-            return Ok(None);
-        }
-        anyhow::bail!("unknown incoming frame marker: {:?}", marker);
+        // 统一路由自由函数（任务 O 后台接收器与主服务共用同一路由/同一
+        // pending_pairing——配对帧与推送帧不丢帧、不互抢）
+        let routed = route_incoming(incoming, &self.pending_pairing).await?;
+        Ok(routed.map(|(_sender, data)| data))
     }
 
     /// 非阻塞接受对端推送（周期拉取用）：等待最多 `timeout`，超时返回 `Ok(None)`。
@@ -1785,10 +1737,11 @@ impl SyncService {
     /// 重启后全部视为待同步（last_pushed_at 不持久化，保守正确——对端状态未知）。
     fn mark_all_pending(&self) {
         let mut dirty = self.pending_dirty.lock().unwrap();
-        for id in self.notes.keys() {
+        let core = self.core.lock().unwrap();
+        for id in core.notes.keys() {
             dirty.insert(id.clone());
         }
-        for id in &self.tombstones {
+        for id in &core.tombstones {
             dirty.insert(id.clone());
         }
     }
@@ -1857,7 +1810,7 @@ impl SyncService {
             self.mark_synced_all();
             for r in &results {
                 if r.ok {
-                    let _ = store.update_last_seen(&r.peer_id);
+                    self.touch_last_seen(store, &r.peer_id, "outbound_push");
                 }
             }
         } else {
@@ -1919,7 +1872,7 @@ impl SyncService {
             self.mark_synced_all();
             for r in &results {
                 if r.ok {
-                    let _ = store.update_last_seen(&r.peer_id);
+                    self.touch_last_seen(store, &r.peer_id, "outbound_push");
                 }
             }
         } else if !results.is_empty() {
@@ -1965,13 +1918,510 @@ impl SyncService {
     /// 将所有 CRDT 笔记同步到 SQLite 存储（同时清理墓碑投影行，防被删笔记复活）。
     pub fn sync_notes_to_store(&self, store: &NoteStore) -> Result<()> {
         for (id, note) in self.iter_notes() {
-            store.sync_note(id, note)?;
+            store.sync_note(&id, &note)?;
         }
         for id in self.tombstones() {
-            store.purge_note(id)?;
+            store.purge_note(&id)?;
         }
         Ok(())
     }
+
+    // ━━━ 后台持续接收器（任务 O）━━━
+
+    /// 启动被动接收任务（幂等）：持续短窗口 accept 对端 push，收到即
+    /// import → 刷新 SQLite 投影 → 更新发送方 last_seen。
+    ///
+    /// - **不占用 FRB opaque 锁**：接收任务只持有 `endpoint.clone()` + 共享
+    ///   `core` + `store.clone()`，生命周期独立于主服务方法调用。
+    /// - **幂等**：重复 start 不产生第二个接收器。
+    /// - **有界窗口**：每窗口 300ms，空闲时持续轮询；stop 后 3 秒内退出。
+    /// - 配对帧与推送帧统一路由（`route_incoming`），不丢帧、不互抢。
+    pub async fn start_receiver(&self, store: NoteStore) -> Result<()> {
+        let started = std::time::Instant::now();
+        {
+            let mut guard = self.receiver.lock().unwrap();
+            if guard.join.is_some() {
+                // 已在运行：幂等返回（不产生第二个 listener）
+                self.emit_log(
+                    LogEvent::new("receiver.start", "receiver")
+                        .with_id(&self.device_id())
+                        .with_field("action", "already_running"),
+                );
+                return Ok(());
+            }
+            let cancel = Arc::new(AtomicBool::new(false));
+            let ctx = ReceiverContext {
+                endpoint: self.endpoint.clone(),
+                core: self.core.clone(),
+                pending_pairing: self.pending_pairing.clone(),
+                store: store.clone(),
+                log: self.log.clone(),
+                device_id: self.device_id(),
+                log_verbose: self.log_verbose.load(Ordering::Relaxed),
+                cancel: cancel.clone(),
+                idle_windows: 0,
+            };
+            let join = tokio::spawn(receiver_loop(ctx));
+            *guard = ReceiverHandle {
+                cancel: Some(cancel),
+                join: Some(join),
+            };
+        }
+        self.emit_log(
+            LogEvent::new("receiver.start", "receiver")
+                .with_id(&self.device_id())
+                .with_field("action", "success")
+                .with_duration(started.elapsed()),
+        );
+        Ok(())
+    }
+
+    /// 停止被动接收任务（幂等；3 秒内返回）。
+    ///
+    /// 停止后接收任务不再处理新 push；已接受的连接处理完当前帧后退出。
+    pub async fn stop_receiver(&self) -> Result<()> {
+        let started = std::time::Instant::now();
+        let (cancel, join) = {
+            let mut guard = self.receiver.lock().unwrap();
+            let handle = guard.join.take();
+            let cancel = guard.cancel.take();
+            (cancel, handle)
+        };
+        let was_running = join.is_some();
+        if let Some(cancel) = cancel {
+            cancel.store(true, Ordering::Relaxed);
+        }
+        if let Some(join) = join {
+            // 有界等待：接收任务在 300ms accept 窗口结束前退出
+            tokio::time::timeout(RECEIVER_STOP_TIMEOUT, join)
+                .await
+                .map_err(|_| {
+                    anyhow::anyhow!(
+                        "receiver task did not stop within {}s",
+                        RECEIVER_STOP_TIMEOUT.as_secs()
+                    )
+                })?
+                .map_err(|e| anyhow::anyhow!("receiver task panicked: {e}"))?;
+        }
+        self.emit_log(
+            LogEvent::new("receiver.stop", "receiver")
+                .with_id(&self.device_id())
+                .with_field("action", "success")
+                .with_field("was_running", was_running.to_string())
+                .with_duration(started.elapsed()),
+        );
+        Ok(())
+    }
+
+    /// 接收任务是否运行中（诊断/测试用）。
+    pub fn receiver_running(&self) -> bool {
+        self.receiver.lock().unwrap().join.is_some()
+    }
+
+    /// 更新配对设备 last_seen 并输出结构化日志（触发原因配对/主动推送/被动接收）。
+    ///
+    /// 仅成功连接/同步后调用；失败路径不得调用（验收 14：失败不标记在线）。
+    fn touch_last_seen(&self, store: &NoteStore, peer_id: &str, reason: &str) {
+        match store.update_last_seen(peer_id) {
+            Ok(()) => {
+                self.emit_log(
+                    LogEvent::new("device.last_seen", "device")
+                        .with_id(&self.device_id())
+                        .with_id(peer_id)
+                        .with_field("reason", reason)
+                        .with_field("action", "updated"),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("device.last_seen", "device")
+                        .with_id(&self.device_id())
+                        .with_id(peer_id)
+                        .with_field("reason", reason)
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}")),
+                );
+            }
+        }
+    }
+}
+
+// ━━━ 共享核心状态纯函数（任务 O：主服务与后台接收器共用）━━━
+
+/// 全量快照导出（已持锁 core 的纯函数）。
+fn export_core_all(core: &CoreState) -> Result<Vec<u8>> {
+    let mut buf = Vec::new();
+    // 墓碑 section 前缀
+    buf.extend_from_slice(&(core.tombstones.len() as u32).to_le_bytes());
+    let mut sorted: Vec<&String> = core.tombstones.iter().collect();
+    sorted.sort();
+    for id in sorted {
+        let id_bytes = id.as_bytes();
+        buf.extend_from_slice(&(id_bytes.len() as u32).to_le_bytes());
+        buf.extend_from_slice(id_bytes);
+    }
+    // 笔记记录流
+    for (note_id, note) in &core.notes {
+        let snapshot = note.export_snapshot()?;
+        let id_bytes = note_id.as_bytes();
+        buf.extend_from_slice(&(id_bytes.len() as u32).to_le_bytes());
+        buf.extend_from_slice(id_bytes);
+        buf.extend_from_slice(&(snapshot.len() as u32).to_le_bytes());
+        buf.extend_from_slice(&snapshot);
+    }
+    Ok(buf)
+}
+
+/// 导入全量快照（v3 语义：墓碑 section + 记录流；失败时整体回滚）。
+fn import_core_all(core: &mut CoreState, data: &[u8]) -> Result<()> {
+    let previous = export_core_all(core)?;
+    import_core_raw(core, LORO_VERSION, data)?;
+    if let Err(err) = persist_core(core) {
+        core.notes.clear();
+        core.tombstones.clear();
+        import_core_raw(core, LORO_VERSION, &previous)?;
+        return Err(err);
+    }
+    Ok(())
+}
+
+/// 导入 payload（已持锁 core）。`version` 决定是否含墓碑 section：
+/// - v3：`墓碑 section + 记录流`（导入的墓碑与本地 tombstones union 合并；
+///   记录流中遇到墓碑中的 id 跳过，不复活）
+/// - v1/v2：纯记录流（无墓碑 section，tombstones 为空，无损升级）
+fn import_core_raw(core: &mut CoreState, version: u32, data: &[u8]) -> Result<()> {
+    let mut offset = 0;
+
+    // ━━ 墓碑 section（仅 v3）━━
+    let mut imported_tombstones: HashSet<String> = HashSet::new();
+    if version >= 3 {
+        if offset + 4 > data.len() {
+            anyhow::bail!("truncated data: missing tombstone count");
+        }
+        let tombstone_count =
+            u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+        offset += 4;
+        for _ in 0..tombstone_count {
+            if offset + 4 > data.len() {
+                anyhow::bail!("truncated data: missing tombstone id length");
+            }
+            let id_len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+            offset += 4;
+            if offset + id_len > data.len() {
+                anyhow::bail!("truncated data: missing tombstone id");
+            }
+            let id = String::from_utf8(data[offset..offset + id_len].to_vec())
+                .context("invalid UTF-8 in tombstone id")?;
+            offset += id_len;
+            imported_tombstones.insert(id);
+        }
+    }
+
+    // ━━ 笔记记录流 ━━
+    while offset < data.len() {
+        // 读取 note_id_len (u32 LE)
+        if offset + 4 > data.len() {
+            anyhow::bail!("truncated data: missing note_id length");
+        }
+        let id_len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+        offset += 4;
+
+        // 读取 note_id
+        if offset + id_len > data.len() {
+            anyhow::bail!("truncated data: missing note_id");
+        }
+        let note_id = String::from_utf8(data[offset..offset + id_len].to_vec())
+            .context("invalid UTF-8 in note_id")?;
+        offset += id_len;
+
+        // 读取 snapshot_len (u32 LE)
+        if offset + 4 > data.len() {
+            anyhow::bail!("truncated data: missing snapshot length");
+        }
+        let snapshot_len =
+            u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
+        offset += 4;
+
+        // 读取 snapshot
+        if offset + snapshot_len > data.len() {
+            anyhow::bail!("truncated data: missing snapshot body");
+        }
+        let snapshot = data[offset..offset + snapshot_len].to_vec();
+        offset += snapshot_len;
+
+        // 墓碑中的 id：跳过该记录（不复活）
+        if imported_tombstones.contains(&note_id) || core.tombstones.contains(&note_id) {
+            continue;
+        }
+
+        // 导入笔记
+        let note = NoteCrdt::new();
+        note.import_snapshot(&snapshot)?;
+        core.notes.insert(note_id, note);
+    }
+
+    // 墓碑 union 合并
+    core.tombstones.extend(imported_tombstones);
+    Ok(())
+}
+
+/// 持久化（已持锁 core 的纯函数）。
+fn persist_core(core: &CoreState) -> Result<()> {
+    let Some(path) = &core.persistent_path else {
+        return Ok(());
+    };
+    let payload = export_core_all(core)?;
+    let bytes = encode_envelope(&payload);
+    let mut file = AtomicWriteFile::options()
+        .open(path)
+        .with_context(|| format!("open atomic Loro file {}", path.display()))?;
+    std::io::Write::write_all(&mut file, &bytes)?;
+    file.commit().context("commit Loro file")?;
+    Ok(())
+}
+
+// ━━━ 统一 incoming 路由（任务 O：接收器 / 配对 accept / 周期 accept 共用）━━━
+
+/// 统一 incoming 处理：接受连接并按帧标记路由（后台接收器与主服务共用）。
+///
+/// 帧标记（M2 修复——不能用单字节判定，否则推送 payload 首字节 0x01 与配对帧
+/// 冲突）：
+/// - 前 8 字节 == `LORO_MAGIC`（"CARDMIND"）→ 推送帧：读完整 payload，
+///   关闭连接通知发送端可释放，返回 `Ok(Some((sender_id, data)))`
+///   （data 即 `export_all` 输出，`import_core_all` 直接消费；sender_id 取自
+///   连接 TLS 证书——任务 O 据此更新发送方 last_seen，无需改协议）。
+/// - 首字节 `PAIRING_FRAME_REQUEST (0x01)` → 配对请求帧：解析并存入
+///   `pending_pairing`（供 `confirm_pairing` 在同一连接上回复握手响应），
+///   返回 `Ok(None)`。
+/// - 其他 → 报错（未知帧标记）。
+///
+/// 多个消费者（后台接收器 + 配对轮询 + 周期 accept）并发调用本函数安全：
+/// 每个 `endpoint.accept()` 只取一个 incoming；路由目标（pending_pairing /
+/// 返回的推送数据）互不冲突，不丢帧。
+async fn route_incoming(
+    incoming: iroh::endpoint::Incoming,
+    pending_pairing: &Mutex<Option<PendingPairing>>,
+) -> Result<Option<(iroh::EndpointId, Vec<u8>)>> {
+    let conn = incoming.accept()?.await.context("accept connection")?;
+    // 发送方身份：连接 TLS 证书中的 EndpointId（识别 inbound push 来源，
+    // 用于精确更新 last_seen——无需在协议帧中带 sender_id）
+    let sender_id = conn.remote_id();
+    let mut recv = conn.accept_uni().await.context("accept uni stream")?;
+    let mut marker = [0u8; LORO_MAGIC.len()];
+    recv.read_exact(&mut marker)
+        .await
+        .context("read frame marker")?;
+    if &marker == LORO_MAGIC {
+        // 推送帧：剩余部分 = export_all 输出（[墓碑数][记录流]）
+        let data = recv
+            .read_to_end(usize::MAX)
+            .await
+            .context("read push data")?;
+        // 数据已读入内存，主动关闭连接，通知发送端可释放
+        conn.close(0u32.into(), b"done");
+        return Ok(Some((sender_id, data)));
+    }
+    if marker[0] == PAIRING_FRAME_REQUEST {
+        // 配对请求帧：marker(8) + 剩余 = 完整帧（从 0x01 开始）
+        let mut rest = recv
+            .read_to_end(usize::MAX)
+            .await
+            .context("read pairing request")?;
+        let mut data = Vec::with_capacity(marker.len() + rest.len());
+        data.extend_from_slice(&marker);
+        data.append(&mut rest);
+        let request = decode_pairing_request(&data)?;
+        *pending_pairing.lock().unwrap() = Some(PendingPairing {
+            request: request.clone(),
+            conn,
+        });
+        return Ok(None);
+    }
+    anyhow::bail!("unknown incoming frame marker: {:?}", marker);
+}
+
+// ━━━ 后台接收任务循环（任务 O）━━━
+
+/// 后台接收任务主体：持续短窗口 accept，收到推送帧立即 import + 投影 + last_seen。
+///
+/// - 停止信号（`cancel`）每窗口检查：stop 后 ≤1 窗口（300ms）内退出。
+/// - 单次 accept/处理失败仅记录日志并继续下一窗口（验收 10：可恢复，不永久
+///   退出、不 busy loop）。
+/// - 同步开关不作用于接收：`sync_allowed` 只控制主动同步（push/sync cycle），
+///   接收器始终接受连接（被动通道不阻塞编辑/推送）。
+async fn receiver_loop(mut ctx: ReceiverContext) {
+    loop {
+        if ctx.cancel.load(Ordering::Relaxed) {
+            receiver_log(&ctx, "receiver.end", "stopped", None);
+            break;
+        }
+        // 注意：sync_allowed 存于 SyncService，接收任务不持有；由 start_receiver
+        // 时快照。接收器始终接收（被动通道不阻塞编辑/推送），同步开关只由主服务
+        // 在主动同步路径（run_sync_cycle/push）中检查。
+        let incoming =
+            match tokio::time::timeout(RECEIVER_ACCEPT_WINDOW, ctx.endpoint.accept()).await {
+                Ok(Some(incoming)) => incoming,
+                _ => {
+                    // 窗口超时/无连接：正常空闲，继续下一窗口
+                    ctx.idle_windows += 1;
+                    if ctx.idle_windows.is_multiple_of(50) {
+                        receiver_log(
+                            &ctx,
+                            "receiver.heartbeat",
+                            "idle",
+                            Some(&format!("windows={}", ctx.idle_windows)),
+                        );
+                    }
+                    continue;
+                }
+            };
+        ctx.idle_windows = 0;
+        // 单帧处理：有界（握手 + 读帧 + import/投影/last_seen 全链路不超过 10s）
+        let outcome = tokio::time::timeout(RECEIVER_PROCESS_TIMEOUT, async {
+            receiver_handle_incoming(&mut ctx, incoming).await
+        })
+        .await;
+        match outcome {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                // 单次失败记录日志并继续（验收 10）
+                receiver_log(
+                    &ctx,
+                    "sync.receive",
+                    "failed_tolerated",
+                    Some(&format!("error={e:#}")),
+                );
+            }
+            Err(_) => {
+                receiver_log(
+                    &ctx,
+                    "sync.receive",
+                    "failed_timeout",
+                    Some(&format!(
+                        "timeout_ms={}",
+                        RECEIVER_PROCESS_TIMEOUT.as_millis()
+                    )),
+                );
+            }
+        }
+    }
+}
+
+/// 接收任务处理单个 incoming：统一路由 + 推送帧 import/投影/last_seen。
+async fn receiver_handle_incoming(
+    ctx: &mut ReceiverContext,
+    incoming: iroh::endpoint::Incoming,
+) -> Result<()> {
+    let Some((sender_id, data)) = route_incoming(
+        incoming,
+        // 接收器也参与配对帧路由：配对请求被接收器抢到时正确存入
+        // pending_pairing（confirm_pairing 仍可完成握手）——验收 9 统一路由
+        &ctx.pending_pairing,
+    )
+    .await?
+    else {
+        // 配对帧：已路由到 pending_pairing，接收器继续等待
+        return Ok(());
+    };
+    let started = std::time::Instant::now();
+    let sender_str = sender_id.to_string();
+    // sync.receive 成功日志（脱敏发送方）
+    receiver_log(
+        ctx,
+        "sync.receive",
+        "success",
+        Some(&format!(
+            "bytes={} sender={}",
+            data.len(),
+            redact_peer(&sender_str)
+        )),
+    );
+    // 立即 import（共享 core）
+    let import_result = {
+        let mut core = ctx.core.lock().unwrap();
+        import_core_all(&mut core, &data)
+    };
+    match import_result {
+        Ok(()) => {
+            let note_count = {
+                let core = ctx.core.lock().unwrap();
+                core.notes.len() + core.tombstones.len()
+            };
+            receiver_log(
+                ctx,
+                "sync.import",
+                "success",
+                Some(&format!(
+                    "note_count={} bytes={} duration_ms={}",
+                    note_count,
+                    data.len(),
+                    started.elapsed().as_millis()
+                )),
+            );
+            // 刷新 SQLite 投影（收到 push 立即投影——设计目标 2）
+            let core = ctx.core.lock().unwrap();
+            let proj = sync_core_to_store(&core, &ctx.store);
+            drop(core);
+            proj?;
+            // 更新发送方 last_seen（验收 12；触发原因 inbound_push）
+            ctx.store
+                .update_last_seen(&sender_str)
+                .context("update sender last_seen")?;
+            receiver_log(
+                ctx,
+                "device.last_seen",
+                "updated",
+                Some(&format!(
+                    "peer={} reason=inbound_push",
+                    redact_peer(&sender_str)
+                )),
+            );
+        }
+        Err(e) => {
+            receiver_log(
+                ctx,
+                "sync.import",
+                "failed_tolerated",
+                Some(&format!("error={e:#}")),
+            );
+        }
+    }
+    Ok(())
+}
+
+/// 接收任务结构化日志（脱敏 device_id；verbose 事件过滤）。
+fn receiver_log(ctx: &ReceiverContext, event: &str, action: &str, detail: Option<&str>) {
+    if event.starts_with("receiver.heartbeat") && !ctx.log_verbose {
+        return;
+    }
+    let mut ev = LogEvent::new(event, "receiver")
+        .with_id(&ctx.device_id)
+        .with_field("action", action);
+    if let Some(d) = detail {
+        for kv in d.split(' ') {
+            if let Some((k, v)) = kv.split_once('=') {
+                ev = ev.with_field(k, v);
+            }
+        }
+    }
+    debug_log::emit_to(&ctx.log, ev);
+}
+
+/// 脱敏 peer id（与 debug_log::redact_device_id 相同规则）。
+fn redact_peer(id: &str) -> String {
+    debug_log::redact_device_id(id)
+}
+
+/// 将 core 笔记投影到 SQLite（接收任务/主服务共用）。
+fn sync_core_to_store(core: &CoreState, store: &NoteStore) -> Result<()> {
+    for (id, note) in &core.notes {
+        store.sync_note(id, note)?;
+    }
+    for id in &core.tombstones {
+        store.purge_note(id)?;
+    }
+    Ok(())
 }
 
 fn loro_path(path: &Path) -> PathBuf {

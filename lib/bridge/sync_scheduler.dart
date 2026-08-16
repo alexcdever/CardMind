@@ -35,6 +35,13 @@ abstract interface class SyncApi {
   /// 周期同步任务体：push 给所有对端 + 短窗口 accept 对端 push。
   Future<void> runSyncCycle();
 
+  /// 启动被动接收器（任务 O）：持续 accept 对端 push，收到即 import/投影/last_seen。
+  /// 幂等：重复调用不产生第二个接收器。
+  Future<void> startReceiver();
+
+  /// 停止被动接收器（幂等；3 秒内返回，不留下永久 task）。
+  Future<void> stopReceiver();
+
   /// 当前待同步笔记数（模块 5 状态指示器数据源）。
   Future<int> pendingCount();
 }
@@ -97,15 +104,28 @@ class FrbSyncApi implements SyncApi {
   }
 
   @override
+  Future<void> startReceiver() async {
+    await api.startReceiver(svc: _sync, store: _store);
+  }
+
+  @override
+  Future<void> stopReceiver() async {
+    await api.stopReceiver(svc: _sync);
+  }
+
+  @override
   Future<int> pendingCount() => api.pendingSyncCount(svc: _sync);
 }
 
-/// 自动同步调度器（任务 H）：
+/// 自动同步调度器（任务 H + 任务 O 持续接收器）：
 ///
 /// - **编辑保存即推送**（决策 4）：repository 保存成功后调用 [noteEdited]，
 ///   fire-and-forget 触发 `pushPending`（不阻塞编辑；失败静默，决策 18）。
 /// - **周期拉取**（决策 4）：`Timer.periodic` 按 `SYNC_POLL_INTERVAL_SECS`
 ///   调 `runSyncCycle`（对等推拉：push 给所有对端 + 短窗口 accept 对端 push）。
+/// - **持续接收器**（任务 O）：[start] 时启动 Rust 后台接收任务——不依赖周期
+///   相位，A 任意时间 push，B 在 10 秒内 receive/import 并更新 last_seen；
+///   [stop] 时停止（3 秒内返回，不留下永久 task）。
 /// - **移动端 WiFi 条件**（决策 6）：监听 connectivity，蜂窝 → `setSyncAllowed(false)`
 ///   暂停推送与拉取；手动"立即同步"（模块 5）可调用 [pushNow] 无视限制。
 ///
@@ -127,10 +147,12 @@ class SyncScheduler {
   /// 是否运行中（测试诊断用）。
   bool get isRunning => _timer != null;
 
-  /// 启动调度器：订阅网络类型变化 + 同步当前状态 + 启动周期拉取。
+  /// 启动调度器：订阅网络类型变化 + 同步当前状态 + 启动周期拉取 + 启动接收器。
   Future<void> start() async {
     _subscription ??= monitor.allowedChanges.listen(_onAllowedChanged);
     _syncAllowedNow();
+    // 任务 O：启动持续接收器（幂等；失败静默，周期任务仍会兜底）
+    unawaited(_startReceiverQuietly());
     final intervalSecs = await api.pollIntervalSecs;
     _timer ??= Timer.periodic(
       Duration(seconds: intervalSecs),
@@ -138,12 +160,48 @@ class SyncScheduler {
     );
   }
 
-  /// 停止调度器（应用退出 / 关闭时调用）。
+  /// 启动接收器（失败仅记日志，不阻断调度器启动）。
+  Future<void> _startReceiverQuietly() async {
+    final log = DebugLogger.instance;
+    try {
+      await api.startReceiver();
+      log.event('receiver.start', 'receiver', fields: const {'action': 'success'});
+    } catch (e) {
+      log.event(
+        'receiver.start',
+        'receiver',
+        fields: const {'action': 'failed'},
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
+      );
+    }
+  }
+
+  /// 停止调度器（应用退出 / 关闭时调用）：停止周期任务 + 网络监听 + 接收器。
   void stop() {
     _timer?.cancel();
     _timer = null;
     _subscription?.cancel();
     _subscription = null;
+    // 任务 O：停止接收器（异步有界；3 秒内返回，不留下永久 task）
+    unawaited(_stopReceiverQuietly());
+  }
+
+  /// 停止接收器（失败仅记日志）。
+  Future<void> _stopReceiverQuietly() async {
+    final log = DebugLogger.instance;
+    try {
+      await api.stopReceiver();
+      log.event('receiver.stop', 'receiver', fields: const {'action': 'success'});
+    } catch (e) {
+      log.event(
+        'receiver.stop',
+        'receiver',
+        fields: const {'action': 'failed'},
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
+      );
+    }
   }
 
   /// 释放资源（关闭计数流；stop 后不再广播）。

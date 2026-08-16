@@ -2,13 +2,17 @@ use anyhow::Result;
 use chrono::Utc;
 use rusqlite::Connection;
 use std::collections::BTreeSet;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::sync::NoteCrdt;
 
 /// SQLite 读投影 — 缓存 NoteCrdt 的扁平化视图
+///
+/// 连接以 `Arc<Mutex<Connection>>` 共享：`Clone` 复制同一连接句柄（同一数据库），
+/// 供后台接收任务（任务 O continuous receiver）与主服务并发写入投影。
+#[derive(Clone)]
 pub struct NoteStore {
-    conn: Mutex<Connection>,
+    conn: Arc<Mutex<Connection>>,
 }
 
 /// 笔记的只读行（从 SQLite 反查）
@@ -111,7 +115,7 @@ impl NoteStore {
             conn.execute_batch("INSERT INTO notes_fts(notes_fts) VALUES('rebuild');")?;
         }
         Ok(Self {
-            conn: Mutex::new(conn),
+            conn: Arc::new(Mutex::new(conn)),
         })
     }
 

@@ -142,6 +142,24 @@ Future<SyncCycleResult> runSyncCycle({
   required NoteStore store,
 }) => RustLib.instance.api.crateApiRunSyncCycle(svc: svc, store: store);
 
+/// 启动被动接收任务（幂等）：持续短窗口 accept 对端 push，收到即
+/// import → 刷新 SQLite 投影 → 更新发送方 last_seen。
+///
+/// 接收任务持有 `endpoint.clone()` + 共享 core + `store.clone()`，不占用
+/// FRB opaque 锁——接收等待期间 create/edit/push 均可并发执行。
+Future<void> startReceiver({
+  required SyncService svc,
+  required NoteStore store,
+}) => RustLib.instance.api.crateApiStartReceiver(svc: svc, store: store);
+
+/// 停止被动接收任务（幂等；3 秒内返回）。
+Future<void> stopReceiver({required SyncService svc}) =>
+    RustLib.instance.api.crateApiStopReceiver(svc: svc);
+
+/// 接收任务是否运行中（诊断/测试用）。
+Future<bool> receiverRunning({required SyncService svc}) =>
+    RustLib.instance.api.crateApiReceiverRunning(svc: svc);
+
 /// 创建笔记
 Future<void> noteCreate({
   required SyncService svc,
