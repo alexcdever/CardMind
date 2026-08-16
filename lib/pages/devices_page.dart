@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../bridge/debug_log.dart';
 import '../bridge/note_repository.dart';
 import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
@@ -179,10 +180,30 @@ class _DevicesPageState extends State<DevicesPage> {
   /// 成功则关闭弹窗并刷新设备列表，超时/异常显示可读错误并停止广播，
   /// 取消/关闭不留下永久阻塞任务。
   Future<void> _showMyCode() async {
+    final log = DebugLogger.instance;
     String code;
+    // 事件 #5：显示配对码——开始
+    log.event('pairing.show_code', 'pairing.show_code',
+        fields: const {'action': 'start'});
+    final sw = Stopwatch()..start();
     try {
       code = await _repository.beginPairingAcceptAndAdvertise();
+      // 事件 #5：显示配对码 + 广播启动成功（组合 API 返回即广播已在 Rust 侧启动）
+      log.event('pairing.show_code', 'pairing.show_code',
+          fields: const {'action': 'success', 'broadcast': 'true'},
+          duration: sw.elapsed);
+      log.event('pairing.advertise', 'pairing.advertise',
+          fields: const {'action': 'start'});
     } catch (error) {
+      // 事件 #5：显示配对码失败（错误链；不得记录码本身）
+      log.event(
+        'pairing.show_code',
+        'pairing.show_code',
+        fields: const {'action': 'failed'},
+        error: error.runtimeType.toString(),
+        errorChain: error.toString(),
+        duration: sw.elapsed,
+      );
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -202,17 +223,30 @@ class _DevicesPageState extends State<DevicesPage> {
         ),
       );
       // 配对成功：弹窗以结果关闭 → 提示 + 刷新设备列表（对方设备立即可见）
-      if (result == null || !mounted) return;
+      if (result == null || !mounted) {
+        // 事件 #6：显示码弹窗被取消/关闭（未配对）
+        log.event('pairing.show_code', 'pairing.show_code',
+            fields: const {'action': 'cancelled'});
+        return;
+      }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('配对成功：${result.peerName}')));
       await _load();
     } finally {
-      // 弹窗关闭（含取消/成功/异常路径）→ 停止 mDNS 广播
+      // 弹窗关闭（含取消/成功/异常路径）→ 停止 mDNS 广播（清理事件 #11）
       try {
         await _repository.stopPairingAdvertising();
+        log.event('pairing.advertise', 'pairing.advertise',
+            fields: const {'action': 'stop', 'ok': 'true'});
       } catch (error) {
-        debugPrint('[pairing] stopPairingAdvertising failed: $error');
+        log.event(
+          'pairing.advertise',
+          'pairing.advertise',
+          fields: const {'action': 'stop', 'ok': 'false'},
+          error: error.runtimeType.toString(),
+          errorChain: error.toString(),
+        );
       }
     }
   }
@@ -304,22 +338,47 @@ class _DevicesPageState extends State<DevicesPage> {
                   discovering = false;
                 });
                 try {
+                  final log = DebugLogger.instance;
                   final manualId = peerIdController.text.trim();
                   PairingTarget target;
                   if (manualId.isNotEmpty) {
                     // 手动填写优先：跳过 mDNS 扫描
+                    // 事件 #6：手动 ID 路径明确记录跳过 mDNS（脱敏目标 id）
+                    log.event(
+                      'pairing.discovery',
+                      'pairing.discovery',
+                      deviceIds: [manualId],
+                      fields: const {'action': 'bypassed', 'mdns_skipped': 'true'},
+                    );
                     target = PairingTarget(deviceId: manualId, ips: const []);
                   } else {
                     // mDNS 自动发现（设备 ID 留空）
+                    // 事件 #4：mDNS 扫描开始
+                    log.event('pairing.discovery', 'pairing.discovery',
+                        fields: const {'action': 'start', 'mdns': 'true'});
                     setDialogState(() {
                       discovering = true;
                     });
+                    final discoverSw = Stopwatch()..start();
                     List<PeerInfo> peers;
                     try {
                       peers = await _repository.discoverPeers();
+                      log.event(
+                        'pairing.discovery',
+                        'pairing.discovery',
+                        fields: {'action': 'result', 'count': '${peers.length}'},
+                        duration: discoverSw.elapsed,
+                      );
                     } catch (error) {
-                      // 扫描失败按无结果处理（友好提示）；细节留日志
-                      debugPrint('[pairing] discoverPeers failed: $error');
+                      // 扫描失败按无结果处理（友好提示）；细节进结构化日志
+                      log.event(
+                        'pairing.discovery',
+                        'pairing.discovery',
+                        fields: const {'action': 'failed'},
+                        error: error.runtimeType.toString(),
+                        errorChain: error.toString(),
+                        duration: discoverSw.elapsed,
+                      );
                       peers = const [];
                     }
                     if (!dialogContext.mounted) return;
@@ -348,16 +407,64 @@ class _DevicesPageState extends State<DevicesPage> {
                           : ['${peer.ip}:${peer.port}'],
                     );
                   }
-                  final res = await _repository.beginPairingConnect(
-                    code,
-                    target,
+                  // 事件 #7：连接阶段开始（transport：direct vs relay_or_dns）
+                  final connectSw = Stopwatch()..start();
+                  log.event(
+                    'pairing.connect',
+                    'pairing.connect',
+                    deviceIds: [target.deviceId],
+                    fields: {
+                      'action': 'start',
+                      'transport': target.ips.isEmpty ? 'relay_or_dns' : 'direct',
+                    },
                   );
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop(res);
+                  try {
+                    final res = await _repository.beginPairingConnect(
+                      code,
+                      target,
+                    );
+                    log.event(
+                      'pairing.connect',
+                      'pairing.connect',
+                      deviceIds: [target.deviceId],
+                      fields: {
+                        'action': 'success',
+                        'transport': target.ips.isEmpty ? 'relay_or_dns' : 'direct',
+                        'peer_name': res.peerName,
+                      },
+                      duration: connectSw.elapsed,
+                    );
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop(res);
+                    }
+                  } catch (error) {
+                    // 错误脱敏（任务 J）：不展示裸 AnyhowException，细节进结构化日志
+                    log.event(
+                      'pairing.connect',
+                      'pairing.connect',
+                      deviceIds: [target.deviceId],
+                      fields: {
+                        'action': 'failed',
+                        'transport': target.ips.isEmpty ? 'relay_or_dns' : 'direct',
+                      },
+                      error: error.runtimeType.toString(),
+                      errorChain: error.toString(),
+                      duration: connectSw.elapsed,
+                    );
+                    setDialogState(() {
+                      discovering = false;
+                      submitError = '配对失败：无法连接到对方设备。请确认两台设备在同一网络后重试';
+                    });
                   }
                 } catch (error) {
-                  // 错误脱敏（任务 J）：不展示裸 AnyhowException，技术细节留日志
-                  debugPrint('[pairing] beginPairingConnect failed: $error');
+                  // 外层兜底（target 构造等异常）：不展示裸异常，细节进结构化日志
+                  DebugLogger.instance.event(
+                    'pairing.connect',
+                    'pairing.connect',
+                    fields: const {'action': 'failed'},
+                    error: error.runtimeType.toString(),
+                    errorChain: error.toString(),
+                  );
                   setDialogState(() {
                     discovering = false;
                     submitError = '配对失败：无法连接到对方设备。请确认两台设备在同一网络后重试';
@@ -577,21 +684,42 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
   Future<void> _stopAdvertisingQuietly() async {
     try {
       await widget.repository.stopPairingAdvertising();
+      // 清理事件 #11：停止广播成功
+      DebugLogger.instance.event('pairing.advertise', 'pairing.advertise',
+          fields: const {'action': 'stop', 'ok': 'true'});
     } catch (error) {
-      debugPrint('[pairing] stopPairingAdvertising failed: $error');
+      // 清理事件 #11：停止广播异常
+      DebugLogger.instance.event(
+        'pairing.advertise',
+        'pairing.advertise',
+        fields: const {'action': 'stop', 'ok': 'false'},
+        error: error.runtimeType.toString(),
+        errorChain: error.toString(),
+      );
     }
   }
 
   /// 确认方等待 + 确认流程。每个 await 之后都有 mounted/_cancelled 守卫：
   /// 不向已卸载 widget 调 setState，取消后不 confirm。
   Future<void> _runAccept() async {
+    final log = DebugLogger.instance;
+    // 事件 #5：确认方 accept loop 启动
+    log.event('pairing.accept', 'pairing.accept',
+        fields: {'action': 'start', 'timeout_ms': '${widget.acceptTimeout.inMilliseconds}'});
     PairingRequest? request;
     try {
       request = await widget.repository.acceptPairingRequestWithTimeout(
         widget.acceptTimeout,
       );
     } catch (error) {
-      debugPrint('[pairing] acceptPairingRequest failed: $error');
+      // 事件 #6：accept 失败（错误链）
+      log.event(
+        'pairing.accept',
+        'pairing.accept',
+        fields: const {'action': 'failed'},
+        error: error.runtimeType.toString(),
+        errorChain: error.toString(),
+      );
       await _stopAdvertisingQuietly();
       if (!mounted || _cancelled) return;
       setState(() {
@@ -602,6 +730,9 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
     }
     if (!mounted || _cancelled) return;
     if (request == null) {
+      // 事件 #6：accept 超时（有界等待到点）
+      log.event('pairing.accept', 'pairing.accept',
+          fields: const {'action': 'timeout'});
       // 有界等待超时：结束等待 + 停止广播（设计目标 5）
       await _stopAdvertisingQuietly();
       if (!mounted || _cancelled) return;
@@ -611,16 +742,38 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
       });
       return;
     }
+    // 事件 #8：请求接收（脱敏对端 id）
+    log.event('pairing.request', 'pairing.request',
+        deviceIds: [request.deviceId],
+        fields: {'action': 'received', 'peer_name': request.deviceName});
     try {
+      // 事件 #8：confirm 开始
+      log.event('pairing.confirm', 'pairing.confirm',
+          deviceIds: [request.deviceId],
+          fields: const {'action': 'start'});
+      final confirmSw = Stopwatch()..start();
       final result = await widget.repository.confirmPairing(
         widget.code,
         request,
       );
+      // 事件 #8：confirm 成功
+      log.event('pairing.confirm', 'pairing.confirm',
+          deviceIds: [result.peerId],
+          fields: {'action': 'success', 'peer_name': result.peerName},
+          duration: confirmSw.elapsed);
       if (!mounted || _cancelled) return;
       // 配对成功：以结果关闭弹窗（页面显示成功提示 + 刷新设备列表）
       Navigator.of(context).pop(result);
     } catch (error) {
-      debugPrint('[pairing] confirmPairing failed: $error');
+      // 事件 #8：confirm 失败（错误链 + 耗时）
+      log.event(
+        'pairing.confirm',
+        'pairing.confirm',
+        deviceIds: [request.deviceId],
+        fields: const {'action': 'failed'},
+        error: error.runtimeType.toString(),
+        errorChain: error.toString(),
+      );
       await _stopAdvertisingQuietly();
       if (!mounted || _cancelled) return;
       setState(() {

@@ -4,6 +4,7 @@ import '../src/rust/api.dart' as api;
 import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
+import 'debug_log.dart';
 import 'note_repository.dart';
 
 /// FRB-backed repository with an explicit, isolated data directory.
@@ -303,9 +304,29 @@ final class FrbNoteRepository implements NoteRepository {
   @override
   Future<void> acceptAndImportPush() async {
     _ensureOpen();
-    await api.acceptPushAndImport(svc: _sync);
-    // 导入后刷新 SQLite 投影（新设备首次全量同步后立即可见）
-    await api.syncNotesToStore(svc: _sync, store: _store);
+    final log = DebugLogger.instance;
+    // 事件 #9：首次全量同步——接收导入（数量由 Rust 侧记录）
+    log.event('sync.initial', 'sync.initial',
+        fields: const {'direction': 'import', 'action': 'start'});
+    final sw = Stopwatch()..start();
+    try {
+      await api.acceptPushAndImport(svc: _sync);
+      // 导入后刷新 SQLite 投影（新设备首次全量同步后立即可见）
+      await api.syncNotesToStore(svc: _sync, store: _store);
+      log.event('sync.initial', 'sync.initial',
+          fields: const {'direction': 'import', 'action': 'success'},
+          duration: sw.elapsed);
+    } catch (e) {
+      log.event(
+        'sync.initial',
+        'sync.initial',
+        fields: const {'direction': 'import', 'action': 'failed'},
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
+        duration: sw.elapsed,
+      );
+      rethrow;
+    }
   }
 
   @override
