@@ -2248,18 +2248,17 @@ async fn route_incoming(
 /// - 停止信号（`cancel`）每窗口检查：stop 后 ≤1 窗口（300ms）内退出。
 /// - 单次 accept/处理失败仅记录日志并继续下一窗口（验收 10：可恢复，不永久
 ///   退出、不 busy loop）。
-/// - 尊重同步开关（决策 6）：`sync_allowed=false` 时跳过 accept 窗口（不接收）。
+/// - 同步开关不作用于接收：`sync_allowed` 只控制主动同步（push/sync cycle），
+///   接收器始终接受连接（被动通道不阻塞编辑/推送）。
 async fn receiver_loop(mut ctx: ReceiverContext) {
     loop {
         if ctx.cancel.load(Ordering::Relaxed) {
             receiver_log(&ctx, "receiver.end", "stopped", None);
             break;
         }
-        // 决策 6：同步开关关闭 → 暂停接收（与 run_sync_cycle 语义一致）
         // 注意：sync_allowed 存于 SyncService，接收任务不持有；由 start_receiver
-        // 时快照，这里仅保持原语义的注释占位——实际开关由主服务在停止接收时
-        // 控制。接收任务本身始终接收（被动通道不阻塞编辑/推送）。
-        let window_started = std::time::Instant::now();
+        // 时快照。接收器始终接收（被动通道不阻塞编辑/推送），同步开关只由主服务
+        // 在主动同步路径（run_sync_cycle/push）中检查。
         let incoming =
             match tokio::time::timeout(RECEIVER_ACCEPT_WINDOW, ctx.endpoint.accept()).await {
                 Ok(Some(incoming)) => incoming,
@@ -2306,7 +2305,6 @@ async fn receiver_loop(mut ctx: ReceiverContext) {
                 );
             }
         }
-        let _ = window_started;
     }
 }
 
