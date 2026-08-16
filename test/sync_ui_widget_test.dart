@@ -202,6 +202,12 @@ class DevicesRepository implements NoteRepository {
   Future<PairingRequest> acceptPairingRequest() =>
       throw UnimplementedError('not used in device page tests');
 
+  /// 任务 M：有界接收——本 fake 不模拟接收（显示码弹窗仅展示码，不配对），
+  /// 返回永不完成的 future，使现有显示码测试保持"等待中"状态。
+  @override
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) =>
+      Completer<PairingRequest?>().future;
+
   @override
   Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
       throw UnimplementedError('not used in device page tests');

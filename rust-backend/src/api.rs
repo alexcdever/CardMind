@@ -65,6 +65,19 @@ pub async fn accept_pairing_request(svc: &mut SyncService) -> anyhow::Result<Pai
     svc.accept_pairing_request().await
 }
 
+/// 配对 — 确认方：在 [timeout] 内接收发起方配对请求（**有界等待**；超时返回 None）。
+///
+/// 任务 M 决策点 1 的落点：FRB opaque 上的阻塞等待无法安全取消，必须有界——
+/// UI 侧显示码流程以短窗口（10s）轮询调用本方法，弹窗关闭/取消后等待任务在
+/// 窗口内释放，不留下永久阻塞任务（设计目标 5）。总时限由 Flutter 侧控制。
+pub async fn accept_pairing_request_with_timeout(
+    svc: &mut SyncService,
+    timeout: chrono::Duration,
+) -> anyhow::Result<Option<PairingRequest>> {
+    let timeout = timeout.to_std().unwrap_or(std::time::Duration::ZERO);
+    svc.accept_pairing_request_with_timeout(timeout).await
+}
+
 /// 配对 — 确认方：校验配对码并完成配对（upsert 发起方 + 回复握手 + 自动推送全量快照）。
 pub async fn confirm_pairing(
     svc: &SyncService,

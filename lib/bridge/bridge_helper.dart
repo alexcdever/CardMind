@@ -267,6 +267,14 @@ class BridgeHelper implements NoteRepository {
     return _delegate.acceptPairingRequest();
   }
 
+  /// 确认方：在 [timeout] 内有界接收发起方配对请求（超时返回 null）。
+  @override
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(
+    Duration timeout,
+  ) async {
+    return _delegate.acceptPairingRequestWithTimeout(timeout);
+  }
+
   /// 确认方：校验码并完成配对（自动推送全量快照）。
   @override
   Future<PairingResult> confirmPairing(

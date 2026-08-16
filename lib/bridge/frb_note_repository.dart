@@ -263,6 +263,14 @@ final class FrbNoteRepository implements NoteRepository {
   }
 
   @override
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(
+    Duration timeout,
+  ) async {
+    _ensureOpen();
+    return api.acceptPairingRequestWithTimeout(svc: _sync, timeout: timeout);
+  }
+
+  @override
   Future<PairingResult> confirmPairing(
     String code,
     PairingRequest requester,

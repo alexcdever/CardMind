@@ -533,6 +533,10 @@ class MemoryNoteRepository implements NoteRepository {
       throw UnimplementedError('pairing not supported by memory fake');
 
   @override
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
   Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
       throw UnimplementedError('pairing not supported by memory fake');
 

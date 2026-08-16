@@ -88,6 +88,14 @@ abstract interface class NoteRepository {
   /// 本 SyncService 的其它方法）。
   Future<PairingRequest> acceptPairingRequest();
 
+  /// 确认方：在 [timeout] 内接收发起方配对请求（**有界等待**；超时返回 null）。
+  ///
+  /// 任务 M（显示码流程启动确认方接收器）：FRB opaque 上的阻塞等待无法被安全
+  /// 取消，必须有限界——显示码弹窗以短窗口（10s）轮询调用本方法，总时限由 UI
+  /// 控制；弹窗关闭/取消后等待任务在窗口内释放，不留下永久阻塞任务。
+  /// 与 [acceptPairingRequest] 的区别仅在有界：同一轮询逻辑、同一帧路由。
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout);
+
   /// 确认方：校验配对码并完成配对——upsert 发起方、回复握手响应、
   /// 自动向发起方推送全量快照（决策 8）。返回发起方身份。
   Future<PairingResult> confirmPairing(String code, PairingRequest requester);

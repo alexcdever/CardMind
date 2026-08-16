@@ -463,20 +463,50 @@ impl SyncService {
     /// 立即 `import_all` 导入（而不是丢弃）——否则对端 `push_to_peer` 因连接
     /// 被 accept 并关闭而判定成功、清空 pending，推送数据被静默吞掉。
     /// 导入失败仅记录日志（不中断配对等待），数据由对端下个周期兜底。
+    ///
+    /// 实现委托 [`Self::accept_pairing_request_with_timeout`]（有界核心）；此处
+    /// 用 24 小时边界保持"无限等待"语义（任务 M 决策点 1：有界核心可安全释放）。
     pub async fn accept_pairing_request(&mut self) -> Result<PairingRequest> {
+        match self
+            .accept_pairing_request_with_timeout(Duration::from_secs(24 * 3600))
+            .await?
+        {
+            Some(request) => Ok(request),
+            None => anyhow::bail!("pairing accept timed out"),
+        }
+    }
+
+    /// 确认方：在 [timeout] 内接收发起方配对请求（**有界等待**；超时返回 None）。
+    ///
+    /// 任务 M（显示码流程启动确认方接收器）决策点 1 的落点：FRB opaque 上的
+    /// 阻塞等待无法被安全取消，必须有限界——UI 侧以短窗口（10s）轮询调用本方法，
+    /// 弹窗关闭/取消后等待任务在窗口内释放，不留下永久阻塞任务、不占用
+    /// SyncService 锁超过一个窗口。总时限由 Flutter 侧控制。
+    ///
+    /// 语义与 [`Self::accept_pairing_request`] 一致：内部以 500ms 粒度轮询
+    /// `endpoint.accept()`（配对帧 → pending_pairing；推送帧 → 立即导入不丢失），
+    /// 外层 deadline 到点返回 `Ok(None)`。每个 accept 窗口均被
+    /// `tokio::time::timeout` 保护（阻塞网络操作两侧都限时）。
+    pub async fn accept_pairing_request_with_timeout(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<Option<PairingRequest>> {
+        let deadline = tokio::time::Instant::now() + timeout;
         loop {
             // 统一路由可能已把配对请求存入 pending_pairing（被周期 accept 抢到）
             if let Some(pending) = self.pending_pairing.lock().unwrap().as_ref() {
-                return Ok(pending.request.clone());
+                return Ok(Some(pending.request.clone()));
+            }
+            let now = tokio::time::Instant::now();
+            if now >= deadline {
+                return Ok(None);
             }
             // 短窗口 accept：配对帧 → 路由到 pending_pairing（下一轮返回）；
-            // 推送帧 → 导入（不丢弃），继续等待配对请求
-            let incoming = match tokio::time::timeout(
-                Duration::from_millis(500),
-                self.endpoint.accept(),
-            )
-            .await
-            {
+            // 推送帧 → 导入（不丢弃），继续等待配对请求。窗口取剩余时间与
+            // 500ms 的较小值，保证每次网络等待都有界。
+            let remaining = deadline.saturating_duration_since(now);
+            let window = remaining.min(Duration::from_millis(500));
+            let incoming = match tokio::time::timeout(window, self.endpoint.accept()).await {
                 Ok(Some(incoming)) => incoming,
                 _ => continue,
             };
@@ -497,7 +527,7 @@ impl SyncService {
                 }
             }
             if let Some(pending) = self.pending_pairing.lock().unwrap().as_ref() {
-                return Ok(pending.request.clone());
+                return Ok(Some(pending.request.clone()));
             }
         }
     }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
 import 'package:cardmind/src/rust/discovery.dart';
@@ -155,6 +157,12 @@ class PairingMdnsRepository implements NoteRepository {
   @override
   Future<PairingRequest> acceptPairingRequest() =>
       throw UnimplementedError('not used in pairing mdns tests');
+
+  /// 任务 M：有界接收——本 fake 不模拟接收（显示码弹窗仅展示码，不配对），
+  /// 返回永不完成的 future，使现有显示码测试保持"等待中"状态。
+  @override
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) =>
+      Completer<PairingRequest?>().future;
 
   @override
   Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
