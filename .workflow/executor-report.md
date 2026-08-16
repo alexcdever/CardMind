@@ -187,13 +187,16 @@ event=devices.online_refresh action=background_refresh online_count=1   ← 设�
 1. 验收 18（Windows+Android 真实联调）未执行——需在具备 TAP/ICS 测试网络的双端环境复验。
 2. `iter_notes()` 返回类型由借用迭代器改为 owned `Vec<(String, NoteCrdt)>`（因共享 core 无法返回持锁借用），`tombstones()` 改为 clone 快照——语义等价，已同步适配 migration/trash 测试。
 3. 接收器尊重同步开关（决策 6）的语义：当前接收器始终接收（不读 sync_allowed）；若移动端蜂窝暂停接收是产品要求，需在后续任务评估（任务单未明确要求接收器受开关控制）。
+4. **pre-commit hook 基线 fmt 失败**：`cargo fmt --check` 在未改动的基线文件（`src/debug_log.rs`、`tests/debug_log_test.rs`、`tests/pairing_test.rs`，rustfmt 1.8.0 版本差异）即报差异。本任务范围文件已单独 `rustfmt` 格式化干净；`cargo clippy --all-targets --all-features -- -D warnings`、`cargo test --all-features`、`flutter analyze`、`flutter test` 均实机通过。提交使用 hook 官方提供的方式 `SKIP_LOCAL_CHECK=1`（详见 commit message 说明）。
 
 ## 九、提交情况
 
 ```
-$ git log --oneline -3   （提交后）
-<commit> fix(task-o): continuous push receiver + online status closure
-<commit> docs: task sheet O — continuous receiver and online state closure
+$ git log --oneline -4
+19652eb6 fix(task-o): continuous push receiver and online status closure
+a649030d docs: task sheet O — continuous receiver and online state closure
+0fb91c2f feat: cross-platform diagnostic logging for sync flows
+fb2aff09 feat(debug): structured redacted logs for pairing, relay and sync
 ```
 
-（提交将包含上述全部改动；.gitignore 无差异；仅任务范围文件入提交）
+提交 `19652eb6` 含全部任务范围改动（14 文件，+2247/-478），工作树干净，`.gitignore` 无差异。
