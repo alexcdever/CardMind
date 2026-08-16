@@ -63,6 +63,12 @@ class FakeSyncApi implements SyncApi {
     final gate = cycleGate;
     if (gate != null) await gate.future;
   }
+
+  @override
+  Future<void> startReceiver() async {}
+
+  @override
+  Future<void> stopReceiver() async {}
 }
 
 /// 设备页 / 列表页共享的内存 fake repository。
@@ -374,6 +380,8 @@ void main() {
     expect(find.text('在线'), findsOneWidget, reason: '最近 5 分钟内同步过 → 在线');
     expect(find.textContaining('离线'), findsOneWidget);
     expect(find.textContaining('3 小时前'), findsOneWidget);
+    // 卸载页面以取消后台刷新 Timer（任务 O 验收 15）
+    await tester.pumpWidget(const SizedBox());
   });
 
   // ━━ 验收 6：devices page empty state ━━
@@ -389,6 +397,7 @@ void main() {
     expect(find.text('还没有配对设备'), findsOneWidget);
     expect(find.textContaining('添加设备'), findsWidgets,
         reason: '空状态应包含引导文案与添加入口');
+    await tester.pumpWidget(const SizedBox());
   });
 
   // ━━ 验收 7：unpair flow asks confirmation then removes ━━
@@ -424,6 +433,7 @@ void main() {
     expect(repository.removeCalls, 1);
     expect(repository.removedPeerIds, ['peer-a']);
     expect(find.text('桌面 Mac'), findsNothing, reason: '解除后列表应刷新');
+    await tester.pumpWidget(const SizedBox());
   });
 
   // ━━ 验收 8：pairing flow shows code and accepts input ━━
@@ -472,6 +482,7 @@ void main() {
     expect(repository.connectCode, '654321');
     expect(repository.connectTarget?.deviceId, 'peer-device-xyz');
     expect(find.textContaining('配对成功'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   // ━━ 验收 9：mobile devices tab renders device page ━━
@@ -503,6 +514,7 @@ void main() {
     expect(find.byType(DevicesPage), findsOneWidget,
         reason: '移动端设备 tab 应渲染设备页（替换空壳占位）');
     expect(find.text('桌面 Mac'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 
   // ━━ 验收 10：desktop sidebar has devices entry ━━
@@ -528,5 +540,88 @@ void main() {
 
     expect(find.byType(DevicesPage), findsOneWidget,
         reason: '点击设备入口应进入设备页');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  // ━━ 验收 15（任务 O）：devices page refreshes status ━━
+  // 页面保持打开时，后台 last_seen 更新后在 ≤5 秒内从离线变在线；
+  // dispose 后不再刷新（不产生 pending timer / 不崩溃）。
+  testWidgets('devices page refreshes online status in background', (tester) async {
+    final now = DateTime.now();
+    final repository = DevicesRepository()
+      ..pairedDevices = [
+        PairedDeviceRow(
+          peerId: 'peer-a',
+          name: '桌面 Mac',
+          lastSeen: now.subtract(const Duration(hours: 1)).toIso8601String(),
+          pairedAt: now.toIso8601String(),
+        ),
+      ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(body: DevicesPage(repository: repository)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('离线'), findsOneWidget, reason: '初始 last_seen 1 小时前 → 离线');
+
+    // 后台同步更新 last_seen（模拟对端 push 后接收器刷新投影）
+    repository.pairedDevices = [
+      PairedDeviceRow(
+        peerId: 'peer-a',
+        name: '桌面 Mac',
+        lastSeen: DateTime.now().toIso8601String(),
+        pairedAt: now.toIso8601String(),
+      ),
+    ];
+
+    // 后台刷新周期 2s：推进 2s 触发 Timer → 再 pump 一帧让 async _load 完成
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    expect(
+      find.text('在线'),
+      findsOneWidget,
+      reason: '后台 last_seen 更新后应在 ≤5 秒内刷新为在线（实际 2 秒周期）',
+    );
+
+    // dispose 后不再刷新：卸载页面，之后推进时间不产生 pending timer / 不崩溃
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 4));
+  });
+
+  testWidgets('devices page stops refreshing after dispose', (tester) async {
+    final repository = DevicesRepository()
+      ..pairedDevices = [
+        PairedDeviceRow(
+          peerId: 'peer-x',
+          name: '设备 X',
+          lastSeen: null,
+          pairedAt: DateTime.now().toIso8601String(),
+        ),
+      ];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(body: DevicesPage(repository: repository)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('离线'), findsOneWidget);
+
+    // 卸载页面（dispose）
+    await tester.pumpWidget(const SizedBox());
+    // dispose 后修改数据 + 推进时间：不应触发任何刷新/异常
+    repository.pairedDevices = [
+      PairedDeviceRow(
+        peerId: 'peer-x',
+        name: '设备 X',
+        lastSeen: DateTime.now().toIso8601String(),
+        pairedAt: DateTime.now().toIso8601String(),
+      ),
+    ];
+    await tester.pump(const Duration(seconds: 5));
+    // 无 pending timer、无异常即通过
   });
 }

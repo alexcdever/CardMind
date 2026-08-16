@@ -35,6 +35,8 @@ class FakeSyncApi implements SyncApi {
   final List<bool> setSyncAllowedCalls = [];
   int pushPendingCalls = 0;
   int runSyncCycleCalls = 0;
+  int startReceiverCalls = 0;
+  int stopReceiverCalls = 0;
 
   @override
   Future<int> get pollIntervalSecs async => 60;
@@ -55,6 +57,16 @@ class FakeSyncApi implements SyncApi {
   @override
   Future<void> runSyncCycle() async {
     runSyncCycleCalls++;
+  }
+
+  @override
+  Future<void> startReceiver() async {
+    startReceiverCalls++;
+  }
+
+  @override
+  Future<void> stopReceiver() async {
+    stopReceiverCalls++;
   }
 }
 
@@ -122,5 +134,45 @@ void main() {
 
     await repository.purge('a');
     expect(scheduler.noteEditedCalls, 5, reason: 'purge 后应触发调度器');
+  });
+
+  // ━━ 任务 O：调度器启动/停止时启动/停止持续接收器 ━━
+
+  test('scheduler starts receiver on start and stops on stop', () async {
+    final monitor = FakeNetworkMonitor();
+    final api = FakeSyncApi();
+    final scheduler = SyncScheduler(monitor: monitor, api: api);
+    await scheduler.start();
+    // start() 异步 fire-and-forget 启动接收器（_startReceiverQuietly）
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(api.startReceiverCalls, 1, reason: '调度器启动应启动持续接收器');
+    expect(api.stopReceiverCalls, 0, reason: '启动阶段不应停止接收器');
+
+    scheduler.stop();
+    // stop() 异步 fire-and-forget 停止接收器（_stopReceiverQuietly）
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(api.stopReceiverCalls, 1, reason: '调度器停止应停止持续接收器');
+
+    monitor.dispose();
+  });
+
+  test('scheduler start is idempotent for receiver', () async {
+    final monitor = FakeNetworkMonitor();
+    final api = FakeSyncApi();
+    final scheduler = SyncScheduler(monitor: monitor, api: api);
+    await scheduler.start();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    final first = api.startReceiverCalls;
+    // 重复 start：Rust 侧幂等（Dart 侧也只会再次调用 startReceiver，
+    // Rust 端已运行的接收器不重复创建）
+    await scheduler.start();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    expect(api.startReceiverCalls, first + 1, reason: '重复 start 仍调用 startReceiver（Rust 幂等）');
+    scheduler.stop();
+    monitor.dispose();
   });
 }

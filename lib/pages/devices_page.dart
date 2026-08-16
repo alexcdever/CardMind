@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../bridge/debug_log.dart';
@@ -41,16 +43,56 @@ class _DevicesPageState extends State<DevicesPage> {
   String? _error;
   String _deviceName = '';
   String _deviceId = '';
+  /// 后台状态刷新 Timer（任务 O 验收 15）：页面保持打开时周期性重读
+  /// paired_devices，后台 last_seen 更新后 ≤5 秒内离线→在线；dispose 取消。
+  Timer? _refreshTimer;
 
   NoteRepository get _repository => widget.repository;
+
+  /// 后台刷新间隔（验收 15：≤5 秒内反映后台在线状态变化）。
+  static const Duration _refreshInterval = Duration(seconds: 2);
 
   @override
   void initState() {
     super.initState();
     _load();
+    // 后台状态变化后刷新（不阻塞首次加载；dispose 后不再刷新）
+    _refreshTimer = Timer.periodic(_refreshInterval, (_) {
+      if (!mounted) return;
+      _load(background: true);
+    });
   }
 
-  Future<void> _load() async {
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    super.dispose();
+  }
+
+  Future<void> _load({bool background = false}) async {
+    if (background) {
+      // 后台刷新：不闪 loading、不覆盖错误状态，仅静默更新数据
+      try {
+        final devices = await _repository.listPairedDevices();
+        if (!mounted) return;
+        setState(() {
+          _devices = devices;
+        });
+        DebugLogger.instance.event(
+          'devices.online_refresh',
+          'devices.online_refresh',
+          fields: {
+            'action': 'background_refresh',
+            'online_count':
+                '${devices.where((d) => _isOnline(d)).length}',
+          },
+        );
+      } catch (_) {
+        // 后台刷新失败静默（下次周期重试）
+      }
+      return;
+    }
     setState(() {
       _loading = true;
       _error = null;

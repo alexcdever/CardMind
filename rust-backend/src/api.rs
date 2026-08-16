@@ -175,6 +175,27 @@ pub async fn run_sync_cycle(
     svc.run_sync_cycle(store).await
 }
 
+// ━━━ 持续接收器（任务 O）━━━
+
+/// 启动被动接收任务（幂等）：持续短窗口 accept 对端 push，收到即
+/// import → 刷新 SQLite 投影 → 更新发送方 last_seen。
+///
+/// 接收任务持有 `endpoint.clone()` + 共享 core + `store.clone()`，不占用
+/// FRB opaque 锁——接收等待期间 create/edit/push 均可并发执行。
+pub async fn start_receiver(svc: &SyncService, store: NoteStore) -> anyhow::Result<()> {
+    svc.start_receiver(store).await
+}
+
+/// 停止被动接收任务（幂等；3 秒内返回）。
+pub async fn stop_receiver(svc: &SyncService) -> anyhow::Result<()> {
+    svc.stop_receiver().await
+}
+
+/// 接收任务是否运行中（诊断/测试用）。
+pub fn receiver_running(svc: &SyncService) -> bool {
+    svc.receiver_running()
+}
+
 /// 创建笔记
 pub fn note_create(svc: &mut SyncService, id: String, content: String) -> anyhow::Result<()> {
     svc.create_note(id, &content)

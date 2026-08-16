@@ -48,6 +48,7 @@ fn test_v1_to_v2_migration() {
         // 1) tags 写入 meta
         let migrated = svc
             .iter_notes()
+            .into_iter()
             .find(|(id, _)| id.as_str() == "note-1")
             .expect("note-1 应存在")
             .1;
@@ -110,10 +111,11 @@ fn test_v1_migration_multiple_notes() {
         std::fs::write(dir.join("cardmind.loro"), &bytes).unwrap();
 
         let svc = SyncService::new_persistent(&dir).await.unwrap();
-        assert_eq!(svc.iter_notes().count(), 2);
+        assert_eq!(svc.iter_notes().len(), 2);
 
         let n1 = svc
             .iter_notes()
+            .into_iter()
             .find(|(id, _)| id.as_str() == "n1")
             .unwrap()
             .1;
@@ -122,6 +124,7 @@ fn test_v1_migration_multiple_notes() {
 
         let n2 = svc
             .iter_notes()
+            .into_iter()
             .find(|(id, _)| id.as_str() == "n2")
             .unwrap()
             .1;
@@ -131,7 +134,7 @@ fn test_v1_migration_multiple_notes() {
         // v2 载入不再产生备份（不重复迁移）
         drop(svc);
         let again = SyncService::new_persistent(&dir).await.unwrap();
-        assert_eq!(again.iter_notes().count(), 2);
+        assert_eq!(again.iter_notes().len(), 2);
         assert!(dir.join("cardmind.loro.v1.bak").exists());
 
         let _ = std::fs::remove_dir_all(dir);

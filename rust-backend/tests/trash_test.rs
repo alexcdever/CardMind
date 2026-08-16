@@ -321,7 +321,7 @@ fn test_tombstone_survives_export_import() {
 
         assert!(b.tombstones().contains("n1"), "导入后对端墓碑应含 n1");
         assert!(
-            b.iter_notes().all(|(id, _)| id != "n1"),
+            b.iter_notes().into_iter().all(|(id, _)| id != "n1"),
             "导入后 iter_notes 不含 n1"
         );
         assert!(b.get_note("n2").is_some(), "其余笔记正常导入");
