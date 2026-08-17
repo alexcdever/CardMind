@@ -117,6 +117,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DevicePushResult dco_decode_device_push_result(dynamic raw);
 
   @protected
+  int dco_decode_i_32(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
 
   @protected
@@ -167,6 +170,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PairedDeviceRow dco_decode_paired_device_row(dynamic raw);
 
   @protected
+  PairingCredentialDisplay dco_decode_pairing_credential_display(dynamic raw);
+
+  @protected
+  PairingCredentialError dco_decode_pairing_credential_error(dynamic raw);
+
+  @protected
+  PairingCredentialErrorKind dco_decode_pairing_credential_error_kind(
+    dynamic raw,
+  );
+
+  @protected
   PairingRequest dco_decode_pairing_request(dynamic raw);
 
   @protected
@@ -174,6 +188,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PairingTarget dco_decode_pairing_target(dynamic raw);
+
+  @protected
+  ParsedPairingCredential dco_decode_parsed_pairing_credential(dynamic raw);
 
   @protected
   PeerInfo dco_decode_peer_info(dynamic raw);
@@ -285,6 +302,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   DevicePushResult sse_decode_device_push_result(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
 
   @protected
@@ -341,6 +361,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PairedDeviceRow sse_decode_paired_device_row(SseDeserializer deserializer);
 
   @protected
+  PairingCredentialDisplay sse_decode_pairing_credential_display(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PairingCredentialError sse_decode_pairing_credential_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  PairingCredentialErrorKind sse_decode_pairing_credential_error_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   PairingRequest sse_decode_pairing_request(SseDeserializer deserializer);
 
   @protected
@@ -348,6 +383,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PairingTarget sse_decode_pairing_target(SseDeserializer deserializer);
+
+  @protected
+  ParsedPairingCredential sse_decode_parsed_pairing_credential(
+    SseDeserializer deserializer,
+  );
 
   @protected
   PeerInfo sse_decode_peer_info(SseDeserializer deserializer);
@@ -374,9 +414,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer);
-
-  @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   void sse_encode_AnyhowException(
@@ -482,6 +519,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
 
   @protected
@@ -548,6 +588,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_pairing_credential_display(
+    PairingCredentialDisplay self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pairing_credential_error(
+    PairingCredentialError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_pairing_credential_error_kind(
+    PairingCredentialErrorKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_pairing_request(
     PairingRequest self,
     SseSerializer serializer,
@@ -558,6 +616,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_pairing_target(PairingTarget self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_parsed_pairing_credential(
+    ParsedPairingCredential self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_peer_info(PeerInfo self, SseSerializer serializer);
@@ -588,9 +652,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_usize(BigInt self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
 }
 
 // Section: wire_class

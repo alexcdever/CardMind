@@ -1,173 +1,90 @@
-# 任务U
+# 任务 T2 主代理最终复检报告 — 标准 443 签名凭证 + Android 平台 + 双端 UI + 最终回归
 
-主代理最终复检报告（Hermes 终审修复轮）— 将 CardMind 本地质量门禁迁移为 Dart 并分层执行
+复检人：主代理（build）
+复检时间：2026-08-18 01:39
+worktree：`D:/Projects/CardMind/.worktrees/signed-pairing-credential`
+分支：`codex/signed-pairing-credential`
+状态：在任务 T 既有改动之上继续；未删除、未回退、未重建。四个必做项实机复检均通过；一处任务单门禁互斥需决策（见 §5）。
 
-- 主代理：build（复检时间 2026-08-18，Hermes 终审打回后的修复轮）
-- worktree：`D:/Projects/CardMind/.worktrees/dart-local-quality-gates`（分支 `codex/dart-local-quality-gates`；**未新建 worktree、未切换分支、未提交**）
-- executor 报告：`.workflow/executor-report.md`（修复轮：阻断 1/2 已修复，功能与测试全绿）
-- reviewer 报告：`.workflow/review-report.md`（重写：PASS，完整范围复核无 FAIL）
-- **本报告由主代理在 exec/review 之后独立实机复验全部验收命令得出。**
+## §1 标准 443 签名凭证 live test（单列）— ✅ 真实通过
 
----
-
-## 一、Hermes 终审 3 阻断点复核（主代理独立实机）
-
-### 阻断 1：gate 不再执行 `dart tool/build.dart`（Windows 必失败）→ ✅ 已修复
-
-- 新增 `tool/src/git_gate/host_build.dart`：`HostBuildPlatform` + `detectHostPlatform()`（非 Win/macOS/Linux 抛 UnsupportedError）+ `HostRuntimeSpec` + `hostRuntimeSpec()` + `syncHostRuntimeLibrary()`（真实 File 复制，无 fake）。
-- 平台路径（FRB stem `cardmind_backend`，与 `lib/src/rust/frb_generated.dart` 第 74 行一致）：
-  - Windows：`rust-backend/target/release/cardmind_backend.dll` → `build/windows/x64/runner/Release/cardmind_backend.dll`（与 AGENTS.md「运行态」一致）
-  - macOS：`rust-backend/target/release/libcardmind_backend.dylib` → `build/native/macos/libcardmind_backend.dylib`
-  - Linux：`rust-backend/target/release/libcardmind_backend.so` → `build/linux/x64/release/bundle/lib/libcardmind_backend.so`
-- `command.dart`：`buildLib()` 删除，新增 `hostBuildLib()`（`cargo build --release`，in rust-backend）。
-- `gate.dart`：`GateOptions.testMode` + copyWith 透传；`runFullSuite` 用 `hostBuildLib()`，build 成功后同步（dry-run 打印目标 / testMode 跳过 / 真实模式 detect→sync→失败 return 1）；`tool/git_gate.dart` 传 testMode。
-- `cache.dart`：fingerprint 文件清单补 `tool/src/git_gate/host_build.dart`。
-- **实机证据**：
-  - `grep -rn "tool/build.dart" tool/git_gate.dart tool/src/git_gate/` → 仅 3 处注释（command.dart:109、host_build.dart:3/7），无任何可执行引用。
-  - `dart run tool/git_gate.dart pre-push --dry-run` 输出含 `[dry-run] rust:build-lib: cargo build --release (in rust-backend)` 与 `[dry-run] sync host runtime library: build/windows/x64/runner/Release/cardmind_backend.dll`。
-  - 单测 25-28 为**真实文件同步**（临时目录 + 真实 File 复制，断言 dest 内容一致 / 覆盖 / 源缺失错误串 / 反斜杠 repoRoot），非 fake 掩盖路径逻辑，实机全绿。
-
-### 阻断 2：Cargo manifest 误分 unknown → ✅ 已修复
-
-- `selector.dart` `_isManifest` 改按 basename 匹配（`lower.endsWith('cargo.toml')/('cargo.lock')`）；`_contribute` manifest case 用 `isCargoManifest` → `rust:clippy` + `rust:test:full`（`cargo test --all-features --jobs 1`，Rust 全量 fail-closed），无 flutter 检查。
-- **实机证据（主代理实跑，三组均 exit=0）**：
-  - `plan --files rust-backend/Cargo.toml` → `Categories: manifest: 1`，Checks = `rust:clippy` + `rust:test:full`
-  - `plan --files rust-backend/Cargo.lock` → 同上
-  - `plan --files 'rust-backend\Cargo.toml'`（反斜杠）→ 与正斜杠结果完全一致
-
-### 阻断 3：reviewer 重核完整范围并重写 review-report；build 重写 final-check → ✅ 完成
-
-- reviewer 已重写 `.workflow/review-report.md`（266 行，PASS 无 FAIL，含完整范围逐条实机复核与红线核对）。
-- 本报告即 build 重写的 final-check（标题「任务U」）。
-
-## 二、完整验收标准逐条复验（主代理真实命令输出）
-
-### 1. `git ls-files '*.sh'` → ✅ 空（exit=0，无输出）
-
-### 2. `dart format --output=none --set-exit-if-changed tool/git_gate.dart tool/src/git_gate test/git_gate_test.dart test/git_gate_hook_integration_test.dart` → ✅ 0 changed exit=0
-
+实机复检命令（主代理亲跑）：
+```bash
+cd rust-backend
+timeout 3m cargo test --test live_relay_test live_signed_credential_pairing_over_standard_443_relay -- --ignored --nocapture
 ```
-Formatted 11 files (0 changed) in 0.06 seconds.
-exit=0
+真实输出（退出码 0，3.53s）：
+```text
+[live443] confirmer relay=https://relay.alexc.cn/
+[live443] initiator relay=https://relay.alexc.cn/
+[live443] confirmer id: b16ba01a…cc928430
+[live443] credential len=184 code=43…38 expires_at=2026-08-17T17:41:38.461445600+00:00
+[live443] paired: b16ba01a…cc928430 <-> d1884948…bfb6abea
+[live443] confirmer last_seen=2026-08-17T17:31:41.737112600+00:00 (age=0s)
+[live443] initiator last_seen=2026-08-17T17:31:41.770684200+00:00 (age=0s)
+[live443] log pairing.connect action=start transport=relay
+[live443] log pairing.connect action=success transport=relay
+[live443] ✅ 标准 443 relay 签名凭证配对 + 首次同步全链路成功
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 3.53s
 ```
+复检判定：两端 relay.txt 严格 `https://relay.alexc.cn`（无 :9443）；配对成功；双方 last_seen age=0s；n1 首次同步到达 initiator；结构化日志 `pairing.connect transport=relay` start+success；stdout 全脱敏（device id/配对码/凭证均截断）。非 HTTP 200 探测，为 iroh endpoint 真实链路。
 
-### 3. `dart analyze tool/git_gate.dart tool/src/git_gate test/git_gate_test.dart` → ✅
+## §2 Android x86_64 平台 integration（单列）— ✅ 真实通过
 
+模拟器状态：emulator-5554，`sys.boot_completed=1`，ABI x86_64，Android 16。代理已清空（`env | grep -i proxy` 仅 NO_PROXY 本机回环）。默认 NAT，未用 TAP。
+
+产物：`build/android-jni/x86_64/libcardmind_backend.so` = 29,952,184 字节，mtime 2026-08-18 01:16（本轮）。
+
+实机复检命令（主代理亲跑）：
+```bash
+unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
+flutter test integration_test/receiver_platform_test.dart -d emulator-5554 --timeout 3m
 ```
-Analyzing git_gate.dart, git_gate, git_gate_test.dart...
-No issues found!
-exit=0
+真实输出（退出码 0，02:04）：
+```text
+00:00 +0: real platform: receiver.start success + at least two periodic sync.cycle without disposed
+02:04 +1: (tearDownAll)
+02:04 +1: All tests passed!
 ```
+复检判定：receiver.start success + ≥2 次 sync.cycle + 无 DroppableDisposedException + Store 未 dispose，全部真实断言通过。
 
-### 4. `flutter test --timeout 3m test/git_gate_test.dart` → ✅ 24/24
+## §3 双端签名凭证 UI 自动化 — Windows ✅ / Android ✅ / 同进程双端 ✅ / 跨设备 = 未覆盖
 
+- Windows 平台（-d windows，主代理亲跑）：`integration_test/pairing_credential_platform_test.dart` → `00:04 +2: All tests passed!`，日志 `platform=windows ... pairing.connect action=start transport=credential`；UI 旅程：显示页 QR/复制/重新生成/倒计时，输入页单主字段、无 node ID、统一解析。✅
+- Android 平台（-d emulator-5554，主代理亲跑）：同文件 → `00:07 +2: All tests passed!`，日志 `platform=android ... pairing.connect action=start transport=credential`（真实 Android 设备启动凭证 UI）。✅
+- 同进程双端全链路（-d windows，主代理亲跑）：`pairing_credential_dual_end_test.dart` → `00:04 +1: All tests passed!`，真实输出关键行：
+```text
+pairing.confirm action=start → pairing.connect duration_ms=1213 action=success transport=credential
+[dual-end] confirmer side last_seen=2026-08-17T17:37:46.286617900+00:00
+[dual-end] initiator side last_seen=2026-08-17T17:37:46.314879+00:00
+sync.initial direction=import action=success
+[dual-end] ✅ 双端凭证 UI 全链路成功（同进程两个真实 endpoint，标准 443 relay）
 ```
-00:05 +20: host build 25 真实同步：把 cargo 产物复制到运行态路径（Windows spec）
-00:06 +21: host build 26 已存在 dest 会被替换
-00:06 +22: host build 27 源缺失返回含源绝对路径的错误串
-00:06 +23: host build 28 反斜杠 repoRoot 也能成功同步（路径归一化兼容）
-00:06 +24: All tests passed!
-```
+  该测试为同一进程两个真实 SyncService + 两个真实 DevicesPage UI 实例，凭证经系统剪贴板从显示方提取、粘贴进输入方，走标准 443 relay。✅
+- 跨设备（Windows↔Android）双端 UI：**未覆盖（如实声明）**。原因：integration_test 单进程单 app 限制 + 产品配对弹窗为模态 root navigator 对话框，无法在同一进程同时真实点击驱动两端；跨设备凭证传递需双进程编排，超出任务单允许"仅测试文件"范围。Rust 443 credential 链路（§1）、Windows 平台、Android 平台分别真实通过，不合并陈述。
 
-### 5. `flutter test --timeout 3m test/git_gate_hook_integration_test.dart` → ✅ 4/4
+## §4 最终回归 — ✅ 全绿（除一处需决策）
 
-```
-00:03 +1: 20 真实 git push 证明 pre-push 读取 stdin 并通过 Dart 入口
-00:11 +2: 21 SKIP_LOCAL_CHECK=1 两个 Hook 都可跳过
-00:13 +3: 22 Dart gate 非零时 commit/push 确实被 Git 阻止
-00:23 +4: All tests passed!
-```
+| 项目 | 复检命令 | 真实输出 | 结论 |
+|---|---|---|---|
+| fmt | `cargo fmt --check` | 无输出，退出码 0 | ✅ |
+| Rust check | `cargo check --tests` | `Finished dev profile`；0 warning | ✅ |
+| Rust 测试按文件 | `cargo test --test <file>`（15 文件） | pairing_credential 13 / pairing 10 / store 6 / note_crdt 10 / sync 1 / connect 7 / autosync 8 / debug_log 10 / discovery 2 / integration 2 / migration 2 / receiver_continuous 14 / relay_config 7 / sync_service 5 / trash 13 —— 全部 0 failed；live_relay（ignored）2 passed（executor+reviewer 已实跑） | ✅ |
+| Flutter 全套 | `flutter test --concurrency=1 --timeout 3m` | `00:52 +124: All tests passed!` | ✅ |
+| analyze | `flutter analyze` | `No issues found! (19.7s)` | ✅ |
+| credential 专项 | `flutter test test/pairing_credential_repository_test.dart test/pairing_credential_ui_test.dart` | `00:07 +14: All tests passed!` | ✅ |
+| FRB 幂等 | `.workflow/frb-generate-{first,second}.patch` sha256 | 两文件均 `db9f203fb902486cbc60ba17acf53c57c9d7d32873667b2e061bdfdbba0d52f2`；`cmp -s` = 0（reviewer 独立复跑两次 codegen 亦一致） | ✅ |
+| .gitignore | `git diff -- .gitignore` | 空输出，退出码 0 | ✅ |
+| 换行噪声 | `git diff --name-only` vs `git diff --ignore-all-space --name-only` | 文件集合一致，无纯换行/纯空白变化文件 | ✅ |
+| 范围 | `git diff --name-only HEAD` | 未触碰 prototype/、.gitnexus/、任务 U worktree | ✅ |
+| debug_log.rs -w | `git diff -w -- rust-backend/src/debug_log.rs` | **非空**（见 §5） | ⚠️ 需决策 |
 
-### 6. 计划 smoke（主代理实跑，均 exit=0）
+## §5 问题未决 / 需决策点
 
-| 命令 | 分类 | 计划 |
-|---|---|---|
-| `plan --files rust-backend/Cargo.toml` | manifest: 1 | clippy + rust:test:full（无 flutter）✅ |
-| `plan --files rust-backend/Cargo.lock` | manifest: 1 | clippy + rust:test:full（无 flutter）✅ |
-| `plan --files 'rust-backend\Cargo.toml'` | manifest: 1 | 与正斜杠完全一致 ✅ |
-| `plan --files docs/standards/testing.md` | markdown: 1 | 仅 docs:lint（reviewer 复核）✅ |
-| `plan --files lib/pages/devices_page.dart` | dartBusiness: 1 | analyze + pairing 相关 + sync_ui_widget（reviewer 复核）✅ |
-| `plan --files rust-backend/src/sync.rs` | rustSource: 1 | clippy + sync 相关 targets（reviewer 复核）✅ |
-| `plan --files rust-backend/src/api.rs lib/src/rust/frb_generated.dart` | frbBoundary: 2 | clippy + note_crdt/pairing/store + FRB smoke（reviewer 复核）✅ |
-| `plan --files unknown.file` | unknown: 1 | clippy + rust:test:full + analyze + flutter:test:full（fail closed，reviewer 复核）✅ |
+1. **`git diff -w -- rust-backend/src/debug_log.rs` 非空（门禁互斥）**：diff 仅 `redact_device_id` 内一行 `let suffix` 被 rustfmt 拆为 5 行（token 序列完全一致，无内容变化，任务 T 遗留）。本机 git `-w` 不忽略"1 行拆 5 行"，而 HEAD 单行版本（>120 字符）在当前 rustfmt（默认 max_width=100，无 rustfmt.toml）下必然被拆行——我已亲测：对 HEAD 版本跑 `rustfmt --check` 失败、对工作区版本跑通过。因此"`-w` 为空"与"`cargo fmt --check` 通过"在本机工具版本下不可兼得。本任务对 debug_log.rs 零内容修改。如需该门禁通过需范围外处理（如 `#[rustfmt::skip]` 标注或接受 HEAD 非 fmt-clean），请 Hermes 决策。
+2. **跨设备（Windows↔Android）双端 UI 自动化未覆盖**（任务单允许如实报告）：Windows/Android 平台与 Rust 443 链路各自独立真实通过。
+3. 全部改动未提交（与任务 T 基线一致，交由 Hermes 终审决定提交策略）。
 
-### 7. `dart run tool/git_gate.dart pre-commit --dry-run --files test/git_gate_test.dart` → ✅（无副作用）
+## 结论
 
-```
-Files (1): test/git_gate_test.dart
-Categories: dartTest: 1
-Checks (2 commands, deduped):
-  flutter:analyze: flutter analyze
-  flutter:test: flutter test --timeout 3m test/git_gate_test.dart
-[dry-run] 仅打印计划，未执行任何命令。
-exit=0
-```
-
-### 8. `dart run tool/git_gate.dart pre-push --dry-run` → ✅（无副作用）
-
-```
-存在未提交的 tracked 源码（与 HEAD 不一致）：.githooks/pre-commit, scripts/check.sh
-存在未跟踪源码：.githooks/pre-push, test/git_gate_*_test.dart, tool/git_gate.dart, tool/src/git_gate/*
-[dry-run] 仅提示，未阻止。
-完整 host suite：
-  [dry-run] docs:lint / rust:clippy / rust:test:full
-  [dry-run] rust:build-lib: cargo build --release (in rust-backend)
-  [dry-run] frb:codegen: flutter_rust_bridge_codegen generate
-  [dry-run] sync host runtime library: build/windows/x64/runner/Release/cardmind_backend.dll
-  [dry-run] codegen change check / format-first (after codegen)
-  [dry-run] flutter:analyze / flutter:test:full
-✅ pre-push 门禁通过
-exit=0
-```
-
-复验前后 `git status --porcelain` 一致（dry-run 无副作用）。
-
-### 9. `dart run tool/git_gate.dart full` → ⚠️ 被 format-first 基线阻断（exit=1，保留事实，符合任务单设计）
-
-主代理实机执行（真实输出）：
-```
-format-first 改变了以下文件，中止：
-  integration_test/cardmind_journeys_test.dart
-  integration_test/receiver_platform_test.dart
-  lib/bridge/bridge_helper.dart
-  ...（共 27 项：24 个 Dart [lib/integration_test/test/tool 基线] + rust-backend/src/debug_log.rs、
-      rust-backend/tests/debug_log_test.rs、rust-backend/tests/pairing_test.rs）
-EXIT=1
-```
-- **阻断真实**：仓库基线（`codex/knowledge-base` 3509c617 起）存在未格式化源码，format-first 按任务要求「formatter 改变任何文件 → 立即阻止、输出路径、本轮不继续」工作；full 的 formatAll scope 为 `dart format lib test integration_test tool` + `cargo fmt --all`，故实测 27 项（比单查 tool/test 的 13 个 Dart 多 11 个，含 lib/、integration_test/ 基线文件）。
-- **全部 27 个被 formatter 写回的文件已 `git checkout` 还原**，还原后 `git status --porcelain` 与执行前逐字符一致。
-- 主代理复检期间 `flutter test` 再生的 6 个 linux/windows generated_plugin_registrant.*/generated_plugins.cmake 也已还原。
-- 3 分钟硬超时：单测 12 实机验证（注入 300ms → exit=124 + TIMEOUT + 命令名 + <5s 返回）；runner 源码含 Windows `taskkill /T /F` + POSIX `pgrep -P` 递归进程树终止。
-
-## 三、git 范围与红线（主代理实机核实）
-
-- 最终 `git status --porcelain` 仅含任务声明文件：`.githooks/pre-commit`(M)、`.githooks/pre-push`(新增)、`scripts/check.sh`(D)、`tool/git_gate.dart`(新增)、`tool/src/git_gate/`(新增，8 文件含 host_build.dart)、`test/git_gate_test.dart`(新增)、`test/git_gate_hook_integration_test.dart`(新增)、`tool/README.md`(M)、`docs/standards/testing.md`(M)、`docs/standards/git-and-pr.md`(M)、`.workflow/*`。
-- **红线逐项（均无越界）**：
-  - `tool/build.dart`：`git diff HEAD -- tool/build.dart` 空输出，未修改。
-  - `lib/**`（gate 外）、`rust-backend/**`、`integration_test/**`、`prototype/**`、`pubspec.*`、`Cargo.*`、FRB 生成文件、平台 runner/plugin 文件、`test/build_tool_test.dart`：均无 diff。
-  - `codex/signed-pairing-credential` worktree：只读核查其 status 全部为其自身 pairing-credential 业务改动，无任何本任务文件痕迹。
-- docs 更新核读：`docs/standards/git-and-pr.md`（第 22 行 host suite 描述改为 gate 跨平台 build-lib）、`tool/README.md`（设计要点）、`docs/standards/testing.md`（第 27 行注明 gate 内部跨平台 build-lib）——均与本轮修复一致，无夹带无关改动。
-
-## 四、新增测试清单（本修复轮，test/git_gate_test.dart）
-
-| 用例名 | 覆盖点 |
-|---|---|
-| selector 8 扩展：rust-backend/Cargo.toml、rust-backend/Cargo.lock → manifest | classifyPath==manifest；clippy + rust:test:full；不含 analyze/flutterTest |
-| selector 8 扩展：反斜杠 rust-backend\Cargo.toml 与 POSIX 一致 | 反斜杠归一化 |
-| host build 23 hostBuildLib 命令规格 | cargo build --release / rust-backend / buildLib / rust:build-lib；非 `dart tool/build.dart` |
-| host build 24 hostRuntimeSpec 三平台路径 | Windows/macOS/Linux 各自精确 source/dest |
-| host build 25 真实同步（Windows spec） | 临时目录 + 真实文件复制，dest 内容与源一致（无 fake） |
-| host build 26 已存在 dest 会被替换 | 覆盖行为 |
-| host build 27 源缺失返回错误串 | 含 cardmind_backend.dll 与源绝对路径 |
-| host build 28 反斜杠 repoRoot 也能成功同步 | 路径归一化 |
-
-（原 18 例 + 新增 6 例 = 24 例全绿；hook 集成 4/4 保持绿）
-
-## 五、结论
-
-**PASS（Hermes 终审 3 阻断点全部修复并实机复验）**，附 2 项保留事实（均非本修复轮引入）：
-
-1. **`full` 被 format-first 基线阻断**：`codex/knowledge-base` 基线存在未格式化源码（Dart 13+ 个 tool/test、Rust 3+ 个），新门禁首次启用时首个 commit/push 会被 format-first 按设计阻止，需先提交一次纯格式化变更（不在本任务范围，红线禁止触碰）。
-2. **`cargo test --all-features --jobs 1` 本机首次全特性编译 >3 分钟**：pre-push/full 会以 exit=124 超时；3 分钟硬超时按设计生效；需预热 target 或调整策略（设计决策，未自行决定）。
-
-未执行平台集成/双实例 E2E（属任务验收或发布门禁），不冒充通过。
+四个必做项：1 标准443 credential ✅ / 2 Android x86_64 ✅ / 3 Windows+Android+同进程双端 ✅、跨设备=未覆盖（如实）/ 4 回归 ✅（一处门禁互斥需决策）。executor 报告与 reviewer 报告的关键声称均经主代理实机复验真实可复现。任务 T2 可交付（含两个明确问题项）。

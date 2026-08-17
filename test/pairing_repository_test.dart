@@ -29,37 +29,51 @@ void main() {
     await repoA.createNote('seed', '# Seed\n\nhello from A');
     await repoB.setDeviceName('New Phone');
 
-    // 发起方需要确认方地址（真实场景由 mDNS 发现提供）；在 accept 阻塞前取好
     final deviceIdA = await repoA.deviceId();
     final addrsA = await repoA.localAddrs();
     expect(addrsA, isNotEmpty, reason: '确认方应至少有一个本地 IPv4 地址');
 
-    // 确认方生成 6 位数字配对码
-    final code = await repoA.beginPairingAccept();
-    expect(code, matches(RegExp(r'^\d{6}$')));
+    // 确认方生成签名凭证并启动广播；发起方只使用凭证入口。
+    final display = await repoA.beginPairingCredential();
+    expect(display.code, matches(RegExp(r'^\d{6}$')));
+    expect(display.credential, startsWith('cm1.'));
+    final parsed = await repoB.parsePairingCredential(display.credential);
+    expect(parsed.code, display.code);
+    expect(parsed.deviceId, deviceIdA);
+    expect(parsed.nonce, isNotEmpty);
+    expect(parsed.nonce, isNot(matches(RegExp(r'^0+$'))));
 
-    // 确认方阻塞接收发起方请求（发起方连接前启动）
-    final acceptFuture = repoA.acceptPairingRequest();
+    // 确认方 bounded accept 必须在凭证生成后启动。
+    final acceptFuture = repoA.acceptPairingRequestWithTimeout(
+      const Duration(minutes: 3),
+    );
 
-    // 发起方连接确认方：发送请求 → 等待握手响应
+    // 真实 FRB 测试使用凭证字段和确认方 localAddrs，避免 DNS/relay 寻址。
     final connectFuture = repoB.beginPairingConnect(
-      code,
-      PairingTarget(deviceId: deviceIdA, ips: addrsA),
+      display.code,
+      PairingTarget(
+        deviceId: parsed.deviceId,
+        ips: addrsA,
+        nonce: parsed.nonce,
+      ),
     );
 
     // 确认方收到请求（含发起方身份）
     final request = await acceptFuture;
-    expect(request.deviceId, await repoB.deviceId());
-    expect(request.deviceName, 'New Phone');
+    expect(request, isNotNull);
+    final received = request!;
+    expect(received.deviceId, await repoB.deviceId());
+    expect(received.deviceName, 'New Phone');
 
     // 确认方确认 → 回复握手 + 自动推送全量快照
-    final confirmFuture = repoA.confirmPairing(code, request);
+    final confirmFuture = repoA.confirmPairing(display.code, received);
     final resultB = await connectFuture;
 
     // 发起方立即接收并导入首次全量同步（与确认方 push 并行，避免 push 超时）
     final pushFuture = repoB.acceptAndImportPush();
     final resultA = await confirmFuture;
     await pushFuture;
+    await repoA.stopPairingAdvertising();
 
     // ━━ 双方身份交换一致 ━━
     expect(resultA.peerId, await repoB.deviceId());

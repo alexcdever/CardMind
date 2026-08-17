@@ -36,6 +36,76 @@ class DevicePushResult {
           message == other.message;
 }
 
+/// 显示方生成的配对凭证展示对象（过 FRB）。
+class PairingCredentialDisplay {
+  /// 6 位数字配对码（局域网旧流程兼容）
+  final String code;
+
+  /// 完整凭证字符串（`cm1.` + base64url，二维码与复制文本逐字相同）
+  final String credential;
+
+  /// 过期时间 RFC3339 UTC（供 UI 倒计时）
+  final String expiresAt;
+
+  const PairingCredentialDisplay({
+    required this.code,
+    required this.credential,
+    required this.expiresAt,
+  });
+
+  @override
+  int get hashCode => code.hashCode ^ credential.hashCode ^ expiresAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PairingCredentialDisplay &&
+          runtimeType == other.runtimeType &&
+          code == other.code &&
+          credential == other.credential &&
+          expiresAt == other.expiresAt;
+}
+
+/// 配对凭证错误（过 FRB；携带稳定 kind + 技术细节 message）。
+class PairingCredentialError implements FrbException {
+  final PairingCredentialErrorKind kind;
+  final String message;
+
+  const PairingCredentialError({required this.kind, required this.message});
+
+  @override
+  int get hashCode => kind.hashCode ^ message.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PairingCredentialError &&
+          runtimeType == other.runtimeType &&
+          kind == other.kind &&
+          message == other.message;
+}
+
+/// 用户可读的配对凭证错误分类（过 FRB；Dart 侧 match，避免字符串匹配）。
+enum PairingCredentialErrorKind {
+  /// 凭证字符串格式无效（前缀/版本/长度/base64）
+  invalidFormat,
+
+  /// 签名无效 / 载荷被篡改
+  invalidSignature,
+
+  /// 凭证已过期
+  expired,
+
+  /// 凭证已使用或被新凭证替代（会话已更换/清除）
+  usedOrReplaced,
+
+  /// 目标设备不可达（连接失败/超时/无握手响应）
+  unreachable,
+
+  /// 其它内部错误
+  internal,
+}
+
 /// 发起方配对请求（含本机身份与配对码，经网络发送给确认方）
 class PairingRequest {
   /// 配对码（发起方从确认方展示处获得；请求携带以便确认方校验匹配）
@@ -56,12 +126,17 @@ class PairingRequest {
   /// 发起方 IPv4 地址列表（"ip:port"，供确认方直连/推送加速）
   final List<String> ips;
 
+  /// 一次性会话 nonce（hex 字符串；凭证路径来自凭证；6 位码路径来自 mDNS TXT）。
+  /// 确认方校验请求 nonce 必须与当前 PairingSession 一致。
+  final String nonce;
+
   const PairingRequest({
     required this.code,
     required this.deviceId,
     required this.deviceName,
     required this.relayInfo,
     required this.ips,
+    required this.nonce,
   });
 
   @override
@@ -70,7 +145,8 @@ class PairingRequest {
       deviceId.hashCode ^
       deviceName.hashCode ^
       relayInfo.hashCode ^
-      ips.hashCode;
+      ips.hashCode ^
+      nonce.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -81,7 +157,8 @@ class PairingRequest {
           deviceId == other.deviceId &&
           deviceName == other.deviceName &&
           relayInfo == other.relayInfo &&
-          ips == other.ips;
+          ips == other.ips &&
+          nonce == other.nonce;
 }
 
 /// 配对结果（对端身份）
@@ -115,10 +192,18 @@ class PairingTarget {
   /// （iroh 1.x N0 preset 的 DnsAddressLookup 机制）；非空时直连优先。
   final List<String> ips;
 
-  const PairingTarget({required this.deviceId, required this.ips});
+  /// 确认方当前会话 nonce（hex 字符串；凭证路径直接内嵌；6 位码路径来自 mDNS TXT）。
+  /// 构造请求时写入 PairingRequest.nonce。
+  final String nonce;
+
+  const PairingTarget({
+    required this.deviceId,
+    required this.ips,
+    required this.nonce,
+  });
 
   @override
-  int get hashCode => deviceId.hashCode ^ ips.hashCode;
+  int get hashCode => deviceId.hashCode ^ ips.hashCode ^ nonce.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -126,7 +211,37 @@ class PairingTarget {
       other is PairingTarget &&
           runtimeType == other.runtimeType &&
           deviceId == other.deviceId &&
-          ips == other.ips;
+          ips == other.ips &&
+          nonce == other.nonce;
+}
+
+/// 发起方解析后的配对凭证字段（过 FRB；nonce 仅内部 FRB→握手传递）。
+class ParsedPairingCredential {
+  final String code;
+  final String deviceId;
+  final String expiresAt;
+  final String nonce;
+
+  const ParsedPairingCredential({
+    required this.code,
+    required this.deviceId,
+    required this.expiresAt,
+    required this.nonce,
+  });
+
+  @override
+  int get hashCode =>
+      code.hashCode ^ deviceId.hashCode ^ expiresAt.hashCode ^ nonce.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ParsedPairingCredential &&
+          runtimeType == other.runtimeType &&
+          code == other.code &&
+          deviceId == other.deviceId &&
+          expiresAt == other.expiresAt &&
+          nonce == other.nonce;
 }
 
 /// 一次周期同步的结果（FRB 可序列化，供 Flutter 侧诊断/未来 UI 使用）

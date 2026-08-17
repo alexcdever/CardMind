@@ -28,8 +28,7 @@ fn rt() -> tokio::runtime::Runtime {
 }
 
 fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path =
-        std::env::temp_dir().join(format!("cardmind-dbglog-{label}-{}", std::process::id()));
+    let path = std::env::temp_dir().join(format!("cardmind-dbglog-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
     path
@@ -50,7 +49,11 @@ fn field<'a>(event: &'a LogEvent, key: &str) -> Option<&'a str> {
 
 /// 事件文本（Debug 序列化，模拟日志输出）。
 fn event_text(events: &[LogEvent]) -> String {
-    events.iter().map(|e| format!("{e:?}")).collect::<Vec<_>>().join("\n")
+    events
+        .iter()
+        .map(|e| format!("{e:?}"))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 // ━━━ 验收 1a：脱敏函数 ━━━
@@ -59,7 +62,10 @@ fn event_text(events: &[LogEvent]) -> String {
 fn test_redact_device_id() {
     // 短 id（≤16 字符）原样返回
     assert_eq!(debug_log::redact_device_id("short-id"), "short-id");
-    assert_eq!(debug_log::redact_device_id("1234567890123456"), "1234567890123456");
+    assert_eq!(
+        debug_log::redact_device_id("1234567890123456"),
+        "1234567890123456"
+    );
     // 长 id：只保留前 8 + 后 8
     let full = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH"; // 36 chars
     let red = debug_log::redact_device_id(full);
@@ -68,10 +74,7 @@ fn test_redact_device_id() {
         !red.contains("ijklmnopqrstuvwxyz0123456789"),
         "脱敏后不应包含中间部分: {red}"
     );
-    assert!(
-        !red.contains(full),
-        "脱敏后不应包含完整 id: {red}"
-    );
+    assert!(!red.contains(full), "脱敏后不应包含完整 id: {red}");
 }
 
 // ━━━ 验收 1b：事件中绝不出现敏感数据 ━━━
@@ -88,8 +91,10 @@ fn test_events_never_contain_sensitive_data() {
         let secret_key_hex = std::fs::read_to_string(dir.join("device.key")).unwrap();
 
         // 触发各事件路径：建笔记 → export/import → 生成配对码 → 无设备 push
-        svc.create_note("n1".into(), "TOP-SECRET-NOTE-BODY-CONTENT").unwrap();
-        svc.create_note("n2".into(), "ANOTHER-PRIVATE-BODY").unwrap();
+        svc.create_note("n1".into(), "TOP-SECRET-NOTE-BODY-CONTENT")
+            .unwrap();
+        svc.create_note("n2".into(), "ANOTHER-PRIVATE-BODY")
+            .unwrap();
         let code = svc.begin_pairing_accept().unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         let _ = svc.push_pending(&store).await; // 无配对设备 → skipped 事件
@@ -104,7 +109,10 @@ fn test_events_never_contain_sensitive_data() {
             !text.contains(&device_id),
             "完整 device id 不得出现在事件中（脱敏后只能有 {device_id} 的 8+8 形式）"
         );
-        assert!(!text.contains(&secret_key_hex), "SecretKey hex 不得出现在事件中");
+        assert!(
+            !text.contains(&secret_key_hex),
+            "SecretKey hex 不得出现在事件中"
+        );
         assert!(
             !text.contains("TOP-SECRET-NOTE-BODY-CONTENT")
                 && !text.contains("ANOTHER-PRIVATE-BODY"),
@@ -199,8 +207,14 @@ fn test_relay_config_event_disabled_case() {
             .find(|e| e.event == "relay.config")
             .expect("应发出 relay.config 事件");
         assert_eq!(field(&relay, "enabled"), Some("false"));
-        assert!(field(&relay, "relay_host").is_none(), "禁用时不应有 relay_host");
-        assert!(field(&relay, "relay_port").is_none(), "禁用时不应有 relay_port");
+        assert!(
+            field(&relay, "relay_host").is_none(),
+            "禁用时不应有 relay_host"
+        );
+        assert!(
+            field(&relay, "relay_port").is_none(),
+            "禁用时不应有 relay_port"
+        );
         let _ = std::fs::remove_dir_all(dir);
     });
 }
@@ -258,10 +272,7 @@ fn test_mdns_discovery_emits_count_and_duration() {
             Some(peers.len().to_string().as_str()),
             "result 事件应记录发现数量"
         );
-        assert!(
-            result.duration_ms.is_some(),
-            "result 事件应记录发现耗时"
-        );
+        assert!(result.duration_ms.is_some(), "result 事件应记录发现耗时");
         let _ = std::fs::remove_dir_all(dir);
     });
 }
@@ -275,10 +286,9 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
         let dir_b = temp_dir("life-b");
         let sink_a = sink();
         let sink_b = sink();
-        let mut confirmer =
-            SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
-                .await
-                .unwrap();
+        let mut confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
+            .await
+            .unwrap();
         let requester = SyncService::new_persistent_with_log_sink(&dir_b, sink_b.clone())
             .await
             .unwrap();
@@ -294,6 +304,7 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
             .begin_pairing_accept_with_advertising()
             .await
             .unwrap();
+        let session_nonce = confirmer.session_nonce_hex();
 
         // 确认方：有界接收 + 确认（spawn 两侧都用 timeout 兜底）
         let confirmer_code = code.clone();
@@ -328,17 +339,16 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
                     PairingTarget {
                         device_id: requester_target_id,
                         ips: addrs,
+                        nonce: session_nonce,
                     },
                 ),
             )
             .await
             .expect("connect 应在 20s 内返回")
             .unwrap();
-            let _ = tokio::time::timeout(
-                std::time::Duration::from_secs(15),
-                requester.accept_push(),
-            )
-            .await;
+            let _ =
+                tokio::time::timeout(std::time::Duration::from_secs(15), requester.accept_push())
+                    .await;
             result
         });
 
@@ -350,11 +360,11 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
         let events_a = sink_a.snapshot();
         let text_a = event_text(&events_a);
         for expected in [
-            "pairing.show_code",       // 显示码：开始 + 成功
-            "pairing.advertise",       // 广播启动
-            "pairing.accept",          // accept loop 开始/结束
-            "pairing.request",         // 请求接收
-            "pairing.confirm",         // confirm 开始/成功
+            "pairing.show_code", // 显示码：开始 + 成功
+            "pairing.advertise", // 广播启动
+            "pairing.accept",    // accept loop 开始/结束
+            "pairing.request",   // 请求接收
+            "pairing.confirm",   // confirm 开始/成功
         ] {
             assert!(
                 text_a.contains(&format!("\"{expected}\"")),
@@ -377,7 +387,10 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
         // ━━ 发起方事件断言：连接 start/success + transport=direct ━━
         let events_b = sink_b.snapshot();
         let text_b = event_text(&events_b);
-        assert!(text_b.contains("\"pairing.connect\""), "发起方应发出 connect 事件");
+        assert!(
+            text_b.contains("\"pairing.connect\""),
+            "发起方应发出 connect 事件"
+        );
         let connect_start = events_b
             .iter()
             .find(|e| e.event == "pairing.connect" && field(e, "action") == Some("start"))
@@ -411,6 +424,7 @@ fn test_connect_emits_transport_and_error_chain() {
             device_id: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
                 .to_string(),
             ips: vec!["127.0.0.1:1".to_string()],
+            nonce: String::new(),
         };
         let res = tokio::time::timeout(
             std::time::Duration::from_secs(15),
@@ -429,14 +443,8 @@ fn test_connect_emits_transport_and_error_chain() {
                 .iter()
                 .find(|e| e.event == "pairing.connect" && field(e, "action") == Some("failed"))
                 .expect("连接失败应发出 failed 事件");
-            assert!(
-                failed.error_chain.is_some(),
-                "失败事件应含错误链"
-            );
-            assert!(
-                failed.duration_ms.is_some(),
-                "失败事件应含耗时"
-            );
+            assert!(failed.error_chain.is_some(), "失败事件应含错误链");
+            assert!(failed.duration_ms.is_some(), "失败事件应含耗时");
         }
         let _ = std::fs::remove_dir_all(dir);
 
@@ -452,6 +460,7 @@ fn test_connect_emits_transport_and_error_chain() {
             device_id: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
                 .to_string(),
             ips: vec![],
+            nonce: String::new(),
         };
         let _ = tokio::time::timeout(
             std::time::Duration::from_secs(15),
@@ -477,10 +486,9 @@ fn test_initial_sync_emits_counts_only() {
         let dir_b = temp_dir("sync-b");
         let sink_a = sink();
         let sink_b = sink();
-        let mut confirmer =
-            SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
-                .await
-                .unwrap();
+        let mut confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
+            .await
+            .unwrap();
         confirmer
             .create_note("n1".into(), "# SECRET-BODY-1\n\nprivate content")
             .unwrap();
@@ -494,9 +502,11 @@ fn test_initial_sync_emits_counts_only() {
         let store_b = NoteStore::new(":memory:").unwrap();
 
         let code = confirmer.begin_pairing_accept().unwrap();
+        let session_nonce = confirmer.session_nonce_hex();
         let target = PairingTarget {
             device_id: confirmer.device_id(),
             ips: confirmer.local_addrs(),
+            nonce: session_nonce,
         };
 
         let confirmer_code = code.clone();
@@ -519,13 +529,11 @@ fn test_initial_sync_emits_counts_only() {
                 .begin_pairing_connect(&store_b, &code, target)
                 .await
                 .unwrap();
-            let data = tokio::time::timeout(
-                std::time::Duration::from_secs(15),
-                initiator.accept_push(),
-            )
-            .await
-            .expect("accept_push 应在 15s 内返回")
-            .unwrap();
+            let data =
+                tokio::time::timeout(std::time::Duration::from_secs(15), initiator.accept_push())
+                    .await
+                    .expect("accept_push 应在 15s 内返回")
+                    .unwrap();
             initiator.import_all(&data).unwrap();
         });
         confirmer_handle.await.unwrap();

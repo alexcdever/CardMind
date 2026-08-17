@@ -7,14 +7,17 @@
 //! 6. 解除配对（复用模块 2 API）
 
 use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{PairingRequest, PairingSession, PairingTarget, SyncService};
+use cardmind_backend::sync::{
+    nonce_to_hex, PairingRequest, PairingSession, PairingTarget, SyncService,
+};
 
 fn rt() -> tokio::runtime::Runtime {
     tokio::runtime::Runtime::new().unwrap()
 }
 
-/// 构造一个发起方请求（测试用）
-fn requester(code: &str, id: &str, name: &str) -> PairingRequest {
+/// 构造一个发起方请求（测试用）。nonce 必须与会话 nonce 一致
+/// （confirm 侧强制校验：空/全零/不匹配均拒绝）。
+fn requester(code: &str, id: &str, name: &str, nonce: &str) -> PairingRequest {
     PairingRequest {
         code: code.to_string(),
         device_id: id.to_string(),
@@ -22,7 +25,15 @@ fn requester(code: &str, id: &str, name: &str) -> PairingRequest {
         relay_info: String::new(),
         // 指向关闭端口：无真实握手（无 pending 连接）时 confirm 不触发推送
         ips: vec!["127.0.0.1:1".to_string()],
+        nonce: nonce.to_string(),
     }
+}
+
+/// 取当前会话 nonce 的 hex 表示（confirm 侧强制校验要求的真实值）。
+fn session_nonce(svc: &SyncService) -> String {
+    svc.current_pairing_session()
+        .map(|s| nonce_to_hex(&s.nonce))
+        .unwrap_or_default()
 }
 
 /// 保证与正确码不同的错误码
@@ -42,7 +53,12 @@ fn test_pairing_code_generation_and_validation() {
         let confirmer = SyncService::new().await.unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         let code = confirmer.begin_pairing_accept().unwrap();
-        let req = requester(&code, "initiator-1", "New Phone");
+        let req = requester(
+            &code,
+            "initiator-1",
+            "New Phone",
+            &session_nonce(&confirmer),
+        );
 
         assert_eq!(code.len(), 6, "配对码应为 6 位");
         assert!(
@@ -99,7 +115,12 @@ fn test_pairing_code_expires() {
         let confirmer = SyncService::new().await.unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         let code = confirmer.begin_pairing_accept().unwrap();
-        let req = requester(&code, "initiator-2", "New Phone");
+        let req = requester(
+            &code,
+            "initiator-2",
+            "New Phone",
+            &session_nonce(&confirmer),
+        );
 
         // 直接操作状态：把 created_at 拨回 11 分钟前（超过 10 分钟有效窗口）
         let session = confirmer.current_pairing_session().unwrap();
@@ -107,6 +128,7 @@ fn test_pairing_code_expires() {
             code: session.code,
             created_at: session.created_at - chrono::Duration::minutes(11),
             failed_attempts: session.failed_attempts,
+            nonce: session.nonce,
         };
         confirmer.set_current_pairing_session(Some(expired));
 
@@ -129,7 +151,12 @@ fn test_pairing_code_brute_force_limit() {
         let confirmer = SyncService::new().await.unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         let code = confirmer.begin_pairing_accept().unwrap();
-        let req = requester(&code, "initiator-3", "New Phone");
+        let req = requester(
+            &code,
+            "initiator-3",
+            "New Phone",
+            &session_nonce(&confirmer),
+        );
 
         // 连续错 5 次（"000000" 恒不等于生成的 100000-999999 码）
         for i in 0..5 {
@@ -155,7 +182,12 @@ fn test_pairing_code_brute_force_limit() {
 
         // 重新发起后可成功
         let code2 = confirmer.begin_pairing_accept().unwrap();
-        let req2 = requester(&code2, "initiator-3", "New Phone");
+        let req2 = requester(
+            &code2,
+            "initiator-3",
+            "New Phone",
+            &session_nonce(&confirmer),
+        );
         let result = confirmer
             .confirm_pairing(&store, &code2, &req2)
             .await
@@ -181,6 +213,7 @@ fn test_pairing_persists_both_sides() {
         let target = PairingTarget {
             device_id: confirmer.device_id(),
             ips: confirmer.local_addrs(),
+            nonce: confirmer.session_nonce_hex(),
         };
         assert!(!target.ips.is_empty(), "确认方应至少有一个本地 IPv4 地址");
 
@@ -256,8 +289,9 @@ fn test_pairing_triggers_initial_full_sync() {
         let code = confirmer.begin_pairing_accept().unwrap();
         let confirmer_id = confirmer.device_id();
         let target = PairingTarget {
-            device_id: confirmer_id.clone(),
+            device_id: confirmer.device_id(),
             ips: confirmer.local_addrs(),
+            nonce: confirmer.session_nonce_hex(),
         };
 
         // 确认方：接收请求 + 确认（内部自动推送全量快照给发起方）
@@ -384,6 +418,7 @@ fn test_accept_pairing_request_with_timeout_returns_request() {
         let target = PairingTarget {
             device_id: confirmer.device_id(),
             ips: confirmer.local_addrs(),
+            nonce: confirmer.session_nonce_hex(),
         };
 
         // 确认方：bounded accept（成功路径）→ confirm（回复握手 + 自动推送）
@@ -416,33 +451,25 @@ fn test_accept_pairing_request_with_timeout_returns_request() {
             .await
             .expect("发起方连接必须在超时前返回")
             .expect("连接应成功");
-            let push = tokio::time::timeout(
-                std::time::Duration::from_secs(10),
-                initiator.accept_push(),
-            )
-            .await
-            .expect("发起方应在超时前收到自动推送")
-            .expect("accept_push 应成功");
+            let push =
+                tokio::time::timeout(std::time::Duration::from_secs(10), initiator.accept_push())
+                    .await
+                    .expect("发起方应在超时前收到自动推送")
+                    .expect("accept_push 应成功");
             initiator.import_all(&push).expect("导入自动推送应成功");
             result
         });
 
         // spawn 两侧都要外层 timeout（测试超时铁律）
-        let accepted = tokio::time::timeout(
-            std::time::Duration::from_secs(20),
-            confirmer_task,
-        )
-        .await
-        .expect("confirmer task 挂起")
-        .expect("confirmer task panic");
+        let accepted = tokio::time::timeout(std::time::Duration::from_secs(20), confirmer_task)
+            .await
+            .expect("confirmer task 挂起")
+            .expect("confirmer task panic");
 
-        let _connected = tokio::time::timeout(
-            std::time::Duration::from_secs(20),
-            initiator_task,
-        )
-        .await
-        .expect("initiator task 挂起")
-        .expect("initiator task panic");
+        let _connected = tokio::time::timeout(std::time::Duration::from_secs(20), initiator_task)
+            .await
+            .expect("initiator task 挂起")
+            .expect("initiator task panic");
 
         assert_eq!(accepted.device_id, initiator_id);
         assert_eq!(accepted.device_name, "New Phone");

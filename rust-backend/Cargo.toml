@@ -21,6 +21,8 @@ uuid = { version = "1", features = ["v7", "serde"] }
 rand = "0.8"
 # 结构化调试日志（debug-log 任务；PlatformSink 经 tracing 输出）
 tracing = "0.1"
+# 签名配对凭证：URL-safe base64（无 padding）编解码
+base64 = "0.22"
 
 [dev-dependencies]
 # 仅测试构建启用：本地 relay 服务器（iroh::test_utils::run_relay_server），

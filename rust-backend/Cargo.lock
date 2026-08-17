@@ -513,6 +513,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "atomic-write-file",
+ "base64",
  "chrono",
  "flutter_rust_bridge",
  "iroh",
