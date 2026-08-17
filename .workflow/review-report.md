@@ -1,235 +1,162 @@
-# Reviewer 独立复验报告 — 任务 P：修复 start_receiver 消费 Store RustArc 缺陷
+# 任务 T2 审核报告 — 标准 443 签名凭证 + Android 平台 + 双端 UI + 最终回归
 
-- 审核时间：2026-08-16
-- 审核对象：worktree `D:/Projects/CardMind/.worktrees/receiver-store-borrow`（分支 `codex/receiver-store-borrow`）
-- 基线提交：`7247d291`（task sheet P）；改动为未提交工作树改动
-- 结论：**PASS-WITH-EXCEPTIONS** —— 21 条验收中 20 条通过；验收 18（Windows+Android 双端配对联调）未执行（环境限制，executor 已如实标注不声称通过，不作为 FAIL 打回）
+审核人：reviewer 子代理（独立实机复验，只报告不修改）
+时间：2026-08-18
+worktree：`D:/Projects/CardMind/.worktrees/signed-pairing-credential`
+分支：`codex/signed-pairing-credential`
 
----
+## 总体结论
 
-## 一、总体结论
+- 必做 1（标准 443 凭证 live test）：**PASS**
+- 必做 2（Android x86_64 integration）：**PASS**
+- 必做 3（双端 UI 自动化）：Windows **PASS**、Android **PASS**、跨设备双端 = **未覆盖**（如实声明）
+- 必做 4（最终回归）：**PASS**（除 debug_log.rs `-w` 门禁非空需决策，见问题清单）
 
-任务 P 的核心缺陷（`start_receiver` 按值消费 `NoteStore`，导致 Dart 侧 RustArc 被 disposed、下一周期 `runSyncCycle` 抛 DroppableDisposedException）已由"API 边界借用 `&NoteStore` + 内部 clone"修复，**reviewer 独立实机复验全部可执行路径通过**：
-
-- 新增 5 个真实 FRB 回归测试全绿（真实 RustLib.init + 真实 dll，无 fake SyncApi）
-- 全量 cargo test 全绿（单进程最大 30.42s < 180s 硬上限）；receiver_continuous_test 14/14
-- flutter test 全量 +110 全绿；flutter analyze 无 error
-- 真实 Windows 平台集成测试通过（2 次真实 60s 周期 cycle 无 disposed）
-- 真实 Android 模拟器集成测试通过（同断言）
-- 真实 dogcloud relay 全链路通过（3.55s）
-- FRB codegen 幂等实机验证（两次运行内容级零新增）
-- git 范围合规：内容级改动仅声明范围；`.gitignore` 无差异；prototype/、sync_scheduler.dart、receiver 核心行为均未动
-
-唯一未通过项：**验收 18** 未执行——executor 已明确"未执行，不声称通过"；我独立核实其环境主张（本机仅 以太网/WLAN(断)/Tailscale 网络接口，无 TAP/ICS 适配器，Android 模拟器默认 NAT 无法 host→guest 直连）成立。按任务单说明（环境限制不作 FAIL 打回），但**终检与交付报告必须保留未覆盖标注**。
-
-代码审查无中/高严重度问题，发现 2 个观察项（见第六节）。
+executor 自检报告（.workflow/executor-report.md）全部关键结论经独立实机复验真实可复现，无虚假声称。本报告所有命令均为 reviewer 本机实跑，输出为真实终端输出。
 
 ---
 
-## 二、验收标准 1–21 逐条复验（以下输出均为 reviewer 独立实机执行所得，非复制 executor 报告）
+## 必做 1：标准 443 签名凭证 live test — PASS
 
-### 红阶段证据（验收 1–3）
-
-- 测试文件 `test/receiver_store_borrow_test.dart` 5 个用例全部使用真实生成绑定：`setUpAll(RustLib.init)`（L53）+ 真实 `createSyncService`/`createNoteStore` + 真实 `api.startReceiver`/`runSyncCycle`/`listPairedDevices`/`storeList`/`noteCreate`/`syncNotesToStore`；`_FakeNetworkMonitor` 仅注入网络状态（恒允许），不替代任何 Rust API——符合验收 3"不能 fake SyncApi 代替缺陷回归"。
-- 红输出格式核实：用例断言均为 `expect(store.isDisposed, isFalse, reason: ...)`（L121/130/147/151/155/185/210/217/221/237/241/246/255）。缺陷 DLL 下 `startReceiver` 按值消费 → `isDisposed==true` → `expect(isDisposed, isFalse)` 失败输出 `Expected: false / Actual: <true>`——与 executor 报告红输出（`Expected: false / Actual: <true>`）逐字一致，红证据真实可信。
-- 红阶段无法重放（实现已落地），但测试文件断言结构 + 红输出格式核对确认红证据非伪造。**验收 1–3 通过**。
-
-### Rust API 边界与 codegen（验收 4–5）
-
-命令：`git diff`（reviewer 实跑）
-
-- `rust-backend/src/api.rs`：`pub async fn start_receiver(svc: &SyncService, store: NoteStore)` → `store: &NoteStore`，函数体 `svc.start_receiver(store.clone()).await`。**只改 API 边界**；`SyncService::start_receiver`（sync.rs）与 store.rs 零改动。
-- `rust-backend/src/frb_generated.rs`：store 解码由 `<NoteStore>::sse_decode` 改为 `RustOpaqueMoi<...NoteStore>::sse_decode` + `lockable_decode_async_ref().await`；调用处 `crate::api::start_receiver(&*api_svc_guard, &*api_store_guard)`（传 `&*`）。参数编码语义与借用一致。
-- `lib/src/rust/frb_generated.dart`：`sse_encode_Auto_Owned_RustOpaque_...NoteStore` → `sse_encode_Auto_Ref_RustOpaque_...NoteStore`。Auto_Ref 语义：不移动/消费 Dart 侧 RustArc。
-- `lib/src/rust/api.dart`：仅文档注释更新（+5 行），Dart 签名 `startReceiver({svc, store})` 不变 → `lib/bridge/sync_scheduler.dart` 无需修改，符合任务单"仅在生成 API 调用形态变化时修改"。
-
-**验收 4–5 通过**。
-
-### 绿阶段回归测试（验收 6–10）
-
-命令：`flutter test test/receiver_store_borrow_test.dart`（reviewer 实跑，约 10s）
-
-```
-00:10 +5: All tests passed!
+### 复验命令（照抄任务单）
+```bash
+cd rust-backend
+cargo test --test live_relay_test live_signed_credential_pairing_over_standard_443_relay -- --ignored --nocapture
+cargo test --test live_relay_test -- --ignored --nocapture   # 同文件全部
 ```
 
-真实日志证据（reviewer 实跑输出摘录，均为脱敏 ids）：
-- 用例 1（验收 6）：`receiver.start action=success` 后 `listPairedDevices` + `storeList` + `runSyncCycle` 连续 3 个 Store API 成功，`store.isDisposed=false`
-- 用例 2（验收 7）：SyncScheduler（真实 FrbSyncApi）start 后两次 `syncNow`，两次 `sync.cycle ... action=end`（ok，无 DroppableDisposedException）
-- 用例 3（验收 8）：stop 后 `storeList`/`noteCreate`/`syncNotesToStore`/读回 成功
-- 用例 4（验收 9）：3 次 start（后两次 `action=already_running`），Store 全程可用
-- 用例 5（验收 10）：start→stop→cycle→查询→写入 全生命周期 `isDisposed=false`
-
-**验收 6–10 通过**（验收 10 说明见第六节观察项 3）。
-
-### Rust 回归（验收 11–12）
-
-命令：`cargo test --test receiver_continuous_test`（reviewer 实跑，11.74s）
-
-```
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.74s
+### 真实输出（单独跑 443 测试，3.54s，退出码 0）
+```text
+[live443] confirmer relay=https://relay.alexc.cn/
+[live443] initiator relay=https://relay.alexc.cn/
+[live443] confirmer id: 2abd8e89…32a225d2
+[live443] credential len=184 code=82…42 expires_at=2026-08-17T17:25:20.730603200+00:00
+[live443] paired: 2abd8e89…32a225d2 <-> 63e7339f…ff16f996
+[live443] confirmer last_seen=2026-08-17T17:15:24.007397500+00:00 (age=0s)
+[live443] initiator last_seen=2026-08-17T17:15:24.041603200+00:00 (age=0s)
+[live443] log pairing.connect action=start transport=relay
+[live443] log pairing.connect action=success transport=relay
+[live443] ✅ 标准 443 relay 签名凭证配对 + 首次同步全链路成功
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 3.54s
 ```
 
-命令：`cargo test`（reviewer 实跑，外层工具超时 600s 兜底）
+### 逐项核对（源码 L179-484 + 实跑双证据）
+| 验收要求 | 证据 | 结论 |
+|---|---|---|
+| relay 严格 https://relay.alexc.cn 不含 :9443 | 源码 L18 RELAY_URL_443=https://relay.alexc.cn；L200-201 两端 relay.txt 写标准 URL；L223-246 断言 urls.len()==1、starts_with、不含 :9443；实跑输出 relay=https://relay.alexc.cn/ | PASS |
+| 两真实持久化 SyncService | L207-220 new_persistent_with_log_sink（真实磁盘目录） | PASS |
+| confirmer 生成签名 credential 不依赖 mDNS | L252 begin_pairing_credential()（无广播调用） | PASS |
+| initiator 只拿 credential 不输 node ID 不调 mDNS | L320 begin_pairing_connect_with_credential(&store, &credential)（凭证内嵌 endpoint） | PASS |
+| request code/nonce 与会话一致 | L286-298 request.code == confirmer_code、request.nonce == nonce_to_hex(&session.nonce) | PASS |
+| 首次全量 push → accept → import | L324-330 accept_push + import_all；实跑 sync.push/sync.receive/sync.import 日志 | PASS |
+| 双方配对记录 | L367-378 list_paired_devices 双向查找 + name 断言 | PASS |
+| 双方 last_seen 非空合理时间窗 | L380-396 age 0-600s 断言；实跑 age=0s | PASS |
+| n1 在 initiator 可读 | L398-405 list_notes any id==n1 | PASS |
+| 结构化日志 transport=relay | L407-444 CollectingSink 断言 pairing.connect start/success transport=relay；实跑两条均 relay | PASS |
+| 产品日志无完整凭证/code/私钥/device id/正文 | L446-475 六项脱敏断言；实跑日志 ids 均掩码 | PASS |
+| 人工 stdout 不打印完整 id/配对码 | 旧测试 L66-79 与 443 测试 L257-266 均 masked；实跑 code=82…42、23…54、id 掩码 | PASS |
+| 双侧 timeout | spawn 内部 120s/90s + join 侧 150s/120s（L281-353） | PASS |
 
+同文件旧 :9443 测试复跑：**2 passed; 0 failed**（3.90s），旧测试 stdout 已脱敏（pairing code: 23…54、confirmer id: dcfa68d8…ae17ac53）✅
+
+---
+
+## 必做 2：Android x86_64 平台 integration — PASS
+
+### 复验命令与真实输出
+```bash
+cd rust-backend
+cargo ndk -t x86_64 -o ../build/android-jni build --release -j 2
 ```
-Running tests\autosync_test.rs ... 8 passed; finished in 10.32s
-Running tests\connect_test.rs ...  7 passed; finished in 30.42s
-Running tests\debug_log_test.rs ... 10 passed; finished in 30.17s
-Running tests\discovery_test.rs ... 2 passed; finished in 6.05s
-Running tests\integration_test.rs ... 2 passed; finished in 0.10s
-Running tests\live_relay_test.rs ... 1 ignored
-Running tests\migration_test.rs ... 2 passed; finished in 0.13s
-Running tests\note_crdt_test.rs ... 10 passed; finished in 0.00s
-Running tests\pairing_test.rs ... 10 passed; finished in 10.21s
-Running tests\receiver_continuous_test.rs ... 14 passed; finished in 10.61s
-Running tests\relay_config_test.rs ... 7 passed; finished in 0.11s
-Running tests\store_test.rs ... 6 passed; finished in 0.01s
-Running tests\sync_service_test.rs ... 5 passed; finished in 0.22s
-Running tests\sync_test.rs ... 1 passed; finished in 0.13s
-Running tests\trash_test.rs ... 13 passed; finished in 0.20s
-（全部 0 failed；单进程最大 30.42s < 180s 硬上限）
+```text
+Building x86_64 (x86_64-linux-android)
+Compiling cardmind-backend v0.1.0 ... Finished `release` profile [optimized] in 29.09s
+Copying libraries to ...build/android-jni
 ```
+产物：`build/android-jni/x86_64/libcardmind_backend.so` = 29,952,184 字节（非空），mtime `8月 18 01:16`（本轮构建后）。
 
-**验收 11–12 通过**。
-
-### Flutter 回归（验收 13–14）
-
-命令：`flutter test --timeout 3m`（reviewer 实跑，约 18s）
-
+```bash
+cd ..
+flutter test integration_test/receiver_platform_test.dart -d emulator-5554 --timeout 3m
 ```
-00:18 +110: All tests passed!
-```
-
-命令：`flutter analyze`（reviewer 实跑，12.9s）
-
-```
-Analyzing receiver-store-borrow...
-No issues found! (ran in 12.9s)
-```
-
-**验收 13–14 通过**。
-
-### FRB codegen 幂等（验收 15）
-
-命令：`flutter_rust_bridge_codegen generate` 连续两次（reviewer 实跑，工具 2.12.0 可用；两次均 `Done!`）
-
-- 第一次运行后：内容级 diff（`git diff --ignore-cr-at-eol --stat`）仅 3 个生成文件变化（api.dart +5 / frb_generated.dart 2 行 / frb_generated.rs +23），与 executor 声明一致
-- 第二次运行后：内容级 diff 与第一次**完全相同**（同 3 文件 +24/-6，零新增），且 `git status` 未出现新的内容级 M 文件——生成输出稳定，幂等成立
-- 说明：复验运行 codegen 后工作树新增 5 个 FRB 文件（store.dart/sync.dart/discovery.dart/frb_generated.io.dart/frb_generated.web.dart）的 M 状态，经 `git diff --ignore-cr-at-eol` 验证**零内容差异**，纯 LF↔CRLF 行尾符噪声（codegen 重写文件的行尾与 git 检出配置不一致），非 executor 改动（见第六节观察项 2）
-
-**验收 15 通过（reviewer 实跑）**。
-
-### 真实平台（验收 16–17）
-
-命令：`flutter test integration_test/receiver_platform_test.dart -d windows`（reviewer 实跑，2:03）
-
-```
-√ Built build\windows\x64\runner\Debug\cardmind.exe
-02:03 +1: All tests passed!
-```
-
-命令：`flutter test integration_test/receiver_platform_test.dart -d emulator-5554`（reviewer 实跑，2:04；模拟器 sdk gphone64 x86 64 / Android 16 在线，`build/android-jni/x86_64/libcardmind_backend.so` 就位）
-
-```
-√ Built build\app\outputs\flutter-apk\app-debug.apk
-Installing build\app\outputs\flutter-apk\app-debug.apk... 2,579ms
+```text
+00:00 +0: real platform: receiver.start success + at least two periodic sync.cycle without disposed
+02:04 +1: (tearDownAll)
 02:04 +1: All tests passed!
 ```
+模拟器：emulator-5554 / Android 16 / ABI x86_64（flutter devices 确认在线）。
 
-测试断言（reviewer 已读代码核对）：`receiver.start` 事件存在且 `action=success`；真实 60s 周期 Timer 触发 ≥2 次 `sync.cycle` 且 `ok=true`、无 `DroppableDisposedException`；`store.isDisposed=false`。两端实跑均通过。
-
-**验收 16–17 通过（reviewer 实跑）**。
-
-### 双端配对联调（验收 18）
-
-**未执行**。executor 已如实标注"未执行，不声称通过"。我独立核实环境主张：
-- `netsh interface show interface`：仅 以太网(Connected) / WLAN(Disconnected) / Tailscale(Connected)——**无 TAP 适配器、无 ICS 接口**
-- Android 模拟器默认 NAT：guest→host 出站可用，但 host→guest 无路由，Windows→Android iroh 直连 push 不可达
-
-与任务 O 相同限制。按任务单说明，环境限制不作为 FAIL 打回理由，但**不并入通过项，交付报告必须保留未覆盖标注**。
-
-### 真实 dogcloud relay（验收 19）
-
-命令：`cargo test --test live_relay_test -- --ignored --nocapture`（reviewer 实跑，3.55s < 180s 上限）
-
-```
-[cardmind:log] ... event=startup.sync_service ... relay_enabled=true relay_host=relay.alexc.cn relay_port=9443
-[cardmind:log] ... event=pairing.connect ... action=success transport=relay peer_name=Trusted PC
-[live] ✅ 配对 + 首次同步经 dogcloud relay 全链路成功
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.55s
-```
-
-**验收 19 通过（reviewer 实跑，真实网络）**。
-
-### 日志脱敏（验收 20）
-
-命令：`flutter test test/debug_log_test.dart`（reviewer 实跑）+ 全量 cargo test 中 debug_log_test.rs
-
-```
-00:00 +10: All tests passed!   （Flutter 侧 10/10，含 redaction 组）
-Rust 侧 debug_log_test.rs 10/10（test_redact_device_id / test_events_never_contain_sensitive_data 均 ok，见全量 cargo test 输出）
-```
-
-新测试与平台测试日志中的 ids 均为 `前8…后8` 脱敏形式（如 `ids=[d2728284…209587ca]`），无配对码/正文/密钥进入结构化日志。观察项：`live_relay_test.rs`（任务 O 既有测试文件，本任务未改动）stdout 的 `println!("[live] pairing code: {code}")` 输出完整配对码与 device id——属测试人工输出非产品日志路径，任务 O 已记录，不阻塞。
-
-**验收 20 通过**。
-
-### git 范围（验收 21）
-
-命令（reviewer 实跑）：`git status --short` + `git diff --ignore-cr-at-eol`
-
-- 内容级改动（`git diff --ignore-cr-at-eol --name-only`）仅 5 个文件：`.workflow/executor-report.md`、`lib/src/rust/api.dart`、`lib/src/rust/frb_generated.dart`、`rust-backend/src/api.rs`、`rust-backend/src/frb_generated.rs`；未跟踪：`integration_test/receiver_platform_test.
-dart`、`test/receiver_store_borrow_test.dart`——全部在声明范围
-- `git diff -- .gitignore` 为空（无差异）
-- `git status -- prototype/ lib/bridge/sync_scheduler.dart rust-backend/src/sync.rs rust-backend/src/store.rs` 为空（未动）
-- 观察项：reviewer 复验运行 flutter test / codegen 后，工作树新增 6 个插件注册文件 + 5 个 FRB 文件的 M 状态，均为行尾符差异（`--ignore-cr-at-eol` 零内容变化），工具运行副产物，非 executor 改动（任务 O 审核记录同样现象）
-
-**验收 21 通过**。
+断言源码核对（receiver_platform_test.dart）：真实 RustLib.init() + createPersistentSyncService + createNoteStore（真实 DLL 非 mock）；L69-72 receiver.start action=success；L85-95 ≥2 sync.cycle ok=true 且 error 链不含 DroppableDisposedException；L96-97 store.isDisposed=false。全部实测通过。
 
 ---
 
-## 三、需决策点核对
+## 必做 3：双端签名凭证 UI 自动化
 
-1. **FRB 不支持 `&NoteStore` opaque 参数生成** —— **未触发**。FRB 2.12.0 实测支持借用参数生成（`Auto_Ref` 编码 + `lockable_decode_async_ref`），无需替代方案。代码级核实：frb_generated.dart 编码为 `Auto_Ref_...NoteStore`，frb_generated.rs 调用处 `&*api_store_guard`。
-2. **改用借用后仍 disposed 且是 svc 被消费** —— **未触发**。实机验证 store 复用成功（3 个 Store API + 2 周期 cycle 全绿），无 disposed。
-3. **平台真实测试无法启动** —— **未触发**。Windows 与 Android 模拟器均真实启动并通过。
+### Windows 平台（-d windows）— PASS
+命令：`flutter test integration_test/pairing_credential_platform_test.dart -d windows --timeout 3m`
+真实输出：`00:04 +2: All tests passed!`；日志含 `pairing.show_code action=start`、`pairing.connect action=start transport=credential`、`discovery action=bypassed mdns_skipped=true`。
+
+### Android 平台（-d emulator-5554）— PASS（实跑，非仅源码审查）
+命令：`flutter test integration_test/pairing_credential_platform_test.dart -d emulator-5554 --timeout 3m`
+真实输出：`00:07 +2: All tests passed!`；日志含 `platform=android ... pairing.connect action=start transport=credential`（真实 Android 设备上真实启动凭证 UI）。
+
+### 同进程双端全链路（Windows）— PASS
+命令：`flutter test integration_test/pairing_credential_dual_end_test.dart -d windows --timeout 3m`
+真实输出：`00:04 +1: All tests passed!`，真实日志关键行：
+```text
+pairing.connect action=start transport=credential
+pairing.request action=received → pairing.confirm action=success
+pairing.connect duration_ms=1253 action=success transport=credential
+[dual-end] confirmer side last_seen=2026-08-17T17:20:24.530744200+00:00
+[dual-end] initiator side last_seen=2026-08-17T17:20:24.592200600+00:00
+sync.initial direction=import action=success
+[dual-end] ✅ 双端凭证 UI 全链路成功（同进程两个真实 endpoint，标准 443 relay）
+```
+源码核对（pairing_credential_dual_end_test.dart）：两个真实 FrbNoteRepository（test_harness.dart 真实 RustLib.init() + FrbNoteRepository.open，非 mock）；两个真实 DevicesPage UI；凭证经系统剪贴板从 A 提取、粘贴进 B；L139-163 双方设备表持久化断言；L166-171 双方 last_seen 非空；L178-187 首次同步 n1；L190-221 双方设备页「在线」+ 对端名称。B 的「添加设备」在 A 模态遮挡期间经 onPressed 直调生产处理器（非 mock），其后全部真实点击/输入。
+### UI 旅程约束核对（源码）
+- 显示页：pair-qr-image（二维码）、pair-code-display（6 位码）、pair-copy-button（复制完整 cm1. 凭证，>100 字符）、pair-regenerate-button、pair-code-countdown ✅
+- 输入页：pair-credential-input 唯一 TextField（findsOneWidget）、无 pair-node-id-input ✅
+- 粘贴/扫描统一解析：cm1 前缀走凭证解析入口，InvalidFormat → 「配对信息格式无效」中文友好文案；非 cm1/非 6 位 → 统一格式提示 ✅
+
+### 跨设备（Windows↔Android）双端 UI — **未覆盖（如实声明）**
+结论：**未覆盖**。原因（源码 + 平台约束）：integration_test 单进程单 app 限制 + 产品配对弹窗为模态 root navigator 对话框（showDialog 默认 barrier 覆盖全窗口），无法在同一进程同时以真实点击驱动两端页面；跨设备凭证传递需双进程编排，超出任务单允许范围。Windows 平台、Android 平台、Rust 443 链路分别独立陈述（各自真实通过），不合并。
 
 ---
 
-## 四、代码审查
+## 必做 4：最终回归 — PASS（除 debug_log -w 门禁，见问题清单）
 
-### 1. api.rs 改动范围 ✅
-`start_receiver` 仅参数由 `NoteStore` 改 `&NoteStore` + 内部 `store.clone()`，并新增任务 P 说明注释。`SyncService::start_receiver`（receiver 核心）零改动；store.rs 零改动。接收器内部仍持有自己的 clone（ReceiverContext），语义不变。
+| 项目 | 复验命令 | 真实输出 | 结论 |
+|---|---|---|---|
+| fmt | `cargo fmt --check` | 无输出，退出码 0 | PASS |
+| Rust check | `cargo check --tests` | Finished dev profile；0 warning | PASS |
+| Rust 按文件 | `cargo test --test <file>` | pairing_credential 13、pairing 10、store 6、note_crdt 10、sync 1、connect 7、autosync 8、debug_log 10、discovery 2、integration 2、migration 2、receiver_continuous 14、relay_config 7、sync_service 5、trash 13 —— 全部 0 failed；live_relay（ignored）2 passed | PASS（数量与 executor 声称完全一致） |
+| Flutter 全套 | `flutter test --concurrency=1 --timeout 3m` | `00:51 +124: All tests passed!` | PASS |
+| analyze | `flutter analyze` | `No issues found!` (16.5s) | PASS |
+| credential 专项 | `flutter test test/pairing_credential_repository_test.dart test/pairing_credential_ui_test.dart` | `00:06 +14: All tests passed!` | PASS |
+| FRB codegen 幂等 | 亲自跑 `flutter_rust_bridge_codegen generate` 两次，每次 `git diff > patch` | 两次 patch blob hash 一致：939d0fceb682b211815dce0fd25bf61ff2b82c04 == 939d0fceb682b211815dce0fd25bf61ff2b82c04（git hash-object 内容级比较）；executor 留下的两个 patch 亦一致：ae02535092d77954ca5afb689b5e490f8910904a == 同 | PASS |
+| .gitignore | `git diff -- .gitignore` | 空输出 | PASS |
+| 换行噪声 | `git diff --name-only` vs `git diff --ignore-all-space --name-only` | 两个文件集合完全一致 → 无纯换行/纯空白变化文件 | PASS |
+| debug_log.rs -w | `git diff -w -- rust-backend/src/debug_log.rs` | **非空**（见问题清单 1） | 需决策 |
+| 范围 | `git diff --name-only HEAD` | 仅任务单允许文件；未触碰 prototype/、.gitnexus/；AndroidManifest 仅加 CAMERA 权限（QR 扫描）；lib/scanner/ 为任务范围内新文件 | PASS |
 
-### 2. codegen 一致性 ✅
-- Dart 编码：`Auto_Owned` → `Auto_Ref`（不消费 Dart RustArc）
-- Rust 解码：owned 解码 → `lockable_decode_async_ref`（借用语义，解码后 `&*guard` 传入）
-- 解码顺序：`lockable_compute_decode_order` 加入 store（index 1），与 svc（index 0）同批计算——两 opaque 均以借用方式取 guard，均不移动。
-
-### 3. 测试真实性 ✅
-5 个回归测试全部使用真实 FRB 绑定 + 真实 RustArc + 真实 dll；无 fake SyncApi；`_FakeNetworkMonitor` 仅注入网络状态（恒允许），属测试隔离手段，不替代缺陷回归。
+FRB codegen 幂等补充：executor 声称的 sha256（db9f203f…）与我实测的 git blob hash（939d0fce…）数值不同，但两者均为「两次生成输出内容完全一致」的等价证明（同一文件内容用任何哈希算法都相同）；我用 git hash-object 独立验证 executor 留下的两个 patch blob hash 相同（ae025350 == ae025350）。无矛盾。
 
 ---
 
-## 五、真实性评估
+## 问题清单
 
-| 项 | 评估 |
-|---|---|
-| executor 报告与实机输出一致性 | 一致（cargo 各套件数量/时长、flutter +110、平台测试 2:03/2:04、relay 3.55s 均吻合；红输出格式与测试断言逐字一致） |
-| 红阶段证据 | 真实（测试文件断言结构 + 红输出格式核对，无法重放因实现已落地） |
-| 验收 18 标注 | 如实（明确"未执行，不声称通过"，未虚报） |
-| 声明范围 vs 实际改动 | 一致（内容级 4 文件修改 + 2 新测试；行尾符噪声为工具副产物非越界） |
+1. **`git diff -w -- rust-backend/src/debug_log.rs` 非空（需决策，非本任务引入）**
+   - 位置：`rust-backend/src/debug_log.rs` L173-180 `redact_device_id` 内 `let suffix` 一行
+   - 证据：diff 显示 `let suffix: String = chars.rev().take(8)...` 单行被 rustfmt 拆为 5 行（7 insertions / 1 deletion），token 序列完全相同，无内容实质变化；`cargo fmt --check` 当前通过（工作区版本 fmt-clean）；HEAD 版本（单行 >120 字符）在无 rustfmt.toml（默认 max_width=100）下必然被当前 rustfmt 拆行
+   - 互斥判断：**成立**。git `-w` 只忽略行内空白，不把「1 行拆 5 行」视为可忽略；当前 rustfmt 又必然拆该行。因此「`git diff -w -- debug_log.rs` 为空」与「`cargo fmt --check` 通过」在本机 git/rustfmt 版本下**不可同时满足**。executor 说明属实（任务 T 遗留，本任务零内容改动）。若要该门禁通过需范围外处理（rustfmt::skip 标注或接受 HEAD 非 fmt-clean），请任务方决策。
+2. **跨设备（Windows↔Android）双端 UI 自动化未覆盖**（任务单允许如实报告）：Windows/Android 平台与 Rust 443 链路各自独立真实通过，见必做 3 结论。
 
-## 六、问题清单
+## 范围核查（越界检查）
 
-| # | 严重度 | 位置 | 问题 | 处置建议 |
-|---|---|---|---|---|
-| 1 | 观察项 | `rust-backend/tests/live_relay_test.rs` | stdout 打印完整 device id / 配对码（任务 O 既有测试文件，非本任务引入、非产品日志路径） | 后续任务清理，不阻塞本次 |
-| 2 | 观察项 | worktree 工作树 | 复验运行 flutter test/codegen 后 6 个插件注册文件 + 5 个 FRB 文件出现行尾符 M（`--ignore-cr-at-eol` 零内容差异） | 提交时按内容级范围 staging；非 executor 改动 |
-| 3 | 说明项 | 验收 10 | `start_receiver` Rust 侧对合法输入无可达 Err 路径（启动仅 clone store + spawn），用例按借用不变式验证完整生命周期下 isDisposed 恒 false | executor 已如实披露，符合任务单"start 返回错误时 Store 仍可用"的回归意图 |
-| 4 | 说明项 | 验收 18 | Windows+Android 双端配对联调未执行（环境无 TAP/ICS、NAT 阻断 host→guest） | 需在具备双端 TAP/ICS 测试网络的环境复验，不并入本次通过项 |
+- `git diff --name-only HEAD`：36 个修改文件 + 9 个新增路径，全部落在任务单允许范围（Rust 核心 / FRB 生成 / UI 页面 / 测试 / 依赖清单 / 平台插件注册 / AndroidManifest CAMERA 权限）。
+- 未触碰 prototype/、.gitnexus/。任务 U worktree 为独立目录，本 worktree diff 不含其路径。
+- 复验过程未修改任何业务/测试/报告文件：git status 前后一致；codegen 幂等未产生新 diff；审查 patch 写入系统 Temp 目录。
 
-## 七、结论
+## 结论
 
-**PASS-WITH-EXCEPTIONS**：21 条验收中 20 条通过（其中验收 15/16/17/19 reviewer 均实机复跑确认）；验收 18 未执行且 executor 如实标注，本环境限制不作 FAIL 打回，但**终检与交付报告必须明确保留"验收 18 未覆盖"标注**。实现正确、测试真实、无越界改动、无中高严重度问题。**可以进入主代理终检**。
+四个必做项：**1 PASS / 2 PASS / 3 PASS(Windows+Android)+未覆盖(跨设备) / 4 PASS(一处需决策)**。executor 报告全部关键声称经独立实机复验真实可复现。唯一需任务方决策项为 debug_log.rs `-w` 门禁互斥问题（任务 T 遗留、非本任务引入）。无 FAIL 项，无需打回。
