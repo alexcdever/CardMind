@@ -139,8 +139,9 @@ pairing.connect action=start|success|failed transport=credential|direct|relay_or
 
 ### `test/pairing_repository_test.dart`
 
-1. `repository pair flow pairs two devices and syncs notes`：生产协议已强制nonce；测试不得构造空/全零nonce。改为通过`beginPairingCredential`解析得到code/node ID/nonce，或从当前session/mDNS公开入口取得nonce，然后完成真实配对。
-2. `bounded accept times out through FRB bridge`：单文件单独执行，`--timeout 3m`；不得与全部Widget并行造成累计超时。若单独仍超过3分钟，停下查根因，不提高上限。
+1. `repository pair flow pairs two devices and syncs notes`：生产协议已强制nonce；测试不得构造空/全零nonce。**固定迁移方式，不得自选**：确认方repository调用`beginPairingCredential()`得到credential；发起方repository先调用`parsePairingCredential(credential)`断言code/node ID/nonce，再调用`beginPairingConnectWithCredential(credential)`；确认方bounded accept/confirm；随后验证双方持久化与首次同步。该真实FRB测试不模拟mDNS、不直接构造PairingTarget。
+2. 6位码+mDNS repository行为已由`pairing_credential_repository_test.dart`中的fake/可观察repository覆盖：PeerInfo提供合法非空nonce，断言discover调用和PairingTarget字段。不得尝试从Rust私有session读取nonce。
+3. `bounded accept times out through FRB bridge`：单文件单独执行，`--timeout 3m`；不得与全部Widget并行造成累计超时。若单独仍超过3分钟，停下查根因，不提高上限。
 
 ## 先红后绿的验收测试
 
