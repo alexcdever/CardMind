@@ -64,12 +64,19 @@ void main() {
             .toList();
         if (started.isNotEmpty) break;
       }
-      final receiverStartEvents =
-          capture.events.where((e) => e.event == 'receiver.start').toList();
-      expect(receiverStartEvents, isNotEmpty,
-          reason: '真实平台启动后应产生 receiver.start 事件');
-      expect(receiverStartEvents.last.fields['action'], 'success',
-          reason: 'receiver.start 必须 success（不得在接收器启动路径消费 store）');
+      final receiverStartEvents = capture.events
+          .where((e) => e.event == 'receiver.start')
+          .toList();
+      expect(
+        receiverStartEvents,
+        isNotEmpty,
+        reason: '真实平台启动后应产生 receiver.start 事件',
+      );
+      expect(
+        receiverStartEvents.last.fields['action'],
+        'success',
+        reason: 'receiver.start 必须 success（不得在接收器启动路径消费 store）',
+      );
 
       // 等待真实 60s 周期 Timer 触发至少两次 sync.cycle（缺陷现场：第二周期抛 disposed）
       final cycleDeadline = DateTime.now().add(const Duration(seconds: 170));
@@ -80,21 +87,33 @@ void main() {
             .toList();
         if (cycles.length >= 2) break;
       }
-      final cycleEvents =
-          capture.events.where((e) => e.event == 'sync.cycle').toList();
-      expect(cycleEvents.length, greaterThanOrEqualTo(2),
-          reason: '真实周期 Timer 应至少触发两次 sync.cycle');
+      final cycleEvents = capture.events
+          .where((e) => e.event == 'sync.cycle')
+          .toList();
+      expect(
+        cycleEvents.length,
+        greaterThanOrEqualTo(2),
+        reason: '真实周期 Timer 应至少触发两次 sync.cycle',
+      );
 
       for (final e in cycleEvents) {
-        expect(e.fields['ok'], 'true',
-            reason: '周期 sync.cycle 不得失败（缺陷现场为 DroppableDisposedException）');
-        expect(e.error, isNull,
-            reason: '周期 sync.cycle 不得携带错误');
-        expect('${e.error} ${e.errorChain}', isNot(contains('DroppableDisposedException')),
-            reason: '任何周期都不得出现 DroppableDisposedException');
+        expect(
+          e.fields['ok'],
+          'true',
+          reason: '周期 sync.cycle 不得失败（缺陷现场为 DroppableDisposedException）',
+        );
+        expect(e.error, isNull, reason: '周期 sync.cycle 不得携带错误');
+        expect(
+          '${e.error} ${e.errorChain}',
+          isNot(contains('DroppableDisposedException')),
+          reason: '任何周期都不得出现 DroppableDisposedException',
+        );
       }
-      expect(store.isDisposed, isFalse,
-          reason: '真实平台周期同步后 Store RustArc 必须仍可用');
+      expect(
+        store.isDisposed,
+        isFalse,
+        reason: '真实平台周期同步后 Store RustArc 必须仍可用',
+      );
 
       // 清理：停止调度器（fire-and-forget 内部 stopReceiver），等待接收任务退出
       // （释放 store clone）后再释放 Rust 对象，避免 dispose 顺序竞争产生噪声。

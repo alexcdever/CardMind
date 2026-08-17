@@ -75,9 +75,7 @@ void main() {
         // 等待接收器任务完全退出（释放其 store clone 后 SQLite 连接才关闭）。
         // 调度器 stop() 是 fire-and-forget，这里必须轮询到 receiver_running=false。
         try {
-          for (var i = 0;
-              i < 40 && await api.receiverRunning(svc: svc);
-              i++) {
+          for (var i = 0; i < 40 && await api.receiverRunning(svc: svc); i++) {
             await Future<void>.delayed(const Duration(milliseconds: 50));
           }
         } catch (_) {}
@@ -118,7 +116,11 @@ void main() {
     final store = await newStore('a.db');
 
     await api.startReceiver(svc: svc, store: store);
-    expect(store.isDisposed, isFalse, reason: 'startReceiver 不得消费 Store RustArc');
+    expect(
+      store.isDisposed,
+      isFalse,
+      reason: 'startReceiver 不得消费 Store RustArc',
+    );
 
     // start 后至少连续调用 3 个使用同一 Store 的 API，均不得抛 disposed
     final paired = await api.listPairedDevices(store: store);
@@ -155,13 +157,17 @@ void main() {
     expect(store.isDisposed, isFalse, reason: '第二个周期 Store 仍可用');
 
     // 周期同步日志必须成功（ok=true），不得出现 DroppableDisposedException
-    final cycleEvents =
-        capture.events.where((e) => e.event == 'sync.cycle').toList();
+    final cycleEvents = capture.events
+        .where((e) => e.event == 'sync.cycle')
+        .toList();
     expect(cycleEvents, isNotEmpty, reason: '应记录至少一个周期同步事件');
     for (final e in cycleEvents) {
       expect(e.fields['ok'], 'true', reason: '周期同步不得失败为 disposed');
       expect(e.error, isNull, reason: '周期同步不得携带 disposed 错误');
-      expect('${e.error} ${e.errorChain}', isNot(contains('DroppableDisposedException')));
+      expect(
+        '${e.error} ${e.errorChain}',
+        isNot(contains('DroppableDisposedException')),
+      );
     }
 
     scheduler.stop();

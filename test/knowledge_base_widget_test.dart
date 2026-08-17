@@ -37,7 +37,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('link-completion-panel')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('link-completion-panel')),
+        findsOneWidget,
+      );
       expect(find.text('Target title'), findsOneWidget);
     });
 
@@ -70,10 +73,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final node = state.document.nodeAtPath(const [0])!;
-      expect(
-        node.delta!.toPlainText(),
-        '[[target-note|Target title]]',
-      );
+      expect(node.delta!.toPlainText(), '[[target-note|Target title]]');
       // 面板已关闭
       expect(find.byKey(const ValueKey('link-completion-panel')), findsNothing);
     });
@@ -99,7 +99,10 @@ void main() {
         Position(path: const [0], offset: '[[Tar'.length),
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('link-completion-panel')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('link-completion-panel')),
+        findsOneWidget,
+      );
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
@@ -126,31 +129,33 @@ void main() {
     testWidgets('lists source titles and greys out dangling backlinks', (
       tester,
     ) async {
-      final repository = MemoryNoteRepository(
-        rows: const [
-          NoteRow(
-            id: 'work-note',
-            title: 'Work note',
-            contentPreview: 'Work body',
-            tags: '',
-            updatedAt: '2026-07-22 05:00:00',
-          ),
-        ],
-        contents: const {'work-note': '# Work note\n\nWork body'},
-      )..backlinks = const [
-          LinkRow(
-            id: 'source-a',
-            title: 'Source A',
-            alias: '',
-            exists: true,
-          ),
-          LinkRow(
-            id: 'gone-source',
-            title: '',
-            alias: '老笔记',
-            exists: false,
-          ),
-        ];
+      final repository =
+          MemoryNoteRepository(
+              rows: const [
+                NoteRow(
+                  id: 'work-note',
+                  title: 'Work note',
+                  contentPreview: 'Work body',
+                  tags: '',
+                  updatedAt: '2026-07-22 05:00:00',
+                ),
+              ],
+              contents: const {'work-note': '# Work note\n\nWork body'},
+            )
+            ..backlinks = const [
+              LinkRow(
+                id: 'source-a',
+                title: 'Source A',
+                alias: '',
+                exists: true,
+              ),
+              LinkRow(
+                id: 'gone-source',
+                title: '',
+                alias: '老笔记',
+                exists: false,
+              ),
+            ];
       await _pumpEditor(tester, repository: repository, noteId: 'work-note');
 
       expect(find.byKey(const ValueKey('backlinks-panel')), findsOneWidget);
@@ -222,9 +227,7 @@ void main() {
             updatedAt: '2026-07-22 05:00:00',
           ),
         ],
-        contents: const {
-          'linky-note': '# Linky note\n\n指向 [[other-note]] 的内容',
-        },
+        contents: const {'linky-note': '# Linky note\n\n指向 [[other-note]] 的内容'},
       );
       await _pumpList(tester, repository);
 

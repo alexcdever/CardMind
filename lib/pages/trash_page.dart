@@ -72,9 +72,9 @@ class _TrashPageState extends State<TrashPage> {
     try {
       await _repository.restore(note.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已恢复「${_displayTitle(note)}」')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('已恢复「${_displayTitle(note)}」')));
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
@@ -112,9 +112,9 @@ class _TrashPageState extends State<TrashPage> {
     try {
       await _repository.purge(note.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('「${_displayTitle(note)}」已彻底删除')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('「${_displayTitle(note)}」已彻底删除')));
       await _load();
     } catch (error) {
       if (!mounted) return;

@@ -56,8 +56,7 @@ void main() {
     expect(line, contains('event=identity.device_id'));
     expect(line, contains('stage=identity'));
     expect(line, contains('ids=['), reason: '日志行应含脱敏 device id 列表');
-    expect(line.contains(realId), isFalse,
-        reason: '真实完整 device id 不得出现在平台日志中');
+    expect(line.contains(realId), isFalse, reason: '真实完整 device id 不得出现在平台日志中');
     expect(
       line,
       contains(DebugLogger.redactDeviceId(realId)),
@@ -66,11 +65,17 @@ void main() {
 
     // 平台字段：Windows 宿主 → windows；Android → android（平台日志采集验证）
     if (Platform.isAndroid) {
-      expect(DebugLogger.instance.platform, 'android',
-          reason: 'Android 上日志 platform 字段应为 android（logcat 采集）');
+      expect(
+        DebugLogger.instance.platform,
+        'android',
+        reason: 'Android 上日志 platform 字段应为 android（logcat 采集）',
+      );
     } else if (Platform.isWindows) {
-      expect(DebugLogger.instance.platform, 'windows',
-          reason: 'Windows 上日志 platform 字段应为 windows');
+      expect(
+        DebugLogger.instance.platform,
+        'windows',
+        reason: 'Windows 上日志 platform 字段应为 windows',
+      );
     }
   });
 }

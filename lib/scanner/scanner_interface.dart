@@ -1,7 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import 'scanner_android_io.dart'
-    if (dart.library.js_interop) 'scanner_stub.dart' as platform;
+    if (dart.library.js_interop) 'scanner_stub.dart'
+    as platform;
 
 /// 扫码结果：text 为识别文本；error 为用户可读错误（权限被拒/相机不可用）；
 /// 两者皆 null 表示用户取消。

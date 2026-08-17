@@ -403,9 +403,7 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Future<void> _close() async {
-    final isBlank =
-        _editorState == null ||
-        _documentMarkdown().trim().isEmpty;
+    final isBlank = _editorState == null || _documentMarkdown().trim().isEmpty;
     final savedId = await _save(notifyParent: false);
     if (mounted && (isBlank || savedId != null)) Navigator.of(context).pop();
   }
@@ -716,9 +714,7 @@ class _EditorPageState extends State<EditorPage> {
                 style: TextStyle(
                   color: dangling ? tokens.mutedInk : tokens.ink,
                   fontSize: 14,
-                  decoration: dangling
-                      ? null
-                      : TextDecoration.underline,
+                  decoration: dangling ? null : TextDecoration.underline,
                   decorationColor: tokens.accent,
                 ),
               ),

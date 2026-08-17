@@ -26,15 +26,15 @@ void main() {
       expect(find.byKey(const ValueKey('note-work-note')), findsNothing);
       expect(find.byKey(const ValueKey('note-life-note')), findsOneWidget);
       expect(repository.rows.any((note) => note.id == 'work-note'), isFalse);
-      expect(
-        repository.trashed.any((note) => note.id == 'work-note'),
-        isTrue,
-      );
+      expect(repository.trashed.any((note) => note.id == 'work-note'), isTrue);
 
       // 回收站入口 → 回收站页出现它
       await tester.tap(find.byKey(const ValueKey('trash-entry')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('trash-item-work-note')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('trash-item-work-note')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('restore returns note to list', (tester) async {
@@ -42,16 +42,16 @@ void main() {
       await repository.softDelete('work-note');
 
       await _pumpTrash(tester, repository);
-      expect(find.byKey(const ValueKey('trash-item-work-note')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('trash-item-work-note')),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(const ValueKey('trash-restore-work-note')));
       await tester.pumpAndSettle();
 
       // 恢复 → 回收站消失、主列表重新可见
-      expect(
-        repository.trashed.any((note) => note.id == 'work-note'),
-        isFalse,
-      );
+      expect(repository.trashed.any((note) => note.id == 'work-note'), isFalse);
       expect(repository.rows.any((note) => note.id == 'work-note'), isTrue);
       expect(find.byKey(const ValueKey('trash-item-work-note')), findsNothing);
     });
@@ -62,7 +62,10 @@ void main() {
       final rowsBefore = repository.rows.length;
 
       await _pumpTrash(tester, repository);
-      expect(find.byKey(const ValueKey('trash-item-work-note')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('trash-item-work-note')),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(const ValueKey('trash-purge-work-note')));
       await tester.pumpAndSettle();

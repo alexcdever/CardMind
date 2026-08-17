@@ -37,7 +37,9 @@ void main() {
       final harness = CardMindIntegrationHarness();
       final dir = await harness.createDataDirectory();
       // 标准 443 relay 配置（连接行为由 Rust 侧读取；本测试不发起真实对端连接）
-      File(p.join(dir, 'relay.txt')).writeAsStringSync('https://relay.alexc.cn');
+      File(
+        p.join(dir, 'relay.txt'),
+      ).writeAsStringSync('https://relay.alexc.cn');
       final repo = await harness.openRepository(dataDirectory: dir);
       addTearDown(() => _disposeHarness(tester, harness));
 
@@ -90,12 +92,13 @@ void main() {
       // 复制 → 系统剪贴板必须是完整 cm1. 凭证（不是 6 位码）
       await tester.tap(find.byKey(const ValueKey('pair-copy-button')));
       final credential = await _readClipboard(tester);
-      expect(credential, startsWith('cm1.'),
-          reason: '剪贴板必须是完整签名凭证（cm1. 前缀）');
-      expect(credential.length, greaterThan(100),
-          reason: '完整凭证应远超 6 位码长度（真实凭证 ~184 字符）');
-      expect(credential, isNot(RegExp(r'^\d{6}$')),
-          reason: '剪贴板不得只是 6 位码');
+      expect(credential, startsWith('cm1.'), reason: '剪贴板必须是完整签名凭证（cm1. 前缀）');
+      expect(
+        credential.length,
+        greaterThan(100),
+        reason: '完整凭证应远超 6 位码长度（真实凭证 ~184 字符）',
+      );
+      expect(credential, isNot(RegExp(r'^\d{6}$')), reason: '剪贴板不得只是 6 位码');
 
       // 关闭弹窗（accept 等待由 Rust 侧有界超时兜底；不阻塞测试）
       await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
@@ -109,7 +112,9 @@ void main() {
     (tester) async {
       final harness = CardMindIntegrationHarness();
       final dir = await harness.createDataDirectory();
-      File(p.join(dir, 'relay.txt')).writeAsStringSync('https://relay.alexc.cn');
+      File(
+        p.join(dir, 'relay.txt'),
+      ).writeAsStringSync('https://relay.alexc.cn');
       final repo = await harness.openRepository(dataDirectory: dir);
       addTearDown(() => _disposeHarness(tester, harness));
 
@@ -145,7 +150,11 @@ void main() {
 
       // 粘贴 cm1 前缀 → 统一走凭证解析入口（真实 FRB/Rust parse）：
       // 非法负载 → InvalidFormat 友好文案（证明粘贴解析不是 6 位码分支）
-      _setFieldText(tester, 'pair-credential-input', 'cm1.not-a-valid-credential');
+      _setFieldText(
+        tester,
+        'pair-credential-input',
+        'cm1.not-a-valid-credential',
+      );
       await tester.tap(find.byKey(const ValueKey('pair-submit')));
       await _waitFor(
         tester,

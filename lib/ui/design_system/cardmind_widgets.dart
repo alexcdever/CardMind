@@ -218,13 +218,12 @@ class CardMindSyncStatus extends StatelessWidget {
   /// 连续失败是否超过 24 小时（决策 18 提示阈值）。
   static const Duration staleThreshold = Duration(hours: 24);
 
-  bool get _stale => lastSyncFailedFor != null && lastSyncFailedFor! > staleThreshold;
+  bool get _stale =>
+      lastSyncFailedFor != null && lastSyncFailedFor! > staleThreshold;
 
   String get _effectiveLabel {
     if (_stale) {
-      return pendingCount > 0
-          ? '长时间未同步 · $pendingCount 篇待同步'
-          : '长时间未同步';
+      return pendingCount > 0 ? '长时间未同步 · $pendingCount 篇待同步' : '长时间未同步';
     }
     if (pendingCount > 0) return '$pendingCount 篇待同步';
     return label;

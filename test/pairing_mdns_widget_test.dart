@@ -305,7 +305,9 @@ void main() {
   });
 
   // ━━ 验收 2：旧 6 位码兼容输入且目标字段留空 → mDNS 自动填充 ━━
-  testWidgets('legacy code requester auto-fills target via mdns', (tester) async {
+  testWidgets('legacy code requester auto-fills target via mdns', (
+    tester,
+  ) async {
     final repository = PairingMdnsRepository()
       ..discoverResult = [
         PeerInfo(
