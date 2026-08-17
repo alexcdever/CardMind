@@ -31,22 +31,31 @@ class DebugEvent {
 
   /// RFC3339 时间戳（UTC）。
   final DateTime timestamp;
+
   /// 平台（"windows" / "android" / "linux" / "test" ...）。
   final String platform;
+
   /// 事件名（如 "relay.config"、"sync.push"）。
   final String event;
+
   /// 当前阶段（如 "sync.init"、"pairing.accept"）。
   final String stage;
+
   /// 已脱敏的 device id 列表（只允许前 8 + 后 8）。
   final List<String> deviceIds;
+
   /// 错误类型与消息（成功事件为 null）。
   final String? error;
+
   /// 完整错误链（`toString()`；成功事件为 null）。
   final String? errorChain;
+
   /// 耗时（毫秒）。
   final int? durationMs;
+
   /// 额外安全字段（count/direction/transport 等）。
   final Map<String, String> fields;
+
   /// verbose 级事件：默认不输出。
   final bool verbose;
 
@@ -85,8 +94,8 @@ class PlatformDebugSink implements DebugSink {
 /// 日志门面（应用单例；测试可注入 sink 断言事件）。
 class DebugLogger {
   DebugLogger({DebugSink? sink, String? platform})
-      : _injectedSink = sink,
-        _injectedPlatform = platform;
+    : _injectedSink = sink,
+      _injectedPlatform = platform;
 
   /// 应用单例。
   static final DebugLogger instance = DebugLogger();
@@ -133,7 +142,8 @@ class DebugLogger {
     return '${id.substring(0, 8)}…${id.substring(id.length - 8)}';
   }
 
-  DebugSink get _sink => _injectedSink ?? (_fallbackSink ??= PlatformDebugSink());
+  DebugSink get _sink =>
+      _injectedSink ?? (_fallbackSink ??= PlatformDebugSink());
 
   /// 输出一条事件；sink 抛异常被吞掉（日志失败不影响主流程）。
   void emit(DebugEvent event) {
@@ -207,7 +217,11 @@ Future<void> initializeBackendWithLogging({
   log.event('startup.rustlib', 'startup', fields: const {'action': 'start'});
   try {
     await rustInit();
-    log.event('startup.rustlib', 'startup', fields: const {'action': 'success'});
+    log.event(
+      'startup.rustlib',
+      'startup',
+      fields: const {'action': 'success'},
+    );
   } catch (e) {
     log.event(
       'startup.rustlib',

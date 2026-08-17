@@ -38,20 +38,25 @@ void main() {
     (tester) async {
       if (Platform.isAndroid) {
         markTestSkipped(
-            '双端 UI 全链路在 Windows 宿主运行（两个真实 endpoint 同进程）；'
-            'Android 单端 UI 见 pairing_credential_platform_test.dart');
+          '双端 UI 全链路在 Windows 宿主运行（两个真实 endpoint 同进程）；'
+          'Android 单端 UI 见 pairing_credential_platform_test.dart',
+        );
         return;
       }
 
       final harness = CardMindIntegrationHarness();
       final dirA = await harness.createDataDirectory();
-      File(p.join(dirA, 'relay.txt')).writeAsStringSync('https://relay.alexc.cn');
+      File(
+        p.join(dirA, 'relay.txt'),
+      ).writeAsStringSync('https://relay.alexc.cn');
       final confirmer = await harness.openRepository(dataDirectory: dirA);
       await confirmer.setDeviceName('Trusted PC');
       await confirmer.createNote('n1', '# From trusted\n\nbody one');
 
       final dirB = await harness.createDataDirectory();
-      File(p.join(dirB, 'relay.txt')).writeAsStringSync('https://relay.alexc.cn');
+      File(
+        p.join(dirB, 'relay.txt'),
+      ).writeAsStringSync('https://relay.alexc.cn');
       final initiator = await harness.openRepository(dataDirectory: dirB);
       await initiator.setDeviceName('New Phone');
 
@@ -100,8 +105,7 @@ void main() {
       // 复制 → 系统剪贴板提取完整凭证
       await tester.tap(find.byKey(const ValueKey('pair-copy-button')));
       final credential = await _readClipboard(tester);
-      expect(credential, startsWith('cm1.'),
-          reason: '剪贴板必须是完整 cm1. 凭证');
+      expect(credential, startsWith('cm1.'), reason: '剪贴板必须是完整 cm1. 凭证');
       expect(credential.length, greaterThan(100));
 
       // ── 发起方（New Phone）：A 弹窗（模态 barrier）遮挡期间，调用生产
@@ -152,37 +156,42 @@ void main() {
       expect(
         confirmerDevices.any((d) => d.name == 'New Phone'),
         isTrue,
-        reason: '确认方设备表应持久化 New Phone（实际: '
+        reason:
+            '确认方设备表应持久化 New Phone（实际: '
             '${confirmerDevices.map((d) => d.name).toList()}）',
       );
       expect(
         initiatorDevices.any((d) => d.name == 'Trusted PC'),
         isTrue,
-        reason: '发起方设备表应持久化 Trusted PC（实际: '
+        reason:
+            '发起方设备表应持久化 Trusted PC（实际: '
             '${initiatorDevices.map((d) => d.name).toList()}）',
       );
 
       // ── 双方 last_seen 非空（配对即更新，不依赖周期同步）──
-      final confirmerRow = confirmerDevices.firstWhere((d) => d.name == 'New Phone');
-      final initiatorRow = initiatorDevices.firstWhere((d) => d.name == 'Trusted PC');
-      expect(confirmerRow.lastSeen, isNotNull,
-          reason: '确认方侧对端 last_seen 必须非空');
-      expect(initiatorRow.lastSeen, isNotNull,
-          reason: '发起方侧对端 last_seen 必须非空');
+      final confirmerRow = confirmerDevices.firstWhere(
+        (d) => d.name == 'New Phone',
+      );
+      final initiatorRow = initiatorDevices.firstWhere(
+        (d) => d.name == 'Trusted PC',
+      );
+      expect(confirmerRow.lastSeen, isNotNull, reason: '确认方侧对端 last_seen 必须非空');
+      expect(initiatorRow.lastSeen, isNotNull, reason: '发起方侧对端 last_seen 必须非空');
       // ignore: avoid_print
       print('[dual-end] confirmer side last_seen=${confirmerRow.lastSeen}');
       // ignore: avoid_print
       print('[dual-end] initiator side last_seen=${initiatorRow.lastSeen}');
 
       // ── 首次同步：发起方 drain 确认方自动推送的全量快照 → n1 到达 ──
-      await initiator
-          .acceptAndImportPush()
-          .timeout(const Duration(seconds: 30));
+      await initiator.acceptAndImportPush().timeout(
+        const Duration(seconds: 30),
+      );
       final notes = await initiator.listNotes();
       expect(
         notes.any((r) => r.id == 'n1'),
         isTrue,
-        reason: '首次同步后发起方应有 n1（实际: '
+        reason:
+            '首次同步后发起方应有 n1（实际: '
             '${notes.map((r) => r.id).toList()}）',
       );
 

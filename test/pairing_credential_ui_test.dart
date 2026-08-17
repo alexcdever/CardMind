@@ -44,7 +44,10 @@ class CredentialUiRepository implements NoteRepository {
     PairingCredentialDisplay(
       code: '111111',
       credential: 'cm1.credential-first',
-      expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
     ),
   ];
 
@@ -81,16 +84,24 @@ class CredentialUiRepository implements NoteRepository {
   }
 
   @override
-  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) async {
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(
+    Duration timeout,
+  ) async {
     acceptCalls++;
     return acceptResult;
   }
 
   @override
-  Future<PairingResult> confirmPairing(String code, PairingRequest requester) async {
+  Future<PairingResult> confirmPairing(
+    String code,
+    PairingRequest requester,
+  ) async {
     confirmCalls++;
     confirmCode = code;
-    return PairingResult(peerId: requester.deviceId, peerName: requester.deviceName);
+    return PairingResult(
+      peerId: requester.deviceId,
+      peerName: requester.deviceName,
+    );
   }
 
   @override
@@ -100,25 +111,35 @@ class CredentialUiRepository implements NoteRepository {
   }
 
   @override
-  Future<PairingResult> beginPairingConnect(String code, PairingTarget target) async {
+  Future<PairingResult> beginPairingConnect(
+    String code,
+    PairingTarget target,
+  ) async {
     connectCalls++;
     return PairingResult(peerId: target.deviceId, peerName: 'Peer');
   }
 
   @override
-  Future<ParsedPairingCredential> parsePairingCredential(String credential) async {
+  Future<ParsedPairingCredential> parsePairingCredential(
+    String credential,
+  ) async {
     parseCalls++;
     if (parseError case final e?) throw e;
     return ParsedPairingCredential(
       code: '111111',
       deviceId: 'parsed-device',
-      expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
       nonce: '11111111111111111111111111111111',
     );
   }
 
   @override
-  Future<PairingResult> beginPairingConnectWithCredential(String credential) async {
+  Future<PairingResult> beginPairingConnectWithCredential(
+    String credential,
+  ) async {
     credentialConnectCalls++;
     lastCredentialArg = credential;
     if (connectError case final e?) throw e;
@@ -214,9 +235,11 @@ Future<void> _openEnterDialog(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('show dialog renders qr code text copy and countdown',
-      (tester) async {
-    final repo = CredentialUiRepository()..acceptResult = null; // 挂起等待，不立即 confirm
+  testWidgets('show dialog renders qr code text copy and countdown', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository()
+      ..acceptResult = null; // 挂起等待，不立即 confirm
     await _pump(tester, repo);
     await _openShowDialog(tester);
 
@@ -232,8 +255,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('regenerate invalidates old display and updates qr and text',
-      (tester) async {
+  testWidgets('regenerate invalidates old display and updates qr and text', (
+    tester,
+  ) async {
     final repo = CredentialUiRepository()
       ..acceptResult = null
       ..credentialSeq = [
@@ -253,12 +277,18 @@ void main() {
       PairingCredentialDisplay(
         code: '111111',
         credential: 'cm1.credential-first',
-        expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
+        expiresAt: DateTime.now()
+            .toUtc()
+            .add(const Duration(minutes: 10))
+            .toIso8601String(),
       ),
       PairingCredentialDisplay(
         code: '222222',
         credential: 'cm1.credential-second',
-        expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
+        expiresAt: DateTime.now()
+            .toUtc()
+            .add(const Duration(minutes: 10))
+            .toIso8601String(),
       ),
     ];
     await _pump(tester, repo);
@@ -278,8 +308,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('enter dialog has one primary field and no node id field',
-      (tester) async {
+  testWidgets('enter dialog has one primary field and no node id field', (
+    tester,
+  ) async {
     final repo = CredentialUiRepository();
     await _pump(tester, repo);
     await _openEnterDialog(tester);
@@ -311,12 +342,23 @@ void main() {
     expect(repo.lastCredentialArg, 'cm1.some-credential-text');
   });
 
-  testWidgets('six digits preserve mdns path and ambiguity messages',
-      (tester) async {
+  testWidgets('six digits preserve mdns path and ambiguity messages', (
+    tester,
+  ) async {
     final repo = CredentialUiRepository()
       ..peers = [
-        const PeerInfo(deviceId: 'dev-a', ip: '192.168.1.2', port: 3456, nonce: ''),
-        const PeerInfo(deviceId: 'dev-b', ip: '192.168.1.3', port: 3456, nonce: ''),
+        const PeerInfo(
+          deviceId: 'dev-a',
+          ip: '192.168.1.2',
+          port: 3456,
+          nonce: '',
+        ),
+        const PeerInfo(
+          deviceId: 'dev-b',
+          ip: '192.168.1.3',
+          port: 3456,
+          nonce: '',
+        ),
       ];
     await _pump(tester, repo);
     await _openEnterDialog(tester);
@@ -358,7 +400,9 @@ void main() {
     expect(repo.lastCredentialArg, 'cm1.scanned-credential');
   });
 
-  testWidgets('scanner permission denied has friendly fallback', (tester) async {
+  testWidgets('scanner permission denied has friendly fallback', (
+    tester,
+  ) async {
     final repo = CredentialUiRepository();
     await _pump(tester, repo);
     await _openEnterDialog(tester);
@@ -385,15 +429,19 @@ void main() {
     expect(find.textContaining('AnyhowException'), findsNothing);
   });
 
-  testWidgets('long credential never overflows desktop or mobile dialog',
-      (tester) async {
+  testWidgets('long credential never overflows desktop or mobile dialog', (
+    tester,
+  ) async {
     final repo = CredentialUiRepository();
     final longCredential = 'cm1.${'A' * 800}';
     repo.credentialSeq = [
       PairingCredentialDisplay(
         code: '111111',
         credential: longCredential,
-        expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
+        expiresAt: DateTime.now()
+            .toUtc()
+            .add(const Duration(minutes: 10))
+            .toIso8601String(),
       ),
     ];
     repo.acceptResult = null;
@@ -416,8 +464,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('accept starts only after credential session is ready',
-      (tester) async {
+  testWidgets('accept starts only after credential session is ready', (
+    tester,
+  ) async {
     final repo = CredentialUiRepository();
     // 挂起 credential 生成：accept 不应在生成完成前启动
     final gate = Completer<void>();
@@ -441,51 +490,59 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('regenerate never leaves two accept loops or confirms with old code',
-      (tester) async {
-    final repo = CredentialUiRepository();
-    // 第一次 accept 立即返回请求（111111），会 confirm 旧码 → 弹窗关闭。
-    // 为验证"重新生成不确认旧码"，让 accept 返回 null（挂起等待），
-    // 这样弹窗保持打开，触发凭证重新生成后再放行 accept。
-    repo.acceptResult = null;
-    repo.credentialSeq = [
-      PairingCredentialDisplay(
+  testWidgets(
+    'regenerate never leaves two accept loops or confirms with old code',
+    (tester) async {
+      final repo = CredentialUiRepository();
+      // 第一次 accept 立即返回请求（111111），会 confirm 旧码 → 弹窗关闭。
+      // 为验证"重新生成不确认旧码"，让 accept 返回 null（挂起等待），
+      // 这样弹窗保持打开，触发凭证重新生成后再放行 accept。
+      repo.acceptResult = null;
+      repo.credentialSeq = [
+        PairingCredentialDisplay(
+          code: '111111',
+          credential: 'cm1.credential-first',
+          expiresAt: DateTime.now()
+              .toUtc()
+              .add(const Duration(minutes: 10))
+              .toIso8601String(),
+        ),
+        PairingCredentialDisplay(
+          code: '222222',
+          credential: 'cm1.credential-second',
+          expiresAt: DateTime.now()
+              .toUtc()
+              .add(const Duration(minutes: 10))
+              .toIso8601String(),
+        ),
+      ];
+
+      await _pump(tester, repo);
+      await _openShowDialog(tester);
+      expect(repo.acceptCalls, 1, reason: '初始 accept 启动一次');
+
+      await tester.tap(find.byKey(const ValueKey('pair-regenerate-button')));
+      await tester.pumpAndSettle();
+
+      expect(repo.credentialCalls, 2, reason: '重新生成调用第二次 credential');
+      expect(repo.acceptCalls, 2, reason: '新 generation 启动新的有界 accept（旧轮次已失效）');
+
+      // 此时若收到请求（旧 code 111111），不得 confirm
+      repo.acceptResult = const PairingRequest(
         code: '111111',
-        credential: 'cm1.credential-first',
-        expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
-      ),
-      PairingCredentialDisplay(
-        code: '222222',
-        credential: 'cm1.credential-second',
-        expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 10)).toIso8601String(),
-      ),
-    ];
+        deviceId: 'initiator-device',
+        deviceName: 'New Phone',
+        relayInfo: '',
+        ips: [],
+        nonce: '11111111111111111111111111111111',
+      );
+      // 触发一轮新 accept 后确认使用的应是当前 display code（222222），
+      // 但旧 111111 请求不匹配应被拒绝。这里通过 confirm 仅当 code 等于当前 display code 断言。
+      expect(repo.confirmCalls, 0, reason: '重新生成后旧 code 请求不得确认');
 
-    await _pump(tester, repo);
-    await _openShowDialog(tester);
-    expect(repo.acceptCalls, 1, reason: '初始 accept 启动一次');
-
-    await tester.tap(find.byKey(const ValueKey('pair-regenerate-button')));
-    await tester.pumpAndSettle();
-
-    expect(repo.credentialCalls, 2, reason: '重新生成调用第二次 credential');
-    expect(repo.acceptCalls, 2, reason: '新 generation 启动新的有界 accept（旧轮次已失效）');
-
-    // 此时若收到请求（旧 code 111111），不得 confirm
-    repo.acceptResult = const PairingRequest(
-      code: '111111',
-      deviceId: 'initiator-device',
-      deviceName: 'New Phone',
-      relayInfo: '',
-      ips: [],
-      nonce: '11111111111111111111111111111111',
-    );
-    // 触发一轮新 accept 后确认使用的应是当前 display code（222222），
-    // 但旧 111111 请求不匹配应被拒绝。这里通过 confirm 仅当 code 等于当前 display code 断言。
-    expect(repo.confirmCalls, 0, reason: '重新生成后旧 code 请求不得确认');
-
-    await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
-    await tester.pumpAndSettle();
-    expect(repo.stopAdvertisingCalls, greaterThanOrEqualTo(1));
-  });
+      await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
+      await tester.pumpAndSettle();
+      expect(repo.stopAdvertisingCalls, greaterThanOrEqualTo(1));
+    },
+  );
 }

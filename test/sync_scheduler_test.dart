@@ -171,7 +171,11 @@ void main() {
     await scheduler.start();
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
-    expect(api.startReceiverCalls, first + 1, reason: '重复 start 仍调用 startReceiver（Rust 幂等）');
+    expect(
+      api.startReceiverCalls,
+      first + 1,
+      reason: '重复 start 仍调用 startReceiver（Rust 幂等）',
+    );
     scheduler.stop();
     monitor.dispose();
   });

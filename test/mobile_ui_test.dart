@@ -348,8 +348,10 @@ class _MemoryNoteRepository implements NoteRepository {
       throw UnimplementedError('pairing not supported by memory fake');
 
   @override
-  Future<PairingResult> beginPairingConnect(String code, PairingTarget target) =>
-      throw UnimplementedError('pairing not supported by memory fake');
+  Future<PairingResult> beginPairingConnect(
+    String code,
+    PairingTarget target,
+  ) => throw UnimplementedError('pairing not supported by memory fake');
 
   @override
   Future<PairingCredentialDisplay> beginPairingCredential() =>

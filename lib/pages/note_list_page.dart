@@ -52,7 +52,8 @@ class _NoteListPageState extends State<NoteListPage> {
 
   /// 调度器：显式注入 > 生产 BridgeHelper 单例。
   SyncScheduler? get _scheduler =>
-      widget.scheduler ?? (widget.repository == null ? BridgeHelper().scheduler : null);
+      widget.scheduler ??
+      (widget.repository == null ? BridgeHelper().scheduler : null);
 
   @override
   void initState() {
@@ -131,14 +132,13 @@ class _NoteListPageState extends State<NoteListPage> {
 
   /// 把 `[[id|alias]]` 渲染为显示文本（alias 缺省用 id）。
   static String _renderLinkSyntax(String text) {
-    return text.replaceAllMapped(
-      RegExp(r'\[\[([^\]|]+)(?:\|([^\]]*))?\]\]'),
-      (match) {
-        final target = match.group(1) ?? '';
-        final alias = match.group(2);
-        return (alias == null || alias.isEmpty) ? target : alias;
-      },
-    );
+    return text.replaceAllMapped(RegExp(r'\[\[([^\]|]+)(?:\|([^\]]*))?\]\]'), (
+      match,
+    ) {
+      final target = match.group(1) ?? '';
+      final alias = match.group(2);
+      return (alias == null || alias.isEmpty) ? target : alias;
+    });
   }
 
   String _preview(NoteRow note) {

@@ -37,8 +37,7 @@ void main() {
     expect(display.code, isNotEmpty);
     expect(display.code.length, 6, reason: '6 位数字配对码');
     expect(RegExp(r'^\d{6}$').hasMatch(display.code), isTrue);
-    expect(display.credential, startsWith('cm1.'),
-        reason: '凭证以 cm1. 前缀开头');
+    expect(display.credential, startsWith('cm1.'), reason: '凭证以 cm1. 前缀开头');
     expect(display.credential.length, greaterThan('cm1.'.length));
     // 过期时间 RFC3339 可解析且在将来
     final expires = DateTime.tryParse(display.expiresAt);
@@ -47,8 +46,7 @@ void main() {
 
     // 凭证能再被解析回来（验签 + 时间窗口），往返不丢字段
     final parsed = await repository.parsePairingCredential(display.credential);
-    expect(parsed.code, display.code,
-        reason: '解析回的 6 位码与显示凭证的码一致');
+    expect(parsed.code, display.code, reason: '解析回的 6 位码与显示凭证的码一致');
     expect(parsed.deviceId, isNotEmpty);
     expect(parsed.nonce, isNotEmpty);
   });
@@ -100,30 +98,34 @@ void main() {
     expect(peers, isA<List<PeerInfo>>());
   });
 
-  test('invalid expired and tampered credential map to friendly errors',
-      () async {
-    final dir = await Directory.systemTemp.createTemp('cardmind_cred4_');
-    final repository = await FrbNoteRepository.open(dataDirectory: dir.path);
-    addTearDown(() {
-      repository.close();
-      if (dir.existsSync()) dir.deleteSync(recursive: true);
-    });
+  test(
+    'invalid expired and tampered credential map to friendly errors',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('cardmind_cred4_');
+      final repository = await FrbNoteRepository.open(dataDirectory: dir.path);
+      addTearDown(() {
+        repository.close();
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
 
-    // 无效格式 → invalidFormat
-    await expectLater(
-      repository.parsePairingCredential('not-a-credential'),
-      throwsA(isA<PairingCredentialException>().having(
-        (e) => e.kind,
-        'kind',
-        PairingCredentialErrorKind.invalidFormat,
-      )),
-    );
+      // 无效格式 → invalidFormat
+      await expectLater(
+        repository.parsePairingCredential('not-a-credential'),
+        throwsA(
+          isA<PairingCredentialException>().having(
+            (e) => e.kind,
+            'kind',
+            PairingCredentialErrorKind.invalidFormat,
+          ),
+        ),
+      );
 
-    // 截断/篡改凭证 → invalidFormat 或 invalidSignature（取决于伪造程度）
-    // 使用一个前缀正确但内容损坏的凭证，确保映射为友好错误而非裸异常。
-    await expectLater(
-      repository.parsePairingCredential('cm1.AAAAA'),
-      throwsA(isA<PairingCredentialException>()),
-    );
-  });
+      // 截断/篡改凭证 → invalidFormat 或 invalidSignature（取决于伪造程度）
+      // 使用一个前缀正确但内容损坏的凭证，确保映射为友好错误而非裸异常。
+      await expectLater(
+        repository.parsePairingCredential('cm1.AAAAA'),
+        throwsA(isA<PairingCredentialException>()),
+      );
+    },
+  );
 }

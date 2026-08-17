@@ -366,7 +366,11 @@ Future<ProcessResult> _run(
   final effectiveExecutable = Platform.isWindows && executable == 'flutter'
       ? 'flutter.bat'
       : executable;
-  return Process.run(effectiveExecutable, arguments, workingDirectory: workingDirectory);
+  return Process.run(
+    effectiveExecutable,
+    arguments,
+    workingDirectory: workingDirectory,
+  );
 }
 
 /// 输出到stdout

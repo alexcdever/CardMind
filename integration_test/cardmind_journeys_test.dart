@@ -26,16 +26,14 @@ void main() {
       await _pump(tester, repository);
 
       expect(find.text('还没有笔记'), findsOneWidget);
-      await _createAndSave(
-        tester,
-        title: '通勤记录',
-        body: '早上的想法。',
-      );
+      await _createAndSave(tester, title: '通勤记录', body: '早上的想法。');
       expect(find.byKey(const ValueKey('note-search-input')), findsOneWidget);
 
       await _detachApp(tester);
       await harness.closeRepository(repository);
-      final reopened = await harness.openRepository(dataDirectory: dataDirectory);
+      final reopened = await harness.openRepository(
+        dataDirectory: dataDirectory,
+      );
       await _pump(tester, reopened);
 
       final note = (await reopened.listNotes()).single;
@@ -67,29 +65,30 @@ void main() {
   });
 
   group('Journey 3: edit and desktop autosave', () {
-    testWidgets('uses the embedded desktop editor to persist the latest input', (
-      tester,
-    ) async {
-      final harness = CardMindIntegrationHarness();
-      final repository = await harness.openRepository();
-      addTearDown(() => _disposeHarness(tester, harness));
+    testWidgets(
+      'uses the embedded desktop editor to persist the latest input',
+      (tester) async {
+        final harness = CardMindIntegrationHarness();
+        final repository = await harness.openRepository();
+        addTearDown(() => _disposeHarness(tester, harness));
 
-      await _pump(tester, repository);
-      await _createAndSave(tester, title: '桌面续写', body: '初始内容。');
-      final note = (await repository.listNotes()).single;
+        await _pump(tester, repository);
+        await _createAndSave(tester, title: '桌面续写', body: '初始内容。');
+        final note = (await repository.listNotes()).single;
 
-      await _pump(tester, repository, const Size(1280, 800));
-      await tester.tap(find.byKey(ValueKey('note-${note.id}')));
-      await tester.pumpAndSettle();
-      await _enterEditorText(tester, '# 桌面续写\n\n自动保存后的内容。');
-      await tester.pump(const Duration(milliseconds: 750));
-      await tester.pumpAndSettle();
+        await _pump(tester, repository, const Size(1280, 800));
+        await tester.tap(find.byKey(ValueKey('note-${note.id}')));
+        await tester.pumpAndSettle();
+        await _enterEditorText(tester, '# 桌面续写\n\n自动保存后的内容。');
+        await tester.pump(const Duration(milliseconds: 750));
+        await tester.pumpAndSettle();
 
-      expect(
-        await repository.getNote(note.id),
-        '# 桌面续写\n\n# 桌面续写\n\n自动保存后的内容。',
-      );
-    });
+        expect(
+          await repository.getNote(note.id),
+          '# 桌面续写\n\n# 桌面续写\n\n自动保存后的内容。',
+        );
+      },
+    );
   });
 
   group('Journey 4: Markdown round-trip', () {

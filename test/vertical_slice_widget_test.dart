@@ -449,9 +449,9 @@ class MemoryNoteRepository implements NoteRepository {
   Future<List<NoteRow>> searchByTag(String tag) async {
     return rows
         .where(
-          (note) => _splitTags(note.tags).any(
-            (item) => item.toLowerCase() == tag.toLowerCase(),
-          ),
+          (note) => _splitTags(
+            note.tags,
+          ).any((item) => item.toLowerCase() == tag.toLowerCase()),
         )
         .toList();
   }
@@ -541,8 +541,10 @@ class MemoryNoteRepository implements NoteRepository {
       throw UnimplementedError('pairing not supported by memory fake');
 
   @override
-  Future<PairingResult> beginPairingConnect(String code, PairingTarget target) =>
-      throw UnimplementedError('pairing not supported by memory fake');
+  Future<PairingResult> beginPairingConnect(
+    String code,
+    PairingTarget target,
+  ) => throw UnimplementedError('pairing not supported by memory fake');
 
   @override
   Future<PairingCredentialDisplay> beginPairingCredential() =>

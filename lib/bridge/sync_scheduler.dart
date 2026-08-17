@@ -165,7 +165,11 @@ class SyncScheduler {
     final log = DebugLogger.instance;
     try {
       await api.startReceiver();
-      log.event('receiver.start', 'receiver', fields: const {'action': 'success'});
+      log.event(
+        'receiver.start',
+        'receiver',
+        fields: const {'action': 'success'},
+      );
     } catch (e) {
       log.event(
         'receiver.start',
@@ -192,7 +196,11 @@ class SyncScheduler {
     final log = DebugLogger.instance;
     try {
       await api.stopReceiver();
-      log.event('receiver.stop', 'receiver', fields: const {'action': 'success'});
+      log.event(
+        'receiver.stop',
+        'receiver',
+        fields: const {'action': 'success'},
+      );
     } catch (e) {
       log.event(
         'receiver.stop',
@@ -293,7 +301,10 @@ class SyncScheduler {
       log.event(
         'sync.push',
         'sync',
-        fields: {'reason': 'manual_push', 'ok': failure == null ? 'true' : 'false'},
+        fields: {
+          'reason': 'manual_push',
+          'ok': failure == null ? 'true' : 'false',
+        },
         error: failure,
         errorChain: failure,
         duration: sw.elapsed,

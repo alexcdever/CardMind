@@ -31,7 +31,11 @@ class BridgeHelper implements NoteRepository {
   Future<void> init() async {
     final log = DebugLogger.instance;
     // 启动事件（验收 2）：SyncService 初始化
-    log.event('startup.sync_service', 'startup', fields: const {'action': 'start'});
+    log.event(
+      'startup.sync_service',
+      'startup',
+      fields: const {'action': 'start'},
+    );
     try {
       final dir = await getApplicationSupportDirectory();
       _repository?.close();
@@ -43,7 +47,11 @@ class BridgeHelper implements NoteRepository {
       // 本机身份（脱敏；事件 #3）
       final id = await _delegate.deviceId();
       log.event('identity.device_id', 'identity', deviceIds: [id]);
-      log.event('startup.sync_service', 'startup', fields: const {'action': 'success'});
+      log.event(
+        'startup.sync_service',
+        'startup',
+        fields: const {'action': 'success'},
+      );
       _startSyncScheduler();
     } catch (e) {
       log.event(

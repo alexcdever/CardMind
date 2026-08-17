@@ -19,14 +19,19 @@ Future<String> resolveJoinerDeviceId({
     return explicitDeviceId;
   }
 
-  final result = await runner('xcrun', const ['simctl', 'list', 'devices', 'booted']);
+  final result = await runner('xcrun', const [
+    'simctl',
+    'list',
+    'devices',
+    'booted',
+  ]);
   if (result.exitCode != 0) {
     throw StateError('failed to query booted iOS simulator: ${result.stderr}');
   }
 
-  final match = RegExp(r'\(([0-9A-F-]{36})\) \(Booted\)').firstMatch(
-    result.stdout.toString(),
-  );
+  final match = RegExp(
+    r'\(([0-9A-F-]{36})\) \(Booted\)',
+  ).firstMatch(result.stdout.toString());
   if (match == null) {
     throw StateError('no booted iOS simulator found');
   }
@@ -47,7 +52,9 @@ Future<String> readIosSimulatorFinalStatus({
       bundleId: bundleId,
       runner: runner,
     );
-    final logFile = File('$container/Library/Application Support/debug_status.log');
+    final logFile = File(
+      '$container/Library/Application Support/debug_status.log',
+    );
     if (logFile.existsSync()) {
       final status = _extractFinalStatus(logFile.readAsStringSync());
       if (status != null) {
@@ -64,10 +71,13 @@ Future<String> _readAppContainer({
   required String bundleId,
   required SimctlRunner runner,
 }) async {
-  final result = await runner(
-    'xcrun',
-    <String>['simctl', 'get_app_container', deviceId, bundleId, 'data'],
-  );
+  final result = await runner('xcrun', <String>[
+    'simctl',
+    'get_app_container',
+    deviceId,
+    bundleId,
+    'data',
+  ]);
   if (result.exitCode != 0) {
     throw StateError('failed to read iOS app container: ${result.stderr}');
   }
