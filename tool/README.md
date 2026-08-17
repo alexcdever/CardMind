@@ -1,6 +1,28 @@
 # CardMind 工具脚本
 
-本目录仅保留两个入口脚本：构建与质量检查。
+本目录保留工具入口：构建、质量检查与本地 Git 质量门禁。
+
+## git_gate.dart - 本地质量门禁 CLI
+
+**用途**: pre-commit 快速相关门禁、pre-push 完整 host suite、计划预览。
+
+```bash
+dart run tool/git_gate.dart pre-commit              # format-first + staged 相关快速检查
+dart run tool/git_gate.dart pre-push                # format-first + 完整 host suite（读 stdin ref 行）
+dart run tool/git_gate.dart full                    # 完整 host suite（独立执行，写缓存）
+dart run tool/git_gate.dart plan --staged           # 打印计划（不执行）
+dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计划
+```
+
+选项：`--dry-run` 只打印不执行；`--files <path...>` 用给定文件代替 staged 文件。
+
+环境变量：
+
+- `SKIP_LOCAL_CHECK=1`：由 `.githooks/` 处理，跳过门禁
+- `CARDMIND_FORCE_FULL_CHECK=1`：忽略 pre-push HEAD 缓存
+- `CARDMIND_GATE_TEST_MODE=1`：测试模式（fake runner，供真实 hook 集成测试）
+
+**设计要点**: format-first 先于一切检查；formatter 改变文件即阻止并提示重新暂存；每个外部进程 3 分钟硬超时；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径），不依赖 tool/build.dart。
 
 ## build.dart - 构建入口
 
