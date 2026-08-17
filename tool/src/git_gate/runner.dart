@@ -37,6 +37,27 @@ typedef Runner =
       Map<String, String>? environment,
     });
 
+/// 真实启动函数签名（可注入 spy 测试；默认 [runWithTimeout]）。
+typedef RealProcessRunner =
+    Future<RunnerResult> Function({
+      required String executable,
+      required List<String> arguments,
+      String? workingDirectory,
+      Map<String, String>? environment,
+      required Duration timeout,
+    });
+
+/// 解析可执行文件：Windows 上精确 `flutter` → `flutter.bat`。
+///
+/// 背景：Dart `Process.start` 在 Windows 上无法启动 Scoop/Flutter 的
+/// extensionless `flutter` shim，而 `flutter.bat` 可以启动。
+/// 只有精确 executable `flutter` 被替换；`flutter_rust_bridge_codegen`、
+/// `dart`、`cargo` 等其它可执行文件不受影响。非 Windows 保持 `flutter`。
+String resolveExecutable(String executable, {required bool isWindows}) {
+  if (isWindows && executable == 'flutter') return 'flutter.bat';
+  return executable;
+}
+
 /// 带硬超时的真实 runner + 测试模式 fake runner。
 class CommandRunner {
   CommandRunner({
@@ -44,7 +65,8 @@ class CommandRunner {
     this.testMode = false,
     this.fakeFail = false,
     this.fakeLog,
-  });
+    RealProcessRunner? realRunner,
+  }) : _realRunner = realRunner ?? runWithTimeout;
 
   static const int timeoutExitCode = kTimeoutExitCode;
 
@@ -52,6 +74,7 @@ class CommandRunner {
   final bool testMode;
   final bool fakeFail;
   final String? fakeLog;
+  final RealProcessRunner _realRunner;
 
   Future<RunnerResult> run(
     String executable,
@@ -60,10 +83,17 @@ class CommandRunner {
     Map<String, String>? environment,
   }) {
     if (testMode) {
+      // 测试模式记录逻辑命令（原始 executable），不掩盖真实解析；
+      // 真实解析只作用于真实启动路径，见下方 resolveExecutable。
       return _fakeRun(executable, arguments, workingDirectory);
     }
-    return runWithTimeout(
-      executable: executable,
+    // 所有真实 runner 入口统一经过解析：参数、cwd、environment 原样保留。
+    final resolved = resolveExecutable(
+      executable,
+      isWindows: Platform.isWindows,
+    );
+    return _realRunner(
+      executable: resolved,
       arguments: arguments,
       workingDirectory: workingDirectory,
       environment: environment,

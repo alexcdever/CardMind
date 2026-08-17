@@ -2,6 +2,7 @@
 // 验收标准每条对应一个用例（用例名带编号与任务单五节对应）。
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../tool/src/git_gate/cache.dart';
@@ -964,4 +965,149 @@ void main() {
       expect(dest.readAsStringSync(), 'content');
     });
   });
+
+  group('windows flutter resolution', () {
+    test('29 精确 executable flutter 在 Windows 解析为 flutter.bat', () {
+      expect(resolveExecutable('flutter', isWindows: true), 'flutter.bat');
+    });
+
+    test('30 非 flutter executable 在 Windows 保持不变', () {
+      expect(resolveExecutable('dart', isWindows: true), 'dart');
+      expect(resolveExecutable('cargo', isWindows: true), 'cargo');
+      expect(
+        resolveExecutable('flutter_rust_bridge_codegen', isWindows: true),
+        'flutter_rust_bridge_codegen',
+      );
+    });
+
+    test('31 非 Windows 平台 flutter 保持 flutter', () {
+      expect(resolveExecutable('flutter', isWindows: false), 'flutter');
+      expect(resolveExecutable('dart', isWindows: false), 'dart');
+    });
+
+    test('32 CommandRunner 真实路径应用解析且参数/cwd/environment 完整保留', () async {
+      final seenExecutables = <String>[];
+      List<String>? seenArgs;
+      String? seenCwd;
+      Map<String, String>? seenEnv;
+      Duration? seenTimeout;
+
+      Future<RunnerResult> spyRunner({
+        required String executable,
+        required List<String> arguments,
+        String? workingDirectory,
+        Map<String, String>? environment,
+        required Duration timeout,
+      }) async {
+        seenExecutables.add(executable);
+        seenArgs = List<String>.of(arguments);
+        seenCwd = workingDirectory;
+        seenEnv = environment;
+        seenTimeout = timeout;
+        return const RunnerResult(
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          timedOut: false,
+          elapsed: Duration.zero,
+        );
+      }
+
+      final runner = CommandRunner(
+        timeout: const Duration(minutes: 3),
+        testMode: false,
+        realRunner: spyRunner,
+      );
+
+      final env = <String, String>{'PATH': '/x', 'FOO': 'bar'};
+      final result = await runner.run(
+        'flutter',
+        <String>['analyze'],
+        workingDirectory: 'C:/repo',
+        environment: env,
+      );
+
+      expect(result.exitCode, 0);
+      expect(
+        seenExecutables.single,
+        Platform.isWindows ? 'flutter.bat' : 'flutter',
+        reason: '真实路径必须经过解析（Windows: flutter → flutter.bat）',
+      );
+      expect(seenArgs, <String>['analyze'], reason: '参数必须原样保留');
+      expect(seenCwd, 'C:/repo', reason: 'cwd 必须原样保留');
+      expect(seenEnv, env, reason: 'environment 必须原样保留');
+      expect(seenTimeout, const Duration(minutes: 3), reason: 'timeout 必须原样保留');
+    });
+
+    test('33 测试模式 fake 记录逻辑命令 flutter（不掩盖真实解析）', () async {
+      final logFile = File(
+        '${Directory.systemTemp.path}/gate_fake_log_${DateTime.now().microsecondsSinceEpoch}.log',
+      );
+      addTearDown(() {
+        try {
+          logFile.deleteSync();
+        } on FileSystemException {
+          // 忽略清理失败
+        }
+      });
+      final runner = CommandRunner(
+        timeout: const Duration(minutes: 3),
+        testMode: true,
+        fakeLog: logFile.path,
+      );
+      await runner.run('flutter', <String>['analyze']);
+      final log = logFile.readAsStringSync();
+      expect(
+        log,
+        contains('FAKE flutter analyze'),
+        reason: 'fake 必须记录逻辑命令 flutter（原始命令可观察）',
+      );
+      expect(
+        log,
+        isNot(contains('flutter.bat')),
+        reason: 'fake 不应掩盖解析：真实解析由 test 32 的 spy 验证',
+      );
+    });
+
+    test('34 Windows smoke: 解析后的 flutter.bat --version 成功（无副作用）', () async {
+      if (!Platform.isWindows) {
+        markTestSkipped('Windows-only smoke');
+        return;
+      }
+      // PATH 中必须存在 flutter.bat；缺失意味着需停下报告，不自行决定
+      final resolved = resolveExecutable('flutter', isWindows: true);
+      expect(resolved, 'flutter.bat');
+      expect(
+        _findInPath('flutter.bat'),
+        isNotNull,
+        reason: 'PATH 中必须存在 flutter.bat（缺失需停下报告）',
+      );
+
+      final runner = CommandRunner(
+        timeout: const Duration(minutes: 3),
+        testMode: false,
+      );
+      final result = await runner.run(resolved, <String>['--version']);
+      // smoke 记录（验收要求）：debugPrint 避免 avoid_print lint
+      debugPrint('resolved executable=$resolved');
+      debugPrint('flutter --version exit=${result.exitCode}');
+      expect(result.timedOut, isFalse, reason: '不得超时（3 分钟硬超时铁律）');
+      expect(
+        result.exitCode,
+        0,
+        reason: 'flutter.bat --version 必须成功: ${result.stderr}',
+      );
+    });
+  });
+}
+
+/// Windows PATH 中查找可执行文件（存在返回完整路径，否则 null）。
+String? _findInPath(String name) {
+  final path = Platform.environment['PATH'] ?? '';
+  for (final dir in path.split(';')) {
+    if (dir.isEmpty) continue;
+    final candidate = '$dir\\$name';
+    if (File(candidate).existsSync()) return candidate;
+  }
+  return null;
 }
