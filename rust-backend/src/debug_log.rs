@@ -173,7 +173,13 @@ pub fn redact_device_id(id: &str) -> String {
     }
     let mut chars = id.chars();
     let prefix: String = chars.by_ref().take(8).collect();
-    let suffix: String = chars.rev().take(8).collect::<Vec<_>>().into_iter().rev().collect();
+    let suffix: String = chars
+        .rev()
+        .take(8)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
     format!("{prefix}…{suffix}")
 }
 

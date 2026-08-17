@@ -30,6 +30,7 @@ async fn pair_up(
     let target = PairingTarget {
         device_id: confirmer.device_id(),
         ips: confirmer.local_addrs(),
+        nonce: confirmer.session_nonce_hex(),
     };
     assert!(!target.ips.is_empty(), "确认方应至少有一个本地 IPv4 地址");
 
@@ -384,6 +385,7 @@ fn test_pairing_wait_does_not_drop_push() {
 
         // B 准备接受新配对（设备 C 加入）：先生成配对码，再进入配对等待轮询
         let code = b.begin_pairing_accept().unwrap();
+        let b_nonce = b.session_nonce_hex();
         let b_id = b.device_id();
         let b_ips = b.local_addrs();
         let b_handle = tokio::spawn(async move {
@@ -414,6 +416,7 @@ fn test_pairing_wait_does_not_drop_push() {
                     PairingTarget {
                         device_id: b_id,
                         ips: b_ips,
+                        nonce: b_nonce,
                     },
                 )
                 .await

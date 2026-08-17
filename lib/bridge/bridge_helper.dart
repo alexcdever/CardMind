@@ -312,6 +312,28 @@ class BridgeHelper implements NoteRepository {
     return _delegate.beginPairingConnect(code, target);
   }
 
+  /// 显示方：生成签名配对凭证并启动 mDNS 广播（组合 API，任务 Q）。
+  @override
+  Future<PairingCredentialDisplay> beginPairingCredential() async {
+    return _delegate.beginPairingCredential();
+  }
+
+  /// 发起方：解析并验证配对信息字符串（稳定错误映射）。
+  @override
+  Future<ParsedPairingCredential> parsePairingCredential(
+    String credential,
+  ) async {
+    return _delegate.parsePairingCredential(credential);
+  }
+
+  /// 发起方：凭证垂直入口（验证 + 直连/relay 连接，禁止 mDNS）。
+  @override
+  Future<PairingResult> beginPairingConnectWithCredential(
+    String credential,
+  ) async {
+    return _delegate.beginPairingConnectWithCredential(credential);
+  }
+
   /// 发起方：接受并导入确认方推送的全量快照。
   @override
   Future<void> acceptAndImportPush() async {

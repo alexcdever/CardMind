@@ -17,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// - 1. 确认方（显示码）：开启后 mDNS 广播（start_advertising），关闭后停止
 /// - 2. 发起方（输入码）：设备 ID 留空 → mDNS 发现自动填充 target.deviceId
 /// - 3. 发起方：mDNS 无结果 → 友好错误文案（不出现 AnyhowException 字样）
-/// - 4. 发起方：手动填 ID → 跳过 mDNS 直接用填写值
+/// - 4. 发起方：输入签名凭证 → 跳过 mDNS 直接走凭证连接
 /// - 5. 确认方：显示码弹窗直接关闭 → stop_advertising 被调用
 ///
 /// 每条验收标准 = 一个测试用例（红-绿-蓝循环）。
@@ -44,6 +44,17 @@ class PairingMdnsRepository implements NoteRepository {
   Object? discoverError;
 
   String connectPeerName = 'New Phone';
+
+  // ━━ 凭证 fake 数据（任务 Q）━━
+  String credentialCode = '289260';
+  String credentialText = 'cm1.credential-fake-text';
+  String credentialExpiresAt = DateTime.now()
+      .toUtc()
+      .add(const Duration(minutes: 10))
+      .toIso8601String();
+  int credentialCalls = 0;
+  int credentialConnectCalls = 0;
+  Object? credentialConnectError;
 
   @override
   Future<List<PairedDeviceRow>> listPairedDevices() async => [];
@@ -95,6 +106,38 @@ class PairingMdnsRepository implements NoteRepository {
       throw AnyhowException('invalid target endpoint id — invalid length');
     }
     return PairingResult(peerId: target.deviceId, peerName: connectPeerName);
+  }
+
+  @override
+  Future<PairingCredentialDisplay> beginPairingCredential() async {
+    credentialCalls++;
+    advertisingStarted = true;
+    return PairingCredentialDisplay(
+      code: credentialCode,
+      credential: credentialText,
+      expiresAt: credentialExpiresAt,
+    );
+  }
+
+  @override
+  Future<ParsedPairingCredential> parsePairingCredential(
+    String credential,
+  ) async {
+    return ParsedPairingCredential(
+      code: credentialCode,
+      deviceId: 'parsed-device',
+      expiresAt: credentialExpiresAt,
+      nonce: '11111111111111111111111111111111',
+    );
+  }
+
+  @override
+  Future<PairingResult> beginPairingConnectWithCredential(
+    String credential,
+  ) async {
+    credentialConnectCalls++;
+    if (credentialConnectError case final error?) throw error;
+    return PairingResult(peerId: 'parsed-device', peerName: connectPeerName);
   }
 
   @override
@@ -213,7 +256,7 @@ void main() {
 
     // 用户只输入配对码，设备 ID 留空（复现实机缺陷路径）
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
+      find.byKey(const ValueKey('pair-credential-input')),
       '289260',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
@@ -243,7 +286,7 @@ void main() {
     await _pumpDevicesPage(tester, repository);
     await _openShowCodeDialog(tester);
 
-    expect(repository.acceptCodeCalls, 1, reason: '显示码模式应调用配对码生成（组合 API 内含广播）');
+    expect(repository.credentialCalls, 1, reason: '显示码模式应调用凭证生成（组合 API 内含广播）');
     expect(
       repository.advertisingStarted,
       isTrue,
@@ -261,28 +304,29 @@ void main() {
     );
   });
 
-  // ━━ 验收 2：发起方设备 ID 留空 → mDNS 自动填充 ━━
-  testWidgets('requester auto-fills device id via mdns', (tester) async {
+  // ━━ 验收 2：旧 6 位码兼容输入且目标字段留空 → mDNS 自动填充 ━━
+  testWidgets('legacy code requester auto-fills target via mdns', (tester) async {
     final repository = PairingMdnsRepository()
       ..discoverResult = [
         PeerInfo(
           deviceId: 'mdns-found-device',
           ip: '192.168.1.42',
           port: 11223,
+          nonce: 'nonce-a',
         ),
       ];
     await _pumpDevicesPage(tester, repository);
     await _openEnterCodeDialog(tester);
 
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
+      find.byKey(const ValueKey('pair-credential-input')),
       '289260',
     );
-    // 设备 ID 留空
+    // 凭证/目标字段留空，保持旧 6 位码兼容路径
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
     await tester.pumpAndSettle();
 
-    expect(repository.discoverCalls, 1, reason: '设备 ID 留空时应先做 mDNS 扫描');
+    expect(repository.discoverCalls, 1, reason: '旧 6 位码目标字段留空时应先做 mDNS 扫描');
     expect(repository.connectCalls, 1, reason: '发现设备后应继续配对连接');
     expect(
       repository.connectTarget?.deviceId,
@@ -303,7 +347,7 @@ void main() {
     await _openEnterCodeDialog(tester);
 
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
+      find.byKey(const ValueKey('pair-credential-input')),
       '289260',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
@@ -312,7 +356,7 @@ void main() {
     expect(
       find.textContaining('未在局域网发现'),
       findsOneWidget,
-      reason: 'mDNS 无结果时应提示用户检查网络或手动填写',
+      reason: 'mDNS 无结果时应提示用户检查网络或改用签名凭证',
     );
     expect(
       find.textContaining('AnyhowException'),
@@ -322,36 +366,29 @@ void main() {
     expect(repository.connectCalls, 0, reason: 'mDNS 无结果时不应发起连接');
   });
 
-  // ━━ 验收 4：手动填 ID 时跳过 mDNS ━━
-  testWidgets('requester uses manual device id when provided', (tester) async {
+  // ━━ 验收 4：输入签名凭证时跳过 mDNS ━━
+  testWidgets('requester uses signed credential without mDNS', (tester) async {
     final repository = PairingMdnsRepository()
       ..discoverResult = [
         PeerInfo(
           deviceId: 'should-not-be-used',
           ip: '192.168.1.99',
           port: 9999,
+          nonce: '',
         ),
       ];
     await _pumpDevicesPage(tester, repository);
     await _openEnterCodeDialog(tester);
 
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
-      '289260',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('pair-peer-id-input')),
-      'manual-device-id',
+      find.byKey(const ValueKey('pair-credential-input')),
+      'cm1.signed-credential',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
     await tester.pumpAndSettle();
 
-    expect(repository.discoverCalls, 0, reason: '手动填写设备 ID 时应跳过 mDNS 扫描');
-    expect(
-      repository.connectTarget?.deviceId,
-      'manual-device-id',
-      reason: 'beginPairingConnect 应使用手动填写的 device_id',
-    );
+    expect(repository.discoverCalls, 0, reason: '凭证输入时应跳过 mDNS 扫描');
+    expect(repository.credentialConnectCalls, 1);
   });
 
   // ━━ 验收 5：显示码弹窗直接关闭 → 停止广播 ━━
@@ -369,20 +406,20 @@ void main() {
     expect(repository.advertisingStopped, isTrue, reason: '显示码弹窗关闭应停止 mDNS 广播');
   });
 
-  // ━━ 附加：mDNS 发现多台设备时不静默取第一台（需决策点 1 的处理）━━
+  // ━━ 附加：旧 6 位码 mDNS 发现多台设备时不静默取第一台 ━━
   testWidgets('requester shows guidance when multiple mdns devices found', (
     tester,
   ) async {
     final repository = PairingMdnsRepository()
       ..discoverResult = [
-        PeerInfo(deviceId: 'device-a', ip: '10.0.0.2', port: 11223),
-        PeerInfo(deviceId: 'device-b', ip: '10.0.0.3', port: 11223),
+        PeerInfo(deviceId: 'device-a', ip: '10.0.0.2', port: 11223, nonce: ''),
+        PeerInfo(deviceId: 'device-b', ip: '10.0.0.3', port: 11223, nonce: ''),
       ];
     await _pumpDevicesPage(tester, repository);
     await _openEnterCodeDialog(tester);
 
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
+      find.byKey(const ValueKey('pair-credential-input')),
       '289260',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
@@ -391,7 +428,7 @@ void main() {
     expect(
       find.textContaining('多台'),
       findsOneWidget,
-      reason: '发现多台设备时不应静默取第一台，应引导手动填写',
+      reason: '发现多台设备时不应静默取第一台，应引导用户改用签名凭证',
     );
     expect(repository.connectCalls, 0, reason: '多台设备歧义时不应发起连接');
   });

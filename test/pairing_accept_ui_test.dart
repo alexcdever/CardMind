@@ -23,7 +23,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 5. accept failure is visible and recoverable
 /// 6. accept timeout is bounded
 /// 7. reopen does not duplicate accept loops
-/// 8. manual relay pairing UI path
+/// 8. signed credential relay pairing UI path
 
 // ━━ fake ━━
 
@@ -40,6 +40,7 @@ class PairingAcceptRepository implements NoteRepository {
     deviceName: 'New Phone',
     relayInfo: '',
     ips: [],
+    nonce: '',
   );
 
   // ━━ 调用轨迹 ━━
@@ -48,6 +49,8 @@ class PairingAcceptRepository implements NoteRepository {
   int connectCalls = 0;
   int discoverCalls = 0;
   int listPairedCalls = 0;
+  int credentialCalls = 0;
+  int credentialConnectCalls = 0;
   String? confirmCode;
   PairingRequest? confirmRequester;
   Duration? acceptTimeoutArg;
@@ -55,6 +58,10 @@ class PairingAcceptRepository implements NoteRepository {
   PairingTarget? connectTarget;
   bool advertisingStarted = false;
   bool advertisingStopped = false;
+
+  // ━━ 凭证 fake 数据（任务 Q）━━
+  String credentialCode = '289260';
+  String credentialText = 'cm1.credential-fake-text';
 
   // ━━ 行为控制 ━━
   /// accept 返回的请求；null 表示超时。优先级低于 [acceptError] 与 [acceptGate]。
@@ -106,7 +113,10 @@ class PairingAcceptRepository implements NoteRepository {
     confirmCode = code;
     confirmRequester = requester;
     if (confirmError case final error?) throw error;
-    return PairingResult(peerId: requester.deviceId, peerName: requester.deviceName);
+    return PairingResult(
+      peerId: requester.deviceId,
+      peerName: requester.deviceName,
+    );
   }
 
   @override
@@ -130,6 +140,43 @@ class PairingAcceptRepository implements NoteRepository {
     connectCode = code;
     connectTarget = target;
     return PairingResult(peerId: target.deviceId, peerName: 'Android Phone');
+  }
+
+  @override
+  Future<PairingCredentialDisplay> beginPairingCredential() async {
+    credentialCalls++;
+    advertisingStarted = true;
+    return PairingCredentialDisplay(
+      code: credentialCode,
+      credential: credentialText,
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
+    );
+  }
+
+  @override
+  Future<ParsedPairingCredential> parsePairingCredential(
+    String credential,
+  ) async {
+    return ParsedPairingCredential(
+      code: credentialCode,
+      deviceId: 'parsed-device',
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
+      nonce: '11111111111111111111111111111111',
+    );
+  }
+
+  @override
+  Future<PairingResult> beginPairingConnectWithCredential(
+    String credential,
+  ) async {
+    credentialConnectCalls++;
+    return PairingResult(peerId: 'parsed-device', peerName: 'Trusted PC');
   }
 
   @override
@@ -248,11 +295,7 @@ void main() {
       1,
       reason: '显示码后应启动确认方接收器（acceptPairingRequestWithTimeout）',
     );
-    expect(
-      repository.acceptTimeoutArg,
-      isNotNull,
-      reason: '接收器应带有界时限（不得无限阻塞）',
-    );
+    expect(repository.acceptTimeoutArg, isNotNull, reason: '接收器应带有界时限（不得无限阻塞）');
     expect(find.text('289260'), findsOneWidget, reason: '弹窗应展示配对码');
 
     // 清理：关闭弹窗（accept 挂起被释放，见验收 4/7）
@@ -276,11 +319,7 @@ void main() {
       1,
       reason: '收到配对请求后应调用 confirmPairing 完成配对',
     );
-    expect(
-      repository.confirmCode,
-      '289260',
-      reason: 'confirm 应使用弹窗展示的 6 位配对码',
-    );
+    expect(repository.confirmCode, '289260', reason: 'confirm 应使用弹窗展示的 6 位配对码');
     expect(
       repository.confirmRequester?.deviceId,
       'initiator-device',
@@ -342,11 +381,7 @@ void main() {
     // 取消后 accept 才返回请求：不得 confirm，也不得向已卸载 widget 调 setState
     repository.acceptGate!.complete(PairingAcceptRepository.sampleRequest());
     await tester.pumpAndSettle();
-    expect(
-      repository.confirmCalls,
-      0,
-      reason: '取消后收到请求不得调用 confirmPairing',
-    );
+    expect(repository.confirmCalls, 0, reason: '取消后收到请求不得调用 confirmPairing');
     expect(tester.takeException(), isNull, reason: '不得向已卸载 widget 调 setState');
   });
 
@@ -407,11 +442,7 @@ void main() {
       reason: '超过设定时限应结束等待并显示超时错误',
     );
     expect(find.textContaining('等待配对超时'), findsOneWidget);
-    expect(
-      repository.advertisingStopped,
-      isTrue,
-      reason: '等待超时后应停止广播（设计目标 5）',
-    );
+    expect(repository.advertisingStopped, isTrue, reason: '等待超时后应停止广播（设计目标 5）');
 
     // 关闭弹窗（收尾路径仍停止广播，幂等）
     await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
@@ -433,11 +464,7 @@ void main() {
 
     // 第二次打开
     await _openShowCodeDialog(tester);
-    expect(
-      repository.acceptCalls,
-      2,
-      reason: '重复打开各启动一个接收器（不叠加/不复制）',
-    );
+    expect(repository.acceptCalls, 2, reason: '重复打开各启动一个接收器（不叠加/不复制）');
 
     // 两个挂起的 accept future 同时完成：只有活着的弹窗 confirm
     repository.acceptGate!.complete(PairingAcceptRepository.sampleRequest());
@@ -454,15 +481,11 @@ void main() {
       findsNothing,
       reason: '配对成功弹窗应关闭',
     );
-    expect(
-      repository.advertisingStopped,
-      isTrue,
-      reason: '配对成功后页面收尾停止广播',
-    );
+    expect(repository.advertisingStopped, isTrue, reason: '配对成功后页面收尾停止广播');
   });
 
-  // ━━ 验收 8：手动 relay 配对 UI 路径（双方 API 调用链完整） ━━
-  testWidgets('manual relay pairing UI path', (tester) async {
+  // ━━ 验收 8：签名凭证 relay 配对 UI 路径（双方 API 调用链完整） ━━
+  testWidgets('signed credential relay pairing UI path', (tester) async {
     final repository = PairingAcceptRepository();
     await _pumpDevicesPage(tester, repository);
 
@@ -473,35 +496,22 @@ void main() {
     expect(repository.confirmCalls, 1, reason: '确认方应 confirm 发起方请求');
     expect(repository.confirmCode, '289260');
 
-    // 发起方：手动填写 device ID（relay 跨网段路径）→ 不走 mDNS
+    // 发起方：粘贴签名凭证（relay 跨网段路径）→ 不走 mDNS
     await _openEnterCodeDialog(tester);
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
-      '289260',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('pair-peer-id-input')),
-      '88807ca277ea4977cfe5270dea86110c974186d9492da3f58be031a0fae303d5',
+      find.byKey(const ValueKey('pair-credential-input')),
+      'cm1.credential-fake-text',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
     await tester.pumpAndSettle();
 
+    expect(repository.discoverCalls, 0, reason: '输入签名凭证时不走 mDNS 扫描');
     expect(
-      repository.discoverCalls,
-      0,
-      reason: '已填写 device ID 时不走 mDNS 扫描',
-    );
-    expect(
-      repository.connectCalls,
+      repository.credentialConnectCalls,
       1,
-      reason: '发起方应调用 beginPairingConnect（relay 路径）',
+      reason: '发起方应调用 beginPairingConnectWithCredential（relay 路径）',
     );
-    expect(
-      repository.connectTarget?.deviceId,
-      '88807ca277ea4977cfe5270dea86110c974186d9492da3f58be031a0fae303d5',
-      reason: 'connect 应使用手动填写的 device ID',
-    );
-    expect(repository.connectCode, '289260', reason: 'connect 应携带对方显示的码');
+    expect(repository.discoverCalls, 0);
     expect(find.textContaining('配对成功'), findsWidgets, reason: '发起方配对成功提示');
   });
 }

@@ -41,7 +41,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1274355442;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1268344090;
 
 // Section: executor
 
@@ -503,6 +503,187 @@ fn wire__crate__api__begin_pairing_connect_impl(
                             api_target,
                         )
                         .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__begin_pairing_connect_with_credential_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "begin_pairing_connect_with_credential",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            let api_store = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_credential = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::sync::PairingCredentialError>(
+                    (move || async move {
+                        let mut api_svc_guard = None;
+                        let mut api_store_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_svc, 0, false,
+                                    ),
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_store, 1, false,
+                                    ),
+                                ],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_svc_guard = Some(api_svc.lockable_decode_async_ref().await)
+                                }
+                                1 => {
+                                    api_store_guard =
+                                        Some(api_store.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let api_store_guard = api_store_guard.unwrap();
+                        let output_ok = crate::api::begin_pairing_connect_with_credential(
+                            &*api_svc_guard,
+                            &*api_store_guard,
+                            api_credential,
+                        )
+                        .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__begin_pairing_credential_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "begin_pairing_credential",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || {
+                        let mut api_svc_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_svc, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => api_svc_guard = Some(api_svc.lockable_decode_sync_ref()),
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let output_ok = crate::api::begin_pairing_credential(&*api_svc_guard)?;
+                        Ok(output_ok)
+                    })(),
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__begin_pairing_credential_with_advertising_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "begin_pairing_credential_with_advertising",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let mut api_svc_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_svc, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_svc_guard = Some(api_svc.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let output_ok =
+                            crate::api::begin_pairing_credential_with_advertising(&*api_svc_guard)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1608,6 +1789,57 @@ fn wire__crate__api__note_update_metadata_impl(
         },
     )
 }
+fn wire__crate__api__parse_pairing_credential_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "parse_pairing_credential",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            let api_credential = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::sync::PairingCredentialError>((move || {
+                    let mut api_svc_guard = None;
+                    let decode_indices_ =
+                        flutter_rust_bridge::for_generated::lockable_compute_decode_order(vec![
+                            flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                &api_svc, 0, false,
+                            ),
+                        ]);
+                    for i in decode_indices_ {
+                        match i {
+                            0 => api_svc_guard = Some(api_svc.lockable_decode_sync_ref()),
+                            _ => unreachable!(),
+                        }
+                    }
+                    let api_svc_guard = api_svc_guard.unwrap();
+                    let output_ok =
+                        crate::api::parse_pairing_credential(&*api_svc_guard, api_credential)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__pending_sync_count_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2304,6 +2536,7 @@ fn wire__crate__api__start_advertising_impl(
             >>::sse_decode(&mut deserializer);
             let api_device_id = <String>::sse_decode(&mut deserializer);
             let api_port = <u16>::sse_decode(&mut deserializer);
+            let api_nonce = <String>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -2326,6 +2559,7 @@ fn wire__crate__api__start_advertising_impl(
                             &mut *api_disc_guard,
                             api_device_id,
                             api_port,
+                            api_nonce,
                         )?;
                         Ok(output_ok)
                     })(),
@@ -2925,6 +3159,13 @@ impl SseDecode for crate::sync::DevicePushResult {
     }
 }
 
+impl SseDecode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
 impl SseDecode for i64 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3113,6 +3354,48 @@ impl SseDecode for crate::store::PairedDeviceRow {
     }
 }
 
+impl SseDecode for crate::sync::PairingCredentialDisplay {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_code = <String>::sse_decode(deserializer);
+        let mut var_credential = <String>::sse_decode(deserializer);
+        let mut var_expiresAt = <String>::sse_decode(deserializer);
+        return crate::sync::PairingCredentialDisplay {
+            code: var_code,
+            credential: var_credential,
+            expires_at: var_expiresAt,
+        };
+    }
+}
+
+impl SseDecode for crate::sync::PairingCredentialError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind = <crate::sync::PairingCredentialErrorKind>::sse_decode(deserializer);
+        let mut var_message = <String>::sse_decode(deserializer);
+        return crate::sync::PairingCredentialError {
+            kind: var_kind,
+            message: var_message,
+        };
+    }
+}
+
+impl SseDecode for crate::sync::PairingCredentialErrorKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::sync::PairingCredentialErrorKind::InvalidFormat,
+            1 => crate::sync::PairingCredentialErrorKind::InvalidSignature,
+            2 => crate::sync::PairingCredentialErrorKind::Expired,
+            3 => crate::sync::PairingCredentialErrorKind::UsedOrReplaced,
+            4 => crate::sync::PairingCredentialErrorKind::Unreachable,
+            5 => crate::sync::PairingCredentialErrorKind::Internal,
+            _ => unreachable!("Invalid variant for PairingCredentialErrorKind: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::sync::PairingRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3121,12 +3404,14 @@ impl SseDecode for crate::sync::PairingRequest {
         let mut var_deviceName = <String>::sse_decode(deserializer);
         let mut var_relayInfo = <String>::sse_decode(deserializer);
         let mut var_ips = <Vec<String>>::sse_decode(deserializer);
+        let mut var_nonce = <String>::sse_decode(deserializer);
         return crate::sync::PairingRequest {
             code: var_code,
             device_id: var_deviceId,
             device_name: var_deviceName,
             relay_info: var_relayInfo,
             ips: var_ips,
+            nonce: var_nonce,
         };
     }
 }
@@ -3148,9 +3433,27 @@ impl SseDecode for crate::sync::PairingTarget {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_deviceId = <String>::sse_decode(deserializer);
         let mut var_ips = <Vec<String>>::sse_decode(deserializer);
+        let mut var_nonce = <String>::sse_decode(deserializer);
         return crate::sync::PairingTarget {
             device_id: var_deviceId,
             ips: var_ips,
+            nonce: var_nonce,
+        };
+    }
+}
+
+impl SseDecode for crate::sync::ParsedPairingCredential {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_code = <String>::sse_decode(deserializer);
+        let mut var_deviceId = <String>::sse_decode(deserializer);
+        let mut var_expiresAt = <String>::sse_decode(deserializer);
+        let mut var_nonce = <String>::sse_decode(deserializer);
+        return crate::sync::ParsedPairingCredential {
+            code: var_code,
+            device_id: var_deviceId,
+            expires_at: var_expiresAt,
+            nonce: var_nonce,
         };
     }
 }
@@ -3161,10 +3464,12 @@ impl SseDecode for crate::discovery::PeerInfo {
         let mut var_deviceId = <String>::sse_decode(deserializer);
         let mut var_ip = <String>::sse_decode(deserializer);
         let mut var_port = <u16>::sse_decode(deserializer);
+        let mut var_nonce = <String>::sse_decode(deserializer);
         return crate::discovery::PeerInfo {
             device_id: var_deviceId,
             ip: var_ip,
             port: var_port,
+            nonce: var_nonce,
         };
     }
 }
@@ -3225,13 +3530,6 @@ impl SseDecode for usize {
     }
 }
 
-impl SseDecode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_i32::<NativeEndian>().unwrap()
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -3259,52 +3557,66 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         8 => wire__crate__api__begin_pairing_connect_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
-        11 => {
+        9 => wire__crate__api__begin_pairing_connect_with_credential_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        10 => wire__crate__api__begin_pairing_credential_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__begin_pairing_credential_with_advertising_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        12 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
+        14 => {
             wire__crate__api__create_persistent_sync_service_impl(port, ptr, rust_vec_len, data_len)
         }
-        12 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__receiver_running_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__start_receiver_impl(port, ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__stop_pairing_advertising_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__stop_receiver_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__api__sync_discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__parse_pairing_credential_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__receiver_running_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__start_receiver_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__stop_pairing_advertising_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__stop_receiver_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__sync_discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        55 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
+        56 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3431,6 +3743,74 @@ impl flutter_rust_bridge::IntoIntoDart<crate::store::PairedDeviceRow>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::sync::PairingCredentialDisplay {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.code.into_into_dart().into_dart(),
+            self.credential.into_into_dart().into_dart(),
+            self.expires_at.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::sync::PairingCredentialDisplay
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::sync::PairingCredentialDisplay>
+    for crate::sync::PairingCredentialDisplay
+{
+    fn into_into_dart(self) -> crate::sync::PairingCredentialDisplay {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::sync::PairingCredentialError {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.kind.into_into_dart().into_dart(),
+            self.message.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::sync::PairingCredentialError
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::sync::PairingCredentialError>
+    for crate::sync::PairingCredentialError
+{
+    fn into_into_dart(self) -> crate::sync::PairingCredentialError {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::sync::PairingCredentialErrorKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::InvalidFormat => 0.into_dart(),
+            Self::InvalidSignature => 1.into_dart(),
+            Self::Expired => 2.into_dart(),
+            Self::UsedOrReplaced => 3.into_dart(),
+            Self::Unreachable => 4.into_dart(),
+            Self::Internal => 5.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::sync::PairingCredentialErrorKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::sync::PairingCredentialErrorKind>
+    for crate::sync::PairingCredentialErrorKind
+{
+    fn into_into_dart(self) -> crate::sync::PairingCredentialErrorKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::sync::PairingRequest {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -3439,6 +3819,7 @@ impl flutter_rust_bridge::IntoDart for crate::sync::PairingRequest {
             self.device_name.into_into_dart().into_dart(),
             self.relay_info.into_into_dart().into_dart(),
             self.ips.into_into_dart().into_dart(),
+            self.nonce.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3473,6 +3854,7 @@ impl flutter_rust_bridge::IntoDart for crate::sync::PairingTarget {
         [
             self.device_id.into_into_dart().into_dart(),
             self.ips.into_into_dart().into_dart(),
+            self.nonce.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3484,12 +3866,36 @@ impl flutter_rust_bridge::IntoIntoDart<crate::sync::PairingTarget> for crate::sy
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::sync::ParsedPairingCredential {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.code.into_into_dart().into_dart(),
+            self.device_id.into_into_dart().into_dart(),
+            self.expires_at.into_into_dart().into_dart(),
+            self.nonce.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::sync::ParsedPairingCredential
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::sync::ParsedPairingCredential>
+    for crate::sync::ParsedPairingCredential
+{
+    fn into_into_dart(self) -> crate::sync::ParsedPairingCredential {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::discovery::PeerInfo {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.device_id.into_into_dart().into_dart(),
             self.ip.into_into_dart().into_dart(),
             self.port.into_into_dart().into_dart(),
+            self.nonce.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -3605,6 +4011,13 @@ impl SseEncode for crate::sync::DevicePushResult {
         <String>::sse_encode(self.peer_id, serializer);
         <bool>::sse_encode(self.ok, serializer);
         <String>::sse_encode(self.message, serializer);
+    }
+}
+
+impl SseEncode for i32 {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
     }
 }
 
@@ -3757,6 +4170,43 @@ impl SseEncode for crate::store::PairedDeviceRow {
     }
 }
 
+impl SseEncode for crate::sync::PairingCredentialDisplay {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.code, serializer);
+        <String>::sse_encode(self.credential, serializer);
+        <String>::sse_encode(self.expires_at, serializer);
+    }
+}
+
+impl SseEncode for crate::sync::PairingCredentialError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::sync::PairingCredentialErrorKind>::sse_encode(self.kind, serializer);
+        <String>::sse_encode(self.message, serializer);
+    }
+}
+
+impl SseEncode for crate::sync::PairingCredentialErrorKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::sync::PairingCredentialErrorKind::InvalidFormat => 0,
+                crate::sync::PairingCredentialErrorKind::InvalidSignature => 1,
+                crate::sync::PairingCredentialErrorKind::Expired => 2,
+                crate::sync::PairingCredentialErrorKind::UsedOrReplaced => 3,
+                crate::sync::PairingCredentialErrorKind::Unreachable => 4,
+                crate::sync::PairingCredentialErrorKind::Internal => 5,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::sync::PairingRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -3765,6 +4215,7 @@ impl SseEncode for crate::sync::PairingRequest {
         <String>::sse_encode(self.device_name, serializer);
         <String>::sse_encode(self.relay_info, serializer);
         <Vec<String>>::sse_encode(self.ips, serializer);
+        <String>::sse_encode(self.nonce, serializer);
     }
 }
 
@@ -3781,6 +4232,17 @@ impl SseEncode for crate::sync::PairingTarget {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.device_id, serializer);
         <Vec<String>>::sse_encode(self.ips, serializer);
+        <String>::sse_encode(self.nonce, serializer);
+    }
+}
+
+impl SseEncode for crate::sync::ParsedPairingCredential {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.code, serializer);
+        <String>::sse_encode(self.device_id, serializer);
+        <String>::sse_encode(self.expires_at, serializer);
+        <String>::sse_encode(self.nonce, serializer);
     }
 }
 
@@ -3790,6 +4252,7 @@ impl SseEncode for crate::discovery::PeerInfo {
         <String>::sse_encode(self.device_id, serializer);
         <String>::sse_encode(self.ip, serializer);
         <u16>::sse_encode(self.port, serializer);
+        <String>::sse_encode(self.nonce, serializer);
     }
 }
 
@@ -3843,13 +4306,6 @@ impl SseEncode for usize {
             .cursor
             .write_u64::<NativeEndian>(self as _)
             .unwrap();
-    }
-}
-
-impl SseEncode for i32 {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
     }
 }
 

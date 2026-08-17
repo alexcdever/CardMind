@@ -14,15 +14,18 @@ class PeerInfo {
   final String deviceId;
   final String ip;
   final int port;
+  final String nonce;
 
   const PeerInfo({
     required this.deviceId,
     required this.ip,
     required this.port,
+    required this.nonce,
   });
 
   @override
-  int get hashCode => deviceId.hashCode ^ ip.hashCode ^ port.hashCode;
+  int get hashCode =>
+      deviceId.hashCode ^ ip.hashCode ^ port.hashCode ^ nonce.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -31,5 +34,6 @@ class PeerInfo {
           runtimeType == other.runtimeType &&
           deviceId == other.deviceId &&
           ip == other.ip &&
-          port == other.port;
+          port == other.port &&
+          nonce == other.nonce;
 }

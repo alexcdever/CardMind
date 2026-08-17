@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../bridge/debug_log.dart';
 import '../bridge/note_repository.dart';
+import '../bridge/pairing_credential_exception.dart';
+import '../scanner/scanner_interface.dart';
 import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
@@ -43,6 +47,7 @@ class _DevicesPageState extends State<DevicesPage> {
   String? _error;
   String _deviceName = '';
   String _deviceId = '';
+
   /// 后台状态刷新 Timer（任务 O 验收 15）：页面保持打开时周期性重读
   /// paired_devices，后台 last_seen 更新后 ≤5 秒内离线→在线；dispose 取消。
   Timer? _refreshTimer;
@@ -52,11 +57,13 @@ class _DevicesPageState extends State<DevicesPage> {
   /// 后台刷新间隔（验收 15：≤5 秒内反映后台在线状态变化）。
   static const Duration _refreshInterval = Duration(seconds: 2);
 
+  /// 6 位数字配对码（旧 6 位码路径）。凭证路径以 `cm1.` 开头。
+  static final RegExp _sixDigitCode = RegExp(r'^\d{6}$');
+
   @override
   void initState() {
     super.initState();
     _load();
-    // 后台状态变化后刷新（不阻塞首次加载；dispose 后不再刷新）
     _refreshTimer = Timer.periodic(_refreshInterval, (_) {
       if (!mounted) return;
       _load(background: true);
@@ -72,22 +79,12 @@ class _DevicesPageState extends State<DevicesPage> {
 
   Future<void> _load({bool background = false}) async {
     if (background) {
-      // 后台刷新：不闪 loading、不覆盖错误状态，仅静默更新数据
       try {
         final devices = await _repository.listPairedDevices();
         if (!mounted) return;
         setState(() {
           _devices = devices;
         });
-        DebugLogger.instance.event(
-          'devices.online_refresh',
-          'devices.online_refresh',
-          fields: {
-            'action': 'background_refresh',
-            'online_count':
-                '${devices.where((d) => _isOnline(d)).length}',
-          },
-        );
       } catch (_) {
         // 后台刷新失败静默（下次周期重试）
       }
@@ -125,7 +122,6 @@ class _DevicesPageState extends State<DevicesPage> {
     return DateTime.now().difference(time) <= DevicesPage.onlineWindow;
   }
 
-  /// 最后同步相对时间（"3 分钟前"）。
   static String _relativeTime(String? lastSeen) {
     if (lastSeen == null) return '从未同步';
     final time = DateTime.tryParse(lastSeen);
@@ -137,7 +133,6 @@ class _DevicesPageState extends State<DevicesPage> {
     return '${diff.inDays} 天前';
   }
 
-  /// 解除配对：确认弹窗 → remove_paired_device → 列表刷新。
   Future<void> _confirmUnpair(PairedDeviceRow device) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -173,7 +168,6 @@ class _DevicesPageState extends State<DevicesPage> {
     await _load();
   }
 
-  /// 添加设备：两步配对流程（第一步选模式，第二步展示码或输入框）。
   Future<void> _startPairing() async {
     final mode = await showDialog<String>(
       context: context,
@@ -188,14 +182,14 @@ class _DevicesPageState extends State<DevicesPage> {
               key: const ValueKey('pair-mode-show'),
               leading: const Icon(Icons.qr_code_2),
               title: const Text('我显示配对码'),
-              subtitle: const Text('对方输入我屏幕上的 6 位码'),
+              subtitle: const Text('对方扫描我屏幕上的二维码'),
               onTap: () => Navigator.of(dialogContext).pop('show'),
             ),
             ListTile(
               key: const ValueKey('pair-mode-enter'),
               leading: const Icon(Icons.keyboard),
               title: const Text('我输入对方的码'),
-              subtitle: const Text('输入对方设备显示的 6 位码'),
+              subtitle: const Text('输入或粘贴对方设备的配对信息'),
               onTap: () => Navigator.of(dialogContext).pop('enter'),
             ),
           ],
@@ -210,313 +204,243 @@ class _DevicesPageState extends State<DevicesPage> {
     }
   }
 
-  /// 确认方：展示本机配对码（等待对方输入确认）。
+  /// 确认方：展示本机配对凭证（二维码 + 复制按钮 + 倒计时）。
   ///
-  /// 任务 J：显示码的同时启动 mDNS 广播（Rust 组合 API，码与广播同一调用
-  /// 内完成——保证配对期间广播一定在）；弹窗关闭（含取消/异常路径）后停止
-  /// 广播，避免本机在配对结束后继续被局域网发现。
-  ///
-  /// 任务 M：显示码的同时进入确认方等待状态——[_PairingAcceptDialog] 在弹窗
-  /// 生命周期内调用 [NoteRepository.acceptPairingRequestWithTimeout]（有界等待，
-  /// 见决策点 1）启动接收器；收到请求后以显示的码调用 `confirmPairing`；
-  /// 成功则关闭弹窗并刷新设备列表，超时/异常显示可读错误并停止广播，
-  /// 取消/关闭不留下永久阻塞任务。
+  /// 任务 Q：显示凭证的同时启动 mDNS 广播（Rust 组合 API 生成凭证 + 广播
+  /// 同一调用——保证配对期间广播一定在）。弹窗关闭（含取消/异常路径）后
+  /// 停止广播。
   Future<void> _showMyCode() async {
-    final log = DebugLogger.instance;
-    String code;
-    // 事件 #5：显示配对码——开始
-    log.event('pairing.show_code', 'pairing.show_code',
-        fields: const {'action': 'start'});
-    final sw = Stopwatch()..start();
+    DebugLogger.instance.event(
+      'pairing.show_code',
+      'pairing.show_code',
+      fields: const {'action': 'start'},
+    );
     try {
-      code = await _repository.beginPairingAcceptAndAdvertise();
-      // 事件 #5：显示配对码 + 广播启动成功（组合 API 返回即广播已在 Rust 侧启动）
-      log.event('pairing.show_code', 'pairing.show_code',
-          fields: const {'action': 'success', 'broadcast': 'true'},
-          duration: sw.elapsed);
-      log.event('pairing.advertise', 'pairing.advertise',
-          fields: const {'action': 'start'});
-    } catch (error) {
-      // 事件 #5：显示配对码失败（错误链；不得记录码本身）
-      log.event(
-        'pairing.show_code',
-        'pairing.show_code',
-        fields: const {'action': 'failed'},
-        error: error.runtimeType.toString(),
-        errorChain: error.toString(),
-        duration: sw.elapsed,
+      DebugLogger.instance.event(
+        'pairing.advertise',
+        'pairing.advertise',
+        fields: const {'action': 'start'},
       );
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('生成配对码失败: $error')));
-      }
-      return;
-    }
-    try {
       if (!mounted) return;
       final result = await showDialog<PairingResult>(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => _PairingAcceptDialog(
-          code: code,
           repository: _repository,
           acceptTimeout: DevicesPage.pairingAcceptTimeout,
         ),
       );
-      // 配对成功：弹窗以结果关闭 → 提示 + 刷新设备列表（对方设备立即可见）
       if (result == null || !mounted) {
-        // 事件 #6：显示码弹窗被取消/关闭（未配对）
-        log.event('pairing.show_code', 'pairing.show_code',
-            fields: const {'action': 'cancelled'});
+        DebugLogger.instance.event(
+          'pairing.show_code',
+          'pairing.show_code',
+          fields: const {'action': 'cancelled'},
+        );
         return;
       }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('配对成功：${result.peerName}')));
       await _load();
+      DebugLogger.instance.event(
+        'pairing.show_code',
+        'pairing.show_code',
+        fields: const {'action': 'success'},
+      );
     } finally {
-      // 弹窗关闭（含取消/成功/异常路径）→ 停止 mDNS 广播（清理事件 #11）
       try {
         await _repository.stopPairingAdvertising();
-        log.event('pairing.advertise', 'pairing.advertise',
-            fields: const {'action': 'stop', 'ok': 'true'});
-      } catch (error) {
-        log.event(
+        DebugLogger.instance.event(
+          'pairing.advertise',
+          'pairing.advertise',
+          fields: const {'action': 'stop', 'ok': 'true'},
+        );
+      } catch (_) {
+        DebugLogger.instance.event(
           'pairing.advertise',
           'pairing.advertise',
           fields: const {'action': 'stop', 'ok': 'false'},
-          error: error.runtimeType.toString(),
-          errorChain: error.toString(),
         );
+        // 幂等停广播失败忽略（弹窗已关）
       }
     }
   }
 
-  /// 发起方：输入对方配对码（及对方设备 ID，可留空自动解析）→ 连接配对。
+  /// 发起方：单一输入框（配对码或配对信息）→ 连接配对。
   ///
-  /// 任务 J：设备 ID 留空时先做 mDNS 扫描（约 3 秒），命中一台自动填充
-  /// target（device_id + ip:port 直连地址）；无结果/多台歧义时给出友好提示，
-  /// 不向用户展示裸 AnyhowException（技术细节留 debugPrint）。
+  /// 任务 Q：
+  /// - 以 `cm1...` 开头 → 凭证垂直入口 [NoteRepository.beginPairingConnectWithCredential]
+  ///   （禁止 mDNS 扫描）
+  /// - 纯 6 位数字 → 旧 6 位码路径，mDNS 发现 + 直连
+  /// - 其余 → 格式错误友好提示
+  ///
+  /// 凭证错误映射为 [PairingCredentialException] 的友好文案，不展示裸异常。
   Future<void> _enterPeerCode() async {
-    final codeController = TextEditingController();
-    final peerIdController = TextEditingController();
+    final controller = TextEditingController();
     String? submitError;
-    bool discovering = false;
+    bool submitting = false;
+
+    final scanner = createPlatformScanner();
+    final scanSupported = scanner.isSupported;
+
     final result = await showDialog<PairingResult>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: const Text('输入对方配对码'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                key: const ValueKey('pair-code-input'),
-                controller: codeController,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: '6 位配对码',
-                  hintText: '如 123456',
-                ),
-              ),
-              const SizedBox(height: CardMindSpacing.md),
-              TextField(
-                key: const ValueKey('pair-peer-id-input'),
-                controller: peerIdController,
-                decoration: const InputDecoration(
-                  labelText: '对方设备 ID（可选）',
-                  hintText: '留空时自动通过局域网发现（mDNS）连接',
-                ),
-              ),
-              if (discovering) ...[
-                const SizedBox(height: CardMindSpacing.md),
-                Row(
-                  children: [
-                    const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: CardMindSpacing.sm),
-                    Text(
-                      '正在搜索局域网设备…',
-                      style: TextStyle(
-                        color: context.cardMind.mutedInk,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              if (submitError != null) ...[
-                const SizedBox(height: CardMindSpacing.md),
-                Text(
-                  submitError!,
-                  key: const ValueKey('pair-submit-error'),
-                  style: TextStyle(
-                    color: context.cardMind.danger,
-                    fontSize: 13,
+        builder: (dialogContext, setDialogState) {
+          Future<void> submit(String raw) async {
+            final input = raw.trim();
+            if (input.isEmpty) return;
+            setDialogState(() {
+              submitError = null;
+              submitting = true;
+            });
+            try {
+              final PairingResult res;
+              if (input.startsWith('cm1')) {
+                DebugLogger.instance.event(
+                  'pairing.discovery',
+                  'pairing.discovery',
+                  fields: const {'action': 'bypassed', 'mdns_skipped': 'true'},
+                );
+                final started = DateTime.now();
+                DebugLogger.instance.event(
+                  'pairing.connect',
+                  'pairing.connect',
+                  fields: const {'action': 'start', 'transport': 'credential'},
+                );
+                res = await _repository.beginPairingConnectWithCredential(
+                  input,
+                );
+                DebugLogger.instance.event(
+                  'pairing.connect',
+                  'pairing.connect',
+                  fields: const {
+                    'action': 'success',
+                    'transport': 'credential',
+                  },
+                  duration: DateTime.now().difference(started),
+                );
+              } else if (_sixDigitCode.hasMatch(input)) {
+                res = await _connectWithSixDigitCode(input);
+              } else {
+                setDialogState(() {
+                  submitError = '请输入 6 位配对码，或粘贴完整的配对信息（以 cm1 开头）';
+                });
+                return;
+              }
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop(res);
+              }
+            } on PairingCredentialException catch (e) {
+              setDialogState(() {
+                submitError = e.message;
+              });
+            } catch (e) {
+              if (input.startsWith('cm1')) {
+                DebugLogger.instance.event(
+                  'pairing.connect',
+                  'pairing.connect',
+                  fields: const {'action': 'failed', 'transport': 'credential'},
+                  error: e.runtimeType.toString(),
+                  errorChain: e.toString(),
+                );
+              }
+              DebugLogger.instance.event(
+                'pairing.connect',
+                'pairing.connect',
+                fields: const {'action': 'failed'},
+                error: e.runtimeType.toString(),
+                errorChain: e.toString(),
+              );
+              setDialogState(() {
+                submitError = '配对失败：无法连接到对方设备，请稍后重试';
+              });
+            } finally {
+              setDialogState(() {
+                submitting = false;
+              });
+            }
+          }
+
+          return AlertDialog(
+            title: const Text('输入对方配对信息'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  key: const ValueKey('pair-credential-input'),
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: '配对码或配对信息',
+                    hintText: '输入 6 位配对码，或粘贴以 cm1 开头的配对信息',
                   ),
                 ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              key: const ValueKey('pair-cancel'),
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              key: const ValueKey('pair-submit'),
-              onPressed: () async {
-                final code = codeController.text.trim();
-                if (code.isEmpty) return;
-                setDialogState(() {
-                  submitError = null;
-                  discovering = false;
-                });
-                try {
-                  final log = DebugLogger.instance;
-                  final manualId = peerIdController.text.trim();
-                  PairingTarget target;
-                  if (manualId.isNotEmpty) {
-                    // 手动填写优先：跳过 mDNS 扫描
-                    // 事件 #6：手动 ID 路径明确记录跳过 mDNS（脱敏目标 id）
-                    log.event(
-                      'pairing.discovery',
-                      'pairing.discovery',
-                      deviceIds: [manualId],
-                      fields: const {'action': 'bypassed', 'mdns_skipped': 'true'},
-                    );
-                    target = PairingTarget(deviceId: manualId, ips: const []);
-                  } else {
-                    // mDNS 自动发现（设备 ID 留空）
-                    // 事件 #4：mDNS 扫描开始
-                    log.event('pairing.discovery', 'pairing.discovery',
-                        fields: const {'action': 'start', 'mdns': 'true'});
-                    setDialogState(() {
-                      discovering = true;
-                    });
-                    final discoverSw = Stopwatch()..start();
-                    List<PeerInfo> peers;
-                    try {
-                      peers = await _repository.discoverPeers();
-                      log.event(
-                        'pairing.discovery',
-                        'pairing.discovery',
-                        fields: {'action': 'result', 'count': '${peers.length}'},
-                        duration: discoverSw.elapsed,
+                if (scanSupported) ...[
+                  const SizedBox(height: CardMindSpacing.md),
+                  TextButton.icon(
+                    key: const ValueKey('pair-scan-button'),
+                    onPressed: () async {
+                      final outcome = await scanner.scanCredential(
+                        dialogContext,
                       );
-                    } catch (error) {
-                      // 扫描失败按无结果处理（友好提示）；细节进结构化日志
-                      log.event(
-                        'pairing.discovery',
-                        'pairing.discovery',
-                        fields: const {'action': 'failed'},
-                        error: error.runtimeType.toString(),
-                        errorChain: error.toString(),
-                        duration: discoverSw.elapsed,
-                      );
-                      peers = const [];
-                    }
-                    if (!dialogContext.mounted) return;
-                    setDialogState(() {
-                      discovering = false;
-                    });
-                    if (peers.isEmpty) {
-                      setDialogState(() {
-                        submitError = '未在局域网发现对方设备。请确认两台设备在同一网络，或手动填写对方设备 ID';
-                      });
-                      return;
-                    }
-                    if (peers.length > 1) {
-                      // 需决策点 1：多台设备无法区分码的持有者，不静默取第一台
-                      setDialogState(() {
-                        submitError =
-                            '在局域网发现多台 CardMind 设备，无法自动确定配对对象。请手动填写对方设备 ID';
-                      });
-                      return;
-                    }
-                    final peer = peers.single;
-                    target = PairingTarget(
-                      deviceId: peer.deviceId,
-                      ips: peer.ip.isEmpty
-                          ? const []
-                          : ['${peer.ip}:${peer.port}'],
-                    );
-                  }
-                  // 事件 #7：连接阶段开始（transport：direct vs relay_or_dns）
-                  final connectSw = Stopwatch()..start();
-                  log.event(
-                    'pairing.connect',
-                    'pairing.connect',
-                    deviceIds: [target.deviceId],
-                    fields: {
-                      'action': 'start',
-                      'transport': target.ips.isEmpty ? 'relay_or_dns' : 'direct',
+                      if (!dialogContext.mounted) return;
+                      if (outcome.cancelled) return;
+                      if (outcome.error != null) {
+                        setDialogState(() {
+                          submitError = outcome.error;
+                        });
+                      } else if (outcome.text != null) {
+                        controller.text = outcome.text!;
+                        await submit(outcome.text!);
+                      }
                     },
-                  );
-                  try {
-                    final res = await _repository.beginPairingConnect(
-                      code,
-                      target,
-                    );
-                    log.event(
-                      'pairing.connect',
-                      'pairing.connect',
-                      deviceIds: [target.deviceId],
-                      fields: {
-                        'action': 'success',
-                        'transport': target.ips.isEmpty ? 'relay_or_dns' : 'direct',
-                        'peer_name': res.peerName,
-                      },
-                      duration: connectSw.elapsed,
-                    );
-                    if (dialogContext.mounted) {
-                      Navigator.of(dialogContext).pop(res);
-                    }
-                  } catch (error) {
-                    // 错误脱敏（任务 J）：不展示裸 AnyhowException，细节进结构化日志
-                    log.event(
-                      'pairing.connect',
-                      'pairing.connect',
-                      deviceIds: [target.deviceId],
-                      fields: {
-                        'action': 'failed',
-                        'transport': target.ips.isEmpty ? 'relay_or_dns' : 'direct',
-                      },
-                      error: error.runtimeType.toString(),
-                      errorChain: error.toString(),
-                      duration: connectSw.elapsed,
-                    );
-                    setDialogState(() {
-                      discovering = false;
-                      submitError = '配对失败：无法连接到对方设备。请确认两台设备在同一网络后重试';
-                    });
-                  }
-                } catch (error) {
-                  // 外层兜底（target 构造等异常）：不展示裸异常，细节进结构化日志
-                  DebugLogger.instance.event(
-                    'pairing.connect',
-                    'pairing.connect',
-                    fields: const {'action': 'failed'},
-                    error: error.runtimeType.toString(),
-                    errorChain: error.toString(),
-                  );
-                  setDialogState(() {
-                    discovering = false;
-                    submitError = '配对失败：无法连接到对方设备。请确认两台设备在同一网络后重试';
-                  });
-                }
-              },
-              child: Text(discovering ? '正在搜索…' : '确认配对'),
+                    icon: const Icon(Icons.qr_code_scanner, size: 18),
+                    label: const Text('扫码'),
+                  ),
+                ],
+                if (submitting) ...[
+                  const SizedBox(height: CardMindSpacing.md),
+                  const Row(
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text('正在连接…'),
+                    ],
+                  ),
+                ],
+                if (submitError != null) ...[
+                  const SizedBox(height: CardMindSpacing.md),
+                  Text(
+                    submitError!,
+                    key: const ValueKey('pair-submit-error'),
+                    style: TextStyle(
+                      color: context.cardMind.danger,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                key: const ValueKey('pair-cancel'),
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                key: const ValueKey('pair-submit'),
+                onPressed: submitting ? null : () => submit(controller.text),
+                child: const Text('确认配对'),
+              ),
+            ],
+          );
+        },
       ),
     );
     if (result == null || !mounted) return;
@@ -524,6 +448,93 @@ class _DevicesPageState extends State<DevicesPage> {
       context,
     ).showSnackBar(SnackBar(content: Text('配对成功：${result.peerName}')));
     await _load();
+  }
+
+  /// 6 位数字码：mDNS 发现唯一目标 → 直连。多台/无结果给友好提示。
+  Future<PairingResult> _connectWithSixDigitCode(String code) async {
+    final log = DebugLogger.instance;
+    log.event(
+      'pairing.discovery',
+      'pairing.discovery',
+      fields: const {'action': 'start'},
+    );
+    final started = DateTime.now();
+    List<PeerInfo> peers;
+    try {
+      peers = await _repository.discoverPeers();
+    } catch (e) {
+      log.event(
+        'pairing.discovery',
+        'pairing.discovery',
+        fields: const {'action': 'failed'},
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
+      );
+      peers = const [];
+    }
+    if (peers.isEmpty) {
+      log.event(
+        'pairing.discovery',
+        'pairing.discovery',
+        fields: const {'action': 'result', 'count': '0'},
+        duration: DateTime.now().difference(started),
+      );
+      throw const PairingCredentialException(
+        kind: PairingCredentialErrorKind.unreachable,
+        message: '未在局域网发现对方设备，请确认两台设备在同一网络',
+      );
+    }
+    if (peers.length > 1) {
+      log.event(
+        'pairing.discovery',
+        'pairing.discovery',
+        fields: {'action': 'result', 'count': '${peers.length}'},
+        duration: DateTime.now().difference(started),
+      );
+      throw const PairingCredentialException(
+        kind: PairingCredentialErrorKind.unreachable,
+        message: '在局域网发现多台 CardMind 设备，无法自动确定配对对象',
+      );
+    }
+    final peer = peers.single;
+    log.event(
+      'pairing.discovery',
+      'pairing.discovery',
+      fields: {'action': 'result', 'count': '${peers.length}'},
+      duration: DateTime.now().difference(started),
+    );
+    final target = PairingTarget(
+      deviceId: peer.deviceId,
+      ips: peer.ip.isEmpty ? const [] : ['${peer.ip}:${peer.port}'],
+      nonce: peer.nonce,
+    );
+    final transport = target.ips.isEmpty ? 'relay_or_dns' : 'direct';
+    final connectStarted = DateTime.now();
+    log.event(
+      'pairing.connect',
+      'pairing.connect',
+      fields: {'action': 'start', 'transport': transport},
+    );
+    try {
+      final result = await _repository.beginPairingConnect(code, target);
+      log.event(
+        'pairing.connect',
+        'pairing.connect',
+        fields: {'action': 'success', 'transport': transport},
+        duration: DateTime.now().difference(connectStarted),
+      );
+      return result;
+    } catch (e) {
+      log.event(
+        'pairing.connect',
+        'pairing.connect',
+        fields: {'action': 'failed', 'transport': transport},
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
+        duration: DateTime.now().difference(connectStarted),
+      );
+      rethrow;
+    }
   }
 
   Widget _buildDeviceList() {
@@ -680,24 +691,20 @@ class _DevicesPageState extends State<DevicesPage> {
   }
 }
 
-/// 显示码等待弹窗（任务 M）：在弹窗生命周期内运行确认方接收器。
+/// 显示码等待弹窗（任务 M/Q）：生成凭证 + 启动有界 accept loop。
 ///
 /// 生命周期契约：
-/// - 打开：调用 [NoteRepository.acceptPairingRequestWithTimeout]（**有界**等待，
-///   超时返回 null——决策点 1 的落点，FRB opaque 上的阻塞等待必须有限界）
-/// - 收到请求：以显示的码调用 `confirmPairing(code, requester)`；成功 pop 结果
-///   关闭弹窗（页面随后刷新设备列表）
-/// - 超时/异常：停止广播（设计目标 5）并显示可读错误，等待用户关闭后重试
-/// - 取消/关闭：dispose 置 [_cancelled]；挂起的等待完成后不再 confirm，
-///   也不向已卸载 widget 调 setState（mounted 守卫）
+/// - 打开：只生成一次 [NoteRepository.beginPairingCredential]（组合生成 + 广播），
+///   成功后 set 显示数据并启动**单个**有界 accept loop
+/// - 重新生成：轮次 token 递增 → 旧 loop 判废退出 → 生成新凭证 → 新 loop
+/// - confirm 只用与当前显示 code 对应的请求
+/// - 关闭：dispose 取消计时器 + 置 [_cancelled]；挂起等待完成后不再 confirm/setState
 class _PairingAcceptDialog extends StatefulWidget {
   const _PairingAcceptDialog({
-    required this.code,
     required this.repository,
     required this.acceptTimeout,
   });
 
-  final String code;
   final NoteRepository repository;
   final Duration acceptTimeout;
 
@@ -708,156 +715,264 @@ class _PairingAcceptDialog extends StatefulWidget {
 class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
   String? _error;
   bool _cancelled = false;
+  String? _credentialText;
+  String? _expiresAt;
+  String? _displayCode;
+
+  /// 当前 generation 轮次 token；重新生成时递增，使旧 accept loop 判废。
+  int _generation = 0;
+  Future<void>? _acceptFuture;
 
   @override
   void initState() {
     super.initState();
-    _runAccept();
+    _start();
   }
 
   @override
   void dispose() {
-    // 取消/关闭：标记后，挂起的等待完成时不再 confirm / setState
     _cancelled = true;
     super.dispose();
   }
 
-  /// 停止 mDNS 广播（超时/异常路径立即停止；幂等——页面 finally 兜底再停一次）。
-  Future<void> _stopAdvertisingQuietly() async {
-    try {
-      await widget.repository.stopPairingAdvertising();
-      // 清理事件 #11：停止广播成功
-      DebugLogger.instance.event('pairing.advertise', 'pairing.advertise',
-          fields: const {'action': 'stop', 'ok': 'true'});
-    } catch (error) {
-      // 清理事件 #11：停止广播异常
-      DebugLogger.instance.event(
-        'pairing.advertise',
-        'pairing.advertise',
-        fields: const {'action': 'stop', 'ok': 'false'},
-        error: error.runtimeType.toString(),
-        errorChain: error.toString(),
-      );
-    }
+  Future<void> _start() async {
+    if (_generation != 0) return; // 只启动一次
+    await _generateAndAccept();
   }
 
-  /// 确认方等待 + 确认流程。每个 await 之后都有 mounted/_cancelled 守卫：
-  /// 不向已卸载 widget 调 setState，取消后不 confirm。
-  Future<void> _runAccept() async {
+  Future<void> _generateAndAccept() async {
+    final gen = ++_generation;
+    try {
+      final display = await widget.repository.beginPairingCredential();
+      if (!mounted || _cancelled || gen != _generation) return;
+      setState(() {
+        _displayCode = display.code;
+        _credentialText = display.credential;
+        _expiresAt = display.expiresAt;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted || _cancelled || gen != _generation) return;
+      setState(() {
+        _error = '生成配对信息失败，请关闭后重试';
+      });
+      return;
+    }
+    // 凭证就绪后启动有界 accept（同一时刻至多一个；旧 loop 由 token 判废）。
+    _acceptFuture = _runAccept(gen);
+    await _acceptFuture;
+  }
+
+  Future<void> _regenerate() async {
+    // 旧轮次 token 递增 → 旧 accept loop 判废后自行退出；等待其结束再启动新轮次，
+    // 避免同时运行两个 accept loop。
+    _generation++;
+    final old = _acceptFuture;
+    if (old != null) {
+      try {
+        await old;
+      } catch (_) {}
+    }
+    if (!mounted || _cancelled) return;
+    await _generateAndAccept();
+  }
+
+  Future<void> _runAccept(int gen) async {
     final log = DebugLogger.instance;
-    // 事件 #5：确认方 accept loop 启动
-    log.event('pairing.accept', 'pairing.accept',
-        fields: {'action': 'start', 'timeout_ms': '${widget.acceptTimeout.inMilliseconds}'});
+    log.event(
+      'pairing.accept',
+      'pairing.accept',
+      fields: {
+        'action': 'start',
+        'timeout_ms': '${widget.acceptTimeout.inMilliseconds}',
+      },
+    );
+
     PairingRequest? request;
     try {
       request = await widget.repository.acceptPairingRequestWithTimeout(
         widget.acceptTimeout,
       );
-    } catch (error) {
-      // 事件 #6：accept 失败（错误链）
+    } catch (e) {
       log.event(
         'pairing.accept',
         'pairing.accept',
         fields: const {'action': 'failed'},
-        error: error.runtimeType.toString(),
-        errorChain: error.toString(),
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
       );
+      if (gen != _generation) return;
       await _stopAdvertisingQuietly();
       if (!mounted || _cancelled) return;
       setState(() {
-
         _error = '等待配对请求失败，请关闭后重试';
       });
       return;
     }
-    if (!mounted || _cancelled) return;
+
+    // 轮次已失效（重新生成）或弹窗已关闭 → 不 confirm。
+    if (gen != _generation || !mounted || _cancelled) return;
+
     if (request == null) {
-      // 事件 #6：accept 超时（有界等待到点）
-      log.event('pairing.accept', 'pairing.accept',
-          fields: const {'action': 'timeout'});
-      // 有界等待超时：结束等待 + 停止广播（设计目标 5）
+      log.event(
+        'pairing.accept',
+        'pairing.accept',
+        fields: const {'action': 'timeout'},
+      );
+      if (gen != _generation) return;
       await _stopAdvertisingQuietly();
       if (!mounted || _cancelled) return;
       setState(() {
-
         _error = '等待配对超时，请关闭后重新发起';
       });
       return;
     }
-    // 事件 #8：请求接收（脱敏对端 id）
-    log.event('pairing.request', 'pairing.request',
-        deviceIds: [request.deviceId],
-        fields: {'action': 'received', 'peer_name': request.deviceName});
+
+    log.event(
+      'pairing.request',
+      'pairing.request',
+      fields: const {'action': 'received'},
+    );
+
+    // confirm 只用当前 display code；请求 code 必须与之一致（Rust 校验）。
+    final code = _displayCode;
+    if (code == null) return;
     try {
-      // 事件 #8：confirm 开始
-      log.event('pairing.confirm', 'pairing.confirm',
-          deviceIds: [request.deviceId],
-          fields: const {'action': 'start'});
-      final confirmSw = Stopwatch()..start();
-      final result = await widget.repository.confirmPairing(
-        widget.code,
-        request,
+      log.event(
+        'pairing.confirm',
+        'pairing.confirm',
+        fields: const {'action': 'start'},
       );
-      // 事件 #8：confirm 成功
-      log.event('pairing.confirm', 'pairing.confirm',
-          deviceIds: [result.peerId],
-          fields: {'action': 'success', 'peer_name': result.peerName},
-          duration: confirmSw.elapsed);
-      if (!mounted || _cancelled) return;
-      // 配对成功：以结果关闭弹窗（页面显示成功提示 + 刷新设备列表）
+      final result = await widget.repository.confirmPairing(code, request);
+      log.event(
+        'pairing.confirm',
+        'pairing.confirm',
+        fields: const {'action': 'success'},
+      );
+      if (gen != _generation || !mounted || _cancelled) return;
       Navigator.of(context).pop(result);
-    } catch (error) {
-      // 事件 #8：confirm 失败（错误链 + 耗时）
+    } catch (e) {
       log.event(
         'pairing.confirm',
         'pairing.confirm',
         deviceIds: [request.deviceId],
         fields: const {'action': 'failed'},
-        error: error.runtimeType.toString(),
-        errorChain: error.toString(),
+        error: e.runtimeType.toString(),
+        errorChain: e.toString(),
       );
+      if (gen != _generation) return;
       await _stopAdvertisingQuietly();
       if (!mounted || _cancelled) return;
       setState(() {
-
         _error = '配对失败，请关闭后重试';
       });
     }
   }
 
+  Future<void> _stopAdvertisingQuietly() async {
+    try {
+      await widget.repository.stopPairingAdvertising();
+    } catch (_) {
+      // 幂等停广播失败忽略
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final codeDisplay = _displayCode ?? '';
     return AlertDialog(
-      title: const Text('等待对方输入此码'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('在对方设备"添加设备"中输入以下 6 位码：'),
-          const SizedBox(height: CardMindSpacing.lg),
-          Text(
-            widget.code,
-            key: const ValueKey('pair-code-display'),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: context.cardMind.accent,
-              letterSpacing: 4,
-            ),
-          ),
-          const SizedBox(height: CardMindSpacing.lg),
-          if (_error != null)
-            Text(
-              _error!,
-              key: const ValueKey('pair-accept-error'),
-              style: TextStyle(color: context.cardMind.danger, fontSize: 13),
-            )
-          else
-            Text(
-              '等待对方确认后自动完成配对…',
-              style: TextStyle(
-                color: context.cardMind.mutedInk,
-                fontSize: 13,
+      title: const Text('配对信息'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (codeDisplay.isNotEmpty) ...[
+              const Text('在对方设备"添加设备"中输入以下 6 位码：'),
+              const SizedBox(height: CardMindSpacing.lg),
+              Text(
+                codeDisplay,
+                key: const ValueKey('pair-code-display'),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: context.cardMind.accent,
+                  letterSpacing: 4,
+                ),
               ),
-            ),
-        ],
+              const SizedBox(height: CardMindSpacing.md),
+              const Divider(),
+            ],
+            const SizedBox(height: CardMindSpacing.md),
+            const Text('扫描此二维码'),
+            const SizedBox(height: CardMindSpacing.sm),
+            if (_credentialText != null) ...[
+              SizedBox(
+                width: 200,
+                height: 200,
+                child: CustomPaint(
+                  key: const ValueKey('pair-qr-image'),
+                  painter: QrPainter(
+                    data: _credentialText!,
+                    version: QrVersions.auto,
+                    gapless: false,
+                  ),
+                ),
+              ),
+              const SizedBox(height: CardMindSpacing.md),
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: CardMindSpacing.sm,
+                runSpacing: CardMindSpacing.xs,
+                children: [
+                  TextButton.icon(
+                    key: const ValueKey('pair-copy-button'),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: _credentialText!));
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text('已复制配对信息')));
+                    },
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: const Text('复制配对信息'),
+                  ),
+                  TextButton.icon(
+                    key: const ValueKey('pair-regenerate-button'),
+                    onPressed: _regenerate,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('重新生成'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: CardMindSpacing.sm),
+              if (_expiresAt != null) _CountdownWidget(expiresAt: _expiresAt!),
+            ] else if (_error == null) ...[
+              const Text(
+                '正在生成配对信息…',
+                style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 13),
+              ),
+            ],
+            const SizedBox(height: CardMindSpacing.lg),
+            if (_error != null)
+              Text(
+                _error!,
+                key: const ValueKey('pair-accept-error'),
+                style: TextStyle(color: context.cardMind.danger, fontSize: 13),
+              )
+            else if (_credentialText == null)
+              const Text(
+                '正在生成配对信息…',
+                style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 13),
+              )
+            else
+              Text(
+                '等待对方确认后自动完成配对…',
+                style: TextStyle(
+                  color: context.cardMind.mutedInk,
+                  fontSize: 13,
+                ),
+              ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -866,6 +981,61 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
           child: const Text('关闭'),
         ),
       ],
+    );
+  }
+}
+
+class _CountdownWidget extends StatefulWidget {
+  const _CountdownWidget({required this.expiresAt});
+
+  final String expiresAt;
+
+  @override
+  State<_CountdownWidget> createState() => _CountdownWidgetState();
+}
+
+class _CountdownWidgetState extends State<_CountdownWidget> {
+  Duration? _remaining;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    final expires = DateTime.tryParse(widget.expiresAt);
+    if (expires == null) return;
+    final remaining = expires.difference(DateTime.now());
+    _remaining = remaining.isNegative ? Duration.zero : remaining;
+    // 单次定时器在过期时刷新为"已过期"，不每秒 setState（避免测试 pumpAndSettle
+    // 被周期性帧卡住；dispose 时取消）。展示值以初始化时刻为准，仍满足倒计时语义。
+    _timer = Timer(remaining.isNegative ? Duration.zero : remaining, () {
+      if (!mounted) return;
+      setState(() => _remaining = Duration.zero);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_remaining == null) return const SizedBox.shrink();
+    final minutes = _remaining!.inMinutes;
+    final seconds = _remaining!.inSeconds % 60;
+    final text = _remaining!.inSeconds <= 0
+        ? '已过期，请重新生成'
+        : '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    return Text(
+      text,
+      key: const ValueKey('pair-code-countdown'),
+      style: TextStyle(
+        fontSize: 14,
+        color: _remaining!.inSeconds <= 0
+            ? context.cardMind.danger
+            : context.cardMind.mutedInk,
+      ),
     );
   }
 }

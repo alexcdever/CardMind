@@ -6,6 +6,7 @@ import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
 import 'debug_log.dart';
 import 'note_repository.dart';
+import 'pairing_credential_exception.dart';
 
 /// FRB-backed repository with an explicit, isolated data directory.
 final class FrbNoteRepository implements NoteRepository {
@@ -299,6 +300,45 @@ final class FrbNoteRepository implements NoteRepository {
       code: code,
       target: target,
     );
+  }
+
+  @override
+  Future<PairingCredentialDisplay> beginPairingCredential() async {
+    _ensureOpen();
+    // 组合 API：生成凭证 + 启动 mDNS 广播（任务 Q；弹窗关闭由
+    // stopPairingAdvertising 负责）。重复调用使旧凭证失效并重新广播。
+    return api.beginPairingCredentialWithAdvertising(svc: _sync);
+  }
+
+  @override
+  Future<ParsedPairingCredential> parsePairingCredential(
+    String credential,
+  ) async {
+    _ensureOpen();
+    try {
+      return await api.parsePairingCredential(
+        svc: _sync,
+        credential: credential,
+      );
+    } on PairingCredentialError catch (e) {
+      throw PairingCredentialException.fromRust(e);
+    }
+  }
+
+  @override
+  Future<PairingResult> beginPairingConnectWithCredential(
+    String credential,
+  ) async {
+    _ensureOpen();
+    try {
+      return await api.beginPairingConnectWithCredential(
+        svc: _sync,
+        store: _store,
+        credential: credential,
+      );
+    } on PairingCredentialError catch (e) {
+      throw PairingCredentialException.fromRust(e);
+    }
   }
 
   @override

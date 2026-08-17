@@ -31,6 +31,7 @@ async fn pair_up(
     let target = PairingTarget {
         device_id: confirmer.device_id(),
         ips: confirmer.local_addrs(),
+        nonce: confirmer.session_nonce_hex(),
     };
     assert!(!target.ips.is_empty(), "确认方应至少有一个本地 IPv4 地址");
 
@@ -438,6 +439,7 @@ fn pairing_and_push_routing_coexist() {
 
         // B 同时进入配对等待（新设备 C 加入）
         let code = b.begin_pairing_accept().unwrap();
+        let b_nonce = b.session_nonce_hex();
         let b_handle = tokio::spawn(async move {
             let request = b.accept_pairing_request().await.unwrap();
             (b, request)
@@ -465,6 +467,7 @@ fn pairing_and_push_routing_coexist() {
                     PairingTarget {
                         device_id: b_id,
                         ips: b_ips,
+                        nonce: b_nonce,
                     },
                 )
                 .await

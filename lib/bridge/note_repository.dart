@@ -1,6 +1,7 @@
 import '../src/rust/discovery.dart';
 import '../src/rust/store.dart';
 import '../src/rust/sync.dart';
+import 'pairing_credential_exception.dart';
 
 /// 笔记仓库抽象：UI 层通过它访问 Rust 后端。
 ///
@@ -102,6 +103,26 @@ abstract interface class NoteRepository {
 
   /// 发起方：连接确认方发送配对请求，接收握手响应并 upsert 确认方。返回确认方身份。
   Future<PairingResult> beginPairingConnect(String code, PairingTarget target);
+
+  /// 显示方：生成签名配对凭证（新 code + 新 nonce + 完整 cm1... 凭证），
+  /// 并启动 mDNS 广播（组合 API，任务 Q）——确认方显示凭证弹窗期间广播
+  /// 一定在，供 6 位码路径使用（TXT 携带会话 nonce）。
+  ///
+  /// 返回展示对象：6 位码、完整凭证字符串（二维码/复制文本逐字相同）、
+  /// RFC3339 过期时间（UI 倒计时）。重复调用使旧凭证失效并重新广播。
+  Future<PairingCredentialDisplay> beginPairingCredential();
+
+  /// 发起方：解析并验证配对信息字符串（验签 + 时间窗口 + 长度）。
+  ///
+  /// 错误映射为 [PairingCredentialException]（稳定 kind + 中文文案），
+  /// 不暴露裸异常。
+  Future<ParsedPairingCredential> parsePairingCredential(String credential);
+
+  /// 发起方：凭证垂直入口——验证凭证并直连/relay 连接确认方（禁止 mDNS）。
+  ///
+  /// 错误映射为 [PairingCredentialException]（稳定 kind + 中文文案），
+  /// 不暴露裸异常。
+  Future<PairingResult> beginPairingConnectWithCredential(String credential);
 
   /// 发起方：接受确认方推送的全量快照并导入（首次全量同步接收端）。
   Future<void> acceptAndImportPush();

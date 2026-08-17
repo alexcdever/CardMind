@@ -78,6 +78,8 @@ class DevicesRepository implements NoteRepository {
   String deviceIdValue = 'dev-1234567890';
   String acceptCodeValue = '123456';
   int acceptCodeCalls = 0;
+  int credentialCalls = 0;
+  int credentialConnectCalls = 0;
   int removeCalls = 0;
   final List<String> removedPeerIds = [];
   int connectCalls = 0;
@@ -145,6 +147,42 @@ class DevicesRepository implements NoteRepository {
       ),
     );
     return PairingResult(peerId: target.deviceId, peerName: connectPeerName);
+  }
+
+  @override
+  Future<PairingCredentialDisplay> beginPairingCredential() async {
+    credentialCalls++;
+    return PairingCredentialDisplay(
+      code: '289260',
+      credential: 'cm1.credential-fake-text',
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
+    );
+  }
+
+  @override
+  Future<ParsedPairingCredential> parsePairingCredential(
+    String credential,
+  ) async {
+    return ParsedPairingCredential(
+      code: '289260',
+      deviceId: 'parsed-device',
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
+      nonce: '11111111111111111111111111111111',
+    );
+  }
+
+  @override
+  Future<PairingResult> beginPairingConnectWithCredential(
+    String credential,
+  ) async {
+    credentialConnectCalls++;
+    return PairingResult(peerId: 'parsed-device', peerName: 'Trusted PC');
   }
 
   @override
@@ -237,15 +275,15 @@ Future<void> _pumpStatus(WidgetTester tester, CardMindSyncStatus status) async {
 void main() {
   // ━━ 验收 1：status shows pending count when unsynced ━━
   testWidgets('status shows pending count when unsynced', (tester) async {
-    await _pumpStatus(
-      tester,
-      const CardMindSyncStatus(pendingCount: 3),
-    );
+    await _pumpStatus(tester, const CardMindSyncStatus(pendingCount: 3));
     expect(find.text('3 篇待同步'), findsOneWidget);
 
     await _pumpStatus(tester, const CardMindSyncStatus(pendingCount: 0));
-    expect(find.textContaining('待同步'), findsNothing,
-        reason: '无待同步时应回归纯圆点，不显示计数文字');
+    expect(
+      find.textContaining('待同步'),
+      findsNothing,
+      reason: '无待同步时应回归纯圆点，不显示计数文字',
+    );
     expect(find.text('本地已就绪'), findsOneWidget);
   });
 
@@ -267,15 +305,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('sync-now-button')), findsNothing,
-        reason: 'pendingCount=0 时不应出现立即同步按钮');
+    expect(
+      find.byKey(const ValueKey('sync-now-button')),
+      findsNothing,
+      reason: 'pendingCount=0 时不应出现立即同步按钮',
+    );
 
     api.pendingCountValue = 3;
     await scheduler.refreshPendingCount();
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('sync-now-button')), findsOneWidget,
-        reason: 'pendingCount>0 时应出现立即同步按钮');
+    expect(
+      find.byKey(const ValueKey('sync-now-button')),
+      findsOneWidget,
+      reason: 'pendingCount>0 时应出现立即同步按钮',
+    );
   });
 
   // ━━ 验收 3：sync now triggers cycle and disables during run ━━
@@ -305,8 +349,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('sync-now-button')));
     await tester.pump();
 
-    expect(api.setSyncAllowedCalls, [true],
-        reason: '手动立即同步应先临时打开同步开关（无视 WiFi 限制）');
+    expect(api.setSyncAllowedCalls, [
+      true,
+    ], reason: '手动立即同步应先临时打开同步开关（无视 WiFi 限制）');
     expect(api.runSyncCycleCalls, 1, reason: '应立即触发一次同步周期');
 
     final runningButton = tester.widget<IconButton>(
@@ -335,8 +380,11 @@ void main() {
       find.byKey(const ValueKey('sync-status-dot')),
     );
     final decoration = dot.decoration as BoxDecoration;
-    expect(decoration.color, CardMindSyncStatus.staleDotColor,
-        reason: '连续失败超过 24 小时圆点应变色提示');
+    expect(
+      decoration.color,
+      CardMindSyncStatus.staleDotColor,
+      reason: '连续失败超过 24 小时圆点应变色提示',
+    );
   });
 
   // ━━ 验收 5：devices page lists paired devices ━━
@@ -347,17 +395,13 @@ void main() {
         PairedDeviceRow(
           peerId: 'peer-a',
           name: '桌面 Mac',
-          lastSeen: now
-              .subtract(const Duration(minutes: 2))
-              .toIso8601String(),
+          lastSeen: now.subtract(const Duration(minutes: 2)).toIso8601String(),
           pairedAt: now.toIso8601String(),
         ),
         PairedDeviceRow(
           peerId: 'peer-b',
           name: '手机',
-          lastSeen: now
-              .subtract(const Duration(hours: 3))
-              .toIso8601String(),
+          lastSeen: now.subtract(const Duration(hours: 3)).toIso8601String(),
           pairedAt: now.toIso8601String(),
         ),
       ];
@@ -372,7 +416,11 @@ void main() {
 
     // 本机信息
     expect(find.text('My PC'), findsOneWidget);
-    expect(find.text('dev-1234…'), findsOneWidget, reason: '本机 device_id 短显示（前 8 字符）');
+    expect(
+      find.text('dev-1234…'),
+      findsOneWidget,
+      reason: '本机 device_id 短显示（前 8 字符）',
+    );
 
     // 设备列表：名称 + 状态 + 最后同步时间
     expect(find.text('桌面 Mac'), findsOneWidget);
@@ -395,8 +443,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('还没有配对设备'), findsOneWidget);
-    expect(find.textContaining('添加设备'), findsWidgets,
-        reason: '空状态应包含引导文案与添加入口');
+    expect(
+      find.textContaining('添加设备'),
+      findsWidgets,
+      reason: '空状态应包含引导文案与添加入口',
+    );
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -424,8 +475,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('unpair-peer-a')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('解除后不再同步'), findsOneWidget,
-        reason: '解除配对前应弹确认框');
+    expect(
+      find.textContaining('解除后不再同步'),
+      findsOneWidget,
+      reason: '解除配对前应弹确认框',
+    );
 
     await tester.tap(find.byKey(const ValueKey('unpair-confirm')));
     await tester.pumpAndSettle();
@@ -456,8 +510,12 @@ void main() {
     // 我显示码 → 第二步展示本机码
     await tester.tap(find.byKey(const ValueKey('pair-mode-show')));
     await tester.pumpAndSettle();
-    expect(repository.acceptCodeCalls, 1, reason: '显示码模式应调用 beginPairingAccept');
-    expect(find.text('123456'), findsOneWidget);
+    expect(
+      repository.credentialCalls,
+      1,
+      reason: '显示码模式应调用 beginPairingCredential',
+    );
+    expect(find.text('289260'), findsOneWidget);
 
     // 关闭，进入输入码模式
     await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
@@ -468,19 +526,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
-      '654321',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('pair-peer-id-input')),
-      'peer-device-xyz',
+      find.byKey(const ValueKey('pair-credential-input')),
+      'cm1.credential-fake-text',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
     await tester.pumpAndSettle();
 
-    expect(repository.connectCalls, 1, reason: '输入码提交应调用配对连接 API');
-    expect(repository.connectCode, '654321');
-    expect(repository.connectTarget?.deviceId, 'peer-device-xyz');
+    expect(repository.credentialConnectCalls, 1, reason: '输入凭证应调用配对连接 API');
     expect(find.textContaining('配对成功'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -511,8 +563,11 @@ void main() {
     await tester.tap(find.text('设备'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(DevicesPage), findsOneWidget,
-        reason: '移动端设备 tab 应渲染设备页（替换空壳占位）');
+    expect(
+      find.byType(DevicesPage),
+      findsOneWidget,
+      reason: '移动端设备 tab 应渲染设备页（替换空壳占位）',
+    );
     expect(find.text('桌面 Mac'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -531,22 +586,26 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('devices-entry')), findsOneWidget,
-        reason: '桌面侧边栏底部应有设备入口');
+    expect(
+      find.byKey(const ValueKey('devices-entry')),
+      findsOneWidget,
+      reason: '桌面侧边栏底部应有设备入口',
+    );
     expect(find.byType(NavigationBar), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('devices-entry')));
     await tester.pumpAndSettle();
 
-    expect(find.byType(DevicesPage), findsOneWidget,
-        reason: '点击设备入口应进入设备页');
+    expect(find.byType(DevicesPage), findsOneWidget, reason: '点击设备入口应进入设备页');
     await tester.pumpWidget(const SizedBox());
   });
 
   // ━━ 验收 15（任务 O）：devices page refreshes status ━━
   // 页面保持打开时，后台 last_seen 更新后在 ≤5 秒内从离线变在线；
   // dispose 后不再刷新（不产生 pending timer / 不崩溃）。
-  testWidgets('devices page refreshes online status in background', (tester) async {
+  testWidgets('devices page refreshes online status in background', (
+    tester,
+  ) async {
     final now = DateTime.now();
     final repository = DevicesRepository()
       ..pairedDevices = [
@@ -565,7 +624,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('离线'), findsOneWidget, reason: '初始 last_seen 1 小时前 → 离线');
+    expect(
+      find.textContaining('离线'),
+      findsOneWidget,
+      reason: '初始 last_seen 1 小时前 → 离线',
+    );
 
     // 后台同步更新 last_seen（模拟对端 push 后接收器刷新投影）
     repository.pairedDevices = [

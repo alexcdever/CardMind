@@ -14,6 +14,7 @@ pub struct PeerInfo {
     pub device_id: String,
     pub ip: String,
     pub port: u16,
+    pub nonce: String,
 }
 
 /// mDNS 设备发现服务
@@ -40,7 +41,8 @@ impl DiscoveryService {
     ///
     /// `device_id`: iroh EndpointId 字符串（放 TXT 记录）
     /// `port`: iroh 监听端口
-    pub fn start_advertising(&mut self, device_id: &str, port: u16) -> Result<()> {
+    /// `nonce`: 当前配对会话 nonce（hex，随 TXT 广播）
+    pub fn start_advertising(&mut self, device_id: &str, port: u16, nonce: &str) -> Result<()> {
         // 停止之前的广播（如有）
         self.stop_advertising()?;
 
@@ -51,6 +53,7 @@ impl DiscoveryService {
         let mut properties = HashMap::new();
         properties.insert("device_id".to_string(), device_id.to_string());
         properties.insert("port".to_string(), port.to_string());
+        properties.insert("nonce".to_string(), nonce.to_string());
 
         let service_info = ServiceInfo::new(
             SERVICE_TYPE,
@@ -124,11 +127,16 @@ impl DiscoveryService {
                         .unwrap_or_default();
 
                     let port = service.get_port();
+                    let nonce = service
+                        .get_property_val_str("nonce")
+                        .unwrap_or_default()
+                        .to_string();
 
                     peers.push(PeerInfo {
                         device_id,
                         ip,
                         port,
+                        nonce,
                     });
                 }
                 Ok(Ok(

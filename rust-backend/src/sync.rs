@@ -7,7 +7,10 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use atomic_write_file::AtomicWriteFile;
 use chrono::{DateTime, Utc};
-use iroh::{endpoint::presets, Endpoint, EndpointAddr, RelayMode, SecretKey, TransportAddr};
+use iroh::{
+    endpoint::presets, Endpoint, EndpointAddr, PublicKey, RelayMode, SecretKey, Signature,
+    TransportAddr,
+};
 use loro::{Container, ExportMode, LoroDoc, LoroValue, ValueOrContainer};
 use rand::Rng;
 use uuid::Uuid;
@@ -27,6 +30,8 @@ pub struct SyncService {
     /// 构造时使用的 relay 模式（任务 K 配置化：默认 Disabled 仅局域网；
     /// 持久化版读取 `<数据目录>/relay.txt` 可配置 Custom）
     relay_mode: RelayMode,
+    /// 本设备持久化 SecretKey（构造时克隆保留，供凭证签名；不暴露、不落库）
+    secret_key: SecretKey,
     /// 当前配对码会话（内存态；10 分钟有效，重启失效可接受——用户重新发起）
     pairing_session: Mutex<Option<PairingSession>>,
     /// 确认方已接收、等待用户确认的配对请求及其连接（确认时回复握手响应）。
@@ -163,6 +168,8 @@ pub struct PairingSession {
     pub created_at: DateTime<Utc>,
     /// 同一码连续错误次数（≥5 时会话失效，防暴力猜测）
     pub failed_attempts: u32,
+    /// 一次性会话标识（签名凭证与 6 位码共用；重新生成必须更换）
+    pub nonce: [u8; 16],
 }
 
 /// 发起方配对请求（含本机身份与配对码，经网络发送给确认方）
@@ -181,6 +188,9 @@ pub struct PairingRequest {
     pub relay_info: String,
     /// 发起方 IPv4 地址列表（"ip:port"，供确认方直连/推送加速）
     pub ips: Vec<String>,
+    /// 一次性会话 nonce（hex 字符串；凭证路径来自凭证；6 位码路径来自 mDNS TXT）。
+    /// 确认方校验请求 nonce 必须与当前 PairingSession 一致。
+    pub nonce: String,
 }
 
 /// 配对结果（对端身份）
@@ -200,6 +210,9 @@ pub struct PairingTarget {
     /// 确认方 IP 列表（"ip:port"）。空时经 n0 地址解析 + 公共 relay 连接
     /// （iroh 1.x N0 preset 的 DnsAddressLookup 机制）；非空时直连优先。
     pub ips: Vec<String>,
+    /// 确认方当前会话 nonce（hex 字符串；凭证路径直接内嵌；6 位码路径来自 mDNS TXT）。
+    /// 构造请求时写入 PairingRequest.nonce。
+    pub nonce: String,
 }
 
 /// 确认方已接收、等待用户确认的配对请求 + 其连接（确认时在同一连接上回复握手响应）
@@ -268,6 +281,7 @@ impl SyncService {
                 .with_context(|| format!("create data directory {}", parent.display()))?;
         }
         let key = load_or_create_secret_key(data_dir.as_deref())?;
+        let secret_key_for_signing = key.clone();
         let relay_mode = load_relay_mode(data_dir.as_deref())?;
         let endpoint = Endpoint::builder(presets::N0)
             .secret_key(key)
@@ -284,6 +298,7 @@ impl SyncService {
             })),
             endpoint,
             relay_mode,
+            secret_key: secret_key_for_signing,
             pairing_session: Mutex::new(None),
             pending_pairing: Arc::new(Mutex::new(None)),
             device_name: Mutex::new(default_device_name()),
@@ -455,10 +470,12 @@ impl SyncService {
         let mut rng = rand::rngs::OsRng;
         let code_num: u32 = rng.gen_range(100000..=999999);
         let code = format!("{code_num:06}");
+        let nonce: [u8; 16] = rng.gen();
         let session = PairingSession {
             code: code.clone(),
             created_at: Utc::now(),
             failed_attempts: 0,
+            nonce,
         };
         *self.pairing_session.lock().unwrap() = Some(session);
         // 新码产生时清除上一次未完成的待确认请求（避免旧连接回复错码）
@@ -493,6 +510,14 @@ impl SyncService {
     pub async fn begin_pairing_accept_with_advertising(&self) -> Result<String> {
         let started = std::time::Instant::now();
         let code = self.begin_pairing_accept()?;
+        // 当前会话 nonce（hex），随 mDNS TXT 广播，供发起方回填 PairingTarget
+        let nonce_hex = self
+            .pairing_session
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|s| nonce_to_hex(&s.nonce))
+            .unwrap_or_default();
         let port = self.endpoint_listen_port();
         let mut guard = self.discovery.lock().await;
         if guard.is_none() {
@@ -501,7 +526,7 @@ impl SyncService {
         let result = guard
             .as_mut()
             .expect("discovery just ensured")
-            .start_advertising(&self.device_id(), port);
+            .start_advertising(&self.device_id(), port, &nonce_hex);
         let duration = started.elapsed();
         match &result {
             Ok(()) => {
@@ -631,6 +656,19 @@ impl SyncService {
     /// 当前配对会话（测试/诊断用）。
     pub fn current_pairing_session(&self) -> Option<PairingSession> {
         self.pairing_session.lock().unwrap().clone()
+    }
+
+    /// 当前会话 nonce 的 hex 字符串（测试/广播用；无会话时为空串）。
+    ///
+    /// 6 位码路径发起方必须把该值回填到 `PairingTarget.nonce`，confirm 侧
+    /// 强制校验（空/全零/不匹配均拒绝）。测试构造请求时用它取真实 nonce。
+    pub fn session_nonce_hex(&self) -> String {
+        self.pairing_session
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|s| nonce_to_hex(&s.nonce))
+            .unwrap_or_default()
     }
 
     /// 覆盖当前配对会话（测试用：注入过期时间等）。
@@ -879,10 +917,33 @@ impl SyncService {
 
         // 请求携带的码必须与当前会话一致（防错配/重放请求）
         {
-            let guard = self.pairing_session.lock().unwrap();
-            if let Some(session) = guard.as_ref() {
+            let mut guard = self.pairing_session.lock().unwrap();
+            if let Some(session) = guard.as_mut() {
                 if !requester.code.is_empty() && session.code != requester.code {
                     anyhow::bail!("pairing code mismatch in request");
+                }
+                // nonce 校验（设计裁决：强制）：凭证/6 位码路径都必须与会话 nonce 一致。
+                // 空、全零、格式错误、不匹配一律拒绝并计入失败次数（防重放/错配）；
+                // 满 PAIRING_MAX_FAILED_ATTEMPTS 清会话。
+                {
+                    let requester_nonce_bytes = match nonce_from_hex(&requester.nonce) {
+                        Ok(n) => n,
+                        Err(_) => {
+                            session.failed_attempts += 1;
+                            if session.failed_attempts >= PAIRING_MAX_FAILED_ATTEMPTS {
+                                *guard = None;
+                            }
+                            anyhow::bail!("pairing nonce mismatch in request");
+                        }
+                    };
+                    if session.nonce != requester_nonce_bytes {
+                        session.failed_attempts += 1;
+                        let failed = session.failed_attempts >= PAIRING_MAX_FAILED_ATTEMPTS;
+                        if failed {
+                            *guard = None;
+                        }
+                        anyhow::bail!("pairing nonce mismatch in request");
+                    }
                 }
             }
         }
@@ -1075,6 +1136,7 @@ impl SyncService {
                 .collect::<Vec<_>>()
                 .join(","),
             ips: self.local_addrs(),
+            nonce: target.nonce,
         };
 
         let conn = self
@@ -2589,6 +2651,9 @@ fn encode_pairing_request(request: &PairingRequest) -> Vec<u8> {
     for ip in &request.ips {
         push_str(&mut buf, ip);
     }
+    // v2 扩展：尾部追加 16 字节 nonce（hex String → 16 字节；旧实现解码时按缺省 [0;16] 处理）
+    let nonce_bytes = nonce_from_hex(&request.nonce).unwrap_or([0u8; 16]);
+    buf.extend_from_slice(&nonce_bytes);
     buf
 }
 
@@ -2611,12 +2676,21 @@ fn decode_pairing_request(data: &[u8]) -> Result<PairingRequest> {
     for _ in 0..ips_count {
         ips.push(take_str(data, &mut offset, "ip")?);
     }
+    // v2 扩展：尾部 16 字节 nonce；旧帧无该字段时按 [0;16]（兼容，confirm 侧仍校验）
+    let nonce = if offset + 16 <= data.len() {
+        let mut n = [0u8; 16];
+        n.copy_from_slice(&data[offset..offset + 16]);
+        n
+    } else {
+        [0u8; 16]
+    };
     Ok(PairingRequest {
         code,
         device_id,
         device_name,
         relay_info,
         ips,
+        nonce: nonce_to_hex(&nonce),
     })
 }
 
@@ -2662,6 +2736,426 @@ fn take_str(data: &[u8], offset: &mut usize, field: &str) -> Result<String> {
         .with_context(|| format!("invalid UTF-8 in {field}"))?;
     *offset += len;
     Ok(s)
+}
+
+/// 16 字节 nonce → 32 字符小写 hex 字符串（FRB 边界表示；测试取会话 nonce 用）。
+pub fn nonce_to_hex(nonce: &[u8; 16]) -> String {
+    let mut s = String::with_capacity(32);
+    for b in nonce {
+        s.push_str(&format!("{b:02x}"));
+    }
+    s
+}
+
+/// node_id bytes → base32 编码字符串（与 iroh EndpointId 显示一致，供 FRB/日志脱敏）。
+fn base32_encode_node_id(bytes: &[u8; 32]) -> String {
+    PublicKey::from_bytes(bytes)
+        .map(|pk| pk.to_string())
+        .unwrap_or_default()
+}
+
+/// 32 字符小写 hex 字符串 → 16 字节 nonce。长度或字符非法时返回错误。
+pub(crate) fn nonce_from_hex(hex: &str) -> Result<[u8; 16]> {
+    if hex.len() != 32 {
+        anyhow::bail!("invalid nonce hex length");
+    }
+    let mut out = [0u8; 16];
+    for (i, chunk) in hex.as_bytes().chunks(2).enumerate() {
+        let hi = (chunk[0] as char)
+            .to_digit(16)
+            .context("invalid nonce hex")? as u8;
+        let lo = (chunk[1] as char)
+            .to_digit(16)
+            .context("invalid nonce hex")? as u8;
+        out[i] = (hi << 4) | lo;
+    }
+    Ok(out)
+}
+
+// ━━━ 签名配对凭证（任务 Q）━━━
+
+/// 配对凭证 v1 协议常量。
+const CREDENTIAL_MAGIC: &[u8; 2] = b"CM";
+const CREDENTIAL_VERSION: u8 = 1;
+const CREDENTIAL_PAYLOAD_LEN: usize = 2 + 1 + 8 + 8 + 16 + 32 + 4; // 71
+const CREDENTIAL_SIGNATURE_LEN: usize = 64;
+pub const CREDENTIAL_FINAL_LEN: usize = CREDENTIAL_PAYLOAD_LEN + CREDENTIAL_SIGNATURE_LEN; // 135
+const CREDENTIAL_TTL_SECS: u64 = 10 * 60;
+const CREDENTIAL_CLOCK_SKEW_SECS: u64 = 60;
+const CREDENTIAL_PREFIX: &str = "cm1.";
+
+/// 原始 v1 凭证字节 `canonical_payload || signature`。
+pub type RawCredential = [u8; CREDENTIAL_FINAL_LEN];
+
+/// 解析后的凭证字段（内部使用）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedCredentialFields {
+    pub node_id_bytes: [u8; 32],
+    pub pairing_code: u32,
+    pub expires_at: u64,
+    pub nonce: [u8; 16],
+}
+
+/// 构建 canonical payload（71 字节，全大端）。
+fn build_canonical_payload(
+    issued_at: u64,
+    expires_at: u64,
+    nonce: &[u8; 16],
+    node_id: &[u8; 32],
+    pairing_code: u32,
+) -> Result<[u8; CREDENTIAL_PAYLOAD_LEN]> {
+    if !(100000..=999999).contains(&pairing_code) {
+        anyhow::bail!("pairing_code out of range: {pairing_code}");
+    }
+    let mut buf = [0u8; CREDENTIAL_PAYLOAD_LEN];
+    buf[0..2].copy_from_slice(CREDENTIAL_MAGIC);
+    buf[2] = CREDENTIAL_VERSION;
+    buf[3..11].copy_from_slice(&issued_at.to_be_bytes());
+    buf[11..19].copy_from_slice(&expires_at.to_be_bytes());
+    buf[19..35].copy_from_slice(nonce);
+    buf[35..67].copy_from_slice(node_id);
+    buf[67..71].copy_from_slice(&pairing_code.to_be_bytes());
+    Ok(buf)
+}
+
+/// 生成签名并拼装最终凭证字节（135 字节）。
+pub fn encode_credential(
+    secret_key: &SecretKey,
+    issued_at: u64,
+    expires_at: u64,
+    nonce: &[u8; 16],
+    node_id: &[u8; 32],
+    pairing_code: u32,
+) -> Result<RawCredential> {
+    let payload = build_canonical_payload(issued_at, expires_at, nonce, node_id, pairing_code)?;
+    let signature = secret_key.sign(&payload);
+    let mut out = [0u8; CREDENTIAL_FINAL_LEN];
+    out[..CREDENTIAL_PAYLOAD_LEN].copy_from_slice(&payload);
+    out[CREDENTIAL_PAYLOAD_LEN..].copy_from_slice(&signature.to_bytes());
+    Ok(out)
+}
+
+/// 解析并验证凭证字节（长度/magic/version/时间窗口/验签）。
+pub fn parse_credential(raw: &[u8], now: u64) -> Result<ParsedCredentialFields> {
+    let final_bytes: &[u8; CREDENTIAL_FINAL_LEN] = raw
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("invalid credential length: {}", raw.len()))?;
+    let (payload, signature_bytes) = final_bytes.split_at(CREDENTIAL_PAYLOAD_LEN);
+
+    if &payload[0..2] != CREDENTIAL_MAGIC {
+        anyhow::bail!("invalid credential magic");
+    }
+    if payload[2] != CREDENTIAL_VERSION {
+        anyhow::bail!("unsupported credential version: {}", payload[2]);
+    }
+
+    let issued_at = u64::from_be_bytes(payload[3..11].try_into().unwrap());
+    let expires_at = u64::from_be_bytes(payload[11..19].try_into().unwrap());
+    let nonce: [u8; 16] = payload[19..35].try_into().unwrap();
+    let node_id_bytes: [u8; 32] = payload[35..67].try_into().unwrap();
+    let pairing_code = u32::from_be_bytes(payload[67..71].try_into().unwrap());
+
+    if !(100000..=999999).contains(&pairing_code) {
+        anyhow::bail!("pairing_code out of range: {pairing_code}");
+    }
+    if issued_at > now.saturating_add(CREDENTIAL_CLOCK_SKEW_SECS) {
+        anyhow::bail!("credential issued_at too far in the future");
+    }
+    if expires_at <= issued_at {
+        anyhow::bail!("credential expires_at must be after issued_at");
+    }
+    if expires_at - issued_at > CREDENTIAL_TTL_SECS {
+        anyhow::bail!("credential ttl exceeds maximum");
+    }
+    if expires_at <= now {
+        anyhow::bail!("credential expired");
+    }
+
+    let public_key = PublicKey::from_bytes(&node_id_bytes)
+        .map_err(|_| anyhow::anyhow!("invalid node_id public key"))?;
+    let signature = Signature::from_bytes(
+        &<[u8; CREDENTIAL_SIGNATURE_LEN]>::try_from(signature_bytes)
+            .expect("split_at yields 64-byte signature"),
+    );
+    public_key
+        .verify(payload, &signature)
+        .map_err(|_| anyhow::anyhow!("credential signature invalid"))?;
+
+    Ok(ParsedCredentialFields {
+        node_id_bytes,
+        pairing_code,
+        expires_at,
+        nonce,
+    })
+}
+
+/// 最终字符串：`cm1.` + base64url(无 padding)。
+pub fn credential_to_string(raw: &RawCredential) -> String {
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw);
+    format!("{CREDENTIAL_PREFIX}{b64}")
+}
+
+/// 字符串 → 凭证字节（严格 `cm1.` 前缀 + base64url，无 padding）。
+pub fn credential_from_string(s: &str) -> Result<RawCredential> {
+    use base64::Engine;
+    let Some(rest) = s.strip_prefix(CREDENTIAL_PREFIX) else {
+        anyhow::bail!("invalid credential prefix");
+    };
+    if rest.is_empty()
+        || !rest
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        anyhow::bail!("invalid credential base64url");
+    }
+    let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(rest)
+        .map_err(|_| anyhow::anyhow!("invalid credential base64url"))?;
+    let decoded_len = decoded.len();
+    let arr: RawCredential = decoded
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("invalid credential length: {}", decoded_len))?;
+    Ok(arr)
+}
+
+// ━━━ FRB 边界凭证类型（任务 Q）━━━
+
+/// 显示方生成的配对凭证展示对象（过 FRB）。
+#[derive(Debug, Clone)]
+pub struct PairingCredentialDisplay {
+    /// 6 位数字配对码（局域网旧流程兼容）
+    pub code: String,
+    /// 完整凭证字符串（`cm1.` + base64url，二维码与复制文本逐字相同）
+    pub credential: String,
+    /// 过期时间 RFC3339 UTC（供 UI 倒计时）
+    pub expires_at: String,
+}
+
+/// 发起方解析后的配对凭证字段（过 FRB；nonce 仅内部 FRB→握手传递）。
+#[derive(Debug, Clone)]
+pub struct ParsedPairingCredential {
+    pub code: String,
+    pub device_id: String,
+    pub expires_at: String,
+    pub nonce: String,
+}
+
+// ━━━ 配对凭证用户错误分类（任务 Q；FRB codegen 后 Dart 侧按 kind 映射中文文案）━━━
+
+/// 用户可读的配对凭证错误分类（过 FRB；Dart 侧 match，避免字符串匹配）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PairingCredentialErrorKind {
+    /// 凭证字符串格式无效（前缀/版本/长度/base64）
+    InvalidFormat,
+    /// 签名无效 / 载荷被篡改
+    InvalidSignature,
+    /// 凭证已过期
+    Expired,
+    /// 凭证已使用或被新凭证替代（会话已更换/清除）
+    UsedOrReplaced,
+    /// 目标设备不可达（连接失败/超时/无握手响应）
+    Unreachable,
+    /// 其它内部错误
+    Internal,
+}
+
+/// 配对凭证错误（过 FRB；携带稳定 kind + 技术细节 message）。
+#[derive(Debug, Clone)]
+pub struct PairingCredentialError {
+    pub kind: PairingCredentialErrorKind,
+    pub message: String,
+}
+
+impl std::fmt::Display for PairingCredentialError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", error_kind_label(&self.kind), self.message)
+    }
+}
+
+impl std::error::Error for PairingCredentialError {}
+
+/// 把底层 anyhow 错误归类为稳定用户错误（凭证解析错误精确分类；
+/// 连接类错误归类为 Unreachable）。
+fn credential_error(err: anyhow::Error) -> PairingCredentialError {
+    let msg = err.to_string();
+    let kind = if msg.contains("expired")
+        || msg.contains("future")
+        || msg.contains("TTL")
+        || msg.contains("issued")
+    {
+        PairingCredentialErrorKind::Expired
+    } else if msg.contains("signature") {
+        PairingCredentialErrorKind::InvalidSignature
+    } else if msg.contains("credential")
+        || msg.contains("base64")
+        || msg.contains("length")
+        || msg.contains("prefix")
+        || msg.contains("version")
+    {
+        PairingCredentialErrorKind::InvalidFormat
+    } else {
+        PairingCredentialErrorKind::Internal
+    };
+    PairingCredentialError { kind, message: msg }
+}
+
+/// 凭证错误 kind 的稳定标签（Display 用）。
+fn error_kind_label(kind: &PairingCredentialErrorKind) -> &'static str {
+    match kind {
+        PairingCredentialErrorKind::InvalidFormat => "invalidFormat",
+        PairingCredentialErrorKind::InvalidSignature => "invalidSignature",
+        PairingCredentialErrorKind::Expired => "expired",
+        PairingCredentialErrorKind::UsedOrReplaced => "usedOrReplaced",
+        PairingCredentialErrorKind::Unreachable => "unreachable",
+        PairingCredentialErrorKind::Internal => "internal",
+    }
+}
+
+impl SyncService {
+    /// 显示方：生成签名配对凭证（新 code + 新 nonce，使旧凭证失效）。
+    ///
+    /// 原子地创建 `PairingSession`（含新 nonce），并用持久化 SecretKey 签名。
+    pub fn begin_pairing_credential(&self) -> Result<PairingCredentialDisplay> {
+        let mut rng = rand::rngs::OsRng;
+        let code_num: u32 = rng.gen_range(100000..=999999);
+        let code = format!("{code_num:06}");
+        let nonce: [u8; 16] = rng.gen();
+
+        let now = Utc::now();
+        let issued_at = now.timestamp() as u64;
+        let expires_at = issued_at + CREDENTIAL_TTL_SECS;
+        let node_id = *self.endpoint.id().as_bytes();
+
+        let raw = encode_credential(
+            &self.secret_key,
+            issued_at,
+            expires_at,
+            &nonce,
+            &node_id,
+            code_num,
+        )?;
+        let credential = credential_to_string(&raw);
+        let expires_at_rfc3339 =
+            (now + chrono::Duration::seconds(CREDENTIAL_TTL_SECS as i64)).to_rfc3339();
+
+        // 原子进入同一配对会话：code + nonce 同时更新，清除旧 pending
+        let session = PairingSession {
+            code: code.clone(),
+            created_at: now,
+            failed_attempts: 0,
+            nonce,
+        };
+        *self.pairing_session.lock().unwrap() = Some(session);
+        *self.pending_pairing.lock().unwrap() = None;
+
+        self.emit_log(
+            LogEvent::new("pairing.show_code", "pairing.show_code")
+                .with_id(&self.device_id())
+                .with_field("action", "success"),
+        );
+
+        Ok(PairingCredentialDisplay {
+            code,
+            credential,
+            expires_at: expires_at_rfc3339,
+        })
+    }
+
+    /// 显示方：生成签名配对凭证并启动 mDNS 广播（组合 API，任务 Q）。
+    ///
+    /// 凭证/会话与广播在同一调用内完成（与 [`Self::begin_pairing_accept_with_advertising`]
+    /// 同模式）——确认方显示凭证弹窗期间广播一定在，供 6 位码路径使用：
+    /// 发起方输入弹窗中的 6 位码后经 mDNS 发现本机，TXT 中携带会话 nonce，
+    /// 发起方回填 `PairingTarget.nonce` 才能通过 confirm 侧强制 nonce 校验。
+    /// 停止广播由 [`Self::stop_pairing_advertising`] 负责（弹窗关闭等）。
+    pub async fn begin_pairing_credential_with_advertising(
+        &self,
+    ) -> Result<PairingCredentialDisplay> {
+        let started = std::time::Instant::now();
+        let display = self.begin_pairing_credential()?;
+        // 当前会话 nonce（hex），随 mDNS TXT 广播，供发起方回填 PairingTarget
+        let nonce_hex = self.session_nonce_hex();
+        let port = self.endpoint_listen_port();
+        let mut guard = self.discovery.lock().await;
+        if guard.is_none() {
+            *guard = Some(DiscoveryService::new()?);
+        }
+        let result = guard
+            .as_mut()
+            .expect("discovery just ensured")
+            .start_advertising(&self.device_id(), port, &nonce_hex);
+        let duration = started.elapsed();
+        match &result {
+            Ok(()) => {
+                self.emit_log(
+                    LogEvent::new("pairing.advertise", "pairing.advertise")
+                        .with_id(&self.device_id())
+                        .with_field("action", "start")
+                        .with_field("port", port.to_string())
+                        .with_duration(duration),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("pairing.advertise", "pairing.advertise")
+                        .with_id(&self.device_id())
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}"))
+                        .with_duration(duration),
+                );
+            }
+        }
+        result?;
+        Ok(display)
+    }
+
+    /// 发起方：解析并验证凭证字符串（验签、时间窗口、长度）。
+    ///
+    /// 返回 `ParsedPairingCredential`（device_id 为 base32 编码，供 FRB 展示/日志脱敏）。
+    /// 错误归类为稳定的 [`PairingCredentialError`]（Dart 侧按 kind 映射中文文案）。
+    pub fn parse_pairing_credential(
+        &self,
+        credential: &str,
+    ) -> Result<ParsedPairingCredential, PairingCredentialError> {
+        let raw = credential_from_string(credential).map_err(credential_error)?;
+        let now = Utc::now().timestamp() as u64;
+        let parsed = parse_credential(&raw, now).map_err(credential_error)?;
+        let device_id = base32_encode_node_id(&parsed.node_id_bytes);
+        let expires_at = chrono::DateTime::<Utc>::from_timestamp(parsed.expires_at as i64, 0)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_default();
+        Ok(ParsedPairingCredential {
+            code: format!("{:06}", parsed.pairing_code),
+            device_id,
+            expires_at,
+            nonce: nonce_to_hex(&parsed.nonce),
+        })
+    }
+
+    /// 发起方：凭证垂直入口——parse/verify → 构造 PairingTarget → 直连/relay 连接。
+    ///
+    /// `ips=[]` 时沿用 `build_connect_addr`（发起端自己的可选 relay.txt）。
+    /// 凭证解析错误精确分类；连接类错误归类为 `Unreachable`。
+    pub async fn begin_pairing_connect_with_credential(
+        &self,
+        store: &NoteStore,
+        credential: &str,
+    ) -> Result<PairingResult, PairingCredentialError> {
+        let parsed = self.parse_pairing_credential(credential)?;
+        let target = PairingTarget {
+            device_id: parsed.device_id,
+            ips: vec![],
+            nonce: parsed.nonce,
+        };
+        self.begin_pairing_connect(store, &parsed.code, target)
+            .await
+            .map_err(|err| PairingCredentialError {
+                kind: PairingCredentialErrorKind::Unreachable,
+                message: err.to_string(),
+            })
+    }
 }
 
 // ━━━ NoteCrdt ━━━

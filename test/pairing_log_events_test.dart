@@ -10,7 +10,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// debug-log 任务验收测试（配对 UI 事件，Flutter 侧）：
-/// 4. manual pairing emits discovery-bypass event —— 手动 ID 路径明确记录跳过 mDNS
+/// 4. signed credential emits discovery-bypass event —— 凭证路径明确记录跳过 mDNS
 /// 5. mdns discovery emits count and duration —— 数量与耗时
 /// 6. pairing accept lifecycle emits all stages —— 显示码/accept/request/confirm/成功/超时
 /// 7. relay connection emits transport and error chain —— 直连 vs relay + 错误链 + 耗时
@@ -47,6 +47,7 @@ class PairingLogRepository implements NoteRepository {
   bool advertisingStarted = false;
   bool advertisingStopped = false;
   PairingTarget? connectTarget;
+  int credentialConnectCalls = 0;
 
   @override
   Future<List<PairedDeviceRow>> listPairedDevices() async => [];
@@ -79,14 +80,19 @@ class PairingLogRepository implements NoteRepository {
   }
 
   @override
-  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) async {
+  Future<PairingRequest?> acceptPairingRequestWithTimeout(
+    Duration timeout,
+  ) async {
     acceptCalls++;
     if (acceptError case final error?) throw error;
     return acceptResult;
   }
 
   @override
-  Future<PairingResult> confirmPairing(String code, PairingRequest requester) async {
+  Future<PairingResult> confirmPairing(
+    String code,
+    PairingRequest requester,
+  ) async {
     confirmCalls++;
     if (confirmError case final error?) throw error;
     return confirmResult ??
@@ -103,6 +109,41 @@ class PairingLogRepository implements NoteRepository {
     if (connectError case final error?) throw error;
     return connectResult ??
         PairingResult(peerId: target.deviceId, peerName: 'New Phone');
+  }
+
+  @override
+  Future<PairingCredentialDisplay> beginPairingCredential() async {
+    return PairingCredentialDisplay(
+      code: '289260',
+      credential: 'cm1.credential-fake-text',
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
+    );
+  }
+
+  @override
+  Future<ParsedPairingCredential> parsePairingCredential(
+    String credential,
+  ) async {
+    return ParsedPairingCredential(
+      code: '289260',
+      deviceId: 'parsed-device',
+      expiresAt: DateTime.now()
+          .toUtc()
+          .add(const Duration(minutes: 10))
+          .toIso8601String(),
+      nonce: '11111111111111111111111111111111',
+    );
+  }
+
+  @override
+  Future<PairingResult> beginPairingConnectWithCredential(
+    String credential,
+  ) async {
+    credentialConnectCalls++;
+    return PairingResult(peerId: 'parsed-device', peerName: 'Trusted PC');
   }
 
   @override
@@ -217,47 +258,45 @@ void main() {
     DebugLogger.instance.resetPlatform();
   });
 
-  // ━━ 验收 4：手动 device ID 路径明确记录跳过 mDNS ━━
-  testWidgets('manual pairing emits discovery-bypass event', (tester) async {
+  // ━━ 验收 4：签名凭证路径明确记录跳过 mDNS ━━
+  testWidgets('signed credential emits discovery-bypass event', (tester) async {
     await _pumpDevicesPage(tester, repository);
     await _openEnterCodeDialog(tester);
 
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
-      repository.code,
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('pair-peer-id-input')),
-      'manual-target-device-0001',
+      find.byKey(const ValueKey('pair-credential-input')),
+      'cm1.credential-fake-text',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
     await tester.pumpAndSettle();
 
-    expect(repository.discoverCalls, 0,
-        reason: '手动填写 ID 时不应调用 mDNS 扫描');
+    expect(repository.discoverCalls, 0, reason: '输入签名凭证时不应调用 mDNS 扫描');
     final bypass = capture.events.firstWhere(
-      (e) =>
-          e.event == 'pairing.discovery' && e.fields['action'] == 'bypassed',
+      (e) => e.event == 'pairing.discovery' && e.fields['action'] == 'bypassed',
     );
-    expect(bypass.fields['mdns_skipped'], 'true',
-        reason: '手动 ID 路径必须明确记录跳过 mDNS');
     expect(
-      bypass.deviceIds,
-      contains(DebugLogger.redactDeviceId('manual-target-device-0001')),
-      reason: '目标 id 以脱敏形式记录',
+      bypass.fields['mdns_skipped'],
+      'true',
+      reason: '签名凭证路径必须明确记录跳过 mDNS',
     );
+    expect(bypass.deviceIds, isEmpty, reason: '凭证 bypass 不得记录目标 ID');
   });
 
   // ━━ 验收 5：mDNS 发现记录数量与耗时 ━━
   testWidgets('mdns discovery emits count and duration', (tester) async {
     repository.discoverResult = [
-      PeerInfo(deviceId: 'mdns-found-device-0001', ip: '192.168.1.42', port: 11223),
+      PeerInfo(
+        deviceId: 'mdns-found-device-0001',
+        ip: '192.168.1.42',
+        port: 11223,
+        nonce: '',
+      ),
     ];
     await _pumpDevicesPage(tester, repository);
     await _openEnterCodeDialog(tester);
 
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
+      find.byKey(const ValueKey('pair-credential-input')),
       repository.code,
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
@@ -282,6 +321,7 @@ void main() {
       deviceName: 'New Phone',
       relayInfo: '',
       ips: const [],
+      nonce: '',
     );
     repository.confirmResult = PairingResult(
       peerId: 'requester-device-0001',
@@ -293,7 +333,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final events = capture.events;
-    final text = events.map((e) => '${e.event}:${e.fields['action']}').join('\n');
+    final text = events
+        .map((e) => '${e.event}:${e.fields['action']}')
+        .join('\n');
     for (final expected in [
       'pairing.show_code:start',
       'pairing.show_code:success',
@@ -330,8 +372,7 @@ void main() {
       (e) => e.event == 'pairing.accept' && e.fields['action'] == 'timeout',
     );
     expect(timeout, isNotNull, reason: 'accept 超时应发出 timeout 事件');
-    expect(repository.advertisingStopped, isTrue,
-        reason: '超时后应停止广播（清理事件）');
+    expect(repository.advertisingStopped, isTrue, reason: '超时后应停止广播（清理事件）');
     expect(
       find.textContaining('等待配对超时'),
       findsOneWidget,
@@ -347,7 +388,8 @@ void main() {
     await tester.pumpAndSettle();
 
     final cancelled = capture.events.firstWhere(
-      (e) => e.event == 'pairing.show_code' && e.fields['action'] == 'cancelled',
+      (e) =>
+          e.event == 'pairing.show_code' && e.fields['action'] == 'cancelled',
     );
     expect(cancelled, isNotNull, reason: '取消显示码应发出 cancelled 事件');
     final stop = capture.events.firstWhere(
@@ -357,17 +399,24 @@ void main() {
   });
 
   // ━━ 验收 7：连接事件带 transport 与错误链/耗时 ━━
-  testWidgets('connect failure emits transport and error chain', (tester) async {
+  testWidgets('connect failure emits transport and error chain', (
+    tester,
+  ) async {
     // mDNS 发现路径：target 带 ip:port → transport=direct
     repository.discoverResult = [
-      PeerInfo(deviceId: 'mdns-found-device-0001', ip: '192.168.1.42', port: 11223),
+      PeerInfo(
+        deviceId: 'mdns-found-device-0001',
+        ip: '192.168.1.42',
+        port: 11223,
+        nonce: 'nonce',
+      ),
     ];
     repository.connectError = AnyhowException('connect to confirmer: refused');
 
     await _pumpDevicesPage(tester, repository);
     await _openEnterCodeDialog(tester);
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
+      find.byKey(const ValueKey('pair-credential-input')),
       repository.code,
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
@@ -376,33 +425,32 @@ void main() {
     final start = capture.events.firstWhere(
       (e) => e.event == 'pairing.connect' && e.fields['action'] == 'start',
     );
-    expect(start.fields['transport'], 'direct',
-        reason: 'mDNS 发现带直连地址时 transport 应为 direct');
+    expect(
+      start.fields['transport'],
+      'direct',
+      reason: 'mDNS 发现带直连地址时 transport 应为 direct',
+    );
     final failed = capture.events.firstWhere(
       (e) => e.event == 'pairing.connect' && e.fields['action'] == 'failed',
     );
     expect(failed.error, isNotNull, reason: '失败事件应记录错误类型');
-    expect(failed.errorChain, contains('refused'),
-        reason: '失败事件应记录错误链');
+    expect(failed.errorChain, contains('refused'), reason: '失败事件应记录错误链');
     expect(failed.durationMs, isNotNull, reason: '失败事件应记录耗时');
   });
 
-  testWidgets('connect with empty ips records relay_or_dns transport',
-      (tester) async {
-    // 手动填 ID + 无 IP 信息 → 走 relay/DNS 解析路径
+  testWidgets('connect with empty ips records relay_or_dns transport', (
+    tester,
+  ) async {
+    // 签名凭证 + 无本地 IP 信息 → 走 relay/DNS 解析路径
     repository.connectResult = PairingResult(
-      peerId: 'manual-target-device-0001',
+      peerId: 'credential-target-device-0001',
       peerName: 'New Phone',
     );
     await _pumpDevicesPage(tester, repository);
     await _openEnterCodeDialog(tester);
     await tester.enterText(
-      find.byKey(const ValueKey('pair-code-input')),
-      repository.code,
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('pair-peer-id-input')),
-      'manual-target-device-0001',
+      find.byKey(const ValueKey('pair-credential-input')),
+      'cm1.credential-fake-text',
     );
     await tester.tap(find.byKey(const ValueKey('pair-submit')));
     await tester.pumpAndSettle();
@@ -410,8 +458,11 @@ void main() {
     final start = capture.events.firstWhere(
       (e) => e.event == 'pairing.connect' && e.fields['action'] == 'start',
     );
-    expect(start.fields['transport'], 'relay_or_dns',
-        reason: '无直连 IP 时应记录 relay_or_dns 传输路径');
+    expect(
+      start.fields['transport'],
+      'credential',
+      reason: '无直连 IP 时应记录 relay_or_dns 传输路径',
+    );
   });
 
   // ━━ 验收 9：日志失败不影响配对主流程 ━━
@@ -423,6 +474,7 @@ void main() {
       deviceName: 'New Phone',
       relayInfo: '',
       ips: const [],
+      nonce: '',
     );
     repository.confirmResult = PairingResult(
       peerId: 'requester-device-0001',

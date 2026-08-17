@@ -97,6 +97,47 @@ Future<PairingResult> beginPairingConnect({
   target: target,
 );
 
+/// 配对 — 显示方：生成签名配对凭证（code + credential + RFC3339 过期时间）。
+Future<PairingCredentialDisplay> beginPairingCredential({
+  required SyncService svc,
+}) => RustLib.instance.api.crateApiBeginPairingCredential(svc: svc);
+
+/// 配对 — 显示方：生成签名配对凭证并启动 mDNS 广播（任务 Q 组合 API）。
+///
+/// 凭证/会话与广播在同一调用内完成（与 `begin_pairing_accept_with_advertising`
+/// 同模式）；配对结束（弹窗关闭/完成/取消）时调用 [`stop_pairing_advertising`]。
+Future<PairingCredentialDisplay> beginPairingCredentialWithAdvertising({
+  required SyncService svc,
+}) => RustLib.instance.api.crateApiBeginPairingCredentialWithAdvertising(
+  svc: svc,
+);
+
+/// 配对 — 发起方：解析并验证凭证字符串（验签 + 时间窗口 + 长度）。
+///
+/// 错误为稳定的 [`PairingCredentialError`]（kind + message），Dart 侧按 kind
+/// 映射中文文案，避免字符串匹配。
+Future<ParsedPairingCredential> parsePairingCredential({
+  required SyncService svc,
+  required String credential,
+}) => RustLib.instance.api.crateApiParsePairingCredential(
+  svc: svc,
+  credential: credential,
+);
+
+/// 配对 — 发起方：凭证垂直入口（parse/verify → 目标构造 → 直连/relay 连接）。
+///
+/// 错误为稳定的 [`PairingCredentialError`]；凭证解析错误精确分类，
+/// 连接类错误归类为 `Unreachable`。
+Future<PairingResult> beginPairingConnectWithCredential({
+  required SyncService svc,
+  required NoteStore store,
+  required String credential,
+}) => RustLib.instance.api.crateApiBeginPairingConnectWithCredential(
+  svc: svc,
+  store: store,
+  credential: credential,
+);
+
 /// 接受对端推送并导入（首次全量同步接收端；配对成功后发起方调用）。
 Future<void> acceptPushAndImport({required SyncService svc}) =>
     RustLib.instance.api.crateApiAcceptPushAndImport(svc: svc);
@@ -226,10 +267,12 @@ Future<void> startAdvertising({
   required DiscoveryService disc,
   required String deviceId,
   required int port,
+  required String nonce,
 }) => RustLib.instance.api.crateApiStartAdvertising(
   disc: disc,
   deviceId: deviceId,
   port: port,
+  nonce: nonce,
 );
 
 /// 设备发现 — 扫描对端

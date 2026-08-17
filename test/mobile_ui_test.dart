@@ -352,6 +352,18 @@ class _MemoryNoteRepository implements NoteRepository {
       throw UnimplementedError('pairing not supported by memory fake');
 
   @override
+  Future<PairingCredentialDisplay> beginPairingCredential() =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<ParsedPairingCredential> parsePairingCredential(String credential) =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
+  Future<PairingResult> beginPairingConnectWithCredential(String credential) =>
+      throw UnimplementedError('pairing not supported by memory fake');
+
+  @override
   Future<void> acceptAndImportPush() =>
       throw UnimplementedError('pairing not supported by memory fake');
 

@@ -1,8 +1,9 @@
 use crate::discovery::{DiscoveryService, PeerInfo};
 use crate::store::{LinkRow, NoteRow, NoteStore, PairedDeviceRow};
 use crate::sync::{
-    DevicePushResult, NoteCrdt, PairingRequest, PairingResult, PairingTarget, SyncCycleResult,
-    SyncService, SYNC_POLL_INTERVAL_SECS,
+    DevicePushResult, NoteCrdt, PairingCredentialDisplay, PairingCredentialError, PairingRequest,
+    PairingResult, PairingTarget, ParsedPairingCredential, SyncCycleResult, SyncService,
+    SYNC_POLL_INTERVAL_SECS,
 };
 
 /// 创建同步服务
@@ -122,6 +123,45 @@ pub async fn begin_pairing_connect(
     target: PairingTarget,
 ) -> anyhow::Result<PairingResult> {
     svc.begin_pairing_connect(store, &code, target).await
+}
+
+/// 配对 — 显示方：生成签名配对凭证（code + credential + RFC3339 过期时间）。
+pub fn begin_pairing_credential(svc: &SyncService) -> anyhow::Result<PairingCredentialDisplay> {
+    svc.begin_pairing_credential()
+}
+
+/// 配对 — 显示方：生成签名配对凭证并启动 mDNS 广播（任务 Q 组合 API）。
+///
+/// 凭证/会话与广播在同一调用内完成（与 `begin_pairing_accept_with_advertising`
+/// 同模式）；配对结束（弹窗关闭/完成/取消）时调用 [`stop_pairing_advertising`]。
+pub async fn begin_pairing_credential_with_advertising(
+    svc: &SyncService,
+) -> anyhow::Result<PairingCredentialDisplay> {
+    svc.begin_pairing_credential_with_advertising().await
+}
+
+/// 配对 — 发起方：解析并验证凭证字符串（验签 + 时间窗口 + 长度）。
+///
+/// 错误为稳定的 [`PairingCredentialError`]（kind + message），Dart 侧按 kind
+/// 映射中文文案，避免字符串匹配。
+pub fn parse_pairing_credential(
+    svc: &SyncService,
+    credential: String,
+) -> Result<ParsedPairingCredential, PairingCredentialError> {
+    svc.parse_pairing_credential(&credential)
+}
+
+/// 配对 — 发起方：凭证垂直入口（parse/verify → 目标构造 → 直连/relay 连接）。
+///
+/// 错误为稳定的 [`PairingCredentialError`]；凭证解析错误精确分类，
+/// 连接类错误归类为 `Unreachable`。
+pub async fn begin_pairing_connect_with_credential(
+    svc: &SyncService,
+    store: &NoteStore,
+    credential: String,
+) -> Result<PairingResult, PairingCredentialError> {
+    svc.begin_pairing_connect_with_credential(store, &credential)
+        .await
 }
 
 /// 接受对端推送并导入（首次全量同步接收端；配对成功后发起方调用）。
@@ -261,8 +301,9 @@ pub fn start_advertising(
     disc: &mut DiscoveryService,
     device_id: String,
     port: u16,
+    nonce: String,
 ) -> anyhow::Result<()> {
-    disc.start_advertising(&device_id, port)
+    disc.start_advertising(&device_id, port, &nonce)
 }
 
 /// 设备发现 — 扫描对端
