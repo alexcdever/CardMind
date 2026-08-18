@@ -47,6 +47,9 @@ class _NoteListPageState extends State<NoteListPage> {
   /// 立即同步进行中（防连点禁用按钮）。
   bool _syncNowRunning = false;
   StreamSubscription<int>? _pendingCountSub;
+  StreamSubscription<int>? _contentSub;
+  bool _refreshInFlight = false;
+  bool _refreshQueued = false;
 
   NoteRepository get _repository => widget.repository ?? BridgeHelper();
 
@@ -69,12 +72,16 @@ class _NoteListPageState extends State<NoteListPage> {
     _pendingCountSub = scheduler.pendingCountChanges.listen((count) {
       if (mounted) setState(() => _pendingCount = count);
     });
+    _contentSub = scheduler.contentChanges.listen(
+      (_) => _refreshForContentChange(),
+    );
     unawaited(scheduler.refreshPendingCount());
   }
 
   @override
   void dispose() {
     _pendingCountSub?.cancel();
+    _contentSub?.cancel();
     _searchController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
@@ -107,6 +114,11 @@ class _NoteListPageState extends State<NoteListPage> {
   }
 
   Future<void> _loadNotes() async {
+    if (_refreshInFlight) {
+      _refreshQueued = true;
+      return;
+    }
+    _refreshInFlight = true;
     if (mounted) setState(() => _loading = true);
     try {
       final notes = await _repository.listNotes();
@@ -127,7 +139,25 @@ class _NoteListPageState extends State<NoteListPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('加载失败: $error')));
+    } finally {
+      _refreshInFlight = false;
+      if (_refreshQueued && mounted) {
+        _refreshQueued = false;
+        unawaited(_loadNotes());
+      }
     }
+  }
+
+  void _refreshForContentChange() {
+    if (!mounted) return;
+    if (_isSearching) {
+      final query = _searchController.text.trim();
+      if (query.isNotEmpty) {
+        _searchGeneration++;
+        unawaited(_performSearch(query, _searchGeneration));
+      }
+    }
+    unawaited(_loadNotes());
   }
 
   /// 把 `[[id|alias]]` 渲染为显示文本（alias 缺省用 id）。

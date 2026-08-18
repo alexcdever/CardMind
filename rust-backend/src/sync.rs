@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -60,6 +60,7 @@ pub struct SyncService {
     log: Arc<dyn LogSink>,
     /// verbose 日志开关（debug 提高详细程度；默认 false 只输出常规事件）。
     log_verbose: AtomicBool,
+    content_revision: Arc<AtomicU64>,
 }
 
 /// 可被主服务与后台接收任务共享的可变核心状态。
@@ -96,6 +97,7 @@ struct ReceiverContext {
     cancel: Arc<AtomicBool>,
     /// 连续空闲窗口计数（健康检查/诊断日志用）
     idle_windows: u64,
+    content_revision: Arc<AtomicU64>,
 }
 
 /// 接收器单次 accept 窗口（任务 O：短窗口循环，与配对 accept 轮询同粒度）。
@@ -310,6 +312,7 @@ impl SyncService {
             receiver: Mutex::new(ReceiverHandle::default()),
             log,
             log_verbose: AtomicBool::new(false),
+            content_revision: Arc::new(AtomicU64::new(0)),
         };
         if let Some(path) = &path {
             if path.exists() {
@@ -2022,6 +2025,7 @@ impl SyncService {
                 log_verbose: self.log_verbose.load(Ordering::Relaxed),
                 cancel: cancel.clone(),
                 idle_windows: 0,
+                content_revision: self.content_revision.clone(),
             };
             let join = tokio::spawn(receiver_loop(ctx));
             *guard = ReceiverHandle {
@@ -2078,6 +2082,11 @@ impl SyncService {
     /// 接收任务是否运行中（诊断/测试用）。
     pub fn receiver_running(&self) -> bool {
         self.receiver.lock().unwrap().join.is_some()
+    }
+
+    /// Monotonic revision of successfully projected inbound content.
+    pub fn receiver_content_revision(&self) -> u64 {
+        self.content_revision.load(Ordering::Acquire)
     }
 
     /// 更新配对设备 last_seen 并输出结构化日志（触发原因配对/主动推送/被动接收）。
@@ -2430,6 +2439,7 @@ async fn receiver_handle_incoming(
             ctx.store
                 .update_last_seen(&sender_str)
                 .context("update sender last_seen")?;
+            ctx.content_revision.fetch_add(1, Ordering::Release);
             receiver_log(
                 ctx,
                 "device.last_seen",

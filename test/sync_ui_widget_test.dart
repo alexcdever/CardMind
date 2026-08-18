@@ -39,6 +39,7 @@ class FakeSyncApi implements SyncApi {
 
   final List<bool> setSyncAllowedCalls = [];
   int runSyncCycleCalls = 0;
+  int receiverRevision = 0;
 
   /// 非空时挂起 runSyncCycle（模拟同步进行中）。
   Completer<void>? cycleGate;
@@ -69,6 +70,9 @@ class FakeSyncApi implements SyncApi {
 
   @override
   Future<void> stopReceiver() async {}
+
+  @override
+  Future<int> receiverContentRevision() async => receiverRevision;
 }
 
 /// 设备页 / 列表页共享的内存 fake repository。
