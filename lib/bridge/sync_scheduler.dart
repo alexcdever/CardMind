@@ -44,6 +44,8 @@ abstract interface class SyncApi {
 
   /// 当前待同步笔记数（模块 5 状态指示器数据源）。
   Future<int> pendingCount();
+
+  Future<int> receiverContentRevision();
 }
 
 /// connectivity_plus 实现：WiFi/以太网 → true（允许），蜂窝 → false（暂停）。
@@ -115,6 +117,10 @@ class FrbSyncApi implements SyncApi {
 
   @override
   Future<int> pendingCount() => api.pendingSyncCount(svc: _sync);
+
+  @override
+  Future<int> receiverContentRevision() async =>
+      (await api.receiverContentRevision(svc: _sync)).toInt();
 }
 
 /// 自动同步调度器（任务 H + 任务 O 持续接收器）：
@@ -132,25 +138,41 @@ class FrbSyncApi implements SyncApi {
 /// 调度器不持有 Rust 对象生命周期（无 tokio spawn），由调用方保证
 /// `api` 指向的 SyncService 在调度器运行期间存活。
 class SyncScheduler {
-  SyncScheduler({required this.monitor, required this.api});
+  SyncScheduler({
+    required this.monitor,
+    required this.api,
+    this.receiverPollInterval = const Duration(milliseconds: 300),
+  });
 
   final NetworkTypeMonitor monitor;
   final SyncApi api;
+  final Duration receiverPollInterval;
   Timer? _timer;
+  Timer? _receiverTimer;
   StreamSubscription<bool>? _subscription;
   final _pendingCountController = StreamController<int>.broadcast();
+  final _contentController = StreamController<int>.broadcast();
+  int? _receiverRevision;
+  bool _disposed = false;
 
   /// 待同步计数变化流（模块 5）：周期同步 / 编辑推送 / 立即同步完成后发出，
   /// UI 监听以刷新状态指示器与"立即同步"按钮。
   Stream<int> get pendingCountChanges => _pendingCountController.stream;
+
+  Stream<int> get contentChanges => _contentController.stream;
 
   /// 是否运行中（测试诊断用）。
   bool get isRunning => _timer != null;
 
   /// 启动调度器：订阅网络类型变化 + 同步当前状态 + 启动周期拉取 + 启动接收器。
   Future<void> start() async {
+    if (_disposed) return;
     _subscription ??= monitor.allowedChanges.listen(_onAllowedChanged);
     _syncAllowedNow();
+    await _baselineReceiverRevision();
+    _receiverTimer ??= Timer.periodic(receiverPollInterval, (_) {
+      unawaited(_pollReceiverRevision());
+    });
     // 任务 O：启动持续接收器（幂等；失败静默，周期任务仍会兜底）
     unawaited(_startReceiverQuietly());
     final intervalSecs = await api.pollIntervalSecs;
@@ -187,6 +209,8 @@ class SyncScheduler {
     _timer = null;
     _subscription?.cancel();
     _subscription = null;
+    _receiverTimer?.cancel();
+    _receiverTimer = null;
     // 任务 O：停止接收器（异步有界；3 秒内返回，不留下永久 task）
     unawaited(_stopReceiverQuietly());
   }
@@ -214,8 +238,10 @@ class SyncScheduler {
 
   /// 释放资源（关闭计数流；stop 后不再广播）。
   void dispose() {
+    _disposed = true;
     stop();
     if (!_pendingCountController.isClosed) _pendingCountController.close();
+    if (!_contentController.isClosed) _contentController.close();
   }
 
   /// 编辑保存后触发（repository 保存成功调用；fire-and-forget，不阻塞编辑）。
@@ -323,6 +349,31 @@ class SyncScheduler {
     }
     if (!_pendingCountController.isClosed) _pendingCountController.add(count);
     return count;
+  }
+
+  Future<void> _baselineReceiverRevision() async {
+    try {
+      _receiverRevision = await api.receiverContentRevision();
+    } catch (_) {
+      // The first successful poll becomes the baseline after a transient error.
+    }
+  }
+
+  Future<void> _pollReceiverRevision() async {
+    if (_disposed) return;
+    try {
+      final revision = await api.receiverContentRevision();
+      if (_disposed || _receiverRevision == null) {
+        if (!_disposed) _receiverRevision = revision;
+        return;
+      }
+      if (revision != _receiverRevision) {
+        _receiverRevision = revision;
+        if (!_contentController.isClosed) _contentController.add(revision);
+      }
+    } catch (_) {
+      // Retry on the next lightweight poll.
+    }
   }
 
   Future<void> _runCycle() async {

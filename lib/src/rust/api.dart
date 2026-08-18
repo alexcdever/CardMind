@@ -206,6 +206,10 @@ Future<void> stopReceiver({required SyncService svc}) =>
 Future<bool> receiverRunning({required SyncService svc}) =>
     RustLib.instance.api.crateApiReceiverRunning(svc: svc);
 
+/// Monotonic revision of successfully projected inbound receiver content.
+Future<BigInt> receiverContentRevision({required SyncService svc}) =>
+    RustLib.instance.api.crateApiReceiverContentRevision(svc: svc);
+
 /// 创建笔记
 Future<void> noteCreate({
   required SyncService svc,

@@ -37,6 +37,9 @@ class FakeSyncApi implements SyncApi {
   int runSyncCycleCalls = 0;
   int startReceiverCalls = 0;
   int stopReceiverCalls = 0;
+  int receiverRevision = 0;
+  int receiverRevisionCalls = 0;
+  bool failReceiverRevision = false;
 
   @override
   Future<int> get pollIntervalSecs async => 60;
@@ -67,6 +70,13 @@ class FakeSyncApi implements SyncApi {
   @override
   Future<void> stopReceiver() async {
     stopReceiverCalls++;
+  }
+
+  @override
+  Future<int> receiverContentRevision() async {
+    receiverRevisionCalls++;
+    if (failReceiverRevision) throw StateError('revision unavailable');
+    return receiverRevision;
   }
 }
 
@@ -177,6 +187,107 @@ void main() {
       reason: '重复 start 仍调用 startReceiver（Rust 幂等）',
     );
     scheduler.stop();
+    monitor.dispose();
+  });
+
+  test(
+    'scheduler baselines receiver revision without initial content event',
+    () async {
+      final monitor = FakeNetworkMonitor();
+      final api = FakeSyncApi()..receiverRevision = 7;
+      final scheduler = SyncScheduler(
+        monitor: monitor,
+        api: api,
+        receiverPollInterval: const Duration(milliseconds: 20),
+      );
+      final events = <int>[];
+      scheduler.contentChanges.listen(events.add);
+      await scheduler.start();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(events, isEmpty);
+      scheduler.stop();
+      scheduler.dispose();
+      monitor.dispose();
+    },
+  );
+
+  test('scheduler emits once when receiver revision changes', () async {
+    final monitor = FakeNetworkMonitor();
+    final api = FakeSyncApi();
+    final scheduler = SyncScheduler(
+      monitor: monitor,
+      api: api,
+      receiverPollInterval: const Duration(milliseconds: 20),
+    );
+    final events = <int>[];
+    scheduler.contentChanges.listen(events.add);
+    await scheduler.start();
+    api.receiverRevision = 1;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(events, [1]);
+    scheduler.dispose();
+    monitor.dispose();
+  });
+
+  test('scheduler coalesces revision jump and ignores duplicates', () async {
+    final monitor = FakeNetworkMonitor();
+    final api = FakeSyncApi();
+    final scheduler = SyncScheduler(
+      monitor: monitor,
+      api: api,
+      receiverPollInterval: const Duration(milliseconds: 20),
+    );
+    final events = <int>[];
+    scheduler.contentChanges.listen(events.add);
+    await scheduler.start();
+    api.receiverRevision = 4;
+    await Future<void>.delayed(const Duration(milliseconds: 45));
+    api.receiverRevision = 9;
+    await Future<void>.delayed(const Duration(milliseconds: 45));
+    expect(events, [4, 9]);
+    scheduler.dispose();
+    monitor.dispose();
+  });
+
+  test('scheduler retries revision getter after failure', () async {
+    final monitor = FakeNetworkMonitor();
+    final api = FakeSyncApi()..failReceiverRevision = true;
+    final scheduler = SyncScheduler(
+      monitor: monitor,
+      api: api,
+      receiverPollInterval: const Duration(milliseconds: 20),
+    );
+    final events = <int>[];
+    scheduler.contentChanges.listen(events.add);
+    await scheduler.start();
+    await Future<void>.delayed(const Duration(milliseconds: 35));
+    api.failReceiverRevision = false;
+    api.receiverRevision = 3;
+    await Future<void>.delayed(const Duration(milliseconds: 45));
+    expect(events, isEmpty);
+    api.receiverRevision = 4;
+    await Future<void>.delayed(const Duration(milliseconds: 45));
+    expect(events, [4]);
+    expect(api.receiverRevisionCalls, greaterThan(1));
+    scheduler.dispose();
+    monitor.dispose();
+  });
+
+  test('scheduler stop and dispose cancel revision polling', () async {
+    final monitor = FakeNetworkMonitor();
+    final api = FakeSyncApi();
+    final scheduler = SyncScheduler(
+      monitor: monitor,
+      api: api,
+      receiverPollInterval: const Duration(milliseconds: 20),
+    );
+    await scheduler.start();
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    scheduler.stop();
+    final stoppedCalls = api.receiverRevisionCalls;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(api.receiverRevisionCalls, stoppedCalls);
+    scheduler.dispose();
     monitor.dispose();
   });
 }

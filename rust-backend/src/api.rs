@@ -241,6 +241,11 @@ pub fn receiver_running(svc: &SyncService) -> bool {
     svc.receiver_running()
 }
 
+/// Monotonic revision of successfully projected inbound receiver content.
+pub fn receiver_content_revision(svc: &SyncService) -> u64 {
+    svc.receiver_content_revision()
+}
+
 /// 创建笔记
 pub fn note_create(svc: &mut SyncService, id: String, content: String) -> anyhow::Result<()> {
     svc.create_note(id, &content)
