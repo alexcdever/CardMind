@@ -106,6 +106,35 @@ void main() {
     expect(workflow['env'], containsPair('FRB_CODEGEN_VERSION', '2.12.0'));
   });
 
+  test('all Flutter release jobs pin the project Flutter version', () {
+    for (final platform in ['android', 'windows', 'linux']) {
+      final steps = (_map(jobs[platform])['steps'] as YamlList)
+          .map(_map)
+          .toList();
+      final flutter = steps.firstWhere(
+        (step) => step['uses'] == 'subosito/flutter-action@v2',
+      );
+      expect(_map(flutter['with'])['flutter-version'], '3.44.0');
+      expect(_map(flutter['with'])['cache'], true);
+    }
+  });
+
+  test('android removes DIR.md resources before building the APK', () {
+    final steps = (_map(jobs['android'])['steps'] as YamlList)
+        .map(_map)
+        .toList();
+    final cleanupIndex = steps.indexWhere(
+      (step) => '${step['run']}'.contains(
+        'find android/app/src/main/res -type f -name DIR.md -delete',
+      ),
+    );
+    final apkIndex = steps.indexWhere(
+      (step) => step['run'] == 'flutter build apk --release',
+    );
+    expect(cleanupIndex, greaterThanOrEqualTo(0));
+    expect(cleanupIndex, lessThan(apkIndex));
+  });
+
   test('windows release is an Inno Setup exe rather than a zip', () {
     final steps = (_map(jobs['windows'])['steps'] as YamlList)
         .map(_map)
