@@ -1,58 +1,97 @@
-# Final check
+# Task U4 Final Check
 
-这是主代理的实机复检记录。Reviewer 结论：PASS。未执行本地 runner 构建或 GitHub runner 构建。
+## 结论
 
-## Worktree 与复检结论
+PASS。CardMind 已在隔离 worktree 中固定 AppFlowy 官方 `main` 最新提交，并完成本地全量测试、Windows release、Inno Setup 安装包和 Android release APK 验证。本轮没有推送或触发 GitHub Actions；推送由 Hermes 在本地通过后执行。
 
-- Worktree 路径：`D:\Projects\CardMind`
-- Reviewer：PASS
-- Flutter 版本：3.44.9
-- Android workflow 使用 `DIR.md`。
-- Windows、Linux、Release 逻辑未变。
-- 未声称本地 GitHub runner 构建。
+## 依赖身份
 
-## 验收命令与真实结果
+- 仓库：`https://github.com/AppFlowy-IO/appflowy-editor.git`
+- 固定 SHA：`01eccc6ee36bd07698bd80915289fe7070478cd2`
+- `pubspec.lock` source：`git`
+- `resolved-ref`：与固定 SHA 完全一致
+- `.dart_tool/package_config.json` 实际 root：`Pub/Cache/git/appflowy-editor-01eccc6ee36bd07698bd80915289fe7070478cd2/`
+- Git checkout 的 `delta_input_service.dart` 包含 `bool onFocusReceived() => false;`
 
-### Flutter workflow 测试
+## 本地验证
 
-命令：
-
-```text
-flutter test test/release_workflow_test.dart --timeout 3m
-```
-
-真实结果：exit code 0；`00:00 +10: All tests passed!`
-
-### YAML 解析
-
-命令：
+### Flutter analyze
 
 ```text
-python -c "import yaml; d=yaml.safe_load(open('.github/workflows/manual-build-artifacts.yml')); print(list(d['jobs']))"
+timeout 180s flutter analyze
+No issues found! (ran in 17.0s)
 ```
 
-真实结果：exit code 0；`['android', 'windows', 'linux', 'release']`
+退出码 0。
 
-### 差异检查
+### Rust host runtime
 
-命令：
+在 `rust-backend/`：
 
 ```text
-git diff --check
+timeout 180s cargo build --release
+Finished release profile in 2.72s
 ```
 
-真实结果：exit code 0；no output
+将 `rust-backend/target/release/cardmind_backend.dll` 同步到 `build/windows/x64/runner/Release/cardmind_backend.dll` 后继续测试。
 
-### 工作区范围检查
-
-命令：
+### Flutter 全量测试
 
 ```text
-git status --short
+timeout 180s flutter test --timeout 3m
+00:41 +173: All tests passed!
 ```
 
-真实结果（实际主代理复检输出仅）：exit code 0；` M .workflow/review-report.md`
+退出码 0。首次执行因隔离 worktree 缺少 runtime DLL 失败；补建项目既有 Rust DLL 后复验通过。失败与 AppFlowy 无关。
 
-## 范围说明
+### Windows release
 
-仅记录允许的复检结果；未修改其他文件，未提交。
+```text
+timeout 180s flutter build windows --release
+Built build\windows\x64\runner\Release\cardmind.exe
+```
+
+退出码 0；`cardmind.exe` 和 `cardmind_backend.dll` 均非空。
+
+### Windows Inno Setup
+
+使用本机 Inno Setup 6.7.3 编译 `tool/installer/cardmind.iss`：
+
+```text
+Successful compile
+build\installer\CardMind-Setup.exe
+```
+
+退出码 0；安装包大小 `17,327,951` bytes。
+
+### Android Rust libraries
+
+`cargo ndk` 在 3 分钟内完成 armeabi-v7a，并在 aarch64 编译/收尾时命中外层超时；检查产物确认三个 ABI 均已生成非空 `libcardmind_backend.so`：
+
+- `armeabi-v7a`
+- `arm64-v8a`
+- `x86_64`
+
+没有残留 cargo/rustc 进程。该超时是三 ABI 冷编译总时长，不是编译错误。
+
+### Android release APK
+
+```text
+timeout 180s flutter build apk --release
+Built build\app\outputs\flutter-apk\app-release.apk (73.9MB)
+```
+
+退出码 0；APK 非空。
+
+## 变更范围
+
+实现变化只有：
+
+- `pubspec.yaml`
+- `pubspec.lock`
+
+另有允许的 `.workflow/` 报告。没有修改业务代码、测试、workflow、Rust、FRB 生成文件、平台工程或 Inno Setup 脚本。
+
+## 下一步
+
+本地验证通过后，Hermes 可以合并并推送 `main`，触发 GitHub Actions 三端构建和 Release 验证。
