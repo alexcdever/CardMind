@@ -2,11 +2,17 @@
 ; 产物: build/installer/CardMind-Setup.exe
 
 #define MyAppName "CardMind"
-#define MyAppVersion "1.0.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "CardMind"
 #define MyAppExeName "cardmind.exe"
-#define SourceDir "D:\Projects\CardMind\build\windows\x64\runner\Release"
-#define OutputDir "D:\Projects\CardMind\build\installer"
+#ifndef SourceDir
+  #define SourceDir "build\windows\x64\runner\Release"
+#endif
+#ifndef OutputDir
+  #define OutputDir "build\installer"
+#endif
 
 [Setup]
 AppId={{B6F3A9D2-4C7E-4E8A-9F3B-2D5C7E1A8B40}
@@ -36,12 +42,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-Source: "{#SourceDir}\cardmind.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourceDir}\cardmind_backend.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourceDir}\dartjni.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourceDir}\flutter_windows.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourceDir}\url_launcher_windows_plugin.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "{#SourceDir}\data\*"; DestDir: "{app}\data"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\CardMind"; Filename: "{app}\{#MyAppExeName}"
