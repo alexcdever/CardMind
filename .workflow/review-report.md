@@ -1,23 +1,26 @@
-# Reviewer report
+# Task U4 Reviewer Report
 
-Status: PASS
+## 结论
 
-Independent re-verification completed in the requested worktree. No commit created; no decision point triggered; no local GitHub-runner build claimed.
+PASS。Hermes 在 executor 停止于缺少隔离 worktree runtime DLL 后补建既有 Rust host DLL，并独立复验所有本地门禁。未发现 AppFlowy 官方 main commit 引入的 API、测试或平台构建回归。
 
-## Acceptance results
+## 独立复验
 
-1. PASS — flutter test test/release_workflow_test.dart --timeout 3m; exit 0; output: 00:00 +10: All tests passed! This independently verifies Android/Windows/Linux Flutter 3.44.9 and Android DIR.md cleanup before APK build.
-2. PASS — python YAML parse command; exit 0; output: ["android", "windows", "linux", "release"].
-3. PASS — git diff --check; exit 0; no output.
-4. PASS — git status --short; exit 0; modified paths are .github/workflows/manual-build-artifacts.yml, .workflow/executor-report.md, and test/release_workflow_test.dart; all are allowed. .workflow/review-report.md is the allowed report and ignored/untracked.
-5. PASS — workflow diff contains only three 3.44.0 -> 3.44.9 substitutions. Android artifact logic, Windows Inno Setup, Linux tar packaging, and Release job logic are unchanged. Test diff contains only the expected version assertion update.
+- Git 依赖 URL、`ref`、lockfile `resolved-ref` 均为官方 SHA `01eccc6ee36bd07698bd80915289fe7070478cd2`。
+- 实际 Git checkout 含 `onFocusReceived()`。
+- `flutter analyze` 通过。
+- 补建项目既有 `cardmind_backend.dll` 后，Flutter 全量测试 173 项全部通过。
+- Windows release 构建通过。
+- Inno Setup `CardMind-Setup.exe` 编译通过，文件非空。
+- Android 三 ABI Rust 动态库均非空。
+- Android release APK 构建通过，文件非空。
+- `git diff --check` 通过。
+- 实现范围仅 `pubspec.yaml`、`pubspec.lock`。
 
-## Executor report verification
+## 说明
 
-PASS. The reported green test, YAML job list, and diff check were independently reproduced. The report correctly records CI run 32216466572: Flutter 3.44.0 carried Dart 3.12.0, which does not satisfy ^3.12.2; release metadata records Flutter 3.44.9 with Dart 3.12.2. It correctly does not claim a local GitHub-runner build.
+首次 Flutter test 失败是隔离 worktree 没有构建产物 `cardmind_backend.dll`，不是依赖或代码回归。补建同一源码的 Rust release DLL 后测试通过。
 
-## Problems
+Android 三 ABI 首次冷编译总时长超过单命令 3 分钟限制，命令被外层 timeout 终止；随后检查确认三个 ABI 产物都已成功生成，且 APK 构建通过。该现象应在 GitHub Actions 中依靠 Rust cache 改善，但不属于 AppFlowy 依赖失败。
 
-No implementation problems. Minor stale wording: executor-report.md records a status snapshot before its own later update, so it lists only workflow/test files; final status also includes the allowed executor report. This is not an out-of-scope change.
-
-Conclusion: PASS.
+本轮未执行 push、workflow dispatch 或 Release 创建。

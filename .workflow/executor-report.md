@@ -1,79 +1,40 @@
-# Executor report
+# Executor Report — Task U4
 
 ## 完成内容
 
-- 将 Android、Windows、Linux 的 `subosito/flutter-action@v2` 步骤固定为 `flutter-version: '3.44.9'`，并保留 `channel: stable` 与缓存配置。
-- 更新 workflow 测试，覆盖三个平台固定 Flutter `3.44.9`，并保留 Android `DIR.md` 清理断言。
-- 未修改业务代码、依赖、`pubspec.yaml`、`pubspec.lock`、平台工程、Inno Setup 脚本或其他 workflow；未提交 commit。
+- 将 `appflowy_editor` 从 pub.dev `6.2.0` 切换到 AppFlowy 官方 Git 仓库。
+- 固定完整 SHA：`01eccc6ee36bd07698bd80915289fe7070478cd2`，未使用浮动 `main`。
+- `pubspec.lock` 已记录官方 URL、Git source 和相同 `resolved-ref`。
+- 实际 package checkout 含 `bool onFocusReceived() => false;`。
+- 未修改 CardMind 业务代码、测试、workflow、Rust、FRB 生成文件或平台工程。
+- 未推送、未触发 GitHub Actions、未创建 Release。
 
-真实 CI run `32216466572` 已确认 Flutter `3.44.0` 自带 Dart `3.12.0`，不满足 `pubspec.yaml` 的 Dart `^3.12.2` 约束，三个平台在 `flutter pub get` 或构建前解析失败。Flutter 官方 release metadata 查证 Flutter `3.44.9` 自带 Dart `3.12.2`；因此本次修复仅固定 workflow 版本为 `3.44.9`，保持 `appflowy_editor 6.2.0` 兼容性。未声称本地完成 GitHub runner 构建；真实构建需由合并后的 GitHub Actions run 验证。
+## 本地验证结果
 
-## 验收标准逐条结果
+- `flutter analyze`：通过，No issues found。
+- Rust host release DLL：通过，2.72 秒。
+- Flutter 全量测试：通过，173 项全部通过。
+- Windows release：通过，`cardmind.exe` 非空。
+- Inno Setup：通过，`CardMind-Setup.exe` 为 17,327,951 bytes。
+- Android 三 ABI Rust 库：三个 `libcardmind_backend.so` 均生成且非空；单次三架构冷编译在收尾阶段超过 3 分钟 timeout，但无编译错误、无残留进程。
+- Android release APK：通过，`app-release.apk` 约 73.9 MB。
+- `git diff --check`：通过。
 
-1. **红阶段：通过（按要求观察到非零失败）**
+## 依赖变化
 
-   命令：`flutter test test/release_workflow_test.dart --timeout 3m`
+除 `appflowy_editor` 从 hosted 6.2.0 切换为官方 Git commit 外，官方 main 的约束使 lockfile 产生以下传递版本调整，均已纳入上述测试和构建验证：
 
-   真实输出摘要：`00:00 +6 -1: Some tests failed.`；失败用例为 `all Flutter release jobs pin the project Flutter version`（Expected `3.44.9`, Actual `3.44.0`）。退出码非零。
+- `dbus 0.7.13 → 0.7.14`
+- `device_info_plus 11.5.0 → 12.4.0`
+- `hooks 2.1.0 → 2.2.0`
+- `image 4.9.1 → 4.9.2`
+- `pdf 3.13.0 → 3.12.0`
+- `record_use 1.1.0 → 1.1.1`
+- `vm_service 15.2.0 → 15.3.0`
+- `xml 7.0.1 → 6.6.1`
 
-2. **绿阶段：通过**
+Hosted URL 已按项目要求恢复为 `https://pub.flutter-io.cn`。
 
-   命令：`flutter test test/release_workflow_test.dart --timeout 3m`
+## 说明
 
-   真实输出：`00:00 +10: All tests passed!`
-
-3. **YAML 解析：通过**
-
-   命令：`python -c "import yaml; d=yaml.safe_load(open('.github/workflows/manual-build-artifacts.yml')); print(list(d['jobs']))"`
-
-   真实输出：`['android', 'windows', 'linux', 'release']`；退出码 0。
-
-4. **差异与范围检查：通过**
-
-   命令：`git diff --check; git status --short`
-
-   真实输出（清理测试命令意外更新的 lockfile 后）：
-
-   ```text
-    M .github/workflows/manual-build-artifacts.yml
-    M test/release_workflow_test.dart
-   ```
-
-   `git diff --check` 无输出、退出码 0；仅任务单允许的 workflow 与测试文件发生修改。
-
-5. **reviewer 独立复验：待 reviewer 执行**
-
-   本 executor 未代替 reviewer 声称已完成独立复验；reviewer 仍需独立确认三个版本为 `3.44.9`，以及 Windows/Linux/Android 逻辑未意外改变。
-
-## 新增测试清单
-
-- `test/release_workflow_test.dart` — `all Flutter release jobs pin the project Flutter version`：断言 Android、Windows、Linux 三个 Flutter setup 固定 `3.44.9` 且保留缓存。
-- `test/release_workflow_test.dart` — `android removes DIR.md resources before building the APK`：断言 Android `DIR.md` 删除命令存在且先于 APK 构建。
-
-## 未决问题
-
-- 未在本地或 GitHub runner 执行三平台发布构建；任务要求的 runner 安装/构建风险仍需 reviewer 或实际 CI 复验。
-
-## 第 1 轮打回修复
-
-- 仅规范化 `.workflow/review-report.md` 与本报告的换行和行尾空白；未修改业务代码或其他文件，未提交 commit。
-- 未改写 reviewer 的独立复验结论；`review-report.md` 内容仍由 reviewer 记录。
-
-### 本轮真实验收结果
-
-1. `flutter test test/release_workflow_test.dart --timeout 3m`
-   - 真实输出：`00:00 +10: All tests passed!`
-   - 通过。
-2. `python -c "import yaml; d=yaml.safe_load(open('.github/workflows/manual-build-artifacts.yml')); print(list(d['jobs']))"`
-   - 真实输出：`['android', 'windows', 'linux', 'release']`
-   - 通过。
-3. `git diff --check`
-   - 真实输出：无输出，退出码 0。
-   - 通过。
-4. `git status --short`
-   - 真实输出：
-     ```text
-      M .workflow/executor-report.md
-     ?? web-articles/
-     ```
-   - 通过；`web-articles/` 为本轮修复前已存在的未跟踪目录，未修改。
+首次 Flutter test 失败仅因隔离 worktree 没有 `cardmind_backend.dll` 构建产物；按项目既有规范补建并同步同一源码的 Rust DLL 后，173 项测试全部通过。该失败与 AppFlowy 官方 main 无关。
