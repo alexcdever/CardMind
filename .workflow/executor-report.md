@@ -54,3 +54,27 @@
 ## 未决问题
 
 - 未在本地或 GitHub runner 执行三平台发布构建；任务要求的 runner 安装/构建风险仍需 reviewer 或实际 CI 复验。
+
+## 第 1 轮打回修复
+
+- 仅规范化 `.workflow/review-report.md` 与本报告的换行和行尾空白；未修改业务代码或其他文件，未提交 commit。
+- 未改写 reviewer 的独立复验结论；`review-report.md` 内容仍由 reviewer 记录。
+
+### 本轮真实验收结果
+
+1. `flutter test test/release_workflow_test.dart --timeout 3m`
+   - 真实输出：`00:00 +10: All tests passed!`
+   - 通过。
+2. `python -c "import yaml; d=yaml.safe_load(open('.github/workflows/manual-build-artifacts.yml')); print(list(d['jobs']))"`
+   - 真实输出：`['android', 'windows', 'linux', 'release']`
+   - 通过。
+3. `git diff --check`
+   - 真实输出：无输出，退出码 0。
+   - 通过。
+4. `git status --short`
+   - 真实输出：
+     ```text
+      M .workflow/executor-report.md
+     ?? web-articles/
+     ```
+   - 通过；`web-articles/` 为本轮修复前已存在的未跟踪目录，未修改。
