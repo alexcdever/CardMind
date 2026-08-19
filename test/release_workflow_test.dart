@@ -114,7 +114,7 @@ void main() {
       final flutter = steps.firstWhere(
         (step) => step['uses'] == 'subosito/flutter-action@v2',
       );
-      expect(_map(flutter['with'])['flutter-version'], '3.44.0');
+      expect(_map(flutter['with'])['flutter-version'], '3.44.9');
       expect(_map(flutter['with'])['cache'], true);
     }
   });
