@@ -9,6 +9,7 @@ import 'package:cardmind/src/rust/sync.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cardmind/scanner/scanner_interface.dart';
 
 /// 任务单 CRITICAL 1/2 验收测试（凭证 UI）。
 ///
@@ -210,11 +211,28 @@ class CredentialUiRepository implements NoteRepository {
   Future<List<NoteRow>> trashList() async => [];
 }
 
-Future<void> _pump(WidgetTester tester, NoteRepository repository) async {
+class _SupportedScanner implements ScannerService {
+  const _SupportedScanner({this.outcome = const ScanOutcome(text: 'cm1.scanned')});
+
+  final ScanOutcome outcome;
+
+  @override
+  bool get isSupported => true;
+
+  @override
+  Future<ScanOutcome> scanCredential(BuildContext context) async =>
+      outcome;
+}
+
+Future<void> _pump(
+  WidgetTester tester,
+  NoteRepository repository, {
+  ScannerService? scanner,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: CardMindTheme.light,
-      home: Scaffold(body: DevicesPage(repository: repository)),
+      home: Scaffold(body: DevicesPage(repository: repository, scanner: scanner)),
     ),
   );
   await tester.pumpAndSettle();
@@ -224,7 +242,9 @@ Future<void> _openShowDialog(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('devices-add')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('pair-mode-show')));
-  await tester.pumpAndSettle();
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+  }
 }
 
 Future<void> _openEnterDialog(WidgetTester tester) async {
@@ -235,6 +255,73 @@ Future<void> _openEnterDialog(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'countdown visibly decreases and resets for regenerated credential',
+    (tester) async {
+      final now = DateTime.now().toUtc();
+      final repo = CredentialUiRepository()
+        ..acceptResult = null
+        ..credentialSeq = [
+          PairingCredentialDisplay(
+            code: '111111',
+            credential: 'cm1.first',
+             expiresAt: now.add(const Duration(seconds: 10)).toIso8601String(),
+          ),
+          PairingCredentialDisplay(
+            code: '222222',
+            credential: 'cm1.second',
+             expiresAt: now.add(const Duration(seconds: 20)).toIso8601String(),
+          ),
+        ];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: CardMindTheme.light,
+          home: Scaffold(body: DevicesPage(repository: repo)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openShowDialog(tester);
+      final first = tester
+          .widget<Text>(find.byKey(const ValueKey('pair-code-countdown')))
+          .data!;
+       await tester.pump(const Duration(seconds: 1));
+      final decreased = tester
+          .widget<Text>(find.byKey(const ValueKey('pair-code-countdown')))
+          .data!;
+      expect(decreased, isNot(first));
+      await tester.tap(find.byKey(const ValueKey('pair-regenerate-button')));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(seconds: 1));
+      final reset = tester
+          .widget<Text>(find.byKey(const ValueKey('pair-code-countdown')))
+          .data!;
+      expect(reset, isNot('已过期，请重新生成'));
+      await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('add device presents show scan and manual as peer choices', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(
+          body: DevicesPage(repository: repo, scanner: _SupportedScanner()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('pair-mode-show')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pair-mode-scan')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pair-mode-enter')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pair-dialog-cancel')));
+  });
+
   testWidgets('show dialog renders qr code text copy and countdown', (
     tester,
   ) async {
@@ -398,6 +485,72 @@ void main() {
 
     expect(repo.credentialConnectCalls, 1);
     expect(repo.lastCredentialArg, 'cm1.scanned-credential');
+  });
+
+  testWidgets('scanner cm1 result connects directly without discovery', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository();
+    await _pump(tester, repo, scanner: const _SupportedScanner());
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pumpAndSettle();
+
+    expect(repo.credentialConnectCalls, 1);
+    expect(repo.lastCredentialArg, 'cm1.scanned');
+    expect(repo.discoverCalls, 0);
+    expect(find.byKey(const ValueKey('pair-credential-input')), findsNothing);
+  });
+
+  testWidgets('scanner cancellation closes without error', (tester) async {
+    final repo = CredentialUiRepository();
+    await _pump(
+      tester,
+      repo,
+      scanner: const _SupportedScanner(outcome: ScanOutcome()),
+    );
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pumpAndSettle();
+
+    expect(repo.credentialConnectCalls, 0);
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
+  testWidgets('scanner errors show readable feedback', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository();
+    await _pump(
+      tester,
+      repo,
+      scanner: const _SupportedScanner(
+        outcome: ScanOutcome(error: '相机权限被拒绝，请手动输入配对信息'),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pump();
+    expect(find.text('相机权限被拒绝，请手动输入配对信息'), findsOneWidget);
+  });
+
+  testWidgets('invalid scanner contents show readable feedback', (tester) async {
+    final repo = CredentialUiRepository();
+    await _pump(
+      tester,
+      repo,
+      scanner: const _SupportedScanner(outcome: ScanOutcome(text: 'not-a-code')),
+    );
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('扫码内容不是有效的配对信息，请重新扫描'), findsOneWidget);
+    expect(repo.credentialConnectCalls, 0);
   });
 
   testWidgets('scanner permission denied has friendly fallback', (
