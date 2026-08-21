@@ -61,6 +61,33 @@ void main() {
     }
   });
 
+  test('linux apt setup uses a bounded, resilient archive mirror', () {
+    final steps = (_map(jobs['linux'])['steps'] as YamlList)
+        .map(_map)
+        .toList();
+    final install = steps.firstWhere(
+      (step) => step['name'] == 'Install Linux build dependencies',
+    );
+    final run = install['run'] as String;
+
+    expect(run, contains("-name '*.list'"));
+    expect(run, contains("-name '*.sources'"));
+    expect(run, contains(r'azure\.archive\.ubuntu\.com'));
+    expect(run, contains('archive.ubuntu.com'));
+    expect(run, contains('apt_files'));
+    expect(run, contains("sudo sed -i 's/azure\\.archive\\.ubuntu\\.com/archive.ubuntu.com/g'"));
+    expect(run, contains('exit 1'));
+    expect(run, contains('grep -R'));
+    expect(run, contains('timeout 180s sudo apt-get update'));
+    expect(
+      run,
+      contains(
+        'timeout 180s sudo apt-get install -y clang cmake ninja-build '
+        'pkg-config libgtk-3-dev build-essential',
+      ),
+    );
+  });
+
   test(
     'linux package preserves the complete bundle under the cardmind root',
     () {
