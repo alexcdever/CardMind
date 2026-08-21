@@ -1,26 +1,44 @@
-# Task U4 Reviewer Report
+# Task U5 Reviewer Report
 
-## 结论
+结论：**PASS**（reviewer 第二轮）
 
-PASS。Hermes 在 executor 停止于缺少隔离 worktree runtime DLL 后补建既有 Rust host DLL，并独立复验所有本地门禁。未发现 AppFlowy 官方 main commit 引入的 API、测试或平台构建回归。
+审核 worktree：`D:/Projects/CardMind/.worktrees/task-u5`
+分支：`task/u5-linux-apt-resilience`
 
-## 独立复验
+## 验收标准逐条复验
 
-- Git 依赖 URL、`ref`、lockfile `resolved-ref` 均为官方 SHA `01eccc6ee36bd07698bd80915289fe7070478cd2`。
-- 实际 Git checkout 含 `onFocusReceived()`。
-- `flutter analyze` 通过。
-- 补建项目既有 `cardmind_backend.dll` 后，Flutter 全量测试 173 项全部通过。
-- Windows release 构建通过。
-- Inno Setup `CardMind-Setup.exe` 编译通过，文件非空。
-- Android 三 ABI Rust 动态库均非空。
-- Android release APK 构建通过，文件非空。
-- `git diff --check` 通过。
-- 实现范围仅 `pubspec.yaml`、`pubspec.lock`。
+### 1. Flutter contract test — PASS
+命令：`flutter test test/release_workflow_test.dart --timeout 3m`
+真实输出：`00:00 +11: All tests passed!`。11 项测试全部通过，包含 Linux apt、Android、Windows、Release 合约。
 
-## 说明
+### 2. YAML 解析 — PASS
+命令：`python -c "import yaml; d=yaml.safe_load(open('.github/workflows/manual-build-artifacts.yml')); print(list(d['jobs']))"`
+真实输出：`['android', 'windows', 'linux', 'release']`。
 
-首次 Flutter test 失败是隔离 worktree 没有构建产物 `cardmind_backend.dll`，不是依赖或代码回归。补建同一源码的 Rust release DLL 后测试通过。
+### 3. Diff 检查 — PASS
+命令：`git diff --check`
+真实输出：无输出，退出码 0。
 
-Android 三 ABI 首次冷编译总时长超过单命令 3 分钟限制，命令被外层 timeout 终止；随后检查确认三个 ABI 产物都已成功生成，且 APK 构建通过。该现象应在 GitHub Actions 中依靠 Rust cache 改善，但不属于 AppFlowy 依赖失败。
+### 4. 改动范围与保护文本 — PASS
+实机命令：`git status --short --branch; git diff --name-only; git diff --numstat`
+真实输出：
+` M .github/workflows/manual-build-artifacts.yml`
+` M .workflow/executor-report.md`
+` M test/release_workflow_test.dart`
+文件统计：workflow `13 1`，executor report `48 29`，contract test `26 0`。
 
-本轮未执行 push、workflow dispatch 或 Release 创建。
+允许文件范围通过：允许的实现文件为 workflow 与 contract test；`.workflow/executor-report.md` 是流水线要求的报告文件。workflow diff 仅改 Linux apt step；Android、Windows、Release 文本未改。
+
+内容逐条通过：使用 `sudo sed -i` 覆盖 `*.list` 和 `*.sources`；无 apt 源文件时 `exit 1`；替换后残留 Azure mirror 时 `exit 1`；两个 apt 命令均为 `timeout 180s`；原五包、`sudo`、`-y` 非交互参数均保留。失败保护、timeout、五包和 Android/Windows/Release 保护 job 均通过。
+
+### 5. 未 push / 未运行 workflow — PASS
+执行子代理报告明确记载未执行 `git push`、未执行 `gh workflow run`；审核期间也未执行。当前无新增提交。
+
+## 执行子代理报告复现
+已读取 `.workflow/executor-report.md`；报告中的 Flutter 测试、YAML 解析、`git diff --check` 均由审核实机重跑并通过，改动范围描述一致。
+
+## 第二轮复核结论
+最新实现（包含 `sudo sed -i`、失败保护和两个 `timeout 180s`）已按 contract test 与文本保护断言复核通过。YAML job 顺序真实输出为 `['android', 'windows', 'linux', 'release']`；`git diff --check` 通过。未执行 push 或 workflow run。
+
+## 问题清单
+**通过：未发现问题。**
