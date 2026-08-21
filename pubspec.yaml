@@ -46,6 +46,7 @@ dependencies:
   connectivity_plus: ^6.1.0
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.4.0
+  clock: ^1.1.1
 
 dev_dependencies:
   flutter_test:

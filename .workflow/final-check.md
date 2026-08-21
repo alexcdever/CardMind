@@ -1,29 +1,55 @@
-# Task U5 Final Check
+# Task U6-R4 Final Check（Hermes 终审）
 
-## 主代理实机复检
+日期：2026-08-21　worktree：`D:/Projects/CardMind/.worktrees/pairing-ui-fix`
 
-### Flutter contract test
-命令：`flutter test test/release_workflow_test.dart --timeout 3m`
-真实输出：`00:00 +11: All tests passed!`
-结果：通过。
+## 背景
 
-### YAML 解析
-命令：`python -c "import yaml; d=yaml.safe_load(open('.github/workflows/manual-build-artifacts.yml')); print(list(d['jobs']))"`
-真实输出：`['android', 'windows', 'linux', 'release']`
-结果：通过。
+Hermes 重启中断了 R4 流水线的 reviewer 阶段。executor 实现与实机验证已完整落盘
+（`.workflow/executor-report.md`，17:44）。本文件为 Hermes 终审记录，代替被中断的
+reviewer 复验：全部验收命令由 Hermes 独立重跑。
 
-### Diff 检查与范围
-命令：`git diff --check && git diff --name-only && git status --short --branch`
-真实输出：`git diff --check` 无输出且退出码 0；允许文件范围检查通过；分支为 `task/u5-linux-apt-resilience`。本次复检涉及的报告文件为 `.workflow/review-report.md` 和 `.workflow/final-check.md`，未修改 workflow/test 代码。
-结果：通过，改动均在允许范围内。
+## 终审结果
 
-### Workflow 保护检查
-真实结果：`sudo sed -i` 镜像替换、无源文件失败保护、替换后残留 Azure mirror 失败保护、两个 `timeout 180s`、原五个 apt 包，以及 Android/Windows/Release 保护 job 均通过。
-结果：通过。
+### 1. 目标测试 — PASS
 
-### 其他范围与执行检查
-真实结果：未执行 `git push`、`gh` 或 workflow run。`git diff --check` 通过；未运行 full suite。full suite 不属于本任务验收标准，且本任务仅验收 release workflow contract 的 targeted test，因此不存在运行 full suite 的必要。
-结果：通过。
+```
+PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/pairing_credential_ui_test.dart --timeout 3m
+00:03 +16: All tests passed!
+EXIT=0
+```
+
+含此前持续失败的 `countdown visibly decreases and resets for regenerated credential`。
+
+### 2. 四个配对回归 — PASS
+
+```
+pairing_accept_ui_test    +8:  All tests passed!
+pairing_log_events_test   +8:  All tests passed!
+pairing_mdns_widget_test  +7:  All tests passed!
+sync_ui_widget_test       +12: All tests passed!
+```
+
+### 3. 静态与范围 — PASS
+
+```
+flutter analyze → No issues found! (ran in 24.0s)
+git diff --check → 无输出
+```
+
+改动范围合规：
+
+- `pubspec.yaml`：`+ clock: ^1.1.1`
+- `pubspec.lock`：clock 转 direct main
+- `lib/pages/devices_page.dart`：R2 的倒计时/扫码层级改动 + R4 的 `clock.now()` 两处替换
+- `test/pairing_credential_ui_test.dart`：R2/R3 的用例迁移与假时钟 pump
+- `.workflow/*.md`：流水线报告
 
 ## 结论
-Executor 与 reviewer 第二轮报告均 PASS。最新实现的 Linux apt mirror 替换、显式失败保护、两个 180 秒超时、原五个软件包及 Android/Windows/Release 保护契约均已通过 targeted contract test 和文本检查。未执行 push、gh 或 workflow 运行；真实 Linux runner 行为留待合并推送后观察。
+
+PASS。U6 全部用户缺陷修复完成：
+
+1. Windows 二维码下方倒计时每秒真实刷新（绝对 expiresAt + clock.now()）；
+2. 添加设备首层三入口并列（显示 / 扫描 / 手动输入），手动输入弹窗不再嵌套扫码按钮；
+3. 首层扫码复用凭证连接路径，取消/权限错误均有友好处理。
+
+待办：Hermes 合并 worktree → main，推送触发 GitHub Actions 出新安装包。

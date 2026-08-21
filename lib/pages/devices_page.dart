@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -25,9 +26,10 @@ import '../ui/design_system/cardmind_widgets.dart';
 /// 否则离线。`last_seen` 由 Rust 侧每次成功 push（含周期同步）更新，
 /// 离线设备不会刷新 → 超过窗口即判离线。
 class DevicesPage extends StatefulWidget {
-  const DevicesPage({super.key, required this.repository});
+  const DevicesPage({super.key, required this.repository, this.scanner});
 
   final NoteRepository repository;
+  final ScannerService? scanner;
 
   /// 在线判定窗口（最近同步过 = 在线）。
   static const Duration onlineWindow = Duration(minutes: 5);
@@ -169,6 +171,7 @@ class _DevicesPageState extends State<DevicesPage> {
   }
 
   Future<void> _startPairing() async {
+    final scanner = widget.scanner ?? createPlatformScanner();
     final mode = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -185,6 +188,14 @@ class _DevicesPageState extends State<DevicesPage> {
               subtitle: const Text('对方扫描我屏幕上的二维码'),
               onTap: () => Navigator.of(dialogContext).pop('show'),
             ),
+            if (scanner.isSupported)
+              ListTile(
+                key: const ValueKey('pair-mode-scan'),
+                leading: const Icon(Icons.qr_code_scanner),
+                title: const Text('我扫描配对码'),
+                subtitle: const Text('使用相机扫描对方设备二维码'),
+                onTap: () => Navigator.of(dialogContext).pop('scan'),
+              ),
             ListTile(
               key: const ValueKey('pair-mode-enter'),
               leading: const Icon(Icons.keyboard),
@@ -194,13 +205,65 @@ class _DevicesPageState extends State<DevicesPage> {
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            key: const ValueKey('pair-dialog-cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('取消'),
+          ),
+        ],
       ),
     );
     if (mode == null || !mounted) return;
     if (mode == 'show') {
       await _showMyCode();
+    } else if (mode == 'scan') {
+      await _scanPeerCredential(scanner);
     } else {
       await _enterPeerCode();
+    }
+  }
+
+  Future<void> _scanPeerCredential(ScannerService scanner) async {
+    ScanOutcome outcome;
+    try {
+      outcome = await scanner.scanCredential(context);
+    } catch (_) {
+      outcome = const ScanOutcome(error: '扫码失败，请检查相机权限后重试，或手动输入配对信息');
+    }
+    if (!mounted || outcome.cancelled) return;
+    if (outcome.error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(outcome.error!)));
+      return;
+    }
+    final input = outcome.text?.trim() ?? '';
+    if (!input.startsWith('cm1')) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('扫码内容不是有效的配对信息，请重新扫描')));
+      return;
+    }
+    try {
+      final result = await _repository.beginPairingConnectWithCredential(input);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('配对成功：${result.peerName}')));
+      await _load();
+      } on PairingCredentialException catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.message)));
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('配对失败：无法连接到对方设备，请稍后重试')));
+        }
     }
   }
 
@@ -279,9 +342,6 @@ class _DevicesPageState extends State<DevicesPage> {
     final controller = TextEditingController();
     String? submitError;
     bool submitting = false;
-
-    final scanner = createPlatformScanner();
-    final scanSupported = scanner.isSupported;
 
     final result = await showDialog<PairingResult>(
       context: context,
@@ -377,29 +437,6 @@ class _DevicesPageState extends State<DevicesPage> {
                     hintText: '输入 6 位配对码，或粘贴以 cm1 开头的配对信息',
                   ),
                 ),
-                if (scanSupported) ...[
-                  const SizedBox(height: CardMindSpacing.md),
-                  TextButton.icon(
-                    key: const ValueKey('pair-scan-button'),
-                    onPressed: () async {
-                      final outcome = await scanner.scanCredential(
-                        dialogContext,
-                      );
-                      if (!dialogContext.mounted) return;
-                      if (outcome.cancelled) return;
-                      if (outcome.error != null) {
-                        setDialogState(() {
-                          submitError = outcome.error;
-                        });
-                      } else if (outcome.text != null) {
-                        controller.text = outcome.text!;
-                        await submit(outcome.text!);
-                      }
-                    },
-                    icon: const Icon(Icons.qr_code_scanner, size: 18),
-                    label: const Text('扫码'),
-                  ),
-                ],
                 if (submitting) ...[
                   const SizedBox(height: CardMindSpacing.md),
                   const Row(
@@ -1001,16 +1038,36 @@ class _CountdownWidgetState extends State<_CountdownWidget> {
   @override
   void initState() {
     super.initState();
+    _restartTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CountdownWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.expiresAt != widget.expiresAt) _restartTimer();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
     final expires = DateTime.tryParse(widget.expiresAt);
-    if (expires == null) return;
-    final remaining = expires.difference(DateTime.now());
-    _remaining = remaining.isNegative ? Duration.zero : remaining;
-    // 单次定时器在过期时刷新为"已过期"，不每秒 setState（避免测试 pumpAndSettle
-    // 被周期性帧卡住；dispose 时取消）。展示值以初始化时刻为准，仍满足倒计时语义。
-    _timer = Timer(remaining.isNegative ? Duration.zero : remaining, () {
+    if (expires == null) {
+      setState(() => _remaining = null);
+      return;
+    }
+    void tick(Timer _) {
       if (!mounted) return;
-      setState(() => _remaining = Duration.zero);
-    });
+      final remaining = expires.difference(clock.now());
+      setState(
+        () => _remaining = remaining.isNegative ? Duration.zero : remaining,
+      );
+    }
+
+    final remaining = expires.difference(clock.now());
+    _remaining = remaining.isNegative ? Duration.zero : remaining;
+    // Repaint more often than once per second while deriving every display
+    // value from the absolute expiry. This avoids truncation hiding a
+    // boundary tick in widget tests and keeps the countdown wall-clock exact.
+    _timer = Timer.periodic(const Duration(milliseconds: 100), tick);
   }
 
   @override
