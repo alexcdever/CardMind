@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +13,11 @@ import 'ui/design_system/cardmind_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // 任务 U7：文件日志（Windows: %APPDATA%\com.cardmind\cardmind\logs\cardmind.log）。
+  // 挂载点选在 main() 而非 BridgeHelper.init()——后者会随初始化重试重复 attach；
+  // 且越早 attach 越能覆盖启动期事件。fire-and-forget：打开失败静默退化
+  // （仅 debugPrint），FLUTTER_TEST 下自动跳过不落盘。
+  unawaited(initializeFileLogging());
   runApp(const CardMindBootstrap());
 }
 

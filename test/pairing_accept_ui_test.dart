@@ -64,11 +64,21 @@ class PairingAcceptRepository implements NoteRepository {
   String credentialText = 'cm1.credential-fake-text';
 
   // ━━ 行为控制 ━━
-  /// accept 返回的请求；null 表示超时。优先级低于 [acceptError] 与 [acceptGate]。
+  /// accept 返回的请求；null 表示超时。优先级低于 [acceptError]、[timeoutResults]
+  /// 与 [acceptGate]。
   PairingRequest? acceptResult = sampleRequest();
 
   /// accept 抛错（模拟网络/后端异常）。
   Object? acceptError;
+
+  /// 前 N 次 accept 返回 null（模拟有界窗口超时）。任务 U7：超时后 UI 会静默
+  /// 自动重生成并再次 accept——测试时钟下必须用"有限次 null + 挂起"收尾，
+  /// 否则重生成链在纯 microtask 中无限旋转拖死 pumpAndSettle。
+  int timeoutResults = 0;
+
+  /// [timeoutResults] 用尽且无 gate 后挂起等待（模拟真实设备窗口内的静默等待），
+  /// 保证测试可终止、断言时链路已静止。
+  bool parkAfterTimeouts = false;
 
   /// accept 挂起等待 gate；测试完成后释放（模拟慢请求/取消后返回）。
   Completer<PairingRequest?>? acceptGate;
@@ -100,7 +110,12 @@ class PairingAcceptRepository implements NoteRepository {
     acceptCalls++;
     acceptTimeoutArg = timeout;
     if (acceptError case final error?) throw error;
+    if (timeoutResults > 0) {
+      timeoutResults--;
+      return null;
+    }
     if (acceptGate case final gate?) return gate.future;
+    if (parkAfterTimeouts) return Completer<PairingRequest?>().future;
     return acceptResult;
   }
 
@@ -415,40 +430,74 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
     await tester.pumpAndSettle();
     repository.acceptError = null;
-    repository.acceptResult = null; // 本次模拟超时路径
+    repository.timeoutResults = 1; // 本次模拟超时路径
+    repository.parkAfterTimeouts = true; // 超时后挂起，链路静止
     await _openShowCodeDialog(tester);
     await tester.pumpAndSettle();
-    expect(repository.acceptCalls, 2, reason: '失败后重新发起仍启动接收器');
+    expect(
+      repository.acceptCalls,
+      greaterThanOrEqualTo(2),
+      reason: '失败后重新发起仍启动接收器（U7：模拟的超时会再触发一轮自动重生成）',
+    );
     expect(
       find.byKey(const ValueKey('pair-accept-error')),
-      findsOneWidget,
-      reason: '重新发起后接收器运行中（本次模拟超时显示错误）',
+      findsNothing,
+      reason: 'U7：超时静默自动重生成，不得显示超时错误',
     );
     await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
     await tester.pumpAndSettle();
   });
 
-  // ━━ 验收 6：确认方等待超时有界 ━━
-  testWidgets('accept timeout is bounded', (tester) async {
-    final repository = PairingAcceptRepository()..acceptResult = null;
-    await _pumpDevicesPage(tester, repository);
-    await _openShowCodeDialog(tester);
-    await tester.pumpAndSettle();
+  // ━━ 验收 6（U7 重写）：确认方等待超时 → 静默自动重生成 ━━
+  testWidgets(
+    'accept timeout silently regenerates credential instead of showing error',
+    (tester) async {
+      final repository = PairingAcceptRepository()
+        ..acceptResult = null
+        ..timeoutResults = 2 // 前两轮模拟窗口超时 → 应触发两轮自动重生成
+        ..parkAfterTimeouts = true; // 之后挂起：链路静止，断言可确定性进行
+      await _pumpDevicesPage(tester, repository);
+      await _openShowCodeDialog(tester);
+      await tester.pumpAndSettle();
 
-    expect(repository.acceptCalls, 1);
-    expect(
-      find.byKey(const ValueKey('pair-accept-error')),
-      findsOneWidget,
-      reason: '超过设定时限应结束等待并显示超时错误',
-    );
-    expect(find.textContaining('等待配对超时'), findsOneWidget);
-    expect(repository.advertisingStopped, isTrue, reason: '等待超时后应停止广播（设计目标 5）');
+      expect(
+        repository.credentialCalls,
+        greaterThanOrEqualTo(2),
+        reason: '超时应静默重生成凭证（新 code + 新 nonce + 重启广播）',
+      );
+      expect(
+        repository.acceptCalls,
+        greaterThanOrEqualTo(2),
+        reason: '每轮重生成都应启动新的有界 accept loop',
+      );
+      expect(
+        repository.acceptTimeoutArg,
+        const Duration(minutes: 10),
+        reason: 'accept 窗口应与配对码有效期 PAIRING_CODE_TTL 对齐为 10 分钟',
+      );
+      expect(
+        find.textContaining('等待配对超时'),
+        findsNothing,
+        reason: '超时不得再向用户显示错误文案（用户无感）',
+      );
+      expect(find.byKey(const ValueKey('pair-accept-error')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('pair-code-display')),
+        findsOneWidget,
+        reason: '二维码/配对码仍展示（新一轮有效期内）',
+      );
+      expect(
+        repository.advertisingStopped,
+        isTrue,
+        reason: '重启广播语义：重生成前应停掉旧广播',
+      );
 
-    // 关闭弹窗（收尾路径仍停止广播，幂等）
-    await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
-    await tester.pumpAndSettle();
-    expect(repository.advertisingStopped, isTrue);
-  });
+      // 关闭弹窗（收尾路径仍停止广播，幂等）
+      await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
+      await tester.pumpAndSettle();
+      expect(repository.advertisingStopped, isTrue);
+    },
+  );
 
   // ━━ 验收 7：重复打开/关闭不叠加并发接收器 ━━
   testWidgets('reopen does not duplicate accept loops', (tester) async {
