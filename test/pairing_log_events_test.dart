@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cardmind/bridge/debug_log.dart';
 import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
@@ -35,6 +37,11 @@ class PairingLogRepository implements NoteRepository {
   Object? discoverError;
   PairingRequest? acceptResult;
   Object? acceptError;
+
+  /// 前 N 次 accept 返回 null（模拟有界窗口超时）；其后挂起等待——U7 超时
+  /// 自动重生成链在测试时钟下必须用"有限次 null + 挂起"收尾。
+  int timeoutResults = 0;
+  bool parkAfterTimeouts = false;
   PairingResult? confirmResult;
   Object? confirmError;
   PairingResult? connectResult;
@@ -85,6 +92,11 @@ class PairingLogRepository implements NoteRepository {
   ) async {
     acceptCalls++;
     if (acceptError case final error?) throw error;
+    if (timeoutResults > 0) {
+      timeoutResults--;
+      return null;
+    }
+    if (parkAfterTimeouts) return Completer<PairingRequest?>().future;
     return acceptResult;
   }
 
@@ -360,9 +372,11 @@ void main() {
     );
   });
 
-  // ━━ 验收 6b：accept 超时事件 ━━
+  // ━━ 验收 6b：accept 超时事件（U7：超时同时触发静默自动重生成）━━
   testWidgets('pairing accept timeout emits timeout event', (tester) async {
     repository.acceptResult = null; // 有界等待超时
+    repository.timeoutResults = 1;
+    repository.parkAfterTimeouts = true; // 重生成一轮后挂起，测试可终止
 
     await _pumpDevicesPage(tester, repository);
     await _openShowCodeDialog(tester);
@@ -372,16 +386,18 @@ void main() {
       (e) => e.event == 'pairing.accept' && e.fields['action'] == 'timeout',
     );
     expect(timeout, isNotNull, reason: 'accept 超时应发出 timeout 事件');
-    expect(repository.advertisingStopped, isTrue, reason: '超时后应停止广播（清理事件）');
-    expect(
-      find.textContaining('等待配对超时'),
-      findsOneWidget,
-      reason: 'UI 应显示超时可读错误',
+    final regenerate = capture.events.firstWhere(
+      (e) => e.event == 'pairing.accept' && e.fields['action'] == 'regenerate',
     );
+    expect(regenerate, isNotNull, reason: '自动重生成应记录 regenerate 日志');
+    expect(repository.advertisingStopped, isTrue, reason: '超时后应停止广播（清理事件）');
   });
 
   // ━━ 验收 6c：显示码弹窗取消事件 ━━
   testWidgets('pairing show-code cancel emits cancelled event', (tester) async {
+    repository
+      ..acceptResult = null
+      ..parkAfterTimeouts = true; // U7：null 超时会触发自动重生成链，挂起保持静止
     await _pumpDevicesPage(tester, repository);
     await _openShowCodeDialog(tester);
     await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));

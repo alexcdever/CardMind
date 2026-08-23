@@ -62,6 +62,22 @@ class CredentialUiRepository implements NoteRepository {
     nonce: '11111111111111111111111111111111',
   );
 
+  /// accept 抛错（模拟后端异常）。每轮 accept 立即结束——用于需要
+  /// 「重新生成」按钮快速完成的用例（旧 accept future 已结束，无需等待窗口）。
+  Object? acceptError;
+
+  /// 前 N 次 accept 返回 null（模拟有界窗口超时）。任务 U7：超时会触发
+  /// 静默自动重生成链——测试时钟下必须"有限次 null + 挂起"收尾，
+  /// 否则重生成链在纯 microtask 中无限旋转拖死 pumpAndSettle。
+  int timeoutResults = 0;
+
+  /// accept 挂起 gate（一次性：首个到达的 accept 消费后清除）。
+  Completer<PairingRequest?>? acceptGate;
+
+  /// timeoutResults/acceptGate 均未命中时挂起等待（模拟真实设备窗口内的
+  /// 静默等待），保证弹窗保持打开且链路静止、测试可终止。
+  bool parkAfterControlled = false;
+
   /// accept 挂起 gate（用于控制"凭证就绪前不启动 accept"）。
   Completer<void>? credentialGate;
 
@@ -89,6 +105,16 @@ class CredentialUiRepository implements NoteRepository {
     Duration timeout,
   ) async {
     acceptCalls++;
+    if (acceptError case final error?) throw error;
+    if (timeoutResults > 0) {
+      timeoutResults--;
+      return null;
+    }
+    if (acceptGate case final gate?) {
+      acceptGate = null; // 一次性消费：后续 accept 落到后续规则
+      return gate.future;
+    }
+    if (parkAfterControlled) return Completer<PairingRequest?>().future;
     return acceptResult;
   }
 
@@ -260,7 +286,9 @@ void main() {
     (tester) async {
       final now = DateTime.now().toUtc();
       final repo = CredentialUiRepository()
-        ..acceptResult = null
+        // U7：acceptError 让每轮 accept 立即结束（否则「重新生成」要等旧
+        // accept future 到窗口末尾），倒计时断言不受错误文案影响。
+        ..acceptError = Exception('simulated accept failure')
         ..credentialSeq = [
           PairingCredentialDisplay(
             code: '111111',
@@ -326,7 +354,8 @@ void main() {
     tester,
   ) async {
     final repo = CredentialUiRepository()
-      ..acceptResult = null; // 挂起等待，不立即 confirm
+      ..acceptResult = null // 不立即 confirm
+      ..parkAfterControlled = true; // U7：null 超时会触发自动重生成链，挂起保持静止
     await _pump(tester, repo);
     await _openShowDialog(tester);
 
@@ -346,7 +375,8 @@ void main() {
     tester,
   ) async {
     final repo = CredentialUiRepository()
-      ..acceptResult = null
+      // U7：acceptError 让旧轮次 accept 立即结束，「重新生成」无需等待窗口。
+      ..acceptError = Exception('simulated accept failure')
       ..credentialSeq = [
         const PairingCredentialDisplay(
           code: '111111',
@@ -598,6 +628,7 @@ void main() {
       ),
     ];
     repo.acceptResult = null;
+    repo.parkAfterControlled = true; // U7：挂起保持链路静止，弹窗保持打开
 
     // 移动端 320x640
     await tester.binding.setSurfaceSize(const Size(320, 640));
@@ -625,6 +656,7 @@ void main() {
     final gate = Completer<void>();
     repo.credentialGate = gate;
     repo.acceptResult = null; // 不立即 confirm，避免弹窗自动关闭
+    repo.parkAfterControlled = true; // U7：挂起保持链路静止
 
     await _pump(tester, repo);
     await _openShowDialog(tester);
@@ -647,10 +679,14 @@ void main() {
     'regenerate never leaves two accept loops or confirms with old code',
     (tester) async {
       final repo = CredentialUiRepository();
-      // 第一次 accept 立即返回请求（111111），会 confirm 旧码 → 弹窗关闭。
-      // 为验证"重新生成不确认旧码"，让 accept 返回 null（挂起等待），
-      // 这样弹窗保持打开，触发凭证重新生成后再放行 accept。
+      // 第一次 accept 挂起（gate 控制释放），弹窗保持打开；
+      // 触发凭证重新生成后再放行旧 accept，验证不确认旧码、不叠加 loop。
+      // U7：旧轮次以"超时"放行时 generation 已被手动重生成递增 → 判废退出，
+      // 不会触发自动重生成链；新轮次 accept 由 parkAfterControlled 挂起。
       repo.acceptResult = null;
+      repo.parkAfterControlled = true;
+      final oldRound = Completer<PairingRequest?>();
+      repo.acceptGate = oldRound;
       repo.credentialSeq = [
         PairingCredentialDisplay(
           code: '111111',
@@ -675,6 +711,8 @@ void main() {
       expect(repo.acceptCalls, 1, reason: '初始 accept 启动一次');
 
       await tester.tap(find.byKey(const ValueKey('pair-regenerate-button')));
+      await tester.pump(); // 处理点击：generation 递增并等待旧 accept 结束
+      oldRound.complete(null); // 旧轮次以超时返回（已判废）
       await tester.pumpAndSettle();
 
       expect(repo.credentialCalls, 2, reason: '重新生成调用第二次 credential');

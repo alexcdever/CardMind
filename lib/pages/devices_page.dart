@@ -34,10 +34,14 @@ class DevicesPage extends StatefulWidget {
   /// 在线判定窗口（最近同步过 = 在线）。
   static const Duration onlineWindow = Duration(minutes: 5);
 
-  /// 确认方等待配对请求的总时限（任务 M）：显示码弹窗打开后，接收器
-  /// [NoteRepository.acceptPairingRequestWithTimeout] 只等这么长；超时结束等待、
-  /// 停止广播并显示可读错误。与配对码 10 分钟有效期对齐的保守上限。
-  static const Duration pairingAcceptTimeout = Duration(minutes: 3);
+  /// 确认方等待配对请求的总时限：显示码弹窗打开后，接收器
+  /// [NoteRepository.acceptPairingRequestWithTimeout] 只等这么长。
+  ///
+  /// 任务 U7：与 Rust 侧配对凭证有效期 `PAIRING_CODE_TTL`（10 分钟，见
+  /// rust-backend/src/sync.rs）严格对齐——旧值 3 分钟会在二维码仍有效时提前
+  /// 报"等待配对超时"。超时不再报错而是静默自动重生成（见
+  /// [_PairingAcceptDialogState._runAcceptRounds]），每轮都是新的完整窗口。
+  static const Duration pairingAcceptTimeout = Duration(minutes: 10);
 
   @override
   State<DevicesPage> createState() => _DevicesPageState();
@@ -728,14 +732,19 @@ class _DevicesPageState extends State<DevicesPage> {
   }
 }
 
-/// 显示码等待弹窗（任务 M/Q）：生成凭证 + 启动有界 accept loop。
+/// 显示码等待弹窗（任务 M/Q/U7）：生成凭证 + 有界 accept + 超时静默重生成。
 ///
 /// 生命周期契约：
-/// - 打开：只生成一次 [NoteRepository.beginPairingCredential]（组合生成 + 广播），
-///   成功后 set 显示数据并启动**单个**有界 accept loop
-/// - 重新生成：轮次 token 递增 → 旧 loop 判废退出 → 生成新凭证 → 新 loop
-/// - confirm 只用与当前显示 code 对应的请求
-/// - 关闭：dispose 取消计时器 + 置 [_cancelled]；挂起等待完成后不再 confirm/setState
+/// - 打开：只启动一次 [_runAcceptRounds]（组合 API 生成凭证 + 广播同一调用）
+/// - 每轮：生成并展示凭证 → 启动**单个**有界 accept loop → confirm 只用与
+///   当前显示 code 对应的请求
+/// - U7 超时：accept 窗口（[DevicesPage.pairingAcceptTimeout]，= 配对码有效期
+///   10 分钟）到点返回 null 时**不报错**，静默进入下一轮：记 regenerate 日志 →
+///   停旧广播 → 新 code + 新 nonce → 重启广播 → 新 accept loop；二维码/倒计时
+///   随之刷新，用户全程无感；连续自动重生成次数不设上限
+/// - 重新生成按钮：[_regenerate] 轮次 token 递增 → 旧 loop 判废退出 → 开新轮次
+///   （行为与任务 Q 一致）
+/// - 关闭：dispose 置 [_cancelled] 判废旧 loop；挂起等待完成后不再 confirm/setState
 class _PairingAcceptDialog extends StatefulWidget {
   const _PairingAcceptDialog({
     required this.repository,
@@ -758,7 +767,7 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
 
   /// 当前 generation 轮次 token；重新生成时递增，使旧 accept loop 判废。
   int _generation = 0;
-  Future<void>? _acceptFuture;
+  Future<bool>? _acceptFuture;
 
   @override
   void initState() {
@@ -774,35 +783,63 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
 
   Future<void> _start() async {
     if (_generation != 0) return; // 只启动一次
-    await _generateAndAccept();
+    await _runAcceptRounds();
   }
 
-  Future<void> _generateAndAccept() async {
-    final gen = ++_generation;
+  /// 运行「生成凭证 → 有界 accept」轮次循环（任务 U7）。
+  ///
+  /// accept 完整窗口超时不再显示"等待配对超时"错误，而是静默开始下一轮
+  /// （新 code + 新 nonce + 重启广播 + 新 accept loop，每轮都是新的完整窗口）；
+  /// 仅当生成凭证失败才显示既有错误文案。连续自动重生成次数不设上限。
+  ///
+  /// 用 while 循环而非在超时分支里调用 [_regenerate]：超时发生在旧 accept
+  /// future 内部，栈内 await 自身所在 future 会死锁；此处旧 accept 已返回、
+  /// 无挂起等待，循环推进即可安全开新轮次。
+  Future<void> _runAcceptRounds() async {
+    while (mounted && !_cancelled) {
+      final gen = ++_generation;
+      if (!await _generateCredential(gen)) return; // 失败已显示错误 / 已取消
+      final future = _runAccept(gen);
+      _acceptFuture = future;
+      final shouldRegenerate = await future;
+      if (!shouldRegenerate) return;
+      // 被手动重生成取代（_generation 已变）：让位给手动流程，避免双 loop。
+      if (!mounted || _cancelled || gen != _generation) return;
+      DebugLogger.instance.event(
+        'pairing.accept',
+        'pairing.accept',
+        fields: const {'action': 'regenerate', 'reason': 'timeout'},
+      );
+      // 重启广播语义：先停旧广播；下一轮 beginPairingCredential 会重新广播。
+      await _stopAdvertisingQuietly();
+    }
+  }
+
+  /// 生成并展示新一轮凭证。返回 false 表示失败（已显示既有错误文案）、
+  /// 弹窗已关闭或轮次被取代。
+  Future<bool> _generateCredential(int gen) async {
     try {
       final display = await widget.repository.beginPairingCredential();
-      if (!mounted || _cancelled || gen != _generation) return;
+      if (!mounted || _cancelled || gen != _generation) return false;
       setState(() {
         _displayCode = display.code;
         _credentialText = display.credential;
         _expiresAt = display.expiresAt;
         _error = null;
       });
-    } catch (e) {
-      if (!mounted || _cancelled || gen != _generation) return;
+      return true;
+    } catch (_) {
+      if (!mounted || _cancelled || gen != _generation) return false;
       setState(() {
         _error = '生成配对信息失败，请关闭后重试';
       });
-      return;
+      return false;
     }
-    // 凭证就绪后启动有界 accept（同一时刻至多一个；旧 loop 由 token 判废）。
-    _acceptFuture = _runAccept(gen);
-    await _acceptFuture;
   }
 
   Future<void> _regenerate() async {
     // 旧轮次 token 递增 → 旧 accept loop 判废后自行退出；等待其结束再启动新轮次，
-    // 避免同时运行两个 accept loop。
+    // 避免同时运行两个 accept loop。（手动按钮路径，行为不变。）
     _generation++;
     final old = _acceptFuture;
     if (old != null) {
@@ -811,10 +848,13 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
       } catch (_) {}
     }
     if (!mounted || _cancelled) return;
-    await _generateAndAccept();
+    await _runAcceptRounds();
   }
 
-  Future<void> _runAccept(int gen) async {
+  /// 单轮有界 accept。返回 true 仅表示"完整窗口超时且轮次仍有效"——由
+  /// [_runAcceptRounds] 决定静默重生成；其余结果（确认完成/异常/被取代/关闭）
+  /// 均返回 false。
+  Future<bool> _runAccept(int gen) async {
     final log = DebugLogger.instance;
     log.event(
       'pairing.accept',
@@ -838,31 +878,27 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
         error: e.runtimeType.toString(),
         errorChain: e.toString(),
       );
-      if (gen != _generation) return;
+      if (gen != _generation) return false;
       await _stopAdvertisingQuietly();
-      if (!mounted || _cancelled) return;
+      if (!mounted || _cancelled) return false;
       setState(() {
         _error = '等待配对请求失败，请关闭后重试';
       });
-      return;
+      return false;
     }
 
-    // 轮次已失效（重新生成）或弹窗已关闭 → 不 confirm。
-    if (gen != _generation || !mounted || _cancelled) return;
+    // 轮次已失效（重新生成）或弹窗已关闭 → 不 confirm、不重生成。
+    if (gen != _generation || !mounted || _cancelled) return false;
 
     if (request == null) {
+      // 任务 U7：窗口超时只记录事件；由轮次循环接管，静默重生成，用户无感。
       log.event(
         'pairing.accept',
         'pairing.accept',
         fields: const {'action': 'timeout'},
       );
-      if (gen != _generation) return;
-      await _stopAdvertisingQuietly();
-      if (!mounted || _cancelled) return;
-      setState(() {
-        _error = '等待配对超时，请关闭后重新发起';
-      });
-      return;
+      if (gen != _generation) return false;
+      return true;
     }
 
     log.event(
@@ -873,7 +909,7 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
 
     // confirm 只用当前 display code；请求 code 必须与之一致（Rust 校验）。
     final code = _displayCode;
-    if (code == null) return;
+    if (code == null) return false;
     try {
       log.event(
         'pairing.confirm',
@@ -886,7 +922,7 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
         'pairing.confirm',
         fields: const {'action': 'success'},
       );
-      if (gen != _generation || !mounted || _cancelled) return;
+      if (gen != _generation || !mounted || _cancelled) return false;
       Navigator.of(context).pop(result);
     } catch (e) {
       log.event(
@@ -897,13 +933,14 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
         error: e.runtimeType.toString(),
         errorChain: e.toString(),
       );
-      if (gen != _generation) return;
+      if (gen != _generation) return false;
       await _stopAdvertisingQuietly();
-      if (!mounted || _cancelled) return;
+      if (!mounted || _cancelled) return false;
       setState(() {
         _error = '配对失败，请关闭后重试';
       });
     }
+    return false;
   }
 
   Future<void> _stopAdvertisingQuietly() async {
