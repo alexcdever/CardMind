@@ -1,104 +1,69 @@
-# Executor Report — U6-R4
+# Executor Report — Task U8-R4
 
 ## 完成内容
 
-按设计方裁决方向 A，将 `_CountdownWidgetState` 的时间获取从 `DateTime.now()` 改为 `package:clock` 的 `clock.now()`，使 Flutter FakeAsync 测试区（`testWidgets`）能随 `pump()` 推进倒计时：
+- 将手动 `cm1` 凭证失败路径的外层输入弹窗 catch 改为只更新 UI 错误状态，不再额外发出 `pairing.connect failed`。
+- 保留 `_connectCredential(source: 'manual')` 作为手动凭证失败日志的唯一来源；六位码路径的原有日志语义未改动。
+- 将恶意异常用例改为断言恰好一条 failed 事件，并校验 `transport=credential`、`source=manual` 以及错误链不包含敏感值。
+- 未修改 repository、FRB、Rust、协议、扫码 UI 或网络逻辑。
 
-1. `pubspec.yaml`：`dependencies:` 段新增 `clock: ^1.1.1`。
-2. `lib/pages/devices_page.dart`：新增 `import 'package:clock/clock.dart';`；仅替换 `_CountdownWidgetState` 内两处 `DateTime.now()` → `clock.now()`：
-   - `tick` 闭包内的 remaining 计算（原 Line 1058）；
-   - `_restartTimer` 内初始 remaining 计算（原 Line 1064）。
-3. `pubspec.lock`：由 `flutter pub get` 更新，`clock 1.1.2` 从传递依赖转为 direct main。
+## TDD 红绿蓝证据（真实输出）
 
-生产行为契约不变：绝对 `expiresAt` 差值计算、100ms 周期刷新、`didUpdateWidget` expiresAt 变化重启、dispose 取消、过期文案——全部未动。devices_page.dart 中其余 `DateTime.now()`（在线窗口判断 Line 124/131、连接耗时统计等共 11 处）一律未动。测试文件未改动，断言语义沿用既有写法。
+### 红
 
-TDD 说明：红阶段已在实机复验（见下），绿阶段目标测试转绿。本任务为修复既有失败测试，无新增测试用例。
+先把 `test/pairing_log_events_test.dart` 的恶意异常断言从 `hasLength(2)` 改为 `hasLength(1)`，保留旧生产实现运行：
 
-## 验证结果（真实命令输出，逐条贴）
+命令：`flutter test test/pairing_log_events_test.dart --timeout 3m`
 
-### 0. 红阶段复验（实现前，代码仍为 DateTime.now()）
+真实失败摘要：
 
-```
-$ PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/pairing_credential_ui_test.dart --timeout 3m
-00:02 +15 -1: Some tests failed.
+```text
+Expected: an object with length of <1>
+Actual: WhereIterable<DebugEvent>:[Instance of 'DebugEvent', Instance of 'DebugEvent']
+Which: has length of <2>
+00:04 +9 -1: Some tests failed.
 Failing tests:
-  D:/Projects/CardMind/.worktrees/pairing-ui-fix/test/pairing_credential_ui_test.dart: countdown visibly decreases and resets for regenerated credential
-EXIT=1
+  .../test/pairing_log_events_test.dart: credential scan failure logs sanitized chain and scan source
 ```
 
-### 1. 目标测试转绿
+### 绿
 
-```
-$ PUB_HOSTED_URL=https://pub.flutter-io.cn flutter pub get
-Resolving dependencies...
-...
-  clock 1.1.2 (from transitive dependency to direct dependency)
-Changed 1 dependency!
-EXIT=0
+最小修改为：`cm1` 输入的外层 catch 不再写失败事件；非 `cm1` 输入仍保留原有 generic failed 日志。
 
-$ PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/pairing_credential_ui_test.dart --timeout 3m
-00:02 +16: All tests passed!
-EXIT=0
+命令：`flutter test test/pairing_log_events_test.dart --timeout 3m`
+
+真实输出：
+
+```text
+00:03 +10: All tests passed!
 ```
 
-含此前失败的 `countdown visibly decreases and resets for regenerated credential`，16 个用例全过。
+唯一 failed 事件由 `_connectCredential(source: 'manual')` 产生，字段为 `action=failed`、`transport=credential`、`source=manual`；`errorChain` 仅为脱敏类型/错误 kind，不含 `cm1.SECRET`、`123456`、`TOPSECRET`。
 
-### 2. 四个配对回归不受影响
+### 蓝
 
-```
-$ PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/pairing_accept_ui_test.dart --timeout 3m
-00:01 +8: All tests passed!
-EXIT=0
+复查后未进行行为改变型重构；保留手动与扫码共用 `_connectCredential` 的既有结构，并确保六位码分支不受影响。
 
-$ PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/pairing_log_events_test.dart --timeout 3m
-00:01 +8: All tests passed!
-EXIT=0
+## 验收标准逐条结果
 
-$ PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/pairing_mdns_widget_test.dart --timeout 3m
-00:01 +7: All tests passed!
-EXIT=0
+1. **红阶段：通过。** 上述目标命令在旧实现上真实失败，实际观察到 2 条 failed 而期望 1 条。
+2. **绿阶段：通过。** 目标日志测试 10 项全过；唯一手动 cm1 failed 事件的字段与脱敏断言均通过。
+3. **U8 全验收：通过。**
+   - `flutter test test/pairing_credential_ui_test.dart --timeout 3m` → `00:07 +18: All tests passed!`
+   - `flutter test test/pairing_log_events_test.dart --timeout 3m` → `00:03 +10: All tests passed!`
+   - `flutter test test/pairing_accept_ui_test.dart --timeout 3m` → `00:03 +8: All tests passed!`
+   - `flutter test test/pairing_mdns_widget_test.dart --timeout 3m` → `00:04 +7: All tests passed!`
+4. **静态检查：通过。** `flutter analyze` → `No issues found! (ran in 34.0s)`；`git diff --check` 无输出，退出码 0。
+5. **改动范围：通过（含既有 U8 worktree 变更）。** 当前状态为 `.workflow/executor-report.md`、`lib/pages/devices_page.dart`、`test/pairing_log_events_test.dart` 及既有 U8 的 `test/pairing_credential_ui_test.dart`；未新增其他文件，未回退既有 U8 变更。
+6. **证据链：通过。** 本文件、`.workflow/review-report.md` 与 `.workflow/final-check.md` 均刷新为 Task U8-R4 内容。
 
-$ PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/sync_ui_widget_test.dart --timeout 3m
-00:02 +12: All tests passed!
-EXIT=0
-```
+## 新增/修改测试清单
 
-### 3. 静态与范围
+- `test/pairing_log_events_test.dart`
+  - `credential scan failure logs sanitized chain and scan source`：断言 manual credential 失败事件恰好 1 条、字段正确、错误链脱敏。
+  - 其余既有配对日志用例未改变。
 
-```
-$ flutter analyze
-Analyzing pairing-ui-fix...
-No issues found! (ran in 19.5s)
-EXIT=0
+## 未决问题
 
-$ git diff --check
-EXIT=0 （无空白错误）
-
-$ git status --short
- M .workflow/executor-report.md      ← 本报告（R3 报告被本轮覆盖）
- M .workflow/final-check.md          ← 前轮遗留未暂存改动，本轮未触碰
- M lib/pages/devices_page.dart       ← 允许范围（含前轮 scanner/countdown 改动）
- M pubspec.lock                      ← 允许范围（pub get 更新）
- M pubspec.yaml                      ← 允许范围
- M test/pairing_credential_ui_test.dart ← 前轮遗留未暂存改动，本轮未触碰
-
-$ grep -A2 '^  clock:' pubspec.lock
-  clock:
-    dependency: "direct main"
-    description:
-```
-
-本轮实际增量 diff 仅三处：
-- `pubspec.yaml`：`+  clock: ^1.1.1`
-- `lib/pages/devices_page.dart`：`+import 'package:clock/clock.dart';` 及两处 `DateTime.now()` → `clock.now()`
-- `pubspec.lock`：clock 转 direct main（pub get 自动）
-
-## 新增测试清单
-
-本任务无新增测试用例——沿用既有断言（`countdown visibly decreases and resets for regenerated credential` 的 `pump(const Duration(seconds: 1))` 写法与断言语义均未改动）。红→绿由该既有用例承载。
-
-## 问题未决
-
-无。未触发需决策点：`clock.now()` 方案下目标测试一次转绿；无需超出允许范围的改动。
-
-备注：GitNexus 索引中无私有类 `_CountdownWidgetState`（索引基于主仓库且不含私有符号），已用 grep 复核 blast radius——`_CountdownWidget` 仅在 devices_page.dart 内部使用，风险 LOW。
+- 无。未触发 repository/FRB/Rust/协议需决策点。
+- 未提交、未合并、未推送；worktree 与分支均按任务单保留。

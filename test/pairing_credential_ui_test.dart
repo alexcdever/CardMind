@@ -88,7 +88,8 @@ class CredentialUiRepository implements NoteRepository {
   PairingCredentialException? parseError;
 
   /// credential connect 抛错（不可达）。
-  PairingCredentialException? connectError;
+  Object? connectError;
+  Completer<PairingResult>? credentialConnectGate;
 
   @override
   Future<PairingCredentialDisplay> beginPairingCredential() async {
@@ -169,6 +170,7 @@ class CredentialUiRepository implements NoteRepository {
   ) async {
     credentialConnectCalls++;
     lastCredentialArg = credential;
+    if (credentialConnectGate case final gate?) return gate.future;
     if (connectError case final e?) throw e;
     return PairingResult(peerId: 'parsed-device', peerName: 'Trusted PC');
   }
@@ -238,7 +240,7 @@ class CredentialUiRepository implements NoteRepository {
 }
 
 class _SupportedScanner implements ScannerService {
-  const _SupportedScanner({this.outcome = const ScanOutcome(text: 'cm1.scanned')});
+  _SupportedScanner({this.outcome = const ScanOutcome(text: 'cm1.scanned')});
 
   final ScanOutcome outcome;
 
@@ -246,8 +248,31 @@ class _SupportedScanner implements ScannerService {
   bool get isSupported => true;
 
   @override
-  Future<ScanOutcome> scanCredential(BuildContext context) async =>
-      outcome;
+  Future<ScanOutcome> scanCredential(BuildContext context) async => outcome;
+}
+
+class _RouteScanner implements ScannerService {
+  _RouteScanner();
+  final ScanOutcome outcome = const ScanOutcome(text: 'cm1.scanned');
+  @override
+  bool get isSupported => true;
+  @override
+  Future<ScanOutcome> scanCredential(BuildContext context) async {
+    final result = await Navigator.of(context).push<ScanOutcome>(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          body: Center(
+            child: ElevatedButton(
+              key: const ValueKey('route-scanner-detect'),
+              onPressed: () => Navigator.of(context).pop(outcome),
+              child: const Text('模拟识别'),
+            ),
+          ),
+        ),
+      ),
+    );
+    return result ?? const ScanOutcome();
+  }
 }
 
 Future<void> _pump(
@@ -258,7 +283,9 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       theme: CardMindTheme.light,
-      home: Scaffold(body: DevicesPage(repository: repository, scanner: scanner)),
+      home: Scaffold(
+        body: DevicesPage(repository: repository, scanner: scanner),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -293,12 +320,12 @@ void main() {
           PairingCredentialDisplay(
             code: '111111',
             credential: 'cm1.first',
-             expiresAt: now.add(const Duration(seconds: 10)).toIso8601String(),
+            expiresAt: now.add(const Duration(seconds: 10)).toIso8601String(),
           ),
           PairingCredentialDisplay(
             code: '222222',
             credential: 'cm1.second',
-             expiresAt: now.add(const Duration(seconds: 20)).toIso8601String(),
+            expiresAt: now.add(const Duration(seconds: 20)).toIso8601String(),
           ),
         ];
       await tester.pumpWidget(
@@ -312,7 +339,7 @@ void main() {
       final first = tester
           .widget<Text>(find.byKey(const ValueKey('pair-code-countdown')))
           .data!;
-       await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
       final decreased = tester
           .widget<Text>(find.byKey(const ValueKey('pair-code-countdown')))
           .data!;
@@ -354,7 +381,8 @@ void main() {
     tester,
   ) async {
     final repo = CredentialUiRepository()
-      ..acceptResult = null // 不立即 confirm
+      ..acceptResult =
+          null // 不立即 confirm
       ..parkAfterControlled = true; // U7：null 超时会触发自动重生成链，挂起保持静止
     await _pump(tester, repo);
     await _openShowDialog(tester);
@@ -521,16 +549,20 @@ void main() {
     tester,
   ) async {
     final repo = CredentialUiRepository();
-    await _pump(tester, repo, scanner: const _SupportedScanner());
+    await _pump(tester, repo, scanner: _SupportedScanner());
     await tester.tap(find.byKey(const ValueKey('devices-add')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(repo.credentialConnectCalls, 1);
     expect(repo.lastCredentialArg, 'cm1.scanned');
     expect(repo.discoverCalls, 0);
     expect(find.byKey(const ValueKey('pair-credential-input')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('pair-scan-connecting-dialog')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('scanner cancellation closes without error', (tester) async {
@@ -538,49 +570,83 @@ void main() {
     await _pump(
       tester,
       repo,
-      scanner: const _SupportedScanner(outcome: ScanOutcome()),
+      scanner: _SupportedScanner(outcome: ScanOutcome()),
     );
     await tester.tap(find.byKey(const ValueKey('devices-add')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(repo.credentialConnectCalls, 0);
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('scanner errors show readable feedback', (
-    tester,
-  ) async {
+  testWidgets('scanner errors show readable feedback', (tester) async {
     final repo = CredentialUiRepository();
     await _pump(
       tester,
       repo,
-      scanner: const _SupportedScanner(
+      scanner: _SupportedScanner(
         outcome: ScanOutcome(error: '相机权限被拒绝，请手动输入配对信息'),
       ),
     );
     await tester.tap(find.byKey(const ValueKey('devices-add')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('相机权限被拒绝，请手动输入配对信息'), findsOneWidget);
   });
 
-  testWidgets('invalid scanner contents show readable feedback', (tester) async {
+  testWidgets('invalid scanner contents show readable feedback', (
+    tester,
+  ) async {
     final repo = CredentialUiRepository();
     await _pump(
       tester,
       repo,
-      scanner: const _SupportedScanner(outcome: ScanOutcome(text: 'not-a-code')),
+      scanner: _SupportedScanner(outcome: ScanOutcome(text: 'not-a-code')),
     );
     await tester.tap(find.byKey(const ValueKey('devices-add')));
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
+    expect(
+      find.byKey(const ValueKey('pair-scan-result-dialog')),
+      findsOneWidget,
+    );
     expect(find.text('扫码内容不是有效的配对信息，请重新扫描'), findsOneWidget);
     expect(repo.credentialConnectCalls, 0);
+  });
+
+  testWidgets('delayed scanner failure persists and offers manual input', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository()
+      ..credentialConnectGate = Completer<PairingResult>()
+      ..connectError = const PairingCredentialException(
+        kind: PairingCredentialErrorKind.unreachable,
+        message: '无法连接到对方设备，请确认网络可达后重试',
+      );
+    await _pump(tester, repo, scanner: _SupportedScanner());
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('pair-scan-connecting-dialog')),
+      findsOneWidget,
+    );
+    repo.credentialConnectGate!.completeError(repo.connectError!);
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('pair-scan-result-dialog')),
+      findsOneWidget,
+    );
+    expect(find.text(repo.connectError!.toString()), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pair-scan-manual')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('pair-credential-input')), findsOneWidget);
   });
 
   testWidgets('scanner permission denied has friendly fallback', (
@@ -610,6 +676,32 @@ void main() {
       reason: '不可达应显示友好错误',
     );
     expect(find.textContaining('AnyhowException'), findsNothing);
+  });
+
+  testWidgets('real Navigator scanner route supports delayed success', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository()
+      ..credentialConnectGate = Completer<PairingResult>();
+    await _pump(tester, repo, scanner: _RouteScanner());
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('route-scanner-detect')));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('pair-scan-connecting-dialog')),
+      findsOneWidget,
+    );
+    repo.credentialConnectGate!.complete(
+      const PairingResult(peerId: 'p', peerName: 'Trusted PC'),
+    );
+    await tester.pump();
+    expect(find.textContaining('Trusted PC'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pair-scan-done')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('pair-scan-result-dialog')), findsNothing);
   });
 
   testWidgets('long credential never overflows desktop or mobile dialog', (

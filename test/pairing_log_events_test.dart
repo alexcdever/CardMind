@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cardmind/bridge/debug_log.dart';
 import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
+import 'package:cardmind/scanner/scanner_interface.dart';
 import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/src/rust/sync.dart';
@@ -55,6 +56,7 @@ class PairingLogRepository implements NoteRepository {
   bool advertisingStopped = false;
   PairingTarget? connectTarget;
   int credentialConnectCalls = 0;
+  Object? credentialConnectError;
 
   @override
   Future<List<PairedDeviceRow>> listPairedDevices() async => [];
@@ -155,6 +157,7 @@ class PairingLogRepository implements NoteRepository {
     String credential,
   ) async {
     credentialConnectCalls++;
+    if (credentialConnectError case final error?) throw error;
     return PairingResult(peerId: 'parsed-device', peerName: 'Trusted PC');
   }
 
@@ -224,6 +227,28 @@ class PairingLogRepository implements NoteRepository {
 
   @override
   Future<void> removePairedDevice(String peerId) async {}
+}
+
+class _RouteScanner implements ScannerService {
+  const _RouteScanner(this.outcome);
+  final ScanOutcome outcome;
+  @override
+  bool get isSupported => true;
+  @override
+  Future<ScanOutcome> scanCredential(BuildContext context) async {
+    final value = await Navigator.of(context).push<ScanOutcome>(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          body: ElevatedButton(
+            key: const ValueKey('route-scan-detect'),
+            onPressed: () => Navigator.of(context).pop(outcome),
+            child: const Text('模拟识别'),
+          ),
+        ),
+      ),
+    );
+    return value ?? const ScanOutcome();
+  }
 }
 
 Future<void> _pumpDevicesPage(
@@ -478,6 +503,76 @@ void main() {
       start.fields['transport'],
       'credential',
       reason: '无直连 IP 时应记录 relay_or_dns 传输路径',
+    );
+  });
+
+  testWidgets('credential scan failure logs sanitized chain and scan source', (
+    tester,
+  ) async {
+    repository.credentialConnectError = StateError(
+      'credential=cm1.SECRET pairingCode=123456 privateKey=TOPSECRET',
+    );
+    await _pumpDevicesPage(tester, repository);
+    await _openEnterCodeDialog(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('pair-credential-input')),
+      'cm1.scan-secret',
+    );
+    await tester.tap(find.byKey(const ValueKey('pair-submit')));
+    await tester.pumpAndSettle();
+    final failed = capture.events.firstWhere(
+      (e) => e.event == 'pairing.connect' && e.fields['action'] == 'failed',
+    );
+    expect(failed.fields['source'], 'manual');
+    expect(
+      capture.events.where(
+        (e) => e.event == 'pairing.connect' && e.fields['action'] == 'failed',
+      ),
+      hasLength(1),
+    );
+    expect(failed.fields['transport'], 'credential');
+    expect(failed.fields['source'], 'manual');
+    expect(failed.errorChain, isNot(contains('cm1.SECRET')));
+    expect(failed.errorChain, isNot(contains('123456')));
+    expect(failed.errorChain, isNot(contains('TOPSECRET')));
+  });
+
+  testWidgets('real scanner route emits one scan success lifecycle', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(
+          body: DevicesPage(
+            repository: repository,
+            scanner: const _RouteScanner(ScanOutcome(text: 'cm1.scanned')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('route-scan-detect')));
+    await tester.pumpAndSettle();
+    expect(
+      capture.events.where(
+        (e) => e.event == 'pairing.connect' && e.fields['action'] == 'start',
+      ),
+      hasLength(1),
+    );
+    expect(
+      capture.events.where(
+        (e) => e.event == 'pairing.connect' && e.fields['action'] == 'success',
+      ),
+      hasLength(1),
+    );
+    expect(
+      capture.events.where((e) => e.fields['source'] == 'scan'),
+      isNotEmpty,
     );
   });
 

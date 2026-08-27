@@ -237,37 +237,84 @@ class _DevicesPageState extends State<DevicesPage> {
     }
     if (!mounted || outcome.cancelled) return;
     if (outcome.error != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(outcome.error!)));
+      await _showScanResult(outcome.error!);
       return;
     }
     final input = outcome.text?.trim() ?? '';
     if (!input.startsWith('cm1')) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('扫码内容不是有效的配对信息，请重新扫描')));
+      await _showScanResult('扫码内容不是有效的配对信息，请重新扫描');
       return;
     }
+    final action = await showDialog<_ScanDialogAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _PairingScanDialog(
+        credential: input,
+        connect: () => _connectCredential(input, source: 'scan'),
+      ),
+    );
+    if (!mounted) return;
+    if (action == _ScanDialogAction.manual) await _enterPeerCode();
+    if (action == _ScanDialogAction.done) await _load();
+  }
+
+  Future<void> _showScanResult(String message) async {
+    if (!mounted) return;
+    final action = await showDialog<_ScanDialogAction>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _PairingScanDialog(error: message),
+    );
+    if (mounted && action == _ScanDialogAction.manual) await _enterPeerCode();
+  }
+
+  Future<PairingResult> _connectCredential(
+    String credential, {
+    required String source,
+  }) async {
+    final log = DebugLogger.instance;
+    log.event(
+      'pairing.discovery',
+      'pairing.discovery',
+      fields: const {'action': 'bypassed', 'mdns_skipped': 'true'},
+    );
+    final started = DateTime.now();
+    log.event(
+      'pairing.connect',
+      'pairing.connect',
+      fields: {'action': 'start', 'transport': 'credential', 'source': source},
+    );
     try {
-      final result = await _repository.beginPairingConnectWithCredential(input);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('配对成功：${result.peerName}')));
-      await _load();
-      } on PairingCredentialException catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(e.message)));
-        }
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('配对失败：无法连接到对方设备，请稍后重试')));
-        }
+      final result = await _repository.beginPairingConnectWithCredential(
+        credential,
+      );
+      log.event(
+        'pairing.connect',
+        'pairing.connect',
+        fields: {
+          'action': 'success',
+          'transport': 'credential',
+          'source': source,
+        },
+        duration: DateTime.now().difference(started),
+      );
+      return result;
+    } catch (error) {
+      log.event(
+        'pairing.connect',
+        'pairing.connect',
+        fields: {
+          'action': 'failed',
+          'transport': 'credential',
+          'source': source,
+        },
+        error: error.runtimeType.toString(),
+        errorChain: error is PairingCredentialException
+            ? error.kind.name
+            : error.runtimeType.toString(),
+        duration: DateTime.now().difference(started),
+      );
+      rethrow;
     }
   }
 
@@ -362,29 +409,7 @@ class _DevicesPageState extends State<DevicesPage> {
             try {
               final PairingResult res;
               if (input.startsWith('cm1')) {
-                DebugLogger.instance.event(
-                  'pairing.discovery',
-                  'pairing.discovery',
-                  fields: const {'action': 'bypassed', 'mdns_skipped': 'true'},
-                );
-                final started = DateTime.now();
-                DebugLogger.instance.event(
-                  'pairing.connect',
-                  'pairing.connect',
-                  fields: const {'action': 'start', 'transport': 'credential'},
-                );
-                res = await _repository.beginPairingConnectWithCredential(
-                  input,
-                );
-                DebugLogger.instance.event(
-                  'pairing.connect',
-                  'pairing.connect',
-                  fields: const {
-                    'action': 'success',
-                    'transport': 'credential',
-                  },
-                  duration: DateTime.now().difference(started),
-                );
+                res = await _connectCredential(input, source: 'manual');
               } else if (_sixDigitCode.hasMatch(input)) {
                 res = await _connectWithSixDigitCode(input);
               } else {
@@ -401,22 +426,17 @@ class _DevicesPageState extends State<DevicesPage> {
                 submitError = e.message;
               });
             } catch (e) {
-              if (input.startsWith('cm1')) {
+              if (!input.startsWith('cm1')) {
                 DebugLogger.instance.event(
                   'pairing.connect',
                   'pairing.connect',
-                  fields: const {'action': 'failed', 'transport': 'credential'},
+                  fields: const {'action': 'failed'},
                   error: e.runtimeType.toString(),
-                  errorChain: e.toString(),
+                  errorChain: e is PairingCredentialException
+                      ? e.kind.name
+                      : e.runtimeType.toString(),
                 );
               }
-              DebugLogger.instance.event(
-                'pairing.connect',
-                'pairing.connect',
-                fields: const {'action': 'failed'},
-                error: e.runtimeType.toString(),
-                errorChain: e.toString(),
-              );
               setDialogState(() {
                 submitError = '配对失败：无法连接到对方设备，请稍后重试';
               });
@@ -727,6 +747,76 @@ class _DevicesPageState extends State<DevicesPage> {
           ),
         ),
         Expanded(child: _buildDeviceList()),
+      ],
+    );
+  }
+}
+
+enum _ScanDialogAction { done, manual }
+
+class _PairingScanDialog extends StatefulWidget {
+  const _PairingScanDialog({this.credential, this.connect, this.error});
+  final String? credential;
+  final Future<PairingResult> Function()? connect;
+  final String? error;
+
+  @override
+  State<_PairingScanDialog> createState() => _PairingScanDialogState();
+}
+
+class _PairingScanDialogState extends State<_PairingScanDialog> {
+  PairingResult? _result;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _error = widget.error;
+    if (widget.connect != null) Future<void>.microtask(_run);
+  }
+
+  Future<void> _run() async {
+    try {
+      final result = await widget.connect!();
+      if (mounted) setState(() => _result = result);
+    } on PairingCredentialException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = '配对失败：无法连接到对方设备，请稍后重试');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final connecting = _result == null && _error == null;
+    return AlertDialog(
+      key: ValueKey(
+        connecting ? 'pair-scan-connecting-dialog' : 'pair-scan-result-dialog',
+      ),
+      title: Text(connecting ? '正在连接…' : (_result != null ? '配对成功' : '配对失败')),
+      content: connecting
+          ? const Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('正在连接…'),
+              ],
+            )
+          : Text(_result == null ? _error! : '已连接到「${_result!.peerName}」'),
+      actions: [
+        if (_result == null && !connecting)
+          TextButton(
+            key: const ValueKey('pair-scan-manual'),
+            onPressed: () =>
+                Navigator.of(context).pop(_ScanDialogAction.manual),
+            child: const Text('手动输入'),
+          ),
+        if (!connecting)
+          FilledButton(
+            key: const ValueKey('pair-scan-done'),
+            onPressed: () => Navigator.of(context).pop(_ScanDialogAction.done),
+            child: const Text('完成'),
+          ),
       ],
     );
   }
