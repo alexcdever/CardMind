@@ -1,55 +1,73 @@
-# Task U6-R4 Final Check（Hermes 终审）
+# Task U8-R4 Final Check
 
-日期：2026-08-21　worktree：`D:/Projects/CardMind/.worktrees/pairing-ui-fix`
+## 终审状态
 
-## 背景
+**主代理复检 PASS。** 当前 worktree 为 `D:/Projects/CardMind/.worktrees/scanner-feedback`，分支为 `codex/scanner-feedback`。
 
-Hermes 重启中断了 R4 流水线的 reviewer 阶段。executor 实现与实机验证已完整落盘
-（`.workflow/executor-report.md`，17:44）。本文件为 Hermes 终审记录，代替被中断的
-reviewer 复验：全部验收命令由 Hermes 独立重跑。
+## Task U8-R4 变更摘要
 
-## 终审结果
+手动 `cm1` 凭证连接失败时，失败日志唯一由 `_connectCredential(source: 'manual')` 负责；外层输入弹窗 catch 仅更新 UI 错误状态。六位码路径保留既有连接日志语义。
 
-### 1. 目标测试 — PASS
+## 主代理复检真实命令与输出
 
-```
-PUB_HOSTED_URL=https://pub.flutter-io.cn flutter test test/pairing_credential_ui_test.dart --timeout 3m
-00:03 +16: All tests passed!
-EXIT=0
-```
+```text
+flutter test test/pairing_credential_ui_test.dart --timeout 3m
+00:04 +18: All tests passed!
 
-含此前持续失败的 `countdown visibly decreases and resets for regenerated credential`。
+flutter test test/pairing_log_events_test.dart --timeout 3m
+00:02 +10: All tests passed!
 
-### 2. 四个配对回归 — PASS
+flutter test test/pairing_accept_ui_test.dart --timeout 3m
+00:02 +8: All tests passed!
 
-```
-pairing_accept_ui_test    +8:  All tests passed!
-pairing_log_events_test   +8:  All tests passed!
-pairing_mdns_widget_test  +7:  All tests passed!
-sync_ui_widget_test       +12: All tests passed!
-```
+flutter test test/pairing_mdns_widget_test.dart --timeout 3m
+00:02 +7: All tests passed!
 
-### 3. 静态与范围 — PASS
+flutter analyze
+No issues found! (ran in 26.1s)
 
-```
-flutter analyze → No issues found! (ran in 24.0s)
-git diff --check → 无输出
+git diff --check
+无输出，退出码 0
 ```
 
-改动范围合规：
+## 状态与未决问题
 
-- `pubspec.yaml`：`+ clock: ^1.1.1`
-- `pubspec.lock`：clock 转 direct main
-- `lib/pages/devices_page.dart`：R2 的倒计时/扫码层级改动 + R4 的 `clock.now()` 两处替换
-- `test/pairing_credential_ui_test.dart`：R2/R3 的用例迁移与假时钟 pump
-- `.workflow/*.md`：流水线报告
+- 四个 Task U8-R4 专项测试、静态分析及 diff 检查全部 PASS。
+- 未决问题：无。
 
-## 结论
+## 范围与操作纪律
 
-PASS。U6 全部用户缺陷修复完成：
+未修改 repository、FRB、Rust、协议或网络逻辑；未删除/重建 worktree；未提交、未合并、未推送。`test/pairing_credential_ui_test.dart` 为既有 U8 worktree 变更，未在本轮回退或覆盖。
 
-1. Windows 二维码下方倒计时每秒真实刷新（绝对 expiresAt + clock.now()）；
-2. 添加设备首层三入口并列（显示 / 扫描 / 手动输入），手动输入弹窗不再嵌套扫码按钮；
-3. 首层扫码复用凭证连接路径，取消/权限错误均有友好处理。
+## 主代理真实复检：工作区状态
 
-待办：Hermes 合并 worktree → main，推送触发 GitHub Actions 出新安装包。
+执行命令：
+
+```text
+git status --short
+ M .workflow/executor-report.md
+ M .workflow/final-check.md
+ M .workflow/review-report.md
+ M lib/pages/devices_page.dart
+ M test/pairing_credential_ui_test.dart
+ M test/pairing_log_events_test.dart
+```
+
+当前工作区仅包含以下 6 个允许的 U8/U8-R4 文件：
+
+1. `.workflow/executor-report.md`
+2. `.workflow/final-check.md`
+3. `.workflow/review-report.md`
+4. `lib/pages/devices_page.dart`
+5. `test/pairing_credential_ui_test.dart`（既有 U8）
+6. `test/pairing_log_events_test.dart`
+
+## GitNexus unstaged 真实结果
+
+执行 `gitnexus_detect_changes(scope: unstaged)` 的真实结果：
+
+```text
+changed_files=6
+risk_level=low
+affected_processes=0
+```
