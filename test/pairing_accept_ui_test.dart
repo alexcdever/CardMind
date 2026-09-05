@@ -454,7 +454,8 @@ void main() {
     (tester) async {
       final repository = PairingAcceptRepository()
         ..acceptResult = null
-        ..timeoutResults = 2 // 前两轮模拟窗口超时 → 应触发两轮自动重生成
+        ..timeoutResults =
+            2 // 前两轮模拟窗口超时 → 应触发两轮自动重生成
         ..parkAfterTimeouts = true; // 之后挂起：链路静止，断言可确定性进行
       await _pumpDevicesPage(tester, repository);
       await _openShowCodeDialog(tester);

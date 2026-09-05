@@ -1,5 +1,4 @@
-import 'dart:io'
-    show Directory, File, FileMode, Platform;
+import 'dart:io' show Directory, File, FileMode, Platform;
 
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:path_provider/path_provider.dart';

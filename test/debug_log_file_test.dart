@@ -55,9 +55,7 @@ void main() {
       addTearDown(sink!.flush);
 
       sink.emit(_event('pairing.accept', fields: const {'action': 'start'}));
-      sink.emit(
-        _event('pairing.confirm', fields: const {'action': 'success'}),
-      );
+      sink.emit(_event('pairing.confirm', fields: const {'action': 'success'}));
       await sink.flush();
 
       final logFile = File('${tempDir.path}/logs/cardmind.log');
@@ -70,9 +68,7 @@ void main() {
       expect(content, contains('action=start'));
       // 追加写：两条事件各占一行
       expect(
-        content
-            .split('\n')
-            .where((l) => l.startsWith('[cardmind:log]')),
+        content.split('\n').where((l) => l.startsWith('[cardmind:log]')),
         hasLength(2),
       );
     });
@@ -118,12 +114,14 @@ void main() {
       addTearDown(sink!.flush);
 
       final after = logFile.readAsStringSync();
-      expect(after.length, lessThanOrEqualTo(maxBytes),
-          reason: '截断后不得超过上限');
+      expect(after.length, lessThanOrEqualTo(maxBytes), reason: '截断后不得超过上限');
       expect(after, contains('event=line.20'), reason: '最近的行必须保留');
       expect(after, isNot(contains(':01Z platform')), reason: '最早的行应被丢弃');
-      expect(after.startsWith('[cardmind:log] '), isTrue,
-          reason: '保留部分必须从完整行开始（按行对齐）');
+      expect(
+        after.startsWith('[cardmind:log] '),
+        isTrue,
+        reason: '保留部分必须从完整行开始（按行对齐）',
+      );
 
       // 截断后仍可继续追加写
       sink.emit(_event('after.truncate'));
