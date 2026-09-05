@@ -3,7 +3,7 @@
 
 #define MyAppName "CardMind"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "0.1.0.10001"
 #endif
 #define MyAppPublisher "CardMind"
 #define MyAppExeName "cardmind.exe"

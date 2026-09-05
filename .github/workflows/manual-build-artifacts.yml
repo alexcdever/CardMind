@@ -1,12 +1,13 @@
-name: CardMind Main Release
+name: CardMind Release
 
 on:
   push:
     branches: [main]
+    tags: ['v*.*.*']
   workflow_dispatch:
 
 concurrency:
-  group: cardmind-main-release-${{ github.ref }}
+  group: cardmind-release-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -16,8 +17,26 @@ env:
   FRB_CODEGEN_VERSION: 2.12.0
 
 jobs:
+  metadata:
+    name: Resolve release metadata
+    runs-on: ubuntu-latest
+    outputs:
+      app_version: ${{ steps.metadata.outputs.APP_VERSION }}
+      flutter_version: ${{ steps.metadata.outputs.FLUTTER_VERSION }}
+      windows_build_name: ${{ steps.metadata.outputs.WINDOWS_BUILD_NAME }}
+      app_build: ${{ steps.metadata.outputs.APP_BUILD }}
+      windows_version: ${{ steps.metadata.outputs.WINDOWS_VERSION }}
+      channel: ${{ steps.metadata.outputs.RELEASE_CHANNEL }}
+      tag: ${{ steps.metadata.outputs.RELEASE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: metadata
+        shell: bash
+        run: python3 tool/release/release_metadata.py --ref-name "$GITHUB_REF_NAME" --run-number "$GITHUB_RUN_NUMBER" --github-env "$GITHUB_OUTPUT"
+
   android:
     name: Android APK
+    needs: metadata
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,17 +68,17 @@ jobs:
       - name: Remove Android resource marker files
         run: find android/app/src/main/res -type f -name DIR.md -delete
       - name: Build Android APK
-        run: flutter build apk --release
+        run: flutter build apk --release --build-name "${{ needs.metadata.outputs.flutter_version }}" --build-number "${{ needs.metadata.outputs.app_build }}"
       - name: Stage Android artifact
         run: cp build/app/outputs/flutter-apk/app-release.apk CardMind-Android.apk && test -s CardMind-Android.apk
-      - name: Upload Android artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release-android
           path: CardMind-Android.apk
 
   windows:
     name: Windows Inno Setup
+    needs: metadata
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +100,7 @@ jobs:
         working-directory: rust-backend
         run: cargo build --release
       - name: Build Windows application
-        run: flutter build windows --release
+        run: flutter build windows --release --build-name "${{ needs.metadata.outputs.windows_build_name }}" --build-number "${{ needs.metadata.outputs.app_build }}"
       - name: Install Rust runtime library
         shell: pwsh
         run: |
@@ -93,17 +112,18 @@ jobs:
           if (-not (Get-Command ISCC.exe -ErrorAction SilentlyContinue)) { choco install innosetup --no-progress --yes }
           $iscc = (Get-Command ISCC.exe -ErrorAction Stop).Source
           New-Item -ItemType Directory -Force build/installer | Out-Null
-          & $iscc "/DSourceDir=$PWD/build/windows/x64/runner/Release" "/DOutputDir=$PWD/build/installer" "/DMyAppVersion=1.0.0" tool/installer/cardmind.iss
+          & $iscc "/DSourceDir=$PWD/build/windows/x64/runner/Release" "/DOutputDir=$PWD/build/installer" "/DMyAppVersion=${{ needs.metadata.outputs.windows_version }}" tool/installer/cardmind.iss
           if (-not (Test-Path build/installer/CardMind-Setup.exe) -or (Get-Item build/installer/CardMind-Setup.exe).Length -eq 0) { throw 'Installer is missing or empty' }
           Copy-Item build/installer/CardMind-Setup.exe CardMind-Setup.exe -Force
-      - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
+
+      - uses: actions/upload-artifact@v4
         with:
           name: release-windows
           path: CardMind-Setup.exe
 
   linux:
     name: Linux x64
+    needs: metadata
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -121,13 +141,8 @@ jobs:
         run: |
           mapfile -t apt_files < <(find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -print)
           test "${#apt_files[@]}" -gt 0 || { echo 'No apt source files found' >&2; exit 1; }
-          for file in "${apt_files[@]}"; do
-            sudo sed -i 's/azure\.archive\.ubuntu\.com/archive.ubuntu.com/g' "$file"
-          done
-          if grep -R -n 'azure\.archive\.ubuntu\.com' /etc/apt --include='*.list' --include='*.sources'; then
-            echo 'Azure Ubuntu mirror remains in apt sources' >&2
-            exit 1
-          fi
+          for file in "${apt_files[@]}"; do sudo sed -i 's/azure\.archive\.ubuntu\.com/archive.ubuntu.com/g' "$file"; done
+          if grep -R -n 'azure\.archive\.ubuntu\.com' /etc/apt --include='*.list' --include='*.sources'; then exit 1; fi
           timeout 180s sudo apt-get update
           timeout 180s sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev build-essential
       - name: Install FRB codegen
@@ -138,7 +153,7 @@ jobs:
         working-directory: rust-backend
         run: cargo build --release
       - name: Build Linux application
-        run: flutter build linux --release
+        run: flutter build linux --release --build-name "${{ needs.metadata.outputs.flutter_version }}" --build-number "${{ needs.metadata.outputs.app_build }}"
       - name: Install Rust runtime library
         run: |
           mkdir -p build/linux/x64/release/bundle/lib
@@ -151,18 +166,18 @@ jobs:
           cp -a build/linux/x64/release/bundle/. cardmind/
           tar -czf CardMind-Linux-x64.tar.gz -C . cardmind
           test -s CardMind-Linux-x64.tar.gz
-      - name: Upload Linux artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release-linux
           path: CardMind-Linux-x64.tar.gz
 
   release:
-    name: Publish development release
-    needs: [android, windows, linux]
+    name: Publish ${{ needs.metadata.outputs.channel }} release
+    needs: [metadata, android, windows, linux]
     if: ${{ success() }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           pattern: release-*
@@ -175,25 +190,54 @@ jobs:
           mapfile -t actual < <(find release-assets -maxdepth 1 -type f -printf '%f\n' | sort)
           test "${#actual[@]}" -eq 3
           for asset in "${expected[@]}"; do test -s "release-assets/$asset"; done
-          printf '%s\n' "${actual[@]}" | sort -c
           test "${actual[*]}" = "$(printf '%s\n' "${expected[@]}" | sort | paste -sd' ' -)"
-      - name: Compute development release tag
-        id: tag
+      - name: Generate update manifest
         shell: bash
-        run: echo "tag=dev-$(date -u +%Y%m%d)-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
-      - name: Create or update pre-release
+        run: |
+          python3 tool/release/generate_update_manifest.py \
+            --assets-dir release-assets \
+            --output release-assets/update-${{ needs.metadata.outputs.channel }}.json \
+            --repository alexcdever/CardMind \
+            --tag "${{ needs.metadata.outputs.tag }}" \
+            --channel "${{ needs.metadata.outputs.channel }}" \
+            --version "${{ needs.metadata.outputs.app_version }}" \
+            --build "${{ needs.metadata.outputs.app_build }}" \
+            --published-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --minimum-supported-version "0.1.0-beta.1" \
+            --release-notes "Automated ${{ needs.metadata.outputs.channel }} build from ${{ github.sha }}."
+          python3 -m json.tool release-assets/update-${{ needs.metadata.outputs.channel }}.json >/dev/null
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: CardMind ${{ steps.tag.outputs.tag }}
+          tag_name: ${{ needs.metadata.outputs.tag }}
+          name: CardMind ${{ needs.metadata.outputs.app_version }}
           target_commitish: ${{ github.sha }}
-          prerelease: true
+          prerelease: ${{ needs.metadata.outputs.channel == 'beta' }}
           files: |
             release-assets/CardMind-Android.apk
             release-assets/CardMind-Setup.exe
             release-assets/CardMind-Linux-x64.tar.gz
+            release-assets/update-${{ needs.metadata.outputs.channel }}.json
           body: |
-            Automated development build from `main`.
+            CardMind ${{ needs.metadata.outputs.channel }} release.
+            Version: `${{ needs.metadata.outputs.app_version }}`
+            Build: `${{ needs.metadata.outputs.app_build }}`
             Commit: `${{ github.sha }}`
-            Assets: Android APK, Windows Inno Setup installer, and Linux x64 tar.gz.
           fail_on_unmatched_files: true
+      - name: Publish channel pointer manifest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          alias_tag="channel-${{ needs.metadata.outputs.channel }}"
+          alias_file="${{ needs.metadata.outputs.channel }}.json"
+          cp "release-assets/update-${{ needs.metadata.outputs.channel }}.json" "release-assets/$alias_file"
+          if gh release view "$alias_tag" >/dev/null 2>&1; then
+            gh release upload "$alias_tag" "release-assets/$alias_file" --clobber
+          else
+            gh release create "$alias_tag" "release-assets/$alias_file" \
+              --title "CardMind ${{ needs.metadata.outputs.channel }} update channel" \
+              --notes "Machine-readable update manifest for the ${{ needs.metadata.outputs.channel }} channel." \
+              --target "${{ github.sha }}" \
+              ${{ needs.metadata.outputs.channel == 'beta' && '--prerelease' || '' }}
+          fi
