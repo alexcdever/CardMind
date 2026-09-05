@@ -113,6 +113,8 @@ class _NoteListPageState extends State<NoteListPage> {
     await _loadNotes();
   }
 
+  void _openSettings() => Navigator.of(context).pushNamed('/settings');
+
   Future<void> _loadNotes() async {
     if (_refreshInFlight) {
       _refreshQueued = true;
@@ -674,6 +676,16 @@ class _NoteListPageState extends State<NoteListPage> {
                   vertical: 8,
                 ),
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: TextButton.icon(
+              key: const ValueKey('open-settings'),
+              onPressed: _openSettings,
+              icon: const Icon(Icons.settings_outlined, size: 18),
+              label: const Text('设置'),
+              style: TextButton.styleFrom(alignment: Alignment.centerLeft),
             ),
           ),
           // 决策 15：设备入口紧跟同步状态指示器

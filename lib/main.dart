@@ -8,6 +8,7 @@ import 'bridge/debug_log.dart';
 import 'bridge/note_repository.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
+import 'pages/settings_page.dart';
 import 'src/rust/frb_generated.dart';
 import 'ui/design_system/cardmind_theme.dart';
 
@@ -178,6 +179,8 @@ class CardMindApp extends StatelessWidget {
               builder: (_) =>
                   EditorPage(noteId: noteId, repository: repository),
             );
+          case '/settings':
+            return MaterialPageRoute(builder: (_) => const SettingsPage());
           default:
             return MaterialPageRoute(
               builder: (_) => NoteListPage(repository: repository),

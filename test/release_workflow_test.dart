@@ -22,22 +22,70 @@ void main() {
     jobs = _map(workflow['jobs']);
   });
 
-  test('main push and manual dispatch trigger complete release', () {
+  test('main and stable tags trigger the channel release workflow', () {
     final trigger = workflow['on'] ?? workflow[true];
     final events = _map(trigger);
-    expect(_map(events['push'])['branches'], ['main']);
+    final push = _map(events['push']);
+    expect(push['branches'], ['main']);
+    expect(push['tags'], ['v*.*.*']);
     expect(events.containsKey('workflow_dispatch'), isTrue);
-    expect(workflow['name'], 'CardMind Main Release');
+    expect(workflow['name'], 'CardMind Release');
     expect(workflow['permissions'], {'contents': 'write'});
   });
+
+  test('metadata job exports the channel version and build values', () {
+    final metadata = _map(jobs['metadata']);
+    expect(
+      metadata['outputs'],
+      containsPair('channel', r'${{ steps.metadata.outputs.RELEASE_CHANNEL }}'),
+    );
+    expect(
+      metadata['outputs'],
+      containsPair('app_build', r'${{ steps.metadata.outputs.APP_BUILD }}'),
+    );
+    final steps = (metadata['steps'] as YamlList).map(_map).toList();
+    final resolver = steps.firstWhere((step) => step['id'] == 'metadata');
+    expect(resolver['run'], contains('tool/release/release_metadata.py'));
+    expect(resolver['run'], contains('GITHUB_OUTPUT'));
+  });
+
+  test(
+    'channel pointer manifest is published independently for beta and stable',
+    () {
+      final steps = (_map(jobs['release'])['steps'] as YamlList)
+          .map(_map)
+          .toList();
+      final manifest = steps.firstWhere(
+        (step) => step['name'] == 'Generate update manifest',
+      );
+      expect(
+        manifest['run'],
+        contains(r'update-${{ needs.metadata.outputs.channel }}.json'),
+      );
+      final pointer = steps.firstWhere(
+        (step) => step['name'] == 'Publish channel pointer manifest',
+      );
+      expect(
+        pointer['run'],
+        contains(r'channel-${{ needs.metadata.outputs.channel }}'),
+      );
+      expect(pointer['run'], contains('gh release upload'));
+      expect(_map(pointer['env'])['GH_TOKEN'], r'${{ github.token }}');
+    },
+  );
 
   test('build matrix matches the three supported platforms', () {
     expect(jobs.keys, containsAll(<String>['android', 'windows', 'linux']));
     expect(jobs.keys, contains('release'));
-    expect(jobs.keys, hasLength(4));
+    expect(jobs.keys, hasLength(5));
     expect(jobs.keys, isNot(contains('macos')));
     expect(jobs.keys, isNot(contains('ios')));
-    expect(_map(jobs['release'])['needs'], ['android', 'windows', 'linux']);
+    expect(_map(jobs['release'])['needs'], [
+      'metadata',
+      'android',
+      'windows',
+      'linux',
+    ]);
   });
 
   test('desktop jobs install current Rust runtime libraries', () {
@@ -159,10 +207,10 @@ void main() {
       ),
     );
     final apkIndex = steps.indexWhere(
-      (step) => step['run'] == 'flutter build apk --release',
+      (step) => '${step['run']}'.contains('flutter build apk --release'),
     );
     expect(cleanupIndex, greaterThanOrEqualTo(0));
-    expect(cleanupIndex, lessThan(apkIndex));
+    expect(cleanupIndex, lessThanOrEqualTo(apkIndex));
   });
 
   test('windows release is an Inno Setup exe rather than a zip', () {
@@ -175,7 +223,7 @@ void main() {
     expect(install['run'], contains('ISCC.exe'));
     expect(install['run'], contains('/DSourceDir='));
     final artifact = steps.firstWhere(
-      (step) => step['name'] == 'Upload Windows artifact',
+      (step) => step['uses'] == 'actions/upload-artifact@v4',
     );
     expect(_map(artifact['with'])['path'], 'CardMind-Setup.exe');
     expect(
@@ -206,10 +254,13 @@ void main() {
       expect(publish['uses'], 'softprops/action-gh-release@v2');
       expect(
         _map(publish['with'])['tag_name'],
-        contains('steps.tag.outputs.tag'),
+        contains('needs.metadata.outputs.tag'),
       );
       expect(_map(publish['with'])['target_commitish'], r'${{ github.sha }}');
-      expect(_map(publish['with'])['prerelease'], true);
+      expect(
+        _map(publish['with'])['prerelease'],
+        contains('needs.metadata.outputs.channel'),
+      );
       expect(_map(publish['with'])['files'], contains('CardMind-Android.apk'));
       expect(_map(publish['with'])['files'], contains('CardMind-Setup.exe'));
       expect(

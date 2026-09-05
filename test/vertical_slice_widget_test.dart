@@ -8,6 +8,7 @@ import 'package:cardmind/pages/note_list_page.dart';
 import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/src/rust/sync.dart';
+import 'package:cardmind/pages/settings_page.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -277,6 +278,30 @@ final value = 1;
 
     expect(find.byKey(const ValueKey('note-work-note')), findsOneWidget);
   });
+
+  testWidgets(
+    'note list settings entry navigates to settings without losing list',
+    (tester) async {
+      final repository = MemoryNoteRepository();
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: CardMindTheme.light,
+          home: NoteListPage(repository: repository),
+          routes: {'/settings': (_) => const SettingsPage()},
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('note-work-note')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('open-settings')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('settings-page')), findsOneWidget);
+      Navigator.of(tester.element(find.byType(SettingsPage))).pop();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('note-work-note')), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _pumpList(
