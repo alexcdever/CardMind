@@ -63,3 +63,4 @@ tmp/
 AGENT.local.md
 .gitnexus
 sync-verify/target/
+.env
