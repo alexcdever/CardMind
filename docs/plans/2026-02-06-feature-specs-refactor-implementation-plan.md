@@ -77,7 +77,7 @@ Expected: 有匹配（旧 features 仍包含 UI 术语）
 # 卡片创建规格
 
 **状态**: 活跃
-**依赖**: [../../domain/card.md](../../domain/card.md), [../../architecture/storage/card_store.md](../../architecture/storage/card_store.md)
+**依赖**: `../../domain/card.md`（原路径，v1 清理后已移除）, `../../architecture/storage/card_store.md`（原路径，v1 清理后已移除）
 **相关测试**: `test/feature/features/card_management_feature_test.dart`
 
 ---

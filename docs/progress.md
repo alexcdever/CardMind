@@ -279,8 +279,6 @@
 - [今日工作日志（2026-04-08）](./memory/2026-04-08.md)
 - [今日工作日志](./memory/2026-04-07.md)
 - [Spec 生命周期规范](./standards/spec-lifecycle.md)
-- [数据池规格](./specs/pool.md)
-- [边界扫描报告](../tmp/cardmind_test_boundary_report.md)
 
 ---
 

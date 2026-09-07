@@ -130,5 +130,8 @@ String _relativePath(Directory projectRoot, String targetPath) {
 
 bool _isUnderIgnoredDirectory(String filePath) {
   final normalizedPath = path.normalize(filePath);
-  return path.split(normalizedPath).contains('.worktrees');
+  final segments = path.split(normalizedPath);
+  return segments.contains('.worktrees') ||
+      segments.contains('node_modules') ||
+      segments.contains('.opencode');
 }

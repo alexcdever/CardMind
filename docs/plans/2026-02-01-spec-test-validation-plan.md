@@ -620,8 +620,8 @@ CardMind 采用 Spec Coding 方法论（测试即规格，规格即文档），�
 
 ## 参考文档
 
-- [Spec Coding 指南](../../openspec/specs/engineering/guide.md)
-- [测试指南](../testing/TESTING_GUIDE.md)
+- `../../openspec/specs/engineering/guide.md`（原路径，v1 清理后已移除）
+- `../testing/TESTING_GUIDE.md`（原路径，v1 清理后已移除）
 - [CLAUDE.md](../../CLAUDE.md)
 - [AGENTS.md](../../AGENTS.md)
 
