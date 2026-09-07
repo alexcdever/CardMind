@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/update_channel.dart';
 import '../services/app_settings_service.dart';
+import '../services/platform_update_installer.dart';
+import '../services/update_downloader.dart';
 import '../services/update_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -13,6 +17,8 @@ class SettingsPage extends StatefulWidget {
     this.initialChannel = UpdateChannel.stable,
     this.settings,
     this.updates,
+    this.downloader,
+    this.installer,
   });
 
   final String? currentVersion;
@@ -20,6 +26,8 @@ class SettingsPage extends StatefulWidget {
   final UpdateChannel initialChannel;
   final AppSettingsService? settings;
   final UpdateService? updates;
+  final UpdateDownloader? downloader;
+  final PlatformUpdateInstaller? installer;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -31,15 +39,38 @@ class _SettingsPageState extends State<SettingsPage> {
   int? _build;
   UpdateCheckResult? _result;
   bool _checking = false;
+  bool _downloading = false;
+  double _progress = 0;
+  String? _downloadMessage;
+  DownloadCancellationToken? _downloadToken;
 
-  AppSettingsService get _settings => widget.settings ?? AppSettingsService();
+  @override
+  void dispose() {
+    _downloadToken?.cancel();
+    super.dispose();
+  }
 
+  late final AppSettingsService _settings =
+      widget.settings ?? AppSettingsService();
   UpdateService get _updates =>
       widget.updates ??
       UpdateService(
         currentBuild: _build ?? widget.currentBuild,
         currentVersion: _version ?? widget.currentVersion ?? '',
       );
+  late final UpdateDownloader _downloader =
+      widget.downloader ?? UpdateDownloader();
+  late final PlatformUpdateInstaller _platformInstaller =
+      widget.installer ??
+      PlatformUpdateInstaller(
+        platform: Platform.isWindows
+            ? UpdatePlatform.windows
+            : Platform.isAndroid
+            ? UpdatePlatform.android
+            : UpdatePlatform.linux,
+      );
+
+  PlatformUpdateInstaller get _installer => _platformInstaller;
 
   @override
   void initState() {
@@ -99,21 +130,92 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _check() async {
+    if (_checking) return;
     if (widget.updates == null && _build == null) {
       await _loadVersion();
     }
+    if (!mounted) return;
     setState(() {
       _checking = true;
       _result = null;
     });
-    final result = await _updates.check(_channel);
-    if (mounted) {
+    try {
+      final result = await _updates.check(_channel);
+      if (!mounted) return;
       setState(() {
         _checking = false;
         _result = result;
       });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _checking = false;
+        _result = UpdateCheckError('检查更新失败：$error');
+      });
     }
   }
+
+  Future<void> _download() async {
+    final result = _result;
+    final asset = result is UpdateAvailable
+        ? result.manifest.currentAsset
+        : null;
+    if (asset == null) return;
+
+    final token = DownloadCancellationToken();
+    _downloadToken = token;
+    setState(() {
+      _downloading = true;
+      _progress = 0;
+      _downloadMessage = null;
+    });
+    final downloaded = await _downloader.download(
+      asset,
+      cancellation: token,
+      onProgress: (value) {
+        if (mounted) setState(() => _progress = value);
+      },
+    );
+    if (!mounted) return;
+
+    if (downloaded is DownloadFailure) {
+      setState(() {
+        _downloading = false;
+        _downloadToken = null;
+        _downloadMessage = downloaded.message;
+      });
+      return;
+    }
+
+    final installed = await _installer.install(
+      asset,
+      verifiedFile: (downloaded as DownloadSuccess).file,
+    );
+    if (!mounted) return;
+    setState(() {
+      _downloading = false;
+      _downloadToken = null;
+      _downloadMessage = switch (installed) {
+        InstallStarted() => '已启动安装器',
+        ManualInstallRequired(:final message) => message,
+        InstallFailure(:final message) => message,
+      };
+    });
+    if (installed case InstallFailure(:final message)) {
+      _showInstallRecovery(message);
+    } else if (installed case ManualInstallRequired(:final message)) {
+      _showInstallRecovery(message);
+    }
+  }
+
+  void _showInstallRecovery(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _cancelDownload() => _downloadToken?.cancel();
 
   @override
   Widget build(BuildContext context) {
@@ -168,6 +270,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   const Text('发现更新'),
                   Text('最新版本：${manifest.version}'),
                   ...manifest.releaseNotes.map(Text.new),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    key: const ValueKey('download-update'),
+                    onPressed: _downloading ? null : _download,
+                    child: Text(_downloading ? '下载中…' : '下载更新'),
+                  ),
+                  if (_downloading)
+                    TextButton(
+                      key: const ValueKey('cancel-update-download'),
+                      onPressed: _cancelDownload,
+                      child: const Text('取消下载'),
+                    ),
+                  if (_downloading) LinearProgressIndicator(value: _progress),
+                  if (_downloadMessage != null) Text(_downloadMessage!),
                 ],
                 if (_result case UpdateCheckError(:final message))
                   Text('检查失败：$message'),
