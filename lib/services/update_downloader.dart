@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 
+import 'package:path_provider/path_provider.dart';
+
 import '../models/update_manifest.dart';
 
 sealed class DownloadResult {
@@ -37,8 +39,24 @@ class UpdateDownloader {
   }) : _client = client ?? HttpClient(),
        _directoryProvider = directoryProvider ?? _createTempDirectory;
 
-  static Future<Directory> _createTempDirectory(String prefix) =>
-      Directory.systemTemp.createTemp(prefix);
+  // Android 上 Directory.systemTemp 指向 code_cache/ 且路径形式为 /data/data/<pkg>/…，
+  // FileProvider 匹配会失败（URI_FAILED: Failed to find configured root）。
+  // 用 path_provider 的临时目录（Android = context.cacheDir，/data/user/0/<pkg>/cache，
+  // 与 AndroidManifest 的 FileProvider cache-path 同源同形式）。
+  static Future<Directory> _createTempDirectory(String prefix) async {
+    try {
+      final base = await getTemporaryDirectory();
+      final dir = Directory(
+        '${base.path}${Platform.pathSeparator}$prefix'
+        '${DateTime.now().millisecondsSinceEpoch}',
+      );
+      await dir.create(recursive: true);
+      return dir;
+    } catch (_) {
+      // 无 path_provider 平台实现（测试/桌面兜底）时退回 systemTemp
+      return Directory.systemTemp.createTemp(prefix);
+    }
+  }
 
   final HttpClient _client;
   final Duration timeout;

@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <cache-path name="update_cache" path="." />
+    <!-- Dart Directory.systemTemp 在 Android 位于 code_cache/ -->
+    <code-cache-path name="update_code_cache" path="cardmind-update" />
+    <cache-path name="update_cache" path="cardmind-update" />
+    <external-cache-path name="update_external_cache" path="cardmind-update" />
 </paths>

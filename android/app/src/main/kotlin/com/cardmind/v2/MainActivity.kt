@@ -29,12 +29,21 @@ class MainActivity : FlutterActivity() {
                             return@setMethodCallHandler
                         }
                         try {
-                            val file = File(path)
+                            var file = File(path)
                             if (!file.isFile) {
                                 result.error("FILE_NOT_FOUND", "APK file does not exist", null)
                                 return@setMethodCallHandler
                             }
-                            val uri = FileProvider.getUriForFile(this, AUTHORITY, file)
+                            // Dart 传入的路径形式可能与 FileProvider root 的 canonical 形式不一致
+                            // （/data/data vs /data/user/0）。把文件复制/移动到本 context.cacheDir
+                            // 下的固定更新目录，再从该目录取 URI，保证路径形式与 cache-path root 一致。
+                            val updateDir = File(cacheDir, "cardmind-update")
+                            updateDir.mkdirs()
+                            val staged = File(updateDir, file.name)
+                            if (staged.exists()) staged.delete()
+                            file.copyTo(staged)
+                            file.delete()
+                            val uri = FileProvider.getUriForFile(this, AUTHORITY, staged)
                             result.success(uri.toString())
                         } catch (error: Exception) {
                             result.error("URI_FAILED", error.message, null)
