@@ -71,13 +71,20 @@ worktree 分支: mobile-settings-entry
 
 | AC | 状态 | 当前测试/命令 | 最新证据 | 备注 |
 |---|---|---|---|---|
-| AC1-AC5 | 未开始 | - | - | 待实现和验收 |
+| AC1 | 通过 | `flutter test test/vertical_slice_widget_test.dart --plain-name 'mobile app bar shows settings entry'` | `+1 All tests passed` | 移动 key 出现、桌面 key 不出现 |
+| AC2 | 通过 | `--plain-name 'mobile settings entry navigates to settings page'` | `+1 All tests passed` | tap 后进入 /settings |
+| AC3 | 通过 | `flutter test test/vertical_slice_widget_test.dart --timeout 3m` | `+14 All tests passed` | 桌面入口链路不回退 |
+| AC4 | 通过 | `flutter test --timeout 3m`（修复 FRB lock 后） | `00:34 +232: All tests passed!` | executor 环境偏差由 Hermes 修复复验 |
+| AC5 | 通过 | `dart format --set-exit-if-changed` + `flutter analyze` | 0 changed / No issues | |
 
 ## 执行记录（由 Hermes 维护）
 
 | 时间/轮次 | 事件 | 结果 | 证据 | 后续 |
 |---|---|---|---|---|
-| 2026-09-08 | 任务单创建 | 未开始 | 本文件 | 派发流水线 |
+| 2026-09-08 | 任务单创建并提交 | 完成 | 942f4c3 | 派发流水线 |
+| 2026-09-08 | dispatch-with-watchdog 统一派单（Luna） | 正常完成 | preflight OK、registry running→完成 | executor+reviewer+re-check |
+| 2026-09-08 | executor 实现 + reviewer 独立复验 | AC1-3/5 PASS，AC4 环境阻塞 | .workflow/mobile-settings-entry/ 三报告 | 环境排查 |
+| 2026-09-08 | Hermes 修复 worktree pubspec.lock 被重写（FRB 2.12→2.13 失配） | AC4 复验 `+232` 全绿 | final-check.md 合并后门禁记录 | 终审合并 |
 
 ## 设计变更与 continuation 索引（由 Hermes 维护）
 
@@ -85,7 +92,8 @@ worktree 分支: mobile-settings-entry
 
 ## 最终结果（由 Hermes 维护）
 
-- 状态：未开始
-- 四级验证：未开始
-- 合并提交：-
-- 遗留项：-
+- 状态：完成
+- 四级验证：executor 自检 PASS → 独立 reviewer PASS（本任务首次形成有效独立 reviewer 报告）→ build re-check PASS（环境修复后）→ Hermes 终审 PASS
+- 合并提交：8a187bad（--no-ff，含实现 20e5be3c 与证据 42440b04）
+- 遗留项：无
+- 合并后主仓复验：vertical_slice +14 全绿、flutter analyze 零 issue
