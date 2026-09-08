@@ -168,3 +168,7 @@ This project is indexed by GitNexus as **CardMind** (6999 symbols, 12975 relatio
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+## 流水线项目经验（必读）
+
+执行任何编码任务前，先读 `.claude/skills/pipeline-project-lessons/SKILL.md`（CardMind 专属流水线经验：provider 策略、环境前置、实机测试、发布流程）。该文件是全局编程工作流技能在本仓库的项目 overlay；与全局规则冲突时以全局规则为准。
