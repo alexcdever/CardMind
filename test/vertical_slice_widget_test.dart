@@ -302,6 +302,46 @@ final value = 1;
       expect(find.byKey(const ValueKey('note-work-note')), findsOneWidget);
     },
   );
+
+  testWidgets('mobile app bar shows settings entry', (tester) async {
+    final repository = MemoryNoteRepository();
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: NoteListPage(repository: repository),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('open-settings-mobile')), findsOneWidget);
+    expect(find.byTooltip('设置'), findsOneWidget);
+    expect(find.byKey(const ValueKey('open-settings')), findsNothing);
+  });
+
+  testWidgets('mobile settings entry navigates to settings page', (
+    tester,
+  ) async {
+    final repository = MemoryNoteRepository();
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: NoteListPage(repository: repository),
+        routes: {'/settings': (_) => const SettingsPage()},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('open-settings-mobile')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('settings-page')), findsOneWidget);
+  });
 }
 
 Future<void> _pumpList(

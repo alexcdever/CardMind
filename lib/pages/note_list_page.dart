@@ -829,6 +829,12 @@ class _NoteListPageState extends State<NoteListPage> {
         title: Text(_mobileTabIndex == 0 ? 'CardMind' : '设备'),
         actions: [
           IconButton(
+            key: const ValueKey('open-settings-mobile'),
+            tooltip: '设置',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: _openSettings,
+          ),
+          IconButton(
             key: const ValueKey('trash-entry'),
             tooltip: '回收站',
             icon: const Icon(Icons.delete_outline),
