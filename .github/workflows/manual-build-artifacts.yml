@@ -65,10 +65,30 @@ jobs:
       - name: Build Android Rust libraries
         working-directory: rust-backend
         run: cargo ndk -o ../build/android-jni -t armeabi-v7a -t arm64-v8a -t x86_64 build --release
+      - name: Prepare release keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            mkdir -p "$HOME/.cardmind-keystore"
+            echo "$KEYSTORE_BASE64" | base64 -d > "$HOME/.cardmind-keystore/release.keystore"
+          else
+            echo '::warning::ANDROID_KEYSTORE_BASE64 secret is not set; APK will use debug signature (updates will be incompatible)'
+          fi
       - name: Remove Android resource marker files
         run: find android/app/src/main/res -type f -name DIR.md -delete
       - name: Build Android APK
-        run: flutter build apk --release --build-name "${{ needs.metadata.outputs.flutter_version }}" --build-number "${{ needs.metadata.outputs.app_build }}"
+        env:
+          CM_KEYSTORE_PATH: ${{ runner.temp }}/cardmind-release.keystore
+          CM_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          CM_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          CM_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$CM_KEYSTORE_PASSWORD" ] && [ -n "$HOME/.cardmind-keystore/release.keystore" ]; then
+            cp "$HOME/.cardmind-keystore/release.keystore" "$CM_KEYSTORE_PATH"
+          fi
+          flutter build apk --release --build-name "${{ needs.metadata.outputs.flutter_version }}" --build-number "${{ needs.metadata.outputs.app_build }}"
       - name: Stage Android artifact
         run: cp build/app/outputs/flutter-apk/app-release.apk CardMind-Android.apk && test -s CardMind-Android.apk
       - uses: actions/upload-artifact@v4

@@ -30,7 +30,21 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            val keystorePath = System.getenv("CM_KEYSTORE_PATH")
+            val keystorePassword = System.getenv("CM_KEYSTORE_PASSWORD")
+            val releaseKeyAlias = System.getenv("CM_KEY_ALIAS")
+            val releaseKeyPassword = System.getenv("CM_KEY_PASSWORD")
+            if (keystorePath != null && keystorePassword != null && releaseKeyAlias != null && releaseKeyPassword != null && file(keystorePath).exists()) {
+                signingConfig = signingConfigs.create("release") {
+                    storeFile = file(keystorePath)
+                    storePassword = keystorePassword
+                    keyAlias = releaseKeyAlias
+                    keyPassword = releaseKeyPassword
+                }
+            } else {
+                // 未提供签名凭据时回退 debug 签名（本地开发构建）
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 }

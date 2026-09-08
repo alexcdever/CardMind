@@ -184,6 +184,31 @@ void main() {
     expect(workflow['env'], containsPair('FRB_CODEGEN_VERSION', '2.12.0'));
   });
 
+  test('android build decodes the release keystore from secrets', () {
+    final steps = (_map(jobs['android'])['steps'] as YamlList)
+        .map(_map)
+        .toList();
+    final prepare = steps.firstWhere(
+      (step) => step['name'] == 'Prepare release keystore',
+    );
+    expect(
+      _map(prepare['env'])['KEYSTORE_BASE64'],
+      '\${{ secrets.ANDROID_KEYSTORE_BASE64 }}',
+    );
+    expect(prepare['run'], contains('base64 -d'));
+
+    final build = steps.firstWhere(
+      (step) => step['name'] == 'Build Android APK',
+    );
+    final env = _map(build['env']);
+    expect(
+      env['CM_KEYSTORE_PASSWORD'],
+      '\${{ secrets.ANDROID_KEYSTORE_PASSWORD }}',
+    );
+    expect(env['CM_KEY_ALIAS'], '\${{ secrets.ANDROID_KEY_ALIAS }}');
+    expect(env['CM_KEY_PASSWORD'], '\${{ secrets.ANDROID_KEY_PASSWORD }}');
+  });
+
   test('all Flutter release jobs pin the project Flutter version', () {
     for (final platform in ['android', 'windows', 'linux']) {
       final steps = (_map(jobs[platform])['steps'] as YamlList)
