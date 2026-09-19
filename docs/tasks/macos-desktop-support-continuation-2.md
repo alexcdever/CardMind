@@ -42,7 +42,7 @@
 - 父任务：`macos-desktop-support-continuation-1`
 - 领域或阶段：macOS Rust host 动态库运行时兼容
 - 用户结果或系统能力：Rust release 动态库在 macOS 27 dyld 上可加载，FRB 集成测试不因 Mach-O LINKEDIT 对齐失败
-- 状态：未开始
+- 状态：已完成
 
 ## 依赖与范围
 
@@ -131,7 +131,7 @@
 ### 任务锚点
 
 - 父任务基线：9b5682c8
-- 契约提交：-
+- 契约提交：9864128e
 - 执行分支：主工作树（provider 阻塞后主代理接管）
 - 执行 worktree：`/Users/alexc/Projects/CardMind`
 
@@ -139,19 +139,21 @@
 
 | 验收测试 | 状态 | 当前测试/命令 | 最新证据 | 备注 |
 |---|---|---|---|---|
-| 验收测试1 | 未开始 | `flutter test test/macos_desktop_support_test.dart --timeout 3m` | - | - |
-| 验收测试2 | 未开始 | `cargo build --release && python ctypes load` | - | - |
+| 验收测试1 | PASS | `flutter test test/macos_desktop_support_test.dart --timeout 3m` | `87d403e6`, exit 0 | 断言 `[profile.release]` 与 `strip = "none"` |
+| 验收测试2 | PASS | `cargo build --release && /usr/bin/python3 -c "import ctypes; ctypes.CDLL('target/release/libcardmind_backend.dylib'); print('loaded')"` | 2026-09-20, exit 0, output `loaded` | 干净 release 构建后 dyld 加载成功 |
 
 ### 执行记录
 
 | 时间/轮次 | 事件 | 结果 | 证据 | 后续 |
 |---|---|---|---|---|
-| 2026-09-20 / 0 | continuation 创建 | 未开始 | - | 校验并提交契约后实现 |
+| 2026-09-20 / 0 | continuation 创建 | 已完成 | `9864128e` | 记录 Rust macOS dyld 已知兼容修复 |
+| 2026-09-20 / 1 | 主代理实现与验收 | PASS | cargo/ctypes + Flutter 专项测试 | `strip = "none"` 已验证 |
 
 ### 最终结果
 
-- 状态：未开始
+- 状态：PASS
 - 独立审查：provider/API key 阻塞，未派发成功
-- 主代理最终检查：未开始
-- 合并提交：-
-- 遗留项：-
+- 主代理最终检查：PASS
+- 合并提交：`87d403e6`, continuation evidence: `9864128e`
+- 合并后复验：macOS bundle、FRB 集成测试、Rust 全量测试均通过
+- 遗留项：完整 Flutter 测试仍有既有 `test/git_gate_test.dart` Windows-only `dart.exe` fixture 失败，另有一个已有 `vertical_slice_widget_test.dart` flaky failure；不影响本次 macOS release/build acceptance
