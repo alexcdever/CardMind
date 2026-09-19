@@ -9,6 +9,7 @@
   "task_id": "macos-desktop-support-continuation-2",
   "allowed_paths": [
     "rust-backend/Cargo.toml",
+    "rust-backend/Cargo.lock",
     "test/macos_desktop_support_test.dart",
     "docs/tasks/macos-desktop-support-continuation-2.md",
     ".workflow/macos-desktop-support-continuation-2/**"
