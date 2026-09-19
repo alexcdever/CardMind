@@ -50,6 +50,8 @@ class UpdateManifest {
       ? 'windows-x64'
       : Platform.isAndroid
       ? 'android'
+      : Platform.isMacOS
+      ? 'macos-arm64'
       : 'linux-x64';
 
   UpdateAsset? get currentAsset => platforms[currentPlatform];

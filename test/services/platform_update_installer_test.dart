@@ -84,4 +84,24 @@ void main() {
       expect((result as ManualInstallRequired).message, contains('手动替换'));
     },
   );
+
+  test(
+    'macOS reports manual installation without launching a platform installer',
+    () async {
+      var windowsLaunched = false;
+      var androidUriRequested = false;
+      final result = await PlatformUpdateInstaller(
+        platform: UpdatePlatform.macos,
+        startInstaller: (_) async => windowsLaunched = true,
+        androidUriProvider: (_) async {
+          androidUriRequested = true;
+          return Uri.parse('content://test/update.zip');
+        },
+      ).install(asset, verifiedFile: File('update.zip'));
+      expect(result, isA<ManualInstallRequired>());
+      expect((result as ManualInstallRequired).message, contains('手动'));
+      expect(windowsLaunched, isFalse);
+      expect(androidUriRequested, isFalse);
+    },
+  );
 }

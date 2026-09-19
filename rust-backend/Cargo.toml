@@ -6,6 +6,11 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
 
+[profile.release]
+# Rust's default debuginfo stripping can leave an unaligned Mach-O LINKEDIT
+# string pool on macOS 27, which dyld rejects before FRB can load the library.
+strip = "none"
+
 [dependencies]
 flutter_rust_bridge = "=2.12.0"
 loro = "1"

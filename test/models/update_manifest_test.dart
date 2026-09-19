@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cardmind/models/update_manifest.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,13 +19,20 @@ Map<String, dynamic> _manifest({
   Map<String, dynamic>? platforms,
 }) {
   final defaultPlatforms = <String, dynamic>{
-    for (final platform in ['windows-x64', 'android', 'linux-x64'])
+    for (final platform in [
+      'windows-x64',
+      'android',
+      'linux-x64',
+      'macos-arm64',
+    ])
       platform: {
         'artifact': platform == 'windows-x64'
             ? 'CardMind-Setup.exe'
             : platform == 'android'
             ? 'CardMind-Android.apk'
-            : 'CardMind-Linux-x64.tar.gz',
+            : platform == 'linux-x64'
+            ? 'CardMind-Linux-x64.tar.gz'
+            : 'CardMind-macOS-arm64.zip',
         'url': 'https://example.com/$platform',
         'sha256': _sha256,
         'size': 1,
@@ -61,7 +69,7 @@ void main() {
       expect(result, isNotNull);
       expect(
         result!.platforms.keys,
-        containsAll(['windows-x64', 'android', 'linux-x64']),
+        containsAll(['windows-x64', 'android', 'linux-x64', 'macos-arm64']),
       );
       expect(result.platforms['android']!.url, startsWith('https://'));
     }
@@ -120,6 +128,14 @@ void main() {
 
   test('reads the parsed artifact name', () {
     final result = UpdateManifest.tryParse(_manifest(), channel: 'stable');
-    expect(result!.currentAsset!.artifact, 'CardMind-Setup.exe');
+    expect(result!.platforms['windows-x64']!.artifact, 'CardMind-Setup.exe');
+  });
+
+  test('identifies macOS arm64 as the current update platform', () {
+    if (!Platform.isMacOS) return;
+    expect(UpdateManifest.currentPlatform, 'macos-arm64');
+    final result = UpdateManifest.tryParse(_manifest(), channel: 'stable');
+    expect(result, isNotNull);
+    expect(result!.currentAsset!.artifact, 'CardMind-macOS-arm64.zip');
   });
 }

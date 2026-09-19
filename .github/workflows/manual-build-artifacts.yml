@@ -191,9 +191,50 @@ jobs:
           name: release-linux
           path: CardMind-Linux-x64.tar.gz
 
+  macos:
+    name: macOS arm64
+    needs: metadata
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
+          channel: stable
+          cache: true
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust-backend
+      - name: Install FRB codegen
+        run: cargo install flutter_rust_bridge_codegen --version "$FRB_CODEGEN_VERSION" --locked
+      - name: Prepare dependencies and bindings
+        run: flutter pub get && flutter_rust_bridge_codegen generate
+      - name: Build Rust library
+        working-directory: rust-backend
+        run: cargo build --release
+      - name: Build macOS application
+        run: flutter build macos --release --build-name "${{ needs.metadata.outputs.flutter_version }}" --build-number "${{ needs.metadata.outputs.app_build }}"
+      - name: Install Rust runtime library
+        run: |
+          mkdir -p build/macos/Build/Products/Release/cardmind.app/Contents/Frameworks
+          cp rust-backend/target/release/libcardmind_backend.dylib build/macos/Build/Products/Release/cardmind.app/Contents/Frameworks/libcardmind_backend.dylib
+          install_name_tool -id @rpath/libcardmind_backend.dylib build/macos/Build/Products/Release/cardmind.app/Contents/Frameworks/libcardmind_backend.dylib
+          codesign --force --deep --sign - build/macos/Build/Products/Release/cardmind.app
+          test -s build/macos/Build/Products/Release/cardmind.app/Contents/Frameworks/libcardmind_backend.dylib
+          otool -L build/macos/Build/Products/Release/cardmind.app/Contents/Frameworks/libcardmind_backend.dylib
+      - name: Package macOS artifact
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/cardmind.app CardMind-macOS-arm64.zip
+          test -s CardMind-macOS-arm64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: CardMind-macOS-arm64.zip
+
   release:
     name: Publish ${{ needs.metadata.outputs.channel }} release
-    needs: [metadata, android, windows, linux]
+    needs: [metadata, android, windows, linux, macos]
     if: ${{ success() }}
     runs-on: ubuntu-latest
     steps:
@@ -206,9 +247,9 @@ jobs:
       - name: Verify release assets
         shell: bash
         run: |
-          expected=(CardMind-Android.apk CardMind-Setup.exe CardMind-Linux-x64.tar.gz)
+          expected=(CardMind-Android.apk CardMind-Setup.exe CardMind-Linux-x64.tar.gz CardMind-macOS-arm64.zip)
           mapfile -t actual < <(find release-assets -maxdepth 1 -type f -printf '%f\n' | sort)
-          test "${#actual[@]}" -eq 3
+          test "${#actual[@]}" -eq 4
           for asset in "${expected[@]}"; do test -s "release-assets/$asset"; done
           test "${actual[*]}" = "$(printf '%s\n' "${expected[@]}" | sort | paste -sd' ' -)"
       - name: Generate update manifest
@@ -237,6 +278,7 @@ jobs:
             release-assets/CardMind-Android.apk
             release-assets/CardMind-Setup.exe
             release-assets/CardMind-Linux-x64.tar.gz
+            release-assets/CardMind-macOS-arm64.zip
             release-assets/update-${{ needs.metadata.outputs.channel }}.json
           body: |
             CardMind ${{ needs.metadata.outputs.channel }} release.

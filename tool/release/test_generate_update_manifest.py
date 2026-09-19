@@ -4,8 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from generate_update_manifest import build_manifest
 import argparse
+
+from tool.release.generate_update_manifest import build_manifest
 
 
 class GenerateUpdateManifestTest(unittest.TestCase):
@@ -16,6 +17,7 @@ class GenerateUpdateManifestTest(unittest.TestCase):
                 "CardMind-Setup.exe",
                 "CardMind-Android.apk",
                 "CardMind-Linux-x64.tar.gz",
+                "CardMind-macOS-arm64.zip",
             ):
                 (root / filename).write_bytes(filename.encode())
 
@@ -35,7 +37,10 @@ class GenerateUpdateManifestTest(unittest.TestCase):
             )
 
             self.assertEqual(manifest["channel"], "beta")
-            self.assertEqual(set(manifest["platforms"]), {"windows-x64", "android", "linux-x64"})
+            self.assertEqual(
+                set(manifest["platforms"]),
+                {"windows-x64", "android", "linux-x64", "macos-arm64"},
+            )
             for platform in manifest["platforms"].values():
                 path = root / platform["artifact"]
                 self.assertEqual(platform["size"], path.stat().st_size)
@@ -44,10 +49,34 @@ class GenerateUpdateManifestTest(unittest.TestCase):
                 )
                 self.assertTrue(platform["url"].startswith("https://"))
                 self.assertIn(
-                    f"channel-beta/beta.json",
+                    "channel-beta/beta.json",
                     platform["channelManifestUrl"],
                 )
 
+    def test_manifest_requires_macos_asset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for filename in (
+                "CardMind-Setup.exe",
+                "CardMind-Android.apk",
+                "CardMind-Linux-x64.tar.gz",
+            ):
+                (root / filename).write_bytes(filename.encode())
 
+            with self.assertRaises(SystemExit):
+                build_manifest(
+                    argparse.Namespace(
+                        assets_dir=directory,
+                        output=str(root / "update.json"),
+                        repository="alexcdever/CardMind",
+                        tag="beta-0.1.0-beta.7",
+                        channel="beta",
+                        version="0.1.0-beta.7",
+                        build=10007,
+                        published_at="2026-09-05T00:00:00Z",
+                        minimum_supported_version="0.1.0-beta.1",
+                        release_notes=["测试版本"],
+                    )
+                )
 if __name__ == "__main__":
     unittest.main()

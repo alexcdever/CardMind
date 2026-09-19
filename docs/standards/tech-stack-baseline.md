@@ -10,6 +10,7 @@
 ### 2.1 语言与运行时
 
 - Flutter/Dart：Dart SDK `^3.12.2`，以 `pubspec.yaml` 为准。
+- 本地与发布构建基线：Flutter `3.44.9`（Dart `3.12.2`）。
 - Rust：Edition `2021`，以 `rust-backend/Cargo.toml` 为准。
 
 ### 2.2 跨语言桥接

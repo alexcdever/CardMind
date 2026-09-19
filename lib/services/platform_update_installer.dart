@@ -6,7 +6,7 @@ import '../models/update_manifest.dart';
 
 const _androidUpdateChannel = MethodChannel('com.cardmind.v2/update-installer');
 
-enum UpdatePlatform { windows, android, linux }
+enum UpdatePlatform { windows, android, macos, linux }
 
 sealed class InstallResult {
   const InstallResult();
@@ -61,6 +61,8 @@ class PlatformUpdateInstaller {
           );
           await (androidInstall ?? _startAndroidInstaller)(uri);
           return const InstallStarted();
+        case UpdatePlatform.macos:
+          return const ManualInstallRequired('已下载，请打开 macOS 更新包手动安装');
         case UpdatePlatform.linux:
           return const ManualInstallRequired('已下载，请关闭应用后手动替换');
       }

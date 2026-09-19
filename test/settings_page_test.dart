@@ -101,6 +101,15 @@ Map<String, dynamic> _manifest({int build = 10001}) => {
           'https://github.com/alexcdever/CardMind/releases/download/'
           'channel-stable/stable.json',
     },
+    'macos-arm64': {
+      'artifact': 'CardMind-macOS-arm64.zip',
+      'url': 'https://example.com/macos',
+      'sha256': _sha256,
+      'size': 1,
+      'channelManifestUrl':
+          'https://github.com/alexcdever/CardMind/releases/download/'
+          'channel-stable/stable.json',
+    },
   },
 };
 

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cardmind/models/update_channel.dart';
+import 'package:cardmind/models/update_manifest.dart';
 import 'package:cardmind/services/update_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -23,13 +24,20 @@ Map<String, dynamic> _json(String channel, int build) {
     'releaseNotes': ['notes'],
     'releasePage': 'https://example.com',
     'platforms': {
-      for (final platform in ['windows-x64', 'android', 'linux-x64'])
+      for (final platform in [
+        'windows-x64',
+        'android',
+        'linux-x64',
+        'macos-arm64',
+      ])
         platform: {
           'artifact': platform == 'windows-x64'
               ? 'CardMind-Setup.exe'
               : platform == 'android'
               ? 'CardMind-Android.apk'
-              : 'CardMind-Linux-x64.tar.gz',
+              : platform == 'linux-x64'
+              ? 'CardMind-Linux-x64.tar.gz'
+              : 'CardMind-macOS-arm64.zip',
           'url': 'https://example.com/$platform',
           'sha256': _sha256,
           'size': 1,
@@ -148,7 +156,7 @@ void main() {
       currentVersion: '0.1.0-beta.1',
       fetch: (_) async {
         final data = _json('stable', 11);
-        (data['platforms'] as Map).remove('windows-x64');
+        (data['platforms'] as Map).remove(UpdateManifest.currentPlatform);
         return jsonEncode(data);
       },
     );

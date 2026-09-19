@@ -333,7 +333,7 @@ String _cargoDylibPath(String rootDir, {String? target}) {
 }
 
 String _runtimeDylibPath(String rootDir) {
-  return '$rootDir/build/native/macos/libcardmind_rust.dylib';
+  return '$rootDir/build/native/macos/libcardmind_backend.dylib';
 }
 
 /// 读取命令行选项
@@ -459,7 +459,7 @@ Future<int> _runAndOpen(
     }
   }
   final frameworksDir = Directory('${appBundle.path}/Contents/Frameworks');
-  final dylibDest = File('${frameworksDir.path}/libcardmind_rust.dylib');
+  final dylibDest = File('${frameworksDir.path}/libcardmind_backend.dylib');
 
   if (!dylibSource.existsSync()) {
     logError('Runtime dylib missing for app bundle copy: ${dylibSource.path}');
@@ -476,6 +476,16 @@ Future<int> _runAndOpen(
 
   dylibSource.copySync(dylibDest.path);
   log('[dylib] copied to app bundle from ${dylibSource.path}');
+
+  final installName = await runProcess('install_name_tool', <String>[
+    '-id',
+    '@rpath/libcardmind_backend.dylib',
+    dylibDest.path,
+  ]);
+  if (installName.exitCode != 0) {
+    logError('Failed to set Rust dylib install name: ${installName.stderr}');
+    return installName.exitCode;
+  }
 
   if (appCopyName != null && appCopyName.isNotEmpty) {
     final codesignResult = await runProcess('codesign', <String>[

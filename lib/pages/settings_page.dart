@@ -67,6 +67,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ? UpdatePlatform.windows
             : Platform.isAndroid
             ? UpdatePlatform.android
+            : Platform.isMacOS
+            ? UpdatePlatform.macos
             : UpdatePlatform.linux,
       );
 

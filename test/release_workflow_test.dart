@@ -75,21 +75,24 @@ void main() {
   );
 
   test('build matrix matches the three supported platforms', () {
-    expect(jobs.keys, containsAll(<String>['android', 'windows', 'linux']));
+    expect(
+      jobs.keys,
+      containsAll(<String>['android', 'windows', 'linux', 'macos']),
+    );
     expect(jobs.keys, contains('release'));
-    expect(jobs.keys, hasLength(5));
-    expect(jobs.keys, isNot(contains('macos')));
+    expect(jobs.keys, hasLength(6));
     expect(jobs.keys, isNot(contains('ios')));
     expect(_map(jobs['release'])['needs'], [
       'metadata',
       'android',
       'windows',
       'linux',
+      'macos',
     ]);
   });
 
   test('desktop jobs install current Rust runtime libraries', () {
-    for (final platform in ['windows', 'linux']) {
+    for (final platform in ['windows', 'linux', 'macos']) {
       final steps = (_map(jobs[platform])['steps'] as YamlList)
           .map(_map)
           .toList();
@@ -210,7 +213,7 @@ void main() {
   });
 
   test('all Flutter release jobs pin the project Flutter version', () {
-    for (final platform in ['android', 'windows', 'linux']) {
+    for (final platform in ['android', 'windows', 'linux', 'macos']) {
       final steps = (_map(jobs[platform])['steps'] as YamlList)
           .map(_map)
           .toList();
@@ -220,6 +223,40 @@ void main() {
       expect(_map(flutter['with'])['flutter-version'], '3.44.9');
       expect(_map(flutter['with'])['cache'], true);
     }
+  });
+
+  test('release workflow includes macOS artifact and release dependency', () {
+    final macos = _map(jobs['macos']);
+    expect(macos['runs-on'], 'macos-latest');
+    final steps = (macos['steps'] as YamlList).map(_map).toList();
+    expect(
+      steps.any(
+        (step) => '${step['run']}'.contains('flutter build macos --release'),
+      ),
+      isTrue,
+    );
+    final install = steps.firstWhere(
+      (step) => step['name'] == 'Install Rust runtime library',
+    );
+    expect(install['run'], contains('codesign --force --deep --sign -'));
+    final package = steps.firstWhere(
+      (step) => step['name'] == 'Package macOS artifact',
+    );
+    expect(package['run'], contains('CardMind-macOS-arm64.zip'));
+    final releaseSteps = (_map(jobs['release'])['steps'] as YamlList)
+        .map(_map)
+        .toList();
+    final verify = releaseSteps.firstWhere(
+      (step) => step['name'] == 'Verify release assets',
+    );
+    expect(verify['run'], contains('CardMind-macOS-arm64.zip'));
+    final manifest = releaseSteps.firstWhere(
+      (step) => step['name'] == 'Generate update manifest',
+    );
+    expect(
+      manifest['run'],
+      contains('tool/release/generate_update_manifest.py'),
+    );
   });
 
   test('android removes DIR.md resources before building the APK', () {
@@ -273,6 +310,7 @@ void main() {
       expect(verify['run'], contains('CardMind-Android.apk'));
       expect(verify['run'], contains('CardMind-Setup.exe'));
       expect(verify['run'], contains('CardMind-Linux-x64.tar.gz'));
+      expect(verify['run'], contains('CardMind-macOS-arm64.zip'));
       final publish = steps.firstWhere(
         (step) => step['uses'] == 'softprops/action-gh-release@v2',
       );
@@ -291,6 +329,10 @@ void main() {
       expect(
         _map(publish['with'])['files'],
         contains('CardMind-Linux-x64.tar.gz'),
+      );
+      expect(
+        _map(publish['with'])['files'],
+        contains('CardMind-macOS-arm64.zip'),
       );
     },
   );
