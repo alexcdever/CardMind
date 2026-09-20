@@ -518,16 +518,17 @@ void main() {
       );
     }
 
-    /// 当前测试进程的 dart 可执行文件。
+    /// 当前测试进程的 Dart 可执行文件。
     /// flutter test 下 Platform.resolvedExecutable 是 flutter_tester，
-    /// 从 SDK 布局推导真实 dart.exe（.../bin/cache/dart-sdk/bin/dart.exe）。
+    /// 从 SDK 布局推导真实 Dart CLI；Windows 使用 dart.exe，POSIX 使用 dart。
     String dartExe() {
       final resolved = Platform.resolvedExecutable.replaceAll(r'\', '/');
       final marker = '/cache/artifacts/engine/';
       final idx = resolved.indexOf(marker);
       if (resolved.contains('flutter_tester') && idx != -1) {
         final flutterBin = resolved.substring(0, idx);
-        return '$flutterBin/cache/dart-sdk/bin/dart.exe';
+        final suffix = Platform.isWindows ? 'dart.exe' : 'dart';
+        return '$flutterBin/cache/dart-sdk/bin/$suffix';
       }
       return 'dart';
     }
