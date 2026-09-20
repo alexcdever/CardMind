@@ -53,7 +53,7 @@
 - 父任务：`macos-desktop-support`
 - 领域或阶段：跨平台测试 fixture 可移植性与 flaky 复核
 - 用户结果或系统能力：Windows/macOS 均可执行 git gate 的 Dart 格式化 fixture；macOS 全量 Flutter 测试不因 Windows 路径假设失败
-- 状态：未开始
+- 状态：已完成
 
 ## 依赖与范围
 
@@ -164,7 +164,7 @@
 ### 任务锚点
 
 - 父任务基线：`e2888ff6`
-- 契约提交：-
+- 契约提交：0aca64fa
 - 执行分支：主工作树
 - 执行 worktree：`/Users/alexc/Projects/CardMind`
 
@@ -172,21 +172,23 @@
 
 | 验收测试 | 状态 | 当前测试/命令 | 最新证据 | 备注 |
 |---|---|---|---|---|
-| 验收测试1 | 未开始 | fixture 13 | - | - |
-| 验收测试2 | 未开始 | fixture 16 | - | - |
-| 验收测试3 | 未开始 | vertical slice | - | - |
-| 验收测试4 | 未开始 | full Flutter | - | - |
+| 验收测试1 | PASS | fixture 13 | `d9438f71`, exit 0 | macOS `dart` CLI |
+| 验收测试2 | PASS | fixture 16 | `d9438f71`, exit 0 | index 未修改 |
+| 验收测试3 | PASS | vertical slice | repeated isolated runs, exit 0 | no test-delay change |
+| 验收测试4 | PASS | full Flutter | current run exit 0, 235 tests passed | Windows-only smoke skipped |
 
 ### 执行记录
 
 | 时间/轮次 | 事件 | 结果 | 证据 | 后续 |
 |---|---|---|---|---|
-| 2026-09-20 / 0 | continuation 创建 | 未开始 | - | 校验并提交冻结契约 |
+| 2026-09-20 / 0 | continuation 创建 | 已完成 | `0aca64fa` | 冻结跨平台 fixture 范围 |
+| 2026-09-20 / 1 | 主代理实现与验收 | PASS | focused/full Flutter tests | 仅修改 test helper |
 
 ### 最终结果
 
-- 状态：未开始
+- 状态：PASS
 - 独立审查：未派发
-- 主代理最终检查：未开始
-- 合并提交：-
-- 遗留项：-
+- 主代理最终检查：PASS
+- 合并提交：`d9438f71`
+- 合并后复验：focused gate, vertical slice, `flutter analyze` 通过
+- 遗留项：无；列表用例未出现可稳定复现的 flaky failure，不添加无证据等待或重试
