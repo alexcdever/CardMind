@@ -242,7 +242,24 @@ void main() {
     final package = steps.firstWhere(
       (step) => step['name'] == 'Package macOS artifact',
     );
-    expect(package['run'], contains('CardMind-macOS-arm64.dmg'));
+    final packageRun = package['run'] as String;
+    expect(packageRun, contains(r'staging_dir="$(mktemp -d)"'));
+    expect(
+      packageRun,
+      contains(
+        r'cp -a build/macos/Build/Products/Release/cardmind.app '
+        r'"$staging_dir/cardmind.app"',
+      ),
+    );
+    expect(
+      packageRun,
+      contains(r'ln -s /Applications "$staging_dir/Applications"'),
+    );
+    expect(packageRun, contains('hdiutil create -volname CardMind'));
+    expect(packageRun, contains(r'-srcfolder "$staging_dir"'));
+    expect(packageRun, contains('test -s CardMind-macOS-arm64.dmg'));
+    expect(packageRun, contains('trap cleanup EXIT'));
+    expect(packageRun, contains(r'rm -rf "$staging_dir"'));
     final releaseSteps = (_map(jobs['release'])['steps'] as YamlList)
         .map(_map)
         .toList();
