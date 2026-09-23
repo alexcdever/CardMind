@@ -14,7 +14,7 @@ ASSETS = {
     "windows-x64": "CardMind-Setup.exe",
     "android": "CardMind-Android.apk",
     "linux-x64": "CardMind-Linux-x64.tar.gz",
-    "macos-arm64": "CardMind-macOS-arm64.zip",
+    "macos-arm64": "CardMind-macOS-arm64.dmg",
 }
 
 

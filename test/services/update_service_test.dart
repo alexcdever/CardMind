@@ -37,7 +37,7 @@ Map<String, dynamic> _json(String channel, int build) {
               ? 'CardMind-Android.apk'
               : platform == 'linux-x64'
               ? 'CardMind-Linux-x64.tar.gz'
-              : 'CardMind-macOS-arm64.zip',
+              : 'CardMind-macOS-arm64.dmg',
           'url': 'https://example.com/$platform',
           'sha256': _sha256,
           'size': 1,

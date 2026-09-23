@@ -102,7 +102,7 @@ Map<String, dynamic> _manifest({int build = 10001}) => {
           'channel-stable/stable.json',
     },
     'macos-arm64': {
-      'artifact': 'CardMind-macOS-arm64.zip',
+      'artifact': 'CardMind-macOS-arm64.dmg',
       'url': 'https://example.com/macos',
       'sha256': _sha256,
       'size': 1,

@@ -242,14 +242,14 @@ void main() {
     final package = steps.firstWhere(
       (step) => step['name'] == 'Package macOS artifact',
     );
-    expect(package['run'], contains('CardMind-macOS-arm64.zip'));
+    expect(package['run'], contains('CardMind-macOS-arm64.dmg'));
     final releaseSteps = (_map(jobs['release'])['steps'] as YamlList)
         .map(_map)
         .toList();
     final verify = releaseSteps.firstWhere(
       (step) => step['name'] == 'Verify release assets',
     );
-    expect(verify['run'], contains('CardMind-macOS-arm64.zip'));
+    expect(verify['run'], contains('CardMind-macOS-arm64.dmg'));
     final manifest = releaseSteps.firstWhere(
       (step) => step['name'] == 'Generate update manifest',
     );
@@ -310,7 +310,7 @@ void main() {
       expect(verify['run'], contains('CardMind-Android.apk'));
       expect(verify['run'], contains('CardMind-Setup.exe'));
       expect(verify['run'], contains('CardMind-Linux-x64.tar.gz'));
-      expect(verify['run'], contains('CardMind-macOS-arm64.zip'));
+      expect(verify['run'], contains('CardMind-macOS-arm64.dmg'));
       final publish = steps.firstWhere(
         (step) => step['uses'] == 'softprops/action-gh-release@v2',
       );
@@ -332,7 +332,7 @@ void main() {
       );
       expect(
         _map(publish['with'])['files'],
-        contains('CardMind-macOS-arm64.zip'),
+        contains('CardMind-macOS-arm64.dmg'),
       );
     },
   );

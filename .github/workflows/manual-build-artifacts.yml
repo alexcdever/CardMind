@@ -225,12 +225,12 @@ jobs:
           otool -L build/macos/Build/Products/Release/cardmind.app/Contents/Frameworks/libcardmind_backend.dylib
       - name: Package macOS artifact
         run: |
-          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/cardmind.app CardMind-macOS-arm64.zip
-          test -s CardMind-macOS-arm64.zip
+          hdiutil create -volname CardMind -srcfolder build/macos/Build/Products/Release/cardmind.app -ov -format UDZO CardMind-macOS-arm64.dmg
+          test -s CardMind-macOS-arm64.dmg
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos
-          path: CardMind-macOS-arm64.zip
+          path: CardMind-macOS-arm64.dmg
 
   release:
     name: Publish ${{ needs.metadata.outputs.channel }} release
@@ -247,7 +247,7 @@ jobs:
       - name: Verify release assets
         shell: bash
         run: |
-          expected=(CardMind-Android.apk CardMind-Setup.exe CardMind-Linux-x64.tar.gz CardMind-macOS-arm64.zip)
+          expected=(CardMind-Android.apk CardMind-Setup.exe CardMind-Linux-x64.tar.gz CardMind-macOS-arm64.dmg)
           mapfile -t actual < <(find release-assets -maxdepth 1 -type f -printf '%f\n' | sort)
           test "${#actual[@]}" -eq 4
           for asset in "${expected[@]}"; do test -s "release-assets/$asset"; done
@@ -278,7 +278,7 @@ jobs:
             release-assets/CardMind-Android.apk
             release-assets/CardMind-Setup.exe
             release-assets/CardMind-Linux-x64.tar.gz
-            release-assets/CardMind-macOS-arm64.zip
+            release-assets/CardMind-macOS-arm64.dmg
             release-assets/update-${{ needs.metadata.outputs.channel }}.json
           body: |
             CardMind ${{ needs.metadata.outputs.channel }} release.

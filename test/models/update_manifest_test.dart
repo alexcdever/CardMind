@@ -32,7 +32,7 @@ Map<String, dynamic> _manifest({
             ? 'CardMind-Android.apk'
             : platform == 'linux-x64'
             ? 'CardMind-Linux-x64.tar.gz'
-            : 'CardMind-macOS-arm64.zip',
+            : 'CardMind-macOS-arm64.dmg',
         'url': 'https://example.com/$platform',
         'sha256': _sha256,
         'size': 1,
@@ -136,6 +136,6 @@ void main() {
     expect(UpdateManifest.currentPlatform, 'macos-arm64');
     final result = UpdateManifest.tryParse(_manifest(), channel: 'stable');
     expect(result, isNotNull);
-    expect(result!.currentAsset!.artifact, 'CardMind-macOS-arm64.zip');
+    expect(result!.currentAsset!.artifact, 'CardMind-macOS-arm64.dmg');
   });
 }

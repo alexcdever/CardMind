@@ -17,7 +17,7 @@ class GenerateUpdateManifestTest(unittest.TestCase):
                 "CardMind-Setup.exe",
                 "CardMind-Android.apk",
                 "CardMind-Linux-x64.tar.gz",
-                "CardMind-macOS-arm64.zip",
+                "CardMind-macOS-arm64.dmg",
             ):
                 (root / filename).write_bytes(filename.encode())
 
