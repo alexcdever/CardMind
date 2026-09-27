@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../bridge/debug_log.dart';
 import '../models/update_channel.dart';
 import '../services/app_settings_service.dart';
 import '../services/platform_update_installer.dart';
@@ -19,6 +20,8 @@ class SettingsPage extends StatefulWidget {
     this.updates,
     this.downloader,
     this.installer,
+    this.logDirectoryResolver,
+    this.logDirectoryOpener,
   });
 
   final String? currentVersion;
@@ -28,6 +31,15 @@ class SettingsPage extends StatefulWidget {
   final UpdateService? updates;
   final UpdateDownloader? downloader;
   final PlatformUpdateInstaller? installer;
+
+  /// 日志目录推导（默认 [resolveLogDirectory]）；测试注入假实现，避免触碰
+  /// 真实 `getApplicationSupportDirectory`。
+  final Future<Directory> Function({String? baseDirectory})?
+  logDirectoryResolver;
+
+  /// 日志目录「打开」动作（默认 [openLogDirectoryInFileManager]）；测试注入
+  /// 假实现，**不得真的打开访达**。
+  final Future<void> Function(String directory)? logDirectoryOpener;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -43,6 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
   double _progress = 0;
   String? _downloadMessage;
   DownloadCancellationToken? _downloadToken;
+  String? _logDirectory;
 
   @override
   void dispose() {
@@ -79,6 +92,29 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _loadSettings();
     _loadVersion();
+    _loadLogDirectory();
+  }
+
+  Future<void> _loadLogDirectory() async {
+    try {
+      final dir = await (widget.logDirectoryResolver ?? resolveLogDirectory)();
+      if (mounted) setState(() => _logDirectory = dir.path);
+    } catch (_) {
+      // 解析失败静默：副标题保持「加载中…」
+    }
+  }
+
+  Future<void> _openLogDirectory() async {
+    final path = _logDirectory;
+    if (path == null || path.isEmpty) return;
+    try {
+      await (widget.logDirectoryOpener ?? openLogDirectoryInFileManager)(path);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('无法打开日志目录：$path')));
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -233,6 +269,16 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Text('应用版本', style: Theme.of(context).textTheme.titleMedium),
                 Text(_version ?? '加载中…'),
+                const SizedBox(height: 24),
+                Text('日志目录', style: Theme.of(context).textTheme.titleMedium),
+                InkWell(
+                  key: const ValueKey('open-log-directory'),
+                  onTap: _openLogDirectory,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(_logDirectory ?? '加载中…'),
+                  ),
+                ),
                 const SizedBox(height: 24),
                 Text('更新渠道', style: Theme.of(context).textTheme.titleMedium),
                 RadioGroup<UpdateChannel>(

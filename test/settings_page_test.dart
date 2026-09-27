@@ -250,6 +250,68 @@ void main() {
     expect(find.text('已是最新版本'), findsOneWidget);
   });
 
+  testWidgets('A3: log directory entry shows path and opens once on tap', (
+    tester,
+  ) async {
+    const resolved = '/tmp/cardmind-logs';
+    var openCount = 0;
+    String? openedWith;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(
+          currentVersion: '1.0.0',
+          settings: _SettingsFake(UpdateChannel.stable),
+          logDirectoryResolver: ({String? baseDirectory}) async =>
+              Directory(resolved),
+          logDirectoryOpener: (directory) async {
+            openCount++;
+            openedWith = directory;
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('日志目录'), findsOneWidget, reason: '设置页必须有「日志目录」入口');
+    expect(find.text(resolved), findsOneWidget, reason: '副标题必须显示解析出的路径');
+
+    await tester.tap(find.byKey(const ValueKey('open-log-directory')));
+    await tester.pumpAndSettle();
+
+    expect(openCount, 1, reason: '点击必须触发注入的 opener 且恰好一次');
+    expect(openedWith, resolved, reason: 'opener 收到的必须是解析出的真实路径');
+  });
+
+  testWidgets('A3: open failure surfaces the path via SnackBar', (tester) async {
+    const resolved = '/tmp/cardmind-logs-failing';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(
+          currentVersion: '1.0.0',
+          settings: _SettingsFake(UpdateChannel.stable),
+          logDirectoryResolver: ({String? baseDirectory}) async =>
+              Directory(resolved),
+          logDirectoryOpener: (_) async =>
+              throw const ProcessException('open', <String>[]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('open-log-directory')));
+    await tester.pump();
+
+    final snackBar = find.byType(SnackBar);
+    expect(snackBar, findsOneWidget, reason: '打开失败必须显示 SnackBar');
+    expect(
+      find.descendant(of: snackBar, matching: find.textContaining(resolved)),
+      findsOneWidget,
+      reason: 'SnackBar 必须包含路径，供用户手动复制',
+    );
+  });
+
   testWidgets('update check renders failure state', (tester) async {
     final service = UpdateService(
       currentBuild: 1,
