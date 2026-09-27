@@ -149,6 +149,7 @@ class PairingLogRepository implements NoteRepository {
           .add(const Duration(minutes: 10))
           .toIso8601String(),
       nonce: '11111111111111111111111111111111',
+      ips: const [],
     );
   }
 

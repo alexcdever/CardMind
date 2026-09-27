@@ -3500,11 +3500,13 @@ impl SseDecode for crate::sync::ParsedPairingCredential {
         let mut var_deviceId = <String>::sse_decode(deserializer);
         let mut var_expiresAt = <String>::sse_decode(deserializer);
         let mut var_nonce = <String>::sse_decode(deserializer);
+        let mut var_ips = <Vec<String>>::sse_decode(deserializer);
         return crate::sync::ParsedPairingCredential {
             code: var_code,
             device_id: var_deviceId,
             expires_at: var_expiresAt,
             nonce: var_nonce,
+            ips: var_ips,
         };
     }
 }
@@ -3932,6 +3934,7 @@ impl flutter_rust_bridge::IntoDart for crate::sync::ParsedPairingCredential {
             self.device_id.into_into_dart().into_dart(),
             self.expires_at.into_into_dart().into_dart(),
             self.nonce.into_into_dart().into_dart(),
+            self.ips.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -4302,6 +4305,7 @@ impl SseEncode for crate::sync::ParsedPairingCredential {
         <String>::sse_encode(self.device_id, serializer);
         <String>::sse_encode(self.expires_at, serializer);
         <String>::sse_encode(self.nonce, serializer);
+        <Vec<String>>::sse_encode(self.ips, serializer);
     }
 }
 

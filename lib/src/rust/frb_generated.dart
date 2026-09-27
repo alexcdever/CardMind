@@ -2714,13 +2714,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ParsedPairingCredential dco_decode_parsed_pairing_credential(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return ParsedPairingCredential(
       code: dco_decode_String(arr[0]),
       deviceId: dco_decode_String(arr[1]),
       expiresAt: dco_decode_String(arr[2]),
       nonce: dco_decode_String(arr[3]),
+      ips: dco_decode_list_String(arr[4]),
     );
   }
 
@@ -3258,11 +3259,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_deviceId = sse_decode_String(deserializer);
     var var_expiresAt = sse_decode_String(deserializer);
     var var_nonce = sse_decode_String(deserializer);
+    var var_ips = sse_decode_list_String(deserializer);
     return ParsedPairingCredential(
       code: var_code,
       deviceId: var_deviceId,
       expiresAt: var_expiresAt,
       nonce: var_nonce,
+      ips: var_ips,
     );
   }
 
@@ -3771,6 +3774,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.deviceId, serializer);
     sse_encode_String(self.expiresAt, serializer);
     sse_encode_String(self.nonce, serializer);
+    sse_encode_list_String(self.ips, serializer);
   }
 
   @protected

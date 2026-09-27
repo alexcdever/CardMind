@@ -128,6 +128,7 @@ class PairingMdnsRepository implements NoteRepository {
       deviceId: 'parsed-device',
       expiresAt: credentialExpiresAt,
       nonce: '11111111111111111111111111111111',
+      ips: const [],
     );
   }
 
