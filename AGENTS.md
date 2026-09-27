@@ -99,6 +99,45 @@ cd rust-backend && cargo test --test sync_test  # 同步测试
 - 编译源：`rust-backend/target/release/cardmind_backend.dll`
 - Windows 构建后自动复制到运行态路径
 
+## 日志目录（排查必读）
+
+应用日志固定写入 `<application support>/logs/cardmind.log`，由
+`lib/bridge/debug_log.dart` 的 `resolveLogDirectory()` 推导（`FileDebugSink.open`
+复用同一函数，两处不会漂移）。设置页「日志目录」一项可直接打开该目录。
+
+各平台实际路径：
+
+| 平台 | 路径 |
+|---|---|
+| Windows | `%APPDATA%\com.cardmind\cardmind\logs\cardmind.log` |
+| Linux | `~/.local/share/com.cardmind.cardmind/logs/cardmind.log`（XDG data 目录） |
+| macOS（打包应用，**已启用 App Sandbox**） | `~/Library/Containers/com.cardmind.v2/Data/Library/Application Support/com.cardmind.v2/logs/cardmind.log` |
+
+Linux 的目录名来自 `linux/CMakeLists.txt` 的 `APPLICATION_ID`（`com.cardmind.cardmind`），
+经 GTK application-id 传给 `path_provider_linux`；不是 macOS 的 bundle id，勿按 macOS 值「修正」。
+
+### macOS 的坑：两份同名 `cardmind.log`
+
+`macos/Runner/Release.entitlements` 与 `DebugProfile.entitlements` 都启用了
+`com.apple.security.app-sandbox = true`。macOS 会把 `getApplicationSupportDirectory()`
+**重定向进容器**，因此磁盘上会同时存在两份同名日志：
+
+| 路径 | 实际状态 |
+|---|---|
+| `~/Library/Application Support/com.cardmind.v2/logs/cardmind.log` | **陈旧**，停在旧时间戳，非沙箱进程（如早期未签名构建）留下的残留 |
+| `~/Library/Containers/com.cardmind.v2/Data/Library/Application Support/com.cardmind.v2/logs/cardmind.log` | **应用真实写入位置**，持续更新 |
+
+**排查时默认读容器内那一份。** 读错文件会看到「日志不更新」的假象，而落盘功能其实正常。
+
+确认哪个文件是活的（运行中进程的实际打开句柄）：
+
+```bash
+lsof -p <pid> | grep cardmind.log
+```
+
+macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决策，路径可发现性由设置页
+入口 + 本文档解决。
+
 ## 当前状态（2026-07）
 
 | 项目 | 状态 |

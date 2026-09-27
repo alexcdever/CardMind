@@ -1,4 +1,5 @@
-import 'dart:io' show Directory, File, FileMode, Platform;
+import 'dart:io'
+    show Directory, File, FileMode, Platform, Process, ProcessException;
 
 import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:path_provider/path_provider.dart';
@@ -95,6 +96,78 @@ class PlatformDebugSink implements DebugSink {
 /// 单个日志文件大小上限；启动时超过则截断（任务 U7 设计契约 B.1）。
 const int maxLogFileBytes = 5 * 1024 * 1024;
 
+/// 解析当前平台日志目录（`<application support>/logs`）。
+///
+/// 与 [FileDebugSink.open] 共用同一套推导——两处各自推导会漂移，正是本函数
+/// 存在的理由。macOS 开启 App Sandbox 时 `getApplicationSupportDirectory()`
+/// 被系统重定向进容器，因此这里返回的才是应用真实写入的目录。
+///
+/// [baseDirectory] 注入以便测试不触碰真实 `getApplicationSupportDirectory`。
+Future<Directory> resolveLogDirectory({String? baseDirectory}) async {
+  final Directory base = baseDirectory != null
+      ? Directory(baseDirectory)
+      : await getApplicationSupportDirectory();
+  return Directory('${base.path}${Platform.pathSeparator}logs');
+}
+
+/// 用系统文件管理器打开 [directory]（macOS `open`、Windows `explorer`、
+/// Linux `xdg-open`）。
+///
+/// 无法启动文件管理器时抛 [ProcessException]，由调用方决定如何退化：
+/// [revealLogDirectory] 静默吞掉，设置页则改用 SnackBar 展示路径。
+Future<void> openLogDirectoryInFileManager(String directory) async {
+  final String command;
+  // explorer.exe 即使成功打开目录也可能返回退出码 1，不能据此判定失败。
+  var checkExitCode = true;
+  if (Platform.isWindows) {
+    command = 'explorer';
+    checkExitCode = false;
+  } else if (Platform.isMacOS) {
+    command = 'open';
+  } else {
+    command = 'xdg-open';
+  }
+  final result = await Process.run(command, <String>[directory]);
+  if (checkExitCode && result.exitCode != 0) {
+    throw ProcessException(
+      command,
+      <String>[directory],
+      'exit ${result.exitCode}',
+      result.exitCode,
+    );
+  }
+}
+
+/// 打开日志目录，返回**实际路径**供 UI 展示。
+///
+/// 解析失败或打开失败都静默退化（与 [initializeFileLogging] 风格一致），
+/// 不向调用方抛异常；返回值始终是解析出的路径（解析彻底失败时为空串），
+/// 让设置页即使打开失败也能把路径显示给用户复制。
+///
+/// [resolver] / [opener] 仅供测试注入：缺省用真实实现；测试传入假实现以断言
+/// 调用次数，**不得真的打开访达**。
+Future<String> revealLogDirectory({
+  String? baseDirectory,
+  Future<Directory> Function({String? baseDirectory})? resolver,
+  Future<void> Function(String directory)? opener,
+}) async {
+  final String path;
+  try {
+    final dir = await (resolver ?? resolveLogDirectory)(
+      baseDirectory: baseDirectory,
+    );
+    path = dir.path;
+  } catch (_) {
+    return '';
+  }
+  try {
+    await (opener ?? openLogDirectoryInFileManager)(path);
+  } catch (_) {
+    // 打开失败静默退化：路径仍然返回给 UI
+  }
+  return path;
+}
+
 /// 文件日志 sink（任务 U7）：追加写 `<base>/logs/cardmind.log`，每事件一行。
 ///
 /// - 行格式复用 [DebugEvent.toLine]（与 debugPrint 输出一致，带时间戳）；
@@ -122,8 +195,10 @@ class FileDebugSink implements DebugSink {
   /// 打开文件日志 sink；任何一步失败返回 null（静默退化，绝不抛出）。
   ///
   /// [baseDirectory] 缺省用 `getApplicationSupportDirectory()`（Windows 实际
-  /// 为 `%APPDATA%\com.cardmind\cardmind`；Android 为 app-private 目录），
-  /// 日志写入其下 `logs/cardmind.log`。测试可显式传临时目录并调小 [maxBytes]。
+  /// 为 `%APPDATA%\com.cardmind\cardmind`；Android 为 app-private 目录；
+  /// macOS 沙箱下为容器内路径），日志写入其下 `logs/cardmind.log`——目录
+  /// 推导复用 [resolveLogDirectory]，两处不会漂移。测试可显式传临时目录并
+  /// 调小 [maxBytes]。
   ///
   /// FLUTTER_TEST 守卫不在本方法——位于 [initializeFileLogging]，这样测试
   /// 可以直接构造 sink 到临时目录验证写盘行为本身。
@@ -132,10 +207,7 @@ class FileDebugSink implements DebugSink {
     int maxBytes = maxLogFileBytes,
   }) async {
     try {
-      final Directory base = baseDirectory != null
-          ? Directory(baseDirectory)
-          : await getApplicationSupportDirectory();
-      final logsDir = Directory('${base.path}${Platform.pathSeparator}logs');
+      final logsDir = await resolveLogDirectory(baseDirectory: baseDirectory);
       await logsDir.create(recursive: true);
       final file = File('${logsDir.path}${Platform.pathSeparator}cardmind.log');
       await _truncateIfNeeded(file, maxBytes);
