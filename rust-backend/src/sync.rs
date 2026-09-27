@@ -2784,17 +2784,21 @@ pub(crate) fn nonce_from_hex(hex: &str) -> Result<[u8; 16]> {
 
 // ━━━ 签名配对凭证（任务 Q）━━━
 
-/// 配对凭证 v1 协议常量。
+/// 配对凭证协议常量。
 const CREDENTIAL_MAGIC: &[u8; 2] = b"CM";
-const CREDENTIAL_VERSION: u8 = 1;
+/// v1：71 字节固定载荷（不含直连地址），仅保留解析能力（向后兼容）。
+const CREDENTIAL_VERSION_V1: u8 = 1;
+/// v2：71 字节公共头 + `ip_count(u16 BE)` + 逐项 `[u16 BE 长度][utf8 字节]`，用于生成。
+const CREDENTIAL_VERSION_V2: u8 = 2;
 const CREDENTIAL_PAYLOAD_LEN: usize = 2 + 1 + 8 + 8 + 16 + 32 + 4; // 71
 const CREDENTIAL_SIGNATURE_LEN: usize = 64;
 pub const CREDENTIAL_FINAL_LEN: usize = CREDENTIAL_PAYLOAD_LEN + CREDENTIAL_SIGNATURE_LEN; // 135
 const CREDENTIAL_TTL_SECS: u64 = 10 * 60;
 const CREDENTIAL_CLOCK_SKEW_SECS: u64 = 60;
+/// 字符串前缀与载荷版本无关（v1/v2 共用 `cm1.`）。
 const CREDENTIAL_PREFIX: &str = "cm1.";
 
-/// 原始 v1 凭证字节 `canonical_payload || signature`。
+/// 原始 v1 凭证字节 `canonical_payload || signature`（固定 135 字节）。
 pub type RawCredential = [u8; CREDENTIAL_FINAL_LEN];
 
 /// 解析后的凭证字段（内部使用）。
@@ -2804,10 +2808,13 @@ pub struct ParsedCredentialFields {
     pub pairing_code: u32,
     pub expires_at: u64,
     pub nonce: [u8; 16],
+    /// 凭证内嵌的直连地址（`"ip:port"`）。v1 恒为空；v2 为生成方 `local_addrs()`。
+    pub ips: Vec<String>,
 }
 
-/// 构建 canonical payload（71 字节，全大端）。
-fn build_canonical_payload(
+/// 构建 71 字节公共头（v1/v2 共用字节布局；`version` 决定第 [2] 字节）。
+fn build_common_header(
+    version: u8,
     issued_at: u64,
     expires_at: u64,
     nonce: &[u8; 16],
@@ -2819,7 +2826,7 @@ fn build_canonical_payload(
     }
     let mut buf = [0u8; CREDENTIAL_PAYLOAD_LEN];
     buf[0..2].copy_from_slice(CREDENTIAL_MAGIC);
-    buf[2] = CREDENTIAL_VERSION;
+    buf[2] = version;
     buf[3..11].copy_from_slice(&issued_at.to_be_bytes());
     buf[11..19].copy_from_slice(&expires_at.to_be_bytes());
     buf[19..35].copy_from_slice(nonce);
@@ -2828,7 +2835,62 @@ fn build_canonical_payload(
     Ok(buf)
 }
 
-/// 生成签名并拼装最终凭证字节（135 字节）。
+/// 构建 v1 canonical payload（71 字节，全大端，不含直连地址）。
+fn build_canonical_payload(
+    issued_at: u64,
+    expires_at: u64,
+    nonce: &[u8; 16],
+    node_id: &[u8; 32],
+    pairing_code: u32,
+) -> Result<[u8; CREDENTIAL_PAYLOAD_LEN]> {
+    build_common_header(
+        CREDENTIAL_VERSION_V1,
+        issued_at,
+        expires_at,
+        nonce,
+        node_id,
+        pairing_code,
+    )
+}
+
+/// 构建 v2 canonical payload（`73 + Σ(2+len)` 字节）：
+/// 71 字节公共头 + `ip_count(u16 BE)` + 逐项 `[u16 BE 长度][utf8 字节]`。
+///
+/// 单个 IP 字符串长度超过 u16 上限时报错（不 panic）。
+fn build_canonical_payload_v2(
+    issued_at: u64,
+    expires_at: u64,
+    nonce: &[u8; 16],
+    node_id: &[u8; 32],
+    pairing_code: u32,
+    ips: &[String],
+) -> Result<Vec<u8>> {
+    let header = build_common_header(
+        CREDENTIAL_VERSION_V2,
+        issued_at,
+        expires_at,
+        nonce,
+        node_id,
+        pairing_code,
+    )?;
+    let ip_count = u16::try_from(ips.len())
+        .map_err(|_| anyhow::anyhow!("ip_count out of range: {}", ips.len()))?;
+    let mut buf = Vec::with_capacity(CREDENTIAL_PAYLOAD_LEN + 2 + ips.len() * 16);
+    buf.extend_from_slice(&header);
+    buf.extend_from_slice(&ip_count.to_be_bytes());
+    for ip in ips {
+        let bytes = ip.as_bytes();
+        let len = u16::try_from(bytes.len())
+            .map_err(|_| anyhow::anyhow!("ip entry too long: {} bytes", bytes.len()))?;
+        buf.extend_from_slice(&len.to_be_bytes());
+        buf.extend_from_slice(bytes);
+    }
+    Ok(buf)
+}
+
+/// 生成签名并拼装最终 v1 凭证字节（135 字节）。
+///
+/// 保留供测试构造 v1 用例与向后兼容；生产生成路径已改用 [`encode_credential_v2`]。
 pub fn encode_credential(
     secret_key: &SecretKey,
     issued_at: u64,
@@ -2845,25 +2907,96 @@ pub fn encode_credential(
     Ok(out)
 }
 
+/// 生成签名并拼装最终 v2 凭证字节（`73 + Σ(2+len) + 64` 字节）。
+///
+/// 签名覆盖 canonical payload 全部字节（含 ip_count 与逐项 IP）。
+pub fn encode_credential_v2(
+    secret_key: &SecretKey,
+    issued_at: u64,
+    expires_at: u64,
+    nonce: &[u8; 16],
+    node_id: &[u8; 32],
+    pairing_code: u32,
+    ips: &[String],
+) -> Result<Vec<u8>> {
+    let payload = build_canonical_payload_v2(
+        issued_at,
+        expires_at,
+        nonce,
+        node_id,
+        pairing_code,
+        ips,
+    )?;
+    let signature = secret_key.sign(&payload);
+    let mut out = Vec::with_capacity(payload.len() + CREDENTIAL_SIGNATURE_LEN);
+    out.extend_from_slice(&payload);
+    out.extend_from_slice(&signature.to_bytes());
+    Ok(out)
+}
+
 /// 解析并验证凭证字节（长度/magic/version/时间窗口/验签）。
+///
+/// 按 `[2]` 版本字节分派：
+/// - `1` → 71 字节固定载荷，`ips = []`
+/// - `2` → 71 字节公共头 + `ip_count` + 逐项 IP，取回内嵌直连地址
+///
+/// 签名验证使用**对应版本的 payload 切片**（`raw` 去掉末尾 64 字节签名），
+/// 不按固定 71 字节切分。未知版本报错。
 pub fn parse_credential(raw: &[u8], now: u64) -> Result<ParsedCredentialFields> {
-    let final_bytes: &[u8; CREDENTIAL_FINAL_LEN] = raw
-        .try_into()
-        .map_err(|_| anyhow::anyhow!("invalid credential length: {}", raw.len()))?;
-    let (payload, signature_bytes) = final_bytes.split_at(CREDENTIAL_PAYLOAD_LEN);
+    if raw.len() < CREDENTIAL_PAYLOAD_LEN + CREDENTIAL_SIGNATURE_LEN {
+        anyhow::bail!("invalid credential length: {}", raw.len());
+    }
+    let (payload, signature_bytes) = raw.split_at(raw.len() - CREDENTIAL_SIGNATURE_LEN);
 
     if &payload[0..2] != CREDENTIAL_MAGIC {
         anyhow::bail!("invalid credential magic");
     }
-    if payload[2] != CREDENTIAL_VERSION {
-        anyhow::bail!("unsupported credential version: {}", payload[2]);
-    }
+    let version = payload[2];
 
     let issued_at = u64::from_be_bytes(payload[3..11].try_into().unwrap());
     let expires_at = u64::from_be_bytes(payload[11..19].try_into().unwrap());
     let nonce: [u8; 16] = payload[19..35].try_into().unwrap();
     let node_id_bytes: [u8; 32] = payload[35..67].try_into().unwrap();
     let pairing_code = u32::from_be_bytes(payload[67..71].try_into().unwrap());
+
+    let ips = match version {
+        CREDENTIAL_VERSION_V1 => {
+            if payload.len() != CREDENTIAL_PAYLOAD_LEN {
+                anyhow::bail!("invalid v1 credential payload length: {}", payload.len());
+            }
+            Vec::new()
+        }
+        CREDENTIAL_VERSION_V2 => {
+            let mut offset = CREDENTIAL_PAYLOAD_LEN;
+            if payload.len() < offset + 2 {
+                anyhow::bail!("truncated v2 credential: missing ip_count");
+            }
+            let ip_count =
+                u16::from_be_bytes(payload[offset..offset + 2].try_into().unwrap()) as usize;
+            offset += 2;
+            let mut ips: Vec<String> = Vec::with_capacity(ip_count);
+            for _ in 0..ip_count {
+                if payload.len() < offset + 2 {
+                    anyhow::bail!("truncated v2 credential: missing ip length");
+                }
+                let len =
+                    u16::from_be_bytes(payload[offset..offset + 2].try_into().unwrap()) as usize;
+                offset += 2;
+                if payload.len() < offset + len {
+                    anyhow::bail!("truncated v2 credential: missing ip bytes");
+                }
+                let ip = std::str::from_utf8(&payload[offset..offset + len])
+                    .map_err(|_| anyhow::anyhow!("invalid UTF-8 in v2 credential ip"))?;
+                ips.push(ip.to_string());
+                offset += len;
+            }
+            if offset != payload.len() {
+                anyhow::bail!("trailing bytes in v2 credential payload");
+            }
+            ips
+        }
+        other => anyhow::bail!("unsupported credential version: {other}"),
+    };
 
     if !(100000..=999999).contains(&pairing_code) {
         anyhow::bail!("pairing_code out of range: {pairing_code}");
@@ -2896,18 +3029,22 @@ pub fn parse_credential(raw: &[u8], now: u64) -> Result<ParsedCredentialFields> 
         pairing_code,
         expires_at,
         nonce,
+        ips,
     })
 }
 
-/// 最终字符串：`cm1.` + base64url(无 padding)。
-pub fn credential_to_string(raw: &RawCredential) -> String {
+/// 最终字符串：`cm1.` + base64url(无 padding)。接受 v1（135 字节）与 v2（变长）。
+pub fn credential_to_string(raw: &[u8]) -> String {
     use base64::Engine;
     let b64 = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(raw);
     format!("{CREDENTIAL_PREFIX}{b64}")
 }
 
 /// 字符串 → 凭证字节（严格 `cm1.` 前缀 + base64url，无 padding）。
-pub fn credential_from_string(s: &str) -> Result<RawCredential> {
+///
+/// 返回变长 `Vec<u8>`（v1 为 135 字节，v2 为 `137 + Σ(2+len)` 字节）；
+/// 精确长度与版本校验由 [`parse_credential`] 负责。
+pub fn credential_from_string(s: &str) -> Result<Vec<u8>> {
     use base64::Engine;
     let Some(rest) = s.strip_prefix(CREDENTIAL_PREFIX) else {
         anyhow::bail!("invalid credential prefix");
@@ -2922,11 +3059,10 @@ pub fn credential_from_string(s: &str) -> Result<RawCredential> {
     let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .decode(rest)
         .map_err(|_| anyhow::anyhow!("invalid credential base64url"))?;
-    let decoded_len = decoded.len();
-    let arr: RawCredential = decoded
-        .try_into()
-        .map_err(|_| anyhow::anyhow!("invalid credential length: {}", decoded_len))?;
-    Ok(arr)
+    if decoded.len() < CREDENTIAL_PAYLOAD_LEN + CREDENTIAL_SIGNATURE_LEN {
+        anyhow::bail!("invalid credential length: {}", decoded.len());
+    }
+    Ok(decoded)
 }
 
 // ━━━ FRB 边界凭证类型（任务 Q）━━━
@@ -2949,6 +3085,8 @@ pub struct ParsedPairingCredential {
     pub device_id: String,
     pub expires_at: String,
     pub nonce: String,
+    /// 凭证内嵌的直连地址（`"ip:port"`）。v1 凭证为空；v2 为生成方 `local_addrs()`。
+    pub ips: Vec<String>,
 }
 
 // ━━━ 配对凭证用户错误分类（任务 Q；FRB codegen 后 Dart 侧按 kind 映射中文文案）━━━
@@ -3037,13 +3175,16 @@ impl SyncService {
         let expires_at = issued_at + CREDENTIAL_TTL_SECS;
         let node_id = *self.endpoint.id().as_bytes();
 
-        let raw = encode_credential(
+        // v2 凭证内嵌本机直连地址，扫码方据此直连（不依赖 relay 与 n0 DNS）
+        let local_ips = self.local_addrs();
+        let raw = encode_credential_v2(
             &self.secret_key,
             issued_at,
             expires_at,
             &nonce,
             &node_id,
             code_num,
+            &local_ips,
         )?;
         let credential = credential_to_string(&raw);
         let expires_at_rfc3339 =
@@ -3141,12 +3282,32 @@ impl SyncService {
             device_id,
             expires_at,
             nonce: nonce_to_hex(&parsed.nonce),
+            ips: parsed.ips,
+        })
+    }
+
+    /// 发起方：解析凭证并构造连接目标（凭证内嵌 IP 直连的接缝）。
+    ///
+    /// 目标 `ips` 直接来自凭证解析结果——v2 凭证携带显示方 `local_addrs()`，
+    /// v1 凭证为空（退回 relay/DNS 路径）。`begin_pairing_connect_with_credential`
+    /// 是唯一调用方；把「解析 → 构造目标」独立成可观测方法，使「忘了传 ips」
+    /// 这类回归可在不发起真实连接的情况下被测试捕获。
+    pub fn pairing_target_for_credential(
+        &self,
+        credential: &str,
+    ) -> Result<PairingTarget, PairingCredentialError> {
+        let parsed = self.parse_pairing_credential(credential)?;
+        Ok(PairingTarget {
+            device_id: parsed.device_id,
+            ips: parsed.ips,
+            nonce: parsed.nonce,
         })
     }
 
     /// 发起方：凭证垂直入口——parse/verify → 构造 PairingTarget → 直连/relay 连接。
     ///
-    /// `ips=[]` 时沿用 `build_connect_addr`（发起端自己的可选 relay.txt）。
+    /// 目标 `ips` 来自凭证内嵌地址（v2）：非空时直连，不再依赖 relay 与 n0 DNS；
+    /// v1 凭证为空时沿用 `build_connect_addr`（发起端自己的可选 relay.txt）。
     /// 凭证解析错误精确分类；连接类错误归类为 `Unreachable`。
     pub async fn begin_pairing_connect_with_credential(
         &self,
@@ -3154,11 +3315,7 @@ impl SyncService {
         credential: &str,
     ) -> Result<PairingResult, PairingCredentialError> {
         let parsed = self.parse_pairing_credential(credential)?;
-        let target = PairingTarget {
-            device_id: parsed.device_id,
-            ips: vec![],
-            nonce: parsed.nonce,
-        };
+        let target = self.pairing_target_for_credential(credential)?;
         self.begin_pairing_connect(store, &parsed.code, target)
             .await
             .map_err(|err| PairingCredentialError {

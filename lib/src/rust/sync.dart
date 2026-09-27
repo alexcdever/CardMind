@@ -222,16 +222,24 @@ class ParsedPairingCredential {
   final String expiresAt;
   final String nonce;
 
+  /// 凭证内嵌的直连地址（`"ip:port"`）。v1 凭证为空；v2 为生成方 `local_addrs()`。
+  final List<String> ips;
+
   const ParsedPairingCredential({
     required this.code,
     required this.deviceId,
     required this.expiresAt,
     required this.nonce,
+    required this.ips,
   });
 
   @override
   int get hashCode =>
-      code.hashCode ^ deviceId.hashCode ^ expiresAt.hashCode ^ nonce.hashCode;
+      code.hashCode ^
+      deviceId.hashCode ^
+      expiresAt.hashCode ^
+      nonce.hashCode ^
+      ips.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -241,7 +249,8 @@ class ParsedPairingCredential {
           code == other.code &&
           deviceId == other.deviceId &&
           expiresAt == other.expiresAt &&
-          nonce == other.nonce;
+          nonce == other.nonce &&
+          ips == other.ips;
 }
 
 /// 一次周期同步的结果（FRB 可序列化，供 Flutter 侧诊断/未来 UI 使用）

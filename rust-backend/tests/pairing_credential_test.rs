@@ -11,8 +11,9 @@ use std::sync::Arc;
 use cardmind_backend::debug_log::CollectingSink;
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
-    credential_from_string, credential_to_string, encode_credential, parse_credential,
-    PairingRequest, PairingTarget, ParsedCredentialFields, SyncService, CREDENTIAL_FINAL_LEN,
+    credential_from_string, credential_to_string, encode_credential, encode_credential_v2,
+    parse_credential, PairingRequest, PairingTarget, ParsedCredentialFields, SyncService,
+    CREDENTIAL_FINAL_LEN,
 };
 
 use iroh::SecretKey;
@@ -99,6 +100,7 @@ fn credential_v1_has_exact_canonical_layout_and_roundtrips() {
             pairing_code: CODE,
             expires_at: EXPIRES,
             nonce,
+            ips: Vec::new(),
         }
     );
 }
@@ -124,7 +126,7 @@ fn credential_qr_text_is_canonical_base64url_without_padding() {
 
     // 重新编码逐字节一致
     let roundtrip = credential_from_string(&s).unwrap();
-    assert_eq!(roundtrip, raw);
+    assert_eq!(roundtrip.as_slice(), raw.as_slice());
 }
 
 #[test]
@@ -207,9 +209,9 @@ fn credential_rejects_wrong_prefix_version_length_and_trailing_bytes() {
     // 错误前缀
     assert!(credential_from_string(&format!("cm2.{}", &s[4..])).is_err());
     assert!(credential_from_string("cm1").is_err());
-    // 未知版本
+    // 未知版本（v1/v2 之外）
     let mut bad = raw;
-    bad[2] = 2;
+    bad[2] = 3;
     assert!(parse_credential(&bad, ISSUED + 1).is_err());
     // 截断
     assert!(credential_from_string(&s[..s.len() - 4]).is_err());
@@ -631,6 +633,274 @@ fn empty_and_zero_nonce_are_rejected() {
         assert!(
             confirmer.current_pairing_session().is_none(),
             "满 5 次错误 nonce 应清会话"
+        );
+    });
+}
+
+// ━━━ v2 凭证：内嵌直连地址（task pairing-credential-ip）━━━
+
+/// A2：v2 往返——N 个 IP 原样取回且顺序一致；签名覆盖含 IP 的完整 payload。
+#[test]
+fn credential_v2_roundtrips_ips_in_order() {
+    let sk = fixed_sk();
+    let node_id = fixed_node_id(&sk);
+    let nonce = fixed_nonce();
+    let ips = vec![
+        "192.168.31.43:62023".to_string(),
+        "10.0.0.7:12345".to_string(),
+        "127.0.0.1:9999".to_string(),
+    ];
+
+    let raw = encode_credential_v2(&sk, ISSUED, EXPIRES, &nonce, &node_id, CODE, &ips).unwrap();
+    // canonical payload = 73 + Σ(2 + len)，后接 64 字节签名
+    let expected_payload = 73 + ips.iter().map(|s| 2 + s.len()).sum::<usize>();
+    assert_eq!(raw.len(), expected_payload + 64);
+    assert_eq!(raw[2], 2, "v2 版本字节必须为 2");
+    assert_eq!(&raw[0..2], b"CM");
+    assert_eq!(&raw[71..73], &(ips.len() as u16).to_be_bytes());
+
+    let parsed = parse_credential(&raw, ISSUED + 1).unwrap();
+    assert_eq!(parsed.ips, ips, "IP 列表与顺序必须原样取回");
+    assert_eq!(parsed.pairing_code, CODE);
+    assert_eq!(parsed.node_id_bytes, node_id);
+    assert_eq!(parsed.nonce, nonce);
+    assert_eq!(parsed.expires_at, EXPIRES);
+
+    // base64url 字符串编解码同样往返一致
+    let s = credential_to_string(&raw);
+    let back = credential_from_string(&s).unwrap();
+    assert_eq!(back.as_slice(), raw.as_slice());
+}
+
+/// A2 边界：ip_count = 0 的 v2 凭证可正常解析。
+#[test]
+fn credential_v2_with_zero_ips_parses() {
+    let sk = fixed_sk();
+    let node_id = fixed_node_id(&sk);
+    let nonce = fixed_nonce();
+    let raw = encode_credential_v2(&sk, ISSUED, EXPIRES, &nonce, &node_id, CODE, &[]).unwrap();
+    assert_eq!(raw.len(), 73 + 64);
+    assert_eq!(&raw[71..73], &0u16.to_be_bytes());
+
+    let parsed = parse_credential(&raw, ISSUED + 1).unwrap();
+    assert!(parsed.ips.is_empty(), "ip_count=0 时 ips 应为空");
+    assert_eq!(parsed.pairing_code, CODE);
+}
+
+/// A2：篡改任一 IP 字节或 ip_count → 验签失败或解析失败。
+#[test]
+fn credential_v2_rejects_tampered_ips_and_count() {
+    let sk = fixed_sk();
+    let node_id = fixed_node_id(&sk);
+    let nonce = fixed_nonce();
+    let ips = vec![
+        "192.168.31.43:62023".to_string(),
+        "10.0.0.7:12345".to_string(),
+    ];
+    let raw = encode_credential_v2(&sk, ISSUED, EXPIRES, &nonce, &node_id, CODE, &ips).unwrap();
+
+    // 逐字节翻转 IP 数据区 [73..len-64]
+    for idx in 73..raw.len() - 64 {
+        let mut t = raw.clone();
+        t[idx] ^= 0xFF;
+        assert!(
+            parse_credential(&t, ISSUED + 1).is_err(),
+            "篡改 IP payload 字节 {idx} 应被拒（验签或解析）"
+        );
+    }
+    // 篡改 ip_count 两个字节
+    for idx in [71, 72] {
+        let mut t = raw.clone();
+        t[idx] ^= 0x01;
+        assert!(
+            parse_credential(&t, ISSUED + 1).is_err(),
+            "篡改 ip_count 字节 {idx} 应被拒"
+        );
+    }
+    // 篡改签名字节
+    for idx in [raw.len() - 64, raw.len() - 1] {
+        let mut t = raw.clone();
+        t[idx] ^= 0x01;
+        assert!(parse_credential(&t, ISSUED + 1).is_err(), "篡改签名 {idx}");
+    }
+}
+
+/// A2：超长 IP 字符串（> u16 上限）不得 panic，返回 Err。
+#[test]
+fn credential_v2_rejects_overlong_ip_without_panic() {
+    let sk = fixed_sk();
+    let node_id = fixed_node_id(&sk);
+    let nonce = fixed_nonce();
+    let huge = "a".repeat(u16::MAX as usize + 1);
+    let result = encode_credential_v2(&sk, ISSUED, EXPIRES, &nonce, &node_id, CODE, &[huge]);
+    assert!(result.is_err(), "超长 IP 应返回 Err 而非 panic");
+}
+
+/// A3：`begin_pairing_credential` 产物的 `ips` 等于 `svc.local_addrs()`。
+///
+/// 前提：凭证生成的 v2 载荷内嵌本机直连地址。若测试环境无 IPv4 网络接口，
+/// `local_addrs()` 为空 → v2 凭证 `ips` 也为空（仍是合法 v2 凭证），
+/// 此时按契约显式标注该环境前提，断言退化为相等断言而非非空断言。
+#[test]
+fn generated_credential_contains_local_addrs() {
+    rt().block_on(async {
+        let svc = SyncService::new().await.unwrap();
+        let display = svc.begin_pairing_credential().unwrap();
+        let parsed = svc.parse_pairing_credential(&display.credential).unwrap();
+
+        let local = svc.local_addrs();
+        assert_eq!(
+            parsed.ips, local,
+            "凭证内嵌 IP 必须等于 svc.local_addrs()"
+        );
+
+        if local.is_empty() {
+            eprintln!(
+                "NOTE[A3]: 本测试环境无 IPv4 网络接口，local_addrs() 为空；\
+                 已按契约显式标注该前提，未放宽为非空断言"
+            );
+        } else {
+            for ip in &parsed.ips {
+                assert!(ip.contains(':'), "IP 必须为 ip:port 格式，实际: {ip}");
+                assert!(
+                    ip.parse::<std::net::SocketAddr>().is_ok(),
+                    "IP 必须可解析为 SocketAddr，实际: {ip}"
+                );
+            }
+        }
+    });
+}
+
+/// A4（seam）：连接目标 `PairingTarget.ips` 来自凭证解析结果，而非 `vec![]`。
+///
+/// seam = `SyncService::pairing_target_for_credential`：`begin_pairing_connect_with_credential`
+/// 内部唯一使用的「parse → 构造 PairingTarget」步骤。把该步骤暴露为可观测方法后，
+/// 无需发起真实连接即可断言 target.ips 来自 parsed.ips。若有人把 ips 硬编码回 `vec![]`，
+/// 本断言（parsed.ips == 显示方 local_addrs，非空）立即变红。
+/// 另断言 `build_connect_addr(node_id, &non_empty_ips)` 返回的 EndpointAddr 含 IP 传输地址。
+#[test]
+fn credential_connect_target_ips_come_from_credential() {
+    rt().block_on(async {
+        let confirmer = SyncService::new().await.unwrap();
+        let initiator = SyncService::new().await.unwrap();
+
+        let display = confirmer.begin_pairing_credential().unwrap();
+        let confirmer_local = confirmer.local_addrs();
+
+        let target = initiator
+            .pairing_target_for_credential(&display.credential)
+            .unwrap();
+        assert_eq!(
+            target.ips, confirmer_local,
+            "PairingTarget.ips 必须来自凭证内嵌 IP（回归：曾被硬编码为 vec![]）"
+        );
+        assert_eq!(target.device_id, confirmer.device_id());
+
+        // build_connect_addr：非空 ips → EndpointAddr 含等量 IP 传输地址
+        let node_id: iroh::EndpointId = target.device_id.parse().unwrap();
+        let addr = initiator.build_connect_addr(node_id, &target.ips).unwrap();
+        if !target.ips.is_empty() {
+            let ip_addrs: Vec<_> = addr.ip_addrs().copied().collect();
+            assert_eq!(
+                ip_addrs.len(),
+                target.ips.len(),
+                "非空 ips 必须映射为等量 TransportAddr::Ip"
+            );
+        } else {
+            eprintln!(
+                "NOTE[A4]: 本测试环境无 IPv4 网络接口，local_addrs() 为空；\
+                 已按契约显式标注该前提"
+            );
+        }
+    });
+}
+
+/// A4（真实链路）：发起方仅凭凭证（内嵌 IP）完成连接 + 配对握手。
+///
+/// 若 `begin_pairing_connect_with_credential` 用 `vec![]`，在无 relay 的测试环境下
+/// 只剩 n0 DNS 解析路径，必然超时 → 本用例变红。这是「忘了传 ips」回归的端到端捕获。
+#[test]
+fn credential_connect_end_to_end_uses_embedded_ips() {
+    rt().block_on(async {
+        let mut confirmer = SyncService::new().await.unwrap();
+        confirmer.set_device_name("Trusted PC");
+        let initiator = SyncService::new().await.unwrap();
+        initiator.set_device_name("New Phone");
+        let confirmer_store = NoteStore::new(":memory:").unwrap();
+        let initiator_store = NoteStore::new(":memory:").unwrap();
+
+        assert!(
+            !confirmer.local_addrs().is_empty(),
+            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空），否则本链路用例不适用"
+        );
+
+        let display = confirmer.begin_pairing_credential().unwrap();
+        let parsed = confirmer
+            .parse_pairing_credential(&display.credential)
+            .unwrap();
+
+        let confirmer_id = confirmer.device_id();
+        let confirmer_code = parsed.code.clone();
+        let confirmer_store_for_confirm = confirmer_store.clone();
+        let confirmer_handle = tokio::spawn(async move {
+            let request = tokio::time::timeout(
+                std::time::Duration::from_secs(15),
+                confirmer.accept_pairing_request(),
+            )
+            .await
+            .expect("confirmer accept 挂起")
+            .unwrap();
+            let result = tokio::time::timeout(
+                std::time::Duration::from_secs(15),
+                confirmer.confirm_pairing(&confirmer_store_for_confirm, &confirmer_code, &request),
+            )
+            .await
+            .expect("confirmer confirm 挂起")
+            .unwrap();
+            (result, request)
+        });
+
+        let credential = display.credential.clone();
+        let initiator_handle = tokio::spawn(async move {
+            let result = tokio::time::timeout(
+                std::time::Duration::from_secs(20),
+                initiator.begin_pairing_connect_with_credential(&initiator_store, &credential),
+            )
+            .await
+            .expect("initiator credential connect 挂起")
+            .expect("凭证直连应成功（凭证内嵌 IP）");
+            // drain 确认方首次全量同步推送
+            let _ = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                initiator.accept_push(),
+            )
+            .await
+            .ok();
+            result
+        });
+
+        let (confirm_result, request) = tokio::time::timeout(
+            std::time::Duration::from_secs(40),
+            confirmer_handle,
+        )
+        .await
+        .expect("confirmer task 挂起")
+        .unwrap();
+        let connect_result = tokio::time::timeout(
+            std::time::Duration::from_secs(40),
+            initiator_handle,
+        )
+        .await
+        .expect("initiator task 挂起")
+        .unwrap();
+
+        assert_eq!(
+            connect_result.peer_id, confirmer_id,
+            "发起方握手响应应回填确认方 node id"
+        );
+        assert_eq!(
+            confirm_result.peer_id, request.device_id,
+            "确认方配对结果应为发起方 node id"
         );
     });
 }
