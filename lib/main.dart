@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io' show File, Platform;
 
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import 'bridge/bridge_helper.dart';
 import 'bridge/debug_log.dart';
 import 'bridge/note_repository.dart';
+import 'bridge/rust_library_loader.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
 import 'pages/settings_page.dart';
@@ -23,9 +26,20 @@ void main() {
 }
 
 Future<void> initializeCardMindBackend() async {
+  // 打包产物内 Rust 动态库按 exe 位置绝对定位；解析不到时传 null，
+  // 让 FRB 回退到 ioDirectory（测试/开发态 cwd = 项目根）。
+  final externalLibraryPath = resolveBundledRustLibraryPath(
+    executablePath: Platform.resolvedExecutable,
+    operatingSystem: Platform.operatingSystem,
+    exists: (path) => File(path).existsSync(),
+  );
   // 启动事件（验收 2）：RustLib / Bridge 初始化成功或失败各有可断言事件
   await initializeBackendWithLogging(
-    rustInit: RustLib.init,
+    rustInit: () => RustLib.init(
+      externalLibrary: externalLibraryPath == null
+          ? null
+          : ExternalLibrary.open(externalLibraryPath),
+    ),
     bridgeInit: () => BridgeHelper().init(),
     log: DebugLogger.instance,
   );
