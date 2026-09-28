@@ -28,6 +28,8 @@ rand = "0.8"
 tracing = "0.1"
 # 签名配对凭证：URL-safe base64（无 padding）编解码
 base64 = "0.22"
+# 主机名探测（gethostname(3)；设备名不再依赖 GUI 进程不继承的 HOSTNAME 环境变量）
+libc = "0.2"
 
 [dev-dependencies]
 # 仅测试构建启用：本地 relay 服务器（iroh::test_utils::run_relay_server），
