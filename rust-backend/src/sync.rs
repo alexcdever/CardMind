@@ -2634,11 +2634,64 @@ fn decode_envelope(bytes: &[u8]) -> Result<(u32, Vec<u8>)> {
     Ok((version, bytes[LORO_HEADER_LEN..].to_vec()))
 }
 
-/// 默认设备名（主机名；无环境变量时回退固定名）
+/// 各平台主机名探测；返回 None 表示取不到。
+///
+/// 返回系统原始主机名（可能带 `.local` 等域名后缀），由 [`normalize_hostname`] 处理。
+/// Windows 不走此路径（设备名以 `COMPUTERNAME` 为准），仅需编译通过。
+#[cfg(unix)]
+pub fn detect_hostname() -> Option<String> {
+    let mut buf = [0u8; 256];
+    // SAFETY: buf 是长度 256 的有效可写缓冲区；gethostname 至多写入该长度且
+    // 不保证 NUL 结尾，故按首个 NUL 或缓冲长度截断后再做 UTF-8 校验。
+    let rc = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
+    if rc != 0 {
+        return None;
+    }
+    let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+    let raw = std::str::from_utf8(&buf[..end]).ok()?;
+    let trimmed = raw.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+#[cfg(not(unix))]
+pub fn detect_hostname() -> Option<String> {
+    None
+}
+
+/// 去掉域名后缀并过滤空值：`Alexc-MBA.local` → `Alexc-MBA`。
+///
+/// 纯 IP 形式（`192.168.1.5`）按原串返回：点分十进制本身即完整主机身份，按第一个
+/// `.` 截断会得到无意义的 `192`。`gethostname(3)` 实际不会返回 IP 字面量，
+/// 此分支仅为边界防御。大小写保持系统原样，不做转换。
+pub fn normalize_hostname(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if trimmed.parse::<std::net::IpAddr>().is_ok() {
+        return Some(trimmed.to_string());
+    }
+    let head = trimmed.split('.').next().unwrap_or("");
+    (!head.is_empty()).then(|| head.to_string())
+}
+
+/// 组装默认设备名（可测：不直接读环境）。
+///
+/// 优先级：Windows `COMPUTERNAME` → 主机名 → `"CardMind Device"`。
+pub fn default_device_name_with(
+    windows_computer_name: Option<String>,
+    hostname: Option<String>,
+) -> String {
+    windows_computer_name
+        .as_deref()
+        .and_then(normalize_hostname)
+        .or_else(|| hostname.as_deref().and_then(normalize_hostname))
+        .unwrap_or_else(|| "CardMind Device".to_string())
+}
+
+/// 默认设备名（主机名；取不到时回退固定名）。
 fn default_device_name() -> String {
-    std::env::var("COMPUTERNAME")
-        .or_else(|_| std::env::var("HOSTNAME"))
-        .unwrap_or_else(|_| "CardMind Device".to_string())
+    default_device_name_with(std::env::var("COMPUTERNAME").ok(), detect_hostname())
 }
 
 // ━━━ 配对握手线协议编解码（二进制，length-prefixed）━━━
