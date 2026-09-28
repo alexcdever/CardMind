@@ -333,4 +333,33 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     expect(find.textContaining('检查失败'), findsOneWidget);
   });
+
+  testWidgets(
+    'A1: log directory resolution failure shows a failure state, not loading',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SettingsPage(
+            currentVersion: '1.0.0',
+            settings: _SettingsFake(UpdateChannel.stable),
+            logDirectoryResolver: ({String? baseDirectory}) async =>
+                throw const FileSystemException('cannot resolve log directory'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('日志目录'), findsOneWidget);
+      expect(
+        find.text('加载中…'),
+        findsNothing,
+        reason: '解析失败后副标题不得继续显示「加载中…」',
+      );
+      expect(
+        find.text('无法获取日志目录'),
+        findsOneWidget,
+        reason: '解析失败必须显示失败文案，供用户区分加载中与已失败',
+      );
+    },
+  );
 }

@@ -56,6 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _downloadMessage;
   DownloadCancellationToken? _downloadToken;
   String? _logDirectory;
+  bool _logDirectoryLoadFailed = false;
 
   @override
   void dispose() {
@@ -100,7 +101,7 @@ class _SettingsPageState extends State<SettingsPage> {
       final dir = await (widget.logDirectoryResolver ?? resolveLogDirectory)();
       if (mounted) setState(() => _logDirectory = dir.path);
     } catch (_) {
-      // 解析失败静默：副标题保持「加载中…」
+      if (mounted) setState(() => _logDirectoryLoadFailed = true);
     }
   }
 
@@ -276,7 +277,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: _openLogDirectory,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(_logDirectory ?? '加载中…'),
+                    child: Text(
+                      _logDirectory ??
+                          (_logDirectoryLoadFailed ? '无法获取日志目录' : '加载中…'),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
