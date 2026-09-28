@@ -131,7 +131,19 @@ acceptance: A1=<pass|fail>; A2=<pass|fail>; A3=<pass|fail>
 
 - 本仓库无 `.gitnexus/run.cjs`，GitNexus impact 工具不可用
 - 诊断任务已排除并发假设（`--concurrency=1` 不改变结果）
-- **诊断方关于「非确定性来自代码被改动」的解释与 git 证据不符**：`git log -S'$pathSep()'` 显示该行自 `990dceb6` 引入后从未改动。主代理判断真实原因是 `dartBinDir()` 在某些执行路径下返回空串，从而走 `Platform.environment['PATH']` 分支（干净 PATH）——这解释了早期为何偶然通过。执行方可在 A1 的红基线复现中顺带确认 `dartBinDir()` 的实际返回值
+- **诊断方关于「非确定性来自代码被改动」的解释与 git 证据不符**：`git log -S'$pathSep()'` 显示该行自 `990dceb6` 引入后从未改动。
+- **主代理原先「`dartBinDir()` 有时返回空串所以偶然通过」的推测已被实测证伪**（见下）。真实机理是单一且确定的：`dartBinDir()` 稳定非空 → 恒走 buggy 分支 → `$pathSep()` 只插值出 closure 的字符串表示、`()` 成字面文本 → dart bin 与父 PATH 之间缺 `:` → 子进程找不到 `git`。不存在非确定性来源。
+
+### 修订记录（2026-09-28，执行方与审查方各自独立实测）
+
+`dartBinDir()` 实测返回值（两方独立复现，4/4 次一致）：
+
+```
+resolvedExecutable=/opt/homebrew/share/flutter/bin/cache/artifacts/engine/darwin-x64/flutter_tester
+dartBinDir=/opt/homebrew/share/flutter/bin/cache/dart-sdk/bin   （非空，目录存在）
+```
+
+因此 buggy 分支是**持续失败**而非偶发。§1 的插值缺陷即为唯一根因。
 
 <!-- pipeline-contract
  task-id: git-gate-path-sep-fix
