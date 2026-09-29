@@ -231,10 +231,87 @@ fn test_relay_mode_disabled_by_default() {
     });
 }
 
-/// 验收 6 行为补充：两个"跨网段"endpoint 仅凭对端 relay URL（无直连 IP）建立连接并传输数据。
+/// 验收：health-check 使用独立 ACK 帧，不发送笔记快照。
 ///
-/// 使用本地 relay 服务器（iroh::test_utils::run_relay_server），不依赖公共 relay 的网络可达性，
-/// 验证 relay 打洞/中转路径可用 —— 支撑任务 K 后 `RelayMode::Custom`（用户自建 relay）配置的可行性。
+/// 该用例验证真实双端链路上的连接可用性语义。
+#[test]
+fn test_health_check_updates_last_seen_without_syncing_notes() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir_a = temp_dir("health-a");
+        let dir_b = temp_dir("health-b");
+        let a = SyncService::new_persistent(&dir_a).await.unwrap();
+        let b = SyncService::new_persistent(&dir_b).await.unwrap();
+        let store_a = NoteStore::new(&dir_a.join("cardmind.db").to_string_lossy()).unwrap();
+        let store_b = NoteStore::new(&dir_b.join("cardmind.db").to_string_lossy()).unwrap();
+        let a_id = a.device_id();
+        let b_id = b.device_id();
+        store_a.upsert_paired_device(&b_id, "B").unwrap();
+        store_b.upsert_paired_device(&a_id, "A").unwrap();
+        b.start_receiver(store_b.clone()).await.unwrap();
+
+        let latency = a
+            .check_connectivity(&store_a, &b_id, b.local_addrs())
+            .await
+            .unwrap();
+        assert!(latency < 3_000);
+        let row = store_a.list_paired_devices().unwrap().remove(0);
+        assert!(row.last_seen.is_some());
+        assert!(row.last_sync_at.is_none());
+        assert!(a.get_note("health-note").is_none());
+        assert!(b.get_note("health-note").is_none());
+
+        b.stop_receiver().await.unwrap();
+        let _ = std::fs::remove_dir_all(dir_a);
+        let _ = std::fs::remove_dir_all(dir_b);
+    });
+}
+
+#[test]
+fn test_health_check_failure_does_not_update_last_seen() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("health-failure");
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
+        let store = NoteStore::new(&dir.join("cardmind.db").to_string_lossy()).unwrap();
+        let fake_key = iroh::SecretKey::generate();
+        let fake_id = fake_key.public().to_string();
+        store.upsert_paired_device(&fake_id, "unreachable").unwrap();
+        let started = std::time::Instant::now();
+        let result = svc
+            .check_connectivity(&store, &fake_id, vec!["127.0.0.1:1".to_string()])
+            .await;
+        assert!(result.is_err());
+        assert!(started.elapsed() < std::time::Duration::from_secs(6));
+        let row = store.list_paired_devices().unwrap().remove(0);
+        assert!(row.last_seen.is_none());
+        assert!(row.last_sync_at.is_none());
+        let _ = std::fs::remove_dir_all(dir);
+    });
+}
+
+#[test]
+fn test_health_check_same_peer_rejects_in_flight_request() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("health-in-flight");
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
+        let store = NoteStore::new(&dir.join("cardmind.db").to_string_lossy()).unwrap();
+        let fake_key = iroh::SecretKey::generate();
+        let peer_id = fake_key.public().to_string();
+        store.upsert_paired_device(&peer_id, "unreachable").unwrap();
+        let first = svc.check_connectivity(&store, &peer_id, vec!["127.0.0.1:1".to_string()]);
+        tokio::pin!(first);
+        tokio::task::yield_now().await;
+        let second = svc
+            .check_connectivity(&store, &peer_id, vec!["127.0.0.1:1".to_string()])
+            .await;
+        assert!(second.is_err(), "same peer checks must not overlap");
+        let _ = first.await;
+        let _ = std::fs::remove_dir_all(dir);
+    });
+}
+
 #[test]
 fn test_relay_cross_network_connect() {
     use iroh::endpoint::presets;

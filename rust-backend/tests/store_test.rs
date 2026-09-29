@@ -1,5 +1,63 @@
 use cardmind_backend::store::{LinkRow, NoteStore};
 use cardmind_backend::sync::NoteCrdt;
+use rusqlite::Connection;
+
+#[test]
+fn test_paired_devices_migrates_last_sync_at_and_preserves_semantics() {
+    let path =
+        std::env::temp_dir().join(format!("cardmind-store-migration-{}", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+    let conn = Connection::open(&path).unwrap();
+    conn.execute_batch(
+        "CREATE TABLE paired_devices (
+            peer_id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            last_seen TEXT NULL,
+            paired_at TEXT NOT NULL
+        );
+        INSERT INTO paired_devices(peer_id, name, last_seen, paired_at)
+        VALUES ('legacy-peer', 'Legacy', '2026-01-01T00:00:00Z', '2025-12-01T00:00:00Z');",
+    )
+    .unwrap();
+    drop(conn);
+
+    let store = NoteStore::new(&path.to_string_lossy()).unwrap();
+    let row = store.list_paired_devices().unwrap().pop().unwrap();
+    assert_eq!(row.peer_id, "legacy-peer");
+    assert_eq!(row.last_seen.as_deref(), Some("2026-01-01T00:00:00Z"));
+    assert!(
+        row.last_sync_at.is_none(),
+        "legacy rows have no sync timestamp"
+    );
+
+    store.update_last_seen("legacy-peer").unwrap();
+    let after_check = store.list_paired_devices().unwrap().pop().unwrap();
+    assert!(after_check.last_seen.is_some());
+    assert!(
+        after_check.last_sync_at.is_none(),
+        "connectivity check does not mean sync"
+    );
+
+    store.update_last_sync_at("legacy-peer").unwrap();
+    let after_sync = store.list_paired_devices().unwrap().pop().unwrap();
+    assert!(after_sync.last_seen.is_some());
+    assert_eq!(after_sync.last_seen, after_sync.last_sync_at);
+
+    store
+        .update_paired_device_ips(
+            "legacy-peer",
+            &["127.0.0.1:1234".to_string(), "192.168.1.2:5678".to_string()],
+        )
+        .unwrap();
+    drop(store);
+    let reopened = NoteStore::new(&path.to_string_lossy()).unwrap();
+    assert_eq!(
+        reopened.paired_device_ips("legacy-peer").unwrap(),
+        vec!["127.0.0.1:1234", "192.168.1.2:5678"]
+    );
+
+    let _ = std::fs::remove_file(path);
+}
 
 #[test]
 fn test_sync_and_list() {

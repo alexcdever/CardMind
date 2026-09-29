@@ -54,6 +54,7 @@ pub struct SyncService {
     last_pushed_at: Mutex<HashMap<String, DateTime<Utc>>>,
     /// peer_id → 最近已知直连 IP 列表（配对请求/配对目标时记录；供周期推送直连优先）
     peer_ips: Mutex<HashMap<String, Vec<String>>>,
+    connectivity_in_flight: Mutex<HashSet<String>>,
     /// mDNS 发现服务（任务 J 惰性创建）：配对期间广播 + 发起方扫描。
     ///
     /// 用 tokio Mutex：`discover_peers` 需跨 await 持锁，FRB async 要求
@@ -125,6 +126,8 @@ pub struct NoteCrdt {
 
 const ALPN: &[u8] = b"cardmind-v2";
 const LORO_MAGIC: &[u8; 8] = b"CARDMIND";
+const HEALTH_MAGIC: &[u8; 8] = b"CMHEALTH";
+const HEALTH_ACK: &[u8; 8] = b"CMHACK01";
 /// envelope 版本：
 /// - v1：旧纯文本格式（迁移路径）
 /// - v2：记录流（无墓碑 section）
@@ -255,6 +258,8 @@ enum RoutedIncoming {
         sender: iroh::EndpointId,
         data: Vec<u8>,
     },
+    /// 轻量健康检查：发送方（取自 TLS 证书）+ 已验证 ACK。
+    HealthCheck { sender: iroh::EndpointId },
     /// 配对请求帧：已存入 `pending_pairing`，调用方继续等待。
     Pairing,
     /// 设备改名帧：对端告知其新设备名。
@@ -333,6 +338,7 @@ impl SyncService {
             pending_dirty: Mutex::new(HashSet::new()),
             last_pushed_at: Mutex::new(HashMap::new()),
             peer_ips: Mutex::new(HashMap::new()),
+            connectivity_in_flight: Mutex::new(HashSet::new()),
             discovery: tokio::sync::Mutex::new(None),
             receiver: Mutex::new(ReceiverHandle::default()),
             log,
@@ -1005,6 +1011,7 @@ impl SyncService {
 
         // 确认方持久化发起方
         store.upsert_paired_device(&requester.device_id, &requester.device_name)?;
+        store.update_paired_device_ips(&requester.device_id, &requester.ips)?;
         // 配对握手成功 → 发起方立即进入"近期在线"（任务 O 验收 11：不能等下一次同步）
         self.touch_last_seen(store, &requester.device_id, "pairing");
         // 记录发起方直连 IP（供后续周期推送直连优先）
@@ -1070,6 +1077,15 @@ impl SyncService {
     ///   （跨网段不依赖 n0 公共 DNS TXT 地址解析——中国大陆不可达）。
     ///   无 relay 配置（Disabled，`relay_map().urls()` 为空）→ 不附加，维持原有
     ///   DNS 地址解析路径，行为不变（局域网 mDNS/直连场景不受影响）。
+    pub fn peer_addrs(&self, peer_id: &str) -> Vec<String> {
+        self.peer_ips
+            .lock()
+            .unwrap()
+            .get(peer_id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
     pub fn build_connect_addr(
         &self,
         node_id: iroh::EndpointId,
@@ -1213,6 +1229,7 @@ impl SyncService {
 
         // 握手响应 → 发起方持久化确认方
         store.upsert_paired_device(&response.device_id, &response.device_name)?;
+        store.update_paired_device_ips(&response.device_id, &target.ips)?;
         // 配对握手成功 → 确认方立即进入"近期在线"（任务 O 验收 11）
         self.touch_last_seen(store, &response.device_id, "pairing");
         // 记录确认方直连 IP（供后续周期推送直连优先）
@@ -1511,6 +1528,68 @@ impl SyncService {
     fn import_raw(&mut self, version: u32, data: &[u8]) -> Result<()> {
         let mut core = self.core.lock().unwrap();
         import_core_raw(&mut core, version, data)
+    }
+
+    /// 对指定已配对设备执行轻量健康检查，不发送笔记快照。
+    pub async fn check_connectivity(
+        &self,
+        store: &NoteStore,
+        peer_id: &str,
+        peer_ips: Vec<String>,
+    ) -> Result<u64> {
+        {
+            let mut in_flight = self.connectivity_in_flight.lock().unwrap();
+            if !in_flight.insert(peer_id.to_string()) {
+                anyhow::bail!("connectivity check already in flight");
+            }
+        }
+        struct InFlightGuard<'a> {
+            set: &'a Mutex<HashSet<String>>,
+            peer_id: String,
+        }
+        impl Drop for InFlightGuard<'_> {
+            fn drop(&mut self) {
+                self.set.lock().unwrap().remove(&self.peer_id);
+            }
+        }
+        let _guard = InFlightGuard {
+            set: &self.connectivity_in_flight,
+            peer_id: peer_id.to_string(),
+        };
+        let started = std::time::Instant::now();
+        let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
+        let ips = if peer_ips.is_empty() {
+            self.peer_ips
+                .lock()
+                .unwrap()
+                .get(peer_id)
+                .cloned()
+                .unwrap_or_default()
+        } else {
+            peer_ips
+        };
+        let addr = self.build_connect_addr(node_id, &ips)?;
+        let conn = tokio::time::timeout(Duration::from_secs(3), self.endpoint.connect(addr, ALPN))
+            .await
+            .context("health-check connection timeout")??;
+        let mut send = conn.open_uni().await.context("open health-check stream")?;
+        send.write_all(HEALTH_MAGIC)
+            .await
+            .context("write health-check")?;
+        send.finish().context("finish health-check")?;
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+        let remaining = || deadline.saturating_duration_since(tokio::time::Instant::now());
+        let mut ack = tokio::time::timeout(remaining(), conn.accept_uni())
+            .await
+            .context("health-check ACK timeout")??;
+        let data = tokio::time::timeout(remaining(), ack.read_to_end(HEALTH_ACK.len() + 1))
+            .await
+            .context("health-check ACK read timeout")??;
+        if data.as_slice() != HEALTH_ACK {
+            anyhow::bail!("invalid health-check ACK");
+        }
+        store.update_last_seen(peer_id)?;
+        Ok(started.elapsed().as_millis() as u64)
     }
 
     /// 向指定对端推送所有笔记的快照
@@ -1852,6 +1931,7 @@ impl SyncService {
         // pending_pairing——配对帧与推送帧不丢帧、不互抢）
         match route_incoming(incoming, &self.pending_pairing).await? {
             RoutedIncoming::Push { data, .. } => Ok(Some(data)),
+            RoutedIncoming::HealthCheck { .. } => Ok(None),
             RoutedIncoming::Pairing => Ok(None),
             RoutedIncoming::DeviceName { device_id, name } => {
                 self.pending_peer_names
@@ -1984,7 +2064,7 @@ impl SyncService {
             self.mark_synced_all();
             for r in &results {
                 if r.ok {
-                    self.touch_last_seen(store, &r.peer_id, "outbound_push");
+                    self.touch_last_sync(store, &r.peer_id, "outbound_push");
                 }
             }
         } else {
@@ -2046,7 +2126,7 @@ impl SyncService {
             self.mark_synced_all();
             for r in &results {
                 if r.ok {
-                    self.touch_last_seen(store, &r.peer_id, "outbound_push");
+                    self.touch_last_sync(store, &r.peer_id, "outbound_push");
                 }
             }
         } else if !results.is_empty() {
@@ -2202,6 +2282,31 @@ impl SyncService {
     /// 更新配对设备 last_seen 并输出结构化日志（触发原因配对/主动推送/被动接收）。
     ///
     /// 仅成功连接/同步后调用；失败路径不得调用（验收 14：失败不标记在线）。
+    fn touch_last_sync(&self, store: &NoteStore, peer_id: &str, reason: &str) {
+        match store.update_last_sync_at(peer_id) {
+            Ok(()) => {
+                self.emit_log(
+                    LogEvent::new("device.last_sync_at", "device")
+                        .with_id(&self.device_id())
+                        .with_id(peer_id)
+                        .with_field("reason", reason)
+                        .with_field("action", "updated"),
+                );
+            }
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("device.last_sync_at", "device")
+                        .with_id(&self.device_id())
+                        .with_id(peer_id)
+                        .with_field("reason", reason)
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}")),
+                );
+            }
+        }
+    }
+
     fn touch_last_seen(&self, store: &NoteStore, peer_id: &str, reason: &str) {
         match store.update_last_seen(peer_id) {
             Ok(()) => {
@@ -2393,6 +2498,16 @@ async fn route_incoming(
     recv.read_exact(&mut marker)
         .await
         .context("read frame marker")?;
+    if &marker == HEALTH_MAGIC {
+        let mut ack = conn.open_uni().await.context("open health-check ACK")?;
+        ack.write_all(HEALTH_ACK)
+            .await
+            .context("write health-check ACK")?;
+        ack.finish().context("finish health-check ACK")?;
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        conn.close(0u32.into(), b"done");
+        return Ok(RoutedIncoming::HealthCheck { sender: sender_id });
+    }
     if &marker == LORO_MAGIC {
         // 推送帧：剩余部分 = export_all 输出（[墓碑数][记录流]）
         let data = recv
@@ -2521,6 +2636,12 @@ async fn receiver_handle_incoming(
     flush_pending_peer_names(&ctx.store, &ctx.pending_peer_names);
     let (sender_id, data) = match routed {
         RoutedIncoming::Push { sender, data } => (sender, data),
+        RoutedIncoming::HealthCheck { sender } => {
+            ctx.store
+                .update_last_seen(&sender.to_string())
+                .context("update health-check last_seen")?;
+            return Ok(());
+        }
         // 配对帧：已路由到 pending_pairing，接收器继续等待
         RoutedIncoming::Pairing => return Ok(()),
         RoutedIncoming::DeviceName { device_id, name } => {

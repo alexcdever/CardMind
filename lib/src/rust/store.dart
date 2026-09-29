@@ -95,8 +95,11 @@ class PairedDeviceRow {
   /// 对端设备名
   final String name;
 
-  /// 最后成功连接/同步时间（ISO8601；尚未连接过 = None）
+  /// 最近一次成功通信时间（ISO8601；尚未连接过 = None）
   final String? lastSeen;
+
+  /// 最近一次实际笔记同步时间（ISO8601；尚未同步过 = None）
+  final String? lastSyncAt;
 
   /// 配对时间（ISO8601）
   final String pairedAt;
@@ -105,12 +108,17 @@ class PairedDeviceRow {
     required this.peerId,
     required this.name,
     this.lastSeen,
+    this.lastSyncAt,
     required this.pairedAt,
   });
 
   @override
   int get hashCode =>
-      peerId.hashCode ^ name.hashCode ^ lastSeen.hashCode ^ pairedAt.hashCode;
+      peerId.hashCode ^
+      name.hashCode ^
+      lastSeen.hashCode ^
+      lastSyncAt.hashCode ^
+      pairedAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -120,5 +128,6 @@ class PairedDeviceRow {
           peerId == other.peerId &&
           name == other.name &&
           lastSeen == other.lastSeen &&
+          lastSyncAt == other.lastSyncAt &&
           pairedAt == other.pairedAt;
 }

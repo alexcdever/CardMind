@@ -42,6 +42,34 @@ void main() {
     },
   );
 
+  test(
+    'paired device timestamps round-trip through real FRB repository',
+    () async {
+      final dir = await Directory.systemTemp.createTemp(
+        'cardmind_repo_devices_',
+      );
+      final repository = await FrbNoteRepository.open(dataDirectory: dir.path);
+      addTearDown(() {
+        repository.close();
+        if (dir.existsSync()) dir.deleteSync(recursive: true);
+      });
+
+      final db = File('${dir.path}/cardmind.db');
+      expect(db.existsSync(), isTrue);
+      final sqlite = Process.runSync('sqlite3', [
+        db.path,
+        "INSERT INTO paired_devices(peer_id, name, last_seen, last_sync_at, paired_at) VALUES ('peer-frb', 'FRB Peer', '2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z', '2025-12-01T00:00:00Z');",
+      ]);
+      expect(sqlite.exitCode, 0, reason: sqlite.stderr.toString());
+
+      final rows = await repository.listPairedDevices();
+      expect(rows, hasLength(1));
+      expect(rows.single.peerId, 'peer-frb');
+      expect(rows.single.lastSeen, '2026-01-01T00:00:00Z');
+      expect(rows.single.lastSyncAt, '2026-01-02T00:00:00Z');
+    },
+  );
+
   test('closed repository rejects further operations', () async {
     final dir = await Directory.systemTemp.createTemp('cardmind_repo_closed_');
     final repository = await FrbNoteRepository.open(dataDirectory: dir.path);

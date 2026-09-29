@@ -267,6 +267,17 @@ Future<List<DevicePushResult>> pushToDevices({
   required List<(String, List<String>?)> devices,
 }) => RustLib.instance.api.crateApiPushToDevices(svc: svc, devices: devices);
 
+/// 对已配对设备执行有界轻量健康检查，成功时更新 last_seen。
+Future<BigInt> checkDeviceConnectivity({
+  required SyncService svc,
+  required NoteStore store,
+  required String peerId,
+}) => RustLib.instance.api.crateApiCheckDeviceConnectivity(
+  svc: svc,
+  store: store,
+  peerId: peerId,
+);
+
 /// SQLite — 列出所有配对设备（最近连接优先）。
 Future<List<PairedDeviceRow>> listPairedDevices({required NoteStore store}) =>
     RustLib.instance.api.crateApiListPairedDevices(store: store);

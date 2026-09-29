@@ -14,7 +14,7 @@ import 'sync_scheduler.dart';
 ///
 /// Manages [SyncService] (CRDT), [NoteStore] (SQLite read cache),
 /// and the auto-sync scheduler (任务 H：编辑保存即推送 + 周期拉取 + WiFi 条件)。
-class BridgeHelper implements NoteRepository {
+class BridgeHelper implements NoteRepository, ConnectivityRepository {
   static final BridgeHelper _instance = BridgeHelper._();
   factory BridgeHelper() => _instance;
   BridgeHelper._();
@@ -352,6 +352,11 @@ class BridgeHelper implements NoteRepository {
   @override
   Future<List<PairedDeviceRow>> listPairedDevices() async {
     return _delegate.listPairedDevices();
+  }
+
+  @override
+  Future<int> checkDeviceConnectivity(String peerId) {
+    return _delegate.checkDeviceConnectivity(peerId);
   }
 
   /// 解除配对。
