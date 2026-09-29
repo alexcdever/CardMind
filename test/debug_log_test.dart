@@ -288,11 +288,7 @@ void main() {
       );
       await sink.flush();
 
-      expect(
-        File(sink.path).existsSync(),
-        isTrue,
-        reason: '写入后日志文件必须真实存在',
-      );
+      expect(File(sink.path).existsSync(), isTrue, reason: '写入后日志文件必须真实存在');
       expect(
         p.isWithin(resolved.path, sink.path),
         isTrue,
@@ -319,44 +315,53 @@ void main() {
       if (tempBase.existsSync()) await tempBase.delete(recursive: true);
     });
 
-    test('returns the resolved path and calls the injected opener once', () async {
-      var openCount = 0;
-      String? openedWith;
+    test(
+      'returns the resolved path and calls the injected opener once',
+      () async {
+        var openCount = 0;
+        String? openedWith;
 
-      final path = await revealLogDirectory(
-        baseDirectory: tempBase.path,
-        opener: (directory) async {
-          openCount++;
-          openedWith = directory;
-        },
-      );
+        final path = await revealLogDirectory(
+          baseDirectory: tempBase.path,
+          opener: (directory) async {
+            openCount++;
+            openedWith = directory;
+          },
+        );
 
-      expect(path, p.join(tempBase.path, 'logs'));
-      expect(openCount, 1, reason: '注入的 opener 必须被调用且恰好一次');
-      expect(openedWith, path, reason: 'opener 收到的必须是解析出的实际路径');
-    });
+        expect(path, p.join(tempBase.path, 'logs'));
+        expect(openCount, 1, reason: '注入的 opener 必须被调用且恰好一次');
+        expect(openedWith, path, reason: 'opener 收到的必须是解析出的实际路径');
+      },
+    );
 
-    test('opener failure is swallowed but the path is still returned', () async {
-      final path = await revealLogDirectory(
-        baseDirectory: tempBase.path,
-        opener: (_) async => throw const ProcessException('open', <String>[]),
-      );
+    test(
+      'opener failure is swallowed but the path is still returned',
+      () async {
+        final path = await revealLogDirectory(
+          baseDirectory: tempBase.path,
+          opener: (_) async => throw const ProcessException('open', <String>[]),
+        );
 
-      expect(
-        path,
-        p.join(tempBase.path, 'logs'),
-        reason: '打开失败不得抛异常到调用方，且仍返回路径供 UI 展示',
-      );
-    });
+        expect(
+          path,
+          p.join(tempBase.path, 'logs'),
+          reason: '打开失败不得抛异常到调用方，且仍返回路径供 UI 展示',
+        );
+      },
+    );
 
-    test('resolver failure degrades to an empty path without throwing', () async {
-      final path = await revealLogDirectory(
-        resolver: ({String? baseDirectory}) async =>
-            throw StateError('no app support dir'),
-        opener: (_) async => fail('解析失败时不应调用 opener'),
-      );
+    test(
+      'resolver failure degrades to an empty path without throwing',
+      () async {
+        final path = await revealLogDirectory(
+          resolver: ({String? baseDirectory}) async =>
+              throw StateError('no app support dir'),
+          opener: (_) async => fail('解析失败时不应调用 opener'),
+        );
 
-      expect(path, '', reason: '解析彻底失败时返回空串，绝不抛出');
-    });
+        expect(path, '', reason: '解析彻底失败时返回空串，绝不抛出');
+      },
+    );
   });
 }

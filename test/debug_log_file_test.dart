@@ -131,15 +131,19 @@ void main() {
   });
 
   group('initializeFileLogging', () {
-    test('attaches nothing under FLUTTER_TEST (no disk writes)', () async {
-      // flutter test 环境自带 FLUTTER_TEST 环境变量；守卫应在打开任何文件前返回
-      await initializeFileLogging(log: DebugLogger.instance);
-      expect(
-        DebugLogger.instance.extraSinkCount,
-        0,
-        reason: '测试环境下 initializeFileLogging 不得挂载文件 sink',
-      );
-    }, timeout: const Timeout(Duration(minutes: 3)));
+    test(
+      'attaches nothing under FLUTTER_TEST (no disk writes)',
+      () async {
+        // flutter test 环境自带 FLUTTER_TEST 环境变量；守卫应在打开任何文件前返回
+        await initializeFileLogging(log: DebugLogger.instance);
+        expect(
+          DebugLogger.instance.extraSinkCount,
+          0,
+          reason: '测试环境下 initializeFileLogging 不得挂载文件 sink',
+        );
+      },
+      timeout: const Timeout(Duration(minutes: 3)),
+    );
 
     test('attached extra sink receives emitted events (fan-out)', () async {
       // 用内存 sink 模拟 attach 通道本身的行为（不依赖磁盘环境）

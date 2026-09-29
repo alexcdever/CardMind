@@ -102,7 +102,10 @@ void main() {
   }) {
     final path = dartBinDir().isEmpty
         ? (Platform.environment['PATH'] ?? '')
-        : <String>[dartBinDir(), Platform.environment['PATH'] ?? ''].join(pathSep());
+        : <String>[
+            dartBinDir(),
+            Platform.environment['PATH'] ?? '',
+          ].join(pathSep());
     return <String, String>{
       ...Platform.environment,
       'PATH': path,

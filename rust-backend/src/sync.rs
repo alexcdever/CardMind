@@ -2972,14 +2972,8 @@ pub fn encode_credential_v2(
     pairing_code: u32,
     ips: &[String],
 ) -> Result<Vec<u8>> {
-    let payload = build_canonical_payload_v2(
-        issued_at,
-        expires_at,
-        nonce,
-        node_id,
-        pairing_code,
-        ips,
-    )?;
+    let payload =
+        build_canonical_payload_v2(issued_at, expires_at, nonce, node_id, pairing_code, ips)?;
     let signature = secret_key.sign(&payload);
     let mut out = Vec::with_capacity(payload.len() + CREDENTIAL_SIGNATURE_LEN);
     out.extend_from_slice(&payload);

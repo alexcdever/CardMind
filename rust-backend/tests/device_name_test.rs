@@ -72,12 +72,18 @@ fn default_device_name_uses_hostname_when_windows_name_missing() {
 fn default_device_name_falls_back_to_fixed_string() {
     assert_eq!(default_device_name_with(None, None), FALLBACK);
     // 空/仅分隔符的 Windows 名视为取不到，继续回退
-    assert_eq!(default_device_name_with(Some(String::new()), None), FALLBACK);
+    assert_eq!(
+        default_device_name_with(Some(String::new()), None),
+        FALLBACK
+    );
     assert_eq!(
         default_device_name_with(Some(".".to_string()), None),
         FALLBACK
     );
-    assert_eq!(default_device_name_with(None, Some(String::new())), FALLBACK);
+    assert_eq!(
+        default_device_name_with(None, Some(String::new())),
+        FALLBACK
+    );
 }
 
 // ━━━ A3：真实调用取到主机名 ━━━

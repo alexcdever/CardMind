@@ -283,7 +283,9 @@ void main() {
     expect(openedWith, resolved, reason: 'opener 收到的必须是解析出的真实路径');
   });
 
-  testWidgets('A3: open failure surfaces the path via SnackBar', (tester) async {
+  testWidgets('A3: open failure surfaces the path via SnackBar', (
+    tester,
+  ) async {
     const resolved = '/tmp/cardmind-logs-failing';
 
     await tester.pumpWidget(
@@ -350,11 +352,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('日志目录'), findsOneWidget);
-      expect(
-        find.text('加载中…'),
-        findsNothing,
-        reason: '解析失败后副标题不得继续显示「加载中…」',
-      );
+      expect(find.text('加载中…'), findsNothing, reason: '解析失败后副标题不得继续显示「加载中…」');
       expect(
         find.text('无法获取日志目录'),
         findsOneWidget,

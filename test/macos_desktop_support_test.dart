@@ -27,10 +27,7 @@ void main() {
       _read('macos/Runner/Release.entitlements'),
       contains('com.apple.security.network.client'),
     );
-    expect(
-      _read('rust-backend/Cargo.toml'),
-      contains('[profile.release]'),
-    );
+    expect(_read('rust-backend/Cargo.toml'), contains('[profile.release]'));
     expect(_read('rust-backend/Cargo.toml'), contains('strip = true'));
     final buildScript = _read('tool/build.dart');
     expect(buildScript, contains('libcardmind_backend.dylib'));

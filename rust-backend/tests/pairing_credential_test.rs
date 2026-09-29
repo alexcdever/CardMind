@@ -749,10 +749,7 @@ fn generated_credential_contains_local_addrs() {
         let parsed = svc.parse_pairing_credential(&display.credential).unwrap();
 
         let local = svc.local_addrs();
-        assert_eq!(
-            parsed.ips, local,
-            "凭证内嵌 IP 必须等于 svc.local_addrs()"
-        );
+        assert_eq!(parsed.ips, local, "凭证内嵌 IP 必须等于 svc.local_addrs()");
 
         if local.is_empty() {
             eprintln!(
@@ -870,29 +867,23 @@ fn credential_connect_end_to_end_uses_embedded_ips() {
             .expect("initiator credential connect 挂起")
             .expect("凭证直连应成功（凭证内嵌 IP）");
             // drain 确认方首次全量同步推送
-            let _ = tokio::time::timeout(
-                std::time::Duration::from_secs(10),
-                initiator.accept_push(),
-            )
-            .await
-            .ok();
+            let _ =
+                tokio::time::timeout(std::time::Duration::from_secs(10), initiator.accept_push())
+                    .await
+                    .ok();
             result
         });
 
-        let (confirm_result, request) = tokio::time::timeout(
-            std::time::Duration::from_secs(40),
-            confirmer_handle,
-        )
-        .await
-        .expect("confirmer task 挂起")
-        .unwrap();
-        let connect_result = tokio::time::timeout(
-            std::time::Duration::from_secs(40),
-            initiator_handle,
-        )
-        .await
-        .expect("initiator task 挂起")
-        .unwrap();
+        let (confirm_result, request) =
+            tokio::time::timeout(std::time::Duration::from_secs(40), confirmer_handle)
+                .await
+                .expect("confirmer task 挂起")
+                .unwrap();
+        let connect_result =
+            tokio::time::timeout(std::time::Duration::from_secs(40), initiator_handle)
+                .await
+                .expect("initiator task 挂起")
+                .unwrap();
 
         assert_eq!(
             connect_result.peer_id, confirmer_id,
