@@ -667,10 +667,8 @@ class _DevicesPageState extends State<DevicesPage> {
     final saved = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _DeviceNameDialog(
-        repository: _repository,
-        initialName: _deviceName,
-      ),
+      builder: (_) =>
+          _DeviceNameDialog(repository: _repository, initialName: _deviceName),
     );
     if (saved != true || !mounted) return;
     await _load();
@@ -869,7 +867,10 @@ class _DeviceNameDialogState extends State<_DeviceNameDialog> {
                 child: Text(
                   _submitError!,
                   key: const ValueKey('device-name-submit-error'),
-                  style: TextStyle(color: context.cardMind.danger, fontSize: 13),
+                  style: TextStyle(
+                    color: context.cardMind.danger,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ],

@@ -98,8 +98,7 @@ class _FakeRepository implements NoteRepository {
   Future<PairingResult> beginPairingConnect(
     String code,
     PairingTarget target,
-  ) =>
-      throw UnimplementedError('not used');
+  ) => throw UnimplementedError('not used');
   @override
   Future<PairingCredentialDisplay> beginPairingCredential() =>
       throw UnimplementedError('not used');
@@ -107,9 +106,7 @@ class _FakeRepository implements NoteRepository {
   Future<ParsedPairingCredential> parsePairingCredential(String credential) =>
       throw UnimplementedError('not used');
   @override
-  Future<PairingResult> beginPairingConnectWithCredential(
-    String credential,
-  ) =>
+  Future<PairingResult> beginPairingConnectWithCredential(String credential) =>
       throw UnimplementedError('not used');
   @override
   Future<void> acceptAndImportPush() async {}
@@ -187,7 +184,9 @@ void main() {
     expect(find.byKey(const ValueKey('device-name-input')), findsNothing);
   });
 
-  testWidgets('空输入 → 不调 setDeviceName，弹窗不关，错误内联在字段下（非 SnackBar）', (tester) async {
+  testWidgets('空输入 → 不调 setDeviceName，弹窗不关，错误内联在字段下（非 SnackBar）', (
+    tester,
+  ) async {
     final repo = _FakeRepository();
     await _pumpPage(tester, repo);
     await _openEditor(tester);

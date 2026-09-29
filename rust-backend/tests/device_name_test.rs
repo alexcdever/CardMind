@@ -1,8 +1,7 @@
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
-    decode_device_name_frame, default_device_name_with, detect_hostname,
-    encode_device_name_frame, load_device_name, normalize_hostname, store_device_name,
-    SyncService,
+    decode_device_name_frame, default_device_name_with, detect_hostname, encode_device_name_frame,
+    load_device_name, normalize_hostname, store_device_name, SyncService,
 };
 
 fn rt() -> tokio::runtime::Runtime {
@@ -11,10 +10,8 @@ fn rt() -> tokio::runtime::Runtime {
 
 /// 独立的临时目录（进程内按 label 区分；已存在则先清空）。
 fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!(
-        "cardmind-devname-{label}-{}",
-        std::process::id()
-    ));
+    let path =
+        std::env::temp_dir().join(format!("cardmind-devname-{label}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
     path

@@ -1739,7 +1739,10 @@ impl SyncService {
     ///
     /// 单台失败不中断整体（与 `push_to_paired_devices` 同语义）；对端离线时
     /// 静默跳过——名字帧不重试，对端下次配对或改名时会再收到。
-    pub async fn push_device_name_to_paired_devices(&self, store: &NoteStore) -> Vec<DevicePushResult> {
+    pub async fn push_device_name_to_paired_devices(
+        &self,
+        store: &NoteStore,
+    ) -> Vec<DevicePushResult> {
         let name = self.device_name();
         let wire = encode_device_name_frame(&self.device_id(), &name);
         let devices = match store.list_paired_devices() {
