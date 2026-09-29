@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "task_id": "device-connectivity-check",
+  "role": "main-agent",
+  "phase": "post-merge",
+  "status": "PASS_WITH_LIMITATIONS",
+  "main_worktree": "/Users/alexc/Projects/CardMind",
+  "worktree": "/Users/alexc/Projects/CardMind",
+  "branch": "main",
+  "head": "e443e857550ba7a4715d4fbd43dc829e72067807",
+  "merge_commit": "e443e857550ba7a4715d4fbd43dc829e72067807",
+  "direct_main_reverification": {
+    "rust": "PASS",
+    "flutter": "PASS",
+    "frb": "PASS",
+    "build": "PASS",
+    "analyze": "PASS"
+  },
+  "commands": [
+    {
+      "command": "cargo test --manifest-path rust-backend/Cargo.toml --test connect_test",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "passed": 10
+    },
+    {
+      "command": "cargo test --manifest-path rust-backend/Cargo.toml --test store_test",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "passed": 7
+    },
+    {
+      "command": "cargo test --manifest-path rust-backend/Cargo.toml --test sync_service_test",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "passed": 5
+    },
+    {
+      "command": "cargo test --manifest-path rust-backend/Cargo.toml --test sync_test",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "passed": 1
+    },
+    {
+      "command": "flutter test test/sync_ui_widget_test.dart",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "passed": 13
+    },
+    {
+      "command": "flutter test test/frb_note_repository_test.dart",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "passed": 6
+    },
+    {
+      "command": "flutter_rust_bridge_codegen generate",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0
+    },
+    {
+      "command": "dart run tool/build.dart lib",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "assertion": "Rust library built successfully"
+    },
+    {
+      "command": "flutter analyze",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0,
+      "assertion": "No issues found"
+    },
+    {
+      "command": "git diff --check",
+      "cwd": "/Users/alexc/Projects/CardMind",
+      "exit_code": 0
+    }
+  ],
+  "limitations": {
+    "gitnexus": {
+      "impact": "unavailable",
+      "detect_changes": "unavailable",
+      "fabricated": false
+    },
+    "windows_android_live_ui": "not_verified",
+    "boundary_evidence": [
+      "ACK no/partial response dedicated fixture not directly verified",
+      "paired restart to FRB health-check using persisted last_ips not directly verified",
+      "Semantics tree, keyboard, 44x44 hit area, and background-refresh race not directly verified"
+    ],
+    "mechanical_gate": {
+      "pipeline_tools": "unavailable in environment",
+      "status": "not_claimed_pass",
+      "possible_blockers": [
+        "task-sheet test_ref may not identify the exact added acceptance test",
+        "pipeline-evidence format or stage evidence rules may block the gate"
+      ]
+    },
+    "uncommitted_workspace": [
+      ".workflow archive migration deletions and .workflow-archive-2026-09-30/",
+      ".pipeline/device-connectivity-check-main-premerge/",
+      ".pipeline/metrics/",
+      "docs/progress.md",
+      "docs/memory/2026-09-29.md",
+      "docs/superpowers/"
+    ]
+  },
+  "scope_note": "Only post-merge evidence files final-check.md and final-result.json were updated; no product code, tests, goal, or task sheet was changed."
+}
