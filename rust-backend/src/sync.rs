@@ -37,6 +37,11 @@ pub struct SyncService {
     /// 确认方已接收、等待用户确认的配对请求及其连接（确认时回复握手响应）。
     /// Arc 共享：后台接收任务（任务 O）与主服务路由到同一 pending_pairing。
     pending_pairing: Arc<Mutex<Option<PendingPairing>>>,
+    /// 轮询路径抢到的改名帧暂存（peer_id → 新名字）。
+    ///
+    /// 接收器与周期 accept 竞争同一个 `endpoint.accept()`；轮询路径拿不到 `store`，
+    /// 无法直接落库，故先存这里，由下一次 `flush_pending_peer_names` 写入。
+    pending_peer_names: Arc<Mutex<HashMap<String, String>>>,
     /// 本设备名（配对握手时发送给对端；默认取主机名）
     device_name: Mutex<String>,
     /// 同步开关（决策 6 能力）：false 时调度器暂停推送与拉取。
@@ -90,6 +95,8 @@ struct ReceiverContext {
     core: Arc<Mutex<CoreState>>,
     /// 共享配对路由状态（与主服务同一 pending_pairing——配对帧不丢、不互抢）
     pending_pairing: Arc<Mutex<Option<PendingPairing>>>,
+    /// 轮询路径暂存的改名帧（接收器落库时一并冲刷）
+    pending_peer_names: Arc<Mutex<HashMap<String, String>>>,
     store: NoteStore,
     log: Arc<dyn LogSink>,
     device_id: String,
@@ -238,6 +245,21 @@ const PAIRING_MAX_FAILED_ATTEMPTS: u32 = 5;
 // 配对握手线协议标记（帧内首字节）
 const PAIRING_FRAME_REQUEST: u8 = 0x01;
 const PAIRING_FRAME_RESPONSE: u8 = 0x02;
+// 设备改名帧（首字节；magic 与 0x01/0x02 均不冲突）
+const DEVICE_NAME_FRAME: u8 = 0x03;
+
+/// 统一 incoming 路由结果。
+enum RoutedIncoming {
+    /// 推送帧：发送方（取自 TLS 证书）+ `export_all` 输出。
+    Push {
+        sender: iroh::EndpointId,
+        data: Vec<u8>,
+    },
+    /// 配对请求帧：已存入 `pending_pairing`，调用方继续等待。
+    Pairing,
+    /// 设备改名帧：对端告知其新设备名。
+    DeviceName { device_id: String, name: String },
+}
 
 impl SyncService {
     /// 创建同步服务，绑定随机的 iroh 端点（内存版：SecretKey 随机，测试用）。
@@ -303,7 +325,10 @@ impl SyncService {
             secret_key: secret_key_for_signing,
             pairing_session: Mutex::new(None),
             pending_pairing: Arc::new(Mutex::new(None)),
-            device_name: Mutex::new(default_device_name()),
+            pending_peer_names: Arc::new(Mutex::new(HashMap::new())),
+            device_name: Mutex::new(
+                load_device_name(data_dir.as_deref()).unwrap_or_else(default_device_name),
+            ),
             sync_allowed: AtomicBool::new(true),
             pending_dirty: Mutex::new(HashSet::new()),
             last_pushed_at: Mutex::new(HashMap::new()),
@@ -458,9 +483,23 @@ impl SyncService {
         self.device_name.lock().unwrap().clone()
     }
 
-    /// 设置本设备名
+    /// 设置本设备名（持久化版同时落盘 `device_name.txt`；写失败只记日志，不影响内存态）。
     pub fn set_device_name(&self, name: &str) {
         *self.device_name.lock().unwrap() = name.to_string();
+        let data_dir = {
+            let core = self.core.lock().unwrap();
+            core.persistent_path
+                .as_ref()
+                .and_then(|p| p.parent().map(Path::to_path_buf))
+        };
+        if let Err(e) = store_device_name(data_dir.as_deref(), name) {
+            self.emit_log(
+                LogEvent::new("device.name", "persist")
+                    .with_id(&self.device_id())
+                    .with_field("action", "failed")
+                    .with_error(&e.to_string()),
+            );
+        }
     }
 
     // ━━━ 配对码（任务 G）━━━
@@ -1659,12 +1698,12 @@ impl SyncService {
         results
     }
 
-    /// 单台设备的连接 + 发送（复用推送逻辑，data 为预导出的快照）
-    async fn push_to_peer_once(
+    /// 单台设备的连接 + 发送任意已编码线格式字节。
+    async fn send_wire_to_peer(
         &self,
         peer_id: &str,
         peer_ips: Option<&[String]>,
-        data: &[u8],
+        wire: &[u8],
     ) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
         let addr = self.build_connect_addr(node_id, peer_ips.unwrap_or(&[]))?;
@@ -1675,16 +1714,76 @@ impl SyncService {
             .await
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
-        // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧）
-        send.write_all(&encode_push_wire(data))
-            .await
-            .context("write snapshot data")?;
+        send.write_all(wire).await.context("write wire data")?;
         send.finish().context("finish uni stream")?;
-        // 保持连接存活直到对端读完并关闭；超时保护（push_to_paired_devices 外层也有 10s 超时）
+        // 保持连接存活直到对端读完并关闭；超时保护（外层也有 10s 超时）
         tokio::time::timeout(std::time::Duration::from_secs(10), conn.closed())
             .await
             .ok();
         Ok(())
+    }
+
+    /// 单台设备的连接 + 发送（复用推送逻辑，data 为预导出的快照）
+    async fn push_to_peer_once(
+        &self,
+        peer_id: &str,
+        peer_ips: Option<&[String]>,
+        data: &[u8],
+    ) -> Result<()> {
+        // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧）
+        self.send_wire_to_peer(peer_id, peer_ips, &encode_push_wire(data))
+            .await
+    }
+
+    /// 向所有已配对设备广播本机新设备名（改名传播）。
+    ///
+    /// 单台失败不中断整体（与 `push_to_paired_devices` 同语义）；对端离线时
+    /// 静默跳过——名字帧不重试，对端下次配对或改名时会再收到。
+    pub async fn push_device_name_to_paired_devices(&self, store: &NoteStore) -> Vec<DevicePushResult> {
+        let name = self.device_name();
+        let wire = encode_device_name_frame(&self.device_id(), &name);
+        let devices = match store.list_paired_devices() {
+            Ok(rows) => rows,
+            Err(e) => {
+                self.emit_log(
+                    LogEvent::new("device.name", "broadcast")
+                        .with_id(&self.device_id())
+                        .with_field("action", "failed")
+                        .with_error(&e.to_string()),
+                );
+                return Vec::new();
+            }
+        };
+        let peer_ips = self.peer_ips.lock().unwrap().clone();
+
+        let mut results = Vec::with_capacity(devices.len());
+        for device in devices {
+            let peer_id = device.peer_id;
+            let ips = peer_ips.get(&peer_id).cloned();
+            let outcome = tokio::time::timeout(
+                std::time::Duration::from_secs(10),
+                self.send_wire_to_peer(&peer_id, ips.as_deref(), &wire),
+            )
+            .await;
+            let (ok, message) = match outcome {
+                Ok(Ok(())) => (true, String::new()),
+                Ok(Err(e)) => (false, format!("{e:#}")),
+                Err(_) => (false, "device name push timeout after 10s".to_string()),
+            };
+            self.emit_log(
+                LogEvent::new("device.name", "broadcast")
+                    .with_id(&self.device_id())
+                    .with_id(&peer_id)
+                    .with_field("action", if ok { "success" } else { "failed" })
+                    .with_error(&message),
+            );
+            results.push(DevicePushResult {
+                peer_id,
+                ok,
+                message,
+            });
+        }
+        results
     }
 
     /// 监听并接受对端的推送，返回原始字节数据
@@ -1737,12 +1836,10 @@ impl SyncService {
     ///
     /// 帧标记（M2 修复——不能用单字节判定，否则推送 payload 首字节 0x01 与配对帧
     /// 冲突）：
-    /// - 前 8 字节 == `LORO_MAGIC`（"CARDMIND"）→ 推送帧：读完整 payload，
-    ///   关闭连接通知发送端可释放，返回剥离 magic 后的 `Ok(Some(data))`
-    ///   （data 即 `export_all` 输出，`import_all` 直接消费）。
-    /// - 首字节 `PAIRING_FRAME_REQUEST (0x01)` → 配对请求帧：解析并存入
-    ///   `pending_pairing`（供 `confirm_pairing` 在同一连接上回复握手响应），
-    ///   返回 `Ok(None)`。
+    /// - 前 8 字节 == `LORO_MAGIC`（"CARDMIND"）→ 推送帧：返回 `export_all` 输出。
+    /// - 首字节 `PAIRING_FRAME_REQUEST (0x01)` → 存入 `pending_pairing`，返回 `None`。
+    /// - 首字节 `DEVICE_NAME_FRAME (0x03)` → 改名帧：本方法拿不到 `store`，暂存到
+    ///   `pending_peer_names`，由持有 store 的路径 flush；返回 `None`。
     /// - 其他 → 报错（未知帧标记）。
     async fn accept_incoming_routed(
         &self,
@@ -1750,8 +1847,17 @@ impl SyncService {
     ) -> Result<Option<Vec<u8>>> {
         // 统一路由自由函数（任务 O 后台接收器与主服务共用同一路由/同一
         // pending_pairing——配对帧与推送帧不丢帧、不互抢）
-        let routed = route_incoming(incoming, &self.pending_pairing).await?;
-        Ok(routed.map(|(_sender, data)| data))
+        match route_incoming(incoming, &self.pending_pairing).await? {
+            RoutedIncoming::Push { data, .. } => Ok(Some(data)),
+            RoutedIncoming::Pairing => Ok(None),
+            RoutedIncoming::DeviceName { device_id, name } => {
+                self.pending_peer_names
+                    .lock()
+                    .unwrap()
+                    .insert(device_id, name);
+                Ok(None)
+            }
+        }
     }
 
     /// 非阻塞接受对端推送（周期拉取用）：等待最多 `timeout`，超时返回 `Ok(None)`。
@@ -2019,6 +2125,7 @@ impl SyncService {
                 endpoint: self.endpoint.clone(),
                 core: self.core.clone(),
                 pending_pairing: self.pending_pairing.clone(),
+                pending_peer_names: self.pending_peer_names.clone(),
                 store: store.clone(),
                 log: self.log.clone(),
                 device_id: self.device_id(),
@@ -2273,7 +2380,7 @@ fn persist_core(core: &CoreState) -> Result<()> {
 async fn route_incoming(
     incoming: iroh::endpoint::Incoming,
     pending_pairing: &Mutex<Option<PendingPairing>>,
-) -> Result<Option<(iroh::EndpointId, Vec<u8>)>> {
+) -> Result<RoutedIncoming> {
     let conn = incoming.accept()?.await.context("accept connection")?;
     // 发送方身份：连接 TLS 证书中的 EndpointId（识别 inbound push 来源，
     // 用于精确更新 last_seen——无需在协议帧中带 sender_id）
@@ -2291,7 +2398,10 @@ async fn route_incoming(
             .context("read push data")?;
         // 数据已读入内存，主动关闭连接，通知发送端可释放
         conn.close(0u32.into(), b"done");
-        return Ok(Some((sender_id, data)));
+        return Ok(RoutedIncoming::Push {
+            sender: sender_id,
+            data,
+        });
     }
     if marker[0] == PAIRING_FRAME_REQUEST {
         // 配对请求帧：marker(8) + 剩余 = 完整帧（从 0x01 开始）
@@ -2307,7 +2417,20 @@ async fn route_incoming(
             request: request.clone(),
             conn,
         });
-        return Ok(None);
+        return Ok(RoutedIncoming::Pairing);
+    }
+    if marker[0] == DEVICE_NAME_FRAME {
+        // 改名帧：marker(8) + 剩余 = 完整帧（从 0x03 开始）
+        let mut rest = recv
+            .read_to_end(usize::MAX)
+            .await
+            .context("read device name frame")?;
+        let mut data = Vec::with_capacity(marker.len() + rest.len());
+        data.extend_from_slice(&marker);
+        data.append(&mut rest);
+        conn.close(0u32.into(), b"done");
+        let (device_id, name) = decode_device_name_frame(&data)?;
+        return Ok(RoutedIncoming::DeviceName { device_id, name });
     }
     anyhow::bail!("unknown incoming frame marker: {:?}", marker);
 }
@@ -2384,16 +2507,23 @@ async fn receiver_handle_incoming(
     ctx: &mut ReceiverContext,
     incoming: iroh::endpoint::Incoming,
 ) -> Result<()> {
-    let Some((sender_id, data)) = route_incoming(
+    let routed = route_incoming(
         incoming,
         // 接收器也参与配对帧路由：配对请求被接收器抢到时正确存入
         // pending_pairing（confirm_pairing 仍可完成握手）——验收 9 统一路由
         &ctx.pending_pairing,
     )
-    .await?
-    else {
+    .await?;
+    // 接收器持有 store，是唯一能落库改名帧的路径；顺带把轮询路径暂存的名字一并冲刷。
+    flush_pending_peer_names(&ctx.store, &ctx.pending_peer_names);
+    let (sender_id, data) = match routed {
+        RoutedIncoming::Push { sender, data } => (sender, data),
         // 配对帧：已路由到 pending_pairing，接收器继续等待
-        return Ok(());
+        RoutedIncoming::Pairing => return Ok(()),
+        RoutedIncoming::DeviceName { device_id, name } => {
+            apply_peer_name(&ctx.store, &device_id, &name);
+            return Ok(());
+        }
     };
     let started = std::time::Instant::now();
     let sender_str = sender_id.to_string();
@@ -2462,6 +2592,35 @@ async fn receiver_handle_incoming(
     Ok(())
 }
 
+/// 把对端新设备名写入配对列表（仅更新已存在的行；未配对设备静默忽略）。
+fn apply_peer_name(store: &NoteStore, device_id: &str, name: &str) {
+    match store.update_paired_device_name(device_id, name) {
+        Ok(true) => {}
+        Ok(false) => {}
+        Err(e) => {
+            debug_log::emit_global(
+                LogEvent::new("device.name", "update")
+                    .with_field("action", "failed")
+                    .with_error(&e.to_string()),
+            );
+        }
+    }
+}
+
+/// 冲刷轮询路径暂存的改名帧（接收器持有 store，是唯一能落库的路径）。
+fn flush_pending_peer_names(store: &NoteStore, pending: &Mutex<HashMap<String, String>>) {
+    let drained: Vec<(String, String)> = {
+        let mut guard = pending.lock().unwrap();
+        if guard.is_empty() {
+            return;
+        }
+        guard.drain().collect()
+    };
+    for (device_id, name) in drained {
+        apply_peer_name(store, &device_id, &name);
+    }
+}
+
 /// 接收任务结构化日志（脱敏 device_id；verbose 事件过滤）。
 fn receiver_log(ctx: &ReceiverContext, event: &str, action: &str, detail: Option<&str>) {
     if event.starts_with("receiver.heartbeat") && !ctx.log_verbose {
@@ -2512,6 +2671,23 @@ fn relay_endpoint(mode: &RelayMode) -> (bool, Option<String>, Option<u16>) {
         return (false, None, None);
     };
     (true, url.host_str().map(str::to_string), url.port())
+}
+
+/// 从数据目录读取已保存的设备名（`device_name.txt`）；不存在或空内容 → `None`。
+pub fn load_device_name(data_dir: Option<&Path>) -> Option<String> {
+    let dir = data_dir?;
+    let raw = std::fs::read_to_string(dir.join("device_name.txt")).ok()?;
+    let trimmed = raw.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+/// 把设备名写入数据目录（`device_name.txt`）；内存版（`None`）不落盘。
+pub fn store_device_name(data_dir: Option<&Path>, name: &str) -> Result<()> {
+    let Some(dir) = data_dir else {
+        return Ok(());
+    };
+    let path = dir.join("device_name.txt");
+    std::fs::write(&path, name).with_context(|| format!("write device name {}", path.display()))
 }
 
 /// 从数据目录读取 relay 配置（任务 K，`relay.txt` 极简配置）：
@@ -2777,6 +2953,26 @@ fn decode_pairing_response(data: &[u8]) -> Result<PairingResponse> {
         device_id,
         device_name,
     })
+}
+
+/// 编码设备改名帧：`[0x03][device_id][device_name]`（length-prefixed）。
+pub fn encode_device_name_frame(device_id: &str, name: &str) -> Vec<u8> {
+    let mut buf = Vec::new();
+    buf.push(DEVICE_NAME_FRAME);
+    push_str(&mut buf, device_id);
+    push_str(&mut buf, name);
+    buf
+}
+
+pub fn decode_device_name_frame(data: &[u8]) -> Result<(String, String)> {
+    let mut offset = 0;
+    if data.is_empty() || data[0] != DEVICE_NAME_FRAME {
+        anyhow::bail!("invalid device name frame");
+    }
+    offset += 1;
+    let device_id = take_str(data, &mut offset, "device_id")?;
+    let name = take_str(data, &mut offset, "device_name")?;
+    Ok((device_id, name))
 }
 
 /// 写入 u32 长度前缀 + UTF-8 字符串

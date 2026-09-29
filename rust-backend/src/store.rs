@@ -495,6 +495,19 @@ impl NoteStore {
         Ok(())
     }
 
+    /// 仅当该 peer 已在配对列表中时更新其显示名；返回是否命中。
+    ///
+    /// 与 `upsert_paired_device` 不同：peer 不存在时**不插入**，避免未配对设备
+    /// 通过名字帧把自己写进配对列表。
+    pub fn update_paired_device_name(&self, peer_id: &str, name: &str) -> Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let changed = conn.execute(
+            "UPDATE paired_devices SET name = ?2 WHERE peer_id = ?1",
+            rusqlite::params![peer_id, name],
+        )?;
+        Ok(changed > 0)
+    }
+
     /// 更新配对设备的最后连接/同步时间（ISO8601 now）。
     pub fn update_last_seen(&self, peer_id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();

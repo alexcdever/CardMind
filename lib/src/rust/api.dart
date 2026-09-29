@@ -25,7 +25,21 @@ Future<String> getDeviceId({required SyncService svc}) =>
 Future<String> getDeviceName({required SyncService svc}) =>
     RustLib.instance.api.crateApiGetDeviceName(svc: svc);
 
-/// 设置本设备名。
+/// 设置本设备名（含落盘 + 广播给已配对设备）。
+///
+/// 与 `set_device_name` 的区别：本函数持久化到数据目录，并向所有已配对设备
+/// 推送改名帧（对端更新其列表里本机的显示名）。逐台失败只记日志，不报错。
+Future<void> setDeviceNameAndNotify({
+  required SyncService svc,
+  required NoteStore store,
+  required String name,
+}) => RustLib.instance.api.crateApiSetDeviceNameAndNotify(
+  svc: svc,
+  store: store,
+  name: name,
+);
+
+/// 设置本设备名（仅改内存态，不落盘、不广播；测试与配对握手用）。
 Future<void> setDeviceName({required SyncService svc, required String name}) =>
     RustLib.instance.api.crateApiSetDeviceName(svc: svc, name: name);
 

@@ -661,6 +661,26 @@ class _DevicesPageState extends State<DevicesPage> {
     );
   }
 
+  /// 编辑本机设备名：弹窗承载 `Form` 校验，错误内联在字段下方；
+  /// 保存失败弹窗保持打开并就地提示，成功后才关闭并刷新。
+  Future<void> _editDeviceName() async {
+    final saved = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _DeviceNameDialog(
+        repository: _repository,
+        initialName: _deviceName,
+      ),
+    );
+    if (saved != true || !mounted) return;
+    await _load();
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('设备名已更新')));
+    }
+  }
+
   Widget _buildLocalInfo() {
     final tokens = context.cardMind;
     final shortId = _deviceId.length <= 8
@@ -709,6 +729,12 @@ class _DevicesPageState extends State<DevicesPage> {
               ],
             ),
           ),
+          CardMindIconButton(
+            key: const ValueKey('device-local-name-edit'),
+            icon: Icons.edit_outlined,
+            tooltip: '修改设备名',
+            onPressed: _editDeviceName,
+          ),
         ],
       ),
     );
@@ -747,6 +773,120 @@ class _DevicesPageState extends State<DevicesPage> {
           ),
         ),
         Expanded(child: _buildDeviceList()),
+      ],
+    );
+  }
+}
+
+/// 编辑设备名弹窗：`Form` + `GlobalKey` 校验，错误由 `TextFormField.errorText`
+/// 内联渲染在字段正下方（不是 SnackBar）。`TextEditingController` 跟随本 widget
+/// 的生命周期 dispose，避免弹窗退场动画期间 controller 已被释放。
+class _DeviceNameDialog extends StatefulWidget {
+  const _DeviceNameDialog({
+    required this.repository,
+    required this.initialName,
+  });
+
+  final NoteRepository repository;
+  final String initialName;
+
+  @override
+  State<_DeviceNameDialog> createState() => _DeviceNameDialogState();
+}
+
+class _DeviceNameDialogState extends State<_DeviceNameDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialName,
+  );
+  String? _submitError;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final name = _controller.text.trim();
+    if (name == widget.initialName) {
+      Navigator.of(context).pop(false);
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _submitError = null;
+    });
+    try {
+      await widget.repository.setDeviceName(name);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _submitError = '保存失败：$error';
+      });
+      return;
+    }
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('修改设备名'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: TextFormField(
+                key: const ValueKey('device-name-input'),
+                controller: _controller,
+                autofocus: true,
+                maxLength: 32,
+                decoration: const InputDecoration(
+                  labelText: '设备名',
+                  counterText: '',
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '设备名不能为空';
+                  }
+                  return null;
+                },
+                onFieldSubmitted: (_) => _save(),
+              ),
+            ),
+            if (_submitError != null) ...[
+              const SizedBox(height: CardMindSpacing.sm),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _submitError!,
+                  key: const ValueKey('device-name-submit-error'),
+                  style: TextStyle(color: context.cardMind.danger, fontSize: 13),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('device-name-cancel'),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          key: const ValueKey('device-name-save'),
+          onPressed: _saving ? null : _save,
+          child: const Text('保存'),
+        ),
       ],
     );
   }

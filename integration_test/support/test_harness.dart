@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:cardmind/bridge/frb_note_repository.dart';
+import 'package:cardmind/bridge/rust_library_loader.dart';
 import 'package:cardmind/src/rust/frb_generated.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 export 'package:cardmind/bridge/frb_note_repository.dart'
     show FrbNoteRepository;
@@ -43,7 +45,18 @@ class CardMindIntegrationHarness {
 }
 
 Future<void> initializeFrb() async {
-  await RustLib.init();
+  // 与 main.dart 一致：产物内按 exe 位置定位 Frameworks/libcardmind_backend.dylib，
+  // 否则 FRB 默认加载器会去找 cardmind_backend.framework（macOS 宿主不存在）。
+  final externalLibraryPath = resolveBundledRustLibraryPath(
+    executablePath: Platform.resolvedExecutable,
+    operatingSystem: Platform.operatingSystem,
+    exists: (path) => File(path).existsSync(),
+  );
+  await RustLib.init(
+    externalLibrary: externalLibraryPath == null
+        ? null
+        : ExternalLibrary.open(externalLibraryPath),
+  );
 }
 
 void disposeFrb() {

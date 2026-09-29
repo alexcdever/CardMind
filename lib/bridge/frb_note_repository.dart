@@ -225,7 +225,7 @@ final class FrbNoteRepository implements NoteRepository {
   @override
   Future<void> setDeviceName(String name) async {
     _ensureOpen();
-    await api.setDeviceName(svc: _sync, name: name);
+    await api.setDeviceNameAndNotify(svc: _sync, store: _store, name: name);
   }
 
   @override
