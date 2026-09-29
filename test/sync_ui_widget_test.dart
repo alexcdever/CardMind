@@ -76,7 +76,7 @@ class FakeSyncApi implements SyncApi {
 }
 
 /// 设备页 / 列表页共享的内存 fake repository。
-class DevicesRepository implements NoteRepository {
+class DevicesRepository implements NoteRepository, ConnectivityRepository {
   List<PairedDeviceRow> pairedDevices = [];
   String deviceNameValue = 'My PC';
   String deviceIdValue = 'dev-1234567890';
@@ -94,6 +94,7 @@ class DevicesRepository implements NoteRepository {
   /// 任务 J：mDNS 广播生命周期记录（显示码开启/关闭）。
   bool advertisingStarted = false;
   bool advertisingStopped = false;
+  Future<int> Function(String peerId)? connectivityCheck;
 
   @override
   Future<List<PairedDeviceRow>> listPairedDevices() async =>
@@ -126,6 +127,10 @@ class DevicesRepository implements NoteRepository {
 
   @override
   Future<List<PeerInfo>> discoverPeers() async => [];
+
+  @override
+  Future<int> checkDeviceConnectivity(String peerId) async =>
+      connectivityCheck?.call(peerId) ?? 0;
 
   @override
   Future<void> removePairedDevice(String peerId) async {
@@ -434,6 +439,60 @@ void main() {
     expect(find.textContaining('离线'), findsOneWidget);
     expect(find.textContaining('3 小时前'), findsOneWidget);
     // 卸载页面以取消后台刷新 Timer（任务 O 验收 15）
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('devices page tests connection independently with retry', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final repository = DevicesRepository()
+      ..pairedDevices = [
+        PairedDeviceRow(
+          peerId: 'peer-a',
+          name: 'A',
+          lastSeen: now.toIso8601String(),
+          pairedAt: now.toIso8601String(),
+        ),
+        PairedDeviceRow(
+          peerId: 'peer-b',
+          name: 'B',
+          lastSeen: now.toIso8601String(),
+          pairedAt: now.toIso8601String(),
+        ),
+      ];
+    final gate = Completer<void>();
+    var checks = 0;
+    repository.connectivityCheck = (peerId) async {
+      checks++;
+      if (checks == 1) {
+        await gate.future;
+        return 18;
+      }
+      throw StateError('unreachable');
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(body: DevicesPage(repository: repository)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('测试连接'), findsNWidgets(2));
+    await tester.tap(find.byKey(const ValueKey('check-peer-a')));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('正在测试…'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('check-peer-a')));
+    expect(checks, 1);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('连接可用 · 18 ms'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('check-peer-b')));
+    await tester.pumpAndSettle();
+    expect(find.text('暂不可连接 · 重试'), findsOneWidget);
+    expect(find.text('连接可用 · 18 ms'), findsOneWidget);
+    expect(find.byKey(const ValueKey('check-peer-a')), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

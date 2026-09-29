@@ -47,8 +47,10 @@ pub struct PairedDeviceRow {
     pub peer_id: String,
     /// 对端设备名
     pub name: String,
-    /// 最后成功连接/同步时间（ISO8601；尚未连接过 = None）
+    /// 最近一次成功通信时间（ISO8601；尚未连接过 = None）
     pub last_seen: Option<String>,
+    /// 最近一次实际笔记同步时间（ISO8601；尚未同步过 = None）
+    pub last_sync_at: Option<String>,
     /// 配对时间（ISO8601）
     pub paired_at: String,
 }
@@ -74,10 +76,12 @@ impl NoteStore {
                 PRIMARY KEY (source_id, target_id)
             );
             CREATE TABLE IF NOT EXISTS paired_devices (
-                peer_id   TEXT PRIMARY KEY,
-                name      TEXT NOT NULL,
-                last_seen TEXT NULL,
-                paired_at TEXT NOT NULL
+                peer_id     TEXT PRIMARY KEY,
+                name        TEXT NOT NULL,
+                last_seen   TEXT NULL,
+                last_sync_at TEXT NULL,
+                last_ips    TEXT NULL,
+                paired_at   TEXT NOT NULL
             );
             CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
                 title, content, tags,
@@ -113,6 +117,26 @@ impl NoteStore {
             // UPDATE notes（如软删除的 deleted_at 标记）都会触发 FTS 触发器报
             // "Content in the virtual table is corrupt"。重建使索引与 notes 一致。
             conn.execute_batch("INSERT INTO notes_fts(notes_fts) VALUES('rebuild');")?;
+        }
+        let has_last_sync_at = {
+            let mut stmt = conn.prepare("PRAGMA table_info(paired_devices)")?;
+            let columns: Vec<String> = stmt
+                .query_map([], |row| row.get(1))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            columns.iter().any(|name| name == "last_sync_at")
+        };
+        if !has_last_sync_at {
+            conn.execute_batch("ALTER TABLE paired_devices ADD COLUMN last_sync_at TEXT NULL;")?;
+        }
+        let has_last_ips = {
+            let mut stmt = conn.prepare("PRAGMA table_info(paired_devices)")?;
+            let columns: Vec<String> = stmt
+                .query_map([], |row| row.get(1))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            columns.iter().any(|name| name == "last_ips")
+        };
+        if !has_last_ips {
+            conn.execute_batch("ALTER TABLE paired_devices ADD COLUMN last_ips TEXT NULL;")?;
         }
         Ok(Self {
             conn: Arc::new(Mutex::new(conn)),
@@ -466,7 +490,7 @@ impl NoteStore {
     pub fn list_paired_devices(&self) -> Result<Vec<PairedDeviceRow>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT peer_id, name, last_seen, paired_at FROM paired_devices
+            "SELECT peer_id, name, last_seen, last_sync_at, paired_at FROM paired_devices
              ORDER BY (last_seen IS NULL), last_seen DESC, peer_id ASC",
         )?;
         let rows = stmt
@@ -475,7 +499,8 @@ impl NoteStore {
                     peer_id: row.get(0)?,
                     name: row.get(1)?,
                     last_seen: row.get(2)?,
-                    paired_at: row.get(3)?,
+                    last_sync_at: row.get(3)?,
+                    paired_at: row.get(4)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -487,8 +512,8 @@ impl NoteStore {
         let conn = self.conn.lock().unwrap();
         let now = Utc::now().to_rfc3339();
         conn.execute(
-            "INSERT INTO paired_devices (peer_id, name, last_seen, paired_at)
-             VALUES (?1, ?2, NULL, ?3)
+            "INSERT INTO paired_devices (peer_id, name, last_seen, last_sync_at, paired_at)
+             VALUES (?1, ?2, NULL, NULL, ?3)
              ON CONFLICT(peer_id) DO UPDATE SET name = excluded.name",
             rusqlite::params![peer_id, name, now],
         )?;
@@ -508,12 +533,47 @@ impl NoteStore {
         Ok(changed > 0)
     }
 
-    /// 更新配对设备的最后连接/同步时间（ISO8601 now）。
+    /// 更新配对设备的最近成功通信时间（ISO8601 now）。
     pub fn update_last_seen(&self, peer_id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         let now = Utc::now().to_rfc3339();
         conn.execute(
             "UPDATE paired_devices SET last_seen = ?2 WHERE peer_id = ?1",
+            rusqlite::params![peer_id, now],
+        )?;
+        Ok(())
+    }
+
+    pub fn paired_device_ips(&self, peer_id: &str) -> Result<Vec<String>> {
+        let conn = self.conn.lock().unwrap();
+        let value: Option<String> = conn.query_row(
+            "SELECT last_ips FROM paired_devices WHERE peer_id = ?1",
+            [peer_id],
+            |row| row.get(0),
+        )?;
+        Ok(value
+            .unwrap_or_default()
+            .split(',')
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .collect())
+    }
+
+    pub fn update_paired_device_ips(&self, peer_id: &str, ips: &[String]) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE paired_devices SET last_ips = ?2 WHERE peer_id = ?1",
+            rusqlite::params![peer_id, ips.join(",")],
+        )?;
+        Ok(())
+    }
+
+    /// 更新配对设备的最近实际同步时间，同时刷新最近成功通信时间。
+    pub fn update_last_sync_at(&self, peer_id: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE paired_devices SET last_seen = ?2, last_sync_at = ?2 WHERE peer_id = ?1",
             rusqlite::params![peer_id, now],
         )?;
         Ok(())

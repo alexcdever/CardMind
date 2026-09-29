@@ -41,7 +41,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1489606553;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1512195367;
 
 // Section: executor
 
@@ -684,6 +684,80 @@ fn wire__crate__api__begin_pairing_credential_with_advertising_impl(
                         let output_ok =
                             crate::api::begin_pairing_credential_with_advertising(&*api_svc_guard)
                                 .await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__check_device_connectivity_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "check_device_connectivity",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_svc = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SyncService>,
+            >>::sse_decode(&mut deserializer);
+            let api_store = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<NoteStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_peer_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let mut api_svc_guard = None;
+                        let mut api_store_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_svc, 0, false,
+                                    ),
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_store, 1, false,
+                                    ),
+                                ],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_svc_guard = Some(api_svc.lockable_decode_async_ref().await)
+                                }
+                                1 => {
+                                    api_store_guard =
+                                        Some(api_store.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_svc_guard = api_svc_guard.unwrap();
+                        let api_store_guard = api_store_guard.unwrap();
+                        let output_ok = crate::api::check_device_connectivity(
+                            &*api_svc_guard,
+                            &*api_store_guard,
+                            api_peer_id,
+                        )
+                        .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3469,11 +3543,13 @@ impl SseDecode for crate::store::PairedDeviceRow {
         let mut var_peerId = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_lastSeen = <Option<String>>::sse_decode(deserializer);
+        let mut var_lastSyncAt = <Option<String>>::sse_decode(deserializer);
         let mut var_pairedAt = <String>::sse_decode(deserializer);
         return crate::store::PairedDeviceRow {
             peer_id: var_peerId,
             name: var_name,
             last_seen: var_lastSeen,
+            last_sync_at: var_lastSyncAt,
             paired_at: var_pairedAt,
         };
     }
@@ -3704,55 +3780,56 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
-        14 => {
+        12 => wire__crate__api__check_device_connectivity_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__confirm_pairing_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__create_note_store_impl(port, ptr, rust_vec_len, data_len),
+        15 => {
             wire__crate__api__create_persistent_sync_service_impl(port, ptr, rust_vec_len, data_len)
         }
-        15 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
-        31 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__parse_pairing_credential_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
-        36 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__receiver_content_revision_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__receiver_running_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
-        43 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__set_device_name_and_notify_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__api__start_receiver_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__stop_pairing_advertising_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__stop_receiver_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
-        54 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
-        55 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
-        56 => wire__crate__api__sync_discover_peers_impl(port, ptr, rust_vec_len, data_len),
-        57 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__create_sync_service_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__generate_note_id_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__get_all_tags_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__get_backlinks_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__get_device_id_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__get_device_name_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__get_outgoing_links_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__get_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__list_paired_devices_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__local_addrs_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__note_create_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__note_export_all_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__note_get_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__note_import_all_impl(port, ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__note_purge_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__note_restore_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__note_soft_delete_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__note_update_metadata_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__parse_pairing_credential_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__pending_sync_count_impl(port, ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__purge_expired_trash_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__push_pending_impl(port, ptr, rust_vec_len, data_len),
+        39 => wire__crate__api__push_to_devices_impl(port, ptr, rust_vec_len, data_len),
+        40 => wire__crate__api__push_to_peer_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__receiver_content_revision_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__receiver_running_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__remove_paired_device_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__run_sync_cycle_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__search_by_tag_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__search_notes_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__set_device_name_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__set_device_name_and_notify_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__set_sync_allowed_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__start_advertising_impl(port, ptr, rust_vec_len, data_len),
+        51 => wire__crate__api__start_receiver_impl(port, ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__stop_pairing_advertising_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__stop_receiver_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__store_list_impl(port, ptr, rust_vec_len, data_len),
+        55 => wire__crate__api__store_search_impl(port, ptr, rust_vec_len, data_len),
+        56 => wire__crate__api__store_trash_list_impl(port, ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__sync_discover_peers_impl(port, ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__sync_notes_to_store_impl(port, ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__sync_poll_interval_secs_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3865,6 +3942,7 @@ impl flutter_rust_bridge::IntoDart for crate::store::PairedDeviceRow {
             self.peer_id.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.last_seen.into_into_dart().into_dart(),
+            self.last_sync_at.into_into_dart().into_dart(),
             self.paired_at.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -4303,6 +4381,7 @@ impl SseEncode for crate::store::PairedDeviceRow {
         <String>::sse_encode(self.peer_id, serializer);
         <String>::sse_encode(self.name, serializer);
         <Option<String>>::sse_encode(self.last_seen, serializer);
+        <Option<String>>::sse_encode(self.last_sync_at, serializer);
         <String>::sse_encode(self.paired_at, serializer);
     }
 }

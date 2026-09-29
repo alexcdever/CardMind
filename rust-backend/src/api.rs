@@ -305,6 +305,16 @@ pub async fn push_to_devices(
     svc.push_to_paired_devices(&devices).await
 }
 
+/// 对已配对设备执行有界轻量健康检查，成功时更新 last_seen。
+pub async fn check_device_connectivity(
+    svc: &SyncService,
+    store: &NoteStore,
+    peer_id: String,
+) -> anyhow::Result<u64> {
+    let peer_ips = store.paired_device_ips(&peer_id)?;
+    svc.check_connectivity(store, &peer_id, peer_ips).await
+}
+
 /// SQLite — 列出所有配对设备（最近连接优先）。
 pub fn list_paired_devices(store: &NoteStore) -> anyhow::Result<Vec<PairedDeviceRow>> {
     store.list_paired_devices()

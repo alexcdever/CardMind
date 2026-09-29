@@ -6,6 +6,10 @@ import 'pairing_credential_exception.dart';
 /// 笔记仓库抽象：UI 层通过它访问 Rust 后端。
 ///
 /// 所有实现（FRB / 测试 fake）都必须提供这些操作。
+abstract interface class ConnectivityRepository {
+  Future<int> checkDeviceConnectivity(String peerId);
+}
+
 abstract interface class NoteRepository {
   Future<List<NoteRow>> listNotes();
 

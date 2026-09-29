@@ -47,8 +47,26 @@ class DevicesPage extends StatefulWidget {
   State<DevicesPage> createState() => _DevicesPageState();
 }
 
+enum _ConnectivityStatus { checking, success, failure }
+
+class _ConnectivityCheckState {
+  const _ConnectivityCheckState.checking()
+    : status = _ConnectivityStatus.checking,
+      latencyMs = null;
+  const _ConnectivityCheckState.success(this.latencyMs)
+    : status = _ConnectivityStatus.success;
+  const _ConnectivityCheckState.failure()
+    : status = _ConnectivityStatus.failure,
+      latencyMs = null;
+
+  final _ConnectivityStatus status;
+  final int? latencyMs;
+  bool get checking => status == _ConnectivityStatus.checking;
+}
+
 class _DevicesPageState extends State<DevicesPage> {
   List<PairedDeviceRow> _devices = [];
+  final Map<String, _ConnectivityCheckState> _connectivity = {};
   bool _loading = true;
   String? _error;
   String _deviceName = '';
@@ -126,6 +144,28 @@ class _DevicesPageState extends State<DevicesPage> {
     final time = DateTime.tryParse(lastSeen);
     if (time == null) return false;
     return DateTime.now().difference(time) <= DevicesPage.onlineWindow;
+  }
+
+  Future<void> _checkConnectivity(PairedDeviceRow device) async {
+    final current = _connectivity[device.peerId];
+    if (current?.checking == true) return;
+    setState(() {
+      _connectivity[device.peerId] = const _ConnectivityCheckState.checking();
+    });
+    try {
+      final latency = await (widget.repository as ConnectivityRepository)
+          .checkDeviceConnectivity(device.peerId);
+      if (!mounted) return;
+      setState(() {
+        _connectivity[device.peerId] = _ConnectivityCheckState.success(latency);
+      });
+      await _load(background: true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _connectivity[device.peerId] = const _ConnectivityCheckState.failure();
+      });
+    }
   }
 
   static String _relativeTime(String? lastSeen) {
@@ -615,6 +655,15 @@ class _DevicesPageState extends State<DevicesPage> {
     final tokens = context.cardMind;
     final online = _isOnline(device);
     final relative = _relativeTime(device.lastSeen);
+    final syncRelative = _relativeTime(device.lastSyncAt);
+    final check = _connectivity[device.peerId];
+    final checking = check?.checking == true;
+    final checkLabel = switch (check?.status) {
+      _ConnectivityStatus.success => '连接可用 · ${check!.latencyMs} ms',
+      _ConnectivityStatus.failure => '暂不可连接 · 重试',
+      _ConnectivityStatus.checking => '正在测试…',
+      _ => '测试连接',
+    };
     return Container(
       key: ValueKey('device-${device.peerId}'),
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
@@ -641,20 +690,59 @@ class _DevicesPageState extends State<DevicesPage> {
                   ),
                 ),
                 const SizedBox(height: CardMindSpacing.xs),
-                Text(
-                  online ? '在线' : '离线 · $relative',
-                  style: TextStyle(
-                    color: online ? tokens.accent : tokens.mutedInk,
-                    fontSize: 12,
+                Semantics(
+                  label: online ? '在线，最近可连接：$relative' : '离线，最近可连接：$relative',
+                  child: Text(
+                    online ? '在线' : '离线',
+                    style: TextStyle(
+                      color: online ? tokens.accent : tokens.mutedInk,
+                      fontSize: 12,
+                    ),
                   ),
+                ),
+                const SizedBox(height: CardMindSpacing.xs),
+                Text(
+                  '最近可连接：$relative',
+                  style: TextStyle(color: tokens.mutedInk, fontSize: 12),
+                ),
+                Text(
+                  '最近同步：$syncRelative',
+                  style: TextStyle(color: tokens.mutedInk, fontSize: 12),
                 ),
               ],
             ),
           ),
-          TextButton(
-            key: ValueKey('unpair-${device.peerId}'),
-            onPressed: () => _confirmUnpair(device),
-            child: const Text('解除配对'),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                button: true,
+                label: '$checkLabel，${device.name}',
+                child: TextButton(
+                  key: ValueKey('check-${device.peerId}'),
+                  onPressed: checking ? null : () => _checkConnectivity(device),
+                  child: checking
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(checkLabel),
+                          ],
+                        )
+                      : Text(checkLabel),
+                ),
+              ),
+              TextButton(
+                key: ValueKey('unpair-${device.peerId}'),
+                onPressed: () => _confirmUnpair(device),
+                child: const Text('解除配对'),
+              ),
+            ],
           ),
         ],
       ),

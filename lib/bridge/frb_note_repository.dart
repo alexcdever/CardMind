@@ -9,7 +9,8 @@ import 'note_repository.dart';
 import 'pairing_credential_exception.dart';
 
 /// FRB-backed repository with an explicit, isolated data directory.
-final class FrbNoteRepository implements NoteRepository {
+final class FrbNoteRepository
+    implements NoteRepository, ConnectivityRepository {
   FrbNoteRepository._({
     required this._sync,
     required this._store,
@@ -379,6 +380,18 @@ final class FrbNoteRepository implements NoteRepository {
   Future<List<PairedDeviceRow>> listPairedDevices() async {
     _ensureOpen();
     return api.listPairedDevices(store: _store);
+  }
+
+  @override
+  Future<int> checkDeviceConnectivity(String peerId) async {
+    _ensureOpen();
+    final devices = await api.listPairedDevices(store: _store);
+    devices.firstWhere((row) => row.peerId == peerId);
+    return (await api.checkDeviceConnectivity(
+      svc: _sync,
+      store: _store,
+      peerId: peerId,
+    )).toInt();
   }
 
   @override
