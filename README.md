@@ -24,7 +24,6 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 
 - **读写分离**：所有写入通过 Rust → LoroDoc，投影到 SQLite 供查询
 - **单用户桌面优先**：Windows 为主平台，笔记编辑+列表双栏布局
-- **原型双源**：`prototype/` 是 UI 原型真源
 
 ## 项目结构
 
@@ -38,7 +37,6 @@ rust-backend/   Rust 核心
   src/          api, store, sync, discovery
   tests/        集成测试
 test/           Flutter 测试
-prototype/      UI 原型（HTML/CSS）
 docs/           文档
 tool/           工具脚本
 ```

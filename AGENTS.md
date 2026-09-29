@@ -24,17 +24,6 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 
 - **读写分离**：所有写入通过 Rust → LoroDoc，投影到 SQLite 供查询
 - **单用户桌面优先**：Windows 为主平台，笔记编辑+列表双栏布局
-- **原型双源**：`prototype/` 是 UI 原型真源，与 open-design 项目 `cardmind-prototype` 保持同步
-
-## 原型更新规则
-
-修改 UI 原型时，必须同时更新两处：
-1. `prototype/` 目录下的本地 HTML/CSS 文件
-2. open-design 项目 `cardmind-prototype` 中的对应文件（通过 open-design MCP 工具写入）
-
-`prototype/` 是唯一真源。open-design 项目是渲染预览和补全生成的辅助副本，不应绕过 `prototype/` 直接修改 open-design。
-
-命名规范：桌面端页面以 `desktop-` 开头，移动端页面以 `mobile-` 开头，样式文件同理。
 
 ## 项目结构
 
@@ -55,11 +44,6 @@ rust-backend/   Rust 核心 (v2)
     lib.rs      入口
   tests/        集成测试 (discovery, store, sync, note_crdt)
 test/           Flutter 测试 (widget/integration)
-prototype/      UI 原型（HTML/CSS 高保真页面）
-  index.html           导航页（桌面端）
-  desktop-*.html       桌面端三栏布局原型
-  desktop-styles.css   桌面端样式（Digital Parchment 设计系统）
-  stitch-*.html/.png   Pencil 导出截图参考
 docs/
   product.md    产品定位
   standards/    工程规范
