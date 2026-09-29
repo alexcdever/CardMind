@@ -7,9 +7,8 @@ edition = "2021"
 crate-type = ["cdylib", "staticlib", "lib"]
 
 [profile.release]
-# Rust's default debuginfo stripping can leave an unaligned Mach-O LINKEDIT
-# string pool on macOS 27, which dyld rejects before FRB can load the library.
-strip = "none"
+# macOS 27 已验证：strip = true 的 dylib dlopen 正常，__LINKEDIT 结尾 16 字节对齐。
+strip = true
 
 [dependencies]
 flutter_rust_bridge = "=2.12.0"

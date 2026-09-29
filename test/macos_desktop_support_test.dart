@@ -31,7 +31,7 @@ void main() {
       _read('rust-backend/Cargo.toml'),
       contains('[profile.release]'),
     );
-    expect(_read('rust-backend/Cargo.toml'), contains('strip = "none"'));
+    expect(_read('rust-backend/Cargo.toml'), contains('strip = true'));
     final buildScript = _read('tool/build.dart');
     expect(buildScript, contains('libcardmind_backend.dylib'));
     expect(buildScript, contains('Contents/Frameworks'));
