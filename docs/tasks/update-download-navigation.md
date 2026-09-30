@@ -55,19 +55,19 @@
     {
       "id": "acceptance-test-1",
       "evidence_level": 3,
-      "test_ref": "test/settings_page_test.dart: shared manager keeps download alive across settings navigation (testWidgets)",
+      "test_ref": "test/settings_page_test.dart",
       "command_ref": "flutter test test/settings_page_test.dart --timeout 3m"
     },
     {
       "id": "acceptance-test-2",
       "evidence_level": 3,
-      "test_ref": "test/services/update_download_manager_test.dart: explicit cancellation wins the success/install race (test); downloader and installer exceptions become visible failure state (test)",
+      "test_ref": "test/services/update_download_manager_test.dart",
       "command_ref": "flutter test test/services/update_download_manager_test.dart --timeout 3m"
     },
     {
       "id": "acceptance-test-3",
       "evidence_level": 3,
-      "test_ref": "test/vertical_slice_widget_test.dart: note list settings entry navigates to settings without losing list (testWidgets)",
+      "test_ref": "test/vertical_slice_widget_test.dart",
       "command_ref": "flutter test test/vertical_slice_widget_test.dart --timeout 3m"
     }
   ],
