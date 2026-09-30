@@ -24,6 +24,7 @@ class UpdateDownloadManager extends ChangeNotifier {
   bool downloading = false;
   double progress = 0;
   String? message;
+  String? downloadedPath;
   DownloadCancellationToken? _token;
 
   static PlatformUpdateInstaller _defaultInstaller() => PlatformUpdateInstaller(
@@ -42,6 +43,7 @@ class UpdateDownloadManager extends ChangeNotifier {
     if (_disposed || downloading) return;
     asset = updateAsset;
     message = null;
+    downloadedPath = null;
     progress = 0;
     downloading = true;
     final token = DownloadCancellationToken();
@@ -66,10 +68,16 @@ class UpdateDownloadManager extends ChangeNotifier {
         return;
       }
 
+      final verifiedFile = (downloaded as DownloadSuccess).file;
       final installed = await _installer.install(
         updateAsset,
-        verifiedFile: (downloaded as DownloadSuccess).file,
+        verifiedFile: verifiedFile,
       );
+      downloadedPath = switch (installed) {
+        InstallStarted(:final file) =>
+          file != null && file.existsSync() ? file.path : null,
+        ManualInstallRequired() || InstallFailure() => verifiedFile.path,
+      };
       _finish(switch (installed) {
         InstallStarted() => '已启动安装器',
         ManualInstallRequired(:final message) => message,

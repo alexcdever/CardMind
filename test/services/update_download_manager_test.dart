@@ -81,7 +81,7 @@ void main() {
         if (file.existsSync()) await file.delete();
       });
       final downloader = _DeferredDownloader(DownloadSuccess(file));
-      final installer = _InstallerFake(const InstallStarted());
+      final installer = _InstallerFake(InstallStarted(file));
       final manager = UpdateDownloadManager(
         downloader: downloader,
         installer: installer,
@@ -93,8 +93,26 @@ void main() {
       expect(installer.calls, 1);
       expect(manager.downloading, isFalse);
       expect(manager.message, '已启动安装器');
+      expect(manager.downloadedPath, file.path);
     },
   );
+
+  test('Android install does not expose the deleted source path', () async {
+    final file = File('${Directory.systemTemp.path}/manager-android.apk');
+    file.writeAsStringSync('update');
+    addTearDown(() async {
+      if (file.existsSync()) await file.delete();
+    });
+    final manager = UpdateDownloadManager(
+      downloader: _ImmediateDownloader(DownloadSuccess(file)),
+      installer: _InstallerFake(const InstallStarted()),
+    );
+
+    await manager.start(_asset);
+
+    expect(manager.message, '已启动安装器');
+    expect(manager.downloadedPath, isNull);
+  });
 
   test('explicit cancellation wins the success/install race', () async {
     final file = File('${Directory.systemTemp.path}/manager-cancel.exe');

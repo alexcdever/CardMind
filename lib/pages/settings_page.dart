@@ -24,6 +24,7 @@ class SettingsPage extends StatefulWidget {
     this.downloadManager,
     this.logDirectoryResolver,
     this.logDirectoryOpener,
+    this.updatePackageOpener,
   });
 
   final String? currentVersion;
@@ -43,6 +44,9 @@ class SettingsPage extends StatefulWidget {
   /// 日志目录「打开」动作（默认 [openLogDirectoryInFileManager]）；测试注入
   /// 假实现，**不得真的打开访达**。
   final Future<void> Function(String directory)? logDirectoryOpener;
+
+  /// 已校验更新包的打开动作；测试注入假实现。
+  final Future<void> Function(String path)? updatePackageOpener;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -143,6 +147,30 @@ class _SettingsPageState extends State<SettingsPage> {
         context,
       ).showSnackBar(SnackBar(content: Text('无法打开日志目录：$path')));
     }
+  }
+
+  Future<void> _openUpdatePackage() async {
+    final path = _downloadManager.downloadedPath;
+    if (path == null || path.isEmpty) return;
+    try {
+      await (widget.updatePackageOpener ?? _defaultUpdatePackageOpener)(path);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('无法打开更新包：$path')));
+    }
+  }
+
+  static Future<void> _defaultUpdatePackageOpener(String path) async {
+    final command = Platform.isMacOS
+        ? 'open'
+        : Platform.isLinux
+        ? 'xdg-open'
+        : null;
+    if (command == null) return;
+    final process = await Process.start(command, <String>[path]);
+    if (process.pid <= 0) throw StateError('无法打开更新包');
   }
 
   Future<void> _loadSettings() async {
@@ -317,6 +345,16 @@ class _SettingsPageState extends State<SettingsPage> {
                     LinearProgressIndicator(value: _downloadManager.progress),
                   if (_downloadManager.message != null)
                     Text(_downloadManager.message!),
+                  if (_downloadManager.downloadedPath case final path?) ...[
+                    const SizedBox(height: 8),
+                    Text('安装包路径：$path'),
+                    if (Platform.isMacOS || Platform.isLinux)
+                      TextButton(
+                        key: const ValueKey('open-update-package'),
+                        onPressed: _openUpdatePackage,
+                        child: const Text('打开安装包'),
+                      ),
+                  ],
                 ],
                 if (_result case UpdateCheckError(:final message))
                   Text('检查失败：$message'),

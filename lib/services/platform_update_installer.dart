@@ -13,7 +13,9 @@ sealed class InstallResult {
 }
 
 class InstallStarted extends InstallResult {
-  const InstallStarted();
+  const InstallStarted([this.file]);
+
+  final File? file;
 }
 
 class InstallFailure extends InstallResult {
@@ -39,12 +41,16 @@ class PlatformUpdateInstaller {
     this.startInstaller,
     this.androidInstall,
     this.androidUriProvider,
+    this.openFile,
+    this.commandRunner,
   });
 
   final UpdatePlatform platform;
   final Future<void> Function(File)? startInstaller;
   final Future<void> Function(Uri)? androidInstall;
   final Future<Uri> Function(File)? androidUriProvider;
+  final Future<void> Function(File)? openFile;
+  final Future<ProcessResult> Function(String, List<String>)? commandRunner;
 
   Future<InstallResult> install(
     UpdateAsset asset, {
@@ -54,7 +60,7 @@ class PlatformUpdateInstaller {
       switch (platform) {
         case UpdatePlatform.windows:
           await (startInstaller ?? _startWindowsInstaller)(verifiedFile);
-          return const InstallStarted();
+          return InstallStarted(verifiedFile);
         case UpdatePlatform.android:
           final uri = await (androidUriProvider ?? _defaultAndroidUriProvider)(
             verifiedFile,
@@ -62,9 +68,11 @@ class PlatformUpdateInstaller {
           await (androidInstall ?? _startAndroidInstaller)(uri);
           return const InstallStarted();
         case UpdatePlatform.macos:
-          return const ManualInstallRequired('已下载，请打开 macOS 更新包手动安装');
+          await (openFile ?? _openMacosFile)(verifiedFile);
+          return InstallStarted(verifiedFile);
         case UpdatePlatform.linux:
-          return const ManualInstallRequired('已下载，请关闭应用后手动替换');
+          await (openFile ?? _openLinuxFile)(verifiedFile);
+          return InstallStarted(verifiedFile);
       }
     } on InstallCancelledException {
       return const InstallFailure('安装已取消');
@@ -76,6 +84,20 @@ class PlatformUpdateInstaller {
   static Future<void> _startWindowsInstaller(File file) async {
     final process = await Process.start(file.path, const []);
     if (process.pid <= 0) throw StateError('无法启动安装器');
+  }
+
+  Future<void> _openMacosFile(File file) async {
+    final result = await (commandRunner ?? Process.run)('open', <String>[
+      file.path,
+    ]);
+    if (result.exitCode != 0) throw StateError('无法打开安装包');
+  }
+
+  Future<void> _openLinuxFile(File file) async {
+    final result = await (commandRunner ?? Process.run)('xdg-open', <String>[
+      file.path,
+    ]);
+    if (result.exitCode != 0) throw StateError('无法打开更新归档');
   }
 
   static Future<void> _startAndroidInstaller(Uri uri) async {

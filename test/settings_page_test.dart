@@ -208,7 +208,8 @@ void main() {
       if (file.existsSync()) await file.delete();
     });
     final downloader = _DownloaderFake(DownloadSuccess(file));
-    final installer = _InstallerFake(const InstallStarted());
+    final installer = _InstallerFake(InstallStarted(file));
+    String? openedPackage;
     final service = UpdateService(
       currentBuild: 1,
       currentVersion: '0.1.0',
@@ -223,6 +224,7 @@ void main() {
           updates: service,
           downloader: downloader,
           installer: installer,
+          updatePackageOpener: (path) async => openedPackage = path,
         ),
       ),
     );
@@ -233,6 +235,13 @@ void main() {
     await tester.pump();
     expect(find.text('已启动安装器'), findsOneWidget);
     expect(installer.received, file);
+    expect(find.text('安装包路径：${file.path}'), findsOneWidget);
+    final openButton = tester.widget<TextButton>(
+      find.byKey(const ValueKey('open-update-package')),
+    );
+    openButton.onPressed!();
+    await tester.pump();
+    expect(openedPackage, file.path);
   });
 
   testWidgets('update check renders an available update', (tester) async {

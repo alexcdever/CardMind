@@ -33,6 +33,7 @@ void main() {
       androidInstall: (value) async => uri = value,
     ).install(asset, verifiedFile: File('C:/cache/update.apk'));
     expect(result, isA<InstallStarted>());
+    expect((result as InstallStarted).file, isNull);
     expect(uri!.scheme, 'content');
   });
 
@@ -74,34 +75,39 @@ void main() {
     expect((result as InstallFailure).recoverable, isTrue);
   });
 
-  test(
-    'Linux reports manual replacement and does not overwrite install',
-    () async {
-      final result = await PlatformUpdateInstaller(
-        platform: UpdatePlatform.linux,
-      ).install(asset, verifiedFile: File('update.tar.gz'));
-      expect(result, isA<ManualInstallRequired>());
-      expect((result as ManualInstallRequired).message, contains('手动替换'));
-    },
-  );
+  test('Linux opens the verified archive', () async {
+    File? opened;
+    final result = await PlatformUpdateInstaller(
+      platform: UpdatePlatform.linux,
+      openFile: (file) async => opened = file,
+    ).install(asset, verifiedFile: File('update.tar.gz'));
+    expect(result, isA<InstallStarted>());
+    expect((result as InstallStarted).file!.path, 'update.tar.gz');
+    expect(opened!.path, 'update.tar.gz');
+  });
 
-  test(
-    'macOS reports manual installation without launching a platform installer',
-    () async {
-      var windowsLaunched = false;
-      var androidUriRequested = false;
-      final result = await PlatformUpdateInstaller(
-        platform: UpdatePlatform.macos,
-        startInstaller: (_) async => windowsLaunched = true,
-        androidUriProvider: (_) async {
-          androidUriRequested = true;
-          return Uri.parse('content://test/update.zip');
-        },
-      ).install(asset, verifiedFile: File('update.zip'));
-      expect(result, isA<ManualInstallRequired>());
-      expect((result as ManualInstallRequired).message, contains('手动'));
-      expect(windowsLaunched, isFalse);
-      expect(androidUriRequested, isFalse);
-    },
-  );
+  test('Linux reports a failed default opener command', () async {
+    String? command;
+    final result = await PlatformUpdateInstaller(
+      platform: UpdatePlatform.linux,
+      commandRunner: (value, arguments) async {
+        command = '$value ${arguments.single}';
+        return ProcessResult(1, 1, '', 'not found');
+      },
+    ).install(asset, verifiedFile: File('update.tar.gz'));
+
+    expect(command, 'xdg-open update.tar.gz');
+    expect(result, isA<InstallFailure>());
+  });
+
+  test('macOS opens the verified package', () async {
+    File? opened;
+    final result = await PlatformUpdateInstaller(
+      platform: UpdatePlatform.macos,
+      openFile: (file) async => opened = file,
+    ).install(asset, verifiedFile: File('update.dmg'));
+    expect(result, isA<InstallStarted>());
+    expect((result as InstallStarted).file!.path, 'update.dmg');
+    expect(opened!.path, 'update.dmg');
+  });
 }
