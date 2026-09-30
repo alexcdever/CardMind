@@ -1152,6 +1152,31 @@ impl SyncService {
     /// `target` 由 mDNS 发现提供（同网段面对面配对）：device_id + ip:port 列表。
     /// ips 非空 → 直连优先（确定性）；ips 为空 → 仅凭 node id 经 n0 地址解析 +
     /// 公共 relay 连接（iroh 1.x N0 preset 自带 DnsAddressLookup）。
+    #[doc(hidden)]
+    pub async fn send_pairing_request_for_test(
+        &self,
+        target: PairingTarget,
+        request: PairingRequest,
+    ) -> Result<()> {
+        let node_id: iroh::EndpointId = target
+            .device_id
+            .parse()
+            .context("invalid target endpoint id")?;
+        let addr = self.build_connect_addr(node_id, &target.ips)?;
+        let conn = self
+            .endpoint
+            .connect(addr, ALPN)
+            .await
+            .context("connect test pairing")?;
+        let mut send = conn.open_uni().await.context("open test pairing stream")?;
+        send.write_all(&encode_pairing_request(&request)).await?;
+        send.finish().context("finish test pairing stream")?;
+        tokio::time::timeout(Duration::from_secs(2), conn.closed())
+            .await
+            .ok();
+        Ok(())
+    }
+
     pub async fn begin_pairing_connect(
         &self,
         store: &NoteStore,

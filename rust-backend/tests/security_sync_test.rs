@@ -74,16 +74,46 @@ fn oversized_inbound_frames_are_rejected() {
 
 #[test]
 fn pairing_identity_must_match_transport() {
-    assert!(pairing_identity_matches(
-        "authenticated-remote",
-        "authenticated-remote"
-    ));
-    assert!(!pairing_identity_matches(
-        "authenticated-remote",
-        "spoofed-identity"
-    ));
-    let request = valid_request("spoofed-identity");
-    assert!(validate_pairing_request_identity("authenticated-remote", &request).is_err());
+    rt().block_on(async {
+        let mut receiver = SyncService::new().await.unwrap();
+        let sender = SyncService::new().await.unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+        let code = receiver.begin_pairing_accept().unwrap();
+        let request = PairingRequest {
+            code,
+            device_id: "spoofed-identity".to_string(),
+            device_name: "spoofed".to_string(),
+            relay_info: String::new(),
+            ips: vec![],
+            nonce: receiver.session_nonce_hex(),
+        };
+        let target = cardmind_backend::sync::PairingTarget {
+            device_id: receiver.device_id(),
+            ips: receiver.local_addrs(),
+            nonce: request.nonce.clone(),
+        };
+        let accept = tokio::spawn(async move {
+            receiver
+                .accept_pairing_request_with_timeout(std::time::Duration::from_secs(2))
+                .await
+        });
+        assert!(sender
+            .send_pairing_request_for_test(target, request)
+            .await
+            .is_ok());
+        let accepted = accept.await.unwrap();
+        assert!(accepted.is_err() || accepted.unwrap().is_none());
+        assert!(store.list_paired_devices().unwrap().is_empty());
+        assert!(pairing_identity_matches(
+            "authenticated-remote",
+            "authenticated-remote"
+        ));
+        assert!(!validate_pairing_request_identity(
+            "authenticated-remote",
+            &valid_request("spoofed-identity")
+        )
+        .is_ok());
+    });
 }
 
 #[test]

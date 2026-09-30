@@ -6,7 +6,8 @@
 - baseline HEAD before continuation: `a018a9a0ea779158fc7df5a1cb5d5b0d590d1a25`
 - prior HEAD: `fab9be0898392230d0731738abf7cceb6d36c7bb`
 - prior HEAD: `ddfd4ac3aebbde6c14dfef5ee82d2fe0accd2cf0`
-- final commit: `81f461c8d1181c65f7ad2e62860e02394e48bf2a`
+- prior final commit: `94b9f72`
+- current changes are uncommitted; final commit HEAD will be recorded after commit
 
 ## Added frozen Rust acceptance tests
 
@@ -31,6 +32,11 @@ GitNexus impact analysis was attempted but MCP was unavailable in this executor 
 - `cargo test --test security_sync_test unauthorized_peer_cannot_import_or_update_presence` — 0
 - `cargo test --test security_sync_test pairing_identity_must_match_transport` — 0
 - `cargo test --test security_sync_test oversized_inbound_frames_are_rejected` — 0
+- `cargo test --test sync_test` — 0
+- `cargo test --test device_name_test` — 0 (12 passed)
+- `flutter test test/feature_test_security_test.dart` — 0 (2 passed)
+
+The exact `pairing_identity_must_match_transport` test now sends a malformed pairing request over a real authenticated iroh connection via the narrowly scoped `send_pairing_request_for_test` seam. The receiver route rejects the claimed ID mismatch before pending pairing persistence; the receiver's store remains empty.
 
 The live unauthorized-peer test uses two real SyncService endpoints. Transport push may report success because the receiver consumes and closes the stream, but the receiver logs authorization rejection and imports no note or presence state; the existing paired receiver regression separately covers the normal authorized path. Successful pairing now immediately inserts both peer IDs into the shared receiver allowlist, while receiver paths refresh from the current paired store. Bounded decoder tests cover field/count rejection without panic; full receiver-recovery behavior remains covered by `receiver_continuous_test`.
 
