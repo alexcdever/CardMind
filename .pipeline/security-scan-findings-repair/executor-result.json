@@ -8,7 +8,7 @@
   "prior_head":"fab9be0898392230d0731738abf7cceb6d36c7bb",
   "prior_head":"ddfd4ac3aebbde6c14dfef5ee82d2fe0accd2cf0",
   "prior_head":"0047aba",
-  "head":"87b45ffc5efa37c236e0f8f9187e84ab1af91c4e",
+  "prior_head":"65dd010",
   "head":"e3db26be582797c26a5d877826943adf0b73b251",
   "commands":[
     {"command":"cargo fmt --all","cwd":"rust-backend","exit_code":0},
@@ -25,6 +25,7 @@
     "unauthorized peer cannot change note or paired-device state",
     "oversized fields, over-counted IPs, and oversized response fields reject without panic",
     "pairing identity mismatch is sent over authenticated iroh and deterministically returns production route identity error before pending/store persistence",
+    "the actual receiver service pending accessor and actual receiver store are asserted empty",
     "frozen test names pairing_identity_must_match_transport and oversized_inbound_frames_are_rejected are present",
     "successful pairing immediately authorizes both sides in the shared allowlist"
   ],

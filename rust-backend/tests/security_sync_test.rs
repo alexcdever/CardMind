@@ -77,7 +77,7 @@ fn pairing_identity_must_match_transport() {
     rt().block_on(async {
         let mut receiver = SyncService::new().await.unwrap();
         let sender = SyncService::new().await.unwrap();
-        let store = NoteStore::new(":memory:").unwrap();
+        let receiver_store = NoteStore::new(":memory:").unwrap();
         let code = receiver.begin_pairing_accept().unwrap();
         let request = PairingRequest {
             code,
@@ -92,18 +92,15 @@ fn pairing_identity_must_match_transport() {
             ips: receiver.local_addrs(),
             nonce: request.nonce.clone(),
         };
-        let accept = tokio::spawn(async move {
-            receiver
-                .receive_pairing_request_for_test(std::time::Duration::from_secs(2))
-                .await
-        });
-        assert!(sender
-            .send_pairing_request_for_test(target, request)
-            .await
-            .is_ok());
-        let rejected = accept.await.unwrap().unwrap_err();
+        let receive = receiver
+            .receive_pairing_request_for_test(&receiver_store, std::time::Duration::from_secs(2));
+        let send = sender.send_pairing_request_for_test(target, request);
+        let (rejected, sent) = tokio::join!(receive, send);
+        assert!(sent.is_ok());
+        let rejected = rejected.unwrap_err();
         assert!(rejected.to_string().contains("identity"));
-        assert!(store.list_paired_devices().unwrap().is_empty());
+        assert!(!receiver.has_pending_pairing_for_test());
+        assert!(receiver_store.list_paired_devices().unwrap().is_empty());
         assert!(pairing_identity_matches(
             "authenticated-remote",
             "authenticated-remote"

@@ -735,6 +735,11 @@ impl SyncService {
         self.pairing_session.lock().unwrap().clone()
     }
 
+    #[doc(hidden)]
+    pub fn has_pending_pairing_for_test(&self) -> bool {
+        self.pending_pairing.lock().unwrap().is_some()
+    }
+
     /// 当前会话 nonce 的 hex 字符串（测试/广播用；无会话时为空串）。
     ///
     /// 6 位码路径发起方必须把该值回填到 `PairingTarget.nonce`，confirm 侧
@@ -1178,7 +1183,11 @@ impl SyncService {
     }
 
     #[doc(hidden)]
-    pub async fn receive_pairing_request_for_test(&mut self, timeout: Duration) -> Result<String> {
+    pub async fn receive_pairing_request_for_test(
+        &mut self,
+        _store: &NoteStore,
+        timeout: Duration,
+    ) -> Result<String> {
         let deadline = tokio::time::Instant::now() + timeout;
         loop {
             let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
