@@ -45,13 +45,15 @@ Future<int> _runFlutter(String device) async {
   stdout.writeln('Running CardMind journeys on $device');
   late final Process process;
   try {
-    process = await Process.start('flutter', [
+    _validateDevice(device);
+    final executable = Platform.isWindows ? 'flutter.bat' : 'flutter';
+    process = await Process.start(executable, [
       'test',
       '--no-pub',
       _testTarget,
       '-d',
       device,
-    ], runInShell: true);
+    ], runInShell: false);
   } on ProcessException catch (error) {
     stderr.writeln('Unable to start Flutter: $error');
     return 69;
@@ -62,6 +64,14 @@ Future<int> _runFlutter(String device) async {
   final code = await process.exitCode;
   await Future.wait([stdoutDone, stderrDone]);
   return code;
+}
+
+void _validateDevice(String device) {
+  if (device.isEmpty ||
+      device.length > 128 ||
+      !RegExp(r'^[A-Za-z0-9._:-]+$').hasMatch(device)) {
+    throw FormatException('Invalid device identifier');
+  }
 }
 
 _Options _parseArgs(List<String> args) {

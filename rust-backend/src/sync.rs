@@ -230,6 +230,7 @@ pub struct PairingTarget {
 /// 确认方已接收、等待用户确认的配对请求 + 其连接（确认时在同一连接上回复握手响应）
 struct PendingPairing {
     request: PairingRequest,
+    transport_id: iroh::EndpointId,
     conn: iroh::endpoint::Connection,
 }
 
@@ -251,6 +252,12 @@ const PAIRING_FRAME_RESPONSE: u8 = 0x02;
 // 设备改名帧（首字节；magic 与 0x01/0x02 均不冲突）
 const DEVICE_NAME_FRAME: u8 = 0x03;
 
+const MAX_INBOUND_PUSH_BYTES: usize = 16 * 1024 * 1024;
+const MAX_INBOUND_PAIRING_BYTES: usize = 64 * 1024;
+const MAX_INBOUND_NAME_BYTES: usize = 8 * 1024;
+const MAX_INBOUND_STRING_BYTES: usize = 4096;
+const MAX_INBOUND_IP_COUNT: usize = 32;
+
 /// 统一 incoming 路由结果。
 enum RoutedIncoming {
     /// 推送帧：发送方（取自 TLS 证书）+ `export_all` 输出。
@@ -263,7 +270,11 @@ enum RoutedIncoming {
     /// 配对请求帧：已存入 `pending_pairing`，调用方继续等待。
     Pairing,
     /// 设备改名帧：对端告知其新设备名。
-    DeviceName { device_id: String, name: String },
+    DeviceName {
+        sender: iroh::EndpointId,
+        device_id: String,
+        name: String,
+    },
 }
 
 impl SyncService {
@@ -996,12 +1007,14 @@ impl SyncService {
             }
         }
 
-        // 若存在待确认请求，校验其身份与本次确认的发起方一致（防错配连接/响应）
+        // 若存在待确认请求，声明身份必须绑定到认证传输身份（防身份混淆）。
         {
             let guard = self.pending_pairing.lock().unwrap();
             if let Some(pending) = guard.as_ref() {
-                if pending.request.device_id != requester.device_id {
-                    anyhow::bail!("pairing requester mismatch with pending request");
+                if pending.transport_id.to_string() != requester.device_id
+                    || pending.request.device_id != requester.device_id
+                {
+                    anyhow::bail!("pairing requester identity does not match transport");
                 }
             }
         }
@@ -1220,10 +1233,15 @@ impl SyncService {
             .await
             .context("accept pairing response stream")?;
         let data = recv
-            .read_to_end(usize::MAX)
+            .read_to_end(MAX_INBOUND_PAIRING_BYTES)
             .await
             .context("read pairing response")?;
         let response = decode_pairing_response(&data)?;
+        let authenticated_remote = conn.remote_id().to_string();
+        if response.device_id != authenticated_remote || response.device_id != target.device_id {
+            conn.close(1u32.into(), b"identity mismatch");
+            anyhow::bail!("pairing response identity does not match transport");
+        }
         // 数据已读入内存，主动关闭连接，通知确认方可释放（与 accept_push 同模式）
         conn.close(0u32.into(), b"done");
 
@@ -1933,7 +1951,14 @@ impl SyncService {
             RoutedIncoming::Push { data, .. } => Ok(Some(data)),
             RoutedIncoming::HealthCheck { .. } => Ok(None),
             RoutedIncoming::Pairing => Ok(None),
-            RoutedIncoming::DeviceName { device_id, name } => {
+            RoutedIncoming::DeviceName {
+                sender,
+                device_id,
+                name,
+            } => {
+                if sender.to_string() != device_id {
+                    return Ok(None);
+                }
                 self.pending_peer_names
                     .lock()
                     .unwrap()
@@ -2511,7 +2536,7 @@ async fn route_incoming(
     if &marker == LORO_MAGIC {
         // 推送帧：剩余部分 = export_all 输出（[墓碑数][记录流]）
         let data = recv
-            .read_to_end(usize::MAX)
+            .read_to_end(MAX_INBOUND_PUSH_BYTES)
             .await
             .context("read push data")?;
         // 数据已读入内存，主动关闭连接，通知发送端可释放
@@ -2524,15 +2549,20 @@ async fn route_incoming(
     if marker[0] == PAIRING_FRAME_REQUEST {
         // 配对请求帧：marker(8) + 剩余 = 完整帧（从 0x01 开始）
         let mut rest = recv
-            .read_to_end(usize::MAX)
+            .read_to_end(MAX_INBOUND_PAIRING_BYTES)
             .await
             .context("read pairing request")?;
         let mut data = Vec::with_capacity(marker.len() + rest.len());
         data.extend_from_slice(&marker);
         data.append(&mut rest);
         let request = decode_pairing_request(&data)?;
+        if request.device_id != sender_id.to_string() {
+            conn.close(1u32.into(), b"identity mismatch");
+            anyhow::bail!("pairing request identity does not match transport");
+        }
         *pending_pairing.lock().unwrap() = Some(PendingPairing {
             request: request.clone(),
+            transport_id: sender_id,
             conn,
         });
         return Ok(RoutedIncoming::Pairing);
@@ -2540,7 +2570,7 @@ async fn route_incoming(
     if marker[0] == DEVICE_NAME_FRAME {
         // 改名帧：marker(8) + 剩余 = 完整帧（从 0x03 开始）
         let mut rest = recv
-            .read_to_end(usize::MAX)
+            .read_to_end(MAX_INBOUND_NAME_BYTES)
             .await
             .context("read device name frame")?;
         let mut data = Vec::with_capacity(marker.len() + rest.len());
@@ -2548,7 +2578,11 @@ async fn route_incoming(
         data.append(&mut rest);
         conn.close(0u32.into(), b"done");
         let (device_id, name) = decode_device_name_frame(&data)?;
-        return Ok(RoutedIncoming::DeviceName { device_id, name });
+        return Ok(RoutedIncoming::DeviceName {
+            sender: sender_id,
+            device_id,
+            name,
+        });
     }
     anyhow::bail!("unknown incoming frame marker: {:?}", marker);
 }
@@ -2637,6 +2671,9 @@ async fn receiver_handle_incoming(
     let (sender_id, data) = match routed {
         RoutedIncoming::Push { sender, data } => (sender, data),
         RoutedIncoming::HealthCheck { sender } => {
+            if !ctx.store.is_paired_device(&sender.to_string())? {
+                return Ok(());
+            }
             ctx.store
                 .update_last_seen(&sender.to_string())
                 .context("update health-check last_seen")?;
@@ -2644,11 +2681,23 @@ async fn receiver_handle_incoming(
         }
         // 配对帧：已路由到 pending_pairing，接收器继续等待
         RoutedIncoming::Pairing => return Ok(()),
-        RoutedIncoming::DeviceName { device_id, name } => {
+        RoutedIncoming::DeviceName {
+            sender,
+            device_id,
+            name,
+        } => {
+            if sender.to_string() != device_id
+                || !ctx.store.is_paired_device(&sender.to_string())?
+            {
+                return Ok(());
+            }
             apply_peer_name(&ctx.store, &device_id, &name);
             return Ok(());
         }
     };
+    if !ctx.store.is_paired_device(&sender_id.to_string())? {
+        return Ok(());
+    }
     let started = std::time::Instant::now();
     let sender_str = sender_id.to_string();
     // sync.receive 成功日志（脱敏发送方）
@@ -3035,6 +3084,9 @@ fn decode_pairing_request(data: &[u8]) -> Result<PairingRequest> {
     }
     let ips_count = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
     offset += 4;
+    if ips_count > MAX_INBOUND_IP_COUNT {
+        anyhow::bail!("pairing request contains too many IP addresses");
+    }
     let mut ips = Vec::with_capacity(ips_count);
     for _ in 0..ips_count {
         ips.push(take_str(data, &mut offset, "ip")?);
@@ -3112,6 +3164,9 @@ fn take_str(data: &[u8], offset: &mut usize, field: &str) -> Result<String> {
     }
     let len = u32::from_le_bytes(data[*offset..*offset + 4].try_into().unwrap()) as usize;
     *offset += 4;
+    if len > MAX_INBOUND_STRING_BYTES {
+        anyhow::bail!("pairing frame {field} exceeds size limit");
+    }
     if *offset + len > data.len() {
         anyhow::bail!("truncated pairing frame: missing {field}");
     }
