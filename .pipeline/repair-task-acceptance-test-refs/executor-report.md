@@ -18,7 +18,7 @@ pipeline-evidence:
   worktree: D:/Projects/CardMind/.worktrees/repair-task-acceptance-test-refs
   branch: task/repair-task-acceptance-test-refs
   baseline-head: d754a92f2d16098fce7f80a133a7669b3cc042d2
-  head: e6123d50ab1ac3111112f1b42868c982dfcfe9ca
+  head: 7c143ac0e1a694b2f5d9fbe7c072c2444c2bdf3c
   executor-role: executor
   commands:
     - command: "git grep -n 'test_ref' -- docs/tasks/update-download-navigation.md"
