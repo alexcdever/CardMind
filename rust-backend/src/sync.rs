@@ -1177,6 +1177,25 @@ impl SyncService {
         Ok(())
     }
 
+    #[doc(hidden)]
+    pub async fn receive_pairing_request_for_test(&mut self, timeout: Duration) -> Result<String> {
+        let deadline = tokio::time::Instant::now() + timeout;
+        loop {
+            let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+            if remaining.is_zero() {
+                anyhow::bail!("pairing request test timed out");
+            }
+            let incoming = tokio::time::timeout(remaining, self.endpoint.accept())
+                .await
+                .context("pairing request accept timeout")?
+                .ok_or_else(|| anyhow::anyhow!("pairing endpoint closed"))?;
+            match self.accept_incoming_routed(incoming).await {
+                Ok(_) => continue,
+                Err(error) => return Err(error),
+            }
+        }
+    }
+
     pub async fn begin_pairing_connect(
         &self,
         store: &NoteStore,

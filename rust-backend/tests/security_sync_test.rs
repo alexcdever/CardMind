@@ -94,15 +94,15 @@ fn pairing_identity_must_match_transport() {
         };
         let accept = tokio::spawn(async move {
             receiver
-                .accept_pairing_request_with_timeout(std::time::Duration::from_secs(2))
+                .receive_pairing_request_for_test(std::time::Duration::from_secs(2))
                 .await
         });
         assert!(sender
             .send_pairing_request_for_test(target, request)
             .await
             .is_ok());
-        let accepted = accept.await.unwrap();
-        assert!(accepted.is_err() || accepted.unwrap().is_none());
+        let rejected = accept.await.unwrap().unwrap_err();
+        assert!(rejected.to_string().contains("identity"));
         assert!(store.list_paired_devices().unwrap().is_empty());
         assert!(pairing_identity_matches(
             "authenticated-remote",
