@@ -3,7 +3,8 @@
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
     decode_device_name_frame, decode_pairing_request, decode_pairing_response,
-    encode_pairing_request, pairing_identity_matches, PairingRequest, PairingResponse, SyncService,
+    encode_pairing_request, pairing_identity_matches, validate_pairing_request_identity,
+    PairingRequest, PairingResponse, SyncService,
 };
 
 fn rt() -> tokio::runtime::Runtime {
@@ -81,6 +82,8 @@ fn pairing_identity_must_match_transport() {
         "authenticated-remote",
         "spoofed-identity"
     ));
+    let request = valid_request("spoofed-identity");
+    assert!(validate_pairing_request_identity("authenticated-remote", &request).is_err());
 }
 
 #[test]

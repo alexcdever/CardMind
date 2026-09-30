@@ -247,6 +247,17 @@ pub fn pairing_identity_matches(transport_id: &str, claimed_id: &str) -> bool {
     transport_id == claimed_id
 }
 
+pub fn validate_pairing_request_identity(
+    transport_id: &str,
+    request: &PairingRequest,
+) -> Result<()> {
+    if pairing_identity_matches(transport_id, &request.device_id) {
+        Ok(())
+    } else {
+        anyhow::bail!("pairing request identity does not match transport")
+    }
+}
+
 /// 配对码有效期（分钟）
 const PAIRING_CODE_TTL_MINUTES: i64 = 10;
 /// 同一码允许的连续错误次数（超限会话失效）
@@ -1018,10 +1029,9 @@ impl SyncService {
         {
             let guard = self.pending_pairing.lock().unwrap();
             if let Some(pending) = guard.as_ref() {
-                if !pairing_identity_matches(
-                    &pending.transport_id.to_string(),
-                    &requester.device_id,
-                ) || !pairing_identity_matches(&pending.request.device_id, &requester.device_id)
+                if validate_pairing_request_identity(&pending.transport_id.to_string(), requester)
+                    .is_err()
+                    || !pairing_identity_matches(&pending.request.device_id, &requester.device_id)
                 {
                     anyhow::bail!("pairing requester identity does not match transport");
                 }
@@ -1034,6 +1044,10 @@ impl SyncService {
         // 确认方持久化发起方
         store.upsert_paired_device(&requester.device_id, &requester.device_name)?;
         store.update_paired_device_ips(&requester.device_id, &requester.ips)?;
+        self.authorized_peers
+            .lock()
+            .unwrap()
+            .insert(requester.device_id.clone());
         // 配对握手成功 → 发起方立即进入"近期在线"（任务 O 验收 11：不能等下一次同步）
         self.touch_last_seen(store, &requester.device_id, "pairing");
         // 记录发起方直连 IP（供后续周期推送直连优先）
@@ -1259,6 +1273,10 @@ impl SyncService {
         // 握手响应 → 发起方持久化确认方
         store.upsert_paired_device(&response.device_id, &response.device_name)?;
         store.update_paired_device_ips(&response.device_id, &target.ips)?;
+        self.authorized_peers
+            .lock()
+            .unwrap()
+            .insert(response.device_id.clone());
         // 配对握手成功 → 确认方立即进入"近期在线"（任务 O 验收 11）
         self.touch_last_seen(store, &response.device_id, "pairing");
         // 记录确认方直连 IP（供后续周期推送直连优先）
