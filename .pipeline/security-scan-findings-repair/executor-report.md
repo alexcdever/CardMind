@@ -9,7 +9,7 @@
 - prior final commit: `94b9f72`
 - prior final commit: `0047aba`
 - prior final commit: `65dd010`
-- current changes are uncommitted; final commit HEAD will be recorded after commit
+- final commit: `9c3d6a379965ee9e0e5d54072a805df18bfff607`
 
 ## Added frozen Rust acceptance tests
 
