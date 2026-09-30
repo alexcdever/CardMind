@@ -4,7 +4,8 @@
 - worktree: `D:/Projects/CardMind/.worktrees/security-scan-findings-repair`
 - branch: `task/security-scan-findings-repair`
 - baseline HEAD before continuation: `a018a9a0ea779158fc7df5a1cb5d5b0d590d1a25`
-- current HEAD after commit: `fab9be0898392230d0731738abf7cceb6d36c7bb`
+- prior HEAD: `fab9be0898392230d0731738abf7cceb6d36c7bb`
+- current continuation is uncommitted; final commit HEAD will be recorded after commit
 
 ## Added frozen Rust acceptance tests
 
@@ -26,6 +27,11 @@ GitNexus impact analysis was attempted but MCP was unavailable in this executor 
 - `cargo check --tests` — 0
 - `cargo test --test pairing_test test_pairing_persists_both_sides` — 0
 - `cargo test --test receiver_continuous_test receiver_continuously_accepts_push` — 0
+- `cargo test --test security_sync_test unauthorized_peer_cannot_import_or_update_presence` — 0
+- `cargo test --test security_sync_test pairing_identity_must_match_transport` — 0
+- `cargo test --test security_sync_test oversized_inbound_frames_are_rejected` — 0
+
+The live unauthorized-peer test uses two real SyncService endpoints. Transport push may report success because the receiver consumes and closes the stream, but the receiver logs authorization rejection and imports no note or presence state; the existing paired receiver regression separately covers the normal authorized path. Bounded decoder tests cover field/count rejection without panic; full receiver-recovery behavior remains covered by `receiver_continuous_test`.
 
 The task sheet and scanner evidence were not modified. Existing reviewer evidence files remain untracked and untouched.
 
