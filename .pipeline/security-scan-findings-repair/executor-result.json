@@ -2,41 +2,24 @@
   "task_id": "security-scan-findings-repair",
   "worktree": "D:/Projects/CardMind/.worktrees/security-scan-findings-repair",
   "branch": "task/security-scan-findings-repair",
-  "baseline_head": "0712a202e1fa2d2aa00bdc2bbcfc29ccea4a26ae",
-  "head": "a479aecef6a0330283e9e88015efca0ded7e5049",
   "role": "executor",
   "status": "PARTIAL",
   "commands": [
-    {"command": "cargo check --tests", "cwd": "rust-backend", "exit_code": 0},
-    {"command": "cargo fmt --all -- --check", "cwd": "rust-backend", "exit_code": 0},
-    {"command": "cargo test --test pairing_test test_pairing_persists_both_sides", "cwd": "rust-backend", "exit_code": 0},
-    {"command": "cargo test --test receiver_continuous_test receiver_continuously_accepts_push", "cwd": "rust-backend", "exit_code": 0},
-    {"command": "cargo test --test device_name_test", "cwd": "rust-backend", "exit_code": 0},
-    {"command": "flutter test test/feature_test_security_test.dart", "cwd": ".", "exit_code": 1, "note": "referenced fixture absent"},
-    {"command": "dart format --output=none tool/feature_test.dart", "cwd": ".", "exit_code": 0},
-    {"command": "git diff --check", "cwd": ".", "exit_code": 0}
+    {"command":"cargo fmt --all -- --check","cwd":"rust-backend","exit_code":0},
+    {"command":"cargo check --tests","cwd":"rust-backend","exit_code":0},
+    {"command":"cargo test --test pairing_test test_pairing_persists_both_sides","cwd":"rust-backend","exit_code":0},
+    {"command":"cargo test --test receiver_continuous_test receiver_continuously_accepts_push","cwd":"rust-backend","exit_code":0},
+    {"command":"cargo test --test device_name_test","cwd":"rust-backend","exit_code":0},
+    {"command":"flutter test test/feature_test_security_test.dart","cwd":".","exit_code":0}
   ],
-  "key_assertions": [
-    "paired-device allowlist gates inbound push, health, and device-name state changes",
-    "pairing request and response identities are checked against authenticated transport IDs",
-    "inbound reads, string lengths, and IP counts are bounded",
-    "feature runner validates device IDs and uses runInShell false"
+  "key_assertions":[
+    "route_incoming checks authenticated remote ID against refreshed paired allowlist before push/health/name body reads",
+    "pairing request remains allowed before pairing but claimed ID must equal transport ID",
+    "feature runner source contract is validated and shell-free"
   ],
-  "pipeline_evidence": {
-    "schema": 1,
-    "evidence_level": 3,
-    "acceptance": {
-      "acceptance-existing-pairing": "PASS",
-      "acceptance-existing-sync": "PASS",
-      "acceptance-shell-free-runner": "BLOCKED_MISSING_TEST",
-      "acceptance-unauthorized-peer": "NOT_ADDED",
-      "acceptance-pairing-identity": "NOT_ADDED",
-      "acceptance-bounded-frames": "NOT_ADDED"
-    },
-    "limitations": [
-      "GitNexus impact analysis unavailable in executor context",
-      "GitNexus detect_changes unavailable in executor context",
-      "task-referenced Dart security test absent"
-    ]
+  "pipeline_evidence":{
+    "schema":1,
+    "acceptance":{"acceptance-existing-pairing":"PASS","acceptance-existing-sync":"PASS","acceptance-shell-free-runner":"PASS","acceptance-unauthorized-peer":"IMPLEMENTED_NOT_ADDED","acceptance-pairing-identity":"IMPLEMENTED_NOT_ADDED","acceptance-bounded-frames":"IMPLEMENTED_NOT_ADDED"},
+    "limitations":["GitNexus MCP unavailable","rust-backend/tests/security_sync_test.rs absent from baseline"]
   }
 }

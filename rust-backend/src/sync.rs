@@ -37,6 +37,7 @@ pub struct SyncService {
     /// 确认方已接收、等待用户确认的配对请求及其连接（确认时回复握手响应）。
     /// Arc 共享：后台接收任务（任务 O）与主服务路由到同一 pending_pairing。
     pending_pairing: Arc<Mutex<Option<PendingPairing>>>,
+    authorized_peers: Arc<Mutex<HashSet<String>>>,
     /// 轮询路径抢到的改名帧暂存（peer_id → 新名字）。
     ///
     /// 接收器与周期 accept 竞争同一个 `endpoint.accept()`；轮询路径拿不到 `store`，
@@ -96,6 +97,7 @@ struct ReceiverContext {
     core: Arc<Mutex<CoreState>>,
     /// 共享配对路由状态（与主服务同一 pending_pairing——配对帧不丢、不互抢）
     pending_pairing: Arc<Mutex<Option<PendingPairing>>>,
+    authorized_peers: Arc<Mutex<HashSet<String>>>,
     /// 轮询路径暂存的改名帧（接收器落库时一并冲刷）
     pending_peer_names: Arc<Mutex<HashMap<String, String>>>,
     store: NoteStore,
@@ -341,6 +343,7 @@ impl SyncService {
             secret_key: secret_key_for_signing,
             pairing_session: Mutex::new(None),
             pending_pairing: Arc::new(Mutex::new(None)),
+            authorized_peers: Arc::new(Mutex::new(HashSet::new())),
             pending_peer_names: Arc::new(Mutex::new(HashMap::new())),
             device_name: Mutex::new(
                 load_device_name(data_dir.as_deref()).unwrap_or_else(default_device_name),
@@ -1945,9 +1948,7 @@ impl SyncService {
         &self,
         incoming: iroh::endpoint::Incoming,
     ) -> Result<Option<Vec<u8>>> {
-        // 统一路由自由函数（任务 O 后台接收器与主服务共用同一路由/同一
-        // pending_pairing——配对帧与推送帧不丢帧、不互抢）
-        match route_incoming(incoming, &self.pending_pairing).await? {
+        match route_incoming(incoming, &self.pending_pairing, &self.authorized_peers).await? {
             RoutedIncoming::Push { data, .. } => Ok(Some(data)),
             RoutedIncoming::HealthCheck { .. } => Ok(None),
             RoutedIncoming::Pairing => Ok(None),
@@ -1972,7 +1973,15 @@ impl SyncService {
     ///
     /// 通过统一帧路由避免与配对流程争用 accept 通道；配对请求被本函数抢到时
     /// 会被正确存入 `pending_pairing`（`confirm_pairing` 仍可完成握手）。
-    pub async fn try_accept_push(&self, timeout: Duration) -> Result<Option<Vec<u8>>> {
+    pub async fn try_accept_push(&self, _timeout: Duration) -> Result<Option<Vec<u8>>> {
+        anyhow::bail!("try_accept_push requires a NoteStore; use run_sync_cycle")
+    }
+
+    async fn try_accept_push_with_store(
+        &self,
+        timeout: Duration,
+        _store: &NoteStore,
+    ) -> Result<Option<Vec<u8>>> {
         let incoming = match tokio::time::timeout(timeout, self.endpoint.accept()).await {
             Ok(Some(incoming)) => incoming,
             _ => return Ok(None),
@@ -2167,7 +2176,10 @@ impl SyncService {
                 );
             }
         }
-        let accepted = match self.try_accept_push(SYNC_ACCEPT_WINDOW).await? {
+        let accepted = match self
+            .try_accept_push_with_store(SYNC_ACCEPT_WINDOW, store)
+            .await?
+        {
             Some(data) => {
                 self.import_all(&data)?;
                 self.sync_notes_to_store(store)?;
@@ -2233,6 +2245,7 @@ impl SyncService {
                 endpoint: self.endpoint.clone(),
                 core: self.core.clone(),
                 pending_pairing: self.pending_pairing.clone(),
+                authorized_peers: self.authorized_peers.clone(),
                 pending_peer_names: self.pending_peer_names.clone(),
                 store: store.clone(),
                 log: self.log.clone(),
@@ -2513,6 +2526,7 @@ fn persist_core(core: &CoreState) -> Result<()> {
 async fn route_incoming(
     incoming: iroh::endpoint::Incoming,
     pending_pairing: &Mutex<Option<PendingPairing>>,
+    authorized_peers: &Mutex<HashSet<String>>,
 ) -> Result<RoutedIncoming> {
     let conn = incoming.accept()?.await.context("accept connection")?;
     // 发送方身份：连接 TLS 证书中的 EndpointId（识别 inbound push 来源，
@@ -2524,6 +2538,14 @@ async fn route_incoming(
         .await
         .context("read frame marker")?;
     if &marker == HEALTH_MAGIC {
+        if !authorized_peers
+            .lock()
+            .unwrap()
+            .contains(&sender_id.to_string())
+        {
+            conn.close(1u32.into(), b"unauthorized peer");
+            anyhow::bail!("unauthorized health-check peer");
+        }
         let mut ack = conn.open_uni().await.context("open health-check ACK")?;
         ack.write_all(HEALTH_ACK)
             .await
@@ -2534,6 +2556,14 @@ async fn route_incoming(
         return Ok(RoutedIncoming::HealthCheck { sender: sender_id });
     }
     if &marker == LORO_MAGIC {
+        if !authorized_peers
+            .lock()
+            .unwrap()
+            .contains(&sender_id.to_string())
+        {
+            conn.close(1u32.into(), b"unauthorized peer");
+            anyhow::bail!("unauthorized push peer");
+        }
         // 推送帧：剩余部分 = export_all 输出（[墓碑数][记录流]）
         let data = recv
             .read_to_end(MAX_INBOUND_PUSH_BYTES)
@@ -2568,6 +2598,14 @@ async fn route_incoming(
         return Ok(RoutedIncoming::Pairing);
     }
     if marker[0] == DEVICE_NAME_FRAME {
+        if !authorized_peers
+            .lock()
+            .unwrap()
+            .contains(&sender_id.to_string())
+        {
+            conn.close(1u32.into(), b"unauthorized peer");
+            anyhow::bail!("unauthorized device-name peer");
+        }
         // 改名帧：marker(8) + 剩余 = 完整帧（从 0x03 开始）
         let mut rest = recv
             .read_to_end(MAX_INBOUND_NAME_BYTES)
@@ -2659,11 +2697,18 @@ async fn receiver_handle_incoming(
     ctx: &mut ReceiverContext,
     incoming: iroh::endpoint::Incoming,
 ) -> Result<()> {
+    *ctx.authorized_peers.lock().unwrap() = ctx
+        .store
+        .list_paired_devices()?
+        .into_iter()
+        .map(|row| row.peer_id)
+        .collect();
     let routed = route_incoming(
         incoming,
         // 接收器也参与配对帧路由：配对请求被接收器抢到时正确存入
         // pending_pairing（confirm_pairing 仍可完成握手）——验收 9 统一路由
         &ctx.pending_pairing,
+        &ctx.authorized_peers,
     )
     .await?;
     // 接收器持有 store，是唯一能落库改名帧的路径；顺带把轮询路径暂存的名字一并冲刷。
