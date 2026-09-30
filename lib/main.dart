@@ -12,6 +12,7 @@ import 'bridge/rust_library_loader.dart';
 import 'pages/note_list_page.dart';
 import 'pages/editor_page.dart';
 import 'pages/settings_page.dart';
+import 'services/update_download_manager.dart';
 import 'src/rust/frb_generated.dart';
 import 'ui/design_system/cardmind_theme.dart';
 
@@ -163,10 +164,26 @@ class _CardMindStartupScreen extends StatelessWidget {
   }
 }
 
-class CardMindApp extends StatelessWidget {
-  const CardMindApp({super.key, this.repository});
+class CardMindApp extends StatefulWidget {
+  const CardMindApp({super.key, this.repository, this.downloadManager});
 
   final NoteRepository? repository;
+  final UpdateDownloadManager? downloadManager;
+
+  @override
+  State<CardMindApp> createState() => _CardMindAppState();
+}
+
+class _CardMindAppState extends State<CardMindApp> {
+  late final UpdateDownloadManager _downloadManager =
+      widget.downloadManager ?? UpdateDownloadManager();
+  late final bool _ownsDownloadManager = widget.downloadManager == null;
+
+  @override
+  void dispose() {
+    if (_ownsDownloadManager) _downloadManager.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,20 +201,22 @@ class CardMindApp extends StatelessWidget {
         switch (settings.name) {
           case '/':
             return MaterialPageRoute(
-              builder: (_) => NoteListPage(repository: repository),
+              builder: (_) => NoteListPage(repository: widget.repository),
             );
           case '/editor':
             final args = settings.arguments as Map<String, dynamic>?;
             final noteId = args?['noteId'] as String?;
             return MaterialPageRoute(
               builder: (_) =>
-                  EditorPage(noteId: noteId, repository: repository),
+                  EditorPage(noteId: noteId, repository: widget.repository),
             );
           case '/settings':
-            return MaterialPageRoute(builder: (_) => const SettingsPage());
+            return MaterialPageRoute(
+              builder: (_) => SettingsPage(downloadManager: _downloadManager),
+            );
           default:
             return MaterialPageRoute(
-              builder: (_) => NoteListPage(repository: repository),
+              builder: (_) => NoteListPage(repository: widget.repository),
             );
         }
       },

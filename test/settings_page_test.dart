@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,6 +8,7 @@ import 'package:cardmind/pages/settings_page.dart';
 import 'package:cardmind/services/app_settings_service.dart';
 import 'package:cardmind/services/platform_update_installer.dart';
 import 'package:cardmind/services/update_downloader.dart';
+import 'package:cardmind/services/update_download_manager.dart';
 import 'package:cardmind/services/update_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,17 +45,44 @@ class _DownloaderFake extends UpdateDownloader {
   void dispose() {}
 }
 
+class _DeferredDownloader extends UpdateDownloader {
+  _DeferredDownloader(this.result) : super(client: HttpClient());
+
+  final DownloadResult result;
+  final completer = Completer<void>();
+  DownloadCancellationToken? token;
+
+  @override
+  Future<DownloadResult> download(
+    UpdateAsset asset, {
+    Uri? url,
+    DownloadCancellationToken? cancellation,
+    void Function(double)? onProgress,
+  }) async {
+    token = cancellation;
+    onProgress?.call(0.5);
+    await completer.future;
+    onProgress?.call(1);
+    return result;
+  }
+
+  @override
+  void dispose() {}
+}
+
 class _InstallerFake extends PlatformUpdateInstaller {
   _InstallerFake(this.result) : super(platform: UpdatePlatform.windows);
 
   final InstallResult result;
   File? received;
+  var calls = 0;
 
   @override
   Future<InstallResult> install(
     UpdateAsset asset, {
     required File verifiedFile,
   }) async {
+    calls++;
     received = verifiedFile;
     return result;
   }
@@ -335,6 +364,85 @@ void main() {
     await tester.pump(const Duration(milliseconds: 1));
     expect(find.textContaining('检查失败'), findsOneWidget);
   });
+
+  testWidgets(
+    'shared manager keeps download alive across settings navigation',
+    (tester) async {
+      final file = File(
+        '${Directory.systemTemp.path}/cardmind-page-update.exe',
+      );
+      file.writeAsStringSync('verified');
+      addTearDown(() async {
+        if (file.existsSync()) await file.delete();
+      });
+      final downloader = _DeferredDownloader(DownloadSuccess(file));
+      final installer = _InstallerFake(
+        const ManualInstallRequired('已下载，请手动安装'),
+      );
+      final manager = UpdateDownloadManager(
+        downloader: downloader,
+        installer: installer,
+      );
+      final service = UpdateService(
+        currentBuild: 1,
+        currentVersion: '0.1.0',
+        fetch: (_) async => jsonEncode(_manifest(build: 10002)),
+      );
+      final settings = _SettingsFake(UpdateChannel.stable);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Navigator(
+            onGenerateRoute: (route) => MaterialPageRoute(
+              builder: (_) => SettingsPage(
+                currentVersion: '0.1.0',
+                settings: settings,
+                updates: service,
+                downloadManager: manager,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('check-for-updates')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('download-update')));
+      await tester.pump();
+      expect(find.text('下载中…'), findsOneWidget);
+
+      Navigator.of(
+        tester.element(find.byKey(const ValueKey('settings-page'))),
+      ).pop();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('settings-page')), findsNothing);
+      expect(manager.downloading, isTrue);
+
+      downloader.completer.complete();
+      await tester.pump();
+      await tester.pump();
+      expect(installer.calls, 1);
+      expect(manager.message, '已下载，请手动安装');
+
+      final navigator = tester.state<NavigatorState>(
+        find.byType(Navigator).first,
+      );
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => SettingsPage(
+            currentVersion: '0.1.0',
+            settings: settings,
+            downloadManager: manager,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('发现更新'), findsOneWidget);
+      expect(find.text('已下载，请手动安装'), findsNWidgets(2));
+      expect(find.byType(SnackBar), findsOneWidget);
+
+      manager.dispose();
+    },
+  );
 
   testWidgets(
     'A1: log directory resolution failure shows a failure state, not loading',

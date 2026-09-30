@@ -8,6 +8,7 @@ import '../models/update_channel.dart';
 import '../services/app_settings_service.dart';
 import '../services/platform_update_installer.dart';
 import '../services/update_downloader.dart';
+import '../services/update_download_manager.dart';
 import '../services/update_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -20,6 +21,7 @@ class SettingsPage extends StatefulWidget {
     this.updates,
     this.downloader,
     this.installer,
+    this.downloadManager,
     this.logDirectoryResolver,
     this.logDirectoryOpener,
   });
@@ -31,6 +33,7 @@ class SettingsPage extends StatefulWidget {
   final UpdateService? updates;
   final UpdateDownloader? downloader;
   final PlatformUpdateInstaller? installer;
+  final UpdateDownloadManager? downloadManager;
 
   /// 日志目录推导（默认 [resolveLogDirectory]）；测试注入假实现，避免触碰
   /// 真实 `getApplicationSupportDirectory`。
@@ -51,17 +54,51 @@ class _SettingsPageState extends State<SettingsPage> {
   int? _build;
   UpdateCheckResult? _result;
   bool _checking = false;
-  bool _downloading = false;
-  double _progress = 0;
-  String? _downloadMessage;
-  DownloadCancellationToken? _downloadToken;
+  late final UpdateDownloadManager _downloadManager =
+      widget.downloadManager ??
+      UpdateDownloadManager(
+        downloader: widget.downloader,
+        installer: widget.installer,
+      );
+  late final bool _ownsDownloadManager = widget.downloadManager == null;
   String? _logDirectory;
   bool _logDirectoryLoadFailed = false;
+  String? _shownRecoveryMessage;
 
   @override
   void dispose() {
-    _downloadToken?.cancel();
+    _downloadManager.removeListener(_downloadChanged);
+    if (_ownsDownloadManager) _downloadManager.dispose();
     super.dispose();
+  }
+
+  void _downloadChanged() {
+    if (!mounted) return;
+    setState(() {
+      if (_downloadManager.manifest case final manifest?) {
+        _result = UpdateAvailable(manifest);
+      }
+    });
+    _showRecoveryIfNeeded();
+  }
+
+  void _showRecoveryIfNeeded() {
+    final message = _downloadManager.message;
+    if (message == null ||
+        _downloadManager.downloading ||
+        _shownRecoveryMessage == message ||
+        (!message.startsWith('安装失败：') &&
+            !message.startsWith('已下载，请') &&
+            !message.startsWith('更新失败：'))) {
+      return;
+    }
+    _shownRecoveryMessage = message;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    });
   }
 
   late final AppSettingsService _settings =
@@ -72,25 +109,15 @@ class _SettingsPageState extends State<SettingsPage> {
         currentBuild: _build ?? widget.currentBuild,
         currentVersion: _version ?? widget.currentVersion ?? '',
       );
-  late final UpdateDownloader _downloader =
-      widget.downloader ?? UpdateDownloader();
-  late final PlatformUpdateInstaller _platformInstaller =
-      widget.installer ??
-      PlatformUpdateInstaller(
-        platform: Platform.isWindows
-            ? UpdatePlatform.windows
-            : Platform.isAndroid
-            ? UpdatePlatform.android
-            : Platform.isMacOS
-            ? UpdatePlatform.macos
-            : UpdatePlatform.linux,
-      );
-
-  PlatformUpdateInstaller get _installer => _platformInstaller;
 
   @override
   void initState() {
     super.initState();
+    if (_downloadManager.manifest case final manifest?) {
+      _result = UpdateAvailable(manifest);
+    }
+    _downloadManager.addListener(_downloadChanged);
+    _showRecoveryIfNeeded();
     _loadSettings();
     _loadVersion();
     _loadLogDirectory();
@@ -200,61 +227,13 @@ class _SettingsPageState extends State<SettingsPage> {
         ? result.manifest.currentAsset
         : null;
     if (asset == null) return;
-
-    final token = DownloadCancellationToken();
-    _downloadToken = token;
-    setState(() {
-      _downloading = true;
-      _progress = 0;
-      _downloadMessage = null;
-    });
-    final downloaded = await _downloader.download(
-      asset,
-      cancellation: token,
-      onProgress: (value) {
-        if (mounted) setState(() => _progress = value);
-      },
-    );
-    if (!mounted) return;
-
-    if (downloaded is DownloadFailure) {
-      setState(() {
-        _downloading = false;
-        _downloadToken = null;
-        _downloadMessage = downloaded.message;
-      });
-      return;
-    }
-
-    final installed = await _installer.install(
-      asset,
-      verifiedFile: (downloaded as DownloadSuccess).file,
-    );
-    if (!mounted) return;
-    setState(() {
-      _downloading = false;
-      _downloadToken = null;
-      _downloadMessage = switch (installed) {
-        InstallStarted() => '已启动安装器',
-        ManualInstallRequired(:final message) => message,
-        InstallFailure(:final message) => message,
-      };
-    });
-    if (installed case InstallFailure(:final message)) {
-      _showInstallRecovery(message);
-    } else if (installed case ManualInstallRequired(:final message)) {
-      _showInstallRecovery(message);
-    }
+    _downloadManager.manifest = result is UpdateAvailable
+        ? result.manifest
+        : _downloadManager.manifest;
+    await _downloadManager.start(asset);
   }
 
-  void _showInstallRecovery(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _cancelDownload() => _downloadToken?.cancel();
+  void _cancelDownload() => _downloadManager.cancel();
 
   @override
   Widget build(BuildContext context) {
@@ -325,17 +304,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 12),
                   FilledButton(
                     key: const ValueKey('download-update'),
-                    onPressed: _downloading ? null : _download,
-                    child: Text(_downloading ? '下载中…' : '下载更新'),
+                    onPressed: _downloadManager.downloading ? null : _download,
+                    child: Text(_downloadManager.downloading ? '下载中…' : '下载更新'),
                   ),
-                  if (_downloading)
+                  if (_downloadManager.downloading)
                     TextButton(
                       key: const ValueKey('cancel-update-download'),
                       onPressed: _cancelDownload,
                       child: const Text('取消下载'),
                     ),
-                  if (_downloading) LinearProgressIndicator(value: _progress),
-                  if (_downloadMessage != null) Text(_downloadMessage!),
+                  if (_downloadManager.downloading)
+                    LinearProgressIndicator(value: _downloadManager.progress),
+                  if (_downloadManager.message != null)
+                    Text(_downloadManager.message!),
                 ],
                 if (_result case UpdateCheckError(:final message))
                   Text('检查失败：$message'),
