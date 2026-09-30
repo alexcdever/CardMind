@@ -5,7 +5,7 @@
 - branch: `task/security-scan-findings-repair`
 - baseline HEAD before continuation: `a018a9a0ea779158fc7df5a1cb5d5b0d590d1a25`
 - prior HEAD: `fab9be0898392230d0731738abf7cceb6d36c7bb`
-- current continuation is uncommitted; final commit HEAD will be recorded after commit
+- final continuation commit: `ddfd4ac3aebbde6c14dfef5ee82d2fe0accd2cf0`
 
 ## Added frozen Rust acceptance tests
 

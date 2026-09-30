@@ -6,6 +6,7 @@
   "status":"PASS",
   "head_before_commit":"a018a9a0ea779158fc7df5a1cb5d5b0d590d1a25",
   "prior_head":"fab9be0898392230d0731738abf7cceb6d36c7bb",
+  "head":"ddfd4ac3aebbde6c14dfef5ee82d2fe0accd2cf0",
   "commands":[
     {"command":"cargo fmt --all","cwd":"rust-backend","exit_code":0},
     {"command":"cargo test --test security_sync_test","cwd":"rust-backend","exit_code":0,"tests_passed":4},
