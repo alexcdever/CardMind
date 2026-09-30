@@ -238,9 +238,13 @@ struct PendingPairing {
 
 /// 确认方握手响应（确认方 → 发起方）
 #[derive(Debug, Clone)]
-struct PairingResponse {
-    device_id: String,
-    device_name: String,
+pub struct PairingResponse {
+    pub device_id: String,
+    pub device_name: String,
+}
+
+pub fn pairing_identity_matches(transport_id: &str, claimed_id: &str) -> bool {
+    transport_id == claimed_id
 }
 
 /// 配对码有效期（分钟）
@@ -1014,8 +1018,10 @@ impl SyncService {
         {
             let guard = self.pending_pairing.lock().unwrap();
             if let Some(pending) = guard.as_ref() {
-                if pending.transport_id.to_string() != requester.device_id
-                    || pending.request.device_id != requester.device_id
+                if !pairing_identity_matches(
+                    &pending.transport_id.to_string(),
+                    &requester.device_id,
+                ) || !pairing_identity_matches(&pending.request.device_id, &requester.device_id)
                 {
                     anyhow::bail!("pairing requester identity does not match transport");
                 }
@@ -1241,7 +1247,9 @@ impl SyncService {
             .context("read pairing response")?;
         let response = decode_pairing_response(&data)?;
         let authenticated_remote = conn.remote_id().to_string();
-        if response.device_id != authenticated_remote || response.device_id != target.device_id {
+        if !pairing_identity_matches(&authenticated_remote, &response.device_id)
+            || !pairing_identity_matches(&target.device_id, &response.device_id)
+        {
             conn.close(1u32.into(), b"identity mismatch");
             anyhow::bail!("pairing response identity does not match transport");
         }
@@ -3097,7 +3105,7 @@ fn default_device_name() -> String {
 // 帧结构（响应）：
 //   [0x02][device_id: u32 len + bytes][device_name: u32 len + bytes]
 
-fn encode_pairing_request(request: &PairingRequest) -> Vec<u8> {
+pub fn encode_pairing_request(request: &PairingRequest) -> Vec<u8> {
     let mut buf = Vec::new();
     buf.push(PAIRING_FRAME_REQUEST);
     push_str(&mut buf, &request.code);
@@ -3114,7 +3122,7 @@ fn encode_pairing_request(request: &PairingRequest) -> Vec<u8> {
     buf
 }
 
-fn decode_pairing_request(data: &[u8]) -> Result<PairingRequest> {
+pub fn decode_pairing_request(data: &[u8]) -> Result<PairingRequest> {
     let mut offset = 0;
     if data.is_empty() || data[0] != PAIRING_FRAME_REQUEST {
         anyhow::bail!("invalid pairing request frame");
@@ -3154,7 +3162,7 @@ fn decode_pairing_request(data: &[u8]) -> Result<PairingRequest> {
     })
 }
 
-fn encode_pairing_response(response: &PairingResponse) -> Vec<u8> {
+pub fn encode_pairing_response(response: &PairingResponse) -> Vec<u8> {
     let mut buf = Vec::new();
     buf.push(PAIRING_FRAME_RESPONSE);
     push_str(&mut buf, &response.device_id);
@@ -3162,7 +3170,7 @@ fn encode_pairing_response(response: &PairingResponse) -> Vec<u8> {
     buf
 }
 
-fn decode_pairing_response(data: &[u8]) -> Result<PairingResponse> {
+pub fn decode_pairing_response(data: &[u8]) -> Result<PairingResponse> {
     let mut offset = 0;
     if data.is_empty() || data[0] != PAIRING_FRAME_RESPONSE {
         anyhow::bail!("invalid pairing response frame");

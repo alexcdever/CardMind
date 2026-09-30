@@ -1,25 +1,32 @@
 {
-  "task_id": "security-scan-findings-repair",
-  "worktree": "D:/Projects/CardMind/.worktrees/security-scan-findings-repair",
-  "branch": "task/security-scan-findings-repair",
-  "role": "executor",
-  "status": "PARTIAL",
-  "commands": [
-    {"command":"cargo fmt --all -- --check","cwd":"rust-backend","exit_code":0},
+  "task_id":"security-scan-findings-repair",
+  "worktree":"D:/Projects/CardMind/.worktrees/security-scan-findings-repair",
+  "branch":"task/security-scan-findings-repair",
+  "role":"executor",
+  "status":"PASS",
+  "head_before_commit":"a018a9a0ea779158fc7df5a1cb5d5b0d590d1a25",
+  "commands":[
+    {"command":"cargo fmt --all","cwd":"rust-backend","exit_code":0},
+    {"command":"cargo test --test security_sync_test","cwd":"rust-backend","exit_code":0,"tests_passed":4},
     {"command":"cargo check --tests","cwd":"rust-backend","exit_code":0},
     {"command":"cargo test --test pairing_test test_pairing_persists_both_sides","cwd":"rust-backend","exit_code":0},
-    {"command":"cargo test --test receiver_continuous_test receiver_continuously_accepts_push","cwd":"rust-backend","exit_code":0},
-    {"command":"cargo test --test device_name_test","cwd":"rust-backend","exit_code":0},
-    {"command":"flutter test test/feature_test_security_test.dart","cwd":".","exit_code":0}
+    {"command":"cargo test --test receiver_continuous_test receiver_continuously_accepts_push","cwd":"rust-backend","exit_code":0}
   ],
   "key_assertions":[
-    "route_incoming checks authenticated remote ID against refreshed paired allowlist before push/health/name body reads",
-    "pairing request remains allowed before pairing but claimed ID must equal transport ID",
-    "feature runner source contract is validated and shell-free"
+    "security_sync_test.rs now exists and compiles",
+    "unauthorized peer cannot change note or paired-device state",
+    "oversized fields, over-counted IPs, and oversized response fields reject without panic",
+    "pairing identity mismatch behavior is covered"
   ],
   "pipeline_evidence":{
     "schema":1,
-    "acceptance":{"acceptance-existing-pairing":"PASS","acceptance-existing-sync":"PASS","acceptance-shell-free-runner":"PASS","acceptance-unauthorized-peer":"IMPLEMENTED_NOT_ADDED","acceptance-pairing-identity":"IMPLEMENTED_NOT_ADDED","acceptance-bounded-frames":"IMPLEMENTED_NOT_ADDED"},
-    "limitations":["GitNexus MCP unavailable","rust-backend/tests/security_sync_test.rs absent from baseline"]
+    "acceptance":{
+      "acceptance-unauthorized-peer":"PASS",
+      "acceptance-pairing-identity":"PASS",
+      "acceptance-bounded-frames":"PASS",
+      "acceptance-existing-pairing":"PASS",
+      "acceptance-existing-sync":"PASS"
+    },
+    "limitations":["GitNexus MCP unavailable in executor context"]
   }
 }
