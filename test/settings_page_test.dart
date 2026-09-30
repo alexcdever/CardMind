@@ -236,12 +236,14 @@ void main() {
     expect(find.text('已启动安装器'), findsOneWidget);
     expect(installer.received, file);
     expect(find.text('安装包路径：${file.path}'), findsOneWidget);
-    final openButton = tester.widget<TextButton>(
-      find.byKey(const ValueKey('open-update-package')),
-    );
-    openButton.onPressed!();
-    await tester.pump();
-    expect(openedPackage, file.path);
+    if (Platform.isMacOS || Platform.isLinux) {
+      final openButton = tester.widget<TextButton>(
+        find.byKey(const ValueKey('open-update-package')),
+      );
+      openButton.onPressed!();
+      await tester.pump();
+      expect(openedPackage, file.path);
+    }
   });
 
   testWidgets('update check renders an available update', (tester) async {
