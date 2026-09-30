@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "task_id": "update-download-navigation",
+  "status": "finalized",
+  "phase": "post-merge",
+  "product_head": "abd8c3e63ed632d090b70144aa6ae4f15441402e",
+  "branch": "main",
+  "evidence": ["executor-report.md", "executor-result.json", "review-report.md", "reviewer-result.json", "final-check.md", "final-result.json"]
+}
