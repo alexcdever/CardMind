@@ -8,6 +8,7 @@
   "prior_head":"fab9be0898392230d0731738abf7cceb6d36c7bb",
   "prior_head":"ddfd4ac3aebbde6c14dfef5ee82d2fe0accd2cf0",
   "prior_head":"94b9f72",
+  "head":"e3db26be582797c26a5d877826943adf0b73b251",
   "commands":[
     {"command":"cargo fmt --all","cwd":"rust-backend","exit_code":0},
     {"command":"cargo test --test security_sync_test","cwd":"rust-backend","exit_code":0,"tests_passed":4},
