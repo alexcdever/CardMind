@@ -1,7 +1,7 @@
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
-    decode_device_name_frame, default_device_name_with, detect_hostname, encode_device_name_frame,
-    load_device_name, normalize_hostname, store_device_name, SyncService,
+    decode_device_name_frame, default_device_name_with, encode_device_name_frame, load_device_name,
+    normalize_hostname, store_device_name, SyncService,
 };
 
 fn rt() -> tokio::runtime::Runtime {

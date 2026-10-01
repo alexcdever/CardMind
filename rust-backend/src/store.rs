@@ -533,6 +533,17 @@ impl NoteStore {
         Ok(changed > 0)
     }
 
+    /// 判断 peer 是否已完成应用层配对。
+    pub fn is_paired_device(&self, peer_id: &str) -> Result<bool> {
+        let conn = self.conn.lock().unwrap();
+        let exists: i64 = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM paired_devices WHERE peer_id = ?1)",
+            [peer_id],
+            |row| row.get(0),
+        )?;
+        Ok(exists != 0)
+    }
+
     /// 更新配对设备的最近成功通信时间（ISO8601 now）。
     pub fn update_last_seen(&self, peer_id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
