@@ -48,7 +48,6 @@ docs/
   product.md    产品定位
   standards/    工程规范
   plans/        历史设计计划与实施计划（仅供决策追溯，不视为当前真相源）
-  memory/       工作日志
 tool/           工具脚本 (build/quality/lint/scanner)
 sync-verify/    同步验证代码
 ```
