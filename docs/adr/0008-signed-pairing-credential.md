@@ -161,13 +161,19 @@
     `debug_log::redact_device_id` 脱敏为前 8 + 后 8 字符（`redact_device_id`）。凭证路径记
     `pairing.discovery action=bypassed mdns_skipped=true`（不记凭证本身）；连接记
     `pairing.connect action=start|success|failed transport=credential|direct|relay_or_dns`。
+    配对的**事件名与 action 取值是稳定契约**（生产代码必须继续发出，字段只允许追加、不允许改名，
+    以免既有诊断与测试失去依据）：`pairing.show_code`、`pairing.advertise`、`pairing.accept`、
+    `pairing.request`、`pairing.confirm`，action 取值含 start / success / failed / timeout /
+    cancelled / stop / regenerate / received。这类事件属长期可观测性契约（不是一次性流程纪律）；
+    凭证、配对码、nonce 与签名依旧不得出现在其中。
 
 ### 9. 依赖与权限
 
 28. **二维码与扫码都用成熟包，不手写编码器 / 识别器**：显示方用 `qr_flutter` 绘制二维码
     （`QrPainter`）；Android 扫码用 `mobile_scanner`，经 `ScannerService` 条件导入隔离，
-    桌面构建不链接该插件。Android 只申请扫码所需的最小 CAMERA 权限
-    （`android/app/src/main/AndroidManifest.xml`），并按平台惯例在首次扫码时请求；
+    桌面构建不链接该插件。扫码只引入最小必要权限：manifest 里与扫码相关的只有 CAMERA
+    （`android/app/src/main/AndroidManifest.xml`；同文件里的 INTERNET、ACCESS_NETWORK_STATE 与
+    REQUEST_INSTALL_PACKAGES 是同步与自更新既有权限，与扫码无关），并按平台惯例在首次扫码时请求；
     **不引入联网分析、云扫码、遥测或其它第三方服务**，扫码文本只在本地解析。
 
 ## 拒绝的方案
@@ -212,12 +218,21 @@
   （`lib/bridge/pairing_credential_exception.dart`），但 `credential_error` 目前不会产出该
   kind：被使用或被取代的凭证在解析期仍判「有效」，实际表现为连接期 `unreachable`，
   用户看到「无法连接到对方设备」而不是「已使用或已被替代」。分类口径与文案不一致，属已知缺口。
-- **任务 Q3「accept 超时报错并停广播」的裁决已废弃**：显示方 accept 窗口超时不再显示错误，
-  而是静默重新生成新 code + 新 nonce 继续等待（`_runAcceptRounds` / `_acceptFuture`，
-  后续任务 U7 的行为）；用户全程无感。本文的决策 25 只固定「单 loop、不当用旧 code confirm、
-  关闭后不再 setState」这些仍然成立的部分。
+- **任务 R「accept 失败 / 超时后停止广播并显示友好错误」里超时那一半已被后续实现推翻**：该条出自
+  任务 R 的「显示与生命周期」B.5。任务 Q3 在这一点上要求的是重新生成后「以新 code 继续有界等待」
+  （与现行为一致，**不是**本条要废弃的对象）。现状：accept **失败**仍按 R 的裁决停广播并显示友好
+  错误；但完整窗口**超时**不再报错，而是静默重新生成新 code + 新 nonce 继续等待
+  （`_runAcceptRounds` / `_acceptFuture`，后续任务 U7 的行为），用户全程无感。本文的决策 25 只固定
+  「单 loop、不当用旧 code confirm、关闭后不再 setState」这些仍然成立的部分。
 - v1 生成路径（`encode_credential`）只服务历史测试用例，生产不再生成 v1；
   `parse_credential` 保留 v1 解析作为一条兼容路径（当前无 v1 客户端在流通）。
+- **二维码的显示规格没有落实**：任务 Q 要求二维码有「稳定正方形尺寸、浅色静区和足够纠错级别」，
+  实现只有固定 200×200 的方形绘制区 + `QrPainter`（`data` 为完整凭证、`version: QrVersions.auto`、
+  `gapless: false` 即保留静区，静区颜色取容器背景）。纠错级别**从未显式设置**，等于沿用
+  qr_flutter 的最低默认档；「浅色静区」也只是没有把静区去掉，而非显式约束。二维码内容与复制文本
+  的逐字一致由构造保证（`QrPainter.data` 与剪贴板同用 `_credentialText`），没有直接断言 painter
+  `data` 的用例。**对协议是否必要：不必要**——凭证字符串可复制/粘贴，二维码只是传递手段之一，
+  协议不依赖扫描成功率；若把扫码可靠性当产品要求，应另开任务显式设置纠错级别与静区底色并补 UI 断言。
 
 ## 非目标
 
@@ -228,7 +243,7 @@
 - **不做双向确认与额外的中间人防护**：个人工具，防误连即可（`docs/sync-network.md` 决策 12）。
 - **任务单里的一次性流程要求不算长期决策**：逐条测试清单（如
   `test/pairing_credential_ui_test.dart` 与 `test/pairing_credential_repository_test.dart`
-  的用例清单、`rust-backend/tests/pairing_credential_test.rs` 的 13 个用例）、两轮 FRB codegen
+  的用例清单、`rust-backend/tests/pairing_credential_test.rs` 的 20 个用例）、两轮 FRB codegen
   幂等、平台 integration 与标准 443 relay live 验收、三份报告门禁、`cargo fmt` 与行尾噪声
   还原要求，都是流水线的过程纪律，载体是 `docs/standards/*.md`，不写进本 ADR。
 - **测试编排细节不是协议**：离线 FRB 测试用凭证内的身份材料 + `local_addrs()` 直连、以
