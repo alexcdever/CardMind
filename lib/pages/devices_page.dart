@@ -1051,6 +1051,14 @@ class _PairingScanDialogState extends State<_PairingScanDialog> {
   }
 }
 
+/// 二维码静区（quiet zone）宽度：四周等宽的显式浅色留白，单位逻辑像素。
+///
+/// 取 16 的依据：凭证约 184 字符 → M 档下版本约 10（57 模块），168px 绘制区
+/// 的模块间距约 2.9px，QR 规范要求的 4 模块静区约 11.8px；16px 留出余量，
+/// 且静区从既有 200x200 占位内切分，不改变二维码块的总占用。
+/// 静区宽度属于二维码显示规格，不随设计系统的间距 token 变化。
+const double _qrQuietZone = 16;
+
 /// 显示码等待弹窗（任务 M/Q/U7）：生成凭证 + 有界 accept + 超时静默重生成。
 ///
 /// 生命周期契约：
@@ -1301,12 +1309,23 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
               SizedBox(
                 width: 200,
                 height: 200,
-                child: CustomPaint(
-                  key: const ValueKey('pair-qr-image'),
-                  painter: QrPainter(
-                    data: _credentialText!,
-                    version: QrVersions.auto,
-                    gapless: false,
+                // 静区：显式浅色底色 + 四周等宽 padding（不依赖对话框背景色）。
+                // 静区从既有 200x200 占位内切分，不改变二维码块的总占用——
+                // 否则弹窗内容变高会把「复制 / 重新生成」挤出可视区。
+                child: Container(
+                  key: const ValueKey('pair-qr-quiet-zone'),
+                  padding: const EdgeInsets.all(_qrQuietZone),
+                  color: Colors.white,
+                  child: CustomPaint(
+                    key: const ValueKey('pair-qr-image'),
+                    painter: QrPainter(
+                      data: _credentialText!,
+                      version: QrVersions.auto,
+                      gapless: false,
+                      // 显式纠错级别：QrPainter 默认是最低档 L（约 7% 容错），
+                      // 凭证长、模块密，屏幕扫描取 M 档（约 15% 容错）。
+                      errorCorrectionLevel: QrErrorCorrectLevel.M,
+                    ),
                   ),
                 ),
               ),
