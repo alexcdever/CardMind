@@ -9,7 +9,7 @@
 ## 通用原则
 
 - 开始实现前应先判断当前信息是否足以安全推进，并明确目标、范围和验收标准
-- 是否需要更新 `docs/specs/`，按 `docs/standards/spec-lifecycle.md` 判断
+- 是否需要更新正式行为文档（`docs/adr/`、`docs/product.md`），按 `docs/standards/spec-lifecycle.md` 判断
 - 任何任务都应优先复用现有代码、文档与约定
 - 若遇到目标不清、文档冲突、验证持续失败或环境阻塞，应暂停并向用户反馈
 
@@ -58,7 +58,7 @@
 执行顺序：
 
 1. 澄清并确认目标、范围、验收标准
-2. 先按 `docs/standards/spec-lifecycle.md` 判断是否发生正式行为变更；仅在发生时更新 `docs/specs/`
+2. 先按 `docs/standards/spec-lifecycle.md` 判断是否发生正式行为变更；仅在发生时更新 `docs/adr/` 或 `docs/product.md`
 3. 编写并确认 `docs/plans/`
 4. 实现
 5. 审查
@@ -106,7 +106,7 @@
 ## 冲突处理顺序
 
 1. 用户明确要求
-2. 已确认的 `docs/specs/`
+2. 已确认的正式行为文档（`docs/adr/`、`docs/product.md`）
 3. 当前任务的 `docs/plans/`
 4. `docs/standards/`
 5. 仓库中的既有实现模式
