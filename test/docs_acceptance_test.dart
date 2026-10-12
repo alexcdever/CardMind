@@ -190,6 +190,10 @@ void main() {
         'expired',
         'unreachable',
       ],
+      'Q-API：解析结果字段（6 位码 / 节点 ID / 过期时间 / nonce / 内嵌地址）': [
+        'ParsedPairingCredential',
+        'base32',
+      ],
       'Q-依赖与权限：成熟二维码 / 扫码包 + Android 最小 CAMERA 权限 + 不加遥测 / 云扫码 / 第三方服务': [
         'mobile_scanner',
         'CAMERA',
