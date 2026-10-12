@@ -311,6 +311,20 @@ Future<void> _openEnterDialog(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// 剥掉 `//` 行注释：源码级守卫只看真实代码，注释里出现同名符号不应误报。
+///
+/// 形如 `://`（字符串字面量里的 URL）不视为注释起点，避免把字符串截断；
+/// 本仓库的 `lib/pages/devices_page.dart` 没有跨行字符串，按行处理足够。
+String _stripLineComments(String source) => source
+    .split('\n')
+    .map((line) {
+      for (var i = line.indexOf('//'); i >= 0; i = line.indexOf('//', i + 2)) {
+        if (i == 0 || line[i - 1] != ':') return line.substring(0, i);
+      }
+      return line;
+    })
+    .join('\n');
+
 void main() {
   testWidgets(
     'countdown visibly decreases and resets for regenerated credential',
@@ -1053,29 +1067,36 @@ void main() {
   test(
     'qr painter and clipboard copy read the single _credentialText source',
     () {
-      final source = File('lib/pages/devices_page.dart').readAsStringSync();
+      // 文本级守卫：`QrPainter` 没有公开的取数据入口，读不到绘制内容，只能看源码。
+      // 先剥掉 `//` 行注释，避免「注释里出现 QrPainter(」这种误报；正则容忍
+      // 标识符与冒号之间的空白（`QrPainter (`、`data:  _credentialText`）。
+      final source = _stripLineComments(
+        File('lib/pages/devices_page.dart').readAsStringSync(),
+      );
 
       expect(
-        RegExp(r'QrPainter\(').allMatches(source),
+        RegExp(r'QrPainter\s*\(').allMatches(source),
         hasLength(1),
-        reason: '二维码只允许一处绘制来源',
+        reason: '二维码只允许一处绘制来源（已剥注释）',
       );
-      final qrIndex = source.indexOf('QrPainter(');
       expect(
-        source.substring(qrIndex, qrIndex + 320),
-        contains('data: _credentialText!'),
+        RegExp(
+          r'QrPainter\s*\([\s\S]*?data:\s*_credentialText\b',
+        ).hasMatch(source),
+        isTrue,
         reason: '二维码数据必须直接来自 _credentialText（不得出现第二份来源）',
       );
 
       expect(
-        RegExp(r'Clipboard\.setData\(').allMatches(source),
+        RegExp(r'Clipboard\.setData\s*\(').allMatches(source),
         hasLength(1),
-        reason: '复制只允许一处来源',
+        reason: '复制只允许一处来源（已剥注释）',
       );
-      final copyIndex = source.indexOf('Clipboard.setData(');
       expect(
-        source.substring(copyIndex, copyIndex + 200),
-        contains('text: _credentialText!'),
+        RegExp(
+          r'Clipboard\.setData\s*\([\s\S]*?text:\s*_credentialText\b',
+        ).hasMatch(source),
+        isTrue,
         reason: '剪贴板文本必须与二维码同一来源（_credentialText）',
       );
     },
