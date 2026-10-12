@@ -127,4 +127,122 @@ void main() {
       reason: 'ADR 0008 提到的符号在 rust-backend/src 或 lib/ 里找不到（写了没实现的东西）：$missing',
     );
   });
+
+  test('验收 2：一次性任务单里的协议契约 / 安全语义 / 设计裁决逐条有归属', () {
+    final adr = _read(_adr0008Path());
+
+    // 被判为「已废弃 / 非目标」的条目，必须落在「非目标」小节里。
+    final retiredIndex = adr.indexOf('## 非目标');
+    expect(retiredIndex, greaterThan(-1), reason: 'ADR 必须显式给出「非目标」小节');
+    final retiredSection = adr.substring(retiredIndex);
+
+    // 条目 → 该条目在新 ADR 里必须出现的表述（协议符号或关键约束）。
+    const covered = <String, List<String>>{
+      'Q-契约：canonical payload 字段与编码': [
+        'CREDENTIAL_MAGIC',
+        'CREDENTIAL_VERSION_V1',
+        'issued_at',
+        'pairing_code',
+        '大端',
+      ],
+      'Q-契约：长度精确、拒绝尾随数据': ['CREDENTIAL_FINAL_LEN', 'trailing bytes'],
+      'Q-契约：签名方式与验签来源': ['CREDENTIAL_SIGNATURE_LEN', 'SecretKey', 'PublicKey'],
+      'Q-契约：字符串形态与二维码逐字一致': ['CREDENTIAL_PREFIX', '逐字相同'],
+      'Q-安全语义：nonce 必须与会话一致，错误 nonce 计入失败次数': [
+        'PairingSession',
+        'PAIRING_MAX_FAILED_ATTEMPTS',
+      ],
+      'Q-安全语义：配对成功后会话清空、凭证单次使用': ['confirm_pairing_inner', '一次性使用'],
+      'Q-安全语义：重新生成产生新 code + 新 nonce，旧凭证失效': [
+        'begin_pairing_credential',
+        'pending_pairing',
+      ],
+      'Q-安全语义：私钥 / 凭证 / code / nonce / 完整 ID 不入日志': [
+        'redact_device_id',
+        'mdns_skipped',
+      ],
+      'Q-API：复用 endpoint SecretKey，不另建长期配对密钥': ['secret_key', 'local_addrs'],
+      'Q-API：凭证入口内部完成 parse/verify/target，空 ips 沿用 build_connect_addr': [
+        'begin_pairing_connect_with_credential',
+        'pairing_target_for_credential',
+        'build_connect_addr',
+      ],
+      'Q-API：旧 6 位码 API 保留、组合 API 原子进入同一会话': [
+        'begin_pairing_credential_with_advertising',
+        'stop_pairing_advertising',
+      ],
+      'Q-API：凭证路径把 nonce 带入请求；mDNS TXT 携带 nonce': [
+        'PairingRequest',
+        'device_id',
+        'nonce',
+      ],
+      'Q-UI：显示方二维码 / 6 位码 / 复制 / 倒计时 / 重新生成，且不显示 ID / nonce / 签名 / relay': [
+        '_PairingAcceptDialog',
+        'QrPainter',
+        'qr_flutter',
+      ],
+      'Q-UI：发起方单一输入、扫码回填同一解析、桌面隐藏扫码': ['ScannerService', 'mobile_scanner'],
+      'Q-UI：错误文案至少区分五类且不暴露裸异常': [
+        'PairingCredentialException',
+        'invalidFormat',
+        'expired',
+        'unreachable',
+      ],
+      'Q-依赖与权限：成熟二维码 / 扫码包 + Android 最小 CAMERA 权限 + 不加遥测 / 云扫码 / 第三方服务': [
+        'mobile_scanner',
+        'CAMERA',
+        '遥测',
+      ],
+      'Q2-裁决：空 / 全零 / 格式错误 / 不匹配的 nonce 一律拒绝，禁止兼容后门': ['空串', '全零', '格式错误'],
+      'Q2-裁决：保留 6 位码路径 = 当前 mDNS 流程，不是旧二进制兼容': ['跨版本'],
+      'Q2/Q3-裁决：显示方生命周期（先生成凭证再单 loop accept、不用旧 code confirm、关闭后不 setState）': [
+        'accept_pairing_request_with_timeout',
+        '_runAcceptRounds',
+        '_acceptFuture',
+      ],
+      'Q3-裁决：发起方唯一主输入、无节点 ID 控件、凭证禁止 mDNS、6 位码才 discoverPeers': [
+        'pair-credential-input',
+        'discover_peers',
+        'PairingTarget',
+      ],
+      'Q3-裁决：显示方文案方向「扫描此二维码」': ['扫描此二维码'],
+      'S-裁决：discovery 的 nonce 是协议前置产物（PeerInfo / 广播携带 nonce）': [
+        'PeerInfo',
+        'nonce_to_hex',
+      ],
+      'S-裁决：离线 FRB 测试以凭证身份材料 + localAddrs 直连（测试编排）': ['local_addrs'],
+    };
+
+    covered.forEach((item, anchors) {
+      for (final anchor in anchors) {
+        expect(
+          adr,
+          contains(anchor),
+          reason: '任务单条目「$item」在新 ADR 里既没有对应表述，也没被标成非目标：缺 $anchor',
+        );
+      }
+    });
+
+    // 被判为已废弃 / 非目标 / 一次性流程的条目：必须在「非目标」小节里点名。
+    const retired = <String, List<String>>{
+      '兼容空 nonce / 全零 nonce 的后门': ['空 nonce'],
+      '与旧二进制客户端跨版本配对': ['跨版本'],
+      '任务单的测试清单 / 报告门禁 / codegen 幂等 / 平台验收等一次性流程要求': ['一次性流程要求', 'codegen'],
+      '测试编排细节（离线直连手法）': ['测试编排'],
+      'public relay 写进凭证或默认发布配置': ['public relay'],
+      '服务器侧 rendezvous / 云配对服务': ['rendezvous'],
+      '双向确认与额外中间人防护': ['双向确认'],
+      '为配对做数据库 schema 迁移': ['schema'],
+    };
+
+    retired.forEach((item, anchors) {
+      for (final anchor in anchors) {
+        expect(
+          retiredSection,
+          contains(anchor),
+          reason: '条目「$item」必须在 ADR 的「非目标」小节里明确标注：缺 $anchor',
+        );
+      }
+    });
+  });
 }
