@@ -42,7 +42,7 @@ CardMind 的本地质量门禁由 `dart run tool/git_gate.dart` 统一实现，G
 - PR 必须说明变更目标、主要改动、验证结果与剩余风险
 - 涉及 UI 变化时附截图或录屏
 - 涉及 Flutter/Rust/FRB 契约变化时，明确受影响边界与验证证据
-- 涉及规格变化时，引用对应 `docs/specs/` 或 `docs/plans/`
+- 涉及正式行为变化时，引用对应的 `docs/adr/` 或 `docs/product.md`
 
 ## 合并前检查
 

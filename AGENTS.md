@@ -6,12 +6,12 @@
 
 | 层 | 技术 | 版本 |
 |---|------|------|
-| 前端 | Flutter | 3.44.0 (Dart 3.12) |
-| 核心逻辑 | Rust | 1.95.0 |
-| CRDT 存储 | Loro | 1.13.1 |
-| 网络层 | iroh | 0.98.1 (直连模式，禁用 relay) |
-| 查询层 | SQLite (Rust 端 rusqlite) | — |
-| 跨语言桥 | flutter_rust_bridge | 2.12.0 |
+| 前端 | Flutter | 3.44.9（CI pin；Dart SDK 约束 `^3.12.2` 见 `pubspec.yaml`） |
+| 核心逻辑 | Rust | Edition 2021（`rust-backend/Cargo.toml`）；CI 用 stable，仓库未固定 toolchain |
+| CRDT 存储 | Loro | 1.13.6（`rust-backend/Cargo.lock`） |
+| 网络层 | iroh | 1.0.2（`rust-backend/Cargo.lock`；直连模式，默认禁用 relay） |
+| 查询层 | SQLite (Rust 端 rusqlite) | 0.31.0（`rust-backend/Cargo.lock`，bundled） |
+| 跨语言桥 | flutter_rust_bridge | 2.12.0（`pubspec.yaml` / `rust-backend/Cargo.toml`） |
 
 ## 架构
 
@@ -28,28 +28,35 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 ## 项目结构
 
 ```
-lib/            Flutter UI 代码 (v2)
-  main.dart     应用入口
-  bridge/       Rust FFI 桥接辅助
-  database/     SQLite 数据库辅助
-  models/       Dart 领域模型
-  pages/        页面 (editor_page, note_list_page)
-  src/rust/     FRB 自动生成代码 (api, store, sync, discovery)
-rust-backend/   Rust 核心 (v2)
+lib/              Flutter UI 代码 (v2)
+  main.dart       应用入口
+  bridge/         Rust FFI 桥接辅助
+  models/         Dart 领域模型
+  pages/          页面 (editor_page, note_list_page, devices_page, trash_page, settings_page)
+  scanner/        扫码桥接 (Android 实现 + 桩)
+  services/       应用级服务 (设置、更新)
+  ui/             设计系统组件
+  src/rust/       FRB 自动生成代码 (api, store, sync, discovery)
+rust-backend/     Rust 核心 (v2)
   src/
-    api.rs      FRB 导出 API
-    store.rs    LoroDoc + SQLite 存储
-    sync.rs     iroh 网络同步
-    discovery.rs mDNS 设备发现
-    lib.rs      入口
-  tests/        集成测试 (discovery, store, sync, note_crdt)
-test/           Flutter 测试 (widget/integration)
+    api.rs        FRB 导出 API
+    store.rs      LoroDoc + SQLite 存储
+    sync.rs       iroh 网络同步
+    discovery.rs  mDNS 设备发现
+    debug_log.rs  调试日志落盘
+    lib.rs        入口
+  tests/          集成测试 (store, sync, discovery, note_crdt, pairing, relay, trash 等)
+test/             Flutter 测试 (widget/integration)
+integration_test/ 平台集成测试
 docs/
-  product.md    产品定位
-  standards/    工程规范
-  plans/        历史设计计划与实施计划（仅供决策追溯，不视为当前真相源）
-tool/           工具脚本 (build/quality/lint/scanner)
-sync-verify/    同步验证代码
+  product.md      产品定义
+  sync-network.md 同步网络设计
+  standards/      工程规范
+  adr/            架构决策记录
+  research/       研究资料
+  testing/        集成测试说明
+tool/             工具脚本 (build/quality/lint/gate/scanner)
+sync-verify/      同步验证代码
 ```
 
 ## 关键命令
@@ -78,8 +85,8 @@ cd rust-backend && cargo test --test sync_test  # 同步测试
 
 ## 运行态动态库
 
-- 运行态：`build/windows/x64/runner/Release/cardmind_backend.dll`
-- 编译源：`rust-backend/target/release/cardmind_backend.dll`
+- 运行态（构建产物，全新 worktree 中不存在）：`build/windows/x64/runner/Release/cardmind_backend.dll`
+- 编译源（构建产物，由 `cargo build --release` 生成）：`rust-backend/target/release/cardmind_backend.dll`
 - Windows 构建后自动复制到运行态路径
 
 ## 日志目录（排查必读）
@@ -121,20 +128,25 @@ lsof -p <pid> | grep cardmind.log
 macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决策，路径可发现性由设置页
 入口 + 本文档解决。
 
-## 当前状态（2026-07）
+## 当前状态（2026-10 核对）
 
 | 项目 | 状态 |
 |------|------|
-| v2 结构重组 | ✅ 源码从 v2/ 上提到根目录，v1 冻结代码已删除 |
-| Rust 后端 | Loro+iROH+mDNS+SQLite+FRB API 已完成 |
-| Flutter 前端 | 基础笔记编辑+列表，FRB 桥接就绪 |
-| 平台 | Windows 为主，Android/Linux 保留 |
+| v2 结构重组 | ✅ 源码在仓库根目录，v1 冻结代码已删除 |
+| Rust 后端 | Loro + iroh + mDNS + SQLite + FRB API |
+| Flutter 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置 |
+| 平台 | Windows 为主，Android/Linux 保留；仓库不提供 iOS 平台目录 |
 
 ## 文档地图
 
-- `docs/product.md` — 产品定义（痛点、交互原则、验收条件）
+- `docs/product.md` — 产品定义（痛点、交互原则、核心能力）
 - `docs/personas.md` — 目标用户画像与核心使用场景
 - `docs/product-decisions.md` — 产品决策日志（决策理由与替代方案追溯）
+- `docs/sync-network.md` — 同步网络设计（多设备同步的产品决策）
+- `docs/goal.md` — 当前任务的正式行为与验收标准
+- `docs/adr/` — 架构决策记录（长期决策的真相源）
+- `docs/research/` — 仍服务于技术决策的研究资料
+- `docs/testing/` — 集成测试说明
 - `docs/standards/ai-collaboration.md` — 协作流程
 - `docs/standards/tdd.md` — TDD 规则
 - `docs/standards/testing.md` — 测试规则
@@ -144,8 +156,7 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 - `docs/standards/design-tokens.md` — 设计 Token
 - `docs/standards/tech-stack-baseline.md` — 技术栈基线
 - `docs/standards/flutter-automation-anchors.md` — Flutter 自动化
-- `docs/standards/spec-lifecycle.md` — Spec 生命周期
-- `docs/plans/` — **历史决策档案**（仅供追溯，不视为当前真相源）
+- `docs/standards/spec-lifecycle.md` — 文档生命周期（plan / standard）
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

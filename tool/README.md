@@ -24,51 +24,67 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 
 **设计要点**: format-first 先于一切检查；formatter 改变文件即阻止并提示重新暂存；每个外部进程 3 分钟硬超时；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径），不依赖 tool/build.dart。
 
+## lint/markdown_references_linter.dart - 文档路径检查
+
+**用途**: 检查仓库自有文档里的路径引用是否指向真实存在的对象；pre-commit / pre-push 的 `docs:lint` 步骤调用。
+
+**检查两类引用**:
+
+- Markdown 链接（方括号文字 + 圆括号里的 .md 路径），相对所在文件解析
+- 行内代码路径：形如 `docs/product.md`、`lib/bridge/`，相对仓库根解析（首段必须是仓库根下真实存在的条目）
+
+**检查范围**: 扫描根下全部 `.md`，排除外部导入的工具/技能包目录（`.claude/`、`.codex/`、`.github/prompts/` 等）以及
+`.worktrees/`、`.pipeline/`、`.workflow/`、`node_modules/`、`build/`、`target/` 等非源码目录。
+是否跳过按「相对扫描根」的路径段判断，因此在 worktree 内运行时检查的是 worktree 自己的文档，
+在主工作树运行时不会递归进 `.worktrees/` 下的其它 checkout。
+
+**构建产物**: 只有确实位于已知构建输出目录**之下**的路径才跳过存在性判定，当前前缀为 `build/`、
+`.dart_tool/`、`rust-backend/target/`、`sync-verify/target/`、`android/build/`、`android/app/build/`、
+`android/app/src/main/jniLibs/`、`android/.gradle/`、`macos/build/`、`linux/build/`、`windows/build/`
+（全新 checkout 中本就不存在）。判定是前缀匹配，段名巧合的路径仍照常判定。
+
+**用法**:
+
+```bash
+dart run tool/lint/markdown_references_linter.dart
+```
+
 ## build.dart - 构建入口
 
-**用途**:
-- 生成 FRB 桥接代码
-- 构建 Rust 库并复制到平台集成路径
-- 构建 Flutter 应用（app 子命令）
+**用途**: 构建 Rust 动态库与 Flutter 应用（`app` / `lib` / `run` 三个子命令）。
 
 **用法**:
 ```bash
-# 仅生成桥接与库
-dart tool/build.dart bridge [--android|--linux|--windows|--macos|--ios]
-
-# 生成桥接与库，然后构建应用
-dart tool/build.dart app [--android|--linux|--windows|--macos|--ios]
+dart run tool/build.dart <app|lib|run> [options]
 ```
 
-**默认平台**（未指定平台参数时）:
-- Linux: Android + Linux
-- Windows: Android + Windows
-- macOS: Android + iOS + macOS
+**子命令**:
+- `lib`：在 `rust-backend/` 执行 `cargo build --release`（可选 `--target <triple>`），把产物 `libcardmind_backend.dylib` 复制到运行态路径 `build/native/macos/`
+- `app`：构建 Rust 库 → `flutter_rust_bridge_codegen generate` → `flutter build <platform>`
+- `run`：仅 macOS；`lib` → `flutter build macos` → 复制 framework → 打开应用（`--app-copy-name`、`--app-bundle-id` 用于启动隔离副本）
 
-**bridge 子命令行为**:
-- 生成 FRB 代码并格式化
-- 构建 Rust 库（按平台）
-- Android: 复制到 `android/app/src/main/jniLibs/`
-- macOS/iOS: 生成 `cardmind_rust.xcframework` 并更新 Xcode 工程配置
+**app 的 `--platform` 取值**: `android`、`macos`、`linux`、`windows`；未指定时取主机可执行平台，取值非法则报错退出。
+（`lib` 只覆盖 macOS 运行态路径；Windows/Linux 的运行态库同步由门禁的 build-lib 步骤负责。）
 
-**app 子命令行为**:
-- 先执行 bridge 流程
-- 构建 Flutter 应用
-- Linux/Windows: 复制 Rust 库到 bundle/runner
+**Android 构建**: 用 `cargo ndk` 为 `armeabi-v7a`、`arm64-v8a`、`x86_64` 产出 `libcardmind_backend.so` 到 `build/android-jni/`；
+`flutter build` 的输出格式由 `--android-format` 控制：`apk`（默认）、`appbundle`、`split-apk`。
 
 ## quality.dart - 质量检查入口
 
-**用途**:
-- 单元测试覆盖率检查（公开项数量 vs 单元测试数量，阈值 ≥ 90%）
-- Rust: `cargo fmt` → `cargo check` → `cargo clippy` → `cargo test`
-- 生成桥接与库（宿主平台 + Android；macOS 额外 iOS）
-- Dart/Flutter: `dart fix --apply` → `dart format` → `flutter analyze` → `flutter test`
+**用途**: 按子命令跑 Flutter / Rust / 文档质量链路。
 
 **用法**:
 ```bash
-dart tool/quality.dart
+dart run tool/quality.dart <flutter|rust|docs|all> [options]
 ```
 
+**子命令执行内容**:
+- `flutter`：markdown references lint → 构建运行态 Rust 库（`dart tool/build.dart lib`）→ FRB codegen → `flutter analyze` → `flutter test --coverage` → 测试边界扫描（`--scope=flutter`）
+- `rust`：`cargo fmt --all -- --check` → `cargo clippy --all-targets --all-features -- -D warnings` → `cargo test --jobs 1` → 生成 LCOV（`cargo tarpaulin`）→ 测试边界扫描（`--scope=rust`）
+- `docs`：markdown references lint
+- `all`：先 `flutter` 链路（含 FRB 准备），再 `rust` 链路
+
 **说明**:
-- 自动修复默认开启（在 format 之前）
-- 始终包含测试步骤
+- 两个边界扫描步骤都只**告警**，不改变退出码；报告写在运行目录下的 `tmp` 子目录，文件名 `cardmind_test_boundary_report.md`
+- Rust LCOV 生成失败（未装 `cargo tarpaulin`）同样只告警
+- 不带子命令会打印 usage 并退出非零

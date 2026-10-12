@@ -102,5 +102,5 @@ Link.target_id → Note.id
 ## 边界定义
 
 - **个人**：所有数据属于同一用户，不同设备间同步，不存在多人协作/权限模型
-- **分布式**：数据 P2P 同步，无中心服务器，不依赖云端存储；跨网段连接经 iroh relay 打洞（relay 不存储、不读取数据）。详见 `docs/sync-network.md`
+- **分布式**：数据 P2P 同步，无中心服务器，不依赖云端存储；默认仅局域网直连（连接模式 `RelayMode::Disabled`），跨网段需自行配置自定义 relay URL（relay 不存储、不读取数据）。详见 `docs/sync-network.md`
 - **本地优先**：所有功能离线可用，同步是增值而非必需
