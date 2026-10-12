@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/bridge/pairing_credential_exception.dart';
@@ -8,7 +9,9 @@ import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/src/rust/sync.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:cardmind/scanner/scanner_interface.dart';
 
 /// 任务单 CRITICAL 1/2 验收测试（凭证 UI）。
@@ -307,6 +310,20 @@ Future<void> _openEnterDialog(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('pair-mode-enter')));
   await tester.pumpAndSettle();
 }
+
+/// 剥掉 `//` 行注释：源码级守卫只看真实代码，注释里出现同名符号不应误报。
+///
+/// 形如 `://`（字符串字面量里的 URL）不视为注释起点，避免把字符串截断；
+/// 本仓库的 `lib/pages/devices_page.dart` 没有跨行字符串，按行处理足够。
+String _stripLineComments(String source) => source
+    .split('\n')
+    .map((line) {
+      for (var i = line.indexOf('//'); i >= 0; i = line.indexOf('//', i + 2)) {
+        if (i == 0 || line[i - 1] != ':') return line.substring(0, i);
+      }
+      return line;
+    })
+    .join('\n');
 
 void main() {
   testWidgets(
@@ -827,6 +844,261 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
       await tester.pumpAndSettle();
       expect(repo.stopAdvertisingCalls, greaterThanOrEqualTo(1));
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // 任务：显示方二维码的静区与纠错级别（窄修规格断言）
+  //
+  // 断言有牙齿：`QrPainter.errorCorrectionLevel` 是公开字段、静区是显式
+  // Container（padding + 底色），都能从 widget 树里读出来；四周留白再用
+  // tester.getRect 量真实布局，而不是"看起来设置了"。
+  // ---------------------------------------------------------------------------
+
+  testWidgets(
+    'pairing qr declares an explicit light quiet zone of at least 16px',
+    (tester) async {
+      final repo = CredentialUiRepository()
+        ..acceptResult =
+            null // 不立即 confirm
+        ..parkAfterControlled = true; // 挂起保持链路静止，弹窗保持打开
+      await _pump(tester, repo);
+      await _openShowDialog(tester);
+
+      final quietZone = find.byKey(const ValueKey('pair-qr-quiet-zone'));
+      expect(
+        quietZone,
+        findsOneWidget,
+        reason: '静区必须是显式绘制层（padding + 底色），不能靠对话框底色含糊过去',
+      );
+
+      final container = tester.widget<Container>(quietZone);
+      final insets = container.padding;
+      expect(insets, isA<EdgeInsets>(), reason: '静区必须显式给 padding');
+      final edges = insets! as EdgeInsets;
+      expect(
+        <double>[edges.left, edges.top, edges.right, edges.bottom],
+        everyElement(greaterThanOrEqualTo(16.0)),
+        reason: '静区四周都必须 ≥16 逻辑像素',
+      );
+      expect(
+        <double>{edges.left, edges.top, edges.right, edges.bottom},
+        hasLength(1),
+        reason: '静区必须四周等宽（连续留白）',
+      );
+
+      final background = container.color;
+      expect(background, isNotNull, reason: '静区必须显式设底色，不得依赖对话框背景色');
+      expect(background!.a, 1.0, reason: '静区底色必须不透明（半透明会让深色背景透出来）');
+      expect(
+        background.computeLuminance(),
+        greaterThan(0.8),
+        reason: '静区底色必须是浅色（白 / 近白），与深色模块保持对比',
+      );
+
+      // 真实布局：QR 绘制区四周的留白确实 ≥16px，且绘制区仍是正方形。
+      final qr = find.byKey(const ValueKey('pair-qr-image'));
+      expect(qr, findsOneWidget, reason: 'ValueKey(pair-qr-image) 必须仍能找到');
+      expect(
+        find.descendant(of: quietZone, matching: qr),
+        findsOneWidget,
+        reason: 'QR 绘制区必须在静区内部（静区是它的包裹层）',
+      );
+      final outer = tester.getRect(quietZone);
+      final inner = tester.getRect(qr);
+      expect(inner.left - outer.left, greaterThanOrEqualTo(16.0));
+      expect(outer.right - inner.right, greaterThanOrEqualTo(16.0));
+      expect(inner.top - outer.top, greaterThanOrEqualTo(16.0));
+      expect(outer.bottom - inner.bottom, greaterThanOrEqualTo(16.0));
+      expect(
+        inner.width,
+        inner.height,
+        reason: '二维码绘制区仍是正方形（默认测试面 800x600 不受对话框宽度挤压）',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'pairing qr sets an explicit error correction level of at least M',
+    (tester) async {
+      final repo = CredentialUiRepository()
+        ..acceptResult = null
+        ..parkAfterControlled = true;
+      await _pump(tester, repo);
+      await _openShowDialog(tester);
+
+      final paint = tester.widget<CustomPaint>(
+        find.byKey(const ValueKey('pair-qr-image')),
+      );
+      final painter = paint.painter;
+      expect(painter, isA<QrPainter>(), reason: '二维码必须仍由 QrPainter 绘制（不换组件）');
+      // qr 包的常量是 L=1 / M=0 / Q=3 / H=2：数值大小与纠错强度无关，
+      // 「≥ M」只能按取值集合断言，不能用 >= 比较。
+      expect(
+        (painter! as QrPainter).errorCorrectionLevel,
+        isIn(<int>[
+          QrErrorCorrectLevel.M,
+          QrErrorCorrectLevel.Q,
+          QrErrorCorrectLevel.H,
+        ]),
+        reason: '纠错级别必须显式 ≥ M（未设置时沿用 qr_flutter 默认的最低档 L）',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('pairing qr quiet zone survives the 320x640 narrow dialog', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository()
+      ..acceptResult = null
+      ..parkAfterControlled = true;
+    await tester.binding.setSurfaceSize(const Size(320, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(tester, repo);
+    await _openShowDialog(tester);
+
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: '窄屏（320x640）不得出现 RenderFlex overflow / 布局异常',
+    );
+
+    final quietZone = find.byKey(const ValueKey('pair-qr-quiet-zone'));
+    final qr = find.byKey(const ValueKey('pair-qr-image'));
+    expect(quietZone, findsOneWidget);
+    expect(qr, findsOneWidget);
+
+    final outer = tester.getRect(quietZone);
+    final inner = tester.getRect(qr);
+    expect(
+      inner.left - outer.left,
+      greaterThanOrEqualTo(16.0),
+      reason: '窄屏挤压后左侧静区不得被吃掉',
+    );
+    expect(
+      outer.right - inner.right,
+      greaterThanOrEqualTo(16.0),
+      reason: '窄屏挤压后右侧静区不得被吃掉',
+    );
+    expect(inner.top - outer.top, greaterThanOrEqualTo(16.0));
+    expect(outer.bottom - inner.bottom, greaterThanOrEqualTo(16.0));
+    expect(outer.left, greaterThanOrEqualTo(0.0));
+    expect(outer.right, lessThanOrEqualTo(320.0), reason: '二维码块不得超出 320 宽的屏幕');
+
+    // 牙齿：弹窗内容是 SingleChildScrollView，纵向**不会**抛 overflow——内容变高只会把
+    // 控件推到可视区外（按钮点不到、二维码被裁）。所以这里量真实位置：二维码块与
+    // 「复制配对信息」必须完整落在内容可视区内。
+    // 不对「重新生成」断言：它在 320 宽下本来就换行排到可视区外（需要滚动），
+    // 这是改动前就有的行为。
+    final viewport = tester.getRect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(SingleChildScrollView),
+      ),
+    );
+    expect(
+      outer.bottom,
+      lessThanOrEqualTo(viewport.bottom),
+      reason: '二维码块被挤出内容可视区：底边 ${outer.bottom} > 视口底边 ${viewport.bottom}',
+    );
+    final copyButton = tester.getRect(
+      find.byKey(const ValueKey('pair-copy-button')),
+    );
+    expect(
+      copyButton.bottom,
+      lessThanOrEqualTo(viewport.bottom),
+      reason:
+          '「复制配对信息」被挤出内容可视区：底边 ${copyButton.bottom} > 视口底边 ${viewport.bottom}',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('copy button copies the credential shown in the qr', (
+    tester,
+  ) async {
+    final repo = CredentialUiRepository()
+      ..acceptResult = null
+      ..parkAfterControlled = true;
+    final clipboard = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') clipboard.add(call);
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    await _pump(tester, repo);
+    await _openShowDialog(tester);
+    await tester.tap(find.byKey(const ValueKey('pair-copy-button')));
+    await tester.pump();
+
+    expect(clipboard, hasLength(1), reason: '「复制配对信息」必须仍写剪贴板');
+    final args = clipboard.single.arguments as Map<Object?, Object?>;
+    expect(
+      args['text'],
+      'cm1.credential-first',
+      reason:
+          '剪贴板文本必须仍是显示中的那份凭证（二维码 data 无公开取值口，'
+          '与二维码同源由下一条源码断言守护）',
+    );
+
+    // 清掉 SnackBar 的自动消失计时器，避免测试结束时残留 pending timer。
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
+    await tester.pumpAndSettle();
+  });
+
+  test(
+    'qr painter and clipboard copy read the single _credentialText source',
+    () {
+      // 文本级守卫：`QrPainter` 没有公开的取数据入口，读不到绘制内容，只能看源码。
+      // 先剥掉 `//` 行注释，避免「注释里出现 QrPainter(」这种误报；正则容忍
+      // 标识符与冒号之间的空白（`QrPainter (`、`data:  _credentialText`）。
+      final source = _stripLineComments(
+        File('lib/pages/devices_page.dart').readAsStringSync(),
+      );
+
+      expect(
+        RegExp(r'QrPainter\s*\(').allMatches(source),
+        hasLength(1),
+        reason: '二维码只允许一处绘制来源（已剥注释）',
+      );
+      expect(
+        RegExp(
+          r'QrPainter\s*\([\s\S]*?data:\s*_credentialText\b',
+        ).hasMatch(source),
+        isTrue,
+        reason: '二维码数据必须直接来自 _credentialText（不得出现第二份来源）',
+      );
+
+      expect(
+        RegExp(r'Clipboard\.setData\s*\(').allMatches(source),
+        hasLength(1),
+        reason: '复制只允许一处来源（已剥注释）',
+      );
+      expect(
+        RegExp(
+          r'Clipboard\.setData\s*\([\s\S]*?text:\s*_credentialText\b',
+        ).hasMatch(source),
+        isTrue,
+        reason: '剪贴板文本必须与二维码同一来源（_credentialText）',
+      );
     },
   );
 }
