@@ -9,7 +9,7 @@
 use std::collections::HashMap;
 
 use cardmind_backend::store::{NoteStore, PairedDeviceRow};
-use cardmind_backend::sync::SyncService;
+use cardmind_backend::sync::{PairingTarget, SyncService};
 
 fn temp_dir(label: &str) -> std::path::PathBuf {
     let path =
@@ -17,6 +17,49 @@ fn temp_dir(label: &str) -> std::path::PathBuf {
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
     path
+}
+
+// ━━━ 配对辅助：入站授权的前提 ━━━
+
+/// 确认方侧配对（测试辅助）：接收发起方请求 → confirm，返回发起方 device_id。
+///
+/// `confirm_pairing` 会把发起方写入确认方 store（`upsert_paired_device`）并加入
+/// 确认方的入站授权集合——这是接收方随后能接受该发起方推送的前提
+/// （未配对 peer 的推送会被拒绝：`unauthorized push peer`）。
+async fn confirm_from_initiator(
+    confirmer: &mut SyncService,
+    store: &NoteStore,
+    code: &str,
+) -> String {
+    let request = confirmer.accept_pairing_request().await.unwrap();
+    confirmer
+        .confirm_pairing(store, code, &request)
+        .await
+        .unwrap();
+    request.device_id
+}
+
+/// 发起方侧配对（测试辅助）：连接确认方 → 完成握手 → drain 确认方的首次全量推送。
+///
+/// 决策 8：确认方 confirm 成功后自动向发起方推送全量快照。该快照的**内容**不是
+/// 调用方测试的验收对象（要验的是之后显式推送的数据），但「没送达」必须显式
+/// 暴露：静默吞掉只会表现为别处的超时或断言失败。有界等待避免推送根本没发出时
+/// 挂死；不 drain 则会让确认方的 `push_to_peer` 等满 10s 连接关闭超时
+/// （配对已成功，推送失败容忍）。
+async fn pair_with_confirmer(
+    initiator: &SyncService,
+    store: &NoteStore,
+    code: &str,
+    target: PairingTarget,
+) {
+    initiator
+        .begin_pairing_connect(store, code, target)
+        .await
+        .unwrap();
+    let drained = tokio::time::timeout(std::time::Duration::from_secs(10), initiator.accept_push())
+        .await
+        .expect("确认方配对后的首次全量推送未在 10s 内送达");
+    drained.expect("确认方配对后的首次全量推送未送达");
 }
 
 // ━━━ 验收 1：设备身份持久化 ━━━
@@ -120,7 +163,7 @@ fn test_push_receive_roundtrip_relay_or_direct() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut a = SyncService::new().await.unwrap();
-        let b = SyncService::new().await.unwrap();
+        let mut b = SyncService::new().await.unwrap();
 
         a.create_note("note-1".into(), "# 同步笔记\n\n正文内容。")
             .unwrap();
@@ -130,13 +173,46 @@ fn test_push_receive_roundtrip_relay_or_direct() {
         let b_ips = b.local_addrs();
         assert!(!b_ips.is_empty(), "B 应至少有一个本地 IPv4 地址");
 
-        // B 进入接收态
+        // 入站授权前提（security_sync_test 冻结的语义）：接收端只接受已配对设备的
+        // 推送，所以先走一次真实配对握手。确认方 B 的 confirm_pairing 会做两件事：
+        // 把 A 写入 B 的 paired_devices（落库），并把 A 加入 B 的服务级内存授权
+        // 集合 authorized_peers（sync.rs:1050-1055）。本测试走 accept_push()，用的
+        // 正是这份内存集合（sync.rs:2030）——**不会**像后台接收器那样从 store 重建
+        // 授权集合（那条路径见 sync.rs:2779-2784）。
+        let a_id = a.device_id();
+        let store_a = NoteStore::new(":memory:").unwrap();
+        let store_b = NoteStore::new(":memory:").unwrap();
+        let code = b.begin_pairing_accept().unwrap();
+        let code_for_b = code.clone();
+        let target_b = PairingTarget {
+            device_id: b_id.clone(),
+            ips: b_ips.clone(),
+            nonce: b.session_nonce_hex(),
+        };
+
+        // B 进入接收态：先配对（把 A 记为已配对设备），再接收推送并导入
         let b_handle = tokio::spawn(async move {
+            assert_eq!(
+                confirm_from_initiator(&mut b, &store_b, &code_for_b).await,
+                a_id,
+                "确认方应收到 A 的配对请求"
+            );
+            assert!(
+                store_b
+                    .list_paired_devices()
+                    .unwrap()
+                    .iter()
+                    .any(|d| d.peer_id == a_id),
+                "配对后 B 的 store 应含 A（配对结果已落库）"
+            );
             let data = b.accept_push().await.unwrap();
             let mut b = b;
             b.import_all(&data).unwrap();
             b
         });
+
+        // A 完成配对握手（并 drain 确认方的首次全量推送）
+        pair_with_confirmer(&a, &store_a, &code, target_b).await;
 
         // A 推送（B 提供实际地址）
         a.push_to_peer(&b_id, b_ips).await.unwrap();
@@ -158,28 +234,65 @@ fn test_push_multi_device_partial_failure() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut a = SyncService::new().await.unwrap();
-        let b = SyncService::new().await.unwrap();
-        let c = SyncService::new().await.unwrap();
+        let mut b = SyncService::new().await.unwrap();
+        let mut c = SyncService::new().await.unwrap();
         a.create_note("n1".into(), "hello from a").unwrap();
 
+        let a_id = a.device_id();
         let b_id = b.device_id();
         let c_id = c.device_id();
         let b_ips = b.local_addrs();
         let c_ips = c.local_addrs();
 
-        // B、C 真实设备进入接收态
+        // 入站授权前提（同 test_push_receive_roundtrip_relay_or_direct）：
+        // B、C 各自与 A 走一次真实配对握手，把 A 写入自己的 paired_devices。
+        let store_a = NoteStore::new(":memory:").unwrap();
+        let store_b = NoteStore::new(":memory:").unwrap();
+        let store_c = NoteStore::new(":memory:").unwrap();
+        let code_b = b.begin_pairing_accept().unwrap();
+        let code_c = c.begin_pairing_accept().unwrap();
+        let target_b = PairingTarget {
+            device_id: b_id.clone(),
+            ips: b_ips.clone(),
+            nonce: b.session_nonce_hex(),
+        };
+        let target_c = PairingTarget {
+            device_id: c_id.clone(),
+            ips: c_ips.clone(),
+            nonce: c.session_nonce_hex(),
+        };
+
+        // B、C 真实设备进入接收态：先配对（把 A 记为已配对设备），再接收推送并导入
+        let a_id_for_b = a_id.clone();
+        let code_b_for_b = code_b.clone();
         let b_handle = tokio::spawn(async move {
+            assert_eq!(
+                confirm_from_initiator(&mut b, &store_b, &code_b_for_b).await,
+                a_id_for_b,
+                "确认方 B 应收到 A 的配对请求"
+            );
             let data = b.accept_push().await.unwrap();
             let mut b = b;
             b.import_all(&data).unwrap();
             b
         });
+        let a_id_for_c = a_id.clone();
+        let code_c_for_c = code_c.clone();
         let c_handle = tokio::spawn(async move {
+            assert_eq!(
+                confirm_from_initiator(&mut c, &store_c, &code_c_for_c).await,
+                a_id_for_c,
+                "确认方 C 应收到 A 的配对请求"
+            );
             let data = c.accept_push().await.unwrap();
             let mut c = c;
             c.import_all(&data).unwrap();
             c
         });
+
+        // A 依次与 B、C 完成配对握手（各自 drain 确认方的首次全量推送）
+        pair_with_confirmer(&a, &store_a, &code_b, target_b).await;
+        pair_with_confirmer(&a, &store_a, &code_c, target_c).await;
 
         // 假设备：有效 EndpointId（可解析）+ 不可达地址（127.0.0.1 关闭端口，快速失败）
         let fake_key = iroh::SecretKey::generate();
