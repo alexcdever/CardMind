@@ -1107,3 +1107,77 @@ fn used_credential_is_classified_as_used_or_replaced() {
         );
     });
 }
+
+/// 验收 2：**被取代的凭证** → `usedOrReplaced`。
+///
+/// 显示方生成 A 后「重新生成」B（A 随之失效）。发起方仍用 A：确认方按 UI 契约用
+/// 当前那一份 code（B）确认，请求里的码（A）与会话不一致 → 拒绝；发起方必须看到
+/// 「已使用或已被替代」，而不是「无法连接到对方设备」。
+#[test]
+fn replaced_credential_is_classified_as_used_or_replaced() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        let mut confirmer = SyncService::new().await.unwrap();
+        confirmer.set_device_name("Trusted PC");
+        let initiator = SyncService::new().await.unwrap();
+        initiator.set_device_name("New Phone");
+        let confirmer_store = NoteStore::new(":memory:").unwrap();
+        let initiator_store = NoteStore::new(":memory:").unwrap();
+
+        assert!(
+            !confirmer.local_addrs().is_empty(),
+            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空）"
+        );
+
+        let first = confirmer.begin_pairing_credential().unwrap(); // A
+        let second = confirmer.begin_pairing_credential().unwrap(); // B（取代 A）
+        assert_ne!(first.code, second.code, "重新生成必须换码");
+        let second_code = second.code.clone();
+
+        let confirmer_store_confirm = confirmer_store.clone();
+        let confirmer_handle = tokio::spawn(async move {
+            let request =
+                tokio::time::timeout(Duration::from_secs(15), confirmer.accept_pairing_request())
+                    .await
+                    .expect("confirmer accept 挂起")
+                    .expect("confirmer 应收到配对请求");
+            let err = confirmer
+                .confirm_pairing(&confirmer_store_confirm, &second_code, &request)
+                .await
+                .expect_err("旧凭证的码与会话不一致，confirm 必须拒绝");
+            (confirmer, err.to_string())
+        });
+
+        let err = tokio::time::timeout(
+            Duration::from_secs(20),
+            initiator.begin_pairing_connect_with_credential(&initiator_store, &first.credential),
+        )
+        .await
+        .expect("拒绝信号未在 20s 内送达（被取代的凭证被当成连不上）")
+        .expect_err("被取代的凭证不得配对成功");
+
+        let (confirmer, confirm_err) =
+            tokio::time::timeout(Duration::from_secs(30), confirmer_handle)
+                .await
+                .expect("confirmer task 挂起")
+                .unwrap();
+
+        assert!(
+            confirm_err.contains("code"),
+            "被取代的凭证应因码不匹配被拒，实际: {confirm_err}"
+        );
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::UsedOrReplaced,
+            "被取代的凭证应归类 usedOrReplaced；实际 kind={:?} message={}",
+            err.kind,
+            err.message
+        );
+        assert_eq!(
+            confirmer.current_pairing_session().map(|s| s.code),
+            Some(second.code.clone()),
+            "拒绝旧凭证不得清掉新会话"
+        );
+    });
+}
