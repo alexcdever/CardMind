@@ -24,6 +24,29 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 
 **设计要点**: format-first 先于一切检查；formatter 改变文件即阻止并提示重新暂存；每个外部进程 3 分钟硬超时；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径），不依赖 tool/build.dart。
 
+## lint/markdown_references_linter.dart - 文档路径检查
+
+**用途**: 检查仓库自有文档里的路径引用是否指向真实存在的对象；pre-commit / pre-push 的 `docs:lint` 步骤调用。
+
+**检查两类引用**:
+
+- Markdown 链接（方括号文字 + 圆括号里的 .md 路径），相对所在文件解析
+- 行内代码路径：形如 `docs/product.md`、`lib/bridge/`，相对仓库根解析（首段必须是仓库根下真实存在的条目）
+
+**检查范围**: 扫描根下全部 `.md`，排除外部导入的工具/技能包目录（`.claude/`、`.codex/`、`.github/prompts/` 等）以及
+`.worktrees/`、`.pipeline/`、`.workflow/`、`node_modules/`、`build/`、`target/` 等非源码目录。
+是否跳过按「相对扫描根」的路径段判断，因此在 worktree 内运行时检查的是 worktree 自己的文档，
+在主工作树运行时不会递归进 `.worktrees/` 下的其它 checkout。
+
+**构建产物**: `target/`、`build/`、`jniLibs/`、`.dart_tool/`、`.gradle/`、`DerivedData/` 下的路径不做存在性判定
+（全新 checkout 中本就不存在）。
+
+**用法**:
+
+```bash
+dart run tool/lint/markdown_references_linter.dart
+```
+
 ## build.dart - 构建入口
 
 **用途**:
@@ -48,7 +71,7 @@ dart tool/build.dart app [--android|--linux|--windows|--macos|--ios]
 **bridge 子命令行为**:
 - 生成 FRB 代码并格式化
 - 构建 Rust 库（按平台）
-- Android: 复制到 `android/app/src/main/jniLibs/`
+- Android: 复制到 `android/app/` 下的 `src/main/jniLibs/`（构建产物，仓库不预置）
 - macOS/iOS: 生成 `cardmind_rust.xcframework` 并更新 Xcode 工程配置
 
 **app 子命令行为**:
