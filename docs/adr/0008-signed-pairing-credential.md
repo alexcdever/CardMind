@@ -114,9 +114,11 @@
     「格式无效 / 签名无效，可能已被篡改 / 已过期 / 已使用或已被替代 / 无法连接到对方设备 /
     配对失败」六类文案。
 19. **解析期不判定「已使用」**：解析只看前缀、长度、版本、时间窗与签名，因此被用掉或被
-    重新生成取代的凭证在解析阶段仍然「有效」，真正的拒绝发生在确认方（会话已清空 /
-    nonce 不匹配），表现为连接失败。`usedOrReplaced` 这一 kind 已定义、已过 FRB、Dart
-    文案已备，但当前分类器不产出它（见「未实现与偏差」）。
+    重新生成取代的凭证在解析阶段仍然「有效」，真正的拒绝发生在确认方（会话已清空 / 码已被
+    新凭证取代 / nonce 不匹配）。确认方拒绝时在待确认连接上回一帧拒绝帧
+    `[0x04][reason: u8]`（原因码 1 = `usedOrReplaced`、2 = `expired`、3 = `requestMismatch`，
+    只携带稳定原因码），发起方据此把「已使用或已被替代」归 `usedOrReplaced`；
+    真正连不上 / 旧对端不回帧仍归 `unreachable`。
 
 ### 6. 两条配对路径
 
@@ -214,10 +216,14 @@
 
 ### 未实现与偏差（2026-10 核对）
 
-- `PairingCredentialErrorKind.usedOrReplaced` **已定义、已过 FRB、Dart 文案已备**
-  （`lib/bridge/pairing_credential_exception.dart`），但 `credential_error` 目前不会产出该
-  kind：被使用或被取代的凭证在解析期仍判「有效」，实际表现为连接期 `unreachable`，
-  用户看到「无法连接到对方设备」而不是「已使用或已被替代」。分类口径与文案不一致，属已知缺口。
+- ~~`PairingCredentialErrorKind.usedOrReplaced` 不被任何分类器产出~~ **已消除（2026-10 复核，
+  任务 pairing-credential-used-kind）**：解析期仍不判「已使用」（决策 19 前半句不变，
+  `credential_error` 也只负责解析期三类），但确认方拒绝握手时在待确认连接上回
+  `[0x04][reason]` 帧，发起方按原因码把用过的 / 被取代的凭证归 `usedOrReplaced`
+  （握手期过期归 `expired`，其余拒绝归 `internal`）；真正连不上与旧对端不回帧仍归
+  `unreachable`。回归测试：`rust-backend/tests/pairing_credential_test.rs` 的
+  used_credential_is_classified_as_used_or_replaced 与
+  replaced_credential_is_classified_as_used_or_replaced 两个用例。
 - **任务 R「accept 失败 / 超时后停止广播并显示友好错误」里超时那一半已被后续实现推翻**：该条出自
   任务 R 的「显示与生命周期」B.5。任务 Q3 在这一点上要求的是重新生成后「以新 code 继续有界等待」
   （与现行为一致，**不是**本条要废弃的对象）。现状：accept **失败**仍按 R 的裁决停广播并显示友好

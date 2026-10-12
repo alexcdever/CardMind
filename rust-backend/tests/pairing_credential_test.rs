@@ -8,12 +8,12 @@
 
 use std::sync::Arc;
 
-use cardmind_backend::debug_log::CollectingSink;
+use cardmind_backend::debug_log::{CollectingSink, LogEvent};
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
     credential_from_string, credential_to_string, encode_credential, encode_credential_v2,
-    parse_credential, PairingRequest, PairingTarget, ParsedCredentialFields, SyncService,
-    CREDENTIAL_FINAL_LEN,
+    parse_credential, PairingCredentialErrorKind, PairingRequest, PairingTarget,
+    ParsedCredentialFields, SyncService, CREDENTIAL_FINAL_LEN,
 };
 
 use iroh::SecretKey;
@@ -892,6 +892,503 @@ fn credential_connect_end_to_end_uses_embedded_ips() {
         assert_eq!(
             confirm_result.peer_id, request.device_id,
             "确认方配对结果应为发起方 node id"
+        );
+    });
+}
+
+// ━━━ 任务 pairing-credential-used-kind：握手期拒绝的稳定分类 ━━━
+/// 事件里某个安全字段的取值。
+fn event_field<'a>(event: &'a LogEvent, key: &str) -> Option<&'a str> {
+    event
+        .fields
+        .iter()
+        .find(|(k, _)| k == key)
+        .map(|(_, v)| v.as_str())
+}
+
+/// 渲染事件序列为可搜索文本（隐私断言：所有字段都会出现在其中）。
+fn render_events(events: &[LogEvent]) -> String {
+    events
+        .iter()
+        .map(|e| format!("{e:?}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// 取「指定事件名 + action」的事件（稳定契约断言用）。
+fn find_event<'a>(events: &'a [LogEvent], event: &str, action: &str) -> Option<&'a LogEvent> {
+    events
+        .iter()
+        .find(|e| e.event == event && event_field(e, "action") == Some(action))
+}
+
+/// 验收 1：**用过的凭证**再次配对 → `usedOrReplaced`（不再是 `unreachable`）。
+///
+/// 真实链路（进程内 QUIC 握手）：显示方生成凭证 A → 发起方用 A 配对成功（会话被清空）
+/// → 发起方**再次**用同一张 A → 确认方以「会话已清空」拒绝，拒绝原因必须回传到发起方。
+///
+/// 同时覆盖验收 6：拒绝路径的 `pairing.connect` / `pairing.confirm` 事件名与 action 取值
+/// 不变、只携带稳定原因码，nonce / 6 位码 / 凭证全文 / 完整节点 ID 都不进日志。
+#[test]
+fn used_credential_is_classified_as_used_or_replaced() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        let confirmer_sink = Arc::new(CollectingSink::new());
+        let initiator_sink = Arc::new(CollectingSink::new());
+        let mut confirmer = SyncService::new_with_log_sink(confirmer_sink.clone())
+            .await
+            .unwrap();
+        confirmer.set_device_name("Trusted PC");
+        let initiator = SyncService::new_with_log_sink(initiator_sink.clone())
+            .await
+            .unwrap();
+        initiator.set_device_name("New Phone");
+        let confirmer_store = NoteStore::new(":memory:").unwrap();
+        let initiator_store = NoteStore::new(":memory:").unwrap();
+
+        assert!(
+            !confirmer.local_addrs().is_empty(),
+            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空）"
+        );
+
+        let display = confirmer.begin_pairing_credential().unwrap();
+        let parsed = confirmer
+            .parse_pairing_credential(&display.credential)
+            .unwrap();
+        let credential = display.credential.clone();
+        let code = parsed.code.clone();
+        let confirmer_id = confirmer.device_id();
+
+        // ── 第一轮：正常配对成功（凭证被用掉 → 会话清空）──
+        let confirmer_store_first = confirmer_store.clone();
+        let code_first = code.clone();
+        let confirmer_handle = tokio::spawn(async move {
+            let request =
+                tokio::time::timeout(Duration::from_secs(15), confirmer.accept_pairing_request())
+                    .await
+                    .expect("confirmer accept 挂起")
+                    .expect("confirmer 应收到配对请求");
+            let result = tokio::time::timeout(
+                Duration::from_secs(15),
+                confirmer.confirm_pairing(&confirmer_store_first, &code_first, &request),
+            )
+            .await
+            .expect("confirmer confirm 挂起")
+            .expect("首次配对应成功");
+            (confirmer, result)
+        });
+        let initiator_store_first = initiator_store.clone();
+        let credential_first = credential.clone();
+        let initiator_handle = tokio::spawn(async move {
+            let result = tokio::time::timeout(
+                Duration::from_secs(20),
+                initiator.begin_pairing_connect_with_credential(
+                    &initiator_store_first,
+                    &credential_first,
+                ),
+            )
+            .await
+            .expect("initiator 凭证连接挂起")
+            .expect("凭证直连应成功（凭证内嵌 IP）");
+            // drain 确认方首次全量同步推送
+            let _ = tokio::time::timeout(Duration::from_secs(10), initiator.accept_push()).await;
+            (initiator, result)
+        });
+
+        let (mut confirmer, confirm_first) =
+            tokio::time::timeout(Duration::from_secs(40), confirmer_handle)
+                .await
+                .expect("confirmer task 挂起")
+                .unwrap();
+        let (initiator, connect_first) =
+            tokio::time::timeout(Duration::from_secs(40), initiator_handle)
+                .await
+                .expect("initiator task 挂起")
+                .unwrap();
+        assert_eq!(connect_first.peer_id, confirmer_id);
+        assert_eq!(confirm_first.peer_id, initiator.device_id());
+        assert!(
+            confirmer.current_pairing_session().is_none(),
+            "配对成功后会话应清空（凭证单次使用）"
+        );
+        let baseline_initiator = initiator_sink.snapshot().len();
+        let baseline_confirmer = confirmer_sink.snapshot().len();
+
+        // ── 第二轮：同一张用过的凭证 → usedOrReplaced ──
+        let confirmer_store_second = confirmer_store.clone();
+        let code_second = code.clone();
+        let confirmer_handle = tokio::spawn(async move {
+            let request =
+                tokio::time::timeout(Duration::from_secs(15), confirmer.accept_pairing_request())
+                    .await
+                    .expect("confirmer accept（第二轮）挂起")
+                    .expect("confirmer 应收到第二轮的配对请求");
+            // UI 契约（决策 25）：confirm 只允许用当前显示的那一份 code
+            let err = confirmer
+                .confirm_pairing(&confirmer_store_second, &code_second, &request)
+                .await
+                .expect_err("会话已清空，confirm 必须拒绝");
+            (confirmer, err.to_string())
+        });
+
+        let started = std::time::Instant::now();
+        let err = tokio::time::timeout(
+            Duration::from_secs(20),
+            initiator.begin_pairing_connect_with_credential(&initiator_store, &credential),
+        )
+        .await
+        .expect("拒绝信号未在 20s 内送达（用过的凭证被当成连不上）")
+        .expect_err("用过的凭证不得配对成功");
+        let elapsed = started.elapsed();
+        let (_confirmer, confirm_err) =
+            tokio::time::timeout(Duration::from_secs(30), confirmer_handle)
+                .await
+                .expect("confirmer task（第二轮）挂起")
+                .unwrap();
+
+        assert!(
+            confirm_err.contains("no active"),
+            "第二轮确认方应因无会话被拒，实际: {confirm_err}"
+        );
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::UsedOrReplaced,
+            "用过的凭证应归类 usedOrReplaced；实际 kind={:?} message={}（耗时 {elapsed:?}）",
+            err.kind,
+            err.message
+        );
+
+        // ── 验收 6：事件契约 + 日志隐私 ──
+        let initiator_events = initiator_sink.snapshot();
+        let tail = &initiator_events[baseline_initiator..];
+        assert!(
+            find_event(tail, "pairing.connect", "start").is_some(),
+            "拒绝路径必须继续发 pairing.connect action=start，实际: {}",
+            render_events(tail)
+        );
+        let failed = find_event(tail, "pairing.connect", "failed").unwrap_or_else(|| {
+            panic!(
+                "拒绝路径必须继续发 pairing.connect action=failed，实际: {}",
+                render_events(tail)
+            )
+        });
+        assert_eq!(
+            event_field(failed, "reason"),
+            Some("usedOrReplaced"),
+            "拒绝原因必须以稳定原因码进日志，实际: {failed:?}"
+        );
+        let text = render_events(tail);
+        assert!(!text.contains(&parsed.nonce), "nonce 不得进日志");
+        assert!(!text.contains(&credential), "凭证全文不得进日志");
+        assert!(!text.contains(&code), "6 位码不得进日志");
+        assert!(!text.contains(&confirmer_id), "完整节点 ID 不得进日志");
+
+        let confirmer_events = confirmer_sink.snapshot();
+        let tail = &confirmer_events[baseline_confirmer..];
+        let confirm_failed = find_event(tail, "pairing.confirm", "failed").unwrap_or_else(|| {
+            panic!(
+                "确认方拒绝必须发 pairing.confirm action=failed，实际: {}",
+                render_events(tail)
+            )
+        });
+        assert_eq!(
+            event_field(confirm_failed, "reason"),
+            Some("usedOrReplaced"),
+            "确认方拒绝日志应带稳定原因码，实际: {confirm_failed:?}"
+        );
+        assert_eq!(
+            event_field(confirm_failed, "reject_frame"),
+            Some("sent"),
+            "确认方必须确实把拒绝帧写出（reject_frame=sent），实际: {confirm_failed:?}"
+        );
+        let text = render_events(tail);
+        assert!(!text.contains(&parsed.nonce), "nonce 不得进确认方日志");
+        assert!(!text.contains(&credential), "凭证全文不得进确认方日志");
+        assert!(!text.contains(&code), "6 位码不得进确认方日志");
+        assert!(
+            !text.contains(&initiator.device_id()),
+            "完整节点 ID 不得进确认方日志"
+        );
+    });
+}
+
+/// 验收 2：**被取代的凭证** → `usedOrReplaced`。
+///
+/// 显示方生成 A 后「重新生成」B（A 随之失效）。发起方仍用 A：确认方按 UI 契约用
+/// 当前那一份 code（B）确认，请求里的码（A）与会话不一致 → 拒绝；发起方必须看到
+/// 「已使用或已被替代」，而不是「无法连接到对方设备」。
+#[test]
+fn replaced_credential_is_classified_as_used_or_replaced() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        let mut confirmer = SyncService::new().await.unwrap();
+        confirmer.set_device_name("Trusted PC");
+        let initiator = SyncService::new().await.unwrap();
+        initiator.set_device_name("New Phone");
+        let confirmer_store = NoteStore::new(":memory:").unwrap();
+        let initiator_store = NoteStore::new(":memory:").unwrap();
+
+        assert!(
+            !confirmer.local_addrs().is_empty(),
+            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空）"
+        );
+
+        let first = confirmer.begin_pairing_credential().unwrap(); // A
+        let second = confirmer.begin_pairing_credential().unwrap(); // B（取代 A）
+        assert_ne!(first.code, second.code, "重新生成必须换码");
+        let second_code = second.code.clone();
+
+        let confirmer_store_confirm = confirmer_store.clone();
+        let confirmer_handle = tokio::spawn(async move {
+            let request =
+                tokio::time::timeout(Duration::from_secs(15), confirmer.accept_pairing_request())
+                    .await
+                    .expect("confirmer accept 挂起")
+                    .expect("confirmer 应收到配对请求");
+            let err = confirmer
+                .confirm_pairing(&confirmer_store_confirm, &second_code, &request)
+                .await
+                .expect_err("旧凭证的码与会话不一致，confirm 必须拒绝");
+            (confirmer, err.to_string())
+        });
+
+        let err = tokio::time::timeout(
+            Duration::from_secs(20),
+            initiator.begin_pairing_connect_with_credential(&initiator_store, &first.credential),
+        )
+        .await
+        .expect("拒绝信号未在 20s 内送达（被取代的凭证被当成连不上）")
+        .expect_err("被取代的凭证不得配对成功");
+
+        let (confirmer, confirm_err) =
+            tokio::time::timeout(Duration::from_secs(30), confirmer_handle)
+                .await
+                .expect("confirmer task 挂起")
+                .unwrap();
+
+        assert!(
+            confirm_err.contains("code"),
+            "被取代的凭证应因码不匹配被拒，实际: {confirm_err}"
+        );
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::UsedOrReplaced,
+            "被取代的凭证应归类 usedOrReplaced；实际 kind={:?} message={}",
+            err.kind,
+            err.message
+        );
+        assert_eq!(
+            confirmer.current_pairing_session().map(|s| s.code),
+            Some(second.code.clone()),
+            "拒绝旧凭证不得清掉新会话"
+        );
+    });
+}
+
+// ━━━ 守护：不得把「连不上」误报成「已使用」，解析期分类不回归 ━━━
+
+/// 构造「签名有效」的 v2 凭证（测试用；不经过 SyncService 会话）。
+///
+/// [sk] 同时作为凭证载荷里的 node id 与签名密钥：凭证解析通过后，连接目标身份
+/// 与凭证声明一致（用于模拟无监听地址与「旧对端」）。
+fn credential_signed_by(sk: &SecretKey, ips: &[String]) -> String {
+    let node_id = *sk.public().as_bytes();
+    let now = chrono::Utc::now().timestamp() as u64;
+    let nonce: [u8; 16] = [9u8; 16];
+    let raw = encode_credential_v2(sk, now, now + 600, &nonce, &node_id, 424242, ips).unwrap();
+    credential_to_string(&raw)
+}
+
+/// 验收 3：目标地址**无监听**（连接被拒）→ 仍归 `unreachable`（「无法连接到对方设备」），
+/// **不得**误报成「已使用或已被替代」。
+#[test]
+fn unreachable_target_with_closed_port_stays_unreachable() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        // 关闭端口：loopback 上无监听（与 connect_test 的假设备同款「快速失败」地址）
+        let signer = SecretKey::generate();
+        let credential = credential_signed_by(&signer, &["127.0.0.1:1".to_string()]);
+        let initiator = SyncService::new().await.unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+
+        let started = std::time::Instant::now();
+        let err = tokio::time::timeout(
+            Duration::from_secs(90),
+            initiator.begin_pairing_connect_with_credential(&store, &credential),
+        )
+        .await
+        .expect("连不上路径不得挂住")
+        .expect_err("无监听地址不得配对成功");
+        let elapsed = started.elapsed();
+
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::Unreachable,
+            "连不上必须归 unreachable（不得误报已使用）；实际 kind={:?} message={}",
+            err.kind,
+            err.message
+        );
+        // 基线（本机实测）：iroh 对「无监听 UDP 端口」的 QUIC 握手超时 ≈ 30.0s，
+        // 这不是本次改动引入的等待；这里用 60s 上界防止后续再叠加固定等待。
+        assert!(
+            elapsed < Duration::from_secs(60),
+            "连不上不得叠加额外等待（基线 ~30s），实际 {elapsed:?}"
+        );
+    });
+}
+
+/// 验收 4：**旧对端不发送拒绝帧**（读到流结束 / 无帧）→ 仍归 `unreachable`，
+/// 且不得为此新增固定等待时间。
+///
+/// 用原始 iroh 端点模拟旧对端：收下配对请求帧后开一条**空响应流**并 finish
+/// （不回任何帧），保持连接直到发起方读完关闭——正是「旧实现」的线行为。
+#[test]
+fn legacy_peer_without_rejection_frame_stays_unreachable() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        const ALPN: &[u8] = b"cardmind-v2";
+        let peer_key = SecretKey::generate();
+        let peer = iroh::Endpoint::builder(iroh::endpoint::presets::Minimal)
+            .secret_key(peer_key.clone())
+            .alpns(vec![ALPN.to_vec()])
+            .relay_mode(iroh::RelayMode::Disabled)
+            .bind()
+            .await
+            .expect("旧对端 bind");
+        let ips: Vec<String> = peer
+            .addr()
+            .ip_addrs()
+            .filter(|a| a.is_ipv4())
+            .map(|a| a.to_string())
+            .collect();
+        assert!(!ips.is_empty(), "前提：原始端点需至少一个 IPv4 地址");
+
+        let peer_task = tokio::spawn(async move {
+            let incoming = peer.accept().await.expect("旧对端 accept");
+            let conn = incoming
+                .accept()
+                .expect("旧对端 accept conn")
+                .await
+                .expect("旧对端连接建立");
+            let mut recv = conn.accept_uni().await.expect("旧对端 accept uni");
+            let _ = recv.read_to_end(1024 * 1024).await.expect("旧对端读请求");
+            // 旧行为：不回任何帧，只开一条空流并结束
+            let mut send = conn.open_uni().await.expect("旧对端 open uni");
+            send.finish().expect("旧对端 finish");
+            let _ = tokio::time::timeout(Duration::from_secs(10), conn.closed()).await;
+        });
+
+        let credential = credential_signed_by(&peer_key, &ips);
+        let initiator = SyncService::new().await.unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+
+        let started = std::time::Instant::now();
+        let err = tokio::time::timeout(
+            Duration::from_secs(20),
+            initiator.begin_pairing_connect_with_credential(&store, &credential),
+        )
+        .await
+        .expect("无帧路径不得挂住")
+        .expect_err("旧对端不回帧时不得配对成功");
+        let elapsed = started.elapsed();
+
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::Unreachable,
+            "无帧（流结束）必须仍归 unreachable；实际 kind={:?} message={}",
+            err.kind,
+            err.message
+        );
+        assert!(
+            elapsed < Duration::from_secs(5),
+            "无帧路径不得引入固定等待，实际 {elapsed:?}"
+        );
+        peer_task.await.unwrap();
+    });
+}
+
+/// 验收 5：解析期分类不回归——格式错 / 签名错 / 已过期三类仍各自归类，
+/// 不被握手期新增的「已使用/已被替代」吸收。
+#[test]
+fn credential_parse_classification_does_not_regress() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        let initiator = SyncService::new().await.unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+        let started = std::time::Instant::now();
+
+        // 格式错：前缀对但载荷无效
+        let err = initiator
+            .begin_pairing_connect_with_credential(&store, "cm1.not-a-credential")
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::InvalidFormat,
+            "格式错应归 invalidFormat，实际 {:?} / {}",
+            err.kind,
+            err.message
+        );
+
+        // 签名错：载荷 node id 与签名私钥不一致
+        let signer = SecretKey::generate();
+        let claimed = SecretKey::generate();
+        let now = chrono::Utc::now().timestamp() as u64;
+        let raw = encode_credential_v2(
+            &signer,
+            now,
+            now + 600,
+            &[5u8; 16],
+            claimed.public().as_bytes(),
+            111111,
+            &[],
+        )
+        .unwrap();
+        let err = initiator
+            .begin_pairing_connect_with_credential(&store, &credential_to_string(&raw))
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::InvalidSignature,
+            "签名错应归 invalidSignature，实际 {:?} / {}",
+            err.kind,
+            err.message
+        );
+
+        // 已过期：签发在过去、过期时间已越过
+        let signer = SecretKey::generate();
+        let past = now - 700;
+        let raw = encode_credential_v2(
+            &signer,
+            past,
+            past + 600,
+            &[6u8; 16],
+            signer.public().as_bytes(),
+            222222,
+            &[],
+        )
+        .unwrap();
+        let err = initiator
+            .begin_pairing_connect_with_credential(&store, &credential_to_string(&raw))
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::Expired,
+            "过期应归 expired，实际 {:?} / {}",
+            err.kind,
+            err.message
+        );
+
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "解析期失败必须先于任何连接尝试（无等待）"
         );
     });
 }

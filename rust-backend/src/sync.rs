@@ -268,6 +268,9 @@ const PAIRING_FRAME_REQUEST: u8 = 0x01;
 const PAIRING_FRAME_RESPONSE: u8 = 0x02;
 // 设备改名帧（首字节；magic 与 0x01/0x02 均不冲突）
 const DEVICE_NAME_FRAME: u8 = 0x03;
+// 配对拒绝帧（首字节）：`[0x04][reason: u8]`——确认方拒绝握手时回传**稳定原因码**，
+// 发起方据此区分「已使用 / 已被替代」与「连不上」。旧对端不发此帧 → 仍归 unreachable。
+const PAIRING_FRAME_REJECT: u8 = 0x04;
 
 const MAX_INBOUND_PUSH_BYTES: usize = 16 * 1024 * 1024;
 const MAX_INBOUND_PAIRING_BYTES: usize = 64 * 1024;
@@ -760,31 +763,45 @@ impl SyncService {
 
     /// 校验配对码：存在、未过期、未因连续错误超限。
     ///
-    /// - 过期 → 清除会话，报 expired
+    /// - 过期 → 清除会话，报 expired（拒绝帧原因码 `expired`）
     /// - 连续错误 ≥ 5 次 → 会话失效（后续任何码都失败，需重新发起）
     /// - 错误码 → 累计错误次数
+    ///
+    /// 失败原因码随错误一并回传（`PairingRejected`），供 `confirm_pairing` 回拒绝帧。
     fn validate_pairing_code(&self, code: &str) -> Result<()> {
         let mut guard = self.pairing_session.lock().unwrap();
         let Some(session) = guard.as_mut() else {
-            anyhow::bail!("no active pairing code: begin_pairing_accept first");
+            return Err(rejected(
+                PairingRejectReason::UsedOrReplaced,
+                "no active pairing code: begin_pairing_accept first",
+            ));
         };
         let age = Utc::now() - session.created_at;
         if age.num_minutes() >= PAIRING_CODE_TTL_MINUTES {
             *guard = None;
-            anyhow::bail!("pairing code expired after {PAIRING_CODE_TTL_MINUTES} minutes");
+            return Err(rejected(
+                PairingRejectReason::Expired,
+                format!("pairing code expired after {PAIRING_CODE_TTL_MINUTES} minutes"),
+            ));
         }
         if session.failed_attempts >= PAIRING_MAX_FAILED_ATTEMPTS {
             *guard = None;
-            anyhow::bail!(
-                "pairing code invalidated after {PAIRING_MAX_FAILED_ATTEMPTS} failed attempts"
-            );
+            return Err(rejected(
+                PairingRejectReason::UsedOrReplaced,
+                format!(
+                    "pairing code invalidated after {PAIRING_MAX_FAILED_ATTEMPTS} failed attempts"
+                ),
+            ));
         }
         if session.code != code {
             session.failed_attempts += 1;
             if session.failed_attempts >= PAIRING_MAX_FAILED_ATTEMPTS {
                 *guard = None;
             }
-            anyhow::bail!("invalid pairing code");
+            return Err(rejected(
+                PairingRejectReason::UsedOrReplaced,
+                "invalid pairing code",
+            ));
         }
         Ok(())
     }
@@ -973,19 +990,68 @@ impl SyncService {
                 );
             }
             Err(e) => {
+                // 拒绝路径：把稳定原因码回给发起方（有真实握手连接时）。非拒绝错误
+                // （如落库失败）不回帧——发起方保持既有 unreachable 语义。
+                let mut event = LogEvent::new("pairing.confirm", "pairing.confirm")
+                    .with_id(&self.device_id())
+                    .with_id(&requester.device_id)
+                    .with_field("action", "failed")
+                    .with_error(&e.to_string())
+                    .with_chain(&format!("{e:#}"))
+                    .with_duration(duration);
+                if let Some(reason) = rejection_reason(e) {
+                    let (outcome, error) = self.send_pairing_rejection(reason).await;
+                    event = event
+                        .with_field("reason", reason.label())
+                        .with_field("reject_frame", outcome);
+                    if let Some(error) = error {
+                        event = event.with_field("reject_error", error);
+                    }
+                }
                 // 事件 #8：confirm 失败（错误链 + 耗时）
-                self.emit_log(
-                    LogEvent::new("pairing.confirm", "pairing.confirm")
-                        .with_id(&self.device_id())
-                        .with_id(&requester.device_id)
-                        .with_field("action", "failed")
-                        .with_error(&e.to_string())
-                        .with_chain(&format!("{e:#}"))
-                        .with_duration(duration),
-                );
+                self.emit_log(event);
             }
         }
         result
+    }
+
+    /// 确认方：把稳定原因码写回待确认连接（拒绝握手时对发起方唯一的回包）。
+    ///
+    /// 返回 `(结果, 错误文本)`：结果取稳定值 `sent` / `failed` / `skipped`
+    /// （`skipped` = 无待确认连接，例如测试里构造的请求没有真实握手；`failed` = 开流或
+    /// 写入失败，发起方退回既有 `unreachable` 语义，不静默成功）。错误文本只含
+    /// 连接/流错误，不含码、nonce、凭证或节点 ID。
+    ///
+    /// `pending_pairing` 与成功路径同一语义：取走后一次性使用（重试需重新发起请求）。
+    async fn send_pairing_rejection(
+        &self,
+        reason: PairingRejectReason,
+    ) -> (&'static str, Option<String>) {
+        let Some(pending) = self.pending_pairing.lock().unwrap().take() else {
+            return ("skipped", None);
+        };
+        let frame = encode_pairing_rejection(reason);
+        let sent = async {
+            let mut send = pending
+                .conn
+                .open_uni()
+                .await
+                .context("open pairing rejection stream")?;
+            send.write_all(&frame)
+                .await
+                .context("write pairing rejection")?;
+            send.finish().context("finish pairing rejection")?;
+            Ok::<(), anyhow::Error>(())
+        }
+        .await;
+        if let Err(error) = sent {
+            return ("failed", Some(error.to_string()));
+        }
+        // 与握手响应同模式：等发起方读完并关闭连接（有界），避免帧未送达即释放连接
+        tokio::time::timeout(Duration::from_secs(10), pending.conn.closed())
+            .await
+            .ok();
+        ("sent", None)
     }
 
     /// confirm 核心逻辑（校验/持久化/握手/首次推送）。
@@ -1002,7 +1068,11 @@ impl SyncService {
             let mut guard = self.pairing_session.lock().unwrap();
             if let Some(session) = guard.as_mut() {
                 if !requester.code.is_empty() && session.code != requester.code {
-                    anyhow::bail!("pairing code mismatch in request");
+                    // 旧凭证（已使用 / 已被新凭证取代）的典型落点：码与会话不一致
+                    return Err(rejected(
+                        PairingRejectReason::UsedOrReplaced,
+                        "pairing code mismatch in request",
+                    ));
                 }
                 // nonce 校验（设计裁决：强制）：凭证/6 位码路径都必须与会话 nonce 一致。
                 // 空、全零、格式错误、不匹配一律拒绝并计入失败次数（防重放/错配）；
@@ -1015,7 +1085,10 @@ impl SyncService {
                             if session.failed_attempts >= PAIRING_MAX_FAILED_ATTEMPTS {
                                 *guard = None;
                             }
-                            anyhow::bail!("pairing nonce mismatch in request");
+                            return Err(rejected(
+                                PairingRejectReason::RequestMismatch,
+                                "pairing nonce mismatch in request",
+                            ));
                         }
                     };
                     if session.nonce != requester_nonce_bytes {
@@ -1024,7 +1097,10 @@ impl SyncService {
                         if failed {
                             *guard = None;
                         }
-                        anyhow::bail!("pairing nonce mismatch in request");
+                        return Err(rejected(
+                            PairingRejectReason::RequestMismatch,
+                            "pairing nonce mismatch in request",
+                        ));
                     }
                 }
             }
@@ -1038,7 +1114,10 @@ impl SyncService {
                     .is_err()
                     || !pairing_identity_matches(&pending.request.device_id, &requester.device_id)
                 {
-                    anyhow::bail!("pairing requester identity does not match transport");
+                    return Err(rejected(
+                        PairingRejectReason::RequestMismatch,
+                        "pairing requester identity does not match transport",
+                    ));
                 }
             }
         }
@@ -1228,15 +1307,17 @@ impl SyncService {
                 );
             }
             Err(e) => {
-                // 事件 #7：连接失败（错误链 + 耗时）
-                self.emit_log(
-                    LogEvent::new("pairing.connect", "pairing.connect")
-                        .with_id(&self.device_id())
-                        .with_field("action", "failed")
-                        .with_error(&e.to_string())
-                        .with_chain(&format!("{e:#}"))
-                        .with_duration(duration),
-                );
+                // 事件 #7：连接失败（错误链 + 耗时）；握手拒绝时附稳定原因码
+                let mut event = LogEvent::new("pairing.connect", "pairing.connect")
+                    .with_id(&self.device_id())
+                    .with_field("action", "failed")
+                    .with_error(&e.to_string())
+                    .with_chain(&format!("{e:#}"))
+                    .with_duration(duration);
+                if let Some(rejected) = e.downcast_ref::<PairingRejected>() {
+                    event = event.with_field("reason", rejected.label());
+                }
+                self.emit_log(event);
             }
         }
         result
@@ -1312,6 +1393,13 @@ impl SyncService {
             .read_to_end(MAX_INBOUND_PAIRING_BYTES)
             .await
             .context("read pairing response")?;
+        // 拒绝帧（`[0x04][reason]`）→ 稳定原因码：走凭证入口时映射为「已使用/已被替代」等，
+        // 不再表现成「连不上」。旧对端不发帧（空流 / 无帧）→ 不进这个分支，行为与耗时不变。
+        if let Some(rejection) = pairing_rejection_from_frame(&data) {
+            // 数据已读入内存，主动关闭连接：确认方无需等满关闭超时
+            conn.close(0u32.into(), b"rejected");
+            return Err(rejection);
+        }
         let response = decode_pairing_response(&data)?;
         let authenticated_remote = conn.remote_id().to_string();
         if !pairing_identity_matches(&authenticated_remote, &response.device_id)
@@ -3255,6 +3343,125 @@ pub fn decode_pairing_response(data: &[u8]) -> Result<PairingResponse> {
     })
 }
 
+// ━━━ 配对拒绝信号（任务 pairing-credential-used-kind）━━━
+//
+// 确认方拒绝握手时（会话已清空 / 码被新凭证取代 / 握手期过期 / nonce 或身份不匹配），
+// 在待确认连接上回一帧 `[0x04][reason: u8]`。原因码是**稳定线协议取值**，只表达拒绝
+// 类别：不携带码、nonce、凭证或节点 ID。旧对端不发此帧 → 发起方读到的流为空
+// → 仍归 `unreachable`（行为不变，也不新增任何等待）。
+
+/// 握手拒绝的原因码（线协议载荷字节；**取值一经发布不得改义**）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PairingRejectReason {
+    /// 凭证已使用或已被替代：会话已清空 / 码已被新凭证取代 / 连续失败超限失效
+    UsedOrReplaced = 0x01,
+    /// 会话在握手期过期（解析期有效，连接期间越过了 10 分钟窗口）
+    Expired = 0x02,
+    /// 请求与会话不匹配（nonce / 身份）：不是「已使用」语义
+    RequestMismatch = 0x03,
+}
+
+impl PairingRejectReason {
+    /// 线协议载荷字节。
+    fn to_wire(self) -> u8 {
+        self as u8
+    }
+
+    /// 解析载荷字节；未知取值返回 `None`（新对端的新原因码保守归 `internal`，
+    /// 既不误报 `unreachable`，也不冒充 `usedOrReplaced`）。
+    fn from_wire(code: u8) -> Option<Self> {
+        match code {
+            0x01 => Some(Self::UsedOrReplaced),
+            0x02 => Some(Self::Expired),
+            0x03 => Some(Self::RequestMismatch),
+            _ => None,
+        }
+    }
+
+    /// 稳定原因码文本（日志用；与 Dart 侧 kind 同名）。
+    fn label(self) -> &'static str {
+        match self {
+            Self::UsedOrReplaced => "usedOrReplaced",
+            Self::Expired => "expired",
+            Self::RequestMismatch => "requestMismatch",
+        }
+    }
+}
+
+/// 握手拒绝：作为 anyhow 错误的根携带，跨 `begin_pairing_connect` 传到凭证分类处。
+#[derive(Debug)]
+struct PairingRejected {
+    /// 原因码（`None` = 对端用了本实现未知的原因码）
+    reason: Option<PairingRejectReason>,
+    /// 人类可读消息（保持在拒绝处的原有表述；不含码 / nonce / 凭证 / 节点 ID）
+    message: String,
+}
+
+impl std::fmt::Display for PairingRejected {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for PairingRejected {}
+
+impl PairingRejected {
+    /// 日志用的稳定原因码文本（未知原因码 → `unrecognized`）。
+    fn label(&self) -> &'static str {
+        match self.reason {
+            Some(reason) => reason.label(),
+            None => "unrecognized",
+        }
+    }
+
+    /// 凭证错误分类：「已使用/已被替代」与「过期」按原因码改判；其余（含未知原因码）
+    /// 保守归 `internal`——**不**归 `unreachable`（拒绝帧证明连接是通的）。
+    fn credential_kind(&self) -> PairingCredentialErrorKind {
+        match self.reason {
+            Some(PairingRejectReason::UsedOrReplaced) => PairingCredentialErrorKind::UsedOrReplaced,
+            Some(PairingRejectReason::Expired) => PairingCredentialErrorKind::Expired,
+            _ => PairingCredentialErrorKind::Internal,
+        }
+    }
+}
+
+/// 确认方侧：构造带稳定原因码的拒绝错误（消息与既有 `anyhow::bail!` 逐字一致）。
+fn rejected(reason: PairingRejectReason, message: impl Into<String>) -> anyhow::Error {
+    anyhow::Error::new(PairingRejected {
+        reason: Some(reason),
+        message: message.into(),
+    })
+}
+
+/// 取出错误里的拒绝原因码（非拒绝错误 → `None`；如落库失败等内部错误不回拒绝帧）。
+fn rejection_reason(err: &anyhow::Error) -> Option<PairingRejectReason> {
+    err.downcast_ref::<PairingRejected>()
+        .and_then(|rej| rej.reason)
+}
+
+/// 编码拒绝帧：`[0x04][reason]`。
+fn encode_pairing_rejection(reason: PairingRejectReason) -> Vec<u8> {
+    vec![PAIRING_FRAME_REJECT, reason.to_wire()]
+}
+
+/// 发起方侧：把响应流内容解析为拒绝错误（首字节不是 `0x04` → `None`，走正常响应路径）。
+///
+/// 空流 / 旧对端的正常响应帧都不匹配 `0x04`：前者继续走 `decode_pairing_response`
+/// 失败 → `unreachable`，后者按既有握手响应处理。
+fn pairing_rejection_from_frame(data: &[u8]) -> Option<anyhow::Error> {
+    if data.first() != Some(&PAIRING_FRAME_REJECT) {
+        return None;
+    }
+    let reason = data
+        .get(1)
+        .and_then(|code| PairingRejectReason::from_wire(*code));
+    let message = match reason {
+        Some(reason) => format!("pairing rejected by peer: {}", reason.label()),
+        None => "pairing rejected by peer: unknown reason code".to_string(),
+    };
+    Some(anyhow::Error::new(PairingRejected { reason, message }))
+}
+
 /// 编码设备改名帧：`[0x03][device_id][device_name]`（length-prefixed）。
 pub fn encode_device_name_frame(device_id: &str, name: &str) -> Vec<u8> {
     let mut buf = Vec::new();
@@ -3854,7 +4061,9 @@ impl SyncService {
     ///
     /// 目标 `ips` 来自凭证内嵌地址（v2）：非空时直连，不再依赖 relay 与 n0 DNS；
     /// v1 凭证为空时沿用 `build_connect_addr`（发起端自己的可选 relay.txt）。
-    /// 凭证解析错误精确分类；连接类错误归类为 `Unreachable`。
+    /// 凭证解析错误精确分类；**对端握手拒绝按稳定原因码分类**（已使用/已被替代 →
+    /// `UsedOrReplaced`，握手期过期 → `Expired`，其余拒绝 → `Internal`）；
+    /// 真正的连接类错误（连不上 / 超时 / 读不到帧）归类为 `Unreachable`。
     pub async fn begin_pairing_connect_with_credential(
         &self,
         store: &NoteStore,
@@ -3864,9 +4073,17 @@ impl SyncService {
         let target = self.pairing_target_for_credential(credential)?;
         self.begin_pairing_connect(store, &parsed.code, target)
             .await
-            .map_err(|err| PairingCredentialError {
-                kind: PairingCredentialErrorKind::Unreachable,
-                message: err.to_string(),
+            .map_err(|err| match err.downcast_ref::<PairingRejected>() {
+                // 对端回了拒绝帧：按原因码分类，不误报「无法连接到对方设备」
+                Some(rejected) => PairingCredentialError {
+                    kind: rejected.credential_kind(),
+                    message: err.to_string(),
+                },
+                // 连不上 / 无帧 / 其余内部错误：保持既有语义
+                None => PairingCredentialError {
+                    kind: PairingCredentialErrorKind::Unreachable,
+                    message: err.to_string(),
+                },
             })
     }
 }
