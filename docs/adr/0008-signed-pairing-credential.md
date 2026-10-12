@@ -226,13 +226,22 @@
   「单 loop、不当用旧 code confirm、关闭后不再 setState」这些仍然成立的部分。
 - v1 生成路径（`encode_credential`）只服务历史测试用例，生产不再生成 v1；
   `parse_credential` 保留 v1 解析作为一条兼容路径（当前无 v1 客户端在流通）。
-- **二维码的显示规格没有落实**：任务 Q 要求二维码有「稳定正方形尺寸、浅色静区和足够纠错级别」，
-  实现只有固定 200×200 的方形绘制区 + `QrPainter`（`data` 为完整凭证、`version: QrVersions.auto`、
-  `gapless: false` 即保留静区，静区颜色取容器背景）。纠错级别**从未显式设置**，等于沿用
-  qr_flutter 的最低默认档；「浅色静区」也只是没有把静区去掉，而非显式约束。二维码内容与复制文本
-  的逐字一致由构造保证（`QrPainter.data` 与剪贴板同用 `_credentialText`），没有直接断言 painter
-  `data` 的用例。**对协议是否必要：不必要**——凭证字符串可复制/粘贴，二维码只是传递手段之一，
-  协议不依赖扫描成功率；若把扫码可靠性当产品要求，应另开任务显式设置纠错级别与静区底色并补 UI 断言。
+- **二维码的显示规格部分落实**：任务 Q 要求二维码有「稳定正方形尺寸、浅色静区和足够纠错级别」。
+  实现是 `lib/pages/devices_page.dart` 里固定 200×200 的 `SizedBox` 套裸 `CustomPaint`
+  （key 为 `pair-qr-image`）配 `QrPainter(data: …, version: QrVersions.auto, gapless: false)`：
+  正方形尺寸落实；**静区没有显式做**——静区机制在 qr_flutter 的 QrImageView.padding（默认
+  `EdgeInsets.all(10)`），而本应用只用裸 `QrPainter`，没有 QrImageView、没有 padding / margin、
+  也没有底色，模块按绘制区最短边铺满（包内 _PaintMetrics 只把半像素取整的余量平分到两侧，
+  量级 ≤0.5px），四周留白只来自对话框自身的布局间距；纠错级别未设置，等于沿用 `QrPainter` 的
+  默认最低档（QrErrorCorrectLevel.L）。
+  另需纠正一处常见误读：`gapless: false` **不是静区开关**，它只保留模块方块之间 0.25px 的缝隙
+  （qr_flutter 包内注释写作「1px gap between each of the squares」，实现在包内 _gapSize 与
+  `gapSize: gapless ? 0 : _gapSize`），与静区无关。
+  二维码内容与复制文本的逐字一致由构造保证（`QrPainter` 与剪贴板同用 `_credentialText`）；
+  `data` 只是构造参数（内部再交给 _init），`QrPainter` 没有公开的取数据入口，所以测试也读不到
+  painter 内容——现有用例只断言 `ValueKey('pair-qr-image')` 存在。
+  **对协议是否必要：不必要**——凭证字符串可复制 / 粘贴，二维码只是传递手段之一，协议不依赖扫描
+  成功率；若把扫码可靠性当产品要求，应另开任务显式设置纠错级别与静区（留白 / 底色）并补 UI 断言。
 
 ## 非目标
 
