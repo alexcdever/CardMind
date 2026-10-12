@@ -342,4 +342,36 @@ void main() {
       reason: '「上次更新」${declared.group(1)} 早于文件最近一次真实修改 $modified',
     );
   });
+
+  test('验收 6：sync-network.md 开头日期不早于该文件内容最近一次修改', () {
+    final doc = _read('docs/sync-network.md');
+    final header = doc.split('\n').take(6).join('\n');
+
+    final declaredDates = RegExp(
+      r'(\d{4}-\d{2}-\d{2})',
+    ).allMatches(header).map((match) => match.group(1)!).toList();
+    expect(
+      declaredDates,
+      isNotEmpty,
+      reason: 'sync-network.md 开头必须声明定稿 / 更新日期',
+    );
+    final latest = declaredDates.reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
+
+    final modified =
+        (_git([
+                  'log',
+                  '-1',
+                  '--format=%cs',
+                  '--',
+                  'docs/sync-network.md',
+                ]).stdout
+                as String)
+            .trim();
+    expect(modified, isNotEmpty, reason: 'git 必须能给出 sync-network.md 的最近修改日期');
+    expect(
+      latest.compareTo(modified) >= 0,
+      isTrue,
+      reason: '开头声明的日期 $latest 早于该文件内容最近一次真实修改 $modified（日期必须一起改对）',
+    );
+  });
 }
