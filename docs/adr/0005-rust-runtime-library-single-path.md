@@ -57,6 +57,11 @@
 - **运行态缺库时静默回退到 Cargo 目录**：拒绝，会让「Cargo 已变但运行态仍是旧副本」的版本漂移重新出现。
 - **检测到缺库自动后台重建**：拒绝，本轮不做隐式构建。
 
+### 被否决的边界扩张（当时的非目标）
+
+- **不在本轮改造 FRB 代码生成产物内容**：本轮只调整动态库产物同步与加载路径策略，不动生成代码。
+- **不在本轮处理 iOS/Android 动态库分发策略**：移动端分发方案留待后续，本轮不落地、也不做占位实现。
+
 ## 后果
 
 - **正向**：运行态只有一个真相源；测试与运行加载同一份产物；后续若要切换共享缓存策略，只需调整构建源，
@@ -79,4 +84,7 @@
     这是对第 5 条「不得依赖默认解析」的务实放宽，FRB 生成代码中的默认路径仍指向 Cargo 产物目录。
   - 当时要求的「错误消息必须包含标准恢复命令」在当前代码中没有对应实现：
     `lib/bridge/rust_library_loader.dart` 缺库时返回 null，由 FRB 默认加载逻辑报错，不再附带构建指令。
-  - 库名随 crate 变化：当时的 `libcardmind_rust` 现为 `cardmind_backend`（`rust-backend/Cargo.toml` 的 crate 名）。
+  - 库名随 lib / FRB stem 变化：当时的 `libcardmind_rust` 现为 `cardmind_backend`；
+    包名（`rust-backend/Cargo.toml` 的 `[package] name`）为 `cardmind-backend`，`cardmind_backend` 是 lib 与 FRB 的 stem（见 `tool/src/git_gate/host_build.dart` 的说明）。
+  - 当时的两个非目标后来部分变化：Android 动态库构建已由 `tool/build.dart` 纳入（cargo ndk 产出 .so）；
+    iOS 仍无工程与分发方案；FRB 代码生成产物本身仍未改造（生成代码里的默认库路径仍指向 Cargo 产物目录）。
