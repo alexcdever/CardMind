@@ -41,8 +41,11 @@ async fn confirm_from_initiator(
 
 /// 发起方侧配对（测试辅助）：连接确认方 → 完成握手 → drain 确认方的首次全量推送。
 ///
-/// 决策 8：确认方 confirm 成功后自动向发起方推送全量快照；不 drain 会让确认方的
-/// `push_to_peer` 等满 10s 连接关闭超时（配对已成功，推送失败容忍）。
+/// 决策 8：确认方 confirm 成功后自动向发起方推送全量快照。该快照的**内容**不是
+/// 调用方测试的验收对象（要验的是之后显式推送的数据），但「没送达」必须显式
+/// 暴露：静默吞掉只会表现为别处的超时或断言失败。有界等待避免推送根本没发出时
+/// 挂死；不 drain 则会让确认方的 `push_to_peer` 等满 10s 连接关闭超时
+/// （配对已成功，推送失败容忍）。
 async fn pair_with_confirmer(
     initiator: &SyncService,
     store: &NoteStore,
@@ -53,7 +56,10 @@ async fn pair_with_confirmer(
         .begin_pairing_connect(store, code, target)
         .await
         .unwrap();
-    let _ = initiator.accept_push().await;
+    let drained = tokio::time::timeout(std::time::Duration::from_secs(10), initiator.accept_push())
+        .await
+        .expect("确认方配对后的首次全量推送未在 10s 内送达");
+    drained.expect("确认方配对后的首次全量推送未送达");
 }
 
 // ━━━ 验收 1：设备身份持久化 ━━━
@@ -167,10 +173,12 @@ fn test_push_receive_roundtrip_relay_or_direct() {
         let b_ips = b.local_addrs();
         assert!(!b_ips.is_empty(), "B 应至少有一个本地 IPv4 地址");
 
-        // 入站授权前提（security_sync_test 冻结的语义）：接收端只接受
-        // paired_devices 里出现的推送方。所以先走一次真实配对握手，让 B 把 A
-        // 写入自己的 paired_devices——接收端的授权集合每次入站都由
-        // store.list_paired_devices() 重建。
+        // 入站授权前提（security_sync_test 冻结的语义）：接收端只接受已配对设备的
+        // 推送，所以先走一次真实配对握手。确认方 B 的 confirm_pairing 会做两件事：
+        // 把 A 写入 B 的 paired_devices（落库），并把 A 加入 B 的服务级内存授权
+        // 集合 authorized_peers（sync.rs:1050-1055）。本测试走 accept_push()，用的
+        // 正是这份内存集合（sync.rs:2030）——**不会**像后台接收器那样从 store 重建
+        // 授权集合（那条路径见 sync.rs:2779-2784）。
         let a_id = a.device_id();
         let store_a = NoteStore::new(":memory:").unwrap();
         let store_b = NoteStore::new(":memory:").unwrap();
@@ -195,7 +203,7 @@ fn test_push_receive_roundtrip_relay_or_direct() {
                     .unwrap()
                     .iter()
                     .any(|d| d.peer_id == a_id),
-                "配对后 B 的 store 应含 A（入站授权集合的来源）"
+                "配对后 B 的 store 应含 A（配对结果已落库）"
             );
             let data = b.accept_push().await.unwrap();
             let mut b = b;
