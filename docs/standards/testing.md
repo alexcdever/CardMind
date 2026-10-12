@@ -65,7 +65,7 @@
 ## 与质量门禁的关系
 
 - 测试补齐应与 `dart run tool/git_gate.dart` 的选择器规则保持一致（如 pairing/device 改动应覆盖 pairing 测试）
-- 边界扫描报告位于 `/tmp/cardmind_test_boundary_report.md`
+- 边界扫描报告写在运行目录下的 `tmp` 子目录：文件名 `cardmind_test_boundary_report.md`（首次运行扫描器时创建；不是系统 `/tmp`）
 - 若报告中存在本次改动引入的高优先级未覆盖边界，应优先补测或明确说明原因
 
 ## 非目标
