@@ -76,17 +76,24 @@ const Set<String> ignoredDirectoryNames = <String>{
 /// 外部导入内容的前缀（相对扫描根）。
 const List<String> ignoredRelativePrefixes = <String>['.github/prompts/'];
 
-/// 构建产物路径段：这些路径由构建命令生成，全新 checkout 中并不存在，
+/// 构建产物路径前缀（相对仓库根）：这些路径由构建命令生成，全新 checkout 中并不存在，
 /// 文档描述它们不是「指向不存在对象」的错误，因此跳过存在性判定。
-/// 只列构建输出目录，不影响源码与文档路径的检查。
-const Set<String> buildOutputSegments = <String>{
-  'target',
-  'build',
-  'jniLibs',
-  '.dart_tool',
-  '.gradle',
-  'DerivedData',
-};
+///
+/// 判定是**前缀匹配**而不是段名匹配：只有确实位于这些目录**之下**的路径才跳过。
+/// `lib/build/x.dart` 这类只是段名巧合的路径仍然照常判定。
+const List<String> buildOutputPrefixes = <String>[
+  'build/',
+  '.dart_tool/',
+  'rust-backend/target/',
+  'sync-verify/target/',
+  'android/build/',
+  'android/app/build/',
+  'android/app/src/main/jniLibs/',
+  'android/.gradle/',
+  'macos/build/',
+  'linux/build/',
+  'windows/build/',
+];
 
 Future<void> main() async {
   final exit = await runMarkdownReferencesLint();
@@ -271,8 +278,11 @@ bool isRepoRelativeToken(Directory projectRoot, String token) {
 }
 
 /// 构建产物目录下的路径不做存在性判定。
-bool isBuildOutputPath(String token) =>
-    token.split('/').any(buildOutputSegments.contains);
+bool isBuildOutputPath(String token) => buildOutputPrefixes.any(
+  (prefix) =>
+      token == prefix.substring(0, prefix.length - 1) ||
+      token.startsWith(prefix),
+);
 
 void printMissingReferences(
   Directory projectRoot,
