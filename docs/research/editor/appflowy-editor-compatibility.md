@@ -29,9 +29,8 @@ CardMind 曾遇到 `DeltaTextInputService` 缺少 `TextInputClient.onFocusReceiv
 4. 在干净依赖缓存中运行 Flutter analyze、Flutter 测试、Windows release 构建和 Android release 构建。
 5. 若未来切换回正式 pub.dev 包，必须重新验证中文输入、Markdown 往返、链接补全、selection/transaction、自动保存及 Android/Windows 构建，不能只依据版本号判断兼容。
 
-## 关联任务
+## 关联文件
 
-- `docs/task-u4-appflowy-main-local-validation.md`：固定提交的验证任务记录。
 - `pubspec.yaml`：当前依赖声明。
 - `pubspec.lock`：当前依赖锁定结果。
 
