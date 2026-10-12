@@ -8,12 +8,12 @@
 
 use std::sync::Arc;
 
-use cardmind_backend::debug_log::CollectingSink;
+use cardmind_backend::debug_log::{CollectingSink, LogEvent};
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
     credential_from_string, credential_to_string, encode_credential, encode_credential_v2,
-    parse_credential, PairingRequest, PairingTarget, ParsedCredentialFields, SyncService,
-    CREDENTIAL_FINAL_LEN,
+    parse_credential, PairingCredentialErrorKind, PairingRequest, PairingTarget,
+    ParsedCredentialFields, SyncService, CREDENTIAL_FINAL_LEN,
 };
 
 use iroh::SecretKey;
@@ -892,6 +892,218 @@ fn credential_connect_end_to_end_uses_embedded_ips() {
         assert_eq!(
             confirm_result.peer_id, request.device_id,
             "确认方配对结果应为发起方 node id"
+        );
+    });
+}
+
+// ━━━ 任务 pairing-credential-used-kind：握手期拒绝的稳定分类 ━━━
+/// 事件里某个安全字段的取值。
+fn event_field<'a>(event: &'a LogEvent, key: &str) -> Option<&'a str> {
+    event
+        .fields
+        .iter()
+        .find(|(k, _)| k == key)
+        .map(|(_, v)| v.as_str())
+}
+
+/// 渲染事件序列为可搜索文本（隐私断言：所有字段都会出现在其中）。
+fn render_events(events: &[LogEvent]) -> String {
+    events
+        .iter()
+        .map(|e| format!("{e:?}"))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// 取「指定事件名 + action」的事件（稳定契约断言用）。
+fn find_event<'a>(events: &'a [LogEvent], event: &str, action: &str) -> Option<&'a LogEvent> {
+    events
+        .iter()
+        .find(|e| e.event == event && event_field(e, "action") == Some(action))
+}
+
+/// 验收 1：**用过的凭证**再次配对 → `usedOrReplaced`（不再是 `unreachable`）。
+///
+/// 真实链路（进程内 QUIC 握手）：显示方生成凭证 A → 发起方用 A 配对成功（会话被清空）
+/// → 发起方**再次**用同一张 A → 确认方以「会话已清空」拒绝，拒绝原因必须回传到发起方。
+///
+/// 同时覆盖验收 6：拒绝路径的 `pairing.connect` / `pairing.confirm` 事件名与 action 取值
+/// 不变、只携带稳定原因码，nonce / 6 位码 / 凭证全文 / 完整节点 ID 都不进日志。
+#[test]
+fn used_credential_is_classified_as_used_or_replaced() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        let confirmer_sink = Arc::new(CollectingSink::new());
+        let initiator_sink = Arc::new(CollectingSink::new());
+        let mut confirmer = SyncService::new_with_log_sink(confirmer_sink.clone())
+            .await
+            .unwrap();
+        confirmer.set_device_name("Trusted PC");
+        let initiator = SyncService::new_with_log_sink(initiator_sink.clone())
+            .await
+            .unwrap();
+        initiator.set_device_name("New Phone");
+        let confirmer_store = NoteStore::new(":memory:").unwrap();
+        let initiator_store = NoteStore::new(":memory:").unwrap();
+
+        assert!(
+            !confirmer.local_addrs().is_empty(),
+            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空）"
+        );
+
+        let display = confirmer.begin_pairing_credential().unwrap();
+        let parsed = confirmer
+            .parse_pairing_credential(&display.credential)
+            .unwrap();
+        let credential = display.credential.clone();
+        let code = parsed.code.clone();
+        let confirmer_id = confirmer.device_id();
+
+        // ── 第一轮：正常配对成功（凭证被用掉 → 会话清空）──
+        let confirmer_store_first = confirmer_store.clone();
+        let code_first = code.clone();
+        let confirmer_handle = tokio::spawn(async move {
+            let request =
+                tokio::time::timeout(Duration::from_secs(15), confirmer.accept_pairing_request())
+                    .await
+                    .expect("confirmer accept 挂起")
+                    .expect("confirmer 应收到配对请求");
+            let result = tokio::time::timeout(
+                Duration::from_secs(15),
+                confirmer.confirm_pairing(&confirmer_store_first, &code_first, &request),
+            )
+            .await
+            .expect("confirmer confirm 挂起")
+            .expect("首次配对应成功");
+            (confirmer, result)
+        });
+        let initiator_store_first = initiator_store.clone();
+        let credential_first = credential.clone();
+        let initiator_handle = tokio::spawn(async move {
+            let result = tokio::time::timeout(
+                Duration::from_secs(20),
+                initiator.begin_pairing_connect_with_credential(
+                    &initiator_store_first,
+                    &credential_first,
+                ),
+            )
+            .await
+            .expect("initiator 凭证连接挂起")
+            .expect("凭证直连应成功（凭证内嵌 IP）");
+            // drain 确认方首次全量同步推送
+            let _ = tokio::time::timeout(Duration::from_secs(10), initiator.accept_push()).await;
+            (initiator, result)
+        });
+
+        let (mut confirmer, confirm_first) =
+            tokio::time::timeout(Duration::from_secs(40), confirmer_handle)
+                .await
+                .expect("confirmer task 挂起")
+                .unwrap();
+        let (initiator, connect_first) =
+            tokio::time::timeout(Duration::from_secs(40), initiator_handle)
+                .await
+                .expect("initiator task 挂起")
+                .unwrap();
+        assert_eq!(connect_first.peer_id, confirmer_id);
+        assert_eq!(confirm_first.peer_id, initiator.device_id());
+        assert!(
+            confirmer.current_pairing_session().is_none(),
+            "配对成功后会话应清空（凭证单次使用）"
+        );
+        let baseline_initiator = initiator_sink.snapshot().len();
+        let baseline_confirmer = confirmer_sink.snapshot().len();
+
+        // ── 第二轮：同一张用过的凭证 → usedOrReplaced ──
+        let confirmer_store_second = confirmer_store.clone();
+        let code_second = code.clone();
+        let confirmer_handle = tokio::spawn(async move {
+            let request =
+                tokio::time::timeout(Duration::from_secs(15), confirmer.accept_pairing_request())
+                    .await
+                    .expect("confirmer accept（第二轮）挂起")
+                    .expect("confirmer 应收到第二轮的配对请求");
+            // UI 契约（决策 25）：confirm 只允许用当前显示的那一份 code
+            let err = confirmer
+                .confirm_pairing(&confirmer_store_second, &code_second, &request)
+                .await
+                .expect_err("会话已清空，confirm 必须拒绝");
+            (confirmer, err.to_string())
+        });
+
+        let started = std::time::Instant::now();
+        let err = tokio::time::timeout(
+            Duration::from_secs(20),
+            initiator.begin_pairing_connect_with_credential(&initiator_store, &credential),
+        )
+        .await
+        .expect("拒绝信号未在 20s 内送达（用过的凭证被当成连不上）")
+        .expect_err("用过的凭证不得配对成功");
+        let elapsed = started.elapsed();
+        let (_confirmer, confirm_err) =
+            tokio::time::timeout(Duration::from_secs(30), confirmer_handle)
+                .await
+                .expect("confirmer task（第二轮）挂起")
+                .unwrap();
+
+        assert!(
+            confirm_err.contains("no active"),
+            "第二轮确认方应因无会话被拒，实际: {confirm_err}"
+        );
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::UsedOrReplaced,
+            "用过的凭证应归类 usedOrReplaced；实际 kind={:?} message={}（耗时 {elapsed:?}）",
+            err.kind,
+            err.message
+        );
+
+        // ── 验收 6：事件契约 + 日志隐私 ──
+        let initiator_events = initiator_sink.snapshot();
+        let tail = &initiator_events[baseline_initiator..];
+        assert!(
+            find_event(tail, "pairing.connect", "start").is_some(),
+            "拒绝路径必须继续发 pairing.connect action=start，实际: {}",
+            render_events(tail)
+        );
+        let failed = find_event(tail, "pairing.connect", "failed").unwrap_or_else(|| {
+            panic!(
+                "拒绝路径必须继续发 pairing.connect action=failed，实际: {}",
+                render_events(tail)
+            )
+        });
+        assert_eq!(
+            event_field(failed, "reason"),
+            Some("usedOrReplaced"),
+            "拒绝原因必须以稳定原因码进日志，实际: {failed:?}"
+        );
+        let text = render_events(tail);
+        assert!(!text.contains(&parsed.nonce), "nonce 不得进日志");
+        assert!(!text.contains(&credential), "凭证全文不得进日志");
+        assert!(!text.contains(&code), "6 位码不得进日志");
+        assert!(!text.contains(&confirmer_id), "完整节点 ID 不得进日志");
+
+        let confirmer_events = confirmer_sink.snapshot();
+        let tail = &confirmer_events[baseline_confirmer..];
+        let confirm_failed = find_event(tail, "pairing.confirm", "failed").unwrap_or_else(|| {
+            panic!(
+                "确认方拒绝必须发 pairing.confirm action=failed，实际: {}",
+                render_events(tail)
+            )
+        });
+        assert_eq!(
+            event_field(confirm_failed, "reason"),
+            Some("usedOrReplaced"),
+            "确认方拒绝日志应带稳定原因码，实际: {confirm_failed:?}"
+        );
+        let text = render_events(tail);
+        assert!(!text.contains(&parsed.nonce), "nonce 不得进确认方日志");
+        assert!(!text.contains(&credential), "凭证全文不得进确认方日志");
+        assert!(!text.contains(&code), "6 位码不得进确认方日志");
+        assert!(
+            !text.contains(&initiator.device_id()),
+            "完整节点 ID 不得进确认方日志"
         );
     });
 }
