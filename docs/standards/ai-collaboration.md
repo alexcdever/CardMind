@@ -42,7 +42,7 @@
 执行顺序：
 
 1. 判断目标、范围、验收标准是否已足以支撑实现；若关键边界不清，先澄清
-2. 必要时补充 `docs/plans/`
+2. 必要时在任务 worktree 的 `.pipeline/` 下记录设计与验收口径
 3. 实现
 4. 自查或请求代码审查
 5. 运行与影响范围匹配的验证
@@ -59,10 +59,16 @@
 
 1. 澄清并确认目标、范围、验收标准
 2. 先按 `docs/standards/spec-lifecycle.md` 判断是否发生正式行为变更；仅在发生时更新 `docs/adr/` 或 `docs/product.md`
-3. 编写并确认 `docs/plans/`
+3. 必要时在任务 worktree 的 `.pipeline/` 下记录设计与验收口径
 4. 实现
 5. 审查
 6. 执行完整质量门禁
+
+## 任务记录的存放
+
+- 一次性任务的记录（进度、验证证据、交接说明）放在该任务 worktree 的 `.pipeline/` 下，随 worktree 生灭、不进 Git
+- 长期有效的决策写进 `docs/adr/`；正式行为以 `docs/adr/` 与 `docs/product.md` 为准
+- 仓库内不保留一次性任务的历史计划档案
 
 ## Agent 授权边界
 
@@ -107,8 +113,7 @@
 
 1. 用户明确要求
 2. 已确认的正式行为文档（`docs/adr/`、`docs/product.md`）
-3. 当前任务的 `docs/plans/`
-4. `docs/standards/`
-5. 仓库中的既有实现模式
+3. `docs/standards/`
+4. 仓库中的既有实现模式
 
 如果以上内容之间存在冲突且无法自行消解，应停止并请求确认。
