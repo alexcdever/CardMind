@@ -6,7 +6,9 @@
 
 ## 一句话
 
-一个跨平台（Windows 为主平台，Android / Linux / macOS 保留；仓库不提供 iOS 平台目录）的分布式个人知识库。以 Markdown 笔记为基础，通过双向链接将孤立的笔记编织成知识网络。
+一个跨平台的分布式个人知识库，目标平台为移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。以 Markdown 笔记为基础，通过双向链接将孤立的笔记编织成知识网络。
+
+> 目标是产品平台范围；仓库现状是平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`，iOS 工程目录尚未建立（见 `AGENTS.md`「当前状态」）。
 
 ---
 
