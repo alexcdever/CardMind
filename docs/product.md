@@ -57,7 +57,7 @@
 |------|------|
 | 编辑器 | appflowy_editor（WYSIWYG，原生 Markdown 支持） |
 | 本地存储 | Rust 端 Loro CRDT + SQLite 读投影 |
-| 多设备同步 | iroh P2P（跨网段 relay 打洞）+ mDNS 设备发现，自动后台同步 |
+| 多设备同步 | iroh P2P（默认 `RelayMode::Disabled`，仅局域网直连；配置自定义 relay URL 后走 `RelayMode::Custom`）+ mDNS 设备发现，自动后台同步 |
 | 跨平台框架 | Flutter + Rust (flutter_rust_bridge) |
 | 链接系统 | 正文解析 `[[...]]` → SQLite links 表，反链查询 |
 | 全文搜索 | SQLite FTS5 |
