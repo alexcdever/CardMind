@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import '../tool/lint/markdown_references_linter.dart';
+
 /// 文档验收测试：把本次「docs 收尾」任务的验收标准固定成可执行的检查。
 ///
 /// 只读取仓库文件与 git 元数据，不触碰产品代码；每个 test 对应一条验收标准
@@ -374,4 +376,23 @@ void main() {
       reason: '开头声明的日期 $latest 早于该文件内容最近一次真实修改 $modified（日期必须一起改对）',
     );
   });
+
+  test(
+    // 直接调用 tool 里的检查实现（`dart run` 在 flutter test 子进程里找不到 dart 可执行文件）。
+    '验收 7：markdown 引用检查通过（tool/lint/markdown_references_linter.dart）',
+    () async {
+      final messages = <String>[];
+      final exit = await runMarkdownReferencesLint(
+        projectRoot: _repoRoot,
+        log: messages.add,
+      );
+      expect(exit, 0, reason: '仓库自有文档不得引用不存在的对象：\n${messages.join('\n')}');
+      expect(
+        messages,
+        contains('All references are valid!'),
+        reason: '检查器通过时会打印 All references are valid!：\n${messages.join('\n')}',
+      );
+    },
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 }
