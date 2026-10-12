@@ -1097,6 +1097,11 @@ fn used_credential_is_classified_as_used_or_replaced() {
             Some("usedOrReplaced"),
             "确认方拒绝日志应带稳定原因码，实际: {confirm_failed:?}"
         );
+        assert_eq!(
+            event_field(confirm_failed, "reject_frame"),
+            Some("sent"),
+            "确认方必须确实把拒绝帧写出（reject_frame=sent），实际: {confirm_failed:?}"
+        );
         let text = render_events(tail);
         assert!(!text.contains(&parsed.nonce), "nonce 不得进确认方日志");
         assert!(!text.contains(&credential), "凭证全文不得进确认方日志");
@@ -1178,6 +1183,212 @@ fn replaced_credential_is_classified_as_used_or_replaced() {
             confirmer.current_pairing_session().map(|s| s.code),
             Some(second.code.clone()),
             "拒绝旧凭证不得清掉新会话"
+        );
+    });
+}
+
+// ━━━ 守护：不得把「连不上」误报成「已使用」，解析期分类不回归 ━━━
+
+/// 构造「签名有效」的 v2 凭证（测试用；不经过 SyncService 会话）。
+///
+/// [sk] 同时作为凭证载荷里的 node id 与签名密钥：凭证解析通过后，连接目标身份
+/// 与凭证声明一致（用于模拟无监听地址与「旧对端」）。
+fn credential_signed_by(sk: &SecretKey, ips: &[String]) -> String {
+    let node_id = *sk.public().as_bytes();
+    let now = chrono::Utc::now().timestamp() as u64;
+    let nonce: [u8; 16] = [9u8; 16];
+    let raw = encode_credential_v2(sk, now, now + 600, &nonce, &node_id, 424242, ips).unwrap();
+    credential_to_string(&raw)
+}
+
+/// 验收 3：目标地址**无监听**（连接被拒）→ 仍归 `unreachable`（「无法连接到对方设备」），
+/// **不得**误报成「已使用或已被替代」。
+#[test]
+fn unreachable_target_with_closed_port_stays_unreachable() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        // 关闭端口：loopback 上无监听（与 connect_test 的假设备同款「快速失败」地址）
+        let signer = SecretKey::generate();
+        let credential = credential_signed_by(&signer, &["127.0.0.1:1".to_string()]);
+        let initiator = SyncService::new().await.unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+
+        let started = std::time::Instant::now();
+        let err = tokio::time::timeout(
+            Duration::from_secs(90),
+            initiator.begin_pairing_connect_with_credential(&store, &credential),
+        )
+        .await
+        .expect("连不上路径不得挂住")
+        .expect_err("无监听地址不得配对成功");
+        let elapsed = started.elapsed();
+
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::Unreachable,
+            "连不上必须归 unreachable（不得误报已使用）；实际 kind={:?} message={}",
+            err.kind,
+            err.message
+        );
+        // 基线（本机实测）：iroh 对「无监听 UDP 端口」的 QUIC 握手超时 ≈ 30.0s，
+        // 这不是本次改动引入的等待；这里用 60s 上界防止后续再叠加固定等待。
+        assert!(
+            elapsed < Duration::from_secs(60),
+            "连不上不得叠加额外等待（基线 ~30s），实际 {elapsed:?}"
+        );
+    });
+}
+
+/// 验收 4：**旧对端不发送拒绝帧**（读到流结束 / 无帧）→ 仍归 `unreachable`，
+/// 且不得为此新增固定等待时间。
+///
+/// 用原始 iroh 端点模拟旧对端：收下配对请求帧后开一条**空响应流**并 finish
+/// （不回任何帧），保持连接直到发起方读完关闭——正是「旧实现」的线行为。
+#[test]
+fn legacy_peer_without_rejection_frame_stays_unreachable() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        const ALPN: &[u8] = b"cardmind-v2";
+        let peer_key = SecretKey::generate();
+        let peer = iroh::Endpoint::builder(iroh::endpoint::presets::Minimal)
+            .secret_key(peer_key.clone())
+            .alpns(vec![ALPN.to_vec()])
+            .relay_mode(iroh::RelayMode::Disabled)
+            .bind()
+            .await
+            .expect("旧对端 bind");
+        let ips: Vec<String> = peer
+            .addr()
+            .ip_addrs()
+            .filter(|a| a.is_ipv4())
+            .map(|a| a.to_string())
+            .collect();
+        assert!(!ips.is_empty(), "前提：原始端点需至少一个 IPv4 地址");
+
+        let peer_task = tokio::spawn(async move {
+            let incoming = peer.accept().await.expect("旧对端 accept");
+            let conn = incoming
+                .accept()
+                .expect("旧对端 accept conn")
+                .await
+                .expect("旧对端连接建立");
+            let mut recv = conn.accept_uni().await.expect("旧对端 accept uni");
+            let _ = recv.read_to_end(1024 * 1024).await.expect("旧对端读请求");
+            // 旧行为：不回任何帧，只开一条空流并结束
+            let mut send = conn.open_uni().await.expect("旧对端 open uni");
+            send.finish().expect("旧对端 finish");
+            let _ = tokio::time::timeout(Duration::from_secs(10), conn.closed()).await;
+        });
+
+        let credential = credential_signed_by(&peer_key, &ips);
+        let initiator = SyncService::new().await.unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+
+        let started = std::time::Instant::now();
+        let err = tokio::time::timeout(
+            Duration::from_secs(20),
+            initiator.begin_pairing_connect_with_credential(&store, &credential),
+        )
+        .await
+        .expect("无帧路径不得挂住")
+        .expect_err("旧对端不回帧时不得配对成功");
+        let elapsed = started.elapsed();
+
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::Unreachable,
+            "无帧（流结束）必须仍归 unreachable；实际 kind={:?} message={}",
+            err.kind,
+            err.message
+        );
+        assert!(
+            elapsed < Duration::from_secs(5),
+            "无帧路径不得引入固定等待，实际 {elapsed:?}"
+        );
+        peer_task.await.unwrap();
+    });
+}
+
+/// 验收 5：解析期分类不回归——格式错 / 签名错 / 已过期三类仍各自归类，
+/// 不被握手期新增的「已使用/已被替代」吸收。
+#[test]
+fn credential_parse_classification_does_not_regress() {
+    use std::time::Duration;
+
+    rt().block_on(async {
+        let initiator = SyncService::new().await.unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+        let started = std::time::Instant::now();
+
+        // 格式错：前缀对但载荷无效
+        let err = initiator
+            .begin_pairing_connect_with_credential(&store, "cm1.not-a-credential")
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::InvalidFormat,
+            "格式错应归 invalidFormat，实际 {:?} / {}",
+            err.kind,
+            err.message
+        );
+
+        // 签名错：载荷 node id 与签名私钥不一致
+        let signer = SecretKey::generate();
+        let claimed = SecretKey::generate();
+        let now = chrono::Utc::now().timestamp() as u64;
+        let raw = encode_credential_v2(
+            &signer,
+            now,
+            now + 600,
+            &[5u8; 16],
+            claimed.public().as_bytes(),
+            111111,
+            &[],
+        )
+        .unwrap();
+        let err = initiator
+            .begin_pairing_connect_with_credential(&store, &credential_to_string(&raw))
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::InvalidSignature,
+            "签名错应归 invalidSignature，实际 {:?} / {}",
+            err.kind,
+            err.message
+        );
+
+        // 已过期：签发在过去、过期时间已越过
+        let signer = SecretKey::generate();
+        let past = now - 700;
+        let raw = encode_credential_v2(
+            &signer,
+            past,
+            past + 600,
+            &[6u8; 16],
+            signer.public().as_bytes(),
+            222222,
+            &[],
+        )
+        .unwrap();
+        let err = initiator
+            .begin_pairing_connect_with_credential(&store, &credential_to_string(&raw))
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.kind,
+            PairingCredentialErrorKind::Expired,
+            "过期应归 expired，实际 {:?} / {}",
+            err.kind,
+            err.message
+        );
+
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "解析期失败必须先于任何连接尝试（无等待）"
         );
     });
 }
