@@ -76,12 +76,12 @@ cd rust-backend && cargo build --release   # 发布构建
 dart run tool/build.dart lib          # 构建 Rust dylib 到运行态路径
 dart run tool/quality.dart all        # 全量质量检查
 
-# 网络测试（防火墙已关，直接用 cargo test 即可）
+# 网络测试（直接用 cargo test 即可，不要求关闭防火墙）
 cd rust-backend && cargo test --test sync_test  # 同步测试
 ```
 
 > `flutter pub get` 需要设置 `PUB_HOSTED_URL=https://pub.flutter-io.cn`（国内镜像）。
-> Rust 命令需将 `/Users/alexc/.cargo/bin` 加入 PATH，Hermes terminal 不会加载 `.zshrc`。
+> Rust 命令需让 `cargo` 在 PATH 上（macOS/Linux 为 `~/.cargo/bin`，Windows 为 `%USERPROFILE%\.cargo\bin`）；Hermes terminal 不会加载 `.zshrc`。
 
 ## 运行态动态库
 
