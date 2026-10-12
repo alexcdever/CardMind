@@ -174,7 +174,7 @@ begin_pairing_connect_with_credential(credential: String) -> Result<PairingResul
 - `lib/bridge/frb_note_repository.dart`
 - `lib/bridge/bridge_helper.dart`
 - `lib/pages/devices_page.dart`
-- 可新增配对凭证/扫码 UI小组件到 `lib/widgets/` 或现有合理目录
+- 可新增配对凭证/扫码 UI 组件到 `lib/pages/`、`lib/ui/design_system/` 或现有合理目录
 - `pubspec.yaml`、`pubspec.lock`
 - Android CAMERA 权限文件
 - 本任务测试文件
