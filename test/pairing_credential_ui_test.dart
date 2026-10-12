@@ -977,6 +977,32 @@ void main() {
     expect(outer.left, greaterThanOrEqualTo(0.0));
     expect(outer.right, lessThanOrEqualTo(320.0), reason: '二维码块不得超出 320 宽的屏幕');
 
+    // 牙齿：弹窗内容是 SingleChildScrollView，纵向**不会**抛 overflow——内容变高只会把
+    // 控件推到可视区外（按钮点不到、二维码被裁）。所以这里量真实位置：二维码块与
+    // 「复制配对信息」必须完整落在内容可视区内。
+    // 不对「重新生成」断言：它在 320 宽下本来就换行排到可视区外（需要滚动），
+    // 这是改动前就有的行为。
+    final viewport = tester.getRect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(SingleChildScrollView),
+      ),
+    );
+    expect(
+      outer.bottom,
+      lessThanOrEqualTo(viewport.bottom),
+      reason: '二维码块被挤出内容可视区：底边 ${outer.bottom} > 视口底边 ${viewport.bottom}',
+    );
+    final copyButton = tester.getRect(
+      find.byKey(const ValueKey('pair-copy-button')),
+    );
+    expect(
+      copyButton.bottom,
+      lessThanOrEqualTo(viewport.bottom),
+      reason:
+          '「复制配对信息」被挤出内容可视区：底边 ${copyButton.bottom} > 视口底边 ${viewport.bottom}',
+    );
+
     await tester.tap(find.byKey(const ValueKey('pair-dialog-close')));
     await tester.pumpAndSettle();
   });
