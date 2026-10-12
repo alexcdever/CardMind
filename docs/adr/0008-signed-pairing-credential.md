@@ -154,8 +154,12 @@
     开头的凭证走凭证入口（记 `pairing.discovery action=bypassed`），纯 6 位数字走 mDNS；
     Android 扫码（`ScannerService` / `mobile_scanner`）的结果回填同一输入框并调用同一提交
     逻辑，不存在第二套解析逻辑；扫码按钮只在 Android 显示——判据是 `ScannerService` 的
-    `isSupported`，Android 实现返回 `Platform.isAndroid`，其余平台走桌面桩恒为 false，
-    即桌面端（Linux / Windows / macOS）与 iOS 都不显示扫码按钮；复制 / 粘贴始终可用。
+    `isSupported`。条件导入只区分 IO / 非 IO（`lib/scanner/scanner_interface.dart` 按
+    `dart.library.js_interop` 选择实现）：iOS 与桌面端和 Android 一样编入
+    `lib/scanner/scanner_android_io.dart`，其 `isSupported` 返回 `Platform.isAndroid`，
+    在这两类平台上为 false；`lib/scanner/scanner_stub.dart`（`isSupported` 恒 false）
+    只服务 Web / js_interop。即桌面端（Linux / Windows / macOS）与 iOS 都不显示扫码按钮，
+    复制 / 粘贴始终可用。
 
 ### 8. 日志与隐私
 
