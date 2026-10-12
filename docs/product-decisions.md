@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-10-12：平台范围重新拍定为「移动端 + 桌面端」
+
+**决策内容：** 产品目标平台范围定为：移动端 = Android + iOS（设备形态含手机、平板）；桌面端 = Linux + Windows + macOS（设备形态含台式机、笔记本）。此前「以桌面端为中心、Windows 优先」的范围表述作废。
+
+**理由：**
+- 目标用户本身就是手机与电脑混用：移动端不止 Android，桌面端不止 Windows
+- 早期把范围收窄到「Android + Windows」是为了压低验证成本（见下方 2026-06-16 决策 1、决策 4），Loro + iroh 同步链路可用后这个前提不再成立
+- iOS 是移动端目标平台之一，不因仓库暂缺 iOS 工程目录而改变范围
+
+**仓库现状（与目标范围分开表述）：** 平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`，iOS 工程目录尚未建立；`tool/build.dart` 的 `--platform` 支持 `android`、`macos`、`linux`、`windows`，未封装 iOS 目标。
+
+**后续影响：** 同步更新 `docs/product.md`、`AGENTS.md`、`README.md`、`docs/standards/tech-stack-baseline.md` 的平台表述；`test/docs_acceptance_test.dart` 验收 5 的平台范围断言按新范围改写。
+
+---
+
 ## 2026-06-16：产品方向收敛与验证策略确定
 
 ### 决策 1：目标用户收窄

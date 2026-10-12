@@ -35,10 +35,14 @@
 
 ### 2.5 平台支持
 
-- 产品交付形态为移动端与桌面端双端：移动端（`android`）与桌面端（`macos`、`linux`、`windows`）。
-- 仓库不提供 iOS 平台目录，iOS 不在支持范围内。
-- `tool/build.dart app` 当前封装的是桌面可执行平台构建链路（`macos`、`linux`、`windows`）。
-- 移动端构建与运行采用 Flutter 原生命令链路。
+- 产品目标平台：移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。
+- 仓库现状：平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`；iOS 属目标平台，工程目录尚未建立（见 `AGENTS.md` 当前状态）。
+- 构建链路入口为 `tool/build.dart`，以下子命令按代码实测描述：
+  - `dart run tool/build.dart app [--platform <android|macos|linux|windows>] [--android-format <apk|appbundle|split-apk>]`：先构建 Rust 库（`android` 分支用 `cargo ndk` 输出 armeabi-v7a / arm64-v8a / x86_64 三套 `.so`，其余分支用 `cargo build --release`），再执行 `flutter_rust_bridge_codegen generate`，最后执行 `flutter build <platform>`（Android 分支按 `--android-format` 展开为 `build apk`、`build appbundle` 或 `build apk --split-per-abi`）。
+  - `dart run tool/build.dart lib [--target <target-triple>]`：执行 `cargo build --release`，并把编译产物同步到运行态动态库路径。
+  - `dart run tool/build.dart run [--app-copy-name <name.app>] [--app-bundle-id <id>]`：仅 macOS，依次执行 lib → `flutter build macos --debug` → 拷贝动态库进 app bundle → 启动应用。
+- `--platform` 只接受 `android`、`macos`、`linux`、`windows`；省略时解析为当前主机可执行平台（`macos`/`linux`/`windows`），iOS 主机没有默认可执行目标。
+- iOS 与移动端构建运行沿用 Flutter 原生命令链路（如 `flutter build ios`、`flutter build apk`）；`tool/build.dart` 当前未封装 iOS 目标。
 - `tool/build.dart` 的默认平台解析逻辑应保持与主机可执行平台一致。
 
 ## 3. 核心三方依赖

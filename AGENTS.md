@@ -23,7 +23,7 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 ```
 
 - **读写分离**：所有写入通过 Rust → LoroDoc，投影到 SQLite 供查询
-- **单用户桌面优先**：Windows 为主平台，笔记编辑+列表双栏布局
+- **单用户跨端**：目标平台为移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；笔记编辑+列表采用双栏布局
 
 ## 项目结构
 
@@ -135,7 +135,7 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 | v2 结构重组 | ✅ 源码在仓库根目录，v1 冻结代码已删除 |
 | Rust 后端 | Loro + iroh + mDNS + SQLite + FRB API |
 | Flutter 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置 |
-| 平台 | Windows 为主，Android/Linux 保留；仓库不提供 iOS 平台目录 |
+| 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；仓库现状：平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`，iOS 工程目录尚未建立 |
 
 ## 文档地图
 
