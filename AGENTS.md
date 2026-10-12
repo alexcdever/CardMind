@@ -6,12 +6,12 @@
 
 | 层 | 技术 | 版本 |
 |---|------|------|
-| 前端 | Flutter | 3.44.9 (Dart 3.12.2) |
-| 核心逻辑 | Rust | 1.95.0 |
-| CRDT 存储 | Loro | 1.13.6 |
-| 网络层 | iroh | 1.0.2 (直连模式，默认禁用 relay) |
-| 查询层 | SQLite (Rust 端 rusqlite) | — |
-| 跨语言桥 | flutter_rust_bridge | 2.12.0 |
+| 前端 | Flutter | 3.44.9（CI pin；Dart SDK 约束 `^3.12.2` 见 `pubspec.yaml`） |
+| 核心逻辑 | Rust | Edition 2021（`rust-backend/Cargo.toml`）；CI 用 stable，仓库未固定 toolchain |
+| CRDT 存储 | Loro | 1.13.6（`rust-backend/Cargo.lock`） |
+| 网络层 | iroh | 1.0.2（`rust-backend/Cargo.lock`；直连模式，默认禁用 relay） |
+| 查询层 | SQLite (Rust 端 rusqlite) | 0.31.0（`rust-backend/Cargo.lock`，bundled） |
+| 跨语言桥 | flutter_rust_bridge | 2.12.0（`pubspec.yaml` / `rust-backend/Cargo.toml`） |
 
 ## 架构
 
