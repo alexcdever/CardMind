@@ -16,27 +16,29 @@
   - `ValueKey(...)`：提供 Flutter 原生测试定位点
   - 面向用户的 `Semantics(label: ...)`：提供无障碍可读文本
 
-- 推荐形态：
+- 推荐形态（与 `lib/pages/editor_page.dart` 现有实现一致）：
 
 ```dart
 Semantics(
-  identifier: SemanticIds.poolCreateButton,
-  label: '创建池',
-  button: true,
-  child: ElevatedButton(
-    key: const ValueKey('pool.create_button'),
-    onPressed: () {},
-    child: const Text('创建池'),
+  identifier: 'note-editor',
+  label: '笔记编辑器',
+  textField: true,
+  child: AppFlowyEditor(
+    key: const ValueKey('note-editor'),
   ),
 )
 ```
 
 ## 命名规则
 
-- `identifier` 与 `ValueKey` 必须使用同一份稳定 machine id。
-- machine id 建议使用点分路径，例如 `cards.create_fab`、`pool.edit_dialog.save`、`nav.settings`。
+- machine id 使用 kebab-case 字符串，例如 `note-editor`、`note-search-field`。
+- 动态生成的 id 用插值表达，例如 `note-${note.id}`、`action-${tooltip.replaceAll(' ', '-')}`。
+- 同一控件上 `identifier` 与 `ValueKey` 应使用同一份稳定 id；若两者的语义确有差别（例如
+  `identifier: 'note-search-field'` 对应 `ValueKey('note-search-input')`），必须在控件所在文件内保持一致。
 - `label` 必须保持用户可读，不得直接替换成 machine id。
-- 共享 machine id 应集中声明在常量文件中，例如 `lib/bridge/semantic_ids.dart`。
+- machine id 目前内联声明在控件所在文件（如 `lib/pages/editor_page.dart`、
+  `lib/pages/note_list_page.dart`、`lib/ui/design_system/cardmind_widgets.dart`），
+  仓库中不存在共享常量文件；若未来引入共享常量文件，必须在本节登记其路径。
 
 ## 覆盖规则
 
@@ -57,6 +59,7 @@ Semantics(
 
 ## 平台说明
 
-- `Semantics.identifier` 是后续平台自动化桥接的首选机器可读通道。
+- `Semantics.identifier` 是平台自动化桥接的首选机器可读通道；当前只在少数关键控件上落地，
+  多数控件只提供 `label`、`liveRegion` 或 `button` 等语义，新增关键流程时应补 `identifier`。
 - `ValueKey` 仍然是 Flutter widget 测试中的主要稳定选择器。
 - 桌面系统自动化目前可能仍只能暴露部分无障碍树，但这不构成省略 `identifier`、`key` 与 `label` 的理由。
