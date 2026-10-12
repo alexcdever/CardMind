@@ -159,6 +159,14 @@
     `pairing.discovery action=bypassed mdns_skipped=true`（不记凭证本身）；连接记
     `pairing.connect action=start|success|failed transport=credential|direct|relay_or_dns`。
 
+### 9. 依赖与权限
+
+28. **二维码与扫码都用成熟包，不手写编码器 / 识别器**：显示方用 `qr_flutter` 绘制二维码
+    （`QrPainter`）；Android 扫码用 `mobile_scanner`，经 `ScannerService` 条件导入隔离，
+    桌面构建不链接该插件。Android 只申请扫码所需的最小 CAMERA 权限
+    （`android/app/src/main/AndroidManifest.xml`），并按平台惯例在首次扫码时请求；
+    **不引入联网分析、云扫码、遥测或其它第三方服务**，扫码文本只在本地解析。
+
 ## 拒绝的方案
 
 ### 兼容空 nonce / 全零 nonce 的「旧版本后门」
