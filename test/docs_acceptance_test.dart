@@ -287,4 +287,59 @@ void main() {
       );
     }
   });
+
+  test('验收 5：product.md 的平台范围与 AGENTS.md 现状表一致，更新日期为本次修改', () {
+    final product = _read('docs/product.md');
+    final agents = _read('AGENTS.md');
+    // 「开头的平台范围陈述」：只取文件头部区域，避免正文里的无关提及。
+    final header = product.split('\n').take(12).join('\n');
+
+    // 现状表锚点（AGENTS.md 「当前状态」表）：Windows 为主，Android/Linux 保留，无 iOS。
+    expect(
+      agents,
+      contains('Windows 为主'),
+      reason: 'AGENTS.md 现状表仍以 Windows 为主平台',
+    );
+    expect(
+      agents,
+      contains('Android/Linux 保留'),
+      reason: 'AGENTS.md 现状表保留 Android/Linux',
+    );
+
+    expect(
+      header,
+      contains('Windows'),
+      reason: 'product.md 开头的平台范围必须提到 Windows',
+    );
+    expect(
+      RegExp(r'Windows[^\n]{0,6}为主').hasMatch(header),
+      isTrue,
+      reason: 'product.md 必须把 Windows 写成主平台（与 AGENTS.md 现状表一致）',
+    );
+    expect(header, contains('Android'), reason: '保留 Android');
+    expect(header, contains('Linux'), reason: '保留 Linux');
+
+    // 仓库不提供 iOS 平台目录：出现 iOS 时只能是否定表述「不提供 iOS…」。
+    final pieces = header.split('iOS');
+    for (var i = 1; i < pieces.length; i++) {
+      expect(
+        pieces[i - 1].trimRight().endsWith('不提供'),
+        isTrue,
+        reason: '除「不提供 iOS 平台目录」外，product.md 不得声称支持 iOS',
+      );
+    }
+
+    final declared = RegExp(r'上次更新：(\d{4}-\d{2}-\d{2})').firstMatch(product);
+    expect(declared, isNotNull, reason: 'product.md 开头必须有「上次更新：YYYY-MM-DD」');
+    final modified =
+        (_git(['log', '-1', '--format=%cs', '--', 'docs/product.md']).stdout
+                as String)
+            .trim();
+    expect(modified, isNotEmpty, reason: 'git 必须能给出 product.md 的最近修改日期');
+    expect(
+      declared!.group(1)!.compareTo(modified) >= 0,
+      isTrue,
+      reason: '「上次更新」${declared.group(1)} 早于文件最近一次真实修改 $modified',
+    );
+  });
 }
