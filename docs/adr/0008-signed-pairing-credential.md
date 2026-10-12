@@ -124,7 +124,10 @@
     「解析 → 验签 → 构造 `PairingTarget`」（`pairing_target_for_credential`），目标地址直接
     取 v2 凭证内嵌的 `ips`；`ips` 为空（v1 或本机无 IPv4）时沿用 `build_connect_addr`：
     优先直连地址，否则用**发起端自己的**可选 relay 配置。**凭证路径不得调用 mDNS**，
-    也不得再出现节点 ID 手工输入。
+    也不得再出现节点 ID 手工输入。**解析结果就是握手输入**：`parse_pairing_credential` 返回的
+    `ParsedPairingCredential` 含 6 位码、节点 ID（base32 文本，供展示与日志脱敏）、RFC3339
+    过期时间、hex `nonce` 与凭证内嵌的 `ips`；`nonce` 只用于 FRB→握手传递，不在 UI 展示、
+    不进日志。
 21. **6 位码 + mDNS 路径（同网段兼容路径）保留**：发起方只输入 6 位数字时，
     `discover_peers` 找同网段设备，把唯一结果的 `deviceId`、`ip:port` 与 **mDNS TXT 里的
     nonce** 一起填进 `PairingTarget`，再调 `begin_pairing_connect`。无结果 / 多结果都给
