@@ -8,8 +8,8 @@
 |---|------|
 | 前端 | Flutter 3.44 (Dart 3.12) |
 | 核心逻辑 | Rust (cardmind-backend) |
-| CRDT 存储 | Loro |
-| 网络层 | iroh (直连模式) + mDNS |
+| CRDT 存储 | Loro 1.13 |
+| 网络层 | iroh 1.0 (直连模式，默认禁用 relay) + mDNS |
 | 查询层 | SQLite (Rust 端 rusqlite) |
 | 跨语言桥 | flutter_rust_bridge 2.12 |
 
@@ -28,25 +28,32 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 ## 项目结构
 
 ```
-lib/            Flutter UI (v2)
-  bridge/       Rust FFI 桥接辅助
-  models/       Dart 领域模型
-  pages/        页面
-  src/rust/     FRB 自动生成代码
-rust-backend/   Rust 核心
-  src/          api, store, sync, discovery
-  tests/        集成测试
-test/           Flutter 测试
-docs/           文档
-tool/           工具脚本
+lib/              Flutter UI (v2)
+  bridge/         Rust FFI 桥接辅助
+  models/         Dart 领域模型
+  pages/          页面
+  scanner/        扫码桥接（Android 实现 + 桩）
+  services/       应用级服务（设置、更新）
+  ui/             设计系统组件
+  src/rust/       FRB 自动生成代码
+rust-backend/     Rust 核心
+  src/            api, store, sync, discovery, debug_log
+  tests/          集成测试
+test/             Flutter 测试
+integration_test/ 平台集成测试
+docs/             文档（见「文档地图」）
+tool/             工具脚本
+sync-verify/      同步验证代码
 ```
 
 ## 文档架构
 
 - `AGENTS.md`：仓库入口文档，定义读取顺序、命令与执行入口规则
-- `docs/product.md`：产品定位
-- `docs/plans/`：历史设计计划（仅供追溯）
+- `docs/product.md`：产品定义
+- `docs/adr/`：架构决策记录（长期决策的真相源）
 - `docs/standards/`：工程规范
+- `docs/research/`：仍服务于技术决策的研究资料
+- `docs/testing/`：集成测试说明
 
 ## 常用命令
 
@@ -67,5 +74,9 @@ cd rust-backend && cargo build --release # 发布构建
 - `docs/product.md` — 产品定义
 - `docs/personas.md` — 目标用户画像
 - `docs/product-decisions.md` — 产品决策日志
-- `docs/progress.md` — 工作进度
+- `docs/sync-network.md` — 同步网络设计
+- `docs/goal.md` — 当前任务的正式行为与验收标准（设备连接可用性检查）
+- `docs/adr/` — 架构决策记录
+- `docs/research/` — 研究资料
+- `docs/testing/` — 集成测试说明
 - `docs/standards/` — 工程规范（AI 协作、TDD、测试、Git/PR、编码风格、UI 风格等）
