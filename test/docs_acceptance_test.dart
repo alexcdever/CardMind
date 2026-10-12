@@ -94,4 +94,37 @@ void main() {
       }
     });
   });
+
+  test('验收 1（续）：ADR 0008 提到的每个代码符号都真实存在', () {
+    final adr = _read(_adr0008Path());
+
+    // 反引号里的裸标识符（可带 `()`）视为「ADR 提到的代码符号」；
+    // 带 `/` 的路径引用由 markdown 引用检查负责，不在此列。
+    final identifiers = RegExp(
+      r'`([A-Za-z_][A-Za-z0-9_]*)(?:\(\))?`',
+    ).allMatches(adr).map((match) => match.group(1)!).toSet();
+    expect(
+      identifiers.length,
+      greaterThan(20),
+      reason: 'ADR 必须实实在在引用代码符号，而不是只写自然语言',
+    );
+
+    final source = ['rust-backend/src', 'lib']
+        .expand(
+          (dir) => Directory(dir).listSync(recursive: true).whereType<File>(),
+        )
+        .where(
+          (file) => file.path.endsWith('.rs') || file.path.endsWith('.dart'),
+        )
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+
+    final missing = identifiers.where((id) => !source.contains(id)).toList()
+      ..sort();
+    expect(
+      missing,
+      isEmpty,
+      reason: 'ADR 0008 提到的符号在 rust-backend/src 或 lib/ 里找不到（写了没实现的东西）：$missing',
+    );
+  });
 }
