@@ -25,7 +25,7 @@
 
 1. **Widget 层**：`test/*_test.dart` 纯 Dart/widget 测试，`flutter test` 运行。
 2. **真实 FRB 层**：`test/api_integration_test.dart`、`test/frb_note_repository_test.dart`、`test/receiver_store_borrow_test.dart` 等真实调用 Rust 后端的测试；需要先构建/准备运行态 Rust DLL（`dart run tool/build.dart lib`；pre-push/full 门禁内部使用 gate 跨平台 build-lib：`cargo build --release` + 运行态同步，此处的 tool/build.dart 仅作交互式开发构建入口）与 `flutter_rust_bridge_codegen generate`，验证跨语言边界真实行为。
-3. **平台集成层**：`integration_test/`，Windows/Android 等真实平台运行，属于发布/验收门禁，不塞入普通 push。
+3. **平台集成层**：`integration_test/`，在移动端（Android / iOS）或桌面端（Linux / Windows / macOS）的真实设备上运行；现有 runner（`tool/feature_test.dart`）提供 Windows 与 Android 目标，属于发布/验收门禁，不塞入普通 push。
 4. **双实例 E2E 层**：两个应用实例间的真实同步/配对链路（含 relay 场景），属于发布/验收门禁，不塞入普通 push。
 
 ## 执行阶段
