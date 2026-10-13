@@ -34,7 +34,7 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 - 行内代码路径：形如 `docs/product.md`、`lib/bridge/`，相对仓库根解析（首段必须是仓库根下真实存在的条目）
 
 **检查范围**: 扫描根下全部 `.md`，排除外部导入的工具/技能包目录（`.claude/`、`.codex/`、`.github/prompts/` 等）以及
-`.worktrees/`、`.pipeline/`、`.workflow/`、`node_modules/`、`build/`、`target/` 等非源码目录。
+`.worktrees/`、`.workflow/`、`node_modules/`、`build/`、`target/` 等非源码目录。
 是否跳过按「相对扫描根」的路径段判断，因此在 worktree 内运行时检查的是 worktree 自己的文档，
 在主工作树运行时不会递归进 `.worktrees/` 下的其它 checkout。
 
