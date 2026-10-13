@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'src/git_gate/host_build.dart';
+
 typedef Runner =
     Future<ProcessResult> Function(
       String executable,
@@ -95,6 +97,7 @@ Future<int> runBuildCli(
       log: log,
       logError: logError,
       rootDir: rootDir,
+      platformOverride: platformOverride,
     );
   }
   if (args.first == 'app') {
@@ -191,6 +194,7 @@ Future<int> _runApp(
           log: log,
           logError: logError,
           rootDir: rootDir,
+          platformOverride: platformOverride,
         );
   if (libExit != 0) {
     return libExit;
@@ -272,18 +276,36 @@ List<String> _resolveAndroidFlutterBuildArgs(List<String> args) {
 bool _pathExists(String path) => File(path).existsSync();
 
 /// 构建Rust库
+///
+/// 平台规格（cargo 产物名 + 运行态目标路径）来自 host_build.dart 的
+/// `hostRuntimeSpec`，与 gate 的 build-lib 共用同一真相源；平台默认取当前 host，
+/// 测试可通过 `platformOverride` 注入。
 Future<int> _runLib(
   List<String> args, {
   required Runner runProcess,
   required void Function(String) log,
   required void Function(String) logError,
   required String rootDir,
+  HostPlatform? platformOverride,
 }) async {
   final target = _readOption(args, '--target');
   final cargoArgs = <String>['build', '--release'];
   if (target != null) {
     cargoArgs.addAll(['--target', target]);
   }
+
+  final HostBuildPlatform host;
+  try {
+    host = _hostBuildPlatformFor(
+      platformOverride ?? HostPlatformDetect.detect(),
+    );
+  } on FormatException catch (e) {
+    logError(e.message);
+    return 1;
+  }
+
+  final paths = _resolveLibPaths(rootDir, host: host, target: target);
+
   final result = await runProcess(
     'cargo',
     cargoArgs,
@@ -294,22 +316,21 @@ Future<int> _runLib(
     return result.exitCode;
   }
 
-  final runtimeDylib = _runtimeDylibPath(rootDir);
-  final runtimeFile = File(runtimeDylib);
-  if (runtimeFile.existsSync()) {
-    runtimeFile.deleteSync();
-  }
-
-  final sourceDylib = _cargoDylibPath(rootDir, target: target);
-  final sourceFile = File(sourceDylib);
+  final sourceFile = File(paths.cargoSource);
   if (!sourceFile.existsSync()) {
-    logError('Runtime dylib sync failed: source not found at $sourceDylib');
+    logError(
+      'Runtime dylib sync failed: source not found at ${paths.cargoSource}',
+    );
     return 1;
   }
 
+  final runtimeFile = File(paths.runtimeDest);
   try {
     runtimeFile.parent.createSync(recursive: true);
-    sourceFile.copySync(runtimeDylib);
+    if (runtimeFile.existsSync()) {
+      runtimeFile.deleteSync();
+    }
+    sourceFile.copySync(paths.runtimeDest);
   } on FileSystemException catch (e) {
     if (runtimeFile.existsSync()) {
       runtimeFile.deleteSync();
@@ -325,16 +346,85 @@ Future<int> _runLib(
   return 0;
 }
 
-String _cargoDylibPath(String rootDir, {String? target}) {
-  final targetDir = target == null
-      ? 'target/release'
-      : 'target/$target/release';
-  return '$rootDir/rust-backend/$targetDir/libcardmind_backend.dylib';
+/// host 运行态平台映射：lib 子命令只服务 Windows/macOS/Linux host。
+HostBuildPlatform _hostBuildPlatformFor(HostPlatform platform) {
+  switch (platform) {
+    case HostPlatform.windows:
+      return HostBuildPlatform.windows;
+    case HostPlatform.macos:
+      return HostBuildPlatform.macos;
+    case HostPlatform.linux:
+      return HostBuildPlatform.linux;
+    case HostPlatform.android:
+    case HostPlatform.ios:
+      throw const FormatException(
+        'lib command supports Windows/macOS/Linux hosts only',
+      );
+  }
 }
 
-String _runtimeDylibPath(String rootDir) {
-  return '$rootDir/build/native/macos/libcardmind_backend.dylib';
+/// lib 子命令的路径：cargo 产物 + 运行态目标（平台规格来自 host_build.dart）。
+({String cargoSource, String runtimeDest}) _resolveLibPaths(
+  String rootDir, {
+  required HostBuildPlatform host,
+  String? target,
+}) {
+  if (target == null) {
+    final spec = hostRuntimeSpec(host);
+    return (
+      cargoSource: '$rootDir/${spec.cargoSourceRel}',
+      runtimeDest: '$rootDir/${spec.runtimeDestRel}',
+    );
+  }
+
+  /// 带 `--target` 时 cargo 产物在 `rust-backend/target/<triple>/release/` 下，
+  /// 文件名与运行态目标按 triple 识别的平台取（识别不出时回退 host 平台）。
+  final spec = hostRuntimeSpec(_runtimeDestPlatformForTarget(target, host));
+  return (
+    cargoSource:
+        '$rootDir/rust-backend/target/$target/release/'
+        '${_cargoArtifactFileNameForTarget(target, host)}',
+    runtimeDest: '$rootDir/${spec.runtimeDestRel}',
+  );
 }
+
+/// 由 target triple 推断 cargo 产物文件名；识别不出时回退 host 平台规格。
+String _cargoArtifactFileNameForTarget(String target, HostBuildPlatform host) {
+  final lower = target.toLowerCase();
+  if (lower.contains('windows')) {
+    return _artifactFileName(HostBuildPlatform.windows);
+  }
+  if (lower.contains('darwin')) {
+    return _artifactFileName(HostBuildPlatform.macos);
+  }
+  if (lower.contains('android') || lower.contains('linux')) {
+    return _artifactFileName(HostBuildPlatform.linux);
+  }
+  return _artifactFileName(host);
+}
+
+/// 由 target triple 推断运行态目标平台；没有 host 运行态路径的目标（如 Android）
+/// 回退 host 平台。
+HostBuildPlatform _runtimeDestPlatformForTarget(
+  String target,
+  HostBuildPlatform host,
+) {
+  final lower = target.toLowerCase();
+  if (lower.contains('windows')) return HostBuildPlatform.windows;
+  if (lower.contains('darwin')) return HostBuildPlatform.macos;
+  if (lower.contains('linux') && !lower.contains('android')) {
+    return HostBuildPlatform.linux;
+  }
+  return host;
+}
+
+/// cargo 产物文件名取自 host_build.dart 的平台规格（一个真相源）。
+String _artifactFileName(HostBuildPlatform platform) =>
+    hostRuntimeSpec(platform).cargoSourceRel.split('/').last;
+
+/// `run` 子命令（仅 macOS）使用的运行态库路径。
+String _macosRuntimeDylibPath(String rootDir) =>
+    '$rootDir/${hostRuntimeSpec(HostBuildPlatform.macos).runtimeDestRel}';
 
 /// 读取命令行选项
 String? _readOption(List<String> args, String key) {
@@ -429,7 +519,7 @@ Future<int> _runAndOpen(
   log('[build:macos] done');
 
   /// Step 3: Copy dylib to app bundle's Frameworks directory
-  final dylibSource = File(_runtimeDylibPath(rootDir));
+  final dylibSource = File(_macosRuntimeDylibPath(rootDir));
   final baseAppBundle = Directory(
     '$rootDir/build/macos/Build/Products/Debug/cardmind.app',
   );
