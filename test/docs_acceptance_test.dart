@@ -507,4 +507,44 @@ void main() {
       reason: '括注不得再写「（plan / standard）」：plan 已不是现行文档类型',
     );
   });
+
+  test('AC3：ADR 0003 的「现状核对」不再使用旧平台口径', () {
+    final adr = _read('docs/adr/0003-product-truth-source-spec.md');
+    final section = _sectionOf(adr, '### 现状核对（2026-10）');
+
+    // 旧的收窄口径（Android / Windows / macOS 混用）只能作废，不得再作为现行平台范围。
+    expect(
+      section,
+      isNot(contains('Android / Windows / macOS')),
+      reason: '「现状核对」不得再写「Android / Windows / macOS」这一已作废的平台口径',
+    );
+
+    // 现行口径必须与 product.md / product-decisions.md 一致。
+    const mobileScope = 'Android + iOS';
+    const desktopScope = 'Linux + Windows + macOS';
+    expect(
+      section,
+      contains(mobileScope),
+      reason: '「现状核对」必须写出移动端现行范围 $mobileScope',
+    );
+    expect(
+      section,
+      contains(desktopScope),
+      reason: '「现状核对」必须写出桌面端现行范围 $desktopScope',
+    );
+
+    final productHeader = _read(
+      'docs/product.md',
+    ).split('\n').take(12).join('\n');
+    expect(
+      productHeader,
+      contains(mobileScope),
+      reason: '对照基线：product.md 开头必须写明移动端 $mobileScope',
+    );
+    expect(
+      productHeader,
+      contains(desktopScope),
+      reason: '对照基线：product.md 开头必须写明桌面端 $desktopScope',
+    );
+  });
 }
