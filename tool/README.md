@@ -22,7 +22,7 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 - `CARDMIND_FORCE_FULL_CHECK=1`：忽略 pre-push HEAD 缓存
 - `CARDMIND_GATE_TEST_MODE=1`：测试模式（fake runner，供真实 hook 集成测试）
 
-**设计要点**: format-first 先于一切检查；formatter 改变文件即阻止并提示重新暂存；每个外部进程 3 分钟硬超时；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径），不依赖 tool/build.dart。
+**设计要点**: format-first 先于一切检查；formatter 改变文件即阻止并提示重新暂存；每个外部进程 3 分钟硬超时；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径；平台规格与 `dart run tool/build.dart lib` 共用 `tool/src/git_gate/host_build.dart`），不依赖 tool/build.dart 的 CLI 入口。
 
 ## lint/markdown_references_linter.dart - 文档路径检查
 
@@ -59,12 +59,12 @@ dart run tool/build.dart <app|lib|run> [options]
 ```
 
 **子命令**:
-- `lib`：在 `rust-backend/` 执行 `cargo build --release`（可选 `--target <triple>`），把产物 `libcardmind_backend.dylib` 复制到运行态路径 `build/native/macos/`
+- `lib`：在 `rust-backend/` 执行 `cargo build --release`（可选 `--target <triple>`），把 cargo 产物同步到当前 host 的运行态路径：Windows `rust-backend/target/release/cardmind_backend.dll` → `build/windows/x64/runner/Release/`，macOS `libcardmind_backend.dylib` → `build/native/macos/`，Linux `libcardmind_backend.so` → `build/linux/x64/release/bundle/lib/`
 - `app`：构建 Rust 库 → `flutter_rust_bridge_codegen generate` → `flutter build <platform>`
 - `run`：仅 macOS；`lib` → `flutter build macos` → 复制 framework → 打开应用（`--app-copy-name`、`--app-bundle-id` 用于启动隔离副本）
 
 **app 的 `--platform` 取值**: `android`、`macos`、`linux`、`windows`；未指定时取主机可执行平台，取值非法则报错退出。
-（`lib` 只覆盖 macOS 运行态路径；Windows/Linux 的运行态库同步由门禁的 build-lib 步骤负责。）
+（`lib` 的平台规格与门禁 build-lib 共用 `tool/src/git_gate/host_build.dart`；带 `--target` 时 cargo 产物在 `rust-backend/target/<triple>/release/` 下，文件名与运行态目标按 triple 推断，推断不出时回退 host 平台。）
 
 **Android 构建**: 用 `cargo ndk` 为 `armeabi-v7a`、`arm64-v8a`、`x86_64` 产出 `libcardmind_backend.so` 到 `build/android-jni/`；
 `flutter build` 的输出格式由 `--android-format` 控制：`apk`（默认）、`appbundle`、`split-apk`。
@@ -79,7 +79,7 @@ dart run tool/quality.dart <flutter|rust|docs|all> [options]
 ```
 
 **子命令执行内容**:
-- `flutter`：markdown references lint → 构建运行态 Rust 库（`dart tool/build.dart lib`）→ FRB codegen → `flutter analyze` → `flutter test --coverage` → 测试边界扫描（`--scope=flutter`）
+- `flutter`：markdown references lint → 构建运行态 Rust 库（`cargo build --release` + 进程内 host 运行态同步，平台规格来自 `tool/src/git_gate/host_build.dart`；不再调用 `dart tool/build.dart lib`）→ FRB codegen → `flutter analyze` → `flutter test --coverage` → 测试边界扫描（`--scope=flutter`）
 - `rust`：`cargo fmt --all -- --check` → `cargo clippy --all-targets --all-features -- -D warnings` → `cargo test --jobs 1` → 生成 LCOV（`cargo tarpaulin`）→ 测试边界扫描（`--scope=rust`）
 - `docs`：markdown references lint
 - `all`：先 `flutter` 链路（含 FRB 准备），再 `rust` 链路

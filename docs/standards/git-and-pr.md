@@ -19,7 +19,7 @@ CardMind 的本地质量门禁由 `dart run tool/git_gate.dart` 统一实现，G
 1. format-first（同上）；
 2. 验证将测试的 tracked 源码与 HEAD 一致、且无未跟踪源码；不一致时阻止 push（避免测试工作树却缓存 HEAD）；
 3. 从 stdin 读取 Git 传入的 ref 行；
-4. 完整 host suite：markdown references lint → `cargo clippy --all-targets --all-features -- -D warnings` → `cargo test --all-features --jobs 1` → 构建运行态 host Rust 库（`cargo build --release` 后同步到运行态路径；Windows `build/windows/x64/runner/Release/cardmind_backend.dll`，macOS `build/native/macos/libcardmind_backend.dylib`，Linux `build/linux/x64/release/bundle/lib/libcardmind_backend.so`；不再调用 `dart run tool/build.dart lib`）→ `flutter_rust_bridge_codegen generate`（生成内容变化则阻止，要求提交生成结果）→ codegen 后再次 format-first（改变则阻止）→ `flutter analyze` → `flutter test --timeout 3m`；
+4. 完整 host suite：markdown references lint → `cargo clippy --all-targets --all-features -- -D warnings` → `cargo test --all-features --jobs 1` → 构建运行态 host Rust 库（`cargo build --release` 后同步到运行态路径；Windows `build/windows/x64/runner/Release/cardmind_backend.dll`，macOS `build/native/macos/libcardmind_backend.dylib`，Linux `build/linux/x64/release/bundle/lib/libcardmind_backend.so`；不再调用 `dart run tool/build.dart lib`，平台规格与它共用 `tool/src/git_gate/host_build.dart`）→ `flutter_rust_bridge_codegen generate`（生成内容变化则阻止，要求提交生成结果）→ codegen 后再次 format-first（改变则阻止）→ `flutter analyze` → `flutter test --timeout 3m`；
 5. 成功后按 exact HEAD SHA 写入 `.git` 内缓存；满足 HEAD/fingerprint/push SHA 集一致且工作树干净时跳过完整 suite（format-first 与一致性检查始终执行）。
 
 平台集成测试（`integration_test/`）、双实例 relay E2E、移动端/桌面端真机运行、coverage/tarpaulin 不塞入普通 pre-push，由任务验收或发布门禁执行。

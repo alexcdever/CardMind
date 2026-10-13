@@ -73,7 +73,7 @@ cd rust-backend && cargo test --test sync_test  # 同步专项
 cd rust-backend && cargo build --release   # 发布构建
 
 # 构建
-dart run tool/build.dart lib          # 构建 Rust dylib 到运行态路径
+dart run tool/build.dart lib          # 构建 Rust 动态库到当前 host 运行态路径（Windows/macOS/Linux）
 dart run tool/quality.dart all        # 全量质量检查
 
 # 网络测试（直接用 cargo test 即可，不要求关闭防火墙）
@@ -87,7 +87,7 @@ cd rust-backend && cargo test --test sync_test  # 同步测试
 
 - 运行态（构建产物，全新 worktree 中不存在）：`build/windows/x64/runner/Release/cardmind_backend.dll`
 - 编译源（构建产物，由 `cargo build --release` 生成）：`rust-backend/target/release/cardmind_backend.dll`
-- Windows 构建后自动复制到运行态路径
+- Windows 构建后（`dart run tool/build.dart lib` 或门禁 build-lib）自动复制到运行态路径
 
 ## 日志目录（排查必读）
 
