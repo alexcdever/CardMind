@@ -145,8 +145,6 @@
       "Bash(else)",
       "Bash(__NEW_LINE_38e95f87206291f8__ for file in \"bilingual_spec_guide.md\" \"spec_template.md\" \"spec_example.md\")",
       "Bash(if [ -f \"/home/alexc/Projects/CardMind/openspec/engineering/$file\" ])",
-      "Bash(dart tool/check_markdown_links.dart:*)",
-      "Bash(dart tool/verify_spec_mapping.dart:*)",
       "Bash(tee:*)",
       "Bash(xargs:*)",
       "WebFetch(domain:pub.dev)",
