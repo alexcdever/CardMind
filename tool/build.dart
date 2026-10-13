@@ -331,6 +331,10 @@ Future<int> _runLib(
       runtimeFile.deleteSync();
     }
     sourceFile.copySync(paths.runtimeDest);
+
+    /// 复制保留源 mtime；把运行态库时间戳置为本次同步时间，才能判断运行态库
+    /// 是否已被本次构建刷新（cargo 产物可能比本次命令更早）。
+    runtimeFile.setLastModifiedSync(DateTime.now());
   } on FileSystemException catch (e) {
     if (runtimeFile.existsSync()) {
       runtimeFile.deleteSync();
