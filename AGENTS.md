@@ -23,7 +23,7 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 ```
 
 - **读写分离**：所有写入通过 Rust → LoroDoc，投影到 SQLite 供查询
-- **单用户跨端**：目标平台为移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；笔记编辑+列表采用双栏布局
+- **单用户跨端**：目标平台为移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；笔记编辑+列表采用三栏布局
 
 ## 项目结构
 
@@ -55,7 +55,7 @@ docs/
   adr/            架构决策记录
   research/       研究资料
   testing/        集成测试说明
-tool/             工具脚本 (build/quality/lint/gate/scanner)
+tool/             工具脚本 (build.dart / quality.dart / lint；门禁 git_gate.dart；边界扫描 test_boundary_scanner.dart)
 sync-verify/      同步验证代码
 ```
 
@@ -67,7 +67,7 @@ flutter pub get                       # 获取依赖（需 PUB_HOSTED_URL=https:
 flutter test                          # 跑测试
 flutter analyze                       # 代码分析
 
-# Rust (设置 PATH: export PATH="/Users/alexc/.cargo/bin:$PATH")
+# Rust（需先让 cargo 在 PATH 上，各平台路径见本节末尾说明）
 cd rust-backend && cargo test              # 全量测试
 cd rust-backend && cargo test --test sync_test  # 同步专项
 cd rust-backend && cargo build --release   # 发布构建
