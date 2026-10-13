@@ -58,6 +58,34 @@ String resolveExecutable(String executable, {required bool isWindows}) {
   return executable;
 }
 
+/// Git 为 hook / `--git-dir` 调用导出的仓库定位变量。
+///
+/// 门禁运行的子进程（测试、构建、格式化）必须看不到这些变量：子进程内部的
+/// `git` 调用会被重定向到外层仓库，从而污染外层仓库的 index/HEAD。典型场景是
+/// `test/git_gate_hook_integration_test.dart` 在临时仓库里执行 git，一旦外层
+/// 导出了 `GIT_DIR`，临时仓库的 `git add/commit` 就会落到真实仓库上。
+const List<String> kGitRepoEnvVars = <String>[
+  'GIT_DIR',
+  'GIT_WORK_TREE',
+  'GIT_INDEX_FILE',
+  'GIT_COMMON_DIR',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_PREFIX',
+];
+
+/// 返回剔除了 Git 仓库定位变量（[kGitRepoEnvVars]）的环境副本，用于隔离子进程。
+///
+/// 其余变量原样保留；调用方传入的 `environment` 与当前进程环境都会被处理，
+/// 因此子进程既能拿到必要变量，又不会继承门禁自身所在仓库的 git 定位信息。
+Map<String, String> sanitizeStepEnvironment(Map<String, String> base) {
+  final env = Map<String, String>.from(base);
+  for (final key in kGitRepoEnvVars) {
+    env.remove(key);
+  }
+  return env;
+}
+
 /// 带硬超时的真实 runner + 测试模式 fake runner。
 class CommandRunner {
   CommandRunner({
@@ -87,7 +115,9 @@ class CommandRunner {
       // 真实解析只作用于真实启动路径，见下方 resolveExecutable。
       return _fakeRun(executable, arguments, workingDirectory);
     }
-    // 所有真实 runner 入口统一经过解析：参数、cwd、environment 原样保留。
+    // 所有真实 runner 入口统一经过解析：参数、cwd 保留；environment 剔除 Git
+    // 仓库定位变量后显式传入（不传则子进程会继承外层仓库的 GIT_DIR 等，见
+    // sanitizeStepEnvironment）。
     final resolved = resolveExecutable(
       executable,
       isWindows: Platform.isWindows,
@@ -96,7 +126,7 @@ class CommandRunner {
       executable: resolved,
       arguments: arguments,
       workingDirectory: workingDirectory,
-      environment: environment,
+      environment: sanitizeStepEnvironment(environment ?? Platform.environment),
       timeout: timeout,
     );
   }
@@ -155,7 +185,11 @@ Future<RunnerResult> runWithTimeout({
     executable,
     arguments,
     workingDirectory: workingDirectory,
+    // `includeParentEnvironment` 默认 true：Dart 会把父环境与传入的 environment
+    // 合并，那么即使传入的 map 已剔除 GIT_DIR，子进程仍会从父环境继承回来。
+    // 因此传入 environment 时按“完整环境”处理（不合并）；未传入时沿用父环境。
     environment: environment,
+    includeParentEnvironment: environment == null,
     mode: ProcessStartMode.normal,
   );
 
