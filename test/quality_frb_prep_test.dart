@@ -92,6 +92,23 @@ void main() {
       reason: '同步的必须是 cargo 产物内容',
     );
   });
+
+  test('Windows 上 flutter 命令必须解析为 flutter.bat（否则 CreateProcess 找不到文件）', () {
+    expect(
+      quality.resolveHostExecutable('flutter', isWindows: true),
+      'flutter.bat',
+      reason: 'Windows 上无扩展名的 flutter 是 bash 脚本，必须走 flutter.bat',
+    );
+    expect(
+      quality.resolveHostExecutable('flutter', isWindows: false),
+      'flutter',
+    );
+    expect(
+      quality.resolveHostExecutable('cargo', isWindows: true),
+      'cargo',
+      reason: 'cargo/dart/flutter_rust_bridge_codegen 在 Windows 上是真实 .exe',
+    );
+  });
 }
 
 class _ProcessCall {
