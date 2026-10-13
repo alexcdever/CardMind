@@ -250,6 +250,35 @@ void main() {
       reason: '运行态库 mtime 必须落在本次同步时间附近',
     );
   });
+
+  test('3 --target 指向其它平台时，运行态目标跟随 triple 推断的平台', () async {
+    const content = 'linux-so-cross-content';
+    placeCargoArtifact(
+      'rust-backend/target/x86_64-unknown-linux-gnu/release/'
+      'libcardmind_backend.so',
+      content,
+    );
+
+    final exit = await build.runBuildCli(
+      ['lib', '--target', 'x86_64-unknown-linux-gnu'],
+      currentDirectory: repoRoot(),
+      platformOverride: build.HostPlatform.windows,
+      runProcess: _recordingRunner(<_CargoCall>[]),
+      log: (_) {},
+      logError: (_) {},
+    );
+
+    expect(exit, 0);
+    final runtime = File(
+      '${repoRoot()}/build/linux/x64/release/bundle/lib/libcardmind_backend.so',
+    );
+    expect(
+      runtime.existsSync(),
+      isTrue,
+      reason: '跨平台 --target 的运行态目标取 triple 推断平台的路径，文件名与产物一致',
+    );
+    expect(runtime.readAsStringSync(), content);
+  });
 }
 
 Future<ProcessResult> Function(
