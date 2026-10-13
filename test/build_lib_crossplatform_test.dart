@@ -167,6 +167,54 @@ void main() {
     expect(runtime.existsSync(), isTrue);
     expect(runtime.readAsStringSync(), content);
   });
+
+  test('4 缺库（默认路径）：非零退出，且错误信息含缺失产物的绝对路径', () async {
+    final calls = <_CargoCall>[];
+    final errors = <String>[];
+
+    final exit = await build.runBuildCli(
+      ['lib'],
+      currentDirectory: repoRoot(),
+      platformOverride: build.HostPlatform.windows,
+      runProcess: _recordingRunner(calls),
+      log: (_) {},
+      logError: errors.add,
+    );
+
+    expect(exit, isNot(0), reason: 'cargo 产物缺失必须非零退出');
+    expect(calls.single.arguments, <String>['build', '--release']);
+    expect(
+      errors.join('\n'),
+      contains(
+        '${repoRoot()}/rust-backend/target/release/cardmind_backend.dll',
+      ),
+      reason: '错误信息必须含缺失文件的绝对路径（临时仓库根是绝对路径）',
+    );
+  });
+
+  test('4 缺库（--target）：非零退出，且错误信息含 triple 目录下的绝对路径', () async {
+    final calls = <_CargoCall>[];
+    final errors = <String>[];
+
+    final exit = await build.runBuildCli(
+      ['lib', '--target', 'x86_64-unknown-linux-gnu'],
+      currentDirectory: repoRoot(),
+      platformOverride: build.HostPlatform.windows,
+      runProcess: _recordingRunner(calls),
+      log: (_) {},
+      logError: errors.add,
+    );
+
+    expect(exit, isNot(0), reason: 'cargo 产物缺失必须非零退出');
+    expect(
+      errors.join('\n'),
+      contains(
+        '${repoRoot()}/rust-backend/target/x86_64-unknown-linux-gnu/release/'
+        'libcardmind_backend.so',
+      ),
+      reason: '错误信息必须含 triple 目录下缺失文件的绝对路径',
+    );
+  });
 }
 
 Future<ProcessResult> Function(
