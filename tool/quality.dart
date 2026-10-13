@@ -341,13 +341,27 @@ String _processError(ProcessResult result) {
   return 'Process failed with exit code ${result.exitCode}: $output';
 }
 
+/// 解析要启动的可执行文件名。
+///
+/// Windows 上 flutter 无扩展名可执行文件是 bash 脚本（仅 MSYS 可解析），
+/// Windows CreateProcess 无法直接启动；必须使用 flutter.bat。
+/// dart/cargo/flutter_rust_bridge_codegen 在 Windows 上均有真实 .exe，无需处理。
+String resolveHostExecutable(String executable, {bool? isWindows}) {
+  final windows = isWindows ?? Platform.isWindows;
+  return windows && executable == 'flutter' ? 'flutter.bat' : executable;
+}
+
 /// 运行外部命令
 Future<ProcessResult> _run(
   String executable,
   List<String> arguments, {
   String? workingDirectory,
 }) {
-  return Process.run(executable, arguments, workingDirectory: workingDirectory);
+  return Process.run(
+    resolveHostExecutable(executable),
+    arguments,
+    workingDirectory: workingDirectory,
+  );
 }
 
 /// 输出到stdout
