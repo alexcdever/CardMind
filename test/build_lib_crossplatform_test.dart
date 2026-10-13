@@ -215,6 +215,41 @@ void main() {
       reason: '错误信息必须含 triple 目录下缺失文件的绝对路径',
     );
   });
+
+  test('1 同步后的运行态库时间戳被刷新（不早于本次同步）', () async {
+    final source = File(
+      '${repoRoot()}/rust-backend/target/release/cardmind_backend.dll',
+    );
+    source.parent.createSync(recursive: true);
+    source.writeAsStringSync('stale-mtime-content');
+    source.setLastModifiedSync(DateTime(2001));
+
+    final exit = await build.runBuildCli(
+      ['lib'],
+      currentDirectory: repoRoot(),
+      platformOverride: build.HostPlatform.windows,
+      runProcess: _recordingRunner(<_CargoCall>[]),
+      log: (_) {},
+      logError: (_) {},
+    );
+
+    expect(exit, 0);
+    final runtime = File(
+      '${repoRoot()}/build/windows/x64/runner/Release/cardmind_backend.dll',
+    );
+    expect(runtime.existsSync(), isTrue);
+    expect(
+      runtime.lastModifiedSync().isAfter(source.lastModifiedSync()),
+      isTrue,
+      reason: '运行态库 mtime 必须反映本次同步，而不是 cargo 产物的 mtime',
+    );
+    expect(
+      DateTime.now().difference(runtime.lastModifiedSync()) <
+          const Duration(minutes: 1),
+      isTrue,
+      reason: '运行态库 mtime 必须落在本次同步时间附近',
+    );
+  });
 }
 
 Future<ProcessResult> Function(
