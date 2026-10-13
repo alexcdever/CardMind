@@ -1099,6 +1099,134 @@ void main() {
         reason: 'flutter.bat --version 必须成功: ${result.stderr}',
       );
     });
+    test(
+      '35 CommandRunner 剥离 Git 仓库定位环境变量（GIT_DIR/GIT_INDEX_FILE 不泄漏到子进程）',
+      () async {
+        Map<String, String>? captured;
+        final runner = CommandRunner(
+          timeout: const Duration(minutes: 3),
+          testMode: false,
+          realRunner:
+              ({
+                required String executable,
+                required List<String> arguments,
+                String? workingDirectory,
+                Map<String, String>? environment,
+                required Duration timeout,
+              }) async {
+                captured = environment;
+                return const RunnerResult(
+                  exitCode: 0,
+                  stdout: '',
+                  stderr: '',
+                  timedOut: false,
+                  elapsed: Duration.zero,
+                );
+              },
+        );
+
+        await runner.run(
+          'dart',
+          <String>['format'],
+          environment: <String, String>{
+            'PATH': '/x',
+            'KEEP_ME': 'yes',
+            'GIT_DIR': 'C:/repo/.git',
+            'GIT_INDEX_FILE': 'C:/repo/.git/index',
+            'GIT_WORK_TREE': 'C:/repo',
+            'GIT_COMMON_DIR': 'C:/repo/.git',
+            'GIT_OBJECT_DIRECTORY': 'C:/repo/.git/objects',
+            'GIT_ALTERNATE_OBJECT_DIRECTORIES': 'C:/other',
+            'GIT_PREFIX': '',
+          },
+        );
+
+        expect(captured, isNotNull, reason: '子进程必须拿到显式环境，不能靠继承');
+        for (final key in kGitRepoEnvVars) {
+          expect(
+            captured!.containsKey(key),
+            isFalse,
+            reason: '$key 泄漏到子进程会让其内部 git 操作污染外层仓库',
+          );
+        }
+        expect(captured!['PATH'], '/x', reason: '非 Git 变量必须保留');
+        expect(captured!['KEEP_ME'], 'yes', reason: '非 Git 变量必须保留');
+      },
+    );
+
+    test('36 未显式传 environment 时子进程环境同样剔除 Git 仓库定位变量', () async {
+      Map<String, String>? captured;
+      final runner = CommandRunner(
+        timeout: const Duration(minutes: 3),
+        testMode: false,
+        realRunner:
+            ({
+              required String executable,
+              required List<String> arguments,
+              String? workingDirectory,
+              Map<String, String>? environment,
+              required Duration timeout,
+            }) async {
+              captured = environment;
+              return const RunnerResult(
+                exitCode: 0,
+                stdout: '',
+                stderr: '',
+                timedOut: false,
+                elapsed: Duration.zero,
+              );
+            },
+      );
+
+      await runner.run('dart', <String>['format']);
+
+      expect(captured, isNotNull, reason: '必须显式传递剔除后的环境副本，而非 null（继承）');
+      for (final key in kGitRepoEnvVars) {
+        expect(captured!.containsKey(key), isFalse, reason: '$key 不得继承泄漏');
+      }
+      expect(
+        captured!['PATH'],
+        Platform.environment['PATH'],
+        reason: '其余环境应等于当前进程环境',
+      );
+    });
+    test('37 真实子进程不合并父环境，且不继承 Git 仓库定位变量', () async {
+      // 选一个确定存在于父环境的变量并从传入 environment 中剔除：若子进程仍能看到
+      // 它，说明 `Process.start` 的 includeParentEnvironment 仍在合并父环境。
+      final leakVar = Platform.isWindows ? 'USERPROFILE' : 'HOME';
+      expect(
+        Platform.environment[leakVar],
+        isNotNull,
+        reason: '$leakVar 应存在于父环境',
+      );
+
+      final env = Map<String, String>.from(Platform.environment)
+        ..remove(leakVar)
+        ..['GIT_DIR'] = 'should-be-stripped';
+
+      final runner = CommandRunner(timeout: const Duration(minutes: 1));
+      final result = Platform.isWindows
+          ? await runner.run('cmd', <String>['/c', 'set'], environment: env)
+          : await runner.run('env', const <String>[], environment: env);
+
+      expect(result.exitCode, 0, reason: result.stderr);
+      final lines = result.stdout.split(RegExp(r'\r?\n'));
+      expect(
+        lines.any((l) => l.startsWith('PATH=')),
+        isTrue,
+        reason: '传入的非 Git 变量应保留',
+      );
+      expect(
+        lines.any((l) => l.startsWith('GIT_DIR=')),
+        isFalse,
+        reason: 'GIT_DIR 必须被剔除，且不得从父环境继承回来',
+      );
+      expect(
+        lines.any((l) => l.startsWith('$leakVar=')),
+        isFalse,
+        reason: '父环境变量 $leakVar 不得出现（不得合并父环境）',
+      );
+    });
   });
 }
 
