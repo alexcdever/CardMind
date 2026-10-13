@@ -491,4 +491,20 @@ void main() {
     expect(doc, contains('`docs/product.md`'));
     expect(doc, contains('## 正式行为更新触发规则'));
   });
+
+  test('AC2：AGENTS.md 指向 spec-lifecycle 的括注不再声明 plan 类型', () {
+    final lines = _read(
+      'AGENTS.md',
+    ).split('\n').where((line) => line.contains('spec-lifecycle')).toList();
+    expect(
+      lines,
+      hasLength(1),
+      reason: 'AGENTS.md 文档地图应恰有一条 spec-lifecycle 引用',
+    );
+    expect(
+      lines.single,
+      isNot(contains('plan')),
+      reason: '括注不得再写「（plan / standard）」：plan 已不是现行文档类型',
+    );
+  });
 }

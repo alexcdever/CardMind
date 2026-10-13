@@ -156,7 +156,7 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 - `docs/standards/design-tokens.md` — 设计 Token
 - `docs/standards/tech-stack-baseline.md` — 技术栈基线
 - `docs/standards/flutter-automation-anchors.md` — Flutter 自动化
-- `docs/standards/spec-lifecycle.md` — 文档生命周期（plan / standard）
+- `docs/standards/spec-lifecycle.md` — 文档生命周期（文档类型与更新触发规则）
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
