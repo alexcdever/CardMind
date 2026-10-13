@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'src/git_gate/host_build.dart';
+
 typedef Runner =
     Future<ProcessResult> Function(
       String executable,
@@ -25,7 +27,7 @@ Options:
   -h, --help  Show this help message
 
 Default behavior:
-  flutter runs: markdown references lint -> build rust dylib -> FRB codegen -> flutter analyze -> flutter test -> test boundary scan
+  flutter runs: markdown references lint -> build host rust library -> FRB codegen -> flutter analyze -> flutter test -> test boundary scan
   rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test --jobs 1
   docs runs: markdown references lint
   all runs: flutter quality with FRB prep -> rust
@@ -162,17 +164,44 @@ Future<int> _runFlutterQuality({
   return 0;
 }
 
+/// FRB 准备：构建 host 动态库 → 同步运行态库 → FRB codegen。
+///
+/// 运行态同步复用 host_build.dart 的跨平台规格（与 gate 的 build-lib 同一真相源，
+/// Windows `cardmind_backend.dll` / macOS `libcardmind_backend.dylib` /
+/// Linux `libcardmind_backend.so`），不再通过子进程调用 `dart tool/build.dart lib`
+/// ——该入口此前硬编码 macOS 路径，Windows 上必失败。
 Future<int> _prepareFlutterFrbArtifacts({
   required Runner runProcess,
   required void Function(String) log,
   required void Function(String) logError,
 }) async {
-  final buildLib = await runProcess('dart', ['tool/build.dart', 'lib']);
-  if (buildLib.exitCode != 0) {
-    logError(_processError(buildLib));
-    return buildLib.exitCode;
+  final HostBuildPlatform platform;
+  try {
+    platform = detectHostPlatform();
+  } on UnsupportedError catch (e) {
+    logError('[flutter:frb-lib] ${e.message}');
+    return 1;
   }
-  log('[flutter:frb-lib] done');
+
+  final build = await runProcess('cargo', [
+    'build',
+    '--release',
+  ], workingDirectory: '${Directory.current.path}/rust-backend');
+  if (build.exitCode != 0) {
+    logError(_processError(build));
+    return build.exitCode;
+  }
+  log('[flutter:frb-lib] cargo build --release done');
+
+  final syncError = syncHostRuntimeLibrary(Directory.current.path, platform);
+  if (syncError != null) {
+    logError('[flutter:frb-lib] $syncError');
+    return 1;
+  }
+  log(
+    '[flutter:frb-lib] runtime library synced: '
+    '${hostRuntimeSpec(platform).runtimeDestRel}',
+  );
 
   final codegen = await runProcess('flutter_rust_bridge_codegen', ['generate']);
   if (codegen.exitCode != 0) {
