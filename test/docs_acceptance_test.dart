@@ -611,4 +611,18 @@ void main() {
       reason: '对照基线：ui-style-guide 用三栏描述桌面布局',
     );
   });
+
+  test('AC5：README.md 的布局用词与 ui-style-guide 一致（三栏）', () {
+    final readme = _read('README.md');
+
+    expect(readme, isNot(contains('双栏')), reason: '桌面布局口径是三栏，README 不得再写双栏');
+    expect(readme, contains('三栏'), reason: 'README.md 必须用三栏描述桌面布局');
+
+    // 同一个口径不允许在两个入口文档里漂移。
+    expect(
+      _read('AGENTS.md'),
+      contains('三栏'),
+      reason: 'AGENTS.md 与 README.md 的布局用词必须一致（三栏）',
+    );
+  });
 }
