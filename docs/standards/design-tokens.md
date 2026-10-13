@@ -90,8 +90,6 @@
 | `radius.md` | `4px` | 卡片、按钮、输入框（标准） |
 | `radius.lg` | `6px` | 中等容器 |
 | `radius.xl` | `8px` | 搜索栏、工具栏 |
-| `radius.2xl` | `12px` | 面板、底部导航容器 |
-| `radius.pill` | `9999px` | 徽章、标签（胶囊形） |
 
 ## 间距
 
