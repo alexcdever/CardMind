@@ -35,6 +35,15 @@ String _adr0008Path() {
   return matches.single;
 }
 
+/// 取 markdown 中某个二级小节（`## 标题` 起，到下一个二级标题前）的正文。
+String _sectionOf(String document, String heading) {
+  final start = document.indexOf(heading);
+  expect(start, greaterThan(-1), reason: '文档必须保留小节 $heading');
+  final rest = document.substring(start + heading.length);
+  final end = rest.indexOf('\n## ');
+  return end == -1 ? rest : rest.substring(0, end);
+}
+
 void main() {
   test('验收 3：docs/ 根目录不再保留任何一次性任务单', () {
     final tracked = _git(['ls-files', 'docs/task-*.md']);
@@ -440,4 +449,46 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 2)),
   );
+
+  // ---------------------------------------------------------------------------
+  // docs-facts-realign：活文档与代码/现状对齐（AC1–AC6）。
+  // ---------------------------------------------------------------------------
+
+  test('AC1：spec-lifecycle 不再把 plan 当作现行文档类型', () {
+    final doc = _read('docs/standards/spec-lifecycle.md');
+
+    final title = doc.split('\n').first;
+    expect(
+      title,
+      isNot(contains('plan')),
+      reason: '标题不得再把 plan 与 standard 并列声明为现行文档类型',
+    );
+
+    expect(
+      _sectionOf(doc, '## 目标'),
+      isNot(contains('`plan`')),
+      reason: '「目标」不得再把 plan 与 standard 并列定义为文档类型',
+    );
+
+    final types = _sectionOf(doc, '## 文档类型');
+    expect(
+      types.split('\n').where((line) => line.trimLeft().startsWith('- `plan`')),
+      isEmpty,
+      reason: '「文档类型」不得再把 plan 列成现行类型（只能作历史提及）',
+    );
+    expect(types, contains('`standard`'), reason: '必须保留 standard 类型');
+
+    // plan 类文档的载体目录已整体删除：正文不得再声称它存在。
+    expect(
+      doc,
+      isNot(contains('docs/plans')),
+      reason: 'plan 类文档的载体目录已整体删除，文档不得再引用它',
+    );
+
+    // 「正式行为文档（唯一真相源）」与更新触发规则的含义不变。
+    expect(doc, contains('## 正式行为文档（唯一真相源）'));
+    expect(doc, contains('`docs/adr/`'));
+    expect(doc, contains('`docs/product.md`'));
+    expect(doc, contains('## 正式行为更新触发规则'));
+  });
 }
