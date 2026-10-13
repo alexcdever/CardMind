@@ -34,3 +34,14 @@ then observe persistence through the same production repository used by the
 application. They cover create and reopen, list/open, desktop autosave,
 Markdown input, tag filtering, and debounced search. Windows and Android run
 the identical suite through `tool/feature_test.dart`.
+
+## Other integration tests
+
+`integration_test/` also holds platform-focused suites that `tool/feature_test.dart`
+does **not** invoke (it only runs `cardmind_journeys_test.dart`). Run them directly
+against a configured device, e.g. `flutter test integration_test/<file>`:
+
+- `device_name_live_test.dart`
+- `pairing_credential_dual_end_test.dart`
+- `pairing_credential_platform_test.dart`
+- `receiver_platform_test.dart`
