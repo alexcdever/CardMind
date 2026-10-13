@@ -44,11 +44,16 @@ Future<void> main(List<String> args) async {
 }
 
 /// 质量检查命令行入口
+///
+/// [repoRoot] / [platformOverride] 是 FRB 准备步骤的注入点（默认当前工作目录与
+/// 当前 host 平台），其余步骤沿用当前工作目录。
 Future<int> runQualityCli(
   List<String> args, {
   Runner runProcess = _run,
   void Function(String) log = _stdout,
   void Function(String) logError = _stderr,
+  String? repoRoot,
+  HostBuildPlatform? platformOverride,
 }) async {
   if (args.contains('--help') || args.contains('-h')) {
     log(_help);
@@ -65,6 +70,8 @@ Future<int> runQualityCli(
       runProcess: runProcess,
       log: log,
       logError: logError,
+      repoRoot: repoRoot,
+      platformOverride: platformOverride,
     );
   }
   if (args.first == 'rust') {
@@ -86,6 +93,8 @@ Future<int> runQualityCli(
       runProcess: runProcess,
       log: log,
       logError: logError,
+      repoRoot: repoRoot,
+      platformOverride: platformOverride,
     );
     if (flutterExit != 0) {
       return flutterExit;
@@ -106,6 +115,8 @@ Future<int> _runFlutterQuality({
   required Runner runProcess,
   required void Function(String) log,
   required void Function(String) logError,
+  String? repoRoot,
+  HostBuildPlatform? platformOverride,
 }) async {
   final docsExit = await _runDocsQuality(
     runProcess: runProcess,
@@ -120,6 +131,8 @@ Future<int> _runFlutterQuality({
     runProcess: runProcess,
     log: log,
     logError: logError,
+    repoRoot: repoRoot,
+    platformOverride: platformOverride,
   );
   if (frbPrepExit != 0) {
     return frbPrepExit;
@@ -170,14 +183,20 @@ Future<int> _runFlutterQuality({
 /// Windows `cardmind_backend.dll` / macOS `libcardmind_backend.dylib` /
 /// Linux `libcardmind_backend.so`），不再通过子进程调用 `dart tool/build.dart lib`
 /// ——该入口此前硬编码 macOS 路径，Windows 上必失败。
+///
+/// [repoRoot] / [platformOverride] 默认取当前工作目录与当前 host 平台；测试注入
+/// 临时仓库根，避免改动共享的运行态库。
 Future<int> _prepareFlutterFrbArtifacts({
   required Runner runProcess,
   required void Function(String) log,
   required void Function(String) logError,
+  String? repoRoot,
+  HostBuildPlatform? platformOverride,
 }) async {
+  final root = repoRoot ?? Directory.current.path;
   final HostBuildPlatform platform;
   try {
-    platform = detectHostPlatform();
+    platform = platformOverride ?? detectHostPlatform();
   } on UnsupportedError catch (e) {
     logError('[flutter:frb-lib] ${e.message}');
     return 1;
@@ -186,14 +205,14 @@ Future<int> _prepareFlutterFrbArtifacts({
   final build = await runProcess('cargo', [
     'build',
     '--release',
-  ], workingDirectory: '${Directory.current.path}/rust-backend');
+  ], workingDirectory: '$root/rust-backend');
   if (build.exitCode != 0) {
     logError(_processError(build));
     return build.exitCode;
   }
   log('[flutter:frb-lib] cargo build --release done');
 
-  final syncError = syncHostRuntimeLibrary(Directory.current.path, platform);
+  final syncError = syncHostRuntimeLibrary(root, platform);
   if (syncError != null) {
     logError('[flutter:frb-lib] $syncError');
     return 1;
