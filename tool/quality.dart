@@ -340,7 +340,11 @@ Future<int> _runRustQuality({
 String _processError(ProcessResult result) {
   final stderrText = result.stderr.toString().trim();
   final stdoutText = result.stdout.toString().trim();
-  final output = stderrText.isNotEmpty ? stderrText : stdoutText;
+  final parts = <String>[
+    if (stderrText.isNotEmpty) '[stderr] $stderrText',
+    if (stdoutText.isNotEmpty) '[stdout] $stdoutText',
+  ];
+  final output = parts.isNotEmpty ? parts.join('\n') : '(no output)';
   return 'Process failed with exit code ${result.exitCode}: $output';
 }
 
