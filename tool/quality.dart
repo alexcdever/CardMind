@@ -150,6 +150,8 @@ Future<int> _runFlutterQuality({
   final test = await runProcess('flutter', [
     'test',
     '--coverage',
+    '--timeout',
+    '5m',
     '-j',
     _flutterTestConcurrency,
   ]);
