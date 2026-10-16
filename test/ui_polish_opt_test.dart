@@ -63,4 +63,40 @@ void main() {
       reason: '兼容常量必须指向 token 值，避免两处色值漂移',
     );
   });
+
+  _themeChecks();
+}
+
+/// 优化项 2/3：主题纪律——NavigationBar 去 tint/elevation，
+/// 裸 FilledButton disabled 与 CardMindPrimaryButton 一致落 tokens.border。
+void _themeChecks() {
+  test('AC2: NavigationBar has no surface tint and zero elevation', () {
+    final theme = CardMindTheme.light.navigationBarTheme;
+    expect(
+      theme.surfaceTintColor,
+      Colors.transparent,
+      reason: 'NavigationBar 须显式去 surfaceTint，与 AppBar/Dialog 纪律一致',
+    );
+    expect(
+      theme.elevation,
+      0,
+      reason: 'NavigationBar 阴影应收敛为 0（M3 默认 elevation:3 会叠 tint）',
+    );
+  });
+
+  test('AC2: FilledButton disabled background falls back to tokens.border', () {
+    final style = CardMindTheme.light.filledButtonTheme.style;
+    expect(
+      style,
+      isNotNull,
+      reason: 'theme 须显式声明 filledButtonTheme（携带 disabled 背景）',
+    );
+    final bg = style!.backgroundColor;
+    expect(bg, isNotNull, reason: 'filledButtonTheme.backgroundColor 不得为 null');
+    expect(
+      bg!.resolve({WidgetState.disabled}),
+      CardMindTokens.light.border,
+      reason: '裸 FilledButton disabled 应与 CardMindPrimaryButton 一致落 tokens.border',
+    );
+  });
 }
