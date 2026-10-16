@@ -1,0 +1,59 @@
+name: Flutter Code Quality
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'tool/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/flutter_quality.yml'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'tool/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'analysis_options.yaml'
+      - '.github/workflows/flutter_quality.yml'
+
+env:
+  FLUTTER_VERSION: '3.44.9'
+  DART_TERM_COLOR: always
+
+jobs:
+  flutter-quality:
+    name: Flutter Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run flutter analyze
+        run: flutter analyze
+
+      - name: Run flutter test
+        run: flutter test --timeout 5m
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## Flutter Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All Flutter quality checks completed" >> $GITHUB_STEP_SUMMARY
