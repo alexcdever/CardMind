@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io' show File, Platform;
 
 import 'package:appflowy_editor/appflowy_editor.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 import 'bridge/bridge_helper.dart';
@@ -23,6 +25,10 @@ void main() {
   // 且越早 attach 越能覆盖启动期事件。fire-and-forget：打开失败静默退化
   // （仅 debugPrint），FLUTTER_TEST 下自动跳过不落盘。
   unawaited(initializeFileLogging());
+  LicenseRegistry.addLicense(() async* {
+    final license = await rootBundle.loadString('assets/fonts/LICENSE.txt');
+    yield LicenseEntryWithLineBreaks(['Source Han Sans CN'], license);
+  });
   runApp(const CardMindBootstrap());
 }
 

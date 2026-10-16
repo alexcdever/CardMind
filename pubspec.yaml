@@ -85,6 +85,17 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
+  assets:
+    - assets/fonts/LICENSE.txt
+
+  fonts:
+    - family: Source Han Sans CN
+      fonts:
+        - asset: assets/fonts/SourceHanSansCN-Regular.otf
+        - asset: assets/fonts/SourceHanSansCN-Medium.otf
+          weight: 500
+        - asset: assets/fonts/SourceHanSansCN-Bold.otf
+          weight: 700
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
   # "family" key with the font family name, and a "fonts" key with a

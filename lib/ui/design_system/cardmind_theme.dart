@@ -132,6 +132,7 @@ abstract final class CardMindTheme {
     );
 
     return ThemeData(
+      fontFamilyFallback: const ['Source Han Sans CN'],
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: tokens.paper,
