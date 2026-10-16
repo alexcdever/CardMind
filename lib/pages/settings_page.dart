@@ -315,12 +315,27 @@ class _SettingsPageState extends State<SettingsPage> {
                 Text('日志目录', style: Theme.of(context).textTheme.titleMedium),
                 InkWell(
                   key: const ValueKey('open-log-directory'),
-                  onTap: _openLogDirectory,
+                  // 未解析出目录时禁用，避免可点但静默无反应。
+                  onTap: _logDirectory == null ? null : _openLogDirectory,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      _logDirectory ??
-                          (_logDirectoryLoadFailed ? '无法获取日志目录' : '加载中…'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 加载成功后给可点视觉提示（图标 + 路径）。
+                        if (_logDirectory != null) ...[
+                          const Icon(Icons.folder_open_outlined, size: 18),
+                          const SizedBox(width: CardMindSpacing.xs),
+                        ],
+                        Flexible(
+                          child: Text(
+                            _logDirectory ??
+                                (_logDirectoryLoadFailed
+                                    ? '无法获取日志目录'
+                                    : '加载中…'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

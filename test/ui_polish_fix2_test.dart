@@ -268,16 +268,16 @@ void main() {
   });
 
   // ━━ AC6：日志目录未加载时不可点；加载成功可点且有视觉提示 ━━
-  testWidgets('AC6: log directory row disabled until path resolves', (
+  // ━━ AC6a：日志目录未加载成功时该行不可点 ━━
+  testWidgets('AC6a: log directory row is disabled when unresolved', (
     tester,
   ) async {
-    // 解析失败 → 不可点
     await _pumpSettings(
       tester,
       logDirectoryResolver: ({String? baseDirectory}) async =>
           throw const FileSystemException('cannot resolve'),
     );
-    var row = tester.widget<InkWell>(
+    final row = tester.widget<InkWell>(
       find.byKey(const ValueKey('open-log-directory')),
     );
     expect(row.onTap, isNull, reason: '目录未加载成功时该行不得可点');
@@ -286,8 +286,12 @@ void main() {
       findsOneWidget,
       reason: '失败文案仍应显示',
     );
+  });
 
-    // 解析成功 → 可点 + 图标提示
+  // ━━ AC6b：日志目录加载成功后可点且有图标提示 ━━
+  testWidgets('AC6b: log directory row tappable with icon once resolved', (
+    tester,
+  ) async {
     const resolved = '/tmp/cardmind-logs';
     var opened = 0;
     await _pumpSettings(
@@ -296,7 +300,7 @@ void main() {
           Directory(resolved),
       logDirectoryOpener: (_) async => opened++,
     );
-    row = tester.widget<InkWell>(
+    final row = tester.widget<InkWell>(
       find.byKey(const ValueKey('open-log-directory')),
     );
     expect(row.onTap, isNotNull, reason: '目录加载成功后该行应可点');
@@ -308,6 +312,5 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('open-log-directory')));
     await tester.pumpAndSettle();
     expect(opened, 1);
-    await tester.pumpWidget(const SizedBox());
   });
 }
