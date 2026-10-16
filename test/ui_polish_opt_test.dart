@@ -69,6 +69,7 @@ void main() {
   _themeChecks();
   _settingsChecks();
   _editorChecks();
+  _listChecks();
 }
 
 /// 优化项 2/3：主题纪律——NavigationBar 去 tint/elevation，
@@ -185,5 +186,59 @@ void _editorChecks() {
       reason: '_saving 分支不得用静态 Icons.sync，须换 SizedBox 尺寸化 '
           'CircularProgressIndicator 或 Icons.save+文案区分',
     );
+  });
+}
+
+/// 优化项 8/9/10：侧栏——「立即同步」≥48dp、日期字号 12px、三个导航行
+/// padding 统一为 horizontal:12, vertical:8。
+void _listChecks() {
+  test('AC5: sidebar sync-now button is >=48dp (no compact density)', () {
+    final source = File('lib/pages/note_list_page.dart').readAsStringSync();
+    // 该 IconButton 不得再叠加 VisualDensity.compact（会把 48 目标压到 40）。
+    final btnIdx = source.indexOf("key: const ValueKey('sync-now-button')");
+    expect(btnIdx, greaterThan(-1), reason: '必须存在 sync-now-button');
+    // 取该按钮所在块（到下一个 ')' 边界之前）检查无 compact。
+    final window = source.substring(btnIdx, (btnIdx + 500).clamp(0, source.length));
+    expect(
+      window.contains('VisualDensity.compact'),
+      isFalse,
+      reason: '侧栏「立即同步」不得用 VisualDensity.compact，须保留 ≥48dp',
+    );
+  });
+
+  test('item9: note-list date font size is >=12px', () {
+    final source = File('lib/pages/note_list_page.dart').readAsStringSync();
+    // 日期样式 _formatDate 处不得再出现 fontSize 11（label-caps 语义不符；
+    // 升到 12px 保持日期可读性）。
+    final dateIdx = source.indexOf('_formatDate(note.updatedAt)');
+    expect(dateIdx, greaterThan(-1));
+    final window = source.substring(
+      dateIdx,
+      (dateIdx + 300).clamp(0, source.length),
+    );
+    expect(
+      RegExp(r'fontSize:[^;]*?11(?![0-9.])').hasMatch(window),
+      isFalse,
+      reason: '列表日期非 label-caps 语义，须升到 ≥12px',
+    );
+  });
+
+  test('AC5: sidebar nav rows share uniform padding', () {
+    final source = File('lib/pages/note_list_page.dart').readAsStringSync();
+    for (final key in const ['trash-entry', 'open-settings', 'devices-entry']) {
+      final idx = source.indexOf("ValueKey('$key')");
+      expect(idx, greaterThan(-1), reason: '必须存在 $key 入口');
+      // 该按钮外层 Padding 与其 styleFrom.padding 统一；
+      // 以所在块内出现 vertical:8 的统一 padding 为断言。
+      final window = source.substring(
+        (idx - 400).clamp(0, source.length),
+        (idx + 500).clamp(0, source.length),
+      );
+      expect(
+        window.contains('vertical: 8'),
+        isTrue,
+        reason: '$key 导航行 padding 须统一含 vertical:8（horizontal:12, vertical:8）',
+      );
+    }
   });
 }
