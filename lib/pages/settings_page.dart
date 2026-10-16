@@ -314,127 +314,144 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Container(
                 key: const ValueKey('settings-page'),
                 child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('应用版本', style: Theme.of(context).textTheme.titleMedium),
-                Text(_version ?? '加载中…'),
-                const SizedBox(height: 24),
-                Text('日志目录', style: Theme.of(context).textTheme.titleMedium),
-                InkWell(
-                  key: const ValueKey('open-log-directory'),
-                  // 未解析出目录时禁用，避免可点但静默无反应。
-                  onTap: _logDirectory == null ? null : _openLogDirectory,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 加载成功后给可点视觉提示（图标 + 路径）。
-                        if (_logDirectory != null) ...[
-                          const Icon(Icons.folder_open_outlined, size: 18),
-                          const SizedBox(width: CardMindSpacing.xs),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '应用版本',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(_version ?? '加载中…'),
+                    const SizedBox(height: 24),
+                    Text(
+                      '日志目录',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    InkWell(
+                      key: const ValueKey('open-log-directory'),
+                      // 未解析出目录时禁用，避免可点但静默无反应。
+                      onTap: _logDirectory == null ? null : _openLogDirectory,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 加载成功后给可点视觉提示（图标 + 路径）。
+                            if (_logDirectory != null) ...[
+                              const Icon(Icons.folder_open_outlined, size: 18),
+                              const SizedBox(width: CardMindSpacing.xs),
+                            ],
+                            Flexible(
+                              child: Text(
+                                _logDirectory ??
+                                    (_logDirectoryLoadFailed
+                                        ? '无法获取日志目录'
+                                        : '加载中…'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      '更新渠道',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    RadioGroup<UpdateChannel>(
+                      groupValue: _channel,
+                      onChanged: (value) {
+                        if (value != null) _choose(value);
+                      },
+                      child: Column(
+                        children: [
+                          RadioListTile<UpdateChannel>(
+                            key: const ValueKey('update-channel-stable'),
+                            title: Text(UpdateChannel.stable.label),
+                            subtitle: Text(UpdateChannel.stable.description),
+                            value: UpdateChannel.stable,
+                          ),
+                          RadioListTile<UpdateChannel>(
+                            key: const ValueKey('update-channel-beta'),
+                            title: Text(UpdateChannel.beta.label),
+                            subtitle: Text(UpdateChannel.beta.description),
+                            value: UpdateChannel.beta,
+                          ),
                         ],
-                        Flexible(
-                          child: Text(
-                            _logDirectory ??
-                                (_logDirectoryLoadFailed ? '无法获取日志目录' : '加载中…'),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text('更新渠道', style: Theme.of(context).textTheme.titleMedium),
-                RadioGroup<UpdateChannel>(
-                  groupValue: _channel,
-                  onChanged: (value) {
-                    if (value != null) _choose(value);
-                  },
-                  child: Column(
-                    children: [
-                      RadioListTile<UpdateChannel>(
-                        key: const ValueKey('update-channel-stable'),
-                        title: Text(UpdateChannel.stable.label),
-                        subtitle: Text(UpdateChannel.stable.description),
-                        value: UpdateChannel.stable,
-                      ),
-                      RadioListTile<UpdateChannel>(
-                        key: const ValueKey('update-channel-beta'),
-                        title: Text(UpdateChannel.beta.label),
-                        subtitle: Text(UpdateChannel.beta.description),
-                        value: UpdateChannel.beta,
-                      ),
+                    FilledButton(
+                      key: const ValueKey('check-for-updates'),
+                      onPressed: _checking ? null : _check,
+                      child: Text(_checking ? '检查中…' : '检查更新'),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_checking) const Text('检查中…'),
+                    if (_result case UpdateUpToDate(:final manifest)) ...[
+                      const Text('已是最新版本'),
+                      Text('最新版本：${manifest.version}'),
                     ],
-                  ),
-                ),
-                FilledButton(
-                  key: const ValueKey('check-for-updates'),
-                  onPressed: _checking ? null : _check,
-                  child: Text(_checking ? '检查中…' : '检查更新'),
-                ),
-                const SizedBox(height: 16),
-                if (_checking) const Text('检查中…'),
-                if (_result case UpdateUpToDate(:final manifest)) ...[
-                  const Text('已是最新版本'),
-                  Text('最新版本：${manifest.version}'),
-                ],
-                if (_result case UpdateAvailable(:final manifest)) ...[
-                  const Text('发现更新'),
-                  Text('最新版本：${manifest.version}'),
-                  ...manifest.releaseNotes.map(Text.new),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    key: const ValueKey('download-update'),
-                    onPressed: _downloadManager.downloading ? null : _download,
-                    child: Text(_downloadManager.downloading ? '下载中…' : '下载更新'),
-                  ),
-                  if (_downloadManager.downloading)
-                    TextButton(
-                      key: const ValueKey('cancel-update-download'),
-                      onPressed: _cancelDownload,
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(
-                          0,
-                          CardMindLayout.mobileTouchTarget,
+                    if (_result case UpdateAvailable(:final manifest)) ...[
+                      const Text('发现更新'),
+                      Text('最新版本：${manifest.version}'),
+                      ...manifest.releaseNotes.map(Text.new),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        key: const ValueKey('download-update'),
+                        onPressed: _downloadManager.downloading
+                            ? null
+                            : _download,
+                        child: Text(
+                          _downloadManager.downloading ? '下载中…' : '下载更新',
                         ),
                       ),
-                      child: const Text('取消下载'),
-                    ),
-                  if (_downloadManager.downloading)
-                    LinearProgressIndicator(value: _downloadManager.progress),
-                  if (_downloadManager.message != null)
-                    Text(_downloadManager.message!),
-                  if (_downloadManager.downloadedPath case final path?) ...[
-                    const SizedBox(height: 8),
-                    Text('安装包路径：$path'),
-                    if (Platform.isMacOS || Platform.isLinux)
-                      TextButton(
-                        key: const ValueKey('open-update-package'),
-                        onPressed: _openUpdatePackage,
-                        style: TextButton.styleFrom(
-                          minimumSize: const Size(
-                            0,
-                            CardMindLayout.mobileTouchTarget,
+                      if (_downloadManager.downloading)
+                        TextButton(
+                          key: const ValueKey('cancel-update-download'),
+                          onPressed: _cancelDownload,
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(
+                              0,
+                              CardMindLayout.mobileTouchTarget,
+                            ),
                           ),
+                          child: const Text('取消下载'),
                         ),
-                        child: const Text('打开安装包'),
-                      ),
+                      if (_downloadManager.downloading)
+                        LinearProgressIndicator(
+                          value: _downloadManager.progress,
+                        ),
+                      if (_downloadManager.message != null)
+                        Text(_downloadManager.message!),
+                      if (_downloadManager.downloadedPath case final path?) ...[
+                        const SizedBox(height: 8),
+                        Text('安装包路径：$path'),
+                        if (Platform.isMacOS || Platform.isLinux)
+                          TextButton(
+                            key: const ValueKey('open-update-package'),
+                            onPressed: _openUpdatePackage,
+                            style: TextButton.styleFrom(
+                              minimumSize: const Size(
+                                0,
+                                CardMindLayout.mobileTouchTarget,
+                              ),
+                            ),
+                            child: const Text('打开安装包'),
+                          ),
+                      ],
+                    ],
+                    if (_result case UpdateCheckError(:final message))
+                      Text(message),
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      key: const ValueKey('use-system-proxy'),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('使用系统网络代理'),
+                      subtitle: const Text('更新检查和下载使用 Dart 环境代理设置'),
+                      value: _useSystemProxy,
+                      onChanged: _setUseSystemProxy,
+                    ),
                   ],
-                ],
-                if (_result case UpdateCheckError(:final message))
-                  Text(message),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  key: const ValueKey('use-system-proxy'),
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('使用系统网络代理'),
-                  subtitle: const Text('更新检查和下载使用 Dart 环境代理设置'),
-                  value: _useSystemProxy,
-                  onChanged: _setUseSystemProxy,
-                ),
-              ],
                 ),
               ),
             ),

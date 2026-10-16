@@ -30,9 +30,7 @@ void main() {
         theme: CardMindTheme.light,
         home: const Scaffold(
           body: Center(
-            child: CardMindSyncStatus(
-              lastSyncFailedFor: Duration(hours: 25),
-            ),
+            child: CardMindSyncStatus(lastSyncFailedFor: Duration(hours: 25)),
           ),
         ),
       ),
@@ -53,7 +51,8 @@ void main() {
     expect(
       label.style?.color,
       tokens.mutedInk,
-      reason: '#B08D2E 对 paper 对比 ~3:1 不达正文 4.5:1；'
+      reason:
+          '#B08D2E 对 paper 对比 ~3:1 不达正文 4.5:1；'
           'stale 态文字须回退 mutedInk（色不作唯一状态指示，文案已含语义）',
     );
   });
@@ -102,7 +101,8 @@ void _themeChecks() {
     expect(
       bg!.resolve({WidgetState.disabled}),
       CardMindTokens.light.border,
-      reason: '裸 FilledButton disabled 应与 CardMindPrimaryButton 一致落 tokens.border',
+      reason:
+          '裸 FilledButton disabled 应与 CardMindPrimaryButton 一致落 tokens.border',
     );
   });
 }
@@ -126,7 +126,8 @@ void _settingsChecks() {
       expect(
         pattern.hasMatch(source),
         isTrue,
-        reason: '$key TextButton 必须 styleFrom(minimumSize: Size(0, mobileTouchTarget))',
+        reason:
+            '$key TextButton 必须 styleFrom(minimumSize: Size(0, mobileTouchTarget))',
       );
     }
   });
@@ -136,8 +137,7 @@ void _settingsChecks() {
   ) async {
     final source = File('lib/pages/settings_page.dart').readAsStringSync();
     expect(
-      source.contains('ConstrainedBox') &&
-          source.contains('editorMaxWidth'),
+      source.contains('ConstrainedBox') && source.contains('editorMaxWidth'),
       isTrue,
       reason: '桌面宽屏内容须以 ConstrainedBox + editorMaxWidth 限宽，与编辑器一致',
     );
@@ -147,17 +147,21 @@ void _settingsChecks() {
 /// 优化项 6/7/12：编辑器——链接补全面板 left 钳制、右键「删除」danger、
 /// 保存中指示非静态 Icons.sync。
 void _editorChecks() {
-  test('AC4: link-completion panel clamps left to screen minus panel minus margin', () {
-    final source = File('lib/pages/editor_page.dart').readAsStringSync();
-    // left 必须由 rect.left 再经 clamp 收敛到屏幕内；
-    // 断言出现对 panel 宽 + margin 的边界钳制表达式。
-    expect(
-      RegExp(r'left[^;]*clamp|clamp[^;]*left|screenW|panelW|\.clamp\(')
-          .hasMatch(source),
-      isTrue,
-      reason: '光标贴近右缘时 360 宽补全面板会被裁；left 须 clamp 到 screenW-panelW-margin',
-    );
-  });
+  test(
+    'AC4: link-completion panel clamps left to screen minus panel minus margin',
+    () {
+      final source = File('lib/pages/editor_page.dart').readAsStringSync();
+      // left 必须由 rect.left 再经 clamp 收敛到屏幕内；
+      // 断言出现对 panel 宽 + margin 的边界钳制表达式。
+      expect(
+        RegExp(
+          r'left[^;]*clamp|clamp[^;]*left|screenW|panelW|\.clamp\(',
+        ).hasMatch(source),
+        isTrue,
+        reason: '光标贴近右缘时 360 宽补全面板会被裁；left 须 clamp 到 screenW-panelW-margin',
+      );
+    },
+  );
 
   test('AC4: desktop tag context menu delete item uses danger color', () {
     final source = File('lib/pages/editor_page.dart').readAsStringSync();
@@ -184,7 +188,8 @@ void _editorChecks() {
     expect(
       RegExp(r'_saving \? Icons\.sync').hasMatch(source),
       isFalse,
-      reason: '_saving 分支不得用静态 Icons.sync，须换 SizedBox 尺寸化 '
+      reason:
+          '_saving 分支不得用静态 Icons.sync，须换 SizedBox 尺寸化 '
           'CircularProgressIndicator 或 Icons.save+文案区分',
     );
   });
@@ -199,7 +204,10 @@ void _listChecks() {
     final btnIdx = source.indexOf("key: const ValueKey('sync-now-button')");
     expect(btnIdx, greaterThan(-1), reason: '必须存在 sync-now-button');
     // 取该按钮所在块（到下一个 ')' 边界之前）检查无 compact。
-    final window = source.substring(btnIdx, (btnIdx + 500).clamp(0, source.length));
+    final window = source.substring(
+      btnIdx,
+      (btnIdx + 500).clamp(0, source.length),
+    );
     expect(
       window.contains('VisualDensity.compact'),
       isFalse,
@@ -255,10 +263,12 @@ void _trashChecks() {
       reason: 'trash 条目色须走 CardMind token（mutedInk/danger）',
     );
     expect(
-      RegExp(r'Theme\.of\(context\)\.colorScheme|onSurfaceVariant|\.error\b')
-          .hasMatch(source),
+      RegExp(
+        r'Theme\.of\(context\)\.colorScheme|onSurfaceVariant|\.error\b',
+      ).hasMatch(source),
       isFalse,
-      reason: 'trash 不得再把 colorScheme 误名为 tokens'
+      reason:
+          'trash 不得再把 colorScheme 误名为 tokens'
           '（onSurfaceVariant→mutedInk、error→danger）',
     );
   });

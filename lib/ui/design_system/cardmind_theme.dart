@@ -174,9 +174,7 @@ abstract final class CardMindTheme {
       ),
       // 让裸 FilledButton disabled 与 CardMindPrimaryButton 一致落 tokens.border。
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          disabledBackgroundColor: tokens.border,
-        ),
+        style: FilledButton.styleFrom(disabledBackgroundColor: tokens.border),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: tokens.paper,

@@ -100,10 +100,7 @@ void main() {
       'flutter.bat',
       reason: 'Windows 上无扩展名的 flutter 是 bash 脚本，必须走 flutter.bat',
     );
-    expect(
-      resolveExecutable('flutter', isWindows: false),
-      'flutter',
-    );
+    expect(resolveExecutable('flutter', isWindows: false), 'flutter');
     expect(
       resolveExecutable('cargo', isWindows: true),
       'cargo',
