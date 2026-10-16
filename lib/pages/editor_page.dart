@@ -292,6 +292,12 @@ class _EditorPageState extends State<EditorPage> {
     final action = compact
         ? await showModalBottomSheet<String>(
             context: context,
+            // M3 默认 28px 上圆角违反 4–8px 圆角纪律；收敛到 radius.xl(8)。
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(CardMindRadii.xl),
+              ),
+            ),
             builder: (context) => SafeArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
