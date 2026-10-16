@@ -335,11 +335,13 @@ class _NoteListPageState extends State<NoteListPage> {
   ) async {
     final action = await showMenu<String>(
       context: context,
+      // 点锚定：RelativeRect 的 right/bottom 是距屏幕右/下边缘的距离，
+      // 需换算成指向按下点的零宽矩形，否则菜单被挤压到屏幕右下角。
       position: RelativeRect.fromLTRB(
         details.globalPosition.dx,
         details.globalPosition.dy,
-        0,
-        0,
+        MediaQuery.sizeOf(context).width - details.globalPosition.dx,
+        MediaQuery.sizeOf(context).height - details.globalPosition.dy,
       ),
       items: const [
         PopupMenuItem(

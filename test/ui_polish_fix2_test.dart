@@ -89,24 +89,28 @@ void main() {
       reason: '桌面布局应渲染笔记项',
     );
 
-    final itemCenter = tester.getCenter(
+    final itemTopLeft = tester.getTopLeft(
       find.byKey(const ValueKey('note-work-note')),
     );
-    await tester.tapAt(itemCenter, buttons: 2, kind: PointerDeviceKind.mouse);
+    // 在列表项左部（约 x=itemTopLeft.dx+40）右键，确保指针不在屏幕右半区，
+    // 使菜单应向右侧展开、topLeft 与按下点一致。
+    final tapPoint = Offset(itemTopLeft.dx + 40, itemTopLeft.dy + 40);
+    await tester.tapAt(tapPoint, buttons: 2, kind: PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
 
     final menu = find.byKey(const ValueKey('note-delete-menu'));
     expect(menu, findsOneWidget, reason: '右键应弹出删除菜单');
     final menuTopLeft = tester.getTopLeft(menu);
     // right/bottom=0 的旧实现会把菜单挤压到屏幕右下角（距按下点上千 px）。
+    // 正确点锚定时菜单 topLeft 与按下点的距离应远小于 200px。
     expect(
-      (menuTopLeft.dx - itemCenter.dx).abs(),
-      lessThan(200),
+      (menuTopLeft.dx - tapPoint.dx).abs(),
+      lessThan(60),
       reason: '菜单水平位置应锚定在指针触发位置附近',
     );
     expect(
-      (menuTopLeft.dy - itemCenter.dy).abs(),
-      lessThan(200),
+      (menuTopLeft.dy - tapPoint.dy).abs(),
+      lessThan(60),
       reason: '菜单垂直位置应锚定在指针触发位置附近',
     );
     await tester.pumpWidget(const SizedBox());
