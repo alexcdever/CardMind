@@ -45,6 +45,8 @@ Options:
   CARDMIND_GATE_TEST_MODE=1   测试模式（fake runner）
   CARDMIND_GATE_FAKE_FAIL=1   测试模式强制失败
   CARDMIND_GATE_FAKE_LOG=path 测试模式 fake 日志
+  CARDMIND_GATE_STEP_TIMEOUT_MINUTES=n  单步硬超时（分钟，默认 15；Rust 全量
+                             测试约需 4–5 分钟，勿设低于该值）
 ''';
 
 Future<void> main(List<String> args) async {
@@ -68,8 +70,17 @@ Future<int> runGitGateCli(List<String> args) async {
       env['CARDMIND_GATE_FAKE_LOG'] ??
       (testMode ? '$repoRoot/.git/cardmind-gate-fake.log' : null);
 
+  // 单条命令硬超时（防卡死兜底）。默认 15 分钟：Rust 全量测试（
+  // `cargo test --all-features --jobs 1`，编译 + 串行跑多个 test binary）
+  // 常需 4–5 分钟，3 分钟会误杀合法慢步骤。可用环境变量
+  // `CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 覆盖（分钟，整数）。
+  final stepTimeout = Duration(
+    minutes:
+        int.tryParse(env['CARDMIND_GATE_STEP_TIMEOUT_MINUTES'] ?? '') ?? 15,
+  );
+
   final runner = CommandRunner(
-    timeout: const Duration(minutes: 3),
+    timeout: stepTimeout,
     testMode: testMode,
     fakeFail: env['CARDMIND_GATE_FAKE_FAIL'] == '1',
     fakeLog: fakeLog,
@@ -89,7 +100,7 @@ Future<int> runGitGateCli(List<String> args) async {
   final baseOptions = GateOptions(
     repoRoot: repoRoot,
     runner: runner.run,
-    stepTimeout: const Duration(minutes: 3),
+    stepTimeout: stepTimeout,
     log: (m) => stdout.writeln(m),
     logError: (m) => stderr.writeln(m),
     forceFullCheck: env['CARDMIND_FORCE_FULL_CHECK'] == '1',
