@@ -9,6 +9,7 @@ class CardMindPrimaryButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.expanded = false,
+    this.busy = false,
   });
 
   final String label;
@@ -16,12 +17,24 @@ class CardMindPrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool expanded;
 
+  /// 忙碌态：icon 槽位换尺寸化进度环（替代易被误读为同步的静态 glyph）。
+  final bool busy;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.cardMind;
     final button = FilledButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 18),
+      icon: busy
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Icon(icon, size: 18),
       label: Text(label),
       style: FilledButton.styleFrom(
         minimumSize: Size(expanded ? double.infinity : 0, 48),
@@ -45,12 +58,16 @@ class CardMindIconButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.selected = false,
+    this.busy = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool selected;
+
+  /// 忙碌态：icon 槽位换尺寸化进度环（替代易被误读为同步的静态 glyph）。
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +79,16 @@ class CardMindIconButton extends StatelessWidget {
       child: IconButton(
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon, size: 19),
+        icon: busy
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: selected ? tokens.accent : tokens.mutedInk,
+                ),
+              )
+            : Icon(icon, size: 19),
         color: selected ? tokens.accent : tokens.mutedInk,
         style: IconButton.styleFrom(
           fixedSize: const Size(
@@ -222,8 +248,10 @@ class CardMindSyncStatus extends StatelessWidget {
   /// 连续同步失败累计时长（决策 18：>24h 时圆点变色提示"长时间未同步"）。
   final Duration? lastSyncFailedFor;
 
-  /// 连续失败超时圆点颜色（灰黄，用于测试断言）。
-  static const Color staleDotColor = Color(0xFFB08D2E);
+  /// 连续失败超时圆点颜色（灰黄）。值为 [CardMindTokens.stale] 的
+  /// 兼容别名（非 const 因 token 走实例字段）；新代码请直接读
+  /// `context.cardMind.stale`。
+  static final Color staleDotColor = CardMindTokens.light.stale;
 
   /// 连续失败是否超过 24 小时（决策 18 提示阈值）。
   static const Duration staleThreshold = Duration(hours: 24);
@@ -250,7 +278,9 @@ class CardMindSyncStatus extends StatelessWidget {
           width: 7,
           height: 7,
           decoration: BoxDecoration(
-            color: _stale ? staleDotColor : tokens.accent,
+            // stale 圆点用 stale 警示色（~3:1 仅图形用途达标）；
+            // 状态文字不跟风用 stale——对比不达正文 4.5:1，回退 mutedInk。
+            color: _stale ? tokens.stale : tokens.accent,
             shape: BoxShape.circle,
           ),
         ),
@@ -260,7 +290,7 @@ class CardMindSyncStatus extends StatelessWidget {
             _effectiveLabel,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: _stale ? staleDotColor : tokens.mutedInk,
+              color: tokens.mutedInk,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

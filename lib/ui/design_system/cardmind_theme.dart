@@ -12,6 +12,7 @@ class CardMindTokens extends ThemeExtension<CardMindTokens> {
     required this.surfaceLow,
     required this.surfaceRaised,
     required this.danger,
+    required this.stale,
   });
 
   final Color paper;
@@ -24,6 +25,10 @@ class CardMindTokens extends ThemeExtension<CardMindTokens> {
   final Color surfaceRaised;
   final Color danger;
 
+  /// 长时间未同步警告色（stale dot）。
+  /// #B08D2E 对 paper 对比 ~3:1，只用于状态圆点；正文文字仍用 mutedInk。
+  final Color stale;
+
   static const light = CardMindTokens(
     paper: Color(0xFFF9F9F8),
     ink: Color(0xFF1A1A1A),
@@ -34,6 +39,7 @@ class CardMindTokens extends ThemeExtension<CardMindTokens> {
     surfaceLow: Color(0xFFF3F4F3),
     surfaceRaised: Color(0xFFFFFFFF),
     danger: Color(0xFFA34F4F),
+    stale: Color(0xFFB08D2E),
   );
 
   @override
@@ -47,6 +53,7 @@ class CardMindTokens extends ThemeExtension<CardMindTokens> {
     Color? surfaceLow,
     Color? surfaceRaised,
     Color? danger,
+    Color? stale,
   }) {
     return CardMindTokens(
       paper: paper ?? this.paper,
@@ -58,6 +65,7 @@ class CardMindTokens extends ThemeExtension<CardMindTokens> {
       surfaceLow: surfaceLow ?? this.surfaceLow,
       surfaceRaised: surfaceRaised ?? this.surfaceRaised,
       danger: danger ?? this.danger,
+      stale: stale ?? this.stale,
     );
   }
 
@@ -74,6 +82,7 @@ class CardMindTokens extends ThemeExtension<CardMindTokens> {
       surfaceLow: Color.lerp(surfaceLow, other.surfaceLow, t)!,
       surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
+      stale: Color.lerp(stale, other.stale, t)!,
     );
   }
 }
@@ -156,6 +165,18 @@ abstract final class CardMindTheme {
         color: tokens.border,
         thickness: 1,
         space: 1,
+      ),
+      // 与 AppBar/Dialog 去 surfaceTint 纪律一致：M3 默认 elevation:3 +
+      // surfaceTint 会给底栏叠 teal 色。
+      navigationBarTheme: const NavigationBarThemeData(
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+      ),
+      // 让裸 FilledButton disabled 与 CardMindPrimaryButton 一致落 tokens.border。
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          disabledBackgroundColor: tokens.border,
+        ),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: tokens.paper,

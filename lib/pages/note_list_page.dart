@@ -467,7 +467,7 @@ class _NoteListPageState extends State<NoteListPage> {
                       _formatDate(note.updatedAt),
                       style: TextStyle(
                         color: tokens.mutedInk,
-                        fontSize: comfortable ? 12 : 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -667,7 +667,7 @@ class _NoteListPageState extends State<NoteListPage> {
           ),
           const Spacer(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: TextButton.icon(
               key: const ValueKey('trash-entry'),
               onPressed: _openTrash,
@@ -683,18 +683,24 @@ class _NoteListPageState extends State<NoteListPage> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: TextButton.icon(
               key: const ValueKey('open-settings'),
               onPressed: _openSettings,
               icon: const Icon(Icons.settings_outlined, size: 18),
               label: const Text('设置'),
-              style: TextButton.styleFrom(alignment: Alignment.centerLeft),
+              style: TextButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
             ),
           ),
           // 决策 15：设备入口紧跟同步状态指示器
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: TextButton.icon(
               key: const ValueKey('devices-entry'),
               onPressed: _openDevices,
@@ -725,7 +731,11 @@ class _NoteListPageState extends State<NoteListPage> {
                     tooltip: '立即同步',
                     icon: const Icon(Icons.sync, size: 18),
                     onPressed: _syncNowRunning ? null : _syncNow,
-                    visualDensity: VisualDensity.compact,
+                    // 触摸目标须 ≥48dp：不用压缩密度（40dp），显式约束 48。
+                    constraints: const BoxConstraints(
+                      minWidth: CardMindLayout.mobileTouchTarget,
+                      minHeight: CardMindLayout.mobileTouchTarget,
+                    ),
                   ),
               ],
             ),

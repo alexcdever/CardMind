@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../bridge/bridge_helper.dart';
 import '../bridge/note_repository.dart';
 import '../src/rust/store.dart';
+import '../ui/design_system/cardmind_theme.dart';
 import '../ui/design_system/cardmind_widgets.dart';
 
 /// 回收站页：列出软删除的笔记，支持恢复 / 彻底删除。
@@ -99,7 +100,7 @@ class _TrashPageState extends State<TrashPage> {
           FilledButton(
             key: const ValueKey('trash-purge-confirm'),
             style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
+              backgroundColor: context.cardMind.danger,
             ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('彻底删除'),
@@ -125,10 +126,10 @@ class _TrashPageState extends State<TrashPage> {
   }
 
   Widget _buildItem(NoteRow note) {
-    final tokens = Theme.of(context).colorScheme;
+    final tokens = context.cardMind;
     return ListTile(
       key: ValueKey('trash-item-${note.id}'),
-      leading: Icon(Icons.description_outlined, color: tokens.onSurfaceVariant),
+      leading: Icon(Icons.description_outlined, color: tokens.mutedInk),
       title: Text(
         _displayTitle(note),
         maxLines: 1,
@@ -147,7 +148,7 @@ class _TrashPageState extends State<TrashPage> {
           IconButton(
             key: ValueKey('trash-purge-${note.id}'),
             tooltip: '彻底删除',
-            icon: Icon(Icons.delete_forever, color: tokens.error),
+            icon: Icon(Icons.delete_forever, color: tokens.danger),
             onPressed: () => _confirmPurge(note),
           ),
         ],
