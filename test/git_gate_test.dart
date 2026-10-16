@@ -120,7 +120,7 @@ void main() {
       expect(testCmds.single.arguments, <String>[
         'test',
         '--timeout',
-        '3m',
+        '5m',
         'test/vertical_slice_widget_test.dart',
       ]);
     });
@@ -229,7 +229,7 @@ void main() {
       final pubspecFlutter = plan.steps
           .where((s) => s.kind == CommandKind.flutterTest)
           .single;
-      expect(pubspecFlutter.arguments, <String>['test', '--timeout', '3m']);
+      expect(pubspecFlutter.arguments, <String>['test', '--timeout', '5m']);
 
       // Cargo.* → Rust 全量
       plan = selectPlanForFiles(['Cargo.toml'], index: testIndex);

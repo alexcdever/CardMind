@@ -132,7 +132,7 @@ abstract final class Commands {
   /// flutter test；[files] 为空时表示全量测试。
   static GateCommand flutterTest(List<String> files) => GateCommand(
     executable: 'flutter',
-    arguments: <String>['test', '--timeout', '3m', ...files],
+    arguments: <String>['test', '--timeout', '5m', ...files],
     kind: CommandKind.flutterTest,
     label: files.isEmpty ? 'flutter:test:full' : 'flutter:test',
   );

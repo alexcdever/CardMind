@@ -168,7 +168,7 @@ void main() {
     // 未执行 CardMind 全量测试
     expect(log, isNot(contains('cargo clippy')));
     expect(log, isNot(contains('cargo test')));
-    expect(log, isNot(contains('flutter test --timeout 3m')));
+    expect(log, isNot(contains('flutter test --timeout 5m')));
 
     // 未触碰真实仓库：srcRoot 工作树仍干净（除本任务文件外无新增改动）
     final status = await gitRun(srcRoot, <String>['status', '--porcelain']);
