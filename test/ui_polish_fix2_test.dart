@@ -236,8 +236,13 @@ void main() {
 
     final tag = find.byKey(const ValueKey('editor-tag-work'));
     expect(tag, findsOneWidget);
-    // 轻点走 _showTagMenu(onTap) → compact 分支 showModalBottomSheet
-    await tester.tap(tag);
+    // 右键（secondary tap）走 _showTagMenu → compact 分支 showModalBottomSheet；
+    // 单击改为选中态（显示删除图标），不再弹菜单。
+    await tester.tapAt(
+      tester.getCenter(tag),
+      buttons: 2,
+      kind: PointerDeviceKind.mouse,
+    );
     await tester.pumpAndSettle();
 
     expect(

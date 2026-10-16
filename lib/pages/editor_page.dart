@@ -32,57 +32,6 @@ class EditorPage extends StatefulWidget {
   State<EditorPage> createState() => _EditorPageState();
 }
 
-class _TagNameDialog extends StatefulWidget {
-  const _TagNameDialog({required this.initialValue});
-
-  final String initialValue;
-
-  @override
-  State<_TagNameDialog> createState() => _TagNameDialogState();
-}
-
-class _TagNameDialogState extends State<_TagNameDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.initialValue.isEmpty ? '添加标签' : '编辑标签'),
-      content: TextField(
-        key: const ValueKey('tag-name-input'),
-        controller: _controller,
-        autofocus: true,
-        decoration: const InputDecoration(hintText: '标签名称'),
-        onSubmitted: (value) => Navigator.of(context).pop(value),
-      ),
-      actions: [
-        TextButton(
-          key: const ValueKey('tag-dialog-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('取消'),
-        ),
-        FilledButton(
-          key: const ValueKey('tag-dialog-confirm'),
-          onPressed: () => Navigator.of(context).pop(_controller.text),
-          child: const Text('确定'),
-        ),
-      ],
-    );
-  }
-}
-
 class _EditorPageState extends State<EditorPage> {
   EditorState? _editorState;
   String? _originalNoteId;
@@ -97,12 +46,23 @@ class _EditorPageState extends State<EditorPage> {
   bool _saving = false;
   String? _sourceMarkdown;
   List<String> _tags = [];
+  final TextEditingController _tagInputController = TextEditingController();
+  final FocusNode _tagInputFocusNode = FocusNode();
   StreamSubscription<dynamic>? _transactionSubscription;
   Timer? _autosaveTimer;
   final FocusNode _keyboardFocusNode = FocusNode();
 
-  /// 最近一次标签按下位置（左键/右键菜单锚点）。
-  Offset? _lastTagTapPosition;
+  /// 当前选中（单击）的标签索引；选中态显示删除图标。null = 无选中。
+  int? _selectedTagIndex;
+
+  /// 正在原地编辑的标签索引；非 null 时该 chip 显示为内联输入框。
+  int? _editingTagIndex;
+  final TextEditingController _tagEditController = TextEditingController();
+  final FocusNode _tagEditFocusNode = FocusNode();
+
+  /// 双击检测：上一次点按的标签索引与时间（~300ms 内同标签再点 = 双击）。
+  int? _lastTagTapIndex;
+  DateTime? _lastTagTapTime;
 
   // ━━ 链接自动补全 ━━
   List<NoteRow> _linkCandidates = [];
@@ -134,6 +94,10 @@ class _EditorPageState extends State<EditorPage> {
     _transactionSubscription?.cancel();
     _editorState?.selectionNotifier.removeListener(_onEditorSelectionChanged);
     _linkOverlay?.remove();
+    _tagInputController.dispose();
+    _tagInputFocusNode.dispose();
+    _tagEditController.dispose();
+    _tagEditFocusNode.dispose();
     _keyboardFocusNode.dispose();
     if (widget.embedded && _dirty) {
       unawaited(_save(notifyParent: false));
@@ -271,20 +235,79 @@ class _EditorPageState extends State<EditorPage> {
     setState(() {
       _tags.removeAt(index);
       _dirty = true;
+      // 删除后清除选中态；若删的是中间项，其后索引前移需同步修正
+      if (_selectedTagIndex == index) {
+        _selectedTagIndex = null;
+      } else if (_selectedTagIndex != null && _selectedTagIndex! > index) {
+        _selectedTagIndex = _selectedTagIndex! - 1;
+      }
     });
     _scheduleAutosave();
   }
 
-  Future<String?> _requestTagName({String initialValue = ''}) async {
-    return showDialog<String>(
-      context: context,
-      builder: (context) => _TagNameDialog(initialValue: initialValue),
-    );
+  /// 工具栏「添加标签」按钮 / 点击标签栏空白：聚焦输入框并取消标签选中态。
+  void _focusTagInput() {
+    _tagInputFocusNode.requestFocus();
+    if (_selectedTagIndex != null) {
+      setState(() => _selectedTagIndex = null);
+    }
   }
 
-  Future<void> _showAddTagDialog() async {
-    final tag = await _requestTagName();
-    if (tag != null) _addTag(tag);
+  /// 标签栏内联输入框回车提交：trim 后经 _addTag 去重并生成单个标签。
+  void _submitTagInput(String value) {
+    _addTag(value);
+    _tagInputController.clear();
+    setState(() => _selectedTagIndex = null);
+  }
+
+  /// 单击标签：切换选中态（显示/隐藏删除图标）。
+  /// 双击（同一标签 ~300ms 内再次点按）：进入重命名对话框。
+  /// 手动计时检测双击——InkWell 的 onDoubleTap 会抑制 onTapDown 的选中回调。
+
+  void _onTagTap(int index) {
+    final now = DateTime.now();
+    final isDoubleTap =
+        _lastTagTapIndex == index &&
+        _lastTagTapTime != null &&
+        now.difference(_lastTagTapTime!) < const Duration(milliseconds: 300);
+    _lastTagTapIndex = index;
+    _lastTagTapTime = now;
+    if (isDoubleTap) {
+      _lastTagTapIndex = null;
+      _lastTagTapTime = null;
+      _renameTag(index);
+      return;
+    }
+    // 单击：选中该标签（显示删除图标）。取消选中靠点其他标签或输入框/空白。
+    setState(() => _selectedTagIndex = index);
+  }
+
+  /// 双击标签：进入原地编辑态——chip 替换为内联输入框（预填、全选、聚焦）。
+  void _renameTag(int index) {
+    _tagEditController.text = _tags[index];
+    // 光标置于末尾而非全选——避免整段反色高亮看起来像「文字被遮住」
+    _tagEditController.selection = TextSelection.collapsed(
+      offset: _tagEditController.text.length,
+    );
+    setState(() {
+      _editingTagIndex = index;
+      _selectedTagIndex = null;
+    });
+    _tagEditFocusNode.requestFocus();
+  }
+
+  /// 原地编辑提交：回车或失焦时确认新标签名（去重后写入）。
+  void _commitTagEdit() {
+    final index = _editingTagIndex;
+    if (index == null) return;
+    final value = _tagEditController.text;
+    setState(() => _editingTagIndex = null);
+    _editTag(index, value);
+  }
+
+  /// 原地编辑取消：Esc 时退出编辑态不写回。
+  void _cancelTagEdit() {
+    setState(() => _editingTagIndex = null);
   }
 
   Future<void> _showTagMenu(int index, {Offset? position}) async {
@@ -359,8 +382,7 @@ class _EditorPageState extends State<EditorPage> {
       return;
     }
     if (action == 'edit') {
-      final tag = await _requestTagName(initialValue: _tags[index]);
-      if (tag != null) _editTag(index, tag);
+      _renameTag(index);
     }
   }
 
@@ -829,7 +851,7 @@ class _EditorPageState extends State<EditorPage> {
             key: const ValueKey('editor-add-tag'),
             icon: Icons.sell_outlined,
             tooltip: '添加标签',
-            onPressed: _showAddTagDialog,
+            onPressed: _focusTagInput,
           ),
           const SizedBox(width: CardMindSpacing.sm),
           if (compact)
@@ -854,10 +876,11 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Widget _buildTagRow() {
-    if (_tags.isEmpty) return const SizedBox.shrink();
     final tokens = context.cardMind;
     // 600 是面板紧凑断点（标签行内边距/comfortable），不同于 960 桌面分栏断点。
     final compact = MediaQuery.sizeOf(context).width < 600;
+    // 输入框 Expanded 占满剩余宽度：点输入框区域（含文字右侧空白）即聚焦；
+    // 不包外层 GestureDetector——会与标签 chip 的单击手势竞争。
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
@@ -870,23 +893,192 @@ class _EditorPageState extends State<EditorPage> {
         color: tokens.surfaceLow,
         border: Border(bottom: BorderSide(color: tokens.border)),
       ),
-      child: Wrap(
-        spacing: CardMindSpacing.sm,
-        runSpacing: CardMindSpacing.sm,
-        children: [
-          for (final entry in _tags.asMap().entries)
-            CardMindTag(
-              key: ValueKey('editor-tag-${entry.value.toLowerCase()}'),
-              label: entry.value,
-              comfortable: compact,
-              onTapDown: (details) =>
-                  _lastTagTapPosition = details.globalPosition,
-              onSecondaryTapDown: (details) =>
-                  _showTagMenu(entry.key, position: details.globalPosition),
-              onTap: () =>
-                  _showTagMenu(entry.key, position: _lastTagTapPosition),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 已有标签：Wrap 限宽到整行，占内容所需宽度，标签多时换行
+              if (_tags.isNotEmpty)
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                  child: Wrap(
+                    spacing: CardMindSpacing.sm,
+                    runSpacing: CardMindSpacing.sm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final entry in _tags.asMap().entries)
+                        _editingTagIndex == entry.key
+                            ? _buildTagEditField(compact, constraints.maxWidth)
+                            : CardMindTag(
+                                key: ValueKey(
+                                  'editor-tag-${entry.value.toLowerCase()}',
+                                ),
+                                label: entry.value,
+                                comfortable: compact,
+                                selected: _selectedTagIndex == entry.key,
+                                showDelete: _selectedTagIndex == entry.key,
+                                onDelete: () => _removeTag(entry.key),
+                                onSecondaryTapDown: (details) => _showTagMenu(
+                                  entry.key,
+                                  position: details.globalPosition,
+                                ),
+                                onTapDown: (_) => _onTagTap(entry.key),
+                              ),
+                    ],
+                  ),
+                ),
+              if (_tags.isNotEmpty) const SizedBox(width: CardMindSpacing.sm),
+              // 内联输入框：占满标签右侧全部剩余宽度到右边缘
+              Expanded(child: _buildTagInput(compact)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTagInput(bool compact) {
+    final tokens = context.cardMind;
+    return TextField(
+      key: const ValueKey('editor-tag-input'),
+      controller: _tagInputController,
+      focusNode: _tagInputFocusNode,
+      onSubmitted: _submitTagInput,
+      // 点输入框（含右侧空白）聚焦时取消标签选中态
+      onTap: () {
+        if (_selectedTagIndex != null) {
+          setState(() => _selectedTagIndex = null);
+        }
+      },
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        hintText: _tags.isEmpty ? '添加标签，回车确认' : '添加标签',
+        hintStyle: TextStyle(color: tokens.mutedInk),
+        isDense: true,
+        filled: true,
+        fillColor: tokens.surfaceLow,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: CardMindSpacing.sm,
+          vertical: compact ? 14 : 10,
+        ),
+        // 常态细 border；聚焦时 accent 边框，明确进入编辑态。
+        border: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(
+            Radius.circular(CardMindRadii.md),
+          ),
+          borderSide: BorderSide(color: tokens.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(
+            Radius.circular(CardMindRadii.md),
+          ),
+          borderSide: BorderSide(color: tokens.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(
+            Radius.circular(CardMindRadii.md),
+          ),
+          borderSide: BorderSide(color: tokens.accent, width: 2),
+        ),
+      ),
+      style: TextStyle(
+        color: tokens.ink,
+        fontSize: compact ? 13 : 12,
+        height: compact ? 20 / 13 : 16 / 12,
+      ),
+    );
+  }
+
+  /// 用 TextPainter 精算文本渲染宽度，用于编辑框贴合标签文字宽。
+  double _estimateTextWidth(
+    String text, {
+    required double fontSize,
+    required double height,
+    required FontWeight fontWeight,
+  }) {
+    if (text.isEmpty) return 0;
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          height: height,
+          fontWeight: fontWeight,
+        ),
+      ),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    return painter.width;
+  }
+
+  /// 标签原地编辑框：双击 chip 后替换显示。回车/失焦提交，Esc 取消。
+  /// 尺寸与 chip 一致——只靠 accent 边框表示编辑态，不变大。
+  Widget _buildTagEditField(bool compact, double maxWidth) {
+    final tokens = context.cardMind;
+    final fontSize = compact ? 13.0 : 12.0;
+    final lineHeight = compact ? 20 / 13 : 16 / 12;
+    final height = compact ? CardMindLayout.mobileTouchTarget : 24.0;
+    // 宽度按文本实际渲染宽贴合，随输入增长；
+    // 上限为整行可用宽——超长时框不再变宽，文字在框内水平滚动显示。
+    final textWidth = _estimateTextWidth(
+      _tagEditController.text,
+      fontSize: fontSize,
+      height: lineHeight,
+      fontWeight: FontWeight.w500,
+    );
+    // 宽 = 文字宽 + 左右 padding + 光标余量；下限 48，上限整行可用宽
+    final width = (textWidth + CardMindSpacing.sm * 2 + 20).clamp(
+      48.0,
+      maxWidth,
+    );
+    return SizedBox(
+      width: width,
+      height: height,
+      child: KeyboardListener(
+        focusNode: FocusNode(),
+        onKeyEvent: (event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.escape) {
+            _cancelTagEdit();
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.only(left: CardMindSpacing.sm, right: 4),
+          decoration: BoxDecoration(
+            color: tokens.surfaceLow,
+            border: Border.all(color: tokens.accent, width: 2),
+            borderRadius: BorderRadius.circular(CardMindRadii.md),
+          ),
+          // 无边框 TextField：垂直居中，文字样式与 chip label 完全一致
+          child: Center(
+            child: TextField(
+              key: const ValueKey('tag-edit-field'),
+              controller: _tagEditController,
+              focusNode: _tagEditFocusNode,
+              autofocus: true,
+              onSubmitted: (_) => _commitTagEdit(),
+              onTapOutside: (_) => _commitTagEdit(),
+              onChanged: (_) => setState(() {}),
+              textInputAction: TextInputAction.done,
+              cursorColor: tokens.accent,
+              decoration: const InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: TextStyle(
+                color: tokens.ink,
+                fontSize: fontSize,
+                height: lineHeight,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

@@ -154,18 +154,26 @@ final value = 1;
 
       await _addTag(tester, '  Work  ');
       expect(find.text('Work'), findsOneWidget);
+      // 重复（忽略大小写）输入不生成第二个标签
       await _addTag(tester, 'work');
       expect(find.text('Work'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('editor-tag-work')));
+      // 双击标签 → 原地编辑框（tag-edit-field）预填当前名
+      final workTag = find.byKey(const ValueKey('editor-tag-work'));
+      await tester.tap(workTag);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(workTag);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('tag-action-edit')));
-      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('tag-edit-field')),
+        findsOneWidget,
+        reason: '双击后应出现原地编辑框',
+      );
       await tester.enterText(
-        find.byKey(const ValueKey('tag-name-input')),
+        find.byKey(const ValueKey('tag-edit-field')),
         'Focus',
       );
-      await tester.tap(find.byKey(const ValueKey('tag-dialog-confirm')));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       expect(find.text('Focus'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('editor-save')));
@@ -174,25 +182,46 @@ final value = 1;
       expect(repository.contents['tagged'], '# Tagged\n\nBody');
       expect(repository.tagsById['tagged'], ['Focus']);
 
-      await tester.tap(find.byKey(const ValueKey('editor-add-tag')));
-      await tester.pumpAndSettle();
+      // 输入但未回车不生成标签（内联提交替代了原对话框「取消」）
       await tester.enterText(
-        find.byKey(const ValueKey('tag-name-input')),
+        find.byKey(const ValueKey('editor-tag-input')),
         'Cancelled',
       );
-      await tester.tap(find.byKey(const ValueKey('tag-dialog-cancel')));
-      await tester.pumpAndSettle();
-      expect(find.text('Cancelled'), findsNothing);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('editor-tag-cancelled')),
+        findsNothing,
+        reason: '未回车提交的文本不应生成标签',
+      );
 
+      // 单击选中显示删除图标，点 × 删除
       await tester.tap(find.byKey(const ValueKey('editor-tag-focus')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('tag-action-delete')));
+      await tester.tap(find.byKey(const ValueKey('tag-delete-icon')));
       await tester.pumpAndSettle();
       expect(find.text('Focus'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('editor-save')));
       await tester.pumpAndSettle();
       expect(repository.contents['tagged'], isNot(contains('<!--tags:')));
       expect(repository.tagsById['tagged'], isEmpty);
+    });
+
+    testWidgets('single tap selects tag and shows delete icon', (tester) async {
+      final repository = MemoryNoteRepository(
+        contents: {'tagged': '# Tagged\n\nBody'},
+      );
+      await _pumpEditor(tester, repository: repository, noteId: 'tagged');
+      await _addTag(tester, 'Work');
+      await tester.pumpAndSettle();
+
+      // 单击选中 → 出现删除图标（点 chip 文字触发 InkWell）
+      await tester.tap(find.text('Work'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('tag-delete-icon')), findsOneWidget);
+      // 点输入框/空白 → 取消选中，图标消失
+      await tester.tap(find.byKey(const ValueKey('editor-tag-input')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('tag-delete-icon')), findsNothing);
     });
 
     testWidgets('filters the list by tag without case sensitivity', (
@@ -397,10 +426,8 @@ Future<void> _replaceEditorMarkdown(
 }
 
 Future<void> _addTag(WidgetTester tester, String tag) async {
-  await tester.tap(find.byKey(const ValueKey('editor-add-tag')));
-  await tester.pumpAndSettle();
-  await tester.enterText(find.byKey(const ValueKey('tag-name-input')), tag);
-  await tester.tap(find.byKey(const ValueKey('tag-dialog-confirm')));
+  await tester.enterText(find.byKey(const ValueKey('editor-tag-input')), tag);
+  await tester.testTextInput.receiveAction(TextInputAction.done);
   await tester.pumpAndSettle();
 }
 

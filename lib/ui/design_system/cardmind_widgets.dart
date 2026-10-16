@@ -173,6 +173,9 @@ class CardMindTag extends StatelessWidget {
     this.onTap,
     this.onSecondaryTapDown,
     this.onTapDown,
+    this.onDoubleTap,
+    this.onDelete,
+    this.showDelete = false,
     this.comfortable = false,
   });
 
@@ -185,17 +188,28 @@ class CardMindTag extends StatelessWidget {
 
   /// 主键按下位置（供长按/菜单锚定复用）。
   final GestureTapDownCallback? onTapDown;
+
+  /// 双击回调（如：进入重命名）。
+  final GestureTapCallback? onDoubleTap;
+
+  /// 删除按钮回调；非空且 [showDelete] 为 true 时在 label 右侧显示 ×。
+  final VoidCallback? onDelete;
+
+  /// 是否显示删除图标（单击选中后置 true）。
+  final bool showDelete;
   final bool comfortable;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.cardMind;
+    final showDeleteIcon = showDelete && onDelete != null;
     return Semantics(
       button: onTap != null,
       label: label,
       selected: selected,
       child: InkWell(
         onTap: onTap,
+        onDoubleTap: onDoubleTap,
         onSecondaryTapDown: onSecondaryTapDown,
         onTapDown: onTapDown,
         borderRadius: BorderRadius.circular(CardMindRadii.md),
@@ -205,9 +219,12 @@ class CardMindTag extends StatelessWidget {
                   minHeight: CardMindLayout.mobileTouchTarget,
                 )
               : null,
-          padding: EdgeInsets.symmetric(
-            horizontal: CardMindSpacing.sm,
-            vertical: comfortable ? 14 : 4,
+          padding: EdgeInsets.only(
+            left: CardMindSpacing.sm,
+            // 显示删除图标时右侧不留多余 padding
+            right: showDeleteIcon ? 2 : CardMindSpacing.sm,
+            top: comfortable ? 14 : 4,
+            bottom: comfortable ? 14 : 4,
           ),
           decoration: BoxDecoration(
             color: selected
@@ -216,14 +233,32 @@ class CardMindTag extends StatelessWidget {
             border: Border.all(color: selected ? tokens.accent : tokens.border),
             borderRadius: BorderRadius.circular(CardMindRadii.md),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? tokens.accent : tokens.mutedInk,
-              fontSize: comfortable ? 13 : 12,
-              height: comfortable ? 20 / 13 : 16 / 12,
-              fontWeight: FontWeight.w500,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? tokens.accent : tokens.mutedInk,
+                  fontSize: comfortable ? 13 : 12,
+                  height: comfortable ? 20 / 13 : 16 / 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (showDeleteIcon) ...[
+                const SizedBox(width: 2),
+                GestureDetector(
+                  key: const ValueKey('tag-delete-icon'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onDelete,
+                  child: Icon(
+                    Icons.close,
+                    size: comfortable ? 16 : 14,
+                    color: tokens.danger,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

@@ -137,13 +137,11 @@ final value = '中英文，标点。';
       await tester.tap(find.byKey(const ValueKey('new-note')));
       await tester.pumpAndSettle();
       await _enterEditorText(tester, '# 标签笔记\n\n正文不含标签 marker。');
-      await tester.tap(find.byKey(const ValueKey('editor-add-tag')));
-      await tester.pumpAndSettle();
       await tester.enterText(
-        find.byKey(const ValueKey('tag-name-input')),
+        find.byKey(const ValueKey('editor-tag-input')),
         '  工作  ',
       );
-      await tester.tap(find.byKey(const ValueKey('tag-dialog-confirm')));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('editor-save')));
       await tester.pumpAndSettle();
