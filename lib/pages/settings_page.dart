@@ -304,9 +304,15 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: EdgeInsets.all(pagePadding),
         children: [
-          Container(
-            key: const ValueKey('settings-page'),
-            child: Column(
+          // 桌面宽屏限宽与编辑器一致（editorMaxWidth），避免内容整行拉伸。
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: CardMindLayout.editorMaxWidth,
+              ),
+              child: Container(
+                key: const ValueKey('settings-page'),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('应用版本', style: Theme.of(context).textTheme.titleMedium),
@@ -386,6 +392,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     TextButton(
                       key: const ValueKey('cancel-update-download'),
                       onPressed: _cancelDownload,
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(
+                          0,
+                          CardMindLayout.mobileTouchTarget,
+                        ),
+                      ),
                       child: const Text('取消下载'),
                     ),
                   if (_downloadManager.downloading)
@@ -399,6 +411,12 @@ class _SettingsPageState extends State<SettingsPage> {
                       TextButton(
                         key: const ValueKey('open-update-package'),
                         onPressed: _openUpdatePackage,
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(
+                            0,
+                            CardMindLayout.mobileTouchTarget,
+                          ),
+                        ),
                         child: const Text('打开安装包'),
                       ),
                   ],
@@ -416,6 +434,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   onChanged: _setUseSystemProxy,
                 ),
               ],
+                ),
+              ),
             ),
           ),
         ],
