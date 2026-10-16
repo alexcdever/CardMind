@@ -105,12 +105,18 @@ abstract final class CardMindLayout {
 abstract final class CardMindTheme {
   static ThemeData get light {
     const tokens = CardMindTokens.light;
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: tokens.accent,
-      brightness: Brightness.light,
-      surface: tokens.paper,
-      error: tokens.danger,
-    );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: tokens.accent,
+          brightness: Brightness.light,
+          surface: tokens.paper,
+          error: tokens.danger,
+        ).copyWith(
+          // fromSeed 生成 tone-40 调色板色而非 #4A707A；
+          // 显式回填 accent，保证裸 FilledButton/Switch/FAB 渲染 active-teal。
+          primary: tokens.accent,
+          onPrimary: Colors.white,
+        );
     final textTheme = ThemeData.light().textTheme.apply(
       bodyColor: tokens.ink,
       displayColor: tokens.ink,

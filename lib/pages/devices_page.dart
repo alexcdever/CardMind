@@ -191,8 +191,11 @@ class _DevicesPageState extends State<DevicesPage> {
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('取消'),
           ),
-          TextButton(
+          FilledButton(
             key: const ValueKey('unpair-confirm'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('解除'),
           ),
@@ -666,7 +669,7 @@ class _DevicesPageState extends State<DevicesPage> {
     };
     return Container(
       key: ValueKey('device-${device.peerId}'),
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 16),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: tokens.border)),
       ),
@@ -720,6 +723,12 @@ class _DevicesPageState extends State<DevicesPage> {
                 label: '$checkLabel，${device.name}',
                 child: TextButton(
                   key: ValueKey('check-${device.peerId}'),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(
+                      0,
+                      CardMindLayout.mobileTouchTarget,
+                    ),
+                  ),
                   onPressed: checking ? null : () => _checkConnectivity(device),
                   child: checking
                       ? Row(
@@ -739,6 +748,10 @@ class _DevicesPageState extends State<DevicesPage> {
               ),
               TextButton(
                 key: ValueKey('unpair-${device.peerId}'),
+                style: TextButton.styleFrom(
+                  foregroundColor: tokens.danger,
+                  minimumSize: const Size(0, CardMindLayout.mobileTouchTarget),
+                ),
                 onPressed: () => _confirmUnpair(device),
                 child: const Text('解除配对'),
               ),
@@ -1358,9 +1371,12 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
               const SizedBox(height: CardMindSpacing.sm),
               if (_expiresAt != null) _CountdownWidget(expiresAt: _expiresAt!),
             ] else if (_error == null) ...[
-              const Text(
+              Text(
                 '正在生成配对信息…',
-                style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 13),
+                style: TextStyle(
+                  color: context.cardMind.mutedInk,
+                  fontSize: 13,
+                ),
               ),
             ],
             const SizedBox(height: CardMindSpacing.lg),
@@ -1371,9 +1387,12 @@ class _PairingAcceptDialogState extends State<_PairingAcceptDialog> {
                 style: TextStyle(color: context.cardMind.danger, fontSize: 13),
               )
             else if (_credentialText == null)
-              const Text(
+              Text(
                 '正在生成配对信息…',
-                style: TextStyle(color: Color(0xFF6B6B6B), fontSize: 13),
+                style: TextStyle(
+                  color: context.cardMind.mutedInk,
+                  fontSize: 13,
+                ),
               )
             else
               Text(

@@ -101,6 +101,9 @@ class _EditorPageState extends State<EditorPage> {
   Timer? _autosaveTimer;
   final FocusNode _keyboardFocusNode = FocusNode();
 
+  /// 最近一次标签按下位置（左键/右键菜单锚点）。
+  Offset? _lastTagTapPosition;
+
   // ━━ 链接自动补全 ━━
   List<NoteRow> _linkCandidates = [];
   String _linkPrefix = '';
@@ -284,7 +287,7 @@ class _EditorPageState extends State<EditorPage> {
     if (tag != null) _addTag(tag);
   }
 
-  Future<void> _showTagMenu(int index) async {
+  Future<void> _showTagMenu(int index, {Offset? position}) async {
     final compact = MediaQuery.sizeOf(context).width < 600;
     final action = compact
         ? await showModalBottomSheet<String>(
@@ -317,7 +320,14 @@ class _EditorPageState extends State<EditorPage> {
           )
         : await showMenu<String>(
             context: context,
-            position: const RelativeRect.fromLTRB(24, 72, 0, 0),
+            // 点锚定：RelativeRect 的 right/bottom 是距屏幕右/下边缘的距离，
+            // 需换算成指向按下点的零宽矩形，否则菜单会被弹到屏幕对侧。
+            position: RelativeRect.fromLTRB(
+              position?.dx ?? 24,
+              position?.dy ?? 72,
+              MediaQuery.sizeOf(context).width - (position?.dx ?? 24),
+              MediaQuery.sizeOf(context).height - (position?.dy ?? 72),
+            ),
             items: const [
               PopupMenuItem(
                 key: ValueKey('tag-action-edit'),
@@ -526,8 +536,13 @@ class _EditorPageState extends State<EditorPage> {
           top: top,
           child: Material(
             key: const ValueKey('link-completion-panel'),
-            elevation: 4,
-            borderRadius: BorderRadius.circular(CardMindRadii.md),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: context.cardMind.border),
+              borderRadius: const BorderRadius.all(
+                Radius.circular(CardMindRadii.md),
+              ),
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 240, maxWidth: 360),
               child: _linkCandidates.isEmpty
@@ -697,7 +712,7 @@ class _EditorPageState extends State<EditorPage> {
       onTap: dangling ? null : () => _openNote(link.id),
       borderRadius: BorderRadius.circular(CardMindRadii.sm),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Row(
           children: [
             Icon(
@@ -832,7 +847,12 @@ class _EditorPageState extends State<EditorPage> {
               key: ValueKey('editor-tag-${entry.value.toLowerCase()}'),
               label: entry.value,
               comfortable: compact,
-              onTap: () => _showTagMenu(entry.key),
+              onTapDown: (details) =>
+                  _lastTagTapPosition = details.globalPosition,
+              onSecondaryTapDown: (details) =>
+                  _showTagMenu(entry.key, position: details.globalPosition),
+              onTap: () =>
+                  _showTagMenu(entry.key, position: _lastTagTapPosition),
             ),
         ],
       ),

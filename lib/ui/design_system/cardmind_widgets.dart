@@ -145,12 +145,20 @@ class CardMindTag extends StatelessWidget {
     required this.label,
     this.selected = false,
     this.onTap,
+    this.onSecondaryTapDown,
+    this.onTapDown,
     this.comfortable = false,
   });
 
   final String label;
   final bool selected;
   final VoidCallback? onTap;
+
+  /// 桌面右键按下（上下文菜单锚点）。
+  final GestureTapDownCallback? onSecondaryTapDown;
+
+  /// 主键按下位置（供长按/菜单锚定复用）。
+  final GestureTapDownCallback? onTapDown;
   final bool comfortable;
 
   @override
@@ -162,6 +170,8 @@ class CardMindTag extends StatelessWidget {
       selected: selected,
       child: InkWell(
         onTap: onTap,
+        onSecondaryTapDown: onSecondaryTapDown,
+        onTapDown: onTapDown,
         borderRadius: BorderRadius.circular(CardMindRadii.md),
         child: Container(
           constraints: comfortable

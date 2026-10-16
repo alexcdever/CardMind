@@ -426,6 +426,8 @@ class _NoteListPageState extends State<NoteListPage> {
           onSecondaryTapDown: onSecondaryTapDown,
           child: Container(
             constraints: BoxConstraints(minHeight: comfortable ? 112 : 96),
+            // 纵向 14 是 2px 选中指示条的补偿：选中条占位后内容垂直居中不偏移，
+            // 属刻意偏离 4 倍数网格，勿"修正"。
             padding: EdgeInsets.fromLTRB(
               comfortable ? 16 : 14,
               comfortable ? 16 : 14,
@@ -824,6 +826,7 @@ class _NoteListPageState extends State<NoteListPage> {
   }
 
   Widget _buildMobile() {
+    final tokens = context.cardMind;
     return Scaffold(
       appBar: AppBar(
         title: Text(_mobileTabIndex == 0 ? 'CardMind' : '设备'),
@@ -885,6 +888,15 @@ class _NoteListPageState extends State<NoteListPage> {
           ? FloatingActionButton(
               key: const ValueKey('new-note'),
               tooltip: '新建笔记',
+              elevation: 0,
+              highlightElevation: 0,
+              backgroundColor: tokens.accent,
+              foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(
+                  Radius.circular(CardMindRadii.xl),
+                ),
+              ),
               onPressed: () => _openMobileEditor(),
               child: const Icon(Icons.add),
             )
