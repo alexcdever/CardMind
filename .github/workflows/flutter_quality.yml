@@ -34,6 +34,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # 全历史：docs_acceptance_test 用 `git log --format=%cs` 取文档真实
+          # 最近修改日期，浅克隆（fetch-depth:1）只能看到 HEAD commit 会假失败。
+          fetch-depth: 0
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -44,6 +48,14 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build host Rust library for FRB tests
+        # `flutter test` 里依赖 libcardmind_backend 的集成测试需要 host 动态库；
+        # `dart run tool/build.dart lib` = cargo build --release + 同步到运行态路径。
+        run: dart run tool/build.dart lib
 
       - name: Run flutter analyze
         run: flutter analyze
