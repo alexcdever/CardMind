@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../tool/quality.dart' as quality;
 import '../tool/src/git_gate/host_build.dart';
+import '../tool/src/git_gate/runner.dart';
 
 /// 验收标准 5：`dart run tool/quality.dart flutter` 的 FRB 准备步骤在 Windows 上
 /// 不再走 `dart tool/build.dart lib` 子进程——那条路径硬编码 macOS dylib，Windows 必失败。
@@ -95,16 +96,16 @@ void main() {
 
   test('Windows 上 flutter 命令必须解析为 flutter.bat（否则 CreateProcess 找不到文件）', () {
     expect(
-      quality.resolveHostExecutable('flutter', isWindows: true),
+      resolveExecutable('flutter', isWindows: true),
       'flutter.bat',
       reason: 'Windows 上无扩展名的 flutter 是 bash 脚本，必须走 flutter.bat',
     );
     expect(
-      quality.resolveHostExecutable('flutter', isWindows: false),
+      resolveExecutable('flutter', isWindows: false),
       'flutter',
     );
     expect(
-      quality.resolveHostExecutable('cargo', isWindows: true),
+      resolveExecutable('cargo', isWindows: true),
       'cargo',
       reason: 'cargo/dart/flutter_rust_bridge_codegen 在 Windows 上是真实 .exe',
     );
