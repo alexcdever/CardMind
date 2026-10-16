@@ -48,7 +48,7 @@ class UpdateService {
   final String currentVersion;
   final Future<String> Function(Uri)? fetch;
   final Duration _timeout;
-  HttpProxyPolicy proxyPolicy;
+  final HttpProxyPolicy proxyPolicy;
 
   Future<UpdateCheckResult> check(UpdateChannel channel) async {
     try {

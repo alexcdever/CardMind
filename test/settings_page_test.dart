@@ -6,6 +6,7 @@ import 'package:cardmind/models/update_channel.dart';
 import 'package:cardmind/models/update_manifest.dart';
 import 'package:cardmind/pages/settings_page.dart';
 import 'package:cardmind/services/app_settings_service.dart';
+import 'package:cardmind/services/http_proxy_policy.dart';
 import 'package:cardmind/services/platform_update_installer.dart';
 import 'package:cardmind/services/update_downloader.dart';
 import 'package:cardmind/services/update_download_manager.dart';
@@ -32,8 +33,18 @@ class _SettingsFake extends AppSettingsService {
   Future<void> writeUseSystemProxy(bool value) async => useSystemProxy = value;
 }
 
+class _DelayedSettings extends _SettingsFake {
+  _DelayedSettings(super.channel);
+
+  final proxyRead = Completer<bool>();
+
+  @override
+  Future<bool> readUseSystemProxy() => proxyRead.future;
+}
+
 class _DownloaderFake extends UpdateDownloader {
-  _DownloaderFake(this.result) : super(client: HttpClient());
+  _DownloaderFake(this.result, {super.proxyPolicy})
+    : super(client: HttpClient());
 
   final DownloadResult result;
 
@@ -223,6 +234,69 @@ void main() {
     await tester.pumpAndSettle();
     expect(settings.useSystemProxy, isFalse);
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+  });
+
+  testWidgets('downloader injection shares its proxy policy with the toggle', (
+    tester,
+  ) async {
+    final policy = HttpProxyPolicy();
+    final downloader = _DownloaderFake(
+      const DownloadFailure('unused'),
+      proxyPolicy: policy,
+    );
+    final settings = _SettingsFake(UpdateChannel.stable);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(
+          currentVersion: '1.0.0',
+          settings: settings,
+          downloader: downloader,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('use-system-proxy')));
+    await tester.pumpAndSettle();
+    expect(policy.useSystemProxy, isFalse);
+    downloader.dispose();
+  });
+
+  testWidgets('late settings read does not overwrite a newer proxy choice', (
+    tester,
+  ) async {
+    final settings = _DelayedSettings(UpdateChannel.stable);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(currentVersion: '1.0.0', settings: settings),
+      ),
+    );
+    await tester.pump();
+    final toggle = find.byKey(const ValueKey('use-system-proxy'));
+    await tester.tap(toggle);
+    await tester.pump();
+    settings.proxyRead.complete(true);
+    await tester.pumpAndSettle();
+    expect(settings.useSystemProxy, isFalse);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+  });
+
+  testWidgets('keeps 24px spacing before the update channel heading', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(
+          currentVersion: '1.0.0',
+          settings: _SettingsFake(UpdateChannel.stable),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final heading = tester.getTopLeft(find.text('更新渠道'));
+    final logEntry = tester.getBottomRight(
+      find.byKey(const ValueKey('open-log-directory')),
+    );
+    expect(heading.dy - logEntry.dy, 24);
   });
 
   testWidgets('download button shows progress and installer result', (

@@ -27,7 +27,7 @@ class UpdateDownloadManager extends ChangeNotifier {
        _ownsDownloader = downloader == null,
        _installer = installer ?? _defaultInstaller();
 
-  HttpProxyPolicy proxyPolicy;
+  final HttpProxyPolicy proxyPolicy;
 
   final UpdateDownloader _downloader;
   final bool _ownsDownloader;

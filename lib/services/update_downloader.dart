@@ -42,7 +42,7 @@ class UpdateDownloader {
        proxyPolicy = proxyPolicy ?? HttpProxyPolicy(),
        _directoryProvider = directoryProvider ?? _createTempDirectory;
 
-  HttpProxyPolicy proxyPolicy;
+  final HttpProxyPolicy proxyPolicy;
 
   // Android 上 Directory.systemTemp 指向 code_cache/ 且路径形式为 /data/data/<pkg>/…，
   // FileProvider 匹配会失败（URI_FAILED: Failed to find configured root）。

@@ -59,6 +59,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late final HttpProxyPolicy _proxyPolicy =
       widget.downloadManager?.proxyPolicy ??
       widget.updates?.proxyPolicy ??
+      widget.downloader?.proxyPolicy ??
       HttpProxyPolicy();
   String? _version;
   int? _build;
@@ -126,19 +127,25 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadSettings() async {
     final channel = await _settings.readChannel();
     final useSystemProxy = await _settings.readUseSystemProxy();
-    _proxyPolicy.useSystemProxy = useSystemProxy;
-    if (mounted) {
-      setState(() {
-        _channel = channel;
-        _useSystemProxy = useSystemProxy;
-      });
+    if (!mounted) return;
+    if (_proxySelectionChanged) {
+      if (_channel != channel) setState(() => _channel = channel);
+      return;
     }
+    _proxyPolicy.useSystemProxy = useSystemProxy;
+    setState(() {
+      _channel = channel;
+      _useSystemProxy = useSystemProxy;
+    });
   }
 
+  bool _proxySelectionChanged = false;
+
   Future<void> _setUseSystemProxy(bool value) async {
-    await _settings.writeUseSystemProxy(value);
+    _proxySelectionChanged = true;
     _proxyPolicy.useSystemProxy = value;
     if (mounted) setState(() => _useSystemProxy = value);
+    await _settings.writeUseSystemProxy(value);
   }
 
   @override
@@ -312,6 +319,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
                 Text('更新渠道', style: Theme.of(context).textTheme.titleMedium),
                 RadioGroup<UpdateChannel>(
                   groupValue: _channel,
