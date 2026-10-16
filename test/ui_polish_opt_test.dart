@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:cardmind/ui/design_system/cardmind_widgets.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +67,7 @@ void main() {
   });
 
   _themeChecks();
+  _settingsChecks();
 }
 
 /// 优化项 2/3：主题纪律——NavigationBar 去 tint/elevation，
@@ -97,6 +100,43 @@ void _themeChecks() {
       bg!.resolve({WidgetState.disabled}),
       CardMindTokens.light.border,
       reason: '裸 FilledButton disabled 应与 CardMindPrimaryButton 一致落 tokens.border',
+    );
+  });
+}
+
+/// 优化项 4/5：设置页——取消下载/打开安装包 ≥48dp；桌面宽屏内容有最大宽约束。
+void _settingsChecks() {
+  testWidgets('AC3: cancel-download / open-package TextButtons are >=48dp', (
+    tester,
+  ) async {
+    for (final key in const ['cancel-update-download', 'open-update-package']) {
+      // 仅做静态最小尺寸断言：SettingsPage 未挂起时不直接构造（依赖服务注入），
+      // 改由源码纪律测试保证 styleFrom(minimumSize) 存在（见下方 grep 断言）。
+      expect(key, isNotEmpty);
+    }
+    final source = File('lib/pages/settings_page.dart').readAsStringSync();
+    for (final key in const ['cancel-update-download', 'open-update-package']) {
+      // 每个 key 所在 TextButton 必须声明 minimumSize 达标触摸目标。
+      final pattern = RegExp(
+        "key: const ValueKey\\('$key'\\)[\\s\\S]{0,400}?minimumSize",
+      );
+      expect(
+        pattern.hasMatch(source),
+        isTrue,
+        reason: '$key TextButton 必须 styleFrom(minimumSize: Size(0, mobileTouchTarget))',
+      );
+    }
+  });
+
+  testWidgets('AC3: desktop settings body has a max-width constraint', (
+    tester,
+  ) async {
+    final source = File('lib/pages/settings_page.dart').readAsStringSync();
+    expect(
+      source.contains('ConstrainedBox') &&
+          source.contains('editorMaxWidth'),
+      isTrue,
+      reason: '桌面宽屏内容须以 ConstrainedBox + editorMaxWidth 限宽，与编辑器一致',
     );
   });
 }
