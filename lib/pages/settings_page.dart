@@ -11,6 +11,7 @@ import '../services/update_downloader.dart';
 import '../services/update_download_manager.dart';
 import '../services/http_proxy_policy.dart';
 import '../services/update_service.dart';
+import '../ui/design_system/cardmind_theme.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
@@ -294,10 +295,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 移动端（<600）标准内边距 16px，桌面 24px；与 editor_page 的 compact 断点一致。
+    final pagePadding = MediaQuery.sizeOf(context).width < 600
+        ? CardMindSpacing.lg
+        : CardMindSpacing.xl;
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(pagePadding),
         children: [
           Container(
             key: const ValueKey('settings-page'),
