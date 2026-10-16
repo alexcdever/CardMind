@@ -713,7 +713,13 @@ class _EditorPageState extends State<EditorPage> {
       borderRadius: BorderRadius.circular(CardMindRadii.sm),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Row(
+        child: ConstrainedBox(
+          // 行可点区域（含 padding）需 ≥48dp 触摸目标；
+          // minHeight 作用于内容盒，加 vertical 8×2 后整行 ≥48dp。
+          constraints: const BoxConstraints(
+            minHeight: CardMindLayout.mobileTouchTarget - 16,
+          ),
+          child: Row(
           children: [
             Icon(
               Icons.chevron_right,
@@ -742,6 +748,7 @@ class _EditorPageState extends State<EditorPage> {
               ),
             ],
           ],
+        ),
         ),
       ),
     );
