@@ -222,8 +222,10 @@ class CardMindSyncStatus extends StatelessWidget {
   /// 连续同步失败累计时长（决策 18：>24h 时圆点变色提示"长时间未同步"）。
   final Duration? lastSyncFailedFor;
 
-  /// 连续失败超时圆点颜色（灰黄，用于测试断言）。
-  static const Color staleDotColor = Color(0xFFB08D2E);
+  /// 连续失败超时圆点颜色（灰黄）。值为 [CardMindTokens.stale] 的
+  /// 兼容别名（非 const 因 token 走实例字段）；新代码请直接读
+  /// `context.cardMind.stale`。
+  static final Color staleDotColor = CardMindTokens.light.stale;
 
   /// 连续失败是否超过 24 小时（决策 18 提示阈值）。
   static const Duration staleThreshold = Duration(hours: 24);
@@ -250,7 +252,9 @@ class CardMindSyncStatus extends StatelessWidget {
           width: 7,
           height: 7,
           decoration: BoxDecoration(
-            color: _stale ? staleDotColor : tokens.accent,
+            // stale 圆点用 stale 警示色（~3:1 仅图形用途达标）；
+            // 状态文字不跟风用 stale——对比不达正文 4.5:1，回退 mutedInk。
+            color: _stale ? tokens.stale : tokens.accent,
             shape: BoxShape.circle,
           ),
         ),
@@ -260,7 +264,7 @@ class CardMindSyncStatus extends StatelessWidget {
             _effectiveLabel,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: _stale ? staleDotColor : tokens.mutedInk,
+              color: tokens.mutedInk,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
