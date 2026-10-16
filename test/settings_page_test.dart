@@ -473,7 +473,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('check-for-updates')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1));
-    expect(find.textContaining('检查失败'), findsOneWidget);
+    expect(find.textContaining('检查更新失败：'), findsOneWidget);
   });
 
   testWidgets(

@@ -386,7 +386,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
                 ],
                 if (_result case UpdateCheckError(:final message))
-                  Text('检查失败：$message'),
+                  Text(message),
                 const SizedBox(height: 12),
                 SwitchListTile(
                   key: const ValueKey('use-system-proxy'),
