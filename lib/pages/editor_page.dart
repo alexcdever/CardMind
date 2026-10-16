@@ -320,11 +320,13 @@ class _EditorPageState extends State<EditorPage> {
           )
         : await showMenu<String>(
             context: context,
+            // 点锚定：RelativeRect 的 right/bottom 是距屏幕右/下边缘的距离，
+            // 需换算成指向按下点的零宽矩形，否则菜单会被弹到屏幕对侧。
             position: RelativeRect.fromLTRB(
               position?.dx ?? 24,
               position?.dy ?? 72,
-              0,
-              0,
+              MediaQuery.sizeOf(context).width - (position?.dx ?? 24),
+              MediaQuery.sizeOf(context).height - (position?.dy ?? 72),
             ),
             items: const [
               PopupMenuItem(

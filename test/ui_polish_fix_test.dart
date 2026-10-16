@@ -5,6 +5,7 @@ import 'package:cardmind/pages/note_list_page.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'sync_ui_widget_test.dart' show DevicesRepository;
@@ -220,6 +221,62 @@ void main() {
         .topLeft
         .x;
     expect(radius, lessThanOrEqualTo(8), reason: 'FAB 圆角应 ≤8px');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  // ━━ AC6：桌面标签右键菜单锚定在指针触发位置附近，而非固定左上 ━━
+  testWidgets('AC6: tag context menu anchors to the pointer position', (
+    tester,
+  ) async {
+    // 桌面宽度 → 走 showMenu 分支
+    await tester.binding.setSurfaceSize(const Size(1200, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final repository = MemoryNoteRepository(
+      rows: const [
+        NoteRow(
+          id: 'tagged',
+          title: 'Tagged',
+          contentPreview: 'Body',
+          tags: 'Work',
+          updatedAt: '2026-07-22 05:00:00',
+        ),
+      ],
+      contents: const {'tagged': '# Tagged\n\nBody'},
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(
+          body: EditorPage(repository: repository, noteId: 'tagged'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('editor-tag-work')), findsOneWidget);
+
+    final tagCenter = tester.getCenter(
+      find.byKey(const ValueKey('editor-tag-work')),
+    );
+    // 右键点击标签
+    await tester.tapAt(tagCenter, buttons: 2, kind: PointerDeviceKind.mouse);
+    await tester.pumpAndSettle();
+
+    final menu = find.byKey(const ValueKey('tag-action-edit'));
+    expect(menu, findsOneWidget);
+    final menuTopLeft = tester.getTopLeft(menu);
+    // 菜单应出现在按下位置附近；固定 (24,72) 的实现会把菜单弹到屏幕对侧
+    // （实测固定实现下菜单落在 x≈1080，距标签中心上千 px）。
+    expect(
+      (menuTopLeft.dx - tagCenter.dx).abs(),
+      lessThan(160),
+      reason: '菜单水平位置应锚定在指针触发位置附近',
+    );
+    expect(
+      (menuTopLeft.dy - tagCenter.dy).abs(),
+      lessThan(160),
+      reason: '菜单垂直位置应锚定在指针触发位置附近',
+    );
     await tester.pumpWidget(const SizedBox());
   });
 }
