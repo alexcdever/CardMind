@@ -9,6 +9,7 @@ class CardMindPrimaryButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.expanded = false,
+    this.busy = false,
   });
 
   final String label;
@@ -16,12 +17,24 @@ class CardMindPrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool expanded;
 
+  /// 忙碌态：icon 槽位换尺寸化进度环（替代易被误读为同步的静态 glyph）。
+  final bool busy;
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.cardMind;
     final button = FilledButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 18),
+      icon: busy
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Icon(icon, size: 18),
       label: Text(label),
       style: FilledButton.styleFrom(
         minimumSize: Size(expanded ? double.infinity : 0, 48),
@@ -45,12 +58,16 @@ class CardMindIconButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.selected = false,
+    this.busy = false,
   });
 
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
   final bool selected;
+
+  /// 忙碌态：icon 槽位换尺寸化进度环（替代易被误读为同步的静态 glyph）。
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -62,7 +79,16 @@ class CardMindIconButton extends StatelessWidget {
       child: IconButton(
         tooltip: tooltip,
         onPressed: onPressed,
-        icon: Icon(icon, size: 19),
+        icon: busy
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: selected ? tokens.accent : tokens.mutedInk,
+                ),
+              )
+            : Icon(icon, size: 19),
         color: selected ? tokens.accent : tokens.mutedInk,
         style: IconButton.styleFrom(
           fixedSize: const Size(

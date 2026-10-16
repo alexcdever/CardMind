@@ -334,16 +334,20 @@ class _EditorPageState extends State<EditorPage> {
               MediaQuery.sizeOf(context).width - (position?.dx ?? 24),
               MediaQuery.sizeOf(context).height - (position?.dy ?? 72),
             ),
-            items: const [
-              PopupMenuItem(
+            items: [
+              const PopupMenuItem(
                 key: ValueKey('tag-action-edit'),
                 value: 'edit',
                 child: Text('重命名'),
               ),
               PopupMenuItem(
-                key: ValueKey('tag-action-delete'),
+                key: const ValueKey('tag-action-delete'),
                 value: 'delete',
-                child: Text('删除'),
+                // 与 bottom-sheet 分支对齐：删除动作用 danger 色标识。
+                child: Text(
+                  '删除',
+                  style: TextStyle(color: context.cardMind.danger),
+                ),
               ),
             ],
           );
@@ -533,8 +537,17 @@ class _EditorPageState extends State<EditorPage> {
 
   Widget _buildLinkOverlay() {
     final rect = _linkPanelRect();
-    final left = rect?.left ?? 20.0;
+    final rawLeft = rect?.left ?? 20.0;
     final top = (rect?.bottom ?? 100.0) + 4.0;
+    // 面板 maxWidth 360，光标贴近右缘时 right 会溢出屏幕；
+    // 将 left 钳制到 screenW - panelW - margin 之内（margin 取页面紧凑边距 12）。
+    const panelWidth = 360.0;
+    const margin = CardMindSpacing.md;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final left = rawLeft.clamp(
+      margin,
+      (screenWidth - panelWidth - margin).clamp(margin, double.infinity),
+    );
     return Stack(
       children: [
         Positioned(
@@ -819,7 +832,8 @@ class _EditorPageState extends State<EditorPage> {
           if (compact)
             CardMindIconButton(
               key: const ValueKey('editor-save'),
-              icon: _saving ? Icons.sync : Icons.save_outlined,
+              icon: Icons.save_outlined,
+              busy: _saving,
               tooltip: _saving ? '保存中' : '保存',
               onPressed: _saving ? null : () => _save(showFeedback: true),
             )
@@ -827,7 +841,8 @@ class _EditorPageState extends State<EditorPage> {
             CardMindPrimaryButton(
               key: const ValueKey('editor-save'),
               label: _saving ? '保存中' : '保存',
-              icon: _saving ? Icons.sync : Icons.save_outlined,
+              icon: Icons.save_outlined,
+              busy: _saving,
               onPressed: _saving ? null : () => _save(showFeedback: true),
             ),
         ],
