@@ -166,6 +166,18 @@ abstract final class CardMindTheme {
         thickness: 1,
         space: 1,
       ),
+      // 与 AppBar/Dialog 去 surfaceTint 纪律一致：M3 默认 elevation:3 +
+      // surfaceTint 会给底栏叠 teal 色。
+      navigationBarTheme: const NavigationBarThemeData(
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+      ),
+      // 让裸 FilledButton disabled 与 CardMindPrimaryButton 一致落 tokens.border。
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          disabledBackgroundColor: tokens.border,
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: tokens.paper,
         foregroundColor: tokens.ink,
