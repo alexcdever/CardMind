@@ -292,6 +292,12 @@ class _EditorPageState extends State<EditorPage> {
     final action = compact
         ? await showModalBottomSheet<String>(
             context: context,
+            // M3 默认 28px 上圆角违反 4–8px 圆角纪律；收敛到 radius.xl(8)。
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(CardMindRadii.xl),
+              ),
+            ),
             builder: (context) => SafeArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -713,7 +719,13 @@ class _EditorPageState extends State<EditorPage> {
       borderRadius: BorderRadius.circular(CardMindRadii.sm),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Row(
+        child: ConstrainedBox(
+          // 行可点区域（含 padding）需 ≥48dp 触摸目标；
+          // minHeight 作用于内容盒，加 vertical 8×2 后整行 ≥48dp。
+          constraints: const BoxConstraints(
+            minHeight: CardMindLayout.mobileTouchTarget - 16,
+          ),
+          child: Row(
           children: [
             Icon(
               Icons.chevron_right,
@@ -742,6 +754,7 @@ class _EditorPageState extends State<EditorPage> {
               ),
             ],
           ],
+        ),
         ),
       ),
     );
