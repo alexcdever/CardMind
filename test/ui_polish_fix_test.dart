@@ -141,21 +141,13 @@ void main() {
         find.byKey(const ValueKey('unpair-peer-a')),
       );
       final fg = entryButton.style?.foregroundColor?.resolve({});
-      expect(
-        fg,
-        const Color(0xFFA34F4F),
-        reason: '解除配对入口应有 danger-red 文字',
-      );
+      expect(fg, const Color(0xFFA34F4F), reason: '解除配对入口应有 danger-red 文字');
 
       await tester.tap(find.byKey(const ValueKey('unpair-peer-a')));
       await tester.pumpAndSettle();
 
       final confirm = find.byKey(const ValueKey('unpair-confirm'));
-      expect(
-        confirm,
-        findsOneWidget,
-        reason: '解除配对确认按钮应存在',
-      );
+      expect(confirm, findsOneWidget, reason: '解除配对确认按钮应存在');
       final button = tester.widget<FilledButton>(confirm);
       final bg = button.style?.backgroundColor?.resolve({});
       expect(bg, const Color(0xFFA34F4F), reason: '解除配对确认应使用 danger-red 填充');

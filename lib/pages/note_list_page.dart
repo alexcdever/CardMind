@@ -426,6 +426,8 @@ class _NoteListPageState extends State<NoteListPage> {
           onSecondaryTapDown: onSecondaryTapDown,
           child: Container(
             constraints: BoxConstraints(minHeight: comfortable ? 112 : 96),
+            // 纵向 14 是 2px 选中指示条的补偿：选中条占位后内容垂直居中不偏移，
+            // 属刻意偏离 4 倍数网格，勿"修正"。
             padding: EdgeInsets.fromLTRB(
               comfortable ? 16 : 14,
               comfortable ? 16 : 14,
