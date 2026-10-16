@@ -526,8 +526,13 @@ class _EditorPageState extends State<EditorPage> {
           top: top,
           child: Material(
             key: const ValueKey('link-completion-panel'),
-            elevation: 4,
-            borderRadius: BorderRadius.circular(CardMindRadii.md),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: context.cardMind.border),
+              borderRadius: const BorderRadius.all(
+                Radius.circular(CardMindRadii.md),
+              ),
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 240, maxWidth: 360),
               child: _linkCandidates.isEmpty
