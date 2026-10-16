@@ -191,8 +191,11 @@ class _DevicesPageState extends State<DevicesPage> {
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: const Text('取消'),
           ),
-          TextButton(
+          FilledButton(
             key: const ValueKey('unpair-confirm'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('解除'),
           ),
@@ -720,6 +723,12 @@ class _DevicesPageState extends State<DevicesPage> {
                 label: '$checkLabel，${device.name}',
                 child: TextButton(
                   key: ValueKey('check-${device.peerId}'),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(
+                      0,
+                      CardMindLayout.mobileTouchTarget,
+                    ),
+                  ),
                   onPressed: checking ? null : () => _checkConnectivity(device),
                   child: checking
                       ? Row(
@@ -739,6 +748,13 @@ class _DevicesPageState extends State<DevicesPage> {
               ),
               TextButton(
                 key: ValueKey('unpair-${device.peerId}'),
+                style: TextButton.styleFrom(
+                  foregroundColor: tokens.danger,
+                  minimumSize: const Size(
+                    0,
+                    CardMindLayout.mobileTouchTarget,
+                  ),
+                ),
                 onPressed: () => _confirmUnpair(device),
                 child: const Text('解除配对'),
               ),

@@ -136,15 +136,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 入口按钮：文字用 danger 色提示破坏性操作
-      final entryText = tester.widget<Text>(
-        find.descendant(
-          of: find.byKey(const ValueKey('unpair-peer-a')),
-          matching: find.byType(Text),
-        ),
+      // 入口按钮：前景色用 danger 提示破坏性操作
+      final entryButton = tester.widget<TextButton>(
+        find.byKey(const ValueKey('unpair-peer-a')),
       );
+      final fg = entryButton.style?.foregroundColor?.resolve({});
       expect(
-        entryText.style?.color,
+        fg,
         const Color(0xFFA34F4F),
         reason: '解除配对入口应有 danger-red 文字',
       );
@@ -154,13 +152,11 @@ void main() {
 
       final confirm = find.byKey(const ValueKey('unpair-confirm'));
       expect(
-        find.descendant(of: confirm, matching: find.byType(FilledButton)),
+        confirm,
         findsOneWidget,
-        reason: '破坏性确认按钮应为 FilledButton（同 trash_page 范式）',
+        reason: '解除配对确认按钮应存在',
       );
-      final button = tester.widget<FilledButton>(
-        find.descendant(of: confirm, matching: find.byType(FilledButton)),
-      );
+      final button = tester.widget<FilledButton>(confirm);
       final bg = button.style?.backgroundColor?.resolve({});
       expect(bg, const Color(0xFFA34F4F), reason: '解除配对确认应使用 danger-red 填充');
       await tester.pumpWidget(const SizedBox());
