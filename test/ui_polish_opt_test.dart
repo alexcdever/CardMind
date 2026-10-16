@@ -68,6 +68,7 @@ void main() {
 
   _themeChecks();
   _settingsChecks();
+  _editorChecks();
 }
 
 /// 优化项 2/3：主题纪律——NavigationBar 去 tint/elevation，
@@ -137,6 +138,52 @@ void _settingsChecks() {
           source.contains('editorMaxWidth'),
       isTrue,
       reason: '桌面宽屏内容须以 ConstrainedBox + editorMaxWidth 限宽，与编辑器一致',
+    );
+  });
+}
+
+/// 优化项 6/7/12：编辑器——链接补全面板 left 钳制、右键「删除」danger、
+/// 保存中指示非静态 Icons.sync。
+void _editorChecks() {
+  test('AC4: link-completion panel clamps left to screen minus panel minus margin', () {
+    final source = File('lib/pages/editor_page.dart').readAsStringSync();
+    // left 必须由 rect.left 再经 clamp 收敛到屏幕内；
+    // 断言出现对 panel 宽 + margin 的边界钳制表达式。
+    expect(
+      RegExp(r'left[^;]*clamp|clamp[^;]*left|screenW|panelW|\.clamp\(')
+          .hasMatch(source),
+      isTrue,
+      reason: '光标贴近右缘时 360 宽补全面板会被裁；left 须 clamp 到 screenW-panelW-margin',
+    );
+  });
+
+  test('AC4: desktop tag context menu delete item uses danger color', () {
+    final source = File('lib/pages/editor_page.dart').readAsStringSync();
+    // 右键菜单分支的「删除」项必须带 danger 色（图标或文字），
+    // 与底部 sheet 分支（:317-321）对齐。
+    final menuIdx = source.indexOf("value: 'delete'");
+    expect(menuIdx, greaterThan(-1), reason: '必须存在右键删除菜单项');
+    // 在该 PopupMenuItem 块附近应出现 danger 引用。
+    final window = source.substring(
+      (menuIdx - 400).clamp(0, source.length),
+      (menuIdx + 400).clamp(0, source.length),
+    );
+    expect(
+      window.contains('danger'),
+      isTrue,
+      reason: '桌面右键「删除」须用 tokens.danger 与 bottom-sheet 分支对齐',
+    );
+  });
+
+  test('AC7: saving indicator is not the static Icons.sync glyph', () {
+    final source = File('lib/pages/editor_page.dart').readAsStringSync();
+    // _saving 分支不得继续渲染 Icons.sync（易误读为同步动作）；
+    // 允许 Icons.save/CircularProgressIndicator/尺寸化 spinner。
+    expect(
+      RegExp(r'_saving \? Icons\.sync').hasMatch(source),
+      isFalse,
+      reason: '_saving 分支不得用静态 Icons.sync，须换 SizedBox 尺寸化 '
+          'CircularProgressIndicator 或 Icons.save+文案区分',
     );
   });
 }
