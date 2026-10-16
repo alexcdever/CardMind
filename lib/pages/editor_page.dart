@@ -726,35 +726,35 @@ class _EditorPageState extends State<EditorPage> {
             minHeight: CardMindLayout.mobileTouchTarget - 16,
           ),
           child: Row(
-          children: [
-            Icon(
-              Icons.chevron_right,
-              size: 15,
-              color: dangling ? tokens.border : tokens.accent,
-            ),
-            const SizedBox(width: CardMindSpacing.xs),
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: dangling ? tokens.mutedInk : tokens.ink,
-                  fontSize: 14,
-                  decoration: dangling ? null : TextDecoration.underline,
-                  decorationColor: tokens.accent,
+            children: [
+              Icon(
+                Icons.chevron_right,
+                size: 15,
+                color: dangling ? tokens.border : tokens.accent,
+              ),
+              const SizedBox(width: CardMindSpacing.xs),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: dangling ? tokens.mutedInk : tokens.ink,
+                    fontSize: 14,
+                    decoration: dangling ? null : TextDecoration.underline,
+                    decorationColor: tokens.accent,
+                  ),
                 ),
               ),
-            ),
-            if (dangling) ...[
-              const SizedBox(width: CardMindSpacing.sm),
-              Text(
-                '已删除',
-                style: TextStyle(color: tokens.mutedInk, fontSize: 12),
-              ),
+              if (dangling) ...[
+                const SizedBox(width: CardMindSpacing.sm),
+                Text(
+                  '已删除',
+                  style: TextStyle(color: tokens.mutedInk, fontSize: 12),
+                ),
+              ],
             ],
-          ],
-        ),
+          ),
         ),
       ),
     );

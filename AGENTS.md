@@ -206,3 +206,12 @@ This project is indexed by GitNexus as **CardMind** (5743 symbols, 14295 relatio
 ## 流水线项目经验（必读）
 
 执行任何编码任务前，先读 `.claude/skills/pipeline-project-lessons/SKILL.md`（CardMind 专属流水线经验：provider 策略、环境前置、实机测试、发布流程）。该文件是全局编程工作流技能在本仓库的项目 overlay；与全局规则冲突时以全局规则为准。
+
+## UI/交互工作约定（必读）
+
+凡是涉及 **UI 或交互** 的功能——新增/修改页面、组件、布局、导航、表单、空态/加载/错误态、确认流程、触摸目标、可达性、主题与令牌——**必须用 `ui-ux-pro-max` 技能辅助**，而不是凭经验直接写：
+
+- **设计/新建页面或组件前**：先读 `docs/standards/ui-style-guide.md` 与 `docs/standards/design-tokens.md` 作为基准，再用 `python .agents/skills/ui-ux-pro-max/scripts/search.py "<关键词>" --stack flutter`（按需加 `--domain ux|style|color|typography|icons|web`）取实现建议，落到 `CardMindTokens/Spacing/Radii` 而不是硬编码值。
+- **改 UI/交互前**：对照该技能的 Pre-Delivery Checklist（触摸目标 ≥48dp、无 emoji 当图标、色不作唯一状态指示、阴影/圆角纪律、disabled 态）逐条核，确认不违反。
+- **交付/审查 UI 前**：按该技能 Quick Reference §1–§3 + CardMind 规范做一次走查；UI 审查任务派发子代理时把这份清单 + 两份标准文档作为审查基准一并传入。
+- 该技能的搜索脚本只需 Python 3（Windows 用 `python`）；不可用时就按上面两份标准文档人工核对，不阻断。

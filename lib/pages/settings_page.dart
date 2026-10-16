@@ -330,9 +330,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         Flexible(
                           child: Text(
                             _logDirectory ??
-                                (_logDirectoryLoadFailed
-                                    ? '无法获取日志目录'
-                                    : '加载中…'),
+                                (_logDirectoryLoadFailed ? '无法获取日志目录' : '加载中…'),
                           ),
                         ),
                       ],

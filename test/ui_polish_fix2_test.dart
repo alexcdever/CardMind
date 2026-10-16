@@ -142,20 +142,22 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1200, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final repository = MemoryNoteRepository(
-      rows: const [
-        NoteRow(
-          id: 'linked',
-          title: 'Linked',
-          contentPreview: 'Body',
-          tags: '',
-          updatedAt: '2026-07-22 05:00:00',
-        ),
-      ],
-      contents: const {'linked': '# Linked\n\nBody'},
-    )..backlinks = const [
-      LinkRow(id: 'src-1', title: 'Source Note', alias: '', exists: true),
-    ];
+    final repository =
+        MemoryNoteRepository(
+            rows: const [
+              NoteRow(
+                id: 'linked',
+                title: 'Linked',
+                contentPreview: 'Body',
+                tags: '',
+                updatedAt: '2026-07-22 05:00:00',
+              ),
+            ],
+            contents: const {'linked': '# Linked\n\nBody'},
+          )
+          ..backlinks = const [
+            LinkRow(id: 'src-1', title: 'Source Note', alias: '', exists: true),
+          ];
 
     await tester.pumpWidget(
       MaterialApp(
@@ -255,9 +257,14 @@ void main() {
           .last,
     );
     final shape = sheetMaterial.shape;
-    expect(shape, isA<RoundedRectangleBorder>(), reason: 'bottom sheet 必须显式设 shape');
-    final radius = (shape! as RoundedRectangleBorder).borderRadius
-        .resolve(TextDirection.ltr);
+    expect(
+      shape,
+      isA<RoundedRectangleBorder>(),
+      reason: 'bottom sheet 必须显式设 shape',
+    );
+    final radius = (shape! as RoundedRectangleBorder).borderRadius.resolve(
+      TextDirection.ltr,
+    );
     expect(
       radius.topLeft.x,
       CardMindRadii.xl,
@@ -281,11 +288,7 @@ void main() {
       find.byKey(const ValueKey('open-log-directory')),
     );
     expect(row.onTap, isNull, reason: '目录未加载成功时该行不得可点');
-    expect(
-      find.text('无法获取日志目录'),
-      findsOneWidget,
-      reason: '失败文案仍应显示',
-    );
+    expect(find.text('无法获取日志目录'), findsOneWidget, reason: '失败文案仍应显示');
   });
 
   // ━━ AC6b：日志目录加载成功后可点且有图标提示 ━━

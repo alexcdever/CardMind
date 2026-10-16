@@ -74,63 +74,60 @@ void main() {
     await tester.pump(const Duration(seconds: 31));
   });
 
-  testWidgets('AC2: cancelling the connecting dialog closes it without reload', (
-    tester,
-  ) async {
-    final gate = Completer<PairingResult>();
-    final repo = CredentialUiRepository();
-    var listDevicesCalls = 0;
-    repo.onListPairedDevices = () => listDevicesCalls++;
-    repo.credentialConnectGate = gate;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: CardMindTheme.light,
-        home: Scaffold(
-          body: DevicesPage(repository: repo, scanner: _StubScanner()),
+  testWidgets(
+    'AC2: cancelling the connecting dialog closes it without reload',
+    (tester) async {
+      final gate = Completer<PairingResult>();
+      final repo = CredentialUiRepository();
+      var listDevicesCalls = 0;
+      repo.onListPairedDevices = () => listDevicesCalls++;
+      repo.credentialConnectGate = gate;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: CardMindTheme.light,
+          home: Scaffold(
+            body: DevicesPage(repository: repo, scanner: _StubScanner()),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    listDevicesCalls = 0; // 只统计取消后是否有多余 _load
+      );
+      await tester.pumpAndSettle();
+      listDevicesCalls = 0; // 只统计取消后是否有多余 _load
 
-    await tester.tap(find.byKey(const ValueKey('devices-add')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('pair-scan-connecting-dialog')),
-      findsOneWidget,
-    );
+      await tester.tap(find.byKey(const ValueKey('devices-add')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('pair-scan-connecting-dialog')),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.byKey(const ValueKey('pair-scan-cancel')));
-    // 放行底层 connect future：取消只是 UI 放弃等待（_run mounted 检查兜底），
-    // future 完成后 timeout 内部计时器取消，不留 pending timer、不触发
-    // 页面 2s 周期刷新干扰下面的 _load 计数断言。
-    gate.complete(const PairingResult(peerId: 'p', peerName: 'late'));
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.byKey(const ValueKey('pair-scan-cancel')));
+      // 放行底层 connect future：取消只是 UI 放弃等待（_run mounted 检查兜底），
+      // future 完成后 timeout 内部计时器取消，不留 pending timer、不触发
+      // 页面 2s 周期刷新干扰下面的 _load 计数断言。
+      gate.complete(const PairingResult(peerId: 'p', peerName: 'late'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
-    expect(
-      find.byKey(const ValueKey('pair-scan-connecting-dialog')),
-      findsNothing,
-      reason: '点取消后弹窗必须关闭',
-    );
-    expect(
-      find.byKey(const ValueKey('pair-scan-result-dialog')),
-      findsNothing,
-      reason: '取消不是成功/失败结果态，不得弹出结果弹窗',
-    );
-    expect(
-      find.byKey(const ValueKey('pair-credential-input')),
-      findsNothing,
-      reason: '取消不得跳到手动输入',
-    );
-    expect(
-      listDevicesCalls,
-      0,
-      reason: '取消不得触发 _load()（非 done 结果不刷设备列表）',
-    );
-  });
+      expect(
+        find.byKey(const ValueKey('pair-scan-connecting-dialog')),
+        findsNothing,
+        reason: '点取消后弹窗必须关闭',
+      );
+      expect(
+        find.byKey(const ValueKey('pair-scan-result-dialog')),
+        findsNothing,
+        reason: '取消不是成功/失败结果态，不得弹出结果弹窗',
+      );
+      expect(
+        find.byKey(const ValueKey('pair-credential-input')),
+        findsNothing,
+        reason: '取消不得跳到手动输入',
+      );
+      expect(listDevicesCalls, 0, reason: '取消不得触发 _load()（非 done 结果不刷设备列表）');
+    },
+  );
 
   testWidgets('AC3: hung connect future falls to failure state on timeout', (
     tester,
@@ -160,55 +157,51 @@ void main() {
     await tester.pump();
   });
 
-  test(
-    'AC3: connect timeout uses the documented 30s budget',
-    () {
-      final source = File('lib/pages/devices_page.dart').readAsStringSync();
-      expect(
-        source.contains('_pairConnectTimeout'),
-        isTrue,
-        reason: '超时必须是显式命名的常量（可测试、可调）',
-      );
-      expect(
-        RegExp(r'Duration\(seconds:\s*30\)').hasMatch(source),
-        isTrue,
-        reason: '超时预算 30 秒（任务建议值）',
-      );
-    },
-  );
+  test('AC3: connect timeout uses the documented 30s budget', () {
+    final source = File('lib/pages/devices_page.dart').readAsStringSync();
+    expect(
+      source.contains('_pairConnectTimeout'),
+      isTrue,
+      reason: '超时必须是显式命名的常量（可测试、可调）',
+    );
+    expect(
+      RegExp(r'Duration\(seconds:\s*30\)').hasMatch(source),
+      isTrue,
+      reason: '超时预算 30 秒（任务建议值）',
+    );
+  });
 
-  testWidgets(
-    'AC2: success path still reloads the device list after done',
-    (tester) async {
-      // 守护：取消语义新增后，成功→「完成」仍要 _load（回归保护）。
-      final repo = CredentialUiRepository();
-      var listDevicesCalls = 0;
-      repo.onListPairedDevices = () => listDevicesCalls++;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: CardMindTheme.light,
-          home: Scaffold(
-            body: DevicesPage(repository: repo, scanner: _StubScanner()),
-          ),
+  testWidgets('AC2: success path still reloads the device list after done', (
+    tester,
+  ) async {
+    // 守护：取消语义新增后，成功→「完成」仍要 _load（回归保护）。
+    final repo = CredentialUiRepository();
+    var listDevicesCalls = 0;
+    repo.onListPairedDevices = () => listDevicesCalls++;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(
+          body: DevicesPage(repository: repo, scanner: _StubScanner()),
         ),
-      );
-      await tester.pumpAndSettle();
-      listDevicesCalls = 0;
+      ),
+    );
+    await tester.pumpAndSettle();
+    listDevicesCalls = 0;
 
-      await tester.tap(find.byKey(const ValueKey('devices-add')));
-      await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('devices-add')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('pair-mode-scan')));
+    await tester.pumpAndSettle();
 
-      expect(find.textContaining('Trusted PC'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('pair-scan-done')));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
-      expect(
-        listDevicesCalls,
-        greaterThanOrEqualTo(1),
-        reason: '成功结果点「完成」仍应触发 _load()',
-      );
-    },
-  );
+    expect(find.textContaining('Trusted PC'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pair-scan-done')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      listDevicesCalls,
+      greaterThanOrEqualTo(1),
+      reason: '成功结果点「完成」仍应触发 _load()',
+    );
+  });
 }
