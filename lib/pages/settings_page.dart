@@ -9,6 +9,7 @@ import '../services/app_settings_service.dart';
 import '../services/platform_update_installer.dart';
 import '../services/update_downloader.dart';
 import '../services/update_download_manager.dart';
+import '../services/http_proxy_policy.dart';
 import '../services/update_service.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -54,6 +55,11 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late UpdateChannel _channel = widget.initialChannel;
+  bool _useSystemProxy = true;
+  late final HttpProxyPolicy _proxyPolicy =
+      widget.downloadManager?.proxyPolicy ??
+      widget.updates?.proxyPolicy ??
+      HttpProxyPolicy();
   String? _version;
   int? _build;
   UpdateCheckResult? _result;
@@ -61,8 +67,10 @@ class _SettingsPageState extends State<SettingsPage> {
   late final UpdateDownloadManager _downloadManager =
       widget.downloadManager ??
       UpdateDownloadManager(
-        downloader: widget.downloader,
+        downloader:
+            widget.downloader ?? UpdateDownloader(proxyPolicy: _proxyPolicy),
         installer: widget.installer,
+        proxyPolicy: _proxyPolicy,
       );
   late final bool _ownsDownloadManager = widget.downloadManager == null;
   String? _logDirectory;
@@ -112,7 +120,26 @@ class _SettingsPageState extends State<SettingsPage> {
       UpdateService(
         currentBuild: _build ?? widget.currentBuild,
         currentVersion: _version ?? widget.currentVersion ?? '',
+        proxyPolicy: _proxyPolicy,
       );
+
+  Future<void> _loadSettings() async {
+    final channel = await _settings.readChannel();
+    final useSystemProxy = await _settings.readUseSystemProxy();
+    _proxyPolicy.useSystemProxy = useSystemProxy;
+    if (mounted) {
+      setState(() {
+        _channel = channel;
+        _useSystemProxy = useSystemProxy;
+      });
+    }
+  }
+
+  Future<void> _setUseSystemProxy(bool value) async {
+    await _settings.writeUseSystemProxy(value);
+    _proxyPolicy.useSystemProxy = value;
+    if (mounted) setState(() => _useSystemProxy = value);
+  }
 
   @override
   void initState() {
@@ -171,11 +198,6 @@ class _SettingsPageState extends State<SettingsPage> {
     if (command == null) return;
     final process = await Process.start(command, <String>[path]);
     if (process.pid <= 0) throw StateError('无法打开更新包');
-  }
-
-  Future<void> _loadSettings() async {
-    final channel = await _settings.readChannel();
-    if (mounted) setState(() => _channel = channel);
   }
 
   Future<void> _loadVersion() async {
@@ -290,7 +312,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
                 Text('更新渠道', style: Theme.of(context).textTheme.titleMedium),
                 RadioGroup<UpdateChannel>(
                   groupValue: _channel,
@@ -358,6 +379,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 ],
                 if (_result case UpdateCheckError(:final message))
                   Text('检查失败：$message'),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  key: const ValueKey('use-system-proxy'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('使用系统网络代理'),
+                  subtitle: const Text('更新检查和下载使用 Dart 环境代理设置'),
+                  value: _useSystemProxy,
+                  onChanged: _setUseSystemProxy,
+                ),
               ],
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/update_manifest.dart';
+import 'http_proxy_policy.dart';
 
 sealed class DownloadResult {
   const DownloadResult();
@@ -34,10 +35,14 @@ class DownloadCancellationToken {
 class UpdateDownloader {
   UpdateDownloader({
     HttpClient? client,
+    HttpProxyPolicy? proxyPolicy,
     this.timeout = const Duration(minutes: 3),
     Future<Directory> Function(String prefix)? directoryProvider,
   }) : _client = client ?? HttpClient(),
+       proxyPolicy = proxyPolicy ?? HttpProxyPolicy(),
        _directoryProvider = directoryProvider ?? _createTempDirectory;
+
+  HttpProxyPolicy proxyPolicy;
 
   // Android 上 Directory.systemTemp 指向 code_cache/ 且路径形式为 /data/data/<pkg>/…，
   // FileProvider 匹配会失败（URI_FAILED: Failed to find configured root）。
@@ -83,6 +88,7 @@ class UpdateDownloader {
       if (uri.scheme != 'https' && !isLocalTestEndpoint) {
         return const DownloadFailure('下载地址必须使用 HTTPS');
       }
+      _client.findProxy = proxyPolicy.findProxy;
       final request = await _client.getUrl(uri).timeout(timeout);
       final response = await request.close().timeout(timeout);
       if (response.statusCode != HttpStatus.ok) {

@@ -29,4 +29,21 @@ void main() {
     file.writeAsStringSync('{"updateChannel":"nightly"}');
     expect(await service.readChannel(), UpdateChannel.stable);
   });
+  test(
+    'defaults proxy on and preserves channel when saving proxy setting',
+    () async {
+      await service.writeChannel(UpdateChannel.beta);
+      expect(await service.readUseSystemProxy(), isTrue);
+      await service.writeUseSystemProxy(false);
+      expect(await service.readChannel(), UpdateChannel.beta);
+      expect(await service.readUseSystemProxy(), isFalse);
+    },
+  );
+
+  test('invalid proxy setting falls back to enabled', () async {
+    final file = File('${directory.path}/settings.json');
+    file.writeAsStringSync('{"updateChannel":"beta","useSystemProxy":"yes"}');
+    expect(await service.readChannel(), UpdateChannel.beta);
+    expect(await service.readUseSystemProxy(), isTrue);
+  });
 }

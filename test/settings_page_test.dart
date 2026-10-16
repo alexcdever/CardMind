@@ -14,15 +14,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _SettingsFake extends AppSettingsService {
-  _SettingsFake(this.channel);
+  _SettingsFake(this.channel, {this.useSystemProxy = true});
 
   UpdateChannel channel;
+  bool useSystemProxy;
 
   @override
   Future<UpdateChannel> readChannel() async => channel;
 
   @override
   Future<void> writeChannel(UpdateChannel value) async => channel = value;
+
+  @override
+  Future<bool> readUseSystemProxy() async => useSystemProxy;
+
+  @override
+  Future<void> writeUseSystemProxy(bool value) async => useSystemProxy = value;
 }
 
 class _DownloaderFake extends UpdateDownloader {
@@ -197,6 +204,25 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('测试版'), findsOneWidget);
+  });
+
+  testWidgets('system proxy toggle defaults on and persists changes', (
+    tester,
+  ) async {
+    final settings = _SettingsFake(UpdateChannel.beta, useSystemProxy: true);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(currentVersion: '1.0.0', settings: settings),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('使用系统网络代理'), findsOneWidget);
+    final toggle = find.byKey(const ValueKey('use-system-proxy'));
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(settings.useSystemProxy, isFalse);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
   });
 
   testWidgets('download button shows progress and installer result', (

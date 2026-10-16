@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../models/update_channel.dart';
 import '../models/update_manifest.dart';
+import 'http_proxy_policy.dart';
 
 class _ParsedVersion {
   const _ParsedVersion(this.core, this.prerelease);
@@ -38,18 +39,21 @@ class UpdateService {
   UpdateService({
     this.currentBuild = 0,
     this.currentVersion = '',
-    Future<String> Function(Uri)? fetch,
+    this.fetch,
+    HttpProxyPolicy? proxyPolicy,
     this._timeout = const Duration(seconds: 20),
-  }) : _fetch = fetch ?? _httpFetch;
+  }) : proxyPolicy = proxyPolicy ?? HttpProxyPolicy();
 
   final int currentBuild;
   final String currentVersion;
-  final Future<String> Function(Uri) _fetch;
+  final Future<String> Function(Uri)? fetch;
   final Duration _timeout;
+  HttpProxyPolicy proxyPolicy;
 
   Future<UpdateCheckResult> check(UpdateChannel channel) async {
     try {
-      final body = await _fetch(
+      final fetchFn = fetch ?? (uri) => _httpFetch(uri, proxyPolicy);
+      final body = await fetchFn(
         Uri.parse(channel.manifestUrl),
       ).timeout(_timeout);
       final decoded = jsonDecode(body);
@@ -121,8 +125,8 @@ class UpdateService {
     return 0;
   }
 
-  static Future<String> _httpFetch(Uri uri) async {
-    final client = HttpClient();
+  static Future<String> _httpFetch(Uri uri, HttpProxyPolicy policy) async {
+    final client = HttpClient()..findProxy = policy.findProxy;
     try {
       final request = await client.getUrl(uri);
       final response = await request.close();

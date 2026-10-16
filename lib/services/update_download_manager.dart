@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../models/update_manifest.dart';
+import 'http_proxy_policy.dart';
 import 'platform_update_installer.dart';
 import 'update_downloader.dart';
 
@@ -10,9 +11,23 @@ class UpdateDownloadManager extends ChangeNotifier {
   UpdateDownloadManager({
     UpdateDownloader? downloader,
     PlatformUpdateInstaller? installer,
-  }) : _downloader = downloader ?? UpdateDownloader(),
+    HttpProxyPolicy? proxyPolicy,
+  }) : this._(
+         downloader: downloader,
+         installer: installer,
+         proxyPolicy:
+             downloader?.proxyPolicy ?? proxyPolicy ?? HttpProxyPolicy(),
+       );
+
+  UpdateDownloadManager._({
+    required UpdateDownloader? downloader,
+    required PlatformUpdateInstaller? installer,
+    required this.proxyPolicy,
+  }) : _downloader = downloader ?? UpdateDownloader(proxyPolicy: proxyPolicy),
        _ownsDownloader = downloader == null,
        _installer = installer ?? _defaultInstaller();
+
+  HttpProxyPolicy proxyPolicy;
 
   final UpdateDownloader _downloader;
   final bool _ownsDownloader;
