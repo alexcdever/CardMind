@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
 import 'package:cardmind/scanner/scanner_interface.dart';
 import 'package:cardmind/src/rust/sync.dart';
@@ -25,7 +24,6 @@ class _StubScanner implements ScannerService {
 Future<CredentialUiRepository> _openConnectingDialog(
   WidgetTester tester, {
   Completer<PairingResult>? gate,
-  int listDevicesCalls = 0,
 }) async {
   final repo = CredentialUiRepository()
     ..credentialConnectGate = gate ?? Completer<PairingResult>();
