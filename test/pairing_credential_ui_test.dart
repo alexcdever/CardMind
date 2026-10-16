@@ -94,6 +94,9 @@ class CredentialUiRepository implements NoteRepository {
   Object? connectError;
   Completer<PairingResult>? credentialConnectGate;
 
+  /// 设备列表刷新观测钩子（ui-polish-fix-3：断言取消不多余触发 _load）。
+  void Function()? onListPairedDevices;
+
   @override
   Future<PairingCredentialDisplay> beginPairingCredential() async {
     credentialCalls++;
@@ -185,7 +188,10 @@ class CredentialUiRepository implements NoteRepository {
   }
 
   @override
-  Future<List<PairedDeviceRow>> listPairedDevices() async => [];
+  Future<List<PairedDeviceRow>> listPairedDevices() async {
+    onListPairedDevices?.call();
+    return [];
+  }
 
   @override
   Future<String> deviceName() async => 'My PC';

@@ -994,7 +994,7 @@ class _DeviceNameDialogState extends State<_DeviceNameDialog> {
   }
 }
 
-enum _ScanDialogAction { done, manual }
+enum _ScanDialogAction { done, manual, cancel }
 
 class _PairingScanDialog extends StatefulWidget {
   const _PairingScanDialog({this.credential, this.connect, this.error});
@@ -1007,6 +1007,11 @@ class _PairingScanDialog extends StatefulWidget {
 }
 
 class _PairingScanDialogState extends State<_PairingScanDialog> {
+  /// 发起方 connect future 的兜底超时：对端不可达且 Rust 层迟迟不返回时，
+  /// 不得永久停在「正在连接…」（barrierDismissible=false；超时前用户仍可
+  /// 点「取消」立即退出）。超时落入通用 catch，与既有失败文案一致。
+  static const Duration _pairConnectTimeout = Duration(seconds: 30);
+
   PairingResult? _result;
   String? _error;
 
@@ -1019,7 +1024,7 @@ class _PairingScanDialogState extends State<_PairingScanDialog> {
 
   Future<void> _run() async {
     try {
-      final result = await widget.connect!();
+      final result = await widget.connect!().timeout(_pairConnectTimeout);
       if (mounted) setState(() => _result = result);
     } on PairingCredentialException catch (error) {
       if (mounted) setState(() => _error = error.message);
@@ -1046,6 +1051,13 @@ class _PairingScanDialogState extends State<_PairingScanDialog> {
             )
           : Text(_result == null ? _error! : '已连接到「${_result!.peerName}」'),
       actions: [
+        if (connecting)
+          TextButton(
+            key: const ValueKey('pair-scan-cancel'),
+            onPressed: () =>
+                Navigator.of(context).pop(_ScanDialogAction.cancel),
+            child: const Text('取消'),
+          ),
         if (_result == null && !connecting)
           TextButton(
             key: const ValueKey('pair-scan-manual'),
