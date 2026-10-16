@@ -70,19 +70,20 @@ void main() {
     final button = tester.widget<TextButton>(cancel);
     expect(button.onPressed, isNotNull, reason: '取消控件的 onPressed 不得为 null');
 
-    // 收场：点取消关闭弹窗，避免挂起的 dialog 拖到测试结束。
+    // 收场：点取消关闭弹窗；底层 connect future 落空，30s 超时计时器随 pump 耗尽。
     await tester.tap(cancel);
     await tester.pump();
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 31));
   });
 
   testWidgets('AC2: cancelling the connecting dialog closes it without reload', (
     tester,
   ) async {
+    final gate = Completer<PairingResult>();
     final repo = CredentialUiRepository();
     var listDevicesCalls = 0;
     repo.onListPairedDevices = () => listDevicesCalls++;
-    repo.credentialConnectGate = Completer<PairingResult>();
+    repo.credentialConnectGate = gate;
     await tester.pumpWidget(
       MaterialApp(
         theme: CardMindTheme.light,
@@ -104,6 +105,10 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('pair-scan-cancel')));
+    // 放行底层 connect future：取消只是 UI 放弃等待（_run mounted 检查兜底），
+    // future 完成后 timeout 内部计时器取消，不留 pending timer、不触发
+    // 页面 2s 周期刷新干扰下面的 _load 计数断言。
+    gate.complete(const PairingResult(peerId: 'p', peerName: 'late'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
 
