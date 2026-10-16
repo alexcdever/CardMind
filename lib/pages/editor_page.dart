@@ -288,6 +288,8 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Future<void> _showTagMenu(int index, {Offset? position}) async {
+    // 600 是「面板紧凑」断点（决定菜单形态用 bottom-sheet 还是右键菜单），
+    // 与 note_list_page 的 desktopBreakpoint=960（窗宽分栏）是不同层级。
     final compact = MediaQuery.sizeOf(context).width < 600;
     final action = compact
         ? await showModalBottomSheet<String>(
@@ -777,6 +779,7 @@ class _EditorPageState extends State<EditorPage> {
 
   Widget _buildToolbar() {
     final tokens = context.cardMind;
+    // 600 是面板紧凑断点（工具栏缩放/换行），不同于 960 桌面分栏断点。
     final compact = MediaQuery.sizeOf(context).width < 600;
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
@@ -853,6 +856,7 @@ class _EditorPageState extends State<EditorPage> {
   Widget _buildTagRow() {
     if (_tags.isEmpty) return const SizedBox.shrink();
     final tokens = context.cardMind;
+    // 600 是面板紧凑断点（标签行内边距/comfortable），不同于 960 桌面分栏断点。
     final compact = MediaQuery.sizeOf(context).width < 600;
     return Container(
       width: double.infinity,
@@ -891,6 +895,8 @@ class _EditorPageState extends State<EditorPage> {
     final tokens = context.cardMind;
     return LayoutBuilder(
       builder: (context, constraints) {
+        // 600 是编辑器面板紧凑断点（内容区自身宽度），
+        // 与 note_list_page 的 960 窗宽分栏断点是不同层级。
         final compact = constraints.maxWidth < 600;
         final textStyle = TextStyle(
           color: tokens.ink,
