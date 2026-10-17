@@ -255,8 +255,24 @@ fn receiver_continuously_accepts_push() {
         .await;
 
         b.start_receiver(b_store.clone()).await.unwrap();
-        // 让接收器先经历若干空闲窗口（模拟应用运行任意时刻）
-        tokio::time::sleep(Duration::from_millis(900)).await;
+        // 让接收器先经历若干空闲窗口（模拟应用运行任意时刻）：有界轮询——
+        // 每个 tick 校验接收器仍存活（死了立刻失败），满足「至少 1 个 300ms
+        // 接受窗口」即继续，超过 5 秒则有界失败，而不是盲等固定 900ms。
+        let warmup_start = Instant::now();
+        let warmup_deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            assert!(
+                b.receiver_running(),
+                "预热期间接收器不应退出（start_receiver 后应保持运行）"
+            );
+            if warmup_start.elapsed() >= Duration::from_millis(300) {
+                break;
+            }
+            if Instant::now() >= warmup_deadline {
+                panic!("接收器预热超过 5 秒仍未完成");
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
 
         a.create_note("n1".to_string(), "# Anytime\n\nbody")
             .unwrap();
@@ -537,8 +553,24 @@ fn receiver_failure_is_recoverable() {
         let mut send = addr.open_uni().await.unwrap();
         let _ = send.write_all(garbage).await;
         let _ = send.finish();
-        // 等接收器处理完坏帧（记录 failed_tolerated）
-        tokio::time::sleep(Duration::from_millis(500)).await;
+        // 等接收器处理完坏帧（验收 10：可恢复，记录 failed_tolerated）。有界轮询而非
+        // 盲等固定 500ms：每个 tick 断言接收器仍存活——坏帧若打死接收器这里立刻失败，
+        // 而不是拖到后面 push 超时才暴露；超时则有界失败。
+        let bad_frame_start = Instant::now();
+        let bad_frame_deadline = Instant::now() + Duration::from_secs(5);
+        loop {
+            assert!(
+                b.receiver_running(),
+                "坏帧不得终止接收器（验收 10：单次失败只记录并继续）"
+            );
+            if bad_frame_start.elapsed() >= Duration::from_millis(500) {
+                break;
+            }
+            if Instant::now() >= bad_frame_deadline {
+                panic!("坏帧后接收器 5 秒内未走完处理窗口");
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
 
         // 正常 push 仍被接收器处理（可恢复，未永久退出/busy loop）
         a.create_note("n2".to_string(), "# After failure\n\nbody")

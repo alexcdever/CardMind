@@ -20,6 +20,41 @@ String _fileName(String filePath) =>
 ProcessResult _git(List<String> args) =>
     Process.runSync('git', args, workingDirectory: _repoRoot.path);
 
+/// 目标文件当前是否有未提交改动（工作区 + 暂存区都算）。
+///
+/// 只对「本次要校验的那个文件」问 git，避免别处脏文件影响判定。
+bool _hasUncommittedChange(String relativePath) {
+  final status = _git(['status', '--porcelain', '--', relativePath]);
+  expect(
+    status.exitCode,
+    0,
+    reason: 'git status --porcelain -- $relativePath 必须成功',
+  );
+  return (status.stdout as String).trim().isNotEmpty;
+}
+
+/// 当前日期（`YYYY-MM-DD`，本地时区），与文档里「上次更新」的写法一致。
+String _todayLocal() {
+  final now = DateTime.now();
+  final month = now.month.toString().padLeft(2, '0');
+  final day = now.day.toString().padLeft(2, '0');
+  return '${now.year}-$month-$day';
+}
+
+/// 文档「最近一次真实修改日期」的判定：
+///
+/// - 有未提交改动 → 改动就发生在**当前工作区**，声明日期必须是今天；
+///   否则「改了文档不改日期」要等到提交后才由 `git log` 暴露，本地形同放行。
+/// - 无未提交改动 → 退化为 `git log -1 --format=%cs`（最后一次提交日期）。
+String _expectedDocDate(String relativePath) {
+  if (_hasUncommittedChange(relativePath)) {
+    return _todayLocal();
+  }
+  return (_git(['log', '-1', '--format=%cs', '--', relativePath]).stdout
+          as String)
+      .trim();
+}
+
 /// 定位编号 0008 的新 ADR（`docs/adr/0008-*.md`，必须恰有一份）。
 String _adr0008Path() {
   final matches =
@@ -387,16 +422,26 @@ void main() {
 
     final declared = RegExp(r'上次更新：(\d{4}-\d{2}-\d{2})').firstMatch(product);
     expect(declared, isNotNull, reason: 'product.md 开头必须有「上次更新：YYYY-MM-DD」');
-    final modified =
-        (_git(['log', '-1', '--format=%cs', '--', 'docs/product.md']).stdout
-                as String)
-            .trim();
-    expect(modified, isNotEmpty, reason: 'git 必须能给出 product.md 的最近修改日期');
-    expect(
-      declared!.group(1)!.compareTo(modified) >= 0,
-      isTrue,
-      reason: '「上次更新」${declared.group(1)} 早于文件最近一次真实修改 $modified',
-    );
+    // 日期真相源：有未提交改动时以「今天」为准（改动就在工作区），
+    // 否则退化为 git log 的最后提交日期——见 _expectedDocDate。
+    final expected = _expectedDocDate('docs/product.md');
+    expect(expected, isNotEmpty, reason: '必须能判定 product.md 的最近修改日期');
+    final declaredDate = declared!.group(1)!;
+    if (_hasUncommittedChange('docs/product.md')) {
+      expect(
+        declaredDate,
+        expected,
+        reason:
+            'docs/product.md 有未提交改动，「上次更新」必须改成当天日期 $expected，'
+            '实际 $declaredDate（改了文档不改日期会在提交后才被发现）',
+      );
+    } else {
+      expect(
+        declaredDate.compareTo(expected) >= 0,
+        isTrue,
+        reason: '「上次更新」$declaredDate 早于文件最近一次真实修改 $expected',
+      );
+    }
   });
 
   test('验收 6：sync-network.md 开头日期不早于该文件内容最近一次修改', () {
@@ -413,22 +458,24 @@ void main() {
     );
     final latest = declaredDates.reduce((a, b) => a.compareTo(b) >= 0 ? a : b);
 
-    final modified =
-        (_git([
-                  'log',
-                  '-1',
-                  '--format=%cs',
-                  '--',
-                  'docs/sync-network.md',
-                ]).stdout
-                as String)
-            .trim();
-    expect(modified, isNotEmpty, reason: 'git 必须能给出 sync-network.md 的最近修改日期');
-    expect(
-      latest.compareTo(modified) >= 0,
-      isTrue,
-      reason: '开头声明的日期 $latest 早于该文件内容最近一次真实修改 $modified（日期必须一起改对）',
-    );
+    // 同「验收 5」：有未提交改动时声明日期必须是今天，否则退回提交日期比较。
+    final expected = _expectedDocDate('docs/sync-network.md');
+    expect(expected, isNotEmpty, reason: '必须能判定 sync-network.md 的最近修改日期');
+    if (_hasUncommittedChange('docs/sync-network.md')) {
+      expect(
+        latest,
+        expected,
+        reason:
+            'docs/sync-network.md 有未提交改动，开头日期必须改成当天 $expected，'
+            '实际 $latest（改了文档不改日期会在提交后才被发现）',
+      );
+    } else {
+      expect(
+        latest.compareTo(expected) >= 0,
+        isTrue,
+        reason: '开头声明的日期 $latest 早于该文件内容最近一次真实修改 $expected（日期必须一起改对）',
+      );
+    }
   });
 
   test(
