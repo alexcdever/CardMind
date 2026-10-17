@@ -396,6 +396,9 @@ fn test_health_check_failure_does_not_update_last_seen() {
             .await;
         assert!(result.is_err());
         assert!(started.elapsed() < std::time::Duration::from_secs(6));
+
+        // 总预算回归网（验收 3）：last_ips 直连失败后回退 id-only 寻址，
+        // 两条路径合计不得把「对端真不在线」的失败拖过 6 秒。
         let row = store.list_paired_devices().unwrap().remove(0);
         assert!(row.last_seen.is_none());
         assert!(row.last_sync_at.is_none());
@@ -493,5 +496,35 @@ fn test_relay_cross_network_connect() {
             received, "hello over relay",
             "relay 中转后 B 应收到完整数据"
         );
+    });
+}
+
+// ━━━ 验收 2/3 补充：多对「测试连接」失败场景的预算与语义 ━━━
+
+/// 场景：已配对 peer 完全无地址（ips=[] 且内存 peer_ips 为空）→ 走 id-only 寻址。
+/// 断言：有界时间内失败返回（不挂死），且不写 last_seen。
+/// 作用：约束 id-only 兜底路径本身有独立上限，不能无限等待。
+#[test]
+fn test_health_check_no_ips_id_only_bounded() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("health-noidips");
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
+        let store = NoteStore::new(&dir.join("cardmind.db").to_string_lossy()).unwrap();
+        let fake_key = iroh::SecretKey::generate();
+        let fake_id = fake_key.public().to_string();
+        store.upsert_paired_device(&fake_id, "no-addr-peer").unwrap();
+        let started = std::time::Instant::now();
+        let result = svc.check_connectivity(&store, &fake_id, vec![]).await;
+        let elapsed = started.elapsed();
+        assert!(result.is_err(), "无地址的不存在 peer 应失败");
+        assert!(
+            elapsed < std::time::Duration::from_secs(15),
+            "id-only 寻址失败应在上限内返回，实测 {:?}",
+            elapsed
+        );
+        let row = store.list_paired_devices().unwrap().remove(0);
+        assert!(row.last_seen.is_none());
+        let _ = std::fs::remove_dir_all(dir);
     });
 }

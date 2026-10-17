@@ -1209,18 +1209,25 @@ impl SyncService {
             .unwrap_or_default()
     }
 
+    /// 仅凭 node id 构造地址（不嵌任何直连 ip:port），让 iroh 自行经
+    /// address_lookup（iroh mDNS / n0 DNS）或 relay 解析对端当前地址。
+    /// 用于 last_ips 过期后的兜底路径。
+    pub fn build_id_only_addr(&self, node_id: iroh::EndpointId) -> EndpointAddr {
+        let mut addr = EndpointAddr::new(node_id);
+        let urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
+        if let Some(u) = urls.into_iter().next() {
+            addr = addr.with_relay_url(u);
+        }
+        addr
+    }
+
     pub fn build_connect_addr(
         &self,
         node_id: iroh::EndpointId,
         ips: &[String],
     ) -> Result<EndpointAddr> {
         if ips.is_empty() {
-            let mut addr = EndpointAddr::new(node_id);
-            let urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
-            if let Some(u) = urls.into_iter().next() {
-                addr = addr.with_relay_url(u);
-            }
-            Ok(addr)
+            Ok(self.build_id_only_addr(node_id))
         } else {
             let ips: Vec<TransportAddr> = ips
                 .iter()
@@ -1759,10 +1766,10 @@ impl SyncService {
         } else {
             peer_ips
         };
-        let addr = self.build_connect_addr(node_id, &ips)?;
-        let conn = tokio::time::timeout(Duration::from_secs(3), self.endpoint.connect(addr, ALPN))
+        let conn = self
+            .connect_prefer_direct(node_id, &ips, Duration::from_secs(3), Duration::from_secs(5))
             .await
-            .context("health-check connection timeout")??;
+            .context("health-check connection failed")?;
         let mut send = conn.open_uni().await.context("open health-check stream")?;
         send.write_all(HEALTH_MAGIC)
             .await
@@ -1781,6 +1788,58 @@ impl SyncService {
         }
         store.update_last_seen(peer_id)?;
         Ok(started.elapsed().as_millis() as u64)
+    }
+
+    /// 用 id-only 地址尝试建立连接（走 iroh address_lookup/mDNS/relay），
+    /// 是 `last_ips` 直连地址过期后的兜底路径。
+    async fn connect_by_id(
+        &self,
+        node_id: iroh::EndpointId,
+        timeout: Duration,
+    ) -> Result<iroh::endpoint::Connection> {
+        let addr = self.build_id_only_addr(node_id);
+        let conn = tokio::time::timeout(timeout, self.endpoint.connect(addr, ALPN))
+            .await
+            .context("address-lookup connect timeout")??;
+        Ok(conn)
+    }
+
+    /// 先用 last_ips 直连，失败再退到 id-only 寻址。
+    /// `total_timeout` 是两条路径的总预算：直连独占 `direct_timeout`，
+    /// 剩余额度给 id-only 兜底（对端真不在线时不至于拖满两轮超时）。
+    async fn connect_prefer_direct(
+        &self,
+        node_id: iroh::EndpointId,
+        ips: &[String],
+        direct_timeout: Duration,
+        total_timeout: Duration,
+    ) -> Result<iroh::endpoint::Connection> {
+        let deadline = std::time::Instant::now() + total_timeout;
+        let direct_addr = self.build_connect_addr(node_id, ips)?;
+        match tokio::time::timeout(direct_timeout, self.endpoint.connect(direct_addr, ALPN)).await {
+            Ok(Ok(conn)) => Ok(conn),
+            direct_err => {
+                // 直连地址不可达（过期/不可路由）→ 交给 iroh 按 peer id 解析当前地址。
+                let direct_msg = match &direct_err {
+                    Ok(Err(e)) => format!("{e:#}"),
+                    Ok(Ok(_)) => unreachable!(),
+                    Err(_) => "direct connect timed out".to_string(),
+                };
+                let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+                if remaining.is_zero() {
+                    anyhow::bail!("direct failed ({direct_msg}); no budget left for id-lookup");
+                }
+                let conn = self
+                    .connect_by_id(node_id, remaining)
+                    .await
+                    .map_err(|fallback| {
+                        anyhow::anyhow!(
+                            "direct failed ({direct_msg}); id-lookup fallback failed: {fallback:#}"
+                        )
+                    })?;
+                Ok(conn)
+            }
+        }
     }
 
     /// 向指定对端推送所有笔记的快照
@@ -1976,11 +2035,13 @@ impl SyncService {
         wire: &[u8],
     ) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
-        let addr = self.build_connect_addr(node_id, peer_ips.unwrap_or(&[]))?;
-
         let conn = self
-            .endpoint
-            .connect(addr, ALPN)
+            .connect_prefer_direct(
+                node_id,
+                peer_ips.unwrap_or(&[]),
+                Duration::from_secs(10),
+                Duration::from_secs(18),
+            )
             .await
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
