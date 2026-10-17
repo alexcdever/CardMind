@@ -566,8 +566,22 @@ fn test_inbound_push_refreshes_last_ips() {
                 .update_paired_device_ips(&a_id_for_b, &["10.9.9.9:9999".to_string()])
                 .unwrap();
             b.start_receiver(store_b.clone()).await.unwrap();
-            // 给推送 + 接收器落库留时间窗
-            tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+            // 轮询「last_ips 已被真实地址覆盖」而不是盲等固定 6 秒：
+            // 条件成立立即返回，超时则有界失败（10 秒上限，覆盖推送 + 接收器落库）。
+            let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
+            loop {
+                let refreshed = store_b
+                    .paired_device_ips(&a_id_for_b)
+                    .map(|ips| ips.join(","))
+                    .unwrap_or_default();
+                if !refreshed.is_empty() && !refreshed.contains("10.9.9.9:9999") {
+                    break;
+                }
+                if tokio::time::Instant::now() >= deadline {
+                    panic!("推送后 10 秒内 last_ips 未被真实地址覆盖，实际: {refreshed}");
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            }
             b.stop_receiver().await.unwrap();
             (b, store_b)
         });
