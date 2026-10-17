@@ -513,7 +513,9 @@ fn test_health_check_no_ips_id_only_bounded() {
         let store = NoteStore::new(&dir.join("cardmind.db").to_string_lossy()).unwrap();
         let fake_key = iroh::SecretKey::generate();
         let fake_id = fake_key.public().to_string();
-        store.upsert_paired_device(&fake_id, "no-addr-peer").unwrap();
+        store
+            .upsert_paired_device(&fake_id, "no-addr-peer")
+            .unwrap();
         let started = std::time::Instant::now();
         let result = svc.check_connectivity(&store, &fake_id, vec![]).await;
         let elapsed = started.elapsed();
@@ -572,10 +574,7 @@ fn test_inbound_push_refreshes_last_ips() {
         pair_with_confirmer(&a, &store_a, &code, target_b).await;
         a.push_to_peer(&b_id, b_ips).await.unwrap();
         let (_b, store_b) = b_handle.await.unwrap();
-        let ips = store_b
-            .paired_device_ips(&a_id)
-            .unwrap()
-            .join(",");
+        let ips = store_b.paired_device_ips(&a_id).unwrap().join(",");
         assert!(
             !ips.contains("10.9.9.9:9999"),
             "推送后 last_ips 应被真实地址覆盖，实际: {ips}"

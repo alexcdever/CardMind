@@ -205,7 +205,7 @@ This project is indexed by GitNexus as **CardMind** (5743 symbols, 14295 relatio
 
 ## 流水线项目经验（必读）
 
-执行任何编码任务前，先读 `.claude/skills/pipeline-project-lessons/SKILL.md`（CardMind 专属流水线经验：provider 策略、环境前置、实机测试、发布流程）。该文件是全局编程工作流技能在本仓库的项目 overlay；与全局规则冲突时以全局规则为准。
+执行任何编码任务前，先用 pipeline 技能（位于 $HOME/.agents/skills/pipeline/，经 Skill 工具加载）走项目流水线：摸底 → 建 worktree → 写任务描述 → 派执行子代理 → 独立审查子代理 → 合并 → 主树复验 → 清场。本仓库的 CardMind 专属 overlay 经验（provider 策略、环境前置、实机测试、发布流程）见 cardmind-* 系列技能。
 
 ## UI/交互工作约定（必读）
 

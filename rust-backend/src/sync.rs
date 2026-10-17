@@ -1783,7 +1783,12 @@ impl SyncService {
             peer_ips
         };
         let conn = self
-            .connect_prefer_direct(node_id, &ips, Duration::from_secs(3), Duration::from_secs(5))
+            .connect_prefer_direct(
+                node_id,
+                &ips,
+                Duration::from_secs(3),
+                Duration::from_secs(5),
+            )
             .await
             .context("health-check connection failed")?;
         let mut send = conn.open_uni().await.context("open health-check stream")?;
@@ -3003,7 +3008,9 @@ async fn receiver_handle_incoming(
                 .context("update health-check last_seen")?;
             // 对端直连进来 → 顺手刷新 last_ips，避免地址表停留在过期值。
             if let Some(ip) = remote_ip {
-                let _ = ctx.store.update_paired_device_ips(&sender.to_string(), &[ip]);
+                let _ = ctx
+                    .store
+                    .update_paired_device_ips(&sender.to_string(), &[ip]);
             }
             return Ok(());
         }
@@ -3072,7 +3079,9 @@ async fn receiver_handle_incoming(
                 .context("update sender last_seen")?;
             // 对端直连推送进来 → 顺手刷新 last_ips，避免地址表停留在过期值。
             if let Some(ip) = &remote_ip {
-                let _ = ctx.store.update_paired_device_ips(&sender_str, &[ip.clone()]);
+                let _ = ctx
+                    .store
+                    .update_paired_device_ips(&sender_str, std::slice::from_ref(ip));
             }
             ctx.content_revision.fetch_add(1, Ordering::Release);
             receiver_log(
