@@ -8,7 +8,7 @@ import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'pairing_credential_ui_test.dart' show CredentialUiRepository;
+import 'support/credential_ui_repository.dart' show CredentialUiRepository;
 
 /// 扫码 fake：isSupported=true，直接返回固定 `cm1` 凭证文本，跳过相机路由。
 class _StubScanner implements ScannerService {

@@ -11,7 +11,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'vertical_slice_widget_test.dart' show MemoryNoteRepository;
+import 'support/memory_note_repository.dart' show MemoryNoteRepository;
 
 class _SettingsFake extends AppSettingsService {
   _SettingsFake(this.channel);

@@ -15,7 +15,7 @@ import 'package:cardmind/ui/design_system/cardmind_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'vertical_slice_widget_test.dart' show MemoryNoteRepository;
+import 'support/memory_note_repository.dart' show MemoryNoteRepository;
 
 /// ui-polish-opt 优化项 1 验收测试：staleDotColor 收编为 CardMindTokens.stale。
 ///

@@ -8,8 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'sync_ui_widget_test.dart' show DevicesRepository;
-import 'vertical_slice_widget_test.dart' show MemoryNoteRepository;
+import 'support/devices_repository.dart' show DevicesRepository;
+import 'support/memory_note_repository.dart' show MemoryNoteRepository;
 
 Future<void> _pumpEditor(
   WidgetTester tester, {

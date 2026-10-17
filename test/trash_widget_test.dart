@@ -4,7 +4,7 @@ import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'vertical_slice_widget_test.dart' show MemoryNoteRepository;
+import 'support/memory_note_repository.dart' show MemoryNoteRepository;
 
 void main() {
   group('trash slice', () {
