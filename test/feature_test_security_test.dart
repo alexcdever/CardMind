@@ -12,15 +12,59 @@ import '../tool/feature_test.dart' show validateDevice;
 /// 用真实输入验证「shell 元字符与超长输入一律拒绝」。
 void main() {
   group('validateDevice rejects shell syntax and malformed identifiers', () {
+    // 单字符隔离：每个被禁字符单独出现一次，两侧都是合法字符 `a`/`b`，
+    // 因此失败原因只能是该字符本身。放宽字符集里的任意一个都会让对应用例变红。
+    const forbiddenChars = <String, String>{
+      ';': '命令分隔符',
+      '&': '后台执行 / 逻辑与',
+      '|': '管道',
+      r'$': '变量 / 命令替换起始',
+      '`': '反引号命令替换',
+      '"': '双引号（引号逃逸）',
+      "'": '单引号（引号逃逸）',
+      '>': '输出重定向',
+      '<': '输入重定向',
+      '*': '通配符',
+      '?': '单字符通配符',
+      '(': '子 shell 起始',
+      ')': '子 shell 结束',
+      '{': '花括号展开',
+      '}': '花括号展开',
+      '[': '字符类 / 测试命令',
+      ']': '字符类 / 测试命令',
+      '!': '历史展开 / 取反',
+      '#': '注释起始',
+      '~': '家目录展开',
+      '%': 'Windows 环境变量展开',
+      '^': '转义 / 取反',
+      '=': '赋值 / 参数注入',
+      ',': '参数分隔',
+      '/': '路径分隔（可注入绝对路径）',
+      r'\': '转义字符',
+      ' ': '空格（会被拆成额外参数）',
+      '\t': '制表符',
+      '\n': '换行（Windows 上可拆成第二条命令）',
+      '\r': '回车',
+    };
+
+    forbiddenChars.forEach((char, why) {
+      final input = 'a${char}b';
+      test('rejects the single forbidden character ${_label(char)}（$why）', () {
+        expect(
+          () => validateDevice(input),
+          throwsFormatException,
+          reason: '设备标识不得含 ${_label(char)}（$why），实际接受了「${_label(input)}」',
+        );
+      });
+    });
+
+    // 组合注入串（真实攻击形态，与上面的单字符隔离互补）。
     const rejected = <String, String>{
       'device; rm -rf /': '命令分隔符 + 参数注入',
       r'$(id)': '命令替换',
       '`id`': '反引号命令替换',
-      'a b': '空格会被拆成额外参数',
-      'a|b': '管道符',
       'a&&b': '逻辑与串联命令',
-      'a\nb': '换行（Windows 上可拆成第二条命令）',
-      'a\tb': '制表符',
+      'a;b;c': '多命令串联',
       '': '空标识',
     };
 
@@ -50,6 +94,12 @@ void main() {
       'emulator-5554',
       '192.168.1.2:5555',
       'R5CT30XXXXX',
+      // 合法字符集 `A-Za-z0-9._:-` 逐项都要继续被接受，避免「收紧过头」。
+      'a.b',
+      'a_b',
+      'a:b',
+      'a-b',
+      'A.b_c:D-e',
     ]) {
       test('accepts $accepted', () {
         expect(

@@ -1,7 +1,14 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:appflowy_editor/appflowy_editor.dart';
+import 'package:cardmind/models/update_channel.dart';
+import 'package:cardmind/models/update_manifest.dart';
 import 'package:cardmind/pages/editor_page.dart';
+import 'package:cardmind/pages/settings_page.dart';
+import 'package:cardmind/services/app_settings_service.dart';
+import 'package:cardmind/services/update_download_manager.dart';
+import 'package:cardmind/services/update_downloader.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:cardmind/ui/design_system/cardmind_widgets.dart';
@@ -113,24 +120,103 @@ void _themeChecks() {
 }
 
 /// 优化项 4/5：设置页——取消下载/打开安装包 ≥48dp；桌面宽屏内容有最大宽约束。
-///
-/// 两条都是**源码纪律检查**（SettingsPage 依赖服务注入，不在此处挂载），
-/// 因此用 `test` 而非 `testWidgets`：不 pump widget 的用例不该占 widget 测试位。
 void _settingsChecks() {
-  test('AC3: cancel-download / open-package TextButtons are >=48dp', () {
+  // 触摸目标断言必须验证**取值**，不能只验证「存在 minimumSize 字样」：
+  // 把 `minimumSize: const Size(0, CardMindLayout.mobileTouchTarget)` 改成
+  // `Size.zero`（缺陷本体：触摸目标归零）时，只查标识符的正则照样通过。
+  //
+  // 为什么断言「挂载后取到的 TextButton.style.minimumSize 取值」而不是渲染高度：
+  // Material 3 默认 `tapTargetSize: padded` 会把手势目标撑到 48dp，
+  // 把 minimumSize 改成 0 后 `tester.getSize()` 仍是 48（实测 Size(80, 48)），
+  // 渲染高度对这个缺陷同样是假通过。挂载后读 style 才能拿到真实声明值。
+  testWidgets('AC3: cancel-download TextButton declares >=48dp minimumSize', (
+    tester,
+  ) async {
+    // 该按钮仅在 `_result` 是 UpdateAvailable 且 `_downloadManager.downloading`
+    // 为 true 时渲染：先给 manager 塞 manifest（initState 会读进 `_result`），
+    // 再用挂起中的 downloader 把 downloading 钉在 true。
+    const asset = UpdateAsset(
+      artifact: 'CardMind-Setup.exe',
+      url: 'https://example.com/windows',
+      sha256:
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      size: 1,
+    );
+    final manager = UpdateDownloadManager(downloader: _HangingDownloader());
+    addTearDown(manager.dispose);
+    manager.manifest = UpdateManifest(
+      schemaVersion: 1,
+      appId: 'com.cardmind.v2',
+      channel: 'stable',
+      version: '0.1.0',
+      build: 10002,
+      publishedAt: '2026-01-01T00:00:00Z',
+      minimumSupportedVersion: '0.1.0',
+      mandatory: false,
+      releaseNotes: const ['修复问题'],
+      releasePage: 'https://example.com/release',
+      platforms: {UpdateManifest.currentPlatform: asset},
+    );
+    unawaited(manager.start(asset));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(
+          currentVersion: '0.1.0',
+          settings: _MemorySettings(),
+          downloadManager: manager,
+          logDirectoryResolver: _fakeLogDirectory,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final button = find.byKey(const ValueKey('cancel-update-download'));
+    expect(button, findsOneWidget, reason: '下载中应渲染「取消下载」按钮');
+    final style = tester.widget<TextButton>(button).style;
+    final minimumSize = style?.minimumSize?.resolve(<WidgetState>{});
+    expect(
+      minimumSize,
+      isNotNull,
+      reason: '「取消下载」必须显式声明 minimumSize（不得依赖 Material 默认 tap target）',
+    );
+    expect(
+      minimumSize!.height,
+      greaterThanOrEqualTo(CardMindLayout.mobileTouchTarget),
+      reason:
+          '「取消下载」minimumSize 高度须 ≥${CardMindLayout.mobileTouchTarget}dp，'
+          '实际 ${minimumSize.height}（改成 Size.zero / 0 时这里必须失败）',
+    );
+  });
+
+  // 「打开安装包」只在 macOS/Linux 分支渲染（settings_page.dart:428），
+  // Windows 上无法挂载 → 退让为「解析出 minimumSize 的**数值**」并断言 ≥48，
+  // 而不是只要求 minimumSize 字样存在（那样 Size.zero 也会通过）。
+  test('AC3: open-package TextButton minimumSize resolves to >=48dp', () {
     final source = File('lib/pages/settings_page.dart').readAsStringSync();
-    for (final key in const ['cancel-update-download', 'open-update-package']) {
-      // 每个 key 所在 TextButton 必须声明 minimumSize 达标触摸目标。
-      final pattern = RegExp(
-        "key: const ValueKey\\('$key'\\)[\\s\\S]{0,400}?minimumSize",
-      );
-      expect(
-        pattern.hasMatch(source),
-        isTrue,
-        reason:
-            '$key TextButton 必须 styleFrom(minimumSize: Size(0, mobileTouchTarget))',
-      );
-    }
+    final block = RegExp(
+      "key: const ValueKey\\('open-update-package'\\)[\\s\\S]{0,600}?"
+      r'minimumSize: const Size\(([\s\S]{0,300}?)\),',
+    ).firstMatch(source);
+    expect(
+      block,
+      isNotNull,
+      reason: 'open-update-package TextButton 必须 styleFrom(minimumSize: ...)',
+    );
+    final args = block!
+        .group(1)!
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    expect(args, hasLength(2), reason: 'minimumSize 必须是 Size(width, height)');
+    final height = _resolveSizeValue(args[1]);
+    expect(
+      height,
+      greaterThanOrEqualTo(CardMindLayout.mobileTouchTarget),
+      reason:
+          'open-update-package 的 minimumSize 高度须 ≥'
+          '${CardMindLayout.mobileTouchTarget}dp，实际解析值 $height',
+    );
   });
 
   test('AC3: desktop settings body has a max-width constraint', () {
@@ -146,6 +232,67 @@ void _settingsChecks() {
     );
   });
 }
+
+/// 把 `minimumSize` 的单个维度表达式解析成数值。
+///
+/// 支持 `CardMindLayout.mobileTouchTarget`、`48`、`0` 等写法；无法解析一律返回 0，
+/// 让断言失败——退让也不允许「看不懂就放行」。
+double _resolveSizeValue(String expression) {
+  final expr = expression.trim();
+  if (expr == 'Size.zero') return 0;
+  final literal = double.tryParse(expr);
+  if (literal != null) return literal;
+  final ref = RegExp(r'^CardMindLayout\.(\w+)$').firstMatch(expr);
+  if (ref != null) {
+    return switch (ref.group(1)) {
+      'mobileTouchTarget' => CardMindLayout.mobileTouchTarget,
+      'editorMaxWidth' => CardMindLayout.editorMaxWidth,
+      _ => 0,
+    };
+  }
+  return 0;
+}
+
+/// 永远挂起的下载器：把 SettingsPage 的 `_downloadManager.downloading` 钉在 true。
+class _HangingDownloader extends UpdateDownloader {
+  _HangingDownloader();
+
+  final Completer<void> _never = Completer<void>();
+
+  @override
+  Future<DownloadResult> download(
+    UpdateAsset asset, {
+    Uri? url,
+    DownloadCancellationToken? cancellation,
+    void Function(double)? onProgress,
+  }) async {
+    onProgress?.call(0.5);
+    await _never.future;
+    return const DownloadFailure('never completes');
+  }
+
+  @override
+  void dispose() {}
+}
+
+/// 内存版设置服务：避免触碰真实 getApplicationSupportDirectory。
+class _MemorySettings extends AppSettingsService {
+  @override
+  Future<UpdateChannel> readChannel() async => UpdateChannel.stable;
+
+  @override
+  Future<bool> readUseSystemProxy() async => true;
+
+  @override
+  Future<void> writeChannel(UpdateChannel value) async {}
+
+  @override
+  Future<void> writeUseSystemProxy(bool value) async {}
+}
+
+/// 日志目录解析：不触碰真实 getApplicationSupportDirectory。
+Future<Directory> _fakeLogDirectory({String? baseDirectory}) async =>
+    Directory.systemTemp;
 
 /// 优化项 6/7/12：编辑器——链接补全面板 left 钳制、右键「删除」danger、
 /// 保存中指示非静态 Icons.sync。
