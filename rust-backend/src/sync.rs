@@ -347,6 +347,9 @@ impl SyncService {
             .secret_key(key)
             .alpns(vec![ALPN.to_vec()])
             .relay_mode(relay_mode.clone())
+            // iroh mDNS 地址解析：同子网按 peer id 找到对端当前地址。
+            // 只在 id-only 兜底寻址（last_ips 过期后）时被用到。
+            .address_lookup(iroh_mdns_address_lookup::MdnsAddressLookup::builder())
             .bind()
             .await
             .context("bind iroh endpoint")?;
