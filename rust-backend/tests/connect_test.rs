@@ -396,6 +396,9 @@ fn test_health_check_failure_does_not_update_last_seen() {
             .await;
         assert!(result.is_err());
         assert!(started.elapsed() < std::time::Duration::from_secs(6));
+
+        // 总预算回归网（验收 3）：last_ips 直连失败后回退 id-only 寻址，
+        // 两条路径合计不得把「对端真不在线」的失败拖过 6 秒。
         let row = store.list_paired_devices().unwrap().remove(0);
         assert!(row.last_seen.is_none());
         assert!(row.last_sync_at.is_none());
@@ -492,6 +495,94 @@ fn test_relay_cross_network_connect() {
         assert_eq!(
             received, "hello over relay",
             "relay 中转后 B 应收到完整数据"
+        );
+    });
+}
+
+// ━━━ 验收 2/3 补充：多对「测试连接」失败场景的预算与语义 ━━━
+
+/// 场景：已配对 peer 完全无地址（ips=[] 且内存 peer_ips 为空）→ 走 id-only 寻址。
+/// 断言：有界时间内失败返回（不挂死），且不写 last_seen。
+/// 作用：约束 id-only 兜底路径本身有独立上限，不能无限等待。
+#[test]
+fn test_health_check_no_ips_id_only_bounded() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let dir = temp_dir("health-noidips");
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
+        let store = NoteStore::new(&dir.join("cardmind.db").to_string_lossy()).unwrap();
+        let fake_key = iroh::SecretKey::generate();
+        let fake_id = fake_key.public().to_string();
+        store.upsert_paired_device(&fake_id, "no-addr-peer").unwrap();
+        let started = std::time::Instant::now();
+        let result = svc.check_connectivity(&store, &fake_id, vec![]).await;
+        let elapsed = started.elapsed();
+        assert!(result.is_err(), "无地址的不存在 peer 应失败");
+        assert!(
+            elapsed < std::time::Duration::from_secs(15),
+            "id-only 寻址失败应在上限内返回，实测 {:?}",
+            elapsed
+        );
+        let row = store.list_paired_devices().unwrap().remove(0);
+        assert!(row.last_seen.is_none());
+        let _ = std::fs::remove_dir_all(dir);
+    });
+}
+
+// ━━━ 验收 4：入站连接把对端真实 ip:port 刷新进地址表 ━━━
+
+/// B 的接收器收到 A 的直连推送后，B 的 store.last_ips 应被更新为 A 本次连接的
+/// 真实 ip:port（而不是停留在配对时写入的旧值）。
+#[test]
+fn test_inbound_push_refreshes_last_ips() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut a = SyncService::new().await.unwrap();
+        let mut b = SyncService::new().await.unwrap();
+        a.create_note("n-refresh".into(), "ip refresh").unwrap();
+
+        let a_id = a.device_id();
+        let b_id = b.device_id();
+        let b_ips = b.local_addrs();
+        let store_a = NoteStore::new(":memory:").unwrap();
+        let store_b = NoteStore::new(":memory:").unwrap();
+        let code = b.begin_pairing_accept().unwrap();
+        let code_for_b = code.clone();
+        let target_b = PairingTarget {
+            device_id: b_id.clone(),
+            ips: b_ips.clone(),
+            nonce: b.session_nonce_hex(),
+        };
+        let a_id_for_b = a_id.clone();
+        let b_handle = tokio::spawn(async move {
+            assert_eq!(
+                confirm_from_initiator(&mut b, &store_b, &code_for_b).await,
+                a_id_for_b
+            );
+            // 把 A 的 last_ips 写成假过期值，等推送后断言被真实地址覆盖
+            store_b
+                .update_paired_device_ips(&a_id_for_b, &["10.9.9.9:9999".to_string()])
+                .unwrap();
+            b.start_receiver(store_b.clone()).await.unwrap();
+            // 给推送 + 接收器落库留时间窗
+            tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+            b.stop_receiver().await.unwrap();
+            (b, store_b)
+        });
+        pair_with_confirmer(&a, &store_a, &code, target_b).await;
+        a.push_to_peer(&b_id, b_ips).await.unwrap();
+        let (_b, store_b) = b_handle.await.unwrap();
+        let ips = store_b
+            .paired_device_ips(&a_id)
+            .unwrap()
+            .join(",");
+        assert!(
+            !ips.contains("10.9.9.9:9999"),
+            "推送后 last_ips 应被真实地址覆盖，实际: {ips}"
+        );
+        assert!(
+            ips.contains(':') && !ips.is_empty(),
+            "推送后 last_ips 应含真实 ip:port，实际: {ips}"
         );
     });
 }

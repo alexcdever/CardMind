@@ -284,9 +284,15 @@ enum RoutedIncoming {
     Push {
         sender: iroh::EndpointId,
         data: Vec<u8>,
+        /// 对端本次连接的直连 `ip:port`（仅直连入站时有值，relay 为 None）。
+        remote_ip: Option<String>,
     },
     /// 轻量健康检查：发送方（取自 TLS 证书）+ 已验证 ACK。
-    HealthCheck { sender: iroh::EndpointId },
+    HealthCheck {
+        sender: iroh::EndpointId,
+        /// 对端本次连接的直连 `ip:port`。
+        remote_ip: Option<String>,
+    },
     /// 配对请求帧：已存入 `pending_pairing`，调用方继续等待。
     Pairing,
     /// 设备改名帧：对端告知其新设备名。
@@ -295,6 +301,16 @@ enum RoutedIncoming {
         device_id: String,
         name: String,
     },
+}
+
+/// 从 `incoming` 提取对端当前直连 `ip:port`（仅当对端是直连进来而非 relay）。
+/// 用于把真实可达地址刷新进 `peer_ips`/`last_ips`，让地址表跟着真实连接滚动更新。
+/// 必须在 `accept()` 之前调用：`remote_addr` 只在 `Incoming` 上可用。
+fn direct_ip_port(incoming: &iroh::endpoint::Incoming) -> Option<String> {
+    match incoming.remote_addr() {
+        iroh::endpoint::IncomingAddr::Ip(addr) => Some(addr.to_string()),
+        _ => None,
+    }
 }
 
 impl SyncService {
@@ -347,6 +363,9 @@ impl SyncService {
             .secret_key(key)
             .alpns(vec![ALPN.to_vec()])
             .relay_mode(relay_mode.clone())
+            // iroh mDNS 地址解析：同子网按 peer id 找到对端当前地址。
+            // 只在 id-only 兜底寻址（last_ips 过期后）时被用到。
+            .address_lookup(iroh_mdns_address_lookup::MdnsAddressLookup::builder())
             .bind()
             .await
             .context("bind iroh endpoint")?;
@@ -1206,18 +1225,25 @@ impl SyncService {
             .unwrap_or_default()
     }
 
+    /// 仅凭 node id 构造地址（不嵌任何直连 ip:port），让 iroh 自行经
+    /// address_lookup（iroh mDNS / n0 DNS）或 relay 解析对端当前地址。
+    /// 用于 last_ips 过期后的兜底路径。
+    pub fn build_id_only_addr(&self, node_id: iroh::EndpointId) -> EndpointAddr {
+        let mut addr = EndpointAddr::new(node_id);
+        let urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
+        if let Some(u) = urls.into_iter().next() {
+            addr = addr.with_relay_url(u);
+        }
+        addr
+    }
+
     pub fn build_connect_addr(
         &self,
         node_id: iroh::EndpointId,
         ips: &[String],
     ) -> Result<EndpointAddr> {
         if ips.is_empty() {
-            let mut addr = EndpointAddr::new(node_id);
-            let urls: Vec<iroh::RelayUrl> = self.relay_mode.relay_map().urls();
-            if let Some(u) = urls.into_iter().next() {
-                addr = addr.with_relay_url(u);
-            }
-            Ok(addr)
+            Ok(self.build_id_only_addr(node_id))
         } else {
             let ips: Vec<TransportAddr> = ips
                 .iter()
@@ -1756,10 +1782,10 @@ impl SyncService {
         } else {
             peer_ips
         };
-        let addr = self.build_connect_addr(node_id, &ips)?;
-        let conn = tokio::time::timeout(Duration::from_secs(3), self.endpoint.connect(addr, ALPN))
+        let conn = self
+            .connect_prefer_direct(node_id, &ips, Duration::from_secs(3), Duration::from_secs(5))
             .await
-            .context("health-check connection timeout")??;
+            .context("health-check connection failed")?;
         let mut send = conn.open_uni().await.context("open health-check stream")?;
         send.write_all(HEALTH_MAGIC)
             .await
@@ -1778,6 +1804,58 @@ impl SyncService {
         }
         store.update_last_seen(peer_id)?;
         Ok(started.elapsed().as_millis() as u64)
+    }
+
+    /// 用 id-only 地址尝试建立连接（走 iroh address_lookup/mDNS/relay），
+    /// 是 `last_ips` 直连地址过期后的兜底路径。
+    async fn connect_by_id(
+        &self,
+        node_id: iroh::EndpointId,
+        timeout: Duration,
+    ) -> Result<iroh::endpoint::Connection> {
+        let addr = self.build_id_only_addr(node_id);
+        let conn = tokio::time::timeout(timeout, self.endpoint.connect(addr, ALPN))
+            .await
+            .context("address-lookup connect timeout")??;
+        Ok(conn)
+    }
+
+    /// 先用 last_ips 直连，失败再退到 id-only 寻址。
+    /// `total_timeout` 是两条路径的总预算：直连独占 `direct_timeout`，
+    /// 剩余额度给 id-only 兜底（对端真不在线时不至于拖满两轮超时）。
+    async fn connect_prefer_direct(
+        &self,
+        node_id: iroh::EndpointId,
+        ips: &[String],
+        direct_timeout: Duration,
+        total_timeout: Duration,
+    ) -> Result<iroh::endpoint::Connection> {
+        let deadline = std::time::Instant::now() + total_timeout;
+        let direct_addr = self.build_connect_addr(node_id, ips)?;
+        match tokio::time::timeout(direct_timeout, self.endpoint.connect(direct_addr, ALPN)).await {
+            Ok(Ok(conn)) => Ok(conn),
+            direct_err => {
+                // 直连地址不可达（过期/不可路由）→ 交给 iroh 按 peer id 解析当前地址。
+                let direct_msg = match &direct_err {
+                    Ok(Err(e)) => format!("{e:#}"),
+                    Ok(Ok(_)) => unreachable!(),
+                    Err(_) => "direct connect timed out".to_string(),
+                };
+                let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+                if remaining.is_zero() {
+                    anyhow::bail!("direct failed ({direct_msg}); no budget left for id-lookup");
+                }
+                let conn = self
+                    .connect_by_id(node_id, remaining)
+                    .await
+                    .map_err(|fallback| {
+                        anyhow::anyhow!(
+                            "direct failed ({direct_msg}); id-lookup fallback failed: {fallback:#}"
+                        )
+                    })?;
+                Ok(conn)
+            }
+        }
     }
 
     /// 向指定对端推送所有笔记的快照
@@ -1835,16 +1913,18 @@ impl SyncService {
     async fn push_to_peer_inner(&self, peer_id: &str, peer_ips: &[String]) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
 
-        let addr = self.build_connect_addr(node_id, peer_ips)?;
-
         let data = self.export_all()?;
         // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧，
         // 防止墓碑数=1 时 export_all 首字节 0x01 与配对帧标记冲突）
         let wire = encode_push_wire(&data);
 
         let conn = self
-            .endpoint
-            .connect(addr, ALPN)
+            .connect_prefer_direct(
+                node_id,
+                peer_ips,
+                Duration::from_secs(10),
+                Duration::from_secs(18),
+            )
             .await
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
@@ -1973,11 +2053,13 @@ impl SyncService {
         wire: &[u8],
     ) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
-        let addr = self.build_connect_addr(node_id, peer_ips.unwrap_or(&[]))?;
-
         let conn = self
-            .endpoint
-            .connect(addr, ALPN)
+            .connect_prefer_direct(
+                node_id,
+                peer_ips.unwrap_or(&[]),
+                Duration::from_secs(10),
+                Duration::from_secs(18),
+            )
             .await
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
@@ -2116,8 +2198,29 @@ impl SyncService {
         incoming: iroh::endpoint::Incoming,
     ) -> Result<Option<Vec<u8>>> {
         match route_incoming(incoming, &self.pending_pairing, &self.authorized_peers).await? {
-            RoutedIncoming::Push { data, .. } => Ok(Some(data)),
-            RoutedIncoming::HealthCheck { .. } => Ok(None),
+            RoutedIncoming::Push {
+                sender,
+                data,
+                remote_ip,
+            } => {
+                // 对端直连进来 → 顺手刷新内存 peer_ips，让下次 push/check 走真实地址。
+                if let Some(ip) = remote_ip {
+                    self.peer_ips
+                        .lock()
+                        .unwrap()
+                        .insert(sender.to_string(), vec![ip]);
+                }
+                Ok(Some(data))
+            }
+            RoutedIncoming::HealthCheck { sender, remote_ip } => {
+                if let Some(ip) = remote_ip {
+                    self.peer_ips
+                        .lock()
+                        .unwrap()
+                        .insert(sender.to_string(), vec![ip]);
+                }
+                Ok(None)
+            }
             RoutedIncoming::Pairing => Ok(None),
             RoutedIncoming::DeviceName {
                 sender,
@@ -2695,6 +2798,7 @@ async fn route_incoming(
     pending_pairing: &Mutex<Option<PendingPairing>>,
     authorized_peers: &Mutex<HashSet<String>>,
 ) -> Result<RoutedIncoming> {
+    let remote_ip = direct_ip_port(&incoming);
     let conn = incoming.accept()?.await.context("accept connection")?;
     // 发送方身份：连接 TLS 证书中的 EndpointId（识别 inbound push 来源，
     // 用于精确更新 last_seen——无需在协议帧中带 sender_id）
@@ -2720,7 +2824,10 @@ async fn route_incoming(
         ack.finish().context("finish health-check ACK")?;
         tokio::time::sleep(Duration::from_millis(20)).await;
         conn.close(0u32.into(), b"done");
-        return Ok(RoutedIncoming::HealthCheck { sender: sender_id });
+        return Ok(RoutedIncoming::HealthCheck {
+            sender: sender_id,
+            remote_ip,
+        });
     }
     if &marker == LORO_MAGIC {
         if !authorized_peers
@@ -2741,6 +2848,7 @@ async fn route_incoming(
         return Ok(RoutedIncoming::Push {
             sender: sender_id,
             data,
+            remote_ip,
         });
     }
     if marker[0] == PAIRING_FRAME_REQUEST {
@@ -2880,15 +2988,23 @@ async fn receiver_handle_incoming(
     .await?;
     // 接收器持有 store，是唯一能落库改名帧的路径；顺带把轮询路径暂存的名字一并冲刷。
     flush_pending_peer_names(&ctx.store, &ctx.pending_peer_names);
-    let (sender_id, data) = match routed {
-        RoutedIncoming::Push { sender, data } => (sender, data),
-        RoutedIncoming::HealthCheck { sender } => {
+    let (sender_id, data, remote_ip) = match routed {
+        RoutedIncoming::Push {
+            sender,
+            data,
+            remote_ip,
+        } => (sender, data, remote_ip),
+        RoutedIncoming::HealthCheck { sender, remote_ip } => {
             if !ctx.store.is_paired_device(&sender.to_string())? {
                 return Ok(());
             }
             ctx.store
                 .update_last_seen(&sender.to_string())
                 .context("update health-check last_seen")?;
+            // 对端直连进来 → 顺手刷新 last_ips，避免地址表停留在过期值。
+            if let Some(ip) = remote_ip {
+                let _ = ctx.store.update_paired_device_ips(&sender.to_string(), &[ip]);
+            }
             return Ok(());
         }
         // 配对帧：已路由到 pending_pairing，接收器继续等待
@@ -2954,6 +3070,10 @@ async fn receiver_handle_incoming(
             ctx.store
                 .update_last_seen(&sender_str)
                 .context("update sender last_seen")?;
+            // 对端直连推送进来 → 顺手刷新 last_ips，避免地址表停留在过期值。
+            if let Some(ip) = &remote_ip {
+                let _ = ctx.store.update_paired_device_ips(&sender_str, &[ip.clone()]);
+            }
             ctx.content_revision.fetch_add(1, Ordering::Release);
             receiver_log(
                 ctx,
