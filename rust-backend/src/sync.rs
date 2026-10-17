@@ -1913,16 +1913,18 @@ impl SyncService {
     async fn push_to_peer_inner(&self, peer_id: &str, peer_ips: &[String]) -> Result<()> {
         let node_id: iroh::EndpointId = peer_id.parse().context("invalid peer endpoint id")?;
 
-        let addr = self.build_connect_addr(node_id, peer_ips)?;
-
         let data = self.export_all()?;
         // 网络线格式：8 字节 CARDMIND magic + export_all 输出（M2：识别推送帧，
         // 防止墓碑数=1 时 export_all 首字节 0x01 与配对帧标记冲突）
         let wire = encode_push_wire(&data);
 
         let conn = self
-            .endpoint
-            .connect(addr, ALPN)
+            .connect_prefer_direct(
+                node_id,
+                peer_ips,
+                Duration::from_secs(10),
+                Duration::from_secs(18),
+            )
             .await
             .context("connect to peer")?;
         let mut send = conn.open_uni().await.context("open uni stream")?;
