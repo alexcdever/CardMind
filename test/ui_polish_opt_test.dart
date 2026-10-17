@@ -1,9 +1,14 @@
 import 'dart:io';
 
+import 'package:appflowy_editor/appflowy_editor.dart';
+import 'package:cardmind/pages/editor_page.dart';
+import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:cardmind/ui/design_system/cardmind_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'vertical_slice_widget_test.dart' show MemoryNoteRepository;
 
 /// ui-polish-opt 优化项 1 验收测试：staleDotColor 收编为 CardMindTokens.stale。
 ///
@@ -108,15 +113,11 @@ void _themeChecks() {
 }
 
 /// 优化项 4/5：设置页——取消下载/打开安装包 ≥48dp；桌面宽屏内容有最大宽约束。
+///
+/// 两条都是**源码纪律检查**（SettingsPage 依赖服务注入，不在此处挂载），
+/// 因此用 `test` 而非 `testWidgets`：不 pump widget 的用例不该占 widget 测试位。
 void _settingsChecks() {
-  testWidgets('AC3: cancel-download / open-package TextButtons are >=48dp', (
-    tester,
-  ) async {
-    for (final key in const ['cancel-update-download', 'open-update-package']) {
-      // 仅做静态最小尺寸断言：SettingsPage 未挂起时不直接构造（依赖服务注入），
-      // 改由源码纪律测试保证 styleFrom(minimumSize) 存在（见下方 grep 断言）。
-      expect(key, isNotEmpty);
-    }
+  test('AC3: cancel-download / open-package TextButtons are >=48dp', () {
     final source = File('lib/pages/settings_page.dart').readAsStringSync();
     for (final key in const ['cancel-update-download', 'open-update-package']) {
       // 每个 key 所在 TextButton 必须声明 minimumSize 达标触摸目标。
@@ -132,12 +133,14 @@ void _settingsChecks() {
     }
   });
 
-  testWidgets('AC3: desktop settings body has a max-width constraint', (
-    tester,
-  ) async {
+  test('AC3: desktop settings body has a max-width constraint', () {
     final source = File('lib/pages/settings_page.dart').readAsStringSync();
+    // 限宽必须由同一处 ConstrainedBox 承载 editorMaxWidth——
+    // 只断言两个字符串各自出现会把「限宽被删、注释里还留着 editorMaxWidth」判为通过。
     expect(
-      source.contains('ConstrainedBox') && source.contains('editorMaxWidth'),
+      RegExp(
+        r'ConstrainedBox\([\s\S]{0,200}?CardMindLayout\.editorMaxWidth',
+      ).hasMatch(source),
       isTrue,
       reason: '桌面宽屏内容须以 ConstrainedBox + editorMaxWidth 限宽，与编辑器一致',
     );
@@ -147,21 +150,74 @@ void _settingsChecks() {
 /// 优化项 6/7/12：编辑器——链接补全面板 left 钳制、右键「删除」danger、
 /// 保存中指示非静态 Icons.sync。
 void _editorChecks() {
-  test(
-    'AC4: link-completion panel clamps left to screen minus panel minus margin',
-    () {
-      final source = File('lib/pages/editor_page.dart').readAsStringSync();
-      // left 必须由 rect.left 再经 clamp 收敛到屏幕内；
-      // 断言出现对 panel 宽 + margin 的边界钳制表达式。
-      expect(
-        RegExp(
-          r'left[^;]*clamp|clamp[^;]*left|screenW|panelW|\.clamp\(',
-        ).hasMatch(source),
-        isTrue,
-        reason: '光标贴近右缘时 360 宽补全面板会被裁；left 须 clamp 到 screenW-panelW-margin',
-      );
-    },
-  );
+  // 链接补全面板防溢出：断言真实渲染几何，不做源码文本匹配。
+  //
+  // 缺陷复现方式：把 `lib/pages/editor_page.dart` 里
+  //   `final left = rawLeft.clamp(margin, (screenWidth - panelWidth - margin).clamp(...));`
+  // 整段换成 `final left = rawLeft;` —— 在 390 宽屏上光标 x≈95，
+  // 面板 right 变成 455 > 390 溢出屏幕，本用例必须失败。
+  testWidgets('AC4: link-completion panel clamps left inside the screen', (
+    tester,
+  ) async {
+    const screenWidth = 390.0;
+    const panelWidth = 360.0;
+    const margin = CardMindSpacing.md;
+    tester.view.physicalSize = const Size(screenWidth, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final repository = MemoryNoteRepository(
+      rows: const [
+        NoteRow(
+          id: 'target-note',
+          title: 'Target title',
+          contentPreview: 'Target body',
+          tags: '',
+          updatedAt: '2026-07-22 05:00:00',
+        ),
+      ],
+      contents: const {},
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: CardMindTheme.light,
+        home: Scaffold(body: EditorPage(repository: repository)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final state = tester
+        .widget<AppFlowyEditor>(find.byType(AppFlowyEditor))
+        .editorState;
+    final replacement = markdownToDocument('[[Tar');
+    final transaction = state.transaction
+      ..deleteNodes(List.of(state.document.root.children))
+      ..insertNodes([0], replacement.root.children.reversed.toList());
+    await state.apply(transaction);
+    await tester.pump();
+    state.selection = Selection.collapsed(
+      Position(path: const [0], offset: '[[Tar'.length),
+    );
+    await tester.pumpAndSettle();
+
+    final panel = find.byKey(const ValueKey('link-completion-panel'));
+    expect(panel, findsOneWidget, reason: '光标在 [[ 后应弹出补全面板');
+    final rect = tester.getRect(panel);
+    expect(rect.width, panelWidth, reason: '面板宽度应为 360');
+    expect(
+      rect.right <= screenWidth - margin + 0.01,
+      isTrue,
+      reason:
+          '光标贴近右缘时 360 宽面板会被裁；left 须 clamp 到 '
+          'screenWidth - panelWidth - margin。实际 rect=${rect.left}..'
+          '${rect.right}，屏幕宽 $screenWidth',
+    );
+    expect(
+      rect.left >= margin - 0.01,
+      isTrue,
+      reason: '补全面板左边不得越过页面紧凑边距 $margin，实际 ${rect.left}',
+    );
+  });
 
   test('AC4: desktop tag context menu delete item uses danger color', () {
     final source = File('lib/pages/editor_page.dart').readAsStringSync();

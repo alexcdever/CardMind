@@ -45,7 +45,7 @@ Future<int> _runFlutter(String device) async {
   stdout.writeln('Running CardMind journeys on $device');
   late final Process process;
   try {
-    _validateDevice(device);
+    validateDevice(device);
     final executable = Platform.isWindows ? 'flutter.bat' : 'flutter';
     process = await Process.start(executable, [
       'test',
@@ -66,7 +66,11 @@ Future<int> _runFlutter(String device) async {
   return code;
 }
 
-void _validateDevice(String device) {
+/// 设备标识校验：只允许字母数字与 `._:-`，长度 ≤128 且非空。
+///
+/// 公开（非 `_` 前缀）是为了让 `test/feature_test_security_test.dart` 直接调用，
+/// 用真实输入验证安全属性；校验逻辑本身不接受任意 shell 元字符。
+void validateDevice(String device) {
   if (device.isEmpty ||
       device.length > 128 ||
       !RegExp(r'^[A-Za-z0-9._:-]+$').hasMatch(device)) {
