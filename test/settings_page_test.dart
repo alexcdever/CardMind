@@ -11,6 +11,7 @@ import 'package:cardmind/services/platform_update_installer.dart';
 import 'package:cardmind/services/update_downloader.dart';
 import 'package:cardmind/services/update_download_manager.dart';
 import 'package:cardmind/services/update_service.dart';
+import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -579,4 +580,301 @@ void main() {
       );
     },
   );
+  settingsPolishChecks();
+}
+
+// ━━━ 以下用例自原 ui_polish_fix2 / ui_polish_opt 迁入 ━━━
+
+UpdateService _offlineService() => UpdateService(
+  currentBuild: 1,
+  currentVersion: '0.1.0',
+  fetch: (_) async => throw StateError('offline'),
+);
+
+Future<void> _pumpSettingsPolish(
+  WidgetTester tester, {
+  Size size = const Size(1200, 800),
+  UpdateService? updates,
+  Future<Directory> Function({String? baseDirectory})? logDirectoryResolver,
+  Future<void> Function(String directory)? logDirectoryOpener,
+}) async {
+  await tester.binding.setSurfaceSize(size);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(
+    // 注入 MediaQuery：setSurfaceSize 只改 renderView，MediaQuery.sizeOf 仍返回
+    // 默认 800×600，必须显式给 size 才能让 <600 分支生效。
+    MediaQuery(
+      data: MediaQueryData(size: size),
+      child: MaterialApp(
+        theme: CardMindTheme.light,
+        home: SettingsPage(
+          currentVersion: '1.0.0',
+          settings: _SettingsFake(UpdateChannel.stable),
+          updates: updates,
+          logDirectoryResolver: logDirectoryResolver,
+          logDirectoryOpener: logDirectoryOpener,
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// 永远挂起的下载器：把 SettingsPage 的 `_downloadManager.downloading` 钉在 true。
+class _HangingDownloader extends UpdateDownloader {
+  _HangingDownloader();
+
+  final Completer<void> _never = Completer<void>();
+
+  @override
+  Future<DownloadResult> download(
+    UpdateAsset asset, {
+    Uri? url,
+    DownloadCancellationToken? cancellation,
+    void Function(double)? onProgress,
+  }) async {
+    onProgress?.call(0.5);
+    await _never.future;
+    return const DownloadFailure('never completes');
+  }
+
+  @override
+  void dispose() {}
+}
+
+/// 内存版设置服务：避免触碰真实 getApplicationSupportDirectory。
+class _MemorySettings extends AppSettingsService {
+  @override
+  Future<UpdateChannel> readChannel() async => UpdateChannel.stable;
+
+  @override
+  Future<bool> readUseSystemProxy() async => true;
+
+  @override
+  Future<void> writeChannel(UpdateChannel value) async {}
+
+  @override
+  Future<void> writeUseSystemProxy(bool value) async {}
+}
+
+/// 日志目录解析：不触碰真实 getApplicationSupportDirectory。
+Future<Directory> _fakeLogDirectory({String? baseDirectory}) async =>
+    Directory.systemTemp;
+
+/// 把 `minimumSize` 的单个维度表达式解析成数值。
+///
+/// 支持 `CardMindLayout.mobileTouchTarget`、`48`、`0` 等写法；无法解析一律返回 0，
+/// 让断言失败——退让也不允许「看不懂就放行」。
+double _resolveSizeValue(String expression) {
+  final expr = expression.trim();
+  if (expr == 'Size.zero') return 0;
+  final literal = double.tryParse(expr);
+  if (literal != null) return literal;
+  final ref = RegExp(r'^CardMindLayout\.(\w+)$').firstMatch(expr);
+  if (ref != null) {
+    return switch (ref.group(1)) {
+      'mobileTouchTarget' => CardMindLayout.mobileTouchTarget,
+      'editorMaxWidth' => CardMindLayout.editorMaxWidth,
+      _ => 0,
+    };
+  }
+  return 0;
+}
+
+/// ui-polish-fix2 / ui-polish-opt 迁入用例。
+void settingsPolishChecks() {
+  // ━━ 原 ui_polish_fix2 AC2 ━━
+  testWidgets('update check failure shows a single prefix', (tester) async {
+    await _pumpSettingsPolish(tester, updates: _offlineService());
+    await tester.tap(find.byKey(const ValueKey('check-for-updates')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1));
+
+    expect(
+      find.textContaining('检查失败：检查更新失败：'),
+      findsNothing,
+      reason: '不得出现「检查失败：检查更新失败：…」双重前缀',
+    );
+    expect(
+      find.textContaining('检查更新失败：'),
+      findsOneWidget,
+      reason: '应只显示一遍「检查更新失败：…」',
+    );
+  });
+
+  // ━━ 原 ui_polish_fix2 AC4 ━━
+  testWidgets('settings page padding switches at the 600px breakpoint', (
+    tester,
+  ) async {
+    // 移动端 <600 → 16px
+    await _pumpSettingsPolish(tester, size: const Size(390, 844));
+    ListView listView = tester.widget<ListView>(find.byType(ListView).first);
+    expect(
+      listView.padding,
+      const EdgeInsets.all(CardMindSpacing.lg),
+      reason: '移动端页面内边距应为 16px',
+    );
+
+    // 桌面 ≥600 → 24px
+    await _pumpSettingsPolish(tester, size: const Size(1200, 800));
+    listView = tester.widget<ListView>(find.byType(ListView).first);
+    expect(
+      listView.padding,
+      const EdgeInsets.all(CardMindSpacing.xl),
+      reason: '桌面端页面内边距应为 24px',
+    );
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  // ━━ 原 ui_polish_fix2 AC6a ━━
+  testWidgets('log directory row is disabled when unresolved', (tester) async {
+    await _pumpSettingsPolish(
+      tester,
+      logDirectoryResolver: ({String? baseDirectory}) async =>
+          throw const FileSystemException('cannot resolve'),
+    );
+    final row = tester.widget<InkWell>(
+      find.byKey(const ValueKey('open-log-directory')),
+    );
+    expect(row.onTap, isNull, reason: '目录未加载成功时该行不得可点');
+    expect(find.text('无法获取日志目录'), findsOneWidget, reason: '失败文案仍应显示');
+  });
+
+  // ━━ 原 ui_polish_fix2 AC6b ━━
+  testWidgets('log directory row tappable with icon once resolved', (
+    tester,
+  ) async {
+    const resolved = '/tmp/cardmind-logs';
+    var opened = 0;
+    await _pumpSettingsPolish(
+      tester,
+      logDirectoryResolver: ({String? baseDirectory}) async =>
+          Directory(resolved),
+      logDirectoryOpener: (_) async => opened++,
+    );
+    final row = tester.widget<InkWell>(
+      find.byKey(const ValueKey('open-log-directory')),
+    );
+    expect(row.onTap, isNotNull, reason: '目录加载成功后该行应可点');
+    expect(
+      find.byIcon(Icons.folder_open_outlined),
+      findsOneWidget,
+      reason: '可点时应有图标视觉提示',
+    );
+    await tester.tap(find.byKey(const ValueKey('open-log-directory')));
+    await tester.pumpAndSettle();
+    expect(opened, 1);
+  });
+
+  // ━━ 原 ui_polish_opt 优化项 4/5：取消下载/打开安装包 ≥48dp；桌面限宽 ━━
+  // 触摸目标断言必须验证**取值**，不能只验证「存在 minimumSize 字样」：
+  // 把 `minimumSize: const Size(0, CardMindLayout.mobileTouchTarget)` 改成
+  // `Size.zero`（缺陷本体：触摸目标归零）时，只查标识符的正则照样通过。
+  //
+  // 为什么断言「挂载后取到的 TextButton.style.minimumSize 取值」而不是渲染高度：
+  // Material 3 默认 `tapTargetSize: padded` 会把手势目标撑到 48dp，
+  // 把 minimumSize 改成 0 后 `tester.getSize()` 仍是 48（实测 Size(80, 48)），
+  // 渲染高度对这个缺陷同样是假通过。挂载后读 style 才能拿到真实声明值。
+  testWidgets('cancel-download TextButton declares >=48dp minimumSize', (
+    tester,
+  ) async {
+    // 该按钮仅在 `_result` 是 UpdateAvailable 且 `_downloadManager.downloading`
+    // 为 true 时渲染：先给 manager 塞 manifest（initState 会读进 `_result`），
+    // 再用挂起中的 downloader 把 downloading 钉在 true。
+    const asset = UpdateAsset(
+      artifact: 'CardMind-Setup.exe',
+      url: 'https://example.com/windows',
+      sha256:
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      size: 1,
+    );
+    final manager = UpdateDownloadManager(downloader: _HangingDownloader());
+    addTearDown(manager.dispose);
+    manager.manifest = UpdateManifest(
+      schemaVersion: 1,
+      appId: 'com.cardmind.v2',
+      channel: 'stable',
+      version: '0.1.0',
+      build: 10002,
+      publishedAt: '2026-01-01T00:00:00Z',
+      minimumSupportedVersion: '0.1.0',
+      mandatory: false,
+      releaseNotes: const ['修复问题'],
+      releasePage: 'https://example.com/release',
+      platforms: {UpdateManifest.currentPlatform: asset},
+    );
+    unawaited(manager.start(asset));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SettingsPage(
+          currentVersion: '0.1.0',
+          settings: _MemorySettings(),
+          downloadManager: manager,
+          logDirectoryResolver: _fakeLogDirectory,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final button = find.byKey(const ValueKey('cancel-update-download'));
+    expect(button, findsOneWidget, reason: '下载中应渲染「取消下载」按钮');
+    final style = tester.widget<TextButton>(button).style;
+    final minimumSize = style?.minimumSize?.resolve(<WidgetState>{});
+    expect(
+      minimumSize,
+      isNotNull,
+      reason: '「取消下载」必须显式声明 minimumSize（不得依赖 Material 默认 tap target）',
+    );
+    expect(
+      minimumSize!.height,
+      greaterThanOrEqualTo(CardMindLayout.mobileTouchTarget),
+      reason:
+          '「取消下载」minimumSize 高度须 ≥${CardMindLayout.mobileTouchTarget}dp，'
+          '实际 ${minimumSize.height}（改成 Size.zero / 0 时这里必须失败）',
+    );
+  });
+
+  // 「打开安装包」只在 macOS/Linux 分支渲染（settings_page.dart:428），
+  // Windows 上无法挂载 → 退让为「解析出 minimumSize 的**数值**」并断言 ≥48，
+  // 而不是只要求 minimumSize 字样存在（那样 Size.zero 也会通过）。
+  test('open-package TextButton minimumSize resolves to >=48dp', () {
+    final source = File('lib/pages/settings_page.dart').readAsStringSync();
+    final block = RegExp(
+      "key: const ValueKey\\('open-update-package'\\)[\\s\\S]{0,600}?"
+      r'minimumSize: const Size\(([\s\S]{0,300}?)\),',
+    ).firstMatch(source);
+    expect(
+      block,
+      isNotNull,
+      reason: 'open-update-package TextButton 必须 styleFrom(minimumSize: ...)',
+    );
+    final args = block!
+        .group(1)!
+        .split(',')
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
+        .toList();
+    expect(args, hasLength(2), reason: 'minimumSize 必须是 Size(width, height)');
+    final height = _resolveSizeValue(args[1]);
+    expect(
+      height,
+      greaterThanOrEqualTo(CardMindLayout.mobileTouchTarget),
+      reason:
+          'open-update-package 的 minimumSize 高度须 ≥'
+          '${CardMindLayout.mobileTouchTarget}dp，实际解析值 $height',
+    );
+  });
+
+  test('desktop settings body has a max-width constraint', () {
+    final source = File('lib/pages/settings_page.dart').readAsStringSync();
+    // 限宽必须由同一处 ConstrainedBox 承载 editorMaxWidth——
+    // 只断言两个字符串各自出现会把「限宽被删、注释里还留着 editorMaxWidth」判为通过。
+    expect(
+      RegExp(
+        r'ConstrainedBox\([\s\S]{0,200}?CardMindLayout\.editorMaxWidth',
+      ).hasMatch(source),
+      isTrue,
+      reason: '桌面宽屏内容须以 ConstrainedBox + editorMaxWidth 限宽，与编辑器一致',
+    );
+  });
 }
