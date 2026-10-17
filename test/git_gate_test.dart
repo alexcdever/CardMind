@@ -16,6 +16,7 @@ import '../tool/src/git_gate/selector.dart';
 final TestIndex testIndex = TestIndex(
   flutterTestFiles: {
     'test/api_integration_test.dart',
+    'test/editor_page_widget_test.dart',
     'test/frb_note_repository_test.dart',
     'test/receiver_store_borrow_test.dart',
     'test/pairing_accept_ui_test.dart',
@@ -24,14 +25,12 @@ final TestIndex testIndex = TestIndex(
     'test/pairing_repository_test.dart',
     'test/sync_scheduler_test.dart',
     'test/sync_ui_widget_test.dart',
-    'test/vertical_slice_widget_test.dart',
   },
   rustTestTargets: {
     'autosync_test',
     'connect_test',
     'debug_log_test',
     'discovery_test',
-    'integration_test',
     'live_relay_test',
     'migration_test',
     'note_crdt_test',
@@ -40,7 +39,6 @@ final TestIndex testIndex = TestIndex(
     'relay_config_test',
     'store_test',
     'sync_service_test',
-    'sync_test',
     'trash_test',
   },
 );
@@ -105,7 +103,7 @@ void main() {
 
     test('2 单个 Flutter test 文件只选自身（同时含 analyze）', () {
       final plan = selectPlanForFiles([
-        'test/vertical_slice_widget_test.dart',
+        'test/editor_page_widget_test.dart',
       ], index: testIndex);
       expect(kindsOf(plan), <CommandKind>[
         CommandKind.formatDart,
@@ -121,7 +119,7 @@ void main() {
         'test',
         '--timeout',
         '5m',
-        'test/vertical_slice_widget_test.dart',
+        'test/editor_page_widget_test.dart',
       ]);
     });
 
@@ -186,7 +184,6 @@ void main() {
       expect(
         targets,
         containsAll(<String>[
-          'sync_test',
           'sync_service_test',
           'receiver_continuous_test',
           'autosync_test',

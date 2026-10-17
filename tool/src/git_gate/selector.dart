@@ -316,7 +316,6 @@ List<String>? _relatedRustTargets(String file, TestIndex index) {
   List<String> candidates;
   if (lower.contains('sync')) {
     candidates = const <String>[
-      'sync_test',
       'sync_service_test',
       'receiver_continuous_test',
       'autosync_test',
