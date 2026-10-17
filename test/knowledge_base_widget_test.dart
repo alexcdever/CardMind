@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'vertical_slice_widget_test.dart' show MemoryNoteRepository;
+import 'support/memory_note_repository.dart' show MemoryNoteRepository;
 
 void main() {
   group('link auto-completion (B2)', () {

@@ -1,10 +1,12 @@
+import 'dart:io';
+
 import 'package:cardmind/pages/note_list_page.dart';
 import 'package:cardmind/pages/trash_page.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'vertical_slice_widget_test.dart' show MemoryNoteRepository;
+import 'support/memory_note_repository.dart' show MemoryNoteRepository;
 
 void main() {
   group('trash slice', () {
@@ -112,6 +114,29 @@ void main() {
 
       expect(find.text('回收站是空的'), findsOneWidget);
       expect(find.byType(ListTile), findsNothing);
+    });
+
+    group('token discipline', () {
+      // ━━ 原 ui_polish_opt AC6（优化项 11）━━
+      // 回收站页 `tokens` 命名误导——不得继续用
+      // `Theme.of(context).colorScheme` 当 token；改用 `context.cardMind`。
+      test('trash page reads cardMind tokens, not colorScheme', () {
+        final source = File('lib/pages/trash_page.dart').readAsStringSync();
+        expect(
+          source.contains('context.cardMind'),
+          isTrue,
+          reason: 'trash 条目色须走 CardMind token（mutedInk/danger）',
+        );
+        expect(
+          RegExp(
+            r'Theme\.of\(context\)\.colorScheme|onSurfaceVariant|\.error\b',
+          ).hasMatch(source),
+          isFalse,
+          reason:
+              'trash 不得再把 colorScheme 误名为 tokens'
+              '（onSurfaceVariant→mutedInk、error→danger）',
+        );
+      });
     });
   });
 }
