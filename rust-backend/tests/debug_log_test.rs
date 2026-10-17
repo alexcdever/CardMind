@@ -284,8 +284,8 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
     rt().block_on(async {
         let dir_a = temp_dir("life-a");
         let dir_b = temp_dir("life-b");
-        let sink_a = sink();
-        let sink_b = sink();
+        let sink_a = Arc::new(CollectingSink::new());
+        let sink_b = Arc::new(CollectingSink::new());
         let mut confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
             .await
             .unwrap();
@@ -413,21 +413,42 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
 #[test]
 fn test_connect_emits_transport_and_error_chain() {
     rt().block_on(async {
-        // 直连路径（ips 非空）→ transport=direct；127.0.0.1:1 立即拒绝 → failed 事件含错误链与耗时
+        // 直连路径（ips 非空）→ transport=direct；对端拒绝 → failed 事件含错误链与耗时。
+        //
+        // 对端是真实 confirmer（本地 IP，直连可达），配对码不匹配 → 它在握手阶段回
+        // 拒绝帧，发起方毫秒级拿到 `Ok(Err(..))`。这样 failed 分支的断言在 2 秒预算内
+        // 必然执行；而「假 device_id + 127.0.0.1:1」要等 iroh 约 30 秒才放弃
+        // （实测 30.01s），2 秒预算下只会走到超时分支，failed 断言变成永不执行的死代码。
         let dir = temp_dir("connect-direct");
+        let dir_confirmer = temp_dir("connect-direct-confirmer");
         let sink = sink();
         let svc = SyncService::new_persistent_with_log_sink(&dir, sink.clone())
             .await
             .unwrap();
-        let store = NoteStore::new(":memory:").unwrap();
+        let confirmer_sink = Arc::new(CollectingSink::new());
+        let mut confirmer =
+            SyncService::new_persistent_with_log_sink(&dir_confirmer, confirmer_sink)
+                .await
+                .unwrap();
+        let _code = confirmer.begin_pairing_accept().unwrap();
         let target = PairingTarget {
-            device_id: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
-                .to_string(),
-            ips: vec!["127.0.0.1:1".to_string()],
-            nonce: String::new(),
+            device_id: confirmer.device_id(),
+            ips: confirmer.local_addrs(),
+            nonce: confirmer.session_nonce_hex(),
         };
+        let confirmer_store = NoteStore::new(":memory:").unwrap();
+        // 确认方用另一个配对码 confirm → 拒绝帧（发起方码是 "123456"）
+        let confirmer_task = tokio::spawn(async move {
+            let request = confirmer.accept_pairing_request().await.unwrap();
+            let _ = confirmer
+                .confirm_pairing(&confirmer_store, "000000", &request)
+                .await;
+        });
+
+        let store = NoteStore::new(":memory:").unwrap();
+        // 预算 2 秒：拒绝帧往返只需毫秒级（实测 ~23ms），预算只为兜底不挂死。
         let res = tokio::time::timeout(
-            std::time::Duration::from_secs(15),
+            std::time::Duration::from_secs(2),
             svc.begin_pairing_connect(&store, "123456", target),
         )
         .await;
@@ -438,15 +459,20 @@ fn test_connect_emits_transport_and_error_chain() {
             .expect("应有 connect start 事件");
         assert_eq!(field(start, "transport"), Some("direct"));
 
-        if let Ok(Err(_)) = res {
-            let failed = events
+        // 拒绝是确定性结果：必须是 Ok(Err(..))，不允许被 2 秒预算截断成超时。
+        let failed = match res {
+            Ok(Err(_)) => events
                 .iter()
                 .find(|e| e.event == "pairing.connect" && field(e, "action") == Some("failed"))
-                .expect("连接失败应发出 failed 事件");
-            assert!(failed.error_chain.is_some(), "失败事件应含错误链");
-            assert!(failed.duration_ms.is_some(), "失败事件应含耗时");
-        }
+                .expect("连接失败应发出 failed 事件"),
+            Ok(Ok(_)) => panic!("对端配对码不匹配时发起方不应握手成功"),
+            Err(_) => panic!("拒绝帧应在 2 秒预算内返回（实测 ~23ms），实际超时"),
+        };
+        assert!(failed.error_chain.is_some(), "失败事件应含错误链");
+        assert!(failed.duration_ms.is_some(), "失败事件应含耗时");
+        let _ = confirmer_task.await;
         let _ = std::fs::remove_dir_all(dir);
+        let _ = std::fs::remove_dir_all(dir_confirmer);
 
         // relay 路径（空 ips + relay.txt 配置）→ transport=relay
         let dir2 = temp_dir("connect-relay");
@@ -463,7 +489,7 @@ fn test_connect_emits_transport_and_error_chain() {
             nonce: String::new(),
         };
         let _ = tokio::time::timeout(
-            std::time::Duration::from_secs(15),
+            std::time::Duration::from_secs(2),
             svc2.begin_pairing_connect(&store2, "123456", target2),
         )
         .await;
@@ -484,8 +510,8 @@ fn test_initial_sync_emits_counts_only() {
     rt().block_on(async {
         let dir_a = temp_dir("sync-a");
         let dir_b = temp_dir("sync-b");
-        let sink_a = sink();
-        let sink_b = sink();
+        let sink_a = Arc::new(CollectingSink::new());
+        let sink_b = Arc::new(CollectingSink::new());
         let mut confirmer = SyncService::new_persistent_with_log_sink(&dir_a, sink_a.clone())
             .await
             .unwrap();
