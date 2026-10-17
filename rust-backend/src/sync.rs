@@ -284,9 +284,15 @@ enum RoutedIncoming {
     Push {
         sender: iroh::EndpointId,
         data: Vec<u8>,
+        /// 对端本次连接的直连 `ip:port`（仅直连入站时有值，relay 为 None）。
+        remote_ip: Option<String>,
     },
     /// 轻量健康检查：发送方（取自 TLS 证书）+ 已验证 ACK。
-    HealthCheck { sender: iroh::EndpointId },
+    HealthCheck {
+        sender: iroh::EndpointId,
+        /// 对端本次连接的直连 `ip:port`。
+        remote_ip: Option<String>,
+    },
     /// 配对请求帧：已存入 `pending_pairing`，调用方继续等待。
     Pairing,
     /// 设备改名帧：对端告知其新设备名。
@@ -295,6 +301,16 @@ enum RoutedIncoming {
         device_id: String,
         name: String,
     },
+}
+
+/// 从 `incoming` 提取对端当前直连 `ip:port`（仅当对端是直连进来而非 relay）。
+/// 用于把真实可达地址刷新进 `peer_ips`/`last_ips`，让地址表跟着真实连接滚动更新。
+/// 必须在 `accept()` 之前调用：`remote_addr` 只在 `Incoming` 上可用。
+fn direct_ip_port(incoming: &iroh::endpoint::Incoming) -> Option<String> {
+    match incoming.remote_addr() {
+        iroh::endpoint::IncomingAddr::Ip(addr) => Some(addr.to_string()),
+        _ => None,
+    }
 }
 
 impl SyncService {
@@ -2180,8 +2196,29 @@ impl SyncService {
         incoming: iroh::endpoint::Incoming,
     ) -> Result<Option<Vec<u8>>> {
         match route_incoming(incoming, &self.pending_pairing, &self.authorized_peers).await? {
-            RoutedIncoming::Push { data, .. } => Ok(Some(data)),
-            RoutedIncoming::HealthCheck { .. } => Ok(None),
+            RoutedIncoming::Push {
+                sender,
+                data,
+                remote_ip,
+            } => {
+                // 对端直连进来 → 顺手刷新内存 peer_ips，让下次 push/check 走真实地址。
+                if let Some(ip) = remote_ip {
+                    self.peer_ips
+                        .lock()
+                        .unwrap()
+                        .insert(sender.to_string(), vec![ip]);
+                }
+                Ok(Some(data))
+            }
+            RoutedIncoming::HealthCheck { sender, remote_ip } => {
+                if let Some(ip) = remote_ip {
+                    self.peer_ips
+                        .lock()
+                        .unwrap()
+                        .insert(sender.to_string(), vec![ip]);
+                }
+                Ok(None)
+            }
             RoutedIncoming::Pairing => Ok(None),
             RoutedIncoming::DeviceName {
                 sender,
@@ -2759,6 +2796,7 @@ async fn route_incoming(
     pending_pairing: &Mutex<Option<PendingPairing>>,
     authorized_peers: &Mutex<HashSet<String>>,
 ) -> Result<RoutedIncoming> {
+    let remote_ip = direct_ip_port(&incoming);
     let conn = incoming.accept()?.await.context("accept connection")?;
     // 发送方身份：连接 TLS 证书中的 EndpointId（识别 inbound push 来源，
     // 用于精确更新 last_seen——无需在协议帧中带 sender_id）
@@ -2784,7 +2822,10 @@ async fn route_incoming(
         ack.finish().context("finish health-check ACK")?;
         tokio::time::sleep(Duration::from_millis(20)).await;
         conn.close(0u32.into(), b"done");
-        return Ok(RoutedIncoming::HealthCheck { sender: sender_id });
+        return Ok(RoutedIncoming::HealthCheck {
+            sender: sender_id,
+            remote_ip,
+        });
     }
     if &marker == LORO_MAGIC {
         if !authorized_peers
@@ -2805,6 +2846,7 @@ async fn route_incoming(
         return Ok(RoutedIncoming::Push {
             sender: sender_id,
             data,
+            remote_ip,
         });
     }
     if marker[0] == PAIRING_FRAME_REQUEST {
@@ -2944,15 +2986,23 @@ async fn receiver_handle_incoming(
     .await?;
     // 接收器持有 store，是唯一能落库改名帧的路径；顺带把轮询路径暂存的名字一并冲刷。
     flush_pending_peer_names(&ctx.store, &ctx.pending_peer_names);
-    let (sender_id, data) = match routed {
-        RoutedIncoming::Push { sender, data } => (sender, data),
-        RoutedIncoming::HealthCheck { sender } => {
+    let (sender_id, data, remote_ip) = match routed {
+        RoutedIncoming::Push {
+            sender,
+            data,
+            remote_ip,
+        } => (sender, data, remote_ip),
+        RoutedIncoming::HealthCheck { sender, remote_ip } => {
             if !ctx.store.is_paired_device(&sender.to_string())? {
                 return Ok(());
             }
             ctx.store
                 .update_last_seen(&sender.to_string())
                 .context("update health-check last_seen")?;
+            // 对端直连进来 → 顺手刷新 last_ips，避免地址表停留在过期值。
+            if let Some(ip) = remote_ip {
+                let _ = ctx.store.update_paired_device_ips(&sender.to_string(), &[ip]);
+            }
             return Ok(());
         }
         // 配对帧：已路由到 pending_pairing，接收器继续等待
@@ -3018,6 +3068,10 @@ async fn receiver_handle_incoming(
             ctx.store
                 .update_last_seen(&sender_str)
                 .context("update sender last_seen")?;
+            // 对端直连推送进来 → 顺手刷新 last_ips，避免地址表停留在过期值。
+            if let Some(ip) = &remote_ip {
+                let _ = ctx.store.update_paired_device_ips(&sender_str, &[ip.clone()]);
+            }
             ctx.content_revision.fetch_add(1, Ordering::Release);
             receiver_log(
                 ctx,

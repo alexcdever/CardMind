@@ -528,3 +528,61 @@ fn test_health_check_no_ips_id_only_bounded() {
         let _ = std::fs::remove_dir_all(dir);
     });
 }
+
+// ━━━ 验收 4：入站连接把对端真实 ip:port 刷新进地址表 ━━━
+
+/// B 的接收器收到 A 的直连推送后，B 的 store.last_ips 应被更新为 A 本次连接的
+/// 真实 ip:port（而不是停留在配对时写入的旧值）。
+#[test]
+fn test_inbound_push_refreshes_last_ips() {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let mut a = SyncService::new().await.unwrap();
+        let mut b = SyncService::new().await.unwrap();
+        a.create_note("n-refresh".into(), "ip refresh").unwrap();
+
+        let a_id = a.device_id();
+        let b_id = b.device_id();
+        let b_ips = b.local_addrs();
+        let store_a = NoteStore::new(":memory:").unwrap();
+        let store_b = NoteStore::new(":memory:").unwrap();
+        let code = b.begin_pairing_accept().unwrap();
+        let code_for_b = code.clone();
+        let target_b = PairingTarget {
+            device_id: b_id.clone(),
+            ips: b_ips.clone(),
+            nonce: b.session_nonce_hex(),
+        };
+        let a_id_for_b = a_id.clone();
+        let b_handle = tokio::spawn(async move {
+            assert_eq!(
+                confirm_from_initiator(&mut b, &store_b, &code_for_b).await,
+                a_id_for_b
+            );
+            // 把 A 的 last_ips 写成假过期值，等推送后断言被真实地址覆盖
+            store_b
+                .update_paired_device_ips(&a_id_for_b, &["10.9.9.9:9999".to_string()])
+                .unwrap();
+            b.start_receiver(store_b.clone()).await.unwrap();
+            // 给推送 + 接收器落库留时间窗
+            tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+            b.stop_receiver().await.unwrap();
+            (b, store_b)
+        });
+        pair_with_confirmer(&a, &store_a, &code, target_b).await;
+        a.push_to_peer(&b_id, b_ips).await.unwrap();
+        let (_b, store_b) = b_handle.await.unwrap();
+        let ips = store_b
+            .paired_device_ips(&a_id)
+            .unwrap()
+            .join(",");
+        assert!(
+            !ips.contains("10.9.9.9:9999"),
+            "推送后 last_ips 应被真实地址覆盖，实际: {ips}"
+        );
+        assert!(
+            ips.contains(':') && !ips.is_empty(),
+            "推送后 last_ips 应含真实 ip:port，实际: {ips}"
+        );
+    });
+}
