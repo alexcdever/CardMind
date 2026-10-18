@@ -20,6 +20,7 @@ enum FileCategory {
   sharedConfig,
   boundaryToolConfig,
   ciWorkflow,
+  releasePython,
   unknown,
 }
 
@@ -94,6 +95,7 @@ FileCategory classifyPath(String path) {
   if (_isPlatform(p)) return FileCategory.platform;
   if (_isBoundaryToolConfig(p)) return FileCategory.boundaryToolConfig;
   if (_isCiWorkflow(p)) return FileCategory.ciWorkflow;
+  if (_isReleasePython(p)) return FileCategory.releasePython;
   if (_isSharedConfig(p)) return FileCategory.sharedConfig;
   return FileCategory.unknown;
 }
@@ -164,6 +166,12 @@ bool _isBoundaryToolConfig(String p) =>
 bool _isCiWorkflow(String p) =>
     p.startsWith('.github/workflows/') &&
     (p.endsWith('.yml') || p.endsWith('.yaml'));
+
+/// tool/release/*.py 发布脚本与其 unittest：只被 python -m unittest 覆盖，
+/// 与 Dart/Rust 双栈无关——独立分类做窄路由；tool/release 之外的 .py 仍落
+/// unknown（fail-closed 双栈全量）。
+bool _isReleasePython(String p) =>
+    p.startsWith('tool/release/') && p.endsWith('.py');
 
 /// 影响全仓的根级共享配置；其余 *.yaml/*.json 归 unknown 兜底
 /// （fail-closed 双栈全量）。
@@ -308,6 +316,10 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       // release_workflow_test（只覆盖 manual-build-artifacts.yml）。
       b.add(Commands.analyze());
       _addIfExists(b, index, const <String>['test/release_workflow_test.dart']);
+    case FileCategory.releasePython:
+      // 发布脚本/测试改动：只跑 tool/release 的 python unittest（窄路由），
+      // 不升级 Dart/Rust 双栈全量。
+      b.add(Commands.pythonReleaseTest());
     case FileCategory.unknown:
       b.add(Commands.clippy());
       b.add(Commands.rustFullTest());

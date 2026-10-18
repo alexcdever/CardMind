@@ -13,7 +13,8 @@ enum CommandKind {
   buildLib(40),
   codegen(50),
   analyze(60),
-  flutterTest(70);
+  flutterTest(70),
+  pythonTest(80);
 
   const CommandKind(this.priority);
 
@@ -151,4 +152,21 @@ abstract final class Commands {
   );
 
   static GateCommand flutterFullTest() => flutterTest(const <String>[]);
+
+  /// tool/release 下发布脚本的 Python 单元测试（unittest discover）。
+  /// 参数与手动验证命令一致：discover -s tool/release -p test_*.py。
+  static GateCommand pythonReleaseTest() => const GateCommand(
+    executable: 'python',
+    arguments: <String>[
+      '-m',
+      'unittest',
+      'discover',
+      '-s',
+      'tool/release',
+      '-p',
+      'test_*.py',
+    ],
+    kind: CommandKind.pythonTest,
+    label: 'python:test:release',
+  );
 }
