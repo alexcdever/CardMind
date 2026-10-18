@@ -503,6 +503,66 @@ fn test_connect_emits_transport_and_error_chain() {
     });
 }
 
+// ━━━ 验收 7（续）：不可达对端的 failed 事件 —— error_chain/duration_ms ━━━
+
+/// 直连路径下「连不上的对端」（`127.0.0.1:1`，QUIC 握手 30s 内部超时）：
+/// `failed` 事件仍须携带错误链与耗时。预算 40 秒只为兜底不挂死；
+/// 真正的失败判定来自 iroh connect() 的 ~30s 内部超时（已实测：直连/ALPN 不匹配/
+/// relay 不可达都是 ~30.0s）。
+///
+/// 覆盖审查者建议的盲区：`test_connect_emits_transport_and_error_chain` 把直连腿
+/// 换成确定性拒绝帧后，「连不上」路径的失败事件不再有 error_chain/duration_ms 断言。
+#[test]
+fn test_unreachable_peer_emits_failed_with_chain() {
+    rt().block_on(async {
+        let dir = temp_dir("unreachable-direct");
+        let sink = sink();
+        let svc = SyncService::new_persistent_with_log_sink(&dir, sink.clone())
+            .await
+            .unwrap();
+        let store = NoteStore::new(":memory:").unwrap();
+        let target = PairingTarget {
+            device_id: "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+                .to_string(),
+            ips: vec!["127.0.0.1:1".to_string()],
+            nonce: String::new(),
+        };
+        // 预算 40s：大于 iroh 的 ~30s connect 内部超时，保证 failed 事件能被发出。
+        let res = tokio::time::timeout(
+            std::time::Duration::from_secs(40),
+            svc.begin_pairing_connect(&store, "123456", target),
+        )
+        .await;
+
+        let events = sink.snapshot();
+        let start = events
+            .iter()
+            .find(|e| e.event == "pairing.connect" && field(e, "action") == Some("start"))
+            .expect("应有 connect start 事件");
+        assert_eq!(field(start, "transport"), Some("direct"));
+
+        // 必须是 Ok(Err(..))——不可达对端在 40s 预算内必然返回 Err，不允许被截断成超时。
+        let failed = match res {
+            Ok(Err(_)) => events
+                .iter()
+                .find(|e| e.event == "pairing.connect" && field(e, "action") == Some("failed"))
+                .expect("连不上的对端应发出 failed 事件"),
+            Ok(Ok(_)) => panic!("不可达对端不应握手成功"),
+            Err(_) => panic!(
+                "不可达对端应在 iroh ~30s 内部超时前返回（实测 ~30.0s），实际被 40s 预算截断"
+            ),
+        };
+        assert!(failed.error_chain.is_some(), "失败事件应含错误链");
+        assert!(failed.duration_ms.is_some(), "失败事件应含耗时");
+        // iroh connect() 的内部超时是 ~30s；失败必须真的走超时，不是瞬间拒绝。
+        assert!(
+            failed.duration_ms.unwrap() >= 29_000,
+            "不可达对端的耗时应接近 connect 内部超时（~30s），实际 {}",
+            failed.duration_ms.unwrap()
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    });
+}
 // ━━━ 验收 8：首次全量同步只记录数量/方向/耗时，不记录正文 ━━━
 
 #[test]
