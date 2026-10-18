@@ -35,6 +35,17 @@ pub fn requester(code: &str, id: &str, name: &str, nonce: &str) -> PairingReques
     }
 }
 
+/// 无 IPv4 网络接口的环境前置检查：addrs 为空时 eprintln 留痕并返回 false，
+/// 调用方应 `return` 让用例静默 skip（通过而非 panic），区分「环境不具备」与「代码错」。
+#[allow(dead_code)]
+pub fn require_ipv4(addrs: &[String]) -> bool {
+    if addrs.is_empty() {
+        eprintln!("SKIP: no IPv4 addresses on this machine; test requires network interface");
+        return false;
+    }
+    true
+}
+
 /// 真实配对两个 SyncService（initiator ↔ confirmer），双方 paired_devices 互相包含。
 ///
 /// 网络路径：initiator 经 confirmer.local_addrs() 直连（同网段场景）；配对成功后
@@ -53,7 +64,10 @@ pub async fn pair_up(
         ips: confirmer.local_addrs(),
         nonce: confirmer.session_nonce_hex(),
     };
-    assert!(!target.ips.is_empty(), "确认方应至少有一个本地 IPv4 地址");
+    assert!(
+        !target.ips.is_empty(),
+        "SKIP: no IPv4 addresses on this machine; test requires network interface"
+    );
 
     let confirmer_code = code.clone();
     let confirmer_handle = tokio::spawn(async move {
