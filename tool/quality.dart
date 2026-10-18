@@ -166,6 +166,7 @@ Future<int> _runFlutterQuality({
   final boundaryScan = await runProcess('dart', [
     'tool/test_boundary_scanner.dart',
     '--scope=flutter',
+    '--reuse-coverage',
   ]);
   if (boundaryScan.exitCode != 0) {
     logError(
