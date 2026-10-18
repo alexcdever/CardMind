@@ -799,7 +799,12 @@ class LcovParser {
     final lines = lcovContent.split('\n');
     String? currentFile;
 
-    for (final line in lines) {
+    for (final rawLine in lines) {
+      /// CRLF 落盘的 lcov 会在行尾留下 \r：剥离它，否则 SF key 带
+      /// \r 查询 miss、end_of_record\r 不命中导致 currentFile 不复位。
+      final line = rawLine.endsWith('\r')
+          ? rawLine.substring(0, rawLine.length - 1)
+          : rawLine;
       if (line.startsWith('SF:')) {
         /// SF:<file path>
         /// Windows 上 flutter test --coverage 产出反斜杠路径
