@@ -4835,4 +4835,316 @@ mod tests {
             .expect("waiter panic");
         assert_eq!(got, before + 1);
     }
+
+    // ━━━ envelope / push wire / take_str / nonce / hostname / tag / link ━━━
+    // 纯函数边界用例：覆盖集成测试碰不到的错误路径与边界值。
+
+    /// 手工组帧（v1/v3 版本号、长度字段），验证 decode_envelope 各分支。
+    fn make_envelope(version: u32, payload: &[u8], declared_len: u64) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(LORO_MAGIC);
+        bytes.extend_from_slice(&version.to_le_bytes());
+        bytes.extend_from_slice(&declared_len.to_le_bytes());
+        bytes.extend_from_slice(payload);
+        bytes
+    }
+
+    #[test]
+    fn envelope_roundtrip_has_canonical_layout() {
+        let payload = b"loro-snapshot-bytes";
+        let bytes = encode_envelope(payload);
+        // magic + version(u32 LE) + length(u64 LE) + payload
+        assert_eq!(bytes.len(), LORO_HEADER_LEN + payload.len());
+        assert_eq!(&bytes[..8], b"CARDMIND");
+        assert_eq!(
+            &bytes[8..12],
+            &LORO_VERSION.to_le_bytes(),
+            "version 必须为当前 LORO_VERSION"
+        );
+        assert_eq!(
+            &bytes[12..20],
+            &(payload.len() as u64).to_le_bytes(),
+            "长度字段必须等于 payload 字节数"
+        );
+        let (version, decoded) = decode_envelope(&bytes).unwrap();
+        assert_eq!(version, LORO_VERSION);
+        assert_eq!(decoded, payload);
+    }
+
+    #[test]
+    fn decode_envelope_accepts_v1_and_v2() {
+        let payload = b"old-payload";
+        for v in [1u32, 2] {
+            let bytes = make_envelope(v, payload, payload.len() as u64);
+            let (version, decoded) = decode_envelope(&bytes).unwrap();
+            assert_eq!(version, v);
+            assert_eq!(decoded, payload);
+        }
+    }
+
+    #[test]
+    fn decode_envelope_rejects_bad_magic_and_truncated_header() {
+        // 空输入与短于头的输入
+        for bytes in [&b""[..], &b"CARD"[..], &encode_envelope(b"")[..19]] {
+            let err = decode_envelope(bytes).unwrap_err().to_string();
+            assert!(
+                err.contains("magic or truncated header"),
+                "unexpected message: {err}"
+            );
+        }
+        // magic 错（前 8 字节不同）
+        let mut bad = encode_envelope(b"x");
+        bad[0] = b'X';
+        let err = decode_envelope(&bad).unwrap_err().to_string();
+        assert!(err.contains("magic or truncated header"), "{err}");
+    }
+
+    #[test]
+    fn decode_envelope_rejects_unknown_version_and_length_mismatch() {
+        let payload = b"abc";
+        // v4/v0 均不支持
+        for v in [0u32, 4, u32::MAX] {
+            let bytes = make_envelope(v, payload, payload.len() as u64);
+            let err = decode_envelope(&bytes).unwrap_err().to_string();
+            assert_eq!(err, format!("unsupported cardmind.loro version: {v}"));
+        }
+        // 声明长度 < 实际（尾字节多出）
+        let bytes = make_envelope(LORO_VERSION, payload, (payload.len() - 1) as u64);
+        let err = decode_envelope(&bytes).unwrap_err().to_string();
+        assert!(err.contains("payload length"), "{err}");
+        // 声明长度 > 实际
+        let bytes = make_envelope(LORO_VERSION, payload, (payload.len() + 5) as u64);
+        let err = decode_envelope(&bytes).unwrap_err().to_string();
+        assert!(err.contains("payload length"), "{err}");
+    }
+
+    #[test]
+    fn encode_push_wire_prefixes_magic_without_header() {
+        let payload = [0x01, 0x02, 0x03];
+        let wire = encode_push_wire(&payload);
+        // 推送线格式 = 8 字节 magic + 原始 payload（无 version/length 头）
+        assert_eq!(wire.len(), 8 + payload.len());
+        assert_eq!(&wire[..8], b"CARDMIND");
+        assert_eq!(&wire[8..], payload);
+        // 与 envelope 不同：首字节后紧跟 payload，而非版本号
+        assert_ne!(wire.len(), LORO_HEADER_LEN + payload.len());
+        // 空 payload → 只剩 magic
+        assert_eq!(encode_push_wire(b""), b"CARDMIND".to_vec());
+    }
+
+    #[test]
+    fn take_str_reads_length_prefixed_strings() {
+        let mut buf = Vec::new();
+        push_str(&mut buf, "hello");
+        push_str(&mut buf, ""); // 零长度合法
+        push_str(&mut buf, "中文");
+        let mut offset = 0;
+        assert_eq!(take_str(&buf, &mut offset, "f").unwrap(), "hello");
+        assert_eq!(take_str(&buf, &mut offset, "f").unwrap(), "");
+        assert_eq!(take_str(&buf, &mut offset, "f").unwrap(), "中文");
+        assert_eq!(offset, buf.len());
+    }
+
+    #[test]
+    fn take_str_rejects_truncated_and_invalid_utf8() {
+        // 缺长度前缀（剩 3 字节 < 4）
+        let mut offset = 0;
+        let err = take_str(&[0x01, 0x02, 0x03], &mut offset, "code")
+            .unwrap_err()
+            .to_string();
+        assert_eq!(err, "truncated pairing frame: missing code length");
+        assert_eq!(offset, 0);
+
+        // 声明长度超过剩余数据
+        let mut data = Vec::new();
+        data.extend_from_slice(&10u32.to_le_bytes());
+        data.extend_from_slice(b"ab"); // 实际只有 2 字节
+        let mut offset = 0;
+        let err = take_str(&data, &mut offset, "device_name")
+            .unwrap_err()
+            .to_string();
+        assert_eq!(err, "truncated pairing frame: missing device_name");
+
+        // 非 UTF-8 字节
+        let mut data = Vec::new();
+        data.extend_from_slice(&2u32.to_le_bytes());
+        data.extend_from_slice(&[0xFF, 0xFE]);
+        let mut offset = 0;
+        let err = take_str(&data, &mut offset, "relay_info")
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("invalid UTF-8 in relay_info"),
+            "unexpected message: {err}"
+        );
+    }
+
+    /// 下沉自 tests/security_sync_test.rs 的纯边界：
+    /// 声明长度 > MAX_INBOUND_STRING_BYTES（4096）→ 拒绝，且 offset 不前移。
+    #[test]
+    fn take_str_rejects_oversized_declared_length() {
+        // 恰好在限值内可通过
+        let exact = "x".repeat(MAX_INBOUND_STRING_BYTES);
+        let mut buf = Vec::new();
+        push_str(&mut buf, &exact);
+        let mut offset = 0;
+        assert_eq!(take_str(&buf, &mut offset, "f").unwrap(), exact);
+
+        // 限值 + 1 → 拒绝（无需提供真实数据）
+        let mut data = Vec::new();
+        data.extend_from_slice(&((MAX_INBOUND_STRING_BYTES + 1) as u32).to_le_bytes());
+        let mut offset = 0;
+        let err = take_str(&data, &mut offset, "device_name")
+            .unwrap_err()
+            .to_string();
+        assert_eq!(err, "pairing frame device_name exceeds size limit");
+        assert_eq!(offset, 4, "超限后 offset 停在长度字段之后");
+    }
+
+    #[test]
+    fn nonce_hex_roundtrips_and_is_lowercase() {
+        let mut nonce = [0u8; 16];
+        for (i, b) in nonce.iter_mut().enumerate() {
+            *b = (i * 16 + i) as u8; // 0x00, 0x11, ..., 0xFF
+        }
+        let hex = nonce_to_hex(&nonce);
+        assert_eq!(hex, "00112233445566778899aabbccddeeff");
+        assert!(hex
+            .chars()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()));
+        assert_eq!(nonce_from_hex(&hex).unwrap(), nonce);
+    }
+
+    #[test]
+    fn nonce_from_hex_rejects_wrong_length_and_chars() {
+        // 长度不符（短/长/空）
+        for s in ["", "00", "00112233445566778899aabbccddeeff00"] {
+            let err = nonce_from_hex(s).unwrap_err().to_string();
+            assert_eq!(err, "invalid nonce hex length");
+        }
+        // 长度 32 但含非法字符（'g'、大写 Z 实际是合法? Z 非 hex → 拒绝）
+        let mut bad = "00112233445566778899aabbccddee00".to_string();
+        bad.replace_range(30..32, "gg");
+        let err = nonce_from_hex(&bad).unwrap_err().to_string();
+        assert_eq!(err, "invalid nonce hex");
+        // 大写 hex 是合法输入（to_digit(16) 大小写不敏感）
+        let upper = "00112233445566778899AABBCCDDEEFF";
+        assert_eq!(
+            nonce_from_hex(upper).unwrap(),
+            nonce_from_hex("00112233445566778899aabbccddeeff").unwrap()
+        );
+    }
+
+    #[test]
+    fn normalize_hostname_strips_domain_and_keeps_case() {
+        assert_eq!(
+            normalize_hostname("Alexc-MBA.local"),
+            Some("Alexc-MBA".to_string())
+        );
+        assert_eq!(normalize_hostname("host"), Some("host".to_string()));
+        assert_eq!(
+            normalize_hostname("  padded-host  "),
+            Some("padded-host".to_string())
+        );
+        // 多级域名只取首段
+        assert_eq!(
+            normalize_hostname("a.b.c.example.com"),
+            Some("a".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_hostname_rejects_empty_and_leading_dot() {
+        assert_eq!(normalize_hostname(""), None);
+        assert_eq!(normalize_hostname("   "), None);
+        // 首段为空（".local"）→ 截出空串 → None
+        assert_eq!(normalize_hostname(".local"), None);
+        // 纯 IP 原样返回（v4 与 v6）
+        assert_eq!(
+            normalize_hostname("192.168.1.5"),
+            Some("192.168.1.5".to_string())
+        );
+        assert_eq!(normalize_hostname("::1"), Some("::1".to_string()));
+    }
+
+    #[test]
+    fn default_device_name_with_picks_by_priority() {
+        // 1. Windows COMPUTERNAME 优先
+        assert_eq!(
+            default_device_name_with(Some("WIN-BOX".to_string()), Some("unix-host".to_string())),
+            "WIN-BOX"
+        );
+        // 2. 无 COMPUTERNAME → hostname
+        assert_eq!(
+            default_device_name_with(None, Some("Alexc-MBA.local".to_string())),
+            "Alexc-MBA"
+        );
+        // 3. COMPUTERNAME 取不出合法值（全空白）→ 落到 hostname
+        assert_eq!(
+            default_device_name_with(Some("  ".to_string()), Some("unix-host".to_string())),
+            "unix-host"
+        );
+        // 4. 两者均无 → 固定回退
+        assert_eq!(default_device_name_with(None, None), "CardMind Device");
+    }
+
+    #[test]
+    fn tag_marker_extract_and_remove_roundtrip() {
+        let content = "# Title\n\n<!--tags:rust, loro-->\nbody text";
+        assert_eq!(extract_tag_marker(content), "rust, loro");
+        // marker 删除后 trim_start 只去紧邻 marker 后的 \n，前序空行保留
+        assert_eq!(remove_tag_marker(content), "# Title\n\n\nbody text");
+    }
+
+    #[test]
+    fn tag_marker_missing_or_unterminated_is_noop() {
+        // 无 marker：extract → 空串；remove → 原文
+        let content = "plain note";
+        assert_eq!(extract_tag_marker(content), "");
+        assert_eq!(remove_tag_marker(content), "plain note");
+        // 有前缀但缺 --> 收尾：两者均视为无 marker
+        let broken = "text <!--tags:abc";
+        assert_eq!(extract_tag_marker(broken), "");
+        assert_eq!(remove_tag_marker(broken), broken);
+        // 空 tag 内容
+        let empty = "x<!--tags:-->\ny";
+        assert_eq!(extract_tag_marker(empty), "");
+        // marker 删除后前序 'x' 与后续 '\ny' 直接拼接（trim_start 作用在拼接结果起点，即 '\n'）
+        assert_eq!(remove_tag_marker(empty), "x\ny");
+    }
+
+    #[test]
+    fn parse_links_handles_alias_default_and_multiple() {
+        // 无链接
+        assert!(parse_links_from_content("no links here").is_empty());
+        // alias 缺省 → alias 取 target
+        assert_eq!(
+            parse_links_from_content("see [[note-123]]"),
+            vec![("note-123".to_string(), "note-123".to_string())]
+        );
+        // 显式 alias + 多链接 + 空白 trim
+        let content = "[[a| A link ]] then [[b]] and [[c |C]]";
+        assert_eq!(
+            parse_links_from_content(content),
+            vec![
+                ("a".to_string(), "A link".to_string()),
+                ("b".to_string(), "b".to_string()),
+                ("c".to_string(), "C".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_links_skips_empty_target_and_unterminated() {
+        // 空 target 跳过但继续扫后续
+        assert_eq!(
+            parse_links_from_content("[[|alias]] then [[ok]]"),
+            vec![("ok".to_string(), "ok".to_string())]
+        );
+        // 未闭合的 [[ 不产生链接
+        assert!(parse_links_from_content("[[never closed").is_empty());
+        assert!(parse_links_from_content("[[|]]").is_empty());
+        // [[]] 也视为空 target
+        assert!(parse_links_from_content("[[]]").is_empty());
+    }
 }
