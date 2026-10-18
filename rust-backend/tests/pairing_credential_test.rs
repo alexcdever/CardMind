@@ -6,14 +6,16 @@
 //! 与失败计数、凭证直连（内嵌 node id、不经 mDNS）、6 位码+mDNS 路径
 //! 使用广播 nonce、凭证不进调试日志、空/全零 nonce 拒绝。
 
+mod common;
+
 use std::sync::Arc;
 
 use cardmind_backend::debug_log::{CollectingSink, LogEvent};
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
     credential_from_string, credential_to_string, encode_credential, encode_credential_v2,
-    parse_credential, PairingCredentialErrorKind, PairingRequest, PairingTarget,
-    ParsedCredentialFields, SyncService, CREDENTIAL_FINAL_LEN,
+    parse_credential, PairingCredentialErrorKind, PairingTarget, ParsedCredentialFields,
+    SyncService, CREDENTIAL_FINAL_LEN,
 };
 
 use iroh::SecretKey;
@@ -28,6 +30,8 @@ fn fixed_node_id(sk: &SecretKey) -> [u8; 32] {
     *sk.public().as_bytes()
 }
 
+use common::{requester, rt, temp_dir};
+
 const ISSUED: u64 = 1_700_000_000;
 const EXPIRES: u64 = ISSUED + 600; // 10 min
 const CODE: u32 = 654321;
@@ -38,31 +42,6 @@ fn fixed_nonce() -> [u8; 16] {
         *b = i as u8;
     }
     n
-}
-
-fn rt() -> tokio::runtime::Runtime {
-    tokio::runtime::Runtime::new().unwrap()
-}
-
-/// 构造一个发起方请求（测试用）。nonce 必须与会话 nonce 一致
-/// （confirm 侧强制校验：空/全零/不匹配均拒绝）。
-fn requester(code: &str, id: &str, name: &str, nonce: &str) -> PairingRequest {
-    PairingRequest {
-        code: code.to_string(),
-        device_id: id.to_string(),
-        device_name: name.to_string(),
-        relay_info: String::new(),
-        // 指向关闭端口：无真实握手（无 pending 连接）时 confirm 不触发推送
-        ips: vec!["127.0.0.1:1".to_string()],
-        nonce: nonce.to_string(),
-    }
-}
-
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("cardmind-cred-{label}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
 }
 
 #[test]

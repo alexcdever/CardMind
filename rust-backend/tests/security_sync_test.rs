@@ -1,15 +1,14 @@
 //! Frozen security acceptance tests for inbound authorization, bounded frames, and pairing identity.
 
+mod common;
+
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{
     decode_device_name_frame, decode_pairing_request, decode_pairing_response,
     encode_pairing_request, pairing_identity_matches, validate_pairing_request_identity,
     PairingRequest, PairingResponse, SyncService,
 };
-
-fn rt() -> tokio::runtime::Runtime {
-    tokio::runtime::Runtime::new().unwrap()
-}
+use common::rt;
 
 fn valid_request(device_id: &str) -> PairingRequest {
     PairingRequest {

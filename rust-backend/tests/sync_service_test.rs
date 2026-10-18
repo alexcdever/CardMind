@@ -1,11 +1,7 @@
-use cardmind_backend::sync::SyncService;
+mod common;
 
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("cardmind-{label}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
-}
+use cardmind_backend::sync::SyncService;
+use common::temp_dir;
 
 /// 验证 SyncService 的序列化/反序列化逻辑
 ///

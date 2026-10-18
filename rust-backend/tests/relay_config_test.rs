@@ -5,16 +5,12 @@
 //! 4. 空 relay.txt → Disabled
 //! 5. 内存版 new() 永远 Disabled（隔离性，不读文件）
 
+mod common;
+
 use cardmind_backend::sync::SyncService;
+use common::temp_dir;
 
 const RELAY_URL: &str = "https://relay.alexc.cn:9443";
-
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("cardmind-relay-{label}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
-}
 
 /// 从 relay_mode 提取 Custom 模式的 URL 列表（非 Custom 直接 panic）。
 fn custom_urls(mode: &iroh::RelayMode) -> Vec<String> {
