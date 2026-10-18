@@ -61,7 +61,20 @@ jobs:
         run: flutter analyze
 
       - name: Run flutter test
-        run: flutter test --timeout 5m
+        # 与本地 `dart run tool/quality.dart` 对齐（quality.dart L150-157）：
+        # --coverage 产出 coverage/lcov.info（边界扫描依赖），--timeout 5m 保留。
+        # 有意不带 `-j`：flutter test 默认并发按 runner CPU 核数自适应，
+        # 本地固定 -j 4 是开发机口径，与本地差异仅并发度，覆盖率/超时语义一致。
+        run: flutter test --coverage --timeout 5m
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-lcov
+          path: coverage/lcov.info
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Generate summary
         if: always()
