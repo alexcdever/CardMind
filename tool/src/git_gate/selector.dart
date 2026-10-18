@@ -218,7 +218,15 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       }
     case FileCategory.rustTest:
       b.add(Commands.clippy());
-      b.add(Commands.rustTestTarget(_rustTestStem(file)));
+      final target = _rustTestTargetName(file);
+      if (target == null) {
+        // tests/ 子目录下的共享辅助（如 common/mod.rs）不是 cargo test
+        // target——cargo test --test <stem> 必失败。fail-closed 升级
+        // Rust 全量，覆盖所有 `mod common;` 引用方。
+        b.add(Commands.rustFullTest());
+      } else {
+        b.add(Commands.rustTestTarget(target));
+      }
     case FileCategory.rustTool:
       // rust-backend/tool/ 辅助 crate 源码：workspace 已覆盖，跑 clippy；
       // 同时跑该 crate 自身 cargo test（rustToolTest）。与 rust-backend/src/**
@@ -535,11 +543,26 @@ List<String>? _relatedRustTargets(String file, TestIndex index) {
   return existing.isEmpty ? null : existing;
 }
 
-String _rustTestStem(String file) {
-  final name = file.split('/').last;
-  return name.endsWith('.rs')
-      ? name.substring(0, name.length - '.rs'.length)
-      : name;
+/// 由 `rust-backend/tests/` 下的文件路径推导 cargo test target 名；
+/// 不是 target 返回 null。
+///
+/// cargo 规则：`tests/foo.rs` → target `foo`；`tests/foo/main.rs` →
+/// target `foo`（目录名，文件名 `main` 不是 target）；`tests/<dir>/`
+/// 下其余文件（`common/mod.rs` 等被 `mod` 引入的模块）不是 target。
+/// 输入已保证以 `rust-backend/tests/` 开头且 `.rs` 结尾。
+String? _rustTestTargetName(String file) {
+  final rest = file.substring('rust-backend/tests/'.length);
+  final slash = rest.indexOf('/');
+  if (slash == -1) {
+    // tests/*.rs 直接子文件：stem 即 target 名。
+    return rest.substring(0, rest.length - '.rs'.length);
+  }
+  // tests/<dir>/main.rs → target 为目录名；其他子目录文件不是 target。
+  final base = rest.substring(slash + 1);
+  if (!base.contains('/') && base == 'main.rs') {
+    return rest.substring(0, slash);
+  }
+  return null;
 }
 
 /// `rust-backend/tool/<pkg>/…` → cargo package 名；不在子树内返回 null。
