@@ -229,6 +229,49 @@ void main() {
       expect(kindsOf(plan), contains(CommandKind.clippy));
     });
 
+    test('5b tests/common/mod.rs 是共享辅助，不生成 --test mod（fail-closed 全量）', () {
+      // tests/common/mod.rs 不是 cargo test target（被各 *_test.rs 用
+      // `mod common;` 引入的模块）；改它只能跑 clippy + Rust 全量
+      // （fail-closed 覆盖所有引用方），绝不能生成不存在的 target `mod`
+      // ——cargo test --test mod 必然失败，曾迫使任务 --no-verify 绕过门禁。
+      final plan = selectPlanForFiles([
+        'rust-backend/tests/common/mod.rs',
+      ], index: testIndex);
+      expect(kindsOf(plan), contains(CommandKind.clippy));
+      final rustArgs = plan.steps
+          .where((s) => s.kind == CommandKind.rustTest)
+          .expand((s) => s.arguments)
+          .toList();
+      expect(
+        rustArgs.where((a) => a == 'mod'),
+        isEmpty,
+        reason: '不得生成 cargo test --test mod（cargo 无此 target）',
+      );
+      expect(
+        rustArgs.join(' '),
+        contains('test --all-features --jobs 1'),
+        reason: '辅助文件无明确 target 映射，应升级 Rust 全量测试',
+      );
+    });
+
+    test('5c tests/<dir>/main.rs 是 target <dir>，不是 --test main', () {
+      // cargo 规则：tests/foo/main.rs → target foo（目录名），文件名 main
+      // 不是 target stem。当前仓库无此形态，用纯逻辑测试钉住规则防回退。
+      final plan = selectPlanForFiles([
+        'rust-backend/tests/pairing/main.rs',
+      ], index: testIndex);
+      final rustArgs = plan.steps
+          .where((s) => s.kind == CommandKind.rustTest)
+          .expand((s) => s.arguments)
+          .toList();
+      expect(rustArgs.where((a) => a == 'main'), isEmpty);
+      expect(
+        rustArgs,
+        containsAllInOrder(<String>['test', '--test', 'pairing']),
+        reason: 'tests/pairing/main.rs 应映射到 target pairing',
+      );
+    });
+
     test('6 sync.rs 选中 sync/service/receiver/autosync 相关 targets', () {
       final plan = selectPlanForFiles([
         'rust-backend/src/sync.rs',
@@ -660,12 +703,11 @@ void main() {
             '多 ${testIndex.flutterTestFiles.difference(expectedFlutter)}',
       );
 
-      // rustTestTargets：rust-backend/tests/ 下所有 *_test.rs 的 stem。
+      // rustTestTargets：按 cargo target 规则（与 scanTestIndex 同语义）——
+      // tests/*.rs → stem；tests/<dir>/main.rs → <dir>；子目录其余文件
+      // （tests/common/mod.rs 等共享辅助）不是 target。
       final rsFiles = await lsFiles('rust-backend/tests/');
-      final expectedRust = rsFiles
-          .where((p) => p.endsWith('.rs'))
-          .map((p) => p.split('/').last.replaceAll(RegExp(r'\.rs$'), ''))
-          .toSet();
+      final expectedRust = rsFiles.map(_rustTargetNameForTest).nonNulls.toSet();
       expect(
         testIndex.rustTestTargets,
         expectedRust,
@@ -1550,6 +1592,28 @@ String? _findInPath(String name) {
     if (dir.isEmpty) continue;
     final candidate = '$dir\\$name';
     if (File(candidate).existsSync()) return candidate;
+  }
+  return null;
+}
+
+/// 按 cargo 规则推导 `rust-backend/tests/` 路径是否为 test target。
+///
+/// 与 `scanTestIndex` / `_rustTestTargetName` 同语义（本文件不 import
+/// 私有函数，故用独立副本）：`tests/*.rs` → stem；`tests/<dir>/main.rs` →
+/// `<dir>`；子目录其余文件（`tests/common/mod.rs` 等被 `mod common;`
+/// 引入的共享辅助）不是 target，返回 null。
+String? _rustTargetNameForTest(String p) {
+  if (!p.startsWith('rust-backend/tests/') || !p.endsWith('.rs')) {
+    return null;
+  }
+  final rest = p.substring('rust-backend/tests/'.length);
+  final slash = rest.indexOf('/');
+  if (slash == -1) {
+    return rest.substring(0, rest.length - '.rs'.length);
+  }
+  final base = rest.substring(slash + 1);
+  if (!base.contains('/') && base == 'main.rs') {
+    return rest.substring(0, slash);
   }
   return null;
 }
