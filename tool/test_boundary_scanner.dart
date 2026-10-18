@@ -1347,14 +1347,32 @@ class ReportGenerator {
     buffer.writeln('');
 
     /// 总体统计
+    /// 任一路覆盖率输入缺失时，聚合百分比会把「无数据」伪装成事实
+    /// （缺失一侧边界全计为未覆盖），必须显式标注而非输出百分比。
+    /// 两路齐全时逐字沿用旧输出。
+    final missingSides = <String>[
+      if (result.flutterCoverageDataMissing) 'Flutter/Dart',
+      if (result.rustCoverageDataMissing) 'Rust',
+    ];
     buffer.writeln('## 总体统计');
     buffer.writeln('- 总边界数: ${result.boundaries.length}');
-    buffer.writeln(
-      '- 已覆盖: ${result.coveredBoundaries.length} (${(result.coverageRatio * 100).toStringAsFixed(1)}%)',
-    );
-    buffer.writeln(
-      '- 未覆盖: ${result.uncoveredBoundaries.length} (${((1 - result.coverageRatio) * 100).toStringAsFixed(1)}%)',
-    );
+    if (missingSides.isNotEmpty) {
+      buffer.writeln(
+        '- ⚠️ 覆盖率数据不完整（缺失：${missingSides.join(' / ')}），'
+        '百分比不代表真实覆盖',
+      );
+      buffer.writeln(
+        '- 边界命中数（仅供参考）: ${result.coveredBoundaries.length} 已覆盖 / '
+        '${result.uncoveredBoundaries.length} 未覆盖',
+      );
+    } else {
+      buffer.writeln(
+        '- 已覆盖: ${result.coveredBoundaries.length} (${(result.coverageRatio * 100).toStringAsFixed(1)}%)',
+      );
+      buffer.writeln(
+        '- 未覆盖: ${result.uncoveredBoundaries.length} (${((1 - result.coverageRatio) * 100).toStringAsFixed(1)}%)',
+      );
+    }
     buffer.writeln('');
 
     /// Flutter/Dart 统计
