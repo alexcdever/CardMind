@@ -13,10 +13,13 @@ enum FileCategory {
   dartTest,
   rustSource,
   rustTest,
+  rustTool,
   frbBoundary,
   manifest,
   platform,
   sharedConfig,
+  boundaryToolConfig,
+  ciWorkflow,
   unknown,
 }
 
@@ -84,10 +87,13 @@ FileCategory classifyPath(String path) {
   if (_isFrbBoundary(p)) return FileCategory.frbBoundary;
   if (_isDartTest(p)) return FileCategory.dartTest;
   if (_isRustTest(p)) return FileCategory.rustTest;
+  if (_isRustTool(p)) return FileCategory.rustTool;
   if (_isRustSource(p)) return FileCategory.rustSource;
   if (_isDartBusiness(p)) return FileCategory.dartBusiness;
   if (_isManifest(p)) return FileCategory.manifest;
   if (_isPlatform(p)) return FileCategory.platform;
+  if (_isBoundaryToolConfig(p)) return FileCategory.boundaryToolConfig;
+  if (_isCiWorkflow(p)) return FileCategory.ciWorkflow;
   if (_isSharedConfig(p)) return FileCategory.sharedConfig;
   return FileCategory.unknown;
 }
@@ -107,6 +113,12 @@ bool _isDartTest(String p) => p.startsWith('test/') && p.endsWith('_test.dart');
 
 bool _isRustTest(String p) =>
     p.startsWith('rust-backend/tests/') && p.endsWith('.rs');
+
+/// rust-backend/tool/ 下的辅助 crate 源码（boundary_scanner 等，已纳入
+/// workspace）：属 Rust 范畴但不是产品源码，归 rustTool——只跑 clippy，
+/// 不升级 rust:test:full、不跑 flutter。
+bool _isRustTool(String p) =>
+    p.startsWith('rust-backend/tool/') && p.endsWith('.rs');
 
 bool _isRustSource(String p) =>
     p.startsWith('rust-backend/src/') && p.endsWith('.rs');
@@ -141,16 +153,27 @@ bool _isPlatform(String p) =>
     p.startsWith('ios/') ||
     p.startsWith('web/');
 
+/// 边界扫描器局部配置（tool/*.yaml）：只被 tool/test_boundary_scanner.dart
+/// 读取，与 Rust/Flutter 测试无关——单独分类路由到 scanner 测试，
+/// 不升级双栈全量。
+bool _isBoundaryToolConfig(String p) =>
+    p.startsWith('tool/') && p.endsWith('.yaml');
+
+/// CI workflow（.github/workflows/*.yml）：改 CI 本身不用跑产品双栈全量；
+/// 路由到唯一读 workflow 文件的 release_workflow_test。
+bool _isCiWorkflow(String p) =>
+    p.startsWith('.github/workflows/') &&
+    (p.endsWith('.yml') || p.endsWith('.yaml'));
+
+/// 影响全仓的根级共享配置；其余 *.yaml/*.json 归 unknown 兜底
+/// （fail-closed 双栈全量）。
 bool _isSharedConfig(String p) =>
     p == 'analysis_options.yaml' ||
     p == '.metadata' ||
-    p == 'flutter_rust_bridge.yaml' ||
-    p.endsWith('.yaml') ||
-    p.endsWith('.yml') ||
-    p.endsWith('.json') ||
-    p.startsWith('.github/') ||
+    p == '.gitignore' ||
     p.startsWith('.githooks/') ||
-    p.startsWith('.gitignore');
+    // 根级 yaml/json（不含 /）才视作共享配置。
+    (!p.contains('/') && (p.endsWith('.yaml') || p.endsWith('.json')));
 
 /// 根据 staged 文件生成计划。
 GatePlan selectPlanForFiles(List<String> files, {required TestIndex index}) {
@@ -185,11 +208,21 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       for (final related in _relatedDartTests(file, index)) {
         b.add(Commands.flutterTest(<String>[related]));
       }
-      _maybePairing(b, file, index);
-      _maybeSync(b, file, index);
+      // test/support/ 下的共享 fake 由 _relatedDartTests 的显式 importer
+      // 映射路由到真实消费方；文件名里的 memory/credential/device 等
+      // 关键词与被测对象无关，不能再走 pairing/sync 关键词兜底
+      // （会把 fake 错配到 pairing 集群、漏掉真实 import 方）。
+      if (!file.startsWith('test/support/')) {
+        _maybePairing(b, file, index);
+        _maybeSync(b, file, index);
+      }
     case FileCategory.rustTest:
       b.add(Commands.clippy());
       b.add(Commands.rustTestTarget(_rustTestStem(file)));
+    case FileCategory.rustTool:
+      // rust-backend/tool/ 辅助 crate 源码：workspace 已覆盖，跑 clippy
+      // 即可；与 rust-backend/src/** 产品源码的测试映射无关。
+      b.add(Commands.clippy());
     case FileCategory.rustSource:
       b.add(Commands.clippy());
       final targets = _relatedRustTargets(file, index);
@@ -223,8 +256,16 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       final isCargoManifest =
           lower.endsWith('cargo.toml') || lower.endsWith('cargo.lock');
       if (isCargoManifest) {
-        b.add(Commands.clippy());
-        b.add(Commands.rustFullTest());
+        // rust-backend/tool/ 子树 crate 的 manifest（boundary_scanner 等）：
+        // 跑该 crate 自身 cargo test，不升级 rust:test:full。
+        final toolPkg = _rustToolPackage(file);
+        if (toolPkg != null) {
+          b.add(Commands.clippy());
+          b.add(Commands.rustToolTest(toolPkg));
+        } else {
+          b.add(Commands.clippy());
+          b.add(Commands.rustFullTest());
+        }
       } else if (lower == 'flutter_rust_bridge.yaml') {
         b.add(Commands.clippy());
         b.add(Commands.rustFullTest());
@@ -243,6 +284,17 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       b.add(Commands.rustFullTest());
       b.add(Commands.analyze());
       b.add(Commands.flutterFullTest());
+    case FileCategory.boundaryToolConfig:
+      // 只被 tool/test_boundary_scanner.dart 读取：选中其测试，不升级全量。
+      b.add(Commands.analyze());
+      _addIfExists(b, index, const <String>[
+        'test/test_boundary_scanner_rust_test.dart',
+      ]);
+    case FileCategory.ciWorkflow:
+      // 改 CI 不跑产品双栈全量；唯一读 workflow 文件的测试是
+      // release_workflow_test（只覆盖 manual-build-artifacts.yml）。
+      b.add(Commands.analyze());
+      _addIfExists(b, index, const <String>['test/release_workflow_test.dart']);
     case FileCategory.unknown:
       b.add(Commands.clippy());
       b.add(Commands.rustFullTest());
@@ -251,16 +303,20 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
   }
 }
 
+/// 把存在的测试文件逐个加入计划（不存在的跳过，保持稳定输出）。
+void _addIfExists(PlanBuilder b, TestIndex index, List<String> tests) {
+  for (final t in tests) {
+    if (index.flutterTestFiles.contains(t)) {
+      b.add(Commands.flutterTest(<String>[t]));
+    }
+  }
+}
+
 const List<String> _pairingKeywords = <String>[
   'pairing',
   'device',
   'scanner',
   'discovery',
-  // test/support fake 的文件名关键词：memory_note_repository /
-  // credential_ui_repository 归入 dartBusiness 后，靠这两个词根命中
-  // pairing 集群（含 devices_page_widget_test 等 extra 清单）。
-  'memory',
-  'credential',
 ];
 
 const List<String> _syncKeywords = <String>['sync'];
@@ -307,9 +363,44 @@ void _maybeSync(PlanBuilder b, String file, TestIndex index) {
   }
 }
 
+/// test/support/ 共享 fake → 真实 import 方（`git grep "import 'support" test/`
+/// 为真相源）。fake 文件名里的 memory/credential/device 等关键词与被测对象
+/// 无关，不能用 pairing/sync 关键词兜底——会错配到 pairing 集群并漏掉真实
+/// 消费方。新增/重命名 support fake 或调整 import 方时同步更新本表。
+const Map<String, List<String>> _supportFakeImporters = <String, List<String>>{
+  'memory_note_repository': <String>[
+    'test/editor_page_widget_test.dart',
+    'test/knowledge_base_widget_test.dart',
+    'test/note_list_page_widget_test.dart',
+    'test/trash_page_widget_test.dart',
+  ],
+  'devices_repository': <String>[
+    'test/devices_page_widget_test.dart',
+    'test/note_list_page_widget_test.dart',
+    'test/sync_ui_widget_test.dart',
+  ],
+  'credential_ui_repository': <String>[
+    'test/devices_page_widget_test.dart',
+    'test/pairing_credential_ui_test.dart',
+  ],
+  'doc_helpers': <String>[
+    'test/adr_0008_test.dart',
+    'test/agents_md_test.dart',
+    'test/design_tokens_doc_test.dart',
+    'test/docs_dir_test.dart',
+    'test/markdown_references_test.dart',
+    'test/product_doc_test.dart',
+    'test/spec_lifecycle_doc_test.dart',
+    'test/sync_network_doc_test.dart',
+    'test/ui_style_guide_doc_test.dart',
+  ],
+};
+
 /// 与 lib/tool Dart 业务文件相关的测试。
 ///
 /// 查找顺序：
+/// 0. `test/support/` fake：按 [_supportFakeImporters] 显式映射到真实
+///    import 方（git grep 为真相源），不走关键词/stem 兜底；
 /// 1. stem 直配：`test/{stem}_test.dart`、`test/{stem}_widget_test.dart`，
 ///    以及按被测对象目录组织的 `test/services/{stem}_test.dart`、
 ///    `test/models/{stem}_test.dart`；
@@ -317,15 +408,21 @@ void _maybeSync(PlanBuilder b, String file, TestIndex index) {
 ///    `build_tool_test`——stem 是测试名 stem 的前缀时选「含该前缀的最短
 ///    stem 测试」（最接近的一个）；
 /// 3. tool/ 目录名回退：`tool/src/git_gate/x.dart` → `test/git_gate_test.dart`；
-/// 4. 最后兜底：测试名含 stem 的所有文件（test/support fake 的
-///    `_repository` 词根走这条，如 memory_note_repository →
-///    editor/note_list/trash/knowledge_base 等 widget 测试）。
+/// 4. 最后兜底：测试名含 stem 的所有文件。
 List<String> _relatedDartTests(String file, TestIndex index) {
   final name = file.split('/').last;
   if (!name.endsWith('.dart')) {
     return const <String>[];
   }
   final stem = name.substring(0, name.length - '.dart'.length);
+
+  // test/support/ fake：显式 importer 映射路由到真实消费方（映射缺失则
+  // 不返回任何测试——宁可漏跑也不错配到无关集群）。
+  final importers = _supportFakeImporters[stem];
+  if (importers != null) {
+    return importers.where(index.flutterTestFiles.contains).toList()..sort();
+  }
+
   final candidates = <String>[
     'test/${stem}_test.dart',
     'test/${stem}_widget_test.dart',
@@ -439,4 +536,14 @@ String _rustTestStem(String file) {
   return name.endsWith('.rs')
       ? name.substring(0, name.length - '.rs'.length)
       : name;
+}
+
+/// `rust-backend/tool/<pkg>/…` → cargo package 名；不在子树内返回 null。
+/// （workspace 成员 crate 名与目录名一致：`tool/boundary_scanner`。）
+String? _rustToolPackage(String file) {
+  const prefix = 'rust-backend/tool/';
+  if (!file.startsWith(prefix)) return null;
+  final rest = file.substring(prefix.length);
+  final slash = rest.indexOf('/');
+  return slash == -1 ? null : rest.substring(0, slash);
 }

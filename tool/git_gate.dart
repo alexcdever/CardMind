@@ -72,7 +72,7 @@ Future<int> runGitGateCli(List<String> args) async {
 
   // 单条命令硬超时（防卡死兜底）。默认 15 分钟：Rust 全量测试（
   // `cargo test --all-features --jobs 1`，编译 + 串行跑多个 test binary）
-  // 常需 4–5 分钟，3 分钟会误杀合法慢步骤。可用环境变量
+  // 常需 4–5 分钟，硬超时设短会误杀合法慢步骤。可用环境变量
   // `CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 覆盖（分钟，整数）。
   final stepTimeout = Duration(
     minutes:

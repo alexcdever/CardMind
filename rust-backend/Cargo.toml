@@ -3,6 +3,12 @@ name = "cardmind-backend"
 version = "0.1.0"
 edition = "2021"
 
+# 门禁的 cargo fmt --all / clippy --all-targets 以 workspace 为单位执行；
+# tool/boundary_scanner 此前是独立 crate（自带 Cargo.lock），不在 workspace
+# 时 fmt/clippy 静默跳过它。纳入 workspace 后统一受门禁覆盖。
+[workspace]
+members = [".", "tool/boundary_scanner"]
+
 [lib]
 crate-type = ["cdylib", "staticlib", "lib"]
 

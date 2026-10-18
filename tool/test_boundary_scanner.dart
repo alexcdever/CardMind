@@ -1044,10 +1044,16 @@ class TestBoundaryScanner {
     return true;
   }
 
-  Future<ScanResult> scan() async {
-    /// 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）
-    stderr.writeln('Step 1: Collecting code coverage...');
-    await _collectCoverageData();
+  Future<ScanResult> scan({ScanScope scope = ScanScope.all}) async {
+    /// 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）。
+    /// --scope=rust 只看 rust-backend/src 边界，不需要 Dart 覆盖率，
+    /// 跳过整个 flutter test --coverage（数分钟）以加速 rust 链。
+    if (scope == ScanScope.rust) {
+      stderr.writeln('Step 1: Skipping Flutter coverage (scope=rust)');
+    } else {
+      stderr.writeln('Step 1: Collecting code coverage...');
+      await _collectCoverageData();
+    }
 
     /// 步骤 2: 解析 LCOV 文件（Flutter + Rust）
     stderr.writeln('Step 2: Parsing LCOV data...');
@@ -1079,14 +1085,11 @@ class TestBoundaryScanner {
     final boundaries = await _scanBoundaries();
 
     /// 步骤 4: 精确匹配边界与覆盖率
+    /// （filePath 已归一化为仓库相对 POSIX 路径，见 _repoRelativePath）
     stderr.writeln('Step 4: Matching boundaries with coverage...');
     for (final boundary in boundaries) {
-      final relativePath = boundary.filePath.startsWith(Directory.current.path)
-          ? boundary.filePath.substring(Directory.current.path.length + 1)
-          : boundary.filePath;
-
       final coverage = lcovParser.getLineCoverage(
-        relativePath,
+        boundary.filePath,
         boundary.lineNumber,
       );
       boundary.isCovered = coverage != null && coverage > 0;
@@ -1125,7 +1128,14 @@ class TestBoundaryScanner {
           final content = await entity.readAsString();
           final result = parseString(content: content);
 
-          final visitor = BoundaryVisitor(entity.path, result.lineInfo);
+          // entity.path 是绝对路径（Windows `D:\…\lib\x.dart` 或 POSIX
+          // `/abs/…/lib/x.dart`）；进边界列表前统一归一化为仓库相对 POSIX
+          // 路径，否则 _matchesScope/报告分桶/isMeaningful 的
+          // `startsWith('lib/')` 前缀判定全部静默失效。
+          final visitor = BoundaryVisitor(
+            _repoRelativePath(entity.path),
+            result.lineInfo,
+          );
           result.unit.visitChildren(visitor);
 
           boundaries.addAll(visitor.boundaries);
@@ -1139,6 +1149,30 @@ class TestBoundaryScanner {
     final rustBoundaries = await _scanRustBoundaries();
     boundaries.addAll(rustBoundaries);
 
+    return boundaries;
+  }
+
+  /// 测试可见性挂钩：只跑 Dart 边界扫描（跳过覆盖率收集与 Rust 子扫描器）。
+  Future<List<Boundary>> scanDartBoundariesForTest() async {
+    final boundaries = <Boundary>[];
+    for (final includePath in config.includePaths) {
+      if (includePath.contains('rust-backend/')) continue;
+      final dir = Directory(includePath);
+      if (!dir.existsSync()) continue;
+      await for (final entity in dir.list(recursive: true)) {
+        if (entity is! File) continue;
+        if (!entity.path.endsWith('.dart')) continue;
+        if (_shouldIgnore(entity.path)) continue;
+        final content = await entity.readAsString();
+        final result = parseString(content: content);
+        final visitor = BoundaryVisitor(
+          _repoRelativePath(entity.path),
+          result.lineInfo,
+        );
+        result.unit.visitChildren(visitor);
+        boundaries.addAll(visitor.boundaries);
+      }
+    }
     return boundaries;
   }
 
@@ -1408,6 +1442,27 @@ bool _matchesScope(Boundary boundary, ScanScope scope) {
   };
 }
 
+/// 归一化为仓库相对 POSIX 路径：绝对路径剥掉当前工作目录前缀，
+/// 相对路径原样返回；Windows `\` 与 POSIX `/` 分隔符统一为 `/`。
+///
+/// Dart 边界扫描拿到的 `entity.path` 是 `Directory('lib/').list()` 的
+/// 绝对路径（`D:\…\lib\x.dart` / `/abs/…/lib/x.dart`），必须先归一化，
+/// `_matchesScope`/报告分桶/`isMeaningfulHighPriorityBoundary` 的
+/// `startsWith('lib/')` 判定才生效。
+String _repoRelativePath(String path) {
+  var p = path.replaceAll(r'\', '/');
+  final cwd = Directory.current.path.replaceAll(r'\', '/');
+  if (p.startsWith('$cwd/')) {
+    p = p.substring(cwd.length + 1);
+  } else if (p == cwd) {
+    p = '.';
+  }
+  return p.startsWith('./') ? p.substring(2) : p;
+}
+
+/// 测试可见性挂钩：暴露私有路径归一化。
+String debugRepoRelativePath(String path) => _repoRelativePath(path);
+
 /// 测试可见性挂钩：暴露私有 scope 判定。
 bool debugMatchesScope(Boundary boundary, ScanScope scope) =>
     _matchesScope(boundary, scope);
@@ -1428,7 +1483,7 @@ void main(List<String> args) async {
   final scanner = TestBoundaryScanner(config);
 
   stdout.writeln('Scanning for test boundaries...');
-  final result = await scanner.scan();
+  final result = await scanner.scan(scope: scope);
 
   /// 生成报告
   final generator = ReportGenerator(config);

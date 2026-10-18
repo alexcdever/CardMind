@@ -322,7 +322,7 @@ Future<int> runFullSuite(GateOptions o) async {
   }
 
   // build 步骤成功后：把 host runtime 库同步到运行态路径。
-  // 同步是 Dart 进程内文件操作，不走 runner、不受 3 分钟硬超时限制；
+  // 同步是 Dart 进程内文件操作，不走 runner、不受单步硬超时限制；
   // cargo build 本身已由 runner 超时保护。dry-run 只打印；testMode 跳过。
   if (o.dryRun) {
     String dest;

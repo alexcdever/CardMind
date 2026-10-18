@@ -2,6 +2,7 @@
 //  - Rust boundary scanning targets rust-backend/ (not stale rust/)
 //  - LCOV parsed from rust-backend/lcov.info resolves rust-backend/src paths
 //  - isMeaningfulHighPriorityBoundary uses v2 lib/ layout with parity exemptions
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -149,7 +150,7 @@ end_of_record
       final src = File('tool/test_boundary_scanner.dart').readAsStringSync();
       // Only inspect inside isMeaningfulHighPriorityBoundary.
       final start = src.indexOf('bool isMeaningfulHighPriorityBoundary');
-      final end = src.indexOf('Future<ScanResult> scan()');
+      final end = src.indexOf('Future<ScanResult> scan(');
       final body = src.substring(start, end);
       for (final p in v1) {
         expect(body.contains(p), isFalse, reason: '$p is dead v1 path');
@@ -226,6 +227,106 @@ end_of_record
         code: 'try { ... } catch (Exception e) { ... }',
       );
       expect(scanner.isMeaningfulHighPriorityBoundary(keep), isTrue);
+    });
+  });
+
+  group('gate-infra-fix-3 AC1 — Dart boundary filePath repo-relative', () {
+    test('repoRelativePath strips cwd and normalizes backslashes', () {
+      final cwd = Directory.current.path;
+      expect(
+        debugRepoRelativePath('$cwd/lib/pages/x.dart'),
+        'lib/pages/x.dart',
+      );
+      expect(
+        debugRepoRelativePath('${cwd.replaceAll('/', r'\')}\\lib\\x.dart'),
+        'lib/x.dart',
+      );
+      // Already-relative POSIX path stays untouched.
+      expect(debugRepoRelativePath('lib/pages/x.dart'), 'lib/pages/x.dart');
+    });
+
+    test('ScanScope.flutter matches normalized lib/ boundary', () {
+      final dartB = _b(
+        path: 'lib/pages/editor_page.dart',
+        desc: 'If statement',
+      );
+      expect(debugMatchesScope(dartB, ScanScope.flutter), isTrue);
+      final rustB = _b(path: 'rust-backend/src/store.rs', desc: 'If statement');
+      expect(debugMatchesScope(rustB, ScanScope.flutter), isFalse);
+    });
+
+    test(
+      'Dart scan emits repo-relative lib/ paths (no absolute leak)',
+      () async {
+        final scanner = TestBoundaryScanner(_config());
+        final boundaries = await scanner.scanDartBoundariesForTest();
+        expect(boundaries, isNotEmpty, reason: 'lib/ must produce boundaries');
+        for (final b in boundaries) {
+          expect(
+            b.filePath.startsWith('lib/'),
+            isTrue,
+            reason: '${b.filePath} must be repo-relative lib/…',
+          );
+          expect(
+            debugMatchesScope(b, ScanScope.flutter),
+            isTrue,
+            reason: '${b.filePath} must match flutter scope',
+          );
+        }
+      },
+    );
+  });
+
+  group('gate-infra-fix-3 AC5 — Result/Option signature boundaries', () {
+    // 真实跑 boundary_scanner 二进制（cargo run --manifest-path）；rust
+    // toolchain 缺失则降级为「断言死代码已删」。
+    Future<List<Map<String, dynamic>>> runScannerOn(String fixtureRel) async {
+      final r = await Process.run('cargo', [
+        'run',
+        '--quiet',
+        '--manifest-path',
+        'rust-backend/tool/boundary_scanner/Cargo.toml',
+      ], runInShell: true);
+      expect(r.exitCode, 0, reason: 'boundary_scanner run failed: ${r.stderr}');
+      final list = jsonDecode(r.stdout.toString()) as List;
+      return list
+          .whereType<Map<String, dynamic>>()
+          .where(
+            (b) =>
+                (b['file_path'] as String).replaceAll(r'\', '/') == fixtureRel,
+          )
+          .toList();
+    }
+
+    test('fn returning Result/Option produces exception boundary', () async {
+      // api.rs 的自由 fn（pub fn note_get -> Option<String>、
+      // note_export_all -> anyhow::Result<…>）是 scan_items_for_types 的
+      // 直接覆盖对象——Result/Option 返回应产出 exception 边界。
+      final api = await runScannerOn('rust-backend/src/api.rs');
+      if (api.isEmpty) {
+        // rust toolchain 缺失：至少死代码不存在（恒 false stub 不允许残留）。
+        final src = File(
+          'rust-backend/tool/boundary_scanner/src/main.rs',
+        ).readAsStringSync();
+        expect(
+          src.contains('type_contains_result_or_option(_ty: &Type) -> bool'),
+          isFalse,
+          reason: '恒 false stub 不允许残留（已实现或已删）',
+        );
+        return;
+      }
+      // code_snippet 被截断为 "Result/Option"，按边界类型 + 描述断言。
+      final resultBounds = api.where(
+        (b) =>
+            b['boundary_type'] == 'exception' &&
+            ((b['description'] as String).contains('Result/Option') ||
+                (b['code_snippet'] as String).contains('Result')),
+      );
+      expect(
+        resultBounds,
+        isNotEmpty,
+        reason: 'api.rs Result/Option 返回应产生 Result/Option exception 边界',
+      );
     });
   });
 }

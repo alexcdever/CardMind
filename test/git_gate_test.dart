@@ -415,6 +415,185 @@ void main() {
         posix.steps.map((s) => s.signature).toList(),
       );
     });
+
+    Set<String> flutterTestFilesOf(GatePlan plan) => plan.steps
+        .where((s) => s.kind == CommandKind.flutterTest)
+        .expand((s) => s.arguments.skip(3))
+        .toSet();
+
+    test(
+      '10b test/support memory_note_repository 按真实 import 方路由（非 pairing 集群）',
+      () {
+        final plan = selectPlanForFiles([
+          'test/support/memory_note_repository.dart',
+        ], index: testIndex);
+        final files = flutterTestFilesOf(plan);
+        // 真实 import 方（git grep "import 'support" test/）= 4 个 note widget 测试。
+        expect(
+          files,
+          containsAll(<String>[
+            'test/editor_page_widget_test.dart',
+            'test/knowledge_base_widget_test.dart',
+            'test/note_list_page_widget_test.dart',
+            'test/trash_page_widget_test.dart',
+          ]),
+        );
+        // 不再错配 pairing 集群。
+        final pairingSelected = files.where(
+          (f) => f.contains('pairing') || f.contains('device'),
+        );
+        expect(
+          pairingSelected,
+          isEmpty,
+          reason:
+              'memory_note_repository 不应路由到 pairing/device 测试: $pairingSelected',
+        );
+      },
+    );
+
+    test('10c test/support devices_repository 按真实 import 方路由', () {
+      final plan = selectPlanForFiles([
+        'test/support/devices_repository.dart',
+      ], index: testIndex);
+      expect(
+        flutterTestFilesOf(plan),
+        containsAll(<String>[
+          'test/devices_page_widget_test.dart',
+          'test/note_list_page_widget_test.dart',
+          'test/sync_ui_widget_test.dart',
+        ]),
+      );
+    });
+
+    test('10d test/support credential_ui_repository 按真实 import 方路由', () {
+      final plan = selectPlanForFiles([
+        'test/support/credential_ui_repository.dart',
+      ], index: testIndex);
+      expect(
+        flutterTestFilesOf(plan),
+        containsAll(<String>[
+          'test/devices_page_widget_test.dart',
+          'test/pairing_credential_ui_test.dart',
+        ]),
+      );
+    });
+
+    test('10e test/support doc_helpers 按真实 import 方路由', () {
+      final plan = selectPlanForFiles([
+        'test/support/doc_helpers.dart',
+      ], index: testIndex);
+      expect(
+        flutterTestFilesOf(plan),
+        containsAll(<String>[
+          'test/adr_0008_test.dart',
+          'test/agents_md_test.dart',
+          'test/docs_dir_test.dart',
+          'test/product_doc_test.dart',
+        ]),
+      );
+    });
+
+    test('10f tool/*.yaml 映射到 boundary scanner 测试（非双栈全量）', () {
+      expect(
+        classifyPath('tool/test_boundary_config.yaml'),
+        FileCategory.boundaryToolConfig,
+        reason: 'tool/*.yaml 应有独立分类，不是 sharedConfig',
+      );
+      final plan = selectPlanForFiles([
+        'tool/test_boundary_config.yaml',
+      ], index: testIndex);
+      expect(
+        plan.steps
+            .where((s) => s.kind == CommandKind.flutterTest)
+            .map((s) => s.arguments.last),
+        contains('test/test_boundary_scanner_rust_test.dart'),
+        reason: '应选中 boundary scanner 测试',
+      );
+      // 不升级双栈全量。
+      expect(kindsOf(plan), isNot(contains(CommandKind.clippy)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.rustTest)));
+      expect(
+        plan.steps.where((s) => s.label == 'flutter:test:full'),
+        isEmpty,
+        reason: 'tool/*.yaml 不得触发 flutter:test:full',
+      );
+    });
+
+    test('10g .github/workflows/*.yml 归 ciWorkflow（非双栈全量）', () {
+      expect(
+        classifyPath('.github/workflows/manual-build-artifacts.yml'),
+        FileCategory.ciWorkflow,
+      );
+      expect(classifyPath('.github/workflows/ci.yml'), FileCategory.ciWorkflow);
+      final plan = selectPlanForFiles([
+        '.github/workflows/manual-build-artifacts.yml',
+      ], index: testIndex);
+      expect(kindsOf(plan), isNot(contains(CommandKind.clippy)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.rustTest)));
+      expect(plan.steps.where((s) => s.label == 'flutter:test:full'), isEmpty);
+      expect(
+        plan.steps
+            .where((s) => s.kind == CommandKind.flutterTest)
+            .map((s) => s.arguments.last),
+        contains('test/release_workflow_test.dart'),
+        reason: 'workflow 改动应选中 release_workflow_test',
+      );
+    });
+
+    test('10h 根级 yaml 仍归 sharedConfig（全量 fail-closed）', () {
+      expect(classifyPath('.gitignore'), FileCategory.sharedConfig);
+      // 未知目录的 yaml 走 unknown 兜底（fail-closed 双栈全量）。
+      expect(classifyPath('docs/foo.yaml'), FileCategory.unknown);
+    });
+
+    test('10i rust-backend/tool/**.rs 归 rustTool（clippy only，无 flutter）', () {
+      expect(
+        classifyPath('rust-backend/tool/boundary_scanner/src/main.rs'),
+        FileCategory.rustTool,
+        reason: 'rust-backend/tool/ 下的 .rs 应有独立分类，不落 unknown',
+      );
+      final plan = selectPlanForFiles([
+        'rust-backend/tool/boundary_scanner/src/main.rs',
+      ], index: testIndex);
+      expect(
+        kindsOf(plan),
+        contains(CommandKind.clippy),
+        reason: 'rustTool 应跑 clippy（workspace 覆盖 boundary_scanner）',
+      );
+      // 不升级 rust:test:full、不跑任何 flutter 测试。
+      expect(kindsOf(plan), isNot(contains(CommandKind.rustTest)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.analyze)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.flutterTest)));
+    });
+
+    test('10j rust-backend/tool 子树 manifest → clippy + 自身 cargo test', () {
+      expect(
+        classifyPath('rust-backend/tool/boundary_scanner/Cargo.toml'),
+        FileCategory.manifest,
+        reason: 'Cargo.toml 仍归 manifest',
+      );
+      final plan = selectPlanForFiles([
+        'rust-backend/tool/boundary_scanner/Cargo.toml',
+      ], index: testIndex);
+      expect(kindsOf(plan), contains(CommandKind.clippy));
+      // rustTool 子树 manifest：跑该 crate 自身 test（rustToolTest），
+      // 不升级 rust:test:full、不跑 flutter。
+      expect(
+        plan.steps.any(
+          (s) =>
+              s.kind == CommandKind.rustTest &&
+              s.arguments.contains('boundary_scanner'),
+        ),
+        isTrue,
+        reason: 'tool 子树 manifest 应跑 boundary_scanner 自身 cargo test',
+      );
+      expect(
+        plan.steps.any((s) => s.label == 'rust:test:full'),
+        isFalse,
+        reason: 'tool 子树 manifest 不升级 rust:test:full',
+      );
+      expect(kindsOf(plan), isNot(contains(CommandKind.analyze)));
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
@@ -548,7 +727,7 @@ void main() {
   });
 
   group('timeout', () {
-    test('12 3 分钟 timeout 状态与错误输出（注入短 timeout）', () async {
+    test('12 注入短 timeout 触发超时状态与错误输出', () async {
       final runner = CommandRunner(
         timeout: const Duration(milliseconds: 300),
         testMode: false,
@@ -1192,7 +1371,7 @@ void main() {
       // smoke 记录（验收要求）：debugPrint 避免 avoid_print lint
       debugPrint('resolved executable=$resolved');
       debugPrint('flutter --version exit=${result.exitCode}');
-      expect(result.timedOut, isFalse, reason: '不得超时（3 分钟硬超时铁律）');
+      expect(result.timedOut, isFalse, reason: '不得超时（单步 15 分钟硬超时铁律）');
       expect(
         result.exitCode,
         0,
