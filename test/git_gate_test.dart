@@ -415,6 +415,83 @@ void main() {
         posix.steps.map((s) => s.signature).toList(),
       );
     });
+
+    Set<String> flutterTestFilesOf(GatePlan plan) => plan.steps
+        .where((s) => s.kind == CommandKind.flutterTest)
+        .expand((s) => s.arguments.skip(3))
+        .toSet();
+
+    test(
+      '10b test/support memory_note_repository 按真实 import 方路由（非 pairing 集群）',
+      () {
+        final plan = selectPlanForFiles([
+          'test/support/memory_note_repository.dart',
+        ], index: testIndex);
+        final files = flutterTestFilesOf(plan);
+        // 真实 import 方（git grep "import 'support" test/）= 4 个 note widget 测试。
+        expect(
+          files,
+          containsAll(<String>[
+            'test/editor_page_widget_test.dart',
+            'test/knowledge_base_widget_test.dart',
+            'test/note_list_page_widget_test.dart',
+            'test/trash_page_widget_test.dart',
+          ]),
+        );
+        // 不再错配 pairing 集群。
+        final pairingSelected = files.where(
+          (f) => f.contains('pairing') || f.contains('device'),
+        );
+        expect(
+          pairingSelected,
+          isEmpty,
+          reason:
+              'memory_note_repository 不应路由到 pairing/device 测试: $pairingSelected',
+        );
+      },
+    );
+
+    test('10c test/support devices_repository 按真实 import 方路由', () {
+      final plan = selectPlanForFiles([
+        'test/support/devices_repository.dart',
+      ], index: testIndex);
+      expect(
+        flutterTestFilesOf(plan),
+        containsAll(<String>[
+          'test/devices_page_widget_test.dart',
+          'test/note_list_page_widget_test.dart',
+          'test/sync_ui_widget_test.dart',
+        ]),
+      );
+    });
+
+    test('10d test/support credential_ui_repository 按真实 import 方路由', () {
+      final plan = selectPlanForFiles([
+        'test/support/credential_ui_repository.dart',
+      ], index: testIndex);
+      expect(
+        flutterTestFilesOf(plan),
+        containsAll(<String>[
+          'test/devices_page_widget_test.dart',
+          'test/pairing_credential_ui_test.dart',
+        ]),
+      );
+    });
+
+    test('10e test/support doc_helpers 按真实 import 方路由', () {
+      final plan = selectPlanForFiles([
+        'test/support/doc_helpers.dart',
+      ], index: testIndex);
+      expect(
+        flutterTestFilesOf(plan),
+        containsAll(<String>[
+          'test/adr_0008_test.dart',
+          'test/agents_md_test.dart',
+          'test/docs_dir_test.dart',
+          'test/product_doc_test.dart',
+        ]),
+      );
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {

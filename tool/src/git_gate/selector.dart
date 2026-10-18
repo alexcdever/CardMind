@@ -185,8 +185,14 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       for (final related in _relatedDartTests(file, index)) {
         b.add(Commands.flutterTest(<String>[related]));
       }
-      _maybePairing(b, file, index);
-      _maybeSync(b, file, index);
+      // test/support/ 下的共享 fake 由 _relatedDartTests 的显式 importer
+      // 映射路由到真实消费方；文件名里的 memory/credential/device 等
+      // 关键词与被测对象无关，不能再走 pairing/sync 关键词兜底
+      // （会把 fake 错配到 pairing 集群、漏掉真实 import 方）。
+      if (!file.startsWith('test/support/')) {
+        _maybePairing(b, file, index);
+        _maybeSync(b, file, index);
+      }
     case FileCategory.rustTest:
       b.add(Commands.clippy());
       b.add(Commands.rustTestTarget(_rustTestStem(file)));
@@ -256,11 +262,6 @@ const List<String> _pairingKeywords = <String>[
   'device',
   'scanner',
   'discovery',
-  // test/support fake 的文件名关键词：memory_note_repository /
-  // credential_ui_repository 归入 dartBusiness 后，靠这两个词根命中
-  // pairing 集群（含 devices_page_widget_test 等 extra 清单）。
-  'memory',
-  'credential',
 ];
 
 const List<String> _syncKeywords = <String>['sync'];
@@ -307,9 +308,44 @@ void _maybeSync(PlanBuilder b, String file, TestIndex index) {
   }
 }
 
+/// test/support/ 共享 fake → 真实 import 方（`git grep "import 'support" test/`
+/// 为真相源）。fake 文件名里的 memory/credential/device 等关键词与被测对象
+/// 无关，不能用 pairing/sync 关键词兜底——会错配到 pairing 集群并漏掉真实
+/// 消费方。新增/重命名 support fake 或调整 import 方时同步更新本表。
+const Map<String, List<String>> _supportFakeImporters = <String, List<String>>{
+  'memory_note_repository': <String>[
+    'test/editor_page_widget_test.dart',
+    'test/knowledge_base_widget_test.dart',
+    'test/note_list_page_widget_test.dart',
+    'test/trash_page_widget_test.dart',
+  ],
+  'devices_repository': <String>[
+    'test/devices_page_widget_test.dart',
+    'test/note_list_page_widget_test.dart',
+    'test/sync_ui_widget_test.dart',
+  ],
+  'credential_ui_repository': <String>[
+    'test/devices_page_widget_test.dart',
+    'test/pairing_credential_ui_test.dart',
+  ],
+  'doc_helpers': <String>[
+    'test/adr_0008_test.dart',
+    'test/agents_md_test.dart',
+    'test/design_tokens_doc_test.dart',
+    'test/docs_dir_test.dart',
+    'test/markdown_references_test.dart',
+    'test/product_doc_test.dart',
+    'test/spec_lifecycle_doc_test.dart',
+    'test/sync_network_doc_test.dart',
+    'test/ui_style_guide_doc_test.dart',
+  ],
+};
+
 /// 与 lib/tool Dart 业务文件相关的测试。
 ///
 /// 查找顺序：
+/// 0. `test/support/` fake：按 [_supportFakeImporters] 显式映射到真实
+///    import 方（git grep 为真相源），不走关键词/stem 兜底；
 /// 1. stem 直配：`test/{stem}_test.dart`、`test/{stem}_widget_test.dart`，
 ///    以及按被测对象目录组织的 `test/services/{stem}_test.dart`、
 ///    `test/models/{stem}_test.dart`；
@@ -317,15 +353,21 @@ void _maybeSync(PlanBuilder b, String file, TestIndex index) {
 ///    `build_tool_test`——stem 是测试名 stem 的前缀时选「含该前缀的最短
 ///    stem 测试」（最接近的一个）；
 /// 3. tool/ 目录名回退：`tool/src/git_gate/x.dart` → `test/git_gate_test.dart`；
-/// 4. 最后兜底：测试名含 stem 的所有文件（test/support fake 的
-///    `_repository` 词根走这条，如 memory_note_repository →
-///    editor/note_list/trash/knowledge_base 等 widget 测试）。
+/// 4. 最后兜底：测试名含 stem 的所有文件。
 List<String> _relatedDartTests(String file, TestIndex index) {
   final name = file.split('/').last;
   if (!name.endsWith('.dart')) {
     return const <String>[];
   }
   final stem = name.substring(0, name.length - '.dart'.length);
+
+  // test/support/ fake：显式 importer 映射路由到真实消费方（映射缺失则
+  // 不返回任何测试——宁可漏跑也不错配到无关集群）。
+  final importers = _supportFakeImporters[stem];
+  if (importers != null) {
+    return importers.where(index.flutterTestFiles.contains).toList()..sort();
+  }
+
   final candidates = <String>[
     'test/${stem}_test.dart',
     'test/${stem}_widget_test.dart',
