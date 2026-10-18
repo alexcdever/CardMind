@@ -34,7 +34,7 @@
 |------|---------|------|
 | commit（pre-commit） | format-first + 按 staged 变更分类的快速相关检查 | `dart run tool/git_gate.dart pre-commit` |
 | push（pre-push） | format-first + 完整 host suite（md lint、Rust clippy/test、FRB codegen、Flutter analyze/test），支持 HEAD 缓存 | `dart run tool/git_gate.dart pre-push` |
-| release/验收 | 平台集成层 + 双实例 E2E 层 | 任务验收/发布门禁 |
+| release/验收 | 平台集成层 + 双实例 E2E 层 | 任务验收/发布门禁；平台集成层另有 CI 入口 `.github/workflows/integration_e2e.yml`（`workflow_dispatch` + 每日定时，Windows journeys），仍属发布/验收门禁，不进 push |
 | 手动完整 suite | 与 pre-push 相同 | `dart run tool/git_gate.dart full` |
 | 查看计划 | 只打印将执行的命令，不执行 | `dart run tool/git_gate.dart plan --staged` |
 
