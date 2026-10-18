@@ -69,7 +69,7 @@ flutter analyze                       # 代码分析
 
 # Rust（需先让 cargo 在 PATH 上，各平台路径见本节末尾说明）
 cd rust-backend && cargo test              # 全量测试
-cd rust-backend && cargo test --test sync_test  # 同步专项
+cd rust-backend && cargo test --test sync_service_test  # 同步专项
 cd rust-backend && cargo build --release   # 发布构建
 
 # 构建
@@ -77,7 +77,7 @@ dart run tool/build.dart lib          # 构建 Rust 动态库到当前 host 运�
 dart run tool/quality.dart all        # 全量质量检查
 
 # 网络测试（直接用 cargo test 即可，不要求关闭防火墙）
-cd rust-backend && cargo test --test sync_test  # 同步测试
+cd rust-backend && cargo test --test sync_service_test  # 同步测试
 ```
 
 > `flutter pub get` 需要设置 `PUB_HOSTED_URL=https://pub.flutter-io.cn`（国内镜像）。
@@ -215,3 +215,4 @@ This project is indexed by GitNexus as **CardMind** (5743 symbols, 14295 relatio
 - **改 UI/交互前**：对照该技能的 Pre-Delivery Checklist（触摸目标 ≥48dp、无 emoji 当图标、色不作唯一状态指示、阴影/圆角纪律、disabled 态）逐条核，确认不违反。
 - **交付/审查 UI 前**：按该技能 Quick Reference §1–§3 + CardMind 规范做一次走查；UI 审查任务派发子代理时把这份清单 + 两份标准文档作为审查基准一并传入。
 - 该技能的搜索脚本只需 Python 3（Windows 用 `python`）；不可用时就按上面两份标准文档人工核对，不阻断。
+

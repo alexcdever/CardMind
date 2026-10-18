@@ -30,7 +30,7 @@ class TestIndex {
   /// 已存在的 Flutter 测试文件（POSIX 相对路径，如 `test/foo_test.dart`）。
   final Set<String> flutterTestFiles;
 
-  /// 已存在的 Rust 测试 target（如 `sync_test`）。
+  /// 已存在的 Rust 测试 target（如 `sync_service_test`）。
   final Set<String> rustTestTargets;
 }
 
