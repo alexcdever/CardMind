@@ -492,6 +492,59 @@ void main() {
         ]),
       );
     });
+
+    test('10f tool/*.yaml 映射到 boundary scanner 测试（非双栈全量）', () {
+      expect(
+        classifyPath('tool/test_boundary_config.yaml'),
+        FileCategory.boundaryToolConfig,
+        reason: 'tool/*.yaml 应有独立分类，不是 sharedConfig',
+      );
+      final plan = selectPlanForFiles([
+        'tool/test_boundary_config.yaml',
+      ], index: testIndex);
+      expect(
+        plan.steps
+            .where((s) => s.kind == CommandKind.flutterTest)
+            .map((s) => s.arguments.last),
+        contains('test/test_boundary_scanner_rust_test.dart'),
+        reason: '应选中 boundary scanner 测试',
+      );
+      // 不升级双栈全量。
+      expect(kindsOf(plan), isNot(contains(CommandKind.clippy)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.rustTest)));
+      expect(
+        plan.steps.where((s) => s.label == 'flutter:test:full'),
+        isEmpty,
+        reason: 'tool/*.yaml 不得触发 flutter:test:full',
+      );
+    });
+
+    test('10g .github/workflows/*.yml 归 ciWorkflow（非双栈全量）', () {
+      expect(
+        classifyPath('.github/workflows/manual-build-artifacts.yml'),
+        FileCategory.ciWorkflow,
+      );
+      expect(classifyPath('.github/workflows/ci.yml'), FileCategory.ciWorkflow);
+      final plan = selectPlanForFiles([
+        '.github/workflows/manual-build-artifacts.yml',
+      ], index: testIndex);
+      expect(kindsOf(plan), isNot(contains(CommandKind.clippy)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.rustTest)));
+      expect(plan.steps.where((s) => s.label == 'flutter:test:full'), isEmpty);
+      expect(
+        plan.steps
+            .where((s) => s.kind == CommandKind.flutterTest)
+            .map((s) => s.arguments.last),
+        contains('test/release_workflow_test.dart'),
+        reason: 'workflow 改动应选中 release_workflow_test',
+      );
+    });
+
+    test('10h 根级 yaml 仍归 sharedConfig（全量 fail-closed）', () {
+      expect(classifyPath('.gitignore'), FileCategory.sharedConfig);
+      // 未知目录的 yaml 走 unknown 兜底（fail-closed 双栈全量）。
+      expect(classifyPath('docs/foo.yaml'), FileCategory.unknown);
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {

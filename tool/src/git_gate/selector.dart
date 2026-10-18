@@ -17,6 +17,8 @@ enum FileCategory {
   manifest,
   platform,
   sharedConfig,
+  boundaryToolConfig,
+  ciWorkflow,
   unknown,
 }
 
@@ -88,6 +90,8 @@ FileCategory classifyPath(String path) {
   if (_isDartBusiness(p)) return FileCategory.dartBusiness;
   if (_isManifest(p)) return FileCategory.manifest;
   if (_isPlatform(p)) return FileCategory.platform;
+  if (_isBoundaryToolConfig(p)) return FileCategory.boundaryToolConfig;
+  if (_isCiWorkflow(p)) return FileCategory.ciWorkflow;
   if (_isSharedConfig(p)) return FileCategory.sharedConfig;
   return FileCategory.unknown;
 }
@@ -141,16 +145,27 @@ bool _isPlatform(String p) =>
     p.startsWith('ios/') ||
     p.startsWith('web/');
 
+/// 边界扫描器局部配置（tool/*.yaml）：只被 tool/test_boundary_scanner.dart
+/// 读取，与 Rust/Flutter 测试无关——单独分类路由到 scanner 测试，
+/// 不升级双栈全量。
+bool _isBoundaryToolConfig(String p) =>
+    p.startsWith('tool/') && p.endsWith('.yaml');
+
+/// CI workflow（.github/workflows/*.yml）：改 CI 本身不用跑产品双栈全量；
+/// 路由到唯一读 workflow 文件的 release_workflow_test。
+bool _isCiWorkflow(String p) =>
+    p.startsWith('.github/workflows/') &&
+    (p.endsWith('.yml') || p.endsWith('.yaml'));
+
+/// 影响全仓的根级共享配置；其余 *.yaml/*.json 归 unknown 兜底
+/// （fail-closed 双栈全量）。
 bool _isSharedConfig(String p) =>
     p == 'analysis_options.yaml' ||
     p == '.metadata' ||
-    p == 'flutter_rust_bridge.yaml' ||
-    p.endsWith('.yaml') ||
-    p.endsWith('.yml') ||
-    p.endsWith('.json') ||
-    p.startsWith('.github/') ||
+    p == '.gitignore' ||
     p.startsWith('.githooks/') ||
-    p.startsWith('.gitignore');
+    // 根级 yaml/json（不含 /）才视作共享配置。
+    (!p.contains('/') && (p.endsWith('.yaml') || p.endsWith('.json')));
 
 /// 根据 staged 文件生成计划。
 GatePlan selectPlanForFiles(List<String> files, {required TestIndex index}) {
@@ -249,11 +264,31 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       b.add(Commands.rustFullTest());
       b.add(Commands.analyze());
       b.add(Commands.flutterFullTest());
+    case FileCategory.boundaryToolConfig:
+      // 只被 tool/test_boundary_scanner.dart 读取：选中其测试，不升级全量。
+      b.add(Commands.analyze());
+      _addIfExists(b, index, const <String>[
+        'test/test_boundary_scanner_rust_test.dart',
+      ]);
+    case FileCategory.ciWorkflow:
+      // 改 CI 不跑产品双栈全量；唯一读 workflow 文件的测试是
+      // release_workflow_test（只覆盖 manual-build-artifacts.yml）。
+      b.add(Commands.analyze());
+      _addIfExists(b, index, const <String>['test/release_workflow_test.dart']);
     case FileCategory.unknown:
       b.add(Commands.clippy());
       b.add(Commands.rustFullTest());
       b.add(Commands.analyze());
       b.add(Commands.flutterFullTest());
+  }
+}
+
+/// 把存在的测试文件逐个加入计划（不存在的跳过，保持稳定输出）。
+void _addIfExists(PlanBuilder b, TestIndex index, List<String> tests) {
+  for (final t in tests) {
+    if (index.flutterTestFiles.contains(t)) {
+      b.add(Commands.flutterTest(<String>[t]));
+    }
   }
 }
 
