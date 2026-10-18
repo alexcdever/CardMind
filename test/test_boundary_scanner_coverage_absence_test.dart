@@ -128,4 +128,41 @@ void main() {
       expect(report, isNot(contains('无覆盖率数据')));
     });
   });
+
+  group('修补 — 总体统计不得把缺失数据伪装成事实百分比', () {
+    test('rust lcov 缺失：总体统计标注「不完整」且无事实口吻百分比', () {
+      // 任一路缺失都会让聚合百分比失真：covered 只统计到有数据一侧的
+      // 命中，0 (0.0%) 会被误读为真实 0% 覆盖。
+      final report = ReportGenerator(
+        _config(),
+      ).generate(_result([_dart(covered: true), _rust()], rustMissing: true));
+
+      final overall = _section(report, '## 总体统计');
+      expect(overall, contains('覆盖率数据不完整'));
+      expect(overall, isNot(contains('已覆盖: ')));
+      expect(overall, isNot(contains('(0.0%)')));
+    });
+
+    test('flutter lcov 缺失：总体统计同样标注「不完整」', () {
+      final report = ReportGenerator(
+        _config(),
+      ).generate(_result([_dart(), _rust(covered: true)], flutterMissing: true));
+
+      final overall = _section(report, '## 总体统计');
+      expect(overall, contains('覆盖率数据不完整'));
+      expect(overall, isNot(contains('已覆盖: ')));
+    });
+
+    test('对照腿：两路 lcov 齐全时总体统计逐字沿用旧输出', () {
+      final report = ReportGenerator(
+        _config(),
+      ).generate(_result([_dart(covered: true), _rust()]));
+
+      final overall = _section(report, '## 总体统计');
+      expect(overall, contains('- 总边界数: 2'));
+      expect(overall, contains('- 已覆盖: 1 (50.0%)'));
+      expect(overall, contains('- 未覆盖: 1 (50.0%)'));
+      expect(overall, isNot(contains('覆盖率数据不完整')));
+    });
+  });
 }
