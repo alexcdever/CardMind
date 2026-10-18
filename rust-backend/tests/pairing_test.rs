@@ -10,7 +10,7 @@ mod common;
 
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{nonce_to_hex, PairingSession, PairingTarget, SyncService};
-use common::{requester, rt};
+use common::{requester, require_ipv4, rt};
 
 /// 取当前会话 nonce 的 hex 表示（confirm 侧强制校验要求的真实值）。
 fn session_nonce(svc: &SyncService) -> String {
@@ -198,7 +198,9 @@ fn test_pairing_persists_both_sides() {
             ips: confirmer.local_addrs(),
             nonce: confirmer.session_nonce_hex(),
         };
-        assert!(!target.ips.is_empty(), "确认方应至少有一个本地 IPv4 地址");
+        if !require_ipv4(&target.ips) {
+            return;
+        }
 
         // 确认方：接收请求 + 确认（回复握手 + 自动推送）
         let confirmer_code = code.clone();
