@@ -150,7 +150,7 @@ end_of_record
       final src = File('tool/test_boundary_scanner.dart').readAsStringSync();
       // Only inspect inside isMeaningfulHighPriorityBoundary.
       final start = src.indexOf('bool isMeaningfulHighPriorityBoundary');
-      final end = src.indexOf('Future<ScanResult> scan()');
+      final end = src.indexOf('Future<ScanResult> scan(');
       final body = src.substring(start, end);
       for (final p in v1) {
         expect(body.contains(p), isFalse, reason: '$p is dead v1 path');

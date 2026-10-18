@@ -1044,10 +1044,16 @@ class TestBoundaryScanner {
     return true;
   }
 
-  Future<ScanResult> scan() async {
-    /// 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）
-    stderr.writeln('Step 1: Collecting code coverage...');
-    await _collectCoverageData();
+  Future<ScanResult> scan({ScanScope scope = ScanScope.all}) async {
+    /// 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）。
+    /// --scope=rust 只看 rust-backend/src 边界，不需要 Dart 覆盖率，
+    /// 跳过整个 flutter test --coverage（数分钟）以加速 rust 链。
+    if (scope == ScanScope.rust) {
+      stderr.writeln('Step 1: Skipping Flutter coverage (scope=rust)');
+    } else {
+      stderr.writeln('Step 1: Collecting code coverage...');
+      await _collectCoverageData();
+    }
 
     /// 步骤 2: 解析 LCOV 文件（Flutter + Rust）
     stderr.writeln('Step 2: Parsing LCOV data...');
@@ -1477,7 +1483,7 @@ void main(List<String> args) async {
   final scanner = TestBoundaryScanner(config);
 
   stdout.writeln('Scanning for test boundaries...');
-  final result = await scanner.scan();
+  final result = await scanner.scan(scope: scope);
 
   /// 生成报告
   final generator = ReportGenerator(config);
