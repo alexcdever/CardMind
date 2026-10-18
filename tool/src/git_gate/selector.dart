@@ -220,9 +220,14 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       b.add(Commands.clippy());
       b.add(Commands.rustTestTarget(_rustTestStem(file)));
     case FileCategory.rustTool:
-      // rust-backend/tool/ 辅助 crate 源码：workspace 已覆盖，跑 clippy
-      // 即可；与 rust-backend/src/** 产品源码的测试映射无关。
+      // rust-backend/tool/ 辅助 crate 源码：workspace 已覆盖，跑 clippy；
+      // 同时跑该 crate 自身 cargo test（rustToolTest）。与 rust-backend/src/**
+      // 产品源码的测试映射无关。
       b.add(Commands.clippy());
+      final toolPkg = _rustToolPackage(file);
+      if (toolPkg != null) {
+        b.add(Commands.rustToolTest(toolPkg));
+      }
     case FileCategory.rustSource:
       b.add(Commands.clippy());
       final targets = _relatedRustTargets(file, index);
