@@ -228,4 +228,51 @@ end_of_record
       expect(scanner.isMeaningfulHighPriorityBoundary(keep), isTrue);
     });
   });
+
+  group('gate-infra-fix-3 AC1 — Dart boundary filePath repo-relative', () {
+    test('repoRelativePath strips cwd and normalizes backslashes', () {
+      final cwd = Directory.current.path;
+      expect(
+        debugRepoRelativePath('$cwd/lib/pages/x.dart'),
+        'lib/pages/x.dart',
+      );
+      expect(
+        debugRepoRelativePath('${cwd.replaceAll('/', r'\')}\\lib\\x.dart'),
+        'lib/x.dart',
+      );
+      // Already-relative POSIX path stays untouched.
+      expect(debugRepoRelativePath('lib/pages/x.dart'), 'lib/pages/x.dart');
+    });
+
+    test('ScanScope.flutter matches normalized lib/ boundary', () {
+      final dartB = _b(
+        path: 'lib/pages/editor_page.dart',
+        desc: 'If statement',
+      );
+      expect(debugMatchesScope(dartB, ScanScope.flutter), isTrue);
+      final rustB = _b(path: 'rust-backend/src/store.rs', desc: 'If statement');
+      expect(debugMatchesScope(rustB, ScanScope.flutter), isFalse);
+    });
+
+    test(
+      'Dart scan emits repo-relative lib/ paths (no absolute leak)',
+      () async {
+        final scanner = TestBoundaryScanner(_config());
+        final boundaries = await scanner.scanDartBoundariesForTest();
+        expect(boundaries, isNotEmpty, reason: 'lib/ must produce boundaries');
+        for (final b in boundaries) {
+          expect(
+            b.filePath.startsWith('lib/'),
+            isTrue,
+            reason: '${b.filePath} must be repo-relative lib/…',
+          );
+          expect(
+            debugMatchesScope(b, ScanScope.flutter),
+            isTrue,
+            reason: '${b.filePath} must match flutter scope',
+          );
+        }
+      },
+    );
+  });
 }
