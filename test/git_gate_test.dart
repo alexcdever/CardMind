@@ -88,6 +88,7 @@ final TestIndex testIndex = TestIndex(
     'discovery_test',
     'live_relay_test',
     'migration_test',
+    'net_env_policy_test',
     'note_crdt_test',
     'pairing_credential_test',
     'pairing_test',
