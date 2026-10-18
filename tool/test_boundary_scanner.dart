@@ -1556,6 +1556,28 @@ String debugRepoRelativePath(String path) => _repoRelativePath(path);
 bool debugMatchesScope(Boundary boundary, ScanScope scope) =>
     _matchesScope(boundary, scope);
 
+/// 格式化扫描器的 stdout 覆盖率摘要（main() 与测试共用）。
+///
+/// 数据齐全时逐字沿用旧版四行输出；任一路覆盖率输入缺失时不得打印
+/// `Coverage: X%`——缺失一侧的边界全计为未覆盖，百分比会被读成事实。
+String formatCoverageSummary(ScanResult result) {
+  final missingSides = <String>[
+    if (result.flutterCoverageDataMissing) 'Flutter/Dart',
+    if (result.rustCoverageDataMissing) 'Rust',
+  ];
+  final lines = <String>[
+    'Found ${result.boundaries.length} boundaries',
+    'Covered: ${result.coveredBoundaries.length}',
+    'Uncovered: ${result.uncoveredBoundaries.length}',
+    if (missingSides.isEmpty)
+      'Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%'
+    else
+      'Coverage: (no coverage data for ${missingSides.join(' / ')}; '
+          'percentages omitted)',
+  ];
+  return lines.join('\n');
+}
+
 /// 主函数
 void main(List<String> args) async {
   final scope = _parseScope(args);
@@ -1588,12 +1610,7 @@ void main(List<String> args) async {
   await reportFile.writeAsString(report);
 
   stdout.writeln('');
-  stdout.writeln('Found ${result.boundaries.length} boundaries');
-  stdout.writeln('Covered: ${result.coveredBoundaries.length}');
-  stdout.writeln('Uncovered: ${result.uncoveredBoundaries.length}');
-  stdout.writeln(
-    'Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%',
-  );
+  stdout.writeln(formatCoverageSummary(result));
   stdout.writeln('');
   stdout.writeln('Report saved to: ${reportFile.path}');
 
