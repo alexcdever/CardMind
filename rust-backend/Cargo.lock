@@ -540,6 +540,7 @@ dependencies = [
  "anyhow",
  "atomic-write-file",
  "base64",
+ "cardmind-backend",
  "chrono",
  "flutter_rust_bridge",
  "iroh",

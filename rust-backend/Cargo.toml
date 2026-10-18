@@ -16,6 +16,13 @@ crate-type = ["cdylib", "staticlib", "lib"]
 # macOS 27 已验证：strip = true 的 dylib dlopen 正常，__LINKEDIT 结尾 16 字节对齐。
 strip = true
 
+[features]
+# 测试后门：SyncService 上 *_for_test / set_current_pairing_session 等
+# #[doc(hidden)] 方法仅此 feature（或 cfg(test)）下编译进 lib。
+# tests/*.rs 是独立 crate、对 lib 不启用 cfg(test)，故靠下方 dev-dependency
+# 自引用在 `cargo test` 时自动启用本 feature；release 构建不含这些方法。
+test-utils = []
+
 [dependencies]
 flutter_rust_bridge = "=2.12.0"
 loro = "1"
@@ -43,3 +50,7 @@ libc = "0.2"
 # 仅测试构建启用：本地 relay 服务器（iroh::test_utils::run_relay_server），
 # 用于离线验证 relay 跨网段连接行为，避免依赖公共 relay 的网络可达性。
 iroh = { version = "1", features = ["test-utils"] }
+# dev-dependency 自引用（cargo 支持）：让 tests/*.rs 外部 crate 编译时
+# 对 lib 启用 test-utils feature，使 #[cfg(feature = "test-utils")] 的
+# 测试后门方法对集成测试可见；对正常 build/release 无影响。
+cardmind-backend = { path = ".", features = ["test-utils"] }
