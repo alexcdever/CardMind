@@ -86,15 +86,21 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
   final rust = <String>{};
   final testDir = Directory('$repoRoot/test');
   if (testDir.existsSync()) {
-    for (final f in testDir.listSync().whereType<File>()) {
-      if (f.path.endsWith('_test.dart')) {
+    // 递归扫描：test/services、test/models 子目录的测试，以及
+    // test/support/ 下的共享 fake（非 _test.dart，分类 dartBusiness，
+    // 但列入 flutterTestFiles 供 _maybePairing/_maybeSync/_relatedDartTests 命中）。
+    for (final f in testDir.listSync(recursive: true).whereType<File>()) {
+      final p = f.path.replaceAll(Platform.pathSeparator, '/');
+      if (p.endsWith('_test.dart') ||
+          (p.endsWith('.dart') && p.contains('/test/support/'))) {
         flutter.add(_repoRelative(repoRoot, f.path));
       }
     }
   }
   final rustTestsDir = Directory('$repoRoot/rust-backend/tests');
   if (rustTestsDir.existsSync()) {
-    for (final f in rustTestsDir.listSync().whereType<File>()) {
+    // 递归扫描：rust-backend/tests 子目录的测试 target 不遗漏。
+    for (final f in rustTestsDir.listSync(recursive: true).whereType<File>()) {
       if (f.path.endsWith('.rs')) {
         final name = f.path.split(Platform.pathSeparator).last;
         rust.add(

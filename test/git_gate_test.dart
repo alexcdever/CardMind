@@ -414,6 +414,53 @@ void main() {
         posix.steps.map((s) => s.signature).toList(),
       );
     });
+    // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
+    // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
+    test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
+      Future<List<String>> lsFiles(String pattern) async {
+        final r = await Process.run('git', ['ls-files', pattern]);
+        expect(r.exitCode, 0, reason: 'git ls-files $pattern 应成功: ${r.stderr}');
+        return r.stdout
+            .toString()
+            .split(RegExp(r'\r?\n'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+
+      // flutterTestFiles：test/ 下所有 _test.dart + test/support/ 下的 fake。
+      final allDart = await lsFiles('test/');
+      final expectedFlutter = allDart
+          .where(
+            (p) =>
+                p.endsWith('_test.dart') ||
+                (p.endsWith('.dart') && p.startsWith('test/support/')),
+          )
+          .toSet();
+      expect(
+        testIndex.flutterTestFiles,
+        expectedFlutter,
+        reason:
+            'fixture flutterTestFiles 与 git ls-files test/ 不一致：'
+            '缺 ${expectedFlutter.difference(testIndex.flutterTestFiles)} / '
+            '多 ${testIndex.flutterTestFiles.difference(expectedFlutter)}',
+      );
+
+      // rustTestTargets：rust-backend/tests/ 下所有 *_test.rs 的 stem。
+      final rsFiles = await lsFiles('rust-backend/tests/');
+      final expectedRust = rsFiles
+          .where((p) => p.endsWith('.rs'))
+          .map((p) => p.split('/').last.replaceAll(RegExp(r'\.rs$'), ''))
+          .toSet();
+      expect(
+        testIndex.rustTestTargets,
+        expectedRust,
+        reason:
+            'fixture rustTestTargets 与 git ls-files rust-backend/tests/ 不一致：'
+            '缺 ${expectedRust.difference(testIndex.rustTestTargets)} / '
+            '多 ${testIndex.rustTestTargets.difference(expectedRust)}',
+      );
+    });
   });
 
   group('cache', () {
