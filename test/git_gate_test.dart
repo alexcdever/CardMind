@@ -707,7 +707,7 @@ void main() {
       // tests/*.rs → stem；tests/<dir>/main.rs → <dir>；子目录其余文件
       // （tests/common/mod.rs 等共享辅助）不是 target。
       final rsFiles = await lsFiles('rust-backend/tests/');
-      final expectedRust = rsFiles.map(_rustTargetNameForTest).nonNulls.toSet();
+      final expectedRust = rsFiles.map(rustTestTargetName).nonNulls.toSet();
       expect(
         testIndex.rustTestTargets,
         expectedRust,
@@ -1592,28 +1592,6 @@ String? _findInPath(String name) {
     if (dir.isEmpty) continue;
     final candidate = '$dir\\$name';
     if (File(candidate).existsSync()) return candidate;
-  }
-  return null;
-}
-
-/// 按 cargo 规则推导 `rust-backend/tests/` 路径是否为 test target。
-///
-/// 与 `scanTestIndex` / `_rustTestTargetName` 同语义（本文件不 import
-/// 私有函数，故用独立副本）：`tests/*.rs` → stem；`tests/<dir>/main.rs` →
-/// `<dir>`；子目录其余文件（`tests/common/mod.rs` 等被 `mod common;`
-/// 引入的共享辅助）不是 target，返回 null。
-String? _rustTargetNameForTest(String p) {
-  if (!p.startsWith('rust-backend/tests/') || !p.endsWith('.rs')) {
-    return null;
-  }
-  final rest = p.substring('rust-backend/tests/'.length);
-  final slash = rest.indexOf('/');
-  if (slash == -1) {
-    return rest.substring(0, rest.length - '.rs'.length);
-  }
-  final base = rest.substring(slash + 1);
-  if (!base.contains('/') && base == 'main.rs') {
-    return rest.substring(0, slash);
   }
   return null;
 }
