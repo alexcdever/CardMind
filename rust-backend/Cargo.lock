@@ -493,6 +493,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "boundary_scanner"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "serde",
+ "serde_json",
+ "syn 2.0.118",
+ "walkdir",
+]
+
+[[package]]
 name = "build-target"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

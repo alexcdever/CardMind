@@ -433,40 +433,37 @@ fn scan_file(file_path: &str) -> Vec<Boundary> {
 
 fn scan_items_for_types(file: &File, visitor: &mut BoundaryVisitor) {
     for item in &file.items {
-        match item {
-            Item::Fn(item_fn) => {
-                // 检查函数返回类型
-                match &item_fn.sig.output {
-                    ReturnType::Default => {}
-                    ReturnType::Type(_, ty) => {
-                        if type_contains_result_or_option(ty) {
-                            let line = item_fn.sig.fn_token.span.start().line;
-                            visitor.add_boundary(
-                                "exception",
-                                line,
-                                "Result/Option",
-                                "Function returns Result/Option, caller must handle",
-                            );
-                        }
-                    }
-                }
-
-                // 检查函数参数
-                for input in &item_fn.sig.inputs {
-                    if let syn::FnArg::Typed(pat_type) = input {
-                        if type_contains_result_or_option(&pat_type.ty) {
-                            let line = item_fn.sig.fn_token.span.start().line;
-                            visitor.add_boundary(
-                                "exception",
-                                line,
-                                "Result/Option param",
-                                "Function parameter is Result/Option",
-                            );
-                        }
+        if let Item::Fn(item_fn) = item {
+            // 检查函数返回类型
+            match &item_fn.sig.output {
+                ReturnType::Default => {}
+                ReturnType::Type(_, ty) => {
+                    if type_contains_result_or_option(ty) {
+                        let line = item_fn.sig.fn_token.span.start().line;
+                        visitor.add_boundary(
+                            "exception",
+                            line,
+                            "Result/Option",
+                            "Function returns Result/Option, caller must handle",
+                        );
                     }
                 }
             }
-            _ => {}
+
+            // 检查函数参数
+            for input in &item_fn.sig.inputs {
+                if let syn::FnArg::Typed(pat_type) = input {
+                    if type_contains_result_or_option(&pat_type.ty) {
+                        let line = item_fn.sig.fn_token.span.start().line;
+                        visitor.add_boundary(
+                            "exception",
+                            line,
+                            "Result/Option param",
+                            "Function parameter is Result/Option",
+                        );
+                    }
+                }
+            }
         }
     }
 }
