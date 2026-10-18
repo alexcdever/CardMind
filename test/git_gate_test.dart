@@ -13,30 +13,86 @@ import '../tool/src/git_gate/runner.dart';
 import '../tool/src/git_gate/selector.dart';
 
 /// 与任务单五节对应的假测试索引（模拟 CardMind 现有测试资产）。
+///
+/// flutterTestFiles 必须与 `test/` 下真实清单一致：所有 `_test.dart`
+/// （含 `test/services/`、`test/models/` 子目录）+ `test/support/` 下的
+/// 共享 fake（非 `_test.dart`，分类为 dartBusiness，但仍列入索引供
+/// `_maybePairing`/`_maybeSync`/`_relatedDartTests` 匹配）。
+/// rustTestTargets 必须与 `rust-backend/tests/` 下所有 `*_test.rs` 的
+/// stem 集合一致。
 final TestIndex testIndex = TestIndex(
   flutterTestFiles: {
+    'test/adr_0008_test.dart',
+    'test/agents_md_test.dart',
     'test/api_integration_test.dart',
+    'test/build_lib_crossplatform_test.dart',
+    'test/build_tool_test.dart',
+    'test/cardmind_theme_test.dart',
+    'test/debug_log_file_test.dart',
+    'test/debug_log_test.dart',
+    'test/design_tokens_doc_test.dart',
+    'test/device_name_edit_test.dart',
+    'test/devices_page_widget_test.dart',
+    'test/docs_dir_test.dart',
     'test/editor_page_widget_test.dart',
+    'test/feature_test_security_test.dart',
     'test/frb_note_repository_test.dart',
-    'test/receiver_store_borrow_test.dart',
+    'test/git_gate_hook_integration_test.dart',
+    'test/git_gate_test.dart',
+    'test/knowledge_base_widget_test.dart',
+    'test/macos_desktop_support_test.dart',
+    'test/markdown_references_test.dart',
+    'test/mobile_ui_test.dart',
+    'test/models/update_manifest_test.dart',
+    'test/note_list_page_widget_test.dart',
     'test/pairing_accept_ui_test.dart',
+    'test/pairing_credential_repository_test.dart',
+    'test/pairing_credential_ui_test.dart',
     'test/pairing_log_events_test.dart',
     'test/pairing_mdns_widget_test.dart',
     'test/pairing_repository_test.dart',
+    'test/platform_log_capture_test.dart',
+    'test/product_doc_test.dart',
+    'test/quality_frb_prep_test.dart',
+    'test/receiver_store_borrow_test.dart',
+    'test/release_workflow_test.dart',
+    'test/rust_library_loader_test.dart',
+    'test/services/app_settings_service_test.dart',
+    'test/services/http_proxy_policy_test.dart',
+    'test/services/platform_update_installer_test.dart',
+    'test/services/update_download_manager_test.dart',
+    'test/services/update_downloader_test.dart',
+    'test/services/update_service_test.dart',
+    'test/settings_page_test.dart',
+    'test/spec_lifecycle_doc_test.dart',
+    // test/support/ 下的共享 fake：不是 _test.dart（分类为 dartBusiness），
+    // 但列入索引——它们是被测资产的依赖方，供关键词路由与 stem 兜底匹配。
+    'test/support/credential_ui_repository.dart',
+    'test/support/devices_repository.dart',
+    'test/support/doc_helpers.dart',
+    'test/support/memory_note_repository.dart',
+    'test/test_boundary_scanner_rust_test.dart',
+    'test/sync_network_doc_test.dart',
     'test/sync_scheduler_test.dart',
     'test/sync_ui_widget_test.dart',
+    'test/trash_page_widget_test.dart',
+    'test/ui_style_guide_doc_test.dart',
+    'test/widget_test.dart',
   },
   rustTestTargets: {
     'autosync_test',
     'connect_test',
     'debug_log_test',
+    'device_name_test',
     'discovery_test',
     'live_relay_test',
     'migration_test',
     'note_crdt_test',
+    'pairing_credential_test',
     'pairing_test',
     'receiver_continuous_test',
     'relay_config_test',
+    'security_sync_test',
     'store_test',
     'sync_service_test',
     'trash_test',
@@ -357,6 +413,53 @@ void main() {
       expect(
         windows.steps.map((s) => s.signature).toList(),
         posix.steps.map((s) => s.signature).toList(),
+      );
+    });
+    // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
+    // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
+    test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
+      Future<List<String>> lsFiles(String pattern) async {
+        final r = await Process.run('git', ['ls-files', pattern]);
+        expect(r.exitCode, 0, reason: 'git ls-files $pattern 应成功: ${r.stderr}');
+        return r.stdout
+            .toString()
+            .split(RegExp(r'\r?\n'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+
+      // flutterTestFiles：test/ 下所有 _test.dart + test/support/ 下的 fake。
+      final allDart = await lsFiles('test/');
+      final expectedFlutter = allDart
+          .where(
+            (p) =>
+                p.endsWith('_test.dart') ||
+                (p.endsWith('.dart') && p.startsWith('test/support/')),
+          )
+          .toSet();
+      expect(
+        testIndex.flutterTestFiles,
+        expectedFlutter,
+        reason:
+            'fixture flutterTestFiles 与 git ls-files test/ 不一致：'
+            '缺 ${expectedFlutter.difference(testIndex.flutterTestFiles)} / '
+            '多 ${testIndex.flutterTestFiles.difference(expectedFlutter)}',
+      );
+
+      // rustTestTargets：rust-backend/tests/ 下所有 *_test.rs 的 stem。
+      final rsFiles = await lsFiles('rust-backend/tests/');
+      final expectedRust = rsFiles
+          .where((p) => p.endsWith('.rs'))
+          .map((p) => p.split('/').last.replaceAll(RegExp(r'\.rs$'), ''))
+          .toSet();
+      expect(
+        testIndex.rustTestTargets,
+        expectedRust,
+        reason:
+            'fixture rustTestTargets 与 git ls-files rust-backend/tests/ 不一致：'
+            '缺 ${expectedRust.difference(testIndex.rustTestTargets)} / '
+            '多 ${testIndex.rustTestTargets.difference(expectedRust)}',
       );
     });
   });

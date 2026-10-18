@@ -114,7 +114,11 @@ bool _isRustSource(String p) =>
 bool _isDartBusiness(String p) =>
     (p.startsWith('lib/') ||
         p.startsWith('tool/') ||
-        p.startsWith('integration_test/')) &&
+        p.startsWith('integration_test/') ||
+        // test/support/ 下的共享 fake 是测试资产但不是测试文件（不以
+        // _test.dart 结尾）；归入 dartBusiness，由 _relatedDartTests 的
+        // stem 匹配 + _maybePairing/_maybeSync 关键词路由选相关测试。
+        p.startsWith('test/support/')) &&
     p.endsWith('.dart');
 
 /// Cargo manifest（含 rust-backend/Cargo.toml、rust-backend/Cargo.lock）与
@@ -252,6 +256,11 @@ const List<String> _pairingKeywords = <String>[
   'device',
   'scanner',
   'discovery',
+  // test/support fake 的文件名关键词：memory_note_repository /
+  // credential_ui_repository 归入 dartBusiness 后，靠这两个词根命中
+  // pairing 集群（含 devices_page_widget_test 等 extra 清单）。
+  'memory',
+  'credential',
 ];
 
 const List<String> _syncKeywords = <String>['sync'];
@@ -266,8 +275,18 @@ void _maybePairing(PlanBuilder b, String file, TestIndex index) {
   for (final t in pairingTests) {
     b.add(Commands.flutterTest(<String>[t]));
   }
-  if (index.flutterTestFiles.contains('test/sync_ui_widget_test.dart')) {
-    b.add(Commands.flutterTest(<String>['test/sync_ui_widget_test.dart']));
+  // 设备页/配对流程相关但文件名不含 pairing 的测试（存在才加）。
+  const extraPairingTests = <String>[
+    'test/sync_ui_widget_test.dart',
+    'test/devices_page_widget_test.dart',
+    'test/device_name_edit_test.dart',
+    'test/pairing_credential_ui_test.dart',
+    'test/pairing_credential_repository_test.dart',
+  ];
+  for (final t in extraPairingTests) {
+    if (index.flutterTestFiles.contains(t)) {
+      b.add(Commands.flutterTest(<String>[t]));
+    }
   }
 }
 
@@ -278,6 +297,8 @@ void _maybeSync(PlanBuilder b, String file, TestIndex index) {
     'test/sync_scheduler_test.dart',
     'test/sync_ui_widget_test.dart',
     'test/receiver_store_borrow_test.dart',
+    'test/receiver_continuous_test.dart',
+    'test/trash_page_widget_test.dart',
   ];
   for (final t in syncTests) {
     if (index.flutterTestFiles.contains(t)) {
@@ -286,18 +307,68 @@ void _maybeSync(PlanBuilder b, String file, TestIndex index) {
   }
 }
 
-/// 与 lib/tool Dart 业务文件相关的测试：按 basename 匹配现有测试文件。
+/// 与 lib/tool Dart 业务文件相关的测试。
+///
+/// 查找顺序：
+/// 1. stem 直配：`test/{stem}_test.dart`、`test/{stem}_widget_test.dart`，
+///    以及按被测对象目录组织的 `test/services/{stem}_test.dart`、
+///    `test/models/{stem}_test.dart`；
+/// 2. stem 前缀：`tool/build.dart` 的 stem 是 `build`，而测试名是
+///    `build_tool_test`——stem 是测试名 stem 的前缀时选「含该前缀的最短
+///    stem 测试」（最接近的一个）；
+/// 3. tool/ 目录名回退：`tool/src/git_gate/x.dart` → `test/git_gate_test.dart`；
+/// 4. 最后兜底：测试名含 stem 的所有文件（test/support fake 的
+///    `_repository` 词根走这条，如 memory_note_repository →
+///    editor/note_list/trash/knowledge_base 等 widget 测试）。
 List<String> _relatedDartTests(String file, TestIndex index) {
   final name = file.split('/').last;
-  if (name.endsWith('.dart')) {
-    final stem = name.substring(0, name.length - '.dart'.length);
-    final candidates = <String>[
-      'test/${stem}_test.dart',
-      'test/${stem}_widget_test.dart',
-    ];
-    return candidates.where(index.flutterTestFiles.contains).toList();
+  if (!name.endsWith('.dart')) {
+    return const <String>[];
   }
-  return const <String>[];
+  final stem = name.substring(0, name.length - '.dart'.length);
+  final candidates = <String>[
+    'test/${stem}_test.dart',
+    'test/${stem}_widget_test.dart',
+    'test/services/${stem}_test.dart',
+    'test/models/${stem}_test.dart',
+  ];
+  final hits = candidates.where(index.flutterTestFiles.contains).toList();
+  if (hits.isNotEmpty) return hits..sort();
+
+  // stem 前缀匹配：`build` 是 `build_tool` 的前缀 → test/build_tool_test.dart。
+  // 取 stem 最短者（最接近）；并列按路径字典序保证稳定。
+  String stemOf(String testPath) {
+    final base = testPath.split('/').last;
+    return base.substring(0, base.length - '_test.dart'.length);
+  }
+
+  final prefixed = index.flutterTestFiles
+      .where((f) => f.endsWith('_test.dart') && stemOf(f).startsWith(stem))
+      .toList();
+  if (prefixed.isNotEmpty) {
+    prefixed.sort((a, b) {
+      final byLen = stemOf(a).length.compareTo(stemOf(b).length);
+      return byLen != 0 ? byLen : a.compareTo(b);
+    });
+    return <String>[prefixed.first];
+  }
+
+  // tool/src/<dir>/x.dart → 目录名回退 test/<dir>_test.dart。
+  if (file.startsWith('tool/src/')) {
+    final dir = file.split('/')[2];
+    final dirCandidate = 'test/${dir}_test.dart';
+    if (index.flutterTestFiles.contains(dirCandidate)) {
+      return <String>[dirCandidate];
+    }
+  }
+
+  // 兜底：测试名含 stem（test/support fake 的 `_repository` 词根在此命中）。
+  final contained =
+      index.flutterTestFiles
+          .where((f) => f.endsWith('_test.dart') && f.contains(stem))
+          .toList()
+        ..sort();
+  return contained;
 }
 
 /// 真实 FRB smoke 集（存在才加入）。
@@ -327,6 +398,8 @@ List<String>? _relatedRustTargets(String file, TestIndex index) {
       'sync_service_test',
       'receiver_continuous_test',
       'autosync_test',
+      'connect_test',
+      'security_sync_test',
     ];
   } else if (lower.contains('pairing_credential')) {
     candidates = const <String>['pairing_credential_test', 'pairing_test'];
@@ -337,7 +410,12 @@ List<String>? _relatedRustTargets(String file, TestIndex index) {
       'pairing_credential_test',
     ];
   } else if (lower.contains('store')) {
-    candidates = const <String>['store_test', 'note_crdt_test', 'trash_test'];
+    candidates = const <String>[
+      'store_test',
+      'note_crdt_test',
+      'trash_test',
+      'migration_test',
+    ];
   } else if (lower.contains('trash')) {
     candidates = const <String>['trash_test', 'store_test', 'note_crdt_test'];
   } else if (lower.contains('api') || lower.contains('frb')) {

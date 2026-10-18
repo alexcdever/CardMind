@@ -90,7 +90,7 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
     // test/support/ 下的共享 fake（非 _test.dart，分类 dartBusiness，
     // 但列入 flutterTestFiles 供 _maybePairing/_maybeSync/_relatedDartTests 命中）。
     for (final f in testDir.listSync(recursive: true).whereType<File>()) {
-      final p = f.path.replaceAll(r'\', '/');
+      final p = f.path.replaceAll(Platform.pathSeparator, '/');
       if (p.endsWith('_test.dart') ||
           (p.endsWith('.dart') && p.contains('/test/support/'))) {
         flutter.add(_repoRelative(repoRoot, f.path));
