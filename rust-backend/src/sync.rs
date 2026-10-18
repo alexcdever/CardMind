@@ -763,7 +763,9 @@ impl SyncService {
         self.pairing_session.lock().unwrap().clone()
     }
 
+    /// 是否存在待处理的配对请求（仅测试断言用；release 构建不含此方法）。
     #[doc(hidden)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub fn has_pending_pairing_for_test(&self) -> bool {
         self.pending_pairing.lock().unwrap().is_some()
     }
@@ -781,7 +783,9 @@ impl SyncService {
             .unwrap_or_default()
     }
 
-    /// 覆盖当前配对会话（测试用：注入过期时间等）。
+    /// 覆盖当前配对会话（仅测试用：注入过期时间等；release 构建不含此方法）。
+    #[doc(hidden)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub fn set_current_pairing_session(&self, session: Option<PairingSession>) {
         *self.pairing_session.lock().unwrap() = session;
     }
@@ -1268,7 +1272,10 @@ impl SyncService {
     /// `target` 由 mDNS 发现提供（同网段面对面配对）：device_id + ip:port 列表。
     /// ips 非空 → 直连优先（确定性）；ips 为空 → 仅凭 node id 经 n0 地址解析 +
     /// 公共 relay 连接（iroh 1.x N0 preset 自带 DnsAddressLookup）。
+    ///
+    /// 仅测试用：绕过正常握手入口直接注入配对请求；release 构建不含此方法。
     #[doc(hidden)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub async fn send_pairing_request_for_test(
         &self,
         target: PairingTarget,
@@ -1293,7 +1300,9 @@ impl SyncService {
         Ok(())
     }
 
+    /// 仅测试用：直接接收对端注入的配对请求；release 构建不含此方法。
     #[doc(hidden)]
+    #[cfg(any(test, feature = "test-utils"))]
     pub async fn receive_pairing_request_for_test(
         &mut self,
         _store: &NoteStore,
