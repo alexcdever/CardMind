@@ -139,6 +139,57 @@ end_of_record
     });
   });
 
+  group('fix-lcov-path-separator AC1 — Windows backslash SF', () {
+    test('getLineCoverage resolves backslash SF via POSIX query', () {
+      const lcov =
+          'SF:lib\\src\\rust\\api.dart\n'
+          'DA:12,5\n'
+          'DA:13,0\n'
+          'end_of_record\n';
+      final p = LcovParser()..parse(lcov);
+      expect(p.getLineCoverage('lib/src/rust/api.dart', 12), 5);
+      expect(p.getLineCoverage('lib/src/rust/api.dart', 13), 0);
+      expect(p.getLineCoverage('lib/src/rust/api.dart', 999), isNull);
+    });
+
+    test('getFileStats resolves backslash SF via POSIX query', () {
+      const lcov =
+          'SF:lib\\src\\rust\\api.dart\n'
+          'DA:12,5\n'
+          'DA:13,0\n'
+          'end_of_record\n';
+      final p = LcovParser()..parse(lcov);
+      final stats = p.getFileStats('lib/src/rust/api.dart');
+      expect(stats.totalLines, 2);
+      expect(stats.coveredLines, 1);
+    });
+  });
+
+  group('fix-lcov-path-separator AC3 — absolute & mixed separators', () {
+    test('Windows absolute SF resolves via repo-relative POSIX query', () {
+      // 构造 Windows 风格绝对路径 SF（D:\…\<cwd-leaf>\lib\x.dart），
+      // 查询端经绝对路径分支匹配归一化后的 SF key。
+      final cwd = Directory.current.path.replaceAll(r'\', '/');
+      final leaf = cwd.substring(cwd.lastIndexOf('/') + 1);
+      final winAbs = 'D:\\Projects\\$leaf\\lib\\x.dart';
+      final lcov =
+          'SF:$winAbs\n'
+          'DA:7,3\n'
+          'end_of_record\n';
+      final p = LcovParser()..parse(lcov);
+      expect(p.getLineCoverage('lib/x.dart', 7), 3);
+    });
+
+    test('mixed separator SF resolves via POSIX query', () {
+      const lcov =
+          'SF:lib/src\\rust/api.dart\n'
+          'DA:3,9\n'
+          'end_of_record\n';
+      final p = LcovParser()..parse(lcov);
+      expect(p.getLineCoverage('lib/src/rust/api.dart', 3), 9);
+    });
+  });
+
   group('AC3 — v2 layout meaningfulness', () {
     test('no v1 path literals survive in the rule', () {
       const v1 = [
