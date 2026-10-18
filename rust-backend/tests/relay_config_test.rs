@@ -180,3 +180,16 @@ fn test_memory_service_never_reads_relay_file() {
         );
     });
 }
+
+// ━━━ temp_dir 唯一性：同 label 连续调用返回不同路径且可同时存在 ━━━
+
+#[test]
+fn test_temp_dir_unique_per_call() {
+    let dir_a = temp_dir("unique");
+    let dir_b = temp_dir("unique");
+    assert_ne!(dir_a, dir_b, "同 label 连续两次调用应返回不同路径");
+    assert!(dir_a.exists(), "第一个目录应存在：{dir_a:?}");
+    assert!(dir_b.exists(), "第二个目录应存在：{dir_b:?}");
+    let _ = std::fs::remove_dir_all(dir_a);
+    let _ = std::fs::remove_dir_all(dir_b);
+}

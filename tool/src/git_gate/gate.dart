@@ -99,40 +99,19 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
   }
   final rustTestsDir = Directory('$repoRoot/rust-backend/tests');
   if (rustTestsDir.existsSync()) {
-    // 递归扫描按 cargo target 规则索引（与 selector 的 _rustTestTargetName
+    // 递归扫描按 cargo target 规则索引（与 selector 的 rustTestTargetName
     // 同语义）：tests/*.rs 与 tests/<dir>/main.rs 是 target；子目录其余
     // 文件（tests/common/mod.rs 等被 `mod` 引入的共享辅助）不是 target，
     // 不得入索引——否则分类器会给它生成不存在的 cargo test --test <stem>。
     for (final f in rustTestsDir.listSync(recursive: true).whereType<File>()) {
       final rel = _repoRelative(repoRoot, f.path);
-      final target = _rustTargetName(rel);
+      final target = rustTestTargetName(rel);
       if (target != null) {
         rust.add(target);
       }
     }
   }
   return TestIndex(flutterTestFiles: flutter, rustTestTargets: rust);
-}
-
-/// 按 cargo 规则推导 `rust-backend/tests/` 下的路径是否为 test target。
-///
-/// 与 selector.dart `_rustTestTargetName` 同语义（本文件不 import
-/// 私有函数，故用独立副本）：`tests/foo.rs` → `foo`；`tests/foo/main.rs`
-/// → `foo`；子目录其余文件（`common/mod.rs` 等共享辅助）返回 null。
-/// [rel] 已是仓库相对 POSIX 路径（`_repoRelative` 输出）。
-String? _rustTargetName(String rel) {
-  const prefix = 'rust-backend/tests/';
-  if (!rel.startsWith(prefix) || !rel.endsWith('.rs')) return null;
-  final rest = rel.substring(prefix.length);
-  final slash = rest.indexOf('/');
-  if (slash == -1) {
-    return rest.substring(0, rest.length - '.rs'.length);
-  }
-  final base = rest.substring(slash + 1);
-  if (!base.contains('/') && base == 'main.rs') {
-    return rest.substring(0, slash);
-  }
-  return null;
 }
 
 /// pre-commit：format-first → 按 staged 分类执行快速门禁。

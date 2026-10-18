@@ -218,7 +218,7 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       }
     case FileCategory.rustTest:
       b.add(Commands.clippy());
-      final target = _rustTestTargetName(file);
+      final target = rustTestTargetName(file);
       if (target == null) {
         // tests/ 子目录下的共享辅助（如 common/mod.rs）不是 cargo test
         // target——cargo test --test <stem> 必失败。fail-closed 升级
@@ -543,15 +543,16 @@ List<String>? _relatedRustTargets(String file, TestIndex index) {
   return existing.isEmpty ? null : existing;
 }
 
-/// 由 `rust-backend/tests/` 下的文件路径推导 cargo test target 名；
-/// 不是 target 返回 null。
+/// 按 cargo 规则推导 `rust-backend/tests/` 路径是否为 test target；不是返回 null。
 ///
 /// cargo 规则：`tests/foo.rs` → target `foo`；`tests/foo/main.rs` →
 /// target `foo`（目录名，文件名 `main` 不是 target）；`tests/<dir>/`
 /// 下其余文件（`common/mod.rs` 等被 `mod` 引入的模块）不是 target。
-/// 输入已保证以 `rust-backend/tests/` 开头且 `.rs` 结尾。
-String? _rustTestTargetName(String file) {
-  final rest = file.substring('rust-backend/tests/'.length);
+/// 输入为仓库相对路径，本函数自行校验前缀与 `.rs` 后缀。
+String? rustTestTargetName(String path) {
+  const prefix = 'rust-backend/tests/';
+  if (!path.startsWith(prefix) || !path.endsWith('.rs')) return null;
+  final rest = path.substring(prefix.length);
   final slash = rest.indexOf('/');
   if (slash == -1) {
     // tests/*.rs 直接子文件：stem 即 target 名。

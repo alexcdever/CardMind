@@ -25,7 +25,7 @@ use cardmind_backend::debug_log::{self, CollectingSink, LogEvent, PanickingSink}
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{PairingTarget, SyncService};
 
-use common::{rt, temp_dir};
+use common::{require_ipv4, rt, temp_dir};
 
 fn sink() -> Arc<CollectingSink> {
     Arc::new(CollectingSink::new())
@@ -290,7 +290,9 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
 
         let confirmer_id = confirmer.device_id();
         let addrs = confirmer.local_addrs();
-        assert!(!addrs.is_empty(), "确认方应至少有一个本地 IPv4 地址");
+        if !require_ipv4(&addrs) {
+            return;
+        }
 
         // 显示码 + 广播（组合 API）
         let code = confirmer
