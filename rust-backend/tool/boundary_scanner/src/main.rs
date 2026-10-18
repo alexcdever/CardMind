@@ -361,10 +361,45 @@ impl<'ast> Visit<'ast> for BoundaryVisitor {
     }
 }
 
-fn type_contains_result_or_option(_ty: &Type) -> bool {
-    // 简化的检查：暂时不深入检测类型
-    // 实际应该递归检查类型结构
-    false
+/// 递归检查类型是否含 `Result`/`Option`（按 path 末段 ident 匹配，
+/// 不深入宏生成的类型）。覆盖 TypePath/引用/切片/元组/括号/分组/裸指针/
+/// 数组/TraitObject/ImplTrait 的泛型实参遍历。
+fn type_contains_result_or_option(ty: &Type) -> bool {
+    match ty {
+        Type::Path(tp) => {
+            // 末段 ident 是 Result/Option（允许 std::result::Result 之类
+            // 全限定路径——只看最后一段）。
+            if let Some(seg) = tp.path.segments.last() {
+                if seg.ident == "Result" || seg.ident == "Option" {
+                    return true;
+                }
+            }
+            // 泛型实参递归（Vec<Option<T>>、Result<T, E> 的 T/E 等）。
+            tp.path.segments.iter().any(|seg| {
+                if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
+                    args.args.iter().any(|a| {
+                        if let syn::GenericArgument::Type(inner) = a {
+                            type_contains_result_or_option(inner)
+                        } else {
+                            false
+                        }
+                    })
+                } else {
+                    false
+                }
+            })
+        }
+        Type::Reference(r) => type_contains_result_or_option(&r.elem),
+        Type::Ptr(p) => type_contains_result_or_option(&p.elem),
+        Type::Slice(s) => type_contains_result_or_option(&s.elem),
+        Type::Array(a) => type_contains_result_or_option(&a.elem),
+        Type::Tuple(t) => t.elems.iter().any(type_contains_result_or_option),
+        Type::Paren(p) => type_contains_result_or_option(&p.elem),
+        Type::Group(g) => type_contains_result_or_option(&g.elem),
+        // TraitObject/ImplTrait 的 bound 是 trait/lifetime，Result/Option
+        // 不以 bound 形态出现，不再深入。
+        _ => false,
+    }
 }
 
 fn scan_file(file_path: &str) -> Vec<Boundary> {
@@ -447,7 +482,12 @@ fn main() {
     // 尝试找到包含 rust-backend/src 的目录
     let project_root = if current_dir.join("rust-backend/src").exists() {
         current_dir
-    } else if current_dir.parent().unwrap().join("rust-backend/src").exists() {
+    } else if current_dir
+        .parent()
+        .unwrap()
+        .join("rust-backend/src")
+        .exists()
+    {
         current_dir.parent().unwrap().to_path_buf()
     } else if current_dir
         .ancestors()

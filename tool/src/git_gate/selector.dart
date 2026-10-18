@@ -13,6 +13,7 @@ enum FileCategory {
   dartTest,
   rustSource,
   rustTest,
+  rustTool,
   frbBoundary,
   manifest,
   platform,
@@ -86,6 +87,7 @@ FileCategory classifyPath(String path) {
   if (_isFrbBoundary(p)) return FileCategory.frbBoundary;
   if (_isDartTest(p)) return FileCategory.dartTest;
   if (_isRustTest(p)) return FileCategory.rustTest;
+  if (_isRustTool(p)) return FileCategory.rustTool;
   if (_isRustSource(p)) return FileCategory.rustSource;
   if (_isDartBusiness(p)) return FileCategory.dartBusiness;
   if (_isManifest(p)) return FileCategory.manifest;
@@ -111,6 +113,12 @@ bool _isDartTest(String p) => p.startsWith('test/') && p.endsWith('_test.dart');
 
 bool _isRustTest(String p) =>
     p.startsWith('rust-backend/tests/') && p.endsWith('.rs');
+
+/// rust-backend/tool/ 下的辅助 crate 源码（boundary_scanner 等，已纳入
+/// workspace）：属 Rust 范畴但不是产品源码，归 rustTool——只跑 clippy，
+/// 不升级 rust:test:full、不跑 flutter。
+bool _isRustTool(String p) =>
+    p.startsWith('rust-backend/tool/') && p.endsWith('.rs');
 
 bool _isRustSource(String p) =>
     p.startsWith('rust-backend/src/') && p.endsWith('.rs');
@@ -211,6 +219,10 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
     case FileCategory.rustTest:
       b.add(Commands.clippy());
       b.add(Commands.rustTestTarget(_rustTestStem(file)));
+    case FileCategory.rustTool:
+      // rust-backend/tool/ 辅助 crate 源码：workspace 已覆盖，跑 clippy
+      // 即可；与 rust-backend/src/** 产品源码的测试映射无关。
+      b.add(Commands.clippy());
     case FileCategory.rustSource:
       b.add(Commands.clippy());
       final targets = _relatedRustTargets(file, index);
@@ -244,8 +256,16 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       final isCargoManifest =
           lower.endsWith('cargo.toml') || lower.endsWith('cargo.lock');
       if (isCargoManifest) {
-        b.add(Commands.clippy());
-        b.add(Commands.rustFullTest());
+        // rust-backend/tool/ 子树 crate 的 manifest（boundary_scanner 等）：
+        // 跑该 crate 自身 cargo test，不升级 rust:test:full。
+        final toolPkg = _rustToolPackage(file);
+        if (toolPkg != null) {
+          b.add(Commands.clippy());
+          b.add(Commands.rustToolTest(toolPkg));
+        } else {
+          b.add(Commands.clippy());
+          b.add(Commands.rustFullTest());
+        }
       } else if (lower == 'flutter_rust_bridge.yaml') {
         b.add(Commands.clippy());
         b.add(Commands.rustFullTest());
@@ -516,4 +536,14 @@ String _rustTestStem(String file) {
   return name.endsWith('.rs')
       ? name.substring(0, name.length - '.rs'.length)
       : name;
+}
+
+/// `rust-backend/tool/<pkg>/…` → cargo package 名；不在子树内返回 null。
+/// （workspace 成员 crate 名与目录名一致：`tool/boundary_scanner`。）
+String? _rustToolPackage(String file) {
+  const prefix = 'rust-backend/tool/';
+  if (!file.startsWith(prefix)) return null;
+  final rest = file.substring(prefix.length);
+  final slash = rest.indexOf('/');
+  return slash == -1 ? null : rest.substring(0, slash);
 }
