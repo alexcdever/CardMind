@@ -188,6 +188,25 @@ end_of_record
       final p = LcovParser()..parse(lcov);
       expect(p.getLineCoverage('lib/src/rust/api.dart', 3), 9);
     });
+
+    test('CRLF line endings: trailing \\r does not poison SF key', () {
+      // Windows 上 lcov.info 可能以 CRLF 落盘；split('\n') 会把 \r 留在
+      // SF key 与 end_of_record 上，导致 key 带 \r 且 currentFile 不复位。
+      const lcov =
+          'SF:lib\\a.dart\r\n'
+          'DA:1,1\r\n'
+          'DA:2,0\r\n'
+          'end_of_record\r\n'
+          'SF:lib\\b.dart\r\n'
+          'DA:5,7\r\n'
+          'end_of_record\r\n';
+      final p = LcovParser()..parse(lcov);
+      expect(p.getLineCoverage('lib/a.dart', 1), 1);
+      expect(p.getLineCoverage('lib/a.dart', 2), 0);
+      // 第二条记录的 DA 必须落在 b.dart 而非误挂到 a.dart。
+      expect(p.getLineCoverage('lib/b.dart', 5), 7);
+      expect(p.getLineCoverage('lib/a.dart', 5), isNull);
+    });
   });
 
   group('AC3 — v2 layout meaningfulness', () {
