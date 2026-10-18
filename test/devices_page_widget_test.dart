@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:cardmind/pages/devices_page.dart';
 import 'package:cardmind/scanner/scanner_interface.dart';
@@ -234,17 +233,28 @@ void main() {
       await tester.pump();
     });
 
-    test('connect timeout uses the documented 30s budget', () {
-      final source = File('lib/pages/devices_page.dart').readAsStringSync();
+    testWidgets('connect timeout uses the documented 30s budget', (
+      tester,
+    ) async {
+      // 30s 超时预算已由本条用例以真实 widget 行为覆盖：
+      // 挂起 connect → 假时钟拨 30s → 结果弹窗出现。这里再补一刀：
+      // 29.9s 时不得已进入失败态（预算不是 29s / 15s 之类）。
+      await _openConnectingDialog(tester);
+
+      await tester.pump(const Duration(milliseconds: 29900));
+      await tester.pump();
       expect(
-        source.contains('_pairConnectTimeout'),
-        isTrue,
-        reason: '超时必须是显式命名的常量（可测试、可调）',
+        find.byKey(const ValueKey('pair-scan-connecting-dialog')),
+        findsOneWidget,
+        reason: '29.9s 时不得已超时（预算为 30s）',
       );
+
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
       expect(
-        RegExp(r'Duration\(seconds:\s*30\)').hasMatch(source),
-        isTrue,
-        reason: '超时预算 30 秒（任务建议值）',
+        find.byKey(const ValueKey('pair-scan-result-dialog')),
+        findsOneWidget,
+        reason: '30s 后应进入失败结果态（_pairConnectTimeout）',
       );
     });
 

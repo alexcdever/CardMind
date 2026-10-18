@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:cardmind/bridge/sync_scheduler.dart';
 import 'package:cardmind/main.dart';
 import 'package:cardmind/pages/note_list_page.dart';
 import 'package:cardmind/pages/settings_page.dart';
@@ -12,6 +12,51 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/devices_repository.dart' show DevicesRepository;
 import 'support/memory_note_repository.dart' show MemoryNoteRepository;
+
+/// 永远允许同步的网络监视器（驱动 _pendingCount 流即可，不依赖 connectivity）。
+class _FakeMonitor implements NetworkTypeMonitor {
+  final _controller = StreamController<bool>.broadcast();
+
+  @override
+  Stream<bool> get allowedChanges => _controller.stream;
+
+  @override
+  Future<bool> currentAllowed() async => true;
+
+  @override
+  void dispose() {
+    if (!_controller.isClosed) _controller.close();
+  }
+}
+
+/// 注入固定 pendingCount 的同步 API：把「立即同步」按钮催出来。
+class _PendingSyncApi implements SyncApi {
+  int pendingCountValue = 0;
+
+  @override
+  Future<int> get pollIntervalSecs async => 60;
+
+  @override
+  Future<int> pendingCount() async => pendingCountValue;
+
+  @override
+  Future<void> setSyncAllowed(bool allowed) async {}
+
+  @override
+  Future<void> pushPending() async {}
+
+  @override
+  Future<void> runSyncCycle() async {}
+
+  @override
+  Future<void> startReceiver() async {}
+
+  @override
+  Future<void> stopReceiver() async {}
+
+  @override
+  Future<int> receiverContentRevision() async => 0;
+}
 
 void main() {
   group('list and open', () {
@@ -287,61 +332,79 @@ void main() {
 
   group('sidebar discipline', () {
     // ━━ 原 ui_polish_opt AC5 ━━
-    test('sidebar sync-now button is >=48dp (no compact density)', () {
-      final source = File('lib/pages/note_list_page.dart').readAsStringSync();
-      // 该 IconButton 不得再叠加 VisualDensity.compact（会把 48 目标压到 40）。
-      final btnIdx = source.indexOf("key: const ValueKey('sync-now-button')");
-      expect(btnIdx, greaterThan(-1), reason: '必须存在 sync-now-button');
-      // 取该按钮所在块（到下一个 ')' 边界之前）检查无 compact。
-      final window = source.substring(
-        btnIdx,
-        (btnIdx + 500).clamp(0, source.length),
+    testWidgets('sidebar sync-now button is >=48dp (no compact density)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final api = _PendingSyncApi()..pendingCountValue = 1;
+      final scheduler = SyncScheduler(monitor: _FakeMonitor(), api: api);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: CardMindTheme.light,
+          home: NoteListPage(
+            repository: MemoryNoteRepository(),
+            scheduler: scheduler,
+          ),
+        ),
+      );
+      await scheduler.refreshPendingCount();
+      await tester.pumpAndSettle();
+
+      final button = tester.widget<IconButton>(
+        find.byKey(const ValueKey('sync-now-button')),
+      );
+      final constraints = button.constraints;
+      expect(
+        constraints?.minWidth,
+        greaterThanOrEqualTo(CardMindLayout.mobileTouchTarget),
+        reason: '侧栏「立即同步」触摸目标宽须 ≥48dp（不得用 VisualDensity.compact）',
       );
       expect(
-        window.contains('VisualDensity.compact'),
-        isFalse,
-        reason: '侧栏「立即同步」不得用 VisualDensity.compact，须保留 ≥48dp',
+        constraints?.minHeight,
+        greaterThanOrEqualTo(CardMindLayout.mobileTouchTarget),
+        reason: '侧栏「立即同步」触摸目标高须 ≥48dp（不得用 VisualDensity.compact）',
       );
+      scheduler.dispose();
     });
 
     // ━━ 原 ui_polish_opt item9 ━━
-    test('note-list date font size is >=12px', () {
-      final source = File('lib/pages/note_list_page.dart').readAsStringSync();
-      // 日期样式 _formatDate 处不得再出现 fontSize 11（label-caps 语义不符；
-      // 升到 12px 保持日期可读性）。
-      final dateIdx = source.indexOf('_formatDate(note.updatedAt)');
-      expect(dateIdx, greaterThan(-1));
-      final window = source.substring(
-        dateIdx,
-        (dateIdx + 300).clamp(0, source.length),
-      );
+    testWidgets('note-list date font size is >=12px', (tester) async {
+      await _pumpList(tester, MemoryNoteRepository());
+
+      // 取列表首条笔记的日期文本，断言渲染 fontSize ≥12。
+      final dateText = tester.widget<Text>(find.text('7月22日'));
       expect(
-        RegExp(r'fontSize:[^;]*?11(?![0-9.])').hasMatch(window),
-        isFalse,
+        dateText.style?.fontSize,
+        greaterThanOrEqualTo(12),
         reason: '列表日期非 label-caps 语义，须升到 ≥12px',
       );
     });
 
     // ━━ 原 ui_polish_opt AC5 ━━
-    test('sidebar nav rows share uniform padding', () {
-      final source = File('lib/pages/note_list_page.dart').readAsStringSync();
+    testWidgets('sidebar nav rows share uniform padding', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: CardMindTheme.light,
+          home: NoteListPage(repository: MemoryNoteRepository()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
       for (final key in const [
         'trash-entry',
         'open-settings',
         'devices-entry',
       ]) {
-        final idx = source.indexOf("ValueKey('$key')");
-        expect(idx, greaterThan(-1), reason: '必须存在 $key 入口');
-        // 该按钮外层 Padding 与其 styleFrom.padding 统一；
-        // 以所在块内出现 vertical:8 的统一 padding 为断言。
-        final window = source.substring(
-          (idx - 400).clamp(0, source.length),
-          (idx + 500).clamp(0, source.length),
-        );
+        final button = tester.widget<TextButton>(find.byKey(ValueKey(key)));
+        final padding = button.style?.padding?.resolve(const {});
         expect(
-          window.contains('vertical: 8'),
-          isTrue,
-          reason: '$key 导航行 padding 须统一含 vertical:8（horizontal:12, vertical:8）',
+          padding,
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          reason: '$key 导航行 padding 须统一 horizontal:12, vertical:8',
         );
       }
     });

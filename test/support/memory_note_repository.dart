@@ -50,10 +50,14 @@ class MemoryNoteRepository implements NoteRepository {
   final Map<String, Completer<List<NoteRow>>> searchResults = {};
   Object? saveError;
   Object? searchError;
+
+  /// 挂起 createNote：把编辑页 `_saving` 钉在 true，便于断言保存态 UI。
+  Completer<void>? createNoteGate;
   int _generatedIdSeq = 0;
 
   @override
   Future<void> createNote(String id, String content) async {
+    await createNoteGate?.future;
     if (saveError case final error?) throw error;
     contents[id] = content;
   }

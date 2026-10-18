@@ -1,3 +1,6 @@
+// 设置页 widget/服务测试。
+// 「打开安装包」按钮（open-update-package）只在 macOS/Linux 渲染，
+// Windows 无法挂载 → 其 minimumSize ≥48 的校验保留源码快照断言（非行为断言）。
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -865,15 +868,16 @@ void settingsPolishChecks() {
     );
   });
 
-  test('desktop settings body has a max-width constraint', () {
-    final source = File('lib/pages/settings_page.dart').readAsStringSync();
-    // 限宽必须由同一处 ConstrainedBox 承载 editorMaxWidth——
-    // 只断言两个字符串各自出现会把「限宽被删、注释里还留着 editorMaxWidth」判为通过。
+  testWidgets('desktop settings body has a max-width constraint', (
+    tester,
+  ) async {
+    await _pumpSettingsPolish(tester, size: const Size(1600, 900));
+
+    // 桌面宽屏下 settings-page 内容容器必须被 ConstrainedBox 限宽到
+    // editorMaxWidth，而不是整行拉伸。
     expect(
-      RegExp(
-        r'ConstrainedBox\([\s\S]{0,200}?CardMindLayout\.editorMaxWidth',
-      ).hasMatch(source),
-      isTrue,
+      tester.getSize(find.byKey(const ValueKey('settings-page'))).width,
+      lessThanOrEqualTo(CardMindLayout.editorMaxWidth),
       reason: '桌面宽屏内容须以 ConstrainedBox + editorMaxWidth 限宽，与编辑器一致',
     );
   });
