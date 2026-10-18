@@ -275,6 +275,7 @@ Future<int> _runRustQuality({
     'clippy',
     '--all-targets',
     '--all-features',
+    '--workspace',
     '--',
     '-D',
     'warnings',
