@@ -314,14 +314,28 @@ List<String> _frbSmokeTests(TestIndex index) {
 List<String>? _relatedRustTargets(String file, TestIndex index) {
   final lower = file.toLowerCase();
   List<String> candidates;
-  if (lower.contains('sync')) {
+  // 更具体的关键词放前面：security_sync / live_relay 含通用 sync/relay 词根，
+  // 若排在后面会被先命中到通用 sync/relay 分支而漏掉对应 target。
+  if (lower.contains('security_sync')) {
+    candidates = const <String>['security_sync_test'];
+  } else if (lower.contains('live_relay')) {
+    candidates = const <String>['live_relay_test'];
+  } else if (lower.contains('device_name')) {
+    candidates = const <String>['device_name_test'];
+  } else if (lower.contains('sync')) {
     candidates = const <String>[
       'sync_service_test',
       'receiver_continuous_test',
       'autosync_test',
     ];
+  } else if (lower.contains('pairing_credential')) {
+    candidates = const <String>['pairing_credential_test', 'pairing_test'];
   } else if (lower.contains('discovery') || lower.contains('pairing')) {
-    candidates = const <String>['discovery_test', 'pairing_test'];
+    candidates = const <String>[
+      'discovery_test',
+      'pairing_test',
+      'pairing_credential_test',
+    ];
   } else if (lower.contains('store')) {
     candidates = const <String>['store_test', 'note_crdt_test', 'trash_test'];
   } else if (lower.contains('trash')) {
