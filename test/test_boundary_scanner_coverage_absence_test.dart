@@ -165,4 +165,42 @@ void main() {
       expect(overall, isNot(contains('覆盖率数据不完整')));
     });
   });
+
+  group('修补 — stdout 摘要不得打印伪事实 Coverage 百分比', () {
+    test('两路 lcov 缺失：摘要标注无数据、不含 Coverage: 0.0%', () {
+      final summary = formatCoverageSummary(
+        _result([_dart(), _rust()], flutterMissing: true, rustMissing: true),
+      );
+      expect(summary, isNot(contains('Coverage: 0.0%')));
+      expect(summary, isNot(contains('Coverage: ')));
+      expect(summary, contains('no coverage data'));
+      // 边界计数仍然如实给出（未覆盖数=边界总数，不反映真实覆盖）。
+      expect(summary, contains('Found 2 boundaries'));
+      expect(summary, contains('Uncovered: 2'));
+    });
+
+    test('单路缺失（仅 rust）：摘要同样标注无数据', () {
+      final summary = formatCoverageSummary(
+        _result([_dart(covered: true), _rust()], rustMissing: true),
+      );
+      expect(summary, isNot(contains('Coverage: ')));
+      expect(summary, contains('no coverage data'));
+      expect(summary, contains('Rust'));
+      expect(summary, isNot(contains('Flutter/Dart')));
+    });
+
+    test('对照腿：数据齐全时摘要逐字等于旧版输出', () {
+      // 旧版 main() 的四行：Found/Covered/Uncovered/Coverage。
+      final summary = formatCoverageSummary(
+        _result([_dart(covered: true), _rust()]),
+      );
+      expect(
+        summary,
+        'Found 2 boundaries\n'
+        'Covered: 1\n'
+        'Uncovered: 1\n'
+        'Coverage: 50.0%',
+      );
+    });
+  });
 }
