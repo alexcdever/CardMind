@@ -988,11 +988,25 @@ class TestCoverageAnalyzer {
   }
 }
 
+/// 覆盖率采集进程运行器（测试注入点：仿 quality.dart 的 Runner 注入先例）。
+typedef CoverageRunner =
+    Future<ProcessResult> Function(String executable, List<String> arguments);
+
+/// 默认覆盖率采集实现：真实拉起 flutter test 子进程。
+Future<ProcessResult> _defaultCoverageRunner(
+  String executable,
+  List<String> arguments,
+) {
+  return Process.run(executable, arguments, runInShell: true);
+}
+
 /// 主扫描器类
 class TestBoundaryScanner {
   final ScannerConfig config;
+  final CoverageRunner coverageRunner;
 
-  TestBoundaryScanner(this.config);
+  TestBoundaryScanner(this.config, {CoverageRunner? coverageRunner})
+    : coverageRunner = coverageRunner ?? _defaultCoverageRunner;
 
   bool isMeaningfulHighPriorityBoundary(Boundary boundary) {
     if ((config.weights[boundary.type] ?? 0.5) < 1.0) {
@@ -1061,12 +1075,21 @@ class TestBoundaryScanner {
     return true;
   }
 
-  Future<ScanResult> scan({ScanScope scope = ScanScope.all}) async {
+  Future<ScanResult> scan({
+    ScanScope scope = ScanScope.all,
+    bool reuseCoverage = false,
+  }) async {
     /// 步骤 1: 收集代码覆盖率（运行 flutter test --coverage）。
     /// --scope=rust 只看 rust-backend/src 边界，不需要 Dart 覆盖率，
     /// 跳过整个 flutter test --coverage（数分钟）以加速 rust 链。
+    /// --reuse-coverage 供 quality.dart 等调用方在已生成 coverage/lcov.info
+    /// 时显式复用，跳过本会重复执行数分钟的第二遍 flutter test。
     if (scope == ScanScope.rust) {
       stderr.writeln('Step 1: Skipping Flutter coverage (scope=rust)');
+    } else if (reuseCoverage) {
+      stderr.writeln(
+        'Step 1: Reusing existing coverage data (--reuse-coverage)',
+      );
     } else {
       stderr.writeln('Step 1: Collecting code coverage...');
       await _collectCoverageData();
@@ -1254,10 +1277,7 @@ class TestBoundaryScanner {
     /// 运行 flutter test --coverage 以获取最新覆盖率数据
     stderr.writeln('  Running: flutter test --coverage');
     stderr.writeln('  (This may take a few minutes...)');
-    final result = await Process.run('flutter', [
-      'test',
-      '--coverage',
-    ], runInShell: true);
+    final result = await coverageRunner('flutter', ['test', '--coverage']);
 
     if (result.exitCode != 0) {
       stderr.writeln(
@@ -1487,6 +1507,7 @@ bool debugMatchesScope(Boundary boundary, ScanScope scope) =>
 /// 主函数
 void main(List<String> args) async {
   final scope = _parseScope(args);
+  final reuseCoverage = args.contains('--reuse-coverage');
   // 加载配置
   final configFile = File('tool/test_boundary_config.yaml');
   if (!configFile.existsSync()) {
@@ -1500,7 +1521,7 @@ void main(List<String> args) async {
   final scanner = TestBoundaryScanner(config);
 
   stdout.writeln('Scanning for test boundaries...');
-  final result = await scanner.scan(scope: scope);
+  final result = await scanner.scan(scope: scope, reuseCoverage: reuseCoverage);
 
   /// 生成报告
   final generator = ReportGenerator(config);

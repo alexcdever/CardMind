@@ -53,6 +53,7 @@ final TestIndex testIndex = TestIndex(
     'test/pairing_repository_test.dart',
     'test/platform_log_capture_test.dart',
     'test/product_doc_test.dart',
+    'test/quality_coverage_reuse_test.dart',
     'test/quality_frb_prep_test.dart',
     'test/receiver_store_borrow_test.dart',
     'test/release_workflow_test.dart',
