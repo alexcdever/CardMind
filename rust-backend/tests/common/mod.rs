@@ -38,15 +38,44 @@ pub fn requester(code: &str, id: &str, name: &str, nonce: &str) -> PairingReques
     }
 }
 
-/// 无 IPv4 网络接口的环境前置检查：addrs 为空时 eprintln 留痕并返回 false，
-/// 调用方应 `return` 让用例静默 skip（通过而非 panic），区分「环境不具备」与「代码错」。
+/// 「无 IPv4 是否判为用例失败」的环境策略纯函数。
+///
+/// `CARDMIND_REQUIRE_NETWORK_TESTS` 的值仅 `"1"` 判为 fatal；未设置 / `"0"` / 空串
+/// 均维持跳过语义。CI 的 cargo test 步骤设该变量，让「无 IPv4」从假绿变硬失败。
 #[allow(dead_code)]
-pub fn require_ipv4(addrs: &[String]) -> bool {
+pub fn ipv4_absence_is_fatal(require_env: Option<&str>) -> bool {
+    require_env == Some("1")
+}
+
+/// `require_ipv4` 的可测内核：环境策略以显式参数传入，便于 `catch_unwind` 锚点测试。
+/// `addrs` 为空时按策略动作——fatal 则 panic（用例失败），否则 eprintln 留痕返回
+/// false 让调用方 `return` 静默跳过。
+#[allow(dead_code)]
+pub fn require_ipv4_inner(addrs: &[String], require_env: Option<&str>) -> bool {
     if addrs.is_empty() {
+        if ipv4_absence_is_fatal(require_env) {
+            panic!(
+                "FAIL: no IPv4 addresses on this machine; \
+                 CARDMIND_REQUIRE_NETWORK_TESTS=1 forbids silently skipping network tests"
+            );
+        }
         eprintln!("SKIP: no IPv4 addresses on this machine; test requires network interface");
         return false;
     }
     true
+}
+
+/// 无 IPv4 网络接口的环境前置检查：addrs 为空时按环境变量
+/// `CARDMIND_REQUIRE_NETWORK_TESTS` 决定是否 panic（=1：失败）或返回 false
+/// （未设置：调用方应 `return` 让用例静默 skip），区分「环境不具备」与「代码错」。
+#[allow(dead_code)]
+pub fn require_ipv4(addrs: &[String]) -> bool {
+    require_ipv4_inner(
+        addrs,
+        std::env::var("CARDMIND_REQUIRE_NETWORK_TESTS")
+            .ok()
+            .as_deref(),
+    )
 }
 
 /// 真实配对两个 SyncService（initiator ↔ confirmer），双方 paired_devices 互相包含。
