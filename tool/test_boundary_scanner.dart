@@ -799,10 +799,18 @@ class LcovParser {
     final lines = lcovContent.split('\n');
     String? currentFile;
 
-    for (final line in lines) {
+    for (final rawLine in lines) {
+      /// CRLF 落盘的 lcov 会在行尾留下 \r：剥离它，否则 SF key 带
+      /// \r 查询 miss、end_of_record\r 不命中导致 currentFile 不复位。
+      final line = rawLine.endsWith('\r')
+          ? rawLine.substring(0, rawLine.length - 1)
+          : rawLine;
       if (line.startsWith('SF:')) {
         /// SF:<file path>
-        currentFile = line.substring(3);
+        /// Windows 上 flutter test --coverage 产出反斜杠路径
+        /// （SF:lib\src\rust\api.dart），归一化为 POSIX 正斜杠存储，
+        /// 使查询端（边界 filePath 统一为仓库相对 POSIX）直接命中。
+        currentFile = _normalizePathKey(line.substring(3));
         fileCoverages[currentFile] = FileCoverage(path: currentFile);
       } else if (line.startsWith('DA:') && currentFile != null) {
         /// DA:<line number>,<execution count>[,<checksum>]
@@ -823,20 +831,25 @@ class LcovParser {
   /// 获取特定文件特定行的执行次数
   /// 返回 null 表示该行没有覆盖信息
   int? getLineCoverage(String filePath, int lineNumber) {
+    // 查询路径同样归一化分隔符，保持 POSIX 输入行为不变。
+    final key = _normalizePathKey(filePath);
+
     // 尝试直接匹配
-    var coverage = fileCoverages[filePath];
+    var coverage = fileCoverages[key];
     if (coverage != null) return coverage.lineHits[lineNumber];
 
     // 尝试匹配绝对路径（Rust LCOV 使用绝对路径）
-    final absolutePath = '${Directory.current.path}/$filePath';
+    final absolutePath = _normalizePathKey(
+      '${Directory.current.path}/$filePath',
+    );
     coverage = fileCoverages[absolutePath];
     if (coverage != null) return coverage.lineHits[lineNumber];
 
     // 尝试匹配其他格式（如 rust-backend/ 前缀）
     for (final entry in fileCoverages.entries) {
-      if (entry.key.endsWith(filePath) ||
-          entry.key.endsWith('/$filePath') ||
-          filePath.endsWith(entry.key)) {
+      if (entry.key.endsWith(key) ||
+          entry.key.endsWith('/$key') ||
+          key.endsWith(entry.key)) {
         return entry.value.lineHits[lineNumber];
       }
     }
@@ -844,9 +857,13 @@ class LcovParser {
     return null;
   }
 
+  /// 归一化路径分隔符：Windows `\` → POSIX `/`。
+  /// 存储（SF key）与查询两侧统一走此函数，保证 POSIX 输入行为不变。
+  static String _normalizePathKey(String path) => path.replaceAll(r'\', '/');
+
   /// 获取文件的总体覆盖率统计
   CoverageStats getFileStats(String filePath) {
-    final coverage = fileCoverages[filePath];
+    final coverage = fileCoverages[_normalizePathKey(filePath)];
     if (coverage == null) {
       return CoverageStats(totalLines: 0, coveredLines: 0);
     }
