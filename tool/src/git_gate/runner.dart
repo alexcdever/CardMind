@@ -1,4 +1,4 @@
-/// 外部进程执行器：3 分钟硬超时（可注入），超时终止完整进程树。
+/// 外部进程执行器：15 分钟硬超时（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调，可注入），超时终止完整进程树。
 ///
 /// 测试模式（`CARDMIND_GATE_TEST_MODE=1`）下所有命令走 fake runner，
 /// 记录到 fake log 且不真实执行，供真实 hook 集成测试使用。

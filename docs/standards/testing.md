@@ -38,7 +38,7 @@
 | 手动完整 suite | 与 pre-push 相同 | `dart run tool/git_gate.dart full` |
 | 查看计划 | 只打印将执行的命令，不执行 | `dart run tool/git_gate.dart plan --staged` |
 
-每个外部检查/测试进程都有 3 分钟硬超时；超时终止进程树并以非零退出。
+每个外部检查/测试进程都有 **15 分钟硬超时**（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；超时终止进程树并以非零退出。
 
 ## 边界优先级
 

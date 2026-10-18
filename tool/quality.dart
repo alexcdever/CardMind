@@ -29,7 +29,7 @@ Options:
 
 Default behavior:
   flutter runs: markdown references lint -> build host rust library -> FRB codegen -> flutter analyze -> flutter test -> test boundary scan
-  rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test --jobs 1
+  rust runs: cargo fmt --all -- --check -> cargo clippy --all-targets --all-features -- -D warnings -> cargo test --all-features --jobs 1
   docs runs: markdown references lint
   all runs: flutter quality with FRB prep -> rust
 
@@ -289,6 +289,7 @@ Future<int> _runRustQuality({
   // 避免 iroh/netmon 相关全局资源在不同测试二进制间并发初始化。
   final test = await runProcess('cargo', [
     'test',
+    '--all-features',
     '--jobs',
     _rustTestJobs,
   ], workingDirectory: rustDir);
@@ -318,7 +319,7 @@ Future<int> _runRustQuality({
 
     /// 不返回错误，因为这只是覆盖率数据
   } else {
-    log('[rust:coverage] LCOV report generated: rust/lcov.info');
+    log('[rust:coverage] LCOV report generated: rust-backend/lcov.info');
   }
 
   log('[rust:test-boundary-scan] scanning...');

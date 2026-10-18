@@ -2,13 +2,13 @@ scanner:
   # 扫描目录
   include:
     - lib/
-    - rust/src/
+    - rust-backend/src/
   
   exclude:
     - lib/bridge_generated/
     - test/
-    - rust/tests/
-    - rust/src/frb_generated.rs
+    - rust-backend/tests/
+    - rust-backend/src/frb_generated.rs
   
   # 边界类型权重（影响优先级）
   weights:
