@@ -5,20 +5,15 @@
 //! purge_note / purge_expired），SQLite 只做读投影；新增墓碑（tombstones）与
 //! envelope v3 测试，覆盖第二轮验收标准 1-7。
 
+mod common;
+
 use cardmind_backend::api::sync_notes_to_store;
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{NoteCrdt, SyncService};
 use chrono::{Duration, Utc};
+use common::temp_dir;
 use rusqlite::Connection;
 use std::time::Duration as StdDuration;
-
-/// 临时数据目录（测试结束清理）
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("cardmind-trash2-{label}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
-}
 
 /// 向 v3 payload 追加一条笔记记录 `(id_len u32, id, snapshot_len u32, snapshot)`
 fn push_record(buf: &mut Vec<u8>, id: &str, snapshot: &[u8]) {

@@ -6,28 +6,11 @@
 //! 5. 配对成功后确认方自动推送全量快照（决策 8：首次配对自动全量同步）
 //! 6. 解除配对（复用模块 2 API）
 
+mod common;
+
 use cardmind_backend::store::NoteStore;
-use cardmind_backend::sync::{
-    nonce_to_hex, PairingRequest, PairingSession, PairingTarget, SyncService,
-};
-
-fn rt() -> tokio::runtime::Runtime {
-    tokio::runtime::Runtime::new().unwrap()
-}
-
-/// 构造一个发起方请求（测试用）。nonce 必须与会话 nonce 一致
-/// （confirm 侧强制校验：空/全零/不匹配均拒绝）。
-fn requester(code: &str, id: &str, name: &str, nonce: &str) -> PairingRequest {
-    PairingRequest {
-        code: code.to_string(),
-        device_id: id.to_string(),
-        device_name: name.to_string(),
-        relay_info: String::new(),
-        // 指向关闭端口：无真实握手（无 pending 连接）时 confirm 不触发推送
-        ips: vec!["127.0.0.1:1".to_string()],
-        nonce: nonce.to_string(),
-    }
-}
+use cardmind_backend::sync::{nonce_to_hex, PairingSession, PairingTarget, SyncService};
+use common::{requester, rt};
 
 /// 取当前会话 nonce 的 hex 表示（confirm 侧强制校验要求的真实值）。
 fn session_nonce(svc: &SyncService) -> String {

@@ -6,18 +6,13 @@
 //! 5. 多设备推送部分失败语义
 //! 6. relay 模式配置（任务 K：内存版 Disabled 断言 + 本地 relay 行为验证）
 
+mod common;
+
 use std::collections::HashMap;
 
 use cardmind_backend::store::{NoteStore, PairedDeviceRow};
 use cardmind_backend::sync::{PairingTarget, SyncService};
-
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path =
-        std::env::temp_dir().join(format!("cardmind-connect-{label}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
-}
+use common::temp_dir;
 
 // ━━━ 配对辅助：入站授权的前提 ━━━
 

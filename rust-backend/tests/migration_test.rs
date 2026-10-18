@@ -1,14 +1,9 @@
+mod common;
+
 use cardmind_backend::sync::{NoteCrdt, SyncService};
+use common::temp_dir;
 
 const LORO_MAGIC: &[u8; 8] = b"CARDMIND";
-
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path =
-        std::env::temp_dir().join(format!("cardmind-migration-{label}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
-}
 
 /// 构造 v1 envelope：CARDMIND magic + version=1 (u32 LE) + payload_len (u64 LE) + payload。
 ///

@@ -2,6 +2,8 @@
 // （旧 :9443 回滚链路 + 标准 443 签名凭证链路）完成 配对 → 首次全量同步 全链路。
 // 发起方 target.ips 为空 → 必须凭 node_id 经 relay 中转连接（同机也无法直连短路）。
 // 手动运行：cargo test --test live_relay_test -- --ignored --nocapture
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -18,19 +20,10 @@ const RELAY_URL: &str = "https://relay.alexc.cn:9443";
 const RELAY_URL_443: &str = "https://relay.alexc.cn";
 
 fn temp_dir_relay(label: &str, relay_url: &str) -> PathBuf {
-    let path = std::env::temp_dir().join(format!(
-        "cardmind-live-relay-{label}-{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&path);
-    fs::create_dir_all(&path).unwrap();
+    let path = common::temp_dir(label);
     // 两端数据目录都放 relay.txt（任务 K 的配置约定）
     fs::write(path.join("relay.txt"), relay_url).unwrap();
     path
-}
-
-fn temp_dir(label: &str) -> PathBuf {
-    temp_dir_relay(label, RELAY_URL)
 }
 
 /// 人工 test stdout 只允许脱敏 device id 与掩码配对码（不得打印完整 id / 码）。
@@ -50,8 +43,8 @@ fn masked_code(code: &str) -> String {
 fn live_pairing_and_sync_over_dogcloud_relay() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let dir_a = temp_dir("confirmer");
-        let dir_b = temp_dir("initiator");
+        let dir_a = temp_dir_relay("confirmer", RELAY_URL);
+        let dir_b = temp_dir_relay("initiator", RELAY_URL);
 
         let mut confirmer = SyncService::new_persistent(&dir_a).await.unwrap();
         confirmer.set_device_name("Trusted PC");

@@ -11,60 +11,13 @@
 //! 修复后的验收断言见各测试（B 启动接收器后 A push 10 秒内成功；配对成功
 //! last_seen 立即非空；周期错开仍同步）。
 
+mod common;
+
 use std::time::{Duration, Instant};
 
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{PairingTarget, SyncService};
-
-fn rt() -> tokio::runtime::Runtime {
-    tokio::runtime::Runtime::new().unwrap()
-}
-
-/// 真实配对两个 SyncService（initiator ↔ confirmer），双方 paired_devices 互相包含。
-async fn pair_up(
-    initiator: SyncService,
-    initiator_store: NoteStore,
-    mut confirmer: SyncService,
-    confirmer_store: NoteStore,
-) -> (SyncService, NoteStore, SyncService, NoteStore) {
-    let code = confirmer.begin_pairing_accept().unwrap();
-    let target = PairingTarget {
-        device_id: confirmer.device_id(),
-        ips: confirmer.local_addrs(),
-        nonce: confirmer.session_nonce_hex(),
-    };
-    assert!(!target.ips.is_empty(), "确认方应至少有一个本地 IPv4 地址");
-
-    let confirmer_code = code.clone();
-    let confirmer_handle = tokio::spawn(async move {
-        let request = confirmer
-            .accept_pairing_request()
-            .await
-            .expect("confirmer accept pairing request");
-        let result = confirmer
-            .confirm_pairing(&confirmer_store, &confirmer_code, &request)
-            .await
-            .expect("confirmer confirm pairing");
-        (confirmer, confirmer_store, result)
-    });
-
-    let initiator_handle = tokio::spawn(async move {
-        let result = initiator
-            .begin_pairing_connect(&initiator_store, &code, target)
-            .await
-            .expect("initiator connect pairing");
-        // drain 确认方首次全量同步推送（决策 8）
-        let _ = initiator.accept_push().await;
-        (initiator, initiator_store, result)
-    });
-
-    let (confirmer, confirmer_store, confirm_result) = confirmer_handle.await.unwrap();
-    let (initiator, initiator_store, connect_result) = initiator_handle.await.unwrap();
-    assert_eq!(confirm_result.peer_id, initiator.device_id());
-    assert_eq!(connect_result.peer_id, confirmer.device_id());
-
-    (initiator, initiator_store, confirmer, confirmer_store)
-}
+use common::{pair_up, rt};
 
 // ━━━ 验收 1：receiver absent causes push timeout ━━━
 

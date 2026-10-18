@@ -16,6 +16,8 @@
 //! 9. logger failure does not break flow —— sink 抛异常时主流程仍完成
 //!    （test_logger_failure_does_not_break_flow）
 
+mod common;
+
 use std::sync::Arc;
 
 use cardmind_backend::api;
@@ -23,16 +25,7 @@ use cardmind_backend::debug_log::{self, CollectingSink, LogEvent, PanickingSink}
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{PairingTarget, SyncService};
 
-fn rt() -> tokio::runtime::Runtime {
-    tokio::runtime::Runtime::new().unwrap()
-}
-
-fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("cardmind-dbglog-{label}-{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&path);
-    std::fs::create_dir_all(&path).unwrap();
-    path
-}
+use common::{rt, temp_dir};
 
 fn sink() -> Arc<CollectingSink> {
     Arc::new(CollectingSink::new())
