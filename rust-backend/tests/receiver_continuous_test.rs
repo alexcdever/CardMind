@@ -354,6 +354,8 @@ fn receiver_does_not_block_outbound_push() {
         b.start_receiver(b_store.clone()).await.unwrap();
         tokio::time::sleep(Duration::from_millis(100)).await;
 
+        // 记 rev 于 push 之前：等「B 这次 push 引起的 import」
+        let rev = a.receiver_content_revision();
         // B 在自身接收器等待期间主动 push 给 A
         b.create_note("from-b".to_string(), "# From B\n\nbody")
             .unwrap();
@@ -368,17 +370,10 @@ fn receiver_does_not_block_outbound_push() {
             "主动 push 应 10 秒内完成，实际 {:?}",
             start.elapsed()
         );
-        // A 的接收器收到并导入
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-        loop {
-            if a.get_note("from-b").is_some() {
-                break;
-            }
-            if tokio::time::Instant::now() >= deadline {
-                panic!("A 应在 10 秒内收到 B 的 push");
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+        // A 的接收器收到并导入（等 revision 事件，不盲轮询）
+        tokio::time::timeout(Duration::from_secs(10), a.wait_content_revision(rev))
+            .await
+            .expect("A 应在 10 秒内收到 B 的 push（revision 递增）");
         assert_eq!(a.get_note("from-b").as_deref(), Some("# From B\n\nbody"));
         a.stop_receiver().await.unwrap();
         b.stop_receiver().await.unwrap();
@@ -526,6 +521,7 @@ fn receiver_failure_is_recoverable() {
         }
 
         // 正常 push 仍被接收器处理（可恢复，未永久退出/busy loop）
+        let rev = b.receiver_content_revision();
         a.create_note("n2".to_string(), "# After failure\n\nbody")
             .unwrap();
         let results = a.push_pending(&a_store).await;
@@ -533,16 +529,9 @@ fn receiver_failure_is_recoverable() {
             results.iter().any(|r| r.ok),
             "坏帧后正常 push 应成功，结果: {results:?}"
         );
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-        loop {
-            if b.get_note("n2").is_some() {
-                break;
-            }
-            if tokio::time::Instant::now() >= deadline {
-                panic!("坏帧后接收器应恢复并导入 n2");
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+        tokio::time::timeout(Duration::from_secs(10), b.wait_content_revision(rev))
+            .await
+            .expect("坏帧后接收器应恢复并导入 n2（revision 递增）");
         assert_eq!(b.get_note("n2").as_deref(), Some("# After failure\n\nbody"));
         b.stop_receiver().await.unwrap();
         drop((b, b_store, a_store));
@@ -569,28 +558,27 @@ fn received_push_updates_sender_last_seen() {
         let a_id = a.device_id();
 
         b.start_receiver(b_store.clone()).await.unwrap();
+        // 记 rev 于 push 之前：last_seen 在 revision 递增前已落库（receiver_apply_push 顺序）
+        let rev = b.receiver_content_revision();
         a.create_note("n1".to_string(), "# Push me\n\nbody")
             .unwrap();
         let results = a.push_pending(&a_store).await;
         assert!(results.iter().any(|r| r.ok));
 
-        // B 的接收器应更新发送方（A）last_seen
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-        let row = loop {
-            let row = b_store
-                .list_paired_devices()
-                .unwrap()
-                .into_iter()
-                .find(|d| d.peer_id == a_id)
-                .expect("B 应有 A 的配对记录");
-            if row.last_seen.is_some() {
-                break row;
-            }
-            if tokio::time::Instant::now() >= deadline {
-                panic!("收到 push 后 B 应在 10 秒内更新 A 的 last_seen");
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        };
+        // B 的接收器应更新发送方（A）last_seen（revision 递增时该写入已完成）
+        tokio::time::timeout(Duration::from_secs(10), b.wait_content_revision(rev))
+            .await
+            .expect("收到 push 后 B 应在 10 秒内导入并更新 A 的 last_seen");
+        let row = b_store
+            .list_paired_devices()
+            .unwrap()
+            .into_iter()
+            .find(|d| d.peer_id == a_id)
+            .expect("B 应有 A 的配对记录");
+        assert!(
+            row.last_seen.is_some(),
+            "收到 push 后 B 应更新 A 的 last_seen"
+        );
         let time = chrono::DateTime::parse_from_rfc3339(row.last_seen.as_deref().unwrap()).unwrap();
         let age = chrono::Utc::now().signed_duration_since(time.with_timezone(&chrono::Utc));
         assert!(age.num_seconds().abs() < 60, "last_seen 应在当前窗口内");
@@ -703,6 +691,7 @@ fn two_live_schedulers_sync_independent_of_phase() {
         b.start_receiver(b_store.clone()).await.unwrap();
 
         // 编辑发生在任意时刻（模拟用户编辑，不等待周期对齐）
+        let rev_b = b.receiver_content_revision();
         a.create_note("n1".to_string(), "# Phase-free\n\nbody")
             .unwrap();
         // 编辑保存即推送
@@ -710,33 +699,21 @@ fn two_live_schedulers_sync_independent_of_phase() {
         assert!(results.iter().any(|r| r.ok), "push 应成功: {results:?}");
 
         // B 在 10 秒内看到 A 的笔记（接收器持续接收，与周期相位无关）
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-        loop {
-            if b.get_note("n1").is_some() {
-                break;
-            }
-            if tokio::time::Instant::now() >= deadline {
-                panic!("编辑后 10 秒内 B 应同步到 A 的笔记");
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+        tokio::time::timeout(Duration::from_secs(10), b.wait_content_revision(rev_b))
+            .await
+            .expect("编辑后 10 秒内 B 应同步到 A 的笔记（revision 递增）");
         assert_eq!(b.get_note("n1").as_deref(), Some("# Phase-free\n\nbody"));
 
         // 反向：B 编辑 → A 10 秒内可见
+        let rev_a = a.receiver_content_revision();
         b.create_note("n2".to_string(), "# Reverse\n\nbody")
             .unwrap();
         let results = b.push_pending(&b_store).await;
         assert!(results.iter().any(|r| r.ok));
-        let deadline = tokio::time::Instant::now() + Duration::from_secs(10);
-        loop {
-            if a.get_note("n2").is_some() {
-                break;
-            }
-            if tokio::time::Instant::now() >= deadline {
-                panic!("反向编辑后 10 秒内 A 应同步到 B 的笔记");
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
+        tokio::time::timeout(Duration::from_secs(10), a.wait_content_revision(rev_a))
+            .await
+            .expect("反向编辑后 10 秒内 A 应同步到 B 的笔记（revision 递增）");
+        assert_eq!(a.get_note("n2").as_deref(), Some("# Reverse\n\nbody"));
         assert_eq!(a.get_note("n2").as_deref(), Some("# Reverse\n\nbody"));
 
         a.stop_receiver().await.unwrap();
