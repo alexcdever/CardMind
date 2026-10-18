@@ -358,7 +358,6 @@ void _maybeSync(PlanBuilder b, String file, TestIndex index) {
     'test/sync_scheduler_test.dart',
     'test/sync_ui_widget_test.dart',
     'test/receiver_store_borrow_test.dart',
-    'test/receiver_continuous_test.dart',
     'test/trash_page_widget_test.dart',
   ];
   for (final t in syncTests) {

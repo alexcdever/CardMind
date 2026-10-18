@@ -62,7 +62,8 @@ jobs:
       - name: Run cargo test
         run: |
           cd rust-backend
-          cargo test --all-features
+          # 与本地 tool/quality.dart 口径一致：串行跑测试二进制，避免 iroh/netmon 全局资源竞争。
+          cargo test --all-features --jobs 1
 
       - name: Security audit
         run: |
