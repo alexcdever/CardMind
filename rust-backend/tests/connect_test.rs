@@ -125,8 +125,10 @@ fn test_paired_devices_crud() {
     // 初始 last_seen 为 None（尚未连接过）
     assert!(by_id["peer-a"].last_seen.is_none());
 
-    // update_last_seen → 该设备 last_seen 非空且排在最前（最近连接优先）
-    std::thread::sleep(std::time::Duration::from_millis(5));
+    // update_last_seen → 该设备 last_seen 非空且排在最前（最近连接优先）。
+    // 排序键 (last_seen IS NULL), last_seen DESC, peer_id ASC：update_last_seen
+    // 后 peer-a 的 last_seen 从 NULL 变非 NULL，(last_seen IS NULL) 从 1→0，
+    // 必然排在 last_seen 仍为 NULL 的 peer-b 之前，无需 sleep。
     store.update_last_seen("peer-a").unwrap();
     let devices = store.list_paired_devices().unwrap();
     assert_eq!(devices.len(), 2);
