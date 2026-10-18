@@ -60,6 +60,9 @@ jobs:
           cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Run cargo test
+        env:
+          # 无 IPv4 时配对/连接用例必须判失败，不得在 CI 上假绿。
+          CARDMIND_REQUIRE_NETWORK_TESTS: '1'
         run: |
           cd rust-backend
           # 与本地 tool/quality.dart 口径一致：串行跑测试二进制，避免 iroh/netmon 全局资源竞争。
