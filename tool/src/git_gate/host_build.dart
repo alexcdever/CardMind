@@ -8,7 +8,8 @@
 ///
 /// 本模块只负责把 `cargo build --release` 的产物（host 动态库）同步到各平台
 /// 运行态路径（真实文件复制）。外部步骤（cargo build 本身）仍由 runner 的
-/// 3 分钟硬超时保护；本模块的同步是 Dart 进程内文件操作，不走 runner。
+/// 15 分钟硬超时保护（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；本模块的
+/// 同步是 Dart 进程内文件操作，不走 runner。
 library;
 
 import 'dart:io';

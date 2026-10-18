@@ -22,7 +22,7 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 - `CARDMIND_FORCE_FULL_CHECK=1`：忽略 pre-push HEAD 缓存
 - `CARDMIND_GATE_TEST_MODE=1`：测试模式（fake runner，供真实 hook 集成测试）
 
-**设计要点**: format-first 先于一切检查；formatter 改变文件即阻止并提示重新暂存；每个外部进程 3 分钟硬超时；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径；平台规格与 `dart run tool/build.dart lib` 共用 `tool/src/git_gate/host_build.dart`），不依赖 tool/build.dart 的 CLI 入口。
+**设计要点**: format-first 先于一切检查；formatter 改变文件即阻止并提示重新暂存；每个外部进程 15 分钟硬超时（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径；平台规格与 `dart run tool/build.dart lib` 共用 `tool/src/git_gate/host_build.dart`），不依赖 tool/build.dart 的 CLI 入口。
 
 ## lint/markdown_references_linter.dart - 文档路径检查
 
