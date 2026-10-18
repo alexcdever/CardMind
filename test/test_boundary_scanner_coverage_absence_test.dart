@@ -172,7 +172,8 @@ void main() {
         _result([_dart(), _rust()], flutterMissing: true, rustMissing: true),
       );
       expect(summary, isNot(contains('Coverage: 0.0%')));
-      expect(summary, isNot(contains('Coverage: ')));
+      // 百分号形式的覆盖率断言一律不得出现（标记行以 'Coverage: (' 开头）。
+      expect(summary, isNot(contains('Coverage: 0')));
       expect(summary, contains('no coverage data'));
       // 边界计数仍然如实给出（未覆盖数=边界总数，不反映真实覆盖）。
       expect(summary, contains('Found 2 boundaries'));
@@ -183,7 +184,8 @@ void main() {
       final summary = formatCoverageSummary(
         _result([_dart(covered: true), _rust()], rustMissing: true),
       );
-      expect(summary, isNot(contains('Coverage: ')));
+      expect(summary, isNot(contains('Coverage: 0')));
+      expect(summary, isNot(contains('%')));
       expect(summary, contains('no coverage data'));
       expect(summary, contains('Rust'));
       expect(summary, isNot(contains('Flutter/Dart')));
