@@ -132,7 +132,10 @@ class BoundaryVisitor extends RecursiveAstVisitor<void> {
   bool get _isFlutterFile =>
       filePath.contains('/lib/') || filePath.startsWith('lib/');
 
-  bool get _isRustFile => filePath.contains('rust/src/');
+  bool get _isRustFile => filePath.contains('rust-backend/src/');
+
+  /// 测试可见性挂钩：暴露私有判定。
+  bool get debugIsRustFile => _isRustFile;
 
   bool _looksLikeTestName(String? name) {
     if (name == null) return false;
@@ -829,7 +832,7 @@ class LcovParser {
     coverage = fileCoverages[absolutePath];
     if (coverage != null) return coverage.lineHits[lineNumber];
 
-    // 尝试匹配其他格式（如 rust/ 前缀）
+    // 尝试匹配其他格式（如 rust-backend/ 前缀）
     for (final entry in fileCoverages.entries) {
       if (entry.key.endsWith(filePath) ||
           entry.key.endsWith('/$filePath') ||
@@ -990,7 +993,8 @@ class TestBoundaryScanner {
       if (path == 'lib/main.dart' && desc == 'Throw expression') {
         return false;
       }
-      if (path.contains('lib/app/') || path.contains('lib/features/')) {
+      // v2 布局：UI 层代码（页面/设计系统）与 v1 lib/app|features 同款豁免。
+      if (path.contains('lib/pages/') || path.contains('lib/ui/')) {
         if (desc == 'If statement true branch' ||
             desc == 'If statement false branch' ||
             desc == 'Switch default branch' ||
@@ -1000,7 +1004,8 @@ class TestBoundaryScanner {
           return false;
         }
       }
-      if (path.contains('lib/features/pool/data/') &&
+      // v2 数据/服务层（v1 pool/data 数据层的 ?? 豁免在此承接）。
+      if (path.contains('lib/services/') &&
           desc == 'Null-aware coalescing (??)') {
         return false;
       }
@@ -1023,19 +1028,9 @@ class TestBoundaryScanner {
               code.contains('if (condition) statement;'))) {
         return false;
       }
-      if (path == 'lib/app/debug_startup_support.dart' &&
-          (desc == 'Logical expression (||)' ||
-              desc == 'Logical expression (&&)')) {
-        return false;
-      }
-      if (path == 'lib/features/shared/runtime/rust_library_path.dart' &&
-          desc == 'While loop') {
-        return false;
-      }
-      if (path == 'lib/features/pool/pool_page.dart' &&
-          desc == 'Logical expression (||)' &&
-          (code.contains('path == null || path.isEmpty') ||
-              code.contains('path == null||path.isEmpty'))) {
+      // v2 lib/bridge/ 承接 v1 shared/runtime 的 While 豁免
+      //（rust_library_path / loader 类定位逻辑）。
+      if (path.contains('lib/bridge/') && desc == 'While loop') {
         return false;
       }
       if (desc == 'Switch default branch' || desc == 'Switch case branch') {
@@ -1067,14 +1062,15 @@ class TestBoundaryScanner {
       stderr.writeln('  Warning: coverage/lcov.info not found');
     }
 
-    /// 解析 Rust LCOV
-    final rustLcovFile = File('rust/lcov.info');
+    /// 解析 Rust LCOV（quality.dart 经 cargo tarpaulin 写入 rust-backend/）
+    final rustLcovFile = File('rust-backend/lcov.info');
     if (rustLcovFile.existsSync()) {
       stderr.writeln('  Parsing Rust coverage...');
       lcovParser.parse(await rustLcovFile.readAsString());
     } else {
       stderr.writeln(
-        '  Warning: rust/lcov.info not found (run "cd rust && cargo tarpaulin --out Lcov" to generate)',
+        '  Warning: rust-backend/lcov.info not found '
+        '(run "cd rust-backend && cargo tarpaulin --out Lcov" to generate)',
       );
     }
 
@@ -1113,7 +1109,7 @@ class TestBoundaryScanner {
 
     /// 扫描 Dart 文件
     for (final includePath in config.includePaths) {
-      if (includePath.contains('rust/')) continue;
+      if (includePath.contains('rust-backend/')) continue;
 
       /// 跳过 Rust 目录
 
@@ -1146,8 +1142,11 @@ class TestBoundaryScanner {
     return boundaries;
   }
 
+  /// 测试可见性挂钩：只跑 Rust 边界扫描（跳过覆盖率收集）。
+  Future<List<Boundary>> scanBoundariesForTest() => _scanRustBoundaries();
+
   Future<List<Boundary>> _scanRustBoundaries() async {
-    final rustSrc = Directory('rust/src');
+    final rustSrc = Directory('rust-backend/src');
     if (!rustSrc.existsSync()) {
       return [];
     }
@@ -1158,7 +1157,7 @@ class TestBoundaryScanner {
       final result = await Process.run('cargo', [
         'run',
         '--manifest-path',
-        'rust/tool/boundary_scanner/Cargo.toml',
+        'rust-backend/tool/boundary_scanner/Cargo.toml',
       ], runInShell: true);
 
       if (result.exitCode != 0) {
@@ -1166,13 +1165,14 @@ class TestBoundaryScanner {
         return [];
       }
 
-      /// 解析 JSON 输出
+      /// 解析 JSON 输出；Windows 上 strip_prefix 产出 `rust-backend/src\x.rs`，
+      /// 统一归一化为正斜杠以保证 ScanScope/报表前缀匹配。
       final jsonList = jsonDecode(result.stdout) as List;
       return jsonList
           .map(
             (json) => Boundary(
               type: _parseBoundaryType(json['boundary_type'] as String),
-              filePath: json['file_path'] as String,
+              filePath: (json['file_path'] as String).replaceAll(r'\', '/'),
               lineNumber: json['line_number'] as int,
               codeSnippet: json['code_snippet'] as String,
               description: json['description'] as String,
@@ -1243,7 +1243,7 @@ class ReportGenerator {
         .where((b) => b.filePath.startsWith('lib/'))
         .toList();
     final rustBoundaries = result.boundaries
-        .where((b) => b.filePath.startsWith('rust/'))
+        .where((b) => b.filePath.startsWith('rust-backend/'))
         .toList();
 
     final dartCovered = dartBoundaries.where((b) => b.isCovered).toList();
@@ -1404,9 +1404,13 @@ bool _matchesScope(Boundary boundary, ScanScope scope) {
   return switch (scope) {
     ScanScope.all => true,
     ScanScope.flutter => boundary.filePath.startsWith('lib/'),
-    ScanScope.rust => boundary.filePath.startsWith('rust/src/'),
+    ScanScope.rust => boundary.filePath.startsWith('rust-backend/src/'),
   };
 }
+
+/// 测试可见性挂钩：暴露私有 scope 判定。
+bool debugMatchesScope(Boundary boundary, ScanScope scope) =>
+    _matchesScope(boundary, scope);
 
 /// 主函数
 void main(List<String> args) async {

@@ -71,6 +71,7 @@ final TestIndex testIndex = TestIndex(
     'test/support/devices_repository.dart',
     'test/support/doc_helpers.dart',
     'test/support/memory_note_repository.dart',
+    'test/test_boundary_scanner_rust_test.dart',
     'test/sync_network_doc_test.dart',
     'test/sync_scheduler_test.dart',
     'test/sync_ui_widget_test.dart',
