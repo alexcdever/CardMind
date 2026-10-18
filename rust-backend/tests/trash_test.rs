@@ -183,9 +183,11 @@ fn test_trash_ordering() {
         sync_notes_to_store(&svc, &store).unwrap();
 
         svc.soft_delete_note("n1").unwrap();
-        std::thread::sleep(StdDuration::from_millis(5));
+        // deleted_at 是 ISO8601 字符串排序键，sleep 需跨越 Windows coarse
+        // timer 粒度（~15.6ms）才能让三条 deleted_at 产生可区分值。
+        std::thread::sleep(StdDuration::from_millis(50));
         svc.soft_delete_note("n2").unwrap();
-        std::thread::sleep(StdDuration::from_millis(5));
+        std::thread::sleep(StdDuration::from_millis(50));
         svc.soft_delete_note("n3").unwrap();
         sync_notes_to_store(&svc, &store).unwrap();
 
