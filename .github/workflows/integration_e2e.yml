@@ -1,0 +1,59 @@
+name: Integration E2E
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每日 UTC 18:00（约北京凌晨 2 点）低峰时段跑一次。
+    - cron: '0 18 * * *'
+
+env:
+  FLUTTER_VERSION: '3.44.9'
+  DART_TERM_COLOR: always
+
+jobs:
+  windows-journeys:
+    name: Windows Integration Journeys
+    runs-on: windows-latest
+    # feature_test.dart 自身有 20 分钟兜底超时；job 层再压一道防 runner 挂死。
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # 全历史：部分测试用 `git log` 取文档真实修改日期，浅克隆会假失败。
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build host Rust library
+        # feature_test 跑真实 FRB 集成测试，需要 host 动态库；
+        # `dart run tool/build.dart lib` = cargo build --release + 同步到运行态路径。
+        run: dart run tool/build.dart lib
+
+      - name: Run Windows journeys
+        # 发布/验收门禁：平台集成层（integration_test/）不塞入普通 push，
+        # 这里作为手动/定时的 CI 入口跑 cardmind_journeys_test.dart。
+        run: dart run tool/feature_test.dart --windows
+
+      - name: Upload integration test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-journeys-logs
+          path: |
+            build/windows/**/*.log
+            integration_test/**/*.log
+          retention-days: 14
+          if-no-files-found: ignore
