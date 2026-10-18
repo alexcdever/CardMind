@@ -5,10 +5,13 @@
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{PairingRequest, PairingTarget, SyncService};
 
-/// 每次调用返回全新空目录：`{tmp}/cardmind-{label}-{pid}`，已存在则先清空。
+/// 每次调用返回全新空目录：`{tmp}/cardmind-{label}-{pid}-{seq}`，已存在则先清空。
+/// `seq` 为进程内单调递增计数，保证同一测试二进制内并行用例同 label 调用互不覆盖。
 #[allow(dead_code)]
 pub fn temp_dir(label: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("cardmind-{label}-{}", std::process::id()));
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let seq = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!("cardmind-{label}-{}-{seq}", std::process::id()));
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
     path
