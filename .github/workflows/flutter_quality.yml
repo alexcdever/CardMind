@@ -35,8 +35,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # 全历史：docs_acceptance_test 用 `git log --format=%cs` 取文档真实
-          # 全历史：product_doc_test 用 `git log --format=%cs` 取文档真实
+          fetch-depth: 0
+          # 全历史：test/product_doc_test.dart 用 `git log --format=%cs` 取文档真实
           # 最近修改日期，浅克隆（fetch-depth:1）只能看到 HEAD commit 会假失败。
 
       - name: Setup Flutter

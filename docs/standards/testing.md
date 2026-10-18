@@ -40,6 +40,8 @@
 
 每个外部检查/测试进程都有 **15 分钟硬超时**（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；超时终止进程树并以非零退出。
 
+Rust 测试统一串行执行（`cargo test --jobs 1`）：iroh / netmon 等组件持有全局网络资源，测试进程/线程并发运行会产生资源竞争导致 flaky，串行换取稳定性。
+
 ## 边界优先级
 
 高优先级，必须覆盖：
@@ -65,7 +67,7 @@
 ## 与质量门禁的关系
 
 - 测试补齐应与 `dart run tool/git_gate.dart` 的选择器规则保持一致（如 pairing/device 改动应覆盖 pairing 测试）
-- 边界扫描报告写在运行目录下的 `tmp` 子目录：文件名 `cardmind_test_boundary_report.md`（首次运行扫描器时创建；不是系统 `/tmp`）
+- 边界扫描报告写在运行目录（执行扫描器命令时的当前工作目录）下的 `tmp` 子目录：文件名 `cardmind_test_boundary_report.md`（首次运行扫描器时创建；指项目本地相对路径，不是系统 `/tmp`）
 - 若报告中存在本次改动引入的高优先级未覆盖边界，应优先补测或明确说明原因
 
 ## 非目标
