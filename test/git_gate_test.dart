@@ -546,23 +546,57 @@ void main() {
       expect(classifyPath('docs/foo.yaml'), FileCategory.unknown);
     });
 
-    test('10i rust-backend/tool/**.rs 归 rustTool（clippy only，无 flutter）', () {
-      expect(
-        classifyPath('rust-backend/tool/boundary_scanner/src/main.rs'),
-        FileCategory.rustTool,
-        reason: 'rust-backend/tool/ 下的 .rs 应有独立分类，不落 unknown',
-      );
+    test(
+      '10i rust-backend/tool/**.rs 归 rustTool（clippy + rustToolTest，无 flutter）',
+      () {
+        expect(
+          classifyPath('rust-backend/tool/boundary_scanner/src/main.rs'),
+          FileCategory.rustTool,
+          reason: 'rust-backend/tool/ 下的 .rs 应有独立分类，不落 unknown',
+        );
+        final plan = selectPlanForFiles([
+          'rust-backend/tool/boundary_scanner/src/main.rs',
+        ], index: testIndex);
+        expect(
+          kindsOf(plan),
+          contains(CommandKind.clippy),
+          reason: 'rustTool 应跑 clippy（workspace 覆盖 boundary_scanner）',
+        );
+        // 源码改动也跑该 crate 自身 cargo test（rustToolTest），不只是
+        // manifest 才跑。boundary_scanner/src/main.rs → package boundary_scanner。
+        expect(
+          plan.steps.any(
+            (s) =>
+                s.kind == CommandKind.rustTest &&
+                s.arguments.contains('boundary_scanner'),
+          ),
+          isTrue,
+          reason: 'rustTool 源码改动应跑 cargo test -p boundary_scanner',
+        );
+        // 不升级 rust:test:full、不跑 analyze/flutter。
+        expect(
+          plan.steps.any((s) => s.label == 'rust:test:full'),
+          isFalse,
+          reason: 'rustTool 不升级 rust:test:full',
+        );
+        expect(kindsOf(plan), isNot(contains(CommandKind.analyze)));
+        expect(kindsOf(plan), isNot(contains(CommandKind.flutterTest)));
+      },
+    );
+
+    test('10i2 rust-backend/tool/foo.rs（无子目录）归 rustTool，rustToolTest 跳过', () {
+      // 不在任何 crate 子目录的顶层 .rs：_rustToolPackage 返回 null，
+      // rustToolTest 应被跳过（null 守卫），仍只跑 clippy。
+      expect(classifyPath('rust-backend/tool/foo.rs'), FileCategory.rustTool);
       final plan = selectPlanForFiles([
-        'rust-backend/tool/boundary_scanner/src/main.rs',
+        'rust-backend/tool/foo.rs',
       ], index: testIndex);
+      expect(kindsOf(plan), contains(CommandKind.clippy));
       expect(
-        kindsOf(plan),
-        contains(CommandKind.clippy),
-        reason: 'rustTool 应跑 clippy（workspace 覆盖 boundary_scanner）',
+        plan.steps.any((s) => s.kind == CommandKind.rustTest),
+        isFalse,
+        reason: '无 crate 子目录时 rustToolTest 应跳过',
       );
-      // 不升级 rust:test:full、不跑任何 flutter 测试。
-      expect(kindsOf(plan), isNot(contains(CommandKind.rustTest)));
-      expect(kindsOf(plan), isNot(contains(CommandKind.analyze)));
       expect(kindsOf(plan), isNot(contains(CommandKind.flutterTest)));
     });
 
