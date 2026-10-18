@@ -55,10 +55,20 @@ class ScanResult {
   final List<Boundary> coveredBoundaries;
   final List<Boundary> uncoveredBoundaries;
 
+  /// Flutter/Dart 覆盖率输入（coverage/lcov.info）是否缺失。
+  /// 缺失时报告必须显式标注「无覆盖率数据」，不得伪装成 0% 覆盖。
+  /// 默认 false，旧调用方行为不变。
+  final bool flutterCoverageDataMissing;
+
+  /// Rust 覆盖率输入（rust-backend/lcov.info）是否缺失，语义同上。
+  final bool rustCoverageDataMissing;
+
   ScanResult({
     required this.boundaries,
     required this.coveredBoundaries,
     required this.uncoveredBoundaries,
+    this.flutterCoverageDataMissing = false,
+    this.rustCoverageDataMissing = false,
   });
 
   double get coverageRatio =>
@@ -1101,19 +1111,23 @@ class TestBoundaryScanner {
 
     /// 解析 Flutter/Dart LCOV
     final flutterLcovFile = File('coverage/lcov.info');
+    var flutterCoverageDataMissing = false;
     if (flutterLcovFile.existsSync()) {
       stderr.writeln('  Parsing Flutter coverage...');
       lcovParser.parse(await flutterLcovFile.readAsString());
     } else {
+      flutterCoverageDataMissing = true;
       stderr.writeln('  Warning: coverage/lcov.info not found');
     }
 
     /// 解析 Rust LCOV（quality.dart 经 cargo tarpaulin 写入 rust-backend/）
     final rustLcovFile = File('rust-backend/lcov.info');
+    var rustCoverageDataMissing = false;
     if (rustLcovFile.existsSync()) {
       stderr.writeln('  Parsing Rust coverage...');
       lcovParser.parse(await rustLcovFile.readAsString());
     } else {
+      rustCoverageDataMissing = true;
       stderr.writeln(
         '  Warning: rust-backend/lcov.info not found '
         '(run "cd rust-backend && cargo tarpaulin --out Lcov" to generate)',
@@ -1144,6 +1158,8 @@ class TestBoundaryScanner {
       boundaries: boundaries,
       coveredBoundaries: covered,
       uncoveredBoundaries: uncovered,
+      flutterCoverageDataMissing: flutterCoverageDataMissing,
+      rustCoverageDataMissing: rustCoverageDataMissing,
     );
   }
 
@@ -1331,38 +1347,74 @@ class ReportGenerator {
     buffer.writeln('');
 
     /// 总体统计
+    /// 任一路覆盖率输入缺失时，聚合百分比会把「无数据」伪装成事实
+    /// （缺失一侧边界全计为未覆盖），必须显式标注而非输出百分比。
+    /// 两路齐全时逐字沿用旧输出。
+    final missingSides = <String>[
+      if (result.flutterCoverageDataMissing) 'Flutter/Dart',
+      if (result.rustCoverageDataMissing) 'Rust',
+    ];
     buffer.writeln('## 总体统计');
     buffer.writeln('- 总边界数: ${result.boundaries.length}');
-    buffer.writeln(
-      '- 已覆盖: ${result.coveredBoundaries.length} (${(result.coverageRatio * 100).toStringAsFixed(1)}%)',
-    );
-    buffer.writeln(
-      '- 未覆盖: ${result.uncoveredBoundaries.length} (${((1 - result.coverageRatio) * 100).toStringAsFixed(1)}%)',
-    );
+    if (missingSides.isNotEmpty) {
+      buffer.writeln(
+        '- ⚠️ 覆盖率数据不完整（缺失：${missingSides.join(' / ')}），'
+        '百分比不代表真实覆盖',
+      );
+      buffer.writeln(
+        '- 边界命中数（仅供参考）: ${result.coveredBoundaries.length} 已覆盖 / '
+        '${result.uncoveredBoundaries.length} 未覆盖',
+      );
+    } else {
+      buffer.writeln(
+        '- 已覆盖: ${result.coveredBoundaries.length} (${(result.coverageRatio * 100).toStringAsFixed(1)}%)',
+      );
+      buffer.writeln(
+        '- 未覆盖: ${result.uncoveredBoundaries.length} (${((1 - result.coverageRatio) * 100).toStringAsFixed(1)}%)',
+      );
+    }
     buffer.writeln('');
 
     /// Flutter/Dart 统计
-    final dartCoverage = dartBoundaries.isEmpty
-        ? 0.0
-        : dartCovered.length / dartBoundaries.length;
     buffer.writeln('## Flutter/Dart 统计');
     buffer.writeln('- 边界数: ${dartBoundaries.length}');
-    buffer.writeln(
-      '- 已覆盖: ${dartCovered.length} (${(dartCoverage * 100).toStringAsFixed(1)}%)',
-    );
-    buffer.writeln('- 未覆盖: ${dartUncovered.length}');
+    if (result.flutterCoverageDataMissing) {
+      // 无覆盖率输入（coverage/lcov.info 不存在）时不得输出
+      // 「已覆盖: 0 (0.0%)」——那会被误读为真实的 0% 覆盖。
+      buffer.writeln('- ⚠️ 无覆盖率数据（coverage/lcov.info 缺失）；');
+      buffer.writeln('  「未覆盖」数为边界总数，不反映真实覆盖情况。');
+      buffer.writeln(
+        '  生成方式: flutter test --coverage（详见 docs/standards/testing.md）',
+      );
+    } else {
+      final dartCoverage = dartBoundaries.isEmpty
+          ? 0.0
+          : dartCovered.length / dartBoundaries.length;
+      buffer.writeln(
+        '- 已覆盖: ${dartCovered.length} (${(dartCoverage * 100).toStringAsFixed(1)}%)',
+      );
+      buffer.writeln('- 未覆盖: ${dartUncovered.length}');
+    }
     buffer.writeln('');
 
     /// Rust 统计
-    final rustCoverage = rustBoundaries.isEmpty
-        ? 0.0
-        : rustCovered.length / rustBoundaries.length;
     buffer.writeln('## Rust 统计');
     buffer.writeln('- 边界数: ${rustBoundaries.length}');
-    buffer.writeln(
-      '- 已覆盖: ${rustCovered.length} (${(rustCoverage * 100).toStringAsFixed(1)}%)',
-    );
-    buffer.writeln('- 未覆盖: ${rustUncovered.length}');
+    if (result.rustCoverageDataMissing) {
+      buffer.writeln('- ⚠️ 无覆盖率数据（rust-backend/lcov.info 缺失）；');
+      buffer.writeln('  「未覆盖」数为边界总数，不反映真实覆盖情况。');
+      buffer.writeln(
+        '  生成方式: cd rust-backend && cargo tarpaulin --out Lcov',
+      );
+    } else {
+      final rustCoverage = rustBoundaries.isEmpty
+          ? 0.0
+          : rustCovered.length / rustBoundaries.length;
+      buffer.writeln(
+        '- 已覆盖: ${rustCovered.length} (${(rustCoverage * 100).toStringAsFixed(1)}%)',
+      );
+      buffer.writeln('- 未覆盖: ${rustUncovered.length}');
+    }
     buffer.writeln('');
 
     /// 按优先级分组未覆盖边界
@@ -1504,6 +1556,28 @@ String debugRepoRelativePath(String path) => _repoRelativePath(path);
 bool debugMatchesScope(Boundary boundary, ScanScope scope) =>
     _matchesScope(boundary, scope);
 
+/// 格式化扫描器的 stdout 覆盖率摘要（main() 与测试共用）。
+///
+/// 数据齐全时逐字沿用旧版四行输出；任一路覆盖率输入缺失时不得打印
+/// `Coverage: X%`——缺失一侧的边界全计为未覆盖，百分比会被读成事实。
+String formatCoverageSummary(ScanResult result) {
+  final missingSides = <String>[
+    if (result.flutterCoverageDataMissing) 'Flutter/Dart',
+    if (result.rustCoverageDataMissing) 'Rust',
+  ];
+  final lines = <String>[
+    'Found ${result.boundaries.length} boundaries',
+    'Covered: ${result.coveredBoundaries.length}',
+    'Uncovered: ${result.uncoveredBoundaries.length}',
+    if (missingSides.isEmpty)
+      'Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%'
+    else
+      'Coverage: (no coverage data for ${missingSides.join(' / ')}; '
+          'percentages omitted)',
+  ];
+  return lines.join('\n');
+}
+
 /// 主函数
 void main(List<String> args) async {
   final scope = _parseScope(args);
@@ -1536,12 +1610,7 @@ void main(List<String> args) async {
   await reportFile.writeAsString(report);
 
   stdout.writeln('');
-  stdout.writeln('Found ${result.boundaries.length} boundaries');
-  stdout.writeln('Covered: ${result.coveredBoundaries.length}');
-  stdout.writeln('Uncovered: ${result.uncoveredBoundaries.length}');
-  stdout.writeln(
-    'Coverage: ${(result.coverageRatio * 100).toStringAsFixed(1)}%',
-  );
+  stdout.writeln(formatCoverageSummary(result));
   stdout.writeln('');
   stdout.writeln('Report saved to: ${reportFile.path}');
 
