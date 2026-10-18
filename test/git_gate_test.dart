@@ -672,6 +672,81 @@ void main() {
       );
       expect(kindsOf(plan), isNot(contains(CommandKind.analyze)));
     });
+
+    test('10k tool/release/*.py 归独立分类并选中 python unittest（窄路由）', () {
+      // 独立分类：tool/release/*.py 不再落 unknown fail-closed。
+      for (final py in <String>[
+        'tool/release/release_metadata.py',
+        'tool/release/generate_update_manifest.py',
+        'tool/release/test_release_metadata.py',
+        'tool/release/test_generate_update_manifest.py',
+      ]) {
+        expect(
+          classifyPath(py),
+          isNot(FileCategory.unknown),
+          reason: '$py 应有独立分类（releasePython），不落 unknown',
+        );
+      }
+      final plan = selectPlanForFiles([
+        'tool/release/release_metadata.py',
+      ], index: testIndex);
+      // 计划里必须存在一条 python -m unittest 步骤（发现 tool/release 的
+      // test_*.py）。
+      final pySteps = plan.steps
+          .where((s) => s.executable == 'python')
+          .toList();
+      expect(pySteps, hasLength(1), reason: '发布脚本改动必须触发一条 python unittest 步骤');
+      expect(pySteps.single.arguments, <String>[
+        '-m',
+        'unittest',
+        'discover',
+        '-s',
+        'tool/release',
+        '-p',
+        'test_*.py',
+      ]);
+      // 窄路由：不升级为 Dart/Rust 全量或任何双栈检查。
+      expect(kindsOf(plan), isNot(contains(CommandKind.clippy)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.rustTest)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.analyze)));
+      expect(kindsOf(plan), isNot(contains(CommandKind.flutterTest)));
+      expect(
+        plan.steps.where((s) => s.label == 'flutter:test:full'),
+        isEmpty,
+        reason: 'tool/release/*.py 不得触发 flutter:test:full',
+      );
+      expect(
+        plan.steps.where((s) => s.label == 'rust:test:full'),
+        isEmpty,
+        reason: 'tool/release/*.py 不得触发 rust:test:full',
+      );
+    });
+
+    test('10l 对照腿：无关文件不触发 python unittest 步骤', () {
+      // 防「恒出现」空断言：docs-only 计划不得包含任何 python 步骤。
+      final docsPlan = selectPlanForFiles([
+        'docs/product.md',
+      ], index: testIndex);
+      expect(
+        docsPlan.steps.any((s) => s.executable == 'python'),
+        isFalse,
+        reason: 'docs-only 计划不得出现 python -m unittest',
+      );
+      // 混合计划：多个 release .py 去重为一条 unittest discover 步骤。
+      final mixed = selectPlanForFiles([
+        'docs/product.md',
+        'tool/release/generate_update_manifest.py',
+        'tool/release/test_release_metadata.py',
+      ], index: testIndex);
+      expect(
+        mixed.steps.where((s) => s.executable == 'python').length,
+        1,
+        reason: '多个 release .py 应去重为一条 unittest discover 步骤',
+      );
+      // tool/release 之外的 .py 无分类 → 仍落 unknown（fail-closed 双栈全量）。
+      expect(classifyPath('tool/foo.py'), FileCategory.unknown);
+      expect(classifyPath('scripts/gen.py'), FileCategory.unknown);
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
