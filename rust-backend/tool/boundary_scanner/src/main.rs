@@ -539,3 +539,151 @@ fn main() {
     let output = serde_json::to_string_pretty(&all_boundaries).unwrap();
     println!("{}", output);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    /// 解析类型片段并返回 type_contains_result_or_option 的判定。
+    fn contains_ro(ty_src: &str) -> bool {
+        let ty: Type = syn::parse_str(ty_src).expect("type snippet must parse");
+        type_contains_result_or_option(&ty)
+    }
+
+    #[test]
+    fn type_contains_result_or_option_detects_bare_and_qualified() {
+        assert!(contains_ro("Option<T>"));
+        assert!(contains_ro("Result<T, E>"));
+        // 全限定路径只看末段 ident。
+        assert!(contains_ro("std::result::Result<T, E>"));
+        assert!(contains_ro("std::option::Option<T>"));
+        assert!(contains_ro("core::result::Result<T, E>"));
+        // anyhow::Result<T>：末段 ident 仍命中。
+        assert!(contains_ro("anyhow::Result<String>"));
+    }
+
+    #[test]
+    fn type_contains_result_or_option_detects_nested_combinators() {
+        // 泛型嵌套：Vec<Option<T>>、嵌套 Result。
+        assert!(contains_ro("Vec<Option<T>>"));
+        assert!(contains_ro("Vec<Result<T, E>>"));
+        assert!(contains_ro("HashMap<String, Option<T>>"));
+        // 引用 / 裸指针。
+        assert!(contains_ro("&Option<T>"));
+        assert!(contains_ro("&mut Result<T, E>"));
+        assert!(contains_ro("*const Option<T>"));
+        // 切片 / 数组 / 元组 / 括号。
+        assert!(contains_ro("[Option<T>]"));
+        assert!(contains_ro("[Option<T>; 8]"));
+        assert!(contains_ro("(Option<T>, i32)"));
+        assert!(contains_ro("(i32, Result<T, E>)"));
+        assert!(contains_ro("(Option<T>)"));
+        // 深层嵌套：Vec<&[Option<T>]>。
+        assert!(contains_ro("Vec<&[Option<T>]>"));
+    }
+
+    #[test]
+    fn type_contains_result_or_option_rejects_unrelated_types() {
+        assert!(!contains_ro("i32"));
+        assert!(!contains_ro("String"));
+        assert!(!contains_ro("Vec<T>"));
+        assert!(!contains_ro("Vec<String>"));
+        // Box<dyn Trait> / impl Trait 是 trait bound，Result/Option 不以
+        // bound 形态出现，不深入。
+        assert!(!contains_ro("Box<dyn Iterator>"));
+        assert!(!contains_ro("impl Iterator<Item = i32>"));
+        // PhantomData 不持有 Result/Option。
+        assert!(!contains_ro("PhantomData<T>"));
+        assert!(!contains_ro("std::marker::PhantomData<T>"));
+        // 引用/元组/数组里不含 Result/Option → false。
+        assert!(!contains_ro("&i32"));
+        assert!(!contains_ro("(i32, String)"));
+        assert!(!contains_ro("[i32; 4]"));
+        // 泛型实参也无 Result/Option。
+        assert!(!contains_ro("HashMap<String, Vec<u8>>"));
+    }
+
+    #[test]
+    fn scan_items_flags_result_option_signatures() {
+        let src = r#"
+fn f(x: Option<i32>) -> i32 { 0 }
+fn g() -> Result<i32, String> { Ok(0) }
+fn both(x: Option<i32>) -> Option<i32> { x }
+"#;
+        let file = parse_file(src).unwrap();
+        let mut visitor = BoundaryVisitor::new("fixture.rs".to_string());
+        visitor.visit_file(&file);
+        scan_items_for_types(&file, &mut visitor);
+        let exceptions: Vec<&Boundary> = visitor
+            .boundaries
+            .iter()
+            .filter(|b| b.boundary_type == "exception")
+            .collect();
+        // f: 1（参数）；g: 1（返回）；both: 2（参数 + 返回）。
+        assert_eq!(exceptions.len(), 4);
+        let snippets: Vec<&str> = exceptions.iter().map(|b| b.code_snippet.as_str()).collect();
+        assert!(snippets.contains(&"Result/Option param"));
+        assert!(snippets.contains(&"Result/Option"));
+    }
+
+    #[test]
+    fn scan_items_ignores_plain_signatures() {
+        // fn h(x: i32) -> i32：无 Result/Option，函数体只有字面量，
+        // 不产生任何边界（包括其它类型）。
+        let src = "fn h(x: i32) -> i32 { x }";
+        let file = parse_file(src).unwrap();
+        let mut visitor = BoundaryVisitor::new("fixture.rs".to_string());
+        visitor.visit_file(&file);
+        scan_items_for_types(&file, &mut visitor);
+        assert!(visitor.boundaries.is_empty());
+    }
+
+    /// 在临时目录写源码文件，返回其路径（测试结束即清理由调用方负责；
+    /// 这里用唯一文件名 + 用完删除）。
+    fn write_temp_rs(name: &str, content: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "boundary_scanner_test_{}_{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join(name);
+        let mut f = fs::File::create(&path).unwrap();
+        f.write_all(content.as_bytes()).unwrap();
+        path
+    }
+
+    #[test]
+    fn scan_file_produces_and_skips() {
+        // 命中：-> Result<T, E> 返回产生 exception 边界。
+        let hit = write_temp_rs("hit.rs", "fn g() -> Result<i32, String> { Ok(0) }\n");
+        let bounds = scan_file(hit.to_str().unwrap());
+        let _ = fs::remove_dir_all(hit.parent().unwrap());
+        assert!(bounds
+            .iter()
+            .any(|b| b.boundary_type == "exception" && b.code_snippet == "Result/Option"));
+
+        // 不命中：fn h(x: i32) -> i32 无边界。
+        let miss = write_temp_rs("miss.rs", "fn h(x: i32) -> i32 { x }\n");
+        let bounds = scan_file(miss.to_str().unwrap());
+        let _ = fs::remove_dir_all(miss.parent().unwrap());
+        assert!(bounds.is_empty());
+    }
+
+    #[test]
+    fn scan_file_early_returns_empty_for_test_files() {
+        // *_test.rs 命中 is_test_file → 提前返回 []（即使内容里有
+        // Result 签名也不扫描）。注意 is_test_file 检查的是路径字符串
+        // 含 "/tests/" 或以 "_test.rs" 结尾。
+        let p = write_temp_rs("thing_test.rs", "fn g() -> Result<i32, String> { Ok(0) }\n");
+        let bounds = scan_file(p.to_str().unwrap());
+        let _ = fs::remove_dir_all(p.parent().unwrap());
+        assert!(bounds.is_empty());
+    }
+}
