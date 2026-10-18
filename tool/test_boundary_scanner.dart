@@ -55,10 +55,20 @@ class ScanResult {
   final List<Boundary> coveredBoundaries;
   final List<Boundary> uncoveredBoundaries;
 
+  /// Flutter/Dart 覆盖率输入（coverage/lcov.info）是否缺失。
+  /// 缺失时报告必须显式标注「无覆盖率数据」，不得伪装成 0% 覆盖。
+  /// 默认 false，旧调用方行为不变。
+  final bool flutterCoverageDataMissing;
+
+  /// Rust 覆盖率输入（rust-backend/lcov.info）是否缺失，语义同上。
+  final bool rustCoverageDataMissing;
+
   ScanResult({
     required this.boundaries,
     required this.coveredBoundaries,
     required this.uncoveredBoundaries,
+    this.flutterCoverageDataMissing = false,
+    this.rustCoverageDataMissing = false,
   });
 
   double get coverageRatio =>
@@ -1101,19 +1111,23 @@ class TestBoundaryScanner {
 
     /// 解析 Flutter/Dart LCOV
     final flutterLcovFile = File('coverage/lcov.info');
+    var flutterCoverageDataMissing = false;
     if (flutterLcovFile.existsSync()) {
       stderr.writeln('  Parsing Flutter coverage...');
       lcovParser.parse(await flutterLcovFile.readAsString());
     } else {
+      flutterCoverageDataMissing = true;
       stderr.writeln('  Warning: coverage/lcov.info not found');
     }
 
     /// 解析 Rust LCOV（quality.dart 经 cargo tarpaulin 写入 rust-backend/）
     final rustLcovFile = File('rust-backend/lcov.info');
+    var rustCoverageDataMissing = false;
     if (rustLcovFile.existsSync()) {
       stderr.writeln('  Parsing Rust coverage...');
       lcovParser.parse(await rustLcovFile.readAsString());
     } else {
+      rustCoverageDataMissing = true;
       stderr.writeln(
         '  Warning: rust-backend/lcov.info not found '
         '(run "cd rust-backend && cargo tarpaulin --out Lcov" to generate)',
@@ -1144,6 +1158,8 @@ class TestBoundaryScanner {
       boundaries: boundaries,
       coveredBoundaries: covered,
       uncoveredBoundaries: uncovered,
+      flutterCoverageDataMissing: flutterCoverageDataMissing,
+      rustCoverageDataMissing: rustCoverageDataMissing,
     );
   }
 
@@ -1342,27 +1358,45 @@ class ReportGenerator {
     buffer.writeln('');
 
     /// Flutter/Dart 统计
-    final dartCoverage = dartBoundaries.isEmpty
-        ? 0.0
-        : dartCovered.length / dartBoundaries.length;
     buffer.writeln('## Flutter/Dart 统计');
     buffer.writeln('- 边界数: ${dartBoundaries.length}');
-    buffer.writeln(
-      '- 已覆盖: ${dartCovered.length} (${(dartCoverage * 100).toStringAsFixed(1)}%)',
-    );
-    buffer.writeln('- 未覆盖: ${dartUncovered.length}');
+    if (result.flutterCoverageDataMissing) {
+      // 无覆盖率输入（coverage/lcov.info 不存在）时不得输出
+      // 「已覆盖: 0 (0.0%)」——那会被误读为真实的 0% 覆盖。
+      buffer.writeln('- ⚠️ 无覆盖率数据（coverage/lcov.info 缺失）；');
+      buffer.writeln('  「未覆盖」数为边界总数，不反映真实覆盖情况。');
+      buffer.writeln(
+        '  生成方式: flutter test --coverage（详见 docs/standards/testing.md）',
+      );
+    } else {
+      final dartCoverage = dartBoundaries.isEmpty
+          ? 0.0
+          : dartCovered.length / dartBoundaries.length;
+      buffer.writeln(
+        '- 已覆盖: ${dartCovered.length} (${(dartCoverage * 100).toStringAsFixed(1)}%)',
+      );
+      buffer.writeln('- 未覆盖: ${dartUncovered.length}');
+    }
     buffer.writeln('');
 
     /// Rust 统计
-    final rustCoverage = rustBoundaries.isEmpty
-        ? 0.0
-        : rustCovered.length / rustBoundaries.length;
     buffer.writeln('## Rust 统计');
     buffer.writeln('- 边界数: ${rustBoundaries.length}');
-    buffer.writeln(
-      '- 已覆盖: ${rustCovered.length} (${(rustCoverage * 100).toStringAsFixed(1)}%)',
-    );
-    buffer.writeln('- 未覆盖: ${rustUncovered.length}');
+    if (result.rustCoverageDataMissing) {
+      buffer.writeln('- ⚠️ 无覆盖率数据（rust-backend/lcov.info 缺失）；');
+      buffer.writeln('  「未覆盖」数为边界总数，不反映真实覆盖情况。');
+      buffer.writeln(
+        '  生成方式: cd rust-backend && cargo tarpaulin --out Lcov',
+      );
+    } else {
+      final rustCoverage = rustBoundaries.isEmpty
+          ? 0.0
+          : rustCovered.length / rustBoundaries.length;
+      buffer.writeln(
+        '- 已覆盖: ${rustCovered.length} (${(rustCoverage * 100).toStringAsFixed(1)}%)',
+      );
+      buffer.writeln('- 未覆盖: ${rustUncovered.length}');
+    }
     buffer.writeln('');
 
     /// 按优先级分组未覆盖边界
