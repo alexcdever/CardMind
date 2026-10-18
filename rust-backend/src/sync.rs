@@ -67,7 +67,10 @@ pub struct SyncService {
     log: Arc<dyn LogSink>,
     /// verbose 日志开关（debug 提高详细程度；默认 false 只输出常规事件）。
     log_verbose: AtomicBool,
+    /// 成功 import 并投影的内容 revision（接收器/import_all 单调递增）。
     content_revision: Arc<AtomicU64>,
+    /// revision 递增广播：wait_content_revision 的等待方被唤醒重查。
+    content_notify: Arc<tokio::sync::Notify>,
 }
 
 /// 可被主服务与后台接收任务共享的可变核心状态。
@@ -108,6 +111,8 @@ struct ReceiverContext {
     /// 连续空闲窗口计数（健康检查/诊断日志用）
     idle_windows: u64,
     content_revision: Arc<AtomicU64>,
+    /// 与 SyncService.content_notify 同一实例：import 成功后广播唤醒等待方。
+    content_notify: Arc<tokio::sync::Notify>,
 }
 
 /// 接收器单次 accept 窗口（任务 O：短窗口循环，与配对 accept 轮询同粒度）。
@@ -395,6 +400,7 @@ impl SyncService {
             log,
             log_verbose: AtomicBool::new(false),
             content_revision: Arc::new(AtomicU64::new(0)),
+            content_notify: Arc::new(tokio::sync::Notify::new()),
         };
         if let Some(path) = &path {
             if path.exists() {
@@ -1721,6 +1727,11 @@ impl SyncService {
                 );
             }
         }
+        if result.is_ok() {
+            // 与接收器路径同语义：import 成功后递增 revision 并唤醒等待方。
+            self.content_revision.fetch_add(1, Ordering::Release);
+            self.content_notify.notify_waiters();
+        }
         result
     }
 
@@ -2529,6 +2540,7 @@ impl SyncService {
                 cancel: cancel.clone(),
                 idle_windows: 0,
                 content_revision: self.content_revision.clone(),
+                content_notify: self.content_notify.clone(),
             };
             let join = tokio::spawn(receiver_loop(ctx));
             *guard = ReceiverHandle {
@@ -2590,6 +2602,24 @@ impl SyncService {
     /// Monotonic revision of successfully projected inbound content.
     pub fn receiver_content_revision(&self) -> u64 {
         self.content_revision.load(Ordering::Acquire)
+    }
+
+    /// 事件等待：阻塞直到 `content_revision > after`，返回新 revision。
+    ///
+    /// 先读后等——先查当前 revision，已超过 `after` 立即返回；否则注册
+    /// `notified()` 再重查，杜绝「通知在 await 前发出」丢事件。等待期间
+    /// revision 每递增一次（接收器/import_all 的 import+投影成功后）广播一次，
+    /// 可能多收一条通知但循环重查保证返回时一定 `> after`。
+    ///
+    /// 调用方需自行包 `tokio::time::timeout` 防死等（无内置上限）。
+    pub async fn wait_content_revision(&self, after: u64) -> u64 {
+        loop {
+            let current = self.content_revision.load(Ordering::Acquire);
+            if current > after {
+                return current;
+            }
+            self.content_notify.notified().await;
+        }
     }
 
     /// 更新配对设备 last_seen 并输出结构化日志（触发原因配对/主动推送/被动接收）。
@@ -3084,6 +3114,7 @@ async fn receiver_handle_incoming(
                     .update_paired_device_ips(&sender_str, std::slice::from_ref(ip));
             }
             ctx.content_revision.fetch_add(1, Ordering::Release);
+            ctx.content_notify.notify_waiters();
             receiver_log(
                 ctx,
                 "device.last_seen",
@@ -4744,5 +4775,55 @@ mod tests {
         let huge = "a".repeat(u16::MAX as usize + 1);
         let result = encode_credential_v2(&sk, ISSUED, EXPIRES, &nonce, &node_id, CODE, &[huge]);
         assert!(result.is_err(), "超长 IP 应返回 Err 而非 panic");
+    }
+
+    // ━━━ wait_content_revision：先读后等的事件等待 ━━━
+
+    /// 当前 revision 已超过 after → 立即返回（不挂起等待）。
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn wait_content_revision_returns_immediately_when_already_past() {
+        let mut svc = SyncService::new().await.unwrap();
+        let mut src = SyncService::new().await.unwrap();
+        src.create_note("n1".to_string(), "# A\n\nbody").unwrap();
+        let data = src.export_all().unwrap();
+        svc.import_all(&data).unwrap();
+        let rev = svc.receiver_content_revision();
+        assert!(rev > 0, "import_all 成功应递增 content_revision");
+
+        // after < 当前 rev：不得等待，立即返回最新值
+        let got = tokio::time::timeout(
+            Duration::from_millis(200),
+            svc.wait_content_revision(rev - 1),
+        )
+        .await
+        .expect("已超过的 revision 应立即返回");
+        assert_eq!(got, rev);
+    }
+
+    /// 先注册等待再触发 import → 被 notify 唤醒并返回新 revision（先读后等不丢事件）。
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn wait_content_revision_wakes_on_new_import() {
+        let mut svc = SyncService::new().await.unwrap();
+        let before = svc.receiver_content_revision();
+
+        let svc_ptr = &svc as *const SyncService as usize;
+        let waiter = tokio::spawn(async move {
+            // SAFETY：svc 在本测试作用域内存活，waiter 在断言前已 join。
+            let svc = unsafe { &*(svc_ptr as *const SyncService) };
+            svc.wait_content_revision(before).await
+        });
+        // 让 waiter 先进入 notified().await（先读后等路径）
+        tokio::task::yield_now().await;
+
+        let mut src = SyncService::new().await.unwrap();
+        src.create_note("n2".to_string(), "# B\n\nbody").unwrap();
+        let data = src.export_all().unwrap();
+        svc.import_all(&data).unwrap();
+
+        let got = tokio::time::timeout(Duration::from_secs(2), waiter)
+            .await
+            .expect("import 应唤醒等待中的 wait_content_revision")
+            .expect("waiter panic");
+        assert_eq!(got, before + 1);
     }
 }
