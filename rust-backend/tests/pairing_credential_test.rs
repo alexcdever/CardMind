@@ -19,7 +19,7 @@ use cardmind_backend::sync::{
 
 use iroh::SecretKey;
 
-use common::{requester, rt, temp_dir};
+use common::{requester, require_ipv4, rt, temp_dir};
 
 // ━━━ 行为层（任务 Q 验收标准 7-13）━━━
 
@@ -247,7 +247,9 @@ fn legacy_six_digit_mdns_pairing_requires_and_accepts_advertised_nonce() {
         // 成功路径：target 携带广播 nonce（等价 PeerInfo.nonce → PairingTarget.nonce）
         let confirmer_id = confirmer.device_id();
         let addrs = confirmer.local_addrs();
-        assert!(!addrs.is_empty(), "确认方应至少有一个本地 IPv4 地址");
+        if !require_ipv4(&addrs) {
+            return;
+        }
         let confirmer_code = code.clone();
         // NoteStore 是共享句柄（内部 Arc），clone 供 spawn 后继续用
         let confirmer_store_for_confirm = confirmer_store.clone();
@@ -498,10 +500,9 @@ fn credential_connect_end_to_end_uses_embedded_ips() {
         let confirmer_store = NoteStore::new(":memory:").unwrap();
         let initiator_store = NoteStore::new(":memory:").unwrap();
 
-        assert!(
-            !confirmer.local_addrs().is_empty(),
-            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空），否则本链路用例不适用"
-        );
+        if !require_ipv4(&confirmer.local_addrs()) {
+            return;
+        }
 
         let display = confirmer.begin_pairing_credential().unwrap();
         let parsed = confirmer
@@ -619,10 +620,9 @@ fn used_credential_is_classified_as_used_or_replaced() {
         let confirmer_store = NoteStore::new(":memory:").unwrap();
         let initiator_store = NoteStore::new(":memory:").unwrap();
 
-        assert!(
-            !confirmer.local_addrs().is_empty(),
-            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空）"
-        );
+        if !require_ipv4(&confirmer.local_addrs()) {
+            return;
+        }
 
         let display = confirmer.begin_pairing_credential().unwrap();
         let parsed = confirmer
@@ -802,10 +802,9 @@ fn replaced_credential_is_classified_as_used_or_replaced() {
         let confirmer_store = NoteStore::new(":memory:").unwrap();
         let initiator_store = NoteStore::new(":memory:").unwrap();
 
-        assert!(
-            !confirmer.local_addrs().is_empty(),
-            "前提：测试环境需至少一个 IPv4 网络接口（local_addrs 非空）"
-        );
+        if !require_ipv4(&confirmer.local_addrs()) {
+            return;
+        }
 
         let first = confirmer.begin_pairing_credential().unwrap(); // A
         let second = confirmer.begin_pairing_credential().unwrap(); // B（取代 A）

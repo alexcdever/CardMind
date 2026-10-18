@@ -12,7 +12,7 @@ use std::collections::HashMap;
 
 use cardmind_backend::store::{NoteStore, PairedDeviceRow};
 use cardmind_backend::sync::{PairingTarget, SyncService};
-use common::temp_dir;
+use common::{require_ipv4, temp_dir};
 
 // ━━━ 配对辅助：入站授权的前提 ━━━
 
@@ -168,7 +168,9 @@ fn test_push_receive_roundtrip_relay_or_direct() {
         // B 提供实际地址（同网段直连优先）
         let b_id = b.device_id();
         let b_ips = b.local_addrs();
-        assert!(!b_ips.is_empty(), "B 应至少有一个本地 IPv4 地址");
+        if !require_ipv4(&b_ips) {
+            return;
+        }
 
         // 入站授权前提（security_sync_test 冻结的语义）：接收端只接受已配对设备的
         // 推送，所以先走一次真实配对握手。确认方 B 的 confirm_pairing 会做两件事：
