@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:appflowy_editor/appflowy_editor.dart';
 import 'package:cardmind/pages/editor_page.dart';
@@ -434,22 +434,53 @@ final value = 1;
     });
 
     // ━━ 原 ui_polish_opt AC4 ━━
-    test('desktop tag context menu delete item uses danger color', () {
-      final source = File('lib/pages/editor_page.dart').readAsStringSync();
-      // 右键菜单分支的「删除」项必须带 danger 色（图标或文字），
-      // 与底部 sheet 分支（:317-321）对齐。
-      final menuIdx = source.indexOf("value: 'delete'");
-      expect(menuIdx, greaterThan(-1), reason: '必须存在右键删除菜单项');
-      // 在该 PopupMenuItem 块附近应出现 danger 引用。
-      final window = source.substring(
-        (menuIdx - 400).clamp(0, source.length),
-        (menuIdx + 400).clamp(0, source.length),
+    testWidgets('desktop tag context menu delete item uses danger color', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final repository = MemoryNoteRepository(
+        rows: const [
+          NoteRow(
+            id: 'tagged',
+            title: 'Tagged',
+            contentPreview: 'Body',
+            tags: 'Work',
+            updatedAt: '2026-07-22 05:00:00',
+          ),
+        ],
+        contents: const {'tagged': '# Tagged\n\nBody'},
       );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: CardMindTheme.light,
+          home: Scaffold(
+            body: EditorPage(repository: repository, noteId: 'tagged'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 右键标签 → 弹出桌面右键菜单（showMenu 分支，非 bottom sheet）。
+      await tester.tapAt(
+        tester.getCenter(find.byKey(const ValueKey('editor-tag-work'))),
+        buttons: 2,
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+
+      final deleteItem = tester.widget<PopupMenuItem<String>>(
+        find.byKey(const ValueKey('tag-action-delete')),
+      );
+      expect(deleteItem.value, 'delete', reason: '桌面右键须含「删除」项');
+      final text = deleteItem.child as Text;
       expect(
-        window.contains('danger'),
-        isTrue,
+        text.style?.color,
+        CardMindTheme.light.extension<CardMindTokens>()!.danger,
         reason: '桌面右键「删除」须用 tokens.danger 与 bottom-sheet 分支对齐',
       );
+      await tester.pumpWidget(const SizedBox());
     });
   });
 
@@ -504,17 +535,35 @@ final value = 1;
 
   group('saving indicator', () {
     // ━━ 原 ui_polish_opt AC7 ━━
-    test('saving indicator is not the static Icons.sync glyph', () {
-      final source = File('lib/pages/editor_page.dart').readAsStringSync();
-      // _saving 分支不得继续渲染 Icons.sync（易误读为同步动作）；
-      // 允许 Icons.save/CircularProgressIndicator/尺寸化 spinner。
+    testWidgets('saving indicator is not the static Icons.sync glyph', (
+      tester,
+    ) async {
+      // 让 createNote 挂起，把 _saving 钉在 true。
+      final repository = MemoryNoteRepository(rows: [], contents: {})
+        ..createNoteGate = Completer<void>();
+      await _pumpEditor(tester, repository: repository);
+
+      await _replaceEditorMarkdown(tester, '# Saving');
+      await tester.tap(find.byKey(const ValueKey('editor-save')));
+      await tester.pump();
+
+      // 保存中：icon 槽位是尺寸化进度环，且不得出现静态 Icons.sync。
       expect(
-        RegExp(r'_saving \? Icons\.sync').hasMatch(source),
-        isFalse,
-        reason:
-            '_saving 分支不得用静态 Icons.sync，须换 SizedBox 尺寸化 '
-            'CircularProgressIndicator 或 Icons.save+文案区分',
+        find.byType(CircularProgressIndicator),
+        findsOneWidget,
+        reason: '保存中应渲染尺寸化 CircularProgressIndicator',
       );
+      expect(
+        find.byIcon(Icons.sync),
+        findsNothing,
+        reason: '_saving 分支不得用静态 Icons.sync（易误读为同步动作）',
+      );
+
+      // 放行挂起的保存并抽干 debounce history timer，收尾前清空 pending timer。
+      repository.createNoteGate!.complete();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
     });
   });
 }

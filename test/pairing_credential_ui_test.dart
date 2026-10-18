@@ -1,3 +1,7 @@
+// 凭证 UI 测试。
+// 「QrPainter.data 与 Clipboard.text 同源 _credentialText」一条保留源码断言：
+// QrPainter 没有公开的取数据口（二维码内容无法经 find.* 等价表达），
+// 属文案/来源快照断言，非行为断言。
 import 'dart:async';
 import 'dart:io';
 

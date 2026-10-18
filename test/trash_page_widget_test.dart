@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cardmind/pages/note_list_page.dart';
 import 'package:cardmind/pages/trash_page.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
@@ -118,23 +116,21 @@ void main() {
 
     group('token discipline', () {
       // ━━ 原 ui_polish_opt AC6（优化项 11）━━
-      // 回收站页 `tokens` 命名误导——不得继续用
-      // `Theme.of(context).colorScheme` 当 token；改用 `context.cardMind`。
-      test('trash page reads cardMind tokens, not colorScheme', () {
-        final source = File('lib/pages/trash_page.dart').readAsStringSync();
-        expect(
-          source.contains('context.cardMind'),
-          isTrue,
-          reason: 'trash 条目色须走 CardMind token（mutedInk/danger）',
+      // 回收站条目色须走 CardMind token（mutedInk/danger），不再误用 colorScheme。
+      testWidgets('trash page reads cardMind tokens, not colorScheme', (
+        tester,
+      ) async {
+        final repository = MemoryNoteRepository();
+        await repository.softDelete('work-note');
+        await _pumpTrash(tester, repository);
+
+        final purgeButton = tester.widget<IconButton>(
+          find.byKey(const ValueKey('trash-purge-work-note')),
         );
         expect(
-          RegExp(
-            r'Theme\.of\(context\)\.colorScheme|onSurfaceVariant|\.error\b',
-          ).hasMatch(source),
-          isFalse,
-          reason:
-              'trash 不得再把 colorScheme 误名为 tokens'
-              '（onSurfaceVariant→mutedInk、error→danger）',
+          (purgeButton.icon as Icon).color,
+          CardMindTheme.light.extension<CardMindTokens>()!.danger,
+          reason: '彻底删除图标须用 tokens.danger（不再误用 colorScheme.error）',
         );
       });
     });
