@@ -157,7 +157,7 @@ List<String> flutterTestFilesOfCmd(GateCommand cmd) =>
 
 void main() {
   group('selector', () {
-    test('1 docs-only 计划只有 format + docs lint，无代码测试', () {
+    test('1 docs-only 计划 = format + docs lint + 全部文档契约测试', () {
       final plan = selectPlanForFiles([
         'docs/standards/testing.md',
       ], index: testIndex);
@@ -165,7 +165,18 @@ void main() {
         CommandKind.formatDart,
         CommandKind.formatRust,
         CommandKind.docsLint,
+        CommandKind.flutterTest,
       ]);
+      // 只有文档契约测试（9 个合批一条），不跑 analyze、不跑全量。
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1));
+      expect(cmds.single.label, 'flutter:test');
+      expect(flutterTestFilesOfCmd(cmds.single), hasLength(9));
+      expect(
+        kindsOf(plan),
+        isNot(contains(CommandKind.analyze)),
+        reason: '文档改动不需要 flutter analyze',
+      );
     });
 
     test('2 单个 Flutter test 文件只选自身（同时含 analyze）', () {
@@ -944,6 +955,72 @@ void main() {
       );
       expect(cmds.single.label, 'flutter:test');
     });
+
+    // ── 标准 4：markdown 改动选上全部文档契约测试 ─────────────────────────
+    test('12j markdown 改动：docs:lint + 全部文档契约测试（合批一条）', () {
+      // 9 个测试就是 _supportFakeImporters['doc_helpers'] 那份名单
+      // （全部 doc_helpers 消费方 = 全部文档契约测试）。
+      const docContractTests = <String>[
+        'test/adr_0008_test.dart',
+        'test/agents_md_test.dart',
+        'test/design_tokens_doc_test.dart',
+        'test/docs_dir_test.dart',
+        'test/markdown_references_test.dart',
+        'test/product_doc_test.dart',
+        'test/spec_lifecycle_doc_test.dart',
+        'test/sync_network_doc_test.dart',
+        'test/ui_style_guide_doc_test.dart',
+      ];
+      for (final md in <String>['docs/product.md', 'AGENTS.md']) {
+        final plan = selectPlanForFiles(<String>[md], index: testIndex);
+        expect(
+          plan.steps.where((s) => s.label == 'docs:lint'),
+          hasLength(1),
+          reason: '$md 仍要跑 docs:lint',
+        );
+        final cmds = flutterTestCmdsOf(plan);
+        expect(cmds, hasLength(1), reason: '$md 的文档契约测试应合批成一条');
+        expect(
+          flutterTestFilesOfCmd(cmds.single),
+          docContractTests,
+          reason: '$md 必须选上全部 9 个文档契约测试（顺序稳定、无重复）',
+        );
+      }
+    });
+
+    test('12k markdown 契约测试按存在性加入（不存在的跳过）', () {
+      // 与 _addIfExists 同语义：索引里没有的测试文件不得进计划，
+      // 否则 flutter test 会因「找不到文件」失败。
+      final sparse = TestIndex(
+        flutterTestFiles: <String>{
+          'test/product_doc_test.dart',
+          'test/markdown_references_test.dart',
+        },
+        rustTestTargets: const <String>{},
+      );
+      final plan = selectPlanForFiles(<String>[
+        'docs/product.md',
+      ], index: sparse);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1));
+      expect(flutterTestFilesOfCmd(cmds.single), <String>[
+        'test/markdown_references_test.dart',
+        'test/product_doc_test.dart',
+      ], reason: '只选索引里存在的文档契约测试');
+    });
+
+    test('12l 对照腿：非 markdown 不改动选文档契约测试', () {
+      // 防「恒选文档测试」空断言。
+      final plan = selectPlanForFiles(<String>[
+        'lib/pages/editor_page.dart',
+      ], index: testIndex);
+      final files = flutterTestFilesOfCmd(flutterTestCmdsOf(plan).single);
+      expect(
+        files.where((f) => f.contains('_doc_test') || f.contains('markdown')),
+        isEmpty,
+        reason: '业务代码改动不应选文档契约测试',
+      );
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
@@ -1449,7 +1526,21 @@ void main() {
       );
       expect(called.any((c) => c.contains('clippy')), isFalse);
       expect(called.any((c) => c.contains('flutter|analyze')), isFalse);
-      expect(called.any((c) => c.contains('flutter|test')), isFalse);
+      // 文档契约测试要跑（9 个合批一条），但只跑文档契约测试、不跑全量。
+      final flutterTestCalls = called
+          .where((c) => c.contains('flutter|test'))
+          .toList();
+      expect(flutterTestCalls, hasLength(1), reason: '文档契约测试合批成一条');
+      expect(
+        flutterTestCalls.single,
+        isNot('flutter|test --timeout 5m'),
+        reason: 'docs-only 不得落全量 flutter test',
+      );
+      expect(
+        flutterTestCalls.single,
+        contains('test/product_doc_test.dart'),
+        reason: 'docs-only 必须选上文档契约测试',
+      );
     });
   });
 
