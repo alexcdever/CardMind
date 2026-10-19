@@ -1,3 +1,5 @@
+mod common;
+
 use cardmind_backend::store::{LinkRow, NoteStore};
 use cardmind_backend::sync::NoteCrdt;
 use rusqlite::Connection;
@@ -253,4 +255,140 @@ fn test_auto_complete_and_tags() {
     let results = store.search_by_tag("work").unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].id, "note-1");
+}
+
+// ═══ legacy_notes（零覆盖补测）═══
+
+/// 直接以 `Connection` 预置两条 `updated_at` 不同的行：验证 `legacy_notes`
+/// 返回 `(id, content)` 的内容与 `ORDER BY updated_at ASC` 顺序（更早的在前）。
+#[test]
+fn test_legacy_notes_returns_content_in_updated_at_ascending_order() {
+    let dir = common::temp_dir("legacy-notes-order");
+    let path = dir.join("cardmind.db");
+    let path_str = path.to_string_lossy().to_string();
+    let store = NoteStore::new(&path_str).unwrap();
+
+    {
+        let conn = Connection::open(&path).unwrap();
+        conn.execute(
+            "INSERT INTO notes (id, title, content, tags, created_at, updated_at, deleted_at)
+             VALUES (?1, ?2, ?3, '', ?4, ?5, NULL)",
+            rusqlite::params![
+                "note-newer",
+                "较新",
+                "较新的正文",
+                "2026-01-02T00:00:00Z",
+                "2026-01-02T00:00:00Z"
+            ],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO notes (id, title, content, tags, created_at, updated_at, deleted_at)
+             VALUES (?1, ?2, ?3, '', ?4, ?5, NULL)",
+            rusqlite::params![
+                "note-older",
+                "较旧",
+                "较旧的正文",
+                "2026-01-01T00:00:00Z",
+                "2026-01-01T00:00:00Z"
+            ],
+        )
+        .unwrap();
+    }
+
+    // 插入顺序是「新 → 旧」，但 ASC 顺序要求「旧 → 新」，可区分排序是否真的生效。
+    let notes = store.legacy_notes().unwrap();
+    assert_eq!(
+        notes,
+        vec![
+            ("note-older".to_string(), "较旧的正文".to_string()),
+            ("note-newer".to_string(), "较新的正文".to_string()),
+        ],
+        "legacy_notes 应按 updated_at ASC 返回 (id, content)"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// 对照腿：空库（无任何 notes 行）时 `legacy_notes` 返回空 `Vec`。
+#[test]
+fn test_legacy_notes_empty_store_returns_empty_vec() {
+    let dir = common::temp_dir("legacy-notes-empty");
+    let path = dir.join("cardmind.db");
+    let path_str = path.to_string_lossy().to_string();
+    let store = NoteStore::new(&path_str).unwrap();
+
+    let notes = store.legacy_notes().unwrap();
+    assert!(notes.is_empty(), "空库应返回空 Vec，实际 {:?}", notes);
+
+    // 软删（deleted_at 非空）的行仍在 legacy 全量里：迁移要带上回收站内容。
+    {
+        let conn = Connection::open(&path).unwrap();
+        conn.execute(
+            "INSERT INTO notes (id, title, content, tags, created_at, updated_at, deleted_at)
+             VALUES (?1, ?2, ?3, '', ?4, ?5, ?6)",
+            rusqlite::params![
+                "note-deleted",
+                "已删",
+                "已删的正文",
+                "2026-01-03T00:00:00Z",
+                "2026-01-03T00:00:00Z",
+                "2026-01-04T00:00:00Z"
+            ],
+        )
+        .unwrap();
+    }
+    let after = store.legacy_notes().unwrap();
+    assert_eq!(
+        after,
+        vec![("note-deleted".to_string(), "已删的正文".to_string())],
+        "legacy_notes 不过滤 deleted_at（全量迁移）"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+// ═══ is_paired_device（零覆盖补测）═══
+
+/// 两腿：未配对的 peer_id → false；`upsert_paired_device` 之后同一 peer_id → true。
+/// 另加一条反向腿：只有被 upsert 的那个 peer 为 true，其余 peer 仍为 false。
+#[test]
+fn test_is_paired_device_false_then_true_after_upsert() {
+    let store = NoteStore::new(":memory:").unwrap();
+
+    assert!(
+        !store.is_paired_device("peer-a").unwrap(),
+        "空库中任何 peer 都未配对"
+    );
+
+    store.upsert_paired_device("peer-a", "设备 A").unwrap();
+
+    assert!(
+        store.is_paired_device("peer-a").unwrap(),
+        "upsert 后该 peer 应判为已配对"
+    );
+    assert!(
+        !store.is_paired_device("peer-b").unwrap(),
+        "未 upsert 的 peer 仍应判为未配对"
+    );
+
+    // 重新打开（非内存库）：未配对库上应为 false，upsert 后跨重开仍为 true。
+    let dir = common::temp_dir("is-paired-device");
+    let path = dir.join("cardmind.db");
+    let path_str = path.to_string_lossy().to_string();
+    let disk = NoteStore::new(&path_str).unwrap();
+    assert!(
+        !disk.is_paired_device("peer-a").unwrap(),
+        "全新磁盘库中 peer 尚未配对"
+    );
+    disk.upsert_paired_device("peer-a", "设备 A").unwrap();
+    drop(disk);
+
+    let reopened = NoteStore::new(&path_str).unwrap();
+    assert!(
+        reopened.is_paired_device("peer-a").unwrap(),
+        "配对状态应跨重开持久化"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
 }
