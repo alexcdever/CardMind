@@ -59,26 +59,49 @@ class GatePlan {
   }
 }
 
-/// 命令构建器：同一命令只能出现一次。
+/// 命令构建器：同一命令只能出现一次；flutter 测试在计划内合批。
+///
+/// flutter test 命令不逐条入计划，而是按测试文件聚合成**一条**多文件命令
+/// （`flutter test --timeout 5m a.dart b.dart ...`）：单进程固定开销
+/// （实测 ≈17s/次）远大于多文件共享同一进程的成本，逐条命令会让「窄路由」
+/// 比整仓全量还贵。合批后文件按字典序稳定排序、跨 staged 文件去重。
 class PlanBuilder {
   final Set<String> _seen = <String>{};
   final List<GateCommand> _steps = <GateCommand>[];
 
+  /// 合批的 flutter 测试文件（输出时字典序）。
+  final Set<String> _flutterTestFiles = <String>{};
+
   void add(GateCommand command) {
+    if (command.kind == CommandKind.flutterTest) {
+      final files = _flutterTestFilesOf(command);
+      if (files.isNotEmpty) {
+        _flutterTestFiles.addAll(files);
+        return;
+      }
+    }
     if (_seen.add(command.signature)) {
       _steps.add(command);
     }
   }
 
   List<GateCommand> build() {
-    final sorted = List<GateCommand>.of(_steps)
-      ..sort((a, b) {
-        final byKind = a.kind.priority.compareTo(b.kind.priority);
-        if (byKind != 0) return byKind;
-        return a.signature.compareTo(b.signature);
-      });
-    return sorted;
+    final steps = List<GateCommand>.of(_steps);
+    if (_flutterTestFiles.isNotEmpty) {
+      final files = _flutterTestFiles.toList()..sort();
+      steps.add(Commands.flutterTest(files));
+    }
+    steps.sort((a, b) {
+      final byKind = a.kind.priority.compareTo(b.kind.priority);
+      if (byKind != 0) return byKind;
+      return a.signature.compareTo(b.signature);
+    });
+    return steps;
   }
+
+  /// flutter test 命令携带的测试文件（`test --timeout 5m` 之后的部分）。
+  static List<String> _flutterTestFilesOf(GateCommand command) =>
+      command.arguments.skip(3).toList();
 }
 
 /// 分类（路径归一化为 POSIX 风格；Windows 反斜杠与 POSIX 斜杠结果相同）。
