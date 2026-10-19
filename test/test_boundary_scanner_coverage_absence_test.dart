@@ -62,11 +62,7 @@ void main() {
       ).generate(_result([_rust()], rustMissing: true));
 
       final rustSection = _section(report, '## Rust 统计');
-      expect(
-        rustSection,
-        contains('无覆盖率数据'),
-        reason: '缺数据必须显式标注，不得伪装成 0% 覆盖',
-      );
+      expect(rustSection, contains('无覆盖率数据'), reason: '缺数据必须显式标注，不得伪装成 0% 覆盖');
       expect(
         rustSection,
         isNot(contains('0 (0.0%)')),
@@ -144,9 +140,9 @@ void main() {
     });
 
     test('flutter lcov 缺失：总体统计同样标注「不完整」', () {
-      final report = ReportGenerator(
-        _config(),
-      ).generate(_result([_dart(), _rust(covered: true)], flutterMissing: true));
+      final report = ReportGenerator(_config()).generate(
+        _result([_dart(), _rust(covered: true)], flutterMissing: true),
+      );
 
       final overall = _section(report, '## 总体统计');
       expect(overall, contains('覆盖率数据不完整'));
