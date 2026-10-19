@@ -865,6 +865,26 @@ void main() {
       }
     });
 
+    test('12d2 对照腿：仓库没有测试资产时不落全量（防误伤最小仓库）', () {
+      // hook 集成测试的临时仓库只有 lib/x.dart + tool/，没有 test/ 目录：
+      // 此时索引为空，任何 dartBusiness 都会「无窄测试可映射」。若在这种情况下
+      // 也落全量 flutter test，最小仓库的提交会去跑根本不存在的全量测试。
+      // 语义：fail-closed 兜底的前提是「仓库里有测试资产可跑」。
+      const emptyIndex = TestIndex(
+        flutterTestFiles: <String>{},
+        rustTestTargets: <String>{},
+      );
+      final plan = selectPlanForFiles(<String>[
+        'lib/x.dart',
+      ], index: emptyIndex);
+      expect(
+        kindsOf(plan),
+        isNot(contains(CommandKind.flutterTest)),
+        reason: '索引为空时不得落全量 flutter test',
+      );
+      expect(kindsOf(plan), contains(CommandKind.analyze));
+    });
+
     test('12e 对照腿：有窄测试映射的 dartBusiness 不落全量', () {
       // 防「恒落全量」空断言：命中窄测试时必须只跑窄测试。
       for (final file in <String>[
