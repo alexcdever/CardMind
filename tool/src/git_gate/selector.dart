@@ -59,12 +59,15 @@ class GatePlan {
   }
 }
 
-/// 命令构建器：同一命令只能出现一次；flutter 测试在计划内合批。
+/// 命令构建器：同一命令只能出现一次；flutter 测试在计划内合批、全量优先。
 ///
 /// flutter test 命令不逐条入计划，而是按测试文件聚合成**一条**多文件命令
 /// （`flutter test --timeout 5m a.dart b.dart ...`）：单进程固定开销
 /// （实测 ≈17s/次）远大于多文件共享同一进程的成本，逐条命令会让「窄路由」
 /// 比整仓全量还贵。合批后文件按字典序稳定排序、跨 staged 文件去重。
+///
+/// 全量优先：计划里一旦出现全量 flutter test（无文件参数），窄命令全部丢弃
+/// ——全量已覆盖它们，再跑一遍是纯重复开销。
 class PlanBuilder {
   final Set<String> _seen = <String>{};
   final List<GateCommand> _steps = <GateCommand>[];
@@ -72,13 +75,18 @@ class PlanBuilder {
   /// 合批的 flutter 测试文件（输出时字典序）。
   final Set<String> _flutterTestFiles = <String>{};
 
+  /// 是否已出现全量 flutter test（无文件参数）。
+  bool _flutterFullTest = false;
+
   void add(GateCommand command) {
     if (command.kind == CommandKind.flutterTest) {
       final files = _flutterTestFilesOf(command);
-      if (files.isNotEmpty) {
+      if (files.isEmpty) {
+        _flutterFullTest = true;
+      } else {
         _flutterTestFiles.addAll(files);
-        return;
       }
+      return;
     }
     if (_seen.add(command.signature)) {
       _steps.add(command);
@@ -87,7 +95,9 @@ class PlanBuilder {
 
   List<GateCommand> build() {
     final steps = List<GateCommand>.of(_steps);
-    if (_flutterTestFiles.isNotEmpty) {
+    if (_flutterFullTest) {
+      steps.add(Commands.flutterFullTest());
+    } else if (_flutterTestFiles.isNotEmpty) {
       final files = _flutterTestFiles.toList()..sort();
       steps.add(Commands.flutterTest(files));
     }
