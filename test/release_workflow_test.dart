@@ -405,5 +405,11 @@ void main() {
       expect(arguments.take(2).toList(), format.arguments);
       expect('${step['run']}'.trimRight(), endsWith('-- --check'));
     });
+    test('clippy step matches Commands.clippy argument for argument', () {
+      final clippy = Commands.clippy();
+      final step = _rustQualityStepRunning('cargo clippy');
+      expect(_scriptWorkingDirectory(step), clippy.workingDirectory);
+      expect(_cargoArguments(step, 'clippy'), clippy.arguments);
+    });
   });
 }
