@@ -16,6 +16,12 @@ jobs:
     runs-on: windows-latest
     # feature_test.dart 自身有 20 分钟兜底超时；job 层再压一道防 runner 挂死。
     timeout-minutes: 30
+    # 集成测试日志的唯一确定路径：放 runner 临时目录，不污染工作区。
+    # 注意：**不能**把这个表达式写在 job 级 env——`jobs.<job_id>.env` 不允许 runner
+    # 上下文（只允许 github/needs/strategy/matrix/vars/secrets/inputs），否则 GitHub 在
+    # 解析期就报 `Unrecognized named-value: 'runner'`，整条 workflow 不运行、日志永远拿不到。
+    # 因此路径表达式只出现在步骤级：Run 步骤的 steps.env 与上传步骤的 steps.with.path
+    # （actionlint 1.7.12 校验通过）。
 
     steps:
       - name: Checkout code
@@ -45,15 +51,36 @@ jobs:
       - name: Run Windows journeys
         # 发布/验收门禁：平台集成层（integration_test/）不塞入普通 push，
         # 这里作为手动/定时的 CI 入口跑 cardmind_journeys_test.dart。
-        run: dart run tool/feature_test.dart --windows
+        #
+        # 日志落盘：feature_test.dart 只把子进程 stdio 透传到自身 stdout/stderr
+        # （tool/feature_test.dart:71-72：stdout.addStream / stderr.addStream），不写文件，
+        # 所以在这里 tee 一份带完整 flutter test 输出的日志，供失败时上传排障。
+        # 路径来自本步骤的步骤级 env（`steps.[*].env` 允许 runner 上下文）；上传步骤
+        # 用同一表达式在 `with.path` 里自行解析，不依赖本步骤是否执行成功。
+        #
+        # 退出码：管道后 $LASTEXITCODE 保留子命令的原值（实测 `cmd /c exit 7 | Tee-Object`
+        # 之后 $LASTEXITCODE = 7，且日志文件已写出）。但 GitHub Actions 只看 run: 脚本的
+        # 最后一条语句/退出码，块内最后那条管道不会被自动传播——实测去掉 `exit` 时
+        # 失败被吞成 0，所以块末必须显式 `exit $LASTEXITCODE`。
+        shell: pwsh
+        env:
+          # runner 上下文在 steps.[*].env 合法（job 级 env 不合法，见上）。
+          JOURNEY_LOG: ${{ runner.temp }}/journeys/integration_journeys.log
+        run: |
+          $logPath = $env:JOURNEY_LOG
+          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $logPath) | Out-Null
+          dart run tool/feature_test.dart --windows *>&1 | Tee-Object -FilePath $logPath
+          exit $LASTEXITCODE
 
       - name: Upload integration test logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-journeys-logs
-          path: |
-            build/windows/**/*.log
-            integration_test/**/*.log
+          # 只指向上面 tee 出来的真实文件，且用与本步骤无关的步骤级表达式自行解析
+          # （`steps.[*].with` 允许 runner 上下文）——即使 Run 步骤在写日志前就挂掉，
+          # 这里的 path 也不会变成空值。产物缺失本身就是需要暴露的失败模式，所以
+          # if-no-files-found 用 error 而不是 ignore。
+          path: ${{ runner.temp }}/journeys/integration_journeys.log
           retention-days: 14
-          if-no-files-found: ignore
+          if-no-files-found: error
