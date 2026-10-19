@@ -1403,9 +1403,7 @@ class ReportGenerator {
     if (result.rustCoverageDataMissing) {
       buffer.writeln('- ⚠️ 无覆盖率数据（rust-backend/lcov.info 缺失）；');
       buffer.writeln('  「未覆盖」数为边界总数，不反映真实覆盖情况。');
-      buffer.writeln(
-        '  生成方式: cd rust-backend && cargo tarpaulin --out Lcov',
-      );
+      buffer.writeln('  生成方式: cd rust-backend && cargo tarpaulin --out Lcov');
     } else {
       final rustCoverage = rustBoundaries.isEmpty
           ? 0.0

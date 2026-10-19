@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
 import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
@@ -9,6 +8,8 @@ import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/note_repository_stub.dart';
 
 /// 任务 J（mDNS 自动发现接线）验收测试：
 ///
@@ -27,7 +28,7 @@ import 'package:flutter_test/flutter_test.dart';
 /// 任务 J 专用 fake repository：记录 UI 对配对 / mDNS 方法的调用轨迹，
 /// 并模拟真实 Rust 行为——`beginPairingConnect` 收到空 deviceId 时抛出
 /// 与后端一致的 AnyhowException（复现实机缺陷）。
-class PairingMdnsRepository implements NoteRepository {
+class PairingMdnsRepository extends NoteRepositoryStub {
   String acceptCodeValue = '289260';
   int acceptCodeCalls = 0;
   int connectCalls = 0;
@@ -141,82 +142,11 @@ class PairingMdnsRepository implements NoteRepository {
     return PairingResult(peerId: 'parsed-device', peerName: connectPeerName);
   }
 
-  @override
-  Future<List<NoteRow>> listNotes() async => [];
-
-  @override
-  Future<List<NoteRow>> search(String query) async => [];
-
-  @override
-  Future<String?> getNote(String id) async => null;
-
-  @override
-  Future<void> createNote(String id, String content) async {}
-
-  @override
-  Future<String> generateNoteId() async => 'generated-id';
-
-  @override
-  Future<void> updateMetadata(String id, List<String> tags) async {}
-
-  @override
-  Future<List<LinkRow>> getOutgoingLinks(String id) async => [];
-
-  @override
-  Future<List<LinkRow>> getBacklinks(String id) async => [];
-
-  @override
-  Future<List<NoteRow>> searchNotes(String query) async => [];
-
-  @override
-  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
-
-  @override
-  Future<List<String>> getAllTags() async => [];
-
-  @override
-  Future<List<NoteRow>> searchByTag(String tag) async => [];
-
-  @override
-  Future<void> softDelete(String id) async {}
-
-  @override
-  Future<void> restore(String id) async {}
-
-  @override
-  Future<void> purge(String id) async {}
-
-  @override
-  Future<int> purgeExpired(DateTime cutoff) async => 0;
-
-  @override
-  Future<List<NoteRow>> trashList() async => [];
-
-  @override
-  Future<void> setDeviceName(String name) async {}
-
-  @override
-  Future<List<String>> localAddrs() async => [];
-
-  @override
-  Future<PairingRequest> acceptPairingRequest() =>
-      throw UnimplementedError('not used in pairing mdns tests');
-
   /// 任务 M：有界接收——本 fake 不模拟接收（显示码弹窗仅展示码，不配对），
   /// 返回永不完成的 future，使现有显示码测试保持"等待中"状态。
   @override
   Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) =>
       Completer<PairingRequest?>().future;
-
-  @override
-  Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
-      throw UnimplementedError('not used in pairing mdns tests');
-
-  @override
-  Future<void> acceptAndImportPush() async {}
-
-  @override
-  Future<void> removePairedDevice(String peerId) async {}
 }
 
 Future<void> _pumpDevicesPage(
