@@ -236,8 +236,16 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       _maybeSync(b, file, index);
     case FileCategory.dartBusiness:
       b.add(Commands.analyze());
-      for (final related in _relatedDartTests(file, index)) {
-        b.add(Commands.flutterTest(<String>[related]));
+      final related = _relatedDartTests(file, index);
+      if (related.isEmpty) {
+        // 无窄测试可映射：不得静默零测试（改 lib/main.dart 只跑 analyze 等于
+        // 没测）。fail-closed 落全量 flutter test——不知道有没有测试时，
+        // 全量是唯一安全答案；这是兜底而非精确路由。
+        b.add(Commands.flutterFullTest());
+      } else {
+        for (final test in related) {
+          b.add(Commands.flutterTest(<String>[test]));
+        }
       }
       // test/support/ 下的共享 fake 由 _relatedDartTests 的显式 importer
       // 映射路由到真实消费方；文件名里的 memory/credential/device 等
