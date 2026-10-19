@@ -792,24 +792,17 @@ void main() {
       ], reason: '文件集合必须完整、顺序稳定、无重复');
     });
 
-    test('12b 合批：test_boundary_scanner 的 10 条 flutter 测试合成 1 条', () {
+    test('12b 合批：test_boundary_scanner 只路由到自身窄测试（1 条命令）', () {
+      // 旧行为：路径含 'scanner' 子串，被 _pairingKeywords 命中，错配 9 个
+      // pairing 测试 + 自身共 10 个文件。修复后 pairing 集群不得再出现。
       final plan = selectPlanForFiles([
         'tool/test_boundary_scanner.dart',
       ], index: testIndex);
       final cmds = flutterTestCmdsOf(plan);
       expect(cmds, hasLength(1), reason: '同一计划里的 flutter 测试必须合批成一条命令');
       expect(flutterTestFilesOfCmd(cmds.single), <String>[
-        'test/device_name_edit_test.dart',
-        'test/devices_page_widget_test.dart',
-        'test/pairing_accept_ui_test.dart',
-        'test/pairing_credential_repository_test.dart',
-        'test/pairing_credential_ui_test.dart',
-        'test/pairing_log_events_test.dart',
-        'test/pairing_mdns_widget_test.dart',
-        'test/pairing_repository_test.dart',
-        'test/sync_ui_widget_test.dart',
         'test/test_boundary_scanner_rust_test.dart',
-      ], reason: '10 个文件一个不漏，顺序稳定、无重复');
+      ], reason: '只应选边界扫描器自身的窄测试，不带 pairing 集群');
     });
 
     test('12c 合批：跨 staged 文件重复命中的测试只出现一次', () {
@@ -1040,6 +1033,86 @@ void main() {
         isEmpty,
         reason: '业务代码改动不应选文档契约测试',
       );
+    });
+
+    // ── 缺陷 A：api.rs 的 Rust target 映射要覆盖真实消费方 ──────────────
+    test('13a api.rs 选中全部真实 api:: 消费方 + 原有 target', () {
+      // 真相源：git grep -l "api::" rust-backend/tests/ → trash_test /
+      // debug_log_test / live_relay_test。旧映射（note_crdt/store/pairing）
+      // 中没有一个引用 api::，真实消费方被漏跑。
+      final plan = selectPlanForFiles(<String>[
+        'rust-backend/src/api.rs',
+      ], index: testIndex);
+      final rustTargets = plan.steps
+          .where((s) => s.kind == CommandKind.rustTest)
+          .map((s) => s.arguments.last)
+          .toSet();
+      expect(
+        rustTargets,
+        containsAll(<String>[
+          'trash_test',
+          'debug_log_test',
+          'live_relay_test',
+        ]),
+        reason: 'api.rs 必须跑引用 api:: 的 3 个 Rust 测试 target',
+      );
+      expect(
+        rustTargets,
+        containsAll(<String>['note_crdt_test', 'store_test', 'pairing_test']),
+        reason: '原有 target 不得丢',
+      );
+    });
+
+    test('13b api.rs 部分索引按存在性收窄（不凭空加 target）', () {
+      // 注入只含部分 target 的索引：选到的集合按存在性收窄，
+      // 且不凭空出现不存在的 target（与 _relatedRustTargets 现有
+      // existing/null 语义一致）。
+      const partial = TestIndex(
+        flutterTestFiles: <String>{},
+        rustTestTargets: <String>{'trash_test', 'store_test'},
+      );
+      final plan = selectPlanForFiles(<String>[
+        'rust-backend/src/api.rs',
+      ], index: partial);
+      final rustTargets = plan.steps
+          .where((s) => s.kind == CommandKind.rustTest)
+          .map((s) => s.arguments.last)
+          .toSet();
+      expect(rustTargets, <String>{
+        'trash_test',
+        'store_test',
+      }, reason: '部分索引只选存在的 target，不得出现索引外的 target');
+    });
+
+    // ── 缺陷 B：'scanner' 子串不得把边界扫描器错配到 pairing 集群 ───────
+    test('13c tool/test_boundary_scanner.dart 不带 pairing 集群', () {
+      final plan = selectPlanForFiles(<String>[
+        'tool/test_boundary_scanner.dart',
+      ], index: testIndex);
+      final files = plan.steps
+          .where((s) => s.kind == CommandKind.flutterTest)
+          .expand((s) => s.arguments.skip(3))
+          .toSet();
+      expect(files, <String>{'test/test_boundary_scanner_rust_test.dart'});
+      expect(
+        files.where((f) => f.contains('pairing') || f.contains('device')),
+        isEmpty,
+        reason: '边界扫描器工具与配对无关，不得路由到 pairing/device 测试',
+      );
+    });
+
+    test('13d coverage_absence 测试自身不带 pairing 集群', () {
+      // dartTest 分类：文件名含 'scanner' 时旧逻辑会附 9 个 pairing 测试。
+      final plan = selectPlanForFiles(<String>[
+        'test/test_boundary_scanner_coverage_absence_test.dart',
+      ], index: testIndex);
+      final files = plan.steps
+          .where((s) => s.kind == CommandKind.flutterTest)
+          .expand((s) => s.arguments.skip(3))
+          .toSet();
+      expect(files, <String>{
+        'test/test_boundary_scanner_coverage_absence_test.dart',
+      }, reason: 'coverage_absence 测试只应跑自身，不带 pairing 集群');
     });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。

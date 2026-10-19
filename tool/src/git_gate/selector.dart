@@ -388,10 +388,16 @@ void _addIfExists(PlanBuilder b, TestIndex index, List<String> tests) {
   }
 }
 
+// 注：不含 'scanner'——该子串本意指向 lib/scanner/（扫码模块，参与配对
+// 流程），但整路径 contains 会把 tool/test_boundary_scanner.dart 与
+// test/test_boundary_scanner_*_test.dart 等边界扫描器路径错配到
+// pairing 集群（9 个无关 widget 测试，且其中 pairing_credential_repository
+// 在无运行态 DLL 的 worktree 里 error 126）。lib/scanner/* 没有同名窄
+// 测试，摘掉关键词后走「空映射 fail-closed → 全量 flutter test」，比
+// 9 个窄测试更省也更全。
 const List<String> _pairingKeywords = <String>[
   'pairing',
   'device',
-  'scanner',
   'discovery',
 ];
 
@@ -601,7 +607,19 @@ List<String>? _relatedRustTargets(String file, TestIndex index) {
   } else if (lower.contains('trash')) {
     candidates = const <String>['trash_test', 'store_test', 'note_crdt_test'];
   } else if (lower.contains('api') || lower.contains('frb')) {
-    candidates = const <String>['note_crdt_test', 'store_test', 'pairing_test'];
+    // FRB 导出层：「真实消费方」= 引用 api:: 的测试（真相源：
+    // `git grep -l "api::" rust-backend/tests/` → trash_test /
+    // debug_log_test / live_relay_test）+ 导出层直接覆盖的核心面
+    // （note_crdt / store / pairing）。新增/重命名引用 api:: 的 Rust
+    // 测试时同步更新本表。
+    candidates = const <String>[
+      'trash_test',
+      'debug_log_test',
+      'live_relay_test',
+      'note_crdt_test',
+      'store_test',
+      'pairing_test',
+    ];
   } else if (lower.contains('debug')) {
     candidates = const <String>['debug_log_test'];
   } else if (lower.contains('migration')) {
