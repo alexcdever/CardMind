@@ -817,6 +817,80 @@ void main() {
         'test/trash_page_widget_test.dart',
       ], reason: '并集去重且顺序稳定');
     });
+
+    // ── 标准 2：无窄测试可映射的 dartBusiness 文件 fail-closed 落全量 ────────
+    test('12d 空映射 fail-closed：无窄测试的 dartBusiness 落全量 flutter test', () {
+      // 这 5 个是主代理实测「计划里只有 flutter:analyze、零测试」的典型：
+      // _relatedDartTests 命中 0（无同名测试、无 importer 映射、无关键词）。
+      for (final file in <String>[
+        'lib/main.dart',
+        'lib/models/update_channel.dart',
+        'lib/ui/design_system/cardmind_widgets.dart',
+        'lib/bridge/bridge_helper.dart',
+        'tool/lint/markdown_references_linter.dart',
+      ]) {
+        final plan = selectPlanForFiles(<String>[file], index: testIndex);
+        final cmds = flutterTestCmdsOf(plan);
+        expect(
+          cmds,
+          hasLength(1),
+          reason: '$file 没有窄测试可映射，必须落一条全量 flutter test（不得静默零测试）',
+        );
+        expect(
+          flutterTestFilesOfCmd(cmds.single),
+          isEmpty,
+          reason: '$file 的全量 flutter test 不得带文件参数',
+        );
+        expect(
+          cmds.single.label,
+          'flutter:test:full',
+          reason: '$file 应落全量 flutter test（label 为 flutter:test:full）',
+        );
+        expect(
+          kindsOf(plan),
+          contains(CommandKind.analyze),
+          reason: '$file 仍应跑 flutter analyze',
+        );
+      }
+    });
+
+    test('12e 对照腿：有窄测试映射的 dartBusiness 不落全量', () {
+      // 防「恒落全量」空断言：命中窄测试时必须只跑窄测试。
+      for (final file in <String>[
+        'lib/pages/editor_page.dart',
+        'lib/pages/devices_page.dart',
+        'tool/build.dart',
+        'test/support/doc_helpers.dart',
+      ]) {
+        final plan = selectPlanForFiles(<String>[file], index: testIndex);
+        expect(
+          plan.steps.where((s) => s.label == 'flutter:test:full'),
+          isEmpty,
+          reason: '$file 命中窄测试，不得升级为全量 flutter test',
+        );
+      }
+    });
+
+    test('12f 对照腿：其它分类不受空映射兜底影响', () {
+      // markdown 走 docs:lint 路由，不由 dartBusiness 兜底升级。
+      final md = selectPlanForFiles(<String>[
+        'docs/product.md',
+      ], index: testIndex);
+      expect(
+        md.steps.where((s) => s.label == 'flutter:test:full'),
+        isEmpty,
+        reason: 'markdown 改动不落全量 flutter test',
+      );
+      // rustTool 完全不含 flutter 步骤。
+      final rustTool = selectPlanForFiles(<String>[
+        'rust-backend/tool/boundary_scanner/src/main.rs',
+      ], index: testIndex);
+      expect(
+        kindsOf(rustTool),
+        isNot(contains(CommandKind.flutterTest)),
+        reason: 'rustTool 不跑 flutter 测试',
+      );
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
