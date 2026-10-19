@@ -147,6 +147,14 @@ List<CommandKind> kindsOf(GatePlan plan) =>
 List<String> argsOf(GatePlan plan, CommandKind kind) =>
     plan.steps.where((s) => s.kind == kind).expand((s) => s.arguments).toList();
 
+/// 计划里的 flutter test 命令（合批后应为 0 或 1 条）。
+List<GateCommand> flutterTestCmdsOf(GatePlan plan) =>
+    plan.steps.where((s) => s.kind == CommandKind.flutterTest).toList();
+
+/// flutter test 命令携带的测试文件（跳过 `test --timeout 5m` 前缀）。
+List<String> flutterTestFilesOfCmd(GateCommand cmd) =>
+    cmd.arguments.skip(3).toList();
+
 void main() {
   group('selector', () {
     test('1 docs-only 计划只有 format + docs lint，无代码测试', () {
@@ -748,6 +756,66 @@ void main() {
       // tool/release 之外的 .py 无分类 → 仍落 unknown（fail-closed 双栈全量）。
       expect(classifyPath('tool/foo.py'), FileCategory.unknown);
       expect(classifyPath('scripts/gen.py'), FileCategory.unknown);
+    });
+
+    // ── 标准 1：同一计划里的 flutter 测试合批成一条多文件命令 ──────────────
+    test('12a 合批：devices_page 的 9 条 flutter 测试合成 1 条多文件命令', () {
+      final plan = selectPlanForFiles([
+        'lib/pages/devices_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '同一计划里的 flutter 测试必须合批成一条命令');
+      expect(cmds.single.arguments, <String>[
+        'test',
+        '--timeout',
+        '5m',
+        'test/device_name_edit_test.dart',
+        'test/devices_page_widget_test.dart',
+        'test/pairing_accept_ui_test.dart',
+        'test/pairing_credential_repository_test.dart',
+        'test/pairing_credential_ui_test.dart',
+        'test/pairing_log_events_test.dart',
+        'test/pairing_mdns_widget_test.dart',
+        'test/pairing_repository_test.dart',
+        'test/sync_ui_widget_test.dart',
+      ], reason: '文件集合必须完整、顺序稳定、无重复');
+    });
+
+    test('12b 合批：test_boundary_scanner 的 10 条 flutter 测试合成 1 条', () {
+      final plan = selectPlanForFiles([
+        'tool/test_boundary_scanner.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '同一计划里的 flutter 测试必须合批成一条命令');
+      expect(flutterTestFilesOfCmd(cmds.single), <String>[
+        'test/device_name_edit_test.dart',
+        'test/devices_page_widget_test.dart',
+        'test/pairing_accept_ui_test.dart',
+        'test/pairing_credential_repository_test.dart',
+        'test/pairing_credential_ui_test.dart',
+        'test/pairing_log_events_test.dart',
+        'test/pairing_mdns_widget_test.dart',
+        'test/pairing_repository_test.dart',
+        'test/sync_ui_widget_test.dart',
+        'test/test_boundary_scanner_rust_test.dart',
+      ], reason: '10 个文件一个不漏，顺序稳定、无重复');
+    });
+
+    test('12c 合批：跨 staged 文件重复命中的测试只出现一次', () {
+      // memory_note_repository 的 import 方含 trash_page_widget_test；
+      // lib/pages/trash_page.dart 的 stem 也命中同一个测试——合批后不得重复。
+      final plan = selectPlanForFiles([
+        'test/support/memory_note_repository.dart',
+        'lib/pages/trash_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '跨 staged 文件的测试也要合批');
+      expect(flutterTestFilesOfCmd(cmds.single), <String>[
+        'test/editor_page_widget_test.dart',
+        'test/knowledge_base_widget_test.dart',
+        'test/note_list_page_widget_test.dart',
+        'test/trash_page_widget_test.dart',
+      ], reason: '并集去重且顺序稳定');
     });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
