@@ -891,6 +891,59 @@ void main() {
         reason: 'rustTool 不跑 flutter 测试',
       );
     });
+
+    // ── 标准 3：全量优先、不重复 ────────────────────────────────────────
+    test('12g 全量优先：已有全量 flutter test 时窄命令不再保留', () {
+      // lib/main.dart 走空映射兜底落全量；lib/pages/editor_page.dart 有窄测试
+      // editor_page_widget_test。全量已覆盖它，再跑窄命令是纯重复开销。
+      final plan = selectPlanForFiles(<String>[
+        'lib/main.dart',
+        'lib/pages/editor_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '全量 + 窄命令必须收敛成一条');
+      expect(
+        flutterTestFilesOfCmd(cmds.single),
+        isEmpty,
+        reason: '收敛后必须是全量命令（不带文件参数）',
+      );
+      expect(cmds.single.label, 'flutter:test:full');
+      // 窄命令彻底消失（不是被全量盖住但仍留在计划里）。
+      expect(
+        cmds.where(
+          (c) => c.arguments.contains('test/editor_page_widget_test.dart'),
+        ),
+        isEmpty,
+        reason: '不得同时出现 test/editor_page_widget_test.dart 的窄命令',
+      );
+    });
+
+    test('12h 全量优先：平台/配置类全量与业务窄命令同样收敛', () {
+      // pubspec.yaml 本身就是全量 fail-closed；混入有窄测试的业务文件后仍只一条。
+      final plan = selectPlanForFiles(<String>[
+        'pubspec.yaml',
+        'lib/pages/devices_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '全量与窄命令必须收敛成一条');
+      expect(cmds.single.arguments, <String>['test', '--timeout', '5m']);
+      expect(cmds.single.label, 'flutter:test:full');
+    });
+
+    test('12i 对照腿：没有全量时窄命令照常保留（不被误吞）', () {
+      final plan = selectPlanForFiles(<String>[
+        'lib/pages/editor_page.dart',
+        'lib/pages/note_list_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '合批成一条');
+      expect(
+        flutterTestFilesOfCmd(cmds.single),
+        isNotEmpty,
+        reason: '无全量时必须是带文件参数的窄命令，不能被误吞成空',
+      );
+      expect(cmds.single.label, 'flutter:test');
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
