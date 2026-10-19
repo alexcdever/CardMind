@@ -411,5 +411,16 @@ void main() {
       expect(_scriptWorkingDirectory(step), clippy.workingDirectory);
       expect(_cargoArguments(step, 'clippy'), clippy.arguments);
     });
+    test('no redundant cargo check step (clippy already compiles)', () {
+      final steps = _rustQualitySteps();
+      expect(
+        steps.map((step) => '${step['name']}'),
+        isNot(contains('Run cargo check')),
+      );
+      final source = File(
+        '.github/workflows/rust_quality.yml',
+      ).readAsStringSync();
+      expect(source, isNot(contains('cargo check')));
+    });
   });
 }
