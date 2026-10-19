@@ -59,26 +59,59 @@ class GatePlan {
   }
 }
 
-/// 命令构建器：同一命令只能出现一次。
+/// 命令构建器：同一命令只能出现一次；flutter 测试在计划内合批、全量优先。
+///
+/// flutter test 命令不逐条入计划，而是按测试文件聚合成**一条**多文件命令
+/// （`flutter test --timeout 5m a.dart b.dart ...`）：单进程固定开销
+/// （实测 ≈17s/次）远大于多文件共享同一进程的成本，逐条命令会让「窄路由」
+/// 比整仓全量还贵。合批后文件按字典序稳定排序、跨 staged 文件去重。
+///
+/// 全量优先：计划里一旦出现全量 flutter test（无文件参数），窄命令全部丢弃
+/// ——全量已覆盖它们，再跑一遍是纯重复开销。
 class PlanBuilder {
   final Set<String> _seen = <String>{};
   final List<GateCommand> _steps = <GateCommand>[];
 
+  /// 合批的 flutter 测试文件（输出时字典序）。
+  final Set<String> _flutterTestFiles = <String>{};
+
+  /// 是否已出现全量 flutter test（无文件参数）。
+  bool _flutterFullTest = false;
+
   void add(GateCommand command) {
+    if (command.kind == CommandKind.flutterTest) {
+      final files = _flutterTestFilesOf(command);
+      if (files.isEmpty) {
+        _flutterFullTest = true;
+      } else {
+        _flutterTestFiles.addAll(files);
+      }
+      return;
+    }
     if (_seen.add(command.signature)) {
       _steps.add(command);
     }
   }
 
   List<GateCommand> build() {
-    final sorted = List<GateCommand>.of(_steps)
-      ..sort((a, b) {
-        final byKind = a.kind.priority.compareTo(b.kind.priority);
-        if (byKind != 0) return byKind;
-        return a.signature.compareTo(b.signature);
-      });
-    return sorted;
+    final steps = List<GateCommand>.of(_steps);
+    if (_flutterFullTest) {
+      steps.add(Commands.flutterFullTest());
+    } else if (_flutterTestFiles.isNotEmpty) {
+      final files = _flutterTestFiles.toList()..sort();
+      steps.add(Commands.flutterTest(files));
+    }
+    steps.sort((a, b) {
+      final byKind = a.kind.priority.compareTo(b.kind.priority);
+      if (byKind != 0) return byKind;
+      return a.signature.compareTo(b.signature);
+    });
+    return steps;
   }
+
+  /// flutter test 命令携带的测试文件（`test --timeout 5m` 之后的部分）。
+  static List<String> _flutterTestFilesOf(GateCommand command) =>
+      command.arguments.skip(3).toList();
 }
 
 /// 分类（路径归一化为 POSIX 风格；Windows 反斜杠与 POSIX 斜杠结果相同）。
@@ -205,7 +238,11 @@ GatePlan selectPlanForFiles(List<String> files, {required TestIndex index}) {
 void _contribute(PlanBuilder b, String file, TestIndex index) {
   switch (classifyPath(file)) {
     case FileCategory.markdown:
+      // 文档改动：markdown 引用 lint + 全部文档契约测试。文档契约测试
+      // （AGENTS.md/docs 的结构与引用契约）只有改文档时才可能被打破，
+      // 漏跑等于让契约测试永远不覆盖它守的文档。
       b.add(Commands.docsLint());
+      _addIfExists(b, index, docContractTests(index));
     case FileCategory.dartTest:
       b.add(Commands.analyze());
       b.add(Commands.flutterTest(<String>[file]));
@@ -213,8 +250,22 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
       _maybeSync(b, file, index);
     case FileCategory.dartBusiness:
       b.add(Commands.analyze());
-      for (final related in _relatedDartTests(file, index)) {
-        b.add(Commands.flutterTest(<String>[related]));
+      final related = _relatedDartTests(file, index);
+      if (related.isEmpty) {
+        // 无窄测试可映射：不得静默零测试（改 lib/main.dart 只跑 analyze 等于
+        // 没测）。fail-closed 落全量 flutter test——不知道有没有测试时，
+        // 全量是唯一安全答案；这是兜底而非精确路由。
+        //
+        // 前提是仓库确有测试资产（索引非空）：最小仓库（如 hook 集成测试的
+        // 临时仓库，只有 lib/x.dart 没有 test/）里全量 flutter test 会去跑
+        // 不存在的测试，把「没有测试」变成一条必失败的检查。
+        if (index.flutterTestFiles.isNotEmpty) {
+          b.add(Commands.flutterFullTest());
+        }
+      } else {
+        for (final test in related) {
+          b.add(Commands.flutterTest(<String>[test]));
+        }
       }
       // test/support/ 下的共享 fake 由 _relatedDartTests 的显式 importer
       // 映射路由到真实消费方；文件名里的 memory/credential/device 等
@@ -419,6 +470,16 @@ const Map<String, List<String>> _supportFakeImporters = <String, List<String>>{
     'test/ui_style_guide_doc_test.dart',
   ],
 };
+
+/// 全部文档契约测试（markdown 改动时按存在性选上）。
+///
+/// **真相源复用** [_supportFakeImporters] 的 `doc_helpers` 名单：那 9 条
+/// 就是 `test/support/doc_helpers.dart` 的全部消费方，也就是全部文档契约
+/// 测试。不另抄一份名单——两处名单必然漂移。
+List<String> docContractTests(TestIndex index) {
+  final importers = _supportFakeImporters['doc_helpers'] ?? const <String>[];
+  return importers.where(index.flutterTestFiles.contains).toList()..sort();
+}
 
 /// 与 lib/tool Dart 业务文件相关的测试。
 ///

@@ -147,9 +147,17 @@ List<CommandKind> kindsOf(GatePlan plan) =>
 List<String> argsOf(GatePlan plan, CommandKind kind) =>
     plan.steps.where((s) => s.kind == kind).expand((s) => s.arguments).toList();
 
+/// 计划里的 flutter test 命令（合批后应为 0 或 1 条）。
+List<GateCommand> flutterTestCmdsOf(GatePlan plan) =>
+    plan.steps.where((s) => s.kind == CommandKind.flutterTest).toList();
+
+/// flutter test 命令携带的测试文件（跳过 `test --timeout 5m` 前缀）。
+List<String> flutterTestFilesOfCmd(GateCommand cmd) =>
+    cmd.arguments.skip(3).toList();
+
 void main() {
   group('selector', () {
-    test('1 docs-only 计划只有 format + docs lint，无代码测试', () {
+    test('1 docs-only 计划 = format + docs lint + 全部文档契约测试', () {
       final plan = selectPlanForFiles([
         'docs/standards/testing.md',
       ], index: testIndex);
@@ -157,7 +165,18 @@ void main() {
         CommandKind.formatDart,
         CommandKind.formatRust,
         CommandKind.docsLint,
+        CommandKind.flutterTest,
       ]);
+      // 只有文档契约测试（9 个合批一条），不跑 analyze、不跑全量。
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1));
+      expect(cmds.single.label, 'flutter:test');
+      expect(flutterTestFilesOfCmd(cmds.single), hasLength(9));
+      expect(
+        kindsOf(plan),
+        isNot(contains(CommandKind.analyze)),
+        reason: '文档改动不需要 flutter analyze',
+      );
     });
 
     test('2 单个 Flutter test 文件只选自身（同时含 analyze）', () {
@@ -749,6 +768,279 @@ void main() {
       expect(classifyPath('tool/foo.py'), FileCategory.unknown);
       expect(classifyPath('scripts/gen.py'), FileCategory.unknown);
     });
+
+    // ── 标准 1：同一计划里的 flutter 测试合批成一条多文件命令 ──────────────
+    test('12a 合批：devices_page 的 9 条 flutter 测试合成 1 条多文件命令', () {
+      final plan = selectPlanForFiles([
+        'lib/pages/devices_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '同一计划里的 flutter 测试必须合批成一条命令');
+      expect(cmds.single.arguments, <String>[
+        'test',
+        '--timeout',
+        '5m',
+        'test/device_name_edit_test.dart',
+        'test/devices_page_widget_test.dart',
+        'test/pairing_accept_ui_test.dart',
+        'test/pairing_credential_repository_test.dart',
+        'test/pairing_credential_ui_test.dart',
+        'test/pairing_log_events_test.dart',
+        'test/pairing_mdns_widget_test.dart',
+        'test/pairing_repository_test.dart',
+        'test/sync_ui_widget_test.dart',
+      ], reason: '文件集合必须完整、顺序稳定、无重复');
+    });
+
+    test('12b 合批：test_boundary_scanner 的 10 条 flutter 测试合成 1 条', () {
+      final plan = selectPlanForFiles([
+        'tool/test_boundary_scanner.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '同一计划里的 flutter 测试必须合批成一条命令');
+      expect(flutterTestFilesOfCmd(cmds.single), <String>[
+        'test/device_name_edit_test.dart',
+        'test/devices_page_widget_test.dart',
+        'test/pairing_accept_ui_test.dart',
+        'test/pairing_credential_repository_test.dart',
+        'test/pairing_credential_ui_test.dart',
+        'test/pairing_log_events_test.dart',
+        'test/pairing_mdns_widget_test.dart',
+        'test/pairing_repository_test.dart',
+        'test/sync_ui_widget_test.dart',
+        'test/test_boundary_scanner_rust_test.dart',
+      ], reason: '10 个文件一个不漏，顺序稳定、无重复');
+    });
+
+    test('12c 合批：跨 staged 文件重复命中的测试只出现一次', () {
+      // memory_note_repository 的 import 方含 trash_page_widget_test；
+      // lib/pages/trash_page.dart 的 stem 也命中同一个测试——合批后不得重复。
+      final plan = selectPlanForFiles([
+        'test/support/memory_note_repository.dart',
+        'lib/pages/trash_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '跨 staged 文件的测试也要合批');
+      expect(flutterTestFilesOfCmd(cmds.single), <String>[
+        'test/editor_page_widget_test.dart',
+        'test/knowledge_base_widget_test.dart',
+        'test/note_list_page_widget_test.dart',
+        'test/trash_page_widget_test.dart',
+      ], reason: '并集去重且顺序稳定');
+    });
+
+    // ── 标准 2：无窄测试可映射的 dartBusiness 文件 fail-closed 落全量 ────────
+    test('12d 空映射 fail-closed：无窄测试的 dartBusiness 落全量 flutter test', () {
+      // 这 5 个是主代理实测「计划里只有 flutter:analyze、零测试」的典型：
+      // _relatedDartTests 命中 0（无同名测试、无 importer 映射、无关键词）。
+      for (final file in <String>[
+        'lib/main.dart',
+        'lib/models/update_channel.dart',
+        'lib/ui/design_system/cardmind_widgets.dart',
+        'lib/bridge/bridge_helper.dart',
+        'tool/lint/markdown_references_linter.dart',
+      ]) {
+        final plan = selectPlanForFiles(<String>[file], index: testIndex);
+        final cmds = flutterTestCmdsOf(plan);
+        expect(
+          cmds,
+          hasLength(1),
+          reason: '$file 没有窄测试可映射，必须落一条全量 flutter test（不得静默零测试）',
+        );
+        expect(
+          flutterTestFilesOfCmd(cmds.single),
+          isEmpty,
+          reason: '$file 的全量 flutter test 不得带文件参数',
+        );
+        expect(
+          cmds.single.label,
+          'flutter:test:full',
+          reason: '$file 应落全量 flutter test（label 为 flutter:test:full）',
+        );
+        expect(
+          kindsOf(plan),
+          contains(CommandKind.analyze),
+          reason: '$file 仍应跑 flutter analyze',
+        );
+      }
+    });
+
+    test('12d2 对照腿：仓库没有测试资产时不落全量（防误伤最小仓库）', () {
+      // hook 集成测试的临时仓库只有 lib/x.dart + tool/，没有 test/ 目录：
+      // 此时索引为空，任何 dartBusiness 都会「无窄测试可映射」。若在这种情况下
+      // 也落全量 flutter test，最小仓库的提交会去跑根本不存在的全量测试。
+      // 语义：fail-closed 兜底的前提是「仓库里有测试资产可跑」。
+      const emptyIndex = TestIndex(
+        flutterTestFiles: <String>{},
+        rustTestTargets: <String>{},
+      );
+      final plan = selectPlanForFiles(<String>[
+        'lib/x.dart',
+      ], index: emptyIndex);
+      expect(
+        kindsOf(plan),
+        isNot(contains(CommandKind.flutterTest)),
+        reason: '索引为空时不得落全量 flutter test',
+      );
+      expect(kindsOf(plan), contains(CommandKind.analyze));
+    });
+
+    test('12e 对照腿：有窄测试映射的 dartBusiness 不落全量', () {
+      // 防「恒落全量」空断言：命中窄测试时必须只跑窄测试。
+      for (final file in <String>[
+        'lib/pages/editor_page.dart',
+        'lib/pages/devices_page.dart',
+        'tool/build.dart',
+        'test/support/doc_helpers.dart',
+      ]) {
+        final plan = selectPlanForFiles(<String>[file], index: testIndex);
+        expect(
+          plan.steps.where((s) => s.label == 'flutter:test:full'),
+          isEmpty,
+          reason: '$file 命中窄测试，不得升级为全量 flutter test',
+        );
+      }
+    });
+
+    test('12f 对照腿：其它分类不受空映射兜底影响', () {
+      // markdown 走 docs:lint 路由，不由 dartBusiness 兜底升级。
+      final md = selectPlanForFiles(<String>[
+        'docs/product.md',
+      ], index: testIndex);
+      expect(
+        md.steps.where((s) => s.label == 'flutter:test:full'),
+        isEmpty,
+        reason: 'markdown 改动不落全量 flutter test',
+      );
+      // rustTool 完全不含 flutter 步骤。
+      final rustTool = selectPlanForFiles(<String>[
+        'rust-backend/tool/boundary_scanner/src/main.rs',
+      ], index: testIndex);
+      expect(
+        kindsOf(rustTool),
+        isNot(contains(CommandKind.flutterTest)),
+        reason: 'rustTool 不跑 flutter 测试',
+      );
+    });
+
+    // ── 标准 3：全量优先、不重复 ────────────────────────────────────────
+    test('12g 全量优先：已有全量 flutter test 时窄命令不再保留', () {
+      // lib/main.dart 走空映射兜底落全量；lib/pages/editor_page.dart 有窄测试
+      // editor_page_widget_test。全量已覆盖它，再跑窄命令是纯重复开销。
+      final plan = selectPlanForFiles(<String>[
+        'lib/main.dart',
+        'lib/pages/editor_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '全量 + 窄命令必须收敛成一条');
+      expect(
+        flutterTestFilesOfCmd(cmds.single),
+        isEmpty,
+        reason: '收敛后必须是全量命令（不带文件参数）',
+      );
+      expect(cmds.single.label, 'flutter:test:full');
+      // 窄命令彻底消失（不是被全量盖住但仍留在计划里）。
+      expect(
+        cmds.where(
+          (c) => c.arguments.contains('test/editor_page_widget_test.dart'),
+        ),
+        isEmpty,
+        reason: '不得同时出现 test/editor_page_widget_test.dart 的窄命令',
+      );
+    });
+
+    test('12h 全量优先：平台/配置类全量与业务窄命令同样收敛', () {
+      // pubspec.yaml 本身就是全量 fail-closed；混入有窄测试的业务文件后仍只一条。
+      final plan = selectPlanForFiles(<String>[
+        'pubspec.yaml',
+        'lib/pages/devices_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '全量与窄命令必须收敛成一条');
+      expect(cmds.single.arguments, <String>['test', '--timeout', '5m']);
+      expect(cmds.single.label, 'flutter:test:full');
+    });
+
+    test('12i 对照腿：没有全量时窄命令照常保留（不被误吞）', () {
+      final plan = selectPlanForFiles(<String>[
+        'lib/pages/editor_page.dart',
+        'lib/pages/note_list_page.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '合批成一条');
+      expect(
+        flutterTestFilesOfCmd(cmds.single),
+        isNotEmpty,
+        reason: '无全量时必须是带文件参数的窄命令，不能被误吞成空',
+      );
+      expect(cmds.single.label, 'flutter:test');
+    });
+
+    // ── 标准 4：markdown 改动选上全部文档契约测试 ─────────────────────────
+    test('12j markdown 改动：docs:lint + 全部文档契约测试（合批一条）', () {
+      // 9 个测试就是 _supportFakeImporters['doc_helpers'] 那份名单
+      // （全部 doc_helpers 消费方 = 全部文档契约测试）。
+      const docContractTests = <String>[
+        'test/adr_0008_test.dart',
+        'test/agents_md_test.dart',
+        'test/design_tokens_doc_test.dart',
+        'test/docs_dir_test.dart',
+        'test/markdown_references_test.dart',
+        'test/product_doc_test.dart',
+        'test/spec_lifecycle_doc_test.dart',
+        'test/sync_network_doc_test.dart',
+        'test/ui_style_guide_doc_test.dart',
+      ];
+      for (final md in <String>['docs/product.md', 'AGENTS.md']) {
+        final plan = selectPlanForFiles(<String>[md], index: testIndex);
+        expect(
+          plan.steps.where((s) => s.label == 'docs:lint'),
+          hasLength(1),
+          reason: '$md 仍要跑 docs:lint',
+        );
+        final cmds = flutterTestCmdsOf(plan);
+        expect(cmds, hasLength(1), reason: '$md 的文档契约测试应合批成一条');
+        expect(
+          flutterTestFilesOfCmd(cmds.single),
+          docContractTests,
+          reason: '$md 必须选上全部 9 个文档契约测试（顺序稳定、无重复）',
+        );
+      }
+    });
+
+    test('12k markdown 契约测试按存在性加入（不存在的跳过）', () {
+      // 与 _addIfExists 同语义：索引里没有的测试文件不得进计划，
+      // 否则 flutter test 会因「找不到文件」失败。
+      final sparse = TestIndex(
+        flutterTestFiles: <String>{
+          'test/product_doc_test.dart',
+          'test/markdown_references_test.dart',
+        },
+        rustTestTargets: const <String>{},
+      );
+      final plan = selectPlanForFiles(<String>[
+        'docs/product.md',
+      ], index: sparse);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1));
+      expect(flutterTestFilesOfCmd(cmds.single), <String>[
+        'test/markdown_references_test.dart',
+        'test/product_doc_test.dart',
+      ], reason: '只选索引里存在的文档契约测试');
+    });
+
+    test('12l 对照腿：非 markdown 不改动选文档契约测试', () {
+      // 防「恒选文档测试」空断言。
+      final plan = selectPlanForFiles(<String>[
+        'lib/pages/editor_page.dart',
+      ], index: testIndex);
+      final files = flutterTestFilesOfCmd(flutterTestCmdsOf(plan).single);
+      expect(
+        files.where((f) => f.contains('_doc_test') || f.contains('markdown')),
+        isEmpty,
+        reason: '业务代码改动不应选文档契约测试',
+      );
+    });
     // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
     // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
@@ -1254,7 +1546,21 @@ void main() {
       );
       expect(called.any((c) => c.contains('clippy')), isFalse);
       expect(called.any((c) => c.contains('flutter|analyze')), isFalse);
-      expect(called.any((c) => c.contains('flutter|test')), isFalse);
+      // 文档契约测试要跑（9 个合批一条），但只跑文档契约测试、不跑全量。
+      final flutterTestCalls = called
+          .where((c) => c.contains('flutter|test'))
+          .toList();
+      expect(flutterTestCalls, hasLength(1), reason: '文档契约测试合批成一条');
+      expect(
+        flutterTestCalls.single,
+        isNot('flutter|test --timeout 5m'),
+        reason: 'docs-only 不得落全量 flutter test',
+      );
+      expect(
+        flutterTestCalls.single,
+        contains('test/product_doc_test.dart'),
+        reason: 'docs-only 必须选上文档契约测试',
+      );
     });
   });
 
