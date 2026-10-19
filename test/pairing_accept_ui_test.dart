@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
 import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
@@ -8,6 +7,8 @@ import 'package:cardmind/src/rust/sync.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/note_repository_stub.dart';
 
 /// 任务 M（显示码流程启动确认方接收器）验收测试：
 ///
@@ -29,7 +30,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 任务 M 专用 fake repository：记录 UI 对配对 API 的调用轨迹，并可控地模拟
 /// 确认方接收（acceptPairingRequestWithTimeout）与确认（confirmPairing）行为。
-class PairingAcceptRepository implements NoteRepository {
+class PairingAcceptRepository extends NoteRepositoryStub {
   /// 显示的配对码（固定，测试断言用）。
   String acceptCodeValue = '289260';
 
@@ -200,73 +201,6 @@ class PairingAcceptRepository implements NoteRepository {
 
   @override
   Future<String> deviceId() async => 'confirmer-device';
-
-  @override
-  Future<List<NoteRow>> listNotes() async => [];
-
-  @override
-  Future<List<NoteRow>> search(String query) async => [];
-
-  @override
-  Future<String?> getNote(String id) async => null;
-
-  @override
-  Future<void> createNote(String id, String content) async {}
-
-  @override
-  Future<String> generateNoteId() async => 'generated-id';
-
-  @override
-  Future<void> updateMetadata(String id, List<String> tags) async {}
-
-  @override
-  Future<List<LinkRow>> getOutgoingLinks(String id) async => [];
-
-  @override
-  Future<List<LinkRow>> getBacklinks(String id) async => [];
-
-  @override
-  Future<List<NoteRow>> searchNotes(String query) async => [];
-
-  @override
-  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
-
-  @override
-  Future<List<String>> getAllTags() async => [];
-
-  @override
-  Future<List<NoteRow>> searchByTag(String tag) async => [];
-
-  @override
-  Future<void> softDelete(String id) async {}
-
-  @override
-  Future<void> restore(String id) async {}
-
-  @override
-  Future<void> purge(String id) async {}
-
-  @override
-  Future<int> purgeExpired(DateTime cutoff) async => 0;
-
-  @override
-  Future<List<NoteRow>> trashList() async => [];
-
-  @override
-  Future<void> setDeviceName(String name) async {}
-
-  @override
-  Future<List<String>> localAddrs() async => [];
-
-  @override
-  Future<PairingRequest> acceptPairingRequest() =>
-      throw UnimplementedError('UI 走有界版本 acceptPairingRequestWithTimeout');
-
-  @override
-  Future<void> acceptAndImportPush() async {}
-
-  @override
-  Future<void> removePairedDevice(String peerId) async {}
 }
 
 Future<void> _pumpDevicesPage(

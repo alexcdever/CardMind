@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cardmind/bridge/debug_log.dart';
-import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
 import 'package:cardmind/scanner/scanner_interface.dart';
 import 'package:cardmind/src/rust/discovery.dart';
@@ -11,6 +10,8 @@ import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/note_repository_stub.dart';
 
 /// debug-log 任务验收测试（配对 UI 事件，Flutter 侧）：
 /// 4. signed credential emits discovery-bypass event —— 凭证路径明确记录跳过 mDNS
@@ -32,7 +33,7 @@ class ThrowingSink implements DebugSink {
 }
 
 /// 配对日志测试专用 fake repository：可配置 accept/confirm/connect 结果。
-class PairingLogRepository implements NoteRepository {
+class PairingLogRepository extends NoteRepositoryStub {
   String code = '289260';
   List<PeerInfo> discoverResult = [];
   Object? discoverError;
@@ -161,73 +162,6 @@ class PairingLogRepository implements NoteRepository {
     if (credentialConnectError case final error?) throw error;
     return PairingResult(peerId: 'parsed-device', peerName: 'Trusted PC');
   }
-
-  @override
-  Future<List<NoteRow>> listNotes() async => [];
-
-  @override
-  Future<List<NoteRow>> search(String query) async => [];
-
-  @override
-  Future<String?> getNote(String id) async => null;
-
-  @override
-  Future<void> createNote(String id, String content) async {}
-
-  @override
-  Future<String> generateNoteId() async => 'generated-id';
-
-  @override
-  Future<void> updateMetadata(String id, List<String> tags) async {}
-
-  @override
-  Future<List<LinkRow>> getOutgoingLinks(String id) async => [];
-
-  @override
-  Future<List<LinkRow>> getBacklinks(String id) async => [];
-
-  @override
-  Future<List<NoteRow>> searchNotes(String query) async => [];
-
-  @override
-  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
-
-  @override
-  Future<List<String>> getAllTags() async => [];
-
-  @override
-  Future<List<NoteRow>> searchByTag(String tag) async => [];
-
-  @override
-  Future<void> softDelete(String id) async {}
-
-  @override
-  Future<void> restore(String id) async {}
-
-  @override
-  Future<void> purge(String id) async {}
-
-  @override
-  Future<int> purgeExpired(DateTime cutoff) async => 0;
-
-  @override
-  Future<List<NoteRow>> trashList() async => [];
-
-  @override
-  Future<void> setDeviceName(String name) async {}
-
-  @override
-  Future<List<String>> localAddrs() async => [];
-
-  @override
-  Future<PairingRequest> acceptPairingRequest() =>
-      throw UnimplementedError('not used');
-
-  @override
-  Future<void> acceptAndImportPush() async {}
-
-  @override
-  Future<void> removePairedDevice(String peerId) async {}
 }
 
 class _RouteScanner implements ScannerService {

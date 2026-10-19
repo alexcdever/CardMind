@@ -1,13 +1,10 @@
-import 'dart:async';
-
-import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/pages/devices_page.dart';
-import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
-import 'package:cardmind/src/rust/sync.dart';
 import 'package:cardmind/ui/design_system/cardmind_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/note_repository_stub.dart';
 
 /// 设备名可编辑：设备页本机卡片编辑入口。
 ///
@@ -15,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 // ━━ fake ━━
 
-class _FakeRepository implements NoteRepository {
+class _FakeRepository extends NoteRepositoryStub {
   String name = 'Alexc-MBA';
   final List<String> setDeviceNameCalls = [];
   Object? setDeviceNameError;
@@ -35,81 +32,6 @@ class _FakeRepository implements NoteRepository {
 
   @override
   Future<List<PairedDeviceRow>> listPairedDevices() async => [];
-
-  @override
-  Future<void> removePairedDevice(String peerId) async {}
-
-  // ━━ 未使用（设备页编辑测试不触达）━━
-
-  @override
-  Future<List<NoteRow>> listNotes() async => [];
-  @override
-  Future<List<NoteRow>> search(String query) async => [];
-  @override
-  Future<String?> getNote(String id) async => null;
-  @override
-  Future<void> createNote(String id, String content) async {}
-  @override
-  Future<String> generateNoteId() async => 'id';
-  @override
-  Future<void> updateMetadata(String id, List<String> tags) async {}
-  @override
-  Future<List<LinkRow>> getOutgoingLinks(String id) async => [];
-  @override
-  Future<List<LinkRow>> getBacklinks(String id) async => [];
-  @override
-  Future<List<NoteRow>> searchNotes(String query) async => [];
-  @override
-  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
-  @override
-  Future<List<String>> getAllTags() async => [];
-  @override
-  Future<List<NoteRow>> searchByTag(String tag) async => [];
-  @override
-  Future<void> softDelete(String id) async {}
-  @override
-  Future<void> restore(String id) async {}
-  @override
-  Future<void> purge(String id) async {}
-  @override
-  Future<int> purgeExpired(DateTime cutoff) async => 0;
-  @override
-  Future<List<NoteRow>> trashList() async => [];
-  @override
-  Future<List<String>> localAddrs() async => [];
-  @override
-  Future<String> beginPairingAccept() async => '';
-  @override
-  Future<String> beginPairingAcceptAndAdvertise() async => '';
-  @override
-  Future<void> stopPairingAdvertising() async {}
-  @override
-  Future<List<PeerInfo>> discoverPeers() async => [];
-  @override
-  Future<PairingRequest> acceptPairingRequest() =>
-      throw UnimplementedError('not used');
-  @override
-  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) =>
-      Completer<PairingRequest?>().future;
-  @override
-  Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
-      throw UnimplementedError('not used');
-  @override
-  Future<PairingResult> beginPairingConnect(
-    String code,
-    PairingTarget target,
-  ) => throw UnimplementedError('not used');
-  @override
-  Future<PairingCredentialDisplay> beginPairingCredential() =>
-      throw UnimplementedError('not used');
-  @override
-  Future<ParsedPairingCredential> parsePairingCredential(String credential) =>
-      throw UnimplementedError('not used');
-  @override
-  Future<PairingResult> beginPairingConnectWithCredential(String credential) =>
-      throw UnimplementedError('not used');
-  @override
-  Future<void> acceptAndImportPush() async {}
 }
 
 // ━━ helpers ━━
