@@ -45,19 +45,20 @@ jobs:
             ${{ runner.os }}-cargo-quality-
 
       - name: Check code formatting
+        # 与本地门禁 tool/src/git_gate/command.dart 的 Commands.formatRust()
+        # 同源：rust-backend 是多成员 workspace，缺 --all 时只格式化根 crate，
+        # tool/boundary_scanner 会被静默跳过。
         run: |
           cd rust-backend
-          cargo fmt -- --check
-
-      - name: Run cargo check
-        run: |
-          cd rust-backend
-          cargo check --all-targets --all-features
+          cargo fmt --all -- --check
 
       - name: Run cargo clippy
+        # 与本地门禁 Commands.clippy() 逐字同源（含 --workspace）：rust-backend
+        # 是多成员 workspace，省略 --workspace 时 clippy 只 lint 根 crate
+        # （cardmind-backend），tool/boundary_scanner 会被静默跳过。
         run: |
           cd rust-backend
-          cargo clippy --all-targets --all-features -- -D warnings
+          cargo clippy --all-targets --all-features --workspace -- -D warnings
 
       - name: Run cargo test
         env:
