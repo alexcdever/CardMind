@@ -255,7 +255,13 @@ void _contribute(PlanBuilder b, String file, TestIndex index) {
         // 无窄测试可映射：不得静默零测试（改 lib/main.dart 只跑 analyze 等于
         // 没测）。fail-closed 落全量 flutter test——不知道有没有测试时，
         // 全量是唯一安全答案；这是兜底而非精确路由。
-        b.add(Commands.flutterFullTest());
+        //
+        // 前提是仓库确有测试资产（索引非空）：最小仓库（如 hook 集成测试的
+        // 临时仓库，只有 lib/x.dart 没有 test/）里全量 flutter test 会去跑
+        // 不存在的测试，把「没有测试」变成一条必失败的检查。
+        if (index.flutterTestFiles.isNotEmpty) {
+          b.add(Commands.flutterFullTest());
+        }
       } else {
         for (final test in related) {
           b.add(Commands.flutterTest(<String>[test]));
