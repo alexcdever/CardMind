@@ -3,6 +3,9 @@ import 'dart:io';
 
 const _testTarget = 'integration_test/cardmind_journeys_test.dart';
 
+/// `--file` 缺省时的目标文件；公开以便测试断言「缺省行为零变化」。
+const kDefaultFeatureTestTarget = _testTarget;
+
 /// 单次 `flutter test` 子进程的兜底时长：journeys 是实机/平台集成测试，
 /// 正常要跑数分钟，20 分钟只是防挂死的上限，不是压测目标。
 const _defaultTimeoutMinutes = 20;
@@ -42,7 +45,7 @@ Future<void> main(List<String> args) async {
       return;
     }
 
-    final result = await _runFlutter(device!);
+    final result = await _runFlutter(device!, options.file);
     if (result != 0) {
       exitCode = result;
       return;
@@ -50,16 +53,17 @@ Future<void> main(List<String> args) async {
   }
 }
 
-Future<int> _runFlutter(String device) async {
+Future<int> _runFlutter(String device, String file) async {
   stdout.writeln('Running CardMind journeys on $device');
   late final Process process;
   try {
     validateDevice(device);
+    validateTestFile(file);
     final executable = Platform.isWindows ? 'flutter.bat' : 'flutter';
     process = await Process.start(executable, [
       'test',
       '--no-pub',
-      _testTarget,
+      file,
       '-d',
       device,
     ], runInShell: false);
@@ -113,10 +117,44 @@ void validateDevice(String device) {
   }
 }
 
+/// `--file=<path>` 目标文件校验：必须是 `integration_test/` 下的相对路径，
+/// 以 `_test.dart` 结尾，不含 `..` 路径逃逸、绝对路径、或 shell 元字符。
+///
+/// 公开（非 `_` 前缀）是为了让测试直接调用，用真实输入验证安全属性；
+/// 校验逻辑本身不接受任何会被 shell/路径解析改写的字符。
+void validateTestFile(String file) {
+  if (file.isEmpty ||
+      file.length > 256 ||
+      !RegExp(r'^[A-Za-z0-9][A-Za-z0-9._/-]*_test\.dart$').hasMatch(file) ||
+      !file.startsWith('integration_test/') ||
+      file.contains('..')) {
+    throw FormatException(
+      'Invalid --file target: must be a relative path under '
+      'integration_test/ ending in _test.dart',
+    );
+  }
+}
+
+/// 解析 `--file` 参数（缺省回落 [_testTarget]）。
+///
+/// 公开以便测试直接断言解析结果；解析阶段即调用 [validateTestFile]，
+/// 非法值在拼进 `Process.start` 参数前就被拒。
+String featureTestTargetForArgs(List<String> args) {
+  for (final arg in args) {
+    if (arg.startsWith('--file=')) {
+      final file = arg.substring('--file='.length);
+      validateTestFile(file);
+      return file;
+    }
+  }
+  return _testTarget;
+}
+
 _Options _parseArgs(List<String> args) {
   var platform = 'windows';
   String? device;
   var help = false;
+  var file = _testTarget;
   for (final arg in args) {
     if (arg == '--help' || arg == '-h') {
       help = true;
@@ -130,6 +168,9 @@ _Options _parseArgs(List<String> args) {
       platform = arg.substring('--platform='.length);
     } else if (arg.startsWith('--device=')) {
       device = arg.substring('--device='.length);
+    } else if (arg.startsWith('--file=')) {
+      file = arg.substring('--file='.length);
+      validateTestFile(file);
     } else {
       throw FormatException('Unknown argument: $arg');
     }
@@ -137,7 +178,7 @@ _Options _parseArgs(List<String> args) {
   if (!{'windows', 'android', 'all'}.contains(platform)) {
     throw FormatException('Unsupported platform: $platform');
   }
-  return _Options(platform: platform, device: device, help: help);
+  return _Options(platform: platform, device: device, help: help, file: file);
 }
 
 void _printUsage() {
@@ -151,6 +192,10 @@ void _printUsage() {
   stdout.writeln('  --all                 Run Windows then Android journeys');
   stdout.writeln('  --platform=<target>   windows, android, or all');
   stdout.writeln(
+    '  --file=<path>         Integration test file under integration_test/\n'
+    '                        (default: $_testTarget)',
+  );
+  stdout.writeln(
     '  --no-pub is always used; this runner never downloads SDKs.',
   );
 }
@@ -160,9 +205,11 @@ class _Options {
     required this.platform,
     required this.device,
     required this.help,
+    required this.file,
   });
 
   final String platform;
   final String? device;
   final bool help;
+  final String file;
 }
