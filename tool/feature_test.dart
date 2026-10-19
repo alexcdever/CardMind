@@ -137,18 +137,9 @@ void validateTestFile(String file) {
 
 /// 解析 `--file` 参数（缺省回落 [_testTarget]）。
 ///
-/// 公开以便测试直接断言解析结果；解析阶段即调用 [validateTestFile]，
-/// 非法值在拼进 `Process.start` 参数前就被拒。
-String featureTestTargetForArgs(List<String> args) {
-  for (final arg in args) {
-    if (arg.startsWith('--file=')) {
-      final file = arg.substring('--file='.length);
-      validateTestFile(file);
-      return file;
-    }
-  }
-  return _testTarget;
-}
+/// 公开以便测试直接断言解析结果；委托 [_parseArgs] 保证 `--file`
+/// 只有单份解析实现，非法值在解析阶段即抛 [FormatException]。
+String featureTestTargetForArgs(List<String> args) => _parseArgs(args).file;
 
 _Options _parseArgs(List<String> args) {
   var platform = 'windows';
