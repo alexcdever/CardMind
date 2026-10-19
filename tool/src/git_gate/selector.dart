@@ -238,7 +238,11 @@ GatePlan selectPlanForFiles(List<String> files, {required TestIndex index}) {
 void _contribute(PlanBuilder b, String file, TestIndex index) {
   switch (classifyPath(file)) {
     case FileCategory.markdown:
+      // 文档改动：markdown 引用 lint + 全部文档契约测试。文档契约测试
+      // （AGENTS.md/docs 的结构与引用契约）只有改文档时才可能被打破，
+      // 漏跑等于让契约测试永远不覆盖它守的文档。
       b.add(Commands.docsLint());
+      _addIfExists(b, index, docContractTests(index));
     case FileCategory.dartTest:
       b.add(Commands.analyze());
       b.add(Commands.flutterTest(<String>[file]));
@@ -460,6 +464,16 @@ const Map<String, List<String>> _supportFakeImporters = <String, List<String>>{
     'test/ui_style_guide_doc_test.dart',
   ],
 };
+
+/// 全部文档契约测试（markdown 改动时按存在性选上）。
+///
+/// **真相源复用** [_supportFakeImporters] 的 `doc_helpers` 名单：那 9 条
+/// 就是 `test/support/doc_helpers.dart` 的全部消费方，也就是全部文档契约
+/// 测试。不另抄一份名单——两处名单必然漂移。
+List<String> docContractTests(TestIndex index) {
+  final importers = _supportFakeImporters['doc_helpers'] ?? const <String>[];
+  return importers.where(index.flutterTestFiles.contains).toList()..sort();
+}
 
 /// 与 lib/tool Dart 业务文件相关的测试。
 ///
