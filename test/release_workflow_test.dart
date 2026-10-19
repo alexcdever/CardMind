@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yaml/yaml.dart';
 
+import '../tool/src/git_gate/command.dart';
+
 YamlMap _workflow() {
   final source = File(
     '.github/workflows/manual-build-artifacts.yml',
@@ -12,6 +14,46 @@ YamlMap _workflow() {
 
 Map<String, dynamic> _map(dynamic value) =>
     Map<String, dynamic>.from(value as Map);
+
+/// `rust_quality.yml` 的 `rust-quality` job 的步骤列表。
+///
+/// 单独读这份 workflow：本文件的其余用例都针对 `manual-build-artifacts.yml`，
+/// 但 git gate 的 `ciWorkflow` 分类只路由到本文件，所以 CI 的 Rust 门禁口径
+/// 也钉在这里，避免「改了 rust_quality.yml 却没有测试看着它」。
+List<Map<String, dynamic>> _rustQualitySteps() {
+  final source = File('.github/workflows/rust_quality.yml').readAsStringSync();
+  final workflow = loadYaml(source) as YamlMap;
+  final jobs = _map(workflow['jobs']);
+  final job = _map(jobs['rust-quality']);
+  return (job['steps'] as YamlList).map(_map).toList();
+}
+
+/// 找到 `run` 里出现指定 cargo 子命令的步骤。
+Map<String, dynamic> _rustQualityStepRunning(String command) =>
+    _rustQualitySteps().firstWhere(
+      (step) => '${step['run']}'.contains(RegExp('(^|\\s)$command\\s')),
+      orElse: () => throw StateError('rust_quality.yml 中没有 `$command` 步骤'),
+    );
+
+/// 步骤脚本里的工作目录：`cd <dir>` 那一行的值，没有则 null。
+String? _scriptWorkingDirectory(Map<String, dynamic> step) {
+  for (final line in '${step['run']}'.split('\n')) {
+    final match = RegExp(r'^\s*cd\s+(\S+)\s*$').firstMatch(line);
+    if (match != null) return match.group(1);
+  }
+  return null;
+}
+
+/// 步骤脚本里 `cargo <subcommand> ...` 那一行的参数序列（不含 `cargo` 本身）。
+List<String> _cargoArguments(Map<String, dynamic> step, String subcommand) {
+  for (final line in '${step['run']}'.split('\n')) {
+    final tokens = line.trim().split(RegExp(r'\s+'));
+    if (tokens.length > 1 && tokens[0] == 'cargo' && tokens[1] == subcommand) {
+      return tokens.sublist(1);
+    }
+  }
+  throw StateError('rust_quality.yml 中没有 `cargo $subcommand` 命令行');
+}
 
 void main() {
   late YamlMap workflow;
@@ -353,4 +395,15 @@ void main() {
       );
     },
   );
+
+  group('rust quality workflow mirrors the local gate', () {
+    test('formatting step runs cargo fmt --all like Commands.formatRust', () {
+      final format = Commands.formatRust();
+      final step = _rustQualityStepRunning('cargo fmt');
+      expect(_scriptWorkingDirectory(step), format.workingDirectory);
+      final arguments = _cargoArguments(step, 'fmt');
+      expect(arguments.take(2).toList(), format.arguments);
+      expect('${step['run']}'.trimRight(), endsWith('-- --check'));
+    });
+  });
 }
