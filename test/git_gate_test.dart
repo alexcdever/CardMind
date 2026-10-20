@@ -1424,6 +1424,57 @@ void main() {
         reason: 'probe 删除后派生索引必须回到原清单',
       );
     });
+
+    // ── 标准 4：CI workflow 覆盖全部 integration_test 文件 ──
+
+    test('20a integration_e2e.yml 覆盖全部 integration_test/*_test.dart', () {
+      // CI 没有设备无法自行枚举，矩阵必须显式列出；这里钉住「列出的集合
+      // = 磁盘上真实的全集」，新增集成测试文件忘记接 CI 时变红。
+      final source = File(
+        '.github/workflows/integration_e2e.yml',
+      ).readAsStringSync();
+      final onDisk = Directory('integration_test')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .map((f) => f.path.replaceAll(Platform.pathSeparator, '/'))
+          .where(
+            (p) =>
+                p.startsWith('integration_test/') && p.endsWith('_test.dart'),
+          )
+          .toSet();
+      expect(onDisk, hasLength(5), reason: '仓库应有 5 个集成测试文件');
+      for (final f in onDisk) {
+        expect(
+          source,
+          contains(f),
+          reason: 'CI workflow 必须覆盖集成测试文件 $f（此前只跑 journeys）',
+        );
+      }
+    });
+
+    test('20b integration_e2e.yml 每个 matrix 文件走 --file= 链路', () {
+      final source = File(
+        '.github/workflows/integration_e2e.yml',
+      ).readAsStringSync();
+      expect(
+        source,
+        contains('tool/feature_test.dart'),
+        reason: 'CI 必须通过 tool/feature_test.dart 运行集成测试',
+      );
+      expect(
+        RegExp(r'--file=\$?\{?env:INTEGRATION_FILE').hasMatch(source) ||
+            RegExp(r'--file=\$\{\{\s*matrix\.file\s*\}\}').hasMatch(source),
+        isTrue,
+        reason: '每个 matrix job 必须用 --file=<matrix.file> 跑单个文件',
+      );
+      expect(
+        RegExp(
+          r'dart run tool/feature_test\.dart --windows \*>&1',
+        ).hasMatch(source),
+        isFalse,
+        reason: '不得残留「只跑 journeys 默认目标」的无参数调用',
+      );
+    });
     test('17b 全仓 Dart 源码无任何 models/note 引用', () async {
       // 死代码删除的另一半：import/引用为零（git grep 为真相源，覆盖
       // lib/ test/ tool/ integration_test/ 全部受跟踪文件）。本测试自身的
