@@ -1463,7 +1463,8 @@ void main() {
         isFalse,
       );
 
-      // localShas 不同 → miss
+      // localShas 不再参与同步粗筛（祖先判断在 checkAsync，见 test 12）：
+      // HEAD+fingerprint 一致时即使 localShas 集不同，check 仍返回命中（粗筛）。
       expect(
         cache
             .check(
@@ -1475,7 +1476,8 @@ void main() {
               ),
             )
             .hit,
-        isFalse,
+        isTrue,
+        reason: '粗筛只看 HEAD+fingerprint，祖先判断留给 checkAsync',
       );
 
       // 工作树不干净 → miss
@@ -2001,7 +2003,15 @@ void main() {
       final f = File('$repo/lib/a.dart');
       f.parent.createSync(recursive: true);
       f.writeAsStringSync('void main() {}\n');
-      await Process.run('git', ['add', 'lib/a.dart'], workingDirectory: repo);
+      // fingerprint 清单内文件（test 22 改动它来触发 fingerprint 变化）。
+      final gateSrc = File('$repo/tool/git_gate.dart');
+      gateSrc.parent.createSync(recursive: true);
+      gateSrc.writeAsStringSync('// gate\n');
+      await Process.run('git', [
+        'add',
+        'lib/a.dart',
+        'tool/git_gate.dart',
+      ], workingDirectory: repo);
       await Process.run('git', [
         'commit',
         '-q',

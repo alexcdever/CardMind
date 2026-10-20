@@ -257,7 +257,8 @@ Future<int> runPrePush(GateOptions o) async {
 
   if (!o.dryRun && !o.forceFullCheck && head != null) {
     final cache = await GateCache.forGitDir(o.repoRoot);
-    final check = cache.check(
+    final check = await cache.checkAsync(
+      repoRoot: o.repoRoot,
       input: CacheCheckInput(
         headSha: head,
         fingerprint: fingerprint,
