@@ -28,6 +28,26 @@ List<Map<String, dynamic>> _rustQualitySteps() {
   return (job['steps'] as YamlList).map(_map).toList();
 }
 
+/// `rust_quality.yml` 任意 job 的步骤列表（rust-coverage 等独立 job 用）。
+List<Map<String, dynamic>> _rustQualityJobSteps(String jobName) {
+  final source = File('.github/workflows/rust_quality.yml').readAsStringSync();
+  final workflow = loadYaml(source) as YamlMap;
+  final jobs = _map(workflow['jobs']);
+  final job = _map(jobs[jobName]);
+  return (job['steps'] as YamlList).map(_map).toList();
+}
+
+/// `flutter_quality.yml` 的 `flutter-quality` job 的步骤列表。
+List<Map<String, dynamic>> _flutterQualitySteps() {
+  final source = File(
+    '.github/workflows/flutter_quality.yml',
+  ).readAsStringSync();
+  final workflow = loadYaml(source) as YamlMap;
+  final jobs = _map(workflow['jobs']);
+  final job = _map(jobs['flutter-quality']);
+  return (job['steps'] as YamlList).map(_map).toList();
+}
+
 /// 找到 `run` 里出现指定 cargo 子命令的步骤。
 Map<String, dynamic> _rustQualityStepRunning(String command) =>
     _rustQualitySteps().firstWhere(
@@ -421,6 +441,136 @@ void main() {
         '.github/workflows/rust_quality.yml',
       ).readAsStringSync();
       expect(source, isNot(contains('cargo check')));
+    });
+  });
+
+  group('rust coverage job produces a real lcov artifact', () {
+    test('rust_quality.yml has a dedicated rust-coverage job', () {
+      final source = File(
+        '.github/workflows/rust_quality.yml',
+      ).readAsStringSync();
+      final workflow = loadYaml(source) as YamlMap;
+      final jobs = _map(workflow['jobs']);
+      expect(
+        jobs.keys,
+        contains('rust-coverage'),
+        reason: 'coverage 应作为独立 job，不阻塞 rust-quality 主链路',
+      );
+    });
+
+    test('rust-coverage runs cargo tarpaulin producing lcov.info', () {
+      final steps = _rustQualityJobSteps('rust-coverage');
+      final tarpaulin = steps.firstWhere(
+        (step) => '${step['run']}'.contains('cargo tarpaulin'),
+        orElse: () =>
+            throw StateError('rust-coverage job 中没有 cargo tarpaulin 步骤'),
+      );
+      final run = '${tarpaulin['run']}';
+      // 与本地 quality.dart:306 口径一致的参数。
+      expect(run, contains('--out Lcov'));
+      expect(run, contains('--output-dir .'));
+      expect(run, contains('src/frb_generated.rs'));
+      // rust-backend workspace 含 tool/boundary_scanner 成员，须限定根包，
+      // 否则 tarpaulin 会把 workspace 成员一并算进覆盖率。
+      expect(
+        run,
+        matches(RegExp(r'(--packages?|-p)[ =]+cardmind')),
+        reason: 'workspace 下必须限定根 crate，避免 tool/boundary_scanner 进覆盖率',
+      );
+      expect(_scriptWorkingDirectory(tarpaulin), 'rust-backend');
+    });
+
+    test('rust-coverage uploads the lcov artifact', () {
+      final steps = _rustQualityJobSteps('rust-coverage');
+      final artifact = steps.firstWhere(
+        (step) => step['uses'] == 'actions/upload-artifact@v4',
+        orElse: () => throw StateError('rust-coverage job 没有上传 artifact'),
+      );
+      final artifactPath = '${_map(artifact['with'])['path']}';
+      expect(
+        artifactPath,
+        anyOf(contains('lcov.info'), contains('rust-backend/lcov')),
+      );
+      expect(_map(artifact['with'])['name'], contains('lcov'));
+    });
+
+    test('rust-coverage runs the boundary scan against rust lcov', () {
+      final steps = _rustQualityJobSteps('rust-coverage');
+      final scan = steps.firstWhere(
+        (step) => '${step['run']}'.contains('test_boundary_scanner.dart'),
+        orElse: () => throw StateError('rust-coverage job 没有 boundary scan 步骤'),
+      );
+      expect('${scan['run']}', contains('--scope=rust'));
+    });
+
+    test('rust-coverage uploads the boundary report artifact', () {
+      final steps = _rustQualityJobSteps('rust-coverage');
+      final artifacts = steps
+          .where((step) => step['uses'] == 'actions/upload-artifact@v4')
+          .map((step) => '${_map(step['with'])['path']}')
+          .toList();
+      expect(
+        artifacts.any((p) => p.contains('cardmind_test_boundary_report.md')),
+        isTrue,
+        reason: '边界扫描报告 tmp/cardmind_test_boundary_report.md 应上传',
+      );
+    });
+
+    test('coverage + boundary scan do not fail the job', () {
+      final steps = _rustQualityJobSteps('rust-coverage');
+      final tarpaulin = steps.firstWhere(
+        (step) => '${step['run']}'.contains('cargo tarpaulin'),
+      );
+      final scan = steps.firstWhere(
+        (step) => '${step['run']}'.contains('test_boundary_scanner.dart'),
+      );
+      // 告警语义：exit 非 0 不 fail job。
+      for (final step in [tarpaulin, scan]) {
+        final coe = step['continue-on-error'];
+        expect(
+          coe == true || coe == 'true',
+          isTrue,
+          reason: '覆盖率/边界扫描失败只告警，不阻断门禁',
+        );
+      }
+    });
+  });
+
+  group('flutter quality workflow runs the boundary scan', () {
+    test('flutter-quality runs boundary scan reusing flutter lcov', () {
+      final steps = _flutterQualitySteps();
+      final scan = steps.firstWhere(
+        (step) => '${step['run']}'.contains('test_boundary_scanner.dart'),
+        orElse: () =>
+            throw StateError('flutter-quality job 没有 boundary scan 步骤'),
+      );
+      expect('${scan['run']}', contains('--scope=flutter'));
+      expect(
+        '${scan['run']}',
+        contains('--reuse-coverage'),
+        reason: 'flutter test --coverage 已产 coverage/lcov.info，须复用不重跑',
+      );
+    });
+
+    test('flutter-quality uploads the boundary report artifact', () {
+      final steps = _flutterQualitySteps();
+      final artifacts = steps
+          .where((step) => step['uses'] == 'actions/upload-artifact@v4')
+          .map((step) => '${_map(step['with'])['path']}')
+          .toList();
+      expect(
+        artifacts.any((p) => p.contains('cardmind_test_boundary_report.md')),
+        isTrue,
+      );
+    });
+
+    test('flutter boundary scan failure does not fail the job', () {
+      final steps = _flutterQualitySteps();
+      final scan = steps.firstWhere(
+        (step) => '${step['run']}'.contains('test_boundary_scanner.dart'),
+      );
+      final coe = scan['continue-on-error'];
+      expect(coe == true || coe == 'true', isTrue);
     });
   });
 }
