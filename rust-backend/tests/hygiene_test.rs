@@ -14,27 +14,122 @@ fn read_source(path: &Path) -> String {
     std::fs::read_to_string(path).unwrap_or_else(|e| panic!("读取 {} 失败: {e}", path.display()))
 }
 
-/// 找出「`loop {` 块内出现 sleep 调用」的行号——轮询等待的特征形态。
+/// 找出「循环块内出现 sleep 调用」的行号——轮询等待的特征形态。
 ///
-/// 逐行扫描并跟踪花括号深度：`loop {` 打开一个块，块体内（深度不小于打开后
-/// 的深度）出现的 `sleep(` 即为轮询等待。不解析字符串与注释，粗粒度足够，
-/// 且失败信息直接指向行号。
+/// 覆盖 `loop {`、`loop\n{`、`while .. {`、`for .. {` 四种循环开头（含 `'label:`
+/// 前缀），并额外把「循环体内调用了某个含 `sleep(` 的辅助函数」也算作轮询
+/// （先在本文件收集 `fn 名` → 该 fn 体内有 `sleep(`，再在循环体内匹配这些名字）。
+///
+/// **已知盲区**（故意保持粗粒度，不引入 syn 依赖）：
+/// - 按字符数统计 `{`/`}`，注释与字符串里的括号会轻微污染深度；
+/// - 只匹配字面量 `sleep(`（`tokio::time::sleep` / `std::thread::sleep` / 直接用
+///   `sleep` 别名都能命中，但完全自定义的等待函数不会）；
+/// - 循环与 sleep 分处不同行但中间夹了非括号语句时，仍按所在块深度判断。
 fn loop_sleep_lines(src: &str) -> Vec<usize> {
+    let lines: Vec<&str> = src.lines().collect();
+    // 第一遍：收集「函数体内含 sleep(」的函数名，供第二遍识别 helper 间接轮询。
+    let mut sleep_helpers: Vec<String> = Vec::new();
+    let mut current_fn: Option<String> = None;
+    let mut fn_depth: i32 = 0;
+    let mut depth_scan = 0i32;
+    for line in &lines {
+        let trimmed = line.trim_start();
+        if let Some(rest) = strip_fn_modifiers(trimmed).strip_prefix("fn ") {
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_alphanumeric() || *c == '_')
+                .collect();
+            if !name.is_empty() {
+                current_fn = Some(name);
+                fn_depth = depth_scan;
+            }
+        }
+        depth_scan += line.matches('{').count() as i32 - line.matches('}').count() as i32;
+        if let Some(name) = &current_fn {
+            if line.contains("sleep(") && !sleep_helpers.contains(name) {
+                sleep_helpers.push(name.clone());
+            }
+            if depth_scan <= fn_depth {
+                current_fn = None;
+            }
+        }
+    }
+
+    // 第二遍：找循环块内的 sleep( 调用或 helper 调用。
     let mut depth = 0i32;
     let mut open_loops: Vec<i32> = Vec::new();
     let mut offenders = Vec::new();
-    for (idx, line) in src.lines().enumerate() {
+    for (idx, line) in lines.iter().enumerate() {
         depth += line.matches('{').count() as i32 - line.matches('}').count() as i32;
-        // 先清理本行已闭合的 loop（深度回落到打开处之前即已结束）
+        // 先清理本行已闭合的循环（深度回落到打开处之前即已结束）
         open_loops.retain(|open_depth| depth >= *open_depth);
-        if line.trim_start().starts_with("loop {") {
+        if starts_loop(line) {
             open_loops.push(depth);
         }
-        if !open_loops.is_empty() && line.contains("sleep(") {
-            offenders.push(idx + 1);
+        if !open_loops.is_empty() {
+            let has_sleep = line.contains("sleep(");
+            let calls_helper = sleep_helpers
+                .iter()
+                .any(|name| line.contains(&format!("{name}(")));
+            if has_sleep || calls_helper {
+                offenders.push(idx + 1);
+            }
         }
     }
     offenders
+}
+
+/// 剥掉 `pub` / `pub(crate)` / `async` / `unsafe` / `const` / `extern "C"` 等前置修饰，
+/// 让命名守卫能看见 `async fn test_foo`、`pub fn test_foo` 这类形态。
+fn strip_fn_modifiers(mut line: &str) -> &str {
+    loop {
+        let before = line.len();
+        line = line.trim_start();
+        for kw in [
+            "pub(crate)",
+            "pub(super)",
+            "pub(self)",
+            "pub",
+            "async",
+            "unsafe",
+            "const",
+            "default",
+        ] {
+            if let Some(rest) = line.strip_prefix(kw) {
+                if rest.starts_with(char::is_whitespace) {
+                    line = rest;
+                    break;
+                }
+            }
+        }
+        if line.len() == before {
+            return line;
+        }
+    }
+}
+
+/// 判断该行是否开启一个循环块：`loop {`、`loop`（`{` 在下一行）、`while .. {`、
+/// `for .. {`，均允许带 `'label:` 前缀。
+fn starts_loop(line: &str) -> bool {
+    let mut t = line.trim_start();
+    if let Some(rest) = t.strip_prefix('\'') {
+        // 标签：'outer: loop { ... }
+        if let Some(pos) = rest.find(':') {
+            t = rest[pos + 1..].trim_start();
+        }
+    }
+    if let Some(rest) = t.strip_prefix("loop") {
+        // `loop` 后面要么紧跟 `{`（可能换行在下一行，故空串也算），要么不是循环。
+        let after = rest.trim_start();
+        return after.starts_with('{') || after.is_empty();
+    }
+    let is_while = t.starts_with("while ") || t.starts_with("while(");
+    let is_for = t.starts_with("for ") || t.starts_with("for(");
+    if is_while || is_for {
+        // 只在确有此行开启块（或块在后续行）时才算；`while` 表达式末尾会有 `{`。
+        return t.contains('{') || !t.ends_with(';');
+    }
+    false
 }
 
 /// 扫描 `tests/` 下所有 `.rs`（含 `common/`），收集满足 `pred` 的「文件:行」。
@@ -76,7 +171,10 @@ where
 /// 测试函数名必须描述「被测行为 + 预期」，禁止无信息量的 `test_` 前缀。
 #[test]
 fn no_test_prefix_fn_names() {
-    let offenders = scan_tests(|line| line.trim_start().starts_with("fn test_"));
+    // 先剥掉 pub/pub(crate)/async/unsafe 等修饰，否则 `async fn test_foo`
+    // 与 `pub fn test_foo` 会从守卫眼下溜走。
+    let offenders =
+        scan_tests(|line| strip_fn_modifiers(line.trim_start()).starts_with("fn test_"));
     assert!(
         offenders.is_empty(),
         "以下测试函数仍用 `test_` 前缀，应改为描述行为与预期的名字：{offenders:#?}"
@@ -90,8 +188,8 @@ fn receiver_continuous_has_no_polling_sleep() {
     let offenders = loop_sleep_lines(&read_source(&path));
     assert!(
         offenders.is_empty(),
-        "receiver_continuous_test.rs 第 {offenders:?} 行仍在 loop 内 sleep 轮询；\
+        "receiver_continuous_test.rs 第 {offenders:?} 行仍在循环内 sleep 轮询；\
          事件性等待请用 wait_content_revision / wait_receiver_windows / \
-         wait_receiver_incoming，无法事件化的单次 sleep 需就地写明理由"
+         wait_receiver_connections，无法事件化的单次 sleep 需就地写明理由"
     );
 }
