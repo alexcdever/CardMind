@@ -1,13 +1,12 @@
 import 'dart:async';
 
-import 'package:cardmind/bridge/note_repository.dart';
-import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
-import 'package:cardmind/src/rust/sync.dart';
+
+import 'note_repository_stub.dart';
 
 /// 跨文件复用的内存版笔记仓储 fake：笔记、标签、回收站与反链全部驻留内存，
 /// 供编辑页 / 列表页 / 回收站页的 widget 测试注入。
-class MemoryNoteRepository implements NoteRepository {
+class MemoryNoteRepository extends NoteRepositoryStub {
   MemoryNoteRepository({List<NoteRow>? rows, Map<String, String>? contents})
     : rows = List.of(rows ?? _defaultRows),
       contents = Map<String, String>.of(contents ?? _defaultContents);
@@ -172,73 +171,11 @@ class MemoryNoteRepository implements NoteRepository {
   @override
   Future<List<NoteRow>> trashList() async => List.of(trashed);
 
-  // ━━ 配对（任务 G）— 测试 fake 不涉及配对，接口占位 ━━
-
   @override
   Future<String> deviceId() async => 'fake-device-id';
 
   @override
   Future<String> deviceName() async => 'Fake Device';
-
-  @override
-  Future<void> setDeviceName(String name) async {}
-
-  @override
-  Future<List<String>> localAddrs() async => [];
-
-  @override
-  Future<String> beginPairingAccept() =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<String> beginPairingAcceptAndAdvertise() =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<void> stopPairingAdvertising() async {}
-
-  @override
-  Future<List<PeerInfo>> discoverPeers() async => [];
-
-  @override
-  Future<PairingRequest> acceptPairingRequest() =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<PairingResult> beginPairingConnect(
-    String code,
-    PairingTarget target,
-  ) => throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<PairingCredentialDisplay> beginPairingCredential() =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<ParsedPairingCredential> parsePairingCredential(String credential) =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<PairingResult> beginPairingConnectWithCredential(String credential) =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<void> acceptAndImportPush() =>
-      throw UnimplementedError('pairing not supported by memory fake');
-
-  @override
-  Future<List<PairedDeviceRow>> listPairedDevices() async => [];
-
-  @override
-  Future<void> removePairedDevice(String peerId) async {}
 
   List<String> _splitTags(String tags) {
     if (tags.trim().isEmpty) return [];

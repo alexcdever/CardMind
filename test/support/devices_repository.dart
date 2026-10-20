@@ -5,8 +5,11 @@ import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/src/rust/sync.dart';
 
+import 'note_repository_stub.dart';
+
 /// 设备页 / 列表页共享的内存 fake repository：记录配对与连通性调用轨迹。
-class DevicesRepository implements NoteRepository, ConnectivityRepository {
+class DevicesRepository extends NoteRepositoryStub
+    implements ConnectivityRepository {
   List<PairedDeviceRow> pairedDevices = [];
   String deviceNameValue = 'My PC';
   String deviceIdValue = 'dev-1234567890';
@@ -125,77 +128,23 @@ class DevicesRepository implements NoteRepository, ConnectivityRepository {
     return PairingResult(peerId: 'parsed-device', peerName: 'Trusted PC');
   }
 
-  @override
-  Future<List<NoteRow>> listNotes() async => [];
-
-  @override
-  Future<List<NoteRow>> search(String query) async => [];
-
-  @override
-  Future<String?> getNote(String id) async => null;
-
-  @override
-  Future<void> createNote(String id, String content) async {}
-
-  @override
-  Future<String> generateNoteId() async => 'generated-id';
-
-  @override
-  Future<void> updateMetadata(String id, List<String> tags) async {}
-
-  @override
-  Future<List<LinkRow>> getOutgoingLinks(String id) async => [];
-
-  @override
-  Future<List<LinkRow>> getBacklinks(String id) async => [];
-
-  @override
-  Future<List<NoteRow>> searchNotes(String query) async => [];
-
-  @override
-  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
-
-  @override
-  Future<List<String>> getAllTags() async => [];
-
-  @override
-  Future<List<NoteRow>> searchByTag(String tag) async => [];
-
-  @override
-  Future<void> softDelete(String id) async {}
-
-  @override
-  Future<void> restore(String id) async {}
-
-  @override
-  Future<void> purge(String id) async {}
-
-  @override
-  Future<int> purgeExpired(DateTime cutoff) async => 0;
-
-  @override
-  Future<List<NoteRow>> trashList() async => [];
-
-  @override
-  Future<void> setDeviceName(String name) async {}
-
-  @override
-  Future<List<String>> localAddrs() async => [];
-
-  @override
-  Future<PairingRequest> acceptPairingRequest() =>
-      throw UnimplementedError('not used in device page tests');
-
   /// 任务 M：有界接收——本 fake 不模拟接收（显示码弹窗仅展示码，不配对），
   /// 返回永不完成的 future，使现有显示码测试保持"等待中"状态。
   @override
   Future<PairingRequest?> acceptPairingRequestWithTimeout(Duration timeout) =>
       Completer<PairingRequest?>().future;
 
-  @override
-  Future<PairingResult> confirmPairing(String code, PairingRequest requester) =>
-      throw UnimplementedError('not used in device page tests');
+  // ━━ NoteListPage 也使用本 fake（mobile FAB / sidebar 用例）━━
 
   @override
-  Future<void> acceptAndImportPush() async {}
+  Future<List<NoteRow>> listNotes() async => [];
+
+  @override
+  Future<List<NoteRow>> searchNotes(String query) async => [];
+
+  @override
+  Future<void> softDelete(String id) async {}
+
+  @override
+  Future<void> setDeviceName(String name) async {}
 }
