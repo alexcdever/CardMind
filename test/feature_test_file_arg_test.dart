@@ -1,7 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import '../tool/feature_test.dart'
-    show featureTestTargetForArgs, kDefaultFeatureTestTarget, validateTestFile;
+    show
+        featureTestAllTargetsForArgs,
+        featureTestTargetForArgs,
+        kDefaultFeatureTestTarget,
+        validateTestFile;
 
 /// `--file=<path>` 目标文件参数的安全属性与解析行为测试。
 ///
@@ -113,9 +117,69 @@ void main() {
       }
     });
   });
+
+  group('featureTestAllTargetsForArgs resolves --all', () {
+    test('--all enumerates every *_test.dart under integration_test/', () {
+      expect(
+        featureTestAllTargetsForArgs(const ['--all']),
+        containsAll(<String>[
+          'integration_test/cardmind_journeys_test.dart',
+          'integration_test/device_name_live_test.dart',
+          'integration_test/pairing_credential_dual_end_test.dart',
+          'integration_test/pairing_credential_platform_test.dart',
+          'integration_test/receiver_platform_test.dart',
+        ]),
+        reason: '--all 必须枚举 integration_test/ 下全部 5 个测试文件',
+      );
+    });
+
+    test('--all 不含 support/ 下的非测试文件', () {
+      final all = featureTestAllTargetsForArgs(const ['--all']);
+      expect(
+        all.any((f) => f.contains('/support/') || f.contains('\\support\\')),
+        isFalse,
+        reason: 'support/ 下的 harness 辅助文件不得被 --all 枚举',
+      );
+    });
+
+    test('--all 结果按字母序稳定排序且逐条过 validateTestFile', () {
+      final all = featureTestAllTargetsForArgs(const ['--all']);
+      final sorted = List<String>.of(all)..sort();
+      expect(all, sorted, reason: '--all 输出必须稳定排序（CI/日志可读性）');
+      for (final f in all) {
+        expect(
+          () => validateTestFile(f),
+          returnsNormally,
+          reason: '--all 枚举的每个文件必须过 validateTestFile 同一校验',
+        );
+      }
+    });
+
+    test('--all 与 --file= 互斥', () {
+      expect(
+        () => featureTestAllTargetsForArgs(const [
+          '--all',
+          '--file=integration_test/device_name_live_test.dart',
+        ]),
+        throwsFormatException,
+        reason: '--all 与 --file 同时给出是歧义，必须在解析阶段拒绝',
+      );
+    });
+
+    test('--plan / --dry-run 被接受为合法参数（不启动设备）', () {
+      for (final flag in const ['--plan', '--dry-run']) {
+        expect(
+          () => featureTestAllTargetsForArgs(['--all', flag]),
+          returnsNormally,
+          reason: '「$flag」必须被解析器接受（dry-run 入口）',
+        );
+      }
+    });
+  });
 }
 
 /// 让测试名里的控制字符可见（空串 / 换行 / 制表符）。
+
 String _label(String input) {
   if (input.isEmpty) return '<empty>';
   return input

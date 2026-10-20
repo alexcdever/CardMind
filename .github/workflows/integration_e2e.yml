@@ -11,11 +11,28 @@ env:
   DART_TERM_COLOR: always
 
 jobs:
-  windows-journeys:
-    name: Windows Integration Journeys
+  windows-integration:
+    name: Windows Integration (${{ matrix.file }})
     runs-on: windows-latest
-    # feature_test.dart 自身有 20 分钟兜底超时；job 层再压一道防 runner 挂死。
+    # 每个文件一个 job，各自 20 分钟兜底（feature_test.dart 自身也有 20 分钟
+    # 子进程超时）；job 层再压一道防 runner 挂死。串行 `--all` 单 job 会把
+    # 5 个文件的最坏耗时叠加，超出任何合理的 job 超时，因此用 matrix。
     timeout-minutes: 30
+    strategy:
+      # 一个文件失败不要取消其余文件：要看到全部 5 个的真实结果。
+      fail-fast: false
+      matrix:
+        # 与 `dart run tool/feature_test.dart --all --plan` 的枚举集合一致
+        # （test/feature_test_file_arg_test.dart 用 enumerateIntegrationTests
+        # 断言 integration_test/ 下恰好这 5 个 *_test.dart）。新增集成测试
+        # 文件时同步这里——CI 无设备无法自行枚举，故显式列出。
+        file:
+          - integration_test/cardmind_journeys_test.dart
+          - integration_test/device_name_live_test.dart
+          - integration_test/pairing_credential_dual_end_test.dart
+          - integration_test/pairing_credential_platform_test.dart
+          - integration_test/receiver_platform_test.dart
+
     # 集成测试日志的唯一确定路径：放 runner 临时目录，不污染工作区。
     # 注意：**不能**把这个表达式写在 job 级 env——`jobs.<job_id>.env` 不允许 runner
     # 上下文（只允许 github/needs/strategy/matrix/vars/secrets/inputs），否则 GitHub 在
@@ -48,12 +65,14 @@ jobs:
         # `dart run tool/build.dart lib` = cargo build --release + 同步到运行态路径。
         run: dart run tool/build.dart lib
 
-      - name: Run Windows journeys
+      - name: Run integration test
         # 发布/验收门禁：平台集成层（integration_test/）不塞入普通 push，
-        # 这里作为手动/定时的 CI 入口跑 cardmind_journeys_test.dart。
+        # 这里作为手动/定时的 CI 入口，matrix 逐文件跑全部 5 个集成测试
+        # （此前只跑 cardmind_journeys_test.dart，其余 4 个无自动入口、会腐坏）。
+        # 走的是与 `--all` 完全相同的 `--file=` 链路（同 validateTestFile 校验）。
         #
         # 日志落盘：feature_test.dart 只把子进程 stdio 透传到自身 stdout/stderr
-        # （tool/feature_test.dart:71-72：stdout.addStream / stderr.addStream），不写文件，
+        # （tool/feature_test.dart：stdout.addStream / stderr.addStream），不写文件，
         # 所以在这里 tee 一份带完整 flutter test 输出的日志，供失败时上传排障。
         # 路径来自本步骤的步骤级 env（`steps.[*].env` 允许 runner 上下文）；上传步骤
         # 用同一表达式在 `with.path` 里自行解析，不依赖本步骤是否执行成功。
@@ -65,22 +84,24 @@ jobs:
         shell: pwsh
         env:
           # runner 上下文在 steps.[*].env 合法（job 级 env 不合法，见上）。
-          JOURNEY_LOG: ${{ runner.temp }}/journeys/integration_journeys.log
+          INTEGRATION_FILE: ${{ matrix.file }}
+          INTEGRATION_LOG: ${{ runner.temp }}/integration/${{ strategy.job-index }}.log
         run: |
-          $logPath = $env:JOURNEY_LOG
+          $logPath = $env:INTEGRATION_LOG
           New-Item -ItemType Directory -Force -Path (Split-Path -Parent $logPath) | Out-Null
-          dart run tool/feature_test.dart --windows *>&1 | Tee-Object -FilePath $logPath
+          dart run tool/feature_test.dart --windows "--file=$env:INTEGRATION_FILE" *>&1 | Tee-Object -FilePath $logPath
           exit $LASTEXITCODE
 
       - name: Upload integration test logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-journeys-logs
+          # 每个 matrix 文件一个独立产物（含文件名，便于失败时定位）。
+          name: windows-integration-${{ strategy.job-index }}-logs
           # 只指向上面 tee 出来的真实文件，且用与本步骤无关的步骤级表达式自行解析
           # （`steps.[*].with` 允许 runner 上下文）——即使 Run 步骤在写日志前就挂掉，
           # 这里的 path 也不会变成空值。产物缺失本身就是需要暴露的失败模式，所以
           # if-no-files-found 用 error 而不是 ignore。
-          path: ${{ runner.temp }}/journeys/integration_journeys.log
+          path: ${{ runner.temp }}/integration/${{ strategy.job-index }}.log
           retention-days: 14
           if-no-files-found: error
