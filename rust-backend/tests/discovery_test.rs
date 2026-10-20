@@ -136,11 +136,20 @@ fn stopped_advertising_is_no_longer_discoverable() {
         disc.start_advertising(&device_id, 45681, &nonce).unwrap();
 
         // 前置断言：停之前确实能被发现，否则后面的否定断言是空断言。
-        let before = disc.discover_peers().await.unwrap();
-        assert!(
-            before.iter().any(|p| p.device_id == device_id),
-            "前置条件：停止广播前应能发现自己（否则本用例的否定断言无意义）"
-        );
+        // mDNS 首播是异步的，单次浏览在慢环境会误判成「发现不到」而让用例假红，
+        // 故与用例 1 同量级：30 秒内有界重试，成功一次即进入正式断言。
+        let ready_deadline = Instant::now() + Duration::from_secs(30);
+        loop {
+            let before = disc.discover_peers().await.unwrap();
+            if before.iter().any(|p| p.device_id == device_id) {
+                break;
+            }
+            assert!(
+                Instant::now() < ready_deadline,
+                "前置条件：30 秒内停止广播前应能发现自己（否则本用例的否定断言无意义）"
+            );
+            tokio::time::sleep(Duration::from_millis(200)).await;
+        }
 
         // 幂等：连续 stop 两次都不报错（第二次是无操作）。
         disc.stop_advertising().unwrap();

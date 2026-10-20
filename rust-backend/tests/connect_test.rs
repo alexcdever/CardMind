@@ -243,7 +243,7 @@ fn multi_device_push_reports_per_peer_results() {
         let b_ips = b.local_addrs();
         let c_ips = c.local_addrs();
 
-        // 入站授权前提（同 test_push_receive_roundtrip_relay_or_direct）：
+        // 入站授权前提（同 push_then_receive_roundtrip_delivers_notes）：
         // B、C 各自与 A 走一次真实配对握手，把 A 写入自己的 paired_devices。
         let store_a = NoteStore::new(":memory:").unwrap();
         let store_b = NoteStore::new(":memory:").unwrap();
