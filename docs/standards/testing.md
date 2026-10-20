@@ -40,7 +40,7 @@
 
 每个外部检查/测试进程都有 **15 分钟硬超时**（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；超时终止进程树并以非零退出。
 
-Rust 测试统一串行执行（`cargo test --jobs 1`）：iroh / netmon 等组件持有全局网络资源，测试进程/线程并发运行会产生资源竞争导致 flaky，串行换取稳定性。
+Rust 测试用 `cargo test --all-features --jobs 1` 执行。注意 `--jobs 1` 的真实语义：它只串行化测试 **target 进程**（各测试二进制不并发运行），并限制编译并行；**单个二进制内的用例仍由 libtest 按 CPU 核数并行执行**（`-- --test-threads=1` 才会串行用例）。这样已足够：iroh / netmon 的全局网络资源是**进程级**的，二进制间串行即可避免跨进程竞争；同进程内的用例本就共享这些资源，测试写法上保证并行安全（独立临时目录、临时端口）。若未来某 target 内用例出现资源竞争，对该 target 单独加 `-- --test-threads=1`，不要误以为 `--jobs 1` 已串行用例。
 
 ## 边界优先级
 

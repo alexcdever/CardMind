@@ -287,8 +287,10 @@ Future<int> _runRustQuality({
   }
   log('[rust:clippy] done');
 
-  // Rust 集成测试会生成多个 test target；这里显式串行化 target 进程，
-  // 避免 iroh/netmon 相关全局资源在不同测试二进制间并发初始化。
+  // Rust 集成测试会生成多个 test target；`--jobs 1` 串行化各 target 进程
+  // （二进制不并发运行），避免 iroh/netmon 等进程级全局资源跨二进制竞争。
+  // 注意：它不串行单个 target 内的用例（libtest 仍按核数并行）；若某 target
+  // 内用例竞争资源，需对该 target 另传 `-- --test-threads=1`。
   final test = await runProcess('cargo', [
     'test',
     '--all-features',
