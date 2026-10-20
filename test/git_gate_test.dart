@@ -1432,11 +1432,13 @@ void main() {
 
     test('17b 全仓 Dart 源码无任何 models/note 引用', () async {
       // 死代码删除的另一半：import/引用为零（git grep 为真相源，覆盖
-      // lib/ test/ tool/ integration_test/ 全部受跟踪文件）。
+      // lib/ test/ tool/ integration_test/ 全部受跟踪文件）。本测试自身的
+      // 命名引用不计入（拆串拼接避免本文件自匹配）。
       final r = await Process.run('git', [
         'grep',
         '-n',
-        'models/note',
+        "-eimport.*'models/no"
+            "te",
         '--',
         '*.dart',
       ]);
