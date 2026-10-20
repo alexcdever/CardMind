@@ -95,6 +95,23 @@ Future<String> gitDir(String repoRoot) async {
   return lines.isEmpty ? '$repoRoot/.git' : lines.first.trim();
 }
 
+/// 判断 [sha] 是否为 [headSha] 的祖先（或等于）。
+/// `git merge-base --is-ancestor`：exit 0=祖先；非 0（含 sha 不存在、
+/// detached/无 HEAD、非 fast-forward 等）一律按「非祖先」返回 false，不 throw。
+Future<bool> isAncestor(String repoRoot, String sha, String headSha) async {
+  try {
+    final result = await Process.run('git', <String>[
+      'merge-base',
+      '--is-ancestor',
+      sha,
+      headSha,
+    ], workingDirectory: repoRoot);
+    return result.exitCode == 0;
+  } on Object {
+    return false;
+  }
+}
+
 /// tracked 源码与 HEAD 不一致的路径（内容比较、忽略 CRLF，排除文档）。
 Future<List<String>> dirtyTrackedSourceFiles(String repoRoot) async {
   final head = await headSha(repoRoot);

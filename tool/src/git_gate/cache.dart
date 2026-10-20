@@ -48,6 +48,9 @@ class GateCache {
     return GateCache(file: File('$dir/cardmind_gate_cache.json'));
   }
 
+  /// 同步粗筛：worktree + HEAD + fingerprint 相等即认为「可能命中」。
+  /// 不含 localSha 判断——祖先判断需要跑 git，见 [checkAsync]。
+  /// 保留同步版本供无须 git 的调用方/测试做粗筛。
   CacheCheckResult check({required CacheCheckInput input}) {
     if (!input.worktreeClean) {
       return const CacheCheckResult(hit: false, reason: 'worktree 不一致');
@@ -68,14 +71,38 @@ class GateCache {
     if (record.fingerprint != input.fingerprint) {
       return const CacheCheckResult(hit: false, reason: 'gate fingerprint 不同');
     }
-    final cachedShas = List<String>.of(record.localShas)..sort();
-    final currentShas = List<String>.of(input.localShas)..sort();
-    if (cachedShas.join(',') != currentShas.join(',')) {
-      return CacheCheckResult(hit: false, reason: 'push local SHA 集不同');
-    }
     return const CacheCheckResult(
       hit: true,
       reason: 'exact HEAD + fingerprint 命中',
+    );
+  }
+
+  /// 祖先包含命中语义：HEAD+fingerprint 相等的前提下，要求当前要推的
+  /// 每个 localSha 都是已验证 headSha 的祖先（或等于它）。
+  ///
+  /// `full`/`pre-push` 已验证「HEAD 这套代码过了整套」，一次正常 push 推的
+  /// 提交都在 HEAD 历史上 → 命中安全。若某个 localSha 不在祖先链上（推了
+  /// 别的分支 / 强推重写后的孤立提交），其代码状态未被本次验证覆盖 →
+  /// 不命中，照常跑全套。这是安全边界。
+  Future<CacheCheckResult> checkAsync({
+    required String repoRoot,
+    required CacheCheckInput input,
+  }) async {
+    final coarse = check(input: input);
+    if (!coarse.hit) {
+      return coarse;
+    }
+    for (final sha in input.localShas) {
+      if (!await isAncestor(repoRoot, sha, input.headSha)) {
+        return CacheCheckResult(
+          hit: false,
+          reason: 'push local SHA 含非祖先提交（$sha）',
+        );
+      }
+    }
+    return const CacheCheckResult(
+      hit: true,
+      reason: 'exact HEAD + fingerprint + 祖先 localShas 命中',
     );
   }
 
