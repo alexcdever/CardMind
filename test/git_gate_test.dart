@@ -1000,6 +1000,115 @@ void main() {
       expect(cmds.single.label, 'flutter:test');
     });
 
+    // ── 标准 5：同一生产文件 stem 命中多个测试文件时并集返回（不截断最短）─────
+    // 旧实现两处截断：精确命中即 return（漏前缀命中）、前缀命中只取最短一个
+    // （漏同族其余测试）。改为精确命中 ∪ 前缀命中并集去重、排序稳定。
+    test('15a feature_test 同时选中 file_arg + security（前缀并集）', () {
+      final plan = selectPlanForFiles(<String>[
+        'tool/feature_test.dart',
+      ], index: testIndex);
+      final files = flutterTestCmdsOf(
+        plan,
+      ).expand(flutterTestFilesOfCmd).toSet();
+      expect(
+        files,
+        containsAll(<String>[
+          'test/feature_test_file_arg_test.dart',
+          'test/feature_test_security_test.dart',
+        ]),
+        reason: '同一 stem 的多个前缀测试必须全部选中（不再截断为最短一个）',
+      );
+    });
+
+    test('15b git_gate 同时选中 git_gate_test + hook_integration（并集）', () {
+      final plan = selectPlanForFiles(<String>[
+        'tool/git_gate.dart',
+      ], index: testIndex);
+      final files = flutterTestCmdsOf(
+        plan,
+      ).expand(flutterTestFilesOfCmd).toSet();
+      expect(
+        files,
+        containsAll(<String>[
+          'test/git_gate_test.dart',
+          'test/git_gate_hook_integration_test.dart',
+        ]),
+        reason: '精确命中与前缀命中取并集',
+      );
+    });
+
+    test('15c debug_log 同时选中 debug_log_test + debug_log_file_test（精确∪前缀）', () {
+      // debug_log.dart 的 stem 精确命中 debug_log_test（旧实现命中即 return，
+      // 不再看前缀命中 debug_log_file_test——FileDebugSink 的测试被漏跑）。
+      final plan = selectPlanForFiles(<String>[
+        'lib/bridge/debug_log.dart',
+      ], index: testIndex);
+      final files = flutterTestCmdsOf(
+        plan,
+      ).expand(flutterTestFilesOfCmd).toSet();
+      expect(
+        files,
+        containsAll(<String>[
+          'test/debug_log_test.dart',
+          'test/debug_log_file_test.dart',
+        ]),
+        reason: '精确命中不得截断前缀命中',
+      );
+    });
+
+    test('15d quality 同时选中 frb_prep + coverage_reuse（前缀并集）', () {
+      final plan = selectPlanForFiles(<String>[
+        'tool/quality.dart',
+      ], index: testIndex);
+      final files = flutterTestCmdsOf(
+        plan,
+      ).expand(flutterTestFilesOfCmd).toSet();
+      expect(
+        files,
+        containsAll(<String>[
+          'test/quality_frb_prep_test.dart',
+          'test/quality_coverage_reuse_test.dart',
+        ]),
+        reason: '同一 stem 前缀下的多个测试不得截断',
+      );
+    });
+
+    test('15e 并集不误扩：build 仍只选最短族 build_tool_test（防回归腿）', () {
+      // build 前缀命中 build_tool_test + build_lib_crossplatform_test。
+      // 「最接近」语义保留：取 stem 最短者的同族（首段相同），不得把不同首段的
+      // build_lib 族拉进来。
+      final plan = selectPlanForFiles(<String>[
+        'tool/build.dart',
+      ], index: testIndex);
+      final files = flutterTestCmdsOf(
+        plan,
+      ).expand(flutterTestFilesOfCmd).toList();
+      expect(files, <String>[
+        'test/build_tool_test.dart',
+      ], reason: 'build 只应选最接近的 build_tool 族，不得拉入 build_lib 族');
+    });
+
+    test('15f 并集在跨文件间去重：feature_test + git_gate 不重复、排序稳定', () {
+      final plan = selectPlanForFiles(<String>[
+        'tool/feature_test.dart',
+        'tool/git_gate.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1), reason: '跨 staged 文件的测试合批一条');
+      final files = flutterTestFilesOfCmd(cmds.single);
+      expect(
+        files,
+        containsAll(<String>[
+          'test/feature_test_file_arg_test.dart',
+          'test/feature_test_security_test.dart',
+          'test/git_gate_test.dart',
+          'test/git_gate_hook_integration_test.dart',
+        ]),
+      );
+      expect(files.toSet().length, files.length, reason: '并集去重：不得有重复测试文件');
+      expect(files, orderedEquals(files.toList()..sort()), reason: '排序稳定');
+    });
+
     // ── 标准 4：markdown 改动选上全部文档契约测试 ─────────────────────────
     test('12j markdown 改动：docs:lint + 全部文档契约测试（合批一条）', () {
       // 9 个测试就是 doc_helpers 的全部 import 方（= 全部文档契约测试），
