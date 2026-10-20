@@ -1,14 +1,15 @@
 import 'dart:async';
 
-import 'package:cardmind/bridge/note_repository.dart';
 import 'package:cardmind/bridge/pairing_credential_exception.dart';
 import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
 import 'package:cardmind/src/rust/sync.dart';
 
+import 'note_repository_stub.dart';
+
 /// 凭证 UI 专用 fake repository：记录配对 API 调用轨迹，可控模拟
 /// 凭证生成、accept、confirm 行为（generation round token 语义）。
-class CredentialUiRepository implements NoteRepository {
+class CredentialUiRepository extends NoteRepositoryStub {
   int credentialCalls = 0;
   int acceptCalls = 0;
   int confirmCalls = 0;
@@ -182,47 +183,16 @@ class CredentialUiRepository implements NoteRepository {
   @override
   Future<PairingRequest> acceptPairingRequest() =>
       throw UnimplementedError('UI 走有界版本');
-  @override
-  Future<void> acceptAndImportPush() async {}
-  @override
-  Future<void> removePairedDevice(String peerId) async {}
-  @override
-  Future<void> setDeviceName(String name) async {}
-  @override
-  Future<List<String>> localAddrs() async => [];
+
+  // ━━ DevicesPage 调用但本 fake 未建模的设备域操作 ━━
+  //
+  // main 版本是「静默成功」，并非 UnimplementedError。DevicesPage 的改设备名
+  // 弹窗（lib/pages/devices_page.dart:922）与解除配对（:207）会走到这里；
+  // 交给 stub 兜底会抛错 → UI 显示「保存失败」/「解除配对失败」。
 
   @override
-  Future<List<NoteRow>> listNotes() async => [];
+  Future<void> setDeviceName(String name) async {}
+
   @override
-  Future<List<NoteRow>> search(String query) async => [];
-  @override
-  Future<String?> getNote(String id) async => null;
-  @override
-  Future<void> createNote(String id, String content) async {}
-  @override
-  Future<String> generateNoteId() async => 'generated-id';
-  @override
-  Future<void> updateMetadata(String id, List<String> tags) async {}
-  @override
-  Future<List<LinkRow>> getOutgoingLinks(String id) async => [];
-  @override
-  Future<List<LinkRow>> getBacklinks(String id) async => [];
-  @override
-  Future<List<NoteRow>> searchNotes(String query) async => [];
-  @override
-  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
-  @override
-  Future<List<String>> getAllTags() async => [];
-  @override
-  Future<List<NoteRow>> searchByTag(String tag) async => [];
-  @override
-  Future<void> softDelete(String id) async {}
-  @override
-  Future<void> restore(String id) async {}
-  @override
-  Future<void> purge(String id) async {}
-  @override
-  Future<int> purgeExpired(DateTime cutoff) async => 0;
-  @override
-  Future<List<NoteRow>> trashList() async => [];
+  Future<void> removePairedDevice(String peerId) async {}
 }
