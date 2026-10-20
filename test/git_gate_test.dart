@@ -1430,6 +1430,29 @@ void main() {
       );
     });
 
+    // ── 标准 2：test/widget_test.dart → app_shell_widget_test.dart ──
+
+    test('18a widget_test.dart 不存在、app_shell_widget_test.dart 存在且含原用例', () {
+      expect(
+        File('test/widget_test.dart').existsSync(),
+        isFalse,
+        reason: 'test/widget_test.dart 必须被重命名，不得残留',
+      );
+      final renamed = File('test/app_shell_widget_test.dart');
+      expect(renamed.existsSync(), isTrue, reason: 'app_shell_widget_test.dart 必须存在');
+      final body = renamed.readAsStringSync();
+      expect(
+        body,
+        contains('desktop renders the three-pane note workspace'),
+        reason: 'app_shell_widget_test.dart 必须保留桌面三栏用例',
+      );
+      expect(
+        body,
+        contains('mobile renders the simple two-tab shell'),
+        reason: 'app_shell_widget_test.dart 必须保留移动两 tab 用例',
+      );
+    });
+
     test('17b 全仓 Dart 源码无任何 models/note 引用', () async {
       // 死代码删除的另一半：import/引用为零（git grep 为真相源，覆盖
       // lib/ test/ tool/ integration_test/ 全部受跟踪文件）。本测试自身的
