@@ -80,10 +80,19 @@ class GateOptions {
   }
 }
 
+/// 测试文件里 `import 'support/x.dart'`（相对 `test/`）或
+/// `import 'package:cardmind/test/support/x.dart'` 的包别名形式。
+/// 命中即把该测试文件记为 `test/support/x.dart`（stem `x`）的 import 方。
+final RegExp _supportImportPattern = RegExp(
+  "import\\s+['\"](?:package:cardmind/test/)?support/([A-Za-z0-9_]+)\\.dart['\"]",
+);
+
 /// 扫描仓库现有测试资产。
 Future<TestIndex> scanTestIndex(String repoRoot) async {
   final flutter = <String>{};
   final rust = <String>{};
+  // test/support/ fake stem → import 它的测试文件（派生，不手抄）。
+  final importers = <String, Set<String>>{};
   final testDir = Directory('$repoRoot/test');
   if (testDir.existsSync()) {
     // 递归扫描：test/services、test/models 子目录的测试，以及
@@ -96,6 +105,28 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
         flutter.add(_repoRelative(repoRoot, f.path));
       }
     }
+    // 从测试文件内容派生 support fake 的 import 方：新增/重命名
+    // test/support/ 下的 fake、或调整测试的 import 方时自动纳入，无需
+    // 维护手抄映射（手抄必然漂移，新测试会默默不被门禁选中）。fake stem
+    // 必须真实存在于 test/support/（在 flutter 索引里）才记录：
+    // import 'support/x.dart' 但 x.dart 不在索引（拼错/已删除）时不得建
+    // importer 映射——否则该 stem 会被锚成「有映射」而跳过调用方的
+    // fail-closed 全量兜底。
+    for (final f in testDir.listSync(recursive: true).whereType<File>()) {
+      final p = f.path.replaceAll(Platform.pathSeparator, '/');
+      if (!p.endsWith('_test.dart')) continue;
+      final rel = _repoRelative(repoRoot, f.path);
+      for (final m in _supportImportPattern.allMatches(f.readAsStringSync())) {
+        final stem = m.group(1)!;
+        if (flutter.contains('test/support/$stem.dart')) {
+          importers.putIfAbsent(stem, () => <String>{}).add(rel);
+        }
+      }
+    }
+  }
+  final supportImporters = <String, List<String>>{};
+  for (final e in importers.entries) {
+    supportImporters[e.key] = e.value.toList()..sort();
   }
   final rustTestsDir = Directory('$repoRoot/rust-backend/tests');
   if (rustTestsDir.existsSync()) {
@@ -111,7 +142,11 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
       }
     }
   }
-  return TestIndex(flutterTestFiles: flutter, rustTestTargets: rust);
+  return TestIndex(
+    flutterTestFiles: flutter,
+    rustTestTargets: rust,
+    supportImporters: supportImporters,
+  );
 }
 
 /// pre-commit：format-first → 按 staged 分类执行快速门禁。

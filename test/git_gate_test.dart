@@ -19,8 +19,12 @@ import '../tool/src/git_gate/selector.dart';
 /// 共享 fake（非 `_test.dart`，分类为 dartBusiness，但仍列入索引供
 /// `_maybePairing`/`_maybeSync`/`_relatedDartTests` 匹配）。
 /// rustTestTargets 必须与 `rust-backend/tests/` 下所有 `*_test.rs` 的
-/// stem 集合一致。
-final TestIndex testIndex = TestIndex(
+/// stem 集合一致。supportImporters 由 `scanTestIndex` 读测试文件内容
+/// 派生（`import 'support/xxx.dart'`），fixture 通过 setUpAll 真实扫描
+/// 注入——不手抄，手抄就是本任务要消灭的漂移源。
+late final TestIndex testIndex;
+
+final TestIndex _staticTestIndex = TestIndex(
   flutterTestFiles: {
     'test/adr_0008_test.dart',
     'test/agents_md_test.dart',
@@ -35,6 +39,7 @@ final TestIndex testIndex = TestIndex(
     'test/devices_page_widget_test.dart',
     'test/docs_dir_test.dart',
     'test/editor_page_widget_test.dart',
+    'test/feature_test_file_arg_test.dart',
     'test/feature_test_security_test.dart',
     'test/frb_note_repository_test.dart',
     'test/git_gate_hook_integration_test.dart',
@@ -157,6 +162,31 @@ List<String> flutterTestFilesOfCmd(GateCommand cmd) =>
     cmd.arguments.skip(3).toList();
 
 void main() {
+  // fixture TestIndex 由生产 scanTestIndex 真实扫描填充（repoRoot =
+  // 当前工作目录 = 仓库根）。flutterTestFiles/rustTestTargets 与
+  // _staticTestIndex 的手抄清单交叉校验（测试 11 用 git ls-files 为
+  // 真相源复核两者）；supportImporters 只能由扫描内容派生，无法手抄。
+  setUpAll(() async {
+    final scanned = await scanTestIndex(Directory.current.path);
+    expect(
+      scanned.flutterTestFiles,
+      _staticTestIndex.flutterTestFiles,
+      reason:
+          'scanTestIndex 的 flutterTestFiles 与 fixture 不一致：'
+          '缺 ${_staticTestIndex.flutterTestFiles.difference(scanned.flutterTestFiles)} / '
+          '多 ${scanned.flutterTestFiles.difference(_staticTestIndex.flutterTestFiles)}',
+    );
+    expect(
+      scanned.rustTestTargets,
+      _staticTestIndex.rustTestTargets,
+      reason:
+          'scanTestIndex 的 rustTestTargets 与 fixture 不一致：'
+          '缺 ${_staticTestIndex.rustTestTargets.difference(scanned.rustTestTargets)} / '
+          '多 ${scanned.rustTestTargets.difference(_staticTestIndex.rustTestTargets)}',
+    );
+    testIndex = scanned;
+  });
+
   group('selector', () {
     test('1 docs-only 计划 = format + docs lint + 全部文档契约测试', () {
       final plan = selectPlanForFiles([
@@ -972,8 +1002,8 @@ void main() {
 
     // ── 标准 4：markdown 改动选上全部文档契约测试 ─────────────────────────
     test('12j markdown 改动：docs:lint + 全部文档契约测试（合批一条）', () {
-      // 9 个测试就是 _supportFakeImporters['doc_helpers'] 那份名单
-      // （全部 doc_helpers 消费方 = 全部文档契约测试）。
+      // 9 个测试就是 doc_helpers 的全部 import 方（= 全部文档契约测试），
+      // 由 scanTestIndex 从测试文件内容派生，不再是手抄表。
       const docContractTests = <String>[
         'test/adr_0008_test.dart',
         'test/agents_md_test.dart',
@@ -1004,13 +1034,22 @@ void main() {
 
     test('12k markdown 契约测试按存在性加入（不存在的跳过）', () {
       // 与 _addIfExists 同语义：索引里没有的测试文件不得进计划，
-      // 否则 flutter test 会因「找不到文件」失败。
+      // 否则 flutter test 会因「找不到文件」失败。sparse 索引注入
+      // doc_helpers 的派生 importer（含一个不存在的文件），验证
+      // 按存在性收窄。
       final sparse = TestIndex(
         flutterTestFiles: <String>{
           'test/product_doc_test.dart',
           'test/markdown_references_test.dart',
         },
         rustTestTargets: const <String>{},
+        supportImporters: const <String, List<String>>{
+          'doc_helpers': <String>[
+            'test/markdown_references_test.dart',
+            'test/nonexistent_doc_test.dart',
+            'test/product_doc_test.dart',
+          ],
+        },
       );
       final plan = selectPlanForFiles(<String>[
         'docs/product.md',
@@ -1160,6 +1199,100 @@ void main() {
             '缺 ${expectedRust.difference(testIndex.rustTestTargets)} / '
             '多 ${testIndex.rustTestTargets.difference(expectedRust)}',
       );
+    });
+
+    // ── 本任务：supportImporters 从测试文件 import 内容派生，不靠手抄表 ──
+
+    test('14a 新增 support fake 的 importer 从扫描自动派生（不改映射表）', () async {
+      // 在临时 repo 里模拟「新增 test/support/foo_repository.dart +
+      // test/foo_widget_test.dart import 它」。旧实现下该 fake 不在
+      // _supportFakeImporters 手抄表里 → 漏跑；派生实现必须自动纳入。
+      final dir = await Directory.systemTemp.createTemp('gate_support_scan_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final support = Directory('${dir.path}/test/support')
+        ..createSync(recursive: true);
+      File(
+        '${support.path}/foo_repository.dart',
+      ).writeAsStringSync('// fake\nclass FooRepository {}\n');
+      File('${dir.path}/test/foo_widget_test.dart').writeAsStringSync(
+        // 拆串拼接：本测试文件自身不得含可匹配的 `import 'support/x.dart'`
+        // 连续文本，否则真实仓库扫描会把 git_gate_test 误记为 importer。
+        "import 'support/foo"
+        "_repository.dart';\nvoid main() {}\n",
+      );
+
+      final index = await scanTestIndex(dir.path);
+      expect(index.supportImporters['foo_repository'], <String>[
+        'test/foo_widget_test.dart',
+      ], reason: 'scanTestIndex 必须从测试文件内容派生 support fake 的 import 方');
+
+      final plan = selectPlanForFiles(<String>[
+        'test/support/foo_repository.dart',
+      ], index: index);
+      expect(
+        plan.steps
+            .where((s) => s.kind == CommandKind.flutterTest)
+            .expand((s) => s.arguments.skip(3)),
+        contains('test/foo_widget_test.dart'),
+        reason: '新 fake 的 import 方必须自动纳入计划（不走手抄表）',
+      );
+      expect(
+        plan.steps.where((s) => s.label == 'flutter:test:full'),
+        isEmpty,
+        reason: '有 importer 命中不得升级全量',
+      );
+    });
+
+    test('14b 缺失 support fake 不错配（空映射 fail-closed 全量）', () {
+      // 索引里没有的 fake：不得走 pairing/sync 关键词或 stem 兜底错配到
+      // 无关测试；fail-closed 落全量 flutter test（「索引里没有 → 不返回
+      // 任何窄测试」的 null 语义不破）。
+      final plan = selectPlanForFiles(<String>[
+        'test/support/nonexistent_fake.dart',
+      ], index: testIndex);
+      final cmds = flutterTestCmdsOf(plan);
+      expect(cmds, hasLength(1));
+      expect(
+        flutterTestFilesOfCmd(cmds.single),
+        isEmpty,
+        reason: '缺失 fake 必须落全量（无文件参数），不得错配窄测试',
+      );
+      expect(cmds.single.label, 'flutter:test:full');
+    });
+
+    test('14c 真实仓库派生结果与已知 import 方一致（doc_helpers/memory）', () {
+      // fixture testIndex 已由生产 scanTestIndex 填充（见 setUpAll）；
+      // 这里直接断言派生值 = 手抄表应含的真实 import 方（git grep
+      // "import 'support" test/ 为真相源）。
+      expect(testIndex.supportImporters['doc_helpers'], <String>[
+        'test/adr_0008_test.dart',
+        'test/agents_md_test.dart',
+        'test/design_tokens_doc_test.dart',
+        'test/docs_dir_test.dart',
+        'test/markdown_references_test.dart',
+        'test/product_doc_test.dart',
+        'test/spec_lifecycle_doc_test.dart',
+        'test/sync_network_doc_test.dart',
+        'test/ui_style_guide_doc_test.dart',
+      ], reason: 'doc_helpers 的派生 importer 必须与真实消费方一致');
+      expect(testIndex.supportImporters['memory_note_repository'], <String>[
+        'test/editor_page_widget_test.dart',
+        'test/knowledge_base_widget_test.dart',
+        'test/note_list_page_widget_test.dart',
+        'test/trash_page_widget_test.dart',
+      ], reason: 'memory_note_repository 的派生 importer 必须与真实消费方一致');
+      // doc_helpers 的 import 方 = 全部文档契约测试（markdown 改动时被选中）。
+      expect(docContractTests(testIndex), <String>[
+        'test/adr_0008_test.dart',
+        'test/agents_md_test.dart',
+        'test/design_tokens_doc_test.dart',
+        'test/docs_dir_test.dart',
+        'test/markdown_references_test.dart',
+        'test/product_doc_test.dart',
+        'test/spec_lifecycle_doc_test.dart',
+        'test/sync_network_doc_test.dart',
+        'test/ui_style_guide_doc_test.dart',
+      ]);
     });
   });
 
