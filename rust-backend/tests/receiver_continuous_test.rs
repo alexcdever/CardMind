@@ -19,6 +19,25 @@ use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{PairingTarget, SyncService};
 use common::{pair_up, rt};
 
+/// 接收器预热事件等待上限（无内置超时，此处给出有界失败窗口）。
+const RECEIVER_WARMUP_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// 等 `svc` 的接收器真实走完一个 accept 窗口（`start_receiver` 之后调用）。
+///
+/// 用事件计数代替 `sleep(100ms)`：`receiver_windows` 只在接收器完成一个
+/// 300ms accept 周期后自增，因此返回时接收器一定已进入「接受连接」状态，
+/// 而不是靠固定延时推定。超时即失败，不会死等。
+async fn wait_one_window(svc: &SyncService) {
+    let (windows0, _) = svc.receiver_progress();
+    tokio::time::timeout(RECEIVER_WARMUP_TIMEOUT, svc.wait_receiver_windows(windows0))
+        .await
+        .expect("接收器应在 5 秒内走完一个 accept 窗口（预热）");
+    assert!(
+        svc.receiver_running(),
+        "预热期间接收器不应退出（start_receiver 后应保持运行）"
+    );
+}
+
 // ━━━ 验收 1：receiver absent causes push timeout ━━━
 
 /// 红阶段缺陷复现：B 无接收器时 A push 超时 10 秒（红输出已记录：
@@ -208,24 +227,16 @@ fn receiver_continuously_accepts_push() {
         .await;
 
         b.start_receiver(b_store.clone()).await.unwrap();
-        // 让接收器先经历若干空闲窗口（模拟应用运行任意时刻）：有界轮询——
-        // 每个 tick 校验接收器仍存活（死了立刻失败），满足「至少 1 个 300ms
-        // 接受窗口」即继续，超过 5 秒则有界失败，而不是盲等固定 900ms。
-        let warmup_start = Instant::now();
-        let warmup_deadline = Instant::now() + Duration::from_secs(5);
-        loop {
-            assert!(
-                b.receiver_running(),
-                "预热期间接收器不应退出（start_receiver 后应保持运行）"
-            );
-            if warmup_start.elapsed() >= Duration::from_millis(300) {
-                break;
-            }
-            if Instant::now() >= warmup_deadline {
-                panic!("接收器预热超过 5 秒仍未完成");
-            }
-            tokio::time::sleep(Duration::from_millis(50)).await;
-        }
+        // 让接收器先真实走完一个 300ms accept 窗口（模拟应用运行任意时刻的
+        // 空闲状态），再推送：等「窗口完成」事件而非固定 sleep，超时则有界失败。
+        let (windows0, _) = b.receiver_progress();
+        tokio::time::timeout(Duration::from_secs(5), b.wait_receiver_windows(windows0))
+            .await
+            .expect("接收器应在 5 秒内走完一个 accept 窗口（预热）");
+        assert!(
+            b.receiver_running(),
+            "预热期间接收器不应退出（start_receiver 后应保持运行）"
+        );
 
         a.create_note("n1".to_string(), "# Anytime\n\nbody")
             .unwrap();
@@ -265,7 +276,7 @@ fn receiver_stop_is_bounded() {
         .await;
 
         b.start_receiver(b_store.clone()).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        wait_one_window(&b).await;
 
         // stop 必须在 3 秒内返回
         let start = Instant::now();
@@ -307,8 +318,8 @@ fn receiver_does_not_block_edits() {
         let _ = a;
 
         b.start_receiver(b_store.clone()).await.unwrap();
-        // 接收器已进入等待窗口
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        // 等接收器真的进入 accept 等待窗口（窗口完成事件），而不是固定 sleep
+        wait_one_window(&b).await;
 
         // create / update 均应在 1 秒内完成（不被接收器的 accept 等待阻塞）
         let start = Instant::now();
@@ -352,7 +363,9 @@ fn receiver_does_not_block_outbound_push() {
 
         a.start_receiver(a_store.clone()).await.unwrap();
         b.start_receiver(b_store.clone()).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        // 两端都进入 accept 等待窗口（窗口完成事件），不盲等固定 sleep
+        wait_one_window(&a).await;
+        wait_one_window(&b).await;
 
         // 记 rev 于 push 之前：等「B 这次 push 引起的 import」
         let rev = a.receiver_content_revision();
@@ -476,7 +489,8 @@ fn receiver_failure_is_recoverable() {
         .await;
 
         b.start_receiver(b_store.clone()).await.unwrap();
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        // 接收器进入 accept 等待窗口后才发坏帧（窗口完成事件，不盲等）
+        wait_one_window(&b).await;
 
         // 恶意/损坏连接：发一个既不是 CARDMIND magic 也不是 0x01 开头的帧
         let garbage = b"NOT-CARDMIND-GARBAGE-DATA";
@@ -501,24 +515,20 @@ fn receiver_failure_is_recoverable() {
         let mut send = addr.open_uni().await.unwrap();
         let _ = send.write_all(garbage).await;
         let _ = send.finish();
-        // 等接收器处理完坏帧（验收 10：可恢复，记录 failed_tolerated）。有界轮询而非
-        // 盲等固定 500ms：每个 tick 断言接收器仍存活——坏帧若打死接收器这里立刻失败，
-        // 而不是拖到后面 push 超时才暴露；超时则有界失败。
-        let bad_frame_start = Instant::now();
-        let bad_frame_deadline = Instant::now() + Duration::from_secs(5);
-        loop {
-            assert!(
-                b.receiver_running(),
-                "坏帧不得终止接收器（验收 10：单次失败只记录并继续）"
-            );
-            if bad_frame_start.elapsed() >= Duration::from_millis(500) {
-                break;
-            }
-            if Instant::now() >= bad_frame_deadline {
-                panic!("坏帧后接收器 5 秒内未走完处理窗口");
-            }
-            tokio::time::sleep(Duration::from_millis(50)).await;
-        }
+        // 等接收器真的处理完这一帧（连接处理事件，不是盲等 500ms）：
+        // 事件在 `receiver_handle_incoming` 之后递增，坏帧若打死接收器则
+        // 计数不再前进 → 5 秒超时立刻暴露，而不是拖到后面 push 超时。
+        let (_, connections0) = b.receiver_progress();
+        tokio::time::timeout(
+            Duration::from_secs(5),
+            b.wait_receiver_connections(connections0),
+        )
+        .await
+        .expect("坏帧后接收器应处理完该连接（事件通知）");
+        assert!(
+            b.receiver_running(),
+            "坏帧不得终止接收器（验收 10：单次失败只记录并继续）"
+        );
 
         // 正常 push 仍被接收器处理（可恢复，未永久退出/busy loop）
         let rev = b.receiver_content_revision();
@@ -647,9 +657,12 @@ fn failed_push_does_not_mark_online() {
             .last_seen;
         assert!(before.is_some(), "配对成功后应有 last_seen");
 
-        // 对端离线：B endpoint 关闭
+        // 对端离线：B endpoint 关闭。
         drop(b);
         drop(b_store);
+        // 这里是**唯一保留**的 sleep：iroh endpoint 的关闭在 socket 层异步生效，
+        // 没有本端可等待的完成事件（对端已不存在，不会发任何帧）；不等这一刻，
+        // 后续 connect 可能仍命中尚未回收的本地连接记录。100ms 是最短安全值。
         tokio::time::sleep(Duration::from_millis(100)).await;
 
         a.create_note("n1".to_string(), "# Offline\n\nbody")

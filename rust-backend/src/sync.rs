@@ -71,6 +71,13 @@ pub struct SyncService {
     content_revision: Arc<AtomicU64>,
     /// revision 递增广播：wait_content_revision 的等待方被唤醒重查。
     content_notify: Arc<tokio::sync::Notify>,
+    /// 接收器走完的 accept 窗口数（诊断/测试用；事件等待见 `wait_receiver_windows`）。
+    receiver_windows: Arc<AtomicU64>,
+    /// 接收器处理完的 incoming 连接数（诊断/测试用；事件等待见
+    /// `wait_receiver_connections`）——包含坏帧等被容错处理的连接。
+    receiver_connections: Arc<AtomicU64>,
+    /// 上述两个进度计数递增时的广播：测试等待方被唤醒重查。
+    receiver_progress_notify: Arc<tokio::sync::Notify>,
 }
 
 /// 可被主服务与后台接收任务共享的可变核心状态。
@@ -113,6 +120,10 @@ struct ReceiverContext {
     content_revision: Arc<AtomicU64>,
     /// 与 SyncService.content_notify 同一实例：import 成功后广播唤醒等待方。
     content_notify: Arc<tokio::sync::Notify>,
+    /// 与 SyncService 同一实例的接收进度计数与广播（测试事件等待用）。
+    receiver_windows: Arc<AtomicU64>,
+    receiver_connections: Arc<AtomicU64>,
+    receiver_progress_notify: Arc<tokio::sync::Notify>,
 }
 
 /// 接收器单次 accept 窗口（任务 O：短窗口循环，与配对 accept 轮询同粒度）。
@@ -401,6 +412,9 @@ impl SyncService {
             log_verbose: AtomicBool::new(false),
             content_revision: Arc::new(AtomicU64::new(0)),
             content_notify: Arc::new(tokio::sync::Notify::new()),
+            receiver_windows: Arc::new(AtomicU64::new(0)),
+            receiver_connections: Arc::new(AtomicU64::new(0)),
+            receiver_progress_notify: Arc::new(tokio::sync::Notify::new()),
         };
         if let Some(path) = &path {
             if path.exists() {
@@ -2550,6 +2564,9 @@ impl SyncService {
                 idle_windows: 0,
                 content_revision: self.content_revision.clone(),
                 content_notify: self.content_notify.clone(),
+                receiver_windows: self.receiver_windows.clone(),
+                receiver_connections: self.receiver_connections.clone(),
+                receiver_progress_notify: self.receiver_progress_notify.clone(),
             };
             let join = tokio::spawn(receiver_loop(ctx));
             *guard = ReceiverHandle {
@@ -2628,6 +2645,48 @@ impl SyncService {
                 return current;
             }
             self.content_notify.notified().await;
+        }
+    }
+
+    /// 接收器进度快照 `(已完成的 accept 窗口数, 已处理完的 incoming 连接数)`。
+    ///
+    /// 诊断/测试用：两个计数单调递增，配合 `wait_receiver_windows` /
+    /// `wait_receiver_connections` 把「等接收器走完一个窗口/处理完一个连接」
+    /// 从固定 sleep 变成事件等待。
+    pub fn receiver_progress(&self) -> (u64, u64) {
+        (
+            self.receiver_windows.load(Ordering::Acquire),
+            self.receiver_connections.load(Ordering::Acquire),
+        )
+    }
+
+    /// 事件等待：阻塞直到接收器走完超过 `after` 个 accept 窗口，返回新窗口数。
+    ///
+    /// 语义同 `wait_content_revision`：先读后等，已超过则立即返回；否则注册
+    /// `notified()` 再重查，杜绝「通知在 await 前发出」丢事件。调用方需自行包
+    /// `tokio::time::timeout` 防死等。**接收器未运行时不会自增**——需要先
+    /// `start_receiver`。
+    pub async fn wait_receiver_windows(&self, after: u64) -> u64 {
+        loop {
+            let current = self.receiver_windows.load(Ordering::Acquire);
+            if current > after {
+                return current;
+            }
+            self.receiver_progress_notify.notified().await;
+        }
+    }
+
+    /// 事件等待：阻塞直到接收器处理完超过 `after` 个 incoming 连接，返回新计数。
+    ///
+    /// 与 `wait_receiver_windows` 的差别：这个计数只在**真的处理了连接**后递增
+    /// （含坏帧等容错路径），故可用它断言「某次连接已被接收器消费」。
+    pub async fn wait_receiver_connections(&self, after: u64) -> u64 {
+        loop {
+            let current = self.receiver_connections.load(Ordering::Acquire);
+            if current > after {
+                return current;
+            }
+            self.receiver_progress_notify.notified().await;
         }
     }
 
@@ -2976,6 +3035,9 @@ async fn receiver_loop(mut ctx: ReceiverContext) {
                             Some(&format!("windows={}", ctx.idle_windows)),
                         );
                     }
+                    // 进度事件：完整走完一个 accept 窗口（测试的事件等待锚点）
+                    ctx.receiver_windows.fetch_add(1, Ordering::Release);
+                    ctx.receiver_progress_notify.notify_waiters();
                     continue;
                 }
             };
@@ -3008,6 +3070,9 @@ async fn receiver_loop(mut ctx: ReceiverContext) {
                 );
             }
         }
+        // 进度事件：单个连接已处理完（成功/容错失败/超时都算；测试等待锚点）
+        ctx.receiver_connections.fetch_add(1, Ordering::Release);
+        ctx.receiver_progress_notify.notify_waiters();
     }
 }
 
