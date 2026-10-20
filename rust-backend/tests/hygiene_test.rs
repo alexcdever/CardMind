@@ -60,11 +60,15 @@ fn loop_sleep_lines(src: &str) -> Vec<usize> {
     let mut open_loops: Vec<i32> = Vec::new();
     let mut offenders = Vec::new();
     for (idx, line) in lines.iter().enumerate() {
+        let before_depth = depth;
         depth += line.matches('{').count() as i32 - line.matches('}').count() as i32;
-        // 先清理本行已闭合的循环（深度回落到打开处之前即已结束）
-        open_loops.retain(|open_depth| depth >= *open_depth);
-        if starts_loop(line) {
-            open_loops.push(depth);
+        // 清理已闭合的循环：块内深度必须严格大于打开前的深度。
+        open_loops.retain(|open_depth| depth > *open_depth);
+        // 单行自闭合循环（`while c { f(); }`）不得留下未关闭的 open_loop，
+        // 否则后续同深度的单次 sleep 会被误判成轮询（假阳性）。
+        let single_line_closed = starts_loop(line) && depth <= before_depth;
+        if starts_loop(line) && !single_line_closed {
+            open_loops.push(before_depth);
         }
         if !open_loops.is_empty() {
             let has_sleep = line.contains("sleep(");
@@ -79,8 +83,9 @@ fn loop_sleep_lines(src: &str) -> Vec<usize> {
     offenders
 }
 
-/// 剥掉 `pub` / `pub(crate)` / `async` / `unsafe` / `const` / `extern "C"` 等前置修饰，
-/// 让命名守卫能看见 `async fn test_foo`、`pub fn test_foo` 这类形态。
+/// 剥掉 `pub(crate)` / `pub(super)` / `pub(self)` / `pub` / `async` / `unsafe` /
+/// `const` / `default` 等前置修饰，让命名守卫能看见 `async fn test_foo`、
+/// `pub fn test_foo` 这类形态。`extern "C" fn` 未覆盖（测试函数不会这么写）。
 fn strip_fn_modifiers(mut line: &str) -> &str {
     loop {
         let before = line.len();
