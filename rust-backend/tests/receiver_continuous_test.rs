@@ -491,6 +491,10 @@ fn receiver_failure_is_recoverable() {
         b.start_receiver(b_store.clone()).await.unwrap();
         // 接收器进入 accept 等待窗口后才发坏帧（窗口完成事件，不盲等）
         wait_one_window(&b).await;
+        // 在**发送**坏帧之前记下基线：之后 wait 的是「基线之上再 +1 次连接」。
+        // 若在发送后才读，接收器可能已消费完该连接——wait 会去等下一次连接
+        // （下一次要到后面的 push 才来）→ 5 秒超时假红。
+        let (_, connections0) = b.receiver_progress();
 
         // 恶意/损坏连接：发一个既不是 CARDMIND magic 也不是 0x01 开头的帧
         let garbage = b"NOT-CARDMIND-GARBAGE-DATA";
@@ -518,7 +522,6 @@ fn receiver_failure_is_recoverable() {
         // 等接收器真的处理完这一帧（连接处理事件，不是盲等 500ms）：
         // 事件在 `receiver_handle_incoming` 之后递增，坏帧若打死接收器则
         // 计数不再前进 → 5 秒超时立刻暴露，而不是拖到后面 push 超时。
-        let (_, connections0) = b.receiver_progress();
         tokio::time::timeout(
             Duration::from_secs(5),
             b.wait_receiver_connections(connections0),
