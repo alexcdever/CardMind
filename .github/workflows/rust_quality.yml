@@ -82,3 +82,99 @@ jobs:
           echo "## Rust Code Quality Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ All Rust quality checks completed" >> $GITHUB_STEP_SUMMARY
+
+  # 覆盖率 + 边界扫描是「报告生成、不阻断」的旁路：独立于 rust-quality 主 job，
+  # 与 fmt/clippy/test 并行跑，失败不阻塞主质量门禁。tarpaulin 较慢，独立 job
+  # 也避免拖慢主链路反馈。
+  rust-coverage:
+    name: Rust Coverage + Boundary Scan
+    runs-on: ubuntu-latest
+    # 整个 job 只产出报告；lcov 或边界扫描失败不影响 rust-quality 结论。
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_VERSION }}
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            rust-backend/target/
+          key: ${{ runner.os }}-cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-coverage-
+            ${{ runner.os }}-cargo-quality-
+
+      - name: Install cargo-tarpaulin
+        # 优先取预编译二进制（秒级）；拿不到就回退源码编译（数分钟）。
+        # 两步都不阻断：覆盖率为旁路报告。
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-tarpaulin
+        continue-on-error: true
+
+      - name: Ensure cargo-tarpaulin (fallback build from source)
+        run: |
+          if ! command -v cargo-tarpaulin >/dev/null 2>&1; then
+            cargo install cargo-tarpaulin
+          fi
+        continue-on-error: true
+
+      - name: Generate Rust LCOV report
+        # 与本地 tool/quality.dart:306 同口径（--out Lcov --output-dir .、
+        # 排除 frb_generated 与 tool/），另加 --packages cardmind-backend：
+        # rust-backend 是多成员 workspace（含 tool/boundary_scanner），不限定
+        # 根包会把辅助 crate 一并算进覆盖率。产出 rust-backend/lcov.info。
+        run: |
+          cd rust-backend
+          cargo tarpaulin --packages cardmind-backend \
+            --out Lcov --output-dir . \
+            --exclude-files src/frb_generated.rs \
+            --exclude-files 'tool/**'
+        continue-on-error: true
+
+      - name: Upload Rust LCOV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-lcov
+          path: rust-backend/lcov.info
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # 边界扫描器经 `cargo run --manifest-path rust-backend/tool/boundary_scanner`
+      # 生成 Rust 边界清单，并读 rust-backend/lcov.info 判覆盖；同时它本身是
+      # Dart 脚本（依赖 analyzer/yaml + Flutter SDK 约束），需要 Flutter SDK。
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
+          channel: stable
+          cache: true
+
+      - name: Install Dart dependencies
+        run: flutter pub get
+
+      - name: Run test boundary scan (rust)
+        # 与本地 quality.dart:327 同源：只告警不 fail job。
+        run: dart run tool/test_boundary_scanner.dart --scope=rust
+        continue-on-error: true
+
+      - name: Upload boundary report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-test-boundary-report
+          path: tmp/cardmind_test_boundary_report.md
+          retention-days: 7
+          if-no-files-found: ignore
