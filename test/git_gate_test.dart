@@ -77,6 +77,7 @@ final TestIndex _staticTestIndex = TestIndex(
     'test/support/credential_ui_repository.dart',
     'test/support/devices_repository.dart',
     'test/support/doc_helpers.dart',
+    'test/support/fake_structure_test.dart',
     'test/support/memory_note_repository.dart',
     'test/support/note_repository_stub.dart',
     'test/test_boundary_scanner_coverage_absence_test.dart',
