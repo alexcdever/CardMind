@@ -1457,6 +1457,68 @@ void main() {
       );
     });
 
+    // ── 标准 3：flutterTestFiles 不手抄，改从磁盘派生 ──
+
+    test('19a 无手抄的全仓测试清单常量/清单块', () {
+      // 结构性腿：源码里不得再有「连续多行逐字列 test/xxx_test.dart」的清单块，
+      // 也不得再有 _staticTestIndex 这类手抄常量——真相源是 Directory('test')
+      // 扫描（与 tool/src/git_gate/gate.dart:scanTestIndex 同规则）。
+      final lines = File('test/git_gate_test.dart')
+          .readAsLinesSync()
+          .where((l) => !l.trimLeft().startsWith('//'))
+          .toList();
+      expect(
+        lines.any((l) => l.contains('_staticTestIndex')),
+        isFalse,
+        reason: '手抄清单常量 _staticTestIndex 必须删除，改磁盘派生',
+      );
+
+      final entry = RegExp(r"^\s*'test/[^']+\.dart',\s*$");
+      var run = 0;
+      var maxRun = 0;
+      for (final l in lines) {
+        run = entry.hasMatch(l) ? run + 1 : 0;
+        if (run > maxRun) maxRun = run;
+      }
+      expect(
+        maxRun,
+        lessThan(5),
+        reason:
+            '不得存在连续 ≥5 行逐字列测试文件的手抄清单块（实际最长 $maxRun 行）；'
+            '全仓清单必须由 Directory(\'test\') 扫描派生',
+      );
+    });
+
+    test('19b 磁盘上新增 zz_probe_test.dart 自动进入派生索引（probe 往返）', () async {
+      // 行为腿：不修改本测试源码的前提下，新建的 probe 文件必须出现在
+      // 「全量索引」派生结果里；删除后又消失。
+      final probe = File('test/zz_probe_test.dart');
+      probe.writeAsStringSync('void main() {}\n');
+      addTearDown(() {
+        if (probe.existsSync()) probe.deleteSync();
+      });
+
+      final withProbe = await scanTestIndex(Directory.current.path);
+      expect(
+        withProbe.flutterTestFiles,
+        contains('test/zz_probe_test.dart'),
+        reason: '磁盘派生索引必须在 probe 存在时自动包含它（不改测试源码）',
+      );
+      // fixture（setUpAll 派生的同一份索引）+ probe = 重新派生结果。
+      expect(
+        withProbe.flutterTestFiles,
+        {...testIndex.flutterTestFiles, 'test/zz_probe_test.dart'},
+        reason: 'fixture 必须是磁盘派生的，不是手抄的第二份清单',
+      );
+
+      probe.deleteSync();
+      final afterDelete = await scanTestIndex(Directory.current.path);
+      expect(
+        afterDelete.flutterTestFiles,
+        testIndex.flutterTestFiles,
+        reason: 'probe 删除后派生索引必须回到原清单',
+      );
+    });
     test('17b 全仓 Dart 源码无任何 models/note 引用', () async {
       // 死代码删除的另一半：import/引用为零（git grep 为真相源，覆盖
       // lib/ test/ tool/ integration_test/ 全部受跟踪文件）。本测试自身的
