@@ -76,6 +76,22 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+      - name: Run test boundary scan (flutter)
+        # 与本地 quality.dart:166 同源：--scope=flutter + --reuse-coverage
+        # 复用上一 flutter test --coverage 产的 coverage/lcov.info，不重跑。
+        # 告警语义：exit 非 0 不 fail job。
+        run: dart run tool/test_boundary_scanner.dart --scope=flutter --reuse-coverage
+        continue-on-error: true
+
+      - name: Upload boundary report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-boundary-report
+          path: tmp/cardmind_test_boundary_report.md
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Generate summary
         if: always()
         run: |
