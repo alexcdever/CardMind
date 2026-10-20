@@ -40,7 +40,7 @@ fn soft_deleted_payload(notes: &[(&str, &str, Option<String>)]) -> Vec<u8> {
 
 /// 验收 1：软删后投影 deleted_at 非空、主列表排除、回收站包含
 #[test]
-fn test_soft_delete_marks_deleted_at() {
+fn soft_delete_sets_deleted_at_and_hides_note() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("soft-delete");
@@ -70,7 +70,7 @@ fn test_soft_delete_marks_deleted_at() {
 
 /// 验收 2：恢复后投影 deleted_at 为 NULL、主列表重新可见、回收站移除
 #[test]
-fn test_restore_clears_deleted_at() {
+fn restore_clears_deleted_at_and_returns_note() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("restore");
@@ -105,7 +105,7 @@ fn test_restore_clears_deleted_at() {
 
 /// 验收 3：彻底删除移除投影行并级联删除该笔记的出链 links
 #[test]
-fn test_purge_removes_row_and_links() {
+fn purge_removes_note_row_and_its_links() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("purge-links");
@@ -143,7 +143,7 @@ fn test_purge_removes_row_and_links() {
 
 /// 验收 4：过期清理 — deleted_at 31 天前的被删，1 天前的保留（30 天边界）
 #[test]
-fn test_expired_trash_cleanup() {
+fn purge_expired_deletes_only_notes_past_the_window() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("cleanup");
@@ -171,7 +171,7 @@ fn test_expired_trash_cleanup() {
 
 /// 验收 5：回收站按 deleted_at 倒序（后删的在前）
 #[test]
-fn test_trash_ordering() {
+fn trashed_notes_list_newest_deletion_first() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("trash-order");
@@ -204,7 +204,7 @@ fn test_trash_ordering() {
 
 /// 已有库迁移：旧 notes 表无 deleted_at 列时，打开后自动补列，投影可读写删除状态。
 #[test]
-fn test_migration_adds_deleted_at_column() {
+fn older_schema_gains_deleted_at_column() {
     let db_path = temp_dir("migrate-column").join("cardmind.db");
     {
         // 模拟旧 schema（无 deleted_at 列）的已有库
@@ -263,7 +263,7 @@ fn test_migration_adds_deleted_at_column() {
 // ═══ 第二轮验收 1：purge 后重建投影不复活（第一轮失败的场景反转）═══
 
 #[test]
-fn test_purge_persists_across_sync() {
+fn purge_survives_a_sync_roundtrip() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("purge-sync");
@@ -302,7 +302,7 @@ fn test_purge_persists_across_sync() {
 // ═══ 第二轮验收 2：墓碑随快照传播 ═══
 
 #[test]
-fn test_tombstone_survives_export_import() {
+fn tombstones_survive_export_and_import() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir_a = temp_dir("tomb-export");
@@ -330,7 +330,7 @@ fn test_tombstone_survives_export_import() {
 // ═══ 第二轮验收 3：软删经 meta 传播 ═══
 
 #[test]
-fn test_soft_delete_propagates_via_meta() {
+fn soft_delete_reaches_the_peer_via_meta() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir_a = temp_dir("soft-export");
@@ -367,7 +367,7 @@ fn test_soft_delete_propagates_via_meta() {
 // ═══ 第二轮验收 4：恢复经 meta 传播 ═══
 
 #[test]
-fn test_restore_propagates_via_meta() {
+fn restore_reaches_the_peer_via_meta() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir_a = temp_dir("restore-export");
@@ -399,7 +399,7 @@ fn test_restore_propagates_via_meta() {
 // ═══ 第二轮验收 5：批量过期清理 ═══
 
 #[test]
-fn test_purge_expired_batch() {
+fn purge_expired_removes_the_whole_expired_batch() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("expired-batch");
@@ -433,7 +433,7 @@ fn test_purge_expired_batch() {
 // ═══ 第二轮验收 6：v2 文件无损升级 ═══
 
 #[test]
-fn test_v2_file_loads_without_tombstones() {
+fn v2_file_without_tombstones_still_loads() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("v2-file");
@@ -464,7 +464,7 @@ fn test_v2_file_loads_without_tombstones() {
 // ═══ 第二轮验收 7：导入时墓碑 id 的记录被跳过（不复活）═══
 
 #[test]
-fn test_tombstoned_id_skipped_on_import() {
+fn import_skips_notes_that_were_tombstoned() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("skip-import");

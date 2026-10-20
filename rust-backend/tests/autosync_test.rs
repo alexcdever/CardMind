@@ -17,7 +17,7 @@ use common::{pair_up, rt};
 // ━━━ 验收 1：编辑保存即推送 ━━━
 
 #[test]
-fn test_edit_triggers_push() {
+fn editing_a_note_marks_it_pending_and_push_delivers_it() {
     rt().block_on(async {
         let (mut a, a_store, mut b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
@@ -59,7 +59,7 @@ fn test_edit_triggers_push() {
 // ━━━ 验收 2：周期拉取同步 ━━━
 
 #[test]
-fn test_periodic_pull_syncs_notes() {
+fn sync_cycle_pulls_peers_notes_into_local_store() {
     rt().block_on(async {
         let (mut a, a_store, mut b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
@@ -100,7 +100,7 @@ fn test_periodic_pull_syncs_notes() {
 // ━━━ 验收 3：同步开关阻断推送（决策 6 能力）━━━
 
 #[test]
-fn test_sync_disabled_blocks_push() {
+fn sync_disabled_skips_push_and_keeps_edits_local() {
     rt().block_on(async {
         let (mut a, a_store, mut b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
@@ -146,7 +146,7 @@ fn test_sync_disabled_blocks_push() {
 // ━━━ 验收 4：待同步计数跟踪 ━━━
 
 #[test]
-fn test_pending_count_tracks_unsynced() {
+fn pending_count_reflects_unsynced_edits() {
     rt().block_on(async {
         let (mut a, a_store, mut b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
@@ -180,7 +180,7 @@ fn test_pending_count_tracks_unsynced() {
 // ━━━ 验收 5：编辑不被网络阻塞 ━━━
 
 #[test]
-fn test_edit_not_blocked_by_network() {
+fn editing_stays_fast_while_network_push_is_slow() {
     rt().block_on(async {
         // 无配对设备、无对端可达
         let mut a = SyncService::new().await.unwrap();
@@ -211,7 +211,7 @@ fn test_edit_not_blocked_by_network() {
 // ━━━ 验收 6：推送失败静默（决策 18）━━━
 
 #[test]
-fn test_push_failure_silent() {
+fn unreachable_peer_push_fails_without_erroring_the_edit() {
     rt().block_on(async {
         let (mut a, a_store, b, _b_store) = pair_up(
             SyncService::new().await.unwrap(),
@@ -257,7 +257,7 @@ fn test_push_failure_silent() {
 /// 修复后：推送帧在网络上带 8 字节 CARDMIND magic 前缀，路由按 magic 判定，
 /// 推送 payload 不再与配对帧标记冲突。
 #[test]
-fn test_push_with_tombstone_not_misrouted() {
+fn push_carrying_tombstone_is_applied_as_deletion() {
     rt().block_on(async {
         let (mut a, a_store, mut b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
@@ -322,7 +322,7 @@ fn test_push_with_tombstone_not_misrouted() {
 /// pending），但 B 实际没导入数据；修复后 B 应立即 import_all。
 // ━━━ M1 回归：配对等待期间的对端推送不丢失 ━━━
 #[test]
-fn test_pairing_wait_does_not_drop_push() {
+fn push_frame_is_not_swallowed_while_pairing_waits() {
     rt().block_on(async {
         let (mut a, a_store, mut b, b_store) = pair_up(
             SyncService::new().await.unwrap(),

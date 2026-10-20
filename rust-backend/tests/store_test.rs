@@ -5,7 +5,7 @@ use cardmind_backend::sync::NoteCrdt;
 use rusqlite::Connection;
 
 #[test]
-fn test_paired_devices_migrates_last_sync_at_and_preserves_semantics() {
+fn paired_devices_schema_migration_keeps_online_semantics() {
     let path =
         std::env::temp_dir().join(format!("cardmind-store-migration-{}", std::process::id()));
     let _ = std::fs::remove_file(&path);
@@ -62,7 +62,7 @@ fn test_paired_devices_migrates_last_sync_at_and_preserves_semantics() {
 }
 
 #[test]
-fn test_sync_and_list() {
+fn synced_notes_list_in_expected_order() {
     // 使用内存数据库
     let store = NoteStore::new(":memory:").unwrap();
 
@@ -100,7 +100,7 @@ fn test_sync_and_list() {
 }
 
 #[test]
-fn test_search() {
+fn search_matches_note_content() {
     let store = NoteStore::new(":memory:").unwrap();
 
     // 三条笔记
@@ -134,7 +134,7 @@ fn test_search() {
 }
 
 #[test]
-fn test_outgoing_and_back_links() {
+fn link_index_tracks_outgoing_and_back_links() {
     let store = NoteStore::new(":memory:").unwrap();
 
     let note_a = NoteCrdt::new();
@@ -169,7 +169,7 @@ fn test_outgoing_and_back_links() {
 }
 
 #[test]
-fn test_links_rebuilt_on_resync() {
+fn resync_rebuilds_the_link_index() {
     let store = NoteStore::new(":memory:").unwrap();
     let note = NoteCrdt::new();
     note.set_content("[[old-target]]");
@@ -185,7 +185,7 @@ fn test_links_rebuilt_on_resync() {
 }
 
 #[test]
-fn test_search_notes_fts() {
+fn full_text_search_returns_matching_notes() {
     let store = NoteStore::new(":memory:").unwrap();
 
     let note1 = NoteCrdt::new();
@@ -218,7 +218,7 @@ fn test_search_notes_fts() {
 }
 
 #[test]
-fn test_auto_complete_and_tags() {
+fn tag_autocomplete_returns_matching_tags() {
     let store = NoteStore::new(":memory:").unwrap();
 
     let note1 = NoteCrdt::new();
@@ -262,7 +262,7 @@ fn test_auto_complete_and_tags() {
 /// 直接以 `Connection` 预置两条 `updated_at` 不同的行：验证 `legacy_notes`
 /// 返回 `(id, content)` 的内容与 `ORDER BY updated_at ASC` 顺序（更早的在前）。
 #[test]
-fn test_legacy_notes_returns_content_in_updated_at_ascending_order() {
+fn legacy_notes_list_by_updated_at_ascending() {
     let dir = common::temp_dir("legacy-notes-order");
     let path = dir.join("cardmind.db");
     let path_str = path.to_string_lossy().to_string();
@@ -312,7 +312,7 @@ fn test_legacy_notes_returns_content_in_updated_at_ascending_order() {
 
 /// 对照腿：空库（无任何 notes 行）时 `legacy_notes` 返回空 `Vec`。
 #[test]
-fn test_legacy_notes_empty_store_returns_empty_vec() {
+fn legacy_notes_on_empty_store_is_empty() {
     let dir = common::temp_dir("legacy-notes-empty");
     let path = dir.join("cardmind.db");
     let path_str = path.to_string_lossy().to_string();
@@ -353,7 +353,7 @@ fn test_legacy_notes_empty_store_returns_empty_vec() {
 /// 两腿：未配对的 peer_id → false；`upsert_paired_device` 之后同一 peer_id → true。
 /// 另加一条反向腿：只有被 upsert 的那个 peer 为 true，其余 peer 仍为 false。
 #[test]
-fn test_is_paired_device_false_then_true_after_upsert() {
+fn is_paired_device_flips_false_to_true_after_upsert() {
     let store = NoteStore::new(":memory:").unwrap();
 
     assert!(

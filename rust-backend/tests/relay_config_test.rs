@@ -26,7 +26,7 @@ fn custom_urls(mode: &iroh::RelayMode) -> Vec<String> {
 // ━━━ 验收 1：无 relay.txt → Disabled ━━━
 
 #[test]
-fn test_no_relay_file_disables_relay() {
+fn missing_relay_file_keeps_relay_disabled() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("no-file");
@@ -44,7 +44,7 @@ fn test_no_relay_file_disables_relay() {
 // ━━━ 验收 2：relay.txt 有 URL → Custom ━━━
 
 #[test]
-fn test_relay_file_enables_custom_mode() {
+fn relay_file_enables_the_configured_relay() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("with-url");
@@ -64,7 +64,7 @@ fn test_relay_file_enables_custom_mode() {
 // ━━━ 验收 3：无效 relay URL → new_persistent 报错（fail fast）━━━
 
 #[test]
-fn test_invalid_relay_url_fails_fast() {
+fn malformed_relay_url_fails_fast() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("invalid-url");
@@ -84,7 +84,7 @@ fn test_invalid_relay_url_fails_fast() {
 // ━━━ 验收 4：空 relay.txt → Disabled ━━━
 
 #[test]
-fn test_empty_relay_file_disables() {
+fn empty_relay_file_keeps_relay_disabled() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("empty-file");
@@ -109,7 +109,7 @@ fn addr_relay_urls(addr: &iroh::EndpointAddr) -> Vec<String> {
 /// 验收 1：relay.txt 存在（Custom 模式）时，空 ips 构建的连接地址必须携带 relay URL
 ///（跨网段经 relay 地址映射找到对端，不依赖 n0 DNS TXT）。
 #[test]
-fn test_endpoint_addr_carries_relay_url() {
+fn endpoint_addr_exposes_the_configured_relay_url() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("carry-relay");
@@ -137,7 +137,7 @@ fn test_endpoint_addr_carries_relay_url() {
 /// 验收 2：无 relay.txt（Disabled 模式）时地址不含 relay URL，行为不变——
 /// 仍走原有 node id + DNS 地址解析路径（局域网 mDNS/直连场景不受影响）。
 #[test]
-fn test_endpoint_addr_no_relay_stays_dns_only() {
+fn endpoint_addr_without_relay_uses_no_relay_route() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("no-relay-addr");
@@ -169,7 +169,7 @@ fn test_endpoint_addr_no_relay_stays_dns_only() {
 // ━━━ 验收 5：内存版 new() 永远 Disabled（隔离性）━━━
 
 #[test]
-fn test_memory_service_never_reads_relay_file() {
+fn in_memory_service_ignores_the_relay_file() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let svc = SyncService::new().await.unwrap();
@@ -184,7 +184,7 @@ fn test_memory_service_never_reads_relay_file() {
 // ━━━ temp_dir 唯一性：同 label 连续调用返回不同路径且可同时存在 ━━━
 
 #[test]
-fn test_temp_dir_unique_per_call() {
+fn temp_dir_never_returns_the_same_path_twice() {
     let dir_a = temp_dir("unique");
     let dir_b = temp_dir("unique");
     assert_ne!(dir_a, dir_b, "同 label 连续两次调用应返回不同路径");

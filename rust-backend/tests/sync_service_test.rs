@@ -8,7 +8,7 @@ use common::temp_dir;
 /// 创建两个 SyncService 实例 A 和 B。
 /// A 创建一条笔记 → 导出全部 → B 导入 → 验证内容一致。
 #[test]
-fn test_export_import_roundtrip() {
+fn export_import_roundtrip_preserves_notes() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         // ━━━ 设备 A：创建笔记 ━━━
@@ -39,7 +39,7 @@ fn test_export_import_roundtrip() {
 
 /// 验证多条笔记的批量导入导出
 #[test]
-fn test_multiple_notes_roundtrip() {
+fn roundtrip_preserves_every_note() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut service = SyncService::new().await.unwrap();
@@ -61,7 +61,7 @@ fn test_multiple_notes_roundtrip() {
 
 /// 验证空集合的导出导入
 #[test]
-fn test_empty_export_import() {
+fn empty_export_imports_cleanly() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let service = SyncService::new().await.unwrap();
@@ -82,7 +82,7 @@ fn test_empty_export_import() {
 }
 
 #[test]
-fn test_persistent_restart_and_envelope_validation() {
+fn restart_reloads_notes_and_rejects_bad_envelope() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("restart");
@@ -107,7 +107,7 @@ fn test_persistent_restart_and_envelope_validation() {
 }
 
 #[test]
-fn test_persistence_failure_rolls_back_memory() {
+fn failed_persist_rolls_back_in_memory_state() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("rollback");

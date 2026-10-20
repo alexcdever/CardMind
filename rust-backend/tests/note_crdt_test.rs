@@ -1,14 +1,14 @@
 use cardmind_backend::sync::NoteCrdt;
 
 #[test]
-fn test_create_and_read() {
+fn created_note_reads_back_its_content() {
     let note = NoteCrdt::new();
     note.set_content("Hello, CRDT World!");
     assert_eq!(note.get_content(), "Hello, CRDT World!");
 }
 
 #[test]
-fn test_title_extraction() {
+fn title_is_the_first_heading_or_line() {
     let note = NoteCrdt::new();
     note.set_content("# 我的标题\n\n正文内容");
     assert_eq!(note.get_title(), "我的标题");
@@ -25,7 +25,7 @@ fn test_title_extraction() {
 }
 
 #[test]
-fn test_title_extraction_ignores_tag_metadata() {
+fn title_ignores_legacy_tag_metadata_line() {
     let same_line = NoteCrdt::new();
     same_line.set_content("<!--tags:work,idea--># Tagged title\n\nBody");
     assert_eq!(same_line.get_title(), "Tagged title");
@@ -36,7 +36,7 @@ fn test_title_extraction_ignores_tag_metadata() {
 }
 
 #[test]
-fn test_snapshot_roundtrip() {
+fn snapshot_export_import_preserves_content() {
     let note_a = NoteCrdt::new();
     note_a.set_content("快照测试内容");
 
@@ -50,7 +50,7 @@ fn test_snapshot_roundtrip() {
 }
 
 #[test]
-fn test_delta_sync() {
+fn delta_update_on_one_side_merges_into_the_other() {
     // A 创建并设置初始内容
     let a = NoteCrdt::new();
     a.set_content("初始内容");
@@ -71,7 +71,7 @@ fn test_delta_sync() {
 }
 
 #[test]
-fn test_meta_tags_roundtrip() {
+fn meta_tags_survive_snapshot_roundtrip() {
     let note = NoteCrdt::new();
     assert!(note.get_tags().is_empty(), "初始 tags 应为空");
 
@@ -88,7 +88,7 @@ fn test_meta_tags_roundtrip() {
 }
 
 #[test]
-fn test_meta_dates() {
+fn meta_created_and_updated_dates_roundtrip() {
     let note = NoteCrdt::new();
     assert!(note.get_created_at().is_empty());
     assert!(note.get_updated_at().is_empty());
@@ -101,7 +101,7 @@ fn test_meta_dates() {
 }
 
 #[test]
-fn test_parse_links() {
+fn parse_links_extracts_outgoing_references() {
     // 无链接
     let note = NoteCrdt::new();
     note.set_content("普通正文，没有链接");
@@ -137,7 +137,7 @@ fn test_parse_links() {
 }
 
 #[test]
-fn test_snapshot_roundtrip_with_meta() {
+fn snapshot_roundtrip_preserves_tags_and_dates() {
     let note_a = NoteCrdt::new();
     note_a.set_content("# 带元数据\n\n正文");
     note_a.set_tags(&["work".to_string(), "idea".to_string()]);
@@ -157,7 +157,7 @@ fn test_snapshot_roundtrip_with_meta() {
 }
 
 #[test]
-fn test_generate_note_id() {
+fn generated_note_ids_are_unique() {
     let id = NoteCrdt::generate_note_id();
     assert_eq!(id.len(), 36, "UUID 应为 36 字符: {}", id);
     let parts: Vec<&str> = id.split('-').collect();

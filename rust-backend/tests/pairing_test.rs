@@ -31,7 +31,7 @@ fn wrong_code(code: &str) -> String {
 // ━━━ 验收 1：配对码生成与校验 ━━━
 
 #[test]
-fn test_pairing_code_generation_and_validation() {
+fn pairing_code_is_generated_and_validated() {
     rt().block_on(async {
         let confirmer = SyncService::new().await.unwrap();
         let store = NoteStore::new(":memory:").unwrap();
@@ -93,7 +93,7 @@ fn test_pairing_code_generation_and_validation() {
 // ━━━ 验收 2：配对码过期 ━━━
 
 #[test]
-fn test_pairing_code_expires() {
+fn expired_pairing_code_is_rejected() {
     rt().block_on(async {
         let confirmer = SyncService::new().await.unwrap();
         let store = NoteStore::new(":memory:").unwrap();
@@ -129,7 +129,7 @@ fn test_pairing_code_expires() {
 // ━━━ 验收 3：暴力尝试限制（连续错 5 次失效）━━━
 
 #[test]
-fn test_pairing_code_brute_force_limit() {
+fn wrong_pairing_codes_are_rate_limited() {
     rt().block_on(async {
         let confirmer = SyncService::new().await.unwrap();
         let store = NoteStore::new(":memory:").unwrap();
@@ -182,7 +182,7 @@ fn test_pairing_code_brute_force_limit() {
 // ━━━ 验收 4：配对成功后双方持久化 ━━━
 
 #[test]
-fn test_pairing_persists_both_sides() {
+fn completed_pairing_persists_on_both_sides() {
     rt().block_on(async {
         let mut confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
@@ -255,7 +255,7 @@ fn test_pairing_persists_both_sides() {
 // ━━━ 验收 5：首次配对自动全量同步（决策 8）━━━
 
 #[test]
-fn test_pairing_triggers_initial_full_sync() {
+fn pairing_pushes_full_snapshot_to_initiator() {
     rt().block_on(async {
         let mut confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
@@ -327,7 +327,7 @@ fn test_pairing_triggers_initial_full_sync() {
 // ━━━ 验收 6：解除配对 ━━━
 
 #[test]
-fn test_unpair_removes_device() {
+fn unpair_removes_the_paired_device_row() {
     let store = NoteStore::new(":memory:").unwrap();
     store.upsert_paired_device("peer-a", "Alice").unwrap();
     assert!(store
@@ -351,7 +351,7 @@ fn test_unpair_removes_device() {
 
 /// 超时路径：无请求时 bounded accept 应在时限内返回 None（不会永久阻塞）。
 #[test]
-fn test_accept_pairing_request_with_timeout_returns_none_on_timeout() {
+fn accept_pairing_request_times_out_with_none() {
     rt().block_on(async {
         let mut confirmer = SyncService::new().await.unwrap();
         // 外层 tokio::time::timeout 兜底：bounded accept 必须在 5 秒内返回
@@ -368,7 +368,7 @@ fn test_accept_pairing_request_with_timeout_returns_none_on_timeout() {
 /// 取消路径（等价语义）：0ms 时限的 accept 应立即返回 None——Flutter 侧取消
 /// 后释放 FRB opaque 的路径与超时一致，不留下永久阻塞任务。
 #[test]
-fn test_accept_pairing_request_with_timeout_zero_returns_immediately() {
+fn accept_pairing_request_with_zero_timeout_returns_at_once() {
     rt().block_on(async {
         let mut confirmer = SyncService::new().await.unwrap();
         let start = std::time::Instant::now();
@@ -388,7 +388,7 @@ fn test_accept_pairing_request_with_timeout_zero_returns_immediately() {
 /// 成功路径：发起方连接后 bounded accept 返回 Some(request)；
 /// 确认方 confirm（回复握手）后发起方完成配对。spawn 两侧均有 timeout 保护。
 #[test]
-fn test_accept_pairing_request_with_timeout_returns_request() {
+fn accept_pairing_request_returns_the_queued_request() {
     rt().block_on(async {
         let mut confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
@@ -464,7 +464,7 @@ fn test_accept_pairing_request_with_timeout_returns_request() {
 // ━━━ 验收 7（任务 J）：mDNS 自动发现接线 —— 组合 API 生命周期 ━━━
 
 #[test]
-fn test_pairing_accept_with_advertising_lifecycle() {
+fn advertising_pairing_accept_starts_and_stops_cleanly() {
     rt().block_on(async {
         let confirmer = SyncService::new().await.unwrap();
 
