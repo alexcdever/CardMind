@@ -86,7 +86,7 @@ final TestIndex _staticTestIndex = TestIndex(
     'test/sync_ui_widget_test.dart',
     'test/trash_page_widget_test.dart',
     'test/ui_style_guide_doc_test.dart',
-    'test/widget_test.dart',
+    'test/app_shell_widget_test.dart',
   },
   rustTestTargets: {
     'autosync_test',
@@ -1439,7 +1439,11 @@ void main() {
         reason: 'test/widget_test.dart 必须被重命名，不得残留',
       );
       final renamed = File('test/app_shell_widget_test.dart');
-      expect(renamed.existsSync(), isTrue, reason: 'app_shell_widget_test.dart 必须存在');
+      expect(
+        renamed.existsSync(),
+        isTrue,
+        reason: 'app_shell_widget_test.dart 必须存在',
+      );
       final body = renamed.readAsStringSync();
       expect(
         body,
