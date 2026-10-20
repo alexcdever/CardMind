@@ -1219,10 +1219,12 @@ void main() {
     test('13b api.rs 部分索引按存在性收窄（不凭空加 target）', () {
       // 注入只含部分 target 的索引：选到的集合按存在性收窄，
       // 且不凭空出现不存在的 target（与 _relatedRustTargets 现有
-      // existing/null 语义一致）。
+      // existing/null 语义一致）。派生集合也按存在性收窄（trash_test
+      // 在派生集合里但不在 rustTestTargets → 不进计划）。
       const partial = TestIndex(
         flutterTestFiles: <String>{},
         rustTestTargets: <String>{'trash_test', 'store_test'},
+        rustApiConsumers: <String>{'trash_test', 'debug_log_test'},
       );
       final plan = selectPlanForFiles(<String>[
         'rust-backend/src/api.rs',
@@ -1475,6 +1477,41 @@ void main() {
         containsAll(<String>['migration_test', 'note_crdt_test']),
         reason: '非消费方仍是合法 cargo target，必须留在 rustTestTargets',
       );
+    });
+
+    test('16g api:: 识别的正/反例（同前缀标识符不误判）', () async {
+      // 派生靠文本匹配，必须钉住边界：真消费方（含 use 整路径引入）
+      // 全命中；`api_helpers` / `my_api::` 这类同前缀标识符不误判。
+      final dir = await Directory.systemTemp.createTemp('gate_api_re_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final testsDir = Directory('${dir.path}/rust-backend/tests')
+        ..createSync(recursive: true);
+      const cases = <String, String>{
+        // target 名 → 源码（应命中）
+        'bare_path_test':
+            'let r = api::create_persistent_sync_service(d).await;',
+        'full_path_test': 'cardmind_backend::api::sync_notes_to_store(s, t);',
+        'use_module_test': 'use cardmind_backend::api;',
+        'use_alias_test': 'use cardmind_backend::api as exported;',
+        'use_glob_test': 'use cardmind_backend::api::{a, b};',
+        // target 名 → 源码（不应命中：同前缀标识符/无关模块）
+        'api_helpers_test': 'use cardmind_backend::api_helpers::foo;',
+        'my_api_test': 'my_api::x();',
+        'store_only_test': 'use cardmind_backend::store::NoteRecord;',
+        'capital_test': 'use crate::capital;',
+      };
+      for (final e in cases.entries) {
+        File('${testsDir.path}/${e.key}.rs').writeAsStringSync('${e.value}\n');
+      }
+
+      final index = await scanTestIndex(dir.path);
+      expect(index.rustApiConsumers, <String>{
+        'bare_path_test',
+        'full_path_test',
+        'use_module_test',
+        'use_alias_test',
+        'use_glob_test',
+      }, reason: '只命中真 api:: 消费方；同前缀标识符不得误判');
     });
 
     test('16c 显式核心面清单保留且与派生集合并集去重排序', () {
