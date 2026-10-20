@@ -183,4 +183,16 @@ class CredentialUiRepository extends NoteRepositoryStub {
   @override
   Future<PairingRequest> acceptPairingRequest() =>
       throw UnimplementedError('UI 走有界版本');
+
+  // ━━ DevicesPage 调用但本 fake 未建模的设备域操作 ━━
+  //
+  // main 版本是「静默成功」，并非 UnimplementedError。DevicesPage 的改设备名
+  // 弹窗（lib/pages/devices_page.dart:922）与解除配对（:207）会走到这里；
+  // 交给 stub 兜底会抛错 → UI 显示「保存失败」/「解除配对失败」。
+
+  @override
+  Future<void> setDeviceName(String name) async {}
+
+  @override
+  Future<void> removePairedDevice(String peerId) async {}
 }

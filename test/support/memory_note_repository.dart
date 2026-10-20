@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cardmind/src/rust/discovery.dart';
 import 'package:cardmind/src/rust/store.dart';
 
 import 'note_repository_stub.dart';
@@ -176,6 +177,31 @@ class MemoryNoteRepository extends NoteRepositoryStub {
 
   @override
   Future<String> deviceName() async => 'Fake Device';
+
+  // ━━ 配对（任务 G）— 页面可达的「静默成功」占位 ━━
+  //
+  // 本 fake 也被 NoteListPage 用例注入，而 NoteListPage 内嵌 / 导航到
+  // DevicesPage（移动端设备 tab、桌面侧栏）与 TrashPage。这些页面会调用下列
+  // 方法；main 版本返回空集合 / 空 Future（静默成功），若交给 stub 兜底就会
+  // 变成抛 UnimplementedError（设备页「加载设备失败」、改设备名「保存失败」）。
+
+  @override
+  Future<void> setDeviceName(String name) async {}
+
+  @override
+  Future<List<String>> localAddrs() async => [];
+
+  @override
+  Future<void> stopPairingAdvertising() async {}
+
+  @override
+  Future<List<PeerInfo>> discoverPeers() async => [];
+
+  @override
+  Future<List<PairedDeviceRow>> listPairedDevices() async => [];
+
+  @override
+  Future<void> removePairedDevice(String peerId) async {}
 
   List<String> _splitTags(String tags) {
     if (tags.trim().isEmpty) return [];

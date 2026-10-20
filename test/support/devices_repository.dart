@@ -145,6 +145,38 @@ class DevicesRepository extends NoteRepositoryStub
   @override
   Future<void> softDelete(String id) async {}
 
+  // ━━ NoteListPage 内嵌/导航到的二级页面（editor / trash）━━
+
+  @override
+  Future<String?> getNote(String id) async => null;
+
+  @override
+  Future<void> createNote(String id, String content) async {}
+
+  @override
+  Future<String> generateNoteId() async => 'generated-id';
+
+  @override
+  Future<void> updateMetadata(String id, List<String> tags) async {}
+
+  @override
+  Future<List<LinkRow>> getBacklinks(String id) async => [];
+
+  @override
+  Future<List<NoteRow>> autoCompleteLinks(String prefix) async => [];
+
+  @override
+  Future<void> restore(String id) async {}
+
+  @override
+  Future<void> purge(String id) async {}
+
+  @override
+  Future<List<NoteRow>> trashList() async => [];
+
+  @override
+  Future<List<String>> localAddrs() async => [];
+
   @override
   Future<void> setDeviceName(String name) async {}
 }
