@@ -8,6 +8,18 @@ use mdns_sd::{ServiceDaemon, ServiceEvent, ServiceInfo};
 /// mDNS 服务类型
 const SERVICE_TYPE: &str = "_cardmind._tcp.local.";
 
+/// instance name 的固定前缀。
+const PREFIX: &str = "cardmind";
+
+/// DNS 单个 label 的字节上限（RFC 1035 §2.3.4）。
+const MAX_LABEL_LEN: usize = 63;
+
+/// device_id 可读段的最大字节数：给 `cardmind-`(9) + `-`(1) + 短哈希(8) 留足空间。
+const READABLE_BUDGET: usize = MAX_LABEL_LEN - PREFIX.len() - 1 - SHORT_HASH_LEN - 1;
+
+/// 短哈希位数（十六进制字符）。
+const SHORT_HASH_LEN: usize = 8;
+
 /// 局域网内发现的对端设备信息
 #[derive(Debug, Clone)]
 pub struct PeerInfo {
@@ -28,10 +40,56 @@ pub struct DiscoveryService {
 
 /// 从 device_id 派生 mDNS instance name。
 ///
-/// **当前实现有缺陷**：只取 device_id 前 8 个字符，前 8 位相同的两个
-/// device_id 会得到同名，触发 RFC 6762/6763 自动改名。见本文件 `tests` 模块。
+/// 规则：`cardmind-{可读段}-{8 位短哈希}`。
+///
+/// - **可读段**：device_id 清洗（仅保留 ASCII 字母数字，其余折叠为连字符）后
+///   截断到 [`READABLE_BUDGET`] 字节，便于人眼在多设备列表里辨认。
+/// - **短哈希**：对**完整** device_id 取 `DefaultHasher`，取 `{:016x}` 前 8 位。
+///   唯一性由它保证——只截前 N 位会让前 N 位相同的 id 撞名（原缺陷）。
+/// - 总长度 ≤ [`MAX_LABEL_LEN`]（DNS 单 label 上限 63 字节），且不以连字符
+///   开头或结尾、只含 `[a-z0-9-]`。
+///
+/// **instance name 只用于可读性与去冲突**：对端身份一律取 TXT 记录的
+/// `device_id`（见 `discover_peers`），不从本名字反推。
 fn service_instance_name(device_id: &str) -> String {
-    format!("cardmind-{}", &device_id[..device_id.len().min(8)])
+    use std::hash::{Hash, Hasher};
+
+    // 可读段：只留字母数字，其余折叠成 '-'，再去首尾与重复连字符。
+    let mut readable = String::with_capacity(device_id.len().min(READABLE_BUDGET));
+    let mut last_was_dash = false;
+    for c in device_id.chars() {
+        if readable.len() >= READABLE_BUDGET {
+            break;
+        }
+        if c.is_ascii_alphanumeric() {
+            readable.push(c.to_ascii_lowercase());
+            last_was_dash = false;
+        } else if !last_was_dash && !readable.is_empty() {
+            readable.push('-');
+            last_was_dash = true;
+        }
+    }
+    let readable = readable.trim_matches('-');
+
+    // 短哈希参与完整 device_id，保证不同输入（几乎必然）不同输出。
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    device_id.hash(&mut hasher);
+    let hash = format!("{:016x}", hasher.finish());
+    let short_hash = &hash[..SHORT_HASH_LEN];
+
+    let name = if readable.is_empty() {
+        format!("{PREFIX}-{short_hash}")
+    } else {
+        format!("{PREFIX}-{readable}-{short_hash}")
+    };
+    // 兜底：即便可读段预算算错也不越界（DNS label 上限是硬约束）。
+    if name.len() > MAX_LABEL_LEN {
+        let keep = MAX_LABEL_LEN - PREFIX.len() - 1 - SHORT_HASH_LEN - 1;
+        let head: String = readable.chars().take(keep).collect();
+        format!("{PREFIX}-{}-{short_hash}", head.trim_end_matches('-'))
+    } else {
+        name
+    }
 }
 
 impl DiscoveryService {
@@ -108,7 +166,9 @@ impl DiscoveryService {
         loop {
             match tokio::time::timeout(Duration::from_secs(3), receiver.recv_async()).await {
                 Ok(Ok(ServiceEvent::ServiceResolved(service))) => {
-                    // 从 TXT 记录提取 device_id
+                    // 身份的唯一来源是 TXT 的 `device_id`：instance name 只承载
+                    // 可读性与去冲突（见 `service_instance_name`），即使被 mDNS
+                    // 自动改名也不影响身份识别，故这里绝不从 instance name 反推。
                     let device_id = service
                         .get_property_val_str("device_id")
                         .unwrap_or_default()
