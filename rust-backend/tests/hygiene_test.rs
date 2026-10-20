@@ -66,7 +66,11 @@ fn loop_sleep_lines(src: &str) -> Vec<usize> {
         open_loops.retain(|open_depth| depth > *open_depth);
         // 单行自闭合循环（`while c { f(); }`）不得留下未关闭的 open_loop，
         // 否则后续同深度的单次 sleep 会被误判成轮询（假阳性）。
-        let single_line_closed = starts_loop(line) && depth <= before_depth;
+        // 判据必须同时满足「本行有 `{`」且「本行结束时深度回到起点」——
+        // 只看深度会把「`loop` 换行接 `{`」「`for x in y.chain(..)` 换行接 `{`」
+        // 这类多行循环误当自闭合而漏判（`{` 在下一行，本行深度不变）。
+        let opens_block = line.contains('{');
+        let single_line_closed = starts_loop(line) && opens_block && depth <= before_depth;
         if starts_loop(line) && !single_line_closed {
             open_loops.push(before_depth);
         }
