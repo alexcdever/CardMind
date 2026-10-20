@@ -470,6 +470,13 @@ void main() {
       expect(run, contains('--out Lcov'));
       expect(run, contains('--output-dir .'));
       expect(run, contains('src/frb_generated.rs'));
+      // rust-backend workspace 的 tool/boundary_scanner 成员不能进覆盖率；
+      // 与本地 tool/quality.dart:306 口径一致，第二条 --exclude-files 必须钉住。
+      expect(
+        run,
+        contains("--exclude-files 'tool/**'"),
+        reason: '漏排 tool/** 会把 boundary_scanner 源码计入 rust 覆盖率',
+      );
       // rust-backend workspace 含 tool/boundary_scanner 成员，须限定根包，
       // 否则 tarpaulin 会把 workspace 成员一并算进覆盖率。
       expect(
@@ -478,6 +485,37 @@ void main() {
         reason: 'workspace 下必须限定根 crate，避免 tool/boundary_scanner 进覆盖率',
       );
       expect(_scriptWorkingDirectory(tarpaulin), 'rust-backend');
+    });
+
+    test('rust-coverage installs cargo-tarpaulin before running it', () {
+      // 钉住既有行为：tarpaulin 步骤挂 continue-on-error，删掉 install 步骤时
+      // cargo tarpaulin 命令不存在会被静默吞掉、artifact 传空文件——install
+      // 步骤的存在必须有断言看着。
+      final steps = _rustQualityJobSteps('rust-coverage');
+      final actionIndex = steps.indexWhere(
+        (step) => step['uses'] == 'taiki-e/install-action@v2',
+      );
+      expect(
+        actionIndex,
+        isNonNegative,
+        reason: '应有 taiki-e/install-action@v2 装 cargo-tarpaulin 预编译二进制',
+      );
+      final action = steps[actionIndex];
+      expect(_map(action['with'])['tool'], 'cargo-tarpaulin');
+      final fallbackIndex = steps.indexWhere(
+        (step) => '${step['run']}'.contains('cargo install cargo-tarpaulin'),
+      );
+      expect(
+        fallbackIndex,
+        isNonNegative,
+        reason: 'install-action 失败时需 cargo install cargo-tarpaulin 源码回退',
+      );
+      final tarpaulinIndex = steps.indexWhere(
+        (step) => '${step['run']}'.contains('cargo tarpaulin'),
+      );
+      expect(tarpaulinIndex, isNonNegative);
+      expect(actionIndex, lessThan(tarpaulinIndex));
+      expect(fallbackIndex, lessThan(tarpaulinIndex));
     });
 
     test('rust-coverage uploads the lcov artifact', () {
