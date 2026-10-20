@@ -2635,19 +2635,27 @@ impl SyncService {
 
     /// 事件等待：阻塞直到 `content_revision > after`，返回新 revision。
     ///
-    /// 先读后等——先查当前 revision，已超过 `after` 立即返回；否则注册
-    /// `notified()` 再重查，杜绝「通知在 await 前发出」丢事件。等待期间
-    /// revision 每递增一次（接收器/import_all 的 import+投影成功后）广播一次，
-    /// 可能多收一条通知但循环重查保证返回时一定 `> after`。
+    /// 关键：`Notify::notify_waiters()` **不保存 permit**，所以「先 load 再
+    /// `notified().await`」之间存在丢事件窗口——通知若恰好落在这段空隙里就
+    /// 永久丢失，waiter 会一直等到下一次 revision 才醒（或直接被调用方的
+    /// timeout 判成假红）。因此这里先把 `notified()` 建好并 `enable()` 完成
+    /// 注册，**再**重查计数：注册之后发出的通知一定能唤醒本次等待。
+    ///
+    /// 等待期间 revision 每递增一次（接收器/import_all 的 import+投影成功后）
+    /// 广播一次，可能多收一条通知但循环重查保证返回时一定 `> after`。
     ///
     /// 调用方需自行包 `tokio::time::timeout` 防死等（无内置上限）。
     pub async fn wait_content_revision(&self, after: u64) -> u64 {
         loop {
+            // 先注册再重查，消除 load 与注册之间的丢事件窗口。
+            let notified = self.content_notify.notified();
+            tokio::pin!(notified);
+            notified.as_mut().enable();
             let current = self.content_revision.load(Ordering::Acquire);
             if current > after {
                 return current;
             }
-            self.content_notify.notified().await;
+            notified.await;
         }
     }
 
