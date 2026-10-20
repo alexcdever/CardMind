@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../tool/src/git_gate/cache.dart';
 import '../tool/src/git_gate/command.dart';
 import '../tool/src/git_gate/gate.dart';
+import '../tool/src/git_gate/git.dart';
 import '../tool/src/git_gate/host_build.dart';
 import '../tool/src/git_gate/runner.dart';
 import '../tool/src/git_gate/selector.dart';
@@ -1492,6 +1493,110 @@ void main() {
         isFalse,
       );
     });
+
+    test('12 checkAsync 祖先包含命中语义（含非祖先安全边界）', () async {
+      // 真实 git 仓库构造祖先/非祖先 SHA。
+      final repo = await Directory.systemTemp.createTemp('gate_ancestor_');
+      addTearDown(() => repo.deleteSync(recursive: true));
+      Future<List<String>> git(List<String> args) async {
+        final r = await Process.run('git', args, workingDirectory: repo.path);
+        return r.stdout.toString().split('\n');
+      }
+
+      await Process.run('git', ['init', '-q'], workingDirectory: repo.path);
+      await Process.run('git', [
+        'config',
+        'user.email',
+        'gate@test.local',
+      ], workingDirectory: repo.path);
+      await Process.run('git', [
+        'config',
+        'user.name',
+        'Gate Test',
+      ], workingDirectory: repo.path);
+      await Process.run('git', [
+        'config',
+        'commit.gpgsign',
+        'false',
+      ], workingDirectory: repo.path);
+      File('${repo.path}/a.txt').writeAsStringSync('a\n');
+      await Process.run('git', ['add', 'a.txt'], workingDirectory: repo.path);
+      await Process.run('git', [
+        'commit',
+        '-q',
+        '-m',
+        'c1',
+      ], workingDirectory: repo.path);
+      final c1 = (await git(['rev-parse', 'HEAD'])).first.trim();
+      File('${repo.path}/a.txt').writeAsStringSync('a\nb\n');
+      await Process.run('git', [
+        'commit',
+        '-aq',
+        '-m',
+        'c2',
+      ], workingDirectory: repo.path);
+      final head = (await git(['rev-parse', 'HEAD'])).first.trim();
+      // 非祖先提交：游离分支上的孤儿提交（同为合法 SHA，但不在 head 祖先链）。
+      final orphan = (await git([
+        'commit-tree',
+        'HEAD^{tree}',
+        '-m',
+        'orphan',
+      ])).first.trim();
+
+      // isAncestor：HEAD 自身与早期提交是祖先，孤儿提交不是。
+      expect(await isAncestor(repo.path, head, head), isTrue);
+      expect(await isAncestor(repo.path, c1, head), isTrue);
+      expect(await isAncestor(repo.path, orphan, head), isFalse);
+      expect(
+        await isAncestor(
+          repo.path,
+          '0000000000000000000000000000000000000000',
+          head,
+        ),
+        isFalse,
+        reason: '不存在的 sha 必须按非祖先处理，不 throw',
+      );
+
+      final dir = await Directory.systemTemp.createTemp('gate_cache_test_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final cache = GateCache.forRepo(dir.path);
+
+      // runFull 语义：写缓存时 localShas 为空（不知道会推哪些提交）。
+      await cache.write(
+        input: CacheCheckInput(
+          headSha: head,
+          fingerprint: 'fp1',
+          localShas: const <String>[],
+          worktreeClean: true,
+        ),
+      );
+
+      // push 的 localSha 都是 head 祖先 → 命中（full 预热路径）。
+      final hit = await cache.checkAsync(
+        repoRoot: repo.path,
+        input: CacheCheckInput(
+          headSha: head,
+          fingerprint: 'fp1',
+          localShas: <String>[c1, head],
+          worktreeClean: true,
+        ),
+      );
+      expect(hit.hit, isTrue, reason: '祖先 localSha 必须命中: ${hit.reason}');
+
+      // 含非祖先 localSha → 不命中（安全边界：同 headSha 也不得误命中）。
+      final miss = await cache.checkAsync(
+        repoRoot: repo.path,
+        input: CacheCheckInput(
+          headSha: head,
+          fingerprint: 'fp1',
+          localShas: <String>[c1, orphan],
+          worktreeClean: true,
+        ),
+      );
+      expect(miss.hit, isFalse, reason: '非祖先 localSha 不得命中');
+      expect(miss.reason, contains('非祖先'));
+    });
   });
 
   group('timeout', () {
@@ -1882,6 +1987,269 @@ void main() {
         flutterTestCalls.single,
         contains('test/product_doc_test.dart'),
         reason: 'docs-only 必须选上文档契约测试',
+      );
+    });
+
+    // 建 git 仓库 + 单个已提交 dart 源文件，返回 (repo, headSha)。
+    Future<(String, String)> makeRepoWithCommit() async {
+      final repo = await makeRepo(withGit: true);
+      await Process.run('git', [
+        'config',
+        'commit.gpgsign',
+        'false',
+      ], workingDirectory: repo);
+      final f = File('$repo/lib/a.dart');
+      f.parent.createSync(recursive: true);
+      f.writeAsStringSync('void main() {}\n');
+      await Process.run('git', ['add', 'lib/a.dart'], workingDirectory: repo);
+      await Process.run('git', [
+        'commit',
+        '-q',
+        '-m',
+        'init',
+      ], workingDirectory: repo);
+      final head = (await Process.run('git', [
+        'rev-parse',
+        'HEAD',
+      ], workingDirectory: repo)).stdout.toString().trim();
+      return (repo, head);
+    }
+
+    test('19 full 预热写缓存后 push 命中（祖先包含语义）', () async {
+      final (repo, head) = await makeRepoWithCommit();
+      final refLines = <String>[
+        'refs/heads/main $head refs/heads/main 0000000',
+      ];
+
+      // 模拟 dart run tool/git_gate.dart full：跑完整套（fake runner 全
+      // 通过）后写缓存。旧「等值匹配」实现下这条断言会红——full 写的是
+      // localShas=[]，push 提供非空集，永不命中。
+      var runner = FakeRunner();
+      var exit = await runFull(optionsFor(repo, runner));
+      expect(exit, 0, reason: 'full 必须成功才能写缓存');
+
+      // 紧接着 git push（pre-push 模拟）：必须写 CACHE HIT 且不跑 suite。
+      final hitLogs = <String>[];
+      runner = FakeRunner();
+      exit = await runPrePush(
+        GateOptions(
+          repoRoot: repo,
+          runner: runner.call,
+          stepTimeout: const Duration(seconds: 30),
+          log: hitLogs.add,
+          logError: hitLogs.add,
+          index: testIndex,
+          pushRefLinesOverride: refLines,
+          testMode: true,
+          testLogWriter: hitLogs.add,
+        ),
+      );
+      expect(exit, 0, reason: '缓存命中时 push 直接通过');
+      expect(hitLogs, contains('CACHE HIT'), reason: '必须走缓存命中路径');
+      expect(
+        runner.signatures.any((c) => c.contains('clippy')),
+        isFalse,
+        reason: '命中后不得重跑完整 suite',
+      );
+    });
+
+    test('20 HEAD 前移后 push 不命中，非祖先 localSha 不命中（安全边界）', () async {
+      final (repo, _) = await makeRepoWithCommit();
+
+      // full 预热（写入 head1 + localShas=[] 的缓存）。
+      var runner = FakeRunner();
+      expect(await runFull(optionsFor(repo, runner)), 0);
+
+      // 新提交一个 commit：HEAD 前移，缓存 headSha 失效。
+      final f = File('$repo/lib/a.dart');
+      f.writeAsStringSync('void main() {\n  print(1);\n}\n');
+      await Process.run('git', [
+        'commit',
+        '-aq',
+        '-m',
+        'second',
+      ], workingDirectory: repo);
+      final head2 = (await Process.run('git', [
+        'rev-parse',
+        'HEAD',
+      ], workingDirectory: repo)).stdout.toString().trim();
+
+      var hitLogs = <String>[];
+      runner = FakeRunner();
+      var exit = await runPrePush(
+        GateOptions(
+          repoRoot: repo,
+          runner: runner.call,
+          stepTimeout: const Duration(seconds: 30),
+          log: (_) {},
+          logError: (_) {},
+          index: testIndex,
+          pushRefLinesOverride: <String>[
+            'refs/heads/main $head2 refs/heads/main 0000000',
+          ],
+          testMode: true,
+          testLogWriter: hitLogs.add,
+        ),
+      );
+      expect(exit, 0, reason: '完整 suite 跑过后 push 仍应通过');
+      expect(hitLogs, isNot(contains('CACHE HIT')), reason: 'headSha 不同不得命中缓存');
+      expect(
+        runner.signatures.any((c) => c.contains('clippy')),
+        isTrue,
+        reason: 'miss 后必须执行完整 suite',
+      );
+
+      // 非祖先 localSha：构造孤儿提交（合法 SHA 但不在 head 祖先链）。
+      // 上一轮 pre-push 已把缓存改写为 head2，直接复用验证安全边界。
+      final orphan = (await Process.run('git', [
+        'commit-tree',
+        'HEAD^{tree}',
+        '-m',
+        'orphan',
+      ], workingDirectory: repo)).stdout.toString().trim();
+      hitLogs = <String>[];
+      runner = FakeRunner();
+      exit = await runPrePush(
+        GateOptions(
+          repoRoot: repo,
+          runner: runner.call,
+          stepTimeout: const Duration(seconds: 30),
+          log: (_) {},
+          logError: (_) {},
+          index: testIndex,
+          pushRefLinesOverride: <String>[
+            'refs/heads/side $orphan refs/heads/side 0000000',
+          ],
+          testMode: true,
+          testLogWriter: hitLogs.add,
+        ),
+      );
+      expect(exit, 0);
+      expect(
+        hitLogs,
+        isNot(contains('CACHE HIT')),
+        reason: '推非祖先提交（别的分支 SHA）不得命中——这是安全边界',
+      );
+      expect(
+        runner.signatures.any((c) => c.contains('clippy')),
+        isTrue,
+        reason: '非祖先 miss 必须执行完整 suite',
+      );
+    });
+
+    test('21 pre-push 自身写的缓存（真实 localShas）再次 push 命中', () async {
+      final (repo, head) = await makeRepoWithCommit();
+      final refLines = <String>[
+        'refs/heads/main $head refs/heads/main 0000000',
+      ];
+
+      // 第一次 push：无缓存，跑完整套并写缓存（真实 localShas）。
+      var runner = FakeRunner();
+      var hitLogs = <String>[];
+      var exit = await runPrePush(
+        GateOptions(
+          repoRoot: repo,
+          runner: runner.call,
+          stepTimeout: const Duration(seconds: 30),
+          log: (_) {},
+          logError: (_) {},
+          index: testIndex,
+          pushRefLinesOverride: refLines,
+          testMode: true,
+          testLogWriter: hitLogs.add,
+        ),
+      );
+      expect(exit, 0);
+      expect(hitLogs, isNot(contains('CACHE HIT')));
+      expect(runner.signatures.any((c) => c.contains('clippy')), isTrue);
+
+      // 相同 ref 集再次 push：命中。
+      runner = FakeRunner();
+      hitLogs = <String>[];
+      exit = await runPrePush(
+        GateOptions(
+          repoRoot: repo,
+          runner: runner.call,
+          stepTimeout: const Duration(seconds: 30),
+          log: (_) {},
+          logError: (_) {},
+          index: testIndex,
+          pushRefLinesOverride: refLines,
+          testMode: true,
+          testLogWriter: hitLogs.add,
+        ),
+      );
+      expect(exit, 0);
+      expect(hitLogs, contains('CACHE HIT'), reason: '同 ref 集再推必须命中');
+      expect(
+        runner.signatures.any((c) => c.contains('clippy')),
+        isFalse,
+        reason: '命中后不得重跑完整 suite',
+      );
+    });
+
+    test('22 gate fingerprint 变化不命中，恢复后命中（祖先语义）', () async {
+      final (repo, head) = await makeRepoWithCommit();
+      final refLines = <String>[
+        'refs/heads/main $head refs/heads/main 0000000',
+      ];
+
+      var runner = FakeRunner();
+      expect(await runFull(optionsFor(repo, runner)), 0);
+
+      // 改动进 computeGateFingerprint 清单的源文件 → fingerprint 变化，
+      // 同时工作树 dirty。先验证 dirty 阻止路径存在（不命中），再恢复文件
+      // 证明命中回来——隔离出 miss 是由 fingerprint 判断引起的。
+      File(
+        '$repo/tool/git_gate.dart',
+      ).writeAsStringSync('\n// fp change\n', mode: FileMode.append);
+
+      var hitLogs = <String>[];
+      runner = FakeRunner();
+      var exit = await runPrePush(
+        GateOptions(
+          repoRoot: repo,
+          runner: runner.call,
+          stepTimeout: const Duration(seconds: 30),
+          log: (_) {},
+          logError: (_) {},
+          index: testIndex,
+          pushRefLinesOverride: refLines,
+          testMode: true,
+          testLogWriter: hitLogs.add,
+        ),
+      );
+      // dirty tracked source（git_gate.dart 未提交）→ 阻止；同时也验证
+      // 不命中（即使能走到缓存检查，fingerprint 已不同）。
+      expect(exit, isNot(0), reason: 'dirty worktree 必须阻止 push');
+      expect(hitLogs, isNot(contains('CACHE HIT')));
+
+      // 恢复文件：fingerprint 回到缓存值，HEAD 未动，localSha 是祖先 → 命中。
+      await Process.run('git', [
+        'checkout',
+        '--',
+        'tool/git_gate.dart',
+      ], workingDirectory: repo);
+      hitLogs = <String>[];
+      runner = FakeRunner();
+      exit = await runPrePush(
+        GateOptions(
+          repoRoot: repo,
+          runner: runner.call,
+          stepTimeout: const Duration(seconds: 30),
+          log: (_) {},
+          logError: (_) {},
+          index: testIndex,
+          pushRefLinesOverride: refLines,
+          testMode: true,
+          testLogWriter: hitLogs.add,
+        ),
+      );
+      expect(exit, 0);
+      expect(
+        hitLogs,
+        contains('CACHE HIT'),
+        reason: 'fingerprint 恢复一致 + 祖先 localSha → 命中',
       );
     });
   });
