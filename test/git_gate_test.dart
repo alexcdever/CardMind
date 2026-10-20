@@ -1413,6 +1413,46 @@ void main() {
       ]);
     });
 
+    // ── 标准 1：lib/models/note.dart 死代码删除（git 不再跟踪、全仓无引用）──
+
+    test('17a lib/models/note.dart 不再被 git 跟踪', () async {
+      final r = await Process.run('git', ['ls-files', 'lib/models/note.dart']);
+      expect(r.exitCode, 0, reason: 'git ls-files 应成功: ${r.stderr}');
+      expect(
+        r.stdout.toString().trim(),
+        isEmpty,
+        reason: 'lib/models/note.dart 是死代码，必须从 git 跟踪移除',
+      );
+      expect(
+        File('lib/models/note.dart').existsSync(),
+        isFalse,
+        reason: 'lib/models/note.dart 文件本身不得残留',
+      );
+    });
+
+    test('17b 全仓 Dart 源码无任何 models/note 引用', () async {
+      // 死代码删除的另一半：import/引用为零（git grep 为真相源，覆盖
+      // lib/ test/ tool/ integration_test/ 全部受跟踪文件）。
+      final r = await Process.run('git', [
+        'grep',
+        '-n',
+        'models/note',
+        '--',
+        '*.dart',
+      ]);
+      // grep 无命中返回 1；>1 才是命令错误。
+      expect(
+        r.exitCode,
+        lessThanOrEqualTo(1),
+        reason: 'git grep 应成功: ${r.stderr}',
+      );
+      expect(
+        r.stdout.toString().trim(),
+        isEmpty,
+        reason: '全仓不得再有对 models/note 的 import 或引用',
+      );
+    });
+
     // ── 本任务：rustApiConsumers 从 Rust 测试源码内容派生，不靠手抄表 ──
 
     test('16a 新增引用 api:: 的 Rust target 自动纳入派生集合与计划', () async {
