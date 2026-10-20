@@ -13,101 +13,15 @@ import '../tool/src/git_gate/host_build.dart';
 import '../tool/src/git_gate/runner.dart';
 import '../tool/src/git_gate/selector.dart';
 
-/// 与任务单五节对应的假测试索引（模拟 CardMind 现有测试资产）。
+/// 测试索引 fixture：**从磁盘派生**，不手抄。
 ///
-/// flutterTestFiles 必须与 `test/` 下真实清单一致：所有 `_test.dart`
-/// （含 `test/services/`、`test/models/` 子目录）+ `test/support/` 下的
-/// 共享 fake（非 `_test.dart`，分类为 dartBusiness，但仍列入索引供
-/// `_maybePairing`/`_maybeSync`/`_relatedDartTests` 匹配）。
-/// rustTestTargets 必须与 `rust-backend/tests/` 下所有 `*_test.rs` 的
-/// stem 集合一致。supportImporters 由 `scanTestIndex` 读测试文件内容
-/// 派生（`import 'support/xxx.dart'`），fixture 通过 setUpAll 真实扫描
-/// 注入——不手抄，手抄就是本任务要消灭的漂移源。
+/// `flutterTestFiles` / `rustTestTargets` / `supportImporters` /
+/// `rustApiConsumers` 全部由生产 `scanTestIndex` 扫描真实仓库得到（规则与
+/// `tool/src/git_gate/gate.dart:scanTestIndex` 一致：`test/` 下 `_test.dart`
+/// 与 `test/support/` 共享 fake，`rust-backend/tests/` 按 cargo target 规则）。
+/// 新增/重命名测试文件时本文件无需改动——手抄清单是漂移源；测试 11 仍以
+/// `git ls-files` 为真相源复核派生结果。
 late final TestIndex testIndex;
-
-final TestIndex _staticTestIndex = TestIndex(
-  flutterTestFiles: {
-    'test/adr_0008_test.dart',
-    'test/agents_md_test.dart',
-    'test/api_integration_test.dart',
-    'test/build_lib_crossplatform_test.dart',
-    'test/build_tool_test.dart',
-    'test/cardmind_theme_test.dart',
-    'test/debug_log_file_test.dart',
-    'test/debug_log_test.dart',
-    'test/design_tokens_doc_test.dart',
-    'test/device_name_edit_test.dart',
-    'test/devices_page_widget_test.dart',
-    'test/docs_dir_test.dart',
-    'test/editor_page_widget_test.dart',
-    'test/feature_test_file_arg_test.dart',
-    'test/feature_test_security_test.dart',
-    'test/frb_note_repository_test.dart',
-    'test/git_gate_hook_integration_test.dart',
-    'test/git_gate_test.dart',
-    'test/knowledge_base_widget_test.dart',
-    'test/macos_desktop_support_test.dart',
-    'test/markdown_references_test.dart',
-    'test/mobile_ui_test.dart',
-    'test/models/update_manifest_test.dart',
-    'test/note_list_page_widget_test.dart',
-    'test/pairing_accept_ui_test.dart',
-    'test/pairing_credential_repository_test.dart',
-    'test/pairing_credential_ui_test.dart',
-    'test/pairing_log_events_test.dart',
-    'test/pairing_mdns_widget_test.dart',
-    'test/pairing_repository_test.dart',
-    'test/platform_log_capture_test.dart',
-    'test/product_doc_test.dart',
-    'test/quality_coverage_reuse_test.dart',
-    'test/quality_frb_prep_test.dart',
-    'test/receiver_store_borrow_test.dart',
-    'test/release_workflow_test.dart',
-    'test/rust_library_loader_test.dart',
-    'test/services/app_settings_service_test.dart',
-    'test/services/http_proxy_policy_test.dart',
-    'test/services/platform_update_installer_test.dart',
-    'test/services/update_download_manager_test.dart',
-    'test/services/update_downloader_test.dart',
-    'test/services/update_service_test.dart',
-    'test/settings_page_test.dart',
-    'test/spec_lifecycle_doc_test.dart',
-    // test/support/ 下的共享 fake：不是 _test.dart（分类为 dartBusiness），
-    // 但列入索引——它们是被测资产的依赖方，供关键词路由与 stem 兜底匹配。
-    'test/support/credential_ui_repository.dart',
-    'test/support/devices_repository.dart',
-    'test/support/doc_helpers.dart',
-    'test/support/memory_note_repository.dart',
-    'test/support/note_repository_stub.dart',
-    'test/test_boundary_scanner_coverage_absence_test.dart',
-    'test/test_boundary_scanner_rust_test.dart',
-    'test/sync_network_doc_test.dart',
-    'test/sync_scheduler_test.dart',
-    'test/sync_ui_widget_test.dart',
-    'test/trash_page_widget_test.dart',
-    'test/ui_style_guide_doc_test.dart',
-    'test/app_shell_widget_test.dart',
-  },
-  rustTestTargets: {
-    'autosync_test',
-    'connect_test',
-    'debug_log_test',
-    'device_name_test',
-    'discovery_test',
-    'live_relay_test',
-    'migration_test',
-    'net_env_policy_test',
-    'note_crdt_test',
-    'pairing_credential_test',
-    'pairing_test',
-    'receiver_continuous_test',
-    'relay_config_test',
-    'security_sync_test',
-    'store_test',
-    'sync_service_test',
-    'trash_test',
-  },
-);
 
 /// 记录 runner 调用。
 class FakeRunner {
@@ -161,31 +75,13 @@ List<GateCommand> flutterTestCmdsOf(GatePlan plan) =>
 /// flutter test 命令携带的测试文件（跳过 `test --timeout 5m` 前缀）。
 List<String> flutterTestFilesOfCmd(GateCommand cmd) =>
     cmd.arguments.skip(3).toList();
-
 void main() {
-  // fixture TestIndex 由生产 scanTestIndex 真实扫描填充（repoRoot =
-  // 当前工作目录 = 仓库根）。flutterTestFiles/rustTestTargets 与
-  // _staticTestIndex 的手抄清单交叉校验（测试 11 用 git ls-files 为
-  // 真相源复核两者）；supportImporters 只能由扫描内容派生，无法手抄。
+  // fixture = 生产 scanTestIndex 的扫描结果本身（repoRoot = 当前工作目录 =
+  // 仓库根）：flutterTestFiles/rustTestTargets/supportImporters 全部派生，
+  // 不设第二份手抄清单（手抄必然漂移）。测试 11 用 git ls-files 为真相源
+  // 进一步复核派生结果。
   setUpAll(() async {
-    final scanned = await scanTestIndex(Directory.current.path);
-    expect(
-      scanned.flutterTestFiles,
-      _staticTestIndex.flutterTestFiles,
-      reason:
-          'scanTestIndex 的 flutterTestFiles 与 fixture 不一致：'
-          '缺 ${_staticTestIndex.flutterTestFiles.difference(scanned.flutterTestFiles)} / '
-          '多 ${scanned.flutterTestFiles.difference(_staticTestIndex.flutterTestFiles)}',
-    );
-    expect(
-      scanned.rustTestTargets,
-      _staticTestIndex.rustTestTargets,
-      reason:
-          'scanTestIndex 的 rustTestTargets 与 fixture 不一致：'
-          '缺 ${_staticTestIndex.rustTestTargets.difference(scanned.rustTestTargets)} / '
-          '多 ${scanned.rustTestTargets.difference(_staticTestIndex.rustTestTargets)}',
-    );
-    testIndex = scanned;
+    testIndex = await scanTestIndex(Directory.current.path);
   });
 
   group('selector', () {
@@ -1272,8 +1168,8 @@ void main() {
         'test/test_boundary_scanner_coverage_absence_test.dart',
       }, reason: 'coverage_absence 测试只应跑自身，不带 pairing 集群');
     });
-    // 防发散：fixture 的 TestIndex 必须与真实文件清单一致（git ls-files 为
-    // 真相源）。否则 fixture 与生产 scanTestIndex 脱节，掩盖索引盲区。
+    // 防发散：派生 fixture 必须与真实受跟踪文件清单一致（git ls-files 为
+    // 真相源）。磁盘扫描若漏掉/多出文件（如 .gitignore 掉的残留），这里暴露。
     test('11 fixture TestIndex 与真实测试清单一致（git ls-files 真相源）', () async {
       Future<List<String>> lsFiles(String pattern) async {
         final r = await Process.run('git', ['ls-files', pattern]);
@@ -1461,30 +1357,36 @@ void main() {
 
     test('19a 无手抄的全仓测试清单常量/清单块', () {
       // 结构性腿：源码里不得再有「连续多行逐字列 test/xxx_test.dart」的清单块，
-      // 也不得再有 _staticTestIndex 这类手抄常量——真相源是 Directory('test')
-      // 扫描（与 tool/src/git_gate/gate.dart:scanTestIndex 同规则）。
+      // 也不得再有手抄索引常量（拆串拼接避免本断言自匹配）——真相源是
+      // Directory('test') 扫描（与 tool/src/git_gate/gate.dart:scanTestIndex 同规则）。
       final lines = File('test/git_gate_test.dart')
           .readAsLinesSync()
           .where((l) => !l.trimLeft().startsWith('//'))
           .toList();
       expect(
-        lines.any((l) => l.contains('_staticTestIndex')),
+        lines.any((l) => l.contains('_static' 'TestIndex')),
         isFalse,
-        reason: '手抄清单常量 _staticTestIndex 必须删除，改磁盘派生',
+        reason: '手抄索引常量必须删除，改磁盘派生',
       );
 
+      // 全仓清单只能有一个来源（磁盘）。逐字清单块按「顶层声明区」范围检查：
+      // 单个用例内部列举 3–9 个期望文件是合法断言（如 12a/12c），不是漂移源；
+      // 真正危险的是顶层 `final TestIndex x = TestIndex(flutterTestFiles: {...})`
+      // 这种全仓镜像。因此只扫 `void main()` 之前的声明区。
+      final mainAt = lines.indexWhere((l) => l.startsWith('void main()'));
+      final declarations = mainAt == -1 ? lines : lines.sublist(0, mainAt);
       final entry = RegExp(r"^\s*'test/[^']+\.dart',\s*$");
       var run = 0;
       var maxRun = 0;
-      for (final l in lines) {
+      for (final l in declarations) {
         run = entry.hasMatch(l) ? run + 1 : 0;
         if (run > maxRun) maxRun = run;
       }
       expect(
         maxRun,
-        lessThan(5),
+        0,
         reason:
-            '不得存在连续 ≥5 行逐字列测试文件的手抄清单块（实际最长 $maxRun 行）；'
+            '顶层声明区不得再有逐字测试清单块（实际最长 $maxRun 行）；'
             '全仓清单必须由 Directory(\'test\') 扫描派生',
       );
     });
