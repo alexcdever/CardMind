@@ -1410,6 +1410,171 @@ void main() {
         'test/ui_style_guide_doc_test.dart',
       ]);
     });
+
+    // ── 本任务：rustApiConsumers 从 Rust 测试源码内容派生，不靠手抄表 ──
+
+    test('16a 新增引用 api:: 的 Rust target 自动纳入派生集合与计划', () async {
+      // 临时 repo 里模拟「新增 rust-backend/tests/zz_api_probe_test.rs，
+      // 内容引用 api::」。旧手抄表里没有该 target → 漏跑；派生实现必须
+      // 自动纳入（真相源是测试源码内容，不是 selector 清单）。
+      final dir = await Directory.systemTemp.createTemp('gate_api_scan_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      Directory('${dir.path}/rust-backend/tests').createSync(recursive: true);
+      File(
+        '${dir.path}/rust-backend/tests/zz_api_probe_test.rs',
+      ).writeAsStringSync('use cardmind_backend::api::sync_notes_to_store;\n');
+      // 辅助模块含 api:: 但不该污染派生集合（见 16d）。
+      Directory('${dir.path}/rust-backend/tests/common').createSync();
+      File(
+        '${dir.path}/rust-backend/tests/common/mod.rs',
+      ).writeAsStringSync('pub use cardmind_backend::api::x;\n');
+
+      final index = await scanTestIndex(dir.path);
+      expect(
+        index.rustApiConsumers,
+        contains('zz_api_probe_test'),
+        reason: 'scanTestIndex 必须从 Rust 测试源码派生 api:: 消费方',
+      );
+      expect(
+        index.rustApiConsumers,
+        isNot(contains('common')),
+        reason: '辅助模块不是 target，不得记成 api:: 消费方',
+      );
+
+      final plan = selectPlanForFiles(<String>[
+        'rust-backend/src/api.rs',
+      ], index: index);
+      final targets = plan.steps
+          .where((s) => s.kind == CommandKind.rustTest)
+          .map((s) => s.arguments.last)
+          .toSet();
+      expect(
+        targets,
+        contains('zz_api_probe_test'),
+        reason: 'api.rs 必须自动选中新派生的 api:: 消费方（不改 selector 清单）',
+      );
+    });
+
+    test('16b 不引用 api:: 的 Rust target 不进派生集合', () async {
+      // migration_test / note_crdt_test 未引用 api::：不得被派生拉入
+      // （非消费方不误入），但仍应进 rustTestTargets。
+      final dir = await Directory.systemTemp.createTemp('gate_api_non_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      Directory('${dir.path}/rust-backend/tests').createSync(recursive: true);
+      File(
+        '${dir.path}/rust-backend/tests/migration_test.rs',
+      ).writeAsStringSync('use cardmind_backend::store::NoteRecord;\n');
+      File(
+        '${dir.path}/rust-backend/tests/note_crdt_test.rs',
+      ).writeAsStringSync('use cardmind_backend::store::NoteRecord;\n');
+
+      final index = await scanTestIndex(dir.path);
+      expect(index.rustApiConsumers, isEmpty, reason: '不引用 api:: 的测试不得进入派生集合');
+      expect(
+        index.rustTestTargets,
+        containsAll(<String>['migration_test', 'note_crdt_test']),
+        reason: '非消费方仍是合法 cargo target，必须留在 rustTestTargets',
+      );
+    });
+
+    test('16c 显式核心面清单保留且与派生集合并集去重排序', () {
+      // api.rs 计划 = 派生 api:: 消费方 ∪ 显式核心面清单（去重、稳定排序）。
+      // 派生集合里放一个手抄表没有的 target（new_consumer_test）——旧手抄
+      // 表实现必然漏它，派生实现必须选上。
+      const idx = TestIndex(
+        flutterTestFiles: <String>{},
+        rustTestTargets: <String>{
+          'trash_test',
+          'new_consumer_test',
+          'note_crdt_test',
+          'store_test',
+          'pairing_test',
+        },
+        rustApiConsumers: <String>{'trash_test', 'new_consumer_test'},
+      );
+      final plan = selectPlanForFiles(<String>[
+        'rust-backend/src/api.rs',
+      ], index: idx);
+      final targets = plan.steps
+          .where((s) => s.kind == CommandKind.rustTest)
+          .map((s) => s.arguments.last)
+          .toList();
+      expect(targets.toSet(), <String>{
+        'trash_test',
+        'new_consumer_test',
+        'note_crdt_test',
+        'store_test',
+        'pairing_test',
+      }, reason: 'api.rs = 派生 api:: 消费方 ∪ 显式核心面，去重');
+      expect(targets.toSet().length, targets.length, reason: '不得重复');
+      final sorted = List<String>.of(targets)..sort();
+      expect(targets, sorted, reason: 'target 输出必须稳定排序');
+    });
+
+    test('16d 辅助模块 common/mod.rs 即使含 api:: 也不算 target', () async {
+      // 标准 4 的防误入腿：tests/common/mod.rs 不是 cargo test target，
+      // 内容含 api:: 也不得记成消费方（否则生成 `--test mod` 必失败）。
+      final dir = await Directory.systemTemp.createTemp('gate_api_mod_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      Directory(
+        '${dir.path}/rust-backend/tests/common',
+      ).createSync(recursive: true);
+      File('${dir.path}/rust-backend/tests/common/mod.rs').writeAsStringSync(
+        'pub use cardmind_backend::api::sync_notes_to_store;\n',
+      );
+
+      final index = await scanTestIndex(dir.path);
+      expect(
+        index.rustApiConsumers,
+        isEmpty,
+        reason: 'common/mod.rs 非 target，含 api:: 也不得记成消费方',
+      );
+      final plan = selectPlanForFiles(<String>[
+        'rust-backend/src/api.rs',
+      ], index: index);
+      final targets = plan.steps
+          .where((s) => s.kind == CommandKind.rustTest)
+          .map((s) => s.arguments.last)
+          .toSet();
+      expect(
+        targets.where((t) => t == 'common' || t == 'mod'),
+        isEmpty,
+        reason: '不得生成不存在的 cargo target',
+      );
+    });
+
+    test('16e 派生空且核心面缺席时 api.rs 落 Rust 全量（fail-closed）', () {
+      // 标准 5：派生集合空 + 核心面 target 不在索引 → 返回 null →
+      // 调用方升级 rust:test:full（绝不静默零测试）。
+      const empty = TestIndex(
+        flutterTestFiles: <String>{},
+        rustTestTargets: <String>{'sync_service_test'},
+        rustApiConsumers: <String>{},
+      );
+      final plan = selectPlanForFiles(<String>[
+        'rust-backend/src/api.rs',
+      ], index: empty);
+      expect(
+        plan.steps.where((s) => s.label == 'rust:test:full'),
+        hasLength(1),
+        reason: '无明确映射必须落 Rust 全量（fail-closed）',
+      );
+      expect(
+        plan.steps.where((s) => s.kind == CommandKind.rustTest).length,
+        1,
+        reason: '全量已覆盖，不再叠加窄 target',
+      );
+    });
+
+    test('16f 真实仓库派生 api:: 消费方 = git grep 真相源三件套', () {
+      // fixture testIndex 已由生产 scanTestIndex 填充（见 setUpAll）；
+      // 派生值必须等于 `git grep -l "api::" rust-backend/tests/`。
+      expect(testIndex.rustApiConsumers, <String>{
+        'debug_log_test',
+        'live_relay_test',
+        'trash_test',
+      }, reason: '真实仓库 api:: 消费方必须与 git grep 真相源一致');
+    });
   });
 
   group('cache', () {

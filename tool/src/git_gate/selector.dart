@@ -30,6 +30,7 @@ class TestIndex {
     required this.flutterTestFiles,
     required this.rustTestTargets,
     this.supportImporters = const <String, List<String>>{},
+    this.rustApiConsumers = const <String>{},
   });
 
   /// 已存在的 Flutter 测试文件（POSIX 相对路径，如 `test/foo_test.dart`）。
@@ -45,6 +46,11 @@ class TestIndex {
   /// key 为 fake 文件 stem（如 `memory_note_repository`），value 为
   /// `test/…_test.dart` 相对路径（字典序稳定排序）。
   final Map<String, List<String>> supportImporters;
+
+  /// 引用 `api::`（FRB 导出层）的 Rust 测试 target 名。
+  ///
+  /// 待由 `scanTestIndex` 读 `rust-backend/tests/**/*.rs` 内容派生。
+  final Set<String> rustApiConsumers;
 }
 
 /// 选择结果。
