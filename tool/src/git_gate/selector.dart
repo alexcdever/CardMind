@@ -30,6 +30,7 @@ class TestIndex {
     required this.flutterTestFiles,
     required this.rustTestTargets,
     this.supportImporters = const <String, List<String>>{},
+    this.rustApiConsumers = const <String>{},
   });
 
   /// 已存在的 Flutter 测试文件（POSIX 相对路径，如 `test/foo_test.dart`）。
@@ -45,6 +46,11 @@ class TestIndex {
   /// key 为 fake 文件 stem（如 `memory_note_repository`），value 为
   /// `test/…_test.dart` 相对路径（字典序稳定排序）。
   final Map<String, List<String>> supportImporters;
+
+  /// 引用 `api::`（FRB 导出层）的 Rust 测试 target 名。
+  ///
+  /// 待由 `scanTestIndex` 读 `rust-backend/tests/**/*.rs` 内容派生。
+  final Set<String> rustApiConsumers;
 }
 
 /// 选择结果。
@@ -602,19 +608,22 @@ List<String>? _relatedRustTargets(String file, TestIndex index) {
   } else if (lower.contains('trash')) {
     candidates = const <String>['trash_test', 'store_test', 'note_crdt_test'];
   } else if (lower.contains('api') || lower.contains('frb')) {
-    // FRB 导出层：「真实消费方」= 引用 api:: 的测试（真相源：
-    // `git grep -l "api::" rust-backend/tests/` → trash_test /
-    // debug_log_test / live_relay_test）+ 导出层直接覆盖的核心面
-    // （note_crdt / store / pairing）。新增/重命名引用 api:: 的 Rust
-    // 测试时同步更新本表。
-    candidates = const <String>[
-      'trash_test',
-      'debug_log_test',
-      'live_relay_test',
+    // FRB 导出层，两类来源取并集（去重、稳定排序）：
+    // 1. **可派生**：引用 `api::` 的 Rust 测试 target——真相源是测试源码
+    //    内容，由 `scanTestIndex` 扫描派生（[TestIndex.rustApiConsumers]）。
+    //    新增/重命名引用 api:: 的测试自动纳入，无需改本文件；
+    // 2. **策展**：导出层直接覆盖的核心面（note_crdt / store / pairing）
+    //    不引用 `api::`，是刻意规定的核心覆盖面，只能显式列出。
+    //
+    // 旧实现把第 1 类也手抄在表里（注释自认「新增/重命名引用 api:: 的
+    // Rust 测试时同步更新本表」）——那就是漂移源：新增消费方不会被选中，
+    // 开发者以为覆盖了实则没跑（fail-silent）。
+    candidates = <String>{
+      ...index.rustApiConsumers,
       'note_crdt_test',
       'store_test',
       'pairing_test',
-    ];
+    }.toList();
   } else if (lower.contains('debug')) {
     candidates = const <String>['debug_log_test'];
   } else if (lower.contains('migration')) {

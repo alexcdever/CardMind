@@ -128,6 +128,8 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
   for (final e in importers.entries) {
     supportImporters[e.key] = e.value.toList()..sort();
   }
+  // 引用 `api::` 的 Rust 测试 target（派生，不手抄）。
+  final apiConsumers = <String>{};
   final rustTestsDir = Directory('$repoRoot/rust-backend/tests');
   if (rustTestsDir.existsSync()) {
     // 递归扫描按 cargo target 规则索引（与 selector 的 rustTestTargetName
@@ -137,8 +139,15 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
     for (final f in rustTestsDir.listSync(recursive: true).whereType<File>()) {
       final rel = _repoRelative(repoRoot, f.path);
       final target = rustTestTargetName(rel);
-      if (target != null) {
-        rust.add(target);
+      if (target == null) continue;
+      rust.add(target);
+      // 顺带派生「引用 `api::`（FRB 导出层）的 target」：改
+      // rust-backend/src/api.rs 时必须跑的真实消费方集合。真相源是测试
+      // 源码内容，不手抄——手抄表必然漂移（新增引用 api:: 的测试不会被
+      // 门禁选中，fail-silent）。只对 target 文件派生：common/mod.rs 等
+      // 共享辅助即使含 api:: 也不是 cargo target，不得记成消费方。
+      if (_rustApiRefPattern.hasMatch(f.readAsStringSync())) {
+        apiConsumers.add(target);
       }
     }
   }
@@ -146,8 +155,25 @@ Future<TestIndex> scanTestIndex(String repoRoot) async {
     flutterTestFiles: flutter,
     rustTestTargets: rust,
     supportImporters: supportImporters,
+    rustApiConsumers: apiConsumers,
   );
 }
+
+/// Rust 测试源码里引用 FRB 导出层的形态。
+///
+/// 两个分支：
+/// 1. `api::…`（任意前缀路径：`api::x`、`cardmind_backend::api::x`、
+///    `crate::api::x`）——`api` 作为路径段，前面是非标识符边界，
+///    所以 `my_api::x`、`api_helpers::x` 不命中；
+/// 2. `use …::api;` / `use …::api as A;` / `use {…, …::api}`——整路径
+///    引入 `api` 模块本身（此时后续调用不带 `api::` 前缀）。
+///
+/// 命中即该文件是 `api::` 的消费方。宁可多匹配（多跑一个 target 只是慢），
+/// 不可漏（漏跑 = fail-silent，改了导出层却没测真实消费方）。
+final RegExp _rustApiRefPattern = RegExp(
+  r'(?:^|[^\w])api\s*::'
+  r'|\buse\s+[^;]*?\bapi\s*(?:as\b|[;,}])',
+);
 
 /// pre-commit：format-first → 按 staged 分类执行快速门禁。
 Future<int> runPreCommit(GateOptions o) async {
