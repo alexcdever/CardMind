@@ -52,7 +52,7 @@ fn event_text(events: &[LogEvent]) -> String {
 // ━━━ 验收 1a：脱敏函数 ━━━
 
 #[test]
-fn test_redact_device_id() {
+fn device_id_is_redacted_to_first_and_last_eight_chars() {
     // 短 id（≤16 字符）原样返回
     assert_eq!(debug_log::redact_device_id("short-id"), "short-id");
     assert_eq!(
@@ -73,7 +73,7 @@ fn test_redact_device_id() {
 // ━━━ 验收 1b：事件中绝不出现敏感数据 ━━━
 
 #[test]
-fn test_events_never_contain_sensitive_data() {
+fn emitted_events_never_carry_sensitive_payload() {
     rt().block_on(async {
         let dir = temp_dir("redact");
         let sink = sink();
@@ -136,7 +136,7 @@ fn test_events_never_contain_sensitive_data() {
 // ━━━ 验收 2/3：启动事件 + relay 配置事件（含凭据剥离）━━━
 
 #[test]
-fn test_startup_emits_init_and_relay_events() {
+fn startup_emits_init_and_relay_config_events() {
     rt().block_on(async {
         let dir = temp_dir("startup");
         std::fs::write(
@@ -187,7 +187,7 @@ fn test_startup_emits_init_and_relay_events() {
 
 /// 未配置 relay → enabled=false，无 host/port 字段。
 #[test]
-fn test_relay_config_event_disabled_case() {
+fn disabled_relay_emits_config_event() {
     rt().block_on(async {
         let dir = temp_dir("no-relay");
         let sink = sink();
@@ -214,7 +214,7 @@ fn test_relay_config_event_disabled_case() {
 
 /// 启动失败（无效 relay URL）也应发出失败事件（全局兜底 sink）。
 #[test]
-fn test_startup_failure_emits_event() {
+fn startup_failure_emits_error_event() {
     rt().block_on(async {
         let dir = temp_dir("bad-relay");
         std::fs::write(dir.join("relay.txt"), "not-a-url").unwrap();
@@ -236,7 +236,7 @@ fn test_startup_failure_emits_event() {
 // ━━━ 验收 5：mDNS 发现数量与耗时 ━━━
 
 #[test]
-fn test_mdns_discovery_emits_count_and_duration() {
+fn mdns_discovery_emits_peer_count_and_duration() {
     rt().block_on(async {
         let dir = temp_dir("mdns");
         let sink = sink();
@@ -273,7 +273,7 @@ fn test_mdns_discovery_emits_count_and_duration() {
 // ━━━ 验收 6：配对 accept 生命周期事件完整 ━━━
 
 #[test]
-fn test_pairing_accept_lifecycle_emits_all_stages() {
+fn pairing_accept_emits_every_lifecycle_stage() {
     rt().block_on(async {
         let dir_a = temp_dir("life-a");
         let dir_b = temp_dir("life-b");
@@ -406,7 +406,7 @@ fn test_pairing_accept_lifecycle_emits_all_stages() {
 // ━━━ 验收 7：连接阶段区分 direct/relay + 错误链 + 耗时 ━━━
 
 #[test]
-fn test_connect_emits_transport_and_error_chain() {
+fn connect_failure_emits_transport_and_error_chain() {
     rt().block_on(async {
         // 直连路径（ips 非空）→ transport=direct；对端拒绝 → failed 事件含错误链与耗时。
         //
@@ -508,7 +508,7 @@ fn test_connect_emits_transport_and_error_chain() {
 /// 覆盖审查者建议的盲区：`test_connect_emits_transport_and_error_chain` 把直连腿
 /// 换成确定性拒绝帧后，「连不上」路径的失败事件不再有 error_chain/duration_ms 断言。
 #[test]
-fn test_unreachable_peer_emits_failed_with_chain() {
+fn unreachable_peer_emits_failed_event_with_chain() {
     rt().block_on(async {
         let dir = temp_dir("unreachable-direct");
         let sink = sink();
@@ -561,7 +561,7 @@ fn test_unreachable_peer_emits_failed_with_chain() {
 // ━━━ 验收 8：首次全量同步只记录数量/方向/耗时，不记录正文 ━━━
 
 #[test]
-fn test_initial_sync_emits_counts_only() {
+fn initial_sync_emits_counts_without_content() {
     rt().block_on(async {
         let dir_a = temp_dir("sync-a");
         let dir_b = temp_dir("sync-b");
@@ -652,7 +652,7 @@ fn test_initial_sync_emits_counts_only() {
 // ━━━ 验收 9：日志失败不影响主流程 ━━━
 
 #[test]
-fn test_logger_failure_does_not_break_flow() {
+fn panicking_log_sink_does_not_break_sync_flow() {
     rt().block_on(async {
         let dir = temp_dir("panic");
         // 构造即触发 startup 事件 → sink panic → 必须被吞掉

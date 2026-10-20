@@ -37,6 +37,52 @@ fn loop_sleep_lines(src: &str) -> Vec<usize> {
     offenders
 }
 
+/// 扫描 `tests/` 下所有 `.rs`（含 `common/`），收集满足 `pred` 的「文件:行」。
+fn scan_tests<F>(pred: F) -> Vec<String>
+where
+    F: Fn(&str) -> bool,
+{
+    let mut hits = Vec::new();
+    let mut stack = vec![tests_dir()];
+    while let Some(dir) = stack.pop() {
+        let entries = std::fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("读取目录 {} 失败: {e}", dir.display()));
+        for entry in entries {
+            let path = entry.expect("目录项").path();
+            if path.is_dir() {
+                stack.push(path);
+                continue;
+            }
+            if path.extension().and_then(|e| e.to_str()) != Some("rs") {
+                continue;
+            }
+            let src = read_source(&path);
+            let name = path
+                .strip_prefix(tests_dir())
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .replace('\\', "/");
+            for (idx, line) in src.lines().enumerate() {
+                if pred(line) {
+                    hits.push(format!("{name}:{}", idx + 1));
+                }
+            }
+        }
+    }
+    hits.sort();
+    hits
+}
+
+/// 测试函数名必须描述「被测行为 + 预期」，禁止无信息量的 `test_` 前缀。
+#[test]
+fn no_test_prefix_fn_names() {
+    let offenders = scan_tests(|line| line.trim_start().starts_with("fn test_"));
+    assert!(
+        offenders.is_empty(),
+        "以下测试函数仍用 `test_` 前缀，应改为描述行为与预期的名字：{offenders:#?}"
+    );
+}
+
 /// 接收器连续接收用例必须用事件等待，不得 `loop { 检查; sleep }` 轮询。
 #[test]
 fn receiver_continuous_has_no_polling_sleep() {

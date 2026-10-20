@@ -26,7 +26,7 @@ fn make_v1_envelope(note_id: &str, note: &NoteCrdt) -> Vec<u8> {
 
 /// v1 → v2 迁移：tags 进 meta、正文干净、文件已 v2、v1 备份存在
 #[test]
-fn test_v1_to_v2_migration() {
+fn v1_file_migrates_tags_into_meta_and_keeps_clean_body() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("migrate");
@@ -79,7 +79,7 @@ fn test_v1_to_v2_migration() {
 
 /// 多笔记 v1 迁移
 #[test]
-fn test_v1_migration_multiple_notes() {
+fn v1_file_with_multiple_notes_migrates_each_note() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("migrate-multi");

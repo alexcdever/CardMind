@@ -60,7 +60,7 @@ async fn pair_with_confirmer(
 // ━━━ 验收 1：设备身份持久化 ━━━
 
 #[test]
-fn test_device_identity_persists() {
+fn persistent_service_keeps_its_device_identity() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("identity");
@@ -91,7 +91,7 @@ fn test_device_identity_persists() {
 // ━━━ 验收 2：内存版身份随机 ━━━
 
 #[test]
-fn test_memory_service_random_identity() {
+fn in_memory_service_gets_a_fresh_random_identity() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let a = SyncService::new().await.unwrap();
@@ -107,7 +107,7 @@ fn test_memory_service_random_identity() {
 // ━━━ 验收 3：配对设备表 CRUD ━━━
 
 #[test]
-fn test_paired_devices_crud() {
+fn paired_device_rows_are_added_listed_and_removed() {
     let store = NoteStore::new(":memory:").unwrap();
 
     // upsert 两台设备
@@ -156,7 +156,7 @@ fn test_paired_devices_crud() {
 // ━━━ 验收 4：推送/接收全链路（直连或 relay）━━━
 
 #[test]
-fn test_push_receive_roundtrip_relay_or_direct() {
+fn push_then_receive_roundtrip_delivers_notes() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut a = SyncService::new().await.unwrap();
@@ -229,7 +229,7 @@ fn test_push_receive_roundtrip_relay_or_direct() {
 // ━━━ 验收 5：多设备推送部分失败语义 ━━━
 
 #[test]
-fn test_push_multi_device_partial_failure() {
+fn multi_device_push_reports_per_peer_results() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut a = SyncService::new().await.unwrap();
@@ -331,7 +331,7 @@ fn test_push_multi_device_partial_failure() {
 /// 不读 relay.txt；relay 是可选配置，由 `new_persistent` 经数据目录 `relay.txt`
 /// 启用）。详细配置行为见 `relay_config_test.rs`。
 #[test]
-fn test_relay_mode_disabled_by_default() {
+fn relay_mode_is_disabled_by_default() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let svc = SyncService::new().await.unwrap();
@@ -347,7 +347,7 @@ fn test_relay_mode_disabled_by_default() {
 ///
 /// 该用例验证真实双端链路上的连接可用性语义。
 #[test]
-fn test_health_check_updates_last_seen_without_syncing_notes() {
+fn health_check_refreshes_last_seen_but_imports_no_notes() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir_a = temp_dir("health-a");
@@ -380,7 +380,7 @@ fn test_health_check_updates_last_seen_without_syncing_notes() {
 }
 
 #[test]
-fn test_health_check_failure_does_not_update_last_seen() {
+fn failed_health_check_leaves_last_seen_unchanged() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("health-failure");
@@ -406,7 +406,7 @@ fn test_health_check_failure_does_not_update_last_seen() {
 }
 
 #[test]
-fn test_health_check_same_peer_rejects_in_flight_request() {
+fn duplicate_in_flight_health_check_to_same_peer_is_rejected() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("health-in-flight");
@@ -428,7 +428,7 @@ fn test_health_check_same_peer_rejects_in_flight_request() {
 }
 
 #[test]
-fn test_relay_cross_network_connect() {
+fn relay_connects_peers_across_networks() {
     use iroh::endpoint::presets;
     use iroh::tls::CaTlsConfig;
     use iroh::{Endpoint, EndpointAddr, RelayMode, SecretKey};
@@ -504,7 +504,7 @@ fn test_relay_cross_network_connect() {
 /// 断言：有界时间内失败返回（不挂死），且不写 last_seen。
 /// 作用：约束 id-only 兜底路径本身有独立上限，不能无限等待。
 #[test]
-fn test_health_check_no_ips_id_only_bounded() {
+fn health_check_without_ips_gives_up_within_bound() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("health-noidips");
@@ -535,7 +535,7 @@ fn test_health_check_no_ips_id_only_bounded() {
 /// B 的接收器收到 A 的直连推送后，B 的 store.last_ips 应被更新为 A 本次连接的
 /// 真实 ip:port（而不是停留在配对时写入的旧值）。
 #[test]
-fn test_inbound_push_refreshes_last_ips() {
+fn inbound_push_refreshes_peer_last_ips() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let mut a = SyncService::new().await.unwrap();
