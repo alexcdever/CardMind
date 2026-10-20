@@ -29,9 +29,28 @@ Future<void> main(List<String> args) async {
     return;
   }
 
+  if (options.plan) {
+    // dry-run：只打印将要执行的命令（逐文件），不启动任何设备/进程。
+    final planFiles = options.all
+        ? enumerateIntegrationTests()
+        : <String>[options.file];
+    stdout.writeln('Plan: ${planFiles.length} integration test file(s)');
+    for (final file in planFiles) {
+      validateTestFile(file);
+      final device = options.device ?? 'windows';
+      stdout.writeln(
+        '  flutter test --no-pub $file -d ${options.platform == 'all' ? '<windows|android>' : device}',
+      );
+    }
+    return;
+  }
+
   final targets = options.platform == 'all'
       ? const ['windows', 'android']
       : [options.platform];
+  final files = options.all
+      ? enumerateIntegrationTests()
+      : <String>[options.file];
   for (final target in targets) {
     final device = target == 'windows'
         ? 'windows'
@@ -45,10 +64,12 @@ Future<void> main(List<String> args) async {
       return;
     }
 
-    final result = await _runFlutter(device!, options.file);
-    if (result != 0) {
-      exitCode = result;
-      return;
+    for (final file in files) {
+      final result = await _runFlutter(device!, file);
+      if (result != 0) {
+        exitCode = result;
+        return;
+      }
     }
   }
 }
@@ -141,11 +162,47 @@ void validateTestFile(String file) {
 /// 只有单份解析实现，非法值在解析阶段即抛 [FormatException]。
 String featureTestTargetForArgs(List<String> args) => _parseArgs(args).file;
 
+/// 枚举 `integration_test/` 下全部 `*_test.dart`（含子目录，不含 `support/`
+/// 内的非测试辅助文件——`_test.dart` 后缀自然过滤掉 harness）。输出按字母序
+/// 稳定排序，供 `--all` 逐文件运行与 CI matrix 对齐。
+///
+/// 公开（非 `_` 前缀）以便测试直接断言枚举结果；扫描目录即当前工作目录的
+/// 仓库根（与 `main` 一致）。
+List<String> enumerateIntegrationTests() {
+  final dir = Directory('integration_test');
+  if (!dir.existsSync()) return const <String>[];
+  final files =
+      dir
+          .listSync(recursive: true)
+          .whereType<File>()
+          .map((f) => f.path.replaceAll(Platform.pathSeparator, '/'))
+          .where(
+            (p) =>
+                p.startsWith('integration_test/') && p.endsWith('_test.dart'),
+          )
+          .toList()
+        ..sort();
+  return files;
+}
+
+/// `--all` 的解析结果：全部 integration_test 目标文件。
+///
+/// 公开以便测试直接断言「--all → 全部 5 文件、无 support/、排序稳定、
+/// 与 --file 互斥」；委托 [_parseArgs] 保证只有单份解析实现。
+List<String> featureTestAllTargetsForArgs(List<String> args) {
+  final options = _parseArgs(args);
+  if (!options.all) return <String>[];
+  return enumerateIntegrationTests();
+}
+
 _Options _parseArgs(List<String> args) {
   var platform = 'windows';
   String? device;
   var help = false;
   var file = _testTarget;
+  var all = false;
+  var plan = false;
+  var fileGiven = false;
   for (final arg in args) {
     if (arg == '--help' || arg == '-h') {
       help = true;
@@ -154,13 +211,17 @@ _Options _parseArgs(List<String> args) {
     } else if (arg == '--android') {
       platform = 'android';
     } else if (arg == '--all') {
-      platform = 'all';
+      all = true;
+    } else if (arg == '--plan' || arg == '--dry-run') {
+      plan = true;
     } else if (arg.startsWith('--platform=')) {
+      platform = arg.substring('--platform='.length);
       platform = arg.substring('--platform='.length);
     } else if (arg.startsWith('--device=')) {
       device = arg.substring('--device='.length);
     } else if (arg.startsWith('--file=')) {
       file = arg.substring('--file='.length);
+      fileGiven = true;
       validateTestFile(file);
     } else {
       throw FormatException('Unknown argument: $arg');
@@ -169,7 +230,17 @@ _Options _parseArgs(List<String> args) {
   if (!{'windows', 'android', 'all'}.contains(platform)) {
     throw FormatException('Unsupported platform: $platform');
   }
-  return _Options(platform: platform, device: device, help: help, file: file);
+  if (all && fileGiven) {
+    throw FormatException('--all and --file are mutually exclusive');
+  }
+  return _Options(
+    platform: platform,
+    device: device,
+    help: help,
+    file: file,
+    all: all,
+    plan: plan,
+  );
 }
 
 void _printUsage() {
@@ -180,8 +251,14 @@ void _printUsage() {
   stdout.writeln(
     '  --android --device=id Run Android journeys on an existing device',
   );
-  stdout.writeln('  --all                 Run Windows then Android journeys');
-  stdout.writeln('  --platform=<target>   windows, android, or all');
+  stdout.writeln(
+    '  --all                 Run every integration_test/*_test.dart file\n'
+    '                        (one flutter test per file; excludes --file)',
+  );
+  stdout.writeln(
+    '  --plan, --dry-run     Print the commands for the selected files, run nothing',
+  );
+  stdout.writeln('  --platform=<target>   windows, android, or all (both)');
   stdout.writeln(
     '  --file=<path>         Integration test file under integration_test/\n'
     '                        (default: $_testTarget)',
@@ -197,10 +274,19 @@ class _Options {
     required this.device,
     required this.help,
     required this.file,
+    required this.all,
+    required this.plan,
   });
 
   final String platform;
   final String? device;
   final bool help;
   final String file;
+
+  /// `--all`：跑 `integration_test/` 下全部 `*_test.dart`（逐文件调用
+  /// `--file` 链路）。与 [file] 互斥，解析阶段已校验。
+
+  /// `--plan` / `--dry-run`：只打印将执行的命令，不启动设备或子进程。
+  final bool plan;
+  final bool all;
 }
