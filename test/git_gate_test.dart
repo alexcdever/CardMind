@@ -823,15 +823,18 @@ void main() {
       ], reason: '文件集合必须完整、顺序稳定、无重复');
     });
 
-    test('12b 合批：test_boundary_scanner 只路由到自身窄测试（1 条命令）', () {
+    test('12b 合批：test_boundary_scanner 路由到自身窄测试（1 条命令）', () {
       // 旧行为：路径含 'scanner' 子串，被 _pairingKeywords 命中，错配 9 个
       // pairing 测试 + 自身共 10 个文件。修复后 pairing 集群不得再出现。
+      // 前缀并集：coverage_absence 也在 test_boundary_scanner 前缀下、且
+      // import '../tool/test_boundary_scanner.dart'，同族一并选中。
       final plan = selectPlanForFiles([
         'tool/test_boundary_scanner.dart',
       ], index: testIndex);
       final cmds = flutterTestCmdsOf(plan);
       expect(cmds, hasLength(1), reason: '同一计划里的 flutter 测试必须合批成一条命令');
       expect(flutterTestFilesOfCmd(cmds.single), <String>[
+        'test/test_boundary_scanner_coverage_absence_test.dart',
         'test/test_boundary_scanner_rust_test.dart',
       ], reason: '只应选边界扫描器自身的窄测试，不带 pairing 集群');
     });
@@ -1242,7 +1245,10 @@ void main() {
           .where((s) => s.kind == CommandKind.flutterTest)
           .expand((s) => s.arguments.skip(3))
           .toSet();
-      expect(files, <String>{'test/test_boundary_scanner_rust_test.dart'});
+      expect(files, <String>{
+        'test/test_boundary_scanner_coverage_absence_test.dart',
+        'test/test_boundary_scanner_rust_test.dart',
+      });
       expect(
         files.where((f) => f.contains('pairing') || f.contains('device')),
         isEmpty,

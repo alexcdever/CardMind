@@ -471,9 +471,13 @@ List<String> docContractTests(TestIndex index) {
 /// 1. stem 直配：`test/{stem}_test.dart`、`test/{stem}_widget_test.dart`，
 ///    以及按被测对象目录组织的 `test/services/{stem}_test.dart`、
 ///    `test/models/{stem}_test.dart`；
-/// 2. stem 前缀：`tool/build.dart` 的 stem 是 `build`，而测试名是
-///    `build_tool_test`——stem 是测试名 stem 的前缀时选「含该前缀的最短
-///    stem 测试」（最接近的一个）；
+/// 2. stem 前缀：`tool/feature_test.dart` 的 stem 是 `feature_test`，而测试名是
+///    `feature_test_file_arg_test`/`feature_test_security_test`——stem 是测试名
+///    stem 的前缀（`{stem}_…_test`）时取**全部命中**（并集，不再截断为最短一
+///    个）。唯一收窄：前缀命中里属于「另一个源码根」的族不并进来——
+///    `tool/build.dart` 的 stem `build` 前缀命中 `build_tool_test` 与
+///    `build_lib_crossplatform_test`，但后者首段 `lib` 指向另一源码根
+///    （测的是 `build lib` 子命令，不是本文件域），仍只返回 `build_tool_test`；
 /// 3. tool/ 目录名回退：`tool/src/git_gate/x.dart` → `test/git_gate_test.dart`；
 /// 4. 最后兜底：测试名含 stem 的所有文件。
 List<String> _relatedDartTests(String file, TestIndex index) {
@@ -489,31 +493,47 @@ List<String> _relatedDartTests(String file, TestIndex index) {
     final importers = index.supportImporters[stem] ?? const <String>[];
     return importers.where(index.flutterTestFiles.contains).toList()..sort();
   }
+
+  String stemOf(String testPath) {
+    final base = testPath.split('/').last;
+    return base.substring(0, base.length - '_test.dart'.length);
+  }
+
+  // 精确候选 + stem 前缀候选取并集（去重、排序稳定）。旧实现两处截断：
+  // 精确命中即 return（漏前缀命中）、前缀命中只取最短一个（漏同族其余测试）。
   final candidates = <String>[
     'test/${stem}_test.dart',
     'test/${stem}_widget_test.dart',
     'test/services/${stem}_test.dart',
     'test/models/${stem}_test.dart',
   ];
-  final hits = candidates.where(index.flutterTestFiles.contains).toList();
-  if (hits.isNotEmpty) return hits..sort();
+  final hits = <String>{...candidates.where(index.flutterTestFiles.contains)};
 
-  // stem 前缀匹配：`build` 是 `build_tool` 的前缀 → test/build_tool_test.dart。
-  // 取 stem 最短者（最接近）；并列按路径字典序保证稳定。
-  String stemOf(String testPath) {
-    final base = testPath.split('/').last;
-    return base.substring(0, base.length - '_test.dart'.length);
+  // stem 前缀匹配：`{stem}` 是 `{stem}_…_test` 被测 stem 的前缀。
+  // 收窄规则：被测 stem 在 `{stem}_` 之后的首段若是**另一个源码根**（
+  // lib/integration_test/tool/services/models，且与本文件根不同），则该测试
+  // 属另一族（如 `build_lib_crossplatform_test` 测 `build lib` 子命令），不并入。
+  final root = file.split('/').first;
+  const sourceRoots = <String>{
+    'lib',
+    'tool',
+    'integration_test',
+    'services',
+    'models',
+  };
+  for (final f in index.flutterTestFiles) {
+    if (!f.endsWith('_test.dart')) continue;
+    final testStem = stemOf(f);
+    if (!testStem.startsWith('${stem}_')) continue;
+    final rest = testStem.substring(stem.length + 1);
+    final firstSeg = rest.split('_').first;
+    if (sourceRoots.contains(firstSeg) && firstSeg != root) {
+      continue; // 另一源码根的族，不属于本文件的前缀并集
+    }
+    hits.add(f);
   }
-
-  final prefixed = index.flutterTestFiles
-      .where((f) => f.endsWith('_test.dart') && stemOf(f).startsWith(stem))
-      .toList();
-  if (prefixed.isNotEmpty) {
-    prefixed.sort((a, b) {
-      final byLen = stemOf(a).length.compareTo(stemOf(b).length);
-      return byLen != 0 ? byLen : a.compareTo(b);
-    });
-    return <String>[prefixed.first];
+  if (hits.isNotEmpty) {
+    return hits.toList()..sort();
   }
 
   // tool/src/<dir>/x.dart → 目录名回退 test/<dir>_test.dart。
