@@ -2644,6 +2644,9 @@ impl SyncService {
     /// 等待期间 revision 每递增一次（接收器/import_all 的 import+投影成功后）
     /// 广播一次，可能多收一条通知但循环重查保证返回时一定 `> after`。
     ///
+    /// **维护约束**：所有通知点必须「先 `fetch_add` 递增 revision，再
+    /// `notify_waiters()`」。顺序反过来则本函数的注册与 load 之间会重新出现
+    /// 丢事件窗口（notify 先发、递增后到，waiter 被唤醒时重查仍不超过 `after`）。
     /// 调用方需自行包 `tokio::time::timeout` 防死等（无内置上限）。
     pub async fn wait_content_revision(&self, after: u64) -> u64 {
         loop {
@@ -2674,8 +2677,9 @@ impl SyncService {
     /// 事件等待：阻塞直到接收器走完超过 `after` 个 accept 窗口，返回新窗口数。
     ///
     /// 用 `watch` 通道传递最新 `(windows, connections)` 快照——通道始终持有最新值，
-    /// 所以「读基线」与「订阅通知」之间没有任何丢事件窗口（这是 `Notify` 做不到的：
-    /// `notify_waiters` 不存 permit）。调用方需自行包 `tokio::time::timeout` 防死等。
+    /// 所以「读基线」与「订阅通知」之间没有任何丢事件窗口（`Notify::notify_waiters`
+    /// 不存 permit，需要 `notified()+enable()` 先注册才安全，见 `wait_content_revision`；
+    /// 这里改用 watch 更直接）。调用方需自行包 `tokio::time::timeout` 防死等。
     /// **接收器未运行时不会自增**——需要先 `start_receiver`。
     pub async fn wait_receiver_windows(&self, after: u64) -> u64 {
         let mut rx = self.receiver_progress_tx.subscribe();
