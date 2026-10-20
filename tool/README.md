@@ -88,3 +88,21 @@ dart run tool/quality.dart <flutter|rust|docs|all> [options]
 - 两个边界扫描步骤都只**告警**，不改变退出码；报告写在运行目录下的 `tmp` 子目录，文件名 `cardmind_test_boundary_report.md`
 - Rust LCOV 生成失败（未装 `cargo tarpaulin`）同样只告警
 - 不带子命令会打印 usage 并退出非零
+
+## CI 真相源边界（覆盖率 / 边界扫描）
+
+本地门禁与 CI 同口径，但产物归属不同：
+
+| 产物 | 本地（`quality.dart`） | CI |
+|---|---|---|
+| Flutter LCOV | `flutter test --coverage` 产 `coverage/lcov.info` | `flutter_quality.yml` → artifact `flutter-lcov` |
+| Rust LCOV | `cargo tarpaulin --out Lcov --output-dir .` 产 `rust-backend` 下 `lcov.info` | `rust_quality.yml` 的 `rust-coverage` job → artifact `rust-lcov` |
+| Flutter 边界报告 | `--scope=flutter --reuse-coverage` → `tmp/cardmind_test_boundary_report.md` | `flutter_quality.yml` → artifact `flutter-test-boundary-report` |
+| Rust 边界报告 | `--scope=rust` → `tmp/cardmind_test_boundary_report.md` | `rust_quality.yml` 的 `rust-coverage` job → artifact `rust-test-boundary-report` |
+
+要点（与 workflow 改动同步维护）：
+
+- **`rust-coverage` 是独立 job**，与 `rust-quality`（fmt/clippy/test/audit）并行；job 级与步骤级均为 `continue-on-error`，覆盖率或边界扫描失败不改变 Rust 质量门禁结论。
+- tarpaulin 参数额外带 `--packages cardmind-backend`：`rust-backend` 是多成员 workspace（成员含 `tool/` 下 boundary_scanner），不限定根包会把辅助 crate 一并算进覆盖率。`--out Lcov --output-dir .` 与 `--exclude-files src/frb_generated.rs` / `tool/**` 与本地口径一致。
+- 边界扫描在 CI 两路都**真实执行**（rust 侧不是降级）：扫描器会 `cargo run` 起 `rust-backend` 下 `tool/` 的 boundary_scanner 生成 Rust 边界清单，并读 `rust-backend` 下 `lcov.info` 判覆盖；因为扫描器本身是 Dart 脚本（依赖 `analyzer`/`yaml`，受 Flutter SDK 约束），rust 侧 job 也装 Flutter SDK 并 `flutter pub get`。
+- 边界扫描失败在 CI 只产生非零退出 + artifact，不阻断合并门禁；「高优先级未覆盖边界必须补测」的判定仍是本地/评审口径。
