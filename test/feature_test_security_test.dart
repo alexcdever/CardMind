@@ -2,7 +2,12 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import '../tool/feature_test.dart' show validateDevice;
+import '../tool/feature_test.dart'
+    show
+        enumerateIntegrationTests,
+        featureTestAllTargetsForArgs,
+        validateDevice,
+        validateTestFile;
 
 /// 设备标识（`flutter test -d <device>` 的 -d 值）校验的安全属性测试。
 ///
@@ -145,6 +150,45 @@ void main() {
       validateAt < startAt,
       isTrue,
       reason: '设备标识校验必须发生在 Process.start 之前',
+    );
+  });
+
+  // `--all` 枚举出的每个文件都走与 `--file` 完全相同的校验链路：
+  // 枚举结果必须逐条过 validateTestFile，且不得逃出 integration_test/。
+  test(
+    '--all enumeration stays inside integration_test/ and passes validateTestFile',
+    () {
+      final all = enumerateIntegrationTests();
+      expect(all, isNotEmpty, reason: '--all 必须枚举到真实集成测试文件');
+      for (final f in all) {
+        expect(
+          f.startsWith('integration_test/'),
+          isTrue,
+          reason: '--all 枚举值「$f」必须在 integration_test/ 下',
+        );
+        expect(
+          f.endsWith('_test.dart'),
+          isTrue,
+          reason: '--all 枚举值「$f」必须是 _test.dart（排除 support/ 辅助文件）',
+        );
+        expect(f.contains('..'), isFalse, reason: '--all 枚举值「$f」不得含路径逃逸片段');
+        expect(
+          () => validateTestFile(f),
+          returnsNormally,
+          reason: '--all 枚举值「$f」必须通过与 --file 相同的 validateTestFile',
+        );
+      }
+    },
+  );
+
+  test('--all rejects --file at parse time（互斥，防静默取其一）', () {
+    expect(
+      () => featureTestAllTargetsForArgs(const [
+        '--all',
+        '--file=integration_test/device_name_live_test.dart',
+      ]),
+      throwsFormatException,
+      reason: '--all 与 --file 互斥：静默取其一会让 CI 报告跑全量实则跑单文件',
     );
   });
 }

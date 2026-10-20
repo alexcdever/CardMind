@@ -165,10 +165,21 @@ void main() {
         reason: '--all 与 --file 同时给出是歧义，必须在解析阶段拒绝',
       );
     });
+
+    test('--plan / --dry-run 被接受为合法参数（不启动设备）', () {
+      for (final flag in const ['--plan', '--dry-run']) {
+        expect(
+          () => featureTestAllTargetsForArgs(['--all', flag]),
+          returnsNormally,
+          reason: '「$flag」必须被解析器接受（dry-run 入口）',
+        );
+      }
+    });
   });
 }
 
 /// 让测试名里的控制字符可见（空串 / 换行 / 制表符）。
+
 String _label(String input) {
   if (input.isEmpty) return '<empty>';
   return input

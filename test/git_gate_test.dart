@@ -1359,12 +1359,16 @@ void main() {
       // 结构性腿：源码里不得再有「连续多行逐字列 test/xxx_test.dart」的清单块，
       // 也不得再有手抄索引常量（拆串拼接避免本断言自匹配）——真相源是
       // Directory('test') 扫描（与 tool/src/git_gate/gate.dart:scanTestIndex 同规则）。
-      final lines = File('test/git_gate_test.dart')
-          .readAsLinesSync()
-          .where((l) => !l.trimLeft().startsWith('//'))
-          .toList();
+      final lines = File(
+        'test/git_gate_test.dart',
+      ).readAsLinesSync().where((l) => !l.trimLeft().startsWith('//')).toList();
       expect(
-        lines.any((l) => l.contains('_static' 'TestIndex')),
+        lines.any(
+          (l) => l.contains(
+            '_static'
+            'TestIndex',
+          ),
+        ),
         isFalse,
         reason: '手抄索引常量必须删除，改磁盘派生',
       );
@@ -1407,11 +1411,10 @@ void main() {
         reason: '磁盘派生索引必须在 probe 存在时自动包含它（不改测试源码）',
       );
       // fixture（setUpAll 派生的同一份索引）+ probe = 重新派生结果。
-      expect(
-        withProbe.flutterTestFiles,
-        {...testIndex.flutterTestFiles, 'test/zz_probe_test.dart'},
-        reason: 'fixture 必须是磁盘派生的，不是手抄的第二份清单',
-      );
+      expect(withProbe.flutterTestFiles, {
+        ...testIndex.flutterTestFiles,
+        'test/zz_probe_test.dart',
+      }, reason: 'fixture 必须是磁盘派生的，不是手抄的第二份清单');
 
       probe.deleteSync();
       final afterDelete = await scanTestIndex(Directory.current.path);
