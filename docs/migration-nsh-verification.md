@@ -1,6 +1,6 @@
 # NSH 迁移 — 风险验证方案
 
-> 分支：`migration/nsh`。本文件列出 `docs/migration-nsh.md` §6 风险清单中**可在本机先行验证**的项、验证方法与判定标准。
+> 分支：`migration/nsh`。本文件列出 `docs/migration-nsh.md` 第 6 节风险清单中**可在本机先行验证**的项、验证方法与判定标准。
 > 探针资产位于 `spike/nsh-probe`（untracked，从 `spike/nsh-probe` 分支 checkout）。
 
 ## 验证优先级与判定
@@ -31,7 +31,7 @@
 4. **V4（R5）**——CDP 灌大文档测性能基线。输出：耗时/FPS 数据。
 5. **V5（R8）**——基于 `.nsh/types` +（必要时重下的）nsh-src-git 确认事件推送面。输出：机制确认结论。
 
-每项结果回填本文件「结果」列，并同步 `docs/migration-nsh.md` §6 风险表的状态。
+每项结果回填本文件「结果」列，并同步 `docs/migration-nsh.md` 第 6 节风险表的状态。
 
 ---
 
@@ -91,7 +91,7 @@
 
 **对迁移计划的影响**：
 - 探针 `FINDINGS.md` 里「Rust 应用路径被 CLI bug 卡住」的结论**已过时**——那是 main 与 0.1.1 分叉导致的，不是 CLI 缺陷。R1 应从「阻断项」降级为「已知约束」。
-- **新约束（重要）**：迁移必须**钉住 nsh CLI 版本 + 对应的 `NSH_SOURCE` checkout**。这是三端打包的硬前置。计划 §9 开放问题 3（版本钉住策略）现在有明确答案：锁 `v0.1.1` tag。
+- **新约束（重要）**：迁移必须**钉住 nsh CLI 版本 + 对应的 `NSH_SOURCE` checkout**。这是三端打包的硬前置。计划第 9 节开放问题 3（版本钉住策略）现在有明确答案：锁 `v0.1.1` tag。
 
 ### V3（R2）`loro-prosemirror` + Tiptap 3.x — ✅ 通过（但接入方式有硬坑）
 
@@ -173,9 +173,9 @@
 
 **对迁移计划的影响（重要修正）**：
 
-原计划 §3.2 说「改成 signal + 事件回推」过于乐观。准确的设计约束是：
+原计划 3.2 节说「改成 signal + 事件回推」过于乐观。准确的设计约束是：
 
-1. **`SyncService` / `NoteStore` 必须变成进程级全局**（`OnceLock<Mutex<...>>`），而不是 `#[module]` 的参数。这直接影响 §3.1 的命名空间划分——`svc: &mut SyncService` 这类签名**不能用**，要改成 `Backend.Sync.xxx(args)` 内部取全局。
+1. **`SyncService` / `NoteStore` 必须变成进程级全局**（`OnceLock<Mutex<...>>`），而不是 `#[module]` 的参数。这直接影响 3.1 节的命名空间划分——`svc: &mut SyncService` 这类签名**不能用**，要改成 `Backend.Sync.xxx(args)` 内部取全局。
 2. **推送只能走两条路**：
    - (a) **轮询**：TSX 侧 `setInterval` 调 `Backend.Sync.pendingCount()` 之类（简单、稳、但有时延）；
    - (b) **自建 event 组件**：在 Rust 里做一个 `#[component]` + `#[derive(Event)]` 的「事件桥」，后台任务把数据写进全局队列，组件在引擎线程读并 `signal.set()` 触发重渲染，再 `emit` 给 TSX。

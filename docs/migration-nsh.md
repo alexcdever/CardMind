@@ -17,7 +17,7 @@
 
 选 C 的核心理由：**编辑器是 CardMind 体验最差、验证面最重的一块**，交给 Tiptap/ProseMirror 是「升级」而非「平替」；而列表/设置这类页面用 NSH 原生 TSX 重写，能继续吃到 NSH 的原生渲染与 `nsh trace` 无头验证红利。
 
-**路线 C 的一个硬代价**：编辑器在 WebView（网页世界），列表在原生视图（NSH 世界）——**焦点/键盘/滚动/选区是两套**。计划里必须显式设计两者的边界与联动（见 §4）。
+**路线 C 的一个硬代价**：编辑器在 WebView（网页世界），列表在原生视图（NSH 世界）——**焦点/键盘/滚动/选区是两套**。计划里必须显式设计两者的边界与联动（见第 4 节）。
 
 ---
 
@@ -31,7 +31,7 @@
 | `rust-backend/src/sync.rs` | 5242 | 同上 |
 | `rust-backend/src/discovery.rs` | 320 | 同上 |
 | `rust-backend/src/debug_log.rs` | 238 | 同上 |
-| `rust-backend/src/api.rs` | 428（59 个导出） | **改写为 1~2 个 `#[module] impl` 块**（见 §3） |
+| `rust-backend/src/api.rs` | 428（59 个导出） | **改写为 1~2 个 `#[module] impl` 块**（见第 3 节） |
 | `rust-backend/src/lib.rs` | — | 删 `mod frb_generated;`、删 `flutter_rust_bridge` 依赖 |
 
 > 探针实测：手写 Rust 里 `flutter_rust_bridge` 只在 `lib.rs` 一行 `mod frb_generated;`；删掉 + 去依赖即可 0 错误独立编译。`frb_generated.rs`（4669 行生成物）整体丢弃。
@@ -53,7 +53,7 @@
 
 - **不重写同步/存储逻辑**——Rust 内核原样带走。
 - **不做 iOS 工程目录**（仓库现状本来就没有 iOS）。
-- **不迁移 CI 打包流水线**到生产级——先打通 dev 闭环，打包单独一阶段（§8 Phase 4）。
+- **不迁移 CI 打包流水线**到生产级——先打通 dev 闭环，打包单独一阶段（第 8 节的 Phase 4）。
 - **不动 `docs/` 产品文档语义**——只在 ADR 里登记「UI 运行时从 Flutter 换成 NSH」这一架构决策。
 
 ---
@@ -111,8 +111,8 @@ NSH `Registry` 提供四种导出：`register<C>`（组件）、`module<M>`（�
    可行的两条路：
    - **(a) 轮询**：TSX `setInterval` 调 `Backend.Sync.pendingCount()` 之类（简单、稳、有秒级时延）；
    - **(b) 自建事件桥组件**：`#[component]` + `#[derive(Event)]`（这条**是**官方支持的推送通道），后台任务把数据写进全局队列，组件在引擎线程读、`signal.set()` 触发重渲染、再 `emit` 给 TSX。
-   Phase 0/1 必须先做这个决策——它决定 §3.1 的模块签名形态。
-2. **`async fn` → `Promise`**。`#[module]` 里不是 `async fn` 时（带 `cx: &mut ModuleCx`）返回 `JsValue` 即 `Promise`/同步值；`async fn`（无 `cx`）映射为 `Promise`。59 个里 pairing/sync/discover 天然映射；`&mut` 语义按 §3.1 修正版走全局锁。
+   Phase 0/1 必须先做这个决策——它决定第 3.1 节的模块签名形态。
+2. **`async fn` → `Promise`**。`#[module]` 里不是 `async fn` 时（带 `cx: &mut ModuleCx`）返回 `JsValue` 即 `Promise`/同步值；`async fn`（无 `cx`）映射为 `Promise`。59 个里 pairing/sync/discover 天然映射；`&mut` 语义按 3.1 节的修正写法走全局锁。
 3. **类型生成**。FRB 之前生成强类型绑定；NSH 下手写协议。用 `ts-rs` 从 Rust 结构体（`NoteRow`/`PeerInfo`/`PairingRequest`/`LinkRow`/`PairedDeviceRow`/`PairingResult`…）生成 `.d.ts`，把「手写协议两端对齐」的成本压回去。这是**强依赖项**，立在 Phase 1。
 
 ---
@@ -128,7 +128,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
               markdown 进出 ↔ 消息桥 ↔ Rust SyncService（LoroDoc 真源）
 ```
 
-- 编辑器产物：esbuild `--bundle --minify` 单文件（探针 556 KB），生产形态**用 `web_view(url)` 加载打包产物**，不是永远 `web_view_html` 内联（`web_view_html` 是 `data:` URL，相对资源不可用——见 TIPTAP-PROBE §坑2）。
+- 编辑器产物：esbuild `--bundle --minify` 单文件（探针 556 KB），生产形态**用 `web_view(url)` 加载打包产物**，不是永远 `web_view_html` 内联（`web_view_html` 是 `data:` URL，相对资源不可用——见 `TIPTAP-PROBE.md` 的第二个坑）。
 - 桥：`window.ReactNativeWebView.postMessage` ↔ NSH `on_message` / `element_ref.post_message`。**注意官方示例写 `window.nsh`，0.1.1 实测只有 `ReactNativeWebView`**（已记为上游不一致）。
 
 ### 4.2 与原生外壳的边界（路线 C 独有，必须设计）
@@ -136,10 +136,10 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | 关注点 | 设计要点 |
 |---|---|
 | **dirty / autosave** | 沿用现状 700ms debounce（`editor_page.dart` `_autosaveTimer`）；dirty 标志由网页维护，原生外壳只读「是否可安全退出」 |
-| **markdown 往返** | `tiptap-markdown` 接管字符串解析：`setContent` 默认按 markdown 不是 HTML；所有 setContent 调用点过一遍（TIPTAP-PROBE §坑1） |
+| **markdown 往返** | `tiptap-markdown` 接管字符串解析：`setContent` 默认按 markdown 不是 HTML；所有 setContent 调用点过一遍（见 `TIPTAP-PROBE.md` 的第一个坑） |
 | **撤销粒度** | ProseMirror `history groupDelay 500`：中文组合内 9 事务 → 1 步撤销。可调，但属「偏粗」基线，需用户可接受度确认 |
 | **选区/标签联动** | 现状 `_onEditorSelectionChanged` + tag 双击编辑 → 原生侧标签栏要与网页编辑器选区通信（消息桥） |
-| **Loro 协同** | `loro-prosemirror` 与 Tiptap 3.x 兼容性**未测**——列为迁移前必过的技术验证（见 §6 风险 R2） |
+| **Loro 协同** | `loro-prosemirror` 与 Tiptap 3.x 兼容性**已由 V3 验证通过**，但必须按第 3.1 节的修正写法接入，否则静默不同步（见第 6 节风险 R2） |
 | **焦点/键盘** | WebView 内外是两套焦点世界；返回/保存/新建的原生快捷键要显式桥接，不能假设 DOM 事件冒泡穿透 |
 
 ### 4.3 三端内核矩阵（新验证面）
@@ -150,7 +150,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 |---|---|---|
 | Windows | WebView2 (Chromium/Edge) | 探针已实测通过 |
 | Android | 系统 WebView (Chromium，版本老旧) | **待验** |
-| iOS | WKWebView (Safari) | **待验**（且仓库无 iOS 工程，见 §1.3） |
+| iOS | WKWebView (Safari) | **待验**（且仓库无 iOS 工程，见 1.3 节） |
 | Linux/macOS | 随 NSH 宿主而定 | **待验** |
 
 同一份前端在三内核跑 IME/选区/markdown 往返，是路线 C 新引入的验证成本。
@@ -178,17 +178,17 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | R1 | `nsh build` 对带 Rust crate 的应用报 `GPUI Cargo.lock` (os error 3) | ✅ **已关闭**（V2） | **不是 CLI 缺陷**，是 `NSH_SOURCE` 版本错配。锁 `v0.1.1` tag 后 `nsh build`（7m）与 `nsh package --target windows`（产出 31MB exe + zip）均通过。**新约束**：CLI 版本与 `NSH_SOURCE` checkout 必须同时钉住，scoop 安装包不含源码 |
 | R2 | `loro-prosemirror` 与 Tiptap 3.x 兼容性、本地优先合并语义 | ✅ **已关闭**（V3） | 兼容且双向协同正确。三个硬坑：① Tiptap 3 无顶层 `plugins` 选项，必须走 `addProseMirrorPlugins`；② 真实导出名是 `LoroSyncPlugin`/`LoroUndoPlugin`；③ 根容器是 LoroMap `"doc"`、Loro 才是真相源。JS↔Rust loro 跨版本快照互通（1.16.4 ↔ 1.13.6） |
 | R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | 原生侧扫码后回传 credential（推荐），或验证 BarcodeDetector |
-| R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | §4.3 矩阵验收，Android/iOS 实测 |
+| R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | 按 4.3 节的内核矩阵验收，Android/iOS 实测 |
 | R5 | 大文档性能（单篇 5 万字 / 500 篇）输入延迟与滚动 FPS | ✅ **已测基线**（V4） | 2.8ms/字、getMarkdown 31ms、setContent 416ms（jsdom 下界）。`setContent` 需在 Phase 3 复查；叠加 loro 插件后的开销未测 |
 | R6 | 图片/附件：网页沙箱无文件系统，`asset:`/自定义协议未走通 | ⬜ 待产品确认 | 当前产品若无附件则降级；否则原生供字节流 |
 | R7 | iroh 退出未优雅 `Endpoint::close()` | ✅ **已关闭**（V1） | 摸清并验证修法：`SyncService::close()`（iroh `Endpoint::close().await`）+ 退出前先 `stop_receiver()`。对照组可复现 abort，修复后干净 |
 | R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ⚠️ **需改设计**（V5） | `#[module]` **无任何推送接口**（`ModuleCx` 只有 dialog/toast/clipboard 等）；`Signal` 内部是 `Rc`、**非 `Send`**，后台线程不能直接写。解法：状态改进程级全局 + 轮询，或自建 `#[component]`+`#[derive(Event)]` 事件桥 |
 | R9 | `&mut SyncService` 并发语义在 NSH 导出下的线程安全 | ⚠️ **升级为显式约束**（V5） | `#[module]` **不允许 receiver**（原文「its state is a global」），所以 `svc: &mut SyncService` 这种签名根本写不出来。必须改全局单例 + 内部锁，这是 `api.rs` 重写的真实成本 |
-| R10 | 焦点/键盘两套世界（WebView vs 原生） | ⬜ 待 Phase 3 | §4.2 显式桥接，UI 审查走查 |
+| R10 | 焦点/键盘两套世界（WebView vs 原生） | ⬜ 待 Phase 3 | 按 4.2 节做显式桥接，UI 审查走查 |
 
-> **整体判断（沿用探针结论）**：换 UI 运行时的成本 = **重写编辑器**，不是搬后端。而后端恰好是可移植资产。所以本计划的工作量集中在 §4（编辑器）+ §5（页面重写）+ §3（桥）。
+> **整体判断（沿用探针结论）**：换 UI 运行时的成本 = **重写编辑器**，不是搬后端。而后端恰好是可移植资产。所以本计划的工作量集中在第 4 节（编辑器）、第 5 节（页面重写）、第 3 节（桥）。
 >
-> 验证详情与证据见 `docs/migration-nsh-verification.md`（V1–V5）。**R8/R9 的发现直接修改了 §3.1、§3.2 的设计前提**，见下文修订说明。
+> 验证详情与证据见 `docs/migration-nsh-verification.md`（V1–V5）。**R8/R9 的发现直接修改了 3.1 与 3.2 节的设计前提**，见下文修订说明。
 
 ---
 
@@ -197,7 +197,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 ```
 Phase 0  地基        令牌翻译 + 全局状态骨架 + #[module] 最小闭环 + ts-rs + 工程骨架(nsh.json)
          闸门：TSX 能 import Backend.* 并调通一个真函数（如 deviceId）；
-               并确定 §3.2-1 的推送方案（轮询 or 事件桥组件）
+               并确定 3.2 节第 1 条要求的推送方案（轮询 or 事件桥组件）
 
 Phase 1  内核接线    api.rs → 4 个 #[module]（全局单例 + 锁）；ts-rs .d.ts；退出优雅 close
          闸门：Notes 增删查 + SyncService 起停在 TSX 侧打通；退出无 iroh abort
