@@ -18,6 +18,7 @@
 | V8 | **R10** 真实中文 IME 组合态 | ✅ **通过** | CDP `Input.imeSetComposition` 走 Chromium 真实输入管线 | `compositionstart→update×7→end` 全链正确，「你好」正确入文、光标 `from: 3`、markdown 正确 |
 | V9 | **方案修正**：网页不该跑 loro | ✅ **已修正** | 核实 `NoteCrdt` 源码 | `NoteCrdt` 是 `LoroText("content")` 装整段 markdown，与 `loro-prosemirror` 的 `LoroMap` 树不兼容。方案改为网页只做 markdown 进出 |
 | V9b | **纯文本笔记**的往返保真（含 `[[...]]`） | ⚠️ **暴露真回归** | `web-editor/src/v9b-plaintext.mjs`（15 类）+ 临时 flutter test 验证现状 | **`[[id\|alias]]` 被 Tiptap 转义成 `\[\[...\]\]`**，Rust 纯文本扫描失效；现状 Flutter 版完全保真，属回归。`[[...]]` 保留仅 9/15。表格/图片不是需求，已撤回 |
+| V10 | **路线 B**：`@` + Mention 替代 `[[...]]` | ✅ **主体可行** | `web-editor/src/v10-mention.mjs` | `@` 触发+前缀过滤+mention 节点+序列化回 `[[id\|alias]]`+Rust 解析全通；**Rust 侧零改动**。老 `[[...]]` 文本仍需一次性迁移 |
 | — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例（导航 API 已确认：`createNavigator`/`Stack`/`Screen`/`Modal`） | 记为「Phase 4 矩阵验收」 |
 | — | R6 附件文件协议 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 无附件/图片功能** | 降级为非风险 |
 
@@ -534,3 +535,60 @@ HeadingNodeParser, ImageNodeParser, TableNodeParser
    - 输入侧用 `textInputRule` 避免编辑器把 `[` 当链接起点。
 3. **新增回归基线**：`v9b-plaintext.mjs` 的 15 类结构（含 5 类 `[[...]]` 场景）+ `[[...]]` 字面保留断言。这条测试在迁移后被删掉是最危险的——丢了它，双向链接坏掉没人会发现。
 4. 软换行合并（`一行\n二行` → `一行 二行`）在纯文本笔记里也可能影响阅读节奏，同样要处理或明确接受。
+
+### V10（路线 B）用 `@` + Mention 替代 `[[...]]` — ✅ 主体可行，老数据需迁移
+
+先回答一个来源问题：**双向链接完全是我们自己的实现，`appflowy_editor` 没有提供。**
+
+三层都在我们这边：
+
+- 语法：`[[id|alias]]` 是自定义的，不是 markdown 标准
+- 解析：Rust 的 `parse_links_from_content` 是纯文本扫描
+- 存储：`store.rs` 已有 `links(source_id, target_id, alias)` 表，`sync_note` 每次按正文重建，`backlinks()` 就是 `WHERE target_id = ?` 的 JOIN 查询
+
+所以「用数据库记录引用关系」**这条路现在已经走着了**，`links` 表是既有设计，不需要新做。
+
+而 `[[...]]` 在 Tiptap 里被转义，根源是「自定义语法被当成了 markdown」。路线 B（换成编辑器原生结构）正好绕开这个根因。
+
+#### 实测结果（`web-editor/src/v10-mention.mjs`）
+
+| 项 | 结果 |
+|---|---|
+| `@` 触发 suggestion | ✅ `prefix="读"` 命中 1 条 |
+| 数据源只来自已有笔记（前缀过滤） | ✅ 复用 `auto_complete_links`：`WHERE title LIKE prefix AND deleted_at IS NULL LIMIT 20` |
+| 插入 mention 节点 | ✅ 带 `id` / `label` |
+| 序列化成 markdown | ✅ `今天读了 [[note-2\|会议记录]]，记了两点。` |
+| Rust 侧 `parse_links_from_content` 能解析 | ✅ `[{target:"note-2", alias:"会议记录"}]` |
+| **老 `[[...]]` 纯文本兼容** | ❌ 仍被转义成 `\[\[note-9\|旧笔记\]\]` |
+
+**关于「能不能通过 @ 只引用 CardMind 里已有的笔记」——能，而且数据源现成。** `auto_complete_links` 只查 `notes` 表、排除回收站，前 20 条按更新时间倒序。接到 suggestion 的 `items` 即可。
+
+#### 两个实测出来的坑
+
+1. **`renderText` 在 Mention 3.x 已废弃**。用它配置后序列化出来的是 HTML：
+   ```
+   今天读了 <span data-type="mention" ... data-id="note-2" ...>@会议记录</span>，记了两点。
+   ```
+   Rust 解析结果为空。**必须**用节点的 `addStorage().markdown.serialize` 覆盖序列化：
+   ```js
+   const NoteMention = Mention.extend({
+     addStorage() {
+       return { markdown: { serialize(state, node) {
+         state.write(`[[${node.attrs.id}|${node.attrs.label}]]`);
+       } } };
+     },
+   });
+   ```
+   好消息是：**能输出成 `[[id|alias]]` 原形态**，所以 Rust 侧的 `parse_links_from_content` **一行都不用改**。
+
+2. **老数据仍然会坏**。库里已有的笔记正文是纯文本 `[[...]]`，经编辑器往返一次就变 `\[\[...\]\]`。需要在 Phase 3 处理：
+   - 要么在加载时把老 `[[...]]` **解析成 mention 节点**（tiptap-markdown 支持 `parse` 配置或 markdown-it 插件），之后存的就一直是新形态；
+   - 要么在序列化时对残留的 `[[` 做「不转义」的特殊处理。
+   前者更干净——一次性迁移，之后同一套表示。
+
+#### 对计划的影响
+
+- **路线 B 可选，且比「让 Tiptap 别转义 `[[`」更稳**：不依赖第三方转义规则，序列化形态由我们自己控制。
+- **Rust 侧零改动**：`parse_links_from_content`、`links` 表、`backlinks` 全都不用动。
+- **新增 Phase 3 任务**：老 `[[...]]` 数据 → mention 节点的迁移（一次性），以及 `@` suggestion 接 `auto_complete_links`。
+- V9b 里「必须修 `[[` 转义」这条，在路线 B 下变成「必须做老数据迁移」，性质不同、成本更低。

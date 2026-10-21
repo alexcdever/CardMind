@@ -153,17 +153,19 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 - 编辑器产物：esbuild `--bundle --minify` 单文件（不含 loro，回到 0.5 MB 量级）。
 - 加载方式：仍推荐 `web_view(url)` + 静态站点。原因不是 loro，而是 `web_view_html` 内部是 `data:` URL、
   相对资源不可用（字体/图片），且页面体积受 URL 长度限制。
-- ⚠️ **P0 必做：`[[...]]` 双向链接必须原样保留**（V9b 实测）。
-  CardMind 的正文是**纯文本笔记 + `[[id\|alias]]` 双向链接**，不是富文本——表格/图片/待办都不是需求。
-  但 `[[...]]` 是自定义语法，Rust 侧 `parse_links_from_content` 靠**纯文本扫描**找 `[[`。
-  Tiptap/`tiptap-markdown` 会把 `[` 当 markdown 链接语法转义：
-  ```
-  入: 见 [[note-123|另一篇]] 的结论。
-  出: 见 \[\[note-123|另一篇\]\] 的结论。   ← Rust 扫不到 [[，双向链接失效
-  ```
-  而现状 `appflowy_editor` 是**完全保真**的（已用临时 flutter test 验证），所以这是回归。
-  必须给 `tiptap-markdown` 加自定义 escape 规则，或把 `[[...]]` 做成 inline mark 序列化回原文。
-- 另一个要处理或明确接受的差异：软换行 `行一\n行二` 会被合成 `行一 行二`。
+- **双向链接改用 `@` + Tiptap Mention（V10 实测，推荐路线）**。
+  `[[...]]` 是**我们自己的语法**，`appflowy_editor` 不提供；而 Tiptap 会把它当 markdown 链接转义成 `\[\[`，
+  Rust 的 `parse_links_from_content` 就扫不到（现状 Flutter 版完全保真，属回归）。
+  换成编辑器原生结构可以绕开这个根因：
+  - `@` 触发 suggestion，数据源直接用现成的 `auto_complete_links`
+    （`WHERE title LIKE prefix AND deleted_at IS NULL LIMIT 20` —— **只引用已有笔记，已实现**）
+  - 选中插入 `mention` 节点，带 `id` / `label`
+  - 序列化必须用 `Mention.extend({ addStorage })` 覆盖，输出回 `[[id|alias]]` 原形态：
+    `renderText` 在 Mention 3.x 已废弃，用它出来的是 HTML `<span>`，Rust 解析不了（V10 实测）
+  - 这样 **Rust 侧一行都不用改**：`parse_links_from_content`、`links` 表、`backlinks` 全部沿用
+- **老数据迁移（必做）**：库里已有的 `[[...]]` 纯文本经编辑器往返会变 `\[\[...\]\]`。
+  在加载时把老 `[[...]]` 解析成 mention 节点（一次性），之后统一存新形态。
+- 软换行 `行一\n行二` 会被合成 `行一 行二`，需明确接受或覆盖序列化器。
 - 桥：`window.ReactNativeWebView.postMessage` ↔ NSH `on_message` / `element_ref.post_message`。**注意官方示例写 `window.nsh`，0.1.1 实测只有 `ReactNativeWebView`**（已记为上游不一致）。
 
 ### 4.2 与原生外壳的边界（路线 C 独有，必须设计）
@@ -211,7 +213,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | # | 风险/未验证 | 状态 | 结论 / 处置 |
 |---|---|---|---|
 | R1 | `nsh build` 对带 Rust crate 的应用报 `GPUI Cargo.lock` (os error 3) | ✅ **已关闭**（V2） | **不是 CLI 缺陷**，是 `NSH_SOURCE` 版本错配。锁 `v0.1.1` tag 后 `nsh build`（7m）与 `nsh package --target windows`（产出 31MB exe + zip）均通过。**新约束**：CLI 版本与 `NSH_SOURCE` checkout 必须同时钉住，scoop 安装包不含源码 |
-| R2 | 编辑器与 Rust 的存储/语法契约 | ⚠️ **有明确缺口**（V9/V9b） | ① 网页不跑 loro（`NoteCrdt` 是 `LoroText` 装 markdown，与 `LoroMap` 树不兼容）。② **`[[id\|alias]]` 双向链接会被 Tiptap 转义成 `\[\[...\]\]`**，Rust 的纯文本扫描失效——现状 Flutter 版完全保真，属回归。③ 软换行会被合并。①②必须修，③需明确接受或处理 |
+| R2 | 编辑器与 Rust 的存储/语法契约 | ⚠️ **路线已定，待实现**（V9/V9b/V10） | ① 网页不跑 loro（`NoteCrdt` 是 `LoroText` 装 markdown）。② 双向链接改用 `@`+Mention（V10 已验证可行），序列化回 `[[id\|alias]]`，**Rust 侧零改动**。③ 老 `[[...]]` 纯文本需一次性迁移为 mention 节点。④ 软换行会被合并 |
 | R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | **已确认 NSH 无相机、无文件选择器 API**。扫码只能走原生平台能力（iOS/Android 侧自己写）或网页 BarcodeDetector |
 | R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | 按 4.3 节的内核矩阵验收，Android/iOS 实测 |
 | R5 | 大文档性能（单篇 5 万字 / 500 篇） | ✅ **已实测通过**（V4） | **纯 Tiptap 5 万字**：`setContent` 79ms（解析 46 + 布局 26）、打字 12.4ms（dispatch 仅 0.8ms，其余是帧节奏）、滚动 **159 FPS**、`getMarkdown` 21ms。**这是方案内要用的数字**（网页不跑 loro）。原先 jsdom 的「416ms」作废 |
@@ -280,8 +282,9 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 - 3.6 IME/选区/CDP 自动化验收（V8 已验证 IME 通路；复用 `tools/v7v8_probe.py`）
 - 3.7 性能基线复测（纯 Tiptap 已测：5 万字 `setContent` 79ms、打字 12.4ms、滚动 159 FPS）。**不含 loro**，所以 V7 那组 376ms 不适用
 - 3.8 构建管线：esbuild 打包 + `web_view(url)` 静态站点（推荐，理由是相对资源与 URL 长度，不是 loro）
-- 3.9 **P0：`[[...]]` 双向链接保真**。给 `tiptap-markdown` 加自定义 escape 规则（或做成 inline mark），确保 `[[id\|alias]]` 原样进出，不出现 `\[\[`。用 `v9b-plaintext.mjs` 的 15 类结构做回归（含 5 类 `[[...]]` 场景）
-- 3.10 软换行策略：确认 `行一\n行二` 的合并是否可接受，不可接受则覆盖序列化器
+- 3.9 **双向链接改为 `@` + Mention**（V10 已验通）：接 `auto_complete_links` 做 suggestion，`Mention.extend` 覆盖 `addStorage` 序列化回 `[[id|alias]]`。注意 `renderText` 已废弃，用它得到 HTML
+- 3.10 **老数据迁移**：加载时把已有 `[[...]]` 纯文本解析成 mention 节点，一次性迁移后统一新形态
+- 3.11 软换行策略：确认 `行一\n行二` 的合并是否可接受，不可接受则覆盖序列化器
 
 **Phase 4 — 收敛**
 - 4.1 三端内核矩阵验收（Android/iOS/Linux/macOS 编辑器实测）
