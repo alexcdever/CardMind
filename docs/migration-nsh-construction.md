@@ -34,7 +34,7 @@
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
 | 0.1 | 翻 `CardMindTokens` / `CardMindLayout` → `theme.ts`，值与 Dart 源逐一对齐 | ✅ 已完成 | `eb2b4077`（合并）；`nsh-app/theme.ts`；`npx tsx --test nsh-app/theme_test.ts` → 36 pass / 0 fail；变异验证：改错 `accent` 后测试精确报出令牌名 |
-| 0.2 | 工程骨架：`nsh.json` + `Cargo.toml`（backend crate）+ `tsconfig.json` + esbuild 脚本 | ⬜ 未开始 | 待填 |
+| 0.2 | 工程骨架：`nsh.json` + `Cargo.toml`（backend crate）+ `tsconfig.json` + esbuild 脚本 | ✅ 已完成 | `384ba5c3`（合并）；`nsh build nsh-app` → exit=0、日志含 `built the Rust crate nsh-app-cardmind`、产出 `bundle.js`+`bundle.nshc`；`skeleton_test.ts` 5 pass；TDD 红态为 ENOENT |
 | 0.3 | `#[module]` 最小闭环：`Backend.deviceId()` 返回真值到 TSX（TSX 侧必须 `await`） | ⬜ 未开始 | 待填 |
 | 0.4 | 事件桥：`#[component]` + `#[derive(Event)]` + `spawn` 里 `cx.emit` 跑通 | ⬜ 未开始 | 待填 |
 | 0.5 | 构建脚本固化：`--alias:loro-crdt` **不需要**（网页不跑 loro），但需固化 esbuild 命令与 `web_view(url)` 静态站点目录 | ⬜ 未开始 | 待填 |
