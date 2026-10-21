@@ -16,9 +16,8 @@
 | V6 | **R8/R9** 事件桥 + 全局单例 `#[module]` | ✅ **通过** | `spike/nsh-probe/v5-event-bridge` + `nsh build` + `nsh trace` | **通过**：后台 spawn 连推 3 次事件到 UI；`bump=1 bump=2 slow=12` 证明全局单例状态连续 |
 | V7 | **R5/R2** 叠加 loro 后的性能与协同 | ⚠️ **结论被 V9 取代** | `tools/v7v8_probe.py` | 当时假设「网页内跑 loro」。协同本身正确，但该方案已被 V9 推翻，376ms 等数字不在必答范围内 |
 | V8 | **R10** 真实中文 IME 组合态 | ✅ **通过** | CDP `Input.imeSetComposition` 走 Chromium 真实输入管线 | `compositionstart→update×7→end` 全链正确，「你好」正确入文、光标 `from: 3`、markdown 正确 |
-| V9 | **方案修正**：网页不该跑 loro | ✅ **已修正** | 核实 `NoteCrdt` 源码 | `NoteCrdt` 是 `LoroText("content")` 装整段 markdown，与 `loro-prosemirror` 的 `LoroMap` 树不兼容。方案改为网页只做 markdown 进出 |
-| V9b | **纯文本笔记**的往返保真（含 `[[...]]`） | ⚠️ **暴露真回归** | `web-editor/src/v9b-plaintext.mjs`（15 类）+ 临时 flutter test 验证现状 | **`[[id\|alias]]` 被 Tiptap 转义成 `\[\[...\]\]`**，Rust 纯文本扫描失效；现状 Flutter 版完全保真，属回归。`[[...]]` 保留仅 9/15。表格/图片不是需求，已撤回 |
-| V10 | **路线 B**：`@` + Mention 替代 `[[...]]` | ✅ **主体可行** | `web-editor/src/v10-mention.mjs` | `@` 触发+前缀过滤+mention 节点+序列化回 `[[id\|alias]]`+Rust 解析全通；**Rust 侧零改动**。老 `[[...]]` 文本仍需一次性迁移 |
+| V9b | **纯文本笔记**的往返保真（含 `[[...]]`） | ✅ **已降级** | `web-editor/src/v9b-plaintext.mjs`（15 类）+ 临时 flutter test | `[[id\|alias]]` 被 Tiptap 转义成 `\[\[...\]\]` 属实，但**双向链接是未使用功能**，按纯文本处理即可，不阻塞迁移 |
+| V10 | **路线 B**：`@` + Mention 替代 `[[...]]` | ✅ **已验通，本期不做** | `web-editor/src/v10-mention.mjs` | `@` 触发+前缀过滤+mention+序列化回 `[[id\|alias]]`+Rust 解析全通，**Rust 侧零改动**。功能不使用，留作将来参考 |
 | — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例（导航 API 已确认：`createNavigator`/`Stack`/`Screen`/`Modal`） | 记为「Phase 4 矩阵验收」 |
 | — | R6 附件文件协议 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 无附件/图片功能** | 降级为非风险 |
 

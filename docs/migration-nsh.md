@@ -153,19 +153,9 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 - 编辑器产物：esbuild `--bundle --minify` 单文件（不含 loro，回到 0.5 MB 量级）。
 - 加载方式：仍推荐 `web_view(url)` + 静态站点。原因不是 loro，而是 `web_view_html` 内部是 `data:` URL、
   相对资源不可用（字体/图片），且页面体积受 URL 长度限制。
-- **双向链接改用 `@` + Tiptap Mention（V10 实测，推荐路线）**。
-  `[[...]]` 是**我们自己的语法**，`appflowy_editor` 不提供；而 Tiptap 会把它当 markdown 链接转义成 `\[\[`，
-  Rust 的 `parse_links_from_content` 就扫不到（现状 Flutter 版完全保真，属回归）。
-  换成编辑器原生结构可以绕开这个根因：
-  - `@` 触发 suggestion，数据源直接用现成的 `auto_complete_links`
-    （`WHERE title LIKE prefix AND deleted_at IS NULL LIMIT 20` —— **只引用已有笔记，已实现**）
-  - 选中插入 `mention` 节点，带 `id` / `label`
-  - 序列化必须用 `Mention.extend({ addStorage })` 覆盖，输出回 `[[id|alias]]` 原形态：
-    `renderText` 在 Mention 3.x 已废弃，用它出来的是 HTML `<span>`，Rust 解析不了（V10 实测）
-  - 这样 **Rust 侧一行都不用改**：`parse_links_from_content`、`links` 表、`backlinks` 全部沿用
-- **老数据迁移（必做）**：库里已有的 `[[...]]` 纯文本经编辑器往返会变 `\[\[...\]\]`。
-  在加载时把老 `[[...]]` 解析成 mention 节点（一次性），之后统一存新形态。
 - 软换行 `行一\n行二` 会被合成 `行一 行二`，需明确接受或覆盖序列化器。
+- 双向链接：**本期不做**（详见第 6 节 R2 的说明）。Tiptap 会把正文里的 `[[...]]` 转义成 `\[\[`，
+  但现有用户没用过这个功能，按纯文本笔记处理即可。
 - 桥：`window.ReactNativeWebView.postMessage` ↔ NSH `on_message` / `element_ref.post_message`。**注意官方示例写 `window.nsh`，0.1.1 实测只有 `ReactNativeWebView`**（已记为上游不一致）。
 
 ### 4.2 与原生外壳的边界（路线 C 独有，必须设计）
@@ -213,7 +203,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | # | 风险/未验证 | 状态 | 结论 / 处置 |
 |---|---|---|---|
 | R1 | `nsh build` 对带 Rust crate 的应用报 `GPUI Cargo.lock` (os error 3) | ✅ **已关闭**（V2） | **不是 CLI 缺陷**，是 `NSH_SOURCE` 版本错配。锁 `v0.1.1` tag 后 `nsh build`（7m）与 `nsh package --target windows`（产出 31MB exe + zip）均通过。**新约束**：CLI 版本与 `NSH_SOURCE` checkout 必须同时钉住，scoop 安装包不含源码 |
-| R2 | 编辑器与 Rust 的存储/语法契约 | ⚠️ **路线已定，待实现**（V9/V9b/V10） | ① 网页不跑 loro（`NoteCrdt` 是 `LoroText` 装 markdown）。② 双向链接改用 `@`+Mention（V10 已验证可行），序列化回 `[[id\|alias]]`，**Rust 侧零改动**。③ 老 `[[...]]` 纯文本需一次性迁移为 mention 节点。④ 软换行会被合并 |
+| R2 | 编辑器与 Rust 的存储/语法契约 | ✅ **已定案**（V9/V10） | ① 网页不跑 loro：`NoteCrdt` 是 `LoroText` 装 markdown，网页只做 markdown 进出。② **双向链接本期不做**——现有用户没用过；Tiptap 会把正文里的 `[[...]]` 转义成 `\[\[`，但那是未使用功能，不阻塞。将来要做的话 V10 已验证可行路线（`@`+Mention，序列化回 `[[id\|alias]]`，Rust 侧零改动） |
 | R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | **已确认 NSH 无相机、无文件选择器 API**。扫码只能走原生平台能力（iOS/Android 侧自己写）或网页 BarcodeDetector |
 | R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | 按 4.3 节的内核矩阵验收，Android/iOS 实测 |
 | R5 | 大文档性能（单篇 5 万字 / 500 篇） | ✅ **已实测通过**（V4） | **纯 Tiptap 5 万字**：`setContent` 79ms（解析 46 + 布局 26）、打字 12.4ms（dispatch 仅 0.8ms，其余是帧节奏）、滚动 **159 FPS**、`getMarkdown` 21ms。**这是方案内要用的数字**（网页不跑 loro）。原先 jsdom 的「416ms」作废 |
@@ -222,10 +212,37 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ✅ **已关闭**（V5 源码 + V6 实测） | `#[module]` 确实无推送接口，但**组件的 Event 通道可行**：`#[derive(Event)]` + `Scope<E>`（`Copy`）+ 在 `spawn` 里 `cx.emit(..)`，实测后台连推 3 次事件 UI 正确更新。**必须用 `spawn`（引擎线程），不能用 `background`（tokio 线程池）**——`emit` 写的是 thread_local graph |
 | R9 | `&mut SyncService` 并发语义在 NSH 导出下的线程安全 | ✅ **已有可行写法**（V5 + V6） | `#[module]` 不允许 receiver，必须 `pub struct X;` + `#[module] impl X` + `OnceLock<Mutex<..>>` 全局单例。实测 `bump=1 bump=2 slow=12` 状态跨调用连续。**另一个坑：所有函数都返回 `Promise<T>`，TSX 侧必须 `await`** |
 | R10 | 焦点/键盘两套世界（WebView vs 原生） | ◐ **输入链路已验证，焦点桥接待做** | V8 证明 WebView 内的中文 IME 全链路正常（composition → 提交 → 光标 → markdown 都对）。仍需实现的是 WebView 与原生外壳之间的焦点/快捷键桥接（按 4.2 节设计） |
+| R11 | 更新分发机制 | ⬜ **待决策** | 见下方「更新分发：NSH 签名包 vs 现有 msix」 |
 
 > **整体判断（沿用探针结论）**：换 UI 运行时的成本 = **重写编辑器**，不是搬后端。而后端恰好是可移植资产。所以本计划的工作量集中在第 4 节（编辑器）、第 5 节（页面重写）、第 3 节（桥）。
 >
 > 验证详情与证据见 `docs/migration-nsh-verification.md`（V1–V6）。**V5/V6 的发现直接修改了 3.1 与 3.2 节的设计前提**，见下文修订说明。
+
+### 更新分发：NSH 签名包 vs 现有 msix
+
+两者是**不同层次的东西**，不是同一件事的两种实现。
+
+| | 现有（msix + 自重分发） | NSH 签名包 |
+|---|---|---|
+| 打包产物 | `.msix`（Windows 安装包） | `.nshpkg`（签名的模块包） |
+| 签名机制 | 自签名 `CN=CardMind`，`install_certificate: false` | **Ed25519**，离线 root key 认证 release key，设备校验吊销列表 |
+| 谁验证 | Windows 安装器（信任自签证书要先手动导入） | 应用自己（嵌入 nsh，`loadPackage` 前验签） |
+| 分发方式 | 拉 `manifestUrl` 比版本号 → 下载 → 安装 | 应用内 `fetch` 下载 `.nshpkg` → 验签 → 加载 |
+| 跨平台 | 只有 Windows | iOS/Android/macOS/Windows/Linux/GPUI/Web 同一套命令 |
+| 边界 | 整个应用替换 | **可以只替换界面模块**，宿主（含 Rust 后端）不动 |
+
+**关键差异不是「哪个更好」，而是「更新的是整个应用还是只有界面」**：
+
+- msix 装的是**完整应用**（含 Rust 后端 DLL）。换版本 = 换整套二进制。
+- `nshpkg` 是**签名模块包**，前提是应用**内嵌了 nsh 运行时**。这样能只换 TSX 界面层，后端继续跑。
+
+**对 CardMind 的实际含义**：
+
+1. 若只求「像现在一样发整包」→ `nsh package --target windows` 出的 zip/exe 就够，`nsh publish` 不必用。这时和 msix 是同类替换，只是**少了安装器体验**（msix 有开始菜单、卸载项、系统集成）。
+2. 若想「后端不动、只更新界面」→ 必须走内嵌 nsh + `loadPackage` 那条路，会让架构复杂一档（应用变成「宿主 + 可换模块」）。**这是路线 C 才有意义的能力**，也正是 NSH 相对于 Tauri/Electron 的差异点。
+3. **现有 `update_service` 那套（拉 manifest、比版本、下载安装）本身是可保留的**——它管的是「发现新版本 + 下载」，与包格式无关。只需把「下载 msix 并调安装器」换成「下载新包并替换/验签」。
+
+**建议**：本期按 1 走（整包分发，保留 msix 或改用 `nsh package` 的 zip + 自更新流程），把 2 留作后续演进。理由：内嵌 nsh + 模块热更会显著增加架构与验证面，而当前阶段的价值主要在「把 UI 换成 NSH」，不在「模块级热更」。
 
 ---
 
@@ -282,9 +299,8 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 - 3.6 IME/选区/CDP 自动化验收（V8 已验证 IME 通路；复用 `tools/v7v8_probe.py`）
 - 3.7 性能基线复测（纯 Tiptap 已测：5 万字 `setContent` 79ms、打字 12.4ms、滚动 159 FPS）。**不含 loro**，所以 V7 那组 376ms 不适用
 - 3.8 构建管线：esbuild 打包 + `web_view(url)` 静态站点（推荐，理由是相对资源与 URL 长度，不是 loro）
-- 3.9 **双向链接改为 `@` + Mention**（V10 已验通）：接 `auto_complete_links` 做 suggestion，`Mention.extend` 覆盖 `addStorage` 序列化回 `[[id|alias]]`。注意 `renderText` 已废弃，用它得到 HTML
-- 3.10 **老数据迁移**：加载时把已有 `[[...]]` 纯文本解析成 mention 节点，一次性迁移后统一新形态
-- 3.11 软换行策略：确认 `行一\n行二` 的合并是否可接受，不可接受则覆盖序列化器
+- 3.9 软换行策略：确认 `行一\n行二` 的合并是否可接受，不可接受则覆盖序列化器
+- ~~双向链接（`@`+Mention / 老数据迁移）~~ **本期不做**。现有用户没用过该功能；V10 已验证过可行路线（见验证文档 V10），将来要做可直接照做
 
 **Phase 4 — 收敛**
 - 4.1 三端内核矩阵验收（Android/iOS/Linux/macOS 编辑器实测）
@@ -315,7 +331,7 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 3. ~~`nsh` 版本钉住策略？~~ **✅ 已答**：锁 `nsh` CLI `v0.1.1` **且** `NSH_SOURCE` 指向同一 `v0.1.1` tag。scoop 包不含源码；指向 `main` 会因 crate 结构变更（`nsh-ui-mobile`/`nsh-animation` 已移除）而失败。
 4. ~~`loro-prosemirror` 走网页内 loro-crdt 还是留在 Rust？~~ **✅ 已答（V9 修正了先前答案）**：**留在 Rust**。核实 `NoteCrdt` 的存储是「一个 `LoroText("content")` 装整段 markdown」，而 `loro-prosemirror` 只认 `LoroMap` 树，两者不兼容。网页**不跑 loro**，只做 markdown 进、markdown 出，与现有 Flutter 版一致。先前「走网页内 loro-crdt」的定案是错的，已在 V9 纠正。
 5. 设备页**扫码**最终形态：**（仍未答，需设备）**。已确认 NSH 本身**没有相机 API、也没有文件选择器**（全仓搜 `pickFile`/`camera`/`barcode` 无结果），所以只能靠 iOS/Android 平台侧自写，或走网页 `BarcodeDetector`。
-6. 更新检查（`lib/services/update_*`）在 NSH 下的替代：**（仍未答，需产品决策）**。NSH 自带 `keygen`/`certify`/`publish`/`verify`/`revoke` 一套签名分发，比现有 `update_service`/`update_downloader` 更完整，但要评估迁移成本与现有分发渠道（`msix`）的取舍。
+6. 更新检查（`lib/services/update_*`）在 NSH 下的替代：**✅ 已查清，建议本期不变**。见第 6 节「更新分发：NSH 签名包 vs 现有 msix」——两者的差别是「更新整个应用」还是「只换界面模块」，现有 `update_service`（拉 manifest、比版本、下载）与包格式无关，可原样保留
 
 ---
 
