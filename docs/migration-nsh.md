@@ -212,7 +212,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ✅ **已关闭**（V5 源码 + V6 实测） | `#[module]` 确实无推送接口，但**组件的 Event 通道可行**：`#[derive(Event)]` + `Scope<E>`（`Copy`）+ 在 `spawn` 里 `cx.emit(..)`，实测后台连推 3 次事件 UI 正确更新。**必须用 `spawn`（引擎线程），不能用 `background`（tokio 线程池）**——`emit` 写的是 thread_local graph |
 | R9 | `&mut SyncService` 并发语义在 NSH 导出下的线程安全 | ✅ **已有可行写法**（V5 + V6） | `#[module]` 不允许 receiver，必须 `pub struct X;` + `#[module] impl X` + `OnceLock<Mutex<..>>` 全局单例。实测 `bump=1 bump=2 slow=12` 状态跨调用连续。**另一个坑：所有函数都返回 `Promise<T>`，TSX 侧必须 `await`** |
 | R10 | 焦点/键盘两套世界（WebView vs 原生） | ◐ **输入链路已验证，焦点桥接待做** | V8 证明 WebView 内的中文 IME 全链路正常（composition → 提交 → 光标 → markdown 都对）。仍需实现的是 WebView 与原生外壳之间的焦点/快捷键桥接（按 4.2 节设计） |
-| R11 | 更新分发机制 | ⬜ **待决策** | 见下方「更新分发：NSH 签名包 vs 现有 msix」 |
+| R11 | 更新分发机制 | ✅ **已定案**：本期整包分发 | 保留现有 `update_service`（拉 manifest、比版本、下载），只把「下载 msix 并调安装器」换成「下载新包」。**不做**内嵌 nsh + `loadPackage` 的模块级热更（留作后续演进）。理由见下方对比 |
 
 > **整体判断（沿用探针结论）**：换 UI 运行时的成本 = **重写编辑器**，不是搬后端。而后端恰好是可移植资产。所以本计划的工作量集中在第 4 节（编辑器）、第 5 节（页面重写）、第 3 节（桥）。
 >
@@ -242,7 +242,9 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 2. 若想「后端不动、只更新界面」→ 必须走内嵌 nsh + `loadPackage` 那条路，会让架构复杂一档（应用变成「宿主 + 可换模块」）。**这是路线 C 才有意义的能力**，也正是 NSH 相对于 Tauri/Electron 的差异点。
 3. **现有 `update_service` 那套（拉 manifest、比版本、下载安装）本身是可保留的**——它管的是「发现新版本 + 下载」，与包格式无关。只需把「下载 msix 并调安装器」换成「下载新包并替换/验签」。
 
-**建议**：本期按 1 走（整包分发，保留 msix 或改用 `nsh package` 的 zip + 自更新流程），把 2 留作后续演进。理由：内嵌 nsh + 模块热更会显著增加架构与验证面，而当前阶段的价值主要在「把 UI 换成 NSH」，不在「模块级热更」。
+**已定案（本期整包分发）**：按第 1 条走，保留 msix 或改用 `nsh package` 的 zip + 自更新流程。第 2 条（内嵌 nsh + `loadPackage` 的模块级热更）**本期不做**，留作后续演进。
+
+理由：内嵌 nsh 会把应用变成「宿主 + 可换模块」，显著增加架构与验证面；而本阶段的价值在「把 UI 换成 NSH」，不在「模块级热更」。若将来要做，第 2 条的路已探明（`nshpkg` 是 Ed25519 签名模块包，宿主验签后加载），不需要重新调研。
 
 ---
 
@@ -259,11 +261,11 @@ Phase 1  内核接线    api.rs → 4 个 #[module]（全局单例 + 锁）；TS
 Phase 2  原生页面    列表/回收站/设置/设备 全用 TSX 重写 + 组件库 + 导航
          闸门：无编辑器时，列表↔回收站↔设置↔设备 全流程可走通（编辑器先留占位）
 
-Phase 3  编辑器      WebView+Tiptap 接入；markdown 进出 LoroDoc；dirty/autosave/撤销/标签联动
-         闸门：Windows 实测 IME/选区/markdown 往返/保存；叠加 loro 后性能基线不劣化
+Phase 3  编辑器      WebView+Tiptap 接入；markdown 进出 Rust（NoteCrdt 不动）；dirty/autosave/撤销
+         闸门：Windows 实测 IME/选区/markdown 往返/保存；性能基线不劣于 V4 数字
 
 Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_SOURCE）+ ADR 登记 + 清场
-         闸门：三端编辑器验收通过；打包链路打通或明确降级方案
+         闸门：三端编辑器验收通过；`nsh package` 出包可用、更新按整包替换跑通
 ```
 
 ### 逐阶段任务卡（可拆 ticket 的粒度）
@@ -304,8 +306,8 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 
 **Phase 4 — 收敛**
 - 4.1 三端内核矩阵验收（Android/iOS/Linux/macOS 编辑器实测）
-- 4.2 打包链路：`nsh build` Rust-crate bug 解决或备选壳（Tauri 2 评估）
-- 4.3 数据迁移/共存：用户现有 SQLite+LoroDoc 数据能否被新壳直接打开（应能——同后端）
+- 4.2 打包链路：`nsh package --target windows`（V2 已验证可用，锁 `v0.1.1` + 对应 `NSH_SOURCE`）。更新分发按 R11 定案走**整包替换**，不做模块级热更
+- 4.3 数据迁移/共存：用户现有 SQLite+LoroDoc 数据能否被新壳直接打开（应能——同后端、`NoteCrdt` 不动）
 - 4.4 ADR：登记「UI 运行时 Flutter→NSH」决策
 - 4.5 删 Flutter 残留 + 文档更新
 
