@@ -16,7 +16,8 @@
 | V6 | **R8/R9** 事件桥 + 全局单例 `#[module]` | ✅ **通过** | `spike/nsh-probe/v5-event-bridge` + `nsh build` + `nsh trace` | **通过**：后台 spawn 连推 3 次事件到 UI；`bump=1 bump=2 slow=12` 证明全局单例状态连续 |
 | V7 | **R5/R2** 叠加 loro 后的性能与协同 | ⚠️ **结论被 V9 取代** | `tools/v7v8_probe.py` | 当时假设「网页内跑 loro」。协同本身正确，但该方案已被 V9 推翻，376ms 等数字不在必答范围内 |
 | V8 | **R10** 真实中文 IME 组合态 | ✅ **通过** | CDP `Input.imeSetComposition` 走 Chromium 真实输入管线 | `compositionstart→update×7→end` 全链正确，「你好」正确入文、光标 `from: 3`、markdown 正确 |
-| V9 | **方案修正** markdown 往返保真度 | ⚠️ **推翻旧方案，暴露能力缺口** | `web-editor/src/v9-md-fidelity.mjs` 12 类结构往返 + 幂等 | **方案改为网页不跑 loro**。但 `StarterKit` 首次往返仅 9/12：表格/图片丢失、引用软换行合并。appflowy 默认支持这些，必须补扩展 |
+| V9 | **方案修正**：网页不该跑 loro | ✅ **已修正** | 核实 `NoteCrdt` 源码 | `NoteCrdt` 是 `LoroText("content")` 装整段 markdown，与 `loro-prosemirror` 的 `LoroMap` 树不兼容。方案改为网页只做 markdown 进出 |
+| V9b | **纯文本笔记**的往返保真（含 `[[...]]`） | ⚠️ **暴露真回归** | `web-editor/src/v9b-plaintext.mjs`（15 类）+ 临时 flutter test 验证现状 | **`[[id\|alias]]` 被 Tiptap 转义成 `\[\[...\]\]`**，Rust 纯文本扫描失效；现状 Flutter 版完全保真，属回归。`[[...]]` 保留仅 9/15。表格/图片不是需求，已撤回 |
 | — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例（导航 API 已确认：`createNavigator`/`Stack`/`Screen`/`Modal`） | 记为「Phase 4 矩阵验收」 |
 | — | R6 附件文件协议 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 无附件/图片功能** | 降级为非风险 |
 
@@ -475,3 +476,61 @@ HeadingNodeParser, ImageNodeParser, TableNodeParser
 3. V7 测到的「叠加 loro 性能」（`setContent` 376ms）**不再是迁移的必答题**——那个开销来自 WASM 协同插件，不在方案里了。
 4. 新增必做项：**补齐 Tiptap 扩展以追平 appflowy 的节点集**，并加一套「markdown 往返保真」的回归测试（就用 `v9-md-fidelity.mjs` 的 12 类结构做基线）。
 
+
+### V9b（按真实范围重测）纯文本笔记的往返 — ⚠️ 暴露了真回归：双向链接会被转义
+
+产品定位澄清后（**纯文本笔记，不是富文本**），V9 的结论需要重写：
+
+- 表格、图片**不是需求**——`appflowy_editor` 顺带支持，`product.md` 只承诺「Markdown 笔记 + 双向链接」。
+- 待办列表同理。所以「必须补 table/image 扩展」这条**撤回**，不需要。
+- 但换来了一个更要命的问题。
+
+#### 双向链接 `[[id|alias]]` 在 Tiptap 里会被转义
+
+`[[...]]` 是 CardMind 的**自定义语法**，不是标准 markdown。Rust 侧对它的解析是纯文本扫描（`sync.rs` 的 `parse_links_from_content`）：找 `[[`、再找 `]]`、按 `|` 切 target/alias。
+
+按真实笔记形态重测（`web-editor/src/v9b-plaintext.mjs`，15 类）：
+
+| 项 | 结果 |
+|---|---|
+| 首次往返 | **8/15** |
+| 幂等 | 15/15 |
+| **`[[...]]` 保留** | **9/15** |
+
+失败的样子：
+
+```
+入: 见 [[note-123|另一篇]] 的结论。
+出: 见 \[\[note-123|另一篇\]\] 的结论。
+```
+
+编辑器把 `[` 当成 markdown 链接语法给转义了。带回 Rust 就是 `parse_links_from_content` 扫不到 `[[`，**双向链接全部失效**；而且是在保存时静默写坏用户数据。
+
+另外「多行段落」也失败：`一行\n二行\n三行` → `一行 二行 三行`（软换行被合并）。
+
+#### 这是回归，不是既有 bug
+
+我写了临时 flutter test 验证现状（跑完已删）：
+
+```
+[有别名]  入: 见 [[note-123|另一篇]] 的结论。
+          出: 见 [[note-123|另一篇]] 的结论。     ← Flutter 版完全保真
+[无别名]  入: 见 [[note-123]]。
+          出: 见 [[note-123]]。
+[多个]    入: [[a|A]] 然后 [[b]] 再 [[c| C ]]
+          出: [[a|A]] 然后 [[b]] 再 [[c| C ]]
+```
+
+`appflowy_editor` 的 markdown 编解码器**不转义 `[[`**，往返原样保留。所以 Tiptap 的转义是真的会让功能退化。
+
+顺带记一个现状的小差异（语义等价、不影响功能）：appflowy 把无序列表输出成 `* 项` 而输入是 `- 项`。
+
+#### 对迁移计划的影响
+
+1. **撤回**「必须补 table/image/task-list 扩展」——纯文本笔记用不到。
+2. **新增 P0 必做项**：Tiptap 必须把 `[[...]]` 当**普通字面文本**处理，不转义。可行做法：
+   - 给 `tiptap-markdown` 的序列化器加自定义 escape 规则；或
+   - 写一个 inline mark `[[...]]` 的 NodeView/Mark，序列化时输出原文；或
+   - 输入侧用 `textInputRule` 避免编辑器把 `[` 当链接起点。
+3. **新增回归基线**：`v9b-plaintext.mjs` 的 15 类结构（含 5 类 `[[...]]` 场景）+ `[[...]]` 字面保留断言。这条测试在迁移后被删掉是最危险的——丢了它，双向链接坏掉没人会发现。
+4. 软换行合并（`一行\n二行` → `一行 二行`）在纯文本笔记里也可能影响阅读节奏，同样要处理或明确接受。
