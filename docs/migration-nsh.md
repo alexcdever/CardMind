@@ -143,22 +143,22 @@ NSH `Registry` 提供四种导出：`register<C>`（组件）、`module<M>`（�
 ```
 NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
    └─ <WebView>  ← 整块编辑面
-        └─ Tiptap (@tiptap/core + starter-kit + tiptap-markdown)
-              markdown 进出 ↔ 消息桥 ↔ Rust SyncService（LoroDoc 真源）
+        └─ Tiptap (@tiptap/core + starter-kit + tiptap-markdown + 补齐的扩展)
+              markdown 进 / markdown 出 ↔ 消息桥 ↔ Rust SyncService（NoteCrdt：LoroText 装 markdown）
 ```
 
-- 编辑器产物：esbuild `--bundle --minify` 单文件。
-- ⚠️ **必须用 `web_view(url)` 加载打包产物，不能用 `web_view_html`**（V7 实测，这是硬约束不是建议）：
-  `web_view_html` 内部是 `data:` URL，而 `loro-crdt` 是 WASM 包，默认入口要 `new URL('loro_wasm_bg.wasm', import.meta.url)`，
-  在不透明源的 `data:` URL 下直接抛 `TypeError: Failed to construct 'URL': Invalid URL`，**整个页面脚本中断**。
-  改用 `loro-crdt/base64`（WASM 内联）能绕过，但 bundle 会从 0.55 MB 涨到 5 MB，base64 后是 6.7 MB 的 data URL，
-  **超过 Chromium 的 URL 长度上限 → 白屏**。所以生产形态只能是「静态站点 + 真实 URL」。
-- **构建命令必须带 alias**，否则 `loro-prosemirror` 内部的间接引用仍走默认入口：
-  ```
-  esbuild src/editor.js --bundle --format=iife --minify \
-    --alias:loro-crdt=./node_modules/loro-crdt/base64/index.js
-  ```
-  注意 alias 是前缀匹配：源码里要写 `from "loro-crdt"`，不能写 `from "loro-crdt/base64"`（会被再拼一次 base64 而解析失败）。
+- **网页里不跑 loro**（V9 定案）。CardMind 的 `NoteCrdt` 是「一个 `LoroText("content")` 装整段 markdown」，
+  CRDT 合并与持久化全留在 Rust。网页只负责「读 markdown → 编辑 → 吐 markdown」，与现有 Flutter 版一致。
+  这样既不用改 Rust 存储层，也不会把 WASM 塞进 WebView。
+- 编辑器产物：esbuild `--bundle --minify` 单文件（不含 loro，回到 0.5 MB 量级）。
+- 加载方式：仍推荐 `web_view(url)` + 静态站点。原因不是 loro，而是 `web_view_html` 内部是 `data:` URL、
+  相对资源不可用（字体/图片），且页面体积受 URL 长度限制。
+- ⚠️ **必须补齐 Tiptap 扩展才能追平现有能力**（V9 实测）。`StarterKit` 不含表格/图片/待办，
+  而 `appflowy_editor` 的默认 markdown 编解码器**是支持的**，现在的用户已经在用。缺了会**静默丢内容**：
+  - `@tiptap/extension-table`（table / row / cell / header）
+  - `@tiptap/extension-image`
+  - `@tiptap/extension-task-list` + `@tiptap/extension-task-item`
+  - 引用块的多行软换行：`tiptap-markdown` 默认把 `> 行1\n> 行2` 合成一行，需覆盖序列化器
 - 桥：`window.ReactNativeWebView.postMessage` ↔ NSH `on_message` / `element_ref.post_message`。**注意官方示例写 `window.nsh`，0.1.1 实测只有 `ReactNativeWebView`**（已记为上游不一致）。
 
 ### 4.2 与原生外壳的边界（路线 C 独有，必须设计）
@@ -169,7 +169,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | **markdown 往返** | `tiptap-markdown` 接管字符串解析：`setContent` 默认按 markdown 不是 HTML；所有 setContent 调用点过一遍（见 `TIPTAP-PROBE.md` 的第一个坑） |
 | **撤销粒度** | ProseMirror `history groupDelay 500`：中文组合内 9 事务 → 1 步撤销。可调，但属「偏粗」基线，需用户可接受度确认 |
 | **选区/标签联动** | 现状 `_onEditorSelectionChanged` + tag 双击编辑 → 原生侧标签栏要与网页编辑器选区通信（消息桥） |
-| **Loro 协同** | 接入方式：`LoroSyncPlugin`/`LoroUndoPlugin` 必须经扩展的 `addProseMirrorPlugins` 注册（V3）。**性能代价已实测**（V7）：5 万字 `setContent` 79→376ms（解析阶段 46→344ms），dispatch 0.8→3.4ms。前者是 Phase 3 要优化的点 |
+| **markdown 往返** | 这是路线 C 的核心契约：进 markdown、出 markdown。**必须按 `web-editor/src/v9-md-fidelity.mjs` 的 12 类结构做回归**（标题/行内样式/链接/无序/有序/引用/代码块/表格/图片/组合/中文标点/Emoji），首次往返与幂等都要过 |
 | **焦点/键盘** | WebView 内外是两套焦点世界；返回/保存/新建的原生快捷键要显式桥接，不能假设 DOM 事件冒泡穿透 |
 
 ### 4.3 三端内核矩阵（新验证面）
@@ -206,10 +206,10 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | # | 风险/未验证 | 状态 | 结论 / 处置 |
 |---|---|---|---|
 | R1 | `nsh build` 对带 Rust crate 的应用报 `GPUI Cargo.lock` (os error 3) | ✅ **已关闭**（V2） | **不是 CLI 缺陷**，是 `NSH_SOURCE` 版本错配。锁 `v0.1.1` tag 后 `nsh build`（7m）与 `nsh package --target windows`（产出 31MB exe + zip）均通过。**新约束**：CLI 版本与 `NSH_SOURCE` checkout 必须同时钉住，scoop 安装包不含源码 |
-| R2 | `loro-prosemirror` 与 Tiptap 3.x 兼容性、本地优先合并语义 | ✅ **已关闭**（V3） | 兼容且双向协同正确。三个硬坑：① Tiptap 3 无顶层 `plugins` 选项，必须走 `addProseMirrorPlugins`；② 真实导出名是 `LoroSyncPlugin`/`LoroUndoPlugin`；③ 根容器是 LoroMap `"doc"`、Loro 才是真相源。JS↔Rust loro 跨版本快照互通（1.16.4 ↔ 1.13.6） |
+| R2 | 编辑器与 Rust 的协同/存储契约 | ✅ **已定案（V9 修正）** | **网页不跑 loro**：`NoteCrdt` 是 `LoroText("content")` 装整段 markdown，与 `loro-prosemirror` 的 `LoroMap` 树不兼容，共用不了一份 doc。网页只做 markdown 进出，CRDT 全留 Rust。**新风险转为**：`StarterKit` 缺表格/图片/待办且引用软换行会合并，必须补扩展 + 保真回归 |
 | R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | **已确认 NSH 无相机、无文件选择器 API**。扫码只能走原生平台能力（iOS/Android 侧自己写）或网页 BarcodeDetector |
 | R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | 按 4.3 节的内核矩阵验收，Android/iOS 实测 |
-| R5 | 大文档性能（单篇 5 万字 / 500 篇）输入延迟与滚动 FPS | ✅ **已实测通过**（V4 纯 Tiptap / V7 叠加 loro） | **纯 Tiptap 5 万字**：`setContent` 79ms、打字 12.4ms、滚动 159 FPS、`getMarkdown` 21ms。**叠加 loro 后**：`setContent` **376ms**（解析占 344ms）、打字 12.5ms（dispatch 0.8→**3.4ms**，仍未到可见阈值）、连续 50 字 168ms、Loro 快照 **380KB/5万字**。原先 jsdom 的「416ms」结论作废 |
+| R5 | 大文档性能（单篇 5 万字 / 500 篇） | ✅ **已实测通过**（V4） | **纯 Tiptap 5 万字**：`setContent` 79ms（解析 46 + 布局 26）、打字 12.4ms（dispatch 仅 0.8ms，其余是帧节奏）、滚动 **159 FPS**、`getMarkdown` 21ms。**这是方案内要用的数字**（网页不跑 loro）。原先 jsdom 的「416ms」作废 |
 | R6 | 图片/附件：网页沙箱无文件系统 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 没有附件/图片功能**，此风险不适用。（若将来加，NSH 无文件选择器，需自写平台层） |
 | R7 | iroh 退出未优雅 `Endpoint::close()` | ✅ **已关闭**（V1） | 摸清并验证修法：`SyncService::close()`（iroh `Endpoint::close().await`）+ 退出前先 `stop_receiver()`。对照组可复现 abort，修复后干净 |
 | R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ✅ **已关闭**（V5 源码 + V6 实测） | `#[module]` 确实无推送接口，但**组件的 Event 通道可行**：`#[derive(Event)]` + `Scope<E>`（`Copy`）+ 在 `spawn` 里 `cx.emit(..)`，实测后台连推 3 次事件 UI 正确更新。**必须用 `spawn`（引擎线程），不能用 `background`（tokio 线程池）**——`emit` 写的是 thread_local graph |
@@ -273,8 +273,9 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 - 3.4 dirty/autosave 700ms + 可安全退出信号
 - 3.5 撤销粒度调 `groupDelay`；标签栏 ↔ 选区联动
 - 3.6 IME/选区/CDP 自动化验收（V8 已验证 IME 通路；复用 `tools/v7v8_probe.py`）
-- 3.7 性能基线复测。**已知要优化的点**：叠加 loro 后 5 万字 `setContent` 376ms（解析 344ms），需要视口优先渲染或 Loro 侧异步补齐
-- 3.8 构建管线：`web_view(url)` 静态站点 + esbuild `--alias:loro-crdt=.../base64`（V7 的硬约束）
+- 3.7 性能基线复测（纯 Tiptap 已测：5 万字 `setContent` 79ms、打字 12.4ms、滚动 159 FPS）。**不含 loro**，所以 V7 那组 376ms 不适用
+- 3.8 构建管线：esbuild 打包 + `web_view(url)` 静态站点（推荐，理由是相对资源与 URL 长度，不是 loro）
+- 3.9 **markdown 保真追平**：补 `table`/`image`/`task-list` 扩展，覆盖引用软换行序列化，跑 `v9-md-fidelity.mjs` 的 12 类结构回归
 
 **Phase 4 — 收敛**
 - 4.1 三端内核矩阵验收（Android/iOS/Linux/macOS 编辑器实测）
@@ -303,7 +304,7 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 1. ~~NSH 的**路由/页面栈**机制是什么？~~ **✅ 已答**：`nsh-js/src/navigation.rs` 提供 `createNavigator(initial)` → `Navigator<R>`（`routes` 响应式、`push(route)`、`pop(count?)`），配 `<Stack>` / `<Screen>` / `<Modal>`。iOS 是 UINavigationController、Android 是带 toolbar 的原生栈；栈内屏幕保持挂载。这些组件由 `nsh-ui-mobile` 通过 `Registry::native_values` 导出。
 2. ~~NSH 原生视图能否做列表虚拟化？~~ **✅ 已答**：`crates/nsh-core/src/ui/virtual_list.rs`，文档明确「virtualized and recycled」，`select_list` 已用于「thousands」条场景。
 3. ~~`nsh` 版本钉住策略？~~ **✅ 已答**：锁 `nsh` CLI `v0.1.1` **且** `NSH_SOURCE` 指向同一 `v0.1.1` tag。scoop 包不含源码；指向 `main` 会因 crate 结构变更（`nsh-ui-mobile`/`nsh-animation` 已移除）而失败。
-4. ~~`loro-prosemirror` 走网页内 loro-crdt 还是留在 Rust？~~ **✅ 已答**：走网页内 `loro-crdt`（方案②）可行，双向协同与跨版本快照互通均已实测通过。
+4. ~~`loro-prosemirror` 走网页内 loro-crdt 还是留在 Rust？~~ **✅ 已答（V9 修正了先前答案）**：**留在 Rust**。核实 `NoteCrdt` 的存储是「一个 `LoroText("content")` 装整段 markdown」，而 `loro-prosemirror` 只认 `LoroMap` 树，两者不兼容。网页**不跑 loro**，只做 markdown 进、markdown 出，与现有 Flutter 版一致。先前「走网页内 loro-crdt」的定案是错的，已在 V9 纠正。
 5. 设备页**扫码**最终形态：**（仍未答，需设备）**。已确认 NSH 本身**没有相机 API、也没有文件选择器**（全仓搜 `pickFile`/`camera`/`barcode` 无结果），所以只能靠 iOS/Android 平台侧自写，或走网页 `BarcodeDetector`。
 6. 更新检查（`lib/services/update_*`）在 NSH 下的替代：**（仍未答，需产品决策）**。NSH 自带 `keygen`/`certify`/`publish`/`verify`/`revoke` 一套签名分发，比现有 `update_service`/`update_downloader` 更完整，但要评估迁移成本与现有分发渠道（`msix`）的取舍。
 

@@ -14,9 +14,9 @@
 | V4x | ~~早先的 jsdom 版本~~ | ❌ **作废** | Node + jsdom 无布局/绘制/合成器，量出的是其自身开销（空文档与 5 万字同为 15ms） | 数字全部作废，被 V4 取代 |
 | V5 | **R8** 事件回推（无 StreamSink） | ✅ **已查清** | 读 `nsh-macros` / `module.rs` / `reactive.rs` 源码 | **`#[module]` 无推送能力**；但组件 Event 通道存在（V6 实测证实） |
 | V6 | **R8/R9** 事件桥 + 全局单例 `#[module]` | ✅ **通过** | `spike/nsh-probe/v5-event-bridge` + `nsh build` + `nsh trace` | **通过**：后台 spawn 连推 3 次事件到 UI；`bump=1 bump=2 slow=12` 证明全局单例状态连续 |
-| V7 | **R5/R2** 叠加 loro 后的性能与协同 | ✅ **通过，有部署约束** | `tools/v7v8_probe.py` | 协同正确；`setContent` 79→376ms、dispatch 0.8→3.4ms。**必须用 `web_view(url)` + base64 入口**，`data:` URL 下 loro 起不来 |
+| V7 | **R5/R2** 叠加 loro 后的性能与协同 | ⚠️ **结论被 V9 取代** | `tools/v7v8_probe.py` | 当时假设「网页内跑 loro」。协同本身正确，但该方案已被 V9 推翻，376ms 等数字不在必答范围内 |
 | V8 | **R10** 真实中文 IME 组合态 | ✅ **通过** | CDP `Input.imeSetComposition` 走 Chromium 真实输入管线 | `compositionstart→update×7→end` 全链正确，「你好」正确入文、光标 `from: 3`、markdown 正确 |
-| — | R3 扫码权限 | ❌ | 需 Android/iOS 设备或 NSH 相机能力确认（已确认 NSH 无相机/文件选择器 API） | 记为「设备期验证」 |
+| V9 | **方案修正** markdown 往返保真度 | ⚠️ **推翻旧方案，暴露能力缺口** | `web-editor/src/v9-md-fidelity.mjs` 12 类结构往返 + 幂等 | **方案改为网页不跑 loro**。但 `StarterKit` 首次往返仅 9/12：表格/图片丢失、引用软换行合并。appflowy 默认支持这些，必须补扩展 |
 | — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例（导航 API 已确认：`createNavigator`/`Stack`/`Screen`/`Modal`） | 记为「Phase 4 矩阵验收」 |
 | — | R6 附件文件协议 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 无附件/图片功能** | 降级为非风险 |
 
@@ -330,7 +330,9 @@ export interface BackendModule {
 - Phase 1 的模块函数写法确定：`#[module] impl X` + `OnceLock<Mutex<..>>`，TSX 侧一律 `await`。
 
 
-### V7（R5/R2）叠加 loro-prosemirror 后的性能与协同 — ✅ 通过，但有重大部署约束
+### V7（R5/R2）叠加 loro-prosemirror 后的性能与协同 — ⚠️ 结论已被 V9 取代
+
+> **注意：本节验证的方案后来被 V9 推翻了。** 当时假设「网页内跑 loro」，所以测了 WASM 加载与协同开销。V9 核实 `NoteCrdt` 用 `LoroText` 装 markdown、与 `loro-prosemirror` 的 `LoroMap` 树不兼容，**最终方案是网页不跑 loro**。因此本节的 `setContent` 376ms 等数字**不在迁移必答题范围内**，保留下来只为记录那串 `data:` URL / WASM 的踩坑过程。
 
 脚本：`spike/nsh-probe/tools/v7v8_probe.py`。环境同上（WebView2 / Edg 155）。
 
@@ -405,4 +407,71 @@ markdown: '你好'
 
 **注意**：采样里的 122ms 间隔主要来自我脚本里的 `time.sleep(0.12)`，不是编辑器延迟。这轮**没有测出「组合态下单次输入的渲染耗时」**——要测那个，得在 compositionupdate 事件里打 rAF 时间戳，属进一步细化。
 
+
+
+### V9（方案修正）markdown 往返保真度 — ⚠️ 推翻了「网页内跑 loro」的方案
+
+**这一节是因为发现前一版方案错了才补的。**
+
+#### 先纠正一个架构错误
+
+前几轮我把方案定成「网页内跑 `loro-crdt` + `loro-prosemirror`」，并在第 9 节把它标成「已答」。这是错的，因为：
+
+**CardMind 现有的存储不是 ProseMirror 那套树。** 核实 `rust-backend/src/sync.rs`：
+
+```rust
+pub struct NoteCrdt { doc: LoroDoc }          // 144 行
+
+pub fn set_content(&self, markdown: &str) {   // 4365 行
+    let text = self.doc.get_text("content");  // 一个 LoroText
+    text.delete(0, len);
+    text.insert(0, markdown);                 // 存整段 markdown 字符串
+}
+```
+
+而 `loro-prosemirror` 只认 `doc.getMap("doc")` 那棵 **LoroMap 树**（`{nodeName, children, attributes}`）。两者结构不兼容，**共用不了一份 LoroDoc**。选「网页内跑 loro」意味着：
+
+1. Rust 侧 `NoteCrdt` 的 `get_text("content")` 全部作废重写，或维护两套表示；
+2. WebView 里必须带 WASM，于是踩上 `data:` URL 的 `new URL` 崩溃、bundle 0.55MB→5MB、6.7MB base64 URL 白屏这一串问题（V7）；
+3. 协同语义分叉：前端一套 Loro、后端一套 Loro，整段替换与增量合并打架。
+
+**正确方案是「网页不碰 loro」**：网页只做 markdown 进、markdown 出，CRDT 合并与持久化全留在 Rust 的 `NoteCrdt`（一个 LoroText）里——**跟现在 Flutter 版的做法完全一致**。这样 WASM 那串问题全部消失。
+
+#### 但这条路暴露了真实的能力缺口
+
+用 `tiptap-markdown` + `StarterKit` 做往返测试（`web-editor/src/v9-md-fidelity.mjs`，12 类结构）：
+
+**首次往返 9/12，幂等 12/12。**
+
+三个失败项：
+
+| 结构 | 入 | 出 | 原因 |
+|---|---|---|---|
+| 引用（多行） | `> 引用一行\n> 引用二行` | `> 引用一行 引用二行` | 软换行被合并成一行 |
+| 表格 | `\| 列A \| 列B \|…` | `列A列B12` | `StarterKit` **不含表格扩展** |
+| 图片 | `![图](/a.png)` | （空） | `StarterKit` **不含图片扩展** |
+
+**为什么这个对比很关键**：`appflowy_editor` 的默认 markdown 编解码器注册了这些解析器（appflowy_editor 仓库的 markdown 编解码器（`document_markdown.dart`）46–54 行）：
+
+```
+TextNodeParser, BulletedListNodeParser, NumberedListNodeParser,
+TodoListNodeParser, QuoteNodeParser, CodeBlockNodeParser,
+HeadingNodeParser, ImageNodeParser, TableNodeParser
+```
+
+而 CardMind 的 `editor_page.dart` 用的就是默认的 `markdownToDocument` / `documentToMarkdown`，也就是说**现在的用户已经能用表格、图片、待办列表**。换成 Tiptap StarterKit 会**静默丢内容**——注意是静默：往返「成功」返回了字符串，只是内容没了。
+
+**这不是「Tiptap 不行」，是「StarterKit 不够」**。要追平现状必须补：
+
+- `@tiptap/extension-table`（含 row/cell/header）
+- `@tiptap/extension-image`
+- `@tiptap/extension-task-list` + `task-item`（待办）
+- 引用块的多行软换行处理（`tiptap-markdown` 默认行为需要覆盖序列化器）
+
+**对迁移计划的影响**：
+
+1. 第 3 节「Loro 协同」的定案改为：**网页不跑 loro，只做 markdown 往返**；`loro-prosemirror` 及其 WASM 依赖整体从方案里移除。
+2. V7 的 `data:` URL / WASM / 5MB bundle 问题**降级**——因为不再需要在网页里加载 loro，bundle 回到 0.5MB 量级，`web_view_html` 也能用了（但仍推荐 `web_view(url)`，原因是相对资源）。
+3. V7 测到的「叠加 loro 性能」（`setContent` 376ms）**不再是迁移的必答题**——那个开销来自 WASM 协同插件，不在方案里了。
+4. 新增必做项：**补齐 Tiptap 扩展以追平 appflowy 的节点集**，并加一套「markdown 往返保真」的回归测试（就用 `v9-md-fidelity.mjs` 的 12 类结构做基线）。
 
