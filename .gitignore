@@ -1,5 +1,5 @@
-.worktrees/
-.pipeline/
+/.worktrees/
+/.pipeline/
 
 # Miscellaneous
 *.class
