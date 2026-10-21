@@ -10,7 +10,8 @@
 | V1 | **R7** iroh 退出 abort | ✅ **通过** | 跑 `app-rust`，抓退出时 `Endpoint dropped ... Aborting ungracefully`；再改成显式 `Endpoint::close()` 复跑 | **通过**：复现 abort → 加 close 后日志干净 |
 | V2 | **R1** `nsh build` Rust-crate `GPUI Cargo.lock` os error 3 | ✅ **已解决** | `nsh build app-rust` + `nsh package --target windows` | **已解决**：v0.1.1 源码 checkout 下 build 7m、package 出 31MB exe |
 | V3 | **R2** `loro-prosemirror` + Tiptap 3.x 兼容 | ✅ **通过** | `web-editor/src/v3-loro-test.mjs`（jsdom + 双向协同 + 跨版本快照） | **通过**：协同收敛、双端同步、跨版本互通全绿 |
-| V4 | **R5** 大文档性能 | ✅ **有基线** | `web-editor/src/v4-perf.mjs` 灌 5 万字 markdown 量耗时 | **可接受**：打字 2.8ms/字、getMarkdown 31ms、setContent 416ms |
+| V4 | **R5** 大文档性能 | ✅ **通过（真实 WebView2）** | `tools/v4b_webview_perf.py` 连 CDP 在 NSH 窗口里测 | **通过**：5 万字 setContent 79ms、打字 12.4ms、滚动 159FPS、getMarkdown 21ms |
+| V4x | ~~早先的 jsdom 版本~~ | ❌ **作废** | Node + jsdom 无布局/绘制/合成器，量出的是其自身开销（空文档与 5 万字同为 15ms） | 数字全部作废，被 V4 取代 |
 | V5 | **R8** 事件回推（无 StreamSink） | ✅ **已查清** | 读 `nsh-macros` / `module.rs` / `reactive.rs` 源码 | **`#[module]` 无推送能力**；但组件 Event 通道存在（V6 实测证实） |
 | V6 | **R8/R9** 事件桥 + 全局单例 `#[module]` | ✅ **通过** | `spike/nsh-probe/v5-event-bridge` + `nsh build` + `nsh trace` | **通过**：后台 spawn 连推 3 次事件到 UI；`bump=1 bump=2 slow=12` 证明全局单例状态连续 |
 | — | R3 扫码权限 | ❌ | 需 Android/iOS 设备或 NSH 相机能力确认（已确认 NSH 无文件选择器与相机 API） | 记为「设备期验证」 |
@@ -146,38 +147,59 @@
 - 未验证中文 IME 与 Loro 协同叠加（选区在协同更新下的稳定性）。
 - 未验证 Markdown ↔ Loro 树双向转换的保真度（CardMind 存的是 markdown；`loro-prosemirror` 存的是树，需要一层转换，这层是**净新增工作量**）。
 
-### V4（R5）大文档性能 — ✅ 有基线数据，可接受
+### V4（R5）大文档性能 — ✅ 通过（真实 WebView2 实测）
 
-环境：Node v22.23.2 + jsdom（**比真实 Chromium/WebView2 慢**，属保守下界）。
-脚本：`web-editor/src/v4-perf.mjs`、`v4-note-perf.mjs`。
-版本：`@tiptap/core 3.32.0` + `tiptap-markdown 0.9.0`（**未加 loro 插件**，纯编辑器基线）。
+**这一节推翻了我先前的错误做法。** 最初的 V4 是在 Node 里用 **jsdom** 跑的。jsdom 只是纯 JS 的假 DOM，没有布局引擎、没有绘制、没有合成器，因此它测不出任何与体验相关的指标。反证很清楚：空文档（80 字符）和 5 万字文档量出来的「打字延迟」都是 ~15ms——那 15ms 量的是 jsdom 自身开销，与 Tiptap 无关。当时的数字**全部作废**。
 
-**大文档（50,091 字符 / 237 个块组：标题+段落+列表+引用+代码块）**：
+现在的做法：用 `nsh` 起真实的 NSH 窗口（窗口内是 **WebView2 / Chromium**），通过 CDP 连进去，用真实浏览器能力测量：
 
-| 指标 | 结果 | 判断 |
+- `requestAnimationFrame` 两次 → 等到真正绘制完成一帧
+- `getBoundingClientRect()` 强制同步布局（flush layout）
+- `performance.now()` 打点
+
+脚本：`spike/nsh-probe/tools/v4b_webview_perf.py`，测量入口在 `web-editor/src/editor.js` 的 `window.__perf`。
+
+**环境**（避免再出现「自以为在测浏览器」）：
+
+```
+页面 URL: data:text/html;charset=utf-8;base64,…   （NSH 的 web_view_html）
+UA      : Mozilla/5.0 (Windows NT 10.0; Win64; x64) … Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0
+内核    : Edg/155.0.0.0  ← 真 Chromium，不是 jsdom
+```
+
+**5 万字文档**（50,139 字 markdown / 261 个块组 / 渲染高度 65,403px）：
+
+| 指标 | 真实 WebView2 | 之前 jsdom 的错误值 |
 |---|---|---|
-| 编辑器初始化 | 67.2 ms | ✅ |
-| `setContent` 5 万字 | **415.9 ms** | ⚠️ 打开大笔记有约 0.4s 卡顿（真实 WebView 会更快） |
-| 单字符插入延迟（首/中/尾 3 点） | 17.1 / 15.1 / 15.1 ms | ✅ 位置无关，未见尾部劣化 |
-| `getMarkdown()` 回写 | **31.3 ms**（输出 50,566 字符） | ✅ autosave 700ms debounce 下完全够 |
-| 连续插入 50 字符 | 140.1 ms（**2.80 ms/字**） | ✅ 约 350 字/秒，超过人的输入速度 |
+| `setContent` 总耗时 | **78.9 ms**（解析 46.2 + 布局 26.1） | 415.9 ms |
+| 单字符输入 → 画面更新 | **12.4 ms**（其中 dispatch 仅 0.8 ms） | 17.1 ms |
+| 连续输入 50 字 | 43.7 ms（**0.874 ms/字**） | 140.1 ms（2.80 ms/字） |
+| 滚动 20 帧中位间隔 | **6.3 ms** → 约 **159 FPS** | 未测（jsdom 测不了） |
+| `getMarkdown` 回写 | **21.4 ms**（输出 50,714 字） | 31.3 ms |
 
-**普通单篇笔记（80 字符）**：打字延迟中位 **15.4 ms**、P90 **16.5 ms**。
+**5 千字文档**：
 
-**解读**：
+| 指标 | 真实 WebView2 |
+|---|---|
+| `setContent` 总耗时 | 9.0 ms（解析 6.9 + 布局 0.2） |
+| 单字符输入 → 画面更新 | 8–14 ms（dispatch 0.5–0.8 ms） |
+| 连续输入 50 字 | 23.4 ms（0.468 ms/字） |
+| 滚动 20 帧中位间隔 | 6.2 ms → 约 161 FPS |
+| `getMarkdown` 回写 | 0.7 ms |
 
-- **打字延迟 ~15ms 是 jsdom 的下界噪声**（即使空文档也是这个量级，见单篇笔记结果）——说明 Tiptap 在该规模下不是瓶颈。
-- **真正需要关注的是 `setContent` 415ms**：换成真实 WebView2 预计降到 100-200ms 量级，但**大笔记打开仍会有可见的一次性开销**。迁移时应对策（计划需补）：
-  - 先渲染首屏块，后台补齐；
-  - 或按块懒加载（ProseMirror 的 `NodeView` + 分页）；
-  - 或接受 <1s 的打开延迟（现状 Flutter appflowy 也未必更快）。
-- **`getMarkdown` 31ms** 意味着 `markdown ↔ Loro` 转换 + autosave 可以合并到同一个 700ms debounce 里，不必额外节流。
+**结论变了，而且是有利的**：
 
-**未覆盖**：
+1. **`setContent` 不是问题**。5 万字只要 79ms，其中真正的排版成本只有 26ms。原计划里「大笔记打开有 0.4s 卡顿，需要分块加载」的补救措施**不需要了**。
+2. **打字延迟约 12ms，且与文档规模基本无关**（5 万字 12.4ms vs 5 千字 12.4ms）。拆开看 dispatch 只占 0.8ms——剩下的 ~11ms 是固定的一帧等待（60Hz 下 16.7ms 一帧，测到 12ms 说明正好落在下一帧内）。**这是帧节奏，不是性能瓶颈**。
+3. **滚动 159 FPS**，远高于 60Hz 屏幕上限，`ProseMirror` 在 6 万像素高的文档上没有可见劣化。
+4. **`getMarkdown` 21ms**，autosave 的 700ms debounce 绰绰有余。
 
-- 未测真实 WebView2 的渲染帧率（需跑起 NSH 窗口 + CDP，属 Phase 3 实测范围）。
-- 未测 `loro-prosemirror` 插件叠加后的开销（协同同步可能显著增加事务成本）——**这是 Phase 3 必须复测的项**。
-- 未测 500 篇列表滚动（属原生 TSX 侧，已确认有 `virtual_list`，但未做性能实测）。
+**仍然要说清的边界**：
+
+- 这是 **Windows / WebView2（Chromium 155）** 一端的数字。Android 系统 WebView 与 iOS WKWebView 未测（R4）。
+- **未叠加 `loro-prosemirror`**。协同插件会给每个事务加同步开销，可能显著改变上述数字——Phase 3 必须复测。
+- 测量是脚本触发的编辑（`insertContentAt`），不是真实键盘事件；IME 组合态下的延迟未测。
+- 滚动是程序化 `scrollTop`，不是触控板/滚轮的合成器路径。
 
 ### V5（R8）事件回推 / 无 StreamSink — ⚠️ 源码结论（后续由 V6 实测补完）
 

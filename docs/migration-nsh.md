@@ -198,7 +198,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | R2 | `loro-prosemirror` 与 Tiptap 3.x 兼容性、本地优先合并语义 | ✅ **已关闭**（V3） | 兼容且双向协同正确。三个硬坑：① Tiptap 3 无顶层 `plugins` 选项，必须走 `addProseMirrorPlugins`；② 真实导出名是 `LoroSyncPlugin`/`LoroUndoPlugin`；③ 根容器是 LoroMap `"doc"`、Loro 才是真相源。JS↔Rust loro 跨版本快照互通（1.16.4 ↔ 1.13.6） |
 | R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | **已确认 NSH 无相机、无文件选择器 API**。扫码只能走原生平台能力（iOS/Android 侧自己写）或网页 BarcodeDetector |
 | R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | 按 4.3 节的内核矩阵验收，Android/iOS 实测 |
-| R5 | 大文档性能（单篇 5 万字 / 500 篇）输入延迟与滚动 FPS | ✅ **已测基线**（V4） | 2.8ms/字、getMarkdown 31ms、setContent 416ms（jsdom 下界）。`setContent` 需在 Phase 3 复查；叠加 loro 插件后的开销未测 |
+| R5 | 大文档性能（单篇 5 万字 / 500 篇）输入延迟与滚动 FPS | ✅ **已实测通过**（V4，真实 WebView2） | 5 万字：`setContent` **79ms**（解析 46 + 布局 26）、打字 **12.4ms**（dispatch 仅 0.8ms，其余是帧节奏）、滚动 **159 FPS**、`getMarkdown` **21ms**。原先基于 jsdom 的「416ms 需分块加载」结论**作废**。仍缺：叠加 loro 插件、IME 组合态、触控滚动的实测 |
 | R6 | 图片/附件：网页沙箱无文件系统 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 没有附件/图片功能**，此风险不适用。（若将来加，NSH 无文件选择器，需自写平台层） |
 | R7 | iroh 退出未优雅 `Endpoint::close()` | ✅ **已关闭**（V1） | 摸清并验证修法：`SyncService::close()`（iroh `Endpoint::close().await`）+ 退出前先 `stop_receiver()`。对照组可复现 abort，修复后干净 |
 | R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ✅ **已关闭**（V5 源码 + V6 实测） | `#[module]` 确实无推送接口，但**组件的 Event 通道可行**：`#[derive(Event)]` + `Scope<E>`（`Copy`）+ 在 `spawn` 里 `cx.emit(..)`，实测后台连推 3 次事件 UI 正确更新。**必须用 `spawn`（引擎线程），不能用 `background`（tokio 线程池）**——`emit` 写的是 thread_local graph |
