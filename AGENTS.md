@@ -145,6 +145,9 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 - `docs/sync-network.md` — 同步网络设计（多设备同步的产品决策）
 - `docs/goal.md` — 当前任务的正式行为与验收标准
 - `docs/adr/` — 架构决策记录（长期决策的真相源）
+- `docs/migration-nsh.md` — NSH 迁移计划（路线、风险、阶段与闸门）
+- `docs/migration-nsh-construction.md` — NSH 迁移施工方案（逐项任务与完成状态）
+- `docs/migration-nsh-verification.md` — NSH 迁移验证记录（V1–V10 实测证据）
 - `docs/research/` — 仍服务于技术决策的研究资料
 - `docs/testing/` — 集成测试说明
 - `docs/standards/ai-collaboration.md` — 协作流程
