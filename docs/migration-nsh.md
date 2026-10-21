@@ -91,7 +91,9 @@ NSH `Registry` 提供四种导出：`register<C>`（组件）、`module<M>`（�
 | `Backend.Pairing` | get_device_id/name、set_device_name(_and_notify)、local_addrs、begin_pairing_*、stop_pairing_advertising、accept_pairing_request(_with_timeout)、confirm_pairing、parse_pairing_credential、accept_push_and_import、list_paired_devices、remove_paired_device、start_advertising、discover_peers | 设备页 |
 | `Backend.Store` | create_note_store、store_list/search（轻量直查） | 共用 |
 
-> ⚠️ **V5 实测修正（取代原设计）**：`#[module]` **不允许带 receiver**（`nsh-macros` 原文：「a module function has no receiver (its state is a global)」）。所以 `svc: &mut SyncService` 这种签名**写不出来**。三个有状态句柄必须变成**进程级全局**（`OnceLock<Mutex<...>>`），模块函数内部取全局：
+> ⚠️ **V5/V6 修正（取代原设计，已实测）**：`#[module]` **不允许带 receiver**（`nsh-macros` 原文：「a module function has no receiver (its state is a global)」）。所以 `svc: &mut SyncService` 这种签名**写不出来**。三个有状态句柄必须变成**进程级全局**（`OnceLock<Mutex<...>>`），模块函数内部取全局。
+>
+> 这个写法已在 `spike/nsh-probe/v5-event-bridge` 实测通过（`bump=1 bump=2 slow=12`）：
 >
 > ```rust
 > // 不能这样
@@ -104,16 +106,33 @@ NSH `Registry` 提供四种导出：`register<C>`（组件）、`module<M>`（�
 > ```
 >
 > 这是 `api.rs`（428 行 / 59 个导出）重写的**真实成本所在**，比原估计高。`Registry::class` 可承载「带方法的对象」，但同样受「state is a global」约束。
+>
+> **反直觉但重要**：`#[module]` 的**所有**函数都导出成 `Promise<T>`，包括看起来同步的。生成的 `app/native.d.ts` 明确写 `bump(): Promise<number>`。TSX 侧一律 `await`，否则拿到的是 `[object Promise]`。
 
 ### 3.2 必须正面解决的三个差异
 
-1. **没有 StreamSink，而且 `#[module]` 也不能推送**（V5 实测）。FRB 的流式通道在 NSH 里没有对应物；更关键的是 `ModuleCx` 的方法列表里**没有任何 emit/notify/subscribe**（只有 `dialog`/`toast`/`set_clipboard`/`set_status_bar`/`dismiss_keyboard`/动画/无障碍/配色/RTL）。另有一条硬约束：`Signal<T>` 内部是 `Rc`（`PhantomData<fn() -> T>`），**不是 `Send`**，后台线程不能直接写 signal。
-   可行的两条路：
-   - **(a) 轮询**：TSX `setInterval` 调 `Backend.Sync.pendingCount()` 之类（简单、稳、有秒级时延）；
-   - **(b) 自建事件桥组件**：`#[component]` + `#[derive(Event)]`（这条**是**官方支持的推送通道），后台任务把数据写进全局队列，组件在引擎线程读、`signal.set()` 触发重渲染、再 `emit` 给 TSX。
-   Phase 0/1 必须先做这个决策——它决定第 3.1 节的模块签名形态。
-2. **`async fn` → `Promise`**。`#[module]` 里不是 `async fn` 时（带 `cx: &mut ModuleCx`）返回 `JsValue` 即 `Promise`/同步值；`async fn`（无 `cx`）映射为 `Promise`。59 个里 pairing/sync/discover 天然映射；`&mut` 语义按 3.1 节的修正写法走全局锁。
-3. **类型生成**。FRB 之前生成强类型绑定；NSH 下手写协议。用 `ts-rs` 从 Rust 结构体（`NoteRow`/`PeerInfo`/`PairingRequest`/`LinkRow`/`PairedDeviceRow`/`PairingResult`…）生成 `.d.ts`，把「手写协议两端对齐」的成本压回去。这是**强依赖项**，立在 Phase 1。
+1. **没有 StreamSink，但组件的 Event 通道可行**（V5 读源码 + V6 实测）。
+   `ModuleCx` 的方法列表里**没有任何 emit/notify/subscribe**，所以 `#[module]` 本身推不了东西给 UI。
+   但有另一条**官方支持**的通道，实测可用：
+   ```rust
+   #[derive(Event)]
+   pub enum BridgeEvent { Progress(u32) }
+
+   #[component]
+   pub fn Bridge(props: BridgeProps, cx: Scope<BridgeEvent>) -> impl IntoElement {
+       let cx2 = cx;                  // Scope 是 Copy
+       spawn(async move {             // spawn 跑在引擎线程
+           timer(Duration::from_millis(80)).await;
+           cx2.emit(BridgeEvent::Progress(1));
+       });
+       ...
+   }
+   ```
+   **硬约束**：`cx.emit` 写的是 `thread_local` 的 reactive graph，**必须在引擎线程调用**。
+   因此要用 `spawn`（引擎线程的 async 执行器），**不能用 `background`**（tokio 线程池）。
+   `nsh trace` 实测：后台任务连推 3 次，UI 每次正确更新。
+2. **`async fn` 与同步 `fn` 都变成 `Promise`**。59 个导出里 pairing/sync/discover 天然映射；`&mut` 语义按 3.1 节的修正写法走全局锁。TSX 侧统一 `await`。
+3. ~~类型生成（`ts-rs`）~~ **不需要了**（V6 实测）。`nsh build` 从 `#[module] impl` **自动生成** `app/native.d.ts`（含文档注释、参数、返回类型）；`#[derive(Props)]` 负责组件 props 的 TS 声明。原计划的 `ts-rs` 强依赖项**删除**。
 
 ---
 
@@ -177,29 +196,29 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 |---|---|---|---|
 | R1 | `nsh build` 对带 Rust crate 的应用报 `GPUI Cargo.lock` (os error 3) | ✅ **已关闭**（V2） | **不是 CLI 缺陷**，是 `NSH_SOURCE` 版本错配。锁 `v0.1.1` tag 后 `nsh build`（7m）与 `nsh package --target windows`（产出 31MB exe + zip）均通过。**新约束**：CLI 版本与 `NSH_SOURCE` checkout 必须同时钉住，scoop 安装包不含源码 |
 | R2 | `loro-prosemirror` 与 Tiptap 3.x 兼容性、本地优先合并语义 | ✅ **已关闭**（V3） | 兼容且双向协同正确。三个硬坑：① Tiptap 3 无顶层 `plugins` 选项，必须走 `addProseMirrorPlugins`；② 真实导出名是 `LoroSyncPlugin`/`LoroUndoPlugin`；③ 根容器是 LoroMap `"doc"`、Loro 才是真相源。JS↔Rust loro 跨版本快照互通（1.16.4 ↔ 1.13.6） |
-| R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | 原生侧扫码后回传 credential（推荐），或验证 BarcodeDetector |
+| R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | **已确认 NSH 无相机、无文件选择器 API**。扫码只能走原生平台能力（iOS/Android 侧自己写）或网页 BarcodeDetector |
 | R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | 按 4.3 节的内核矩阵验收，Android/iOS 实测 |
 | R5 | 大文档性能（单篇 5 万字 / 500 篇）输入延迟与滚动 FPS | ✅ **已测基线**（V4） | 2.8ms/字、getMarkdown 31ms、setContent 416ms（jsdom 下界）。`setContent` 需在 Phase 3 复查；叠加 loro 插件后的开销未测 |
-| R6 | 图片/附件：网页沙箱无文件系统，`asset:`/自定义协议未走通 | ⬜ 待产品确认 | 当前产品若无附件则降级；否则原生供字节流 |
+| R6 | 图片/附件：网页沙箱无文件系统 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 没有附件/图片功能**，此风险不适用。（若将来加，NSH 无文件选择器，需自写平台层） |
 | R7 | iroh 退出未优雅 `Endpoint::close()` | ✅ **已关闭**（V1） | 摸清并验证修法：`SyncService::close()`（iroh `Endpoint::close().await`）+ 退出前先 `stop_receiver()`。对照组可复现 abort，修复后干净 |
-| R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ⚠️ **需改设计**（V5） | `#[module]` **无任何推送接口**（`ModuleCx` 只有 dialog/toast/clipboard 等）；`Signal` 内部是 `Rc`、**非 `Send`**，后台线程不能直接写。解法：状态改进程级全局 + 轮询，或自建 `#[component]`+`#[derive(Event)]` 事件桥 |
-| R9 | `&mut SyncService` 并发语义在 NSH 导出下的线程安全 | ⚠️ **升级为显式约束**（V5） | `#[module]` **不允许 receiver**（原文「its state is a global」），所以 `svc: &mut SyncService` 这种签名根本写不出来。必须改全局单例 + 内部锁，这是 `api.rs` 重写的真实成本 |
+| R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ✅ **已关闭**（V5 源码 + V6 实测） | `#[module]` 确实无推送接口，但**组件的 Event 通道可行**：`#[derive(Event)]` + `Scope<E>`（`Copy`）+ 在 `spawn` 里 `cx.emit(..)`，实测后台连推 3 次事件 UI 正确更新。**必须用 `spawn`（引擎线程），不能用 `background`（tokio 线程池）**——`emit` 写的是 thread_local graph |
+| R9 | `&mut SyncService` 并发语义在 NSH 导出下的线程安全 | ✅ **已有可行写法**（V5 + V6） | `#[module]` 不允许 receiver，必须 `pub struct X;` + `#[module] impl X` + `OnceLock<Mutex<..>>` 全局单例。实测 `bump=1 bump=2 slow=12` 状态跨调用连续。**另一个坑：所有函数都返回 `Promise<T>`，TSX 侧必须 `await`** |
 | R10 | 焦点/键盘两套世界（WebView vs 原生） | ⬜ 待 Phase 3 | 按 4.2 节做显式桥接，UI 审查走查 |
 
 > **整体判断（沿用探针结论）**：换 UI 运行时的成本 = **重写编辑器**，不是搬后端。而后端恰好是可移植资产。所以本计划的工作量集中在第 4 节（编辑器）、第 5 节（页面重写）、第 3 节（桥）。
 >
-> 验证详情与证据见 `docs/migration-nsh-verification.md`（V1–V5）。**R8/R9 的发现直接修改了 3.1 与 3.2 节的设计前提**，见下文修订说明。
+> 验证详情与证据见 `docs/migration-nsh-verification.md`（V1–V6）。**V5/V6 的发现直接修改了 3.1 与 3.2 节的设计前提**，见下文修订说明。
 
 ---
 
 ## 7. 阶段计划（带闸门）
 
 ```
-Phase 0  地基        令牌翻译 + 全局状态骨架 + #[module] 最小闭环 + ts-rs + 工程骨架(nsh.json)
+Phase 0  地基        令牌翻译 + 全局状态骨架 + #[module] 最小闭环 + 工程骨架(nsh.json)
          闸门：TSX 能 import Backend.* 并调通一个真函数（如 deviceId）；
-               并确定 3.2 节第 1 条要求的推送方案（轮询 or 事件桥组件）
+               事件桥跑通一次后台推送（V6 已有可参照实现）
 
-Phase 1  内核接线    api.rs → 4 个 #[module]（全局单例 + 锁）；ts-rs .d.ts；退出优雅 close
+Phase 1  内核接线    api.rs → 4 个 #[module]（全局单例 + 锁）；TS 声明由 nsh 自动生成；退出优雅 close
          闸门：Notes 增删查 + SyncService 起停在 TSX 侧打通；退出无 iroh abort
 
 Phase 2  原生页面    列表/回收站/设置/设备 全用 TSX 重写 + 组件库 + 导航
@@ -217,8 +236,8 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 **Phase 0 — 地基**
 - 0.1 翻 `CardMindTokens`/`CardMindLayout` → `theme.ts`（值逐一对齐）
 - 0.2 工程骨架：`nsh.json` + `Cargo.toml`（backend crate）+ `tsconfig.json` + esbuild 脚本
-- 0.3 `#[module]` 最小闭环：`Backend.deviceId()` 返回真值到 TSX
-- 0.4 `ts-rs` 接入：Rust DTO → `.d.ts`
+- 0.3 `#[module]` 最小闭环：`Backend.deviceId()` 返回真值到 TSX（注意要 `await`）
+- 0.4 事件桥：`#[component]` + `#[derive(Event)]` + `spawn` 里 `cx.emit` 跑通（V6 的 `v5-event-bridge` 可直接参照）
 
 **Phase 1 — 内核接线**
 - 1.1 `Backend.Notes` 模块（CRUD/tags/links/trash）
@@ -267,14 +286,14 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 
 ## 9. 待确认的开放问题（开工前先答）
 
-> V1–V5 已关闭其中 3 条，其余保留。
+> V1–V6 已关闭其中 4 条，其余保留。
 
-1. NSH 的**路由/页面栈**机制是什么（列表→编辑器→返回）？探针未查。**（仍未答，Phase 2 前置）**
+1. ~~NSH 的**路由/页面栈**机制是什么？~~ **✅ 已答**：`nsh-js/src/navigation.rs` 提供 `createNavigator(initial)` → `Navigator<R>`（`routes` 响应式、`push(route)`、`pop(count?)`），配 `<Stack>` / `<Screen>` / `<Modal>`。iOS 是 UINavigationController、Android 是带 toolbar 的原生栈；栈内屏幕保持挂载。这些组件由 `nsh-ui-mobile` 通过 `Registry::native_values` 导出。
 2. ~~NSH 原生视图能否做列表虚拟化？~~ **✅ 已答**：`crates/nsh-core/src/ui/virtual_list.rs`，文档明确「virtualized and recycled」，`select_list` 已用于「thousands」条场景。
 3. ~~`nsh` 版本钉住策略？~~ **✅ 已答**：锁 `nsh` CLI `v0.1.1` **且** `NSH_SOURCE` 指向同一 `v0.1.1` tag。scoop 包不含源码；指向 `main` 会因 crate 结构变更（`nsh-ui-mobile`/`nsh-animation` 已移除）而失败。
 4. ~~`loro-prosemirror` 走网页内 loro-crdt 还是留在 Rust？~~ **✅ 已答**：走网页内 `loro-crdt`（方案②）可行，双向协同与跨版本快照互通均已实测通过。
-5. 设备页**扫码**最终形态：原生扫码回传（需 NSH 暴露相机）还是网页 BarcodeDetector（R3）？**（仍未答，需设备）**
-6. 更新检查（`lib/services/update_*`）在 NSH 下的替代——更新分发机制是否还有效？**（仍未答；NSH 自带 `keygen`/`certify`/`publish`/`verify`/`revoke` 签名分发，可能是更完整的替代，需评估）**
+5. 设备页**扫码**最终形态：**（仍未答，需设备）**。已确认 NSH 本身**没有相机 API、也没有文件选择器**（全仓搜 `pickFile`/`camera`/`barcode` 无结果），所以只能靠 iOS/Android 平台侧自写，或走网页 `BarcodeDetector`。
+6. 更新检查（`lib/services/update_*`）在 NSH 下的替代：**（仍未答，需产品决策）**。NSH 自带 `keygen`/`certify`/`publish`/`verify`/`revoke` 一套签名分发，比现有 `update_service`/`update_downloader` 更完整，但要评估迁移成本与现有分发渠道（`msix`）的取舍。
 
 ---
 
@@ -288,6 +307,7 @@ nsh build app-tsx && nsh trace app-tsx            # CLI 无头验证闭环
 ```
 
 - `spike/nsh-probe` 分支下 `app-rust/` — NSH Rust 应用 + backend-probe 同进程
-- `spike/nsh-probe` 分支下 `web-editor/` — Tiptap 556KB 打包产物
+- `spike/nsh-probe` 分支下 `web-editor/` — Tiptap 556KB 打包产物；V3/V4 验证脚本在 `src/` 下
 - `spike/nsh-probe` 分支下 `tools/` 目录 — CDP IME 探针 / 撤销粒度 / PrintWindow 截图脚本
+- `spike/nsh-probe` 分支下 `v5-event-bridge/` — V6 的事件桥 + 全局单例 `#[module]` 可运行示例
 - 设计基线：`docs/standards/ui-style-guide.md`、`design-tokens.md`、`flutter-automation-anchors.md`

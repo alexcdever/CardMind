@@ -11,11 +11,12 @@
 | V2 | **R1** `nsh build` Rust-crate `GPUI Cargo.lock` os error 3 | ✅ **已解决** | `nsh build app-rust` + `nsh package --target windows` | **已解决**：v0.1.1 源码 checkout 下 build 7m、package 出 31MB exe |
 | V3 | **R2** `loro-prosemirror` + Tiptap 3.x 兼容 | ✅ **通过** | `web-editor/src/v3-loro-test.mjs`（jsdom + 双向协同 + 跨版本快照） | **通过**：协同收敛、双端同步、跨版本互通全绿 |
 | V4 | **R5** 大文档性能 | ✅ **有基线** | `web-editor/src/v4-perf.mjs` 灌 5 万字 markdown 量耗时 | **可接受**：打字 2.8ms/字、getMarkdown 31ms、setContent 416ms |
-| V5 | **R8** 事件回推（无 StreamSink） | ✅ **已查清** | 读 `nsh-macros` / `module.rs` / `reactive.rs` 源码 | **需改设计**：`#[module]` 无推送能力，`Signal` 非 `Send` |
-| — | R3 扫码权限 | ❌ | 需 Android/iOS 设备或 NSH 相机能力确认 | 记为「设备期验证」 |
-| — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例 | 记为「Phase 4 矩阵验收」 |
-| — | R6 附件文件协议 | ❌ | 当前产品范围未含附件（待产品确认） | 降级，不阻断 |
-| — | R9 `&mut` 并发、R10 焦点两套世界 | — | 实现期风险，代码审查覆盖 | 不单独验证 |
+| V5 | **R8** 事件回推（无 StreamSink） | ✅ **已查清** | 读 `nsh-macros` / `module.rs` / `reactive.rs` 源码 | **`#[module]` 无推送能力**；但组件 Event 通道存在（V6 实测证实） |
+| V6 | **R8/R9** 事件桥 + 全局单例 `#[module]` | ✅ **通过** | `spike/nsh-probe/v5-event-bridge` + `nsh build` + `nsh trace` | **通过**：后台 spawn 连推 3 次事件到 UI；`bump=1 bump=2 slow=12` 证明全局单例状态连续 |
+| — | R3 扫码权限 | ❌ | 需 Android/iOS 设备或 NSH 相机能力确认（已确认 NSH 无文件选择器与相机 API） | 记为「设备期验证」 |
+| — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例（导航 API 已确认存在：`createNavigator`/`Stack`/`Screen`/`Modal`） | 记为「Phase 4 矩阵验收」 |
+| — | R6 附件文件协议 | ✅ **可关闭** | 已核实 `docs/product.md` 与全部 Dart/Rust 源码：**CardMind 无任何附件/图片功能** | 降级为非风险 |
+| — | R10 焦点两套世界 | — | 实现期风险，靠 UI 审查与 Phase 3 实测覆盖 | 不单独验证 |
 
 ## 环境前提
 
@@ -145,10 +146,43 @@
 - 未验证中文 IME 与 Loro 协同叠加（选区在协同更新下的稳定性）。
 - 未验证 Markdown ↔ Loro 树双向转换的保真度（CardMind 存的是 markdown；`loro-prosemirror` 存的是树，需要一层转换，这层是**净新增工作量**）。
 
-### V5（R8）事件回推 / 无 StreamSink — ⚠️ 部分成立，需要改设计
+### V4（R5）大文档性能 — ✅ 有基线数据，可接受
+
+环境：Node v22.23.2 + jsdom（**比真实 Chromium/WebView2 慢**，属保守下界）。
+脚本：`web-editor/src/v4-perf.mjs`、`v4-note-perf.mjs`。
+版本：`@tiptap/core 3.32.0` + `tiptap-markdown 0.9.0`（**未加 loro 插件**，纯编辑器基线）。
+
+**大文档（50,091 字符 / 237 个块组：标题+段落+列表+引用+代码块）**：
+
+| 指标 | 结果 | 判断 |
+|---|---|---|
+| 编辑器初始化 | 67.2 ms | ✅ |
+| `setContent` 5 万字 | **415.9 ms** | ⚠️ 打开大笔记有约 0.4s 卡顿（真实 WebView 会更快） |
+| 单字符插入延迟（首/中/尾 3 点） | 17.1 / 15.1 / 15.1 ms | ✅ 位置无关，未见尾部劣化 |
+| `getMarkdown()` 回写 | **31.3 ms**（输出 50,566 字符） | ✅ autosave 700ms debounce 下完全够 |
+| 连续插入 50 字符 | 140.1 ms（**2.80 ms/字**） | ✅ 约 350 字/秒，超过人的输入速度 |
+
+**普通单篇笔记（80 字符）**：打字延迟中位 **15.4 ms**、P90 **16.5 ms**。
+
+**解读**：
+
+- **打字延迟 ~15ms 是 jsdom 的下界噪声**（即使空文档也是这个量级，见单篇笔记结果）——说明 Tiptap 在该规模下不是瓶颈。
+- **真正需要关注的是 `setContent` 415ms**：换成真实 WebView2 预计降到 100-200ms 量级，但**大笔记打开仍会有可见的一次性开销**。迁移时应对策（计划需补）：
+  - 先渲染首屏块，后台补齐；
+  - 或按块懒加载（ProseMirror 的 `NodeView` + 分页）；
+  - 或接受 <1s 的打开延迟（现状 Flutter appflowy 也未必更快）。
+- **`getMarkdown` 31ms** 意味着 `markdown ↔ Loro` 转换 + autosave 可以合并到同一个 700ms debounce 里，不必额外节流。
+
+**未覆盖**：
+
+- 未测真实 WebView2 的渲染帧率（需跑起 NSH 窗口 + CDP，属 Phase 3 实测范围）。
+- 未测 `loro-prosemirror` 插件叠加后的开销（协同同步可能显著增加事务成本）——**这是 Phase 3 必须复测的项**。
+- 未测 500 篇列表滚动（属原生 TSX 侧，已确认有 `virtual_list`，但未做性能实测）。
+
+### V5（R8）事件回推 / 无 StreamSink — ⚠️ 源码结论（后续由 V6 实测补完）
 
 依据：`nsh-src-git` @ `v0.1.1` 源码（`crates/nsh-macros`、`crates/nsh-core/src/ui`）。
-
+> **本节是读源码得到的结论，已被 V6 的可运行实测验证并细化。** 当时对 `#[module]` 无推送能力的判断正确，但对「事件桥是否可行」只是推测——V6 把它跑起来了。读本节请连同 V6 一起看。
 **`#[module]` 的真实能力面**（`nsh-macros/src/lib.rs` 的文档 + `nsh-core/src/ui/module.rs`）：
 
 - 模块函数**必须是无 receiver 的关联函数**（`impl` 块作用在 unit struct 上）。原文：`"a module function has no receiver (its state is a global)"` —— **状态只能放全局**（`OnceLock`/`Mutex` 之类），不能像 FRB 那样持有 `SyncService` 实例传着走。
@@ -186,35 +220,89 @@
 - **列表虚拟化（开放问题 2）**：✅ 有 `crates/nsh-core/src/ui/virtual_list.rs`，文档写明「virtualized and recycled like `List`」，且 `nsh-ui-mobile/src/select_list.rs` 用它承载「thousands」条。500 篇笔记不是问题。
 - **WebView 桥**：`element_ref.rs` 有 `post_message(impl Into<String>)`（`Command::PostMessage`）；页面→原生的 `on_message` 在探针里已验证可用。**桥本身没有问题**，受限的是「Rust 主动推 TSX」而非「Rust↔WebView」。
 
-### V4（R5）大文档性能 — ✅ 有基线数据，可接受
+### V6（R8/R9）事件桥 + 全局单例 `#[module]` — ✅ 通过（有可运行代码）
 
-环境：Node v22.23.2 + jsdom（**比真实 Chromium/WebView2 慢**，属保守下界）。
-脚本：`web-editor/src/v4-perf.mjs`、`v4-note-perf.mjs`。
-版本：`@tiptap/core 3.32.0` + `tiptap-markdown 0.9.0`（**未加 loro 插件**，纯编辑器基线）。
+这是对 V5 的**实测补完**：V5 只读了源码，V6 把它跑起来了。
+可运行工程：`spike/nsh-probe/v5-event-bridge`（`nsh init --rust` 生成后改写）。
 
-**大文档（50,091 字符 / 237 个块组：标题+段落+列表+引用+代码块）**：
+**结论一：事件桥成立（替代 StreamSink）**
 
-| 指标 | 结果 | 判断 |
-|---|---|---|
-| 编辑器初始化 | 67.2 ms | ✅ |
-| `setContent` 5 万字 | **415.9 ms** | ⚠️ 打开大笔记有约 0.4s 卡顿（真实 WebView 会更快） |
-| 单字符插入延迟（首/中/尾 3 点） | 17.1 / 15.1 / 15.1 ms | ✅ 位置无关，未见尾部劣化 |
-| `getMarkdown()` 回写 | **31.3 ms**（输出 50,566 字符） | ✅ autosave 700ms debounce 下完全够 |
-| 连续插入 50 字符 | 140.1 ms（**2.80 ms/字**） | ✅ 约 350 字/秒，超过人的输入速度 |
+`#[component]` + `#[derive(Event)]` + `Scope<E>`，后台任务可以主动 push 到 UI：
 
-**普通单篇笔记（80 字符）**：打字延迟中位 **15.4 ms**、P90 **16.5 ms**。
+```rust
+#[derive(Event)]
+pub enum BridgeEvent { Progress(u32), PeerFound(String) }
 
-**解读**：
+#[component]
+pub fn Bridge(props: BridgeProps, cx: Scope<BridgeEvent>) -> impl IntoElement {
+    let cx2 = cx;                      // Scope 是 Copy
+    spawn(async move {
+        for i in 1..=3u32 {
+            timer(Duration::from_millis(80)).await;
+            cx2.emit(BridgeEvent::Progress(i));      // 引擎线程上 emit
+        }
+    });
+    ...
+}
+```
 
-- **打字延迟 ~15ms 是 jsdom 的下界噪声**（即使空文档也是这个量级，见单篇笔记结果）——说明 Tiptap 在该规模下不是瓶颈。
-- **真正需要关注的是 `setContent` 415ms**：换成真实 WebView2 预计降到 100-200ms 量级，但**大笔记打开仍会有可见的一次性开销**。迁移时应对策（计划需补）：
-  - 先渲染首屏块，后台补齐；
-  - 或按块懒加载（ProseMirror 的 `NodeView` + 分页）；
-  - 或接受 <1s 的打开延迟（现状 Flutter appflowy 也未必更快）。
-- **`getMarkdown` 31ms** 意味着 `markdown ↔ Loro` 转换 + autosave 可以合并到同一个 700ms debounce 里，不必额外节流。
+`nsh trace` 的实际输出（UI 文本逐次变化，证明推送到达）：
 
-**未覆盖**：
+```
+── while idle: 2 items
+   Text { id: 7, text: "累计：1" }
+   Text { id: 3, text: "最近事件：PeerFound(peer-1)" }
+── while idle: 2 items
+   Text { id: 7, text: "累计：2" }
+   Text { id: 3, text: "最近事件：PeerFound(peer-2)" }
+── while idle: 2 items
+   Text { id: 7, text: "累计：3" }
+   Text { id: 3, text: "最近事件：PeerFound(peer-3)" }
+```
 
-- 未测真实 WebView2 的渲染帧率（需跑起 NSH 窗口 + CDP，属 Phase 3 实测范围）。
-- 未测 `loro-prosemirror` 插件叠加后的开销（协同同步可能显著增加事务成本）——**这是 Phase 3 必须复测的项**。
-- 未测 500 篇列表滚动（属原生 TSX 侧，已确认有 `virtual_list`，但未做性能实测）。
+**关键约束（比 V5 更精确）**：`reactive::emit` 写的是 `thread_local` 的 graph（`reactive.rs` 里 `graph().data.emits.push(..)`），所以 **emit 必须在引擎线程**。正确做法是在 `spawn` 里（跑在引擎线程的 async 执行器）而不是 `background`（tokio 线程池）。这给「后台任务推 UI」定了明确写法。
+
+**结论二：`#[module]` 全局单例可行，但有两个反直觉点**
+
+```rust
+static SERVICE: OnceLock<Mutex<FakeService>> = OnceLock::new();
+pub struct Backend;                       // `#[module]` 作用在 unit struct 的 impl 上
+
+#[module]
+impl Backend {
+    fn bump() -> u32 { ... }              // 无 receiver；状态取自全局
+    async fn slow_bump() -> u32 { ... }
+}
+```
+
+`nsh trace` 实测输出 `bump=1 bump=2 slow=12` —— 全局单例状态跨调用连续，`async` 正确映射为 `Promise`。
+
+**反直觉点 1：所有函数都返回 `Promise<T>`，包括非 `async` 的。**
+生成的 `app/native.d.ts` 写得很明确：
+
+```ts
+export interface BackendModule {
+  bump(): Promise<number>;       // 不是 number！
+  slowBump(): Promise<number>;
+}
+```
+
+第一次实测时没 `await`，UI 上直接显示 `bump=[object Promise]`。**TSX 侧每个模块调用都必须 `await`**，包括看起来同步的。
+
+**反直觉点 2：TS 声明是自动生成的，不需要 `ts-rs`。**
+计划里把 `ts-rs` 列为「强依赖项」是**多余的**——`nsh build` 自己从 `#[module] impl` 生成 `app/native.d.ts`（含文档注释、参数、返回类型）。Rust 类型到 TS 的映射由 `JsValue` 与 `#[derive(Props)]` 机制承担。这把计划 Phase 0 的任务 0.4 直接删掉了。
+
+**编译期就暴露的 API 约束**（踩到的真实错误，写文档时值得保留）：
+
+1. `cannot find type Backend` —— `#[module]` 要求有对应的 `pub struct Backend;`，不能只有 `impl` 块。
+2. `cannot find function delay` —— 定时器真名是 `timer(Duration) -> Delay`，不是 `delay`。
+3. `conflicting implementations of Default` —— `#[derive(Props)]` 已自带 `Default`，不能再 derive。
+4. `BridgeProps: Clone/PartialEq is not satisfied` —— `Props` 要求 `Clone + PartialEq`。
+
+**对迁移计划的影响**：
+
+- R8 从「需改设计」升级为**已关闭**：事件桥是可行的官方通道，不必退化成轮询。
+- R9 从「升级为显式约束」变成**已有可行写法**：全局单例 + `#[module]` 已验证。
+- Phase 0 任务 0.4（`ts-rs`）**删除**——NSH 自动生成 TS 声明。
+- Phase 1 的模块函数写法确定：`#[module] impl X` + `OnceLock<Mutex<..>>`，TSX 侧一律 `await`。
+
