@@ -14,10 +14,11 @@
 | V4x | ~~早先的 jsdom 版本~~ | ❌ **作废** | Node + jsdom 无布局/绘制/合成器，量出的是其自身开销（空文档与 5 万字同为 15ms） | 数字全部作废，被 V4 取代 |
 | V5 | **R8** 事件回推（无 StreamSink） | ✅ **已查清** | 读 `nsh-macros` / `module.rs` / `reactive.rs` 源码 | **`#[module]` 无推送能力**；但组件 Event 通道存在（V6 实测证实） |
 | V6 | **R8/R9** 事件桥 + 全局单例 `#[module]` | ✅ **通过** | `spike/nsh-probe/v5-event-bridge` + `nsh build` + `nsh trace` | **通过**：后台 spawn 连推 3 次事件到 UI；`bump=1 bump=2 slow=12` 证明全局单例状态连续 |
-| — | R3 扫码权限 | ❌ | 需 Android/iOS 设备或 NSH 相机能力确认（已确认 NSH 无文件选择器与相机 API） | 记为「设备期验证」 |
-| — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例（导航 API 已确认存在：`createNavigator`/`Stack`/`Screen`/`Modal`） | 记为「Phase 4 矩阵验收」 |
-| — | R6 附件文件协议 | ✅ **可关闭** | 已核实 `docs/product.md` 与全部 Dart/Rust 源码：**CardMind 无任何附件/图片功能** | 降级为非风险 |
-| — | R10 焦点两套世界 | — | 实现期风险，靠 UI 审查与 Phase 3 实测覆盖 | 不单独验证 |
+| V7 | **R5/R2** 叠加 loro 后的性能与协同 | ✅ **通过，有部署约束** | `tools/v7v8_probe.py` | 协同正确；`setContent` 79→376ms、dispatch 0.8→3.4ms。**必须用 `web_view(url)` + base64 入口**，`data:` URL 下 loro 起不来 |
+| V8 | **R10** 真实中文 IME 组合态 | ✅ **通过** | CDP `Input.imeSetComposition` 走 Chromium 真实输入管线 | `compositionstart→update×7→end` 全链正确，「你好」正确入文、光标 `from: 3`、markdown 正确 |
+| — | R3 扫码权限 | ❌ | 需 Android/iOS 设备或 NSH 相机能力确认（已确认 NSH 无相机/文件选择器 API） | 记为「设备期验证」 |
+| — | R4 三端内核 | ❌ | 需 Android/iOS/Linux/macOS 实例（导航 API 已确认：`createNavigator`/`Stack`/`Screen`/`Modal`） | 记为「Phase 4 矩阵验收」 |
+| — | R6 附件文件协议 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 无附件/图片功能** | 降级为非风险 |
 
 ## 环境前提
 
@@ -327,4 +328,81 @@ export interface BackendModule {
 - R9 从「升级为显式约束」变成**已有可行写法**：全局单例 + `#[module]` 已验证。
 - Phase 0 任务 0.4（`ts-rs`）**删除**——NSH 自动生成 TS 声明。
 - Phase 1 的模块函数写法确定：`#[module] impl X` + `OnceLock<Mutex<..>>`，TSX 侧一律 `await`。
+
+
+### V7（R5/R2）叠加 loro-prosemirror 后的性能与协同 — ✅ 通过，但有重大部署约束
+
+脚本：`spike/nsh-probe/tools/v7v8_probe.py`。环境同上（WebView2 / Edg 155）。
+
+**踩到一个会让迁移直接失败的问题：`loro-crdt` 在 `data:` URL 页面里起不来。**
+
+先在 `web_view_html`（内部是 `data:` URL）里加载带 loro 的 bundle，整个脚本在第一行就崩：
+
+```
+TypeError: Failed to construct 'URL': Invalid URL
+```
+
+原因：`loro-crdt` 是 WASM 包，默认入口要 `new URL('loro_wasm_bg.wasm', import.meta.url)` 去定位 `.wasm` 文件。`data:` URL 是不透明源、没有 base，`new URL` 直接抛异常。
+
+尝试用 `loro-crdt/base64`（WASM 内联为 base64 字符串）绕过：包能打，但 **bundle 从 0.55 MB 涨到 5.05 MB**，base64 编码后变成 6.7 MB 的 `data:` URL，**超过 Chromium 的 URL 长度上限**，页面直接白屏（body 为空、`window.__probe` 是 `undefined`）。
+
+**可行做法（已验证）**：
+
+1. 打包时用 esbuild alias 让**所有**对 `loro-crdt` 的引用（包括 `loro-prosemirror` 内部的间接引用）都走 base64 入口：
+   ```
+   esbuild src/editor.js --bundle --format=iife --minify \
+     --alias:loro-crdt=./node_modules/loro-crdt/base64/index.js
+   ```
+   注意 alias 是前缀匹配，源码里必须写 `import ... from "loro-crdt"`，不能写 `"loro-crdt/base64"`（否则会被再拼一次 base64 而解析失败）。
+2. 页面用**真实 URL** 加载，不能用 `web_view_html`。改用 `web_view("http://127.0.0.1:8791/index.html")` + 本地静态服务。
+
+这正是计划 4.1 节写的「生产形态应该用 `web_view(url)` 加载打包产物」，现在有了**强制理由**，不再是「建议」。
+
+**性能（叠加 loro 后，对比 V4 纯 Tiptap）**：
+
+| 指标 | 5 万字 · loro | 5 万字 · 纯 Tiptap | 5 千字 · loro |
+|---|---|---|---|
+| 编辑器初始化 | 135.3 ms | 67.2 ms | 129.8 ms |
+| `setContent` | **376.2 ms**（解析 344.2） | 78.9 ms | 31.9 ms |
+| 单字符输入 → 画面 | 12.5 ms（dispatch **3.4–3.8**） | 12.4 ms（dispatch 0.8） | 12.5 ms（dispatch 1.2） |
+| 连续 50 字 | **168.3 ms（3.366 ms/字）** | 43.7 ms（0.874） | 50.0 ms（1.0） |
+| `getMarkdown` | 23.7 ms | 21.4 ms | 0.7 ms |
+| LoroDoc 快照 | **379,906 字节** | — | 38,984 字节 |
+
+**协同正确性（全部通过）**：
+
+- `LoroDoc` 根树存在（`toJSON` 有 `doc` 键）
+- markdown 进 → Loro 树 → markdown 出，长度稳定（`roundTripStable: true`）
+- 双端协同生效：另一端 34,795 → 34,799 字，A 端编辑正确同步过去
+
+**结论**：
+
+1. **打字体验没变差**：屏幕上的 12.5ms 与纯 Tiptap 相同，因为瓶颈是帧节奏。但 dispatch 从 0.8ms 涨到 3.4ms——**协同开销是真实的，只是还没到可见阈值**。
+2. **`setContent` 从 79ms 涨到 376ms**（解析阶段 46→344ms），5 万字大笔记会有可感知的一次性等待。**这是 Phase 3 需要优化的点**（可考虑先渲染视口内块，或让 Loro 侧异步补齐）。
+3. **连续输入 50 字 168ms（3.4ms/字）**，仍是 290 字/秒量级，超过人手速，可接受。
+4. **Loro 快照 380 KB / 5 万字**，相当于每万字 76 KB。500 篇笔记如果都同步，存储与传输要按这个量估。
+
+### V8（R10）真实中文 IME 组合态 — ✅ 通过
+
+用 CDP 的 `Input.imeSetComposition`（走 Chromium 真实输入管线，不是 `dispatchEvent` 假事件）逐级注入拼音，再 `Input.insertText` 提交。
+
+清空文档后输入「你好」（拼音 `n → ni → ni'h → ni'ha → ni'hao` 逐级组合）：
+
+```
+文档: '你好'
+采样: [{update, 0.2ms}, {update, 122.5ms}, {update, 244.9ms}, {update, 368.5ms},
+       {update, 490.6ms}, {update, 613ms}, {update, 736ms},
+       {end, 738.1ms, data: "你好"}]
+光标: {from: 3}
+markdown: '你好'
+```
+
+**判定**：
+
+- `compositionstart → update × 7 → compositionend` 全链正确
+- 提交后文档内容、光标位置（`from: 3`，即「你好」之后）、markdown 输出**三者一致**
+- 组合期间每次 update 都到达（不是丢失中间态）
+
+**注意**：采样里的 122ms 间隔主要来自我脚本里的 `time.sleep(0.12)`，不是编辑器延迟。这轮**没有测出「组合态下单次输入的渲染耗时」**——要测那个，得在 compositionupdate 事件里打 rAF 时间戳，属进一步细化。
+
 

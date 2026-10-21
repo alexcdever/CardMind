@@ -147,7 +147,18 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
               markdown 进出 ↔ 消息桥 ↔ Rust SyncService（LoroDoc 真源）
 ```
 
-- 编辑器产物：esbuild `--bundle --minify` 单文件（探针 556 KB），生产形态**用 `web_view(url)` 加载打包产物**，不是永远 `web_view_html` 内联（`web_view_html` 是 `data:` URL，相对资源不可用——见 `TIPTAP-PROBE.md` 的第二个坑）。
+- 编辑器产物：esbuild `--bundle --minify` 单文件。
+- ⚠️ **必须用 `web_view(url)` 加载打包产物，不能用 `web_view_html`**（V7 实测，这是硬约束不是建议）：
+  `web_view_html` 内部是 `data:` URL，而 `loro-crdt` 是 WASM 包，默认入口要 `new URL('loro_wasm_bg.wasm', import.meta.url)`，
+  在不透明源的 `data:` URL 下直接抛 `TypeError: Failed to construct 'URL': Invalid URL`，**整个页面脚本中断**。
+  改用 `loro-crdt/base64`（WASM 内联）能绕过，但 bundle 会从 0.55 MB 涨到 5 MB，base64 后是 6.7 MB 的 data URL，
+  **超过 Chromium 的 URL 长度上限 → 白屏**。所以生产形态只能是「静态站点 + 真实 URL」。
+- **构建命令必须带 alias**，否则 `loro-prosemirror` 内部的间接引用仍走默认入口：
+  ```
+  esbuild src/editor.js --bundle --format=iife --minify \
+    --alias:loro-crdt=./node_modules/loro-crdt/base64/index.js
+  ```
+  注意 alias 是前缀匹配：源码里要写 `from "loro-crdt"`，不能写 `from "loro-crdt/base64"`（会被再拼一次 base64 而解析失败）。
 - 桥：`window.ReactNativeWebView.postMessage` ↔ NSH `on_message` / `element_ref.post_message`。**注意官方示例写 `window.nsh`，0.1.1 实测只有 `ReactNativeWebView`**（已记为上游不一致）。
 
 ### 4.2 与原生外壳的边界（路线 C 独有，必须设计）
@@ -158,7 +169,7 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | **markdown 往返** | `tiptap-markdown` 接管字符串解析：`setContent` 默认按 markdown 不是 HTML；所有 setContent 调用点过一遍（见 `TIPTAP-PROBE.md` 的第一个坑） |
 | **撤销粒度** | ProseMirror `history groupDelay 500`：中文组合内 9 事务 → 1 步撤销。可调，但属「偏粗」基线，需用户可接受度确认 |
 | **选区/标签联动** | 现状 `_onEditorSelectionChanged` + tag 双击编辑 → 原生侧标签栏要与网页编辑器选区通信（消息桥） |
-| **Loro 协同** | `loro-prosemirror` 与 Tiptap 3.x 兼容性**已由 V3 验证通过**，但必须按第 3.1 节的修正写法接入，否则静默不同步（见第 6 节风险 R2） |
+| **Loro 协同** | 接入方式：`LoroSyncPlugin`/`LoroUndoPlugin` 必须经扩展的 `addProseMirrorPlugins` 注册（V3）。**性能代价已实测**（V7）：5 万字 `setContent` 79→376ms（解析阶段 46→344ms），dispatch 0.8→3.4ms。前者是 Phase 3 要优化的点 |
 | **焦点/键盘** | WebView 内外是两套焦点世界；返回/保存/新建的原生快捷键要显式桥接，不能假设 DOM 事件冒泡穿透 |
 
 ### 4.3 三端内核矩阵（新验证面）
@@ -198,12 +209,12 @@ NSH 原生外壳（TSX：标题栏/标签条/工具行/返回）
 | R2 | `loro-prosemirror` 与 Tiptap 3.x 兼容性、本地优先合并语义 | ✅ **已关闭**（V3） | 兼容且双向协同正确。三个硬坑：① Tiptap 3 无顶层 `plugins` 选项，必须走 `addProseMirrorPlugins`；② 真实导出名是 `LoroSyncPlugin`/`LoroUndoPlugin`；③ 根容器是 LoroMap `"doc"`、Loro 才是真相源。JS↔Rust loro 跨版本快照互通（1.16.4 ↔ 1.13.6） |
 | R3 | WebView 摄像头/扫码权限在 NSH 未验证 | ⬜ 待设备期 | **已确认 NSH 无相机、无文件选择器 API**。扫码只能走原生平台能力（iOS/Android 侧自己写）或网页 BarcodeDetector |
 | R4 | 三端内核 IME/选区差异（Android 老 WebView、iOS WKWebView） | ⬜ 待 Phase 4 | 按 4.3 节的内核矩阵验收，Android/iOS 实测 |
-| R5 | 大文档性能（单篇 5 万字 / 500 篇）输入延迟与滚动 FPS | ✅ **已实测通过**（V4，真实 WebView2） | 5 万字：`setContent` **79ms**（解析 46 + 布局 26）、打字 **12.4ms**（dispatch 仅 0.8ms，其余是帧节奏）、滚动 **159 FPS**、`getMarkdown` **21ms**。原先基于 jsdom 的「416ms 需分块加载」结论**作废**。仍缺：叠加 loro 插件、IME 组合态、触控滚动的实测 |
+| R5 | 大文档性能（单篇 5 万字 / 500 篇）输入延迟与滚动 FPS | ✅ **已实测通过**（V4 纯 Tiptap / V7 叠加 loro） | **纯 Tiptap 5 万字**：`setContent` 79ms、打字 12.4ms、滚动 159 FPS、`getMarkdown` 21ms。**叠加 loro 后**：`setContent` **376ms**（解析占 344ms）、打字 12.5ms（dispatch 0.8→**3.4ms**，仍未到可见阈值）、连续 50 字 168ms、Loro 快照 **380KB/5万字**。原先 jsdom 的「416ms」结论作废 |
 | R6 | 图片/附件：网页沙箱无文件系统 | ✅ **可关闭** | 已核实产品文档与全部源码：**CardMind 没有附件/图片功能**，此风险不适用。（若将来加，NSH 无文件选择器，需自写平台层） |
 | R7 | iroh 退出未优雅 `Endpoint::close()` | ✅ **已关闭**（V1） | 摸清并验证修法：`SyncService::close()`（iroh `Endpoint::close().await`）+ 退出前先 `stop_receiver()`。对照组可复现 abort，修复后干净 |
 | R8 | 同步进度/发现结果的**推送**（无 StreamSink） | ✅ **已关闭**（V5 源码 + V6 实测） | `#[module]` 确实无推送接口，但**组件的 Event 通道可行**：`#[derive(Event)]` + `Scope<E>`（`Copy`）+ 在 `spawn` 里 `cx.emit(..)`，实测后台连推 3 次事件 UI 正确更新。**必须用 `spawn`（引擎线程），不能用 `background`（tokio 线程池）**——`emit` 写的是 thread_local graph |
 | R9 | `&mut SyncService` 并发语义在 NSH 导出下的线程安全 | ✅ **已有可行写法**（V5 + V6） | `#[module]` 不允许 receiver，必须 `pub struct X;` + `#[module] impl X` + `OnceLock<Mutex<..>>` 全局单例。实测 `bump=1 bump=2 slow=12` 状态跨调用连续。**另一个坑：所有函数都返回 `Promise<T>`，TSX 侧必须 `await`** |
-| R10 | 焦点/键盘两套世界（WebView vs 原生） | ⬜ 待 Phase 3 | 按 4.2 节做显式桥接，UI 审查走查 |
+| R10 | 焦点/键盘两套世界（WebView vs 原生） | ◐ **输入链路已验证，焦点桥接待做** | V8 证明 WebView 内的中文 IME 全链路正常（composition → 提交 → 光标 → markdown 都对）。仍需实现的是 WebView 与原生外壳之间的焦点/快捷键桥接（按 4.2 节设计） |
 
 > **整体判断（沿用探针结论）**：换 UI 运行时的成本 = **重写编辑器**，不是搬后端。而后端恰好是可移植资产。所以本计划的工作量集中在第 4 节（编辑器）、第 5 节（页面重写）、第 3 节（桥）。
 >
@@ -261,8 +272,9 @@ Phase 4  收敛        三端内核矩阵验收 + 打包（v0.1.1 + 对应 NSH_S
 - 3.3 markdown ↔ LoroDoc 读写（`note_get`/`note_create` 复用）
 - 3.4 dirty/autosave 700ms + 可安全退出信号
 - 3.5 撤销粒度调 `groupDelay`；标签栏 ↔ 选区联动
-- 3.6 IME/选区/CDP 自动化验收（复用 `tools/ime_cdp_probe.py` 等）
-- 3.7 性能基线（5 万字/500 篇）
+- 3.6 IME/选区/CDP 自动化验收（V8 已验证 IME 通路；复用 `tools/v7v8_probe.py`）
+- 3.7 性能基线复测。**已知要优化的点**：叠加 loro 后 5 万字 `setContent` 376ms（解析 344ms），需要视口优先渲染或 Loro 侧异步补齐
+- 3.8 构建管线：`web_view(url)` 静态站点 + esbuild `--alias:loro-crdt=.../base64`（V7 的硬约束）
 
 **Phase 4 — 收敛**
 - 4.1 三端内核矩阵验收（Android/iOS/Linux/macOS 编辑器实测）
@@ -311,3 +323,4 @@ nsh build app-tsx && nsh trace app-tsx            # CLI 无头验证闭环
 - `spike/nsh-probe` 分支下 `tools/` 目录 — CDP IME 探针 / 撤销粒度 / PrintWindow 截图脚本
 - `spike/nsh-probe` 分支下 `v5-event-bridge/` — V6 的事件桥 + 全局单例 `#[module]` 可运行示例
 - 设计基线：`docs/standards/ui-style-guide.md`、`design-tokens.md`、`flutter-automation-anchors.md`
+
