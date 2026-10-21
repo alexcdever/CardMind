@@ -35,7 +35,7 @@
 |---|---|---|---|
 | 0.1 | 翻 `CardMindTokens` / `CardMindLayout` → `theme.ts`，值与 Dart 源逐一对齐 | ✅ 已完成 | `eb2b4077`（合并）；`nsh-app/theme.ts`；`npx tsx --test nsh-app/theme_test.ts` → 36 pass / 0 fail；变异验证：改错 `accent` 后测试精确报出令牌名 |
 | 0.2 | 工程骨架：`nsh.json` + `Cargo.toml`（backend crate）+ `tsconfig.json` + esbuild 脚本 | ✅ 已完成 | `384ba5c3`（合并）；`nsh build nsh-app` → exit=0、日志含 `built the Rust crate nsh-app-cardmind`、产出 `bundle.js`+`bundle.nshc`；`skeleton_test.ts` 5 pass；TDD 红态为 ENOENT |
-| 0.3 | `#[module]` 最小闭环：`Backend.deviceId()` 返回真值到 TSX（TSX 侧必须 `await`） | ⬜ 未开始 | 待填 |
+| 0.3 | `#[module]` 最小闭环：`Backend.deviceId()` 返回真值到 TSX（TSX 侧必须 `await`） | ✅ 已完成 | `b92df4ea`（合并）；`7d7c22ea`（test 红）/`640647e1`（feat）；`nsh build nsh-app -o nsh-app/out` exit 0、`nsh trace` 输出 `设备ID：4a707a1f…c5d6`（非空、非 `[object Promise]`）；`module_test.ts` 2 pass；回归 skeleton 5 / theme 36 / cargo 全绿 |
 | 0.4 | 事件桥：`#[component]` + `#[derive(Event)]` + `spawn` 里 `cx.emit` 跑通 | ⬜ 未开始 | 待填 |
 | 0.5 | 构建脚本固化：`--alias:loro-crdt` **不需要**（网页不跑 loro），但需固化 esbuild 命令与 `web_view(url)` 静态站点目录 | ⬜ 未开始 | 待填 |
 
@@ -47,7 +47,7 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| G0.1 | TSX 能 `import Backend.*` 并调通一个真函数 | ⬜ | 待填 |
+| G0.1 | TSX 能 `import Backend.*` 并调通一个真函数 | ✅ | `nsh-app/App.tsx` `await Backend.deviceId()` → `nsh trace` 文本 `设备ID：4a707a1f…c5d6`（非空、非 Promise）；`native.d.ts` 含 `deviceId`；`module_test.ts` 2 pass |
 | G0.2 | 事件桥能由后台任务推一次事件到 UI | ⬜ | 待填 |
 | G0.3 | `theme.ts` 与 Dart 源逐值一致（无裸色值/魔法像素） | ✅ | 36 个用例逐项比对 Dart 源文本；第 7 条回归标准也覆盖「无游离数字导出」 |
 
