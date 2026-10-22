@@ -66,7 +66,7 @@ describe('2.1 components.tsx — 6 个核心组件导出', () => {
 describe('2.1 令牌纪律 — 无裸色值/魔法像素', () => {
   for (const file of [COMPONENTS, NAVIGATION]) {
     const p = path.join(here, file);
-    const src = existsSync(p) ? read(p) : '';
+    const src = existsSync(p) ? read(file) : '';
 
     it(`${file} 从 theme.ts 导入令牌`, () => {
       assert.ok(existsSync(p), `${file} 不存在`);
@@ -103,8 +103,10 @@ describe('2.1 令牌纪律 — 无裸色值/魔法像素', () => {
       /layout\.mobileTouchTarget/,
       'components.tsx 应用 layout.mobileTouchTarget 表达触摸目标',
     );
+    // 只看代码：去掉行注释/块注释后不应再有裸 48。
+    const code = src.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
     assert.ok(
-      !/(?<![\w.])48(?![\w.])/.test(src),
+      !/(?<![\w.])48(?![\w.])/.test(code),
       'components.tsx 不应出现裸 48（触摸目标经 layout.mobileTouchTarget）',
     );
   });
