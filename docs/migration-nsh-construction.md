@@ -118,11 +118,11 @@
 | 3.2 | 消息协议层（请求/响应/事件 + 超时与错误） | ✅ 已完成 | `b14165d0`（合并）；`72a97e28`（test 红）/`498b7c12`（feat）；`nsh-app/web/src/protocol.ts`（新）`handleEditorMessage` 分发 `load`/`get-markdown`/`set-tags`+回 `{id,res,ok,markdown?}`；`App.tsx` `sendRequest`（`++reqSeq` id+`pending` Map+`PROTO_TIMEOUT_MS=8000` 超时回 `{ok:false,error:"timeout"}`）；`onBridgeMessage` 按 id/type 配对分发；审查者实测分发 load/get-markdown/bad-json/ping 全正确、id 配对+错误回传真实 |
 | 3.3 | markdown ↔ Rust 读写（复用 `note_get` / `note_create`） | ✅ 已完成 | `b14165d0`（合并）；加载 `editor-ready`→`BackendNotes.noteGet(noteId)`→`sendRequest("load",{markdown})`；保存收 `{type:"markdown"}`→`BackendNotes.noteCreate`+`noteUpdateMetadata`+`syncNotesToStore`；空/`new` noteId→`BackendStore.generateNoteId`；**`NoteCrdt` 不动、web 不跑 loro**；真 Tiptap jsdom 往返 10/10+幂等 10/10 |
 | 3.4 | dirty / autosave 700ms + 「可安全退出」信号 | ✅ 已完成 | `b14165d0`（合并）；页内 `editor.on("update")`→发 `{type:"dirty"}`+700ms debounce 发 `{type:"markdown"}` autosave；原生收→`noteCreate`→`已保存`；保存态三态 `正在保存/尚未保存/已保存`；可安全退出 `closeEditor`：dirty→`flushMarkdown`(`get-markdown`)存完→`goBack`（对照 Dart `_close` 先 `_save` 再 pop） |
-| 3.5 | 撤销粒度调 `groupDelay`；标签栏 ↔ 选区联动 | ⬜ 未开始 | 待填 |
+| 3.5 | 撤销粒度调 `groupDelay`；标签栏 ↔ 选区联动 | ✅ 已完成 | `71ead0e2`（合并）；`8bb5ef13`（首轮红）/`e25014d1`（首轮 feat）/`5e2b0669`（加固红）/`7dd7a9ce`（修 D3/D5）；**撤销真键** `web/src/index.ts` `undoRedo:{newGroupDelay:500}`（StarterKit 3.32 真键，`history:{groupDelay}` 是死键被静默忽略——首轮误用、二轮审查实测纠正）；审查者 jsdom 真例化验证：两笔事务 gap=100ms→一步撤销、gap=900ms→分两步；**标签联动** `selectionPayload` 带 `textBefore`（光标前 ≤40 字符）+`linkPrefixFromContext`+`matchTags`，正常打字 `[[abc` 触发 `autoCompleteLinks`（D5 修复）；`set-tags` 写 `#tag-strip`，`insert-link` 回删 `[[prefix` 再插；标签 chip 48dp 触摸目标 |
 | 3.6 | 软换行策略：确认 `行一\n行二` 合并是否可接受 | ✅ 已完成 | **决定：覆盖序列化器保真**（用户定案，不接受合并成空格）。`protocol.ts` `softToHard`（段内 `\n`→`"  \n"` CommonMark 硬换行）+`hardToSoft`（`"  \n"`/`"\\\n"`→`\n`）+`unescapeBrackets`（`\[`/`\]` 还原保 `[[id\|alias]]`）+`normalizeMarkdownToEditor`/`FromEditor`；审查者用真 Tiptap jsdom 实测 `行一\n行二`→进→出仍 `行一\n行二`（roundtrip 10/10、idempotent 10/10），`executor.md` 显式记录决定 |
 | 3.7 | 构建管线：esbuild 打包 + `web_view(url)` 静态站点 | ✅ 已完成 | `8710f2ac`（合并）；`web/build-inline.mjs` 把 bundle.js 内联进 index.html → `web/dist/editor_html.ts`（`EDITOR_HTML`+`EDITOR_BASE_URL=https://cardmind.editor/`）；`App.tsx` `EditorScreen` 用 `<WebView source={{html,baseUrl}} onMessage>`（页→原生 `ReactNativeWebView`/`window.nsh` 双兼容，`editor-ready` 握手）；`nsh.json` +`capabilities.webview.hosts=[\"cardmind.editor\"]`；`nsh trace --tap 'label:新建笔记'` 见 `Create { kind: WebView }`（无头不渲染页面 JS，如实记）；**选型**：`{html,baseUrl}` 不起 HTTP server（无 file:// 资产协议给 WebView，`asset:/` 只用于图/字） |
-| 3.8 | IME / 选区 / markdown 往返的自动化验收 | ⬜ 未开始 | 待填 |
-| 3.9 | 性能基线复测（对照 V4 数字） | ⬜ 未开始 | 待填 |
+| 3.8 | IME / 选区 / markdown 往返的自动化验收 | ✅ 已完成 | `71ead0e2`（合并）；`web/src/md_fidelity_test.ts` 30 测试（14 条结构：标题/行内/链接/无序/有序/引用/代码块/表格/图片/组合/中文标点/Emoji/`[[id\|alias]]`/软换行，每条首次往返+幂等）；`editor_page_test.ts` 54 条（含 D3/D5 行为断言，jsdom 真例化）；`web/src/editor_mount.ts` jsdom 挂载器例化真 `index.ts`；**IME/选区属真 WebView 实测，需真机，已如实记入 executor.md** |
+| 3.9 | 性能基线复测（对照 V4 数字） | ✅ 已完成 | `71ead0e2`（合并）；`web/src/editor_perf_test.ts`（jsdom，50091 字符）：`setContent` 486.3ms、单字符中位 15.0ms、`getMarkdown` 34.4ms。**口径如实标注：V4=真实 WebView2（79/12.4/21ms），本测=jsdom，对照相对量级**（jsdom 比 Chromium 慢，同量级）；审查者亲手跑 1/1 pass |
 
 **3.3 的契约**：`NoteCrdt` 是「一个 `LoroText("content")` 装整段 markdown」，网页只做 markdown 进、markdown 出。**网页不加载 loro / WASM**（V9 定案）。
 
@@ -134,11 +134,11 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| G3.1 | Windows 实测：中文 IME 输入正确、光标正确 | ⬜ | 待填 |
-| G3.2 | markdown 往返保真（按 `v9b-plaintext.mjs` 的纯文本范围） | ⬜ | 待填 |
-| G3.3 | 保存后重新打开内容一致 | ⬜ | 待填 |
-| G3.4 | 性能不劣于 V4 基线 | ⬜ | 待填 |
-| G3.5 | autosave 不与「切换笔记」冲突（不丢编辑、不串写） | ⬜ | 待填 |
+| G3.1 | Windows 实测：中文 IME 输入正确、光标正确 | ⛔ 阻塞 | 需真机/真窗口（无头 `nsh trace` 不跑页面 JS、无法注入 IME 组合事件）。**解除条件**：`nsh package --target windows` 出包后真窗口手测中文 IME（组合→提交→光标），或用 WebView2 CDP 自动化（探针 `tools/v7v8_probe.py` 路径可复用）。**不冒充通过**。 |
+| G3.2 | markdown 往返保真（按 `v9b-plaintext.mjs` 的纯文本范围） | ✅ | `web/src/md_fidelity_test.ts` 30 测试：14 类结构（标题/行内/链接/无序/有序/引用/代码块/表格/图片/组合/中文标点/Emoji/`[[id\|alias]]`/软换行）每条首次往返+幂等全绿；审查者亲手跑 30/30；真 Tiptap（jsdom 真例化，非源码正则） |
+| G3.3 | 保存后重新打开内容一致 | ✅ | `App.tsx` 保存 `noteCreate`+`noteUpdateMetadata`、加载 `noteGet`→`load`；`md_fidelity_test.ts` 幂等断言（setMarkdown→getMarkdown 两次一致）；`editor_page_test.ts` 断言 `noteGet`/`noteCreate` 真调用链；审查者实测 `handleEditorMessage` load/get-markdown 分发正确。**真 WebView2 端到端需真机**（已记） |
+| G3.4 | 性能不劣于 V4 基线 | ⛔ 阻塞 | 需真 WebView2 才能与 V4（79/12.4/21ms）同口径比较。本机 jsdom 实测 setContent 486.3ms、输入中位 15.0ms、getMarkdown 34.4ms——**jsdom 比 Chromium 慢，同量级但不同口径**。**解除条件**：出包后真窗口用 `v4-perf.mjs` 同口径复测。**不冒充通过**。 |
+| G3.5 | autosave 不与「切换笔记」冲突（不丢编辑、不串写） | ✅ | `App.tsx` `noteId` 为每个 `EditorScreen` 实例的闭包 `let`（不跨实例共享，不串写）；`closeEditor` dirty→`flushMarkdown`(`get-markdown`)存完才 `goBack`；autosave 700ms debounce 只写闭包内 noteId；`nsh trace --width 1200` exit 0 应用正常渲染、`Create { kind: WebView }` + `source: Html{...}` 确认编辑器真挂载（`If` 缺陷已修 `e71c308d`，并加 `b541aac9` 断言防回归） |
 
 ---
 
