@@ -139,7 +139,13 @@ static SYNC: OnceLock<tokio::sync::Mutex<Option<SyncService>>> = OnceLock::new()
 /// 时惰性创建。
 static DISC: OnceLock<tokio::sync::Mutex<Option<DiscoveryService>>> = OnceLock::new();
 
-/// 取全局 `SyncService`（首次调用时创建，内存版：不写数据目录）。
+/// 取全局 `SyncService`（首次调用时创建）。
+///
+/// 数据共存（施工方案 4.4）：服务建在 [`BackendStore::data_dir`] 推导出的
+/// **真数据目录**上（`SyncService::new_persistent`），于是 LoroDoc
+/// `cardmind.loro`、`device.key`、`relay.txt`、`device_name.txt` 全部复用旧版
+/// Flutter 目录——`noteGet` 读到的是用户旧笔记，而不是空的内存库。
+/// 旧目录不存在时回退 NSH 自有目录（首次运行）。
 ///
 /// 返回时已释放锁，调用方只拿到所需数据的拷贝——`&mut` 锁跨 `await` 持有会
 /// 让整个服务串行化，`SyncService` 内部已有细粒度锁，不需要外层再串行。
@@ -147,9 +153,11 @@ async fn ensure_sync() -> Result<tokio::sync::MutexGuard<'static, Option<SyncSer
     let mutex = SYNC.get_or_init(|| tokio::sync::Mutex::new(None));
     let mut guard = mutex.lock().await;
     if guard.is_none() {
-        let svc = SyncService::new()
+        let info = BackendStore::data_dir()?;
+        let dir = info.split('|').next().unwrap_or_default().to_owned();
+        let svc = SyncService::new_persistent(&dir)
             .await
-            .map_err(|e| format!("创建 SyncService 失败：{e:#}"))?;
+            .map_err(|e| format!("创建 SyncService 失败（数据目录 {dir}）：{e:#}"))?;
         *guard = Some(svc);
     }
     Ok(guard)
@@ -460,6 +468,68 @@ impl BackendStore {
     fn store_search(query: String) -> Result<Vec<String>, String> {
         let rows = store()?.search(&query).map_err(|e| format!("{e:#}"))?;
         Ok(rows.into_iter().map(|row| row.title).collect())
+    }
+
+    /// 推导应用数据目录：优先旧版 Flutter 目录（数据共存），否则 NSH 自有目录。
+    ///
+    /// NSH 无 `dataDir`/`documents` 一类路径 API，必须由 Rust 侧推导。
+    /// 返回 `"{dir}|{exists}"`：`dir` = 数据目录绝对路径；`exists` = 该目录下
+    /// `cardmind.db` 是否存在（TSX 用此区分「找到旧数据」与「首次运行」）。
+    /// 本函数不创建旧目录；只有回退到 NSH 自有目录时才 `create_dir_all`。
+    ///
+    /// 旧版（Flutter `path_provider`）各平台目录见 AGENTS.md「日志目录」表：
+    /// Windows `%APPDATA%\com.cardmind\cardmind`、macOS
+    /// `~/Library/Application Support/com.cardmind.v2`、Linux
+    /// `$XDG_DATA_HOME/com.cardmind.cardmind`。
+    fn data_dir() -> Result<String, String> {
+        #[cfg(target_os = "windows")]
+        let (legacy, own) = {
+            let appdata =
+                std::env::var("APPDATA").map_err(|e| format!("APPDATA 环境变量不可读：{e}"))?;
+            let base = std::path::PathBuf::from(appdata);
+            (
+                base.join("com.cardmind").join("cardmind"),
+                base.join("com.cardmind.nsh").join("cardmind"),
+            )
+        };
+        #[cfg(target_os = "macos")]
+        let (legacy, own) = {
+            let home =
+                std::env::var("HOME").map_err(|e| format!("HOME 环境变量不可读：{e}"))?;
+            let base = std::path::PathBuf::from(home).join("Library/Application Support");
+            (
+                base.join("com.cardmind.v2"),
+                base.join("com.cardmind.nsh"),
+            )
+        };
+        #[cfg(target_os = "linux")]
+        let (legacy, own) = {
+            let data = match std::env::var("XDG_DATA_HOME") {
+                Ok(v) if !v.trim().is_empty() => std::path::PathBuf::from(v),
+                _ => {
+                    let home =
+                        std::env::var("HOME").map_err(|e| format!("HOME 环境变量不可读：{e}"))?;
+                    std::path::PathBuf::from(home).join(".local/share")
+                }
+            };
+            (
+                data.join("com.cardmind.cardmind"),
+                data.join("com.cardmind.nsh"),
+            )
+        };
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        compile_error!("data_dir 未覆盖当前平台；NSH 目标平台是 windows/macos/linux");
+
+        let dir = if legacy.join("cardmind.db").exists() {
+            legacy
+        } else {
+            // 旧数据不存在：落 NSH 自有目录（首次运行），并创建之。
+            std::fs::create_dir_all(&own)
+                .map_err(|e| format!("创建 NSH 数据目录 {} 失败：{e:#}", own.display()))?;
+            own
+        };
+        let exists = dir.join("cardmind.db").exists();
+        Ok(format!("{}|{}", dir.to_string_lossy(), exists))
     }
 
     /// 本设备 iroh 身份 ID（真后端 `SyncService`，首次调用时惰性创建）。
