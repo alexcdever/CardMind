@@ -4,8 +4,7 @@ use cardmind_backend::discovery::{DiscoveryService, PeerInfo};
 use cardmind_backend::store::{LinkRow, NoteRow, NoteStore, PairedDeviceRow};
 use cardmind_backend::sync::{
     DevicePushResult, NoteCrdt, PairingCredentialDisplay, PairingRequest, PairingResult,
-    PairingTarget, ParsedPairingCredential, SyncCycleResult, SyncService,
-    SYNC_POLL_INTERVAL_SECS,
+    PairingTarget, ParsedPairingCredential, SYNC_POLL_INTERVAL_SECS, SyncCycleResult, SyncService,
 };
 use nsh_core::ui::prelude::*;
 use nsh_ui_mobile::{SafeAreaView, SafeAreaViewProps};
@@ -28,9 +27,11 @@ fn native(registry: &mut Registry) {
 /// Events the bridge component pushes to its listeners (Rust or TSX side).
 #[derive(Event)]
 pub enum BridgeEvent {
-    /// Simulated sync progress tick.
+    /// Sync progress tick: `SyncService::receiver_progress()` 的 windows 计数
+    /// （接收器走完的 accept 窗口数；接收器未运行时读 0，不增量）。
     SyncProgress(u32),
-    /// A peer was discovered (simulated).
+    /// A paired/discovered device name (`store().list_paired_devices()` 真读，
+    /// 无配对设备时不推；不是 mDNS 发现的临时 peer）。
     PeerFound(String),
 }
 
@@ -38,19 +39,54 @@ pub enum BridgeEvent {
 #[derive(Props, Clone, PartialEq)]
 pub struct BridgeProps {}
 
-/// Bridge component: on mount it spawns a task on the engine thread that
-/// periodically `cx.emit`s events. `emit` MUST run inside `spawn` (engine
-/// thread): `background` runs on the tokio pool where the thread_local
-/// reactive graph is not reachable, so events would never reach the UI.
+/// Bridge component: on mount it spawns a task on the engine thread that polls
+/// the real `SyncService` state every 300ms and `cx.emit`s on change.
+/// `emit` MUST run inside `spawn` (engine thread): `background` runs on the
+/// tokio pool where the thread_local reactive graph is not reachable, so events
+/// would never reach the UI.
+///
+/// 数据源（施工方案 1.5，替代 0.4 的硬编码三轮假数据循环）：
+/// - `SyncProgress(n)` ← `svc.receiver_progress().0`（接收器窗口计数），值变化才推；
+/// - `PeerFound(name)` ← `store().list_paired_devices()` 的设备名，新出现的才推。
+/// Bridge 是被动观察者：只 `lock()` 读已存在的 SYNC 单例（**不惰性创建**
+/// SyncService——为推事件去新建一个 iroh endpoint 是本末倒置，且 1.6 `close()`
+/// 清空单例后这里绝不能把它又建回来）。锁只在取 `(u64,u64)` 快照的同一
+/// `.await` 边界内持有，取到即放——不跨循环/不跨 timer 长持。
 #[component]
 pub fn Bridge(props: BridgeProps, cx: Scope<BridgeEvent>) -> impl IntoElement {
     let _ = props;
     let cx2 = cx; // `Scope` is Copy, move it into the spawned future.
     spawn(async move {
-        for i in 1..=3u32 {
-            timer(Duration::from_millis(80)).await;
-            cx2.emit(BridgeEvent::SyncProgress(i));
-            cx2.emit(BridgeEvent::PeerFound(format!("peer-{i}")));
+        let mut last_progress: Option<u32> = None;
+        let mut known_peers: std::collections::HashSet<String> = std::collections::HashSet::new();
+        loop {
+            timer(Duration::from_millis(300)).await;
+
+            // 读 SyncService 真进度：peek 全局单例（不创建）；持锁只为取一次
+            // `(windows, _)` 快照，取到即放。
+            let progress = {
+                let mutex = SYNC.get_or_init(|| tokio::sync::Mutex::new(None));
+                let guard = mutex.lock().await;
+                guard.as_ref().map(|svc| svc.receiver_progress())
+            };
+            if let Some((windows, _connections)) = progress {
+                let n = u32::try_from(windows).unwrap_or(u32::MAX);
+                if last_progress != Some(n) {
+                    last_progress = Some(n);
+                    cx2.emit(BridgeEvent::SyncProgress(n));
+                }
+            }
+
+            // 读 SQLite 已配对设备名（store 未开/无配对时不推——真读的空态）。
+            if let Ok(store) = store() {
+                if let Ok(rows) = store.list_paired_devices() {
+                    for row in rows {
+                        if known_peers.insert(row.name.clone()) {
+                            cx2.emit(BridgeEvent::PeerFound(row.name));
+                        }
+                    }
+                }
+            }
         }
     });
 
@@ -130,12 +166,13 @@ fn store() -> Result<&'static NoteStore, String> {
 ///
 /// 锁跨 `await` 持有是必要的：`discover_peers` 内部 `recv_async()` 需要 `&self`，
 /// `start_advertising` 需要 `&mut self`，都必须在持有锁的临界区内完成。
-async fn ensure_disc() -> Result<tokio::sync::MutexGuard<'static, Option<DiscoveryService>>, String> {
+async fn ensure_disc() -> Result<tokio::sync::MutexGuard<'static, Option<DiscoveryService>>, String>
+{
     let mutex = DISC.get_or_init(|| tokio::sync::Mutex::new(None));
     let mut guard = mutex.lock().await;
     if guard.is_none() {
-        let disc = DiscoveryService::new()
-            .map_err(|e| format!("创建 DiscoveryService 失败：{e:#}"))?;
+        let disc =
+            DiscoveryService::new().map_err(|e| format!("创建 DiscoveryService 失败：{e:#}"))?;
         *guard = Some(disc);
     }
     Ok(guard)
@@ -530,7 +567,9 @@ impl BackendNotes {
 
     /// SQLite — 全文搜索（FTS5）。
     fn search_notes(query: String) -> Result<Vec<NoteDto>, String> {
-        let rows = store()?.search_notes(&query).map_err(|e| format!("{e:#}"))?;
+        let rows = store()?
+            .search_notes(&query)
+            .map_err(|e| format!("{e:#}"))?;
         Ok(rows.iter().map(NoteDto::from).collect())
     }
 
@@ -796,6 +835,22 @@ impl BackendSync {
         svc.import_all(&data).map_err(|e| format!("{e:#}"))?;
         Ok(true)
     }
+
+    /// 优雅退出（施工方案 1.6）：先 `stop_receiver()` 再 `endpoint.close()`，
+    /// 并把全局 SYNC 单例置空。重复调用幂等（单例已空时直接返回 Ok）。
+    ///
+    /// 未走本路径直接让进程 drop `Endpoint` 时，iroh 会打印
+    /// 「Endpoint dropped without calling Endpoint::close. Aborting ungracefully.」；
+    /// `nsh trace` 无头进程退出路径没有生命周期钩子可调本函数（见 executor.md），
+    /// 但真实 app 宿主/退出流程应调用它。
+    async fn close() -> Result<bool, String> {
+        let mutex = SYNC.get_or_init(|| tokio::sync::Mutex::new(None));
+        let mut guard = mutex.lock().await;
+        if let Some(svc) = guard.take() {
+            svc.close().await.map_err(|e| format!("{e:#}"))?;
+        }
+        Ok(true)
+    }
 }
 
 // ━━━ 施工方案 1.3：Backend.Pairing ━━━
@@ -1003,8 +1058,8 @@ impl BackendPairing {
     }
 
     /// 配对 — 显示方：生成签名配对凭证并启动 mDNS 广播（任务 Q 组合 API）。
-    async fn begin_pairing_credential_with_advertising(
-    ) -> Result<PairingCredentialDisplayDto, String> {
+    async fn begin_pairing_credential_with_advertising()
+    -> Result<PairingCredentialDisplayDto, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -1099,21 +1154,18 @@ pub fn App() -> impl IntoElement {
                         .gap_2()
                         .child(text("CardMind NSH skeleton").text_size(px(28.0)))
                         .child(
-                            text(move || format!("最近事件：{}", last.get()))
-                                .text_size(px(16.0)),
+                            text(move || format!("最近事件：{}", last.get())).text_size(px(16.0)),
                         )
-                        .child(
-                            Bridge::element(BridgeProps::default()).on_event(
-                                move |event: &BridgeEvent| match event {
-                                    BridgeEvent::SyncProgress(n) => {
-                                        last.set(format!("SyncProgress({n})"))
-                                    }
-                                    BridgeEvent::PeerFound(name) => {
-                                        last.set(format!("PeerFound({name})"))
-                                    }
-                                },
-                            ),
-                        ),
+                        .child(Bridge::element(BridgeProps::default()).on_event(
+                            move |event: &BridgeEvent| match event {
+                                BridgeEvent::SyncProgress(n) => {
+                                    last.set(format!("SyncProgress({n})"))
+                                }
+                                BridgeEvent::PeerFound(name) => {
+                                    last.set(format!("PeerFound({name})"))
+                                }
+                            },
+                        )),
                 ),
         )
 }
