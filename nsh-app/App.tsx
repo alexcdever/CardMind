@@ -1,5 +1,6 @@
-import { mount, signal, Text, View } from "nsh";
+import { mount, signal, Text, View, type YNode } from "nsh";
 import { Screen, Stack } from "nsh/ui/mobile";
+import { WebView } from "nsh/webview";
 import {
   App,
   Backend,
@@ -20,6 +21,8 @@ import { goBack, nav, routes, screenChrome, type Route } from "./navigation";
 import { SettingsPage } from "./settings_page";
 import { colors, spacing } from "./theme";
 import { TrashPage } from "./trash_page";
+// 构建产物：build:web 生成（gitignored；`npm run build` 先于 nsh build）。
+import { EDITOR_BASE_URL, EDITOR_HTML } from "./web/dist/editor_html";
 
 // 真后端数据源（施工方案 1.1–1.7 的验收证据）：这些 Backend* 调用不能删。
 // 页面骨架把它们的结果渲染进新组件（同步指示条 / 列表项 / 空态），不再是
@@ -167,16 +170,37 @@ function SettingsScreen() {
   );
 }
 
-/** 编辑器页（push 上来的路由）：返回 + 占位正文。 */
+/** 编辑器页（push 路由）：真 WebView 外壳，内联 Tiptap 静态站。
+ *  html 字符串 = index.html（含内联 bundle.js）；baseUrl 固定，供 WebView2
+ *  WebResourceRequested 拦截解析相对 URL。页 → 原生走
+ *  window.ReactNativeWebView.postMessage；本任务消息仅 "editor-ready" 握手，
+ *  markdown 进出协议留给 nsh-editor-io。noteId 暂存页内展示 + 下一任务
+ *  noteGet 加载留口。 */
 function EditorScreen(props: { noteId: string }) {
+  const bridge = signal("编辑器桥：(等待 editor-ready)");
+  let web!: YNode;
   return (
     <Screen
       {...screenChrome("编辑")}
       headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />}
     >
-      <View style={{ flex: 1, backgroundColor: colors.paper, padding: spacing.lg, gap: spacing.sm }}>
-        <Text>{`noteId：${props.noteId}`}</Text>
-        <Text>{noteLine()}</Text>
+      <View style={{ flex: 1, backgroundColor: colors.paper }}>
+        <View style={{ flexDirection: "row", gap: spacing.md, padding: spacing.sm }}>
+          <Text numberOfLines={1} style={{ flex: 1, color: colors.mutedInk }}>
+            {`noteId：${props.noteId}`}
+          </Text>
+          <Text style={{ color: colors.mutedInk }}>{bridge()}</Text>
+        </View>
+        <WebView
+          ref={web}
+          source={{ html: EDITOR_HTML, baseUrl: EDITOR_BASE_URL }}
+          style={{ flex: 1, backgroundColor: colors.paper }}
+          onMessage={(e) => {
+            if (e.data === "editor-ready") {
+              bridge.set("编辑器桥：editor-ready ✓");
+            }
+          }}
+        />
       </View>
     </Screen>
   );

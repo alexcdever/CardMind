@@ -3,5 +3,8 @@
   "id": "com.cardmind.nsh",
   "version": "0.1.0",
   "build": 1,
-  "rust": "."
+  "rust": ".",
+  "capabilities": {
+    "webview": { "hosts": ["cardmind.editor"] }
+  }
 }
