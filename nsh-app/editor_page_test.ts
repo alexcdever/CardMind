@@ -611,3 +611,30 @@ describe('3.9 V4 基线口径 — 如实标注（D4）', () => {
     );
   });
 });
+
+// 「App.tsx 从 nsh 导入的符号必须在 .nsh/types 里真实存在」——拦住 `If` 这类
+// 不存在的导出（esbuild 不校验命名导出，nsh trace 运行时才报
+// `Could not find export 'If' in module 'nsh'`、应用渲染不出东西）。
+describe('App.tsx 的 nsh 导入面真实存在（防不存在的导出）', () => {
+  it('from "nsh" 的每个命名导入都在 .nsh/types/nsh/index.d.ts 里声明', () => {
+    const app = readFileSync(path.join(here, 'App.tsx'), 'utf8');
+    const dts = readFileSync(
+      path.join(here, '.nsh', 'types', 'nsh', 'index.d.ts'),
+      'utf8',
+    );
+    const m = app.match(/import\s*\{([^}]*)\}\s*from\s*['"]nsh['"]/);
+    assert.ok(m, 'App.tsx 未从 "nsh" 导入任何符号');
+    const names = m[1]
+      .split(',')
+      .map((s) => s.trim().replace(/^type\s+/, ''))
+      .filter((s) => s.length > 0);
+    assert.ok(names.length > 0, '解析出的 nsh 导入为空');
+    for (const name of names) {
+      assert.match(
+        dts,
+        new RegExp(`\\b${name}\\b`),
+        `App.tsx 从 "nsh" 导入了 ${name}，但 .nsh/types/nsh/index.d.ts 里没有这个符号 —— nsh trace 会在运行时报 "Could not find export '${name}'" 且应用渲染不出`,
+      );
+    }
+  });
+});
