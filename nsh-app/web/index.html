@@ -82,10 +82,32 @@
       .ProseMirror a {
         color: #4f6e0c;
       }
+      /* 3.5 最小标签行（#tag-strip）：原生 set-tags 写入的当前笔记标签。 */
+      #tag-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 6px 24px 0;
+        min-height: 0;
+      }
+      #tag-strip:empty {
+        display: none;
+      }
+      #tag-strip .tag {
+        font-size: 12px;
+        color: #55554e;
+        background: #edede8;
+        border: 1px solid #d8d8d2;
+        border-radius: 10px;
+        padding: 1px 8px;
+        line-height: 1.6;
+      }
     </style>
   </head>
   <body>
     <!-- Phase 3: Tiptap 编辑器挂载点；bundle 由 esbuild 产出（web/dist/bundle.js）。 -->
+    <!-- 3.5 最小标签行：原生 set-tags → 页内渲染当前笔记标签（联动锚点）。 -->
+    <div id="tag-strip" aria-label="笔记标签"></div>
     <div id="editor"></div>
     <script src="./dist/bundle.js"></script>
   </body>

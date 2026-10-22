@@ -14,6 +14,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+// 行为断言：在 jsdom 里例化真实生产入口 web/src/index.ts（见 web/src/editor_mount.ts）。
+import { mountEditorPage } from './web/src/editor_mount.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel: string) => readFileSync(path.join(here, rel), 'utf8');
@@ -24,7 +26,11 @@ const INDEX_HTML = path.join(WEB_DIR, 'index.html');
 const WEB_SRC_DIR = path.join(WEB_DIR, 'src');
 
 const webSrcFiles = existsSync(WEB_SRC_DIR)
-  ? readdirSync(WEB_SRC_DIR).filter((f) => /\.(ts|js|tsx|jsx)$/.test(f))
+  ? readdirSync(WEB_SRC_DIR).filter(
+      // 排除 *_test.ts：否则测试文件自身的源码也能满足「源码含 X」断言
+      // （审查缺陷 D1：红提交里 groupDelay 断言被测试文件自己满足）。
+      (f) => /\.(ts|js|tsx|jsx)$/.test(f) && !/_test\.(ts|js)$/.test(f),
+    )
   : [];
 const webSrc = webSrcFiles.map((f) => read(path.join('web', 'src', f))).join('\n');
 const indexHtml = existsSync(INDEX_HTML) ? read(path.join('web', 'index.html')) : '';
@@ -185,9 +191,6 @@ describe('3.7 App.tsx — EditorScreen 接 nsh/webview', () => {
 const PROTOCOL = 'web/src/protocol.ts';
 const protocolPath = path.join(WEB_SRC_DIR, 'protocol.ts');
 const protocol = existsSync(protocolPath) ? read('web/src/protocol.ts') : '';
-const indexTs = existsSync(path.join(WEB_SRC_DIR, 'index.ts'))
-  ? read('web/src/index.ts')
-  : '';
 
 describe('3.2 web/src/protocol.ts — 消息协议层', () => {
   it('protocol.ts 存在（页内协议辅助模块）', () => {
@@ -332,5 +335,279 @@ describe('3.2 App.tsx — 原生侧协议（sendRequest + 8s 超时 + id 配对�
 
   it('8s 超时兜底（PROTO_TIMEOUT_MS 或 8000）', () => {
     assert.match(body, /8000|TIMEOUT/, 'sendRequest 未挂 8s 超时');
+  });
+});
+
+// ── 施工方案 3.5：撤销粒度 + 标签↔选区联动（最小可用）──
+//
+// 审查 D1/D2 加固：此前这组断言全是「web/src 源码正则」——错键名
+// （`history:{groupDelay}`；StarterKit 3.32 的真键是 `undoRedo.newGroupDelay`）、
+// 空桩、删真实调用只留注释都能骗过。现在改为在 jsdom 里例化**真实生产入口**
+// `web/src/index.ts`，断言读真 Editor 的 options、真 postToNative 消息、
+// 真 `#tag-strip` DOM（挂载器见 web/src/editor_mount.ts）。
+
+describe('3.5 撤销粒度 — StarterKit 真键名且真生效（D3）', () => {
+  it('StarterKit 收 undoRedo.newGroupDelay=500，且不再有 history 死键', async () => {
+    const page = await mountEditorPage();
+    const starterKit = page.editor.extensionManager.extensions.find(
+      (e: { name: string }) => e.name === 'starterKit',
+    );
+    assert.ok(starterKit, '编辑器未挂 StarterKit');
+    const opts = (starterKit.options ?? {}) as Record<string, any>;
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(opts, 'history'),
+      false,
+      'StarterKit 仍收到 `history` 死键 —— 3.32 的 StarterKitOptions 无此键' +
+        '（tsc TS2353），会被静默忽略，将来改成非默认值也不生效',
+    );
+    assert.equal(
+      opts.undoRedo?.newGroupDelay,
+      500,
+      `StarterKit 未用真键 undoRedo:{newGroupDelay:500}（实际 ${JSON.stringify(opts.undoRedo)}）`,
+    );
+  });
+
+  it('配置真流入 live undoRedo 扩展（不是碰巧等于默认 500）', async () => {
+    const page = await mountEditorPage();
+    const starterKit = page.editor.extensionManager.extensions.find(
+      (e: { name: string }) => e.name === 'starterKit',
+    );
+    const live = page.editor.extensionManager.extensions.find(
+      (e: { name: string }) => e.name === 'undoRedo',
+    );
+    assert.ok(live, '编辑器未挂 undoRedo 扩展');
+    assert.equal(
+      live.options.newGroupDelay,
+      (starterKit.options as Record<string, any>).undoRedo.newGroupDelay,
+      'undoRedo.newGroupDelay 未从 StarterKit 配置流入扩展实例',
+    );
+  });
+
+  it('撤销分组真按 newGroupDelay 生效：窗口内合并 1 步，窗口外 2 步', async () => {
+    const page = await mountEditorPage();
+    const ed = page.editor;
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    // 组窗口 = 500ms：先让 setContent 的组闭合，再对比 100ms / 900ms 间隔。
+    const undoSteps = async (gap: number): Promise<string> => {
+      ed.commands.setContent('起始');
+      ed.commands.setTextSelection(ed.state.doc.content.size - 1);
+      await wait(700);
+      ed.commands.insertContent('a');
+      await wait(gap);
+      ed.commands.insertContent('b');
+      await wait(10);
+      ed.commands.undo();
+      await wait(10);
+      return ed.getText();
+    };
+    assert.equal(await undoSteps(100), '起始', '500ms 窗口内的两笔事务应合并为一步撤销');
+    assert.equal(await undoSteps(900), '起始a', '跨 500ms 窗口的两笔事务应分两步撤销');
+  });
+});
+
+describe('3.5 标签↔选区联动 — 真消息 / 真 DOM（D2/D5/D7）', () => {
+  it('set-tags → 页内 #tag-strip 真渲染标签并回 res', async () => {
+    const page = await mountEditorPage();
+    page.resetPosted();
+    page.dispatchToPage({ id: 11, type: 'set-tags', tags: ['alpha', 'beta'] });
+    const strip = page.document.getElementById('tag-strip');
+    assert.ok(strip, 'index.html 缺 #tag-strip 容器');
+    assert.equal(
+      strip.children.length,
+      2,
+      `#tag-strip 未渲染 2 个标签 chip（实际 ${strip.children.length}）—— onSetTags 仍是空桩`,
+    );
+    assert.equal(strip.textContent, '#alpha#beta', '#tag-strip 文本与标签不符');
+    const res = page.postedEvents('res').find((m: any) => m.id === 11);
+    assert.equal(res?.ok, true, 'set-tags 未回 {id,type:"res",ok:true}');
+  });
+
+  it('正常打字（折叠光标）的 selection 事件带光标前文本，[[ 可被探测（D5）', async () => {
+    const page = await mountEditorPage();
+    const ed = page.editor;
+    page.dispatchToPage({ id: 12, type: 'load', markdown: '见' });
+    ed.commands.setTextSelection(ed.state.doc.content.size - 1);
+    page.resetPosted();
+    ed.commands.insertContent('[['); // 模拟用户正常打字输入 `[[`
+    const last = page.postedEvents('selection').at(-1) as any;
+    assert.ok(last, '打字后未发 selection 事件');
+    assert.equal(last.from, last.to, '测试前提：正常打字后是折叠选区');
+    assert.match(
+      String(last.textBefore ?? ''),
+      /\[\[$/,
+      `selection 事件未带光标前文本（textBefore=${JSON.stringify(last.textBefore)}）` +
+        '—— 折叠选区 text 恒 ""，原生侧 [[ 补全永不触发',
+    );
+  });
+
+  it('selectionPayload 对折叠选区给出 textBefore（协议单测）', async () => {
+    const mod = await import('./web/src/protocol.ts');
+    const doc = { textBetween: (f: number, t: number) => '见 [[ab'.slice(f, t) };
+    const p = mod.selectionPayload({
+      editor: { state: { selection: { from: 4, to: 4, empty: true }, doc } },
+    });
+    assert.equal(p.text, '', '折叠选区 text 仍应为 ""（语义不变）');
+    assert.equal(p.textBefore, '见 [[', '折叠选区未带光标前文本');
+  });
+
+  it('linkPrefixFromContext：只认光标前未闭合的 [[prefix', async () => {
+    const mod = await import('./web/src/protocol.ts');
+    assert.equal(
+      typeof mod.linkPrefixFromContext,
+      'function',
+      'protocol.ts 未导出 linkPrefixFromContext —— 原生侧触发逻辑不可行为化测试',
+    );
+    assert.equal(mod.linkPrefixFromContext('见 [[ab'), 'ab');
+    assert.equal(mod.linkPrefixFromContext('见 [[ab]] 之后'), null);
+    assert.equal(mod.linkPrefixFromContext('普通文字'), null);
+    assert.equal(mod.linkPrefixFromContext(''), null);
+    assert.equal(mod.linkPrefixFromContext('a[[b[[cd'), 'cd');
+  });
+
+  it('matchTags：只高亮命中 [[prefix 或选区文本的标签（D7）', async () => {
+    const mod = await import('./web/src/protocol.ts');
+    assert.equal(typeof mod.matchTags, 'function', 'protocol.ts 未导出 matchTags');
+    assert.deepEqual(
+      mod.matchTags(['alpha', 'beta', '阿尔法'], { text: '', textBefore: '见 [[al' }),
+      ['alpha'],
+      '[[prefix 应只命中 alpha（旧实现是任一 selection 高亮全部 tag）',
+    );
+    assert.deepEqual(
+      mod.matchTags(['alpha', 'beta'], { text: '', textBefore: '普通' }),
+      [],
+      '无选区无 [[prefix 时不应高亮任何标签',
+    );
+    assert.deepEqual(mod.matchTags(['alpha', 'beta'], { text: 'beta', textBefore: '' }), [
+      'beta',
+    ]);
+  });
+
+  it('insert-link 请求 → 把已打的「[[prefix」替换成 [[title]]（不残留 [[）', async () => {
+    const page = await mountEditorPage();
+    const ed = page.editor;
+    // 模拟用户已输入「见 [[ab」（光标在尾、折叠选区）。
+    page.dispatchToPage({ id: 13, type: 'load', markdown: '见' });
+    ed.commands.setTextSelection(ed.state.doc.content.size - 1);
+    ed.commands.insertContent(' [[ab');
+    page.resetPosted();
+    page.dispatchToPage({ id: 14, type: 'insert-link', title: '某笔记' });
+    const doc = ed.getText();
+    assert.equal(
+      doc,
+      '见 [[某笔记]] ',
+      `insert-link 未用 [[title]] 替换已打的 [[prefix（实际 ${JSON.stringify(doc)}）`,
+    );
+    const res = page.postedEvents('res').find((m: any) => m.id === 14);
+    assert.equal(res?.ok, true, 'insert-link 未回 ok 响应');
+  });
+});
+
+describe('3.5 App.tsx — 原生侧联动真调用（D2：注释/类型定义不算）', () => {
+  const body = codeOnly(
+    app.match(/function\s+EditorScreen[\s\S]*?\n}/s)?.[0] ?? '',
+  );
+
+  it('最小标签行存在（渲染 CardMindTag，触摸目标 ≥48dp）', () => {
+    assert.match(body, /<CardMindTag\b/, 'EditorScreen 未渲染 CardMindTag 标签行');
+    assert.match(
+      body,
+      /<CardMindTag\b[^>]*comfortable/,
+      '标签 chip 未传 comfortable（compact 高约 28px < 48dp 触摸目标，D6）',
+    );
+  });
+
+  it('selection 事件消费光标前文本（textBefore），不只是选区文本', () => {
+    assert.match(body, /textBefore/, 'onSelection 未消费 textBefore —— 折叠选区路径仍断');
+    assert.match(
+      body,
+      /linkPrefixFromContext\s*\(/,
+      '[[ 触发未走可单测的 linkPrefixFromContext',
+    );
+  });
+
+  it('[[ 补全入口调 BackendNotes.autoCompleteLinks', () => {
+    assert.match(
+      body,
+      /BackendNotes\.autoCompleteLinks\s*\(/,
+      'EditorScreen 未真调 BackendNotes.autoCompleteLinks',
+    );
+  });
+
+  it('标签高亮按命中过滤（matchTags），不是任一 selection 全高亮', () => {
+    assert.match(body, /matchTags\s*\(/, '标签高亮未按 selection/[[prefix 命中过滤（D7）');
+  });
+
+  it('加载后把标签经 set-tags 发给页（sendRequest("set-tags")）', () => {
+    assert.match(
+      body,
+      /sendRequest\(\s*["']set-tags["']/,
+      'EditorScreen 未真发 sendRequest("set-tags", { tags })',
+    );
+  });
+
+  it('候选 chip 点击接行为（sendRequest("insert-link")），不留空 onTap', () => {
+    assert.match(
+      body,
+      /sendRequest\(\s*["']insert-link["']/,
+      '补全候选未接 insert-link —— 仍是 onTap:() => undefined 惰性按钮',
+    );
+    assert.doesNotMatch(
+      body,
+      /onTap=\{\s*\(\)\s*=>\s*undefined\s*\}/,
+      '仍有 onTap:() => undefined 的惰性按钮',
+    );
+  });
+});
+
+// ── 施工方案 3.8：自动化验收（真 Tiptap jsdom 往返在 web/src/md_fidelity_test.ts）──
+
+describe('3.8 自动化验收 — jsdom 真 Tiptap 往返单测存在', () => {
+  it('web/src/md_fidelity_test.ts 存在（12 类结构+[[id|alias]]+软换行全保真）', () => {
+    assert.ok(
+      existsSync(path.join(WEB_SRC_DIR, 'md_fidelity_test.ts')),
+      'web/src/md_fidelity_test.ts 不存在 —— 3.8 真 Tiptap 往返回归未落地',
+    );
+  });
+});
+
+// ── 施工方案 3.9：性能基线复测（web/src/editor_perf_test.ts）──
+
+describe('3.9 性能基线 — 脚本存在且跑三项计时', () => {
+  it('web/src/editor_perf_test.ts 存在（setContent/输入/getMarkdown 计时）', () => {
+    assert.ok(
+      existsSync(path.join(WEB_SRC_DIR, 'editor_perf_test.ts')),
+      'web/src/editor_perf_test.ts 不存在 —— 3.9 性能脚本未落地',
+    );
+  });
+
+  it('perf 脚本对照 V4 基线并标注 jsdom 量级', () => {
+    const perf = existsSync(path.join(WEB_SRC_DIR, 'editor_perf_test.ts'))
+      ? read('web/src/editor_perf_test.ts')
+      : '';
+    assert.match(perf, /setContent|insertContent/, 'perf 脚本未测 setContent/输入');
+    assert.match(perf, /getMarkdown/, 'perf 脚本未测 getMarkdown');
+    assert.match(perf, /V4|基线|jsdom/i, 'perf 脚本未对照 V4 基线/未标 jsdom 量级');
+  });
+});
+
+// ── 审查 D4：V4 基线口径标注（V4 = 真 WebView2 数字，不是 jsdom）──
+
+describe('3.9 V4 基线口径 — 如实标注（D4）', () => {
+  const perf = existsSync(path.join(WEB_SRC_DIR, 'editor_perf_test.ts'))
+    ? read('web/src/editor_perf_test.ts')
+    : '';
+
+  it('perf 脚本注明 V4 是真实 WebView2 数字，本测是 jsdom 量级', () => {
+    assert.match(
+      perf,
+      /V4[^\n]*WebView2|WebView2[^\n]*V4/,
+      'perf 脚本未说明 V4 基线来自真实 WebView2',
+    );
+    assert.match(perf, /jsdom/, 'perf 脚本未标本测为 jsdom 量级');
+    assert.doesNotMatch(
+      perf,
+      /V4\s*基线[^\n]*同[^\n]*(Node\s*\+\s*)?jsdom\s*口径|同\s*Node\s*\+\s*jsdom\s*口径[^\n]*V4/,
+      'perf 脚本仍称 V4 基线「同 Node+jsdom 口径」—— 口径写错（V4 是真 WebView2）',
+    );
   });
 });

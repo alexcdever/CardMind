@@ -31,6 +31,8 @@ export const EVT_SELECTION = "selection";
 export const REQ_LOAD = "load";
 export const REQ_GET_MARKDOWN = "get-markdown";
 export const REQ_SET_TAGS = "set-tags";
+/** 原生→页：在光标处插入 [[title]]（3.5 补全候选 chip 的落点，见 index.ts）。 */
+export const REQ_INSERT_LINK = "insert-link";
 
 /** 响应类型。 */
 export const RES = "res";
@@ -43,6 +45,8 @@ export interface EditorRequest {
   type: string;
   markdown?: string;
   tags?: string[];
+  /** insert-link 请求：要插入为 [[title]] 的链接标题。 */
+  title?: string;
 }
 
 export interface EditorResponse {
@@ -57,7 +61,85 @@ export interface EditorEvent {
   type: string;
   dirty?: boolean;
   markdown?: string;
+  /** selection 事件：选区锚点/头（3.5 标签↔选区联动）。 */
+  from?: number;
+  to?: number;
+  /** 选区文本；折叠（光标）时恒为 ""（语义：无选中内容）。 */
+  text?: string;
+  /** 光标前最近一段文本（≤40 字符）—— 原生侧探测 [[prefix 补全的输入信号。
+   *  折叠选区 text 恒 ""（正常打字），若无此字段 [[ 补全永不触发（D5）。 */
+  textBefore?: string;
   [key: string]: unknown;
+}
+
+/** selection 事件里带的「光标前文本」窗口大小（字符数）。
+ *  `[[prefix` 补全只需要探测最近一小段，40 足够且不拖大 payload。 */
+export const TEXT_BEFORE_CHARS = 40;
+
+/** selectionUpdate → 页→原生 selection 事件的 payload 形态。
+ *  入参是 Tiptap selectionUpdate 回调拿到的 { editor }（或含 state 的任意对象），
+ *  抽出 from/to/text 三字段供 postToNative。
+ *
+ *  text    = 选区文本（折叠时 ""）；
+ *  textBefore = 光标前最近 TEXT_BEFORE_CHARS 个字符（原生侧 [[ 补全的输入信号，D5）。 */
+export function selectionPayload(source: {
+  state?: { selection?: { from?: number; to?: number } };
+  editor?: {
+    state: {
+      selection: { from: number; to: number; empty?: boolean };
+      doc: { textBetween: (from: number, to: number, sep?: string) => string };
+    };
+  };
+}): { from: number; to: number; text: string; textBefore: string } {
+  const ed = source.editor;
+  if (ed?.state?.selection) {
+    const { from, to } = ed.state.selection;
+    const text =
+      from === to ? '' : ed.state.doc.textBetween(from, to, ' ');
+    // textBetween(0, pos) 在文档起点处也能工作，故光标在文首时安全。
+    const textBefore = ed.state.doc.textBetween(
+      Math.max(0, from - TEXT_BEFORE_CHARS),
+      from,
+      '\n',
+    );
+    return { from, to, text, textBefore };
+  }
+  const sel = source.state?.selection;
+  return {
+    from: sel?.from ?? 0,
+    to: sel?.to ?? 0,
+    text: '',
+    textBefore: '',
+  };
+}
+
+/** 从光标前文本里抓「未闭合的 [[prefix」——`[[` 补全的触发信号。
+ *  只认 `textBefore`（光标前）：已闭合的 `[[x]]`、普通选中文字不触发。
+ *  返回 null = 不触发；返回前缀串（可为 ""，即刚输入 `[[`）= 触发 autoCompleteLinks。 */
+export function linkPrefixFromContext(textBefore: string): string | null {
+  const m = textBefore.match(/\[\[([^\[\]\|\n]*)$/);
+  return m ? m[1] : null;
+}
+
+/** 标签高亮命中：只有标签名命中 `[[prefix` 或完整等于选中文本才高亮。
+ *  旧实现是「任一 selection 事件高亮全部 tag」（D7）；这里按命中过滤。
+ *  命中规则（按序）：① 若光标前有未闭合 `[[p`，命中 tag.startsWith(p)（大小写不敏感）；
+ *  ② 否则若选中文本非空，命中 tag 等于选中文本（trim 后）；
+ *  ③ 否则不高亮。 */
+export function matchTags(
+  tags: string[],
+  selection: { text?: string; textBefore?: string },
+): string[] {
+  const prefix = linkPrefixFromContext(selection.textBefore ?? '');
+  if (prefix !== null) {
+    const p = prefix.toLowerCase();
+    return tags.filter((t) => t.toLowerCase().startsWith(p));
+  }
+  const sel = (selection.text ?? '').trim();
+  if (sel !== '') {
+    return tags.filter((t) => t === sel);
+  }
+  return [];
 }
 
 /** 进：markdown 段内软换行 → CommonMark 硬换行（行尾两空格）。 */
@@ -95,6 +177,8 @@ export function handleEditorMessage(
     onLoad?: (markdown: string) => void;
     onGetMarkdown?: () => string;
     onSetTags?: (tags: string[]) => void;
+    /** 原生侧 [[ 补全候选被点选后，页内在光标处插入 [[title]]。 */
+    onInsertLink?: (title: string) => void;
     onPing?: () => void;
   },
 ): EditorResponse | null {
@@ -121,6 +205,19 @@ export function handleEditorMessage(
     case REQ_SET_TAGS:
       handlers.onSetTags?.(msg.tags ?? []);
       return { id: msg.id, type: RES, ok: true };
+    case REQ_INSERT_LINK: {
+      const title = msg.title;
+      if (typeof title !== "string" || title.length === 0) {
+        return {
+          id: msg.id,
+          type: RES,
+          ok: false,
+          error: "insert-link:missing-title",
+        };
+      }
+      handlers.onInsertLink?.(title);
+      return { id: msg.id, type: RES, ok: true };
+    }
     default:
       return {
         id: msg.id,
