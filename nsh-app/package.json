@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "tsx --test theme_test.ts",
-    "build:web": "esbuild web/src/index.ts --bundle --minify --outfile=web/dist/bundle.js",
+    "build:web": "esbuild web/src/index.ts --bundle --minify --format=iife --outfile=web/dist/bundle.js && node web/build-inline.mjs",
     "build": "npm run build:web && node build-nsh.mjs"
   },
   "devDependencies": {
@@ -13,5 +13,12 @@
     "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.32.0",
+    "@tiptap/pm": "^3.32.0",
+    "@tiptap/starter-kit": "^3.32.0",
+    "prosemirror-markdown": "^1.13.8",
+    "tiptap-markdown": "^0.9.0"
   }
 }
