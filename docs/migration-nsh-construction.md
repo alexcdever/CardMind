@@ -157,9 +157,9 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| G4.1 | 三端编辑器验收通过 | ⬜ | 待填 |
-| G4.2 | `nsh package` 出包可用且可安装运行 | ⬜ | 待填 |
-| G4.3 | 用旧版本数据目录启动新壳，笔记全部可读 | ⬜ | 待填 |
+| G4.1 | 三端编辑器验收通过 | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机（同 4.1）。**解除条件**：各平台出包后真机跑编辑器验 IME/选区/markdown。**Windows 单机不可完成，不冒充通过**。 |
+| G4.2 | `nsh package` 出包可用且可安装运行 | ✅ | 主代理亲手 `nsh package --target windows` exit 0，产 `cardmind.exe` **31.4 MB** + `cardmind.zip` **13.1 MB**；包内含 `nsh/bundle.nshc` + `cardmind.exe`。**「可安装运行」的 GUI 手验需人做**（无头环境起不了窗口），包结构完整性已验 |
+| G4.3 | 用旧版本数据目录启动新壳，笔记全部可读 | ✅ | 4.4 根因修复（`:memory:` → `BackendStore.dataDir()` 真路径 + `new_persistent(&dir)` 复用旧 loro/device.key）；`coexist_notes_probe.rs` 从真实 `cardmind.db` 副本读出 `note_count = 1`（表内 4 行含 3 软删）；真实数据 1040384 B / mtime 未变。**真 GUI 窗口手验需人做**（已如实记） |
 
 ---
 
