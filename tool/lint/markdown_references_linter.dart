@@ -50,6 +50,7 @@ const Set<String> ignoredDirectoryNames = <String>{
   '.dart_tool',
   '.git',
   '.pipeline',
+  '.pi',
   '.workflow',
   '.worktrees',
   '.agents',

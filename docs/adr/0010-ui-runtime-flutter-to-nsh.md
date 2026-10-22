@@ -46,7 +46,7 @@ IME、选区与生态问题反复消耗开发时间，且每次 Flutter 升级�
    thread_local graph）。
 5. **数据目录由 Rust 侧推导**，指向 Flutter 版旧目录（`%APPDATA%\com.cardmind\cardmind`），
    旧 `cardmind.db` / `cardmind.loro` / `device.key` 原样复用（4.4 已实测可读）。
-6. **更新分发走整包替换**，见 [ADR 0010](0010-update-distribution-whole-package.md)。
+6. **更新分发走整包替换**，见 [ADR 0009](0009-update-distribution-whole-package.md)。
 
 ## 拒绝的方案
 
