@@ -10,11 +10,11 @@ import {
   Bridge,
 } from "app/native";
 import {
-  CardMindEmptyState,
   CardMindIconButton,
   CardMindListItem,
   CardMindSyncStatus,
 } from "./components";
+import { DevicesPage } from "./devices_page";
 import { NoteListPage } from "./note_list";
 import { goBack, nav, routes, screenChrome, type Route } from "./navigation";
 import { SettingsPage } from "./settings_page";
@@ -143,19 +143,14 @@ function TrashScreen() {
   );
 }
 
-/** 设备页：配对设备真数据 + 返回键。 */
+/** 设备页：配对全流程 + 已配对设备管理 + 本机信息 + 返回键。 */
 function DevicesScreen() {
   return (
     <Screen
       {...screenChrome("设备")}
       headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />}
     >
-      <View style={{ flex: 1, backgroundColor: colors.paper, padding: spacing.lg, gap: spacing.sm }}>
-        <Text>{device()}</Text>
-        <Text>{peerLine()}</Text>
-        <CardMindListItem title="回收站" onPress={() => nav.push(routes.trash)} />
-        <CardMindEmptyState icon="devices" title="没有已配对设备" message="在另一台设备上打开「设备」页即可配对。" />
-      </View>
+      <DevicesPage status={<PhaseOneStatus />} />
     </Screen>
   );
 }
