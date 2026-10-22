@@ -142,16 +142,21 @@ describe('1.4 Backend.Store 模块（#[module]，状态取全局单例）', () =
 describe('App.tsx 渲染真后端结果', () => {
   it('await 了 store 模块调用', () => {
     const name = storeModuleName();
-    assert.match(
-      tsx,
-      new RegExp(`await\\s+${name}\\.`),
-      `App.tsx 应 \`await ${name}.xxx(\``,
-    );
+    assert.match(tsx, new RegExp(`await\\s+${name}\\.`), `App.tsx 应 \`await ${name}.xxx(\``);
   });
 
-  it('把列表长度/笔记 ID 显示出来（非占位、非 [object Promise]）', () => {
+  it('把列表长度/笔记 ID/同步ID 显示出来（非占位、非 [object Promise]）', () => {
     assert.ok(!tsx.includes('[object Promise]'), 'App.tsx 不应出现 [object Promise]');
     assert.match(tsx, /条|Store|笔记ID/, 'App.tsx 应把结果拼进 Text');
+    // 审查补强：SYNC 单例也要被 TSX 真调用（syncDeviceId → ensure_sync →
+    // 真 SyncService::new() 建 iroh endpoint），否则全局单例只验了 STORE 一半。
+    const name = storeModuleName();
+    assert.match(
+      tsx,
+      new RegExp(`await\\s+${name}\\.syncDeviceId\\(`),
+      `App.tsx 应 \`await ${name}.syncDeviceId()\`（真建 SyncService 走全局 SYNC 单例）`,
+    );
+    assert.match(tsx, /同步ID/, 'App.tsx 应把 syncDeviceId() 结果渲染出来');
   });
 });
 

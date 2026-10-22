@@ -30,13 +30,23 @@ describe('Cargo.toml', () => {
 
   // 施工方案 1.7 + 1.4 起，nsh-app 就是要接真后端：路径依赖 rust-backend
   // （独立 workspace，靠 path 依赖引入，不并入 rust-backend 的 members）。
-  // 之前那条「不引入后端依赖」的 Phase 0 断言已随 1.7 落地而失效。
-  it('以 path 依赖引入 cardmind-backend', () => {
+  // 之前那条「不引入后端依赖」的 Phase 0 断言已随 1.7 落地而反转——
+  // 但「loro / iroh 不得由 nsh-app 直接声明」这条覆盖要保留：
+  // 它们只能经 cardmind-backend 间接使用，直接声明等于绕过后端 crate
+  // 自己操纵 CRDT / 网络层。（path 依赖行 `cardmind-backend = { path = "../rust-backend" }`
+  // 本身不含 loro/iroh，按「依赖名 =」匹配不会误命中。）
+  it('以 path 依赖引入 cardmind-backend（不直接依赖 loro/iroh）', () => {
     assert.match(
       manifest,
       /cardmind-backend\s*=\s*\{\s*path\s*=\s*"\.\.\/rust-backend"\s*\}/,
       '应引入 cardmind-backend（path = "../rust-backend"）',
     );
+    for (const dep of ['loro', 'iroh']) {
+      assert.ok(
+        !new RegExp(`(^|[^A-Za-z0-9_-])${dep}\\s*=`).test(manifest),
+        `nsh-app/Cargo.toml 不应直接依赖 ${dep}（应经 cardmind-backend 间接用）`,
+      );
+    }
   });
 });
 
