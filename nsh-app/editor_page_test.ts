@@ -230,30 +230,65 @@ describe('3.6 protocol.ts — 软换行覆盖（定案：覆盖保真）', () =>
     assert.equal(mod.unescapeBrackets('见 \\[\\[a|B\\]\\] 链接'), '见 [[a|B]] 链接');
     assert.equal(mod.unescapeBrackets('a\\nb'), 'a\\nb', '非方括号反斜杠保留');
   });
+
+  // 标准 3：markdown 往返（页内逻辑单测，走真实的软换行覆盖函数）
+  it('往返：行一\\n行二 → 覆盖进 → 覆盖出 → 仍是 行一\\n行二', async () => {
+    const mod = await import('./web/src/protocol.ts');
+    const roundtrip = (md: string) =>
+      mod.normalizeMarkdownFromEditor(
+        mod.normalizeMarkdownToEditor(md),
+      );
+    assert.equal(roundtrip('行一\n行二'), '行一\n行二', '软换行丢失 —— 3.6 覆盖保真失败');
+    assert.equal(roundtrip('一\n二\n三。'), '一\n二\n三。');
+  });
+
+  it('往返：结构 markdown 保真（标题 + 列表 + 引用 + 代码块 + [[链接]]）', async () => {
+    const mod = await import('./web/src/protocol.ts');
+    const roundtrip = (md: string) =>
+      mod.normalizeMarkdownFromEditor(mod.normalizeMarkdownToEditor(md));
+    const cases = [
+      '# 标题\n\n- 列表\n- 项二',
+      '段一。\n\n段二。',
+      '> 引用一\n> 引用二',
+      '```\ncode line1\ncode line2\n```',
+      '见 [[a|B]] 链接。\n下一行。',
+      '# 读书笔记\n\n今天读了 [[book-1|某本书]]，记两点：\n\n- 观点 A\n- 观点 B\n\n> 书里说：「慢即是快。」\n\n再回到 [[book-1]]。',
+    ];
+    for (const md of cases) {
+      assert.equal(roundtrip(md), md, `往返失真：${JSON.stringify(md)}`);
+    }
+  });
 });
 
-describe('3.2 web/src/index.ts — 页内协议接入', () => {
+describe('3.2 web/src — 页内协议接入（index.ts + protocol.ts）', () => {
+  // webSrc = web/src/*.ts 全部源码（顶部已拼接）；JSON.parse/res/load/
+  // get-markdown/dirty/markdown/700ms 在 protocol.ts 与 index.ts 的合计里查。
+  const code = codeOnly(webSrc);
+
   it('消息事件分发 JSON（type 字段）而非裸字符串', () => {
-    assert.match(codeOnly(indexTs), /JSON\.parse/, 'index.ts 未 JSON.parse 页→原生消息');
-    assert.match(codeOnly(indexTs), /type:\s*["']res["']|"res"/, 'index.ts 未生成 res 响应');
+    assert.match(code, /JSON\.parse/, '页内未 JSON.parse 原生→页消息');
+    assert.match(code, /type:\s*RES|["']res["']/, '页内未生成 res 响应');
   });
 
   it('load 请求 → setMarkdown 进编辑器', () => {
-    assert.match(codeOnly(indexTs), /setMarkdown/, 'index.ts 未接 setMarkdown');
+    assert.match(code, /["']load["']|REQ_LOAD/, '页内未识别 load 请求');
+    assert.match(code, /setMarkdown/, '页内未实现 setMarkdown');
   });
 
   it('get-markdown 请求 → 回 {type:"res", ok, markdown}', () => {
-    const code = codeOnly(indexTs);
-    assert.match(code, /get-markdown/, 'index.ts 未处理 get-markdown');
-    assert.match(code, /markdown/, 'index.ts 未回传 markdown');
+    assert.match(code, /get-markdown/, '页内未处理 get-markdown');
+    assert.match(code, /markdown/, '页内未回传 markdown');
   });
 
   it('onUpdate → dirty 事件 + autosave debounce（{type:"dirty"} + {type:"markdown"}）', () => {
-    const code = codeOnly(indexTs);
-    assert.match(code, /onUpdate|\.on\(["']update/, 'index.ts 未监听编辑器 update');
-    assert.match(code, /["']dirty["']/, 'index.ts 未发 dirty 事件');
-    assert.match(code, /["']markdown["']/, 'index.ts 未发 markdown 事件');
-    assert.match(code, /setTimeout\s*\(\s*[^,]+,\s*700\)/, 'index.ts 未 700ms debounce autosave');
+    assert.match(code, /\.on\(["']update["']/, 'index.ts 未监听编辑器 update');
+    assert.match(code, /["']dirty["']/, '页内未发 dirty 事件');
+    assert.match(code, /["']markdown["']/, '页内未发 markdown 事件');
+    assert.match(
+      code,
+      /AUTOSAVE_DEBOUNCE_MS\s*=\s*700|setTimeout\s*\(\s*[^,]+,\s*700\)/,
+      '页内未 700ms debounce autosave',
+    );
   });
 });
 
@@ -287,9 +322,8 @@ describe('3.3/3.4 App.tsx EditorScreen — markdown↔Rust + 可安全退出', (
     assert.match(body, /goBack\(\)/, '返回未走 goBack');
   });
 });
-
 describe('3.2 App.tsx — 原生侧协议（sendRequest + 8s 超时 + id 配对）', () => {
-  const body = (app.match(/function\s+EditorScreen[\s\S]*?\n  \}\);?/s)?.[0] ?? '');
+  const body = (app.match(/function\s+EditorScreen[\s\S]*?\n}/s)?.[0] ?? '');
 
   it('sendRequest 生成 id 并 postMessage JSON', () => {
     assert.match(body, /sendRequest/, 'EditorScreen 未实现 sendRequest');
