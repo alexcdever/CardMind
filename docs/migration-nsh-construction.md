@@ -114,13 +114,13 @@
 
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
-| 3.1 | 前端工程：Tiptap + `tiptap-markdown` + esbuild 打包 | ⬜ 未开始 | 待填 |
+| 3.1 | 前端工程：Tiptap + `tiptap-markdown` + esbuild 打包 | ✅ 已完成 | `8710f2ac`（合并）；`cce34a69`（test 红）/`05ba789a`（feat）；`nsh-app/web/src/index.ts` Tiptap（core+starter-kit+tiptap-markdown）挂 `#editor`；`package.json` +5 deps **零 loro**；esbuild `--format=iife` 产 `web/dist/bundle.js` 568KB（`rg loro`=0）；`editor_page_test.ts` 16 pass |
 | 3.2 | 消息协议层（请求/响应/事件 + 超时与错误） | ⬜ 未开始 | 待填 |
 | 3.3 | markdown ↔ Rust 读写（复用 `note_get` / `note_create`） | ⬜ 未开始 | 待填 |
 | 3.4 | dirty / autosave 700ms + 「可安全退出」信号 | ⬜ 未开始 | 待填 |
 | 3.5 | 撤销粒度调 `groupDelay`；标签栏 ↔ 选区联动 | ⬜ 未开始 | 待填 |
 | 3.6 | 软换行策略：确认 `行一\n行二` 合并是否可接受 | ⬜ 未开始 | 待填 |
-| 3.7 | 构建管线：esbuild 打包 + `web_view(url)` 静态站点 | ⬜ 未开始 | 待填 |
+| 3.7 | 构建管线：esbuild 打包 + `web_view(url)` 静态站点 | ✅ 已完成 | `8710f2ac`（合并）；`web/build-inline.mjs` 把 bundle.js 内联进 index.html → `web/dist/editor_html.ts`（`EDITOR_HTML`+`EDITOR_BASE_URL=https://cardmind.editor/`）；`App.tsx` `EditorScreen` 用 `<WebView source={{html,baseUrl}} onMessage>`（页→原生 `ReactNativeWebView`/`window.nsh` 双兼容，`editor-ready` 握手）；`nsh.json` +`capabilities.webview.hosts=[\"cardmind.editor\"]`；`nsh trace --tap 'label:新建笔记'` 见 `Create { kind: WebView }`（无头不渲染页面 JS，如实记）；**选型**：`{html,baseUrl}` 不起 HTTP server（无 file:// 资产协议给 WebView，`asset:/` 只用于图/字） |
 | 3.8 | IME / 选区 / markdown 往返的自动化验收 | ⬜ 未开始 | 待填 |
 | 3.9 | 性能基线复测（对照 V4 数字） | ⬜ 未开始 | 待填 |
 
