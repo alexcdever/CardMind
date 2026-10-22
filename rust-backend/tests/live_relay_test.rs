@@ -197,19 +197,17 @@ fn live_signed_credential_pairing_over_standard_443_relay() {
         let confirmer_sink = Arc::new(CollectingSink::new());
         let initiator_sink = Arc::new(CollectingSink::new());
 
-        let confirmer =
-            SyncService::new_persistent_with_log_sink(&dir_a, confirmer_sink.clone())
-                .await
-                .unwrap();
+        let confirmer = SyncService::new_persistent_with_log_sink(&dir_a, confirmer_sink.clone())
+            .await
+            .unwrap();
         confirmer.set_device_name("Trusted PC");
         confirmer
             .create_note("n1".to_string(), "# From trusted\n\nbody one")
             .unwrap();
 
-        let initiator =
-            SyncService::new_persistent_with_log_sink(&dir_b, initiator_sink.clone())
-                .await
-                .unwrap();
+        let initiator = SyncService::new_persistent_with_log_sink(&dir_b, initiator_sink.clone())
+            .await
+            .unwrap();
         initiator.set_device_name("New Phone");
 
         // 两端 relay 配置必须严格为标准 443 URL（字符串不得带 :9443）

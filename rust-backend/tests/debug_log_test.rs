@@ -421,10 +421,9 @@ fn connect_failure_emits_transport_and_error_chain() {
             .await
             .unwrap();
         let confirmer_sink = Arc::new(CollectingSink::new());
-        let confirmer =
-            SyncService::new_persistent_with_log_sink(&dir_confirmer, confirmer_sink)
-                .await
-                .unwrap();
+        let confirmer = SyncService::new_persistent_with_log_sink(&dir_confirmer, confirmer_sink)
+            .await
+            .unwrap();
         let _code = confirmer.begin_pairing_accept().unwrap();
         let target = PairingTarget {
             device_id: confirmer.device_id(),

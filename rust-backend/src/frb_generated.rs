@@ -95,8 +95,7 @@ fn wire__crate__api__accept_pairing_request_impl(
                             }
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
-                        let output_ok =
-                            crate::api::accept_pairing_request(&mut *api_svc_guard).await?;
+                        let output_ok = crate::api::accept_pairing_request(&*api_svc_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -153,7 +152,7 @@ fn wire__crate__api__accept_pairing_request_with_timeout_impl(
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
                         let output_ok = crate::api::accept_pairing_request_with_timeout(
-                            &mut *api_svc_guard,
+                            &*api_svc_guard,
                             api_timeout,
                         )
                         .await?;
@@ -265,8 +264,7 @@ fn wire__crate__api__accept_push_and_import_impl(
                             }
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
-                        let output_ok =
-                            crate::api::accept_push_and_import(&mut *api_svc_guard).await?;
+                        let output_ok = crate::api::accept_push_and_import(&*api_svc_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1488,7 +1486,7 @@ fn wire__crate__api__note_create_impl(
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
                         let output_ok =
-                            crate::api::note_create(&mut *api_svc_guard, api_id, api_content)?;
+                            crate::api::note_create(&*api_svc_guard, api_id, api_content)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -1642,7 +1640,7 @@ fn wire__crate__api__note_import_all_impl(
                             }
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
-                        let output_ok = crate::api::note_import_all(&mut *api_svc_guard, api_data)?;
+                        let output_ok = crate::api::note_import_all(&*api_svc_guard, api_data)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -1694,7 +1692,7 @@ fn wire__crate__api__note_purge_impl(
                             }
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
-                        let output_ok = crate::api::note_purge(&mut *api_svc_guard, api_id)?;
+                        let output_ok = crate::api::note_purge(&*api_svc_guard, api_id)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -1746,7 +1744,7 @@ fn wire__crate__api__note_restore_impl(
                             }
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
-                        let output_ok = crate::api::note_restore(&mut *api_svc_guard, api_id)?;
+                        let output_ok = crate::api::note_restore(&*api_svc_guard, api_id)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -1798,7 +1796,7 @@ fn wire__crate__api__note_soft_delete_impl(
                             }
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
-                        let output_ok = crate::api::note_soft_delete(&mut *api_svc_guard, api_id)?;
+                        let output_ok = crate::api::note_soft_delete(&*api_svc_guard, api_id)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -1852,7 +1850,7 @@ fn wire__crate__api__note_update_metadata_impl(
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
                         let output_ok = crate::api::note_update_metadata(
-                            &mut *api_svc_guard,
+                            &*api_svc_guard,
                             api_note_id,
                             api_tags,
                         )?;
@@ -2009,7 +2007,7 @@ fn wire__crate__api__purge_expired_trash_impl(
                         }
                         let mut api_svc_guard = api_svc_guard.unwrap();
                         let output_ok =
-                            crate::api::purge_expired_trash(&mut *api_svc_guard, api_cutoff)?;
+                            crate::api::purge_expired_trash(&*api_svc_guard, api_cutoff)?;
                         Ok(output_ok)
                     })(),
                 )
@@ -2416,8 +2414,7 @@ fn wire__crate__api__run_sync_cycle_impl(
                         let mut api_svc_guard = api_svc_guard.unwrap();
                         let api_store_guard = api_store_guard.unwrap();
                         let output_ok =
-                            crate::api::run_sync_cycle(&mut *api_svc_guard, &*api_store_guard)
-                                .await?;
+                            crate::api::run_sync_cycle(&*api_svc_guard, &*api_store_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,

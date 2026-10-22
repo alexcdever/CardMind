@@ -62,10 +62,10 @@
 | 1.1 | `Backend.Notes` 模块（note CRUD / tags / links / trash） | ⬜ 未开始 | 待填 |
 | 1.2 | `Backend.Sync` 模块（service 生命周期、开关、cycle、receiver） | ⬜ 未开始 | 待填 |
 | 1.3 | `Backend.Pairing` 模块（discover / pairing / credential / devices） | ⬜ 未开始 | 待填 |
-| 1.4 | `Backend.Store` 模块（轻量直查） | ⬜ 未开始 | 待填 |
+| 1.4 | `Backend.Store` 模块（轻量直查） | ✅ 已完成 | `03a4cc63`（合并）；`1fcf0590`（test 红）/`7d215a09`（feat）/`4cd4c4ec`（审查补强）；`#[module] impl BackendStore` 导出 `generateNoteId`/`createNoteStore`/`storeList`/`storeSearch`/`syncDeviceId`（nsh 0.1.1 模块名不支持嵌套，实际是 `BackendStore.*` 非 `Backend.Store.*`）；`nsh trace` 输出 `Store 已打开：:memory:`、UUID 形态笔记 ID、`列表：0 条`；`singleton_test.ts` 12 pass |
 | 1.5 | 事件回推面：同步进度、peer 发现（替代 FRB StreamSink） | ⬜ 未开始 | 待填 |
 | 1.6 | 退出钩子：先 `stop_receiver()` 再 `endpoint.close()` | ⬜ 未开始 | 待填 |
-| 1.7 | 全局单例改造：`SyncService`/`NoteStore` 改 `OnceLock<Mutex<..>>` | ⬜ 未开始 | 待填 |
+| 1.7 | 全局单例改造：`SyncService`/`NoteStore` 改 `OnceLock<Mutex<..>>` | ✅ 已完成 | `03a4cc63`（合并）；`rust-backend/src/sync.rs` 14 个 `&mut self` → `&self`（仅剩 `fn drop(&mut self)`，Drop 必需）；`api.rs` 11 处 `svc: &mut` → `svc: &`（现 0 处）；`nsh-app/src/lib.rs` `static STORE: OnceLock<NoteStore>` + `static SYNC: OnceLock<tokio::sync::Mutex<Option<SyncService>>>` + `ensure_sync()`；`nsh trace` 输出 `同步ID：76bce202…ad97f`（真 iroh EndpointId，证明 `ensure_sync()` 真建了 `SyncService`）；`rust-backend/tests/*` 12 文件 `cargo fix` 机械去多余 `mut` |
 
 **1.7 是这一阶段的关键**：`#[module]` **不允许带 receiver**（`nsh-macros` 原文「its state is a global」），所以 `svc: &mut SyncService` 这种签名写不出来，必须改成全局单例 + 内部锁。
 
