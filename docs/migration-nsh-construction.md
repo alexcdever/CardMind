@@ -115,11 +115,11 @@
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
 | 3.1 | 前端工程：Tiptap + `tiptap-markdown` + esbuild 打包 | ✅ 已完成 | `8710f2ac`（合并）；`cce34a69`（test 红）/`05ba789a`（feat）；`nsh-app/web/src/index.ts` Tiptap（core+starter-kit+tiptap-markdown）挂 `#editor`；`package.json` +5 deps **零 loro**；esbuild `--format=iife` 产 `web/dist/bundle.js` 568KB（`rg loro`=0）；`editor_page_test.ts` 16 pass |
-| 3.2 | 消息协议层（请求/响应/事件 + 超时与错误） | ⬜ 未开始 | 待填 |
-| 3.3 | markdown ↔ Rust 读写（复用 `note_get` / `note_create`） | ⬜ 未开始 | 待填 |
-| 3.4 | dirty / autosave 700ms + 「可安全退出」信号 | ⬜ 未开始 | 待填 |
+| 3.2 | 消息协议层（请求/响应/事件 + 超时与错误） | ✅ 已完成 | `b14165d0`（合并）；`72a97e28`（test 红）/`498b7c12`（feat）；`nsh-app/web/src/protocol.ts`（新）`handleEditorMessage` 分发 `load`/`get-markdown`/`set-tags`+回 `{id,res,ok,markdown?}`；`App.tsx` `sendRequest`（`++reqSeq` id+`pending` Map+`PROTO_TIMEOUT_MS=8000` 超时回 `{ok:false,error:"timeout"}`）；`onBridgeMessage` 按 id/type 配对分发；审查者实测分发 load/get-markdown/bad-json/ping 全正确、id 配对+错误回传真实 |
+| 3.3 | markdown ↔ Rust 读写（复用 `note_get` / `note_create`） | ✅ 已完成 | `b14165d0`（合并）；加载 `editor-ready`→`BackendNotes.noteGet(noteId)`→`sendRequest("load",{markdown})`；保存收 `{type:"markdown"}`→`BackendNotes.noteCreate`+`noteUpdateMetadata`+`syncNotesToStore`；空/`new` noteId→`BackendStore.generateNoteId`；**`NoteCrdt` 不动、web 不跑 loro**；真 Tiptap jsdom 往返 10/10+幂等 10/10 |
+| 3.4 | dirty / autosave 700ms + 「可安全退出」信号 | ✅ 已完成 | `b14165d0`（合并）；页内 `editor.on("update")`→发 `{type:"dirty"}`+700ms debounce 发 `{type:"markdown"}` autosave；原生收→`noteCreate`→`已保存`；保存态三态 `正在保存/尚未保存/已保存`；可安全退出 `closeEditor`：dirty→`flushMarkdown`(`get-markdown`)存完→`goBack`（对照 Dart `_close` 先 `_save` 再 pop） |
 | 3.5 | 撤销粒度调 `groupDelay`；标签栏 ↔ 选区联动 | ⬜ 未开始 | 待填 |
-| 3.6 | 软换行策略：确认 `行一\n行二` 合并是否可接受 | ⬜ 未开始 | 待填 |
+| 3.6 | 软换行策略：确认 `行一\n行二` 合并是否可接受 | ✅ 已完成 | **决定：覆盖序列化器保真**（用户定案，不接受合并成空格）。`protocol.ts` `softToHard`（段内 `\n`→`"  \n"` CommonMark 硬换行）+`hardToSoft`（`"  \n"`/`"\\\n"`→`\n`）+`unescapeBrackets`（`\[`/`\]` 还原保 `[[id\|alias]]`）+`normalizeMarkdownToEditor`/`FromEditor`；审查者用真 Tiptap jsdom 实测 `行一\n行二`→进→出仍 `行一\n行二`（roundtrip 10/10、idempotent 10/10），`executor.md` 显式记录决定 |
 | 3.7 | 构建管线：esbuild 打包 + `web_view(url)` 静态站点 | ✅ 已完成 | `8710f2ac`（合并）；`web/build-inline.mjs` 把 bundle.js 内联进 index.html → `web/dist/editor_html.ts`（`EDITOR_HTML`+`EDITOR_BASE_URL=https://cardmind.editor/`）；`App.tsx` `EditorScreen` 用 `<WebView source={{html,baseUrl}} onMessage>`（页→原生 `ReactNativeWebView`/`window.nsh` 双兼容，`editor-ready` 握手）；`nsh.json` +`capabilities.webview.hosts=[\"cardmind.editor\"]`；`nsh trace --tap 'label:新建笔记'` 见 `Create { kind: WebView }`（无头不渲染页面 JS，如实记）；**选型**：`{html,baseUrl}` 不起 HTTP server（无 file:// 资产协议给 WebView，`asset:/` 只用于图/字） |
 | 3.8 | IME / 选区 / markdown 往返的自动化验收 | ⬜ 未开始 | 待填 |
 | 3.9 | 性能基线复测（对照 V4 数字） | ⬜ 未开始 | 待填 |
