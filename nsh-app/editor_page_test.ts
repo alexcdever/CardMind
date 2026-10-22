@@ -334,3 +334,119 @@ describe('3.2 App.tsx — 原生侧协议（sendRequest + 8s 超时 + id 配对�
     assert.match(body, /8000|TIMEOUT/, 'sendRequest 未挂 8s 超时');
   });
 });
+
+// ── 施工方案 3.5：撤销粒度 groupDelay + 标签↔选区联动（最小可用）──
+
+describe('3.5 web 侧 — 撤销粒度 groupDelay', () => {
+  const code = codeOnly(webSrc);
+
+  it('StarterKit 配置 history groupDelay（500ms，中文组合内多事务→1 步撤销）', () => {
+    assert.match(
+      code,
+      /history\s*:\s*\{[^}]*groupDelay\s*:\s*500/,
+      'web 源码未给 StarterKit 配 history:{groupDelay:500}',
+    );
+  });
+});
+
+describe('3.5 web 侧 — 标签↔选区联动', () => {
+  const code = codeOnly(webSrc);
+
+  it('set-tags 请求 → 页内标签区更新（非空 onSetTags）', () => {
+    assert.match(code, /set-tags|REQ_SET_TAGS/, '页内未识别 set-tags');
+    // onSetTags 必须真正写内容（不是上一任务的空桩）。
+    const m = indexTs.match(/onSetTags[\s\S]{0,200}?=>[\s\S]{0,200}?\}/);
+    assert.ok(m, 'index.ts 无 onSetTags 处理器');
+    assert.match(
+      m[0],
+      /currentTags|renderTags|tagStrip|tags/,
+      'onSetTags 仍为空桩 —— 未把标签写进页内标签区',
+    );
+  });
+
+  it('selectionUpdate → postToNative({type:"selection",...})', () => {
+    assert.match(
+      code,
+      /\.on\(["']selectionUpdate["']/,
+      'index.ts 未监听 selectionUpdate',
+    );
+    assert.match(
+      code,
+      /EVT_SELECTION|["']selection["']/,
+      '页内未发 selection 事件',
+    );
+  });
+
+  it('selection 事件 payload 带选区信息（text/from/to）', async () => {
+    const mod = await import('./web/src/protocol.ts');
+    assert.equal(typeof mod.selectionPayload, 'function', 'protocol.ts 未导出 selectionPayload');
+    const p = mod.selectionPayload({
+      state: { selection: { from: 5, to: 12 } },
+    });
+    assert.equal(p.from, 5);
+    assert.equal(p.to, 12);
+  });
+});
+
+describe('3.5 App.tsx — 原生侧标签行 + 联动', () => {
+  const body = (app.match(/function\s+EditorScreen[\s\S]*?\n}/s)?.[0] ?? '');
+
+  it('最小标签行存在（渲染当前笔记标签）', () => {
+    assert.match(
+      body,
+      /CardMindTag|tagStrip|标签/,
+      'EditorScreen 未渲染最小标签行',
+    );
+  });
+
+  it('接收页内 selection 事件（onBridgeMessage 分发）', () => {
+    assert.match(body, /["']selection["']|selection/i, 'EditorScreen 未处理 selection 事件');
+  });
+
+  it('[[ 补全入口调 BackendNotes.autoCompleteLinks', () => {
+    assert.match(
+      body,
+      /autoCompleteLinks|auto_complete_links/,
+      'EditorScreen 未接 autoCompleteLinks 补全入口',
+    );
+  });
+
+  it('加载后把标签经 set-tags 发给页（sendRequest("set-tags")）', () => {
+    assert.match(
+      body,
+      /set-tags|setTags/,
+      'EditorScreen 未向页发 set-tags',
+    );
+  });
+});
+
+// ── 施工方案 3.8：自动化验收（真 Tiptap jsdom 往返在 web/src/md_fidelity_test.ts）──
+
+describe('3.8 自动化验收 — jsdom 真 Tiptap 往返单测存在', () => {
+  it('web/src/md_fidelity_test.ts 存在（12 类结构+[[id|alias]]+软换行全保真）', () => {
+    assert.ok(
+      existsSync(path.join(WEB_SRC_DIR, 'md_fidelity_test.ts')),
+      'web/src/md_fidelity_test.ts 不存在 —— 3.8 真 Tiptap 往返回归未落地',
+    );
+  });
+});
+
+// ── 施工方案 3.9：性能基线复测（web/src/editor_perf_test.ts）──
+
+describe('3.9 性能基线 — 脚本存在且跑三项计时', () => {
+  it('web/src/editor_perf_test.ts 存在（setContent/输入/getMarkdown 计时）', () => {
+    assert.ok(
+      existsSync(path.join(WEB_SRC_DIR, 'editor_perf_test.ts')),
+      'web/src/editor_perf_test.ts 不存在 —— 3.9 性能脚本未落地',
+    );
+  });
+
+  it('perf 脚本对照 V4 基线并标注 jsdom 量级', () => {
+    const perf = existsSync(path.join(WEB_SRC_DIR, 'editor_perf_test.ts'))
+      ? read('web/src/editor_perf_test.ts')
+      : '';
+    assert.match(perf, /setContent|insertContent/, 'perf 脚本未测 setContent/输入');
+    assert.match(perf, /getMarkdown/, 'perf 脚本未测 getMarkdown');
+    assert.match(perf, /V4|基线|jsdom/i, 'perf 脚本未对照 V4 基线/未标 jsdom 量级');
+  });
+});
