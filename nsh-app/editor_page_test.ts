@@ -447,7 +447,7 @@ describe('3.5 标签↔选区联动 — 真消息 / 真 DOM（D2/D5/D7）', () =
       editor: { state: { selection: { from: 4, to: 4, empty: true }, doc } },
     });
     assert.equal(p.text, '', '折叠选区 text 仍应为 ""（语义不变）');
-    assert.equal(p.textBefore, '见 [', '折叠选区未带光标前文本');
+    assert.equal(p.textBefore, '见 [[', '折叠选区未带光标前文本');
   });
 
   it('linkPrefixFromContext：只认光标前未闭合的 [[prefix', async () => {
@@ -482,17 +482,20 @@ describe('3.5 标签↔选区联动 — 真消息 / 真 DOM（D2/D5/D7）', () =
     ]);
   });
 
-  it('insert-link 请求 → 页内在光标处插入 [[title]]（候选 chip 有真行为）', async () => {
+  it('insert-link 请求 → 把已打的「[[prefix」替换成 [[title]]（不残留 [[）', async () => {
     const page = await mountEditorPage();
     const ed = page.editor;
-    page.dispatchToPage({ id: 13, type: 'load', markdown: '见 ' });
+    // 模拟用户已输入「见 [[ab」（光标在尾、折叠选区）。
+    page.dispatchToPage({ id: 13, type: 'load', markdown: '见' });
     ed.commands.setTextSelection(ed.state.doc.content.size - 1);
+    ed.commands.insertContent(' [[ab');
     page.resetPosted();
     page.dispatchToPage({ id: 14, type: 'insert-link', title: '某笔记' });
-    assert.match(
-      ed.getText(),
-      /\[\[某笔记\]\]/,
-      `insert-link 未把 [[title]] 插入编辑器（实际 ${JSON.stringify(ed.getText())}）`,
+    const doc = ed.getText();
+    assert.equal(
+      doc,
+      '见 [[某笔记]] ',
+      `insert-link 未用 [[title]] 替换已打的 [[prefix（实际 ${JSON.stringify(doc)}）`,
     );
     const res = page.postedEvents('res').find((m: any) => m.id === 14);
     assert.equal(res?.ok, true, 'insert-link 未回 ok 响应');

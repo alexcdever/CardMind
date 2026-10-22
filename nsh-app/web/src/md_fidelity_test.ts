@@ -1,6 +1,6 @@
 // 施工方案 3.8 自动化验收：真 Tiptap（jsdom）markdown 往返全保真。
 // 覆盖 task.md 标准 3 —— 12 类结构 + [[id|alias]] + 软换行 + 幂等。
-// 与 index.ts 保持同一扩展集：StarterKit(groupDelay) + 独立 HardBreak
+// 与 index.ts 保持同一扩展集：StarterKit(undoRedo.newGroupDelay) + 独立 HardBreak
 // （软换行进 <br>）+ Table* + Image + tiptap-markdown，进出走 protocol.ts
 // 的 normalizeMarkdownToEditor / normalizeMarkdownFromEditor 覆盖层。
 // 注意：jsdom 无 IME/真实选区 —— IME 组合输入与跨块选区属真 WebView2 实测。
@@ -53,7 +53,7 @@ before(async () => {
   editor = new Editor({
     element: el,
     extensions: [
-      StarterKit.configure({ history: { groupDelay: 500 }, hardBreak: false }),
+      StarterKit.configure({ undoRedo: { newGroupDelay: 500 }, hardBreak: false }),
       // 独立挂 HardBreak 并标记 markdown:true —— tiptap-markdown 据此把
       // hardBreak 序列化成「行尾两空格」，出层 hardToSoft 还原软换行。
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

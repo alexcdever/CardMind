@@ -19,7 +19,9 @@ import {
   EVT_MARKDOWN,
   EVT_READY,
   EVT_SELECTION,
+  TEXT_BEFORE_CHARS,
   handleEditorMessage,
+  linkPrefixFromContext,
   normalizeMarkdownFromEditor,
   normalizeMarkdownToEditor,
   selectionPayload,
@@ -63,13 +65,15 @@ function mount(): void {
   const editor = new Editor({
     element: el,
     extensions: [
-      // 3.5：history groupDelay 500ms —— 中文 IME 组合/快速输入在一个
+      // 3.5：撤销分组延迟 500ms —— 中文 IME 组合/快速输入在一个
       // 窗口内连续产生的多笔事务合并为一步撤销（对齐 Dart/proseMirror 习惯）。
+      // 真键名是 `undoRedo:{newGroupDelay}`（StarterKit 3.32：UndoRedo 扩展的
+      // option；`history:{groupDelay}` 是死键，被静默忽略、只碰默认 500 才看似对）。
       // hardBreak:false 是为了独立挂带 markdown:true 标记的 HardBreak ——
       // tiptap-markdown 据此把段内 <br> 序列化成「行尾两空格」，配合
       // protocol.hardToSoft 还原软换行（3.6/3.8 全保真链路的一环）。
       StarterKit.configure({
-        history: { groupDelay: 500 },
+        undoRedo: { newGroupDelay: 500 },
         hardBreak: false,
       }),
       (HardBreak as { extend(o: object): unknown }).extend({
@@ -146,6 +150,21 @@ function mount(): void {
       onSetTags: (tags) => {
         // 3.5：原生 set-tags → 把标签写进页内标签区（最小联动锚点）。
         renderTags(tags);
+      },
+      onInsertLink: (title) => {
+        // 3.5：原生侧 [[ 补全候选被点选 → 把用户已打的「[[prefix」替换成 [[title]]。
+        const { from } = editor.state.selection;
+        const textBefore = editor.state.doc.textBetween(
+          Math.max(0, from - TEXT_BEFORE_CHARS),
+          from,
+          "\n",
+        );
+        const prefix = linkPrefixFromContext(textBefore);
+        // prefix 非 null 时，回删「[[ + prefix」（2 + prefix.length 个字符）。
+        const back = prefix === null ? 0 : prefix.length + 2;
+        const chain = editor.chain().focus();
+        if (back > 0) chain.deleteRange({ from: from - back, to: from });
+        chain.insertContent(`[[${title}]] `).run();
       },
       onPing: () => {
         postToNative("pong");

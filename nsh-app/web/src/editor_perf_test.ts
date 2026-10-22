@@ -5,7 +5,7 @@
 //   ③ getMarkdown 回写耗时（autosave 路径）
 // ⚠️ jsdom 比真 WebView2(Chromium) 慢——数字是「jsdom 量级」，绝对值偏大，
 //    只对照相对量级；真 WebView2 实测需 `nsh package` 出包 + 真窗口跑（记为需真机）。
-// V4 基线（同 Node+jsdom，探针记录）：setContent 79ms / 输入 12.4ms / getMarkdown 21ms。
+// V4 基线（真实 WebView2，见 docs/migration-nsh-verification.md V4 行；本测=jsdom，对照相对量级）：setContent 79ms / 输入 12.4ms / getMarkdown 21ms。
 // 本文件以 node:test 断言「脚本可跑通且产出三项计时」，真实数字打进 stdout 供 executor.md 引用。
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -30,7 +30,7 @@ Object.defineProperty(globalThis, 'navigator', {
 ).bind(w);
 (globalThis as Record<string, unknown>).MutationObserver = w.MutationObserver;
 
-// 与 index.ts 完全一致的扩展集（3.5 groupDelay + 软换行/表格/图片扩展）。
+// 与 index.ts 完全一致的扩展集（3.5 undoRedo.newGroupDelay + 软换行/表格/图片扩展）。
 const { Editor } = await import('@tiptap/core');
 const { default: StarterKit } = await import('@tiptap/starter-kit');
 const { Markdown } = await import('tiptap-markdown');
@@ -41,7 +41,7 @@ const { TableCell } = await import('@tiptap/extension-table-cell');
 const { Image } = await import('@tiptap/extension-image');
 const { HardBreak } = await import('@tiptap/extension-hard-break');
 
-// V4 基线（spike/nsh-probe v4-perf.mjs 记录值，同 Node+jsdom 口径）。
+// V4 基线（真实 WebView2 数字，见 docs/migration-nsh-verification.md；本测=jsdom，对照相对量级）。
 const V4 = { setContent: 79, typeChar: 12.4, getMarkdown: 21 } as const;
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -68,7 +68,7 @@ before(async () => {
   editor = new Editor({
     element: el,
     extensions: [
-      StarterKit.configure({ history: { groupDelay: 500 }, hardBreak: false }),
+      StarterKit.configure({ undoRedo: { newGroupDelay: 500 }, hardBreak: false }),
       (HardBreak as { extend: (o: object) => unknown }).extend({
         markdown: true,
       }) as never,
