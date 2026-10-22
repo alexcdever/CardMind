@@ -17,11 +17,11 @@
 
 | 编号 | 前置条件 | 状态 | 检查方式 |
 |---|---|---|---|
-| P.1 | `nsh` CLI `v0.1.1` 已安装且在 PATH | ⬜ | `nsh --version` 输出 `nsh 0.1.1` |
-| P.2 | `NSH_SOURCE` 指向匹配的 `v0.1.1` checkout | ⬜ | `nsh build` 不报 `set NSH_SOURCE` |
-| P.3 | Rust 后端手写源码可脱离 FRB 编译 | ⬜ | 已由 V1 验证，确认 `lib.rs` 无 `mod frb_generated` |
-| P.4 | 迁移分支基于最新 `main` | ⬜ | `git merge-base --is-ancestor main HEAD` |
-| P.5 | 现有 Flutter 版本可正常构建（回退基线） | ⬜ | `flutter build windows --debug` 成功 |
+| P.1 | `nsh` CLI `v0.1.1` 已安装且在 PATH | ✅ | 本会话实测 `nsh --version` → `nsh 0.1.1`（注意：scoop 装的 nsh 现为 0.2.0，需从 `NSH_SOURCE` 的 v0.1.1 源码 `cargo build --release -p nsh-cli` 出 0.1.1 并置于 PATH 前） |
+| P.2 | `NSH_SOURCE` 指向匹配的 `v0.1.1` checkout | ✅ | `git -C <NSH_SOURCE> describe --tags` → `v0.1.1`；`nsh build`/`nsh package` 全程未报 `set NSH_SOURCE` |
+| P.3 | Rust 后端手写源码可脱离 FRB 编译 | ✅ | `rust-backend/src/lib.rs` 无 `mod frb_generated`；`cargo build --release` 通过（4.6 后门禁 `rust:build-lib` 每次验） |
+| P.4 | 迁移分支基于最新 `main` | ✅ | `migration/nsh` 分支自 `main` 切出（`git merge-base --is-ancestor main HEAD` 成立；`main` 全程未动） |
+| P.5 | 现有 Flutter 版本可正常构建（回退基线） | ✅ 已作废 | 4.6 已整删 Flutter 链（`lib/`/`test/`/`pubspec.*`），回退基线改为 Git 分支 `migration/nsh` 本身（可整支弃用） |
 
 > **P.2 是最容易出事的一条**：scoop 安装的 nsh 不含源码，`NSH_SOURCE` 必须指向对应 tag 的 checkout。指向 `main` 会因 crate 结构变更失败（V2 实测）。
 
