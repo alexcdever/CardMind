@@ -1,4 +1,4 @@
-import { mount, signal, Text, View, type YNode } from "nsh";
+import { If, mount, signal, Text, View, type YNode } from "nsh";
 import { Screen, Stack } from "nsh/ui/mobile";
 import { WebView } from "nsh/webview";
 import {
@@ -14,6 +14,7 @@ import {
   CardMindIconButton,
   CardMindListItem,
   CardMindSyncStatus,
+  CardMindTag,
 } from "./components";
 import { DevicesPage } from "./devices_page";
 import { NoteListPage } from "./note_list";
@@ -183,6 +184,11 @@ const PROTO_TIMEOUT_MS = 8000;
 function EditorScreen(props: { noteId: string }) {
   const bridge = signal("编辑器桥：(等待 editor-ready)");
   const saveState = signal("已保存");
+  // 3.5：标签行（当前笔记标签）+ 选区联动（页内 selection 事件 → 原生侧标签高亮）。
+  const noteTags = signal<string[]>([]);
+  const selText = signal(""); // 页内选区文本（空 = 无光标选区）
+  // [[ 前缀链补全：页内文本含 [[prefix 时拉 autoCompleteLinks 候选。
+  const linkCandidates = signal<string[]>([]);
   let web!: YNode;
   let noteId = props.noteId;
   let reqSeq = 0;
@@ -263,12 +269,54 @@ function EditorScreen(props: { noteId: string }) {
       } catch (err) {
         console.error(`[editor] 加载失败：${err}`);
       }
+      // 3.5：把当前笔记标签读进标签行 + 经 set-tags 发给页内标签区。
+      await loadNoteTags();
+    }
+  }
+
+  /** 读当前笔记标签（读模型 searchByTag(\"\") 全量行 → 找 noteId → 拆 CSV）。 */
+  async function loadNoteTags(): Promise<void> {
+    try {
+      const rows = await BackendNotes.searchByTag("");
+      const row = rows.find((r: { id: string }) => r.id === noteId);
+      const csv = (row?.tags ?? "") as string;
+      tags = csv
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+    } catch {
+      tags = [];
+    }
+    noteTags.set(tags);
+    void sendRequest("set-tags", { tags });
+  }
+
+  /** [[prefix]] 前缀链补全：从 autoCompleteLinks 拉候选标题。 */
+  async function refreshLinkCandidates(prefix: string): Promise<void> {
+    try {
+      const rows = await BackendNotes.autoCompleteLinks(prefix);
+      linkCandidates.set(
+        rows.map((r: { title?: string; id?: string }) => r.title ?? r.id ?? ""),
+      );
+    } catch {
+      linkCandidates.set([]);
+    }
+  }
+
+  /** 选区事件：更新原生侧选区文本 + 检测 [[prefix 触发补全。 */
+  function onSelection(text: string): void {
+    selText.set(text);
+    const m = text.match(/\[\[([^\[\]]*)$/);
+    if (m) {
+      void refreshLinkCandidates(m[1]);
+    } else if (linkCandidates().length > 0) {
+      linkCandidates.set([]);
     }
   }
 
   /** 页 → 原生事件/响应分发。 */
   function onBridgeMessage(raw: string): void {
-    let msg: { type?: string; id?: number; ok?: boolean; markdown?: string; dirty?: boolean; error?: string };
+    let msg: { type?: string; id?: number; ok?: boolean; markdown?: string; dirty?: boolean; error?: string; text?: string; from?: number; to?: number };
     try {
       msg = JSON.parse(raw);
     } catch {
@@ -291,6 +339,9 @@ function EditorScreen(props: { noteId: string }) {
       case "markdown":
         void saveMarkdown(msg.markdown ?? "");
         break;
+      case "selection":
+        onSelection(msg.text ?? "");
+        break;
       default:
         break;
     }
@@ -309,6 +360,46 @@ function EditorScreen(props: { noteId: string }) {
           <Text style={{ color: colors.mutedInk }}>{saveState()}</Text>
           <Text style={{ color: colors.mutedInk }}>{bridge()}</Text>
         </View>
+        {/* 3.5 最小标签行：当前笔记标签（selection 高亮时 accent 态）。 */}
+        <If when={noteTags().length > 0}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: spacing.sm,
+              paddingHorizontal: spacing.sm,
+              paddingBottom: spacing.sm,
+            }}
+          >
+            {() =>
+              noteTags().map((t) => (
+                <CardMindTag
+                  label={t}
+                  selected={selText() !== ""}
+                  onTap={() => undefined}
+                />
+              ))
+            }
+          </View>
+        </If>
+        {/* [[ 前缀链补全：页内 selection 文本含 [[prefix → autoCompleteLinks 候选。 */}
+        <If when={linkCandidates().length > 0}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: spacing.sm,
+              paddingHorizontal: spacing.sm,
+              paddingBottom: spacing.sm,
+            }}
+          >
+            {() =>
+              linkCandidates().map((title) => (
+                <CardMindTag label={title} onTap={() => undefined} />
+              ))
+            }
+          </View>
+        </If>
         <WebView
           ref={web}
           source={{ html: EDITOR_HTML, baseUrl: EDITOR_BASE_URL }}

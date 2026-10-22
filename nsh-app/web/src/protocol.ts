@@ -57,7 +57,34 @@ export interface EditorEvent {
   type: string;
   dirty?: boolean;
   markdown?: string;
+  /** selection 事件：选区锚点/头/文本（3.5 标签↔选区联动）。 */
+  from?: number;
+  to?: number;
+  text?: string;
   [key: string]: unknown;
+}
+
+/** selectionUpdate → 页→原生 selection 事件的 payload 形态。
+ *  入参是 Tiptap selectionUpdate 回调拿到的 { editor }（或含 state 的任意对象），
+ *  抽出 from/to/text 三字段供 postToNative。 */
+export function selectionPayload(source: {
+  state?: { selection?: { from?: number; to?: number } };
+  editor?: {
+    state: {
+      selection: { from: number; to: number; empty?: boolean };
+      doc: { textBetween: (from: number, to: number, sep?: string) => string };
+    };
+  };
+}): { from: number; to: number; text: string } {
+  const ed = source.editor;
+  if (ed?.state?.selection) {
+    const { from, to } = ed.state.selection;
+    const text =
+      from === to ? '' : ed.state.doc.textBetween(from, to, ' ');
+    return { from, to, text };
+  }
+  const sel = source.state?.selection;
+  return { from: sel?.from ?? 0, to: sel?.to ?? 0, text: '' };
 }
 
 /** 进：markdown 段内软换行 → CommonMark 硬换行（行尾两空格）。 */
