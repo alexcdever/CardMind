@@ -63,8 +63,8 @@
 | 1.2 | `Backend.Sync` 模块（service 生命周期、开关、cycle、receiver） | ✅ 已完成 | `d267cc5b`（合并）；`#[module] impl BackendSync` 16 函数；`nsh trace` 输出 `同步开关：true→false，receiver 已启动`、`同步ID：59b08248…fc3c05`（64 hex） |
 | 1.3 | `Backend.Pairing` 模块（discover / pairing / credential / devices） | ✅ 已完成 | `d267cc5b`（合并）；`#[module] impl BackendPairing` 21 函数；`nsh trace` 输出 `配对设备：0 台`；`notes_sync_pairing_test.ts` 8 pass；**59 个 api.rs 导出覆盖 58 个**（唯一未导 `create_persistent_sync_service`——返回有状态 `SyncService` 对象，不能作 module 返回值，设计约束合理省略）；`native.d.ts` 生成三 Module + 10 DTO interface |
 | 1.4 | `Backend.Store` 模块（轻量直查） | ✅ 已完成 | `03a4cc63`（合并）；`1fcf0590`（test 红）/`7d215a09`（feat）/`4cd4c4ec`（审查补强）；`#[module] impl BackendStore` 导出 `generateNoteId`/`createNoteStore`/`storeList`/`storeSearch`/`syncDeviceId`（nsh 0.1.1 模块名不支持嵌套，实际是 `BackendStore.*` 非 `Backend.Store.*`）；`nsh trace` 输出 `Store 已打开：:memory:`、UUID 形态笔记 ID、`列表：0 条`；`singleton_test.ts` 12 pass |
-| 1.5 | 事件回推面：同步进度、peer 发现（替代 FRB StreamSink） | ⬜ 未开始 | 待填 |
-| 1.6 | 退出钩子：先 `stop_receiver()` 再 `endpoint.close()` | ⬜ 未开始 | 待填 |
+| 1.5 | 事件回推面：同步进度、peer 发现（替代 FRB StreamSink） | ✅ 已完成 | `21f2611b`（合并）；`bc10adb5`（test 红）/`9e253ae3`（feat）；`Bridge` 从硬编码 `for i in 1..=3` 改成真读 `SyncService`（`receiver_progress().0` → `SyncProgress`、`store().list_paired_devices()` → `PeerFound`，值变化才 emit）；`nsh trace` 输出 `最近事件：SyncProgress(1)`；`events_close_test.ts` 6 pass |
+| 1.6 | 退出钩子：先 `stop_receiver()` 再 `endpoint.close()` | ✅ 已完成 | `21f2611b`（合并）；`sync.rs` 新增 `pub async fn close(&self)`：`stop_receiver().await?` 先于 `endpoint.close().await`；`BackendSync::close()` + `App.tsx` 末尾调用；`rust-backend/tests/close_test.rs` 2 真测试（`close_stops_receiver_then_closes_endpoint`、`close_is_idempotent`）；`nsh trace` 全程无 `Aborting ungracefully`；**nsh-core 无 app 退出钩子**（grep `on_exit`/`on_shutdown` 为空），故 trace 退出路径靠 `App.tsx` 显式 `await BackendSync.close()` + 单测覆盖顺序 |
 | 1.7 | 全局单例改造：`SyncService`/`NoteStore` 改 `OnceLock<Mutex<..>>` | ✅ 已完成 | `03a4cc63`（合并）；`rust-backend/src/sync.rs` 14 个 `&mut self` → `&self`（仅剩 `fn drop(&mut self)`，Drop 必需）；`api.rs` 11 处 `svc: &mut` → `svc: &`（现 0 处）；`nsh-app/src/lib.rs` `static STORE: OnceLock<NoteStore>` + `static SYNC: OnceLock<tokio::sync::Mutex<Option<SyncService>>>` + `ensure_sync()`；`nsh trace` 输出 `同步ID：76bce202…ad97f`（真 iroh EndpointId，证明 `ensure_sync()` 真建了 `SyncService`）；`rust-backend/tests/*` 12 文件 `cargo fix` 机械去多余 `mut` |
 
 **1.7 是这一阶段的关键**：`#[module]` **不允许带 receiver**（`nsh-macros` 原文「its state is a global」），所以 `svc: &mut SyncService` 这种签名写不出来，必须改成全局单例 + 内部锁。
@@ -75,10 +75,10 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| G1.1 | Notes 增删查改 + 标签 + 回收站在 TSX 侧跑通 | ⬜ | 待填 |
-| G1.2 | SyncService 起停跑通 | ⬜ | 待填 |
-| G1.3 | 退出无 iroh `Aborting ungracefully` | ⬜ | 待填 |
-| G1.4 | 事件桥能推送同步进度 | ⬜ | 待填 |
+| G1.1 | Notes 增删查改 + 标签 + 回收站在 TSX 侧跑通 | ✅ | `BackendNotes` 17 函数；`nsh trace` 输出 `笔记内容：# 测试笔记\n\n正文 markdown`、`回收站：1 条`、`列表：0 条`；`notes_sync_pairing_test.ts` 8 pass |
+| G1.2 | SyncService 起停跑通 | ✅ | `BackendSync` 16 函数；`nsh trace` 输出 `同步开关：true→false，receiver 已启动`；`receiverRunning`/`startReceiver`/`stopReceiver` 均真调 |
+| G1.3 | 退出无 iroh `Aborting ungracefully` | ✅ | `SyncService::close()`（`stop_receiver` → `endpoint.close`）；`close_test.rs` 2/2；`nsh trace` 全程无 abort 日志。**残留风险**：nsh-core 无 app lifecycle hook，退出靠 `App.tsx` 显式 `await BackendSync.close()`，非框架强制 |
+| G1.4 | 事件桥能推送同步进度 | ✅ | `Bridge` 真读 `receiver_progress().0`；`nsh trace` 输出 `最近事件：SyncProgress(1)`（真 receiver 窗口计数，非硬编码） |
 
 ---
 
