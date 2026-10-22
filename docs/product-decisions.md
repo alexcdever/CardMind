@@ -14,7 +14,7 @@
 - 早期把范围收窄到「Android + Windows」是为了压低验证成本（见下方 2026-06-16 决策 1、决策 4），Loro + iroh 同步链路可用后这个前提不再成立
 - iOS 是移动端目标平台之一，不因仓库暂缺 iOS 工程目录而改变范围
 
-**仓库现状（与目标范围分开表述）：** 平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`，iOS 工程目录尚未建立；`tool/build.dart` 的 `--platform` 支持 `android`、`macos`、`linux`、`windows`，未封装 iOS 目标。
+**仓库现状（与目标范围分开表述）：** 平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`，iOS 工程目录尚未建立；当时的 tool/build.dart（4.6 已删除）的 `--platform` 支持 `android`、`macos`、`linux`、`windows`，未封装 iOS 目标。
 
 **后续影响：** 同步更新 `docs/product.md`、`AGENTS.md`、`README.md`、`docs/standards/tech-stack-baseline.md` 的平台表述；`test/product_doc_test.dart` 的平台范围断言按新范围改写。
 

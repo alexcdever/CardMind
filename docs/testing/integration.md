@@ -1,47 +1,20 @@
 # Integration journeys
 
-`integration_test/cardmind_journeys_test.dart` covers six user journeys using
-`CardMindApp(repository:)` and the production `FrbNoteRepository`. Every test
-gets an isolated temporary data directory containing the persistent Loro source
-and its SQLite read projection. The harness closes all FRB opaque handles before
-removing the directory.
+> 迁移 4.6 起：`integration_test/`（Flutter 平台集成测试）与 tool/feature_test.dart
+> runner 已整删；前端为 NSH（`nsh-app`），真机/双实例验收改为按任务人工执行。
+> 本文保留作测试地图说明；自动化 E2E runner 属后续任务。
 
-## Run existing targets
+## 现状测试资产
 
-The runner never invokes `flutter pub get`, installs SDKs, or creates devices.
-It expects an already configured Flutter toolchain and an existing device.
+- **TSX 前端测试**：`nsh-app/*_test.ts` 与 `nsh-app/web/src/*_test.ts`，
+  node --test 经 tsx 加载，门禁 `tsx:test` 全量跑：
+  `cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"`。
+- **Rust 集成测试**：`rust-backend/tests/`，`cargo test --all-features --jobs 1`；
+  pre-commit 门禁按 staged 文件映射到具体 target。
+- **数据共存探针**：`nsh-app/data_coexist_test.ts`（静态断言 + cargo 探针读夹具 db）。
 
-```powershell
-# Windows desktop
-dart run tool/feature_test.dart --windows
+## 发布/验收（无自动化 runner）
 
-# Android, using an existing adb device
-$env:CARDMIND_ANDROID_DEVICE_ID = 'emulator-5554'
-dart run tool/feature_test.dart --android
-
-# Both targets, sequentially
-dart run tool/feature_test.dart --all --device=emulator-5554
-```
-
-The runner always passes `flutter test --no-pub` and forwards Flutter output.
-Android runs fail with an actionable message when no device id is supplied;
-there is no automatic SDK or emulator download.
-
-## Coverage seams
-
-The journeys interact through stable public `ValueKey` and Semantics anchors,
-then observe persistence through the same production repository used by the
-application. They cover create and reopen, list/open, desktop autosave,
-Markdown input, tag filtering, and debounced search. Windows and Android run
-the identical suite through `tool/feature_test.dart`.
-
-## Other integration tests
-
-`integration_test/` also holds platform-focused suites that `tool/feature_test.dart`
-does **not** invoke (it only runs `cardmind_journeys_test.dart`). Run them directly
-against a configured device, e.g. `flutter test integration_test/<file>`:
-
-- `device_name_live_test.dart`
-- `pairing_credential_dual_end_test.dart`
-- `pairing_credential_platform_test.dart`
-- `receiver_platform_test.dart`
+真机 GUI 与双实例 E2E 同步链路（NSH 壳 + Rust 后端 + iroh/mDNS）按任务验收执行，
+不进 push 门禁。历史 Flutter journeys 与 tool/feature_test.dart 已在 4.6 删除，
+如需恢复平台级集成 runner，以 NSH 打包产物（`nsh build`/`nsh package`）为对象重建。

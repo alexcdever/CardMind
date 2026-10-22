@@ -146,12 +146,13 @@
 
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
+<<<<<<< HEAD
 | 4.1 | 三端内核矩阵验收（Android / iOS / Linux / macOS 编辑器实测） | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机实例（R4/B.2）。**解除条件**：各平台 `nsh package` 出包后在真机跑编辑器，验 IME/选区/markdown 往返（按 `docs/migration-nsh.md` 4.3 矩阵）。**不冒充通过**。 |
 | 4.2 | 打包：`nsh package --target windows`（锁 `v0.1.1` + 对应 `NSH_SOURCE`） | ✅ 已完成 | 本机实测 `nsh package --target windows`（`nsh 0.1.1` + `NSH_SOURCE` = v0.1.1 tag）**exit 0**，产 `cardmind/cardmind.exe` **31.4 MB** + `cardmind.zip` **13.1 MB**（含 `nsh/bundle.nshc` + `cardmind.exe`）；同 V2 结论 |
 | 4.3 | 更新分发：整包替换（R11 定案，**不做**模块级热更） | ✅ 已完成 | `docs/adr/0009-update-distribution-whole-package.md`（合并 `b2606ad4`）：整包替换定案（`nsh package` 出 zip/exe 实测数字）、保留 `update_service` 的「拉 manifest、比版本、下载」、只把「下载 msix 调安装器」换成「下载新包替换」、**明确不做** `loadpkg` 模块级热更（R11）；按 0008 格式（日期/状态/决策者/背景/决策/拒绝方案/后果/非目标） |
 | 4.4 | 数据共存：现有 SQLite + LoroDoc 数据能被新壳直接打开 | ✅ 已完成 | 合并 `b2606ad4`；`d0b7d1e9`（test 红）/`2ad10729`（feat）；**根因修复**：App.tsx 原为 `createNoteStore(":memory:")`（内存库，旧笔记看不到）→ 改为 `BackendStore.dataDir()` 真路径；`nsh-app/src/lib.rs` `data_dir()`（Windows → `%APPDATA%\com.cardmind\cardmind`，回退 `com.cardmind.nsh` 并创建，返回 `{dir}\|{exists}`）+ `ensure_sync()` 用 `SyncService::new_persistent(&dir)` 复用旧 `cardmind.loro`/`device.key`；**真读证明**：`nsh-app/tests/coexist_notes_probe.rs` 复制真实 `cardmind.db` 到 `%TEMP%` 夹具 → `NoteStore::new` → `list_notes()` 非空、`note_count = 1`（表内 4 行含 3 条软删）；**真实数据未被改**：`cardmind.db` 1040384 B / mtime `2026-10-17T12:03:58` 前后一致；`data_coexist_test.ts` 6 pass |
 | 4.5 | ADR：登记「UI 运行时 Flutter → NSH」决策 | ✅ 已完成 | `docs/adr/0010-ui-runtime-flutter-to-nsh.md`：路线 C 定案（原生 TSX 页面 + WebView 编辑器）、拒绝路线 A/B/网页跑 loro/loadpkg 热更、后果（两套焦点世界、三端矩阵未验、无相机/文件选择器、构建链多一环）、非目标；按 0008 格式 |
-| 4.6 | 删 Flutter 残留 + 更新文档 | ⬜ 未开始 | 待填 |
+| 4.6 | 删 Flutter 残留 + 更新文档 | ✅ 已完成 | `520e8a99` + `63f46326`（合并）；`lib/`(33)、`test/`(59)、`integration_test/`(6)、`pubspec.*`、`.metadata`、`analysis_options.yaml`、`flutter_rust_bridge.yaml`、`tool/{build,quality,test_boundary_scanner,feature_test,debug_pool}` 整删；**门禁改 rust+tsx**：`full --dry-run` = `rust:clippy`+`rust:test:full`+`rust:build-lib`+`tsx:test`（`npx tsx --test *_test.ts web/src/*_test.ts` in `nsh-app`），**无 flutter 步骤**；**门禁真能拦**（主代理亲手：基线 exit 0 / 改坏 `theme_test.ts` → `tsx:test exit=1`、`full` exit=1 / 还原 exit 0）；`theme_test.ts` 改字面基线（原 Dart 源已删），审查者逐值对照 `git show migration/nsh:lib/ui/design_system/cardmind_theme.dart` 确认**未弱化**；`AGENTS.md` 改指向 nsh-app+tsx |
 
 ### 闸门 G4
 

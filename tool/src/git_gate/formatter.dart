@@ -80,19 +80,10 @@ Map<String, String> snapshotSources(
   return result;
 }
 
-/// 生成文件快照（FRB codegen 产物：Dart 绑定 + Rust 生成文件）。
+/// 生成文件快照（FRB codegen 已随 lib/ 整删移除；保留 rust-backend 的
+/// frb_generated.rs 观测——若它仍存在则纳入快照，防止手工漂移）。
 Map<String, String> snapshotGeneratedFiles(String repoRoot) {
   final result = <String, String>{};
-  final dartDir = Directory('$repoRoot/lib/src/rust');
-  if (dartDir.existsSync()) {
-    for (final f in dartDir.listSync().whereType<File>()) {
-      if (f.path.endsWith('.dart')) {
-        result[_relativePosix(repoRoot, f.path)] = normalizedContentHash(
-          f.readAsStringSync(),
-        );
-      }
-    }
-  }
   final frbGenerated = File('$repoRoot/rust-backend/src/frb_generated.rs');
   if (frbGenerated.existsSync()) {
     result['rust-backend/src/frb_generated.rs'] = normalizedContentHash(
@@ -125,7 +116,8 @@ class Formatter {
   final Runner runner;
   final Duration timeout;
 
-  static const dartDirs = <String>['lib', 'test', 'integration_test', 'tool'];
+  /// Dart 源码目录（4.6 起仅剩 tool/；lib/test/integration_test 已整删）。
+  static const dartDirs = <String>['tool'];
 
   Future<FormatOutcome> formatDart() async {
     final existing = dartDirs

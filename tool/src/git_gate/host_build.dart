@@ -43,7 +43,7 @@ class HostRuntimeSpec {
 }
 
 /// 各平台 host runtime 库路径（crate name 为 `cardmind-backend`，
-/// FRB stem 为 `cardmind_backend`，见 lib/src/rust/frb_generated.dart）。
+/// 动态库 stem 为 `cardmind_backend`）。
 HostRuntimeSpec hostRuntimeSpec(HostBuildPlatform platform) {
   switch (platform) {
     case HostBuildPlatform.windows:

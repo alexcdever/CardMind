@@ -8,33 +8,34 @@
 
 ## 目录规则
 
-- Flutter 测试位于 `test/`
+- TSX 前端测试位于 `nsh-app/`（根级 `*_test.ts`）与 `nsh-app/web/src/`（`*_test.ts`），node --test 经 tsx 加载运行
 - Rust 集成测试位于 `rust-backend/tests/`
 - Cargo 仅自动发现 `rust-backend/tests/` 根目录入口文件；若使用子目录分类，必须保留对应入口文件进行显式挂载
-- 平台集成测试位于 `integration_test/`，需要真机/模拟器或宿主平台运行态
+- Rust 边界扫描 crate 位于 `rust-backend/tool/boundary_scanner`（cargo workspace 成员，由 cargo 覆盖）
+- 旧 Flutter 测试目录（`test/`、`integration_test/`）已随迁移 4.6 整删
 
 ## 命名规则
 
-- Dart 测试文件使用 `{被测对象}_{测试类型}_test.dart`
+- TSX 测试文件使用 `{被测对象}_test.ts`（node --test 约定）
 - Rust 测试文件使用 `{被测对象}_{测试类型}_test.rs`
 - 测试名称必须直接表达行为与预期结果，避免 `test 1`、`works` 之类无信息命名
 
-## 四层测试门禁
+## 测试门禁分层
 
-本地质量门禁按风险分层执行，越上层越完整、成本越高：
+本地质量门禁按栈分层执行：
 
-1. **Widget 层**：`test/*_test.dart` 纯 Dart/widget 测试，`flutter test` 运行。
-2. **真实 FRB 层**：`test/api_integration_test.dart`、`test/frb_note_repository_test.dart`、`test/receiver_store_borrow_test.dart` 等真实调用 Rust 后端的测试；需要先构建/准备运行态 Rust 库（`dart run tool/build.dart lib`，按当前 host 平台选 cargo 产物名与运行态路径；pre-push/full 门禁内部用 gate 跨平台 build-lib：`cargo build --release` + 运行态同步，两者共用 `tool/src/git_gate/host_build.dart` 的平台规格）与 `flutter_rust_bridge_codegen generate`，验证跨语言边界真实行为。
-3. **平台集成层**：`integration_test/`，在移动端（Android / iOS）或桌面端（Linux / Windows / macOS）的真实设备上运行；现有 runner（`tool/feature_test.dart`）提供 Windows 与 Android 目标，属于发布/验收门禁，不塞入普通 push。
-4. **双实例 E2E 层**：两个应用实例间的真实同步/配对链路（含 relay 场景），属于发布/验收门禁，不塞入普通 push。
+1. **TSX 层**：`nsh-app` 全部 `*_test.ts`（node --test，`npx tsx --test "*_test.ts" "web/src/*_test.ts"`，在 `nsh-app/` 跑）。pre-commit 按 `nsh-app/**` 触发全量；不做文件级窄路由（单进程、秒级）。
+2. **Rust 层**：`rust-backend/tests/` 集成测试，pre-commit 按改动文件映射到具体 `cargo test --test <target>`（store/sync/pairing/trash 等关键词表 + `api::` 引用派生），无映射时 fail-closed 全量；pre-push/full 固定跑 `cargo test --all-features --jobs 1`。
+3. **文档契约层**：markdown 引用 lint（`tool/lint/markdown_references_linter.dart`），markdown 改动与全量 suite 均触发。
+4. **发布/验收层**：真机 GUI 与双实例 E2E 同步链路（NSH 壳 + Rust 后端），属发布/验收门禁，不塞入普通 push；当前无自动化 runner，按任务验收执行。
 
 ## 执行阶段
 
 | 阶段 | 执行内容 | 命令 |
 |------|---------|------|
 | commit（pre-commit） | format-first + 按 staged 变更分类的快速相关检查 | `dart run tool/git_gate.dart pre-commit` |
-| push（pre-push） | format-first + 完整 host suite（md lint、Rust clippy/test、FRB codegen、Flutter analyze/test），支持 HEAD 缓存 | `dart run tool/git_gate.dart pre-push` |
-| release/验收 | 平台集成层 + 双实例 E2E 层 | 任务验收/发布门禁；平台集成层另有 CI 入口 `.github/workflows/integration_e2e.yml`（`workflow_dispatch` + 每日定时，Windows journeys），仍属发布/验收门禁，不进 push |
+| push（pre-push） | format-first + 完整 host suite（md lint、Rust clippy/test、build-lib、tsx test），支持 HEAD 缓存 | `dart run tool/git_gate.dart pre-push` |
+| release/验收 | 真机 GUI + 双实例 E2E 层 | 任务验收/发布门禁；不进 push |
 | 手动完整 suite | 与 pre-push 相同 | `dart run tool/git_gate.dart full` |
 | 查看计划 | 只打印将执行的命令，不执行 | `dart run tool/git_gate.dart plan --staged` |
 
@@ -73,8 +74,6 @@ Rust 测试用 `cargo test --all-features --jobs 1` 执行。关于 `--jobs 1` �
 ## 与质量门禁的关系
 
 - 测试补齐应与 `dart run tool/git_gate.dart` 的选择器规则保持一致（如 pairing/device 改动应覆盖 pairing 测试）
-- 边界扫描报告写在运行目录（执行扫描器命令时的当前工作目录）下的 `tmp` 子目录：文件名 `cardmind_test_boundary_report.md`（首次运行扫描器时创建；指项目本地相对路径，不是系统 `/tmp`）
-- 若报告中存在本次改动引入的高优先级未覆盖边界，应优先补测或明确说明原因
 
 ## 非目标
 
