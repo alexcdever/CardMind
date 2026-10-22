@@ -87,7 +87,7 @@ pub fn require_ipv4(addrs: &[String]) -> bool {
 pub async fn pair_up(
     initiator: SyncService,
     initiator_store: NoteStore,
-    mut confirmer: SyncService,
+    confirmer: SyncService,
     confirmer_store: NoteStore,
 ) -> (SyncService, NoteStore, SyncService, NoteStore) {
     let code = confirmer.begin_pairing_accept().unwrap();

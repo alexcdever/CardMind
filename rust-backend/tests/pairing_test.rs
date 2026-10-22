@@ -184,7 +184,7 @@ fn wrong_pairing_codes_are_rate_limited() {
 #[test]
 fn completed_pairing_persists_on_both_sides() {
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
         let initiator = SyncService::new().await.unwrap();
         initiator.set_device_name("New Phone");
@@ -257,7 +257,7 @@ fn completed_pairing_persists_on_both_sides() {
 #[test]
 fn pairing_pushes_full_snapshot_to_initiator() {
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
         confirmer
             .create_note("n1".to_string(), "# From trusted\n\nbody one")
@@ -291,7 +291,7 @@ fn pairing_pushes_full_snapshot_to_initiator() {
         });
 
         // 发起方：连接 + 发送请求 + 接收响应 → 首次全量同步：接收快照并导入
-        let mut initiator = initiator;
+        let initiator = initiator;
         let initiator_handle = tokio::spawn(async move {
             let result = initiator
                 .begin_pairing_connect(&initiator_store, &code, target)
@@ -353,7 +353,7 @@ fn unpair_removes_the_paired_device_row() {
 #[test]
 fn accept_pairing_request_times_out_with_none() {
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         // 外层 tokio::time::timeout 兜底：bounded accept 必须在 5 秒内返回
         let outcome = tokio::time::timeout(
             std::time::Duration::from_secs(5),
@@ -370,7 +370,7 @@ fn accept_pairing_request_times_out_with_none() {
 #[test]
 fn accept_pairing_request_with_zero_timeout_returns_at_once() {
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         let start = std::time::Instant::now();
         let request = confirmer
             .accept_pairing_request_with_timeout(std::time::Duration::from_millis(0))
@@ -390,7 +390,7 @@ fn accept_pairing_request_with_zero_timeout_returns_at_once() {
 #[test]
 fn accept_pairing_request_returns_the_queued_request() {
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
         let initiator = SyncService::new().await.unwrap();
         initiator.set_device_name("New Phone");
@@ -428,7 +428,7 @@ fn accept_pairing_request_returns_the_queued_request() {
         // 发起方：连接 + 发送请求 + 等待握手响应；随后接收并导入自动推送
         // （确认方 confirm 后 push_to_peer；不 drain 会让确认方 closed-wait 等满超时）
         let initiator_task = tokio::spawn(async move {
-            let mut initiator = initiator;
+            let initiator = initiator;
             let result = tokio::time::timeout(
                 std::time::Duration::from_secs(10),
                 initiator.begin_pairing_connect(&initiator_store, &code, target),

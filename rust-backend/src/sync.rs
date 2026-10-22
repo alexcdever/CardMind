@@ -388,7 +388,7 @@ impl SyncService {
             .bind()
             .await
             .context("bind iroh endpoint")?;
-        let mut service = Self {
+        let service = Self {
             core: Arc::new(Mutex::new(CoreState {
                 notes: HashMap::new(),
                 tombstones: HashSet::new(),
@@ -868,7 +868,7 @@ impl SyncService {
     ///
     /// 实现委托 [`Self::accept_pairing_request_with_timeout`]（有界核心）；此处
     /// 用 24 小时边界保持"无限等待"语义（任务 M 决策点 1：有界核心可安全释放）。
-    pub async fn accept_pairing_request(&mut self) -> Result<PairingRequest> {
+    pub async fn accept_pairing_request(&self) -> Result<PairingRequest> {
         match self
             .accept_pairing_request_with_timeout(Duration::from_secs(24 * 3600))
             .await?
@@ -890,7 +890,7 @@ impl SyncService {
     /// 外层 deadline 到点返回 `Ok(None)`。每个 accept 窗口均被
     /// `tokio::time::timeout` 保护（阻塞网络操作两侧都限时）。
     pub async fn accept_pairing_request_with_timeout(
-        &mut self,
+        &self,
         timeout: Duration,
     ) -> Result<Option<PairingRequest>> {
         let started = std::time::Instant::now();
@@ -949,7 +949,7 @@ impl SyncService {
 
     /// accept 等待核心循环（有界；见 [`Self::accept_pairing_request_with_timeout`]）。
     async fn accept_pairing_request_loop(
-        &mut self,
+        &self,
         timeout: Duration,
     ) -> Result<Option<PairingRequest>> {
         let deadline = tokio::time::Instant::now() + timeout;
@@ -1321,7 +1321,7 @@ impl SyncService {
     #[doc(hidden)]
     #[cfg(any(test, feature = "test-utils"))]
     pub async fn receive_pairing_request_for_test(
-        &mut self,
+        &self,
         _store: &NoteStore,
         timeout: Duration,
     ) -> Result<String> {
@@ -1516,7 +1516,7 @@ impl SyncService {
     }
 
     /// 添加/创建一条笔记
-    pub fn create_note(&mut self, note_id: String, content: &str) -> Result<()> {
+    pub fn create_note(&self, note_id: String, content: &str) -> Result<()> {
         let note = NoteCrdt::new();
         note.set_content(content);
         let mut core = self.core.lock().unwrap();
@@ -1542,7 +1542,7 @@ impl SyncService {
     }
 
     /// 更新笔记内容
-    pub fn update_note(&mut self, note_id: &str, content: &str) -> Result<()> {
+    pub fn update_note(&self, note_id: &str, content: &str) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1565,7 +1565,7 @@ impl SyncService {
     /// 更新笔记元数据（meta tags）
     ///
     /// 更新 NoteCrdt 的 meta.tags list 并 persist；persist 失败时回滚内存态。
-    pub fn update_metadata(&mut self, note_id: &str, tags: &[String]) -> Result<()> {
+    pub fn update_metadata(&self, note_id: &str, tags: &[String]) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1594,7 +1594,7 @@ impl SyncService {
     /// 软删除：给笔记 meta 打 deleted_at 标记（进回收站），随快照传播。
     ///
     /// 笔记仍在 notes HashMap 中，仅 meta 标记；persist 失败时回滚内存态。
-    pub fn soft_delete_note(&mut self, note_id: &str) -> Result<()> {
+    pub fn soft_delete_note(&self, note_id: &str) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1615,7 +1615,7 @@ impl SyncService {
     }
 
     /// 恢复：清除笔记 meta 的 deleted_at 标记，随快照传播。
-    pub fn restore_note(&mut self, note_id: &str) -> Result<()> {
+    pub fn restore_note(&self, note_id: &str) -> Result<()> {
         {
             let core = self.core.lock().unwrap();
             let note = core
@@ -1638,7 +1638,7 @@ impl SyncService {
     /// 彻底删除：从 notes 移除并记入墓碑（删除信息随快照传播，防复活）。
     ///
     /// 已彻底删除的 id 幂等成功；persist 失败时回滚内存态。
-    pub fn purge_note(&mut self, note_id: &str) -> Result<()> {
+    pub fn purge_note(&self, note_id: &str) -> Result<()> {
         let mut core = self.core.lock().unwrap();
         let removed = core.notes.remove(note_id);
         if removed.is_none() && !core.tombstones.contains(note_id) {
@@ -1659,7 +1659,7 @@ impl SyncService {
 
     /// 过期清理：遍历 meta.deleted_at < cutoff 的软删笔记并 purge（入墓碑），
     /// 返回清理数。cutoff 为 RFC3339 时间字符串。
-    pub fn purge_expired(&mut self, cutoff: &str) -> Result<usize> {
+    pub fn purge_expired(&self, cutoff: &str) -> Result<usize> {
         let cutoff_dt = chrono::DateTime::parse_from_rfc3339(cutoff)
             .with_context(|| format!("invalid cutoff timestamp: {}", cutoff))?;
         let mut core = self.core.lock().unwrap();
@@ -1718,7 +1718,7 @@ impl SyncService {
     }
 
     /// 导入全量快照（v3 语义：墓碑 section + 记录流）
-    pub fn import_all(&mut self, data: &[u8]) -> Result<()> {
+    pub fn import_all(&self, data: &[u8]) -> Result<()> {
         let started = std::time::Instant::now();
         let result = {
             let mut core = self.core.lock().unwrap();
@@ -1776,7 +1776,7 @@ impl SyncService {
     /// - v3：`墓碑 section + 记录流`（导入的墓碑与本地 tombstones union 合并；
     ///   记录流中遇到墓碑中的 id 跳过，不复活）
     /// - v1/v2：纯记录流（无墓碑 section，tombstones 为空，无损升级）
-    fn import_raw(&mut self, version: u32, data: &[u8]) -> Result<()> {
+    fn import_raw(&self, version: u32, data: &[u8]) -> Result<()> {
         let mut core = self.core.lock().unwrap();
         import_core_raw(&mut core, version, data)
     }
@@ -2445,7 +2445,7 @@ impl SyncService {
     /// 2. push 给所有配对设备（对等推拉——pull 语义用 push 协议实现：
     ///    我方 push 即请求对端在各自周期里推回）
     /// 3. 短窗口 accept 对端 push（非阻塞）→ import → 刷新 SQLite 投影
-    pub async fn run_sync_cycle(&mut self, store: &NoteStore) -> Result<SyncCycleResult> {
+    pub async fn run_sync_cycle(&self, store: &NoteStore) -> Result<SyncCycleResult> {
         let started = std::time::Instant::now();
         if !self.sync_allowed() {
             let result = SyncCycleResult {
@@ -4883,8 +4883,8 @@ mod tests {
     /// 当前 revision 已超过 after → 立即返回（不挂起等待）。
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn wait_content_revision_returns_immediately_when_already_past() {
-        let mut svc = SyncService::new().await.unwrap();
-        let mut src = SyncService::new().await.unwrap();
+        let svc = SyncService::new().await.unwrap();
+        let src = SyncService::new().await.unwrap();
         src.create_note("n1".to_string(), "# A\n\nbody").unwrap();
         let data = src.export_all().unwrap();
         svc.import_all(&data).unwrap();
@@ -4904,7 +4904,7 @@ mod tests {
     /// 先注册等待再触发 import → 被 notify 唤醒并返回新 revision（先读后等不丢事件）。
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn wait_content_revision_wakes_on_new_import() {
-        let mut svc = SyncService::new().await.unwrap();
+        let svc = SyncService::new().await.unwrap();
         let before = svc.receiver_content_revision();
 
         let svc_ptr = &svc as *const SyncService as usize;
@@ -4916,7 +4916,7 @@ mod tests {
         // 让 waiter 先进入 notified().await（先读后等路径）
         tokio::task::yield_now().await;
 
-        let mut src = SyncService::new().await.unwrap();
+        let src = SyncService::new().await.unwrap();
         src.create_note("n2".to_string(), "# B\n\nbody").unwrap();
         let data = src.export_all().unwrap();
         svc.import_all(&data).unwrap();

@@ -46,13 +46,13 @@ fn live_pairing_and_sync_over_dogcloud_relay() {
         let dir_a = temp_dir_relay("confirmer", RELAY_URL);
         let dir_b = temp_dir_relay("initiator", RELAY_URL);
 
-        let mut confirmer = SyncService::new_persistent(&dir_a).await.unwrap();
+        let confirmer = SyncService::new_persistent(&dir_a).await.unwrap();
         confirmer.set_device_name("Trusted PC");
         confirmer
             .create_note("n1".to_string(), "# From trusted\\n\\nbody one")
             .unwrap();
 
-        let mut initiator = SyncService::new_persistent(&dir_b).await.unwrap();
+        let initiator = SyncService::new_persistent(&dir_b).await.unwrap();
         initiator.set_device_name("New Phone");
 
         println!(
@@ -197,7 +197,7 @@ fn live_signed_credential_pairing_over_standard_443_relay() {
         let confirmer_sink = Arc::new(CollectingSink::new());
         let initiator_sink = Arc::new(CollectingSink::new());
 
-        let mut confirmer =
+        let confirmer =
             SyncService::new_persistent_with_log_sink(&dir_a, confirmer_sink.clone())
                 .await
                 .unwrap();
@@ -206,7 +206,7 @@ fn live_signed_credential_pairing_over_standard_443_relay() {
             .create_note("n1".to_string(), "# From trusted\n\nbody one")
             .unwrap();
 
-        let mut initiator =
+        let initiator =
             SyncService::new_persistent_with_log_sink(&dir_b, initiator_sink.clone())
                 .await
                 .unwrap();
