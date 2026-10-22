@@ -16,7 +16,9 @@ describe('package.json 构建 scripts', () => {
 
   it('含 build script（build:web → nsh build）', () => {
     assert.equal(typeof pkg.scripts?.build, 'string', '缺少 scripts.build');
-    assert.match(pkg.scripts.build, /nsh(\.exe|\.cmd)?\s+build/);
+    // 直接或经包装脚本（build-nsh.mjs）调用 nsh build
+    assert.match(pkg.scripts.build, /nsh(\.exe|\.cmd)?\s+build|build-nsh\.mjs/);
+    assert.match(pkg.scripts.build, /build:web/, 'build 应先跑 build:web');
   });
 
   it('含 build:web script（esbuild → web/dist）', () => {

@@ -4,10 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "tsx --test theme_test.ts"
+    "test": "tsx --test theme_test.ts",
+    "build:web": "esbuild web/src/index.ts --bundle --minify --outfile=web/dist/bundle.js",
+    "build": "npm run build:web && node build-nsh.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
