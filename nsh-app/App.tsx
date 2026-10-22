@@ -13,13 +13,11 @@ import {
   CardMindEmptyState,
   CardMindIconButton,
   CardMindListItem,
-  CardMindPrimaryButton,
-  CardMindSearchField,
   CardMindSyncStatus,
-  CardMindTag,
 } from "./components";
-import { goBack, nav, openEditor, screenChrome, type Route } from "./navigation";
-import { colors, layout, spacing, typography } from "./theme";
+import { NoteListPage } from "./note_list";
+import { goBack, nav, screenChrome, type Route } from "./navigation";
+import { colors, spacing } from "./theme";
 
 // 真后端数据源（施工方案 1.1–1.7 的验收证据）：这些 Backend* 调用不能删。
 // 页面骨架把它们的结果渲染进新组件（同步指示条 / 列表项 / 空态），不再是
@@ -35,8 +33,6 @@ const trashLine = signal("回收站：(未删除)");
 const syncLine = signal("同步开关：(未读取)");
 const peerLine = signal("配对设备：(未查询)");
 const last = signal("最近事件：(还没收到)");
-const searchText = signal("");
-
 (async () => {
   const id = await Backend.deviceId();
   device.set(`设备ID：${id}`);
@@ -97,77 +93,11 @@ const searchText = signal("");
   await BackendSync.close();
 })();
 
-/** 侧栏：LOGO + 新建按钮 + 搜索框 + 标签行 + 同步状态 + 底栏导航。 */
-function Sidebar() {
+/** Phase 1 后端证据行 + Bridge 事件监听（原「编辑器占位」状态区）。 */
+function PhaseOneStatus() {
   return (
-    <View
-      style={{
-        width: layout.sidebarWidth,
-        backgroundColor: colors.surfaceLow,
-        borderRightWidth: 1,
-        borderRightColor: colors.border,
-        padding: spacing.lg,
-        gap: spacing.md,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: typography.headlineSmall.fontSize,
-          lineHeight: typography.headlineSmall.lineHeight,
-          fontWeight: "600",
-          color: colors.ink,
-        }}
-      >
-        CardMind
-      </Text>
-      <CardMindPrimaryButton
-        label="新建笔记"
-        icon="add"
-        onPress={() => openEditor("new")}
-        expanded
-      />
-      <CardMindSearchField
-        value={searchText}
-        onChanged={(t) => searchText.set(t)}
-        onClear={() => searchText.set("")}
-      />
-      <View style={{ flexDirection: "row", gap: spacing.sm }}>
-        <CardMindTag label="标签A" selected onTap={() => {}} />
-        <CardMindTag label="标签B" onTap={() => {}} />
-      </View>
-      <CardMindSyncStatus label="本地已就绪" pendingCount={0} />
-      <View style={{ flex: 1 }} />
-      <CardMindListItem title="回收站" onPress={() => nav.push({ name: "trash" })} />
-      <CardMindListItem title="设备" onPress={() => nav.push({ name: "devices" })} />
-      <CardMindListItem title="设置" onPress={() => nav.push({ name: "settings" })} />
-    </View>
-  );
-}
-
-/** 笔记列表区：标题 + 空态占位（真列表数据在 trace 行里）。 */
-function NoteList() {
-  return (
-    <View
-      style={{
-        width: layout.listWidth,
-        borderRightWidth: 1,
-        borderRightColor: colors.border,
-        backgroundColor: colors.paper,
-      }}
-    >
-      <CardMindListItem title="测试笔记" subtitle="# 测试笔记 · 标签A 标签B" selected onPress={() => openEditor("demo")} />
-      <CardMindEmptyState icon="notes" title="没有笔记" message="点击「新建笔记」写下第一条。" />
-    </View>
-  );
-}
-
-/** 编辑器占位页：标题 + 后端接线结果行（Phase 1 真数据）。 */
-function EditorPlaceholder() {
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.paper, padding: spacing.lg, gap: spacing.sm }}>
-      <Text style={{ color: colors.mutedInk, fontSize: typography.bodyMedium.fontSize }}>
-        编辑器占位（2.x 实现）——以下为后端真数据：
-      </Text>
+    <View style={{ gap: spacing.sm }}>
+      <Text style={{ color: colors.mutedInk }}>Phase 1 后端真数据：</Text>
       <Text>{syncId()}</Text>
       <Text>{device()}</Text>
       <Text>{storeStatus()}</Text>
@@ -187,15 +117,11 @@ function EditorPlaceholder() {
   );
 }
 
-/** notes 根页面：桌面三栏（侧栏 | 列表 | 编辑器）。 */
+/** notes 根页面：新列表页（内部 ≥960 桌面三栏 / <960 移动堆叠 + 双 Tab）。 */
 function NotesScreen() {
   return (
     <Screen {...screenChrome("笔记")}>
-      <View style={{ flex: 1, flexDirection: "row", backgroundColor: colors.paper }}>
-        <Sidebar />
-        <NoteList />
-        <EditorPlaceholder />
-      </View>
+      <NoteListPage status={<PhaseOneStatus />} />
     </Screen>
   );
 }
@@ -244,6 +170,7 @@ function SettingsScreen() {
         <Text>{syncLine()}</Text>
         <Text>{syncId()}</Text>
         <CardMindSyncStatus label="本地已就绪" pendingCount={0} />
+        <CardMindListItem title="日志目录" onPress={() => {}} />
       </View>
     </Screen>
   );
