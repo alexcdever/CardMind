@@ -1,4 +1,4 @@
-import { If, mount, signal, Text, View, type YNode } from "nsh";
+import { mount, signal, Text, View, type YNode } from "nsh";
 import { Screen, Stack } from "nsh/ui/mobile";
 import { WebView } from "nsh/webview";
 import {
@@ -371,7 +371,7 @@ function EditorScreen(props: { noteId: string }) {
           <Text style={{ color: colors.mutedInk }}>{bridge()}</Text>
         </View>
         {/* 3.5 最小标签行：当前笔记标签（selection 命中 [[prefix/选中文字才高亮）。 */}
-        <If when={noteTags().length > 0}>
+        {() => noteTags().length > 0 ? (
           <View
             style={{
               flexDirection: "row",
@@ -392,9 +392,9 @@ function EditorScreen(props: { noteId: string }) {
               ))
             }
           </View>
-        </If>
+        ) : null}
         {/* [[ 前缀链补全：页内 selection 文本含 [[prefix → autoCompleteLinks 候选。 */}
-        <If when={linkCandidates().length > 0}>
+        {() => linkCandidates().length > 0 ? (
           <View
             style={{
               flexDirection: "row",
@@ -414,7 +414,7 @@ function EditorScreen(props: { noteId: string }) {
               ))
             }
           </View>
-        </If>
+        ) : null}
         <WebView
           ref={web}
           source={{ html: EDITOR_HTML, baseUrl: EDITOR_BASE_URL }}
