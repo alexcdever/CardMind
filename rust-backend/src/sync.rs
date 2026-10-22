@@ -2674,6 +2674,18 @@ impl SyncService {
         )
     }
 
+    /// 优雅退出：先停被动接收任务，再关 iroh endpoint。
+    ///
+    /// 顺序固定：`stop_receiver()`（3 秒内有界返回）先让后台 accept 循环退出，
+    /// 再 `endpoint.close().await`（iroh 1.x 的 `Endpoint::close` 是 async，等待
+    /// 所有连接优雅关闭）。未调用本方法直接 drop `Endpoint` 时，iroh 会打印
+    /// 「Endpoint dropped without calling Endpoint::close. Aborting ungracefully.」。
+    pub async fn close(&self) -> Result<()> {
+        self.stop_receiver().await?;
+        self.endpoint.close().await;
+        Ok(())
+    }
+
     /// 事件等待：阻塞直到接收器走完超过 `after` 个 accept 窗口，返回新窗口数。
     ///
     /// 用 `watch` 通道传递最新 `(windows, connections)` 快照——通道始终持有最新值，

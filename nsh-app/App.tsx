@@ -77,6 +77,11 @@ function Root() {
       `配对设备：${paired.length} 台；发现 ${peers.length} 个对端；` +
         `${deviceName} @ ${addrs.length} 个地址（id:${deviceId.slice(0, 8)}…）`,
     );
+
+    // ── 1.6 退出钩子：演示末尾真调 BackendSync.close()（先 stop_receiver
+    //    再 endpoint.close）。nsh trace 进程退出无生命周期钩子，这里显式调用
+    //    避免 iroh「Endpoint dropped … Aborting ungracefully」。
+    await BackendSync.close();
   })();
   return (
     <View style={{ flex: 1, padding: 12, gap: 8 }}>
