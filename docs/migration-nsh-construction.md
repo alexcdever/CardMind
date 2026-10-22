@@ -146,7 +146,6 @@
 
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
-<<<<<<< HEAD
 | 4.1 | 三端内核矩阵验收（Android / iOS / Linux / macOS 编辑器实测） | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机实例（R4/B.2）。**解除条件**：各平台 `nsh package` 出包后在真机跑编辑器，验 IME/选区/markdown 往返（按 `docs/migration-nsh.md` 4.3 矩阵）。**不冒充通过**。 |
 | 4.2 | 打包：`nsh package --target windows`（锁 `v0.1.1` + 对应 `NSH_SOURCE`） | ✅ 已完成 | 本机实测 `nsh package --target windows`（`nsh 0.1.1` + `NSH_SOURCE` = v0.1.1 tag）**exit 0**，产 `cardmind/cardmind.exe` **31.4 MB** + `cardmind.zip` **13.1 MB**（含 `nsh/bundle.nshc` + `cardmind.exe`）；同 V2 结论 |
 | 4.3 | 更新分发：整包替换（R11 定案，**不做**模块级热更） | ✅ 已完成 | `docs/adr/0009-update-distribution-whole-package.md`（合并 `b2606ad4`）：整包替换定案（`nsh package` 出 zip/exe 实测数字）、保留 `update_service` 的「拉 manifest、比版本、下载」、只把「下载 msix 调安装器」换成「下载新包替换」、**明确不做** `loadpkg` 模块级热更（R11）；按 0008 格式（日期/状态/决策者/背景/决策/拒绝方案/后果/非目标） |
