@@ -59,9 +59,9 @@
 
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
-| 1.1 | `Backend.Notes` 模块（note CRUD / tags / links / trash） | ⬜ 未开始 | 待填 |
-| 1.2 | `Backend.Sync` 模块（service 生命周期、开关、cycle、receiver） | ⬜ 未开始 | 待填 |
-| 1.3 | `Backend.Pairing` 模块（discover / pairing / credential / devices） | ⬜ 未开始 | 待填 |
+| 1.1 | `Backend.Notes` 模块（note CRUD / tags / links / trash） | ✅ 已完成 | `d267cc5b`（合并）；`fcee276d`（test 红）/`1733bf11`（feat）/`47ea80eb`（App.tsx）；`#[module] impl BackendNotes` 17 函数；10 个 `#[derive(JsObject, Clone)]` 镜像 DTO 定义在 `nsh-app/src/lib.rs`（**`rust-backend` 零改动**，`NoteRow` 未加 `JsObject`）；`nsh trace` 输出 `笔记内容：# 测试笔记\n\n正文 markdown`、`回收站：1 条` |
+| 1.2 | `Backend.Sync` 模块（service 生命周期、开关、cycle、receiver） | ✅ 已完成 | `d267cc5b`（合并）；`#[module] impl BackendSync` 16 函数；`nsh trace` 输出 `同步开关：true→false，receiver 已启动`、`同步ID：59b08248…fc3c05`（64 hex） |
+| 1.3 | `Backend.Pairing` 模块（discover / pairing / credential / devices） | ✅ 已完成 | `d267cc5b`（合并）；`#[module] impl BackendPairing` 21 函数；`nsh trace` 输出 `配对设备：0 台`；`notes_sync_pairing_test.ts` 8 pass；**59 个 api.rs 导出覆盖 58 个**（唯一未导 `create_persistent_sync_service`——返回有状态 `SyncService` 对象，不能作 module 返回值，设计约束合理省略）；`native.d.ts` 生成三 Module + 10 DTO interface |
 | 1.4 | `Backend.Store` 模块（轻量直查） | ✅ 已完成 | `03a4cc63`（合并）；`1fcf0590`（test 红）/`7d215a09`（feat）/`4cd4c4ec`（审查补强）；`#[module] impl BackendStore` 导出 `generateNoteId`/`createNoteStore`/`storeList`/`storeSearch`/`syncDeviceId`（nsh 0.1.1 模块名不支持嵌套，实际是 `BackendStore.*` 非 `Backend.Store.*`）；`nsh trace` 输出 `Store 已打开：:memory:`、UUID 形态笔记 ID、`列表：0 条`；`singleton_test.ts` 12 pass |
 | 1.5 | 事件回推面：同步进度、peer 发现（替代 FRB StreamSink） | ⬜ 未开始 | 待填 |
 | 1.6 | 退出钩子：先 `stop_receiver()` 再 `endpoint.close()` | ⬜ 未开始 | 待填 |
