@@ -44,9 +44,14 @@ const last = signal("最近事件：(还没收到)");
   const id = await Backend.deviceId();
   device.set(`设备ID：${id}`);
 
-  // 打开全局 store（单例；":memory:" = 演示不落盘）
-  const opened = await BackendStore.createNoteStore(":memory:");
-  storeStatus.set(`Store：${opened}`);
+  // 打开全局 store：优先旧版数据目录（数据共存 4.4），否则 NSH 自有目录。
+  // dataDir() 返回 "{dir}|{exists}"；旧 db 存在 = 找到旧数据，否则首次运行。
+  const info = await BackendStore.dataDir();
+  const [dataDir, foundLegacy] = info.split("|");
+  const opened = await BackendStore.createNoteStore(`${dataDir}/cardmind.db`);
+  storeStatus.set(
+    foundLegacy === "true" ? `Store：找到旧数据 ${opened}` : `Store：首次运行 ${opened}`,
+  );
 
   // 纯 Rust 生成 UUID v7
   const fresh = await BackendStore.generateNoteId();
@@ -56,13 +61,20 @@ const last = signal("最近事件：(还没收到)");
   const sync = await BackendStore.syncDeviceId();
   syncId.set(`同步ID：${sync}`);
 
-  // ── 1.1 Backend.Notes：创建 → 改 metadata → 软删 → 回收站 → 投影刷新 ──
-  await BackendNotes.noteCreate(fresh, "# 测试笔记\n\n正文 markdown");
-  await BackendNotes.noteUpdateMetadata(fresh, ["标签A", "标签B"]);
-  await BackendNotes.noteSoftDelete(fresh);
-  await BackendNotes.syncNotesToStore();
+  // ── 1.1 Backend.Notes ──
+  // 安全：旧数据目录是**用户真实数据**，绝不写入演示笔记。演示写只在 NSH 自有
+  // 目录（首次运行）里跑，用来保留 1.1 的验收证据；找到旧数据时改为只读展示。
+  if (foundLegacy !== "true") {
+    await BackendNotes.noteCreate(fresh, "# 测试笔记\n\n正文 markdown");
+    await BackendNotes.noteUpdateMetadata(fresh, ["标签A", "标签B"]);
+    await BackendNotes.noteSoftDelete(fresh);
+    await BackendNotes.syncNotesToStore();
+  }
 
-  const content = await BackendNotes.noteGet(fresh);
+  // 读回一条真实笔记内容（旧数据时读用户第一条；演示态读刚建的那条）。
+  const listIds = await BackendNotes.searchByTag("");
+  const probeId = foundLegacy === "true" ? (listIds[0]?.id ?? "") : fresh;
+  const content = probeId === "" ? null : await BackendNotes.noteGet(probeId);
   noteLine.set(`笔记内容：${(content ?? "(null)").slice(0, 40)}`);
 
   const trash = await BackendNotes.storeTrashList();
