@@ -16,8 +16,10 @@ import {
   CardMindSyncStatus,
 } from "./components";
 import { NoteListPage } from "./note_list";
-import { goBack, nav, screenChrome, type Route } from "./navigation";
+import { goBack, nav, routes, screenChrome, type Route } from "./navigation";
+import { SettingsPage } from "./settings_page";
 import { colors, spacing } from "./theme";
+import { TrashPage } from "./trash_page";
 
 // 真后端数据源（施工方案 1.1–1.7 的验收证据）：这些 Backend* 调用不能删。
 // 页面骨架把它们的结果渲染进新组件（同步指示条 / 列表项 / 空态），不再是
@@ -109,6 +111,7 @@ function PhaseOneStatus() {
       <Text>{syncLine()}</Text>
       <Text>{peerLine()}</Text>
       <Text>{last()}</Text>
+      <CardMindSyncStatus label="本地已就绪" pendingCount={0} />
       <Bridge
         onSyncProgress={(n) => last.set(`最近事件：SyncProgress(${n})`)}
         onPeerFound={(name) => last.set(`最近事件：PeerFound(${name})`)}
@@ -126,7 +129,7 @@ function NotesScreen() {
   );
 }
 
-/** 回收站页：空态 + 返回键 + 真回收站计数。 */
+/** 回收站页：真列表 + 恢复/彻底删除/定期清理 + 返回键。 */
 function TrashScreen() {
   return (
     <Screen
@@ -135,10 +138,7 @@ function TrashScreen() {
         <CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />
       }
     >
-      <View style={{ flex: 1, backgroundColor: colors.paper }}>
-        <Text style={{ padding: spacing.lg, color: colors.mutedInk }}>{trashLine()}</Text>
-        <CardMindEmptyState icon="trash" title="回收站是空的" message="删除的笔记会在这里保留 30 天。" />
-      </View>
+      <TrashPage status={<PhaseOneStatus />} />
     </Screen>
   );
 }
@@ -153,25 +153,21 @@ function DevicesScreen() {
       <View style={{ flex: 1, backgroundColor: colors.paper, padding: spacing.lg, gap: spacing.sm }}>
         <Text>{device()}</Text>
         <Text>{peerLine()}</Text>
+        <CardMindListItem title="回收站" onPress={() => nav.push(routes.trash)} />
         <CardMindEmptyState icon="devices" title="没有已配对设备" message="在另一台设备上打开「设备」页即可配对。" />
       </View>
     </Screen>
   );
 }
 
-/** 设置页：同步开关真数据 + 返回键。 */
+/** 设置页：真设备名/同步开关/日志目录/更新检查 + 返回键。 */
 function SettingsScreen() {
   return (
     <Screen
       {...screenChrome("设置")}
       headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />}
     >
-      <View style={{ flex: 1, backgroundColor: colors.paper, padding: spacing.lg, gap: spacing.sm }}>
-        <Text>{syncLine()}</Text>
-        <Text>{syncId()}</Text>
-        <CardMindSyncStatus label="本地已就绪" pendingCount={0} />
-        <CardMindListItem title="日志目录" onPress={() => {}} />
-      </View>
+      <SettingsPage status={<PhaseOneStatus />} />
     </Screen>
   );
 }
