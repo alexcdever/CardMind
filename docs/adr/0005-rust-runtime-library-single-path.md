@@ -72,7 +72,7 @@
 ### 现状核对（2026-10）
 
 - **决策已落地并扩展到多平台**：
-  - macOS 运行态为 `build/native/macos/` 下的 dylib，由 `tool/build.dart`（`lib` 子命令）同步；Android 由同一脚本经 cargo ndk 产出 .so 并校验到打包库目录。
+  - macOS 运行态为 `build/native/macos/` 下的 dylib，由当时 tool/build.dart（`lib` 子命令，4.6 已删除）同步；Android 由同一脚本经 cargo ndk 产出 .so 并校验到打包库目录。
   - Windows / Linux host 运行态由门禁模块 `tool/src/git_gate/host_build.dart` 同步（Windows 目标为 Flutter 打包产物内的 DLL 路径，Linux 为 bundle 的 lib 目录），并保留了「先删旧、再复制」的语义。
   - Dart 侧单一解析入口是 `lib/bridge/rust_library_loader.dart`（`resolveBundledRustLibraryPath`），
     按 macos/ios、windows、linux 分派候选路径；应用启动（`lib/main.dart`）与真库集成测试
@@ -86,5 +86,5 @@
     `lib/bridge/rust_library_loader.dart` 缺库时返回 null，由 FRB 默认加载逻辑报错，不再附带构建指令。
   - 库名随 lib / FRB stem 变化：当时的 `libcardmind_rust` 现为 `cardmind_backend`；
     包名（`rust-backend/Cargo.toml` 的 `[package] name`）为 `cardmind-backend`，`cardmind_backend` 是 lib 与 FRB 的 stem（见 `tool/src/git_gate/host_build.dart` 的说明）。
-  - 当时的两个非目标后来部分变化：Android 动态库构建已由 `tool/build.dart` 纳入（cargo ndk 产出 .so）；
+  - 当时的两个非目标后来部分变化：Android 动态库构建已由 tool/build.dart 纳入（cargo ndk 产出 .so；该脚本 4.6 已删除）；
     iOS 仍无工程与分发方案；FRB 代码生成产物本身仍未改造（生成代码里的默认库路径仍指向 Cargo 产物目录）。

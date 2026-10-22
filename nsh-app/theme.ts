@@ -1,6 +1,6 @@
-// CardMind 设计令牌 —— TSX 侧唯一来源。
-// 值必须与 lib/ui/design_system/cardmind_theme.dart 逐一对齐；
-// nsh-app/theme_test.ts 会读 Dart 源文本逐项比对，漂移即红。
+// CardMind 设计令牌 —— TSX 侧唯一来源（lib/ 已随 Flutter 链整删）。
+// 值迁移自 lib/ui/design_system/cardmind_theme.dart；theme_test.ts 把迁移前
+// 对齐过的最终值固化为字面量基线，漂移即红。
 
 /** 颜色令牌，对齐 CardMindTokens.light（10 个）。 */
 export const colors = {

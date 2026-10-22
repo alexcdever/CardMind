@@ -151,7 +151,7 @@
 | 4.3 | 更新分发：整包替换（R11 定案，**不做**模块级热更） | ⬜ 未开始 | 待填 |
 | 4.4 | 数据共存：现有 SQLite + LoroDoc 数据能被新壳直接打开 | ⬜ 未开始 | 待填 |
 | 4.5 | ADR：登记「UI 运行时 Flutter → NSH」决策 | ⬜ 未开始 | 待填 |
-| 4.6 | 删 Flutter 残留 + 更新文档 | ⬜ 未开始 | 待填 |
+| 4.6 | 删 Flutter 残留 + 更新文档 | ✅ 完成 | `lib/`、`test/`、`integration_test/`、`pubspec.*`、`.metadata`、`analysis_options.yaml`、`flutter_rust_bridge.yaml` 整删；tool/build.dart、tool/quality.dart、tool/test_boundary_scanner.* 整删；门禁改为 rust+tsx（`plan --staged`/`full --dry-run` 实测无 flutter 步骤，tsx 失败门禁非零退出）；`AGENTS.md` 已改指向 nsh-app |
 
 ### 闸门 G4
 

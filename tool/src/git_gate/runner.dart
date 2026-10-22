@@ -47,15 +47,53 @@ typedef RealProcessRunner =
       required Duration timeout,
     });
 
-/// 解析可执行文件：Windows 上精确 `flutter` → `flutter.bat`。
+/// 解析可执行文件：Windows 上 `flutter` → `flutter.bat`、`npx` → `npx.cmd`。
 ///
 /// 背景：Dart `Process.start` 在 Windows 上无法启动 Scoop/Flutter 的
-/// extensionless `flutter` shim，而 `flutter.bat` 可以启动。
-/// 只有精确 executable `flutter` 被替换；`flutter_rust_bridge_codegen`、
-/// `dart`、`cargo` 等其它可执行文件不受影响。非 Windows 保持 `flutter`。
-String resolveExecutable(String executable, {required bool isWindows}) {
-  if (isWindows && executable == 'flutter') return 'flutter.bat';
+/// extensionless `flutter` shim，而 `flutter.bat` 可以启动；npx 同理
+/// （标准 Node 安装的 npx shim 是 .cmd 批处理，CreateProcess 不能直接拉起）。
+/// npx 特殊在本机可能以 `npx.exe`（nvm/scoop）或 `npx.cmd`（官方 Node 安装）
+/// 存在——只把确实存在的变体改写，否则原样返回交给系统 PATH 解析
+/// （`Process.start` 自己会找 `npx.exe`）。只有精确 executable 命中时才替换；
+/// `dart`、`cargo` 等其它可执行文件不受影响。非 Windows 原样返回。
+String resolveExecutable(
+  String executable, {
+  required bool isWindows,
+  Map<String, String>? environment,
+}) {
+  if (!isWindows) return executable;
+  if (executable == 'flutter') return 'flutter.bat';
+  if (executable == 'npx') {
+    return _firstOnPath(const <String>[
+      'npx.cmd',
+      'npx.exe',
+      'npx.bat',
+    ], environment: environment);
+  }
   return executable;
+}
+
+/// 在 PATH 上按候选名顺序找第一个存在的可执行文件；都不存在时返回 `npx`
+/// （让 `Process.start` 按 PATHEXT 解析到 `npx.exe`；硬编码 `.cmd` 会在
+/// nvm/scoop 布局下必败）。
+String _firstOnPath(
+  List<String> candidates, {
+  Map<String, String>? environment,
+}) {
+  final raw = (environment ?? Platform.environment)['PATH'] ?? '';
+  final dirs = raw.split(Platform.isWindows ? ';' : ':');
+  for (final name in candidates) {
+    for (final dir in dirs) {
+      if (dir.isEmpty) continue;
+      if (File('$dir${Platform.pathSeparator}$name').existsSync()) {
+        return name;
+      }
+    }
+  }
+  // PATH 上找不到已知变体：返回无扩展名原名，交给 Process.start 按
+  // PATHEXT 自行解析（如 `npx` → `npx.exe`）；硬编码 `.cmd` 会在
+  // nvm/scoop 布局（只有 npx.exe）下必败。
+  return 'npx';
 }
 
 /// Git 为 hook / `--git-dir` 调用导出的仓库定位变量。

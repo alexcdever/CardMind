@@ -1,22 +1,21 @@
 # CardMind
 
-面向多设备个人用户的笔记同步应用。Flutter 前端 + Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
+面向多设备个人用户的笔记同步应用。NSH 前端（nsh-app，TSX）+ Rust 核心，基于 iroh 网络库和 Loro CRDT 实现低感知、低延迟的跨设备笔记同步。
 
 ## 技术栈
 
 | 层 | 技术 | 版本 |
 |---|------|------|
-| 前端 | Flutter | 3.44.9（CI pin；Dart SDK 约束 `^3.12.2` 见 `pubspec.yaml`） |
+| 前端 | NSH + TSX（nsh-app） | nsh 0.1.1（`nsh-app/nsh.json`；TSX + tiptap，`nsh-app/package.json`） |
 | 核心逻辑 | Rust | Edition 2021（`rust-backend/Cargo.toml`）；CI 用 stable，仓库未固定 toolchain |
 | CRDT 存储 | Loro | 1.13.6（`rust-backend/Cargo.lock`） |
 | 网络层 | iroh | 1.0.2（`rust-backend/Cargo.lock`；直连模式，默认禁用 relay） |
 | 查询层 | SQLite (Rust 端 rusqlite) | 0.31.0（`rust-backend/Cargo.lock`，bundled） |
-| 跨语言桥 | flutter_rust_bridge | 2.12.0（`pubspec.yaml` / `rust-backend/Cargo.toml`） |
 
 ## 架构
 
 ```
-Flutter (UI) ←→ FRB ←→ Rust (业务后端)
+NSH (TSX UI, nsh-app) ←→ Rust (业务后端，rust-backend)
                           ├─ LoroDoc (真实信源)
                           ├─ SQLite (读模型)
                           └─ iroh (网络同步)
@@ -28,15 +27,13 @@ Flutter (UI) ←→ FRB ←→ Rust (业务后端)
 ## 项目结构
 
 ```
-lib/              Flutter UI 代码 (v2)
-  main.dart       应用入口
-  bridge/         Rust FFI 桥接辅助
-  models/         Dart 领域模型
-  pages/          页面 (editor_page, note_list_page, devices_page, trash_page, settings_page)
-  scanner/        扫码桥接 (Android 实现 + 桩)
-  services/       应用级服务 (设置、更新)
-  ui/             设计系统组件
-  src/rust/       FRB 自动生成代码 (api, store, sync, discovery)
+nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter lib/）
+  App.tsx         应用入口
+  components.tsx  UI 组件
+  navigation.tsx  导航
+  note_list.tsx / trash_page.tsx / settings_page.tsx / devices_page.tsx / editor_page（页面）
+  theme.ts        设计令牌（迁移自 lib/ui/design_system/cardmind_theme.dart）
+  *_test.ts、web/src/*_test.ts  TSX 测试（node --test，经 `npx tsx --test`）
 rust-backend/     Rust 核心 (v2)
   src/
     api.rs        FRB 导出 API
@@ -46,8 +43,6 @@ rust-backend/     Rust 核心 (v2)
     debug_log.rs  调试日志落盘
     lib.rs        入口
   tests/          集成测试 (store, sync, discovery, note_crdt, pairing, relay, trash 等)
-test/             Flutter 测试 (widget/integration)
-integration_test/ 平台集成测试
 docs/
   product.md      产品定义
   sync-network.md 同步网络设计
@@ -55,45 +50,39 @@ docs/
   adr/            架构决策记录
   research/       研究资料
   testing/        集成测试说明
-tool/             工具脚本 (build.dart / quality.dart / lint；门禁 git_gate.dart；边界扫描 test_boundary_scanner.dart)
+tool/             工具脚本（lint/、release/ python 发布脚本；门禁 git_gate.dart + src/git_gate/）
 sync-verify/      同步验证代码
 ```
 
 ## 关键命令
 
 ```bash
-# Flutter
-flutter pub get                       # 获取依赖（需 PUB_HOSTED_URL=https://pub.flutter-io.cn）
-flutter test                          # 跑测试
-flutter analyze                       # 代码分析
+# nsh-app（TSX 前端；在 nsh-app/ 下跑）
+cd nsh-app && npm install                # 装依赖（首次/CI）
+cd nsh-app && npx tsx --test "*_test.ts" "web/src/*_test.ts"   # TSX 全量测试（node --test）
+cd nsh-app && npm run build              # 打包（需 NSH_SOURCE 指向 nsh 源码 checkout）
 
 # Rust（需先让 cargo 在 PATH 上，各平台路径见本节末尾说明）
 cd rust-backend && cargo test              # 全量测试
 cd rust-backend && cargo test --test sync_service_test  # 同步专项
 cd rust-backend && cargo build --release   # 发布构建
 
-# 构建
-dart run tool/build.dart lib          # 构建 Rust 动态库到当前 host 运行态路径（Windows/macOS/Linux）
-dart run tool/quality.dart all        # 全量质量检查
-
-# 网络测试（直接用 cargo test 即可，不要求关闭防火墙）
-cd rust-backend && cargo test --test sync_service_test  # 同步测试
+# 门禁（pre-commit/pre-push 用；Dart 工具链仍保留 tool/）
+dart run tool/git_gate.dart plan --staged   # 查看 staged 触发的计划
+dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx）
 ```
 
-> `flutter pub get` 需要设置 `PUB_HOSTED_URL=https://pub.flutter-io.cn`（国内镜像）。
 > Rust 命令需让 `cargo` 在 PATH 上（macOS/Linux 为 `~/.cargo/bin`，Windows 为 `%USERPROFILE%\.cargo\bin`）；Hermes terminal 不会加载 `.zshrc`。
+> `npm run build`（nsh-app）需 `$env:NSH_SOURCE` 指向 nsh 源码 checkout；不设时 build-nsh.mjs 报错退出 1。
 
 ## 运行态动态库
 
-- 运行态（构建产物，全新 worktree 中不存在）：`build/windows/x64/runner/Release/cardmind_backend.dll`
-- 编译源（构建产物，由 `cargo build --release` 生成）：`rust-backend/target/release/cardmind_backend.dll`
-- Windows 构建后（`dart run tool/build.dart lib` 或门禁 build-lib）自动复制到运行态路径
+- 编译源（构建产物，由 `cargo build --release` 生成）：`rust-backend/target/release/cardmind_backend.dll`（Windows；macOS/Linux 为对应 dylib/so）
+- host runtime 同步由门禁 build-lib 步骤的 `syncHostRuntimeLibrary` 完成（tool/src/git_gate/host_build.dart 的平台规格）
 
 ## 日志目录（排查必读）
 
-应用日志固定写入 `<application support>/logs/cardmind.log`，由
-`lib/bridge/debug_log.dart` 的 `resolveLogDirectory()` 推导（`FileDebugSink.open`
-复用同一函数，两处不会漂移）。设置页「日志目录」一项可直接打开该目录。
+应用日志固定写入 `<application support>/logs/cardmind.log`（Rust 侧 debug_log.rs 落盘）。设置页「日志目录」一项可直接打开该目录。
 
 各平台实际路径：
 
@@ -133,9 +122,10 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 | 项目 | 状态 |
 |------|------|
 | v2 结构重组 | ✅ 源码在仓库根目录，v1 冻结代码已删除 |
+| NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 nsh-app TSX |
 | Rust 后端 | Loro + iroh + mDNS + SQLite + FRB API |
-| Flutter 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置 |
-| 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；仓库现状：平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`，iOS 工程目录尚未建立 |
+| NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
+| 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；仓库现状：平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`（Flutter 工程残留，待后续清理），iOS 工程目录尚未建立 |
 
 ## 文档地图
 
@@ -158,8 +148,7 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 - `docs/standards/ui-style-guide.md` — UI 风格
 - `docs/standards/design-tokens.md` — 设计 Token
 - `docs/standards/tech-stack-baseline.md` — 技术栈基线
-- `docs/standards/flutter-automation-anchors.md` — Flutter 自动化
-- `docs/standards/spec-lifecycle.md` — 文档生命周期（文档类型与更新触发规则）
+- `docs/standards/flutter-automation-anchors.md` — Flutter 自动化锚点（历史遗留；Flutter 链已删，待后续清理或改写为 nsh-app 锚点）
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
@@ -214,7 +203,7 @@ This project is indexed by GitNexus as **CardMind** (5743 symbols, 14295 relatio
 
 凡是涉及 **UI 或交互** 的功能——新增/修改页面、组件、布局、导航、表单、空态/加载/错误态、确认流程、触摸目标、可达性、主题与令牌——**必须用 `ui-ux-pro-max` 技能辅助**，而不是凭经验直接写：
 
-- **设计/新建页面或组件前**：先读 `docs/standards/ui-style-guide.md` 与 `docs/standards/design-tokens.md` 作为基准，再用 `python .agents/skills/ui-ux-pro-max/scripts/search.py "<关键词>" --stack flutter`（按需加 `--domain ux|style|color|typography|icons|web`）取实现建议，落到 `CardMindTokens/Spacing/Radii` 而不是硬编码值。
+- **设计/新建页面或组件前**：先读 `docs/standards/ui-style-guide.md` 与 `docs/standards/design-tokens.md` 作为基准，再用 `python .agents/skills/ui-ux-pro-max/scripts/search.py "<关键词>" --stack react`（按需加 `--domain ux|style|color|typography|icons|web`）取实现建议，落到 `nsh-app/theme.ts` 的 `colors/spacing/radii`（迁移自 CardMindTokens/Spacing/Radii）而不是硬编码值。
 - **改 UI/交互前**：对照该技能的 Pre-Delivery Checklist（触摸目标 ≥48dp、无 emoji 当图标、色不作唯一状态指示、阴影/圆角纪律、disabled 态）逐条核，确认不违反。
 - **交付/审查 UI 前**：按该技能 Quick Reference §1–§3 + CardMind 规范做一次走查；UI 审查任务派发子代理时把这份清单 + 两份标准文档作为审查基准一并传入。
 - 该技能的搜索脚本只需 Python 3（Windows 用 `python`）；不可用时就按上面两份标准文档人工核对，不阻断。
