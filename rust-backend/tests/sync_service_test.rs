@@ -12,7 +12,7 @@ fn export_import_roundtrip_preserves_notes() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         // ━━━ 设备 A：创建笔记 ━━━
-        let mut service_a = SyncService::new().await.unwrap();
+        let service_a = SyncService::new().await.unwrap();
         service_a
             .create_note("note-1".to_string(), "# 第一条笔记\n\n这是测试内容。")
             .unwrap();
@@ -21,7 +21,7 @@ fn export_import_roundtrip_preserves_notes() {
         let exported = service_a.export_all().unwrap();
         assert!(!exported.is_empty(), "导出的数据不应为空");
 
-        let mut service_b = SyncService::new().await.unwrap();
+        let service_b = SyncService::new().await.unwrap();
         service_b.import_all(&exported).unwrap();
 
         // ━━━ 验证 B 拿到了笔记 ━━━
@@ -42,14 +42,14 @@ fn export_import_roundtrip_preserves_notes() {
 fn roundtrip_preserves_every_note() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
-        let mut service = SyncService::new().await.unwrap();
+        let service = SyncService::new().await.unwrap();
         service.create_note("a".to_string(), "笔记 A").unwrap();
         service.create_note("b".to_string(), "笔记 B").unwrap();
         service.create_note("c".to_string(), "笔记 C").unwrap();
 
         let exported = service.export_all().unwrap();
 
-        let mut imported = SyncService::new().await.unwrap();
+        let imported = SyncService::new().await.unwrap();
         imported.import_all(&exported).unwrap();
 
         assert_eq!(imported.get_note("a").unwrap(), "笔记 A");
@@ -73,7 +73,7 @@ fn empty_export_imports_cleanly() {
             "无笔记时导出仅含空墓碑 section"
         );
 
-        let mut imported = SyncService::new().await.unwrap();
+        let imported = SyncService::new().await.unwrap();
         imported.import_all(&exported).unwrap();
         // 验证没有崩溃
         assert!(imported.get_note("anything").is_none());
@@ -86,7 +86,7 @@ fn restart_reloads_notes_and_rejects_bad_envelope() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("restart");
-        let mut service = SyncService::new_persistent(&dir).await.unwrap();
+        let service = SyncService::new_persistent(&dir).await.unwrap();
         service
             .create_note("persisted".into(), "# 标题\n\n正文 <!--tags: work -->")
             .unwrap();
@@ -112,7 +112,7 @@ fn failed_persist_rolls_back_in_memory_state() {
     rt.block_on(async {
         let dir = temp_dir("rollback");
         let file_path = dir.join("notes.loro");
-        let mut service = SyncService::new_persistent(&file_path).await.unwrap();
+        let service = SyncService::new_persistent(&file_path).await.unwrap();
         service.create_note("before".into(), "before").unwrap();
         std::fs::remove_file(&file_path).unwrap();
         std::fs::create_dir(&file_path).unwrap();

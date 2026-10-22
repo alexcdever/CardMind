@@ -216,7 +216,7 @@ fn credential_connect_uses_embedded_node_id_without_mdns() {
 #[test]
 fn legacy_six_digit_mdns_pairing_requires_and_accepts_advertised_nonce() {
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
         let initiator = SyncService::new().await.unwrap();
         initiator.set_device_name("New Phone");
@@ -493,7 +493,7 @@ fn credential_connect_target_ips_come_from_credential() {
 #[test]
 fn credential_connect_end_to_end_uses_embedded_ips() {
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
         let initiator = SyncService::new().await.unwrap();
         initiator.set_device_name("New Phone");
@@ -609,7 +609,7 @@ fn used_credential_is_classified_as_used_or_replaced() {
     rt().block_on(async {
         let confirmer_sink = Arc::new(CollectingSink::new());
         let initiator_sink = Arc::new(CollectingSink::new());
-        let mut confirmer = SyncService::new_with_log_sink(confirmer_sink.clone())
+        let confirmer = SyncService::new_with_log_sink(confirmer_sink.clone())
             .await
             .unwrap();
         confirmer.set_device_name("Trusted PC");
@@ -668,7 +668,7 @@ fn used_credential_is_classified_as_used_or_replaced() {
             (initiator, result)
         });
 
-        let (mut confirmer, confirm_first) =
+        let (confirmer, confirm_first) =
             tokio::time::timeout(Duration::from_secs(40), confirmer_handle)
                 .await
                 .expect("confirmer task 挂起")
@@ -795,7 +795,7 @@ fn replaced_credential_is_classified_as_used_or_replaced() {
     use std::time::Duration;
 
     rt().block_on(async {
-        let mut confirmer = SyncService::new().await.unwrap();
+        let confirmer = SyncService::new().await.unwrap();
         confirmer.set_device_name("Trusted PC");
         let initiator = SyncService::new().await.unwrap();
         initiator.set_device_name("New Phone");

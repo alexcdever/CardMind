@@ -19,7 +19,7 @@ use common::{pair_up, rt};
 #[test]
 fn editing_a_note_marks_it_pending_and_push_delivers_it() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -61,7 +61,7 @@ fn editing_a_note_marks_it_pending_and_push_delivers_it() {
 #[test]
 fn sync_cycle_pulls_peers_notes_into_local_store() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -102,7 +102,7 @@ fn sync_cycle_pulls_peers_notes_into_local_store() {
 #[test]
 fn sync_disabled_skips_push_and_keeps_edits_local() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -148,7 +148,7 @@ fn sync_disabled_skips_push_and_keeps_edits_local() {
 #[test]
 fn pending_count_reflects_unsynced_edits() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -183,7 +183,7 @@ fn pending_count_reflects_unsynced_edits() {
 fn editing_stays_fast_while_network_push_is_slow() {
     rt().block_on(async {
         // 无配对设备、无对端可达
-        let mut a = SyncService::new().await.unwrap();
+        let a = SyncService::new().await.unwrap();
         let a_store = NoteStore::new(":memory:").unwrap();
 
         let start = Instant::now();
@@ -213,7 +213,7 @@ fn editing_stays_fast_while_network_push_is_slow() {
 #[test]
 fn unreachable_peer_push_fails_without_erroring_the_edit() {
     rt().block_on(async {
-        let (mut a, a_store, b, _b_store) = pair_up(
+        let (a, a_store, b, _b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -259,7 +259,7 @@ fn unreachable_peer_push_fails_without_erroring_the_edit() {
 #[test]
 fn push_carrying_tombstone_is_applied_as_deletion() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),
@@ -324,7 +324,7 @@ fn push_carrying_tombstone_is_applied_as_deletion() {
 #[test]
 fn push_frame_is_not_swallowed_while_pairing_waits() {
     rt().block_on(async {
-        let (mut a, a_store, mut b, b_store) = pair_up(
+        let (a, a_store, b, b_store) = pair_up(
             SyncService::new().await.unwrap(),
             NoteStore::new(":memory:").unwrap(),
             SyncService::new().await.unwrap(),

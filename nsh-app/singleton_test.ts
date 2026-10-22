@@ -6,7 +6,8 @@
 //   ② `nsh-app/Cargo.toml` 以 path 依赖引入 `cardmind-backend`；
 //   ③ `SyncService` 的 `&mut self` 已放宽为 `&self`（只剩 `Drop` 的 `fn drop(&mut self)`）；
 //   ④ `api.rs` 不再有 `svc: &mut SyncService`。
-// 1.4（Backend.Store 模块）：lib.rs 的 `#[module]` 导出 store 模块的 4 个函数，
+// 1.4（Backend.Store 模块）：`#[module]` 导出 store 的 4 个函数（nsh 的模块对象名
+//    = 结构体名，故最终形态是 `BackendStore.*`——`#[module]` 不支持嵌套命名空间），
 //    App.tsx `await` 真后端调用并把结果渲染出来。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,11 +25,21 @@ const tsx = read(here, 'App.tsx');
 const syncRs = read(repoRoot, 'rust-backend', 'src', 'sync.rs');
 const apiRs = read(repoRoot, 'rust-backend', 'src', 'api.rs');
 
-/** 从 `#[module] impl X` 里取模块名（JS 侧对象名 = 结构体名）。 */
+/** 所有 `#[module] impl X { .. }` 块：名字 + 块体。 */
+function moduleBlocks(): { name: string; body: string }[] {
+  return [...lib.matchAll(/#\[module\]\s*\n\s*impl\s+(\w+)\s*\{([\s\S]*?)\n\}/g)].map(
+    (m) => ({ name: m[1], body: m[2] }),
+  );
+}
+
+/** store 模块的名字（含 `fn generate_note_id` 的那个 `#[module]` 块）。 */
 function storeModuleName(): string {
-  const m = lib.match(/#\[module\]\s*\n\s*impl\s+(\w+)\s*\{/);
-  assert.ok(m, 'lib.rs 应有一个 `#[module] impl <Module> { .. }` 块');
-  return m![1];
+  const found = moduleBlocks().find((b) => b.body.includes('fn generate_note_id'));
+  assert.ok(
+    found,
+    'lib.rs 应有一个含 `fn generate_note_id` 的 `#[module] impl <Module> { .. }` 块',
+  );
+  return found!.name;
 }
 
 describe('1.7 全局单例（OnceLock）', () => {
@@ -105,24 +116,17 @@ describe('1.7 SyncService / api 签名放宽（&mut self → &self）', () => {
 describe('1.4 Backend.Store 模块（#[module]，状态取全局单例）', () => {
   it('native() 注册了 store 模块', () => {
     const name = storeModuleName();
-    assert.ok(
-      lib.includes(`.module::<${name}>()`),
-      `native() 应 .module::<${name}>()`,
-    );
+    assert.ok(lib.includes(`.module::<${name}>()`), `native() 应 .module::<${name}>()`);
   });
 
   it('store 模块导出 4 个函数（generateNoteId / createNoteStore / storeList / storeSearch）', () => {
     const name = storeModuleName();
-    const block = lib.match(new RegExp(`#\\[module\\]\\s*\\n\\s*impl\\s+${name}\\s*\\{`));
-    assert.ok(block, `未找到 \`#[module] impl ${name}\``);
+    const block = moduleBlocks().find((b) => b.name === name)!;
     for (const fn of ['generate_note_id', 'create_note_store', 'store_list', 'store_search']) {
-      assert.ok(
-        lib.includes(`fn ${fn}`),
-        `store 模块应导出 \`fn ${fn}\``,
-      );
+      assert.ok(block.body.includes(`fn ${fn}`), `store 模块应导出 \`fn ${fn}\``);
     }
     assert.ok(
-      !new RegExp(`impl\\s+${name}\\s*\\{[\\s\\S]*?fn\\s+\\w+\\(\\s*&(mut\\s+)?self`).test(lib),
+      !/fn\s+\w+\(\s*&(mut\s+)?self/.test(block.body),
       '#[module] 的函数不能带 receiver',
     );
   });
@@ -140,8 +144,8 @@ describe('App.tsx 渲染真后端结果', () => {
     const name = storeModuleName();
     assert.match(
       tsx,
-      new RegExp(`await\\s+Backend\\.${name}\\.`),
-      `App.tsx 应 \`await Backend.${name}.xxx(\``,
+      new RegExp(`await\\s+${name}\\.`),
+      `App.tsx 应 \`await ${name}.xxx(\``,
     );
   });
 
@@ -162,11 +166,7 @@ describe('.nsh/types/app/native.d.ts（nsh build 生成）', () => {
     const decl = readFileSync(dts, 'utf8');
     const name = storeModuleName();
     for (const fn of ['generateNoteId', 'createNoteStore', 'storeList', 'storeSearch']) {
-      assert.match(
-        decl,
-        new RegExp(`${fn}\\s*\\(`),
-        `native.d.ts 应导出 \`${fn}(\``,
-      );
+      assert.match(decl, new RegExp(`${fn}\\s*\\(`), `native.d.ts 应导出 \`${fn}(\``);
     }
     assert.match(decl, new RegExp(`\\b${name}\\b`), `native.d.ts 应有模块对象 \`${name}\``);
     assert.match(decl, /Promise</, 'native.d.ts 的模块函数应返回 Promise<T>');

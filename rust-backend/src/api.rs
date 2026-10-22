@@ -102,7 +102,7 @@ pub async fn sync_discover_peers(svc: &SyncService) -> anyhow::Result<Vec<PeerIn
 /// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
 ///
 /// 等待期间抢到的推送帧会立即导入（不丢失），随后继续等待配对请求。
-pub async fn accept_pairing_request(svc: &mut SyncService) -> anyhow::Result<PairingRequest> {
+pub async fn accept_pairing_request(svc: &SyncService) -> anyhow::Result<PairingRequest> {
     svc.accept_pairing_request().await
 }
 
@@ -112,7 +112,7 @@ pub async fn accept_pairing_request(svc: &mut SyncService) -> anyhow::Result<Pai
 /// UI 侧显示码流程以短窗口（10s）轮询调用本方法，弹窗关闭/取消后等待任务在
 /// 窗口内释放，不留下永久阻塞任务（设计目标 5）。总时限由 Flutter 侧控制。
 pub async fn accept_pairing_request_with_timeout(
-    svc: &mut SyncService,
+    svc: &SyncService,
     timeout: chrono::Duration,
 ) -> anyhow::Result<Option<PairingRequest>> {
     let timeout = timeout.to_std().unwrap_or(std::time::Duration::ZERO);
@@ -179,7 +179,7 @@ pub async fn begin_pairing_connect_with_credential(
 }
 
 /// 接受对端推送并导入（首次全量同步接收端；配对成功后发起方调用）。
-pub async fn accept_push_and_import(svc: &mut SyncService) -> anyhow::Result<()> {
+pub async fn accept_push_and_import(svc: &SyncService) -> anyhow::Result<()> {
     let data = svc.accept_push().await?;
     svc.import_all(&data)
 }
@@ -223,7 +223,7 @@ pub async fn push_pending(svc: &SyncService, store: &NoteStore) -> Vec<DevicePus
 
 /// 周期同步任务体：push 给所有对端 + 短窗口 accept 对端 push + 刷新 SQLite 投影。
 pub async fn run_sync_cycle(
-    svc: &mut SyncService,
+    svc: &SyncService,
     store: &NoteStore,
 ) -> anyhow::Result<SyncCycleResult> {
     svc.run_sync_cycle(store).await
@@ -261,7 +261,7 @@ pub fn receiver_content_revision(svc: &SyncService) -> u64 {
 }
 
 /// 创建笔记
-pub fn note_create(svc: &mut SyncService, id: String, content: String) -> anyhow::Result<()> {
+pub fn note_create(svc: &SyncService, id: String, content: String) -> anyhow::Result<()> {
     svc.create_note(id, &content)
 }
 
@@ -276,7 +276,7 @@ pub fn note_export_all(svc: &SyncService) -> anyhow::Result<Vec<u8>> {
 }
 
 /// 导入快照
-pub fn note_import_all(svc: &mut SyncService, data: Vec<u8>) -> anyhow::Result<()> {
+pub fn note_import_all(svc: &SyncService, data: Vec<u8>) -> anyhow::Result<()> {
     svc.import_all(&data)
 }
 
@@ -362,7 +362,7 @@ pub fn generate_note_id() -> String {
 
 /// 更新笔记元数据（meta tags）
 pub fn note_update_metadata(
-    svc: &mut SyncService,
+    svc: &SyncService,
     note_id: String,
     tags: Vec<String>,
 ) -> anyhow::Result<()> {
@@ -406,23 +406,23 @@ pub fn store_trash_list(store: &NoteStore) -> anyhow::Result<Vec<NoteRow>> {
 
 /// 软删除：给笔记 meta 打 deleted_at 标记（进回收站）。
 /// 删除状态来自 Loro；调用后需由 repository 跟随 `sync_notes_to_store` 刷新投影。
-pub fn note_soft_delete(svc: &mut SyncService, id: String) -> anyhow::Result<()> {
+pub fn note_soft_delete(svc: &SyncService, id: String) -> anyhow::Result<()> {
     svc.soft_delete_note(&id)
 }
 
 /// 恢复：清除笔记 meta 的 deleted_at 标记。
-pub fn note_restore(svc: &mut SyncService, id: String) -> anyhow::Result<()> {
+pub fn note_restore(svc: &SyncService, id: String) -> anyhow::Result<()> {
     svc.restore_note(&id)
 }
 
 /// 彻底删除：从 Loro notes 移除并入墓碑（删除信息随快照传播，防复活）。
-pub fn note_purge(svc: &mut SyncService, id: String) -> anyhow::Result<()> {
+pub fn note_purge(svc: &SyncService, id: String) -> anyhow::Result<()> {
     svc.purge_note(&id)
 }
 
 /// 过期清理：purge 回收站中 meta.deleted_at < cutoff 的笔记，返回清理数。
 ///
 /// `cutoff` 为 RFC3339 时间字符串（Flutter 侧 `now - 30d`）。
-pub fn purge_expired_trash(svc: &mut SyncService, cutoff: String) -> anyhow::Result<usize> {
+pub fn purge_expired_trash(svc: &SyncService, cutoff: String) -> anyhow::Result<usize> {
     svc.purge_expired(&cutoff)
 }

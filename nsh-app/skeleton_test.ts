@@ -28,10 +28,15 @@ describe('Cargo.toml', () => {
     assert.match(manifest, /^\[workspace\]\s*$/m);
   });
 
-  it('不引入后端依赖', () => {
-    assert.ok(!manifest.includes('cardmind-backend'), '不应出现 cardmind-backend');
-    assert.ok(!manifest.includes('loro'), '不应出现 loro');
-    assert.ok(!manifest.includes('iroh'), '不应出现 iroh');
+  // 施工方案 1.7 + 1.4 起，nsh-app 就是要接真后端：路径依赖 rust-backend
+  // （独立 workspace，靠 path 依赖引入，不并入 rust-backend 的 members）。
+  // 之前那条「不引入后端依赖」的 Phase 0 断言已随 1.7 落地而失效。
+  it('以 path 依赖引入 cardmind-backend', () => {
+    assert.match(
+      manifest,
+      /cardmind-backend\s*=\s*\{\s*path\s*=\s*"\.\.\/rust-backend"\s*\}/,
+      '应引入 cardmind-backend（path = "../rust-backend"）',
+    );
   });
 });
 

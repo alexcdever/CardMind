@@ -44,7 +44,7 @@ fn soft_delete_sets_deleted_at_and_hides_note() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("soft-delete");
-        let mut svc = SyncService::new_persistent(&dir).await.unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
         svc.create_note("n1".into(), "# 一\n\n内容一。").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         sync_notes_to_store(&svc, &store).unwrap();
@@ -74,7 +74,7 @@ fn restore_clears_deleted_at_and_returns_note() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("restore");
-        let mut svc = SyncService::new_persistent(&dir).await.unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
         svc.create_note("n1".into(), "# 一\n\n内容一。").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         sync_notes_to_store(&svc, &store).unwrap();
@@ -109,7 +109,7 @@ fn purge_removes_note_row_and_its_links() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("purge-links");
-        let mut svc = SyncService::new_persistent(&dir).await.unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
         // note-a 正文含指向 note-b 的链接 → links 表有 (source=note-a, target=note-b)
         svc.create_note("note-a".into(), "# A\n\n指向 [[note-b|B 的别名]]")
             .unwrap();
@@ -147,7 +147,7 @@ fn purge_expired_deletes_only_notes_past_the_window() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("cleanup");
-        let mut svc = SyncService::new_persistent(&dir).await.unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
         let old = (Utc::now() - Duration::days(31)).to_rfc3339();
         let fresh = Utc::now().to_rfc3339();
         let payload = soft_deleted_payload(&[
@@ -175,7 +175,7 @@ fn trashed_notes_list_newest_deletion_first() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("trash-order");
-        let mut svc = SyncService::new_persistent(&dir).await.unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
         svc.create_note("n1".into(), "# 一\n\n内容").unwrap();
         svc.create_note("n2".into(), "# 二\n\n内容").unwrap();
         svc.create_note("n3".into(), "# 三\n\n内容").unwrap();
@@ -267,7 +267,7 @@ fn purge_survives_a_sync_roundtrip() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("purge-sync");
-        let mut svc = SyncService::new_persistent(&dir).await.unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
         svc.create_note("n1".into(), "# One\n\nBody").unwrap();
         svc.create_note("n2".into(), "# Two\n\nBody").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
@@ -306,14 +306,14 @@ fn tombstones_survive_export_and_import() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir_a = temp_dir("tomb-export");
-        let mut a = SyncService::new_persistent(&dir_a).await.unwrap();
+        let a = SyncService::new_persistent(&dir_a).await.unwrap();
         a.create_note("n1".into(), "# One\n\nBody").unwrap();
         a.create_note("n2".into(), "# Two\n\nBody").unwrap();
         a.purge_note("n1").unwrap();
         let exported = a.export_all().unwrap();
 
         let dir_b = temp_dir("tomb-import");
-        let mut b = SyncService::new_persistent(&dir_b).await.unwrap();
+        let b = SyncService::new_persistent(&dir_b).await.unwrap();
         b.import_all(&exported).unwrap();
 
         assert!(b.tombstones().contains("n1"), "导入后对端墓碑应含 n1");
@@ -334,13 +334,13 @@ fn soft_delete_reaches_the_peer_via_meta() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir_a = temp_dir("soft-export");
-        let mut a = SyncService::new_persistent(&dir_a).await.unwrap();
+        let a = SyncService::new_persistent(&dir_a).await.unwrap();
         a.create_note("n1".into(), "# One\n\nBody").unwrap();
         a.soft_delete_note("n1").unwrap();
         let exported = a.export_all().unwrap();
 
         let dir_b = temp_dir("soft-import");
-        let mut b = SyncService::new_persistent(&dir_b).await.unwrap();
+        let b = SyncService::new_persistent(&dir_b).await.unwrap();
         b.import_all(&exported).unwrap();
 
         // 软删笔记仍在 notes HashMap（iter_notes 可见），仅 meta 标记
@@ -371,14 +371,14 @@ fn restore_reaches_the_peer_via_meta() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir_a = temp_dir("restore-export");
-        let mut a = SyncService::new_persistent(&dir_a).await.unwrap();
+        let a = SyncService::new_persistent(&dir_a).await.unwrap();
         a.create_note("n1".into(), "# One\n\nBody").unwrap();
         a.soft_delete_note("n1").unwrap();
         a.restore_note("n1").unwrap();
         let exported = a.export_all().unwrap();
 
         let dir_b = temp_dir("restore-import");
-        let mut b = SyncService::new_persistent(&dir_b).await.unwrap();
+        let b = SyncService::new_persistent(&dir_b).await.unwrap();
         b.import_all(&exported).unwrap();
 
         let store = NoteStore::new(":memory:").unwrap();
@@ -403,7 +403,7 @@ fn purge_expired_removes_the_whole_expired_batch() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("expired-batch");
-        let mut svc = SyncService::new_persistent(&dir).await.unwrap();
+        let svc = SyncService::new_persistent(&dir).await.unwrap();
         let old = (Utc::now() - Duration::days(31)).to_rfc3339();
         let recent = Utc::now().to_rfc3339();
         let payload = soft_deleted_payload(&[
@@ -468,7 +468,7 @@ fn import_skips_notes_that_were_tombstoned() {
     let rt = tokio::runtime::Runtime::new().unwrap();
     rt.block_on(async {
         let dir = temp_dir("skip-import");
-        let mut b = SyncService::new_persistent(&dir).await.unwrap();
+        let b = SyncService::new_persistent(&dir).await.unwrap();
         // 手工构造 v3 payload：墓碑 section 含 ghost + 记录流同时含 ghost 与 alive
         let mut payload = Vec::new();
         payload.extend_from_slice(&1u32.to_le_bytes()); // 墓碑数 = 1

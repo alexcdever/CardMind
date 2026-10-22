@@ -26,7 +26,7 @@ fn unauthorized_peer_cannot_import_or_update_presence() {
     rt().block_on(async {
         let target = SyncService::new().await.unwrap();
         let target_store = NoteStore::new(":memory:").unwrap();
-        let mut unknown = SyncService::new().await.unwrap();
+        let unknown = SyncService::new().await.unwrap();
         unknown
             .create_note("remote".to_string(), "# hostile\\n\\nbody")
             .unwrap();
@@ -74,7 +74,7 @@ fn oversized_inbound_frames_are_rejected() {
 #[test]
 fn pairing_identity_must_match_transport() {
     rt().block_on(async {
-        let mut receiver = SyncService::new().await.unwrap();
+        let receiver = SyncService::new().await.unwrap();
         let sender = SyncService::new().await.unwrap();
         let receiver_store = NoteStore::new(":memory:").unwrap();
         let code = receiver.begin_pairing_accept().unwrap();
