@@ -170,36 +170,150 @@ function SettingsScreen() {
   );
 }
 
-/** 编辑器页（push 路由）：真 WebView 外壳，内联 Tiptap 静态站。
+/** 编辑器页（push 路由）：WebView + JSON 消息协议（施工 3.2/3.3/3.4）。
  *  html 字符串 = index.html（含内联 bundle.js）；baseUrl 固定，供 WebView2
- *  WebResourceRequested 拦截解析相对 URL。页 → 原生走
- *  window.ReactNativeWebView.postMessage；本任务消息仅 "editor-ready" 握手，
- *  markdown 进出协议留给 nsh-editor-io。noteId 暂存页内展示 + 下一任务
- *  noteGet 加载留口。 */
+ *  WebResourceRequested 拦截解析相对 URL。原生↔页协议：
+ *    原生→页 sendRequest({id,type,...}) 8s 超时等 {id,type:"res"}
+ *    页→原生 {type:"editor-ready"|"dirty"|"markdown"|"res", ...}
+ *  markdown 进：editor-ready → noteGet → sendRequest("load", {markdown})
+ *  markdown 出：dirty/markdown 事件 → noteCreate + noteUpdateMetadata
+ *  可安全退出：返回前若 dirty → get-markdown 存完 → goBack。 */
+const PROTO_TIMEOUT_MS = 8000;
+
 function EditorScreen(props: { noteId: string }) {
   const bridge = signal("编辑器桥：(等待 editor-ready)");
+  const saveState = signal("已保存");
   let web!: YNode;
+  let noteId = props.noteId;
+  let reqSeq = 0;
+  const pending = new Map<number, (res: any) => void>();
+  let editorReady = false;
+  let editorDirty = false;
+  let tags: string[] = [];
+  // 新笔记（空 id 或 "new"）尚无落盘内容：初始态是「尚未保存」，不是「已保存」。
+  if (noteId === "" || noteId === "new") saveState.set("尚未保存");
+
+  /** 原生 → 页：发 JSON；带 id 的请求挂 8s 超时。 */
+  function postToPage(msg: Record<string, unknown>): void {
+    web.postMessage(JSON.stringify(msg));
+  }
+  function sendRequest(type: string, payload: Record<string, unknown> = {}): Promise<any> {
+    const id = ++reqSeq;
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        if (pending.delete(id)) resolve({ ok: false, error: "timeout" });
+      }, PROTO_TIMEOUT_MS);
+      pending.set(id, (res) => {
+        clearTimeout(timer);
+        resolve(res);
+      });
+      postToPage({ id, type, ...payload });
+    });
+  }
+
+  /** 保存：空 noteId 先 generateNoteId，再 noteCreate + noteUpdateMetadata。 */
+  async function saveMarkdown(markdown: string): Promise<void> {
+    const md = markdown.trim();
+    if (md === "") return;
+    saveState.set("正在保存");
+    try {
+      if (noteId === "" || noteId === "new") {
+        noteId = await BackendStore.generateNoteId();
+      }
+      await BackendNotes.noteCreate(noteId, markdown);
+      await BackendNotes.noteUpdateMetadata(noteId, tags);
+      await BackendNotes.syncNotesToStore();
+      editorDirty = false;
+      saveState.set("已保存");
+    } catch (err) {
+      saveState.set("尚未保存");
+      console.error(`[editor] 保存失败：${err}`);
+    }
+  }
+
+  /** 从页取最新 markdown 并存下（返回前兜底，对照 Dart `_close`）。 */
+  async function flushMarkdown(): Promise<void> {
+    const res = await sendRequest("get-markdown");
+    if (res?.ok && typeof res.markdown === "string") {
+      await saveMarkdown(res.markdown);
+    }
+  }
+
+  /** 返回键：有 dirty 先 flushMarkdown，再 goBack。 */
+  function closeEditor(): void {
+    if (!editorReady || !editorDirty) {
+      goBack();
+      return;
+    }
+    void flushMarkdown().then(goBack).catch(goBack);
+  }
+
+  /** editor-ready：加载 noteGet → load；新笔记跳过加载。 */
+  async function onEditorReady(): Promise<void> {
+    editorReady = true;
+    bridge.set("编辑器桥：editor-ready ✓");
+    if (noteId !== "" && noteId !== "new") {
+      try {
+        const content = await BackendNotes.noteGet(noteId);
+        if (content != null) {
+          await sendRequest("load", { markdown: content });
+          editorDirty = false;
+          saveState.set("已保存");
+        }
+      } catch (err) {
+        console.error(`[editor] 加载失败：${err}`);
+      }
+    }
+  }
+
+  /** 页 → 原生事件/响应分发。 */
+  function onBridgeMessage(raw: string): void {
+    let msg: { type?: string; id?: number; ok?: boolean; markdown?: string; dirty?: boolean; error?: string };
+    try {
+      msg = JSON.parse(raw);
+    } catch {
+      if (raw === "editor-ready") void onEditorReady();
+      return;
+    }
+    if (msg.type === "res" && typeof msg.id === "number") {
+      pending.get(msg.id)?.(msg);
+      pending.delete(msg.id);
+      return;
+    }
+    switch (msg.type) {
+      case "editor-ready":
+        void onEditorReady();
+        break;
+      case "dirty":
+        editorDirty = !!msg.dirty;
+        if (saveState() !== "正在保存") saveState.set("尚未保存");
+        break;
+      case "markdown":
+        void saveMarkdown(msg.markdown ?? "");
+        break;
+      default:
+        break;
+    }
+  }
+
   return (
     <Screen
       {...screenChrome("编辑")}
-      headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />}
+      headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={closeEditor} />}
     >
       <View style={{ flex: 1, backgroundColor: colors.paper }}>
         <View style={{ flexDirection: "row", gap: spacing.md, padding: spacing.sm }}>
           <Text numberOfLines={1} style={{ flex: 1, color: colors.mutedInk }}>
-            {`noteId：${props.noteId}`}
+            {`noteId：${noteId}`}
           </Text>
+          <Text style={{ color: colors.mutedInk }}>{saveState()}</Text>
           <Text style={{ color: colors.mutedInk }}>{bridge()}</Text>
         </View>
         <WebView
           ref={web}
           source={{ html: EDITOR_HTML, baseUrl: EDITOR_BASE_URL }}
           style={{ flex: 1, backgroundColor: colors.paper }}
-          onMessage={(e) => {
-            if (e.data === "editor-ready") {
-              bridge.set("编辑器桥：editor-ready ✓");
-            }
-          }}
+          onMessage={(e) => onBridgeMessage(e.data)}
         />
       </View>
     </Screen>
