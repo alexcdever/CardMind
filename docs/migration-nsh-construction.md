@@ -92,7 +92,7 @@
 | 2.2 | 列表页（960 断点双布局 + 搜索/标签过滤/滑动删除/空态） | ✅ 已完成 | `4946356f`（合并）；`c86014bb`（test 红）/`f70e57a4`（feat）；`nsh-app/note_list.tsx` 827 行：`windowSize().width >= layout.desktopBreakpoint` 双布局、搜索（300ms 去抖 + `searchNotes`）、标签过滤（`getAllTags`/`searchByTag`）、软删除**三层入口收敛同一路径**（滑动 `PanResponder` + 48×48 `CardMindIconButton` + `keymap.bind("delete")` → 同一确认对话框 → `noteSoftDelete`）、`CardMindEmptyState` 空态；`nsh trace` 390 宽见移动布局、`--width 1200` 见桌面三栏；`note_list_test.ts` 18 pass |
 | 2.3 | 回收站页（恢复/彻底删除/定期清理） | ✅ 已完成 | `95273985`（合并）；`b796eaa2`（test 红）/`09bafac1`（feat）；`nsh-app/trash_page.tsx`：`storeTrashList`/`noteRestore`/`notePurge`/`purgeExpiredTrash`（各后跟 `syncNotesToStore`）、**彻底删除/清理走 `CardMindConfirmDialog` danger**、`CardMindEmptyState`、`<List>` 虚拟化；`nsh trace --tap 'label:回收站'` 见 `ScreenConfig title="回收站"`、`1 条已删笔记 · 保留 30 天`、`清理过期` |
 | 2.4 | 设置页（设备名/同步开关/日志目录/更新检查） | ✅ 已完成 | `95273985`（合并）；`nsh-app/settings_page.tsx`：`getDeviceName`/`setDeviceName`/`getSyncAllowed`/`setSyncAllowed` 全接线、日志目录**只显示路径**（R3：NSH 无打开目录 API）、更新检查 UI 入口 + 版本号、600 紧凑断点生效、自绘 switch 带 `role=switch`+label+`state.checked`；`nsh trace --tap 'label:设置'` 见 `设备名`/`允许同步`/`检查更新`；`trash_settings_test.ts` 28 pass |
-| 2.5 | 设备页（配对全流程；扫码走平台侧回传，见 R3） | ⬜ 未开始 | 待填 |
+| 2.5 | 设备页（配对全流程；扫码走平台侧回传，见 R3） | ✅ 已完成 | `1af6a5c3`（合并）；`9476c026`（test 红）/`b3d1c16c`（feat）；`nsh-app/devices_page.tsx` 1413 行：本机信息卡+已配对设备管理（解绑走 `CardMindConfirmDialog` danger）+添加设备三 sheet（显示码/扫码 disabled/输入码或 cm1 凭证）+附近设备发现+空态+10 分钟倒计时（`setInterval`+清理）；`nsh trace --tap 'label:设备' --tap 'label:打开设备页'` 见 `ScreenConfig title="设备"`+已配对/附近/我的设备/空态；**R3 扫码 disabled+「扫码需移动端平台能力（相机）」说明**（阻塞项非缺陷，替代=手动输码/cm1 凭证直连）；`devices_page_test.ts` 23 pass |
 | 2.6 | 导航/页面栈（`createNavigator` + `Stack`/`Screen`/`Modal`） | ✅ 已完成 | `4fb52a25`（合并）；`nsh-app/navigation.tsx` `Route` union（notes/trash/settings/devices/editor）+ **官方** `createNavigator`/`Stack`/`Screen`/`Modal`（`nsh-ui-mobile/src/lib.rs:67` 导出，非自建）；`nsh trace` 里模拟 tap 真实 push 了「编辑」Screen（`noteId：new`） |
 | 2.7 | 列表虚拟化（`virtual_list`，500 篇规模） | ✅ 已完成 | `4946356f`（合并）；用 `nsh/list` 的 `<List each keyExtractor estimatedItemSize=104>`；**实测 500 条只物化 19 个 cell**（`ScrollContent height≈51411` 证明列表追踪全部 500 行，而 DOM/节点只 19 个 → 真虚拟化 + 回收）；`nsh/list` 源码为 `crates/nsh-js/src/list.rs`「virtualized, recycling list…cells are reused」 |
 
@@ -102,9 +102,9 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| G2.1 | 列表 ↔ 回收站 ↔ 设置 ↔ 设备 全流程可走通（编辑器先留占位） | ⬜ | 待填 |
-| G2.2 | 双布局（≥960 / <960）在两种窗口宽度下都正常 | ⬜ | 待填 |
-| G2.3 | 触摸目标 ≥48dp、色不作唯一状态指示（对照 UI 规范） | ⬜ | 待填 |
+| G2.1 | 列表 ↔ 回收站 ↔ 设置 ↔ 设备 全流程可走通（编辑器先留占位） | ✅ | `nsh trace`（合并后主树 `1af6a5c3`）：`--tap 'label:设备' --tap 'label:打开设备页'` 真实 push `ScreenConfig title="设备"`（259 items，含已配对/附近/我的设备/添加设备/空态）；四路由在 2.2–2.5 各自 trace 验过且同树互导；编辑器留 `editor` 占位路由 |
+| G2.2 | 双布局（≥960 / <960）在两种窗口宽度下都正常 | ✅ | 合并后 `nsh trace`：默认 390 宽见移动单栏、`--width 1200` 见桌面三栏（「全部笔记」列表+「选择一篇笔记」占位+搜索/新建），`windowSize().width >= layout.desktopBreakpoint`（960）断点生效 |
+| G2.3 | 触摸目标 ≥48dp、色不作唯一状态指示（对照 UI 规范） | ✅ | 审查者核：触摸目标 `layout.mobileTouchTarget`（=48）12 处命中；源码无裸 hex/`0x` 颜色；`CardMindSyncStatus` stale 态配「长时间未同步」文字（色不作唯一指示） |
 
 ---
 
