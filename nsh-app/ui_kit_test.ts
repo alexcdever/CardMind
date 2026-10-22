@@ -141,7 +141,17 @@ describe('2.6 导航骨架 + App.tsx 接入', () => {
       /import\s*\{[^}]*CardMind\w+[^}]*\}\s*from\s*['"]\.\/components(\.tsx)?['"]/,
       'App.tsx 应从 ./components 导入 CardMind* 组件',
     );
-    // 至少用了 4 个（按钮/搜索框/标签/空态/同步指示/列表项/对话框中的四种）
+    // 2.3–2.5 起页面组件被抽到独立模块（note_list/trash/settings/devices），
+    // 骨架改为挂载这些页面。判定「骨架用上组件库」改为扫描 App.tsx + 它挂载的
+    // 页面模块，仍要求 ≥4 种 CardMind*（阈值不变，不弱化）。
+    const tree = [
+      'devices_page.tsx',
+      'note_list.tsx',
+      'trash_page.tsx',
+      'settings_page.tsx',
+    ]
+      .map((n) => readFileSync(path.join(here, n), 'utf8'))
+      .join('\n');
     const used = [
       'CardMindPrimaryButton',
       'CardMindIconButton',
@@ -151,10 +161,10 @@ describe('2.6 导航骨架 + App.tsx 接入', () => {
       'CardMindEmptyState',
       'CardMindListItem',
       'CardMindConfirmDialog',
-    ].filter((n) => new RegExp(`<${n}\\b`).test(app));
+    ].filter((n) => new RegExp(`<${n}\\b`).test(app + tree));
     assert.ok(
       used.length >= 4,
-      `App.tsx 应至少用 4 个新组件渲染骨架（当前 ${used.length}: ${used.join(', ')}）`,
+      `App.tsx（含挂载页面）应至少用 4 个新组件渲染骨架（当前 ${used.length}: ${used.join(', ')}）`,
     );
   });
 

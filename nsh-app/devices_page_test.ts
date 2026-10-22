@@ -37,7 +37,7 @@ describe('2.5 devices_page.tsx — 存在与配对流程', () => {
     assert.ok(existsSync(devicesPath), 'nsh-app/devices_page.tsx 不存在');
   });
 
-  it('生成配对码（beginPairingAccept*，含 advertising 组合 API）', () => {
+  it('生成配对码（beginPairingAcceptWithAdvertising，任务 J 组合 API）', () => {
     assert.match(
       devices,
       /beginPairingAccept\w*\s*\(/,
@@ -45,11 +45,14 @@ describe('2.5 devices_page.tsx — 存在与配对流程', () => {
     );
   });
 
-  it('凭证生成（beginPairingCredential*，展示 cm1 凭证）', () => {
+  it('显示方会话窗口 10 分钟（倒计时语义）', () => {
+    // 配对码有效期对齐 Rust PAIRING_CODE_TTL_MINUTES=10：倒计时信号 +
+    // setInterval 驱动 + 组件卸载清理。
+    const code = codeOnly(devices);
     assert.match(
-      devices,
-      /beginPairingCredential\w*\s*\(/,
-      'devices_page.tsx 应调用 BackendPairing.beginPairingCredential*（生成签名凭证）',
+      code,
+      /10\s*\*\s*60|600_?000|600000|minutes?:\s*10|10\s*分钟/,
+      '配对码有效期应对齐 Rust 侧 PAIRING_CODE_TTL = 10 分钟',
     );
   });
 
