@@ -88,12 +88,12 @@
 
 | 编号 | 任务 | 状态 | 证据 |
 |---|---|---|---|
-| 2.1 | TSX 组件库（对照 `cardmind_widgets.dart`：按钮/列表项/输入/空态/对话框） | ⬜ 未开始 | 待填 |
+| 2.1 | TSX 组件库（对照 `cardmind_widgets.dart`：按钮/列表项/输入/空态/对话框） | ✅ 已完成 | `4fb52a25`（合并）；`a25352b5`（test 红）/`4a7354c0`（feat）；`nsh-app/components.tsx` 8 组件（6 个移植 + `CardMindListItem`/`CardMindConfirmDialog`）；全部用 `theme.ts` 令牌（裸 hex/`0x` 0 命中）；触摸目标走 `layout.mobileTouchTarget`；按压反馈 `underlayColor` 不改布局；无 emoji（`Glyph` 几何图标）；`CardMindSyncStatus` stale 态配「长时间未同步」文字；`ui_kit_test.ts` 19 pass |
 | 2.2 | 列表页（960 断点双布局 + 搜索/标签过滤/滑动删除/空态） | ⬜ 未开始 | 待填 |
 | 2.3 | 回收站页（恢复/彻底删除/定期清理） | ⬜ 未开始 | 待填 |
 | 2.4 | 设置页（设备名/同步开关/日志目录/更新检查） | ⬜ 未开始 | 待填 |
 | 2.5 | 设备页（配对全流程；扫码走平台侧回传，见 R3） | ⬜ 未开始 | 待填 |
-| 2.6 | 导航/页面栈（`createNavigator` + `Stack`/`Screen`/`Modal`） | ⬜ 未开始 | 待填 |
+| 2.6 | 导航/页面栈（`createNavigator` + `Stack`/`Screen`/`Modal`） | ✅ 已完成 | `4fb52a25`（合并）；`nsh-app/navigation.tsx` `Route` union（notes/trash/settings/devices/editor）+ **官方** `createNavigator`/`Stack`/`Screen`/`Modal`（`nsh-ui-mobile/src/lib.rs:67` 导出，非自建）；`nsh trace` 里模拟 tap 真实 push 了「编辑」Screen（`noteId：new`） |
 | 2.7 | 列表虚拟化（`virtual_list`，500 篇规模） | ⬜ 未开始 | 待填 |
 
 **2.6 参照**：`nsh-js/src/navigation.rs` 提供 `createNavigator(initial)` → `Navigator<R>`（`routes` 响应式、`push(route)`、`pop(count?)`）。
