@@ -8,7 +8,10 @@
 //  ③ 设备管理真接线：listPairedDevices / removePairedDevice /
 //    checkDeviceConnectivity；解绑走 CardMindConfirmDialog（danger）；
 //  ④ 发现真接线：discoverPeers / syncDiscoverPeers；
-//  ⑤ R3 诚实标注：扫码入口存在但 disabled + 说明文案；
+//  ⑤ 二维码图片配对（QR 任务）：识别入口可用非 disabled、数据源接通
+//    savePairingQrPng / decodePairingQrFile、显示面板走
+//    beginPairingCredentialWithAdvertising、识别结果接 connectCredential /
+//    beginPairingConnectWithCredential、保存按钮存在；
 //  ⑥ 倒计时：setInterval + 清理（clearInterval/cleanup），10 分钟语义；
 //  ⑦ 空态 CardMindEmptyState；令牌纪律（无裸色值/裸 48）；无 React hooks；
 //  ⑧ App.tsx 接入 devices_page，Phase 1 后端调用仍在。
@@ -185,23 +188,87 @@ describe('2.5 devices_page.tsx — 设备管理', () => {
   });
 });
 
-describe('2.5 devices_page.tsx — R3 扫码诚实标注', () => {
-  it('扫码入口存在但 disabled + 说明文案（R3 阻塞项）', () => {
-    // 扫码入口文案存在（「扫码」字样）。
-    assert.match(devices, /扫码/, '应保留「扫码」入口（R3 占位）');
-    // 入口必须 disabled（或 onPress 缺省 = components.tsx 的 disabled 语义），
-    // 并附不可用说明文案（移动端平台能力/相机/暂不可用 任一）。
-    const scanBlock = devices.match(/扫码[\s\S]{0,400}/);
-    assert.ok(scanBlock, '应能找到扫码入口区块');
+describe('2.5 devices_page.tsx — 二维码图片配对（QR 任务）', () => {
+  it('「识别二维码图片」入口可用（非 disabled），替代旧 disabled 扫码占位', () => {
+    // 入口文案 + 接通 scanPairingQrImage（title prop 的下一个 PairModeRow
+    // 行内应带真 onPress；取 PairModeRow 开始的一段而非仅文案后 200 字符，
+    // 避免注释里的同名文案先命中）。
+    assert.match(devices, /识别二维码图片/, '应有「识别二维码图片」入口文案');
+    const rowBlock = devices.match(
+      /<PairModeRow[^>]*识别二维码图片[\s\S]{0,300}/,
+    );
+    assert.ok(rowBlock, '应能找到「识别二维码图片」PairModeRow 区块');
     assert.match(
-      scanBlock![0],
-      /disabled|onPress=\{undefined\}|onPress\s*=\s*\{\s*\(\)\s*=>\s*\{\s*\}\s*\}/,
-      '扫码入口必须是 disabled/不可用（NSH 无相机 API）',
+      rowBlock![0],
+      /onPress=\{[^}]*scanPairingQrImage/,
+      '「识别二维码图片」应接通 scanPairingQrImage（不再是 disabled 占位）',
+    );
+    // 不再有「disabled + onPress=undefined」的扫码占位行（旧 PairModeRow 用
+    // `onPress={undefined}` + `disabled` 表达不可用；现入口带真 onPress）。
+    assert.ok(
+      !/onPress=\{undefined\}[\s\S]{0,40}disabled\s*\n?\s*\/>/.test(devices),
+      '不应再存在 disabled 的扫码占位入口（onPress={undefined} + disabled）',
+    );
+    // R3 说明文案保留：相机直扫仍不可用，仅说明。
+    assert.match(
+      devices,
+      /相机|移动端平台能力|暂不可用|不支持扫码/,
+      '应保留「相机直扫需平台能力」说明（R3 诚实标注）',
+    );
+  });
+
+  it('数据源接通 savePairingQrPng / decodePairingQrFile', () => {
+    assert.match(
+      devices,
+      /savePairingQrPng\s*[:(]/,
+      'devices_page.tsx 应调用/声明 savePairingQrPng（保存二维码图片）',
     );
     assert.match(
       devices,
-      /相机|移动端平台能力|暂不可用|不可用|不支持扫码/,
-      '扫码入口必须有「为什么不可用」说明文案（R3 诚实标注，不假报可用）',
+      /decodePairingQrFile\s*[:(]/,
+      'devices_page.tsx 应调用/声明 decodePairingQrFile（识别二维码图片）',
+    );
+  });
+
+  it('「我显示配对码」走凭证路径（beginPairingCredentialWithAdvertising）', () => {
+    assert.match(
+      devices,
+      /beginPairingCredentialWithAdvertising\s*\(/,
+      '显示配对码应调 beginPairingCredentialWithAdvertising 拿 cm1. 凭证',
+    );
+    // 凭证存 signal 供「保存二维码图片」用。
+    assert.match(
+      devices,
+      /pairCredential/,
+      '应新增 pairCredential signal 存 cm1. 凭证',
+    );
+  });
+
+  it('识别结果接凭证直连（connectCredential / beginPairingConnectWithCredential）', () => {
+    // 识别流程：先 decodePairingQrFile 解出凭证，再走 connectCredential
+    // （复用 parse + beginPairingConnectWithCredential）。
+    const scanBlock = devices.match(
+      /async function scanPairingQrImage[\s\S]{0,1600}/,
+    );
+    assert.ok(scanBlock, '应能找到 scanPairingQrImage 函数');
+    assert.match(
+      scanBlock![0],
+      /decodePairingQrFile\s*\(/,
+      '识别流程应先调 decodePairingQrFile 取凭证',
+    );
+    assert.match(
+      scanBlock![0],
+      /connectCredential\s*\(/,
+      '识别出 cm1. 凭证后应走 connectCredential（→ beginPairingConnectWithCredential）',
+    );
+  });
+
+  it('「保存二维码图片」按钮存在且有可达性标签', () => {
+    assert.match(devices, /保存二维码图片/, 'PairShowSheet 应有「保存二维码图片」按钮');
+    assert.match(
+      devices,
+      /accessibilityLabel="保存二维码图片"/,
+      '保存按钮应有 accessibilityLabel',
     );
   });
 });

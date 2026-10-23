@@ -7,19 +7,21 @@
 //    操作：连通检查（BackendSync.checkDeviceConnectivity）、解绑
 //    （removePairedDevice，走 CardMindConfirmDialog 危险确认）、改名；
 //  ③ 配对流程：
-//    - 显示方：beginPairingAcceptWithAdvertising 生成 6 位配对码 + mDNS 广播
-//      （任务 J 组合 API）+ 短窗口轮询 acceptPairingRequestWithTimeout +
-//      confirmPairing；
-//    - 发起方：手动输入配对码/凭证——cm1 开头经 parsePairingCredential 验证
-//      后走 beginPairingConnectWithCredential；纯 6 位码经 discoverPeers
+//    - 显示方：beginPairingCredentialWithAdvertising 生成 6 位配对码 + cm1.
+//      签名凭证 + mDNS 广播（任务 Q 组合 API）+ 短窗口轮询
+//      acceptPairingRequestWithTimeout + confirmPairing；凭证可经
+//      「保存二维码图片」（savePairingQrPng → rfd 系统保存框）存为 PNG；
+//    - 发起方：「识别二维码图片」（decodePairingQrFile → rfd 打开框 + rqrr
+//      识别）解出 cm1. 凭证后自动 connectCredential 完成配对；或手动输入
+//      配对码/凭证——cm1 开头经 parsePairingCredential 验证后走
+//      beginPairingConnectWithCredential；纯 6 位码经 discoverPeers
 //      发现唯一目标后走 beginPairingConnect；
-//    - 扫码入口：R3 阻塞（NSH 无相机 API），disabled + 说明文案，
-//      替代路径 = 手动输入凭证；
+//    - 真扫码（相机直扫）仍属 R3 平台能力缺口，仅保留说明；
 //  ④ 发现对端（discoverPeers / syncDiscoverPeers）；
 //  ⑤ 空态（CardMindEmptyState）。
 //
-// R3 诚实标注：NSH 无相机 API 也无文件选择器（docs/migration-nsh.md R3）——
-// 「扫码配对」入口保留但明确 disabled，不实现扫码，不假报可用。
+// R3 诚实标注：NSH 无相机 API（docs/migration-nsh.md R3）——相机直扫仍
+// 不可用；「识别二维码图片」是图片级替代路径（无需相机），入口可用不假报。
 //
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
 import { cleanup, effect, signal, Input, Scroll, Text, View } from "nsh";
@@ -99,6 +101,13 @@ export interface PairingResultDto {
   peerName: string;
 }
 
+/** 显示方配对凭证展示（PairingCredentialDisplayDto 镜像）。 */
+export interface PairingCredentialDisplayDto {
+  code: string;
+  credential: string;
+  expiresAt: string;
+}
+
 /** 设备页后端表面（TSX 侧能注入假实现）。 */
 export interface DevicesSource {
   getDeviceId(): Promise<string>;
@@ -111,12 +120,17 @@ export interface DevicesSource {
   syncDiscoverPeers(): Promise<PeerInfoDto[]>;
   discoverPeers(): Promise<PeerInfoDto[]>;
   beginPairingAcceptWithAdvertising(): Promise<string>;
+  beginPairingCredentialWithAdvertising(): Promise<PairingCredentialDisplayDto>;
   stopPairingAdvertising(): Promise<boolean>;
   acceptPairingRequestWithTimeout(timeoutMs: number): Promise<PairingRequestDto | null>;
   confirmPairing(code: string, request: PairingRequestDto): Promise<PairingResultDto>;
   beginPairingConnect(code: string, target: PeerInfoDto): Promise<PairingResultDto>;
   parsePairingCredential(credential: string): Promise<unknown>;
   beginPairingConnectWithCredential(credential: string): Promise<PairingResultDto>;
+  /** 保存配对二维码 PNG：弹系统保存框写文件；返回保存路径，空串 = 用户取消。 */
+  savePairingQrPng(credential: string): Promise<string>;
+  /** 识别二维码图片：弹系统打开框选图；返回 cm1. 凭证，空串 = 用户取消。 */
+  decodePairingQrFile(): Promise<string>;
 }
 
 /** snake_case DTO → 驼峰。 */
@@ -189,6 +203,12 @@ function makeBackendSource(): DevicesSource {
     // 广播下发，6 位码发起方才能过 confirm 侧 nonce 校验）。返回纯 code。
     beginPairingAcceptWithAdvertising: () =>
       BackendPairing.beginPairingAcceptWithAdvertising(),
+    // 生成签名配对凭证并启动 mDNS 广播（任务 Q 组合 API；凭证 = cm1. 前缀
+    // + base64url，可渲染成二维码图片给对方识别）。snake_case → 驼峰。
+    beginPairingCredentialWithAdvertising: async () => {
+      const r = await BackendPairing.beginPairingCredentialWithAdvertising();
+      return { code: r.code, credential: r.credential, expiresAt: r.expires_at };
+    },
     stopPairingAdvertising: () => BackendPairing.stopPairingAdvertising(),
     acceptPairingRequestWithTimeout: async (timeoutMs) => {
       const r = await BackendPairing.acceptPairingRequestWithTimeout(timeoutMs);
@@ -218,6 +238,10 @@ function makeBackendSource(): DevicesSource {
       BackendPairing.parsePairingCredential(credential),
     beginPairingConnectWithCredential: async (credential) =>
       mapResult(await BackendPairing.beginPairingConnectWithCredential(credential)),
+    // 二维码图片路径（QR 任务）：保存 = 渲染 cm1. 凭证 + rfd 保存框写 PNG；
+    // 识别 = rfd 打开框选图 + rqrr 解码回 cm1. 凭证。空串 = 用户取消。
+    savePairingQrPng: (credential) => BackendPairing.savePairingQrPng(credential),
+    decodePairingQrFile: () => BackendPairing.decodePairingQrFile(),
   };
 }
 
@@ -257,7 +281,12 @@ const pairSheet = signal<PairSheet>("none");
 
 /** 显示码侧状态。 */
 const pairCode = signal<string | undefined>(undefined);
-/** 当前配对会话截止时间（epoch ms，本地按 TTL 推导；undefined = 未生成）。 */
+/** 当前配对会话的 cm1. 签名凭证（渲染二维码图片用；undefined = 未生成）。 */
+const pairCredential = signal<string | undefined>(undefined);
+/** 「保存二维码图片」成功后的落盘路径（mutedInk 提示，非错误）。 */
+const qrSavedPath = signal<string | undefined>(undefined);
+/** 当前配对会话截止时间（epoch ms；用 Rust 返回的 expiresAt 绝对值，
+ *  undefined = 未生成）。 */
 const pairDeadlineMs = signal<number | undefined>(undefined);
 const pairError = signal<string | undefined>(undefined);
 const pairRemainingMs = signal(0);
@@ -269,6 +298,10 @@ let countdownTimer: ReturnType<typeof setInterval> | undefined;
 const enterInput = signal("");
 const enterError = signal<string | undefined>(undefined);
 const enterBusy = signal(false);
+
+/** 「识别二维码图片」入口状态（choose 弹窗内展示：busy + 可读错误）。 */
+const scanBusy = signal(false);
+const scanError = signal<string | undefined>(undefined);
 
 /** 发现对端。 */
 const peers = signal<PeerInfoDto[]>([]);
@@ -518,16 +551,23 @@ async function runAcceptLoop(gen: number): Promise<void> {
   }
 }
 
-/** 生成并展示一轮配对码（码 + mDNS 广播同一调用，任务 J 组合 API）。
- *  `beginPairingAcceptWithAdvertising` 只返回 6 位码；截止时间本地按
- *  「返回时刻 + pairingCodeTtlMs」推导（Rust 会话 TTL 同为 10 分钟）。 */
+/** 生成并展示一轮配对凭证（任务 Q 组合 API：凭证 + mDNS 广播同一调用）。
+ *  `beginPairingCredentialWithAdvertising` 返回 {code, credential, expiresAt}：
+ *  `code` 继续作 6 位显示码；`credential`（cm1. 前缀签名凭证）存
+ *  pairCredential，供「保存二维码图片」渲染；截止时间直接用 Rust 返回的
+ *  expiresAt 绝对值（与凭证内嵌 TTL 一致，不再本地推导）。 */
 async function generatePairCode(gen: number): Promise<void> {
   pairError.set(undefined);
   try {
-    const code = await source.beginPairingAcceptWithAdvertising();
+    const cred = await source.beginPairingCredentialWithAdvertising();
     if (gen !== pairGeneration || pairSheet() !== "show") return;
-    pairCode.set(code);
-    const deadline = Date.now() + pairingCodeTtlMs;
+    pairCode.set(cred.code);
+    pairCredential.set(cred.credential);
+    qrSavedPath.set(undefined);
+    const parsed = Date.parse(cred.expiresAt);
+    const deadline = Number.isNaN(parsed)
+      ? Date.now() + pairingCodeTtlMs
+      : parsed;
     pairDeadlineMs.set(deadline);
     startCountdown(deadline);
   } catch {
@@ -552,12 +592,34 @@ async function regeneratePairCode(): Promise<void> {
   void runAcceptLoop(gen);
 }
 
+/** 「保存二维码图片」：把当前 cm1. 凭证渲染成二维码 PNG 写用户自选路径。
+ *  空串返回 = 用户取消（不提示）；真错误进 pairError（danger 色）；
+ *  成功路径进 qrSavedPath（mutedInk 提示）。
+ *  对话框挂起期间若弹窗被关/凭证被重新生成（gen 变化），结果直接丢弃。 */
+async function savePairingQrImage(): Promise<void> {
+  const credential = pairCredential();
+  if (credential === undefined) return;
+  const gen = pairGeneration;
+  pairError.set(undefined);
+  try {
+    const path = await source.savePairingQrPng(credential);
+    if (gen !== pairGeneration || pairSheet() !== "show") return;
+    if (path === "") return; // 用户取消：不提示。
+    qrSavedPath.set(path);
+  } catch (error) {
+    if (gen !== pairGeneration || pairSheet() !== "show") return;
+    pairError.set(`保存二维码失败：${String(error)}`);
+  }
+}
+
 /** 关闭配对面板：判废 accept 轮 + 停倒计时 + 停广播（幂等，失败忽略）。 */
 function closePairSheet(): void {
   pairSheet.set("none");
   pairGeneration += 1;
   stopCountdown();
   pairCode.set(undefined);
+  pairCredential.set(undefined);
+  qrSavedPath.set(undefined);
   pairDeadlineMs.set(undefined);
   pairRemainingMs.set(0);
   pairError.set(undefined);
@@ -576,6 +638,33 @@ function openEnterCode(): void {
 async function connectCredential(credential: string): Promise<PairingResultDto> {
   await source.parsePairingCredential(credential);
   return source.beginPairingConnectWithCredential(credential);
+}
+
+/** 「识别二维码图片」（发起方，QR 任务）：弹系统打开框选图 → rqrr 解出
+ *  cm1. 凭证 → 复用现有凭证路径（parse + beginPairingConnectWithCredential）
+ *  自动完成配对。空串 = 用户取消直接返回；非 cm1. 二维码/识别失败显示在
+ *  choose 弹窗的 scanError；成功接标准完成态（actionMessage + 关弹窗 +
+ *  刷新列表）。 */
+async function scanPairingQrImage(): Promise<void> {
+  if (scanBusy()) return;
+  scanError.set(undefined);
+  scanBusy.set(true);
+  try {
+    const credential = await source.decodePairingQrFile();
+    if (credential === "") return; // 用户取消：不动作。
+    if (!credential.startsWith("cm1.")) {
+      scanError.set("识别到的二维码不是 CardMind 配对凭证（应以 cm1. 开头）");
+      return;
+    }
+    const result = await connectCredential(credential);
+    actionMessage.set(`配对成功：${result.peerName}`);
+    closePairSheet();
+    await loadDevices(true);
+  } catch (error) {
+    scanError.set(`识别二维码失败：${String(error)}`);
+  } finally {
+    scanBusy.set(false);
+  }
 }
 
 /** 6 位码路径：discoverPeers 找唯一目标 → beginPairingConnect。 */
@@ -887,7 +976,7 @@ function PairModeRow(props: {
   );
 }
 
-/** 「添加设备」弹窗：选配对方式（显示码 / 扫码 disabled R3 / 输入码）。 */
+/** 「添加设备」弹窗：选配对方式（显示码 / 识别二维码图片 / 输入码）。 */
 function PairChooseSheet(): JSX.Element {
   return (
     <Modal visible={pairSheet() === "choose"}>
@@ -919,14 +1008,40 @@ function PairChooseSheet(): JSX.Element {
             subtitle="对方扫码或输入我屏幕上的配对信息"
             onPress={() => void openShowCode()}
           />
-          {/* R3 阻塞项：NSH 无相机 API——扫码入口保留但 disabled + 说明。 */}
+          {/* 二维码图片路径（QR 任务）：选一张配对二维码图片自动完成配对；
+              相机直扫仍需移动端平台能力（R3），本条不含直扫。 */}
           <PairModeRow
             icon="search"
-            title="我扫描配对码"
-            subtitle="扫码需移动端平台能力（相机），桌面端暂不可用——请改用「我输入对方的码」"
-            onPress={undefined}
-            disabled
+            title="识别二维码图片"
+            subtitle="选择一张配对二维码图片自动完成配对"
+            onPress={() => void scanPairingQrImage()}
+            disabled={scanBusy()}
           />
+          {() =>
+            scanBusy() ? (
+              <Text style={{ color: colors.mutedInk, fontSize: typography.bodyMedium.fontSize }}>
+                正在识别…
+              </Text>
+            ) : null
+          }
+          <If when={scanError() !== undefined}>
+            <Text
+              style={{
+                color: colors.danger,
+                fontSize: typography.bodyMedium.fontSize - 3,
+              }}
+            >
+              {() => scanError() ?? ""}
+            </Text>
+          </If>
+          <Text
+            style={{
+              fontSize: typography.bodyMedium.fontSize - 3,
+              color: colors.mutedInk,
+            }}
+          >
+            相机直扫需移动端平台能力（R3），暂不可用——请用上方的图片识别。
+          </Text>
           <PairModeRow
             icon="edit"
             title="我输入对方的码"
@@ -961,9 +1076,10 @@ function PairChooseSheet(): JSX.Element {
 }
 
 /** 「我显示配对码」弹窗（对照 Dart _PairingAcceptDialog）：
- *  6 位码大字 + 倒计时（10 分钟有效）+ 等待/确认状态 + 重新生成。
- *  NSH 无二维码绘制 API（同属平台能力缺口）：不画 QR，显示 6 位码 +
- *  有效期倒计时，对端手动输入或扫码移动端。 */
+ *  6 位码大字 + 倒计时（10 分钟有效）+ 等待/确认状态 + 重新生成 +
+ *  「保存二维码图片」（QR 任务：cm1. 凭证 → PNG → 系统保存框，保存路径
+ *  用 mutedInk 提示）。屏幕内不画 QR（NSH 无二维码绘制组件），二维码以
+ *  图片文件形式交付给对方识别。 */
 function PairShowSheet(): JSX.Element {
   const expiryText = () => {
     if (pairDeadlineMs() === undefined) return "";
@@ -1058,6 +1174,51 @@ function PairShowSheet(): JSX.Element {
                     </Text>
                   </View>
                 </View>
+                {/* 保存二维码图片（QR 任务）：cm1. 凭证渲染成 PNG 写用户自选
+                    路径；成功路径提示走 mutedInk，错误仍走 pairError 红字。 */}
+                <View
+                  onPress={() => void savePairingQrImage()}
+                  underlayColor={colors.surfaceLow}
+                  accessibilityRole="button"
+                  accessibilityLabel="保存二维码图片"
+                  style={{
+                    minHeight: layout.mobileTouchTarget,
+                    paddingHorizontal: spacing.md,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: radii.md,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: typography.bodyMedium.fontSize - 3,
+                      color: colors.accent,
+                      fontWeight: "600",
+                    }}
+                  >
+                    保存二维码图片
+                  </Text>
+                </View>
+                <If when={qrSavedPath() !== undefined}>
+                  <Text
+                    style={{
+                      fontSize: typography.bodyMedium.fontSize - 3,
+                      color: colors.mutedInk,
+                    }}
+                  >
+                    {() => `已保存：${qrSavedPath() ?? ""}`}
+                  </Text>
+                </If>
+                <Text
+                  style={{
+                    fontSize: typography.bodyMedium.fontSize - 3,
+                    color: colors.mutedInk,
+                  }}
+                >
+                  保存的图片可用对方设备「识别二维码图片」打开完成配对；相机直扫需移动端平台能力（R3）。
+                </Text>
               </View>
             );
           }}
