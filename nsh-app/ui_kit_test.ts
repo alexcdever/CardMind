@@ -8,7 +8,7 @@
 //     ——不出现裸 `#RRGGBB` 或 `0xAARRGGBB` 字面量；
 //  ③ 触摸目标走 `layout.mobileTouchTarget`（=48），不出现裸 48 或更小的
 //     高度常量充当命中区；
-//  ④ App.tsx 用了新组件 + 有路由定义（createNavigator）+ push/pop 代码路径。
+//  ④ App.tsx 用了新组件 + 有路由定义（createNavStack）+ push/pop 代码路径。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -116,9 +116,9 @@ describe('2.6 导航骨架 + App.tsx 接入', () => {
   const nav = existsSync(path.join(here, NAVIGATION)) ? read(NAVIGATION) : '';
   const app = read(APP);
 
-  it('navigation.tsx 有路由定义 + createNavigator', () => {
+  it('navigation.tsx 有路由定义 + createNavStack', () => {
     assert.ok(existsSync(path.join(here, NAVIGATION)), 'nsh-app/navigation.tsx 不存在');
-    assert.match(nav, /createNavigator/, 'navigation.tsx 应用 createNavigator');
+    assert.match(nav, /createNavStack/, 'navigation.tsx 应用 createNavStack');
     assert.match(
       nav,
       /type\s+Route\b|export\s+type\s+Route\b/,
@@ -168,8 +168,8 @@ describe('2.6 导航骨架 + App.tsx 接入', () => {
     );
   });
 
-  it('App.tsx 挂导航（Stack navigator）', () => {
+  it('App.tsx 挂导航（NavStack navigator）', () => {
     assert.match(app, /import\s*\{[^}]*nav\b|nav,[^}]*\}/, 'App.tsx 应引入 navigator');
-    assert.match(app, /<Stack\b/, 'App.tsx 应渲染 <Stack> 挂页面栈');
+    assert.match(app, /<NavStack\b/, 'App.tsx 应渲染 <NavStack> 挂页面栈');
   });
 });

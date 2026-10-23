@@ -43,23 +43,9 @@ export interface TrashSource {
   purgeExpiredTrash(cutoff: string): Promise<number>;
 }
 
-/** 默认源：BackendNotes 的 snake_case DTO 映射为驼峰；写操作后刷新投影。 */
+/** 默认源：BackendNotes 的 DTO（0.2.0 起 camelCase）直读；写操作后刷新投影。 */
 function makeBackendSource(): TrashSource {
-  const map = (r: {
-    id: string;
-    title: string;
-    content_preview: string;
-    tags: string;
-    updated_at: string;
-    deleted_at?: string | null;
-  }): TrashNoteDto => ({
-    id: r.id,
-    title: r.title,
-    contentPreview: r.content_preview,
-    tags: r.tags,
-    updatedAt: r.updated_at,
-    deletedAt: r.deleted_at,
-  });
+  const map = (r: TrashNoteDto): TrashNoteDto => r;
   return {
     trashList: async () => (await BackendNotes.storeTrashList()).map(map),
     noteRestore: async (id) => {
@@ -300,8 +286,7 @@ export function TrashPage(props: { status?: JSX.Element }): JSX.Element {
         </View>
         <View
           onPress={requestPurgeExpired}
-          underlayColor={colors.surfaceLow}
-          accessibilityRole="button"
+          role="button"
           accessibilityLabel="清理 30 天前的笔记"
           accessibilityState={{ disabled: busy() }}
           style={{

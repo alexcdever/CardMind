@@ -26,7 +26,7 @@
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
 import { cleanup, effect, signal, Input, Scroll, Text, View } from "nsh";
 import type { JSX } from "nsh";
-import { Modal } from "nsh/ui/mobile";
+import { Dialog } from "nsh/base";
 import { BackendPairing, BackendSync } from "app/native";
 import {
   CardMindConfirmDialog,
@@ -133,55 +133,36 @@ export interface DevicesSource {
   decodePairingQrFile(): Promise<string>;
 }
 
-/** snake_case DTO → 驼峰。 */
+/** 0.2.0 起桥 DTO 已是 camelCase，直读即可（map* 收敛为恒等；入参宽化接收原生可空可选字段）。 */
 function mapDevice(r: {
-  peer_id: string;
+  peerId: string;
   name: string;
-  last_seen: string | null;
-  last_sync_at: string | null;
-  paired_at: string;
+  lastSeen?: string | null;
+  lastSyncAt?: string | null;
+  pairedAt: string;
 }): PairedDeviceDto {
   return {
-    peerId: r.peer_id,
+    peerId: r.peerId,
     name: r.name,
-    lastSeen: r.last_seen,
-    lastSyncAt: r.last_sync_at,
-    pairedAt: r.paired_at,
+    lastSeen: r.lastSeen ?? null,
+    lastSyncAt: r.lastSyncAt ?? null,
+    pairedAt: r.pairedAt,
   };
 }
 
-function mapPeer(p: {
-  device_id: string;
-  ip: string;
-  port: number;
-  nonce: string;
-}): PeerInfoDto {
-  return { deviceId: p.device_id, ip: p.ip, port: p.port, nonce: p.nonce };
+function mapPeer(p: PeerInfoDto): PeerInfoDto {
+  return p;
 }
 
-function mapRequest(r: {
-  code: string;
-  device_id: string;
-  device_name: string;
-  relay_info: string;
-  ips: string[];
-  nonce: string;
-}): PairingRequestDto {
-  return {
-    code: r.code,
-    deviceId: r.device_id,
-    deviceName: r.device_name,
-    relayInfo: r.relay_info,
-    ips: r.ips,
-    nonce: r.nonce,
-  };
+function mapRequest(r: PairingRequestDto): PairingRequestDto {
+  return r;
 }
 
-function mapResult(r: { peer_id: string; peer_name: string }): PairingResultDto {
-  return { peerId: r.peer_id, peerName: r.peer_name };
+function mapResult(r: PairingResultDto): PairingResultDto {
+  return r;
 }
 
-/** 默认源：BackendPairing / BackendSync 的 snake_case DTO 映射为驼峰。 */
+/** 默认源：BackendPairing / BackendSync 的 camelCase DTO 直读（0.2.0）。 */
 function makeBackendSource(): DevicesSource {
   return {
     getDeviceId: () => BackendPairing.getDeviceId(),
@@ -204,10 +185,10 @@ function makeBackendSource(): DevicesSource {
     beginPairingAcceptWithAdvertising: () =>
       BackendPairing.beginPairingAcceptWithAdvertising(),
     // 生成签名配对凭证并启动 mDNS 广播（任务 Q 组合 API；凭证 = cm1. 前缀
-    // + base64url，可渲染成二维码图片给对方识别）。snake_case → 驼峰。
+    // + base64url，可渲染成二维码图片给对方识别）。camelCase 直读。
     beginPairingCredentialWithAdvertising: async () => {
       const r = await BackendPairing.beginPairingCredentialWithAdvertising();
-      return { code: r.code, credential: r.credential, expiresAt: r.expires_at };
+      return { code: r.code, credential: r.credential, expiresAt: r.expiresAt };
     },
     stopPairingAdvertising: () => BackendPairing.stopPairingAdvertising(),
     acceptPairingRequestWithTimeout: async (timeoutMs) => {
@@ -218,9 +199,9 @@ function makeBackendSource(): DevicesSource {
       mapResult(
         await BackendPairing.confirmPairing(code, {
           code: request.code,
-          device_id: request.deviceId,
-          device_name: request.deviceName,
-          relay_info: request.relayInfo,
+          deviceId: request.deviceId,
+          deviceName: request.deviceName,
+          relayInfo: request.relayInfo,
           ips: request.ips,
           nonce: request.nonce,
         }),
@@ -228,7 +209,7 @@ function makeBackendSource(): DevicesSource {
     beginPairingConnect: async (code, target) =>
       mapResult(
         await BackendPairing.beginPairingConnect(code, {
-          device_id: target.deviceId,
+          deviceId: target.deviceId,
           ip: target.ip,
           port: target.port,
           nonce: target.nonce,
@@ -240,8 +221,9 @@ function makeBackendSource(): DevicesSource {
       mapResult(await BackendPairing.beginPairingConnectWithCredential(credential)),
     // 二维码图片路径（QR 任务）：保存 = 渲染 cm1. 凭证 + rfd 保存框写 PNG；
     // 识别 = rfd 打开框选图 + rqrr 解码回 cm1. 凭证。空串 = 用户取消。
-    savePairingQrPng: (credential) => BackendPairing.savePairingQrPng(credential),
-    decodePairingQrFile: () => BackendPairing.decodePairingQrFile(),
+    // 0.2.0 非 async 模块函数生成同步签名（string 非 Promise），包成 Promise。
+    savePairingQrPng: (credential) => Promise.resolve(BackendPairing.savePairingQrPng(credential)),
+    decodePairingQrFile: () => Promise.resolve(BackendPairing.decodePairingQrFile()),
   };
 }
 
@@ -779,8 +761,8 @@ function LocalInfoCard(): JSX.Element {
             <View style={{ gap: spacing.xs }}>
               <Input
                 value={nameDraft()}
-                onChangeText={(t: string) => nameDraft.set(t)}
-                onSubmitEditing={() => void saveDeviceName()}
+                onChange={(t: string) => nameDraft.set(t)}
+                onSubmit={() => void saveDeviceName()}
                 placeholder="设备名"
                 accessibilityLabel="设备名"
                 style={{
@@ -863,8 +845,7 @@ function DeviceRow(props: { device: () => PairedDeviceDto }): JSX.Element {
         <View style={{ alignItems: "flex-end", gap: spacing.xs }}>
           <View
             onPress={check()?.kind === "checking" ? undefined : () => void checkConnectivity(d())}
-            underlayColor={colors.surfaceLow}
-            accessibilityRole="button"
+            role="button"
             accessibilityLabel={`${checkLabel(check())}，${d().name}`}
             accessibilityState={{ disabled: check()?.kind === "checking" }}
             style={{
@@ -893,8 +874,7 @@ function DeviceRow(props: { device: () => PairedDeviceDto }): JSX.Element {
           </View>
           <View
             onPress={() => requestUnpair(d())}
-            underlayColor={colors.surfaceLow}
-            accessibilityRole="button"
+            role="button"
             accessibilityLabel={`解除配对 ${d().name}`}
             style={{
               minHeight: layout.mobileTouchTarget,
@@ -934,8 +914,7 @@ function PairModeRow(props: {
   return (
     <View
       onPress={disabled() ? undefined : props.onPress}
-      underlayColor={disabled() ? undefined : colors.surfaceLow}
-      accessibilityRole="button"
+      role="button"
       accessibilityLabel={props.title}
       accessibilityState={{ disabled: disabled() }}
       style={{
@@ -979,7 +958,7 @@ function PairModeRow(props: {
 /** 「添加设备」弹窗：选配对方式（显示码 / 识别二维码图片 / 输入码）。 */
 function PairChooseSheet(): JSX.Element {
   return (
-    <Modal visible={pairSheet() === "choose"}>
+    <Dialog open={pairSheet() === "choose"}>
       <View
         style={{
           flex: 1,
@@ -1051,8 +1030,7 @@ function PairChooseSheet(): JSX.Element {
           <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
             <View
               onPress={closePairSheet}
-              underlayColor={colors.surfaceLow}
-              accessibilityRole="button"
+              role="button"
               accessibilityLabel="取消"
               style={{
                 minHeight: layout.mobileTouchTarget,
@@ -1071,7 +1049,7 @@ function PairChooseSheet(): JSX.Element {
           </View>
         </Panel>
       </View>
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -1086,7 +1064,7 @@ function PairShowSheet(): JSX.Element {
     return formatCountdown(pairRemainingMs());
   };
   return (
-    <Modal visible={pairSheet() === "show"}>
+    <Dialog open={pairSheet() === "show"}>
       <View
         style={{
           flex: 1,
@@ -1150,8 +1128,7 @@ function PairShowSheet(): JSX.Element {
                   <View style={{ flex: 1 }} />
                   <View
                     onPress={() => void regeneratePairCode()}
-                    underlayColor={colors.surfaceLow}
-                    accessibilityRole="button"
+                    role="button"
                     accessibilityLabel="重新生成配对码"
                     style={{
                       minHeight: layout.mobileTouchTarget,
@@ -1178,8 +1155,7 @@ function PairShowSheet(): JSX.Element {
                     路径；成功路径提示走 mutedInk，错误仍走 pairError 红字。 */}
                 <View
                   onPress={() => void savePairingQrImage()}
-                  underlayColor={colors.surfaceLow}
-                  accessibilityRole="button"
+                  role="button"
                   accessibilityLabel="保存二维码图片"
                   style={{
                     minHeight: layout.mobileTouchTarget,
@@ -1245,8 +1221,7 @@ function PairShowSheet(): JSX.Element {
           <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
             <View
               onPress={closePairSheet}
-              underlayColor={colors.surfaceLow}
-              accessibilityRole="button"
+              role="button"
               accessibilityLabel="关闭"
               style={{
                 minHeight: layout.mobileTouchTarget,
@@ -1265,7 +1240,7 @@ function PairShowSheet(): JSX.Element {
           </View>
         </Panel>
       </View>
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -1273,7 +1248,7 @@ function PairShowSheet(): JSX.Element {
  *  内联 + 提交中 busy。cm1 开头走凭证直连，6 位走 mDNS 发现。 */
 function PairEnterSheet(): JSX.Element {
   return (
-    <Modal visible={pairSheet() === "enter"}>
+    <Dialog open={pairSheet() === "enter"}>
       <View
         style={{
           flex: 1,
@@ -1303,8 +1278,8 @@ function PairEnterSheet(): JSX.Element {
           >
             <Input
               value={enterInput()}
-              onChangeText={(t: string) => enterInput.set(t)}
-              onSubmitEditing={() => void submitPeerCode()}
+              onChange={(t: string) => enterInput.set(t)}
+              onSubmit={() => void submitPeerCode()}
               placeholder="输入 6 位配对码，或粘贴以 cm1 开头的配对信息"
               accessibilityLabel="配对码或配对信息"
               style={{
@@ -1333,8 +1308,7 @@ function PairEnterSheet(): JSX.Element {
           <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: spacing.sm }}>
             <View
               onPress={closePairSheet}
-              underlayColor={colors.surfaceLow}
-              accessibilityRole="button"
+              role="button"
               accessibilityLabel="取消"
               style={{
                 minHeight: layout.mobileTouchTarget,
@@ -1352,8 +1326,7 @@ function PairEnterSheet(): JSX.Element {
             </View>
             <View
               onPress={enterBusy() ? undefined : () => void submitPeerCode()}
-              underlayColor={colors.accentHover}
-              accessibilityRole="button"
+              role="button"
               accessibilityLabel="确认配对"
               accessibilityState={{ disabled: enterBusy() }}
               style={{
@@ -1379,7 +1352,7 @@ function PairEnterSheet(): JSX.Element {
           </View>
         </Panel>
       </View>
-    </Modal>
+    </Dialog>
   );
 }
 
@@ -1452,7 +1425,7 @@ export function DevicesPage(props: { status?: JSX.Element }): JSX.Element {
                 return (
                   <Panel>
                     {devices().map((d) => (
-                      <DeviceRow key={d.peerId} device={() => d} />
+                      <DeviceRow device={() => d} />
                     ))}
                   </Panel>
                 );
@@ -1472,8 +1445,7 @@ export function DevicesPage(props: { status?: JSX.Element }): JSX.Element {
                 <View style={{ flex: 1 }} />
                 <View
                   onPress={() => void refreshPeers()}
-                  underlayColor={colors.surfaceLow}
-                  accessibilityRole="button"
+                  role="button"
                   accessibilityLabel="刷新附近设备"
                   accessibilityState={{ disabled: discovering() }}
                   style={{
@@ -1527,7 +1499,6 @@ export function DevicesPage(props: { status?: JSX.Element }): JSX.Element {
                   <Panel>
                     {peers().map((p) => (
                       <CardMindListItem
-                        key={p.deviceId}
                         title={`${p.deviceId.slice(0, 8)}…`}
                         subtitle={`${p.ip}:${p.port}`}
                       />

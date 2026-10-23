@@ -1,10 +1,10 @@
-// 导航骨架（施工方案 2.6）：路由联合类型 + `createNavigator` + `Stack`/`Screen`。
+// 导航骨架（施工方案 2.6）：路由联合类型 + `createNavStack` + `NavStack`/`NavPage`。
 //
 // 路由：notes（笔记列表）/ trash（回收站）/ settings（设置）/ devices（设备）/
 // editor（编辑器，携带 noteId 推栈）。桌面端 notes 页内三栏、编辑器不进栈；
 // 移动端编辑器作为栈上页 push。
 import type { JSX } from "nsh";
-import { createNavigator } from "nsh/ui/mobile";
+import { createNavStack } from "nsh/base";
 import { colors } from "./theme";
 
 /** 应用路由（plain values，按 identity 比较，见 nsh-js navigation.rs）。 */
@@ -15,8 +15,8 @@ export type Route =
   | { name: "devices" }
   | { name: "editor"; noteId: string };
 
-/** 全局 navigator：初始路由 notes。 */
-export const nav = createNavigator<Route>({ name: "notes" });
+/** 全局 navigator：初始路由 notes（0.2.0 `createNavStack` 收初始路由数组）。 */
+export const nav = createNavStack<Route>([{ name: "notes" }]);
 
 /** 打开编辑器（push editor 路由）。 */
 export function openEditor(noteId: string): void {
@@ -36,14 +36,14 @@ export const routes = {
   devices: { name: "devices" } as Route,
 } as const;
 
-/** 顶部栏颜色（Screen 的 header* props 走令牌，不裸色）。 */
+/** 顶部栏颜色（NavPage 的 header* props 走令牌，不裸色）。 */
 export const headerColors = {
   headerBackgroundColor: colors.paper,
   headerTintColor: colors.accent,
   headerTitleColor: colors.ink,
 } as const;
 
-/** 每个 `<Screen>` 的公共 props。 */
+/** 每个 `<NavPage>` 的公共 props。 */
 export function screenChrome(title: string) {
   return { title, ...headerColors };
 }

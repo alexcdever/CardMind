@@ -20,7 +20,7 @@ import { List } from "nsh/list";
 import { PanResponder } from "nsh/gesture";
 import { windowSize } from "nsh/device";
 import { keymap } from "nsh/keymap";
-import { NativeValue } from "nsh/animated";
+import { AnimatedValue } from "nsh/animated";
 import type { JSX } from "nsh";
 import { BackendNotes } from "app/native";
 import {
@@ -60,34 +60,20 @@ export interface NoteListSource {
 }
 
 /**
- * 默认源：把 nsh BackendNotes 的 snake_case DTO 映射为驼峰 + 软删后刷新投影。
+ * 默认源：nsh BackendNotes 的 DTO（0.2.0 起 camelCase，与 NoteDto 同形）直读。
  *
  * `listNotes` 目前没有独立的 `storeListNotes`：读模型侧用「按标签搜索空串」
  * 退化为全量列表（`search_by_tag("")` 的 LIKE 模式 `%` 匹配全部非删除行），
  * 等价于 list_notes() 的语义且避免改 Rust 端。
  */
 function makeBackendSource(): NoteListSource {
-  const map = (r: {
-    id: string;
-    title: string;
-    content_preview: string;
-    tags: string;
-    updated_at: string;
-    deleted_at?: string | null;
-  }): NoteDto => ({
-    id: r.id,
-    title: r.title,
-    contentPreview: r.content_preview,
-    tags: r.tags,
-    updatedAt: r.updated_at,
-    deletedAt: r.deleted_at,
-  });
+  const map = (r: NoteDto): NoteDto => r;
   return {
     listNotes: async () =>
       (await BackendNotes.searchByTag("")).map(map),
     searchNotes: async (q) =>
       (await BackendNotes.searchNotes(q)).map(map),
-    getAllTags: () => BackendNotes.getAllTags(),
+    getAllTags: () => Promise.resolve(BackendNotes.getAllTags()),
     searchByTag: async (t) => (await BackendNotes.searchByTag(t)).map(map),
     noteSoftDelete: async (id) => {
       await BackendNotes.noteSoftDelete(id);
@@ -303,9 +289,9 @@ function NoteRow(props: {
   const selected = () => props.desktop && selectedNoteId() === note().id;
 
   // ── 滑动删除的纯视觉手势层 ──
-  // NativeValue 驱动 translateX（UI 线程）；release 过阈值 → requestDelete，
+  // AnimatedValue 驱动 translateX（UI 线程）；release 过阈值 → requestDelete，
   // 无论删除与否都 spring 归零。真实删除的是 requestDelete 里弹的确认对话框。
-  const dragX = new NativeValue(0);
+  const dragX = new AnimatedValue(0);
   const responder = PanResponder.create({
     onMoveShouldSetPanResponder: (_, g) =>
       Math.abs(g.dx) > Math.abs(g.dy) && g.dx < -spacing.xs,
@@ -325,7 +311,7 @@ function NoteRow(props: {
       {...responder.panHandlers}
       testID={`note-${note().id}`}
       accessibilityLabel={`笔记：${displayTitle(note())}`}
-      accessibilityRole="button"
+      role="button"
       accessibilityState={{ selected: selected() }}
       style={{
         transform: [{ translateX: dragX }],
@@ -373,12 +359,12 @@ function TagFilterBar(props: { comfortable?: boolean }): JSX.Element {
   return (
     <Scroll
       horizontal
-      showsIndicator={false}
+      scrollbar={false}
       style={{
         flexDirection: "row",
         paddingBottom: spacing.md,
       }}
-      contentContainerStyle={{
+      contentStyle={{
         flexDirection: "row",
         gap: spacing.sm,
       }}
@@ -724,7 +710,7 @@ function MobileLayout(props: { status?: JSX.Element }): JSX.Element {
       >
         <View
           onPress={() => tab.set("notes")}
-          accessibilityRole="button"
+          role="button"
           accessibilityLabel="笔记"
           accessibilityState={{ selected: tab() === "notes" }}
           style={{
@@ -750,7 +736,7 @@ function MobileLayout(props: { status?: JSX.Element }): JSX.Element {
         </View>
         <View
           onPress={() => tab.set("devices")}
-          accessibilityRole="button"
+          role="button"
           accessibilityLabel="设备"
           accessibilityState={{ selected: tab() === "devices" }}
           style={{

@@ -7,7 +7,7 @@
 // gallery/ui.tsx 的 Row）——按下变色但不改布局尺寸，不会引起内容抖动。
 import type { JSX, ViewStyle } from "nsh";
 import { Input, Text, View } from "nsh";
-import { Modal } from "nsh/ui/mobile";
+import { Dialog } from "nsh/base";
 import { colors, layout, radii, spacing, typography } from "./theme";
 
 /** 小写图标集：占位 glyph 用线性几何图形而非 emoji（规范：不用 emoji 当图标）。 */
@@ -191,8 +191,7 @@ export function CardMindPrimaryButton(props: {
     <View
       onPress={props.onPress}
       disabled={disabled()}
-      underlayColor={colors.accentHover}
-      accessibilityRole="button"
+      role="button"
       accessibilityLabel={props.label}
       accessibilityState={{ disabled: disabled() }}
       style={{
@@ -254,8 +253,7 @@ export function CardMindIconButton(props: {
     <View
       onPress={props.onPress}
       disabled={disabled()}
-      underlayColor={colors.surfaceLow}
-      accessibilityRole="button"
+      role="button"
       accessibilityLabel={props.tooltip}
       accessibilityState={{ selected: props.selected === true, disabled: disabled() }}
       style={{
@@ -299,7 +297,7 @@ export function CardMindSearchField(props: {
   const hasText = () => props.value().length > 0;
   return (
     <View
-      accessibilityRole="search"
+      role="search"
       style={{
         flexDirection: "row",
         alignItems: "center",
@@ -321,7 +319,7 @@ export function CardMindSearchField(props: {
       </View>
       <Input
         value={props.value()}
-        onChangeText={props.onChanged}
+        onChange={props.onChanged}
         placeholder={props.placeholder ?? "搜索笔记"}
         accessibilityLabel="搜索笔记"
         style={{
@@ -334,8 +332,7 @@ export function CardMindSearchField(props: {
       <If when={hasText()}>
         <View
           onPress={props.onClear}
-          underlayColor={colors.surfaceLow}
-          accessibilityRole="button"
+          role="button"
           accessibilityLabel="清除搜索"
           style={{
             width: layout.mobileTouchTarget,
@@ -368,8 +365,7 @@ export function CardMindTag(props: {
   return (
     <View
       onPress={props.onTap}
-      underlayColor={props.onTap ? colors.surfaceLow : undefined}
-      accessibilityRole={props.onTap ? "button" : undefined}
+      role={props.onTap ? "button" : undefined}
       accessibilityLabel={props.label}
       accessibilityState={{ selected: props.selected === true }}
       style={{
@@ -397,8 +393,7 @@ export function CardMindTag(props: {
       <If when={showDeleteIcon()}>
         <View
           onPress={props.onDelete}
-          underlayColor={colors.surfaceLow}
-          accessibilityRole="button"
+          role="button"
           accessibilityLabel={`删除标签 ${props.label}`}
           style={{
             marginLeft: radii.sm,
@@ -514,8 +509,7 @@ export function CardMindListItem(props: {
   return (
     <View
       onPress={props.onPress}
-      underlayColor={props.onPress ? colors.surfaceLow : undefined}
-      accessibilityRole="button"
+      role="button"
       accessibilityState={{ selected: props.selected === true }}
       style={{
         minHeight: layout.mobileTouchTarget,
@@ -572,7 +566,7 @@ export function CardMindConfirmDialog(props: {
   onCancel?: () => void;
 }): JSX.Element {
   return (
-    <Modal visible={props.visible !== false}>
+    <Dialog open={props.visible !== false}>
       <View
         style={{
           flex: 1,
@@ -616,8 +610,7 @@ export function CardMindConfirmDialog(props: {
           <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: spacing.sm }}>
             <View
               onPress={props.onCancel}
-              underlayColor={colors.surfaceLow}
-              accessibilityRole="button"
+              role="button"
               accessibilityLabel={props.cancelLabel ?? "取消"}
               style={{
                 minHeight: layout.mobileTouchTarget,
@@ -635,8 +628,7 @@ export function CardMindConfirmDialog(props: {
             </View>
             <View
               onPress={props.onConfirm}
-              underlayColor={props.danger !== false ? colors.danger : colors.accentHover}
-              accessibilityRole="button"
+              role="button"
               accessibilityLabel={props.confirmLabel}
               style={{
                 minHeight: layout.mobileTouchTarget,
@@ -660,7 +652,7 @@ export function CardMindConfirmDialog(props: {
           </View>
         </View>
       </View>
-    </Modal>
+    </Dialog>
   );
 }
 

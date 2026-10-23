@@ -1,5 +1,5 @@
 import { mount, signal, Text, View, type YNode } from "nsh";
-import { Screen, Stack } from "nsh/ui/mobile";
+import { NavPage, NavStack } from "nsh/base";
 import { WebView } from "nsh/webview";
 import {
   App,
@@ -140,47 +140,47 @@ function PhaseOneStatus() {
 /** notes 根页面：新列表页（内部 ≥960 桌面三栏 / <960 移动堆叠 + 双 Tab）。 */
 function NotesScreen() {
   return (
-    <Screen {...screenChrome("笔记")}>
+    <NavPage {...screenChrome("笔记")}>
       <NoteListPage status={<PhaseOneStatus />} />
-    </Screen>
+    </NavPage>
   );
 }
 
 /** 回收站页：真列表 + 恢复/彻底删除/定期清理 + 返回键。 */
 function TrashScreen() {
   return (
-    <Screen
+    <NavPage
       {...screenChrome("回收站")}
       headerLeft={
         <CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />
       }
     >
       <TrashPage status={<PhaseOneStatus />} />
-    </Screen>
+    </NavPage>
   );
 }
 
 /** 设备页：配对全流程 + 已配对设备管理 + 本机信息 + 返回键。 */
 function DevicesScreen() {
   return (
-    <Screen
+    <NavPage
       {...screenChrome("设备")}
       headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />}
     >
       <DevicesPage status={<PhaseOneStatus />} />
-    </Screen>
+    </NavPage>
   );
 }
 
 /** 设置页：真设备名/同步开关/日志目录/更新检查 + 返回键。 */
 function SettingsScreen() {
   return (
-    <Screen
+    <NavPage
       {...screenChrome("设置")}
       headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={goBack} />}
     >
       <SettingsPage status={<PhaseOneStatus />} />
-    </Screen>
+    </NavPage>
   );
 }
 
@@ -370,7 +370,7 @@ function EditorScreen(props: { noteId: string }) {
   }
 
   return (
-    <Screen
+    <NavPage
       {...screenChrome("编辑")}
       headerLeft={<CardMindIconButton icon="back" tooltip="返回" onPress={closeEditor} />}
     >
@@ -429,12 +429,13 @@ function EditorScreen(props: { noteId: string }) {
         ) : null}
         <WebView
           ref={web}
-          source={{ html: EDITOR_HTML, baseUrl: EDITOR_BASE_URL }}
+          html={EDITOR_HTML}
+          baseUrl={EDITOR_BASE_URL}
           style={{ flex: 1, backgroundColor: colors.paper }}
           onMessage={(e) => onBridgeMessage(e.data)}
         />
       </View>
-    </Screen>
+    </NavPage>
   );
 }
 
@@ -459,9 +460,9 @@ function Root() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
       <App />
-      <Stack navigator={nav} style={{ flex: 1 }}>
+      <NavStack state={nav} style={{ flex: 1 }}>
         {(route: Route) => renderRoute(route)}
-      </Stack>
+      </NavStack>
     </View>
   );
 }

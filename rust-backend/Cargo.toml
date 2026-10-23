@@ -51,6 +51,10 @@ qrcode = { version = "0.14", default-features = false }
 rqrr = "0.10"
 image = { version = "0.25", default-features = false, features = ["png"] }
 # 系统文件对话框（保存/打开自选路径；自选语义要求，不写死目录）。
+# rfd 无 Android 后端（qr.rs 的 save/decode 两函数在 Android 下走 stub，
+# 返回可读 Err）；platform-gated 避免 Android target 拉这个编译不过的依赖。
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
 rfd = "0.15"
 
 [dev-dependencies]
