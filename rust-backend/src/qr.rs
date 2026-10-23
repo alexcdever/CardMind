@@ -48,6 +48,8 @@ pub fn render_credential_qr_png(credential: &str) -> anyhow::Result<Vec<u8>> {
 /// 「保存二维码图片」：渲染 `cm1.` 凭证 → 系统保存对话框 → 写 PNG。
 ///
 /// 返回 `Ok(路径)`；用户取消返回 `Ok("")`（约定值，非错误）。
+/// Android 无 rfd 后端，走下方同名 stub（返回可读 Err）。
+#[cfg(not(target_os = "android"))]
 pub fn save_pairing_qr_png(credential: String) -> Result<String, String> {
     let png = render_credential_qr_png(&credential).map_err(|e| format!("{e:#}"))?;
     let Some(path) = rfd::FileDialog::new()
@@ -61,10 +63,20 @@ pub fn save_pairing_qr_png(credential: String) -> Result<String, String> {
     Ok(path.to_string_lossy().into_owned())
 }
 
+/// Android stub：rfd 无 Android 后端，系统保存对话框不可用。
+/// 同名同签名保桥编译通过；运行期返回可读 Err 而非 panic。
+#[cfg(target_os = "android")]
+pub fn save_pairing_qr_png(credential: String) -> Result<String, String> {
+    let _ = credential;
+    Err("二维码图片保存暂不支持 Android".to_owned())
+}
+
 /// 「识别二维码图片」：系统打开对话框选图 → 解码二维码文本（`cm1.` 凭证）。
 ///
 /// 返回 `Ok(二维码文本)`；用户取消返回 `Ok("")`（约定值，非错误）；
 /// 解不出二维码返回可读 `Err`。凭证校验/连接由调用方负责。
+/// Android 无 rfd 后端，走下方同名 stub（返回可读 Err）。
+#[cfg(not(target_os = "android"))]
 pub fn decode_pairing_qr_file() -> Result<String, String> {
     let Some(path) = rfd::FileDialog::new()
         // 只放 png：本 crate 的 image 仅启 png 解码 feature（见 decode_qr_bytes），
@@ -76,6 +88,13 @@ pub fn decode_pairing_qr_file() -> Result<String, String> {
     };
     let bytes = std::fs::read(&path).map_err(|e| format!("读取 {} 失败：{e:#}", path.display()))?;
     decode_qr_bytes(&bytes)
+}
+
+/// Android stub：rfd 无 Android 后端，系统打开对话框不可用。
+/// 同名同签名保桥编译通过；运行期返回可读 Err 而非 panic。
+#[cfg(target_os = "android")]
+pub fn decode_pairing_qr_file() -> Result<String, String> {
+    Err("二维码图片识别暂不支持 Android".to_owned())
 }
 
 /// 图片字节 → 二维码文本（核心逻辑，往返测试直接覆盖，不弹窗）。

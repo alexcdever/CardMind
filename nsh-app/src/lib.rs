@@ -7,7 +7,7 @@ use cardmind_backend::sync::{
     PairingTarget, ParsedPairingCredential, SYNC_POLL_INTERVAL_SECS, SyncCycleResult, SyncService,
 };
 use nsh_core::ui::prelude::*;
-use nsh_ui_mobile::{SafeAreaView, SafeAreaViewProps};
+use nsh_base::{theme, SafeAreaView, SafeAreaViewProps};
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -97,15 +97,17 @@ pub fn Bridge(props: BridgeProps, cx: Scope<BridgeEvent>) -> impl IntoElement {
 /// (a constant until the real `SyncService` lands in Phase 1).
 static DEVICE_ID: &str = "4a707a1f2b3c4d5e6f708192a3b4c5d6";
 
-/// CardMind's backend bridge (stub): `#[module]` fns cannot take a
+/// CardMind's backend bridge: `#[module]` fns cannot take a
 /// receiver, so state lives in `static`s, not on `Backend`.
+/// Exported to TSX as `Backend.*` (all `Promise`s).
+#[module]
 pub struct Backend;
 
-/// The backend services exported to TSX as `Backend.*` (all `Promise`s).
+// The backend services exported to TSX as `Backend.*` (all `Promise`s).
 #[module]
 impl Backend {
     /// This device's iroh `EndpointId`-shaped id (stub value).
-    fn device_id() -> String {
+    pub fn device_id() -> String {
         DEVICE_ID.to_owned()
     }
 }
@@ -426,13 +428,15 @@ impl From<&SyncCycleResult> for SyncCycleResultDto {
 ///
 /// 只做 SQLite 直查与 ID 生成，不碰网络；有状态的部分经上面的全局单例
 /// （`STORE` / `SYNC`）访问，因此本模块的函数都不带 receiver。
+/// Exported to TSX as `BackendStore.*`.
+#[module]
 pub struct BackendStore;
 
-/// The backend's store functions exported to TSX as `BackendStore.*`.
+// The backend's store functions exported to TSX as `BackendStore.*`.
 #[module]
 impl BackendStore {
     /// 生成新笔记 ID（UUID v7）。纯函数，不依赖 store 是否已打开。
-    fn generate_note_id() -> String {
+    pub fn generate_note_id() -> String {
         NoteCrdt::generate_note_id()
     }
 
@@ -440,7 +444,7 @@ impl BackendStore {
     ///
     /// `path` 留空或传 `:memory:` 时用内存库（演示/测试不落盘）。
     /// 返回一行状态文本（含笔记条数），便于 TSX 侧直接显示。
-    fn create_note_store(path: String) -> Result<String, String> {
+    pub fn create_note_store(path: String) -> Result<String, String> {
         let target = if path.trim().is_empty() {
             ":memory:".to_owned()
         } else {
@@ -459,13 +463,13 @@ impl BackendStore {
     }
 
     /// SQLite — 列出所有笔记的标题（按更新时间倒序）。
-    fn store_list() -> Result<Vec<String>, String> {
+    pub fn store_list() -> Result<Vec<String>, String> {
         let rows = store()?.list_notes().map_err(|e| format!("{e:#}"))?;
         Ok(rows.into_iter().map(|row| row.title).collect())
     }
 
     /// SQLite — 按关键词搜索笔记，返回标题列表。
-    fn store_search(query: String) -> Result<Vec<String>, String> {
+    pub fn store_search(query: String) -> Result<Vec<String>, String> {
         let rows = store()?.search(&query).map_err(|e| format!("{e:#}"))?;
         Ok(rows.into_iter().map(|row| row.title).collect())
     }
@@ -481,7 +485,7 @@ impl BackendStore {
     /// Windows `%APPDATA%\com.cardmind\cardmind`、macOS
     /// `~/Library/Application Support/com.cardmind.v2`、Linux
     /// `$XDG_DATA_HOME/com.cardmind.cardmind`。
-    fn data_dir() -> Result<String, String> {
+    pub fn data_dir() -> Result<String, String> {
         #[cfg(target_os = "windows")]
         let (legacy, own) = {
             let appdata =
@@ -517,8 +521,22 @@ impl BackendStore {
                 data.join("com.cardmind.nsh"),
             )
         };
-        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-        compile_error!("data_dir 未覆盖当前平台；NSH 目标平台是 windows/macos/linux");
+        #[cfg(target_os = "android")]
+        let (legacy, own) = {
+            // Android 应用沙箱：每个 app 只有自己的 /data/data/<pkg>/files，
+            // 没有跨 app 可读的「旧 Flutter 目录」（Android 各 app 数据互相隔离），
+            // 故 legacy 探测无意义——直接落本 app 私有 files 目录。
+            // 包名取自 nsh.json "id"（com.cardmind.nsh）。
+            let own = std::path::PathBuf::from("/data/data/com.cardmind.nsh/files");
+            (own.clone(), own)
+        };
+        #[cfg(not(any(
+            target_os = "windows",
+            target_os = "macos",
+            target_os = "linux",
+            target_os = "android"
+        )))]
+        compile_error!("data_dir 未覆盖当前平台；NSH 目标平台是 windows/macos/linux/android");
 
         let dir = if legacy.join("cardmind.db").exists() {
             legacy
@@ -533,7 +551,7 @@ impl BackendStore {
     }
 
     /// 本设备 iroh 身份 ID（真后端 `SyncService`，首次调用时惰性创建）。
-    async fn sync_device_id() -> Result<String, String> {
+    pub async fn sync_device_id() -> Result<String, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -547,16 +565,21 @@ impl BackendStore {
 // 笔记 CRUD / tags / links / trash + 投影刷新。写入走 `SyncService`（LoroDoc
 // 真实信源），读走 `NoteStore`（SQLite 读模型）；写后必须 `sync_notes_to_store`
 // 刷新投影，否则读模型看到旧值。
-pub struct BackendNotes;
-
-/// Note CRUD / tags / links / trash，TSX 侧 `BackendNotes.*`。
+/// Note CRUD / tags / links / trash，exported to TSX as `BackendNotes.*`。
 ///
 /// `Result<bool, String>` 的 `Ok(true)` = 无返回值操作成功（nsh 模块要求返回
 /// 类型实现 `JsValue`，`()` 不满足）。
 #[module]
+pub struct BackendNotes;
+
+// Note CRUD / tags / links / trash，TSX 侧 `BackendNotes.*`。
+//
+// `Result<bool, String>` 的 `Ok(true)` = 无返回值操作成功（nsh 模块要求返回
+// 类型实现 `JsValue`，`()` 不满足）。
+#[module]
 impl BackendNotes {
     /// 创建笔记（内容 = markdown 全文）。
-    async fn note_create(id: String, content: String) -> Result<bool, String> {
+    pub async fn note_create(id: String, content: String) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -567,7 +590,7 @@ impl BackendNotes {
     }
 
     /// 读取笔记内容（markdown 全文）；未删除 = null。
-    async fn note_get(id: String) -> Result<Option<String>, String> {
+    pub async fn note_get(id: String) -> Result<Option<String>, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -576,7 +599,7 @@ impl BackendNotes {
     }
 
     /// 更新笔记元数据（meta tags；内容里的 `[[id|alias]]` 链接也在这份 meta 里）。
-    async fn note_update_metadata(note_id: String, tags: Vec<String>) -> Result<bool, String> {
+    pub async fn note_update_metadata(note_id: String, tags: Vec<String>) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -588,7 +611,7 @@ impl BackendNotes {
 
     /// 软删除：给笔记 meta 打 deleted_at 标记（进回收站）。
     /// 删除状态来自 Loro；调用后需 `syncNotesToStore` 刷新投影。
-    async fn note_soft_delete(id: String) -> Result<bool, String> {
+    pub async fn note_soft_delete(id: String) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -598,7 +621,7 @@ impl BackendNotes {
     }
 
     /// 恢复：清除笔记 meta 的 deleted_at 标记。
-    async fn note_restore(id: String) -> Result<bool, String> {
+    pub async fn note_restore(id: String) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -608,7 +631,7 @@ impl BackendNotes {
     }
 
     /// 彻底删除：从 Loro notes 移除并入墓碑（删除信息随快照传播，防复活）。
-    async fn note_purge(id: String) -> Result<bool, String> {
+    pub async fn note_purge(id: String) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -620,7 +643,7 @@ impl BackendNotes {
     /// 过期清理：purge 回收站中 meta.deleted_at < cutoff 的笔记，返回清理数。
     ///
     /// `cutoff` 为 RFC3339 时间字符串（Flutter 侧 `now - 30d`）。
-    async fn purge_expired_trash(cutoff: String) -> Result<u32, String> {
+    pub async fn purge_expired_trash(cutoff: String) -> Result<u32, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -630,13 +653,13 @@ impl BackendNotes {
     }
 
     /// SQLite — 回收站列表（deleted_at 非空，按删除时间倒序）。
-    fn store_trash_list() -> Result<Vec<NoteDto>, String> {
+    pub fn store_trash_list() -> Result<Vec<NoteDto>, String> {
         let rows = store()?.trash_list().map_err(|e| format!("{e:#}"))?;
         Ok(rows.iter().map(NoteDto::from).collect())
     }
 
     /// SQLite — 全文搜索（FTS5）。
-    fn search_notes(query: String) -> Result<Vec<NoteDto>, String> {
+    pub fn search_notes(query: String) -> Result<Vec<NoteDto>, String> {
         let rows = store()?
             .search_notes(&query)
             .map_err(|e| format!("{e:#}"))?;
@@ -644,7 +667,7 @@ impl BackendNotes {
     }
 
     /// SQLite — 链接自动补全（标题前缀，最近 20 条）。
-    fn auto_complete_links(prefix: String) -> Result<Vec<NoteDto>, String> {
+    pub fn auto_complete_links(prefix: String) -> Result<Vec<NoteDto>, String> {
         let rows = store()?
             .auto_complete_links(&prefix)
             .map_err(|e| format!("{e:#}"))?;
@@ -652,18 +675,18 @@ impl BackendNotes {
     }
 
     /// SQLite — 全部标签（去重排序）。
-    fn get_all_tags() -> Result<Vec<String>, String> {
+    pub fn get_all_tags() -> Result<Vec<String>, String> {
         store()?.get_all_tags().map_err(|e| format!("{e:#}"))
     }
 
     /// SQLite — 按标签搜索。
-    fn search_by_tag(tag: String) -> Result<Vec<NoteDto>, String> {
+    pub fn search_by_tag(tag: String) -> Result<Vec<NoteDto>, String> {
         let rows = store()?.search_by_tag(&tag).map_err(|e| format!("{e:#}"))?;
         Ok(rows.iter().map(NoteDto::from).collect())
     }
 
     /// SQLite — 出链查询（本笔记正文里 `[[id|alias]]` 指向谁）。
-    fn get_outgoing_links(note_id: String) -> Result<Vec<LinkDto>, String> {
+    pub fn get_outgoing_links(note_id: String) -> Result<Vec<LinkDto>, String> {
         let rows = store()?
             .outgoing_links(&note_id)
             .map_err(|e| format!("{e:#}"))?;
@@ -671,13 +694,13 @@ impl BackendNotes {
     }
 
     /// SQLite — 反链查询（谁的正文 `[[id|alias]]` 指向本笔记）。
-    fn get_backlinks(note_id: String) -> Result<Vec<LinkDto>, String> {
+    pub fn get_backlinks(note_id: String) -> Result<Vec<LinkDto>, String> {
         let rows = store()?.backlinks(&note_id).map_err(|e| format!("{e:#}"))?;
         Ok(rows.iter().map(LinkDto::from).collect())
     }
 
     /// 导出所有笔记的序列化快照（`Vec<u8>` → TSX 侧 number[]）。
-    async fn note_export_all() -> Result<Vec<u32>, String> {
+    pub async fn note_export_all() -> Result<Vec<u32>, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -687,7 +710,7 @@ impl BackendNotes {
     }
 
     /// 导入快照（`Vec<u8>` ← TSX 侧 number[]）。
-    async fn note_import_all(data: Vec<u32>) -> Result<bool, String> {
+    pub async fn note_import_all(data: Vec<u32>) -> Result<bool, String> {
         let bytes: Vec<u8> = data
             .into_iter()
             .map(|n| u8::try_from(n).map_err(|_| format!("byte 越界：{n}")))
@@ -702,7 +725,7 @@ impl BackendNotes {
 
     /// 写后读模型一致性：把 Loro notes 全部投影进 SQLite（含墓碑清理）。
     /// 编辑/软删/恢复/彻底删后必须调用，否则列表/搜索/回收站看到旧值。
-    async fn sync_notes_to_store() -> Result<bool, String> {
+    pub async fn sync_notes_to_store() -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -717,16 +740,20 @@ impl BackendNotes {
 //
 // 同步服务生命周期 / 开关 / cycle / receiver。状态在 `SyncService` 单例；
 // `create_sync_service` 把「惰性建」显式化（等价于首次 `ensure_sync`）。
-pub struct BackendSync;
-
-/// Sync service lifecycle / switches / cycle / receiver，TSX 侧 `BackendSync.*`。
+/// Sync service lifecycle / switches / cycle / receiver，exported to TSX as `BackendSync.*`。
 ///
 /// `Result<bool, String>` 的 `Ok(true)` = 无返回值操作成功。
+#[module]
+pub struct BackendSync;
+
+// Sync service lifecycle / switches / cycle / receiver，TSX 侧 `BackendSync.*`。
+//
+// `Result<bool, String>` 的 `Ok(true)` = 无返回值操作成功。
 #[module]
 impl BackendSync {
     /// 创建（或返回已创建的）全局 `SyncService`（内存版：不写数据目录）。
     /// 返回 device_id 供调用方确认服务已就绪。
-    async fn create_sync_service() -> Result<String, String> {
+    pub async fn create_sync_service() -> Result<String, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -736,7 +763,7 @@ impl BackendSync {
 
     /// 设置同步开关（决策 6 能力）：false 时调度器暂停推送与拉取。
     /// 移动端由 UI 侧按网络类型（WiFi vs 蜂窝）调用；桌面端恒 true。
-    async fn set_sync_allowed(allowed: bool) -> Result<bool, String> {
+    pub async fn set_sync_allowed(allowed: bool) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -746,7 +773,7 @@ impl BackendSync {
     }
 
     /// 当前同步开关状态。
-    async fn get_sync_allowed() -> Result<bool, String> {
+    pub async fn get_sync_allowed() -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -755,7 +782,7 @@ impl BackendSync {
     }
 
     /// 待同步笔记计数（模块 5 基础）。
-    async fn pending_sync_count() -> Result<u32, String> {
+    pub async fn pending_sync_count() -> Result<u32, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -764,13 +791,13 @@ impl BackendSync {
     }
 
     /// 周期拉取间隔（秒）——UI 侧 Timer 周期用。
-    fn sync_poll_interval_secs() -> u32 {
+    pub fn sync_poll_interval_secs() -> u32 {
         SYNC_POLL_INTERVAL_SECS as u32
     }
 
     /// 推送待办（编辑保存即推送）：向所有配对设备推全量快照。
     /// 失败静默（决策 18）：返回每台设备结果，不抛错。
-    async fn push_pending() -> Result<Vec<DevicePushResultDto>, String> {
+    pub async fn push_pending() -> Result<Vec<DevicePushResultDto>, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -780,7 +807,7 @@ impl BackendSync {
     }
 
     /// 周期同步任务体：push 给所有对端 + 短窗口 accept 对端 push + 刷新 SQLite 投影。
-    async fn run_sync_cycle() -> Result<SyncCycleResultDto, String> {
+    pub async fn run_sync_cycle() -> Result<SyncCycleResultDto, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -795,7 +822,7 @@ impl BackendSync {
     /// 启动被动接收任务（幂等）：持续短窗口 accept 对端 push，收到即
     /// import → 刷新 SQLite 投影 → 更新发送方 last_seen。
     /// 接收任务持有 `endpoint.clone()` + 共享 core + `store.clone()`。
-    async fn start_receiver() -> Result<bool, String> {
+    pub async fn start_receiver() -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -807,7 +834,7 @@ impl BackendSync {
     }
 
     /// 停止被动接收任务（幂等；3 秒内返回）。
-    async fn stop_receiver() -> Result<bool, String> {
+    pub async fn stop_receiver() -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -817,7 +844,7 @@ impl BackendSync {
     }
 
     /// 接收任务是否运行中（诊断/测试用）。
-    async fn receiver_running() -> Result<bool, String> {
+    pub async fn receiver_running() -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -826,7 +853,7 @@ impl BackendSync {
     }
 
     /// Monotonic revision of successfully projected inbound receiver content.
-    async fn receiver_content_revision() -> Result<u32, String> {
+    pub async fn receiver_content_revision() -> Result<u32, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -835,7 +862,7 @@ impl BackendSync {
     }
 
     /// 推送到指定对端。
-    async fn push_to_peer(peer_id: String, ips: Vec<String>) -> Result<bool, String> {
+    pub async fn push_to_peer(peer_id: String, ips: Vec<String>) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -847,7 +874,7 @@ impl BackendSync {
     }
 
     /// 接受对端推送（返回原始字节）。
-    async fn accept_push() -> Result<Vec<u32>, String> {
+    pub async fn accept_push() -> Result<Vec<u32>, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -858,7 +885,7 @@ impl BackendSync {
 
     /// 向多台设备逐个推送全量快照（含墓碑），返回每台设备的结果。
     /// `devices`: `(peer_id, Option<IP 列表>)`；IP 缺省时经 relay/地址解析尝试。
-    async fn push_to_devices(
+    pub async fn push_to_devices(
         devices: Vec<Vec<String>>,
     ) -> Result<Vec<DevicePushResultDto>, String> {
         let guard = ensure_sync().await?;
@@ -880,7 +907,7 @@ impl BackendSync {
     }
 
     /// 对已配对设备执行有界轻量健康检查，成功时更新 last_seen；返回 last_seen ms。
-    async fn check_device_connectivity(peer_id: String) -> Result<u32, String> {
+    pub async fn check_device_connectivity(peer_id: String) -> Result<u32, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -896,7 +923,7 @@ impl BackendSync {
     }
 
     /// 接受对端推送并导入（首次全量同步接收端；配对成功后发起方调用）。
-    async fn accept_push_and_import() -> Result<bool, String> {
+    pub async fn accept_push_and_import() -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -913,7 +940,7 @@ impl BackendSync {
     /// 「Endpoint dropped without calling Endpoint::close. Aborting ungracefully.」；
     /// `nsh trace` 无头进程退出路径没有生命周期钩子可调本函数（见 executor.md），
     /// 但真实 app 宿主/退出流程应调用它。
-    async fn close() -> Result<bool, String> {
+    pub async fn close() -> Result<bool, String> {
         let mutex = SYNC.get_or_init(|| tokio::sync::Mutex::new(None));
         let mut guard = mutex.lock().await;
         if let Some(svc) = guard.take() {
@@ -927,15 +954,19 @@ impl BackendSync {
 //
 // 设备信息 / mDNS 发现 / 配对码 / 配对凭证 / 已配对设备管理。状态在
 // `SyncService` + `DiscoveryService` + `NoteStore` 三个全局单例。
-pub struct BackendPairing;
-
-/// Device / pairing / discovery，TSX 侧 `BackendPairing.*`。
+/// Device / pairing / discovery，exported to TSX as `BackendPairing.*`。
 ///
 /// `Result<bool, String>` 的 `Ok(true)` = 无返回值操作成功。
 #[module]
+pub struct BackendPairing;
+
+// Device / pairing / discovery，TSX 侧 `BackendPairing.*`。
+//
+// `Result<bool, String>` 的 `Ok(true)` = 无返回值操作成功。
+#[module]
 impl BackendPairing {
     /// 获取本设备 iroh 身份 ID（SecretKey 持久化后跨重启稳定）。
-    async fn get_device_id() -> Result<String, String> {
+    pub async fn get_device_id() -> Result<String, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -944,7 +975,7 @@ impl BackendPairing {
     }
 
     /// 获取本设备名（配对握手时发送给对端）。
-    async fn get_device_name() -> Result<String, String> {
+    pub async fn get_device_name() -> Result<String, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -953,7 +984,7 @@ impl BackendPairing {
     }
 
     /// 设置本设备名（仅改内存态，不落盘、不广播；测试与配对握手用）。
-    async fn set_device_name(name: String) -> Result<bool, String> {
+    pub async fn set_device_name(name: String) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -963,7 +994,7 @@ impl BackendPairing {
     }
 
     /// 设置本设备名（含落盘 + 广播给已配对设备）。
-    async fn set_device_name_and_notify(name: String) -> Result<bool, String> {
+    pub async fn set_device_name_and_notify(name: String) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -974,7 +1005,7 @@ impl BackendPairing {
     }
 
     /// 本端点当前绑定的 IPv4 地址列表（"ip:port"，配对目标/mDNS 广播用）。
-    async fn local_addrs() -> Result<Vec<String>, String> {
+    pub async fn local_addrs() -> Result<Vec<String>, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -983,7 +1014,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 确认方：生成 6 位数字配对码（密码学随机，10 分钟有效）。
-    async fn begin_pairing_accept() -> Result<String, String> {
+    pub async fn begin_pairing_accept() -> Result<String, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -992,7 +1023,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 确认方：生成配对码并启动 mDNS 广播（任务 J 组合 API）。
-    async fn begin_pairing_accept_with_advertising() -> Result<String, String> {
+    pub async fn begin_pairing_accept_with_advertising() -> Result<String, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -1003,7 +1034,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 停止 mDNS 广播（幂等；配对弹窗关闭/完成/取消时调用）。
-    async fn stop_pairing_advertising() -> Result<bool, String> {
+    pub async fn stop_pairing_advertising() -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -1015,7 +1046,7 @@ impl BackendPairing {
     }
 
     /// 设备发现 — 经 `SyncService` 扫描对端（任务 J：发起方设备 ID 留空时自动填充）。
-    async fn sync_discover_peers() -> Result<Vec<PeerInfoDto>, String> {
+    pub async fn sync_discover_peers() -> Result<Vec<PeerInfoDto>, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -1025,7 +1056,7 @@ impl BackendPairing {
     }
 
     /// 设备发现 — 经 `DiscoveryService` 直接扫描对端（mDNS browse，3 秒超时）。
-    async fn discover_peers() -> Result<Vec<PeerInfoDto>, String> {
+    pub async fn discover_peers() -> Result<Vec<PeerInfoDto>, String> {
         let mut guard = ensure_disc().await?;
         let disc = guard
             .as_mut()
@@ -1035,7 +1066,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 确认方：阻塞接收发起方的配对请求（等待发起方连接）。
-    async fn accept_pairing_request() -> Result<Option<PairingRequestDto>, String> {
+    pub async fn accept_pairing_request() -> Result<Option<PairingRequestDto>, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -1048,7 +1079,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 确认方：在 `timeout_ms` 内接收发起方配对请求（有界等待；超时返回 null）。
-    async fn accept_pairing_request_with_timeout(
+    pub async fn accept_pairing_request_with_timeout(
         timeout_ms: u32,
     ) -> Result<Option<PairingRequestDto>, String> {
         let guard = ensure_sync().await?;
@@ -1065,7 +1096,7 @@ impl BackendPairing {
     /// 配对 — 确认方：校验配对码并完成配对。
     ///
     /// `requester` 由 `acceptPairingRequest*` 返回的 `PairingRequestDto` 字段重组。
-    async fn confirm_pairing(
+    pub async fn confirm_pairing(
         code: String,
         requester: PairingRequestDto,
     ) -> Result<PairingResultDto, String> {
@@ -1091,7 +1122,7 @@ impl BackendPairing {
     /// 配对 — 发起方：连接确认方发送配对请求，接收握手响应并 upsert 确认方。
     ///
     /// `target`：`{ deviceId, ip, port, nonce }`（mDNS 发现给出 device_id + ip:port）。
-    async fn begin_pairing_connect(
+    pub async fn begin_pairing_connect(
         code: String,
         target: PeerInfoDto,
     ) -> Result<PairingResultDto, String> {
@@ -1116,7 +1147,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 显示方：生成签名配对凭证（code + credential + RFC3339 过期时间）。
-    async fn begin_pairing_credential() -> Result<PairingCredentialDisplayDto, String> {
+    pub async fn begin_pairing_credential() -> Result<PairingCredentialDisplayDto, String> {
         let guard = ensure_sync().await?;
         let svc = guard
             .as_ref()
@@ -1128,7 +1159,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 显示方：生成签名配对凭证并启动 mDNS 广播（任务 Q 组合 API）。
-    async fn begin_pairing_credential_with_advertising()
+    pub async fn begin_pairing_credential_with_advertising()
     -> Result<PairingCredentialDisplayDto, String> {
         let guard = ensure_sync().await?;
         let svc = guard
@@ -1142,7 +1173,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 发起方：解析并验证凭证字符串（验签 + 时间窗口 + 长度）。
-    async fn parse_pairing_credential(
+    pub async fn parse_pairing_credential(
         credential: String,
     ) -> Result<ParsedPairingCredentialDto, String> {
         let guard = ensure_sync().await?;
@@ -1156,7 +1187,7 @@ impl BackendPairing {
     }
 
     /// 配对 — 发起方：凭证垂直入口（parse/verify → 目标构造 → 直连/relay 连接）。
-    async fn begin_pairing_connect_with_credential(
+    pub async fn begin_pairing_connect_with_credential(
         credential: String,
     ) -> Result<PairingResultDto, String> {
         let guard = ensure_sync().await?;
@@ -1171,7 +1202,7 @@ impl BackendPairing {
     }
 
     /// SQLite — 列出所有配对设备（最近连接优先）。
-    fn list_paired_devices() -> Result<Vec<PairedDeviceDto>, String> {
+    pub fn list_paired_devices() -> Result<Vec<PairedDeviceDto>, String> {
         let rows = store()?
             .list_paired_devices()
             .map_err(|e| format!("{e:#}"))?;
@@ -1179,7 +1210,7 @@ impl BackendPairing {
     }
 
     /// SQLite — 移除一台配对设备。
-    fn remove_paired_device(peer_id: String) -> Result<bool, String> {
+    pub fn remove_paired_device(peer_id: String) -> Result<bool, String> {
         store()?
             .remove_paired_device(&peer_id)
             .map_err(|e| format!("{e:#}"))?;
@@ -1187,7 +1218,7 @@ impl BackendPairing {
     }
 
     /// 设备发现 — 广播本设备（mDNS；`nonce` = 当前配对会话 nonce hex）。
-    async fn start_advertising(
+    pub async fn start_advertising(
         device_id: String,
         port: u32,
         nonce: String,
@@ -1204,14 +1235,14 @@ impl BackendPairing {
     /// 配对二维码 — 显示方：渲染 `cm1.` 凭证为二维码并弹系统保存对话框写 PNG。
     ///
     /// 返回保存路径；用户取消返回空串（约定值，非错误）。
-    fn save_pairing_qr_png(credential: String) -> Result<String, String> {
+    pub fn save_pairing_qr_png(credential: String) -> Result<String, String> {
         cardmind_backend::qr::save_pairing_qr_png(credential)
     }
 
     /// 配对二维码 — 发起方：弹系统打开对话框选图，识别二维码返回 `cm1.` 凭证。
     ///
     /// 返回凭证文本；用户取消返回空串；识别失败返回可读错误。
-    fn decode_pairing_qr_file() -> Result<String, String> {
+    pub fn decode_pairing_qr_file() -> Result<String, String> {
         cardmind_backend::qr::decode_pairing_qr_file()
     }
 }

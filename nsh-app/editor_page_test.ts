@@ -158,13 +158,13 @@ describe('3.7 App.tsx — EditorScreen 接 nsh/webview', () => {
     assert.match(body, /<WebView\b/, 'EditorScreen 未渲染 <WebView> —— 仍是占位');
   });
 
-  it('source={{ html, baseUrl }} 内联 HTML 形态', () => {
+  it('html + baseUrl 内联 HTML 形态（0.2.0 WebView props）', () => {
     const m = app.match(/function\s+EditorScreen[\s\S]*?\n}/);
     const body = m ? m[0] : '';
     assert.match(
       body,
-      /source=\{\{[^}]*\bhtml\b[^}]*\bbaseUrl\b[^}]*\}\}/,
-      'EditorScreen 的 WebView 缺 source={{ html, baseUrl }}',
+      /<WebView[\s\S]*?\bhtml=\{EDITOR_HTML\}[\s\S]*?\bbaseUrl=\{EDITOR_BASE_URL\}/,
+      'EditorScreen 的 WebView 缺 html={EDITOR_HTML} + baseUrl={EDITOR_BASE_URL}',
     );
   });
 

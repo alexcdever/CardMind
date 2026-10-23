@@ -19,9 +19,9 @@ describe('nsh.json', () => {
 describe('Cargo.toml', () => {
   const manifest = read('Cargo.toml');
 
-  it('声明 nsh-core 与 nsh-ui-mobile 0.1.1', () => {
-    assert.match(manifest, /nsh-core\s*=\s*"0\.1\.1"/);
-    assert.match(manifest, /nsh-ui-mobile\s*=\s*"0\.1\.1"/);
+  it('声明 nsh-core 与 nsh-base 0.2.0', () => {
+    assert.match(manifest, /nsh-core\s*=\s*"0\.2\.0"/);
+    assert.match(manifest, /nsh-base\s*=\s*"0\.2\.0"/);
   });
 
   it('含空的 [workspace] 段', () => {

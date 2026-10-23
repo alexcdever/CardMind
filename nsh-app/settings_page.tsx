@@ -4,7 +4,7 @@
 //  ① 设备名（BackendPairing.getDeviceName 显示 + Input 编辑 +
 //     setDeviceName 保存）；
 //  ② 同步开关（BackendSync.getSyncAllowed / setSyncAllowed，自绘 48 命中区
-//     开关：轨道 + 滑块，accessibilityRole="switch"）；
+//     开关：轨道 + 滑块，role="switch"）；
 //  ③ 日志目录（显示路径 + 说明；NSH 侧无打开目录 API —— 平台能力缺口，
 //     本页只显示，executor.md 记为 R3 类缺口）；
 //  ④ 更新检查（UI 入口：当前版本 + 检查按钮占位；真下载/安装是 Phase 4）；
@@ -222,7 +222,7 @@ function SettingRow(props: {
   );
 }
 
-/** 同步开关：自绘轨道 + 滑块（accessibilityRole="switch"，命中区 48 行高）。 */
+/** 同步开关：自绘轨道 + 滑块（role="switch"，命中区 48 行高）。 */
 function SyncSwitch(props: {
   value: () => boolean;
   onToggle: () => void;
@@ -231,8 +231,7 @@ function SyncSwitch(props: {
   return (
     <View
       onPress={props.onToggle}
-      underlayColor={colors.surfaceLow}
-      accessibilityRole="switch"
+      role="switch"
       accessibilityLabel="同步"
       accessibilityState={{ checked: on() }}
       style={{
@@ -348,8 +347,8 @@ export function SettingsPage(props: { status?: JSX.Element }): JSX.Element {
                 >
                   <Input
                     value={deviceNameDraft()}
-                    onChangeText={(t: string) => deviceNameDraft.set(t)}
-                    onSubmitEditing={() => void saveDeviceName()}
+                    onChange={(t: string) => deviceNameDraft.set(t)}
+                    onSubmit={() => void saveDeviceName()}
                     placeholder="设备名"
                     accessibilityLabel="设备名"
                     style={{
