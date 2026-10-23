@@ -57,8 +57,7 @@ pub fn save_pairing_qr_png(credential: String) -> Result<String, String> {
     else {
         return Ok(String::new());
     };
-    std::fs::write(&path, &png)
-        .map_err(|e| format!("写入 {} 失败：{e:#}", path.display()))?;
+    std::fs::write(&path, &png).map_err(|e| format!("写入 {} 失败：{e:#}", path.display()))?;
     Ok(path.to_string_lossy().into_owned())
 }
 
@@ -75,8 +74,7 @@ pub fn decode_pairing_qr_file() -> Result<String, String> {
     else {
         return Ok(String::new());
     };
-    let bytes =
-        std::fs::read(&path).map_err(|e| format!("读取 {} 失败：{e:#}", path.display()))?;
+    let bytes = std::fs::read(&path).map_err(|e| format!("读取 {} 失败：{e:#}", path.display()))?;
     decode_qr_bytes(&bytes)
 }
 
@@ -85,8 +83,8 @@ pub fn decode_pairing_qr_file() -> Result<String, String> {
 /// `image::load_from_memory` 按本 crate 启用的解码 feature 识别格式；
 /// Cargo.toml 只启了 `png`，故实际仅支持 PNG。
 pub fn decode_qr_bytes(bytes: &[u8]) -> Result<String, String> {
-    let img = image::load_from_memory(bytes)
-        .map_err(|e| format!("无法解码图片（仅支持 PNG）：{e:#}"))?;
+    let img =
+        image::load_from_memory(bytes).map_err(|e| format!("无法解码图片（仅支持 PNG）：{e:#}"))?;
     decode_qr_image(&img)
 }
 

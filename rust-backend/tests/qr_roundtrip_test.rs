@@ -27,7 +27,10 @@ fn credential_qr_png_roundtrip() {
 #[test]
 fn long_credential_qr_png_roundtrip() {
     // v2 凭证含若干 "ip:port" 内嵌地址，串明显更长。
-    let long = format!("{SAMPLE_CREDENTIAL}{}", "MTkyLjE2OC4xLjI6MTIzNDU,".repeat(4));
+    let long = format!(
+        "{SAMPLE_CREDENTIAL}{}",
+        "MTkyLjE2OC4xLjI6MTIzNDU,".repeat(4)
+    );
     assert!(long.starts_with("cm1."));
     let png = render_credential_qr_png(&long).expect("长凭证渲染应成功");
     let decoded = decode_qr_bytes(&png).expect("长凭证二维码 PNG 应可被识别");
