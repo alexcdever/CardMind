@@ -61,22 +61,25 @@ describe('web/ 静态站点骨架', () => {
   });
 });
 
-/** 把 build-nsh.mjs 跑起来，PATH 上放一个假的 nsh。 */
+/** 把 build-nsh.mjs 跑起来，PATH 上放一个假的 nsh；假 CLI 被要求 build 时写标记文件。 */
 function runBuildScript(fakeNsh: { version?: string; exitCode?: number }) {
   const dir = mkdtempSync(path.join(tmpdir(), 'cardmind-fake-nsh-'));
+  const marker = path.join(dir, 'build-called.txt');
   const version = fakeNsh.version ?? '0.3.0';
   const code = fakeNsh.exitCode ?? 0;
   try {
     if (process.platform === 'win32') {
+      // 用 goto 而不是 if (...) 块：批处理的括号块里出现未转义括号（如 "(fake)"）会
+      // 提前闭合块，导致后续行不被执行。
       writeFileSync(
         path.join(dir, 'nsh.cmd'),
         [
           '@echo off',
-          'if "%~1"=="--version" (',
-          `  echo nsh ${version} (fake)`,
-          '  exit /b 0',
-          ')',
-          `echo [fake-nsh] build %*`,
+          'if not "%~1"=="--version" goto run_build',
+          `echo nsh ${version} (fake)`,
+          'exit /b 0',
+          ':run_build',
+          `echo %* > "${marker}"`,
           `exit /b ${code}`,
           '',
         ].join('\r\n'),
@@ -91,7 +94,7 @@ function runBuildScript(fakeNsh: { version?: string; exitCode?: number }) {
           `  echo "nsh ${version} (fake)"`,
           '  exit 0',
           'fi',
-          'echo "[fake-nsh] build $@"',
+          `echo "$@" > "${marker}"`,
           `exit ${code}`,
           '',
         ].join('\n'),
@@ -104,12 +107,16 @@ function runBuildScript(fakeNsh: { version?: string; exitCode?: number }) {
     }
     const basePath = process.env.PATH ?? process.env.Path ?? '';
     env.PATH = dir + path.delimiter + basePath;
-    return spawnSync(process.execPath, [path.join(here, 'build-nsh.mjs')], {
+    const result = spawnSync(process.execPath, [path.join(here, 'build-nsh.mjs')], {
       cwd: here,
       env,
       encoding: 'utf8',
       timeout: 60_000,
     });
+    return {
+      ...result,
+      buildCalled: existsSync(marker) ? readFileSync(marker, 'utf8').trim() : null,
+    };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -137,6 +144,6 @@ describe('build-nsh.mjs（0.3.0：NSH_SOURCE 检查删除，改为 CLI/Cargo 版
   it('CLI 版本一致时继续执行 nsh build（假 CLI 退出 0 → 脚本退出 0）', () => {
     const r = runBuildScript({ version: '0.3.0' });
     assert.equal(r.status, 0, `版本一致时应 exit 0，stderr：${(r.stderr ?? '').slice(0, 500)}`);
-    assert.match(`${r.stdout ?? ''}`, /build/, '应调用到 nsh build');
+    assert.match(r.buildCalled ?? '', /build\s+\.\s+-o\s+out/, '应调用 nsh build . -o out');
   });
 });
