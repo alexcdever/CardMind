@@ -12,7 +12,6 @@ import { expect, open, test } from "nsh/test";
 import type { App } from "nsh/test";
 
 const EDITOR = "label:Markdown 编辑器";
-const BACK = "label:返回";
 const RETRY = "label:重试";
 const SCENARIO_KEY = "test.scenario";
 
@@ -23,6 +22,8 @@ interface Scenario {
   failLoad?: boolean | "once" | "hang";
   failSave?: boolean | "once";
   candidates?: { id: string; title: string }[];
+  /** `mod+shift+l` 时追加到文本末尾的内容（构造「最后输入」用）。 */
+  append?: string;
 }
 
 interface Calls {
@@ -78,16 +79,17 @@ function hasText(app: App, needle: string): boolean {
   return app.texts().some((text) => text.includes(needle));
 }
 
-/** 一行包含特殊字符的 Markdown fixture：wikilink（id|alias）、3+ 空行、代码块。 */
+/** 一行包含特殊字符的 Markdown fixture：wikilink（id|alias）、3+ 空行、代码块、
+ *  段内换行（`行一\n行二` 是同一段的两行）与中文。 */
 const FIXTURE =
   "# 标题\n\n[[note-2|别名]] 与 [[note-3]]\n\n行一\n行二\n\n\n\n```\nconst x = 1;\n```\n";
 
-test("editor: 打开已有笔记时加载完成才挂载 Editor，markdown 原样显示且不落盘", async () => {
+test("editor: 打开已有笔记时加载完成才挂载 Editor，markdown 逐字节显示且不落盘", async () => {
   const app = await openEditor({ noteId: "note-1", note: FIXTURE, tags: ["工作"] });
   await app.waitFor(EDITOR);
-  expect(app.texts()).toContain("# 标题");
-  expect(hasText(app, "[[note-2|别名]] 与 [[note-3]]")).toBe(true);
-  expect(app.texts()).toContain("const x = 1;");
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] === "1");
+  expect(app.storage()["test.editorValue"]).toBe(FIXTURE);
   await app.wait(900);
   expect(calls(app).noteCreate).toBe(0);
   expect(saved(app)).toBeNull();
@@ -95,9 +97,11 @@ test("editor: 打开已有笔记时加载完成才挂载 Editor，markdown 原�
 
 test("editor: 加载中不挂 Editor（noteGet 未完成）", async () => {
   const app = await openEditor({ noteId: "note-1", note: "abc", failLoad: "hang" });
+  // harness 的 Storage.getItem 异步完成后才 nav.push；先等 loading 出现再断言，
+  // 否则断言可能落在 notes stub 上（第 1 轮审查的 13/14↔14/14 不稳定来源）。
+  await app.waitFor("id:editor-loading");
   expect(app.shows(EDITOR)).toBe(false);
   expect(hasText(app, "加载中")).toBe(true);
-  expect(app.shows("id:editor-loading")).toBe(true);
 });
 
 test("editor: 加载失败显示错误态、不写入；重试成功后挂载并显示原文", async () => {
@@ -120,6 +124,7 @@ test("editor: noteGet 超时按加载失败处理，不创建/不覆盖", async 
     storage: scenarioStorage({ noteId: "note-1", note: "abc", failLoad: "hang" }),
     clock: {},
   });
+  await app.waitFor("id:editor-loading");
   expect(app.shows(EDITOR)).toBe(false);
   await app.clock.runFor(10_500);
   await app.waitFor("text:/加载失败/");
@@ -188,22 +193,79 @@ test("editor: 保存失败显示错误、不谎报已保存；重试成功后恢
   expect(calls(app).noteCreate).toBe(2);
 });
 
-test("editor: 关闭时 dirty → 先 flush 最新文本再返回，重开内容一致", async () => {
-  const app = await openEditor({ noteId: "note-1", note: "base" });
+test("editor: 关闭时 dirty → 先 flush 最新 editor.value() 再返回，重开内容 = 最后输入", async () => {
+  const app = await openEditor({ noteId: "note-1", note: "base", append: "Z" });
   await app.waitFor(EDITOR);
-  await app.type(EDITOR, "Z");
+  // 用 harness 的探针键在文本末尾插入（走 Editor.edit 公开 API，等价用户输入）。
+  await app.keyboard.press("mod+shift+l");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "baseZ");
   expect(saved(app)).toBeNull(); // 去抖尚未触发
   await app.back();
   await app.waitFor("id:notes-stub");
   await app.waitUntil(() => app.storage()["test.saved"] !== undefined);
-  const savedText = app.storage()["test.saved"];
-  expect(savedText).not.toBeNull();
+  // 断言等于预期最后输入，而不是「重开内容 == 已保存内容」这种自证式比较。
+  expect(app.storage()["test.saved"]).toBe("baseZ");
   expect(calls(app).noteCreate).toBe(1);
   expect(app.shows(EDITOR)).toBe(false);
   // 重新打开：内容 = 关闭前最后输入
   await app.press("id:open-editor");
   await app.waitFor(EDITOR);
-  expect(app.texts()).toContain(savedText);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] === "2");
+  expect(app.storage()["test.editorValue"]).toBe("baseZ");
+});
+
+test("editor: 新笔记只输入空白时按返回直接回列表（不创建、不落盘、不卡死）", async () => {
+  const app = await openEditor({ noteId: "new", note: null });
+  await app.waitFor(EDITOR);
+  await app.type(EDITOR, "   ");
+  expect(saved(app)).toBeNull();
+  await app.back();
+  await app.waitFor("id:notes-stub");
+  expect(app.shows(EDITOR)).toBe(false);
+  expect(calls(app).noteCreate).toBe(0);
+  expect(calls(app).generateNoteId).toBe(0);
+  expect(saved(app)).toBeNull();
+  await app.wait(900);
+  expect(saved(app)).toBeNull();
+});
+
+test("editor: markdown 逐字节保真（wikilink/3+空行/代码块/段内换行/中文）加载→编辑→保存→重开", async () => {
+  const app = await openEditor({ noteId: "note-1", note: FIXTURE, append: "Z" });
+  await app.waitFor(EDITOR);
+  // 加载后 Editor 全文必须与 fixture 逐字节相等（LF fixture，无归一化）。
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] === "1");
+  expect(app.storage()["test.editorValue"]).toBe(FIXTURE);
+  // 编辑（末尾加 Z）→ 700ms 去抖保存 → 保存内容 = fixture + Z，逐字节相等。
+  await app.keyboard.press("mod+shift+l");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === `${FIXTURE}Z`);
+  await app.wait(900);
+  await app.waitUntil(() => app.storage()["test.saved"] === `${FIXTURE}Z`);
+  expect(app.storage()["test.saved"]).toBe(`${FIXTURE}Z`);
+  // 关闭 → 重开：再次读全文，仍是同一字节串（不因保存/重开漂移）。
+  await app.back();
+  await app.waitFor("id:notes-stub");
+  await app.press("id:open-editor");
+  await app.waitFor(EDITOR);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] === "3");
+  expect(app.storage()["test.editorValue"]).toBe(`${FIXTURE}Z`);
+});
+
+test("editor: CRLF 笔记按 0.3.0 口径归一为 LF（唯一允许的归一），其余逐字节保留", async () => {
+  const crlf = "# 标题\r\n\r\n[[note-2|别名]]\r\n\r\n\r\n\r\n```\r\nconst x = 1;\r\n```\r\n";
+  const lf = crlf.replace(/\r\n/g, "\n");
+  const app = await openEditor({ noteId: "note-1", note: crlf });
+  await app.waitFor(EDITOR);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] === "1");
+  // 口径：`Editor` 只把 `\r\n`/`\r` 归一为 `\n`（05 §1.2），App 侧加载同口径。
+  expect(app.storage()["test.editorValue"]).toBe(lf);
+  await app.wait(900);
+  // 未编辑 → 不 dirty → 不回写（不产生 noteCreate）。
+  expect(saved(app)).toBeNull();
+  expect(calls(app).noteCreate).toBe(0);
 });
 
 test("editor: 关闭时保存失败留在页面，可重试后再返回", async () => {

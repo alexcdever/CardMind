@@ -4,8 +4,8 @@
 // 真实数据目录），也不碰真实 DB / 网络。场景经 `open(..., { storage })` 的
 // `test.scenario` 注入（JSON），假的仓库把调用记录写回 storage 的 `test.calls`、
 // `test.saved`、`test.savedId`、`test.tags`，测试用 `app.storage()` 断言。
-import { effect, mount, signal, Storage, Text, View, type JSX } from "nsh";
-import { NavPage, NavStack } from "nsh/base";
+import { effect, keymap, mount, signal, Storage, Text, View, type JSX } from "nsh";
+import { NavPage, NavStack, type EditorRef } from "nsh/base";
 import { EditorScreen, type EditorNoteRow, type EditorRepository } from "./editor_page";
 import type { WikiCandidate } from "./editor_text";
 import { nav } from "./navigation";
@@ -22,10 +22,39 @@ interface Scenario {
   /** true = 每次都抛；"once" = 第一次抛。 */
   failSave?: boolean | "once";
   candidates?: WikiCandidate[];
+  /** `mod+shift+l` 时追加到文本末尾的内容（测试构造「最后输入」）。 */
+  append?: string;
 }
 
 const scenario = signal<Scenario | null>(null);
 let repository: EditorRepository | null = null;
+/** 最新挂载的 `Editor` ref（测试用：读全文 / 在末尾插入，做逐字节断言）。 */
+let liveEditor: EditorRef | null = null;
+/** `mod+shift+l` 要在末尾插入的文本（场景里的 `append`）。 */
+let appendText: string | null = null;
+
+function recordEditorRef(ref: EditorRef): void {
+  liveEditor = ref;
+}
+
+/** 把 `Editor.value()` 写进 storage 的 `test.editorValue`（测试读全文用）。
+ *  同时自增 `test.editorDumpSeq`，让测试能区分「这次读的」与「上一次读的」。 */
+async function dumpEditorValue(): Promise<void> {
+  if (liveEditor === null) return;
+  const value = await liveEditor.value();
+  const seq = Number((await Storage.getItem("test.editorDumpSeq")) ?? "0") + 1;
+  await Storage.setItem("test.editorValue", value);
+  await Storage.setItem("test.editorDumpSeq", String(seq));
+}
+
+/** 在文本末尾插入 `text`（走 Editor 的公开 edit API，等价用户在该处输入）。 */
+async function appendAtEnd(text: string): Promise<void> {
+  if (liveEditor === null) return;
+  const value = await liveEditor.value();
+  const end = await liveEditor.offsetToPosition(value.length);
+  liveEditor.edit([{ range: { start: end, end }, text }]);
+  await dumpEditorValue();
+}
 
 function parseScenario(raw: string | null): Scenario {
   if (raw === null || raw === "") return { noteId: "new", note: null };
@@ -133,9 +162,21 @@ function Harness(): JSX.Element {
       const raw = await Storage.getItem("test.scenario");
       const parsed = parseScenario(raw);
       repository = createRepository(parsed);
+      appendText = parsed.append ?? null;
       scenario.set(parsed);
       nav.push({ name: "editor", noteId: parsed.noteId });
     })();
+  });
+
+  // 测试探针（只经公开 EditorRef API，不碰私有状态）：
+  //   mod+shift+e → 读 `Editor.value()` 全文写入 `test.editorValue`
+  //   mod+shift+l → 在文本末尾插入 `test.append` 的内容
+  effect(() => {
+    const unbind = keymap.bind({
+      "mod+shift+e": () => void dumpEditorValue(),
+      "mod+shift+l": () => void appendAtEnd(appendText ?? ""),
+    });
+    return () => unbind();
   });
 
   return (
@@ -145,6 +186,7 @@ function Harness(): JSX.Element {
           <EditorScreen
             noteId={route.noteId ?? ""}
             repository={repository ?? undefined}
+            onEditorRef={recordEditorRef}
           />
         ) : (
           <NavPage title="笔记" testID="notes-page">

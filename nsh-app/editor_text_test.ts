@@ -12,6 +12,7 @@ import {
   lineStartOffsets,
   linkPrefixFromContext,
   matchTags,
+  normalizeNewlines,
   offsetToPosition,
   positionToOffset,
   selectionContext,
@@ -175,5 +176,25 @@ describe('时间常量', () => {
     assert.equal(AUTOSAVE_DEBOUNCE_MS, 700);
     assert.ok(LOAD_TIMEOUT_MS > 0 && LOAD_TIMEOUT_MS <= 30_000);
     assert.equal(TEXT_BEFORE_CHARS, 40);
+  });
+});
+
+describe('normalizeNewlines（唯一允许的换行归一）', () => {
+  it('CRLF → LF', () => {
+    assert.equal(normalizeNewlines('a\r\nb\r\n'), 'a\nb\n');
+  });
+
+  it('裸 CR → LF', () => {
+    assert.equal(normalizeNewlines('a\rb'), 'a\nb');
+  });
+
+  it('LF 原样、逐字节不动（含 [[id|alias]]、空行、代码块、中文）', () => {
+    const fixture =
+      '# 标题\n\n[[note-2|别名]] 与 [[note-3]]\n\n行一\n行二\n\n\n\n```\nconst x = 1;\n```\n';
+    assert.equal(normalizeNewlines(fixture), fixture);
+  });
+
+  it('不动反斜杠/方括号/尾随空格（不再有旧 Tiptap 归一化）', () => {
+    assert.equal(normalizeNewlines('\\[x\\]  \n'), '\\[x\\]  \n');
   });
 });
