@@ -104,6 +104,13 @@ const COPY = {
   saveRetry: "重试",
 } as const;
 
+/** 加载指示器（视觉常量，与 components.tsx 的模块级视觉常量同风格）。 */
+const LOADING_SPINNER = { size: 20, stroke: 2 } as const;
+/** 失焦后延迟清空候选：点候选 chip 会先失焦，立即清会让按下落空。 */
+const CANDIDATE_BLUR_HIDE_MS = 150;
+/** 关闭时最多 flush 两轮（保存期间又有输入时再存一次）。 */
+const CLOSE_FLUSH_ATTEMPTS = 2;
+
 /** 加载中：居中占位（不是一行裸文字，也不是空文档）。 */
 function EditorLoading(): JSX.Element {
   return (
@@ -119,10 +126,10 @@ function EditorLoading(): JSX.Element {
     >
       <View
         style={{
-          width: 20,
-          height: 20,
-          borderRadius: 10,
-          borderWidth: 2,
+          width: LOADING_SPINNER.size,
+          height: LOADING_SPINNER.size,
+          borderRadius: LOADING_SPINNER.size / 2,
+          borderWidth: LOADING_SPINNER.stroke,
           borderColor: colors.border,
           borderTopColor: colors.accent,
         }}
@@ -320,7 +327,7 @@ export function EditorScreen(props: {
   /** 关闭：dirty 时先 flush 最新文本再返回；失败留在页面（错误条可重试）。 */
   async function closeEditor(): Promise<void> {
     clearSaveTimer();
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < CLOSE_FLUSH_ATTEMPTS; attempt += 1) {
       if (text() === lastSaved) {
         goBack();
         return;
@@ -461,12 +468,11 @@ export function EditorScreen(props: {
   }
 
   function handleBlur(): void {
-    // 延迟清空：点候选 chip 会先失焦，立即清会让按下落空。
     clearCandidateTimer();
     candidateTimer = setTimeout(() => {
       candidateTimer = null;
       setCandidates([]);
-    }, 150);
+    }, CANDIDATE_BLUR_HIDE_MS);
   }
 
   function handleFocus(): void {
