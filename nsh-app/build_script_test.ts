@@ -1,9 +1,9 @@
-// 构建脚本固化验收测试（task.md 标准 1/2/4）：读文件断言 + 一次真实子进程行为断言。
-// ①package.json 含 `build`/`build:web` script，且不含 `--alias:loro-crdt`；
-// ②web/ 存在最小静态站点骨架（index.html + src/index.ts）；
-// ③script 产物路径约定含 `web/dist`；
-// ④web/.gitignore 忽略 dist/；
-// ⑤build-nsh.mjs 不再要求 NSH_SOURCE（0.1.1 遗留），且在 CLI 版本与 Cargo 依赖
+// 构建脚本固化验收测试：读文件断言 + 一次真实子进程行为断言。
+// ①package.json 的 build 直接走 `node build-nsh.mjs`，不含已删除的 `build:web`；
+// ②WebView/Tiptap 链路（nsh-app/web/）整目录不存在，devDependencies 不再含
+//   esbuild/jsdom/tiptap；
+// ③script 产物路径约定不含 web/dist；
+// ④build-nsh.mjs 不要求 NSH_SOURCE（0.1.1 遗留），且在 CLI 版本与 Cargo 依赖
 //   不一致时以非 0 退出并给出明确错误（0.3.0 CLI 的硬门槛）。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -16,20 +16,38 @@ import path from 'node:path';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel: string) => readFileSync(path.join(here, rel), 'utf8');
 
-describe('package.json 构建 scripts', () => {
+describe('package.json 构建 scripts（P2：WebView/Tiptap 链路已删）', () => {
   const pkg = JSON.parse(readFileSync(path.join(here, 'package.json'), 'utf8'));
 
-  it('含 build script（build:web → nsh build）', () => {
+  it('build 直接跑 build-nsh.mjs（nsh build），不再先跑 build:web', () => {
     assert.equal(typeof pkg.scripts?.build, 'string', '缺少 scripts.build');
-    // 直接或经包装脚本（build-nsh.mjs）调用 nsh build
-    assert.match(pkg.scripts.build, /nsh(\.exe|\.cmd)?\s+build|build-nsh\.mjs/);
-    assert.match(pkg.scripts.build, /build:web/, 'build 应先跑 build:web');
+    assert.match(pkg.scripts.build, /build-nsh\.mjs/);
+    assert.doesNotMatch(pkg.scripts.build, /build:web/, 'build 不应再依赖 build:web');
   });
 
-  it('含 build:web script（esbuild → web/dist）', () => {
-    assert.equal(typeof pkg.scripts?.['build:web'], 'string', '缺少 scripts["build:web"]');
-    assert.match(pkg.scripts['build:web'], /esbuild/);
-    assert.match(pkg.scripts['build:web'], /web[\\/]dist/);
+  it('不含 build:web script（esbuild/web 链路已删）', () => {
+    assert.equal(pkg.scripts?.['build:web'], undefined, '仍有 scripts["build:web"]');
+  });
+
+  it('devDependencies 不含 esbuild/jsdom 与 tiptap/prosemirror 依赖', () => {
+    const deps = {
+      ...(pkg.dependencies ?? {}),
+      ...(pkg.devDependencies ?? {}),
+    } as Record<string, string>;
+    for (const removed of [
+      'esbuild',
+      'jsdom',
+      'tiptap-markdown',
+      'prosemirror-markdown',
+    ]) {
+      assert.equal(deps[removed], undefined, `仍依赖 ${removed}`);
+    }
+    for (const name of Object.keys(deps)) {
+      assert.ok(
+        !name.startsWith('@tiptap/') && !name.startsWith('prosemirror-'),
+        `仍依赖 ${name}`,
+      );
+    }
   });
 
   it('script 不含 --alias:loro-crdt（网页不跑 loro）', () => {
@@ -42,22 +60,9 @@ describe('package.json 构建 scripts', () => {
   });
 });
 
-describe('web/ 静态站点骨架', () => {
-  it('web/index.html 存在并引用 dist/bundle.js', () => {
-    const html = readFileSync(path.join(here, 'web', 'index.html'), 'utf8');
-    assert.match(html, /dist[\\/]bundle\.js/);
-  });
-
-  it('web/src/index.ts 存在（esbuild 入口）', () => {
-    assert.ok(existsSync(path.join(here, 'web', 'src', 'index.ts')));
-  });
-
-  it('web/.gitignore 忽略 dist/', () => {
-    const gitignore = readFileSync(path.join(here, 'web', '.gitignore'), 'utf8');
-    assert.ok(
-      gitignore.split(/\r?\n/).includes('dist/'),
-      'web/.gitignore 缺少 dist/',
-    );
+describe('WebView 静态站点已删除', () => {
+  it('nsh-app/web/ 不存在（编辑器改原生 Editor）', () => {
+    assert.equal(existsSync(path.join(here, 'web')), false, 'web/ 仍存在');
   });
 });
 

@@ -1,7 +1,7 @@
 // 骨架验收测试（task.md 标准 3–6）：读文件断言，不跑构建。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -23,6 +23,12 @@ describe('nsh.json', () => {
     const config = JSON.parse(read('nsh.json'));
     assert.equal(config.id, 'com.cardmind.nsh');
     assert.equal(config.rust, '.');
+  });
+
+  it('不再声明 webview capability（WebView 链路已删），声明 clipboard', () => {
+    const config = JSON.parse(read('nsh.json'));
+    assert.equal(config.capabilities?.webview, undefined, 'nsh.json 仍有 capabilities.webview');
+    assert.equal(config.capabilities?.clipboard, true, 'nsh.json 缺少 capabilities.clipboard');
   });
 });
 
@@ -152,13 +158,29 @@ describe('TSX 源码的 NSH 导入面（0.3.0：只剩 nsh 与 nsh/base）', () 
     }
   });
 
-  it('WebView 从 "nsh" 导入（App.tsx 过渡期保留编辑器）', () => {
+  it('编辑器页用 nsh/base 的原生 Editor（不再是 WebView + Tiptap）', () => {
     const app = read('App.tsx');
+    assert.doesNotMatch(app, /\bWebView\b/, 'App.tsx 仍引用 WebView');
+    assert.doesNotMatch(app, /EDITOR_HTML|EDITOR_BASE_URL/, 'App.tsx 仍有 WebView 内联页常量');
+    assert.doesNotMatch(app, /editor-ready|postMessage/, 'App.tsx 仍有 WebView 桥协议');
     assert.match(
       app,
-      /import\s*\{[^}]*\bWebView\b[^}]*\}\s*from\s*['"]nsh['"]/,
-      'App.tsx 的 WebView 应从 "nsh" 导入',
+      /import\s*\{[^}]*\bEditorScreen\b[^}]*\}\s*from\s*['"]\.\/editor_page['"]/,
+      'App.tsx 的 EditorScreen 应来自 ./editor_page',
     );
+    const editor = read('editor_page.tsx');
+    assert.match(
+      editor,
+      /import\s*\{[\s\S]*?\bEditor\b[\s\S]*?\}\s*from\s*['"]nsh\/base['"]/,
+      'editor_page.tsx 应从 "nsh/base" 导入 Editor',
+    );
+    assert.match(editor, /autoClose=\{false\}/, 'Editor 必须 autoClose={false} 才能输入 [[ 字面量');
+    assert.match(editor, /language="markdown"/, 'Editor 应为 markdown 语言');
+    assert.match(editor, /accessibilityLabel=/, 'Editor 应有 accessibilityLabel');
+  });
+
+  it('nsh-app/web/ 不存在（WebView 静态站点已删）', () => {
+    assert.equal(existsSync(path.join(here, 'web')), false, 'web/ 仍存在');
   });
 });
 
