@@ -6,8 +6,8 @@
 // 按压反馈：View 的 `underlayColor`（nsh 原生按压高亮，见 nsh examples
 // gallery/ui.tsx 的 Row）——按下变色但不改布局尺寸，不会引起内容抖动。
 import type { JSX, ViewStyle } from "nsh";
-import { Input, Text, View } from "nsh";
-import { Dialog } from "nsh/base";
+import { Text, View } from "nsh";
+import { Dialog, Input } from "nsh/base";
 import { colors, layout, radii, spacing, typography } from "./theme";
 
 /** 小写图标集：占位 glyph 用线性几何图形而非 emoji（规范：不用 emoji 当图标）。 */

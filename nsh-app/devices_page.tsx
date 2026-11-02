@@ -24,9 +24,9 @@
 // 不可用；「识别二维码图片」是图片级替代路径（无需相机），入口可用不假报。
 //
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
-import { cleanup, effect, signal, Input, Scroll, Text, View } from "nsh";
+import { cleanup, effect, signal, Scroll, Text, View } from "nsh";
 import type { JSX } from "nsh";
-import { Dialog } from "nsh/base";
+import { Dialog, Input } from "nsh/base";
 import { BackendPairing, BackendSync } from "app/native";
 import {
   CardMindConfirmDialog,

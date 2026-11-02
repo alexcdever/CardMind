@@ -174,10 +174,21 @@ describe('navigation.tsx — 顶栏颜色走 headerStyle', () => {
     );
   });
 
-  it('screenChrome 传 headerStyle={{ backgroundColor, color, tintColor }}', () => {
-    assert.match(nav, /headerStyle\s*:\s*\{/, 'screenChrome 应返回 headerStyle');
-    assert.match(nav, /backgroundColor\s*:/);
-    assert.match(nav, /tintColor\s*:/);
+  it('headerStyle 用令牌色（backgroundColor / color / tintColor）', () => {
+    assert.match(
+      nav,
+      /headerStyle\s*=\s*\{[\s\S]*?backgroundColor\s*:/,
+      'headerStyle 应有 backgroundColor（来自 colors 令牌）',
+    );
+    assert.match(
+      nav,
+      /headerStyle\s*=\s*\{[\s\S]*?tintColor\s*:/,
+      'headerStyle 应有 tintColor（来自 colors 令牌）',
+    );
+  });
+
+  it('screenChrome 把 headerStyle 传给 NavPage', () => {
+    assert.match(nav, /return\s*\{\s*title,\s*headerStyle\s*\}/, 'screenChrome 应返回 title + headerStyle');
   });
 });
 

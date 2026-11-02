@@ -36,16 +36,16 @@ export const routes = {
   devices: { name: "devices" } as Route,
 } as const;
 
-/** 顶部栏颜色（NavPage 的 header* props 走令牌，不裸色）。 */
-export const headerColors = {
-  headerBackgroundColor: colors.paper,
-  headerTintColor: colors.accent,
-  headerTitleColor: colors.ink,
+/** 顶部栏样式（`NavPage` 的颜色入口只有 `headerStyle`；颜色走令牌，不裸色）。 */
+export const headerStyle = {
+  backgroundColor: colors.paper,
+  color: colors.ink,
+  tintColor: colors.accent,
 } as const;
 
 /** 每个 `<NavPage>` 的公共 props。 */
 export function screenChrome(title: string) {
-  return { title, ...headerColors };
+  return { title, headerStyle };
 }
 
 export type { JSX };

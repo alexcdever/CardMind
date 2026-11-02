@@ -1,6 +1,5 @@
-import { mount, signal, Text, View, type YNode } from "nsh";
+import { mount, signal, Text, View, WebView, type YNode } from "nsh";
 import { NavPage, NavStack } from "nsh/base";
-import { WebView } from "nsh/webview";
 import {
   App,
   Backend,
