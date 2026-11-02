@@ -63,3 +63,12 @@ export const typography = {
 
 /** 字体回退链，对齐 fontFamilyFallback。 */
 export const fontFamilyFallback = ['Source Han Sans CN'] as const;
+
+/** 编辑器排版令牌（06 §2.5）：正文默认 15/24，移动窄屏 16/24。
+ *  0.3.0 `Editor` 按 `fontSize`/`lineHeight` props 测量文本，所以字号必须从
+ *  这里取、经 props 传入；`desktopBreakpoint` 用 layout 的 960。 */
+export const editorTypography = {
+  desktop: { fontSize: 15, lineHeight: 24 },
+  mobile: { fontSize: 16, lineHeight: 24 },
+} as const;
+

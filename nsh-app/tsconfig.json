@@ -4,5 +4,5 @@
     "types": ["node"]
   },
   "include": ["*.ts", "*.tsx", ".nsh/types/**/*.d.ts"],
-  "exclude": ["*_test.ts"]
+  "exclude": ["*_test.ts", "*.test.tsx"]
 }
