@@ -23,7 +23,8 @@ export type IconGlyph =
   | "search"
   | "settings"
   | "tag"
-  | "trash";
+  | "trash"
+  | "warning";
 
 /** 图标的视觉尺寸（px）。18/19/20 档对照 Flutter 侧 Icon size；非触摸目标。 */
 const glyphSize = {
@@ -152,6 +153,29 @@ export function Glyph(props: {
             transform: [{ rotate: "45deg" }],
           }}
         />
+      );
+    case "warning":
+      // 错误/警告语义图标：竖条 + 圆点（感叹号），不用 emoji。
+      return (
+        <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+          <View
+            style={{
+              width: stroke,
+              height: size * 0.55,
+              backgroundColor: tint,
+              borderRadius: stroke / 2,
+            }}
+          />
+          <View
+            style={{
+              width: stroke,
+              height: stroke,
+              marginTop: size * 0.12,
+              borderRadius: stroke / 2,
+              backgroundColor: tint,
+            }}
+          />
+        </View>
       );
     case "trash":
     case "restore":
@@ -377,6 +401,8 @@ export function CardMindTag(props: {
         flexDirection: "row",
         alignItems: "center",
         minHeight: comfortable() ? layout.mobileTouchTarget : undefined,
+        // 单字符标签（如「工」）也满足 ≥48dp 触摸宽度（comfortable 档）。
+        minWidth: comfortable() ? layout.mobileTouchTarget : undefined,
         paddingLeft: spacing.sm,
         paddingRight: showDeleteIcon() ? radii.sm : spacing.sm,
         paddingVertical: comfortable() ? tagPaddingY.comfortable : tagPaddingY.compact,

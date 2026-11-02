@@ -71,4 +71,3 @@ export const editorTypography = {
   desktop: { fontSize: 15, lineHeight: 24 },
   mobile: { fontSize: 16, lineHeight: 24 },
 } as const;
-
