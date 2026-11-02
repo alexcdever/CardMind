@@ -7,8 +7,8 @@
 //     tiptap-markdown 引用；
 //  ④ web 源码/依赖不含 loro（V9 定案：web 侧零 WASM/CRDT）—— import 行
 //     与 package.json deps 都不得出现 loro；
-//  ⑤ App.tsx EditorScreen 真接 nsh/webview：import WebView、
-//     source={{ html, baseUrl }}、onMessage editor-ready 握手、noteId 保留。
+//  ⑤ App.tsx EditorScreen 真接 NSH WebView（0.3.0 起从 "nsh" 导入）：import
+//     WebView、html/baseUrl、onMessage editor-ready 握手、noteId 保留。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -143,13 +143,14 @@ describe('3.1 web 侧零 loro（V9 定案）', () => {
   });
 });
 
-describe('3.7 App.tsx — EditorScreen 接 nsh/webview', () => {
-  it('import WebView from nsh/webview', () => {
+describe('3.7 App.tsx — EditorScreen 接 NSH WebView', () => {
+  it('import WebView from "nsh"（0.3.0 无 nsh/webview 子模块）', () => {
     assert.match(
       app,
-      /import\s*\{[^}]*\bWebView\b[^}]*\}\s*from\s*['"]nsh\/webview['"]/,
-      'App.tsx 未 import { WebView } from "nsh/webview"',
+      /import\s*\{[^}]*\bWebView\b[^}]*\}\s*from\s*['"]nsh['"]/,
+      'App.tsx 未 import { WebView } from "nsh"',
     );
+    assert.doesNotMatch(app, /from\s*['"]nsh\/webview['"]/, 'App.tsx 仍在用 0.3.0 不存在的 "nsh/webview"');
   });
 
   it('EditorScreen 渲染 <WebView>（非占位 Text）', () => {
@@ -158,7 +159,7 @@ describe('3.7 App.tsx — EditorScreen 接 nsh/webview', () => {
     assert.match(body, /<WebView\b/, 'EditorScreen 未渲染 <WebView> —— 仍是占位');
   });
 
-  it('html + baseUrl 内联 HTML 形态（0.2.0 WebView props）', () => {
+  it('html + baseUrl 内联 HTML 形态（0.2.0/0.3.0 WebView props 相同）', () => {
     const m = app.match(/function\s+EditorScreen[\s\S]*?\n}/);
     const body = m ? m[0] : '';
     assert.match(
