@@ -29,6 +29,7 @@ import {
   completionOffsets,
   linkPrefixFromContext,
   matchTags,
+  normalizeNewlines,
   positionToOffset,
   selectionContext,
   tagsFromCsv,
@@ -155,7 +156,7 @@ function EditorLoadError(props: {
 }): JSX.Element {
   return (
     <View style={{ flex: 1 }}>
-      <CardMindEmptyState icon="notes" title={COPY.loadFailed} message={props.message} />
+      <CardMindEmptyState icon="warning" title={COPY.loadFailed} message={props.message} />
       <View
         style={{
           flexDirection: "row",
@@ -207,6 +208,8 @@ export function EditorScreen(props: {
   noteId: string;
   /** 测试接缝：不传则用真后端（`backendEditorRepository`）。 */
   repository?: EditorRepository;
+  /** 测试接缝：Editor 挂载后把 ref 交给调用方（`nsh test` 读全文做逐字节断言）。 */
+  onEditorRef?: (ref: EditorRef) => void;
 }): JSX.Element {
   const repo = props.repository ?? backendEditorRepository;
   const initialId = props.noteId;
@@ -263,8 +266,12 @@ export function EditorScreen(props: {
   /** 写一次（整篇替换）。返回 false 时 UI 停在「保存失败」，不谎报已保存。 */
   async function persist(): Promise<boolean> {
     const snapshot = text();
-    // 新笔记空内容不创建；已有笔记的空内容也允许（修 01 R3）。
-    if (currentId === "" && snapshot.trim() === "") return true;
+    // 新笔记空内容不创建（不空建笔记）；已有笔记的空内容允许保存（修 01 R3）。
+    // 同步 lastSaved，避免「未落盘但永远 dirty」的状态（第 1 轮关闭卡死的根因）。
+    if (currentId === "" && snapshot.trim() === "") {
+      lastSaved = snapshot;
+      return true;
+    }
     // 没有改动且已有 id：不需要再写。
     if (currentId !== "" && snapshot === lastSaved) return true;
     saveState.set(SAVE_STATE.saving);
@@ -324,15 +331,38 @@ export function EditorScreen(props: {
     void saveNow();
   }
 
-  /** 关闭：dirty 时先 flush 最新文本再返回；失败留在页面（错误条可重试）。 */
+  /** 关闭前以 `editor.value()` 取最新文本（0.3.0 只做 `\r\n`/`\r`→`\n` 归一），
+   *  不只依赖 `onChange` 写下的 `text()` 信号；读失败时退回信号值。 */
+  async function readLatestText(): Promise<string> {
+    if (!editor) return text();
+    try {
+      const latest = await editor.value();
+      if (latest !== text()) {
+        text.set(latest);
+        if (latest !== lastSaved) saveState.set(SAVE_STATE.dirty);
+      }
+      return latest;
+    } catch {
+      return text();
+    }
+  }
+
+  /** 关闭：dirty 时先 flush 最新文本再返回；失败留在页面（错误条可重试）。
+   *  新笔记且内容 trim 后为空：直接返回，不创建、不落盘（否则会卡在页面上）。 */
   async function closeEditor(): Promise<void> {
     clearSaveTimer();
+    await readLatestText();
+    if (currentId === "" && text().trim() === "") {
+      goBack();
+      return;
+    }
     for (let attempt = 0; attempt < CLOSE_FLUSH_ATTEMPTS; attempt += 1) {
       if (text() === lastSaved) {
         goBack();
         return;
       }
       if (!(await saveNow())) return;
+      await readLatestText();
     }
     if (text() === lastSaved) goBack();
   }
@@ -364,9 +394,12 @@ export function EditorScreen(props: {
           loadError.set("笔记不存在或已删除");
           return;
         }
-        loadedText.set(value);
-        text.set(value);
-        lastSaved = value;
+        // 与 `Editor.value()` 同口径：仅 `\r\n`/`\r`→`\n` 归一（05 §1.2），
+        // 其余逐字节保留；这样未编辑的 CRLF 笔记不会被误判为 dirty。
+        const loaded = normalizeNewlines(value);
+        loadedText.set(loaded);
+        text.set(loaded);
+        lastSaved = loaded;
         saveState.set(SAVE_STATE.saved);
         saveError.set("");
         try {
@@ -528,7 +561,16 @@ export function EditorScreen(props: {
           />
         ) : null}
         {phase() === "ready" ? (
-          <>
+          /* 桌面编辑区最大宽 768 并居中（layout.editorMaxWidth）；窄屏自然 100%。 */
+          <View
+            testID="editor-area"
+            style={{
+              flex: 1,
+              width: "100%",
+              maxWidth: layout.editorMaxWidth,
+              alignSelf: "center",
+            }}
+          >
             <View
               style={{
                 flexDirection: "row",
@@ -632,7 +674,10 @@ export function EditorScreen(props: {
               </View>
             </If>
             <Editor
-              ref={editor}
+              ref={(ref: EditorRef) => {
+                editor = ref;
+                props.onEditorRef?.(ref);
+              }}
               testID="editor"
               defaultValue={loadedText()}
               language="markdown"
@@ -659,7 +704,7 @@ export function EditorScreen(props: {
               onBlur={handleBlur}
               onFocus={handleFocus}
             />
-          </>
+          </View>
         ) : null}
       </View>
     </NavPage>

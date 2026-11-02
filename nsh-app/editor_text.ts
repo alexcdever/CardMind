@@ -157,3 +157,11 @@ export function textOfChange(value: unknown): string {
   }
   return '';
 }
+
+/** 换行归一：`\r\n`/`\r` → `\n`。这是 0.3.0 `Editor.value()` 唯一允许的归一
+ *  （05 §1.2），App 侧对加载文本做同一归一，好让「未编辑的 CRLF 笔记」不被误判
+ *  为 dirty（否则一打开就会回写一次）。其余字符（`[[id|alias]]`、空行、代码块、
+ *  段内换行、中文）一律逐字节保留。 */
+export function normalizeNewlines(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
