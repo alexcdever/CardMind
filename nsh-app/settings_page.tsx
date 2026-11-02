@@ -12,9 +12,9 @@
 //     lg(16)，否则 xl(24)（对照 Dart `MediaQuery.sizeOf().width < 600`）。
 //
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
-import { computed, effect, signal, Input, Scroll, Text, View } from "nsh";
+import { computed, effect, signal, Scroll, Text, View, windowSize } from "nsh";
 import type { JSX } from "nsh";
-import { windowSize } from "nsh/device";
+import { Input } from "nsh/base";
 import { BackendPairing, BackendSync } from "app/native";
 import {
   CardMindIconButton,

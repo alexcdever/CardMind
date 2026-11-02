@@ -11,16 +11,24 @@
 // 滑动删除的无障碍替代：每个列表项本身挂一个 48×48 删除按钮（不论桌面/移动、
 // 不论是否支持滑动手势都在）——滑动手势只是触觉增强，删除的真实入口是按钮。
 //
-// 虚拟化：列表主体是 <List>（nsh/list 的 virtual_list）：只渲染视口附近的
+// 虚拟化：列表主体是 <List>（"nsh" 导出的 virtual_list）：只渲染视口附近的
 // 行，单元格被回收。行 key 用稳定 note.id（keyExtractor）。
 //
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
-import { cleanup, computed, effect, signal, Scroll, Text, View } from "nsh";
-import { List } from "nsh/list";
-import { PanResponder } from "nsh/gesture";
-import { windowSize } from "nsh/device";
-import { keymap } from "nsh/keymap";
-import { AnimatedValue } from "nsh/animated";
+import {
+  AnimatedValue,
+  cleanup,
+  computed,
+  effect,
+  keymap,
+  List,
+  PanResponder,
+  Scroll,
+  signal,
+  Text,
+  View,
+  windowSize,
+} from "nsh";
 import type { JSX } from "nsh";
 import { BackendNotes } from "app/native";
 import {
@@ -432,7 +440,7 @@ function ListBody(props: { desktop: boolean }): JSX.Element {
             />
           );
         }
-        // 虚拟列表（施工 2.7）：nsh/list 的 virtual_list 只创建视口附近的行。
+        // 虚拟列表（施工 2.7）：`nsh` 导出的 virtual_list 只创建视口附近的行。
         return (
           <List
             each={displayedNotes()}
@@ -782,7 +790,7 @@ export function NoteListPage(props: { status?: JSX.Element }): JSX.Element {
     void loadNotesWithRetry();
   });
   // 键盘删除入口（桌面）：选中态 + Delete 键 → 弹同一个确认对话框。
-  // 移动端无物理键盘，这条绑定自然不触发（nsh/keymap 在非桌面只保留注册）。
+  // 移动端无物理键盘，这条绑定自然不触发（`nsh` 的 keymap 在非桌面只保留注册）。
   const unbindDelete = keymap.bind("delete", () => {
     const id = selectedNoteId();
     if (id === undefined) return;

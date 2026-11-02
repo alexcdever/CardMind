@@ -3,8 +3,8 @@
 // 断言面：
 //  ① note_list.tsx 存在，且是列表页主体（列表 + 搜索 + 标签 + 空态）；
 //  ② 双布局：源码里有 desktopBreakpoint 断点分支（≥960 桌面 / <960 移动）；
-//  ③ 虚拟化：用 nsh/list 的 <List>（即 virtual_list）+ 稳定 key（keyExtractor
-//     或 note.id）而不是 <Each> 全量渲染；
+//  ③ 虚拟化：用 "nsh" 导出的 <List>（即 virtual_list；0.3.0 起不再有
+//     nsh/list 子模块）+ 稳定 key（keyExtractor 或 note.id）而不是 <Each> 全量渲染；
 //  ④ 搜索走后端（BackendNotes.searchNotes 或 BackendStore.storeSearch）、
 //     标签过滤走 getAllTags/searchByTag、软删除走 noteSoftDelete；
 //  ⑤ 滑动删除不是唯一删除入口：有可见删除按钮/菜单项（手势之外的无障碍
@@ -62,12 +62,12 @@ describe('2.2 note_list.tsx — 存在与布局分支', () => {
   });
 });
 
-describe('2.7 列表虚拟化 — nsh/list 而非全量渲染', () => {
-  it('从 nsh/list 导入 List（virtual_list）', () => {
+describe('2.7 列表虚拟化 — List 而非全量渲染', () => {
+  it('从 "nsh" 导入 List（virtual_list；0.3.0 并入 nsh）', () => {
     assert.match(
       page,
-      /import\s*\{[^}]*\bList\b[^}]*\}\s*from\s*['"]nsh\/list['"]/,
-      'note_list.tsx 应 `import { List } from "nsh/list"`（virtual_list）',
+      /import\s*\{[^}]*\bList\b[^}]*\}\s*from\s*['"]nsh['"]/,
+      'note_list.tsx 应 `import { List } from "nsh"`（virtual_list）',
     );
   });
 

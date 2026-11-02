@@ -6,8 +6,8 @@ use cardmind_backend::sync::{
     DevicePushResult, NoteCrdt, PairingCredentialDisplay, PairingRequest, PairingResult,
     PairingTarget, ParsedPairingCredential, SYNC_POLL_INTERVAL_SECS, SyncCycleResult, SyncService,
 };
-use nsh_core::ui::prelude::*;
-use nsh_base::{theme, SafeAreaView, SafeAreaViewProps};
+use nsh_core::prelude::*;
+use nsh_base::theme;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -1259,7 +1259,8 @@ pub fn App() -> impl IntoElement {
         .bg(move || theme().background)
         .text_color(move || theme().foreground)
         .child(
-            SafeAreaView::element(SafeAreaViewProps::default())
+            view()
+                .p_safe_area()
                 .flex_1()
                 .child(
                     view()

@@ -9,8 +9,7 @@
 // 积累数百条墓碑。每条行尾挂「恢复」「彻底删除」两个 48×48 图标按钮。
 //
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
-import { effect, signal, Text, View } from "nsh";
-import { List } from "nsh/list";
+import { effect, List, signal, Text, View } from "nsh";
 import type { JSX } from "nsh";
 import { BackendNotes } from "app/native";
 import {

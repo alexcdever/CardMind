@@ -1308,7 +1308,7 @@ dependencies = [
  "ed25519",
  "rand_core 0.10.1",
  "serde",
- "sha2",
+ "sha2 0.11.1",
  "signature",
  "subtle",
  "zeroize",
@@ -1625,6 +1625,12 @@ name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
+name = "foldhash"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
 
 [[package]]
 name = "foldhash"
@@ -2213,13 +2219,22 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+dependencies = [
+ "foldhash 0.1.5",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 dependencies = [
  "allocator-api2",
  "equivalent",
- "foldhash",
+ "foldhash 0.2.0",
 ]
 
 [[package]]
@@ -2228,7 +2243,7 @@ version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 dependencies = [
- "foldhash",
+ "foldhash 0.2.0",
 ]
 
 [[package]]
@@ -2667,6 +2682,16 @@ name = "imagesize"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "65b27460c2c92b037f3f94c538ed9a3342f3fdf923606781629ccb35f82d042a"
+
+[[package]]
+name = "imara-diff"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f01d462f766df78ab820dd06f5eb700233c51f0f4c2e846520eaf4ba6aa5c5c"
+dependencies = [
+ "hashbrown 0.15.5",
+ "memchr",
+]
 
 [[package]]
 name = "indexmap"
@@ -3834,32 +3859,38 @@ dependencies = [
 
 [[package]]
 name = "nsh-base"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81d4b03b672e0096c573cb9c9bd09a7688ef9292d831df5f030b7aeab40c7463"
+checksum = "78d139f86c6d867029ab4cf605bb9e83d6fb08e159b0a747795905d8052c7705"
 dependencies = [
  "html5ever",
+ "imara-diff",
  "log",
  "markdown",
  "markup5ever_rcdom",
  "nsh-core",
  "regex",
+ "ropey",
  "rustc-hash",
  "serde",
  "serde_json",
  "syntect",
  "two-face",
+ "unicode-segmentation",
 ]
 
 [[package]]
 name = "nsh-core"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e35fbe379279f7dae1b9abc36dfc16b2857916daa3a1d1ad62b02fa4e74fae97"
+checksum = "4153bd66c3fd9ac6cc29b2d2c52b4f267a63b0cc607de568f058dffb1c40574b"
 dependencies = [
  "cap-std",
+ "crc32fast",
  "flate2",
  "futures-util",
+ "httpdate",
+ "imagesize 0.15.0",
  "libc",
  "log",
  "nsh-macros",
@@ -3867,19 +3898,21 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "slab",
  "taffy",
  "tokio",
  "tokio-tungstenite",
+ "unicode-linebreak",
  "url",
  "windows-sys 0.61.2",
 ]
 
 [[package]]
 name = "nsh-engine"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bea66a12d37b00e0877d9fb78a7ca5767e40311a8236e8e867f8e7d3763ed22d"
+checksum = "98db98fb40acf6ed8e32d2dc5b232022731614df4bc6d0576996a4ef9590ea12"
 dependencies = [
  "crossbeam-channel",
  "libc",
@@ -3889,13 +3922,14 @@ dependencies = [
  "serde_json",
  "tokio",
  "ureq",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
 name = "nsh-macros"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6ced9baa9a6182cddb37faaf2dc1d93383532eedac7d8edb70e28d1fc45aa29"
+checksum = "a7890ededc9e886f1bf9de82231285ccbb924239f39bf5fb2ffc0b53438dcfc0"
 dependencies = [
  "imagesize 0.15.0",
  "proc-macro2",
@@ -3906,9 +3940,9 @@ dependencies = [
 
 [[package]]
 name = "nsh-platform-android"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9abb306acc5dd504309566afb35f4361bad51a4af77ee5c3a04ff83d0e54e014"
+checksum = "2ce714309156fab92ad9c46f2a33691c9f6c5318377ec4d71602ee4281e6e885"
 dependencies = [
  "jni 0.21.1",
  "libc",
@@ -3923,9 +3957,9 @@ dependencies = [
 
 [[package]]
 name = "nsh-platform-linux"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af999d039b0447370576ef891a5c8b1dac2927c4c14629eb2bd2a1c522698df1"
+checksum = "05bb7f95013c4e889f60cd12fd9de628e6b3c0466e08c236d10fad0874a1ad57"
 dependencies = [
  "crossbeam-channel",
  "gtk4",
@@ -3944,9 +3978,9 @@ dependencies = [
 
 [[package]]
 name = "nsh-platform-macos"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39d36bad807900a4a13c5635f6ba80f808c50639ed1f186ff297b196dc90bc56"
+checksum = "c5d8c32b2c6ca9c4661571287bbc19afa027155b2cc8a99cafdbe3f6b9e387bd"
 dependencies = [
  "block2",
  "crossbeam-channel",
@@ -3971,11 +4005,10 @@ dependencies = [
 
 [[package]]
 name = "nsh-platform-windows"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be41ccdd0de167829fe33e7f8149b798b58914fb2430ac60fb0f6284a7133098"
+checksum = "8fedb0e34b3b1b3feb321355adb75f1a39ae9c372cc59613cfb66d4fa96b616d"
 dependencies = [
- "base64 0.22.1",
  "crossbeam-channel",
  "image",
  "log",
@@ -5127,6 +5160,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ropey"
+version = "1.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "93411e420bcd1a75ddd1dc3caf18c23155eda2c090631a85af21ba19e97093b5"
+dependencies = [
+ "smallvec",
+ "str_indices",
+]
+
+[[package]]
 name = "roxmltree"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5489,6 +5532,17 @@ checksum = "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d"
 
 [[package]]
 name = "sha2"
+version = "0.10.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.2.17",
+ "digest 0.10.7",
+]
+
+[[package]]
+name = "sha2"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19"
@@ -5699,6 +5753,12 @@ dependencies = [
  "psm",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "str_indices"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d08889ec5408683408db66ad89e0e1f93dff55c73a4ccc71c427d5b277ee47e6"
 
 [[package]]
 name = "strict-num"
@@ -6413,6 +6473,12 @@ name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
+
+[[package]]
+name = "unicode-linebreak"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b09c83c3c29d37506a3e260c08c03743a6bb66a9cd432c6934ab501a190571f"
 
 [[package]]
 name = "unicode-segmentation"
