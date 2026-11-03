@@ -127,6 +127,7 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 | NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 nsh-app TSX |
 | Rust 后端 | Loro + iroh + mDNS + SQLite + FRB API |
 | NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
+| 编辑器迁移 | ✅ 已用 NSH 0.3.0 原生 `Editor` + `TextView` 替换 WebView + Tiptap；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`、`docs/handover-nsh-editor-2026-11-03.md` |
 | 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；仓库现状：平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`（Flutter 工程残留，待后续清理），iOS 工程目录尚未建立 |
 
 ## 文档地图
@@ -141,6 +142,8 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 - `docs/migration-nsh-construction.md` — NSH 迁移施工方案（逐项任务与完成状态）
 - `docs/migration-nsh-verification.md` — NSH 迁移验证记录（V1–V10 实测证据）
 - `docs/research/` — 仍服务于技术决策的研究资料
+- `docs/progress-nsh-editor-2026-11-03.md` — NSH 0.3.0 编辑器重构进度（P1–P3、提交、测试证据、P4 待办）
+- `docs/handover-nsh-editor-2026-11-03.md` — 换设备开发的环境/命令/踩坑交接
 - `docs/testing/` — 集成测试说明
 - `docs/standards/ai-collaboration.md` — 协作流程
 - `docs/standards/tdd.md` — TDD 规则
