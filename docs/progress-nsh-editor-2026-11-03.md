@@ -121,3 +121,11 @@
 1. **`nsh package --target windows` 在 macOS 会静默产出伪 `.exe`**：exit 0、约 4m02s，产物 `.nsh/out/cardmind/cardmind.exe` 实为 Mach-O arm64（宿主构建；`nsh-windows-app` 在非 Windows 是 stub），运行打印 `build it on Windows` 并 exit 1。**Windows 包必须在 Windows 上打**。
 2. **`cargo test`（rust-backend）在 macOS 预存在编译失败**：`tests/device_name_test.rs` 的 `#[cfg(unix)]` 用例调用 `detect_hostname()`，但文件顶部 `use cardmind_backend::sync::{…}` **未导入**该符号（Windows 上这些用例被 cfg 掉，故交接时 Windows 全绿）。与 P4 零改动无关。实测临时补上该 import 后，全量 22 个 test target（约 184 个测试）**0 failed**；建议后续用一行 import 修复（`detect_hostname` 加入 `use` 列表），不在 P4 范围内。
 3. **`coexist_notes_probe.rs`** 依赖 Windows `APPDATA`，macOS 必失败；基线即用 `nsh test --filter editor` 跳过（进度 §5.7）。
+
+### P4 本机（macOS）打包验证 ✅
+
+在 macOS（当前设备）上执行 `nsh package . --target macos`，**exit 0**，产出 `.nsh/out/cardmind.app`：
+
+- `Contents/MacOS/cardmind` = **Mach-O 64-bit executable arm64**；bundle ≈57MB；`Info.plist` 的 `CFBundleIdentifier=com.cardmind.nsh`、`CFBundleName=cardmind`；`codesign -dv` = `adhoc`，`codesign --verify --deep --strict` **exit 0**。
+- 耗时：`built the release runner for macOS (15m46s)` + `packaged cardmind.app (0.4s)`（源码版 CLI 无预构建 host runtime，故回落到宿主 release 构建；官方预构建发行版会直接用 `runtime/macos/nsh-macos-app`，无需这么久）。
+- 说明：**本机验证打包应选 `--target macos`**（能真正产出可运行 `.app`）；`--target windows` 只是交付待 Windows 执行时的目标，在 macOS 上产出的是宿主伪 `.exe`，不能作为 Windows 包。
