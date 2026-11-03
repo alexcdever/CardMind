@@ -7,9 +7,7 @@
 - 分支：`migration/nsh`
 - 重构合并提交：`92e622b2`（`merge(nsh-editor-p3): TextView 预览 + 桌面第三栏 + 移动新建 + P2 非阻塞回归项`）；本交接/进度文档提交在其之上。
 - 基底：`94302655`（P1 完成 NSH 0.3.0 升级）
-- **该分支目前没有推送到 origin**（`origin` 上只有 master/main/dev 等）。换设备前请先二选一：
-  1. **推荐**：在当前设备执行 `git push -u origin migration/nsh`，新设备 `git fetch && git checkout migration/nsh`；
-  2. 或直接复制整个仓库文件夹（含 `.git`）。
+- **该分支已推送到 origin**：`origin/migration/nsh`（2026-11-03，包含本交接文档及后续提交）。新设备直接 `git fetch && git checkout migration/nsh` 即可；若之后又有本地提交，记得再 `git push`。
 - 当前设备 `git status` 只剩未跟踪：`.pi/`、`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`（均为本机材料，新设备不需要）。
 - `nsh-app/.cargo/config.toml` **未跟踪**（本机 crates 镜像配置），不会随 git 走；新设备需按 §4 重建或改用 crates.io。
 
