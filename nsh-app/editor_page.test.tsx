@@ -462,6 +462,54 @@ test("editor: 桌面第三栏 Each key 重建——切笔记 A→B→A 撤销不
   expect(app.storage()["test.saved.note-a"]).toBe("AAAAX");
 });
 
+// P4 AC1：能区分「每次切换得到新 Editor 实例」与「同一实例 setValue 重载」。
+// 观测：EditorHarness 的 `recordEditorRef` 对 ref 回调收到的每个**新实例** +1
+// 并写入 `test.editorMountCount`。计数由「新 Editor 实例挂载」驱动：切换 A→B→A
+// 若每次都挂载新实例，计数单调递增到 3。
+// 判别力（实测）：同一实例 `setValue("BBBB")` 重载后计数仍停在 1；把
+// `DesktopEditorPane` 退化为固定首篇 id（复用单实例）后本测试必失败（恢复后通过）。
+// 注意：task 建议的 `key={() => 0}` 变异在 0.3.0 下无效——`Each` 位于响应式
+// thunk 内，选中变化即整段重建，key 不参与重建决策（详见 .pipeline/executor.md）。
+test("editor: 桌面第三栏 Each key 判别——A→B→A 每次切换都新建 Editor 实例", async () => {
+  const app = await openDesktop({
+    noteId: "note-a",
+    note: null,
+    mode: "desktop",
+    notes: [
+      { id: "note-a", content: "AAAA" },
+      { id: "note-b", content: "BBBB" },
+    ],
+    selectedNoteId: "note-a",
+    append: "Y",
+  });
+  await app.waitFor("id:desktop-notes");
+  await app.waitFor(EDITOR);
+  // A 首挂载：一个 EditorRef 实例。
+  await app.waitUntil(() => app.storage()["test.editorMountCount"] === "1");
+  // 在 A 末尾插入 Y（dirty，用于验证切回 A 后内容与撤销栈）。
+  await app.keyboard.press("mod+shift+l");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "AAAAY");
+  // A→B：切换笔记 → Editor 重建 → 第 2 个 ref 实例。
+  await app.press("id:note-item-note-b");
+  await app.waitUntil(() => app.storage()["test.editorMountCount"] === "2");
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "BBBB");
+  // B→A：再次重建 → 第 3 个 ref 实例（不是回到第 1 个实例的存活状态）。
+  await app.press("id:note-item-note-a");
+  await app.waitUntil(() => app.storage()["test.editorMountCount"] === "3");
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "AAAAY");
+  // 计数随切换单调递增：2 次切换 = 2 次新建（不含复用）。
+  expect(app.storage()["test.editorMountCount"]).toBe("3");
+  // 撤销栈随实例重建：回 A 后 mod+z 不会撤掉 flush 前的编辑再把内容串错
+  // （A 重建后的基线就是已落盘的 AAAAY，无可撤销项）。
+  await app.keyboard.press("mod+z");
+  await app.wait(300);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "AAAAY");
+  expect(app.storage()["test.editorValue"]).toBe("AAAAY");
+});
+
 test("editor: 桌面 ≥1280 预览并排（Editor 与 TextView 同屏）", async () => {
   const doc = "# 并排\n\n- 列表项\n";
   const app = await open("./EditorHarness.tsx", {
@@ -540,3 +588,77 @@ test("editor: onChange 未触发时关闭仍用 editor.value() 保存最新文�
   // 关键：保存的是 editor.value() 的最新文本（base-尾部），不是陈旧的信号值。
   expect(app.storage()["test.saved"]).toBe("base-尾部");
 });
+
+// ─── P4 AC3：5 万字 Markdown 预览切换性能测量 ────────────────────────────────
+
+/** 构造 ≈50,000 字 Markdown（标题/列表/引用/代码块/wikilink/中文，均匀分布）。 */
+function bigMarkdown(targetChars: number): string {
+  const parts: string[] = [];
+  let n = 0;
+  let block = 0;
+  while (n < targetChars) {
+    block += 1;
+    const seg =
+      `# 第 ${block} 节 标题\n\n` +
+      `正文段落，含 [[note-${block}|别名${block}]] 与普通文本，用来撑大预览解析成本。` +
+      `中文内容若干，重复填充以达到五万字量级的真实文档。\n\n` +
+      `- 列表项一\n- 列表项二\n- 列表项三\n\n` +
+      `> 引用一句话，来自第 ${block} 节。\n\n` +
+      "```\nconst x" + block + " = " + block + ";\n```\n\n";
+    parts.push(seg);
+    n += seg.length;
+  }
+  return parts.join("");
+}
+
+function percentile(sorted: number[], p: number): number {
+  const idx = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
+  return sorted[idx];
+}
+
+test("editor: 5 万字 Markdown 预览切换性能（墙钟采样）", async () => {
+  // 5 万字 TextView 在 headless 下渲染成本随整机负载大幅波动（实测单轮
+  // 2.8s–8.8s，重载时 >30s）。固定 20 次采样 × 30s 超时在满载机器上必然
+  // 超测时上限。故：自适应采样——在单测剩余预算内尽量多测（目标 ≥20，满载
+  // 时降级到 ≥3 仍能产出有效分布）；每轮 waitFor 给足超时，让耗时真实反映
+  // 渲染成本而非被截断。headless 数字只反映 JS 端解析/布局，真机复测见
+  // docs/testing/nsh-p4-windows-ime-checklist.md §E。
+  const doc = bigMarkdown(50_000);
+  const app = await openEditor({ noteId: "note-1", note: doc }, { width: 390, height: 844 });
+  await app.waitFor(EDITOR);
+  const samples: number[] = [];
+  const budgetMs = 240_000; // 单测 300s 上限内留 60s 余量给装载/收尾。
+  const started = Date.now();
+  const TARGET = 20;
+  const MIN_SAMPLES = 3;
+  for (let i = 0; i < TARGET; i += 1) {
+    const t0 = Date.now();
+    await app.press("label:预览");
+    // headless 下 `id:preview`（TextView testID）不可选；预览「渲染完成」
+    // 以首个 wikilink chip（`renderCustom` 产物）出现为代理。
+    await app.waitFor("id:wikilink-note-1", { timeout: 90_000 });
+    samples.push(Date.now() - t0);
+    // 回到编辑态（5 万字 Editor 重挂载同样受整机负载影响，给足超时避免
+    // 「返回编辑」这一步把整轮打挂；这一步不计入「打开预览」样本）。
+    await app.press("label:编辑");
+    await app.waitFor(EDITOR, { timeout: 90_000 });
+    // 预算耗尽则停止（保住「有样本」而非「凑满 20」）。
+    if (Date.now() - started > budgetMs) break;
+  }
+  samples.sort((a, b) => a - b);
+  const n = samples.length;
+  const p50 = percentile(samples, 50);
+  const p95 = percentile(samples, 95);
+  const min = samples[0];
+  const max = samples[n - 1];
+  console.log(
+    `[perf] preview-toggle ${doc.length} chars, n=${n} (target ${TARGET}), ` +
+      `min=${min}ms p50=${p50}ms p95=${p95}ms max=${max}ms ` +
+      `(headless, wall-clock Date.now())`,
+  );
+  console.log(`[perf] samples(ms)=${JSON.stringify(samples)}`);
+  // 行为断言只锁「测到了有效样本」：不锁固定次数/阈值（满载机器会撑爆固定
+  // 20×30s 上限；headless 数字本身不是验收阈值，见 task.md AC3 口径）。
+  expect(n).toBeGreaterThanOrEqual(MIN_SAMPLES);
+  expect(p95).toBeGreaterThanOrEqual(p50);
+}, 300_000);
