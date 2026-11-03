@@ -9,6 +9,12 @@
 - Windows 10/11 + 微软拼音输入法（默认中文 IME）。
 - CardMind 已按 `nsh package --target windows` 产物或开发态
   `nsh run --target windows` 启动，进入「笔记」→ 任一笔记的 Markdown 编辑器。
+- **打包必须在 Windows 上做**：macOS 上 `nsh package . --target windows` 会
+  exit 0 并产出 `.nsh/out/cardmind/cardmind.exe`，但该文件实际是 macOS
+  Mach-O arm64 可执行（运行时打印 `nsh-windows-app is the executable of
+  packaged Windows apps; build it on Windows` 并 exit 1），**不是可装的
+  Windows 程序**。不要拿 macOS 产物到 Windows 上用；在 Windows 上重新
+  `nsh package . --target windows`。
 - 剪贴板 capability 已在 `nsh-app/nsh.json` 声明 `"clipboard": true`。
 
 ## A. 中文 IME（微软拼音）
@@ -41,9 +47,13 @@
 
 ## D. PowerShell 复现脚本
 
-> 用途：在 Windows 上启动 CardMind、注入 5 万字测试笔记、做可计时的
-> 预览切换与保存一致性检查。保存为 `nsh-p4-windows-probe.ps1`，
-> 在仓库根目录 `.\nsh-app` 下执行：`powershell -ExecutionPolicy Bypass -File nsh-p4-windows-probe.ps1`。
+> 用途：**样本生成 + 手工清单辅助**——生成约 5 万字 Markdown 测试笔记到
+> `%TEMP%\cardmind-big-note.md`，并可选跑一遍 headless `nsh test` 做对照；
+> 不做应用启动/注入/自动计时（启动与预览计时按 B/D 清单手工执行，或用
+> §E 的 `nsh test --filter "5 万字" --target windows` 复测）。
+> 保存为 `nsh-p4-windows-probe.ps1`，**放在 `nsh-app/` 目录下**执行：
+> `powershell -ExecutionPolicy Bypass -File nsh-p4-windows-probe.ps1`
+> （脚本经 `$PSScriptRoot` 定位到 nsh-app/）。
 
 ```powershell
 # nsh-p4-windows-probe.ps1  — CardMind NSH 编辑器 Windows 真机探针

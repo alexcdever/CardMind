@@ -462,13 +462,14 @@ test("editor: 桌面第三栏 Each key 重建——切笔记 A→B→A 撤销不
   expect(app.storage()["test.saved.note-a"]).toBe("AAAAX");
 });
 
-// P4 AC1：能区分「按 noteId 重建 Editor」与「同一实例 setValue 重载」。
+// P4 AC1：能区分「每次切换得到新 Editor 实例」与「同一实例 setValue 重载」。
 // 观测：EditorHarness 的 `recordEditorRef` 对 ref 回调收到的每个**新实例** +1
-// 并写入 `test.editorMountCount`；key 变化 → 旧 Editor 卸载、新 Editor 挂载 →
-// ref 上报新实例。若实现退化为复用同一 Editor（常量 key / setValue 重载），
-// ref 不再回调新实例，计数停在 1。
-// 变异自检（见 .pipeline/executor.md）：把 `DesktopEditorPane` 的
-// `key={(noteId) => noteId}` 改成 `key={() => 0}` 后本测试必失败（恢复后通过）。
+// 并写入 `test.editorMountCount`。计数由「新 Editor 实例挂载」驱动：切换 A→B→A
+// 若每次都挂载新实例，计数单调递增到 3。
+// 判别力（实测）：同一实例 `setValue("BBBB")` 重载后计数仍停在 1；把
+// `DesktopEditorPane` 退化为固定首篇 id（复用单实例）后本测试必失败（恢复后通过）。
+// 注意：task 建议的 `key={() => 0}` 变异在 0.3.0 下无效——`Each` 位于响应式
+// thunk 内，选中变化即整段重建，key 不参与重建决策（详见 .pipeline/executor.md）。
 test("editor: 桌面第三栏 Each key 判别——A→B→A 每次切换都新建 Editor 实例", async () => {
   const app = await openDesktop({
     noteId: "note-a",
@@ -485,10 +486,10 @@ test("editor: 桌面第三栏 Each key 判别——A→B→A 每次切换都新�
   await app.waitFor(EDITOR);
   // A 首挂载：一个 EditorRef 实例。
   await app.waitUntil(() => app.storage()["test.editorMountCount"] === "1");
-  // 在 A 末尾插入 Y（dirty，用于后面验证「同一实例重载」假象也能被计数判别）。
+  // 在 A 末尾插入 Y（dirty，用于验证切回 A 后内容与撤销栈）。
   await app.keyboard.press("mod+shift+l");
   await app.waitUntil(() => app.storage()["test.editorValue"] === "AAAAY");
-  // A→B：key 变化 → Editor 重建 → 第 2 个 ref 实例。
+  // A→B：切换笔记 → Editor 重建 → 第 2 个 ref 实例。
   await app.press("id:note-item-note-b");
   await app.waitUntil(() => app.storage()["test.editorMountCount"] === "2");
   await app.keyboard.press("mod+shift+e");

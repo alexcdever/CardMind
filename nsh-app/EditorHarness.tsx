@@ -43,9 +43,8 @@ let repository: EditorRepository | null = null;
 let liveEditor: EditorRef | null = null;
 /** 上一个经 `onEditorRef` 上报的 ref 实例（判别「新建 vs 复用」）。 */
 let lastEditorRef: EditorRef | null = null;
-/** 挂载次数（新 ref 实例出现即 +1）与最近一次上报时间戳（ms，墙钟）。 */
+/** 挂载次数（新 ref 实例出现即 +1）。 */
 let editorMountCount = 0;
-let editorMountLastMs = 0;
 /** `mod+shift+l` 要在末尾插入的文本（场景里的 `append`）。 */
 let appendText: string | null = null;
 
@@ -54,11 +53,9 @@ function recordEditorRef(ref: EditorRef): void {
   if (ref !== lastEditorRef) {
     lastEditorRef = ref;
     editorMountCount += 1;
-    editorMountLastMs = Date.now();
-    // ref 回调每收到一个新实例就 +1：Each key 变化重建 Editor 时 ref 是新建对象；
+    // ref 回调每收到一个新实例就 +1：切换笔记重建 Editor 时 ref 是新建对象；
     // 若实现退化复用同一 Editor（key 失效/setValue 重载），ref 不再上报新实例，计数不涨。
     void Storage.setItem("test.editorMountCount", String(editorMountCount));
-    void Storage.setItem("test.editorMountLastMs", String(editorMountLastMs));
   }
 }
 

@@ -16,8 +16,9 @@ test("note: 移动布局点「新建笔记」进入编辑路由（noteId === \"n
   await app.waitFor("label:新建笔记");
   expect(app.enabled("label:新建笔记")).toBe(true);
   await app.press("label:新建笔记");
-  // editor 路由被推上栈：桩页出现且携带 noteId "new"。
+  // editor 路由被推上栈：桩页出现且携带 noteId "new"（桩页文本格式见
+  // NoteListHarness.tsx 的 EditorRouteStub：`editor noteId: {noteId}`）。
   await app.waitFor("id:editor-route");
   expect(app.shows("id:editor-route")).toBe(true);
-  expect(app.texts().some((t) => t.includes("new"))).toBe(true);
+  expect(app.texts()).toContain("editor noteId: new");
 });
