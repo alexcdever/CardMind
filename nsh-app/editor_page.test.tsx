@@ -359,3 +359,184 @@ test("editor: 移动窄屏下编辑页仍可输入与返回（布局不回归）
   await app.waitFor("id:notes-stub");
   await app.waitUntil(() => app.storage()["test.saved"] === "移动");
 });
+
+// ─── P3：TextView 预览（移动/桌面）───────────────────────────────────────────
+
+test("editor: 切换到预览渲染标题/列表/引用/代码，切回编辑源码字节不变", async () => {
+  const doc =
+    "# 大标题\n\n- 项一\n- 项二\n\n> 引用一句话\n\n```\nconst x = 1;\n```\n\n正文段落。\n";
+  const app = await openEditor({ noteId: "note-1", note: doc }, { width: 390, height: 844 });
+  await app.waitFor(EDITOR);
+  // 编辑态看不到渲染后的「大标题」（TextView 才渲染）。
+  expect(app.shows("id:preview")).toBe(false);
+  await app.press("label:预览");
+  await app.waitFor("id:preview");
+  // 渲染后四类块都在（标题/列表项/引用/代码）。源码标记 `#`/`-`/`>` 不直接出现。
+  expect(hasText(app, "大标题")).toBe(true);
+  expect(hasText(app, "项一")).toBe(true);
+  expect(hasText(app, "引用一句话")).toBe(true);
+  expect(hasText(app, "const x = 1;")).toBe(true);
+  // 切回编辑：源码逐字节不变。
+  await app.press("label:编辑");
+  await app.waitFor(EDITOR);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] !== undefined);
+  expect(app.storage()["test.editorValue"]).toBe(doc);
+});
+
+test("editor: 预览中 [[id|alias]] 显示 alias（target|alias 渲染成 chip）", async () => {
+  const doc = "前文 [[note-2|会议别名]] 与 [[note-3]] 后文\n";
+  const app = await openEditor({ noteId: "note-1", note: doc }, { width: 390, height: 844 });
+  await app.waitFor(EDITOR);
+  await app.press("label:预览");
+  await app.waitFor("id:preview");
+  // alias 显示；无 alias 的显示 target id。
+  await app.waitFor("id:wikilink-note-2");
+  await app.waitFor("id:wikilink-note-3");
+  expect(hasText(app, "会议别名")).toBe(true);
+});
+
+// ─── P3：桌面第三栏（Each key 重建）──────────────────────────────────────────
+
+async function openDesktop(scenario: Scenario): Promise<App> {
+  return await open("./EditorHarness.tsx", {
+    width: 1200,
+    height: 900,
+    storage: scenarioStorage(scenario),
+  });
+}
+
+test("editor: 桌面第三栏渲染真实编辑器（非占位），选中笔记内容显示", async () => {
+  const app = await openDesktop({
+    noteId: "note-a",
+    note: null,
+    mode: "desktop",
+    notes: [
+      { id: "note-a", content: "Alpha 笔记内容" },
+      { id: "note-b", content: "Beta 笔记内容" },
+    ],
+    selectedNoteId: "note-a",
+  });
+  await app.waitFor("id:desktop-notes");
+  await app.waitFor(EDITOR);
+  expect(hasText(app, "Alpha 笔记内容")).toBe(true);
+  // 切到 B：第三栏内容换成 B。
+  await app.press("id:note-item-note-b");
+  await app.waitUntil(() => hasText(app, "Beta 笔记内容"));
+  expect(hasText(app, "Alpha 笔记内容")).toBe(false);
+});
+
+test("editor: 桌面第三栏 Each key 重建——切笔记 A→B→A 撤销不跨笔记", async () => {
+  const app = await openDesktop({
+    noteId: "note-a",
+    note: null,
+    mode: "desktop",
+    notes: [
+      { id: "note-a", content: "AAAA" },
+      { id: "note-b", content: "BBBB" },
+    ],
+    selectedNoteId: "note-a",
+    append: "X",
+  });
+  await app.waitFor("id:desktop-notes");
+  await app.waitFor(EDITOR);
+  // 在 A 末尾插入 X（未保存，dirty）。
+  await app.keyboard.press("mod+shift+l");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "AAAAX");
+  // 切到 B（触发 key 重建 + unmount flush A）。
+  await app.press("id:note-item-note-b");
+  await app.waitFor(EDITOR);
+  // B 的内容是 BBBB，不是 AAAA（没共享撤销栈/没串文）。
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "BBBB");
+  // 在 B 上撤销应只影响 B（这里 B 无未保存编辑，canUndo 可能无操作；
+  // 关键是按 mod+z 不会把 A 的 X 撤掉后串进 B）。
+  await app.keyboard.press("mod+z");
+  await app.wait(300);
+  expect(app.storage()["test.editorValue"]).toBe("BBBB");
+  // 切回 A：A 显示它自己的内容（含已 flush 的 AAAAX）。
+  await app.press("id:note-item-note-a");
+  await app.waitFor(EDITOR);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "AAAAX");
+  expect(app.storage()["test.saved.note-a"]).toBe("AAAAX");
+});
+
+test("editor: 桌面 ≥1280 预览并排（Editor 与 TextView 同屏）", async () => {
+  const doc = "# 并排\n\n- 列表项\n";
+  const app = await open("./EditorHarness.tsx", {
+    width: 1400,
+    height: 900,
+    storage: scenarioStorage({ noteId: "note-1", note: doc }),
+  });
+  await app.waitFor(EDITOR);
+  await app.press("label:预览");
+  await app.waitFor("id:preview");
+  // 并排：Editor 仍显示（编辑可继续），同时预览渲染标题。
+  expect(app.shows(EDITOR)).toBe(true);
+  expect(hasText(app, "并排")).toBe(true);
+});
+
+// ─── P3：Escape 清候选 ────────────────────────────────────────────────────────
+
+test("editor: 候选打开时用「关闭候选」入口收起候选且不退出编辑页", async () => {
+  // 限制（探测证据见 .pipeline/executor.md）：0.3.0 `Editor` 聚焦时吞掉 Escape，
+  // `keymap.bind("escape", …, { when: "always" })` 也收不到；故提供可见的
+  // 「关闭候选」按钮作为替代关闭路径（touch/无硬件键盘同样可用）。
+  const app = await openEditor({
+    noteId: "note-1",
+    note: "",
+    candidates: [{ id: "note-2", title: "会议记录" }],
+  });
+  await app.waitFor(EDITOR);
+  await app.type(EDITOR, "[[");
+  await app.waitFor("id:link-candidates");
+  await app.press("label:关闭候选");
+  await app.waitFor("id:link-candidates", { state: "gone" });
+  expect(app.shows(EDITOR)).toBe(true); // 仍在编辑页
+  expect(app.shows("id:notes-stub")).toBe(false); // 未退回列表
+});
+
+// ─── P3：Editor autoFocus ─────────────────────────────────────────────────────
+
+test("editor: 打开编辑页可直接输入（无需先 press 聚焦）", async () => {
+  // `EditorProps.autoFocus` 已开启；headless `nsh test` 无法断言真实焦点
+  // （`keyboard.press("a")` 不走 Editor 输入 sink），故按 task.md 允许的口径：
+  // 打开后直接 `app.type` 即可输入、不必先 `press` 聚焦，autoFocus 的真实
+  // 键盘焦点行为留待 `--target`/真机手工确认（见 executor.md）。
+  const app = await openEditor({ noteId: "new", note: null });
+  await app.waitFor(EDITOR);
+  await app.type(EDITOR, "直接输入");
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] !== undefined);
+  expect(app.storage()["test.editorValue"]).toBe("直接输入");
+});
+
+// ─── P3：回归补强 ─────────────────────────────────────────────────────────────
+
+test("editor: 未编辑 CRLF 笔记关闭后不回写（noteCreate=0）", async () => {
+  const crlf = "# 标题\r\n\r\n正文\r\n";
+  const app = await openEditor({ noteId: "note-1", note: crlf });
+  await app.waitFor(EDITOR);
+  // 不做任何编辑，直接关闭。
+  await app.back();
+  await app.waitFor("id:notes-stub");
+  await app.wait(300);
+  // 归一化后 text == lastSaved，不是 dirty → 不产生 noteCreate。
+  expect(calls(app).noteCreate).toBe(0);
+  expect(saved(app)).toBeNull();
+});
+
+test("editor: onChange 未触发时关闭仍用 editor.value() 保存最新文本", async () => {
+  // append 走 Editor.edit 公开 API 改文本；若某运行时下 onChange 未同步信号，
+  // 关闭路径的 readLatestText()（editor.value()）仍能拿到最新内容。
+  const app = await openEditor({ noteId: "note-1", note: "base", append: "-尾部" });
+  await app.waitFor(EDITOR);
+  await app.keyboard.press("mod+shift+l");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "base-尾部");
+  await app.back();
+  await app.waitFor("id:notes-stub");
+  await app.waitUntil(() => app.storage()["test.saved"] !== undefined);
+  // 关键：保存的是 editor.value() 的最新文本（base-尾部），不是陈旧的信号值。
+  expect(app.storage()["test.saved"]).toBe("base-尾部");
+});

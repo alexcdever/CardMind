@@ -6,13 +6,18 @@
 // `test.saved`、`test.savedId`、`test.tags`，测试用 `app.storage()` 断言。
 import { effect, keymap, mount, signal, Storage, Text, View, type JSX } from "nsh";
 import { NavPage, NavStack, type EditorRef } from "nsh/base";
-import { EditorScreen, type EditorNoteRow, type EditorRepository } from "./editor_page";
+import {
+  DesktopEditorPane,
+  EditorScreen,
+  type EditorNoteRow,
+  type EditorRepository,
+} from "./editor_page";
 import type { WikiCandidate } from "./editor_text";
 import { nav } from "./navigation";
 
-/** 一个测试场景：初始笔记 + 故障注入 + `[[` 候选。 */
+/** 一个测试场景：初始笔记 + 故障注入 + `[[` 候选 + 桌面三栏数据。 */
 interface Scenario {
-  /** "new"/"" = 新笔记；其余 = 已有笔记 id。 */
+  /** "new"/"" = 新笔记；其余 = 已有笔记 id。桌面场景时为首个选中的 id。 */
   noteId: string;
   /** noteGet 返回的 markdown；null = 笔记不存在。 */
   note: string | null;
@@ -24,6 +29,12 @@ interface Scenario {
   candidates?: WikiCandidate[];
   /** `mod+shift+l` 时追加到文本末尾的内容（测试构造「最后输入」）。 */
   append?: string;
+  /** "desktop"：三栏场景（侧栏列表 + DesktopEditorPane），不经 nav.push editor。 */
+  mode?: string;
+  /** 桌面场景多笔记内容表（noteGet 按 id 查）。 */
+  notes?: { id: string; content: string; tags?: string }[];
+  /** 桌面场景初始选中的笔记 id。 */
+  selectedNoteId?: string;
 }
 
 const scenario = signal<Scenario | null>(null);
@@ -72,7 +83,18 @@ function createRepository(fake: Scenario): EditorRepository {
     searchByTag: [] as string[],
     order: [] as string[],
   };
-  let content = fake.note;
+  // 桌面场景：多笔记内容表；普通场景：单笔记 note。
+  const store = new Map<string, string>();
+  if (fake.notes !== undefined) {
+    for (const n of fake.notes) store.set(n.id, n.content);
+  } else if (fake.note !== null && fake.note !== undefined) {
+    store.set(fake.noteId, fake.note);
+  }
+  const tagsById = new Map<string, string>();
+  if (fake.notes !== undefined) {
+    for (const n of fake.notes) if (n.tags !== undefined) tagsById.set(n.id, n.tags);
+  }
+  if (fake.tags !== undefined) tagsById.set(fake.noteId, fake.tags.join(","));
   let loadFailures = fake.failLoad === true ? -1 : fake.failLoad === "once" ? 1 : 0;
   let saveFailures = fake.failSave === true ? -1 : fake.failSave === "once" ? 1 : 0;
   let generated = 0;
@@ -80,16 +102,16 @@ function createRepository(fake: Scenario): EditorRepository {
   const flushCalls = (): void => {
     void Storage.setItem("test.calls", JSON.stringify(calls));
   };
-  const row = (): EditorNoteRow => ({
-    id: fake.noteId,
-    title: fake.noteId,
-    contentPreview: "",
-    tags: (fake.tags ?? []).join(","),
+  const rowFor = (id: string, content: string): EditorNoteRow => ({
+    id,
+    title: id,
+    contentPreview: content.slice(0, 40),
+    tags: tagsById.get(id) ?? "",
     updatedAt: "2026-01-01T00:00:00Z",
   });
 
   return {
-    async noteGet(_id: string): Promise<string | null> {
+    async noteGet(id: string): Promise<string | null> {
       calls.noteGet += 1;
       calls.order.push("noteGet");
       flushCalls();
@@ -98,7 +120,7 @@ function createRepository(fake: Scenario): EditorRepository {
         if (loadFailures > 0) loadFailures -= 1;
         throw new Error("模拟加载失败");
       }
-      return content;
+      return store.has(id) ? (store.get(id) ?? null) : null;
     },
     async noteCreate(id: string, text: string): Promise<boolean> {
       calls.noteCreate += 1;
@@ -108,9 +130,11 @@ function createRepository(fake: Scenario): EditorRepository {
         if (saveFailures > 0) saveFailures -= 1;
         throw new Error("模拟保存失败");
       }
-      content = text;
+      store.set(id, text);
       void Storage.setItem("test.saved", text);
       void Storage.setItem("test.savedId", id);
+      // 桌面场景按笔记记录各自最新保存内容，测试断言「笔记 B 内容不混到 A」。
+      void Storage.setItem(`test.saved.${id}`, text);
       return true;
     },
     async noteUpdateMetadata(_id: string, tags: string[]): Promise<boolean> {
@@ -151,20 +175,35 @@ function createRepository(fake: Scenario): EditorRepository {
       calls.searchByTag.push(tag);
       flushCalls();
       if (fake.noteId === "" || fake.noteId === "new") return [];
-      return [row()];
+      const rows: EditorNoteRow[] = [];
+      if (fake.notes !== undefined) {
+        for (const n of fake.notes) rows.push(rowFor(n.id, store.get(n.id) ?? n.content));
+      } else {
+        rows.push(rowFor(fake.noteId, store.get(fake.noteId) ?? ""));
+      }
+      return rows;
     },
   };
 }
 
 function Harness(): JSX.Element {
+  const parsed = signal<Scenario | null>(null);
+  const selected = signal<string | undefined>(undefined);
+
   effect(() => {
     void (async () => {
       const raw = await Storage.getItem("test.scenario");
-      const parsed = parseScenario(raw);
-      repository = createRepository(parsed);
-      appendText = parsed.append ?? null;
-      scenario.set(parsed);
-      nav.push({ name: "editor", noteId: parsed.noteId });
+      const p = parseScenario(raw);
+      repository = createRepository(p);
+      appendText = p.append ?? null;
+      parsed.set(p);
+      scenario.set(p);
+      if (p.mode === "desktop") {
+        // 桌面三栏：不走 nav.push editor；初始选中（或第一篇）。
+        selected.set(p.selectedNoteId ?? p.notes?.[0]?.id);
+      } else {
+        nav.push({ name: "editor", noteId: p.noteId });
+      }
     })();
   });
 
@@ -179,38 +218,76 @@ function Harness(): JSX.Element {
     return () => unbind();
   });
 
-  return (
-    <NavStack state={nav} style={{ flex: 1 }} testID="editor-harness">
-      {(route: { name: string; noteId?: string }) =>
-        route.name === "editor" ? (
-          <EditorScreen
-            noteId={route.noteId ?? ""}
+  const desktop = () => parsed()?.mode === "desktop";
+
+  // 桌面三栏场景：左侧模拟列表（点选切 selectedNoteId）+ 右侧真实 DesktopEditorPane。
+  function renderDesktop(): JSX.Element {
+    return (
+      <View testID="desktop-notes" style={{ flex: 1, flexDirection: "row" }}>
+        <View testID="note-list" style={{ width: 300, borderRightWidth: 1 }}>
+          {() =>
+            (parsed()?.notes ?? []).map((n) => (
+              <View
+                testID={`note-item-${n.id}`}
+                role="button"
+                accessibilityLabel={`选择 ${n.id}`}
+                onPress={() => selected.set(n.id)}
+                style={{ minHeight: 48, justifyContent: "center", padding: 8 }}
+              >
+                <Text>{n.id}</Text>
+              </View>
+            ))
+          }
+        </View>
+        <View style={{ flex: 1 }}>
+          <DesktopEditorPane
+            noteId={selected}
             repository={repository ?? undefined}
             onEditorRef={recordEditorRef}
           />
-        ) : (
-          <NavPage title="笔记" testID="notes-page">
-            <View testID="notes-stub" style={{ flex: 1, gap: 8, padding: 16 }}>
-              <Text>notes stub</Text>
-              <View
-                testID="open-editor"
-                role="button"
-                accessibilityLabel="打开编辑页"
-                onPress={() => {
-                  const current = scenario();
-                  if (current !== null) {
-                    nav.push({ name: "editor", noteId: current.noteId });
-                  }
-                }}
-                style={{ minHeight: 48, justifyContent: "center" }}
-              >
-                <Text>打开编辑页</Text>
-              </View>
-            </View>
-          </NavPage>
-        )
-      }
-    </NavStack>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1 }}>
+      <If when={desktop()} else={
+        <NavStack state={nav} style={{ flex: 1 }} testID="editor-harness">
+          {(route: { name: string; noteId?: string }) =>
+            route.name === "editor" ? (
+              <EditorScreen
+                noteId={route.noteId ?? ""}
+                repository={repository ?? undefined}
+                onEditorRef={recordEditorRef}
+              />
+            ) : (
+              <NavPage title="笔记" testID="notes-page">
+                <View testID="notes-stub" style={{ flex: 1, gap: 8, padding: 16 }}>
+                  <Text>notes stub</Text>
+                  <View
+                    testID="open-editor"
+                    role="button"
+                    accessibilityLabel="打开编辑页"
+                    onPress={() => {
+                      const current = scenario();
+                      if (current !== null) {
+                        nav.push({ name: "editor", noteId: current.noteId });
+                      }
+                    }}
+                    style={{ minHeight: 48, justifyContent: "center" }}
+                  >
+                    <Text>打开编辑页</Text>
+                  </View>
+                </View>
+              </NavPage>
+            )
+          }
+        </NavStack>
+      }>
+        {renderDesktop()}
+      </If>
+    </View>
   );
 }
 

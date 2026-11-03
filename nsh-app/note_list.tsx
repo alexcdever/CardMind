@@ -43,6 +43,7 @@ import {
   Glyph,
 } from "./components";
 import { goBack, nav, openEditor, routes } from "./navigation";
+import { DesktopEditorPane } from "./editor_page";
 import { colors, layout, spacing, typography } from "./theme";
 
 // ─── 数据层（可注入替代；默认值走真后端）─────────────────────────────────────
@@ -573,40 +574,6 @@ function DesktopListPane(): JSX.Element {
   );
 }
 
-function DesktopEditorPane(props: { status?: JSX.Element }): JSX.Element {
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: colors.paper,
-        padding: spacing.lg,
-        gap: spacing.sm,
-      }}
-    >
-      {() => {
-        const id = selectedNoteId();
-        return id === undefined ? (
-          <CardMindEmptyState
-            icon="edit"
-            title="选择一篇笔记"
-            message="在左侧列表选择笔记，或创建一篇新笔记。"
-          />
-        ) : (
-          <Text
-            style={{
-              color: colors.mutedInk,
-              fontSize: typography.bodyMedium.fontSize,
-            }}
-          >
-            编辑器占位（2.x 实现）—— noteId：{id}
-          </Text>
-        );
-      }}
-      <If when={props.status !== undefined}>{props.status}</If>
-    </View>
-  );
-}
-
 function DesktopLayout(props: { status?: JSX.Element }): JSX.Element {
   return (
     <View
@@ -618,7 +585,11 @@ function DesktopLayout(props: { status?: JSX.Element }): JSX.Element {
     >
       <DesktopSidebar />
       <DesktopListPane />
-      <DesktopEditorPane status={props.status} />
+      <View style={{ flex: 1, flexDirection: "column" }}>
+        {/* 第三栏：真实编辑区（后端注入走默认 repo）；未选中显示空态。 */}
+        <DesktopEditorPane noteId={selectedNoteId} />
+        <If when={props.status !== undefined}>{props.status}</If>
+      </View>
     </View>
   );
 }
@@ -692,6 +663,12 @@ function MobileLayout(props: { status?: JSX.Element }): JSX.Element {
         >
           {tab() === "notes" ? "CardMind" : "设备"}
         </Text>
+        {/* 移动端新建入口（<960 无桌面侧栏，列表页头直接建笔记 → push 编辑路由）。 */}
+        <CardMindIconButton
+          icon="add"
+          tooltip="新建笔记"
+          onPress={() => openEditor("new")}
+        />
         <CardMindIconButton
           icon="settings"
           tooltip="设置"

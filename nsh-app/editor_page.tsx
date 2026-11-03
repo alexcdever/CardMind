@@ -11,8 +11,11 @@ import { effect, keymap, signal, Text, View, windowSize, type JSX } from "nsh";
 import {
   Editor,
   NavPage,
+  TextView,
   type EditorRef,
   type EditorSelection,
+  type TextViewCustomNode,
+  type TextViewStyles,
 } from "nsh/base";
 import { BackendNotes, BackendStore } from "app/native";
 import {
@@ -103,6 +106,9 @@ const COPY = {
   retry: "重试",
   back: "返回",
   saveRetry: "重试",
+  preview: "预览",
+  backToEdit: "编辑",
+  closeCandidates: "关闭候选",
 } as const;
 
 /** 加载指示器（视觉常量，与 components.tsx 的模块级视觉常量同风格）。 */
@@ -111,6 +117,11 @@ const LOADING_SPINNER = { size: 20, stroke: 2 } as const;
 const CANDIDATE_BLUR_HIDE_MS = 150;
 /** 关闭时最多 flush 两轮（保存期间又有输入时再存一次）。 */
 const CLOSE_FLUSH_ATTEMPTS = 2;
+/** 桌面编辑区并排预览的最小宽度：≥1280pt 才并排（C2，06 §6-7）；
+ *  <1280 用单栏编辑↔预览切换（C1）。 */
+const SIDE_BY_SIDE_WIDTH = 1280;
+/** 预览去抖（ms）：预览可见时打字停止这么久才重解析（05 §3.3/R6）。 */
+const PREVIEW_DEBOUNCE_MS = 450;
 
 /** 加载中：居中占位（不是一行裸文字，也不是空文档）。 */
 function EditorLoading(): JSX.Element {
@@ -203,9 +214,44 @@ function EditorDesktopHeader(props: { onBack: () => void }): JSX.Element {
   );
 }
 
-/** 编辑器页（push 路由；`App.tsx` 的 `case "editor"` 渲染本组件）。 */
-export function EditorScreen(props: {
+/** `[[id|alias]]` 的 MarkdownExtension：把 wikilink 解析成自定义 inline 节点，
+ *  `renderCustom` 渲染成 chip（显示 alias 或 target；点击跳转是 P4 增强）。
+ *  pattern 是 Rust regex：`[[` 之后非 `]`/`|` 的 target，可选 `|alias`。 */
+const WIKILINK_EXTENSION = {
+  name: "wikilink",
+  pattern: "\\[\\[([^\\]\\|]+)(?:\\|([^\\]]+))?\\]\\]",
+} as const;
+
+/** 预览的 TextView 部件样式：映射 theme 令牌（不裸值）。
+ *  只覆盖高频 part（root/heading/link/code/blockquote），其余用默认。 */
+const PREVIEW_STYLES: TextViewStyles = {
+  root: {
+    color: colors.ink,
+    fontSize: typography.bodyMedium.fontSize,
+    lineHeight: typography.bodyMedium.lineHeight + 4,
+  },
+  heading: { color: colors.ink, fontWeight: "600" },
+  link: { color: colors.accent },
+  code: {
+    color: colors.ink,
+    backgroundColor: colors.surfaceLow,
+    fontSize: typography.bodyMedium.fontSize - 1,
+  },
+  codeBlock: {
+    backgroundColor: colors.surfaceLow,
+    borderRadius: radii.md,
+  },
+  blockquote: {
+    borderLeftColor: colors.accent,
+  },
+};
+
+/** 编辑区（`Editor` + 预览切换 + 候选行 + 标签行 + 保存态）。
+ *  `embedded`：桌面第三栏内嵌时不套 NavPage/返回键。 */
+export function EditorPage(props: {
   noteId: string;
+  /** 桌面第三栏内嵌：不套 NavPage，无返回键；关闭改为通知父级清选中。 */
+  embedded?: boolean;
   /** 测试接缝：不传则用真后端（`backendEditorRepository`）。 */
   repository?: EditorRepository;
   /** 测试接缝：Editor 挂载后把 ref 交给调用方（`nsh test` 读全文做逐字节断言）。 */
@@ -225,12 +271,17 @@ export function EditorScreen(props: {
   const candidates = signal<WikiCandidate[]>([]);
   const saveState = signal<SaveState>(newNote ? SAVE_STATE.dirty : SAVE_STATE.saved);
   const saveError = signal("");
+  // 预览：`preview` 决定当前是否显示 TextView；`previewText` 是去抖后的预览文本
+  // （绝不把每键变化的 text() 直接绑给 TextView，05 §3.3/R6）。
+  const preview = signal(false);
+  const previewText = signal("");
 
   let editor!: EditorRef;
   let currentId = newNote ? "" : initialId;
   let lastSaved = "";
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let candidateTimer: ReturnType<typeof setTimeout> | null = null;
+  let previewTimer: ReturnType<typeof setTimeout> | null = null;
   let loadTimer: ReturnType<typeof setTimeout> | null = null;
   let completionToken = 0;
   let idPromise: Promise<string> | null = null;
@@ -241,6 +292,8 @@ export function EditorScreen(props: {
     windowSize().width >= layout.desktopBreakpoint
       ? editorTypography.desktop
       : editorTypography.mobile;
+  /** ≥1280 桌面：`preview` 打开时 Editor|TextView 并排；否则单栏切换。 */
+  const sideBySide = () => windowSize().width >= SIDE_BY_SIDE_WIDTH;
 
   function clearSaveTimer(): void {
     if (saveTimer !== null) {
@@ -253,6 +306,13 @@ export function EditorScreen(props: {
     if (candidateTimer !== null) {
       clearTimeout(candidateTimer);
       candidateTimer = null;
+    }
+  }
+
+  function clearPreviewTimer(): void {
+    if (previewTimer !== null) {
+      clearTimeout(previewTimer);
+      previewTimer = null;
     }
   }
 
@@ -426,21 +486,31 @@ export function EditorScreen(props: {
     };
   });
 
-  // 卸载：清 timer（不把未保存文本当成已保存）。
+  // 卸载：清 timer；桌面切笔记/离开时脏数据尽力 flush（06 §2.3「unmount 存快照」）。
+  // 关闭按钮路径已先 saveNow；这里是「换 key 重建」等直接卸载的兜底。
   effect(() => () => {
     disposed = true;
     clearSaveTimer();
     clearCandidateTimer();
+    clearPreviewTimer();
     clearLoadTimer();
+    flushOnUnmount();
   });
 
-  // 候选打开时 Escape 先关候选（最新绑定优先于 NavPage 的返回）。
+  // 候选打开时 Escape 先关候选、不退出编辑页。
+  // P2 实测 Editor 聚焦会消费 Escape，普通 keymap 绑不到；`when:"always"` 让绑定
+  // 即使文本输入持有焦点也触发（0.3.0 KeyBindingOptions），这是唯一不改 Editor 的
+  // 官方途径。没有候选时不绑，Escape 回落 NavPage 返回语义。
   effect(() => {
     if (candidates().length === 0) return;
-    return keymap.bind("escape", () => {
-      clearCandidateTimer();
-      setCandidates([]);
-    });
+    return keymap.bind(
+      "escape",
+      () => {
+        clearCandidateTimer();
+        setCandidates([]);
+      },
+      { when: "always" },
+    );
   });
 
   function setCandidates(next: WikiCandidate[]): void {
@@ -448,9 +518,59 @@ export function EditorScreen(props: {
     candidates.set(next);
   }
 
+  /** 卸载时尽力把未保存内容写回（不读可能已拆的编辑器，用 `text()` 快照）。
+   *  新笔记空内容不建；失败静默（页面已拆，无 UI 可报）。 */
+  function flushOnUnmount(): void {
+    const snapshot = text();
+    const id = currentId;
+    if (snapshot === lastSaved) return;
+    if (id === "" && snapshot.trim() === "") return;
+    void (async () => {
+      try {
+        let useId = id;
+        if (useId === "") {
+          useId = idPromise !== null ? await idPromise : await repo.generateNoteId();
+        }
+        await repo.noteCreate(useId, snapshot);
+        await repo.noteUpdateMetadata(useId, tags());
+        await repo.syncNotesToStore();
+      } catch {
+        // 卸载后无法呈现错误；保留数据已在编辑器/调用方快照中。
+      }
+    })();
+  }
+
+  /** 预览文本去抖刷新（预览可见时打字停止 PREVIEW_DEBOUNCE_MS 后重解析）。 */
+  function schedulePreviewRefresh(): void {
+    clearPreviewTimer();
+    previewTimer = setTimeout(() => {
+      previewTimer = null;
+      previewText.set(text());
+    }, PREVIEW_DEBOUNCE_MS);
+  }
+
+  /** 打开预览：以 `editor.value()` 取最新文本（不必等去抖）后切到预览。 */
+  async function openPreview(): Promise<void> {
+    const latest = await readLatestText();
+    previewText.set(latest);
+    preview.set(true);
+  }
+
+  /** 切回编辑：源码未变（预览只读）；Editor 以最新文本重挂载。 */
+  function closePreview(): void {
+    clearPreviewTimer();
+    preview.set(false);
+  }
+
+  function togglePreview(): void {
+    if (preview()) closePreview();
+    else void openPreview();
+  }
+
   function handleChange(value: unknown): void {
     const next = textOfChange(value);
     text.set(next);
+    if (preview()) schedulePreviewRefresh();
     if (next === lastSaved) {
       saveError.set("");
       saveState.set(currentId === "" ? SAVE_STATE.dirty : SAVE_STATE.saved);
@@ -537,20 +657,78 @@ export function EditorScreen(props: {
     return colors.mutedInk;
   };
 
-  return (
-    <NavPage
-      {...screenChrome("编辑")}
-      popOnBack={false}
-      onBackPress={() => void closeEditor()}
-      header={<EditorDesktopHeader onBack={() => void closeEditor()} />}
-      headerLeft={
-        <CardMindIconButton
-          icon="back"
-          tooltip={COPY.back}
-          onPress={() => void closeEditor()}
+  /** 预览面板（只读 TextView）。`[[id|alias]]` 经扩展渲染成 chip（显示 alias/target）。 */
+  function renderPreview(): JSX.Element {
+    return (
+      <View
+        testID="preview-pane"
+        style={{
+          flex: 1,
+          backgroundColor: colors.paper,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.sm,
+        }}
+      >
+        <TextView
+          testID="preview"
+          markdown={previewText()}
+          extensions={[WIKILINK_EXTENSION]}
+          styles={PREVIEW_STYLES}
+          selectable
+          renderCustom={(node: TextViewCustomNode) => {
+            const target = node.attributes?.["1"] ?? "";
+            const alias = node.attributes?.["2"] ?? "";
+            const label = alias.length > 0 ? alias : target.length > 0 ? target : (node.text ?? "");
+            return (
+              <CardMindTag testID={`wikilink-${target || "custom"}`} label={label} />
+            );
+          }}
         />
-      }
-    >
+      </View>
+    );
+  }
+
+  /** 编辑面板（`Editor`）。单独拆出便于并排/切换两种布局复用。 */
+  function renderEditor(): JSX.Element {
+    return (
+      <Editor
+        ref={(ref: EditorRef) => {
+          editor = ref;
+          props.onEditorRef?.(ref);
+        }}
+        testID="editor"
+        defaultValue={text() || loadedText()}
+        language="markdown"
+        placeholder={COPY.placeholder}
+        autoFocus
+        autoClose={false}
+        autoIndent={false}
+        softWrap
+        lineNumbers={false}
+        folding={false}
+        indentGuides={false}
+        activeLine
+        accessibilityLabel={COPY.editorLabel}
+        fontSize={metrics().fontSize}
+        lineHeight={metrics().lineHeight}
+        style={{
+          flex: 1,
+          backgroundColor: colors.paper,
+          borderRadius: radii.md,
+        }}
+        onChange={(value: string) => handleChange(value)}
+        onSelectionChange={(selections: EditorSelection[]) =>
+          handleSelection(selections)
+        }
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+      />
+    );
+  }
+
+  /** 编辑区主体（供 NavPage / embedded 两种外壳复用）。 */
+  function renderContent(): JSX.Element {
+    return (
       <View style={{ flex: 1, backgroundColor: colors.paper }}>
         {phase() === "loading" ? <EditorLoading /> : null}
         {phase() === "error" ? (
@@ -590,6 +768,36 @@ export function EditorScreen(props: {
               >
                 {saveState()}
               </Text>
+              <View style={{ flex: 1 }} />
+              {/* 预览切换：文字 + 状态（颜色不作唯一指示）；触摸目标 ≥48dp。 */}
+              <View
+                testID="preview-toggle"
+                role="button"
+                accessibilityLabel={preview() ? COPY.backToEdit : COPY.preview}
+                accessibilityState={{ selected: preview() }}
+                onPress={togglePreview}
+                style={{
+                  minHeight: layout.mobileTouchTarget,
+                  minWidth: layout.mobileTouchTarget,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  paddingHorizontal: spacing.md,
+                  borderRadius: radii.md,
+                  borderWidth: 1,
+                  borderColor: preview() ? colors.accent : colors.border,
+                  backgroundColor: preview() ? colors.surfaceLow : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    color: preview() ? colors.accent : colors.mutedInk,
+                    fontSize: typography.labelLarge.fontSize,
+                    fontWeight: "600",
+                  }}
+                >
+                  {preview() ? COPY.backToEdit : COPY.preview}
+                </Text>
+              </View>
             </View>
             <If when={saveState() === SAVE_STATE.failed}>
               <View
@@ -671,42 +879,103 @@ export function EditorScreen(props: {
                     />
                   ))
                 }
+                {/* 触摸/无硬件键盘的候选关闭入口（Escape 之外的显式关闭）。 */}
+                <View style={{ flex: 1 }} />
+                <CardMindIconButton
+                  icon="close"
+                  tooltip={COPY.closeCandidates}
+                  onPress={() => setCandidates([])}
+                />
               </View>
             </If>
-            <Editor
-              ref={(ref: EditorRef) => {
-                editor = ref;
-                props.onEditorRef?.(ref);
-              }}
-              testID="editor"
-              defaultValue={loadedText()}
-              language="markdown"
-              placeholder={COPY.placeholder}
-              autoClose={false}
-              autoIndent={false}
-              softWrap
-              lineNumbers={false}
-              folding={false}
-              indentGuides={false}
-              activeLine
-              accessibilityLabel={COPY.editorLabel}
-              fontSize={metrics().fontSize}
-              lineHeight={metrics().lineHeight}
-              style={{
-                flex: 1,
-                backgroundColor: colors.paper,
-                borderRadius: radii.md,
-              }}
-              onChange={(value: string) => handleChange(value)}
-              onSelectionChange={(selections: EditorSelection[]) =>
-                handleSelection(selections)
+            {/* 编辑/预览主体（响应式 thunk）：单栏预览时 Editor 卸载、以最新文本
+                重挂载（切回源码字节不变；撤销栈随预览切换重置，P3 允许）；
+                ≥1280 桌面并排时 Editor 保持挂载、TextView 同步显示。 */}
+            {() => {
+              if (!preview()) return renderEditor();
+              if (sideBySide()) {
+                return (
+                  <View style={{ flex: 1, flexDirection: "row", gap: spacing.sm }}>
+                    <View style={{ flex: 1 }}>{renderEditor()}</View>
+                    {renderPreview()}
+                  </View>
+                );
               }
-              onBlur={handleBlur}
-              onFocus={handleFocus}
-            />
+              return renderPreview();
+            }}
           </View>
         ) : null}
       </View>
+    );
+  }
+
+  if (props.embedded === true) {
+    return renderContent();
+  }
+  return (
+    <NavPage
+      {...screenChrome("编辑")}
+      popOnBack={false}
+      onBackPress={() => void closeEditor()}
+      header={<EditorDesktopHeader onBack={() => void closeEditor()} />}
+      headerLeft={
+        <CardMindIconButton
+          icon="back"
+          tooltip={COPY.back}
+          onPress={() => void closeEditor()}
+        />
+      }
+    >
+      {renderContent()}
     </NavPage>
+  );
+}
+
+/** 兼容命名：`App.tsx` 的 `case "editor"` 仍渲染 `EditorScreen`（push 路由壳）。 */
+export const EditorScreen = EditorPage;
+
+/**
+ * 桌面第三栏：选中笔记 → 内嵌 `EditorPage`（`embedded`，不套 NavPage/返回键）。
+ *
+ * 跨笔记状态隔离（06 §2.4）：`<Each>` 以 `noteId` 为 key，0.3.0 的 Each
+ * 「rows are kept by key」（`globals.d.ts`）——key 变化即旧行移除、新行创建，
+ * `Editor` 的撤销栈随之重建，切笔记后 Ctrl+Z 不会撤回上一篇内容。
+ * 未选中时显示空态；新建入口由列表/侧栏的「新建笔记」负责（push 编辑路由）。
+ */
+export function DesktopEditorPane(props: {
+  /** 选中笔记 id 的访问器（`note_list.tsx` 传 `selectedNoteId`，测试传 signal）。 */
+  noteId: () => string | undefined;
+  /** 测试接缝：不传则用真后端。 */
+  repository?: EditorRepository;
+  /** 测试接缝：把内嵌 Editor 的 ref 交给调用方。 */
+  onEditorRef?: (ref: EditorRef) => void;
+}): JSX.Element {
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.paper }}>
+      {() => {
+        const id = props.noteId();
+        if (id === undefined) {
+          return (
+            <CardMindEmptyState
+              icon="edit"
+              title="选择一篇笔记"
+              message="在左侧列表选择笔记，或创建一篇新笔记。"
+            />
+          );
+        }
+        return (
+          <Each of={[id]} key={(noteId: string) => noteId}>
+            {(noteId: () => string) => (
+              <EditorPage
+                noteId={noteId()}
+                embedded
+                repository={props.repository}
+                onEditorRef={props.onEditorRef}
+              />
+            )}
+          </Each>
+        );
+      }}
+    </View>
   );
 }
