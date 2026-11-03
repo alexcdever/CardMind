@@ -1,0 +1,100 @@
+# CardMind NSH 编辑器 — Windows 真机验证清单（待 Windows 真机）
+
+> 状态：**待 Windows 真机执行**。本清单为 AC4 交付物，提供可复现的
+> PowerShell 脚本 + 手工核对项。本机（macOS）无法覆盖真实 Windows
+> 窗口、微软拼音 IME、与 Win32 选区/光标行为。
+
+## 前置
+
+- Windows 10/11 + 微软拼音输入法（默认中文 IME）。
+- CardMind 已按 `nsh package --target windows` 产物或开发态
+  `nsh run --target windows` 启动，进入「笔记」→ 任一笔记的 Markdown 编辑器。
+- 剪贴板 capability 已在 `nsh-app/nsh.json` 声明 `"clipboard": true`。
+
+## A. 中文 IME（微软拼音）
+
+| # | 步骤 | 预期 |
+|---|------|------|
+| A1 | 编辑器内切到微软拼音，输入 `nihao` | 组合串（preedit）在光标处带下划线/高亮显示，不立即上屏 |
+| A2 | 按空格/数字键选「你好」上屏 | 「你好」替换组合串落到文档，光标紧跟其后 |
+| A3 | 连续输入一段中文（≥50 字），中间用退格改组合 | 组合与已上屏文本一致，无错位/丢字 |
+| A4 | 组合中按 Esc | 取消本次组合，已上屏文本不变，编辑器不退出 |
+| A5 | 输入中英混排 + 标点 `，` `。` `「」` | 标点按 IME 规则上屏，光标位置正确 |
+| A6 | 输入一段中文后 `Ctrl+Z` 撤销 / `Ctrl+Y` 重做 | 撤销回到上一步；undo 不跨「已上屏 vs 组合中」边界错乱 |
+
+## B. 5 万字文档
+
+| # | 步骤 | 预期 |
+|---|------|------|
+| B1 | 打开一篇约 50,000 字 Markdown（含标题/列表/引用/代码块/wikilink/中文） | 编辑器可滚动、可编辑，无明显卡死 |
+| B2 | 在文档中部连续输入中文 200 字 | 每次按键到上屏的延迟可接受（无明显逐字卡顿） |
+| B3 | 点「预览」切到 TextView | 预览渲染完整（标题/列表/引用/代码/wikilink chip），首屏可见；记录打开耗时（见 D 节脚本） |
+| B4 | 预览态滚动到底部再切回「编辑」 | 源码逐字节不变（对照 git diff / 文件长度），光标/选区位置合理 |
+
+## C. 复制粘贴（clipboard capability）
+
+| # | 步骤 | 预期 |
+|---|------|------|
+| C1 | 选中一段文本 `Ctrl+C` → 移动光标 `Ctrl+V` | 粘贴到光标处，内容一致 |
+| C2 | 跨应用复制（从浏览器/记事本）粘贴进编辑器 | 纯文本正常进入，无乱码 |
+| C3 | 编辑器内 `Ctrl+A` `Ctrl+C`，粘贴到外部应用 | 全文一致（5 万字文档注意确认无截断） |
+
+## D. PowerShell 复现脚本
+
+> 用途：在 Windows 上启动 CardMind、注入 5 万字测试笔记、做可计时的
+> 预览切换与保存一致性检查。保存为 `nsh-p4-windows-probe.ps1`，
+> 在仓库根目录 `.\nsh-app` 下执行：`powershell -ExecutionPolicy Bypass -File nsh-p4-windows-probe.ps1`。
+
+```powershell
+# nsh-p4-windows-probe.ps1  — CardMind NSH 编辑器 Windows 真机探针
+$ErrorActionPreference = "Stop"
+$AppDir = "$PSScriptRoot"          # 假定脚本放在 nsh-app/ 下
+Set-Location $AppDir
+
+# 0) 依赖检查
+foreach ($c in @("nsh","cargo")) {
+  if (-not (Get-Command $c -ErrorAction SilentlyContinue)) {
+    Write-Error "缺少命令：$c（cargo 需在 %USERPROFILE%\.cargo\bin）"
+  }
+}
+
+# 1) 生成 ~50,000 字 Markdown 测试笔记
+$big = New-Object System.Text.StringBuilder
+$i = 0
+while ($big.Length -lt 50000) {
+  $i++
+  [void]$big.AppendLine("# 第 $i 节 标题")
+  [void]$big.AppendLine("")
+  [void]$big.AppendLine("正文段落，含 [[note-$i|别名$i]] 与普通文本，中文填充以达五万字量级。")
+  [void]$big.AppendLine("- 列表项一")
+  [void]$big.AppendLine("- 列表项二")
+  [void]$big.AppendLine("> 引用一句话，来自第 $i 节。")
+  [void]$big.AppendLine('```')
+  [void]$big.AppendLine("const x$i = $i;")
+  [void]$big.AppendLine('```')
+  [void]$big.AppendLine("")
+}
+$bigText = $big.ToString()
+$probe = Join-Path $env:TEMP "cardmind-big-note.md"
+[IO.File]::WriteAllText($probe, $bigText, [Text.UTF8Encoding]::new($false))
+Write-Host ("生成测试笔记：{0}，{1} 字" -f $probe, $bigText.Length)
+
+# 2) 启动应用（开发态）。打包态：改为启动安装后的 CardMind.exe。
+Write-Host "启动 CardMind（Ctrl+C 结束）……"
+Write-Host "手工步骤：进任意笔记 → 按 B/D 清单做 IME/预览/粘贴核对。"
+Write-Host "预览打开耗时请用秒表或本机 nsh test --target windows 复测。"
+
+# 3) 可选：自动跑一遍 headless 行为测试对照（不含真 IME）。
+nsh test --filter "editor"
+```
+
+## E. 真机复测建议（预览耗时）
+
+- 首选：`cd nsh-app && nsh test --filter "5 万字" --target windows`（让同一
+  测量跑在 Windows 开发宿主上，对比 headless 的 p50/p95）。
+- 或手工秒表：B3 步骤计时「点预览 → 首屏渲染稳定」。
+
+## 记录
+
+执行后把结果填回 `docs/progress-nsh-editor-2026-11-03.md` 的 P4 小节：
+实测机器（CPU/内存/Windows 版本）、A/B/C 各项 通过/不通过 + 备注、预览耗时。
