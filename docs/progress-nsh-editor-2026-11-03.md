@@ -224,7 +224,7 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 
 ### 遗留（不在本轮范围）
 
-- **`docs:lint` 在基线上就 exit 1**：`tool/lint/markdown_references_linter.dart` 报 85 条缺失引用（其中 11 条指向
+- **`docs:lint` 在基线上就 exit 1**：`tool/lint/markdown_references_linter.dart` 报 83 条缺失引用（其中 9 条指向
   P2 删掉的 `nsh-app/web/**`，其余是未跟踪的 `spike/nsh-probe`、被忽略的 `nsh-app/out/**` 等）；与本轮删除无关。
   因 `.githooks/pre-commit` 在没有 `pubspec.yaml` 时直接 `exit 0`（钩子空操作），它当前不拦提交。
 - **门禁 `rust:build-lib` 仍把 host 动态库复制到 Flutter 时代的 `build/<platform>/…`**（`tool/src/git_gate/host_build.dart`）：

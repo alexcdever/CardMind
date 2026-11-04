@@ -89,7 +89,7 @@ jobs:
   rust-coverage:
     name: Rust Coverage
     runs-on: ubuntu-latest
-    # 整个 job 只产出报告；lcov 或边界扫描失败不影响 rust-quality 结论。
+    # 整个 job 只产出报告；lcov 失败不影响 rust-quality 结论。
     continue-on-error: true
 
     steps:

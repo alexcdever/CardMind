@@ -88,8 +88,9 @@
 - `nsh test` 优先用 `id:` 定位交互点：文案会改，`testID` 不该改。
 - `label:` 用于需要同时验证无障碍契约的入口（断言用户可读文本仍在）。
 - `text:` 用于断言渲染内容（含 `/正则/` 形式的局部匹配）。
-- 状态断言读语义而不是读文案：`app.enabled("label:…")` 对应 `accessibilityState.disabled`，
-  选中态读 `accessibilityState.selected` / `checked`。
+- 状态断言读语义而不是读文案：`app.enabled("label:…")` 对应 `accessibilityState.disabled`。
+  选中/勾选态目前**没有直接断言 API**（nsh 0.3.0 的 TSX `App` 只有 `enabled/shows/count/value/texts/spanStyle`；
+  Rust 侧 `Screen::selected()` 未绑定到 JS）：用 `role:` 命名、渲染出的文案或截图间接断言。
 - 新增自动化流程时，至少补一条「锚点存在」的测试（`app.shows("id:…")`），以及一条
   「通过该锚点完成交互」的测试（`app.press("id:…")` / `app.type("id:…", …)`）。
 - 测试入口是 `nsh-app/*Harness.tsx`：`EditorHarness.tsx` 用假 `EditorRepository` 挂载真实

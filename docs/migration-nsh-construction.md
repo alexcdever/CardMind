@@ -169,7 +169,7 @@
 | 编号 | 阻塞内容 | 状态 | 解除条件 |
 |---|---|---|---|
 | B.1 | R3 扫码配对形态未定 | ⛔ 阻塞 | 需 Android/iOS 真机；NSH **无相机 API**，只能平台侧自写或网页 `BarcodeDetector` |
-| B.2 | R4 三端内核 IME/选区差异 | ⛔ 阻塞 | 需 Android WebView / iOS WKWebView / Linux / macOS 实例 |
+| B.2 | R4 三端内核 IME/选区差异 | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机跑原生 `Editor` 验 IME/选区（WebView 已删，原「Android WebView / iOS WKWebView」措辞作废） |
 | B.3 | R10 焦点/快捷键跨 WebView 桥接 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/progress-nsh-editor-2026-11-03.md` P2–P4）：R10 的「iframe 焦点 ↔ 原生焦点」两条链已随 WebView 消失，编辑器与页面同处一个 NSH 焦点世界，快捷键直接用 `keymap.bind` 绑到应用（`nsh-app/editor_page.tsx` 以 `when:"always"` 绑 Escape 清候选）。行为面由 `nsh test --filter editor`（28 条）覆盖。 |
 
 ---

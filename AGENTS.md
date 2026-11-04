@@ -89,7 +89,7 @@ dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx�
 
 **应用日志**：Rust 侧 `debug_log` 的 `PlatformSink` 目前只输出到进程 **stderr**
 （`[cardmind:log] <RFC3339> platform=… event=… stage=…` 单行）并转发 `tracing`，
-**没有文件落盘实现**。设置页「日志目录」只显示约定路径说明——NSH 侧没有打开目录的 API。
+**没有文件落盘实现**。设置页「日志目录」的文案仍写「日志写入应用支持目录 logs/cardmind.log」，与当前无落盘不符（待改文案，见 `docs/progress-nsh-editor-2026-11-03.md` §10 遗留）；NSH 侧也没有打开目录的 API。
 
 **数据目录**（`nsh-app/src/lib.rs::data_dir()`；旧版目录优先，用于数据共存）：
 
@@ -98,6 +98,7 @@ dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx�
 | Windows | `%APPDATA%\com.cardmind\cardmind` | `%APPDATA%\com.cardmind.nsh\cardmind` |
 | macOS | `~/Library/Application Support/com.cardmind.v2` | `~/Library/Application Support/com.cardmind.nsh` |
 | Linux | `$XDG_DATA_HOME/com.cardmind.cardmind`（默认 `~/.local/share/…`） | `$XDG_DATA_HOME/com.cardmind.nsh` |
+| Android | （无跨 app 可读的旧目录，legacy 探测无意义） | `/data/data/com.cardmind.nsh/files` |
 
 旧版目录只在存在旧数据时使用（`cardmind.db`/`cardmind.loro`/`device.key` 原样复用）；
 回退到 NSH 自有目录时才 `create_dir_all`。
