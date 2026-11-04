@@ -310,3 +310,10 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 ### 提交
 
 - `407753bb`（`refactor-p1`）：本轮全部改动；提交时 pre-commit 实跑 `docs:lint` + `rust:clippy` + `rust:test:full` + 8 个相关 Rust target + `tsx:test`，全部通过。
+- 合并 `6cc35b95`，文档/注释修正 `dc103ce2`（入口机制表述、product.md 技术栈注记、lib.rs 头注释）。
+
+### 主树复验与清场（`6cc35b95` → `dc103ce2`）
+
+- `rust-backend` 无 `flutter_rust_bridge`/`frb_generated`/`api::`；`src/api.rs`、`sync-verify/` 已不存在（tracked 与磁盘均无）。
+- 主树：`cargo test` 22 target 0 failed；`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`dart run tool/git_gate.dart full --dry-run` exit 0；提交 `dc103ce2` 时 pre-commit 真跑 clippy/full rust test/tsx 全通过。
+- 审查遗留（未做，另开小 PR）：`nsh-app/Cargo.toml` 的 `env_logger` 与 4 个 `nsh-platform-*` 依赖唯一消费者是被删的 `src/main.rs`，可后续清掉（本轮不删，避免再动 lock）。
