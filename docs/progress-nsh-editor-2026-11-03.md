@@ -129,3 +129,32 @@
 - `Contents/MacOS/cardmind` = **Mach-O 64-bit executable arm64**；bundle ≈57MB；`Info.plist` 的 `CFBundleIdentifier=com.cardmind.nsh`、`CFBundleName=cardmind`；`codesign -dv` = `adhoc`，`codesign --verify --deep --strict` **exit 0**。
 - 耗时：`built the release runner for macOS (15m46s)` + `packaged cardmind.app (0.4s)`（源码版 CLI 无预构建 host runtime，故回落到宿主 release 构建；官方预构建发行版会直接用 `runtime/macos/nsh-macos-app`，无需这么久）。
 - 说明：**本机验证打包应选 `--target macos`**（能真正产出可运行 `.app`）；`--target windows` 只是交付待 Windows 执行时的目标，在 macOS 上产出的是宿主伪 `.exe`，不能作为 Windows 包。
+
+## 9. P4 收尾（worktree `p4-finish`，commit `930fc9d0`）
+
+Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正式启动。
+
+### 改动
+
+- **`nsh-app/App.tsx`**：删 `<App/>`（大黑条「CardMind NSH skeleton」）、`PhaseOneStatus` 调试面板（右栏「Phase 1 后端真数据」长列表）、`<Bridge>` 事件行、10 个 demo signal 与顶层证据 IIFE（演示 `noteCreate`/`noteUpdateMetadata`/`noteSoftDelete`/`syncNotesToStore`/`storeTrashList`/`storeList`/`storeSearch`/`setSyncAllowed`/`receiverRunning`/`syncDiscoverPeers` 等）；四个页面不再注入 `status={PhaseOneStatus}`（各页 `status?: JSX.Element` 可选注入点保留，当前无调用方）。
+  - **顺手修掉真 bug**：IIFE 末尾 `await BackendSync.close()` 会在启动即关掉 iroh endpoint，中途还 `setSyncAllowed(!allowed)` 切开关、`stopReceiver()` 停接收器。
+  - 新启动契约（顺序硬依赖，不可调换）：`BackendStore.dataDir()`（返回 `{dir}|{exists}`，旧版数据目录优先）→ `createNoteStore(\`${dataDir}/cardmind.db\`)`（须在页面读列表前打开全局 store）→ `syncDeviceId()`（惰性建真 `SyncService`/iroh endpoint，复用旧 `cardmind.loro`/`device.key`）→ `BackendSync.startReceiver()`（启动被动接收，**不再 close**）。失败只在顶栏显示一行错误（`colors.danger` 令牌），不阻塞页面——各页面自带加载/错误态。
+- **测试断言更新**（脚手架断言 → 启动契约 + 无演示副作用，未削弱仍有效覆盖）：
+  - `bridge_test.ts`：`App.tsx 引用 Bridge 组件` → `App.tsx 不再渲染 Phase 1 脚手架`（断言无 `CardMind NSH skeleton`/`PhaseOneStatus`/`<App `/`<Bridge`，lib.rs 侧 `derive(Event)`/`emit`/`spawn`/`register::<Bridge>` 断言保留）；
+  - `note_list_test.ts`/`devices_page_test.ts`/`trash_settings_test.ts`：「Phase 1 后端调用仍保留」→「启动接真后端（4 个调用全在）+ 无 `setSyncAllowed(`/`stopReceiver(`/`BackendSync.close(` 副作用」；
+  - `data_coexist_test.ts`：「找到旧数据时不写演示笔记」→「App.tsx 不再写演示笔记」（无 `BackendNotes.noteCreate`/`noteSoftDelete`；保留 dataDir/`{dir}|{exists}` 解析/createNoteStore/syncDeviceId/startReceiver 断言）；
+  - `module_test.ts`（连带修正）：`await Backend.deviceId(` → `await BackendStore.dataDir(`（意图不变：TSX 侧是 `await` 的模块调用）；`native.d.ts` 的 `deviceId` 导出断言保留（Rust 侧仍导出）；
+  - `singleton_test.ts`（连带修正）：「结果渲染进 Text（`条|Store|笔记ID|同步ID`）」→「启动串起 STORE+SYNC 单例：`await BackendStore.syncDeviceId()` + `await BackendSync.startReceiver()` + 无 `BackendSync.close(`」（意图不变：两个全局单例都被 TSX 真调用）。
+- **`rust-backend/tests/device_name_test.rs`**：`use cardmind_backend::sync::{…}` 补 `detect_hostname`（§8「P4 已知环境限制 2」修复落地，macOS `cargo test` 可编译）。
+- **`docs/migration-nsh-construction.md`**：Phase 4 增 4.7 行，注明 Phase 1 的「App.tsx 里 Backend* 调用不能删」证据已由本项取代（验收证据下沉到测试断言）。
+
+### 验证（本机实测，共享 `CARGO_TARGET_DIR`）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check .` | exit 0（check 15.3s + build 39.6s），0 错误 |
+| `npx tsx --test "*_test.ts"` | 229 pass / 1 skipped / 0 fail（跳过项为 Windows-only `coexist_notes_probe` 运行态，预存在） |
+| `nsh test --filter editor` | 28/28 passed（1m36s，不退化） |
+| `nsh test --filter "note: 移动布局"` | 1/1 passed |
+| `cargo test`（rust-backend） | exit 0，0 failed（`detect_hostname` import 修复后 macOS 可编译） |
+| `node build-nsh.mjs` | exit 0，产出 `out/bundle.nshc` 497.1 KB + `bundle.js` 148.8 KB |
