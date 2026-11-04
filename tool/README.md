@@ -35,6 +35,11 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 
 **用途**: 检查仓库自有文档里的路径引用是否指向真实存在的对象；pre-commit / pre-push 的 `docs:lint` 步骤调用。
 
+**零依赖**: 只 import `dart:io`。仓库没有 `pubspec.yaml`（Dart 只服务 `tool/`），fresh clone / CI 里没有
+`.dart_tool/package_config.json`，任何 `package:` import 都会让 `dart tool/lint/…` 直接以
+`Couldn't resolve the package '…'` 失败，从而让新机器的 pre-commit 硬挂。原先用的 `package:path`
+（`relative`/`split`/`join`/`normalize`）已由文件内 `PathTools` 取代，POSIX 与 Windows 形态由自测覆盖。
+
 **检查两类引用**:
 
 - Markdown 链接（方括号文字 + 圆括号里的 .md 路径），相对所在文件解析
@@ -51,12 +56,18 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 `macos/build/`、`linux/build/`、`windows/build/`（全新 checkout 中本就不存在）。判定是前缀匹配，
 段名巧合的路径仍照常判定。
 
-**已删除历史链路**: 迁移 4.6 整删的 Flutter 链、NSH 迁移期探针与旧 WebView 前端、平台工程、
+**已删除历史链路**: 迁移 4.6 整删的 Flutter 链、NSH 迁移期的两个未跟踪旧探针
+（`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`）、旧 WebView 前端、平台工程、
 本地 git 元数据与历史归档，文档仍会作为历史记录引用它们；这些前缀下的路径不判存在性（列表见
 `deletedHistoryPrefixes`，前缀匹配）。**这只豁免已删除对象**：扫描范围不变，名字相近但并非该前缀的
-现存路径仍照常判定（判定是路径前缀，不是子串），检查没有被整体关闭。
+现存路径仍照常判定（判定是路径前缀，不是子串），检查没有被整体关闭。已提交的 P2 探针
+`spike/nsh-editor-md-probe/`（源码/截图）**不在豁免内**，指向它的引用照常校验。
 
-**自测**（守护「不整体关闭」这条边界）:
+**本地日志**: `.log` 文件不判存在性——根 `.gitignore` 的 `*.log` 规则（`git ls-files '*.log'` 为空）
+保证 fresh checkout 里没有任何日志，文档引用它们只是「本机实测证据」。豁免只针对日志文件本身，
+同目录的源码/截图仍照常判定。
+
+**自测**（守护「不整体关闭」与「路径工具跨平台等价」两条边界）:
 
 ```bash
 dart tool/lint/markdown_references_linter_test.dart   # exit 0 = 通过
