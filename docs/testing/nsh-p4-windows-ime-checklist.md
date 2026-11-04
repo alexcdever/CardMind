@@ -4,6 +4,21 @@
 > PowerShell 脚本 + 手工核对项。本机（macOS）无法覆盖真实 Windows
 > 窗口、微软拼音 IME、与 Win32 选区/光标行为。
 
+## 历史证据与适用范围（重要）
+
+- **WebView + Tiptap 时代（旧编辑器）**：Windows 中文 IME 已实测通过 ——
+  `docs/migration-nsh-verification.md` **§V8（R10）**：用 WebView2 CDP
+  `Input.imeSetComposition` 走 Chromium 真实输入管线，`compositionstart →
+  update×7 → compositionend`，「你好」入文、光标 `from:3`、markdown 一致。
+- **NSH 0.3.0 原生 `Editor`（当前编辑器，P2 起）**：输入栈已从「浏览器 IME」
+  换成「平台 input sink（Windows TSF）」，V8 证据**不能直接迁移**。
+  `docs/research/nsh-editor/05-editor-doc-api.md` 记录：`nsh test` 没有
+  composition step，真实 IME 只能 Windows 窗口人工验证；sink 有
+  `on_composition_change`（`view.rs:1260`）、`EditorClasses.composition`
+  （`base.d.ts:658-659`），**机制具备但无真机证据**。
+- 因此本清单针对的是**当前原生 Editor**：需要在 Windows 上按下面 A/B/C 重新
+  走一遍，不能拿旧 WebView 的 V8 结论替代。
+
 ## 前置
 
 - Windows 10/11 + 微软拼音输入法（默认中文 IME）。
