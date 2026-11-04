@@ -224,10 +224,12 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 
 ### 遗留（已解决：门禁收尾 worktree `gate-finish`）
 
-- **`docs:lint` 在基线上就 exit 1** → **已解决**：`tool/lint/markdown_references_linter.dart` 增加
-  「已删除历史链路」前缀豁免（`deletedHistoryPrefixes`：`spike/`、`nsh-app/web/`、`lib/`、`test/`、
-  `integration_test/`、`docs/dev/`、平台工程、`.git/`、历史归档等，前缀匹配），其它路径仍照常判定；
-  另补自测 `dart tool/lint/markdown_references_linter_test.dart`（断言「不整体关闭」）。同时删除
+- **`docs:lint` 在基线上就 exit 1** → **已解决**（`40f22ba6` + `b15255eb`）：`tool/lint/markdown_references_linter.dart` 增加
+  「已删除历史链路」前缀豁免（`deletedHistoryPrefixes`：`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`、
+  `nsh-app/web/`、`lib/`、`test/`、`integration_test/`、`docs/dev/`、平台工程、`.git/`、历史归档等，前缀匹配；
+  tracked 的 `spike/nsh-editor-md-probe/` 不在豁免内），其它路径仍照常判定；linter 已改为**零依赖**（只 `dart:io`，
+  不再 import `package:path`，fresh clone 无 `.dart_tool` 也可跑）；另补自测
+  `dart tool/lint/markdown_references_linter_test.dart`（断言「不整体关闭」）。同时删除
   `.githooks/pre-commit` / `pre-push` 的 `pubspec.yaml` 短路——本地门禁不再空转。
 - **门禁 `rust:build-lib` 仍把 host 动态库复制到 Flutter 时代的 `build/<platform>/…`** → **已解决**：
   删除 `tool/src/git_gate/` 下的 `host_build.dart` 与 gate 内 `syncHostRuntimeLibrary` 调用；
