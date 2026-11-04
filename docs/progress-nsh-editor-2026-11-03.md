@@ -236,7 +236,9 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 
 ### 收尾提交
 
-- `gate-finish` 分支（合并时见 `git log`）。
+- `40f22ba6`（`gate-finish` 分支）：linter 历史前缀豁免 + 自测、钩子去空转、
+  删除 runtime 复制、文档同步。提交时 pre-commit 实跑 `docs:lint` + `rust:clippy` +
+  `rust:test:full` + `tsx:test` 全通过（5m24s）。
 
 ### 清理合并与主树复验（`35e1e756`）
 
