@@ -230,3 +230,9 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 - **门禁 `rust:build-lib` 仍把 host 动态库复制到 Flutter 时代的 `build/<platform>/…`**（`tool/src/git_gate/host_build.dart`）：
   NSH 版把 `cardmind-backend` 作为 crate 编进 `nsh-app`，运行时不依赖该复制；本轮只记录，不改门禁行为。
 
+### 清理合并与主树复验（`35e1e756`）
+
+- 合并 `nsh-cleanup`（`6195f2ab` + 审查修正 `a8082224`）→ `35e1e756`；worktree/branch 已清场。
+- 主树复验：`dart run tool/git_gate.dart full --dry-run` exit 0；`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`cargo test`（rust-backend）22 个 target 0 failed；`nsh package . --target macos` exit 0。
+- 主树磁盘上四个平台目录（`android/linux/macos/windows`）在合并后只剩未跟踪的 `.DS_Store` 等垃圾（tracked 已为 0），已用 scoped `git clean` + `rm -rf` 清空；`.flutter-plugins-dependencies` 一并删除。现在仓库 tracked/磁盘都不含平台工程目录。
+
