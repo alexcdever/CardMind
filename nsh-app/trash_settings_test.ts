@@ -10,7 +10,7 @@
 //  ⑤ 空态用 CardMindEmptyState；
 //  ⑥ 令牌纪律：无裸色值、触摸目标走 layout.mobileTouchTarget、无裸 48；
 //  ⑦ 设置页紧凑断点 600（Dart 源面板紧凑断点镜像）；
-//  ⑧ App.tsx 接入两页（import + 渲染），Phase 1 后端调用仍在。
+//  ⑧ App.tsx 接入两页（import + 渲染），启动接真后端且无 Phase 1 演示副作用。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -303,17 +303,24 @@ describe('2.3 + 2.4 App.tsx 接入', () => {
     );
   });
 
-  it('Phase 1 后端调用仍保留', () => {
+  it('App.tsx 启动接真后端（dataDir → createNoteStore → syncDeviceId → startReceiver）', () => {
     for (const call of [
-      'BackendNotes.noteCreate',
-      'BackendNotes.noteSoftDelete',
-      'BackendStore.storeList',
-      'BackendStore.storeSearch',
-      'BackendSync.getSyncAllowed',
-      'BackendPairing.listPairedDevices',
-      'BackendSync.close',
+      'BackendStore.dataDir',
+      'BackendStore.createNoteStore',
+      'BackendStore.syncDeviceId',
+      'BackendSync.startReceiver',
     ]) {
-      assert.ok(app.includes(call), `App.tsx 缺失 Phase 1 调用 ${call}`);
+      assert.ok(app.includes(call), `App.tsx 启动缺失真后端调用 ${call}`);
+    }
+  });
+
+  it('App.tsx 无 Phase 1 演示副作用（不再切同步开关/停接收器/关 endpoint）', () => {
+    for (const call of [
+      'setSyncAllowed(',
+      'stopReceiver(',
+      'BackendSync.close(',
+    ]) {
+      assert.ok(!app.includes(call), `App.tsx 仍有演示副作用调用 ${call}`);
     }
   });
 });
