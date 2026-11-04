@@ -113,19 +113,16 @@ describe('src/lib.rs（0.3.0 API）', () => {
     assert.doesNotMatch(lib, /nsh_core::ui/, 'lib.rs 仍有 0.2.0 的 `nsh_core::ui` 导入');
   });
 
-  it('nsh_base 只导入 theme（SafeAreaView 在 0.3.0 已移除）', () => {
-    assert.match(lib, /use nsh_base::theme;/, 'lib.rs 应 `use nsh_base::theme;`');
-    assert.doesNotMatch(lib, /SafeAreaView/, 'lib.rs 仍引用 0.3.0 不存在的 SafeAreaView');
+  it('lib.rs 只保留模块边界（Phase-1 组件已随 P1 删除）', () => {
+    assert.doesNotMatch(lib, /#\[component\]/, 'lib.rs 仍有 #[component]（Phase-1 演示组件）');
+    assert.doesNotMatch(lib, /nsh_base::theme/, 'lib.rs 仍导入 nsh_base::theme（仅演示组件用）');
   });
 
-  it('用 view().p_safe_area() 承担安全区', () => {
-    assert.match(lib, /\.p_safe_area\(\)/, 'lib.rs 应使用 0.3.0 的 `.p_safe_area()` 样式助手');
-  });
-
-  it('main.rs 的 platform::run_app 不变（0.2.0/0.3.0 签名一致）', () => {
-    const main = read(path.join('src', 'main.rs'));
-    assert.match(main, /platform::run_app\(/);
-    assert.match(main, /AppSource::Rust/);
+  it('不再有 Rust-native 演示入口 src/main.rs（TSX 入口运行 App.tsx）', () => {
+    assert.ok(
+      !existsSync(path.join(here, 'src', 'main.rs')),
+      'src/main.rs 应已删除：TSX app 由 App.tsx 入口运行，不再挂 Rust Root 组件',
+    );
   });
 });
 

@@ -1,8 +1,8 @@
-// 施工方案 1.5（事件回推面）+ 1.6（退出钩子）验收测试：读文件断言，不跑构建。
+// 施工方案 1.5（事件回推面，已随 P1 死代码清理删除）+ 1.6（退出钩子）
+// 验收测试：读文件断言，不跑构建。
 //
-// 1.5：Bridge 组件的事件必须来自 SyncService 真读（receiver_progress /
-//     receiver_running / receiver_content_revision 或 store().list_paired_devices），
-//     不再是硬编码 `for i in 1..=3` 假数据；spawn + cx.emit 机制保留。
+// 1.5：Phase-1 演示用的 Bridge 组件（事件回推面）已删除——lib.rs 不再声明
+//     Bridge / BridgeEvent / BridgeProps，也不再注册；只断言「不存在」。
 // 1.6：`rust-backend/src/sync.rs` 有 `pub async fn close(&self)`，且方法体内
 //     `stop_receiver` 出现在 `endpoint.close` 之前；`BackendSync` 模块导出 `close`。
 import { describe, it } from 'node:test';
@@ -63,37 +63,21 @@ describe('1.6 SyncService::close（退出钩子）', () => {
   });
 });
 
-describe('1.5 Bridge 接真数据源（替代硬编码假数据）', () => {
-  it('Bridge 不再有硬编码 `for i in 1..=3` 假事件循环', () => {
+describe('1.5 Bridge 演示组件已删除（P1 死代码清理）', () => {
+  it('lib.rs 不再声明 Bridge 组件 / 事件 / Props', () => {
+    assert.ok(!lib.includes('pub fn Bridge'), 'lib.rs 仍有 `pub fn Bridge` 组件');
+    assert.ok(!lib.includes('pub enum BridgeEvent'), 'lib.rs 仍有 `pub enum BridgeEvent`');
+    assert.ok(!lib.includes('BridgeProps'), 'lib.rs 仍有 BridgeProps');
+  });
+
+  it('native() 不再注册 Bridge', () => {
+    assert.ok(!lib.includes('register::<Bridge>()'), 'native() 仍注册 Bridge');
+  });
+
+  it('lib.rs 不再有硬编码 `for i in 1..=3` 假事件循环', () => {
     assert.ok(
       !/for\s+\w+\s+in\s+1\.\.=3/.test(lib),
-      'lib.rs 仍有硬编码 `for i in 1..=3`（1.5 要求改读 SyncService 真状态）',
-    );
-  });
-
-  it('Bridge 的 spawn 循环读 SyncService 真状态（receiver_progress/running/revision）', () => {
-    const m = lib.match(/pub fn Bridge[\s\S]*?\n\}/);
-    assert.ok(m, 'lib.rs 应有 `pub fn Bridge` 组件');
-    const body = m![0];
-    assert.ok(
-      /receiver_progress|receiver_running|receiver_content_revision/.test(body),
-      'Bridge 的 spawn 应读 SyncService 的 receiver_progress()/receiver_running()/receiver_content_revision()',
-    );
-    assert.ok(body.includes('emit('), 'Bridge 仍应 cx.emit 推事件');
-    assert.ok(body.includes('spawn('), 'Bridge 仍应在 spawn( 里跑引擎线程任务');
-  });
-
-  it('peer 发现读真数据源（list_paired_devices 或 discover_peers），不再 format! 假名', () => {
-    const m = lib.match(/pub fn Bridge[\s\S]*?\n\}/);
-    assert.ok(m, 'lib.rs 应有 `pub fn Bridge` 组件');
-    const body = m![0];
-    assert.ok(
-      /list_paired_devices|discover_peers/.test(body),
-      'Bridge 应读 list_paired_devices()/discover_peers() 拿 peer（真数据源）',
-    );
-    assert.ok(
-      !/format!\s*\(\s*"peer-\{/.test(body),
-      'Bridge 不应再 format!("peer-{i}") 造假 peer 名',
+      'lib.rs 仍有硬编码 `for i in 1..=3`（Phase-1 演示循环应随 Bridge 一并删除）',
     );
   });
 });

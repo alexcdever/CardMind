@@ -16,7 +16,7 @@
 ### 2.2 跨语言桥接
 
 - 前端与 Rust 的边界由 NSH 运行时承载（nsh-app 的 Rust crate 直接嵌入业务后端，`rust = "."` 指 `nsh-app/Cargo.toml` → `rust-backend`）。
-- 旧 Flutter Rust Bridge 桥（`flutter_rust_bridge` + `lib/src/rust/` 生成代码 + `flutter_rust_bridge.yaml`）已随 4.6 整删。
+- 旧 Flutter Rust Bridge 桥（`flutter_rust_bridge` + `lib/src/rust/` 生成代码 + `flutter_rust_bridge.yaml`）已随 4.6 整删；`rust-backend/src/frb_generated.rs`、`rust-backend/src/api.rs` 与 `flutter_rust_bridge` 依赖已随 P1 死代码清理删除。
 
 ### 2.3 数据与同步内核
 
@@ -55,7 +55,6 @@
 
 | 依赖 | 版本 | 角色 |
 | --- | --- | --- |
-| flutter_rust_bridge | =2.12.0（锁定 2.12.0） | Rust 侧 FRB 绑定（代码生成产物 `frb_generated.rs` 保留在 rust-backend；Flutter 侧消费方已删，待后续清理或替换为 NSH 边界） |
 | loro | 1（锁定 1.13.6） | CRDT 数据内核 |
 | iroh | 1（锁定 1.0.2） | P2P 网络同步；dev-dependency 启用 `test-utils`，用本地 relay 服务器做离线验证 |
 | tokio | 1（锁定 1.52.3） | 异步运行时（`features = ["full"]`） |
@@ -78,7 +77,6 @@
 ## 4. 版本治理与变更规则
 
 - 依赖升级采用最小必要原则，避免无目的升级。
-- FRB 升级必须双端同步并完成端到端编译验证。
 - 新增或替换核心技术栈前，必须先形成设计记录（长期决策写入 `docs/adr/`）并在任务交付中说明，再更新本文档。
 - 任何会改变构建、测试、发布门禁的技术栈变更，都需同步更新对应标准文档。
 

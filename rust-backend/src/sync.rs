@@ -365,8 +365,35 @@ impl SyncService {
         Self::build(None, log).await
     }
 
-    /// 统一构造：`path = None` → 内存版（隔离，不读文件）；`Some` → 持久化版。
+    /// 统一构造入口：失败时向全局兜底 sink 发 startup 失败事件。
+    ///
+    /// 失败发生在服务与实例 sink 存在之前，只能用全局 sink（默认 `PlatformSink`
+    /// 写 stderr；测试可注入收集 sink）。日志失败不改变返回值。
     async fn build(path: Option<&Path>, log: Arc<dyn LogSink>) -> Result<Self> {
+        match Self::build_inner(path, log).await {
+            Ok(service) => Ok(service),
+            Err(e) => {
+                debug_log::emit_global(
+                    LogEvent::new("startup.sync_service", "sync.init")
+                        .with_field("action", "failed")
+                        .with_field(
+                            "mode",
+                            if path.is_some() {
+                                "persistent"
+                            } else {
+                                "memory"
+                            },
+                        )
+                        .with_error(&e.to_string())
+                        .with_chain(&format!("{e:#}")),
+                );
+                Err(e)
+            }
+        }
+    }
+
+    /// 构造实现：`path = None` → 内存版（隔离，不读文件）；`Some` → 持久化版。
+    async fn build_inner(path: Option<&Path>, log: Arc<dyn LogSink>) -> Result<Self> {
         let path = path.map(loro_path);
         let data_dir = path
             .as_ref()

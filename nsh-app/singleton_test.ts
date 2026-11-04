@@ -5,7 +5,7 @@
 //      `static SYNC: OnceLock<tokio::sync::Mutex<Option<SyncService>>>`；
 //   ② `nsh-app/Cargo.toml` 以 path 依赖引入 `cardmind-backend`；
 //   ③ `SyncService` 的 `&mut self` 已放宽为 `&self`（只剩 `Drop` 的 `fn drop(&mut self)`）；
-//   ④ `api.rs` 不再有 `svc: &mut SyncService`。
+//   ④ `api.rs` 已随 P1 死代码清理删除（不再有 `svc: &mut SyncService`）。
 // 1.4（Backend.Store 模块）：`#[module]` 导出 store 的 4 个函数（nsh 的模块对象名
 //    = 结构体名，故最终形态是 `BackendStore.*`——`#[module]` 不支持嵌套命名空间），
 //    App.tsx 启动时 `await` 真后端调用（dataDir → createNoteStore →
@@ -24,7 +24,6 @@ const lib = read(here, 'src', 'lib.rs');
 const cargo = read(here, 'Cargo.toml');
 const tsx = read(here, 'App.tsx');
 const syncRs = read(repoRoot, 'rust-backend', 'src', 'sync.rs');
-const apiRs = read(repoRoot, 'rust-backend', 'src', 'api.rs');
 
 /** 所有 `#[module] impl X { .. }` 块：名字 + 块体。 */
 function moduleBlocks(): { name: string; body: string }[] {
@@ -69,7 +68,7 @@ describe('1.7 全局单例（OnceLock）', () => {
   });
 });
 
-describe('1.7 SyncService / api 签名放宽（&mut self → &self）', () => {
+describe('1.7 SyncService 签名放宽（&mut self → &self）', () => {
   it('sync.rs 的 `&mut self` 只剩 Drop impl 的 `fn drop(&mut self)`', () => {
     const offenders = syncRs
       .split(/\r?\n/)
@@ -105,11 +104,10 @@ describe('1.7 SyncService / api 签名放宽（&mut self → &self）', () => {
     }
   });
 
-  it('api.rs 不再有 `svc: &mut SyncService`', () => {
-    assert.equal(
-      (apiRs.match(/svc:\s*&mut SyncService/g) ?? []).length,
-      0,
-      'api.rs 仍有 `svc: &mut SyncService`',
+  it('api.rs 已删除（P1 死代码清理，导出层不再存在）', () => {
+    assert.ok(
+      !existsSync(path.join(repoRoot, 'rust-backend', 'src', 'api.rs')),
+      'rust-backend/src/api.rs 应已删除',
     );
   });
 });

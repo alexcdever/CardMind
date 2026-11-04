@@ -37,7 +37,6 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
   EditorHarness.tsx / NoteListHarness.tsx  `nsh test` 专用入口（假 repository/source，不碰真实 DB/网络）
 rust-backend/     Rust 核心 (v2)
   src/
-    api.rs        FRB 导出 API
     store.rs      LoroDoc + SQLite 存储
     sync.rs       iroh 网络同步
     discovery.rs  mDNS 设备发现
@@ -52,7 +51,6 @@ docs/
   research/       研究资料
   testing/        集成测试说明
 tool/             工具脚本（lint/、release/ python 发布脚本；门禁 git_gate.dart + src/git_gate/）
-sync-verify/      同步验证代码
 ```
 
 ## 关键命令
@@ -121,7 +119,7 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 |------|------|
 | v2 结构重组 | ✅ 源码在仓库根目录，v1 冻结代码已删除 |
 | NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 nsh-app TSX |
-| Rust 后端 | Loro + iroh + mDNS + SQLite + FRB API |
+| Rust 后端 | Loro + iroh + mDNS + SQLite（NSH 原生模块边界，无 FRB） |
 | NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
 | 编辑器迁移 | ✅ 已用 NSH 0.3.0 原生 `Editor` + `TextView` 替换 WebView + Tiptap；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`、`docs/handover-nsh-editor-2026-11-03.md` |
 | 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，**仓库不含任何平台工程目录**（iOS 工程目录也未建立）；平台产物统一走 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打，见 progress §8） |

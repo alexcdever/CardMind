@@ -133,6 +133,12 @@ const List<String> deletedHistoryPrefixes = <String>[
   'nsh-app/editor_test_repo.ts',
   // Flutter 时代的 Dart 边界扫描器（4.6 删除；Rust 版在 rust-backend/tool/）。
   'tool/boundary_scanner',
+  // P1 死代码清理（2026-11）：FRB 生成物与导出层整删；ADR/迁移/基线文档
+  // 作为历史记录仍会引用这两个文件。
+  'rust-backend/src/frb_generated.rs',
+  'rust-backend/src/api.rs',
+  // Rust-native 演示入口（P1 删除；TSX app 由 App.tsx 入口运行）。
+  'nsh-app/src/main.rs',
   // 旧打包产物（整个 `.nsh/` 另见 buildOutputPrefixes）。
   'nsh-app/out/',
   'nsh-app/.nsh/out/',

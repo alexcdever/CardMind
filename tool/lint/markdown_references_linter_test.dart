@@ -42,6 +42,10 @@ void main() {
     'nsh-app/editor_test_entry.tsx',
     'nsh-app/editor_test_repo.ts',
     'tool/boundary_scanner',
+    // P1 死代码清理：FRB 生成物与导出层已删，历史文档仍引用。
+    'rust-backend/src/frb_generated.rs',
+    'rust-backend/src/api.rs',
+    'nsh-app/src/main.rs',
     'nsh-app/out/bundle.nshc',
     'nsh-app/.nsh/out/cardmind/nsh/capabilities.json',
     '.git/shallow',

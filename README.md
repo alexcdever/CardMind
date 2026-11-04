@@ -34,11 +34,10 @@ nsh-app/          NSH 前端（TSX 页面 + 组件）
   *_test.ts、*.test.tsx  TSX 测试（`npx tsx --test` / `nsh test`）
   EditorHarness.tsx / NoteListHarness.tsx  `nsh test` 入口（假 repository，不碰真实 DB/网络）
 rust-backend/     Rust 核心
-  src/            api, store, sync, discovery, debug_log
+  src/            store, sync, discovery, debug_log
   tests/          集成测试
 docs/             文档（见「文档地图」）
 tool/             工具脚本（门禁 `git_gate.dart`、lint、发布脚本）
-sync-verify/      同步验证代码
 ```
 
 ## 文档架构
