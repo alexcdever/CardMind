@@ -33,6 +33,8 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
   navigation.tsx  导航
   note_list.tsx / trash_page.tsx / settings_page.tsx / devices_page.tsx / editor_page（页面）
   theme.ts        设计令牌（迁移自 lib/ui/design_system/cardmind_theme.dart）
+  src/lib.rs      入口 + `native()` 注册（后端接缝已拆 `src/backend/`）
+  src/backend/    TSX 暴露模块：core(Backend)/store/notes/sync/pairing + dto + globals(单例)
   *_test.ts、*.test.tsx  TSX 测试（`npx tsx --test` 跑 node --test；`*.test.tsx` 由 `nsh test` 跑）
   EditorHarness.tsx / NoteListHarness.tsx  `nsh test` 专用入口（假 repository/source，不碰真实 DB/网络）
 rust-backend/     Rust 核心 (v2)
@@ -89,7 +91,7 @@ dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx�
 （`[cardmind:log] <RFC3339> platform=… event=… stage=…` 单行）并转发 `tracing`，
 **没有文件落盘实现**。设置页「日志目录」的文案仍写「日志写入应用支持目录 logs/cardmind.log」，与当前无落盘不符（待改文案，见 `docs/handover-nsh-editor-2026-11-03.md` §6 第 10 条）；NSH 侧也没有打开目录的 API。
 
-**数据目录**（`nsh-app/src/lib.rs::data_dir()`；旧版目录优先，用于数据共存）：
+**数据目录**（`nsh-app/src/backend/store.rs::data_dir()`；旧版目录优先，用于数据共存）：
 
 | 平台 | 旧版（优先读） | NSH 自有（回退） |
 |---|---|---|
