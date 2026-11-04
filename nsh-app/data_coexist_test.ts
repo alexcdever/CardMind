@@ -9,8 +9,8 @@
 // ③ App.tsx 不再 `createNoteStore(":memory:")`，改用 `dataDir()` 推导的真路径；
 // ④ App.tsx 不再写演示笔记（无 `BackendNotes.noteCreate`/`noteSoftDelete`），
 //    启动只做 dataDir → createNoteStore → syncDeviceId → startReceiver；
-// ④ `.nsh/types/app/native.d.ts`（`nsh build` 生成）导出 `dataDir`；
-// ⑤ 运行时：把旧版 `cardmind.db` 复制进 `%TEMP%` 夹具，用真后端 `NoteStore`
+// ⑤ `.nsh/types/app/native.d.ts`（`nsh build` 生成）导出 `dataDir`；
+// ⑥ 运行时：把旧版 `cardmind.db` 复制进 `%TEMP%` 夹具，用真后端 `NoteStore`
 //    打开并 `list_notes()` 读出旧笔记——Rust 集成测试
 //    `nsh-app/tests/coexist_notes_probe.rs`（`cargo test -p nsh-app-cardmind --test coexist_notes_probe`）
 //    承载真正的打开/断言，本测试 spawn 它并断言 exit 0 + `note_count = N`。

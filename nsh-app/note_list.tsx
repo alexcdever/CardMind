@@ -757,8 +757,9 @@ function MobileLayout(props: { status?: JSX.Element }): JSX.Element {
  *
  * 桌面 ≥960：侧栏 | 列表 | 编辑器；移动 <960：搜索 + 标签 + 列表 + 双 Tab。
  *
- * `status` 插槽：调用方传入的状态面板（App.tsx 的 Phase 1 后端证据行 +
- * Bridge 事件监听），桌面渲染在编辑器占位栏、移动渲染在「设备」Tab。
+ * `status` 可选插槽：当前无调用方（App.tsx 的 Phase 1 证据行已随演示脚手架
+ * 删除），保留为后续状态面板的注入点——桌面渲染在编辑器占位栏、移动渲染在
+ * 「设备」Tab。
  */
 export function NoteListPage(props: { status?: JSX.Element }): JSX.Element {
   // 首次装载：读一次列表 + 标签（Dart _loadNotes + _initSyncStatus 合并）；

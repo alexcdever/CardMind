@@ -136,7 +136,7 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 
 ### 改动
 
-- **`nsh-app/App.tsx`**：删 `<App/>`（大黑条「CardMind NSH skeleton」）、`PhaseOneStatus` 调试面板（右栏「Phase 1 后端真数据」长列表）、`<Bridge>` 事件行、10 个 demo signal 与顶层证据 IIFE（演示 `noteCreate`/`noteUpdateMetadata`/`noteSoftDelete`/`syncNotesToStore`/`storeTrashList`/`storeList`/`storeSearch`/`setSyncAllowed`/`receiverRunning`/`syncDiscoverPeers` 等）；四个页面不再注入 `status={PhaseOneStatus}`（各页 `status?: JSX.Element` 可选注入点保留，当前无调用方）。
+- **`nsh-app/App.tsx`**：删 `<App/>`（大黑条「CardMind NSH skeleton」）、`PhaseOneStatus` 调试面板（右栏「Phase 1 后端真数据」长列表）、`<Bridge>` 事件行、11 个 demo signal 与顶层证据 IIFE（演示 `noteCreate`/`noteUpdateMetadata`/`noteSoftDelete`/`syncNotesToStore`/`storeTrashList`/`storeList`/`storeSearch`/`setSyncAllowed`/`receiverRunning`/`syncDiscoverPeers` 等）；四个页面不再注入 `status={PhaseOneStatus}`（各页 `status?: JSX.Element` 可选注入点保留，当前无调用方）。
   - **顺手修掉真 bug**：IIFE 末尾 `await BackendSync.close()` 会在启动即关掉 iroh endpoint，中途还 `setSyncAllowed(!allowed)` 切开关、`stopReceiver()` 停接收器。
   - 新启动契约（顺序硬依赖，不可调换）：`BackendStore.dataDir()`（返回 `{dir}|{exists}`，旧版数据目录优先）→ `createNoteStore(\`${dataDir}/cardmind.db\`)`（须在页面读列表前打开全局 store）→ `syncDeviceId()`（惰性建真 `SyncService`/iroh endpoint，复用旧 `cardmind.loro`/`device.key`）→ `BackendSync.startReceiver()`（启动被动接收，**不再 close**）。失败只在顶栏显示一行错误（`colors.danger` 令牌），不阻塞页面——各页面自带加载/错误态。
 - **测试断言更新**（脚手架断言 → 启动契约 + 无演示副作用，未削弱仍有效覆盖）：
