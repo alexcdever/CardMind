@@ -181,7 +181,7 @@ error probe-app asks for nsh-base ^0.2.0 and this nsh is 0.3.0:
 | 0.3.0 依赖图可解析 | 用临时 crate（nsh `0.3.0` + 4 个 platform 0.3.0 + `cardmind-backend = { path = rust-backend }`）`cargo generate-lockfile` → **exit 0，Locking 725 packages**（`flutter_rust_bridge 2.12.0` 保留），未出现 `links`/版本冲突 | `%TEMP%\nsh030-depresolve`（本审计实测） |
 | 完整编译/打包 | **待验证**：0.3.0 依赖图下 `cargo build`/`nsh build --target windows|android` 未跑全（预计 10–20min 级）；预期通过（0.2.0 已通过同一依赖形态） | 待验证 |
 | rust-backend 自身约束不受影响 | `cardmind-backend` edition 2021、crate-type `cdylib/staticlib/lib`、独立 `[workspace]`（含 `tool/boundary_scanner`）；nsh-app 是空 `[workspace]` + path 依赖，0.3.0 的生成 workspace 仍是 `app_<pkg> = { package, path }` 形态，不变 | `rust-backend/Cargo.toml:1-13`；`nsh-app/Cargo.toml:7-17`；`nsh-cli-0.3.0/src/rust_app.rs:155-164` |
-| 既有「防污染」约束 | `nsh-app/tests/` 测试断言 rust-backend 不依赖 nsh-core，升级不应破坏 | `docs/...01`、`nsh-app/notes_sync_pairing_test.ts:106-110` |
+| 既有「防污染」约束 | `nsh-app/tests/` 测试断言 rust-backend 不依赖 nsh-core，升级不应破坏 | `docs/research/nsh-editor/01-current-editor.md`、`nsh-app/notes_sync_pairing_test.ts:106-110` |
 | 0.3.0 新增 cargo 副作用 | 0.3.0 起 `nsh check` 会先 `cargo check --all-targets` app crates、`nsh test` 会先 `cargo test` app crates（release notes #434；`cli.md` 实测帮助文本），构建/门禁耗时上升 | 0.3.0 `nsh check --help`/`nsh test --help` 实测；`testing-and-trace.md` |
 
 ### 4.4 `lib.rs` 里与 rust-backend 交互的部分

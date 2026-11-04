@@ -25,7 +25,7 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 - `CARDMIND_FORCE_FULL_CHECK=1`：忽略 pre-push HEAD 缓存
 - `CARDMIND_GATE_TEST_MODE=1`：测试模式（fake runner，供真实 hook 集成测试）
 
-**设计要点**: format-first 先于一切检查（`dart format tool` + `cargo fmt --all`）；formatter 改变文件即阻止并提示重新暂存；每个外部进程 15 分钟硬超时（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径，平台规格在 `tool/src/git_gate/host_build.dart`）。
+**设计要点**: format-first 先于一切检查（`dart format tool` + `cargo fmt --all`）；formatter 改变文件即阻止并提示重新暂存；每个外部进程 15 分钟硬超时（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 只做 `cargo build --release`（release 构建检查）——NSH 把 backend 作为 crate 编进 `nsh-app`，没有运行态动态库复制。
 
 **suite 组成（4.6 起）**：`docs:lint` → `rust:clippy` → `rust:test:full` → `rust:build-lib` → format-first #2 → `tsx:test`（`npx tsx --test "*_test.ts"`，在 `nsh-app/` 跑；Windows 上 runner 按 PATH 自动解析 `npx.cmd`/`npx.exe`）。Flutter 步骤（`flutter:analyze`/`flutter:test`/`frb:codegen`）已随 lib/ 整删移除。
 
@@ -46,9 +46,21 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 在主工作树运行时不会递归进 `.worktrees/` 下的其它 checkout。
 
 **构建产物**: 只有确实位于已知构建输出目录**之下**的路径才跳过存在性判定，当前前缀为 `build/`、
-`.dart_tool/`、`rust-backend/target/`、`sync-verify/target/`、`android/build/`、`android/app/build/`、
-`android/app/src/main/jniLibs/`、`android/.gradle/`、`macos/build/`、`linux/build/`、`windows/build/`
-（全新 checkout 中本就不存在）。判定是前缀匹配，段名巧合的路径仍照常判定。
+`.dart_tool/`、`rust-backend/target/`、`sync-verify/target/`、`nsh-app/target/`、`nsh-app/.nsh/`、
+`android/build/`、`android/app/build/`、`android/app/src/main/jniLibs/`、`android/.gradle/`、
+`macos/build/`、`linux/build/`、`windows/build/`（全新 checkout 中本就不存在）。判定是前缀匹配，
+段名巧合的路径仍照常判定。
+
+**已删除历史链路**: 迁移 4.6 整删的 Flutter 链、NSH 迁移期探针与旧 WebView 前端、平台工程、
+本地 git 元数据与历史归档，文档仍会作为历史记录引用它们；这些前缀下的路径不判存在性（列表见
+`deletedHistoryPrefixes`，前缀匹配）。**这只豁免已删除对象**：扫描范围不变，名字相近但并非该前缀的
+现存路径仍照常判定（判定是路径前缀，不是子串），检查没有被整体关闭。
+
+**自测**（守护「不整体关闭」这条边界）:
+
+```bash
+dart tool/lint/markdown_references_linter_test.dart   # exit 0 = 通过
+```
 
 **用法**:
 

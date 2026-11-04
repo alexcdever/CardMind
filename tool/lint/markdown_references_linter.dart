@@ -52,6 +52,10 @@ const Set<String> ignoredDirectoryNames = <String>{
   '.pipeline',
   '.pi',
   '.workflow',
+  // 本地未跟踪的历史归档快照（`.workflow/` 的备份），不是仓库 live 文档；
+  // 扫描它会引入快照内部早已过期的引用。live 文档**指向**它的路径仍由
+  // [deletedHistoryPrefixes] 豁免。
+  '.workflow-archive-2026-09-30',
   '.worktrees',
   '.agents',
   '.augment',
@@ -87,6 +91,9 @@ const List<String> buildOutputPrefixes = <String>[
   '.dart_tool/',
   'rust-backend/target/',
   'sync-verify/target/',
+  'nsh-app/target/',
+  // `nsh check` / `nsh test` / `nsh package` 生成的目录（types、runt、out 等）。
+  'nsh-app/.nsh/',
   'android/build/',
   'android/app/build/',
   'android/app/src/main/jniLibs/',
@@ -94,6 +101,43 @@ const List<String> buildOutputPrefixes = <String>[
   'macos/build/',
   'linux/build/',
   'windows/build/',
+];
+
+/// 已删除历史链路的前缀（相对仓库根）：文档仍会作为历史记录引用这些路径，
+/// 但它们在全新 checkout 中必然不存在，不是「指向不存在对象」的错误。
+///
+/// 覆盖：Flutter 前端链路（迁移 4.6 整删）、NSH 迁移期的探针与旧 WebView 前端、
+/// Flutter 时代平台工程与本地生成/归档目录。
+///
+/// 判定与 [buildOutputPrefixes] 相同——**前缀匹配**：token 等于前缀本身
+/// （去掉尾部 `/`）或位于其下才跳过。`libx/a.dart`、`docs/devtools/a.md`、
+/// `nsh-app/webx/a.ts` 这类只是名字相近的路径仍照常判定；扫描范围也仍由
+/// [shouldScanFile] 决定——这里只豁免「已删除对象」的存在性，不关闭文档检查。
+const List<String> deletedHistoryPrefixes = <String>[
+  // Flutter 前端链路（迁移 4.6 整删）。
+  'lib/',
+  'test/',
+  'integration_test/',
+  'docs/dev/',
+  // Flutter 时代平台工程（打包已改走 `nsh package`）。
+  'android/',
+  'macos/',
+  'linux/',
+  'windows/',
+  // NSH 迁移期探针与旧 WebView 前端（P2 删除）。
+  'spike/',
+  'nsh-app/web/',
+  'nsh-app/editor_page_test.ts',
+  'nsh-app/editor_test_entry.tsx',
+  'nsh-app/editor_test_repo.ts',
+  // Flutter 时代的 Dart 边界扫描器（4.6 删除；Rust 版在 rust-backend/tool/）。
+  'tool/boundary_scanner',
+  // 旧打包产物（整个 `.nsh/` 另见 buildOutputPrefixes）。
+  'nsh-app/out/',
+  'nsh-app/.nsh/out/',
+  // 本地 git 元数据与历史归档（worktree 的 `.git` 是文件，内容随机器变化）。
+  '.git/',
+  '.workflow-archive-2026-09-30/',
 ];
 
 Future<void> main() async {
@@ -242,11 +286,12 @@ List<MissingReference> verifyReferences(
       continue;
     }
 
-    // 行内代码路径：只判定本仓库自己的路径，并跳过已知构建产物。
+    // 行内代码路径：只判定本仓库自己的路径，并跳过已知构建产物与
+    // 已删除历史链路（历史文档对它们的引用不算死链）。
     if (!isRepoRelativeToken(projectRoot, decodedPath)) {
       continue;
     }
-    if (isBuildOutputPath(decodedPath)) {
+    if (isBuildOutputPath(decodedPath) || isDeletedHistoryPath(decodedPath)) {
       continue;
     }
 
@@ -271,19 +316,42 @@ List<MissingReference> verifyReferences(
 }
 
 /// 行内代码路径的判定对象：首段必须是扫描根下真实存在的条目
-/// （如 `docs/…`、`lib/…`），避免把第三方约定路径（如 `references/x.md`）
+/// （如 `docs/…`、`rust-backend/…`），避免把第三方约定路径（如 `references/x.md`）
 /// 误判为死链。
+///
+/// `../nsh/types` 这类以 `..` 开头的 token 描述的是仓库**之外**的相对路径
+/// （例如 nsh 工具链目录），不是仓库根相对路径，不参与判定。
 bool isRepoRelativeToken(Directory projectRoot, String token) {
-  final firstSegment = token.split('/').first;
-  return _exists(path.join(projectRoot.path, firstSegment));
+  final segments = token.split('/');
+  final first = segments.first;
+  if (first == '..' || first == '.') {
+    return false;
+  }
+  return _exists(path.join(projectRoot.path, first));
 }
 
 /// 构建产物目录下的路径不做存在性判定。
-bool isBuildOutputPath(String token) => buildOutputPrefixes.any(
-  (prefix) =>
-      token == prefix.substring(0, prefix.length - 1) ||
-      token.startsWith(prefix),
-);
+bool isBuildOutputPath(String token) =>
+    _matchesAnyPrefix(token, buildOutputPrefixes);
+
+/// 已删除历史链路下的路径不做存在性判定。
+bool isDeletedHistoryPath(String token) =>
+    _matchesAnyPrefix(token, deletedHistoryPrefixes);
+
+/// 前缀匹配（不是段名匹配，也不是子串匹配）：token 等于前缀本身（去掉尾部
+/// `/`）或位于其下才命中。`libx/a.dart` 不会命中 `lib/`。
+bool _matchesAnyPrefix(String token, List<String> prefixes) {
+  final normalized = token.replaceAll(r'\', '/');
+  for (final prefix in prefixes) {
+    final trimmed = prefix.endsWith('/')
+        ? prefix.substring(0, prefix.length - 1)
+        : prefix;
+    if (normalized == trimmed || normalized.startsWith('$trimmed/')) {
+      return true;
+    }
+  }
+  return false;
+}
 
 void printMissingReferences(
   Directory projectRoot,

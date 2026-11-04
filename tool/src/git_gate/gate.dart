@@ -7,7 +7,6 @@ import 'cache.dart';
 import 'command.dart';
 import 'formatter.dart';
 import 'git.dart';
-import 'host_build.dart';
 import 'runner.dart';
 import 'selector.dart';
 
@@ -25,7 +24,6 @@ class GateOptions {
     this.forceFullCheck = false,
     this.dryRun = false,
     this.testLogWriter,
-    this.testMode = false,
   });
 
   final String repoRoot;
@@ -52,16 +50,11 @@ class GateOptions {
   /// 测试模式下额外写入 fake log 的行（如 REFS）。
   final void Function(String)? testLogWriter;
 
-  /// 测试模式（CARDMIND_GATE_TEST_MODE=1）：host runtime 库同步跳过，
-  /// 避免在临时 repo 做真实 dll 复制。
-  final bool testMode;
-
   GateOptions copyWith({
     TestIndex? index,
     List<String>? stagedFilesOverride,
     bool? forceFullCheck,
     bool? dryRun,
-    bool? testMode,
   }) {
     return GateOptions(
       repoRoot: repoRoot,
@@ -75,7 +68,6 @@ class GateOptions {
       forceFullCheck: forceFullCheck ?? this.forceFullCheck,
       dryRun: dryRun ?? this.dryRun,
       testLogWriter: testLogWriter,
-      testMode: testMode ?? this.testMode,
     );
   }
 }
@@ -317,9 +309,11 @@ Future<int> runFull(GateOptions o) async {
   return 0;
 }
 
-/// 完整 host suite：docs lint → clippy → cargo test 全量 → build host lib →
-/// 同步 host runtime 库 → 再次 format-first（改变则阻止）→ tsx test 全量。
-/// （frb codegen 与 flutter analyze/test 已随 lib/ 整删移除。）
+/// 完整 host suite：docs lint → clippy → cargo test 全量 → build-lib
+/// （`cargo build --release`，只做 release 构建检查）→ 再次 format-first
+/// （改变则阻止）→ tsx test 全量。
+/// （frb codegen、flutter analyze/test 与 Flutter 时代 runtime 库复制已随
+/// lib/ 整删移除；NSH 把 backend 作为 crate 编进 nsh-app，无运行态 dylib。）
 Future<int> runFullSuite(GateOptions o) async {
   final steps = <GateCommand>[
     Commands.docsLint(),
@@ -330,35 +324,6 @@ Future<int> runFullSuite(GateOptions o) async {
   for (final step in steps) {
     final exit = await _runStep(o, step);
     if (exit != 0) return exit;
-  }
-
-  // build 步骤成功后：把 host runtime 库同步到运行态路径。
-  // 同步是 Dart 进程内文件操作，不走 runner、不受单步硬超时限制；
-  // cargo build 本身已由 runner 超时保护。dry-run 只打印；testMode 跳过。
-  if (o.dryRun) {
-    String dest;
-    try {
-      dest = hostRuntimeSpec(detectHostPlatform()).runtimeDestRel;
-    } on UnsupportedError {
-      dest = '<unsupported host platform>';
-    }
-    o.log('  [dry-run] sync host runtime library: $dest');
-  } else if (o.testMode) {
-    o.log('  [test-mode] host runtime library sync skipped');
-  } else {
-    HostRuntimeSpec spec;
-    try {
-      spec = hostRuntimeSpec(detectHostPlatform());
-    } on UnsupportedError catch (e) {
-      o.logError('[fail] rust:build-lib sync: ${e.message}');
-      return 1;
-    }
-    final err = syncHostRuntimeLibrary(o.repoRoot, spec.platform);
-    if (err != null) {
-      o.logError('[fail] rust:build-lib sync: $err');
-      return 1;
-    }
-    o.log('  [ok] host runtime library synced: ${spec.runtimeDestRel}');
   }
 
   // 第二次 format-first（dry-run 只打印；真实跑时改变文件则阻止）。
