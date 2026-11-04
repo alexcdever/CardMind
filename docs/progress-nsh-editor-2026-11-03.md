@@ -332,7 +332,7 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - `src/backend/store.rs`：`#[module] struct BackendStore` + `impl`（generateNoteId/createNoteStore/storeList/storeSearch/dataDir/syncDeviceId）。
 - `src/backend/notes.rs`：`BackendNotes` struct+impl（17 fn）。
 - `src/backend/sync.rs`：`BackendSync` struct+impl；`cardmind_backend::sync::SYNC_POLL_INTERVAL_SECS` 用**绝对路径**（与同文件 `backend/sync.rs` 模块名区分）。
-- `src/backend/pairing.rs`：`BackendPairing` struct+impl（22 fn）。
+- `src/backend/pairing.rs`：`BackendPairing` struct+impl（23 fn）。
 - 每个 `#[module]` 的 **struct + impl 放同文件**（task 约定；`#[module]` 本亦允许跨文件，这里按最稳妥方案）。
 - 新 Rust 文件用 `rustfmt --edition 2024` 单文件格式化（`{STORE,ensure_sync,store}` import 排序 + 两个超宽 `-> Ret` 签名回绕；`tests/coexist_notes_probe.rs` 本就未格式化，未碰）。
 
@@ -367,3 +367,9 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - 门禁分类：`nsh-app/src/**/*.rs` 属 `FileCategory.unknown` → pre-commit 走 `rust:clippy + rust:test:full + tsx:test`（保守兜底，不窄路由）。
 - `nsh test` 的 headless runner 链接有一条既有 `ld: __eh_frame section too large` warning（生成 `-test` bin 的链接器警告，非本 crate 源码 warning；`cargo check` 无 warning）。
 - worktree 无 `.gitnexus` 索引（gitignore，未索引 worktree），`detect_changes` 未跑；用 grep + cargo/tsx/d.ts diff 实证替代。
+
+### 合并与主树复验（`d7ee7a2b`）
+
+- 合并 `p2-libsplit`（`9755a3cc`）→ `d7ee7a2b`；worktree/branch 已清场。
+- 主树复验：`nsh check .` exit 0；生成 `native.d.ts` 与拆分前基线 **SHA-256 一致**（`c350b682…`）；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`cargo test`（rust-backend）22 target 0 failed；`nsh package . --target macos` exit 0 出 `cardmind.app`；`git_gate full --dry-run` exit 0。
+- 修正 §12 笔误：`pairing.rs` 的 `BackendPairing` 为 **23** 个 `pub fn`（原写 22）。
