@@ -123,3 +123,24 @@ nsh test --filter "editor"
 
 执行后把结果填回 `docs/progress-nsh-editor-2026-11-03.md` 的 P4 小节：
 实测机器（CPU/内存/Windows 版本）、A/B/C 各项 通过/不通过 + 备注、预览耗时。
+
+## F. macOS 预验证（2026-11-05，**非 Windows/真机替代**）
+
+在 macOS（Apple M2，macOS 27.0.1）用 `nsh test --target macos` 在真 AppKit 窗口跑了同一套测试，作为 Windows/真机的前置信号。它只证明**原生 Editor 在真窗口的输入/渲染/性能路径可用**，不能替代 Windows IME 与移动软键盘验收。
+
+| 项 | macOS 真窗口结果 |
+|---|---|
+| 编辑器行为套件（28 条） | **23 passed / 5 failed**。5 条失败均为**真窗口测试 API 限制**，非产品缺陷：3 条 `app.back()` 在桌面宿主不导航（`id:notes-stub` 未出现）；1 条 `app.spanStyle` 明确 headless-only；1 条 TextView 自定义节点（wikilink chip）的 `testID` 在真窗口不可查（chip 已渲染为 `￼`）。 |
+| CJK 文本输入 | ✅ `app.type("中文输入")` 入文 |
+| 从系统剪贴板粘贴 | ✅ `mod+v` 后编辑器内容含 shell `pbcopy` 的文本 |
+| 复制回系统剪贴板 | ⚠️ `mod+a` + `mod+c` 后 `pbpaste` 仍是旧内容 → 未生效/未验证（可能是真机快捷键输入路径限制，需人工复核） |
+| 5 万字预览切换（真实窗口） | `[perf] 50148 chars, n=20: min=2527ms p50=2749ms p95=2765ms max=2972ms`；压力渲染时 `items≈8000+`、`mem≈250MB`、`frame≈500–700ms`、`over≈50–60%` → 5 万字真窗口渲染成本偏高，**需 Windows 对比后再决定是否调 `PREVIEW_DEBOUNCE_MS` 或分块渲染**。 |
+| 真实 IME 组合 | ❌ 无法自动：`nsh test` 无 composition step；macOS 辅助功能未授权，无法用 System Events 驱动拼音。仍需人工用系统输入法验证（Windows TSF / macOS IMK 各一遍）。 |
+
+> `--fps` 的稳态读数在窗口被遮挡时会被 macOS 节流（出现 `fps 0/60`、`items 2`），不作为结论；上表的 5 万字数字取自编辑器套件里的真实渲染用例。
+
+复现（会开真窗口，属显式授权场景）：
+
+```
+cd nsh-app && CARGO_TARGET_DIR=<主树 target> nsh test --target macos --filter editor --fps -v
+```
