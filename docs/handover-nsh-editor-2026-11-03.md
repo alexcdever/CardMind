@@ -10,6 +10,7 @@
 - **该分支已推送到 origin**：`origin/migration/nsh`（2026-11-03，包含本交接文档及后续提交）。新设备直接 `git fetch && git checkout migration/nsh` 即可；若之后又有本地提交，记得再 `git push`。
 - 当前设备 `git status` 只剩未跟踪：`.pi/`、`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`（均为本机材料，新设备不需要）。
 - `nsh-app/.cargo/config.toml` **未跟踪**（本机 crates 镜像配置），不会随 git 走；新设备需按 §4 重建或改用 crates.io。
+- **迁移收尾已完成**（2026-11，worktree `nsh-cleanup`）：Flutter CI/平台工程目录/`.gitignore` 残留已删，锚点规范改写为 NSH 版，`AGENTS.md` 平台与日志段落改为 NSH 现状。删除项与验证证据见 [`docs/progress-nsh-editor-2026-11-03.md`](progress-nsh-editor-2026-11-03.md) §10。
 
 > 如果用户只想保留源码，不必复制 `node_modules/`、`target/`、`nsh-app/.nsh/`、`nsh-app/out/`；这些都能重新生成（见 §4）。
 
@@ -91,8 +92,11 @@ registry = 'sparse+https://rsproxy.cn/index/'
 7. **`[[` 补全**：不要切回内建 completion（0.3.0 内建 completion 不支持含空格标题，同步回答会被丢弃）；主路径是 `editor_page.tsx` 的自绘候选行 + `editor.edit()`。
 8. **Escape**：Editor 聚焦时平台层吞掉 Escape；候选行有「关闭候选」按钮兜底，真 Escape 是 P4 上游能力问题。
 9. **单栏预览切换**会重建 Editor（撤销栈重置）；≥1280 并排模式保持 Editor 挂载、撤销保留。若 P4 要求单栏也保留，需要叠加层方案。
-10. **应用日志**：Windows `%APPDATA%\com.cardmind\cardmind\logs\cardmind.log`；macOS 见 `AGENTS.md` 的沙箱容器路径说明。
-11. **默认 headless，不自动开 GUI**：验证一律优先无窗口命令——`nsh check` / `npx tsx --test` / `nsh test`（headless runner）/ `cargo test` / `node build-nsh.mjs` / `nsh package` 都不会弹窗。只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口；不要为了跑测试自动执行它们。需要目视 UI 时由人自己 `open`，或在用户明确要求下用 `open -g`（后台、不抢焦点）→ 截图 → 立即退出，窗口只一闪。真机项（Windows IME、Android/iOS 软键盘）本来就只能在对应真机跑，不在本机弹窗。
+10. **应用日志**：NSH 版 Rust `debug_log` 目前只写 **stderr**（`[cardmind:log] …` 单行）+ `tracing`，**没有文件落盘**；设置页「日志目录」只显示约定路径说明（NSH 无打开目录 API）。Flutter 版用 `path_provider` 写 `<application support>/logs/cardmind.log` 及其 macOS 沙箱容器坑，已随平台工程删除而不适用——详见 `AGENTS.md`「日志与数据目录」。
+11. **数据目录**：`nsh-app/src/lib.rs::data_dir()` 旧版目录优先（macOS `~/Library/Application Support/com.cardmind.v2`、Windows `%APPDATA%\com.cardmind\cardmind`、Linux `$XDG_DATA_HOME/com.cardmind.cardmind`），回退到 NSH 自有目录 `com.cardmind.nsh`；回退时才 `create_dir_all`。
+12. **默认 headless，不自动开 GUI**：验证一律优先无窗口命令——`nsh check` / `npx tsx --test` / `nsh test`（headless runner）/ `cargo test` / `node build-nsh.mjs` / `nsh package` 都不会弹窗。只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口；不要为了跑测试自动执行它们。需要目视 UI 时由人自己 `open`，或在用户明确要求下用 `open -g`（后台、不抢焦点）→ 截图 → 立即退出，窗口只一闪。真机项（Windows IME、Android/iOS 软键盘）本来就只能在对应真机跑，不在本机弹窗。
+13. **平台工程目录已删**：`android/`、`linux/`、`macos/`、`windows/` 四个 Flutter runner 工程已整删；打包不再依赖它们，统一 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打）。
+14. **锚点规范**：`docs/standards/nsh-automation-anchors.md`（原 `flutter-automation-anchors.md`）——`testID` ↔ `id:`、`accessibilityLabel` ↔ `label:`、`role`/`accessibilityState`、`text:`/`role:` 选择器。
 
 ## 7. 关键文件地图
 

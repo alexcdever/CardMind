@@ -27,7 +27,7 @@ dart run tool/git_gate.dart plan --files <path...>  # 按给定文件打印计�
 
 **设计要点**: format-first 先于一切检查（`dart format tool` + `cargo fmt --all`）；formatter 改变文件即阻止并提示重新暂存；每个外部进程 15 分钟硬超时（`CARDMIND_GATE_STEP_TIMEOUT_MINUTES` 可调）；pre-push 完整成功后按 exact HEAD 写 `.git` 内缓存。build-lib 为 gate 内跨平台实现（`cargo build --release` + 运行态同步，Windows/macOS/Linux 各平台正确库名/路径，平台规格在 `tool/src/git_gate/host_build.dart`）。
 
-**suite 组成（4.6 起）**：`docs:lint` → `rust:clippy` → `rust:test:full` → `rust:build-lib` → format-first #2 → `tsx:test`（`npx tsx --test "*_test.ts" "web/src/*_test.ts"`，在 `nsh-app/` 跑；Windows 上 runner 按 PATH 自动解析 `npx.cmd`/`npx.exe`）。Flutter 步骤（`flutter:analyze`/`flutter:test`/`frb:codegen`）已随 lib/ 整删移除。
+**suite 组成（4.6 起）**：`docs:lint` → `rust:clippy` → `rust:test:full` → `rust:build-lib` → format-first #2 → `tsx:test`（`npx tsx --test "*_test.ts"`，在 `nsh-app/` 跑；Windows 上 runner 按 PATH 自动解析 `npx.cmd`/`npx.exe`）。Flutter 步骤（`flutter:analyze`/`flutter:test`/`frb:codegen`）已随 lib/ 整删移除。
 
 **staged 路由（pre-commit/plan）**：`nsh-app/**` → tsx 全量；`rust-backend/src|tests` → clippy + 映射 rust target（无映射 fail-closed 全量）；`rust-backend/tool` → clippy + 该 crate 自身 test；Cargo manifest → clippy + rust 全量；`tool/**.dart` → docs lint；markdown → docs lint；`tool/release/*.py` → python unittest；`.github/workflows` → docs lint；其余/unknown → fail-closed rust 全量 + tsx 全量。
 

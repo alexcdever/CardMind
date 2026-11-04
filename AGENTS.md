@@ -33,14 +33,15 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
   navigation.tsx  导航
   note_list.tsx / trash_page.tsx / settings_page.tsx / devices_page.tsx / editor_page（页面）
   theme.ts        设计令牌（迁移自 lib/ui/design_system/cardmind_theme.dart）
-  *_test.ts、web/src/*_test.ts  TSX 测试（node --test，经 `npx tsx --test`）
+  *_test.ts、*.test.tsx  TSX 测试（`npx tsx --test` 跑 node --test；`*.test.tsx` 由 `nsh test` 跑）
+  EditorHarness.tsx / NoteListHarness.tsx  `nsh test` 专用入口（假 repository/source，不碰真实 DB/网络）
 rust-backend/     Rust 核心 (v2)
   src/
     api.rs        FRB 导出 API
     store.rs      LoroDoc + SQLite 存储
     sync.rs       iroh 网络同步
     discovery.rs  mDNS 设备发现
-    debug_log.rs  调试日志落盘
+    debug_log.rs  调试日志（stderr 单行 + tracing，无落盘）
     lib.rs        入口
   tests/          集成测试 (store, sync, discovery, note_crdt, pairing, relay, trash 等)
 docs/
@@ -82,45 +83,39 @@ dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx�
 
 - 编译源（构建产物，由 `cargo build --release` 生成）：`rust-backend/target/release/cardmind_backend.dll`（Windows；macOS/Linux 为对应 dylib/so）
 - host runtime 同步由门禁 build-lib 步骤的 `syncHostRuntimeLibrary` 完成（tool/src/git_gate/host_build.dart 的平台规格）
+- 注意：该同步的目标路径仍是 Flutter 时代的 `build/<platform>/…` 运行态目录；`build/` 未跟踪、已随平台工程删除而不再存在。NSH 版把 `cardmind-backend` 作为 crate 直接编进 `nsh-app`（`nsh-app/Cargo.toml` 的 path 依赖），运行时不依赖这次复制。
 
-## 日志目录（排查必读）
+## 日志与数据目录（排查必读）
 
-应用日志固定写入 `<application support>/logs/cardmind.log`（Rust 侧 debug_log.rs 落盘）。设置页「日志目录」一项可直接打开该目录。
+**应用日志**：Rust 侧 `debug_log` 的 `PlatformSink` 目前只输出到进程 **stderr**
+（`[cardmind:log] <RFC3339> platform=… event=… stage=…` 单行）并转发 `tracing`，
+**没有文件落盘实现**。设置页「日志目录」的文案仍写「日志写入应用支持目录 logs/cardmind.log」，与当前无落盘不符（待改文案，见 `docs/progress-nsh-editor-2026-11-03.md` §10 遗留）；NSH 侧也没有打开目录的 API。
 
-各平台实际路径：
+**数据目录**（`nsh-app/src/lib.rs::data_dir()`；旧版目录优先，用于数据共存）：
 
-| 平台 | 路径 |
-|---|---|
-| Windows | `%APPDATA%\com.cardmind\cardmind\logs\cardmind.log` |
-| Linux | `~/.local/share/com.cardmind.cardmind/logs/cardmind.log`（XDG data 目录） |
-| macOS（打包应用，**已启用 App Sandbox**） | `~/Library/Containers/com.cardmind.v2/Data/Library/Application Support/com.cardmind.v2/logs/cardmind.log` |
+| 平台 | 旧版（优先读） | NSH 自有（回退） |
+|---|---|---|
+| Windows | `%APPDATA%\com.cardmind\cardmind` | `%APPDATA%\com.cardmind.nsh\cardmind` |
+| macOS | `~/Library/Application Support/com.cardmind.v2` | `~/Library/Application Support/com.cardmind.nsh` |
+| Linux | `$XDG_DATA_HOME/com.cardmind.cardmind`（默认 `~/.local/share/…`） | `$XDG_DATA_HOME/com.cardmind.nsh` |
+| Android | （无跨 app 可读的旧目录，legacy 探测无意义） | `/data/data/com.cardmind.nsh/files` |
 
-Linux 的目录名来自 `linux/CMakeLists.txt` 的 `APPLICATION_ID`（`com.cardmind.cardmind`），
-经 GTK application-id 传给 `path_provider_linux`；不是 macOS 的 bundle id，勿按 macOS 值「修正」。
+旧版目录只在存在旧数据时使用（`cardmind.db`/`cardmind.loro`/`device.key` 原样复用）；
+回退到 NSH 自有目录时才 `create_dir_all`。
 
-### macOS 的坑：两份同名 `cardmind.log`
+### 历史：Flutter 版的日志坑（已不适用）
 
-`macos/Runner/Release.entitlements` 与 `DebugProfile.entitlements` 都启用了
-`com.apple.security.app-sandbox = true`。macOS 会把 `getApplicationSupportDirectory()`
-**重定向进容器**，因此磁盘上会同时存在两份同名日志：
+Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardmind.log`，
+且 `macos/Runner/Release.entitlements` 与 `DebugProfile.entitlements` 启用了
+`com.apple.security.app-sandbox`，导致 macOS 上同时存在「容器内 / 容器外」两份同名日志
+（读错文件会看到「日志不更新」的假象）。
 
-| 路径 | 实际状态 |
-|---|---|
-| `~/Library/Application Support/com.cardmind.v2/logs/cardmind.log` | **陈旧**，停在旧时间戳，非沙箱进程（如早期未签名构建）留下的残留 |
-| `~/Library/Containers/com.cardmind.v2/Data/Library/Application Support/com.cardmind.v2/logs/cardmind.log` | **应用真实写入位置**，持续更新 |
+这些文件已随 Flutter 平台工程一起删除（仓库不再有 `macos/`），上面的路径与「两份日志」
+的排查法对 NSH 版不成立：NSH 打包 app 的 bundle id 是 `com.cardmind.nsh`、ad-hoc 签名，
+`codesign -d --entitlements -` 无输出（即无 App Sandbox entitlement），不存在容器重定向。
+排查旧数据时仍会遇到 `com.cardmind.v2` 目录——那是数据共存优先读取的旧数据目录，不是日志目录。
 
-**排查时默认读容器内那一份。** 读错文件会看到「日志不更新」的假象，而落盘功能其实正常。
-
-确认哪个文件是活的（运行中进程的实际打开句柄）：
-
-```bash
-lsof -p <pid> | grep cardmind.log
-```
-
-macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决策，路径可发现性由设置页
-入口 + 本文档解决。
-
-## 当前状态（2026-10 核对）
+## 当前状态（2026-11 核对）
 
 | 项目 | 状态 |
 |------|------|
@@ -129,7 +124,7 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 | Rust 后端 | Loro + iroh + mDNS + SQLite + FRB API |
 | NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
 | 编辑器迁移 | ✅ 已用 NSH 0.3.0 原生 `Editor` + `TextView` 替换 WebView + Tiptap；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`、`docs/handover-nsh-editor-2026-11-03.md` |
-| 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）；仓库现状：平台工程目录只有 `android/`、`linux/`、`macos/`、`windows/`（Flutter 工程残留，待后续清理），iOS 工程目录尚未建立 |
+| 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，**仓库不含任何平台工程目录**（iOS 工程目录也未建立）；平台产物统一走 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打，见 progress §8） |
 
 ## 文档地图
 
@@ -154,7 +149,7 @@ macOS 上不要修改 entitlements 来「修正」路径——沙箱是安全决
 - `docs/standards/ui-style-guide.md` — UI 风格
 - `docs/standards/design-tokens.md` — 设计 Token
 - `docs/standards/tech-stack-baseline.md` — 技术栈基线
-- `docs/standards/flutter-automation-anchors.md` — Flutter 自动化锚点（历史遗留；Flutter 链已删，待后续清理或改写为 nsh-app 锚点）
+- `docs/standards/nsh-automation-anchors.md` — NSH 自动化锚点（`testID`/`accessibilityLabel`/`role`、`nsh test` 选择器与 harness）
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

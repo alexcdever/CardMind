@@ -134,10 +134,10 @@
 
 | 编号 | 验收项 | 状态 | 证据 |
 |---|---|---|---|
-| G3.1 | Windows 实测：中文 IME 输入正确、光标正确 | ⛔ 阻塞 | 需真机/真窗口（无头 `nsh trace` 不跑页面 JS、无法注入 IME 组合事件）。**解除条件**：`nsh package --target windows` 出包后真窗口手测中文 IME（组合→提交→光标），或用 WebView2 CDP 自动化（探针 `tools/v7v8_probe.py` 路径可复用）。**不冒充通过**。 |
+| G3.1 | Windows 实测：中文 IME 输入正确、光标正确 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/progress-nsh-editor-2026-11-03.md` P2–P4），本门验的是 WebView2 内 IME 组合事件，链路已不存在。原生 `Editor` 的 Windows 中文 IME 真机验收转入 4.1 / G4.1，清单见 `docs/testing/nsh-p4-windows-ime-checklist.md`（仍待 Windows 真机）。**不冒充通过**。 |
 | G3.2 | markdown 往返保真（按 `v9b-plaintext.mjs` 的纯文本范围） | ✅ | `web/src/md_fidelity_test.ts` 30 测试：14 类结构（标题/行内/链接/无序/有序/引用/代码块/表格/图片/组合/中文标点/Emoji/`[[id\|alias]]`/软换行）每条首次往返+幂等全绿；审查者亲手跑 30/30；真 Tiptap（jsdom 真例化，非源码正则） |
 | G3.3 | 保存后重新打开内容一致 | ✅ | `App.tsx` 保存 `noteCreate`+`noteUpdateMetadata`、加载 `noteGet`→`load`；`md_fidelity_test.ts` 幂等断言（setMarkdown→getMarkdown 两次一致）；`editor_page_test.ts` 断言 `noteGet`/`noteCreate` 真调用链；审查者实测 `handleEditorMessage` load/get-markdown 分发正确。**真 WebView2 端到端需真机**（已记） |
-| G3.4 | 性能不劣于 V4 基线 | ⛔ 阻塞 | 需真 WebView2 才能与 V4（79/12.4/21ms）同口径比较。本机 jsdom 实测 setContent 486.3ms、输入中位 15.0ms、getMarkdown 34.4ms——**jsdom 比 Chromium 慢，同量级但不同口径**。**解除条件**：出包后真窗口用 `v4-perf.mjs` 同口径复测。**不冒充通过**。 |
+| G3.4 | 性能不劣于 V4 基线 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/progress-nsh-editor-2026-11-03.md` P2–P4）：V4 基线是 WebView2 + Tiptap 的 79/12.4/21ms，WebView 链路已不存在，该同口径比较不再成立。原生 `Editor` 的 headless 预览采样见该文档 §8 AC3（50148 字，p50 4661ms，headless 口径、不代表原生 TextView）；真机性能验收转入 4.1 / G4.1。**不冒充通过**。 |
 | G3.5 | autosave 不与「切换笔记」冲突（不丢编辑、不串写） | ✅ | `App.tsx` `noteId` 为每个 `EditorScreen` 实例的闭包 `let`（不跨实例共享，不串写）；`closeEditor` dirty→`flushMarkdown`(`get-markdown`)存完才 `goBack`；autosave 700ms debounce 只写闭包内 noteId；`nsh trace --width 1200` exit 0 应用正常渲染、`Create { kind: WebView }` + `source: Html{...}` 确认编辑器真挂载（`If` 缺陷已修 `e71c308d`，并加 `b541aac9` 断言防回归） |
 
 ---
@@ -169,8 +169,8 @@
 | 编号 | 阻塞内容 | 状态 | 解除条件 |
 |---|---|---|---|
 | B.1 | R3 扫码配对形态未定 | ⛔ 阻塞 | 需 Android/iOS 真机；NSH **无相机 API**，只能平台侧自写或网页 `BarcodeDetector` |
-| B.2 | R4 三端内核 IME/选区差异 | ⛔ 阻塞 | 需 Android WebView / iOS WKWebView / Linux / macOS 实例 |
-| B.3 | R10 焦点/快捷键跨 WebView 桥接 | ⬜ 未开始 | 不是外部阻塞，是实现期工作；IME 通路已验证（V8） |
+| B.2 | R4 三端内核 IME/选区差异 | ⛔ 阻塞 | 需 Android/iOS/Linux/macOS 真机跑原生 `Editor` 验 IME/选区（WebView 已删，原「Android WebView / iOS WKWebView」措辞作废） |
+| B.3 | R10 焦点/快捷键跨 WebView 桥接 | ✅ 已完成（已被取代） | **WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`**（见 `docs/progress-nsh-editor-2026-11-03.md` P2–P4）：R10 的「iframe 焦点 ↔ 原生焦点」两条链已随 WebView 消失，编辑器与页面同处一个 NSH 焦点世界，快捷键直接用 `keymap.bind` 绑到应用（`nsh-app/editor_page.tsx` 以 `when:"always"` 绑 Escape 清候选）。行为面由 `nsh test --filter editor`（28 条）覆盖。 |
 
 ---
 
