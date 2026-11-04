@@ -7,8 +7,10 @@
 // ① lib.rs `#[module] impl BackendStore` 内有 `fn data_dir`；
 // ② Windows 分支指向 `%APPDATA%\com.cardmind\cardmind`；
 // ③ App.tsx 不再 `createNoteStore(":memory:")`，改用 `dataDir()` 推导的真路径；
-// ④ `.nsh/types/app/native.d.ts`（`nsh build` 生成）导出 `dataDir`；
-// ⑤ 运行时：把旧版 `cardmind.db` 复制进 `%TEMP%` 夹具，用真后端 `NoteStore`
+// ④ App.tsx 不再写演示笔记（无 `BackendNotes.noteCreate`/`noteSoftDelete`），
+//    启动只做 dataDir → createNoteStore → syncDeviceId → startReceiver；
+// ⑤ `.nsh/types/app/native.d.ts`（`nsh build` 生成）导出 `dataDir`；
+// ⑥ 运行时：把旧版 `cardmind.db` 复制进 `%TEMP%` 夹具，用真后端 `NoteStore`
 //    打开并 `list_notes()` 读出旧笔记——Rust 集成测试
 //    `nsh-app/tests/coexist_notes_probe.rs`（`cargo test -p nsh-app-cardmind --test coexist_notes_probe`）
 //    承载真正的打开/断言，本测试 spawn 它并断言 exit 0 + `note_count = N`。
@@ -83,15 +85,28 @@ describe('4.4 数据共存：NSH 壳直接打开旧版数据目录', () => {
     );
   });
 
-  it('App.tsx 找到旧数据时不写演示笔记（保护用户真实数据）', () => {
-    // Phase 1 演示写必须被「找到旧数据」这一分支挡住。
-    const create = tsx.indexOf('BackendNotes.noteCreate');
-    assert.ok(create > 0, 'App.tsx 应保留 noteCreate（1.1 验收证据）');
-    const guard = tsx.indexOf('if (foundLegacy !== "true")');
-    assert.ok(guard > 0, 'App.tsx 应有 `if (foundLegacy !== "true")` 分支（区分找到旧数据/首次运行）');
-    assert.ok(
-      guard < create,
-      'App.tsx 的演示写入应在 `if (foundLegacy !== "true")` 守卫内（旧数据目录只读）',
+  it('App.tsx 不再写演示笔记（启动零写入，用户真实数据只读）', () => {
+    // P4 收敛：Phase 1 的演示写（建/改/软删「测试笔记」）已整段删除，
+    // 无论首次运行还是找到旧数据都不写——启动只开库/建 SyncService/收。
+    for (const call of ['BackendNotes.noteCreate', 'BackendNotes.noteSoftDelete']) {
+      assert.ok(!tsx.includes(call), `App.tsx 仍在启动时写演示笔记（${call}）`);
+    }
+    // 启动契约仍在（上一用例已断言 dataDir/createNoteStore；这里锁住收尾两步）。
+    assert.match(
+      tsx,
+      /await\s+BackendStore\.syncDeviceId\s*\(/,
+      'App.tsx 应 `await BackendStore.syncDeviceId()`（建真 SyncService）',
+    );
+    assert.match(
+      tsx,
+      /await\s+BackendSync\.startReceiver\s*\(/,
+      'App.tsx 应 `await BackendSync.startReceiver()`（启动被动接收）',
+    );
+    // 旧数据目录判定仍保留：dataDir 返回的 `{dir}|{exists}` 必须被解析。
+    assert.match(
+      tsx,
+      /\.split\(\s*["']\|["']\s*\)/,
+      'App.tsx 应解析 dataDir() 的 `{dir}|{exists}` 返回值',
     );
   });
 

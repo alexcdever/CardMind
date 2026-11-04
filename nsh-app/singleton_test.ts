@@ -8,7 +8,8 @@
 //   ④ `api.rs` 不再有 `svc: &mut SyncService`。
 // 1.4（Backend.Store 模块）：`#[module]` 导出 store 的 4 个函数（nsh 的模块对象名
 //    = 结构体名，故最终形态是 `BackendStore.*`——`#[module]` 不支持嵌套命名空间），
-//    App.tsx `await` 真后端调用并把结果渲染出来。
+//    App.tsx 启动时 `await` 真后端调用（dataDir → createNoteStore →
+//    syncDeviceId → startReceiver；P4 收敛后不再渲染演示结果）。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -139,24 +140,33 @@ describe('1.4 Backend.Store 模块（#[module]，状态取全局单例）', () =
   });
 });
 
-describe('App.tsx 渲染真后端结果', () => {
+describe('App.tsx 真调用后端模块（启动契约）', () => {
   it('await 了 store 模块调用', () => {
     const name = storeModuleName();
     assert.match(tsx, new RegExp(`await\\s+${name}\\.`), `App.tsx 应 \`await ${name}.xxx(\``);
   });
 
-  it('把列表长度/笔记 ID/同步ID 显示出来（非占位、非 [object Promise]）', () => {
+  it('启动串起 store + SYNC 单例（非占位、非 [object Promise]）', () => {
     assert.ok(!tsx.includes('[object Promise]'), 'App.tsx 不应出现 [object Promise]');
-    assert.match(tsx, /条|Store|笔记ID/, 'App.tsx 应把结果拼进 Text');
-    // 审查补强：SYNC 单例也要被 TSX 真调用（syncDeviceId → ensure_sync →
-    // 真 SyncService::new() 建 iroh endpoint），否则全局单例只验了 STORE 一半。
     const name = storeModuleName();
+    // 审查补强（P4 收敛后）：结果不再渲染进 Text（演示面板已删），改为锁住
+    // 「TSX 侧真调用」——SYNC 单例要被 syncDeviceId → ensure_sync → 真
+    // SyncService::new() 建起 iroh endpoint，再由 startReceiver 真正开始收。
     assert.match(
       tsx,
       new RegExp(`await\\s+${name}\\.syncDeviceId\\(`),
       `App.tsx 应 \`await ${name}.syncDeviceId()\`（真建 SyncService 走全局 SYNC 单例）`,
     );
-    assert.match(tsx, /同步ID/, 'App.tsx 应把 syncDeviceId() 结果渲染出来');
+    assert.match(
+      tsx,
+      /await\s+BackendSync\.startReceiver\(/,
+      'App.tsx 应 `await BackendSync.startReceiver()`（启动被动接收）',
+    );
+    // 启动后不得再 close()（Phase 1 演示 bug：启动即关 iroh endpoint）。
+    assert.ok(
+      !tsx.includes('BackendSync.close('),
+      'App.tsx 不应在启动时 BackendSync.close()',
+    );
   });
 });
 
