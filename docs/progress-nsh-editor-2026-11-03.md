@@ -317,3 +317,53 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - `rust-backend` 无 `flutter_rust_bridge`/`frb_generated`/`api::`；`src/api.rs`、`sync-verify/` 已不存在（tracked 与磁盘均无）。
 - 主树：`cargo test` 22 target 0 failed；`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`dart run tool/git_gate.dart full --dry-run` exit 0；提交 `dc103ce2` 时 pre-commit 真跑 clippy/full rust test/tsx 全通过。
 - 审查遗留（未做，另开小 PR）：`nsh-app/Cargo.toml` 的 `env_logger` 与 4 个 `nsh-platform-*` 依赖唯一消费者是被删的 `src/main.rs`，可后续清掉（本轮不删，避免再动 lock）。
+
+## 12. P2-1：`lib.rs` 拆分（2026-11，worktree `p2-libsplit`，基线 `a63e47c2`）
+
+`nsh-app/src/lib.rs`（1177 行单文件）按职责机械拆成 `src/backend/` 模块树；**不改任何 `pub fn` 名/签名/返回值**（`#[module]` 对 TSX 的暴露点）。
+
+### 拆法
+
+- `src/lib.rs`（17 行）：`mod backend;` + `use backend::{…5 个模块}` + `use nsh_core::prelude::*;` + `#[native_module] fn native()`（注册 5 个 `#[module]`）。
+- `src/backend/mod.rs`：`pub mod core/dto/globals/notes/pairing/store/sync;` + `pub use` 再导出 5 个模块 struct（让 `lib.rs` 能 `use backend::{…}`）。
+- `src/backend/core.rs`：`DEVICE_ID` + `#[module] struct Backend` + `impl Backend{device_id}`。
+- `src/backend/globals.rs`：`STORE/SYNC/DISC` 单例 + `ensure_sync()`/`store()`/`ensure_disc()`——由 `static`/`fn` 改为 **`pub(crate)`**；`ensure_sync` 调 `crate::backend::store::BackendStore::data_dir`（模块间循环引用，Rust 允许）。
+- `src/backend/dto.rs`：10 个 `#[derive(JsObject, Clone)]` 镜像 struct + `impl From<&Row>`（`NoteDto`/`LinkDto`/`PairedDeviceDto`/`PeerInfoDto`/`PairingRequestDto`/`PairingResultDto`/`PairingCredentialDisplayDto`/`ParsedPairingCredentialDto`/`DevicePushResultDto`/`SyncCycleResultDto`）。
+- `src/backend/store.rs`：`#[module] struct BackendStore` + `impl`（generateNoteId/createNoteStore/storeList/storeSearch/dataDir/syncDeviceId）。
+- `src/backend/notes.rs`：`BackendNotes` struct+impl（17 fn）。
+- `src/backend/sync.rs`：`BackendSync` struct+impl；`cardmind_backend::sync::SYNC_POLL_INTERVAL_SECS` 用**绝对路径**（与同文件 `backend/sync.rs` 模块名区分）。
+- `src/backend/pairing.rs`：`BackendPairing` struct+impl（22 fn）。
+- 每个 `#[module]` 的 **struct + impl 放同文件**（task 约定；`#[module]` 本亦允许跨文件，这里按最稳妥方案）。
+- 新 Rust 文件用 `rustfmt --edition 2024` 单文件格式化（`{STORE,ensure_sync,store}` import 排序 + 两个超宽 `-> Ret` 签名回绕；`tests/coexist_notes_probe.rs` 本就未格式化，未碰）。
+
+### 测试同步（不动行为）
+
+4 个**源码结构断言**测试原先直接读 `src/lib.rs`（`#[module] impl` 块、DTO、`static` 单例、`native() .module::<X>()`）。改法：各自加一个 `readModuleSources()`——`readdirSync('src/backend')` 全量 + `src/lib.rs` **拼接读**，`const lib` 语义由「单文件」变为「整个后端接缝」，断言逻辑与正则全部不变：
+
+- `data_coexist_test.ts`（4.4 数据共存）
+- `events_close_test.ts`（1.6 SyncService::close + 1.5 Bridge 不存在）
+- `notes_sync_pairing_test.ts`（1.1/1.2/1.3 模块整组函数 + 4 个 DTO）
+- `singleton_test.ts`（1.7 单例 + 1.4 BackendStore + 启动契约 + native.d.ts）
+
+### 验证（headless，本机 macOS）
+
+| 命令 | 结果 |
+|---|---|
+| `cd nsh-app && nsh check .` | exit 0（check 335ms + build 15.1s） |
+| `cargo check --all-targets`（nsh-app，CARGO_TARGET_DIR=主树） | exit 0，**无 warning** |
+| `diff .pipeline/native-types-baseline/app/native.d.ts .nsh/types/app/native.d.ts` | **字节相同（identical）**——`Backend.*`/`BackendStore.*`/`BackendNotes.*`/`BackendSync.*`/`BackendPairing.*` 与 10 个 DTO 名/签名/绑定完全一致 |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
+| `nsh test --filter editor` | **28/28 passed**（1m42s） |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed**（19.4s） |
+| `nsh package . --target macos` | exit 0，出 `.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**0 failed** |
+| `dart format --output=none --set-exit-if-changed tool` | exit 0（0 changed） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0（docs:lint + rust:clippy + rust:test:full + rust:build-lib + format-first + tsx:test） |
+
+### 风险 / 说明
+
+- **TSX 暴露面零变化**：`native.d.ts` 逐字节 diff 为空；`#[module]` 的「struct doc → TS interface doc」映射由 struct 注释原样保留。
+- `globals.rs` 单例/helper 只放宽到 `pub(crate)`（不 `pub`），跨模块访问但不对外。
+- 门禁分类：`nsh-app/src/**/*.rs` 属 `FileCategory.unknown` → pre-commit 走 `rust:clippy + rust:test:full + tsx:test`（保守兜底，不窄路由）。
+- `nsh test` 的 headless runner 链接有一条既有 `ld: __eh_frame section too large` warning（生成 `-test` bin 的链接器警告，非本 crate 源码 warning；`cargo check` 无 warning）。
+- worktree 无 `.gitnexus` 索引（gitignore，未索引 worktree），`detect_changes` 未跑；用 grep + cargo/tsx/d.ts diff 实证替代。

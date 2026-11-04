@@ -12,7 +12,7 @@
 //    syncDeviceId → startReceiver；P4 收敛后不再渲染演示结果）。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -20,7 +20,14 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..');
 const read = (...p: string[]) => readFileSync(path.join(...p), 'utf8');
 
-const lib = read(here, 'src', 'lib.rs');
+// P2-1 起后端接缝拆到 `src/backend/*.rs`；把 lib.rs + 各模块源拼起来，保持原断言语义。
+function readModuleSources(): string {
+  const backendDir = path.join(here, 'src', 'backend');
+  const modules = readdirSync(backendDir).filter((f) => f.endsWith('.rs')).sort();
+  return [read(here, 'src', 'lib.rs'), ...modules.map((f) => read(backendDir, f))].join('\n');
+}
+
+const lib = readModuleSources();
 const cargo = read(here, 'Cargo.toml');
 const tsx = read(here, 'App.tsx');
 const syncRs = read(repoRoot, 'rust-backend', 'src', 'sync.rs');

@@ -7,7 +7,7 @@
 //     `stop_receiver` 出现在 `endpoint.close` 之前；`BackendSync` 模块导出 `close`。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -15,7 +15,14 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '..');
 const read = (...p: string[]) => readFileSync(path.join(...p), 'utf8');
 
-const lib = read(here, 'src', 'lib.rs');
+// P2-1 起后端接缝拆到 `src/backend/*.rs`；把 lib.rs + 各模块源拼起来，保持原断言语义。
+function readModuleSources(): string {
+  const backendDir = path.join(here, 'src', 'backend');
+  const modules = readdirSync(backendDir).filter((f) => f.endsWith('.rs')).sort();
+  return [read(here, 'src', 'lib.rs'), ...modules.map((f) => read(backendDir, f))].join('\n');
+}
+
+const lib = readModuleSources();
 const syncRs = read(repoRoot, 'rust-backend', 'src', 'sync.rs');
 
 function moduleBlocks(): { name: string; body: string }[] {
