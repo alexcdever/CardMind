@@ -270,7 +270,7 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
   - `sync_notes_to_store` → 测试直接调已有的 `SyncService::sync_notes_to_store(&store)`（`sync.rs` 公开方法）；
   - `create_persistent_sync_service` → `debug_log_test` 改用 `SyncService::new_persistent`；
   - `tests/{trash,live_relay,debug_log}_test.rs` 的 `api::` 引用同步改掉；`rust-backend` 不再出现 `api::`。
-- **Phase-1 演示组件**：`nsh-app/src/lib.rs` 的 `App`/`Bridge`/`BridgeEvent`/`BridgeProps` 及 `native()` 的两个 `register::<…>()`；`nsh-app/src/main.rs`（Rust-native 演示入口，唯一用途是 `Root::of::<App>()`）一并删除——TSX app 由 `App.tsx` 入口运行（nsh 0.3.0 约定：无 `src/main.rs` 即走 TSX 入口）。该 crate 不再出现 `Bridge`/`BridgeEvent`/`CardMind NSH skeleton`/`#[component]`。
+- **Phase-1 演示组件**：`nsh-app/src/lib.rs` 的 `App`/`Bridge`/`BridgeEvent`/`BridgeProps` 及 `native()` 的两个 `register::<…>()`；`nsh-app/src/main.rs`（Rust-native 演示入口，唯一用途是 `Root::of::<App>()`）一并删除——入口由 `nsh.json` 的 `root` 决定，CardMind 无 `root` → TSX app 入口是 `App.tsx`（与 `main.rs` 无关）。该 crate 不再出现 `Bridge`/`BridgeEvent`/`CardMind NSH skeleton`/`#[component]`。
 - **独立验证 crate**：`sync-verify/`（`Cargo.toml` + `Cargo.lock` + `src/main.rs`，最后改动 2026-10-13，iroh 1/mdns-sd 0.20 的过期验证代码）。
 
 ### 测试与工具同步

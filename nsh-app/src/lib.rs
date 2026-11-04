@@ -1,4 +1,4 @@
-//! The application's Rust UI, shared by the native and TSX entry points.
+//! The application's Rust module surface, served to the TSX entry point (`App.tsx`).
 
 use cardmind_backend::discovery::{DiscoveryService, PeerInfo};
 use cardmind_backend::store::{LinkRow, NoteRow, NoteStore, PairedDeviceRow};

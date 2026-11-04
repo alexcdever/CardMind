@@ -65,3 +65,5 @@
 | 全文搜索 | SQLite FTS5 |
 
 详见 `CONTEXT.md`（领域术语）、`docs/sync-network.md`（同步网络设计）、`docs/adr/`（架构决策记录）。
+
+> 注（2026-11）：实现已迁移到 NSH 0.3.0（TSX 前端 + 原生 `Editor`），Flutter / flutter_rust_bridge / appflowy_editor 已不再使用；上表为二期 MVP 时点的方案记录。
