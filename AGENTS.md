@@ -76,6 +76,7 @@ dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx�
 
 > Rust 命令需让 `cargo` 在 PATH 上（macOS/Linux 为 `~/.cargo/bin`，Windows 为 `%USERPROFILE%\.cargo\bin`）；Hermes terminal 不会加载 `.zshrc`。
 > `npm run build`（nsh-app）在 0.3.0 下是 `node build-nsh.mjs`，只要求 PATH 上的 `nsh` CLI 版本与 `nsh-app/Cargo.toml` 的 nsh 依赖一致；不再需要 `NSH_SOURCE`。
+> **默认 headless**：`nsh check` / `npx tsx --test` / `nsh test` / `cargo test` / `node build-nsh.mjs` / `nsh package` 都不弹窗；只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口，不要为跑测试自动执行。目视 UI 由人自己打开，或经明确要求后 `open -g`（后台）+ 截图 + 立即退出。
 
 ## 运行态动态库
 

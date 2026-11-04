@@ -92,6 +92,7 @@ registry = 'sparse+https://rsproxy.cn/index/'
 8. **Escape**：Editor 聚焦时平台层吞掉 Escape；候选行有「关闭候选」按钮兜底，真 Escape 是 P4 上游能力问题。
 9. **单栏预览切换**会重建 Editor（撤销栈重置）；≥1280 并排模式保持 Editor 挂载、撤销保留。若 P4 要求单栏也保留，需要叠加层方案。
 10. **应用日志**：Windows `%APPDATA%\com.cardmind\cardmind\logs\cardmind.log`；macOS 见 `AGENTS.md` 的沙箱容器路径说明。
+11. **默认 headless，不自动开 GUI**：验证一律优先无窗口命令——`nsh check` / `npx tsx --test` / `nsh test`（headless runner）/ `cargo test` / `node build-nsh.mjs` / `nsh package` 都不会弹窗。只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口；不要为了跑测试自动执行它们。需要目视 UI 时由人自己 `open`，或在用户明确要求下用 `open -g`（后台、不抢焦点）→ 截图 → 立即退出，窗口只一闪。真机项（Windows IME、Android/iOS 软键盘）本来就只能在对应真机跑，不在本机弹窗。
 
 ## 7. 关键文件地图
 
