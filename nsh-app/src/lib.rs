@@ -7,7 +7,6 @@ use cardmind_backend::sync::{
     PairingTarget, ParsedPairingCredential, SYNC_POLL_INTERVAL_SECS, SyncCycleResult, SyncService,
 };
 use nsh_core::prelude::*;
-use nsh_base::theme;
 use std::sync::OnceLock;
 use std::time::Duration;
 
@@ -15,82 +14,11 @@ use std::time::Duration;
 #[native_module("app/native")]
 fn native(registry: &mut Registry) {
     registry
-        .register::<App>()
-        .register::<Bridge>()
         .module::<Backend>()
         .module::<BackendStore>()
         .module::<BackendNotes>()
         .module::<BackendSync>()
         .module::<BackendPairing>();
-}
-
-/// Events the bridge component pushes to its listeners (Rust or TSX side).
-#[derive(Event)]
-pub enum BridgeEvent {
-    /// Sync progress tick: `SyncService::receiver_progress()` 的 windows 计数
-    /// （接收器走完的 accept 窗口数；接收器未运行时读 0，不增量）。
-    SyncProgress(u32),
-    /// A paired/discovered device name (`store().list_paired_devices()` 真读，
-    /// 无配对设备时不推；不是 mDNS 发现的临时 peer）。
-    PeerFound(String),
-}
-
-/// The bridge component's props.
-#[derive(Props, Clone, PartialEq)]
-pub struct BridgeProps {}
-
-/// Bridge component: on mount it spawns a task on the engine thread that polls
-/// the real `SyncService` state every 300ms and `cx.emit`s on change.
-/// `emit` MUST run inside `spawn` (engine thread): `background` runs on the
-/// tokio pool where the thread_local reactive graph is not reachable, so events
-/// would never reach the UI.
-///
-/// 数据源（施工方案 1.5，替代 0.4 的硬编码三轮假数据循环）：
-/// - `SyncProgress(n)` ← `svc.receiver_progress().0`（接收器窗口计数），值变化才推；
-/// - `PeerFound(name)` ← `store().list_paired_devices()` 的设备名，新出现的才推。
-/// Bridge 是被动观察者：只 `lock()` 读已存在的 SYNC 单例（**不惰性创建**
-/// SyncService——为推事件去新建一个 iroh endpoint 是本末倒置，且 1.6 `close()`
-/// 清空单例后这里绝不能把它又建回来）。锁只在取 `(u64,u64)` 快照的同一
-/// `.await` 边界内持有，取到即放——不跨循环/不跨 timer 长持。
-#[component]
-pub fn Bridge(props: BridgeProps, cx: Scope<BridgeEvent>) -> impl IntoElement {
-    let _ = props;
-    let cx2 = cx; // `Scope` is Copy, move it into the spawned future.
-    spawn(async move {
-        let mut last_progress: Option<u32> = None;
-        let mut known_peers: std::collections::HashSet<String> = std::collections::HashSet::new();
-        loop {
-            timer(Duration::from_millis(300)).await;
-
-            // 读 SyncService 真进度：peek 全局单例（不创建）；持锁只为取一次
-            // `(windows, _)` 快照，取到即放。
-            let progress = {
-                let mutex = SYNC.get_or_init(|| tokio::sync::Mutex::new(None));
-                let guard = mutex.lock().await;
-                guard.as_ref().map(|svc| svc.receiver_progress())
-            };
-            if let Some((windows, _connections)) = progress {
-                let n = u32::try_from(windows).unwrap_or(u32::MAX);
-                if last_progress != Some(n) {
-                    last_progress = Some(n);
-                    cx2.emit(BridgeEvent::SyncProgress(n));
-                }
-            }
-
-            // 读 SQLite 已配对设备名（store 未开/无配对时不推——真读的空态）。
-            if let Ok(store) = store() {
-                if let Ok(rows) = store.list_paired_devices() {
-                    for row in rows {
-                        if known_peers.insert(row.name.clone()) {
-                            cx2.emit(BridgeEvent::PeerFound(row.name));
-                        }
-                    }
-                }
-            }
-        }
-    });
-
-    view().flex_1().child(text("(bridge)").text_size(px(14.0)))
 }
 
 /// A stub device id: 32 lowercase hex chars like an iroh `EndpointId`
@@ -1247,41 +1175,3 @@ impl BackendPairing {
     }
 }
 
-/// The application's root component. Mounts the `Bridge` and displays the
-/// last event it pushed (`最近事件：…`), proving the event bridge end-to-end
-/// on the Rust side (the TSX host wraps this component).
-#[component]
-pub fn App() -> impl IntoElement {
-    let last = signal("(还没收到)".to_owned());
-
-    view()
-        .flex_1()
-        .bg(move || theme().background)
-        .text_color(move || theme().foreground)
-        .child(
-            view()
-                .p_safe_area()
-                .flex_1()
-                .child(
-                    view()
-                        .flex_1()
-                        .items_center()
-                        .justify_center()
-                        .gap_2()
-                        .child(text("CardMind NSH skeleton").text_size(px(28.0)))
-                        .child(
-                            text(move || format!("最近事件：{}", last.get())).text_size(px(16.0)),
-                        )
-                        .child(Bridge::element(BridgeProps::default()).on_event(
-                            move |event: &BridgeEvent| match event {
-                                BridgeEvent::SyncProgress(n) => {
-                                    last.set(format!("SyncProgress({n})"))
-                                }
-                                BridgeEvent::PeerFound(name) => {
-                                    last.set(format!("PeerFound({name})"))
-                                }
-                            },
-                        )),
-                ),
-        )
-}

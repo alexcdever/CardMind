@@ -475,6 +475,6 @@ fn live_signed_credential_pairing_over_standard_443_relay() {
 }
 
 fn sync_notes(svc: &SyncService, store: &NoteStore) {
-    // 复用 api.rs 的投影同步（测试内直接调）
-    cardmind_backend::api::sync_notes_to_store(svc, store).unwrap();
+    // 复用 SyncService 的投影同步（测试内直接调）
+    svc.sync_notes_to_store(store).unwrap();
 }

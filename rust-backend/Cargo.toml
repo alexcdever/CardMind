@@ -24,7 +24,6 @@ strip = true
 test-utils = []
 
 [dependencies]
-flutter_rust_bridge = "=2.12.0"
 loro = "1"
 iroh = "1"
 # iroh 1.x 把 mDNS 地址解析挪到独立 crate：用于"测试连接/同步"时在局域网内

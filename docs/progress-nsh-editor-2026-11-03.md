@@ -258,3 +258,55 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
   - 钩子正例：`dart run tool/git_gate.dart pre-commit --files docs/product.md` → exit 0；负例（临时注入一个不存在的 live 文档路径）→ **exit 1**（`[fail] docs:lint`）；恢复后干净。
   - `nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`cargo test`（rust-backend）22 个 target 0 failed。
 
+
+## 11. P1 死代码清理（2026-11，worktree `refactor-p1`，基线 `d78766c1`）
+
+NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`BackendStore`/`BackendNotes`/`BackendSync`/`BackendPairing`），Flutter/FRB/WebView 链已删。本轮清掉四处不再有真实消费方的残留，不改产品行为。
+
+### 删除
+
+- **FRB 生成物与依赖**：`rust-backend/src/frb_generated.rs`（4666 行）、`rust-backend/src/lib.rs` 的 `mod frb_generated;`、`rust-backend/Cargo.toml` 的 `flutter_rust_bridge = "=2.12.0"`。`rust-backend` 全树不再出现 `flutter_rust_bridge`/`frb_generated`（`Cargo.lock` 只删除 FRB 及其传递依赖，无版本变更）。
+- **FRB 导出层**：`rust-backend/src/api.rs`（428 行、59 个薄包装）与 `pub mod api;`。删除前全仓 grep 确认只剩 3 个测试引用 2 个 helper：
+  - `sync_notes_to_store` → 测试直接调已有的 `SyncService::sync_notes_to_store(&store)`（`sync.rs` 公开方法）；
+  - `create_persistent_sync_service` → `debug_log_test` 改用 `SyncService::new_persistent`；
+  - `tests/{trash,live_relay,debug_log}_test.rs` 的 `api::` 引用同步改掉；`rust-backend` 不再出现 `api::`。
+- **Phase-1 演示组件**：`nsh-app/src/lib.rs` 的 `App`/`Bridge`/`BridgeEvent`/`BridgeProps` 及 `native()` 的两个 `register::<…>()`；`nsh-app/src/main.rs`（Rust-native 演示入口，唯一用途是 `Root::of::<App>()`）一并删除——TSX app 由 `App.tsx` 入口运行（nsh 0.3.0 约定：无 `src/main.rs` 即走 TSX 入口）。该 crate 不再出现 `Bridge`/`BridgeEvent`/`CardMind NSH skeleton`/`#[component]`。
+- **独立验证 crate**：`sync-verify/`（`Cargo.toml` + `Cargo.lock` + `src/main.rs`，最后改动 2026-10-13，iroh 1/mdns-sd 0.20 的过期验证代码）。
+
+### 测试与工具同步
+
+- `nsh-app/bridge_test.ts`、`events_close_test.ts`：把「断言存在/注册」改成断言「不存在」，保留 `BackendSync::close` 退出钩子与后端模块注册（启动契约）断言。
+- `nsh-app/skeleton_test.ts`：删除演示组件专用的 `nsh_base::theme`/`p_safe_area()`/`main.rs` 断言，改为断言「无 `#[component]`、无 `src/main.rs`」。
+- `nsh-app/singleton_test.ts`：`api.rs` 断言从「无 `&mut SyncService`」改为「文件已删除」。
+- `tool/lint/markdown_references_linter.dart`：把两个已删文件加入 `deletedHistoryPrefixes`（ADR/迁移/基线文档作为历史记录仍会引用）；自测补对应 token。
+- 启动失败日志从 `api.rs` 移入 `rust-backend/src/sync.rs::build`：`new_persistent`/`new` 构造失败时向全局兜底 sink 发 `startup.sync_service` failed 事件——保留 debug-log 验收 2（`startup_failure_emits_error_event`），且生产路径同样受益；日志失败不影响返回值。
+
+### 文档
+
+- `AGENTS.md`：项目结构删 `api.rs`/`sync-verify/`；当前状态「Rust 后端」去掉 FRB API。
+- `README.md`：项目结构同步（`src/` 不再列 `api`，删 `sync-verify/`）。
+- `docs/standards/tech-stack-baseline.md`：2.2 说明 FRB 生成物/导出层已随 P1 删除；3.2 依赖表删 `flutter_rust_bridge`；版本治理删 FRB 升级规则。
+
+### 验证（headless，本机 macOS）
+
+| 命令 | 结果 |
+|---|---|
+| `cd rust-backend && cargo test` | exit 0，22 个 target **0 failed**（lib 34 + 20 集成 target；`live_relay` 2 ignored 为既有） |
+| `cd nsh-app && nsh check .` | exit 0（check 328ms + build 35.3s） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
+| `nsh test --filter editor` | **28/28 passed**（1m36s） |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed**（15.4s） |
+| `dart format --output=none --set-exit-if-changed tool` | exit 0（0 changed） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0（docs:lint + rust:clippy + rust:test:full + rust:build-lib + tsx:test） |
+| `dart tool/lint/markdown_references_linter.dart`（附加） | exit 0（49 files / 892 refs，无死链） |
+| `cargo clippy --all-targets --all-features --workspace -- -D warnings`（附加） | exit 0 |
+
+### 风险 / 说明
+
+- `api.rs` 删除前已确认**只有**上述 2 个 helper 被测试使用，无其它调用方；`SyncService`/`NoteStore` 本体未动。
+- 门禁 `tool/src/git_gate/{gate,selector}.dart` 仍按 `api::` 派生测试消费方：删除后集合为空，`api`/`frb` 分支的策展目标（`note_crdt_test`/`store_test`/`pairing_test`）仍在，不影响门禁选择。
+- `tool/src/git_gate/formatter.dart` 对 `frb_generated.rs` 的快照是「存在才纳入」；文件已删后自动为空操作（未改该工具，避免扩大本轮范围）。
+
+### 提交
+
+- `407753bb`（`refactor-p1`）：本轮全部改动；提交时 pre-commit 实跑 `docs:lint` + `rust:clippy` + `rust:test:full` + 8 个相关 Rust target + `tsx:test`，全部通过。

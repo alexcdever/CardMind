@@ -20,7 +20,6 @@ mod common;
 
 use std::sync::Arc;
 
-use cardmind_backend::api;
 use cardmind_backend::debug_log::{self, CollectingSink, LogEvent, PanickingSink};
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{PairingTarget, SyncService};
@@ -220,7 +219,7 @@ fn startup_failure_emits_error_event() {
         std::fs::write(dir.join("relay.txt"), "not-a-url").unwrap();
         let global_sink = sink();
         debug_log::set_global_sink(Some(global_sink.clone()));
-        let result = api::create_persistent_sync_service(dir.to_string_lossy().into()).await;
+        let result = SyncService::new_persistent(&dir).await;
         debug_log::set_global_sink(None);
         assert!(result.is_err(), "无效 relay URL 应构造失败");
         let failed = global_sink

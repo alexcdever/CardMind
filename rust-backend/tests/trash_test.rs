@@ -7,7 +7,6 @@
 
 mod common;
 
-use cardmind_backend::api::sync_notes_to_store;
 use cardmind_backend::store::NoteStore;
 use cardmind_backend::sync::{NoteCrdt, SyncService};
 use chrono::{Duration, Utc};
@@ -47,10 +46,10 @@ fn soft_delete_sets_deleted_at_and_hides_note() {
         let svc = SyncService::new_persistent(&dir).await.unwrap();
         svc.create_note("n1".into(), "# 一\n\n内容一。").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
 
         svc.soft_delete_note("n1").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
 
         assert!(
             store.deleted_at("n1").unwrap().is_some(),
@@ -77,17 +76,17 @@ fn restore_clears_deleted_at_and_returns_note() {
         let svc = SyncService::new_persistent(&dir).await.unwrap();
         svc.create_note("n1".into(), "# 一\n\n内容一。").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
 
         svc.soft_delete_note("n1").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
         assert!(
             !store.trash_list().unwrap().is_empty(),
             "前置：软删后进回收站"
         );
 
         svc.restore_note("n1").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
 
         assert!(
             store.deleted_at("n1").unwrap().is_none(),
@@ -115,7 +114,7 @@ fn purge_removes_note_row_and_its_links() {
             .unwrap();
         svc.create_note("note-b".into(), "# B\n\n正文").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
         assert_eq!(
             store.outgoing_links("note-a").unwrap().len(),
             1,
@@ -123,7 +122,7 @@ fn purge_removes_note_row_and_its_links() {
         );
 
         svc.purge_note("note-a").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
 
         assert!(
             store.list_notes().unwrap().iter().all(|r| r.id != "note-a"),
@@ -161,7 +160,7 @@ fn purge_expired_deletes_only_notes_past_the_window() {
         assert_eq!(purged, 1, "应恰好清理 1 条过期笔记");
 
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
         let trash = store.trash_list().unwrap();
         assert!(trash.iter().all(|r| r.id != "old"), "31 天前的笔记应被清理");
         assert!(trash.iter().any(|r| r.id == "fresh"), "1 天前的笔记应保留");
@@ -180,7 +179,7 @@ fn trashed_notes_list_newest_deletion_first() {
         svc.create_note("n2".into(), "# 二\n\n内容").unwrap();
         svc.create_note("n3".into(), "# 三\n\n内容").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
 
         svc.soft_delete_note("n1").unwrap();
         // deleted_at 是 ISO8601 字符串排序键，sleep 需跨越 Windows coarse
@@ -189,7 +188,7 @@ fn trashed_notes_list_newest_deletion_first() {
         svc.soft_delete_note("n2").unwrap();
         std::thread::sleep(StdDuration::from_millis(50));
         svc.soft_delete_note("n3").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
 
         let trash = store.trash_list().unwrap();
         let ids: Vec<&str> = trash.iter().map(|r| r.id.as_str()).collect();
@@ -271,7 +270,7 @@ fn purge_survives_a_sync_roundtrip() {
         svc.create_note("n1".into(), "# One\n\nBody").unwrap();
         svc.create_note("n2".into(), "# Two\n\nBody").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
         assert_eq!(
             store.list_notes().unwrap().len(),
             2,
@@ -283,7 +282,7 @@ fn purge_survives_a_sync_roundtrip() {
         assert!(svc.tombstones().contains("n1"), "purge 后进入墓碑集合");
 
         // 重建投影：被删笔记不得复活
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
         let ids: Vec<String> = store
             .list_notes()
             .unwrap()
@@ -349,7 +348,7 @@ fn soft_delete_reaches_the_peer_via_meta() {
 
         // 投影：主列表不可见、回收站可见
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&b, &store).unwrap();
+        b.sync_notes_to_store(&store).unwrap();
         assert!(
             store.list_notes().unwrap().iter().all(|r| r.id != "n1"),
             "软删笔记投影后主列表不可见"
@@ -382,7 +381,7 @@ fn restore_reaches_the_peer_via_meta() {
         b.import_all(&exported).unwrap();
 
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&b, &store).unwrap();
+        b.sync_notes_to_store(&store).unwrap();
         assert!(
             store.list_notes().unwrap().iter().any(|r| r.id == "n1"),
             "恢复后投影主列表可见"
@@ -422,7 +421,7 @@ fn purge_expired_removes_the_whole_expired_batch() {
 
         // 投影：trash_list 只剩未过期 1 篇
         let store = NoteStore::new(":memory:").unwrap();
-        sync_notes_to_store(&svc, &store).unwrap();
+        svc.sync_notes_to_store(&store).unwrap();
         let trash = store.trash_list().unwrap();
         assert_eq!(trash.len(), 1, "trash_list 应剩 1 篇");
         assert_eq!(trash[0].id, "n3");
