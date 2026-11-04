@@ -158,3 +158,15 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 | `nsh test --filter "note: 移动布局"` | 1/1 passed |
 | `cargo test`（rust-backend） | exit 0，0 failed（`detect_hostname` import 修复后 macOS 可编译） |
 | `node build-nsh.mjs` | exit 0，产出 `out/bundle.nshc` 497.1 KB + `bundle.js` 148.8 KB |
+
+### 收敛合并与主树复验（`11d70e01`）
+
+- 独立审查（worktree）判 AC1–AC5 通过、可合并；提出 P2（启动竞态：列表页先于 store 打开，落 `unhandled rejection: Store 未初始化`）与 3 个 P3。已补 `c4b9b688` 修复：App 的 UI 挂载 gate 在 `startupDone`（启动成功或失败都放行）之后，页面在 store 打开前不 mount；失败仍显示顶栏错误、页面可用；文档「10 个 demo signal」→11；`note_list.tsx` 过时注释与 `data_coexist_test.ts` 注释重号一并修正。
+- 合并：`11d70e01`（`--no-ff`）；worktree/branch 已清场。
+- 主树复验（合并后）：
+  - `nsh check .` → exit 0，0 错误。
+  - `npx tsx --test "*_test.ts"` → 230 tests，229 pass / 1 skipped / 0 fail。
+  - `nsh test --filter editor` → 28/28；`--filter "note: 移动布局"` → 1/1。
+  - `cargo test`（rust-backend）→ exit 0，22 个 test target 全部 0 failed（含 `device_name_test` 14/14，`#[cfg(unix)]` 用例在 macOS 实跑）。
+  - `nsh package . --target macos` → exit 0，`.nsh/out/cardmind.app`（Mach-O arm64，ad-hoc 签名）。
+  - 打包 app 实机启动（真实数据目录）截图：三栏正常（侧栏/「全部笔记 1」含真实笔记/右栏「选择一篇笔记」），**无** skeleton 黑条与 Phase‑1 调试面板；启动日志无 `Store 未初始化` unhandled rejection。
