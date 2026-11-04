@@ -306,3 +306,7 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - `api.rs` 删除前已确认**只有**上述 2 个 helper 被测试使用，无其它调用方；`SyncService`/`NoteStore` 本体未动。
 - 门禁 `tool/src/git_gate/{gate,selector}.dart` 仍按 `api::` 派生测试消费方：删除后集合为空，`api`/`frb` 分支的策展目标（`note_crdt_test`/`store_test`/`pairing_test`）仍在，不影响门禁选择。
 - `tool/src/git_gate/formatter.dart` 对 `frb_generated.rs` 的快照是「存在才纳入」；文件已删后自动为空操作（未改该工具，避免扩大本轮范围）。
+
+### 提交
+
+- `407753bb`（`refactor-p1`）：本轮全部改动；提交时 pre-commit 实跑 `docs:lint` + `rust:clippy` + `rust:test:full` + 8 个相关 Rust target + `tsx:test`，全部通过。
