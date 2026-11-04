@@ -105,7 +105,6 @@ Future<int> runGitGateCli(List<String> args) async {
     logError: (m) => stderr.writeln(m),
     forceFullCheck: env['CARDMIND_FORCE_FULL_CHECK'] == '1',
     testLogWriter: testWriter,
-    testMode: testMode,
   );
 
   final command = args.first;

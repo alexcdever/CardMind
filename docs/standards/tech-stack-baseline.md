@@ -37,7 +37,7 @@
 - 产品目标平台：移动端（Android + iOS，覆盖手机与平板）与桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。
 - 仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，仓库不含任何平台工程目录；iOS 属目标平台，工程目录亦未建立（见 `AGENTS.md` 当前状态）。平台产物统一由 `nsh package . --target <platform>` 产出。
 - 构建链路入口为 `nsh-app/build-nsh.mjs`（`npm run build`），走 0.3.0 CLI 的 `nsh build . -o out`，不需要 `NSH_SOURCE`；旧 tool/build.dart（`app`/`lib`/`run` 子命令，Flutter 构建链）已随 4.6 删除。
-- host runtime 动态库由门禁 `rust:build-lib` 步骤产出（`cargo build --release`）并同步到运行态路径（`tool/src/git_gate/host_build.dart` 的平台规格：Windows `cardmind_backend.dll`、macOS `libcardmind_backend.dylib`、Linux `libcardmind_backend.so`）。
+- 门禁 `rust:build-lib` 步骤只做 `cargo build --release`（release 构建检查，产物在 `rust-backend/target/release/`）；NSH 把 backend 作为 crate 编进 `nsh-app`，运行时不依赖动态库复制。
 
 ## 3. 核心三方依赖
 

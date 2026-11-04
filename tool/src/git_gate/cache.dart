@@ -169,7 +169,6 @@ String computeGateFingerprint(String repoRoot) {
     'tool/src/git_gate/formatter.dart',
     'tool/src/git_gate/git.dart',
     'tool/src/git_gate/cache.dart',
-    'tool/src/git_gate/host_build.dart',
     'tool/src/git_gate/gate.dart',
     '.githooks/pre-commit',
     '.githooks/pre-push',

@@ -116,8 +116,8 @@ abstract final class Commands {
     workingDirectory: 'rust-backend',
   );
 
-  /// 跨平台 host runtime build：cargo build --release（编译 host 动态库）。
-  /// 产物同步到运行态路径由 host_build.dart 的 syncHostRuntimeLibrary 完成。
+  /// release 构建检查：`cargo build --release`。
+  /// NSH 版把 backend 作为 crate 编进 nsh-app，不存在运行态动态库复制步骤。
   static GateCommand hostBuildLib() => const GateCommand(
     executable: 'cargo',
     arguments: <String>['build', '--release'],
