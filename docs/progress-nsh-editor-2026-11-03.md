@@ -248,3 +248,13 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
 - 主树复验：`dart run tool/git_gate.dart full --dry-run` exit 0；`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`cargo test`（rust-backend）22 个 target 0 failed；`nsh package . --target macos` exit 0。
 - 主树磁盘上四个平台目录（`android/linux/macos/windows`）在合并后只剩未跟踪的 `.DS_Store` 等垃圾（tracked 已为 0），已用 scoped `git clean` + `rm -rf` 清空；`.flutter-plugins-dependencies` 一并删除。现在仓库 tracked/磁盘都不含平台工程目录。
 
+### 门禁收尾合并与主树复验（`d8ab7da2`）
+
+- 合并 `gate-finish`（`40f22ba6` + `583684fb` + 零依赖修复 `b15255eb` + 文档 `63c09f5f`）→ `d8ab7da2`；worktree/branch 已清场。
+- 主树复验：
+  - `dart tool/lint/markdown_references_linter.dart` → exit 0（51 files / 890 refs；`.workflow-archive-2026-09-30/` 不参与扫描）。
+  - **零依赖证明**：临时把主树未跟踪 `.dart_tool/` 移走后重跑 linter → 仍 exit 0（不再依赖 `package:path`）；已恢复。
+  - `dart run tool/git_gate.dart full --dry-run` → exit 0，无 `build/<platform>` 同步。
+  - 钩子正例：`dart run tool/git_gate.dart pre-commit --files docs/product.md` → exit 0；负例（临时注入一个不存在的 live 文档路径）→ **exit 1**（`[fail] docs:lint`）；恢复后干净。
+  - `nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`cargo test`（rust-backend）22 个 target 0 failed。
+
