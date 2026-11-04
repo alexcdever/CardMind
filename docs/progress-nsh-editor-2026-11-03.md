@@ -170,3 +170,63 @@ Phase 1 为验收证据写的演示脚手架整段移除，App 入口改为正�
   - `cargo test`（rust-backend）→ exit 0，22 个 test target 全部 0 failed（含 `device_name_test` 14/14，`#[cfg(unix)]` 用例在 macOS 实跑）。
   - `nsh package . --target macos` → exit 0，`.nsh/out/cardmind.app`（Mach-O arm64，ad-hoc 签名）。
   - 打包 app 实机启动（真实数据目录）截图：三栏正常（侧栏/「全部笔记 1」含真实笔记/右栏「选择一篇笔记」），**无** skeleton 黑条与 Phase‑1 调试面板；启动日志无 `Store 未初始化` unhandled rejection。
+
+## 10. 迁移收尾：Flutter 残留 / CI / 锚点规范清理（2026-11，worktree `nsh-cleanup`，基线 `7c6becb7`）
+
+编辑器换成 NSH 原生 `Editor` 后，仓库仍留着 Flutter runner 工程、Flutter CI 与 WebView 时代的文档。本节收掉这些残留，**不改产品行为**。
+
+### 删除
+
+- **CI**：`.github/workflows/` 下的 `flutter_quality.yml`、`integration_e2e.yml`、`manual-build-artifacts.yml`
+  （引用已删的 `lib/`/`test/`/`integration_test/`/`pubspec*`、FRB codegen、Flutter 3.44.9）。
+- **`rust_quality.yml` 里的失效步骤**：保留该工作流（Rust 仍有效），删掉 `Setup Flutter`、`flutter pub get`、
+  `dart run tool/test_boundary_scanner.dart`、边界报告上传——Dart 扫描器已在 4.6 删除，这些步骤只会报错；
+  覆盖率 job 改名为 `Rust Coverage`。
+- **平台工程目录**：`android/`(20) + `linux/`(10) + `macos/`(28) + `windows/`(18) = **76 个 tracked 文件**整删
+  （Flutter runner 工程）。`git ls-files android linux macos windows` 现为空；`build/` 本就未跟踪，未提交。
+- **`.gitignore` 纯 Flutter 条目**：`.flutter-plugins-dependencies`、`**/ios/Flutter/.last_build_id`、
+  `app.*.symbols`、`app.*.map.json`、`/android/app/{debug,profile,release}`、`macos/Podfile.lock`、
+  `migrate_working_dir/`。保留 Dart 工具链条目（`.dart_tool/`、`.pub*`、`**/doc/api/`，门禁仍用 Dart）与
+  通用条目（`/build/`、`/coverage/`、`.swiftpm/`）。
+- **门禁里的失效 glob**：`tool/src/git_gate/command.dart` 的 `tsx:test` 去掉已删的 `web/src/*_test.ts`
+  （`selector.dart` 注释、`tool/README.md` 同步）；行为不变（该 glob 早已匹配不到文件）。
+
+### 改写
+
+- `docs/standards/` 下的 `flutter-automation-anchors.md` → **`docs/standards/nsh-automation-anchors.md`**（`git mv`）：
+  Flutter 的 `Semantics(identifier:)`/`ValueKey` 内容整体替换为 NSH/TSX 锚点——`testID` ↔ 选择器 `id:`、
+  `accessibilityLabel` ↔ `label:`、`role`/`accessibilityState` 承载语义与状态、`text:`/`role:`/`view:`
+  与 ` >> `/`nth=` 链式选择器，测试入口 `EditorHarness.tsx`/`NoteListHarness.tsx` + `nsh test`。
+  引用同步更新：`AGENTS.md` 文档地图、`docs/migration-nsh.md` 的设计基线行。
+- `docs/migration-nsh-construction.md`：WebView 时代的三项标「✅ 已完成（已被取代）」——`B.3`（R10 跨 WebView
+  焦点/快捷键）、`G3.1`（WebView 真窗口 IME）、`G3.4`（WebView2 性能基线），证据统一写明
+  「WebView/Tiptap 已删除，编辑器改 NSH 0.3.0 原生 `Editor`，见 progress P2–P4」。**真机项 4.1 / G4.1 /
+  B.1 / B.2 保持 ⛔ 阻塞**，未冒充通过。
+- `AGENTS.md`：平台行改为「平台工程目录已删、仓库不含平台工程、打包走 `nsh package . --target <platform>`」；
+  文档地图指向新锚点规范；「日志目录」改为 NSH 现状——`debug_log` 的 `PlatformSink` 只写 **stderr** + `tracing`、
+  **无落盘实现**，设置页只显示约定路径说明；新增 `data_dir()` 的旧版/NSH 自有目录对照表；
+  「macOS 的坑」改为历史说明（`macos/Runner/*.entitlements` 已随平台工程删除），并写明已验证的 NSH 现状：
+  打包 app bundle id `com.cardmind.nsh`、ad-hoc 签名、`codesign -d --entitlements -` 无输出（无 App Sandbox，
+  不存在容器重定向）。
+
+### 验证（headless，本机 macOS）
+
+| 命令 | 结果 |
+|---|---|
+| `dart run tool/git_gate.dart plan --staged` | exit 0（0.5s）；选中 `docs:lint` + `rust:clippy` + `rust:test:full` + `tsx:test`，无已删平台目录触发的报错 |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0（0.5s）；`tsx:test` 已为 `npx tsx --test *_test.ts` |
+| `cd nsh-app && nsh check .` | exit 0（33.5s：check 9.8s + build 22.0s） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests，1.7s 热跑） |
+| `nsh test --filter editor` | **28/28 passed**（1m18s） |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed**（26s） |
+| `cd rust-backend && cargo test` | exit 0，0 failed（5m56s） |
+| `dart format --output=none --set-exit-if-changed tool` | exit 0（0 changed） |
+
+### 遗留（不在本轮范围）
+
+- **`docs:lint` 在基线上就 exit 1**：`tool/lint/markdown_references_linter.dart` 报 85 条缺失引用（其中 11 条指向
+  P2 删掉的 `nsh-app/web/**`，其余是未跟踪的 `spike/nsh-probe`、被忽略的 `nsh-app/out/**` 等）；与本轮删除无关。
+  因 `.githooks/pre-commit` 在没有 `pubspec.yaml` 时直接 `exit 0`（钩子空操作），它当前不拦提交。
+- **门禁 `rust:build-lib` 仍把 host 动态库复制到 Flutter 时代的 `build/<platform>/…`**（`tool/src/git_gate/host_build.dart`）：
+  NSH 版把 `cardmind-backend` 作为 crate 编进 `nsh-app`，运行时不依赖该复制；本轮只记录，不改门禁行为。
+

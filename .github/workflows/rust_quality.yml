@@ -66,7 +66,7 @@ jobs:
           CARDMIND_REQUIRE_NETWORK_TESTS: '1'
         run: |
           cd rust-backend
-          # 与本地 tool/quality.dart 口径一致：串行跑测试二进制，避免 iroh/netmon 全局资源竞争。
+          # 与本地门禁口径一致：串行跑测试二进制，避免 iroh/netmon 全局资源竞争。
           cargo test --all-features --jobs 1
 
       - name: Security audit
@@ -83,11 +83,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "✅ All Rust quality checks completed" >> $GITHUB_STEP_SUMMARY
 
-  # 覆盖率 + 边界扫描是「报告生成、不阻断」的旁路：独立于 rust-quality 主 job，
+  # 覆盖率是「报告生成、不阻断」的旁路：独立于 rust-quality 主 job，
   # 与 fmt/clippy/test 并行跑，失败不阻塞主质量门禁。tarpaulin 较慢，独立 job
   # 也避免拖慢主链路反馈。
   rust-coverage:
-    name: Rust Coverage + Boundary Scan
+    name: Rust Coverage
     runs-on: ubuntu-latest
     # 整个 job 只产出报告；lcov 或边界扫描失败不影响 rust-quality 结论。
     continue-on-error: true
@@ -131,8 +131,7 @@ jobs:
         continue-on-error: true
 
       - name: Generate Rust LCOV report
-        # 与本地 tool/quality.dart:306 同口径（--out Lcov --output-dir .、
-        # 排除 frb_generated 与 tool/），另加 --packages cardmind-backend：
+        # 排除 frb_generated 与辅助 crate，另加 --packages cardmind-backend：
         # rust-backend 是多成员 workspace（含 tool/boundary_scanner），不限定
         # 根包会把辅助 crate 一并算进覆盖率。产出 rust-backend/lcov.info。
         run: |
@@ -149,32 +148,5 @@ jobs:
         with:
           name: rust-lcov
           path: rust-backend/lcov.info
-          retention-days: 7
-          if-no-files-found: ignore
-
-      # 边界扫描器经 `cargo run --manifest-path rust-backend/tool/boundary_scanner`
-      # 生成 Rust 边界清单，并读 rust-backend/lcov.info 判覆盖；同时它本身是
-      # Dart 脚本（依赖 analyzer/yaml + Flutter SDK 约束），需要 Flutter SDK。
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.44.9'
-          channel: stable
-          cache: true
-
-      - name: Install Dart dependencies
-        run: flutter pub get
-
-      - name: Run test boundary scan (rust)
-        # 与本地 quality.dart:327 同源：只告警不 fail job。
-        run: dart run tool/test_boundary_scanner.dart --scope=rust
-        continue-on-error: true
-
-      - name: Upload boundary report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rust-test-boundary-report
-          path: tmp/cardmind_test_boundary_report.md
           retention-days: 7
           if-no-files-found: ignore

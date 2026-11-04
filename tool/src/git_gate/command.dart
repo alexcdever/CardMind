@@ -126,12 +126,12 @@ abstract final class Commands {
     workingDirectory: 'rust-backend',
   );
 
-  /// nsh-app 的 TSX 全量测试：node --test 语义，匹配根级 *_test.ts 与
-  /// web/src/*_test.ts；在 nsh-app/ 目录跑（package.json type:module + tsx 依赖）。
+  /// nsh-app 的 TSX 全量测试：node --test 语义，匹配根级 *_test.ts；
+  /// 在 nsh-app/ 目录跑（package.json type:module + tsx 依赖）。
   /// executable 固定 'npx'——Windows 上由 runner.resolveExecutable 解析为 npx.cmd。
   static GateCommand tsxTest() => const GateCommand(
     executable: 'npx',
-    arguments: <String>['tsx', '--test', '*_test.ts', 'web/src/*_test.ts'],
+    arguments: <String>['tsx', '--test', '*_test.ts'],
     kind: CommandKind.tsxTest,
     label: 'tsx:test',
     workingDirectory: 'nsh-app',

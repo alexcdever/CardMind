@@ -5,7 +5,7 @@
 ///
 /// 4.6 起 Flutter 链整删：dartTest/dartBusiness/frbBoundary/flutterTest 路由
 /// 与 `test/` 文件级聚合全部移除；前端测试只剩 nsh-app 的 TSX 全量
-/// （`npx tsx --test "*_test.ts" "web/src/*_test.ts"`，在 nsh-app/ 跑）。
+/// （`npx tsx --test "*_test.ts"`，在 nsh-app/ 跑）。
 library;
 
 import 'command.dart';

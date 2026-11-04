@@ -350,5 +350,5 @@ nsh build app-tsx && nsh trace app-tsx            # CLI 无头验证闭环
 - `spike/nsh-probe` 分支下 `web-editor/` — Tiptap 556KB 打包产物；V3/V4 验证脚本在 `src/` 下
 - `spike/nsh-probe` 分支下 `tools/` 目录 — CDP IME 探针 / 撤销粒度 / PrintWindow 截图脚本
 - `spike/nsh-probe` 分支下 `v5-event-bridge/` — V6 的事件桥 + 全局单例 `#[module]` 可运行示例
-- 设计基线：`docs/standards/ui-style-guide.md`、`design-tokens.md`、`flutter-automation-anchors.md`
+- 设计基线：`docs/standards/ui-style-guide.md`、`design-tokens.md`、`nsh-automation-anchors.md`
 
