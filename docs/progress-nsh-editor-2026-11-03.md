@@ -815,3 +815,47 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 | `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
 | `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+
+## 20. P3-2：门禁失败步骤转发 stdout（2026-11，worktree `p3-docs-lint-stdout`，基线 `25f805a2`）
+
+### 问题
+
+`tool/src/git_gate/gate.dart` `_runStep` 失败分支只 `o.logError(r.stderr)`，`r.stdout` 被丢弃。`docs:lint`（`tool/lint/markdown_references_linter.dart`）把缺失引用清单写在 **stdout**，所以失败时 stderr 只剩 `[fail] docs:lint exit=1` 一行，看不到是哪条引用缺失。
+
+### 修复
+
+`_runStep` 失败分支：打 `[fail]` 行后，若 `r.stdout.trim()` 非空且与 `r.stderr.trim()` 不相同，先打 `[stdout] <step.label>` 头、再转发 `r.stdout`，然后照常 `o.logError(r.stderr)`。dry-run 分支不动。
+
+### 修前/修后行为差异
+
+| 情形 | 修前 | 修后 |
+|---|---|---|
+| docs:lint 失败 | stderr 仅 `[fail] docs:lint exit=1`，缺失清单被吞 | stderr 依次：`[fail]` 行 → `[stdout] docs:lint` 头 + 完整缺失清单 → stderr 体 |
+| 步骤 stdout 为空、或与 stderr 相同 | — | 跳过 `[stdout]` 块，不重复打 |
+| dry-run | 只打 `[dry-run]` 行 | 不变 |
+
+### AC3 手动验证（worktree 内，改动未提交）
+
+把本文档 L139 的 `nsh-app/App.tsx` 改成 nsh-app/__nonexistent__.tsx（故意写不存在路径；此处不用行内代码记号，避免 linter 把本节自身的描述判成缺失引用）→ `git add` → `dart run tool/git_gate.dart pre-commit`：
+
+- exit=1；stdout 仅 plan 段；stderr 依次为 `[fail] docs:lint exit=1 elapsed=0s` → `[stdout] docs:lint` → `Missing references:` 完整清单（含植入的 nsh-app/__nonexistent__.tsx）。
+- 验证后 `git restore --staged` + `git restore` 恢复文档，测试改动未提交。
+
+### 回归（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+| `nsh check . --tsc /tmp/p2-4-review/ts7/package/lib/tsc`（CARGO_TARGET_DIR=主树 nsh-app/target） | exit 0 |
+| `npx tsx --test "*_test.ts"` | 230 tests / 229 pass / 1 skipped / 0 fail |
+| `cd rust-backend && env -u CARGO_TARGET_DIR cargo test` | exit 0，22 test targets / 0 failed |
+
+### 备注
+
+- worktree 要自备 `nsh-app/.cargo/config.toml`（未跟踪的本机镜像配置）：缺它时 docs:lint 会把文档对它的合法引用判成缺失、pre-commit 一律挂。本次按 handover §4 从主树复制后，lint 输出 `All references are valid`。
+- `pnpm install` 成功但 `esbuild` postinstall 被 pnpm ignored-builds 跳过（同 §19 备注）；tsx 自带 esbuild 内核，不影响测试。
+
+### Commit
+
+单 commit `fix(gate): 失败步骤同时转发 stdout，docs:lint 缺失清单不再被吞`（2 files：`tool/src/git_gate/gate.dart` + 本文档）。

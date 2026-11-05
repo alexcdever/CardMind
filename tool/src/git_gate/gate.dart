@@ -376,6 +376,13 @@ Future<int> _runStep(GateOptions o, GateCommand step) async {
       '[fail] ${step.label} exit=${r.exitCode}$timeoutMark '
       'elapsed=${r.elapsed.inSeconds}s',
     );
+    // 步骤把有用输出写在 stdout 的（docs:lint 缺失清单），转发到 stderr，
+    // 否则只剩一行 [fail]、看不到原因；与 stderr 相同则跳过避免重复。
+    final stdoutText = r.stdout.trim();
+    if (stdoutText.isNotEmpty && stdoutText != r.stderr.trim()) {
+      o.logError('[stdout] ${step.label}');
+      o.logError(r.stdout);
+    }
     o.logError(r.stderr);
     return r.timedOut ? CommandRunner.timeoutExitCode : r.exitCode;
   }
