@@ -1,0 +1,24 @@
+# 行尾统一：文本文件按内容自动识别，提交归一为 LF。
+# Git 处理不了的二进制在下面显式标注，防止被归一。
+
+* text=auto
+
+# 二进制：自动识别可能漏判（data/cardmind.db 实测 i/none），显式标注
+*.db    binary
+*.loro  binary
+*.key   binary
+*.otf   binary
+*.ttf   binary
+*.woff  binary
+*.woff2 binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.icns  binary
+*.webp  binary
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.jar   binary
