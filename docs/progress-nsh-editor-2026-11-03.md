@@ -1031,3 +1031,25 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 - **代码块不转换**：`legacyWikilinksToMarkdown` 跳过行内 code span（按反引号 run 等长配对）与 ```/~~~ 围栏，避免把文档示例改坏；`parse_links_from_content`（Rust 索引侧）不做 code 感知——写侧保护示例不被改写，索引侧对 code 里的残留 `[[..]]` 仍会建索引（与旧行为一致）。
 - **`onNavigateNote` 默认 `openEditor`**：设计要点写「跳转 `openEditor(id)`」；桌面三栏场景路由不进栈，改由 `DesktopEditorPane` 注入 `openNote` 换选中。
 - **`[[id|]]`（空 alias）按缺省处理** → `[id](cardmind://note/id)`，与旧 `[[id]]` 显示口径一致。
+
+### 合并与主树复验（`f26367d6`，2026-11-06）
+
+合并 commit `f26367d6`（`--no-ff`），分支提交 `7c613e5c`/`51f3e728`/`6ea8bd0d`，基线 `9dab6b79`；diff 17 文件 +695/−82。
+
+独立审查：**APPROVE**——自建独立 harness 逐条验证双格式语义（含 **20 万条随机串新旧实现差分 0 分歧**）、前端 40 项纯函数验证、TS 写出→Rust 读回 cross-check 全一致；惰性迁移有真实行为测试覆盖「打开旧格式→不编辑→不落盘」。范围外 2 文件（`notes.rs` 仅注释、`note_list/desktop.tsx` 为 AC5 桌面接线）判定合理。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248 tests，基线 230） |
+| `nsh test --filter editor` | **30/30**（基线 28，断言 expect 89→95） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+
+#### 审查发现（非阻塞，已排入 P4-2b 收尾）
+
+1. **病态输入性能**：`parse_links_from_content` 对 50k 连续 `[` 从旧实现 26µs → 345ms；TS `legacyWikilinksToMarkdown` 同型 3164ms（同步阻塞加载）。真实内容无影响（44k 链接密集文档 89µs），但需加短路/上限防退化。
+2. **未闭合 `[[` 后接 Markdown 链接**：`"[[a then [b](cardmind://note/c)"` → alias 变 `"a then [b"`（target 正确、不漏链接，仅 alias 含残片）。
+3. TS 迁移会把普通 Markdown 链接文本/图片 alt 里的 `[[...]]` 也转换（嵌套链接），Rust 不接受 title/`<...>` 形式——均为极端手写输入。
+4. 文档缺口：`docs/adr/0007-links-and-search-data-contract.md` 仍写死 `[[target-id|alias]]`（应加 superseded 注记）；`docs/testing/nsh-p4-windows-ime-checklist.md` B3「wikilink chip」已过时。
