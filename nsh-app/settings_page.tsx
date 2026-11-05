@@ -5,17 +5,24 @@
 //     setDeviceName 保存）；
 //  ② 同步开关（BackendSync.getSyncAllowed / setSyncAllowed，自绘 48 命中区
 //     开关：轨道 + 滑块，role="switch"）；
-//  ③ 日志目录（显示路径 + 说明；NSH 侧无打开目录 API —— 平台能力缺口，
-//     本页只显示，executor.md 记为 R3 类缺口）；
+//  ③ 日志说明（显示当前日志输出方式：debug_log 只写进程 stderr + tracing，
+//     暂无文件落盘；NSH 侧无打开目录 API —— 平台能力缺口，本页只显示，
+//     executor.md 记为 R3 类缺口）；
 //  ④ 更新检查（UI 入口：当前版本 + 检查按钮占位；真下载/安装是 Phase 4）；
 //  ⑤ 紧凑断点 600：windowSize().width < compactBreakpoint(600) 时页边距
 //     lg(16)，否则 xl(24)（对照 Dart `MediaQuery.sizeOf().width < 600`）。
 //
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
-import { computed, effect, signal, Scroll, Text, View, windowSize } from "nsh";
+//
+// 结构（P2-4 纯结构拆分）：本文件仅保留页面根 `SettingsPage` 与公共 API 的
+// re-export；类型/常量/状态与处理函数/区块组件分别落在 `./settings_page/`
+// 子模块。render 段 JSX 与交互逐字不变；signals 仍是 state.ts 模块顶层单例
+// （单一创建点）。唯一有意改动：日志区块两处文案（state.ts 的 logDirNote
+// 值与本文件日志区块说明行）——按 handover §6 #10，NSH debug_log 无文件
+// 落盘，旧「写入 logs/cardmind.log」描述的是已删除的 Flutter 版行为。
+import { effect, Scroll, Text, View } from "nsh";
 import type { JSX } from "nsh";
 import { Input } from "nsh/base";
-import { BackendPairing, BackendSync } from "app/native";
 import {
   CardMindIconButton,
   CardMindPrimaryButton,
@@ -23,248 +30,28 @@ import {
   Glyph,
 } from "./components";
 import { colors, layout, radii, spacing, typography } from "./theme";
+import { appVersion } from "./settings_page/constants";
+import { SectionTitle, SettingRow, SyncSwitch } from "./settings_page/sections";
+import {
+  actionMessage,
+  cancelEditName,
+  checkingUpdate,
+  checkUpdate,
+  deviceName,
+  deviceNameDraft,
+  editingName,
+  loadSettingsWithRetry,
+  logDirNote,
+  pagePadding,
+  saveDeviceName,
+  savingName,
+  startEditName,
+  syncAllowed,
+  toggleSync,
+} from "./settings_page/state";
 
-// ─── 常量 ────────────────────────────────────────────────────────────────────
-
-/** 面板紧凑断点（px）：<600 页边距收紧到 lg(16)，≥600 用 xl(24)。
- *  对照 settings_page.dart `MediaQuery.sizeOf(context).width < 600`；
- *  与 note_list 的 desktopBreakpoint=960（窗宽分栏）不同层级。 */
-const compactBreakpoint = 600;
-
-/** 开关轨道尺寸（视觉件，命中区由外层 48 高行保证）。 */
-const switchTrack = { width: 44, height: 26, knob: 20 } as const;
-/** 应用版本（nsh.json version；包构建版本由 Phase 4 `nsh package` 注入）。 */
-const appVersion = "0.1.0";
-
-// ─── 设置后端表面（可注入替代；默认值走真后端）────────────────────────────────
-
-export interface SettingsSource {
-  getDeviceName(): Promise<string>;
-  setDeviceName(name: string): Promise<boolean>;
-  getSyncAllowed(): Promise<boolean>;
-  setSyncAllowed(allowed: boolean): Promise<boolean>;
-}
-
-function makeBackendSource(): SettingsSource {
-  return {
-    getDeviceName: () => BackendPairing.getDeviceName(),
-    setDeviceName: (name) => BackendPairing.setDeviceName(name),
-    getSyncAllowed: () => BackendSync.getSyncAllowed(),
-    setSyncAllowed: (allowed) => BackendSync.setSyncAllowed(allowed),
-  };
-}
-
-let source: SettingsSource = makeBackendSource();
-
-/** 替换数据源（测试/演示用）。 */
-export function setSettingsSource(s: SettingsSource): void {
-  source = s;
-}
-
-// ─── 页面状态 ────────────────────────────────────────────────────────────────
-
-const deviceName = signal("");
-const deviceNameDraft = signal("");
-const editingName = signal(false);
-const savingName = signal(false);
-const syncAllowed = signal(true);
-const loading = signal(true);
-const actionMessage = signal<string | undefined>(undefined);
-const checkingUpdate = signal(false);
-/** 日志目录：NSH 侧无解析 API，只显示平台约定路径说明。 */
-const logDirNote = signal("日志写入应用支持目录 logs/cardmind.log");
-
-const compact = computed(() => windowSize().width < compactBreakpoint);
-const pagePadding = computed(() => (compact() ? spacing.lg : spacing.xl));
-
-// ─── 数据加载 ────────────────────────────────────────────────────────────────
-
-async function loadSettings(): Promise<void> {
-  loading.set(true);
-  try {
-    const [name, allowed] = await Promise.all([
-      source.getDeviceName(),
-      source.getSyncAllowed(),
-    ]);
-    deviceName.set(name);
-    deviceNameDraft.set(name);
-    syncAllowed.set(allowed);
-  } catch {
-    actionMessage.set("读取设置失败");
-  } finally {
-    loading.set(false);
-  }
-}
-
-/** 首次装载重试：SyncService 可能与 App 层初始化并发未就绪，重试三次。 */
-async function loadSettingsWithRetry(attempts = 3, delayMs = 250): Promise<void> {
-  for (let i = 0; i < attempts; i += 1) {
-    try {
-      await loadSettings();
-      return;
-    } catch {
-      if (i + 1 < attempts) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-  }
-}
-
-// ─── 操作 ────────────────────────────────────────────────────────────────────
-
-function startEditName(): void {
-  deviceNameDraft.set(deviceName());
-  editingName.set(true);
-}
-
-function cancelEditName(): void {
-  editingName.set(false);
-  deviceNameDraft.set(deviceName());
-}
-
-async function saveDeviceName(): Promise<void> {
-  const name = deviceNameDraft().trim();
-  if (name.length === 0 || savingName()) {
-    if (name.length === 0) actionMessage.set("设备名不能为空");
-    return;
-  }
-  savingName.set(true);
-  try {
-    await source.setDeviceName(name);
-    deviceName.set(name);
-    editingName.set(false);
-    actionMessage.set(`设备名已保存：${name}`);
-  } catch (error) {
-    actionMessage.set(`保存失败：${String(error)}`);
-  } finally {
-    savingName.set(false);
-  }
-}
-
-async function toggleSync(): Promise<void> {
-  const next = !syncAllowed();
-  try {
-    await source.setSyncAllowed(next);
-    syncAllowed.set(next);
-    actionMessage.set(next ? "同步已开启" : "同步已暂停");
-  } catch (error) {
-    actionMessage.set(`切换失败：${String(error)}`);
-  }
-}
-
-/** 更新检查：Phase 4 才接真下载/安装，这里只做 UI 反馈。 */
-function checkUpdate(): void {
-  checkingUpdate.set(true);
-  actionMessage.set("当前已是最新版本（更新检查在 Phase 4 接入）");
-  checkingUpdate.set(false);
-}
-
-// ─── 区块组件 ────────────────────────────────────────────────────────────────
-
-function SectionTitle(props: { text: string }): JSX.Element {
-  return (
-    <Text
-      style={{
-        fontSize: typography.titleMedium.fontSize,
-        lineHeight: typography.titleMedium.lineHeight,
-        fontWeight: "600",
-        color: colors.ink,
-      }}
-    >
-      {props.text}
-    </Text>
-  );
-}
-
-/** 设置项行：标题 + 副标题 + 尾部控件（48 最小高，hairline 底部分隔）。 */
-function SettingRow(props: {
-  title: string;
-  subtitle?: string;
-  trailing?: JSX.Element;
-}): JSX.Element {
-  return (
-    <View
-      style={{
-        minHeight: layout.mobileTouchTarget,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: colors.border,
-        gap: spacing.md,
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        <Text
-          style={{
-            fontSize: typography.bodyMedium.fontSize,
-            lineHeight: typography.bodyMedium.lineHeight,
-            color: colors.ink,
-            fontWeight: "600",
-          }}
-        >
-          {props.title}
-        </Text>
-        <If when={props.subtitle !== undefined}>
-          <Text
-            style={{
-              fontSize: typography.bodyMedium.fontSize - 3,
-              color: colors.mutedInk,
-              marginTop: spacing.xs,
-            }}
-          >
-            {props.subtitle ?? ""}
-          </Text>
-        </If>
-      </View>
-      <If when={props.trailing !== undefined}>{props.trailing}</If>
-    </View>
-  );
-}
-
-/** 同步开关：自绘轨道 + 滑块（role="switch"，命中区 48 行高）。 */
-function SyncSwitch(props: {
-  value: () => boolean;
-  onToggle: () => void;
-}): JSX.Element {
-  const on = props.value;
-  return (
-    <View
-      onPress={props.onToggle}
-      role="switch"
-      accessibilityLabel="同步"
-      accessibilityState={{ checked: on() }}
-      style={{
-        width: layout.mobileTouchTarget,
-        height: layout.mobileTouchTarget,
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: radii.md,
-      }}
-    >
-      <View
-        style={{
-          width: switchTrack.width,
-          height: switchTrack.height,
-          borderRadius: switchTrack.height / 2,
-          backgroundColor: on() ? colors.accent : colors.border,
-          justifyContent: "center",
-          padding: (switchTrack.height - switchTrack.knob) / 2,
-        }}
-      >
-        <View
-          style={{
-            width: switchTrack.knob,
-            height: switchTrack.knob,
-            borderRadius: switchTrack.knob / 2,
-            backgroundColor: colors.surfaceRaised,
-            alignSelf: on() ? "flex-end" : "flex-start",
-          }}
-        />
-      </View>
-    </View>
-  );
-}
+export type { SettingsSource } from "./settings_page/types";
+export { setSettingsSource } from "./settings_page/state";
 
 // ─── 页面根 ─────────────────────────────────────────────────────────────────
 
@@ -414,7 +201,7 @@ export function SettingsPage(props: { status?: JSX.Element }): JSX.Element {
                     color: colors.mutedInk,
                   }}
                 >
-                  NSH 侧暂无打开目录 API；排查时按平台约定路径（应用支持目录/logs/cardmind.log）访问。
+                  NSH 侧暂无打开目录 API；应用日志暂无文件落盘，排查时查看进程 stderr 的 [cardmind:log] 行。
                 </Text>
               </View>
             </View>
