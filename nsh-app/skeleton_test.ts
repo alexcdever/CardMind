@@ -38,18 +38,25 @@ describe('Cargo.toml', () => {
     assert.match(manifest, /nsh-base\s*=\s*"0\.3\.0"/);
   });
 
-  // 0.3.0 CLI 硬门槛：Cargo.toml 的 nsh crate 版本必须与 CLI 一致，否则命令入口直接拒绝。
-  it('4 个 nsh-platform-* 依赖均为 0.3.0（保留 default-features = false）', () => {
+  // P2-3 起：P1 删除 src/main.rs 后，`env_logger` 与 4 个 `nsh-platform-*`
+  // 失去唯一消费者（env_logger::init / platform::run_app 只被 main 用）。
+  // app crate 由 nsh 0.3.0 CLI 驱动构建，不再需要在 manifest 声明平台 crate。
+  it('不声明 env_logger 与 nsh-platform-*（已随 main.rs 删除成为死依赖）', () => {
+    assert.doesNotMatch(
+      manifest,
+      /(^|[^A-Za-z0-9_-])env_logger\s*=/,
+      'Cargo.toml 不应再声明 env_logger（唯一消费者 main.rs 已删）',
+    );
     for (const crate of [
       'nsh-platform-linux',
       'nsh-platform-macos',
       'nsh-platform-windows',
       'nsh-platform-android',
     ]) {
-      assert.match(
+      assert.doesNotMatch(
         manifest,
-        new RegExp(`${crate}\\s*=\\s*\\{\\s*version\\s*=\\s*"0\\.3\\.0"`),
-        `${crate} 应为 version = "0.3.0"`,
+        new RegExp(`${crate}\\s*=`),
+        `Cargo.toml 不应再声明 ${crate}`,
       );
     }
   });
@@ -91,10 +98,22 @@ describe('Cargo.lock（已跟踪，须随 Cargo.toml 一起升）', () => {
     // `nsh-app-cardmind` 是本 crate 自己，不是 NSH 依赖。
     .filter((p) => /^nsh-(?!app-)/.test(p.name));
 
-  it('列出全部 NSH 依赖包', () => {
-    assert.ok(
-      nshPackages.length >= 8,
-      `Cargo.lock 中 nsh-* 包仅 ${nshPackages.length} 个：${nshPackages.map((p) => p.name).join(', ')}`,
+  it('列出全部 NSH 依赖包（platform crate 已随死依赖清理移除）', () => {
+    // nsh-engine 是 nsh-platform-* 的传递依赖，随平台 crate 一并从 lock 移除；
+    // app crate 直接依赖只剩 nsh-core + nsh-base（+ proc-macro 的 nsh-macros）。
+    const names = nshPackages.map((p) => p.name);
+    for (const required of ['nsh-base', 'nsh-core', 'nsh-macros']) {
+      assert.ok(names.includes(required), `Cargo.lock 缺少 ${required}`);
+    }
+    assert.equal(
+      names.filter((n) => /^nsh-platform-/.test(n)).length,
+      0,
+      `Cargo.lock 仍含 nsh-platform-*：${names.filter((n) => /^nsh-platform-/.test(n)).join(', ')}`,
+    );
+    assert.doesNotMatch(
+      lockfile,
+      /^name\s*=\s*"env_logger"/m,
+      'Cargo.lock 仍含 env_logger',
     );
   });
 
