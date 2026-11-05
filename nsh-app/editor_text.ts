@@ -24,7 +24,7 @@ export interface TextPosition {
 }
 
 /** 文本内 offset 范围（UTF-16；end 不含）。 */
-export interface TextRange {
+interface TextRange {
   start: number;
   end: number;
 }
@@ -36,7 +36,7 @@ export interface WikiCandidate {
 }
 
 /** 选区上下文：光标前窗口 + 当前选中文本（折叠时为空串）。 */
-export interface SelectionContext {
+interface SelectionContext {
   /** head（主选区活动端）的 UTF-16 offset。 */
   offset: number;
   /** 光标前最近 `TEXT_BEFORE_CHARS` 个字符。 */
