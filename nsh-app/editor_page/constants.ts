@@ -37,16 +37,11 @@ export const SIDE_BY_SIDE_WIDTH = 1280;
 /** 预览去抖（ms）：预览可见时打字停止这么久才重解析（05 §3.3/R6）。 */
 export const PREVIEW_DEBOUNCE_MS = 450;
 
-/** `[[id|alias]]` 的 MarkdownExtension：把 wikilink 解析成自定义 inline 节点，
- *  `renderCustom` 渲染成 chip（显示 alias 或 target；点击跳转是 P4 增强）。
- *  pattern 是 Rust regex：`[[` 之后非 `]`/`|` 的 target，可选 `|alias`。 */
-export const WIKILINK_EXTENSION = {
-  name: "wikilink",
-  pattern: "\\[\\[([^\\]\\|]+)(?:\\|([^\\]]+))?\\]\\]",
-} as const;
-
 /** 预览的 TextView 部件样式：映射 theme 令牌（不裸值）。
- *  只覆盖高频 part（root/heading/link/code/blockquote），其余用默认。 */
+ *  只覆盖高频 part（root/heading/link/code/blockquote），其余用默认。
+ *  link（P4-2）：cardmind:// 笔记链接与普通外链同走内建渲染；近 chip 外观
+ *  = accent 文字 + surfaceLow 底色 + 圆角（TextView 不渲染 `renderCustom` 了，
+ *  旧 [[id|alias]] 加载时已归一为标准链接）。 */
 export const PREVIEW_STYLES: TextViewStyles = {
   root: {
     color: colors.ink,
@@ -54,7 +49,11 @@ export const PREVIEW_STYLES: TextViewStyles = {
     lineHeight: typography.bodyMedium.lineHeight + 4,
   },
   heading: { color: colors.ink, fontWeight: "600" },
-  link: { color: colors.accent },
+  link: {
+    color: colors.accent,
+    backgroundColor: colors.surfaceLow,
+    borderRadius: radii.sm,
+  },
   code: {
     color: colors.ink,
     backgroundColor: colors.surfaceLow,

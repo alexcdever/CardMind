@@ -16,6 +16,7 @@ import {
   LOAD_TIMEOUT_MS,
   TEXT_BEFORE_CHARS,
   completionOffsets,
+  legacyWikilinksToMarkdown,
   linkPrefixFromContext,
   matchTags,
   normalizeNewlines,
@@ -246,9 +247,11 @@ export function createEditorController(props: EditorPageProps) {
           loadError.set("笔记不存在或已删除");
           return;
         }
-        // 与 `Editor.value()` 同口径：仅 `\r\n`/`\r`→`\n` 归一（05 §1.2），
-        // 其余逐字节保留；这样未编辑的 CRLF 笔记不会被误判为 dirty。
-        const loaded = normalizeNewlines(value);
+        // 与 `Editor.value()` 同口径：仅 `\r\n`/`\r`→`\n` 归一（05 §1.2）；
+        // 另把旧 `[[id|alias]]` 归一为新存储格式 `[alias](cardmind://note/id)`
+        // （P4-2 惰性迁移：加载即显示新格式，lastSaved 同步取转换后文本，
+        // 未编辑不 dirty、不回写；首次保存时自然写新格式）。
+        const loaded = legacyWikilinksToMarkdown(normalizeNewlines(value));
         loadedText.set(loaded);
         text.set(loaded);
         lastSaved = loaded;
@@ -424,7 +427,8 @@ export function createEditorController(props: EditorPageProps) {
     clearCandidateTimer();
   }
 
-  /** 点选候选：替换已输入的 `[[prefix`（一步撤销，修 01 R5），插入 `[[id|title]] `。 */
+  /** 点选候选：替换已输入的 `[[prefix`（一步撤销，修 01 R5），
+   *  插入 `[title](cardmind://note/id) `（P4-2 新存储格式）。 */
   async function acceptCandidate(candidate: WikiCandidate): Promise<void> {
     clearCandidateTimer();
     if (!editor) return;

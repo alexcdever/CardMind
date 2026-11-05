@@ -14,19 +14,14 @@
 // render 段 JSX 与交互逐字不变，控制器内声明按原顺序整体搬移（token 级一致；
 // 唯一改写：`editor = ref` → `setEditor(ref)`，let 绑定无法经解构写回）。
 import { Text, View, type JSX } from "nsh";
-import {
-  Editor,
-  NavPage,
-  TextView,
-  type EditorRef,
-  type TextViewCustomNode,
-} from "nsh/base";
+import { Editor, NavPage, TextView, type EditorRef } from "nsh/base";
 import { CardMindIconButton, CardMindPrimaryButton, CardMindTag } from "./components";
-import { goBack, screenChrome } from "./navigation";
+import { goBack, openEditor, screenChrome } from "./navigation";
+import { noteIdFromLinkUrl } from "./editor_text";
 import { colors, layout, radii, spacing, typography } from "./theme";
 import { createEditorController } from "./editor_page/controller";
 import { EditorDesktopHeader, EditorLoadError, EditorLoading } from "./editor_page/loading";
-import { COPY, PREVIEW_STYLES, SAVE_STATE, WIKILINK_EXTENSION } from "./editor_page/constants";
+import { COPY, PREVIEW_STYLES, SAVE_STATE } from "./editor_page/constants";
 import type { EditorPageProps } from "./editor_page/types";
 
 export type { EditorNoteRow, EditorPageProps, EditorRepository } from "./editor_page/types";
@@ -64,8 +59,11 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
     saveStateColor,
   } = createEditorController(props);
 
-  /** 预览面板（只读 TextView）。`[[id|alias]]` 经扩展渲染成 chip（显示 alias/target）。 */
+  /** 预览面板（只读 TextView）。笔记链接是标准 `[alias](cardmind://note/id)`：
+   *  内建 link 渲染（PREVIEW_STYLES.link 近 chip 外观）；按下经 `onLinkPress`
+   *  解析 id 后走 `props.onNavigateNote`（默认 openEditor；桌面内嵌换选中）。 */
   function renderPreview(): JSX.Element {
+    const navigate = props.onNavigateNote ?? openEditor;
     return (
       <View
         testID="preview-pane"
@@ -79,16 +77,11 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
         <TextView
           testID="preview"
           markdown={previewText()}
-          extensions={[WIKILINK_EXTENSION]}
           styles={PREVIEW_STYLES}
           selectable
-          renderCustom={(node: TextViewCustomNode) => {
-            const target = node.attributes?.["1"] ?? "";
-            const alias = node.attributes?.["2"] ?? "";
-            const label = alias.length > 0 ? alias : target.length > 0 ? target : (node.text ?? "");
-            return (
-              <CardMindTag testID={`wikilink-${target || "custom"}`} label={label} />
-            );
+          onLinkPress={({ url }) => {
+            const noteId = noteIdFromLinkUrl(url);
+            if (noteId !== null) navigate(noteId);
           }}
         />
       </View>

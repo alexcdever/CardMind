@@ -41,7 +41,8 @@ impl BackendNotes {
         Ok(svc.get_note(&id))
     }
 
-    /// 更新笔记元数据（meta tags；内容里的 `[[id|alias]]` 链接也在这份 meta 里）。
+    /// 更新笔记元数据（meta tags；内容里的笔记链接
+    /// `[alias](cardmind://note/id)` / 旧 `[[id|alias]]` 也在这份 meta 里）。
     pub async fn note_update_metadata(note_id: String, tags: Vec<String>) -> Result<bool, String> {
         let guard = ensure_sync().await?;
         let svc = guard
@@ -128,7 +129,8 @@ impl BackendNotes {
         Ok(rows.iter().map(NoteDto::from).collect())
     }
 
-    /// SQLite — 出链查询（本笔记正文里 `[[id|alias]]` 指向谁）。
+    /// SQLite — 出链查询（本笔记正文里的笔记链接指向谁；
+    /// 新格式 `[alias](cardmind://note/id)` 与旧 `[[id|alias]]` 都计入）。
     pub fn get_outgoing_links(note_id: String) -> Result<Vec<LinkDto>, String> {
         let rows = store()?
             .outgoing_links(&note_id)
@@ -136,7 +138,7 @@ impl BackendNotes {
         Ok(rows.iter().map(LinkDto::from).collect())
     }
 
-    /// SQLite — 反链查询（谁的正文 `[[id|alias]]` 指向本笔记）。
+    /// SQLite — 反链查询（谁的正文链接指向本笔记；新旧两种格式都计入）。
     pub fn get_backlinks(note_id: String) -> Result<Vec<LinkDto>, String> {
         let rows = store()?.backlinks(&note_id).map_err(|e| format!("{e:#}"))?;
         Ok(rows.iter().map(LinkDto::from).collect())

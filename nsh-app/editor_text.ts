@@ -110,10 +110,126 @@ export function completionOffsets(offset: number, prefix: string): TextRange {
   };
 }
 
-/** 候选插入文本：`[[id|title]] `（Rust `parse_links` 可按 `|` 拆出 id/alias；
- *  尾随空格让光标离开 `]]`，便于继续输入）。 */
+/** 笔记链接的 URL 前缀（P4-2 存储格式：标准 Markdown 链接 + 私有 scheme）。 */
+export const NOTE_LINK_URL_PREFIX = 'cardmind://note/';
+
+/** Markdown 链接文本转义：`\`、`[`、`]` 需要 `\` 前缀才不被当语法
+ *  （写出侧只用这三条；Rust 读侧对 ASCII punctuation 一律还原）。 */
+export function escapeMdLinkText(text: string): string {
+  return text.replace(/[\\\[\]]/g, (ch) => `\\${ch}`);
+}
+
+/** 候选插入文本：`[title](cardmind://note/id) `（P4-2 新存储格式；
+ *  尾随空格让光标落在链接之后，便于继续输入）。 */
 export function wikilinkText(candidate: WikiCandidate): string {
-  return `[[${candidate.id}|${candidate.title}]] `;
+  return `[${escapeMdLinkText(candidate.title)}](${NOTE_LINK_URL_PREFIX}${encodeURIComponent(candidate.id)}) `;
+}
+
+/** 把旧 `[[id|alias]]` / `[[id]]` 归一为新格式 `[alias](cardmind://note/id)`；
+ *  已是新格式、普通 markdown 链接、空 target（`[[]]`/`[[|alias]]`/`[[|]]`）与
+ *  未闭合 `[[...` 原样保留；行内 code（`…` 反引号 run 配对）与 ```/~~~ 围栏
+ *  代码块内不转换（与 Rust 读侧一致：代码块里的 [[..]] 不产链接）。
+ *  已知边界：行内 code 按行内匹配（跨行 code span 不识别）；围栏判定按
+ *  「行首 ≤3 空格 + 3+ 相同标记字符」的粗粒度规则。 */
+export function legacyWikilinksToMarkdown(text: string): string {
+  const inner = /\[\[((?:[^\]]|\](?!\]))*)\]\]/g;
+  const convertPlain = (line: string): string =>
+    convertLineOutsideInlineCode(line, inner);
+  return protectCodeSegments(text, convertPlain);
+}
+
+/** 单行内：把行内 code span 外的 `[[..]]` 换成新格式。 */
+function convertLineOutsideInlineCode(line: string, inner: RegExp): string {
+  let out = '';
+  let pos = 0;
+  while (pos < line.length) {
+    const tick = line.indexOf('`', pos);
+    if (tick === -1) {
+      out += replaceWikilinks(line.slice(pos), inner);
+      break;
+    }
+    // 开反引号 run：找等长的闭 run；找不到 → 反引号按字面处理。
+    let openRun = 1;
+    while (line[tick + openRun] === '`') openRun += 1;
+    const close = findBacktickClose(line, tick + openRun, openRun);
+    if (close === -1) {
+      out += replaceWikilinks(line.slice(pos), inner);
+      break;
+    }
+    out += replaceWikilinks(line.slice(pos, tick), inner);
+    out += line.slice(tick, close);
+    pos = close;
+  }
+  return out;
+}
+
+/** 从 `from` 起找等长于 `run` 的反引号闭 run，返回其结束 offset；无 → -1。 */
+function findBacktickClose(text: string, from: number, run: number): number {
+  let i = from;
+  while (i < text.length) {
+    if (text[i] === '`') {
+      let n = 1;
+      while (text[i + n] === '`') n += 1;
+      if (n === run) return i + n;
+      i += n;
+    } else {
+      i += 1;
+    }
+  }
+  return -1;
+}
+
+/** 纯文本段里的 `[[..]]` → 新格式（空 target / `[[|` 开头 / 未闭合原样）。 */
+function replaceWikilinks(segment: string, inner: RegExp): string {
+  inner.lastIndex = 0;
+  return segment.replace(inner, (whole, body: string) => {
+    const pipe = body.indexOf('|');
+    const target = (pipe === -1 ? body : body.slice(0, pipe)).trim();
+    if (target === '') return whole;
+    const alias =
+      pipe === -1
+        ? target
+        : body.slice(pipe + 1).trim() || target; // [[id|]] 按缺省处理
+    return `[${escapeMdLinkText(alias)}](${NOTE_LINK_URL_PREFIX}${encodeURIComponent(target)})`;
+  });
+}
+
+/** 把 ```/~~~ 围栏代码块整段排除在 `convertPlain` 之外（逐行扫描）。 */
+function protectCodeSegments(text: string, convertPlain: (line: string) => string): string {
+  const lines = text.split('\n');
+  const fenceRe = /^ {0,3}(`{3,}|~{3,})/;
+  let fence: { mark: '`' | '~'; len: number } | null = null;
+  return lines
+    .map((line) => {
+      if (fence === null) {
+        const m = line.match(fenceRe);
+        if (m !== null) {
+          fence = { mark: m[1][0] as '`' | '~', len: m[1].length };
+          return line; // 开标记行（含 info string）不转换
+        }
+        return convertPlain(line);
+      }
+      const m = line.match(fenceRe);
+      if (m !== null && m[1][0] === fence.mark && m[1].length >= fence.len) {
+        fence = null;
+      }
+      return line; // 围栏内行与闭标记行不转换
+    })
+    .join('\n');
+}
+
+/** `cardmind://note/<id>` URL → 笔记 id（percent-decode；非法/非本 scheme → null）。 */
+export function noteIdFromLinkUrl(url: unknown): string | null {
+  if (typeof url !== 'string') return null;
+  const body = url.startsWith(NOTE_LINK_URL_PREFIX)
+    ? url.slice(NOTE_LINK_URL_PREFIX.length)
+    : '';
+  if (body === '') return null;
+  try {
+    return decodeURIComponent(body);
+  } catch {
+    return body; // 非法 % 序列按字面取 id（宽松读，与 Rust 侧一致）
+  }
 }
 
 /** 由 anchor/head 两个位置算出选区上下文（offset 按 head，selected 按范围）。 */

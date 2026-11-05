@@ -24,6 +24,9 @@ export function DesktopEditorPane(props: {
   repository?: EditorRepository;
   /** 测试接缝：把内嵌 Editor 的 ref 交给调用方。 */
   onEditorRef?: (ref: EditorRef) => void;
+  /** 预览里按下笔记链接的跳转：桌面三栏应切换选中（由列表侧注入 openNote），
+   *  不传则退回 EditorPage 默认的 `openEditor` push 路由。 */
+  onNavigateNote?: (noteId: string) => void;
 }): JSX.Element {
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
@@ -46,6 +49,7 @@ export function DesktopEditorPane(props: {
                 embedded
                 repository={props.repository}
                 onEditorRef={props.onEditorRef}
+                onNavigateNote={props.onNavigateNote}
               />
             )}
           </Each>

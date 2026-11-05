@@ -9,10 +9,12 @@ import {
   LOAD_TIMEOUT_MS,
   TEXT_BEFORE_CHARS,
   completionOffsets,
+  legacyWikilinksToMarkdown,
   lineStartOffsets,
   linkPrefixFromContext,
   matchTags,
   normalizeNewlines,
+  noteIdFromLinkUrl,
   offsetToPosition,
   positionToOffset,
   selectionContext,
@@ -127,8 +129,25 @@ describe('completionOffsets（[[ 替换范围）', () => {
 });
 
 describe('wikilinkText / 选区上下文', () => {
-  it('候选拼成 [[id|title]] + 尾随空格', () => {
-    assert.equal(wikilinkText({ id: 'note-2', title: '会议记录' }), '[[note-2|会议记录]] ');
+  it('候选拼成标准 Markdown 链接 [title](cardmind://note/id) + 尾随空格', () => {
+    assert.equal(
+      wikilinkText({ id: 'note-2', title: '会议记录' }),
+      '[会议记录](cardmind://note/note-2) ',
+    );
+  });
+
+  it('候选标题含 ] 时转义为 \\]', () => {
+    assert.equal(
+      wikilinkText({ id: 'n-1', title: 'a]b' }),
+      '[a\\]b](cardmind://note/n-1) ',
+    );
+  });
+
+  it('候选标题含反斜杠与 [ 也转义', () => {
+    assert.equal(
+      wikilinkText({ id: 'n-1', title: 'x\\y[z' }),
+      '[x\\\\y\\[z](cardmind://note/n-1) ',
+    );
   });
 
   it('折叠光标：selected 为空，textBefore 取光标前 40 字符', () => {
@@ -198,3 +217,117 @@ describe('normalizeNewlines（唯一允许的换行归一）', () => {
     assert.equal(normalizeNewlines('\\[x\\]  \n'), '\\[x\\]  \n');
   });
 });
+
+describe('noteIdFromLinkUrl（cardmind://note/ 链接反解）', () => {
+  it('合法 URL → target id', () => {
+    assert.equal(noteIdFromLinkUrl('cardmind://note/note-2'), 'note-2');
+  });
+
+  it('percent-encoding 的 id 被还原', () => {
+    assert.equal(noteIdFromLinkUrl('cardmind://note/a%20b'), 'a b');
+  });
+
+  it('非 cardmind scheme / 空 target / 非 string → null', () => {
+    assert.equal(noteIdFromLinkUrl('https://example.com/x'), null);
+    assert.equal(noteIdFromLinkUrl('cardmind://other/y'), null);
+    assert.equal(noteIdFromLinkUrl('cardmind://note/'), null);
+    assert.equal(noteIdFromLinkUrl(undefined), null);
+    assert.equal(noteIdFromLinkUrl(42), null);
+  });
+});
+
+describe('legacyWikilinksToMarkdown（旧 [[id|alias]] 归一为新格式）', () => {
+  it('[[id]] → [id](cardmind://note/id)', () => {
+    assert.equal(
+      legacyWikilinksToMarkdown('看 [[note-3]]'),
+      '看 [note-3](cardmind://note/note-3)',
+    );
+  });
+
+  it('[[id|alias]] → [alias](cardmind://note/id)，alias trim', () => {
+    assert.equal(
+      legacyWikilinksToMarkdown('[[note-2| 会议别名 ]]'),
+      '[会议别名](cardmind://note/note-2)',
+    );
+  });
+
+  it('空 alias [[id|]] 按缺省处理 → [id](cardmind://note/id)', () => {
+    assert.equal(
+      legacyWikilinksToMarkdown('[[note-9|]]'),
+      '[note-9](cardmind://note/note-9)',
+    );
+  });
+
+  it('已是新格式 / 普通 markdown 链接不动', () => {
+    const doc = '[别名](cardmind://note/n-1) 与 [外链](https://a.b) 与 [x](u) ';
+    assert.equal(legacyWikilinksToMarkdown(doc), doc);
+  });
+
+  it('空 target / 未闭合原样保留', () => {
+    const doc = '[[|alias]] 与 [[]] 与 [[|]] 与 [[never closed';
+    assert.equal(legacyWikilinksToMarkdown(doc), doc);
+  });
+
+  it('body 内再含 [[ 按 Rust 同口径解析（target 止于首个 |）', () => {
+    // Rust 侧 `[[never closed 与 [[|]]` 也会产链接（target=`never closed 与 [[`），
+    // JS 归一与 Rust 索引保持一致：同样转成新格式。
+    assert.equal(
+      legacyWikilinksToMarkdown('[[never closed 与 [[|]]'),
+      '[never closed 与 \\[\\[](cardmind://note/never%20closed%20%E4%B8%8E%20%5B%5B)',
+    );
+  });
+
+  it('多个链接逐个转换', () => {
+    assert.equal(
+      legacyWikilinksToMarkdown('[[a|A]] 与 [[b]] 与 [[c|C]]'),
+      '[A](cardmind://note/a) 与 [b](cardmind://note/b) 与 [C](cardmind://note/c)',
+    );
+  });
+
+  it('alias 含 ] 转义写出（与 wikilinkText 同口径）', () => {
+    assert.equal(
+      legacyWikilinksToMarkdown('[[x|a]b]]'),
+      '[a]b](cardmind://note/x)'.replace(']b]', '\\]b]'),
+    );
+  });
+
+  it('行内 code 内不转换', () => {
+    const doc = '正 `[[n-1|x]]` 文 [[n-2]]';
+    assert.equal(
+      legacyWikilinksToMarkdown(doc),
+      '正 `[[n-1|x]]` 文 [n-2](cardmind://note/n-2)',
+    );
+  });
+
+  it('`` 多反引号 span 内不转换', () => {
+    const doc = '`` [[n-1]] `x` `` 外 [[n-2]]';
+    assert.equal(
+      legacyWikilinksToMarkdown(doc),
+      '`` [[n-1]] `x` `` 外 [n-2](cardmind://note/n-2)',
+    );
+  });
+
+  it('``` 围栏代码块内不转换（含未闭合块）', () => {
+    const doc = '前 [[n-1]]\n```md\n[[n-2]] 与 [[n-3|x]]\n```\n后 [[n-4]]';
+    assert.equal(
+      legacyWikilinksToMarkdown(doc),
+      '前 [n-1](cardmind://note/n-1)\n```md\n[[n-2]] 与 [[n-3|x]]\n```\n后 [n-4](cardmind://note/n-4)',
+    );
+    const unclosed = '```\n[[n-1]]';
+    assert.equal(legacyWikilinksToMarkdown(unclosed), unclosed);
+  });
+
+  it('~~~ 围栏同样保护', () => {
+    const doc = '~~~\n[[n-1]]\n~~~\n[[n-2]]';
+    assert.equal(
+      legacyWikilinksToMarkdown(doc),
+      '~~~\n[[n-1]]\n~~~\n[n-2](cardmind://note/n-2)',
+    );
+  });
+
+  it('围栏开标记同行的 [[ 不转换（属于 info string 区）', () => {
+    const doc = '``` [[n-1]]\n[[n-2]]\n```';
+    assert.equal(legacyWikilinksToMarkdown(doc), doc);
+  });
+});
+
