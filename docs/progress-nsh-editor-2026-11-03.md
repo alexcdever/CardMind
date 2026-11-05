@@ -800,3 +800,18 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 
 - 去 `export` 后的非导出类型仍可在同文件内作返回类型/约束——TypeScript 允许（外部调用方经类型推导得到匿名类型，编译不受影响）。
 - `pnpm install` 成功但 `esbuild` postinstall 被 pnpm ignored-builds 跳过；tsx 自带 esbuild 内核，不影响测试。
+
+### 合并与主树复验（`25f805a2`，2026-11-05）
+
+合并 commit `25f805a2`（`--no-ff`），分支提交 `12d1a59c`，基线 `a7004761`；diff 5 文件 +41/−8（4 源文件 + docs）。
+
+独立审查：**APPROVE**——4 个符号零消费者独立复验确认；diff 与声称逐字吻合；回归全绿（`nsh check` exit 0、tsx 229/1/0、editor 28/28、cargo 22 target 0 failed、gate ✅、native.d.ts SHA 一致）。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check . --tsc …` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail** |
+| `nsh test --filter editor` | **28/28**（1m25s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
