@@ -968,3 +968,20 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 | `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app`（release runner 5m47s） |
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 | `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+### 合并与主树复验（`0a07a894`，2026-11-06）
+
+合并 commit `0a07a894`（`--no-ff`），分支提交 `fa9c79ce`，基线 `44e7a12a`；diff 12 文件 +223/−49。
+
+独立审查：**APPROVE**——7 处 breaking API 全为签名适配（语义等价）；6 类 0.4.0 破坏性变更扫描全空；`editor_page.test.tsx` diff 为空（28 断言逐字未改）；Cargo.lock 仅 3 个 nsh crate 升版 + 15 个 0.4.0 runtime 传递依赖；断言计数 build_script 15→15、skeleton 37→37 不减。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0（0 TS 错误） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail** |
+| `nsh test --filter editor` | **28/28**（1m26s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+
+> CLI 本机已升到 `nsh 0.4.0 (e626a8d)`（`~/.nsh` + `~/.local/bin/nsh` 软链；旧的 `~/.cargo/bin/nsh` 0.3.0 仍在但 PATH 顺序让 0.4.0 优先）。
