@@ -11,9 +11,21 @@ const manifest = read('Cargo.toml');
 const lockfile = read('Cargo.lock');
 
 /** nsh-app 的 TSX 源码（本目录下的 *.tsx；测试文件都是 *_test.ts，不会混进来）。 */
-const tsxSources = readdirSync(here)
+const topLevelTsx = readdirSync(here)
   .filter((f) => f.endsWith('.tsx'))
   .map((f) => ({ name: f, code: read(f) }));
+
+/** P2-5 起组件库拆为入口 + components/ 子目录；把子目录 .tsx 并入扫描面，
+ *  不削弱「NSH 导入面」断言的覆盖（断言条数/正则不减少）。 */
+const COMPONENTS_DIR = path.join(here, 'components');
+const componentsTsx = existsSync(COMPONENTS_DIR)
+  ? readdirSync(COMPONENTS_DIR)
+      .filter((f) => f.endsWith('.tsx'))
+      .sort()
+      .map((f) => ({ name: path.join('components', f), code: read(path.join('components', f)) }))
+  : [];
+
+const tsxSources = [...topLevelTsx, ...componentsTsx];
 
 /** 0.3.0 起不再存在的旧 NSH 子模块路径（一切并入 `nsh` / `nsh/base`）。 */
 const LEGACY_NSH_MODULES = ['webview', 'list', 'gesture', 'device', 'keymap', 'animated'];
@@ -172,8 +184,26 @@ describe('TSX 源码的 NSH 导入面（0.3.0：只剩 nsh 与 nsh/base）', () 
             .map((f) => read(path.join('devices_page', f)))
             .join('\n')
         : '');
+    // P2-5 起 components.tsx 同样拆为入口 + components/ 子模块（Input 在
+    // components/search_field.tsx），断言改读并集，条数/正则不削弱。
+    const componentsDir = path.join(here, 'components');
+    const componentsUnion =
+      read('components.tsx') +
+      '\n' +
+      (existsSync(componentsDir)
+        ? readdirSync(componentsDir)
+            .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
+            .sort()
+            .map((f) => read(path.join('components', f)))
+            .join('\n')
+        : '');
     for (const name of ['components.tsx', 'devices_page.tsx', 'settings_page.tsx']) {
-      const code = name === 'devices_page.tsx' ? devicesUnion : read(name);
+      const code =
+        name === 'devices_page.tsx'
+          ? devicesUnion
+          : name === 'components.tsx'
+            ? componentsUnion
+            : read(name);
       assert.doesNotMatch(
         code,
         /import\s*\{[^}]*\bInput\b[^}]*\}\s*from\s*['"]nsh['"]/,

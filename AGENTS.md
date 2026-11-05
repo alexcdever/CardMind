@@ -29,7 +29,10 @@ NSH (TSX UI, nsh-app) ←→ Rust (业务后端，rust-backend)
 ```
 nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter lib/）
   App.tsx         应用入口
-  components.tsx  UI 组件
+  components.tsx  UI 组件入口（re-export 公共 API + panel + ViewStyle）
+  components/     UI 组件子模块（components.tsx 为入口）：
+                  types(IconGlyph·ViewStyle re-export)/constants(11 个共享视觉常量)/glyph(图标集)/
+                  buttons(Primary+Icon)/search_field/tag/sync_status/empty_state/list_item/confirm_dialog/panel
   navigation.tsx  导航
   note_list.tsx / trash_page.tsx / settings_page.tsx / devices_page.tsx / editor_page.tsx（页面）
   note_list/      笔记列表页子模块（note_list.tsx 为入口：NoteListPage + re-export）：

@@ -679,3 +679,53 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 根因：P2-3 executor 在 worktree 里跑 `cargo test` 时把 `CARGO_TARGET_DIR` 指向了**主树的** `rust-backend/target`，`env!("CARGO_MANIFEST_DIR")` 是编译期常量，于是 worktree 路径被烧进 `target/debug/deps/hygiene_test-*` 二进制；worktree 删除后该路径失效。修法：`touch tests/hygiene_test.rs` + 删旧二进制强制重编，重跑 `cargo test` 22 target 全部 0 failed。
 
 > **教训**：worktree 里跑 Rust 测试不要复用主树 `CARGO_TARGET_DIR`；`env!` 类编译期路径会跨 worktree 泄漏。已写入 handover 待补条目。
+
+## 18. P2-5：`components.tsx` 拆分（2026-11，worktree `p2-components-split`，基线 `27a3fb17`）
+
+### 拆分
+
+`components.tsx` 698 → 入口 **22 行**（仅 re-export + `panel` + `ViewStyle` re-export）+ `components/` 11 个子文件：
+
+| 子文件 | 行数 | 内容 |
+|---|---|---|
+| types.ts | 21 | `IconGlyph` 联合 + `ViewStyle` re-export |
+| constants.ts | 38 | 11 个共享视觉常量（glyphSize/statusDotSize/emptyIconSize/searchPaddingY/tagFontSize/tagPaddingY/tagDeleteGlyph/emptyStateMaxWidth/dialogWidth/activeStripeWidth/disabledOpacity） |
+| glyph.tsx | 151 | `Glyph` + `IconGlyph` 图标集（最长 switch） |
+| buttons.tsx | 117 | `CardMindPrimaryButton` + `CardMindIconButton` |
+| search_field.tsx | 71 | `CardMindSearchField` |
+| tag.tsx | 75 | `CardMindTag` |
+| sync_status.tsx | 44 | `CardMindSyncStatus` |
+| empty_state.tsx | 53 | `CardMindEmptyState` |
+| list_item.tsx | 63 | `CardMindListItem` |
+| confirm_dialog.tsx | 109 | `CardMindConfirmDialog` |
+| panel.ts | 9 | `panel` 底色集合 |
+
+### Token 等价
+
+`/tmp/p2-5/extract.cjs`（TS compiler API，剥 `export` 逐字节比）：基线 **23 个顶层声明** vs 拆分后 **23 个** → **IDENTICAL×23，MISSING 0，DIFF 0，EXTRA 0**。`constants.ts` 的 `const` 补了 `export` 修饰符（语义不变，子模块被入口 re-export 需要）。
+
+### 测试并集化
+
+- `ui_kit_test.ts` 3 处改 union read（入口 + `components/` 全部 `.ts`/`.tsx`）；`from "./theme"` 正则放宽为 `./theme`/`../theme` 两档（子模块相对路径不同，断言语义不变）。断言条数 **32→32 不减**。
+- `skeleton_test.ts` `:175` `Input` 断言改 union + `tsxSources` 并入 `components/*.tsx`；断言条数 **56→56 不减**。
+
+### 验证（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check . --tsc /tmp/p2-4-review/ts7/...`（+ 主树 CARGO_TARGET_DIR） | exit 0 |
+| `npx tsx --test "*_test.ts"` | **230 tests / 229 pass / 0 fail / 1 skipped** |
+| `nsh test --filter editor` | **28/28**（5m31s，含 5 万字 perf） |
+| `nsh test --filter "note: 移动布局"` | **1/1** |
+| `cd rust-backend && cargo test`（**`env -u CARGO_TARGET_DIR`，worktree 本地 target**） | exit 0，**184 passed / 0 failed / 22 targets** |
+| `.nsh/types/app/native.d.ts` SHA-256 | `c350b682…`（与基线一致） |
+| `nsh test`（不带 filter） | 不跑——基线即连带 Windows-only `coexist_notes_probe`（macOS 无 `APPDATA`，见 §5.7），非本轮引入 |
+
+### Commit
+
+`16183e32` `refactor(components): 拆 components.tsx(698)→components/`（14 files，pre-commit 门禁过）。
+
+### 备注
+
+- `pnpm install` 被代理截断（TLS EOF），改为从主树复制 `node_modules`（37M）+ `.nsh`；同基线产物，无副作用。
+- `cargo test` 用 `env -u CARGO_TARGET_DIR` + worktree 本地 `rust-backend/target`，避免 §17 末尾记录的 `env!("CARGO_MANIFEST_DIR")` 跨 worktree 污染重演。
