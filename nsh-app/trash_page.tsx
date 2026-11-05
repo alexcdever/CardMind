@@ -9,237 +9,41 @@
 // 积累数百条墓碑。每条行尾挂「恢复」「彻底删除」两个 48×48 图标按钮。
 //
 // 令牌纪律：所有颜色 / 间距 / 圆角 / 触摸目标全部来自 ./theme，禁止裸值。
-import { effect, List, signal, Text, View } from "nsh";
+//
+// 结构（P2-4 纯结构拆分）：本文件仅保留页面根 `TrashPage` 与公共 API 的
+// re-export；类型/常量/文本工具/状态/列表行分别落在 `./trash_page/` 子模块。
+// render 段 JSX 与交互逐字不变；signals 仍是 state.ts 模块顶层单例（单一
+// 创建点）。
+import { effect, List, Text, View } from "nsh";
 import type { JSX } from "nsh";
-import { BackendNotes } from "app/native";
 import {
   CardMindConfirmDialog,
   CardMindEmptyState,
-  CardMindIconButton,
-  CardMindListItem,
   Glyph,
   panel,
 } from "./components";
 import { colors, layout, radii, spacing, typography } from "./theme";
+import { estimatedRowHeight } from "./trash_page/constants";
+import { displayTitle } from "./trash_page/helpers";
+import { TrashRow } from "./trash_page/sections";
+import {
+  actionMessage,
+  busy,
+  cancelPurge,
+  cancelPurgeExpired,
+  confirmPurge,
+  confirmPurgeExpired,
+  items,
+  loadError,
+  loading,
+  loadTrashWithRetry,
+  purgeExpiredConfirm,
+  purgeTarget,
+  requestPurgeExpired,
+} from "./trash_page/state";
 
-// ─── 数据层（可注入替代；默认值走真后端）─────────────────────────────────────
-
-/** 回收站行（与 nsh-app/src/lib.rs 的 NoteDto 镜像一致）。 */
-export interface TrashNoteDto {
-  id: string;
-  title: string;
-  contentPreview: string;
-  tags: string;
-  updatedAt: string;
-  deletedAt?: string | null;
-}
-
-/** 回收站后端表面（TSX 侧能注入假实现）。 */
-export interface TrashSource {
-  trashList(): Promise<TrashNoteDto[]>;
-  noteRestore(id: string): Promise<boolean>;
-  notePurge(id: string): Promise<boolean>;
-  purgeExpiredTrash(cutoff: string): Promise<number>;
-}
-
-/** 默认源：BackendNotes 的 DTO（0.2.0 起 camelCase）直读；写操作后刷新投影。 */
-function makeBackendSource(): TrashSource {
-  const map = (r: TrashNoteDto): TrashNoteDto => r;
-  return {
-    trashList: async () => (await BackendNotes.storeTrashList()).map(map),
-    noteRestore: async (id) => {
-      await BackendNotes.noteRestore(id);
-      await BackendNotes.syncNotesToStore();
-      return true;
-    },
-    notePurge: async (id) => {
-      await BackendNotes.notePurge(id);
-      await BackendNotes.syncNotesToStore();
-      return true;
-    },
-    purgeExpiredTrash: async (cutoff) => {
-      const n = await BackendNotes.purgeExpiredTrash(cutoff);
-      await BackendNotes.syncNotesToStore();
-      return n;
-    },
-  };
-}
-
-let source: TrashSource = makeBackendSource();
-
-/** 替换数据源（测试/演示用）。 */
-export function setTrashSource(s: TrashSource): void {
-  source = s;
-}
-
-// ─── 页面状态 ────────────────────────────────────────────────────────────────
-
-const items = signal<TrashNoteDto[]>([]);
-const loading = signal(true);
-const loadError = signal<string | undefined>(undefined);
-/** 彻底删除确认目标。 */
-const purgeTarget = signal<TrashNoteDto | undefined>(undefined);
-/** 定期清理确认框开关。 */
-const purgeExpiredConfirm = signal(false);
-/** 操作反馈行（恢复/删除/清理的结果）。 */
-const actionMessage = signal<string | undefined>(undefined);
-const busy = signal(false);
-
-// ─── 数据加载 ────────────────────────────────────────────────────────────────
-
-async function loadTrash(): Promise<void> {
-  loading.set(true);
-  try {
-    const list = await source.trashList();
-    items.set(list);
-    loadError.set(undefined);
-  } catch (error) {
-    loadError.set(`加载回收站失败：${String(error)}`);
-  } finally {
-    loading.set(false);
-  }
-}
-
-/** 首次装载重试：store 可能与 App 层 createNoteStore 并发未开，重试三次。 */
-async function loadTrashWithRetry(attempts = 3, delayMs = 250): Promise<void> {
-  let lastError: unknown;
-  for (let i = 0; i < attempts; i += 1) {
-    try {
-      await loadTrash();
-      return;
-    } catch (error) {
-      lastError = error;
-      if (i + 1 < attempts) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-  }
-  items.set([]);
-  void lastError;
-}
-
-// ─── 操作 ────────────────────────────────────────────────────────────────────
-
-async function restore(note: TrashNoteDto): Promise<void> {
-  if (busy()) return;
-  busy.set(true);
-  try {
-    await source.noteRestore(note.id);
-    actionMessage.set(`已恢复「${displayTitle(note)}」`);
-    await loadTrash().catch(() => undefined);
-  } catch (error) {
-    actionMessage.set(`恢复失败：${String(error)}`);
-  } finally {
-    busy.set(false);
-  }
-}
-
-/** 彻底删除入口：弹危险确认对话框（不直删）。 */
-function requestPurge(note: TrashNoteDto): void {
-  purgeTarget.set(note);
-}
-
-async function confirmPurge(): Promise<void> {
-  const target = purgeTarget();
-  purgeTarget.set(undefined);
-  if (!target || busy()) return;
-  busy.set(true);
-  try {
-    await source.notePurge(target.id);
-    actionMessage.set(`「${displayTitle(target)}」已彻底删除`);
-    await loadTrash().catch(() => undefined);
-  } catch (error) {
-    actionMessage.set(`删除失败：${String(error)}`);
-  } finally {
-    busy.set(false);
-  }
-}
-
-function cancelPurge(): void {
-  purgeTarget.set(undefined);
-}
-
-/** 定期清理入口：弹危险确认对话框。 */
-function requestPurgeExpired(): void {
-  purgeExpiredConfirm.set(true);
-}
-
-/** 30 天前的 RFC3339 cutoff（对照 Dart `now.subtract(Duration(days: 30))`
- *  `.toIso8601String()`）。 */
-function expiredCutoff(): string {
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  return cutoff.toISOString();
-}
-
-async function confirmPurgeExpired(): Promise<void> {
-  purgeExpiredConfirm.set(false);
-  if (busy()) return;
-  busy.set(true);
-  try {
-    const n = await source.purgeExpiredTrash(expiredCutoff());
-    actionMessage.set(
-      n > 0 ? `已清理 ${n} 条过期笔记` : "没有需要清理的过期笔记",
-    );
-    await loadTrash().catch(() => undefined);
-  } catch (error) {
-    actionMessage.set(`清理失败：${String(error)}`);
-  } finally {
-    busy.set(false);
-  }
-}
-
-function cancelPurgeExpired(): void {
-  purgeExpiredConfirm.set(false);
-}
-
-// ─── 文本工具（对照 Dart _displayTitle/_formatDate）─────────────────────────
-
-function displayTitle(note: TrashNoteDto): string {
-  const clean = note.title.replace(/^\s*#+\s*/, "").trim();
-  return clean.length > 0 ? clean : "无标题";
-}
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!m) return iso;
-  return `${Number(m[2])}月${Number(m[3])}日`;
-}
-
-// ─── 列表行 ──────────────────────────────────────────────────────────────────
-
-/** 列表行高估值（virtual_list estimatedItemSize；48 触摸目标 + 副标题行）。 */
-const estimatedRowHeight = 72;
-
-function TrashRow(props: { note: () => TrashNoteDto }): JSX.Element {
-  const note = props.note;
-  return (
-    <CardMindListItem
-      title={displayTitle(note())}
-      subtitle={`删除于 ${formatDate(note().deletedAt ?? note().updatedAt)}`}
-      trailing={
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: spacing.xs,
-          }}
-        >
-          <CardMindIconButton
-            icon="restore"
-            tooltip={`恢复「${displayTitle(note())}」`}
-            onPress={() => void restore(note())}
-          />
-          <CardMindIconButton
-            icon="delete"
-            tooltip={`彻底删除「${displayTitle(note())}」`}
-            onPress={() => requestPurge(note())}
-          />
-        </View>
-      }
-    />
-  );
-}
+export type { TrashNoteDto, TrashSource } from "./trash_page/types";
+export { setTrashSource } from "./trash_page/state";
 
 // ─── 页面根 ─────────────────────────────────────────────────────────────────
 

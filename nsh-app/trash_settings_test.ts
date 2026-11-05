@@ -1,4 +1,6 @@
 // 施工方案 2.3 + 2.4 验收测试（task.md 标准 4/5/6）：读文件断言，不跑构建。
+// P2-4 起断言读「入口 + 子目录全部 .ts/.tsx」并集（trash_page/、settings_page/），
+// 断言条数与正则不削弱。
 //
 // 断言面：
 //  ① trash_page.tsx / settings_page.tsx 存在；
@@ -13,7 +15,7 @@
 //  ⑧ App.tsx 接入两页（import + 渲染），启动接真后端且无 Phase 1 演示副作用。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -24,10 +26,26 @@ const TRASH = 'trash_page.tsx';
 const SETTINGS = 'settings_page.tsx';
 const APP = 'App.tsx';
 
+/** P2-4 起两页拆为入口 + 子目录（trash_page/、settings_page/，同
+ *  note_list/editor_page/devices_page 拆分模式）。结构/令牌断言改读
+ *  **并集**（入口 + 子目录全部 .ts/.tsx 拼接）——断言条数与正则一律
+ *  不减少、不放宽，只是把「单文件源码面」扩大到「拆分后的源码面」。 */
+const unionRead = (entry: string, dirName: string) => {
+  const dir = path.join(here, dirName);
+  const subs = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
+        .sort()
+        .map((f) => read(path.join(dirName, f)))
+        .join('\n')
+    : '';
+  return read(entry) + '\n' + subs;
+};
+
 const trashPath = path.join(here, TRASH);
 const settingsPath = path.join(here, SETTINGS);
-const trash = existsSync(trashPath) ? read(TRASH) : '';
-const settings = existsSync(settingsPath) ? read(SETTINGS) : '';
+const trash = existsSync(trashPath) ? unionRead(TRASH, 'trash_page') : '';
+const settings = existsSync(settingsPath) ? unionRead(SETTINGS, 'settings_page') : '';
 const app = read(APP);
 
 /** 去掉行注释/块注释后的代码（查裸数字/裸色时用）。 */

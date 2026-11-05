@@ -601,3 +601,53 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 
 > 平台打包只复验 macOS（Windows/iOS/Android/Linux 需各自主机）；`sync.rs` 拆分（5254 行）判为高风险/可选，不进本批。
+
+## 17. P2-4：`trash_page.tsx` + `settings_page.tsx` 拆分（2026-11，worktree `p2-trash-settings-split`，基线 `579fa9f0`）
+
+### 拆分
+
+| 文件 | 拆前 | 拆后 | 子模块 |
+|---|---|---|---|
+| `trash_page.tsx` | 404 | **209** | `trash_page/`：types(TrashNoteDto·TrashSource)/constants(estimatedRowHeight)/helpers(displayTitle·formatDate)/state(makeBackendSource·signals·加载/恢复/彻底删除/定期清理)/sections(TrashRow) |
+| `settings_page.tsx` | 454 | **242** | `settings_page/`：types(SettingsSource)/constants(compactBreakpoint·switchTrack·appVersion)/state(makeBackendSource·signals·pagePadding·加载/改名/同步开关/更新检查)/sections(SectionTitle·SettingRow·SyncSwitch) |
+
+模式与 note_list/editor_page/devices_page 一致：入口保留页面根组件 + re-export 公共 API；signals 留在 `state.ts` 模块顶层单例。
+
+### 附带文案修复（settings_page，唯一有意改动）
+
+按 `docs/handover-nsh-editor-2026-11-03.md` §6 第 10 条：NSH 当前 `debug_log` 只输出进程 stderr + tracing，**无文件落盘**；旧文案「日志写入应用支持目录 logs/cardmind.log」描述的是已删除的 Flutter 版行为。两处修正：
+
+- `settings_page/state.ts` `logDirNote` → `"应用日志仅输出到进程 stderr（tracing），暂无文件落盘"`
+- `settings_page.tsx` 日志区块说明行 → `「应用日志暂无文件落盘，排查时查看进程 stderr 的 [cardmind:log] 行」`
+
+### 测试并集化
+
+`trash_settings_test.ts`/`ui_kit_test.ts` 改 union read（入口 + 子目录全部 `.ts`/`.tsx` 拼接），断言条数与正则**不减少、不放宽**——与 P2-2 系列同式。
+
+### Token 等价
+
+逐声明提取 + diff：`trash_page` **27/27 IDENTICAL**；`settings_page` **29 项中 27 IDENTICAL**，仅 `logDirNote` 值与 `SettingsPage` 内说明行两处为有意文案改动。
+
+### 验证（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check .` | exit 0（check 5m48s + build 11m28s），生成 `.nsh/types/app/native.d.ts` SHA-256 与基线一致（`c350b682…`） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230） |
+| `nsh test --filter editor` | **28/28 passed**（23m27s，含 test crate 首次构建 15m21s） |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed**（21m34s，同） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` Mach-O arm64 |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+### Commit
+
+- `df652f5e` `refactor(trash): 拆 trash_page.tsx(404)→trash_page/`
+- `52cbfa48` `refactor(settings): 拆 settings_page.tsx(454)→settings_page/ + 修日志文案`
+
+### 备注
+
+- `nsh test` 两个 filter 并发跑（cargo 锁串行，均通过）；editor 28/28 + mobile 1/1。
+- worktree 缺 `nsh-app/.cargo/config.toml`（未跟踪本机文件），按 handover §4 重建 rsproxy-sparse 配置，不进提交。
+- pnpm 生成的 `pnpm-lock.yaml`/`pnpm-workspace.yaml` 已加入 `.git/info/exclude`（仓库用 npm，`package-lock.json` 已跟踪）。

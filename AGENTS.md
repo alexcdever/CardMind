@@ -31,7 +31,7 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
   App.tsx         应用入口
   components.tsx  UI 组件
   navigation.tsx  导航
-  note_list.tsx / trash_page.tsx / settings_page.tsx / devices_page.tsx / editor_page（页面）
+  note_list.tsx / trash_page.tsx / settings_page.tsx / devices_page.tsx / editor_page.tsx（页面）
   note_list/      笔记列表页子模块（note_list.tsx 为入口：NoteListPage + re-export）：
                   types(NoteDto/NoteListSource)/helpers(文本工具/行度量)/state(signals·computed·处理函数)/
                   note_row/tag_filter_bar/list_body/desktop/mobile
@@ -46,6 +46,13 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
                   state(source/makeBackendSource·module-level signals·加载刷新/设备管理/配对流程处理)/
                   sections(SectionTitle·Panel·LocalInfoCard·DeviceRow·PairModeRow)/
                   pair_sheets(PairChooseSheet·PairShowSheet·PairEnterSheet)
+  trash_page/     回收站页子模块（trash_page.tsx 为入口：TrashPage + re-export 公共 API）：
+                  types(TrashNoteDto/TrashSource)/constants(estimatedRowHeight)/helpers(displayTitle·formatDate)/
+                  state(makeBackendSource·signals·加载/恢复/彻底删除/定期清理)/sections(TrashRow)
+  settings_page/  设置页子模块（settings_page.tsx 为入口：SettingsPage + re-export 公共 API）：
+                  types(SettingsSource)/constants(compactBreakpoint·switchTrack·appVersion)/
+                  state(makeBackendSource·signals·pagePadding·加载/改名/同步开关/更新检查)/
+                  sections(SectionTitle·SettingRow·SyncSwitch)
   theme.ts        设计令牌（迁移自 lib/ui/design_system/cardmind_theme.dart）
   src/lib.rs      入口 + `native()` 注册（后端接缝已拆 `src/backend/`）
   src/backend/    TSX 暴露模块：core(Backend)/store/notes/sync/pairing + dto + globals(单例)
