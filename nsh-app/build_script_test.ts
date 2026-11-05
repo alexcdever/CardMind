@@ -4,7 +4,7 @@
 //   esbuild/jsdom/tiptap；
 // ③script 产物路径约定不含 web/dist；
 // ④build-nsh.mjs 不要求 NSH_SOURCE（0.1.1 遗留），且在 CLI 版本与 Cargo 依赖
-//   不一致时以非 0 退出并给出明确错误（0.3.0 CLI 的硬门槛）。
+//   不一致时以非 0 退出并给出明确错误（0.3.0 起 CLI 的硬门槛）。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
@@ -127,7 +127,7 @@ function runBuildScript(fakeNsh: { version?: string; exitCode?: number }) {
   }
 }
 
-describe('build-nsh.mjs（0.3.0：NSH_SOURCE 检查删除，改为 CLI/Cargo 版本一致性）', () => {
+describe('build-nsh.mjs（0.3.0 起：NSH_SOURCE 检查删除，改为 CLI/Cargo 版本一致性）', () => {
   const script = read('build-nsh.mjs');
 
   it('不再引用 NSH_SOURCE（0.1.1 遗留，0.2.0+ CLI 无此环境变量）', () => {
@@ -140,14 +140,14 @@ describe('build-nsh.mjs（0.3.0：NSH_SOURCE 检查删除，改为 CLI/Cargo 版
 
   it('CLI 版本与 Cargo 依赖不一致时非 0 退出并报出两个版本', () => {
     const r = runBuildScript({ version: '0.2.0' });
-    assert.notEqual(r.status, 0, 'CLI 0.2.0 与 Cargo 0.3.0 不一致时应非 0 退出');
+    assert.notEqual(r.status, 0, 'CLI 0.2.0 与 Cargo 0.4.0 不一致时应非 0 退出');
     const err = `${r.stderr ?? ''}${r.stdout ?? ''}`;
     assert.match(err, /0\.2\.0/, `错误信息应含 CLI 版本 0.2.0，实际：${err.slice(0, 500)}`);
-    assert.match(err, /0\.3\.0/, `错误信息应含 Cargo 依赖版本 0.3.0，实际：${err.slice(0, 500)}`);
+    assert.match(err, /0\.4\.0/, `错误信息应含 Cargo 依赖版本 0.4.0，实际：${err.slice(0, 500)}`);
   });
 
   it('CLI 版本一致时继续执行 nsh build（假 CLI 退出 0 → 脚本退出 0）', () => {
-    const r = runBuildScript({ version: '0.3.0' });
+    const r = runBuildScript({ version: '0.4.0' });
     assert.equal(r.status, 0, `版本一致时应 exit 0，stderr：${(r.stderr ?? '').slice(0, 500)}`);
     assert.match(r.buildCalled ?? '', /build\s+\.\s+-o\s+out/, '应调用 nsh build . -o out');
   });

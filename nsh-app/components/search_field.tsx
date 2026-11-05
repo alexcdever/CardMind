@@ -40,7 +40,7 @@ export function CardMindSearchField(props: {
       </View>
       <Input
         value={props.value()}
-        onChange={props.onChanged}
+        onChange={({ value }) => props.onChanged?.(value)}
         placeholder={props.placeholder ?? "搜索笔记"}
         accessibilityLabel="搜索笔记"
         style={{

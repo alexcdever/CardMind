@@ -6,7 +6,7 @@
 
 | 层 | 技术 | 版本 |
 |---|------|------|
-| 前端 | NSH + TSX（nsh-app） | nsh 0.3.0（`nsh-app/nsh.json`；原生 `Editor` 做 Markdown 源编辑，无 WebView/Tiptap） |
+| 前端 | NSH + TSX（nsh-app） | nsh 0.4.0（`nsh-app/nsh.json`；原生 `Editor` 做 Markdown 源编辑，无 WebView/Tiptap） |
 | 核心逻辑 | Rust | Edition 2021（`rust-backend/Cargo.toml`）；CI 用 stable，仓库未固定 toolchain |
 | CRDT 存储 | Loro | 1.13.6（`rust-backend/Cargo.lock`） |
 | 网络层 | iroh | 1.0.2（`rust-backend/Cargo.lock`；直连模式，默认禁用 relay） |
@@ -85,9 +85,9 @@ tool/             工具脚本（lint/、release/ python 发布脚本；门禁 g
 # nsh-app（TSX 前端；在 nsh-app/ 下跑）
 cd nsh-app && npm install                # 装依赖（首次/CI）
 cd nsh-app && npx tsx --test "*_test.ts"   # TSX 全量测试（node --test）
-cd nsh-app && nsh check .                 # 0.3.0 类型检查 + app crate 构建
+cd nsh-app && nsh check .                 # 0.4.0 类型检查 + app crate 构建
 cd nsh-app && nsh test --filter editor    # 编辑器行为测试（假 repository）
-cd nsh-app && npm run build               # 打包（node build-nsh.mjs；0.3.0 CLI，不再需要 NSH_SOURCE）
+cd nsh-app && npm run build               # 打包（node build-nsh.mjs；0.4.0 CLI，不再需要 NSH_SOURCE）
 
 # Rust（需先让 cargo 在 PATH 上，各平台路径见本节末尾说明）
 cd rust-backend && cargo test              # 全量测试
@@ -100,7 +100,7 @@ dart run tool/git_gate.dart full --dry-run  # 完整 suite 预演（rust + tsx�
 ```
 
 > Rust 命令需让 `cargo` 在 PATH 上（macOS/Linux 为 `~/.cargo/bin`，Windows 为 `%USERPROFILE%\.cargo\bin`）；Hermes terminal 不会加载 `.zshrc`。
-> `npm run build`（nsh-app）在 0.3.0 下是 `node build-nsh.mjs`，只要求 PATH 上的 `nsh` CLI 版本与 `nsh-app/Cargo.toml` 的 nsh 依赖一致；不再需要 `NSH_SOURCE`。
+> `npm run build`（nsh-app）在 0.4.0 下是 `node build-nsh.mjs`，只要求 PATH 上的 `nsh` CLI 版本与 `nsh-app/Cargo.toml` 的 nsh 依赖一致；不再需要 `NSH_SOURCE`。
 > **默认 headless**：`nsh check` / `npx tsx --test` / `nsh test` / `cargo test` / `node build-nsh.mjs` / `nsh package` 都不弹窗；只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口，不要为跑测试自动执行。目视 UI 由人自己打开，或经明确要求后 `open -g`（后台）+ 截图 + 立即退出。
 
 ## 运行态动态库

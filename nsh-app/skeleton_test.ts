@@ -45,9 +45,9 @@ describe('nsh.json', () => {
 });
 
 describe('Cargo.toml', () => {
-  it('声明 nsh-core 与 nsh-base 0.3.0', () => {
-    assert.match(manifest, /nsh-core\s*=\s*"0\.3\.0"/);
-    assert.match(manifest, /nsh-base\s*=\s*"0\.3\.0"/);
+  it('声明 nsh-core 与 nsh-base 0.4.0', () => {
+    assert.match(manifest, /nsh-core\s*=\s*"0\.4\.0"/);
+    assert.match(manifest, /nsh-base\s*=\s*"0\.4\.0"/);
   });
 
   // P2-3 起：P1 删除 src/main.rs 后，`env_logger` 与 4 个 `nsh-platform-*`
@@ -129,9 +129,9 @@ describe('Cargo.lock（已跟踪，须随 Cargo.toml 一起升）', () => {
     );
   });
 
-  it('所有 nsh-* 包解析为 0.3.0', () => {
+  it('所有 nsh-* 包解析为 0.4.0', () => {
     for (const p of nshPackages) {
-      assert.equal(p.version, '0.3.0', `${p.name} 在 Cargo.lock 里是 ${p.version}，应为 0.3.0`);
+      assert.equal(p.version, '0.4.0', `${p.name} 在 Cargo.lock 里是 ${p.version}，应为 0.4.0`);
     }
   });
 });

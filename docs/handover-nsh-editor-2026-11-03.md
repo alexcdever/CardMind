@@ -6,7 +6,7 @@
 
 - 分支：`migration/nsh`
 - 重构合并提交：`92e622b2`（`merge(nsh-editor-p3): TextView 预览 + 桌面第三栏 + 移动新建 + P2 非阻塞回归项`）；本交接/进度文档提交在其之上。
-- 基底：`94302655`（P1 完成 NSH 0.3.0 升级）
+- 基底：`94302655`（P1 完成 NSH 0.3.0 升级）；**P4-1（2026-11-06）已将 nsh 升至 0.4.0**（nsh-app `nsh-* = 0.4.0`，CLI `0.4.0 (e626a8d)`，进度 §22）
 - **该分支已推送到 origin**：`origin/migration/nsh`（2026-11-03，包含本交接文档及后续提交）。新设备直接 `git fetch && git checkout migration/nsh` 即可；若之后又有本地提交，记得再 `git push`。
 - 当前设备 `git status` 只剩未跟踪：`.pi/`、`spike/nsh-probe/`、`spike/nsh-rich-editor-probe/`（均为本机材料，新设备不需要）。
 - `nsh-app/.cargo/config.toml` **未跟踪**（本机 crates 镜像配置），不会随 git 走；新设备需按 §4 重建或改用 crates.io。
@@ -23,10 +23,10 @@
 | Node.js | v22.23.2 | 建议 Node 22 LTS；`npm` 10.9.8 |
 | Rust | stable / rustc 1.99.1 | `rustup default stable`；Windows 需 MSVC 工具链 |
 | Visual Studio Build Tools | VS 2022 + Windows SDK | Rust MSVC 链接所需 |
-| nsh CLI | **0.3.0 (76fa8a7)** | 必须与 `nsh-app/Cargo.toml` 的 `nsh-* = 0.3.0` 完全一致，否则 CLI 入口直接拒绝 |
+| nsh CLI | **0.4.0 (e626a8d)** | 必须与 `nsh-app/Cargo.toml` 的 `nsh-* = 0.4.0` 完全一致，否则 CLI 入口直接拒绝 |
 | Git | 任意较新版本 | 需能 checkout `migration/nsh` |
 
-- 0.3.0 使用**预构建 Windows runtime**，不需要 `NSH_SOURCE`、不需要自建 nsh CLI、不需要 LLVM（与 0.1.1 的旧流程不同）。
+- 0.3.0 起使用**预构建 Windows runtime**，不需要 `NSH_SOURCE`、不需要自建 nsh CLI、不需要 LLVM（与 0.1.1 的旧流程不同）；0.4.0 沿用。
 - Android/iOS 打包另需 Android SDK/NDK、Xcode（macOS），属 P4，不在本轮已完成范围。
 
 ## 3. 快速启动（Windows）
@@ -88,8 +88,8 @@ registry = 'sparse+https://rsproxy.cn/index/'
 3. `nsh test` 第一次会先编译 Rust test host（约 1–2 分钟），属正常。
 4. `nsh check` 只检查 app 源码；`tsconfig.json` 已把 `*.test.tsx` 排除（测试由 `nsh test` 编译执行），不要把测试类型错误当成生产错误。
 5. `EditorHarness.tsx` 是 `nsh test` 专用入口，**不要 import `App.tsx`**（`App.tsx` 顶层 IIFE 会初始化 dataDir/createNoteStore/iroh，碰真实数据）。测试使用假 `EditorRepository`。
-6. **CRLF**：0.3.0 `Editor` 唯一允许的归一化是 `\r\n`/`\r`→`\n`；其余内容必须逐字节保真，测试已断言。
-7. **`[[` 补全**：不要切回内建 completion（0.3.0 内建 completion 不支持含空格标题，同步回答会被丢弃）；主路径是 `editor_page.tsx` 的自绘候选行 + `editor.edit()`。
+6. **CRLF**：0.3.0 起 `Editor` 唯一允许的归一化是 `\r\n`/`\r`→`\n`；其余内容必须逐字节保真，测试已断言。
+7. **`[[` 补全**：不要切回内建 completion（0.3.0 起内建 completion 不支持含空格标题，同步回答会被丢弃）；主路径是 `editor_page.tsx` 的自绘候选行 + `editor.edit()`。
 8. **Escape**：Editor 聚焦时平台层吞掉 Escape；候选行有「关闭候选」按钮兜底，真 Escape 是 P4 上游能力问题。
 9. **单栏预览切换**会重建 Editor（撤销栈重置）；≥1280 并排模式保持 Editor 挂载、撤销保留。若 P4 要求单栏也保留，需要叠加层方案。
 10. **应用日志**：NSH 版 Rust `debug_log` 目前只写 **stderr**（`[cardmind:log] …` 单行）+ `tracing`，**没有文件落盘**；设置页「日志目录」只显示约定路径说明（NSH 无打开目录 API）。Flutter 版用 `path_provider` 写 `<application support>/logs/cardmind.log` 及其 macOS 沙箱容器坑，已随平台工程删除而不适用——详见 `AGENTS.md`「日志与数据目录」。
@@ -114,7 +114,7 @@ nsh-app/
   theme.ts               editorTypography、颜色/间距/圆角 token
   components.tsx         CardMindTag（testID/textTestID/comfortable minWidth）等
   nsh.json               capabilities: { clipboard: true }（无 webview）
-  build-nsh.mjs          0.3.0 构建包装（校验 CLI 版本）
+  build-nsh.mjs          构建包装（校验 CLI 版本与 Cargo nsh-* 依赖一致）
 rust-backend/            Loro + SQLite + iroh；本轮零改动
 docs/research/nsh-editor/  调研总报告 + 01–06 分报告（已提交）
 docs/progress-nsh-editor-2026-11-03.md  本进度文档
