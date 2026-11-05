@@ -351,7 +351,7 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 |---|---|
 | `cd nsh-app && nsh check .` | exit 0（check 335ms + build 15.1s） |
 | `cargo check --all-targets`（nsh-app，CARGO_TARGET_DIR=主树） | exit 0，**无 warning** |
-| `diff .pipeline/native-types-baseline/app/native.d.ts .nsh/types/app/native.d.ts` | **字节相同（identical）**——`Backend.*`/`BackendStore.*`/`BackendNotes.*`/`BackendSync.*`/`BackendPairing.*` 与 10 个 DTO 名/签名/绑定完全一致 |
+| 拆分前 `native.d.ts` 快照与拆分后 `.nsh/types/app/native.d.ts` 做 `diff` | **字节相同（identical）**——`Backend.*`/`BackendStore.*`/`BackendNotes.*`/`BackendSync.*`/`BackendPairing.*` 与 10 个 DTO 名/签名/绑定完全一致 |
 | `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
 | `nsh test --filter editor` | **28/28 passed**（1m42s） |
 | `nsh test --filter "note: 移动布局"` | **1/1 passed**（19.4s） |
@@ -501,14 +501,14 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 
 ### token 级等价（核对方法与结论）
 
-- 脚本：`.pipeline/token_equiv.mjs`（TypeScript 5.9 compiler API）。取 `git show 3b2e2cf6:nsh-app/devices_page.tsx` 与拆分后并集（入口 + 5 子模块）的全部顶层声明，逐声明块提取 token 叶子序列（忽略注释/空白 trivia），剥离开头的 `export/default/declare` 后逐块比较；入口 `DevicesPage` 单独比较 `return` 表达式的 token。
+- 脚本：临时放在系统目录的 token 比对脚本（TypeScript 5.9 compiler API）。取 `git show 3b2e2cf6:nsh-app/devices_page.tsx` 与拆分后并集（入口 + 5 子模块）的全部顶层声明，逐声明块提取 token 叶子序列（忽略注释/空白 trivia），剥离开头的 `export/default/declare` 后逐块比较；入口 `DevicesPage` 单独比较 `return` 表达式的 token。
 - 结论：baseline **91 个顶层声明**中 **90 个非入口块全部 IDENTICAL**；入口 `DevicesPage` 函数体按设计改写（解构 + cleanup 接缝），其 **render 段 JSX 875 token 完全一致**；缺失 0；新增声明仅 `disposeDevicesPage`。
 - 允许差异（逐条解释）：
   1. **`export` 前缀**：跨模块使用的常量/signal/类型/函数/组件加 `export`（脚本已剥离该前缀后比较，语义不变）。
   2. **入口解构**：`DevicesPage` 从 `devicesState` 解构取用（名字不变）；原 `effect(() => { void loadAllWithRetry(); })`、`startBackgroundRefresh()` 调用逐字保留。
   3. **内联 `let` 写回接缝**：原入口 cleanup 的 `stopCountdown(); pairGeneration += 1;` 收进 state 的 `disposeDevicesPage()`——`pairGeneration` 是跨模块无法解构写回的 `let`；两条语句 token 原样，cleanup 仍先停后台刷新、再停倒计时并判废挂起 accept 轮，语义等价。
   4. **新增包裹壳** `disposeDevicesPage`（即上面第 3 条，唯一 union-only 声明）。
-- 组件/函数体均按原行区间切片拼接，未手抄；拆分过程脚本 `.pipeline/gen_split.py` 只做切块与 `export` 前缀，便于复核。
+- 组件/函数体均按原行区间切片拼接，未手抄；拆分过程用的临时脚本只做切块与 `export` 前缀（放在系统临时目录，未进仓库）。
 
 ### 源码断言测试同步（不削弱）
 
@@ -538,3 +538,19 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - 本页没有行为测试，行为不变完全依赖上面的 token 级等价；拆分未改任何 JSX/交互/令牌。
 - 入口 229 行（目标 < ~250）：剩余体量为不可动的 render 段 JSX（按约束逐字保留）与 import/re-export 头。
 - `sections.tsx`/`pair_sheets.tsx` 依赖 `state.ts`（单向）；`pair_sheets.tsx` 另依赖 `sections.tsx` 的 `Panel`/`PairModeRow`，无循环 import。
+
+### 合并与主树复验（`c76b36c1`）
+
+- 合并 `p2-devicespage`（`8060c0a6`）→ `c76b36c1`；worktree/branch 已清场。
+- 主树复验：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`nsh package . --target macos` exit 0 出 `cardmind.app`；`cargo test`（rust-backend）22 target 0 failed；`git_gate full --dry-run` exit 0。`devices_page.tsx` 现 229 行。
+
+### P2 拆分完成小结
+
+| 文件 | 拆分前 | 拆分后（入口） | 子模块 |
+|---|---|---|---|
+| `src/lib.rs` | 1177 | 17 | `src/backend/`（8 文件，native.d.ts 字节不变） |
+| `note_list.tsx` | 799 | 88 | `note_list/`（8 文件，JSX 逐字不变） |
+| `editor_page.tsx` | 981 | 343 | `editor_page/`（6 文件，token 级等价） |
+| `devices_page.tsx` | 1544 | 229 | `devices_page/`（5 文件，token 级等价） |
+
+四个入口文件的公共 API 均未变；`App.tsx`/harness 的 import 路径全部未改。
