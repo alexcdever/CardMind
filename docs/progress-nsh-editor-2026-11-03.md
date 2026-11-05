@@ -373,3 +373,53 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - 合并 `p2-libsplit`（`9755a3cc`）→ `d7ee7a2b`；worktree/branch 已清场。
 - 主树复验：`nsh check .` exit 0；生成 `native.d.ts` 与拆分前基线 **SHA-256 一致**（`c350b682…`）；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`cargo test`（rust-backend）22 target 0 failed；`nsh package . --target macos` exit 0 出 `cardmind.app`；`git_gate full --dry-run` exit 0。
 - 修正 §12 笔误：`pairing.rs` 的 `BackendPairing` 为 **23** 个 `pub fn`（原写 22）。
+
+## 13. P2-2a：`note_list.tsx` 拆分（2026-11，worktree `p2-notelist`，基线 `520a6055`）
+
+`nsh-app/note_list.tsx`（799 行单文件）按职责机械拆成 `nsh-app/note_list/` 子模块树；**纯结构重构：视觉、交互、导出 API 行为零变化**（组件函数体逐字保留，见下方核对）。
+
+### 拆法
+
+- `nsh-app/note_list.tsx`（入口，约 100 行）：只定义 `NoteListPage`（组合组件），并 re-export 公共 API——`export { NoteListPage as NoteList }`、`export { goBack } from "./navigation"`、`export { setNoteListSource } from "./note_list/state"`、`export type { NoteDto, NoteListSource } from "./note_list/types"`。`App.tsx`/`NoteListHarness.tsx` 的 `from "./note_list"` 不变。
+- `note_list/types.ts`：`NoteDto`、`NoteListSource`。
+- `note_list/helpers.ts`：`parseTags`/`displayTitle`/`previewLine`/`formatDate` + `estimatedRowHeight`(=104)/`swipeTrigger`(=80)。
+- `note_list/state.ts`：**全部模块级 `signal`/`computed` 单例** + `source`/`makeBackendSource`/`setNoteListSource` + `searchGeneration`/`searchTimer` + `loadNotes`/`loadNotesWithRetry`/`onSearchChanged`/`performSearch`/`clearSearch`/`selectTag`/`requestDelete`/`confirmDelete`/`cancelDelete`/`openNote`（`.ts`，无 JSX）。
+- `note_list/note_row.tsx`：`NoteRow`（滑动手势层 + 行内删除按钮）。
+- `note_list/tag_filter_bar.tsx`：`TagFilterBar`。
+- `note_list/list_body.tsx`：`ListBody`（虚拟 `<List>` + 空态/加载/错误态分支）。
+- `note_list/desktop.tsx`：`DesktopSidebar`/`DesktopListPane`/`DesktopLayout`。
+- `note_list/mobile.tsx`：`MobileNotesTab`/`MobileDevicesTab`/`MobileLayout`。
+- 令牌纪律不变：所有 `colors/spacing/radii/typography/layout.*` 仍来自 `./theme`（子模块按相对路径 `../theme`）；无裸 hex、无裸 48（触摸目标仍 `layout.mobileTouchTarget`）；`testID`/`accessibilityLabel`/`role`/`accessibilityState` 全部原样。
+
+### AC2 说明（状态单例不重复）
+
+- 模块级 `signal`/`computed`（`notes`/`allTags`/`searchResults`/`loading`/`searchText`/`searchError`/`selectedTag`/`selectedNoteId`/`deleteTarget` + `isSearching`/`isDesktop`/`filteredByTag`/`displayedNotes`/`listHeader`）**只在 `state.ts` 创建一次**；组件/入口一律 import，无同名重建。
+- `MobileLayout` 内的 `const tab = signal<"notes"|"devices">("notes")` 是**组件实例级** UI 状态（原代码即如此），非跨组件共享的模块单例。上提到 `state.ts` 会把「布局重挂载后选中 Tab 是否复位」从「每次挂载回到笔记 Tab」变为「会话内保留」，属行为变化，故**保留在 `mobile.tsx` 局部**，符合「零行为变化」优先。
+
+### 源码断言测试同步（不削弱）
+
+- `nsh-app/note_list_test.ts`：原读单个 `note_list.tsx`；改为读**并集**——`note_list.tsx` + `note_list/` 下全部 `.ts/.tsx`（`readdirSync` 过滤排序后拼接）。**全部断言的条数与正文字面一字未改**（`desktopBreakpoint` 比较式、`<List>`/`each` 绑定、`keyExtractor`、`CardMindEmptyState`、无裸 hex、`layout.mobileTouchTarget`、无 React hooks 等）。
+- `nsh-app/ui_kit_test.ts`：页面清单由 4 个文件扩为「4 页 + `note_list/{desktop,mobile,list_body,tag_filter_bar,note_row}.tsx`」，阈值 `used.length >= 4` 不变。
+
+### 验证（headless，本机 macOS）
+
+| 命令 | 结果 |
+|---|---|
+| 组件函数体逐字核对（Python 大括号配平，旧 `note_list.tsx` vs 新并集） | **25 个函数体（含 9 组件 + NoteListPage + helpers/state）+ 2 个常量全部 IDENTICAL** |
+| `cd nsh-app && npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
+| `nsh check .` | exit 0（check 746ms + build 497ms） |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed**（48s） |
+| `nsh test --filter editor` | **28/28 passed**（65s） |
+| `nsh package . --target macos` | exit 0，出 `.nsh/out/cardmind.app`（159s） |
+| `cd rust-backend && cargo test` | exit 0，**22 target 0 failed** |
+| `dart format --output=none --set-exit-if-changed tool` | exit 0，**0 changed**（10 files） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0（docs:lint + rust:clippy + rust:test:full + rust:build-lib + format-first + tsx:test） |
+
+### 逐字保留核对方法
+
+以 `git show 520a6055:nsh-app/note_list.tsx` 为旧版，用 Python 按 `function <name>(` 定位并做「参数括号 → 函数体大括号」配平，抽出每个函数体（`{…}` 之间，含全部注释/JSX/样式对象），与拆分后 `note_list.tsx + note_list/*` 并集中同名函数体做**字符串全等**比较。覆盖 `NoteRow`/`TagFilterBar`/`ListBody`/`DesktopSidebar`/`DesktopListPane`/`DesktopLayout`/`MobileNotesTab`/`MobileDevicesTab`/`MobileLayout`/`NoteListPage` + `makeBackendSource`/`loadNotes`/`loadNotesWithRetry`/`onSearchChanged`/`performSearch`/`clearSearch`/`selectTag`/`requestDelete`/`confirmDelete`/`cancelDelete`/`openNote` + `parseTags`/`displayTitle`/`previewLine`/`formatDate`，以及 `estimatedRowHeight`/`swipeTrigger` 常量值。结论：**全部 IDENTICAL**，即拆分为「仅文件边界变化」，无任何 JSX/样式/逻辑改写。
+
+### 风险 / 说明
+
+- worktree 无 `.gitnexus` 索引（与 §12 同），`impact`/`detect_changes` 未跑；以 grep 确认调用面（仅 `App.tsx`/`NoteListHarness.tsx` 从 `./note_list` import）与上面逐字 diff 替代。
+- `MobileLayout` 的 `tab` signal 局部保留（见 AC2 说明）——唯一「signal 不在 state.ts」的点，属实例状态而非模块单例。

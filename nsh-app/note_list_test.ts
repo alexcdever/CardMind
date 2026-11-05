@@ -15,7 +15,7 @@
 //     且无 Phase 1 演示副作用。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -26,7 +26,22 @@ const PAGE = 'note_list.tsx';
 const APP = 'App.tsx';
 
 const pagePath = path.join(here, PAGE);
-const page = existsSync(pagePath) ? read(PAGE) : '';
+const entry = existsSync(pagePath) ? read(PAGE) : '';
+
+// AC4：P2-2a 把 note_list 拆成入口 + note_list/ 子模块。结构/令牌断言改读
+// **并集**（note_list.tsx + note_list/ 下全部 .ts/.tsx 拼接）——断言的条数与
+// 正则一律不减少、不放宽，只是把「单文件源码面」扩大到「拆分后的源码面」。
+const NOTE_LIST_DIR = 'note_list';
+const subFiles = existsSync(path.join(here, NOTE_LIST_DIR))
+  ? readdirSync(path.join(here, NOTE_LIST_DIR))
+      .filter((n) => n.endsWith('.ts') || n.endsWith('.tsx'))
+      .sort()
+  : [];
+const page = [
+  entry,
+  ...subFiles.map((n) => read(path.join(NOTE_LIST_DIR, n))),
+].join('\n');
+
 const app = read(APP);
 
 /** 去掉行注释/块注释后的代码（查裸数字/裸色时用）。 */
