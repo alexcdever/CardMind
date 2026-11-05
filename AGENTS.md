@@ -40,6 +40,12 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
                   types(EditorNoteRow/EditorRepository/EditorPageProps)/constants(SAVE_STATE·COPY·样式)/
                   repository(backendEditorRepository/isNewNoteId)/loading(加载·错误态·桌面顶栏)/
                   controller(createEditorController：signals/effects/保存·候选·预览处理)/desktop_pane(DesktopEditorPane)
+  devices_page/   设备页子模块（devices_page.tsx 为入口：DevicesPage（state 解构 + render 段）+
+                  re-export 公共 API）：
+                  types(5 个 DTO/DevicesSource)/constants(配对码 TTL·轮询·倒计时·在线窗口·刷新间隔·6 位码·图标尺寸)/
+                  state(source/makeBackendSource·module-level signals·加载刷新/设备管理/配对流程处理)/
+                  sections(SectionTitle·Panel·LocalInfoCard·DeviceRow·PairModeRow)/
+                  pair_sheets(PairChooseSheet·PairShowSheet·PairEnterSheet)
   theme.ts        设计令牌（迁移自 lib/ui/design_system/cardmind_theme.dart）
   src/lib.rs      入口 + `native()` 注册（后端接缝已拆 `src/backend/`）
   src/backend/    TSX 暴露模块：core(Backend)/store/notes/sync/pairing + dto + globals(单例)

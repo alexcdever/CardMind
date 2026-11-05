@@ -140,8 +140,21 @@ describe('TSX 源码的 NSH 导入面（0.3.0：只剩 nsh 与 nsh/base）', () 
   });
 
   it('Input 从 nsh/base 导入（0.3.0 的 nsh 不再导出 Input）', () => {
+    // P2-2c 起 devices_page 拆为入口 + devices_page/ 子模块（Input 在
+    // pair_sheets.tsx / sections.tsx），断言改读并集，条数/正则不削弱。
+    const devicesDir = path.join(here, 'devices_page');
+    const devicesUnion =
+      read('devices_page.tsx') +
+      '\n' +
+      (existsSync(devicesDir)
+        ? readdirSync(devicesDir)
+            .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
+            .sort()
+            .map((f) => read(path.join('devices_page', f)))
+            .join('\n')
+        : '');
     for (const name of ['components.tsx', 'devices_page.tsx', 'settings_page.tsx']) {
-      const code = read(name);
+      const code = name === 'devices_page.tsx' ? devicesUnion : read(name);
       assert.doesNotMatch(
         code,
         /import\s*\{[^}]*\bInput\b[^}]*\}\s*from\s*['"]nsh['"]/,

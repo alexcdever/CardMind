@@ -17,7 +17,7 @@
 //  ⑧ App.tsx 接入 devices_page，启动接真后端且无 Phase 1 演示副作用。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -25,10 +25,25 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (name: string) => readFileSync(path.join(here, name), 'utf8');
 
 const DEVICES = 'devices_page.tsx';
+const DEVICES_DIR = 'devices_page';
 const APP = 'App.tsx';
 
+/** 拆分后页面源码并集：入口 + devices_page/ 子模块（源码契约断言读并集，
+ *  断言条数/正则不削弱；页面逻辑与组件已整块搬入子模块）。 */
+const readDevicesUnion = () => {
+  const dir = path.join(here, DEVICES_DIR);
+  const subs = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
+        .sort()
+        .map((f) => read(path.join(DEVICES_DIR, f)))
+        .join('\n')
+    : '';
+  return read(DEVICES) + '\n' + subs;
+};
+
 const devicesPath = path.join(here, DEVICES);
-const devices = existsSync(devicesPath) ? read(DEVICES) : '';
+const devices = existsSync(devicesPath) ? readDevicesUnion() : '';
 const app = read(APP);
 
 /** 去掉行注释/块注释后的代码（查裸数字/裸色时用）。 */
