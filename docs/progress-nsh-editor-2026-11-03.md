@@ -651,3 +651,31 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 - `nsh test` 两个 filter 并发跑（cargo 锁串行，均通过）；editor 28/28 + mobile 1/1。
 - worktree 缺 `nsh-app/.cargo/config.toml`（未跟踪本机文件），按 handover §4 重建 rsproxy-sparse 配置，不进提交。
 - pnpm 生成的 `pnpm-lock.yaml`/`pnpm-workspace.yaml` 已加入 `.git/info/exclude`（仓库用 npm，`package-lock.json` 已跟踪）。
+
+### 合并与主树复验（`a035f787`，2026-11-05）
+
+合并 commit `a035f787`（`--no-ff`），分支提交 `df652f5e`/`52cbfa48`/`014a8db7`，基线 `579fa9f0`；diff 15 文件 +1039/−865。
+
+独立审查：**APPROVE**（无 BLOCKER）——自写 TS Compiler API 脚本逐顶层声明复验：trash **27/27 IDENTICAL**、settings **29 项中 27 IDENTICAL**（2 处差异正是既定文案改动，无第三处）；公共 API 与 `App.tsx` 逐字未变；测试并集化后 `assert.`/`it(`/正则数量一个未减（trash_settings 40/29/6/2/26、ui_kit 21/11/3/3/13）；文案与 handover §6 #10 口径一致，面向用户的 `cardmind.log` 已清零。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check . --tsc /tmp/.../tsc` | exit 0（npm registry 截断固定 TS 7 包，绕代理用本地 tsc；native.d.ts SHA `c350b682…` 与基线一致） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230） |
+| `nsh test --filter editor` | **28/28**（1m17s） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（16.3s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` Mach-O arm64 |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+
+### 复验中发现的缓存污染（已修，非代码缺陷）
+
+主树首次 `cargo test` 时 `hygiene_test` 两条用例失败：
+
+```
+读取目录 …/.worktrees/p2-deadcrates/rust-backend/tests 失败: No such file or directory
+```
+
+根因：P2-3 executor 在 worktree 里跑 `cargo test` 时把 `CARGO_TARGET_DIR` 指向了**主树的** `rust-backend/target`，`env!("CARGO_MANIFEST_DIR")` 是编译期常量，于是 worktree 路径被烧进 `target/debug/deps/hygiene_test-*` 二进制；worktree 删除后该路径失效。修法：`touch tests/hygiene_test.rs` + 删旧二进制强制重编，重跑 `cargo test` 22 target 全部 0 failed。
+
+> **教训**：worktree 里跑 Rust 测试不要复用主树 `CARGO_TARGET_DIR`；`env!` 类编译期路径会跨 worktree 泄漏。已写入 handover 待补条目。
