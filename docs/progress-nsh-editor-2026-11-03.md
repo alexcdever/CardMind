@@ -478,3 +478,63 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 
 - 合并 `p2-editorpage`（`82b36bfd`）→ `0ebaca60`；worktree/branch 已清场。
 - 主树复验：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`nsh package . --target macos` exit 0 出 `cardmind.app`；`cargo test`（rust-backend）22 target 0 failed；`git_gate full --dry-run` exit 0。`editor_page.tsx` 现 343 行。
+
+## 15. P2-2c：`devices_page.tsx` 拆分（2026-11，worktree `p2-devicespage`，基线 `3b2e2cf6`）
+
+`nsh-app/devices_page.tsx`（1544 行单文件）按职责机械拆成 `nsh-app/devices_page/` 子模块树；**纯结构重构：视觉、交互、导出 API 行为零变化**（声明块按原行区间切片拼接，token 级核对见下）。
+
+### 拆法
+
+- `nsh-app/devices_page.tsx`（入口，**229 行**）：只保留 `DevicesPage`（从 `devicesState` 解构 + 原 render 段 JSX）与公共 API 的 re-export——`export type { DevicesSource, PairedDeviceDto, PairingCredentialDisplayDto, PairingRequestDto, PairingResultDto, PeerInfoDto } from "./devices_page/types"`、`export { setDevicesSource } from "./devices_page/state"`。`App.tsx` 的 `from "./devices_page"` 不变。
+- `devices_page/types.ts`：5 个 DTO（`PairedDeviceDto`/`PeerInfoDto`/`PairingRequestDto`/`PairingResultDto`/`PairingCredentialDisplayDto`）+ `DevicesSource`。
+- `devices_page/constants.ts`：`pairingCodeTtlMs`/`acceptPollMs`/`countdownTickMs`/`onlineWindowMs`/`refreshIntervalMs`/`sixDigitCode`/`localIconSize`。
+- `devices_page/state.ts`：`source`/`makeBackendSource`/`setDevicesSource`、`mapDevice/mapPeer/mapRequest/mapResult`、**全部 28 个模块级 `signal` 单例** + `Connectivity`/`PairSheet` 类型、`isOnline`/`relativeTime`/`formatCountdown`、加载/后台刷新、设备管理（连通检查/解绑/改名）、配对流程处理函数（10 分钟倒计时、accept 轮询、凭证/二维码、6 位码发现、提交）；新增卸载清理接缝 `disposeDevicesPage`。
+- `devices_page/sections.tsx`：`SectionTitle`/`Panel`/`LocalInfoCard`/`checkLabel`/`DeviceRow`/`PairModeRow`。
+- `devices_page/pair_sheets.tsx`：`PairChooseSheet`/`PairShowSheet`/`PairEnterSheet`。
+- 令牌纪律不变：所有 `colors/spacing/radii/typography/layout.*` 仍来自 `../theme`；无裸 hex、无裸 48（触摸目标仍 `layout.mobileTouchTarget`）；`testID`/`accessibilityLabel`/`role`/`accessibilityState` 全部原样。
+
+### AC2 说明（状态单例）
+
+- 28 个 `signal`（`devices`/`loading`/`loadError`/`deviceName`/`deviceId`/`localAddrs`/`actionMessage`/`busy`/`connectivity`/`unpairTarget`/`editingName`/`nameDraft`/`savingName`/`pairSheet`/`pairCode`/`pairCredential`/`qrSavedPath`/`pairDeadlineMs`/`pairError`/`pairRemainingMs`/`enterInput`/`enterError`/`enterBusy`/`scanBusy`/`scanError`/`peers`/`discovering`/`peersLoaded`）**只在 `state.ts` 模块顶层创建一次**；组件/入口一律 import 同一批 signal 对象，**没有** per-mount 重建或 `createDevicesState()` 工厂化。本页无 `computed`。
+- `source` 仍是模块级 `let`（默认 `makeBackendSource()`），`setDevicesSource` 原样搬移（写回仍经函数，测试/演示注入行为不变）。
+- 页面级 `effect`/`cleanup` 仍只在 `DevicesPage` 挂载时执行（与原实现一致）；后台刷新与倒计时定时器仍在 cleanup 释放。
+
+### token 级等价（核对方法与结论）
+
+- 脚本：`.pipeline/token_equiv.mjs`（TypeScript 5.9 compiler API）。取 `git show 3b2e2cf6:nsh-app/devices_page.tsx` 与拆分后并集（入口 + 5 子模块）的全部顶层声明，逐声明块提取 token 叶子序列（忽略注释/空白 trivia），剥离开头的 `export/default/declare` 后逐块比较；入口 `DevicesPage` 单独比较 `return` 表达式的 token。
+- 结论：baseline **91 个顶层声明**中 **90 个非入口块全部 IDENTICAL**；入口 `DevicesPage` 函数体按设计改写（解构 + cleanup 接缝），其 **render 段 JSX 875 token 完全一致**；缺失 0；新增声明仅 `disposeDevicesPage`。
+- 允许差异（逐条解释）：
+  1. **`export` 前缀**：跨模块使用的常量/signal/类型/函数/组件加 `export`（脚本已剥离该前缀后比较，语义不变）。
+  2. **入口解构**：`DevicesPage` 从 `devicesState` 解构取用（名字不变）；原 `effect(() => { void loadAllWithRetry(); })`、`startBackgroundRefresh()` 调用逐字保留。
+  3. **内联 `let` 写回接缝**：原入口 cleanup 的 `stopCountdown(); pairGeneration += 1;` 收进 state 的 `disposeDevicesPage()`——`pairGeneration` 是跨模块无法解构写回的 `let`；两条语句 token 原样，cleanup 仍先停后台刷新、再停倒计时并判废挂起 accept 轮，语义等价。
+  4. **新增包裹壳** `disposeDevicesPage`（即上面第 3 条，唯一 union-only 声明）。
+- 组件/函数体均按原行区间切片拼接，未手抄；拆分过程脚本 `.pipeline/gen_split.py` 只做切块与 `export` 前缀，便于复核。
+
+### 源码断言测试同步（不削弱）
+
+- `nsh-app/devices_page_test.ts`：`devices` 从单文件改为读**并集**——入口 + `devices_page/` 下全部 `.ts/.tsx`（`readdirSync` 过滤排序后拼接）。**全部断言的条数与正则一字未改**（`beginPairingAccept*`/`acceptPairingRequest*`+有界超时/`confirmPairing`/`beginPairingConnect*`/`parsePairingCredential`/`setInterval`+`clearInterval|cleanup`/10 分钟语义/`removePairedDevice`+`<CardMindConfirmDialog`+`danger`/`checkDeviceConnectivity`/`getDeviceId|getDeviceName|localAddrs`/`setDeviceName*`/`discoverPeers|syncDiscoverPeers`/`CardMindEmptyState`/QR 入口与 `scanPairingQrImage` 区块/`pairCredential`/保存按钮无障碍标签/令牌纪律/无 React hooks）。
+- `nsh-app/skeleton_test.ts`：`Input from nsh/base` 断言对 `devices_page.tsx` 改读并集（`Input` 现位于 `sections.tsx`/`pair_sheets.tsx`），`components.tsx`/`settings_page.tsx` 仍单读；正则/条数不变。
+- `nsh-app/ui_kit_test.ts`：页面清单补 `devices_page/{sections,pair_sheets,state,constants,types}` 子文件，阈值 `used.length >= 4` 不变（只扩扫描面、不削弱）。
+- `AGENTS.md`：项目结构补 `devices_page/` 子模块说明。
+
+### 验证（headless，本机 macOS；最终源码复跑）
+
+| 命令 | 结果 |
+|---|---|
+| token 级核对（旧 `devices_page.tsx` vs 新并集） | **PASS**：90/90 非入口声明 IDENTICAL；`DevicesPage` return JSX 875 token 一致；缺失 0；新增仅 `disposeDevicesPage`（白名单见上） |
+| `nsh check .` | exit 0，无 warning（check 0.7s + build 0.5s） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
+| `nsh test --filter editor` | **28/28 passed**（70s） |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed**（24s） |
+| `nsh package . --target macos` | exit 0，出 `.nsh/out/cardmind.app`（App.tsx 68.7 KB js / 91.6 KB bytecode，18s） |
+| `cd rust-backend && cargo test` | exit 0，**22 target 0 failed** |
+| `cd rust-backend && cargo check` | exit 0，**0 warning** |
+| `dart format --output=none --set-exit-if-changed tool` | exit 0，**0 changed**（10 files） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0（docs:lint + rust:clippy + rust:test:full + rust:build-lib + format-first + tsx:test） |
+
+### 风险 / 说明
+
+- worktree 无 `.gitnexus` 索引（与 §12/§13/§14 同），`impact`/`detect_changes` 未跑；以 grep 确认调用面（仅 `App.tsx` 从 `./devices_page` 取值）+ token 级 diff 替代。
+- 本页没有行为测试，行为不变完全依赖上面的 token 级等价；拆分未改任何 JSX/交互/令牌。
+- 入口 229 行（目标 < ~250）：剩余体量为不可动的 render 段 JSX（按约束逐字保留）与 import/re-export 头。
+- `sections.tsx`/`pair_sheets.tsx` 依赖 `state.ts`（单向）；`pair_sheets.tsx` 另依赖 `sections.tsx` 的 `Panel`/`PairModeRow`，无循环 import。

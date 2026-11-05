@@ -145,10 +145,15 @@ describe('2.6 导航骨架 + App.tsx 接入', () => {
     // 骨架改为挂载这些页面。判定「骨架用上组件库」改为扫描 App.tsx + 它挂载的
     // 页面模块，仍要求 ≥4 种 CardMind*（阈值不变，不弱化）。
     // P2-2a 起 note_list 拆为入口 + note_list/ 子模块（P2-2b 同式拆
-    // editor_page/）：页面清单补上子文件，保证扫描面覆盖拆分后的全部
-    // 页面源码（阈值 ≥4 不变）。
+    // editor_page/；P2-2c 拆 devices_page/）：页面清单补上子文件，保证扫描面
+    // 覆盖拆分后的全部页面源码（阈值 ≥4 不变）。
     const tree = [
       'devices_page.tsx',
+      'devices_page/sections.tsx',
+      'devices_page/pair_sheets.tsx',
+      'devices_page/state.ts',
+      'devices_page/constants.ts',
+      'devices_page/types.ts',
       'note_list.tsx',
       'trash_page.tsx',
       'settings_page.tsx',
