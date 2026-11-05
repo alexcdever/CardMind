@@ -554,3 +554,34 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 | `devices_page.tsx` | 1544 | 229 | `devices_page/`（5 文件，token 级等价） |
 
 四个入口文件的公共 API 均未变；`App.tsx`/harness 的 import 路径全部未改。
+
+## 16. P2-3：`nsh-app/Cargo.toml` 死依赖清理（2026-11，worktree `p2-deadcrates`，基线 `dda03b90`）
+
+P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `nsh-platform-*` target 依赖（`platform::run_app(...)`）的唯一消费者消失；app crate 由 nsh 0.3.0 CLI 驱动构建，manifest 不再需要这些声明。
+
+### 改动
+
+- `nsh-app/Cargo.toml`：删 `env_logger = "0.11"` 与 4 个 `[target.'cfg(target_os = "...")'.dependencies]` 的 `nsh-platform-{linux,macos,windows,android}` 块；现存依赖只剩 `nsh-core`/`nsh-base` 0.3.0、`cardmind-backend`（path）、`tokio`。
+- `nsh-app/Cargo.lock`：**只删包、零版本漂移**——703 → 611 个包（删 92 个：5 个直接死依赖 + `nsh-engine` 等传递闭包 gtk4/pango/resvg/tiny-skia/webview2-com/env_filter/jiff 等）；name+version 对 diff 确认新增/变更 0。
+- `nsh-app/skeleton_test.ts`：断言反转——原「4 个 `nsh-platform-*` 均为 0.3.0」改为「manifest 不声明 `env_logger`/`nsh-platform-*`」；lockfile 断言改为必含 `nsh-base`/`nsh-core`/`nsh-macros`（`nsh-engine` 是平台 crate 传递依赖，一并移除）+ 不含 `nsh-platform-*`/`env_logger`；「所有 nsh-* 解析为 0.3.0」不变。
+- `AGENTS.md` 无平台 crate 相关描述，无需同步。
+
+### 验证（headless，本机 macOS）
+
+| 命令 | 结果 |
+|---|---|
+| 删前 `grep -rn "env_logger\|nsh_platform" nsh-app/src nsh-app/*.tsx nsh-app/*.ts` | 空（无引用） |
+| `nsh check .` | exit 0（check 17.5s + app crate build 46.6s） |
+| `nsh package . --target macos` | exit 0，出 `.nsh/out/cardmind.app`（12s） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
+| `nsh test --filter editor` | **28/28 passed**（3m37s） |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed** |
+| `cd rust-backend && cargo test` | exit 0，**0 failed** |
+| `dart format --output=none --set-exit-if-changed tool` | exit 0，0 changed |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0 |
+
+### 风险 / 说明
+
+- 平台 crate 被删不影响 `nsh package`：0.3.0 CLI 的 runner 构建不读 app manifest 的 target 依赖（macOS 包实测出 `.app`）。
+- `nsh-engine` 在 lock 中消失属预期——它仅被 `nsh-platform-*` 传递引入；nsh CLI 自身仍带引擎，app crate 编译只用 `nsh-core`/`nsh-base`。
+- worktree 无 `.gitnexus` 索引（同 §12–§15），以 grep 全仓确认无 `env_logger`/`nsh_platform` 代码引用替代。
