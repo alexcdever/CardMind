@@ -585,3 +585,19 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 - 平台 crate 被删不影响 `nsh package`：0.3.0 CLI 的 runner 构建不读 app manifest 的 target 依赖（macOS 包实测出 `.app`）。
 - `nsh-engine` 在 lock 中消失属预期——它仅被 `nsh-platform-*` 传递引入；nsh CLI 自身仍带引擎，app crate 编译只用 `nsh-core`/`nsh-base`。
 - worktree 无 `.gitnexus` 索引（同 §12–§15），以 grep 全仓确认无 `env_logger`/`nsh_platform` 代码引用替代。
+
+### 主树复验（合并 `8a26d9b3` 后，2026-11-05）
+
+合并 commit `8a26d9b3`（`--no-ff`），分支提交 `1c81cab3`，基线 `dda03b90`；diff 4 文件（Cargo.toml/lock/skeleton_test/AGENTS 无改）。独立审查通过：lock 新增/版本漂移 0、删 92 包（703→611）、`skeleton_test.ts` 断言反转+收紧（非删除）。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0（app crate 18.2s） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230） |
+| `nsh test --filter editor` | **28/28**（1m22s） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（22.8s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` Mach-O arm64 |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+
+> 平台打包只复验 macOS（Windows/iOS/Android/Linux 需各自主机）；`sync.rs` 拆分（5254 行）判为高风险/可选，不进本批。
