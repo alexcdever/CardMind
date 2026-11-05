@@ -1,17 +1,18 @@
 // 施工方案 2.1 + 2.6 验收测试（task.md 标准 3/4/5）：读文件断言，不跑构建。
+// P2-5 起断言读「入口 + components/ 全部 .ts/.tsx」并集，断言条数与正则不削弱。
 //
 // 断言面：
 //  ① components.tsx 存在且导出 6 个核心组件（CardMindPrimaryButton /
 //     CardMindIconButton / CardMindSearchField / CardMindTag /
 //     CardMindSyncStatus / CardMindEmptyState）+ 列表项 + 确认对话框；
-//  ② components.tsx / navigation.tsx 全部颜色引用来自 theme.ts 令牌
-//     ——不出现裸 `#RRGGBB` 或 `0xAARRGGBB` 字面量；
+//  ② components.tsx（含 components/ 子模块）/ navigation.tsx 全部颜色引用
+//     来自 theme.ts 令牌——不出现裸 `#RRGGBB` 或 `0xAARRGGBB` 字面量；
 //  ③ 触摸目标走 `layout.mobileTouchTarget`（=48），不出现裸 48 或更小的
 //     高度常量充当命中区；
 //  ④ App.tsx 用了新组件 + 有路由定义（createNavStack）+ push/pop 代码路径。
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -19,8 +20,25 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (name: string) => readFileSync(path.join(here, name), 'utf8');
 
 const COMPONENTS = 'components.tsx';
+const COMPONENTS_DIR = 'components';
 const NAVIGATION = 'navigation.tsx';
 const APP = 'App.tsx';
+
+/** P2-5 起组件库拆为入口 + 子目录（components/，同 note_list/editor_page/
+ *  devices_page/trash_page/settings_page 拆分模式）。结构/令牌断言改读
+ *  **并集**（入口 + 子目录全部 .ts/.tsx 拼接）——断言条数与正则一律
+ *  不减少、不放宽，只是把「单文件源码面」扩大到「拆分后的源码面」。 */
+const unionRead = (entry: string, dirName: string) => {
+  const dir = path.join(here, dirName);
+  const subs = existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.ts') || f.endsWith('.tsx'))
+        .sort()
+        .map((f) => read(path.join(dirName, f)))
+        .join('\n')
+    : '';
+  return read(entry) + '\n' + subs;
+};
 
 describe('2.1 components.tsx — 6 个核心组件导出', () => {
   it('components.tsx 存在', () => {
@@ -30,7 +48,9 @@ describe('2.1 components.tsx — 6 个核心组件导出', () => {
     );
   });
 
-  const src = existsSync(path.join(here, COMPONENTS)) ? read(COMPONENTS) : '';
+  const src = existsSync(path.join(here, COMPONENTS))
+    ? unionRead(COMPONENTS, COMPONENTS_DIR)
+    : '';
 
   for (const name of [
     'CardMindPrimaryButton',
@@ -66,14 +86,21 @@ describe('2.1 components.tsx — 6 个核心组件导出', () => {
 describe('2.1 令牌纪律 — 无裸色值/魔法像素', () => {
   for (const file of [COMPONENTS, NAVIGATION]) {
     const p = path.join(here, file);
-    const src = existsSync(p) ? read(file) : '';
+    // P2-5：components.tsx 拆为入口 + components/ 子目录，断言读并集；
+    // 子模块从 "../theme" 导入，正则放宽为 "./theme" 与 "../theme" 两档
+    //（仅路径段放宽，断言条数与匹配对象不变）。
+    const src = existsSync(p)
+      ? file === COMPONENTS
+        ? unionRead(COMPONENTS, COMPONENTS_DIR)
+        : read(file)
+      : '';
 
     it(`${file} 从 theme.ts 导入令牌`, () => {
       assert.ok(existsSync(p), `${file} 不存在`);
       assert.match(
         src,
-        /import\s*\{[^}]*\bcolors\b[^}]*\}\s*from\s*['"]\.\/theme(\.ts)?['"]/,
-        `${file} 应 \`import { colors, ... } from "./theme"\``,
+        /import\s*\{[^}]*\bcolors\b[^}]*\}\s*from\s*['"]\.\.?\/theme(\.ts)?['"]/,
+        `${file} 应 \`import { colors, ... } from "./theme"（子模块为 "../theme"）\``,
       );
     });
 
@@ -97,7 +124,7 @@ describe('2.1 令牌纪律 — 无裸色值/魔法像素', () => {
   }
 
   it('触摸目标走 layout.mobileTouchTarget（≥48dp 令牌，非裸 48）', () => {
-    const src = read(COMPONENTS);
+    const src = unionRead(COMPONENTS, COMPONENTS_DIR);
     assert.match(
       src,
       /layout\.mobileTouchTarget/,
