@@ -428,3 +428,48 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 
 - 合并 `p2-notelist`（`57d108c6`）→ `50d73843`；worktree/branch 已清场。
 - 主树复验：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`nsh package . --target macos` exit 0 出 `cardmind.app`；`cargo test`（rust-backend）22 target 0 failed；`git_gate full --dry-run` exit 0。`note_list.tsx` 现 88 行。
+
+## 14. P2-2b：`editor_page.tsx` 拆分（2026-11，worktree `p2-editorpage`，基线 `577f8630`）
+
+`nsh-app/editor_page.tsx`（981 行单文件）按职责机械拆成 `nsh-app/editor_page/` 子模块树；**纯结构重构：视觉、交互、导出 API 行为零变化**（token 级逐字核对，见下）。
+
+### 拆法
+
+- `nsh-app/editor_page.tsx`（入口，**343 行**）：`EditorPage` 用「解构保名」——`const { … } = createEditorController(props)` 后，`renderPreview`/`renderEditor`/`renderContent` 与返回 JSX **逐字保留**；另 `export const EditorScreen = EditorPage` 与公共 API re-export（`export type { EditorNoteRow, EditorPageProps, EditorRepository }` / `export { backendEditorRepository }` / `export { DesktopEditorPane }`）。`App.tsx`/`EditorHarness.tsx`/`note_list/desktop.tsx` 的 `from "./editor_page"` 不变。
+- `editor_page/types.ts`：`EditorNoteRow`/`EditorRepository` + 原入口内联 props 提升的 `EditorPageProps`。
+- `editor_page/constants.ts`：`SAVE_STATE`/`SaveState`/`COPY`/`LOADING_SPINNER`/`CANDIDATE_BLUR_HIDE_MS`/`CLOSE_FLUSH_ATTEMPTS`/`SIDE_BY_SIDE_WIDTH`/`PREVIEW_DEBOUNCE_MS`/`WIKILINK_EXTENSION`/`PREVIEW_STYLES`。
+- `editor_page/repository.ts`：`backendEditorRepository`/`isNewNoteId`。
+- `editor_page/loading.tsx`：`EditorLoading`/`EditorLoadError`/`EditorDesktopHeader`。
+- `editor_page/controller.ts`：`createEditorController(props)` —— 原 `EditorPage` 体内 `const repo` 到 `saveStateColor` 的全部声明（signals、let 绑定、metrics/sideBySide、clear*Timer、persist/saveNow/scheduleSave/retrySave、readLatestText/closeEditor、加载门 effect、卸载 flush effect、Escape keymap effect、setCandidates/flushOnUnmount、预览去抖/开合、handleChange/Selection/Blur/Focus、acceptCandidate）整体移入，声明顺序与函数体逐字不变（仅包函数壳 + 末尾 `return {…}`、缩进 +2）。
+- `editor_page/desktop_pane.tsx`：`DesktopEditorPane`（import `EditorPage` from `../editor_page`，与 `note_list/desktop.tsx` 取 `../editor_page` 同式循环依赖安全）。
+
+### 控制器等价性（token 级核对，唯一改写点）
+
+- 入口「解构保名」：`EditorPage` 内 `renderPreview`/`renderEditor`/`renderContent` 及返回 JSX 只改为从解构变量取用，**名字不变、文字未动**。
+- **唯一代码改写**：`editor` 是唯一「读+写」的 `let` 绑定，入口把控制器返回值解构为 `const` 后无法写回，故控制器内保留 `let editor` 并额外暴露 `setEditor`，`renderEditor` 的 ref 回调 `editor = ref` → `setEditor(ref)`（行尾 `props.onEditorRef?.(ref)` 逐字保留）。语义等价（写回后控制器闭包读到的 `editor` 与旧局部一致）。
+- **核对方法与结论**：用 `git show 577f8630:nsh-app/editor_page.tsx` 取旧文件，正则切 token（保留注释/字面量、忽略空白），按声明块配平抽取后逐段比较 token 序列。结果：18 个顶层声明搬移（`EditorNoteRow`/`EditorRepository`/`backendEditorRepository`/`isNewNoteId`/`SAVE_STATE`/`SaveState`/`COPY`/`LOADING_SPINNER`/`CANDIDATE_BLUR_HIDE_MS`/`CLOSE_FLUSH_ATTEMPTS`/`SIDE_BY_SIDE_WIDTH`/`PREVIEW_DEBOUNCE_MS`/`WIKILINK_EXTENSION`/`PREVIEW_STYLES`/`EditorLoading`/`EditorLoadError`/`EditorDesktopHeader`/`DesktopEditorPane`）+ 控制器段（**2370 token**）+ render 段含尾部 JSX（**1387 token**）+ props 类型（30 token）**全部 IDENTICAL**。白名单差异仅：`export` 前缀、`createEditorController` 包裹壳 + `return`、入口解构、上面那处 `setEditor(ref)`、内联 props→`EditorPageProps`。
+
+### 源码断言测试同步（不削弱）
+
+- `nsh-app/skeleton_test.ts`：**未改**。其读 `editor_page.tsx` 的断言（`Editor` 从 `nsh/base` import、`autoClose={false}`、`language="markdown"`、`accessibilityLabel=`）全部位于仍留在入口的 `renderEditor`，逐字未动。
+- `nsh-app/ui_kit_test.ts`：页面清单由「4 页 + `note_list/` 5 子文件」扩为「再加 `editor_page/{loading,desktop_pane}.tsx`」，阈值 `used.length >= 4` 不变（只扩扫描面、不削弱）。
+
+### 验证（headless，本机 macOS；最终源码复跑）
+
+| 命令 | 结果 |
+|---|---|
+| token 级核对（旧 `editor_page.tsx` vs 新并集） | **全部 IDENTICAL**（18 声明 + 控制器 2370 tok + render 1387 tok + props 30 tok；白名单见上） |
+| `nsh check .` | exit 0，无 warning |
+| `nsh test --filter editor` | **28/28 passed** |
+| `nsh test --filter "note: 移动布局"` | **1/1 passed** |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
+| `nsh package . --target macos` | exit 0，出 `.nsh/out/cardmind.app`（`App.tsx` 67.3 KB js / 89.0 KB bytecode） |
+| `cd rust-backend && cargo test` | exit 0，**0 failed**（全 target 绿，14m14s，含 pairing/sync_service/trash 等） |
+| `dart format --output=none --set-exit-if-changed tool` | exit 0，**0 changed**（10 files） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0（docs:lint + rust:clippy + rust:test:full + rust:build-lib + format-first + tsx:test） |
+
+### 风险 / 说明
+
+- worktree 无 `.gitnexus` 索引（与 §12/§13 同），`impact`/`detect_changes` 未跑；以 grep 确认调用面（`App.tsx`/`EditorHarness.tsx`/`note_list/desktop.tsx` 从 `./editor_page` 取值）+ token 级 diff 替代。
+- `desktop_pane.tsx` 与入口为循环 import（同 `note_list/desktop.tsx` 先例）：`Each` 渲染时才解引用 function 提升绑定，安全；28 条 editor 测试覆盖桌面第三栏两例通过。
+- 入口 343 行（目标 < ~350）：剩余体量为不可动的 `renderPreview`/`renderEditor`/`renderContent` JSX（按约束逐字保留）与 import 头。

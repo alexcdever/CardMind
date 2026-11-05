@@ -35,6 +35,11 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
   note_list/      笔记列表页子模块（note_list.tsx 为入口：NoteListPage + re-export）：
                   types(NoteDto/NoteListSource)/helpers(文本工具/行度量)/state(signals·computed·处理函数)/
                   note_row/tag_filter_bar/list_body/desktop/mobile
+  editor_page/    编辑页子模块（editor_page.tsx 为入口：EditorPage（控制器解构 + render 段）+
+                  re-export 公共 API）：
+                  types(EditorNoteRow/EditorRepository/EditorPageProps)/constants(SAVE_STATE·COPY·样式)/
+                  repository(backendEditorRepository/isNewNoteId)/loading(加载·错误态·桌面顶栏)/
+                  controller(createEditorController：signals/effects/保存·候选·预览处理)/desktop_pane(DesktopEditorPane)
   theme.ts        设计令牌（迁移自 lib/ui/design_system/cardmind_theme.dart）
   src/lib.rs      入口 + `native()` 注册（后端接缝已拆 `src/backend/`）
   src/backend/    TSX 暴露模块：core(Backend)/store/notes/sync/pairing + dto + globals(单例)
