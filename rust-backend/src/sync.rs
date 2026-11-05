@@ -4567,6 +4567,61 @@ fn extract_tag_marker(content: &str) -> String {
 /// （P4-2 新存储格式；私有 scheme `cardmind:`，任何渲染器都能显示成链接）。
 const NOTE_LINK_PREFIX: &str = "cardmind://note/";
 
+/// 预扫描出的定界符位置表：解析循环只向后推进游标，不在每个 `[` 处重扫后缀。
+/// 这是病态输入（如 5 万个连续 `[`）保持 O(n) 的关键。
+struct LinkDelimiters {
+    /// 所有 `]]` 的起始位置（允许重叠，如 `]]]` 记两个）。
+    double_closes: Vec<usize>,
+    /// 所有未被反斜杠转义的 `]` 位置。
+    close_brackets: Vec<usize>,
+    /// 所有未被反斜杠转义的 `)` 位置。
+    close_parens: Vec<usize>,
+}
+
+impl LinkDelimiters {
+    fn scan(content: &str) -> Self {
+        let bytes = content.as_bytes();
+        let mut double_closes = Vec::new();
+        let mut close_brackets = Vec::new();
+        let mut close_parens = Vec::new();
+        let mut i = 0;
+        while i < bytes.len() {
+            // `]]` 定界不感知转义（旧格式语法），被 `\` 跳过的字节也要看。
+            if i + 1 < bytes.len() && bytes[i] == b']' && bytes[i + 1] == b']' {
+                double_closes.push(i);
+            }
+            if bytes[i] == b'\\' {
+                let escaped = i + 1;
+                if escaped + 1 < bytes.len() && bytes[escaped] == b']' && bytes[escaped + 1] == b']'
+                {
+                    double_closes.push(escaped);
+                }
+                i += 2;
+            } else {
+                if bytes[i] == b']' {
+                    close_brackets.push(i);
+                } else if bytes[i] == b')' {
+                    close_parens.push(i);
+                }
+                i += 1;
+            }
+        }
+        Self {
+            double_closes,
+            close_brackets,
+            close_parens,
+        }
+    }
+}
+
+/// `positions[cursor..]` 中第一个 `>= at` 的位置；游标只前进，调用方保证 `at` 单调不减。
+fn position_at_or_after(positions: &[usize], cursor: &mut usize, at: usize) -> Option<usize> {
+    while *cursor < positions.len() && positions[*cursor] < at {
+        *cursor += 1;
+    }
+    positions.get(*cursor).copied()
+}
+
 /// 解析正文中的笔记链接 → `(target_id, alias)`（双格式，按出现位置顺序）。
 ///
 /// 旧格式（历史/兼容）：`[[target-id|alias]]`、`[[target-id]]`。
@@ -4578,16 +4633,26 @@ const NOTE_LINK_PREFIX: &str = "cardmind://note/";
 /// - alias 中 `\X` 转义只认 ASCII punctuation，其余 `\<c>` 按字面保留；
 /// - target 做 percent-decode 后，`\)` 等转义不再还原（写出端用 encodeURIComponent）；
 /// - `[x] (…)`（`]` 与 `(` 不相邻）、`![img](…)`、非 `cardmind://note/` scheme 均不产链接；
-/// - `[[` 未闭合时不产旧格式链接，但跳过这两个 `[` 继续扫（其中可能含新格式）。
+/// - `[[` 未闭合时不产旧格式链接，但跳过这两个 `[` 继续扫（其中可能含新格式）；
+/// - 未闭合 `[[` 后紧跟一个 Markdown 链接时，前者的残留文本会被并入后者 alias（target 正确、链接不漏）。
 fn parse_links_from_content(content: &str) -> Vec<(String, String)> {
+    let delimiters = LinkDelimiters::scan(content);
+    let mut double_close_cursor = 0;
+    let mut close_bracket_cursor = 0;
+    let mut close_paren_cursor = 0;
     let mut links = Vec::new();
-    let mut rest = content;
-    while let Some(open) = rest.find('[') {
-        if rest.as_bytes().get(open + 1) == Some(&b'[') {
+    let mut pos = 0;
+    while let Some(open_rel) = content[pos..].find('[') {
+        let open = pos + open_rel;
+        if content.as_bytes().get(open + 1) == Some(&b'[') {
             // 旧格式 [[target|alias]]
-            let after = &rest[open + 2..];
-            if let Some(end_rel) = after.find("]]") {
-                let inner = &after[..end_rel];
+            let after_start = open + 2;
+            if let Some(end) = position_at_or_after(
+                &delimiters.double_closes,
+                &mut double_close_cursor,
+                after_start,
+            ) {
+                let inner = &content[after_start..end];
                 let (target, alias) = match inner.split_once('|') {
                     Some((t, a)) => (t.trim(), a.trim()),
                     None => (inner.trim(), ""),
@@ -4596,13 +4661,19 @@ fn parse_links_from_content(content: &str) -> Vec<(String, String)> {
                     let alias = if alias.is_empty() { target } else { alias };
                     links.push((target.to_string(), alias.to_string()));
                 }
-                rest = &after[end_rel + 2..];
+                pos = end + 2;
             } else {
                 // 未闭合的 [[：跳过一个 `[`，让第二个 `[` 走新格式/继续扫描。
-                rest = &rest[open + 1..];
+                pos = open + 1;
             }
         } else {
-            match parse_markdown_note_link(rest, open) {
+            match parse_markdown_note_link(
+                content,
+                open,
+                &delimiters,
+                &mut close_bracket_cursor,
+                &mut close_paren_cursor,
+            ) {
                 Some((end, target, alias)) => {
                     let alias = if alias.is_empty() {
                         target.clone()
@@ -4610,63 +4681,41 @@ fn parse_links_from_content(content: &str) -> Vec<(String, String)> {
                         alias
                     };
                     links.push((target, alias));
-                    rest = &rest[end..];
+                    pos = end;
                 }
-                None => rest = &rest[open + 1..],
+                None => pos = open + 1,
             }
         }
     }
     links
 }
 
-/// `rest[open]` 是 `[` 且其后不是 `[`：尝试解析 `[alias](cardmind://note/target)`。
+/// `content[open]` 是 `[` 且其后不是 `[`：尝试解析 `[alias](cardmind://note/target)`。
 /// 返回 `(整个链接的 end offset, target, alias)`；非笔记链接/残片返回 None。
-fn parse_markdown_note_link(rest: &str, open: usize) -> Option<(usize, String, String)> {
+fn parse_markdown_note_link(
+    content: &str,
+    open: usize,
+    delimiters: &LinkDelimiters,
+    close_bracket_cursor: &mut usize,
+    close_paren_cursor: &mut usize,
+) -> Option<(usize, String, String)> {
+    let bytes = content.as_bytes();
     // 图片语法 ![…](…) 不是链接。
-    if open > 0 && rest.as_bytes()[open - 1] == b'!' {
+    if open > 0 && bytes[open - 1] == b'!' {
         return None;
     }
-    let after_open = &rest[open + 1..];
     // 找未转义的 `]`（`\]` 属于 alias 内容）。
-    let bytes = after_open.as_bytes();
-    let mut i = 0;
-    let close = loop {
-        if i >= bytes.len() {
-            return None;
-        }
-        if bytes[i] == b'\\' {
-            i += 2;
-            continue;
-        }
-        if bytes[i] == b']' {
-            break i;
-        }
-        i += 1;
-    };
-    let alias_raw = &after_open[..close];
+    let close = position_at_or_after(&delimiters.close_brackets, close_bracket_cursor, open + 1)?;
+    let alias_raw = &content[open + 1..close];
     // `]` 之后必须紧跟 `(`。
-    let url_start = open + 1 + close + 1;
-    if rest.as_bytes().get(url_start) != Some(&b'(') {
+    let url_start = close + 1;
+    if bytes.get(url_start) != Some(&b'(') {
         return None;
     }
     // 找未转义的 `)`。
-    let url_inner = &rest[url_start + 1..];
-    let ubytes = url_inner.as_bytes();
-    let mut j = 0;
-    let url_end = loop {
-        if j >= ubytes.len() {
-            return None;
-        }
-        if ubytes[j] == b'\\' {
-            j += 2;
-            continue;
-        }
-        if ubytes[j] == b')' {
-            break j;
-        }
-        j += 1;
-    };
-    let url = url_inner[..url_end].trim();
+    let url_end =
+        position_at_or_after(&delimiters.close_parens, close_paren_cursor, url_start + 1)?;
+    let url = content[url_start + 1..url_end].trim();
     let target_encoded = url.strip_prefix(NOTE_LINK_PREFIX)?;
     if target_encoded.is_empty() {
         return None;
@@ -4675,8 +4724,7 @@ fn parse_markdown_note_link(rest: &str, open: usize) -> Option<(usize, String, S
     if target.is_empty() {
         return None;
     }
-    let end = url_start + 1 + url_end + 1;
-    Some((end, target, unescape_link_text(alias_raw.trim())))
+    Some((url_end + 1, target, unescape_link_text(alias_raw.trim())))
 }
 
 /// 链接文本里的 `\X` 转义还原：只认 ASCII punctuation（CommonMark 口径），
