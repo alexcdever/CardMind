@@ -729,3 +729,37 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 
 - `pnpm install` 被代理截断（TLS EOF），改为从主树复制 `node_modules`（37M）+ `.nsh`；同基线产物，无副作用。
 - `cargo test` 用 `env -u CARGO_TARGET_DIR` + worktree 本地 `rust-backend/target`，避免 §17 末尾记录的 `env!("CARGO_MANIFEST_DIR")` 跨 worktree 污染重演。
+
+### 合并与主树复验（`8a2ee29a`，2026-11-05）
+
+合并 commit `8a2ee29a`（`--no-ff`），分支提交 `16183e32`/`76a729d6`，基线 `27a3fb17`；diff 16 文件 +887/−703。
+
+独立审查：**APPROVE**（无 BLOCKER）——自写 TS-API 脚本逐顶层声明比：22 个真实声明 → 拆分后 **22/22 IDENTICAL**（「23 声明」口径 = 22 decl + 1 `export type {ViewStyle}` 语句，移到 `types.ts` 内 re-export，语义等价）；`App.tsx` 与 5 个页面 diff = 0 行；测试并集化后 `assert.`/`it(`/正则/`match`/`doesNotMatch` 全部不降（ui_kit 21/11/3/3/13、skeleton 37/21/3/16/12）。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0（nsh 自下载 pinned ts7，无 registry 截断）；native.d.ts SHA `c350b682…` 与基线一致 |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230） |
+| `nsh test --filter editor` | **28/28**（12m55s，含 5 万字 perf） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（1m17s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` Mach-O arm64 |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed**（worktree 用本地 target，无 env! 污染） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+### P2 拆分完成（2026-11-05）
+
+至此 NSH 前端结构全部收敛：所有页面（note_list/editor_page/devices_page/trash_page/settings_page）与组件库（components）拆为入口 + 子模块，入口保留公共 API re-export，子模块承载实现；最大源文件从 1544 行降到 343 行（`editor_page.tsx`），全部公共 API 与 `App.tsx` 调用方式逐字未变，native.d.ts SHA 五次拆分均一致（`c350b682…`）。`rust-backend/src/sync.rs`（5281 行）判为同步引擎内聚模块，107 个 `SyncService` 方法共享 `CoreState`/`ReceiverContext` 私有类型，拆分风险大于收益，**不拆**，不属 NSH 重构范围。
+
+#### 累计行数变化（P2 系列）
+
+| 文件 | 拆前 | 拆后入口 | 子模块 |
+|---|---|---|---|
+| `nsh-app/src/lib.rs` | 1177 | **17** | `src/backend/`（core+globals+dto+store+notes+sync+pairing） |
+| `note_list.tsx` | 799 | **88** | `note_list/` 8 文件 |
+| `editor_page.tsx` | 981 | **343** | `editor_page/` 6 文件 |
+| `devices_page.tsx` | 1544 | **229** | `devices_page/` 5 文件 |
+| `trash_page.tsx` | 404 | **209** | `trash_page/` 5 文件 |
+| `settings_page.tsx` | 454 | **242** | `settings_page/` 4 文件 |
+| `components.tsx` | 698 | **22** | `components/` 11 文件 |
+| **合计** | 6057 | **1150** | — |
