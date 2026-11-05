@@ -110,8 +110,11 @@ fn purge_removes_note_row_and_its_links() {
         let dir = temp_dir("purge-links");
         let svc = SyncService::new_persistent(&dir).await.unwrap();
         // note-a 正文含指向 note-b 的链接 → links 表有 (source=note-a, target=note-b)
-        svc.create_note("note-a".into(), "# A\n\n指向 [[note-b|B 的别名]]")
-            .unwrap();
+        svc.create_note(
+            "note-a".into(),
+            "# A\n\n指向 [B 的别名](cardmind://note/note-b)",
+        )
+        .unwrap();
         svc.create_note("note-b".into(), "# B\n\n正文").unwrap();
         let store = NoteStore::new(":memory:").unwrap();
         svc.sync_notes_to_store(&store).unwrap();

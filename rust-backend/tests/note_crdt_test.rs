@@ -137,6 +137,42 @@ fn parse_links_extracts_outgoing_references() {
 }
 
 #[test]
+fn parse_links_extracts_markdown_format_references() {
+    // 新格式（P4-2）：标准 Markdown 链接 [alias](cardmind://note/<id>)
+    let note = NoteCrdt::new();
+    note.set_content("看 [别名A](cardmind://note/abc123) 这里");
+    assert_eq!(
+        note.parse_links(),
+        vec![("abc123".to_string(), "别名A".to_string())]
+    );
+
+    // 空 alias → alias 取 target_id
+    let note = NoteCrdt::new();
+    note.set_content("[](cardmind://note/abc123)");
+    assert_eq!(
+        note.parse_links(),
+        vec![("abc123".to_string(), "abc123".to_string())]
+    );
+
+    // 新旧混排按出现位置排序
+    let note = NoteCrdt::new();
+    note.set_content("[[a|A]] 与 [b](cardmind://note/b-id) 与 [[c]]");
+    assert_eq!(
+        note.parse_links(),
+        vec![
+            ("a".to_string(), "A".to_string()),
+            ("b-id".to_string(), "b".to_string()),
+            ("c".to_string(), "c".to_string()),
+        ]
+    );
+
+    // 普通外链不产笔记链接
+    let note = NoteCrdt::new();
+    note.set_content("[外链](https://example.com) 与 [x](cardmind://other/y)");
+    assert!(note.parse_links().is_empty());
+}
+
+#[test]
 fn snapshot_roundtrip_preserves_tags_and_dates() {
     let note_a = NoteCrdt::new();
     note_a.set_content("# 带元数据\n\n正文");

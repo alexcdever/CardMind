@@ -4563,27 +4563,163 @@ fn extract_tag_marker(content: &str) -> String {
         .to_string()
 }
 
-/// 解析正文中的 `[[target-id|alias]]` 链接
+/// 笔记链接的目标 URL 前缀：标准 Markdown 行内链接 `[alias](cardmind://note/<id>)`
+/// （P4-2 新存储格式；私有 scheme `cardmind:`，任何渲染器都能显示成链接）。
+const NOTE_LINK_PREFIX: &str = "cardmind://note/";
+
+/// 解析正文中的笔记链接 → `(target_id, alias)`（双格式，按出现位置顺序）。
+///
+/// 旧格式（历史/兼容）：`[[target-id|alias]]`、`[[target-id]]`。
+/// 新格式（P4-2 起写入）：`[alias](cardmind://note/target-id)`、`[](cardmind://note/target-id)`。
+/// alias 缺省/为空时取 target_id。
+///
+/// 已知边界（粗粒度扫描，与旧解析器同风格）：
+/// - 链接出现在行内代码/围栏代码块内也会被解析（不做 code 感知）；
+/// - alias 中 `\X` 转义只认 ASCII punctuation，其余 `\<c>` 按字面保留；
+/// - target 做 percent-decode 后，`\)` 等转义不再还原（写出端用 encodeURIComponent）；
+/// - `[x] (…)`（`]` 与 `(` 不相邻）、`![img](…)`、非 `cardmind://note/` scheme 均不产链接；
+/// - `[[` 未闭合时不产旧格式链接，但跳过这两个 `[` 继续扫（其中可能含新格式）。
 fn parse_links_from_content(content: &str) -> Vec<(String, String)> {
     let mut links = Vec::new();
     let mut rest = content;
-    while let Some(start) = rest.find("[[") {
-        let after = &rest[start + 2..];
-        let Some(end_rel) = after.find("]]") else {
-            break;
-        };
-        let inner = &after[..end_rel];
-        let (target, alias) = match inner.split_once('|') {
-            Some((t, a)) => (t.trim(), a.trim()),
-            None => (inner.trim(), ""),
-        };
-        if !target.is_empty() {
-            let alias = if alias.is_empty() { target } else { alias };
-            links.push((target.to_string(), alias.to_string()));
+    while let Some(open) = rest.find('[') {
+        if rest.as_bytes().get(open + 1) == Some(&b'[') {
+            // 旧格式 [[target|alias]]
+            let after = &rest[open + 2..];
+            if let Some(end_rel) = after.find("]]") {
+                let inner = &after[..end_rel];
+                let (target, alias) = match inner.split_once('|') {
+                    Some((t, a)) => (t.trim(), a.trim()),
+                    None => (inner.trim(), ""),
+                };
+                if !target.is_empty() {
+                    let alias = if alias.is_empty() { target } else { alias };
+                    links.push((target.to_string(), alias.to_string()));
+                }
+                rest = &after[end_rel + 2..];
+            } else {
+                // 未闭合的 [[：跳过一个 `[`，让第二个 `[` 走新格式/继续扫描。
+                rest = &rest[open + 1..];
+            }
+        } else {
+            match parse_markdown_note_link(rest, open) {
+                Some((end, target, alias)) => {
+                    let alias = if alias.is_empty() {
+                        target.clone()
+                    } else {
+                        alias
+                    };
+                    links.push((target, alias));
+                    rest = &rest[end..];
+                }
+                None => rest = &rest[open + 1..],
+            }
         }
-        rest = &after[end_rel + 2..];
     }
     links
+}
+
+/// `rest[open]` 是 `[` 且其后不是 `[`：尝试解析 `[alias](cardmind://note/target)`。
+/// 返回 `(整个链接的 end offset, target, alias)`；非笔记链接/残片返回 None。
+fn parse_markdown_note_link(rest: &str, open: usize) -> Option<(usize, String, String)> {
+    // 图片语法 ![…](…) 不是链接。
+    if open > 0 && rest.as_bytes()[open - 1] == b'!' {
+        return None;
+    }
+    let after_open = &rest[open + 1..];
+    // 找未转义的 `]`（`\]` 属于 alias 内容）。
+    let bytes = after_open.as_bytes();
+    let mut i = 0;
+    let close = loop {
+        if i >= bytes.len() {
+            return None;
+        }
+        if bytes[i] == b'\\' {
+            i += 2;
+            continue;
+        }
+        if bytes[i] == b']' {
+            break i;
+        }
+        i += 1;
+    };
+    let alias_raw = &after_open[..close];
+    // `]` 之后必须紧跟 `(`。
+    let url_start = open + 1 + close + 1;
+    if rest.as_bytes().get(url_start) != Some(&b'(') {
+        return None;
+    }
+    // 找未转义的 `)`。
+    let url_inner = &rest[url_start + 1..];
+    let ubytes = url_inner.as_bytes();
+    let mut j = 0;
+    let url_end = loop {
+        if j >= ubytes.len() {
+            return None;
+        }
+        if ubytes[j] == b'\\' {
+            j += 2;
+            continue;
+        }
+        if ubytes[j] == b')' {
+            break j;
+        }
+        j += 1;
+    };
+    let url = url_inner[..url_end].trim();
+    let target_encoded = url.strip_prefix(NOTE_LINK_PREFIX)?;
+    if target_encoded.is_empty() {
+        return None;
+    }
+    let target = percent_decode(target_encoded);
+    if target.is_empty() {
+        return None;
+    }
+    let end = url_start + 1 + url_end + 1;
+    Some((end, target, unescape_link_text(alias_raw.trim())))
+}
+
+/// 链接文本里的 `\X` 转义还原：只认 ASCII punctuation（CommonMark 口径），
+/// 其余 `\<c>` 保留 `\` 原样（写出端只转义 `\`、`[`、`]`，这里是宽松读）。
+fn unescape_link_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            match chars.next() {
+                Some(next) if next.is_ascii_punctuation() => out.push(next),
+                Some(next) => {
+                    out.push('\\');
+                    out.push(next);
+                }
+                None => out.push('\\'),
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+/// `%XX` percent-decoding（UTF-8 容错）：非法序列按字面保留。
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            let hi = (bytes[i + 1] as char).to_digit(16);
+            let lo = (bytes[i + 2] as char).to_digit(16);
+            if let (Some(h), Some(l)) = (hi, lo) {
+                out.push((h * 16 + l) as u8);
+                i += 3;
+                continue;
+            }
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// 读取 meta Map 的字符串字段
@@ -5277,5 +5413,79 @@ mod tests {
         assert!(parse_links_from_content("[[|]]").is_empty());
         // [[]] 也视为空 target
         assert!(parse_links_from_content("[[]]").is_empty());
+    }
+
+    #[test]
+    fn parse_links_reads_markdown_format() {
+        // [alias](cardmind://note/target) → (target, alias)
+        assert_eq!(
+            parse_links_from_content("看 [别名B](cardmind://note/abc123) 这里"),
+            vec![("abc123".to_string(), "别名B".to_string())]
+        );
+        // 空 alias → alias 取 target
+        assert_eq!(
+            parse_links_from_content("[](cardmind://note/abc123)"),
+            vec![("abc123".to_string(), "abc123".to_string())]
+        );
+        // alias = target 文本（[[id]] 归一后的形态）
+        assert_eq!(
+            parse_links_from_content("[note-9](cardmind://note/note-9)"),
+            vec![("note-9".to_string(), "note-9".to_string())]
+        );
+        // target/alias 两侧空白 trim
+        assert_eq!(
+            parse_links_from_content("[  别名  ](cardmind://note/n-1)"),
+            vec![("n-1".to_string(), "别名".to_string())]
+        );
+    }
+
+    #[test]
+    fn parse_links_mixed_formats_in_appearance_order() {
+        let content = "[[a|A]] then [b](cardmind://note/b-id) and [[c]] \
+            plus [d](cardmind://note/d-id)";
+        assert_eq!(
+            parse_links_from_content(content),
+            vec![
+                ("a".to_string(), "A".to_string()),
+                ("b-id".to_string(), "b".to_string()),
+                ("c".to_string(), "c".to_string()),
+                ("d-id".to_string(), "d".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_links_markdown_boundaries() {
+        // 非 cardmind://note/ 的 URL 不是笔记链接
+        assert!(parse_links_from_content("[x](https://example.com)").is_empty());
+        assert!(parse_links_from_content("[x](cardmind://other/y)").is_empty());
+        // 空 target（前缀后无内容）不产生链接
+        assert!(parse_links_from_content("[x](cardmind://note/)").is_empty());
+        // 图片语法 ![…](…) 不是链接
+        assert!(parse_links_from_content("![img](cardmind://note/x)").is_empty());
+        // ] 与 ( 之间有字符 → 不是行内链接
+        assert!(parse_links_from_content("[x] (cardmind://note/y)").is_empty());
+        // 未闭合（缺 ) 或缺 ]( ）不产生链接
+        assert!(parse_links_from_content("[x](cardmind://note/y").is_empty());
+        assert!(parse_links_from_content("[x(cardmind://note/y)").is_empty());
+        // 这些残片不影响其后正常链接被解析
+        assert_eq!(
+            parse_links_from_content("[x](bad) [ok](cardmind://note/ok-1)"),
+            vec![("ok-1".to_string(), "ok".to_string())]
+        );
+    }
+
+    #[test]
+    fn parse_links_markdown_escapes_and_percent_encoding() {
+        // alias 中 \] 转义 → 解析出含 ] 的别名（wikilinkText 的写出形态）
+        assert_eq!(
+            parse_links_from_content("[a\\]b](cardmind://note/x-1)"),
+            vec![("x-1".to_string(), "a]b".to_string())]
+        );
+        // target percent-encoding（encodeURIComponent 的写出形态）
+        assert_eq!(
+            parse_links_from_content("[x](cardmind://note/a%20b%29)"),
+            vec![("a b)".to_string(), "x".to_string())]
+        );
     }
 }
