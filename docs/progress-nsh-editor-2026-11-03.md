@@ -473,3 +473,8 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 - worktree 无 `.gitnexus` 索引（与 §12/§13 同），`impact`/`detect_changes` 未跑；以 grep 确认调用面（`App.tsx`/`EditorHarness.tsx`/`note_list/desktop.tsx` 从 `./editor_page` 取值）+ token 级 diff 替代。
 - `desktop_pane.tsx` 与入口为循环 import（同 `note_list/desktop.tsx` 先例）：`Each` 渲染时才解引用 function 提升绑定，安全；28 条 editor 测试覆盖桌面第三栏两例通过。
 - 入口 343 行（目标 < ~350）：剩余体量为不可动的 `renderPreview`/`renderEditor`/`renderContent` JSX（按约束逐字保留）与 import 头。
+
+### 合并与主树复验（`0ebaca60`）
+
+- 合并 `p2-editorpage`（`82b36bfd`）→ `0ebaca60`；worktree/branch 已清场。
+- 主树复验：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`nsh package . --target macos` exit 0 出 `cardmind.app`；`cargo test`（rust-backend）22 target 0 failed；`git_gate full --dry-run` exit 0。`editor_page.tsx` 现 343 行。
