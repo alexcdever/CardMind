@@ -31,4 +31,7 @@ export interface EditorPageProps {
   repository?: EditorRepository;
   /** 测试接缝：Editor 挂载后把 ref 交给调用方（`nsh test` 读全文做逐字节断言）。 */
   onEditorRef?: (ref: EditorRef) => void;
+  /** 预览里按下 `cardmind://note/<id>` 链接的跳转入口：默认 `openEditor`（push
+   *  编辑路由）；桌面三栏内嵌时由列表侧改为切换选中（DesktopEditorPane 注入）。 */
+  onNavigateNote?: (noteId: string) => void;
 }

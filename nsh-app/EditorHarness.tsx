@@ -255,6 +255,7 @@ function Harness(): JSX.Element {
             noteId={selected}
             repository={repository ?? undefined}
             onEditorRef={recordEditorRef}
+            onNavigateNote={(id: string) => selected.set(id)}
           />
         </View>
       </View>

@@ -5,7 +5,8 @@
 //  ② 700ms 自动保存 + 保存顺序 + 新笔记只生成一次 id；
 //  ③ 关闭 dirty → 先 flush 再返回；保存失败留页可重试；
 //  ④ 加载失败 / 超时 → 错误态，不创建/不覆盖；
-//  ⑤ `[[` 候选（含空格前缀）来自 autoCompleteLinks，点选插入 `[[id|title]] `；
+//  ⑤ `[[` 候选（含空格前缀）来自 autoCompleteLinks，点选插入
+//     `[title](cardmind://note/id) `（P4-2 新存储格式）；
 //  ⑥ 标签行显示与命中高亮；
 //  ⑦ 撤销可用。
 import { expect, open, test } from "nsh/test";
@@ -79,10 +80,11 @@ function hasText(app: App, needle: string): boolean {
   return app.texts().some((text) => text.includes(needle));
 }
 
-/** 一行包含特殊字符的 Markdown fixture：wikilink（id|alias）、3+ 空行、代码块、
- *  段内换行（`行一\n行二` 是同一段的两行）与中文。 */
+/** 一行包含特殊字符的 Markdown fixture：笔记链接（P4-2 新格式
+ *  `[alias](cardmind://note/id)`）、3+ 空行、代码块、段内换行
+ *  （`行一\n行二` 是同一段的两行）与中文。 */
 const FIXTURE =
-  "# 标题\n\n[[note-2|别名]] 与 [[note-3]]\n\n行一\n行二\n\n\n\n```\nconst x = 1;\n```\n";
+  "# 标题\n\n[别名](cardmind://note/note-2) 与 [note-3](cardmind://note/note-3)\n\n行一\n行二\n\n\n\n```\nconst x = 1;\n```\n";
 
 test("editor: 打开已有笔记时加载完成才挂载 Editor，markdown 逐字节显示且不落盘", async () => {
   const app = await openEditor({ noteId: "note-1", note: FIXTURE, tags: ["工作"] });
@@ -254,7 +256,7 @@ test("editor: markdown 逐字节保真（wikilink/3+空行/代码块/段内换�
 });
 
 test("editor: CRLF 笔记按 0.3.0 口径归一为 LF（唯一允许的归一），其余逐字节保留", async () => {
-  const crlf = "# 标题\r\n\r\n[[note-2|别名]]\r\n\r\n\r\n\r\n```\r\nconst x = 1;\r\n```\r\n";
+  const crlf = "# 标题\r\n\r\n[别名](cardmind://note/note-2)\r\n\r\n\r\n\r\n```\r\nconst x = 1;\r\n```\r\n";
   const lf = crlf.replace(/\r\n/g, "\n");
   const app = await openEditor({ noteId: "note-1", note: crlf });
   await app.waitFor(EDITOR);
@@ -283,7 +285,7 @@ test("editor: 关闭时保存失败留在页面，可重试后再返回", async 
   await app.waitFor("id:notes-stub");
 });
 
-test("editor: [[ 触发候选（来自 autoCompleteLinks），点选插入 [[id|title]] 且无残留", async () => {
+test("editor: [[ 触发候选（来自 autoCompleteLinks），点选插入 [title](cardmind://note/id) 且无残留", async () => {
   const app = await openEditor({
     noteId: "note-1",
     note: "",
@@ -301,11 +303,11 @@ test("editor: [[ 触发候选（来自 autoCompleteLinks），点选插入 [[id|
   expect(prefixes[prefixes.length - 1]).toBe("");
   await app.press("id:link-note-2");
   await app.waitFor("id:link-candidates", { state: "gone" });
-  expect(hasText(app, "[[note-2|会议记录]]")).toBe(true);
+  expect(hasText(app, "[会议记录](cardmind://note/note-2)")).toBe(true);
   expect(hasText(app, "[[]]") || hasText(app, "[[[")).toBe(false);
   await app.wait(900);
   await app.waitUntil(
-    () => app.storage()["test.saved"] === "[[note-2|会议记录]] ",
+    () => app.storage()["test.saved"] === "[会议记录](cardmind://note/note-2) ",
   );
 });
 
@@ -320,7 +322,7 @@ test("editor: [[ 前缀含空格仍出候选（不依赖内建 completion 的 wo
   await app.waitFor("id:link-note-2");
   expect(calls(app).autoCompleteLinks[calls(app).autoCompleteLinks.length - 1]).toBe("Weekly ");
   await app.press("id:link-note-2");
-  await app.waitUntil(() => hasText(app, "[[note-2|Weekly Buffer]]"));
+  await app.waitUntil(() => hasText(app, "[Weekly Buffer](cardmind://note/note-2)"));
 });
 
 test("editor: 标签行显示 tags；光标前命中标签时高亮；无标签不显示空行", async () => {
@@ -384,16 +386,48 @@ test("editor: 切换到预览渲染标题/列表/引用/代码，切回编辑源
   expect(app.storage()["test.editorValue"]).toBe(doc);
 });
 
-test("editor: 预览中 [[id|alias]] 显示 alias（target|alias 渲染成 chip）", async () => {
-  const doc = "前文 [[note-2|会议别名]] 与 [[note-3]] 后文\n";
-  const app = await openEditor({ noteId: "note-1", note: doc }, { width: 390, height: 844 });
+test("editor: 预览中 [alias](cardmind://note/id) 渲染为链接，按下跳转目标笔记", async () => {
+  const doc = "前文 [会议别名](cardmind://note/note-2) 与 [note-3](cardmind://note/note-3) 后文\n";
+  const app = await openEditor({
+    noteId: "note-1",
+    note: doc,
+    notes: [
+      { id: "note-1", content: doc },
+      { id: "note-2", content: "note-2 的正文内容" },
+      { id: "note-3", content: "note-3 的正文内容" },
+    ],
+  }, { width: 390, height: 844 });
   await app.waitFor(EDITOR);
   await app.press("label:预览");
   await app.waitFor("id:preview");
-  // alias 显示；无 alias 的显示 target id。
-  await app.waitFor("id:wikilink-note-2");
-  await app.waitFor("id:wikilink-note-3");
+  // alias 显示为链接文本；无 alias 的显示写入的文本（target id）。
   expect(hasText(app, "会议别名")).toBe(true);
+  expect(hasText(app, "note-3")).toBe(true);
+  // 按下笔记链接 → openEditor(note-2) push 新编辑页（重建 Editor 实例）。
+  await app.press("text:会议别名");
+  await app.waitUntil(() => app.storage()["test.editorMountCount"] === "2");
+  await app.waitFor(EDITOR);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "note-2 的正文内容");
+});
+
+test("editor: 旧格式 [[id|alias]] 笔记加载即显示新格式，保存后落盘为新格式（惰性迁移）", async () => {
+  const legacy = "前文 [[note-2|会议别名]] 与 [[note-3]] 后文\n";
+  const migrated = "前文 [会议别名](cardmind://note/note-2) 与 [note-3](cardmind://note/note-3) 后文\n";
+  const app = await openEditor({ noteId: "note-1", note: legacy, append: "X" });
+  await app.waitFor(EDITOR);
+  // 编辑器里显示新格式（加载归一）；未编辑不回写。
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorDumpSeq"] === "1");
+  expect(app.storage()["test.editorValue"]).toBe(migrated);
+  await app.wait(900);
+  expect(saved(app)).toBeNull();
+  expect(calls(app).noteCreate).toBe(0);
+  // 末尾插入一次编辑 → 保存 → 存储为新格式（不再含 [[）。
+  await app.keyboard.press("mod+shift+l");
+  await app.wait(900);
+  await app.waitUntil(() => app.storage()["test.saved"] === `${migrated}X`);
+  expect(app.storage()["test.saved"]).toBe(`${migrated}X`);
 });
 
 // ─── P3：桌面第三栏（Each key 重建）──────────────────────────────────────────
@@ -525,6 +559,29 @@ test("editor: 桌面 ≥1280 预览并排（Editor 与 TextView 同屏）", asyn
   expect(hasText(app, "并排")).toBe(true);
 });
 
+test("editor: 桌面第三栏按下笔记链接 → onNavigateNote 切选中（不 push 路由）", async () => {
+  const app = await openDesktop({
+    noteId: "note-a",
+    note: null,
+    mode: "desktop",
+    notes: [
+      { id: "note-a", content: "看 [B 的别名](cardmind://note/note-b)" },
+      { id: "note-b", content: "note-b 正文" },
+    ],
+    selectedNoteId: "note-a",
+  });
+  await app.waitFor("id:desktop-notes");
+  await app.waitFor(EDITOR);
+  await app.press("label:预览");
+  await app.waitFor("id:preview");
+  expect(hasText(app, "B 的别名")).toBe(true);
+  await app.press("text:B 的别名");
+  // harness 的 onNavigateNote 写 selected → 第三栏换到 note-b。
+  await app.waitFor(EDITOR);
+  await app.keyboard.press("mod+shift+e");
+  await app.waitUntil(() => app.storage()["test.editorValue"] === "note-b 正文");
+});
+
 // ─── P3：Escape 清候选 ────────────────────────────────────────────────────────
 
 test("editor: 候选打开时用「关闭候选」入口收起候选且不退出编辑页", async () => {
@@ -600,7 +657,7 @@ function bigMarkdown(targetChars: number): string {
     block += 1;
     const seg =
       `# 第 ${block} 节 标题\n\n` +
-      `正文段落，含 [[note-${block}|别名${block}]] 与普通文本，用来撑大预览解析成本。` +
+      `正文段落，含 [别名${block}](cardmind://note/note-${block}) 与普通文本，用来撑大预览解析成本。` +
       `中文内容若干，重复填充以达到五万字量级的真实文档。\n\n` +
       `- 列表项一\n- 列表项二\n- 列表项三\n\n` +
       `> 引用一句话，来自第 ${block} 节。\n\n` +
@@ -635,8 +692,9 @@ test("editor: 5 万字 Markdown 预览切换性能（墙钟采样）", async () 
     const t0 = Date.now();
     await app.press("label:预览");
     // headless 下 `id:preview`（TextView testID）不可选；预览「渲染完成」
-    // 以首个 wikilink chip（`renderCustom` 产物）出现为代理。
-    await app.waitFor("id:wikilink-note-1", { timeout: 90_000 });
+    // 以首个笔记链接的文本出现为代理（P4-2 后链接是内建 link，不再有
+    // wikilink-<id> 的 renderCustom testID）。
+    await app.waitFor("text:别名1", { timeout: 90_000 });
     samples.push(Date.now() - t0);
     // 回到编辑态（5 万字 Editor 重挂载同样受整机负载影响，给足超时避免
     // 「返回编辑」这一步把整轮打挂；这一步不计入「打开预览」样本）。

@@ -20,6 +20,7 @@ import {
   listHeader,
   notes,
   onSearchChanged,
+  openNote,
   searchText,
   selectedNoteId,
 } from "./state";
@@ -150,8 +151,9 @@ export function DesktopLayout(props: { status?: JSX.Element }): JSX.Element {
       <DesktopSidebar />
       <DesktopListPane />
       <View style={{ flex: 1, flexDirection: "column" }}>
-        {/* 第三栏：真实编辑区（后端注入走默认 repo）；未选中显示空态。 */}
-        <DesktopEditorPane noteId={selectedNoteId} />
+        {/* 第三栏：真实编辑区（后端注入走默认 repo）；未选中显示空态。
+            预览里点笔记链接 → openNote 切选中（P4-2 cardmind:// 跳转）。 */}
+        <DesktopEditorPane noteId={selectedNoteId} onNavigateNote={openNote} />
         <If when={props.status !== undefined}>{props.status}</If>
       </View>
     </View>
