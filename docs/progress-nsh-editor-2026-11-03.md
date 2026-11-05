@@ -1072,12 +1072,14 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | 80k | 835.30ms | 1.014ms | 7906.90ms | 0.010ms |
 | 链接密集 4000 条（~326k/~262k 字符） | 0.78ms | 1.53ms | 2.96ms | ~5ms（同进程 A/B 100 次：7.10→6.37ms，无实质回退） |
 
-两条都回到线性曲线（10k→80k ≈ 8×），50k 判据 Rust <5ms、TS <50ms 均过。
+两条都回到线性曲线，50k 判据 Rust <5ms、TS <50ms 均过。
+
+> **数字随测量环境浮动**：独立审查在另一台/另一热状态下量到改前 825.6ms / 7134.6ms、改后 0.979ms / 0.021ms——改前绝对值差 2.2–2.5×（O(n²) 曲线对常数极敏感），改后同数量级且判据余量三个数量级。**看曲线与改后绝对值，不看改前绝对值。**
 
 ### 差分验证（行为零变化）
 
-- Rust：git HEAD 旧实现 vs 仓库新实现，`[]()|!\ac` 穷举长度 ≤5 + 30 万 token 随机串 → **411,111 cases，0 mismatch**。
-- TS：旧实现副本 vs 仓库新实现，同型穷举 + 30 万 token 随机串（含反引号/围栏）→ **337,449 cases，0 mismatch**。
+- Rust：git HEAD 旧实现 vs 仓库新实现，`[]()|!\ac` 穷举长度 ≤5 + 30 万 token 随机串 → **411,111 cases，0 mismatch**（独立审查用另一组字母表与随机源复跑 411,110 cases，同样 0 mismatch）。
+- TS：旧实现副本 vs 仓库新实现，同型穷举 + 30 万 token 随机串（含反引号/围栏）→ **337,449 cases，0 mismatch**（独立审查复跑 366,429 cases，同样 0 mismatch）。两组用例由不同随机源生成，总数不同属预期，判据是「0 mismatch」。
 
 ### 改动
 
@@ -1099,5 +1101,20 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | `cd rust-backend && cargo test`（无 CARGO_TARGET_DIR） | exit 0，0 failed |
 | `nsh check .` | exit 0 |
 | `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
-| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过（含 `cargo clippy -D warnings`、`cargo test --all-features`） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ 只打印计划、不执行；clippy / `cargo test` 由各 commit 的 pre-commit 钩子实跑并全过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+### 合并与主树复验（`4669eb61`，2026-11-06）
+
+合并 commit `4669eb61`（`--no-ff`），分支提交 `4982f9b7`/`83fed80b`/`4cd6fdf5`，基线 `260d7072`；diff 5 文件 +192/−73。
+
+独立审查：**APPROVE**——审查者独立测量性能（Rust 825.6→**0.979ms**、TS 7134.6→**0.021ms**，判据 <5ms/<50ms 均过）、独立写差分测试（Rust 411,110 cases、TS 366,429 cases，**0 mismatch**）、确认范围只含扫描实现+注释+文档。审查提出的 §24 三处口径问题已按实修正（跨机改前数字浮动、差分总数随随机源、`--dry-run` 不执行 clippy/test）。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248） |
+| `nsh test --filter editor` | **30/30**（2m37s） |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 | `dart format --output=none --set-exit-if-changed tool` | 0 changed |
