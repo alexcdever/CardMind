@@ -97,6 +97,9 @@ registry = 'sparse+https://rsproxy.cn/index/'
 12. **默认 headless，不自动开 GUI**：验证一律优先无窗口命令——`nsh check` / `npx tsx --test` / `nsh test`（headless runner）/ `cargo test` / `node build-nsh.mjs` / `nsh package` 都不会弹窗。只有 `open *.app`、`nsh run`、`nsh test --target <platform>` 会开真窗口；不要为了跑测试自动执行它们。需要目视 UI 时由人自己 `open`，或在用户明确要求下用 `open -g`（后台、不抢焦点）→ 截图 → 立即退出，窗口只一闪。真机项（Windows IME、Android/iOS 软键盘）本来就只能在对应真机跑，不在本机弹窗。
 13. **平台工程目录已删**：`android/`、`linux/`、`macos/`、`windows/` 四个 Flutter runner 工程已整删；打包不再依赖它们，统一 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打）。
 14. **锚点规范**：`docs/standards/nsh-automation-anchors.md`（原 `flutter-automation-anchors.md`）——`testID` ↔ `id:`、`accessibilityLabel` ↔ `label:`、`role`/`accessibilityState`、`text:`/`role:` 选择器。
+15. **worktree 里 `cargo test` 不要借用主树 `CARGO_TARGET_DIR`**：`rust-backend/tests/hygiene_test.rs` 用 `env!("CARGO_MANIFEST_DIR")` 定位 `tests/` 目录，那是**编译期常量**。在 worktree 里 `CARGO_TARGET_DIR=<主树>/rust-backend/target cargo test` 会把 worktree 路径烧进主树缓存；worktree 删除后主树 `cargo test` 报 `读取目录 …/.worktrees/xxx/rust-backend/tests 失败`。修法：`touch rust-backend/tests/hygiene_test.rs` + 删对应旧二进制强制重编。正确做法是在 worktree 内用默认 target（worktree 本地 `rust-backend/target`）。`nsh` 命令借主树 `nsh-app/target` 不受影响（无 `env!` 路径测试）。
+16. **`nsh check` 首次可能被 npm 代理截断**：它要下载固定 TS 7 native 包（`@typescript/typescript-darwin-arm64@7.0.2`），本机代理 `localhost:2333` 会给出 `unexpected end of file` / `Connection reset`，`nsh check` exit 1 但 app crate 已构建成功。这是网络问题不是代码问题；绕法是直连下载同版本 tarball 后 `nsh check . --tsc <解包>/package/lib/tsc`（校验 sha512 与 nsh 内置 integrity 一致），或临时关代理。
+17. **行尾不统一（已知，待单独处理）**：`trash_page.tsx`/`settings_page.tsx`/`devices_page.tsx` 及其早期子模块是 **CRLF**，`note_list*`/`editor_page*`/`components.tsx`/`App.tsx` 是 **LF**；仓库无 `.gitattributes`。整文件 diff 变红通常是行尾变化而非内容变化，review 时先 `git diff --ignore-cr-at-eol` 确认。统一方案是加 `.gitattributes`（`* text=auto eol=lf`）后一次性归一，单独任务做。
 
 ## 7. 关键文件地图
 
