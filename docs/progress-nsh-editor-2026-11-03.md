@@ -914,7 +914,24 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 - `.nsh/types/app/native.d.ts` 需先 `nsh check` 生成，否则 `npx tsx` 的 `#[module] 最小闭环` 用例断言其存在而挂（非真实失败）——本次执行先 `nsh check` 补出，门禁 tsx 才全绿。
 - pre-commit 门禁对每个 commit 都跑全套（fmt + docs:lint + clippy + cargo test + tsx），两个 commit 各过一遍，合计验证了归一对构建/测试无影响。
 
-### Commit（2 个）
+### Commit（3 个）
 
 1. `chore(git): 新增 .gitattributes，统一文本文件行尾归一为 LF`——只含 `.gitattributes`（`0b8f796d`）。
 2. `chore(eol): 归一 16 个文本文件行尾为 LF`——只含 16 个行尾归一文件（`5d739156`）。
+
+### 合并与主树复验（`d59e4a7f`，2026-11-06）
+
+合并 commit `d59e4a7f`（`--no-ff`），分支提交 `0b8f796d`/`5d739156`/`07875094`，基线 `d8cf967f`；diff 18 文件 +3514/−3449。
+
+独立审查：**APPROVE**——16 个归一文件均为纯行尾（`--ignore-cr-at-eol` 逐文件为 0 行）；32 个二进制文件 base↔HEAD sha256 完全一致；`w/crlf`/`w/mixed` 均归零；7 项回归全绿。两处非阻断文档小瑕疵已修（`w/lf` 3467→3468、§21 漏列自身 docs commit）。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `git ls-files --eol \| grep -c w/crlf` | **0** |
+| `nsh check . --tsc …` | exit 0；native.d.ts SHA `c350b682…` 一致 |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail** |
+| `nsh test --filter editor` | **28/28**（2m20s，含 5 万字 perf） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
