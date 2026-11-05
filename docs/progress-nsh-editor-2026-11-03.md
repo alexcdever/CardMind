@@ -1053,3 +1053,51 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 2. **未闭合 `[[` 后接 Markdown 链接**：`"[[a then [b](cardmind://note/c)"` → alias 变 `"a then [b"`（target 正确、不漏链接，仅 alias 含残片）。
 3. TS 迁移会把普通 Markdown 链接文本/图片 alt 里的 `[[...]]` 也转换（嵌套链接），Rust 不接受 title/`<...>` 形式——均为极端手写输入。
 4. 文档缺口：`docs/adr/0007-links-and-search-data-contract.md` 仍写死 `[[target-id|alias]]`（应加 superseded 注记）；`docs/testing/nsh-p4-windows-ime-checklist.md` B3「wikilink chip」已过时。
+
+## 24. P4-2b：链接格式迁移收尾（2026-11-06，worktree `p4b-link-hardening`，基线 `260d7072`）
+
+### 范围
+
+P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n²) 扫描、两处文档缺口、两个解析函数的已知边界注释。**不改协议、不改格式、不改行为语义**（差分验证见下）。
+
+### 病态输入性能（改前 → 改后）
+
+测量口径：Apple M2 / macOS 27.2；Rust 用 `rustc 1.98.1 -C opt-level=3`（release 口径；独立 harness 从 `rust-backend/src/sync.rs` 逐字提取 `NOTE_LINK_PREFIX`…`percent_decode` 段落编译，输入 `"[".repeat(n)`，warmup 3 次、n=20/200 采样）；TS 用 `cd nsh-app && npx tsx /tmp/p4b_bench/bench_ts.ts`（Node v22.23.2、`performance.now()` 单次调用、warmup 2 次、n=3/50）。测量脚本存 `/tmp/p4b_bench/`，不进仓库。
+
+| 输入（连续 `[`） | Rust 改前 p50 | Rust 改后 p50 | TS 改前 p50 | TS 改后 p50 |
+|---|---|---|---|---|
+| 10k | 13.29ms | 0.125ms | 123.17ms | 0.003ms |
+| 20k | 53.11ms | 0.251ms | 493.16ms | 0.003ms |
+| **50k** | **335.61ms** | **0.638ms** | **3193.01ms** | **0.007ms** |
+| 80k | 835.30ms | 1.014ms | 7906.90ms | 0.010ms |
+| 链接密集 4000 条（~326k/~262k 字符） | 0.78ms | 1.53ms | 2.96ms | ~5ms（同进程 A/B 100 次：7.10→6.37ms，无实质回退） |
+
+两条都回到线性曲线（10k→80k ≈ 8×），50k 判据 Rust <5ms、TS <50ms 均过。
+
+### 差分验证（行为零变化）
+
+- Rust：git HEAD 旧实现 vs 仓库新实现，`[]()|!\ac` 穷举长度 ≤5 + 30 万 token 随机串 → **411,111 cases，0 mismatch**。
+- TS：旧实现副本 vs 仓库新实现，同型穷举 + 30 万 token 随机串（含反引号/围栏）→ **337,449 cases，0 mismatch**。
+
+### 改动
+
+| 文件 | 改动 |
+|---|---|
+| `rust-backend/src/sync.rs` | `parse_links_from_content` 改单向前进：先一次 `LinkDelimiters::scan` 收集 `]]`（允许重叠、不看转义）+ 未转义 `]`/`)` 的位置表，解析循环用 `position_at_or_after` 单调游标取「第一个 ≥ at」的定界符，最坏 O(n·常数)；`parse_markdown_note_link` 改收 content + 位置表。新增「未闭合 `[[` 残留并入后续 Markdown 链接 alias」的已知边界注释。 |
+| `nsh-app/editor_text.ts` | `replaceWikilinks` 由回溯正则 `/\[\[((?:[^\]]|\](?!\]))*)\]\]/g` 改为 `indexOf('[[')` → `indexOf(']]', open+2)` 游标扫描（与正则等价，失败即前进）；`convertLineOutsideInlineCode`/`legacyWikilinksToMarkdown` 不再携带正则；注释补「普通 Markdown 链接文本/图片 alt 里的 `[[id]]` 也会被转换（嵌套链接）」已知边界。 |
+| `docs/adr/0007-links-and-search-data-contract.md` | 文件头加 Superseded 注记（存储格式 2026-11 起改 `[alias](cardmind://note/<id>)`、旧格式兼容读、索引语义不变、指向 §23），原文未改。 |
+| `docs/testing/nsh-p4-windows-ime-checklist.md` | B3 预期描述「wikilink chip」改为「标准 Markdown 链接，accent 文字 + 浅底色 + 圆角的近 chip 外观」（测试步骤意图不变）。 |
+
+### 回归（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `cargo test --lib parse_links` | 6/6 ok |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248 tests） |
+| `nsh test --filter editor` | **30/30** |
+| `nsh test --filter "note: 移动布局"` | **1/1** |
+| `cd rust-backend && cargo test`（无 CARGO_TARGET_DIR） | exit 0，0 failed |
+| `nsh check .` | exit 0 |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过（含 `cargo clippy -D warnings`、`cargo test --all-features`） |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
