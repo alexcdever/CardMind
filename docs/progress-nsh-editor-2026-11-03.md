@@ -859,3 +859,21 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 ### Commit
 
 单 commit `fix(gate): 失败步骤同时转发 stdout，docs:lint 缺失清单不再被吞`（2 files：`tool/src/git_gate/gate.dart` + 本文档）。
+
+### 合并与主树复验（`c1d5a6a7`，2026-11-06）
+
+合并 commit `c1d5a6a7`（`--no-ff`），分支提交 `bb032e01`，基线 `25f805a2`；diff 2 文件（gate.dart +7、docs §20 +44）。
+
+独立审查：**APPROVE**——失败分支 stdout 转发逻辑正确（去重条件合理）；植入坏引用验证五断言全过（exit=1、`[fail]`、`[stdout]` 头、`Missing references:`、植入路径）；回归六项全绿。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+| `dart analyze tool` | No issues found |
+| `nsh check . --tsc …` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail** |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| 主树 AC3（L139 植入坏引用 → `git add` → `pre-commit`） | exit=1，stderr 依次：`[fail] docs:lint` → `[stdout] docs:lint` → `Missing references:` 清单（含植入路径）✅ |
+
+> 合并时本文档遇到两边同时向文件尾追加内容的冲突（HEAD 的 §19 合并段 vs 分支 §20），按「两段都保留、§19 在前 §20 在后」手工解决。
