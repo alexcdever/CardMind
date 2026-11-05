@@ -985,3 +985,49 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 
 > CLI 本机已升到 `nsh 0.4.0 (e626a8d)`（`~/.nsh` + `~/.local/bin/nsh` 软链；旧的 `~/.cargo/bin/nsh` 0.3.0 仍在但 PATH 顺序让 0.4.0 优先）。
+
+## 23. P4-2：笔记链接存储格式迁移 `[alias](cardmind://note/<id>)`（2026-11-06，worktree `p4-link-format`，基线 `9dab6b79`）
+
+### 范围
+
+把笔记间链接从私有 `[[id|alias]]` 迁到标准 Markdown 行内链接 `[alias](cardmind://note/<id>)`：**双格式读 + 惰性迁移**（加载归一、保存写新格式、不批量改写历史笔记）。`[[` 仍是输入触发符，编辑器组件不变（仍 `Editor` + `TextView`）。
+
+### 改动
+
+| 文件 | 改动 |
+|---|---|
+| `rust-backend/src/sync.rs` | `parse_links_from_content` 重写为双格式扫描器：旧 `[[t|a]]`/`[[t]]` 与新 `[a](cardmind://note/t)`/`[](cardmind://note/t)` 都产出 `(target_id, alias)`，按出现位置排序；未闭合 `[[` 不再 `break`（跳过单 `[` 继续扫）；新格式做 alias `\` 转义还原 + target percent-decode；`![img](…)`、`[x] (…)`（不相邻）、非 `cardmind://note/` scheme 不产链接。新增 `parse_markdown_note_link` / `unescape_link_text` / `percent_decode`，已知边界写入注释。 |
+| `nsh-app/editor_text.ts` | 新增纯函数：`NOTE_LINK_URL_PREFIX`、`escapeMdLinkText`（`\`/`[`/`]`）、`legacyWikilinksToMarkdown`（`[[id]]`→`[id](…)`、`[[id|a]]`→`[a](…)`、alias trim、空 alias/空 target/未闭合原样、**行内 code 与 ```/~~~ 围栏内不转换**）、`noteIdFromLinkUrl`（percent-decode 反解，非法 → null）。`wikilinkText` 改插 `[title](cardmind://note/id) `。 |
+| `nsh-app/editor_page/controller.ts` | 加载路径：`loaded = legacyWikilinksToMarkdown(normalizeNewlines(value))`；`lastSaved` 取转换后文本 → 未编辑不 dirty、不回写，首次保存自然写新格式（惰性迁移）。 |
+| `nsh-app/editor_page.tsx` | 预览不再用 `WIKILINK_EXTENSION`/`renderCustom` chip：`cardmind://` 链接走内建 link 渲染（`styles.link` = accent + surfaceLow 底色 + 圆角，近 chip 外观）；新增 `onLinkPress` → `noteIdFromLinkUrl` → `props.onNavigateNote`（默认 `openEditor` push 路由）。 |
+| `nsh-app/editor_page/types.ts` | `EditorPageProps` 新增 `onNavigateNote?` 接缝。 |
+| `nsh-app/editor_page/desktop_pane.tsx` | `DesktopEditorPane` 透传 `onNavigateNote`。 |
+| `nsh-app/note_list/desktop.tsx` | 桌面三栏传 `openNote`：预览点链接 → `selectedNoteId` 切换（不 push 路由）。 |
+| `nsh-app/EditorHarness.tsx` | 桌面场景传 `onNavigateNote={(id) => selected.set(id)}`。 |
+| `nsh-app/src/backend/notes.rs` | 3 处 doc 注释同步双格式描述（无行为变化）。 |
+
+### 测试更新
+
+- Rust：`parse_links_*` 单测 2→6（新格式读、混排顺序、边界、转义/percent-encoding）；`note_crdt_test` 加新格式 + 混排 + 外链不产链接；`store_test` 混排 + resync 新格式；`trash_test` 新格式。
+- `editor_text_test.ts`：+`noteIdFromLinkUrl`（3）、+`legacyWikilinksToMarkdown`（13）、`wikilinkText` 新格式 + 转义（3）。
+- `editor_page.test.tsx`：`[[` 断言改新格式（条数不减）；预览测试改为「链接渲染 + 按下跳转」；新增「旧格式加载归一 + 保存落新格式」与「桌面 onNavigateNote 切选中」；性能测试的渲染完成代理从 `id:wikilink-note-1`（renderCustom 已删）改为 `text:别名1`。
+
+### 回归（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check .` | exit 0（22.9s + Rust crate 39.3s） |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248 tests；基线 229→248） |
+| `nsh test --filter editor` | **30/30**（1m11s；基线 28→30） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（17.5s） |
+| `cd rust-backend && cargo test`（无 CARGO_TARGET_DIR） | exit 0，**0 failed** |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app`（release runner 17.2s） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+### 设计取舍记录
+
+- **预览链接外观**：`TextView` link 是内建 inline 渲染，无 per-node 自定义视图；`styles.link` 给 accent 文字 + surfaceLow 底色 + `borderRadius`（尽力而为的近 chip 外观，底色/圆角是否绘制取决于引擎 TextStyle 支持度）。未做成旧版 `CardMindTag` 块级 chip——这是引擎能力边界，不是产品决策。
+- **代码块不转换**：`legacyWikilinksToMarkdown` 跳过行内 code span（按反引号 run 等长配对）与 ```/~~~ 围栏，避免把文档示例改坏；`parse_links_from_content`（Rust 索引侧）不做 code 感知——写侧保护示例不被改写，索引侧对 code 里的残留 `[[..]]` 仍会建索引（与旧行为一致）。
+- **`onNavigateNote` 默认 `openEditor`**：设计要点写「跳转 `openEditor(id)`」；桌面三栏场景路由不进栈，改由 `DesktopEditorPane` 注入 `openNote` 换选中。
+- **`[[id|]]`（空 alias）按缺省处理** → `[id](cardmind://note/id)`，与旧 `[[id]]` 显示口径一致。
