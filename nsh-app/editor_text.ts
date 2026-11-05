@@ -130,22 +130,21 @@ export function wikilinkText(candidate: WikiCandidate): string {
  *  未闭合 `[[...` 原样保留；行内 code（`…` 反引号 run 配对）与 ```/~~~ 围栏
  *  代码块内不转换（与 Rust 读侧一致：代码块里的 [[..]] 不产链接）。
  *  已知边界：行内 code 按行内匹配（跨行 code span 不识别）；围栏判定按
- *  「行首 ≤3 空格 + 3+ 相同标记字符」的粗粒度规则。 */
+ *  「行首 ≤3 空格 + 3+ 相同标记字符」的粗粒度规则；普通 Markdown 链接文本/图片
+ *  alt 里的 `[[id]]` 也会被转换（嵌套链接）——写作者不会这么写。 */
 export function legacyWikilinksToMarkdown(text: string): string {
-  const inner = /\[\[((?:[^\]]|\](?!\]))*)\]\]/g;
-  const convertPlain = (line: string): string =>
-    convertLineOutsideInlineCode(line, inner);
+  const convertPlain = (line: string): string => convertLineOutsideInlineCode(line);
   return protectCodeSegments(text, convertPlain);
 }
 
 /** 单行内：把行内 code span 外的 `[[..]]` 换成新格式。 */
-function convertLineOutsideInlineCode(line: string, inner: RegExp): string {
+function convertLineOutsideInlineCode(line: string): string {
   let out = '';
   let pos = 0;
   while (pos < line.length) {
     const tick = line.indexOf('`', pos);
     if (tick === -1) {
-      out += replaceWikilinks(line.slice(pos), inner);
+      out += replaceWikilinks(line.slice(pos));
       break;
     }
     // 开反引号 run：找等长的闭 run；找不到 → 反引号按字面处理。
@@ -153,10 +152,10 @@ function convertLineOutsideInlineCode(line: string, inner: RegExp): string {
     while (line[tick + openRun] === '`') openRun += 1;
     const close = findBacktickClose(line, tick + openRun, openRun);
     if (close === -1) {
-      out += replaceWikilinks(line.slice(pos), inner);
+      out += replaceWikilinks(line.slice(pos));
       break;
     }
-    out += replaceWikilinks(line.slice(pos, tick), inner);
+    out += replaceWikilinks(line.slice(pos, tick));
     out += line.slice(tick, close);
     pos = close;
   }
@@ -179,19 +178,37 @@ function findBacktickClose(text: string, from: number, run: number): number {
   return -1;
 }
 
-/** 纯文本段里的 `[[..]]` → 新格式（空 target / `[[|` 开头 / 未闭合原样）。 */
-function replaceWikilinks(segment: string, inner: RegExp): string {
-  inner.lastIndex = 0;
-  return segment.replace(inner, (whole, body: string) => {
+/** 纯文本段里的 `[[..]]` → 新格式（空 target / `[[|` 开头 / 未闭合原样）。
+ *  按 `[[` → 最近 `]]` 的游标扫描（与正则等价），避免病态输入下反复回扫。 */
+function replaceWikilinks(segment: string): string {
+  let out = '';
+  let pos = 0;
+  while (true) {
+    const open = segment.indexOf('[[', pos);
+    if (open === -1) {
+      out += segment.slice(pos);
+      return out;
+    }
+    const close = segment.indexOf(']]', open + 2);
+    if (close === -1) {
+      out += segment.slice(pos);
+      return out;
+    }
+    out += segment.slice(pos, open);
+    const body = segment.slice(open + 2, close);
     const pipe = body.indexOf('|');
     const target = (pipe === -1 ? body : body.slice(0, pipe)).trim();
-    if (target === '') return whole;
-    const alias =
-      pipe === -1
-        ? target
-        : body.slice(pipe + 1).trim() || target; // [[id|]] 按缺省处理
-    return `[${escapeMdLinkText(alias)}](${NOTE_LINK_URL_PREFIX}${encodeURIComponent(target)})`;
-  });
+    if (target === '') {
+      out += segment.slice(open, close + 2);
+    } else {
+      const alias =
+        pipe === -1
+          ? target
+          : body.slice(pipe + 1).trim() || target; // [[id|]] 按缺省处理
+      out += `[${escapeMdLinkText(alias)}](${NOTE_LINK_URL_PREFIX}${encodeURIComponent(target)})`;
+    }
+    pos = close + 2;
+  }
 }
 
 /** 把 ```/~~~ 围栏代码块整段排除在 `convertPlain` 之外（逐行扫描）。 */
