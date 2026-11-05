@@ -877,3 +877,44 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 | 主树 AC3（L139 植入坏引用 → `git add` → `pre-commit`） | exit=1，stderr 依次：`[fail] docs:lint` → `[stdout] docs:lint` → `Missing references:` 清单（含植入路径）✅ |
 
 > 合并时本文档遇到两边同时向文件尾追加内容的冲突（HEAD 的 §19 合并段 vs 分支 §20），按「两段都保留、§19 在前 §20 在后」手工解决。
+
+## 21. P3-3：统一行尾——.gitattributes + CRLF→LF 归一（2026-11，worktree `p3-line-endings`，基线 `d8cf967f`）
+
+### 范围
+
+建 `.gitattributes` 并把全部文本文件归一为 LF：
+
+- **`.gitattributes`**：`* text=auto` 按内容识别文本、提交归一为 LF；`*.db/loro/key/otf/ttf/woff(2)/png/jpe?g/gif/ico/icns/webp/pdf/zip/gz/jar` 显式 `binary`，防止 `text=auto` 漏判（`data/cardmind.db` 实测 `i/none` 未被自动识别）。仓库无 `bat`/`cmd`/`iss` 等必须 CRLF 的文件，**不设 `eol=crlf` 例外**（初稿曾给 `*.iss` 留 `eol=crlf`，会留一个 `w/crlf`，去掉后归零；`tool/installer/cardmind.iss` 为 Inno Setup 脚本，LF 下同样合法）。
+- **归一**：`git add --renormalize .` 处理 16 个文件 = 9 个 `w/crlf`（`.gitignore`、`AGENTS.md`、`docs/migration-nsh{,-construction,-verification}.md`、`docs/standards/spec-lifecycle.md`、`.workflow/update-download-install/executor-report.md`、`nsh-app/Cargo.toml`、`tool/src/git_gate/runner.dart`）+ 7 个 `w/mixed`（`CLAUDE.md`、`nsh-app/devices_page{.tsx,/constants.ts,/pair_sheets.tsx,/sections.tsx,/state.ts,/types.ts}`）。7 个 mixed 文件逐字节核对只有 `\r\n`+`\n`、无裸 `\r`，归一即纯行尾变化。
+
+### 关键验证
+
+| 验证 | 结果 |
+|---|---|
+| `git diff --cached --ignore-cr-at-eol`（两次 commit 的 staged diff） | **为空**——纯行尾变化、无内容 diff |
+| `git ls-files --eol \| grep -c w/crlf` | **0**（`cardmind.iss` 曾滞留 `i/lf w/crlf`——索引已 LF 工作区没刷新，`rm`+`git checkout` 后归位 `w/lf`） |
+| `git ls-files --eol` 终态 | `w/lf` 3467、`w/-text` 12（3 otf+9 png，`binary` 生效）、`w/none` 20（`coverage-ui.json` 19 个 `i/none` 无内容文件 + `cardmind.db`）、`w/crlf`/`w/mixed` 均 0 |
+
+### 回归（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check . --tsc /tmp/p2-4-review/ts7/package/lib/tsc`（`CARGO_TARGET_DIR=主树 nsh-app/target`） | exit 0（类型检查 24s + app crate 构建 67s） |
+| `npx tsx --test "*_test.ts"` | **230 tests / 229 pass / 0 fail / 1 skipped** |
+| `nsh test --filter editor` | **28/28**（5m48s，含 5 万字 perf） |
+| `cd rust-backend && env -u CARGO_TARGET_DIR cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+| `.nsh/types/app/native.d.ts` SHA-256 | `c350b682…`（与基线一致） |
+
+### 备注
+
+- worktree 需自备 `nsh-app/.cargo/config.toml`（rsproxy 镜像，未跟踪）；缺它时 docs:lint 会把文档对它的合法引用判成缺失（同 §20 备注），已从主树复制。
+- worktree `node_modules` 未就绪：`cd nsh-app && pnpm install` 装依赖，`esbuild` postinstall 被 pnpm ignored-builds 跳过（同 §19/§20 备注，tsx 自带内核不影响）。
+- `.nsh/types/app/native.d.ts` 需先 `nsh check` 生成，否则 `npx tsx` 的 `#[module] 最小闭环` 用例断言其存在而挂（非真实失败）——本次执行先 `nsh check` 补出，门禁 tsx 才全绿。
+- pre-commit 门禁对每个 commit 都跑全套（fmt + docs:lint + clippy + cargo test + tsx），两个 commit 各过一遍，合计验证了归一对构建/测试无影响。
+
+### Commit（2 个）
+
+1. `chore(git): 新增 .gitattributes，统一文本文件行尾归一为 LF`——只含 `.gitattributes`（`0b8f796d`）。
+2. `chore(eol): 归一 16 个文本文件行尾为 LF`——只含 16 个行尾归一文件（`5d739156`）。
