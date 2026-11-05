@@ -763,3 +763,40 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 | `settings_page.tsx` | 454 | **242** | `settings_page/` 4 文件 |
 | `components.tsx` | 698 | **22** | `components/` 11 文件 |
 | **合计** | 6057 | **1150** | — |
+
+## 19. P3-1：删 4 个零外部消费者的 export（2026-11，worktree `p3-dead-exports`，基线 `a7004761`）
+
+### 范围
+
+收敛模块接口，只去 export、不改行为：
+
+| 项 | 文件 | 改动 |
+|---|---|---|
+| `ViewStyle` | `components/types.ts` | 删 `import type { ViewStyle } from "nsh"` + 注释 + `export type { ViewStyle };`（3 行+空行，文件剩 `IconGlyph`） |
+| `ViewStyle` | `components.tsx` | `export type { IconGlyph, ViewStyle }` → `export type { IconGlyph }` |
+| `TypeToken` | `theme.ts:47` | `export interface` → `interface`（只被同文件 `satisfies Record<string, TypeToken>` 内部使用） |
+| `TextRange` / `SelectionContext` | `editor_text.ts:27` / `:39` | 去 `export`（只被同文件 `completionOffsets`/内部签名使用） |
+
+删除前 grep 验证（词边界）：`ViewStyle` 唯一命中为 `editor_page/constants.ts` 的 `TextViewStyles`（子串误匹配，非本符号）；`TypeToken`/`TextRange`/`SelectionContext` 无任何外部 import（含测试文件）。diff 共 4 文件 +4/−8 行，仅预期改动。
+
+### 验证（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check . --tsc /tmp/p2-4-review/ts7/...`（+ 主树 CARGO_TARGET_DIR） | exit 0 |
+| `npx tsx --test "*_test.ts"` | **230 tests / 229 pass / 0 fail / 1 skipped** |
+| `nsh test --filter editor` | **28/28**（4m03s，含 5 万字 perf） |
+| `cd rust-backend && cargo test`（`env -u CARGO_TARGET_DIR`，worktree 本地 target） | exit 0，**22 targets / 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+| `.nsh/types/app/native.d.ts` SHA-256 | `c350b682…`（与基线一致） |
+| `nsh test`（不带 filter） | 不跑——基线即连带 Windows-only `coexist_notes_probe`（macOS 无 `APPDATA`，见 §5.7），非本轮引入 |
+
+### Commit
+
+单 commit `refactor(exports): 收敛 4 个零消费者 export（ViewStyle/TypeToken/TextRange/SelectionContext）`（4 files，pre-commit docs:lint 过）。
+
+### 备注
+
+- 去 `export` 后的非导出类型仍可在同文件内作返回类型/约束——TypeScript 允许（外部调用方经类型推导得到匿名类型，编译不受影响）。
+- `pnpm install` 成功但 `esbuild` postinstall 被 pnpm ignored-builds 跳过；tsx 自带 esbuild 内核，不影响测试。

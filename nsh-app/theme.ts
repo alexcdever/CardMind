@@ -44,7 +44,7 @@ export const layout = {
   mobileTouchTarget: 48,
 } as const;
 
-export interface TypeToken {
+interface TypeToken {
   /** 字号 px */
   fontSize: number;
   /** 行高 px（Dart `height: a / b` 中的分子 a）；labelLarge 未设则为 undefined */

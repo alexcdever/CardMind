@@ -19,4 +19,4 @@ export { CardMindEmptyState } from "./components/empty_state";
 export { CardMindListItem } from "./components/list_item";
 export { CardMindConfirmDialog } from "./components/confirm_dialog";
 export { panel } from "./components/panel";
-export type { IconGlyph, ViewStyle } from "./components/types";
+export type { IconGlyph } from "./components/types";
