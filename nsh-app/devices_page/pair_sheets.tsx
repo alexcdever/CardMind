@@ -348,7 +348,7 @@ export function PairEnterSheet(): JSX.Element {
           >
             <Input
               value={enterInput()}
-              onChange={(t: string) => enterInput.set(t)}
+              onChange={({ value }) => enterInput.set(value)}
               onSubmit={() => void submitPeerCode()}
               placeholder="输入 6 位配对码，或粘贴以 cm1 开头的配对信息"
               accessibilityLabel="配对码或配对信息"

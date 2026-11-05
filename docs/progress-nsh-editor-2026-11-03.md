@@ -935,3 +935,36 @@ P1 删除 `src/main.rs` 后，`env_logger`（`env_logger::init()`）与 4 个 `n
 | `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
 | `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
 | `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+
+## 22. P4-1：nsh 0.3.0 → 0.4.0 工具链迁移第一轮（2026-11-06，worktree `p4-nsh04-toolchain`，基线 `44e7a12a`）
+
+### 范围
+
+只迁移工具链与 breaking API，**行为不变**：`Editor`/`TextView`/`[[id|alias]]` 逻辑一行不改（RichEditor 与链接格式属下一轮）。`nsh-app/Cargo.toml` 的 `nsh-core`/`nsh-base` `0.3.0`→`0.4.0`，`Cargo.lock` 随升（nsh-base/nsh-core/nsh-macros 均解析为 0.4.0）。
+
+### breaking API 修复（7 处，另有 1 处 import 清理 + 2 个测试文件版本断言）
+
+| 文件 | 改动 |
+|---|---|
+| `components/search_field.tsx:43` | `onChange={props.onChanged}` → `onChange={({ value }) => props.onChanged?.(value)}`（Input onChange 回调改收对象，组件公共 API 不变） |
+| `devices_page/pair_sheets.tsx:351` | `onChange={(t: string) => enterInput.set(t)}` → `({ value }) => enterInput.set(value)` |
+| `devices_page/sections.tsx:94` | `onChange={(t: string) => nameDraft.set(t)}` → `({ value }) => nameDraft.set(value)` |
+| `settings_page.tsx:137` | `onChange={(t: string) => deviceNameDraft.set(t)}` → `({ value }) => deviceNameDraft.set(value)` |
+| `editor_page.tsx:127` | `onChange={(value: string) => …}` → `({ value }) => …` |
+| `editor_page.tsx:128` | `onSelectionChange={(selections: EditorSelection[]) => …}` → `({ selections }) => …`；`EditorSelection` import 因此闲置一并删除 |
+| `editor_page.tsx:221` | `<Text numberOfLines={2}>` → `style={{ numberOfLines: 2 }}`（挪进 style） |
+
+测试文件适配（第 8 处，断言语义不减）：`build_script_test.ts` 假 CLI 配对 0.3.0→0.4.0（不一致用例仍用 0.2.0，断言错误信息含 CLI 0.2.0 + Cargo 0.4.0）；`skeleton_test.ts` Cargo.toml 0.4.0 断言 + Cargo.lock「所有 nsh-* 解析为 0.4.0」。
+
+### 回归（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check .` | exit 0（4.3s TS + Rust crate 构建） |
+| `npx tsx --test "*_test.ts"` | **229 pass / 1 skipped / 0 fail**（230 tests） |
+| `nsh test --filter editor` | **28/28**（3m15s；`app.clock.runFor` 在 0.4.0 下正常，测试文件未改） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（17.6s） |
+| `cd rust-backend && cargo test`（无 CARGO_TARGET_DIR） | exit 0，**0 failed** |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app`（release runner 5m47s） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |

@@ -134,7 +134,7 @@ export function SettingsPage(props: { status?: JSX.Element }): JSX.Element {
                 >
                   <Input
                     value={deviceNameDraft()}
-                    onChange={(t: string) => deviceNameDraft.set(t)}
+                    onChange={({ value }) => deviceNameDraft.set(value)}
                     onSubmit={() => void saveDeviceName()}
                     placeholder="设备名"
                     accessibilityLabel="设备名"

@@ -19,7 +19,6 @@ import {
   NavPage,
   TextView,
   type EditorRef,
-  type EditorSelection,
   type TextViewCustomNode,
 } from "nsh/base";
 import { CardMindIconButton, CardMindPrimaryButton, CardMindTag } from "./components";
@@ -124,8 +123,8 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
           backgroundColor: colors.paper,
           borderRadius: radii.md,
         }}
-        onChange={(value: string) => handleChange(value)}
-        onSelectionChange={(selections: EditorSelection[]) =>
+        onChange={({ value }) => handleChange(value)}
+        onSelectionChange={({ selections }) =>
           handleSelection(selections)
         }
         onBlur={handleBlur}
@@ -218,9 +217,9 @@ export function EditorPage(props: EditorPageProps): JSX.Element {
                 }}
               >
                 <Text
-                  numberOfLines={2}
                   style={{
                     flex: 1,
+                    numberOfLines: 2,
                     color: colors.danger,
                     fontSize: typography.labelLarge.fontSize,
                   }}

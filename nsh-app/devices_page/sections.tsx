@@ -91,7 +91,7 @@ export function LocalInfoCard(): JSX.Element {
             <View style={{ gap: spacing.xs }}>
               <Input
                 value={nameDraft()}
-                onChange={(t: string) => nameDraft.set(t)}
+                onChange={({ value }) => nameDraft.set(value)}
                 onSubmit={() => void saveDeviceName()}
                 placeholder="设备名"
                 accessibilityLabel="设备名"
