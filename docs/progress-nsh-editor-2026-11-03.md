@@ -423,3 +423,8 @@ NSH 版已把 UI/后端接缝换成 `nsh-app/src/lib.rs` 的原生模块（`Back
 
 - worktree 无 `.gitnexus` 索引（与 §12 同），`impact`/`detect_changes` 未跑；以 grep 确认调用面（仅 `App.tsx`/`NoteListHarness.tsx` 从 `./note_list` import）与上面逐字 diff 替代。
 - `MobileLayout` 的 `tab` signal 局部保留（见 AC2 说明）——唯一「signal 不在 state.ts」的点，属实例状态而非模块单例。
+
+### 合并与主树复验（`50d73843`）
+
+- 合并 `p2-notelist`（`57d108c6`）→ `50d73843`；worktree/branch 已清场。
+- 主树复验：`nsh check .` exit 0；`npx tsx --test "*_test.ts"` 229 pass/1 skip/0 fail；`nsh test --filter editor` 28/28；`--filter "note: 移动布局"` 1/1；`nsh package . --target macos` exit 0 出 `cardmind.app`；`cargo test`（rust-backend）22 target 0 failed；`git_gate full --dry-run` exit 0。`note_list.tsx` 现 88 行。
