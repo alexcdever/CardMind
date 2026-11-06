@@ -1,5 +1,7 @@
 # 用 NSH 重构 CardMind：Editor + Markdown 方案（2026-11-02 定稿）
 
+> **更新（2026-11-06，已实现）**：本目录 2026-11-02 的「不需要富文本编辑器」结论**已被推翻**——NSH **0.4.0（2026-11-04 发布）**带了 `RichEditor`（ProseMirror 式内核 + Markdown 读写），用户拍板迁移，现已落地为「WYSIWYG 默认 + 源码模式可切」。施工与证据见 `docs/progress-nsh-editor-2026-11-03.md` §25–§27；迁移后的性能发现与给 upstream 的 issue 草稿见 [`07-richeditor-mount-quadratic.md`](07-richeditor-mount-quadratic.md)。下面 0.x 的原始调研保留作历史。
+
 > **方向说明（第二轮）**：用户已拍板 **不需要富文本编辑器**；“NSH 的 `Editor`（代码编辑器）+ Markdown”已够用。
 > 因此本目录的主线从 **RichEditor（仅 main、未发布）** 改为 **已发布 NSH 0.3.0 的 `Editor` + `TextView`**：
 > 只升级到 0.3.0、不再跟 main、不再自建 nsh CLI/runtime。RichEditor 调研（`02`/`03`）保留为历史与备选，不再是施工依据。
@@ -9,7 +11,8 @@
 > - [`04-app-upgrade.md`](04-app-upgrade.md)：nsh-app 0.2.0 → 0.3.0 逐文件 API 迁移面（实测：TSX 6 文件 9 条 import + Rust 2 处）。
 > - `05-editor-doc-api.md`：0.3.0 `Editor`/`TextView` API 与探针实录（同目录，见 §10）。
 > - `06-editor-md-migration.md`：基于 `Editor` + `TextView` 的施工方案（同目录，见 §10）。
-> - `02-nsh-rich-editor-api.md` / `03-version-and-toolchain.md`：RichEditor 方案（main-only，用户已排除）的历史调研。
+> - `02-nsh-rich-editor-api.md` / `03-version-and-toolchain.md`：RichEditor 方案（当时 main-only）的历史调研——**0.4.0 已发布并已迁入，见 07**。
+> - [`07-richeditor-mount-quadratic.md`](07-richeditor-mount-quadratic.md)：0.4.0 `RichEditor` 首挂载 O(块数²) 的实测、`nsh-core` 定位、已验证 patch 与给 upstream 的 issue 草稿。
 
 ---
 
@@ -261,6 +264,7 @@ nsh run . --target windows   # 真实窗口（0.3.0 预构建 runtime）
 | 当前编辑器基线 | [`01-current-editor.md`](01-current-editor.md) |
 | 0.2.0→0.3.0 迁移清单 | [`04-app-upgrade.md`](04-app-upgrade.md) |
 | RichEditor（历史/备选） | [`02-nsh-rich-editor-api.md`](02-nsh-rich-editor-api.md)、[`03-version-and-toolchain.md`](03-version-and-toolchain.md) |
+| RichEditor 0.4.0 性能（现行问题） | [`07-richeditor-mount-quadratic.md`](07-richeditor-mount-quadratic.md) |
 | 探针工作区 | `spike/nsh-editor-md-probe/`（Editor+TextView 探针、日志、截图：`logs/window-visual2.png` = TextView 预览 + Editor + `[[` 候选；`logs/window-initial.png` = Markdown 高亮） |
 
 > 补充：本仓库同时保留了 `spike/nsh-rich-editor-probe/`（main RichEditor 探针），仅作历史记录，不再作为主线依据。

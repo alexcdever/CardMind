@@ -1246,3 +1246,10 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 **不改本地、不提 upstream，继续 P4-3b 交互。** 理由：长文档在真实使用中占比低，且 release 构建可能快一个量级；一旦实际手感不可接受，再考虑（a）本地 vendor `nsh-core` 打上述 patch，或（b）完整方案——把 `inst.handlers` 从 `Vec` 改成按 node id 索引（~150–250 行，跨 `components.rs`/`views.rs`/`slots.rs`，可根治两个热点，风险中：`Instance` 是核心结构，须保 handler 派发顺序）。
 
 > 归因提醒：早期「20k ≈ 8 s」是 **~200 段**的典型长文；若笔记是「大量短段」（如 2000 段列表/日志），同样字符数会慢一个数量级。这也是为什么这条 n² 在「按字符数」的直觉下容易被低估。
+
+### issue 素材（2026-11-06）
+
+用户要求先检索 upstream 是否已有人报过，再决定是否提 issue：
+
+- **检索结果：没有人报过。** 在 `longbridge/nsh` 的 issues 里按 `RichEditor` / `slow` / `perf` / `hang` / `mount` / `performance` 检索（GitHub API + HTML 两种方式），只命中无关项——`Web: RichEditor doesn't select text on mouse drag`（选区交互）、`Pasting a long unbroken run into a multiline Input stalls the engine thread for seconds`（Input 粘贴）、`base: DataTable stops updating and can freeze the debug macOS host`（DataTable）。没有关于组件区域 reconcile / handler 表全表扫的 issue。
+- **已写好 PoC + 说明 + 可直接提交的英文 issue 草稿**：`docs/research/nsh-editor/07-richeditor-mount-quadratic.md`（含最小复现两文件、测量表、`sample` 热点与计数器证据、已验证的 40 行 patch、根治方案、影响面、issue 正文）。等用户审阅后再决定是否提交。
