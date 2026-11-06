@@ -1198,3 +1198,71 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 - **处置建议（复审结论）**：P4-3b 加降级——`content.length >= 30_000` 默认进源码模式 + 顶栏提示可切排版；等真 release 包实测后回调阈值（50k<3s 可放宽、>5s 收紧到 20k）。降级路径本身要有测试。
 
 > **用户裁决（2026-11-06）**：上述性能风险**不做降级**——保持 WYSIWYG 永远默认，接受长文档打开慢（20k 字符 dev 构建 ≈ 8 s）。若将来 release 实测仍不可接受，再另行立项。
+
+## 26. P4-3b：WYSIWYG 的 `[[` 候选 + `cardmind://` 链接跳转（2026-11-06，worktree `p4-3b-wikilink-ui`，基线 `8da0763e`）
+
+### 范围
+
+在 P4-3a 的 WYSIWYG（`RichEditor`）上接两条交互（大文档降级按用户 2026-11-06 裁决不做）：
+
+1. WYSIWYG 里输入 `[[` → 弹 `repo.autoCompleteLinks(prefix)` 候选 → 点选 / Enter / Tab 插入带 `link` mark 的 `[别名](cardmind://note/<id>)`（显示为链接，保存为标准 Markdown；`[[` 与前缀不残留）；
+2. 光标/点击落在 `cardmind://note/<id>` 链接上 → `bubbleMenu` 出「打开笔记」→ 走 `props.onNavigateNote ?? openEditor(id)`（桌面三栏注入 `openNote` → 切选中；否则 push 编辑路由）。`onNavigateNote` 从死 prop 变成活接缝。
+
+源码模式的 `[[` 候选流程原样保留；两种模式共用同一个候选行（`link-candidates`）。
+
+### 关键改动
+
+| 文件 | 改动 |
+|---|---|
+| `nsh-app/editor_page/rich.ts` | `WIKILINK_SUGGESTION_KEY="wikilink"` / `WIKILINK_SUGGESTION_CHAR="[["`；`suggestion({key, char:"[[", allowSpaces:true, anyPrefix:true, captureKeys:[ArrowUp,ArrowDown,Enter,Tab]})`，**排在 `starterKit()` 之前**；`link` 保持 `openOnClick:false, enableClickSelection:true` |
+| `nsh-app/editor_page/controller.ts` | `syncRichSuggestion()`（update/selectionUpdate/transaction/revision 后轮询 `session.suggestion("wikilink")`：刚 active 或 query 变 → `loadCandidates(query)`；`keyCount` 涨 → 按 `lastKey` 移动高亮/接受）；`acceptRichCandidate()` = `replaceSuggestion([{text, marks:[link]}, " "], key)`；`syncActiveNoteLink()`（`isActive("link")` + `getAttributes("link")` → `noteIdFromLinkUrl`）；`openActiveNoteLink()` = `onNavigateNote ?? openEditor`；`closeCandidates()`（WYSIWYG → `exitSuggestion`，源码 → 只清候选行） |
+| `nsh-app/editor_page.tsx` | 候选行复用 `link-candidates`；`CardMindTag` 加 `selected` 高亮 + `link-text-<id>` 内层 span id（`spanStyle` 用）；`bubbleMenu` 仅在 `activeNoteLink` 非 null 时给「打开笔记」（`link-bubble-menu` / `label:打开笔记`）；「关闭候选」接 `closeCandidates` |
+| `nsh-app/editor_page/constants.ts`、`types.ts`、`desktop_pane.tsx`、`note_list/desktop.tsx` | `COPY.openNote`；`onNavigateNote` 三处 JSDoc 从「保留接缝、零生产读取」改为当前事实（桌面三栏切选中；否则 `openEditor` push） |
+| `nsh-app/editor_text.ts` | 新增 `noteLinkUrl(id)`（源码/WYSIWYG 两条插入路径共用，`wikilinkText` 复用它）；`noteIdFromLinkUrl` 注释改为生产在用 |
+| `nsh-app/EditorHarness.tsx` | `f9` 探针：`nodeSize`/`firstNoteLinkRange` 算文档位后 `setTextSelection` 到第一条 `cardmind://note/` 链接（等价按下链接的整段选中） |
+| `nsh-app/editor_page.test.tsx` | 31→36 条：WYSIWYG 候选（多字符触发、前缀更新、删除/Escape/关闭）、点选插入 link mark + 保存标准 Markdown、方向键高亮 + Enter 接受、桌面注入 `onNavigateNote` 切选中、未注入时默认 `openEditor` push；文件头注释更新 |
+| 文档 | 本节；`AGENTS.md` 当前状态/结构/文档地图；`docs/handover-nsh-editor-2026-11-03.md` §6 第 7/8/10 条与后续工作；`docs/standards/nsh-automation-anchors.md` RichEditor 段（suggestion 键位、f6 会结束建议、f9 链接探针、插件顺序） |
+
+### 0.4.0 `suggestion` 实测结论（写进后续轮次的 API 依据）
+
+- `char:"[["` **多字符触发可用**：单个 `[` 不出候选，补成 `[[` 才出（AC1 测试锁住）。
+- **插件顺序是关键**：`suggestion()` 必须排在 `starterKit()` 之前。keydown 按插件数组顺序分派，否则 Enter 先被 starterKit 的 splitBlock 吃掉 → 插入新段、建议失活，`lastKey`/`keyCount` 永远看不到 Enter（方向键不在 starterKit 键位里，所以只有 Enter/Tab 会暴露这个问题）。
+- `captureKeys` 的 ArrowUp/ArrowDown/Enter/Tab 被插件吞掉并记进 `session.suggestion(key)` 的 `lastKey`/`keyCount`（插件消费后 app keymap 收不到）；Escape 由插件自己消解（state 变 inactive）。
+- 非捕获键会结束活动建议：实测按 `f6` 之后 `active:false`——行为测试在 ArrowDown→Enter 之间**不能**用 f6 dump 全文，读文本用 `app.texts()` 前后对比。
+- Escape 之后插件记住本次触发：文本里的 `[[` 被删掉之前，再敲 `[[` 不会重新打开候选（测试先退格清空再触发）。
+- 接受：`replaceSuggestion([{type:"text",text:alias,marks:[{type:"link",attrs:{href}}]}, " "], key)`；`getMarkdown()` 序列化为 `[别名](cardmind://note/<id>)`，与源码模式同一存储格式，`[[` 与前缀整段替换掉。
+- 链接识别：`isActive("link")` + `getAttributes("link").href` → `noteIdFromLinkUrl`；`bubbleMenu` 只在 app 传内容时显示，不传即不显示（Tiptap 语义）；`RichEditor` 没有 `onLinkPress`。
+- `enableClickSelection` 让按下链接整段选中 → `selectionUpdate` 驱动气泡菜单；headless 无法点正文坐标，测试用 f9 复制这一选区。
+- `exitSuggestion(key)` 是「关闭候选」在 WYSIWYG 的正确实现：只清候选行的话，下一字符会按新 query 把候选弹回来。
+
+### 回归（headless，worktree 内）
+
+| 命令 | 结果 |
+|---|---|
+| `nsh check .` | exit 0（829ms 类型检查 + 9.8s crate 构建） |
+| `nsh test --filter "[["` | **6/6**（29.9s；含多字符触发断言） |
+| `nsh test --filter editor` | **36/36**（1m31s；perf 20k：open 8008ms / toRich p50 8185ms / toSource p50 180ms） |
+| `nsh test --filter "note: 移动布局"` | **1/1** |
+| `nsh test`（无 filter，AC10） | **38 tests / 37 passed / 1 failed**；唯一失败是基线既有 Windows-only `coexist_notes_probe`（`APPDATA` NotPresent）——**本轮引入失败 = 0** |
+| `npx tsx --test "*_test.ts"` | **248 tests / 247 pass / 1 skipped / 0 fail**（与基线一致） |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed**（worktree 本地 target，冷编译；本轮零 Rust 改动） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app`（release runner 14.0s） |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | Formatted 10 files，**0 changed** |
+| markdown linter | Scanned 49 files / 1095 references，**All references are valid** |
+
+### 提交
+
+| commit | 内容 |
+|---|---|
+| `25fc5431` | `feat(editor): WYSIWYG [[ 候选（suggestion）+ cardmind 链接「打开笔记」跳转`（10 文件 +504/−31） |
+| `90b3aa7d` | `docs(progress): §26 P4-3b + 文档同步当前事实`（4 文件 +87/−14） |
+
+> 代码与文档分 2 个 commit（候选/链接两条交互在同一批编辑器文件里，hunk 交织，不再细分）。
+
+### 观察 / 非阻塞
+
+- IME 组合期间的 `[[` 行为未验证（headless 覆盖不到，真机项）。
+- 源码模式与 WYSIWYG 的替换逻辑各自独立（选区模型不同：文本 offset vs ProseMirror 位），未强行合并。
+- 链接目标是当前笔记时「打开笔记」不动作（避免给自己 push 一条重复路由）。
+- `bubbleMenu` 的「打开笔记」用 `CardMindPrimaryButton`（48dp 触摸目标），仅落在 `cardmind://note/<id>` 链接上出现；其他 scheme 的链接不显示。
