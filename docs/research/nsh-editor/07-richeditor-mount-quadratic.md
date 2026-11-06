@@ -3,6 +3,7 @@
 > 记录时间：2026-11-06　环境：nsh 0.4.0（`e626a8d`）、macOS 27.2 Apple Silicon（M2）、dev/headless（`nsh test`）
 > 结论：**不是布局或文本整形的固有成本**，是 `nsh-core` 组件模型里两处「每次按块操作都全表扫」造成的意外 O(N²)。
 > 状态：**upstream 尚无相关 issue**（2026-11-06 检索 `RichEditor` / `slow` / `perf` / `hang` / `mount` 等关键词，仅有一条无关的「Web: RichEditor doesn't select text on mouse drag」与两条无关的 Input/DataTable 性能 issue）。
+> **处置（2026-11-06 用户裁决）：不上报 upstream。** 触发阈值（千级块）在真实笔记里属极端场景，收益不抵沟通成本。本文与 §6 的 issue 草稿转为**归档**：若将来有用户报「长笔记打开极慢」，直接取这里的数据与 repro 再提。
 
 ## 1. 结论
 

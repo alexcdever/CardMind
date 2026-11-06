@@ -1310,7 +1310,7 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 
 ### 处置决定（用户 2026-11-06）
 
-**不改本地、不提 upstream，继续 P4-3b 交互。** 理由：长文档在真实使用中占比低，且 release 构建可能快一个量级；一旦实际手感不可接受，再考虑（a）本地 vendor `nsh-core` 打上述 patch，或（b）完整方案——把 `inst.handlers` 从 `Vec` 改成按 node id 索引（~150–250 行，跨 `components.rs`/`views.rs`/`slots.rs`，可根治两个热点，风险中：`Instance` 是核心结构，须保 handler 派发顺序）。
+**不改本地、不提 upstream，继续 P4-3b 交互。**（2026-11-06 已实现；后续用户进一步裁决：**不向上游报 issue**——千级块属极端场景，数据与 repro 归档在 `docs/research/nsh-editor/07-richeditor-mount-quadratic.md`，将来真遇到再取用。） 理由：长文档在真实使用中占比低，且 release 构建可能快一个量级；一旦实际手感不可接受，再考虑（a）本地 vendor `nsh-core` 打上述 patch，或（b）完整方案——把 `inst.handlers` 从 `Vec` 改成按 node id 索引（~150–250 行，跨 `components.rs`/`views.rs`/`slots.rs`，可根治两个热点，风险中：`Instance` 是核心结构，须保 handler 派发顺序）。
 
 > 归因提醒：早期「20k ≈ 8 s」是 **~200 段**的典型长文；若笔记是「大量短段」（如 2000 段列表/日志），同样字符数会慢一个数量级。这也是为什么这条 n² 在「按字符数」的直觉下容易被低估。
 
