@@ -14,12 +14,22 @@
 //   - WYSIWYG 会话生命周期：默认（非源码模式）经 `ensureRichSession()` 惰性创建；
 //     切源码时拆监听弃会话，切回时以最新 Markdown 重建（撤销栈随模式切换重置，
 //     同旧「预览切换重置撤销」口径）。
-//   - `[[` 候选只在源码模式启用（P4-3a 不做 WYSIWYG suggestion——selection 是
-//     ProseMirror 位而非文本 offset，下轮再接）。
+//   - `[[` 候选两条路径：源码模式由文本前缀 + `editor.edit()` 驱动（P2 原样）；
+//     WYSIWYG 由 `suggestion` 插件状态驱动（P4-3b：轮询 `session.suggestion()`
+//     取 query/keyCount，`replaceSuggestion` 插入 link mark）——选区是
+//     ProseMirror 位而非文本 offset，两条路径不共用替换逻辑。
 //   - `editor`（源码 `EditorRef`）与 `richSession` 是两个互斥的「活编辑器」；
 //     `readLatestText`/`currentContent` 按 `sourceMode()` 选边。
 import { effect, keymap, signal, windowSize } from "nsh";
-import { type EditorRef, type EditorSelection, type RichEditorSession, type RichSelectionJSON } from "nsh/base";
+import {
+  exitSuggestion,
+  replaceSuggestion,
+  type EditorRef,
+  type EditorSelection,
+  type RichEditorSession,
+  type RichNodeJSON,
+  type RichSelectionJSON,
+} from "nsh/base";
 import {
   AUTOSAVE_DEBOUNCE_MS,
   LOAD_TIMEOUT_MS,
@@ -29,6 +39,8 @@ import {
   linkPrefixFromContext,
   matchTags,
   normalizeNewlines,
+  noteIdFromLinkUrl,
+  noteLinkUrl,
   positionToOffset,
   selectionContext,
   tagsFromCsv,
@@ -37,7 +49,7 @@ import {
   type TextPosition,
   type WikiCandidate,
 } from "../editor_text";
-import { goBack } from "../navigation";
+import { goBack, openEditor } from "../navigation";
 import { colors, editorTypography, layout } from "../theme";
 import {
   CANDIDATE_BLUR_HIDE_MS,
@@ -47,7 +59,11 @@ import {
   type SaveState,
 } from "./constants";
 import { backendEditorRepository, isNewNoteId } from "./repository";
-import { canonicalMarkdown, createNoteRichSession } from "./rich";
+import {
+  canonicalMarkdown,
+  createNoteRichSession,
+  WIKILINK_SUGGESTION_KEY,
+} from "./rich";
 import type { EditorPageProps } from "./types";
 
 /** 一次 `EditorPage` 挂载的全部实例状态与逻辑；返回对象的键逐字等于入口
@@ -65,6 +81,11 @@ export function createEditorController(props: EditorPageProps) {
   const tags = signal<string[]>([]);
   const selectionHits = signal<string[]>([]);
   const candidates = signal<WikiCandidate[]>([]);
+  /** 候选行高亮项下标（WYSIWYG 的 `[[` 建议；源码模式不用，恒 0）。 */
+  const candidateIndex = signal(0);
+  /** 光标/选区落在 `cardmind://note/<id>` 链接上时的目标笔记 id；否则 null。
+   *  非 null 时编辑页渲染 `bubbleMenu`（「打开笔记」）。 */
+  const activeNoteLink = signal<string | null>(null);
   const saveState = signal<SaveState>(newNote ? SAVE_STATE.dirty : SAVE_STATE.saved);
   const saveError = signal("");
   /** 编辑模式：`false` = WYSIWYG（`RichEditor`，默认）；`true` = 源码
@@ -79,6 +100,12 @@ export function createEditorController(props: EditorPageProps) {
   let editor!: EditorRef;
   /** WYSIWYG 会话与其 update 监听（互斥于源码模式的 `editor`）。 */
   let richSession: RichEditorSession | null = null;
+  /** 上一次读到的 `[[` 建议状态（轮询 `session.suggestion()` 后缓存，用于只在
+   *  查询变化/按键计数增长时动作：查询变 → 重新加载候选；keyCount 涨 →
+   *  按 lastKey 移动高亮/接受）。 */
+  let richSuggestionActive = false;
+  let richSuggestionQuery = "";
+  let richSuggestionKeyCount = 0;
   let currentId = newNote ? "" : initialId;
   let lastSaved = "";
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -396,8 +423,8 @@ export function createEditorController(props: EditorPageProps) {
     scheduleSave();
   }
 
-  /** WYSIWYG 选区变化：标签命中只看「选中文本与标签全等」（`[[` 候选本轮不接，
-   *  不用 textBefore 前缀路径）。 */
+  /** WYSIWYG 选区变化：标签命中只看「选中文本与标签全等」（`[[` 候选由
+   *  suggestion 状态驱动，不走 textBefore 前缀路径）。 */
   function handleRichSelection(selection: RichSelectionJSON): void {
     if (richSession === null) return;
     const anchor = selection.anchor ?? 0;
@@ -412,6 +439,139 @@ export function createEditorController(props: EditorPageProps) {
     selectionHits.set(
       selected === "" ? [] : tags().filter((tag) => tag === selected),
     );
+  }
+
+  /** 把 `[[` 建议的当前状态同步到候选行（WYSIWYG 路径）。
+   *  事件后轮询 `session.suggestion("wikilink")`：
+   *  - 非 active（Escape/删掉 `[[`/接受后）→ 清空候选、重置高亮与按键基线；
+   *  - query 变化 → 重新 `loadCandidates(query)`（异步结果按 token 丢弃过期值）；
+   *  - `keyCount` 增长 → 插件吞掉的 `lastKey`（方向键/Enter/Tab）用于移动高亮
+   *    或接受——这是唯一能看到这些键的途径（插件消费后 keymap 收不到）。 */
+  function syncRichSuggestion(): void {
+    const session = richSession;
+    if (session === null || sourceMode()) return;
+    const state = session.suggestion(WIKILINK_SUGGESTION_KEY);
+    if (state === null || !state.active) {
+      if (!richSuggestionActive) return;
+      richSuggestionActive = false;
+      richSuggestionQuery = "";
+      richSuggestionKeyCount = 0;
+      candidateIndex.set(0);
+      setCandidates([]);
+      return;
+    }
+    // 刚失活后的第一次 active（含空 query，即只敲了 `[[`）：缓存里仍是上一轮
+    // 的 query，必须先加载一轮，否则「空前缀」永远等不到候选。
+    const justActivated = !richSuggestionActive;
+    richSuggestionActive = true;
+    const query = state.query ?? "";
+    const keyCount = state.keyCount;
+    if (justActivated || query !== richSuggestionQuery) {
+      richSuggestionQuery = query;
+      richSuggestionKeyCount = keyCount;
+      candidateIndex.set(0);
+      void loadCandidates(query);
+      return;
+    }
+    if (keyCount > richSuggestionKeyCount) {
+      richSuggestionKeyCount = keyCount;
+      handleSuggestionKey(state.lastKey ?? "");
+    } else if (keyCount < richSuggestionKeyCount) {
+      // 建议仍在但计数回退（新一次建议复用了插件状态）：重置基线。
+      richSuggestionKeyCount = keyCount;
+    }
+  }
+
+  /** 插件吞掉的键：上下移动高亮，Enter/Tab 接受高亮项（无候选时收起建议）。 */
+  function handleSuggestionKey(key: string): void {
+    if (key === "ArrowDown") {
+      moveCandidate(1);
+      return;
+    }
+    if (key === "ArrowUp") {
+      moveCandidate(-1);
+      return;
+    }
+    if (key !== "Enter" && key !== "Tab") return;
+    const candidate = candidates()[candidateIndex()];
+    if (candidate === undefined) {
+      dismissRichSuggestion();
+      return;
+    }
+    acceptRichCandidate(candidate);
+  }
+
+  /** 高亮项循环移动（候选为空时不动；方向键不插入、不移动光标）。 */
+  function moveCandidate(step: number): void {
+    const count = candidates().length;
+    if (count === 0) return;
+    candidateIndex.update((index) => (index + step + count) % count);
+  }
+
+  /** 收起当前建议（Enter 在无候选时）：插件 state 转 inactive，候选行由下一轮
+   *  同步清空。尽力而为——建议已不在时命令是空操作。 */
+  function dismissRichSuggestion(): void {
+    const session = richSession;
+    if (session !== null) {
+      try {
+        session.run(exitSuggestion(WIKILINK_SUGGESTION_KEY));
+      } catch {
+        // 无活动建议：无需处理。
+      }
+    }
+    candidateIndex.set(0);
+    setCandidates([]);
+  }
+
+  /** WYSIWYG 接受候选：把 `[[query` 整段替换成「带 link mark 的文本节点 + 空格」。
+   *  显示为链接（不是裸 Markdown），保存时 `getMarkdown()` 序列化为
+   *  `[别名](cardmind://note/<id>)`，与源码模式同一存储格式。 */
+  function acceptRichCandidate(candidate: WikiCandidate): void {
+    const session = richSession;
+    if (session === null) return;
+    const linkedText: RichNodeJSON = {
+      type: "text",
+      text: candidate.title,
+      marks: [
+        { type: "link", attrs: { href: noteLinkUrl(candidate.id) } },
+      ],
+    };
+    try {
+      session.run(
+        replaceSuggestion(
+          [linkedText, { type: "text", text: " " }],
+          WIKILINK_SUGGESTION_KEY,
+        ),
+      );
+    } catch {
+      return; // 建议已结束：保持候选不动，让下一轮同步清理。
+    }
+    candidateIndex.set(0);
+    setCandidates([]);
+    session.focus();
+  }
+
+  /** 光标/选区落在 `cardmind://note/<id>` 链接上时记下目标 id（驱动气泡菜单）。
+   *  `link({enableClickSelection})` 让按下链接选中整段，因此点击也走这里。 */
+  function syncActiveNoteLink(): void {
+    const session = richSession;
+    if (session === null || sourceMode()) return;
+    let id: string | null = null;
+    if (session.isActive("link")) {
+      const attrs = session.getAttributes("link");
+      if (attrs !== null && typeof attrs === "object") {
+        id = noteIdFromLinkUrl((attrs as { href?: unknown }).href);
+      }
+    }
+    if (id !== activeNoteLink()) activeNoteLink.set(id);
+  }
+
+  /** 触发「打开笔记」：桌面三栏注入 `onNavigateNote`（切选中）；否则 push
+   *  编辑路由（`openEditor`）。目标就是当前笔记时不动（避免自我压栈）。 */
+  function openActiveNoteLink(): void {
+    const id = activeNoteLink();
+    if (id === null || id === currentId) return;
+    (props.onNavigateNote ?? openEditor)(id);
   }
 
   /** 惰性建立 WYSIWYG 会话（视图 thunk 在 `!sourceMode()` 时调用；同一会话在
@@ -435,13 +595,28 @@ export function createEditorController(props: EditorPageProps) {
     richEpoch();
     const session = richSession;
     if (session === null) return;
-    const stopUpdate = session.on("update", () => handleRichUpdate());
+    // `[[` 建议与链接识别都要在「文档/选区/事务/状态」任意变化后重读一次
+    // session 状态：键位被插件吞掉时不一定有 update/selectionUpdate，
+    // 事务与 revision 事件兜底（读 suggestion 状态是常量成本）。
+    const sync = () => {
+      syncRichSuggestion();
+      syncActiveNoteLink();
+    };
+    const stopUpdate = session.on("update", () => {
+      handleRichUpdate();
+      sync();
+    });
     const stopSel = session.on("selectionUpdate", () => {
       if (richSession !== null) handleRichSelection(richSession.selection);
+      sync();
     });
+    const stopTx = session.on("transaction", sync);
+    const stopRevision = session.on("revision", sync);
     return () => {
       stopUpdate();
       stopSel();
+      stopTx();
+      stopRevision();
     };
   });
 
@@ -460,7 +635,12 @@ export function createEditorController(props: EditorPageProps) {
     const latest = canonicalMarkdown(currentContent());
     detachRich();
     if (latest !== text()) text.set(latest);
+    richSuggestionActive = false;
+    richSuggestionQuery = "";
+    richSuggestionKeyCount = 0;
+    candidateIndex.set(0);
     setCandidates([]);
+    activeNoteLink.set(null);
     sourceMode.set(true);
   }
 
@@ -540,10 +720,15 @@ export function createEditorController(props: EditorPageProps) {
     clearCandidateTimer();
   }
 
-  /** 点选候选：替换已输入的 `[[prefix`（一步撤销，修 01 R5），
-   *  插入 `[title](cardmind://note/id) `（P4-2 新存储格式）。仅源码模式。 */
+  /** 点选候选：源码模式替换已输入的 `[[prefix`（一步撤销，修 01 R5），插入
+   *  `[title](cardmind://note/id) `（P4-2 新存储格式）；WYSIWYG 走
+   *  `replaceSuggestion` + link mark（显示为链接，保存同一 Markdown 形式）。 */
   async function acceptCandidate(candidate: WikiCandidate): Promise<void> {
     clearCandidateTimer();
+    if (!sourceMode()) {
+      acceptRichCandidate(candidate);
+      return;
+    }
     if (!editor) return;
     const value = await editor.value();
     const selections = await editor.selections();
@@ -558,6 +743,18 @@ export function createEditorController(props: EditorPageProps) {
     editor.edit([{ range: { start, end }, text: wikilinkText(candidate) }]);
     setCandidates([]);
     editor.focus();
+  }
+
+  /** 显式收起候选（「关闭候选」按钮；无硬件键盘/触摸用）。
+   *  WYSIWYG 必须结束 suggestion——只清候选行的话，下一字符按新 query 会把
+   *  候选重新弹回来；源码模式保持原样（文本里的 `[[prefix` 不动，只收 UI）。 */
+  function closeCandidates(): void {
+    clearCandidateTimer();
+    if (!sourceMode()) {
+      dismissRichSuggestion();
+      return;
+    }
+    setCandidates([]);
   }
 
   const saveStateColor = () => {
@@ -575,6 +772,8 @@ export function createEditorController(props: EditorPageProps) {
     tags,
     selectionHits,
     candidates,
+    candidateIndex,
+    activeNoteLink,
     saveState,
     saveError,
     sourceMode,
@@ -590,6 +789,8 @@ export function createEditorController(props: EditorPageProps) {
     handleBlur,
     handleFocus,
     acceptCandidate,
+    closeCandidates,
+    openActiveNoteLink,
     saveStateColor,
   };
 }

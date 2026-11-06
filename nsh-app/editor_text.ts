@@ -113,6 +113,11 @@ export function completionOffsets(offset: number, prefix: string): TextRange {
 /** 笔记链接的 URL 前缀（P4-2 存储格式：标准 Markdown 链接 + 私有 scheme）。 */
 export const NOTE_LINK_URL_PREFIX = 'cardmind://note/';
 
+/** 笔记 id → `cardmind://note/<id>`（percent-encode；源码/WYSIWYG 两条插入路径共用）。 */
+export function noteLinkUrl(id: string): string {
+  return `${NOTE_LINK_URL_PREFIX}${encodeURIComponent(id)}`;
+}
+
 /** Markdown 链接文本转义：`\`、`[`、`]` 需要 `\` 前缀才不被当语法
  *  （写出侧只用这三条；Rust 读侧对 ASCII punctuation 一律还原）。 */
 export function escapeMdLinkText(text: string): string {
@@ -122,7 +127,7 @@ export function escapeMdLinkText(text: string): string {
 /** 候选插入文本：`[title](cardmind://note/id) `（P4-2 新存储格式；
  *  尾随空格让光标落在链接之后，便于继续输入）。 */
 export function wikilinkText(candidate: WikiCandidate): string {
-  return `[${escapeMdLinkText(candidate.title)}](${NOTE_LINK_URL_PREFIX}${encodeURIComponent(candidate.id)}) `;
+  return `[${escapeMdLinkText(candidate.title)}](${noteLinkUrl(candidate.id)}) `;
 }
 
 /** 把旧 `[[id|alias]]` / `[[id]]` 归一为新格式 `[alias](cardmind://note/id)`；
@@ -236,7 +241,7 @@ function protectCodeSegments(text: string, convertPlain: (line: string) => strin
 }
 
 /** `cardmind://note/<id>` URL → 笔记 id（percent-decode；非法/非本 scheme → null）。
- *  当前无生产调用（预览面板删除后只剩自测）：留给 P4-3b 接 WYSIWYG 链接点击时复用。 */
+ *  P4-3b 起 WYSIWYG 的链接跳转入口用它判断「光标/点击是否落在笔记链接上」。 */
 export function noteIdFromLinkUrl(url: unknown): string | null {
   if (typeof url !== 'string') return null;
   const body = url.startsWith(NOTE_LINK_URL_PREFIX)

@@ -42,8 +42,8 @@ nsh-app/          NSH 前端（TSX 页面 + 组件；替代已整删的 Flutter 
                   re-export 公共 API）：
                   types(EditorNoteRow/EditorRepository/EditorPageProps)/constants(SAVE_STATE·COPY)/
                   repository(backendEditorRepository/isNewNoteId)/loading(加载·错误态·桌面顶栏)/
-                  controller(createEditorController：signals/effects/保存·候选·模式切换处理)/
-                  rich(WYSIWYG 接缝：richSchema·canonicalMarkdown·createNoteRichSession·richEditorStyles)/
+                  controller(createEditorController：signals/effects/保存·候选（源码+WYSIWYG）·模式切换·链接跳转)/
+                  rich(WYSIWYG 接缝：richSchema·canonicalMarkdown·createNoteRichSession（含 [[ suggestion）·richEditorStyles)/
                   desktop_pane(DesktopEditorPane)
   devices_page/   设备页子模块（devices_page.tsx 为入口：DevicesPage（state 解构 + render 段）+
                   re-export 公共 API）：
@@ -149,7 +149,7 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 | NSH 迁移 4.6 | ✅ Flutter 链（lib/、test/、integration_test/、pubspec、build/quality/boundary-scanner、flutter 门禁步骤）已整删；前端为 nsh-app TSX |
 | Rust 后端 | Loro + iroh + mDNS + SQLite（NSH 原生模块边界，无 FRB） |
 | NSH 前端 | 笔记编辑/列表 + 设备页与配对 + 回收站 + 设置（nsh-app，TSX） |
-| 编辑器迁移 | ✅ WebView+Tiptap 已替换：0.4.0 `RichEditor` 为 WYSIWYG 默认编辑，`Editor` 保留为可切「源码模式」（预览 `TextView` 已删）；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`（§25）、`docs/handover-nsh-editor-2026-11-03.md` |
+| 编辑器迁移 | ✅ WebView+Tiptap 已替换：0.4.0 `RichEditor` 为 WYSIWYG 默认编辑，`Editor` 保留为可切「源码模式」（预览 `TextView` 已删）。P4-3b 起 WYSIWYG 内 `[[` 候选（suggestion）与 `cardmind://note/<id>` 链接「打开笔记」（bubbleMenu → `onNavigateNote`/`openEditor`）均已接通；进度/交接见 `docs/progress-nsh-editor-2026-11-03.md`（§25–§26）、`docs/handover-nsh-editor-2026-11-03.md` |
 | 平台 | 目标平台：移动端（Android + iOS，覆盖手机与平板）+ 桌面端（Linux + Windows + macOS，覆盖台式机与笔记本）。仓库现状：Flutter runner 工程 `android/`、`linux/`、`macos/`、`windows/` 已删除，**仓库不含任何平台工程目录**（iOS 工程目录也未建立）；平台产物统一走 `cd nsh-app && nsh package . --target <platform>`（Windows 包必须在 Windows 上打，见 progress §8） |
 
 ## 文档地图
@@ -164,7 +164,7 @@ Flutter 版用 `path_provider` 把日志写进 `<application support>/logs/cardm
 - `docs/migration-nsh-construction.md` — NSH 迁移施工方案（逐项任务与完成状态）
 - `docs/migration-nsh-verification.md` — NSH 迁移验证记录（V1–V10 实测证据）
 - `docs/research/` — 仍服务于技术决策的研究资料
-- `docs/progress-nsh-editor-2026-11-03.md` — NSH 0.3.0 编辑器重构进度（P1–P3、提交、测试证据、P4 待办）
+- `docs/progress-nsh-editor-2026-11-03.md` — NSH 编辑器重构进度（P1–P4、提交、测试证据、已知风险与用户裁决）
 - `docs/handover-nsh-editor-2026-11-03.md` — 换设备开发的环境/命令/踩坑交接
 - `docs/testing/` — 集成测试说明
 - `docs/standards/ai-collaboration.md` — 协作流程

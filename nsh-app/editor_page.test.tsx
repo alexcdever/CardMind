@@ -1,8 +1,9 @@
 // 编辑页行为测试（`nsh test`；harness = EditorHarness.tsx，假 repository，不碰真实 DB/iroh）。
 //
 // P4-3a 口径：默认 WYSIWYG（`RichEditor`，label:富文本编辑器，探针键 f6=全文
-// dump / f7=当前选区注入 append）；源码模式经「源码」切换（label:源码编辑器，
-// 探针键 mod+shift+e/l 仍可用）。`[[` 候选、链接按下跳转本轮只覆盖源码模式。
+// dump / f7=当前选区注入 append / f9=选中第一条笔记链接）；源码模式经「源码」
+// 切换（label:源码编辑器，探针键 mod+shift+e/l 仍可用）。P4-3b 起 `[[` 候选与
+// `cardmind://` 链接跳转两条模式都有覆盖（WYSIWYG 走 suggestion 插件 + bubbleMenu）。
 //
 // 覆盖 task.md 标准 1–6、8 的行为面：
 //  ① 打开已有笔记：加载完成才挂载编辑器、WYSIWYG 默认、文本渲染（无 Markdown 标记）；
@@ -797,3 +798,151 @@ test("editor: 2 万字 WYSIWYG 打开 + 源码⇄WYSIWYG 切换性能（墙钟�
   expect(toSourceSamples.length).toBeGreaterThanOrEqual(MIN_SAMPLES);
   expect(toRichSamples.length).toBeGreaterThanOrEqual(MIN_SAMPLES);
 }, 300_000);
+
+// ─── P4-3b：WYSIWYG 的 `[[` 候选（suggestion）与 cardmind 链接跳转 ─────────────
+
+test("editor: WYSIWYG 输入 [[ 出现候选（来自 autoCompleteLinks），前缀随输入更新，删掉触发串后消失", async () => {
+  const app = await openEditor({
+    noteId: "note-1",
+    note: "",
+    candidates: [
+      { id: "note-2", title: "会议记录" },
+      { id: "note-3", title: "Weekly Buffer" },
+      { id: "note-1", title: "自身笔记" },
+    ],
+  });
+  await app.waitFor(RICH);
+  // `char:"[["` 是**多字符**触发：单个 `[` 不出候选，补成 `[[` 才出。
+  await app.type(RICH, "[");
+  await app.wait(300);
+  expect(app.shows("id:link-candidates")).toBe(false);
+  await app.type(RICH, "[");
+  await app.waitFor("id:link-candidates");
+  await app.waitFor("id:link-note-2");
+  expect(app.shows("id:link-note-1")).toBe(false); // 当前笔记被过滤
+  const initial = calls(app).autoCompleteLinks;
+  expect(initial[initial.length - 1]).toBe("");
+  // 继续输入前缀：候选随 query 更新；含空格的标题同样匹配（allowSpaces）。
+  await app.type(RICH, "Weekly ");
+  await app.waitFor("id:link-note-3");
+  await app.waitFor("id:link-note-2", { state: "gone" });
+  const typed = calls(app).autoCompleteLinks;
+  expect(typed[typed.length - 1]).toBe("Weekly ");
+  // 删掉 `[[` 触发串（退格到空文档）：建议失活 → 候选行消失，仍在编辑页。
+  for (let i = 0; i < 9; i += 1) await app.keyboard.press("backspace");
+  await app.waitFor("id:link-candidates", { state: "gone" });
+  expect(app.shows(RICH)).toBe(true);
+  // 「关闭候选」在 WYSIWYG 同样结束建议；否则下一字符会按新 query 把候选弹回来。
+  await app.type(RICH, "[[");
+  await app.waitFor("id:link-candidates");
+  await app.press("label:关闭候选");
+  await app.waitFor("id:link-candidates", { state: "gone" });
+  await app.type(RICH, "好");
+  await app.wait(300);
+  expect(app.shows("id:link-candidates")).toBe(false);
+  // Escape 由 suggestion 插件消解：候选消失且不退出编辑页（删掉触发串后再试，
+  // 插件在 Escape 后会记住本次触发，直到文本里的 `[[` 被删掉才重新触发）。
+  for (let i = 0; i < 3; i += 1) await app.keyboard.press("backspace");
+  await app.type(RICH, "[[");
+  await app.waitFor("id:link-candidates");
+  await app.keyboard.press("escape");
+  await app.waitFor("id:link-candidates", { state: "gone" });
+  expect(app.shows(RICH)).toBe(true);
+  expect(app.shows("id:notes-stub")).toBe(false);
+});
+
+test("editor: WYSIWYG [[ 点候选插入链接文本（link mark、无 [[ 残留），保存为标准 Markdown", async () => {
+  const app = await openEditor({
+    noteId: "note-1",
+    note: "",
+    candidates: [{ id: "note-2", title: "会议记录" }],
+  });
+  await app.waitFor(RICH);
+  await app.type(RICH, "[[会");
+  await app.waitFor("id:link-note-2");
+  await app.press("id:link-note-2");
+  await app.waitFor("id:link-candidates", { state: "gone" });
+  // 显示为链接（link mark 的下划线样式），不是裸 Markdown 标记。
+  const linkStyle = app.spanStyle("text:会议记录");
+  expect(linkStyle.underline).toBe(true);
+  expect(hasText(app, "[[")).toBe(false);
+  // 序列化 Markdown = 标准链接（`[[` 与前缀不残留）。
+  const doc = await dumpRich(app);
+  expect(doc).toContain("[会议记录](cardmind://note/note-2)");
+  expect(doc).not.toContain("[[");
+  // 700ms 去抖后落盘同一 Markdown 形式。
+  await app.wait(900);
+  await app.waitUntil(() =>
+    (app.storage()["test.saved"] ?? "").includes("[会议记录](cardmind://note/note-2)"),
+  );
+});
+
+test("editor: WYSIWYG [[ 方向键移动高亮（不插入、不移动光标），Enter 接受高亮项", async () => {
+  const app = await openEditor({
+    noteId: "note-1",
+    note: "",
+    candidates: [
+      { id: "note-2", title: "会议记录" },
+      { id: "note-3", title: "Weekly Buffer" },
+    ],
+  });
+  await app.waitFor(RICH);
+  await app.type(RICH, "[[");
+  await app.waitFor("id:link-note-2");
+  await app.waitFor("id:link-note-3");
+  const firstBefore = app.spanStyle("id:link-text-note-2");
+  const secondBefore = app.spanStyle("id:link-text-note-3");
+  expect(firstBefore.color).not.toBe(secondBefore.color); // 首项已高亮
+  // 方向键被 suggestion 插件吞掉：只移动高亮，不插入文本、不明显移动光标
+  // （读 `texts()` 不按键；f6 dump 会结束建议，不能夹在 ArrowDown 与 Enter 之间）。
+  const textsBefore = app.texts();
+  await app.keyboard.press("ArrowDown");
+  await app.waitUntil(
+    () => app.spanStyle("id:link-text-note-2").color === secondBefore.color,
+  );
+  expect(app.spanStyle("id:link-text-note-3").color).toBe(firstBefore.color);
+  expect(app.texts()).toEqual(textsBefore);
+  expect(hasText(app, "[[")).toBe(true); // 触发串还在（Enter 之前不替换）
+  // Enter 接受高亮项（第二项）。
+  await app.keyboard.press("Enter");
+  await app.waitFor("id:link-candidates", { state: "gone" });
+  const doc = await dumpRich(app);
+  expect(doc).toContain("[Weekly Buffer](cardmind://note/note-3)");
+  expect(doc).not.toContain("[[");
+});
+
+test("editor: WYSIWYG 光标落在 cardmind 链接上出现「打开笔记」，桌面注入 onNavigateNote 切选中", async () => {
+  const app = await openDesktop({
+    noteId: "note-a",
+    note: null,
+    mode: "desktop",
+    notes: [
+      { id: "note-a", content: "见 [乙](cardmind://note/note-b) 末尾" },
+      { id: "note-b", content: "Beta 笔记内容" },
+    ],
+    selectedNoteId: "note-a",
+  });
+  await app.waitFor("id:desktop-notes");
+  await app.waitFor(RICH);
+  await app.keyboard.press("f9");
+  await app.waitFor("id:link-bubble-menu");
+  await app.press("label:打开笔记");
+  await app.waitUntil(() => hasText(app, "Beta 笔记内容"));
+  expect(hasText(app, "见")).toBe(false);
+});
+
+test("editor: 未注入 onNavigateNote 时链接跳转走默认 openEditor push", async () => {
+  const app = await openEditor({
+    noteId: "note-1",
+    note: null,
+    notes: [
+      { id: "note-1", content: "见 [乙](cardmind://note/note-2) 末尾" },
+      { id: "note-2", content: "Beta 笔记内容" },
+    ],
+  });
+  await app.waitFor(RICH);
+  await app.keyboard.press("f9");
+  await app.waitFor("id:link-bubble-menu");
+  await app.press("label:打开笔记");
+  await app.waitUntil(() => hasText(app, "Beta 笔记内容"));
+});

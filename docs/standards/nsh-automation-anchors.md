@@ -48,7 +48,7 @@
 ## 命名规则
 
 - `testID` 使用 kebab-case 字符串，例如 `source-toggle`、`save-state`、`note-list`、`rich-editor`。
-- 动态生成的 id 用模板串表达，例如 `note-${note().id}`、`link-${candidate.id}`、`tag-${index}`。
+- 动态生成的 id 用模板串表达，例如 `note-${note().id}`、`link-${candidate.id}`、`link-text-${candidate.id}`（候选 chip 内层 Text，`spanStyle` 只能按 span id 取样式）、`tag-${index}`。
 - 同一控件的 `testID` 与 `accessibilityLabel` 语义可以不同，但各自必须稳定：`testID` 面向自动化、不随文案改；`accessibilityLabel` 面向用户、随文案改。
 - `accessibilityLabel` 必须保持用户可读，不得直接替换成 machine id。
 - 锚点目前内联声明在控件所在文件（`nsh-app/components.tsx`、`editor_page.tsx`、`note_list.tsx`、
@@ -108,5 +108,14 @@
   `id:`/`label:`/`text:` 与 `app.type` 可用，`app.texts()` 出渲染后文本块；
   `app.press`/`mod+shift+*`/`mod+a` 不可用（编辑器吞键）——测试探针用 f 键 +
   `session.run({command:"selectAll"})` / `session.insertContent`。
+- `[[` suggestion（`suggestion({key:"wikilink", char:"[["})`）的按键（ArrowUp/ArrowDown/
+  Enter/Tab）被插件吞掉并记进 `session.suggestion("wikilink")` 的 `lastKey`/`keyCount`，
+  行为测试靠轮询状态断言；Escape 由插件消解。**按 f6 等非捕获键会结束活动建议**
+  （`active:false`），所以 ArrowDown→Enter 之间不能用 f6 dump 全文，读文本用 `app.texts()`。
+  多字符触发可用（单个 `[` 不出候选，`[[` 才出）；`suggestion()` 插件必须排在
+  `starterKit()` 之前，否则 Enter 先被 starterKit 键位吃掉（插新段、建议失活）。
+- 链接跳转（`cardmind://note/<id>`）没有 `onLinkPress`，入口是 `bubbleMenu`：选区落在链接上
+  才传内容，按 `label:打开笔记` 命中。headless 不能点正文文本坐标，测试探针用 `f9` 把选区
+  放到第一条笔记链接上（`link` 的 `enableClickSelection` 下「按下链接」即整段选中）。
 - IME、选区、真窗口渲染只能靠 `nsh test --target <platform>` 或人工目视验证；headless 通过不构成
   真机验收。
