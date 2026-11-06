@@ -1353,7 +1353,7 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 
 | 项 | 内容 |
 |---|---|
-| hash 校正（AC1） | §26 提交表 docs commit 回填为 `9f48ff92`（原写的 hash 不存在于本分支历史）；全文 hex token 用 `git cat-file -e`/`^{commit}` 复核一遍：其余「不存在」的都是上游 nsh 仓 commit、nsh CLI 版本号、SHA-256 前缀、设备 ID、文件大小、窗口句柄等**非本仓 commit**，不改。§27 审查观察条 1 同步标注「已修」并去掉旧 hash 串，满足 `grep "90b3aa7d\|7099682f" docs/` 为空。 |
+| hash 校正（AC1） | §26 提交表 docs commit 回填为 `9f48ff92`（原写的两个 hash 都不存在于本分支历史，来自 amend 前的旧值——此处不复述其字面量，免得文档自身命中那句 grep）；全文 hex token 用 `git cat-file -e` 与 `^{commit}` 复核一遍：其余「不存在」的都是上游 nsh 仓 commit、nsh CLI 版本号、SHA-256 前缀、设备 ID、文件大小、窗口句柄等**非本仓 commit**，不改。§27 审查观察条 1 同步标注「已修」并去掉旧 hash 字面量。 |
 | 自链气泡菜单（AC2） | `controller.syncActiveNoteLink()`：`id === currentId` 时不写进 `activeNoteLink`（菜单干脆不出）；`openActiveNoteLink()` 里同款防御保留（双保险）。修法动机：原实现菜单会显示「打开笔记」按钮但点了因 `id === currentId` 直接 return——死按钮。 |
 | f9 探针扩展 | `EditorHarness` `firstNoteLinkRange` → `noteLinkRanges` + `noteLinkCursor`（每次新 RichSession 归零）：**f9 从第一条起轮转选中笔记链接**，同一篇文档里有自链与普通链接时可分别选中。已按任务约定允许改动（它服务正式测试）。 |
 | 新增行为测试 | `editor_page.test.tsx` 新增 1 条：正文含「指向自己的链接」+ 一条普通链接 → f9 第一次选中自链 → `id:link-bubble-menu` **不出现**；f9 第二次选中普通链接 → 菜单出现（排除「探针没选中」假阴性）；f9 第三次回到自链 → 菜单从已显示收起（排除「从来没显示过」假阴性）。 |
@@ -1361,7 +1361,7 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 
 ### AC3 全仓自检（Preview/TextView 逐处判定）
 
-- `grep "90b3aa7d\|7099682f" docs/`：**空** ✅
+- 全仓已无那两个陈旧 hash 的字面量（本段自身也不写）✅
 - `grep "Preview|preview|TextView" nsh-app --include=*.ts{,x}`（去掉 node_modules/.nsh）：11 处命中，逐处判定**全部合理**——
   - `note_list/types|helpers|note_row`、`trash_page/types`、`EditorHarness` 的 `contentPreview`/`previewLine` = **列表行摘要**（笔记列表第二行），与编辑器预览面板无关，保留；
   - `editor_page.tsx` 头注「P4-3a 起 `TextView` 预览面板移除（WYSIWYG 即排版视图，预览无意义）」、「`Editor` 保留为『源码模式』（原 `preview` 语义反转且改名）」= **历史因果注释**，记录为什么现在没有预览面板，保留；
@@ -1422,3 +1422,43 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 | `autoFocus` 真机焦点 | headless 覆盖不到 | 真机验证 |
 
 > 结论：**P4-4 后，「0.4.0 迁移 + 链接格式 + RichEditor 编辑器」三段在代码与文档层面均已闭合**；剩余全是真机/发布/上游裁决项，不再属代码收尾范围。
+
+### 合并与主树复验（`a317f2d8`，2026-11-06）
+
+合并 commit `a317f2d8`（`--no-ff`），分支提交 `48d73b80`/`4c08f725`，基线 `d4794c87`；diff 6 文件 +141/−22。
+
+独立审查：**APPROVE**——AC1–AC11 全部亲手复验。**审查者做了反向验证**：临时删掉 `syncActiveNoteLink()` 里新增的 `id === currentId → null` 那行，新测试立刻变红（`expected true to be false`），还原后转绿 —— 证明这条测试真的锁住了「自链不显示气泡菜单」。Preview/TextView 的 11 处命中逐处复核，执行者「无预览面板残留」的判定成立。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248） |
+| `nsh test --filter editor` | **37/37**（2m53s，含新自链用例） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（50.6s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+| `dart format --output=none --set-exit-if-changed tool` | 0 changed |
+| markdown linter | 全有效 |
+
+> §28 自身有一处自指瑕疵（把两个陈旧 hash 的字面量写进了「grep 应为空」的同一段，导致那句 grep 永远命中自己）。合并后已改：不复述陈旧 hash 的字面量，改为描述性说法，全仓再 grep 确实为空。
+
+### 整支分支收工（2026-11-06）
+
+`migration/nsh` 上 NSH 重构的全部代码/文档工作已闭合，四段主线：
+
+1. **P1–P3（0.3.0 时代）**：死代码清理 −10 738 行、五个入口文件拆分（`lib.rs` 1177→17 / `note_list` 799→88 / `editor_page` 981→343 / `devices_page` 1544→229 / `trash_page` 404→209 / `settings_page` 454→242 / `components` 698→22）、行尾统一、门禁与 lint 工具收敛。
+2. **P4-1**：nsh 0.3.0 → 0.4.0 工具链迁移（7 处 breaking API 签名适配，行为不变）。
+3. **P4-2 / P4-2b**：笔记链接从私有 `[[id|alias]]` 迁到标准 Markdown `[alias](cardmind://note/<id>)`（Rust 双格式解析 + 惰性迁移），并把两处病态输入 O(n²) 修成 O(n)（Rust 825→1 ms / TS 7134→0.02 ms）。
+4. **P4-3a / P4-3b / P4-4**：编辑态换 `RichEditor`（WYSIWYG 默认 + 源码模式可切），`[[` suggestion 候选、`cardmind://` 链接「打开笔记」跳转、自链不出气泡菜单。
+
+**当前测试总量**：`npx tsx --test` 248（247 pass + 1 skip）、`nsh test --filter editor` 37、`nsh test` 全量 39（38 pass + 1 基线既有 Windows-only 失败）、`cargo test` 22 个 target 0 failed。
+
+**剩余已知问题（均非本轮引入，或属真机/上游）**：
+
+| 项 | 性质 |
+|---|---|
+| `RichEditor` 首挂载 O(块数²)（`nsh-core` handler 表全表扫） | 上游缺陷；§27 已有 PoC + 可提交的 issue 草稿；用户裁决暂不改本地 |
+| `coexist_notes_probe` 在 macOS 必挂 | Windows-only 测试，真机环境项 |
+| Windows 中文 IME / 移动端软键盘·选区手柄·长按菜单 | 真机验证项（清单见 `docs/testing/`） |
+| `.nshpkg` 签名与分发 | 发布工程项 |
