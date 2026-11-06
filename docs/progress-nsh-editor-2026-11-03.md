@@ -1494,7 +1494,7 @@ Flutter CI 已随平台工程删除后，仓库唯一 workflow 是 `rust_quality
 - 自查：无 `--frozen-lockfile`、无 `cache: pnpm`、无无 filter 的 `nsh test`；install 命令与已核实文本逐字一致（URL、`NSH_VERSION=v0.4.0`、`$GITHUB_PATH` 两行）。
 - `dart run tool/git_gate.dart full --dry-run` ✅；`dart run tool/lint/markdown_references_linter.dart` ✅（本 worktree 需把主仓 `nsh-app/.cargo/config.toml` 复制过来、`node_modules` 建软链，两个均为 gitignore 的本地文件，属 worktree 环境差而非新增坏引用）；`dart format --set-exit-if-changed tool` 0 changed。
 
-### 审查后修正（修复轮，审查见 `.pipeline/reviewer.md`）
+### 审查后修正（修复轮，worktree 内审查报告）
 
 审查后修正：artifact 嵌套路径 + if-no-files-found + cache key 分 job + web 系统依赖。逐项：
 
