@@ -1320,3 +1320,29 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 
 - **检索结果：没有人报过。** 在 `longbridge/nsh` 的 issues 里按 `RichEditor` / `slow` / `perf` / `hang` / `mount` / `performance` 检索（GitHub API + HTML 两种方式），只命中无关项——`Web: RichEditor doesn't select text on mouse drag`（选区交互）、`Pasting a long unbroken run into a multiline Input stalls the engine thread for seconds`（Input 粘贴）、`base: DataTable stops updating and can freeze the debug macOS host`（DataTable）。没有关于组件区域 reconcile / handler 表全表扫的 issue。
 - **已写好 PoC + 说明 + 可直接提交的英文 issue 草稿**：`docs/research/nsh-editor/07-richeditor-mount-quadratic.md`（含最小复现两文件、测量表、`sample` 热点与计数器证据、已验证的 40 行 patch、根治方案、影响面、issue 正文）。等用户审阅后再决定是否提交。
+
+### 合并与主树复验（`fde5146f`，2026-11-06）
+
+合并 commit `fde5146f`（`--no-ff`），分支提交 `25fc5431`/`9f48ff92`，基线 `8da0763e`；diff 14 文件 +560/−62。
+
+独立审查：**APPROVE**——AC1–AC11 全部亲手复验；`suggestion({char:"[["})` 确认排在 `plugins[0]`（先于 `starterKit()`，否则 Enter 被 `splitBlock` 吃掉）；多字符触发有测试锁（单 `[` 不出、`[[` 才出）；`onNavigateNote` 已是活接缝（桌面注入→切选中、未注入→push 两条路径各有测试）；31→36 为纯追加。
+
+| 命令（主树 `migration/nsh`） | 结果 |
+|---|---|
+| `nsh check .` | exit 0 |
+| `npx tsx --test "*_test.ts"` | **247 pass / 1 skipped / 0 fail**（248） |
+| `nsh test --filter "[["` | **6/6**（1m00s） |
+| `nsh test --filter "链接"` | **4/4**（28.9s） |
+| `nsh test --filter editor` | **36/36**（1m45s；perf 20k：open 8162ms、toRich p50 10020ms、toSource p50 218ms） |
+| `nsh test --filter "note: 移动布局"` | **1/1**（22.4s） |
+| `nsh package . --target macos` | exit 0，`.nsh/out/cardmind.app` |
+| `cd rust-backend && cargo test` | exit 0，**22 个 target 0 failed** |
+| `dart run tool/git_gate.dart full --dry-run` | exit 0，✅ full 门禁通过 |
+
+> 合并时 本文档 再次出现「两边同时向文件尾追加」的冲突：HEAD 有 §27（SPIKE）与本轮 issue 素材、分支有 §26（P4-3b）。按章节号排序解决（§26 → §27 → issue 素材）。
+
+#### 审查的 3 条非阻塞观察（留给 P4-4 收尾轮）
+
+1. §26 提交表写 `90b3aa7d`，实际 docs commit 是 `9f48ff92`（rebase 后未回填）——文档瑕疵，**下一轮顺手改**。
+2. 「链接指向当前笔记不动作」无测试覆盖；且自链上气泡菜单仍显示「打开笔记」死按钮——建议 `syncActiveNoteLink` 对自链置 null（菜单干脆不出）。
+3. `allowSpaces: true` 偏离 task.md 建议的 `false`，但与源码模式 `linkPrefixFromContext` 同口径且有测试锁，判定合理。
