@@ -98,11 +98,12 @@ jobs:
         # pnpm 12 首跑 ERR_PNPM_IGNORED_BUILDS（esbuild build 脚本被拦）→ strict-dep-builds=false。
         run: pnpm install --config.strict-dep-builds=false
 
+      - name: nsh check (typecheck + app crate build)
+        # 必须先于 tsx --test：check 生成 .nsh/types，build_script_test.ts 依赖它。
+        run: nsh check .
+
       - name: Run TSX unit tests
         run: npx tsx --test "*_test.ts"
-
-      - name: nsh check (typecheck + app crate build)
-        run: nsh check .
 
       - name: nsh test (editor behavior)
         # 无 filter 的 nsh test 必挂：app crate tests/coexist_notes_probe.rs ›
@@ -128,9 +129,11 @@ jobs:
 
       - name: Install system dependencies
         # wayland-sys（rfd→ashpd→wayland-client）要系统 libwayland-dev；ubuntu-26.04 不预装。
+        # nsh package --target linux 本地编译 GTK4 runner（glib-sys/gtk4-sys），
+        # 需 clang + libclang-dev + libgtk-4-dev + libwebkitgtk-6.0-dev（同 nsh 官方 CI 清单）。
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev clang libclang-dev libgtk-4-dev libwebkitgtk-6.0-dev
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -177,7 +180,7 @@ jobs:
 
   package-macos:
     name: Package (macos)
-    runs-on: macos-14
+    runs-on: macos-latest
     if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) }}
     defaults:
       run:
@@ -312,6 +315,9 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          # nsh package --target web 把 app crate 编到 wasm32；预装 target 防 "can't find crate for core"。
+          targets: wasm32-unknown-unknown
 
       - name: Cache nsh distribution
         uses: actions/cache@v4

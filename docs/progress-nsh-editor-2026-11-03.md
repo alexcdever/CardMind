@@ -1537,3 +1537,30 @@ rfd v0.15.4（文件对话框，feature xdg-portal，非 gtk3）
 
 - `rust_quality.yml` 自 10-13 起即因同一 libwayland 缺口 broken（既有 broken，非本轮引入），本轮随两个 job 的新增步骤一并修复。
 - `Package macos` 在该 run 0s cancelled：runner 分配问题，与依赖无关，未定位。
+
+## 31. CI 第二轮：quality 顺序 + linux GTK4 依赖 + web wasm target + macos 标签（2026-11-07，worktree `ci-pack-deps`，基线 `main@0df34f8a`）
+
+远端 run `42249740221` 实测 §30 的 `wayland` 修复已生效（wayland-sys 通过），但暴露出 4 个新问题，本轮逐项修复。
+
+### 失败点与修法
+
+| Job | 失败点 | 修法 |
+|---|---|---|
+| `nsh-quality` | `npx tsx --test` 在 `nsh check .` 之前跑，`module_test.ts` 断言 `.nsh/types/app/native.d.ts` 存在（check 生成） | 交换顺序：`nsh check .` → `npx tsx --test` → `nsh test --filter` ×2 |
+| `package-linux` | `glib-sys` 失败：`nsh package --target linux` **本地编译** Linux 的 GTK4 runner（不在预构建 runtime 里） | install 包列表追加 `clang libclang-dev libgtk-4-dev libwebkitgtk-6.0-dev` |
+| `package-web` | `can't find crate for core`：app crate 被编译到 wasm 目标 | `dtolnay/rust-toolchain` 的 `with:` 加 `targets: wasm32-unknown-unknown` |
+| `package-macos` | annotation `The configuration 'macos-14-arm64-us-default' is not supported`：runner 池无该 image | `runs-on: macos-14` → `macos-latest` |
+
+### 改动（纯 YAML，无构建）
+
+- `.github/workflows/nsh_app.yml`：
+  - `nsh-quality`：`nsh check` 步骤（L103）提到 `npx tsx --test`（L106）之前；
+  - `package-linux`：`Install system dependencies` 包列表末尾追加 `clang libclang-dev libgtk-4-dev libwebkitgtk-6.0-dev`（L136，与 nsh 官方 CI `linux.yml` v0.4.0 清单一致；`xvfb` 只为真窗口测试、打包不带；`rfd` 走 `xdg-portal` 故**不加** `libgtk-3-dev`）；
+  - `package-web`：`Setup Rust` 加 `targets: wasm32-unknown-unknown`（L320）；
+  - `package-macos`：`runs-on: macos-latest`（L183）。
+- `package-windows`（已绿）与 `rust_quality.yml` 不动；三个 Ubuntu job 已有的 `libwayland-dev libxkbcommon-dev` 保留。
+
+### 本地验证
+
+- `ruby -ryaml` 解析合法 ✅；grep 四处改动各自命中 ✅（check 行号 103 < tsx 行号 106；GTK4 包在 L136；wasm target 在 L320；macos-latest 在 L183）。
+- `dart run tool/git_gate.dart full --dry-run` ✅；markdown linter ✅；`dart format --set-exit-if-changed tool` 0 changed ✅。
