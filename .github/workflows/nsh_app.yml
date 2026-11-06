@@ -47,9 +47,10 @@ jobs:
 
       - name: Install system dependencies
         # iroh / aws-lc-rs / rusqlite-bundled 在 Ubuntu 上需要这些构建工具（防御性安装）。
+        # wayland-sys（rfd→ashpd→wayland-client）要系统 libwayland-dev；ubuntu-26.04 不预装。
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -126,9 +127,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install system dependencies
+        # wayland-sys（rfd→ashpd→wayland-client）要系统 libwayland-dev；ubuntu-26.04 不预装。
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -306,7 +308,7 @@ jobs:
         # 与 nsh-quality / package-linux 一致（若 --target web 需编 Rust crate 则有依赖）。
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

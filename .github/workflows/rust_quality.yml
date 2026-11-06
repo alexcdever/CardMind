@@ -25,6 +25,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        # wayland-sys（rfd→ashpd→wayland-client）在 Ubuntu CI 上要系统 libwayland-dev；
+        # ubuntu-26.04 不预装。rust-backend 与 nsh-app 同一依赖链。
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -95,6 +102,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        # wayland-sys（rfd→ashpd→wayland-client）在 Ubuntu CI 上要系统 libwayland-dev；
+        # ubuntu-26.04 不预装。rust-backend 与 nsh-app 同一依赖链。
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake libwayland-dev libxkbcommon-dev
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
