@@ -1198,3 +1198,51 @@ P4-2 审查发现的 4 项非阻塞问题收尾：Rust/TS 两处病态输入 O(n
 - **处置建议（复审结论）**：P4-3b 加降级——`content.length >= 30_000` 默认进源码模式 + 顶栏提示可切排版；等真 release 包实测后回调阈值（50k<3s 可放宽、>5s 收紧到 20k）。降级路径本身要有测试。
 
 > **用户裁决（2026-11-06）**：上述性能风险**不做降级**——保持 WYSIWYG 永远默认，接受长文档打开慢（20k 字符 dev 构建 ≈ 8 s）。若将来 release 实测仍不可接受，再另行立项。
+
+## 27. SPIKE：`RichEditor` 首挂载 O(N²) 根因定位（2026-11-06，一次性剖析子代理）
+
+### 结论：不是布局固有成本，是 `nsh-core` 组件模型的意外 O(N²)
+
+**n² 随「块数」，不随「字符数」**：
+
+| 变体 | 挂载耗时（dev/headless） |
+|---|---|
+| 单段 5k 字符 | 199 ms |
+| 单段 20k 字符 | 179 ms |
+| 单段 50k 字符 | 219 ms |
+| 100 短段（~40 字/段） | 253 ms |
+| 500 短段 | 2 366 ms |
+| 1 000 短段 | 9 741 ms |
+| 2 000 短段 | 33 461 ms |
+
+→ 块数从 100 到 2000（20×）耗时涨 132×，指数 ≈1.9。**字符数只经行数间接影响**。
+
+### 热点（n=2000，macOS `sample` + 计数器插桩）
+
+单次 commit 25.7–33.4 s（`--trace` 显示是**一个巨型 batch** 18 036 mount items，不是多次累积）：
+
+| 位置 | 占比 | 证据 |
+|---|---|---|
+| `nsh_core::core::views::reconcile_region`（`match_children` + `forget_released`） | **~53 %** | `forget_released` 被调 16 384 次、累计扫描 **162 097 528** 次 handler/bound 表项 |
+| `handle` / `next_handler`（事件派发线性扫全组件 handler 表） | **~33 %** | `next_handler` 8 192 次调用、累计 **24 629 248** 次扫描 |
+| `compute_child_layout`（taffy） | ~5 % | 线性，非主因 |
+
+排除项：`node_focused` / `node_selected` / `node_decoration_classes` / `syntect` / `two_face` / `geometry` 均**未进热点**。
+
+**机理**：`<RichEditor>` 的每个块视图都挂到同一个组件实例的**扁平 handler/绑定表**；每个「区域 reconcile」与每次事件派发都全表扫一遍。N 块 → N 区域 → O(N²)。
+
+### 验证 patch（`nsh-core/src/core/views.rs`，~40 行代码）
+
+`reconcile_region` 先算 `before`/`after` 节点 id，新增 `forget_released_ids`（空释放直接 return + 1 次哈希查表替代 4 次），不再每区域全表 `forget_released`：
+
+- 未改 `nsh-core`（clean 基线）：**39 071 ms**
+- patch 后：**15 667 ms**（≈2.5×，保守 −38 %～−60 %）
+- 残余：`next_handler` 仍每次事件线性扫全表，**O(N²) 未根治**
+
+归档：`.git/pipeline/spikes/richeditor-perf-{notes.md,patch.diff}`、upstream repro（2000 段 vs 单段 50k 对照，dev/headless，~45 行）。
+
+### 处置决定（用户 2026-11-06）
+
+**不改本地、不提 upstream，继续 P4-3b 交互。** 理由：长文档在真实使用中占比低，且 release 构建可能快一个量级；一旦实际手感不可接受，再考虑（a）本地 vendor `nsh-core` 打上述 patch，或（b）完整方案——把 `inst.handlers` 从 `Vec` 改成按 node id 索引（~150–250 行，跨 `components.rs`/`views.rs`/`slots.rs`，可根治两个热点，风险中：`Instance` 是核心结构，须保 handler 派发顺序）。
+
+> 归因提醒：早期「20k ≈ 8 s」是 **~200 段**的典型长文；若笔记是「大量短段」（如 2000 段列表/日志），同样字符数会慢一个数量级。这也是为什么这条 n² 在「按字符数」的直觉下容易被低估。
